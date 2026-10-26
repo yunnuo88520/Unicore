@@ -9,7 +9,7 @@ metadata:
 
 ## trigger
 
-新增平台保护 API、角色或敏感操作；M1 无身份体系，需先明确 M2 实现范围。
+新增平台保护 API、角色或敏感操作；沿用 M2a 的 session/RBAC 和权限清单。
 
 ## inputs
 
@@ -18,7 +18,7 @@ metadata:
 ## steps
 
 1. 阅读原始设计第 7 节、PRD 与身份 ADR。
-2. 若无 RBAC 基础，先建立 M2 模块、迁移与安全验收，不只补前端判断。
+2. 沿用 internal/platform 与 platformsql 的权限关系；新增点同步 docs/api/permissions.md、seed/迁移和安全验收。
 3. 登记 users:read 等权限，服务端默认拒绝，逐 API 验证 session 和权限。
 4. profile 隔离，桌面/CLI 不 import platform；敏感操作写脱敏审计。
 5. 保护最后一个超级管理员，UI 只控制交互可见性。

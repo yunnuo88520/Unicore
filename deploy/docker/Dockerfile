@@ -17,10 +17,11 @@ COPY --from=frontend /src/apps/web/static ./apps/web/static
 ARG VERSION=0.1.0
 ARG COMMIT=dev
 ARG BUILD_TIME=unknown
-RUN CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X github.com/yunnuo/unicore/internal/buildinfo.Version=${VERSION} -X github.com/yunnuo/unicore/internal/buildinfo.Commit=${COMMIT} -X github.com/yunnuo/unicore/internal/buildinfo.BuildTime=${BUILD_TIME}" -o /server ./cmd/server
+RUN CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X github.com/yunnuo/unicore/internal/buildinfo.Version=${VERSION} -X github.com/yunnuo/unicore/internal/buildinfo.Commit=${COMMIT} -X github.com/yunnuo/unicore/internal/buildinfo.BuildTime=${BUILD_TIME}" -o /server ./cmd/server && mkdir /data && chmod 700 /data
 
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=backend /server /server
-ENV APP_LISTEN=0.0.0.0:8080 APP_DEPLOYMENT_KIND=docker APP_PROFILE=web-standalone
+COPY --from=backend --chown=65532:65532 /data /data
+ENV APP_LISTEN=0.0.0.0:8080 APP_DEPLOYMENT_KIND=docker APP_DATA_DIR=/data
 EXPOSE 8080
 ENTRYPOINT ["/server"]

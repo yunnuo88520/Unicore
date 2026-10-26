@@ -1,8 +1,9 @@
 // Author: yunnuo <ymz@ebox.vip>
-import { test, expect } from '@playwright/test';
+import { test, expect, installStandalone } from './fixtures';
 
-test('real Go execution, themes and responsive layout', async ({ page }, testInfo) => {
-  await page.goto('/');
+test('real Go execution, themes and responsive layout', async ({ page, instance }, testInfo) => {
+  await installStandalone(instance);
+  await page.goto(instance.url);
   await expect(page.getByRole('heading', { name: '一份核心，无限可能.' })).toBeVisible();
   await page.getByLabel('输入文本').fill('hello world');
   await page.getByRole('button', { name: '运行用例' }).click();
@@ -20,10 +21,12 @@ test('real Go execution, themes and responsive layout', async ({ page }, testInf
   await expect(page.getByText('当前偏好：跟随系统 · 自动保存')).toBeVisible();
 });
 
-test('API returns JSON and unsupported features remain absent', async ({ request }) => {
+test('API returns JSON and unsupported features remain absent', async ({ instance }) => {
+  await installStandalone(instance);
+  const request = instance.request;
   const bootstrap = await (await request.get('/api/v1/bootstrap')).json();
   expect(bootstrap.data.capabilities.authentication).toBe(false);
-  for (const path of ['/api/v1/install/status', '/api/v1/admin/users', '/api/v1/admin/update/check']) {
+  for (const path of ['/api/v1/admin/users', '/api/v1/admin/update/check']) {
     const response = await request.get(path);
     expect(response.status()).toBe(404);
     expect((await response.json()).code).toBe('NOT_FOUND');

@@ -1,9 +1,9 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Shared UI client; pages know neither fetch nor Wails globals.
  */
-import type { Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse } from '@unicore/contracts';
+import type { Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch } from '@unicore/contracts';
 
-export type { Bootstrap, ExecuteInput, ExecuteOutput, Profile } from '@unicore/contracts';
+export type { Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch } from '@unicore/contracts';
 
 export class AppError extends Error {
   constructor(public readonly code: string, message: string, public readonly requestId = '') { super(message); this.name = 'AppError'; }
@@ -13,6 +13,22 @@ export interface AppClient {
   readonly transport: 'http' | 'wails';
   bootstrap(): Promise<Bootstrap>;
   execute(input: ExecuteInput): Promise<ExecuteOutput>;
+  settings?(): Promise<Settings>;
+  patchSettings?(input: SettingPatch): Promise<Settings>;
+  web?: WebClient;
+}
+
+export interface WebClient {
+  installStatus(): Promise<InstallStatus>;
+  verifyDatabase(token: string, input: DatabaseInput): Promise<{ success: boolean }>;
+  completeInstall(token: string, input: InstallInput): Promise<InstallResult>;
+  captcha(): Promise<Captcha>;
+  login(input: LoginInput): Promise<Session>;
+  logout(): Promise<{ success: boolean }>;
+  dashboard(): Promise<Dashboard>;
+  users(search: string, page: number): Promise<UserList>;
+  createUser(input: UserCreate): Promise<User>;
+  updateUser(id: string, input: UserUpdate): Promise<User>;
 }
 
 function unwrap<T>(response: { code: string; message: string; data: T; request_id: string }): T {
@@ -20,12 +36,17 @@ function unwrap<T>(response: { code: string; message: string; data: T; request_i
   return response.data;
 }
 
-export class HttpTransport implements AppClient {
+export class HttpTransport implements AppClient, WebClient {
   readonly transport = 'http' as const;
+  readonly web: WebClient = this;
+  private csrf = '';
+  private platform = false;
   constructor(private readonly baseURL = '', private readonly fetcher: typeof fetch = globalThis.fetch.bind(globalThis)) {}
   private async request<T>(path: string, init?: RequestInit): Promise<T> {
     let response: Response;
-    try { response = await this.fetcher(`${this.baseURL}/api/v1${path}`, { credentials: 'same-origin', ...init, signal: AbortSignal.timeout(15000) }); }
+    const headers = new Headers(init?.headers);
+    if (this.csrf) headers.set('X-CSRF-Token', this.csrf);
+    try { response = await this.fetcher(`${this.baseURL}/api/v1${path}`, { credentials: 'same-origin', ...init, headers, signal: AbortSignal.timeout(20000) }); }
     catch { throw new AppError('NETWORK_ERROR', '连接服务失败，请确认 Go 服务正在运行'); }
     let envelope: { code: string; message: string; data: T; request_id: string };
     try { envelope = await response.json(); }
@@ -33,13 +54,28 @@ export class HttpTransport implements AppClient {
     if (!response.ok && envelope.code === 'OK') throw new AppError('HTTP_ERROR', `服务请求失败 (${response.status})`);
     return unwrap(envelope);
   }
-  bootstrap() { return this.request<Bootstrap>('/bootstrap'); }
+  async bootstrap() { const data = await this.request<Bootstrap>('/bootstrap'); this.csrf = data.csrf_token ?? ''; this.platform = data.profile === 'web-platform'; return data; }
   execute(input: ExecuteInput) { return this.request<ExecuteOutput>('/core/execute', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) }); }
+  private send<T>(path: string, input: unknown, method = 'POST', headers: Record<string, string> = {}) { return this.request<T>(path, { method, headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(input) }); }
+  installStatus() { return this.request<InstallStatus>('/install/status'); }
+  verifyDatabase(token: string, input: DatabaseInput) { return this.send<{ success: boolean }>('/install/verify-db', input, 'POST', { 'X-Bootstrap-Token': token }); }
+  completeInstall(token: string, input: InstallInput) { return this.send<InstallResult>('/install/complete', input, 'POST', { 'X-Bootstrap-Token': token }); }
+  captcha() { return this.request<Captcha>('/auth/captcha'); }
+  async login(input: LoginInput) { const session = await this.send<Session>('/auth/login', input); this.csrf = session.csrf_token; return session; }
+  async logout() { const data = await this.send<{ success: boolean }>('/auth/logout', {}); this.csrf = ''; return data; }
+  dashboard() { return this.request<Dashboard>('/admin/dashboard'); }
+  users(search: string, page: number) { return this.request<UserList>(`/admin/users?search=${encodeURIComponent(search)}&page=${page}`); }
+  createUser(input: UserCreate) { return this.send<User>('/admin/users', input); }
+  updateUser(id: string, input: UserUpdate) { return this.send<User>(`/admin/users/${encodeURIComponent(id)}`, input, 'PATCH'); }
+  settings() { return this.request<Settings>(this.platform ? '/admin/settings' : '/settings'); }
+  patchSettings(input: SettingPatch) { return this.send<Settings>(this.platform ? '/admin/settings' : '/settings', input, 'PATCH'); }
 }
 
 export interface DesktopBridge {
   Bootstrap(): Promise<BootstrapResponse>;
   Execute(input: ExecuteInput): Promise<ExecuteResponse>;
+  Settings?(): Promise<SettingsResponse>;
+  PatchSettings?(input: SettingPatch): Promise<SettingsResponse>;
 }
 
 export class WailsTransport implements AppClient {
@@ -47,4 +83,6 @@ export class WailsTransport implements AppClient {
   constructor(private readonly bridge: () => DesktopBridge) {}
   async bootstrap() { return unwrap(await this.bridge().Bootstrap()); }
   async execute(input: ExecuteInput) { return unwrap(await this.bridge().Execute(input)); }
+  async settings() { const method = this.bridge().Settings; if (!method) throw new AppError('NOT_AVAILABLE', '此版本不支持持久化设置'); return unwrap(await method()); }
+  async patchSettings(input: SettingPatch) { const method = this.bridge().PatchSettings; if (!method) throw new AppError('NOT_AVAILABLE', '此版本不支持持久化设置'); return unwrap(await method(input)); }
 }

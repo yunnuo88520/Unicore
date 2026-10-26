@@ -5,7 +5,7 @@ import { beforeEach, expect, it, vi } from 'vitest';
 import { Workspace } from './App';
 import { AppError, type AppClient, type Bootstrap } from '@unicore/sdk';
 
-const metadata: Bootstrap = { profile: 'web-standalone', version: '0.1.0', commit: 'dev', build_time: 'unknown', stage: 'M1', deployment_kind: 'development', capabilities: { execute: true, authentication: false, database: false, installation: false, license: false, updater: false } };
+const metadata: Bootstrap = { profile: 'web-standalone', version: '0.1.0', commit: 'dev', build_time: 'unknown', stage: 'M1', deployment_kind: 'development', installed: true, site_name: 'Unicore', admin_path: '/admin', capabilities: { execute: true, authentication: false, database: false, installation: false, settings: false, license: false, updater: false } };
 function client(): AppClient { return { transport: 'http', bootstrap: vi.fn().mockResolvedValue(metadata), execute: vi.fn().mockResolvedValue({ characters: 42, words: 6, lines: 3, bytes: 66, sha256: 'abc123' }) }; }
 beforeEach(() => { window.location.hash = ''; localStorage.clear(); });
 it('calls the supplied client and displays actual output', async () => {

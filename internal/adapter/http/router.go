@@ -18,6 +18,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/yunnuo/unicore/internal/adapter/presenter"
 	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/usecase"
 )
 
@@ -26,6 +27,7 @@ type Config struct {
 	Core     usecase.Executor
 	Assets   fs.FS
 	Logger   *slog.Logger
+	Install  *install.Manager
 }
 
 func New(config Config) http.Handler {
@@ -48,16 +50,43 @@ func New(config Config) http.Handler {
 			next.ServeHTTP(w, r)
 		})
 	})
+	if config.Install != nil {
+		router.Use(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if sameOrigin(w, r) {
+					next.ServeHTTP(w, r)
+				}
+			})
+		})
+	}
 	router.Route("/api/v1", func(api chi.Router) {
 		api.Get("/bootstrap", func(w http.ResponseWriter, r *http.Request) {
-			writeJSON(w, 200, contracts.BootstrapResponse{Code: "OK", Data: config.Metadata, RequestID: w.Header().Get("X-Request-ID")})
+			data := config.Metadata
+			if config.Install != nil {
+				data = metadata(config, r)
+			}
+			writeJSON(w, 200, contracts.BootstrapResponse{Code: "OK", Data: data, RequestID: w.Header().Get("X-Request-ID")})
 		})
 		for _, route := range []string{"/health/live", "/health/ready"} {
 			api.Get(route, func(w http.ResponseWriter, r *http.Request) {
+				if config.Install != nil && r.URL.Path == "/api/v1/health/ready" {
+					store, _, _, _ := config.Install.Services()
+					if store == nil {
+						failure(w, 503, "NOT_READY", "安装尚未完成")
+						return
+					}
+					if err := store.DB.PingContext(r.Context()); err != nil {
+						failure(w, 503, "NOT_READY", "存储尚未就绪")
+						return
+					}
+				}
 				writeJSON(w, 200, contracts.HealthResponse{Code: "OK", Data: contracts.Health{Status: "ok"}, RequestID: w.Header().Get("X-Request-ID")})
 			})
 		}
 		api.Post("/core/execute", func(w http.ResponseWriter, r *http.Request) {
+			if config.Install != nil && !coreAccess(config.Install, w, r) {
+				return
+			}
 			requestID := w.Header().Get("X-Request-ID")
 			fail := func(status int, code, message string) {
 				writeJSON(w, status, contracts.ErrorResponse{Code: code, Message: message, RequestID: requestID})
@@ -107,6 +136,9 @@ func New(config Config) http.Handler {
 			}
 			writeJSON(w, 200, contracts.ExecuteResponse{Code: "OK", Data: output, RequestID: requestID})
 		})
+		if config.Install != nil {
+			mountWeb(api, config)
+		}
 	})
 	apiError := func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 404, contracts.ErrorResponse{Code: "NOT_FOUND", Message: "接口不存在", RequestID: w.Header().Get("X-Request-ID")})
@@ -115,6 +147,28 @@ func New(config Config) http.Handler {
 		if r.URL.Path == "/api" || strings.HasPrefix(r.URL.Path, "/api/") {
 			apiError(w, r)
 			return
+		}
+		if config.Install != nil && r.Method == http.MethodGet {
+			if !config.Install.Installed() && r.URL.Path != "/install" && !strings.Contains(path.Base(r.URL.Path), ".") {
+				http.Redirect(w, r, "/install", http.StatusSeeOther)
+				return
+			}
+			if config.Install.Installed() && r.URL.Path == "/install" {
+				http.Redirect(w, r, "/", http.StatusSeeOther)
+				return
+			}
+			_, _, identity, _ := config.Install.Services()
+			prefix := config.Install.AdminPath(r.Context())
+			if r.URL.Path == "/admin" && prefix != "/admin" {
+				http.NotFound(w, r)
+				return
+			}
+			if r.URL.Path == prefix || strings.HasPrefix(r.URL.Path, prefix+"/") {
+				if identity == nil {
+					http.NotFound(w, r)
+					return
+				}
+			}
 		}
 		serveSPA(config.Assets, w, r)
 	})

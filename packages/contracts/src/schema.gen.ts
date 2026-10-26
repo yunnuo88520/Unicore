@@ -22,6 +22,7 @@ export interface Capabilities {
   authentication: boolean;
   license: boolean;
   updater: boolean;
+  settings: boolean;
 }
 
 export interface Bootstrap {
@@ -32,6 +33,14 @@ export interface Bootstrap {
   stage: string;
   deployment_kind: string;
   capabilities: Capabilities;
+  installed: boolean;
+  site_name: string;
+  admin_path: string;
+  current_user?: User;
+  csrf_token?: string;
+  site_description?: string;
+  site_copyright?: string;
+  theme?: string;
 }
 
 export interface BootstrapResponse {
@@ -62,5 +71,191 @@ export interface HealthResponse {
   code: string;
   message: string;
   data: Health;
+  request_id: string;
+}
+
+export interface DatabaseInput {
+  driver: "sqlite" | "postgres" | "mysql";
+  dsn: string;
+}
+
+export interface EnvironmentCheck {
+  name: string;
+  ok: boolean;
+  detail: string;
+}
+
+export interface InstallStatus {
+  status: string;
+  profile: Profile;
+  database_options: Array<string>;
+  checks: Array<EnvironmentCheck>;
+}
+
+export interface InstallInput {
+  profile: Profile;
+  database: DatabaseInput;
+  site_name: string;
+  base_url: string;
+  admin_username: string;
+  admin_email: string;
+  admin_password: string;
+}
+
+export interface InstallResult {
+  profile: Profile;
+  site_url: string;
+  admin_url: string;
+  settings_url: string;
+}
+
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  status: string;
+  roles: Array<string>;
+  permissions: Array<string>;
+  created_at: number;
+  last_login_at: number;
+}
+
+export interface UserList {
+  items: Array<User>;
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface UserCreate {
+  username: string;
+  email: string;
+  password: string;
+  role: string;
+}
+
+export interface UserUpdate {
+  role: string;
+  status: string;
+}
+
+export interface LoginInput {
+  username: string;
+  password: string;
+  captcha_id: string;
+  captcha_answer: string;
+}
+
+export interface Session {
+  user: User;
+  csrf_token: string;
+  expires_at: number;
+}
+
+export interface Captcha {
+  id: string;
+  image: string;
+}
+
+export interface AuditEntry {
+  id: string;
+  actor_id: string;
+  action: string;
+  created_at: number;
+}
+
+export interface Dashboard {
+  total_users: number;
+  today_new_users: number;
+  active_users_7d: number;
+  audit: Array<AuditEntry>;
+}
+
+export interface SettingEntry {
+  key: string;
+  value: string;
+  value_type: string;
+  group: string;
+  label: string;
+  sensitive: boolean;
+}
+
+export interface Settings {
+  items: Array<SettingEntry>;
+}
+
+export interface SettingChange {
+  key: string;
+  value: string;
+}
+
+export interface SettingPatch {
+  changes: Array<SettingChange>;
+}
+
+export interface ActionResult {
+  success: boolean;
+}
+
+export interface InstallStatusResponse {
+  code: string;
+  message: string;
+  data: InstallStatus;
+  request_id: string;
+}
+
+export interface InstallResultResponse {
+  code: string;
+  message: string;
+  data: InstallResult;
+  request_id: string;
+}
+
+export interface UserResponse {
+  code: string;
+  message: string;
+  data: User;
+  request_id: string;
+}
+
+export interface UserListResponse {
+  code: string;
+  message: string;
+  data: UserList;
+  request_id: string;
+}
+
+export interface SessionResponse {
+  code: string;
+  message: string;
+  data: Session;
+  request_id: string;
+}
+
+export interface CaptchaResponse {
+  code: string;
+  message: string;
+  data: Captcha;
+  request_id: string;
+}
+
+export interface DashboardResponse {
+  code: string;
+  message: string;
+  data: Dashboard;
+  request_id: string;
+}
+
+export interface SettingsResponse {
+  code: string;
+  message: string;
+  data: Settings;
+  request_id: string;
+}
+
+export interface ActionResultResponse {
+  code: string;
+  message: string;
+  data: ActionResult;
   request_id: string;
 }

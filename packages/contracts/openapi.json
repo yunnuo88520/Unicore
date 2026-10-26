@@ -1,50 +1,1594 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Unicore M1 API",
+    "title": "Unicore M2 foundation API",
     "version": "0.1.0",
-    "description": "M1 development foundation. Installation and authentication are not implemented.",
-    "contact": { "name": "yunnuo", "email": "ymz@ebox.vip" }
+    "description": "Profile-aware installation, shared Core, persistent settings and platform session/RBAC. Mutating authenticated requests require X-CSRF-Token from bootstrap/session.",
+    "contact": {
+      "name": "yunnuo",
+      "email": "ymz@ebox.vip"
+    }
   },
   "paths": {
     "/api/v1/bootstrap": {
       "get": {
         "operationId": "bootstrap",
-        "responses": { "200": { "description": "Runtime metadata", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BootstrapResponse" } } } } }
+        "responses": {
+          "200": {
+            "description": "Runtime metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BootstrapResponse"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/core/execute": {
       "post": {
         "operationId": "execute",
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ExecuteInput" } } } },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecuteInput"
+              }
+            }
+          }
+        },
         "responses": {
-          "200": { "description": "Text analysis", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ExecuteResponse" } } } },
-          "400": { "description": "Invalid input", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
-          "403": { "description": "Origin rejected", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
-          "413": { "description": "Body too large", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
-          "415": { "description": "JSON required", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+          "200": {
+            "description": "Text analysis",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecuteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "JSON required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/api/v1/health/live": {
-      "get": { "operationId": "liveness", "responses": { "200": { "description": "Process is alive", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HealthResponse" } } } } } }
+      "get": {
+        "operationId": "liveness",
+        "responses": {
+          "200": {
+            "description": "Process is alive",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/v1/health/ready": {
-      "get": { "operationId": "readiness", "responses": { "200": { "description": "M1 stateless core is ready; no database is configured", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HealthResponse" } } } } } }
+      "get": {
+        "operationId": "readiness",
+        "responses": {
+          "200": {
+            "description": "M1 stateless core is ready; no database is configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/install/status": {
+      "get": {
+        "operationId": "installStatus",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstallStatusResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/install/verify-db": {
+      "post": {
+        "operationId": "verifyDatabase",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatabaseInput"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BootstrapToken": []
+          }
+        ]
+      }
+    },
+    "/api/v1/install/complete": {
+      "post": {
+        "operationId": "completeInstall",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstallResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstallInput"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BootstrapToken": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/captcha": {
+      "get": {
+        "operationId": "captcha",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaptchaResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "login",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/session": {
+      "get": {
+        "operationId": "session",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "logout",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/dashboard": {
+      "get": {
+        "operationId": "dashboard",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/users": {
+      "get": {
+        "operationId": "listUsers",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "createUser",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCreate"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/users/{id}": {
+      "patch": {
+        "operationId": "updateUser",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserUpdate"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "/api/v1/admin/settings": {
+      "get": {
+        "operationId": "adminSettings",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "adminPatchSettings",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettingPatch"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/settings": {
+      "get": {
+        "operationId": "localSettings",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "localPatchSettings",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettingPatch"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
-      "Profile": { "type": "string", "enum": ["web-platform", "web-standalone", "desktop", "cli"] },
-      "ExecuteInput": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string", "minLength": 1, "maxLength": 65536, "description": "Non-blank valid UTF-8, at most 65,536 UTF-8 bytes. Never stored." } } },
-      "ExecuteOutput": { "type": "object", "additionalProperties": false, "required": ["characters", "words", "lines", "bytes", "sha256"], "properties": { "characters": { "type": "integer" }, "words": { "type": "integer", "description": "Whitespace-separated fields, not language-specific segmentation" }, "lines": { "type": "integer" }, "bytes": { "type": "integer" }, "sha256": { "type": "string" } } },
-      "Capabilities": { "type": "object", "additionalProperties": false, "required": ["execute", "database", "installation", "authentication", "license", "updater"], "properties": { "execute": { "type": "boolean" }, "database": { "type": "boolean" }, "installation": { "type": "boolean" }, "authentication": { "type": "boolean" }, "license": { "type": "boolean" }, "updater": { "type": "boolean" } } },
-      "Bootstrap": { "type": "object", "additionalProperties": false, "required": ["profile", "version", "commit", "build_time", "stage", "deployment_kind", "capabilities"], "properties": { "profile": { "$ref": "#/components/schemas/Profile" }, "version": { "type": "string" }, "commit": { "type": "string" }, "build_time": { "type": "string" }, "stage": { "type": "string" }, "deployment_kind": { "type": "string" }, "capabilities": { "$ref": "#/components/schemas/Capabilities" } } },
-      "BootstrapResponse": { "type": "object", "additionalProperties": false, "required": ["code", "message", "data", "request_id"], "properties": { "code": { "type": "string" }, "message": { "type": "string" }, "data": { "$ref": "#/components/schemas/Bootstrap" }, "request_id": { "type": "string" } } },
-      "ExecuteResponse": { "type": "object", "additionalProperties": false, "required": ["code", "message", "data", "request_id"], "properties": { "code": { "type": "string" }, "message": { "type": "string" }, "data": { "$ref": "#/components/schemas/ExecuteOutput" }, "request_id": { "type": "string" } } },
-      "ErrorResponse": { "type": "object", "additionalProperties": false, "required": ["code", "message", "request_id"], "properties": { "code": { "type": "string" }, "message": { "type": "string" }, "request_id": { "type": "string" } } },
-      "Health": { "type": "object", "additionalProperties": false, "required": ["status"], "properties": { "status": { "type": "string" } } },
-      "HealthResponse": { "type": "object", "additionalProperties": false, "required": ["code", "message", "data", "request_id"], "properties": { "code": { "type": "string" }, "message": { "type": "string" }, "data": { "$ref": "#/components/schemas/Health" }, "request_id": { "type": "string" } } }
+      "Profile": {
+        "type": "string",
+        "enum": [
+          "web-platform",
+          "web-standalone",
+          "desktop",
+          "cli"
+        ]
+      },
+      "ExecuteInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "text"
+        ],
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 65536,
+            "description": "Non-blank valid UTF-8, at most 65,536 UTF-8 bytes. Never stored."
+          }
+        }
+      },
+      "ExecuteOutput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "characters",
+          "words",
+          "lines",
+          "bytes",
+          "sha256"
+        ],
+        "properties": {
+          "characters": {
+            "type": "integer"
+          },
+          "words": {
+            "type": "integer",
+            "description": "Whitespace-separated fields, not language-specific segmentation"
+          },
+          "lines": {
+            "type": "integer"
+          },
+          "bytes": {
+            "type": "integer"
+          },
+          "sha256": {
+            "type": "string"
+          }
+        }
+      },
+      "Capabilities": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "execute",
+          "database",
+          "installation",
+          "authentication",
+          "license",
+          "updater",
+          "settings"
+        ],
+        "properties": {
+          "execute": {
+            "type": "boolean"
+          },
+          "database": {
+            "type": "boolean"
+          },
+          "installation": {
+            "type": "boolean"
+          },
+          "authentication": {
+            "type": "boolean"
+          },
+          "license": {
+            "type": "boolean"
+          },
+          "updater": {
+            "type": "boolean"
+          },
+          "settings": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Bootstrap": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "profile",
+          "version",
+          "commit",
+          "build_time",
+          "stage",
+          "deployment_kind",
+          "capabilities",
+          "installed",
+          "site_name",
+          "admin_path"
+        ],
+        "properties": {
+          "profile": {
+            "$ref": "#/components/schemas/Profile"
+          },
+          "version": {
+            "type": "string"
+          },
+          "commit": {
+            "type": "string"
+          },
+          "build_time": {
+            "type": "string"
+          },
+          "stage": {
+            "type": "string"
+          },
+          "deployment_kind": {
+            "type": "string"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/Capabilities"
+          },
+          "installed": {
+            "type": "boolean"
+          },
+          "site_name": {
+            "type": "string"
+          },
+          "admin_path": {
+            "type": "string"
+          },
+          "current_user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "csrf_token": {
+            "type": "string"
+          },
+          "site_description": {
+            "type": "string"
+          },
+          "site_copyright": {
+            "type": "string"
+          },
+          "theme": {
+            "type": "string"
+          }
+        }
+      },
+      "BootstrapResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Bootstrap"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "ExecuteResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ExecuteOutput"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "Health": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Health"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "DatabaseInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "driver",
+          "dsn"
+        ],
+        "properties": {
+          "driver": {
+            "type": "string",
+            "enum": [
+              "sqlite",
+              "postgres",
+              "mysql"
+            ]
+          },
+          "dsn": {
+            "type": "string"
+          }
+        }
+      },
+      "EnvironmentCheck": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "ok",
+          "detail"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      },
+      "InstallStatus": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status",
+          "profile",
+          "database_options",
+          "checks"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/Profile"
+          },
+          "database_options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnvironmentCheck"
+            }
+          }
+        }
+      },
+      "InstallInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "profile",
+          "database",
+          "site_name",
+          "base_url",
+          "admin_username",
+          "admin_email",
+          "admin_password"
+        ],
+        "properties": {
+          "profile": {
+            "$ref": "#/components/schemas/Profile"
+          },
+          "database": {
+            "$ref": "#/components/schemas/DatabaseInput"
+          },
+          "site_name": {
+            "type": "string"
+          },
+          "base_url": {
+            "type": "string"
+          },
+          "admin_username": {
+            "type": "string"
+          },
+          "admin_email": {
+            "type": "string"
+          },
+          "admin_password": {
+            "type": "string"
+          }
+        }
+      },
+      "InstallResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "profile",
+          "site_url",
+          "admin_url",
+          "settings_url"
+        ],
+        "properties": {
+          "profile": {
+            "$ref": "#/components/schemas/Profile"
+          },
+          "site_url": {
+            "type": "string"
+          },
+          "admin_url": {
+            "type": "string"
+          },
+          "settings_url": {
+            "type": "string"
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "username",
+          "email",
+          "status",
+          "roles",
+          "permissions",
+          "created_at",
+          "last_login_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "created_at": {
+            "type": "integer"
+          },
+          "last_login_at": {
+            "type": "integer"
+          }
+        }
+      },
+      "UserList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/User"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          }
+        }
+      },
+      "UserCreate": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "username",
+          "email",
+          "password",
+          "role"
+        ],
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        }
+      },
+      "UserUpdate": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "role",
+          "status"
+        ],
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "LoginInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "username",
+          "password",
+          "captcha_id",
+          "captcha_answer"
+        ],
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "captcha_id": {
+            "type": "string"
+          },
+          "captcha_answer": {
+            "type": "string"
+          }
+        }
+      },
+      "Session": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "user",
+          "csrf_token",
+          "expires_at"
+        ],
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "csrf_token": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "integer"
+          }
+        }
+      },
+      "Captcha": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "image"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          }
+        }
+      },
+      "AuditEntry": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "actor_id",
+          "action",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "actor_id": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "integer"
+          }
+        }
+      },
+      "Dashboard": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "total_users",
+          "today_new_users",
+          "active_users_7d",
+          "audit"
+        ],
+        "properties": {
+          "total_users": {
+            "type": "integer"
+          },
+          "today_new_users": {
+            "type": "integer"
+          },
+          "active_users_7d": {
+            "type": "integer"
+          },
+          "audit": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditEntry"
+            }
+          }
+        }
+      },
+      "SettingEntry": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "value",
+          "value_type",
+          "group",
+          "label",
+          "sensitive"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "value_type": {
+            "type": "string"
+          },
+          "group": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "sensitive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Settings": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SettingEntry"
+            }
+          }
+        }
+      },
+      "SettingChange": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "value"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
+      "SettingPatch": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "changes"
+        ],
+        "properties": {
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SettingChange"
+            }
+          }
+        }
+      },
+      "ActionResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "success"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          }
+        }
+      },
+      "InstallStatusResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/InstallStatus"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "InstallResultResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/InstallResult"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "UserResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/User"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "UserListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UserList"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "SessionResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Session"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "CaptchaResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Captcha"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "DashboardResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Dashboard"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "SettingsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Settings"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "ActionResultResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ActionResult"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "BootstrapToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Bootstrap-Token"
+      },
+      "SessionCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "unicore_session"
+      }
     }
   }
 }

@@ -1,6 +1,6 @@
 # Author: yunnuo <ymz@ebox.vip>
 [Unit]
-Description=Unicore M1 development server
+Description=Unicore development server
 After=network.target
 
 [Service]
@@ -9,11 +9,13 @@ Group=unicore
 WorkingDirectory=/var/lib/unicore
 Environment=APP_DEPLOYMENT_KIND=tar
 Environment=APP_LISTEN=127.0.0.1:8080
+Environment=APP_DATA_DIR=/var/lib/unicore
 ExecStart=/opt/unicore/current/bin/server
 Restart=on-failure
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
+ReadWritePaths=/var/lib/unicore
 PrivateTmp=true
 
 [Install]

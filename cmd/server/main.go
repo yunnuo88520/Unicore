@@ -16,28 +16,32 @@ import (
 	webassets "github.com/yunnuo/unicore/apps/web"
 	httpadapter "github.com/yunnuo/unicore/internal/adapter/http"
 	"github.com/yunnuo/unicore/internal/bootstrap"
+	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/runtime"
 )
 
 func main() {
-	listen := flag.String("listen", env("APP_LISTEN", "127.0.0.1:8080"), "HTTP listen address (M1 is for local development)")
-	profileFlag := flag.String("profile", env("APP_PROFILE", runtime.DefaultWebProfile), "web-platform or web-standalone")
+	listen := flag.String("listen", env("APP_LISTEN", "127.0.0.1:8080"), "HTTP listen address (loopback by default)")
+	profileFlag := flag.String("profile", os.Getenv("APP_PROFILE"), "initial web-platform/web-standalone profile; fixed after installation")
+	dataDir := flag.String("data-dir", env("APP_DATA_DIR", "data"), "private persistent data directory")
 	flag.Parse()
-	profile, err := runtime.ParseWebProfile(*profileFlag)
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
 	deployment := env("APP_DEPLOYMENT_KIND", "development")
 	if deployment != "development" && deployment != "tar" && deployment != "docker" {
 		slog.Error("invalid deployment kind")
 		os.Exit(1)
 	}
+	manager, err := install.Open(context.Background(), install.Options{DataDir: *dataDir, Profile: *profileFlag, SecretKey: os.Getenv("APP_SECRET_KEY"), BootstrapToken: os.Getenv("APP_BOOTSTRAP_TOKEN"), AdminPath: os.Getenv("APP_ADMIN_PATH")})
+	if err != nil {
+		slog.Error("initialization failed", "error", err)
+		os.Exit(1)
+	}
+	defer manager.Close()
+	_, _, _, profile := manager.Services()
 	metadata := runtime.Metadata(profile, deployment)
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil)).With("service", "unicore", "profile", profile, "version", metadata.Version)
 	server := &http.Server{
 		Addr:              *listen,
-		Handler:           httpadapter.New(httpadapter.Config{Metadata: metadata, Core: bootstrap.Core(), Assets: webassets.FS(), Logger: logger}),
+		Handler:           httpadapter.New(httpadapter.Config{Metadata: metadata, Core: bootstrap.Core(), Assets: webassets.FS(), Logger: logger, Install: manager}),
 		ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second,
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -48,7 +52,10 @@ func main() {
 		defer cancel()
 		_ = server.Shutdown(shutdownCtx)
 	}()
-	logger.Info("M1 development server started", "event", "server.start", "address", *listen, "authentication", false)
+	logger.Info("server started", "event", "server.start", "address", *listen, "installed", manager.Installed())
+	if !manager.Installed() {
+		logger.Info("installation credential is available in a restricted file", "event", "install.token_file", "path", manager.TokenPath())
+	}
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		logger.Error("server failed", "error", err)
 		os.Exit(1)

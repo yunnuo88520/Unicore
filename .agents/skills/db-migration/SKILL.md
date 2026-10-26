@@ -9,7 +9,7 @@ metadata:
 
 ## trigger
 
-创建或变更 schema/数据格式；M1 无 DB，首次引入先冻结数据库 ADR。
+创建或变更 schema/数据格式；当前 database/sql + modernc SQLite/pgx/MySQL，先读 ADR-0003。
 
 ## inputs
 

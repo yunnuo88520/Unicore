@@ -30,6 +30,6 @@ func Metadata(profile contracts.Profile, deployment string) contracts.Bootstrap 
 	return contracts.Bootstrap{
 		Profile: profile, Version: buildinfo.Version, Commit: buildinfo.Commit,
 		BuildTime: buildinfo.BuildTime, Stage: "M1", DeploymentKind: deployment,
-		Capabilities: contracts.Capabilities{Execute: true},
+		Capabilities: contracts.Capabilities{Execute: true}, Installed: profile == Desktop || profile == CLI, SiteName: "Unicore", AdminPath: "/admin",
 	}
 }

@@ -1,31 +1,24 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 产品基线与当前范围
 
-正式名称 Unicore，命令 unicore，作者 yunnuo / ymz@ebox.vip。完整基线见 [design-v1.1.md](design-v1.1.md)，本文件区分目标与已实现能力。
-
-## 形态矩阵
+Unicore · yunnuo / ymz@ebox.vip。完整目标见 [design-v1.1.md](design-v1.1.md)。当前实现 M1 + M2a，不等同完整 v1。
 
 | 能力 | web-platform | web-standalone | desktop | cli |
 | --- | --- | --- | --- | --- |
-| 共享文本分析 Core | M1 | M1 | M1 | M1 |
-| React / 三态主题 | M1 | M1 | M1 | 不适用 |
-| 传输 | Chi HTTP | Chi HTTP | Wails bridge | 直接调用 |
-| 安装 / DB | M2 待实现 | M2 待实现 | M2 自动 SQLite 待实现 | 禁止强依赖 |
-| 用户 / RBAC | M2 待实现 | 不装配 | 不装配 | 不装配 |
-| SMTP | M2 待实现 | 不装配 | 不装配 | 不装配 |
-| OIDC | M3 待实现 | 不装配 | 不装配 | 不装配 |
-| 备份 / 正式发布 / 升级 | M4 待实现 | M4 待实现 | 后续 | 后续 |
+| 共享文本分析 Core | 已实现 | 已实现 | 已实现 | 已实现 |
+| React / 三态主题 | 已实现 | 已实现 | 已实现 | 不适用 |
+| 一次性安装 | 已实现 | 已实现，无管理员 | 自动初始化，无安装页 | 不装配 |
+| 数据库 | PostgreSQL/MySQL/小型 SQLite | SQLite/外部 DB | SQLite | 禁止强依赖 |
+| 登录/RBAC/用户管理 | 已实现，本地 session | 不装配 | 不装配 | 不装配 |
+| 持久化设置 | 按权限分组 | 本地适用项 | 本地适用项 | 不装配 |
+| SMTP / 注册验证 / 找回密码 | M2 后续 | 不装配 | 不装配 | 不装配 |
+| OIDC / Logo上传 / 完整视觉集成 | M3 后续 | 按适用项 | 按适用项 | 不适用 |
+| 备份恢复 / 正式发布 / 升级 | M4 后续 | M4 后续 | 后续 | 后续 |
 
-M1 运行模式从启动配置确认，不提供 UI 模式切换。未来持久化实例禁止无损切换 profile。v1 是单实例多用户，不是多租户 SaaS。
+M2a：首次选择 Web 两模式，安装后固定；私有安装凭据、文件锁、DB 唯一安装标记与事务 seed，失败可恢复。平台默认开启图形验证码，不开放注册；内置 super_admin/user，服务端逐 API 权限与 CSRF，保护最后超管；用户搜索/分页/创建/启停/角色关联。持久设置通过 SettingDefinition 注册表管理，覆盖站点基础、主题、安全和后台路径。桌面自动 SQLite，平台身份与外部驱动不进入桌面组合。
 
-## M1 验收
+M1：共享无状态文本分析（Unicode 字符/空白分隔词/行/字节/原始 SHA-256），跨入口相同 DTO 与结果；CLI 依赖图无 SQL/HTTP/Wails。业务文本不持久化，运行记录仅在当前前端会话。
 
-1. 同一输入在 HTTP、桥接、CLI 返回完全一致的 Unicode 字符数、空白分隔词数、行数、字节数与 SHA-256；无存储、无模拟结果。
-2. CLI transitive dependencies 不包含 HTTP/Wails/SQL/平台账号模块；Core 不依赖 adapter。
-3. 浏览器通过 HttpTransport、桌面通过 WailsTransport 使用同一个工作台；桌面不启动业务 HTTP server。
-4. 空白/超限输入明确报错；加载、错误、空结果、执行成功可见；375px 不横向溢出，主题本机保存。
-5. `make test`、Web 与 CLI 构建通过；本机 Wails 构建及浏览器 E2E 独立记录。未执行跨 OS GUI 测试不得声称通过。
+M2 后续：SMTP、加密邮件凭据、持久邮件任务、注册验证、一次性重置令牌、完整角色/权限编辑流程；M3：OIDC PKCE/state/nonce、绑定策略、品牌上传和 GUI 体验；M4：备份恢复、签名 manifest、条件编译启用、受控 tar updater、Docker 镜像替换演练。v1 多用户不是多租户。
 
-## 后续阶段
-
-M2：冻结 SQL 适配方案，一次性 bootstrap token 安装状态机、profile 隔离的迁移、平台本地认证/RBAC、SettingDefinition、SMTP；GUI 自动初始化 SQLite。M3：OIDC PKCE/state/nonce、严格绑定策略、可访问性与桌面体验。M4：签名 manifest、受控 updater、tar 恢复演练、Docker 外部替换、数据备份恢复。没有真实服务端前不伪造授权/更新成功。
+详细命令与实际平台验证记录见 [M2a 验收](../04-ai/acceptance-m2a.md)。

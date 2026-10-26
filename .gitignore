@@ -21,3 +21,6 @@ apps/desktop/static/*
 *.db-shm
 *.db-wal
 *.log
+data/
+*.key
+bootstrap.token

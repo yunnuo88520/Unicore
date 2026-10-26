@@ -7,12 +7,16 @@ import { Activity, ArrowDown, ArrowRight, ArrowUpRight, Braces, Check, CheckCirc
 import { AppError, type AppClient, type Bootstrap, type ExecuteOutput, type Profile } from '@unicore/sdk';
 import { useTheme, type Theme } from './theme';
 import { DashboardWidgetRegistry } from './registry';
+import { AdminDashboard, InstallWizard, LoginPage, PersistentSettings, UserManagement } from './web-flows';
+import './flows.css';
 
 export { DashboardWidgetRegistry } from './registry';
 const SAMPLE = 'Hello, Unicore.\n一份 Go 核心，连接每一种可能。\nBuild once. Run everywhere.';
 const PROFILE_LABELS: Record<Profile, string> = { 'web-platform': 'Web 平台', 'web-standalone': 'Web 单机', desktop: '桌面应用', cli: '命令行' };
-type Page = 'overview' | 'lab' | 'settings';
-const PAGE_LABELS = { overview: '工作台概览', lab: '核心实验室', settings: '外观设置' };
+type Page = 'overview' | 'lab' | 'settings' | 'admin' | 'users' | 'site';
+const PAGE_LABELS = { overview: '工作台概览', lab: '核心实验室', settings: '外观设置', admin: '平台仪表盘', users: '用户管理', site: '实例设置' };
+const PAGE_TITLES: Record<Page, string> = { overview: '一份核心，无限可能', lab: '探索核心的每一种可能', settings: '打造你的工作空间', admin: '平台仪表盘', users: '用户管理', site: '实例设置' };
+const PAGE_DESCRIPTIONS: Record<Page, string> = { overview: '从这里出发，让同一份业务逻辑运行于 Web、桌面与命令行。', lab: '修改输入、运行用例，验证跨形态一致的执行结果。', settings: '让界面跟随你的习惯。偏好仅保存在当前设备。', admin: '从真实认证活动与审计记录了解实例运行情况。', users: '管理账号、角色和状态，权限由服务端逐一校验。', site: '集中配置站点、安全与外观，保存后跨重启保留。' };
 
 export function Workspace({ client, registry = new DashboardWidgetRegistry() }: { client: AppClient; registry?: DashboardWidgetRegistry }) {
   const [queryClient] = useState(() => new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } }));
@@ -20,40 +24,53 @@ export function Workspace({ client, registry = new DashboardWidgetRegistry() }: 
 }
 
 function App({ client, registry }: { client: AppClient; registry: DashboardWidgetRegistry }) {
-  const pageFromHash = (): Page => { const hash = window.location.hash.slice(1); return hash === 'lab' || hash === 'settings' ? hash : 'overview'; };
+  const pageFromHash = (): Page => { const hash = window.location.hash.slice(1); return hash === 'lab' || hash === 'settings' || hash === 'admin' || hash === 'users' || hash === 'site' ? hash : 'overview'; };
   const [page, setPage] = useState<Page>(pageFromHash);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [about, setAbout] = useState(false);
-  const [theme, setTheme] = useTheme();
   const metadata = useQuery({ queryKey: ['bootstrap', client.transport], queryFn: () => client.bootstrap() });
+  const [theme, setTheme] = useTheme(metadata.data?.theme);
+  useEffect(() => { if (metadata.data) document.title = `${metadata.data.site_name} · 工作空间`; }, [metadata.data?.site_name]);
+  useEffect(() => {if (!window.location.hash && metadata.data?.current_user && window.location.pathname===metadata.data.admin_path) setPage('admin');},[metadata.data]);
   useEffect(() => { const change = () => setPage(pageFromHash()); window.addEventListener('hashchange', change); return () => window.removeEventListener('hashchange', change); }, []);
   function navigate(next: Page) { window.location.hash = next; setPage(next); setMobileOpen(false); }
+  const refresh = () => { void metadata.refetch(); };
+  const permissions = metadata.data?.current_user?.permissions ?? [];
+  const adminPages: Record<string, string> = { admin: 'dashboard:read', users: 'users:read', site: 'settings:read' };
+  const permitted = page === 'site' && metadata.data?.profile !== 'web-platform' ? !!metadata.data?.capabilities.settings : !adminPages[page] || permissions.includes(adminPages[page]);
+  if (metadata.data?.capabilities.installation && !metadata.data.installed && client.web) return <InstallWizard web={client.web} onDone={() => { window.history.replaceState({}, '', '/'); navigate('overview'); refresh(); }} />;
+  if (metadata.data?.capabilities.authentication && !metadata.data.current_user && client.web) return <LoginPage web={client.web} siteName={metadata.data.site_name} onDone={refresh} />;
   return <div className="app-shell">
     <a className="skip-link" href="#main-content">跳至主要内容</a>
     {mobileOpen && <button className="nav-scrim" aria-label="关闭导航" onClick={() => setMobileOpen(false)} />}
     <aside className={`sidebar ${mobileOpen ? 'is-open' : ''}`} aria-label="主导航">
       <a className="brand" href="#overview" onClick={() => navigate('overview')}><span className="brand-mark"><Layers3 size={23} strokeWidth={2.4} /></span><span>unicore<span className="brand-dot">.</span></span><span className="brand-tag">FRAMEWORK</span></a>
-      <button className="workspace-switch" onClick={() => setAbout(true)}><span className="workspace-icon"><Braces size={19} /></span><span><strong>默认工作空间</strong><small>Unicore 开发基座</small></span><span className="workspace-stage">M1</span></button>
+      <button className="workspace-switch" onClick={() => setAbout(true)}><span className="workspace-icon"><Braces size={19} /></span><span><strong>{metadata.data?.site_name ?? '默认工作空间'}</strong><small>Unicore 应用基座</small></span><span className="workspace-stage">{metadata.data?.stage ?? 'M2a'}</span></button>
       <div className="nav-caption">工作空间</div>
       <nav>{([{ id: 'overview', icon: LayoutDashboard }, { id: 'lab', icon: FlaskConical }, { id: 'settings', icon: Settings2 }] as const).map(({ id, icon: Icon }) => <button key={id} className={`nav-item ${page === id ? 'active' : ''}`} aria-current={page === id ? 'page' : undefined} onClick={() => navigate(id)}><Icon size={19} /><span>{PAGE_LABELS[id]}</span>{page === id && <span className="nav-active-dot" />}</button>)}</nav>
+      <div className="nav-caption roadmap-caption">实例管理</div>
+      {permissions.includes('dashboard:read') && <button className={`nav-item ${page === 'admin' ? 'active' : ''}`} onClick={() => navigate('admin')}><LayoutDashboard size={18} /><span>平台仪表盘</span></button>}
+      {permissions.includes('users:read') && <button className={`nav-item ${page === 'users' ? 'active' : ''}`} onClick={() => navigate('users')}><Users size={18} /><span>用户管理</span></button>}
+      {metadata.data?.capabilities.settings && (metadata.data.profile !== 'web-platform' || permissions.includes('settings:read')) && <button className={`nav-item ${page === 'site' ? 'active' : ''}`} onClick={() => navigate('site')}><Settings2 size={18} /><span>实例设置</span></button>}
+      {metadata.data?.current_user && client.web && <button className="nav-item" onClick={() => { void client.web!.logout().then(refresh, refresh); }}><ArrowUpRight size={18} /><span>退出登录</span></button>}
       <div className="nav-caption roadmap-caption">框架路线图</div>
-      <div className="nav-item unavailable"><Users size={18} /><span>用户与权限</span><small>M2</small></div>
+
       <div className="nav-item unavailable"><ShieldCheck size={18} /><span>企业集成</span><small>M3</small></div>
       <div className="nav-item unavailable"><ArrowUpRight size={18} /><span>发布与升级</span><small>M4</small></div>
       <div className="sidebar-bottom"><div className="core-note"><div className="core-note-icon"><Cpu size={20} /></div><strong>One core. Every interface.</strong><p>让业务逻辑专注于业务，<br />让框架连接每一个终端。</p><button onClick={() => setAbout(true)}>了解架构 <ArrowUpRight size={14} /></button></div><button className="author" onClick={() => setAbout(true)}><span className="avatar">Y</span><span><strong>yunnuo</strong><small>框架作者</small></span><Info size={16} /></button></div>
     </aside>
     <div className="main-shell"><header className="topbar"><div className="breadcrumbs"><button className="icon-button mobile-menu" aria-label="打开导航" onClick={() => setMobileOpen(true)}><Menu size={20} /></button><span className="breadcrumb-root">工作空间</span><ChevronRight size={14} /><strong>{PAGE_LABELS[page]}</strong></div><div className="top-actions"><span className={`connection ${metadata.isSuccess ? 'connected' : ''}`}><span />{metadata.isSuccess ? '核心已连接' : metadata.isPending ? '连接中' : '连接失败'}</span><span className="top-divider" /><button className="icon-button" aria-label="切换主题" title="切换浅色 / 深色" onClick={() => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}</button><button className="icon-button" aria-label="关于 Unicore" onClick={() => setAbout(true)}><Code2 size={19} /></button><span className="avatar top-avatar">Y</span></div></header>
-      <main id="main-content" className="main-content"><div className="page-heading"><div><div className="eyebrow"><span /> UNICORE WORKSPACE</div><h1>{page === 'overview' ? '一份核心，无限可能' : page === 'lab' ? '探索核心的每一种可能' : '打造你的工作空间'}<span className="heading-dot">.</span></h1><p>{page === 'overview' ? '从这里出发，让同一份业务逻辑运行于 Web、桌面与命令行。' : page === 'lab' ? '修改输入、运行用例，验证跨形态一致的执行结果。' : '让界面跟随你的习惯。偏好仅保存在当前设备。'}</p></div><span className="stage-pill"><span /> M1 · 基座已就绪</span></div>
+      <main id="main-content" className="main-content"><div className="page-heading"><div><div className="eyebrow"><span /> UNICORE WORKSPACE</div><h1>{PAGE_TITLES[page]}<span className="heading-dot">.</span></h1><p>{PAGE_DESCRIPTIONS[page]}</p></div><span className="stage-pill"><span /> {metadata.data?.stage ?? 'M2a'} · 核心已就绪</span></div>
         {metadata.isPending ? <div className="state-card" role="status"><LoaderCircle className="spin" size={24} /><strong>正在连接 Go 核心</strong><p>正在获取当前运行形态与能力信息…</p></div> : metadata.isError ? <div className="state-card error-state" role="alert"><Radio size={26} /><strong>暂时无法连接核心</strong><p>{metadata.error.message}</p><button className="primary-button" onClick={() => metadata.refetch()}><RotateCcw size={16} />重新连接</button></div> : <>
-          {page === 'settings' ? <Appearance theme={theme} setTheme={setTheme} /> : <>
+          {!permitted ? <div className="state-card" role="alert"><ShieldCheck size={26} /><strong>没有访问权限</strong><p>请联系实例管理员授予相关权限。</p></div> : page === 'admin' && client.web ? <AdminDashboard web={client.web} /> : page === 'users' && client.web ? <UserManagement web={client.web} metadata={metadata.data} /> : page === 'site' && client.settings && client.patchSettings ? <PersistentSettings client={client} onSaved={refresh} /> : page === 'settings' ? <Appearance theme={theme} setTheme={setTheme} /> : <>
             <RuntimeCards metadata={metadata.data} transport={client.transport} />
             {page === 'overview' && <div className="intro-banner"><span className="banner-orbit orbit-one" /><span className="banner-orbit orbit-two" /><div className="banner-content"><span className="banner-tag"><Sparkles size={13} /> 为下一款产品而生</span><h2>构建一次，连接每个终端。</h2><p>领域逻辑保持纯粹，交互体验始终一致。</p><button onClick={() => navigate('lab')}>探索核心实验室 <ArrowRight size={15} /></button></div><div className="banner-diagram" aria-hidden="true"><div className="diagram-core"><Layers3 size={30} /><span>Go Core</span></div><span className="diagram-line" /><div className="diagram-targets"><span><Globe2 size={17} /> Web</span><span><Monitor size={17} /> Desktop</span><span><Terminal size={17} /> CLI</span></div></div></div>}
             <div className="workspace-grid"><CoreLab client={client} /><div className="right-column"><Profiles current={metadata.data.profile} /><Architecture /></div></div>
             {registry.entries().map(widget => <section key={widget.id}>{widget.render(metadata.data)}</section>)}
           </>}
-          <div className="foundation-note"><Info size={15} /><span>当前为 M1 开发基座：文本仅在内存中处理。安装、账号、持久化与升级将在后续里程碑实现。</span></div>
+          <div className="foundation-note"><Info size={15} /><span>文本分析不保存输入。实例设置独立持久化；SMTP、企业登录与在线升级将在后续阶段接入。</span></div>
         </>}
-        <footer><span>© {new Date().getFullYear()} Unicore · Crafted by yunnuo</span><span>Go + React <span className="footer-dot">·</span> {metadata.data ? `v${metadata.data.version}` : 'M1'}</span></footer>
+        <footer><span>© {new Date().getFullYear()} {metadata.data?.site_name ?? 'Unicore'} · {metadata.data?.site_copyright ?? 'Crafted by yunnuo'}</span><span>Go + React <span className="footer-dot">·</span> {metadata.data ? `v${metadata.data.version}` : 'M2a'}</span></footer>
       </main>
     </div>
     {about && <About onClose={() => setAbout(false)} />}
@@ -95,7 +112,7 @@ function CoreLab({ client }: { client: AppClient }) {
 }
 
 function Profiles({ current }: { current: Profile }) {
-  const profiles = [{ id: 'web-platform', title: 'Web 平台', detail: '多用户平台 · 身份模块待 M2', icon: Globe2 }, { id: 'web-standalone', title: 'Web 单机', detail: '轻装运行 · 专注本地业务', icon: Monitor }, { id: 'desktop', title: 'Desktop', detail: 'Wails 原生桥接 · 共用界面', icon: Layers3 }, { id: 'cli', title: 'CLI', detail: '独立二进制 · 无数据库依赖', icon: Terminal }];
+  const profiles = [{ id: 'web-platform', title: 'Web 平台', detail: '独立账号 · 服务端角色权限', icon: Globe2 }, { id: 'web-standalone', title: 'Web 单机', detail: '轻装运行 · 专注本地业务', icon: Monitor }, { id: 'desktop', title: 'Desktop', detail: 'Wails 原生桥接 · 共用界面', icon: Layers3 }, { id: 'cli', title: 'CLI', detail: '独立二进制 · 无数据库依赖', icon: Terminal }];
   return <section className="panel profiles-panel"><div className="panel-heading"><div><h2>一个核心，四种形态</h2><p>入口各自独立，业务始终相同</p></div><span className="tiny-number">04</span></div><div className="profile-list">{profiles.map(item => <div className={`profile-row ${current === item.id ? 'current' : ''}`} key={item.id}><span className="profile-icon"><item.icon size={18} /></span><div><strong>{item.title}</strong><small>{item.detail}</small></div>{current === item.id ? <span className="current-label">当前</span> : <span className="profile-node" aria-label="已接入共享用例" />}</div>)}</div><div className="profile-bottom"><CheckCircle2 size={14} /><span>同一份 Go 业务逻辑 · 同一个接口契约</span></div></section>;
 }
 
@@ -125,5 +142,5 @@ function About({ onClose }: { onClose: () => void }) {
     window.addEventListener('keydown', keydown);
     return () => { window.removeEventListener('keydown', keydown); previous?.focus(); };
   }, [onClose]);
-  return <div className="modal-scrim" onClick={event => { if (event.target === event.currentTarget) onClose(); }}><div className="about-dialog" role="dialog" aria-modal="true" aria-labelledby="about-title" tabIndex={-1} ref={dialogRef}><button className="icon-button close-dialog" aria-label="关闭关于" onClick={onClose}><X size={20} /></button><span className="brand-mark"><Layers3 size={25} /></span><h2 id="about-title">Unicore</h2><p>一套 Go Core，一套 React UI。<br />为 Web、桌面与命令行构建可复用的应用基座。</p><div className="about-stack"><span>Go</span><span>React</span><span>Wails v2</span><span>Cobra</span></div><p className="muted">当前交付：M1 跨形态最小闭环。<br />完整范围、路线图与验收记录请阅读仓库 docs/。</p><a href="mailto:ymz@ebox.vip">yunnuo · ymz@ebox.vip <ExternalLink size={13} /></a></div></div>;
+  return <div className="modal-scrim" onClick={event => { if (event.target === event.currentTarget) onClose(); }}><div className="about-dialog" role="dialog" aria-modal="true" aria-labelledby="about-title" tabIndex={-1} ref={dialogRef}><button className="icon-button close-dialog" aria-label="关闭关于" onClick={onClose}><X size={20} /></button><span className="brand-mark"><Layers3 size={25} /></span><h2 id="about-title">Unicore</h2><p>一套 Go Core，一套 React UI。<br />为 Web、桌面与命令行构建可复用的应用基座。</p><div className="about-stack"><span>Go</span><span>React</span><span>Wails v2</span><span>Cobra</span></div><p className="muted">当前交付：M2a 安装与平台基础。<br />完整范围、路线图与验收记录请阅读仓库 docs/。</p><a href="mailto:ymz@ebox.vip">yunnuo · ymz@ebox.vip <ExternalLink size={13} /></a></div></div>;
 }

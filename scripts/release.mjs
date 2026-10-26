@@ -29,7 +29,7 @@ for (const target of targets) {
     cpSync('docs/03-runbooks/deployment.md', `${dir}/README_DEPLOY.md`);
     writeFileSync(`${dir}/VERSION`, `${version}\n`);
     if (profile !== 'cli') { cpSync('apps/web/static', `${dir}/web`, { recursive: true }); cpSync('deploy/tar', `${dir}/deploy`, { recursive: true }); }
-    const manifest = { version, channel: 'development', stage: 'M1', profile, os, arch, commit, build_time: buildTime, features: { authentication: false, database: false, license: false, updater: false }, min_upgrade_version: null, migration_level: 0, signature: null, release_notes: 'M1 developer preview. No installation, authentication or persistence. Not a production release.' };
+    const manifest = { version, channel: 'development', stage: 'M2a', profile, os, arch, commit, build_time: buildTime, features: { authentication: profile === 'web-platform', installation: profile !== 'cli', database: profile !== 'cli', license: false, updater: false }, min_upgrade_version: null, migration_level: profile === 'cli' ? 0 : profile === 'web-platform' ? 2 : 1, signature: null, release_notes: 'M2a developer preview. Installation, persistent settings and platform authentication; SMTP/OIDC/backup/updater not yet implemented. Not a production release.' };
     writeFileSync(`${dir}/manifest.json`, JSON.stringify(manifest, null, 2)+'\n');
     const artifact = `${name}.tar.gz`;
     execFileSync('tar',['-czf',`build/releases/${artifact}`,'-C','build/staging',name]);

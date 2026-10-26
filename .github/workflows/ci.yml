@@ -1,5 +1,5 @@
 # Author: yunnuo <ymz@ebox.vip>
-name: M1 quality and profiles
+name: Quality and profile builds
 on:
   push:
   pull_request:
@@ -9,6 +9,24 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-22.04
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: unicore
+          POSTGRES_PASSWORD: unicore_ci_test
+          POSTGRES_DB: unicore_test
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U unicore -d unicore_test" --health-interval 5s --health-timeout 5s --health-retries 12
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: unicore_ci_root
+          MYSQL_DATABASE: unicore_test
+          MYSQL_USER: unicore
+          MYSQL_PASSWORD: unicore_ci_test
+        ports: ["3306:3306"]
+        options: --health-cmd "mysqladmin ping --silent" --health-interval 5s --health-timeout 5s --health-retries 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -19,6 +37,9 @@ jobs:
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: make test
+        env:
+          UNICORE_TEST_POSTGRES_DSN: postgres://unicore:unicore_ci_test@127.0.0.1:5432/unicore_test?sslmode=disable
+          UNICORE_TEST_MYSQL_DSN: unicore:unicore_ci_test@tcp(127.0.0.1:3306)/unicore_test
       - run: pnpm build && make build-web build-cli
       - run: pnpm exec playwright install --with-deps chromium
       - run: make test-e2e
@@ -53,4 +74,4 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - run: docker build -f deploy/docker/Dockerfile -t unicore:m1 .
+      - run: docker build -f deploy/docker/Dockerfile -t unicore:preview .

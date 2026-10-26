@@ -24,16 +24,25 @@ type Capabilities struct {
 	Authentication bool `json:"authentication"`
 	License        bool `json:"license"`
 	Updater        bool `json:"updater"`
+	Settings       bool `json:"settings"`
 }
 
 type Bootstrap struct {
-	Profile        Profile      `json:"profile"`
-	Version        string       `json:"version"`
-	Commit         string       `json:"commit"`
-	BuildTime      string       `json:"build_time"`
-	Stage          string       `json:"stage"`
-	DeploymentKind string       `json:"deployment_kind"`
-	Capabilities   Capabilities `json:"capabilities"`
+	Profile         Profile      `json:"profile"`
+	Version         string       `json:"version"`
+	Commit          string       `json:"commit"`
+	BuildTime       string       `json:"build_time"`
+	Stage           string       `json:"stage"`
+	DeploymentKind  string       `json:"deployment_kind"`
+	Capabilities    Capabilities `json:"capabilities"`
+	Installed       bool         `json:"installed"`
+	SiteName        string       `json:"site_name"`
+	AdminPath       string       `json:"admin_path"`
+	CurrentUser     *User        `json:"current_user,omitempty"`
+	CsrfToken       *string      `json:"csrf_token,omitempty"`
+	SiteDescription *string      `json:"site_description,omitempty"`
+	SiteCopyright   *string      `json:"site_copyright,omitempty"`
+	Theme           *string      `json:"theme,omitempty"`
 }
 
 type BootstrapResponse struct {
@@ -65,4 +74,190 @@ type HealthResponse struct {
 	Message   string `json:"message"`
 	Data      Health `json:"data"`
 	RequestID string `json:"request_id"`
+}
+
+type DatabaseInput struct {
+	Driver string `json:"driver"`
+	Dsn    string `json:"dsn"`
+}
+
+type EnvironmentCheck struct {
+	Name   string `json:"name"`
+	Ok     bool   `json:"ok"`
+	Detail string `json:"detail"`
+}
+
+type InstallStatus struct {
+	Status          string             `json:"status"`
+	Profile         Profile            `json:"profile"`
+	DatabaseOptions []string           `json:"database_options"`
+	Checks          []EnvironmentCheck `json:"checks"`
+}
+
+type InstallInput struct {
+	Profile       Profile       `json:"profile"`
+	Database      DatabaseInput `json:"database"`
+	SiteName      string        `json:"site_name"`
+	BaseUrl       string        `json:"base_url"`
+	AdminUsername string        `json:"admin_username"`
+	AdminEmail    string        `json:"admin_email"`
+	AdminPassword string        `json:"admin_password"`
+}
+
+type InstallResult struct {
+	Profile     Profile `json:"profile"`
+	SiteUrl     string  `json:"site_url"`
+	AdminUrl    string  `json:"admin_url"`
+	SettingsUrl string  `json:"settings_url"`
+}
+
+type User struct {
+	ID          string   `json:"id"`
+	Username    string   `json:"username"`
+	Email       string   `json:"email"`
+	Status      string   `json:"status"`
+	Roles       []string `json:"roles"`
+	Permissions []string `json:"permissions"`
+	CreatedAt   int      `json:"created_at"`
+	LastLoginAt int      `json:"last_login_at"`
+}
+
+type UserList struct {
+	Items    []User `json:"items"`
+	Total    int    `json:"total"`
+	Page     int    `json:"page"`
+	PageSize int    `json:"page_size"`
+}
+
+type UserCreate struct {
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	Role     string `json:"role"`
+}
+
+type UserUpdate struct {
+	Role   string `json:"role"`
+	Status string `json:"status"`
+}
+
+type LoginInput struct {
+	Username      string `json:"username"`
+	Password      string `json:"password"`
+	CaptchaID     string `json:"captcha_id"`
+	CaptchaAnswer string `json:"captcha_answer"`
+}
+
+type Session struct {
+	User      User   `json:"user"`
+	CsrfToken string `json:"csrf_token"`
+	ExpiresAt int    `json:"expires_at"`
+}
+
+type Captcha struct {
+	ID    string `json:"id"`
+	Image string `json:"image"`
+}
+
+type AuditEntry struct {
+	ID        string `json:"id"`
+	ActorID   string `json:"actor_id"`
+	Action    string `json:"action"`
+	CreatedAt int    `json:"created_at"`
+}
+
+type Dashboard struct {
+	TotalUsers    int          `json:"total_users"`
+	TodayNewUsers int          `json:"today_new_users"`
+	ActiveUsers7d int          `json:"active_users_7d"`
+	Audit         []AuditEntry `json:"audit"`
+}
+
+type SettingEntry struct {
+	Key       string `json:"key"`
+	Value     string `json:"value"`
+	ValueType string `json:"value_type"`
+	Group     string `json:"group"`
+	Label     string `json:"label"`
+	Sensitive bool   `json:"sensitive"`
+}
+
+type Settings struct {
+	Items []SettingEntry `json:"items"`
+}
+
+type SettingChange struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+type SettingPatch struct {
+	Changes []SettingChange `json:"changes"`
+}
+
+type ActionResult struct {
+	Success bool `json:"success"`
+}
+
+type InstallStatusResponse struct {
+	Code      string        `json:"code"`
+	Message   string        `json:"message"`
+	Data      InstallStatus `json:"data"`
+	RequestID string        `json:"request_id"`
+}
+
+type InstallResultResponse struct {
+	Code      string        `json:"code"`
+	Message   string        `json:"message"`
+	Data      InstallResult `json:"data"`
+	RequestID string        `json:"request_id"`
+}
+
+type UserResponse struct {
+	Code      string `json:"code"`
+	Message   string `json:"message"`
+	Data      User   `json:"data"`
+	RequestID string `json:"request_id"`
+}
+
+type UserListResponse struct {
+	Code      string   `json:"code"`
+	Message   string   `json:"message"`
+	Data      UserList `json:"data"`
+	RequestID string   `json:"request_id"`
+}
+
+type SessionResponse struct {
+	Code      string  `json:"code"`
+	Message   string  `json:"message"`
+	Data      Session `json:"data"`
+	RequestID string  `json:"request_id"`
+}
+
+type CaptchaResponse struct {
+	Code      string  `json:"code"`
+	Message   string  `json:"message"`
+	Data      Captcha `json:"data"`
+	RequestID string  `json:"request_id"`
+}
+
+type DashboardResponse struct {
+	Code      string    `json:"code"`
+	Message   string    `json:"message"`
+	Data      Dashboard `json:"data"`
+	RequestID string    `json:"request_id"`
+}
+
+type SettingsResponse struct {
+	Code      string   `json:"code"`
+	Message   string   `json:"message"`
+	Data      Settings `json:"data"`
+	RequestID string   `json:"request_id"`
+}
+
+type ActionResultResponse struct {
+	Code      string       `json:"code"`
+	Message   string       `json:"message"`
+	Data      ActionResult `json:"data"`
+	RequestID string       `json:"request_id"`
 }

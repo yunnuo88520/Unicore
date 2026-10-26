@@ -41,6 +41,7 @@ export interface Bootstrap {
   site_description?: string;
   site_copyright?: string;
   theme?: string;
+  branding?: Branding;
 }
 
 export interface BootstrapResponse {
@@ -448,5 +449,23 @@ export interface OIDCStartResponse {
   code: string;
   message: string;
   data: OIDCStart;
+  request_id: string;
+}
+
+export interface Branding {
+  logo: string;
+  logo_dark: string;
+  favicon: string;
+}
+
+export interface BrandingInput {
+  slot: "logo" | "logo_dark" | "favicon";
+  content: string;
+}
+
+export interface BrandingResponse {
+  code: string;
+  message: string;
+  data: Branding;
   request_id: string;
 }

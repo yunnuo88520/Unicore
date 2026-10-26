@@ -28,3 +28,5 @@
 原生 bundle ID 入口为 `assets/brand/identity.json` 的 bundleId，当前 vip.ebox.unicore；开发版追加 .dev。共享 plist 模板同步产生两个文件，开发版仅增加本机 Vite 网络权限。Wails preBuildHook 也会预生成品牌输入，防止直接运行 Wails 时回落到默认资源；品牌/产品名变更优先使用 `make build-desktop`，确保 Wails 读取配置前已同步名称。
 
 `pnpm check:native --bundle` 检查原生输入；macOS 额外读取真实 app 的身份及 ICNS，检查 5 个分辨率和解码后的品牌像素。`make build-desktop` 与 native CI 自动执行；开发模式包使用 `pnpm check:native --bundle --dev`。图标验收应同时检查 Finder/系统窗口及真实应用包，不能仅以页面内 Logo 或系统 About 代替全部原生位置。
+
+M3b 运行时图片使用 [实例品牌规范](../00-product/feature-branding.md)：内页/登录页经 BrandProvider/BrandMark 共用，编译矢量是默认回退；不要在页面拼图片路径。BrandingPanel 通过 AppClient 和 Query 刷新 bootstrap/品牌/模板，图片选择先预览再提交。原生包图标仍由编译源生成，上传不影响签名或应用标识。

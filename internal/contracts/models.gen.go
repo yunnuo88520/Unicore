@@ -43,6 +43,7 @@ type Bootstrap struct {
 	SiteDescription *string      `json:"site_description,omitempty"`
 	SiteCopyright   *string      `json:"site_copyright,omitempty"`
 	Theme           *string      `json:"theme,omitempty"`
+	Branding        *Branding    `json:"branding,omitempty"`
 }
 
 type BootstrapResponse struct {
@@ -451,4 +452,22 @@ type OIDCStartResponse struct {
 	Message   string    `json:"message"`
 	Data      OIDCStart `json:"data"`
 	RequestID string    `json:"request_id"`
+}
+
+type Branding struct {
+	Logo     string `json:"logo"`
+	LogoDark string `json:"logo_dark"`
+	Favicon  string `json:"favicon"`
+}
+
+type BrandingInput struct {
+	Slot    string `json:"slot"`
+	Content string `json:"content"`
+}
+
+type BrandingResponse struct {
+	Code      string   `json:"code"`
+	Message   string   `json:"message"`
+	Data      Branding `json:"data"`
+	RequestID string   `json:"request_id"`
 }

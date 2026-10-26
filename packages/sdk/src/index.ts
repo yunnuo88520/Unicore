@@ -1,13 +1,13 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Shared UI client; pages know neither fetch nor Wails globals.
  */
-import type { Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleInput, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart } from '@unicore/contracts';
+import type { Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleInput, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart } from '@unicore/contracts';
 import { operations, type OperationId, type OperationInputs, type OperationData } from '@unicore/contracts/operations';
 import { validate, type SchemaName } from '@unicore/contracts/validate';
 export { validate, type SchemaName } from '@unicore/contracts/validate';
 export { operations, type OperationId } from '@unicore/contracts/operations';
 
-export type { Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleInput, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart } from '@unicore/contracts';
+export type { Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleInput, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart } from '@unicore/contracts';
 
 export class AppError extends Error {
   constructor(public readonly code: string, message: string, public readonly requestId = '', public readonly fields: Record<string, string> = {}) { super(message); this.name = 'AppError'; }
@@ -23,6 +23,8 @@ export interface AppClient {
   execute(input: ExecuteInput, options?: RequestOptions): Promise<ExecuteOutput>;
   settings?(): Promise<Settings>;
   patchSettings?(input: SettingPatch): Promise<Settings>;
+ branding?(): Promise<Branding>;
+ updateBranding?(input: BrandingInput): Promise<Branding>;
   web?: WebClient;
   subscribeSession?(listener: (event: SessionEvent) => void): () => void;
   resetSession?(): void;
@@ -167,11 +169,15 @@ export class HttpTransport implements AppClient, WebClient {
   createRole(input: RoleInput) { return this.call('createRole', input); }
   updateRole(id: string, input: RoleInput) { return this.call('updateRole', input, { params: { id } }); }
   deleteRole(id: string) { return this.call('deleteRole', undefined, { params: { id } }); }
+  branding() { return this.call(this.platform ? 'adminBranding' : 'localBranding'); }
+  updateBranding(input: BrandingInput) { return this.call(this.platform ? 'adminUpdateBranding' : 'localUpdateBranding',input); }
   settings() { return this.call(this.platform ? 'adminSettings' : 'localSettings'); }
   patchSettings(input: SettingPatch) { return this.call(this.platform ? 'adminPatchSettings' : 'localPatchSettings', input); }
 }
 
 export interface DesktopBridge {
+  Branding?(): Promise<BrandingResponse>;
+  UpdateBranding?(input: BrandingInput): Promise<BrandingResponse>;
   Bootstrap(): Promise<BootstrapResponse>;
   Execute(input: ExecuteInput): Promise<ExecuteResponse>;
   Settings?(): Promise<SettingsResponse>;
@@ -183,6 +189,8 @@ export class WailsTransport implements AppClient {
   constructor(private readonly bridge: () => DesktopBridge) {}
   async bootstrap() { return unwrap(await this.bridge().Bootstrap()); }
   async execute(input: ExecuteInput) { return unwrap(await this.bridge().Execute(input)); }
+  async branding() { const method=this.bridge().Branding;if(!method)throw new AppError('NOT_AVAILABLE','品牌存储未初始化');return unwrap(await method()); }
+  async updateBranding(input: BrandingInput) { const method=this.bridge().UpdateBranding;if(!method)throw new AppError('NOT_AVAILABLE','品牌存储未初始化');return unwrap(await method(input)); }
   async settings() { const method = this.bridge().Settings; if (!method) throw new AppError('NOT_AVAILABLE', '此版本不支持持久化设置'); return unwrap(await method()); }
   async patchSettings(input: SettingPatch) { const method = this.bridge().PatchSettings; if (!method) throw new AppError('NOT_AVAILABLE', '此版本不支持持久化设置'); return unwrap(await method(input)); }
 }

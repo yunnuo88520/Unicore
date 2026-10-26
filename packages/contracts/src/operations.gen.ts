@@ -699,6 +699,68 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false
+  },
+  "adminBranding": {
+    "method": "GET",
+    "path": "/api/v1/admin/branding",
+    "requestSchema": null,
+    "responseSchema": "BrandingResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "settings:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "adminUpdateBranding": {
+    "method": "PUT",
+    "path": "/api/v1/admin/branding",
+    "requestSchema": "BrandingInput",
+    "responseSchema": "BrandingResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "settings:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "maxBodyBytes": 393216
+  },
+  "localBranding": {
+    "method": "GET",
+    "path": "/api/v1/branding",
+    "requestSchema": null,
+    "responseSchema": "BrandingResponse",
+    "profiles": [
+      "web-standalone"
+    ],
+    "access": "local",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "localUpdateBranding": {
+    "method": "PUT",
+    "path": "/api/v1/branding",
+    "requestSchema": "BrandingInput",
+    "responseSchema": "BrandingResponse",
+    "profiles": [
+      "web-standalone"
+    ],
+    "access": "local",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "maxBodyBytes": 393216
   }
 } as const;
 export type OperationId = keyof typeof operations;
@@ -750,6 +812,10 @@ export interface OperationInputs {
   oidcUnlink: Models.OIDCPasswordInput;
   oidcCheck: undefined;
   oidcCallback: undefined;
+  adminBranding: undefined;
+  adminUpdateBranding: Models.BrandingInput;
+  localBranding: undefined;
+  localUpdateBranding: Models.BrandingInput;
 }
 export interface OperationData {
   bootstrap: Models.BootstrapResponse['data'];
@@ -799,4 +865,8 @@ export interface OperationData {
   oidcUnlink: Models.SessionResponse['data'];
   oidcCheck: Models.ActionResultResponse['data'];
   oidcCallback: void;
+  adminBranding: Models.BrandingResponse['data'];
+  adminUpdateBranding: Models.BrandingResponse['data'];
+  localBranding: Models.BrandingResponse['data'];
+  localUpdateBranding: Models.BrandingResponse['data'];
 }

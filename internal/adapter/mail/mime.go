@@ -53,7 +53,11 @@ func encodeMessage(config mailer.Config, message mailer.Message) ([]byte, error)
 		if err != nil {
 			return nil, err
 		}
-		encoded := base64.StdEncoding.EncodeToString(brand.EmailLogo)
+		logo := message.Logo
+		if len(logo) == 0 {
+			logo = brand.EmailLogo
+		}
+		encoded := base64.StdEncoding.EncodeToString(logo)
 		for len(encoded) > 0 {
 			n := 76
 			if len(encoded) < n {

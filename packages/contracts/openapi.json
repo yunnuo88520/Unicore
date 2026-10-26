@@ -2689,6 +2689,198 @@
         "security": [],
         "summary": "oidcCallback"
       }
+    },
+    "/api/v1/admin/branding": {
+      "get": {
+        "operationId": "adminBranding",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandingResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "settings:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "summary": "adminSettings",
+        "description": "读取实例品牌"
+      },
+      "put": {
+        "operationId": "adminUpdateBranding",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandingResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrandingInput"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          }
+        ],
+        "x-permission": "settings:write and super_admin",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "settings:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "maxBodyBytes": 393216
+        },
+        "summary": "adminPatchSettings",
+        "description": "替换品牌图片；空 content 恢复默认。只接受 PNG/JPEG，服务端重新编码为 PNG。"
+      }
+    },
+    "/api/v1/branding": {
+      "get": {
+        "operationId": "localBranding",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandingResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-standalone"
+          ],
+          "access": "local",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "security": [],
+        "summary": "localSettings",
+        "description": "读取实例品牌"
+      },
+      "put": {
+        "operationId": "localUpdateBranding",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandingResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrandingInput"
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-standalone"
+          ],
+          "access": "local",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "maxBodyBytes": 393216
+        },
+        "security": [],
+        "summary": "localPatchSettings",
+        "description": "替换品牌图片；空 content 恢复默认。只接受 PNG/JPEG，服务端重新编码为 PNG。"
+      }
     }
   },
   "components": {
@@ -2843,6 +3035,9 @@
           },
           "theme": {
             "type": "string"
+          },
+          "branding": {
+            "$ref": "#/components/schemas/Branding"
           }
         }
       },
@@ -4305,6 +4500,76 @@
             "type": "string"
           }
         }
+      },
+      "Branding": {
+        "type": "object",
+        "required": [
+          "logo",
+          "logo_dark",
+          "favicon"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "logo": {
+            "type": "string",
+            "maxLength": 400000
+          },
+          "logo_dark": {
+            "type": "string",
+            "maxLength": 400000
+          },
+          "favicon": {
+            "type": "string",
+            "maxLength": 400000
+          }
+        }
+      },
+      "BrandingInput": {
+        "type": "object",
+        "required": [
+          "slot",
+          "content"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "slot": {
+            "type": "string",
+            "enum": [
+              "logo",
+              "logo_dark",
+              "favicon"
+            ]
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 349528,
+            "description": "Raw base64 PNG/JPEG, up to 256 KiB; empty restores default."
+          }
+        }
+      },
+      "BrandingResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Branding"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
       }
     },
     "securitySchemes": {
@@ -4466,6 +4731,10 @@
     "INVALID_CREDENTIALS": {
       "status": 401,
       "message": "账号或密码不正确"
+    },
+    "BRAND_INVALID": {
+      "status": 400,
+      "message": "请选择不超过 256 KiB、尺寸 16–2048 像素的 PNG 或 JPEG 图片"
     }
   }
 }

@@ -44,3 +44,5 @@ M2d GET /admin/users/role-options（同一 /api/v1 前缀）要求 users:read/us
 | PATCH /admin/settings（oidc.*） | 沿用 settings:write + 真实 super_admin + CSRF |
 
 OIDC_UNAVAILABLE=502：发现服务或端点检查失败；OIDC_FAILED=409：绑定证明或身份冲突；LOCAL_PASSWORD_REQUIRED=409：没有本地密码。回调不返回 JSON 敏感详情，固定 hash 的 success/failed/link_required 均不含原始 IdP 错误。LAST_SUPER_ADMIN 同时保护最后一个 active 本地密码超管。接口具体 DTO 以 OpenAPI 为准。
+
+M3b：GET /api/v1/admin/branding 要求 settings:read；PUT 同路径要求 settings:write + super_admin + CSRF/Origin。GET/PUT /api/v1/branding 仅安装后的 web-standalone 提供，平台返回 JSON 404。公开 bootstrap/哈希 PNG 允许登录前显示品牌，均不泄露存储路径；BRAND_INVALID=400。branding.* 托管设置不能通过普通 PATCH settings 绕过上传服务。

@@ -11,6 +11,7 @@ import (
 var Assets embed.FS
 
 type Policy struct {
+	MaxBodyBytes   int      `json:"maxBodyBytes"`
 	Profiles       []string `json:"profiles"`
 	Access         string   `json:"access"`
 	Permissions    []string `json:"permissions"`

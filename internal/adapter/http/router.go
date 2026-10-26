@@ -109,6 +109,9 @@ func New(config Config) http.Handler {
 		router.Get("/openapi.json", http.NotFound)
 		router.Get("/docs/api", http.NotFound)
 	}
+	router.Get("/site.webmanifest", func(w http.ResponseWriter, r *http.Request) { serveBrandManifest(config, w, r) })
+	router.Get("/brand-assets/{name}", func(w http.ResponseWriter, r *http.Request) { serveBrandAsset(config, w, r) })
+	router.Head("/brand-assets/{name}", func(w http.ResponseWriter, r *http.Request) { serveBrandAsset(config, w, r) })
 	router.Route("/api/v1", func(api chi.Router) {
 		api.Get("/bootstrap", func(w http.ResponseWriter, r *http.Request) {
 			data := config.Metadata
@@ -199,6 +202,10 @@ func New(config Config) http.Handler {
 		writeJSON(w, 404, contracts.ErrorResponse{Code: "NOT_FOUND", Message: "接口不存在", RequestID: w.Header().Get("X-Request-ID")})
 	}
 	router.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/brand-assets/") {
+			http.NotFound(w, r)
+			return
+		}
 		if r.URL.Path == "/api" || strings.HasPrefix(r.URL.Path, "/api/") {
 			apiError(w, r)
 			return

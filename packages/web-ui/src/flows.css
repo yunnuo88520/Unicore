@@ -43,3 +43,29 @@
 .account-security .panel-heading, .oidc-connection .panel-heading { padding: 0 0 calc(var(--space-unit) * 20); }
 
 .form-field{min-width:0}.form-field>.form-error{display:block;margin-top:calc(var(--space-unit) * 6)}
+/* Instance brand assets share semantic design tokens. */
+.instance-brand { display: inline-flex; flex-shrink: 0; }
+.instance-brand-dark { display: none; }
+[data-theme="dark"] .instance-brand-light { display: none; }
+[data-theme="dark"] .instance-brand-dark { display: inline-flex; }
+.brand-image { object-fit: contain; display: block; }
+.branding-panel { margin-bottom: calc(var(--space-unit) * 24); }
+.branding-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: calc(var(--space-unit) * 18); }
+.brand-slot { position: relative; min-width: 0; padding: calc(var(--space-unit) * 18); border: calc(var(--space-unit) * 1) solid var(--border); border-radius: var(--radius-10); display: flex; flex-direction: column; gap: calc(var(--space-unit) * 12); }
+.brand-slot h3,.brand-slot p { margin: 0; }
+.brand-slot label { font-size: var(--font-12); color: var(--muted); }
+.brand-preview { height: calc(var(--space-unit) * 112); border-radius: var(--radius-10); background: var(--bg); display: grid; place-items: center; padding: calc(var(--space-unit) * 16); }
+.brand-preview-dark { background: var(--text); }
+[data-theme="dark"] .brand-preview-dark { background: var(--bg); }
+.brand-preview img { max-width: 100%; max-height: calc(var(--space-unit) * 80); object-fit: contain; }
+.brand-actions { display: flex; align-items: center; flex-wrap: wrap; gap: calc(var(--space-unit) * 12); margin-top: auto; }
+.brand-reset { border-top: calc(var(--space-unit) * 1) solid var(--border); padding-top: calc(var(--space-unit) * 12); }
+@media(max-width:1000px) { .branding-grid { grid-template-columns: 1fr; } }
+
+.branding-panel > .help-text { padding: 0 calc(var(--space-unit) * 23) calc(var(--space-unit) * 16); }
+.branding-grid { margin: 0 calc(var(--space-unit) * 23) calc(var(--space-unit) * 23); }
+.brand-slot h3 { font-size: var(--font-14); }
+.brand-file-control { display: flex; gap: calc(var(--space-unit) * 10); align-items: center; flex-wrap: wrap; }
+.brand-file-control span { overflow-wrap: anywhere; }
+.brand-slot .brand-file-input { position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; }
+.brand-file-input:focus-visible { position: static; width: 100%; height: auto; clip-path: none; }

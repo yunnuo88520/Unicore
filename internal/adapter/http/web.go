@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/yunnuo/unicore/internal/branding"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/mailer"
@@ -34,6 +35,8 @@ func failure(w http.ResponseWriter, status int, code, message string) {
 func webError(w http.ResponseWriter, err error) {
 	code := "INTERNAL_ERROR"
 	switch {
+	case errors.Is(err, branding.ErrInvalid):
+		code = "BRAND_INVALID"
 	case errors.Is(err, platform.ErrOIDCUnavailable):
 		code = "OIDC_UNAVAILABLE"
 	case errors.Is(err, platform.ErrOIDC), errors.Is(err, platform.ErrOIDCLinkRequired):
@@ -96,7 +99,11 @@ func decode(w http.ResponseWriter, r *http.Request, value any) bool {
 		failure(w, 415, "UNSUPPORTED_MEDIA_TYPE", "请使用 application/json")
 		return false
 	}
-	r.Body = http.MaxBytesReader(w, r.Body, 64*1024)
+	limit := 64 * 1024
+	if operation, ok := apispec.Lookup(strings.ToLower(r.Method), chi.RouteContext(r.Context()).RoutePattern()); ok && operation.Policy.MaxBodyBytes > 0 {
+		limit = operation.Policy.MaxBodyBytes
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, int64(limit))
 	raw, err := io.ReadAll(r.Body)
 	if err != nil {
 		failure(w, 413, "BODY_TOO_LARGE", "请求体过大")
@@ -206,7 +213,7 @@ func coreAccess(manager *install.Manager, w http.ResponseWriter, r *http.Request
 func metadata(config Config, r *http.Request) contracts.Bootstrap {
 	_, service, identity, profile := config.Install.Services()
 	data := runtime.Metadata(profile, config.Metadata.DeploymentKind)
-	data.Stage = "M3a"
+	data.Stage = "M3b"
 	data.Installed = config.Install.Installed()
 	data.SiteName = "Unicore"
 	data.AdminPath = config.Install.AdminPath(r.Context())
@@ -215,6 +222,11 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 	data.Capabilities.Settings = data.Installed
 	data.Capabilities.Authentication = data.Installed && identity != nil
 	if service != nil {
+		if service.Branding != nil {
+			if value, err := service.Branding.Snapshot(r.Context(), false); err == nil {
+				data.Branding = &value
+			}
+		}
 		if name, err := service.Value(r.Context(), "site.name"); err == nil {
 			data.SiteName = name
 		}
@@ -256,6 +268,7 @@ func super(user contracts.User) bool {
 }
 
 func mountWeb(api chi.Router, config Config) {
+	mountBranding(api, config)
 	manager := config.Install
 	mountAccounts(api, config)
 	mountRoles(api, config)

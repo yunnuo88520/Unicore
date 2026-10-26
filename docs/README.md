@@ -9,6 +9,7 @@ Unicore 将需求、架构、契约、Skills 和验收记录一同维护。AI �
 | 模块边界与装配 | [架构](01-architecture/architecture.md)、[ADR](adr) |
 | 修改接口或校验 | [OpenAPI](../packages/contracts/openapi.json)、[接口开发约定](02-standards/api-contract.md) |
 | 修改页面、会话或表单 | [前端约定](02-standards/frontend.md)、[设计系统](02-standards/design-system.md) |
+| 实例品牌上传与恢复 | [品牌需求](00-product/feature-branding.md)、[ADR-0009](adr/ADR-0009-runtime-branding.md)、[M3b 验收](04-ai/acceptance-m3b.md) |
 | 修改配置、日志和生命周期 | [运行基座](02-standards/runtime.md)、[部署手册](03-runbooks/deployment.md) |
 | 让 AI 实现功能 | [开发工作流](04-ai/development.md)、[Skill 导航](04-ai/context.gen.md)、[任务模板](04-ai/task-template.md) |
 

@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 产品基线与当前范围
 
-Unicore · yunnuo / ymz@ebox.vip。完整目标见 [design-v1.1.md](design-v1.1.md)。当前实现 M1 + M2a + M2b + M2c + M2d + M3a，不等同完整 v1。
+Unicore · yunnuo / ymz@ebox.vip。完整目标见 [design-v1.1.md](design-v1.1.md)。当前实现 M1 + M2a + M2b + M2c + M2d + M3a + M3b，不等同完整 v1。
 
 基础能力本轮收尾：统一会话/缓存边界、路由/表单、契约文档/校验、运行配置/观测与 AI 开发入口，当前范围见 [基础能力审计](../04-ai/foundation-audit.md) 和 [验收](../04-ai/acceptance-ai-foundations.md)。
 
@@ -17,7 +17,7 @@ Unicore · yunnuo / ymz@ebox.vip。完整目标见 [design-v1.1.md](design-v1.1.
 | 统一设计源 / Logo、ICO、原生图标 | 已实现 | 已实现 | 已实现，macOS 实测 | 不适用 |
 | AI 文档/Skills/契约生成与检查 | 已实现 | 已实现 | 已实现 | 已实现 |
 | OIDC 企业登录 / 账号绑定 | 已实现，默认关闭 | 不装配 | 不装配 | 不装配 |
-| 品牌上传 | M3 后续 | 按适用项 | 按适用项 | 不适用 |
+| 实例品牌上传/恢复默认 | 已实现，服务端权限 | 已实现 | 已实现，Wails | 不适用 |
 | 备份恢复 / 正式发布 / 升级 | M4 后续 | M4 后续 | 后续 | 后续 |
 
 M2a：首次选择 Web 两模式，安装后固定；私有安装凭据、文件锁、DB 唯一安装标记与事务 seed，失败可恢复。平台默认开启图形验证码，不开放注册；内置 super_admin/user，服务端逐 API 权限与 CSRF，保护最后超管；用户搜索/分页/创建/启停/角色关联。持久设置通过 SettingDefinition 注册表管理，覆盖站点基础、主题、安全和后台路径。桌面自动 SQLite，平台身份与外部驱动不进入桌面组合。
@@ -26,7 +26,7 @@ M1：共享无状态文本分析（Unicode 字符/空白分隔词/行/字节/原
 
 M2b：SMTP 支持强制 STARTTLS/验证证书 TLS，本机可用明文测试；敏感设置加密、读取只返回配置状态。通过当前配置的真实测试邮件后才允许启用注册/恢复。注册默认关闭且仅授予 user，邮箱验证后启用。令牌一次性/分用途/哈希保存，邮件内容加密队列，失败最多 5 次重试。重置事务撤销全部旧 session，并阻止旧密码并发登录重新创建会话。
 
-M3a：OIDC PKCE/state/nonce、显式绑定与最低权限 JIT 已实现，见 [需求](feature-oidc.md) 和 [验收](../04-ai/acceptance-m3a.md)。品牌上传和进一步 GUI 体验仍在 M3 后续；M4：备份恢复、签名 manifest、条件编译启用、受控 tar updater、Docker 镜像替换演练。v1 多用户不是多租户。
+M3a：OIDC PKCE/state/nonce、显式绑定与最低权限 JIT 已实现，见 [需求](feature-oidc.md) 和 [验收](../04-ai/acceptance-m3a.md)。M3b 实例品牌见 [需求](feature-branding.md) 和 [验收](../04-ai/acceptance-m3b.md)；M4：备份恢复、签名 manifest、条件编译启用、受控 tar updater、Docker 镜像替换演练。v1 多用户不是多租户。
 
 详细命令与实际平台验证记录见 [M2b 验收](../04-ai/acceptance-m2b.md) 与 [M2a 验收](../04-ai/acceptance-m2a.md)。
 

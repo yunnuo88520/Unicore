@@ -18,6 +18,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/yunnuo/unicore/assets/theme"
+	"github.com/yunnuo/unicore/internal/branding"
 	"github.com/yunnuo/unicore/internal/contracts"
 )
 
@@ -58,7 +59,7 @@ func ValidAdminPath(value string) bool {
 		return false
 	}
 	switch strings.ToLower(value) {
-	case "/api", "/install", "/assets", "/settings", "/login", "/auth":
+	case "/brand-assets", "/api", "/install", "/assets", "/settings", "/login", "/auth":
 		return false
 	}
 	return true
@@ -69,6 +70,9 @@ func ValidBaseURL(value string) bool {
 }
 
 var Definitions = append([]SettingDefinition{
+	{"branding.logo", "string", "branding", "Logo", "", false, false, branding.ValidReference},
+	{"branding.logo_dark", "string", "branding", "深色 Logo", "", false, false, branding.ValidReference},
+	{"branding.favicon", "string", "branding", "站点图标", "", false, false, branding.ValidReference},
 	{"site.name", "string", "site", "站点名称", theme.Current.Brand.Name, false, false, func(v string) bool {
 		return strings.TrimSpace(v) != "" && !strings.ContainsAny(v, "\r\n") && text(64)(v)
 	}},
@@ -100,10 +104,11 @@ type Secrets interface {
 	Open(string) (string, error)
 }
 type Service struct {
-	Store   Store
-	Secrets Secrets
-	mu      sync.Mutex
-	Profile contracts.Profile
+	Branding *branding.Service
+	Store    Store
+	Secrets  Secrets
+	mu       sync.Mutex
+	Profile  contracts.Profile
 }
 
 // Raw is internal-only: HTTP must use List so secrets never enter responses.
@@ -148,6 +153,9 @@ func (s *Service) List(ctx context.Context) (contracts.Settings, error) {
 	result := contracts.Settings{Items: []contracts.SettingEntry{}}
 	for _, d := range Definitions {
 		if d.PlatformOnly && s.Profile != "web-platform" {
+			continue
+		}
+		if branding.Managed(d.Key) {
 			continue
 		}
 		value := values[d.Key]
@@ -229,7 +237,7 @@ func (s *Service) Patch(ctx context.Context, input contracts.SettingPatch, actor
 	values := map[string]string{}
 	seen := map[string]bool{}
 	for _, change := range input.Changes {
-		if seen[change.Key] {
+		if branding.Managed(change.Key) || seen[change.Key] {
 			return contracts.Settings{}, ErrInvalid
 		}
 		seen[change.Key] = true
@@ -291,4 +299,12 @@ func Defaults(profile contracts.Profile) map[string]string {
 		}
 	}
 	return values
+}
+
+// Logo returns only the normalized public image; SMTP credentials remain internal.
+func (s *Service) Logo(ctx context.Context) ([]byte, error) {
+	if s.Branding == nil {
+		return nil, nil
+	}
+	return s.Branding.Logo(ctx)
 }

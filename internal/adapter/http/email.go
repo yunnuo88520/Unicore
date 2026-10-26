@@ -89,6 +89,11 @@ func mountEmail(api chi.Router, config Config) {
 			webError(w, err)
 			return
 		}
-		success(w, mailer.Previews(values["site.name"], values["site.copyright"]))
+		logo, err := a.Settings.Logo(r.Context())
+		if err != nil {
+			webError(w, err)
+			return
+		}
+		success(w, mailer.Previews(values["site.name"], values["site.copyright"], logo))
 	})
 }

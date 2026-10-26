@@ -13,6 +13,7 @@
     "contract": "packages/contracts/openapi.json",
     "theme": "assets/theme/tokens.json",
     "brand": "assets/brand/identity.json",
+    "instanceBrand": "internal/branding/service.go",
     "settings": "internal/settings/service.go",
     "routes": "packages/web-ui/src/routes.ts",
     "session": "packages/web-ui/src/session.tsx",

@@ -16,6 +16,7 @@ export function contractArtifacts(spec){
   if(!policy?.profiles?.length||!policy.access||!Array.isArray(policy.permissions)||typeof policy.csrf!=='boolean')throw new Error(`Missing access metadata: ${id}`);
   if(path.includes('/admin/')&&!policy.permissions.length)throw new Error(`Admin operation needs permissions: ${id}`);
   for(const security of operation.security??[])for(const name of Object.keys(security))if(!spec.components.securitySchemes[name])throw new Error(`Unknown security scheme: ${name}`);
+  if(policy.maxBodyBytes!==undefined&&(!Number.isInteger(policy.maxBodyBytes)||policy.maxBodyBytes<1024||policy.maxBodyBytes>512*1024))throw new Error(`Invalid body limit: ${id}`);
   const requestSchema=refName(operation.requestBody?.content?.['application/json']?.schema);
   const responseSchema=refName(operation.responses?.['200']?.content?.['application/json']?.schema);
   if(operation.requestBody&&!requestSchema)throw new Error(`Request must use a named schema: ${id}`);

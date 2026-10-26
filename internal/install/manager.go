@@ -19,6 +19,7 @@ import (
 	"github.com/yunnuo/unicore/internal/adapter/storage/platformsql"
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/adapter/storage/webdb"
+	"github.com/yunnuo/unicore/internal/branding"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/mailer"
 	"github.com/yunnuo/unicore/internal/platform"
@@ -169,7 +170,7 @@ func (m *Manager) connect(ctx context.Context) (*sqlstore.Store, error) {
 }
 func (m *Manager) attach(store *sqlstore.Store) {
 	m.store = store
-	m.settingService = &settings.Service{Store: store, Profile: m.config.Profile, Secrets: m.secret}
+	m.settingService = &settings.Service{Store: store, Profile: m.config.Profile, Secrets: m.secret, Branding: branding.New(store, m.directory)}
 	if m.config.Profile == runtime.WebPlatform {
 		repository := &platformsql.Repository{Store: store}
 		m.identity = platform.New(repository)

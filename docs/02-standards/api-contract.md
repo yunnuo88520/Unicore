@@ -12,3 +12,5 @@ SDK HttpTransport 的业务方法调用生成 operation，统一处理 Cookie、
 校验支持 `$ref`、object/array/string/integer/boolean、required、additionalProperties、enum、长度/正则、数值/列表范围、uniqueItems 与 x-max-utf8-bytes，以及 email、绝对 URI、date-time 格式。生成器拒绝未实现的 schema keyword；这是明确的 OpenAPI 子集，不是完整 JSON Schema 实现。Go/TS 共用 validation-cases.json 验证输入边界；整数限于 JavaScript 安全整数。业务条件（安装 profile、密码策略、非空白、权限委派等）继续在领域/服务层验证。新增约束需同步两端解释器和共享样例，不能只改表单。
 
 API 文档不依赖 CDN 或脚本。启动 `APP_API_DOCS=true build/bin/server` 后，`/docs/api` 提供文档，`/openapi.json` 提供原始契约；默认关闭时两路径返回 404。本地文件 `packages/contracts/reference.gen.html` 也可离线阅读。文档包含全部 profile 的操作，当前实例只装配适用能力；文档不携带实例配置或凭据。
+
+上传 operation 可在 x-unicore.maxBodyBytes 声明 1–512 KiB 的 JSON 体上限；通用 decoder 按真实路由读取元数据，未声明仍为 64 KiB。当前品牌 PUT 单独为 384 KiB，业务图片原始上限为 256 KiB；禁止为新增上传全局放大所有 API。公开品牌 PNG 与 manifest 是固定格式静态资源接口，不属于 JSON 业务契约。

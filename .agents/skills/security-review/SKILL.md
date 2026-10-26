@@ -18,7 +18,7 @@ metadata:
 ## steps
 
 1. 阅读设计和实现，区分当前控制与路线图，列出可信边界。
-2. 按范围检查安装 token/锁/吊销，密码/session/CSRF/限流/RBAC，secret 加密/掩码，OIDC PKCE/state/nonce/绑定，上传路径和升级签名。
+2. 按范围检查安装 token/锁/吊销，密码/session/CSRF/限流/RBAC，secret 加密/掩码，OIDC PKCE/state/nonce/绑定，上传路径和升级签名。品牌上传的实际格式/尺寸、原子提交、清理与邮件快照边界见 [ADR-0009](../../../docs/adr/ADR-0009-runtime-branding.md)。
 3. 错误、日志、审计和契约不能泄露敏感信息；单机 loopback，桌面/CLI 不加载身份。
 4. 提供可复现风险和最小修复，增加相关测试，不把未来模块未实现误报为已上线的生产功能漏洞。
 

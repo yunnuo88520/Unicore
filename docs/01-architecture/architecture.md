@@ -1,5 +1,5 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
-# 当前架构（M3a）
+# 当前架构（M3b）
 
 共享业务依赖链：`entry → adapter → usecase → domain`。`internal/contracts` 从 OpenAPI 生成；domain 无传输/DB/身份依赖。CLI 只调用 bootstrap.Core；Web 装配 install 与按安装 profile 初始化的平台身份；桌面只装配 bootstrap/local 的 SQLite 与 settings。
 
@@ -39,7 +39,7 @@ SQLite 使用 WAL、5 秒 busy timeout、单连接；PostgreSQL/MySQL 使用 bou
 
 ## 界面与扩展
 
-HttpTransport 管理 cookie/CSRF 与 WebClient；页面不直接 fetch。WailsTransport 只提供 bootstrap/execute/settings，没有 Web 身份/安装接口。SessionBoundary 按会话代际隔离 Query cache/组件状态，SDK epoch 拒绝旧响应，多标签页同步失效；routes.ts 与 PageContent 集中路由/权限及渲染，公共 Form/Field 与契约校验处理提交错误。TanStack Query 管理状态；DashboardWidgetRegistry 以唯一 id 扩展业务首页。平台仪表盘来自 DB：总用户、UTC 今日新增、过去 7 天成功认证的去重账号、最近审计。单机/桌面没有用户统计。
+HttpTransport 管理 cookie/CSRF 与 WebClient；页面不直接 fetch。WailsTransport 只提供 bootstrap/execute/settings/branding，没有 Web 身份/安装接口。SessionBoundary 按会话代际隔离 Query cache/组件状态，SDK epoch 拒绝旧响应，多标签页同步失效；routes.ts 与 PageContent 集中路由/权限及渲染，公共 Form/Field 与契约校验处理提交错误。TanStack Query 管理状态；DashboardWidgetRegistry 以唯一 id 扩展业务首页。平台仪表盘来自 DB：总用户、UTC 今日新增、过去 7 天成功认证的去重账号、最近审计。单机/桌面没有用户统计。
 
 主题偏好 localStorage，持久实例默认主题在设置注册表；当前以设备偏好优先。UI hash 子页面复用到 Wails，Web 的 /install、/admin 与 /settings 入口由服务器处理。light/dark/system 与 375px 浏览器测试，表格可横向滚动但页面不溢出。
 
@@ -76,3 +76,7 @@ platform/roles.go 维护权限目录、可委派策略与内置角色规则，pl
 ## AI 开发入口
 
 [ADR-0008](../adr/ADR-0008-ai-foundations.md) 将 manifest、AGENTS、文档/Skills 导航和生成漂移检查纳入仓库。OpenAPI 同源生成模型、typed operation、约束表、错误目录与离线文档，实际 Chi 路由比对契约；服务端权限与业务实现仍显式维护。`make docs` 生成，`make test` 检查；任务流程见 [AI 开发工作流](../04-ai/development.md)。
+
+## M3b 实例品牌
+
+[ADR-0009](../adr/ADR-0009-runtime-branding.md) 定义共享 internal/branding、私有规范化 PNG 与 DB 托管引用。Web/Wails 使用生成 DTO，通过 AppClient 驱动共享预览/保存/恢复面板；BrandProvider 覆盖工作台和账号分支。Web 公开哈希图片，Wails 返回 data URI，无 HTTP 模拟。邮件创建时快照图片字节到加密队列，SMTP CID 和预览同源；存储/清理顺序与恢复边界见 [需求](../00-product/feature-branding.md)。

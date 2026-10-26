@@ -149,6 +149,9 @@ export const constraints = {
       },
       "theme": {
         "type": "string"
+      },
+      "branding": {
+        "$ref": "#/components/schemas/Branding"
       }
     }
   },
@@ -1602,6 +1605,75 @@ export const constraints = {
       },
       "data": {
         "$ref": "#/components/schemas/OIDCStart"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "Branding": {
+    "type": "object",
+    "required": [
+      "logo",
+      "logo_dark",
+      "favicon"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "logo": {
+        "type": "string",
+        "maxLength": 400000
+      },
+      "logo_dark": {
+        "type": "string",
+        "maxLength": 400000
+      },
+      "favicon": {
+        "type": "string",
+        "maxLength": 400000
+      }
+    }
+  },
+  "BrandingInput": {
+    "type": "object",
+    "required": [
+      "slot",
+      "content"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "slot": {
+        "type": "string",
+        "enum": [
+          "logo",
+          "logo_dark",
+          "favicon"
+        ]
+      },
+      "content": {
+        "type": "string",
+        "maxLength": 349528
+      }
+    }
+  },
+  "BrandingResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/Branding"
       },
       "request_id": {
         "type": "string"

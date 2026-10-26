@@ -5,7 +5,7 @@ import { Form } from './forms';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Activity, ArrowDown, ArrowRight, ArrowUpRight, Braces, Check, CheckCircle2, ChevronRight, Circle, Code2, Copy, Cpu, ExternalLink, FlaskConical, Globe2, Info, Layers3, LayoutDashboard, LoaderCircle, Menu, Monitor, Moon, Play, Radio, RotateCcw, Settings2, ShieldCheck, Sparkles, Sun, Terminal, Users, X } from 'lucide-react';
-import { BrandMark, BrandLockup } from './brand';
+import { BrandProvider, BrandMark, BrandLockup } from './brand';
 import { AppError, type AppClient, type Bootstrap, type ExecuteOutput, type Profile } from '@unicore/sdk';
 import { useTheme, type Theme } from './theme';
 import { DashboardWidgetRegistry } from './registry';
@@ -22,7 +22,12 @@ const PROFILE_LABELS: Record<Profile, string> = { 'web-platform': 'Web 平台', 
 const PAGE_LABELS = Object.fromEntries(Object.entries(routes).map(([id, route]) => [id, route.label])) as Record<Page, string>;
 
 export function Workspace({ client, registry = new DashboardWidgetRegistry() }: { client: AppClient; registry?: DashboardWidgetRegistry }) {
-  return <SessionBoundary client={client}>{notice => <App client={client} registry={registry} notice={notice} />}</SessionBoundary>;
+  return <SessionBoundary client={client}>{notice => <BrandedApp client={client} registry={registry} notice={notice} />}</SessionBoundary>;
+}
+
+function BrandedApp(props: {client: AppClient; registry: DashboardWidgetRegistry; notice: string}) {
+ const {metadata}=useSession(props.client);
+ return <BrandProvider branding={metadata.data?.branding} name={metadata.data?.site_name}><App {...props} /></BrandProvider>;
 }
 
 function App({ client, registry, notice }: { client: AppClient; registry: DashboardWidgetRegistry; notice: string }) {
@@ -82,7 +87,7 @@ function PageContent({ page, client, metadata, registry, theme, setTheme, refres
     admin: client.web && <AdminDashboard web={client.web} />,
     users: client.web && <UserManagement web={client.web} metadata={metadata} />,
     roles: client.web && <RoleManagement web={client.web} metadata={metadata} />,
-    site: client.settings && client.patchSettings && <PersistentSettings client={client} onSaved={refresh} />,
+    site: client.settings && client.patchSettings && <PersistentSettings client={client} onSaved={refresh} canWrite={metadata.profile !== 'web-platform' || (metadata.current_user?.permissions.includes('settings:write') ?? false)} />,
     'not-found': <div className="state-card" role="alert"><Info size={26} /><strong>找不到这个页面</strong><p>请通过导航进入已有页面。</p><a className="primary-button" href="#overview">返回工作台</a></div>,
   };
   return pages[page];

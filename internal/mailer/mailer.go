@@ -12,7 +12,10 @@ import (
 	"github.com/yunnuo/unicore/internal/settings"
 )
 
-type Message struct{ To, Subject, Body, HTML, FromName string }
+type Message struct {
+	To, Subject, Body, HTML, FromName string
+	Logo                              []byte `json:",omitempty"`
+}
 type Config struct{ Host, Port, TLS, From, Username, Password string }
 type Sender interface {
 	Send(context.Context, Config, Message) error
@@ -59,7 +62,11 @@ func (s *Service) Test(ctx context.Context, recipient, actor string) error {
 	if !settings.MailConfigured(values) {
 		return settings.ErrMailNotReady
 	}
-	if err = s.Sender.Send(ctx, Configuration(values), Render(values["site.name"], values["site.copyright"], "test", "", recipient, false)); err != nil {
+	logo, err := s.Settings.Logo(ctx)
+	if err != nil {
+		return err
+	}
+	if err = s.Sender.Send(ctx, Configuration(values), Render(values["site.name"], values["site.copyright"], "test", "", recipient, false, logo)); err != nil {
 		return ErrUnavailable
 	}
 	return s.Settings.MarkMailTested(ctx, settings.MailFingerprint(values), actor)

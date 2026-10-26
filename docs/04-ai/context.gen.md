@@ -18,6 +18,7 @@
 | contract | [packages/contracts/openapi.json](../../packages/contracts/openapi.json) |
 | theme | [assets/theme/tokens.json](../../assets/theme/tokens.json) |
 | brand | [assets/brand/identity.json](../../assets/brand/identity.json) |
+| instanceBrand | [internal/branding/service.go](../../internal/branding/service.go) |
 | settings | [internal/settings/service.go](../../internal/settings/service.go) |
 | routes | [packages/web-ui/src/routes.ts](../../packages/web-ui/src/routes.ts) |
 | session | [packages/web-ui/src/session.tsx](../../packages/web-ui/src/session.tsx) |
@@ -25,7 +26,7 @@
 | decisions | [docs/adr](../../docs/adr) |
 | status | [docs/04-ai/foundation-audit.md](../../docs/04-ai/foundation-audit.md) |
 
-OpenAPI 当前包含 47 个 operation、68 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
+OpenAPI 当前包含 51 个 operation、71 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
 
 | 任务 Skill | 用途 |
 | --- | --- |

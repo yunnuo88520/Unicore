@@ -70,7 +70,7 @@ func TestMailAccountHTTP(t *testing.T) {
 	if !strings.Contains(policy.Body.String(), `"registration_enabled":false`) || policy.Header().Get("Cache-Control") != "no-store" {
 		t.Fatal("unsafe initial policy", policy.Body.String())
 	}
-	assertStatus(request("POST", "/auth/register", contracts.RegisterInput{}, "", "", ""), 409)
+	assertStatus(request("POST", "/auth/register", contracts.RegisterInput{Username: "disabled", Email: "disabled@example.test", Password: "test-password-strong"}, "", "", ""), 409)
 	assertStatus(request("POST", "/admin/settings/mail/test", contracts.MailTestInput{Recipient: "recipient@example.test"}, "", "", ""), 401)
 	assertStatus(request("POST", "/admin/settings/mail/test", contracts.MailTestInput{Recipient: "recipient@example.test"}, raw, "", ""), 403)
 	assertStatus(request("POST", "/auth/password/request", contracts.EmailRequest{Email: "admin@example.test"}, "", "", "https://evil.example.test"), 403)

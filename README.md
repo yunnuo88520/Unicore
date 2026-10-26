@@ -53,6 +53,10 @@ make release                     # 本地跨平台预览包，不发布或上传
 
 ## 文档
 
+AI 开发从 [文档入口](docs/README.md) 和 [上下文地图](docs/04-ai/context.gen.md) 开始。框架自带 11 个任务 Skills、机器可读 manifest、任务模板和文档漂移检查；`make docs` 生成，`make test` 检查。
+
+`APP_API_DOCS=true build/bin/server` 开启 `/docs/api` 和 `/openapi.json`；日志、退出超时及独立指标端口见 [运行基座](docs/02-standards/runtime.md)。
+
 - [M3a 企业登录验收](docs/04-ai/acceptance-m3a.md)、[接入需求](docs/00-product/feature-oidc.md)
 - [M2d 角色验收](docs/04-ai/acceptance-m2d.md)、[角色功能](docs/00-product/feature-roles.md)
 - [M2c 验收报告](docs/04-ai/acceptance-m2c.md)、[统一主题入口](docs/02-standards/design-system.md)

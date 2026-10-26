@@ -1,33 +1,28 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
-# 基础能力审计与原生品牌修正（2026-10-26）
+# 基础能力当前状态（2026-10-26）
 
-结论：当前 M3a 已有可运行的跨形态业务闭环，基础设施尚未全部收尾。本表按实际代码判定，不以引入某个库或已有一个业务页面作为完成标准。审计基线为 33183b0；本次另外修复 HTTP 退出顺序及原生品牌打包缺口。
+本轮已补齐上一轮审计列出的开发基座缺口，验收见 [AI 开发基座验收](acceptance-ai-foundations.md)。这表示当前 M3a 基座可持续扩展，不等于完整 v1 或正式生产发行。原生品牌的上一轮证据保留在下方。
 
-| 用户提出的能力 | 当前状态与证据 | 尚需完成 |
+| 能力 | 当前实现 | 边界与后续 |
 | --- | --- | --- |
-| 应用生命周期与配置 | 部分。`cmd/server/main.go`、`internal/install` 已有 flag/env、密文持久配置、profile 固定、进程锁、超时、信号和邮件 worker；本次修复 HTTP 排空前提前释放资源的问题 | 提取跨入口配置加载/校验约定、配置优先级测试、组件启动失败/退出错误的统一编排；当前 grace 为固定 5 秒 |
-| 统一响应与错误处理 | 基础已有。`adapter/presenter/response.go`、`adapter/http/web.go`、Wails bridge 使用 code/message/data/request_id；404/405 和 panic 有 JSON 处理 | 错误映射分散；尚无统一错误目录、字段错误模型及前后端一体的验证映射 |
-| 日志 | 基础已有。Web JSON slog、request_id、method、耗时，安全审计持久化；本次将启动错误也纳入 JSON logger | HTTP 状态码/路由模板、可配置日志级别与输出、各 profile 一致的日志入口；无 metrics/tracing |
-| GORM 初始化与迁移 | **未使用 GORM**。依据 [ADR-0003](../adr/ADR-0003-m2-install-storage-identity.md)，已有 database/sql + 薄 Repository、连接池/Ping、三方言嵌入 SQL、连续版本和 checksum | SQL 方案已经承担初始化与迁移；若改为 GORM 应单独评估并更新 ADR，不应叠加 AutoMigrate 形成第二套 schema 来源 |
-| API 文档自动生成 | 部分。`packages/contracts/openapi.json` → `scripts/generate-contracts.mjs` → Go/TS DTO；CI 检查生成漂移 | 没有发布 OpenAPI 文件的端点和 Swagger/Redoc 文档页，也没有 SDK 方法或 handler 生成、路由覆盖检查 |
-| 健康检查与可观测性 | live/ready 已有，ready 检查安装及 DB Ping，另有请求 ID 与审计 | DB 探测独立超时/监控访问约定、metrics 入口及指标；OpenTelemetry 可选，当前未实现 tracing |
-| 前端统一 API Client | 已有 AppClient / WebClient / HttpTransport / WailsTransport、AppError、cookie/CSRF 和 20 秒超时；页面不直接 fetch | 统一 401/会话失效通知、调用方取消和字段错误约定 |
-| 认证状态与路由守卫 | 部分。bootstrap 用户/权限、登录页及页面权限守卫已有；服务端独立执行 RBAC/CSRF | 缺专用会话状态机、统一失效跳转、退出/换账号清理 Query cache、多标签页失效同步 |
-| 路由 | 部分。共享 hash 导航支持 Web/Wails，服务器处理安装/后台入口 | Page union、hash 监听及条件渲染集中在 App.tsx；缺路由注册表、未知路由页面、可测试的路由/权限元数据 |
-| 状态管理 | TanStack Query 管理服务端状态、useState 管理局部状态，主题偏好持久化；[ADR-0002](../adr/ADR-0002-contract-and-ui.md) 未要求当前阶段引入 Zustand | 按身份隔离和清理缓存，统一 mutation 成功后的刷新规则；缺库本身不代表功能缺失 |
-| 样式与主题基座 | 已有。`assets/theme/tokens.json`、品牌 `identity.json`、共享语义 CSS/组件、三态主题、响应式、邮件/原生资源生成和漂移检查 | 新增页面仍需验证；Windows/Linux 原生显示未在本机实测 |
-| 表单与校验约定 | 部分。已有语义 form、HTML required/pattern/minLength 和服务端校验 | 各表单重复 useState/useMutation；缺公共字段组件/验证器、字段错误/聚焦约定和契约约束同步 |
-| OpenAPI 或 Protobuf 唯一契约 | **DTO 已以 OpenAPI 为唯一源**，HTTP/Wails 共用；不需要再引入第二份 Protobuf | securitySchemes/错误与约束元数据、路由/SDK 与契约完整性检查、运行时校验仍未闭合；不能称“所有接口自动生成” |
+| 生命周期与配置 | Web 集中 flag > env > 默认、参数校验、可配置排空/探测超时；组件逆序清理并合并错误；桌面返回后关闭存储 | CLI/桌面共用日志 env 选项，各形态存储配置保持独立；handler 必须遵守 context |
+| 响应与错误 | OpenAPI 错误目录生成 ErrorCatalog，HTTP/presenter/桌面复用，支持 fields、request_id | 业务错误仍由服务手写映射；INVALID_CREDENTIALS 与 AUTH_REQUIRED 区分密码错误/会话失效 |
+| 日志 | 共享 slog 等级/JSON或text，Web 请求路由模板/状态/耗时，CLI日志 stderr | 不打印请求值/凭据/原始 query；外部日志平台后续接入 |
+| DB 初始化与迁移 | database/sql + Repository、池/Ping、分方言嵌入 SQL/checksum 已有 | [ADR-0003](../adr/ADR-0003-m2-install-storage-identity.md) 决定不用 GORM；本轮无 schema 变化，不叠加 AutoMigrate |
+| 自动 API 文档 | 同源生成 Go/TS DTO、typed operation、约束、错误和离线 HTML；可选 /docs/api、/openapi.json；真实 Chi 路由覆盖检查 | 47 个 operation；handler/业务授权手写；文档默认关闭，非交互调试控制台 |
+| 健康与观测 | live/ready、独立 DB 超时、可选回环 /metrics：请求数/活动数/耗时与 DB 池 | 指标使用低基数模板；未实现 OpenTelemetry tracing、远程采集/告警部署 |
+| API Client | 生成操作驱动请求、CSRF/Cookie、20秒超时/取消、字段错误、统一失效、旧请求 epoch 拒绝 | 浏览器 OIDC callback 走导航；Wails 只暴露适用接口 |
+| 会话与守卫 | useSession + SessionBoundary、身份代际 cache/局部状态清空、多标签页同步、可见时复核、集中权限判断 | 服务端撤销在下个请求或恢复可见时发现；没有推送通道 |
+| 路由 | 集中 routes 元数据、完整 PageContent 渲染表、未知路径页；兼容账号链接/OIDC fragment | 沿用支持 Wails 的 hash 路由，服务端安装/后台入口保持原职责 |
+| 状态管理 | Query 管服务器状态、useState 管局部状态、queries.ts 管 mutation 资源刷新 | 暂无额外全局业务 store 的需求；会话边界独立处理身份变化 |
+| 样式与品牌 | 全局 tokens/identity 生成 UI、邮件、Web/native 图标；API 文档复用同一浅深配色/尺度 | 本机 macOS arm64 原生实测；Windows/Linux 原生显示仍需对应机器 |
+| 表单与校验 | 公共 Form/Field、HTML约束、契约前置校验、服务端再次校验、字段错误/聚焦、pending；Go/TS 共用边界样例 | 明确受支持 schema 子集；业务不变量仍在服务端，分步/设置表单保留局部编辑逻辑 |
+| 唯一契约 | OpenAPI 3.1.0 维护 schema/security/profile/权限/CSRF/响应/错误，CI 检查漂移与路由 | 不引入第二份 Protobuf；非完整 JSON Schema 验证器，不自动生成业务实现 |
+| AI 开发内建 | manifest、AGENTS、文档导航、生成上下文、11 个项目 Skills、任务/中断模板；make docs/check:docs 进入质量流程 | Skills 不隐含生产/发布授权，不存个人凭据；历史验收与当前状态分开 |
 
-后续基础收尾顺序与验收条件：
+仍未完成的产品范围：M3 品牌上传等后续能力、M4 备份恢复/授权/受控升级与正式签名发行。详见 [PRD](../00-product/PRD.md)；本轮未重跑 PostgreSQL/MySQL 或其他 OS 原生测试，不能据此扩展实测范围。
 
-1. 会话状态与 API Client：服务端撤销会话后，下一个受保护请求能统一退回登录；旧用户数据清空；换账号及多标签页场景有真实页面测试。
-2. 契约与文档：同一 OpenAPI 生成/发布文档；CI 检测所有已装配 API 与 operation 不匹配、缺权限/响应声明；文档资产离线可用。
-3. 路由与表单：集中注册路径/权限/页面，未知路径有明确结果；统一字段校验、提交状态和服务端字段错误，Web/Wails 及 375px 实测。
-4. 配置与可观测性：明确加载优先级与有效配置的脱敏查询；请求状态/路由日志、bounded readiness 与指标入口，测试不记录输入/凭据。
-5. 错误目录与生命周期扩展：业务/传输错误共用目录，组件启动失败能逆序释放；各 profile 具备对应的启动/退出测试。
-
-## 本次实际修正
+## 上轮原生品牌与排空修正（146e75f）
 
 影响：Web 两 profile 的启动/退出；桌面的构建身份与图标校验。无 API/DTO、数据库 schema 或实例设置变更，不触发迁移。
 
@@ -39,7 +34,7 @@
 
 已从空 `build/desktop` 目录重建。macOS arm64 真实 Wails 用例返回 61 字符/9 词/3 行，系统 About 和 Finder 简介显示 Unicore 图标。证据见 [原生用例](evidence-foundations/native-core.png)、[系统 About](evidence-foundations/system-about.png)、[Finder 图标](evidence-foundations/finder-icon.png)。本次没有直接取得 Dock 图标截图；该结果不代表其他 OS 原生显示已实测，也不能证明另一路径的旧应用包已经更新。
 
-## 验证记录
+## 上轮验证记录
 
 - `make test`：设计/契约/作者/边界、go vet、Go race、TS 与 7 个 Vitest 均通过；新增 3 个生命周期测试。
 - `make build-web build-cli`、空目录 `make build-desktop` 和 `pnpm check:native --bundle` 通过；产物未签发为正式发行包。

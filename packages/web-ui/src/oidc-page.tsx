@@ -1,6 +1,7 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Enterprise login, explicit identity binding and provider discovery feedback.
  */
+import { Form } from './forms';
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Building2, Link2, LoaderCircle, ShieldCheck, Unlink } from 'lucide-react';
@@ -32,7 +33,7 @@ export function AccountSecurity({ web, userID, onChanged }: { web: WebClient; us
     {result && <p className="form-error" role="alert">{result}</p>}{window.location.hash.includes('oidc=success') && <p className="saved-caption" role="status">企业账号已绑定，其他设备的旧会话已退出。</p>}
     <dl className="identity-details"><div><dt>企业登录</dt><dd>{info.enabled ? info.provider_name : '实例尚未启用'}</dd></div><div><dt>本地密码</dt><dd>{info.has_local_password ? '可用' : '尚未设置'}</dd></div>{info.linked && <div><dt>身份来源</dt><dd>{info.issuer}</dd></div>}</dl>
     <p className="help-text">每个账号可绑定一个企业身份。相同邮箱不会自动合并；企业角色声明不会更改本地权限。更改绑定后，其他会话及待用验证码会失效。</p>
-    {!info.has_local_password ? <p className="help-text">请联系管理员开启邮件找回密码，设置本地密码后再解除绑定。</p> : (info.enabled || info.linked) && <form className="flow-form" onSubmit={event => { event.preventDefault(); change.mutate(); }}><label>确认本地密码<input type="password" required minLength={12} maxLength={128} autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} /></label><p className="help-text">{info.linked ? '解除后保留本地账号和密码，可继续正常登录。' : '下一步将重新验证企业账号，请确认选择自己的账号。'}</p>{change.error && <p role="alert" className="form-error">{change.error.message}</p>}{change.isSuccess && info.linked === false && <p className="saved-caption" role="status">企业绑定已解除，本地密码登录可用。</p>}<button className="secondary-button" disabled={change.isPending}>{change.isPending ? <LoaderCircle className="spin" size={16} /> : info.linked ? <Unlink size={16} /> : <Link2 size={16} />}{info.linked ? '确认解除绑定' : '验证并绑定企业账号'}</button></form>}
+    {!info.has_local_password ? <p className="help-text">请联系管理员开启邮件找回密码，设置本地密码后再解除绑定。</p> : (info.enabled || info.linked) && <Form schema="OIDCPasswordInput" value={{password}} error={change.error} pending={change.isPending} className="flow-form" onSubmit={event => { event.preventDefault(); change.mutate(); }}><label>确认本地密码<input name="password" type="password" required minLength={12} maxLength={128} autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} /></label><p className="help-text">{info.linked ? '解除后保留本地账号和密码，可继续正常登录。' : '下一步将重新验证企业账号，请确认选择自己的账号。'}</p>{change.isSuccess && info.linked === false && <p className="saved-caption" role="status">企业绑定已解除，本地密码登录可用。</p>}<button className="secondary-button" disabled={change.isPending}>{change.isPending ? <LoaderCircle className="spin" size={16} /> : info.linked ? <Unlink size={16} /> : <Link2 size={16} />}{info.linked ? '确认解除绑定' : '验证并绑定企业账号'}</button></Form>}
   </section>;
 }
 

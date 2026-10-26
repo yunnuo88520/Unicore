@@ -3,6 +3,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { contractArtifacts } from './contract-artifacts.mjs';
 
 const spec = JSON.parse(readFileSync('packages/contracts/openapi.json', 'utf8'));
 const schemas = spec.components.schemas;
@@ -16,6 +17,7 @@ function type(schema, language) {
   const types = { string: ['string', 'string'], integer: ['int', 'number'], boolean: ['bool', 'boolean'] };
   if (types[schema.type]) return types[schema.type][language === 'go' ? 0 : 1];
   if (schema.type === 'array') return language === 'go' ? `[]${type(schema.items, language)}` : `Array<${type(schema.items, language)}>`;
+  if (schema.type === 'object' && typeof schema.additionalProperties === 'object') return language === 'go' ? `map[string]${type(schema.additionalProperties, language)}` : `Record<string, ${type(schema.additionalProperties, language)}>`;
   throw new Error(`Unsupported schema: ${JSON.stringify(schema)}`);
 }
 const goName = (name) => name.split('_').map((part) => part === 'id' ? 'ID' : part[0].toUpperCase() + part.slice(1)).join('');
@@ -39,7 +41,7 @@ for (const [name, schema] of Object.entries(schemas)) {
 }
 ts = ts.trimEnd() + '\n';
 go = execFileSync('gofmt', [], { input: go, encoding: 'utf8' });
-for (const [path, content] of [['packages/contracts/src/schema.gen.ts', ts], ['internal/contracts/models.gen.go', go]]) {
+for (const [path, content] of [['packages/contracts/src/schema.gen.ts', ts], ['internal/contracts/models.gen.go', go], ...contractArtifacts(spec)]) {
   if (process.argv.includes('--check')) {
     if (readFileSync(path, 'utf8') !== content) throw new Error(`${path} is stale; run pnpm generate`);
   } else {

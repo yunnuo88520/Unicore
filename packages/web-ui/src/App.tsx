@@ -1,8 +1,9 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Shared responsive workspace. All business calls use AppClient.
  */
+import { Form } from './forms';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { QueryClient, QueryClientProvider, useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { Activity, ArrowDown, ArrowRight, ArrowUpRight, Braces, Check, CheckCircle2, ChevronRight, Circle, Code2, Copy, Cpu, ExternalLink, FlaskConical, Globe2, Info, Layers3, LayoutDashboard, LoaderCircle, Menu, Monitor, Moon, Play, Radio, RotateCcw, Settings2, ShieldCheck, Sparkles, Sun, Terminal, Users, X } from 'lucide-react';
 import { BrandMark, BrandLockup } from './brand';
 import { AppError, type AppClient, type Bootstrap, type ExecuteOutput, type Profile } from '@unicore/sdk';
@@ -11,41 +12,37 @@ import { DashboardWidgetRegistry } from './registry';
 import { AdminDashboard, InstallWizard, LoginPage, PersistentSettings, UserManagement } from './web-flows';
 import { AccountSecurity } from './oidc-page';
 import { RoleManagement } from './roles-page';
+import { SessionBoundary, useSession } from './session';
+import { routes, pageFromHash, canAccess, type Page } from './routes';
 import './flows.css';
 
 export { DashboardWidgetRegistry } from './registry';
 const SAMPLE = 'Hello, Unicore.\n一份 Go 核心，连接每一种可能。\nBuild once. Run everywhere.';
 const PROFILE_LABELS: Record<Profile, string> = { 'web-platform': 'Web 平台', 'web-standalone': 'Web 单机', desktop: '桌面应用', cli: '命令行' };
-type Page = 'overview' | 'lab' | 'settings' | 'admin' | 'users' | 'roles' | 'site' | 'account';
-const PAGE_LABELS = { overview: '工作台概览', lab: '核心实验室', settings: '外观设置', admin: '平台仪表盘', users: '用户管理', roles: '角色权限', site: '实例设置', account: '账号安全' };
-const PAGE_TITLES: Record<Page, string> = { overview: '一份核心，无限可能', lab: '探索核心的每一种可能', settings: '打造你的工作空间', admin: '平台仪表盘', users: '用户管理', roles: '角色权限', site: '实例设置', account: '账号安全' };
-const PAGE_DESCRIPTIONS: Record<Page, string> = { overview: '从这里出发，让同一份业务逻辑运行于 Web、桌面与命令行。', lab: '修改输入、运行用例，验证跨形态一致的执行结果。', settings: '让界面跟随你的习惯。偏好仅保存在当前设备。', admin: '从真实认证活动与审计记录了解实例运行情况。', users: '管理账号、角色和状态，权限由服务端逐一校验。', roles: '让业务角色各司其职，让每一次授权都有边界。', site: '集中配置站点、安全与外观，保存后跨重启保留。', account: '连接企业身份，保留可用的本地登录方式。' };
+const PAGE_LABELS = Object.fromEntries(Object.entries(routes).map(([id, route]) => [id, route.label])) as Record<Page, string>;
 
 export function Workspace({ client, registry = new DashboardWidgetRegistry() }: { client: AppClient; registry?: DashboardWidgetRegistry }) {
-  const [queryClient] = useState(() => new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } }));
-  return <QueryClientProvider client={queryClient}><App client={client} registry={registry} /></QueryClientProvider>;
+  return <SessionBoundary client={client}>{notice => <App client={client} registry={registry} notice={notice} />}</SessionBoundary>;
 }
 
-function App({ client, registry }: { client: AppClient; registry: DashboardWidgetRegistry }) {
-  const pageFromHash = (): Page => { const hash = window.location.hash.slice(1).split('?')[0]; return hash === 'lab' || hash === 'settings' || hash === 'admin' || hash === 'users' || hash === 'roles' || hash === 'site' || hash === 'account' ? hash : 'overview'; };
-  const [page, setPage] = useState<Page>(pageFromHash);
+function App({ client, registry, notice }: { client: AppClient; registry: DashboardWidgetRegistry; notice: string }) {
+  const [page, setPage] = useState<Page>(() => pageFromHash(window.location.hash));
   const [route, setRoute] = useState(window.location.hash);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [about, setAbout] = useState(false);
-  const metadata = useQuery({ queryKey: ['bootstrap', client.transport], queryFn: () => client.bootstrap() });
+  const { metadata } = useSession(client);
   const [theme, setTheme] = useTheme(metadata.data?.theme);
   useEffect(() => { if (metadata.data) document.title = `${metadata.data.site_name} · 工作空间`; }, [metadata.data?.site_name]);
   useEffect(() => {if (!window.location.hash && metadata.data?.current_user && window.location.pathname===metadata.data.admin_path) setPage('admin');},[metadata.data]);
-  useEffect(() => { const change = () => { setPage(pageFromHash()); setRoute(window.location.hash); }; window.addEventListener('hashchange', change); return () => window.removeEventListener('hashchange', change); }, []);
+  useEffect(() => { const change = () => { setPage(pageFromHash(window.location.hash)); setRoute(window.location.hash); }; window.addEventListener('hashchange', change); return () => window.removeEventListener('hashchange', change); }, []);
   function navigate(next: Page) { window.location.hash = next; setPage(next); setMobileOpen(false); }
   const refresh = () => { setRoute(window.location.hash); void metadata.refetch(); };
   const permissions = metadata.data?.current_user?.permissions ?? [];
-  const adminPages: Record<string, string> = { admin: 'dashboard:read', users: 'users:read', roles: 'roles:read', site: 'settings:read' };
-  const permitted = page === 'account' ? metadata.data?.profile === 'web-platform' && !!metadata.data.current_user : page === 'site' && metadata.data?.profile !== 'web-platform' ? !!metadata.data?.capabilities.settings : !adminPages[page] || permissions.includes(adminPages[page]);
+  const permitted = canAccess(page, metadata.data);
   if (metadata.data?.capabilities.installation && !metadata.data.installed && client.web) return <InstallWizard web={client.web} onDone={() => { window.history.replaceState({}, '', '/'); navigate('overview'); refresh(); }} />;
-  if (metadata.data?.capabilities.authentication && (!metadata.data.current_user || /^#(verify-email|reset-password)(\?|$)/.test(route)) && client.web) return <LoginPage key={route} web={client.web} siteName={metadata.data.site_name} onDone={refresh} />;
+  if (metadata.data?.capabilities.authentication && (!metadata.data.current_user || /^#(verify-email|reset-password)(\?|$)/.test(route)) && client.web) return <LoginPage key={route} web={client.web} siteName={metadata.data.site_name} onDone={refresh} notice={notice} />;
   return <div className="app-shell">
-    <a className="skip-link" href="#main-content">跳至主要内容</a>
+    <a className="skip-link" href="#main-content" onClick={event => { event.preventDefault(); document.getElementById('main-content')?.focus(); }}>跳至主要内容</a>
     {mobileOpen && <button className="nav-scrim" aria-label="关闭导航" onClick={() => setMobileOpen(false)} />}
     <aside className={`sidebar ${mobileOpen ? 'is-open' : ''}`} aria-label="主导航">
       <a className="brand" href="#overview" onClick={() => navigate('overview')}><BrandLockup name={metadata.data?.site_name} /><span className="brand-tag">FRAMEWORK</span></a>
@@ -65,14 +62,9 @@ function App({ client, registry }: { client: AppClient; registry: DashboardWidge
       <div className="sidebar-bottom"><div className="core-note"><div className="core-note-icon"><Cpu size={20} /></div><strong>One core. Every interface.</strong><p>让业务逻辑专注于业务，<br />让框架连接每一个终端。</p><button onClick={() => setAbout(true)}>了解架构 <ArrowUpRight size={14} /></button></div><button className="author" onClick={() => setAbout(true)}><span className="avatar">Y</span><span><strong>yunnuo</strong><small>框架作者</small></span><Info size={16} /></button></div>
     </aside>
     <div className="main-shell"><header className="topbar"><div className="breadcrumbs"><button className="icon-button mobile-menu" aria-label="打开导航" onClick={() => setMobileOpen(true)}><Menu size={20} /></button><span className="breadcrumb-root">工作空间</span><ChevronRight size={14} /><strong>{PAGE_LABELS[page]}</strong></div><div className="top-actions"><span className={`connection ${metadata.isSuccess ? 'connected' : ''}`}><span />{metadata.isSuccess ? '核心已连接' : metadata.isPending ? '连接中' : '连接失败'}</span><span className="top-divider" /><button className="icon-button" aria-label="切换主题" title="切换浅色 / 深色" onClick={() => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}</button><button className="icon-button" aria-label="关于 Unicore" onClick={() => setAbout(true)}><Code2 size={19} /></button><span className="avatar top-avatar">Y</span></div></header>
-      <main id="main-content" className="main-content"><div className="page-heading"><div><div className="eyebrow"><span /> UNICORE WORKSPACE</div><h1>{PAGE_TITLES[page]}<span className="heading-dot">.</span></h1><p>{PAGE_DESCRIPTIONS[page]}</p></div><span className="stage-pill"><span /> {metadata.data?.stage ?? 'M2a'} · 核心已就绪</span></div>
+      <main id="main-content" tabIndex={-1} className="main-content"><div className="page-heading"><div><div className="eyebrow"><span /> UNICORE WORKSPACE</div><h1>{routes[page].title}<span className="heading-dot">.</span></h1><p>{routes[page].description}</p></div><span className="stage-pill"><span /> {metadata.data?.stage ?? 'M2a'} · 核心已就绪</span></div>
         {metadata.isPending ? <div className="state-card" role="status"><LoaderCircle className="spin" size={24} /><strong>正在连接 Go 核心</strong><p>正在获取当前运行形态与能力信息…</p></div> : metadata.isError ? <div className="state-card error-state" role="alert"><Radio size={26} /><strong>暂时无法连接核心</strong><p>{metadata.error.message}</p><button className="primary-button" onClick={() => metadata.refetch()}><RotateCcw size={16} />重新连接</button></div> : <>
-          {!permitted ? <div className="state-card" role="alert"><ShieldCheck size={26} /><strong>没有访问权限</strong><p>请联系实例管理员授予相关权限。</p></div> : page === 'account' && client.web ? <AccountSecurity key={metadata.data?.current_user?.id} web={client.web} userID={metadata.data?.current_user?.id ?? ''} onChanged={refresh} /> : page === 'admin' && client.web ? <AdminDashboard web={client.web} /> : page === 'users' && client.web ? <UserManagement web={client.web} metadata={metadata.data} /> : page === 'roles' && client.web ? <RoleManagement web={client.web} metadata={metadata.data} /> : page === 'site' && client.settings && client.patchSettings ? <PersistentSettings client={client} onSaved={refresh} /> : page === 'settings' ? <Appearance theme={theme} setTheme={setTheme} /> : <>
-            <RuntimeCards metadata={metadata.data} transport={client.transport} />
-            {page === 'overview' && <div className="intro-banner"><span className="banner-orbit orbit-one" /><span className="banner-orbit orbit-two" /><div className="banner-content"><span className="banner-tag"><Sparkles size={13} /> 为下一款产品而生</span><h2>构建一次，连接每个终端。</h2><p>领域逻辑保持纯粹，交互体验始终一致。</p><button onClick={() => navigate('lab')}>探索核心实验室 <ArrowRight size={15} /></button></div><div className="banner-diagram" aria-hidden="true"><div className="diagram-core"><BrandMark size={30} /><span>Go Core</span></div><span className="diagram-line" /><div className="diagram-targets"><span><Globe2 size={17} /> Web</span><span><Monitor size={17} /> Desktop</span><span><Terminal size={17} /> CLI</span></div></div></div>}
-            <div className="workspace-grid"><CoreLab client={client} /><div className="right-column"><Profiles current={metadata.data.profile} /><Architecture /></div></div>
-            {registry.entries().map(widget => <section key={widget.id}>{widget.render(metadata.data)}</section>)}
-          </>}
+          {!permitted ? <div className="state-card" role="alert"><ShieldCheck size={26} /><strong>没有访问权限</strong><p>请联系实例管理员授予相关权限。</p></div> : <PageContent page={page} client={client} metadata={metadata.data} registry={registry} theme={theme} setTheme={setTheme} refresh={refresh} />}
           <div className="foundation-note"><Info size={15} /><span>文本分析不保存输入。实例设置独立持久化；平台已支持 SMTP 账号邮件与企业登录；在线升级将在后续阶段接入。</span></div>
         </>}
         <footer><span>© {new Date().getFullYear()} {metadata.data?.site_name ?? 'Unicore'} · {metadata.data?.site_copyright ?? 'Crafted by yunnuo'}</span><span>Go + React <span className="footer-dot">·</span> {metadata.data ? `v${metadata.data.version}` : 'M2a'}</span></footer>
@@ -80,6 +72,28 @@ function App({ client, registry }: { client: AppClient; registry: DashboardWidge
     </div>
     {about && <About onClose={() => setAbout(false)} />}
   </div>;
+}
+
+function PageContent({ page, client, metadata, registry, theme, setTheme, refresh }: { page: Page; client: AppClient; metadata: Bootstrap; registry: DashboardWidgetRegistry; theme: Theme; setTheme: (theme: Theme) => void; refresh: () => void }) {
+  const core = (current: Page) => <CoreWorkspace page={current} client={client} metadata={metadata} registry={registry} />;
+  const pages: Record<Page, ReactNode> = {
+    overview: core('overview'), lab: core('lab'), settings: <Appearance theme={theme} setTheme={setTheme} />,
+    account: client.web && <AccountSecurity key={metadata.current_user?.id} web={client.web} userID={metadata.current_user?.id ?? ''} onChanged={refresh} />,
+    admin: client.web && <AdminDashboard web={client.web} />,
+    users: client.web && <UserManagement web={client.web} metadata={metadata} />,
+    roles: client.web && <RoleManagement web={client.web} metadata={metadata} />,
+    site: client.settings && client.patchSettings && <PersistentSettings client={client} onSaved={refresh} />,
+    'not-found': <div className="state-card" role="alert"><Info size={26} /><strong>找不到这个页面</strong><p>请通过导航进入已有页面。</p><a className="primary-button" href="#overview">返回工作台</a></div>,
+  };
+  return pages[page];
+}
+function CoreWorkspace({ page, client, metadata, registry }: { page: Page; client: AppClient; metadata: Bootstrap; registry: DashboardWidgetRegistry }) {
+  return <>
+            <RuntimeCards metadata={metadata} transport={client.transport} />
+            {page === 'overview' && <div className="intro-banner"><span className="banner-orbit orbit-one" /><span className="banner-orbit orbit-two" /><div className="banner-content"><span className="banner-tag"><Sparkles size={13} /> 为下一款产品而生</span><h2>构建一次，连接每个终端。</h2><p>领域逻辑保持纯粹，交互体验始终一致。</p><button onClick={() => { window.location.hash = 'lab'; }}>探索核心实验室 <ArrowRight size={15} /></button></div><div className="banner-diagram" aria-hidden="true"><div className="diagram-core"><BrandMark size={30} /><span>Go Core</span></div><span className="diagram-line" /><div className="diagram-targets"><span><Globe2 size={17} /> Web</span><span><Monitor size={17} /> Desktop</span><span><Terminal size={17} /> CLI</span></div></div></div>}
+            <div className="workspace-grid"><CoreLab client={client} /><div className="right-column"><Profiles current={metadata.profile} /><Architecture /></div></div>
+            {registry.entries().map(widget => <section key={widget.id}>{widget.render(metadata)}</section>)}
+  </>;
 }
 
 function RuntimeCards({ metadata, transport }: { metadata: Bootstrap; transport: AppClient['transport'] }) {
@@ -103,11 +117,11 @@ function CoreLab({ client }: { client: AppClient }) {
     try { await navigator.clipboard.writeText(execution.data!.sha256); setCopied(true); setCopyError(''); }
     catch { setCopyError('复制失败，请手动选择摘要文本复制'); }
   }
-  return <section className="panel lab-panel"><div className="panel-heading"><div><h2><FlaskConical size={18} />核心实验室</h2><p>用一个真实用例，验证所有入口</p></div><span className="subtle-badge">文本分析</span></div><form onSubmit={e => { e.preventDefault(); execution.mutate(); }}>
+  return <section className="panel lab-panel"><div className="panel-heading"><div><h2><FlaskConical size={18} />核心实验室</h2><p>用一个真实用例，验证所有入口</p></div><span className="subtle-badge">文本分析</span></div><Form pending={execution.isPending} onSubmit={e => { e.preventDefault(); execution.mutate(); }}>
     <div className="editor-label"><label htmlFor="core-input">输入文本</label><button type="button" className="text-button" disabled={execution.isPending} onClick={() => { setText(SAMPLE); execution.reset(); }}><RotateCcw size={12} />重置示例</button></div>
     <div className="editor"><div className="editor-toolbar"><span><i /><i /><i /></span><small>example.txt</small><small>UTF-8</small></div><textarea id="core-input" value={text} onChange={e => setText(e.target.value)} spellCheck={false} aria-describedby="input-hint" placeholder="在这里输入想分析的文本…" /></div>
     <div className="editor-footer"><span id="input-hint" className={byteLength > 65536 ? 'text-error' : ''}>{byteLength.toLocaleString()} / 65,536 字节 <span className="hide-small">· 不保存输入内容</span></span><button className="primary-button" disabled={execution.isPending || !text.trim() || byteLength > 65536}>{execution.isPending ? <LoaderCircle size={15} className="spin" /> : <Play size={14} fill="currentColor" />}{execution.isPending ? '执行中…' : '运行用例'}</button></div>
-  </form>
+  </Form>
   <div className="result-heading"><span>执行结果</span>{execution.isSuccess ? <span className="success-caption"><CheckCircle2 size={13} />执行成功</span> : <span className="muted">Go Core</span>}</div>
   {execution.isError && <div className="inline-error" role="alert">{execution.error.message}{execution.error instanceof AppError && <small>错误码：{execution.error.code}</small>}</div>}
   <div className="result-grid" aria-live="polite">{[{ key: 'characters', label: 'Unicode 字符', icon: Code2 }, { key: 'words', label: '空白分隔词', icon: Braces }, { key: 'lines', label: '文本行数', icon: Layers3 }].map(({ key, label, icon: Icon }) => <div key={key}><span><Icon size={14} />{label}</span><strong>{execution.data ? execution.data[key as 'characters' | 'words' | 'lines'].toLocaleString() : '—'}</strong></div>)}</div>

@@ -3,6 +3,7 @@
 package httpadapter
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -22,6 +23,7 @@ import (
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/runtime"
 	"github.com/yunnuo/unicore/internal/settings"
+	apispec "github.com/yunnuo/unicore/packages/contracts"
 )
 
 const sessionCookie = "unicore_session"
@@ -30,54 +32,55 @@ func failure(w http.ResponseWriter, status int, code, message string) {
 	writeJSON(w, status, contracts.ErrorResponse{Code: code, Message: message, RequestID: w.Header().Get("X-Request-ID")})
 }
 func webError(w http.ResponseWriter, err error) {
-	status, code, message := 500, "INTERNAL_ERROR", "操作未完成，请重试"
+	code := "INTERNAL_ERROR"
 	switch {
 	case errors.Is(err, platform.ErrOIDCUnavailable):
-		status, code, message = 502, "OIDC_UNAVAILABLE", "暂时无法连接企业身份服务，请检查已保存的配置或稍后重试"
+		code = "OIDC_UNAVAILABLE"
 	case errors.Is(err, platform.ErrOIDC), errors.Is(err, platform.ErrOIDCLinkRequired):
-		status, code, message = 409, "OIDC_FAILED", "企业身份验证未完成，请重新发起或先登录本地账号后绑定"
+		code = "OIDC_FAILED"
 	case errors.Is(err, platform.ErrLocalLoginRequired):
-		status, code, message = 409, "LOCAL_PASSWORD_REQUIRED", "请先设置本地密码，再更改企业账号绑定"
+		code = "LOCAL_PASSWORD_REQUIRED"
 	case errors.Is(err, platform.ErrRoleNotFound):
-		status, code, message = 404, "ROLE_NOT_FOUND", "角色不存在，请刷新后重试"
+		code = "ROLE_NOT_FOUND"
 	case errors.Is(err, platform.ErrRoleConflict):
-		status, code, message = 409, "ROLE_NAME_EXISTS", "角色名称已存在，请使用其他名称"
+		code = "ROLE_NAME_EXISTS"
 	case errors.Is(err, platform.ErrBuiltinRole):
-		status, code, message = 409, "BUILTIN_ROLE", "内置角色不能修改或删除"
+		code = "BUILTIN_ROLE"
 	case errors.Is(err, platform.ErrRoleInUse):
-		status, code, message = 409, "ROLE_IN_USE", "角色仍有关联用户，请先更换这些用户的角色"
+		code = "ROLE_IN_USE"
 	case errors.Is(err, settings.ErrMailNotReady):
-		status, code, message = 409, "MAIL_NOT_READY", "请先保存 SMTP 配置并成功发送测试邮件，再启用邮件账号流程"
+		code = "MAIL_NOT_READY"
 	case errors.Is(err, mailer.ErrUnavailable):
-		status, code, message = 502, "MAIL_DELIVERY_FAILED", "邮件未能送达，请检查 SMTP 配置、TLS 与凭据"
+		code = "MAIL_DELIVERY_FAILED"
 	case errors.Is(err, platform.ErrFlowDisabled):
-		status, code, message = 409, "ACCOUNT_FLOW_DISABLED", "此实例尚未开放该账号流程"
+		code = "ACCOUNT_FLOW_DISABLED"
 	case errors.Is(err, platform.ErrAccountToken):
-		status, code, message = 400, "TOKEN_INVALID", "链接无效、已过期或已经使用，请重新申请"
+		code = "TOKEN_INVALID"
 	case errors.Is(err, install.ErrToken):
-		status, code, message = 403, "BOOTSTRAP_TOKEN_INVALID", "安装凭据无效，请读取部署数据目录中的 bootstrap.token"
+		code = "BOOTSTRAP_TOKEN_INVALID"
 	case errors.Is(err, install.ErrInstalled):
-		status, code, message = 409, "ALREADY_INSTALLED", "此实例已安装，不能重复初始化"
+		code = "ALREADY_INSTALLED"
 	case errors.Is(err, install.ErrTaken):
-		status, code, message = 409, "DATABASE_INITIALIZED", "数据库已有安装记录，请恢复原实例配置或使用空数据库"
+		code = "DATABASE_INITIALIZED"
 	case errors.Is(err, install.ErrDatabase):
-		status, code, message = 400, "DATABASE_UNAVAILABLE", "无法连接或初始化数据库，请检查配置与权限后重试"
+		code = "DATABASE_UNAVAILABLE"
 	case errors.Is(err, install.ErrInput), errors.Is(err, platform.ErrInput), errors.Is(err, settings.ErrInvalid):
-		status, code, message = 400, "INVALID_INPUT", "请检查输入类型、范围及当前形态是否支持"
+		code = "INVALID_INPUT"
 	case errors.Is(err, platform.ErrCredentials):
-		status, code, message = 401, "AUTH_REQUIRED", "账号或密码不正确，或登录已失效"
+		code = "INVALID_CREDENTIALS"
 	case errors.Is(err, platform.ErrForbidden):
-		status, code, message = 403, "PERMISSION_DENIED", "你没有执行此操作的权限"
+		code = "PERMISSION_DENIED"
 	case errors.Is(err, platform.ErrConflict):
-		status, code, message = 409, "ACCOUNT_EXISTS", "账号或邮箱已存在"
+		code = "ACCOUNT_EXISTS"
 	case errors.Is(err, platform.ErrLastAdmin):
-		status, code, message = 409, "LAST_SUPER_ADMIN", "不能禁用或降权最后一个启用且可用本地密码登录的超级管理员"
+		code = "LAST_SUPER_ADMIN"
 	case errors.Is(err, platform.ErrRateLimited):
-		status, code, message = 429, "RATE_LIMITED", "尝试过于频繁，请稍后重试"
+		code = "RATE_LIMITED"
 	case errors.Is(err, platform.ErrCaptcha):
-		status, code, message = 400, "CAPTCHA_INVALID", "验证码不正确或已过期，请刷新后重试"
+		code = "CAPTCHA_INVALID"
 	}
-	failure(w, status, code, message)
+	definition := contracts.ErrorCatalog[code]
+	failure(w, definition.Status, code, definition.Message)
 }
 func success(w http.ResponseWriter, data any) {
 	writeJSON(w, 200, struct {
@@ -94,7 +97,12 @@ func decode(w http.ResponseWriter, r *http.Request, value any) bool {
 		return false
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 64*1024)
-	decoder := json.NewDecoder(r.Body)
+	raw, err := io.ReadAll(r.Body)
+	if err != nil {
+		failure(w, 413, "BODY_TOO_LARGE", "请求体过大")
+		return false
+	}
+	decoder := json.NewDecoder(bytes.NewReader(raw))
 	decoder.DisallowUnknownFields()
 	if err = decoder.Decode(value); err != nil {
 		failure(w, 400, "INVALID_JSON", "JSON 格式不正确或请求体过大")
@@ -104,7 +112,35 @@ func decode(w http.ResponseWriter, r *http.Request, value any) bool {
 		failure(w, 400, "INVALID_JSON", "只允许一个 JSON 对象")
 		return false
 	}
+	operation, ok := apispec.Lookup(strings.ToLower(r.Method), chi.RouteContext(r.Context()).RoutePattern())
+	if ok {
+		schema := operation.RequestBody.Content["application/json"].Schema.Ref
+		if schema != "" {
+			return validationResult(w, apispec.ValidateJSON(strings.TrimPrefix(schema, "#/components/schemas/"), raw))
+		}
+	}
 	return true
+}
+
+func validateInput(w http.ResponseWriter, r *http.Request, value any) bool {
+	operation, ok := apispec.Lookup(strings.ToLower(r.Method), chi.RouteContext(r.Context()).RoutePattern())
+	if !ok {
+		return true
+	}
+	schema := operation.RequestBody.Content["application/json"].Schema.Ref
+	if schema == "" {
+		return true
+	}
+	raw, _ := json.Marshal(value)
+	return validationResult(w, apispec.ValidateJSON(strings.TrimPrefix(schema, "#/components/schemas/"), raw))
+}
+func validationResult(w http.ResponseWriter, fields map[string]string) bool {
+	if len(fields) == 0 {
+		return true
+	}
+	definition := contracts.ErrorCatalog["INVALID_INPUT"]
+	writeJSON(w, definition.Status, contracts.ErrorResponse{Code: "INVALID_INPUT", Message: definition.Message, RequestID: w.Header().Get("X-Request-ID"), Fields: &fields})
+	return false
 }
 func sameOrigin(w http.ResponseWriter, r *http.Request) bool {
 	if r.Method == "GET" || r.Method == "HEAD" {
@@ -142,7 +178,7 @@ func require(manager *install.Manager, w http.ResponseWriter, r *http.Request, p
 	}
 	session, err := identity.Session(r.Context(), rawSession(r))
 	if err != nil {
-		webError(w, platform.ErrCredentials)
+		failure(w, 401, "AUTH_REQUIRED", contracts.ErrorCatalog["AUTH_REQUIRED"].Message)
 		return session, false
 	}
 	if r.Method != "GET" && r.Method != "HEAD" && !platform.Equal(r.Header.Get("X-CSRF-Token"), session.CsrfToken) {

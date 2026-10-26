@@ -1,0 +1,1550 @@
+<!doctype html>
+<!-- Code generated from OpenAPI; DO NOT EDIT. Author: yunnuo <ymz@ebox.vip> -->
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Unicore · API Reference</title><link rel="icon" href="/favicon.ico"><style>
+ :root{color-scheme:light dark;--bg:#f7f8fb;--surface:#ffffff;--text:#242735;--muted:#72798c;--border:#e5e8f0;--primary:#6662ec;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;--space:calc(1px * 1);font-size:calc(16px * 1);line-height:1.65}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text)}main{max-width:1080px;margin:auto;padding:calc(40 * var(--space)) calc(24 * var(--space))}a{color:var(--primary)}h1{font-size:2rem;margin-bottom:8px}h2{margin-top:2rem}p{color:var(--muted)}article,details{background:var(--surface);border:1px solid var(--border);border-radius:calc(16px * 1);padding:calc(18 * var(--space));margin:calc(14 * var(--space)) 0}summary{cursor:pointer;overflow-wrap:anywhere}code,pre{font-family:"SFMono-Regular",Consolas,"PingFang SC",monospace;overflow-wrap:anywhere}pre{white-space:pre-wrap;font-size:.85rem;max-width:100%}.method{color:var(--primary);font-weight:bold}nav{display:flex;gap:calc(18 * var(--space));flex-wrap:wrap}label{display:block;margin:24px 0}input{display:block;width:100%;max-width:500px;padding:12px;border:1px solid var(--border);border-radius:calc(10px * 1);background:var(--surface);color:var(--text)}small{color:var(--muted)}@media(prefers-color-scheme:dark){:root{--bg:#11131d;--surface:#191c29;--text:#eceef7;--muted:#a0a8be;--border:#2a2e40;--primary:#a8a6f4}@media(max-width:480px){main{padding:calc(24 * var(--space)) calc(16 * var(--space))}h1{font-size:1.65rem}}
+ </style></head><body><main><small>UNICORE · CONTRACT REFERENCE</small><h1>API 文档</h1><p>从唯一 OpenAPI 契约自动生成，包含 47 个接口。按运行形态装配；服务端仍独立执行身份、权限及业务校验。</p><nav><a href="#operations">接口目录</a><a href="#schemas">数据结构</a><a href="#errors">错误目录</a><a href="/openapi.json">下载 OpenAPI</a></nav><section id="operations"><h2>接口目录</h2><details id="bootstrap"><summary><span class="method">GET</span> <code>/api/v1/bootstrap</code></summary><p>bootstrap</p><small>Profile: web-platform, web-standalone · Access: public · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-BootstrapResponse">BootstrapResponse</a></p></details><details id="execute"><summary><span class="method">POST</span> <code>/api/v1/core/execute</code></summary><p>execute</p><small>Profile: web-platform, web-standalone · Access: platform-session · Permissions: — · CSRF: true</small><p>输入：<a href="#schema-ExecuteInput">ExecuteInput</a> · 响应：<a href="#schema-ExecuteResponse">ExecuteResponse</a></p></details><details id="liveness"><summary><span class="method">GET</span> <code>/api/v1/health/live</code></summary><p>liveness</p><small>Profile: web-platform, web-standalone · Access: public · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-HealthResponse">HealthResponse</a></p></details><details id="readiness"><summary><span class="method">GET</span> <code>/api/v1/health/ready</code></summary><p>readiness</p><small>Profile: web-platform, web-standalone · Access: public · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-HealthResponse">HealthResponse</a></p></details><details id="installStatus"><summary><span class="method">GET</span> <code>/api/v1/install/status</code></summary><p>installStatus</p><small>Profile: web-platform, web-standalone · Access: public · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-InstallStatusResponse">InstallStatusResponse</a></p></details><details id="verifyDatabase"><summary><span class="method">POST</span> <code>/api/v1/install/verify-db</code></summary><p>verifyDatabase</p><small>Profile: web-platform, web-standalone · Access: install-token · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-DatabaseInput">DatabaseInput</a> · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="completeInstall"><summary><span class="method">POST</span> <code>/api/v1/install/complete</code></summary><p>completeInstall</p><small>Profile: web-platform, web-standalone · Access: install-token · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-InstallInput">InstallInput</a> · 响应：<a href="#schema-InstallResultResponse">InstallResultResponse</a></p></details><details id="captcha"><summary><span class="method">GET</span> <code>/api/v1/auth/captcha</code></summary><p>captcha</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-CaptchaResponse">CaptchaResponse</a></p></details><details id="login"><summary><span class="method">POST</span> <code>/api/v1/auth/login</code></summary><p>login</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-LoginInput">LoginInput</a> · 响应：<a href="#schema-SessionResponse">SessionResponse</a></p></details><details id="session"><summary><span class="method">GET</span> <code>/api/v1/auth/session</code></summary><p>session</p><small>Profile: web-platform · Access: session · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-SessionResponse">SessionResponse</a></p></details><details id="logout"><summary><span class="method">POST</span> <code>/api/v1/auth/logout</code></summary><p>logout</p><small>Profile: web-platform · Access: session · Permissions: — · CSRF: true</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="dashboard"><summary><span class="method">GET</span> <code>/api/v1/admin/dashboard</code></summary><p>dashboard</p><small>Profile: web-platform · Access: session · Permissions: dashboard:read · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-DashboardResponse">DashboardResponse</a></p></details><details id="listUsers"><summary><span class="method">GET</span> <code>/api/v1/admin/users</code></summary><p>listUsers</p><small>Profile: web-platform · Access: session · Permissions: users:read · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-UserListResponse">UserListResponse</a></p></details><details id="createUser"><summary><span class="method">POST</span> <code>/api/v1/admin/users</code></summary><p>createUser</p><small>Profile: web-platform · Access: session · Permissions: users:create · CSRF: true</small><p>输入：<a href="#schema-UserCreate">UserCreate</a> · 响应：<a href="#schema-UserResponse">UserResponse</a></p></details><details id="updateUser"><summary><span class="method">PATCH</span> <code>/api/v1/admin/users/{id}</code></summary><p>updateUser</p><small>Profile: web-platform · Access: session · Permissions: users:update · CSRF: true</small><p>输入：<a href="#schema-UserUpdate">UserUpdate</a> · 响应：<a href="#schema-UserResponse">UserResponse</a></p></details><details id="adminSettings"><summary><span class="method">GET</span> <code>/api/v1/admin/settings</code></summary><p>adminSettings</p><small>Profile: web-platform · Access: session · Permissions: settings:read · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-SettingsResponse">SettingsResponse</a></p></details><details id="adminPatchSettings"><summary><span class="method">PATCH</span> <code>/api/v1/admin/settings</code></summary><p>adminPatchSettings</p><small>Profile: web-platform · Access: session · Permissions: settings:write · CSRF: true</small><p>输入：<a href="#schema-SettingPatch">SettingPatch</a> · 响应：<a href="#schema-SettingsResponse">SettingsResponse</a></p></details><details id="localSettings"><summary><span class="method">GET</span> <code>/api/v1/settings</code></summary><p>localSettings</p><small>Profile: web-standalone · Access: local · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-SettingsResponse">SettingsResponse</a></p></details><details id="localPatchSettings"><summary><span class="method">PATCH</span> <code>/api/v1/settings</code></summary><p>localPatchSettings</p><small>Profile: web-standalone · Access: local · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-SettingPatch">SettingPatch</a> · 响应：<a href="#schema-SettingsResponse">SettingsResponse</a></p></details><details id="authPolicy"><summary><span class="method">GET</span> <code>/api/v1/auth/policy</code></summary><p>authPolicy</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-AuthPolicyResponse">AuthPolicyResponse</a></p></details><details id="register"><summary><span class="method">POST</span> <code>/api/v1/auth/register</code></summary><p>register</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-RegisterInput">RegisterInput</a> · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="requestVerification"><summary><span class="method">POST</span> <code>/api/v1/auth/verification/request</code></summary><p>requestVerification</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-EmailRequest">EmailRequest</a> · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="verifyEmail"><summary><span class="method">POST</span> <code>/api/v1/auth/verification/complete</code></summary><p>verifyEmail</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-TokenInput">TokenInput</a> · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="requestPasswordReset"><summary><span class="method">POST</span> <code>/api/v1/auth/password/request</code></summary><p>requestPasswordReset</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-EmailRequest">EmailRequest</a> · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="resetPassword"><summary><span class="method">POST</span> <code>/api/v1/auth/password/reset</code></summary><p>resetPassword</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-ResetInput">ResetInput</a> · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="testMail"><summary><span class="method">POST</span> <code>/api/v1/admin/settings/mail/test</code></summary><p>testMail</p><small>Profile: web-platform · Access: session · Permissions: settings:write · CSRF: true</small><p>输入：<a href="#schema-MailTestInput">MailTestInput</a> · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="mailJobs"><summary><span class="method">GET</span> <code>/api/v1/admin/settings/mail/jobs</code></summary><p>mailJobs</p><small>Profile: web-platform · Access: session · Permissions: settings:read · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-MailJobListResponse">MailJobListResponse</a></p></details><details id="registerEmailCode"><summary><span class="method">POST</span> <code>/api/v1/auth/email/register</code></summary><p>registerEmailCode</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-RegisterInput">RegisterInput</a> · 响应：<a href="#schema-EmailChallengeResponse">EmailChallengeResponse</a></p></details><details id="requestEmailVerify"><summary><span class="method">POST</span> <code>/api/v1/auth/email/verify/request</code></summary><p>requestEmailVerify</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-EmailRequest">EmailRequest</a> · 响应：<a href="#schema-EmailChallengeResponse">EmailChallengeResponse</a></p></details><details id="completeEmailVerify"><summary><span class="method">POST</span> <code>/api/v1/auth/email/verify/complete</code></summary><p>completeEmailVerify</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-EmailCodeInput">EmailCodeInput</a> · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="requestEmailReset"><summary><span class="method">POST</span> <code>/api/v1/auth/email/reset/request</code></summary><p>requestEmailReset</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-EmailRequest">EmailRequest</a> · 响应：<a href="#schema-EmailChallengeResponse">EmailChallengeResponse</a></p></details><details id="completeEmailReset"><summary><span class="method">POST</span> <code>/api/v1/auth/email/reset/complete</code></summary><p>completeEmailReset</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-EmailCodeInput">EmailCodeInput</a> · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="requestEmailLogin"><summary><span class="method">POST</span> <code>/api/v1/auth/email/login/request</code></summary><p>requestEmailLogin</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-EmailRequest">EmailRequest</a> · 响应：<a href="#schema-EmailChallengeResponse">EmailChallengeResponse</a></p></details><details id="completeEmailLogin"><summary><span class="method">POST</span> <code>/api/v1/auth/email/login/complete</code></summary><p>completeEmailLogin</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-EmailCodeInput">EmailCodeInput</a> · 响应：<a href="#schema-SessionResponse">SessionResponse</a></p></details><details id="mailTemplates"><summary><span class="method">GET</span> <code>/api/v1/admin/settings/mail/templates</code></summary><p>mailTemplates</p><small>Profile: web-platform · Access: session · Permissions: settings:read · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-MailTemplateListResponse">MailTemplateListResponse</a></p></details><details id="listRoles"><summary><span class="method">GET</span> <code>/api/v1/admin/roles</code></summary><p>listRoles</p><small>Profile: web-platform · Access: session · Permissions: roles:read · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-RoleListResponse">RoleListResponse</a></p></details><details id="createRole"><summary><span class="method">POST</span> <code>/api/v1/admin/roles</code></summary><p>createRole</p><small>Profile: web-platform · Access: session · Permissions: roles:write · CSRF: true</small><p>输入：<a href="#schema-RoleInput">RoleInput</a> · 响应：<a href="#schema-RoleResponse">RoleResponse</a></p></details><details id="updateRole"><summary><span class="method">PATCH</span> <code>/api/v1/admin/roles/{id}</code></summary><p>updateRole</p><small>Profile: web-platform · Access: session · Permissions: roles:write · CSRF: true</small><p>输入：<a href="#schema-RoleInput">RoleInput</a> · 响应：<a href="#schema-RoleResponse">RoleResponse</a></p></details><details id="deleteRole"><summary><span class="method">DELETE</span> <code>/api/v1/admin/roles/{id}</code></summary><p>deleteRole</p><small>Profile: web-platform · Access: session · Permissions: roles:write · CSRF: true</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="roleOptions"><summary><span class="method">GET</span> <code>/api/v1/admin/users/role-options</code></summary><p>roleOptions</p><small>Profile: web-platform · Access: session · Permissions: users:read, users:create, users:update · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-RoleOptionsResponse">RoleOptionsResponse</a></p></details><details id="oidcInfo"><summary><span class="method">GET</span> <code>/api/v1/auth/oidc</code></summary><p>public</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-OIDCInfoResponse">OIDCInfoResponse</a></p></details><details id="oidcStart"><summary><span class="method">POST</span> <code>/api/v1/auth/oidc/start</code></summary><p>public; same-origin; rate limited</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-OIDCStartResponse">OIDCStartResponse</a></p></details><details id="oidcAccount"><summary><span class="method">GET</span> <code>/api/v1/account/oidc</code></summary><p>authenticated self</p><small>Profile: web-platform · Access: session · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-OIDCInfoResponse">OIDCInfoResponse</a></p></details><details id="oidcLink"><summary><span class="method">POST</span> <code>/api/v1/account/oidc/link</code></summary><p>authenticated self; CSRF; local password</p><small>Profile: web-platform · Access: session · Permissions: — · CSRF: true</small><p>输入：<a href="#schema-OIDCPasswordInput">OIDCPasswordInput</a> · 响应：<a href="#schema-OIDCStartResponse">OIDCStartResponse</a></p></details><details id="oidcUnlink"><summary><span class="method">POST</span> <code>/api/v1/account/oidc/unlink</code></summary><p>authenticated self; CSRF; local password</p><small>Profile: web-platform · Access: session · Permissions: — · CSRF: true</small><p>输入：<a href="#schema-OIDCPasswordInput">OIDCPasswordInput</a> · 响应：<a href="#schema-SessionResponse">SessionResponse</a></p></details><details id="oidcCheck"><summary><span class="method">POST</span> <code>/api/v1/admin/settings/oidc/check</code></summary><p>settings:write + actual super_admin</p><small>Profile: web-platform · Access: session · Permissions: settings:write · CSRF: true</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="oidcCallback"><summary><span class="method">GET</span> <code>/api/v1/auth/oidc/callback</code></summary><p>One-time state + browser proof, PKCE, nonce, signed ID token. Fixed local redirect only.</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：浏览器回调跳转</p></details></section><section id="schemas"><h2>数据结构与校验</h2><details id="schema-Profile"><summary>Profile</summary><pre>{
+  &quot;type&quot;: &quot;string&quot;,
+  &quot;enum&quot;: [
+    &quot;web-platform&quot;,
+    &quot;web-standalone&quot;,
+    &quot;desktop&quot;,
+    &quot;cli&quot;
+  ]
+}</pre></details><details id="schema-ExecuteInput"><summary>ExecuteInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;text&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;text&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 65536,
+      &quot;description&quot;: &quot;Non-blank valid UTF-8, at most 65,536 UTF-8 bytes. Never stored.&quot;,
+      &quot;x-max-utf8-bytes&quot;: 65536
+    }
+  }
+}</pre></details><details id="schema-ExecuteOutput"><summary>ExecuteOutput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;characters&quot;,
+    &quot;words&quot;,
+    &quot;lines&quot;,
+    &quot;bytes&quot;,
+    &quot;sha256&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;characters&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;words&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;description&quot;: &quot;Whitespace-separated fields, not language-specific segmentation&quot;
+    },
+    &quot;lines&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;bytes&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;sha256&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-Capabilities"><summary>Capabilities</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;execute&quot;,
+    &quot;database&quot;,
+    &quot;installation&quot;,
+    &quot;authentication&quot;,
+    &quot;license&quot;,
+    &quot;updater&quot;,
+    &quot;settings&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;execute&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;database&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;installation&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;authentication&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;license&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;updater&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;settings&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    }
+  }
+}</pre></details><details id="schema-Bootstrap"><summary>Bootstrap</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;profile&quot;,
+    &quot;version&quot;,
+    &quot;commit&quot;,
+    &quot;build_time&quot;,
+    &quot;stage&quot;,
+    &quot;deployment_kind&quot;,
+    &quot;capabilities&quot;,
+    &quot;installed&quot;,
+    &quot;site_name&quot;,
+    &quot;admin_path&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;profile&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Profile&quot;
+    },
+    &quot;version&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;commit&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;build_time&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;stage&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;deployment_kind&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;capabilities&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Capabilities&quot;
+    },
+    &quot;installed&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;site_name&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;admin_path&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;current_user&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/User&quot;
+    },
+    &quot;csrf_token&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;site_description&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;site_copyright&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;theme&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-BootstrapResponse"><summary>BootstrapResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Bootstrap&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-ExecuteResponse"><summary>ExecuteResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/ExecuteOutput&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-ErrorResponse"><summary>ErrorResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;fields&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;additionalProperties&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      },
+      &quot;description&quot;: &quot;Field path to safe validation message; never contains submitted values.&quot;
+    }
+  }
+}</pre></details><details id="schema-Health"><summary>Health</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;status&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;status&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-HealthResponse"><summary>HealthResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Health&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-DatabaseInput"><summary>DatabaseInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;driver&quot;,
+    &quot;dsn&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;driver&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;sqlite&quot;,
+        &quot;postgres&quot;,
+        &quot;mysql&quot;
+      ]
+    },
+    &quot;dsn&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-EnvironmentCheck"><summary>EnvironmentCheck</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;name&quot;,
+    &quot;ok&quot;,
+    &quot;detail&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;name&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;ok&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;detail&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-InstallStatus"><summary>InstallStatus</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;status&quot;,
+    &quot;profile&quot;,
+    &quot;database_options&quot;,
+    &quot;checks&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;status&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;profile&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Profile&quot;
+    },
+    &quot;database_options&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      }
+    },
+    &quot;checks&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/EnvironmentCheck&quot;
+      }
+    }
+  }
+}</pre></details><details id="schema-InstallInput"><summary>InstallInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;profile&quot;,
+    &quot;database&quot;,
+    &quot;site_name&quot;,
+    &quot;base_url&quot;,
+    &quot;admin_username&quot;,
+    &quot;admin_email&quot;,
+    &quot;admin_password&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;profile&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Profile&quot;
+    },
+    &quot;database&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/DatabaseInput&quot;
+    },
+    &quot;site_name&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;base_url&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;admin_username&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;admin_email&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;admin_password&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-InstallResult"><summary>InstallResult</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;profile&quot;,
+    &quot;site_url&quot;,
+    &quot;admin_url&quot;,
+    &quot;settings_url&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;profile&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Profile&quot;
+    },
+    &quot;site_url&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;admin_url&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;settings_url&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-User"><summary>User</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;username&quot;,
+    &quot;email&quot;,
+    &quot;status&quot;,
+    &quot;roles&quot;,
+    &quot;permissions&quot;,
+    &quot;created_at&quot;,
+    &quot;last_login_at&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;username&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;email&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;status&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;roles&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      }
+    },
+    &quot;permissions&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      }
+    },
+    &quot;created_at&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;last_login_at&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    }
+  }
+}</pre></details><details id="schema-UserList"><summary>UserList</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;items&quot;,
+    &quot;total&quot;,
+    &quot;page&quot;,
+    &quot;page_size&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/User&quot;
+      }
+    },
+    &quot;total&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;page&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;page_size&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    }
+  }
+}</pre></details><details id="schema-UserCreate"><summary>UserCreate</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;username&quot;,
+    &quot;email&quot;,
+    &quot;password&quot;,
+    &quot;role&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;username&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 3,
+      &quot;maxLength&quot;: 64,
+      &quot;pattern&quot;: &quot;^[a-zA-Z0-9][a-zA-Z0-9_.-]{2,63}$&quot;
+    },
+    &quot;email&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;email&quot;,
+      &quot;maxLength&quot;: 254
+    },
+    &quot;password&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 12,
+      &quot;maxLength&quot;: 128
+    },
+    &quot;role&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-UserUpdate"><summary>UserUpdate</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;role&quot;,
+    &quot;status&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;role&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;status&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-LoginInput"><summary>LoginInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;username&quot;,
+    &quot;password&quot;,
+    &quot;captcha_id&quot;,
+    &quot;captcha_answer&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;username&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 254
+    },
+    &quot;password&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 128
+    },
+    &quot;captcha_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;captcha_answer&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-Session"><summary>Session</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;user&quot;,
+    &quot;csrf_token&quot;,
+    &quot;expires_at&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;user&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/User&quot;
+    },
+    &quot;csrf_token&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;expires_at&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    }
+  }
+}</pre></details><details id="schema-Captcha"><summary>Captcha</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;image&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;image&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-AuditEntry"><summary>AuditEntry</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;actor_id&quot;,
+    &quot;action&quot;,
+    &quot;created_at&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;actor_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;action&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;created_at&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    }
+  }
+}</pre></details><details id="schema-Dashboard"><summary>Dashboard</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;total_users&quot;,
+    &quot;today_new_users&quot;,
+    &quot;active_users_7d&quot;,
+    &quot;audit&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;total_users&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;today_new_users&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;active_users_7d&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;audit&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/AuditEntry&quot;
+      }
+    }
+  }
+}</pre></details><details id="schema-SettingEntry"><summary>SettingEntry</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;key&quot;,
+    &quot;value&quot;,
+    &quot;value_type&quot;,
+    &quot;group&quot;,
+    &quot;label&quot;,
+    &quot;sensitive&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;key&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;value&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;value_type&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;group&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;label&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;sensitive&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;configured&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    }
+  }
+}</pre></details><details id="schema-Settings"><summary>Settings</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;items&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/SettingEntry&quot;
+      }
+    }
+  }
+}</pre></details><details id="schema-SettingChange"><summary>SettingChange</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;key&quot;,
+    &quot;value&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;key&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;value&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;clear&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    }
+  }
+}</pre></details><details id="schema-SettingPatch"><summary>SettingPatch</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;changes&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;changes&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/SettingChange&quot;
+      },
+      &quot;minItems&quot;: 1,
+      &quot;maxItems&quot;: 100
+    }
+  }
+}</pre></details><details id="schema-ActionResult"><summary>ActionResult</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;success&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;success&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    }
+  }
+}</pre></details><details id="schema-InstallStatusResponse"><summary>InstallStatusResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/InstallStatus&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-InstallResultResponse"><summary>InstallResultResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/InstallResult&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-UserResponse"><summary>UserResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/User&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-UserListResponse"><summary>UserListResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/UserList&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-SessionResponse"><summary>SessionResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Session&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-CaptchaResponse"><summary>CaptchaResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Captcha&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-DashboardResponse"><summary>DashboardResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Dashboard&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-SettingsResponse"><summary>SettingsResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Settings&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-ActionResultResponse"><summary>ActionResultResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/ActionResult&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-AuthPolicy"><summary>AuthPolicy</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;registration_enabled&quot;,
+    &quot;reset_enabled&quot;,
+    &quot;login_captcha&quot;,
+    &quot;register_captcha&quot;,
+    &quot;mail_ready&quot;,
+    &quot;email_login_enabled&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;registration_enabled&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;reset_enabled&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;login_captcha&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;register_captcha&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;mail_ready&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;email_login_enabled&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    }
+  }
+}</pre></details><details id="schema-RegisterInput"><summary>RegisterInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;username&quot;,
+    &quot;email&quot;,
+    &quot;password&quot;,
+    &quot;captcha_id&quot;,
+    &quot;captcha_answer&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;username&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 3,
+      &quot;maxLength&quot;: 64,
+      &quot;pattern&quot;: &quot;^[a-zA-Z0-9][a-zA-Z0-9_.-]{2,63}$&quot;
+    },
+    &quot;email&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;email&quot;,
+      &quot;maxLength&quot;: 254
+    },
+    &quot;password&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 12,
+      &quot;maxLength&quot;: 128
+    },
+    &quot;captcha_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;captcha_answer&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-EmailRequest"><summary>EmailRequest</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;email&quot;,
+    &quot;captcha_id&quot;,
+    &quot;captcha_answer&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;email&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;email&quot;,
+      &quot;maxLength&quot;: 254,
+      &quot;minLength&quot;: 3
+    },
+    &quot;captcha_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;captcha_answer&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-TokenInput"><summary>TokenInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;token&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;token&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-ResetInput"><summary>ResetInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;token&quot;,
+    &quot;password&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;token&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;password&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-MailTestInput"><summary>MailTestInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;recipient&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;recipient&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;email&quot;,
+      &quot;maxLength&quot;: 254,
+      &quot;minLength&quot;: 3
+    }
+  }
+}</pre></details><details id="schema-MailJob"><summary>MailJob</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;state&quot;,
+    &quot;attempts&quot;,
+    &quot;created_at&quot;,
+    &quot;available_at&quot;,
+    &quot;last_error&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;state&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;attempts&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;created_at&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;available_at&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;last_error&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-MailJobList"><summary>MailJobList</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;items&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/MailJob&quot;
+      }
+    }
+  }
+}</pre></details><details id="schema-AuthPolicyResponse"><summary>AuthPolicyResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/AuthPolicy&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-MailJobListResponse"><summary>MailJobListResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/MailJobList&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-EmailChallenge"><summary>EmailChallenge</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;challenge_id&quot;,
+    &quot;expires_in&quot;,
+    &quot;retry_after&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;challenge_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;expires_in&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;retry_after&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    }
+  }
+}</pre></details><details id="schema-EmailCodeInput"><summary>EmailCodeInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;challenge_id&quot;,
+    &quot;code&quot;,
+    &quot;password&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;challenge_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;pattern&quot;: &quot;^[0-9]{6}$&quot;,
+      &quot;minLength&quot;: 6,
+      &quot;maxLength&quot;: 6
+    },
+    &quot;password&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-MailTemplate"><summary>MailTemplate</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;purpose&quot;,
+    &quot;subject&quot;,
+    &quot;html&quot;,
+    &quot;text&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;purpose&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;subject&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;html&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;text&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-MailTemplateList"><summary>MailTemplateList</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;items&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/MailTemplate&quot;
+      }
+    }
+  }
+}</pre></details><details id="schema-EmailChallengeResponse"><summary>EmailChallengeResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/EmailChallenge&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-MailTemplateListResponse"><summary>MailTemplateListResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/MailTemplateList&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-PermissionDefinition"><summary>PermissionDefinition</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;name&quot;,
+    &quot;description&quot;,
+    &quot;group&quot;,
+    &quot;assignable&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;name&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;description&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;group&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;assignable&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    }
+  }
+}</pre></details><details id="schema-Role"><summary>Role</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;name&quot;,
+    &quot;builtin&quot;,
+    &quot;permissions&quot;,
+    &quot;user_count&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;name&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;builtin&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;permissions&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      }
+    },
+    &quot;user_count&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    }
+  }
+}</pre></details><details id="schema-RoleInput"><summary>RoleInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;name&quot;,
+    &quot;permissions&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;name&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 64
+    },
+    &quot;permissions&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      },
+      &quot;uniqueItems&quot;: true,
+      &quot;maxItems&quot;: 100
+    }
+  }
+}</pre></details><details id="schema-RoleList"><summary>RoleList</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;items&quot;,
+    &quot;permissions&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/Role&quot;
+      }
+    },
+    &quot;permissions&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/PermissionDefinition&quot;
+      }
+    }
+  }
+}</pre></details><details id="schema-RoleOption"><summary>RoleOption</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;name&quot;,
+    &quot;assignable&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;name&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;assignable&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    }
+  }
+}</pre></details><details id="schema-RoleOptions"><summary>RoleOptions</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;items&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/RoleOption&quot;
+      }
+    }
+  }
+}</pre></details><details id="schema-RoleResponse"><summary>RoleResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Role&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-RoleListResponse"><summary>RoleListResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/RoleList&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-RoleOptionsResponse"><summary>RoleOptionsResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/RoleOptions&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-OIDCInfo"><summary>OIDCInfo</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;required&quot;: [
+    &quot;enabled&quot;,
+    &quot;provider_name&quot;,
+    &quot;callback_url&quot;,
+    &quot;linked&quot;,
+    &quot;issuer&quot;,
+    &quot;has_local_password&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;enabled&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;provider_name&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;callback_url&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;linked&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;issuer&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;has_local_password&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    }
+  }
+}</pre></details><details id="schema-OIDCPasswordInput"><summary>OIDCPasswordInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;required&quot;: [
+    &quot;password&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;password&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 128
+    }
+  }
+}</pre></details><details id="schema-OIDCStart"><summary>OIDCStart</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;required&quot;: [
+    &quot;authorization_url&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;authorization_url&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-OIDCInfoResponse"><summary>OIDCInfoResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/OIDCInfo&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-OIDCStartResponse"><summary>OIDCStartResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/OIDCStart&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details></section><section id="errors"><h2>错误目录</h2><p>统一响应包含 code、message、request_id；校验错误可附 fields。日志和错误响应不回显提交值。</p><article><code>ACCOUNT_EXISTS</code> · 409<p>账号或邮箱已存在</p></article><article><code>ACCOUNT_FLOW_DISABLED</code> · 409<p>此实例尚未开放该账号流程</p></article><article><code>ALREADY_INSTALLED</code> · 409<p>此实例已安装，不能重复初始化</p></article><article><code>AUTH_REQUIRED</code> · 401<p>登录已失效，请重新登录</p></article><article><code>BODY_TOO_LARGE</code> · 413<p>请求体过大</p></article><article><code>BOOTSTRAP_TOKEN_INVALID</code> · 403<p>安装凭据无效，请读取部署数据目录中的 bootstrap.token</p></article><article><code>BUILTIN_ROLE</code> · 409<p>内置角色不能修改或删除</p></article><article><code>CAPTCHA_INVALID</code> · 400<p>验证码不正确或已过期，请刷新后重试</p></article><article><code>CSRF_INVALID</code> · 403<p>请求校验已失效，请刷新页面</p></article><article><code>DATABASE_INITIALIZED</code> · 409<p>数据库已有安装记录，请恢复原实例配置或使用空数据库</p></article><article><code>DATABASE_UNAVAILABLE</code> · 400<p>无法连接或初始化数据库，请检查配置与权限后重试</p></article><article><code>INSTALL_COMMITTED</code> · 500<p>安装已完成，请前往登录页面</p></article><article><code>INSTALL_REQUIRED</code> · 409<p>请先完成安装</p></article><article><code>INTERNAL_ERROR</code> · 500<p>操作未完成，请重试</p></article><article><code>INVALID_INPUT</code> · 400<p>请检查输入类型、范围及当前形态是否支持</p></article><article><code>INVALID_JSON</code> · 400<p>JSON 格式不正确</p></article><article><code>LAST_SUPER_ADMIN</code> · 409<p>不能禁用或降权最后一个启用且可用本地密码登录的超级管理员</p></article><article><code>LOCAL_PASSWORD_REQUIRED</code> · 409<p>请先设置本地密码，再更改企业账号绑定</p></article><article><code>MAIL_DELIVERY_FAILED</code> · 502<p>邮件未能送达，请检查 SMTP 配置、TLS 与凭据</p></article><article><code>MAIL_NOT_READY</code> · 409<p>请先保存 SMTP 配置并成功发送测试邮件，再启用邮件账号流程</p></article><article><code>METHOD_NOT_ALLOWED</code> · 405<p>请求方法不受支持</p></article><article><code>NOT_AVAILABLE</code> · 404<p>此运行形态不提供该能力</p></article><article><code>NOT_FOUND</code> · 404<p>接口不存在</p></article><article><code>NOT_READY</code> · 503<p>安装尚未完成</p></article><article><code>OIDC_FAILED</code> · 409<p>企业身份验证未完成，请重新发起或先登录本地账号后绑定</p></article><article><code>OIDC_UNAVAILABLE</code> · 502<p>暂时无法连接企业身份服务，请检查已保存的配置或稍后重试</p></article><article><code>ORIGIN_REJECTED</code> · 403<p>请求来源不受信任</p></article><article><code>PERMISSION_DENIED</code> · 403<p>你没有执行此操作的权限</p></article><article><code>RATE_LIMITED</code> · 429<p>尝试过于频繁，请稍后重试</p></article><article><code>ROLE_IN_USE</code> · 409<p>角色仍有关联用户，请先更换这些用户的角色</p></article><article><code>ROLE_NAME_EXISTS</code> · 409<p>角色名称已存在，请使用其他名称</p></article><article><code>ROLE_NOT_FOUND</code> · 404<p>角色不存在，请刷新后重试</p></article><article><code>TOKEN_INVALID</code> · 400<p>链接无效、已过期或已经使用，请重新申请</p></article><article><code>UNSUPPORTED_MEDIA_TYPE</code> · 415<p>请使用 application/json</p></article><article><code>INVALID_CREDENTIALS</code> · 401<p>账号或密码不正确</p></article></section></main></body></html>

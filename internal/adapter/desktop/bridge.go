@@ -64,11 +64,11 @@ func (b *Bridge) PatchSettings(input contracts.SettingPatch) contracts.SettingsR
 	}
 	data, err := b.settings.Patch(context.Background(), input, "desktop")
 	if err != nil {
-		code, message := "INTERNAL_ERROR", "无法保存设置"
+		code := "INTERNAL_ERROR"
 		if errors.Is(err, settings.ErrInvalid) {
-			code, message = "INVALID_INPUT", "请检查设置输入与范围"
+			code = "INVALID_INPUT"
 		}
-		return contracts.SettingsResponse{Code: code, Message: message, RequestID: requestID}
+		return contracts.SettingsResponse{Code: code, Message: contracts.ErrorCatalog[code].Message, RequestID: requestID}
 	}
 	return contracts.SettingsResponse{Code: "OK", Data: data, RequestID: requestID}
 }

@@ -23,8 +23,31 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Stable error envelope; error codes are listed in x-error-codes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform",
+            "web-standalone"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "security": [],
+        "summary": "bootstrap"
       }
     },
     "/api/v1/core/execute": {
@@ -90,8 +113,37 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Stable error envelope; error codes are listed in x-error-codes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform",
+            "web-standalone"
+          ],
+          "access": "platform-session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true
+        },
+        "security": [
+          {},
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          }
+        ],
+        "summary": "execute"
       }
     },
     "/api/v1/health/live": {
@@ -107,8 +159,31 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Stable error envelope; error codes are listed in x-error-codes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform",
+            "web-standalone"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "security": [],
+        "summary": "liveness"
       }
     },
     "/api/v1/health/ready": {
@@ -124,8 +199,31 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Stable error envelope; error codes are listed in x-error-codes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform",
+            "web-standalone"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "security": [],
+        "summary": "readiness"
       }
     },
     "/api/v1/install/status": {
@@ -152,7 +250,20 @@
               }
             }
           }
-        }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform",
+            "web-standalone"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "security": [],
+        "summary": "installStatus"
       }
     },
     "/api/v1/install/verify-db": {
@@ -194,7 +305,19 @@
           {
             "BootstrapToken": []
           }
-        ]
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform",
+            "web-standalone"
+          ],
+          "access": "install-token",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "summary": "verifyDatabase"
       }
     },
     "/api/v1/install/complete": {
@@ -236,7 +359,19 @@
           {
             "BootstrapToken": []
           }
-        ]
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform",
+            "web-standalone"
+          ],
+          "access": "install-token",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "summary": "completeInstall"
       }
     },
     "/api/v1/auth/captcha": {
@@ -263,7 +398,19 @@
               }
             }
           }
-        }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "security": [],
+        "summary": "captcha"
       }
     },
     "/api/v1/auth/login": {
@@ -300,7 +447,19 @@
               }
             }
           }
-        }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "security": [],
+        "summary": "login"
       }
     },
     "/api/v1/auth/session": {
@@ -332,7 +491,18 @@
           {
             "SessionCookie": []
           }
-        ]
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "summary": "session"
       }
     },
     "/api/v1/auth/logout": {
@@ -362,9 +532,21 @@
         },
         "security": [
           {
-            "SessionCookie": []
+            "SessionCookie": [],
+            "CSRFToken": []
           }
-        ]
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true
+        },
+        "summary": "logout"
       }
     },
     "/api/v1/admin/dashboard": {
@@ -396,7 +578,20 @@
           {
             "SessionCookie": []
           }
-        ]
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "dashboard:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "summary": "dashboard"
       }
     },
     "/api/v1/admin/users": {
@@ -428,7 +623,20 @@
           {
             "SessionCookie": []
           }
-        ]
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "users:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "summary": "listUsers"
       },
       "post": {
         "operationId": "createUser",
@@ -466,9 +674,23 @@
         },
         "security": [
           {
-            "SessionCookie": []
+            "SessionCookie": [],
+            "CSRFToken": []
           }
-        ]
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "users:create"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true
+        },
+        "summary": "createUser"
       }
     },
     "/api/v1/admin/users/{id}": {
@@ -508,10 +730,24 @@
         },
         "security": [
           {
-            "SessionCookie": []
+            "SessionCookie": [],
+            "CSRFToken": []
           }
         ],
-        "x-permission": "users:update and super_admin"
+        "x-permission": "users:update and super_admin",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "users:update"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true
+        },
+        "summary": "updateUser"
       },
       "parameters": [
         {
@@ -553,7 +789,20 @@
           {
             "SessionCookie": []
           }
-        ]
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "settings:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "summary": "adminSettings"
       },
       "patch": {
         "operationId": "adminPatchSettings",
@@ -591,10 +840,24 @@
         },
         "security": [
           {
-            "SessionCookie": []
+            "SessionCookie": [],
+            "CSRFToken": []
           }
         ],
-        "x-permission": "settings:write and super_admin"
+        "x-permission": "settings:write and super_admin",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "settings:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true
+        },
+        "summary": "adminPatchSettings"
       }
     },
     "/api/v1/settings": {
@@ -621,7 +884,19 @@
               }
             }
           }
-        }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-standalone"
+          ],
+          "access": "local",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "security": [],
+        "summary": "localSettings"
       },
       "patch": {
         "operationId": "localPatchSettings",
@@ -656,7 +931,19 @@
               }
             }
           }
-        }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-standalone"
+          ],
+          "access": "local",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "security": [],
+        "summary": "localPatchSettings"
       }
     },
     "/api/v1/auth/policy": {
@@ -683,7 +970,19 @@
               }
             }
           }
-        }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "security": [],
+        "summary": "authPolicy"
       }
     },
     "/api/v1/auth/register": {
@@ -721,7 +1020,19 @@
             }
           }
         },
-        "deprecated": true
+        "deprecated": true,
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "security": [],
+        "summary": "register"
       }
     },
     "/api/v1/auth/verification/request": {
@@ -759,7 +1070,19 @@
             }
           }
         },
-        "deprecated": true
+        "deprecated": true,
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "security": [],
+        "summary": "requestVerification"
       }
     },
     "/api/v1/auth/verification/complete": {
@@ -797,7 +1120,19 @@
             }
           }
         },
-        "deprecated": true
+        "deprecated": true,
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "security": [],
+        "summary": "verifyEmail"
       }
     },
     "/api/v1/auth/password/request": {
@@ -835,7 +1170,19 @@
             }
           }
         },
-        "deprecated": true
+        "deprecated": true,
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "security": [],
+        "summary": "requestPasswordReset"
       }
     },
     "/api/v1/auth/password/reset": {
@@ -873,7 +1220,19 @@
             }
           }
         },
-        "deprecated": true
+        "deprecated": true,
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "security": [],
+        "summary": "resetPassword"
       }
     },
     "/api/v1/admin/settings/mail/test": {
@@ -913,10 +1272,24 @@
         },
         "security": [
           {
-            "SessionCookie": []
+            "SessionCookie": [],
+            "CSRFToken": []
           }
         ],
-        "x-permission": "settings:write and super_admin"
+        "x-permission": "settings:write and super_admin",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "settings:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true
+        },
+        "summary": "testMail"
       }
     },
     "/api/v1/admin/settings/mail/jobs": {
@@ -949,7 +1322,20 @@
             "SessionCookie": []
           }
         ],
-        "x-permission": "settings:read"
+        "x-permission": "settings:read",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "settings:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "summary": "mailJobs"
       }
     },
     "/api/v1/auth/email/register": {
@@ -986,7 +1372,19 @@
               }
             }
           }
-        }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "security": [],
+        "summary": "registerEmailCode"
       }
     },
     "/api/v1/auth/email/verify/request": {
@@ -1023,7 +1421,19 @@
               }
             }
           }
-        }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "security": [],
+        "summary": "requestEmailVerify"
       }
     },
     "/api/v1/auth/email/verify/complete": {
@@ -1060,7 +1470,19 @@
               }
             }
           }
-        }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "security": [],
+        "summary": "completeEmailVerify"
       }
     },
     "/api/v1/auth/email/reset/request": {
@@ -1097,7 +1519,19 @@
               }
             }
           }
-        }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "security": [],
+        "summary": "requestEmailReset"
       }
     },
     "/api/v1/auth/email/reset/complete": {
@@ -1134,7 +1568,19 @@
               }
             }
           }
-        }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "security": [],
+        "summary": "completeEmailReset"
       }
     },
     "/api/v1/auth/email/login/request": {
@@ -1171,7 +1617,19 @@
               }
             }
           }
-        }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "security": [],
+        "summary": "requestEmailLogin"
       }
     },
     "/api/v1/auth/email/login/complete": {
@@ -1208,7 +1666,19 @@
               }
             }
           }
-        }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "security": [],
+        "summary": "completeEmailLogin"
       }
     },
     "/api/v1/admin/settings/mail/templates": {
@@ -1236,7 +1706,25 @@
             }
           }
         },
-        "x-permission": "settings:read"
+        "x-permission": "settings:read",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "settings:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "summary": "mailTemplates"
       }
     },
     "/api/v1/admin/roles": {
@@ -1269,7 +1757,20 @@
             "SessionCookie": []
           }
         ],
-        "x-permission": "roles:read"
+        "x-permission": "roles:read",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "roles:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "summary": "listRoles"
       },
       "post": {
         "operationId": "createRole",
@@ -1297,7 +1798,8 @@
         },
         "security": [
           {
-            "SessionCookie": []
+            "SessionCookie": [],
+            "CSRFToken": []
           }
         ],
         "x-permission": "roles:write and super_admin",
@@ -1310,7 +1812,20 @@
               }
             }
           }
-        }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "roles:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true
+        },
+        "summary": "createRole"
       }
     },
     "/api/v1/admin/roles/{id}": {
@@ -1350,7 +1865,8 @@
         },
         "security": [
           {
-            "SessionCookie": []
+            "SessionCookie": [],
+            "CSRFToken": []
           }
         ],
         "x-permission": "roles:write and super_admin",
@@ -1363,7 +1879,20 @@
               }
             }
           }
-        }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "roles:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true
+        },
+        "summary": "updateRole"
       },
       "delete": {
         "operationId": "deleteRole",
@@ -1391,10 +1920,24 @@
         },
         "security": [
           {
-            "SessionCookie": []
+            "SessionCookie": [],
+            "CSRFToken": []
           }
         ],
-        "x-permission": "roles:write and super_admin"
+        "x-permission": "roles:write and super_admin",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "roles:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true
+        },
+        "summary": "deleteRole"
       }
     },
     "/api/v1/admin/users/role-options": {
@@ -1427,7 +1970,22 @@
             "SessionCookie": []
           }
         ],
-        "x-permission": "users:read or users:create or users:update; names with per-role assignable flag"
+        "x-permission": "users:read or users:create or users:update; names with per-role assignable flag",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "users:read",
+            "users:create",
+            "users:update"
+          ],
+          "permissionMode": "any",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "summary": "roleOptions"
       }
     },
     "/api/v1/auth/oidc": {
@@ -1504,8 +2062,30 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Stable error envelope; error codes are listed in x-error-codes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "security": [],
+        "summary": "oidcInfo"
       }
     },
     "/api/v1/auth/oidc/start": {
@@ -1582,8 +2162,30 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Stable error envelope; error codes are listed in x-error-codes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "security": [],
+        "summary": "oidcStart"
       }
     },
     "/api/v1/account/oidc": {
@@ -1660,8 +2262,34 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Stable error envelope; error codes are listed in x-error-codes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "summary": "oidcAccount"
       }
     },
     "/api/v1/account/oidc/link": {
@@ -1738,6 +2366,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Stable error envelope; error codes are listed in x-error-codes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "requestBody": {
@@ -1749,7 +2387,24 @@
               }
             }
           }
-        }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          }
+        ],
+        "summary": "oidcLink"
       }
     },
     "/api/v1/account/oidc/unlink": {
@@ -1826,6 +2481,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Stable error envelope; error codes are listed in x-error-codes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "requestBody": {
@@ -1837,7 +2502,24 @@
               }
             }
           }
-        }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          }
+        ],
+        "summary": "oidcUnlink"
       }
     },
     "/api/v1/admin/settings/oidc/check": {
@@ -1914,8 +2596,37 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Stable error envelope; error codes are listed in x-error-codes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "settings:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          }
+        ],
+        "summary": "oidcCheck"
       }
     },
     "/api/v1/auth/oidc/callback": {
@@ -1964,7 +2675,19 @@
           "303": {
             "description": "Redirect to fixed local account or login result; no authorization data in URL"
           }
-        }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "security": [],
+        "summary": "oidcCallback"
       }
     }
   },
@@ -1990,7 +2713,8 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 65536,
-            "description": "Non-blank valid UTF-8, at most 65,536 UTF-8 bytes. Never stored."
+            "description": "Non-blank valid UTF-8, at most 65,536 UTF-8 bytes. Never stored.",
+            "x-max-utf8-bytes": 65536
           }
         }
       },
@@ -2187,6 +2911,13 @@
           },
           "request_id": {
             "type": "string"
+          },
+          "fields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Field path to safe validation message; never contains submitted values."
           }
         }
       },
@@ -2441,13 +3172,20 @@
         ],
         "properties": {
           "username": {
-            "type": "string"
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 64,
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{2,63}$"
           },
           "email": {
-            "type": "string"
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
           },
           "password": {
-            "type": "string"
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 128
           },
           "role": {
             "type": "string"
@@ -2481,10 +3219,14 @@
         ],
         "properties": {
           "username": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 254
           },
           "password": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
           },
           "captcha_id": {
             "type": "string"
@@ -2661,7 +3403,9 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SettingChange"
-            }
+            },
+            "minItems": 1,
+            "maxItems": 100
           }
         }
       },
@@ -2937,13 +3681,20 @@
         ],
         "properties": {
           "username": {
-            "type": "string"
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 64,
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{2,63}$"
           },
           "email": {
-            "type": "string"
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
           },
           "password": {
-            "type": "string"
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 128
           },
           "captcha_id": {
             "type": "string"
@@ -2963,7 +3714,10 @@
         ],
         "properties": {
           "email": {
-            "type": "string"
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "minLength": 3
           },
           "captcha_id": {
             "type": "string"
@@ -3009,7 +3763,10 @@
         ],
         "properties": {
           "recipient": {
-            "type": "string"
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "minLength": 3
           }
         }
       },
@@ -3142,7 +3899,9 @@
           },
           "code": {
             "type": "string",
-            "pattern": "^[0-9]{6}$"
+            "pattern": "^[0-9]{6}$",
+            "minLength": 6,
+            "maxLength": 6
           },
           "password": {
             "type": "string"
@@ -3313,7 +4072,8 @@
             "items": {
               "type": "string"
             },
-            "uniqueItems": true
+            "uniqueItems": true,
+            "maxItems": 100
           }
         }
       },
@@ -3557,7 +4317,155 @@
         "type": "apiKey",
         "in": "cookie",
         "name": "unicore_session"
+      },
+      "CSRFToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-CSRF-Token",
+        "description": "Required with a platform session for state-changing requests. Derived from the session; never persisted by the browser."
       }
+    }
+  },
+  "x-error-codes": {
+    "ACCOUNT_EXISTS": {
+      "status": 409,
+      "message": "账号或邮箱已存在"
+    },
+    "ACCOUNT_FLOW_DISABLED": {
+      "status": 409,
+      "message": "此实例尚未开放该账号流程"
+    },
+    "ALREADY_INSTALLED": {
+      "status": 409,
+      "message": "此实例已安装，不能重复初始化"
+    },
+    "AUTH_REQUIRED": {
+      "status": 401,
+      "message": "登录已失效，请重新登录"
+    },
+    "BODY_TOO_LARGE": {
+      "status": 413,
+      "message": "请求体过大"
+    },
+    "BOOTSTRAP_TOKEN_INVALID": {
+      "status": 403,
+      "message": "安装凭据无效，请读取部署数据目录中的 bootstrap.token"
+    },
+    "BUILTIN_ROLE": {
+      "status": 409,
+      "message": "内置角色不能修改或删除"
+    },
+    "CAPTCHA_INVALID": {
+      "status": 400,
+      "message": "验证码不正确或已过期，请刷新后重试"
+    },
+    "CSRF_INVALID": {
+      "status": 403,
+      "message": "请求校验已失效，请刷新页面"
+    },
+    "DATABASE_INITIALIZED": {
+      "status": 409,
+      "message": "数据库已有安装记录，请恢复原实例配置或使用空数据库"
+    },
+    "DATABASE_UNAVAILABLE": {
+      "status": 400,
+      "message": "无法连接或初始化数据库，请检查配置与权限后重试"
+    },
+    "INSTALL_COMMITTED": {
+      "status": 500,
+      "message": "安装已完成，请前往登录页面"
+    },
+    "INSTALL_REQUIRED": {
+      "status": 409,
+      "message": "请先完成安装"
+    },
+    "INTERNAL_ERROR": {
+      "status": 500,
+      "message": "操作未完成，请重试"
+    },
+    "INVALID_INPUT": {
+      "status": 400,
+      "message": "请检查输入类型、范围及当前形态是否支持"
+    },
+    "INVALID_JSON": {
+      "status": 400,
+      "message": "JSON 格式不正确"
+    },
+    "LAST_SUPER_ADMIN": {
+      "status": 409,
+      "message": "不能禁用或降权最后一个启用且可用本地密码登录的超级管理员"
+    },
+    "LOCAL_PASSWORD_REQUIRED": {
+      "status": 409,
+      "message": "请先设置本地密码，再更改企业账号绑定"
+    },
+    "MAIL_DELIVERY_FAILED": {
+      "status": 502,
+      "message": "邮件未能送达，请检查 SMTP 配置、TLS 与凭据"
+    },
+    "MAIL_NOT_READY": {
+      "status": 409,
+      "message": "请先保存 SMTP 配置并成功发送测试邮件，再启用邮件账号流程"
+    },
+    "METHOD_NOT_ALLOWED": {
+      "status": 405,
+      "message": "请求方法不受支持"
+    },
+    "NOT_AVAILABLE": {
+      "status": 404,
+      "message": "此运行形态不提供该能力"
+    },
+    "NOT_FOUND": {
+      "status": 404,
+      "message": "接口不存在"
+    },
+    "NOT_READY": {
+      "status": 503,
+      "message": "安装尚未完成"
+    },
+    "OIDC_FAILED": {
+      "status": 409,
+      "message": "企业身份验证未完成，请重新发起或先登录本地账号后绑定"
+    },
+    "OIDC_UNAVAILABLE": {
+      "status": 502,
+      "message": "暂时无法连接企业身份服务，请检查已保存的配置或稍后重试"
+    },
+    "ORIGIN_REJECTED": {
+      "status": 403,
+      "message": "请求来源不受信任"
+    },
+    "PERMISSION_DENIED": {
+      "status": 403,
+      "message": "你没有执行此操作的权限"
+    },
+    "RATE_LIMITED": {
+      "status": 429,
+      "message": "尝试过于频繁，请稍后重试"
+    },
+    "ROLE_IN_USE": {
+      "status": 409,
+      "message": "角色仍有关联用户，请先更换这些用户的角色"
+    },
+    "ROLE_NAME_EXISTS": {
+      "status": 409,
+      "message": "角色名称已存在，请使用其他名称"
+    },
+    "ROLE_NOT_FOUND": {
+      "status": 404,
+      "message": "角色不存在，请刷新后重试"
+    },
+    "TOKEN_INVALID": {
+      "status": 400,
+      "message": "链接无效、已过期或已经使用，请重新申请"
+    },
+    "UNSUPPORTED_MEDIA_TYPE": {
+      "status": 415,
+      "message": "请使用 application/json"
+    },
+    "INVALID_CREDENTIALS": {
+      "status": 401,
+      "message": "账号或密码不正确"
     }
   }
 }

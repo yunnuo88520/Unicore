@@ -20,9 +20,9 @@ func RequestID() string {
 }
 
 func Error(err error, requestID string) contracts.ErrorResponse {
-	code, message := "INTERNAL_ERROR", "操作失败，请重试"
+	code := "INTERNAL_ERROR"
 	if errors.Is(err, domain.ErrInvalidText) {
-		code, message = "INVALID_INPUT", "请输入非空文本，且 UTF-8 编码不超过 65,536 字节"
+		code = "INVALID_INPUT"
 	}
-	return contracts.ErrorResponse{Code: code, Message: message, RequestID: requestID}
+	return contracts.ErrorResponse{Code: code, Message: contracts.ErrorCatalog[code].Message, RequestID: requestID}
 }

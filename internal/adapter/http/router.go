@@ -3,6 +3,7 @@
 package httpadapter
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -16,25 +17,43 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/yunnuo/unicore/internal/adapter/presenter"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/install"
+	"github.com/yunnuo/unicore/internal/observability"
 	"github.com/yunnuo/unicore/internal/usecase"
+	apispec "github.com/yunnuo/unicore/packages/contracts"
 )
 
 type Config struct {
-	Metadata contracts.Bootstrap
-	Core     usecase.Executor
-	Assets   fs.FS
-	Logger   *slog.Logger
-	Install  *install.Manager
+	Metadata         contracts.Bootstrap
+	Core             usecase.Executor
+	Assets           fs.FS
+	Logger           *slog.Logger
+	Install          *install.Manager
+	APIDocs          bool
+	ReadinessTimeout time.Duration
+	Metrics          *observability.Metrics
 }
 
 func New(config Config) http.Handler {
+	if config.Logger == nil {
+		config.Logger = slog.Default()
+	}
+	if config.ReadinessTimeout <= 0 {
+		config.ReadinessTimeout = 2 * time.Second
+	}
 	router := chi.NewRouter()
 	router.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			wrapped := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
+			w = wrapped
 			start := time.Now()
+			var record func(string, string, int, time.Duration)
+			if config.Metrics != nil {
+				record = config.Metrics.Begin()
+			}
 			requestID := presenter.RequestID()
 			w.Header().Set("X-Request-ID", requestID)
 			if strings.HasPrefix(r.URL.Path, "/api/") {
@@ -45,10 +64,23 @@ func New(config Config) http.Handler {
 			w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'")
 			defer func() {
 				if recovered := recover(); recovered != nil {
-					writeJSON(w, 500, contracts.ErrorResponse{Code: "INTERNAL_ERROR", Message: "操作失败，请重试", RequestID: requestID})
+					if wrapped.Status() == 0 {
+						writeJSON(w, 500, contracts.ErrorResponse{Code: "INTERNAL_ERROR", Message: "操作失败，请重试", RequestID: requestID})
+					}
 					config.Logger.Error("request panic", "event", "http.panic", "request_id", requestID)
 				}
-				config.Logger.Info("request completed", "event", "http.request", "request_id", requestID, "method", r.Method, "duration_ms", time.Since(start).Milliseconds())
+				status := wrapped.Status()
+				if status == 0 {
+					status = 200
+				}
+				route := chi.RouteContext(r.Context()).RoutePattern()
+				if route == "" {
+					route = "unmatched"
+				}
+				if record != nil {
+					record(r.Method, route, status, time.Since(start))
+				}
+				config.Logger.Info("request completed", "event", "http.request", "request_id", requestID, "method", r.Method, "route", route, "status", status, "duration_ms", time.Since(start).Milliseconds())
 			}()
 			next.ServeHTTP(w, r)
 		})
@@ -61,6 +93,21 @@ func New(config Config) http.Handler {
 				}
 			})
 		})
+	}
+	if config.APIDocs {
+		router.Get("/openapi.json", func(w http.ResponseWriter, r *http.Request) {
+			content, _ := apispec.Assets.ReadFile("openapi.json")
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			_, _ = w.Write(content)
+		})
+		router.Get("/docs/api", func(w http.ResponseWriter, r *http.Request) {
+			content, _ := apispec.Assets.ReadFile("reference.gen.html")
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			_, _ = w.Write(content)
+		})
+	} else {
+		router.Get("/openapi.json", http.NotFound)
+		router.Get("/docs/api", http.NotFound)
 	}
 	router.Route("/api/v1", func(api chi.Router) {
 		api.Get("/bootstrap", func(w http.ResponseWriter, r *http.Request) {
@@ -78,7 +125,9 @@ func New(config Config) http.Handler {
 						failure(w, 503, "NOT_READY", "安装尚未完成")
 						return
 					}
-					if err := store.DB.PingContext(r.Context()); err != nil {
+					ctx, cancel := context.WithTimeout(r.Context(), config.ReadinessTimeout)
+					defer cancel()
+					if err := store.DB.PingContext(ctx); err != nil {
 						failure(w, 503, "NOT_READY", "存储尚未就绪")
 						return
 					}
@@ -125,6 +174,9 @@ func New(config Config) http.Handler {
 			}
 			if err := decoder.Decode(&struct{}{}); err != io.EOF {
 				fail(400, "INVALID_JSON", "只允许一个 JSON 对象")
+				return
+			}
+			if !validateInput(w, r, input) {
 				return
 			}
 			output, err := config.Core.Execute(r.Context(), input)

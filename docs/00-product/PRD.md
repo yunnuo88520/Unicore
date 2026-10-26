@@ -3,7 +3,7 @@
 
 Unicore · yunnuo / ymz@ebox.vip。完整目标见 [design-v1.1.md](design-v1.1.md)。当前实现 M1 + M2a + M2b + M2c + M2d + M3a，不等同完整 v1。
 
-基础设施尚未全部收尾，逐项状态、已有证据与验收条件见 [基础能力审计](../04-ai/foundation-audit.md)，尤其包括会话失效、API 文档、路由/表单与可观测性。
+基础能力本轮收尾：统一会话/缓存边界、路由/表单、契约文档/校验、运行配置/观测与 AI 开发入口，当前范围见 [基础能力审计](../04-ai/foundation-audit.md) 和 [验收](../04-ai/acceptance-ai-foundations.md)。
 
 | 能力 | web-platform | web-standalone | desktop | cli |
 | --- | --- | --- | --- | --- |
@@ -15,6 +15,7 @@ Unicore · yunnuo / ymz@ebox.vip。完整目标见 [design-v1.1.md](design-v1.1.
 | 持久化设置 | 按权限分组 | 本地适用项 | 本地适用项 | 不装配 |
 | SMTP / 六位验证码注册、登录、找回密码 | 已实现，需测试 SMTP 后显式启用 | 不装配 | 不装配 | 不装配 |
 | 统一设计源 / Logo、ICO、原生图标 | 已实现 | 已实现 | 已实现，macOS 实测 | 不适用 |
+| AI 文档/Skills/契约生成与检查 | 已实现 | 已实现 | 已实现 | 已实现 |
 | OIDC 企业登录 / 账号绑定 | 已实现，默认关闭 | 不装配 | 不装配 | 不装配 |
 | 品牌上传 | M3 后续 | 按适用项 | 按适用项 | 不适用 |
 | 备份恢复 / 正式发布 / 升级 | M4 后续 | M4 后续 | 后续 | 后续 |

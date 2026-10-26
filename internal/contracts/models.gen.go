@@ -60,9 +60,10 @@ type ExecuteResponse struct {
 }
 
 type ErrorResponse struct {
-	Code      string `json:"code"`
-	Message   string `json:"message"`
-	RequestID string `json:"request_id"`
+	Code      string             `json:"code"`
+	Message   string             `json:"message"`
+	RequestID string             `json:"request_id"`
+	Fields    *map[string]string `json:"fields,omitempty"`
 }
 
 type Health struct {

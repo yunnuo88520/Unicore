@@ -14,7 +14,7 @@ export const test = base.extend<{ instance: Instance }>({
     const allocator = createServer(); await new Promise<void>(resolve => allocator.listen(0, '127.0.0.1', resolve));
     const port = (allocator.address() as { port: number }).port; await new Promise<void>(resolve => allocator.close(() => resolve()));
     const url = `http://127.0.0.1:${port}`;
-    const process = spawn('build/bin/server', ['--listen', `127.0.0.1:${port}`, '--data-dir', directory], { stdio: 'ignore', env: { ...globalThis.process.env, APP_PROFILE: '', APP_BOOTSTRAP_TOKEN: '', APP_SECRET_KEY: '', APP_ADMIN_PATH: '' } });
+    const process = spawn('build/bin/server', ['--listen', `127.0.0.1:${port}`, '--data-dir', directory, '--api-docs=true'], { stdio: 'ignore', env: Object.fromEntries(Object.entries(globalThis.process.env).filter(([key]) => !key.startsWith('APP_'))) });
     const request = await playwright.request.newContext({ baseURL: url });
     try {
       await expect.poll(async () => { try { return (await request.get('/api/v1/health/live')).status(); } catch { return 0; } }, { timeout: 15000 }).toBe(200);

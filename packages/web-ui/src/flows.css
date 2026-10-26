@@ -41,3 +41,5 @@
 
 .account-security, .oidc-connection { padding: calc(var(--space-unit) * 24); }
 .account-security .panel-heading, .oidc-connection .panel-heading { padding: 0 0 calc(var(--space-unit) * 20); }
+
+.form-field{min-width:0}.form-field>.form-error{display:block;margin-top:calc(var(--space-unit) * 6)}

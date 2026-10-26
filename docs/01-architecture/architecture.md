@@ -39,13 +39,13 @@ SQLite 使用 WAL、5 秒 busy timeout、单连接；PostgreSQL/MySQL 使用 bou
 
 ## 界面与扩展
 
-HttpTransport 管理 cookie/CSRF 与 WebClient；页面不直接 fetch。WailsTransport 只提供 bootstrap/execute/settings，没有 Web 身份/安装接口。TanStack Query 管理状态；DashboardWidgetRegistry 以唯一 id 扩展业务首页。平台仪表盘来自 DB：总用户、UTC 今日新增、过去 7 天成功认证的去重账号、最近审计。单机/桌面没有用户统计。
+HttpTransport 管理 cookie/CSRF 与 WebClient；页面不直接 fetch。WailsTransport 只提供 bootstrap/execute/settings，没有 Web 身份/安装接口。SessionBoundary 按会话代际隔离 Query cache/组件状态，SDK epoch 拒绝旧响应，多标签页同步失效；routes.ts 与 PageContent 集中路由/权限及渲染，公共 Form/Field 与契约校验处理提交错误。TanStack Query 管理状态；DashboardWidgetRegistry 以唯一 id 扩展业务首页。平台仪表盘来自 DB：总用户、UTC 今日新增、过去 7 天成功认证的去重账号、最近审计。单机/桌面没有用户统计。
 
 主题偏好 localStorage，持久实例默认主题在设置注册表；当前以设备偏好优先。UI hash 子页面复用到 Wails，Web 的 /install、/admin 与 /settings 入口由服务器处理。light/dark/system 与 375px 浏览器测试，表格可横向滚动但页面不溢出。
 
 桌面入口 `desktop || bindings`；绑定生成用编译期标记跳过真实用户存储。代码不使用环境变量来绕过该边界。CLI、Core 与桌面依赖隔离在 scripts/check-boundaries 中按实际 Go 依赖图验证。
 
-Web 退出由 `internal/lifecycle.ServeHTTP` 先等待在途 HTTP 请求排空（5 秒上限），再由组合根等待 worker 结束并关闭存储；超时关闭连接，handler 需响应 context。监听失败与退出错误向 main 返回，避免 os.Exit 跳过组合根清理。跨入口配置、会话/路由/表单及可观测性的未完成项见 [基础能力审计](../04-ai/foundation-audit.md)。
+Web 退出由 `internal/lifecycle.ServeHTTP` 先等待在途 HTTP 请求排空（默认 5 秒，可配置上限），再由组合根等待 worker 结束并关闭存储；超时关闭连接，handler 需响应 context。监听失败与退出错误向 main 返回，避免 os.Exit 跳过组合根清理。统一配置、日志、可选回环指标与契约文档端点见 [运行基座](../02-standards/runtime.md)。当前基础能力状态见 [基础能力审计](../04-ai/foundation-audit.md)。
 
 ## 邮件与账号流程
 
@@ -72,3 +72,7 @@ platform/roles.go 维护权限目录、可委派策略与内置角色规则，pl
 ## M3a 企业身份
 
 [ADR-0007](../adr/ADR-0007-oidc-identity.md)：install 仅在平台装配 platform.OIDC + adapter/oidc + platformsql。浏览器用 SDK 发起，返回固定 callback。state/browser 哈希及加密 verifier/nonce/context 持久化五分钟；外部 ID token 只在内存中验证，账号以 issuer/sub 识别。JIT 固定 user，显式绑定需本地密码与企业新鲜认证；提交在安装锁下复核配置、账号和原 session。0006 增加平台两张表，其他组合不变化，最后本地密码超管受保护。
+
+## AI 开发入口
+
+[ADR-0008](../adr/ADR-0008-ai-foundations.md) 将 manifest、AGENTS、文档/Skills 导航和生成漂移检查纳入仓库。OpenAPI 同源生成模型、typed operation、约束表、错误目录与离线文档，实际 Chi 路由比对契约；服务端权限与业务实现仍显式维护。`make docs` 生成，`make test` 检查；任务流程见 [AI 开发工作流](../04-ai/development.md)。

@@ -6,11 +6,14 @@ package main
 
 import (
 	"context"
+	"errors"
 	"github.com/wailsapp/wails/v2/pkg/options/linux"
 	"github.com/wailsapp/wails/v2/pkg/options/mac"
 	"github.com/yunnuo/unicore/assets/brand"
 	"github.com/yunnuo/unicore/assets/theme"
-	"log"
+	"github.com/yunnuo/unicore/internal/config"
+	"github.com/yunnuo/unicore/internal/logging"
+	"log/slog"
 	"os"
 	"strconv"
 
@@ -24,14 +27,30 @@ import (
 )
 
 func main() {
+	if err := runDesktop(); err != nil {
+		slog.Error("desktop stopped", "event", "desktop.stop_failed", "error", err)
+		os.Exit(1)
+	}
+}
+
+func runDesktop() (result error) {
+	optionsLog, err := config.Logging(os.Getenv)
+	if err != nil {
+		return err
+	}
+	logger, err := logging.New(os.Stderr, optionsLog, "desktop")
+	if err != nil {
+		return err
+	}
+	slog.SetDefault(logger)
 	// Binding generation must not initialize or touch real user data.
 	bridge := desktop.New(bootstrap.Core())
 	if !generatingBindings {
 		store, service, err := local.Open(context.Background(), os.Getenv("APP_DATA_DIR"))
 		if err != nil {
-			log.Fatal("cannot initialize desktop storage: ", err)
+			return err
 		}
-		defer store.Close()
+		defer func() { result = errors.Join(result, store.Close()) }()
 		bridge = desktop.NewLocal(bootstrap.Core(), service)
 	}
 	if err := wails.Run(&options.App{
@@ -42,8 +61,9 @@ func main() {
 		AssetServer:      &assetserver.Options{Assets: desktopassets.FS()},
 		Bind:             []interface{}{bridge},
 	}); err != nil {
-		log.Fatal(err)
+		return err
 	}
+	return nil
 }
 
 func nativeBackground() *options.RGBA {

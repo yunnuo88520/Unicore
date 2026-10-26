@@ -61,6 +61,7 @@ export interface ErrorResponse {
   code: string;
   message: string;
   request_id: string;
+  fields?: Record<string, string>;
 }
 
 export interface Health {

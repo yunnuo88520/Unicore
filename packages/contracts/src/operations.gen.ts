@@ -1,0 +1,802 @@
+// Code generated from packages/contracts/openapi.json; DO NOT EDIT.
+// Author: yunnuo <ymz@ebox.vip>
+import type * as Models from './schema.gen';
+
+export const operations = {
+  "bootstrap": {
+    "method": "GET",
+    "path": "/api/v1/bootstrap",
+    "requestSchema": null,
+    "responseSchema": "BootstrapResponse",
+    "profiles": [
+      "web-platform",
+      "web-standalone"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "execute": {
+    "method": "POST",
+    "path": "/api/v1/core/execute",
+    "requestSchema": "ExecuteInput",
+    "responseSchema": "ExecuteResponse",
+    "profiles": [
+      "web-platform",
+      "web-standalone"
+    ],
+    "access": "platform-session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true
+  },
+  "liveness": {
+    "method": "GET",
+    "path": "/api/v1/health/live",
+    "requestSchema": null,
+    "responseSchema": "HealthResponse",
+    "profiles": [
+      "web-platform",
+      "web-standalone"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "readiness": {
+    "method": "GET",
+    "path": "/api/v1/health/ready",
+    "requestSchema": null,
+    "responseSchema": "HealthResponse",
+    "profiles": [
+      "web-platform",
+      "web-standalone"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "installStatus": {
+    "method": "GET",
+    "path": "/api/v1/install/status",
+    "requestSchema": null,
+    "responseSchema": "InstallStatusResponse",
+    "profiles": [
+      "web-platform",
+      "web-standalone"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "verifyDatabase": {
+    "method": "POST",
+    "path": "/api/v1/install/verify-db",
+    "requestSchema": "DatabaseInput",
+    "responseSchema": "ActionResultResponse",
+    "profiles": [
+      "web-platform",
+      "web-standalone"
+    ],
+    "access": "install-token",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "completeInstall": {
+    "method": "POST",
+    "path": "/api/v1/install/complete",
+    "requestSchema": "InstallInput",
+    "responseSchema": "InstallResultResponse",
+    "profiles": [
+      "web-platform",
+      "web-standalone"
+    ],
+    "access": "install-token",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "captcha": {
+    "method": "GET",
+    "path": "/api/v1/auth/captcha",
+    "requestSchema": null,
+    "responseSchema": "CaptchaResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "login": {
+    "method": "POST",
+    "path": "/api/v1/auth/login",
+    "requestSchema": "LoginInput",
+    "responseSchema": "SessionResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "session": {
+    "method": "GET",
+    "path": "/api/v1/auth/session",
+    "requestSchema": null,
+    "responseSchema": "SessionResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "logout": {
+    "method": "POST",
+    "path": "/api/v1/auth/logout",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true
+  },
+  "dashboard": {
+    "method": "GET",
+    "path": "/api/v1/admin/dashboard",
+    "requestSchema": null,
+    "responseSchema": "DashboardResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "dashboard:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "listUsers": {
+    "method": "GET",
+    "path": "/api/v1/admin/users",
+    "requestSchema": null,
+    "responseSchema": "UserListResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "users:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "createUser": {
+    "method": "POST",
+    "path": "/api/v1/admin/users",
+    "requestSchema": "UserCreate",
+    "responseSchema": "UserResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "users:create"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true
+  },
+  "updateUser": {
+    "method": "PATCH",
+    "path": "/api/v1/admin/users/{id}",
+    "requestSchema": "UserUpdate",
+    "responseSchema": "UserResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "users:update"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true
+  },
+  "adminSettings": {
+    "method": "GET",
+    "path": "/api/v1/admin/settings",
+    "requestSchema": null,
+    "responseSchema": "SettingsResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "settings:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "adminPatchSettings": {
+    "method": "PATCH",
+    "path": "/api/v1/admin/settings",
+    "requestSchema": "SettingPatch",
+    "responseSchema": "SettingsResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "settings:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true
+  },
+  "localSettings": {
+    "method": "GET",
+    "path": "/api/v1/settings",
+    "requestSchema": null,
+    "responseSchema": "SettingsResponse",
+    "profiles": [
+      "web-standalone"
+    ],
+    "access": "local",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "localPatchSettings": {
+    "method": "PATCH",
+    "path": "/api/v1/settings",
+    "requestSchema": "SettingPatch",
+    "responseSchema": "SettingsResponse",
+    "profiles": [
+      "web-standalone"
+    ],
+    "access": "local",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "authPolicy": {
+    "method": "GET",
+    "path": "/api/v1/auth/policy",
+    "requestSchema": null,
+    "responseSchema": "AuthPolicyResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "register": {
+    "method": "POST",
+    "path": "/api/v1/auth/register",
+    "requestSchema": "RegisterInput",
+    "responseSchema": "ActionResultResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "requestVerification": {
+    "method": "POST",
+    "path": "/api/v1/auth/verification/request",
+    "requestSchema": "EmailRequest",
+    "responseSchema": "ActionResultResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "verifyEmail": {
+    "method": "POST",
+    "path": "/api/v1/auth/verification/complete",
+    "requestSchema": "TokenInput",
+    "responseSchema": "ActionResultResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "requestPasswordReset": {
+    "method": "POST",
+    "path": "/api/v1/auth/password/request",
+    "requestSchema": "EmailRequest",
+    "responseSchema": "ActionResultResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "resetPassword": {
+    "method": "POST",
+    "path": "/api/v1/auth/password/reset",
+    "requestSchema": "ResetInput",
+    "responseSchema": "ActionResultResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "testMail": {
+    "method": "POST",
+    "path": "/api/v1/admin/settings/mail/test",
+    "requestSchema": "MailTestInput",
+    "responseSchema": "ActionResultResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "settings:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true
+  },
+  "mailJobs": {
+    "method": "GET",
+    "path": "/api/v1/admin/settings/mail/jobs",
+    "requestSchema": null,
+    "responseSchema": "MailJobListResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "settings:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "registerEmailCode": {
+    "method": "POST",
+    "path": "/api/v1/auth/email/register",
+    "requestSchema": "RegisterInput",
+    "responseSchema": "EmailChallengeResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "requestEmailVerify": {
+    "method": "POST",
+    "path": "/api/v1/auth/email/verify/request",
+    "requestSchema": "EmailRequest",
+    "responseSchema": "EmailChallengeResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "completeEmailVerify": {
+    "method": "POST",
+    "path": "/api/v1/auth/email/verify/complete",
+    "requestSchema": "EmailCodeInput",
+    "responseSchema": "ActionResultResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "requestEmailReset": {
+    "method": "POST",
+    "path": "/api/v1/auth/email/reset/request",
+    "requestSchema": "EmailRequest",
+    "responseSchema": "EmailChallengeResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "completeEmailReset": {
+    "method": "POST",
+    "path": "/api/v1/auth/email/reset/complete",
+    "requestSchema": "EmailCodeInput",
+    "responseSchema": "ActionResultResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "requestEmailLogin": {
+    "method": "POST",
+    "path": "/api/v1/auth/email/login/request",
+    "requestSchema": "EmailRequest",
+    "responseSchema": "EmailChallengeResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "completeEmailLogin": {
+    "method": "POST",
+    "path": "/api/v1/auth/email/login/complete",
+    "requestSchema": "EmailCodeInput",
+    "responseSchema": "SessionResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "mailTemplates": {
+    "method": "GET",
+    "path": "/api/v1/admin/settings/mail/templates",
+    "requestSchema": null,
+    "responseSchema": "MailTemplateListResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "settings:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "listRoles": {
+    "method": "GET",
+    "path": "/api/v1/admin/roles",
+    "requestSchema": null,
+    "responseSchema": "RoleListResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "roles:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "createRole": {
+    "method": "POST",
+    "path": "/api/v1/admin/roles",
+    "requestSchema": "RoleInput",
+    "responseSchema": "RoleResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "roles:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true
+  },
+  "updateRole": {
+    "method": "PATCH",
+    "path": "/api/v1/admin/roles/{id}",
+    "requestSchema": "RoleInput",
+    "responseSchema": "RoleResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "roles:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true
+  },
+  "deleteRole": {
+    "method": "DELETE",
+    "path": "/api/v1/admin/roles/{id}",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "roles:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true
+  },
+  "roleOptions": {
+    "method": "GET",
+    "path": "/api/v1/admin/users/role-options",
+    "requestSchema": null,
+    "responseSchema": "RoleOptionsResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "users:read",
+      "users:create",
+      "users:update"
+    ],
+    "permissionMode": "any",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "oidcInfo": {
+    "method": "GET",
+    "path": "/api/v1/auth/oidc",
+    "requestSchema": null,
+    "responseSchema": "OIDCInfoResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "oidcStart": {
+    "method": "POST",
+    "path": "/api/v1/auth/oidc/start",
+    "requestSchema": null,
+    "responseSchema": "OIDCStartResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "oidcAccount": {
+    "method": "GET",
+    "path": "/api/v1/account/oidc",
+    "requestSchema": null,
+    "responseSchema": "OIDCInfoResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "oidcLink": {
+    "method": "POST",
+    "path": "/api/v1/account/oidc/link",
+    "requestSchema": "OIDCPasswordInput",
+    "responseSchema": "OIDCStartResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true
+  },
+  "oidcUnlink": {
+    "method": "POST",
+    "path": "/api/v1/account/oidc/unlink",
+    "requestSchema": "OIDCPasswordInput",
+    "responseSchema": "SessionResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true
+  },
+  "oidcCheck": {
+    "method": "POST",
+    "path": "/api/v1/admin/settings/oidc/check",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "settings:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true
+  },
+  "oidcCallback": {
+    "method": "GET",
+    "path": "/api/v1/auth/oidc/callback",
+    "requestSchema": null,
+    "responseSchema": null,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  }
+} as const;
+export type OperationId = keyof typeof operations;
+export interface OperationInputs {
+  bootstrap: undefined;
+  execute: Models.ExecuteInput;
+  liveness: undefined;
+  readiness: undefined;
+  installStatus: undefined;
+  verifyDatabase: Models.DatabaseInput;
+  completeInstall: Models.InstallInput;
+  captcha: undefined;
+  login: Models.LoginInput;
+  session: undefined;
+  logout: undefined;
+  dashboard: undefined;
+  listUsers: undefined;
+  createUser: Models.UserCreate;
+  updateUser: Models.UserUpdate;
+  adminSettings: undefined;
+  adminPatchSettings: Models.SettingPatch;
+  localSettings: undefined;
+  localPatchSettings: Models.SettingPatch;
+  authPolicy: undefined;
+  register: Models.RegisterInput;
+  requestVerification: Models.EmailRequest;
+  verifyEmail: Models.TokenInput;
+  requestPasswordReset: Models.EmailRequest;
+  resetPassword: Models.ResetInput;
+  testMail: Models.MailTestInput;
+  mailJobs: undefined;
+  registerEmailCode: Models.RegisterInput;
+  requestEmailVerify: Models.EmailRequest;
+  completeEmailVerify: Models.EmailCodeInput;
+  requestEmailReset: Models.EmailRequest;
+  completeEmailReset: Models.EmailCodeInput;
+  requestEmailLogin: Models.EmailRequest;
+  completeEmailLogin: Models.EmailCodeInput;
+  mailTemplates: undefined;
+  listRoles: undefined;
+  createRole: Models.RoleInput;
+  updateRole: Models.RoleInput;
+  deleteRole: undefined;
+  roleOptions: undefined;
+  oidcInfo: undefined;
+  oidcStart: undefined;
+  oidcAccount: undefined;
+  oidcLink: Models.OIDCPasswordInput;
+  oidcUnlink: Models.OIDCPasswordInput;
+  oidcCheck: undefined;
+  oidcCallback: undefined;
+}
+export interface OperationData {
+  bootstrap: Models.BootstrapResponse['data'];
+  execute: Models.ExecuteResponse['data'];
+  liveness: Models.HealthResponse['data'];
+  readiness: Models.HealthResponse['data'];
+  installStatus: Models.InstallStatusResponse['data'];
+  verifyDatabase: Models.ActionResultResponse['data'];
+  completeInstall: Models.InstallResultResponse['data'];
+  captcha: Models.CaptchaResponse['data'];
+  login: Models.SessionResponse['data'];
+  session: Models.SessionResponse['data'];
+  logout: Models.ActionResultResponse['data'];
+  dashboard: Models.DashboardResponse['data'];
+  listUsers: Models.UserListResponse['data'];
+  createUser: Models.UserResponse['data'];
+  updateUser: Models.UserResponse['data'];
+  adminSettings: Models.SettingsResponse['data'];
+  adminPatchSettings: Models.SettingsResponse['data'];
+  localSettings: Models.SettingsResponse['data'];
+  localPatchSettings: Models.SettingsResponse['data'];
+  authPolicy: Models.AuthPolicyResponse['data'];
+  register: Models.ActionResultResponse['data'];
+  requestVerification: Models.ActionResultResponse['data'];
+  verifyEmail: Models.ActionResultResponse['data'];
+  requestPasswordReset: Models.ActionResultResponse['data'];
+  resetPassword: Models.ActionResultResponse['data'];
+  testMail: Models.ActionResultResponse['data'];
+  mailJobs: Models.MailJobListResponse['data'];
+  registerEmailCode: Models.EmailChallengeResponse['data'];
+  requestEmailVerify: Models.EmailChallengeResponse['data'];
+  completeEmailVerify: Models.ActionResultResponse['data'];
+  requestEmailReset: Models.EmailChallengeResponse['data'];
+  completeEmailReset: Models.ActionResultResponse['data'];
+  requestEmailLogin: Models.EmailChallengeResponse['data'];
+  completeEmailLogin: Models.SessionResponse['data'];
+  mailTemplates: Models.MailTemplateListResponse['data'];
+  listRoles: Models.RoleListResponse['data'];
+  createRole: Models.RoleResponse['data'];
+  updateRole: Models.RoleResponse['data'];
+  deleteRole: Models.ActionResultResponse['data'];
+  roleOptions: Models.RoleOptionsResponse['data'];
+  oidcInfo: Models.OIDCInfoResponse['data'];
+  oidcStart: Models.OIDCStartResponse['data'];
+  oidcAccount: Models.OIDCInfoResponse['data'];
+  oidcLink: Models.OIDCStartResponse['data'];
+  oidcUnlink: Models.SessionResponse['data'];
+  oidcCheck: Models.ActionResultResponse['data'];
+  oidcCallback: void;
+}

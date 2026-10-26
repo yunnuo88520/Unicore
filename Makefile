@@ -5,7 +5,7 @@ COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)
 BUILD_TIME := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 LDFLAGS := -X github.com/yunnuo/unicore/internal/buildinfo.Version=$(VERSION) -X github.com/yunnuo/unicore/internal/buildinfo.Commit=$(COMMIT) -X github.com/yunnuo/unicore/internal/buildinfo.BuildTime=$(BUILD_TIME)
 
-.PHONY: install dev-web dev-server dev-desktop dev-cli generate test test-e2e build-web build-cli build-desktop build-all release
+.PHONY: install dev-web dev-server dev-desktop dev-cli generate docs test test-e2e build-web build-cli build-desktop build-all release
 install:
 	pnpm install --frozen-lockfile
 	go mod download
@@ -19,9 +19,11 @@ dev-desktop:
 dev-cli:
 	go run ./cmd/cli $(ARGS)
 generate:
-	pnpm generate
 	pnpm design:generate
+docs: generate
+	pnpm ai:context
 test:
+	pnpm check:docs
 	pnpm check:design
 	pnpm check:contracts
 	pnpm check:authors

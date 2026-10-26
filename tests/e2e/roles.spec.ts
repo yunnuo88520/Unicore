@@ -98,7 +98,7 @@ test('business roles, protected permissions, bounded creation and revocation', a
     await expect(page.getByText('角色已保存，关联用户的旧会话已撤销。')).toBeVisible();
     await capture(page, info, 'role-edit-assigned');
     expect((await member.request.get(`${instance.url}/api/v1/auth/session`)).status()).toBe(401);
-    await member.reload(); await expect(member.getByRole('heading', { name: '登录 Unicore', exact: true })).toBeVisible();
+    await member.getByLabel('搜索用户').fill('revoked'); await expect(member.getByRole('heading', { name: '登录 Unicore', exact: true })).toBeVisible();
     await capture(member, info, 'role-session-revoked');
   } finally { await memberContext.close(); }
   await nav(page, '用户管理');

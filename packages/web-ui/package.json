@@ -1,0 +1,9 @@
+{
+  "name": "@unicore/web-ui", "version": "0.1.0", "private": true,
+  "author": "yunnuo <ymz@ebox.vip>", "type": "module",
+  "exports": { ".": "./src/App.tsx", "./styles.css": "./src/styles.css" },
+  "dependencies": {
+    "@unicore/sdk": "workspace:*", "@tanstack/react-query": "^5.90.5",
+    "lucide-react": "^0.468.0", "react": "^19.2.0", "react-dom": "^19.2.0"
+  }
+}

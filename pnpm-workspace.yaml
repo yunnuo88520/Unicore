@@ -1,0 +1,6 @@
+# Author: yunnuo <ymz@ebox.vip>
+packages:
+  - apps/*
+  - packages/*
+allowBuilds:
+  esbuild: true

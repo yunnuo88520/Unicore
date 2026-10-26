@@ -1,0 +1,50 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Unicore M1 API",
+    "version": "0.1.0",
+    "description": "M1 development foundation. Installation and authentication are not implemented.",
+    "contact": { "name": "yunnuo", "email": "ymz@ebox.vip" }
+  },
+  "paths": {
+    "/api/v1/bootstrap": {
+      "get": {
+        "operationId": "bootstrap",
+        "responses": { "200": { "description": "Runtime metadata", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BootstrapResponse" } } } } }
+      }
+    },
+    "/api/v1/core/execute": {
+      "post": {
+        "operationId": "execute",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ExecuteInput" } } } },
+        "responses": {
+          "200": { "description": "Text analysis", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ExecuteResponse" } } } },
+          "400": { "description": "Invalid input", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "403": { "description": "Origin rejected", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "413": { "description": "Body too large", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "415": { "description": "JSON required", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/v1/health/live": {
+      "get": { "operationId": "liveness", "responses": { "200": { "description": "Process is alive", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HealthResponse" } } } } } }
+    },
+    "/api/v1/health/ready": {
+      "get": { "operationId": "readiness", "responses": { "200": { "description": "M1 stateless core is ready; no database is configured", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HealthResponse" } } } } } }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Profile": { "type": "string", "enum": ["web-platform", "web-standalone", "desktop", "cli"] },
+      "ExecuteInput": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string", "minLength": 1, "maxLength": 65536, "description": "Non-blank valid UTF-8, at most 65,536 UTF-8 bytes. Never stored." } } },
+      "ExecuteOutput": { "type": "object", "additionalProperties": false, "required": ["characters", "words", "lines", "bytes", "sha256"], "properties": { "characters": { "type": "integer" }, "words": { "type": "integer", "description": "Whitespace-separated fields, not language-specific segmentation" }, "lines": { "type": "integer" }, "bytes": { "type": "integer" }, "sha256": { "type": "string" } } },
+      "Capabilities": { "type": "object", "additionalProperties": false, "required": ["execute", "database", "installation", "authentication", "license", "updater"], "properties": { "execute": { "type": "boolean" }, "database": { "type": "boolean" }, "installation": { "type": "boolean" }, "authentication": { "type": "boolean" }, "license": { "type": "boolean" }, "updater": { "type": "boolean" } } },
+      "Bootstrap": { "type": "object", "additionalProperties": false, "required": ["profile", "version", "commit", "build_time", "stage", "deployment_kind", "capabilities"], "properties": { "profile": { "$ref": "#/components/schemas/Profile" }, "version": { "type": "string" }, "commit": { "type": "string" }, "build_time": { "type": "string" }, "stage": { "type": "string" }, "deployment_kind": { "type": "string" }, "capabilities": { "$ref": "#/components/schemas/Capabilities" } } },
+      "BootstrapResponse": { "type": "object", "additionalProperties": false, "required": ["code", "message", "data", "request_id"], "properties": { "code": { "type": "string" }, "message": { "type": "string" }, "data": { "$ref": "#/components/schemas/Bootstrap" }, "request_id": { "type": "string" } } },
+      "ExecuteResponse": { "type": "object", "additionalProperties": false, "required": ["code", "message", "data", "request_id"], "properties": { "code": { "type": "string" }, "message": { "type": "string" }, "data": { "$ref": "#/components/schemas/ExecuteOutput" }, "request_id": { "type": "string" } } },
+      "ErrorResponse": { "type": "object", "additionalProperties": false, "required": ["code", "message", "request_id"], "properties": { "code": { "type": "string" }, "message": { "type": "string" }, "request_id": { "type": "string" } } },
+      "Health": { "type": "object", "additionalProperties": false, "required": ["status"], "properties": { "status": { "type": "string" } } },
+      "HealthResponse": { "type": "object", "additionalProperties": false, "required": ["code", "message", "data", "request_id"], "properties": { "code": { "type": "string" }, "message": { "type": "string" }, "data": { "$ref": "#/components/schemas/Health" }, "request_id": { "type": "string" } } }
+    }
+  }
+}

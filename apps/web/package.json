@@ -1,0 +1,6 @@
+{
+  "name": "@unicore/web", "version": "0.1.0", "private": true,
+  "author": "yunnuo <ymz@ebox.vip>", "type": "module",
+  "scripts": { "dev": "vite --host 127.0.0.1", "build": "vite build", "preview": "vite preview --host 127.0.0.1" },
+  "dependencies": { "@unicore/sdk": "workspace:*", "@unicore/web-ui": "workspace:*", "react": "^19.2.0", "react-dom": "^19.2.0" }
+}

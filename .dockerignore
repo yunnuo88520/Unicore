@@ -1,0 +1,13 @@
+# Author: yunnuo <ymz@ebox.vip>
+.git
+**/node_modules
+build
+.cache
+test-results
+playwright-report
+**/static
+!apps/web/static/.gitkeep
+!apps/desktop/static/.gitkeep
+**/wailsjs
+.env*
+*.db*

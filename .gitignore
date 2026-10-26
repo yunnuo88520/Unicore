@@ -1,0 +1,23 @@
+# Author: yunnuo <ymz@ebox.vip>
+node_modules/
+dist/
+build/
+coverage/
+.cache/
+.pnpm-store/
+playwright-report/
+test-results/
+apps/desktop/wailsjs/
+package.json.md5
+apps/web/static/*
+!apps/web/static/.gitkeep
+apps/desktop/static/*
+!apps/desktop/static/.gitkeep
+.DS_Store
+.env
+.env.*
+!.env.example
+*.db
+*.db-shm
+*.db-wal
+*.log

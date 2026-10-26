@@ -1,0 +1,8 @@
+{
+  "name": "@unicore/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "author": "yunnuo <ymz@ebox.vip>",
+  "type": "module",
+  "exports": { ".": "./src/schema.gen.ts" }
+}

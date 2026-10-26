@@ -15,6 +15,7 @@ import (
 
 	"github.com/gofrs/flock"
 	mailadapter "github.com/yunnuo/unicore/internal/adapter/mail"
+	oidcadapter "github.com/yunnuo/unicore/internal/adapter/oidc"
 	"github.com/yunnuo/unicore/internal/adapter/storage/platformsql"
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/adapter/storage/webdb"
@@ -55,6 +56,7 @@ type Manager struct {
 	settingService *settings.Service
 	identity       *platform.Service
 	accounts       *platform.Accounts
+	oidc           *platform.OIDC
 	mail           *mailer.Service
 	adminOverride  string
 }
@@ -173,6 +175,7 @@ func (m *Manager) attach(store *sqlstore.Store) {
 		m.identity = platform.New(repository)
 		m.mail = &mailer.Service{Store: repository, Settings: m.settingService, Secrets: m.secret, Sender: mailadapter.SMTP{}}
 		m.accounts = &platform.Accounts{Identity: m.identity, Store: repository, Settings: m.settingService, Mail: m.mail, BaseURL: m.config.BaseURL}
+		m.oidc = &platform.OIDC{Identity: m.identity, Store: repository, Settings: m.settingService, Secrets: m.secret, Provider: oidcadapter.Provider{}, BaseURL: m.config.BaseURL}
 	}
 }
 func (m *Manager) recover(ctx context.Context) error {
@@ -252,7 +255,8 @@ func (m *Manager) Services() (*sqlstore.Store, *settings.Service, *platform.Serv
 	defer m.mu.RUnlock()
 	return m.store, m.settingService, m.identity, m.config.Profile
 }
-func (m *Manager) BaseURL() string { m.mu.RLock(); defer m.mu.RUnlock(); return m.config.BaseURL }
+func (m *Manager) BaseURL() string      { m.mu.RLock(); defer m.mu.RUnlock(); return m.config.BaseURL }
+func (m *Manager) OIDC() *platform.OIDC { m.mu.RLock(); defer m.mu.RUnlock(); return m.oidc }
 func (m *Manager) AdminPath(ctx context.Context) string {
 	if m.adminOverride != "" {
 		return m.adminOverride

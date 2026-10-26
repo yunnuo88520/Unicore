@@ -420,3 +420,34 @@ type RoleOptionsResponse struct {
 	Data      RoleOptions `json:"data"`
 	RequestID string      `json:"request_id"`
 }
+
+type OIDCInfo struct {
+	Enabled          bool   `json:"enabled"`
+	ProviderName     string `json:"provider_name"`
+	CallbackUrl      string `json:"callback_url"`
+	Linked           bool   `json:"linked"`
+	Issuer           string `json:"issuer"`
+	HasLocalPassword bool   `json:"has_local_password"`
+}
+
+type OIDCPasswordInput struct {
+	Password string `json:"password"`
+}
+
+type OIDCStart struct {
+	AuthorizationUrl string `json:"authorization_url"`
+}
+
+type OIDCInfoResponse struct {
+	Code      string   `json:"code"`
+	Message   string   `json:"message"`
+	Data      OIDCInfo `json:"data"`
+	RequestID string   `json:"request_id"`
+}
+
+type OIDCStartResponse struct {
+	Code      string    `json:"code"`
+	Message   string    `json:"message"`
+	Data      OIDCStart `json:"data"`
+	RequestID string    `json:"request_id"`
+}

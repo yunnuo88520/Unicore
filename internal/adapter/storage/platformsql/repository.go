@@ -170,6 +170,18 @@ func (r *Repository) UpdateUser(ctx context.Context, id string, input contracts.
 		if count <= 1 {
 			return contracts.User{}, platform.ErrLastAdmin
 		}
+		var passwordHash string
+		if err = r.Store.Row(ctx, tx, "SELECT password_hash FROM users WHERE id=?", id).Scan(&passwordHash); err != nil {
+			return contracts.User{}, err
+		}
+		if passwordHash != "" {
+			if err = r.Store.Row(ctx, tx, "SELECT COUNT(*) FROM users u JOIN user_roles ur ON ur.user_id=u.id WHERE ur.role_id='super_admin' AND u.status='active' AND u.password_hash<>''").Scan(&count); err != nil {
+				return contracts.User{}, err
+			}
+			if count <= 1 {
+				return contracts.User{}, platform.ErrLastAdmin
+			}
+		}
 	}
 	if _, err = r.Store.Exec(ctx, tx, "UPDATE users SET status=?,updated_at=? WHERE id=?", input.Status, time.Now().Unix(), id); err != nil {
 		return contracts.User{}, err

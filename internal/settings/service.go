@@ -68,7 +68,7 @@ func ValidBaseURL(value string) bool {
 	return err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != "" && u.User == nil && u.RawQuery == "" && u.Fragment == "" && (u.Path == "" || u.Path == "/")
 }
 
-var Definitions = []SettingDefinition{
+var Definitions = append([]SettingDefinition{
 	{"site.name", "string", "site", "站点名称", theme.Current.Brand.Name, false, false, func(v string) bool {
 		return strings.TrimSpace(v) != "" && !strings.ContainsAny(v, "\r\n") && text(64)(v)
 	}},
@@ -88,7 +88,7 @@ var Definitions = []SettingDefinition{
 	{"mail.from", "string", "mail", "发件邮箱", "", true, false, func(v string) bool { return v == "" || ValidEmail(v) }},
 	{"mail.username", "string", "mail", "SMTP 用户名", "", true, false, func(v string) bool { return text(254)(v) && !strings.ContainsAny(v, "\r\n") }},
 	{"mail.password", "string", "mail", "SMTP 密钥", "", true, true, text(512)},
-}
+}, OIDCDefinitions...)
 
 func ValidEmail(value string) bool {
 	address, err := mail.ParseAddress(value)
@@ -127,6 +127,9 @@ func (s *Service) Raw(ctx context.Context) (map[string]string, error) {
 			// Keep the randomized ciphertext revision for verification, never a fast password hash.
 			if d.Key == "mail.password" {
 				values["_mail_credential_revision"] = value
+			}
+			if d.Key == "oidc.client_secret" {
+				values["_oidc_credential_revision"] = value
 			}
 			value, err = s.Secrets.Open(value)
 			if err != nil {
@@ -271,6 +274,9 @@ func (s *Service) Patch(ctx context.Context, input contracts.SettingPatch, actor
 		if !MailReady(current) {
 			return contracts.Settings{}, ErrMailNotReady
 		}
+	}
+	if current["oidc.enabled"] == "true" && !OIDCConfigured(current) {
+		return contracts.Settings{}, ErrInvalid
 	}
 	if err = s.Store.SaveSettings(ctx, values, actor); err != nil {
 		return contracts.Settings{}, err

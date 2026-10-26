@@ -4,13 +4,16 @@ module github.com/yunnuo/unicore
 go 1.25.0
 
 require (
+	github.com/coreos/go-oidc/v3 v3.16.0
 	github.com/go-chi/chi/v5 v5.2.3
+	github.com/go-jose/go-jose/v4 v4.1.3
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/gofrs/flock v0.12.1
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/spf13/cobra v1.10.2
 	github.com/wailsapp/wails/v2 v2.12.0
 	golang.org/x/crypto v0.43.0
+	golang.org/x/oauth2 v0.32.0
 	modernc.org/sqlite v1.39.1
 )
 

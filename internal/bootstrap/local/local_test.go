@@ -18,7 +18,7 @@ func TestDesktopHasSQLiteWithoutUsers(t *testing.T) {
 	if _, _, err = Open(ctx, directory); err == nil {
 		t.Fatal("second desktop process acquired the same data directory")
 	}
-	if err = store.DB.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE name IN ('users','roles','sessions')").Scan(&count); err != nil || count != 0 {
+	if err = store.DB.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE name IN ('users','roles','sessions','external_identities','oidc_flows')").Scan(&count); err != nil || count != 0 {
 		t.Fatal("desktop loaded identity schema")
 	}
 	if _, err = service.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "site.name", Value: "Desktop persisted"}}}, "desktop"); err != nil {

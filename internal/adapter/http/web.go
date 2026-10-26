@@ -32,6 +32,12 @@ func failure(w http.ResponseWriter, status int, code, message string) {
 func webError(w http.ResponseWriter, err error) {
 	status, code, message := 500, "INTERNAL_ERROR", "操作未完成，请重试"
 	switch {
+	case errors.Is(err, platform.ErrOIDCUnavailable):
+		status, code, message = 502, "OIDC_UNAVAILABLE", "暂时无法连接企业身份服务，请检查已保存的配置或稍后重试"
+	case errors.Is(err, platform.ErrOIDC), errors.Is(err, platform.ErrOIDCLinkRequired):
+		status, code, message = 409, "OIDC_FAILED", "企业身份验证未完成，请重新发起或先登录本地账号后绑定"
+	case errors.Is(err, platform.ErrLocalLoginRequired):
+		status, code, message = 409, "LOCAL_PASSWORD_REQUIRED", "请先设置本地密码，再更改企业账号绑定"
 	case errors.Is(err, platform.ErrRoleNotFound):
 		status, code, message = 404, "ROLE_NOT_FOUND", "角色不存在，请刷新后重试"
 	case errors.Is(err, platform.ErrRoleConflict):
@@ -65,7 +71,7 @@ func webError(w http.ResponseWriter, err error) {
 	case errors.Is(err, platform.ErrConflict):
 		status, code, message = 409, "ACCOUNT_EXISTS", "账号或邮箱已存在"
 	case errors.Is(err, platform.ErrLastAdmin):
-		status, code, message = 409, "LAST_SUPER_ADMIN", "不能禁用或降权最后一个启用的超级管理员"
+		status, code, message = 409, "LAST_SUPER_ADMIN", "不能禁用或降权最后一个启用且可用本地密码登录的超级管理员"
 	case errors.Is(err, platform.ErrRateLimited):
 		status, code, message = 429, "RATE_LIMITED", "尝试过于频繁，请稍后重试"
 	case errors.Is(err, platform.ErrCaptcha):
@@ -164,7 +170,7 @@ func coreAccess(manager *install.Manager, w http.ResponseWriter, r *http.Request
 func metadata(config Config, r *http.Request) contracts.Bootstrap {
 	_, service, identity, profile := config.Install.Services()
 	data := runtime.Metadata(profile, config.Metadata.DeploymentKind)
-	data.Stage = "M2d"
+	data.Stage = "M3a"
 	data.Installed = config.Install.Installed()
 	data.SiteName = "Unicore"
 	data.AdminPath = config.Install.AdminPath(r.Context())
@@ -217,6 +223,7 @@ func mountWeb(api chi.Router, config Config) {
 	manager := config.Install
 	mountAccounts(api, config)
 	mountRoles(api, config)
+	mountOIDC(api, config)
 	limiter := platform.NewLimiter()
 	api.Get("/install/status", func(w http.ResponseWriter, r *http.Request) { success(w, manager.Status()) })
 	api.Post("/install/verify-db", func(w http.ResponseWriter, r *http.Request) {

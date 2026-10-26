@@ -1,9 +1,9 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Shared UI client; pages know neither fetch nor Wails globals.
  */
-import type { Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleInput, RoleList, RoleOptions, PermissionDefinition } from '@unicore/contracts';
+import type { Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleInput, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart } from '@unicore/contracts';
 
-export type { Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleInput, RoleList, RoleOptions, PermissionDefinition } from '@unicore/contracts';
+export type { Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleInput, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart } from '@unicore/contracts';
 
 export class AppError extends Error {
   constructor(public readonly code: string, message: string, public readonly requestId = '') { super(message); this.name = 'AppError'; }
@@ -19,6 +19,12 @@ export interface AppClient {
 }
 
 export interface WebClient {
+  oidcInfo(): Promise<OIDCInfo>;
+  oidcAccount(): Promise<OIDCInfo>;
+  oidcStart(): Promise<OIDCStart>;
+  oidcLink(password: string): Promise<OIDCStart>;
+  oidcUnlink(password: string): Promise<Session>;
+  oidcCheck(): Promise<{success: boolean}>;
  registerCode(input:RegisterInput):Promise<EmailChallenge>;
  requestCode(purpose:"verify"|"reset"|"login",input:EmailRequest):Promise<EmailChallenge>;
  completeCode(purpose:"verify"|"reset"|"login",input:EmailCodeInput):Promise<Session|{success:boolean}>;
@@ -74,6 +80,12 @@ export class HttpTransport implements AppClient, WebClient {
   async bootstrap() { const data = await this.request<Bootstrap>('/bootstrap'); this.csrf = data.csrf_token ?? ''; this.platform = data.profile === 'web-platform'; return data; }
   execute(input: ExecuteInput) { return this.request<ExecuteOutput>('/core/execute', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) }); }
   private send<T>(path: string, input: unknown, method = 'POST', headers: Record<string, string> = {}) { return this.request<T>(path, { method, headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(input) }); }
+  oidcInfo() { return this.request<OIDCInfo>('/auth/oidc'); }
+  oidcAccount() { return this.request<OIDCInfo>('/account/oidc'); }
+  oidcStart() { return this.send<OIDCStart>('/auth/oidc/start', {}); }
+  oidcLink(password: string) { return this.send<OIDCStart>('/account/oidc/link', {password}); }
+  async oidcUnlink(password: string) { const result = await this.send<Session>('/account/oidc/unlink', {password}); this.csrf = result.csrf_token; return result; }
+  oidcCheck() { return this.send<{success: boolean}>('/admin/settings/oidc/check', {}); }
   registerCode(input:RegisterInput){return this.send<EmailChallenge>('/auth/email/register',input);}
  requestCode(purpose:'verify'|'reset'|'login',input:EmailRequest){return this.send<EmailChallenge>(`/auth/email/${purpose}/request`,input);}
  async completeCode(purpose:'verify'|'reset'|'login',input:EmailCodeInput){const result=await this.send<Session|{success:boolean}>(`/auth/email/${purpose}/complete`,input);if('csrf_token' in result)this.csrf=result.csrf_token;return result;}

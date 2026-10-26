@@ -418,3 +418,34 @@ export interface RoleOptionsResponse {
   data: RoleOptions;
   request_id: string;
 }
+
+export interface OIDCInfo {
+  enabled: boolean;
+  provider_name: string;
+  callback_url: string;
+  linked: boolean;
+  issuer: string;
+  has_local_password: boolean;
+}
+
+export interface OIDCPasswordInput {
+  password: string;
+}
+
+export interface OIDCStart {
+  authorization_url: string;
+}
+
+export interface OIDCInfoResponse {
+  code: string;
+  message: string;
+  data: OIDCInfo;
+  request_id: string;
+}
+
+export interface OIDCStartResponse {
+  code: string;
+  message: string;
+  data: OIDCStart;
+  request_id: string;
+}

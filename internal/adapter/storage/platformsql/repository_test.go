@@ -110,6 +110,7 @@ func TestDialectMigrationsAndIdentity(t *testing.T) {
 			}
 			exerciseMailLifecycle(t, ctx, store, repository, admin)
 			exerciseRoles(t, ctx, store, repository, admin)
+			exerciseOIDC(t, ctx, store, repository, admin)
 		})
 	}
 }

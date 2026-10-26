@@ -12,7 +12,7 @@ export async function capture(page: Page, info: TestInfo, slug: string) {
     await page.emulateMedia({ colorScheme: theme as 'light' | 'dark' });
     await page.evaluate(() => document.fonts.ready);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${slug} overflow (${theme})`).toBe(true);
-    const directory = `build/acceptance/m2d/${info.project.name}/${theme}`;
+    const directory = `build/acceptance/m3a/${info.project.name}/${theme}`;
     await mkdir(directory, { recursive: true });
     await page.screenshot({ path: `${directory}/${slug}.png`, fullPage: true });
   }

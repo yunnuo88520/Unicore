@@ -1,5 +1,5 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
-# M2d 权限与错误契约
+# M3a 权限与错误契约
 
 平台默认拒绝。未登录 401；已登录但无权 403。已认证写操作校验 CSRF/Origin；公开账号流程校验 Origin、验证码/限流和按需的一次性令牌，安装操作单独校验 bootstrap token。super_admin 获得下列所有权限，user 无管理权限但可调用共享 Core。
 
@@ -29,3 +29,18 @@ M2c 公开数字码 API：POST /auth/email/register；POST /auth/email/{verify,r
 M2d GET /admin/users/role-options（同一 /api/v1 前缀）要求 users:read/users:create/users:update 中任一权限，返回角色名称与 assignable，不返回权限映射。角色名 1–64 字符、无首尾空白/控制字符；写入完整 name/permissions 数组，[] 明确清空，缺失/null、未知、重复及不可委派项拒绝。内置角色不可改删，角色/用户写入在安装锁事务内复核真实操作者。业务角色赋予 roles:read 只能查看；roles:write/users:update/settings:write 不可委派。修改角色撤销所有关联会话与待用验证码，删除需先解除全部用户关联。
 
 新增错误：ROLE_NOT_FOUND（404）、ROLE_NAME_EXISTS（409）、BUILTIN_ROLE（409）、ROLE_IN_USE（409）。这些接口仅 web-platform 可用，其他形态 404；已认证写操作包含 DELETE 均需 CSRF/Origin。单个用户仍用既有 role 字段关联一个角色。
+
+## M3a OIDC（/api/v1 前缀）
+
+| API | 服务端授权 |
+| --- | --- |
+| GET /auth/oidc | 公开，仅返回启用状态、显示名称和固定回调；不返回密钥 |
+| POST /auth/oidc/start | 公开，同源校验、IP 限流；设置短期浏览器凭据 |
+| GET /auth/oidc/callback | 一次性 state + 浏览器 Cookie + PKCE + 签名 ID token；固定 303 |
+| GET /account/oidc | 有效平台 session，仅当前用户 |
+| POST /account/oidc/link | 当前用户 session + CSRF + 本地密码；企业重新认证 |
+| POST /account/oidc/unlink | 当前用户 session + CSRF + 本地密码；事务撤销旧会话 |
+| POST /admin/settings/oidc/check | settings:write + 真实 super_admin + CSRF，限流 |
+| PATCH /admin/settings（oidc.*） | 沿用 settings:write + 真实 super_admin + CSRF |
+
+OIDC_UNAVAILABLE=502：发现服务或端点检查失败；OIDC_FAILED=409：绑定证明或身份冲突；LOCAL_PASSWORD_REQUIRED=409：没有本地密码。回调不返回 JSON 敏感详情，固定 hash 的 success/failed/link_required 均不含原始 IdP 错误。LAST_SUPER_ADMIN 同时保护最后一个 active 本地密码超管。接口具体 DTO 以 OpenAPI 为准。

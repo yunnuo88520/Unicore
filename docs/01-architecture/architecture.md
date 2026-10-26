@@ -1,5 +1,5 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
-# 当前架构（M2d）
+# 当前架构（M3a）
 
 共享业务依赖链：`entry → adapter → usecase → domain`。`internal/contracts` 从 OpenAPI 生成；domain 无传输/DB/身份依赖。CLI 只调用 bootstrap.Core；Web 装配 install 与按安装 profile 初始化的平台身份；桌面只装配 bootstrap/local 的 SQLite 与 settings。
 
@@ -66,3 +66,7 @@ internal/platform/Accounts 编排策略、验证码/限流、注册与令牌；m
 platform/roles.go 维护权限目录、可委派策略与内置角色规则，platformsql/roles.go 实现事务角色编辑和用户关联校验，HTTP roles.go 逐接口执行鉴权与 CSRF。Role/RoleInput/RoleList/RoleOptions 由 OpenAPI 生成；共享 roles-page.tsx 经 WebClient 调用 HTTP，不访问传输细节。仅 web-platform 的菜单/路由启用；非平台返回 JSON 404。
 
 平台增加迁移 0005，登记角色读/写权限并补齐已有超管授权。用户创建、身份变更、角色改删均取得安装行锁并复核当前操作者权限；角色变更在同一事务撤销全部关联 session 与待用账号挑战。删除有关联用户的角色被拒绝。只读查询不承担授权决策，写入仍在事务内加载真实角色权限；无 UI 层授权缓存。规则和边界见 [ADR-0006](../adr/ADR-0006-business-roles.md)。
+
+## M3a 企业身份
+
+[ADR-0007](../adr/ADR-0007-oidc-identity.md)：install 仅在平台装配 platform.OIDC + adapter/oidc + platformsql。浏览器用 SDK 发起，返回固定 callback。state/browser 哈希及加密 verifier/nonce/context 持久化五分钟；外部 ID token 只在内存中验证，账号以 issuer/sub 识别。JIT 固定 user，显式绑定需本地密码与企业新鲜认证；提交在安装锁下复核配置、账号和原 session。0006 增加平台两张表，其他组合不变化，最后本地密码超管受保护。

@@ -6,6 +6,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { CheckCircle2, LoaderCircle, Mail, ShieldCheck } from 'lucide-react';
 import type { WebClient, EmailChallenge } from '@unicore/sdk';
 import { BrandLockup } from './brand';
+import { EnterpriseLogin } from './oidc-page';
 import { LegacyLoginPage } from './legacy-account-flows';
 type Mode = 'login' | 'email' | 'register' | 'forgot' | 'resend';
 type Props = { web: WebClient; siteName: string; onDone: () => void };
@@ -56,6 +57,6 @@ function CodeLoginPage({ web, siteName, onDone }: Props) {
       {challenge && <button type="button" className="text-button" disabled={retry > 0} onClick={() => { setChallenge(undefined); setCode(''); setAnswer(''); submit.reset(); }}>{retry > 0 ? `${retry} 秒后可重新获取` : '重新获取验证码'}</button>}
       <div className="account-links">{mode !== 'login' && <button type="button" className="text-button" onClick={() => change('login')}>返回登录</button>}{mode === 'login' && policy.data?.email_login_enabled && <button type="button" className="text-button" onClick={() => change('email')}>邮箱验证码登录</button>}{mode === 'login' && policy.data?.registration_enabled && <button type="button" className="text-button" onClick={() => change('register')}>注册账号</button>}{policy.data?.reset_enabled && mode !== 'forgot' && <button type="button" className="text-button" onClick={() => change('forgot')}>找回密码</button>}{policy.data?.registration_enabled && mode !== 'resend' && <button type="button" className="text-button" onClick={() => change('resend')}>重发验证邮件</button>}</div>
       {mode === 'login' && policy.data && !policy.data.registration_enabled && <p className="help-text">注册暂未开放。请联系实例管理员获取账号。</p>}
-    </form>}
+    </form>}{mode === 'login' && <EnterpriseLogin web={web} />}
   </div></main>;
 }

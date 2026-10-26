@@ -18,3 +18,5 @@
 
 /* Shared icon weight follows the design source. */
 svg.lucide{stroke-width:var(--icon-stroke)}
+/* Keep all management entries reachable when the viewport is shorter than the navigation. */
+.sidebar{overflow-y:auto;overscroll-behavior:contain}.sidebar>*{flex-shrink:0}

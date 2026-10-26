@@ -109,6 +109,7 @@ func TestDialectMigrationsAndIdentity(t *testing.T) {
 				t.Fatalf("search: %+v %v", list, err)
 			}
 			exerciseMailLifecycle(t, ctx, store, repository, admin)
+			exerciseRoles(t, ctx, store, repository, admin)
 		})
 	}
 }

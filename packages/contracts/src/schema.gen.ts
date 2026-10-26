@@ -361,3 +361,60 @@ export interface MailTemplateListResponse {
   data: MailTemplateList;
   request_id: string;
 }
+
+export interface PermissionDefinition {
+  id: string;
+  name: string;
+  description: string;
+  group: string;
+  assignable: boolean;
+}
+
+export interface Role {
+  id: string;
+  name: string;
+  builtin: boolean;
+  permissions: Array<string>;
+  user_count: number;
+}
+
+export interface RoleInput {
+  name: string;
+  permissions: Array<string>;
+}
+
+export interface RoleList {
+  items: Array<Role>;
+  permissions: Array<PermissionDefinition>;
+}
+
+export interface RoleOption {
+  id: string;
+  name: string;
+  assignable: boolean;
+}
+
+export interface RoleOptions {
+  items: Array<RoleOption>;
+}
+
+export interface RoleResponse {
+  code: string;
+  message: string;
+  data: Role;
+  request_id: string;
+}
+
+export interface RoleListResponse {
+  code: string;
+  message: string;
+  data: RoleList;
+  request_id: string;
+}
+
+export interface RoleOptionsResponse {
+  code: string;
+  message: string;
+  data: RoleOptions;
+  request_id: string;
+}

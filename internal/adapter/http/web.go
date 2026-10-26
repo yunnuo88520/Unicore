@@ -32,6 +32,14 @@ func failure(w http.ResponseWriter, status int, code, message string) {
 func webError(w http.ResponseWriter, err error) {
 	status, code, message := 500, "INTERNAL_ERROR", "操作未完成，请重试"
 	switch {
+	case errors.Is(err, platform.ErrRoleNotFound):
+		status, code, message = 404, "ROLE_NOT_FOUND", "角色不存在，请刷新后重试"
+	case errors.Is(err, platform.ErrRoleConflict):
+		status, code, message = 409, "ROLE_NAME_EXISTS", "角色名称已存在，请使用其他名称"
+	case errors.Is(err, platform.ErrBuiltinRole):
+		status, code, message = 409, "BUILTIN_ROLE", "内置角色不能修改或删除"
+	case errors.Is(err, platform.ErrRoleInUse):
+		status, code, message = 409, "ROLE_IN_USE", "角色仍有关联用户，请先更换这些用户的角色"
 	case errors.Is(err, settings.ErrMailNotReady):
 		status, code, message = 409, "MAIL_NOT_READY", "请先保存 SMTP 配置并成功发送测试邮件，再启用邮件账号流程"
 	case errors.Is(err, mailer.ErrUnavailable):
@@ -135,7 +143,7 @@ func require(manager *install.Manager, w http.ResponseWriter, r *http.Request, p
 		failure(w, 403, "CSRF_INVALID", "请求校验已失效，请刷新页面")
 		return session, false
 	}
-	if permission != "" && !platform.Has(session.User, permission) {
+	if permission != "" && (!platform.Has(session.User, permission) || (platform.SuperOnly(permission) && !platform.IsSuper(session.User))) {
 		webError(w, platform.ErrForbidden)
 		return session, false
 	}
@@ -156,7 +164,7 @@ func coreAccess(manager *install.Manager, w http.ResponseWriter, r *http.Request
 func metadata(config Config, r *http.Request) contracts.Bootstrap {
 	_, service, identity, profile := config.Install.Services()
 	data := runtime.Metadata(profile, config.Metadata.DeploymentKind)
-	data.Stage = "M2c"
+	data.Stage = "M2d"
 	data.Installed = config.Install.Installed()
 	data.SiteName = "Unicore"
 	data.AdminPath = config.Install.AdminPath(r.Context())
@@ -208,6 +216,7 @@ func super(user contracts.User) bool {
 func mountWeb(api chi.Router, config Config) {
 	manager := config.Install
 	mountAccounts(api, config)
+	mountRoles(api, config)
 	limiter := platform.NewLimiter()
 	api.Get("/install/status", func(w http.ResponseWriter, r *http.Request) { success(w, manager.Status()) })
 	api.Post("/install/verify-db", func(w http.ResponseWriter, r *http.Request) {

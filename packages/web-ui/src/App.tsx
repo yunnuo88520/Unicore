@@ -9,15 +9,16 @@ import { AppError, type AppClient, type Bootstrap, type ExecuteOutput, type Prof
 import { useTheme, type Theme } from './theme';
 import { DashboardWidgetRegistry } from './registry';
 import { AdminDashboard, InstallWizard, LoginPage, PersistentSettings, UserManagement } from './web-flows';
+import { RoleManagement } from './roles-page';
 import './flows.css';
 
 export { DashboardWidgetRegistry } from './registry';
 const SAMPLE = 'Hello, Unicore.\n一份 Go 核心，连接每一种可能。\nBuild once. Run everywhere.';
 const PROFILE_LABELS: Record<Profile, string> = { 'web-platform': 'Web 平台', 'web-standalone': 'Web 单机', desktop: '桌面应用', cli: '命令行' };
-type Page = 'overview' | 'lab' | 'settings' | 'admin' | 'users' | 'site';
-const PAGE_LABELS = { overview: '工作台概览', lab: '核心实验室', settings: '外观设置', admin: '平台仪表盘', users: '用户管理', site: '实例设置' };
-const PAGE_TITLES: Record<Page, string> = { overview: '一份核心，无限可能', lab: '探索核心的每一种可能', settings: '打造你的工作空间', admin: '平台仪表盘', users: '用户管理', site: '实例设置' };
-const PAGE_DESCRIPTIONS: Record<Page, string> = { overview: '从这里出发，让同一份业务逻辑运行于 Web、桌面与命令行。', lab: '修改输入、运行用例，验证跨形态一致的执行结果。', settings: '让界面跟随你的习惯。偏好仅保存在当前设备。', admin: '从真实认证活动与审计记录了解实例运行情况。', users: '管理账号、角色和状态，权限由服务端逐一校验。', site: '集中配置站点、安全与外观，保存后跨重启保留。' };
+type Page = 'overview' | 'lab' | 'settings' | 'admin' | 'users' | 'roles' | 'site';
+const PAGE_LABELS = { overview: '工作台概览', lab: '核心实验室', settings: '外观设置', admin: '平台仪表盘', users: '用户管理', roles: '角色权限', site: '实例设置' };
+const PAGE_TITLES: Record<Page, string> = { overview: '一份核心，无限可能', lab: '探索核心的每一种可能', settings: '打造你的工作空间', admin: '平台仪表盘', users: '用户管理', roles: '角色权限', site: '实例设置' };
+const PAGE_DESCRIPTIONS: Record<Page, string> = { overview: '从这里出发，让同一份业务逻辑运行于 Web、桌面与命令行。', lab: '修改输入、运行用例，验证跨形态一致的执行结果。', settings: '让界面跟随你的习惯。偏好仅保存在当前设备。', admin: '从真实认证活动与审计记录了解实例运行情况。', users: '管理账号、角色和状态，权限由服务端逐一校验。', roles: '让业务角色各司其职，让每一次授权都有边界。', site: '集中配置站点、安全与外观，保存后跨重启保留。' };
 
 export function Workspace({ client, registry = new DashboardWidgetRegistry() }: { client: AppClient; registry?: DashboardWidgetRegistry }) {
   const [queryClient] = useState(() => new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } }));
@@ -25,7 +26,7 @@ export function Workspace({ client, registry = new DashboardWidgetRegistry() }: 
 }
 
 function App({ client, registry }: { client: AppClient; registry: DashboardWidgetRegistry }) {
-  const pageFromHash = (): Page => { const hash = window.location.hash.slice(1); return hash === 'lab' || hash === 'settings' || hash === 'admin' || hash === 'users' || hash === 'site' ? hash : 'overview'; };
+  const pageFromHash = (): Page => { const hash = window.location.hash.slice(1); return hash === 'lab' || hash === 'settings' || hash === 'admin' || hash === 'users' || hash === 'roles' || hash === 'site' ? hash : 'overview'; };
   const [page, setPage] = useState<Page>(pageFromHash);
   const [route, setRoute] = useState(window.location.hash);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -38,7 +39,7 @@ function App({ client, registry }: { client: AppClient; registry: DashboardWidge
   function navigate(next: Page) { window.location.hash = next; setPage(next); setMobileOpen(false); }
   const refresh = () => { setRoute(window.location.hash); void metadata.refetch(); };
   const permissions = metadata.data?.current_user?.permissions ?? [];
-  const adminPages: Record<string, string> = { admin: 'dashboard:read', users: 'users:read', site: 'settings:read' };
+  const adminPages: Record<string, string> = { admin: 'dashboard:read', users: 'users:read', roles: 'roles:read', site: 'settings:read' };
   const permitted = page === 'site' && metadata.data?.profile !== 'web-platform' ? !!metadata.data?.capabilities.settings : !adminPages[page] || permissions.includes(adminPages[page]);
   if (metadata.data?.capabilities.installation && !metadata.data.installed && client.web) return <InstallWizard web={client.web} onDone={() => { window.history.replaceState({}, '', '/'); navigate('overview'); refresh(); }} />;
   if (metadata.data?.capabilities.authentication && (!metadata.data.current_user || /^#(verify-email|reset-password)(\?|$)/.test(route)) && client.web) return <LoginPage key={route} web={client.web} siteName={metadata.data.site_name} onDone={refresh} />;
@@ -53,6 +54,7 @@ function App({ client, registry }: { client: AppClient; registry: DashboardWidge
       <div className="nav-caption roadmap-caption">实例管理</div>
       {permissions.includes('dashboard:read') && <button className={`nav-item ${page === 'admin' ? 'active' : ''}`} onClick={() => navigate('admin')}><LayoutDashboard size={18} /><span>平台仪表盘</span></button>}
       {permissions.includes('users:read') && <button className={`nav-item ${page === 'users' ? 'active' : ''}`} onClick={() => navigate('users')}><Users size={18} /><span>用户管理</span></button>}
+      {permissions.includes('roles:read') && <button className={`nav-item ${page === 'roles' ? 'active' : ''}`} onClick={() => navigate('roles')}><ShieldCheck size={18} /><span>角色权限</span></button>}
       {metadata.data?.capabilities.settings && (metadata.data.profile !== 'web-platform' || permissions.includes('settings:read')) && <button className={`nav-item ${page === 'site' ? 'active' : ''}`} onClick={() => navigate('site')}><Settings2 size={18} /><span>实例设置</span></button>}
       {metadata.data?.current_user && client.web && <button className="nav-item" onClick={() => { void client.web!.logout().then(() => { navigate('overview'); refresh(); }, refresh); }}><ArrowUpRight size={18} /><span>退出登录</span></button>}
       <div className="nav-caption roadmap-caption">框架路线图</div>
@@ -64,7 +66,7 @@ function App({ client, registry }: { client: AppClient; registry: DashboardWidge
     <div className="main-shell"><header className="topbar"><div className="breadcrumbs"><button className="icon-button mobile-menu" aria-label="打开导航" onClick={() => setMobileOpen(true)}><Menu size={20} /></button><span className="breadcrumb-root">工作空间</span><ChevronRight size={14} /><strong>{PAGE_LABELS[page]}</strong></div><div className="top-actions"><span className={`connection ${metadata.isSuccess ? 'connected' : ''}`}><span />{metadata.isSuccess ? '核心已连接' : metadata.isPending ? '连接中' : '连接失败'}</span><span className="top-divider" /><button className="icon-button" aria-label="切换主题" title="切换浅色 / 深色" onClick={() => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}</button><button className="icon-button" aria-label="关于 Unicore" onClick={() => setAbout(true)}><Code2 size={19} /></button><span className="avatar top-avatar">Y</span></div></header>
       <main id="main-content" className="main-content"><div className="page-heading"><div><div className="eyebrow"><span /> UNICORE WORKSPACE</div><h1>{PAGE_TITLES[page]}<span className="heading-dot">.</span></h1><p>{PAGE_DESCRIPTIONS[page]}</p></div><span className="stage-pill"><span /> {metadata.data?.stage ?? 'M2a'} · 核心已就绪</span></div>
         {metadata.isPending ? <div className="state-card" role="status"><LoaderCircle className="spin" size={24} /><strong>正在连接 Go 核心</strong><p>正在获取当前运行形态与能力信息…</p></div> : metadata.isError ? <div className="state-card error-state" role="alert"><Radio size={26} /><strong>暂时无法连接核心</strong><p>{metadata.error.message}</p><button className="primary-button" onClick={() => metadata.refetch()}><RotateCcw size={16} />重新连接</button></div> : <>
-          {!permitted ? <div className="state-card" role="alert"><ShieldCheck size={26} /><strong>没有访问权限</strong><p>请联系实例管理员授予相关权限。</p></div> : page === 'admin' && client.web ? <AdminDashboard web={client.web} /> : page === 'users' && client.web ? <UserManagement web={client.web} metadata={metadata.data} /> : page === 'site' && client.settings && client.patchSettings ? <PersistentSettings client={client} onSaved={refresh} /> : page === 'settings' ? <Appearance theme={theme} setTheme={setTheme} /> : <>
+          {!permitted ? <div className="state-card" role="alert"><ShieldCheck size={26} /><strong>没有访问权限</strong><p>请联系实例管理员授予相关权限。</p></div> : page === 'admin' && client.web ? <AdminDashboard web={client.web} /> : page === 'users' && client.web ? <UserManagement web={client.web} metadata={metadata.data} /> : page === 'roles' && client.web ? <RoleManagement web={client.web} metadata={metadata.data} /> : page === 'site' && client.settings && client.patchSettings ? <PersistentSettings client={client} onSaved={refresh} /> : page === 'settings' ? <Appearance theme={theme} setTheme={setTheme} /> : <>
             <RuntimeCards metadata={metadata.data} transport={client.transport} />
             {page === 'overview' && <div className="intro-banner"><span className="banner-orbit orbit-one" /><span className="banner-orbit orbit-two" /><div className="banner-content"><span className="banner-tag"><Sparkles size={13} /> 为下一款产品而生</span><h2>构建一次，连接每个终端。</h2><p>领域逻辑保持纯粹，交互体验始终一致。</p><button onClick={() => navigate('lab')}>探索核心实验室 <ArrowRight size={15} /></button></div><div className="banner-diagram" aria-hidden="true"><div className="diagram-core"><BrandMark size={30} /><span>Go Core</span></div><span className="diagram-line" /><div className="diagram-targets"><span><Globe2 size={17} /> Web</span><span><Monitor size={17} /> Desktop</span><span><Terminal size={17} /> CLI</span></div></div></div>}
             <div className="workspace-grid"><CoreLab client={client} /><div className="right-column"><Profiles current={metadata.data.profile} /><Architecture /></div></div>
@@ -144,5 +146,5 @@ function About({ onClose }: { onClose: () => void }) {
     window.addEventListener('keydown', keydown);
     return () => { window.removeEventListener('keydown', keydown); previous?.focus(); };
   }, [onClose]);
-  return <div className="modal-scrim" onClick={event => { if (event.target === event.currentTarget) onClose(); }}><div className="about-dialog" role="dialog" aria-modal="true" aria-labelledby="about-title" tabIndex={-1} ref={dialogRef}><button className="icon-button close-dialog" aria-label="关闭关于" onClick={onClose}><X size={20} /></button><BrandMark size={44} /><h2 id="about-title">Unicore</h2><p>一套 Go Core，一套 React UI。<br />为 Web、桌面与命令行构建可复用的应用基座。</p><div className="about-stack"><span>Go</span><span>React</span><span>Wails v2</span><span>Cobra</span></div><p className="muted">当前交付：M2c 品牌与六位验证码。<br />完整范围、路线图与验收记录请阅读仓库 docs/。</p><a href="mailto:ymz@ebox.vip">yunnuo · ymz@ebox.vip <ExternalLink size={13} /></a></div></div>;
+  return <div className="modal-scrim" onClick={event => { if (event.target === event.currentTarget) onClose(); }}><div className="about-dialog" role="dialog" aria-modal="true" aria-labelledby="about-title" tabIndex={-1} ref={dialogRef}><button className="icon-button close-dialog" aria-label="关闭关于" onClick={onClose}><X size={20} /></button><BrandMark size={44} /><h2 id="about-title">Unicore</h2><p>一套 Go Core，一套 React UI。<br />为 Web、桌面与命令行构建可复用的应用基座。</p><div className="about-stack"><span>Go</span><span>React</span><span>Wails v2</span><span>Cobra</span></div><p className="muted">当前交付：M2d 业务角色与权限管理。<br />完整范围、路线图与验收记录请阅读仓库 docs/。</p><a href="mailto:ymz@ebox.vip">yunnuo · ymz@ebox.vip <ExternalLink size={13} /></a></div></div>;
 }

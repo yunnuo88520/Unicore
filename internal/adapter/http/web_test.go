@@ -113,6 +113,7 @@ func TestPlatformInstallAuthAndRBAC(t *testing.T) {
 	if w = request("POST", "/api/v1/auth/login", login, nil, ""); w.Code != 400 {
 		t.Fatal("captcha replay accepted", w.Code)
 	}
+	exerciseRoleHTTP(t, manager, request, adminCookie, memberCookie, csrf, memberSession.Data.CsrfToken)
 	if w = request("PATCH", "/api/v1/admin/settings", contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "admin.path", Value: "/manage"}}}, adminCookie, csrf); w.Code != 200 {
 		t.Fatal(w.Code, w.Body.String())
 	}

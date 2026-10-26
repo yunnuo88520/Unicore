@@ -13,8 +13,6 @@ import (
 	"github.com/yunnuo/unicore/internal/contracts"
 )
 
-var Permissions = []string{"dashboard:read", "users:read", "users:create", "users:update", "settings:read", "settings:write"}
-
 type Account struct {
 	User         contracts.User
 	PasswordHash string
@@ -28,6 +26,11 @@ type Store interface {
 	Session(context.Context, string) (contracts.User, int, error)
 	DeleteSession(context.Context, string) error
 	Dashboard(context.Context) (contracts.Dashboard, error)
+	ListRoles(context.Context) (contracts.RoleList, error)
+	RoleOptions(context.Context, string) (contracts.RoleOptions, error)
+	CreateRole(context.Context, contracts.RoleInput, string) (contracts.Role, error)
+	UpdateRole(context.Context, string, contracts.RoleInput, string) (contracts.Role, error)
+	DeleteRole(context.Context, string, string) error
 }
 type Service struct {
 	Store      Store
@@ -107,7 +110,7 @@ func (s *Service) Session(ctx context.Context, token string) (contracts.Session,
 func (s *Service) Create(ctx context.Context, input contracts.UserCreate, actor string) (contracts.User, error) {
 	input.Username = strings.ToLower(strings.TrimSpace(input.Username))
 	input.Email = strings.ToLower(strings.TrimSpace(input.Email))
-	if !ValidateAccount(input.Username, input.Email, input.Password) || (input.Role != "user" && input.Role != "super_admin") {
+	if !ValidateAccount(input.Username, input.Email, input.Password) || input.Role == "" || len(input.Role) > 64 {
 		return contracts.User{}, ErrInput
 	}
 	hash, err := HashPassword(input.Password)

@@ -26,12 +26,12 @@ test('API returns JSON and unsupported features remain absent', async ({ instanc
   const request = instance.request;
   const bootstrap = await (await request.get('/api/v1/bootstrap')).json();
   expect(bootstrap.data.capabilities.authentication).toBe(false);
-  for (const path of ['/api/v1/admin/users', '/api/v1/admin/update/check', '/api/v1/auth/policy', '/api/v1/admin/settings/mail/jobs']) {
+  for (const path of ['/api/v1/admin/users', '/api/v1/admin/roles', '/api/v1/admin/users/role-options', '/api/v1/admin/update/check', '/api/v1/auth/policy', '/api/v1/admin/settings/mail/jobs']) {
     const response = await request.get(path);
     expect(response.status()).toBe(404);
     expect((await response.json()).code).toBe('NOT_FOUND');
   }
-  for (const path of ['/api/v1/auth/register', '/api/v1/auth/verification/request', '/api/v1/auth/verification/complete', '/api/v1/auth/password/request', '/api/v1/auth/password/reset', '/api/v1/admin/settings/mail/test']) {
+  for (const path of ['/api/v1/admin/roles', '/api/v1/auth/register', '/api/v1/auth/verification/request', '/api/v1/auth/verification/complete', '/api/v1/auth/password/request', '/api/v1/auth/password/reset', '/api/v1/admin/settings/mail/test']) {
     const response = await request.post(path, { data: {} });
     expect(response.status()).toBe(404);
     expect((await response.json()).code).toBe('NOT_FOUND');

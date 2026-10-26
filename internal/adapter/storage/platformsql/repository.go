@@ -79,7 +79,7 @@ func (r *Repository) Seed(ctx context.Context, tx *sql.Tx, input contracts.UserC
 		}
 	}
 	for _, permission := range platform.Permissions {
-		if _, err := r.Store.Exec(ctx, tx, "INSERT INTO permissions(id) VALUES(?)", permission); err != nil {
+		if _, err := r.Store.Exec(ctx, tx, "INSERT INTO permissions(id) SELECT ? WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE id=?)", permission, permission); err != nil {
 			return contracts.User{}, err
 		}
 		if _, err := r.Store.Exec(ctx, tx, "INSERT INTO role_permissions(role_id,permission_id) VALUES(?,?)", "super_admin", permission); err != nil {
@@ -111,6 +111,17 @@ func (r *Repository) CreateUser(ctx context.Context, input contracts.UserCreate,
 	if err = r.Store.LockInstallation(ctx, tx); err != nil {
 		return contracts.User{}, err
 	}
+	current, err := r.actor(ctx, tx, actor, "users:create", false)
+	if err != nil {
+		return contracts.User{}, err
+	}
+	role, err := r.role(ctx, tx, input.Role)
+	if err != nil {
+		return contracts.User{}, err
+	}
+	if !canAssign(current, role) {
+		return contracts.User{}, platform.ErrForbidden
+	}
 	user, err := r.insert(ctx, tx, input, hash, actor)
 	if err != nil {
 		return user, err
@@ -118,7 +129,7 @@ func (r *Repository) CreateUser(ctx context.Context, input contracts.UserCreate,
 	return user, tx.Commit()
 }
 func (r *Repository) UpdateUser(ctx context.Context, id string, input contracts.UserUpdate, actor string) (contracts.User, error) {
-	if (input.Status != "active" && input.Status != "disabled") || (input.Role != "user" && input.Role != "super_admin") {
+	if (input.Status != "active" && input.Status != "disabled" && input.Status != "pending") || input.Role == "" || len(input.Role) > 64 {
 		return contracts.User{}, platform.ErrInput
 	}
 	tx, err := r.Store.DB.BeginTx(ctx, nil)
@@ -129,12 +140,21 @@ func (r *Repository) UpdateUser(ctx context.Context, id string, input contracts.
 	if err = r.Store.LockInstallation(ctx, tx); err != nil {
 		return contracts.User{}, err
 	}
+	if _, err = r.actor(ctx, tx, actor, "users:update", true); err != nil {
+		return contracts.User{}, err
+	}
+	if _, err = r.role(ctx, tx, input.Role); err != nil {
+		return contracts.User{}, err
+	}
 	before, err := r.user(ctx, tx, id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return contracts.User{}, platform.ErrInput
 	}
 	if err != nil {
 		return contracts.User{}, err
+	}
+	if input.Status == "pending" && before.Status != "pending" {
+		return contracts.User{}, platform.ErrInput
 	}
 	isAdmin := false
 	for _, role := range before.Roles {

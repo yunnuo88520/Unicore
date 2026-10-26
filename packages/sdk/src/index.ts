@@ -1,9 +1,9 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Shared UI client; pages know neither fetch nor Wails globals.
  */
-import type { Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList } from '@unicore/contracts';
+import type { Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleInput, RoleList, RoleOptions, PermissionDefinition } from '@unicore/contracts';
 
-export type { Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList } from '@unicore/contracts';
+export type { Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleInput, RoleList, RoleOptions, PermissionDefinition } from '@unicore/contracts';
 
 export class AppError extends Error {
   constructor(public readonly code: string, message: string, public readonly requestId = '') { super(message); this.name = 'AppError'; }
@@ -41,6 +41,11 @@ export interface WebClient {
   users(search: string, page: number): Promise<UserList>;
   createUser(input: UserCreate): Promise<User>;
   updateUser(id: string, input: UserUpdate): Promise<User>;
+  roles(): Promise<RoleList>;
+  roleOptions(): Promise<RoleOptions>;
+  createRole(input: RoleInput): Promise<Role>;
+  updateRole(id: string, input: RoleInput): Promise<Role>;
+  deleteRole(id: string): Promise<{ success: boolean }>;
 }
 
 function unwrap<T>(response: { code: string; message: string; data: T; request_id: string }): T {
@@ -91,6 +96,11 @@ export class HttpTransport implements AppClient, WebClient {
   users(search: string, page: number) { return this.request<UserList>(`/admin/users?search=${encodeURIComponent(search)}&page=${page}`); }
   createUser(input: UserCreate) { return this.send<User>('/admin/users', input); }
   updateUser(id: string, input: UserUpdate) { return this.send<User>(`/admin/users/${encodeURIComponent(id)}`, input, 'PATCH'); }
+  roles() { return this.request<RoleList>('/admin/roles'); }
+  roleOptions() { return this.request<RoleOptions>('/admin/users/role-options'); }
+  createRole(input: RoleInput) { return this.send<Role>('/admin/roles', input); }
+  updateRole(id: string, input: RoleInput) { return this.send<Role>(`/admin/roles/${encodeURIComponent(id)}`, input, 'PATCH'); }
+  deleteRole(id: string) { return this.request<{ success: boolean }>(`/admin/roles/${encodeURIComponent(id)}`, { method: 'DELETE' }); }
   settings() { return this.request<Settings>(this.platform ? '/admin/settings' : '/settings'); }
   patchSettings(input: SettingPatch) { return this.send<Settings>(this.platform ? '/admin/settings' : '/settings', input, 'PATCH'); }
 }

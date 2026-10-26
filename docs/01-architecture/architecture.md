@@ -1,5 +1,5 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
-# 当前架构（M2c）
+# 当前架构（M2d）
 
 共享业务依赖链：`entry → adapter → usecase → domain`。`internal/contracts` 从 OpenAPI 生成；domain 无传输/DB/身份依赖。CLI 只调用 bootstrap.Core；Web 装配 install 与按安装 profile 初始化的平台身份；桌面只装配 bootstrap/local 的 SQLite 与 settings。
 
@@ -60,3 +60,9 @@ internal/platform/Accounts 编排策略、验证码/限流、注册与令牌；m
 ## M2c 设计和六位码增量
 
 [ADR-0005](../adr/ADR-0005-design-email-codes.md) 定义统一设计编译链与挑战事务。tokens.json → CSS/嵌入 JSON → React/Go 邮件/图形验证码/原生窗口；identity.json → Resvg → 网站/原生/邮件同源图标。M2b 长链接保留兼容，新 UI 走 /auth/email/*；平台迁移增加 0004，framework-only 形态不引入 email_challenges。邮箱登录开启需测试 SMTP，session 与码消费同事务提交。
+
+## M2d 业务角色
+
+platform/roles.go 维护权限目录、可委派策略与内置角色规则，platformsql/roles.go 实现事务角色编辑和用户关联校验，HTTP roles.go 逐接口执行鉴权与 CSRF。Role/RoleInput/RoleList/RoleOptions 由 OpenAPI 生成；共享 roles-page.tsx 经 WebClient 调用 HTTP，不访问传输细节。仅 web-platform 的菜单/路由启用；非平台返回 JSON 404。
+
+平台增加迁移 0005，登记角色读/写权限并补齐已有超管授权。用户创建、身份变更、角色改删均取得安装行锁并复核当前操作者权限；角色变更在同一事务撤销全部关联 session 与待用账号挑战。删除有关联用户的角色被拒绝。只读查询不承担授权决策，写入仍在事务内加载真实角色权限；无 UI 层授权缓存。规则和边界见 [ADR-0006](../adr/ADR-0006-business-roles.md)。

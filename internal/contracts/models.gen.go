@@ -363,3 +363,60 @@ type MailTemplateListResponse struct {
 	Data      MailTemplateList `json:"data"`
 	RequestID string           `json:"request_id"`
 }
+
+type PermissionDefinition struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Group       string `json:"group"`
+	Assignable  bool   `json:"assignable"`
+}
+
+type Role struct {
+	ID          string   `json:"id"`
+	Name        string   `json:"name"`
+	Builtin     bool     `json:"builtin"`
+	Permissions []string `json:"permissions"`
+	UserCount   int      `json:"user_count"`
+}
+
+type RoleInput struct {
+	Name        string   `json:"name"`
+	Permissions []string `json:"permissions"`
+}
+
+type RoleList struct {
+	Items       []Role                 `json:"items"`
+	Permissions []PermissionDefinition `json:"permissions"`
+}
+
+type RoleOption struct {
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	Assignable bool   `json:"assignable"`
+}
+
+type RoleOptions struct {
+	Items []RoleOption `json:"items"`
+}
+
+type RoleResponse struct {
+	Code      string `json:"code"`
+	Message   string `json:"message"`
+	Data      Role   `json:"data"`
+	RequestID string `json:"request_id"`
+}
+
+type RoleListResponse struct {
+	Code      string   `json:"code"`
+	Message   string   `json:"message"`
+	Data      RoleList `json:"data"`
+	RequestID string   `json:"request_id"`
+}
+
+type RoleOptionsResponse struct {
+	Code      string      `json:"code"`
+	Message   string      `json:"message"`
+	Data      RoleOptions `json:"data"`
+	RequestID string      `json:"request_id"`
+}

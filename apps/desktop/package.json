@@ -1,6 +1,17 @@
 {
-  "name": "@unicore/desktop", "version": "0.1.0", "private": true,
-  "author": "yunnuo <ymz@ebox.vip>", "type": "module",
-  "scripts": { "dev": "vite --host 127.0.0.1 --port 5174 --strictPort", "build": "vite build" },
-  "dependencies": { "@unicore/sdk": "workspace:*", "@unicore/web-ui": "workspace:*", "react": "^19.2.0", "react-dom": "^19.2.0" }
+  "name": "@unicore/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "author": "yunnuo <ymz@ebox.vip>",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm -w design:generate && vite --host 127.0.0.1 --port 5174 --strictPort",
+    "build": "pnpm -w design:generate && vite build"
+  },
+  "dependencies": {
+    "@unicore/sdk": "workspace:*",
+    "@unicore/web-ui": "workspace:*",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  }
 }

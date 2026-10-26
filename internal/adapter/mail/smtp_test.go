@@ -27,7 +27,7 @@ func TestSMTPTransportAndNoTLSDowngrade(t *testing.T) {
 	if err = (SMTP{}).Send(context.Background(), config, message); err != nil {
 		t.Fatal(err)
 	}
-	if messages := server.Messages(); len(messages) != 1 || !strings.Contains(messages[0], ".B\n你好") {
+	if messages := server.Messages(); len(messages) != 1 || !strings.Contains(testutil.MailText(messages[0]), ".B\n你好") {
 		t.Fatalf("SMTP data mismatch: %q", messages)
 	}
 	config.TLS = "starttls"

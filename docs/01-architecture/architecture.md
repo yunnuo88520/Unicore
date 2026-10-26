@@ -1,5 +1,5 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
-# 当前架构（M2b）
+# 当前架构（M2c）
 
 共享业务依赖链：`entry → adapter → usecase → domain`。`internal/contracts` 从 OpenAPI 生成；domain 无传输/DB/身份依赖。CLI 只调用 bootstrap.Core；Web 装配 install 与按安装 profile 初始化的平台身份；桌面只装配 bootstrap/local 的 SQLite 与 settings。
 
@@ -56,3 +56,7 @@ internal/platform/Accounts 编排策略、验证码/限流、注册与令牌；m
 队列 60 秒租约、单次 10 秒超时、最多 5 次尝试，失败间隔 10/20/40/80 秒，超时/终止/成功清除加密载荷；脱敏任务元信息保留最多 7 天。崩溃后可重领租约，SMTP 接受后进程崩溃可能重复投递，因此只承诺至少一次；账号令牌仍只可消费一次。测试发送直接等待 SMTP DATA 确认，不将入队视为发送成功。
 
 邮件链接的 token 放 URL fragment，页面初次捕获后立刻移除，提交用 JSON POST；无自动 GET 消费，无 token 日志，API no-store。TLS 校验使用系统根证书并要求 TLS1.2+；STARTTLS 缺失即失败，plain 只允许 loopback。外部服务商投递率/垃圾邮件判定不属于本机 SMTP 协议验收。
+
+## M2c 设计和六位码增量
+
+[ADR-0005](../adr/ADR-0005-design-email-codes.md) 定义统一设计编译链与挑战事务。tokens.json → CSS/嵌入 JSON → React/Go 邮件/图形验证码/原生窗口；identity.json → Resvg → 网站/原生/邮件同源图标。M2b 长链接保留兼容，新 UI 走 /auth/email/*；平台迁移增加 0004，framework-only 形态不引入 email_challenges。邮箱登录开启需测试 SMTP，session 与码消费同事务提交。

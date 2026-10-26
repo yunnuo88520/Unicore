@@ -17,6 +17,9 @@ var ErrAccountToken = errors.New("invalid or expired account token")
 var ErrFlowDisabled = errors.New("account flow is disabled")
 
 type AccountStore interface {
+	RegisterEmailChallenge(context.Context, contracts.RegisterInput, string, EmailChallenge) error
+	QueueEmailChallenge(context.Context, string, EmailChallenge) error
+	ConsumeEmailChallenge(context.Context, string, string, string, string, string, int, int) (contracts.User, error)
 	RegisterAccount(context.Context, contracts.RegisterInput, string, string, int, string) error
 	QueueAccountToken(context.Context, string, string, string, int, string) error
 	ConsumeAccountToken(context.Context, string, string, string, int) error
@@ -35,7 +38,7 @@ func (a *Accounts) Policy(ctx context.Context) (contracts.AuthPolicy, error) {
 		return contracts.AuthPolicy{}, err
 	}
 	ready := settings.MailReady(values)
-	return contracts.AuthPolicy{RegistrationEnabled: ready && values["account.registration_enabled"] == "true", ResetEnabled: ready && values["account.password_reset_enabled"] == "true", LoginCaptcha: values["security.login_captcha"] == "true", RegisterCaptcha: values["security.register_captcha"] == "true", MailReady: ready}, nil
+	return contracts.AuthPolicy{EmailLoginEnabled: ready && values["account.email_login_enabled"] == "true", RegistrationEnabled: ready && values["account.registration_enabled"] == "true", ResetEnabled: ready && values["account.password_reset_enabled"] == "true", LoginCaptcha: values["security.login_captcha"] == "true", RegisterCaptcha: values["security.register_captcha"] == "true", MailReady: ready}, nil
 }
 func (a *Accounts) allow(ip, email, id, answer string, captcha bool) error {
 	if !a.Identity.Limiter.Allow("mail-ip:"+ip, 20, time.Minute) || !a.Identity.Limiter.Allow("mail-account:"+email, 3, 15*time.Minute) {

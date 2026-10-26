@@ -270,6 +270,7 @@ type AuthPolicy struct {
 	LoginCaptcha        bool `json:"login_captcha"`
 	RegisterCaptcha     bool `json:"register_captcha"`
 	MailReady           bool `json:"mail_ready"`
+	EmailLoginEnabled   bool `json:"email_login_enabled"`
 }
 
 type RegisterInput struct {
@@ -324,4 +325,41 @@ type MailJobListResponse struct {
 	Message   string      `json:"message"`
 	Data      MailJobList `json:"data"`
 	RequestID string      `json:"request_id"`
+}
+
+type EmailChallenge struct {
+	ChallengeID string `json:"challenge_id"`
+	ExpiresIn   int    `json:"expires_in"`
+	RetryAfter  int    `json:"retry_after"`
+}
+
+type EmailCodeInput struct {
+	ChallengeID string `json:"challenge_id"`
+	Code        string `json:"code"`
+	Password    string `json:"password"`
+}
+
+type MailTemplate struct {
+	Purpose string `json:"purpose"`
+	Subject string `json:"subject"`
+	Html    string `json:"html"`
+	Text    string `json:"text"`
+}
+
+type MailTemplateList struct {
+	Items []MailTemplate `json:"items"`
+}
+
+type EmailChallengeResponse struct {
+	Code      string         `json:"code"`
+	Message   string         `json:"message"`
+	Data      EmailChallenge `json:"data"`
+	RequestID string         `json:"request_id"`
+}
+
+type MailTemplateListResponse struct {
+	Code      string           `json:"code"`
+	Message   string           `json:"message"`
+	Data      MailTemplateList `json:"data"`
+	RequestID string           `json:"request_id"`
 }

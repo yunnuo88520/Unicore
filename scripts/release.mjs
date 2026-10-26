@@ -29,7 +29,7 @@ for (const target of targets) {
     cpSync('docs/03-runbooks/deployment.md', `${dir}/README_DEPLOY.md`);
     writeFileSync(`${dir}/VERSION`, `${version}\n`);
     if (profile !== 'cli') { cpSync('apps/web/static', `${dir}/web`, { recursive: true }); cpSync('deploy/tar', `${dir}/deploy`, { recursive: true }); }
-    const manifest = { version, channel: 'development', stage: 'M2b', profile, os, arch, commit, build_time: buildTime, features: { authentication: profile === 'web-platform', installation: profile !== 'cli', database: profile !== 'cli', email_accounts: profile === 'web-platform', license: false, updater: false }, min_upgrade_version: null, migration_level: profile === 'cli' ? 0 : profile === 'web-platform' ? 3 : 1, signature: null, release_notes: 'M2b developer preview. Installation, settings, authentication and opt-in SMTP account flows; OIDC/backup/updater not yet implemented. Not a production release.' };
+    const manifest = { version, channel: 'development', stage: 'M2c', profile, os, arch, commit, build_time: buildTime, features: { authentication: profile === 'web-platform', installation: profile !== 'cli', database: profile !== 'cli', email_accounts: profile === 'web-platform', license: false, updater: false }, min_upgrade_version: null, migration_level: profile === 'cli' ? 0 : profile === 'web-platform' ? 4 : 1, signature: null, release_notes: 'M2c developer preview. Unified brand, six-digit email codes, branded mail and opt-in SMTP account flows; OIDC/backup/updater not yet implemented. Not a production release.' };
     writeFileSync(`${dir}/manifest.json`, JSON.stringify(manifest, null, 2)+'\n');
     const artifact = `${name}.tar.gz`;
     execFileSync('tar',['-czf',`build/releases/${artifact}`,'-C','build/staging',name]);

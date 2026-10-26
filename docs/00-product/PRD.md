@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 产品基线与当前范围
 
-Unicore · yunnuo / ymz@ebox.vip。完整目标见 [design-v1.1.md](design-v1.1.md)。当前实现 M1 + M2a + M2b，不等同完整 v1。
+Unicore · yunnuo / ymz@ebox.vip。完整目标见 [design-v1.1.md](design-v1.1.md)。当前实现 M1 + M2a + M2b + M2c，不等同完整 v1。
 
 | 能力 | web-platform | web-standalone | desktop | cli |
 | --- | --- | --- | --- | --- |
@@ -11,8 +11,9 @@ Unicore · yunnuo / ymz@ebox.vip。完整目标见 [design-v1.1.md](design-v1.1.
 | 数据库 | PostgreSQL/MySQL/小型 SQLite | SQLite/外部 DB | SQLite | 禁止强依赖 |
 | 登录/RBAC/用户管理 | 已实现，本地 session | 不装配 | 不装配 | 不装配 |
 | 持久化设置 | 按权限分组 | 本地适用项 | 本地适用项 | 不装配 |
-| SMTP / 注册验证 / 找回密码 | 已实现，需测试 SMTP 后显式启用 | 不装配 | 不装配 | 不装配 |
-| OIDC / Logo上传 / 完整视觉集成 | M3 后续 | 按适用项 | 按适用项 | 不适用 |
+| SMTP / 六位验证码注册、登录、找回密码 | 已实现，需测试 SMTP 后显式启用 | 不装配 | 不装配 | 不装配 |
+| 统一设计源 / Logo、ICO、原生图标 | 已实现 | 已实现 | 已实现，macOS 实测 | 不适用 |
+| OIDC / Logo上传 | M3 后续 | 按适用项 | 按适用项 | 不适用 |
 | 备份恢复 / 正式发布 / 升级 | M4 后续 | M4 后续 | 后续 | 后续 |
 
 M2a：首次选择 Web 两模式，安装后固定；私有安装凭据、文件锁、DB 唯一安装标记与事务 seed，失败可恢复。平台默认开启图形验证码，不开放注册；内置 super_admin/user，服务端逐 API 权限与 CSRF，保护最后超管；用户搜索/分页/创建/启停/角色关联。持久设置通过 SettingDefinition 注册表管理，覆盖站点基础、主题、安全和后台路径。桌面自动 SQLite，平台身份与外部驱动不进入桌面组合。
@@ -24,3 +25,5 @@ M2b：SMTP 支持强制 STARTTLS/验证证书 TLS，本机可用明文测试；�
 M2 后续：完整角色/权限编辑流程；M3：OIDC PKCE/state/nonce、绑定策略、品牌上传和 GUI 体验；M4：备份恢复、签名 manifest、条件编译启用、受控 tar updater、Docker 镜像替换演练。v1 多用户不是多租户。
 
 详细命令与实际平台验证记录见 [M2b 验收](../04-ai/acceptance-m2b.md) 与 [M2a 验收](../04-ai/acceptance-m2a.md)。
+
+M2c：主题、字号/字体、圆角、间距、图标线宽、动效集中配置；品牌轮廓统一生成 Web/原生图标。四套中文 HTML/纯文本邮件与后台预览；新表单注册验证、邮箱登录、找回密码均用 6 位数字，10 分钟有效、60 秒重发、5 次错误上限，实例 HMAC 摘要及事务一次性消费。QQ SMTP 四种邮件已实际投递，收件人确认显示正常。旧长链接 API 仅保留兼容。验收见 [M2c](../04-ai/acceptance-m2c.md)。

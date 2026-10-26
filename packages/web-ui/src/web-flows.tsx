@@ -1,27 +1,29 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Real installation, login, user management and persistent settings using client ports.
  */
+import { BrandLockup } from './brand';
+import design from '../../../assets/theme/resolved.gen.json';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, CheckCircle2, Layers3, LoaderCircle, LogIn, RefreshCw, Save, ShieldCheck, UserPlus } from 'lucide-react';
+import { ArrowRight, CheckCircle2, LoaderCircle, LogIn, RefreshCw, Save, ShieldCheck, UserPlus } from 'lucide-react';
 import type { AppClient, Bootstrap, InstallInput, InstallResult, SettingPatch, UserCreate, WebClient } from '@unicore/sdk';
 
 function ErrorMessage({ error }: { error: Error | null }) { return error ? <p className="form-error" role="alert">{error.message}</p> : null; }
 function Busy({ pending, children }: { pending: boolean; children: React.ReactNode }) { return <>{pending && <LoaderCircle size={15} className="spin" />}{children}</>; }
-function FlowBrand() { return <div className="flow-brand"><span className="brand-mark"><Layers3 size={24} /></span><strong>unicore<span>.</span></strong></div>; }
+function FlowBrand() { return <div className="flow-brand"><BrandLockup /></div>; }
 
 export function InstallWizard({ web, onDone }: { web: WebClient; onDone: () => void }) {
   const status = useQuery({ queryKey: ['install-status'], queryFn: () => web.installStatus() });
   const [step, setStep] = useState(0);
   const [token, setToken] = useState('');
-  const [input, setInput] = useState<InstallInput>({ profile: 'web-standalone', database: { driver: 'sqlite', dsn: '' }, site_name: 'Unicore', base_url: window.location.origin, admin_username: '', admin_email: '', admin_password: '' });
+  const [input, setInput] = useState<InstallInput>({ profile: 'web-standalone', database: { driver: 'sqlite', dsn: '' }, site_name: design.brand.name, base_url: window.location.origin, admin_username: '', admin_email: '', admin_password: '' });
   const [result, setResult] = useState<InstallResult>();
   const steps = ['环境与凭据', '运行形态', '数据库', ...(input.profile === 'web-platform' ? ['管理员'] : []), '确认安装'];
   const title = steps[step];
   const verify = useMutation({ mutationFn: () => web.verifyDatabase(token, input.database) });
   const complete = useMutation({ mutationFn: () => web.completeInstall(token, input), onSuccess: result => { setResult(result); setToken(''); setInput(value => ({ ...value, database: { ...value.database, dsn: '' }, admin_password: '' })); } });
   const update = <K extends keyof InstallInput>(key: K, value: InstallInput[K]) => setInput(previous => ({ ...previous, [key]: value }));
-  return <main className="flow-page"><FlowBrand /><div className="install-card"><div className="flow-heading"><span className="eyebrow">WELCOME TO UNICORE</span><h1>{result ? '一切就绪，开始构建' : '为你的产品，准备一个起点'}</h1><p>{result ? '安装记录已持久化，一次性凭据已吊销。' : '只需几步，完成这个实例的首次配置。'}</p></div>
+  return <main className="flow-page"><FlowBrand /><div className="install-card"><div className="flow-heading"><span className="eyebrow">WELCOME TO {design.brand.name.toUpperCase()}</span><h1>{result ? '一切就绪，开始构建' : '为你的产品，准备一个起点'}</h1><p>{result ? '安装记录已持久化，一次性凭据已吊销。' : '只需几步，完成这个实例的首次配置。'}</p></div>
     {result ? <div className="install-success"><CheckCircle2 size={44} /><h2>安装完成</h2><dl><dt>运行形态</dt><dd>{result.profile === 'web-platform' ? 'Web 多用户平台' : 'Web 单机'}</dd><dt>用户入口</dt><dd>{result.site_url}</dd>{result.admin_url && <><dt>管理后台</dt><dd>{result.admin_url}</dd></>}{!result.admin_url && <><dt>设置入口</dt><dd>{result.settings_url}</dd></>}</dl><button className="primary-button" onClick={onDone}>进入工作空间 <ArrowRight size={15} /></button></div> : <>
     <ol className="install-progress">{steps.map((label, index) => <li key={label} className={index <= step ? 'reached' : ''}><span>{index < step ? <CheckCircle2 size={15} /> : index + 1}</span><small>{label}</small></li>)}</ol>
     <form className="flow-form" onSubmit={event => { event.preventDefault(); if (step === steps.length - 1) complete.mutate(); else setStep(value => value + 1); }}>
@@ -33,7 +35,7 @@ export function InstallWizard({ web, onDone }: { web: WebClient; onDone: () => v
       {title === '确认安装' && <><dl className="install-summary"><dt>站点</dt><dd>{input.site_name}</dd><dt>访问地址</dt><dd>{input.base_url}</dd><dt>形态</dt><dd>{input.profile}</dd><dt>数据库</dt><dd>{input.database.driver}</dd>{input.profile === 'web-platform' && <><dt>管理员</dt><dd>{input.admin_username}</dd></>}</dl><p className="help-text">将执行对应形态的数据迁移与默认配置，完成后不能再次安装。</p></>}
       <ErrorMessage error={complete.error} /><div className="flow-actions">{step > 0 && <button type="button" className="secondary-button" disabled={complete.isPending} onClick={() => { setStep(value => value - 1); complete.reset(); }}>上一步</button>}<button className="primary-button" disabled={complete.isPending || (step === 0 && (status.isError || status.isPending))}><Busy pending={complete.isPending}>{step === steps.length - 1 ? '完成安装' : '下一步'}</Busy><ArrowRight size={14} /></button></div>
     </form></>}
-  </div><p className="flow-footer">Unicore · yunnuo · 安装凭据只用于当前实例</p></main>;
+  </div><p className="flow-footer">{design.brand.name} · yunnuo · 安装凭据只用于当前实例</p></main>;
 }
 
 export { LoginPage } from './account-flows';

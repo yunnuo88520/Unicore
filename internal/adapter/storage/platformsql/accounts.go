@@ -39,6 +39,13 @@ func (r *Repository) cancelTokens(ctx context.Context, tx *sql.Tx, user, purpose
 	if purpose != "" {
 		predicate += " AND purpose=?"
 	}
+	codeQuery := "SELECT id FROM email_challenges WHERE " + predicate
+	if _, err := r.Store.Exec(ctx, tx, "UPDATE mail_jobs SET payload='',state='cancelled' WHERE state IN ('pending','sending') AND token_hash IN ("+codeQuery+")", args...); err != nil {
+		return err
+	}
+	if _, err := r.Store.Exec(ctx, tx, "UPDATE email_challenges SET code_digest='',attempts=5 WHERE "+predicate, args...); err != nil {
+		return err
+	}
 	_, err := r.Store.Exec(ctx, tx, "DELETE FROM account_tokens WHERE "+predicate, args...)
 	return err
 }
@@ -141,6 +148,12 @@ func (r *Repository) ClaimMail(ctx context.Context, now int) (mailer.Job, error)
 	}
 	defer tx.Rollback()
 	// Remove expired secrets and bound retained metadata to seven days.
+	if _, err = r.Store.Exec(ctx, tx, "UPDATE email_challenges SET code_digest='' WHERE expires_at<=?", now); err != nil {
+		return mailer.Job{}, err
+	}
+	if _, err = r.Store.Exec(ctx, tx, "DELETE FROM email_challenges WHERE created_at<?", now-7*24*60*60); err != nil {
+		return mailer.Job{}, err
+	}
 	if _, err = r.Store.Exec(ctx, tx, "UPDATE mail_jobs SET state='dead',payload='',last_error='EXPIRED' WHERE state IN ('pending','sending') AND expires_at<=?", now); err != nil {
 		return mailer.Job{}, err
 	}

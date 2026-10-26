@@ -17,6 +17,7 @@ import (
 	"sync"
 	"unicode/utf8"
 
+	"github.com/yunnuo/unicore/assets/theme"
 	"github.com/yunnuo/unicore/internal/contracts"
 )
 
@@ -68,7 +69,9 @@ func ValidBaseURL(value string) bool {
 }
 
 var Definitions = []SettingDefinition{
-	{"site.name", "string", "site", "站点名称", "Unicore", false, false, func(v string) bool { return strings.TrimSpace(v) != "" && text(64)(v) }},
+	{"site.name", "string", "site", "站点名称", theme.Current.Brand.Name, false, false, func(v string) bool {
+		return strings.TrimSpace(v) != "" && !strings.ContainsAny(v, "\r\n") && text(64)(v)
+	}},
 	{"site.description", "string", "site", "站点描述", "一份核心，无限可能", false, false, text(240)},
 	{"site.copyright", "string", "site", "页脚版权", "Crafted by yunnuo", false, false, text(160)},
 	{"appearance.theme", "string", "appearance", "默认主题", "system", false, false, oneOf("light", "dark", "system")},
@@ -77,6 +80,7 @@ var Definitions = []SettingDefinition{
 	{"security.session_hours", "integer", "security", "会话有效期（小时）", "24", true, false, integer(1, 168)},
 	{"security.register_captcha", "boolean", "security", "注册图形验证码", "true", true, false, oneOf("true", "false")},
 	{"account.registration_enabled", "boolean", "account", "开放注册（需验证邮箱）", "false", true, false, oneOf("true", "false")},
+	{"account.email_login_enabled", "boolean", "account", "邮箱验证码登录", "false", true, false, oneOf("true", "false")},
 	{"account.password_reset_enabled", "boolean", "account", "邮件找回密码", "false", true, false, oneOf("true", "false")},
 	{"mail.host", "string", "mail", "SMTP 主机", "", true, false, func(v string) bool { return len(v) <= 253 && !strings.ContainsAny(v, "\r\n /@") }},
 	{"mail.port", "integer", "mail", "SMTP 端口", "587", true, false, integer(1, 65535)},
@@ -263,7 +267,7 @@ func (s *Service) Patch(ctx context.Context, input contracts.SettingPatch, actor
 			return contracts.Settings{}, ErrInvalid
 		}
 	}
-	if current["account.registration_enabled"] == "true" || current["account.password_reset_enabled"] == "true" {
+	if current["account.email_login_enabled"] == "true" || current["account.registration_enabled"] == "true" || current["account.password_reset_enabled"] == "true" {
 		if !MailReady(current) {
 			return contracts.Settings{}, ErrMailNotReady
 		}

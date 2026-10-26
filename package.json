@@ -4,7 +4,10 @@
   "private": true,
   "author": "yunnuo <ymz@ebox.vip>",
   "packageManager": "pnpm@11.25.0",
-  "engines": { "node": ">=22", "pnpm": ">=11" },
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=11"
+  },
   "scripts": {
     "dev": "pnpm --filter @unicore/web dev",
     "build": "pnpm --filter @unicore/web build && pnpm --filter @unicore/desktop build",
@@ -14,10 +17,14 @@
     "check:authors": "node scripts/check-authors.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "design:generate": "node scripts/generate-theme.mjs && node scripts/generate-brand.mjs && node scripts/sync-brand.mjs",
+    "check:design": "node scripts/generate-theme.mjs --check && node scripts/generate-brand.mjs --check && node scripts/check-design.mjs",
+    "test:theme": "node scripts/verify-theme.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",
+    "@resvg/resvg-js": "2.6.2",
     "@testing-library/jest-dom": "6.9.1",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",

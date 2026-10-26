@@ -6,8 +6,13 @@ package main
 
 import (
 	"context"
+	"github.com/wailsapp/wails/v2/pkg/options/linux"
+	"github.com/wailsapp/wails/v2/pkg/options/mac"
+	"github.com/yunnuo/unicore/assets/brand"
+	"github.com/yunnuo/unicore/assets/theme"
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -30,11 +35,18 @@ func main() {
 		bridge = desktop.NewLocal(bootstrap.Core(), service)
 	}
 	if err := wails.Run(&options.App{
-		Title: "Unicore", Width: 1280, Height: 840, MinWidth: 375, MinHeight: 600,
-		BackgroundColour: &options.RGBA{R: 247, G: 248, B: 250, A: 255},
+		Title: theme.Current.Brand.Name, Width: 1280, Height: 840, MinWidth: 375, MinHeight: 600,
+		BackgroundColour: nativeBackground(),
+		Mac:              &mac.Options{About: &mac.AboutInfo{Title: theme.Current.Brand.Name, Message: "Go + React · yunnuo · ymz@ebox.vip", Icon: brand.AppIcon}},
+		Linux:            &linux.Options{Icon: brand.AppIcon, ProgramName: "unicore", WebviewGpuPolicy: linux.WebviewGpuPolicyNever},
 		AssetServer:      &assetserver.Options{Assets: desktopassets.FS()},
 		Bind:             []interface{}{bridge},
 	}); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func nativeBackground() *options.RGBA {
+	value, _ := strconv.ParseUint(theme.Current.Light["bg"][1:], 16, 24)
+	return &options.RGBA{R: uint8(value >> 16), G: uint8(value >> 8), B: uint8(value), A: 255}
 }

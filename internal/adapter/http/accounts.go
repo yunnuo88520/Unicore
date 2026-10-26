@@ -13,6 +13,7 @@ import (
 )
 
 func mountAccounts(api chi.Router, config Config) {
+	mountEmail(api, config)
 	manager := config.Install
 	accounts := func(w http.ResponseWriter) *platform.Accounts {
 		service := manager.Accounts()

@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/yunnuo/unicore/assets/theme"
 	"golang.org/x/crypto/argon2"
 )
 
@@ -133,7 +134,7 @@ func (c *Captchas) Create() (id, image string) {
 	if len(c.items) >= 2000 {
 		return "", ""
 	}
-	var digits [4]byte
+	var digits [6]byte
 	if _, err := rand.Read(digits[:]); err != nil {
 		panic(err)
 	}
@@ -142,11 +143,11 @@ func (c *Captchas) Create() (id, image string) {
 	for i, digit := range digits {
 		d := strconv.Itoa(int(digit) % 10)
 		answer += d
-		glyphs += fmt.Sprintf(`<text x="%d" y="32" transform="rotate(%d %d 26)">%s</text>`, 14+i*31, int(digit)%25-12, 14+i*31, d)
+		glyphs += fmt.Sprintf(`<text x="%d" y="32" transform="rotate(%d %d 26)">%s</text>`, 12+i*26, int(digit)%25-12, 12+i*26, d)
 	}
 	id = Token()
 	c.items[id] = challenge{Hash(answer), now.Add(2 * time.Minute)}
-	svg := `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="44"><rect width="144" height="44" fill="#f0eeff"/><path d="M0 15L144 28M0 37L144 8" stroke="#b8b0ee"/><g fill="#5147a0" font-family="monospace" font-size="27">` + glyphs + `</g></svg>`
+	svg := fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" width="172" height="44"><rect width="172" height="44" fill="%s"/><path d="M0 15L172 28M0 37L172 8" stroke="%s"/><g fill="%s" font-family="monospace" font-size="27">`+glyphs+`</g></svg>`, theme.Current.Light["primary-soft"], theme.Current.Light["primary-border"], theme.Current.Light["primary"])
 	return id, "data:image/svg+xml;base64," + base64.StdEncoding.EncodeToString([]byte(svg))
 }
 func (c *Captchas) Consume(id, answer string) bool {

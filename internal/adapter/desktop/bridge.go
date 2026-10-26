@@ -27,7 +27,7 @@ func NewLocal(core usecase.Executor, service *settings.Service) *Bridge {
 func (b *Bridge) Bootstrap() contracts.BootstrapResponse {
 	data := runtime.Metadata(runtime.Desktop, "native")
 	if b.settings != nil {
-		data.Stage = "M2a"
+		data.Stage = "M2c"
 		data.Capabilities.Database = true
 		data.Capabilities.Settings = true
 		if name, err := b.settings.Value(context.Background(), "site.name"); err == nil {

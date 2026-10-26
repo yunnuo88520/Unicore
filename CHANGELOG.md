@@ -1,7 +1,14 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # Changelog
 
-## Unreleased — M2b（2026-10-26）
+## Unreleased — M2c（2026-10-26）
+
+- 统一设计 tokens 和离线图标生成，覆盖 Web/Wails/favicon/ICO/系统关于/Linux 窗口；支持单入口换色、字体/字号、圆角、间距、图标线宽和动效。
+- 四种配套中文邮件模板、HTML/纯文本、CID 品牌图和后台预览；QQ SMTP 实投与收件端确认。
+- 六位数字邮箱验证、登录、找回密码；HMAC、10 分钟期限、60 秒重发、5 次错误上限及平台 migration 0004。
+- PC/375px 浅深主题页面截图、原生 macOS 实操、全局换色验证；未实现能力仍按路线图标注。
+
+## M2b（2026-10-26）
 
 - SMTP TLS/STARTTLS、真实测试门槛、加密密钥与保持/清空语义。
 - 平台注册默认关闭，pending 邮箱验证、重发验证和邮件找回密码。

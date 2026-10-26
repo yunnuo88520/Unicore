@@ -26,9 +26,9 @@ func TestCaptchaOneUse(t *testing.T) {
 		t.Fatal("missing captcha")
 	}
 	captchas.mu.Lock()
-	captchas.items[id] = challenge{hash: Hash("1234"), expires: time.Now().Add(time.Minute)}
+	captchas.items[id] = challenge{hash: Hash("012345"), expires: time.Now().Add(time.Minute)}
 	captchas.mu.Unlock()
-	if !captchas.Consume(id, "1234") || captchas.Consume(id, "1234") {
+	if !captchas.Consume(id, "012345") || captchas.Consume(id, "012345") {
 		t.Fatal("captcha was replayable")
 	}
 }

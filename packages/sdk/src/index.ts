@@ -1,9 +1,9 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Shared UI client; pages know neither fetch nor Wails globals.
  */
-import type { Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList } from '@unicore/contracts';
+import type { Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList } from '@unicore/contracts';
 
-export type { Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList } from '@unicore/contracts';
+export type { Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList } from '@unicore/contracts';
 
 export class AppError extends Error {
   constructor(public readonly code: string, message: string, public readonly requestId = '') { super(message); this.name = 'AppError'; }
@@ -19,6 +19,10 @@ export interface AppClient {
 }
 
 export interface WebClient {
+ registerCode(input:RegisterInput):Promise<EmailChallenge>;
+ requestCode(purpose:"verify"|"reset"|"login",input:EmailRequest):Promise<EmailChallenge>;
+ completeCode(purpose:"verify"|"reset"|"login",input:EmailCodeInput):Promise<Session|{success:boolean}>;
+ mailTemplates():Promise<MailTemplateList>;
  authPolicy(): Promise<AuthPolicy>;
  register(input:RegisterInput):Promise<{success:boolean}>;
  requestVerification(input:EmailRequest):Promise<{success:boolean}>;
@@ -65,7 +69,11 @@ export class HttpTransport implements AppClient, WebClient {
   async bootstrap() { const data = await this.request<Bootstrap>('/bootstrap'); this.csrf = data.csrf_token ?? ''; this.platform = data.profile === 'web-platform'; return data; }
   execute(input: ExecuteInput) { return this.request<ExecuteOutput>('/core/execute', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) }); }
   private send<T>(path: string, input: unknown, method = 'POST', headers: Record<string, string> = {}) { return this.request<T>(path, { method, headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(input) }); }
-  authPolicy(){return this.request<AuthPolicy>('/auth/policy');}
+  registerCode(input:RegisterInput){return this.send<EmailChallenge>('/auth/email/register',input);}
+ requestCode(purpose:'verify'|'reset'|'login',input:EmailRequest){return this.send<EmailChallenge>(`/auth/email/${purpose}/request`,input);}
+ async completeCode(purpose:'verify'|'reset'|'login',input:EmailCodeInput){const result=await this.send<Session|{success:boolean}>(`/auth/email/${purpose}/complete`,input);if('csrf_token' in result)this.csrf=result.csrf_token;return result;}
+ mailTemplates(){return this.request<MailTemplateList>('/admin/settings/mail/templates');}
+ authPolicy(){return this.request<AuthPolicy>('/auth/policy');}
  register(input:RegisterInput){return this.send<{success:boolean}>('/auth/register',input);}
  requestVerification(input:EmailRequest){return this.send<{success:boolean}>('/auth/verification/request',input);}
  verifyEmail(token:string){return this.send<{success:boolean}>('/auth/verification/complete',{token});}

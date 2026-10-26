@@ -268,6 +268,7 @@ export interface AuthPolicy {
   login_captcha: boolean;
   register_captcha: boolean;
   mail_ready: boolean;
+  email_login_enabled: boolean;
 }
 
 export interface RegisterInput {
@@ -321,5 +322,42 @@ export interface MailJobListResponse {
   code: string;
   message: string;
   data: MailJobList;
+  request_id: string;
+}
+
+export interface EmailChallenge {
+  challenge_id: string;
+  expires_in: number;
+  retry_after: number;
+}
+
+export interface EmailCodeInput {
+  challenge_id: string;
+  code: string;
+  password: string;
+}
+
+export interface MailTemplate {
+  purpose: string;
+  subject: string;
+  html: string;
+  text: string;
+}
+
+export interface MailTemplateList {
+  items: Array<MailTemplate>;
+}
+
+export interface EmailChallengeResponse {
+  code: string;
+  message: string;
+  data: EmailChallenge;
+  request_id: string;
+}
+
+export interface MailTemplateListResponse {
+  code: string;
+  message: string;
+  data: MailTemplateList;
   request_id: string;
 }

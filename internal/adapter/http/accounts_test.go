@@ -134,7 +134,7 @@ func TestMailAccountHTTP(t *testing.T) {
 	}
 	lastToken := func() string {
 		messages := smtp.Messages()
-		match := regexp.MustCompile(`token=([A-Za-z0-9_-]{43})`).FindStringSubmatch(messages[len(messages)-1])
+		match := regexp.MustCompile(`token=([A-Za-z0-9_-]{43})`).FindStringSubmatch(testutil.MailText(messages[len(messages)-1]))
 		if len(match) != 2 {
 			t.Fatal("email token missing")
 		}
@@ -162,4 +162,36 @@ func TestMailAccountHTTP(t *testing.T) {
 	if strings.Contains(jobs.Body.String(), reset) || strings.Contains(jobs.Body.String(), registration.Email) {
 		t.Fatal("mail job API exposed payload")
 	}
+	// New six-digit flows and protected HTML previews use the same production router.
+	assertStatus(request("GET", "/admin/settings/mail/templates", nil, memberRaw, "", ""), 403)
+	previews := request("GET", "/admin/settings/mail/templates", nil, raw, "", "")
+	assertStatus(previews, 200)
+	if !strings.Contains(previews.Body.String(), "654321") || strings.Contains(previews.Body.String(), "http-smtp-test-secret") {
+		t.Fatal("unsafe preview response")
+	}
+	assertStatus(patch(contracts.SettingChange{Key: "account.email_login_enabled", Value: "true"}), 200)
+	id, answer = challenge()
+	codeRequest := request("POST", "/auth/email/login/request", contracts.EmailRequest{Email: registration.Email, CaptchaID: id, CaptchaAnswer: answer}, "", "", "")
+	assertStatus(codeRequest, 200)
+	var codeChallenge contracts.EmailChallengeResponse
+	if err = json.Unmarshal(codeRequest.Body.Bytes(), &codeChallenge); err != nil {
+		t.Fatal(err)
+	}
+	if err = manager.Mail().Tick(ctx, int(time.Now().Unix())); err != nil {
+		t.Fatal(err)
+	}
+	messages := smtp.Messages()
+	matches := regexp.MustCompile(`验证码：([0-9]{6})`).FindStringSubmatch(testutil.MailText(messages[len(messages)-1]))
+	if len(matches) != 2 {
+		t.Fatal("six-digit email code missing")
+	}
+	codeInput := contracts.EmailCodeInput{ChallengeID: codeChallenge.Data.ChallengeID, Code: matches[1], Password: ""}
+	assertStatus(request("POST", "/auth/email/reset/complete", codeInput, "", "", ""), 400)
+	completed := request("POST", "/auth/email/login/complete", codeInput, "", "", "")
+	assertStatus(completed, 200)
+	assertStatus(request("POST", "/auth/email/login/complete", codeInput, "", "", ""), 400)
+	if len(completed.Result().Cookies()) != 1 {
+		t.Fatal("email login did not create cookie")
+	}
+
 }

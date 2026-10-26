@@ -5,15 +5,21 @@ package secret
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
-type Store struct{ aead cipher.AEAD }
+type Store struct {
+	aead      cipher.AEAD
+	digestKey []byte
+}
 
 func Open(directory, external string) (*Store, error) {
 	var key []byte
@@ -44,7 +50,9 @@ func Open(directory, external string) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Store{aead}, nil
+	derived := hmac.New(sha256.New, key)
+	derived.Write([]byte("unicore.email.challenge.key.v1"))
+	return &Store{aead: aead, digestKey: derived.Sum(nil)}, nil
 }
 func (s *Store) Seal(value string) string {
 	nonce := make([]byte, s.aead.NonceSize())
@@ -97,3 +105,10 @@ func AtomicWrite(path string, data []byte) error {
 	return nil
 }
 func ReadToken(value string) string { return strings.TrimSpace(value) }
+
+// Digest binds low-entropy codes to the instance key and challenge context.
+func (s *Store) Digest(value string) string {
+	mac := hmac.New(sha256.New, s.digestKey)
+	mac.Write([]byte(value))
+	return hex.EncodeToString(mac.Sum(nil))
+}

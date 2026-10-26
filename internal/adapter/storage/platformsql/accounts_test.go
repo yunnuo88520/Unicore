@@ -27,7 +27,7 @@ import (
 func exerciseMailLifecycle(t *testing.T, ctx context.Context, store *sqlstore.Store, repository *Repository, admin contracts.User) {
 	t.Helper()
 	// Recreate the exact M2a schema level without touching its users, sessions or settings.
-	for _, query := range []string{"DROP TABLE mail_jobs", "DROP TABLE account_tokens", "DELETE FROM schema_migrations WHERE version=3"} {
+	for _, query := range []string{"DROP TABLE email_challenges", "DELETE FROM schema_migrations WHERE version=4", "DROP TABLE mail_jobs", "DROP TABLE account_tokens", "DELETE FROM schema_migrations WHERE version=3"} {
 		if _, err := store.DB.ExecContext(ctx, query); err != nil {
 			t.Fatal(err)
 		}
@@ -122,7 +122,7 @@ func exerciseMailLifecycle(t *testing.T, ctx context.Context, store *sqlstore.St
 	}
 	lastToken := func() string {
 		messages := smtp.Messages()
-		matches := regexp.MustCompile(`token=([A-Za-z0-9_-]{43})`).FindStringSubmatch(messages[len(messages)-1])
+		matches := regexp.MustCompile(`token=([A-Za-z0-9_-]{43})`).FindStringSubmatch(testutil.MailText(messages[len(messages)-1]))
 		if len(matches) != 2 {
 			t.Fatal("message link missing")
 		}
@@ -237,4 +237,5 @@ func exerciseMailLifecycle(t *testing.T, ctx context.Context, store *sqlstore.St
 	if strings.Contains(string(raw), "token") || strings.Contains(string(raw), "newmember") {
 		t.Fatal("queue metadata disclosed secrets")
 	}
+	exerciseEmailCodes(t, ctx, store, repository, accounts, input.Email)
 }

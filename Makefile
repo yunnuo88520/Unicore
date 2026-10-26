@@ -14,12 +14,15 @@ dev-web:
 dev-server:
 	go run ./cmd/server
 dev-desktop:
+	pnpm design:generate
 	cd cmd/desktop && wails dev -tags desktop
 dev-cli:
 	go run ./cmd/cli $(ARGS)
 generate:
 	pnpm generate
+	pnpm design:generate
 test:
+	pnpm check:design
 	pnpm check:contracts
 	pnpm check:authors
 	go run ./scripts/check-boundaries
@@ -33,8 +36,10 @@ build-web:
 	pnpm --filter @unicore/web build
 	go build -trimpath -ldflags '$(LDFLAGS)' -o build/bin/server ./cmd/server
 build-cli:
+	pnpm design:generate
 	go build -trimpath -ldflags '$(LDFLAGS)' -o build/bin/unicore ./cmd/cli
 build-desktop:
+	pnpm design:generate
 	cd cmd/desktop && wails build -tags desktop -ldflags '$(LDFLAGS)'
 build-all: build-web build-cli build-desktop
 release:

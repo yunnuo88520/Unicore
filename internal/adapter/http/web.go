@@ -156,7 +156,7 @@ func coreAccess(manager *install.Manager, w http.ResponseWriter, r *http.Request
 func metadata(config Config, r *http.Request) contracts.Bootstrap {
 	_, service, identity, profile := config.Install.Services()
 	data := runtime.Metadata(profile, config.Metadata.DeploymentKind)
-	data.Stage = "M2b"
+	data.Stage = "M2c"
 	data.Installed = config.Install.Installed()
 	data.SiteName = "Unicore"
 	data.AdminPath = config.Install.AdminPath(r.Context())

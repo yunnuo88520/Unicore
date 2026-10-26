@@ -1,5 +1,6 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Accessible three-state local theme preference with system updates.
+import tokens from '../../../assets/theme/resolved.gen.json';
 import { useEffect, useRef, useState } from 'react';
 
 export type Theme = 'light' | 'dark' | 'system';
@@ -12,7 +13,7 @@ export function useTheme(defaultTheme?: string) {
   useEffect(() => { if (!hasPreference.current && (defaultTheme === 'light' || defaultTheme === 'dark' || defaultTheme === 'system')) setTheme(defaultTheme); }, [defaultTheme]);
   useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)');
-    const apply = () => { document.documentElement.dataset.theme = theme === 'system' ? (media.matches ? 'dark' : 'light') : theme; };
+    const apply = () => { const mode = theme === 'system' ? (media.matches ? 'dark' : 'light') : theme; document.documentElement.dataset.theme = mode; document.querySelector('meta[name="theme-color"]')?.setAttribute('content', tokens[mode]['brand-accent']); };
     apply();
     try { localStorage.setItem('unicore.theme', theme); } catch { /* Restricted webviews can disable storage. */ }
     media.addEventListener('change', apply);

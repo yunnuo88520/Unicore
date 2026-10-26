@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider, useMutation, useQuery } from '@tanstack/react-query';
 import { Activity, ArrowDown, ArrowRight, ArrowUpRight, Braces, Check, CheckCircle2, ChevronRight, Circle, Code2, Copy, Cpu, ExternalLink, FlaskConical, Globe2, Info, Layers3, LayoutDashboard, LoaderCircle, Menu, Monitor, Moon, Play, Radio, RotateCcw, Settings2, ShieldCheck, Sparkles, Sun, Terminal, Users, X } from 'lucide-react';
+import { BrandMark, BrandLockup } from './brand';
 import { AppError, type AppClient, type Bootstrap, type ExecuteOutput, type Profile } from '@unicore/sdk';
 import { useTheme, type Theme } from './theme';
 import { DashboardWidgetRegistry } from './registry';
@@ -45,7 +46,7 @@ function App({ client, registry }: { client: AppClient; registry: DashboardWidge
     <a className="skip-link" href="#main-content">跳至主要内容</a>
     {mobileOpen && <button className="nav-scrim" aria-label="关闭导航" onClick={() => setMobileOpen(false)} />}
     <aside className={`sidebar ${mobileOpen ? 'is-open' : ''}`} aria-label="主导航">
-      <a className="brand" href="#overview" onClick={() => navigate('overview')}><span className="brand-mark"><Layers3 size={23} strokeWidth={2.4} /></span><span>unicore<span className="brand-dot">.</span></span><span className="brand-tag">FRAMEWORK</span></a>
+      <a className="brand" href="#overview" onClick={() => navigate('overview')}><BrandLockup name={metadata.data?.site_name} /><span className="brand-tag">FRAMEWORK</span></a>
       <button className="workspace-switch" onClick={() => setAbout(true)}><span className="workspace-icon"><Braces size={19} /></span><span><strong>{metadata.data?.site_name ?? '默认工作空间'}</strong><small>Unicore 应用基座</small></span><span className="workspace-stage">{metadata.data?.stage ?? 'M2a'}</span></button>
       <div className="nav-caption">工作空间</div>
       <nav>{([{ id: 'overview', icon: LayoutDashboard }, { id: 'lab', icon: FlaskConical }, { id: 'settings', icon: Settings2 }] as const).map(({ id, icon: Icon }) => <button key={id} className={`nav-item ${page === id ? 'active' : ''}`} aria-current={page === id ? 'page' : undefined} onClick={() => navigate(id)}><Icon size={19} /><span>{PAGE_LABELS[id]}</span>{page === id && <span className="nav-active-dot" />}</button>)}</nav>
@@ -53,7 +54,7 @@ function App({ client, registry }: { client: AppClient; registry: DashboardWidge
       {permissions.includes('dashboard:read') && <button className={`nav-item ${page === 'admin' ? 'active' : ''}`} onClick={() => navigate('admin')}><LayoutDashboard size={18} /><span>平台仪表盘</span></button>}
       {permissions.includes('users:read') && <button className={`nav-item ${page === 'users' ? 'active' : ''}`} onClick={() => navigate('users')}><Users size={18} /><span>用户管理</span></button>}
       {metadata.data?.capabilities.settings && (metadata.data.profile !== 'web-platform' || permissions.includes('settings:read')) && <button className={`nav-item ${page === 'site' ? 'active' : ''}`} onClick={() => navigate('site')}><Settings2 size={18} /><span>实例设置</span></button>}
-      {metadata.data?.current_user && client.web && <button className="nav-item" onClick={() => { void client.web!.logout().then(refresh, refresh); }}><ArrowUpRight size={18} /><span>退出登录</span></button>}
+      {metadata.data?.current_user && client.web && <button className="nav-item" onClick={() => { void client.web!.logout().then(() => { navigate('overview'); refresh(); }, refresh); }}><ArrowUpRight size={18} /><span>退出登录</span></button>}
       <div className="nav-caption roadmap-caption">框架路线图</div>
 
       <div className="nav-item unavailable"><ShieldCheck size={18} /><span>企业集成</span><small>M3</small></div>
@@ -65,11 +66,11 @@ function App({ client, registry }: { client: AppClient; registry: DashboardWidge
         {metadata.isPending ? <div className="state-card" role="status"><LoaderCircle className="spin" size={24} /><strong>正在连接 Go 核心</strong><p>正在获取当前运行形态与能力信息…</p></div> : metadata.isError ? <div className="state-card error-state" role="alert"><Radio size={26} /><strong>暂时无法连接核心</strong><p>{metadata.error.message}</p><button className="primary-button" onClick={() => metadata.refetch()}><RotateCcw size={16} />重新连接</button></div> : <>
           {!permitted ? <div className="state-card" role="alert"><ShieldCheck size={26} /><strong>没有访问权限</strong><p>请联系实例管理员授予相关权限。</p></div> : page === 'admin' && client.web ? <AdminDashboard web={client.web} /> : page === 'users' && client.web ? <UserManagement web={client.web} metadata={metadata.data} /> : page === 'site' && client.settings && client.patchSettings ? <PersistentSettings client={client} onSaved={refresh} /> : page === 'settings' ? <Appearance theme={theme} setTheme={setTheme} /> : <>
             <RuntimeCards metadata={metadata.data} transport={client.transport} />
-            {page === 'overview' && <div className="intro-banner"><span className="banner-orbit orbit-one" /><span className="banner-orbit orbit-two" /><div className="banner-content"><span className="banner-tag"><Sparkles size={13} /> 为下一款产品而生</span><h2>构建一次，连接每个终端。</h2><p>领域逻辑保持纯粹，交互体验始终一致。</p><button onClick={() => navigate('lab')}>探索核心实验室 <ArrowRight size={15} /></button></div><div className="banner-diagram" aria-hidden="true"><div className="diagram-core"><Layers3 size={30} /><span>Go Core</span></div><span className="diagram-line" /><div className="diagram-targets"><span><Globe2 size={17} /> Web</span><span><Monitor size={17} /> Desktop</span><span><Terminal size={17} /> CLI</span></div></div></div>}
+            {page === 'overview' && <div className="intro-banner"><span className="banner-orbit orbit-one" /><span className="banner-orbit orbit-two" /><div className="banner-content"><span className="banner-tag"><Sparkles size={13} /> 为下一款产品而生</span><h2>构建一次，连接每个终端。</h2><p>领域逻辑保持纯粹，交互体验始终一致。</p><button onClick={() => navigate('lab')}>探索核心实验室 <ArrowRight size={15} /></button></div><div className="banner-diagram" aria-hidden="true"><div className="diagram-core"><BrandMark size={30} /><span>Go Core</span></div><span className="diagram-line" /><div className="diagram-targets"><span><Globe2 size={17} /> Web</span><span><Monitor size={17} /> Desktop</span><span><Terminal size={17} /> CLI</span></div></div></div>}
             <div className="workspace-grid"><CoreLab client={client} /><div className="right-column"><Profiles current={metadata.data.profile} /><Architecture /></div></div>
             {registry.entries().map(widget => <section key={widget.id}>{widget.render(metadata.data)}</section>)}
           </>}
-          <div className="foundation-note"><Info size={15} /><span>文本分析不保存输入。实例设置独立持久化；SMTP、企业登录与在线升级将在后续阶段接入。</span></div>
+          <div className="foundation-note"><Info size={15} /><span>文本分析不保存输入。实例设置独立持久化；平台已支持 SMTP 账号邮件；企业登录与在线升级将在后续阶段接入。</span></div>
         </>}
         <footer><span>© {new Date().getFullYear()} {metadata.data?.site_name ?? 'Unicore'} · {metadata.data?.site_copyright ?? 'Crafted by yunnuo'}</span><span>Go + React <span className="footer-dot">·</span> {metadata.data ? `v${metadata.data.version}` : 'M2a'}</span></footer>
       </main>
@@ -143,5 +144,5 @@ function About({ onClose }: { onClose: () => void }) {
     window.addEventListener('keydown', keydown);
     return () => { window.removeEventListener('keydown', keydown); previous?.focus(); };
   }, [onClose]);
-  return <div className="modal-scrim" onClick={event => { if (event.target === event.currentTarget) onClose(); }}><div className="about-dialog" role="dialog" aria-modal="true" aria-labelledby="about-title" tabIndex={-1} ref={dialogRef}><button className="icon-button close-dialog" aria-label="关闭关于" onClick={onClose}><X size={20} /></button><span className="brand-mark"><Layers3 size={25} /></span><h2 id="about-title">Unicore</h2><p>一套 Go Core，一套 React UI。<br />为 Web、桌面与命令行构建可复用的应用基座。</p><div className="about-stack"><span>Go</span><span>React</span><span>Wails v2</span><span>Cobra</span></div><p className="muted">当前交付：M2b 邮件与账号流程。<br />完整范围、路线图与验收记录请阅读仓库 docs/。</p><a href="mailto:ymz@ebox.vip">yunnuo · ymz@ebox.vip <ExternalLink size={13} /></a></div></div>;
+  return <div className="modal-scrim" onClick={event => { if (event.target === event.currentTarget) onClose(); }}><div className="about-dialog" role="dialog" aria-modal="true" aria-labelledby="about-title" tabIndex={-1} ref={dialogRef}><button className="icon-button close-dialog" aria-label="关闭关于" onClick={onClose}><X size={20} /></button><BrandMark size={44} /><h2 id="about-title">Unicore</h2><p>一套 Go Core，一套 React UI。<br />为 Web、桌面与命令行构建可复用的应用基座。</p><div className="about-stack"><span>Go</span><span>React</span><span>Wails v2</span><span>Cobra</span></div><p className="muted">当前交付：M2c 品牌与六位验证码。<br />完整范围、路线图与验收记录请阅读仓库 docs/。</p><a href="mailto:ymz@ebox.vip">yunnuo · ymz@ebox.vip <ExternalLink size={13} /></a></div></div>;
 }

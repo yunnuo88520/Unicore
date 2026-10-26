@@ -1,5 +1,5 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
-# M2b 权限与错误契约
+# M2c 权限与错误契约
 
 平台默认拒绝。未登录 401；已登录但无权 403。已认证写操作校验 CSRF/Origin；公开账号流程校验 Origin、验证码/限流和按需的一次性令牌，安装操作单独校验 bootstrap token。super_admin 获得下列所有权限，user 无管理权限但可调用共享 Core。
 
@@ -9,7 +9,7 @@
 | users:read | GET /api/v1/admin/users |
 | users:create | POST /api/v1/admin/users；授予超管还需 actor 是超管 |
 | users:update | PATCH /api/v1/admin/users/{id}；当前角色/启停操作还需超管 |
-| settings:read | GET /api/v1/admin/settings、GET /api/v1/admin/settings/mail/jobs |
+| settings:read | GET /api/v1/admin/settings、GET /api/v1/admin/settings/mail/jobs、GET /api/v1/admin/settings/mail/templates |
 | settings:write | PATCH /api/v1/admin/settings、POST /api/v1/admin/settings/mail/test |
 
 单机/桌面只提供适用的本地设置，不创建 users/roles/sessions；CLI 不提供设置。权限定义源 internal/platform/service.go，具体 SQL adapter 存储 UserRole/RolePermission。后续业务角色编辑按既有关系扩展。
@@ -21,3 +21,5 @@ Cookie 为 unicore_session/HttpOnly/SameSite=Lax，HTTPS base_url 时 Secure。s
 公开平台 API：GET /auth/policy、GET /auth/captcha、POST /auth/register、POST /auth/verification/request、POST /auth/verification/complete、POST /auth/password/request、POST /auth/password/reset，均在 /api/v1 下；其他 profile 为 JSON 404。注册/申请受实例开关、SMTP 就绪、验证码和 IP/邮箱限流约束；消费使用分用途一次性令牌，无 GET 副作用。未知/重复/禁用账号申请统一成功，不返回用户或 token。
 
 新增错误：MAIL_NOT_READY、MAIL_DELIVERY_FAILED、ACCOUNT_FLOW_DISABLED、TOKEN_INVALID。设置 SMTP 密钥返回 value:""、sensitive:true、configured；PATCH value:"" 表示保留，clear:true 且 value:"" 表示清空。令牌/SMTP 响应/邮件内容不进入任务列表或审计。密码重置与用户状态/角色变化吊销待用令牌和全部会话；创建会话也校验密码版本。
+
+M2c 公开数字码 API：POST /auth/email/register；POST /auth/email/{verify,reset,login}/request 和 /complete。申请返回 challenge_id、expires_in、retry_after，未知/不适用账号同形响应。完成需要 challenge_id、6 位 code、password（仅 reset 使用，其他用途为空）。登录成功返回 Session 并设置 HttpOnly cookie。相同 Origin/限流/验证码和按用途策略约束，5 次错误后拒绝再消费。旧长链接 API 已 deprecated，仅供兼容。模板预览包含固定示例码，不包含真实邮件或 SMTP 配置。

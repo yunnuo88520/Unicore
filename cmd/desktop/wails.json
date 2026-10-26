@@ -1,6 +1,6 @@
 {
   "$schema": "https://wails.io/schemas/config.v2.json",
-  "name": "unicore",
+  "name": "Unicore",
   "outputfilename": "unicore-desktop",
   "frontend:dir": "../..",
   "frontend:install": "pnpm install --frozen-lockfile",
@@ -9,6 +9,15 @@
   "frontend:dev:serverUrl": "http://localhost:5174",
   "wailsjsdir": "../../apps/desktop",
   "build:dir": "../../build/desktop",
-  "author": { "name": "yunnuo", "email": "ymz@ebox.vip" },
-  "info": { "companyName": "yunnuo", "productName": "Unicore", "productVersion": "0.1.0" }
+  "author": {
+    "name": "yunnuo",
+    "email": "ymz@ebox.vip"
+  },
+  "info": {
+    "companyName": "yunnuo",
+    "productName": "Unicore",
+    "productVersion": "0.1.0",
+    "copyright": "© yunnuo · ymz@ebox.vip",
+    "comments": "Unicore · Go + React"
+  }
 }

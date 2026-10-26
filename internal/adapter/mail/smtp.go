@@ -7,7 +7,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
-	"fmt"
+
 	"net"
 	"net/smtp"
 	"strings"
@@ -21,7 +21,7 @@ import (
 type SMTP struct{ roots *x509.CertPool }
 
 func (s SMTP) Send(ctx context.Context, config mailer.Config, message mailer.Message) error {
-	if !settings.ValidEmail(config.From) || !settings.ValidEmail(message.To) || strings.ContainsAny(message.Subject, "\r\n") {
+	if !settings.ValidEmail(config.From) || !settings.ValidEmail(message.To) || strings.ContainsAny(message.Subject+message.FromName, "\r\n") {
 		return errors.New("invalid mail envelope")
 	}
 	if config.TLS != "tls" && config.TLS != "starttls" && config.TLS != "plain" {
@@ -81,7 +81,11 @@ func (s SMTP) Send(ctx context.Context, config mailer.Config, message mailer.Mes
 	if err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(writer, "From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n%s\r\n", config.From, message.To, message.Subject, strings.ReplaceAll(strings.ReplaceAll(message.Body, "\r\n", "\n"), "\n", "\r\n"))
+	data, encodeErr := encodeMessage(config, message)
+	if encodeErr != nil {
+		return encodeErr
+	}
+	_, err = writer.Write(data)
 	if err != nil {
 		return err
 	}

@@ -26,20 +26,21 @@ export function Workspace({ client, registry = new DashboardWidgetRegistry() }: 
 function App({ client, registry }: { client: AppClient; registry: DashboardWidgetRegistry }) {
   const pageFromHash = (): Page => { const hash = window.location.hash.slice(1); return hash === 'lab' || hash === 'settings' || hash === 'admin' || hash === 'users' || hash === 'site' ? hash : 'overview'; };
   const [page, setPage] = useState<Page>(pageFromHash);
+  const [route, setRoute] = useState(window.location.hash);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [about, setAbout] = useState(false);
   const metadata = useQuery({ queryKey: ['bootstrap', client.transport], queryFn: () => client.bootstrap() });
   const [theme, setTheme] = useTheme(metadata.data?.theme);
   useEffect(() => { if (metadata.data) document.title = `${metadata.data.site_name} · 工作空间`; }, [metadata.data?.site_name]);
   useEffect(() => {if (!window.location.hash && metadata.data?.current_user && window.location.pathname===metadata.data.admin_path) setPage('admin');},[metadata.data]);
-  useEffect(() => { const change = () => setPage(pageFromHash()); window.addEventListener('hashchange', change); return () => window.removeEventListener('hashchange', change); }, []);
+  useEffect(() => { const change = () => { setPage(pageFromHash()); setRoute(window.location.hash); }; window.addEventListener('hashchange', change); return () => window.removeEventListener('hashchange', change); }, []);
   function navigate(next: Page) { window.location.hash = next; setPage(next); setMobileOpen(false); }
-  const refresh = () => { void metadata.refetch(); };
+  const refresh = () => { setRoute(window.location.hash); void metadata.refetch(); };
   const permissions = metadata.data?.current_user?.permissions ?? [];
   const adminPages: Record<string, string> = { admin: 'dashboard:read', users: 'users:read', site: 'settings:read' };
   const permitted = page === 'site' && metadata.data?.profile !== 'web-platform' ? !!metadata.data?.capabilities.settings : !adminPages[page] || permissions.includes(adminPages[page]);
   if (metadata.data?.capabilities.installation && !metadata.data.installed && client.web) return <InstallWizard web={client.web} onDone={() => { window.history.replaceState({}, '', '/'); navigate('overview'); refresh(); }} />;
-  if (metadata.data?.capabilities.authentication && !metadata.data.current_user && client.web) return <LoginPage web={client.web} siteName={metadata.data.site_name} onDone={refresh} />;
+  if (metadata.data?.capabilities.authentication && (!metadata.data.current_user || /^#(verify-email|reset-password)(\?|$)/.test(route)) && client.web) return <LoginPage key={route} web={client.web} siteName={metadata.data.site_name} onDone={refresh} />;
   return <div className="app-shell">
     <a className="skip-link" href="#main-content">跳至主要内容</a>
     {mobileOpen && <button className="nav-scrim" aria-label="关闭导航" onClick={() => setMobileOpen(false)} />}
@@ -142,5 +143,5 @@ function About({ onClose }: { onClose: () => void }) {
     window.addEventListener('keydown', keydown);
     return () => { window.removeEventListener('keydown', keydown); previous?.focus(); };
   }, [onClose]);
-  return <div className="modal-scrim" onClick={event => { if (event.target === event.currentTarget) onClose(); }}><div className="about-dialog" role="dialog" aria-modal="true" aria-labelledby="about-title" tabIndex={-1} ref={dialogRef}><button className="icon-button close-dialog" aria-label="关闭关于" onClick={onClose}><X size={20} /></button><span className="brand-mark"><Layers3 size={25} /></span><h2 id="about-title">Unicore</h2><p>一套 Go Core，一套 React UI。<br />为 Web、桌面与命令行构建可复用的应用基座。</p><div className="about-stack"><span>Go</span><span>React</span><span>Wails v2</span><span>Cobra</span></div><p className="muted">当前交付：M2a 安装与平台基础。<br />完整范围、路线图与验收记录请阅读仓库 docs/。</p><a href="mailto:ymz@ebox.vip">yunnuo · ymz@ebox.vip <ExternalLink size={13} /></a></div></div>;
+  return <div className="modal-scrim" onClick={event => { if (event.target === event.currentTarget) onClose(); }}><div className="about-dialog" role="dialog" aria-modal="true" aria-labelledby="about-title" tabIndex={-1} ref={dialogRef}><button className="icon-button close-dialog" aria-label="关闭关于" onClick={onClose}><X size={20} /></button><span className="brand-mark"><Layers3 size={25} /></span><h2 id="about-title">Unicore</h2><p>一套 Go Core，一套 React UI。<br />为 Web、桌面与命令行构建可复用的应用基座。</p><div className="about-stack"><span>Go</span><span>React</span><span>Wails v2</span><span>Cobra</span></div><p className="muted">当前交付：M2b 邮件与账号流程。<br />完整范围、路线图与验收记录请阅读仓库 docs/。</p><a href="mailto:ymz@ebox.vip">yunnuo · ymz@ebox.vip <ExternalLink size={13} /></a></div></div>;
 }

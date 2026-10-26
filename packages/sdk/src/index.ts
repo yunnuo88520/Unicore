@@ -1,9 +1,9 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Shared UI client; pages know neither fetch nor Wails globals.
  */
-import type { Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch } from '@unicore/contracts';
+import type { Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList } from '@unicore/contracts';
 
-export type { Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch } from '@unicore/contracts';
+export type { Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList } from '@unicore/contracts';
 
 export class AppError extends Error {
   constructor(public readonly code: string, message: string, public readonly requestId = '') { super(message); this.name = 'AppError'; }
@@ -19,6 +19,14 @@ export interface AppClient {
 }
 
 export interface WebClient {
+ authPolicy(): Promise<AuthPolicy>;
+ register(input:RegisterInput):Promise<{success:boolean}>;
+ requestVerification(input:EmailRequest):Promise<{success:boolean}>;
+ verifyEmail(token:string):Promise<{success:boolean}>;
+ requestPasswordReset(input:EmailRequest):Promise<{success:boolean}>;
+ resetPassword(input:ResetInput):Promise<{success:boolean}>;
+ testMail(recipient:string):Promise<{success:boolean}>;
+ mailJobs():Promise<MailJobList>;
   installStatus(): Promise<InstallStatus>;
   verifyDatabase(token: string, input: DatabaseInput): Promise<{ success: boolean }>;
   completeInstall(token: string, input: InstallInput): Promise<InstallResult>;
@@ -57,6 +65,14 @@ export class HttpTransport implements AppClient, WebClient {
   async bootstrap() { const data = await this.request<Bootstrap>('/bootstrap'); this.csrf = data.csrf_token ?? ''; this.platform = data.profile === 'web-platform'; return data; }
   execute(input: ExecuteInput) { return this.request<ExecuteOutput>('/core/execute', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) }); }
   private send<T>(path: string, input: unknown, method = 'POST', headers: Record<string, string> = {}) { return this.request<T>(path, { method, headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(input) }); }
+  authPolicy(){return this.request<AuthPolicy>('/auth/policy');}
+ register(input:RegisterInput){return this.send<{success:boolean}>('/auth/register',input);}
+ requestVerification(input:EmailRequest){return this.send<{success:boolean}>('/auth/verification/request',input);}
+ verifyEmail(token:string){return this.send<{success:boolean}>('/auth/verification/complete',{token});}
+ requestPasswordReset(input:EmailRequest){return this.send<{success:boolean}>('/auth/password/request',input);}
+ resetPassword(input:ResetInput){return this.send<{success:boolean}>('/auth/password/reset',input);}
+ testMail(recipient:string){return this.send<{success:boolean}>('/admin/settings/mail/test',{recipient});}
+ mailJobs(){return this.request<MailJobList>('/admin/settings/mail/jobs');}
   installStatus() { return this.request<InstallStatus>('/install/status'); }
   verifyDatabase(token: string, input: DatabaseInput) { return this.send<{ success: boolean }>('/install/verify-db', input, 'POST', { 'X-Bootstrap-Token': token }); }
   completeInstall(token: string, input: InstallInput) { return this.send<InstallResult>('/install/complete', input, 'POST', { 'X-Bootstrap-Token': token }); }

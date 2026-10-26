@@ -14,10 +14,12 @@ import (
 	"time"
 
 	"github.com/gofrs/flock"
+	mailadapter "github.com/yunnuo/unicore/internal/adapter/mail"
 	"github.com/yunnuo/unicore/internal/adapter/storage/platformsql"
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/adapter/storage/webdb"
 	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/mailer"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/runtime"
 	"github.com/yunnuo/unicore/internal/secret"
@@ -52,6 +54,8 @@ type Manager struct {
 	store          *sqlstore.Store
 	settingService *settings.Service
 	identity       *platform.Service
+	accounts       *platform.Accounts
+	mail           *mailer.Service
 	adminOverride  string
 }
 
@@ -163,9 +167,12 @@ func (m *Manager) connect(ctx context.Context) (*sqlstore.Store, error) {
 }
 func (m *Manager) attach(store *sqlstore.Store) {
 	m.store = store
-	m.settingService = &settings.Service{Store: store, Profile: m.config.Profile}
+	m.settingService = &settings.Service{Store: store, Profile: m.config.Profile, Secrets: m.secret}
 	if m.config.Profile == runtime.WebPlatform {
-		m.identity = platform.New(&platformsql.Repository{Store: store})
+		repository := &platformsql.Repository{Store: store}
+		m.identity = platform.New(repository)
+		m.mail = &mailer.Service{Store: repository, Settings: m.settingService, Secrets: m.secret, Sender: mailadapter.SMTP{}}
+		m.accounts = &platform.Accounts{Identity: m.identity, Store: repository, Settings: m.settingService, Mail: m.mail, BaseURL: m.config.BaseURL}
 	}
 }
 func (m *Manager) recover(ctx context.Context) error {
@@ -432,3 +439,10 @@ func (m *Manager) Complete(ctx context.Context, token string, input contracts.In
 	}
 	return result, user, nil
 }
+
+func (m *Manager) Accounts() *platform.Accounts {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.accounts
+}
+func (m *Manager) Mail() *mailer.Service { m.mu.RLock(); defer m.mu.RUnlock(); return m.mail }

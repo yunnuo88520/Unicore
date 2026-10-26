@@ -3,11 +3,11 @@
 
 **一份 Go Core，一套 React UI，连接 Web、桌面与 CLI。**
 
-作者：yunnuo · ymz@ebox.vip · 版本：0.1.0 开发预览 · 当前阶段：M2a
+作者：yunnuo · ymz@ebox.vip · 版本：0.1.0 开发预览 · 当前阶段：M2b
 
-已实现共享文本分析 Core、Chi HTTP、Wails v2 桌面、Cobra CLI，以及 Web 一次性安装、SQLite/PostgreSQL/MySQL、平台本地登录/RBAC/用户管理、持久化设置。桌面自动创建本地 SQLite，无安装或登录；CLI 无 HTTP/Wails/数据库依赖。
+已实现共享文本分析 Core、Chi HTTP、Wails v2 桌面、Cobra CLI，以及 Web 一次性安装、SQLite/PostgreSQL/MySQL、平台本地登录/RBAC/用户管理、持久化设置与 SMTP 邮件账号流程。桌面自动创建本地 SQLite，无安装或登录；CLI 无 HTTP/Wails/数据库依赖。
 
-SMTP、注册与找回密码、OIDC、备份恢复、授权与升级仍在后续阶段；当前不作为生产发行。
+注册默认关闭；先保存 SMTP 并成功测试，才能启用邮箱验证注册和找回密码。OIDC、完整角色权限编辑、备份恢复、授权与升级仍在后续阶段；当前不作为生产发行。
 
 ## 启动
 
@@ -53,7 +53,7 @@ make release                     # 本地跨平台预览包，不发布或上传
 
 ## 文档
 
-- [M2a 验收报告](docs/04-ai/acceptance-m2a.md)、[M1 历史验收](docs/04-ai/acceptance-m1.md)
+- [M2b 验收报告](docs/04-ai/acceptance-m2b.md)、[M2a 验收](docs/04-ai/acceptance-m2a.md)、[M1 历史验收](docs/04-ai/acceptance-m1.md)
 - [完整设计基线](docs/00-product/design-v1.1.md)、[当前形态与里程碑](docs/00-product/PRD.md)
 - [架构](docs/01-architecture/architecture.md)、[规范](docs/02-standards/coding.md)、[部署与密钥恢复](docs/03-runbooks/deployment.md)
 - [M2 决策](docs/adr/ADR-0003-m2-install-storage-identity.md)、[权限清单](docs/api/permissions.md)、[协作约定](AGENTS.md)

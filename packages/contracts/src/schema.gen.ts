@@ -178,6 +178,7 @@ export interface SettingEntry {
   group: string;
   label: string;
   sensitive: boolean;
+  configured?: boolean;
 }
 
 export interface Settings {
@@ -187,6 +188,7 @@ export interface Settings {
 export interface SettingChange {
   key: string;
   value: string;
+  clear?: boolean;
 }
 
 export interface SettingPatch {
@@ -257,5 +259,67 @@ export interface ActionResultResponse {
   code: string;
   message: string;
   data: ActionResult;
+  request_id: string;
+}
+
+export interface AuthPolicy {
+  registration_enabled: boolean;
+  reset_enabled: boolean;
+  login_captcha: boolean;
+  register_captcha: boolean;
+  mail_ready: boolean;
+}
+
+export interface RegisterInput {
+  username: string;
+  email: string;
+  password: string;
+  captcha_id: string;
+  captcha_answer: string;
+}
+
+export interface EmailRequest {
+  email: string;
+  captcha_id: string;
+  captcha_answer: string;
+}
+
+export interface TokenInput {
+  token: string;
+}
+
+export interface ResetInput {
+  token: string;
+  password: string;
+}
+
+export interface MailTestInput {
+  recipient: string;
+}
+
+export interface MailJob {
+  id: string;
+  state: string;
+  attempts: number;
+  created_at: number;
+  available_at: number;
+  last_error: string;
+}
+
+export interface MailJobList {
+  items: Array<MailJob>;
+}
+
+export interface AuthPolicyResponse {
+  code: string;
+  message: string;
+  data: AuthPolicy;
+  request_id: string;
+}
+
+export interface MailJobListResponse {
+  code: string;
+  message: string;
+  data: MailJobList;
   request_id: string;
 }

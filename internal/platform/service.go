@@ -24,7 +24,7 @@ type Store interface {
 	CreateUser(context.Context, contracts.UserCreate, string, string) (contracts.User, error)
 	UpdateUser(context.Context, string, contracts.UserUpdate, string) (contracts.User, error)
 	ListUsers(context.Context, string, int, int) (contracts.UserList, error)
-	CreateSession(context.Context, string, string, int) error
+	CreateSession(context.Context, string, string, int, string) error
 	Session(context.Context, string) (contracts.User, int, error)
 	DeleteSession(context.Context, string) error
 	Dashboard(context.Context) (contracts.Dashboard, error)
@@ -81,12 +81,15 @@ func (s *Service) Login(ctx context.Context, input contracts.LoginInput, ip stri
 	if err != nil || !valid || account.User.Status != "active" {
 		return contracts.Session{}, "", ErrCredentials
 	}
-	return s.Issue(ctx, account.User, hours)
+	return s.issue(ctx, account.User, hours, account.PasswordHash)
 }
 func (s *Service) Issue(ctx context.Context, user contracts.User, hours int) (contracts.Session, string, error) {
+	return s.issue(ctx, user, hours, "")
+}
+func (s *Service) issue(ctx context.Context, user contracts.User, hours int, credentialHash string) (contracts.Session, string, error) {
 	token := Token()
 	expires := int(time.Now().Add(time.Duration(hours) * time.Hour).Unix())
-	if err := s.Store.CreateSession(ctx, Hash(token), user.ID, expires); err != nil {
+	if err := s.Store.CreateSession(ctx, Hash(token), user.ID, expires, credentialHash); err != nil {
 		return contracts.Session{}, "", err
 	}
 	return contracts.Session{User: user, CsrfToken: CSRF(token), ExpiresAt: expires}, token, nil

@@ -17,11 +17,11 @@ func main() {
 		target    string
 		forbidden []string
 	}{
-		{"./cmd/cli", []string{"net/http", "database/sql", "github.com/wailsapp/", "github.com/go-chi/", "github.com/yunnuo/unicore/internal/platform", "github.com/yunnuo/unicore/internal/adapter/storage", "modernc.org/sqlite", "github.com/mattn/go-sqlite3", "github.com/jackc/pgx", "github.com/go-sql-driver/"}},
-		{"./internal/domain", []string{"net/http", "database/sql", "github.com/wailsapp/", "github.com/yunnuo/unicore/internal/adapter", "github.com/yunnuo/unicore/internal/platform", "github.com/yunnuo/unicore/internal/usecase"}},
-		{"./internal/usecase", []string{"net/http", "database/sql", "github.com/wailsapp/", "github.com/yunnuo/unicore/internal/adapter", "github.com/yunnuo/unicore/internal/platform"}},
-		{"./internal/bootstrap/local", []string{"github.com/yunnuo/unicore/internal/platform", "github.com/yunnuo/unicore/internal/install", "github.com/yunnuo/unicore/internal/adapter/storage/platformsql", "github.com/yunnuo/unicore/internal/adapter/storage/webdb", "github.com/jackc/pgx", "github.com/go-sql-driver/mysql"}},
-		{"./internal/adapter/desktop", []string{"github.com/yunnuo/unicore/internal/platform", "github.com/yunnuo/unicore/internal/install", "github.com/yunnuo/unicore/internal/adapter/storage/platformsql"}},
+		{"./cmd/cli", []string{"net/http", "database/sql", "github.com/wailsapp/", "github.com/go-chi/", "github.com/yunnuo/unicore/internal/platform", "net/smtp", "github.com/yunnuo/unicore/internal/mailer", "github.com/yunnuo/unicore/internal/adapter/mail", "github.com/yunnuo/unicore/internal/adapter/storage", "modernc.org/sqlite", "github.com/mattn/go-sqlite3", "github.com/jackc/pgx", "github.com/go-sql-driver/"}},
+		{"./internal/domain", []string{"net/http", "database/sql", "github.com/wailsapp/", "github.com/yunnuo/unicore/internal/adapter", "github.com/yunnuo/unicore/internal/platform", "net/smtp", "github.com/yunnuo/unicore/internal/mailer", "github.com/yunnuo/unicore/internal/adapter/mail", "github.com/yunnuo/unicore/internal/usecase"}},
+		{"./internal/usecase", []string{"net/http", "database/sql", "github.com/wailsapp/", "github.com/yunnuo/unicore/internal/adapter", "github.com/yunnuo/unicore/internal/platform", "net/smtp", "github.com/yunnuo/unicore/internal/mailer"}},
+		{"./internal/bootstrap/local", []string{"github.com/yunnuo/unicore/internal/platform", "net/smtp", "github.com/yunnuo/unicore/internal/mailer", "github.com/yunnuo/unicore/internal/adapter/mail", "github.com/yunnuo/unicore/internal/install", "github.com/yunnuo/unicore/internal/adapter/storage/platformsql", "github.com/yunnuo/unicore/internal/adapter/storage/webdb", "github.com/jackc/pgx", "github.com/go-sql-driver/mysql"}},
+		{"./internal/adapter/desktop", []string{"github.com/yunnuo/unicore/internal/platform", "net/smtp", "github.com/yunnuo/unicore/internal/mailer", "github.com/yunnuo/unicore/internal/adapter/mail", "github.com/yunnuo/unicore/internal/install", "github.com/yunnuo/unicore/internal/adapter/storage/platformsql"}},
 	}
 	for _, check := range checks {
 		output, err := exec.Command("go", "list", "-deps", "-json", check.target).Output()

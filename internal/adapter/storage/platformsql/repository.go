@@ -163,6 +163,9 @@ func (r *Repository) UpdateUser(ctx context.Context, id string, input contracts.
 	if _, err = r.Store.Exec(ctx, tx, "DELETE FROM sessions WHERE user_id=?", id); err != nil {
 		return contracts.User{}, err
 	}
+	if err = r.cancelTokens(ctx, tx, id, ""); err != nil {
+		return contracts.User{}, err
+	}
 	if err = r.Store.Audit(ctx, tx, actor, "users.updated"); err != nil {
 		return contracts.User{}, err
 	}
@@ -207,7 +210,7 @@ func (r *Repository) ListUsers(ctx context.Context, search string, page, size in
 	}
 	return result, nil
 }
-func (r *Repository) CreateSession(ctx context.Context, hash, userID string, expires int) error {
+func (r *Repository) CreateSession(ctx context.Context, hash, userID string, expires int, credentialHash string) error {
 	tx, err := r.Store.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -216,11 +219,11 @@ func (r *Repository) CreateSession(ctx context.Context, hash, userID string, exp
 	if err = r.Store.LockInstallation(ctx, tx); err != nil {
 		return err
 	}
-	var status string
-	if err = r.Store.Row(ctx, tx, "SELECT status FROM users WHERE id=?", userID).Scan(&status); err != nil {
+	var status, passwordHash string
+	if err = r.Store.Row(ctx, tx, "SELECT status,password_hash FROM users WHERE id=?", userID).Scan(&status, &passwordHash); err != nil {
 		return err
 	}
-	if status != "active" {
+	if status != "active" || (credentialHash != "" && credentialHash != passwordHash) {
 		return platform.ErrCredentials
 	}
 	if _, err = r.Store.Exec(ctx, tx, "DELETE FROM sessions WHERE expires_at<=?", time.Now().Unix()); err != nil {

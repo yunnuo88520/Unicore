@@ -18,6 +18,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/install"
+	"github.com/yunnuo/unicore/internal/mailer"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/runtime"
 	"github.com/yunnuo/unicore/internal/settings"
@@ -31,6 +32,14 @@ func failure(w http.ResponseWriter, status int, code, message string) {
 func webError(w http.ResponseWriter, err error) {
 	status, code, message := 500, "INTERNAL_ERROR", "操作未完成，请重试"
 	switch {
+	case errors.Is(err, settings.ErrMailNotReady):
+		status, code, message = 409, "MAIL_NOT_READY", "请先保存 SMTP 配置并成功发送测试邮件，再启用邮件账号流程"
+	case errors.Is(err, mailer.ErrUnavailable):
+		status, code, message = 502, "MAIL_DELIVERY_FAILED", "邮件未能送达，请检查 SMTP 配置、TLS 与凭据"
+	case errors.Is(err, platform.ErrFlowDisabled):
+		status, code, message = 409, "ACCOUNT_FLOW_DISABLED", "此实例尚未开放该账号流程"
+	case errors.Is(err, platform.ErrAccountToken):
+		status, code, message = 400, "TOKEN_INVALID", "链接无效、已过期或已经使用，请重新申请"
 	case errors.Is(err, install.ErrToken):
 		status, code, message = 403, "BOOTSTRAP_TOKEN_INVALID", "安装凭据无效，请读取部署数据目录中的 bootstrap.token"
 	case errors.Is(err, install.ErrInstalled):
@@ -147,7 +156,7 @@ func coreAccess(manager *install.Manager, w http.ResponseWriter, r *http.Request
 func metadata(config Config, r *http.Request) contracts.Bootstrap {
 	_, service, identity, profile := config.Install.Services()
 	data := runtime.Metadata(profile, config.Metadata.DeploymentKind)
-	data.Stage = "M2a"
+	data.Stage = "M2b"
 	data.Installed = config.Install.Installed()
 	data.SiteName = "Unicore"
 	data.AdminPath = config.Install.AdminPath(r.Context())
@@ -198,6 +207,7 @@ func super(user contracts.User) bool {
 
 func mountWeb(api chi.Router, config Config) {
 	manager := config.Install
+	mountAccounts(api, config)
 	limiter := platform.NewLimiter()
 	api.Get("/install/status", func(w http.ResponseWriter, r *http.Request) { success(w, manager.Status()) })
 	api.Post("/install/verify-db", func(w http.ResponseWriter, r *http.Request) {

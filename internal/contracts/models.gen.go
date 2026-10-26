@@ -174,12 +174,13 @@ type Dashboard struct {
 }
 
 type SettingEntry struct {
-	Key       string `json:"key"`
-	Value     string `json:"value"`
-	ValueType string `json:"value_type"`
-	Group     string `json:"group"`
-	Label     string `json:"label"`
-	Sensitive bool   `json:"sensitive"`
+	Key        string `json:"key"`
+	Value      string `json:"value"`
+	ValueType  string `json:"value_type"`
+	Group      string `json:"group"`
+	Label      string `json:"label"`
+	Sensitive  bool   `json:"sensitive"`
+	Configured *bool  `json:"configured,omitempty"`
 }
 
 type Settings struct {
@@ -189,6 +190,7 @@ type Settings struct {
 type SettingChange struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
+	Clear *bool  `json:"clear,omitempty"`
 }
 
 type SettingPatch struct {
@@ -260,4 +262,66 @@ type ActionResultResponse struct {
 	Message   string       `json:"message"`
 	Data      ActionResult `json:"data"`
 	RequestID string       `json:"request_id"`
+}
+
+type AuthPolicy struct {
+	RegistrationEnabled bool `json:"registration_enabled"`
+	ResetEnabled        bool `json:"reset_enabled"`
+	LoginCaptcha        bool `json:"login_captcha"`
+	RegisterCaptcha     bool `json:"register_captcha"`
+	MailReady           bool `json:"mail_ready"`
+}
+
+type RegisterInput struct {
+	Username      string `json:"username"`
+	Email         string `json:"email"`
+	Password      string `json:"password"`
+	CaptchaID     string `json:"captcha_id"`
+	CaptchaAnswer string `json:"captcha_answer"`
+}
+
+type EmailRequest struct {
+	Email         string `json:"email"`
+	CaptchaID     string `json:"captcha_id"`
+	CaptchaAnswer string `json:"captcha_answer"`
+}
+
+type TokenInput struct {
+	Token string `json:"token"`
+}
+
+type ResetInput struct {
+	Token    string `json:"token"`
+	Password string `json:"password"`
+}
+
+type MailTestInput struct {
+	Recipient string `json:"recipient"`
+}
+
+type MailJob struct {
+	ID          string `json:"id"`
+	State       string `json:"state"`
+	Attempts    int    `json:"attempts"`
+	CreatedAt   int    `json:"created_at"`
+	AvailableAt int    `json:"available_at"`
+	LastError   string `json:"last_error"`
+}
+
+type MailJobList struct {
+	Items []MailJob `json:"items"`
+}
+
+type AuthPolicyResponse struct {
+	Code      string     `json:"code"`
+	Message   string     `json:"message"`
+	Data      AuthPolicy `json:"data"`
+	RequestID string     `json:"request_id"`
+}
+
+type MailJobListResponse struct {
+	Code      string      `json:"code"`
+	Message   string      `json:"message"`
+	Data      MailJobList `json:"data"`
+	RequestID string      `json:"request_id"`
 }

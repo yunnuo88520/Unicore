@@ -656,6 +656,294 @@
           }
         }
       }
+    },
+    "/api/v1/auth/policy": {
+      "get": {
+        "operationId": "authPolicy",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthPolicyResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "operationId": "register",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/verification/request": {
+      "post": {
+        "operationId": "requestVerification",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/verification/complete": {
+      "post": {
+        "operationId": "verifyEmail",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/password/request": {
+      "post": {
+        "operationId": "requestPasswordReset",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/password/reset": {
+      "post": {
+        "operationId": "resetPassword",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/settings/mail/test": {
+      "post": {
+        "operationId": "testMail",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MailTestInput"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "x-permission": "settings:write"
+      }
+    },
+    "/api/v1/admin/settings/mail/jobs": {
+      "get": {
+        "operationId": "mailJobs",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailJobListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "x-permission": "settings:read"
+      }
     }
   },
   "components": {
@@ -1300,6 +1588,9 @@
           },
           "sensitive": {
             "type": "boolean"
+          },
+          "configured": {
+            "type": "boolean"
           }
         }
       },
@@ -1331,6 +1622,9 @@
           },
           "value": {
             "type": "string"
+          },
+          "clear": {
+            "type": "boolean"
           }
         }
       },
@@ -1571,6 +1865,217 @@
           },
           "data": {
             "$ref": "#/components/schemas/ActionResult"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "AuthPolicy": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "registration_enabled",
+          "reset_enabled",
+          "login_captcha",
+          "register_captcha",
+          "mail_ready"
+        ],
+        "properties": {
+          "registration_enabled": {
+            "type": "boolean"
+          },
+          "reset_enabled": {
+            "type": "boolean"
+          },
+          "login_captcha": {
+            "type": "boolean"
+          },
+          "register_captcha": {
+            "type": "boolean"
+          },
+          "mail_ready": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RegisterInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "username",
+          "email",
+          "password",
+          "captcha_id",
+          "captcha_answer"
+        ],
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "captcha_id": {
+            "type": "string"
+          },
+          "captcha_answer": {
+            "type": "string"
+          }
+        }
+      },
+      "EmailRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "email",
+          "captcha_id",
+          "captcha_answer"
+        ],
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "captcha_id": {
+            "type": "string"
+          },
+          "captcha_answer": {
+            "type": "string"
+          }
+        }
+      },
+      "TokenInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "token"
+        ],
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        }
+      },
+      "ResetInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "token",
+          "password"
+        ],
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "MailTestInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "recipient"
+        ],
+        "properties": {
+          "recipient": {
+            "type": "string"
+          }
+        }
+      },
+      "MailJob": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "state",
+          "attempts",
+          "created_at",
+          "available_at",
+          "last_error"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "attempts": {
+            "type": "integer"
+          },
+          "created_at": {
+            "type": "integer"
+          },
+          "available_at": {
+            "type": "integer"
+          },
+          "last_error": {
+            "type": "string"
+          }
+        }
+      },
+      "MailJobList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MailJob"
+            }
+          }
+        }
+      },
+      "AuthPolicyResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AuthPolicy"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "MailJobListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MailJobList"
           },
           "request_id": {
             "type": "string"

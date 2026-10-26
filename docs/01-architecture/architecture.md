@@ -1,5 +1,5 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
-# 当前架构（M2a）
+# 当前架构（M2b）
 
 共享业务依赖链：`entry → adapter → usecase → domain`。`internal/contracts` 从 OpenAPI 生成；domain 无传输/DB/身份依赖。CLI 只调用 bootstrap.Core；Web 装配 install 与按安装 profile 初始化的平台身份；桌面只装配 bootstrap/local 的 SQLite 与 settings。
 
@@ -27,7 +27,7 @@ CLI / HTTP / Wails → usecase.Executor → domain.Analyze
 
 `UNINITIALIZED → INSTALLING → INSTALLED`，失败为 INSTALL_FAILED。私有 data dir 使用跨平台 flock；token 只在文件/环境，API 不返回。准备操作先持久化 intent；只有确认空库并保存 schema ownership 后才迁移。外部已安装或非空数据库拒绝迁移，失败重试不能绕过此检查。DB 的 install_state 与默认设置/管理员同一事务提交。重启恢复以唯一 DB 安装标记和实例 ID 为依据；profile 与实例不匹配拒绝接管。
 
-SQLite 使用 WAL、5 秒 busy timeout、单连接；PostgreSQL/MySQL 使用 bounded pool。分方言迁移嵌入二进制，版本 checksum 不可修改。SQLite/PostgreSQL DDL 事务；MySQL DDL 隐式提交，采用幂等 SQL，完全成功再记录版本。只创建本 profile 所需表；不自动回滚或 drop 数据。M2a 不承诺备份恢复工具已实现。
+SQLite 使用 WAL、5 秒 busy timeout、单连接；PostgreSQL/MySQL 使用 bounded pool。分方言迁移嵌入二进制，版本 checksum 不可修改。SQLite/PostgreSQL DDL 事务；MySQL DDL 隐式提交，采用幂等 SQL，完全成功再记录版本。只创建本 profile 所需表；不自动回滚或 drop 数据。M2b 平台新增 0003 的 account_tokens/mail_jobs，M2a 迁移 checksum 不变，单机/桌面停留 framework。M2b 不承诺备份恢复工具已实现。
 
 ## 认证与 API
 
@@ -44,3 +44,15 @@ HttpTransport 管理 cookie/CSRF 与 WebClient；页面不直接 fetch。WailsTr
 主题偏好 localStorage，持久实例默认主题在设置注册表；当前以设备偏好优先。UI hash 子页面复用到 Wails，Web 的 /install、/admin 与 /settings 入口由服务器处理。light/dark/system 与 375px 浏览器测试，表格可横向滚动但页面不溢出。
 
 桌面入口 `desktop || bindings`；绑定生成用编译期标记跳过真实用户存储。代码不使用环境变量来绕过该边界。CLI、Core 与桌面依赖隔离在 scripts/check-boundaries 中按实际 Go 依赖图验证。
+
+## 邮件与账号流程
+
+internal/platform/Accounts 编排策略、验证码/限流、注册与令牌；mailer 定义 Sender/队列 port，adapter/mail 实现 SMTP，platformsql 实现账号与投递事务。仅 Web 平台装配，服务进程每秒处理一个到期任务；桌面/CLI 不导入 SMTP 或队列模块。
+
+设置注册表声明 Sensitive，SecretStore 用原实例密钥 AES-GCM 加密；API 敏感值始终为空并返回 configured，空输入保留，clear:true 显式清除。SMTP 测试记录绑定主机/端口/TLS/发件人/用户名及随机密文版本，避免保存 SMTP 密码的快速哈希。更改配置会使测试记录不匹配；已开启的邮件流程须先关闭再更换配置。
+
+注册事务同时创建 pending 用户、user 角色、verify token 哈希和加密邮件；验证完成才变为 active。重发/重置申请对未知、禁用、已存在账号返回相同成功；重发会吊销同用途旧令牌。验证 30 分钟，重置 15 分钟；完成时锁安装标记并原子消费，禁止跨用途/过期/重放。重置撤销全部会话和账号令牌；登录创建会话在事务内重新比对已验证密码哈希，防止并发旧密码登录越过改密。
+
+队列 60 秒租约、单次 10 秒超时、最多 5 次尝试，失败间隔 10/20/40/80 秒，超时/终止/成功清除加密载荷；脱敏任务元信息保留最多 7 天。崩溃后可重领租约，SMTP 接受后进程崩溃可能重复投递，因此只承诺至少一次；账号令牌仍只可消费一次。测试发送直接等待 SMTP DATA 确认，不将入队视为发送成功。
+
+邮件链接的 token 放 URL fragment，页面初次捕获后立刻移除，提交用 JSON POST；无自动 GET 消费，无 token 日志，API no-store。TLS 校验使用系统根证书并要求 TLS1.2+；STARTTLS 缺失即失败，plain 只允许 loopback。外部服务商投递率/垃圾邮件判定不属于本机 SMTP 协议验收。

@@ -46,6 +46,25 @@ func main() {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	mailDone := make(chan struct{})
+	go func() {
+		defer close(mailDone)
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if service := manager.Mail(); service != nil {
+					if err := service.Tick(ctx, int(time.Now().Unix())); err != nil && ctx.Err() == nil {
+						logger.Warn("mail worker unavailable", "event", "mail.worker_unavailable")
+					}
+				}
+			}
+		}
+	}()
+	defer func() { stop(); <-mailDone }()
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

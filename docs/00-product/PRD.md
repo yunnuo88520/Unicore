@@ -3,6 +3,8 @@
 
 Unicore · yunnuo / ymz@ebox.vip。完整目标见 [design-v1.1.md](design-v1.1.md)。当前实现 M1 + M2a + M2b + M2c + M2d + M3a，不等同完整 v1。
 
+基础设施尚未全部收尾，逐项状态、已有证据与验收条件见 [基础能力审计](../04-ai/foundation-audit.md)，尤其包括会话失效、API 文档、路由/表单与可观测性。
+
 | 能力 | web-platform | web-standalone | desktop | cli |
 | --- | --- | --- | --- | --- |
 | 共享文本分析 Core | 已实现 | 已实现 | 已实现 | 已实现 |

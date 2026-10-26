@@ -20,6 +20,7 @@
     "test:e2e": "go build -o build/bin/oidcprovider ./tests/oidcprovider && playwright test",
     "design:generate": "node scripts/generate-theme.mjs && node scripts/generate-brand.mjs && node scripts/sync-brand.mjs",
     "check:design": "node scripts/generate-theme.mjs --check && node scripts/generate-brand.mjs --check && node scripts/check-design.mjs",
+    "check:native": "node scripts/check-native-brand.mjs",
     "test:theme": "node scripts/verify-theme.mjs"
   },
   "devDependencies": {

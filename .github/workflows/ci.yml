@@ -66,6 +66,7 @@ jobs:
       - run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.12.0
       - run: wails build -tags desktop
         working-directory: cmd/desktop
+      - run: pnpm check:native --bundle
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-${{ matrix.os }}

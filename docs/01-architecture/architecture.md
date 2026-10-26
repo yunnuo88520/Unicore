@@ -45,6 +45,8 @@ HttpTransport 管理 cookie/CSRF 与 WebClient；页面不直接 fetch。WailsTr
 
 桌面入口 `desktop || bindings`；绑定生成用编译期标记跳过真实用户存储。代码不使用环境变量来绕过该边界。CLI、Core 与桌面依赖隔离在 scripts/check-boundaries 中按实际 Go 依赖图验证。
 
+Web 退出由 `internal/lifecycle.ServeHTTP` 先等待在途 HTTP 请求排空（5 秒上限），再由组合根等待 worker 结束并关闭存储；超时关闭连接，handler 需响应 context。监听失败与退出错误向 main 返回，避免 os.Exit 跳过组合根清理。跨入口配置、会话/路由/表单及可观测性的未完成项见 [基础能力审计](../04-ai/foundation-audit.md)。
+
 ## 邮件与账号流程
 
 internal/platform/Accounts 编排策略、验证码/限流、注册与令牌；mailer 定义 Sender/队列 port，adapter/mail 实现 SMTP，platformsql 实现账号与投递事务。仅 Web 平台装配，服务进程每秒处理一个到期任务；桌面/CLI 不导入 SMTP 或队列模块。

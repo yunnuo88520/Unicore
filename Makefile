@@ -41,6 +41,7 @@ build-cli:
 build-desktop:
 	pnpm design:generate
 	cd cmd/desktop && wails build -tags desktop -ldflags '$(LDFLAGS)'
+	pnpm check:native --bundle
 build-all: build-web build-cli build-desktop
 release:
 	node scripts/release.mjs

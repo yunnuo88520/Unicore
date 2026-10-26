@@ -11,7 +11,7 @@
         <key>CFBundleExecutable</key>
         <string>{{.OutputFilename}}</string>
         <key>CFBundleIdentifier</key>
-        <string>com.wails.unicore</string>
+        <string>__UNICORE_BUNDLE_ID__</string>
         <key>CFBundleVersion</key>
         <string>{{.Info.ProductVersion}}</string>
         <key>CFBundleGetInfoString</key>
@@ -51,7 +51,7 @@
           {{range .Info.Protocols}}
             <dict>
                 <key>CFBundleURLName</key>
-                <string>com.wails.{{.Scheme}}</string>
+                <string>__UNICORE_BUNDLE_ID__.{{.Scheme}}</string>
                 <key>CFBundleURLSchemes</key>
                 <array>
                     <string>{{.Scheme}}</string>
@@ -62,5 +62,6 @@
           {{end}}
         </array>
         {{end}}
+        __UNICORE_DEV_NETWORKING__
     </dict>
 </plist>

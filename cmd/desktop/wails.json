@@ -19,5 +19,8 @@
     "productVersion": "0.1.0",
     "copyright": "© yunnuo · ymz@ebox.vip",
     "comments": "Unicore · Go + React"
+  },
+  "preBuildHooks": {
+    "*/*": "pnpm --dir ../../.. design:generate"
   }
 }

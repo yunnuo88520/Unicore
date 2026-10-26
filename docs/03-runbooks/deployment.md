@@ -71,6 +71,10 @@ M2c 新表单使用 6 位数字，10 分钟有效，60 秒后重新申请，连�
 
 主题修改与全套原生图标重建见 [设计系统](../02-standards/design-system.md)。macOS 请启动 build/desktop/bin/Unicore.app 应用包；系统关于、bundle 和窗口资源都来自同一品牌输入。
 
+Web 收到 SIGINT/SIGTERM 后停止接收新请求，等待在途请求最多 5 秒，再等待 worker 结束并关闭数据库；到期关闭连接并以错误退出。处理器须响应请求 context。基础能力的完成范围与剩余项见 [审计](../04-ai/foundation-audit.md)。
+
+桌面生产/开发 bundle ID 分别为 vip.ebox.unicore 和 vip.ebox.unicore.dev，不再使用框架默认标识；本地数据目录不因该标识改变。旧目录中复制出的应用包需要重新构建/替换才能更新图标；本次只验证仓库生成的包，不自动删除系统内其他副本或清理全局图标缓存。
+
 ## M2d 角色升级
 
 升级前停止服务，使用数据库原生一致性备份，并成套保存 installation.json 与原实例密钥。平台会自动执行 0005：以幂等 DML 增加 roles:read/roles:write 并授予既有 super_admin；不改旧角色授权，不修改历史 checksum。单机/桌面保持 framework-only。已验证从旧迁移级别恢复到最新、重复执行及用户/设置保持。

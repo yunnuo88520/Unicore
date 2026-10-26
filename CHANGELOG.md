@@ -1,6 +1,12 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # Changelog
 
+## 基础审计与原生品牌修正（2026-10-26）
+
+- 明确生命周期、错误/日志、数据库、契约/文档、前端会话/路由/表单与可观测性的实际完成范围及后续验收条件。
+- HTTP 退出等待在途请求排空，再释放 worker/存储；超时关闭连接，监听失败按错误返回，启动日志在监听成功后输出。
+- 原生品牌增加稳定 bundle ID、开发 plist、Wails 构建前生成与 make/CI 打包校验；macOS 检查真实 ICNS 品牌像素和分辨率，补充 Finder/原生运行验证。
+
 ## Unreleased — M3a（2026-10-26）
 
 - 平台 OIDC：授权码 + PKCE S256、一次性浏览器 state、nonce、成熟库签名/issuer/audience/有效期校验。

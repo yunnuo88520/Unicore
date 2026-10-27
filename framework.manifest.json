@@ -15,6 +15,7 @@
     "brand": "assets/brand/identity.json",
     "instanceBrand": "internal/branding/service.go",
     "settings": "internal/settings/service.go",
+    "edition": "scripts/build-features.mjs",
     "routes": "packages/web-ui/src/routes.ts",
     "session": "packages/web-ui/src/session.tsx",
     "migrations": "migrations",

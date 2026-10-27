@@ -8,6 +8,7 @@ import (
 	"github.com/yunnuo/unicore/assets/theme"
 	"github.com/yunnuo/unicore/internal/buildinfo"
 	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/edition"
 )
 
 const (
@@ -31,6 +32,6 @@ func Metadata(profile contracts.Profile, deployment string) contracts.Bootstrap 
 	return contracts.Bootstrap{
 		Profile: profile, Version: buildinfo.Version, Commit: buildinfo.Commit,
 		BuildTime: buildinfo.BuildTime, Stage: "M1", DeploymentKind: deployment,
-		Capabilities: contracts.Capabilities{Execute: true}, Installed: profile == Desktop || profile == CLI, SiteName: theme.Current.Brand.Name, AdminPath: "/admin",
+		Capabilities: contracts.Capabilities{Execute: true, License: profile != CLI && edition.License, Updater: profile != CLI && edition.Updater}, Installed: profile == Desktop || profile == CLI, SiteName: theme.Current.Brand.Name, AdminPath: "/admin",
 	}
 }

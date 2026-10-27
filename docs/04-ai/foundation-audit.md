@@ -1,5 +1,5 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
-# 基础能力当前状态（2026-10-26）
+# 基础能力当前状态（2026-10-27）
 
 本轮已补齐上一轮审计列出的开发基座缺口，验收见 [AI 开发基座验收](acceptance-ai-foundations.md)。这表示当前 M3a 基座可持续扩展，不等于完整 v1 或正式生产发行。原生品牌的上一轮证据保留在下方。
 
@@ -20,7 +20,7 @@
 | 唯一契约 | OpenAPI 3.1.0 维护 schema/security/profile/权限/CSRF/响应/错误，CI 检查漂移与路由 | 不引入第二份 Protobuf；非完整 JSON Schema 验证器，不自动生成业务实现 |
 | AI 开发内建 | manifest、AGENTS、文档导航、生成上下文、11 个项目 Skills、任务/中断模板；make docs/check:docs 进入质量流程 | Skills 不隐含生产/发布授权，不存个人凭据；历史验收与当前状态分开 |
 
-M3b 品牌上传已完成，见 [需求](../00-product/feature-branding.md) 和 [验收](acceptance-m3b.md)。仍未完成的产品范围：M4 备份恢复/授权/受控升级与正式签名发行。详见 [PRD](../00-product/PRD.md)；本轮未重跑 PostgreSQL/MySQL 或其他 OS 原生测试，不能据此扩展实测范围。
+M3b 品牌上传已完成，见 [需求](../00-product/feature-branding.md) 和 [验收](acceptance-m3b.md)。设置清单补齐与授权/升级编译占位见 [规范](../00-product/feature-settings.md) 和 [验收](acceptance-settings.md)。仍未完成的产品范围：M4 备份恢复、真实授权/版本服务、受控升级与正式签名发行。详见 [PRD](../00-product/PRD.md)；本轮未重跑 PostgreSQL/MySQL 或其他 OS 原生测试，不能据此扩展实测范围。
 
 ## 上轮原生品牌与排空修正（146e75f）
 

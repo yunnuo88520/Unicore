@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/install"
+	"github.com/yunnuo/unicore/internal/mailer"
 	"github.com/yunnuo/unicore/internal/testutil"
 	"image"
 	"image/color"
@@ -43,7 +44,7 @@ func TestQueuedMailBrandSnapshot(t *testing.T) {
 	defer smtp.Close()
 	host, port, _ := net.SplitHostPort(smtp.Listener.Addr().String())
 	_, service, _, _ := manager.Services()
-	_, err = service.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "mail.host", Value: host}, {Key: "mail.port", Value: port}, {Key: "mail.tls", Value: "plain"}, {Key: "mail.from", Value: "sender@example.test"}}}, admin.ID)
+	_, err = service.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "mail.host", Value: host}, {Key: "mail.port", Value: port}, {Key: "mail.tls", Value: "plain"}, {Key: "mail.from", Value: "sender@example.test"}, {Key: "mail.from_name", Value: "品牌通知"}}}, admin.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,6 +64,9 @@ func TestQueuedMailBrandSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err = manager.Accounts().RequestCode(ctx, contracts.EmailRequest{Email: admin.Email}, "brand-test", "login"); err != nil {
+		t.Fatal(err)
+	}
+	if err = manager.Mail().Notify(ctx, mailer.Notification{To: "recipient@example.test", Title: "设置变更提醒", Detail: "<script>unsafe</script>\n请查看审计记录。"}, admin.ID); err != nil {
 		t.Fatal(err)
 	}
 	store, _, _, _ := manager.Services()
@@ -87,14 +91,21 @@ func TestQueuedMailBrandSnapshot(t *testing.T) {
 	if err = manager.Mail().Tick(ctx, int(time.Now().Unix())); err != nil {
 		t.Fatal(err)
 	}
+	if err = manager.Mail().Tick(ctx, int(time.Now().Unix())); err != nil {
+		t.Fatal(err)
+	}
 	messages := smtp.Messages()
-	if len(messages) != 2 {
-		t.Fatal("test and login mail not delivered", len(messages))
+	if len(messages) != 3 {
+		t.Fatal("test, login and system notification not delivered", len(messages))
 	}
 	for _, message := range messages {
 		parsed, err := mail.ReadMessage(strings.NewReader(message))
 		if err != nil {
 			t.Fatal(err)
+		}
+		from, err := parsed.Header.AddressList("From")
+		if err != nil || len(from) != 1 || from[0].Name != "品牌通知" {
+			t.Fatal("sender alias not applied", err)
 		}
 		_, params, _ := mime.ParseMediaType(parsed.Header.Get("Content-Type"))
 		reader := multipart.NewReader(parsed.Body, params["boundary"])
@@ -112,9 +123,9 @@ func TestQueuedMailBrandSnapshot(t *testing.T) {
 			t.Fatal("queued CID image changed", err)
 		}
 	}
-	text := testutil.MailText(messages[1])
-	if !strings.Contains(text, "品牌平台") || !strings.Contains(text, "验证码：") {
-		t.Fatal("branded six-digit content absent")
+	joined := testutil.MailText(messages[1]) + testutil.MailText(messages[2])
+	if !strings.Contains(joined, "品牌平台") || !strings.Contains(joined, "验证码：") || !strings.Contains(joined, "请查看审计记录。") {
+		t.Fatal("branded account/notification content absent")
 	}
 }
 

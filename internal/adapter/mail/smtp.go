@@ -21,7 +21,7 @@ import (
 type SMTP struct{ roots *x509.CertPool }
 
 func (s SMTP) Send(ctx context.Context, config mailer.Config, message mailer.Message) error {
-	if !settings.ValidEmail(config.From) || !settings.ValidEmail(message.To) || strings.ContainsAny(message.Subject+message.FromName, "\r\n") {
+	if !settings.ValidEmail(config.From) || !settings.ValidEmail(message.To) || strings.ContainsAny(message.Subject+message.FromName+config.FromName, "\r\n\x00") {
 		return errors.New("invalid mail envelope")
 	}
 	if config.TLS != "tls" && config.TLS != "starttls" && config.TLS != "plain" {

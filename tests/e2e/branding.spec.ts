@@ -9,12 +9,16 @@ const variant = (dark: boolean) => new Resvg(`<svg xmlns="http://www.w3.org/2000
 test('instance brand preview, save, system theme and restore defaults', async ({ page, instance }, info) => {
   await installStandalone(instance);
   await page.goto(`${instance.url}/#site`);
+  await page.getByRole('tab', { name: '品牌图片', exact: true }).click();
   const light = page.getByRole('form', { name: '浅色 Logo', exact: true });
   await light.getByLabel('选择浅色 Logo').setInputFiles({ name: 'unsafe.svg', mimeType: 'image/svg+xml', buffer: Buffer.from('<svg/>') });
   await expect(light.getByRole('alert')).toContainText('PNG 或 JPEG');
   await light.getByLabel('选择浅色 Logo').setInputFiles({ name: 'brand.png', mimeType: 'image/png', buffer: variant(false) });
   await expect(light.getByText('待保存预览，点击保存后生效。')).toBeVisible();
   await expect(page.locator('.brand .brand-image')).toHaveCount(0);
+  await page.getByRole('tab', { name: '基础信息', exact: true }).click();
+  await page.getByRole('tab', { name: '品牌图片', exact: true }).click();
+  await expect(light.getByText('待保存预览，点击保存后生效。')).toBeVisible();
   await capture(page, info, 'brand-preview');
   await light.getByRole('button',{name:'取消预览'}).click();
   await expect(light.getByRole('button',{name:'保存浅色 Logo'})).toBeDisabled();
@@ -32,11 +36,14 @@ test('instance brand preview, save, system theme and restore defaults', async ({
   await icon.getByRole('button', { name: '保存站点图标' }).click();
   await expect(icon.getByText('图片已保存', { exact: true })).toBeVisible();
   await expect(page.locator('link[rel="icon"]').first()).toHaveAttribute('href', /^\/brand-assets\//);
+  await page.getByRole('tab', { name: '基础信息', exact: true }).click();
   await page.getByLabel('站点名称', { exact: true }).fill('品牌工作空间');
   await page.getByRole('button', { name: '保存设置' }).click();
   await expect(page).toHaveTitle('品牌工作空间 · 工作空间');
   const manifest = await (await page.request.get(`${instance.url}/site.webmanifest`)).json();
   expect(manifest.name).toBe('品牌工作空间');expect(manifest.icons[0].src).toMatch(/^\/brand-assets\//);
+  await capture(page, info, 'brand-site-saved');
+  await page.getByRole('tab', { name: '品牌图片', exact: true }).click();
   await capture(page, info, 'brand-saved');
   await page.reload();
   await expect(light.getByAltText('浅色 Logo当前预览')).toBeVisible();
@@ -50,7 +57,7 @@ test('instance brand preview, save, system theme and restore defaults', async ({
   await icon.getByRole('button', { name: '恢复默认', exact: true }).click();
   await icon.getByRole('button', { name: '确认恢复' }).click();
   await expect(page.locator('link[rel="icon"]').first()).toHaveAttribute('href', '/favicon.svg');
-  for (const slot of [light,dark]) {await slot.getByRole('button', { name: '恢复默认', exact: true }).click();await slot.getByRole('button', { name: '确认恢复' }).click();}
+  for (const [slot, name] of [[light, '浅色 Logo'], [dark, '深色 Logo']] as const) {await slot.getByRole('button', { name: '恢复默认', exact: true }).click();await slot.getByRole('button', { name: '确认恢复' }).click();}
   await expect(page.locator('.brand .brand-image')).toHaveCount(0);
   await capture(page, info, 'brand-restored');
 });
@@ -59,6 +66,7 @@ test('platform login and all mail previews use public instance branding', async 
   const installed = await page.request.post(`${instance.url}/api/v1/install/complete`, { headers: { 'X-Bootstrap-Token': instance.token }, data: { profile: 'web-platform', database: { driver: 'sqlite', dsn: '' }, site_name: '品牌平台', base_url: instance.url, admin_username: 'admin', admin_email: 'admin@example.test', admin_password: 'test-password-strong' } });
   expect(installed.status()).toBe(200);
   await page.goto(`${instance.url}/#site`);
+  await page.getByRole('tab', { name: '品牌图片', exact: true }).click();
   const form=page.getByRole('form',{name:'浅色 Logo',exact:true});
   await form.getByLabel('选择浅色 Logo').setInputFiles({name:'custom.png',mimeType:'image/png',buffer:variant(false)});
   await form.getByRole('button',{name:'保存浅色 Logo'}).click();
@@ -66,8 +74,10 @@ test('platform login and all mail previews use public instance branding', async 
   const previewLogo=await form.locator('img').getAttribute('src');
   expect(previewLogo).toMatch(/^\/brand-assets\//);
   let mailLogo='';
+  await page.getByRole('tab', { name: '邮件服务', exact: true }).click();
+  await page.getByRole('tab', { name: '邮件模板', exact: true }).click();
   for(const name of ['SMTP 测试','注册验证','验证码登录','找回密码']){
-    await page.getByRole('tab',{name,exact:true}).click();
+    await page.getByLabel('模板类型', {exact:true}).selectOption({label:name});
     const image=page.frameLocator('iframe').locator('img');await expect(image).toHaveAttribute('src',/^data:image\/png;base64,/);
     const source=(await image.getAttribute('src'))!;if(!mailLogo)mailLogo=source;expect(source).toBe(mailLogo);
     const png=Buffer.from(source.split(',')[1],'base64');expect(png.readUInt32BE(16)).toBe(64);expect(png.readUInt32BE(20)).toBe(64);
@@ -90,6 +100,7 @@ test('platform login and all mail previews use public instance branding', async 
   await page.getByLabel('账号或邮箱').fill('reader');await page.getByLabel('密码',{exact:true}).fill('test-password-strong');
   const src=await page.getByAltText('六位数字验证码，点击刷新').getAttribute('src');const answer=[...Buffer.from(src!.split(',')[1],'base64').toString().matchAll(/>([0-9])<\/text>/g)].map(m=>m[1]).join('');await page.getByLabel('图形验证码',{exact:true}).fill(answer);await page.getByRole('button',{name:'登录工作空间'}).click();
   await expect(page.getByRole('button',{name:'运行用例'})).toBeVisible();
-  await page.goto(`${instance.url}/#site`);await expect(form.getByLabel('选择浅色 Logo')).toBeDisabled();await expect(form.getByRole('button',{name:'恢复默认',exact:true})).toBeDisabled();
+  await page.goto(`${instance.url}/#site`);
+  await page.getByRole('tab', { name: '品牌图片', exact: true }).click();await expect(form.getByLabel('选择浅色 Logo')).toBeDisabled();await expect(form.getByRole('button',{name:'恢复默认',exact:true})).toBeDisabled();
   await capture(page,info,'brand-read-only');
 });

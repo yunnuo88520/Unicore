@@ -20,6 +20,7 @@
 | brand | [assets/brand/identity.json](../../assets/brand/identity.json) |
 | instanceBrand | [internal/branding/service.go](../../internal/branding/service.go) |
 | settings | [internal/settings/service.go](../../internal/settings/service.go) |
+| edition | [scripts/build-features.mjs](../../scripts/build-features.mjs) |
 | routes | [packages/web-ui/src/routes.ts](../../packages/web-ui/src/routes.ts) |
 | session | [packages/web-ui/src/session.tsx](../../packages/web-ui/src/session.tsx) |
 | migrations | [migrations](../../migrations) |

@@ -43,6 +43,7 @@ jobs:
       - run: pnpm build && make build-web build-cli
       - run: pnpm exec playwright install --with-deps chromium
       - run: make test-e2e
+      - run: make test-features
       - run: make release
       - uses: actions/upload-artifact@v4
         with: { name: web-cli-preview, path: build/releases/ }

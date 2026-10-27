@@ -77,6 +77,12 @@ func TestSensitiveSettingsAndReadiness(t *testing.T) {
 	if err = patch(contracts.SettingChange{Key: "mail.host", Value: "different.example.test"}); !errors.Is(err, ErrMailNotReady) {
 		t.Fatal("enabled flow kept stale verification", err)
 	}
+	if err = patch(contracts.SettingChange{Key: "mail.from_name", Value: "配套通知"}); err != nil {
+		t.Fatal("alias unexpectedly invalidated SMTP connectivity", err)
+	}
+	if err = patch(contracts.SettingChange{Key: "mail.from_name", Value: "Bad\r\nBcc: attacker@example.test"}); !errors.Is(err, ErrInvalid) {
+		t.Fatal("header injection accepted", err)
+	}
 	if err = patch(contracts.SettingChange{Key: "account.password_reset_enabled", Value: "false"}); err != nil {
 		t.Fatal(err)
 	}
@@ -108,4 +114,17 @@ func TestSensitiveSettingsAndReadiness(t *testing.T) {
 		t.Fatal("wrong key silently accepted")
 	}
 
+}
+
+func TestPublicSiteLinks(t *testing.T) {
+	service := &Service{Store: &memoryStore{values: map[string]string{}}, Profile: "desktop"}
+	for _, value := range []string{"javascript:alert(1)", "//example.test", "http://example.test", "https://user:secret@example.test", "https://", "https://example.test/#bad"} {
+		_, err := service.Patch(context.Background(), contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "site.icp_url", Value: value}}}, "test")
+		if !errors.Is(err, ErrInvalid) {
+			t.Fatalf("unsafe ICP link accepted: %q", value)
+		}
+	}
+	if _, err := service.Patch(context.Background(), contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "site.icp_number", Value: "测试ICP备00000000号"}, {Key: "site.icp_url", Value: "https://beian.miit.gov.cn/"}}}, "test"); err != nil {
+		t.Fatal(err)
+	}
 }

@@ -44,5 +44,5 @@ var ErrorCatalog = map[string]ErrorDefinition{
 	"TOKEN_INVALID":           {Status: 400, Message: "链接无效、已过期或已经使用，请重新申请"},
 	"UNSUPPORTED_MEDIA_TYPE":  {Status: 415, Message: "请使用 application/json"},
 	"INVALID_CREDENTIALS":     {Status: 401, Message: "账号或密码不正确"},
-	"BRAND_INVALID":           {Status: 400, Message: "请选择不超过 256 KiB、尺寸 16–2048 像素的 PNG 或 JPEG 图片"},
+	"BRAND_INVALID":           {Status: 400, Message: "请选择不超过 256 KiB、尺寸 16–2048 像素的 PNG/JPEG；站点图标也支持 16–256 像素 ICO"},
 }

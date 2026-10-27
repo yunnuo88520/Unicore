@@ -45,6 +45,12 @@ func (b *Bridge) Bootstrap() contracts.BootstrapResponse {
 		if value, err := b.settings.Value(context.Background(), "site.copyright"); err == nil {
 			data.SiteCopyright = &value
 		}
+		if value, err := b.settings.Value(context.Background(), "site.icp_number"); err == nil {
+			data.SiteIcpNumber = &value
+		}
+		if value, err := b.settings.Value(context.Background(), "site.icp_url"); err == nil {
+			data.SiteIcpUrl = &value
+		}
 		if value, err := b.settings.Value(context.Background(), "appearance.theme"); err == nil {
 			data.Theme = &value
 		}

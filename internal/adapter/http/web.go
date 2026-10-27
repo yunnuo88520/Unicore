@@ -236,6 +236,12 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 		if value, err := service.Value(r.Context(), "site.copyright"); err == nil {
 			data.SiteCopyright = &value
 		}
+		if value, err := service.Value(r.Context(), "site.icp_number"); err == nil {
+			data.SiteIcpNumber = &value
+		}
+		if value, err := service.Value(r.Context(), "site.icp_url"); err == nil {
+			data.SiteIcpUrl = &value
+		}
 		if value, err := service.Value(r.Context(), "appearance.theme"); err == nil {
 			data.Theme = &value
 		}

@@ -10,7 +10,7 @@
 | desktop | 相同页面与校验，Wails 直接调用 | SQLite/文件，不起 HTTP、不装配平台身份 |
 | cli | 不提供实例品牌 | 不引入 SQL/Wails/HTTP |
 
-唯一契约是 OpenAPI 的 Branding/BrandingInput/BrandingResponse 与四个 JSON operation。content 是原始 base64，空字符串仅恢复指定 slot；不接受客户端文件名或路径。图片原始大小不超过 256 KiB，仅 PNG/JPEG，宽高 16–2048；先检查尺寸，再解码像素、等比例缩小至最多 256 像素，居中在透明正方形画布，重新编码为 PNG。SVG/GIF/ICO/WebP 不在当前上传范围；编译品牌仍可生成 SVG/多尺寸 ICO。
+唯一契约是 OpenAPI 的 Branding/BrandingInput/BrandingResponse 与四个 JSON operation。content 是原始 base64，空字符串仅恢复指定 slot；不接受客户端文件名或路径。图片原始大小不超过 256 KiB，Logo 仅 PNG/JPEG，宽高 16–2048；favicon 另支持 ICO 的 PNG/未压缩 DIB frame（16–256 像素，见 [设置规范](feature-settings.md)）；先检查尺寸，再解码像素、等比例缩小至最多 256 像素，居中在透明正方形画布，重新编码为 PNG。SVG/GIF/WebP 不在当前上传范围；编译品牌仍可生成 SVG/多尺寸 ICO。
 
 引用保存于 branding.logo/logo_dark/favicon；这三项登记于设置注册表，但普通 PATCH settings 不可写，必须经过图片服务。图片按 SHA-256 存放在实例数据目录 brand-assets/，不把大段 base64 放进 SQL。Web bootstrap 返回受限相对 URL，桌面返回受限 data URI；公开图片 GET 仅接受当前引用的哈希 PNG，固定 image/png + nosniff，无目录列表。浏览器 favicon/touch links 和动态 manifest 使用实例图标；恢复默认后还原编译资源。
 

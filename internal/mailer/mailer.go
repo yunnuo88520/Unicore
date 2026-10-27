@@ -16,7 +16,7 @@ type Message struct {
 	To, Subject, Body, HTML, FromName string
 	Logo                              []byte `json:",omitempty"`
 }
-type Config struct{ Host, Port, TLS, From, Username, Password string }
+type Config struct{ Host, Port, TLS, From, FromName, Username, Password string }
 type Sender interface {
 	Send(context.Context, Config, Message) error
 }
@@ -45,7 +45,7 @@ type Service struct {
 }
 
 func Configuration(values map[string]string) Config {
-	return Config{Host: values["mail.host"], Port: values["mail.port"], TLS: values["mail.tls"], From: values["mail.from"], Username: values["mail.username"], Password: values["mail.password"]}
+	return Config{Host: values["mail.host"], Port: values["mail.port"], TLS: values["mail.tls"], From: values["mail.from"], FromName: values["mail.from_name"], Username: values["mail.username"], Password: values["mail.password"]}
 }
 func (s *Service) Encrypt(message Message) string {
 	data, _ := json.Marshal(message)

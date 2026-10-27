@@ -11,7 +11,7 @@ import (
 	"html/template"
 )
 
-var emailTemplate = template.Must(template.New("mail").Parse(`<!doctype html><html lang="zh-CN"><head><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark"><style>@media(prefers-color-scheme:dark){.canvas{background:{{index .Dark "bg"}}!important}.card{background:{{index .Dark "surface"}}!important;color:{{index .Dark "text"}}!important;border-color:{{index .Dark "border"}}!important}.muted{color:{{index .Dark "muted"}}!important}.code{background:{{index .Dark "primary-soft"}}!important;color:{{index .Dark "primary"}}!important;border-color:{{index .Dark "border"}}!important}.separator{border-color:{{index .Dark "border"}}!important}.accent{color:{{index .Dark "primary"}}!important}}</style></head><body class="canvas" style="margin:0;background:{{index .Light "bg"}};font-family:{{.Font}};color:{{index .Light "text"}}"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:32px 16px"><table role="presentation" class="card" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:auto;background:{{index .Light "surface"}};border-radius:20px;border:1px solid {{index .Light "border"}}"><tr><td style="padding:32px 28px 20px"><img src="{{.Logo}}" width="42" height="42" alt="" style="vertical-align:middle;border-radius:12px"><span style="font-size:23px;font-weight:700;vertical-align:middle;padding-left:12px">{{.Site}}</span></td></tr><tr><td style="padding:12px 28px 32px"><p class="accent" style="font-size:11px;letter-spacing:2px;color:{{index .Light "primary"}}">{{.Site}} · 账号安全</p><h1 style="font-size:25px;margin:12px 0 18px">{{.Title}}</h1><p class="muted" style="font-size:15px;line-height:1.9;color:{{index .Light "muted"}}">{{.Intro}}</p>{{if .Code}}<div class="code" style="background:{{index .Light "primary-soft"}};border:1px solid {{index .Light "border"}};border-radius:12px;text-align:center;padding:22px 4px;margin:24px 0;font-family:monospace;font-size:34px;font-weight:700;letter-spacing:8px;color:{{index .Light "primary"}}">{{.Code}}</div><p class="muted" style="color:{{index .Light "muted"}};font-size:13px;line-height:1.9">验证码 <strong>10 分钟</strong>内有效，仅限本次{{.Action}}使用。请返回刚才的页面输入，勿向他人透露。</p>{{end}}<hr class="separator" style="border:0;border-top:1px solid {{index .Light "border"}};margin:26px 0"><p class="muted" style="font-size:12px;line-height:1.9;color:{{index .Light "muted"}}">{{.Notice}}<br>这是一封自动邮件，请勿直接回复。</p></td></tr></table><p class="muted" style="text-align:center;font-size:11px;color:{{index .Light "muted"}};line-height:1.8;padding:12px">{{.Site}} · {{.Copyright}}<br>一份核心，无限可能。</p></td></tr></table></body></html>`))
+var emailTemplate = template.Must(template.New("mail").Parse(`<!doctype html><html lang="zh-CN"><head><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark"><style>@media(prefers-color-scheme:dark){.canvas{background:{{index .Dark "bg"}}!important}.card{background:{{index .Dark "surface"}}!important;color:{{index .Dark "text"}}!important;border-color:{{index .Dark "border"}}!important}.muted{color:{{index .Dark "muted"}}!important}.code{background:{{index .Dark "primary-soft"}}!important;color:{{index .Dark "primary"}}!important;border-color:{{index .Dark "border"}}!important}.separator{border-color:{{index .Dark "border"}}!important}.accent{color:{{index .Dark "primary"}}!important}}</style></head><body class="canvas" style="margin:0;background:{{index .Light "bg"}};font-family:{{.Font}};color:{{index .Light "text"}}"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:32px 16px"><table role="presentation" class="card" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:auto;background:{{index .Light "surface"}};border-radius:20px;border:1px solid {{index .Light "border"}}"><tr><td style="padding:32px 28px 20px"><img src="{{.Logo}}" width="42" height="42" alt="" style="vertical-align:middle;border-radius:12px"><span style="font-size:23px;font-weight:700;vertical-align:middle;padding-left:12px">{{.Site}}</span></td></tr><tr><td style="padding:12px 28px 32px"><p class="accent" style="font-size:11px;letter-spacing:2px;color:{{index .Light "primary"}}">{{.Site}} · {{.Category}}</p><h1 style="font-size:25px;margin:12px 0 18px">{{.Title}}</h1><p class="muted" style="font-size:15px;line-height:1.9;white-space:pre-line;color:{{index .Light "muted"}}">{{.Intro}}</p>{{if .Code}}<div class="code" style="background:{{index .Light "primary-soft"}};border:1px solid {{index .Light "border"}};border-radius:12px;text-align:center;padding:22px 4px;margin:24px 0;font-family:monospace;font-size:34px;font-weight:700;letter-spacing:8px;color:{{index .Light "primary"}}">{{.Code}}</div><p class="muted" style="color:{{index .Light "muted"}};font-size:13px;line-height:1.9">验证码 <strong>10 分钟</strong>内有效，仅限本次{{.Action}}使用。请返回刚才的页面输入，勿向他人透露。</p>{{end}}<hr class="separator" style="border:0;border-top:1px solid {{index .Light "border"}};margin:26px 0"><p class="muted" style="font-size:12px;line-height:1.9;color:{{index .Light "muted"}}">{{.Notice}}<br>这是一封自动邮件，请勿直接回复。</p></td></tr></table><p class="muted" style="text-align:center;font-size:11px;color:{{index .Light "muted"}};line-height:1.8;padding:12px">{{.Site}} · {{.Copyright}}<br>一份核心，无限可能。</p></td></tr></table></body></html>`))
 
 func Render(site, copyright, purpose, code, recipient string, preview bool, logos ...[]byte) Message {
 	image := brand.EmailLogo
@@ -31,16 +31,28 @@ func Render(site, copyright, purpose, code, recipient string, preview bool, logo
 	if code != "" {
 		notice = "如果不是你本人操作，请忽略此邮件；账号不会因此发生变更。"
 	}
+	return renderContent(site, copyright, title, intro, action, notice, code, "账号安全", recipient, preview, image)
+}
+
+func RenderNotification(site, copyright, title, detail, recipient string, preview bool, logos ...[]byte) Message {
+	image := brand.EmailLogo
+	if len(logos) > 0 && len(logos[0]) > 0 {
+		image = logos[0]
+	}
+	return renderContent(site, copyright, title, detail, "", "如有疑问，请通过站点的已知渠道联系管理员。", "", "系统通知", recipient, preview, image)
+}
+
+func renderContent(site, copyright, title, intro, action, notice, code, category, recipient string, preview bool, image []byte) Message {
 	logo := "cid:unicore-brand"
 	if preview {
 		logo = "data:image/png;base64," + base64.StdEncoding.EncodeToString(image)
 	}
 	data := struct {
-		Site, Copyright, Title, Intro, Action, Notice, Code string
-		Logo                                                template.URL
-		Font                                                template.CSS
-		Light, Dark                                         map[string]string
-	}{site, copyright, title, intro, action, notice, code, template.URL(logo), template.CSS(theme.Current.Typography.Sans), theme.Current.Light, theme.Current.Dark}
+		Site, Copyright, Title, Intro, Action, Notice, Code, Category string
+		Logo                                                          template.URL
+		Font                                                          template.CSS
+		Light, Dark                                                   map[string]string
+	}{site, copyright, title, intro, action, notice, code, category, template.URL(logo), template.CSS(theme.Current.Typography.Sans), theme.Current.Light, theme.Current.Dark}
 	var body bytes.Buffer
 	if err := emailTemplate.Execute(&body, data); err != nil {
 		panic(err)
@@ -62,5 +74,7 @@ func Previews(site, copyright string, logos ...[]byte) contracts.MailTemplateLis
 		message := Render(site, copyright, purpose, code, "", true, logos...)
 		result.Items = append(result.Items, contracts.MailTemplate{Purpose: purpose, Subject: message.Subject, Html: message.HTML, Text: message.Body})
 	}
+	message := RenderNotification(site, copyright, "系统设置已更新", "实例设置发生了变更。\n请登录工作空间查看审计记录；如非本人操作，请联系管理员。", "", true, logos...)
+	result.Items = append(result.Items, contracts.MailTemplate{Purpose: "notification", Subject: message.Subject, Html: message.HTML, Text: message.Body})
 	return result
 }

@@ -16,9 +16,14 @@ test('real Go execution, themes and responsive layout', async ({ page, instance 
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   if (testInfo.project.name === 'mobile') await page.getByRole('button', { name: '打开导航' }).click();
-  await page.getByRole('button', { name: '外观设置', exact: true }).click();
+  await page.getByRole('button', { name: '实例设置', exact: true }).click();
+  await page.getByRole('tab', { name: '外观设置', exact: true }).click();
   await page.getByRole('button', { name: /跟随系统.*自动匹配/ }).click();
-  await expect(page.getByText('当前偏好：跟随系统 · 自动保存')).toBeVisible();
+  await page.getByRole('button', { name: '保存设置', exact: true }).click();
+  await expect(page.getByText('设置已保存', { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('unicore.theme'))).toBe('system');
+  await page.goto(`${instance.url}/#settings`);
+  await expect(page.getByRole('tab', { name: '外观设置', exact: true })).toHaveAttribute('aria-selected', 'true');
 });
 
 test('API returns JSON and unsupported features remain absent', async ({ instance, page }) => {

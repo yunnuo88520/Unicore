@@ -18,6 +18,9 @@ import (
 
 func encodeMessage(config mailer.Config, message mailer.Message) ([]byte, error) {
 	var output bytes.Buffer
+	if config.FromName != "" {
+		message.FromName = config.FromName
+	}
 	related := multipart.NewWriter(&output)
 	fmt.Fprintf(&output, "From: %s\r\nTo: %s\r\nSubject: %s\r\nDate: %s\r\nMIME-Version: 1.0\r\nContent-Type: multipart/related; boundary=%q\r\n\r\n", (&mail.Address{Name: message.FromName, Address: config.From}).String(), message.To, mime.QEncoding.Encode("UTF-8", message.Subject), time.Now().Format(time.RFC1123Z), related.Boundary())
 	var alternatives bytes.Buffer

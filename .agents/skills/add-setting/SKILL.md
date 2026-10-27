@@ -38,3 +38,11 @@ metadata:
 ## 托管品牌图片
 
 修改 branding.* 时阅读 [品牌规范](../../../docs/00-product/feature-branding.md) 和 [ADR-0009](../../../docs/adr/ADR-0009-runtime-branding.md)。引用登记于 Definitions，但普通 PATCH 不可写；通过 internal/branding 校验并重编码，再原子写文件、提交引用、按已确认引用清理。不要把图片 base64 存入设置值或改生成资源。Web 返回哈希 URL，Wails 返回 data URI；邮件创建时快照图片。验证替换失败、共用文件、默认恢复、重启和实际页面/桌面。
+
+## 公共站点与邮件设置
+
+备案号/HTTPS 查询链接、SMTP 别名和通知约定见 [设置规范](../../../docs/00-product/feature-settings.md)。公开设置变化同时检查 HTTP/Wails bootstrap 与工作台/账号页页脚；不公开敏感值。mail.from_name 是显示名，不参与连接指纹；主机/端口/TLS/账号/密钥仍需重新测试。系统通知调用内部 Notify，复用加密队列，不添加任意公开发信 API 或默认群发订阅。favicon 另支持有边界的 ICO→PNG 解码，Logo 仍仅 PNG/JPEG。
+
+## 标签与保存约定
+
+新增设置分组必须登记 settings-page.tsx 的业务标签映射与 profile 过滤，不能静默遗漏新分组。沿用共享单层 Tabs，不嵌套子标签；品牌保留三张卡片，主题复用 appearance.tsx 预览卡片、侧栏不建重复入口。每次只展示当前任务，表单草稿和图片预览切换保留；只 PATCH 当前分组，不能连带保存其他标签。验证键盘切换、草稿保留、保存隔离、刷新主标签恢复、375px 无页面横溢和桌面常用操作可见。不要把 Tabs 做成长页锚点。

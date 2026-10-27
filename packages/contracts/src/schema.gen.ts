@@ -40,6 +40,8 @@ export interface Bootstrap {
   csrf_token?: string;
   site_description?: string;
   site_copyright?: string;
+  site_icp_number?: string;
+  site_icp_url?: string;
   theme?: string;
   branding?: Branding;
 }

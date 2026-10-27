@@ -6,6 +6,7 @@ import type { Bootstrap } from '@unicore/sdk';
 it('resolves explicit unknown routes without silently executing the overview', () => {
   expect(pageFromHash('#missing?ignored=true')).toBe('not-found');
   expect(pageFromHash('#roles')).toBe('roles');
+  expect(pageFromHash('#settings')).toBe('site');
   expect(pageFromHash('#__proto__')).toBe('not-found');
   expect(pageFromHash('#reset-password?token=private')).toBe('overview');
 });

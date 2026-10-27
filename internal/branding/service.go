@@ -154,7 +154,11 @@ func (s *Service) Update(ctx context.Context, input contracts.BrandingInput, act
 	var err error
 	name := ""
 	if input.Content != "" {
-		data, err = Normalize(input.Content)
+		if input.Slot == "favicon" {
+			data, err = NormalizeIcon(input.Content)
+		} else {
+			data, err = Normalize(input.Content)
+		}
 		if err != nil {
 			return contracts.Branding{}, err
 		}

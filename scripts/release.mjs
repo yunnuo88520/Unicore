@@ -3,6 +3,8 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync, mkdirSync, writeFileSync, cpSync, rmSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { readFeatures } from './build-features.mjs';
+const edition = readFeatures();
 
 const version = readFileSync('VERSION', 'utf8').trim();
 if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error('VERSION must be SemVer');
@@ -25,11 +27,11 @@ for (const target of targets) {
     rmSync(dir, { recursive: true, force: true }); mkdirSync(`${dir}/bin`, { recursive: true });
     const executable = profile === 'cli' ? 'unicore' : 'server';
     const profileFlags = profile === 'cli' ? ldflags : `${ldflags} -X github.com/yunnuo/unicore/internal/runtime.DefaultWebProfile=${profile}`;
-    execFileSync('go', ['build','-trimpath','-ldflags',profileFlags,'-o',`${dir}/bin/${executable}${os === 'windows' ? '.exe' : ''}`,profile === 'cli' ? './cmd/cli' : './cmd/server'], { env: { ...process.env, CGO_ENABLED: '0', GOOS: os, GOARCH: arch }, stdio: 'inherit' });
+    execFileSync('go', ['build','-trimpath','-tags',profile === 'cli' ? '' : edition.tags,'-ldflags',profileFlags,'-o',`${dir}/bin/${executable}${os === 'windows' ? '.exe' : ''}`,profile === 'cli' ? './cmd/cli' : './cmd/server'], { env: { ...process.env, CGO_ENABLED: '0', GOOS: os, GOARCH: arch }, stdio: 'inherit' });
     cpSync('docs/03-runbooks/deployment.md', `${dir}/README_DEPLOY.md`);
     writeFileSync(`${dir}/VERSION`, `${version}\n`);
     if (profile !== 'cli') { cpSync('apps/web/static', `${dir}/web`, { recursive: true }); cpSync('deploy/tar', `${dir}/deploy`, { recursive: true }); }
-    const manifest = { version, channel: 'development', stage: 'M3a', profile, os, arch, commit, build_time: buildTime, features: { authentication: profile === 'web-platform', installation: profile !== 'cli', database: profile !== 'cli', email_accounts: profile === 'web-platform', oidc: profile === 'web-platform', license: false, updater: false }, min_upgrade_version: null, migration_level: profile === 'cli' ? 0 : profile === 'web-platform' ? 6 : 1, signature: null, release_notes: 'M3a developer preview. OIDC PKCE login, explicit binding, least-privilege JIT and local administrator fallback; backup/updater not yet implemented. Not a production release.' };
+    const manifest = { version, channel: 'development', stage: 'M3b', profile, os, arch, commit, build_time: buildTime, features: { authentication: profile === 'web-platform', installation: profile !== 'cli', database: profile !== 'cli', email_accounts: profile === 'web-platform', oidc: profile === 'web-platform', license: profile !== 'cli' && edition.features.license, updater: profile !== 'cli' && edition.features.updater }, min_upgrade_version: null, migration_level: profile === 'cli' ? 0 : profile === 'web-platform' ? 6 : 1, signature: null, release_notes: 'M3b developer preview. Instance branding and grouped settings; optional license/updater integration placeholders only. Backup and update execution are not implemented. Not a production release.' };
     writeFileSync(`${dir}/manifest.json`, JSON.stringify(manifest, null, 2)+'\n');
     const artifact = `${name}.tar.gz`;
     execFileSync('tar',['-czf',`build/releases/${artifact}`,'-C','build/staging',name]);

@@ -147,6 +147,12 @@ export const constraints = {
       "site_copyright": {
         "type": "string"
       },
+      "site_icp_number": {
+        "type": "string"
+      },
+      "site_icp_url": {
+        "type": "string"
+      },
       "theme": {
         "type": "string"
       },

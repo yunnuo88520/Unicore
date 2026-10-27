@@ -3033,6 +3033,12 @@
           "site_copyright": {
             "type": "string"
           },
+          "site_icp_number": {
+            "type": "string"
+          },
+          "site_icp_url": {
+            "type": "string"
+          },
           "theme": {
             "type": "string"
           },
@@ -4543,7 +4549,7 @@
           "content": {
             "type": "string",
             "maxLength": 349528,
-            "description": "Raw base64 PNG/JPEG, up to 256 KiB; empty restores default."
+            "description": "Raw base64 PNG/JPEG; favicon also accepts ICO (PNG or uncompressed DIB frames). Up to 256 KiB; empty restores default."
           }
         }
       },
@@ -4734,7 +4740,7 @@
     },
     "BRAND_INVALID": {
       "status": 400,
-      "message": "请选择不超过 256 KiB、尺寸 16–2048 像素的 PNG 或 JPEG 图片"
+      "message": "请选择不超过 256 KiB、尺寸 16–2048 像素的 PNG/JPEG；站点图标也支持 16–256 像素 ICO"
     }
   }
 }

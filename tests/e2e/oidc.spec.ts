@@ -21,13 +21,19 @@ test('enterprise settings, real JIT, explicit binding and password fallback', as
   await expect(page.getByRole('heading', {name:'企业账号绑定',exact:true})).toBeVisible();
   await expect(page.getByText('实例尚未启用',{exact:true})).toBeVisible(); await capture(page, info, 'oidc-account-disabled');
   await page.goto(`${instance.url}/#site`);
+  await page.getByRole('tab', { name: '安全与控制', exact: true }).click();
   await page.getByRole('combobox',{name:'登录图形验证码',exact:true}).selectOption('false');
+  await page.getByRole('button',{name:'保存设置',exact:true}).click();
+  await expect(page.getByRole('button',{name:'保存设置',exact:true})).toBeDisabled();
+  await page.getByRole('tab', { name: '企业登录', exact: true }).click();
   await page.getByLabel('Issuer 地址',{exact:true}).fill('http://127.0.0.1:1');
   await page.getByLabel('Client ID',{exact:true}).fill('unicore-test-client');
   await page.getByLabel('Client Secret',{exact:true}).fill('isolated-test-secret');
   await page.getByRole('button',{name:'保存设置',exact:true}).click(); await expect(page.getByText('设置已保存',{exact:true})).toBeVisible();
+  await page.getByRole('tab', { name: '连接检查', exact: true }).click();
   await page.getByRole('button',{name:'检查已保存的连接',exact:true}).click();
   await expect(page.getByRole('alert')).toContainText('暂时无法连接企业身份服务'); await capture(page,info,'oidc-connection-error');
+  await page.getByRole('tab', { name: '企业登录', exact: true }).click();
   await page.getByLabel('Issuer 地址',{exact:true}).fill(idp.url);
   await page.getByRole('combobox',{name:'企业登录',exact:true}).selectOption('true');
   await expect(page.getByRole('combobox',{name:'首次登录创建普通账号',exact:true})).toHaveValue('false');
@@ -35,6 +41,7 @@ test('enterprise settings, real JIT, explicit binding and password fallback', as
   await page.getByRole('button',{name:'保存设置',exact:true}).click(); await expect(page.getByText('设置已保存',{exact:true})).toBeVisible();
   await expect(page.getByLabel('Client Secret',{exact:true})).toHaveValue('');
   await expect(page.getByLabel('Client Secret',{exact:true})).toHaveAttribute('placeholder','已配置 · 留空保留');
+  await page.getByRole('tab', { name: '连接检查', exact: true }).click();
   await page.getByRole('button',{name:'检查已保存的连接',exact:true}).click(); await expect(page.getByText('发现文档及端点检查通过，请继续验证实际登录。')).toBeVisible();
   await expect(page.locator('.oidc-callback')).toHaveText(`${instance.url}/api/v1/auth/oidc/callback`); await capture(page,info,'oidc-settings-ready');
   const adminBootstrap = (await (await page.request.get(`${instance.url}/api/v1/bootstrap`)).json()).data;

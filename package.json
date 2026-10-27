@@ -18,6 +18,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "go build -o build/bin/oidcprovider ./tests/oidcprovider && playwright test",
+    "test:features": "node scripts/test-features.mjs",
     "design:generate": "node scripts/generate-theme.mjs && node scripts/generate-brand.mjs && node scripts/sync-brand.mjs && node scripts/generate-contracts.mjs",
     "check:design": "node scripts/generate-theme.mjs --check && node scripts/generate-brand.mjs --check && node scripts/check-design.mjs",
     "check:native": "node scripts/check-native-brand.mjs",

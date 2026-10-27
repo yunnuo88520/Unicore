@@ -26,7 +26,7 @@ test('first-install platform wizard, users, settings, logout and captcha login',
   await capture(page, info, 'install-complete');
   await page.getByRole('button', { name: '进入工作空间' }).click();
   async function nav(name: string) { if (info.project.name === 'mobile') await page.getByRole('button', { name: '打开导航' }).click(); await page.getByRole('button', { name, exact: true }).click(); }
-  for (const [name, slug] of [['工作台概览', 'overview'], ['核心实验室', 'lab'], ['外观设置', 'appearance'], ['平台仪表盘', 'dashboard']] as const) {
+  for (const [name, slug] of [['工作台概览', 'overview'], ['核心实验室', 'lab'], ['实例设置', 'site'], ['平台仪表盘', 'dashboard']] as const) {
     await nav(name); await capture(page, info, slug);
   }
   await page.getByRole('button', { name: '关于 Unicore', exact: true }).click();

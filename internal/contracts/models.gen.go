@@ -42,6 +42,8 @@ type Bootstrap struct {
 	CsrfToken       *string      `json:"csrf_token,omitempty"`
 	SiteDescription *string      `json:"site_description,omitempty"`
 	SiteCopyright   *string      `json:"site_copyright,omitempty"`
+	SiteIcpNumber   *string      `json:"site_icp_number,omitempty"`
+	SiteIcpUrl      *string      `json:"site_icp_url,omitempty"`
 	Theme           *string      `json:"theme,omitempty"`
 	Branding        *Branding    `json:"branding,omitempty"`
 }

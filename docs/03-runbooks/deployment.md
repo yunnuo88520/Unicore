@@ -57,11 +57,11 @@ M2a 没有备份/恢复命令。停机前后使用数据库原生一致性备份
 
 ## SMTP、注册与密码恢复
 
-只有平台提供邮件设置。先保存主机/端口/加密方式/发件人及可选登录凭据，再填测试收件邮箱，等待真实测试成功；最后开启所需的“开放注册（需验证邮箱）”/“邮件找回密码”/“邮箱验证码登录”。邮件策略不进入单机或桌面。密钥输入留空保留，清除按钮只在保存时清空；读取不会返回原值。更改 SMTP 前先关闭三项邮件流程，改完重测再开启。
+只有平台提供邮件设置。进入「实例设置 → 邮件服务」，先保存主机/端口/加密方式/发件人及可选登录凭据，再到「发送测试」填测试收件邮箱，等待真实测试成功；最后在「账号流程」开启所需的“开放注册（需验证邮箱）”/“邮件找回密码”/“邮箱验证码登录”。邮件策略不进入单机或桌面。密钥输入留空保留，清除按钮只在保存时清空；读取不会返回原值。更改 SMTP 前先关闭三项邮件流程，改完重测再开启。
 
 推荐 STARTTLS 587 或 TLS 465；证书由系统根证书验证，不提供跳过验证选项。plain 仅供 loopback SMTP sink/本机 relay，不能用于远程明文凭据传输。测试通过表示 SMTP 已接受邮件，不保证收件箱投递。监控 SMTP 服务商告警、退信与配额；M2c 已使用经用户授权的 QQ SMTP 做四种模板真实投递，收件人确认显示正常；个人凭据不进入仓库。
 
-账号邮件使用持久队列，由 server 进程运行。后台“邮件投递”展示最近 30 项的状态/尝试次数，失败自动重试最多 5 次，终止后由用户在登录页重新申请，避免把已过期验证码重新投入队列。错误仅显示 DELIVERY_FAILED/EXPIRED，不保留原始 SMTP 响应或凭据。进程重启可恢复过期租约，可能重复投递，邮件令牌仍只能使用一次。完成/终止/取消清空载荷，终态元数据在后台清理时保留最多 7 天。
+账号邮件使用持久队列，由 server 进程运行。“实例设置 → 投递记录”展示最近 30 项的状态/尝试次数，失败自动重试最多 5 次，终止后由用户在登录页重新申请，避免把已过期验证码重新投入队列。错误仅显示 DELIVERY_FAILED/EXPIRED，不保留原始 SMTP 响应或凭据。进程重启可恢复过期租约，可能重复投递，邮件令牌仍只能使用一次。完成/终止/取消清空载荷，终态元数据在后台清理时保留最多 7 天。
 
 M2a 升级前停服务并成套备份 DB、installation.json 与原密钥；新 server 验证实例归属后自动执行平台 0003/0004。迁移只增加表，重复启动校验 checksum，已有账号/设置保持。数据库权限不足时启动失败，修正后重试，不删版本记录。降级二进制前关闭注册/恢复/邮箱登录、停止 worker；旧版本无法处理邮件和新策略，完整恢复以原生一致性备份为准。
 
@@ -87,7 +87,7 @@ Web 收到 SIGINT/SIGTERM 后停止接收新请求，等待在途请求默认最
 
 ## M3a OIDC 接入与恢复
 
-仅平台启用。先确认安装登记的 BaseURL 为对外 HTTPS origin，再在企业 IdP 创建 OIDC 应用，登记「实例设置 → 企业身份服务检查」显示的精确 callback（包括 scheme/host/port/path）。默认使用 openid email profile；授权码、PKCE S256、签名 ID token 是必需条件。若使用机密客户端，支持 client_secret_basic/client_secret_post；public client 可不填密钥。绑定要求 IdP 支持 prompt=login/max_age=0 并返回新鲜 auth_time。
+仅平台启用。先确认安装登记的 BaseURL 为对外 HTTPS origin，再在企业 IdP 创建 OIDC 应用，登记「实例设置 → 连接检查」显示的精确 callback（包括 scheme/host/port/path）。默认使用 openid email profile；授权码、PKCE S256、签名 ID token 是必需条件。若使用机密客户端，支持 client_secret_basic/client_secret_post；public client 可不填密钥。绑定要求 IdP 支持 prompt=login/max_age=0 并返回新鲜 auth_time。
 
 在实例设置保存 Issuer、Client ID、可选密钥，检查发现连接；通过只代表发现文档和端点可用，仍需用测试账号完成实际登录。确认后开启企业登录，按需要开启「首次登录创建普通账号」。JIT 用户必须有已验证邮箱，不存在于本地，且固定 user 权限；企业管理角色不导入。同邮箱已有本地用户应先密码登录，进入「账号安全」，确认本地密码后绑定；不要通过修改邮箱绕过归属证明。
 
@@ -103,8 +103,25 @@ Web 收到 SIGINT/SIGTERM 后停止接收新请求，等待在途请求默认最
 
 ## M3b 品牌图片与恢复
 
-“实例设置 → 实例品牌”分别选择 PNG/JPEG，检查预览后保存；深色 Logo 可单独覆盖，站点图标影响标签/触屏链接和 manifest。每项“恢复默认”需确认，恢复到编译品牌。普通设置编辑不能写 branding.* 引用。更换主题主色/原生图标仍需修改代码设计源并构建。
+“实例设置 → 实例品牌”分别选择 PNG/JPEG（站点图标也可选 ICO），检查预览后保存；深色 Logo 可单独覆盖，站点图标影响标签/触屏链接和 manifest。每项“恢复默认”需确认，恢复到编译品牌。普通设置编辑不能写 branding.* 引用。更换主题主色/原生图标仍需修改代码设计源并构建。
 
 brand-assets/ 位于 APP_DATA_DIR（桌面为其配置目录）内，目录 0700、图片 0600。tar 部署不要覆盖数据目录；Docker 必须将整个数据目录持久挂载到镜像外，包含已有配置/密钥和新图片目录，不单独挂载只读图片。迁机或手工备份先停止实例，成套保存同一时间点 DB、installation.json、原密钥和 brand-assets。外部 DB 同样需要配套目录；不要只复制 SQL 引用。自动备份恢复工具仍属于 M4。
 
 图片缺失会在界面回退默认；先检查目录挂载和文件权限，恢复同一快照的图片，或由管理员恢复默认再上传。不要手工塞原始图片或外部路径进 system_settings。换图会清理未引用的哈希文件；已缓存旧图可短暂保留至浏览器缓存失效，队列邮件使用创建时图片。当前只验证本地文件系统，尚未接对象存储/CDN。
+
+
+## 设置与可选授权/升级占位
+
+备案号/HTTPS 查询链接在“实例设置 → 站点信息”保存，登录页与工作台共用；编号留空隐藏。SMTP 别名留空跟随站点名，填写后用于测试/账号/系统通知显示名；密钥仍只显示配置状态。业务通知调用与限制见 [设置规范](../00-product/feature-settings.md)。
+
+默认构建剔除授权/升级卡片与接入 port。需要占位界面时，前后端必须使用同一组编译输入：
+
+```sh
+make build-web FEATURE_LICENSE=true FEATURE_UPDATER=true
+make build-desktop FEATURE_LICENSE=true FEATURE_UPDATER=true
+make release FEATURE_LICENSE=true FEATURE_UPDATER=false
+```
+
+两项均可独立 true/false，非法值使构建失败。make dev-server/dev-web/dev-desktop 使用相同变量；直接 pnpm/Vite 构建需传入对应 FEATURE_* 环境变量，直接 go build 需对应 -tags license,updater。生产进程启动后修改 FEATURE_* 不会重新引入被裁剪代码。Docker 构建参数为 --build-arg FEATURE_LICENSE=true / --build-arg FEATURE_UPDATER=true，两阶段使用同一输入；本轮只校对模板，未重跑镜像构建。
+
+前端产物 features.json 记录编译能力；后端 bootstrap.capabilities 返回相应占位能力，CLI 始终 false。页面同时检查两端能力，任一端关闭都不显示。开启也只是“待对接”卡片、禁用检查按钮、空更新日志，不产生外部请求或执行安装；真实对接后才增加 API/权限/签名与按部署方式的更新流程。测试构建和 E2E 时同样传入相同变量。

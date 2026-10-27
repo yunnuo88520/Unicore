@@ -78,6 +78,8 @@ var Definitions = append([]SettingDefinition{
 	}},
 	{"site.description", "string", "site", "站点描述", "一份核心，无限可能", false, false, text(240)},
 	{"site.copyright", "string", "site", "页脚版权", "Crafted by yunnuo", false, false, text(160)},
+	{"site.icp_number", "string", "site", "备案号（ICP）", "", false, false, func(v string) bool { return text(80)(v) && !strings.ContainsAny(v, "\r\n") }},
+	{"site.icp_url", "string", "site", "备案查询链接", "https://beian.miit.gov.cn/", false, false, ValidPublicLink},
 	{"appearance.theme", "string", "appearance", "默认主题", "system", false, false, oneOf("light", "dark", "system")},
 	{"admin.path", "string", "admin", "管理后台路径", "/admin", true, false, ValidAdminPath},
 	{"security.login_captcha", "boolean", "security", "登录图形验证码", "true", true, false, oneOf("true", "false")},
@@ -90,9 +92,19 @@ var Definitions = append([]SettingDefinition{
 	{"mail.port", "integer", "mail", "SMTP 端口", "587", true, false, integer(1, 65535)},
 	{"mail.tls", "string", "mail", "SMTP 加密方式", "starttls", true, false, oneOf("starttls", "tls", "plain")},
 	{"mail.from", "string", "mail", "发件邮箱", "", true, false, func(v string) bool { return v == "" || ValidEmail(v) }},
+	{"mail.from_name", "string", "mail", "发件人别名", "", true, false, func(v string) bool { return text(64)(v) && !strings.ContainsAny(v, "\r\n\x00") }},
 	{"mail.username", "string", "mail", "SMTP 用户名", "", true, false, func(v string) bool { return text(254)(v) && !strings.ContainsAny(v, "\r\n") }},
 	{"mail.password", "string", "mail", "SMTP 密钥", "", true, true, text(512)},
 }, OIDCDefinitions...)
+
+// ValidPublicLink permits only explicit HTTPS links without credentials or header controls.
+func ValidPublicLink(value string) bool {
+	if value == "" {
+		return true
+	}
+	u, err := url.Parse(value)
+	return err == nil && text(2048)(value) && !strings.ContainsAny(value, "\r\n\x00") && u.Scheme == "https" && u.Hostname() != "" && u.User == nil && u.Fragment == ""
+}
 
 func ValidEmail(value string) bool {
 	address, err := mail.ParseAddress(value)

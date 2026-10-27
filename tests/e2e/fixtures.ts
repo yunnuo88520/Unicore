@@ -7,21 +7,23 @@ import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 
-type Instance = { url: string; token: string; request: APIRequestContext };
+type Instance = { url: string; token: string; request: APIRequestContext; restart: () => Promise<void> };
 export const test = base.extend<{ instance: Instance }>({
   instance: async ({ playwright }, use) => {
     const directory = await mkdtemp(join(tmpdir(), 'unicore-e2e-'));
     const allocator = createServer(); await new Promise<void>(resolve => allocator.listen(0, '127.0.0.1', resolve));
     const port = (allocator.address() as { port: number }).port; await new Promise<void>(resolve => allocator.close(() => resolve()));
     const url = `http://127.0.0.1:${port}`;
-    const process = spawn('build/bin/server', ['--listen', `127.0.0.1:${port}`, '--data-dir', directory, '--api-docs=true'], { stdio: 'ignore', env: Object.fromEntries(Object.entries(globalThis.process.env).filter(([key]) => !key.startsWith('APP_'))) });
+    const start = () => spawn('build/bin/server', ['--listen', `127.0.0.1:${port}`, '--data-dir', directory, '--api-docs=true'], { stdio: 'ignore', env: Object.fromEntries(Object.entries(globalThis.process.env).filter(([key]) => !key.startsWith('APP_'))) });
+    let process = start();
+    const stop = async () => { if (process.exitCode !== null) return; process.kill('SIGTERM'); await new Promise<void>(resolve => process.once('exit', () => resolve())); };
     const request = await playwright.request.newContext({ baseURL: url });
     try {
       await expect.poll(async () => { try { return (await request.get('/api/v1/health/live')).status(); } catch { return 0; } }, { timeout: 15000 }).toBe(200);
       const token = (await readFile(join(directory, 'bootstrap.token'), 'utf8')).trim();
-      await use({ url, token, request });
+      await use({ url, token, request, restart: async () => { await stop(); process = start(); await expect.poll(async () => { try { return (await request.get('/api/v1/health/ready')).status(); } catch { return 0; } }, { timeout: 15000 }).toBe(200); } });
     } finally {
-      process.kill('SIGTERM'); await new Promise<void>(resolve => { if (process.exitCode !== null) resolve(); else process.once('exit', () => resolve()); });
+      await stop();
       await request.dispose(); await rm(directory, { recursive: true, force: true });
     }
   },

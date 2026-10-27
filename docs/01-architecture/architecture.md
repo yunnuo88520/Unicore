@@ -25,7 +25,7 @@ CLI / HTTP / Wails → usecase.Executor → domain.Analyze
 
 ## 安装与迁移
 
-`UNINITIALIZED → INSTALLING → INSTALLED`，失败为 INSTALL_FAILED。私有 data dir 使用跨平台 flock；token 只在文件/环境，API 不返回。准备操作先持久化 intent；只有确认空库并保存 schema ownership 后才迁移。外部已安装或非空数据库拒绝迁移，失败重试不能绕过此检查。DB 的 install_state 与默认设置/管理员同一事务提交。重启恢复以唯一 DB 安装标记和实例 ID 为依据；profile 与实例不匹配拒绝接管。
+`UNINITIALIZED → INSTALLING → INSTALLED`，失败为 INSTALL_FAILED。私有 data dir 使用跨平台 flock；token 首次由文件/环境提供；换新 API 必须验证当前凭据，只返回新值。准备操作先持久化 intent；确认空库或显式清空目标成功、保存 schema ownership 后才迁移。非空库必须独立勾选和精确库名确认，外部已安装数据库始终拒绝，失败重试不能绕过此检查。DB 的 install_state 与默认设置/管理员同一事务提交。重启恢复以唯一 DB 安装标记和实例 ID 为依据；profile 与实例不匹配拒绝接管。INSTALLED 后数据库或标记缺失在迁移前拒绝，不回到安装状态。结构化连接字段、默认 MySQL、自动 origin 和清空边界见 [ADR-0013](../adr/ADR-0013-installation-experience.md)。
 
 SQLite 使用 WAL、5 秒 busy timeout、单连接；PostgreSQL/MySQL 使用 bounded pool。分方言迁移嵌入二进制，版本 checksum 不可修改。SQLite/PostgreSQL DDL 事务；MySQL DDL 隐式提交，采用幂等 SQL，完全成功再记录版本。只创建本 profile 所需表；不自动回滚或 drop 数据。M2b 平台新增 0003 的 account_tokens/mail_jobs，M2a 迁移 checksum 不变，单机/桌面停留 framework。M2b 不承诺备份恢复工具已实现。
 

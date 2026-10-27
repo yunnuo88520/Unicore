@@ -82,7 +82,7 @@ export const operations = {
     "method": "POST",
     "path": "/api/v1/install/verify-db",
     "requestSchema": "DatabaseInput",
-    "responseSchema": "ActionResultResponse",
+    "responseSchema": "DatabaseCheckResponse",
     "profiles": [
       "web-platform",
       "web-standalone"
@@ -713,6 +713,21 @@ export const operations = {
     "superAdmin": false,
     "csrf": false,
     "maxBodyBytes": 393216
+  },
+  "rotateInstallToken": {
+    "method": "POST",
+    "path": "/api/v1/install/token/rotate",
+    "requestSchema": "InstallTokenRotate",
+    "responseSchema": "InstallTokenResponse",
+    "profiles": [
+      "web-platform",
+      "web-standalone"
+    ],
+    "access": "install-token",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
   }
 } as const;
 export type OperationId = keyof typeof operations;
@@ -765,6 +780,7 @@ export interface OperationInputs {
   adminUpdateBranding: Models.BrandingInput;
   localBranding: undefined;
   localUpdateBranding: Models.BrandingInput;
+  rotateInstallToken: Models.InstallTokenRotate;
 }
 export interface OperationData {
   bootstrap: Models.BootstrapResponse['data'];
@@ -772,7 +788,7 @@ export interface OperationData {
   liveness: Models.HealthResponse['data'];
   readiness: Models.HealthResponse['data'];
   installStatus: Models.InstallStatusResponse['data'];
-  verifyDatabase: Models.ActionResultResponse['data'];
+  verifyDatabase: Models.DatabaseCheckResponse['data'];
   completeInstall: Models.InstallResultResponse['data'];
   captcha: Models.CaptchaResponse['data'];
   login: Models.SessionResponse['data'];
@@ -815,4 +831,5 @@ export interface OperationData {
   adminUpdateBranding: Models.BrandingResponse['data'];
   localBranding: Models.BrandingResponse['data'];
   localUpdateBranding: Models.BrandingResponse['data'];
+  rotateInstallToken: Models.InstallTokenResponse['data'];
 }

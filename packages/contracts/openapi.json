@@ -275,7 +275,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ActionResultResponse"
+                  "$ref": "#/components/schemas/DatabaseCheckResponse"
                 }
               }
             }
@@ -2720,6 +2720,60 @@
         "summary": "localPatchSettings",
         "description": "替换品牌图片；空 content 恢复默认。只接受 PNG/JPEG，服务端重新编码为 PNG。"
       }
+    },
+    "/api/v1/install/token/rotate": {
+      "post": {
+        "operationId": "rotateInstallToken",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstallTokenResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstallTokenRotate"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BootstrapToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform",
+            "web-standalone"
+          ],
+          "access": "install-token",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "summary": "Rotate the server-generated installation credential after proving possession of the current one"
+      }
     }
   },
   "components": {
@@ -3014,7 +3068,38 @@
             ]
           },
           "dsn": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 4096,
+            "description": "Legacy clients only; use structured fields for new installations. Must be empty when structured fields are supplied."
+          },
+          "host": {
+            "type": "string",
+            "maxLength": 253
+          },
+          "port": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 63
+          },
+          "username": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 1024
+          },
+          "tls": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "require",
+              "disable"
+            ]
           }
         }
       },
@@ -3101,6 +3186,15 @@
           },
           "admin_password": {
             "type": "string"
+          },
+          "reset_database": {
+            "type": "boolean",
+            "description": "Explicitly allow deleting existing tables/views in the dedicated target database. Never resets a completed Unicore installation."
+          },
+          "database_confirmation": {
+            "type": "string",
+            "maxLength": 63,
+            "description": "Exact database name when reset_database is true; SQLite uses unicore.db."
           }
         }
       },
@@ -4414,6 +4508,97 @@
             "type": "string"
           }
         }
+      },
+      "DatabaseCheck": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "success",
+          "database_name",
+          "table_count",
+          "initialized"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "database_name": {
+            "type": "string"
+          },
+          "table_count": {
+            "type": "integer"
+          },
+          "initialized": {
+            "type": "boolean"
+          }
+        }
+      },
+      "InstallToken": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "token"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 256
+          }
+        }
+      },
+      "DatabaseCheckResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DatabaseCheck"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "InstallTokenResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/InstallToken"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "InstallTokenRotate": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
       }
     },
     "securitySchemes": {
@@ -4470,7 +4655,7 @@
     },
     "DATABASE_INITIALIZED": {
       "status": 409,
-      "message": "数据库已有安装记录，请恢复原实例配置或使用空数据库"
+      "message": "目标数据库已有 Unicore 安装记录，请恢复原实例配置，不能重新安装"
     },
     "DATABASE_UNAVAILABLE": {
       "status": 400,
@@ -4563,6 +4748,10 @@
     "BRAND_INVALID": {
       "status": 400,
       "message": "请选择不超过 256 KiB、尺寸 16–2048 像素的 PNG/JPEG；站点图标也支持 16–256 像素 ICO"
+    },
+    "DATABASE_NOT_EMPTY": {
+      "status": 409,
+      "message": "目标数据库已有表或视图；请先备份，再明确确认清空初始化"
     }
   }
 }

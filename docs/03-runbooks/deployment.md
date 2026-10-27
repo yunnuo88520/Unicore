@@ -17,15 +17,21 @@
 | APP_ADMIN_PATH | 后台路径恢复覆盖，规则与设置一致，例如 /manage |
 | APP_DEPLOYMENT_KIND | development / tar / docker，仅表示交付介质 |
 
-数据目录包括 installation.json（DSN 密文与安装 intent）、secret.key（若未外置）、bootstrap.token（仅安装前）、instance.lock、SQLite 时 unicore.db/WAL。不得删除安装状态来重新部署；缺少配置但存在 DB 时拒绝覆盖。profile 更换应新部署+独立迁移。已有非空或其他实例的 DB 不会被安装流程迁移。
+数据目录包括 installation.json（DSN 密文与安装 intent）、secret.key（若未外置）、bootstrap.token（仅安装前）、instance.lock、SQLite 时 unicore.db/WAL。不得删除安装状态来重新部署；缺少配置但存在 DB 时拒绝覆盖。profile 更换应新部署+独立迁移。其他已安装实例的 DB 始终拒绝接管；未安装非空库只有明确勾选清空并精确输入目标库名后才能初始化。
 
-外部数据库必须是当前实例独占空库，并有创建表/索引/约束权限。平台推荐 PostgreSQL/MySQL，SQLite 用于小型实例。DSN 只在输入和内存中为明文，持久配置为 AES-GCM 密文。生产连接启用 DB TLS。连接/迁移报错不回传完整 DSN。
+两个 Web 安装页默认 MySQL，PostgreSQL 同为在线推荐；SQLite 需显式选择。MySQL 分开填写地址（默认 127.0.0.1）、端口（3306）、数据库名（unicore）、用户名（root）、密码；PostgreSQL 默认端口 5432、用户名 postgres。先由运维创建当前实例独占数据库并授予表/索引/约束和必要清空权限，框架不创建数据库本身。Docker 里的 127.0.0.1 指当前容器；同网络数据库填服务名，宿主机数据库按 Docker 网络配置填写可达地址。
+
+三种数据库都必须点击“测试连接”成功才能继续，任何连接字段改变使结果失效。测试只连接和检查已有对象/安装标记，不清空、不迁移。空库直接创建；非空专用库显示数量和不可逆警告，必须先备份，再勾选并输入完全一致的库名。MySQL 清空选定库的表和视图，PG 限独占 public schema 并拒绝其他用户 schema，SQLite 固定私有 unicore.db。已有 Unicore 标记不得清空，恢复原实例配置。MySQL 清空可部分完成，修正权限后重新测试、确认；不能靠重启自动继续删除。
+
+结构化字段经驱动安全构造 DSN，密码特殊字符无需自行转义；旧 API dsn 仅兼容保留。持久配置是 AES-GCM 密文，错误不回传连接串。TLS 自动在本机直连、远程验证证书；受控内网可显式关闭，公网使用验证证书 TLS。详细规则见 [安装规范](../00-product/feature-installation.md)。
 
 ## 密钥与安装故障
 
+bootstrap.token 用于证明服务器所有权、防止别人抢先建管理员，与加密密钥独立。首次启动已自动生成；页面“生成新凭据”需先填写当前有效值，新值保存到服务器文件，旧值失效。不持有原凭据时，运维可在未安装状态停服务后通过 APP_BOOTSTRAP_TOKEN 注入新值，启动读取后移除环境覆盖；再次带固定环境覆盖启动会恢复该注入值。不要匿名发放或把 token 当作 APP_SECRET_KEY。
+
 保持 DB、installation.json 和加密密钥成套备份；若 APP_SECRET_KEY 外置，另行受控保存。密钥丢失无法解密配置，应恢复原密钥，不能通过新生成密钥解密旧数据。不得把 key 放入镜像或 Git。
 
-安装中断后带原 token 重试。重启会验证 DB 实例标记：已提交则恢复完成并吊销 token，未提交且属于本实例的部分 schema 可重试。外部数据库不可达/迁移权限不足时修正连接后重试。DB 已成功提交但配置收尾失败时，释放磁盘空间并重启，不再建管理员。
+安装中断后带原 token 重试。重启会验证 DB 实例标记：已提交则恢复完成并吊销 token，未提交且属于本实例的部分 schema 可重试。外部数据库不可达/迁移权限不足时修正连接后重试。DB 已成功提交但配置收尾失败时，释放磁盘空间并重启，不再建管理员。已 INSTALLED 时 DB 不可达、安装表/标记缺失、实例归属不符会拒绝启动，不会自动重装；恢复同一时间点的 DB、配置和密钥后重启。
 
 登录/注册默认图形验证码，注册关闭；无 SMTP 时保留至少一个可用本地管理员。后台路径误配可以通过 APP_ADMIN_PATH 恢复；环境覆盖不改变 API 的权限检查。
 
@@ -53,7 +59,7 @@ sudo -u unicore cat /var/lib/unicore/bootstrap.token
 
 普通 Nginx 使用包内 deploy/nginx.conf.example，改 listen/server_name/root 并开启 HTTPS。宝塔创建静态站点，站点目录指向包内 web/，在站点配置中合并该 server 内的 location；不要再叠加宝塔的通用 SPA 伪静态。assets/ 由 Nginx 直接读取，其余路径反代 127.0.0.1:8080 并保留 Host。HTML 壳由 Go 处理以保持 `/install`、自定义后台、品牌/manifest 和文档开关的一致行为；不是将 index.html 直接公开的纯静态托管。替换配置前 `nginx -t`，验证后 reload。宝塔使用自己的 Nginx 可执行文件和面板重载入口。
 
-浏览器首次访问实际域名，必须跳转 `/install`，录入私有 token、实际 HTTPS BaseURL、数据库及管理员。演示可手动设置 `admin / Admin@123456`；生产填写自己的密码，框架不预置账号。安装完成 `/install` 回首页、原 token 失效，设置与账号重启保留。后台默认 `/admin`；修改后旧路径 404。远程单机没有身份模块，需外层认证/ACL。Nginx 另行配置 TLS、边缘限流和访问策略，Go 不将 X-Forwarded-For 视为真实客户端地址。
+浏览器首次访问实际域名，必须跳转 `/install`，录入私有 token、数据库及管理员；访问地址自动取当前浏览器 origin，无需填写，请从最终实际 HTTPS 域名安装。演示可手动设置 `admin / Admin@123456`；生产填写自己的密码，框架不预置账号。安装完成 `/install` 回首页、原 token 失效，设置与账号重启保留。后台默认 `/admin`；修改后旧路径 404。远程单机没有身份模块，需外层认证/ACL。Nginx 另行配置 TLS、边缘限流和访问策略，Go 不将 X-Forwarded-For 视为真实客户端地址。
 
 ## Docker / Compose
 
@@ -69,7 +75,7 @@ rm /tmp/unicore-install-private/token
 make compose-down
 ```
 
-Compose 每次解析（包括 cp/logs/ps）均需要版本变量：在当前终端先执行 `export UNICORE_VERSION="$(cat VERSION)" UNICORE_IMAGE="unicore:$(cat VERSION)"`，或使用 Make 的 up/down 自动注入。默认访问 127.0.0.1:8088，可用 `UNICORE_PORT=8090 make compose-up` 修改本地端口。公网入口仍由 HTTPS 反代，保留外部 Host；安装 BaseURL 填真实公网 HTTPS origin。live 在未安装时为 200、ready 为 503，安装和数据库可用后 ready 为 200；外部监控应区分这两者。
+Compose 每次解析（包括 cp/logs/ps）均需要版本变量：在当前终端先执行 `export UNICORE_VERSION="$(cat VERSION)" UNICORE_IMAGE="unicore:$(cat VERSION)"`，或使用 Make 的 up/down 自动注入。默认访问 127.0.0.1:8088，可用 `UNICORE_PORT=8090 make compose-up` 修改本地端口。公网入口仍由 HTTPS 反代，保留外部 Host；安装页会自动登记访问 origin，应从真实公网 HTTPS 域名安装。live 在未安装时为 200、ready 为 503，安装和数据库可用后 ready 为 200；外部监控应区分这两者。
 
 不用 Compose 时先 `make docker-build`，然后：
 
@@ -127,7 +133,7 @@ appearance.theme 从平台全局设置删除，平台主题只存当前浏览器
 
 在实例设置保存 Issuer、Client ID、可选密钥，检查发现连接；通过只代表发现文档和端点可用，仍需用测试账号完成实际登录。确认后开启企业登录，按需要开启「首次登录创建普通账号」。JIT 用户必须有已验证邮箱，不存在于本地，且固定 user 权限；企业管理角色不导入。同邮箱已有本地用户应先密码登录，进入「账号安全」，确认本地密码后绑定；不要通过修改邮箱绕过归属证明。
 
-仅本机隔离测试允许 literal loopback IP 的 HTTP，例如 127.0.0.1；不能用远程 HTTP、跳过证书验证或跨端点重定向。新装建议先填写实际 HTTPS 地址；已有开发实例若登记了错误 BaseURL，停服务并成套备份后仅修正 installation.json 的 base_url，再启动核对 callback，不能更改 profile/instance/DSN/密钥字段。生产反代需使用固定受信任的 host，身份服务必须可被后端访问。
+仅本机隔离测试允许 literal loopback IP 的 HTTP，例如 127.0.0.1；不能用远程 HTTP、跳过证书验证或跨端点重定向。新装应直接从实际 HTTPS 域名进入 /install，页面自动登记该 origin；已有开发实例若登记了错误 BaseURL，停服务并成套备份后仅修正 installation.json 的 base_url，再启动核对 callback，不能更改 profile/instance/DSN/密钥字段。生产反代需使用固定受信任的 host，身份服务必须可被后端访问。
 
 每浏览器完成最新一次授权；过期/重放/校验失败请从登录按钮重新发起，旧地址不可重用。SSO-only 账号不能直接解绑；请由管理员按现有 SMTP 流程开放找回密码，完成邮箱验证设置本地密码后再解绑。绑定或解除后其他设备退出，待用验证码失效。账号禁用及本地角色改变依然撤销会话。外部 IdP 停用不会主动吊销已有本地 session，按需要缩短会话或本地禁用账号。
 

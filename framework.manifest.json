@@ -46,7 +46,8 @@
     "version": "VERSION",
     "release": "docs/03-runbooks/release.md",
     "platformPermissions": "internal/platform/roles.go",
-    "authorization": "docs/00-product/feature-roles.md"
+    "authorization": "docs/00-product/feature-roles.md",
+    "installation": "docs/00-product/feature-installation.md"
   },
   "commands": {
     "generate": "pnpm generate",

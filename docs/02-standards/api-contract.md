@@ -14,3 +14,5 @@ SDK HttpTransport 的业务方法调用生成 operation，统一处理 Cookie、
 API 文档不依赖 CDN 或脚本。启动 `APP_API_DOCS=true build/bin/server` 后，`/docs/api` 提供文档，`/openapi.json` 提供原始契约；默认关闭时两路径返回 404。本地文件 `packages/contracts/reference.gen.html` 也可离线阅读。文档包含全部 profile 的操作，当前实例只装配适用能力；文档不携带实例配置或凭据。
 
 上传 operation 可在 x-unicore.maxBodyBytes 声明 1–512 KiB 的 JSON 体上限；通用 decoder 按真实路由读取元数据，未声明仍为 64 KiB。当前品牌 PUT 单独为 384 KiB，业务图片原始上限为 256 KiB；禁止为新增上传全局放大所有 API。公开品牌 PNG 与 manifest 是固定格式静态资源接口，不属于 JSON 业务契约。
+
+安装数据库输入使用 DatabaseInput 结构化字段；dsn 仅为旧客户端兼容，禁止混传。verifyDatabase 返回 DatabaseCheck；rotateInstallToken 需当前安装凭据。清空库名、归属保护与持久化是服务端业务不变量，见 [安装规范](../00-product/feature-installation.md)。

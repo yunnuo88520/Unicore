@@ -1,13 +1,13 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Shared UI client; pages know neither fetch nor Wails globals.
  */
-import type { Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart } from '@unicore/contracts';
+import type { Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart } from '@unicore/contracts';
 import { operations, type OperationId, type OperationInputs, type OperationData } from '@unicore/contracts/operations';
 import { validate, type SchemaName } from '@unicore/contracts/validate';
 export { validate, type SchemaName } from '@unicore/contracts/validate';
 export { operations, type OperationId } from '@unicore/contracts/operations';
 
-export type { Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart } from '@unicore/contracts';
+export type { Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart } from '@unicore/contracts';
 
 export class AppError extends Error {
   constructor(public readonly code: string, message: string, public readonly requestId = '', public readonly fields: Record<string, string> = {}) { super(message); this.name = 'AppError'; }
@@ -50,7 +50,8 @@ export interface WebClient {
  testMail(recipient:string):Promise<{success:boolean}>;
  mailJobs():Promise<MailJobList>;
   installStatus(): Promise<InstallStatus>;
-  verifyDatabase(token: string, input: DatabaseInput): Promise<{ success: boolean }>;
+  verifyDatabase(token: string, input: DatabaseInput): Promise<DatabaseCheck>;
+  rotateInstallToken(token: string): Promise<InstallToken>;
   completeInstall(token: string, input: InstallInput): Promise<InstallResult>;
   captcha(): Promise<Captcha>;
   login(input: LoginInput): Promise<Session>;
@@ -153,6 +154,7 @@ export class HttpTransport implements AppClient, WebClient {
  mailJobs(){return this.call('mailJobs');}
   installStatus() { return this.call('installStatus'); }
   verifyDatabase(token: string, input: DatabaseInput) { return this.call('verifyDatabase', input, { headers: { 'X-Bootstrap-Token': token } }); }
+  rotateInstallToken(token: string) { return this.call('rotateInstallToken', {}, { headers: { 'X-Bootstrap-Token': token } }); }
   completeInstall(token: string, input: InstallInput) { return this.call('completeInstall', input, { headers: { 'X-Bootstrap-Token': token } }); }
   captcha() { return this.call('captcha'); }
   async login(input: LoginInput) { const session = await this.call('login', input); this.csrf = session.csrf_token; this.identity = session.user.id; this.authenticated = true; this.sessionChanged('authenticated'); return session; }

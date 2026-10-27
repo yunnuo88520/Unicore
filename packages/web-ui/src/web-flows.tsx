@@ -3,43 +3,16 @@
  */
 import { invalidateAfter } from './queries';
 import { Form, Field } from './forms';
-import { BrandLockup } from './brand';
 import { roleLabel } from './roles-page';
-import design from '../../../assets/theme/resolved.gen.json';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, CheckCircle2, LoaderCircle, LogIn, RefreshCw, Save, ShieldCheck, UserPlus } from 'lucide-react';
-import type { AppClient, Bootstrap, InstallInput, InstallResult, SettingPatch, UserCreate, WebClient } from '@unicore/sdk';
+import { LoaderCircle, UserPlus } from 'lucide-react';
+import type { Bootstrap, UserCreate, WebClient } from '@unicore/sdk';
 
 function ErrorMessage({ error }: { error: Error | null }) { return error ? <p className="form-error" role="alert">{error.message}</p> : null; }
 function Busy({ pending, children }: { pending: boolean; children: React.ReactNode }) { return <>{pending && <LoaderCircle size={15} className="spin" />}{children}</>; }
-function FlowBrand() { return <div className="flow-brand"><BrandLockup /></div>; }
 
-export function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initialProfile: Bootstrap['profile']; onDone: () => void }) {
-  const status = useQuery({ queryKey: ['install-status'], queryFn: () => web.installStatus() });
-  const [step, setStep] = useState(0);
-  const [token, setToken] = useState('');
-  const [input, setInput] = useState<InstallInput>({ profile: initialProfile === 'web-platform' ? 'web-platform' : 'web-standalone', database: { driver: 'sqlite', dsn: '' }, site_name: design.brand.name, base_url: window.location.origin, admin_username: '', admin_email: '', admin_password: '' });
-  const [result, setResult] = useState<InstallResult>();
-  const steps = ['环境与凭据', '运行形态', '数据库', ...(input.profile === 'web-platform' ? ['管理员'] : []), '确认安装'];
-  const title = steps[step];
-  const verify = useMutation({ mutationFn: () => web.verifyDatabase(token, input.database) });
-  const complete = useMutation({ mutationFn: () => web.completeInstall(token, input), onSuccess: result => { setResult(result); setToken(''); setInput(value => ({ ...value, database: { ...value.database, dsn: '' }, admin_password: '' })); } });
-  const update = <K extends keyof InstallInput>(key: K, value: InstallInput[K]) => setInput(previous => ({ ...previous, [key]: value }));
-  return <main className="flow-page"><FlowBrand /><div className="install-card"><div className="flow-heading"><span className="eyebrow">WELCOME TO {design.brand.name.toUpperCase()}</span><h1>{result ? '一切就绪，开始构建' : '为你的产品，准备一个起点'}</h1><p>{result ? '安装记录已持久化，一次性凭据已吊销。' : '只需几步，完成这个实例的首次配置。'}</p></div>
-    {result ? <div className="install-success"><CheckCircle2 size={44} /><h2>安装完成</h2><dl><dt>运行形态</dt><dd>{result.profile === 'web-platform' ? 'Web 多用户平台' : 'Web 单机'}</dd><dt>用户入口</dt><dd>{result.site_url}</dd>{result.admin_url && <><dt>管理后台</dt><dd>{result.admin_url}</dd></>}{!result.admin_url && <><dt>设置入口</dt><dd>{result.settings_url}</dd></>}</dl><button className="primary-button" onClick={onDone}>进入工作空间 <ArrowRight size={15} /></button></div> : <>
-    <ol className="install-progress">{steps.map((label, index) => <li key={label} className={index <= step ? 'reached' : ''}><span>{index < step ? <CheckCircle2 size={15} /> : index + 1}</span><small>{label}</small></li>)}</ol>
-    <Form error={complete.error} pending={complete.isPending} schema={step === steps.length - 1 ? "InstallInput" : undefined} value={input} className="flow-form" onSubmit={event => { event.preventDefault(); if (step === steps.length - 1) complete.mutate(); else setStep(value => value + 1); }}>
-      <h2>{title}</h2>
-      {title === '环境与凭据' && <><div className="environment-checks">{status.isPending ? <p role="status">正在检查环境…</p> : status.isError ? <ErrorMessage error={status.error} /> : status.data.checks.map(check => <div key={check.name}><CheckCircle2 size={17} /><span><strong>{check.name}</strong><small>{check.detail}</small></span></div>)}</div>{status.data?.status === 'INSTALL_FAILED' && <p className="help-text">上次安装未完成。修正配置后可持原凭据重试；已提交的实例不会重复创建管理员。</p>}<label>一次性安装凭据<input required minLength={32} type="password" autoComplete="off" value={token} onChange={event => setToken(event.target.value)} /></label><p className="help-text">从部署数据目录的 bootstrap.token 文件读取。凭据不会写入浏览器存储。</p><label>服务访问地址<input type="url" required value={input.base_url} onChange={event => update('base_url', event.target.value)} /></label><label>站点名称<input maxLength={64} required value={input.site_name} onChange={event => update('site_name', event.target.value)} /></label></>}
-      {title === '运行形态' && <><div className="profile-choices">{(['web-standalone', 'web-platform'] as const).map(profile => <label className={input.profile === profile ? 'selected' : ''} key={profile}><input type="radio" name="profile" value={profile} checked={input.profile === profile} onChange={() => update('profile', profile)} /><strong>{profile === 'web-platform' ? '多用户平台' : '单机模式'}</strong><small>{profile === 'web-platform' ? '独立账号、角色权限与管理后台' : '个人工作空间，无用户和登录流程'}</small></label>)}</div><p className="help-text">安装成功后固定运行形态。更改模式需要独立部署和数据迁移。</p></>}
-      {title === '数据库' && <><label>数据库类型<select value={input.database.driver} onChange={event => { update('database', { driver: event.target.value as 'sqlite' | 'postgres' | 'mysql', dsn: '' }); verify.reset(); }}><option value="sqlite">SQLite · 本地文件</option><option value="postgres">PostgreSQL · 推荐平台使用</option><option value="mysql">MySQL</option></select></label>{input.database.driver === 'sqlite' ? <p className="help-text">数据库保存在服务器私有数据目录，使用 WAL 与受限文件权限。SQLite 适合本地或小型实例。</p> : <><label>连接 DSN<input required type="password" autoComplete="off" value={input.database.dsn} onChange={event => { update('database', { ...input.database, dsn: event.target.value }); verify.reset(); }} /></label><p className="help-text">{input.database.driver === 'postgres' ? 'postgres://user:password@host:5432/database?sslmode=require' : 'user:password@tcp(host:3306)/database?tls=true'}。使用当前实例独占的空数据库；连接信息加密保存。</p></>}<button className="secondary-button" type="button" disabled={verify.isPending} onClick={() => verify.mutate()}><Busy pending={verify.isPending}>测试连接</Busy></button>{verify.isSuccess && <p className="saved-caption" role="status">连接测试成功</p>}<ErrorMessage error={verify.error} /></>}
-      {title === '管理员' && <><label>管理员账号<input required pattern="[a-zA-Z0-9][a-zA-Z0-9_.-]{2,63}" autoComplete="username" value={input.admin_username} onChange={event => update('admin_username', event.target.value)} /></label><label>管理员邮箱<input type="email" required autoComplete="email" value={input.admin_email} onChange={event => update('admin_email', event.target.value)} /></label><label>管理员密码<input type="password" minLength={12} maxLength={128} required autoComplete="new-password" value={input.admin_password} onChange={event => update('admin_password', event.target.value)} /></label><p className="help-text">至少 12 字节，最多 128 字节。密码使用 Argon2id，不保存明文。</p></>}
-      {title === '确认安装' && <><dl className="install-summary"><dt>站点</dt><dd>{input.site_name}</dd><dt>访问地址</dt><dd>{input.base_url}</dd><dt>形态</dt><dd>{input.profile}</dd><dt>数据库</dt><dd>{input.database.driver}</dd>{input.profile === 'web-platform' && <><dt>管理员</dt><dd>{input.admin_username}</dd></>}</dl><p className="help-text">将执行对应形态的数据迁移与默认配置，完成后不能再次安装。</p></>}
-      <div className="flow-actions">{step > 0 && <button type="button" className="secondary-button" disabled={complete.isPending} onClick={() => { setStep(value => value - 1); complete.reset(); }}>上一步</button>}<button className="primary-button" disabled={complete.isPending || (step === 0 && (status.isError || status.isPending))}><Busy pending={complete.isPending}>{step === steps.length - 1 ? '完成安装' : '下一步'}</Busy><ArrowRight size={14} /></button></div>
-    </Form></>}
-  </div><p className="flow-footer">{design.brand.name} · yunnuo · 安装凭据只用于当前实例</p></main>;
-}
+export { InstallWizard } from './install-page';
 
 export { LoginPage } from './account-flows';
 

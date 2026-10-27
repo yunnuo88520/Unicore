@@ -10,7 +10,7 @@ Unicore · yunnuo / ymz@ebox.vip。完整目标见 [design-v1.1.md](design-v1.1.
 | 共享文本分析 Core | 已实现 | 已实现 | 已实现 | 已实现 |
 | React / 三态主题 | 已实现 | 已实现 | 已实现 | 不适用 |
 | 一次性安装 | 已实现 | 已实现，无管理员 | 自动初始化，无安装页 | 不装配 |
-| 数据库 | PostgreSQL/MySQL/小型 SQLite | SQLite/外部 DB | SQLite | 禁止强依赖 |
+| 数据库 | MySQL/PostgreSQL 推荐；小型 SQLite 可选 | MySQL/PostgreSQL 推荐；SQLite 可选 | SQLite | 禁止强依赖 |
 | 登录/RBAC/用户管理/固定两角色 | 已实现，管理员/普通用户 | 不装配 | 不装配 | 不装配 |
 | 持久化设置 | 全局仅管理员；外观仅本客户端 | 本地适用项 | 本地适用项 | 不装配 |
 | SMTP / 六位验证码注册、登录、找回密码 | 已实现，需测试 SMTP 后显式启用 | 不装配 | 不装配 | 不装配 |
@@ -39,3 +39,5 @@ M2c：主题、字号/字体、圆角、间距、图标线宽、动效集中配�
 设置按业务域 Tabs 展示，保持单层标签，品牌用三张卡片、外观复用主题预览卡片并移除侧栏重复入口，保留草稿并只保存当前分组，减少页面滚动。设置清单补齐：ICP/独立发件人别名、ICO favicon、共用系统通知模板和内部队列；授权/升级仅编译开关与待接入占位，不执行真实检查或更新。具体范围见 [设置需求](feature-settings.md) 与 [设置验收](../04-ai/acceptance-settings.md)。
 
 交付基座：VERSION 单源生成各端版本、Changelog 准备、按 target/profile 快速归档和镜像/Compose 入口。Nginx 保留安装/后台/品牌路由边界；实际运行范围见 [部署验收](../04-ai/acceptance-deployment.md) 与 [ADR-0011](../adr/ADR-0011-release-deployment.md)。正式签名、自动发布、OTA 和备份恢复仍为后续。
+
+首次安装改为 MySQL 默认、结构化数据库字段、三方言连接测试、非空库精确确认初始化；自动记录访问 origin，凭据可经当前凭据验证后换新，已安装实例缺失 DB/标记时拒绝启动。需求见 [安装规范](feature-installation.md)，三数据库/PC/375px/重启证据见 [安装验收](../04-ai/acceptance-installation.md)。

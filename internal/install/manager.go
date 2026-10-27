@@ -34,6 +34,7 @@ var (
 	ErrInput     = errors.New("invalid installation input")
 	ErrDatabase  = errors.New("database connection or migration failed")
 	ErrTaken     = errors.New("database is already initialized; restore its original configuration")
+	ErrNotEmpty  = errors.New("database reset requires explicit confirmation")
 )
 
 type Options struct{ DataDir, Profile, SecretKey, BootstrapToken, AdminPath string }
@@ -202,10 +203,18 @@ func (m *Manager) recover(ctx context.Context) error {
 	}
 	if exists {
 		profile, instance, markerErr := store.Installation(ctx)
+		if m.config.State == "INSTALLED" && markerErr != nil {
+			_ = store.Close()
+			return ErrTaken
+		}
 		if markerErr == nil && (profile != string(m.config.Profile) || instance != m.config.Instance) {
 			_ = store.Close()
 			return ErrTaken
 		}
+	}
+	if !exists && m.config.State == "INSTALLED" {
+		_ = store.Close()
+		return ErrTaken
 	}
 	if err = store.Migrate(ctx, m.config.Profile == runtime.WebPlatform); err != nil {
 		_ = store.Close()
@@ -273,7 +282,7 @@ func (m *Manager) AdminPath(ctx context.Context) string {
 func (m *Manager) Status() contracts.InstallStatus {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	return contracts.InstallStatus{Status: m.config.State, Profile: m.config.Profile, DatabaseOptions: []string{"sqlite", "postgres", "mysql"}, Checks: []contracts.EnvironmentCheck{{Name: "数据目录", Ok: true, Detail: "可写，配置与凭据使用受限文件权限"}, {Name: "安装保护", Ok: true, Detail: "一次性凭据与进程锁已就绪"}}}
+	return contracts.InstallStatus{Status: m.config.State, Profile: m.config.Profile, DatabaseOptions: []string{"mysql", "postgres", "sqlite"}, Checks: []contracts.EnvironmentCheck{{Name: "数据目录", Ok: true, Detail: "可写，安装信息在此持久化；重启自动恢复"}, {Name: "安装保护", Ok: true, Detail: "服务器已自动生成一次性安装凭据，与加密密钥独立"}}}
 }
 func (m *Manager) authorized(token string) error {
 	if m.config.State == "INSTALLED" {
@@ -284,23 +293,62 @@ func (m *Manager) authorized(token string) error {
 	}
 	return nil
 }
-func (m *Manager) Verify(ctx context.Context, token string, input contracts.DatabaseInput) error {
+func (m *Manager) RotateToken(token string) (contracts.InstallToken, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if err := m.authorized(token); err != nil {
-		return err
+		return contracts.InstallToken{}, err
 	}
-	if input.Driver != "sqlite" && input.Driver != "postgres" && input.Driver != "mysql" {
-		return ErrInput
+	next := platform.Token()
+	if err := secret.AtomicWrite(m.TokenPath(), []byte(next+"\n")); err != nil {
+		return contracts.InstallToken{}, err
 	}
-	if len(input.Dsn) > 4096 {
-		return ErrInput
+	previous := m.config.TokenHash
+	m.config.TokenHash = platform.Hash(next)
+	if err := m.save(); err != nil {
+		m.config.TokenHash = previous
+		_ = secret.AtomicWrite(m.TokenPath(), []byte(token+"\n"))
+		return contracts.InstallToken{}, err
 	}
-	store, err := webdb.Open(ctx, input.Driver, input.Dsn, filepath.Join(m.directory, "unicore.db"))
+	return contracts.InstallToken{Token: next}, nil
+}
+func (m *Manager) Verify(ctx context.Context, token string, input contracts.DatabaseInput) (contracts.DatabaseCheck, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	result := contracts.DatabaseCheck{}
+	if err := m.authorized(token); err != nil {
+		return result, err
+	}
+	dsn, name, err := webdb.Resolve(input)
 	if err != nil {
-		return ErrDatabase
+		return result, ErrInput
 	}
-	return store.Close()
+	store, err := webdb.Open(ctx, input.Driver, dsn, filepath.Join(m.directory, "unicore.db"))
+	if err != nil {
+		return result, ErrDatabase
+	}
+	defer store.Close()
+	if err = store.InstallationScope(ctx); err != nil {
+		return result, ErrDatabase
+	}
+	result.DatabaseName = name
+	result.TableCount, err = store.TableCount(ctx)
+	if err != nil {
+		return result, ErrDatabase
+	}
+	exists, err := store.HasInstallationTable(ctx)
+	if err != nil {
+		return result, ErrDatabase
+	}
+	if exists {
+		_, _, err = store.Installation(ctx)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return result, ErrDatabase
+		}
+		result.Initialized = err == nil
+	}
+	result.Success = true
+	return result, nil
 }
 
 func (m *Manager) Complete(ctx context.Context, token string, input contracts.InstallInput) (contracts.InstallResult, contracts.User, error) {
@@ -314,10 +362,12 @@ func (m *Manager) Complete(ctx context.Context, token string, input contracts.In
 	if (input.Profile != runtime.WebPlatform && input.Profile != runtime.WebStandalone) || !settings.ValidBaseURL(input.BaseUrl) || strings.TrimSpace(input.SiteName) == "" || len(input.SiteName) > 192 {
 		return result, user, ErrInput
 	}
-	if input.Database.Driver != "sqlite" && input.Database.Driver != "postgres" && input.Database.Driver != "mysql" {
+	dsn, databaseName, err := webdb.Resolve(input.Database)
+	if err != nil {
 		return result, user, ErrInput
 	}
-	if len(input.Database.Dsn) > 4096 {
+	reset := input.ResetDatabase != nil && *input.ResetDatabase
+	if reset && (input.DatabaseConfirmation == nil || *input.DatabaseConfirmation != databaseName) {
 		return result, user, ErrInput
 	}
 	input.AdminUsername = strings.ToLower(strings.TrimSpace(input.AdminUsername))
@@ -341,11 +391,11 @@ func (m *Manager) Complete(ctx context.Context, token string, input contracts.In
 			return result, user, err
 		}
 	}
-	resume := m.config.OwnsSchema && m.config.State != "UNINITIALIZED" && m.config.Driver == input.Database.Driver && previousDSN == input.Database.Dsn && m.config.Profile == input.Profile
+	resume := m.config.OwnsSchema && m.config.State != "UNINITIALIZED" && m.config.Driver == input.Database.Driver && previousDSN == dsn && m.config.Profile == input.Profile
 	m.config.OwnsSchema = resume
 	m.config.Profile = input.Profile
 	m.config.Driver = input.Database.Driver
-	m.config.DSN = m.secret.Seal(input.Database.Dsn)
+	m.config.DSN = m.secret.Seal(dsn)
 	m.config.BaseURL = strings.TrimRight(input.BaseUrl, "/")
 	m.config.State = "INSTALLING"
 	if err := m.save(); err != nil {
@@ -366,6 +416,9 @@ func (m *Manager) Complete(ctx context.Context, token string, input contracts.In
 			_ = m.save()
 		}
 	}()
+	if err = store.InstallationScope(ctx); err != nil {
+		return result, user, ErrDatabase
+	}
 	exists, inspectErr := store.HasInstallationTable(ctx)
 	if inspectErr != nil {
 		return result, user, ErrDatabase
@@ -385,7 +438,14 @@ func (m *Manager) Complete(ctx context.Context, token string, input contracts.In
 			return result, user, ErrDatabase
 		}
 		if count != 0 {
-			return result, user, ErrTaken
+			if !reset {
+				return result, user, ErrNotEmpty
+			}
+			// OwnsSchema remains false until reset succeeds. A crash/partial MySQL
+			// reset must require another explicit installer confirmation on retry.
+			if err = store.Reset(ctx); err != nil {
+				return result, user, ErrDatabase
+			}
 		}
 	}
 	m.config.OwnsSchema = true

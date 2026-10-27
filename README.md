@@ -24,7 +24,7 @@ make build-web
 build/bin/server
 ```
 
-首次访问进入 `/install`。从私有数据目录（默认 `data/`）的 `bootstrap.token` 读取一次性凭据，选择平台或单机、连接数据库。平台需要管理员账号，单机跳过。安装后 token 吊销，profile 不可直接切换；配置、密钥、数据库不提交 Git。已有 M1 预览没有持久数据，M2a 首次启动需要初始化。
+首次访问进入 `/install`。从私有数据目录（默认 `data/`）的 `bootstrap.token` 读取一次性凭据，选择平台或单机。默认 MySQL，PostgreSQL 同为在线推荐；地址、端口、库名、用户名和密码分开填，SQLite 需显式选择。三种数据库均需测试连接，非空库须备份并精确确认后才能清空初始化；已有 Unicore 安装不覆盖。平台需要管理员账号，单机跳过。访问 origin 自动登记，无需手填地址。安装凭据用于证明服务器所有权，可验证当前值后换新，与加密密钥不同。安装后凭据吊销，保留私有目录与数据库后重启自动恢复，不重复安装；配置、密钥和数据库不提交 Git。
 
 ```sh
 # 独立 CLI，无需启动服务
@@ -62,6 +62,7 @@ AI 开发从 [文档入口](docs/README.md) 和 [上下文地图](docs/04-ai/con
 `APP_API_DOCS=true build/bin/server` 开启 `/docs/api` 和 `/openapi.json`；日志、退出超时及独立指标端口见 [运行基座](docs/02-standards/runtime.md)。
 
 - [M3a 企业登录验收](docs/04-ai/acceptance-m3a.md)、[接入需求](docs/00-product/feature-oidc.md)
+- [安装规范](docs/00-product/feature-installation.md)、[三数据库与重启验收](docs/04-ai/acceptance-installation.md)
 - [当前权限验收](docs/04-ai/acceptance-permissions.md)、[角色功能](docs/00-product/feature-roles.md)
 - [M2c 验收报告](docs/04-ai/acceptance-m2c.md)、[统一主题入口](docs/02-standards/design-system.md)
 - [M2b 验收报告](docs/04-ai/acceptance-m2b.md)、[M2a 验收](docs/04-ai/acceptance-m2a.md)、[M1 历史验收](docs/04-ai/acceptance-m1.md)

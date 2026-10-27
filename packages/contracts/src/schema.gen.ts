@@ -81,6 +81,12 @@ export interface HealthResponse {
 export interface DatabaseInput {
   driver: "sqlite" | "postgres" | "mysql";
   dsn: string;
+  host?: string;
+  port?: number;
+  name?: string;
+  username?: string;
+  password?: string;
+  tls?: "auto" | "require" | "disable";
 }
 
 export interface EnvironmentCheck {
@@ -104,6 +110,8 @@ export interface InstallInput {
   admin_username: string;
   admin_email: string;
   admin_password: string;
+  reset_database?: boolean;
+  database_confirmation?: string;
 }
 
 export interface InstallResult {
@@ -465,4 +473,32 @@ export interface BrandingResponse {
   message: string;
   data: Branding;
   request_id: string;
+}
+
+export interface DatabaseCheck {
+  success: boolean;
+  database_name: string;
+  table_count: number;
+  initialized: boolean;
+}
+
+export interface InstallToken {
+  token: string;
+}
+
+export interface DatabaseCheckResponse {
+  code: string;
+  message: string;
+  data: DatabaseCheck;
+  request_id: string;
+}
+
+export interface InstallTokenResponse {
+  code: string;
+  message: string;
+  data: InstallToken;
+  request_id: string;
+}
+
+export interface InstallTokenRotate {
 }

@@ -57,6 +57,8 @@ func webError(w http.ResponseWriter, err error) {
 		code = "ALREADY_INSTALLED"
 	case errors.Is(err, install.ErrTaken):
 		code = "DATABASE_INITIALIZED"
+	case errors.Is(err, install.ErrNotEmpty):
+		code = "DATABASE_NOT_EMPTY"
 	case errors.Is(err, install.ErrDatabase):
 		code = "DATABASE_UNAVAILABLE"
 	case errors.Is(err, install.ErrInput), errors.Is(err, platform.ErrInput), errors.Is(err, settings.ErrInvalid):
@@ -268,6 +270,22 @@ func mountWeb(api chi.Router, config Config) {
 	mountOIDC(api, config)
 	limiter := platform.NewLimiter()
 	api.Get("/install/status", func(w http.ResponseWriter, r *http.Request) { success(w, manager.Status()) })
+	api.Post("/install/token/rotate", func(w http.ResponseWriter, r *http.Request) {
+		if !limiter.Allow("install:"+ip(r), 15, time.Minute) {
+			webError(w, platform.ErrRateLimited)
+			return
+		}
+		var input contracts.InstallTokenRotate
+		if !decode(w, r, &input) {
+			return
+		}
+		result, err := manager.RotateToken(r.Header.Get("X-Bootstrap-Token"))
+		if err != nil {
+			webError(w, err)
+			return
+		}
+		success(w, result)
+	})
 	api.Post("/install/verify-db", func(w http.ResponseWriter, r *http.Request) {
 		if !limiter.Allow("install:"+ip(r), 15, time.Minute) {
 			webError(w, platform.ErrRateLimited)
@@ -279,11 +297,12 @@ func mountWeb(api chi.Router, config Config) {
 		}
 		ctx, cancel := context.WithTimeout(r.Context(), 7*time.Second)
 		defer cancel()
-		if err := manager.Verify(ctx, r.Header.Get("X-Bootstrap-Token"), input); err != nil {
+		result, err := manager.Verify(ctx, r.Header.Get("X-Bootstrap-Token"), input)
+		if err != nil {
 			webError(w, err)
 			return
 		}
-		success(w, contracts.ActionResult{Success: true})
+		success(w, result)
 	})
 	api.Post("/install/complete", func(w http.ResponseWriter, r *http.Request) {
 		if !limiter.Allow("install:"+ip(r), 15, time.Minute) {

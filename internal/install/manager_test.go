@@ -153,7 +153,7 @@ func TestFailedMigrationDoesNotCreatePartialAdministrator(t *testing.T) {
 	input.AdminEmail = "admin@example.test"
 	input.AdminPassword = platform.Token()
 	// Force a schema failure with a conflicting pre-existing object; no user or marker may commit.
-	if err := m.Verify(context.Background(), token, input.Database); err != nil {
+	if _, err := m.Verify(context.Background(), token, input.Database); err != nil {
 		t.Fatal(err)
 	}
 	store, err := m.connect(context.Background())
@@ -188,7 +188,7 @@ func TestFailedMigrationDoesNotCreatePartialAdministrator(t *testing.T) {
 func TestForeignDatabaseIsRejectedBeforeMigration(t *testing.T) {
 	m, _, token := testManager(t)
 	ctx := context.Background()
-	if err := m.Verify(ctx, token, contracts.DatabaseInput{Driver: "sqlite"}); err != nil {
+	if _, err := m.Verify(ctx, token, contracts.DatabaseInput{Driver: "sqlite"}); err != nil {
 		t.Fatal(err)
 	}
 	store, err := m.connect(ctx)
@@ -199,10 +199,10 @@ func TestForeignDatabaseIsRejectedBeforeMigration(t *testing.T) {
 		t.Fatal(err)
 	}
 	_ = store.Close()
-	if _, _, err = m.Complete(ctx, token, standaloneInput()); !errors.Is(err, ErrTaken) {
+	if _, _, err = m.Complete(ctx, token, standaloneInput()); !errors.Is(err, ErrNotEmpty) {
 		t.Fatal("existing DB was not rejected", err)
 	}
-	if _, _, err = m.Complete(ctx, token, standaloneInput()); !errors.Is(err, ErrTaken) {
+	if _, _, err = m.Complete(ctx, token, standaloneInput()); !errors.Is(err, ErrNotEmpty) {
 		t.Fatal("retry acquired foreign DB", err)
 	}
 	store, err = m.connect(ctx)

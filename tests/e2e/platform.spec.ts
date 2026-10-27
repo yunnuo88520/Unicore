@@ -11,6 +11,7 @@ test('first-install platform wizard, users, settings, logout and captcha login',
   await page.getByRole('radio', { name: /多用户平台/ }).check();
   await capture(page, info, 'install-profile');
   await page.getByRole('button', { name: '下一步' }).click();
+  await page.getByLabel('数据库类型').selectOption('sqlite');
   await capture(page, info, 'install-database');
   await page.getByRole('button', { name: '测试连接' }).click();
   await expect(page.getByText('连接测试成功')).toBeVisible();

@@ -20,7 +20,7 @@ profile、数据规模、方言、向前兼容、停机、备份和恢复窗口�
 1. 阅读原始设计第 9 节和 DB ADR，明确 framework/platform/business 归属。
 2. 各方言连续版本迁移含作者、目的、兼容影响和回滚策略；平台表仅用于 web-platform。
 3. 临时 DB 验证空库、前版升级、重复执行及失败重试；SQLite 设置 WAL 与忙等待。
-4. 高风险 DDL 说明真实备份恢复步骤和非事务行为。
+4. 高风险 DDL 说明真实备份恢复步骤和非事务行为。首次安装清空边界见 [ADR-0013](../../../docs/adr/ADR-0013-installation-experience.md)：测试连接不清空，reset 需明确同意和精确目标名；已安装库/其他 PG schema 不接管，启动路径不 reset。用隔离库验证已有数据、失败与连续重启，不能用删配置模拟升级。
 5. 同步 Repository SQL、schema 和运行文档。
 
 ## output

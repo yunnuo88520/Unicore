@@ -81,8 +81,14 @@ type HealthResponse struct {
 }
 
 type DatabaseInput struct {
-	Driver string `json:"driver"`
-	Dsn    string `json:"dsn"`
+	Driver   string  `json:"driver"`
+	Dsn      string  `json:"dsn"`
+	Host     *string `json:"host,omitempty"`
+	Port     *int    `json:"port,omitempty"`
+	Name     *string `json:"name,omitempty"`
+	Username *string `json:"username,omitempty"`
+	Password *string `json:"password,omitempty"`
+	Tls      *string `json:"tls,omitempty"`
 }
 
 type EnvironmentCheck struct {
@@ -99,13 +105,15 @@ type InstallStatus struct {
 }
 
 type InstallInput struct {
-	Profile       Profile       `json:"profile"`
-	Database      DatabaseInput `json:"database"`
-	SiteName      string        `json:"site_name"`
-	BaseUrl       string        `json:"base_url"`
-	AdminUsername string        `json:"admin_username"`
-	AdminEmail    string        `json:"admin_email"`
-	AdminPassword string        `json:"admin_password"`
+	Profile              Profile       `json:"profile"`
+	Database             DatabaseInput `json:"database"`
+	SiteName             string        `json:"site_name"`
+	BaseUrl              string        `json:"base_url"`
+	AdminUsername        string        `json:"admin_username"`
+	AdminEmail           string        `json:"admin_email"`
+	AdminPassword        string        `json:"admin_password"`
+	ResetDatabase        *bool         `json:"reset_database,omitempty"`
+	DatabaseConfirmation *string       `json:"database_confirmation,omitempty"`
 }
 
 type InstallResult struct {
@@ -467,4 +475,32 @@ type BrandingResponse struct {
 	Message   string   `json:"message"`
 	Data      Branding `json:"data"`
 	RequestID string   `json:"request_id"`
+}
+
+type DatabaseCheck struct {
+	Success      bool   `json:"success"`
+	DatabaseName string `json:"database_name"`
+	TableCount   int    `json:"table_count"`
+	Initialized  bool   `json:"initialized"`
+}
+
+type InstallToken struct {
+	Token string `json:"token"`
+}
+
+type DatabaseCheckResponse struct {
+	Code      string        `json:"code"`
+	Message   string        `json:"message"`
+	Data      DatabaseCheck `json:"data"`
+	RequestID string        `json:"request_id"`
+}
+
+type InstallTokenResponse struct {
+	Code      string       `json:"code"`
+	Message   string       `json:"message"`
+	Data      InstallToken `json:"data"`
+	RequestID string       `json:"request_id"`
+}
+
+type InstallTokenRotate struct {
 }

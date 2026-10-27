@@ -15,7 +15,7 @@
 
 单机/桌面只提供适用的本地设置，不创建 users/roles/sessions；CLI 不提供设置。权限定义源 internal/platform/roles.go；SQL adapter 只按固定角色投影权限，历史 RolePermission 不参与授权。平台 appearance.theme 不适用，PATCH 拒绝；本地外观不调用管理 API。
 
-API/DTO 唯一来源为 packages/contracts/openapi.json。成功 `{code:"OK",message:"",data,request_id}`；失败返回稳定 code 与脱敏 message。主要错误：BOOTSTRAP_TOKEN_INVALID、ALREADY_INSTALLED、DATABASE_INITIALIZED、DATABASE_UNAVAILABLE、INSTALL_REQUIRED、AUTH_REQUIRED、PERMISSION_DENIED、CSRF_INVALID、CAPTCHA_INVALID、RATE_LIMITED、LAST_SUPER_ADMIN、ACCOUNT_EXISTS、INVALID_INPUT、NOT_FOUND。
+API/DTO 唯一来源为 packages/contracts/openapi.json。成功 `{code:"OK",message:"",data,request_id}`；失败返回稳定 code 与脱敏 message。主要错误：BOOTSTRAP_TOKEN_INVALID、ALREADY_INSTALLED、DATABASE_INITIALIZED、DATABASE_NOT_EMPTY、DATABASE_UNAVAILABLE、INSTALL_REQUIRED、AUTH_REQUIRED、PERMISSION_DENIED、CSRF_INVALID、CAPTCHA_INVALID、RATE_LIMITED、LAST_SUPER_ADMIN、ACCOUNT_EXISTS、INVALID_INPUT、NOT_FOUND。
 
 Cookie 为 unicore_session/HttpOnly/SameSite=Lax，HTTPS base_url 时 Secure。session token 只哈希入库。bootstrap/session 返回当前会话派生的 csrf_token，SDK 自动在写请求 X-CSRF-Token 中发送。登出删除会话，禁用/角色变化使所有旧会话失效。登录活动按 last_login_at 统计，不把 UI 打开视为活跃。
 
@@ -45,3 +45,5 @@ GET /api/v1/admin/users/role-options 仅管理员，返回两种固定角色及 
 OIDC_UNAVAILABLE=502：发现服务或端点检查失败；OIDC_FAILED=409：绑定证明或身份冲突；LOCAL_PASSWORD_REQUIRED=409：没有本地密码。回调不返回 JSON 敏感详情，固定 hash 的 success/failed/link_required 均不含原始 IdP 错误。LAST_SUPER_ADMIN 同时保护最后一个 active 本地密码超管。接口具体 DTO 以 OpenAPI 为准。
 
 M3b：GET /api/v1/admin/branding 要求 settings:read；PUT 同路径要求 settings:write + super_admin + CSRF/Origin。GET/PUT /api/v1/branding 仅安装后的 web-standalone 提供，平台返回 JSON 404。公开 bootstrap/哈希 PNG 允许登录前显示品牌，均不泄露存储路径；BRAND_INVALID=400。branding.* 托管设置不能通过普通 PATCH settings 绕过上传服务。
+
+安装 API：POST /api/v1/install/verify-db、/install/token/rotate、/install/complete 均需有效 X-Bootstrap-Token，未授权 403、已安装 409；换新与完成共用安装限流。verify-db 返回 DatabaseCheck，换新仅向当前凭据持有人返回新值；状态接口不返回。清空须 reset_database=true + 精确 database_confirmation，已有完成标记仍拒绝；规则见 [ADR-0013](../adr/ADR-0013-installation-experience.md)。当前契约共 49 个 operation。

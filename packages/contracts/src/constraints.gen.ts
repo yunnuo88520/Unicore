@@ -288,7 +288,37 @@ export const constraints = {
         ]
       },
       "dsn": {
-        "type": "string"
+        "type": "string",
+        "maxLength": 4096
+      },
+      "host": {
+        "type": "string",
+        "maxLength": 253
+      },
+      "port": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 65535
+      },
+      "name": {
+        "type": "string",
+        "maxLength": 63
+      },
+      "username": {
+        "type": "string",
+        "maxLength": 128
+      },
+      "password": {
+        "type": "string",
+        "maxLength": 1024
+      },
+      "tls": {
+        "type": "string",
+        "enum": [
+          "auto",
+          "require",
+          "disable"
+        ]
       }
     }
   },
@@ -375,6 +405,13 @@ export const constraints = {
       },
       "admin_password": {
         "type": "string"
+      },
+      "reset_database": {
+        "type": "boolean"
+      },
+      "database_confirmation": {
+        "type": "string",
+        "maxLength": 63
       }
     }
   },
@@ -1682,5 +1719,96 @@ export const constraints = {
         "type": "string"
       }
     }
+  },
+  "DatabaseCheck": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "success",
+      "database_name",
+      "table_count",
+      "initialized"
+    ],
+    "properties": {
+      "success": {
+        "type": "boolean"
+      },
+      "database_name": {
+        "type": "string"
+      },
+      "table_count": {
+        "type": "integer"
+      },
+      "initialized": {
+        "type": "boolean"
+      }
+    }
+  },
+  "InstallToken": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "token"
+    ],
+    "properties": {
+      "token": {
+        "type": "string",
+        "minLength": 32,
+        "maxLength": 256
+      }
+    }
+  },
+  "DatabaseCheckResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/DatabaseCheck"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "InstallTokenResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/InstallToken"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "InstallTokenRotate": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
   }
 };

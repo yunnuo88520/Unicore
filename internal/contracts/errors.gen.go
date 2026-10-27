@@ -17,7 +17,7 @@ var ErrorCatalog = map[string]ErrorDefinition{
 	"BOOTSTRAP_TOKEN_INVALID": {Status: 403, Message: "安装凭据无效，请读取部署数据目录中的 bootstrap.token"},
 	"CAPTCHA_INVALID":         {Status: 400, Message: "验证码不正确或已过期，请刷新后重试"},
 	"CSRF_INVALID":            {Status: 403, Message: "请求校验已失效，请刷新页面"},
-	"DATABASE_INITIALIZED":    {Status: 409, Message: "数据库已有安装记录，请恢复原实例配置或使用空数据库"},
+	"DATABASE_INITIALIZED":    {Status: 409, Message: "目标数据库已有 Unicore 安装记录，请恢复原实例配置，不能重新安装"},
 	"DATABASE_UNAVAILABLE":    {Status: 400, Message: "无法连接或初始化数据库，请检查配置与权限后重试"},
 	"INSTALL_COMMITTED":       {Status: 500, Message: "安装已完成，请前往登录页面"},
 	"INSTALL_REQUIRED":        {Status: 409, Message: "请先完成安装"},
@@ -41,4 +41,5 @@ var ErrorCatalog = map[string]ErrorDefinition{
 	"UNSUPPORTED_MEDIA_TYPE":  {Status: 415, Message: "请使用 application/json"},
 	"INVALID_CREDENTIALS":     {Status: 401, Message: "账号或密码不正确"},
 	"BRAND_INVALID":           {Status: 400, Message: "请选择不超过 256 KiB、尺寸 16–2048 像素的 PNG/JPEG；站点图标也支持 16–256 像素 ICO"},
+	"DATABASE_NOT_EMPTY":      {Status: 409, Message: "目标数据库已有表或视图；请先备份，再明确确认清空初始化"},
 }

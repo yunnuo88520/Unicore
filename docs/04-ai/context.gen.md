@@ -32,7 +32,7 @@
 | authorization | [docs/00-product/feature-roles.md](../../docs/00-product/feature-roles.md) |
 | installation | [docs/00-product/feature-installation.md](../../docs/00-product/feature-installation.md) |
 
-OpenAPI 当前包含 49 个 operation、75 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
+OpenAPI 当前包含 54 个 operation、78 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
 
 | 任务 Skill | 用途 |
 | --- | --- |

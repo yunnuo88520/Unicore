@@ -25,10 +25,34 @@ type Store interface {
 	CreateSession(context.Context, string, string, int, string) error
 	Session(context.Context, string) (contracts.User, int, error)
 	DeleteSession(context.Context, string) error
+	SystemLogs(context.Context) (contracts.AuditLogList, error)
 	Dashboard(context.Context) (contracts.Dashboard, error)
 	ListRoles(context.Context) (contracts.RoleList, error)
 	RoleOptions(context.Context, string) (contracts.RoleOptions, error)
+	ChangePassword(context.Context, string, string, string) error
 }
+
+func (s *Service) ChangePassword(ctx context.Context, user contracts.User, input contracts.ChangePasswordInput, ip string) error {
+	if !s.Limiter.Allow("password:"+user.ID+":"+ip, 6, time.Minute) {
+		return ErrRateLimited
+	}
+	select {
+	case s.loginSlots <- struct{}{}:
+		defer func() { <-s.loginSlots }()
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	account, err := s.Store.FindAccount(ctx, user.Username)
+	if err != nil || account.User.ID != user.ID || !VerifyPassword(account.PasswordHash, input.CurrentPassword) {
+		return ErrCredentials
+	}
+	hash, err := HashPassword(input.Password)
+	if err != nil {
+		return err
+	}
+	return s.Store.ChangePassword(ctx, user.ID, account.PasswordHash, hash)
+}
+
 type Service struct {
 	Store      Store
 	Limiter    *Limiter

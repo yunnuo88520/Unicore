@@ -63,8 +63,8 @@ func exerciseRoleHTTP(t *testing.T, manager *install.Manager, request func(strin
 			t.Fatal("local API bypass", path, w.Code)
 		}
 	}
-	if w = request("GET", "/admin", nil, member, ""); w.Code != 403 {
-		t.Fatal("member admin HTML", w.Code)
+	if w = request("GET", "/admin", nil, member, ""); w.Code != 200 {
+		t.Fatal("administrator entry must allow independent login", w.Code)
 	}
 	if w = request("POST", "/api/v1/admin/roles", map[string]any{"name": "bypass", "permissions": []string{}}, admin, adminCSRF); w.Code != 405 {
 		t.Fatal("role creation still exists", w.Code)

@@ -15,15 +15,15 @@ import (
 func mountAccounts(api chi.Router, config Config) {
 	mountEmail(api, config)
 	manager := config.Install
-	accounts := func(w http.ResponseWriter) *platform.Accounts {
-		service := manager.Accounts()
+	accounts := func(w http.ResponseWriter, r *http.Request) *platform.Accounts {
+		service := manager.AccountService(administratorRequest(r))
 		if service == nil {
 			failure(w, 404, "NOT_FOUND", "此运行形态不提供邮件账号接口")
 		}
 		return service
 	}
 	api.Get("/auth/policy", func(w http.ResponseWriter, r *http.Request) {
-		service := accounts(w)
+		service := accounts(w, r)
 		if service == nil {
 			return
 		}
@@ -35,7 +35,7 @@ func mountAccounts(api chi.Router, config Config) {
 		success(w, policy)
 	})
 	api.Post("/auth/register", func(w http.ResponseWriter, r *http.Request) {
-		service := accounts(w)
+		service := accounts(w, r)
 		if service == nil {
 			return
 		}
@@ -55,7 +55,7 @@ func mountAccounts(api chi.Router, config Config) {
 			requestPath, completePath = "/auth/password/request", "/auth/password/reset"
 		}
 		api.Post(requestPath, func(w http.ResponseWriter, r *http.Request) {
-			service := accounts(w)
+			service := accounts(w, r)
 			if service == nil {
 				return
 			}
@@ -70,7 +70,7 @@ func mountAccounts(api chi.Router, config Config) {
 			success(w, contracts.ActionResult{Success: true})
 		})
 		api.Post(completePath, func(w http.ResponseWriter, r *http.Request) {
-			service := accounts(w)
+			service := accounts(w, r)
 			if service == nil {
 				return
 			}
@@ -93,7 +93,7 @@ func mountAccounts(api chi.Router, config Config) {
 				return
 			}
 			if purpose == "reset" {
-				http.SetCookie(w, &http.Cookie{Name: sessionCookie, Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode, Secure: strings.HasPrefix(manager.BaseURL(), "https://"), MaxAge: -1, Expires: time.Unix(1, 0)})
+				http.SetCookie(w, &http.Cookie{Name: identityCookie(r), Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode, Secure: strings.HasPrefix(manager.BaseURL(), "https://"), MaxAge: -1, Expires: time.Unix(1, 0)})
 			}
 			success(w, contracts.ActionResult{Success: true})
 		})
@@ -103,7 +103,7 @@ func mountAccounts(api chi.Router, config Config) {
 		if !ok {
 			return
 		}
-		service := accounts(w)
+		service := accounts(w, r)
 		if service == nil {
 			return
 		}
@@ -121,11 +121,11 @@ func mountAccounts(api chi.Router, config Config) {
 		}
 		success(w, contracts.ActionResult{Success: true})
 	})
-	api.Get("/admin/settings/mail/jobs", func(w http.ResponseWriter, r *http.Request) {
-		if _, ok := require(manager, w, r, "settings:read"); !ok {
+	api.Get("/admin/mail/jobs", func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := require(manager, w, r, "logs:read"); !ok {
 			return
 		}
-		service := accounts(w)
+		service := accounts(w, r)
 		if service == nil {
 			return
 		}

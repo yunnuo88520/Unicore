@@ -42,17 +42,22 @@ type OIDCStore interface {
 	UnlinkOIDC(context.Context, OIDCFlow, string, int) (contracts.User, error)
 }
 type OIDC struct {
-	Store    OIDCStore
-	Identity *Service
-	Settings *settings.Service
-	Secrets  settings.Secrets
-	Provider OIDCProvider
-	BaseURL  string
+	Store        OIDCStore
+	Identity     *Service
+	Settings     *settings.Service
+	Secrets      settings.Secrets
+	Provider     OIDCProvider
+	BaseURL      string
+	CallbackPath string
 }
 
 func (s *OIDC) configuration(ctx context.Context) (OIDCConfig, map[string]string, error) {
 	v, err := s.Settings.Raw(ctx)
-	return OIDCConfig{Issuer: v["oidc.issuer"], ClientID: v["oidc.client_id"], ClientSecret: v["oidc.client_secret"], Scopes: v["oidc.scopes"], Callback: s.BaseURL + "/api/v1/auth/oidc/callback"}, v, err
+	callback := s.CallbackPath
+	if callback == "" {
+		callback = "/api/v1/auth/oidc/callback"
+	}
+	return OIDCConfig{Issuer: v["oidc.issuer"], ClientID: v["oidc.client_id"], ClientSecret: v["oidc.client_secret"], Scopes: v["oidc.scopes"], Callback: s.BaseURL + callback}, v, err
 }
 func (s *OIDC) Info(ctx context.Context, userID string) (contracts.OIDCInfo, error) {
 	c, values, err := s.configuration(ctx)

@@ -8,7 +8,7 @@
 | 生命周期与配置 | Web 集中 flag > env > 默认、参数校验、可配置排空/探测超时；组件逆序清理并合并错误；桌面返回后关闭存储 | CLI/桌面共用日志 env 选项，各形态存储配置保持独立；handler 必须遵守 context |
 | 响应与错误 | OpenAPI 错误目录生成 ErrorCatalog，HTTP/presenter/桌面复用，支持 fields、request_id | 业务错误仍由服务手写映射；INVALID_CREDENTIALS 与 AUTH_REQUIRED 区分密码错误/会话失效 |
 | 日志 | 共享 slog 等级/JSON或text，Web 请求路由模板/状态/耗时，CLI日志 stderr | 不打印请求值/凭据/原始 query；外部日志平台后续接入 |
-| DB 初始化与迁移 | database/sql + Repository、池/Ping、分方言嵌入 SQL/checksum 已有 | [ADR-0003](../adr/ADR-0003-m2-install-storage-identity.md) 决定不用 GORM；平台角色规范化迁移 0007，其他形态无平台迁移，不叠加 AutoMigrate |
+| DB 初始化与迁移 | database/sql + Repository、池/Ping、分方言嵌入 SQL/checksum 已有 | [ADR-0003](../adr/ADR-0003-m2-install-storage-identity.md) 决定不用 GORM；平台固定角色 0007 + 管理员拆表 0008，其他形态无平台迁移，不叠加 AutoMigrate |
 | 自动 API 文档 | 同源生成 Go/TS DTO、typed operation、约束、错误和离线 HTML；可选 /docs/api、/openapi.json；真实 Chi 路由覆盖检查 | 48 个 operation；handler/业务授权手写；文档默认关闭，非交互调试控制台 |
 | 健康与观测 | live/ready、独立 DB 超时、可选回环 /metrics：请求数/活动数/耗时与 DB 池 | 指标使用低基数模板；未实现 OpenTelemetry tracing、远程采集/告警部署 |
 | API Client | 生成操作驱动请求、CSRF/Cookie、20秒超时/取消、字段错误、统一失效、旧请求 epoch 拒绝 | 浏览器 OIDC callback 走导航；Wails 只暴露适用接口 |
@@ -46,3 +46,5 @@ M3b 品牌上传已完成，见 [需求](../00-product/feature-branding.md) 和 
 2026-10-27 交付补齐：VERSION 单源生成投影、Changelog 准备、目标化归档、Docker/Compose 入口，以及 Tar+Nginx/Docker/Compose 的隔离首次安装与同版本替换实测，见 [部署验收](acceptance-deployment.md) 和 [发版流程](../03-runbooks/release.md)。这不包含正式签名、自动 OTA 或跨版本回滚。
 
 2026-10-27 权限收敛：仅管理员/普通用户两角色，全部管理菜单、页面及 API 仅管理员；平台外观只存当前客户端，历史 grant 不授权。当前规则及迁移/页面证据见 [权限需求](../00-product/feature-roles.md) 与 [验收](acceptance-permissions.md)，取代历史 M2d 角色编辑方案。
+
+管理员/普通用户的独立身份、弹窗新增、固定侧栏、邮件/日志分工和头像改密退出以 [ADR-0014](../adr/ADR-0014-separate-identities-management.md) 与 [管理验收](acceptance-management.md) 为当前基线；历史角色升降描述不再适用。

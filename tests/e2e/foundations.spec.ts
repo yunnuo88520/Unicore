@@ -19,9 +19,9 @@ test('cross-tab logout/account switch, field focus and server revocation',async(
   test.setTimeout(60000);
   const installed=await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}});
   expect(installed.status()).toBe(200);
-  await page.goto(instance.url);
+  await page.goto(`${instance.url}/admin`);
   async function nav(target: Page,name:string){if(info.project.name==='mobile')await target.getByRole('button',{name:'打开导航'}).click();await target.getByRole('button',{name,exact:true}).click();}
-  await nav(page,'用户管理');
+  await nav(page,'用户列表');
   await page.getByRole('button',{name:'新增用户',exact:true}).click();
   await page.getByLabel('账号',{exact:true}).fill('bad!');
   await page.getByLabel('邮箱',{exact:true}).fill('member@example.test');
@@ -34,15 +34,17 @@ test('cross-tab logout/account switch, field focus and server revocation',async(
   await page.getByLabel('账号',{exact:true}).fill('member');
   await page.getByRole('button',{name:'创建用户',exact:true}).click();
   await expect(page.getByRole('cell',{name:'member',exact:true})).toBeVisible();
-  const second=await context.newPage();await second.goto(`${instance.url}/#users`);
+  const second=await context.newPage();await second.goto(`${instance.url}/admin#users`);
   await expect(second.getByRole('cell',{name:'member',exact:true})).toBeVisible();
   await second.getByRole('button',{name:'新增用户',exact:true}).click();
   await second.getByLabel('初始密码').fill('private-unsent-draft');
-  await nav(page,'退出登录');
-  await expect(page.getByRole('heading',{name:'登录 Unicore',exact:true})).toBeVisible();
-  await expect(second.getByRole('heading',{name:'登录 Unicore',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'账号菜单',exact:true}).click();
+  await page.getByRole('button',{name:'退出登录',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'管理员登录 · Unicore',exact:true})).toBeVisible();
+  await expect(second.getByRole('heading',{name:'管理员登录 · Unicore',exact:true})).toBeVisible();
   await expect(second.getByRole('cell',{name:'member',exact:true})).toHaveCount(0);
   await capture(second,info,'foundation-cross-tab-logout');
+  await page.goto(instance.url);await second.goto(`${instance.url}/#users`);
   await login(page,'member');
   await expect(second.getByText('没有访问权限',{exact:true})).toBeVisible();
   await expect(second.getByRole('button',{name:'新增用户',exact:true})).toHaveCount(0);
@@ -51,22 +53,23 @@ test('cross-tab logout/account switch, field focus and server revocation',async(
   // A separate admin session revokes the member; the next UI request must expire both tabs.
   const admin=await context.browser()!.newContext();
   try{
-    const captcha=(await(await admin.request.get(`${instance.url}/api/v1/auth/captcha`)).json()).data;
+    const captcha=(await(await admin.request.get(`${instance.url}/api/v1/auth/captcha`,{headers:{"X-Unicore-Identity":"administrator"}})).json()).data;
     const answer=[...Buffer.from(captcha.image.split(',')[1],'base64').toString().matchAll(/>([0-9])<\/text>/g)].map(match=>match[1]).join('');
-    const auth=await admin.request.post(`${instance.url}/api/v1/auth/login`,{data:{username:'admin',password:'test-password-strong',captcha_id:captcha.id,captcha_answer:answer}});expect(auth.status()).toBe(200);
+    const auth=await admin.request.post(`${instance.url}/api/v1/auth/login`,{headers:{"X-Unicore-Identity":"administrator"},data:{username:'admin',password:'test-password-strong',captcha_id:captcha.id,captcha_answer:answer}});expect(auth.status()).toBe(200);
     const session=(await auth.json()).data;
-    const users=(await(await admin.request.get(`${instance.url}/api/v1/admin/users`)).json()).data;
+    const users=(await(await admin.request.get(`${instance.url}/api/v1/admin/users`,{headers:{"X-Unicore-Identity":"administrator"}})).json()).data;
     const member=users.items.find((user:{username:string})=>user.username==='member');
-    const update=await admin.request.patch(`${instance.url}/api/v1/admin/users/${member.id}`,{headers:{'X-CSRF-Token':session.csrf_token},data:{status:'disabled',role:'user'}});expect(update.status()).toBe(200);
+    const update=await admin.request.patch(`${instance.url}/api/v1/admin/users/${member.id}`,{headers:{'X-Unicore-Identity':'administrator','X-CSRF-Token':session.csrf_token},data:{status:'disabled',role:'user'}});expect(update.status()).toBe(200);
     await page.getByRole('button',{name:'运行用例'}).click();
     await expect(page.getByRole('heading',{name:'登录 Unicore',exact:true})).toBeVisible();
     await expect(page.getByText('会话已失效，请重新登录。',{exact:true})).toBeVisible();
     await expect(second.getByRole('heading',{name:'登录 Unicore',exact:true})).toBeVisible();
     await capture(page,info,'foundation-session-expired');
+    expect((await admin.request.patch(`${instance.url}/api/v1/admin/users/${member.id}`,{headers:{'X-Unicore-Identity':'administrator','X-CSRF-Token':session.csrf_token},data:{status:'active',role:'user'}})).status()).toBe(200);
     // Browser redirects can replace the session without broadcasting localStorage.
     const challenge=(await(await page.request.get(`${instance.url}/api/v1/auth/captcha`)).json()).data;
     const freshAnswer=[...Buffer.from(challenge.image.split(',')[1],'base64').toString().matchAll(/>([0-9])<\/text>/g)].map(match=>match[1]).join('');
-    expect((await page.request.post(`${instance.url}/api/v1/auth/login`,{data:{username:'admin',password:'test-password-strong',captcha_id:challenge.id,captcha_answer:freshAnswer}})).status()).toBe(200);
+    expect((await page.request.post(`${instance.url}/api/v1/auth/login`,{data:{username:'member',password:'test-password-strong',captcha_id:challenge.id,captcha_answer:freshAnswer}})).status()).toBe(200);
     await page.bringToFront();await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
     await expect(page.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
 

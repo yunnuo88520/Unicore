@@ -1,18 +1,16 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 系统设置与可裁剪扩展
 
-设置采用单层 Tabs，每次仅显示当前标签的分组卡片；不把标签当成长页锚点，也不嵌套子标签。平台的基础信息、品牌图片、外观设置、安全与控制、邮件服务、账号流程、发送测试、投递记录、邮件模板、企业登录、连接检查和授权与升级均为同级入口，按 profile/编译能力显示。品牌保留浅色 Logo / 深色 Logo / 站点图标三张卡片；邮件模板类型使用下拉选择。表单草稿和图片预览在标签间保留，未保存设置标签显示圆点，每次只保存当前分组；主标签写入 URL 并在刷新后恢复。桌面采用多列紧凑表单，手机标签自动换行；邮件预览和投递表格限制内部高度，减少页面滚动。
+系统管理分为基础设置、邮件设置、系统日志、授权与更新。基础设置使用单层 Tabs（基础信息、品牌图片、外观、安全与控制、企业登录）；保留品牌三卡片、外观预览卡片及切换草稿。平台外观仅当前客户端 localStorage；普通用户只可访问这一项。单机/桌面保留本地默认外观。
 
-外观设置复用原工作空间的浅色/深色/跟随系统预览卡片，侧栏不再保留重复入口。在线平台的保存与顶部快速切换均只写当前客户端 localStorage，不同步服务器或其他用户。普通用户的设置入口仅显示这一张外观卡片；管理员的实例设置中保留外观标签。单机/桌面保留本地实例默认主题。旧 #settings 地址兼容到同一外观入口。
-
-设置统一通过 SettingDefinition 校验、持久化与审计。平台所有全局设置的读取/修改及品牌、邮件预览、投递记录均仅管理员可访问：读取需 settings:read + 固定管理员，写入需 settings:write + 固定管理员及 CSRF/Origin。平台不注册 appearance 分组，API 拒绝保存全局主题。单机/桌面只提供适用项，CLI 不装配设置。
+邮件设置将 SMTP 配置、账号邮件策略和真实发送测试合并到一页，无子标签；测试收件地址在弹窗填写。投递记录在系统日志的邮件投递页，与操作日志并列；不在设置展示邮件模板。模板由框架内部统一生成，业务可通过内部预览 API 验证。全局设置/品牌/SMTP 仅管理员读写，投递和审计需要 logs:read；写请求校验 CSRF/Origin，敏感值不回传。设置源仍为 SettingDefinition。
 
 | 分组 | 当前行为 | 适用 profile |
 | --- | --- | --- |
 | 基础信息/实例品牌 | 浅深 Logo、favicon 上传/预览/恢复；站点名、描述、版权、ICP备案号与 HTTPS 查询链接 | Web 两模式、desktop |
 | 外观 | 平台只存当前客户端；单机/桌面保留本地默认主题 | Web 两模式、desktop |
 | 安全与后台 | 登录/注册图形验证码分别默认开启，会话时长；默认 /admin，可修改且排除保留路径，APP_ADMIN_PATH 恢复 | web-platform |
-| 邮件服务 | 主机/端口/TLS/账号/加密密钥、发件邮箱、独立发件人别名、真实测试、队列状态、五套同源模板预览 | web-platform |
+| 邮件服务 | 主机/端口/TLS/账号/加密密钥、发件邮箱、独立发件人别名、真实测试；五套模板内部生成，队列记录在系统日志 | web-platform |
 | 账号/企业登录 | 注册/六位码登录/找回密码分别开启；SMTP 测试门槛；OIDC 与 JIT 策略 | web-platform |
 | 授权与升级 | 独立编译开关、当前版本、待对接状态、禁用的检查按钮/空更新日志 | Web 两模式、desktop；默认编译关闭 |
 
@@ -26,7 +24,7 @@ mail.from_name 留空时使用邮件内的站点名称；非空作为测试/账�
 
 ## 授权与升级的占位边界
 
-`FEATURE_LICENSE`、`FEATURE_UPDATER` 仅接受 true/false，默认均为 false。Make 将两项分别映射为 Go 的 license/updater build tag，Vite 在构建时替换常量并输出 features.json。独立授权服务器适配 port 是 LicenseProvider，版本查询 port 是 ReleaseProvider；关闭时对应 port 文件不参与编译，相关 UI 被裁掉，不创建客户端或发出外部请求。CLI 始终不声明这些能力。
+`FEATURE_LICENSE`、`FEATURE_UPDATER` 仅接受 true/false，默认均为 false。Make 将两项分别映射为 Go 的 license/updater build tag，Vite 在构建时替换常量并输出 features.json。独立授权服务器适配 port 是 LicenseProvider，版本查询 port 是 ReleaseProvider；关闭时对应 port 文件不参与编译，对应集成卡片被裁掉；通用版本/待对接占位仍在独立页面，不创建客户端或发出外部请求。CLI 始终不声明这些能力。
 
 开启后，bootstrap.capabilities 只表示占位模块已编入；不代表授权有效或 OTA 可执行。卡片明确“待对接”，检测/检查版本按钮禁用，更新日志为空。当前不注册授权/升级 API，不创建 license_state/upgrade_history 表，不接受许可证密钥、不联系服务器、不安装更新。后续接入真实服务、返回真实 Update Log 及签名/部署方式校验后才能启用操作，见 [ADR-0010](../adr/ADR-0010-settings-edition.md)。
 

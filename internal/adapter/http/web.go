@@ -160,8 +160,17 @@ func sameOrigin(w http.ResponseWriter, r *http.Request) bool {
 	}
 	return true
 }
+func administratorRequest(r *http.Request) bool {
+	return r.Header.Get("X-Unicore-Identity") == "administrator"
+}
+func identityCookie(r *http.Request) string {
+	if administratorRequest(r) {
+		return "unicore_administrator_session"
+	}
+	return sessionCookie
+}
 func rawSession(r *http.Request) string {
-	cookie, err := r.Cookie(sessionCookie)
+	cookie, err := r.Cookie(identityCookie(r))
 	if err != nil {
 		return ""
 	}
@@ -172,7 +181,8 @@ func require(manager *install.Manager, w http.ResponseWriter, r *http.Request, p
 		failure(w, 409, "INSTALL_REQUIRED", "请先完成安装")
 		return contracts.Session{}, false
 	}
-	_, _, identity, profile := manager.Services()
+	_, _, _, profile := manager.Services()
+	identity := manager.Identity(administratorRequest(r))
 	if profile != runtime.WebPlatform || identity == nil {
 		failure(w, 404, "NOT_FOUND", "此运行形态不提供平台接口")
 		return contracts.Session{}, false
@@ -205,12 +215,18 @@ func coreAccess(manager *install.Manager, w http.ResponseWriter, r *http.Request
 	return true
 }
 func metadata(config Config, r *http.Request) contracts.Bootstrap {
-	_, service, identity, profile := config.Install.Services()
+	_, service, _, profile := config.Install.Services()
+	identity := config.Install.Identity(administratorRequest(r))
 	data := runtime.Metadata(profile, config.Metadata.DeploymentKind)
 	data.Stage = "M3b"
 	data.Installed = config.Install.Installed()
 	data.SiteName = "Unicore"
 	data.AdminPath = config.Install.AdminPath(r.Context())
+	realm := "user"
+	if administratorRequest(r) {
+		realm = "administrator"
+	}
+	data.IdentityRealm = &realm
 	data.Capabilities.Installation = true
 	data.Capabilities.Database = data.Installed
 	data.Capabilities.Settings = data.Installed
@@ -248,8 +264,8 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 	}
 	return data
 }
-func setSession(manager *install.Manager, w http.ResponseWriter, token string, expires int) {
-	http.SetCookie(w, &http.Cookie{Name: sessionCookie, Value: token, Path: "/", HttpOnly: true, Secure: strings.HasPrefix(manager.BaseURL(), "https://"), SameSite: http.SameSiteLaxMode, Expires: time.Unix(int64(expires), 0), MaxAge: expires - int(time.Now().Unix())})
+func setSession(manager *install.Manager, w http.ResponseWriter, token string, expires int, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{Name: identityCookie(r), Value: token, Path: "/", HttpOnly: true, Secure: strings.HasPrefix(manager.BaseURL(), "https://"), SameSite: http.SameSiteLaxMode, Expires: time.Unix(int64(expires), 0), MaxAge: expires - int(time.Now().Unix())})
 }
 func ip(r *http.Request) string {
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
@@ -321,18 +337,19 @@ func mountWeb(api chi.Router, config Config) {
 			return
 		}
 		if user.ID != "" {
-			_, _, identity, _ := manager.Services()
+			identity := manager.Identity(true)
+			r.Header.Set("X-Unicore-Identity", "administrator")
 			session, token, err := identity.Issue(ctx, user, 24)
 			if err != nil {
 				failure(w, 500, "INSTALL_COMMITTED", "安装已完成，请前往登录页面")
 				return
 			}
-			setSession(manager, w, token, session.ExpiresAt)
+			setSession(manager, w, token, session.ExpiresAt, r)
 		}
 		success(w, result)
 	})
 	api.Get("/auth/captcha", func(w http.ResponseWriter, r *http.Request) {
-		_, _, identity, _ := manager.Services()
+		identity := manager.Identity(administratorRequest(r))
 		if identity == nil {
 			failure(w, 404, "NOT_FOUND", "接口不存在")
 			return
@@ -349,7 +366,8 @@ func mountWeb(api chi.Router, config Config) {
 		success(w, contracts.Captcha{ID: id, Image: image})
 	})
 	api.Post("/auth/login", func(w http.ResponseWriter, r *http.Request) {
-		_, service, identity, _ := manager.Services()
+		_, service, _, _ := manager.Services()
+		identity := manager.Identity(administratorRequest(r))
 		if identity == nil {
 			failure(w, 404, "NOT_FOUND", "接口不存在")
 			return
@@ -374,7 +392,7 @@ func mountWeb(api chi.Router, config Config) {
 			webError(w, err)
 			return
 		}
-		setSession(manager, w, token, session.ExpiresAt)
+		setSession(manager, w, token, session.ExpiresAt, r)
 		success(w, session)
 	})
 	api.Get("/auth/session", func(w http.ResponseWriter, r *http.Request) {
@@ -386,96 +404,120 @@ func mountWeb(api chi.Router, config Config) {
 		if _, ok := require(manager, w, r, ""); !ok {
 			return
 		}
-		_, _, identity, _ := manager.Services()
+		identity := manager.Identity(administratorRequest(r))
 		if err := identity.Store.DeleteSession(r.Context(), platform.Hash(rawSession(r))); err != nil {
 			webError(w, err)
 			return
 		}
-		http.SetCookie(w, &http.Cookie{Name: sessionCookie, Path: "/", HttpOnly: true, Secure: strings.HasPrefix(manager.BaseURL(), "https://"), SameSite: http.SameSiteLaxMode, MaxAge: -1})
+		http.SetCookie(w, &http.Cookie{Name: identityCookie(r), Path: "/", HttpOnly: true, Secure: strings.HasPrefix(manager.BaseURL(), "https://"), SameSite: http.SameSiteLaxMode, MaxAge: -1})
 		success(w, contracts.ActionResult{Success: true})
 	})
-	api.Get("/admin/dashboard", func(w http.ResponseWriter, r *http.Request) {
-		if _, ok := require(manager, w, r, "dashboard:read"); !ok {
-			return
-		}
-		_, _, identity, _ := manager.Services()
-		data, err := identity.Store.Dashboard(r.Context())
-		if err != nil {
-			webError(w, err)
-			return
-		}
-		success(w, data)
-	})
-	api.Get("/admin/users", func(w http.ResponseWriter, r *http.Request) {
-		if _, ok := require(manager, w, r, "users:read"); !ok {
-			return
-		}
-		page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-		size, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
-		if page < 1 {
-			page = 1
-		}
-		if page > 100000 {
-			page = 100000
-		}
-		if size < 1 || size > 50 {
-			size = 20
-		}
-		search := r.URL.Query().Get("search")
-		if len(search) > 128 {
-			webError(w, platform.ErrInput)
-			return
-		}
-		_, _, identity, _ := manager.Services()
-		data, err := identity.Store.ListUsers(r.Context(), search, page, size)
-		if err != nil {
-			webError(w, err)
-			return
-		}
-		success(w, data)
-	})
-	api.Post("/admin/users", func(w http.ResponseWriter, r *http.Request) {
-		actor, ok := require(manager, w, r, "users:create")
+	api.Post("/account/password", func(w http.ResponseWriter, r *http.Request) {
+		actor, ok := require(manager, w, r, "")
 		if !ok {
 			return
 		}
-		var input contracts.UserCreate
+		var input contracts.ChangePasswordInput
 		if !decode(w, r, &input) {
 			return
 		}
-		if input.Role == "super_admin" && !super(actor.User) {
-			webError(w, platform.ErrForbidden)
+		identity := manager.Identity(administratorRequest(r))
+		if err := identity.ChangePassword(r.Context(), actor.User, input, ip(r)); err != nil {
+			webError(w, err)
 			return
 		}
-		_, _, identity, _ := manager.Services()
-		data, err := identity.Create(r.Context(), input, actor.User.ID)
+		http.SetCookie(w, &http.Cookie{Name: identityCookie(r), Path: "/", HttpOnly: true, Secure: strings.HasPrefix(manager.BaseURL(), "https://"), SameSite: http.SameSiteLaxMode, MaxAge: -1})
+		success(w, contracts.ActionResult{Success: true})
+	})
+	api.Get("/admin/logs", func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := require(manager, w, r, "logs:read"); !ok {
+			return
+		}
+		identity := manager.Identity(administratorRequest(r))
+		data, err := identity.Store.SystemLogs(r.Context())
 		if err != nil {
 			webError(w, err)
 			return
 		}
 		success(w, data)
 	})
-	api.Patch("/admin/users/{id}", func(w http.ResponseWriter, r *http.Request) {
-		actor, ok := require(manager, w, r, "users:update")
-		if !ok {
-			return
+	for _, administrators := range []bool{false, true} {
+		path, permission, role := "/admin/users", "users", "user"
+		if administrators {
+			path, permission, role = "/admin/administrators", "administrators", "super_admin"
 		}
-		var input contracts.UserUpdate
-		if !decode(w, r, &input) {
-			return
-		}
-		if !super(actor.User) {
-			webError(w, platform.ErrForbidden)
-			return
-		}
-		_, _, identity, _ := manager.Services()
-		data, err := identity.Store.UpdateUser(r.Context(), chi.URLParam(r, "id"), input, actor.User.ID)
-		if err != nil {
-			webError(w, err)
-			return
-		}
-		success(w, data)
-	})
+		api.Get(path, func(w http.ResponseWriter, r *http.Request) {
+			if _, ok := require(manager, w, r, permission+":read"); !ok {
+				return
+			}
+			page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+			size, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
+			if page < 1 {
+				page = 1
+			}
+			if page > 100000 {
+				page = 100000
+			}
+			if size < 1 || size > 50 {
+				size = 20
+			}
+			search := r.URL.Query().Get("search")
+			if len(search) > 128 {
+				webError(w, platform.ErrInput)
+				return
+			}
+			identity := manager.Identity(administrators)
+			data, err := identity.Store.ListUsers(r.Context(), search, page, size)
+			if err != nil {
+				webError(w, err)
+				return
+			}
+			success(w, data)
+		})
+		api.Post(path, func(w http.ResponseWriter, r *http.Request) {
+			actor, ok := require(manager, w, r, permission+":create")
+			if !ok {
+				return
+			}
+			var input contracts.UserCreate
+			if !decode(w, r, &input) {
+				return
+			}
+			if input.Role != role {
+				webError(w, platform.ErrInput)
+				return
+			}
+			identity := manager.Identity(administrators)
+			data, err := identity.Create(r.Context(), input, actor.User.ID)
+			if err != nil {
+				webError(w, err)
+				return
+			}
+			success(w, data)
+		})
+		api.Patch(path+"/{id}", func(w http.ResponseWriter, r *http.Request) {
+			actor, ok := require(manager, w, r, permission+":update")
+			if !ok {
+				return
+			}
+			var input contracts.UserUpdate
+			if !decode(w, r, &input) {
+				return
+			}
+			if input.Role != role {
+				webError(w, platform.ErrInput)
+				return
+			}
+			identity := manager.Identity(administrators)
+			data, err := identity.Store.UpdateUser(r.Context(), chi.URLParam(r, "id"), input, actor.User.ID)
+			if err != nil {
+				webError(w, err)
+				return
+			}
+			success(w, data)
+		})
+	}
+
 	for _, admin := range []bool{false, true} {
 		prefix := "/settings"
 		if admin {

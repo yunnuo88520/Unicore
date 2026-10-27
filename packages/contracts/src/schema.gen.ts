@@ -44,6 +44,7 @@ export interface Bootstrap {
   site_icp_url?: string;
   theme?: string;
   branding?: Branding;
+  identity_realm?: "user" | "administrator";
 }
 
 export interface BootstrapResponse {
@@ -501,4 +502,23 @@ export interface InstallTokenResponse {
 }
 
 export interface InstallTokenRotate {
+}
+
+export interface ChangePasswordInput {
+  current_password: string;
+  password: string;
+}
+
+export interface AuditLogList {
+  items: Array<AuditEntry>;
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface AuditLogResponse {
+  code: string;
+  message: string;
+  data: AuditLogList;
+  request_id: string;
 }

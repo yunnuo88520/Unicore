@@ -1,0 +1,9 @@
+/* Author: yunnuo <ymz@ebox.vip>
+ * Description: Floating feedback uses global palette, spacing, type and motion tokens.
+ */
+.message-stack{position:fixed;z-index:1000;top:max(20px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);display:grid;justify-items:center;gap:calc(var(--space-unit) * 10);pointer-events:none}
+.message{--message-color:var(--info);--message-soft:var(--info-soft);display:flex;align-items:center;gap:calc(var(--space-unit) * 10);max-width:min(520px,calc(100vw - 32px));padding:calc(var(--space-unit) * 13) calc(var(--space-unit) * 16);border:1px solid var(--border);border-radius:var(--radius-10);background:var(--surface);color:var(--text);box-shadow:0 6px 28px var(--shadow-modal);font-family:var(--font-sans);font-size:var(--font-12);line-height:1.7;pointer-events:auto;animation:message-enter var(--motion-normal) ease-out}
+.message>svg{color:var(--message-color);background:var(--message-soft);border-radius:50%;box-sizing:content-box;padding:4px;flex-shrink:0}.message>span{min-width:0;overflow-wrap:anywhere}.message-dismiss{display:flex;align-items:center;justify-content:center;flex-shrink:0;align-self:center;width:24px;height:24px;color:var(--muted);border-radius:var(--radius-4)}.message-dismiss:hover{background:var(--surface-alt);color:var(--text)}
+.message-primary{--message-color:var(--primary);--message-soft:var(--primary-soft)}.message-success{--message-color:var(--success);--message-soft:var(--success-soft)}.message-warning{--message-color:var(--warning);--message-soft:var(--warning-soft)}.message-error{--message-color:var(--danger);--message-soft:var(--danger-soft)}
+@keyframes message-enter{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.message{animation:none}}

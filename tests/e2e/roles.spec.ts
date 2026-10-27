@@ -14,14 +14,14 @@ async function login(page: Page,url: string){
 test('fixed roles enforce menus, all management APIs and client-only appearance',async({page,browser,instance},info)=>{
  test.setTimeout(60000);
  expect((await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}})).status()).toBe(200);
- await page.goto(`${instance.url}/#roles`);await expect(page.getByRole('heading',{name:'角色权限',exact:true})).toBeVisible();
+ await page.goto(`${instance.url}/admin#roles`);await expect(page.getByRole('heading',{name:'角色权限',exact:true})).toBeVisible();
  await expect(page.getByRole('button',{name:'新增角色',exact:true})).toHaveCount(0);await expect(page.locator('.role-card')).toHaveCount(2);
- const boot=(await(await page.request.get(`${instance.url}/api/v1/bootstrap`)).json()).data;const headers={'X-CSRF-Token':boot.csrf_token};
- const roles=(await(await page.request.get(`${instance.url}/api/v1/admin/roles`)).json()).data;
+ const boot=(await(await page.request.get(`${instance.url}/api/v1/bootstrap`,{headers:{"X-Unicore-Identity":"administrator"}})).json()).data;const headers={'X-Unicore-Identity':'administrator','X-CSRF-Token':boot.csrf_token};
+ const roles=(await(await page.request.get(`${instance.url}/api/v1/admin/roles`,{headers})).json()).data;
  expect(roles.items.map((item:{id:string})=>item.id).sort()).toEqual(['super_admin','user']);
  const created=await page.request.post(`${instance.url}/api/v1/admin/users`,{headers,data:{username:'member',email:'member@example.test',password:'test-password-strong',role:'user'}});expect(created.status()).toBe(200);const memberID=(await created.json()).data.id;
  expect((await page.request.post(`${instance.url}/api/v1/admin/users`,{headers,data:{username:'custom',email:'custom@example.test',password:'test-password-strong',role:'custom'}})).status()).toBe(400);
- expect((await page.request.patch(`${instance.url}/api/v1/admin/users/${boot.current_user.id}`,{headers,data:{role:'user',status:'active'}})).status()).toBe(409);
+ expect((await page.request.patch(`${instance.url}/api/v1/admin/administrators/${boot.current_user.id}`,{headers,data:{role:'super_admin',status:'disabled'}})).status()).toBe(409);
  await page.reload();await expect(page.locator('.role-card').filter({hasText:'普通用户'})).toContainText('1 位用户');
  const directory=`build/acceptance/permissions/${info.project.name}`;await mkdir(directory,{recursive:true});await page.screenshot({path:`${directory}/admin-fixed-roles.png`,fullPage:true});
  const contexts=[];
@@ -37,11 +37,11 @@ test('fixed roles enforce menus, all management APIs and client-only appearance'
    expect((await member.request.fetch(`${instance.url}${path}`,{...options,headers:memberHeaders})).status(),`member ${operation.method} ${path}`).toBe(403);
   }
   const managementReads:string[]=[];member.on('request',request=>{if(request.url().includes('/api/v1/admin/'))managementReads.push(request.url());});
-  for(const route of ['users','roles','admin']){await member.goto(`${instance.url}/#${route}`);await expect(member.getByText('没有访问权限',{exact:true})).toBeVisible();}
-  expect((await member.request.get(`${instance.url}/admin`)).status()).toBe(403);
+  for(const route of ['users','administrators','roles','mail','logs']){await member.goto(`${instance.url}/#${route}`);await expect(member.getByText('没有访问权限',{exact:true})).toBeVisible();}
+  expect((await member.request.get(`${instance.url}/admin`)).status()).toBe(200);
   await member.goto(`${instance.url}/#site?tab=mail`);
   if(info.project.name==='mobile')await member.getByRole('button',{name:'打开导航'}).click();
-  for(const name of ['平台仪表盘','用户管理','角色权限','实例设置'])await expect(member.getByRole('button',{name,exact:true})).toHaveCount(0);
+  for(const name of ['平台仪表盘','用户管理','角色权限','基础设置'])await expect(member.getByRole('button',{name,exact:true})).toHaveCount(0);
   await member.getByRole('button',{name:'外观设置',exact:true}).click();
   await expect(member.getByLabel('站点名称',{exact:true})).toHaveCount(0);await expect(member.getByRole('tab')).toHaveCount(0);await expect(member.getByText('仅当前客户端',{exact:true})).toBeVisible();
   const writes:string[]=[];member.on('request',request=>{if(request.method()!=='GET')writes.push(request.url());});
@@ -51,15 +51,14 @@ test('fixed roles enforce menus, all management APIs and client-only appearance'
   await member.screenshot({path:`${directory}/member-local-appearance.png`,fullPage:true});
   expect(await member.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   const clean=await browser.newContext({viewport:page.viewportSize()!,colorScheme:'light'});contexts.push(clean);const other=await clean.newPage();await login(other,instance.url);await expect(other.locator('html')).toHaveAttribute('data-theme','light');
-  const global=(await(await page.request.get(`${instance.url}/api/v1/admin/settings`)).json()).data;expect(global.items.some((item:{key:string})=>item.key==='appearance.theme')).toBe(false);
+  const global=(await(await page.request.get(`${instance.url}/api/v1/admin/settings`,{headers})).json()).data;expect(global.items.some((item:{key:string})=>item.key==='appearance.theme')).toBe(false);
   expect((await page.request.patch(`${instance.url}/api/v1/admin/settings`,{headers,data:{changes:[{key:'appearance.theme',value:'dark'}]}})).status()).toBe(400);
   expect((await page.request.patch(`${instance.url}/api/v1/admin/settings`,{headers,data:{changes:[{key:'site.name',value:'管理员统一品牌'}]}})).status()).toBe(200);
   await member.reload();await expect(member).toHaveTitle('管理员统一品牌 · 工作空间');await expect(member.locator('html')).toHaveAttribute('data-theme','dark');
-  // Promotion and demotion revoke active sessions; effective access is reloaded from the server.
-  expect((await page.request.patch(`${instance.url}/api/v1/admin/users/${memberID}`,{headers,data:{role:'super_admin',status:'active'}})).status()).toBe(200);
-  expect((await member.request.get(`${instance.url}/api/v1/auth/session`)).status()).toBe(401);
-  await login(other,instance.url);expect((await other.request.get(`${instance.url}/api/v1/admin/settings`)).status()).toBe(200);
-  expect((await page.request.patch(`${instance.url}/api/v1/admin/users/${memberID}`,{headers,data:{role:'user',status:'active'}})).status()).toBe(200);
-  expect((await other.request.get(`${instance.url}/api/v1/admin/settings`)).status()).toBe(401);
+  // Realm conversion is rejected; administrators are created in their own table.
+  expect((await page.request.patch(`${instance.url}/api/v1/admin/users/${memberID}`,{headers,data:{role:'super_admin',status:'active'}})).status()).toBe(400);
+  expect((await member.request.get(`${instance.url}/api/v1/auth/session`)).status()).toBe(200);
+  expect((await page.request.post(`${instance.url}/api/v1/admin/administrators`,{headers,data:{username:'member',email:'member@example.test',password:'administrator-password-strong',role:'super_admin'}})).status()).toBe(200);
+  expect((await page.request.get(`${instance.url}/api/v1/admin/administrators`,{headers})).status()).toBe(200);
  }finally{for(const context of contexts)await context.close();}
 });

@@ -15,6 +15,7 @@ it('calls the supplied client and displays actual output', async () => {
   expect(screen.getByText('42')).toBeVisible();
   expect(api.execute).toHaveBeenCalledWith({ text: expect.stringContaining('Unicore') });
   expect(screen.queryByText('总用户数')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: '账号菜单' })).not.toBeInTheDocument();
 });
 it('shows recoverable failures and disables blank input', async () => {
   const api = client(); vi.mocked(api.execute).mockRejectedValue(new AppError('INVALID_INPUT', '文本不合法'));
@@ -30,7 +31,7 @@ it('persists appearance preference', async () => {
   const settings = { items: [{ key: 'appearance.theme', group: 'appearance', label: '默认主题', value_type: 'string', value: 'system', sensitive: false, configured: true }] };
   api.settings = vi.fn().mockResolvedValue(settings); api.patchSettings = vi.fn().mockResolvedValue(settings);
   render(<Workspace client={api} />);
-  await userEvent.click(await screen.findByRole('button', { name: '实例设置' }));
+  await userEvent.click(await screen.findByRole('button', { name: '基础设置' }));
   await userEvent.click(await screen.findByRole('tab', { name: '外观设置' }));
   await userEvent.click(screen.getByRole('button', { name: /深色.*柔和低光/ }));
   await userEvent.click(screen.getByRole('button', { name: '保存设置' }));

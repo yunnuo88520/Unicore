@@ -1,24 +1,25 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Shared UI client; pages know neither fetch nor Wails globals.
  */
-import type { Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart } from '@unicore/contracts';
+import type { Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
 import { operations, type OperationId, type OperationInputs, type OperationData } from '@unicore/contracts/operations';
 import { validate, type SchemaName } from '@unicore/contracts/validate';
 export { validate, type SchemaName } from '@unicore/contracts/validate';
 export { operations, type OperationId } from '@unicore/contracts/operations';
 
-export type { Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart } from '@unicore/contracts';
+export type { Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
 
 export class AppError extends Error {
   constructor(public readonly code: string, message: string, public readonly requestId = '', public readonly fields: Record<string, string> = {}) { super(message); this.name = 'AppError'; }
 }
 
-export type SessionEvent = 'authenticated' | 'signed-out' | 'expired' | 'external';
+export type SessionEvent = 'authenticated' | 'password-changed' | 'signed-out' | 'expired' | 'external';
 export type RequestOptions = { signal?: AbortSignal };
 export type OperationOptions = RequestOptions & { params?: Record<string, string>; query?: Record<string, string | number>; headers?: Record<string, string> };
 
 export interface AppClient {
   readonly transport: 'http' | 'wails';
+  readonly sessionScope?: 'user' | 'administrator';
   bootstrap(options?: RequestOptions): Promise<Bootstrap>;
   execute(input: ExecuteInput, options?: RequestOptions): Promise<ExecuteOutput>;
   settings?(): Promise<Settings>;
@@ -56,7 +57,11 @@ export interface WebClient {
   captcha(): Promise<Captcha>;
   login(input: LoginInput): Promise<Session>;
   logout(): Promise<{ success: boolean }>;
-  dashboard(): Promise<Dashboard>;
+  systemLogs(): Promise<AuditLogList>;
+ changePassword(input:ChangePasswordInput):Promise<{success:boolean}>;
+ administrators(search:string,page:number):Promise<UserList>;
+ createAdministrator(input:UserCreate):Promise<User>;
+ updateAdministrator(id:string,input:UserUpdate):Promise<User>;
   users(search: string, page: number): Promise<UserList>;
   createUser(input: UserCreate): Promise<User>;
   updateUser(id: string, input: UserUpdate): Promise<User>;
@@ -72,7 +77,10 @@ function unwrap<T>(response: { code: string; message: string; data: T; request_i
 export class HttpTransport implements AppClient, WebClient {
   readonly transport = 'http' as const;
   readonly web: WebClient = this;
+  get sessionScope(): 'user'|'administrator' { return this.administrator?'administrator':'user'; }
   private csrf = '';
+ private administrator = false;
+ private realmChosen = false;
   private platform = false;
   private authenticated = false;
   private identity = '';
@@ -87,6 +95,7 @@ export class HttpTransport implements AppClient, WebClient {
     const epoch = this.epoch;
     let response: Response;
     const headers = new Headers(init?.headers);
+ headers.set("X-Unicore-Identity",this.administrator?"administrator":"user");
     if (this.csrf) headers.set('X-CSRF-Token', this.csrf);
     const timeout = AbortSignal.timeout(20000);
     const signal = init?.signal ? AbortSignal.any([init.signal, timeout]) : timeout;
@@ -121,7 +130,8 @@ export class HttpTransport implements AppClient, WebClient {
     return this.request<OperationData[K]>(path.replace(/^\/api\/v1/, ''), { method: operation.method, signal: options?.signal, headers: { ...(input === undefined ? {} : { 'Content-Type': 'application/json' }), ...options?.headers }, ...(input === undefined ? {} : { body: JSON.stringify(input) }) });
   }
   async bootstrap(options?: RequestOptions) {
-    const data = await this.call('bootstrap', undefined, options);
+    let data = await this.call('bootstrap', undefined, options);
+ if(!this.realmChosen && data.installed){this.realmChosen=true;const path=globalThis.location?.pathname??'';this.administrator=path===data.admin_path||path.startsWith(data.admin_path+'/');if(this.administrator)data=await this.call('bootstrap',undefined,options);}
     const nextIdentity = data.current_user?.id ?? '';
     const expired = this.authenticated && !data.current_user;
     const switched = this.bootstrapped && this.identity !== nextIdentity;
@@ -159,7 +169,11 @@ export class HttpTransport implements AppClient, WebClient {
   captcha() { return this.call('captcha'); }
   async login(input: LoginInput) { const session = await this.call('login', input); this.csrf = session.csrf_token; this.identity = session.user.id; this.authenticated = true; this.sessionChanged('authenticated'); return session; }
   async logout() { const data = await this.call('logout'); this.csrf = ''; this.identity = ''; this.authenticated = false; this.sessionChanged('signed-out'); return data; }
-  dashboard() { return this.call('dashboard'); }
+  systemLogs(){return this.call('systemLogs');}
+ async changePassword(input:ChangePasswordInput){const result=await this.call('changePassword',input);this.csrf='';this.identity='';this.authenticated=false;this.sessionChanged('password-changed');return result;}
+ administrators(search:string,page:number){return this.call('listAdministrators',undefined,{query:{search,page}});}
+ createAdministrator(input:UserCreate){return this.call('createAdministrator',input);}
+ updateAdministrator(id:string,input:UserUpdate){return this.call('updateAdministrator',input,{params:{id}});}
   users(search: string, page: number) { return this.call('listUsers', undefined, { query: { search, page } }); }
   createUser(input: UserCreate) { return this.call('createUser', input); }
   updateUser(id: string, input: UserUpdate) { return this.call('updateUser', input, { params: { id } }); }

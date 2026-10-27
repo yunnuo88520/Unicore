@@ -10,12 +10,12 @@ import { BrandLockup } from './brand';
 import { EnterpriseLogin } from './oidc-page';
 import { LegacyLoginPage } from './legacy-account-flows';
 type Mode = 'login' | 'email' | 'register' | 'forgot' | 'resend';
-type Props = { web: WebClient; siteName: string; onDone: () => void; notice?: string };
+type Props = { administrator?:boolean;adminPath?:string; web: WebClient; siteName: string; onDone: () => void; notice?: string };
 export function LoginPage(props: Props) {
   if (/^#(verify-email|reset-password)(\?|$)/.test(window.location.hash)) return <LegacyLoginPage {...props} />;
   return <CodeLoginPage {...props} />;
 }
-function CodeLoginPage({ web, siteName, onDone, notice }: Props) {
+function CodeLoginPage({ administrator=false,adminPath='/admin',web, siteName, onDone, notice }: Props) {
   const [mode, setMode] = useState<Mode>('login');
   const [username, setUsername] = useState(''); const [email, setEmail] = useState('');
   const [password, setPassword] = useState(''); const [answer, setAnswer] = useState(''); const [code, setCode] = useState('');
@@ -43,9 +43,9 @@ function CodeLoginPage({ web, siteName, onDone, notice }: Props) {
     onError: () => { if (needsCaptcha) { setAnswer(''); void captcha.refetch(); } },
   });
   function change(next: Mode) { setMode(next); setChallenge(undefined); setDone(false); setPassword(''); setCode(''); setAnswer(''); submit.reset(); }
-  const titles: Record<Mode, string> = { login: `登录 ${siteName}`, email: '邮箱验证码登录', register: '创建账号', forgot: '找回密码', resend: '重新验证邮箱' };
+  const titles: Record<Mode, string> = { login: administrator?`管理员登录 · ${siteName}`:`登录 ${siteName}`, email: '邮箱验证码登录', register: '创建账号', forgot: '找回密码', resend: '重新验证邮箱' };
   const labels: Record<Mode, string> = { login: '登录工作空间', email: '发送登录验证码', register: '注册并验证邮箱', forgot: '发送重置验证码', resend: '发送邮箱验证码' };
-  return <main className="flow-page login-page"><div className="flow-brand"><BrandLockup name={siteName} /></div><div className="login-card"><div className="login-icon">{challenge ? <Mail size={26} /> : <ShieldCheck size={26} />}</div><h1>{challenge ? purpose === 'verify' ? '验证邮箱' : purpose === 'reset' ? '设置新密码' : '输入登录验证码' : titles[mode]}</h1><p>{challenge ? '若账号符合条件，验证码将发送至该邮箱。请检查收件箱或垃圾邮件。' : '继续你的工作，连接更多可能。'}</p>
+  return <main className="flow-page login-page"><div className="flow-brand"><BrandLockup name={siteName} /></div><div className="login-card"><div className="login-icon">{challenge ? <Mail size={26} /> : <ShieldCheck size={26} />}</div><h1>{challenge ? purpose === 'verify' ? '验证邮箱' : purpose === 'reset' ? '设置新密码' : '输入登录验证码' : titles[mode]}</h1><p>{challenge ? '若账号符合条件，验证码将发送至该邮箱。请检查收件箱或垃圾邮件。' : administrator?'使用独立的后台账号登录。':'继续你的工作，连接更多可能。'}</p>
     {notice && <p className="help-text" role="status">{notice}</p>}{done ? <div className="flow-form"><p className="saved-caption" role="status"><CheckCircle2 size={18} />{purpose === 'verify' ? '邮箱验证成功，现在可以登录。' : '密码已更新，旧会话已退出。'}</p><button className="primary-button" onClick={() => change('login')}>返回登录</button></div> : <Form error={submit.error} pending={submit.isPending} className="flow-form" onSubmit={event => { event.preventDefault(); submit.mutate(); }}>
       {!challenge && (mode === 'login' || mode === 'register') && <label>{mode === 'login' ? '账号或邮箱' : '账号'}<input name="username" required autoComplete="username" minLength={mode === 'register' ? 3 : undefined} maxLength={254} value={username} onChange={event => setUsername(event.target.value)} /></label>}
       {!challenge && mode !== 'login' && <label>邮箱<input name="email" type="email" required autoComplete="email" maxLength={254} value={email} onChange={event => setEmail(event.target.value)} /></label>}
@@ -59,5 +59,6 @@ function CodeLoginPage({ web, siteName, onDone, notice }: Props) {
       <div className="account-links">{mode !== 'login' && <button type="button" className="text-button" onClick={() => change('login')}>返回登录</button>}{mode === 'login' && policy.data?.email_login_enabled && <button type="button" className="text-button" onClick={() => change('email')}>邮箱验证码登录</button>}{mode === 'login' && policy.data?.registration_enabled && <button type="button" className="text-button" onClick={() => change('register')}>注册账号</button>}{policy.data?.reset_enabled && mode !== 'forgot' && <button type="button" className="text-button" onClick={() => change('forgot')}>找回密码</button>}{policy.data?.registration_enabled && mode !== 'resend' && <button type="button" className="text-button" onClick={() => change('resend')}>重发验证邮件</button>}</div>
       {mode === 'login' && policy.data && !policy.data.registration_enabled && <p className="help-text">注册暂未开放。请联系实例管理员获取账号。</p>}
     </Form>}{mode === 'login' && <EnterpriseLogin web={web} />}
+    <div className="identity-entry-link"><a href={administrator?'/login':adminPath}>{administrator?'返回用户登录':'管理员登录'}</a></div>
   </div></main>;
 }

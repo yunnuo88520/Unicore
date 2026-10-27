@@ -41,6 +41,9 @@ func TestPlatformInstallAuthAndRBAC(t *testing.T) {
 		r.Header.Set("X-CSRF-Token", csrf)
 		if cookie != nil {
 			r.AddCookie(cookie)
+			if cookie.Name == "unicore_administrator_session" {
+				r.Header.Set("X-Unicore-Identity", "administrator")
+			}
 		}
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, r)
@@ -87,7 +90,7 @@ func TestPlatformInstallAuthAndRBAC(t *testing.T) {
 	}
 	var member contracts.UserResponse
 	_ = json.Unmarshal(w.Body.Bytes(), &member)
-	if w = request("PATCH", "/api/v1/admin/users/"+data.Data.CurrentUser.ID, contracts.UserUpdate{Status: "disabled", Role: "super_admin"}, adminCookie, csrf); w.Code != 409 {
+	if w = request("PATCH", "/api/v1/admin/administrators/"+data.Data.CurrentUser.ID, contracts.UserUpdate{Status: "disabled", Role: "super_admin"}, adminCookie, csrf); w.Code != 409 {
 		t.Fatal("last admin disabled", w.Code, w.Body.String())
 	}
 	// Default captcha is returned as image data; extracting test glyphs verifies the round-trip without bypassing the endpoint.

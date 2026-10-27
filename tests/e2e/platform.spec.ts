@@ -27,13 +27,13 @@ test('first-install platform wizard, users, settings, logout and captcha login',
   await capture(page, info, 'install-complete');
   await page.getByRole('button', { name: '进入工作空间' }).click();
   async function nav(name: string) { if (info.project.name === 'mobile') await page.getByRole('button', { name: '打开导航' }).click(); await page.getByRole('button', { name, exact: true }).click(); }
-  for (const [name, slug] of [['工作台概览', 'overview'], ['核心实验室', 'lab'], ['实例设置', 'site'], ['平台仪表盘', 'dashboard']] as const) {
+  for (const [name, slug] of [['工作台概览', 'overview'], ['核心实验室', 'lab'], ['基础设置', 'site'], ['系统日志', 'logs']] as const) {
     await nav(name); await capture(page, info, slug);
   }
   await page.getByRole('button', { name: '关于 Unicore', exact: true }).click();
   await expect(page.getByRole('dialog')).toBeVisible(); await capture(page, info, 'about');
   await page.getByRole('button', { name: '关闭关于' }).click();
-  await nav('用户管理'); await capture(page, info, 'users');
+  await nav('用户列表'); await capture(page, info, 'users');
   await page.getByRole('button', { name: '新增用户', exact: true }).click();
   await capture(page, info, 'user-create');
   await page.getByLabel('账号', { exact: true }).fill('member');
@@ -41,14 +41,15 @@ test('first-install platform wizard, users, settings, logout and captcha login',
   await page.getByLabel('初始密码').fill('test-password-strong');
   await page.getByRole('button', { name: '创建用户', exact: true }).click();
   await expect(page.getByRole('cell', { name: 'member', exact: true })).toBeVisible();
-  await nav('实例设置');
+  await nav('基础设置');
   await capture(page, info, 'site-settings');
   await page.getByLabel('站点名称').fill('My Unicore');
   await page.getByRole('button', { name: '保存设置' }).click();
   await expect(page.getByText('设置已保存')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await nav('退出登录');
-  await expect(page.getByRole('heading', { name: '登录 My Unicore' })).toBeVisible();
+  await page.getByRole('button',{name:'账号菜单',exact:true}).click();
+  await page.getByRole('button',{name:'退出登录',exact:true}).click();
+  await expect(page.getByRole('heading', { name: '管理员登录 · My Unicore' })).toBeVisible();
   await page.getByLabel('账号或邮箱').fill('admin');
   await page.getByLabel('密码', { exact: true }).fill('test-password-strong');
   const image = await page.getByAltText('六位数字验证码，点击刷新').getAttribute('src');
@@ -63,7 +64,7 @@ test('standalone has no administrator and settings persist after reload', async 
   await page.goto(instance.url);
   if (info.project.name === 'mobile') await page.getByRole('button', { name: '打开导航' }).click();
   await expect(page.getByRole('button', { name: '用户管理', exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: '实例设置', exact: true }).click();
+  await page.getByRole('button', { name: '基础设置', exact: true }).click();
   await page.getByLabel('站点名称').fill('Local saved');
   await page.getByRole('button', { name: '保存设置' }).click();
   await expect(page.getByText('设置已保存')).toBeVisible();

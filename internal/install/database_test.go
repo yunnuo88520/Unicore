@@ -120,6 +120,7 @@ func TestDatabaseFieldsResetAndRestart(t *testing.T) {
 				t.Fatal("confirmed installation failed", err)
 			}
 			store, settings, identity, _ := m.Services()
+			identity = m.Identity(true)
 			account, err := identity.Store.FindAccount(ctx, "admin")
 			if err != nil {
 				t.Fatal(err)
@@ -156,6 +157,7 @@ func TestDatabaseFieldsResetAndRestart(t *testing.T) {
 					t.Fatal("restart returned to installer")
 				}
 				store, settings, identity, _ = m.Services()
+				identity = m.Identity(true)
 				current, err := identity.Store.FindAccount(ctx, "admin")
 				if err != nil || current.User.ID != adminID {
 					t.Fatal("administrator recreated on restart", err)

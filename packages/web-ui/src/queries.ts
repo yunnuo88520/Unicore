@@ -3,8 +3,8 @@
 import type { QueryClient } from '@tanstack/react-query';
 const affected = {
  branding: ['branding', 'bootstrap', 'mail-templates'],
-  users: ['users', 'roles', 'user-role-options', 'admin-dashboard', 'bootstrap'],
-  roles: ['roles', 'user-role-options', 'users', 'admin-dashboard', 'bootstrap'],
+  users: ['users', 'roles', 'user-role-options', 'administrators', 'bootstrap'],
+  roles: ['roles', 'user-role-options', 'users', 'administrators', 'bootstrap'],
   settings: ['persistent-settings', 'bootstrap', 'auth-policy', 'oidc-public', 'oidc-account', 'oidc-settings', 'mail-policy', 'mail-templates'],
 } as const;
 export function invalidateAfter(client: QueryClient, mutation: keyof typeof affected) {

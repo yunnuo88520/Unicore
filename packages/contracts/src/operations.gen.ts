@@ -164,22 +164,6 @@ export const operations = {
     "superAdmin": false,
     "csrf": true
   },
-  "dashboard": {
-    "method": "GET",
-    "path": "/api/v1/admin/dashboard",
-    "requestSchema": null,
-    "responseSchema": "DashboardResponse",
-    "profiles": [
-      "web-platform"
-    ],
-    "access": "session",
-    "permissions": [
-      "dashboard:read"
-    ],
-    "permissionMode": "all",
-    "superAdmin": true,
-    "csrf": false
-  },
   "listUsers": {
     "method": "GET",
     "path": "/api/v1/admin/users",
@@ -387,22 +371,6 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": true,
     "csrf": true
-  },
-  "mailJobs": {
-    "method": "GET",
-    "path": "/api/v1/admin/settings/mail/jobs",
-    "requestSchema": null,
-    "responseSchema": "MailJobListResponse",
-    "profiles": [
-      "web-platform"
-    ],
-    "access": "session",
-    "permissions": [
-      "settings:read"
-    ],
-    "permissionMode": "all",
-    "superAdmin": true,
-    "csrf": false
   },
   "registerEmailCode": {
     "method": "POST",
@@ -728,6 +696,114 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false
+  },
+  "listAdministrators": {
+    "method": "GET",
+    "path": "/api/v1/admin/administrators",
+    "requestSchema": null,
+    "responseSchema": "UserListResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "administrators:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false
+  },
+  "createAdministrator": {
+    "method": "POST",
+    "path": "/api/v1/admin/administrators",
+    "requestSchema": "UserCreate",
+    "responseSchema": "UserResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "administrators:create"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true
+  },
+  "updateAdministrator": {
+    "method": "PATCH",
+    "path": "/api/v1/admin/administrators/{id}",
+    "requestSchema": "UserUpdate",
+    "responseSchema": "UserResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "administrators:update"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true
+  },
+  "systemLogs": {
+    "method": "GET",
+    "path": "/api/v1/admin/logs",
+    "requestSchema": null,
+    "responseSchema": "AuditLogResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "logs:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false
+  },
+  "mailJobs": {
+    "method": "GET",
+    "path": "/api/v1/admin/mail/jobs",
+    "requestSchema": null,
+    "responseSchema": "MailJobListResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "logs:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false
+  },
+  "changePassword": {
+    "method": "POST",
+    "path": "/api/v1/account/password",
+    "requestSchema": "ChangePasswordInput",
+    "responseSchema": "ActionResultResponse",
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true
+  },
+  "administratorOIDCCallback": {
+    "method": "GET",
+    "path": "/api/v1/auth/oidc/administrator-callback",
+    "requestSchema": null,
+    "responseSchema": null,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
   }
 } as const;
 export type OperationId = keyof typeof operations;
@@ -743,7 +819,6 @@ export interface OperationInputs {
   login: Models.LoginInput;
   session: undefined;
   logout: undefined;
-  dashboard: undefined;
   listUsers: undefined;
   createUser: Models.UserCreate;
   updateUser: Models.UserUpdate;
@@ -758,7 +833,6 @@ export interface OperationInputs {
   requestPasswordReset: Models.EmailRequest;
   resetPassword: Models.ResetInput;
   testMail: Models.MailTestInput;
-  mailJobs: undefined;
   registerEmailCode: Models.RegisterInput;
   requestEmailVerify: Models.EmailRequest;
   completeEmailVerify: Models.EmailCodeInput;
@@ -781,6 +855,13 @@ export interface OperationInputs {
   localBranding: undefined;
   localUpdateBranding: Models.BrandingInput;
   rotateInstallToken: Models.InstallTokenRotate;
+  listAdministrators: undefined;
+  createAdministrator: Models.UserCreate;
+  updateAdministrator: Models.UserUpdate;
+  systemLogs: undefined;
+  mailJobs: undefined;
+  changePassword: Models.ChangePasswordInput;
+  administratorOIDCCallback: undefined;
 }
 export interface OperationData {
   bootstrap: Models.BootstrapResponse['data'];
@@ -794,7 +875,6 @@ export interface OperationData {
   login: Models.SessionResponse['data'];
   session: Models.SessionResponse['data'];
   logout: Models.ActionResultResponse['data'];
-  dashboard: Models.DashboardResponse['data'];
   listUsers: Models.UserListResponse['data'];
   createUser: Models.UserResponse['data'];
   updateUser: Models.UserResponse['data'];
@@ -809,7 +889,6 @@ export interface OperationData {
   requestPasswordReset: Models.ActionResultResponse['data'];
   resetPassword: Models.ActionResultResponse['data'];
   testMail: Models.ActionResultResponse['data'];
-  mailJobs: Models.MailJobListResponse['data'];
   registerEmailCode: Models.EmailChallengeResponse['data'];
   requestEmailVerify: Models.EmailChallengeResponse['data'];
   completeEmailVerify: Models.ActionResultResponse['data'];
@@ -832,4 +911,11 @@ export interface OperationData {
   localBranding: Models.BrandingResponse['data'];
   localUpdateBranding: Models.BrandingResponse['data'];
   rotateInstallToken: Models.InstallTokenResponse['data'];
+  listAdministrators: Models.UserListResponse['data'];
+  createAdministrator: Models.UserResponse['data'];
+  updateAdministrator: Models.UserResponse['data'];
+  systemLogs: Models.AuditLogResponse['data'];
+  mailJobs: Models.MailJobListResponse['data'];
+  changePassword: Models.ActionResultResponse['data'];
+  administratorOIDCCallback: void;
 }

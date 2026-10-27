@@ -53,7 +53,7 @@ async function exercise(mode,profile) {
       expect(manifest?.sha256).toBe(digest(readFileSync(file)));
       execFileSync('tar',['-xzf',file,'-C',release,'--strip-components=1']);
       expect(readFileSync(join(release,'VERSION'),'utf8').trim()).toBe(version);
-      expect(JSON.parse(readFileSync(join(release,'manifest.json'),'utf8')).migration_level).toBe(profile==='web-platform'?7:1);
+      expect(JSON.parse(readFileSync(join(release,'manifest.json'),'utf8')).migration_level).toBe(profile==='web-platform'?8:1);
       const network=`${name}-network`;networks.add(network);docker(['network','create',network]);
       run.push('--network',network,'--network-alias','backend','-v',`${release}:/release:ro`,'--entrypoint','/release/bin/server','-e','APP_DEPLOYMENT_KIND=tar');
       const config=readFileSync(join(release,'deploy/nginx.conf.example'),'utf8').replace('127.0.0.1:8088','0.0.0.0:80').replace('/opt/unicore/current/web','/release/web').replace('127.0.0.1:8080','backend:8080').replace('add_header Cache-Control','add_header X-Unicore-Static nginx;\n        add_header Cache-Control');
@@ -64,14 +64,15 @@ async function exercise(mode,profile) {
       docker(['exec',nginx,'nginx','-t']);
       url=`http://${docker(['port',nginx,'80/tcp'])}`;
       const asset=readdirSync(join(release,'web/assets')).find(file=>file.endsWith('.js'));
-      const response=await fetch(`${url}/assets/${asset}`);expect(response.status).toBe(200);expect(response.headers.get('x-unicore-static')).toBe('nginx');
+      let response;await expect.poll(async()=>{try{response=await fetch(`${url}/assets/${asset}`);return response.status;}catch{return 0;}},{timeout:30000}).toBe(200);expect(response.headers.get('x-unicore-static')).toBe('nginx');
     } else {run.push('-p','127.0.0.1::8080');docker([...run,image]);containers.add(name);url=`http://${docker(['port',name,'8080/tcp'])}`;}
     recreate=()=>{docker(['stop','-t','15',name]);expect(docker(['inspect','--format','{{.State.ExitCode}}',name])).toBe('0');docker(['rm',name]);docker([...run,image]);if(mode==='docker')url=`http://${docker(['port',name,'8080/tcp'])}`;};
   }
   await waitLive(url);
   const context=await browser.newContext({baseURL:url,viewport:{width:1440,height:1000}});
   const page=await context.newPage();const errors=[];page.on('pageerror',error=>errors.push(error.message));
-  const get=path=>context.request.get(`${url}${path}`);
+  const realm=profile==='web-platform'?{'X-Unicore-Identity':'administrator'}:{};
+  const get=path=>context.request.get(`${url}${path}`,{headers:realm});
   const json=async path=>(await(await get(path)).json()).data;
   try {
     expect((await get('/api/v1/health/ready')).status()).toBe(503);
@@ -93,9 +94,9 @@ async function exercise(mode,profile) {
     await page.getByRole('button',{name:'完成安装'}).click();await expect(page.getByRole('heading',{name:'安装完成',exact:true})).toBeVisible();
     await page.getByRole('button',{name:'进入工作空间'}).click();await expect(page.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
     const boot=await json('/api/v1/bootstrap');expect(boot.version).toBe(version);expect(boot.profile).toBe(profile);expect(boot.deployment_kind).toBe(mode.startsWith('tar')?'tar':'docker');
-    const admin=profile==='web-platform';const headers={'Origin':url,...(admin?{'X-CSRF-Token':boot.csrf_token}:{})};
+    const admin=profile==='web-platform';const headers={...realm,'Origin':url,...(admin?{'X-CSRF-Token':boot.csrf_token}:{})};
     const base=admin?'/api/v1/admin':'/api/v1';
-    if(admin) {const noCSRF=await context.request.patch(`${url}${base}/settings`,{data:{changes:[{key:'site.name',value:'denied'}]}});expect(noCSRF.status()).toBe(403);}
+    if(admin) {const noCSRF=await context.request.patch(`${url}${base}/settings`,{headers:realm,data:{changes:[{key:'site.name',value:'denied'}]}});expect(noCSRF.status()).toBe(403);}
     const changes=[{key:'site.name',value:`持久部署 ${mode}`},...(admin?[{key:'admin.path',value:'/manage'}]:[])];
     expect((await context.request.patch(`${url}${base}/settings`,{headers,data:{changes}})).status()).toBe(200);
     expect((await context.request.put(`${url}${base}/branding`,{headers,data:{slot:'favicon',content:readFileSync('assets/brand/icon-192.png').toString('base64')}})).status()).toBe(200);
@@ -105,7 +106,7 @@ async function exercise(mode,profile) {
     for(const path of ['/docs/api','/openapi.json','/assets/missing.js'])expect((await get(path)).status()).toBe(404);
     if(admin) {expect((await get('/admin')).status()).toBe(404);expect((await get('/manage')).status()).toBe(200);}
     expect((await get('/api/v1/health/ready')).status()).toBe(200);
-    await page.reload();await expect(page).toHaveTitle(`持久部署 ${mode} · 工作空间`);
+    await page.goto(admin?`${url}/manage`:url);await expect(page).toHaveTitle(`持久部署 ${mode} · 工作空间`);
     for(const width of [1440,375]) {await page.setViewportSize({width,height:1000});await page.screenshot({path:join(evidence,`${mode}-workspace-${width}.png`),fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}
     const fingerprints=Object.fromEntries(['secret.key','installation.json'].map(path=>[path,digest(dataFile(container,path))]));
     // A process restart followed by container replacement must retain the installation and key.
@@ -121,7 +122,7 @@ async function exercise(mode,profile) {
     expect((await(await get('/site.webmanifest')).json()).icons[0].src).toBe(manifest.icons[0].src);
     expect((await get(manifest.icons[0].src)).status()).toBe(200);
     if(admin) {
-      await context.clearCookies();await page.goto(`${url}/login`);await expect(page.getByRole('heading',{name:`登录 持久部署 ${mode}`})).toBeVisible();
+      await context.clearCookies();await page.goto(`${url}/manage`);await expect(page.getByRole('heading',{name:`管理员登录 · 持久部署 ${mode}`})).toBeVisible();
       for(const width of [1440,375]) {await page.setViewportSize({width,height:1000});await page.screenshot({path:join(evidence,`${mode}-login-${width}.png`),fullPage:true});}
       await page.getByLabel('账号或邮箱').fill('admin');await page.getByLabel('密码',{exact:true}).fill('Admin@123456');
       const src=await page.getByAltText('六位数字验证码，点击刷新').getAttribute('src');
@@ -130,10 +131,10 @@ async function exercise(mode,profile) {
       await expect(page.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
     } else {expect((await get('/api/v1/admin/users')).status()).toBe(404);await page.goto(url);}
     const session=await json('/api/v1/bootstrap');
-    const executed=await context.request.post(`${url}/api/v1/core/execute`,{headers:{Origin:url,...(admin?{'X-CSRF-Token':session.csrf_token}:{})},data:{text:'hello world'}});
+    const executed=await context.request.post(`${url}/api/v1/core/execute`,{headers:{...realm,Origin:url,...(admin?{'X-CSRF-Token':session.csrf_token}:{})},data:{text:'hello world'}});
     expect(executed.status()).toBe(200);expect((await executed.json()).data.sha256).toBe('b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9');
     if(admin) {
-      expect((await context.request.post(`${url}/api/v1/admin/users`,{headers:{Origin:url,'X-CSRF-Token':session.csrf_token},data:{username:'member',email:'member@example.test',password:'test-password-strong',role:'user'}})).status()).toBe(200);
+      expect((await context.request.post(`${url}/api/v1/admin/users`,{headers:{...realm,Origin:url,'X-CSRF-Token':session.csrf_token},data:{username:'member',email:'member@example.test',password:'test-password-strong',role:'user'}})).status()).toBe(200);
       const member=await browser.newContext({baseURL:url,viewport:{width:375,height:812}});
       try {
         for(const operation of management)expect((await member.request.fetch(operation.path.replace('{id}','missing'),{method:operation.method,...(operation.method==='GET'?{}:{data:{}})})).status()).toBe(401);
@@ -146,7 +147,7 @@ async function exercise(mode,profile) {
         const metadata=(await(await member.request.get('/api/v1/bootstrap')).json()).data;
         expect(metadata.current_user.roles).toEqual(['user']);expect(metadata.current_user.permissions).toEqual([]);
         for(const operation of management)expect((await member.request.fetch(operation.path.replace('{id}','missing'),{method:operation.method,headers:{Origin:url,'X-CSRF-Token':metadata.csrf_token},...(operation.method==='GET'?{}:{data:{}})})).status()).toBe(403);
-        expect((await member.request.get('/manage')).status()).toBe(403);
+        expect((await member.request.get('/manage')).status()).toBe(200);
         await expect(personal.getByLabel('站点名称',{exact:true})).toHaveCount(0);
         const writes=[];personal.on('request',request=>{if(request.method()!=='GET')writes.push(request.url());});
         await personal.getByRole('button',{name:/深色.*柔和低光/}).click();await personal.getByRole('button',{name:'保存设置',exact:true}).click();

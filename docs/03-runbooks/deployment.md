@@ -167,3 +167,11 @@ make release FEATURE_LICENSE=true FEATURE_UPDATER=false
 两项均可独立 true/false，非法值使构建失败。make dev-server/dev-web/dev-desktop 使用相同变量；直接 pnpm/Vite 构建需传入对应 FEATURE_* 环境变量，直接 go build 需对应 -tags license,updater。生产进程启动后修改 FEATURE_* 不会重新引入被裁剪代码。Docker 构建参数为 --build-arg FEATURE_LICENSE=true / --build-arg FEATURE_UPDATER=true，两阶段使用同一输入；推荐 make docker-build FEATURE_LICENSE=true。镜像实际验收范围见部署验收。
 
 前端产物 features.json 记录编译能力；后端 bootstrap.capabilities 返回相应占位能力，CLI 始终 false。页面同时检查两端能力，任一端关闭都不显示。开启也只是“待对接”卡片、禁用检查按钮、空更新日志，不产生外部请求或执行安装；真实对接后才增加 API/权限/签名与按部署方式的更新流程。测试构建和 E2E 时同样传入相同变量。
+
+## 管理员身份拆分升级（0008）
+
+仅 web-platform 执行。先停全部实例，使用对应数据库的原生一致性备份，并备份完整私有数据目录（installation.json、secret.key/外部密钥引用、品牌文件等）；在隔离副本先恢复并验证。新程序启动时自动运行连续迁移并校验 checksum，完成前不接流量。0008 保留原管理员 ID、密码和企业绑定，迁到 administrators 及配套表，再从普通 users 移除；普通用户数据保留。旧会话、验证码和待发邮件失效，所有账号需重新登录/申请验证码。
+
+MySQL DDL 可能已提交，失败后保持停服，解决错误并用同版本程序重试，不删除迁移表、不手改 checksum、不重走 /install。数据转移使用防重复复制与幂等删除。需要回退时停服，恢复整套备份与对应旧程序，不能只回退二进制。没有在真实用户库上执行迁移。
+
+普通用户从 / 或 /login 登录；管理员从配置 admin.path（默认 /admin）登录。API 客户端对后台身份显式发送 X-Unicore-Identity: administrator，默认 user；Cookie 分别为 unicore_administrator_session/unicore_session。后台 HTML 可匿名读取登录界面，所有管理 API 仍校验真实管理员。IdP 须同时登记 /api/v1/auth/oidc/callback 与 /api/v1/auth/oidc/administrator-callback；后台地址改名不影响固定回调。管理员禁止 JIT。

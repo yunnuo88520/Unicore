@@ -30,7 +30,7 @@ it('expires an authenticated session once and rejects responses from its previou
   const http = new HttpTransport('', fetcher); const listener = vi.fn(); http.subscribeSession(listener);
   await http.bootstrap();
   const previous = http.users('', 1);
-  await expect(http.dashboard()).rejects.toMatchObject({ code: 'AUTH_REQUIRED' });
+  await expect(http.systemLogs()).rejects.toMatchObject({ code: 'AUTH_REQUIRED' });
   complete(new Response(JSON.stringify({ ...response, data: { items: [{ username: 'old-private-user' }] } })));
   await expect(previous).rejects.toMatchObject({ code: 'SESSION_CHANGED' });
   await expect(http.roles()).rejects.toMatchObject({ code: 'AUTH_REQUIRED' });

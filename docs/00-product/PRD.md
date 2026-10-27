@@ -41,3 +41,7 @@ M2c：主题、字号/字体、圆角、间距、图标线宽、动效集中配�
 交付基座：VERSION 单源生成各端版本、Changelog 准备、按 target/profile 快速归档和镜像/Compose 入口。Nginx 保留安装/后台/品牌路由边界；实际运行范围见 [部署验收](../04-ai/acceptance-deployment.md) 与 [ADR-0011](../adr/ADR-0011-release-deployment.md)。正式签名、自动发布、OTA 和备份恢复仍为后续。
 
 首次安装改为 MySQL 默认、结构化数据库字段、三方言连接测试、非空库精确确认初始化；自动记录访问 origin，凭据可经当前凭据验证后换新，已安装实例缺失 DB/标记时拒绝启动。需求见 [安装规范](feature-installation.md)，三数据库/PC/375px/重启证据见 [安装验收](../04-ai/acceptance-installation.md)。
+
+管理体验增量：管理员/普通用户物理拆表、独立登录与恢复，禁止角色转换；导航分用户管理/系统管理、固定侧栏与弹窗新增、头像改密退出，移除重复仪表盘。邮件配置/测试合一，投递迁系统日志，模板仅内部生成。当前 [角色规范](feature-roles.md)、[ADR-0014](../adr/ADR-0014-separate-identities-management.md) 与 [管理验收](../04-ai/acceptance-management.md) 优先于上方历史阶段说明。
+
+共享管理 UI：二级导航缩进并使用统一矢量图标，无 Emoji；短暂成功/错误反馈顶部显示，默认 3 秒消失，支持五种语义状态。单机与桌面不显示用户头像或账号菜单。

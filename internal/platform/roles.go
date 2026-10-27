@@ -5,12 +5,15 @@ package platform
 import "github.com/yunnuo/unicore/internal/contracts"
 
 var PermissionCatalog = []contracts.PermissionDefinition{
-	{ID: "dashboard:read", Name: "查看仪表盘", Description: "查看用户统计和最近审计记录", Group: "平台概览"},
+	{ID: "logs:read", Name: "查看系统日志", Description: "查看审计与邮件投递记录", Group: "系统管理"},
+	{ID: "administrators:read", Name: "查看管理员", Description: "查看独立管理员账号", Group: "用户管理"},
+	{ID: "administrators:create", Name: "新增管理员", Description: "创建独立后台账号", Group: "用户管理"},
+	{ID: "administrators:update", Name: "管理管理员", Description: "启停管理员，保护最后管理员", Group: "用户管理"},
 	{ID: "users:read", Name: "查看用户", Description: "搜索和查看用户账号、角色与状态", Group: "用户管理"},
-	{ID: "users:create", Name: "创建用户", Description: "创建管理员或普通用户", Group: "用户管理"},
-	{ID: "users:update", Name: "管理用户身份", Description: "启停账号或更换两种固定角色", Group: "用户管理"},
-	{ID: "settings:read", Name: "查看实例设置", Description: "查看全局配置、邮件模板和投递状态", Group: "实例设置"},
-	{ID: "settings:write", Name: "修改实例设置", Description: "修改品牌、安全、SMTP 与账号策略", Group: "实例设置"},
+	{ID: "users:create", Name: "创建用户", Description: "创建普通用户", Group: "用户管理"},
+	{ID: "users:update", Name: "管理用户身份", Description: "启停普通用户账号", Group: "用户管理"},
+	{ID: "settings:read", Name: "查看基础设置", Description: "查看站点、品牌、安全和邮件配置", Group: "系统管理"},
+	{ID: "settings:write", Name: "修改基础设置", Description: "修改品牌、安全、SMTP 与账号策略", Group: "系统管理"},
 	{ID: "roles:read", Name: "查看角色权限", Description: "查看管理员与普通用户的固定权限边界", Group: "角色权限"},
 }
 

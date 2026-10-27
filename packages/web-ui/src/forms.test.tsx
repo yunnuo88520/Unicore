@@ -11,5 +11,5 @@ it('blocks invalid contracts and focuses/announces the field',async()=>{
 });
 it('shows server errors and blocks duplicate submissions while pending',async()=>{
  const submit=vi.fn();render(<Form pending error={new AppError('INVALID_INPUT','请检查输入','request',{email:'邮箱格式不正确'})} onSubmit={submit}><Field name="email" label="邮箱"><input /></Field><button>保存</button></Form>);
- expect(screen.getByLabelText('邮箱')).toHaveFocus();expect(screen.getByRole('alert')).toHaveTextContent('邮箱格式不正确');await userEvent.click(screen.getByRole('button'));expect(submit).not.toHaveBeenCalled();
+ expect(screen.getByLabelText('邮箱')).toHaveFocus();expect(screen.getByRole('group',{name:'表单校验'})).toHaveTextContent('邮箱格式不正确');await userEvent.click(screen.getByRole('button'));expect(submit).not.toHaveBeenCalled();
 });

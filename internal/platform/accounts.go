@@ -25,11 +25,12 @@ type AccountStore interface {
 	ConsumeAccountToken(context.Context, string, string, string, int) error
 }
 type Accounts struct {
-	Identity *Service
-	Store    AccountStore
-	Settings *settings.Service
-	Mail     *mailer.Service
-	BaseURL  string
+	Administrator bool
+	Identity      *Service
+	Store         AccountStore
+	Settings      *settings.Service
+	Mail          *mailer.Service
+	BaseURL       string
 }
 
 func (a *Accounts) Policy(ctx context.Context) (contracts.AuthPolicy, error) {
@@ -38,7 +39,7 @@ func (a *Accounts) Policy(ctx context.Context) (contracts.AuthPolicy, error) {
 		return contracts.AuthPolicy{}, err
 	}
 	ready := settings.MailReady(values)
-	return contracts.AuthPolicy{EmailLoginEnabled: ready && values["account.email_login_enabled"] == "true", RegistrationEnabled: ready && values["account.registration_enabled"] == "true", ResetEnabled: ready && values["account.password_reset_enabled"] == "true", LoginCaptcha: values["security.login_captcha"] == "true", RegisterCaptcha: values["security.register_captcha"] == "true", MailReady: ready}, nil
+	return contracts.AuthPolicy{EmailLoginEnabled: ready && values["account.email_login_enabled"] == "true", RegistrationEnabled: !a.Administrator && ready && values["account.registration_enabled"] == "true", ResetEnabled: ready && values["account.password_reset_enabled"] == "true", LoginCaptcha: values["security.login_captcha"] == "true", RegisterCaptcha: values["security.register_captcha"] == "true", MailReady: ready}, nil
 }
 func (a *Accounts) allow(ip, email, id, answer string, captcha bool) error {
 	if !a.Identity.Limiter.Allow("mail-ip:"+ip, 20, time.Minute) || !a.Identity.Limiter.Allow("mail-account:"+email, 3, 15*time.Minute) {
@@ -49,12 +50,16 @@ func (a *Accounts) allow(ip, email, id, answer string, captcha bool) error {
 	}
 	return nil
 }
-func (a *Accounts) payload(email, purpose, token string) string {
+func (a *Accounts) payload(ctx context.Context, email, purpose, token string) string {
 	path, subject := "verify-email", "Verify your Unicore email"
 	if purpose == "reset" {
 		path, subject = "reset-password", "Reset your Unicore password"
 	}
-	return a.Mail.Encrypt(mailer.Message{To: email, Subject: subject, Body: "Open this link to continue:\n" + a.BaseURL + "/#" + path + "?token=" + token + "\n\nThis link expires shortly and can be used once. If you did not request it, ignore this message."})
+	entry := "/"
+	if a.Administrator {
+		entry, _ = a.Settings.Value(ctx, "admin.path")
+	}
+	return a.Mail.Encrypt(mailer.Message{To: email, Subject: subject, Body: "Open this link to continue:\n" + a.BaseURL + entry + "#" + path + "?token=" + token + "\n\nThis link expires shortly and can be used once. If you did not request it, ignore this message."})
 }
 func (a *Accounts) Register(ctx context.Context, input contracts.RegisterInput, ip string) error {
 	policy, err := a.Policy(ctx)
@@ -85,7 +90,7 @@ func (a *Accounts) Register(ctx context.Context, input contracts.RegisterInput, 
 	input.Password = ""
 	token := Token()
 	expires := int(time.Now().Add(30 * time.Minute).Unix())
-	err = a.Store.RegisterAccount(ctx, input, hash, Hash(token), expires, a.payload(input.Email, "verify", token))
+	err = a.Store.RegisterAccount(ctx, input, hash, Hash(token), expires, a.payload(ctx, input.Email, "verify", token))
 	if errors.Is(err, ErrConflict) {
 		return nil
 	}
@@ -116,7 +121,7 @@ func (a *Accounts) Request(ctx context.Context, input contracts.EmailRequest, ip
 		ttl = 30 * time.Minute
 	}
 	// Store lookup and enqueue are one transaction; unknown/disabled accounts return the same success.
-	return a.Store.QueueAccountToken(ctx, email, purpose, Hash(token), int(time.Now().Add(ttl).Unix()), a.payload(email, purpose, token))
+	return a.Store.QueueAccountToken(ctx, email, purpose, Hash(token), int(time.Now().Add(ttl).Unix()), a.payload(ctx, email, purpose, token))
 }
 func (a *Accounts) Complete(ctx context.Context, token, purpose, password, ip string) error {
 	if !a.Identity.Limiter.Allow("token-ip:"+ip, 30, time.Minute) {

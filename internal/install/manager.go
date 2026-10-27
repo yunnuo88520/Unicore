@@ -57,6 +57,9 @@ type Manager struct {
 	store          *sqlstore.Store
 	settingService *settings.Service
 	identity       *platform.Service
+	administrator  *platform.Service
+	adminAccounts  *platform.Accounts
+	adminOIDC      *platform.OIDC
 	accounts       *platform.Accounts
 	oidc           *platform.OIDC
 	mail           *mailer.Service
@@ -174,10 +177,14 @@ func (m *Manager) attach(store *sqlstore.Store) {
 	m.settingService = &settings.Service{Store: store, Profile: m.config.Profile, Secrets: m.secret, Branding: branding.New(store, m.directory)}
 	if m.config.Profile == runtime.WebPlatform {
 		repository := &platformsql.Repository{Store: store}
+		admins := &platformsql.Repository{Store: store, Administrators: true}
 		m.identity = platform.New(repository)
+		m.administrator = platform.New(admins)
 		m.mail = &mailer.Service{Store: repository, Settings: m.settingService, Secrets: m.secret, Sender: mailadapter.SMTP{}}
 		m.accounts = &platform.Accounts{Identity: m.identity, Store: repository, Settings: m.settingService, Mail: m.mail, BaseURL: m.config.BaseURL}
+		m.adminAccounts = &platform.Accounts{Administrator: true, Identity: m.administrator, Store: admins, Settings: m.settingService, Mail: m.mail, BaseURL: m.config.BaseURL}
 		m.oidc = &platform.OIDC{Identity: m.identity, Store: repository, Settings: m.settingService, Secrets: m.secret, Provider: oidcadapter.Provider{}, BaseURL: m.config.BaseURL}
+		m.adminOIDC = &platform.OIDC{Identity: m.administrator, Store: admins, Settings: m.settingService, Secrets: m.secret, Provider: oidcadapter.Provider{}, BaseURL: m.config.BaseURL, CallbackPath: "/api/v1/auth/oidc/administrator-callback"}
 	}
 }
 func (m *Manager) recover(ctx context.Context) error {
@@ -477,7 +484,7 @@ func (m *Manager) Complete(ctx context.Context, token string, input contracts.In
 		}
 	}
 	if input.Profile == runtime.WebPlatform {
-		repository := platformsql.Repository{Store: store}
+		repository := platformsql.Repository{Store: store, Administrators: true}
 		user, err = repository.Seed(ctx, tx, contracts.UserCreate{Username: input.AdminUsername, Email: input.AdminEmail, Role: "super_admin"}, hash)
 		if err != nil {
 			return result, user, ErrDatabase
@@ -511,3 +518,29 @@ func (m *Manager) Accounts() *platform.Accounts {
 	return m.accounts
 }
 func (m *Manager) Mail() *mailer.Service { m.mu.RLock(); defer m.mu.RUnlock(); return m.mail }
+
+// Identity scope is selected by the explicit entry/header, never by a fallback account lookup.
+func (m *Manager) Identity(admin bool) *platform.Service {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if admin {
+		return m.administrator
+	}
+	return m.identity
+}
+func (m *Manager) AccountService(admin bool) *platform.Accounts {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if admin {
+		return m.adminAccounts
+	}
+	return m.accounts
+}
+func (m *Manager) OIDCService(admin bool) *platform.OIDC {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if admin {
+		return m.adminOIDC
+	}
+	return m.oidc
+}

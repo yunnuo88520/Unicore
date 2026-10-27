@@ -43,7 +43,7 @@ func TestOIDCHTTP(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	adminSession, raw, err := identity.Issue(ctx, admin, 1)
+	adminSession, raw, err := m.Identity(true).Issue(ctx, admin, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +54,12 @@ func TestOIDCHTTP(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("X-CSRF-Token", csrf)
 		if session != "" {
-			req.AddCookie(&http.Cookie{Name: sessionCookie, Value: session})
+			name := sessionCookie
+			if session == raw {
+				name = "unicore_administrator_session"
+				req.Header.Set("X-Unicore-Identity", "administrator")
+			}
+			req.AddCookie(&http.Cookie{Name: name, Value: session})
 		}
 		if proof != "" {
 			req.AddCookie(&http.Cookie{Name: oidcCookie, Value: proof})
@@ -163,7 +168,7 @@ func TestOIDCHTTP(t *testing.T) {
 		t.Fatal("disabled provider accepted")
 	}
 	// Existing password login always remains available when the IdP is disabled.
-	if _, _, err = identity.Login(ctx, contracts.LoginInput{Username: "admin", Password: "test-password-strong"}, "test", false, 1); err != nil {
+	if _, _, err = m.Identity(true).Login(ctx, contracts.LoginInput{Username: "admin", Password: "test-password-strong"}, "test", false, 1); err != nil {
 		t.Fatal("local fallback lost", err)
 	}
 }

@@ -37,13 +37,19 @@ func TestBrandHTTP(t *testing.T) {
 				t.Fatal(err)
 			}
 			router := New(Config{Core: bootstrap.Core(), Install: manager, Assets: fstest.MapFS{"index.html": {Data: []byte("app")}, "site.webmanifest": {Data: []byte(`{"icons":[]}`)}}, Logger: slog.New(slog.NewTextHandler(io.Discard, nil))})
+			adminRaw := ""
 			request := func(method, path string, input any, cookie, csrf string) *httptest.ResponseRecorder {
 				raw, _ := json.Marshal(input)
 				r := httptest.NewRequest(method, "http://localhost"+path, bytes.NewReader(raw))
 				r.Header.Set("Content-Type", "application/json")
 				r.Header.Set("X-CSRF-Token", csrf)
 				if cookie != "" {
-					r.AddCookie(&http.Cookie{Name: sessionCookie, Value: cookie})
+					name := sessionCookie
+					if cookie == adminRaw {
+						name = "unicore_administrator_session"
+						r.Header.Set("X-Unicore-Identity", "administrator")
+					}
+					r.AddCookie(&http.Cookie{Name: name, Value: cookie})
 				}
 				w := httptest.NewRecorder()
 				router.ServeHTTP(w, r)
@@ -61,7 +67,8 @@ func TestBrandHTTP(t *testing.T) {
 			if profile == "web-platform" {
 				path = "/api/v1/admin/branding"
 				_, _, identity, _ := manager.Services()
-				session, raw, e := identity.Issue(ctx, admin, 1)
+				session, raw, e := manager.Identity(true).Issue(ctx, admin, 1)
+				adminRaw = raw
 				if e != nil {
 					t.Fatal(e)
 				}

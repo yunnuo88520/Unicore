@@ -2,15 +2,19 @@
  * Description: Shared responsive workspace. All business calls use AppClient.
  */
 import { Form } from './forms';
+import { MessageProvider, useMessage } from './message';
 import { SiteFooter } from './site-footer';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { Activity, ArrowDown, ArrowRight, ArrowUpRight, Braces, Check, CheckCircle2, ChevronRight, Circle, Code2, Copy, Cpu, ExternalLink, FlaskConical, Globe2, Info, Layers3, LayoutDashboard, LoaderCircle, Menu, Monitor, Moon, Play, Radio, RotateCcw, Settings2, ShieldCheck, Sparkles, Sun, Terminal, Users, X } from 'lucide-react';
+import { Activity, ArrowDown, ArrowRight, ArrowUpRight, Braces, Check, CheckCircle2, ChevronRight, Circle, Code2, Copy, Cpu, ExternalLink, FlaskConical, Globe2, Info, Layers3, LayoutDashboard, LoaderCircle, Menu, Monitor, Moon, Play, Radio, RotateCcw, Settings2, ShieldCheck, Sparkles, Sun, Terminal, Users, UserRound, UserCog, Mail, ScrollText, PackageCheck, X, type LucideIcon } from 'lucide-react';
 import { BrandProvider, BrandMark, BrandLockup } from './brand';
-import { AppError, type AppClient, type Bootstrap, type ExecuteOutput, type Profile } from '@unicore/sdk';
+import { type AppClient, type Bootstrap, type ExecuteOutput, type Profile } from '@unicore/sdk';
 import { useTheme, type Theme } from './theme';
 import { DashboardWidgetRegistry } from './registry';
-import { AdminDashboard, InstallWizard, LoginPage, PersistentSettings, UserManagement } from './web-flows';
+import { InstallWizard, LoginPage, PersistentSettings, UserManagement } from './web-flows';
+import { PasswordDialog } from './password-dialog';
+import { SystemLogs } from './logs-page';
+import { EditionPanel } from './edition-panel';
 import { AccountSecurity } from './oidc-page';
 import { RoleManagement } from './roles-page';
 import { SessionBoundary, useSession } from './session';
@@ -23,7 +27,7 @@ const PROFILE_LABELS: Record<Profile, string> = { 'web-platform': 'Web 平台', 
 const PAGE_LABELS = Object.fromEntries(Object.entries(routes).map(([id, route]) => [id, route.label])) as Record<Page, string>;
 
 export function Workspace({ client, registry = new DashboardWidgetRegistry() }: { client: AppClient; registry?: DashboardWidgetRegistry }) {
-  return <SessionBoundary client={client}>{notice => <BrandedApp client={client} registry={registry} notice={notice} />}</SessionBoundary>;
+  return <MessageProvider><SessionBoundary client={client}>{notice => <BrandedApp client={client} registry={registry} notice={notice} />}</SessionBoundary></MessageProvider>;
 }
 
 function BrandedApp(props: {client: AppClient; registry: DashboardWidgetRegistry; notice: string}) {
@@ -36,39 +40,45 @@ function App({ client, registry, notice }: { client: AppClient; registry: Dashbo
   const [route, setRoute] = useState(window.location.hash);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [about, setAbout] = useState(false);
+ const [passwordOpen,setPasswordOpen]=useState(false);
+ const [avatarOpen,setAvatarOpen]=useState(false);
+ const avatarRef=useRef<HTMLDivElement>(null);
+ useEffect(()=>{if(!avatarOpen)return;const close=(e:PointerEvent)=>{if(!avatarRef.current?.contains(e.target as Node))setAvatarOpen(false);};const key=(e:KeyboardEvent)=>{if(e.key==='Escape'){setAvatarOpen(false);avatarRef.current?.querySelector('button')?.focus();}};document.addEventListener('pointerdown',close);document.addEventListener('keydown',key);return()=>{document.removeEventListener('pointerdown',close);document.removeEventListener('keydown',key);};},[avatarOpen]);
   const { metadata } = useSession(client);
+  const previousAdminPath = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    const data = metadata.data;
+    if (!data || data.identity_realm !== 'administrator') return;
+    if (previousAdminPath.current && window.location.pathname === previousAdminPath.current && data.admin_path !== previousAdminPath.current) {
+      window.history.replaceState(null, '', data.admin_path + window.location.search + window.location.hash);
+    }
+    previousAdminPath.current = data.admin_path;
+  }, [metadata.data?.admin_path, metadata.data?.identity_realm]);
   const [theme, setTheme] = useTheme(metadata.data?.profile === 'web-platform' ? undefined : metadata.data?.theme);
   useEffect(() => { if (metadata.data) document.title = `${metadata.data.site_name} · 工作空间`; }, [metadata.data?.site_name]);
-  useEffect(() => {if (!window.location.hash && metadata.data?.current_user && window.location.pathname===metadata.data.admin_path) setPage('admin'); else if (!window.location.hash && window.location.pathname==='/settings') setPage('site');},[metadata.data]);
+  useEffect(() => {if (!window.location.hash && metadata.data?.current_user && window.location.pathname===metadata.data.admin_path) setPage('overview'); else if (!window.location.hash && window.location.pathname==='/settings') setPage('site');},[metadata.data]);
   useEffect(() => { const change = () => { setPage(pageFromHash(window.location.hash)); setRoute(window.location.hash); }; window.addEventListener('hashchange', change); return () => window.removeEventListener('hashchange', change); }, []);
   function navigate(next: Page) { window.location.hash = next; setPage(next); setMobileOpen(false); }
   const refresh = () => { setRoute(window.location.hash); void metadata.refetch(); };
   const personalSettings = metadata.data?.profile === 'web-platform' && !isAdministrator(metadata.data);
-  const settingsLabel = personalSettings ? '外观设置' : '实例设置';
+  const settingsLabel = personalSettings ? '外观设置' : '基础设置';
   const permitted = canAccess(page, metadata.data);
-  if (metadata.data?.capabilities.installation && !metadata.data.installed && client.web) return <InstallWizard web={client.web} initialProfile={metadata.data.profile} onDone={() => { window.history.replaceState({}, '', '/'); navigate('overview'); refresh(); }} />;
-  if (metadata.data?.capabilities.authentication && (!metadata.data.current_user || /^#(verify-email|reset-password)(\?|$)/.test(route)) && client.web) return <div className="account-layout"><LoginPage key={route} web={client.web} siteName={metadata.data.site_name} onDone={refresh} notice={notice} /><SiteFooter metadata={metadata.data} compact /></div>;
+  if (metadata.data?.capabilities.installation && !metadata.data.installed && client.web) return <InstallWizard web={client.web} initialProfile={metadata.data.profile} onDone={result => { if(result.profile==='web-platform'){window.location.assign(result.admin_url);return;}window.history.replaceState({}, '', '/');navigate('overview');refresh(); }} />;
+  if (metadata.data?.capabilities.authentication && (!metadata.data.current_user || /^#(verify-email|reset-password)(\?|$)/.test(route)) && client.web) return <div className="account-layout"><LoginPage key={route} administrator={metadata.data.identity_realm==='administrator'} adminPath={metadata.data.admin_path} web={client.web} siteName={metadata.data.site_name} onDone={refresh} notice={notice} /><SiteFooter metadata={metadata.data} compact /></div>;
   return <div className="app-shell">
     <a className="skip-link" href="#main-content" onClick={event => { event.preventDefault(); document.getElementById('main-content')?.focus(); }}>跳至主要内容</a>
     {mobileOpen && <button className="nav-scrim" aria-label="关闭导航" onClick={() => setMobileOpen(false)} />}
     <aside className={`sidebar ${mobileOpen ? 'is-open' : ''}`} aria-label="主导航">
       <a className="brand" href="#overview" onClick={() => navigate('overview')}><BrandLockup name={metadata.data?.site_name} /><span className="brand-tag">FRAMEWORK</span></a>
       <button className="workspace-switch" onClick={() => setAbout(true)}><span className="workspace-icon"><Braces size={19} /></span><span><strong>{metadata.data?.site_name ?? '默认工作空间'}</strong><small>Unicore 应用基座</small></span><span className="workspace-stage">{metadata.data?.stage ?? 'M2a'}</span></button>
-      <div className="nav-caption">工作空间</div>
-      <nav>{([{ id: 'overview', icon: LayoutDashboard }, { id: 'lab', icon: FlaskConical }] as const).map(({ id, icon: Icon }) => <button key={id} className={`nav-item ${page === id ? 'active' : ''}`} aria-current={page === id ? 'page' : undefined} onClick={() => navigate(id)}><Icon size={19} /><span>{PAGE_LABELS[id]}</span>{page === id && <span className="nav-active-dot" />}</button>)}</nav>
-      <div className="nav-caption roadmap-caption">{personalSettings ? '个人设置' : '实例管理'}</div>
-      {canAccess('admin', metadata.data) && <button className={`nav-item ${page === 'admin' ? 'active' : ''}`} onClick={() => navigate('admin')}><LayoutDashboard size={18} /><span>平台仪表盘</span></button>}
-      {canAccess('users', metadata.data) && <button className={`nav-item ${page === 'users' ? 'active' : ''}`} onClick={() => navigate('users')}><Users size={18} /><span>用户管理</span></button>}
-      {canAccess('roles', metadata.data) && <button className={`nav-item ${page === 'roles' ? 'active' : ''}`} onClick={() => navigate('roles')}><ShieldCheck size={18} /><span>角色权限</span></button>}
-      {canAccess('site', metadata.data) && <button className={`nav-item ${page === 'site' ? 'active' : ''}`} onClick={() => navigate('site')}><Settings2 size={18} /><span>{settingsLabel}</span></button>}
-      {metadata.data?.current_user && client.web && <button className={`nav-item ${page === 'account' ? 'active' : ''}`} onClick={() => navigate('account')}><ShieldCheck size={18} /><span>账号安全</span></button>}
-      {metadata.data?.current_user && client.web && <button className="nav-item" onClick={() => { void client.web!.logout().then(() => { navigate('overview'); refresh(); }, refresh); }}><ArrowUpRight size={18} /><span>退出登录</span></button>}
-      <div className="nav-caption roadmap-caption">框架路线图</div>
-
-      <div className="nav-item unavailable"><ArrowUpRight size={18} /><span>发布与升级</span><small>M4</small></div>
+      <div className="sidebar-navigation">
+      <nav aria-label="工作台">{([{ id: 'overview', icon: LayoutDashboard }, { id: 'lab', icon: FlaskConical }] as const).map(({ id, icon: Icon }) => <button key={id} className={`nav-item ${page === id ? 'active' : ''}`} aria-current={page === id ? 'page' : undefined} onClick={() => navigate(id)}><Icon size={19} /><span>{PAGE_LABELS[id]}</span>{page === id && <span className="nav-active-dot" />}</button>)}</nav>
+      {isAdministrator(metadata.data)&&<NavGroup title="用户管理" icon={<Users size={19}/>}><NavEntry id="users" page={page} navigate={navigate}/><NavEntry id="administrators" page={page} navigate={navigate}/><NavEntry id="roles" page={page} navigate={navigate}/></NavGroup>}
+      {canAccess('site',metadata.data)&&(personalSettings?<button className={`nav-item ${page==='site'?'active':''}`} onClick={()=>navigate('site')}><Settings2 size={19}/><span>外观设置</span></button>:<NavGroup title="系统管理" icon={<Settings2 size={19}/>}><NavEntry id="site" page={page} navigate={navigate}/>{(['mail','logs','edition'] as const).filter(id=>canAccess(id,metadata.data)).map(id=><NavEntry key={id} id={id} page={page} navigate={navigate}/>)}</NavGroup>)}
+      </div>
       <div className="sidebar-bottom"><div className="core-note"><div className="core-note-icon"><Cpu size={20} /></div><strong>One core. Every interface.</strong><p>让业务逻辑专注于业务，<br />让框架连接每一个终端。</p><button onClick={() => setAbout(true)}>了解架构 <ArrowUpRight size={14} /></button></div><button className="author" onClick={() => setAbout(true)}><span className="avatar">Y</span><span><strong>yunnuo</strong><small>框架作者</small></span><Info size={16} /></button></div>
     </aside>
-    <div className="main-shell"><header className="topbar"><div className="breadcrumbs"><button className="icon-button mobile-menu" aria-label="打开导航" onClick={() => setMobileOpen(true)}><Menu size={20} /></button><span className="breadcrumb-root">工作空间</span><ChevronRight size={14} /><strong>{page === 'site' ? settingsLabel : PAGE_LABELS[page]}</strong></div><div className="top-actions"><span className={`connection ${metadata.isSuccess ? 'connected' : ''}`}><span />{metadata.isSuccess ? '核心已连接' : metadata.isPending ? '连接中' : '连接失败'}</span><span className="top-divider" /><button className="icon-button" aria-label="切换主题" title="切换浅色 / 深色" onClick={() => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}</button><button className="icon-button" aria-label="关于 Unicore" onClick={() => setAbout(true)}><Code2 size={19} /></button><span className="avatar top-avatar">Y</span></div></header>
+    <div className="main-shell"><header className="topbar"><div className="breadcrumbs"><button className="icon-button mobile-menu" aria-label="打开导航" onClick={() => setMobileOpen(true)}><Menu size={20} /></button><span className="breadcrumb-root">工作空间</span><ChevronRight size={14} /><strong>{page === 'site' ? settingsLabel : PAGE_LABELS[page]}</strong></div><div className="top-actions"><span className={`connection ${metadata.isSuccess ? 'connected' : ''}`}><span />{metadata.isSuccess ? '核心已连接' : metadata.isPending ? '连接中' : '连接失败'}</span><span className="top-divider" /><button className="icon-button" aria-label="切换主题" title="切换浅色 / 深色" onClick={() => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}</button><button className="icon-button" aria-label="关于 Unicore" onClick={() => setAbout(true)}><Code2 size={19} /></button>{metadata.data?.profile === 'web-platform' && metadata.data.current_user && <div className="account-menu" ref={avatarRef}><button className="avatar top-avatar" aria-label="账号菜单" aria-expanded={avatarOpen} aria-controls="account-actions" onClick={()=>setAvatarOpen(v=>!v)}>{(metadata.data?.current_user?.username??'Y').slice(0,1).toUpperCase()}</button>{avatarOpen&&<div id="account-actions" className="account-dropdown"><strong>{metadata.data?.current_user?.username??metadata.data?.site_name}</strong><small>{metadata.data?.current_user?(isAdministrator(metadata.data)?'管理员':'普通用户'):'本地工作空间'}</small>{client.web&&<><button onClick={()=>{setAvatarOpen(false);setPasswordOpen(true);}}>修改密码</button><button onClick={()=>{setAvatarOpen(false);navigate('account');}}>账号资料</button><button onClick={()=>{setAvatarOpen(false);void client.web!.logout().then(()=>{navigate('overview');refresh();},refresh);}}>退出登录</button></>}</div>}</div>}</div></header>
       <main id="main-content" tabIndex={-1} className={`main-content${page === 'site' ? ' settings-content' : ''}`}><div className="page-heading"><div><div className="eyebrow"><span /> UNICORE WORKSPACE</div><h1>{page === 'site' && personalSettings ? '外观设置' : routes[page].title}<span className="heading-dot">.</span></h1><p>{page === 'site' && personalSettings ? '只影响当前客户端，不修改全局配置。' : routes[page].description}</p></div><span className="stage-pill"><span /> {metadata.data?.stage ?? 'M2a'} · 核心已就绪</span></div>
         {metadata.isPending ? <div className="state-card" role="status"><LoaderCircle className="spin" size={24} /><strong>正在连接 Go 核心</strong><p>正在获取当前运行形态与能力信息…</p></div> : metadata.isError ? <div className="state-card error-state" role="alert"><Radio size={26} /><strong>暂时无法连接核心</strong><p>{metadata.error.message}</p><button className="primary-button" onClick={() => metadata.refetch()}><RotateCcw size={16} />重新连接</button></div> : <>
           {!permitted ? <div className="state-card" role="alert"><ShieldCheck size={26} /><strong>没有访问权限</strong><p>请联系实例管理员授予相关权限。</p></div> : <PageContent page={page} client={client} metadata={metadata.data} registry={registry} theme={theme} setTheme={setTheme} refresh={refresh} />}
@@ -77,8 +87,19 @@ function App({ client, registry, notice }: { client: AppClient; registry: Dashbo
         <SiteFooter metadata={metadata.data} />
       </main>
     </div>
+    {passwordOpen&&client.web&&<PasswordDialog web={client.web} onClose={()=>setPasswordOpen(false)}/>}
     {about && <About onClose={() => setAbout(false)} />}
   </div>;
+}
+
+function NavGroup({title,icon,children}:{title:string;icon:ReactNode;children:ReactNode}){
+ const [open,setOpen]=useState(true);const id=`nav-${title==='用户管理'?'users':'system'}`;
+ return <section className="nav-group"><button className="nav-item nav-group-toggle" aria-expanded={open} aria-controls={id} onClick={()=>setOpen(v=>!v)}>{icon}<span>{title}</span><ChevronRight size={15} className={open?'expanded':''}/></button><nav id={id} aria-label={title} hidden={!open}>{children}</nav></section>;
+}
+const NAV_ICONS: Partial<Record<Page, LucideIcon>> = { users: UserRound, administrators: UserCog, roles: ShieldCheck, site: Settings2, mail: Mail, logs: ScrollText, edition: PackageCheck };
+function NavEntry({id,page,navigate}:{id:Page;page:Page;navigate:(p:Page)=>void}) {
+  const Icon = NAV_ICONS[id] ?? Circle;
+  return <button className={`nav-item nav-child ${page===id?'active':''}`} aria-current={page===id?'page':undefined} onClick={()=>navigate(id)}><Icon size={16} aria-hidden="true"/><span>{PAGE_LABELS[id]}</span>{page===id&&<span className="nav-active-dot"/>}</button>;
 }
 
 function PageContent({ page, client, metadata, registry, theme, setTheme, refresh }: { page: Page; client: AppClient; metadata: Bootstrap; registry: DashboardWidgetRegistry; theme: Theme; setTheme: (theme: Theme) => void; refresh: () => void }) {
@@ -86,10 +107,13 @@ function PageContent({ page, client, metadata, registry, theme, setTheme, refres
   const pages: Record<Page, ReactNode> = {
     overview: core('overview'), lab: core('lab'),
     account: client.web && <AccountSecurity key={metadata.current_user?.id} web={client.web} userID={metadata.current_user?.id ?? ''} onChanged={refresh} />,
-    admin: client.web && <AdminDashboard web={client.web} />,
-    users: client.web && <UserManagement web={client.web} metadata={metadata} />,
+    administrators: client.web && <UserManagement key="administrators" administrators web={client.web} metadata={metadata}/>,
+    mail: client.web && <PersistentSettings key="mail" section="mail" theme={theme} onThemeSaved={setTheme} metadata={metadata} client={client} onSaved={refresh}/>,
+    logs: client.web && <SystemLogs web={client.web}/>,
+    edition: <EditionPanel metadata={metadata}/>,
+    users: client.web && <UserManagement key="users" web={client.web} metadata={metadata} />,
     roles: client.web && <RoleManagement web={client.web} />,
-    site: client.settings && client.patchSettings && <PersistentSettings theme={theme} onThemeSaved={setTheme} metadata={metadata} client={client} onSaved={refresh} canWrite={metadata.profile !== 'web-platform' || isAdministrator(metadata)} />,
+    site: client.settings && client.patchSettings && <PersistentSettings key="base" theme={theme} onThemeSaved={setTheme} metadata={metadata} client={client} onSaved={refresh} canWrite={metadata.profile !== 'web-platform' || isAdministrator(metadata)} />,
     'not-found': <div className="state-card" role="alert"><Info size={26} /><strong>找不到这个页面</strong><p>请通过导航进入已有页面。</p><a className="primary-button" href="#overview">返回工作台</a></div>,
   };
   return pages[page];
@@ -116,13 +140,13 @@ function RuntimeCards({ metadata, transport }: { metadata: Bootstrap; transport:
 function CoreLab({ client }: { client: AppClient }) {
   const [text, setText] = useState(SAMPLE);
   const [copied, setCopied] = useState(false);
-  const [copyError, setCopyError] = useState('');
+  const message = useMessage();
   const [recent, setRecent] = useState<{ result: ExecuteOutput; time: string }[]>([]);
-  const execution = useMutation({ mutationFn: () => client.execute({ text }), onSuccess: result => { setCopied(false); setCopyError(''); setRecent(items => [{ result, time: new Date().toLocaleTimeString('zh-CN', { hour12: false }) }, ...items].slice(0, 3)); } });
+  const execution = useMutation({ mutationFn: () => client.execute({ text }), onSuccess: result => { setCopied(false); setRecent(items => [{ result, time: new Date().toLocaleTimeString('zh-CN', { hour12: false }) }, ...items].slice(0, 3)); } });
   const byteLength = new TextEncoder().encode(text).length;
   async function copyDigest() {
-    try { await navigator.clipboard.writeText(execution.data!.sha256); setCopied(true); setCopyError(''); }
-    catch { setCopyError('复制失败，请手动选择摘要文本复制'); }
+    try { await navigator.clipboard.writeText(execution.data!.sha256); setCopied(true); message.success('摘要已复制'); }
+    catch { message.error('复制失败，请手动选择摘要文本复制'); }
   }
   return <section className="panel lab-panel"><div className="panel-heading"><div><h2><FlaskConical size={18} />核心实验室</h2><p>用一个真实用例，验证所有入口</p></div><span className="subtle-badge">文本分析</span></div><Form pending={execution.isPending} onSubmit={e => { e.preventDefault(); execution.mutate(); }}>
     <div className="editor-label"><label htmlFor="core-input">输入文本</label><button type="button" className="text-button" disabled={execution.isPending} onClick={() => { setText(SAMPLE); execution.reset(); }}><RotateCcw size={12} />重置示例</button></div>
@@ -130,9 +154,8 @@ function CoreLab({ client }: { client: AppClient }) {
     <div className="editor-footer"><span id="input-hint" className={byteLength > 65536 ? 'text-error' : ''}>{byteLength.toLocaleString()} / 65,536 字节 <span className="hide-small">· 不保存输入内容</span></span><button className="primary-button" disabled={execution.isPending || !text.trim() || byteLength > 65536}>{execution.isPending ? <LoaderCircle size={15} className="spin" /> : <Play size={14} fill="currentColor" />}{execution.isPending ? '执行中…' : '运行用例'}</button></div>
   </Form>
   <div className="result-heading"><span>执行结果</span>{execution.isSuccess ? <span className="success-caption"><CheckCircle2 size={13} />执行成功</span> : <span className="muted">Go Core</span>}</div>
-  {execution.isError && <div className="inline-error" role="alert">{execution.error.message}{execution.error instanceof AppError && <small>错误码：{execution.error.code}</small>}</div>}
   <div className="result-grid" aria-live="polite">{[{ key: 'characters', label: 'Unicode 字符', icon: Code2 }, { key: 'words', label: '空白分隔词', icon: Braces }, { key: 'lines', label: '文本行数', icon: Layers3 }].map(({ key, label, icon: Icon }) => <div key={key}><span><Icon size={14} />{label}</span><strong>{execution.data ? execution.data[key as 'characters' | 'words' | 'lines'].toLocaleString() : '—'}</strong></div>)}</div>
-  {execution.data ? <div className="digest"><div><span>SHA-256 摘要</span><button className="text-button" type="button" onClick={copyDigest}>{copied ? <Check size={13} /> : <Copy size={13} />}{copied ? '已复制' : '复制'}</button></div><code>{execution.data.sha256}</code>{copyError && <small role="alert">{copyError}</small>}</div> : <div className="result-empty"><Circle size={12} /><span>点击「运行用例」，查看来自真实核心的结果</span></div>}
+  {execution.data ? <div className="digest"><div><span>SHA-256 摘要</span><button className="text-button" type="button" onClick={copyDigest}>{copied ? <Check size={13} /> : <Copy size={13} />}{copied ? '已复制' : '复制'}</button></div><code>{execution.data.sha256}</code></div> : <div className="result-empty"><Circle size={12} /><span>点击「运行用例」，查看来自真实核心的结果</span></div>}
   <div className="recent-runs"><div><h3>本次会话的运行记录</h3><span className="subtle-badge">{recent.length} 次</span></div>{recent.length ? recent.map((run, index) => <div className="recent-row" key={`${run.time}-${index}`}><span className="recent-check"><Check size={12} /></span><strong>文本分析</strong><span>{run.result.characters} 字符</span><time>{run.time}</time></div>) : <p>暂无运行记录，从第一次执行开始。</p>}</div>
   </section>;
 }

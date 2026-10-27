@@ -72,7 +72,7 @@ func (s *Store) Migrate(ctx context.Context, platform bool) error {
 	}
 	files := []string{"0001_framework.sql"}
 	if platform {
-		files = append(files, "0002_platform.sql", "0003_platform_mail.sql", "0004_email_challenges.sql", "0005_role_management.sql", "0006_oidc.sql", "0007_fixed_roles.sql")
+		files = append(files, "0002_platform.sql", "0003_platform_mail.sql", "0004_email_challenges.sql", "0005_role_management.sql", "0006_oidc.sql", "0007_fixed_roles.sql", "0008_separate_administrators.sql")
 	}
 	for index, file := range files {
 		data, err := migrations.Files.ReadFile(s.Dialect + "/" + file)

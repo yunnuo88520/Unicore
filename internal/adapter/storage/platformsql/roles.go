@@ -22,7 +22,11 @@ func (r *Repository) role(ctx context.Context, q sqlstore.Runner, id string) (co
 		result.Name = "管理员"
 		result.Permissions = append(result.Permissions, platform.Permissions...)
 	}
-	err := r.Store.Row(ctx, q, "SELECT COUNT(*) FROM user_roles WHERE role_id=?", id).Scan(&result.UserCount)
+	table := "users"
+	if id == "super_admin" {
+		table = "administrators"
+	}
+	err := r.Store.Row(ctx, q, "SELECT COUNT(*) FROM "+table).Scan(&result.UserCount)
 	return result, err
 }
 func (r *Repository) ListRoles(ctx context.Context) (contracts.RoleList, error) {
@@ -37,7 +41,8 @@ func (r *Repository) ListRoles(ctx context.Context) (contracts.RoleList, error) 
 	return result, nil
 }
 func (r *Repository) actor(ctx context.Context, tx *sql.Tx, id, permission string) (contracts.User, error) {
-	user, err := r.user(ctx, tx, id)
+	admins := &Repository{Store: r.Store, Administrators: true}
+	user, err := admins.user(ctx, tx, id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return user, platform.ErrForbidden
 	}
@@ -54,7 +59,11 @@ func canAssign(actor contracts.User, role contracts.Role) bool {
 }
 func (r *Repository) RoleOptions(ctx context.Context, actorID string) (contracts.RoleOptions, error) {
 	result := contracts.RoleOptions{Items: []contracts.RoleOption{}}
-	actor, err := r.user(ctx, r.Store.DB, actorID)
+	admins := &Repository{Store: r.Store, Administrators: true}
+	actor, err := admins.user(ctx, r.Store.DB, actorID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return result, platform.ErrForbidden
+	}
 	if err != nil {
 		return result, err
 	}

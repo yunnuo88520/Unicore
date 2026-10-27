@@ -41,8 +41,7 @@ test('SMTP settings, verified registration and password recovery revoke old sess
     const installed = await instance.request.post('/api/v1/install/complete', { headers: { 'X-Bootstrap-Token': instance.token }, data: { profile: 'web-platform', database: { driver: 'sqlite', dsn: '' }, site_name: 'Mail Unicore', base_url: instance.url, admin_username: 'admin', admin_email: 'admin@example.test', admin_password: 'test-password-strong' } });
     expect(installed.status()).toBe(200);
     await page.context().addCookies((await instance.request.storageState()).cookies);
-    await page.goto(`${instance.url}/#site`);
-    await page.getByRole('tab', { name: '邮件服务', exact: true }).click();
+    await page.goto(`${instance.url}/admin#mail`);
     await page.getByLabel('SMTP 主机').fill('127.0.0.1');
     await page.getByLabel('SMTP 端口').fill(String(smtp.port));
     await page.getByLabel('SMTP 加密方式').selectOption('plain');
@@ -53,28 +52,23 @@ test('SMTP settings, verified registration and password recovery revoke old sess
     await expect(page.getByText('设置已保存', { exact: true })).toBeVisible();
     await expect(page.getByLabel('SMTP 密钥', { exact: true })).toHaveValue('');
     await expect(page.getByLabel('SMTP 密钥', { exact: true })).toHaveAttribute('placeholder', '已配置 · 留空保留');
-    await page.getByRole('tab', { name: '发送测试', exact: true }).click();
+    await page.getByRole('button', { name: '发送测试', exact: true }).click();
     await page.getByLabel('测试收件邮箱').fill('recipient@example.test');
     await page.getByRole('button', { name: '发送测试邮件', exact: true }).click();
     await expect(page.getByText('测试邮件已发送，可开启邮件账号流程。')).toBeVisible();
     expect(smtp.messages[0]).toContain('From: "Unicore Notices" <sender@example.test>');
-    await page.getByRole('tab', { name: '账号流程', exact: true }).click();
+    await expect(page.getByRole('dialog',{name:'发送测试邮件',exact:true})).toHaveCount(0);
     await page.getByLabel('开放注册（需验证邮箱）').selectOption('true');
     await page.getByLabel('邮件找回密码', { exact: true }).selectOption('true');
     await page.getByLabel('邮箱验证码登录', { exact: true }).selectOption('true');
     await page.getByRole('button', { name: '保存设置' }).click();
     await expect(page.getByRole('button', { name: '保存设置' })).toBeDisabled();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await page.getByRole('tab', { name: '邮件模板', exact: true }).click();
+    await expect(page.getByRole('tab')).toHaveCount(0);
     await capture(page, info, 'mail-settings');
-    for (const name of ['SMTP 测试', '注册验证', '验证码登录', '找回密码']) {
-      await page.getByLabel('模板类型', { exact: true }).selectOption({label:name});
-      await expect(page.frameLocator('iframe').getByRole('heading')).toBeVisible();
-      await page.locator('iframe').scrollIntoViewIfNeeded();
-      await capture(page, info, `mail-template-${name}`);
-    }
-    if (info.project.name === 'mobile') await page.getByRole('button', { name: '打开导航' }).click();
-    await page.getByRole('button', { name: '退出登录', exact: true }).click();
+    await page.getByRole('button',{name:'账号菜单',exact:true}).click();
+    await page.getByRole('button',{name:'退出登录',exact:true}).click();
+    await page.goto(instance.url);
     await page.getByRole('button', { name: '重发验证邮件', exact: true }).click();
     await expect(page.getByRole('heading', { name: '重新验证邮箱' })).toBeVisible();
     await capture(page, info, 'resend-form');
@@ -127,7 +121,7 @@ test('SMTP settings, verified registration and password recovery revoke old sess
       await resetPage.getByLabel('密码', { exact: true }).fill('changed-password-strong');
       await solveCaptcha(resetPage);
       await resetPage.getByRole('button', { name: '登录工作空间' }).click();
-      await expect(resetPage.getByRole('button', { name: '退出登录', exact: true })).toBeAttached();
+      await expect(resetPage.getByRole('button', { name: '账号菜单', exact: true })).toBeAttached();
     } finally { await recovery.close(); }
     expect(oldCookies.some(cookie => cookie.name === 'unicore_session')).toBe(true);
     await page.reload();

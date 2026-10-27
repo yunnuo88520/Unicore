@@ -38,7 +38,7 @@ func exerciseMailLifecycle(t *testing.T, ctx context.Context, store *sqlstore.St
 	if err := store.Migrate(ctx, true); err != nil {
 		t.Fatal("upgrade retry failed", err)
 	}
-	if account, err := repository.FindAccount(ctx, "admin"); err != nil || account.User.ID != admin.ID {
+	if account, err := (&Repository{Store: store, Administrators: true}).FindAccount(ctx, "admin"); err != nil || account.User.ID != admin.ID {
 		t.Fatal("upgrade lost M2a user", err)
 	}
 	smtp, err := testutil.StartSMTP()

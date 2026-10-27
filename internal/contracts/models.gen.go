@@ -46,6 +46,7 @@ type Bootstrap struct {
 	SiteIcpUrl      *string      `json:"site_icp_url,omitempty"`
 	Theme           *string      `json:"theme,omitempty"`
 	Branding        *Branding    `json:"branding,omitempty"`
+	IdentityRealm   *string      `json:"identity_realm,omitempty"`
 }
 
 type BootstrapResponse struct {
@@ -503,4 +504,23 @@ type InstallTokenResponse struct {
 }
 
 type InstallTokenRotate struct {
+}
+
+type ChangePasswordInput struct {
+	CurrentPassword string `json:"current_password"`
+	Password        string `json:"password"`
+}
+
+type AuditLogList struct {
+	Items    []AuditEntry `json:"items"`
+	Total    int          `json:"total"`
+	Page     int          `json:"page"`
+	PageSize int          `json:"page_size"`
+}
+
+type AuditLogResponse struct {
+	Code      string       `json:"code"`
+	Message   string       `json:"message"`
+	Data      AuditLogList `json:"data"`
+	RequestID string       `json:"request_id"`
 }

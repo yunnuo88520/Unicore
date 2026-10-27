@@ -39,7 +39,7 @@ func TestMailAccountHTTP(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, _, identity, _ := manager.Services()
-	session, raw, err := identity.Issue(ctx, admin, 1)
+	session, raw, err := manager.Identity(true).Issue(ctx, admin, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +50,12 @@ func TestMailAccountHTTP(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("X-CSRF-Token", csrf)
 		if cookie != "" {
-			req.AddCookie(&http.Cookie{Name: sessionCookie, Value: cookie})
+			name := sessionCookie
+			if cookie == raw {
+				name = "unicore_administrator_session"
+				req.Header.Set("X-Unicore-Identity", "administrator")
+			}
+			req.AddCookie(&http.Cookie{Name: name, Value: cookie})
 		}
 		if origin != "" {
 			req.Header.Set("Origin", origin)
@@ -82,7 +87,7 @@ func TestMailAccountHTTP(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertStatus(request("GET", "/admin/settings/mail/jobs", nil, memberRaw, "", ""), 403)
+	assertStatus(request("GET", "/admin/mail/jobs", nil, memberRaw, "", ""), 403)
 	assertStatus(request("POST", "/admin/settings/mail/test", contracts.MailTestInput{Recipient: "recipient@example.test"}, memberRaw, memberSession.CsrfToken, ""), 403)
 	patch := func(changes ...contracts.SettingChange) *httptest.ResponseRecorder {
 		return request("PATCH", "/admin/settings", contracts.SettingPatch{Changes: changes}, raw, session.CsrfToken, "")
@@ -157,7 +162,7 @@ func TestMailAccountHTTP(t *testing.T) {
 	assertStatus(response, 200)
 	assertStatus(request("GET", "/auth/session", nil, oldCookie, "", ""), 401)
 	assertStatus(request("POST", "/auth/password/reset", contracts.ResetInput{Token: reset, Password: "reset-password-strong"}, "", "", ""), 400)
-	jobs := request("GET", "/admin/settings/mail/jobs", nil, raw, "", "")
+	jobs := request("GET", "/admin/mail/jobs", nil, raw, "", "")
 	assertStatus(jobs, 200)
 	if strings.Contains(jobs.Body.String(), reset) || strings.Contains(jobs.Body.String(), registration.Email) {
 		t.Fatal("mail job API exposed payload")

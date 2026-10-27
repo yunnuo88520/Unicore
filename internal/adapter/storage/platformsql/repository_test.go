@@ -32,6 +32,7 @@ func TestDialectMigrationsAndIdentity(t *testing.T) {
 			if count, err := store.TableCount(ctx); err != nil || count != 0 {
 				t.Fatalf("test database must be empty: %d %v", count, err)
 			}
+			exerciseLegacyUpgrade(t, ctx, store)
 			if err = store.Migrate(ctx, true); err != nil {
 				t.Fatal(err)
 			}
@@ -53,7 +54,8 @@ func TestDialectMigrationsAndIdentity(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			admin, err := repository.Seed(ctx, tx, contracts.UserCreate{Username: "admin", Email: "admin@example.test", Role: "super_admin"}, hash)
+			admins := &Repository{Store: store, Administrators: true}
+			admin, err := admins.Seed(ctx, tx, contracts.UserCreate{Username: "admin", Email: "admin@example.test", Role: "super_admin"}, hash)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -68,10 +70,10 @@ func TestDialectMigrationsAndIdentity(t *testing.T) {
 			if platform.Has(member, "users:read") || !platform.Has(admin, "users:read") {
 				t.Fatal("RBAC grants incorrect")
 			}
-			if _, err = repository.UpdateUser(ctx, admin.ID, contracts.UserUpdate{Role: "user", Status: "active"}, admin.ID); err != platform.ErrLastAdmin {
-				t.Fatal("last admin demotion allowed", err)
+			if _, err = admins.UpdateUser(ctx, admin.ID, contracts.UserUpdate{Role: "user", Status: "active"}, admin.ID); err != platform.ErrInput {
+				t.Fatal("cross-realm conversion allowed", err)
 			}
-			if _, err = repository.UpdateUser(ctx, admin.ID, contracts.UserUpdate{Role: "super_admin", Status: "disabled"}, admin.ID); err != platform.ErrLastAdmin {
+			if _, err = admins.UpdateUser(ctx, admin.ID, contracts.UserUpdate{Role: "super_admin", Status: "disabled"}, admin.ID); err != platform.ErrLastAdmin {
 				t.Fatal("last admin disabled", err)
 			}
 			session, token, err := service.Login(ctx, contracts.LoginInput{Username: "member", Password: "test-password-strong"}, "local", false, 1)
@@ -101,7 +103,7 @@ func TestDialectMigrationsAndIdentity(t *testing.T) {
 				t.Fatal(value)
 			}
 			dashboard, err := repository.Dashboard(ctx)
-			if err != nil || dashboard.TotalUsers != 2 || dashboard.ActiveUsers7d != 1 {
+			if err != nil || dashboard.TotalUsers != 1 || dashboard.ActiveUsers7d != 1 {
 				t.Fatalf("dashboard: %+v %v", dashboard, err)
 			}
 			list, err := repository.ListUsers(ctx, "member", 1, 20)

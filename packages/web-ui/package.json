@@ -6,7 +6,8 @@
   "type": "module",
   "exports": {
     ".": "./src/App.tsx",
-    "./styles.css": "./src/styles.css"
+    "./styles.css": "./src/styles.css",
+    "./message": "./src/message.tsx"
   },
   "dependencies": {
     "@unicore/sdk": "workspace:*",

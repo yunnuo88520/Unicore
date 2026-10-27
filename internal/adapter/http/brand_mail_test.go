@@ -63,7 +63,7 @@ func TestQueuedMailBrandSnapshot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = manager.Accounts().RequestCode(ctx, contracts.EmailRequest{Email: admin.Email}, "brand-test", "login"); err != nil {
+	if _, err = manager.AccountService(true).RequestCode(ctx, contracts.EmailRequest{Email: admin.Email}, "brand-test", "login"); err != nil {
 		t.Fatal(err)
 	}
 	if err = manager.Mail().Notify(ctx, mailer.Notification{To: "recipient@example.test", Title: "设置变更提醒", Detail: "<script>unsafe</script>\n请查看审计记录。"}, admin.ID); err != nil {

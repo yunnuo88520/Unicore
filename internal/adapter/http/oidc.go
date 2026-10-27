@@ -19,18 +19,22 @@ const oidcCookie = "unicore_oidc_browser"
 
 func mountOIDC(api chi.Router, config Config) {
 	m := config.Install
-	service := func(w http.ResponseWriter) *platform.OIDC {
-		s := m.OIDC()
+	service := func(w http.ResponseWriter, r *http.Request) *platform.OIDC {
+		s := m.OIDCService(administratorRequest(r))
 		if s == nil {
 			failure(w, 404, "NOT_FOUND", "此运行形态不提供企业登录")
 		}
 		return s
 	}
-	cookie := func(w http.ResponseWriter, value string, age int) {
-		http.SetCookie(w, &http.Cookie{Name: oidcCookie, Value: value, Path: "/api/v1/auth/oidc/callback", HttpOnly: true, Secure: strings.HasPrefix(m.BaseURL(), "https://"), SameSite: http.SameSiteLaxMode, MaxAge: age})
+	cookie := func(w http.ResponseWriter, r *http.Request, value string, age int) {
+		name, path := oidcCookie, "/api/v1/auth/oidc/callback"
+		if administratorRequest(r) {
+			name, path = "unicore_administrator_oidc_browser", "/api/v1/auth/oidc/administrator-callback"
+		}
+		http.SetCookie(w, &http.Cookie{Name: name, Value: value, Path: path, HttpOnly: true, Secure: strings.HasPrefix(m.BaseURL(), "https://"), SameSite: http.SameSiteLaxMode, MaxAge: age})
 	}
 	api.Get("/auth/oidc", func(w http.ResponseWriter, r *http.Request) {
-		s := service(w)
+		s := service(w, r)
 		if s == nil {
 			return
 		}
@@ -46,7 +50,7 @@ func mountOIDC(api chi.Router, config Config) {
 		if !ok {
 			return
 		}
-		s := service(w)
+		s := service(w, r)
 		if s == nil {
 			return
 		}
@@ -63,7 +67,7 @@ func mountOIDC(api chi.Router, config Config) {
 			path = "/account/oidc/link"
 		}
 		api.Post(path, func(w http.ResponseWriter, r *http.Request) {
-			s := service(w)
+			s := service(w, r)
 			if s == nil {
 				return
 			}
@@ -86,7 +90,7 @@ func mountOIDC(api chi.Router, config Config) {
 				webError(w, err)
 				return
 			}
-			cookie(w, browser, 300)
+			cookie(w, r, browser, 300)
 			success(w, contracts.OIDCStart{AuthorizationUrl: u})
 		})
 	}
@@ -95,7 +99,7 @@ func mountOIDC(api chi.Router, config Config) {
 		if !ok {
 			return
 		}
-		s := service(w)
+		s := service(w, r)
 		if s == nil {
 			return
 		}
@@ -108,14 +112,14 @@ func mountOIDC(api chi.Router, config Config) {
 			webError(w, err)
 			return
 		}
-		setSession(m, w, token, session.ExpiresAt)
+		setSession(m, w, token, session.ExpiresAt, r)
 		success(w, session)
 	})
 	api.Post("/admin/settings/oidc/check", func(w http.ResponseWriter, r *http.Request) {
 		if _, ok := require(m, w, r, "settings:write"); !ok {
 			return
 		}
-		s := service(w)
+		s := service(w, r)
 		if s == nil {
 			return
 		}
@@ -132,41 +136,60 @@ func mountOIDC(api chi.Router, config Config) {
 		}
 		success(w, contracts.ActionResult{Success: true})
 	})
-	api.Get("/auth/oidc/callback", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Referrer-Policy", "no-referrer")
-		w.Header().Set("Cache-Control", "no-store")
-		s := service(w)
-		if s == nil {
-			return
+	for _, admin := range []bool{false, true} {
+		path := "/auth/oidc/callback"
+		if admin {
+			path = "/auth/oidc/administrator-callback"
 		}
-		q, queryErr := url.ParseQuery(r.URL.RawQuery)
-		valid := queryErr == nil && len(r.URL.RawQuery) <= 8192
-		for _, name := range []string{"state", "code", "error", "iss"} {
-			if len(q[name]) > 1 || len(q.Get(name)) > 2048 {
-				valid = false
+		api.Get(path, func(w http.ResponseWriter, r *http.Request) {
+			if admin {
+				r.Header.Set("X-Unicore-Identity", "administrator")
+			} else {
+				r.Header.Del("X-Unicore-Identity")
 			}
-		}
-		proof := ""
-		if c, err := r.Cookie(oidcCookie); err == nil {
-			proof = c.Value
-		}
-		ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
-		defer cancel()
-		session, token, mode, err := s.Complete(ctx, q.Get("state"), proof, q.Get("code"), q.Get("iss"), !valid || q.Get("error") != "")
-		cookie(w, "", -1)
-		result := "success"
-		if err != nil {
-			result = "failed"
-			if errors.Is(err, platform.ErrOIDCLinkRequired) {
-				result = "link_required"
+			w.Header().Set("Referrer-Policy", "no-referrer")
+			w.Header().Set("Cache-Control", "no-store")
+			s := service(w, r)
+			if s == nil {
+				return
 			}
-		} else {
-			setSession(m, w, token, session.ExpiresAt)
-		}
-		destination := "/#oidc=" + result
-		if mode == "link" {
-			destination = "/#account?oidc=" + result
-		}
-		http.Redirect(w, r, destination, http.StatusSeeOther)
-	})
+			q, queryErr := url.ParseQuery(r.URL.RawQuery)
+			valid := queryErr == nil && len(r.URL.RawQuery) <= 8192
+			for _, name := range []string{"state", "code", "error", "iss"} {
+				if len(q[name]) > 1 || len(q.Get(name)) > 2048 {
+					valid = false
+				}
+			}
+			proof := ""
+			name := oidcCookie
+			if admin {
+				name = "unicore_administrator_oidc_browser"
+			}
+			if c, err := r.Cookie(name); err == nil {
+				proof = c.Value
+			}
+			ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
+			defer cancel()
+			session, token, mode, err := s.Complete(ctx, q.Get("state"), proof, q.Get("code"), q.Get("iss"), !valid || q.Get("error") != "")
+			cookie(w, r, "", -1)
+			result := "success"
+			if err != nil {
+				result = "failed"
+				if errors.Is(err, platform.ErrOIDCLinkRequired) {
+					result = "link_required"
+				}
+			} else {
+				setSession(m, w, token, session.ExpiresAt, r)
+			}
+			destination := "/#oidc=" + result
+			if mode == "link" {
+				destination = "/#account?oidc=" + result
+			}
+			if admin {
+				destination = m.AdminPath(r.Context()) + strings.TrimPrefix(destination, "/")
+			}
+			http.Redirect(w, r, destination, http.StatusSeeOther)
+		})
+
+	}
 }

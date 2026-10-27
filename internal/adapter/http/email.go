@@ -11,15 +11,15 @@ import (
 )
 
 func mountEmail(api chi.Router, config Config) {
-	accounts := func(w http.ResponseWriter) *platform.Accounts {
-		a := config.Install.Accounts()
+	accounts := func(w http.ResponseWriter, r *http.Request) *platform.Accounts {
+		a := config.Install.AccountService(administratorRequest(r))
 		if a == nil {
 			failure(w, 404, "NOT_FOUND", "此运行形态不提供邮件账号接口")
 		}
 		return a
 	}
 	api.Post("/auth/email/register", func(w http.ResponseWriter, r *http.Request) {
-		a := accounts(w)
+		a := accounts(w, r)
 		if a == nil {
 			return
 		}
@@ -36,7 +36,7 @@ func mountEmail(api chi.Router, config Config) {
 	})
 	for _, purpose := range []string{"verify", "reset", "login"} {
 		api.Post("/auth/email/"+purpose+"/request", func(w http.ResponseWriter, r *http.Request) {
-			a := accounts(w)
+			a := accounts(w, r)
 			if a == nil {
 				return
 			}
@@ -52,7 +52,7 @@ func mountEmail(api chi.Router, config Config) {
 			success(w, result)
 		})
 		api.Post("/auth/email/"+purpose+"/complete", func(w http.ResponseWriter, r *http.Request) {
-			a := accounts(w)
+			a := accounts(w, r)
 			if a == nil {
 				return
 			}
@@ -66,12 +66,12 @@ func mountEmail(api chi.Router, config Config) {
 				return
 			}
 			if purpose == "login" {
-				setSession(config.Install, w, token, session.ExpiresAt)
+				setSession(config.Install, w, token, session.ExpiresAt, r)
 				success(w, session)
 				return
 			}
 			if purpose == "reset" {
-				http.SetCookie(w, &http.Cookie{Name: sessionCookie, Path: "/", HttpOnly: true, MaxAge: -1, SameSite: http.SameSiteLaxMode})
+				http.SetCookie(w, &http.Cookie{Name: identityCookie(r), Path: "/", HttpOnly: true, MaxAge: -1, SameSite: http.SameSiteLaxMode})
 			}
 			success(w, contracts.ActionResult{Success: true})
 		})
@@ -80,7 +80,7 @@ func mountEmail(api chi.Router, config Config) {
 		if _, ok := require(config.Install, w, r, "settings:read"); !ok {
 			return
 		}
-		a := accounts(w)
+		a := accounts(w, r)
 		if a == nil {
 			return
 		}

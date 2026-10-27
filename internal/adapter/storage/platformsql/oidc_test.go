@@ -57,7 +57,7 @@ func exerciseOIDC(t *testing.T, ctx context.Context, store *sqlstore.Store, r *R
 		t.Fatal("unverified JIT", err)
 	}
 	conflict := claims
-	conflict.Email = admin.Email
+	conflict.Email = "member@example.test"
 	if _, err := complete(f, conflict); !errors.Is(err, platform.ErrOIDCLinkRequired) {
 		t.Fatal("email auto-linked", err)
 	}
@@ -84,11 +84,8 @@ func exerciseOIDC(t *testing.T, ctx context.Context, store *sqlstore.Store, r *R
 	if _, err = complete(f, claims); !errors.Is(err, platform.ErrCredentials) {
 		t.Fatal("disabled identity signed in", err)
 	}
-	if _, err = r.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: "super_admin", Status: "active"}, admin.ID); err != nil {
-		t.Fatal(err)
-	}
-	if _, err = r.UpdateUser(ctx, admin.ID, contracts.UserUpdate{Role: "user", Status: "active"}, admin.ID); !errors.Is(err, platform.ErrLastAdmin) {
-		t.Fatal("lost final local admin", err)
+	if _, err = r.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: "super_admin", Status: "active"}, admin.ID); !errors.Is(err, platform.ErrInput) {
+		t.Fatal("cross realm conversion", err)
 	}
 	if _, err = r.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: "user", Status: "active"}, admin.ID); err != nil {
 		t.Fatal(err)

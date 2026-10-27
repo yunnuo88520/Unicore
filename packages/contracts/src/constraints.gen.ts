@@ -158,6 +158,13 @@ export const constraints = {
       },
       "branding": {
         "$ref": "#/components/schemas/Branding"
+      },
+      "identity_realm": {
+        "type": "string",
+        "enum": [
+          "user",
+          "administrator"
+        ]
       }
     }
   },
@@ -1810,5 +1817,77 @@ export const constraints = {
     "type": "object",
     "additionalProperties": false,
     "properties": {}
+  },
+  "ChangePasswordInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "current_password",
+      "password"
+    ],
+    "properties": {
+      "current_password": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      },
+      "password": {
+        "type": "string",
+        "minLength": 12,
+        "maxLength": 128,
+        "x-max-utf8-bytes": 128
+      }
+    }
+  },
+  "AuditLogList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items",
+      "total",
+      "page",
+      "page_size"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/AuditEntry"
+        }
+      },
+      "total": {
+        "type": "integer"
+      },
+      "page": {
+        "type": "integer"
+      },
+      "page_size": {
+        "type": "integer"
+      }
+    }
+  },
+  "AuditLogResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/AuditLogList"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
   }
 };

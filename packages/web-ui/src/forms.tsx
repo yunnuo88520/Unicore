@@ -23,7 +23,7 @@ export function Form({ schema, value, error, pending = false, children, onSubmit
     if (Object.keys(errors).length) { queueMicrotask(() => focus(errors)); return; }
     onSubmit?.(event);
   }}>
-    {(Object.keys(fields).length > 0 || error) && <div className="form-error" role="alert" tabIndex={-1}><strong>{error?.message ?? '请检查表单输入'}</strong>{Object.keys(fields).length > 0 && <p>{Object.values(fields).join('；')}</p>}</div>}
+    {Object.keys(fields).length > 0 && <div className="form-error" role={error ? "group" : "alert"} aria-label="表单校验" tabIndex={-1}><strong>请检查表单输入</strong><p>{Object.values(fields).join('；')}</p></div>}
     {children}
   </form></Errors.Provider>;
 }

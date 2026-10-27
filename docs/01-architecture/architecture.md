@@ -41,7 +41,7 @@ SQLite 使用 WAL、5 秒 busy timeout、单连接；PostgreSQL/MySQL 使用 bou
 
 HttpTransport 管理 cookie/CSRF 与 WebClient；页面不直接 fetch。WailsTransport 只提供 bootstrap/execute/settings/branding，没有 Web 身份/安装接口。SessionBoundary 按会话代际隔离 Query cache/组件状态，SDK epoch 拒绝旧响应，多标签页同步失效；routes.ts 与 PageContent 集中路由/权限及渲染，公共 Form/Field 与契约校验处理提交错误。TanStack Query 管理状态；DashboardWidgetRegistry 以唯一 id 扩展业务首页。平台仪表盘来自 DB：总用户、UTC 今日新增、过去 7 天成功认证的去重账号、最近审计。单机/桌面没有用户统计。
 
-主题偏好 localStorage，持久实例默认主题在设置注册表；当前以设备偏好优先。设置使用共享可键盘操作的单层 Tabs，品牌图片使用三张并列卡片，外观卡片合并到设置、兼容旧 #settings 地址；主标签由 #site?tab=… 保留；按当前分组构造 PATCH，跨标签保留表单/图片预览草稿。UI hash 子页面复用到 Wails，Web 的 /install、/admin 与 /settings 入口由服务器处理。light/dark/system 与 375px 浏览器测试，表格可横向滚动但页面不溢出。
+平台主题只存在当前客户端 localStorage，不读取/保存全局默认主题；普通用户只渲染本地外观卡片。单机/桌面的本地默认主题仍在设置注册表，设备偏好优先。设置使用共享可键盘操作的单层 Tabs，品牌图片使用三张并列卡片，外观卡片合并到设置、兼容旧 #settings 地址；主标签由 #site?tab=… 保留；按当前分组构造 PATCH，跨标签保留表单/图片预览草稿。UI hash 子页面复用到 Wails，Web 的 /install、/admin 与 /settings 入口由服务器处理。light/dark/system 与 375px 浏览器测试，表格可横向滚动但页面不溢出。
 
 桌面入口 `desktop || bindings`；绑定生成用编译期标记跳过真实用户存储。代码不使用环境变量来绕过该边界。CLI、Core 与桌面依赖隔离在 scripts/check-boundaries 中按实际 Go 依赖图验证。
 
@@ -63,11 +63,13 @@ internal/platform/Accounts 编排策略、验证码/限流、注册与令牌；m
 
 [ADR-0005](../adr/ADR-0005-design-email-codes.md) 定义统一设计编译链与挑战事务。tokens.json → CSS/嵌入 JSON → React/Go 邮件/图形验证码/原生窗口；identity.json → Resvg → 网站/原生/邮件同源图标。M2b 长链接保留兼容，新 UI 走 /auth/email/*；平台迁移增加 0004，framework-only 形态不引入 email_challenges。邮箱登录开启需测试 SMTP，session 与码消费同事务提交。
 
-## M2d 业务角色
+## 平台固定两角色
 
-platform/roles.go 维护权限目录、可委派策略与内置角色规则，platformsql/roles.go 实现事务角色编辑和用户关联校验，HTTP roles.go 逐接口执行鉴权与 CSRF。Role/RoleInput/RoleList/RoleOptions 由 OpenAPI 生成；共享 roles-page.tsx 经 WebClient 调用 HTTP，不访问传输细节。仅 web-platform 的菜单/路由启用；非平台返回 JSON 404。
+[ADR-0012](../adr/ADR-0012-fixed-platform-roles.md) 取代 M2d 业务角色。platform/roles.go 定义管理员/普通用户和管理权限目录；platformsql 仅按固定管理员角色投影权限，忽略历史 grants。OpenAPI 约束用户角色枚举，只生成 Role/RoleList/RoleOptions 读接口；roles-page.tsx 展示两角色矩阵，没有编辑接口。
 
-平台增加迁移 0005，登记角色读/写权限并补齐已有超管授权。用户创建、身份变更、角色改删均取得安装行锁并复核当前操作者权限；角色变更在同一事务撤销全部关联 session 与待用账号挑战。删除有关联用户的角色被拒绝。只读查询不承担授权决策，写入仍在事务内加载真实角色权限；无 UI 层授权缓存。规则和边界见 [ADR-0006](../adr/ADR-0006-business-roles.md)。
+routes.ts 集中管理员菜单/直达页守卫，settings-page.tsx 将平台本地外观与管理员全局设置分离。所有 /api/v1/admin/*（包括只读）在 HTTP 上复核当前固定管理员与权限，写入仍校验 CSRF/Origin；用户写入在安装行锁内重新加载操作者，保护最后一个启用且有本地密码的管理员。角色/状态变更撤销会话与账号挑战。公共品牌与登录策略保留最小公开投影。
+
+平台迁移 0007 规范为单一固定角色、移除旧自定义角色与普通用户 grants、删除平台全局主题、撤销旧凭据和取消待发邮件。历史迁移 checksum 保持，其他形态只运行 framework 迁移。三方言实测和恢复边界见 [权限验收](../04-ai/acceptance-permissions.md)。
 
 ## M3a 企业身份
 

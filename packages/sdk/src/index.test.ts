@@ -39,8 +39,8 @@ it('expires an authenticated session once and rejects responses from its previou
 });
 
 it('preserves field errors and distinguishes cancellation from unavailable network', async () => {
-  const http = new HttpTransport('', vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: 'INVALID_INPUT', message: 'Invalid', request_id: 'field', fields: { name: 'Too long' } }), { status: 400 })));
-  await expect(http.createRole({ name: '合法名称', permissions: [] })).rejects.toMatchObject({ fields: { name: 'Too long' } });
+  const http = new HttpTransport('', vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: 'INVALID_INPUT', message: 'Invalid', request_id: 'field', fields: { username: 'Too long' } }), { status: 400 })));
+  await expect(http.createUser({ username: 'validuser', email: 'valid@example.test', password: 'test-password-strong', role: 'user' })).rejects.toMatchObject({ fields: { username: 'Too long' } });
   const controller = new AbortController(); controller.abort();
   const cancelled = new HttpTransport('', vi.fn().mockRejectedValue(new DOMException('aborted', 'AbortError')));
   await expect(cancelled.bootstrap({ signal: controller.signal })).rejects.toMatchObject({ code: 'REQUEST_CANCELLED' });

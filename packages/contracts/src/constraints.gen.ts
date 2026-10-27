@@ -431,7 +431,11 @@ export const constraints = {
       "roles": {
         "type": "array",
         "items": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "super_admin",
+            "user"
+          ]
         }
       },
       "permissions": {
@@ -502,7 +506,11 @@ export const constraints = {
         "maxLength": 128
       },
       "role": {
-        "type": "string"
+        "type": "string",
+        "enum": [
+          "super_admin",
+          "user"
+        ]
       }
     }
   },
@@ -515,7 +523,11 @@ export const constraints = {
     ],
     "properties": {
       "role": {
-        "type": "string"
+        "type": "string",
+        "enum": [
+          "super_admin",
+          "user"
+        ]
       },
       "status": {
         "type": "string"
@@ -1346,7 +1358,11 @@ export const constraints = {
     ],
     "properties": {
       "id": {
-        "type": "string"
+        "type": "string",
+        "enum": [
+          "super_admin",
+          "user"
+        ]
       },
       "name": {
         "type": "string"
@@ -1362,29 +1378,6 @@ export const constraints = {
       },
       "user_count": {
         "type": "integer"
-      }
-    }
-  },
-  "RoleInput": {
-    "type": "object",
-    "additionalProperties": false,
-    "required": [
-      "name",
-      "permissions"
-    ],
-    "properties": {
-      "name": {
-        "type": "string",
-        "minLength": 1,
-        "maxLength": 64
-      },
-      "permissions": {
-        "type": "array",
-        "items": {
-          "type": "string"
-        },
-        "uniqueItems": true,
-        "maxItems": 100
       }
     }
   },
@@ -1420,7 +1413,11 @@ export const constraints = {
     ],
     "properties": {
       "id": {
-        "type": "string"
+        "type": "string",
+        "enum": [
+          "super_admin",
+          "user"
+        ]
       },
       "name": {
         "type": "string"

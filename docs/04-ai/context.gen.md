@@ -28,15 +28,17 @@
 | status | [docs/04-ai/foundation-audit.md](../../docs/04-ai/foundation-audit.md) |
 | version | [VERSION](../../VERSION) |
 | release | [docs/03-runbooks/release.md](../../docs/03-runbooks/release.md) |
+| platformPermissions | [internal/platform/roles.go](../../internal/platform/roles.go) |
+| authorization | [docs/00-product/feature-roles.md](../../docs/00-product/feature-roles.md) |
 
-OpenAPI 当前包含 51 个 operation、71 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
+OpenAPI 当前包含 48 个 operation、70 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
 
 | 任务 Skill | 用途 |
 | --- | --- |
 | [add-api-operation](../../.agents/skills/add-api-operation/SKILL.md) | 增加或修改 Unicore OpenAPI operation、共享 DTO、SDK 与 HTTP 接口，并验证契约及服务端权限。 |
 | [add-cli-command](../../.agents/skills/add-cli-command/SKILL.md) | 为 Unicore Cobra CLI 增加直接调用共享 Core 的命令、stdin/文件输入和结构化输出。 |
 | [add-go-module](../../.agents/skills/add-go-module/SKILL.md) | 新增 Unicore Go 领域模块、用例、ports 与按 profile 装配的 adapter。 |
-| [add-platform-permission](../../.agents/skills/add-platform-permission/SKILL.md) | 实现或扩展 Unicore web-platform 的服务端 RBAC 权限、角色映射和越权测试。 |
+| [add-platform-permission](../../.agents/skills/add-platform-permission/SKILL.md) | 实现 Unicore web-platform 固定管理员/普通用户的菜单、页面与 API 权限，并验证越权边界。 |
 | [add-react-page](../../.agents/skills/add-react-page/SKILL.md) | 新增 Unicore Web/Wails 共用响应式页面、导航或仪表盘 widget。 |
 | [add-setting](../../.agents/skills/add-setting/SKILL.md) | 向 Unicore SettingDefinition 增加分组设置、profile 范围、校验与敏感值处理。 |
 | [app-lifecycle](../../.agents/skills/app-lifecycle/SKILL.md) | 修改 Unicore 配置加载、组件生命周期、日志或监控入口，并验证各 profile 的启动与退出。 |

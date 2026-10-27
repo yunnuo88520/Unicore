@@ -28,9 +28,6 @@ type Store interface {
 	Dashboard(context.Context) (contracts.Dashboard, error)
 	ListRoles(context.Context) (contracts.RoleList, error)
 	RoleOptions(context.Context, string) (contracts.RoleOptions, error)
-	CreateRole(context.Context, contracts.RoleInput, string) (contracts.Role, error)
-	UpdateRole(context.Context, string, contracts.RoleInput, string) (contracts.Role, error)
-	DeleteRole(context.Context, string, string) error
 }
 type Service struct {
 	Store      Store
@@ -49,6 +46,9 @@ func ValidateAccount(username, email, password string) bool {
 	return regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.-]{2,63}$`).MatchString(username) && err == nil && address.Address == email && len(email) <= 254 && len(password) >= 12 && len(password) <= 128
 }
 func Has(user contracts.User, permission string) bool {
+	if !IsSuper(user) || !SuperOnly(permission) {
+		return false
+	}
 	for _, p := range user.Permissions {
 		if p == permission {
 			return true
@@ -110,7 +110,7 @@ func (s *Service) Session(ctx context.Context, token string) (contracts.Session,
 func (s *Service) Create(ctx context.Context, input contracts.UserCreate, actor string) (contracts.User, error) {
 	input.Username = strings.ToLower(strings.TrimSpace(input.Username))
 	input.Email = strings.ToLower(strings.TrimSpace(input.Email))
-	if !ValidateAccount(input.Username, input.Email, input.Password) || input.Role == "" || len(input.Role) > 64 {
+	if !ValidateAccount(input.Username, input.Email, input.Password) || !BuiltinRole(input.Role) {
 		return contracts.User{}, ErrInput
 	}
 	hash, err := HashPassword(input.Password)

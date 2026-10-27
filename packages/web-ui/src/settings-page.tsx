@@ -5,6 +5,7 @@ import { BrandingPanel } from './branding-panel';
 import { EditionPanel } from './edition-panel';
 import { Tabs } from './tabs';
 import { ThemeChoices } from './appearance';
+import { isAdministrator } from './routes';
 import type { Theme } from './theme';
 import { invalidateAfter } from './queries';
 import { Form } from './forms';
@@ -31,7 +32,19 @@ const sections: { id: string; label: string; groups: string[]; requires?: string
   { id: 'edition', label: '授权与升级', groups: [] },
 ];
 
-export function PersistentSettings({ client, metadata, onSaved, canWrite = true, onThemeSaved }: { client: AppClient; metadata: Bootstrap; onSaved: () => void; canWrite?: boolean; onThemeSaved?: (theme: Theme) => void }) {
+type SettingsProps = { client: AppClient; metadata: Bootstrap; onSaved: () => void; canWrite?: boolean; theme: Theme; onThemeSaved?: (theme: Theme) => void };
+export function PersistentSettings(props: SettingsProps) {
+  if (props.metadata.profile === 'web-platform' && !isAdministrator(props.metadata)) return <div className="settings-workspace"><ClientAppearance theme={props.theme} onSaved={props.onThemeSaved} /></div>;
+  return <InstanceSettings {...props} />;
+}
+function ClientAppearance({ theme, onSaved }: { theme: Theme; onSaved?: (theme: Theme) => void }) {
+  const [draft, setDraft] = useState(theme);
+  const [saved, setSaved] = useState(false);
+  useEffect(() => { setDraft(theme); }, [theme]);
+  return <section className="panel appearance-panel"><div className="panel-heading"><div><h2>界面主题</h2><p>保存在当前客户端，不修改全局配置，也不影响其他用户</p></div><span className="subtle-badge">仅当前客户端</span></div><form className="appearance-form" onSubmit={event => { event.preventDefault(); onSaved?.(draft); setSaved(true); }}><ThemeChoices theme={draft} onChange={value => { setDraft(value); setSaved(false); }} disabled={false} /><div className="settings-save">{saved && <p className="saved-caption" role="status">外观已保存到当前客户端</p>}<button className="primary-button" disabled={draft === theme}><Save size={14} />保存设置</button></div></form></section>;
+}
+function InstanceSettings({ client, metadata, onSaved, canWrite = true, theme, onThemeSaved }: SettingsProps) {
+  const localAppearance = metadata.profile === 'web-platform';
   const queryClient = useQueryClient();
   const query = useQuery({ queryKey: ['persistent-settings'], queryFn: () => client.settings!() });
   const [selected, setSelected] = useState(() => new URLSearchParams(window.location.hash.split('?')[1]).get('tab') ?? (window.location.hash === '#settings' ? 'appearance' : 'site'));
@@ -53,7 +66,7 @@ export function PersistentSettings({ client, metadata, onSaved, canWrite = true,
   } });
   if (query.isPending) return <div className="state-card" role="status">正在读取设置…</div>;
   if (query.isError) return <div className="state-card"><p role="alert">{query.error.message}</p><button className="secondary-button" onClick={() => query.refetch()}>重试</button></div>;
-  const available = sections.filter(section => section.id === 'branding' ? !!client.branding && !!client.updateBranding : section.id === 'edition' ? (__FEATURE_LICENSE__ && metadata.capabilities.license) || (__FEATURE_UPDATER__ && metadata.capabilities.updater) : query.data.items.some(item => section.requires === item.group || section.groups.includes(item.group)));
+  const available = sections.filter(section => section.id === 'appearance' && localAppearance ? true : section.id === 'branding' ? !!client.branding && !!client.updateBranding : section.id === 'edition' ? (__FEATURE_LICENSE__ && metadata.capabilities.license) || (__FEATURE_UPDATER__ && metadata.capabilities.updater) : query.data.items.some(item => section.requires === item.group || section.groups.includes(item.group)));
   const active = available.find(section => section.id === selected) ?? available[0];
   const groups = active.groups;
   const changes = Object.entries(draft).filter(([key]) => query.data.items.some(item => item.key === key && groups.includes(item.group))).map(([key, value]) => ({ key, value, ...(clear.includes(key) ? { clear: true } : {}) }));
@@ -61,7 +74,8 @@ export function PersistentSettings({ client, metadata, onSaved, canWrite = true,
   return <div className="settings-workspace">
     <Tabs id="instance-settings" label="设置分组" items={available.map(section => ({ ...section, dirty: section.groups.some(dirty) }))} value={active.id} onChange={id => { setSelected(id); save.reset(); window.history.replaceState(null, '', `#site?tab=${id}`); }} />
     {client.branding && client.updateBranding && <div role="tabpanel" id="instance-settings-panel-branding" aria-labelledby="instance-settings-tab-branding" hidden={active.id !== 'branding'}><BrandingPanel client={client} canWrite={canWrite} onSaved={onSaved} /></div>}
-    {active.id !== 'branding' && <div role="tabpanel" id={`instance-settings-panel-${active.id}`} aria-labelledby={`instance-settings-tab-${active.id}`}>
+    {localAppearance && <div role="tabpanel" id="instance-settings-panel-appearance" aria-labelledby="instance-settings-tab-appearance" hidden={active.id !== 'appearance'}><ClientAppearance theme={theme} onSaved={onThemeSaved} /></div>}
+    {active.id !== 'branding' && !(localAppearance && active.id === 'appearance') && <div role="tabpanel" id={`instance-settings-panel-${active.id}`} aria-labelledby={`instance-settings-tab-${active.id}`}>
       {(__FEATURE_LICENSE__ || __FEATURE_UPDATER__) && active.id === 'edition' && <EditionPanel metadata={metadata} />}
       {active.id === 'appearance' && <section className="panel appearance-panel"><div className="panel-heading"><div><h2>界面主题</h2><p>保存实例默认主题，同时应用于当前设备</p></div><span className="subtle-badge">持久化</span></div><Form error={save.error} pending={save.isPending} className="appearance-form" onSubmit={event => { event.preventDefault(); save.mutate({ changes }); }}><ThemeChoices theme={(draft['appearance.theme'] ?? query.data.items.find(item => item.key === 'appearance.theme')?.value ?? 'system') as Theme} onChange={theme => setDraft(value => ({ ...value, 'appearance.theme': theme }))} disabled={!canWrite || save.isPending} /><div className="settings-save">{save.isSuccess && <p className="saved-caption" role="status">设置已保存</p>}<button className="primary-button" disabled={!canWrite || save.isPending || !changes.length}><Save size={14} />保存设置</button></div></Form></section>}
       {!!groups.length && active.id !== 'appearance' && <section className="panel"><div className="panel-heading"><div><h2>{active.label}</h2><p>仅保存当前分组；切换标签保留未保存内容</p></div><span className="subtle-badge">持久化</span></div><Form error={save.error} pending={save.isPending} className="flow-form settings-form" onSubmit={event => { event.preventDefault(); save.mutate({ changes }); }}>

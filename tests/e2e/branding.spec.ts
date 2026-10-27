@@ -86,12 +86,10 @@ test('platform login and all mail previews use public instance branding', async 
     await page.locator('iframe').screenshot({path:`${directory}/mail-${name}.png`});
     await capture(page,info,`brand-mail-${name}`);
   }
-  // A real read-only role sees previews and cannot choose/save/reset files.
+  // A member sees public branding, while global brand management stays administrator-only.
   const bootstrap=(await(await page.request.get(`${instance.url}/api/v1/bootstrap`)).json()).data;
   const headers={'X-CSRF-Token':bootstrap.csrf_token};
-  const role=await page.request.post(`${instance.url}/api/v1/admin/roles`,{headers,data:{name:'品牌只读',permissions:['settings:read']}});expect(role.status()).toBe(200);
-  const roleID=(await role.json()).data.id;
-  expect((await page.request.post(`${instance.url}/api/v1/admin/users`,{headers,data:{username:'reader',email:'reader@example.test',password:'test-password-strong',role:roleID}})).status()).toBe(200);
+  expect((await page.request.post(`${instance.url}/api/v1/admin/users`,{headers,data:{username:'reader',email:'reader@example.test',password:'test-password-strong',role:'user'}})).status()).toBe(200);
   if(info.project.name==='mobile')await page.getByRole('button',{name:'打开导航'}).click();
   await page.getByRole('button',{name:'退出登录',exact:true}).click();
   await expect(page.getByRole('heading',{name:'登录 品牌平台',exact:true})).toBeVisible();
@@ -100,7 +98,10 @@ test('platform login and all mail previews use public instance branding', async 
   await page.getByLabel('账号或邮箱').fill('reader');await page.getByLabel('密码',{exact:true}).fill('test-password-strong');
   const src=await page.getByAltText('六位数字验证码，点击刷新').getAttribute('src');const answer=[...Buffer.from(src!.split(',')[1],'base64').toString().matchAll(/>([0-9])<\/text>/g)].map(m=>m[1]).join('');await page.getByLabel('图形验证码',{exact:true}).fill(answer);await page.getByRole('button',{name:'登录工作空间'}).click();
   await expect(page.getByRole('button',{name:'运行用例'})).toBeVisible();
+  await expect(page.locator('.brand .instance-brand-light img')).toBeVisible();
   await page.goto(`${instance.url}/#site`);
-  await page.getByRole('tab', { name: '品牌图片', exact: true }).click();await expect(form.getByLabel('选择浅色 Logo')).toBeDisabled();await expect(form.getByRole('button',{name:'恢复默认',exact:true})).toBeDisabled();
-  await capture(page,info,'brand-read-only');
+  await expect(page.getByText('仅当前客户端',{exact:true})).toBeVisible();
+  await expect(page.getByRole('tab', { name: '品牌图片', exact: true })).toHaveCount(0);
+  expect((await page.request.get(`${instance.url}/api/v1/admin/branding`)).status()).toBe(403);
+  await capture(page,info,'brand-member-local-appearance');
 });

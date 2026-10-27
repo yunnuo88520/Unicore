@@ -44,7 +44,9 @@
     "decisions": "docs/adr",
     "status": "docs/04-ai/foundation-audit.md",
     "version": "VERSION",
-    "release": "docs/03-runbooks/release.md"
+    "release": "docs/03-runbooks/release.md",
+    "platformPermissions": "internal/platform/roles.go",
+    "authorization": "docs/00-product/feature-roles.md"
   },
   "commands": {
     "generate": "pnpm generate",

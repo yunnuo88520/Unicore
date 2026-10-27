@@ -1,12 +1,11 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Platform-only role catalogue and protected role mutations.
+// Description: Administrator-only read access to the two fixed platform roles.
 package httpadapter
 
 import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/platform"
 )
 
@@ -41,50 +40,4 @@ func mountRoles(api chi.Router, config Config) {
 		}
 		success(w, data)
 	})
-	for _, method := range []string{"POST", "PATCH", "DELETE"} {
-		path := "/admin/roles"
-		if method != "POST" {
-			path += "/{id}"
-		}
-		api.MethodFunc(method, path, func(w http.ResponseWriter, r *http.Request) {
-			actor, ok := require(manager, w, r, "roles:write")
-			if !ok {
-				return
-			}
-			if !platform.IsSuper(actor.User) {
-				webError(w, platform.ErrForbidden)
-				return
-			}
-			_, _, identity, _ := manager.Services()
-			id := chi.URLParam(r, "id")
-			if len(id) > 64 {
-				webError(w, platform.ErrInput)
-				return
-			}
-			if method == "DELETE" {
-				if err := identity.Store.DeleteRole(r.Context(), id, actor.User.ID); err != nil {
-					webError(w, err)
-					return
-				}
-				success(w, contracts.ActionResult{Success: true})
-				return
-			}
-			var input contracts.RoleInput
-			if !decode(w, r, &input) {
-				return
-			}
-			var data contracts.Role
-			var err error
-			if method == "POST" {
-				data, err = identity.Store.CreateRole(r.Context(), input, actor.User.ID)
-			} else {
-				data, err = identity.Store.UpdateRole(r.Context(), id, input, actor.User.ID)
-			}
-			if err != nil {
-				webError(w, err)
-				return
-			}
-			success(w, data)
-		})
-	}
 }

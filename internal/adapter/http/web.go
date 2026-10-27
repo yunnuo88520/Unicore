@@ -43,14 +43,6 @@ func webError(w http.ResponseWriter, err error) {
 		code = "OIDC_FAILED"
 	case errors.Is(err, platform.ErrLocalLoginRequired):
 		code = "LOCAL_PASSWORD_REQUIRED"
-	case errors.Is(err, platform.ErrRoleNotFound):
-		code = "ROLE_NOT_FOUND"
-	case errors.Is(err, platform.ErrRoleConflict):
-		code = "ROLE_NAME_EXISTS"
-	case errors.Is(err, platform.ErrBuiltinRole):
-		code = "BUILTIN_ROLE"
-	case errors.Is(err, platform.ErrRoleInUse):
-		code = "ROLE_IN_USE"
 	case errors.Is(err, settings.ErrMailNotReady):
 		code = "MAIL_NOT_READY"
 	case errors.Is(err, mailer.ErrUnavailable):
@@ -265,12 +257,7 @@ func ip(r *http.Request) string {
 	return host
 }
 func super(user contracts.User) bool {
-	for _, role := range user.Roles {
-		if role == "super_admin" {
-			return true
-		}
-	}
-	return false
+	return platform.IsSuper(user)
 }
 
 func mountWeb(api chi.Router, config Config) {

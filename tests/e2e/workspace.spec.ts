@@ -39,9 +39,12 @@ test('API returns JSON and unsupported features remain absent', async ({ instanc
     expect(response.status()).toBe(404);
     expect((await response.json()).code).toBe('NOT_FOUND');
   }
-  for (const path of ['/api/v1/auth/oidc/start', '/api/v1/account/oidc/link', '/api/v1/account/oidc/unlink', '/api/v1/admin/settings/oidc/check', '/api/v1/admin/roles', '/api/v1/auth/register', '/api/v1/auth/verification/request', '/api/v1/auth/verification/complete', '/api/v1/auth/password/request', '/api/v1/auth/password/reset', '/api/v1/admin/settings/mail/test']) {
+  for (const path of ['/api/v1/auth/oidc/start', '/api/v1/account/oidc/link', '/api/v1/account/oidc/unlink', '/api/v1/admin/settings/oidc/check', '/api/v1/auth/register', '/api/v1/auth/verification/request', '/api/v1/auth/verification/complete', '/api/v1/auth/password/request', '/api/v1/auth/password/reset', '/api/v1/admin/settings/mail/test']) {
     const response = await request.post(path, { data: {} });
     expect(response.status()).toBe(404);
     expect((await response.json()).code).toBe('NOT_FOUND');
   }
+  const removed = await request.post('/api/v1/admin/roles', { data: {} });
+  expect(removed.status()).toBe(405);
+  expect((await removed.json()).code).toBe('METHOD_NOT_ALLOWED');
 });

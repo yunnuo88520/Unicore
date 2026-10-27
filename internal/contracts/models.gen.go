@@ -384,11 +384,6 @@ type Role struct {
 	UserCount   int      `json:"user_count"`
 }
 
-type RoleInput struct {
-	Name        string   `json:"name"`
-	Permissions []string `json:"permissions"`
-}
-
 type RoleList struct {
 	Items       []Role                 `json:"items"`
 	Permissions []PermissionDefinition `json:"permissions"`

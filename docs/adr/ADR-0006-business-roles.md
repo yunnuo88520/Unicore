@@ -1,6 +1,8 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # ADR-0006：业务角色编辑与受限委派
 
+> 历史决策：已由 [ADR-0012 固定两角色](ADR-0012-fixed-platform-roles.md) 取代。当前不提供自定义角色或角色写接口。
+
 状态：接受 · 日期：2026-10-26 · 作者：yunnuo / ymz@ebox.vip
 
 M2d 补齐 web-platform 的业务角色创建、改名、赋权、删除与用户关联。权限仍使用 User → UserRole → RolePermission → Permission，领域 Core、CLI、桌面和 Web 单机不引入身份依赖。沿用现有用户接口的一次一个角色关联；多角色合并编辑不在本增量范围。

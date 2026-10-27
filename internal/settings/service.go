@@ -123,6 +123,10 @@ type Service struct {
 	Profile  contracts.Profile
 }
 
+func applies(d SettingDefinition, profile contracts.Profile) bool {
+	return (!d.PlatformOnly || profile == "web-platform") && !(profile == "web-platform" && d.Group == "appearance")
+}
+
 // Raw is internal-only: HTTP must use List so secrets never enter responses.
 func (s *Service) Raw(ctx context.Context) (map[string]string, error) {
 	values, err := s.Store.ReadSettings(ctx)
@@ -130,7 +134,7 @@ func (s *Service) Raw(ctx context.Context) (map[string]string, error) {
 		return nil, err
 	}
 	for _, d := range Definitions {
-		if d.PlatformOnly && s.Profile != "web-platform" {
+		if !applies(d, s.Profile) {
 			continue
 		}
 		value, ok := values[d.Key]
@@ -164,7 +168,7 @@ func (s *Service) List(ctx context.Context) (contracts.Settings, error) {
 	}
 	result := contracts.Settings{Items: []contracts.SettingEntry{}}
 	for _, d := range Definitions {
-		if d.PlatformOnly && s.Profile != "web-platform" {
+		if !applies(d, s.Profile) {
 			continue
 		}
 		if branding.Managed(d.Key) {
@@ -187,7 +191,7 @@ func (s *Service) Value(ctx context.Context, key string) (string, error) {
 		return "", err
 	}
 	for _, d := range Definitions {
-		if d.Key == key && (!d.PlatformOnly || s.Profile == "web-platform") {
+		if d.Key == key && applies(d, s.Profile) {
 			return values[key], nil
 		}
 	}
@@ -256,7 +260,7 @@ func (s *Service) Patch(ctx context.Context, input contracts.SettingPatch, actor
 		found := false
 		for _, d := range Definitions {
 			if d.Key == change.Key {
-				if d.PlatformOnly && s.Profile != "web-platform" {
+				if !applies(d, s.Profile) {
 					return contracts.Settings{}, ErrInvalid
 				}
 				clear := change.Clear != nil && *change.Clear
@@ -306,7 +310,7 @@ func (s *Service) Patch(ctx context.Context, input contracts.SettingPatch, actor
 func Defaults(profile contracts.Profile) map[string]string {
 	values := map[string]string{}
 	for _, d := range Definitions {
-		if !d.PlatformOnly || profile == "web-platform" {
+		if applies(d, profile) {
 			values[d.Key] = d.Default
 		}
 	}

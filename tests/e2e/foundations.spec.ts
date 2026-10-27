@@ -83,8 +83,8 @@ test('unknown routes and generated API reference follow system theme',async({pag
   await page.goto(`${instance.url}/docs/api`);
   await expect(page.getByRole('heading',{name:'API 文档',exact:true})).toBeVisible();
   await expect(page.locator('#operations details')).toHaveCount(Object.keys(operations).length);
-  await page.locator('#createRole summary').click();
-  await expect(page.locator('#createRole')).toContainText('roles:write');
+  await page.locator('#createUser summary').click();
+  await expect(page.locator('#createUser')).toContainText('users:create');
   await page.locator('#schema-EmailCodeInput summary').click();
   await expect(page.locator('#schema-EmailCodeInput')).toContainText('^[0-9]{6}$');
   await capture(page,info,'foundation-api-reference');

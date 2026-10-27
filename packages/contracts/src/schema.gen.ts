@@ -118,7 +118,7 @@ export interface User {
   username: string;
   email: string;
   status: string;
-  roles: Array<string>;
+  roles: Array<"super_admin" | "user">;
   permissions: Array<string>;
   created_at: number;
   last_login_at: number;
@@ -135,11 +135,11 @@ export interface UserCreate {
   username: string;
   email: string;
   password: string;
-  role: string;
+  role: "super_admin" | "user";
 }
 
 export interface UserUpdate {
-  role: string;
+  role: "super_admin" | "user";
   status: string;
 }
 
@@ -375,16 +375,11 @@ export interface PermissionDefinition {
 }
 
 export interface Role {
-  id: string;
+  id: "super_admin" | "user";
   name: string;
   builtin: boolean;
   permissions: Array<string>;
   user_count: number;
-}
-
-export interface RoleInput {
-  name: string;
-  permissions: Array<string>;
 }
 
 export interface RoleList {
@@ -393,7 +388,7 @@ export interface RoleList {
 }
 
 export interface RoleOption {
-  id: string;
+  id: "super_admin" | "user";
   name: string;
   assignable: boolean;
 }

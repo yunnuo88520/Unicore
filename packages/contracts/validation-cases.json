@@ -60,31 +60,6 @@
     ]
   },
   {
-    "name": "duplicate permissions",
-    "schema": "RoleInput",
-    "value": {
-      "name": "团队",
-      "permissions": [
-        "users:read",
-        "users:read"
-      ]
-    },
-    "fields": [
-      "permissions"
-    ]
-  },
-  {
-    "name": "blank role",
-    "schema": "RoleInput",
-    "value": {
-      "name": "",
-      "permissions": []
-    },
-    "fields": [
-      "name"
-    ]
-  },
-  {
     "name": "username email password",
     "schema": "UserCreate",
     "value": {
@@ -133,6 +108,35 @@
     },
     "fields": [
       "__proto__"
+    ]
+  },
+  {
+    "name": "fixed ordinary role",
+    "schema": "UserUpdate",
+    "value": {
+      "role": "user",
+      "status": "active"
+    },
+    "fields": []
+  },
+  {
+    "name": "fixed administrator role",
+    "schema": "UserUpdate",
+    "value": {
+      "role": "super_admin",
+      "status": "active"
+    },
+    "fields": []
+  },
+  {
+    "name": "custom role rejected",
+    "schema": "UserUpdate",
+    "value": {
+      "role": "custom",
+      "status": "active"
+    },
+    "fields": [
+      "role"
     ]
   }
 ]

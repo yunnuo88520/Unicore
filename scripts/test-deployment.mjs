@@ -9,6 +9,8 @@ import { chromium, expect } from '@playwright/test';
 
 const docker = args => execFileSync('docker', args, { encoding: 'utf8', stdio: ['ignore','pipe','pipe'] }).trim();
 const version = readFileSync('VERSION','utf8').trim();
+const contract = JSON.parse(readFileSync('packages/contracts/openapi.json','utf8'));
+const management = Object.entries(contract.paths).filter(([path])=>path.startsWith('/api/v1/admin/')).flatMap(([path,item])=>Object.entries(item).filter(([,operation])=>operation.operationId).map(([method])=>({path,method:method.toUpperCase()})));
 const image = process.env.UNICORE_IMAGE ?? `unicore:${version}`;
 const daemonArch=docker(['info','--format','{{.Architecture}}']);
 const arch=({aarch64:'arm64',arm64:'arm64',x86_64:'amd64',amd64:'amd64'})[daemonArch];
@@ -51,6 +53,7 @@ async function exercise(mode,profile) {
       expect(manifest?.sha256).toBe(digest(readFileSync(file)));
       execFileSync('tar',['-xzf',file,'-C',release,'--strip-components=1']);
       expect(readFileSync(join(release,'VERSION'),'utf8').trim()).toBe(version);
+      expect(JSON.parse(readFileSync(join(release,'manifest.json'),'utf8')).migration_level).toBe(profile==='web-platform'?7:1);
       const network=`${name}-network`;networks.add(network);docker(['network','create',network]);
       run.push('--network',network,'--network-alias','backend','-v',`${release}:/release:ro`,'--entrypoint','/release/bin/server','-e','APP_DEPLOYMENT_KIND=tar');
       const config=readFileSync(join(release,'deploy/nginx.conf.example'),'utf8').replace('127.0.0.1:8088','0.0.0.0:80').replace('/opt/unicore/current/web','/release/web').replace('127.0.0.1:8080','backend:8080').replace('add_header Cache-Control','add_header X-Unicore-Static nginx;\n        add_header Cache-Control');
@@ -128,7 +131,29 @@ async function exercise(mode,profile) {
     const session=await json('/api/v1/bootstrap');
     const executed=await context.request.post(`${url}/api/v1/core/execute`,{headers:{Origin:url,...(admin?{'X-CSRF-Token':session.csrf_token}:{})},data:{text:'hello world'}});
     expect(executed.status()).toBe(200);expect((await executed.json()).data.sha256).toBe('b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9');
-    expect(errors).toEqual([]);results.push({mode,profile,version,status:'passed',checks:['install wizard PC/375',...(admin?['demo account and six-digit captcha login','CSRF and custom admin path']:['platform APIs absent']),...(mode.startsWith('tar')?['Nginx serves fingerprinted assets']:[]),'API/brand/manifest/docs routing','restart and container replacement','persisted settings/key/database/brand','Core']});
+    if(admin) {
+      expect((await context.request.post(`${url}/api/v1/admin/users`,{headers:{Origin:url,'X-CSRF-Token':session.csrf_token},data:{username:'member',email:'member@example.test',password:'test-password-strong',role:'user'}})).status()).toBe(200);
+      const member=await browser.newContext({baseURL:url,viewport:{width:375,height:812}});
+      try {
+        for(const operation of management)expect((await member.request.fetch(operation.path.replace('{id}','missing'),{method:operation.method,...(operation.method==='GET'?{}:{data:{}})})).status()).toBe(401);
+        const personal=await member.newPage();await personal.goto(`${url}/#site?tab=mail`);
+        await personal.getByLabel('账号或邮箱').fill('member');await personal.getByLabel('密码',{exact:true}).fill('test-password-strong');
+        const src=await personal.getByAltText('六位数字验证码，点击刷新').getAttribute('src');
+        const answer=[...Buffer.from(src.split(',')[1],'base64').toString().matchAll(/>([0-9])<\/text>/g)].map(match=>match[1]).join('');
+        await personal.getByLabel('图形验证码',{exact:true}).fill(answer);await personal.getByRole('button',{name:'登录工作空间'}).click();
+        await expect(personal.getByText('仅当前客户端',{exact:true})).toBeVisible();
+        const metadata=(await(await member.request.get('/api/v1/bootstrap')).json()).data;
+        expect(metadata.current_user.roles).toEqual(['user']);expect(metadata.current_user.permissions).toEqual([]);
+        for(const operation of management)expect((await member.request.fetch(operation.path.replace('{id}','missing'),{method:operation.method,headers:{Origin:url,'X-CSRF-Token':metadata.csrf_token},...(operation.method==='GET'?{}:{data:{}})})).status()).toBe(403);
+        expect((await member.request.get('/manage')).status()).toBe(403);
+        await expect(personal.getByLabel('站点名称',{exact:true})).toHaveCount(0);
+        const writes=[];personal.on('request',request=>{if(request.method()!=='GET')writes.push(request.url());});
+        await personal.getByRole('button',{name:/深色.*柔和低光/}).click();await personal.getByRole('button',{name:'保存设置',exact:true}).click();
+        await expect(personal.locator('html')).toHaveAttribute('data-theme','dark');expect(writes).toEqual([]);
+        await personal.screenshot({path:join(evidence,`${mode}-member-local-375.png`),fullPage:true});
+      } finally {await member.close();}
+    }
+    expect(errors).toEqual([]);results.push({mode,profile,version,status:'passed',checks:['install wizard PC/375',...(admin?['demo account and six-digit captcha login','CSRF and custom admin path','all management APIs reject anonymous/member','member local appearance only']:['platform APIs absent']),...(mode.startsWith('tar')?['Nginx serves fingerprinted assets']:[]),'API/brand/manifest/docs routing','restart and container replacement','persisted settings/key/database/brand','Core']});
     console.log(`PASS ${mode}`);
   } finally {await context.close();}
 }

@@ -11,11 +11,13 @@ it('resolves explicit unknown routes without silently executing the overview', (
   expect(pageFromHash('#reset-password?token=private')).toBe('overview');
 });
 it('guards platform pages by profile and permission while allowing local settings', () => {
-  const metadata = { profile: 'web-standalone', capabilities: { settings: true }, current_user: { permissions: ['roles:read'] } } as Bootstrap;
+  const metadata = { profile: 'web-standalone', capabilities: { settings: true }, current_user: { roles: ['user'], permissions: ['roles:read'] } } as Bootstrap;
   expect(canAccess('roles', metadata)).toBe(false);
   expect(canAccess('site', metadata)).toBe(true);
   expect(canAccess('account', metadata)).toBe(false);
   metadata.profile = 'web-platform';
+  expect(canAccess('roles', metadata)).toBe(false);
+  metadata.current_user!.roles=['super_admin'];
   expect(canAccess('roles', metadata)).toBe(true);
   expect(canAccess('users', metadata)).toBe(false);
 });

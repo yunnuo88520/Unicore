@@ -8,8 +8,8 @@
 | 生命周期与配置 | Web 集中 flag > env > 默认、参数校验、可配置排空/探测超时；组件逆序清理并合并错误；桌面返回后关闭存储 | CLI/桌面共用日志 env 选项，各形态存储配置保持独立；handler 必须遵守 context |
 | 响应与错误 | OpenAPI 错误目录生成 ErrorCatalog，HTTP/presenter/桌面复用，支持 fields、request_id | 业务错误仍由服务手写映射；INVALID_CREDENTIALS 与 AUTH_REQUIRED 区分密码错误/会话失效 |
 | 日志 | 共享 slog 等级/JSON或text，Web 请求路由模板/状态/耗时，CLI日志 stderr | 不打印请求值/凭据/原始 query；外部日志平台后续接入 |
-| DB 初始化与迁移 | database/sql + Repository、池/Ping、分方言嵌入 SQL/checksum 已有 | [ADR-0003](../adr/ADR-0003-m2-install-storage-identity.md) 决定不用 GORM；本轮无 schema 变化，不叠加 AutoMigrate |
-| 自动 API 文档 | 同源生成 Go/TS DTO、typed operation、约束、错误和离线 HTML；可选 /docs/api、/openapi.json；真实 Chi 路由覆盖检查 | 51 个 operation；handler/业务授权手写；文档默认关闭，非交互调试控制台 |
+| DB 初始化与迁移 | database/sql + Repository、池/Ping、分方言嵌入 SQL/checksum 已有 | [ADR-0003](../adr/ADR-0003-m2-install-storage-identity.md) 决定不用 GORM；平台角色规范化迁移 0007，其他形态无平台迁移，不叠加 AutoMigrate |
+| 自动 API 文档 | 同源生成 Go/TS DTO、typed operation、约束、错误和离线 HTML；可选 /docs/api、/openapi.json；真实 Chi 路由覆盖检查 | 48 个 operation；handler/业务授权手写；文档默认关闭，非交互调试控制台 |
 | 健康与观测 | live/ready、独立 DB 超时、可选回环 /metrics：请求数/活动数/耗时与 DB 池 | 指标使用低基数模板；未实现 OpenTelemetry tracing、远程采集/告警部署 |
 | API Client | 生成操作驱动请求、CSRF/Cookie、20秒超时/取消、字段错误、统一失效、旧请求 epoch 拒绝 | 浏览器 OIDC callback 走导航；Wails 只暴露适用接口 |
 | 会话与守卫 | useSession + SessionBoundary、身份代际 cache/局部状态清空、多标签页同步、可见时复核、集中权限判断 | 服务端撤销在下个请求或恢复可见时发现；没有推送通道 |
@@ -20,7 +20,7 @@
 | 唯一契约 | OpenAPI 3.1.0 维护 schema/security/profile/权限/CSRF/响应/错误，CI 检查漂移与路由 | 不引入第二份 Protobuf；非完整 JSON Schema 验证器，不自动生成业务实现 |
 | AI 开发内建 | manifest、AGENTS、文档导航、生成上下文、11 个项目 Skills、任务/中断模板；make docs/check:docs 进入质量流程 | Skills 不隐含生产/发布授权，不存个人凭据；历史验收与当前状态分开 |
 
-M3b 品牌上传已完成，见 [需求](../00-product/feature-branding.md) 和 [验收](acceptance-m3b.md)。设置清单补齐与授权/升级编译占位见 [规范](../00-product/feature-settings.md) 和 [验收](acceptance-settings.md)。仍未完成的产品范围：M4 备份恢复、真实授权/版本服务、受控升级与正式签名发行。详见 [PRD](../00-product/PRD.md)；本轮未重跑 PostgreSQL/MySQL 或其他 OS 原生测试，不能据此扩展实测范围。
+M3b 品牌上传已完成，见 [需求](../00-product/feature-branding.md) 和 [验收](acceptance-m3b.md)。设置清单补齐与授权/升级编译占位见 [规范](../00-product/feature-settings.md) 和 [验收](acceptance-settings.md)。仍未完成的产品范围：M4 备份恢复、真实授权/版本服务、受控升级与正式签名发行。详见 [PRD](../00-product/PRD.md)；各轮实测范围以对应验收为准；本轮固定角色变更已在 PostgreSQL/MySQL/SQLite 复验，其他 OS 原生显示仍未本机验证。
 
 ## 上轮原生品牌与排空修正（146e75f）
 
@@ -44,3 +44,5 @@ M3b 品牌上传已完成，见 [需求](../00-product/feature-branding.md) 和 
 - 原生开发模式实际启动，进程身份 vip.ebox.unicore.dev；`pnpm check:native --bundle --dev` 通过。开发版窗口未取得新的 UI 截图：界面工具对同一路径仍解析到生产标识，重新登记单个 app 与重置工具后仍不匹配；没有因此宣称开发版 Dock 已实测。已停止该开发进程，最终恢复生产构建。
 
 2026-10-27 交付补齐：VERSION 单源生成投影、Changelog 准备、目标化归档、Docker/Compose 入口，以及 Tar+Nginx/Docker/Compose 的隔离首次安装与同版本替换实测，见 [部署验收](acceptance-deployment.md) 和 [发版流程](../03-runbooks/release.md)。这不包含正式签名、自动 OTA 或跨版本回滚。
+
+2026-10-27 权限收敛：仅管理员/普通用户两角色，全部管理菜单、页面及 API 仅管理员；平台外观只存当前客户端，历史 grant 不授权。当前规则及迁移/页面证据见 [权限需求](../00-product/feature-roles.md) 与 [验收](acceptance-permissions.md)，取代历史 M2d 角色编辑方案。

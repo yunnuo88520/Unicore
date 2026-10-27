@@ -22,6 +22,7 @@ import (
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/observability"
+	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/usecase"
 	apispec "github.com/yunnuo/unicore/packages/contracts"
 )
@@ -228,6 +229,10 @@ func New(config Config) http.Handler {
 			if r.URL.Path == prefix || strings.HasPrefix(r.URL.Path, prefix+"/") {
 				if identity == nil {
 					http.NotFound(w, r)
+					return
+				}
+				if session, err := identity.Session(r.Context(), rawSession(r)); err == nil && !platform.IsSuper(session.User) {
+					http.Error(w, "Forbidden", http.StatusForbidden)
 					return
 				}
 			}

@@ -47,19 +47,11 @@ func (r *Repository) user(ctx context.Context, q sqlstore.Runner, id string) (co
 	if rowsErr != nil {
 		return user, rowsErr
 	}
-	rows, err = r.Store.Rows(ctx, q, "SELECT DISTINCT rp.permission_id FROM role_permissions rp JOIN user_roles ur ON ur.role_id=rp.role_id WHERE ur.user_id=? ORDER BY rp.permission_id", id)
-	if err != nil {
-		return user, err
+	// Only fixed builtin roles determine authorization. Legacy/custom grants are ignored.
+	if platform.IsSuper(user) {
+		user.Permissions = append(user.Permissions, platform.Permissions...)
 	}
-	defer rows.Close()
-	for rows.Next() {
-		var permission string
-		if err = rows.Scan(&permission); err != nil {
-			return user, err
-		}
-		user.Permissions = append(user.Permissions, permission)
-	}
-	return user, rows.Err()
+	return user, nil
 }
 func (r *Repository) FindAccount(ctx context.Context, login string) (platform.Account, error) {
 	var id, hash string
@@ -74,7 +66,7 @@ func (r *Repository) FindAccount(ctx context.Context, login string) (platform.Ac
 // Seed only runs inside the install transaction, before the unique installation marker is committed.
 func (r *Repository) Seed(ctx context.Context, tx *sql.Tx, input contracts.UserCreate, hash string) (contracts.User, error) {
 	for _, role := range []string{"super_admin", "user"} {
-		if _, err := r.Store.Exec(ctx, tx, "INSERT INTO roles(id,name) VALUES(?,?)", role, role); err != nil {
+		if _, err := r.Store.Exec(ctx, tx, "INSERT INTO roles(id,name) SELECT ?,? WHERE NOT EXISTS (SELECT 1 FROM roles WHERE id=?)", role, role, role); err != nil {
 			return contracts.User{}, err
 		}
 	}
@@ -82,7 +74,7 @@ func (r *Repository) Seed(ctx context.Context, tx *sql.Tx, input contracts.UserC
 		if _, err := r.Store.Exec(ctx, tx, "INSERT INTO permissions(id) SELECT ? WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE id=?)", permission, permission); err != nil {
 			return contracts.User{}, err
 		}
-		if _, err := r.Store.Exec(ctx, tx, "INSERT INTO role_permissions(role_id,permission_id) VALUES(?,?)", "super_admin", permission); err != nil {
+		if _, err := r.Store.Exec(ctx, tx, "INSERT INTO role_permissions(role_id,permission_id) SELECT ?,? WHERE NOT EXISTS (SELECT 1 FROM role_permissions WHERE role_id=? AND permission_id=?)", "super_admin", permission, "super_admin", permission); err != nil {
 			return contracts.User{}, err
 		}
 	}
@@ -111,7 +103,7 @@ func (r *Repository) CreateUser(ctx context.Context, input contracts.UserCreate,
 	if err = r.Store.LockInstallation(ctx, tx); err != nil {
 		return contracts.User{}, err
 	}
-	current, err := r.actor(ctx, tx, actor, "users:create", false)
+	current, err := r.actor(ctx, tx, actor, "users:create")
 	if err != nil {
 		return contracts.User{}, err
 	}
@@ -129,7 +121,7 @@ func (r *Repository) CreateUser(ctx context.Context, input contracts.UserCreate,
 	return user, tx.Commit()
 }
 func (r *Repository) UpdateUser(ctx context.Context, id string, input contracts.UserUpdate, actor string) (contracts.User, error) {
-	if (input.Status != "active" && input.Status != "disabled" && input.Status != "pending") || input.Role == "" || len(input.Role) > 64 {
+	if (input.Status != "active" && input.Status != "disabled" && input.Status != "pending") || !platform.BuiltinRole(input.Role) {
 		return contracts.User{}, platform.ErrInput
 	}
 	tx, err := r.Store.DB.BeginTx(ctx, nil)
@@ -140,7 +132,7 @@ func (r *Repository) UpdateUser(ctx context.Context, id string, input contracts.
 	if err = r.Store.LockInstallation(ctx, tx); err != nil {
 		return contracts.User{}, err
 	}
-	if _, err = r.actor(ctx, tx, actor, "users:update", true); err != nil {
+	if _, err = r.actor(ctx, tx, actor, "users:update"); err != nil {
 		return contracts.User{}, err
 	}
 	if _, err = r.role(ctx, tx, input.Role); err != nil {

@@ -3,7 +3,7 @@
   "info": {
     "title": "Unicore platform foundation API",
     "version": "0.1.0",
-    "description": "Profile-aware installation, shared Core, persistent settings, platform sessions/RBAC and OIDC enterprise identity. Mutating authenticated requests require X-CSRF-Token from bootstrap/session.",
+    "description": "Fixed administrator/member roles. Global management APIs require an administrator and mutating authenticated requests require X-CSRF-Token. Platform appearance is client-local and never saved through instance settings.",
     "contact": {
       "name": "yunnuo",
       "email": "ymz@ebox.vip"
@@ -588,10 +588,11 @@
             "dashboard:read"
           ],
           "permissionMode": "all",
-          "superAdmin": false,
+          "superAdmin": true,
           "csrf": false
         },
-        "summary": "dashboard"
+        "summary": "dashboard",
+        "x-permission": "dashboard:read; administrator only"
       }
     },
     "/api/v1/admin/users": {
@@ -633,10 +634,11 @@
             "users:read"
           ],
           "permissionMode": "all",
-          "superAdmin": false,
+          "superAdmin": true,
           "csrf": false
         },
-        "summary": "listUsers"
+        "summary": "listUsers",
+        "x-permission": "users:read; administrator only"
       },
       "post": {
         "operationId": "createUser",
@@ -687,10 +689,11 @@
             "users:create"
           ],
           "permissionMode": "all",
-          "superAdmin": false,
+          "superAdmin": true,
           "csrf": true
         },
-        "summary": "createUser"
+        "summary": "createUser",
+        "x-permission": "users:create; administrator only"
       }
     },
     "/api/v1/admin/users/{id}": {
@@ -734,7 +737,7 @@
             "CSRFToken": []
           }
         ],
-        "x-permission": "users:update and super_admin",
+        "x-permission": "users:update; administrator only",
         "x-unicore": {
           "profiles": [
             "web-platform"
@@ -799,10 +802,11 @@
             "settings:read"
           ],
           "permissionMode": "all",
-          "superAdmin": false,
+          "superAdmin": true,
           "csrf": false
         },
-        "summary": "adminSettings"
+        "summary": "adminSettings",
+        "x-permission": "settings:read; administrator only"
       },
       "patch": {
         "operationId": "adminPatchSettings",
@@ -844,7 +848,7 @@
             "CSRFToken": []
           }
         ],
-        "x-permission": "settings:write and super_admin",
+        "x-permission": "settings:write; administrator only",
         "x-unicore": {
           "profiles": [
             "web-platform"
@@ -1276,7 +1280,7 @@
             "CSRFToken": []
           }
         ],
-        "x-permission": "settings:write and super_admin",
+        "x-permission": "settings:write; administrator only",
         "x-unicore": {
           "profiles": [
             "web-platform"
@@ -1322,7 +1326,7 @@
             "SessionCookie": []
           }
         ],
-        "x-permission": "settings:read",
+        "x-permission": "settings:read; administrator only",
         "x-unicore": {
           "profiles": [
             "web-platform"
@@ -1332,7 +1336,7 @@
             "settings:read"
           ],
           "permissionMode": "all",
-          "superAdmin": false,
+          "superAdmin": true,
           "csrf": false
         },
         "summary": "mailJobs"
@@ -1706,7 +1710,7 @@
             }
           }
         },
-        "x-permission": "settings:read",
+        "x-permission": "settings:read; administrator only",
         "x-unicore": {
           "profiles": [
             "web-platform"
@@ -1716,7 +1720,7 @@
             "settings:read"
           ],
           "permissionMode": "all",
-          "superAdmin": false,
+          "superAdmin": true,
           "csrf": false
         },
         "security": [
@@ -1757,7 +1761,7 @@
             "SessionCookie": []
           }
         ],
-        "x-permission": "roles:read",
+        "x-permission": "roles:read; administrator only",
         "x-unicore": {
           "profiles": [
             "web-platform"
@@ -1767,177 +1771,10 @@
             "roles:read"
           ],
           "permissionMode": "all",
-          "superAdmin": false,
+          "superAdmin": true,
           "csrf": false
         },
         "summary": "listRoles"
-      },
-      "post": {
-        "operationId": "createRole",
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RoleResponse"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "Stable error code",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "SessionCookie": [],
-            "CSRFToken": []
-          }
-        ],
-        "x-permission": "roles:write and super_admin",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RoleInput"
-              }
-            }
-          }
-        },
-        "x-unicore": {
-          "profiles": [
-            "web-platform"
-          ],
-          "access": "session",
-          "permissions": [
-            "roles:write"
-          ],
-          "permissionMode": "all",
-          "superAdmin": true,
-          "csrf": true
-        },
-        "summary": "createRole"
-      }
-    },
-    "/api/v1/admin/roles/{id}": {
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string"
-          }
-        }
-      ],
-      "patch": {
-        "operationId": "updateRole",
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RoleResponse"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "Stable error code",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "SessionCookie": [],
-            "CSRFToken": []
-          }
-        ],
-        "x-permission": "roles:write and super_admin",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RoleInput"
-              }
-            }
-          }
-        },
-        "x-unicore": {
-          "profiles": [
-            "web-platform"
-          ],
-          "access": "session",
-          "permissions": [
-            "roles:write"
-          ],
-          "permissionMode": "all",
-          "superAdmin": true,
-          "csrf": true
-        },
-        "summary": "updateRole"
-      },
-      "delete": {
-        "operationId": "deleteRole",
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ActionResultResponse"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "Stable error code",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "SessionCookie": [],
-            "CSRFToken": []
-          }
-        ],
-        "x-permission": "roles:write and super_admin",
-        "x-unicore": {
-          "profiles": [
-            "web-platform"
-          ],
-          "access": "session",
-          "permissions": [
-            "roles:write"
-          ],
-          "permissionMode": "all",
-          "superAdmin": true,
-          "csrf": true
-        },
-        "summary": "deleteRole"
       }
     },
     "/api/v1/admin/users/role-options": {
@@ -1970,7 +1807,7 @@
             "SessionCookie": []
           }
         ],
-        "x-permission": "users:read or users:create or users:update; names with per-role assignable flag",
+        "x-permission": "users:read, users:create, users:update; administrator only",
         "x-unicore": {
           "profiles": [
             "web-platform"
@@ -1982,7 +1819,7 @@
             "users:update"
           ],
           "permissionMode": "any",
-          "superAdmin": false,
+          "superAdmin": true,
           "csrf": false
         },
         "summary": "roleOptions"
@@ -2626,7 +2463,8 @@
             "CSRFToken": []
           }
         ],
-        "summary": "oidcCheck"
+        "summary": "oidcCheck",
+        "x-permission": "settings:write; administrator only"
       }
     },
     "/api/v1/auth/oidc/callback": {
@@ -2729,11 +2567,12 @@
             "settings:read"
           ],
           "permissionMode": "all",
-          "superAdmin": false,
+          "superAdmin": true,
           "csrf": false
         },
         "summary": "adminSettings",
-        "description": "读取实例品牌"
+        "description": "读取实例品牌",
+        "x-permission": "settings:read; administrator only"
       },
       "put": {
         "operationId": "adminUpdateBranding",
@@ -2775,7 +2614,7 @@
             "CSRFToken": []
           }
         ],
-        "x-permission": "settings:write and super_admin",
+        "x-permission": "settings:write; administrator only",
         "x-unicore": {
           "profiles": [
             "web-platform"
@@ -3318,7 +3157,11 @@
           "roles": {
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "super_admin",
+                "user"
+              ]
             }
           },
           "permissions": {
@@ -3389,7 +3232,12 @@
             "maxLength": 128
           },
           "role": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "super_admin",
+              "user"
+            ],
+            "description": "Fixed roles: administrator or ordinary user."
           }
         }
       },
@@ -3402,7 +3250,12 @@
         ],
         "properties": {
           "role": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "super_admin",
+              "user"
+            ],
+            "description": "Fixed roles: administrator or ordinary user."
           },
           "status": {
             "type": "string"
@@ -4236,7 +4089,11 @@
         ],
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "super_admin",
+              "user"
+            ]
           },
           "name": {
             "type": "string"
@@ -4252,29 +4109,6 @@
           },
           "user_count": {
             "type": "integer"
-          }
-        }
-      },
-      "RoleInput": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "name",
-          "permissions"
-        ],
-        "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 64
-          },
-          "permissions": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "uniqueItems": true,
-            "maxItems": 100
           }
         }
       },
@@ -4310,7 +4144,11 @@
         ],
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "super_admin",
+              "user"
+            ]
           },
           "name": {
             "type": "string"
@@ -4622,10 +4460,6 @@
       "status": 403,
       "message": "安装凭据无效，请读取部署数据目录中的 bootstrap.token"
     },
-    "BUILTIN_ROLE": {
-      "status": 409,
-      "message": "内置角色不能修改或删除"
-    },
     "CAPTCHA_INVALID": {
       "status": 400,
       "message": "验证码不正确或已过期，请刷新后重试"
@@ -4664,7 +4498,7 @@
     },
     "LAST_SUPER_ADMIN": {
       "status": 409,
-      "message": "不能禁用或降权最后一个启用且可用本地密码登录的超级管理员"
+      "message": "不能禁用或降权最后一个启用且可用本地密码登录的管理员"
     },
     "LOCAL_PASSWORD_REQUIRED": {
       "status": 409,
@@ -4713,18 +4547,6 @@
     "RATE_LIMITED": {
       "status": 429,
       "message": "尝试过于频繁，请稍后重试"
-    },
-    "ROLE_IN_USE": {
-      "status": 409,
-      "message": "角色仍有关联用户，请先更换这些用户的角色"
-    },
-    "ROLE_NAME_EXISTS": {
-      "status": 409,
-      "message": "角色名称已存在，请使用其他名称"
-    },
-    "ROLE_NOT_FOUND": {
-      "status": 404,
-      "message": "角色不存在，请刷新后重试"
     },
     "TOKEN_INVALID": {
       "status": 400,

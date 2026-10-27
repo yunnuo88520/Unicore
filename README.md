@@ -5,9 +5,9 @@
 
 作者：yunnuo · ymz@ebox.vip · 版本：[VERSION](VERSION) · 开发预览
 
-已实现共享文本分析 Core、Chi HTTP、Wails v2 桌面、Cobra CLI，以及 Web 一次性安装、SQLite/PostgreSQL/MySQL、平台本地登录/RBAC/用户管理、业务角色权限编辑、持久化设置与 SMTP 邮件账号流程。桌面自动创建本地 SQLite，无安装或登录；CLI 无 HTTP/Wails/数据库依赖。
+已实现共享文本分析 Core、Chi HTTP、Wails v2 桌面、Cobra CLI，以及 Web 一次性安装、SQLite/PostgreSQL/MySQL、平台本地登录/RBAC/用户管理、固定管理员/普通用户及权限目录、持久化设置与 SMTP 邮件账号流程。桌面自动创建本地 SQLite，无安装或登录；CLI 无 HTTP/Wails/数据库依赖。
 
-注册默认关闭；先保存 SMTP 并成功测试，才能启用邮箱验证注册和找回密码。OIDC 企业登录与显式绑定已实现；备份恢复、授权与升级仍在后续阶段；当前不作为生产发行。
+在线平台的全局配置仅管理员查看和修改；普通用户可使用工作空间、本人账号及客户端本地外观。注册默认关闭；先保存 SMTP 并成功测试，才能启用邮箱验证注册和找回密码。OIDC 企业登录与显式绑定已实现；备份恢复、授权与升级仍在后续阶段；当前不作为生产发行。
 
 ## 启动
 
@@ -62,7 +62,7 @@ AI 开发从 [文档入口](docs/README.md) 和 [上下文地图](docs/04-ai/con
 `APP_API_DOCS=true build/bin/server` 开启 `/docs/api` 和 `/openapi.json`；日志、退出超时及独立指标端口见 [运行基座](docs/02-standards/runtime.md)。
 
 - [M3a 企业登录验收](docs/04-ai/acceptance-m3a.md)、[接入需求](docs/00-product/feature-oidc.md)
-- [M2d 角色验收](docs/04-ai/acceptance-m2d.md)、[角色功能](docs/00-product/feature-roles.md)
+- [当前权限验收](docs/04-ai/acceptance-permissions.md)、[角色功能](docs/00-product/feature-roles.md)
 - [M2c 验收报告](docs/04-ai/acceptance-m2c.md)、[统一主题入口](docs/02-standards/design-system.md)
 - [M2b 验收报告](docs/04-ai/acceptance-m2b.md)、[M2a 验收](docs/04-ai/acceptance-m2a.md)、[M1 历史验收](docs/04-ai/acceptance-m1.md)
 - [完整设计基线](docs/00-product/design-v1.1.md)、[当前形态与里程碑](docs/00-product/PRD.md)

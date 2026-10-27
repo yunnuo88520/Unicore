@@ -177,7 +177,7 @@ export const operations = {
       "dashboard:read"
     ],
     "permissionMode": "all",
-    "superAdmin": false,
+    "superAdmin": true,
     "csrf": false
   },
   "listUsers": {
@@ -193,7 +193,7 @@ export const operations = {
       "users:read"
     ],
     "permissionMode": "all",
-    "superAdmin": false,
+    "superAdmin": true,
     "csrf": false
   },
   "createUser": {
@@ -209,7 +209,7 @@ export const operations = {
       "users:create"
     ],
     "permissionMode": "all",
-    "superAdmin": false,
+    "superAdmin": true,
     "csrf": true
   },
   "updateUser": {
@@ -241,7 +241,7 @@ export const operations = {
       "settings:read"
     ],
     "permissionMode": "all",
-    "superAdmin": false,
+    "superAdmin": true,
     "csrf": false
   },
   "adminPatchSettings": {
@@ -401,7 +401,7 @@ export const operations = {
       "settings:read"
     ],
     "permissionMode": "all",
-    "superAdmin": false,
+    "superAdmin": true,
     "csrf": false
   },
   "registerEmailCode": {
@@ -515,7 +515,7 @@ export const operations = {
       "settings:read"
     ],
     "permissionMode": "all",
-    "superAdmin": false,
+    "superAdmin": true,
     "csrf": false
   },
   "listRoles": {
@@ -531,56 +531,8 @@ export const operations = {
       "roles:read"
     ],
     "permissionMode": "all",
-    "superAdmin": false,
+    "superAdmin": true,
     "csrf": false
-  },
-  "createRole": {
-    "method": "POST",
-    "path": "/api/v1/admin/roles",
-    "requestSchema": "RoleInput",
-    "responseSchema": "RoleResponse",
-    "profiles": [
-      "web-platform"
-    ],
-    "access": "session",
-    "permissions": [
-      "roles:write"
-    ],
-    "permissionMode": "all",
-    "superAdmin": true,
-    "csrf": true
-  },
-  "updateRole": {
-    "method": "PATCH",
-    "path": "/api/v1/admin/roles/{id}",
-    "requestSchema": "RoleInput",
-    "responseSchema": "RoleResponse",
-    "profiles": [
-      "web-platform"
-    ],
-    "access": "session",
-    "permissions": [
-      "roles:write"
-    ],
-    "permissionMode": "all",
-    "superAdmin": true,
-    "csrf": true
-  },
-  "deleteRole": {
-    "method": "DELETE",
-    "path": "/api/v1/admin/roles/{id}",
-    "requestSchema": null,
-    "responseSchema": "ActionResultResponse",
-    "profiles": [
-      "web-platform"
-    ],
-    "access": "session",
-    "permissions": [
-      "roles:write"
-    ],
-    "permissionMode": "all",
-    "superAdmin": true,
-    "csrf": true
   },
   "roleOptions": {
     "method": "GET",
@@ -597,7 +549,7 @@ export const operations = {
       "users:update"
     ],
     "permissionMode": "any",
-    "superAdmin": false,
+    "superAdmin": true,
     "csrf": false
   },
   "oidcInfo": {
@@ -713,7 +665,7 @@ export const operations = {
       "settings:read"
     ],
     "permissionMode": "all",
-    "superAdmin": false,
+    "superAdmin": true,
     "csrf": false
   },
   "adminUpdateBranding": {
@@ -801,9 +753,6 @@ export interface OperationInputs {
   completeEmailLogin: Models.EmailCodeInput;
   mailTemplates: undefined;
   listRoles: undefined;
-  createRole: Models.RoleInput;
-  updateRole: Models.RoleInput;
-  deleteRole: undefined;
   roleOptions: undefined;
   oidcInfo: undefined;
   oidcStart: undefined;
@@ -854,9 +803,6 @@ export interface OperationData {
   completeEmailLogin: Models.SessionResponse['data'];
   mailTemplates: Models.MailTemplateListResponse['data'];
   listRoles: Models.RoleListResponse['data'];
-  createRole: Models.RoleResponse['data'];
-  updateRole: Models.RoleResponse['data'];
-  deleteRole: Models.ActionResultResponse['data'];
   roleOptions: Models.RoleOptionsResponse['data'];
   oidcInfo: Models.OIDCInfoResponse['data'];
   oidcStart: Models.OIDCStartResponse['data'];

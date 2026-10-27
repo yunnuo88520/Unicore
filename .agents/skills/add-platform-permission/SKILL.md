@@ -1,36 +1,18 @@
 ---
 name: add-platform-permission
-description: 实现或扩展 Unicore web-platform 的服务端 RBAC 权限、角色映射和越权测试。
+description: 实现 Unicore web-platform 固定管理员/普通用户的菜单、页面与 API 权限，并验证越权边界。
 metadata:
   author: yunnuo <ymz@ebox.vip>
 ---
 
 # add-platform-permission
 
-## trigger
+先读 [当前角色需求](../../../docs/00-product/feature-roles.md)、[权限清单](../../../docs/api/permissions.md) 和 [ADR-0012](../../../docs/adr/ADR-0012-fixed-platform-roles.md)。当前仅管理员 super_admin / 普通用户 user，每用户一个角色；旧 M2d 自定义角色方案已废弃。
 
-新增平台保护 API、角色或敏感操作；沿用 M2a 的 session/RBAC 和权限清单。
+- 管理权限登记 internal/platform/roles.go，OpenAPI 的管理 operation 声明权限与 superAdmin；所有管理 API（含只读）独立校验有效 session、真实固定管理员和权限，写请求校验 CSRF/Origin。新增权限不能默认委派；历史 role_permissions 不参与授权。
+- 菜单与直达页使用 routes.ts 的统一管理员判定，页面隐藏不能代替 API 校验。用户创建/身份变更在安装锁事务内重查操作者，保护最后启用管理员和最后有本地密码的管理员。
+- 注册/OIDC JIT 固定普通用户，企业 claim 不升管理员；角色/状态变化撤销会话及待用挑战。不要增加自定义角色写接口或恢复 RoleInput/roles:write。
+- 全局设置、品牌管理、SMTP/模板/投递、OIDC 配置仅管理员；公共品牌和登录策略只给页面必需投影。本地外观不使用管理 API，不读写全局主题。
+- 平台模块只装配 web-platform；写入审计不含敏感值。若需要持久数据变化，新增分方言迁移与恢复说明，不修改历史 checksum。
 
-## inputs
-
-资源:动作、API、最低角色、审计字段及已有 session/RBAC。
-
-## steps
-
-1. 阅读原始设计第 7 节、PRD 与身份 ADR。
-2. 沿用 internal/platform 与 platformsql 的权限关系；新增点同步 docs/api/permissions.md、seed/迁移和安全验收。
-3. 登记 users:read 等权限，服务端默认拒绝，逐 API 验证 session 和权限。
-4. profile 隔离，桌面/CLI 不 import platform；敏感操作写脱敏审计。
-5. 保护最后一个超级管理员，UI 只控制交互可见性。
-
-## output
-
-权限定义、后端校验、迁移、权限清单与正反向测试。
-
-## forbidden
-
-公开管理 API；任意 SSO claim 升管理员；仅依靠隐藏菜单；给非平台加用户表。
-
-## validation
-
-验证匿名 401、无权 403、授权成功、最后超管保护和非平台无路由；make test 与相关构建。
+验证逐个管理 API 的匿名 401、普通用户 403、缺 CSRF 拒绝、管理员正向成功；模拟普通用户残留 grant，验证服务端仍拒绝。页面验收包括隐藏菜单、hash/后台直达、两客户端外观隔离、升降级会话失效及最后管理员保护；非平台无身份路由。更新当前需求/契约/验收，运行 make docs、make test、相关 profile 构建与页面测试。

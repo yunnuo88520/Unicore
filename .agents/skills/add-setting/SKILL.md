@@ -37,7 +37,7 @@ metadata:
 
 ## 托管品牌图片
 
-修改 branding.* 时阅读 [品牌规范](../../../docs/00-product/feature-branding.md) 和 [ADR-0009](../../../docs/adr/ADR-0009-runtime-branding.md)。引用登记于 Definitions，但普通 PATCH 不可写；通过 internal/branding 校验并重编码，再经注入的 blob.Store 写入、提交引用、按已确认引用清理；平台使用 files 元数据，桌面/单机使用本地 adapter。业务层不直接操作文件系统，另读 [ADR-0015](../../../docs/adr/ADR-0015-file-storage.md)。不要把图片 base64 存入设置值或改生成资源。Web 返回哈希 URL，Wails 返回 data URI；邮件创建时快照图片。验证替换失败、共用文件、默认恢复、重启和实际页面/桌面。
+修改 branding.* 时阅读 [品牌规范](../../../docs/00-product/feature-branding.md) 和 [ADR-0009](../../../docs/adr/ADR-0009-runtime-branding.md)。引用登记于 Definitions，但普通 PATCH 不可写；通过 internal/branding 校验并重编码，再经注入的 blob.Store 写入、提交引用、按已确认引用清理；仅平台运行时品牌使用 files 元数据；单机/桌面使用构建品牌，不装配运行时品牌 API/桥接。业务层不直接操作文件系统，另读 [ADR-0015](../../../docs/adr/ADR-0015-file-storage.md)。不要把图片 base64 存入设置值或改生成资源。Web 返回哈希 URL，Wails 返回 data URI；邮件创建时快照图片。验证替换失败、共用文件、默认恢复、重启和实际页面/桌面。
 
 ## 公共站点与邮件设置
 
@@ -50,3 +50,5 @@ metadata:
 当前页面分工见 [ADR-0014](../../../docs/adr/ADR-0014-separate-identities-management.md)：基础设置保留单层业务标签；SMTP/账号流程和测试合在独立邮件设置页，无子标签，测试收件人用弹窗；审计/投递在系统日志，不展示模板配置。授权与更新是独立占位页，实际集成卡片仍编译裁剪。全局设置变更需保持当前管理员入口，后台改名同步地址。
 
 设置/品牌保存与 SMTP 测试反馈使用 useMessage，默认顶部 3 秒，保存按钮保持尺寸与位置；字段校验就地显示。单机与 Wails 不出现账号头像/操作。验证浅深主题、375px、三秒消失及失败反馈。
+
+当前形态与入口以 [ADR-0016](../../../docs/adr/ADR-0016-separate-client-admin-surfaces.md) 为准：用户 main.tsx 与管理员 admin.tsx 独立入口，管理页只在 admin-app.tsx 装配，共享 Workspace/表单/消息/主题。单机/桌面仅业务和本地外观，不提供站点、品牌、SMTP、对象存储和后台。管理员公开 auth/bootstrap 只返回固定域最小投影；本人 account 需管理员会话，其余管理资源须 permissions/superAdmin，不能宽泛豁免 admin 路由。新增普通用户立即 active 并验证用户入口登录；注册默认关闭，安全页 Switch 控制且须 SMTP 测试。布尔控件用 Switch，上传用自定义拖拽弹窗与 SDK 真实阶段。

@@ -24,6 +24,9 @@ func exerciseRoleHTTP(t *testing.T, manager *install.Manager, request func(strin
 			if !strings.HasPrefix(parts[1], "/api/v1/admin/") {
 				continue
 			}
+			if len(operation.Policy.Permissions) == 0 {
+				continue
+			}
 			if !operation.Policy.SuperAdmin {
 				t.Fatal("management contract lacks admin requirement", route)
 			}

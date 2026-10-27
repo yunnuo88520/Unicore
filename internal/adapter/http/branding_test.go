@@ -47,7 +47,7 @@ func TestBrandHTTP(t *testing.T) {
 					name := sessionCookie
 					if cookie == adminRaw {
 						name = "unicore_administrator_session"
-						r.Header.Set("X-Unicore-Identity", "administrator")
+
 					}
 					r.AddCookie(&http.Cookie{Name: name, Value: cookie})
 				}
@@ -85,6 +85,8 @@ func TestBrandHTTP(t *testing.T) {
 				expect(request("PUT", path, input, mr, ms.CsrfToken), 403)
 			} else {
 				expect(request("GET", "/api/v1/admin/branding", nil, "", ""), 404)
+				expect(request("PUT", path, input, "", ""), 404)
+				return
 			}
 			expect(request("PUT", path, map[string]string{"slot": "logo", "content": strings.Repeat("a", 400000)}, cookie, csrf), 413)
 			w := request("PUT", path, input, cookie, csrf)

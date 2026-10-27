@@ -26,12 +26,11 @@ export function pageFromHash(hash: string): Page {
   return Object.hasOwn(routes, path) ? path as Page : 'not-found';
 }
 export function isAdministrator(metadata?: Bootstrap): boolean {
-  return metadata?.profile === 'web-platform' && metadata.current_user?.roles.length === 1 && metadata.current_user.roles[0] === 'super_admin';
+  return metadata?.profile === 'web-platform' && metadata.identity_realm === 'administrator' && metadata.current_user?.roles.length === 1 && metadata.current_user.roles[0] === 'super_admin';
 }
 export function canAccess(page: Page, metadata?: Bootstrap): boolean {
   if (!metadata) return false;
   if (page === 'site') return metadata.capabilities.settings && (metadata.profile !== 'web-platform' || !!metadata.current_user);
-  if (page === 'edition' && metadata.profile !== 'web-platform') return metadata.capabilities.settings;
   const route = routes[page];
   if ('authenticated' in route) return metadata.profile === 'web-platform' && !!metadata.current_user;
   return !('permission' in route) || (isAdministrator(metadata) && !!metadata.current_user?.permissions.includes(route.permission));

@@ -12,55 +12,41 @@ import (
 )
 
 func mountBranding(api chi.Router, config Config) {
-	for _, admin := range []bool{false, true} {
-		path := "/branding"
-		if admin {
-			path = "/admin/branding"
-		}
-		for _, method := range []string{"GET", "PUT"} {
-			api.MethodFunc(method, path, func(w http.ResponseWriter, r *http.Request) {
-				actor := "local"
-				if admin {
-					permission := "settings:read"
-					if method == "PUT" {
-						permission = "settings:write"
-					}
-					session, ok := require(config.Install, w, r, permission)
-					if !ok {
-						return
-					}
-					actor = session.User.ID
-				}
-				_, service, _, profile := config.Install.Services()
-				if !admin && profile != runtime.WebStandalone {
-					failure(w, 404, "NOT_FOUND", "此运行形态不提供本地品牌接口")
-					return
-				}
-				if service == nil || service.Branding == nil {
-					failure(w, 409, "INSTALL_REQUIRED", "请先完成安装")
-					return
-				}
-				if method == "GET" {
-					data, err := service.Branding.Snapshot(r.Context(), false)
-					if err != nil {
-						webError(w, err)
-						return
-					}
-					success(w, data)
-					return
-				}
-				var input contracts.BrandingInput
-				if !decode(w, r, &input) {
-					return
-				}
-				data, err := service.Branding.Update(r.Context(), input, actor, false)
+	for _, method := range []string{"GET", "PUT"} {
+		api.MethodFunc(method, "/admin/branding", func(w http.ResponseWriter, r *http.Request) {
+			permission := "settings:read"
+			if method == "PUT" {
+				permission = "settings:write"
+			}
+			session, ok := require(config.Install, w, r, permission)
+			if !ok {
+				return
+			}
+			_, service, _, _ := config.Install.Services()
+			if service == nil || service.Branding == nil {
+				failure(w, 409, "INSTALL_REQUIRED", "请先完成安装")
+				return
+			}
+			if method == "GET" {
+				data, err := service.Branding.Snapshot(r.Context(), false)
 				if err != nil {
 					webError(w, err)
 					return
 				}
 				success(w, data)
-			})
-		}
+				return
+			}
+			var input contracts.BrandingInput
+			if !decode(w, r, &input) {
+				return
+			}
+			data, err := service.Branding.Update(r.Context(), input, session.User.ID, false)
+			if err != nil {
+				webError(w, err)
+				return
+			}
+			success(w, data)
+		})
 	}
 }
 func serveBrandAsset(config Config, w http.ResponseWriter, r *http.Request) {
@@ -96,8 +82,8 @@ func serveBrandManifest(config Config, w http.ResponseWriter, r *http.Request) {
 		serveSPA(config.Assets, w, r)
 		return
 	}
-	_, service, _, _ := config.Install.Services()
-	if service == nil {
+	_, service, _, profile := config.Install.Services()
+	if service == nil || profile != runtime.WebPlatform {
 		serveSPA(config.Assets, w, r)
 		return
 	}

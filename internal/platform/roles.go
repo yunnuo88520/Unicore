@@ -5,6 +5,7 @@ package platform
 import "github.com/yunnuo/unicore/internal/contracts"
 
 var PermissionCatalog = []contracts.PermissionDefinition{
+	{ID: "admin:access", Name: "访问管理工作台", Description: "使用管理员端的共享业务工具", Group: "管理入口"},
 	{ID: "storage:read", Name: "查看对象存储", Description: "查看存储位置与文件策略", Group: "系统管理"},
 	{ID: "storage:write", Name: "管理对象存储", Description: "测试、切换、迁移与清理文件", Group: "系统管理"},
 	{ID: "logs:read", Name: "查看系统日志", Description: "查看审计与邮件投递记录", Group: "系统管理"},

@@ -59,7 +59,7 @@ func ValidAdminPath(value string) bool {
 		return false
 	}
 	switch strings.ToLower(value) {
-	case "/brand-assets", "/api", "/install", "/assets", "/settings", "/login", "/auth":
+	case "/brand-assets", "/api", "/install", "/assets", "/settings", "/login", "/register", "/auth":
 		return false
 	}
 	return true
@@ -85,7 +85,7 @@ var Definitions = append([]SettingDefinition{
 	{"security.login_captcha", "boolean", "security", "登录图形验证码", "true", true, false, oneOf("true", "false")},
 	{"security.session_hours", "integer", "security", "会话有效期（小时）", "24", true, false, integer(1, 168)},
 	{"security.register_captcha", "boolean", "security", "注册图形验证码", "true", true, false, oneOf("true", "false")},
-	{"account.registration_enabled", "boolean", "account", "开放注册（需验证邮箱）", "false", true, false, oneOf("true", "false")},
+	{"account.registration_enabled", "boolean", "security", "开放注册（需验证邮箱）", "false", true, false, oneOf("true", "false")},
 	{"account.email_login_enabled", "boolean", "account", "邮箱验证码登录", "false", true, false, oneOf("true", "false")},
 	{"account.password_reset_enabled", "boolean", "account", "邮件找回密码", "false", true, false, oneOf("true", "false")},
 	{"mail.host", "string", "mail", "SMTP 主机", "", true, false, func(v string) bool { return len(v) <= 253 && !strings.ContainsAny(v, "\r\n /@") }},
@@ -124,7 +124,10 @@ type Service struct {
 }
 
 func applies(d SettingDefinition, profile contracts.Profile) bool {
-	return (!d.PlatformOnly || profile == "web-platform") && !(profile == "web-platform" && d.Group == "appearance")
+	if profile != "web-platform" {
+		return d.Group == "appearance"
+	}
+	return d.Group != "appearance"
 }
 
 // Raw is internal-only: HTTP must use List so secrets never enter responses.

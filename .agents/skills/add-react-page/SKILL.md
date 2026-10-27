@@ -39,3 +39,5 @@ pnpm typecheck、pnpm test、pnpm build；交互变更运行 make build-web test
 新增实体表单使用 modal.tsx，不在列表下方展开。验证初始焦点、Escape/取消、焦点返回及 pending；安装/认证页面和设置编辑按自身流程呈现。导航沿用用户管理/系统管理的独立折叠组，默认工作台概览；不恢复重复平台仪表盘。系统日志承载审计/邮件投递，模板不做设置页面；见 ADR-0014。共享 sidebar 固定视口，导航区独立滚动，验证 720px 高和 375px 宽。
 
 二级导航向内缩进并配套 Lucide/SVG 图标，全局 UI 禁止 Emoji；单机/桌面不显示用户头像。短暂操作反馈复用 message.tsx 的 useMessage（五态，默认顶部 3 秒），提交失败由 QueryScope MutationCache 统一处理，成功回调给明确文案；不在保存按钮旁插入提示。保留字段校验、可重试加载错误与完成页状态；验证消息不挤动布局、自动消失及原生 dialog 内可见。
+
+当前形态与入口以 [ADR-0016](../../../docs/adr/ADR-0016-separate-client-admin-surfaces.md) 为准：用户 main.tsx 与管理员 admin.tsx 独立入口，管理页只在 admin-app.tsx 装配，共享 Workspace/表单/消息/主题。单机/桌面仅业务和本地外观，不提供站点、品牌、SMTP、对象存储和后台。管理员公开 auth/bootstrap 只返回固定域最小投影；本人 account 需管理员会话，其余管理资源须 permissions/superAdmin，不能宽泛豁免 admin 路由。新增普通用户立即 active 并验证用户入口登录；注册默认关闭，安全页 Switch 控制且须 SMTP 测试。布尔控件用 Switch，上传用自定义拖拽弹窗与 SDK 真实阶段。

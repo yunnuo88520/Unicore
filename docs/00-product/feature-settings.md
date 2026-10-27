@@ -7,12 +7,12 @@
 
 | 分组 | 当前行为 | 适用 profile |
 | --- | --- | --- |
-| 基础信息/实例品牌 | 浅深 Logo、favicon 上传/预览/恢复；站点名、描述、版权、ICP备案号与 HTTPS 查询链接 | Web 两模式、desktop |
+| 基础信息/实例品牌 | 浅深 Logo、favicon 上传/预览/恢复；站点名、描述、版权、ICP备案号与 HTTPS 查询链接 | web-platform 管理端 |
 | 外观 | 平台只存当前客户端；单机/桌面保留本地默认主题 | Web 两模式、desktop |
 | 安全与后台 | 登录/注册图形验证码分别默认开启，会话时长；默认 /admin，可修改且排除保留路径，APP_ADMIN_PATH 恢复 | web-platform |
 | 邮件服务 | 主机/端口/TLS/账号/加密密钥、发件邮箱、独立发件人别名、真实测试；五套模板内部生成，队列记录在系统日志 | web-platform |
 | 账号/企业登录 | 注册/六位码登录/找回密码分别开启；SMTP 测试门槛；OIDC 与 JIT 策略 | web-platform |
-| 授权与升级 | 独立编译开关、当前版本、待对接状态、禁用的检查按钮/空更新日志 | Web 两模式、desktop；默认编译关闭 |
+| 授权与升级 | 独立编译开关、当前版本、待对接状态、禁用的检查按钮/空更新日志 | web-platform 管理端；默认编译关闭 |
 
 站点名/版权/备案信息用于工作台和公开登录/注册/找回页面；备案号留空隐藏，查询链接留空显示纯文本，非空只接受无凭据的 HTTPS。读取旧数据时 UI 再次限制可点击链接。新增设置由默认值补齐，复用 system_settings，无 schema 迁移。
 
@@ -31,3 +31,5 @@ mail.from_name 留空时使用邮件内的站点名称；非空作为测试/账�
 构建与接入入口见 [部署手册](../03-runbooks/deployment.md)，验收和未测范围见 [设置验收](../04-ai/acceptance-settings.md)。
 
 在线平台新增独立“对象存储”设置页，按本地/MinIO/S3/OSS/COS 单层 Tabs 配置；仅管理员可见，默认本地，测试后显式切换，文件策略登记 storage.*。详见 [文件存储](feature-storage.md) 与 [运行手册](../03-runbooks/storage.md)。
+
+当前单机/桌面只提供本地外观，拒绝站点/品牌/邮件等设置，详见 [ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md)。布尔设置用 Switch；开放注册移至安全与控制，默认关闭且保留 SMTP 就绪门槛。

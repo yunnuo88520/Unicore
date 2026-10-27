@@ -76,5 +76,11 @@
     "release-cross-platform",
     "security-review",
     "add-file-storage"
-  ]
+  ],
+  "surfaces": {
+    "client": "apps/web/src/main.tsx",
+    "administrator": "apps/web/src/admin.tsx",
+    "administratorPages": "packages/web-ui/src/admin-app.tsx",
+    "decision": "docs/adr/ADR-0016-separate-client-admin-surfaces.md"
+  }
 }

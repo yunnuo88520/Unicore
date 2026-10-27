@@ -15,6 +15,7 @@ export class AppError extends Error {
 
 export type SessionEvent = 'authenticated' | 'password-changed' | 'signed-out' | 'expired' | 'external';
 export type RequestOptions = { signal?: AbortSignal };
+export type UploadOptions = RequestOptions & { onStage?: (stage: 'uploading' | 'confirming') => void };
 export type OperationOptions = RequestOptions & { timeoutMs?:number; params?: Record<string, string>; query?: Record<string, string | number>; headers?: Record<string, string> };
 
 export interface AppClient {
@@ -35,7 +36,7 @@ export interface AppClient {
 
 export interface FileClient {
  listFiles(search:string,page:number):Promise<FileList>;
- uploadFile(file:File,options?:RequestOptions):Promise<FileEntry>;
+ uploadFile(file:File,options?:UploadOptions):Promise<FileEntry>;
  fileAccess(id:string):Promise<FileAccess>;
  deleteFile(id:string):Promise<{success:boolean}>;
  migrateFile(id:string,locationID:string):Promise<FileEntry>;
@@ -93,6 +94,35 @@ function unwrap<T>(response: { code: string; message: string; data: T; request_i
   return response.data;
 }
 
+const administratorOperations: Partial<Record<OperationId, OperationId>> = {
+  "bootstrap": "adminBootstrap",
+  "execute": "adminExecute",
+  "captcha": "adminCaptcha",
+  "login": "adminLogin",
+  "session": "adminSession",
+  "logout": "adminLogout",
+  "authPolicy": "adminAuthPolicy",
+  "requestPasswordReset": "adminRequestPasswordReset",
+  "resetPassword": "adminResetPassword",
+  "requestEmailReset": "adminRequestEmailReset",
+  "completeEmailReset": "adminCompleteEmailReset",
+  "requestEmailLogin": "adminRequestEmailLogin",
+  "completeEmailLogin": "adminCompleteEmailLogin",
+  "oidcInfo": "adminOidcInfo",
+  "oidcStart": "adminOidcStart",
+  "oidcAccount": "adminOidcAccount",
+  "oidcLink": "adminOidcLink",
+  "oidcUnlink": "adminOidcUnlink",
+  "oidcCallback": "administratorOIDCCallback",
+  "changePassword": "adminChangePassword",
+  "listFiles": "adminListFiles",
+  "createFileUpload": "adminCreateFileUpload",
+  "uploadLocalFile": "adminUploadLocalFile",
+  "completeFileUpload": "adminCompleteFileUpload",
+  "fileAccess": "adminFileAccess",
+  "deleteFile": "adminDeleteFile"
+};
+
 export class HttpTransport implements AppClient, WebClient, FileClient, StorageClient {
   readonly transport = 'http' as const;
   readonly web: WebClient = this;
@@ -100,8 +130,7 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
  readonly storage:StorageClient=this;
   get sessionScope(): 'user'|'administrator' { return this.administrator?'administrator':'user'; }
   private csrf = '';
- private administrator = false;
- private realmChosen = false;
+ private readonly administrator: boolean;
   private platform = false;
   private authenticated = false;
   private identity = '';
@@ -111,12 +140,11 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   subscribeSession(listener: (event: SessionEvent) => void) { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; }
   private sessionChanged(event: SessionEvent) { this.epoch++; for (const listener of this.listeners) listener(event); }
   resetSession() { this.csrf = ''; this.identity = ''; this.authenticated = false; this.bootstrapped = false; this.sessionChanged('external'); }
-  constructor(private readonly baseURL = '', private readonly fetcher: typeof fetch = globalThis.fetch.bind(globalThis)) {}
+  constructor(private readonly baseURL = '', private readonly fetcher: typeof fetch = globalThis.fetch.bind(globalThis), realm: 'user'|'administrator' = 'user') { this.administrator = realm === 'administrator'; }
   private async request<T>(path: string, init?: RequestInit,timeoutMS=20000): Promise<T> {
     const epoch = this.epoch;
     let response: Response;
     const headers = new Headers(init?.headers);
- headers.set("X-Unicore-Identity",this.administrator?"administrator":"user");
     if (this.csrf) headers.set('X-CSRF-Token', this.csrf);
     const timeout = AbortSignal.timeout(timeoutMS);
     const signal = init?.signal ? AbortSignal.any([init.signal, timeout]) : timeout;
@@ -135,7 +163,7 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   }
   call<K extends OperationId>(id: K, ...args: OperationInputs[K] extends undefined ? [input?: undefined, options?: OperationOptions] : [input: OperationInputs[K], options?: OperationOptions]): Promise<OperationData[K]> {
     const [input, options] = args;
-    const operation = operations[id];
+    const operation = operations[(this.administrator ? administratorOperations[id] : undefined) ?? id];
     if (!operation.responseSchema) return Promise.reject(new AppError('NOT_AVAILABLE', '此接口通过浏览器跳转完成'));
     if (operation.requestSchema) {
       const fields = validate(operation.requestSchema as SchemaName, input);
@@ -152,7 +180,6 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   }
   async bootstrap(options?: RequestOptions) {
     let data = await this.call('bootstrap', undefined, options);
- if(!this.realmChosen && data.installed){this.realmChosen=true;const path=globalThis.location?.pathname??'';this.administrator=path===data.admin_path||path.startsWith(data.admin_path+'/');if(this.administrator)data=await this.call('bootstrap',undefined,options);}
     const nextIdentity = data.current_user?.id ?? '';
     const expired = this.authenticated && !data.current_user;
     const switched = this.bootstrapped && this.identity !== nextIdentity;
@@ -200,8 +227,8 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   updateUser(id: string, input: UserUpdate) { return this.call('updateUser', input, { params: { id } }); }
   roles() { return this.call('listRoles'); }
   roleOptions() { return this.call('roleOptions'); }
-  branding() { return this.call(this.platform ? 'adminBranding' : 'localBranding'); }
-  updateBranding(input: BrandingInput) { return this.call(this.platform ? 'adminUpdateBranding' : 'localUpdateBranding',input); }
+  branding() { return this.call('adminBranding'); }
+  updateBranding(input: BrandingInput) { return this.call('adminUpdateBranding',input); }
   storageLocations(){return this.call('storageLocations');}
  saveStorage(input:StorageLocationInput,id?:string){return id?this.call('updateStorageLocation',input,{params:{id},timeoutMs:35000}):this.call('createStorageLocation',input);}
  removeStorage(id:string){return this.call('deleteStorageLocation',undefined,{params:{id}});}
@@ -213,10 +240,11 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
  fileAccess(id:string){return this.call('fileAccess',undefined,{params:{id}});}
  deleteFile(id:string){return this.call('deleteFile',undefined,{params:{id}});}
  migrateFile(id:string,locationID:string){return this.call('migrateFile',{location_id:locationID},{params:{id},timeoutMs:600000});}
- async uploadFile(file:File,options?:RequestOptions):Promise<FileEntry>{
+ async uploadFile(file:File,options?:UploadOptions):Promise<FileEntry>{
   const epoch=this.epoch;
   const grant=await this.call('createFileUpload',{original_name:file.name,mime_type:file.type||'application/octet-stream',size:file.size},{signal:options?.signal});
   const timeout=AbortSignal.timeout(600000);const signal=options?.signal?AbortSignal.any([options.signal,timeout]):timeout;
+  options?.onStage?.('uploading');
   if(grant.direct){
    let body:BodyInit=file;
    if(grant.method==='POST'){const form=new FormData();for(const [key,value] of Object.entries(grant.fields))form.append(key,value);form.append('file',file);body=form;}
@@ -226,6 +254,7 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
    await this.request(grant.url.replace(/^\/api\/v1/,''),{method:'PUT',body:file,headers:grant.headers,signal},600000);
   }
   if(epoch!==this.epoch)throw new AppError('SESSION_CHANGED','会话已变化，请重新登录');
+  options?.onStage?.('confirming');
   return this.call('completeFileUpload',undefined,{params:{id:grant.file_id},signal:options?.signal,timeoutMs:600000});
  }
   settings() { return this.call(this.platform ? 'adminSettings' : 'localSettings'); }
@@ -233,8 +262,6 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
 }
 
 export interface DesktopBridge {
-  Branding?(): Promise<BrandingResponse>;
-  UpdateBranding?(input: BrandingInput): Promise<BrandingResponse>;
   Bootstrap(): Promise<BootstrapResponse>;
   Execute(input: ExecuteInput): Promise<ExecuteResponse>;
   Settings?(): Promise<SettingsResponse>;
@@ -246,8 +273,6 @@ export class WailsTransport implements AppClient {
   constructor(private readonly bridge: () => DesktopBridge) {}
   async bootstrap() { return unwrap(await this.bridge().Bootstrap()); }
   async execute(input: ExecuteInput) { return unwrap(await this.bridge().Execute(input)); }
-  async branding() { const method=this.bridge().Branding;if(!method)throw new AppError('NOT_AVAILABLE','品牌存储未初始化');return unwrap(await method()); }
-  async updateBranding(input: BrandingInput) { const method=this.bridge().UpdateBranding;if(!method)throw new AppError('NOT_AVAILABLE','品牌存储未初始化');return unwrap(await method(input)); }
   async settings() { const method = this.bridge().Settings; if (!method) throw new AppError('NOT_AVAILABLE', '此版本不支持持久化设置'); return unwrap(await method()); }
   async patchSettings(input: SettingPatch) { const method = this.bridge().PatchSettings; if (!method) throw new AppError('NOT_AVAILABLE', '此版本不支持持久化设置'); return unwrap(await method(input)); }
 }

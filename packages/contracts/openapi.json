@@ -48,21 +48,7 @@
         },
         "security": [],
         "summary": "bootstrap",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/core/execute": {
@@ -159,21 +145,7 @@
           }
         ],
         "summary": "execute",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/health/live": {
@@ -213,7 +185,8 @@
           "csrf": false
         },
         "security": [],
-        "summary": "liveness"
+        "summary": "liveness",
+        "parameters": []
       }
     },
     "/api/v1/health/ready": {
@@ -253,7 +226,8 @@
           "csrf": false
         },
         "security": [],
-        "summary": "readiness"
+        "summary": "readiness",
+        "parameters": []
       }
     },
     "/api/v1/install/status": {
@@ -293,7 +267,8 @@
           "csrf": false
         },
         "security": [],
-        "summary": "installStatus"
+        "summary": "installStatus",
+        "parameters": []
       }
     },
     "/api/v1/install/verify-db": {
@@ -347,7 +322,8 @@
           "superAdmin": false,
           "csrf": false
         },
-        "summary": "verifyDatabase"
+        "summary": "verifyDatabase",
+        "parameters": []
       }
     },
     "/api/v1/install/complete": {
@@ -401,7 +377,8 @@
           "superAdmin": false,
           "csrf": false
         },
-        "summary": "completeInstall"
+        "summary": "completeInstall",
+        "parameters": []
       }
     },
     "/api/v1/auth/captcha": {
@@ -437,25 +414,12 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "user"
         },
         "security": [],
         "summary": "captcha",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/auth/login": {
@@ -501,25 +465,12 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "user"
         },
         "security": [],
         "summary": "login",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/auth/session": {
@@ -560,24 +511,11 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "user"
         },
         "summary": "session",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/auth/logout": {
@@ -619,24 +557,11 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": true
+          "csrf": true,
+          "identityRealm": "user"
         },
         "summary": "logout",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/admin/users": {
@@ -666,7 +591,7 @@
         },
         "security": [
           {
-            "SessionCookie": []
+            "AdministratorSession": []
           }
         ],
         "x-unicore": {
@@ -679,25 +604,12 @@
           ],
           "permissionMode": "all",
           "superAdmin": true,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "administrator"
         },
         "summary": "listUsers",
         "x-permission": "users:read; administrator only",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       },
       "post": {
         "operationId": "createUser",
@@ -735,8 +647,8 @@
         },
         "security": [
           {
-            "SessionCookie": [],
-            "CSRFToken": []
+            "CSRFToken": [],
+            "AdministratorSession": []
           }
         ],
         "x-unicore": {
@@ -749,25 +661,12 @@
           ],
           "permissionMode": "all",
           "superAdmin": true,
-          "csrf": true
+          "csrf": true,
+          "identityRealm": "administrator"
         },
         "summary": "createUser",
         "x-permission": "users:create; administrator only",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/admin/users/{id}": {
@@ -807,8 +706,8 @@
         },
         "security": [
           {
-            "SessionCookie": [],
-            "CSRFToken": []
+            "CSRFToken": [],
+            "AdministratorSession": []
           }
         ],
         "x-permission": "users:update; administrator only",
@@ -822,24 +721,11 @@
           ],
           "permissionMode": "all",
           "superAdmin": true,
-          "csrf": true
+          "csrf": true,
+          "identityRealm": "administrator"
         },
         "summary": "updateUser",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       },
       "parameters": [
         {
@@ -879,7 +765,7 @@
         },
         "security": [
           {
-            "SessionCookie": []
+            "AdministratorSession": []
           }
         ],
         "x-unicore": {
@@ -892,25 +778,12 @@
           ],
           "permissionMode": "all",
           "superAdmin": true,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "administrator"
         },
         "summary": "adminSettings",
         "x-permission": "settings:read; administrator only",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       },
       "patch": {
         "operationId": "adminPatchSettings",
@@ -948,8 +821,8 @@
         },
         "security": [
           {
-            "SessionCookie": [],
-            "CSRFToken": []
+            "CSRFToken": [],
+            "AdministratorSession": []
           }
         ],
         "x-permission": "settings:write; administrator only",
@@ -963,24 +836,11 @@
           ],
           "permissionMode": "all",
           "superAdmin": true,
-          "csrf": true
+          "csrf": true,
+          "identityRealm": "administrator"
         },
         "summary": "adminPatchSettings",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/settings": {
@@ -1020,21 +880,8 @@
         },
         "security": [],
         "summary": "localSettings",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": [],
+        "description": "仅本地形态的外观偏好；站点信息与品牌不可由本地形态修改。"
       },
       "patch": {
         "operationId": "localPatchSettings",
@@ -1082,21 +929,8 @@
         },
         "security": [],
         "summary": "localPatchSettings",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": [],
+        "description": "仅本地形态的外观偏好；站点信息与品牌不可由本地形态修改。"
       }
     },
     "/api/v1/auth/policy": {
@@ -1132,25 +966,12 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "user"
         },
         "security": [],
         "summary": "authPolicy",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/auth/register": {
@@ -1197,25 +1018,12 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "user"
         },
         "security": [],
         "summary": "register",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/auth/verification/request": {
@@ -1262,25 +1070,12 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "user"
         },
         "security": [],
         "summary": "requestVerification",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/auth/verification/complete": {
@@ -1327,25 +1122,12 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "user"
         },
         "security": [],
         "summary": "verifyEmail",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/auth/password/request": {
@@ -1392,25 +1174,12 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "user"
         },
         "security": [],
         "summary": "requestPasswordReset",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/auth/password/reset": {
@@ -1457,25 +1226,12 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "user"
         },
         "security": [],
         "summary": "resetPassword",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/admin/settings/mail/test": {
@@ -1515,8 +1271,8 @@
         },
         "security": [
           {
-            "SessionCookie": [],
-            "CSRFToken": []
+            "CSRFToken": [],
+            "AdministratorSession": []
           }
         ],
         "x-permission": "settings:write; administrator only",
@@ -1530,24 +1286,11 @@
           ],
           "permissionMode": "all",
           "superAdmin": true,
-          "csrf": true
+          "csrf": true,
+          "identityRealm": "administrator"
         },
         "summary": "testMail",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/auth/email/register": {
@@ -1593,25 +1336,12 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "user"
         },
         "security": [],
         "summary": "registerEmailCode",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/auth/email/verify/request": {
@@ -1657,25 +1387,12 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "user"
         },
         "security": [],
         "summary": "requestEmailVerify",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/auth/email/verify/complete": {
@@ -1721,25 +1438,12 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "user"
         },
         "security": [],
         "summary": "completeEmailVerify",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/auth/email/reset/request": {
@@ -1785,25 +1489,12 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "user"
         },
         "security": [],
         "summary": "requestEmailReset",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/auth/email/reset/complete": {
@@ -1849,25 +1540,12 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "user"
         },
         "security": [],
         "summary": "completeEmailReset",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/auth/email/login/request": {
@@ -1913,25 +1591,12 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "user"
         },
         "security": [],
         "summary": "requestEmailLogin",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/auth/email/login/complete": {
@@ -1977,25 +1642,12 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "user"
         },
         "security": [],
         "summary": "completeEmailLogin",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/admin/settings/mail/templates": {
@@ -2034,29 +1686,16 @@
           ],
           "permissionMode": "all",
           "superAdmin": true,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "administrator"
         },
         "security": [
           {
-            "SessionCookie": []
+            "AdministratorSession": []
           }
         ],
         "summary": "mailTemplates",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/admin/roles": {
@@ -2086,7 +1725,7 @@
         },
         "security": [
           {
-            "SessionCookie": []
+            "AdministratorSession": []
           }
         ],
         "x-permission": "roles:read; administrator only",
@@ -2100,24 +1739,11 @@
           ],
           "permissionMode": "all",
           "superAdmin": true,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "administrator"
         },
         "summary": "listRoles",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/admin/users/role-options": {
@@ -2147,7 +1773,7 @@
         },
         "security": [
           {
-            "SessionCookie": []
+            "AdministratorSession": []
           }
         ],
         "x-permission": "users:read, users:create, users:update; administrator only",
@@ -2163,24 +1789,11 @@
           ],
           "permissionMode": "any",
           "superAdmin": true,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "administrator"
         },
         "summary": "roleOptions",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/auth/oidc": {
@@ -2277,25 +1890,12 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "user"
         },
         "security": [],
         "summary": "oidcInfo",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/auth/oidc/start": {
@@ -2392,25 +1992,12 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "user"
         },
         "security": [],
         "summary": "oidcStart",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/account/oidc": {
@@ -2507,7 +2094,8 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "user"
         },
         "security": [
           {
@@ -2515,21 +2103,7 @@
           }
         ],
         "summary": "oidcAccount",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/account/oidc/link": {
@@ -2636,7 +2210,8 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": true
+          "csrf": true,
+          "identityRealm": "user"
         },
         "security": [
           {
@@ -2645,21 +2220,7 @@
           }
         ],
         "summary": "oidcLink",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/account/oidc/unlink": {
@@ -2766,7 +2327,8 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": true
+          "csrf": true,
+          "identityRealm": "user"
         },
         "security": [
           {
@@ -2775,21 +2337,7 @@
           }
         ],
         "summary": "oidcUnlink",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/admin/settings/oidc/check": {
@@ -2888,31 +2436,18 @@
           ],
           "permissionMode": "all",
           "superAdmin": true,
-          "csrf": true
+          "csrf": true,
+          "identityRealm": "administrator"
         },
         "security": [
           {
-            "SessionCookie": [],
-            "CSRFToken": []
+            "CSRFToken": [],
+            "AdministratorSession": []
           }
         ],
         "summary": "oidcCheck",
         "x-permission": "settings:write; administrator only",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/auth/oidc/callback": {
@@ -2970,7 +2505,8 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "user"
         },
         "security": [],
         "summary": "oidcCallback"
@@ -3003,7 +2539,7 @@
         },
         "security": [
           {
-            "SessionCookie": []
+            "AdministratorSession": []
           }
         ],
         "x-unicore": {
@@ -3016,26 +2552,13 @@
           ],
           "permissionMode": "all",
           "superAdmin": true,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "administrator"
         },
         "summary": "adminSettings",
         "description": "读取实例品牌",
         "x-permission": "settings:read; administrator only",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       },
       "put": {
         "operationId": "adminUpdateBranding",
@@ -3073,8 +2596,8 @@
         },
         "security": [
           {
-            "SessionCookie": [],
-            "CSRFToken": []
+            "CSRFToken": [],
+            "AdministratorSession": []
           }
         ],
         "x-permission": "settings:write; administrator only",
@@ -3089,144 +2612,12 @@
           "permissionMode": "all",
           "superAdmin": true,
           "csrf": true,
-          "maxBodyBytes": 393216
+          "maxBodyBytes": 393216,
+          "identityRealm": "administrator"
         },
         "summary": "adminPatchSettings",
         "description": "替换品牌图片；空 content 恢复默认。只接受 PNG/JPEG，服务端重新编码为 PNG。",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
-      }
-    },
-    "/api/v1/branding": {
-      "get": {
-        "operationId": "localBranding",
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BrandingResponse"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "Stable error code",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "x-unicore": {
-          "profiles": [
-            "web-standalone"
-          ],
-          "access": "local",
-          "permissions": [],
-          "permissionMode": "all",
-          "superAdmin": false,
-          "csrf": false
-        },
-        "security": [],
-        "summary": "localSettings",
-        "description": "读取实例品牌",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
-      },
-      "put": {
-        "operationId": "localUpdateBranding",
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BrandingResponse"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "Stable error code",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BrandingInput"
-              }
-            }
-          }
-        },
-        "x-unicore": {
-          "profiles": [
-            "web-standalone"
-          ],
-          "access": "local",
-          "permissions": [],
-          "permissionMode": "all",
-          "superAdmin": false,
-          "csrf": false,
-          "maxBodyBytes": 393216
-        },
-        "security": [],
-        "summary": "localPatchSettings",
-        "description": "替换品牌图片；空 content 恢复默认。只接受 PNG/JPEG，服务端重新编码为 PNG。",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/install/token/rotate": {
@@ -3280,7 +2671,8 @@
           "superAdmin": false,
           "csrf": false
         },
-        "summary": "Rotate the server-generated installation credential after proving possession of the current one"
+        "summary": "Rotate the server-generated installation credential after proving possession of the current one",
+        "parameters": []
       }
     },
     "/api/v1/admin/administrators": {
@@ -3310,7 +2702,7 @@
         },
         "security": [
           {
-            "SessionCookie": []
+            "AdministratorSession": []
           }
         ],
         "x-unicore": {
@@ -3323,25 +2715,12 @@
           ],
           "permissionMode": "all",
           "superAdmin": true,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "administrator"
         },
         "summary": "listAdministrators",
         "x-permission": "users:read; administrator only",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       },
       "post": {
         "operationId": "createAdministrator",
@@ -3379,8 +2758,8 @@
         },
         "security": [
           {
-            "SessionCookie": [],
-            "CSRFToken": []
+            "CSRFToken": [],
+            "AdministratorSession": []
           }
         ],
         "x-unicore": {
@@ -3393,25 +2772,12 @@
           ],
           "permissionMode": "all",
           "superAdmin": true,
-          "csrf": true
+          "csrf": true,
+          "identityRealm": "administrator"
         },
         "summary": "createAdministrator",
         "x-permission": "users:create; administrator only",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/admin/administrators/{id}": {
@@ -3451,8 +2817,8 @@
         },
         "security": [
           {
-            "SessionCookie": [],
-            "CSRFToken": []
+            "CSRFToken": [],
+            "AdministratorSession": []
           }
         ],
         "x-permission": "users:update; administrator only",
@@ -3466,24 +2832,11 @@
           ],
           "permissionMode": "all",
           "superAdmin": true,
-          "csrf": true
+          "csrf": true,
+          "identityRealm": "administrator"
         },
         "summary": "updateAdministrator",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       },
       "parameters": [
         {
@@ -3523,7 +2876,7 @@
         },
         "security": [
           {
-            "SessionCookie": []
+            "AdministratorSession": []
           }
         ],
         "x-unicore": {
@@ -3536,25 +2889,12 @@
           ],
           "permissionMode": "all",
           "superAdmin": true,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "administrator"
         },
         "summary": "Read system audit log",
         "x-permission": "dashboard:read; administrator only",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/admin/mail/jobs": {
@@ -3584,7 +2924,7 @@
         },
         "security": [
           {
-            "SessionCookie": []
+            "AdministratorSession": []
           }
         ],
         "x-permission": "settings:read; administrator only",
@@ -3598,24 +2938,11 @@
           ],
           "permissionMode": "all",
           "superAdmin": true,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "administrator"
         },
         "summary": "mailJobs",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
+        "parameters": []
       }
     },
     "/api/v1/account/password": {
@@ -3657,7 +2984,8 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": true
+          "csrf": true,
+          "identityRealm": "user"
         },
         "summary": "Change own password and revoke all sessions in this identity realm",
         "requestBody": {
@@ -3670,82 +2998,7 @@
             }
           }
         },
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ]
-      }
-    },
-    "/api/v1/auth/oidc/administrator-callback": {
-      "get": {
-        "operationId": "administratorOIDCCallback",
-        "description": "One-time state + browser proof, PKCE, nonce, signed ID token. Fixed local redirect only.",
-        "parameters": [
-          {
-            "name": "state",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "maxLength": 2048
-            }
-          },
-          {
-            "name": "code",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "maxLength": 2048
-            }
-          },
-          {
-            "name": "error",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "maxLength": 2048
-            }
-          },
-          {
-            "name": "iss",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "maxLength": 2048
-            }
-          }
-        ],
-        "responses": {
-          "303": {
-            "description": "Redirect to fixed local account or login result; no authorization data in URL"
-          }
-        },
-        "x-unicore": {
-          "profiles": [
-            "web-platform"
-          ],
-          "access": "public",
-          "permissions": [],
-          "permissionMode": "all",
-          "superAdmin": false,
-          "csrf": false
-        },
-        "security": [],
-        "summary": "oidcCallback"
+        "parameters": []
       }
     },
     "/api/v1/admin/storage/locations": {
@@ -3775,7 +3028,7 @@
         },
         "security": [
           {
-            "SessionCookie": []
+            "AdministratorSession": []
           }
         ],
         "x-unicore": {
@@ -3788,25 +3041,12 @@
           ],
           "permissionMode": "all",
           "superAdmin": true,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "administrator"
         },
         "summary": "storageLocations",
         "x-permission": "storage:read; administrator only",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "description": "管理员读取存储位置与当前默认；不返回密钥。"
       },
       "post": {
@@ -3835,8 +3075,8 @@
         },
         "security": [
           {
-            "SessionCookie": [],
-            "CSRFToken": []
+            "CSRFToken": [],
+            "AdministratorSession": []
           }
         ],
         "x-unicore": {
@@ -3849,25 +3089,12 @@
           ],
           "permissionMode": "all",
           "superAdmin": true,
-          "csrf": true
+          "csrf": true,
+          "identityRealm": "administrator"
         },
         "summary": "createStorageLocation",
         "x-permission": "storage:write; administrator only",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
@@ -3908,8 +3135,8 @@
         },
         "security": [
           {
-            "SessionCookie": [],
-            "CSRFToken": []
+            "CSRFToken": [],
+            "AdministratorSession": []
           }
         ],
         "x-unicore": {
@@ -3922,24 +3149,12 @@
           ],
           "permissionMode": "all",
           "superAdmin": true,
-          "csrf": true
+          "csrf": true,
+          "identityRealm": "administrator"
         },
         "summary": "updateStorageLocation",
         "x-permission": "storage:write; administrator only",
         "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          },
           {
             "name": "id",
             "in": "path",
@@ -3989,8 +3204,8 @@
         },
         "security": [
           {
-            "SessionCookie": [],
-            "CSRFToken": []
+            "CSRFToken": [],
+            "AdministratorSession": []
           }
         ],
         "x-unicore": {
@@ -4003,24 +3218,12 @@
           ],
           "permissionMode": "all",
           "superAdmin": true,
-          "csrf": true
+          "csrf": true,
+          "identityRealm": "administrator"
         },
         "summary": "deleteStorageLocation",
         "x-permission": "storage:write; administrator only",
         "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          },
           {
             "name": "id",
             "in": "path",
@@ -4062,8 +3265,8 @@
         },
         "security": [
           {
-            "SessionCookie": [],
-            "CSRFToken": []
+            "CSRFToken": [],
+            "AdministratorSession": []
           }
         ],
         "x-unicore": {
@@ -4076,24 +3279,12 @@
           ],
           "permissionMode": "all",
           "superAdmin": true,
-          "csrf": true
+          "csrf": true,
+          "identityRealm": "administrator"
         },
         "summary": "testStorageLocation",
         "x-permission": "storage:write; administrator only",
         "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          },
           {
             "name": "id",
             "in": "path",
@@ -4135,8 +3326,8 @@
         },
         "security": [
           {
-            "SessionCookie": [],
-            "CSRFToken": []
+            "CSRFToken": [],
+            "AdministratorSession": []
           }
         ],
         "x-unicore": {
@@ -4149,24 +3340,12 @@
           ],
           "permissionMode": "all",
           "superAdmin": true,
-          "csrf": true
+          "csrf": true,
+          "identityRealm": "administrator"
         },
         "summary": "activateStorageLocation",
         "x-permission": "storage:write; administrator only",
         "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          },
           {
             "name": "id",
             "in": "path",
@@ -4208,8 +3387,8 @@
         },
         "security": [
           {
-            "SessionCookie": [],
-            "CSRFToken": []
+            "CSRFToken": [],
+            "AdministratorSession": []
           }
         ],
         "x-unicore": {
@@ -4222,24 +3401,12 @@
           ],
           "permissionMode": "all",
           "superAdmin": true,
-          "csrf": true
+          "csrf": true,
+          "identityRealm": "administrator"
         },
         "summary": "configureStorageBrowser",
         "x-permission": "storage:write; administrator only",
         "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          },
           {
             "name": "id",
             "in": "path",
@@ -4291,8 +3458,8 @@
         },
         "security": [
           {
-            "SessionCookie": [],
-            "CSRFToken": []
+            "CSRFToken": [],
+            "AdministratorSession": []
           }
         ],
         "x-unicore": {
@@ -4305,25 +3472,12 @@
           ],
           "permissionMode": "all",
           "superAdmin": true,
-          "csrf": true
+          "csrf": true,
+          "identityRealm": "administrator"
         },
         "summary": "cleanupFiles",
         "x-permission": "storage:write; administrator only",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "description": "处理已到期的文件与持久清理任务，不扫描 Bucket。"
       }
     },
@@ -4365,24 +3519,12 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": false
+          "csrf": false,
+          "identityRealm": "user"
         },
         "summary": "listFiles",
         "x-permission": "owner or administrator; identity realm isolated",
         "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          },
           {
             "name": "page",
             "in": "query",
@@ -4443,25 +3585,12 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": true
+          "csrf": true,
+          "identityRealm": "user"
         },
         "summary": "createFileUpload",
         "x-permission": "owner or administrator; identity realm isolated",
-        "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
@@ -4515,24 +3644,12 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "streamingUpload": true
+          "streamingUpload": true,
+          "identityRealm": "user"
         },
         "summary": "uploadLocalFile",
         "x-permission": "owner or administrator; identity realm isolated",
         "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          },
           {
             "name": "id",
             "in": "path",
@@ -4597,24 +3714,12 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": true
+          "csrf": true,
+          "identityRealm": "user"
         },
         "summary": "completeFileUpload",
         "x-permission": "owner or administrator; identity realm isolated",
         "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          },
           {
             "name": "id",
             "in": "path",
@@ -4668,24 +3773,12 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": true
+          "csrf": true,
+          "identityRealm": "user"
         },
         "summary": "fileAccess",
         "x-permission": "owner or administrator; identity realm isolated",
         "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          },
           {
             "name": "id",
             "in": "path",
@@ -4739,24 +3832,12 @@
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
-          "csrf": true
+          "csrf": true,
+          "identityRealm": "user"
         },
         "summary": "deleteFile",
         "x-permission": "owner or administrator; identity realm isolated",
         "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          },
           {
             "name": "id",
             "in": "path",
@@ -4798,8 +3879,8 @@
         },
         "security": [
           {
-            "SessionCookie": [],
-            "CSRFToken": []
+            "CSRFToken": [],
+            "AdministratorSession": []
           }
         ],
         "x-unicore": {
@@ -4812,24 +3893,12 @@
           ],
           "permissionMode": "all",
           "superAdmin": true,
-          "csrf": true
+          "csrf": true,
+          "identityRealm": "administrator"
         },
         "summary": "migrateFile",
         "x-permission": "storage:write; administrator only",
         "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          },
           {
             "name": "id",
             "in": "path",
@@ -4890,24 +3959,12 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "signedDownload": true
+          "signedDownload": true,
+          "identityRealm": "user"
         },
         "summary": "downloadLocalFile",
         "x-permission": "short-lived authenticated signature",
         "parameters": [
-          {
-            "name": "X-Unicore-Identity",
-            "in": "header",
-            "required": false,
-            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "administrator"
-              ]
-            }
-          },
           {
             "name": "id",
             "in": "path",
@@ -4939,6 +3996,1737 @@
           }
         ],
         "description": "校验文件状态、有效期与加密签名后，以 attachment 下载本地文件。"
+      }
+    },
+    "/api/v1/admin/auth/oidc/callback": {
+      "get": {
+        "operationId": "administratorOIDCCallback",
+        "description": "One-time state + browser proof, PKCE, nonce, signed ID token. Fixed local redirect only.",
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 2048
+            }
+          },
+          {
+            "name": "code",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 2048
+            }
+          },
+          {
+            "name": "error",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 2048
+            }
+          },
+          {
+            "name": "iss",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 2048
+            }
+          }
+        ],
+        "responses": {
+          "303": {
+            "description": "Redirect to fixed local account or login result; no authorization data in URL"
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "security": [],
+        "summary": "oidcCallback"
+      }
+    },
+    "/api/v1/admin/bootstrap": {
+      "get": {
+        "operationId": "adminBootstrap",
+        "responses": {
+          "200": {
+            "description": "Runtime metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BootstrapResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error envelope; error codes are listed in x-error-codes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "security": [],
+        "summary": "管理员端：bootstrap",
+        "parameters": [],
+        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+      }
+    },
+    "/api/v1/admin/core/execute": {
+      "post": {
+        "operationId": "adminExecute",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecuteInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Text analysis",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecuteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "JSON required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error envelope; error codes are listed in x-error-codes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "admin:access"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {},
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          }
+        ],
+        "summary": "管理员端：execute",
+        "parameters": [],
+        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+      }
+    },
+    "/api/v1/admin/auth/captcha": {
+      "get": {
+        "operationId": "adminCaptcha",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaptchaResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "security": [],
+        "summary": "管理员端：captcha",
+        "parameters": [],
+        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+      }
+    },
+    "/api/v1/admin/auth/login": {
+      "post": {
+        "operationId": "adminLogin",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginInput"
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "security": [],
+        "summary": "管理员端：login",
+        "parameters": [],
+        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+      }
+    },
+    "/api/v1/admin/auth/session": {
+      "get": {
+        "operationId": "adminSession",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "管理员端：session",
+        "parameters": [],
+        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+      }
+    },
+    "/api/v1/admin/auth/logout": {
+      "post": {
+        "operationId": "adminLogout",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "管理员端：logout",
+        "parameters": [],
+        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+      }
+    },
+    "/api/v1/admin/auth/policy": {
+      "get": {
+        "operationId": "adminAuthPolicy",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthPolicyResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "security": [],
+        "summary": "管理员端：authPolicy",
+        "parameters": [],
+        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+      }
+    },
+    "/api/v1/admin/auth/password/request": {
+      "post": {
+        "operationId": "adminRequestPasswordReset",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailRequest"
+              }
+            }
+          }
+        },
+        "deprecated": true,
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "security": [],
+        "summary": "管理员端：requestPasswordReset",
+        "parameters": [],
+        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+      }
+    },
+    "/api/v1/admin/auth/password/reset": {
+      "post": {
+        "operationId": "adminResetPassword",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetInput"
+              }
+            }
+          }
+        },
+        "deprecated": true,
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "security": [],
+        "summary": "管理员端：resetPassword",
+        "parameters": [],
+        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+      }
+    },
+    "/api/v1/admin/auth/email/reset/request": {
+      "post": {
+        "operationId": "adminRequestEmailReset",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailChallengeResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailRequest"
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "security": [],
+        "summary": "管理员端：requestEmailReset",
+        "parameters": [],
+        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+      }
+    },
+    "/api/v1/admin/auth/email/reset/complete": {
+      "post": {
+        "operationId": "adminCompleteEmailReset",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailCodeInput"
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "security": [],
+        "summary": "管理员端：completeEmailReset",
+        "parameters": [],
+        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+      }
+    },
+    "/api/v1/admin/auth/email/login/request": {
+      "post": {
+        "operationId": "adminRequestEmailLogin",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailChallengeResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailRequest"
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "security": [],
+        "summary": "管理员端：requestEmailLogin",
+        "parameters": [],
+        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+      }
+    },
+    "/api/v1/admin/auth/email/login/complete": {
+      "post": {
+        "operationId": "adminCompleteEmailLogin",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailCodeInput"
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "security": [],
+        "summary": "管理员端：completeEmailLogin",
+        "parameters": [],
+        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+      }
+    },
+    "/api/v1/admin/auth/oidc": {
+      "get": {
+        "operationId": "adminOidcInfo",
+        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。public",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OIDCInfoResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Flow unavailable or conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Identity provider unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error envelope; error codes are listed in x-error-codes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "security": [],
+        "summary": "管理员端：oidcInfo",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/auth/oidc/start": {
+      "post": {
+        "operationId": "adminOidcStart",
+        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。public; same-origin; rate limited",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OIDCStartResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Flow unavailable or conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Identity provider unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error envelope; error codes are listed in x-error-codes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "security": [],
+        "summary": "管理员端：oidcStart",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/account/oidc": {
+      "get": {
+        "operationId": "adminOidcAccount",
+        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。authenticated self",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OIDCInfoResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Flow unavailable or conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Identity provider unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error envelope; error codes are listed in x-error-codes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "summary": "管理员端：oidcAccount",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/account/oidc/link": {
+      "post": {
+        "operationId": "adminOidcLink",
+        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。authenticated self; CSRF; local password",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OIDCStartResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Flow unavailable or conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Identity provider unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error envelope; error codes are listed in x-error-codes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OIDCPasswordInput"
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          }
+        ],
+        "summary": "管理员端：oidcLink",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/account/oidc/unlink": {
+      "post": {
+        "operationId": "adminOidcUnlink",
+        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。authenticated self; CSRF; local password",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Flow unavailable or conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Identity provider unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error envelope; error codes are listed in x-error-codes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OIDCPasswordInput"
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          }
+        ],
+        "summary": "管理员端：oidcUnlink",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/account/password": {
+      "post": {
+        "operationId": "adminChangePassword",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "管理员端：Change own password and revoke all sessions in this identity realm",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordInput"
+              }
+            }
+          }
+        },
+        "parameters": [],
+        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+      }
+    },
+    "/api/v1/admin/files": {
+      "get": {
+        "operationId": "adminListFiles",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "管理员端：listFiles",
+        "x-permission": "storage:read; administrator only",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          }
+        ],
+        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。普通用户只读取本人所属身份域的文件；管理员可查看实例文件。"
+      }
+    },
+    "/api/v1/admin/files/uploads": {
+      "post": {
+        "operationId": "adminCreateFileUpload",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileUploadGrantResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "管理员端：createFileUpload",
+        "x-permission": "storage:write; administrator only",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FileUploadInput"
+              }
+            }
+          }
+        },
+        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。生成仅可写临时对象的上传凭证，云存储使用浏览器直传；无需携带实例 Cookie/CSRF 至云。"
+      }
+    },
+    "/api/v1/admin/files/uploads/{id}/content": {
+      "put": {
+        "operationId": "adminUploadLocalFile",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "streamingUpload": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "管理员端：uploadLocalFile",
+        "x-permission": "storage:write; administrator only",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。仅本地模式：带身份和 CSRF 的原始二进制 PUT，长度必须与申请一致。"
+      }
+    },
+    "/api/v1/admin/files/uploads/{id}/complete": {
+      "post": {
+        "operationId": "adminCompleteFileUpload",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileEntryResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "管理员端：completeFileUpload",
+        "x-permission": "storage:write; administrator only",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            }
+          }
+        ],
+        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。校验临时对象，以 ETag 条件复制到正式对象后标记可用；可幂等重试。"
+      }
+    },
+    "/api/v1/admin/files/{id}/access": {
+      "post": {
+        "operationId": "adminFileAccess",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileAccessResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "管理员端：fileAccess",
+        "x-permission": "storage:read; administrator only",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            }
+          }
+        ],
+        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。验证本人或管理员后发放短期下载地址，默认 300 秒。"
+      }
+    },
+    "/api/v1/admin/files/{id}": {
+      "delete": {
+        "operationId": "adminDeleteFile",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "管理员端：deleteFile",
+        "x-permission": "storage:write; administrator only",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            }
+          }
+        ],
+        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。关闭文件访问，待既有签名到期后清理；匿名或他人文件统一返回 404。"
       }
     }
   },
@@ -5078,7 +5866,8 @@
             "type": "string"
           },
           "admin_path": {
-            "type": "string"
+            "type": "string",
+            "description": "仅管理员 bootstrap 返回后台入口；用户端为空，单机不提供后台。"
           },
           "current_user": {
             "$ref": "#/components/schemas/User"
@@ -7384,6 +8173,12 @@
         "in": "header",
         "name": "X-CSRF-Token",
         "description": "Required with a platform session for state-changing requests. Derived from the session; never persisted by the browser."
+      },
+      "AdministratorSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "unicore_administrator_session",
+        "description": "Independent administrator session. User cookies never authorize administrator routes."
       }
     }
   },

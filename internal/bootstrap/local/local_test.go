@@ -21,7 +21,7 @@ func TestDesktopHasSQLiteWithoutUsers(t *testing.T) {
 	if err = store.DB.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE name IN ('users','roles','sessions','external_identities','oidc_flows')").Scan(&count); err != nil || count != 0 {
 		t.Fatal("desktop loaded identity schema")
 	}
-	if _, err = service.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "site.name", Value: "Desktop persisted"}}}, "desktop"); err != nil {
+	if _, err = service.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "appearance.theme", Value: "dark"}}}, "desktop"); err != nil {
 		t.Fatal(err)
 	}
 	_ = store.Close()
@@ -30,7 +30,7 @@ func TestDesktopHasSQLiteWithoutUsers(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer store.Close()
-	if value, _ := service.Value(ctx, "site.name"); value != "Desktop persisted" {
+	if value, _ := service.Value(ctx, "appearance.theme"); value != "dark" {
 		t.Fatal(value)
 	}
 }

@@ -29,92 +29,95 @@ func mountOIDC(api chi.Router, config Config) {
 	cookie := func(w http.ResponseWriter, r *http.Request, value string, age int) {
 		name, path := oidcCookie, "/api/v1/auth/oidc/callback"
 		if administratorRequest(r) {
-			name, path = "unicore_administrator_oidc_browser", "/api/v1/auth/oidc/administrator-callback"
+			name, path = "unicore_administrator_oidc_browser", "/api/v1/admin/auth/oidc/callback"
 		}
 		http.SetCookie(w, &http.Cookie{Name: name, Value: value, Path: path, HttpOnly: true, Secure: strings.HasPrefix(m.BaseURL(), "https://"), SameSite: http.SameSiteLaxMode, MaxAge: age})
 	}
-	api.Get("/auth/oidc", func(w http.ResponseWriter, r *http.Request) {
-		s := service(w, r)
-		if s == nil {
-			return
-		}
-		info, err := s.Info(r.Context(), "")
-		if err != nil {
-			webError(w, err)
-			return
-		}
-		success(w, info)
-	})
-	api.Get("/account/oidc", func(w http.ResponseWriter, r *http.Request) {
-		a, ok := require(m, w, r, "")
-		if !ok {
-			return
-		}
-		s := service(w, r)
-		if s == nil {
-			return
-		}
-		info, err := s.Info(r.Context(), a.User.ID)
-		if err != nil {
-			webError(w, err)
-			return
-		}
-		success(w, info)
-	})
-	for _, link := range []bool{false, true} {
-		path := "/auth/oidc/start"
-		if link {
-			path = "/account/oidc/link"
-		}
-		api.Post(path, func(w http.ResponseWriter, r *http.Request) {
+	for _, prefix := range []string{"", "/admin"} {
+		api.Get(prefix+"/auth/oidc", func(w http.ResponseWriter, r *http.Request) {
 			s := service(w, r)
 			if s == nil {
 				return
 			}
-			var user contracts.User
-			input := contracts.OIDCPasswordInput{}
-			if link {
-				a, ok := require(m, w, r, "")
-				if !ok {
-					return
-				}
-				user = a.User
-				if !decode(w, r, &input) {
-					return
-				}
-			}
-			ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
-			defer cancel()
-			u, browser, err := s.Start(ctx, user, input.Password, rawSession(r), ip(r))
+			info, err := s.Info(r.Context(), "")
 			if err != nil {
 				webError(w, err)
 				return
 			}
-			cookie(w, r, browser, 300)
-			success(w, contracts.OIDCStart{AuthorizationUrl: u})
+			success(w, info)
 		})
+		api.Get(prefix+"/account/oidc", func(w http.ResponseWriter, r *http.Request) {
+			a, ok := require(m, w, r, "")
+			if !ok {
+				return
+			}
+			s := service(w, r)
+			if s == nil {
+				return
+			}
+			info, err := s.Info(r.Context(), a.User.ID)
+			if err != nil {
+				webError(w, err)
+				return
+			}
+			success(w, info)
+		})
+		for _, link := range []bool{false, true} {
+			path := "/auth/oidc/start"
+			if link {
+				path = "/account/oidc/link"
+			}
+			api.Post(prefix+path, func(w http.ResponseWriter, r *http.Request) {
+				s := service(w, r)
+				if s == nil {
+					return
+				}
+				var user contracts.User
+				input := contracts.OIDCPasswordInput{}
+				if link {
+					a, ok := require(m, w, r, "")
+					if !ok {
+						return
+					}
+					user = a.User
+					if !decode(w, r, &input) {
+						return
+					}
+				}
+				ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+				defer cancel()
+				u, browser, err := s.Start(ctx, user, input.Password, rawSession(r), ip(r))
+				if err != nil {
+					webError(w, err)
+					return
+				}
+				cookie(w, r, browser, 300)
+				success(w, contracts.OIDCStart{AuthorizationUrl: u})
+			})
+		}
+		api.Post(prefix+"/account/oidc/unlink", func(w http.ResponseWriter, r *http.Request) {
+			a, ok := require(m, w, r, "")
+			if !ok {
+				return
+			}
+			s := service(w, r)
+			if s == nil {
+				return
+			}
+			var input contracts.OIDCPasswordInput
+			if !decode(w, r, &input) {
+				return
+			}
+			session, token, err := s.Unlink(r.Context(), a.User, input.Password, rawSession(r), ip(r))
+			if err != nil {
+				webError(w, err)
+				return
+			}
+			setSession(m, w, token, session.ExpiresAt, r)
+			success(w, session)
+		})
+
 	}
-	api.Post("/account/oidc/unlink", func(w http.ResponseWriter, r *http.Request) {
-		a, ok := require(m, w, r, "")
-		if !ok {
-			return
-		}
-		s := service(w, r)
-		if s == nil {
-			return
-		}
-		var input contracts.OIDCPasswordInput
-		if !decode(w, r, &input) {
-			return
-		}
-		session, token, err := s.Unlink(r.Context(), a.User, input.Password, rawSession(r), ip(r))
-		if err != nil {
-			webError(w, err)
-			return
-		}
-		setSession(m, w, token, session.ExpiresAt, r)
-		success(w, session)
-	})
 	api.Post("/admin/settings/oidc/check", func(w http.ResponseWriter, r *http.Request) {
 		if _, ok := require(m, w, r, "settings:write"); !ok {
 			return
@@ -139,14 +142,9 @@ func mountOIDC(api chi.Router, config Config) {
 	for _, admin := range []bool{false, true} {
 		path := "/auth/oidc/callback"
 		if admin {
-			path = "/auth/oidc/administrator-callback"
+			path = "/admin/auth/oidc/callback"
 		}
 		api.Get(path, func(w http.ResponseWriter, r *http.Request) {
-			if admin {
-				r.Header.Set("X-Unicore-Identity", "administrator")
-			} else {
-				r.Header.Del("X-Unicore-Identity")
-			}
 			w.Header().Set("Referrer-Policy", "no-referrer")
 			w.Header().Set("Cache-Control", "no-store")
 			s := service(w, r)

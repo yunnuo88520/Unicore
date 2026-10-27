@@ -17,28 +17,23 @@ test('real Go execution, themes and responsive layout', async ({ page, instance 
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   if (testInfo.project.name === 'mobile') await page.getByRole('button', { name: '打开导航' }).click();
-  await page.getByRole('button', { name: '基础设置', exact: true }).click();
-  await page.getByRole('tab', { name: '外观设置', exact: true }).click();
+  await page.getByRole('button', { name: '外观设置', exact: true }).click();
   await page.getByRole('button', { name: /跟随系统.*自动匹配/ }).click();
   const saveButton = page.getByRole('button', { name: '保存设置', exact: true });
   const beforeSave = await saveButton.boundingBox();
   await page.getByRole('button', { name: '保存设置', exact: true }).click();
-  await expect(page.getByText('设置已保存', { exact: true })).toBeVisible();
+  await expect(page.getByText('外观已保存到当前客户端', { exact: true })).toBeVisible();
   const afterSave = await saveButton.boundingBox();
   expect(afterSave!.x).toBe(beforeSave!.x); expect(afterSave!.width).toBe(beforeSave!.width);
   expect((await page.locator('.message-success').boundingBox())!.y).toBeLessThan(40);
   await expect(page.locator('.message-success')).toHaveCSS('opacity','1');
   await page.screenshot({path:`build/acceptance/management/${testInfo.project.name}/settings-message.png`});
-  await expect(page.getByText('设置已保存', { exact: true })).toHaveCount(0, {timeout:4500});
-  await page.getByRole('tab', { name: '基础信息', exact: true }).click();
-  await page.getByLabel('站点名称', { exact: true }).fill('');
-  await saveButton.click();
-  await expect(page.locator('.message-error')).toBeVisible();
-  expect((await page.locator('.message-error').boundingBox())!.y).toBeLessThan(40);
-  await expect(page.locator('.message-error')).toHaveCount(0, {timeout:4500});
+  await expect(page.getByText('外观已保存到当前客户端', { exact: true })).toHaveCount(0, {timeout:4500});
   expect(await page.evaluate(() => localStorage.getItem('unicore.theme'))).toBe('system');
   await page.goto(`${instance.url}/#settings`);
-  await expect(page.getByRole('tab', { name: '外观设置', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByText('仅当前客户端',{exact:true})).toBeVisible();
+  await expect(page.getByLabel('站点名称')).toHaveCount(0);
+  await expect(page.getByRole('tab')).toHaveCount(0);
 });
 
 test('API returns JSON and unsupported features remain absent', async ({ instance, page }) => {

@@ -53,19 +53,19 @@ test('cross-tab logout/account switch, field focus and server revocation',async(
   // A separate admin session revokes the member; the next UI request must expire both tabs.
   const admin=await context.browser()!.newContext();
   try{
-    const captcha=(await(await admin.request.get(`${instance.url}/api/v1/auth/captcha`,{headers:{"X-Unicore-Identity":"administrator"}})).json()).data;
+    const captcha=(await(await admin.request.get(`${instance.url}/api/v1/admin/auth/captcha`,{headers:{}})).json()).data;
     const answer=[...Buffer.from(captcha.image.split(',')[1],'base64').toString().matchAll(/>([0-9])<\/text>/g)].map(match=>match[1]).join('');
-    const auth=await admin.request.post(`${instance.url}/api/v1/auth/login`,{headers:{"X-Unicore-Identity":"administrator"},data:{username:'admin',password:'test-password-strong',captcha_id:captcha.id,captcha_answer:answer}});expect(auth.status()).toBe(200);
+    const auth=await admin.request.post(`${instance.url}/api/v1/admin/auth/login`,{headers:{},data:{username:'admin',password:'test-password-strong',captcha_id:captcha.id,captcha_answer:answer}});expect(auth.status()).toBe(200);
     const session=(await auth.json()).data;
-    const users=(await(await admin.request.get(`${instance.url}/api/v1/admin/users`,{headers:{"X-Unicore-Identity":"administrator"}})).json()).data;
+    const users=(await(await admin.request.get(`${instance.url}/api/v1/admin/users`,{headers:{}})).json()).data;
     const member=users.items.find((user:{username:string})=>user.username==='member');
-    const update=await admin.request.patch(`${instance.url}/api/v1/admin/users/${member.id}`,{headers:{'X-Unicore-Identity':'administrator','X-CSRF-Token':session.csrf_token},data:{status:'disabled',role:'user'}});expect(update.status()).toBe(200);
+    const update=await admin.request.patch(`${instance.url}/api/v1/admin/users/${member.id}`,{headers:{'X-CSRF-Token':session.csrf_token},data:{status:'disabled',role:'user'}});expect(update.status()).toBe(200);
     await page.getByRole('button',{name:'运行用例'}).click();
     await expect(page.getByRole('heading',{name:'登录 Unicore',exact:true})).toBeVisible();
     await expect(page.getByText('会话已失效，请重新登录。',{exact:true})).toBeVisible();
     await expect(second.getByRole('heading',{name:'登录 Unicore',exact:true})).toBeVisible();
     await capture(page,info,'foundation-session-expired');
-    expect((await admin.request.patch(`${instance.url}/api/v1/admin/users/${member.id}`,{headers:{'X-Unicore-Identity':'administrator','X-CSRF-Token':session.csrf_token},data:{status:'active',role:'user'}})).status()).toBe(200);
+    expect((await admin.request.patch(`${instance.url}/api/v1/admin/users/${member.id}`,{headers:{'X-CSRF-Token':session.csrf_token},data:{status:'active',role:'user'}})).status()).toBe(200);
     // Browser redirects can replace the session without broadcasting localStorage.
     const challenge=(await(await page.request.get(`${instance.url}/api/v1/auth/captcha`)).json()).data;
     const freshAnswer=[...Buffer.from(challenge.image.split(',')[1],'base64').toString().matchAll(/>([0-9])<\/text>/g)].map(match=>match[1]).join('');

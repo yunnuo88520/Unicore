@@ -33,15 +33,15 @@ SQLite 使用 WAL、5 秒 busy timeout、单连接；PostgreSQL/MySQL 使用 bou
 
 公开 bootstrap 仅返回脱敏基础信息；安装 token 不暴露。平台 bootstrap 只对有效 session 回传用户/权限与 CSRF token。服务器 session token 仅哈希入库，Cookie 为 HttpOnly/SameSite；Secure 根据受验证的 base_url 决定。写操作校验 same-origin 和会话派生 CSRF。API 权限见 [permissions](../api/permissions.md)。改变用户角色/禁用使旧 session 失效，最后超管规则在锁安装标记的事务内检查。登录按真实连接 IP/账号限流，不信任可伪造的 X-Forwarded-For；反代应另有边缘限流。
 
-未知/不适用 API 返回 JSON 错误，绝不 SPA fallback。未安装业务页跳转 /install；安装后 /install 回到首页。默认后台 /admin，设置更新后旧默认路径 404，新路径承载同一 SPA，API 地址固定且权限不变。APP_ADMIN_PATH 可作恢复覆盖。
+未知/不适用 API 返回 JSON 错误，绝不 SPA fallback。未安装业务页跳转 /install；安装后 /install 回到首页。默认后台 /admin，设置更新后旧默认路径 404，新路径承载独立管理员 SPA，API 使用固定 admin 前缀且权限不变。APP_ADMIN_PATH 可作恢复覆盖。
 
 文本 Execute 平台需登录，其他形态直接调用相同 Core；最多 65,536 UTF-8 字节。词是 Unicode 空白分隔，行计数规范化 CRLF/CR，摘要基于原始字节。输入不写 DB/日志。HTTP body 有大小限制、拒绝未知字段与尾随 JSON。
 
 ## 界面与扩展
 
-HttpTransport 管理 cookie/CSRF 与 WebClient；页面不直接 fetch。WailsTransport 只提供 bootstrap/execute/settings/branding，没有 Web 身份/安装接口。SessionBoundary 按会话代际隔离 Query cache/组件状态，SDK epoch 拒绝旧响应，多标签页同步失效；routes.ts 与 PageContent 集中路由/权限及渲染，公共 Form/Field 与契约校验处理提交错误。TanStack Query 管理状态；DashboardWidgetRegistry 以唯一 id 扩展业务首页。工作台概览为默认首页，不再提供重复平台仪表盘；操作与投递记录通过独立系统日志页读取真实数据。
+HttpTransport 管理 cookie/CSRF 与 WebClient；页面不直接 fetch。WailsTransport 只提供 bootstrap/execute/appearance settings，没有 Web 身份/安装接口。SessionBoundary 按会话代际隔离 Query cache/组件状态，SDK epoch 拒绝旧响应，多标签页同步失效；routes.ts 与 PageContent 集中路由/权限及渲染，公共 Form/Field 与契约校验处理提交错误。TanStack Query 管理状态；DashboardWidgetRegistry 以唯一 id 扩展业务首页。工作台概览为默认首页，不再提供重复平台仪表盘；操作与投递记录通过独立系统日志页读取真实数据。
 
-平台主题只存在当前客户端 localStorage，不读取/保存全局默认主题；普通用户只渲染本地外观卡片。单机/桌面的本地默认主题仍在设置注册表，设备偏好优先。设置使用共享可键盘操作的单层 Tabs，品牌图片使用三张并列卡片，外观卡片合并到设置、兼容旧 #settings 地址；主标签由 #site?tab=… 保留；按当前分组构造 PATCH，跨标签保留表单/图片预览草稿。UI hash 子页面复用到 Wails，Web 的 /install、/admin 与 /settings 入口由服务器处理。light/dark/system 与 375px 浏览器测试，表格可横向滚动但页面不溢出。
+平台主题只存在当前客户端 localStorage，不读取/保存全局默认主题；普通用户只渲染本地外观卡片。单机/桌面的本地默认主题仍在设置注册表，设备偏好优先。设置使用共享可键盘操作的单层 Tabs，品牌图片使用三张并列卡片，外观卡片合并到设置、兼容旧 #settings 地址；主标签由 #site?tab=… 保留；按当前分组构造 PATCH，跨标签保留表单/图片预览草稿。UI hash 子页面复用到 Wails，Web 的 /install、/login、/register、可配置后台入口由服务器处理。light/dark/system 与 375px 浏览器测试，表格可横向滚动但页面不溢出。
 
 桌面入口 `desktop || bindings`；绑定生成用编译期标记跳过真实用户存储。代码不使用环境变量来绕过该边界。CLI、Core 与桌面依赖隔离在 scripts/check-boundaries 中按实际 Go 依赖图验证。
 
@@ -81,7 +81,7 @@ routes.ts 集中管理员菜单/直达页守卫，settings-page.tsx 将平台本
 
 ## M3b 实例品牌
 
-[ADR-0009](../adr/ADR-0009-runtime-branding.md) 定义共享 internal/branding、私有规范化 PNG 与 DB 托管引用。Web/Wails 使用生成 DTO，通过 AppClient 驱动共享预览/保存/恢复面板；BrandProvider 覆盖工作台和账号分支。Web 公开哈希图片，Wails 返回 data URI，无 HTTP 模拟。邮件创建时快照图片字节到加密队列，SMTP CID 和预览同源；存储/清理顺序与恢复边界见 [需求](../00-product/feature-branding.md)。
+[ADR-0009](../adr/ADR-0009-runtime-branding.md) 定义共享 internal/branding、私有规范化 PNG 与 DB 托管引用。管理端使用生成 DTO，通过 AppClient 驱动品牌预览/保存/恢复面板；本地形态使用构建品牌；BrandProvider 覆盖工作台和账号分支。平台公开当前哈希图片；Wails 不装配运行时品牌桥接，无 HTTP 模拟。邮件创建时快照图片字节到加密队列，SMTP CID 和预览同源；存储/清理顺序与恢复边界见 [需求](../00-product/feature-branding.md)。
 
 [ADR-0010](../adr/ADR-0010-settings-edition.md) 补齐 ICP/别名/ICO/内部系统通知队列。internal/edition 按 license/updater tags 编译两个未来接入 port；Vite 编译常量裁剪对应卡片，默认均关闭。当前开启仅显示待接入状态，没有授权/版本 HTTP handler 或 OTA 行为。设置矩阵见 [规范](../00-product/feature-settings.md)。
 
@@ -89,7 +89,7 @@ routes.ts 集中管理员菜单/直达页守卫，settings-page.tsx 将平台本
 
 ## 管理员与用户身份域
 
-当前身份/导航以 [ADR-0014](../adr/ADR-0014-separate-identities-management.md) 为准。platformsql.Repository 以固定 Administrators 标志映射七张身份表，SQL 标识符只来自固定代码映射；共享设置、审计与队列不映射。安装创建独立管理员，普通用户与管理员服务不回退。HTTP 显式域请求头与独立 Cookie 选择服务，写事务从管理员仓库重查操作者。管理员与用户管理端点分别固定身份，禁止角色转换；JIT 仅普通域。升级 0008 保留账号/绑定并撤销旧凭据。
+当前身份/导航以 [ADR-0014](../adr/ADR-0014-separate-identities-management.md) 为准。platformsql.Repository 以固定 Administrators 标志映射七张身份表，SQL 标识符只来自固定代码映射；共享设置、审计与队列不映射。安装创建独立管理员，普通用户与管理员服务不回退。HTTP 固定用户/admin 路径与独立 Cookie 选择服务，写事务从管理员仓库重查操作者。管理员与用户管理端点分别固定身份，禁止角色转换；JIT 仅普通域。升级 0008 保留账号/绑定并撤销旧凭据。
 
 React 的独立可折叠导航、共享原生 dialog、头像密码/退出、邮件单页与系统日志由 routes.ts/PageContent 注册；基础设置保持单层业务 Tabs。后台改名同步地址，OIDC 解除不改变当前域路径。共享 shell 适用于 Web/Wails，身份组件仅平台装配。
 
@@ -97,4 +97,10 @@ React 的独立可折叠导航、共享原生 dialog、头像密码/退出、邮
 
 ## 文件存储
 
-[ADR-0015](../adr/ADR-0015-file-storage.md)：internal/blob.Store 隔离字节存储，internal/files 通过 Repository/Factory ports 管理元数据、本人身份域权限、临时签名和持久清理；filesql 与 bloblocal/blobcloud 分别适配 SQL 与存储。install 只在平台装配 files/云 adapter，桌面仅注入本地 blob；CLI 无文件/SQL/云依赖。0009 新增位置、文件、清理三表。文件保留 location_id，默认切换不改变旧位置；staging 条件复制完成后才能访问，文件迁移校验成功才切换引用。公开规范化品牌例外保留当前引用路由，并通过平台元数据适配访问。
+[ADR-0015](../adr/ADR-0015-file-storage.md)：internal/blob.Store 隔离字节存储，internal/files 通过 Repository/Factory ports 管理元数据、本人身份域权限、临时签名和持久清理；filesql 与 bloblocal/blobcloud 分别适配 SQL 与存储。install 只在平台装配 files/云 adapter，桌面不装配运行时品牌或文件服务；CLI 无文件/SQL/云依赖。0009 新增位置、文件、清理三表。文件保留 location_id，默认切换不改变旧位置；staging 条件复制完成后才能访问，文件迁移校验成功才切换引用。公开规范化品牌例外保留当前引用路由，并通过平台元数据适配访问。
+
+## 双入口与本地业务界面
+
+当前范围见 [ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md)。用户 main.tsx 与管理员 admin.tsx 独立构建，管理页仅由 admin-app.tsx 导入，公共 Workspace 通过注入复用。Go 按 admin.path 返回 admin.html，非平台返回 404；用户 bootstrap 不公开后台路径。HttpTransport 构造时显式选域，使用契约中的固定 counterpart；所有页面仍通过 AppClient。旧身份请求头被忽略。管理员 auth/account 是管理员身份端点，管理业务继续逐权限校验。
+
+单机/桌面仅业务与本地外观，SettingDefinition 非平台只允许 appearance，旧站点/品牌记录不再使用。原生品牌由构建源生成；Wails 不再暴露 Branding/UpdateBranding。上传组件与两端 shell 共用，SDK 只提供真实阶段回调。

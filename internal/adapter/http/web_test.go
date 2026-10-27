@@ -31,7 +31,7 @@ func TestPlatformInstallAuthAndRBAC(t *testing.T) {
 	defer manager.Close()
 	tokenBytes, _ := os.ReadFile(manager.TokenPath())
 	token := strings.TrimSpace(string(tokenBytes))
-	router := New(Config{Core: bootstrap.Core(), Metadata: runtime.Metadata("web-platform", "development"), Install: manager, Assets: fstest.MapFS{"index.html": {Data: []byte("<html>app</html>")}}, Logger: slog.New(slog.NewTextHandler(io.Discard, nil))})
+	router := New(Config{Core: bootstrap.Core(), Metadata: runtime.Metadata("web-platform", "development"), Install: manager, Assets: fstest.MapFS{"admin.html": {Data: []byte("<html>admin</html>")}, "index.html": {Data: []byte("<html>app</html>")}}, Logger: slog.New(slog.NewTextHandler(io.Discard, nil))})
 	request := func(method, path string, input any, cookie *http.Cookie, csrf string) *httptest.ResponseRecorder {
 		t.Helper()
 		raw, _ := json.Marshal(input)
@@ -42,7 +42,7 @@ func TestPlatformInstallAuthAndRBAC(t *testing.T) {
 		if cookie != nil {
 			r.AddCookie(cookie)
 			if cookie.Name == "unicore_administrator_session" {
-				r.Header.Set("X-Unicore-Identity", "administrator")
+
 			}
 		}
 		w := httptest.NewRecorder()
@@ -71,7 +71,7 @@ func TestPlatformInstallAuthAndRBAC(t *testing.T) {
 	if w = request("GET", "/api/v1/admin/users", nil, nil, ""); w.Code != 401 {
 		t.Fatal("anonymous admin access", w.Code)
 	}
-	w = request("GET", "/api/v1/bootstrap", nil, adminCookie, "")
+	w = request("GET", "/api/v1/admin/bootstrap", nil, adminCookie, "")
 	var data contracts.BootstrapResponse
 	if err = json.Unmarshal(w.Body.Bytes(), &data); err != nil {
 		t.Fatal(err)
@@ -132,7 +132,7 @@ func TestPlatformInstallAuthAndRBAC(t *testing.T) {
 	if w = request("GET", "/api/v1/auth/session", nil, memberCookie, ""); w.Code != 401 {
 		t.Fatal("disabled session remained valid", w.Code)
 	}
-	if w = request("POST", "/api/v1/auth/logout", nil, adminCookie, csrf); w.Code != 200 {
+	if w = request("POST", "/api/v1/admin/auth/logout", nil, adminCookie, csrf); w.Code != 200 {
 		t.Fatal(w.Code, w.Body.String())
 	}
 	if w = request("GET", "/api/v1/admin/users", nil, adminCookie, ""); w.Code != 401 {

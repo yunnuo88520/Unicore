@@ -1,6 +1,8 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # ADR-0015：按文件 ID 管理的私有存储
 
+当前入口与单机范围以 [ADR-0016](ADR-0016-separate-client-admin-surfaces.md) 为准，以下保留原决策背景。
+
 状态：采用。
 
 在线平台新增文件服务；本地为默认，管理员测试后才能激活云位置。统一 blob.Store 负责字节，files 负责元数据、权限、生命周期，filesql 负责 SQL；组合根选择本地、MinIO/S3、OSS、COS adapter。桌面与单机品牌也使用本地 blob adapter，CLI 不装配。

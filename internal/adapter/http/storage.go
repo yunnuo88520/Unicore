@@ -12,6 +12,7 @@ import (
 	"mime"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -107,69 +108,85 @@ func mountStorage(api chi.Router, config Config) {
 		}
 		success(w, contracts.ActionResult{Success: true})
 	}).ServeHTTP)
-	api.Get("/files", handler("", func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
-		page := 1
-		if r.URL.Query().Get("page") != "" {
-			page, _ = strconv.Atoi(r.URL.Query().Get("page"))
+	for _, prefix := range []string{"", "/admin"} {
+		fileHandler := func(write bool, fn func(http.ResponseWriter, *http.Request, *files.Service, files.Actor)) http.HandlerFunc {
+			permission := ""
+			if prefix != "" {
+				permission = "storage:read"
+				if write {
+					permission = "storage:write"
+				}
+			}
+			return handler(permission, fn)
 		}
-		v, e := s.List(r.Context(), a, r.URL.Query().Get("search"), page)
-		if e != nil {
-			webError(w, e)
-			return
-		}
-		success(w, v)
-	}).ServeHTTP)
-	api.Post("/files/uploads", handler("", func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
-		var input contracts.FileUploadInput
-		if !decode(w, r, &input) {
-			return
-		}
-		v, e := s.Upload(r.Context(), a, input)
-		if e != nil {
-			webError(w, e)
-			return
-		}
-		success(w, v)
-	}).ServeHTTP)
-	api.Put("/files/uploads/{id}/content", handler("", func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
-		if r.Header.Get("Content-Type") != "application/octet-stream" {
-			failure(w, 415, "UNSUPPORTED_MEDIA_TYPE", "请使用 application/octet-stream")
-			return
-		}
-		controller := http.NewResponseController(w)
-		controller.SetReadDeadline(time.Now().Add(10 * time.Minute))
-		controller.SetWriteDeadline(time.Now().Add(10 * time.Minute))
-		r.Body = http.MaxBytesReader(w, r.Body, 1<<30)
-		if e := s.Receive(r.Context(), a, chi.URLParam(r, "id"), r.Body, r.ContentLength); e != nil {
-			webError(w, e)
-			return
-		}
-		success(w, contracts.ActionResult{Success: true})
-	}).ServeHTTP)
-	api.Post("/files/uploads/{id}/complete", handler("", func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
-		http.NewResponseController(w).SetWriteDeadline(time.Now().Add(10 * time.Minute))
-		v, e := s.Complete(r.Context(), a, chi.URLParam(r, "id"))
-		if e != nil {
-			webError(w, e)
-			return
-		}
-		success(w, v)
-	}).ServeHTTP)
-	api.Post("/files/{id}/access", handler("", func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
-		v, e := s.Access(r.Context(), a, chi.URLParam(r, "id"))
-		if e != nil {
-			webError(w, e)
-			return
-		}
-		success(w, v)
-	}).ServeHTTP)
-	api.Delete("/files/{id}", handler("", func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
-		if e := s.Delete(r.Context(), a, chi.URLParam(r, "id")); e != nil {
-			webError(w, e)
-			return
-		}
-		success(w, contracts.ActionResult{Success: true})
-	}).ServeHTTP)
+		api.Get(prefix+"/files", fileHandler(false, func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
+			page := 1
+			if r.URL.Query().Get("page") != "" {
+				page, _ = strconv.Atoi(r.URL.Query().Get("page"))
+			}
+			v, e := s.List(r.Context(), a, r.URL.Query().Get("search"), page)
+			if e != nil {
+				webError(w, e)
+				return
+			}
+			success(w, v)
+		}).ServeHTTP)
+		api.Post(prefix+"/files/uploads", fileHandler(true, func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
+			var input contracts.FileUploadInput
+			if !decode(w, r, &input) {
+				return
+			}
+			v, e := s.Upload(r.Context(), a, input)
+			if e != nil {
+				webError(w, e)
+				return
+			}
+			if !v.Direct && prefix != "" {
+				v.Url = "/api/v1/admin" + strings.TrimPrefix(v.Url, "/api/v1")
+			}
+			success(w, v)
+		}).ServeHTTP)
+		api.Put(prefix+"/files/uploads/{id}/content", fileHandler(true, func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
+			if r.Header.Get("Content-Type") != "application/octet-stream" {
+				failure(w, 415, "UNSUPPORTED_MEDIA_TYPE", "请使用 application/octet-stream")
+				return
+			}
+			controller := http.NewResponseController(w)
+			controller.SetReadDeadline(time.Now().Add(10 * time.Minute))
+			controller.SetWriteDeadline(time.Now().Add(10 * time.Minute))
+			r.Body = http.MaxBytesReader(w, r.Body, 1<<30)
+			if e := s.Receive(r.Context(), a, chi.URLParam(r, "id"), r.Body, r.ContentLength); e != nil {
+				webError(w, e)
+				return
+			}
+			success(w, contracts.ActionResult{Success: true})
+		}).ServeHTTP)
+		api.Post(prefix+"/files/uploads/{id}/complete", fileHandler(true, func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
+			http.NewResponseController(w).SetWriteDeadline(time.Now().Add(10 * time.Minute))
+			v, e := s.Complete(r.Context(), a, chi.URLParam(r, "id"))
+			if e != nil {
+				webError(w, e)
+				return
+			}
+			success(w, v)
+		}).ServeHTTP)
+		api.Post(prefix+"/files/{id}/access", fileHandler(false, func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
+			v, e := s.Access(r.Context(), a, chi.URLParam(r, "id"))
+			if e != nil {
+				webError(w, e)
+				return
+			}
+			success(w, v)
+		}).ServeHTTP)
+		api.Delete(prefix+"/files/{id}", fileHandler(true, func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
+			if e := s.Delete(r.Context(), a, chi.URLParam(r, "id")); e != nil {
+				webError(w, e)
+				return
+			}
+			success(w, contracts.ActionResult{Success: true})
+		}).ServeHTTP)
+
+	}
 	api.Post("/admin/files/{id}/migrate", handler("storage:write", func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
 		var input contracts.StorageTargetInput
 		if !decode(w, r, &input) {

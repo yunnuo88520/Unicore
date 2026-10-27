@@ -17,3 +17,5 @@ metadata:
 接口/DTO 改 OpenAPI 后生成，设置登记 Definitions，SQL 变更提供三方言迁移。UI 使用 AppClient、单层提供商 Tabs、新增实体弹窗和 useMessage。测试本地、权限/身份域、签名过期、重复完成、直传重放、失败与重启；云端只使用当前任务授权的专属前缀，凭据通过测试环境注入，不持久化 trace。无真实账号的提供商明确未做云端实测。
 
 运行 make docs、make test、make build-web 与 storage.spec.ts；品牌接口变化同时验证原生 Wails，不用 HTTP 模拟。新增位置或测试实例不等于授权修改生产桶/发布部署。
+
+当前形态与入口以 [ADR-0016](../../../docs/adr/ADR-0016-separate-client-admin-surfaces.md) 为准：用户 main.tsx 与管理员 admin.tsx 独立入口，管理页只在 admin-app.tsx 装配，共享 Workspace/表单/消息/主题。单机/桌面仅业务和本地外观，不提供站点、品牌、SMTP、对象存储和后台。管理员公开 auth/bootstrap 只返回固定域最小投影；本人 account 需管理员会话，其余管理资源须 permissions/superAdmin，不能宽泛豁免 admin 路由。新增普通用户立即 active 并验证用户入口登录；注册默认关闭，安全页 Switch 控制且须 SMTP 测试。布尔控件用 Switch，上传用自定义拖拽弹窗与 SDK 真实阶段。

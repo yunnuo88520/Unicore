@@ -71,7 +71,8 @@ async function exercise(mode,profile) {
   await waitLive(url);
   const context=await browser.newContext({baseURL:url,viewport:{width:1440,height:1000}});
   const page=await context.newPage();const errors=[];page.on('pageerror',error=>errors.push(error.message));
-  const realm=profile==='web-platform'?{'X-Unicore-Identity':'administrator'}:{};
+  const realm={};
+  const bootstrapPath=profile==='web-platform'?'/api/v1/admin/bootstrap':'/api/v1/bootstrap';
   const get=path=>context.request.get(`${url}${path}`,{headers:realm});
   const json=async path=>(await(await get(path)).json()).data;
   try {
@@ -82,7 +83,7 @@ async function exercise(mode,profile) {
     for(const width of [1440,375]) {await page.setViewportSize({width,height:1000});await page.screenshot({path:join(evidence,`${mode}-install-${width}.png`),fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}
     await page.setViewportSize({width:1440,height:1000});
     await page.getByLabel('一次性安装凭据').fill(token);
-    await page.getByLabel('站点名称',{exact:true}).fill(`部署验收 ${mode}`);
+
     await page.getByRole('button',{name:'下一步'}).click();
     await expect(page.getByRole('radio',{name:mode==='tar-platform'?/多用户平台/:/单机模式/})).toBeChecked();
     await page.getByRole('radio',{name:profile==='web-platform'?/多用户平台/:/单机模式/}).check();
@@ -90,23 +91,25 @@ async function exercise(mode,profile) {
     await page.getByLabel('数据库类型').selectOption('sqlite');
     await page.getByRole('button',{name:'测试连接'}).click();await expect(page.getByText('连接测试成功')).toBeVisible();
     await page.getByRole('button',{name:'下一步'}).click();
-    if(profile==='web-platform') {await page.getByLabel('管理员账号').fill('admin');await page.getByLabel('管理员邮箱').fill('admin@example.test');await page.getByLabel('管理员密码').fill('Admin@123456');await page.getByRole('button',{name:'下一步'}).click();}
+    if(profile==='web-platform') {await page.getByLabel('站点名称',{exact:true}).fill(`部署验收 ${mode}`);await page.getByLabel('管理员账号').fill('admin');await page.getByLabel('管理员邮箱').fill('admin@example.test');await page.getByLabel('管理员密码').fill('Admin@123456');await page.getByRole('button',{name:'下一步'}).click();}
     await page.getByRole('button',{name:'完成安装'}).click();await expect(page.getByRole('heading',{name:'安装完成',exact:true})).toBeVisible();
     await page.getByRole('button',{name:'进入工作空间'}).click();await expect(page.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
-    const boot=await json('/api/v1/bootstrap');expect(boot.version).toBe(version);expect(boot.profile).toBe(profile);expect(boot.deployment_kind).toBe(mode.startsWith('tar')?'tar':'docker');
+    const boot=await json(bootstrapPath);expect(boot.version).toBe(version);expect(boot.profile).toBe(profile);expect(boot.deployment_kind).toBe(mode.startsWith('tar')?'tar':'docker');
     const admin=profile==='web-platform';const headers={...realm,'Origin':url,...(admin?{'X-CSRF-Token':boot.csrf_token}:{})};
     const base=admin?'/api/v1/admin':'/api/v1';
     if(admin) {const noCSRF=await context.request.patch(`${url}${base}/settings`,{headers:realm,data:{changes:[{key:'site.name',value:'denied'}]}});expect(noCSRF.status()).toBe(403);}
-    const changes=[{key:'site.name',value:`持久部署 ${mode}`},...(admin?[{key:'admin.path',value:'/manage'}]:[])];
+    const changes=admin?[{key:'site.name',value:`持久部署 ${mode}`},{key:'admin.path',value:'/manage'}]:[{key:'appearance.theme',value:'dark'}];
     expect((await context.request.patch(`${url}${base}/settings`,{headers,data:{changes}})).status()).toBe(200);
-    expect((await context.request.put(`${url}${base}/branding`,{headers,data:{slot:'favicon',content:readFileSync('assets/brand/icon-192.png').toString('base64')}})).status()).toBe(200);
-    const manifest=await(await get('/site.webmanifest')).json();expect(manifest.name).toBe(`持久部署 ${mode}`);expect(manifest.icons[0].src).toMatch(/^\/brand-assets\//);
-    expect((await get(manifest.icons[0].src)).headers()['content-type']).toBe('image/png');
+    if(admin)expect((await context.request.put(`${url}${base}/branding`,{headers,data:{slot:'favicon',content:readFileSync('assets/brand/icon-192.png').toString('base64')}})).status()).toBe(200);
+    else expect((await context.request.put(`${url}${base}/branding`,{headers,data:{slot:'favicon',content:''}})).status()).toBe(404);
+    const manifest=await(await get('/site.webmanifest')).json();expect(manifest.name).toBe(admin?`持久部署 ${mode}`:'Unicore');
+    if(admin)expect(manifest.icons[0].src).toMatch(/^\/brand-assets\//);
+    expect((await get(manifest.icons[0].src)).status()).toBe(200);
     const unknown=await get('/api/v1/unknown');expect(unknown.status()).toBe(404);expect((await unknown.json()).code).toBe('NOT_FOUND');
     for(const path of ['/docs/api','/openapi.json','/assets/missing.js'])expect((await get(path)).status()).toBe(404);
     if(admin) {expect((await get('/admin')).status()).toBe(404);expect((await get('/manage')).status()).toBe(200);}
     expect((await get('/api/v1/health/ready')).status()).toBe(200);
-    await page.goto(admin?`${url}/manage`:url);await expect(page).toHaveTitle(`持久部署 ${mode} · 工作空间`);
+    await page.goto(admin?`${url}/manage`:url);await expect(page).toHaveTitle(admin?`持久部署 ${mode} · 工作空间`:'Unicore · 工作空间');
     for(const width of [1440,375]) {await page.setViewportSize({width,height:1000});await page.screenshot({path:join(evidence,`${mode}-workspace-${width}.png`),fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}
     const fingerprints=Object.fromEntries(['secret.key','installation.json'].map(path=>[path,digest(dataFile(container,path))]));
     // A process restart followed by container replacement must retain the installation and key.
@@ -114,7 +117,7 @@ async function exercise(mode,profile) {
     if(!mode.startsWith('tar'))url=`http://${docker(['port',container,'8080/tcp'])}`;
     await waitLive(url);
     recreate();await waitLive(url);
-    expect((await json('/api/v1/bootstrap')).site_name).toBe(`持久部署 ${mode}`);
+    expect((await json(bootstrapPath)).site_name).toBe(admin?`持久部署 ${mode}`:'Unicore');
     for(const [path,hash] of Object.entries(fingerprints))expect(digest(dataFile(container,path))).toBe(hash);
     expect((await context.request.get(`${url}/install`,{maxRedirects:0})).status()).toBe(303);
     const replay=await context.request.post(`${url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':token},data:{profile,database:{driver:'sqlite',dsn:''},site_name:'Replay',base_url:url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'Admin@123456'}});
@@ -130,8 +133,8 @@ async function exercise(mode,profile) {
       await page.getByLabel('图形验证码',{exact:true}).fill(answer);await page.getByRole('button',{name:'登录工作空间'}).click();
       await expect(page.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
     } else {expect((await get('/api/v1/admin/users')).status()).toBe(404);await page.goto(url);}
-    const session=await json('/api/v1/bootstrap');
-    const executed=await context.request.post(`${url}/api/v1/core/execute`,{headers:{...realm,Origin:url,...(admin?{'X-CSRF-Token':session.csrf_token}:{})},data:{text:'hello world'}});
+    const session=await json(bootstrapPath);
+    const executed=await context.request.post(`${url}/api/v1${admin?'/admin':''}/core/execute`,{headers:{...realm,Origin:url,...(admin?{'X-CSRF-Token':session.csrf_token}:{})},data:{text:'hello world'}});
     expect(executed.status()).toBe(200);expect((await executed.json()).data.sha256).toBe('b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9');
     if(admin) {
       expect((await context.request.post(`${url}/api/v1/admin/users`,{headers:{...realm,Origin:url,'X-CSRF-Token':session.csrf_token},data:{username:'member',email:'member@example.test',password:'test-password-strong',role:'user'}})).status()).toBe(200);

@@ -13,4 +13,4 @@
 
 限制：已验证隔离 IdP，尚未连接客户真实企业租户；只支持一个 Issuer，不做企业权限同步、SCIM 或单点退出。品牌上传和自动升级仍属后续增量。
 
-当前两身份域见 [ADR-0014](../adr/ADR-0014-separate-identities-management.md)：管理员和用户有独立绑定/流程/会话表，分别登记普通 callback 与 administrator-callback；管理员禁止 JIT，同邮箱不得跨域登录或绑定。后台配置与连接检查在同一企业登录标签；本人改密验证旧密码，撤销对应域的旧会话/挑战。
+当前两身份域见 [ADR-0014](../adr/ADR-0014-separate-identities-management.md)：管理员和用户有独立绑定/流程/会话表，分别登记/api/v1/auth/oidc/callback 与 /api/v1/admin/auth/oidc/callback；管理员禁止 JIT，同邮箱不得跨域登录或绑定。后台配置与连接检查在同一企业登录标签；本人改密验证旧密码，撤销对应域的旧会话/挑战。

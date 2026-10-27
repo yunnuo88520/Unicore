@@ -7,7 +7,8 @@
   "exports": {
     ".": "./src/App.tsx",
     "./styles.css": "./src/styles.css",
-    "./message": "./src/message.tsx"
+    "./message": "./src/message.tsx",
+    "./admin": "./src/admin-app.tsx"
   },
   "dependencies": {
     "@unicore/sdk": "workspace:*",

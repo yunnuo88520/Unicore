@@ -11,10 +11,8 @@ import (
 	"time"
 
 	"github.com/gofrs/flock"
-	"github.com/yunnuo/unicore/internal/adapter/bloblocal"
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlite"
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
-	"github.com/yunnuo/unicore/internal/branding"
 	"github.com/yunnuo/unicore/internal/settings"
 )
 
@@ -75,5 +73,5 @@ func Open(ctx context.Context, directory string) (*sqlstore.Store, *settings.Ser
 	} else if profile != "desktop" {
 		return fail(errors.New("data directory belongs to another profile"))
 	}
-	return store, &settings.Service{Store: store, Profile: "desktop", Branding: branding.New(store, bloblocal.New(filepath.Join(directory, "brand-assets")))}, nil
+	return store, &settings.Service{Store: store, Profile: "desktop"}, nil
 }

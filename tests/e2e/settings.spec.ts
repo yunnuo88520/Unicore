@@ -5,12 +5,12 @@ import { test, expect, installStandalone } from './fixtures';
 import { capture } from './visual';
 
 test('settings audit: site identity, ICP, ICO and compile-time placeholders', async ({ page, instance }, info) => {
-  await installStandalone(instance);
-  await page.goto(`${instance.url}/#site`);
+  const installed=await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}});expect(installed.status()).toBe(200);
+  await page.goto(`${instance.url}/admin#site`);
   const mainTabs = page.getByRole('tablist', { name: '设置分组', exact: true });
   await expect(page.getByRole('tablist')).toHaveCount(1);
   await expect(page.getByRole('button', { name: '外观设置', exact: true })).toHaveCount(0);
-  await expect(mainTabs.getByRole('tab', { name: '安全与控制', exact: true })).toHaveCount(0);
+
   await expect(mainTabs.getByRole('tab', { name: '邮件服务', exact: true })).toHaveCount(0);
   // Arrow/Home keyboard navigation changes the visible panel without scrolling to an anchor.
   await mainTabs.getByRole('tab', { name: '基础信息', exact: true }).focus();
@@ -30,8 +30,8 @@ test('settings audit: site identity, ICP, ICO and compile-time placeholders', as
   await page.getByLabel('备案查询链接', { exact: true }).fill('https://beian.miit.gov.cn/');
   await page.getByRole('button', { name: '保存设置', exact: true }).click();
   await expect(page.getByRole('button', { name: '保存设置', exact: true })).toBeDisabled();
-  const persisted = (await (await page.request.get(`${instance.url}/api/v1/settings`)).json()).data;
-  expect(persisted.items.find((item: { key: string }) => item.key === 'appearance.theme').value).toBe('system');
+  const persisted = (await (await page.request.get(`${instance.url}/api/v1/admin/settings`)).json()).data;
+  expect(persisted.items.some((item:{key:string})=>item.key==='appearance.theme')).toBe(false);
   await mainTabs.getByRole('tab', { name: '外观设置', exact: true }).click();
   await expect(page.getByRole('button', { name: /深色.*柔和低光/ })).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('button', { name: '保存设置', exact: true }).click();
@@ -61,10 +61,10 @@ test('settings audit: site identity, ICP, ICO and compile-time placeholders', as
   await expect(mainTabs.getByRole('tab', { name: '品牌图片', exact: true })).toHaveAttribute('aria-selected', 'true');
   await mainTabs.getByRole('tab', { name: '基础信息', exact: true }).click();
   await expect(page.getByLabel('备案号（ICP）', { exact: true })).toHaveValue('测试ICP备00000000号');
-  const bootstrap = (await (await page.request.get(`${instance.url}/api/v1/bootstrap`)).json()).data;
+  const bootstrap = (await (await page.request.get(`${instance.url}/api/v1/admin/bootstrap`)).json()).data;
   const license = process.env.FEATURE_LICENSE === 'true', updater = process.env.FEATURE_UPDATER === 'true';
   expect(bootstrap.capabilities.license).toBe(license); expect(bootstrap.capabilities.updater).toBe(updater);
-  await page.goto(`${instance.url}/#edition`);
+  await page.goto(`${instance.url}/admin#edition`);
   await expect(page.getByText('待对接',{exact:true})).toBeVisible();
   if (license || updater) {
     await expect(page.getByRole('heading', { name: '授权检测', exact: true })).toHaveCount(license ? 1 : 0);
@@ -74,9 +74,9 @@ test('settings audit: site identity, ICP, ICO and compile-time placeholders', as
   }
   for (const path of ['/api/v1/admin/license', '/api/v1/admin/updates']) expect((await page.request.get(`${instance.url}${path}`)).status()).toBe(404);
   await capture(page, info, `settings-edition-${license}-${updater}`);
-  const invalid = await page.request.patch(`${instance.url}/api/v1/settings`, { data: { changes: [{ key: 'site.icp_url', value: 'javascript:alert(1)' }] } });
+  const invalid = await page.request.patch(`${instance.url}/api/v1/admin/settings`, { headers:{'X-CSRF-Token':bootstrap.csrf_token}, data: { changes: [{ key: 'site.icp_url', value: 'javascript:alert(1)' }] } });
   expect(invalid.status()).toBe(400);
-  await page.goto(`${instance.url}/#site`);
+  await page.goto(`${instance.url}/admin#site`);
   await page.getByLabel('备案号（ICP）', { exact: true }).fill('');
   await page.getByRole('button', { name: '保存设置', exact: true }).click();
   await expect(page.getByRole('link', { name: '测试ICP备00000000号', exact: true })).toHaveCount(0);
@@ -91,8 +91,8 @@ test('settings audit: platform security defaults, alias, admin path and public f
   await page.getByRole('button', { name: '保存设置', exact: true }).click();
   await expect(page.getByRole('button', { name: '保存设置', exact: true })).toBeDisabled();
   await page.getByRole('tab', { name: '安全与控制', exact: true }).click();
-  await expect(page.getByLabel('登录图形验证码', { exact: true })).toHaveValue('true');
-  await expect(page.getByLabel('注册图形验证码', { exact: true })).toHaveValue('true');
+  await expect(page.getByLabel('登录图形验证码', { exact: true })).toBeChecked();
+  await expect(page.getByLabel('注册图形验证码', { exact: true })).toBeChecked();
   await expect(page.getByLabel('管理后台路径', { exact: true })).toHaveValue('/admin');
   await page.getByLabel('管理后台路径', { exact: true }).fill('/control');
   await page.getByRole('button', { name: '保存设置', exact: true }).click();

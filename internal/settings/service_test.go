@@ -117,7 +117,7 @@ func TestSensitiveSettingsAndReadiness(t *testing.T) {
 }
 
 func TestPublicSiteLinks(t *testing.T) {
-	service := &Service{Store: &memoryStore{values: map[string]string{}}, Profile: "desktop"}
+	service := &Service{Store: &memoryStore{values: map[string]string{}}, Profile: "web-platform"}
 	for _, value := range []string{"javascript:alert(1)", "//example.test", "http://example.test", "https://user:secret@example.test", "https://", "https://example.test/#bad"} {
 		_, err := service.Patch(context.Background(), contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "site.icp_url", Value: value}}}, "test")
 		if !errors.Is(err, ErrInvalid) {

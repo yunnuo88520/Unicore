@@ -49,6 +49,9 @@ func TestOIDCHTTP(t *testing.T) {
 	}
 	router := New(Config{Core: bootstrap.Core(), Install: m, Assets: fstest.MapFS{"index.html": {Data: []byte("app")}}, Logger: slog.New(slog.NewTextHandler(io.Discard, nil))})
 	request := func(method, path string, input any, session, csrf, proof, origin string) *httptest.ResponseRecorder {
+		if session == raw && !strings.HasPrefix(path, "/admin/") {
+			path = "/admin" + path
+		}
 		data, _ := json.Marshal(input)
 		req := httptest.NewRequest(method, "http://localhost/api/v1"+path, bytes.NewReader(data))
 		req.Header.Set("Content-Type", "application/json")
@@ -57,7 +60,7 @@ func TestOIDCHTTP(t *testing.T) {
 			name := sessionCookie
 			if session == raw {
 				name = "unicore_administrator_session"
-				req.Header.Set("X-Unicore-Identity", "administrator")
+
 			}
 			req.AddCookie(&http.Cookie{Name: name, Value: session})
 		}

@@ -16,7 +16,7 @@ test('fixed roles enforce menus, all management APIs and client-only appearance'
  expect((await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}})).status()).toBe(200);
  await page.goto(`${instance.url}/admin#roles`);await expect(page.getByRole('heading',{name:'角色权限',exact:true})).toBeVisible();
  await expect(page.getByRole('button',{name:'新增角色',exact:true})).toHaveCount(0);await expect(page.locator('.role-card')).toHaveCount(2);
- const boot=(await(await page.request.get(`${instance.url}/api/v1/bootstrap`,{headers:{"X-Unicore-Identity":"administrator"}})).json()).data;const headers={'X-Unicore-Identity':'administrator','X-CSRF-Token':boot.csrf_token};
+ const boot=(await(await page.request.get(`${instance.url}/api/v1/admin/bootstrap`,{headers:{}})).json()).data;const headers={'X-CSRF-Token':boot.csrf_token};
  const roles=(await(await page.request.get(`${instance.url}/api/v1/admin/roles`,{headers})).json()).data;
  expect(roles.items.map((item:{id:string})=>item.id).sort()).toEqual(['super_admin','user']);
  const created=await page.request.post(`${instance.url}/api/v1/admin/users`,{headers,data:{username:'member',email:'member@example.test',password:'test-password-strong',role:'user'}});expect(created.status()).toBe(200);const memberID=(await created.json()).data.id;
@@ -30,7 +30,7 @@ test('fixed roles enforce menus, all management APIs and client-only appearance'
   const member=await memberContext.newPage();await login(member,instance.url);
   const metadata=(await(await member.request.get(`${instance.url}/api/v1/bootstrap`)).json()).data;expect(metadata.current_user.roles).toEqual(['user']);expect(metadata.current_user.permissions).toEqual([]);
   const memberHeaders={'X-CSRF-Token':metadata.csrf_token};
-  for(const operation of Object.values(operations).filter(item=>item.path.startsWith('/api/v1/admin/'))){
+  for(const operation of Object.values(operations).filter(item=>item.path.startsWith('/api/v1/admin/')&&item.permissions.length>0)){
    const path=operation.path.replace('{id}',memberID);
    const options={method:operation.method,...(operation.method==='GET'?{}:{data:{}})};
    expect((await instance.request.fetch(`${instance.url}${path}`,options)).status(),`anonymous ${operation.method} ${path}`).toBe(401);

@@ -54,7 +54,7 @@ func TestActualRoutesMatchContract(t *testing.T) {
 				t.Errorf("contract without handler: %s", key)
 			}
 		}
-		if !full && len(found) != 4 {
+		if !full && len(found) != 6 {
 			t.Errorf("minimal composition has %d routes", len(found))
 		}
 	}

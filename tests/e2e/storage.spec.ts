@@ -23,11 +23,11 @@ test('local file pages, policies, private download, permissions and restart',asy
  await page.screenshot({path:`${dir}/files.png`,fullPage:true,animations:'disabled'});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  const download=page.waitForEvent('download');await page.getByRole('button',{name:'下载 local-private.txt',exact:true}).click();expect((await download).suggestedFilename()).toBe('local-private.txt');
  await instance.restart();await page.reload();await expect(page.getByRole('button',{name:'下载 local-private.txt',exact:true})).toBeVisible();
- const adminHeaders={'X-Unicore-Identity':'administrator'};const bootstrap=(await(await page.request.get(`${instance.url}/api/v1/bootstrap`,{headers:adminHeaders})).json()).data;const headers={...adminHeaders,'X-CSRF-Token':bootstrap.csrf_token};
+ const adminHeaders={};const bootstrap=(await(await page.request.get(`${instance.url}/api/v1/admin/bootstrap`,{headers:adminHeaders})).json()).data;const headers={...adminHeaders,'X-CSRF-Token':bootstrap.csrf_token};
  expect((await page.request.patch(`${instance.url}/api/v1/admin/settings`,{headers,data:{changes:[{key:'security.login_captcha',value:'false'}]}})).status()).toBe(200);
  expect((await page.request.post(`${instance.url}/api/v1/admin/users`,{headers,data:{username:'filereader',email:'filereader@example.test',password:'test-password-strong',role:'user'}})).status()).toBe(200);
  const other=await browser.newContext();const login=await other.request.post(`${instance.url}/api/v1/auth/login`,{data:{username:'filereader',password:'test-password-strong',captcha_id:'',captcha_answer:''}});expect(login.status()).toBe(200);const session=(await login.json()).data;
- const list=(await(await page.request.get(`${instance.url}/api/v1/files`,{headers:adminHeaders})).json()).data;const id=list.items[0].file_id;
+ const list=(await(await page.request.get(`${instance.url}/api/v1/admin/files`,{headers:adminHeaders})).json()).data;const id=list.items[0].file_id;
  expect((await other.request.get(`${instance.url}/api/v1/admin/storage/locations`)).status()).toBe(403);
  expect((await other.request.post(`${instance.url}/api/v1/files/${id}/access`,{headers:{'X-CSRF-Token':session.csrf_token}})).status()).toBe(404);
  expect((await other.request.delete(`${instance.url}/api/v1/files/${id}`,{headers:{'X-CSRF-Token':session.csrf_token}})).status()).toBe(404);

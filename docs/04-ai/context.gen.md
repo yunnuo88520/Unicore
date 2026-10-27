@@ -35,7 +35,7 @@
 | blob | [internal/blob/store.go](../../internal/blob/store.go) |
 | fileStorage | [docs/03-runbooks/storage.md](../../docs/03-runbooks/storage.md) |
 
-OpenAPI 当前包含 70 个 operation、94 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
+OpenAPI 当前包含 93 个 operation、94 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
 
 | 任务 Skill | 用途 |
 | --- | --- |

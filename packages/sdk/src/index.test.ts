@@ -67,11 +67,19 @@ it('uploads directly without forwarding platform credentials and confirms only a
  const envelope=(data:unknown)=>new Response(JSON.stringify({code:'OK',request_id:'storage-test',message:'',data}));
  const grant={file_id:'f1',url:'https://objects.example.test/private',method:'POST',headers:{},fields:{key:'pending/random',policy:'short-lived'},direct:true,expires_at:9999999999};
  const fetcher=vi.fn().mockResolvedValueOnce(envelope({profile:'web-platform',current_user:{id:'u1'},csrf_token:'platform-csrf'})).mockResolvedValueOnce(envelope(grant)).mockResolvedValueOnce(new Response(null,{status:204})).mockResolvedValueOnce(envelope({file_id:'f1',state:'ready'}));
- const client=new HttpTransport('',fetcher);await client.bootstrap();await client.uploadFile(new File(['hello'],'hello.txt',{type:'text/plain'}));
+ const client=new HttpTransport('',fetcher);await client.bootstrap();const stages:string[]=[];await client.uploadFile(new File(['hello'],'hello.txt',{type:'text/plain'}),{onStage:stage=>stages.push(stage)});expect(stages).toEqual(['uploading','confirming']);
  const direct=fetcher.mock.calls[2];expect(direct[0]).toBe(grant.url);expect(direct[1].credentials).toBe('omit');expect(new Headers(direct[1].headers).has('X-CSRF-Token')).toBe(false);expect(new Headers(direct[1].headers).has('X-Unicore-Identity')).toBe(false);expect(direct[1].body).toBeInstanceOf(FormData);expect(direct[1].body.get('key')).toBe('pending/random');
  expect(fetcher.mock.calls[3][0]).toBe('/api/v1/files/uploads/f1/complete');expect(new Headers(fetcher.mock.calls[3][1].headers).get('X-CSRF-Token')).toBe('platform-csrf');
 });
 it('does not confirm a failed direct upload',async()=>{
  const fetcher=vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({code:'OK',request_id:'upload',data:{file_id:'bad',url:'https://objects.example.test/pending',method:'PUT',headers:{'Content-Type':'text/plain'},fields:{},direct:true}}))).mockResolvedValueOnce(new Response(null,{status:403}));
  await expect(new HttpTransport('',fetcher).uploadFile(new File(['hello'],'file.txt',{type:'text/plain'}))).rejects.toMatchObject({code:'STORAGE_UPLOAD_FAILED'});expect(fetcher).toHaveBeenCalledTimes(2);
+});
+
+it('selects immutable API realms independently of the browser location',async()=>{
+ const fetcher=vi.fn().mockImplementation(()=>Promise.resolve(new Response(JSON.stringify({...response,data:{profile:'web-platform'}}))));
+ const admin=new HttpTransport('',fetcher,'administrator');await admin.bootstrap();await admin.captcha();
+ expect(fetcher.mock.calls.map(call=>call[0])).toEqual(['/api/v1/admin/bootstrap','/api/v1/admin/auth/captcha']);
+ expect(new Headers(fetcher.mock.calls[0][1].headers).has('X-Unicore-Identity')).toBe(false);
+ fetcher.mockClear();await new HttpTransport('',fetcher).bootstrap();expect(fetcher.mock.calls[0][0]).toBe('/api/v1/bootstrap');
 });

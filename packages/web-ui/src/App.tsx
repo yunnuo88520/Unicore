@@ -1,7 +1,6 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Shared responsive workspace. All business calls use AppClient.
  */
-import { StorageSettings } from './storage-page';
 import { FileManagement } from './files-page';
 import { Form } from './forms';
 import { MessageProvider, useMessage } from './message';
@@ -13,12 +12,11 @@ import { BrandProvider, BrandMark, BrandLockup } from './brand';
 import { type AppClient, type Bootstrap, type ExecuteOutput, type Profile } from '@unicore/sdk';
 import { useTheme, type Theme } from './theme';
 import { DashboardWidgetRegistry } from './registry';
-import { InstallWizard, LoginPage, PersistentSettings, UserManagement } from './web-flows';
+import { InstallWizard } from './install-page';
+import { LoginPage } from './account-flows';
+import { ClientAppearance } from './appearance';
 import { PasswordDialog } from './password-dialog';
-import { SystemLogs } from './logs-page';
-import { EditionPanel } from './edition-panel';
 import { AccountSecurity } from './oidc-page';
-import { RoleManagement } from './roles-page';
 import { SessionBoundary, useSession } from './session';
 import { routes, pageFromHash, canAccess, isAdministrator, type Page } from './routes';
 import './flows.css';
@@ -28,16 +26,18 @@ const SAMPLE = 'Hello, Unicore.\n一份 Go 核心，连接每一种可能。\nBu
 const PROFILE_LABELS: Record<Profile, string> = { 'web-platform': 'Web 平台', 'web-standalone': 'Web 单机', desktop: '桌面应用', cli: '命令行' };
 const PAGE_LABELS = Object.fromEntries(Object.entries(routes).map(([id, route]) => [id, route.label])) as Record<Page, string>;
 
-export function Workspace({ client, registry = new DashboardWidgetRegistry() }: { client: AppClient; registry?: DashboardWidgetRegistry }) {
-  return <MessageProvider><SessionBoundary client={client}>{notice => <BrandedApp client={client} registry={registry} notice={notice} />}</SessionBoundary></MessageProvider>;
+export type PageProps = { page: Page; client: AppClient; metadata: Bootstrap; registry: DashboardWidgetRegistry; theme: Theme; setTheme: (theme: Theme) => void; refresh: () => void };
+type WorkspaceProps = { client: AppClient; registry?: DashboardWidgetRegistry; administratorPage?: (props: PageProps) => ReactNode };
+export function Workspace({ client, registry = new DashboardWidgetRegistry(), administratorPage }: WorkspaceProps) {
+  return <MessageProvider><SessionBoundary client={client}>{notice => <BrandedApp client={client} registry={registry} notice={notice} administratorPage={administratorPage} />}</SessionBoundary></MessageProvider>;
 }
 
-function BrandedApp(props: {client: AppClient; registry: DashboardWidgetRegistry; notice: string}) {
+function BrandedApp(props: {client: AppClient; registry: DashboardWidgetRegistry; notice: string; administratorPage?: WorkspaceProps['administratorPage']}) {
  const {metadata}=useSession(props.client);
  return <BrandProvider branding={metadata.data?.branding} name={metadata.data?.site_name}><App {...props} /></BrandProvider>;
 }
 
-function App({ client, registry, notice }: { client: AppClient; registry: DashboardWidgetRegistry; notice: string }) {
+function App({ client, registry, notice, administratorPage }: { client: AppClient; registry: DashboardWidgetRegistry; notice: string; administratorPage?: WorkspaceProps['administratorPage'] }) {
   const [page, setPage] = useState<Page>(() => pageFromHash(window.location.hash));
   const [route, setRoute] = useState(window.location.hash);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -62,7 +62,7 @@ function App({ client, registry, notice }: { client: AppClient; registry: Dashbo
   useEffect(() => { const change = () => { setPage(pageFromHash(window.location.hash)); setRoute(window.location.hash); }; window.addEventListener('hashchange', change); return () => window.removeEventListener('hashchange', change); }, []);
   function navigate(next: Page) { window.location.hash = next; setPage(next); setMobileOpen(false); }
   const refresh = () => { setRoute(window.location.hash); void metadata.refetch(); };
-  const personalSettings = metadata.data?.profile === 'web-platform' && !isAdministrator(metadata.data);
+  const personalSettings = metadata.data?.identity_realm !== 'administrator';
   const settingsLabel = personalSettings ? '外观设置' : '基础设置';
   const permitted = canAccess(page, metadata.data);
   if (metadata.data?.capabilities.installation && !metadata.data.installed && client.web) return <InstallWizard web={client.web} initialProfile={metadata.data.profile} onDone={result => { if(result.profile==='web-platform'){window.location.assign(result.admin_url);return;}window.history.replaceState({}, '', '/');navigate('overview');refresh(); }} />;
@@ -75,17 +75,17 @@ function App({ client, registry, notice }: { client: AppClient; registry: Dashbo
       <button className="workspace-switch" onClick={() => setAbout(true)}><span className="workspace-icon"><Braces size={19} /></span><span><strong>{metadata.data?.site_name ?? '默认工作空间'}</strong><small>Unicore 应用基座</small></span><span className="workspace-stage">{metadata.data?.stage ?? 'M2a'}</span></button>
       <div className="sidebar-navigation">
       <nav aria-label="工作台">{([{ id: 'overview', icon: LayoutDashboard }, { id: 'lab', icon: FlaskConical }] as const).map(({ id, icon: Icon }) => <button key={id} className={`nav-item ${page === id ? 'active' : ''}`} aria-current={page === id ? 'page' : undefined} onClick={() => navigate(id)}><Icon size={19} /><span>{PAGE_LABELS[id]}</span>{page === id && <span className="nav-active-dot" />}</button>)}</nav>
-      {canAccess('files',metadata.data)&&<button className={`nav-item ${page==='files'?'active':''}`} onClick={()=>navigate('files')}><FolderOpen size={19}/><span>文件管理</span></button>}
+      {canAccess('files',metadata.data)&&<button className={`nav-item ${page==='files'?'active':''}`} onClick={()=>navigate('files')}><FolderOpen size={19}/><span>{isAdministrator(metadata.data)?'文件管理':'我的文件'}</span></button>}
       {isAdministrator(metadata.data)&&<NavGroup title="用户管理" icon={<Users size={19}/>}><NavEntry id="users" page={page} navigate={navigate}/><NavEntry id="administrators" page={page} navigate={navigate}/><NavEntry id="roles" page={page} navigate={navigate}/></NavGroup>}
       {canAccess('site',metadata.data)&&(personalSettings?<button className={`nav-item ${page==='site'?'active':''}`} onClick={()=>navigate('site')}><Settings2 size={19}/><span>外观设置</span></button>:<NavGroup title="系统管理" icon={<Settings2 size={19}/>}><NavEntry id="site" page={page} navigate={navigate}/>{(['mail','storage','logs','edition'] as const).filter(id=>canAccess(id,metadata.data)).map(id=><NavEntry key={id} id={id} page={page} navigate={navigate}/>)}</NavGroup>)}
       </div>
       <div className="sidebar-bottom"><div className="core-note"><div className="core-note-icon"><Cpu size={20} /></div><strong>One core. Every interface.</strong><p>让业务逻辑专注于业务，<br />让框架连接每一个终端。</p><button onClick={() => setAbout(true)}>了解架构 <ArrowUpRight size={14} /></button></div><button className="author" onClick={() => setAbout(true)}><span className="avatar">Y</span><span><strong>yunnuo</strong><small>框架作者</small></span><Info size={16} /></button></div>
     </aside>
     <div className="main-shell"><header className="topbar"><div className="breadcrumbs"><button className="icon-button mobile-menu" aria-label="打开导航" onClick={() => setMobileOpen(true)}><Menu size={20} /></button><span className="breadcrumb-root">工作空间</span><ChevronRight size={14} /><strong>{page === 'site' ? settingsLabel : PAGE_LABELS[page]}</strong></div><div className="top-actions"><span className={`connection ${metadata.isSuccess ? 'connected' : ''}`}><span />{metadata.isSuccess ? '核心已连接' : metadata.isPending ? '连接中' : '连接失败'}</span><span className="top-divider" /><button className="icon-button" aria-label="切换主题" title="切换浅色 / 深色" onClick={() => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}</button><button className="icon-button" aria-label="关于 Unicore" onClick={() => setAbout(true)}><Code2 size={19} /></button>{metadata.data?.profile === 'web-platform' && metadata.data.current_user && <div className="account-menu" ref={avatarRef}><button className="avatar top-avatar" aria-label="账号菜单" aria-expanded={avatarOpen} aria-controls="account-actions" onClick={()=>setAvatarOpen(v=>!v)}>{(metadata.data?.current_user?.username??'Y').slice(0,1).toUpperCase()}</button>{avatarOpen&&<div id="account-actions" className="account-dropdown"><strong>{metadata.data?.current_user?.username??metadata.data?.site_name}</strong><small>{metadata.data?.current_user?(isAdministrator(metadata.data)?'管理员':'普通用户'):'本地工作空间'}</small>{client.web&&<><button onClick={()=>{setAvatarOpen(false);setPasswordOpen(true);}}>修改密码</button><button onClick={()=>{setAvatarOpen(false);navigate('account');}}>账号资料</button><button onClick={()=>{setAvatarOpen(false);void client.web!.logout().then(()=>{navigate('overview');refresh();},refresh);}}>退出登录</button></>}</div>}</div>}</div></header>
-      <main id="main-content" tabIndex={-1} className={`main-content${page === 'site' ? ' settings-content' : ''}`}><div className="page-heading"><div><div className="eyebrow"><span /> UNICORE WORKSPACE</div><h1>{page === 'site' && personalSettings ? '外观设置' : routes[page].title}<span className="heading-dot">.</span></h1><p>{page === 'site' && personalSettings ? '只影响当前客户端，不修改全局配置。' : routes[page].description}</p></div><span className="stage-pill"><span /> {metadata.data?.stage ?? 'M2a'} · 核心已就绪</span></div>
+      <main id="main-content" tabIndex={-1} className={`main-content${page === 'site' ? ' settings-content' : ''}`}><div className="page-heading"><div><div className="eyebrow"><span /> {isAdministrator(metadata.data) ? 'UNICORE ADMINISTRATION' : 'UNICORE WORKSPACE'}</div><h1>{page === 'site' && personalSettings ? '外观设置' : routes[page].title}<span className="heading-dot">.</span></h1><p>{page === 'site' && personalSettings ? '只影响当前客户端，不修改全局配置。' : routes[page].description}</p></div><span className="stage-pill"><span /> {metadata.data?.stage ?? 'M2a'} · 核心已就绪</span></div>
         {metadata.isPending ? <div className="state-card" role="status"><LoaderCircle className="spin" size={24} /><strong>正在连接 Go 核心</strong><p>正在获取当前运行形态与能力信息…</p></div> : metadata.isError ? <div className="state-card error-state" role="alert"><Radio size={26} /><strong>暂时无法连接核心</strong><p>{metadata.error.message}</p><button className="primary-button" onClick={() => metadata.refetch()}><RotateCcw size={16} />重新连接</button></div> : <>
-          {!permitted ? <div className="state-card" role="alert"><ShieldCheck size={26} /><strong>没有访问权限</strong><p>请联系实例管理员授予相关权限。</p></div> : <PageContent page={page} client={client} metadata={metadata.data} registry={registry} theme={theme} setTheme={setTheme} refresh={refresh} />}
-          <div className="foundation-note"><Info size={15} /><span>文本分析不保存输入。实例设置独立持久化；平台已支持 SMTP 账号邮件与企业登录；在线升级将在后续阶段接入。</span></div>
+          {!permitted ? <div className="state-card" role="alert"><ShieldCheck size={26} /><strong>没有访问权限</strong><p>请联系实例管理员授予相关权限。</p></div> : <PageContent page={page} client={client} metadata={metadata.data} registry={registry} theme={theme} setTheme={setTheme} refresh={refresh} administratorPage={administratorPage} />}
+          <div className="foundation-note"><Info size={15} /><span>文本分析不保存输入，外观偏好仅在当前客户端生效。</span></div>
         </>}
         <SiteFooter metadata={metadata.data} />
       </main>
@@ -105,28 +105,23 @@ function NavEntry({id,page,navigate}:{id:Page;page:Page;navigate:(p:Page)=>void}
   return <button className={`nav-item nav-child ${page===id?'active':''}`} aria-current={page===id?'page':undefined} onClick={()=>navigate(id)}><Icon size={16} aria-hidden="true"/><span>{PAGE_LABELS[id]}</span>{page===id&&<span className="nav-active-dot"/>}</button>;
 }
 
-function PageContent({ page, client, metadata, registry, theme, setTheme, refresh }: { page: Page; client: AppClient; metadata: Bootstrap; registry: DashboardWidgetRegistry; theme: Theme; setTheme: (theme: Theme) => void; refresh: () => void }) {
-  const core = (current: Page) => <CoreWorkspace page={current} client={client} metadata={metadata} registry={registry} />;
-  const pages: Record<Page, ReactNode> = {
-    overview: core('overview'), lab: core('lab'),
-    storage:client.storage&&<StorageSettings client={client}/>,
-    files:client.files&&<FileManagement client={client} administrator={isAdministrator(metadata)}/>,
-    account: client.web && <AccountSecurity key={metadata.current_user?.id} web={client.web} userID={metadata.current_user?.id ?? ''} onChanged={refresh} />,
-    administrators: client.web && <UserManagement key="administrators" administrators web={client.web} metadata={metadata}/>,
-    mail: client.web && <PersistentSettings key="mail" section="mail" theme={theme} onThemeSaved={setTheme} metadata={metadata} client={client} onSaved={refresh}/>,
-    logs: client.web && <SystemLogs web={client.web}/>,
-    edition: <EditionPanel metadata={metadata}/>,
-    users: client.web && <UserManagement key="users" web={client.web} metadata={metadata} />,
-    roles: client.web && <RoleManagement web={client.web} />,
-    site: client.settings && client.patchSettings && <PersistentSettings key="base" theme={theme} onThemeSaved={setTheme} metadata={metadata} client={client} onSaved={refresh} canWrite={metadata.profile !== 'web-platform' || isAdministrator(metadata)} />,
-    'not-found': <div className="state-card" role="alert"><Info size={26} /><strong>找不到这个页面</strong><p>请通过导航进入已有页面。</p><a className="primary-button" href="#overview">返回工作台</a></div>,
-  };
-  return pages[page];
+function PageContent(props: PageProps & { administratorPage?: WorkspaceProps['administratorPage'] }) {
+  const {page,client,metadata,registry,theme,setTheme,refresh}=props;
+  const administration=metadata.identity_realm==='administrator';
+  if(administration && props.administratorPage && !['overview','lab','account','files','not-found'].includes(page)) return props.administratorPage(props);
+  switch(page){
+    case 'overview': case 'lab': return <CoreWorkspace page={page} client={client} metadata={metadata} registry={registry}/>;
+    case 'files': return client.files && <FileManagement client={client} administrator={administration}/>;
+    case 'account': return client.web && <AccountSecurity web={client.web} userID={metadata.current_user?.id??''} onChanged={refresh}/>;
+    case 'site': return <ClientAppearance theme={theme} onSaved={setTheme}/>;
+    default: return <div className="state-card" role="alert"><Info size={26}/><strong>找不到这个页面</strong><p>请通过导航进入已有页面。</p><a className="primary-button" href="#overview">返回工作台</a></div>;
+  }
 }
 function CoreWorkspace({ page, client, metadata, registry }: { page: Page; client: AppClient; metadata: Bootstrap; registry: DashboardWidgetRegistry }) {
   return <>
             <RuntimeCards metadata={metadata} transport={client.transport} />
             {page === 'overview' && <div className="intro-banner"><span className="banner-orbit orbit-one" /><span className="banner-orbit orbit-two" /><div className="banner-content"><span className="banner-tag"><Sparkles size={13} /> 为下一款产品而生</span><h2>构建一次，连接每个终端。</h2><p>领域逻辑保持纯粹，交互体验始终一致。</p><button onClick={() => { window.location.hash = 'lab'; }}>探索核心实验室 <ArrowRight size={15} /></button></div><div className="banner-diagram" aria-hidden="true"><div className="diagram-core"><BrandMark size={30} /><span>Go Core</span></div><span className="diagram-line" /><div className="diagram-targets"><span><Globe2 size={17} /> Web</span><span><Monitor size={17} /> Desktop</span><span><Terminal size={17} /> CLI</span></div></div></div>}
+            {page==='overview' && metadata.identity_realm!=='administrator' && <section className="business-placeholders" aria-label="业务空间"><article className="panel"><FolderOpen size={22}/><h2>我的项目</h2><p>为你的业务预留空间，项目功能待接入。</p><span className="subtle-badge">待接入</span></article><article className="panel"><Activity size={22}/><h2>最近动态</h2><p>业务接入后，在这里汇集与你有关的更新。</p><span className="subtle-badge">待接入</span></article></section>}
             <div className="workspace-grid"><CoreLab client={client} /><div className="right-column"><Profiles current={metadata.profile} /><Architecture /></div></div>
             {registry.entries().map(widget => <section key={widget.id}>{widget.render(metadata)}</section>)}
   </>;

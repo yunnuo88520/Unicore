@@ -22,81 +22,89 @@ func mountAccounts(api chi.Router, config Config) {
 		}
 		return service
 	}
-	api.Get("/auth/policy", func(w http.ResponseWriter, r *http.Request) {
-		service := accounts(w, r)
-		if service == nil {
-			return
-		}
-		policy, err := service.Policy(r.Context())
-		if err != nil {
-			webError(w, err)
-			return
-		}
-		success(w, policy)
-	})
-	api.Post("/auth/register", func(w http.ResponseWriter, r *http.Request) {
-		service := accounts(w, r)
-		if service == nil {
-			return
-		}
-		var input contracts.RegisterInput
-		if !decode(w, r, &input) {
-			return
-		}
-		if err := service.Register(r.Context(), input, ip(r)); err != nil {
-			webError(w, err)
-			return
-		}
-		success(w, contracts.ActionResult{Success: true})
-	})
-	for _, purpose := range []string{"verify", "reset"} {
-		requestPath, completePath := "/auth/verification/request", "/auth/verification/complete"
-		if purpose == "reset" {
-			requestPath, completePath = "/auth/password/request", "/auth/password/reset"
-		}
-		api.Post(requestPath, func(w http.ResponseWriter, r *http.Request) {
+	for _, prefix := range []string{"", "/admin"} {
+		api.Get(prefix+"/auth/policy", func(w http.ResponseWriter, r *http.Request) {
 			service := accounts(w, r)
 			if service == nil {
 				return
 			}
-			var input contracts.EmailRequest
-			if !decode(w, r, &input) {
-				return
-			}
-			if err := service.Request(r.Context(), input, ip(r), purpose); err != nil {
+			policy, err := service.Policy(r.Context())
+			if err != nil {
 				webError(w, err)
 				return
 			}
-			success(w, contracts.ActionResult{Success: true})
+			success(w, policy)
 		})
-		api.Post(completePath, func(w http.ResponseWriter, r *http.Request) {
-			service := accounts(w, r)
-			if service == nil {
-				return
-			}
-			var token, password string
-			if purpose == "reset" {
-				var input contracts.ResetInput
+		if prefix == "" {
+			api.Post("/auth/register", func(w http.ResponseWriter, r *http.Request) {
+				service := accounts(w, r)
+				if service == nil {
+					return
+				}
+				var input contracts.RegisterInput
 				if !decode(w, r, &input) {
 					return
 				}
-				token, password = input.Token, input.Password
-			} else {
-				var input contracts.TokenInput
+				if err := service.Register(r.Context(), input, ip(r)); err != nil {
+					webError(w, err)
+					return
+				}
+				success(w, contracts.ActionResult{Success: true})
+			})
+		}
+		for _, purpose := range []string{"verify", "reset"} {
+			if prefix != "" && purpose == "verify" {
+				continue
+			}
+			requestPath, completePath := "/auth/verification/request", "/auth/verification/complete"
+			if purpose == "reset" {
+				requestPath, completePath = "/auth/password/request", "/auth/password/reset"
+			}
+			api.Post(prefix+requestPath, func(w http.ResponseWriter, r *http.Request) {
+				service := accounts(w, r)
+				if service == nil {
+					return
+				}
+				var input contracts.EmailRequest
 				if !decode(w, r, &input) {
 					return
 				}
-				token = input.Token
-			}
-			if err := service.Complete(r.Context(), token, purpose, password, ip(r)); err != nil {
-				webError(w, err)
-				return
-			}
-			if purpose == "reset" {
-				http.SetCookie(w, &http.Cookie{Name: identityCookie(r), Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode, Secure: strings.HasPrefix(manager.BaseURL(), "https://"), MaxAge: -1, Expires: time.Unix(1, 0)})
-			}
-			success(w, contracts.ActionResult{Success: true})
-		})
+				if err := service.Request(r.Context(), input, ip(r), purpose); err != nil {
+					webError(w, err)
+					return
+				}
+				success(w, contracts.ActionResult{Success: true})
+			})
+			api.Post(prefix+completePath, func(w http.ResponseWriter, r *http.Request) {
+				service := accounts(w, r)
+				if service == nil {
+					return
+				}
+				var token, password string
+				if purpose == "reset" {
+					var input contracts.ResetInput
+					if !decode(w, r, &input) {
+						return
+					}
+					token, password = input.Token, input.Password
+				} else {
+					var input contracts.TokenInput
+					if !decode(w, r, &input) {
+						return
+					}
+					token = input.Token
+				}
+				if err := service.Complete(r.Context(), token, purpose, password, ip(r)); err != nil {
+					webError(w, err)
+					return
+				}
+				if purpose == "reset" {
+					http.SetCookie(w, &http.Cookie{Name: identityCookie(r), Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode, Secure: strings.HasPrefix(manager.BaseURL(), "https://"), MaxAge: -1, Expires: time.Unix(1, 0)})
+				}
+				success(w, contracts.ActionResult{Success: true})
+			})
+		}
+
 	}
 	api.Post("/admin/settings/mail/test", func(w http.ResponseWriter, r *http.Request) {
 		actor, ok := require(manager, w, r, "settings:write")

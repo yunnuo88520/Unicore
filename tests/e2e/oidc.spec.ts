@@ -22,7 +22,7 @@ test('enterprise settings, real JIT, explicit binding and password fallback', as
   await expect(page.getByText('实例尚未启用',{exact:true})).toBeVisible(); await capture(page, info, 'oidc-account-disabled');
   await page.goto(`${instance.url}/admin#site`);
   await page.getByRole('tab', { name: '安全与控制', exact: true }).click();
-  await page.getByRole('combobox',{name:'登录图形验证码',exact:true}).selectOption('false');
+  await page.getByRole('switch',{name:'登录图形验证码',exact:true}).uncheck();
   await page.getByRole('button',{name:'保存设置',exact:true}).click();
   await expect(page.getByRole('button',{name:'保存设置',exact:true})).toBeDisabled();
   await page.getByRole('tab', { name: '企业登录', exact: true }).click();
@@ -34,15 +34,15 @@ test('enterprise settings, real JIT, explicit binding and password fallback', as
   await expect(page.getByRole('alert')).toContainText('暂时无法连接企业身份服务'); await capture(page,info,'oidc-connection-error');
   await page.getByRole('tab', { name: '企业登录', exact: true }).click();
   await page.getByLabel('Issuer 地址',{exact:true}).fill(idp.url);
-  await page.getByRole('combobox',{name:'企业登录',exact:true}).selectOption('true');
-  await expect(page.getByRole('combobox',{name:'首次登录创建普通账号',exact:true})).toHaveValue('false');
-  await page.getByRole('combobox',{name:'首次登录创建普通账号',exact:true}).selectOption('true');
+  await page.getByRole('switch',{name:'企业登录',exact:true}).check();
+  await expect(page.getByRole('switch',{name:'首次登录创建普通账号',exact:true})).not.toBeChecked();
+  await page.getByRole('switch',{name:'首次登录创建普通账号',exact:true}).check();
   await page.getByRole('button',{name:'保存设置',exact:true}).click(); await expect(page.getByText('设置已保存',{exact:true})).toBeVisible();
   await expect(page.getByLabel('Client Secret',{exact:true})).toHaveValue('');
   await expect(page.getByLabel('Client Secret',{exact:true})).toHaveAttribute('placeholder','已配置 · 留空保留');
   await page.getByRole('button',{name:'检查已保存的连接',exact:true}).click(); await expect(page.getByText('发现文档及端点检查通过，请继续验证实际登录。')).toBeVisible();
-  await expect(page.locator('.oidc-callback')).toHaveText(`${instance.url}/api/v1/auth/oidc/administrator-callback`); await capture(page,info,'oidc-settings-ready');
-  const adminBootstrap = (await (await page.request.get(`${instance.url}/api/v1/bootstrap`,{headers:{"X-Unicore-Identity":"administrator"}})).json()).data;
+  await expect(page.locator('.oidc-callback')).toHaveText(`${instance.url}/api/v1/admin/auth/oidc/callback`); await capture(page,info,'oidc-settings-ready');
+  const adminBootstrap = (await (await page.request.get(`${instance.url}/api/v1/admin/bootstrap`,{headers:{}})).json()).data;
   const originalAdminCookie = (await page.context().cookies()).find(cookie => cookie.name === 'unicore_administrator_session')!.value;
   const employeeContext = await browser.newContext({viewport:page.viewportSize()!,isMobile:info.project.name==='mobile',hasTouch:info.project.name==='mobile'});
   const employee = await employeeContext.newPage();
@@ -77,18 +77,18 @@ test('enterprise settings, real JIT, explicit binding and password fallback', as
     await expect(page).toHaveURL(/prompt=login/); expect(new URL(page.url()).searchParams.get('max_age')).toBe('0');
     await page.getByLabel('企业身份编号',{exact:true}).fill('enterprise-admin'); await page.getByLabel('企业邮箱',{exact:true}).fill('admin@example.test'); await page.getByRole('button',{name:'确认企业身份',exact:true}).click();
     await expect(page.getByText('企业账号已绑定，其他设备的旧会话已退出。')).toBeVisible(); await capture(page,info,'oidc-binding-success');
-    const revoked = await instance.request.get('/api/v1/auth/session',{headers:{'X-Unicore-Identity':'administrator',Cookie:`unicore_administrator_session=${originalAdminCookie}`}}); expect(revoked.status()).toBe(401);
+    const revoked = await instance.request.get('/api/v1/admin/auth/session',{headers:{Cookie:`unicore_administrator_session=${originalAdminCookie}`}}); expect(revoked.status()).toBe(401);
     // Same iss/sub signs into the linked local account; IdP email changes cannot redirect it.
     await employee.goto(`${instance.url}/admin`); await employee.getByRole('button',{name:'使用企业账号登录',exact:true}).click();
     await employee.getByLabel('企业身份编号',{exact:true}).fill('enterprise-admin'); await employee.getByLabel('企业邮箱',{exact:true}).fill('different@example.test'); await employee.getByRole('button',{name:'确认企业身份',exact:true}).click();
     await expect(employee.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
-    expect((await (await employee.request.get(`${instance.url}/api/v1/bootstrap`,{headers:{"X-Unicore-Identity":"administrator"}})).json()).data.current_user.id).toBe(adminBootstrap.current_user.id);
+    expect((await (await employee.request.get(`${instance.url}/api/v1/admin/bootstrap`,{headers:{}})).json()).data.current_user.id).toBe(adminBootstrap.current_user.id);
     const ssoCookie = (await employee.context().cookies()).find(cookie=>cookie.name==='unicore_administrator_session')!.value;
     await page.getByLabel('确认本地密码',{exact:true}).fill('test-password-strong'); await capture(page,info,'oidc-unlink-confirm');
     await page.getByRole('button',{name:'确认解除绑定',exact:true}).click(); await expect(page.getByText('企业绑定已解除，本地密码登录可用。')).toBeVisible(); await capture(page,info,'oidc-unlink-success');
-    expect((await instance.request.get('/api/v1/auth/session',{headers:{'X-Unicore-Identity':'administrator',Cookie:`unicore_administrator_session=${ssoCookie}`}})).status()).toBe(401);
-    const current = (await (await page.request.get(`${instance.url}/api/v1/bootstrap`,{headers:{"X-Unicore-Identity":"administrator"}})).json()).data;
-    expect((await page.request.patch(`${instance.url}/api/v1/admin/settings`,{headers:{'X-Unicore-Identity':'administrator','X-CSRF-Token':current.csrf_token},data:{changes:[{key:'oidc.enabled',value:'false'}]}})).status()).toBe(200);
+    expect((await instance.request.get('/api/v1/admin/auth/session',{headers:{Cookie:`unicore_administrator_session=${ssoCookie}`}})).status()).toBe(401);
+    const current = (await (await page.request.get(`${instance.url}/api/v1/admin/bootstrap`,{headers:{}})).json()).data;
+    expect((await page.request.patch(`${instance.url}/api/v1/admin/settings`,{headers:{'X-CSRF-Token':current.csrf_token},data:{changes:[{key:'oidc.enabled',value:'false'}]}})).status()).toBe(200);
     await employee.goto(`${instance.url}/admin`); await expect(employee.getByLabel('账号或邮箱')).toBeVisible(); await expect(employee.getByRole('button',{name:'使用企业账号登录',exact:true})).toHaveCount(0);
     await employee.getByLabel('账号或邮箱').fill('admin'); await employee.getByLabel('密码',{exact:true}).fill('test-password-strong'); await employee.getByRole('button',{name:'登录工作空间',exact:true}).click(); await expect(employee.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
     // Follow-system mode on the new page, in addition to the explicit palette captures.
@@ -103,8 +103,8 @@ test('enterprise settings, real JIT, explicit binding and password fallback', as
 test('browser proof, replay, callback errors and unavailable provider', async ({page, browser, instance, idp}, info) => {
   test.setTimeout(60000);
   expect((await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}})).status()).toBe(200);
-  const boot=(await(await page.request.get(`${instance.url}/api/v1/bootstrap`,{headers:{"X-Unicore-Identity":"administrator"}})).json()).data;
-  expect((await page.request.patch(`${instance.url}/api/v1/admin/settings`,{headers:{'X-Unicore-Identity':'administrator','X-CSRF-Token':boot.csrf_token},data:{changes:[{key:'oidc.issuer',value:idp.url},{key:'oidc.client_id',value:'unicore-test-client'},{key:'oidc.client_secret',value:'isolated-test-secret'},{key:'oidc.enabled',value:'true'},{key:'oidc.jit_enabled',value:'true'}]}})).status()).toBe(200);
+  const boot=(await(await page.request.get(`${instance.url}/api/v1/admin/bootstrap`,{headers:{}})).json()).data;
+  expect((await page.request.patch(`${instance.url}/api/v1/admin/settings`,{headers:{'X-CSRF-Token':boot.csrf_token},data:{changes:[{key:'oidc.issuer',value:idp.url},{key:'oidc.client_id',value:'unicore-test-client'},{key:'oidc.client_secret',value:'isolated-test-secret'},{key:'oidc.enabled',value:'true'},{key:'oidc.jit_enabled',value:'true'}]}})).status()).toBe(200);
   const context=await browser.newContext({viewport:page.viewportSize()!,isMobile:info.project.name==='mobile',hasTouch:info.project.name==='mobile'});
   try {
     const guest=await context.newPage();await guest.goto(instance.url);
@@ -122,7 +122,7 @@ test('browser proof, replay, callback errors and unavailable provider', async ({
     await guest.goto(callback);await expect(guest.getByRole('alert')).toContainText('企业身份验证未完成或已过期');await capture(guest,info,'oidc-replay-error');
     await guest.getByRole('button',{name:'使用企业账号登录',exact:true}).click();await expect(guest.getByRole('heading',{name:'测试企业登录'})).toBeVisible();
     const invalid=new URL(guest.url());invalid.searchParams.set('approve','yes');invalid.searchParams.set('scenario','nonce');const rejected=await guest.request.get(invalid.toString(),{maxRedirects:0});await guest.goto(rejected.headers().location);await expect(guest.getByRole('alert')).toContainText('企业身份验证未完成或已过期');await capture(guest,info,'oidc-invalid-token');
-    expect((await page.request.patch(`${instance.url}/api/v1/admin/settings`,{headers:{'X-Unicore-Identity':'administrator','X-CSRF-Token':boot.csrf_token},data:{changes:[{key:'oidc.issuer',value:'http://127.0.0.1:1'}]}})).status()).toBe(200);
+    expect((await page.request.patch(`${instance.url}/api/v1/admin/settings`,{headers:{'X-CSRF-Token':boot.csrf_token},data:{changes:[{key:'oidc.issuer',value:'http://127.0.0.1:1'}]}})).status()).toBe(200);
     await guest.goto(instance.url);await guest.getByRole('button',{name:'使用企业账号登录',exact:true}).click();await expect(guest.getByRole('alert')).toContainText('暂时无法连接企业身份服务');await capture(guest,info,'oidc-provider-unavailable');
   }finally{await context.close();}
 });

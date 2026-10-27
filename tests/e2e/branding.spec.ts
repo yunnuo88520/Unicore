@@ -7,8 +7,8 @@ import { Resvg } from '@resvg/resvg-js';
 const variant = (dark: boolean) => new Resvg(`<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><rect width="128" height="128" rx="32" fill="${dark ? '#e4d3ff' : '#623ad6'}"/><path d="M35 32v40a29 29 0 0058 0V32H76v40a12 12 0 01-24 0V32z" fill="${dark ? '#2b1853' : 'white'}"/></svg>`).render().asPng();
 
 test('instance brand preview, save, system theme and restore defaults', async ({ page, instance }, info) => {
-  await installStandalone(instance);
-  await page.goto(`${instance.url}/#site`);
+  const installed=await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}});expect(installed.status()).toBe(200);
+  await page.goto(`${instance.url}/admin#site`);
   await page.getByRole('tab', { name: '品牌图片', exact: true }).click();
   const light = page.getByRole('form', { name: '浅色 Logo', exact: true });
   await light.getByLabel('选择浅色 Logo').setInputFiles({ name: 'unsafe.svg', mimeType: 'image/svg+xml', buffer: Buffer.from('<svg/>') });
@@ -74,7 +74,7 @@ test('platform login and all mail previews use public instance branding', async 
   const previewLogo=await form.locator('img').getAttribute('src');
   expect(previewLogo).toMatch(/^\/brand-assets\//);
   // Templates remain internal; render their generated HTML directly for visual regression.
-  const templates=(await(await page.request.get(`${instance.url}/api/v1/admin/settings/mail/templates`,{headers:{'X-Unicore-Identity':'administrator'}})).json()).data.items;
+  const templates=(await(await page.request.get(`${instance.url}/api/v1/admin/settings/mail/templates`,{headers:{}})).json()).data.items;
   const preview=await page.context().newPage();let mailLogo='';
   for(const template of templates){
     await preview.setContent(template.html);
@@ -88,8 +88,8 @@ test('platform login and all mail previews use public instance branding', async 
   await preview.close();
   await expect(page.getByRole('tab',{name:'邮件模板',exact:true})).toHaveCount(0);
   // A member sees public branding, while global brand management stays administrator-only.
-  const bootstrap=(await(await page.request.get(`${instance.url}/api/v1/bootstrap`,{headers:{"X-Unicore-Identity":"administrator"}})).json()).data;
-  const headers={'X-Unicore-Identity':'administrator','X-CSRF-Token':bootstrap.csrf_token};
+  const bootstrap=(await(await page.request.get(`${instance.url}/api/v1/admin/bootstrap`,{headers:{}})).json()).data;
+  const headers={'X-CSRF-Token':bootstrap.csrf_token};
   expect((await page.request.post(`${instance.url}/api/v1/admin/users`,{headers,data:{username:'reader',email:'reader@example.test',password:'test-password-strong',role:'user'}})).status()).toBe(200);
   await page.getByRole('button',{name:'账号菜单',exact:true}).click();
   await page.getByRole('button',{name:'退出登录',exact:true}).click();

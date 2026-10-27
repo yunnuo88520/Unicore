@@ -18,3 +18,5 @@ API 文档不依赖 CDN 或脚本。启动 `APP_API_DOCS=true build/bin/server` 
 安装数据库输入使用 DatabaseInput 结构化字段；dsn 仅为旧客户端兼容，禁止混传。verifyDatabase 返回 DatabaseCheck；rotateInstallToken 需当前安装凭据。清空库名、归属保护与持久化是服务端业务不变量，见 [安装规范](../00-product/feature-installation.md)。
 
 文件流式接口显式声明 streamingUpload / signedDownload，并使用 application/octet-stream 的 binary schema。生成器区分 JSON 与二进制，SDK 专用上传流程负责流和时限；不要把原始文件描述为 JSON，不能全局提高 JSON body limit。私有签名下载由文件服务每次校验状态/时效，route policy 的 public 仅表示不用 Cookie。
+
+两域使用固定路径和 identityRealm 元数据，见 [ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md)。管理员 auth/bootstrap 可公开最小投影，本人 account 必须管理员会话；其余管理资源必须声明 permissions/superAdmin。禁止身份请求头选域或跨域重试。

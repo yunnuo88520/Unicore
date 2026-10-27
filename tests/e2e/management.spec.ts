@@ -51,7 +51,7 @@ test('management groups, modal creation, independent logins and avatar password 
  await nav('授权与更新');await expect(page.getByText('待对接',{exact:true})).toBeVisible();
  const member=await context.newPage();await member.goto(instance.url);await login(member,'sharedname','administrator-password-strong');await expect(member.getByRole('alert')).toContainText('账号或密码不正确');
  await login(member,'sharedname','member-password-strong');await expect(member.getByRole('button',{name:'运行用例',exact:true})).toBeVisible();
- const adminBoot=(await(await page.request.get(`${instance.url}/api/v1/bootstrap`,{headers:{'X-Unicore-Identity':'administrator'}})).json()).data;
+ const adminBoot=(await(await page.request.get(`${instance.url}/api/v1/admin/bootstrap`,{headers:{}})).json()).data;
  const memberBoot=(await(await member.request.get(`${instance.url}/api/v1/bootstrap`)).json()).data;
  expect(adminBoot.current_user.roles).toEqual(['super_admin']);expect(memberBoot.current_user.roles).toEqual(['user']);expect(adminBoot.current_user.id).not.toBe(memberBoot.current_user.id);
  expect((await member.request.post(`${instance.url}/api/v1/account/password`,{data:{current_password:'member-password-strong',password:'changed-member-password'}})).status()).toBe(403);
@@ -60,7 +60,7 @@ test('management groups, modal creation, independent logins and avatar password 
  await password.getByLabel('确认新密码',{exact:true}).fill('changed-member-password');await password.getByRole('button',{name:'保存新密码',exact:true}).click();await expect(password.getByRole('alert')).toContainText('账号或密码不正确');
  await password.getByLabel('当前密码',{exact:true}).fill('member-password-strong');await member.screenshot({path:`${directory}/password-dialog.png`});await password.getByRole('button',{name:'保存新密码',exact:true}).click();
  await expect(member.getByRole('heading',{name:'登录 Unicore',exact:true})).toBeVisible();await expect(member.getByText('密码已更新，所有设备的旧会话已退出，请重新登录。',{exact:true})).toBeVisible();
- expect((await page.request.get(`${instance.url}/api/v1/auth/session`,{headers:{'X-Unicore-Identity':'administrator'}})).status()).toBe(200);
+ expect((await page.request.get(`${instance.url}/api/v1/admin/auth/session`,{headers:{}})).status()).toBe(200);
  await login(member,'sharedname','changed-member-password');await expect(member.getByRole('button',{name:'运行用例',exact:true})).toBeVisible();
  await member.getByRole('button',{name:'账号菜单',exact:true}).click();await member.getByRole('button',{name:'退出登录',exact:true}).click();await expect(member.getByRole('heading',{name:'登录 Unicore',exact:true})).toBeVisible();await member.close();
  await page.reload();await expect(page.getByRole('button',{name:'账号菜单',exact:true})).toBeVisible();

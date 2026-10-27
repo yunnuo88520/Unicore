@@ -58,7 +58,7 @@ func TestStandaloneInstallOnceAndRestart(t *testing.T) {
 	if err := store.Row(ctx, store.DB, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='users'").Scan(&count); err != nil || count != 0 {
 		t.Fatal("standalone created users")
 	}
-	if _, err := service.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "site.name", Value: "Persistent"}}}, "local"); err != nil {
+	if _, err := service.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "appearance.theme", Value: "dark"}}}, "local"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := service.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "security.login_captcha", Value: "false"}}}, "local"); err == nil {
@@ -77,7 +77,7 @@ func TestStandaloneInstallOnceAndRestart(t *testing.T) {
 	}
 	defer reopened.Close()
 	_, settings, _, _ := reopened.Services()
-	if value, _ := settings.Value(ctx, "site.name"); value != "Persistent" {
+	if value, _ := settings.Value(ctx, "appearance.theme"); value != "dark" {
 		t.Fatal(value)
 	}
 	_ = reopened.Close()

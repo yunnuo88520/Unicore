@@ -31,12 +31,12 @@ it('persists appearance preference', async () => {
   const settings = { items: [{ key: 'appearance.theme', group: 'appearance', label: '默认主题', value_type: 'string', value: 'system', sensitive: false, configured: true }] };
   api.settings = vi.fn().mockResolvedValue(settings); api.patchSettings = vi.fn().mockResolvedValue(settings);
   render(<Workspace client={api} />);
-  await userEvent.click(await screen.findByRole('button', { name: '基础设置' }));
-  await userEvent.click(await screen.findByRole('tab', { name: '外观设置' }));
+  await userEvent.click(await screen.findByRole('button', { name: '外观设置' }));
   await userEvent.click(screen.getByRole('button', { name: /深色.*柔和低光/ }));
   await userEvent.click(screen.getByRole('button', { name: '保存设置' }));
   await waitFor(() => expect(document.documentElement.dataset.theme).toBe('dark'));
   expect(localStorage.getItem('unicore.theme')).toBe('dark');
+  expect(api.settings).not.toHaveBeenCalled();expect(api.patchSettings).not.toHaveBeenCalled();
 });
 it('offers retry when bootstrap fails', async () => {
   const api = client(); vi.mocked(api.bootstrap).mockRejectedValueOnce(new AppError('NETWORK_ERROR', '服务离线'));

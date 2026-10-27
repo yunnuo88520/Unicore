@@ -136,7 +136,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "user"
   },
   "login": {
     "method": "POST",
@@ -152,7 +153,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "user"
   },
   "session": {
     "method": "GET",
@@ -168,7 +170,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "user"
   },
   "logout": {
     "method": "POST",
@@ -184,7 +187,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": true
+    "csrf": true,
+    "identityRealm": "user"
   },
   "listUsers": {
     "method": "GET",
@@ -202,7 +206,8 @@ export const operations = {
     ],
     "permissionMode": "all",
     "superAdmin": true,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "administrator"
   },
   "createUser": {
     "method": "POST",
@@ -220,7 +225,8 @@ export const operations = {
     ],
     "permissionMode": "all",
     "superAdmin": true,
-    "csrf": true
+    "csrf": true,
+    "identityRealm": "administrator"
   },
   "updateUser": {
     "method": "PATCH",
@@ -238,7 +244,8 @@ export const operations = {
     ],
     "permissionMode": "all",
     "superAdmin": true,
-    "csrf": true
+    "csrf": true,
+    "identityRealm": "administrator"
   },
   "adminSettings": {
     "method": "GET",
@@ -256,7 +263,8 @@ export const operations = {
     ],
     "permissionMode": "all",
     "superAdmin": true,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "administrator"
   },
   "adminPatchSettings": {
     "method": "PATCH",
@@ -274,7 +282,8 @@ export const operations = {
     ],
     "permissionMode": "all",
     "superAdmin": true,
-    "csrf": true
+    "csrf": true,
+    "identityRealm": "administrator"
   },
   "localSettings": {
     "method": "GET",
@@ -322,7 +331,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "user"
   },
   "register": {
     "method": "POST",
@@ -338,7 +348,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "user"
   },
   "requestVerification": {
     "method": "POST",
@@ -354,7 +365,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "user"
   },
   "verifyEmail": {
     "method": "POST",
@@ -370,7 +382,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "user"
   },
   "requestPasswordReset": {
     "method": "POST",
@@ -386,7 +399,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "user"
   },
   "resetPassword": {
     "method": "POST",
@@ -402,7 +416,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "user"
   },
   "testMail": {
     "method": "POST",
@@ -420,7 +435,8 @@ export const operations = {
     ],
     "permissionMode": "all",
     "superAdmin": true,
-    "csrf": true
+    "csrf": true,
+    "identityRealm": "administrator"
   },
   "registerEmailCode": {
     "method": "POST",
@@ -436,7 +452,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "user"
   },
   "requestEmailVerify": {
     "method": "POST",
@@ -452,7 +469,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "user"
   },
   "completeEmailVerify": {
     "method": "POST",
@@ -468,7 +486,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "user"
   },
   "requestEmailReset": {
     "method": "POST",
@@ -484,7 +503,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "user"
   },
   "completeEmailReset": {
     "method": "POST",
@@ -500,7 +520,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "user"
   },
   "requestEmailLogin": {
     "method": "POST",
@@ -516,7 +537,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "user"
   },
   "completeEmailLogin": {
     "method": "POST",
@@ -532,7 +554,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "user"
   },
   "mailTemplates": {
     "method": "GET",
@@ -550,7 +573,8 @@ export const operations = {
     ],
     "permissionMode": "all",
     "superAdmin": true,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "administrator"
   },
   "listRoles": {
     "method": "GET",
@@ -568,7 +592,8 @@ export const operations = {
     ],
     "permissionMode": "all",
     "superAdmin": true,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "administrator"
   },
   "roleOptions": {
     "method": "GET",
@@ -588,7 +613,8 @@ export const operations = {
     ],
     "permissionMode": "any",
     "superAdmin": true,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "administrator"
   },
   "oidcInfo": {
     "method": "GET",
@@ -604,7 +630,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "user"
   },
   "oidcStart": {
     "method": "POST",
@@ -620,7 +647,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "user"
   },
   "oidcAccount": {
     "method": "GET",
@@ -636,7 +664,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "user"
   },
   "oidcLink": {
     "method": "POST",
@@ -652,7 +681,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": true
+    "csrf": true,
+    "identityRealm": "user"
   },
   "oidcUnlink": {
     "method": "POST",
@@ -668,7 +698,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": true
+    "csrf": true,
+    "identityRealm": "user"
   },
   "oidcCheck": {
     "method": "POST",
@@ -686,7 +717,8 @@ export const operations = {
     ],
     "permissionMode": "all",
     "superAdmin": true,
-    "csrf": true
+    "csrf": true,
+    "identityRealm": "administrator"
   },
   "oidcCallback": {
     "method": "GET",
@@ -702,7 +734,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "user"
   },
   "adminBranding": {
     "method": "GET",
@@ -720,7 +753,8 @@ export const operations = {
     ],
     "permissionMode": "all",
     "superAdmin": true,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "administrator"
   },
   "adminUpdateBranding": {
     "method": "PUT",
@@ -739,40 +773,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": true,
     "csrf": true,
-    "maxBodyBytes": 393216
-  },
-  "localBranding": {
-    "method": "GET",
-    "path": "/api/v1/branding",
-    "requestSchema": null,
-    "responseSchema": "BrandingResponse",
-    "binaryRequest": false,
-    "binaryResponse": false,
-    "profiles": [
-      "web-standalone"
-    ],
-    "access": "local",
-    "permissions": [],
-    "permissionMode": "all",
-    "superAdmin": false,
-    "csrf": false
-  },
-  "localUpdateBranding": {
-    "method": "PUT",
-    "path": "/api/v1/branding",
-    "requestSchema": "BrandingInput",
-    "responseSchema": "BrandingResponse",
-    "binaryRequest": false,
-    "binaryResponse": false,
-    "profiles": [
-      "web-standalone"
-    ],
-    "access": "local",
-    "permissions": [],
-    "permissionMode": "all",
-    "superAdmin": false,
-    "csrf": false,
-    "maxBodyBytes": 393216
+    "maxBodyBytes": 393216,
+    "identityRealm": "administrator"
   },
   "rotateInstallToken": {
     "method": "POST",
@@ -807,7 +809,8 @@ export const operations = {
     ],
     "permissionMode": "all",
     "superAdmin": true,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "administrator"
   },
   "createAdministrator": {
     "method": "POST",
@@ -825,7 +828,8 @@ export const operations = {
     ],
     "permissionMode": "all",
     "superAdmin": true,
-    "csrf": true
+    "csrf": true,
+    "identityRealm": "administrator"
   },
   "updateAdministrator": {
     "method": "PATCH",
@@ -843,7 +847,8 @@ export const operations = {
     ],
     "permissionMode": "all",
     "superAdmin": true,
-    "csrf": true
+    "csrf": true,
+    "identityRealm": "administrator"
   },
   "systemLogs": {
     "method": "GET",
@@ -861,7 +866,8 @@ export const operations = {
     ],
     "permissionMode": "all",
     "superAdmin": true,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "administrator"
   },
   "mailJobs": {
     "method": "GET",
@@ -879,7 +885,8 @@ export const operations = {
     ],
     "permissionMode": "all",
     "superAdmin": true,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "administrator"
   },
   "changePassword": {
     "method": "POST",
@@ -895,23 +902,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": true
-  },
-  "administratorOIDCCallback": {
-    "method": "GET",
-    "path": "/api/v1/auth/oidc/administrator-callback",
-    "requestSchema": null,
-    "responseSchema": null,
-    "binaryRequest": false,
-    "binaryResponse": false,
-    "profiles": [
-      "web-platform"
-    ],
-    "access": "public",
-    "permissions": [],
-    "permissionMode": "all",
-    "superAdmin": false,
-    "csrf": false
+    "csrf": true,
+    "identityRealm": "user"
   },
   "storageLocations": {
     "method": "GET",
@@ -929,7 +921,8 @@ export const operations = {
     ],
     "permissionMode": "all",
     "superAdmin": true,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "administrator"
   },
   "createStorageLocation": {
     "method": "POST",
@@ -947,7 +940,8 @@ export const operations = {
     ],
     "permissionMode": "all",
     "superAdmin": true,
-    "csrf": true
+    "csrf": true,
+    "identityRealm": "administrator"
   },
   "updateStorageLocation": {
     "method": "PUT",
@@ -965,7 +959,8 @@ export const operations = {
     ],
     "permissionMode": "all",
     "superAdmin": true,
-    "csrf": true
+    "csrf": true,
+    "identityRealm": "administrator"
   },
   "deleteStorageLocation": {
     "method": "DELETE",
@@ -983,7 +978,8 @@ export const operations = {
     ],
     "permissionMode": "all",
     "superAdmin": true,
-    "csrf": true
+    "csrf": true,
+    "identityRealm": "administrator"
   },
   "testStorageLocation": {
     "method": "POST",
@@ -1001,7 +997,8 @@ export const operations = {
     ],
     "permissionMode": "all",
     "superAdmin": true,
-    "csrf": true
+    "csrf": true,
+    "identityRealm": "administrator"
   },
   "activateStorageLocation": {
     "method": "POST",
@@ -1019,7 +1016,8 @@ export const operations = {
     ],
     "permissionMode": "all",
     "superAdmin": true,
-    "csrf": true
+    "csrf": true,
+    "identityRealm": "administrator"
   },
   "configureStorageBrowser": {
     "method": "POST",
@@ -1037,7 +1035,8 @@ export const operations = {
     ],
     "permissionMode": "all",
     "superAdmin": true,
-    "csrf": true
+    "csrf": true,
+    "identityRealm": "administrator"
   },
   "cleanupFiles": {
     "method": "POST",
@@ -1055,7 +1054,8 @@ export const operations = {
     ],
     "permissionMode": "all",
     "superAdmin": true,
-    "csrf": true
+    "csrf": true,
+    "identityRealm": "administrator"
   },
   "listFiles": {
     "method": "GET",
@@ -1071,7 +1071,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": false
+    "csrf": false,
+    "identityRealm": "user"
   },
   "createFileUpload": {
     "method": "POST",
@@ -1087,7 +1088,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": true
+    "csrf": true,
+    "identityRealm": "user"
   },
   "uploadLocalFile": {
     "method": "PUT",
@@ -1104,7 +1106,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "streamingUpload": true
+    "streamingUpload": true,
+    "identityRealm": "user"
   },
   "completeFileUpload": {
     "method": "POST",
@@ -1120,7 +1123,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": true
+    "csrf": true,
+    "identityRealm": "user"
   },
   "fileAccess": {
     "method": "POST",
@@ -1136,7 +1140,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": true
+    "csrf": true,
+    "identityRealm": "user"
   },
   "deleteFile": {
     "method": "DELETE",
@@ -1152,7 +1157,8 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
-    "csrf": true
+    "csrf": true,
+    "identityRealm": "user"
   },
   "migrateFile": {
     "method": "POST",
@@ -1170,7 +1176,8 @@ export const operations = {
     ],
     "permissionMode": "all",
     "superAdmin": true,
-    "csrf": true
+    "csrf": true,
+    "identityRealm": "administrator"
   },
   "downloadLocalFile": {
     "method": "GET",
@@ -1187,7 +1194,465 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "signedDownload": true
+    "signedDownload": true,
+    "identityRealm": "user"
+  },
+  "administratorOIDCCallback": {
+    "method": "GET",
+    "path": "/api/v1/admin/auth/oidc/callback",
+    "requestSchema": null,
+    "responseSchema": null,
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminBootstrap": {
+    "method": "GET",
+    "path": "/api/v1/admin/bootstrap",
+    "requestSchema": null,
+    "responseSchema": "BootstrapResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminExecute": {
+    "method": "POST",
+    "path": "/api/v1/admin/core/execute",
+    "requestSchema": "ExecuteInput",
+    "responseSchema": "ExecuteResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "admin:access"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "adminCaptcha": {
+    "method": "GET",
+    "path": "/api/v1/admin/auth/captcha",
+    "requestSchema": null,
+    "responseSchema": "CaptchaResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminLogin": {
+    "method": "POST",
+    "path": "/api/v1/admin/auth/login",
+    "requestSchema": "LoginInput",
+    "responseSchema": "SessionResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminSession": {
+    "method": "GET",
+    "path": "/api/v1/admin/auth/session",
+    "requestSchema": null,
+    "responseSchema": "SessionResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminLogout": {
+    "method": "POST",
+    "path": "/api/v1/admin/auth/logout",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "adminAuthPolicy": {
+    "method": "GET",
+    "path": "/api/v1/admin/auth/policy",
+    "requestSchema": null,
+    "responseSchema": "AuthPolicyResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminRequestPasswordReset": {
+    "method": "POST",
+    "path": "/api/v1/admin/auth/password/request",
+    "requestSchema": "EmailRequest",
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminResetPassword": {
+    "method": "POST",
+    "path": "/api/v1/admin/auth/password/reset",
+    "requestSchema": "ResetInput",
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminRequestEmailReset": {
+    "method": "POST",
+    "path": "/api/v1/admin/auth/email/reset/request",
+    "requestSchema": "EmailRequest",
+    "responseSchema": "EmailChallengeResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminCompleteEmailReset": {
+    "method": "POST",
+    "path": "/api/v1/admin/auth/email/reset/complete",
+    "requestSchema": "EmailCodeInput",
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminRequestEmailLogin": {
+    "method": "POST",
+    "path": "/api/v1/admin/auth/email/login/request",
+    "requestSchema": "EmailRequest",
+    "responseSchema": "EmailChallengeResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminCompleteEmailLogin": {
+    "method": "POST",
+    "path": "/api/v1/admin/auth/email/login/complete",
+    "requestSchema": "EmailCodeInput",
+    "responseSchema": "SessionResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminOidcInfo": {
+    "method": "GET",
+    "path": "/api/v1/admin/auth/oidc",
+    "requestSchema": null,
+    "responseSchema": "OIDCInfoResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminOidcStart": {
+    "method": "POST",
+    "path": "/api/v1/admin/auth/oidc/start",
+    "requestSchema": null,
+    "responseSchema": "OIDCStartResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminOidcAccount": {
+    "method": "GET",
+    "path": "/api/v1/admin/account/oidc",
+    "requestSchema": null,
+    "responseSchema": "OIDCInfoResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminOidcLink": {
+    "method": "POST",
+    "path": "/api/v1/admin/account/oidc/link",
+    "requestSchema": "OIDCPasswordInput",
+    "responseSchema": "OIDCStartResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "adminOidcUnlink": {
+    "method": "POST",
+    "path": "/api/v1/admin/account/oidc/unlink",
+    "requestSchema": "OIDCPasswordInput",
+    "responseSchema": "SessionResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "adminChangePassword": {
+    "method": "POST",
+    "path": "/api/v1/admin/account/password",
+    "requestSchema": "ChangePasswordInput",
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "adminListFiles": {
+    "method": "GET",
+    "path": "/api/v1/admin/files",
+    "requestSchema": null,
+    "responseSchema": "FileListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminCreateFileUpload": {
+    "method": "POST",
+    "path": "/api/v1/admin/files/uploads",
+    "requestSchema": "FileUploadInput",
+    "responseSchema": "FileUploadGrantResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "adminUploadLocalFile": {
+    "method": "PUT",
+    "path": "/api/v1/admin/files/uploads/{id}/content",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": true,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "streamingUpload": true,
+    "identityRealm": "administrator"
+  },
+  "adminCompleteFileUpload": {
+    "method": "POST",
+    "path": "/api/v1/admin/files/uploads/{id}/complete",
+    "requestSchema": null,
+    "responseSchema": "FileEntryResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "adminFileAccess": {
+    "method": "POST",
+    "path": "/api/v1/admin/files/{id}/access",
+    "requestSchema": null,
+    "responseSchema": "FileAccessResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "adminDeleteFile": {
+    "method": "DELETE",
+    "path": "/api/v1/admin/files/{id}",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
   }
 } as const;
 export type OperationId = keyof typeof operations;
@@ -1236,8 +1701,6 @@ export interface OperationInputs {
   oidcCallback: undefined;
   adminBranding: undefined;
   adminUpdateBranding: Models.BrandingInput;
-  localBranding: undefined;
-  localUpdateBranding: Models.BrandingInput;
   rotateInstallToken: Models.InstallTokenRotate;
   listAdministrators: undefined;
   createAdministrator: Models.UserCreate;
@@ -1245,7 +1708,6 @@ export interface OperationInputs {
   systemLogs: undefined;
   mailJobs: undefined;
   changePassword: Models.ChangePasswordInput;
-  administratorOIDCCallback: undefined;
   storageLocations: undefined;
   createStorageLocation: Models.StorageLocationInput;
   updateStorageLocation: Models.StorageLocationInput;
@@ -1262,6 +1724,32 @@ export interface OperationInputs {
   deleteFile: undefined;
   migrateFile: Models.StorageTargetInput;
   downloadLocalFile: undefined;
+  administratorOIDCCallback: undefined;
+  adminBootstrap: undefined;
+  adminExecute: Models.ExecuteInput;
+  adminCaptcha: undefined;
+  adminLogin: Models.LoginInput;
+  adminSession: undefined;
+  adminLogout: undefined;
+  adminAuthPolicy: undefined;
+  adminRequestPasswordReset: Models.EmailRequest;
+  adminResetPassword: Models.ResetInput;
+  adminRequestEmailReset: Models.EmailRequest;
+  adminCompleteEmailReset: Models.EmailCodeInput;
+  adminRequestEmailLogin: Models.EmailRequest;
+  adminCompleteEmailLogin: Models.EmailCodeInput;
+  adminOidcInfo: undefined;
+  adminOidcStart: undefined;
+  adminOidcAccount: undefined;
+  adminOidcLink: Models.OIDCPasswordInput;
+  adminOidcUnlink: Models.OIDCPasswordInput;
+  adminChangePassword: Models.ChangePasswordInput;
+  adminListFiles: undefined;
+  adminCreateFileUpload: Models.FileUploadInput;
+  adminUploadLocalFile: undefined;
+  adminCompleteFileUpload: undefined;
+  adminFileAccess: undefined;
+  adminDeleteFile: undefined;
 }
 export interface OperationData {
   bootstrap: Models.BootstrapResponse['data'];
@@ -1308,8 +1796,6 @@ export interface OperationData {
   oidcCallback: void;
   adminBranding: Models.BrandingResponse['data'];
   adminUpdateBranding: Models.BrandingResponse['data'];
-  localBranding: Models.BrandingResponse['data'];
-  localUpdateBranding: Models.BrandingResponse['data'];
   rotateInstallToken: Models.InstallTokenResponse['data'];
   listAdministrators: Models.UserListResponse['data'];
   createAdministrator: Models.UserResponse['data'];
@@ -1317,7 +1803,6 @@ export interface OperationData {
   systemLogs: Models.AuditLogResponse['data'];
   mailJobs: Models.MailJobListResponse['data'];
   changePassword: Models.ActionResultResponse['data'];
-  administratorOIDCCallback: void;
   storageLocations: Models.StorageLocationListResponse['data'];
   createStorageLocation: Models.StorageLocationResponse['data'];
   updateStorageLocation: Models.StorageLocationResponse['data'];
@@ -1334,4 +1819,30 @@ export interface OperationData {
   deleteFile: Models.ActionResultResponse['data'];
   migrateFile: Models.FileEntryResponse['data'];
   downloadLocalFile: void;
+  administratorOIDCCallback: void;
+  adminBootstrap: Models.BootstrapResponse['data'];
+  adminExecute: Models.ExecuteResponse['data'];
+  adminCaptcha: Models.CaptchaResponse['data'];
+  adminLogin: Models.SessionResponse['data'];
+  adminSession: Models.SessionResponse['data'];
+  adminLogout: Models.ActionResultResponse['data'];
+  adminAuthPolicy: Models.AuthPolicyResponse['data'];
+  adminRequestPasswordReset: Models.ActionResultResponse['data'];
+  adminResetPassword: Models.ActionResultResponse['data'];
+  adminRequestEmailReset: Models.EmailChallengeResponse['data'];
+  adminCompleteEmailReset: Models.ActionResultResponse['data'];
+  adminRequestEmailLogin: Models.EmailChallengeResponse['data'];
+  adminCompleteEmailLogin: Models.SessionResponse['data'];
+  adminOidcInfo: Models.OIDCInfoResponse['data'];
+  adminOidcStart: Models.OIDCStartResponse['data'];
+  adminOidcAccount: Models.OIDCInfoResponse['data'];
+  adminOidcLink: Models.OIDCStartResponse['data'];
+  adminOidcUnlink: Models.SessionResponse['data'];
+  adminChangePassword: Models.ActionResultResponse['data'];
+  adminListFiles: Models.FileListResponse['data'];
+  adminCreateFileUpload: Models.FileUploadGrantResponse['data'];
+  adminUploadLocalFile: Models.ActionResultResponse['data'];
+  adminCompleteFileUpload: Models.FileEntryResponse['data'];
+  adminFileAccess: Models.FileAccessResponse['data'];
+  adminDeleteFile: Models.ActionResultResponse['data'];
 }

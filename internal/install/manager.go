@@ -180,7 +180,7 @@ func (m *Manager) connect(ctx context.Context) (*sqlstore.Store, error) {
 }
 func (m *Manager) attach(store *sqlstore.Store) {
 	m.store = store
-	m.settingService = &settings.Service{Store: store, Profile: m.config.Profile, Secrets: m.secret, Branding: branding.New(store, bloblocal.New(filepath.Join(m.directory, "brand-assets")))}
+	m.settingService = &settings.Service{Store: store, Profile: m.config.Profile, Secrets: m.secret, Branding: nil}
 	if m.config.Profile == runtime.WebPlatform {
 		m.files = &files.Service{Repo: &filesql.Repository{Store: store}, Settings: m.settingService, Secrets: m.secret, Activate: m.settingService.SetStorageActive, Factory: func(l files.Location, c files.Credentials) (blob.Store, error) {
 			if l.Provider == "local" {
@@ -201,7 +201,7 @@ func (m *Manager) attach(store *sqlstore.Store) {
 		m.accounts = &platform.Accounts{Identity: m.identity, Store: repository, Settings: m.settingService, Mail: m.mail, BaseURL: m.config.BaseURL}
 		m.adminAccounts = &platform.Accounts{Administrator: true, Identity: m.administrator, Store: admins, Settings: m.settingService, Mail: m.mail, BaseURL: m.config.BaseURL}
 		m.oidc = &platform.OIDC{Identity: m.identity, Store: repository, Settings: m.settingService, Secrets: m.secret, Provider: oidcadapter.Provider{}, BaseURL: m.config.BaseURL}
-		m.adminOIDC = &platform.OIDC{Identity: m.administrator, Store: admins, Settings: m.settingService, Secrets: m.secret, Provider: oidcadapter.Provider{}, BaseURL: m.config.BaseURL, CallbackPath: "/api/v1/auth/oidc/administrator-callback"}
+		m.adminOIDC = &platform.OIDC{Identity: m.administrator, Store: admins, Settings: m.settingService, Secrets: m.secret, Provider: oidcadapter.Provider{}, BaseURL: m.config.BaseURL, CallbackPath: "/api/v1/admin/auth/oidc/callback"}
 	}
 }
 func (m *Manager) recover(ctx context.Context) error {

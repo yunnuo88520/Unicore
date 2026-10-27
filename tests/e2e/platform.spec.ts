@@ -64,10 +64,10 @@ test('standalone has no administrator and settings persist after reload', async 
   await page.goto(instance.url);
   if (info.project.name === 'mobile') await page.getByRole('button', { name: '打开导航' }).click();
   await expect(page.getByRole('button', { name: '用户管理', exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: '基础设置', exact: true }).click();
-  await page.getByLabel('站点名称').fill('Local saved');
-  await page.getByRole('button', { name: '保存设置' }).click();
-  await expect(page.getByText('设置已保存')).toBeVisible();
-  await page.reload();
-  await expect(page.getByLabel('站点名称')).toHaveValue('Local saved');
+  await page.getByRole('button', { name: '外观设置', exact: true }).click();
+  await page.getByRole('button',{name:/深色.*柔和低光/}).click();
+  await page.getByRole('button',{name:'保存设置',exact:true}).click();
+  await page.reload();await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
+  await expect(page.getByLabel('站点名称')).toHaveCount(0);
+  expect((await page.request.get(`${instance.url}/admin`)).status()).toBe(404);
 });

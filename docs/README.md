@@ -11,6 +11,7 @@ Unicore 将需求、架构、契约、Skills 和验收记录一同维护。AI �
 | 修改页面、会话或表单 | [前端约定](02-standards/frontend.md)、[设计系统](02-standards/design-system.md) |
 | 实例品牌上传与恢复 | [品牌需求](00-product/feature-branding.md)、[ADR-0009](adr/ADR-0009-runtime-branding.md)、[M3b 验收](04-ai/acceptance-m3b.md) |
 | 文件、直传与对象存储 | [需求](00-product/feature-storage.md)、[ADR-0015](adr/ADR-0015-file-storage.md)、[配置/开发手册](03-runbooks/storage.md)、[验收](04-ai/acceptance-storage.md) |
+| 管理端/用户端分离 | [ADR-0016](adr/ADR-0016-separate-client-admin-surfaces.md)、[当前验收](04-ai/acceptance-surfaces.md) |
 | 用户、管理员权限及本地外观 | [角色需求](00-product/feature-roles.md)、[ADR-0014](adr/ADR-0014-separate-identities-management.md)、[管理验收](04-ai/acceptance-management.md) |
 | 首次安装、连接测试与重启恢复 | [安装规范](00-product/feature-installation.md)、[ADR-0013](adr/ADR-0013-installation-experience.md)、[安装验收](04-ai/acceptance-installation.md) |
 | 系统设置与授权/升级占位 | [设置需求](00-product/feature-settings.md)、[ADR-0010](adr/ADR-0010-settings-edition.md)、[设置验收](04-ai/acceptance-settings.md) |

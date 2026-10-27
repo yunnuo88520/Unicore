@@ -1,10 +1,11 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 权限与错误契约
 
-平台默认拒绝：匿名 401，普通用户访问管理 API 为 403。所有管理 API 需实际管理员身份与权限；写操作校验 CSRF/Origin。权限源 internal/platform/roles.go，API/DTO 唯一源 packages/contracts/openapi.json；历史 role_permissions 不授权普通用户。
+平台默认拒绝：匿名 401，普通用户访问管理 API 为 403。管理业务 API 需实际管理员身份与权限；管理员认证前的 bootstrap/auth 仅返回公开最小投影，本人 account 需对应管理员会话；写操作校验 CSRF/Origin。权限源 internal/platform/roles.go，API/DTO 唯一源 packages/contracts/openapi.json；历史 role_permissions 不授权普通用户。
 
 | 权限 | API（均在 /api/v1 下） |
 | --- | --- |
+| admin:access | POST /admin/core/execute |
 | users:read/create/update | GET/POST /admin/users；PATCH /admin/users/{id}，role 必须为 user |
 | administrators:read/create/update | GET/POST /admin/administrators；PATCH /admin/administrators/{id}，role 必须为 super_admin |
 | roles:read | GET /admin/roles；GET /admin/users/role-options，只读固定目录 |
@@ -12,9 +13,9 @@
 | settings:write | PATCH /admin/settings；PUT /admin/branding；POST /admin/settings/mail/test、/admin/settings/oidc/check |
 | logs:read | GET /admin/logs、/admin/mail/jobs |
 
-管理员/普通用户使用不同账号和凭据表。请求头 X-Unicore-Identity: user|administrator 选择域，默认 user，无回退；Cookie 分别为 unicore_session/unicore_administrator_session，HttpOnly/SameSite=Lax，HTTPS origin 时 Secure。管理端点的目标仓库固定，actor 在事务中从管理员表重查，保护最后启用及最后有本地密码管理员。禁止用户角色升降，不提供自定义角色写接口。后台 HTML 为公开登录壳，不因普通用户 Cookie 返回管理信息；API 始终独立鉴权。详见 [ADR-0014](../adr/ADR-0014-separate-identities-management.md)。
+管理员/普通用户使用不同账号和凭据表。固定 API 路径选择域：用户 /api/v1/auth、account、files，管理员 /api/v1/admin/auth、account、files；身份请求头不再生效，无回退；Cookie 分别为 unicore_session/unicore_administrator_session，HttpOnly/SameSite=Lax，HTTPS origin 时 Secure。管理端点的目标仓库固定，actor 在事务中从管理员表重查，保护最后启用及最后有本地密码管理员。禁止用户角色升降，不提供自定义角色写接口。后台 HTML 为公开登录壳，不因普通用户 Cookie 返回管理信息；API 始终独立鉴权。详见 [ADR-0014](../adr/ADR-0014-separate-identities-management.md)。
 
-POST /account/password 仅当前域登录账号，需 CSRF/Origin，提交 current_password/password（新密码 12–128 位）。旧密码验证及锁内密码快照复核后更新，撤销该账号的当前域会话/账号挑战，清除对应 Cookie，重新登录；其他域不受影响。企业绑定也受当前域限制；两个固定 callback 使用独立浏览器证明 Cookie，管理员不允许 JIT。
+POST /account/password 与 /admin/account/password 分别仅对应域登录账号，需 CSRF/Origin，提交 current_password/password（新密码 12–128 位）。旧密码验证及锁内密码快照复核后更新，撤销该账号的当前域会话/账号挑战，清除对应 Cookie，重新登录；其他域不受影响。企业绑定也受当前域限制；两个固定 callback 使用独立浏览器证明 Cookie，管理员不允许 JIT。
 
 普通用户可以调用 Core、本人账号与本地外观，不能读取全局设置。平台 appearance.theme 不注册，PATCH 拒绝；外观只写当前客户端。单机/桌面没有平台表/认证接口，CLI 没有设置或 DB 强依赖。
 
@@ -26,4 +27,6 @@ POST /account/password 仅当前域登录账号，需 CSRF/Origin，提交 curre
 
 系统日志当前仅最近 50 条操作与最近 30 条邮件任务；未提供完整检索/导出/日志采集平台。授权与更新仅占位，没有真实检查/OTA API。相关恢复与升级见 [部署手册](../03-runbooks/deployment.md)。
 
-对象存储：storage:read / storage:write 固定管理员，所有 /admin/storage/* 与 /admin/files/* 独立鉴权。/files 本人身份域或管理员可用，匿名/他人文件统一 404；本地 content 只接受短期签名，不接受文件名或磁盘路径。完整接口见 OpenAPI，流式上传声明 streamingUpload，签名下载声明 signedDownload。
+对象存储：storage:read / storage:write 固定管理员，所有 /admin/storage/* 与 /admin/files/* 独立鉴权。/files 仅普通用户本人身份域，/admin/files 使用管理员域并校验存储权限；未登录返回 401，非本人文件返回 404；本地 content 只接受短期签名，不接受文件名或磁盘路径。完整接口见 OpenAPI，流式上传声明 streamingUpload，签名下载声明 signedDownload。
+
+当前双入口、单机边界和升级兼容说明见 [ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md)。

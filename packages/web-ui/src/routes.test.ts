@@ -18,6 +18,8 @@ it('guards platform pages by profile and permission while allowing local setting
   metadata.profile = 'web-platform';
   expect(canAccess('roles', metadata)).toBe(false);
   metadata.current_user!.roles=['super_admin'];
+  expect(canAccess('roles', metadata)).toBe(false);
+  metadata.identity_realm='administrator';
   expect(canAccess('roles', metadata)).toBe(true);
   expect(canAccess('users', metadata)).toBe(false);
 });

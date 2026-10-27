@@ -29,6 +29,7 @@ import (
 )
 
 const sessionCookie = "unicore_session"
+const administratorSessionCookie = "unicore_administrator_session"
 
 func failure(w http.ResponseWriter, status int, code, message string) {
 	writeJSON(w, status, contracts.ErrorResponse{Code: code, Message: message, RequestID: w.Header().Get("X-Request-ID")})
@@ -172,11 +173,11 @@ func sameOrigin(w http.ResponseWriter, r *http.Request) bool {
 	return true
 }
 func administratorRequest(r *http.Request) bool {
-	return r.Header.Get("X-Unicore-Identity") == "administrator"
+	return strings.HasPrefix(r.URL.Path, "/api/v1/admin/")
 }
 func identityCookie(r *http.Request) string {
 	if administratorRequest(r) {
-		return "unicore_administrator_session"
+		return administratorSessionCookie
 	}
 	return sessionCookie
 }
@@ -200,6 +201,16 @@ func require(manager *install.Manager, w http.ResponseWriter, r *http.Request, p
 	}
 	session, err := identity.Session(r.Context(), rawSession(r))
 	if err != nil {
+		if administratorRequest(r) && rawSession(r) == "" {
+			if cookie, e := r.Cookie(sessionCookie); e == nil {
+				if userIdentity := manager.Identity(false); userIdentity != nil {
+					if _, e = userIdentity.Session(r.Context(), cookie.Value); e == nil {
+						webError(w, platform.ErrForbidden)
+						return session, false
+					}
+				}
+			}
+		}
 		failure(w, 401, "AUTH_REQUIRED", contracts.ErrorCatalog["AUTH_REQUIRED"].Message)
 		return session, false
 	}
@@ -220,7 +231,11 @@ func coreAccess(manager *install.Manager, w http.ResponseWriter, r *http.Request
 	}
 	_, _, _, profile := manager.Services()
 	if profile == runtime.WebPlatform {
-		_, ok := require(manager, w, r, "")
+		permission := ""
+		if administratorRequest(r) {
+			permission = "admin:access"
+		}
+		_, ok := require(manager, w, r, permission)
 		return ok
 	}
 	return true
@@ -231,8 +246,10 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 	data := runtime.Metadata(profile, config.Metadata.DeploymentKind)
 	data.Stage = "M3b"
 	data.Installed = config.Install.Installed()
-	data.SiteName = "Unicore"
-	data.AdminPath = config.Install.AdminPath(r.Context())
+	data.AdminPath = ""
+	if administratorRequest(r) {
+		data.AdminPath = config.Install.AdminPath(r.Context())
+	}
 	realm := "user"
 	if administratorRequest(r) {
 		realm = "administrator"
@@ -242,7 +259,7 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 	data.Capabilities.Database = data.Installed
 	data.Capabilities.Settings = data.Installed
 	data.Capabilities.Authentication = data.Installed && identity != nil
-	if service != nil {
+	if service != nil && profile == runtime.WebPlatform {
 		if service.Branding != nil {
 			if value, err := service.Branding.Snapshot(r.Context(), false); err == nil {
 				data.Branding = &value
@@ -276,7 +293,10 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 	return data
 }
 func setSession(manager *install.Manager, w http.ResponseWriter, token string, expires int, r *http.Request) {
-	http.SetCookie(w, &http.Cookie{Name: identityCookie(r), Value: token, Path: "/", HttpOnly: true, Secure: strings.HasPrefix(manager.BaseURL(), "https://"), SameSite: http.SameSiteLaxMode, Expires: time.Unix(int64(expires), 0), MaxAge: expires - int(time.Now().Unix())})
+	setSessionCookie(manager, w, token, expires, identityCookie(r))
+}
+func setSessionCookie(manager *install.Manager, w http.ResponseWriter, token string, expires int, name string) {
+	http.SetCookie(w, &http.Cookie{Name: name, Value: token, Path: "/", HttpOnly: true, Secure: strings.HasPrefix(manager.BaseURL(), "https://"), SameSite: http.SameSiteLaxMode, Expires: time.Unix(int64(expires), 0), MaxAge: expires - int(time.Now().Unix())})
 }
 func ip(r *http.Request) string {
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
@@ -350,97 +370,16 @@ func mountWeb(api chi.Router, config Config) {
 		}
 		if user.ID != "" {
 			identity := manager.Identity(true)
-			r.Header.Set("X-Unicore-Identity", "administrator")
 			session, token, err := identity.Issue(ctx, user, 24)
 			if err != nil {
 				failure(w, 500, "INSTALL_COMMITTED", "安装已完成，请前往登录页面")
 				return
 			}
-			setSession(manager, w, token, session.ExpiresAt, r)
+			setSessionCookie(manager, w, token, session.ExpiresAt, administratorSessionCookie)
 		}
 		success(w, result)
 	})
-	api.Get("/auth/captcha", func(w http.ResponseWriter, r *http.Request) {
-		identity := manager.Identity(administratorRequest(r))
-		if identity == nil {
-			failure(w, 404, "NOT_FOUND", "接口不存在")
-			return
-		}
-		if !limiter.Allow("captcha:"+ip(r), 30, time.Minute) {
-			webError(w, platform.ErrRateLimited)
-			return
-		}
-		id, image := identity.Captchas.Create()
-		if id == "" {
-			webError(w, platform.ErrRateLimited)
-			return
-		}
-		success(w, contracts.Captcha{ID: id, Image: image})
-	})
-	api.Post("/auth/login", func(w http.ResponseWriter, r *http.Request) {
-		_, service, _, _ := manager.Services()
-		identity := manager.Identity(administratorRequest(r))
-		if identity == nil {
-			failure(w, 404, "NOT_FOUND", "接口不存在")
-			return
-		}
-		var input contracts.LoginInput
-		if !decode(w, r, &input) {
-			return
-		}
-		captcha, err := service.Value(r.Context(), "security.login_captcha")
-		if err != nil {
-			webError(w, err)
-			return
-		}
-		hoursValue, err := service.Value(r.Context(), "security.session_hours")
-		if err != nil {
-			webError(w, err)
-			return
-		}
-		hours, _ := strconv.Atoi(hoursValue)
-		session, token, err := identity.Login(r.Context(), input, ip(r), captcha == "true", hours)
-		if err != nil {
-			webError(w, err)
-			return
-		}
-		setSession(manager, w, token, session.ExpiresAt, r)
-		success(w, session)
-	})
-	api.Get("/auth/session", func(w http.ResponseWriter, r *http.Request) {
-		if session, ok := require(manager, w, r, ""); ok {
-			success(w, session)
-		}
-	})
-	api.Post("/auth/logout", func(w http.ResponseWriter, r *http.Request) {
-		if _, ok := require(manager, w, r, ""); !ok {
-			return
-		}
-		identity := manager.Identity(administratorRequest(r))
-		if err := identity.Store.DeleteSession(r.Context(), platform.Hash(rawSession(r))); err != nil {
-			webError(w, err)
-			return
-		}
-		http.SetCookie(w, &http.Cookie{Name: identityCookie(r), Path: "/", HttpOnly: true, Secure: strings.HasPrefix(manager.BaseURL(), "https://"), SameSite: http.SameSiteLaxMode, MaxAge: -1})
-		success(w, contracts.ActionResult{Success: true})
-	})
-	api.Post("/account/password", func(w http.ResponseWriter, r *http.Request) {
-		actor, ok := require(manager, w, r, "")
-		if !ok {
-			return
-		}
-		var input contracts.ChangePasswordInput
-		if !decode(w, r, &input) {
-			return
-		}
-		identity := manager.Identity(administratorRequest(r))
-		if err := identity.ChangePassword(r.Context(), actor.User, input, ip(r)); err != nil {
-			webError(w, err)
-			return
-		}
-		http.SetCookie(w, &http.Cookie{Name: identityCookie(r), Path: "/", HttpOnly: true, Secure: strings.HasPrefix(manager.BaseURL(), "https://"), SameSite: http.SameSiteLaxMode, MaxAge: -1})
-		success(w, contracts.ActionResult{Success: true})
-	})
+	mountAuthentication(api, config)
 	api.Get("/admin/logs", func(w http.ResponseWriter, r *http.Request) {
 		if _, ok := require(manager, w, r, "logs:read"); !ok {
 			return

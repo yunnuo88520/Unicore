@@ -11,6 +11,7 @@ import (
 var Assets embed.FS
 
 type Policy struct {
+	IdentityRealm   string   `json:"identityRealm"`
 	StreamingUpload bool     `json:"streamingUpload"`
 	SignedDownload  bool     `json:"signedDownload"`
 	MaxBodyBytes    int      `json:"maxBodyBytes"`

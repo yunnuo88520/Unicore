@@ -1,6 +1,8 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # ADR-0009：实例品牌使用规范化图片和持久引用
 
+当前入口与单机范围以 [ADR-0016](ADR-0016-separate-client-admin-surfaces.md) 为准，以下保留原决策背景。
+
 状态：接受 · 日期：2026-10-26 · 作者：yunnuo / ymz@ebox.vip
 
 编译品牌由 identity.json/tokens.json 生成，但实例管理员还需要在运行时替换网站和邮件品牌。选择文件存储规范化 PNG、DB 保存内容哈希引用；不将 base64 塞入 MySQL TEXT，不修改生成静态资源，不允许原样 SVG 执行。

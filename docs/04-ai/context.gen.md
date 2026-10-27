@@ -26,6 +26,8 @@
 | migrations | [migrations](../../migrations) |
 | decisions | [docs/adr](../../docs/adr) |
 | status | [docs/04-ai/foundation-audit.md](../../docs/04-ai/foundation-audit.md) |
+| version | [VERSION](../../VERSION) |
+| release | [docs/03-runbooks/release.md](../../docs/03-runbooks/release.md) |
 
 OpenAPI 当前包含 51 个 operation、71 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
 
@@ -51,5 +53,8 @@ OpenAPI 当前包含 51 个 operation、71 个 schema。Go/TS 模型、调用描
 - pages：`make test-e2e`
 - native：`make build-desktop`
 - docs：`make docs`
+- package：`make package`
+- image：`make docker-build`
+- deploy：`make test-deploy`
 
 不保存凭据到上下文或验收记录。任务记录使用 [任务模板](task-template.md)，交付记录须区分实测、未测与未来目标。

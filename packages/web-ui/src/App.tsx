@@ -45,7 +45,7 @@ function App({ client, registry, notice }: { client: AppClient; registry: Dashbo
   const refresh = () => { setRoute(window.location.hash); void metadata.refetch(); };
   const permissions = metadata.data?.current_user?.permissions ?? [];
   const permitted = canAccess(page, metadata.data);
-  if (metadata.data?.capabilities.installation && !metadata.data.installed && client.web) return <InstallWizard web={client.web} onDone={() => { window.history.replaceState({}, '', '/'); navigate('overview'); refresh(); }} />;
+  if (metadata.data?.capabilities.installation && !metadata.data.installed && client.web) return <InstallWizard web={client.web} initialProfile={metadata.data.profile} onDone={() => { window.history.replaceState({}, '', '/'); navigate('overview'); refresh(); }} />;
   if (metadata.data?.capabilities.authentication && (!metadata.data.current_user || /^#(verify-email|reset-password)(\?|$)/.test(route)) && client.web) return <div className="account-layout"><LoginPage key={route} web={client.web} siteName={metadata.data.site_name} onDone={refresh} notice={notice} /><SiteFooter metadata={metadata.data} compact /></div>;
   return <div className="app-shell">
     <a className="skip-link" href="#main-content" onClick={event => { event.preventDefault(); document.getElementById('main-content')?.focus(); }}>跳至主要内容</a>

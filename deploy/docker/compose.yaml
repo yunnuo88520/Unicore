@@ -1,16 +1,27 @@
 # Author: yunnuo <ymz@ebox.vip>
 services:
   app:
+    image: ${UNICORE_IMAGE:-unicore:local}
     build:
       context: ../..
       dockerfile: deploy/docker/Dockerfile
+      args:
+        VERSION: ${UNICORE_VERSION:?Run make compose-up to read VERSION}
+        COMMIT: ${UNICORE_COMMIT:-dev}
+        BUILD_TIME: ${UNICORE_BUILD_TIME:-unknown}
+        FEATURE_LICENSE: ${FEATURE_LICENSE:-false}
+        FEATURE_UPDATER: ${FEATURE_UPDATER:-false}
+        GO_IMAGE: ${GO_IMAGE:-golang:1.26-bookworm}
+        NODE_IMAGE: ${NODE_IMAGE:-node:22-bookworm-slim}
+        RUNTIME_IMAGE: ${RUNTIME_IMAGE:-gcr.io/distroless/static-debian12:nonroot}
     ports:
-      - "127.0.0.1:8088:8080"
+      - "127.0.0.1:${UNICORE_PORT:-8088}:8080"
     volumes:
       - unicore_data:/data
     read_only: true
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
     restart: unless-stopped
+    stop_grace_period: 15s
 volumes:
   unicore_data:

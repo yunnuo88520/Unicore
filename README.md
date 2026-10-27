@@ -3,7 +3,7 @@
 
 **一份 Go Core，一套 React UI，连接 Web、桌面与 CLI。**
 
-作者：yunnuo · ymz@ebox.vip · 版本：0.1.0 开发预览 · 当前阶段：M3a
+作者：yunnuo · ymz@ebox.vip · 版本：[VERSION](VERSION) · 开发预览
 
 已实现共享文本分析 Core、Chi HTTP、Wails v2 桌面、Cobra CLI，以及 Web 一次性安装、SQLite/PostgreSQL/MySQL、平台本地登录/RBAC/用户管理、业务角色权限编辑、持久化设置与 SMTP 邮件账号流程。桌面自动创建本地 SQLite，无安装或登录；CLI 无 HTTP/Wails/数据库依赖。
 
@@ -46,7 +46,11 @@ pnpm build
 make build-cli build-desktop
 pnpm exec playwright install chromium
 make build-web && make test-e2e   # 独立实例，真实安装/认证，含 375px
-make release                     # 本地跨平台预览包，不发布或上传
+make release                     # 完整本地归档矩阵
+make package RELEASE_TARGETS=linux/amd64 RELEASE_PROFILES=web-platform
+make docker-build                # 镜像标签自动读取 VERSION
+make compose-up                  # 构建并启动 127.0.0.1:8088
+make version NEW_VERSION=0.1.1    # 准备版本与 Changelog，不发布
 ```
 
 外部 DB 测试只连接显式提供的独立空库：`UNICORE_TEST_POSTGRES_DSN` / `UNICORE_TEST_MYSQL_DSN`。不要使用生产库；CI 有独立 PostgreSQL 15/MySQL 8.0 services。三方言已本机实测；其他 OS 原生 GUI 仍需 CI 验证。
@@ -68,3 +72,5 @@ AI 开发从 [文档入口](docs/README.md) 和 [上下文地图](docs/04-ai/con
 仓库尚未选定开源许可证；采用或再分发前由作者明确条款。
 
 主题和品牌统一由 `assets/theme/tokens.json` 与 `assets/brand/identity.json` 管理。只换主色修改 brand.accent；构建自动同步 Logo、ICO、原生图标与邮件配色。字体、圆角、间距、线宽、动效也有集中入口。
+
+开发与打包完整流程见 [发版手册](docs/03-runbooks/release.md)，宝塔/Nginx、Docker/Compose 与首次安装见 [部署手册](docs/03-runbooks/deployment.md)。演示安装可填写 admin / Admin@123456，框架不预置管理员。部署真实验收记录见 [报告](docs/04-ai/acceptance-deployment.md)。

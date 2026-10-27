@@ -9,6 +9,8 @@ const root=fileURLToPath(new URL('../',import.meta.url));
 const read=path=>readFileSync(`${root}${path}`);
 const identity=JSON.parse(read('assets/brand/identity.json'));
 const config=JSON.parse(read('cmd/desktop/wails.json'));
+const version=read('VERSION').toString().trim();
+if(config.info.productVersion!==version)throw new Error('Native productVersion differs from VERSION; run pnpm version:sync');
 for(const [source,target] of [['icon-1024.png','appicon.png'],['favicon.ico','windows/icon.ico']]){
  if(!read(`assets/brand/${source}`).equals(read(`build/desktop/${target}`)))throw new Error(`${target}: stale native brand asset`);
 }
@@ -24,6 +26,7 @@ if(process.argv.includes('--bundle')&&process.platform==='darwin'){
  const plist=JSON.parse(execFileSync('plutil',['-convert','json','-o','-',`${bundle}/Contents/Info.plist`],{encoding:'utf8'}));
  const expectedID=identity.bundleId+(process.argv.includes('--dev')?'.dev':'');
  if(plist.CFBundleIdentifier!==expectedID||plist.CFBundleDisplayName!==config.name||plist.CFBundleExecutable!==config.outputfilename)throw new Error('Packaged app metadata does not match the product identity');
+ if(plist.CFBundleVersion!==version||plist.CFBundleShortVersionString!==version)throw new Error('Packaged app version differs from VERSION');
  const icns=readFileSync(`${bundle}/Contents/Resources/${plist.CFBundleIconFile}.icns`);
  if(icns.toString('ascii',0,4)!=='icns'||icns.readUInt32BE(4)!==icns.length)throw new Error('Invalid packaged ICNS');
  const chunks=new Map();

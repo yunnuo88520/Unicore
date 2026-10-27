@@ -82,3 +82,5 @@ platform/roles.go 维护权限目录、可委派策略与内置角色规则，pl
 [ADR-0009](../adr/ADR-0009-runtime-branding.md) 定义共享 internal/branding、私有规范化 PNG 与 DB 托管引用。Web/Wails 使用生成 DTO，通过 AppClient 驱动共享预览/保存/恢复面板；BrandProvider 覆盖工作台和账号分支。Web 公开哈希图片，Wails 返回 data URI，无 HTTP 模拟。邮件创建时快照图片字节到加密队列，SMTP CID 和预览同源；存储/清理顺序与恢复边界见 [需求](../00-product/feature-branding.md)。
 
 [ADR-0010](../adr/ADR-0010-settings-edition.md) 补齐 ICP/别名/ICO/内部系统通知队列。internal/edition 按 license/updater tags 编译两个未来接入 port；Vite 编译常量裁剪对应卡片，默认均关闭。当前开启仅显示待接入状态，没有授权/版本 HTTP handler 或 OTA 行为。设置矩阵见 [规范](../00-product/feature-settings.md)。
+
+版本与交付由 VERSION → scripts/version.mjs → 各端投影，Docker/归档读取相同元数据。Nginx 仅直接处理指纹资源，其余请求交 Go 保持安装/身份/动态品牌边界；详见 [ADR-0011](../adr/ADR-0011-release-deployment.md)。

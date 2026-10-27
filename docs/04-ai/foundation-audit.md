@@ -42,3 +42,5 @@ M3b 品牌上传已完成，见 [需求](../00-product/feature-branding.md) 和 
 - `pnpm test:e2e`：16 项全部通过，PC/375px 覆盖安装、平台/单机、账号邮件（隔离 SMTP sink）、用户/角色、OIDC、三态主题及真实 Go 调用；没有重复发送真实 QQ 邮件。沿用逐页浅深主题截图，系统跟随场景另有检查。
 - 真实 server 两次启动同一临时数据目录，live 200，SIGTERM 退出码 0，重启成功，验证组合根释放进程锁。
 - 原生开发模式实际启动，进程身份 vip.ebox.unicore.dev；`pnpm check:native --bundle --dev` 通过。开发版窗口未取得新的 UI 截图：界面工具对同一路径仍解析到生产标识，重新登记单个 app 与重置工具后仍不匹配；没有因此宣称开发版 Dock 已实测。已停止该开发进程，最终恢复生产构建。
+
+2026-10-27 交付补齐：VERSION 单源生成投影、Changelog 准备、目标化归档、Docker/Compose 入口，以及 Tar+Nginx/Docker/Compose 的隔离首次安装与同版本替换实测，见 [部署验收](acceptance-deployment.md) 和 [发版流程](../03-runbooks/release.md)。这不包含正式签名、自动 OTA 或跨版本回滚。

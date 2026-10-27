@@ -2,12 +2,34 @@
   "author": "yunnuo <ymz@ebox.vip>",
   "name": "Unicore",
   "contract": "packages/contracts/openapi.json",
-  "readFirst": ["AGENTS.md", "docs/README.md", "docs/00-product/PRD.md", "docs/01-architecture/architecture.md", "docs/04-ai/development.md"],
+  "readFirst": [
+    "AGENTS.md",
+    "docs/README.md",
+    "docs/00-product/PRD.md",
+    "docs/01-architecture/architecture.md",
+    "docs/04-ai/development.md"
+  ],
   "profiles": {
-    "web-platform": {"entry": "cmd/server", "identity": true, "storage": "SQLite/PostgreSQL/MySQL"},
-    "web-standalone": {"entry": "cmd/server", "identity": false, "storage": "SQLite/PostgreSQL/MySQL"},
-    "desktop": {"entry": "cmd/desktop", "identity": false, "storage": "SQLite"},
-    "cli": {"entry": "cmd/cli", "identity": false, "storage": "none"}
+    "web-platform": {
+      "entry": "cmd/server",
+      "identity": true,
+      "storage": "SQLite/PostgreSQL/MySQL"
+    },
+    "web-standalone": {
+      "entry": "cmd/server",
+      "identity": false,
+      "storage": "SQLite/PostgreSQL/MySQL"
+    },
+    "desktop": {
+      "entry": "cmd/desktop",
+      "identity": false,
+      "storage": "SQLite"
+    },
+    "cli": {
+      "entry": "cmd/cli",
+      "identity": false,
+      "storage": "none"
+    }
   },
   "sources": {
     "contract": "packages/contracts/openapi.json",
@@ -20,7 +42,9 @@
     "session": "packages/web-ui/src/session.tsx",
     "migrations": "migrations",
     "decisions": "docs/adr",
-    "status": "docs/04-ai/foundation-audit.md"
+    "status": "docs/04-ai/foundation-audit.md",
+    "version": "VERSION",
+    "release": "docs/03-runbooks/release.md"
   },
   "commands": {
     "generate": "pnpm generate",
@@ -28,7 +52,22 @@
     "verify": "make test",
     "pages": "make test-e2e",
     "native": "make build-desktop",
-    "docs": "make docs"
+    "docs": "make docs",
+    "package": "make package",
+    "image": "make docker-build",
+    "deploy": "make test-deploy"
   },
-  "skills": ["add-api-operation", "add-cli-command", "add-go-module", "add-platform-permission", "add-react-page", "add-setting", "app-lifecycle", "db-migration", "maintain-framework-docs", "release-cross-platform", "security-review"]
+  "skills": [
+    "add-api-operation",
+    "add-cli-command",
+    "add-go-module",
+    "add-platform-permission",
+    "add-react-page",
+    "add-setting",
+    "app-lifecycle",
+    "db-migration",
+    "maintain-framework-docs",
+    "release-cross-platform",
+    "security-review"
+  ]
 }

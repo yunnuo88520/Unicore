@@ -11,3 +11,11 @@ playwright-report
 **/wailsjs
 .env*
 *.db*
+data
+**/data
+*.key
+**/*.key
+**/bootstrap.token
+**/installation.json
+.agents
+.codex

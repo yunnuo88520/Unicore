@@ -1,21 +1,25 @@
 # Author: yunnuo <ymz@ebox.vip>
 SHELL := /bin/sh
-VERSION := $(shell cat VERSION)
+override VERSION := $(shell cat VERSION)
 COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)
 BUILD_TIME := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 FEATURE_LICENSE ?= false
 FEATURE_UPDATER ?= false
+RELEASE_TARGETS ?= linux/amd64,linux/arm64,darwin/amd64,darwin/arm64,windows/amd64,windows/arm64
+RELEASE_PROFILES ?= web-platform,web-standalone,cli
 export FEATURE_LICENSE FEATURE_UPDATER
+export RELEASE_TARGETS RELEASE_PROFILES
 FEATURE_TAGS = $(strip $(if $(filter true,$(FEATURE_LICENSE)),license) $(if $(filter true,$(FEATURE_UPDATER)),updater))
 LDFLAGS := -X github.com/yunnuo/unicore/internal/buildinfo.Version=$(VERSION) -X github.com/yunnuo/unicore/internal/buildinfo.Commit=$(COMMIT) -X github.com/yunnuo/unicore/internal/buildinfo.BuildTime=$(BUILD_TIME)
 
-.PHONY: install dev-web dev-server dev-desktop dev-cli generate docs test test-e2e test-features build-web build-cli build-desktop build-all release check-features
+.PHONY: install dev-web dev-server dev-desktop dev-cli generate docs test test-e2e test-features build-web build-cli build-desktop build-all release package version docker-build compose-up compose-down test-deploy check-features
 install:
 	pnpm install --frozen-lockfile
 	go mod download
 dev-web:
 	pnpm --filter @unicore/web dev
 dev-server: check-features
+	pnpm version:sync
 	go run -tags '$(FEATURE_TAGS)' ./cmd/server
 dev-desktop: check-features
 	pnpm design:generate
@@ -27,6 +31,8 @@ generate:
 docs: generate
 	pnpm ai:context
 test:
+	pnpm check:version
+	node scripts/test-version.mjs
 	node scripts/build-features.mjs
 	pnpm check:docs
 	pnpm check:design
@@ -56,3 +62,16 @@ build-desktop: check-features
 build-all: build-web build-cli build-desktop
 release:
 	node scripts/release.mjs
+package:
+	node scripts/release.mjs
+version:
+	node scripts/version.mjs --release '$(NEW_VERSION)'
+	$(MAKE) docs
+docker-build:
+	node scripts/container.mjs build
+compose-up:
+	node scripts/container.mjs up
+compose-down:
+	node scripts/container.mjs down
+test-deploy:
+	node scripts/test-deployment.mjs

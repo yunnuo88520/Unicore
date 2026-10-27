@@ -37,3 +37,5 @@ M2c：主题、字号/字体、圆角、间距、图标线宽、动效集中配�
 M2d：业务角色创建/改名/赋权/删除，内置角色固定，核心身份权限不可委派；创建用户按操作者当前权限集合限制授予范围，角色变更事务撤销关联会话和验证码。沿用用户单角色关联。见 [角色需求](feature-roles.md)、[ADR-0006](../adr/ADR-0006-business-roles.md) 和 [验收](../04-ai/acceptance-m2d.md)。
 
 设置按业务域 Tabs 展示，保持单层标签，品牌用三张卡片、外观复用主题预览卡片并移除侧栏重复入口，保留草稿并只保存当前分组，减少页面滚动。设置清单补齐：ICP/独立发件人别名、ICO favicon、共用系统通知模板和内部队列；授权/升级仅编译开关与待接入占位，不执行真实检查或更新。具体范围见 [设置需求](feature-settings.md) 与 [设置验收](../04-ai/acceptance-settings.md)。
+
+交付基座：VERSION 单源生成各端版本、Changelog 准备、按 target/profile 快速归档和镜像/Compose 入口。Nginx 保留安装/后台/品牌路由边界；实际运行范围见 [部署验收](../04-ai/acceptance-deployment.md) 与 [ADR-0011](../adr/ADR-0011-release-deployment.md)。正式签名、自动发布、OTA 和备份恢复仍为后续。

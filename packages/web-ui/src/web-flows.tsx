@@ -15,11 +15,11 @@ function ErrorMessage({ error }: { error: Error | null }) { return error ? <p cl
 function Busy({ pending, children }: { pending: boolean; children: React.ReactNode }) { return <>{pending && <LoaderCircle size={15} className="spin" />}{children}</>; }
 function FlowBrand() { return <div className="flow-brand"><BrandLockup /></div>; }
 
-export function InstallWizard({ web, onDone }: { web: WebClient; onDone: () => void }) {
+export function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initialProfile: Bootstrap['profile']; onDone: () => void }) {
   const status = useQuery({ queryKey: ['install-status'], queryFn: () => web.installStatus() });
   const [step, setStep] = useState(0);
   const [token, setToken] = useState('');
-  const [input, setInput] = useState<InstallInput>({ profile: 'web-standalone', database: { driver: 'sqlite', dsn: '' }, site_name: design.brand.name, base_url: window.location.origin, admin_username: '', admin_email: '', admin_password: '' });
+  const [input, setInput] = useState<InstallInput>({ profile: initialProfile === 'web-platform' ? 'web-platform' : 'web-standalone', database: { driver: 'sqlite', dsn: '' }, site_name: design.brand.name, base_url: window.location.origin, admin_username: '', admin_email: '', admin_password: '' });
   const [result, setResult] = useState<InstallResult>();
   const steps = ['环境与凭据', '运行形态', '数据库', ...(input.profile === 'web-platform' ? ['管理员'] : []), '确认安装'];
   const title = steps[step];

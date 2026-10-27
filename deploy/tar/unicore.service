@@ -1,6 +1,6 @@
 # Author: yunnuo <ymz@ebox.vip>
 [Unit]
-Description=Unicore development server
+Description=Unicore application server
 After=network.target
 
 [Service]
@@ -10,8 +10,11 @@ WorkingDirectory=/var/lib/unicore
 Environment=APP_DEPLOYMENT_KIND=tar
 Environment=APP_LISTEN=127.0.0.1:8080
 Environment=APP_DATA_DIR=/var/lib/unicore
+EnvironmentFile=-/etc/unicore/unicore.env
 ExecStart=/opt/unicore/current/bin/server
 Restart=on-failure
+RestartSec=3
+TimeoutStopSec=15
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true

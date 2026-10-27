@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
-# M3a 运行、安装与恢复边界
+# 运行、安装与恢复边界
 
-M3a 是开发预览，已有安装、身份、持久数据、邮件账号与 OIDC 流程。备份工具/授权/升级尚未实现，正式上线仍需后续验收。
+当前为开发预览，已有安装、身份、持久数据、邮件账号与 OIDC 流程。备份工具/授权/升级尚未实现，正式上线仍需后续验收。
 
 ## Web
 
@@ -35,19 +35,53 @@ M3a 是开发预览，已有安装、身份、持久数据、邮件账号与 OID
 
 CLI 直接运行 `build/bin/unicore execute --text "Hello Unicore"`，不打开 HTTP/Wails/DB。仅业务文本分析无持久化，输入不会写日志。
 
-## tar / Docker
+## Tar / 宝塔 / Nginx
 
-`make release` 生成 Linux 双模式双架构 Web 和三系统双架构 CLI 预览包，包含 metadata/SHA-256。未签名，不可用于自动在线更新。
-
-Nginx root 指向解压包 web/，/api/ 反代 loopback:8080，API 不回退 HTML。systemd 由运维创建 unicore 专用用户和 /var/lib/unicore，数据与密钥保存在该私有目录，服务只对此目录有写权限。
+快速构建、统一版本与发版流程见 [发版手册](release.md)。Linux amd64 服务器使用 `make package RELEASE_TARGETS=linux/amd64 RELEASE_PROFILES=web-platform`，ARM 服务器改 arm64。目标机器无需 Go/Node。核对 checksums.txt 后解压到 `/opt/unicore/releases/<版本>`，让 `/opt/unicore/current` 指向该目录；将数据单独放在 `/var/lib/unicore`，禁止放进公开站点根目录。
 
 ```sh
-docker compose -f deploy/docker/compose.yaml up --build -d
-# 容器内 /data/bootstrap.token 仅用于首次安装；由维护者安全读取
-docker compose -f deploy/docker/compose.yaml down
+# 以下由运维在新服务器执行，路径按实际包名调整
+sudo useradd --system --home /var/lib/unicore --shell /usr/sbin/nologin unicore
+sudo install -d -m 700 -o unicore -g unicore /var/lib/unicore
+sudo cp /opt/unicore/current/deploy/unicore.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now unicore
+sudo -u unicore cat /var/lib/unicore/bootstrap.token
 ```
 
-compose 只映射宿主 loopback:8088，使用命名卷 unicore_data:/data，非 root/read-only image、仅数据卷可写。不要 down -v 删除真实实例卷。Docker 更新由外部 Compose/CI 替换镜像，保留卷；无 socket，不覆盖容器内 binary。当前模板本地 build，正式 pull 需配置镜像仓库。M1 本机镜像构建曾因 Docker Hub 超时失败；M2a 本机仅验证数据库测试容器，完整应用镜像运行仍待验证。
+可选配置文件 `/etc/unicore/unicore.env`（0600）；配置项见上表和 [运行基座](../02-standards/runtime.md)。服务默认只听 127.0.0.1:8080，日志走 journal，排空超时默认 5 秒、systemd 停止等待 15 秒。
+
+普通 Nginx 使用包内 deploy/nginx.conf.example，改 listen/server_name/root 并开启 HTTPS。宝塔创建静态站点，站点目录指向包内 web/，在站点配置中合并该 server 内的 location；不要再叠加宝塔的通用 SPA 伪静态。assets/ 由 Nginx 直接读取，其余路径反代 127.0.0.1:8080 并保留 Host。HTML 壳由 Go 处理以保持 `/install`、自定义后台、品牌/manifest 和文档开关的一致行为；不是将 index.html 直接公开的纯静态托管。替换配置前 `nginx -t`，验证后 reload。宝塔使用自己的 Nginx 可执行文件和面板重载入口。
+
+浏览器首次访问实际域名，必须跳转 `/install`，录入私有 token、实际 HTTPS BaseURL、数据库及管理员。演示可手动设置 `admin / Admin@123456`；生产填写自己的密码，框架不预置账号。安装完成 `/install` 回首页、原 token 失效，设置与账号重启保留。后台默认 `/admin`；修改后旧路径 404。远程单机没有身份模块，需外层认证/ACL。Nginx 另行配置 TLS、边缘限流和访问策略，Go 不将 X-Forwarded-For 视为真实客户端地址。
+
+## Docker / Compose
+
+```sh
+export UNICORE_VERSION="$(cat VERSION)" UNICORE_IMAGE="unicore:$(cat VERSION)"
+make compose-up
+# distroless 没有 shell/cat；复制凭据到权限受限的临时目录后读取
+umask 077
+mkdir -p /tmp/unicore-install-private
+docker compose -f deploy/docker/compose.yaml cp app:/data/bootstrap.token /tmp/unicore-install-private/token
+cat /tmp/unicore-install-private/token
+rm /tmp/unicore-install-private/token
+make compose-down
+```
+
+Compose 每次解析（包括 cp/logs/ps）均需要版本变量：在当前终端先执行 `export UNICORE_VERSION="$(cat VERSION)" UNICORE_IMAGE="unicore:$(cat VERSION)"`，或使用 Make 的 up/down 自动注入。默认访问 127.0.0.1:8088，可用 `UNICORE_PORT=8090 make compose-up` 修改本地端口。公网入口仍由 HTTPS 反代，保留外部 Host；安装 BaseURL 填真实公网 HTTPS origin。live 在未安装时为 200、ready 为 503，安装和数据库可用后 ready 为 200；外部监控应区分这两者。
+
+不用 Compose 时先 `make docker-build`，然后：
+
+```sh
+docker run -d --name unicore --read-only --cap-drop=ALL \
+  --security-opt=no-new-privileges:true --stop-timeout=15 \
+  -p 127.0.0.1:8088:8080 -v unicore_data:/data "unicore:$(cat VERSION)"
+```
+
+镜像为 nonroot，根目录只读，命名卷保存完整 `/data`。已有 bind mount 需要管理员提前设置目录为 UID/GID 65532、0700；框架不会自动放宽权限。数据/密钥/本地 env 不进入 Docker build context。不要 `down -v` 删除真实实例卷。替换镜像由外部 Compose/CI 完成，保留卷；不挂载 socket，不覆盖容器内 binary。
+
+使用预构建镜像可先设置 UNICORE_VERSION/UNICORE_IMAGE，再 `docker compose -f deploy/docker/compose.yaml up -d --no-build --pull always`；正式仓库地址由维护者配置。更新前停服成套备份，替换包 current 链接或镜像后启动、检查 ready、登录与数据。回退受迁移兼容约束，不能只替换旧程序。当前同版本替换与卷保留验收见 [部署验收](../04-ai/acceptance-deployment.md)，自动恢复/签名 OTA 仍未实现。
 
 ## 检查与备份边界
 
@@ -122,6 +156,6 @@ make build-desktop FEATURE_LICENSE=true FEATURE_UPDATER=true
 make release FEATURE_LICENSE=true FEATURE_UPDATER=false
 ```
 
-两项均可独立 true/false，非法值使构建失败。make dev-server/dev-web/dev-desktop 使用相同变量；直接 pnpm/Vite 构建需传入对应 FEATURE_* 环境变量，直接 go build 需对应 -tags license,updater。生产进程启动后修改 FEATURE_* 不会重新引入被裁剪代码。Docker 构建参数为 --build-arg FEATURE_LICENSE=true / --build-arg FEATURE_UPDATER=true，两阶段使用同一输入；本轮只校对模板，未重跑镜像构建。
+两项均可独立 true/false，非法值使构建失败。make dev-server/dev-web/dev-desktop 使用相同变量；直接 pnpm/Vite 构建需传入对应 FEATURE_* 环境变量，直接 go build 需对应 -tags license,updater。生产进程启动后修改 FEATURE_* 不会重新引入被裁剪代码。Docker 构建参数为 --build-arg FEATURE_LICENSE=true / --build-arg FEATURE_UPDATER=true，两阶段使用同一输入；推荐 make docker-build FEATURE_LICENSE=true。镜像实际验收范围见部署验收。
 
 前端产物 features.json 记录编译能力；后端 bootstrap.capabilities 返回相应占位能力，CLI 始终 false。页面同时检查两端能力，任一端关闭都不显示。开启也只是“待对接”卡片、禁用检查按钮、空更新日志，不产生外部请求或执行安装；真实对接后才增加 API/权限/签名与按部署方式的更新流程。测试构建和 E2E 时同样传入相同变量。

@@ -37,7 +37,7 @@ metadata:
 
 ## 托管品牌图片
 
-修改 branding.* 时阅读 [品牌规范](../../../docs/00-product/feature-branding.md) 和 [ADR-0009](../../../docs/adr/ADR-0009-runtime-branding.md)。引用登记于 Definitions，但普通 PATCH 不可写；通过 internal/branding 校验并重编码，再原子写文件、提交引用、按已确认引用清理。不要把图片 base64 存入设置值或改生成资源。Web 返回哈希 URL，Wails 返回 data URI；邮件创建时快照图片。验证替换失败、共用文件、默认恢复、重启和实际页面/桌面。
+修改 branding.* 时阅读 [品牌规范](../../../docs/00-product/feature-branding.md) 和 [ADR-0009](../../../docs/adr/ADR-0009-runtime-branding.md)。引用登记于 Definitions，但普通 PATCH 不可写；通过 internal/branding 校验并重编码，再经注入的 blob.Store 写入、提交引用、按已确认引用清理；平台使用 files 元数据，桌面/单机使用本地 adapter。业务层不直接操作文件系统，另读 [ADR-0015](../../../docs/adr/ADR-0015-file-storage.md)。不要把图片 base64 存入设置值或改生成资源。Web 返回哈希 URL，Wails 返回 data URI；邮件创建时快照图片。验证替换失败、共用文件、默认恢复、重启和实际页面/桌面。
 
 ## 公共站点与邮件设置
 

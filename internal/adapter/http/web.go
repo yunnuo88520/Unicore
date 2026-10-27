@@ -19,6 +19,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/yunnuo/unicore/internal/branding"
 	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/files"
 	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/mailer"
 	"github.com/yunnuo/unicore/internal/platform"
@@ -35,6 +36,16 @@ func failure(w http.ResponseWriter, status int, code, message string) {
 func webError(w http.ResponseWriter, err error) {
 	code := "INTERNAL_ERROR"
 	switch {
+	case errors.Is(err, files.ErrInvalid):
+		code = "FILE_INVALID"
+	case errors.Is(err, files.ErrNotFound):
+		code = "FILE_NOT_FOUND"
+	case errors.Is(err, files.ErrBusy):
+		code = "FILE_BUSY"
+	case errors.Is(err, files.ErrNotReady):
+		code = "STORAGE_NOT_READY"
+	case errors.Is(err, files.ErrUnavailable):
+		code = "STORAGE_UNAVAILABLE"
 	case errors.Is(err, branding.ErrInvalid):
 		code = "BRAND_INVALID"
 	case errors.Is(err, platform.ErrOIDCUnavailable):
@@ -280,6 +291,7 @@ func super(user contracts.User) bool {
 
 func mountWeb(api chi.Router, config Config) {
 	mountBranding(api, config)
+	mountStorage(api, config)
 	manager := config.Install
 	mountAccounts(api, config)
 	mountRoles(api, config)

@@ -88,10 +88,20 @@ func run(args []string) (result error) {
 		defer close(mailDone)
 		ticker := time.NewTicker(time.Second)
 		defer ticker.Stop()
+		fileTicker := time.NewTicker(time.Minute)
+		defer fileTicker.Stop()
 		for {
 			select {
 			case <-workerCtx.Done():
 				return
+			case <-fileTicker.C:
+				if fs := manager.Files(); fs != nil {
+					cleanupCtx, cancel := context.WithTimeout(workerCtx, 30*time.Second)
+					if e := fs.Cleanup(cleanupCtx); e != nil && workerCtx.Err() == nil {
+						logger.Warn("file cleanup unavailable", "event", "files.cleanup_unavailable")
+					}
+					cancel()
+				}
 			case <-ticker.C:
 				if service := manager.Mail(); service != nil {
 					if err := service.Tick(workerCtx, int(time.Now().Unix())); err != nil && workerCtx.Err() == nil {

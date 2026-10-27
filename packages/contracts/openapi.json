@@ -3747,6 +3747,1199 @@
         "security": [],
         "summary": "oidcCallback"
       }
+    },
+    "/api/v1/admin/storage/locations": {
+      "get": {
+        "operationId": "storageLocations",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageLocationListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false
+        },
+        "summary": "storageLocations",
+        "x-permission": "storage:read; administrator only",
+        "parameters": [
+          {
+            "name": "X-Unicore-Identity",
+            "in": "header",
+            "required": false,
+            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "user",
+                "administrator"
+              ]
+            }
+          }
+        ],
+        "description": "管理员读取存储位置与当前默认；不返回密钥。"
+      },
+      "post": {
+        "operationId": "createStorageLocation",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageLocationResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true
+        },
+        "summary": "createStorageLocation",
+        "x-permission": "storage:write; administrator only",
+        "parameters": [
+          {
+            "name": "X-Unicore-Identity",
+            "in": "header",
+            "required": false,
+            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "user",
+                "administrator"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StorageLocationInput"
+              }
+            }
+          }
+        },
+        "description": "创建不可变目标位置；密钥加密存储，需测试后显式激活。"
+      }
+    },
+    "/api/v1/admin/storage/locations/{id}": {
+      "put": {
+        "operationId": "updateStorageLocation",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageLocationResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true
+        },
+        "summary": "updateStorageLocation",
+        "x-permission": "storage:write; administrator only",
+        "parameters": [
+          {
+            "name": "X-Unicore-Identity",
+            "in": "header",
+            "required": false,
+            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "user",
+                "administrator"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StorageLocationInput"
+              }
+            }
+          }
+        },
+        "description": "修改名称或轮换密钥；地址、Bucket 与前缀不允许原地改动。"
+      },
+      "delete": {
+        "operationId": "deleteStorageLocation",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true
+        },
+        "summary": "deleteStorageLocation",
+        "x-permission": "storage:write; administrator only",
+        "parameters": [
+          {
+            "name": "X-Unicore-Identity",
+            "in": "header",
+            "required": false,
+            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "user",
+                "administrator"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            }
+          }
+        ],
+        "description": "仅删除非默认、无文件及待清理任务的位置。"
+      }
+    },
+    "/api/v1/admin/storage/locations/{id}/test": {
+      "post": {
+        "operationId": "testStorageLocation",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true
+        },
+        "summary": "testStorageLocation",
+        "x-permission": "storage:write; administrator only",
+        "parameters": [
+          {
+            "name": "X-Unicore-Identity",
+            "in": "header",
+            "required": false,
+            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "user",
+                "administrator"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            }
+          }
+        ],
+        "description": "在专属随机对象键验证读写、条件复制与删除。"
+      }
+    },
+    "/api/v1/admin/storage/locations/{id}/activate": {
+      "post": {
+        "operationId": "activateStorageLocation",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true
+        },
+        "summary": "activateStorageLocation",
+        "x-permission": "storage:write; administrator only",
+        "parameters": [
+          {
+            "name": "X-Unicore-Identity",
+            "in": "header",
+            "required": false,
+            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "user",
+                "administrator"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            }
+          }
+        ],
+        "description": "仅激活已测试位置，历史文件仍使用各自 location_id。"
+      }
+    },
+    "/api/v1/admin/storage/locations/{id}/browser": {
+      "post": {
+        "operationId": "configureStorageBrowser",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true
+        },
+        "summary": "configureStorageBrowser",
+        "x-permission": "storage:write; administrator only",
+        "parameters": [
+          {
+            "name": "X-Unicore-Identity",
+            "in": "header",
+            "required": false,
+            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "user",
+                "administrator"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StorageMaintenanceInput"
+              }
+            }
+          }
+        },
+        "description": "合并本站 CORS 规则；MinIO 服务级 CORS 已允许本站时只验证，不修改公共读策略。"
+      }
+    },
+    "/api/v1/admin/storage/cleanup": {
+      "post": {
+        "operationId": "cleanupFiles",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true
+        },
+        "summary": "cleanupFiles",
+        "x-permission": "storage:write; administrator only",
+        "parameters": [
+          {
+            "name": "X-Unicore-Identity",
+            "in": "header",
+            "required": false,
+            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "user",
+                "administrator"
+              ]
+            }
+          }
+        ],
+        "description": "处理已到期的文件与持久清理任务，不扫描 Bucket。"
+      }
+    },
+    "/api/v1/files": {
+      "get": {
+        "operationId": "listFiles",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "summary": "listFiles",
+        "x-permission": "owner or administrator; identity realm isolated",
+        "parameters": [
+          {
+            "name": "X-Unicore-Identity",
+            "in": "header",
+            "required": false,
+            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "user",
+                "administrator"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          }
+        ],
+        "description": "普通用户只读取本人所属身份域的文件；管理员可查看实例文件。"
+      }
+    },
+    "/api/v1/files/uploads": {
+      "post": {
+        "operationId": "createFileUpload",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileUploadGrantResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true
+        },
+        "summary": "createFileUpload",
+        "x-permission": "owner or administrator; identity realm isolated",
+        "parameters": [
+          {
+            "name": "X-Unicore-Identity",
+            "in": "header",
+            "required": false,
+            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "user",
+                "administrator"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FileUploadInput"
+              }
+            }
+          }
+        },
+        "description": "生成仅可写临时对象的上传凭证，云存储使用浏览器直传；无需携带实例 Cookie/CSRF 至云。"
+      }
+    },
+    "/api/v1/files/uploads/{id}/content": {
+      "put": {
+        "operationId": "uploadLocalFile",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "streamingUpload": true
+        },
+        "summary": "uploadLocalFile",
+        "x-permission": "owner or administrator; identity realm isolated",
+        "parameters": [
+          {
+            "name": "X-Unicore-Identity",
+            "in": "header",
+            "required": false,
+            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "user",
+                "administrator"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "description": "仅本地模式：带身份和 CSRF 的原始二进制 PUT，长度必须与申请一致。"
+      }
+    },
+    "/api/v1/files/uploads/{id}/complete": {
+      "post": {
+        "operationId": "completeFileUpload",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileEntryResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true
+        },
+        "summary": "completeFileUpload",
+        "x-permission": "owner or administrator; identity realm isolated",
+        "parameters": [
+          {
+            "name": "X-Unicore-Identity",
+            "in": "header",
+            "required": false,
+            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "user",
+                "administrator"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            }
+          }
+        ],
+        "description": "校验临时对象，以 ETag 条件复制到正式对象后标记可用；可幂等重试。"
+      }
+    },
+    "/api/v1/files/{id}/access": {
+      "post": {
+        "operationId": "fileAccess",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileAccessResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true
+        },
+        "summary": "fileAccess",
+        "x-permission": "owner or administrator; identity realm isolated",
+        "parameters": [
+          {
+            "name": "X-Unicore-Identity",
+            "in": "header",
+            "required": false,
+            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "user",
+                "administrator"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            }
+          }
+        ],
+        "description": "验证本人或管理员后发放短期下载地址，默认 300 秒。"
+      }
+    },
+    "/api/v1/files/{id}": {
+      "delete": {
+        "operationId": "deleteFile",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true
+        },
+        "summary": "deleteFile",
+        "x-permission": "owner or administrator; identity realm isolated",
+        "parameters": [
+          {
+            "name": "X-Unicore-Identity",
+            "in": "header",
+            "required": false,
+            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "user",
+                "administrator"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            }
+          }
+        ],
+        "description": "关闭文件访问，待既有签名到期后清理；匿名或他人文件统一返回 404。"
+      }
+    },
+    "/api/v1/admin/files/{id}/migrate": {
+      "post": {
+        "operationId": "migrateFile",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileEntryResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true
+        },
+        "summary": "migrateFile",
+        "x-permission": "storage:write; administrator only",
+        "parameters": [
+          {
+            "name": "X-Unicore-Identity",
+            "in": "header",
+            "required": false,
+            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "user",
+                "administrator"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StorageTargetInput"
+              }
+            }
+          }
+        },
+        "description": "管理员流式迁移并校验摘要，保持 file_id，成功后切换引用并延迟清理原对象。"
+      }
+    },
+    "/api/v1/files/{id}/content": {
+      "get": {
+        "operationId": "downloadLocalFile",
+        "responses": {
+          "200": {
+            "description": "已验证签名的原始文件下载",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "signedDownload": true
+        },
+        "summary": "downloadLocalFile",
+        "x-permission": "short-lived authenticated signature",
+        "parameters": [
+          {
+            "name": "X-Unicore-Identity",
+            "in": "header",
+            "required": false,
+            "description": "Identity realm: user by default; administrator uses separate account/session/recovery tables and cookie. Never falls back to the other realm.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "user",
+                "administrator"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            }
+          },
+          {
+            "name": "expires",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "signature",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          }
+        ],
+        "description": "校验文件状态、有效期与加密签名后，以 attachment 下载本地文件。"
+      }
     }
   },
   "components": {
@@ -5651,6 +6844,528 @@
             "type": "string"
           }
         }
+      },
+      "StorageLocation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "provider",
+          "endpoint",
+          "bucket",
+          "region",
+          "prefix",
+          "path_style",
+          "configured",
+          "tested",
+          "active",
+          "file_count",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "local",
+              "minio",
+              "s3",
+              "oss",
+              "cos"
+            ]
+          },
+          "endpoint": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "bucket": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "region": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "prefix": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "path_style": {
+            "type": "boolean"
+          },
+          "configured": {
+            "type": "boolean"
+          },
+          "tested": {
+            "type": "boolean"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "file_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "created_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        }
+      },
+      "StorageLocationInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "provider",
+          "endpoint",
+          "bucket",
+          "region",
+          "prefix",
+          "path_style",
+          "access_key",
+          "secret_key"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "local",
+              "minio",
+              "s3",
+              "oss",
+              "cos"
+            ]
+          },
+          "endpoint": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "bucket": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "region": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "prefix": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "path_style": {
+            "type": "boolean"
+          },
+          "access_key": {
+            "type": "string",
+            "maxLength": 1024
+          },
+          "secret_key": {
+            "type": "string",
+            "maxLength": 4096
+          }
+        }
+      },
+      "StorageLocationList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "active_id"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StorageLocation"
+            }
+          },
+          "active_id": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      },
+      "StorageTargetInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "location_id"
+        ],
+        "properties": {
+          "location_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1
+          }
+        }
+      },
+      "StorageMaintenanceInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "origin"
+        ],
+        "properties": {
+          "origin": {
+            "type": "string",
+            "maxLength": 2048,
+            "format": "uri"
+          }
+        }
+      },
+      "FileEntry": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "file_id",
+          "original_name",
+          "storage_type",
+          "location_id",
+          "mime_type",
+          "size",
+          "creator_id",
+          "creator_realm",
+          "created_at",
+          "expires_at",
+          "state"
+        ],
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "original_name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "storage_type": {
+            "type": "string",
+            "enum": [
+              "local",
+              "minio",
+              "s3",
+              "oss",
+              "cos"
+            ]
+          },
+          "location_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "mime_type": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1073741824
+          },
+          "creator_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "creator_realm": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "created_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "expires_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "copying",
+              "ready",
+              "deleted"
+            ]
+          }
+        }
+      },
+      "FileList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FileEntry"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          }
+        }
+      },
+      "FileUploadInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "original_name",
+          "mime_type",
+          "size"
+        ],
+        "properties": {
+          "original_name": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1
+          },
+          "mime_type": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1073741824
+          }
+        }
+      },
+      "FileUploadGrant": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "file_id",
+          "url",
+          "method",
+          "headers",
+          "fields",
+          "direct",
+          "expires_at"
+        ],
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 8192
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "PUT",
+              "POST"
+            ]
+          },
+          "headers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "fields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "direct": {
+            "type": "boolean"
+          },
+          "expires_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        }
+      },
+      "FileAccess": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "url",
+          "expires_at"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "maxLength": 8192
+          },
+          "expires_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        }
+      },
+      "StorageLocationListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "data": {
+            "$ref": "#/components/schemas/StorageLocationList"
+          },
+          "request_id": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      },
+      "StorageLocationResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "data": {
+            "$ref": "#/components/schemas/StorageLocation"
+          },
+          "request_id": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      },
+      "FileListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "data": {
+            "$ref": "#/components/schemas/FileList"
+          },
+          "request_id": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      },
+      "FileUploadGrantResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "data": {
+            "$ref": "#/components/schemas/FileUploadGrant"
+          },
+          "request_id": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      },
+      "FileEntryResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "data": {
+            "$ref": "#/components/schemas/FileEntry"
+          },
+          "request_id": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      },
+      "FileAccessResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "data": {
+            "$ref": "#/components/schemas/FileAccess"
+          },
+          "request_id": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
       }
     },
     "securitySchemes": {
@@ -5804,6 +7519,26 @@
     "DATABASE_NOT_EMPTY": {
       "status": 409,
       "message": "目标数据库已有表或视图；请先备份，再明确确认清空初始化"
+    },
+    "STORAGE_UNAVAILABLE": {
+      "status": 503,
+      "message": "存储服务暂时不可用，请检查连接、Bucket 和访问权限"
+    },
+    "STORAGE_NOT_READY": {
+      "status": 409,
+      "message": "存储配置需要先通过读写测试"
+    },
+    "FILE_NOT_FOUND": {
+      "status": 404,
+      "message": "文件不存在或无权访问"
+    },
+    "FILE_INVALID": {
+      "status": 400,
+      "message": "文件名称、类型或大小不符合上传要求"
+    },
+    "FILE_BUSY": {
+      "status": 409,
+      "message": "文件正在处理中，请稍后重试"
     }
   }
 }

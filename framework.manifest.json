@@ -47,7 +47,10 @@
     "release": "docs/03-runbooks/release.md",
     "platformPermissions": "internal/platform/roles.go",
     "authorization": "docs/00-product/feature-roles.md",
-    "installation": "docs/00-product/feature-installation.md"
+    "installation": "docs/00-product/feature-installation.md",
+    "files": "internal/files/service.go",
+    "blob": "internal/blob/store.go",
+    "fileStorage": "docs/03-runbooks/storage.md"
   },
   "commands": {
     "generate": "pnpm generate",
@@ -71,6 +74,7 @@
     "db-migration",
     "maintain-framework-docs",
     "release-cross-platform",
-    "security-review"
+    "security-review",
+    "add-file-storage"
   ]
 }

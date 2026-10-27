@@ -29,3 +29,5 @@ mail.from_name 留空时使用邮件内的站点名称；非空作为测试/账�
 开启后，bootstrap.capabilities 只表示占位模块已编入；不代表授权有效或 OTA 可执行。卡片明确“待对接”，检测/检查版本按钮禁用，更新日志为空。当前不注册授权/升级 API，不创建 license_state/upgrade_history 表，不接受许可证密钥、不联系服务器、不安装更新。后续接入真实服务、返回真实 Update Log 及签名/部署方式校验后才能启用操作，见 [ADR-0010](../adr/ADR-0010-settings-edition.md)。
 
 构建与接入入口见 [部署手册](../03-runbooks/deployment.md)，验收和未测范围见 [设置验收](../04-ai/acceptance-settings.md)。
+
+在线平台新增独立“对象存储”设置页，按本地/MinIO/S3/OSS/COS 单层 Tabs 配置；仅管理员可见，默认本地，测试后显式切换，文件策略登记 storage.*。详见 [文件存储](feature-storage.md) 与 [运行手册](../03-runbooks/storage.md)。

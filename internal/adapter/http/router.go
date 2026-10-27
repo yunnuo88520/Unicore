@@ -61,7 +61,13 @@ func New(config Config) http.Handler {
 			}
 			w.Header().Set("X-Content-Type-Options", "nosniff")
 			w.Header().Set("Referrer-Policy", "same-origin")
-			w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'")
+			connect := "'self'"
+			if config.Install != nil {
+				if fs := config.Install.Files(); fs != nil {
+					connect += " " + strings.Join(fs.Origins(r.Context()), " ")
+				}
+			}
+			w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src "+connect+"; frame-ancestors 'none'; base-uri 'self'")
 			defer func() {
 				if recovered := recover(); recovered != nil {
 					if wrapped.Status() == 0 {

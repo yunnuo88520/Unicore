@@ -19,6 +19,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/yunnuo/unicore/internal/adapter/bloblocal"
 	"github.com/yunnuo/unicore/internal/contracts"
 )
 
@@ -91,7 +92,7 @@ func TestPersistenceFailureAndCleanup(t *testing.T) {
 	ctx := context.Background()
 	store := &memoryStore{values: map[string]string{}}
 	directory := t.TempDir()
-	service := New(store, directory)
+	service := New(store, bloblocal.New(filepath.Join(directory, "brand-assets")))
 	original := imageInput(t, 32, 32, false)
 	first, err := service.Update(ctx, contracts.BrandingInput{Slot: "logo", Content: original}, "actor", false)
 	if err != nil || first.Logo == "" {
@@ -119,7 +120,7 @@ func TestPersistenceFailureAndCleanup(t *testing.T) {
 		t.Fatal("failed save leaked asset")
 	}
 	store.fail = false
-	restarted := New(store, directory)
+	restarted := New(store, bloblocal.New(filepath.Join(directory, "brand-assets")))
 	snapshot, err := restarted.Snapshot(ctx, true)
 	if err != nil || snapshot.Logo != "data:image/png;base64,"+base64.StdEncoding.EncodeToString(data) {
 		t.Fatal("restart lost brand", err)
@@ -145,7 +146,7 @@ func TestPersistenceFailureAndCleanup(t *testing.T) {
 }
 func TestConcurrentSlots(t *testing.T) {
 	store := &memoryStore{values: map[string]string{}}
-	service := New(store, t.TempDir())
+	service := New(store, bloblocal.New(filepath.Join(t.TempDir(), "brand-assets")))
 	input := imageInput(t, 64, 64, false)
 	var wg sync.WaitGroup
 	for _, slot := range Slots {

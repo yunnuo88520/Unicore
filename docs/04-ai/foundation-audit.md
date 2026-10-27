@@ -48,3 +48,5 @@ M3b 品牌上传已完成，见 [需求](../00-product/feature-branding.md) 和 
 2026-10-27 权限收敛：仅管理员/普通用户两角色，全部管理菜单、页面及 API 仅管理员；平台外观只存当前客户端，历史 grant 不授权。当前规则及迁移/页面证据见 [权限需求](../00-product/feature-roles.md) 与 [验收](acceptance-permissions.md)，取代历史 M2d 角色编辑方案。
 
 管理员/普通用户的独立身份、弹窗新增、固定侧栏、邮件/日志分工和头像改密退出以 [ADR-0014](../adr/ADR-0014-separate-identities-management.md) 与 [管理验收](acceptance-management.md) 为当前基线；历史角色升降描述不再适用。
+
+对象存储增量：平台新增 blob/files/filesql 分层、本地默认与 MinIO/S3/OSS/COS adapter、文件元数据、直传和临时访问、迁移与清理，品牌也通过 blob port；见 [需求](../00-product/feature-storage.md)、[ADR-0015](../adr/ADR-0015-file-storage.md) 和 [运行手册](../03-runbooks/storage.md)。真实云端验收以 MinIO 开发环境为限。

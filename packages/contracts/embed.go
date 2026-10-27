@@ -11,13 +11,15 @@ import (
 var Assets embed.FS
 
 type Policy struct {
-	MaxBodyBytes   int      `json:"maxBodyBytes"`
-	Profiles       []string `json:"profiles"`
-	Access         string   `json:"access"`
-	Permissions    []string `json:"permissions"`
-	PermissionMode string   `json:"permissionMode"`
-	SuperAdmin     bool     `json:"superAdmin"`
-	CSRF           bool     `json:"csrf"`
+	StreamingUpload bool     `json:"streamingUpload"`
+	SignedDownload  bool     `json:"signedDownload"`
+	MaxBodyBytes    int      `json:"maxBodyBytes"`
+	Profiles        []string `json:"profiles"`
+	Access          string   `json:"access"`
+	Permissions     []string `json:"permissions"`
+	PermissionMode  string   `json:"permissionMode"`
+	SuperAdmin      bool     `json:"superAdmin"`
+	CSRF            bool     `json:"csrf"`
 }
 
 type Operation struct {

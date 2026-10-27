@@ -524,3 +524,122 @@ type AuditLogResponse struct {
 	Data      AuditLogList `json:"data"`
 	RequestID string       `json:"request_id"`
 }
+
+type StorageLocation struct {
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	Provider   string `json:"provider"`
+	Endpoint   string `json:"endpoint"`
+	Bucket     string `json:"bucket"`
+	Region     string `json:"region"`
+	Prefix     string `json:"prefix"`
+	PathStyle  bool   `json:"path_style"`
+	Configured bool   `json:"configured"`
+	Tested     bool   `json:"tested"`
+	Active     bool   `json:"active"`
+	FileCount  int    `json:"file_count"`
+	CreatedAt  int    `json:"created_at"`
+}
+
+type StorageLocationInput struct {
+	Name      string `json:"name"`
+	Provider  string `json:"provider"`
+	Endpoint  string `json:"endpoint"`
+	Bucket    string `json:"bucket"`
+	Region    string `json:"region"`
+	Prefix    string `json:"prefix"`
+	PathStyle bool   `json:"path_style"`
+	AccessKey string `json:"access_key"`
+	SecretKey string `json:"secret_key"`
+}
+
+type StorageLocationList struct {
+	Items    []StorageLocation `json:"items"`
+	ActiveID string            `json:"active_id"`
+}
+
+type StorageTargetInput struct {
+	LocationID string `json:"location_id"`
+}
+
+type StorageMaintenanceInput struct {
+	Origin string `json:"origin"`
+}
+
+type FileEntry struct {
+	FileID       string `json:"file_id"`
+	OriginalName string `json:"original_name"`
+	StorageType  string `json:"storage_type"`
+	LocationID   string `json:"location_id"`
+	MimeType     string `json:"mime_type"`
+	Size         int    `json:"size"`
+	CreatorID    string `json:"creator_id"`
+	CreatorRealm string `json:"creator_realm"`
+	CreatedAt    int    `json:"created_at"`
+	ExpiresAt    int    `json:"expires_at"`
+	State        string `json:"state"`
+}
+
+type FileList struct {
+	Items    []FileEntry `json:"items"`
+	Total    int         `json:"total"`
+	Page     int         `json:"page"`
+	PageSize int         `json:"page_size"`
+}
+
+type FileUploadInput struct {
+	OriginalName string `json:"original_name"`
+	MimeType     string `json:"mime_type"`
+	Size         int    `json:"size"`
+}
+
+type FileUploadGrant struct {
+	FileID    string            `json:"file_id"`
+	Url       string            `json:"url"`
+	Method    string            `json:"method"`
+	Headers   map[string]string `json:"headers"`
+	Fields    map[string]string `json:"fields"`
+	Direct    bool              `json:"direct"`
+	ExpiresAt int               `json:"expires_at"`
+}
+
+type FileAccess struct {
+	Url       string `json:"url"`
+	ExpiresAt int    `json:"expires_at"`
+}
+
+type StorageLocationListResponse struct {
+	Code      string              `json:"code"`
+	Data      StorageLocationList `json:"data"`
+	RequestID string              `json:"request_id"`
+}
+
+type StorageLocationResponse struct {
+	Code      string          `json:"code"`
+	Data      StorageLocation `json:"data"`
+	RequestID string          `json:"request_id"`
+}
+
+type FileListResponse struct {
+	Code      string   `json:"code"`
+	Data      FileList `json:"data"`
+	RequestID string   `json:"request_id"`
+}
+
+type FileUploadGrantResponse struct {
+	Code      string          `json:"code"`
+	Data      FileUploadGrant `json:"data"`
+	RequestID string          `json:"request_id"`
+}
+
+type FileEntryResponse struct {
+	Code      string    `json:"code"`
+	Data      FileEntry `json:"data"`
+	RequestID string    `json:"request_id"`
+}
+
+type FileAccessResponse struct {
+	Code      string     `json:"code"`
+	Data      FileAccess `json:"data"`
+	RequestID string     `json:"request_id"`
+}

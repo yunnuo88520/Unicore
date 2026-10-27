@@ -25,3 +25,5 @@ POST /account/password 仅当前域登录账号，需 CSRF/Origin，提交 curre
 旧 /auth/register、/auth/verification/{request,complete}、/auth/password/{request,reset} 仅兼容长链接，已 deprecated；无 GET 消费。链接回到对应域入口。模板预览仅管理员内部 API，固定示例码，不在设置显示模板标签；不含真实邮件或 SMTP 密钥。SMTP 敏感值始终为空并附 configured，空 PATCH 保留，clear:true 显式清除；任务列表/审计不包含密钥、正文或验证码。
 
 系统日志当前仅最近 50 条操作与最近 30 条邮件任务；未提供完整检索/导出/日志采集平台。授权与更新仅占位，没有真实检查/OTA API。相关恢复与升级见 [部署手册](../03-runbooks/deployment.md)。
+
+对象存储：storage:read / storage:write 固定管理员，所有 /admin/storage/* 与 /admin/files/* 独立鉴权。/files 本人身份域或管理员可用，匿名/他人文件统一 404；本地 content 只接受短期签名，不接受文件名或磁盘路径。完整接口见 OpenAPI，流式上传声明 streamingUpload，签名下载声明 signedDownload。

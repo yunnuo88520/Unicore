@@ -8,6 +8,8 @@ export const operations = {
     "path": "/api/v1/bootstrap",
     "requestSchema": null,
     "responseSchema": "BootstrapResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform",
       "web-standalone"
@@ -23,6 +25,8 @@ export const operations = {
     "path": "/api/v1/core/execute",
     "requestSchema": "ExecuteInput",
     "responseSchema": "ExecuteResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform",
       "web-standalone"
@@ -38,6 +42,8 @@ export const operations = {
     "path": "/api/v1/health/live",
     "requestSchema": null,
     "responseSchema": "HealthResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform",
       "web-standalone"
@@ -53,6 +59,8 @@ export const operations = {
     "path": "/api/v1/health/ready",
     "requestSchema": null,
     "responseSchema": "HealthResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform",
       "web-standalone"
@@ -68,6 +76,8 @@ export const operations = {
     "path": "/api/v1/install/status",
     "requestSchema": null,
     "responseSchema": "InstallStatusResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform",
       "web-standalone"
@@ -83,6 +93,8 @@ export const operations = {
     "path": "/api/v1/install/verify-db",
     "requestSchema": "DatabaseInput",
     "responseSchema": "DatabaseCheckResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform",
       "web-standalone"
@@ -98,6 +110,8 @@ export const operations = {
     "path": "/api/v1/install/complete",
     "requestSchema": "InstallInput",
     "responseSchema": "InstallResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform",
       "web-standalone"
@@ -113,6 +127,8 @@ export const operations = {
     "path": "/api/v1/auth/captcha",
     "requestSchema": null,
     "responseSchema": "CaptchaResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -127,6 +143,8 @@ export const operations = {
     "path": "/api/v1/auth/login",
     "requestSchema": "LoginInput",
     "responseSchema": "SessionResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -141,6 +159,8 @@ export const operations = {
     "path": "/api/v1/auth/session",
     "requestSchema": null,
     "responseSchema": "SessionResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -155,6 +175,8 @@ export const operations = {
     "path": "/api/v1/auth/logout",
     "requestSchema": null,
     "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -169,6 +191,8 @@ export const operations = {
     "path": "/api/v1/admin/users",
     "requestSchema": null,
     "responseSchema": "UserListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -185,6 +209,8 @@ export const operations = {
     "path": "/api/v1/admin/users",
     "requestSchema": "UserCreate",
     "responseSchema": "UserResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -201,6 +227,8 @@ export const operations = {
     "path": "/api/v1/admin/users/{id}",
     "requestSchema": "UserUpdate",
     "responseSchema": "UserResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -217,6 +245,8 @@ export const operations = {
     "path": "/api/v1/admin/settings",
     "requestSchema": null,
     "responseSchema": "SettingsResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -233,6 +263,8 @@ export const operations = {
     "path": "/api/v1/admin/settings",
     "requestSchema": "SettingPatch",
     "responseSchema": "SettingsResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -249,6 +281,8 @@ export const operations = {
     "path": "/api/v1/settings",
     "requestSchema": null,
     "responseSchema": "SettingsResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-standalone"
     ],
@@ -263,6 +297,8 @@ export const operations = {
     "path": "/api/v1/settings",
     "requestSchema": "SettingPatch",
     "responseSchema": "SettingsResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-standalone"
     ],
@@ -277,6 +313,8 @@ export const operations = {
     "path": "/api/v1/auth/policy",
     "requestSchema": null,
     "responseSchema": "AuthPolicyResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -291,6 +329,8 @@ export const operations = {
     "path": "/api/v1/auth/register",
     "requestSchema": "RegisterInput",
     "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -305,6 +345,8 @@ export const operations = {
     "path": "/api/v1/auth/verification/request",
     "requestSchema": "EmailRequest",
     "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -319,6 +361,8 @@ export const operations = {
     "path": "/api/v1/auth/verification/complete",
     "requestSchema": "TokenInput",
     "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -333,6 +377,8 @@ export const operations = {
     "path": "/api/v1/auth/password/request",
     "requestSchema": "EmailRequest",
     "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -347,6 +393,8 @@ export const operations = {
     "path": "/api/v1/auth/password/reset",
     "requestSchema": "ResetInput",
     "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -361,6 +409,8 @@ export const operations = {
     "path": "/api/v1/admin/settings/mail/test",
     "requestSchema": "MailTestInput",
     "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -377,6 +427,8 @@ export const operations = {
     "path": "/api/v1/auth/email/register",
     "requestSchema": "RegisterInput",
     "responseSchema": "EmailChallengeResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -391,6 +443,8 @@ export const operations = {
     "path": "/api/v1/auth/email/verify/request",
     "requestSchema": "EmailRequest",
     "responseSchema": "EmailChallengeResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -405,6 +459,8 @@ export const operations = {
     "path": "/api/v1/auth/email/verify/complete",
     "requestSchema": "EmailCodeInput",
     "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -419,6 +475,8 @@ export const operations = {
     "path": "/api/v1/auth/email/reset/request",
     "requestSchema": "EmailRequest",
     "responseSchema": "EmailChallengeResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -433,6 +491,8 @@ export const operations = {
     "path": "/api/v1/auth/email/reset/complete",
     "requestSchema": "EmailCodeInput",
     "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -447,6 +507,8 @@ export const operations = {
     "path": "/api/v1/auth/email/login/request",
     "requestSchema": "EmailRequest",
     "responseSchema": "EmailChallengeResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -461,6 +523,8 @@ export const operations = {
     "path": "/api/v1/auth/email/login/complete",
     "requestSchema": "EmailCodeInput",
     "responseSchema": "SessionResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -475,6 +539,8 @@ export const operations = {
     "path": "/api/v1/admin/settings/mail/templates",
     "requestSchema": null,
     "responseSchema": "MailTemplateListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -491,6 +557,8 @@ export const operations = {
     "path": "/api/v1/admin/roles",
     "requestSchema": null,
     "responseSchema": "RoleListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -507,6 +575,8 @@ export const operations = {
     "path": "/api/v1/admin/users/role-options",
     "requestSchema": null,
     "responseSchema": "RoleOptionsResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -525,6 +595,8 @@ export const operations = {
     "path": "/api/v1/auth/oidc",
     "requestSchema": null,
     "responseSchema": "OIDCInfoResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -539,6 +611,8 @@ export const operations = {
     "path": "/api/v1/auth/oidc/start",
     "requestSchema": null,
     "responseSchema": "OIDCStartResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -553,6 +627,8 @@ export const operations = {
     "path": "/api/v1/account/oidc",
     "requestSchema": null,
     "responseSchema": "OIDCInfoResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -567,6 +643,8 @@ export const operations = {
     "path": "/api/v1/account/oidc/link",
     "requestSchema": "OIDCPasswordInput",
     "responseSchema": "OIDCStartResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -581,6 +659,8 @@ export const operations = {
     "path": "/api/v1/account/oidc/unlink",
     "requestSchema": "OIDCPasswordInput",
     "responseSchema": "SessionResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -595,6 +675,8 @@ export const operations = {
     "path": "/api/v1/admin/settings/oidc/check",
     "requestSchema": null,
     "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -611,6 +693,8 @@ export const operations = {
     "path": "/api/v1/auth/oidc/callback",
     "requestSchema": null,
     "responseSchema": null,
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -625,6 +709,8 @@ export const operations = {
     "path": "/api/v1/admin/branding",
     "requestSchema": null,
     "responseSchema": "BrandingResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -641,6 +727,8 @@ export const operations = {
     "path": "/api/v1/admin/branding",
     "requestSchema": "BrandingInput",
     "responseSchema": "BrandingResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -658,6 +746,8 @@ export const operations = {
     "path": "/api/v1/branding",
     "requestSchema": null,
     "responseSchema": "BrandingResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-standalone"
     ],
@@ -672,6 +762,8 @@ export const operations = {
     "path": "/api/v1/branding",
     "requestSchema": "BrandingInput",
     "responseSchema": "BrandingResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-standalone"
     ],
@@ -687,6 +779,8 @@ export const operations = {
     "path": "/api/v1/install/token/rotate",
     "requestSchema": "InstallTokenRotate",
     "responseSchema": "InstallTokenResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform",
       "web-standalone"
@@ -702,6 +796,8 @@ export const operations = {
     "path": "/api/v1/admin/administrators",
     "requestSchema": null,
     "responseSchema": "UserListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -718,6 +814,8 @@ export const operations = {
     "path": "/api/v1/admin/administrators",
     "requestSchema": "UserCreate",
     "responseSchema": "UserResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -734,6 +832,8 @@ export const operations = {
     "path": "/api/v1/admin/administrators/{id}",
     "requestSchema": "UserUpdate",
     "responseSchema": "UserResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -750,6 +850,8 @@ export const operations = {
     "path": "/api/v1/admin/logs",
     "requestSchema": null,
     "responseSchema": "AuditLogResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -766,6 +868,8 @@ export const operations = {
     "path": "/api/v1/admin/mail/jobs",
     "requestSchema": null,
     "responseSchema": "MailJobListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -782,6 +886,8 @@ export const operations = {
     "path": "/api/v1/account/password",
     "requestSchema": "ChangePasswordInput",
     "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -796,6 +902,8 @@ export const operations = {
     "path": "/api/v1/auth/oidc/administrator-callback",
     "requestSchema": null,
     "responseSchema": null,
+    "binaryRequest": false,
+    "binaryResponse": false,
     "profiles": [
       "web-platform"
     ],
@@ -804,6 +912,282 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false
+  },
+  "storageLocations": {
+    "method": "GET",
+    "path": "/api/v1/admin/storage/locations",
+    "requestSchema": null,
+    "responseSchema": "StorageLocationListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false
+  },
+  "createStorageLocation": {
+    "method": "POST",
+    "path": "/api/v1/admin/storage/locations",
+    "requestSchema": "StorageLocationInput",
+    "responseSchema": "StorageLocationResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true
+  },
+  "updateStorageLocation": {
+    "method": "PUT",
+    "path": "/api/v1/admin/storage/locations/{id}",
+    "requestSchema": "StorageLocationInput",
+    "responseSchema": "StorageLocationResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true
+  },
+  "deleteStorageLocation": {
+    "method": "DELETE",
+    "path": "/api/v1/admin/storage/locations/{id}",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true
+  },
+  "testStorageLocation": {
+    "method": "POST",
+    "path": "/api/v1/admin/storage/locations/{id}/test",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true
+  },
+  "activateStorageLocation": {
+    "method": "POST",
+    "path": "/api/v1/admin/storage/locations/{id}/activate",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true
+  },
+  "configureStorageBrowser": {
+    "method": "POST",
+    "path": "/api/v1/admin/storage/locations/{id}/browser",
+    "requestSchema": "StorageMaintenanceInput",
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true
+  },
+  "cleanupFiles": {
+    "method": "POST",
+    "path": "/api/v1/admin/storage/cleanup",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true
+  },
+  "listFiles": {
+    "method": "GET",
+    "path": "/api/v1/files",
+    "requestSchema": null,
+    "responseSchema": "FileListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "createFileUpload": {
+    "method": "POST",
+    "path": "/api/v1/files/uploads",
+    "requestSchema": "FileUploadInput",
+    "responseSchema": "FileUploadGrantResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true
+  },
+  "uploadLocalFile": {
+    "method": "PUT",
+    "path": "/api/v1/files/uploads/{id}/content",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": true,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "streamingUpload": true
+  },
+  "completeFileUpload": {
+    "method": "POST",
+    "path": "/api/v1/files/uploads/{id}/complete",
+    "requestSchema": null,
+    "responseSchema": "FileEntryResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true
+  },
+  "fileAccess": {
+    "method": "POST",
+    "path": "/api/v1/files/{id}/access",
+    "requestSchema": null,
+    "responseSchema": "FileAccessResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true
+  },
+  "deleteFile": {
+    "method": "DELETE",
+    "path": "/api/v1/files/{id}",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true
+  },
+  "migrateFile": {
+    "method": "POST",
+    "path": "/api/v1/admin/files/{id}/migrate",
+    "requestSchema": "StorageTargetInput",
+    "responseSchema": "FileEntryResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true
+  },
+  "downloadLocalFile": {
+    "method": "GET",
+    "path": "/api/v1/files/{id}/content",
+    "requestSchema": null,
+    "responseSchema": null,
+    "binaryRequest": false,
+    "binaryResponse": true,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "signedDownload": true
   }
 } as const;
 export type OperationId = keyof typeof operations;
@@ -862,6 +1246,22 @@ export interface OperationInputs {
   mailJobs: undefined;
   changePassword: Models.ChangePasswordInput;
   administratorOIDCCallback: undefined;
+  storageLocations: undefined;
+  createStorageLocation: Models.StorageLocationInput;
+  updateStorageLocation: Models.StorageLocationInput;
+  deleteStorageLocation: undefined;
+  testStorageLocation: undefined;
+  activateStorageLocation: undefined;
+  configureStorageBrowser: Models.StorageMaintenanceInput;
+  cleanupFiles: undefined;
+  listFiles: undefined;
+  createFileUpload: Models.FileUploadInput;
+  uploadLocalFile: undefined;
+  completeFileUpload: undefined;
+  fileAccess: undefined;
+  deleteFile: undefined;
+  migrateFile: Models.StorageTargetInput;
+  downloadLocalFile: undefined;
 }
 export interface OperationData {
   bootstrap: Models.BootstrapResponse['data'];
@@ -918,4 +1318,20 @@ export interface OperationData {
   mailJobs: Models.MailJobListResponse['data'];
   changePassword: Models.ActionResultResponse['data'];
   administratorOIDCCallback: void;
+  storageLocations: Models.StorageLocationListResponse['data'];
+  createStorageLocation: Models.StorageLocationResponse['data'];
+  updateStorageLocation: Models.StorageLocationResponse['data'];
+  deleteStorageLocation: Models.ActionResultResponse['data'];
+  testStorageLocation: Models.ActionResultResponse['data'];
+  activateStorageLocation: Models.ActionResultResponse['data'];
+  configureStorageBrowser: Models.ActionResultResponse['data'];
+  cleanupFiles: Models.ActionResultResponse['data'];
+  listFiles: Models.FileListResponse['data'];
+  createFileUpload: Models.FileUploadGrantResponse['data'];
+  uploadLocalFile: Models.ActionResultResponse['data'];
+  completeFileUpload: Models.FileEntryResponse['data'];
+  fileAccess: Models.FileAccessResponse['data'];
+  deleteFile: Models.ActionResultResponse['data'];
+  migrateFile: Models.FileEntryResponse['data'];
+  downloadLocalFile: void;
 }

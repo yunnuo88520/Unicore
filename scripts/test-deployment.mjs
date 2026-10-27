@@ -53,7 +53,7 @@ async function exercise(mode,profile) {
       expect(manifest?.sha256).toBe(digest(readFileSync(file)));
       execFileSync('tar',['-xzf',file,'-C',release,'--strip-components=1']);
       expect(readFileSync(join(release,'VERSION'),'utf8').trim()).toBe(version);
-      expect(JSON.parse(readFileSync(join(release,'manifest.json'),'utf8')).migration_level).toBe(profile==='web-platform'?8:1);
+      expect(JSON.parse(readFileSync(join(release,'manifest.json'),'utf8')).migration_level).toBe(profile==='web-platform'?9:1);
       const network=`${name}-network`;networks.add(network);docker(['network','create',network]);
       run.push('--network',network,'--network-alias','backend','-v',`${release}:/release:ro`,'--entrypoint','/release/bin/server','-e','APP_DEPLOYMENT_KIND=tar');
       const config=readFileSync(join(release,'deploy/nginx.conf.example'),'utf8').replace('127.0.0.1:8088','0.0.0.0:80').replace('/opt/unicore/current/web','/release/web').replace('127.0.0.1:8080','backend:8080').replace('add_header Cache-Control','add_header X-Unicore-Static nginx;\n        add_header Cache-Control');

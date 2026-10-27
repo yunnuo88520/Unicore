@@ -14,13 +14,18 @@ import (
 	"time"
 
 	"github.com/gofrs/flock"
+	"github.com/yunnuo/unicore/internal/adapter/blobcloud"
+	"github.com/yunnuo/unicore/internal/adapter/bloblocal"
 	mailadapter "github.com/yunnuo/unicore/internal/adapter/mail"
 	oidcadapter "github.com/yunnuo/unicore/internal/adapter/oidc"
+	"github.com/yunnuo/unicore/internal/adapter/storage/filesql"
 	"github.com/yunnuo/unicore/internal/adapter/storage/platformsql"
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/adapter/storage/webdb"
+	"github.com/yunnuo/unicore/internal/blob"
 	"github.com/yunnuo/unicore/internal/branding"
 	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/files"
 	"github.com/yunnuo/unicore/internal/mailer"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/runtime"
@@ -63,6 +68,7 @@ type Manager struct {
 	accounts       *platform.Accounts
 	oidc           *platform.OIDC
 	mail           *mailer.Service
+	files          *files.Service
 	adminOverride  string
 }
 
@@ -174,8 +180,19 @@ func (m *Manager) connect(ctx context.Context) (*sqlstore.Store, error) {
 }
 func (m *Manager) attach(store *sqlstore.Store) {
 	m.store = store
-	m.settingService = &settings.Service{Store: store, Profile: m.config.Profile, Secrets: m.secret, Branding: branding.New(store, m.directory)}
+	m.settingService = &settings.Service{Store: store, Profile: m.config.Profile, Secrets: m.secret, Branding: branding.New(store, bloblocal.New(filepath.Join(m.directory, "brand-assets")))}
 	if m.config.Profile == runtime.WebPlatform {
+		m.files = &files.Service{Repo: &filesql.Repository{Store: store}, Settings: m.settingService, Secrets: m.secret, Activate: m.settingService.SetStorageActive, Factory: func(l files.Location, c files.Credentials) (blob.Store, error) {
+			if l.Provider == "local" {
+				folder := "files"
+				if l.ID == "legacy-brand" {
+					folder = "brand-assets"
+				}
+				return bloblocal.New(filepath.Join(m.directory, folder)), nil
+			}
+			return blobcloud.New(blobcloud.Config{Provider: l.Provider, Endpoint: l.Endpoint, Bucket: l.Bucket, Region: l.Region, Prefix: l.Prefix, PathStyle: l.PathStyle, AccessKey: c.AccessKey, SecretKey: c.SecretKey})
+		}}
+		m.settingService.Branding = branding.New(store, m.files.BrandStore())
 		repository := &platformsql.Repository{Store: store}
 		admins := &platformsql.Repository{Store: store, Administrators: true}
 		m.identity = platform.New(repository)
@@ -544,3 +561,5 @@ func (m *Manager) OIDCService(admin bool) *platform.OIDC {
 	}
 	return m.oidc
 }
+
+func (m *Manager) Files() *files.Service { m.mu.RLock(); defer m.mu.RUnlock(); return m.files }

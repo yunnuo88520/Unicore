@@ -13,13 +13,11 @@ import (
 	_ "image/jpeg"
 	"image/png"
 	"io"
-	"os"
-	"path/filepath"
 	"regexp"
 	"sync"
 
+	"github.com/yunnuo/unicore/internal/blob"
 	"github.com/yunnuo/unicore/internal/contracts"
-	"github.com/yunnuo/unicore/internal/secret"
 )
 
 const MaxBytes = 256 * 1024
@@ -33,13 +31,13 @@ type Store interface {
 	SaveSettings(context.Context, map[string]string, string) error
 }
 type Service struct {
-	store     Store
-	directory string
-	mu        sync.Mutex
+	store   Store
+	objects blob.Store
+	mu      sync.Mutex
 }
 
-func New(store Store, directory string) *Service {
-	return &Service{store: store, directory: filepath.Join(directory, "brand-assets")}
+func New(store Store, objects blob.Store) *Service {
+	return &Service{store: store, objects: objects}
 }
 func Managed(key string) bool {
 	for _, slot := range Slots {
@@ -103,29 +101,28 @@ func encode(src image.Image, limit int) ([]byte, error) {
 	}
 	return output.Bytes(), nil
 }
-func (s *Service) read(name string) ([]byte, error) {
+func (s *Service) read(ctx context.Context, name string) ([]byte, error) {
 	if !filename.MatchString(name) {
 		return nil, ErrInvalid
 	}
-	file, err := os.Open(filepath.Join(s.directory, name))
+	r, obj, err := s.objects.Open(ctx, name)
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
-	info, err := file.Stat()
-	if err != nil || !info.Mode().IsRegular() || info.Size() > 512*1024 {
+	defer r.Close()
+	if obj.Size > 512*1024 {
 		return nil, ErrInvalid
 	}
-	return io.ReadAll(io.LimitReader(file, 512*1024))
+	return io.ReadAll(io.LimitReader(r, 512*1024))
 }
-func (s *Service) snapshot(values map[string]string, embedded bool) contracts.Branding {
+func (s *Service) snapshot(ctx context.Context, values map[string]string, embedded bool) contracts.Branding {
 	urls := map[string]string{}
 	for _, slot := range Slots {
 		name := values["branding."+slot]
 		if name == "" {
 			continue
 		}
-		data, err := s.read(name)
+		data, err := s.read(ctx, name)
 		if err != nil {
 			continue
 		}
@@ -144,7 +141,7 @@ func (s *Service) Snapshot(ctx context.Context, embedded bool) (contracts.Brandi
 	if err != nil {
 		return contracts.Branding{}, err
 	}
-	return s.snapshot(values, embedded), nil
+	return s.snapshot(ctx, values, embedded), nil
 }
 func (s *Service) Update(ctx context.Context, input contracts.BrandingInput, actor string, embedded bool) (contracts.Branding, error) {
 	if !Managed("branding." + input.Slot) {
@@ -172,34 +169,35 @@ func (s *Service) Update(ctx context.Context, input contracts.BrandingInput, act
 		return contracts.Branding{}, err
 	}
 	if name != "" {
-		if err = os.MkdirAll(s.directory, 0700); err != nil {
-			return contracts.Branding{}, err
-		}
-		if err = secret.AtomicWrite(filepath.Join(s.directory, name), data); err != nil {
+		if _, err = s.objects.Put(ctx, name, bytes.NewReader(data), int64(len(data)), "image/png"); err != nil {
 			return contracts.Branding{}, err
 		}
 	}
 	if err = s.store.SaveSettings(ctx, map[string]string{"branding." + input.Slot: name}, actor); err != nil {
 		if confirmed, readErr := s.store.ReadSettings(ctx); readErr == nil {
-			s.cleanup(confirmed)
+			s.cleanup(ctx, confirmed)
 		}
 		return contracts.Branding{}, err
 	}
 	values["branding."+input.Slot] = name
-	s.cleanup(values)
-	return s.snapshot(values, embedded), nil
+	s.cleanup(ctx, values)
+	return s.snapshot(ctx, values, embedded), nil
 }
 
 // Only remove our hash-named unreferenced files after the DB commit; queued mail carries its own snapshot.
-func (s *Service) cleanup(values map[string]string) {
+func (s *Service) cleanup(ctx context.Context, values map[string]string) {
 	keep := map[string]bool{}
 	for _, slot := range Slots {
 		keep[values["branding."+slot]] = true
 	}
-	entries, _ := os.ReadDir(s.directory)
-	for _, entry := range entries {
-		if !entry.IsDir() && filename.MatchString(entry.Name()) && !keep[entry.Name()] {
-			_ = os.Remove(filepath.Join(s.directory, entry.Name()))
+	lister, ok := s.objects.(blob.Lister)
+	if !ok {
+		return
+	}
+	entries, _ := lister.Keys(ctx)
+	for _, name := range entries {
+		if filename.MatchString(name) && !keep[name] {
+			_ = s.objects.Delete(ctx, name)
 		}
 	}
 }
@@ -215,10 +213,10 @@ func (s *Service) Asset(ctx context.Context, name string) ([]byte, error) {
 	}
 	for _, slot := range Slots {
 		if values["branding."+slot] == name {
-			return s.read(name)
+			return s.read(ctx, name)
 		}
 	}
-	return nil, os.ErrNotExist
+	return nil, blob.ErrNotFound
 }
 func (s *Service) Logo(ctx context.Context) ([]byte, error) {
 	s.mu.Lock()
@@ -231,7 +229,7 @@ func (s *Service) Logo(ctx context.Context) ([]byte, error) {
 	if name == "" {
 		return nil, nil
 	}
-	data, err := s.read(name)
+	data, err := s.read(ctx, name)
 	if err != nil {
 		return nil, err
 	}

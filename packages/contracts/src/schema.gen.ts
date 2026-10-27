@@ -522,3 +522,122 @@ export interface AuditLogResponse {
   data: AuditLogList;
   request_id: string;
 }
+
+export interface StorageLocation {
+  id: string;
+  name: string;
+  provider: "local" | "minio" | "s3" | "oss" | "cos";
+  endpoint: string;
+  bucket: string;
+  region: string;
+  prefix: string;
+  path_style: boolean;
+  configured: boolean;
+  tested: boolean;
+  active: boolean;
+  file_count: number;
+  created_at: number;
+}
+
+export interface StorageLocationInput {
+  name: string;
+  provider: "local" | "minio" | "s3" | "oss" | "cos";
+  endpoint: string;
+  bucket: string;
+  region: string;
+  prefix: string;
+  path_style: boolean;
+  access_key: string;
+  secret_key: string;
+}
+
+export interface StorageLocationList {
+  items: Array<StorageLocation>;
+  active_id: string;
+}
+
+export interface StorageTargetInput {
+  location_id: string;
+}
+
+export interface StorageMaintenanceInput {
+  origin: string;
+}
+
+export interface FileEntry {
+  file_id: string;
+  original_name: string;
+  storage_type: "local" | "minio" | "s3" | "oss" | "cos";
+  location_id: string;
+  mime_type: string;
+  size: number;
+  creator_id: string;
+  creator_realm: string;
+  created_at: number;
+  expires_at: number;
+  state: "pending" | "copying" | "ready" | "deleted";
+}
+
+export interface FileList {
+  items: Array<FileEntry>;
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface FileUploadInput {
+  original_name: string;
+  mime_type: string;
+  size: number;
+}
+
+export interface FileUploadGrant {
+  file_id: string;
+  url: string;
+  method: "PUT" | "POST";
+  headers: Record<string, string>;
+  fields: Record<string, string>;
+  direct: boolean;
+  expires_at: number;
+}
+
+export interface FileAccess {
+  url: string;
+  expires_at: number;
+}
+
+export interface StorageLocationListResponse {
+  code: string;
+  data: StorageLocationList;
+  request_id: string;
+}
+
+export interface StorageLocationResponse {
+  code: string;
+  data: StorageLocation;
+  request_id: string;
+}
+
+export interface FileListResponse {
+  code: string;
+  data: FileList;
+  request_id: string;
+}
+
+export interface FileUploadGrantResponse {
+  code: string;
+  data: FileUploadGrant;
+  request_id: string;
+}
+
+export interface FileEntryResponse {
+  code: string;
+  data: FileEntry;
+  request_id: string;
+}
+
+export interface FileAccessResponse {
+  code: string;
+  data: FileAccess;
+  request_id: string;
+}

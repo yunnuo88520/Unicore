@@ -94,3 +94,7 @@ routes.ts 集中管理员菜单/直达页守卫，settings-page.tsx 将平台本
 React 的独立可折叠导航、共享原生 dialog、头像密码/退出、邮件单页与系统日志由 routes.ts/PageContent 注册；基础设置保持单层业务 Tabs。后台改名同步地址，OIDC 解除不改变当前域路径。共享 shell 适用于 Web/Wails，身份组件仅平台装配。
 
 全局 MessageProvider 位于 SessionBoundary 外，统一五种语义的顶部短消息（默认 3 秒）。QueryScope MutationCache 处理提交异常，业务成功回调提供语义文案；字段错误/可重试加载状态保留在对应页面。消息挂载点跟随原生 dialog，避免顶层遮挡；无平台身份的形态不渲染账号头像。导航二级图标与缩进由共享 shell 管理。
+
+## 文件存储
+
+[ADR-0015](../adr/ADR-0015-file-storage.md)：internal/blob.Store 隔离字节存储，internal/files 通过 Repository/Factory ports 管理元数据、本人身份域权限、临时签名和持久清理；filesql 与 bloblocal/blobcloud 分别适配 SQL 与存储。install 只在平台装配 files/云 adapter，桌面仅注入本地 blob；CLI 无文件/SQL/云依赖。0009 新增位置、文件、清理三表。文件保留 location_id，默认切换不改变旧位置；staging 条件复制完成后才能访问，文件迁移校验成功才切换引用。公开规范化品牌例外保留当前引用路由，并通过平台元数据适配访问。

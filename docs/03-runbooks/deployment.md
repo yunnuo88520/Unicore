@@ -175,3 +175,7 @@ make release FEATURE_LICENSE=true FEATURE_UPDATER=false
 MySQL DDL 可能已提交，失败后保持停服，解决错误并用同版本程序重试，不删除迁移表、不手改 checksum、不重走 /install。数据转移使用防重复复制与幂等删除。需要回退时停服，恢复整套备份与对应旧程序，不能只回退二进制。没有在真实用户库上执行迁移。
 
 普通用户从 / 或 /login 登录；管理员从配置 admin.path（默认 /admin）登录。API 客户端对后台身份显式发送 X-Unicore-Identity: administrator，默认 user；Cookie 分别为 unicore_administrator_session/unicore_session。后台 HTML 可匿名读取登录界面，所有管理 API 仍校验真实管理员。IdP 须同时登记 /api/v1/auth/oidc/callback 与 /api/v1/auth/oidc/administrator-callback；后台地址改名不影响固定回调。管理员禁止 JIT。
+
+## 对象存储与 0009 升级
+
+在线平台启动新增存储位置、文件元数据和持久清理表；保留旧品牌目录，旧引用惰性登记，不自动挪动已有文件。默认本地，管理员测试后才激活云位置；配置、签名访问、跨域、Nginx 上传限制、迁移/清理和恢复边界见 [存储手册](storage.md)。tar/Docker 都把元数据 DB、私有数据目录和实例密钥独立持久化，切换容器或二进制不能丢弃这些数据；云桶需独立备份。

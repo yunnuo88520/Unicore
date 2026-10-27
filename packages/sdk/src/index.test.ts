@@ -62,3 +62,16 @@ it('notifies when a visible anonymous tab discovers a browser callback login', a
   const client=new HttpTransport('',fetcher);const changed=vi.fn();client.subscribeSession(changed);
   await client.bootstrap();expect(changed).not.toHaveBeenCalled();await client.bootstrap();expect(changed).toHaveBeenCalledExactlyOnceWith('external');
 });
+
+it('uploads directly without forwarding platform credentials and confirms only after storage success', async()=>{
+ const envelope=(data:unknown)=>new Response(JSON.stringify({code:'OK',request_id:'storage-test',message:'',data}));
+ const grant={file_id:'f1',url:'https://objects.example.test/private',method:'POST',headers:{},fields:{key:'pending/random',policy:'short-lived'},direct:true,expires_at:9999999999};
+ const fetcher=vi.fn().mockResolvedValueOnce(envelope({profile:'web-platform',current_user:{id:'u1'},csrf_token:'platform-csrf'})).mockResolvedValueOnce(envelope(grant)).mockResolvedValueOnce(new Response(null,{status:204})).mockResolvedValueOnce(envelope({file_id:'f1',state:'ready'}));
+ const client=new HttpTransport('',fetcher);await client.bootstrap();await client.uploadFile(new File(['hello'],'hello.txt',{type:'text/plain'}));
+ const direct=fetcher.mock.calls[2];expect(direct[0]).toBe(grant.url);expect(direct[1].credentials).toBe('omit');expect(new Headers(direct[1].headers).has('X-CSRF-Token')).toBe(false);expect(new Headers(direct[1].headers).has('X-Unicore-Identity')).toBe(false);expect(direct[1].body).toBeInstanceOf(FormData);expect(direct[1].body.get('key')).toBe('pending/random');
+ expect(fetcher.mock.calls[3][0]).toBe('/api/v1/files/uploads/f1/complete');expect(new Headers(fetcher.mock.calls[3][1].headers).get('X-CSRF-Token')).toBe('platform-csrf');
+});
+it('does not confirm a failed direct upload',async()=>{
+ const fetcher=vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({code:'OK',request_id:'upload',data:{file_id:'bad',url:'https://objects.example.test/pending',method:'PUT',headers:{'Content-Type':'text/plain'},fields:{},direct:true}}))).mockResolvedValueOnce(new Response(null,{status:403}));
+ await expect(new HttpTransport('',fetcher).uploadFile(new File(['hello'],'file.txt',{type:'text/plain'}))).rejects.toMatchObject({code:'STORAGE_UPLOAD_FAILED'});expect(fetcher).toHaveBeenCalledTimes(2);
+});

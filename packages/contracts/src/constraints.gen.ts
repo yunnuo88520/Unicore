@@ -1889,5 +1889,527 @@ export const constraints = {
         "type": "string"
       }
     }
+  },
+  "StorageLocation": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "name",
+      "provider",
+      "endpoint",
+      "bucket",
+      "region",
+      "prefix",
+      "path_style",
+      "configured",
+      "tested",
+      "active",
+      "file_count",
+      "created_at"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "name": {
+        "type": "string",
+        "maxLength": 100,
+        "minLength": 1
+      },
+      "provider": {
+        "type": "string",
+        "enum": [
+          "local",
+          "minio",
+          "s3",
+          "oss",
+          "cos"
+        ]
+      },
+      "endpoint": {
+        "type": "string",
+        "maxLength": 2048
+      },
+      "bucket": {
+        "type": "string",
+        "maxLength": 255
+      },
+      "region": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "prefix": {
+        "type": "string",
+        "maxLength": 255
+      },
+      "path_style": {
+        "type": "boolean"
+      },
+      "configured": {
+        "type": "boolean"
+      },
+      "tested": {
+        "type": "boolean"
+      },
+      "active": {
+        "type": "boolean"
+      },
+      "file_count": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      },
+      "created_at": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      }
+    }
+  },
+  "StorageLocationInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "name",
+      "provider",
+      "endpoint",
+      "bucket",
+      "region",
+      "prefix",
+      "path_style",
+      "access_key",
+      "secret_key"
+    ],
+    "properties": {
+      "name": {
+        "type": "string",
+        "maxLength": 100,
+        "minLength": 1
+      },
+      "provider": {
+        "type": "string",
+        "enum": [
+          "local",
+          "minio",
+          "s3",
+          "oss",
+          "cos"
+        ]
+      },
+      "endpoint": {
+        "type": "string",
+        "maxLength": 2048
+      },
+      "bucket": {
+        "type": "string",
+        "maxLength": 255
+      },
+      "region": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "prefix": {
+        "type": "string",
+        "maxLength": 255
+      },
+      "path_style": {
+        "type": "boolean"
+      },
+      "access_key": {
+        "type": "string",
+        "maxLength": 1024
+      },
+      "secret_key": {
+        "type": "string",
+        "maxLength": 4096
+      }
+    }
+  },
+  "StorageLocationList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items",
+      "active_id"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/StorageLocation"
+        }
+      },
+      "active_id": {
+        "type": "string",
+        "maxLength": 64
+      }
+    }
+  },
+  "StorageTargetInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "location_id"
+    ],
+    "properties": {
+      "location_id": {
+        "type": "string",
+        "maxLength": 64,
+        "minLength": 1
+      }
+    }
+  },
+  "StorageMaintenanceInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "origin"
+    ],
+    "properties": {
+      "origin": {
+        "type": "string",
+        "maxLength": 2048,
+        "format": "uri"
+      }
+    }
+  },
+  "FileEntry": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "file_id",
+      "original_name",
+      "storage_type",
+      "location_id",
+      "mime_type",
+      "size",
+      "creator_id",
+      "creator_realm",
+      "created_at",
+      "expires_at",
+      "state"
+    ],
+    "properties": {
+      "file_id": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "original_name": {
+        "type": "string",
+        "maxLength": 255
+      },
+      "storage_type": {
+        "type": "string",
+        "enum": [
+          "local",
+          "minio",
+          "s3",
+          "oss",
+          "cos"
+        ]
+      },
+      "location_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "mime_type": {
+        "type": "string",
+        "maxLength": 255
+      },
+      "size": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 1073741824
+      },
+      "creator_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "creator_realm": {
+        "type": "string",
+        "maxLength": 16
+      },
+      "created_at": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      },
+      "expires_at": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      },
+      "state": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "copying",
+          "ready",
+          "deleted"
+        ]
+      }
+    }
+  },
+  "FileList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items",
+      "total",
+      "page",
+      "page_size"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/FileEntry"
+        }
+      },
+      "total": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      },
+      "page": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "page_size": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 50
+      }
+    }
+  },
+  "FileUploadInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "original_name",
+      "mime_type",
+      "size"
+    ],
+    "properties": {
+      "original_name": {
+        "type": "string",
+        "maxLength": 255,
+        "minLength": 1
+      },
+      "mime_type": {
+        "type": "string",
+        "maxLength": 255,
+        "minLength": 1
+      },
+      "size": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1073741824
+      }
+    }
+  },
+  "FileUploadGrant": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "file_id",
+      "url",
+      "method",
+      "headers",
+      "fields",
+      "direct",
+      "expires_at"
+    ],
+    "properties": {
+      "file_id": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "url": {
+        "type": "string",
+        "maxLength": 8192
+      },
+      "method": {
+        "type": "string",
+        "enum": [
+          "PUT",
+          "POST"
+        ]
+      },
+      "headers": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        }
+      },
+      "fields": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        }
+      },
+      "direct": {
+        "type": "boolean"
+      },
+      "expires_at": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      }
+    }
+  },
+  "FileAccess": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "url",
+      "expires_at"
+    ],
+    "properties": {
+      "url": {
+        "type": "string",
+        "maxLength": 8192
+      },
+      "expires_at": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      }
+    }
+  },
+  "StorageLocationListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "data": {
+        "$ref": "#/components/schemas/StorageLocationList"
+      },
+      "request_id": {
+        "type": "string",
+        "maxLength": 64
+      }
+    }
+  },
+  "StorageLocationResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "data": {
+        "$ref": "#/components/schemas/StorageLocation"
+      },
+      "request_id": {
+        "type": "string",
+        "maxLength": 64
+      }
+    }
+  },
+  "FileListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "data": {
+        "$ref": "#/components/schemas/FileList"
+      },
+      "request_id": {
+        "type": "string",
+        "maxLength": 64
+      }
+    }
+  },
+  "FileUploadGrantResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "data": {
+        "$ref": "#/components/schemas/FileUploadGrant"
+      },
+      "request_id": {
+        "type": "string",
+        "maxLength": 64
+      }
+    }
+  },
+  "FileEntryResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "data": {
+        "$ref": "#/components/schemas/FileEntry"
+      },
+      "request_id": {
+        "type": "string",
+        "maxLength": 64
+      }
+    }
+  },
+  "FileAccessResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "data": {
+        "$ref": "#/components/schemas/FileAccess"
+      },
+      "request_id": {
+        "type": "string",
+        "maxLength": 64
+      }
+    }
   }
 };

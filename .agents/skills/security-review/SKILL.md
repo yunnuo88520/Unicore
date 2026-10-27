@@ -33,3 +33,5 @@ metadata:
 ## validation
 
 运行相关允许/拒绝/重试测试、make test 与 profile 构建；明确未覆盖范围。
+
+私有文件按 [ADR-0015](../../../docs/adr/ADR-0015-file-storage.md) 审查：独立身份域/owner、密钥加密不回传、直传凭证限定 key/长度/类型、staging 条件复制防重放、鉴权后短期下载、附件类型防同源执行、孤儿与延迟清理、迁移摘要校验、CORS 合并和 CSP。公开品牌只能读取管理员当前发布的规范化引用；不允许任意 file_id 借品牌路由公开。

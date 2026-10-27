@@ -42,4 +42,9 @@ var ErrorCatalog = map[string]ErrorDefinition{
 	"INVALID_CREDENTIALS":     {Status: 401, Message: "账号或密码不正确"},
 	"BRAND_INVALID":           {Status: 400, Message: "请选择不超过 256 KiB、尺寸 16–2048 像素的 PNG/JPEG；站点图标也支持 16–256 像素 ICO"},
 	"DATABASE_NOT_EMPTY":      {Status: 409, Message: "目标数据库已有表或视图；请先备份，再明确确认清空初始化"},
+	"STORAGE_UNAVAILABLE":     {Status: 503, Message: "存储服务暂时不可用，请检查连接、Bucket 和访问权限"},
+	"STORAGE_NOT_READY":       {Status: 409, Message: "存储配置需要先通过读写测试"},
+	"FILE_NOT_FOUND":          {Status: 404, Message: "文件不存在或无权访问"},
+	"FILE_INVALID":            {Status: 400, Message: "文件名称、类型或大小不符合上传要求"},
+	"FILE_BUSY":               {Status: 409, Message: "文件正在处理中，请稍后重试"},
 }

@@ -19,6 +19,8 @@
 
 Dependabot 的版本更新配置不等于 GitHub 已开启安全更新。pnpm 使用 npm ecosystem，后续更新后核对锁文件与实际 CI；工具链、Wails、Go 和原生依赖升级需要对应目标验证。
 
+2026-10-28 开启扫描后核对到 16 条未解决依赖告警（3 critical、6 high、6 medium、1 low），涉及 Go 运行依赖和 Vitest/Tinypool 开发依赖；以 [Dependabot 告警](https://github.com/yunnuo88520/Unicore/security/dependabot) 的实时结果为准。当前安全 job 的 govulncheck 检查 Web/CLI/ops 可达代码，pnpm audit 只检查生产依赖，不能据此断言桌面或开发工具链没有漏洞。依赖升级、受影响路径判断及对应回归仍是待办，不批量自动合并 Dependabot PR，也不以关闭告警代替修复。
+
 ## GitHub 设置
 
 2026-10-28 完成配置并核对以下项目。设置会变化，后续以仓库当前页面/API 为准。

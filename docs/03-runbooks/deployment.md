@@ -156,7 +156,7 @@ brand-assets/ 位于 APP_DATA_DIR（桌面为其配置目录）内，目录 0700
 
 平台备案号/HTTPS 查询链接在「系统管理 → 基础设置 → 基础信息」保存，登录页与工作台共用；编号留空隐藏。SMTP 别名在「邮件设置」填写，留空跟随站点名，用于测试/账号/系统通知显示名；密钥仍只显示配置状态。业务通知调用与限制见 [设置规范](../00-product/feature-settings.md)。
 
-默认构建剔除授权/升级卡片与接入 port。平台管理端需要占位界面时，前后端必须使用同一组编译输入；单机/桌面仍不提供授权升级管理页：
+默认 FEATURE_LICENSE=false、FEATURE_UPDATER=true。平台管理员可使用系统更新，授权检测仍可选占位；单机/桌面仅提供系统更新。前后端必须使用同一组编译输入：
 
 ```sh
 make build-web FEATURE_LICENSE=true FEATURE_UPDATER=true
@@ -166,7 +166,7 @@ make release FEATURE_LICENSE=true FEATURE_UPDATER=false
 
 两项均可独立 true/false，非法值使构建失败。make dev-server/dev-web/dev-desktop 使用相同变量；直接 pnpm/Vite 构建需传入对应 FEATURE_* 环境变量，直接 go build 需对应 -tags license,updater。生产进程启动后修改 FEATURE_* 不会重新引入被裁剪代码。Docker 构建参数为 --build-arg FEATURE_LICENSE=true / --build-arg FEATURE_UPDATER=true，两阶段使用同一输入；推荐 make docker-build FEATURE_LICENSE=true。镜像实际验收范围见部署验收。
 
-前端产物 features.json 记录编译能力；后端 bootstrap.capabilities 返回相应占位能力，CLI 始终 false。页面同时检查两端能力，任一端关闭都不显示。开启也只是“待对接”卡片、禁用检查按钮、空更新日志，不产生外部请求或执行安装；真实对接后才增加 API/权限/签名与按部署方式的更新流程。测试构建和 E2E 时同样传入相同变量。
+前端产物 features.json 记录编译能力；后端 bootstrap.capabilities 返回实际装配能力，CLI 始终 false。页面同时检查两端能力，任一端关闭都不显示；普通用户不能读取平台版本/更新能力。打开更新页先读本机历史，仅主动检查才联网；手动安装必须通过发行签名与兼容性校验。授权开启后仍显示待对接卡片。测试构建和 E2E 同样传入相同变量，部署和恢复要求见 [更新手册](updates.md)。
 
 ## 管理员身份拆分升级（0008）
 

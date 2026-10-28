@@ -1,6 +1,8 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 设置清单验收（2026-10-27）
 
+> 本文保留该阶段的验收记录；系统更新、签名流程及其后续验证以 [更新验收](acceptance-updates.md) 为准，早期占位与未实现描述不再代表当前能力。
+
 影响 Web 两模式和真实 Wails 桌面；CLI 不装配设置且授权/升级能力始终关闭。补齐 ICP 公共页脚、SMTP 别名、favicon ICO、系统通知模板/内部队列与可独立裁剪的授权/升级占位。来源见 [设置需求](../00-product/feature-settings.md) 和 [ADR-0010](../adr/ADR-0010-settings-edition.md)。
 
 复用 system_settings/mail_jobs，无 schema 迁移；历史迁移 checksum 不变。OpenAPI 仅增加两个可选公开 bootstrap 字段并扩展 favicon 格式说明，无新授权/升级 API。

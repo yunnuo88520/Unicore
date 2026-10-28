@@ -12,6 +12,8 @@
 | settings:read | GET /admin/settings、/admin/branding、/admin/settings/mail/templates |
 | settings:write | PATCH /admin/settings；PUT /admin/branding；POST /admin/settings/mail/test、/admin/settings/oidc/check |
 | logs:read | GET /admin/logs、/admin/mail/jobs |
+| updates:read | GET /admin/updates；POST /admin/updates/check |
+| updates:apply | POST /admin/updates/apply，需确认已备份 |
 
 管理员/普通用户使用不同账号和凭据表。固定 API 路径选择域：用户 /api/v1/auth、account、files，管理员 /api/v1/admin/auth、account、files；身份请求头不再生效，无回退；Cookie 分别为 unicore_session/unicore_administrator_session，HttpOnly/SameSite=Lax，HTTPS origin 时 Secure。管理端点的目标仓库固定，actor 在事务中从管理员表重查，保护最后启用及最后有本地密码管理员。禁止用户角色升降，不提供自定义角色写接口。后台 HTML 为公开登录壳，不因普通用户 Cookie 返回管理信息；API 始终独立鉴权。详见 [ADR-0014](../adr/ADR-0014-separate-identities-management.md)。
 
@@ -25,7 +27,7 @@ POST /account/password 与 /admin/account/password 分别仅对应域登录账�
 
 旧 /auth/register、/auth/verification/{request,complete}、/auth/password/{request,reset} 仅兼容长链接，已 deprecated；无 GET 消费。链接回到对应域入口。模板预览仅管理员内部 API，固定示例码，不在设置显示模板标签；不含真实邮件或 SMTP 密钥。SMTP 敏感值始终为空并附 configured，空 PATCH 保留，clear:true 显式清除；任务列表/审计不包含密钥、正文或验证码。
 
-系统日志当前仅最近 50 条操作与最近 30 条邮件任务；未提供完整检索/导出/日志采集平台。授权与更新仅占位，没有真实检查/OTA API。相关恢复与升级见 [部署手册](../03-runbooks/deployment.md)。
+系统日志当前仅最近 50 条操作与最近 30 条邮件任务；未提供完整检索/导出/日志采集平台。授权仍占位；系统更新已实现签名检查、离线日志和手动安装。平台普通用户不能读取更新 API 或版本元信息，管理员写操作仍验证 CSRF/Origin；单机 /updates 对应操作同时要求 Host 和实际连接来自 loopback，桌面使用原生桥接。CLI 不装配，Docker 拒绝应用内安装。恢复与更新边界见 [更新手册](../03-runbooks/updates.md)。
 
 对象存储：storage:read / storage:write 固定管理员，所有 /admin/storage/* 与 /admin/files/* 独立鉴权。/files 仅普通用户本人身份域，/admin/files 使用管理员域并校验存储权限；未登录返回 401，非本人文件返回 404；本地 content 只接受短期签名，不接受文件名或磁盘路径。完整接口见 OpenAPI，流式上传声明 streamingUpload，签名下载声明 signedDownload。
 

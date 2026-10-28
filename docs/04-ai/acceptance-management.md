@@ -1,6 +1,8 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 独立身份与管理界面验收（2026-10-27）
 
+> 本文保留该阶段的验收记录；系统更新、签名流程及其后续验证以 [更新验收](acceptance-updates.md) 为准，早期占位与未实现描述不再代表当前能力。
+
 本轮影响：web-platform 身份/API/迁移与 React 管理页；Web 两模式和 Wails 共用 shell 导航/布局；CLI 仅验证依赖边界。当前规范见 [角色需求](../00-product/feature-roles.md)、[设置需求](../00-product/feature-settings.md)、[ADR-0014](../adr/ADR-0014-separate-identities-management.md)。
 
 实现文件：platformsql/scope.go、password.go、logs.go 和三方言 0008；install/manager 装配独立服务；HTTP 的独立管理员 CRUD、本人密码、系统日志与域 Cookie；OpenAPI/SDK 生成链；React App/routes、modal/password-dialog、用户列表、邮件设置和系统日志；message.tsx/message.css、MutationCache 统一反馈与图标扫描。

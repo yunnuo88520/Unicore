@@ -1,6 +1,8 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 管理端、用户端与本地形态验收
 
+> 本文保留该阶段的验收记录；系统更新、签名流程及其后续验证以 [更新验收](acceptance-updates.md) 为准，早期占位与未实现描述不再代表当前能力。
+
 需求与决策见 [ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md)。
 
 | profile | 变化 | 验收 |

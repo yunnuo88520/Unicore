@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 基础能力当前状态（2026-10-28）
 
-当前基座已包含双入口、文件存储、持久化笔记样板与离线备份恢复，最新结果见 [开发基座验收](acceptance-developer-kit.md)；较早的 [AI 基础验收](acceptance-ai-foundations.md) 和原生品牌证据保留阶段范围。这表示框架可持续扩展，不等于完整 v1 或正式生产发行。
+当前基座已包含双入口、文件存储、持久化笔记样板、离线备份恢复和签名 OTA，最新结果见 [更新验收](acceptance-updates.md) 与 [开发基座验收](acceptance-developer-kit.md)；较早的 [AI 基础验收](acceptance-ai-foundations.md) 和原生品牌证据保留阶段范围。这表示框架可持续扩展，不等于完整 v1 或正式生产发行。
 
 | 能力 | 当前实现 | 边界与后续 |
 | --- | --- | --- |
@@ -19,9 +19,10 @@
 | 表单与校验 | 公共 Form/Field、HTML约束、契约前置校验、服务端再次校验、字段错误/聚焦、pending；Go/TS 共用边界样例 | 明确受支持 schema 子集；业务不变量仍在服务端，分步/设置表单保留局部编辑逻辑 |
 | 唯一契约 | OpenAPI 3.1.0 维护 schema/security/profile/权限/CSRF/响应/错误，CI 检查漂移与路由 | 不引入第二份 Protobuf；非完整 JSON Schema 验证器，不自动生成业务实现 |
 | AI 开发内建 | manifest、AGENTS、文档导航、生成上下文、12 个项目 Skills、任务/中断模板；make docs/check:docs 进入质量流程 | Skills 不隐含生产/发布授权，不存个人凭据；历史验收与当前状态分开 |
-| 业务/运维与开源入口 | 笔记纵向样板、创建器/doctor、离线加密备份恢复、MIT、贡献/安全/反馈入口 | 三数据库与 MinIO 恢复已实测；GitHub Release、签名、真实 OTA 仍为后续，见 [开源维护](../03-runbooks/open-source.md) |
+| 业务/运维与开源入口 | 笔记纵向样板、创建器/doctor、离线加密备份恢复、MIT、贡献/安全/反馈入口、GitHub 开发预览发行 | 三数据库与 MinIO 恢复已实测；正式系统签名和后续发行需凭据及授权，见 [开源维护](../03-runbooks/open-source.md) |
+| 系统更新 | GitHub/HTTPS 渠道、内置与缓存日志、Ed25519 清单、Tar/GUI helper 与启动确认/失败回滚；平台仅管理员 | Docker 由宿主机替换镜像，CLI 不装配；DDL 版本人工升级；Apple/Windows 签名流程已接入但无证书实测，见 [更新手册](../03-runbooks/updates.md) |
 
-M3b 品牌上传已完成，见 [需求](../00-product/feature-branding.md) 和 [验收](acceptance-m3b.md)。设置清单补齐与授权/升级编译占位见 [规范](../00-product/feature-settings.md) 和 [验收](acceptance-settings.md)。仍未完成的产品范围：真实授权/版本服务、受控升级与正式签名发行。详见 [PRD](../00-product/PRD.md)；各轮实测范围以对应验收为准；本轮固定角色变更已在 PostgreSQL/MySQL/SQLite 复验，其他 OS 原生显示仍未本机验证。
+M3b 品牌上传已完成，见 [需求](../00-product/feature-branding.md) 和 [验收](acceptance-m3b.md)。设置范围见 [规范](../00-product/feature-settings.md)；升级占位已由 [ADR-0018](../adr/ADR-0018-signed-updates.md) 的实际签名 OTA 取代，授权服务仍待接入。正式 Developer ID/公证和 Authenticode 需开发者凭据；公开签名发行需配置 OTA Secret 并获发布授权。详见 [PRD](../00-product/PRD.md)；各轮实测范围以对应验收为准，其他 OS 原生窗口仍未本机验证。
 
 ## 上轮原生品牌与排空修正（146e75f）
 

@@ -5,7 +5,7 @@
 
 ## 拿到仓库开发
 
-需要 Go 1.26.10+、Node 22+、pnpm 11.25.0；Docker 验收另需 Docker Engine + Compose v2，桌面另需 Wails 原生依赖。
+需要 Go 1.26.10+、Node 22+、pnpm 11.25.0、Git 和 ripgrep（rg）。文档/作者检查依赖 rg，macOS 用 brew install ripgrep，Ubuntu/Debian 用 sudo apt-get install ripgrep，make doctor 会检查是否可用。质量和候选发布工作流显式安装该依赖，不依赖 runner 预装。Docker 验收另需 Docker Engine + Compose v2，桌面另需 Wails 原生依赖。
 
 ```sh
 make install

@@ -29,6 +29,8 @@ jobs:
         options: --health-cmd "mysqladmin ping --silent" --health-interval 5s --health-timeout 5s --health-retries 20
     steps:
       - uses: actions/checkout@v4
+      - name: Install quality tooling
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
       - uses: actions/setup-go@v5
         with: { go-version-file: go.mod }
       - uses: pnpm/action-setup@v4

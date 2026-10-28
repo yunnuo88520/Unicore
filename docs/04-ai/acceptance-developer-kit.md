@@ -47,4 +47,6 @@
 
 Docker Hub鉴权超时、Go官方模块下载EOF后，完整Dockerfile成功使用 mirror.gcr.io 的 Go1.26.10/Node22 官方缓存和显式Go模块代理，保持sumdb与TLS校验。没有用预编译binary临时镜像替代源码构建。部署测试修正了双入口拆分后的约定：公开admin登录/bootstrap不属于受保护管理接口，用户登录后显式进入本地外观页。
 
-Windows/Linux原生窗口未实际运行；对应CI矩阵是配置，不是本轮原生实测证据。其余架构CLI/amd64Web仅交叉编译。未操作宝塔面板/systemd主机或公网HTTPS生产部署。新GitHub候选/扫描工作流尚未在本轮取得远端通过结果；正式系统签名/公证、镜像注册表推送、SBOM、独立授权服务、OTA、在线/增量备份/PITR仍未实现。
+首次推送 e44ac6b 的远端 [质量与构建工作流](https://github.com/yunnuo88520/Unicore/actions/runs/40645400928) 中，Docker构建/真实部署和macOS、Windows、Linux原生桌面构建均通过；[依赖扫描](https://github.com/yunnuo88520/Unicore/actions/runs/40645400828) 通过。quality任务在文档检查前因Ubuntu runner未安装rg而失败，已在质量与发布候选工作流显式安装ripgrep，并补齐README/发版手册前置依赖；make doctor原已覆盖该工具。修复后的远端执行结果以对应提交的Actions为准，不能用其他job通过代替quality通过。
+
+Windows/Linux原生窗口未实际运行；CI原生构建通过不代表窗口交互实测。其余架构CLI/amd64Web仅交叉编译。未操作宝塔面板/systemd主机或公网HTTPS生产部署。手动GitHub候选发布工作流未触发；正式系统签名/公证、镜像注册表推送、SBOM、独立授权服务、OTA、在线/增量备份/PITR仍未实现。

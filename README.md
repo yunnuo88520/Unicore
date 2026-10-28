@@ -7,11 +7,11 @@
 
 已实现共享文本分析 Core、Chi HTTP、Wails v2 桌面、Cobra CLI，以及 Web 一次性安装、SQLite/PostgreSQL/MySQL、平台本地登录/RBAC/用户管理、固定管理员/普通用户及权限目录、持久化设置与 SMTP 邮件账号流程。桌面自动创建本地 SQLite，无安装或登录；CLI 无 HTTP/Wails/数据库依赖。
 
-在线平台的全局配置仅管理员查看和修改；普通用户可使用工作空间、本人账号及客户端本地外观。注册默认关闭；先保存 SMTP 并成功测试，才能启用邮箱验证注册和找回密码。OIDC 企业登录与显式绑定已实现；备份恢复、授权与升级仍在后续阶段；当前不作为生产发行。
+在线平台的全局配置仅管理员查看和修改；普通用户可使用工作空间、本人账号及客户端本地外观。注册默认关闭；先保存 SMTP 并成功测试，才能启用邮箱验证注册和找回密码。OIDC 企业登录、显式绑定与离线加密备份恢复已实现；真实授权与 OTA 仍在后续阶段；当前不作为生产发行。
 
 ## 启动
 
-需要 Go 1.26.10+、Node 22+、pnpm 11.25.0。桌面另需 [Wails v2 原生依赖](https://wails.io/docs/gettingstarted/installation)。
+需要 Go 1.26.10+、Node 22+、pnpm 11.25.0、Git 和 ripgrep（`rg`，用于文档/作者检查）。macOS 可用 `brew install ripgrep`，Ubuntu/Debian 可用 `sudo apt-get install ripgrep`；`make doctor` 检查这些开发依赖。桌面另需 [Wails v2 原生依赖](https://wails.io/docs/gettingstarted/installation)。
 
 ```sh
 make install

@@ -56,7 +56,8 @@
     "frameworkUpgrade": "docs/03-runbooks/framework-upgrade.md",
     "contributing": "CONTRIBUTING.md",
     "community": "docs/03-runbooks/open-source.md",
-    "currentAcceptance": "docs/04-ai/acceptance-developer-kit.md"
+    "currentAcceptance": "docs/04-ai/acceptance-developer-kit.md",
+    "wiki": "docs/wiki/README.md"
   },
   "commands": {
     "generate": "pnpm generate",
@@ -71,7 +72,9 @@
     "create": "pnpm create:project",
     "doctor": "make doctor",
     "maintenance": "make build-ops",
-    "devDependencies": "make dev-deps-up"
+    "devDependencies": "make dev-deps-up",
+    "wiki": "make wiki",
+    "wikiPublish": "make wiki-publish"
   },
   "skills": [
     "add-api-operation",

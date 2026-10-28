@@ -12,7 +12,7 @@ export RELEASE_TARGETS RELEASE_PROFILES
 FEATURE_TAGS = $(strip $(if $(filter true,$(FEATURE_LICENSE)),license) $(if $(filter true,$(FEATURE_UPDATER)),updater))
 LDFLAGS := -X github.com/yunnuo/unicore/internal/buildinfo.Version=$(VERSION) -X github.com/yunnuo/unicore/internal/buildinfo.Commit=$(COMMIT) -X github.com/yunnuo/unicore/internal/buildinfo.BuildTime=$(BUILD_TIME)
 
-.PHONY: install dev-web dev-server dev-desktop dev-cli generate docs test test-e2e test-features build-web build-cli build-desktop build-all build-ops doctor dev-deps-up dev-deps-down release package version docker-build compose-up compose-down test-deploy test-upgrade check-features
+.PHONY: install dev-web dev-server dev-desktop dev-cli generate docs wiki wiki-publish test test-e2e test-features build-web build-cli build-desktop build-all build-ops doctor dev-deps-up dev-deps-down release package version docker-build compose-up compose-down test-deploy test-upgrade check-features
 install:
 	pnpm install --frozen-lockfile
 	go mod download
@@ -30,6 +30,11 @@ generate:
 	pnpm design:generate
 docs: generate
 	pnpm ai:context
+	pnpm wiki:generate
+wiki:
+	pnpm wiki:generate
+wiki-publish:
+	pnpm wiki:publish
 test:
 	pnpm check:version
 	node scripts/test-version.mjs

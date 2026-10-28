@@ -15,32 +15,34 @@
 | [CI](../../.github/workflows/ci.yml) / [安全扫描](../../.github/workflows/security.yml) | 质量、数据库、页面、原生构建、部署与依赖检查 |
 | [Dependabot](../../.github/dependabot.yml) | 每周检查 Go、pnpm 工作区和 Actions；每类最多 3 个版本更新 PR，minor/patch 分组，不自动合并 |
 | [发布候选](../../.github/workflows/release.yml) | 手动构建候选包、checksum 与 GitHub 来源证明，不自动公开发行 |
+| [Wiki 生成与同步](../wiki/README.md) | 19 篇主题文档及侧栏/页脚，从仓库 Markdown 生成，手动显式同步 |
 
 Dependabot 的版本更新配置不等于 GitHub 已开启安全更新。pnpm 使用 npm ecosystem，后续更新后核对锁文件与实际 CI；工具链、Wails、Go 和原生依赖升级需要对应目标验证。
 
 ## GitHub 设置
 
-2026-10-28 只读核对结果如下。设置会变化，后续以仓库当前页面/API 为准。
+2026-10-28 完成配置并核对以下项目。设置会变化，后续以仓库当前页面/API 为准。
 
 | 项目 | 核对结果 | 建议与入口 |
 | --- | --- | --- |
 | 可见性与许可证 | Public，GitHub 已识别 MIT | 保留 LICENSE，派生项目也保留声明 |
-| 仓库介绍 | 已填写描述；无 Topics、Homepage | About 建议 Topics：golang、react、typescript、wails、starter-kit、openapi、ai-development；Homepage 有真实文档站/演示再填写 |
+| 仓库介绍 | 描述、Topics 与 Wiki Homepage | Topics：golang、react、typescript、wails、starter-kit、openapi、ai-development；Homepage 使用真实 Wiki，不配置空演示地址 |
 | Issue / Discussions | Issue 开启，Discussions 关闭 | 目前使用 Issue 表单；咨询量增长后可在 Settings → General 开启 Discussions 并更新 SUPPORT |
-| 私密漏洞报告 | 关闭 | Settings → Security → Advanced Security / Code security 中启用 Private vulnerability reporting，再确认 Security 页出现 Report a vulnerability |
+| 私密漏洞报告 | 已开启 | 使用 Security 页的 Report a vulnerability，或 SECURITY.md 中的入口 |
 | 密钥扫描/推送保护 | 两项开启 | 保持启用；收到告警先撤销并轮换真实密钥，不把删文件视为已经撤销凭据 |
-| Dependabot 安全更新 | 关闭 | 在 Security 的依赖设置中确认 Dependency graph / Dependabot alerts 可用并启用 security updates；检查实际生成的 PR 和 Actions |
-| main 保护 | 无 ruleset，也无传统 branch protection | Settings → Rules → Rulesets 对 main 添加活动规则，按下节选择检查 |
-| 合并与分支清理 | 允许 Squash，自动删除已合并分支关闭 | 可开启自动删除已合并分支；保留默认分支和发布分支 |
-| Releases / tags | 尚无 | 首次发布前按下一节准备；当前 VERSION=0.1.0 不表示已发布 v0.1.0 |
+| Dependabot 安全更新 | 告警及安全更新已开启 | 已有每周版本检查；安全 PR 仍需检查锁文件、变更影响与 CI，不自动合并 |
+| main 保护 | Unicore main quality gate 规则 | 要求 PR、quality/docker-build/scan 与三系统原生检查，禁止强推和删除；不要求另一个维护者批准 |
+| 合并与分支清理 | 允许 Squash，自动删除已合并分支开启 | 主分支受保护；功能分支合并后自动清理 |
+| Wiki | 已初始化，支持源码同步 | 页面清单见 docs/wiki/pages.json；执行 make wiki-publish 前检查 main 已干净推送 |
+| Releases / tags | 首次开发预览按下节验收后发布 | 实际可下载资产以 GitHub Releases 为准，不把 VERSION 或 workflow 配置当作已经发布 |
 
 不要仅为了资料完整而创建空文档站、不可访问的演示、FUNDING 或未经同意的 CODEOWNERS。当前维护者较少，先使用源码文档和明确的反馈入口即可。Template repository 为可选项；派生应用优先使用创建器完成 module/品牌定制。
 
 ### main 规则建议
 
-PR 合并前要求检查通过，并限制强制推送和删除。当前 job 名称为 quality、docker-build、scan，以及 native-desktop (ubuntu-22.04)、native-desktop (macos-14)、native-desktop (windows-latest)；在 GitHub 选择实际检查及其 GitHub Actions 来源，不使用 workflow 展示名替代 job。建议至少要求 quality、docker-build、scan；触及桌面代码时核对三系统 native-desktop。
+PR 合并前要求检查通过，并限制强制推送和删除。当前必需 job 名称为 quality、docker-build、scan，以及 native-desktop (ubuntu-22.04)、native-desktop (macos-14)、native-desktop (windows-latest)，绑定 GitHub Actions app（15368）。规则要求分支基于最新 main、对话解决、线性历史；无 bypass actor，管理员也走 PR。正常用 Squash 合并，不能再直接 push main。
 
-单维护者阶段不要设置自己无法满足的“必须由他人批准”。多人协作后可要求 1 名其他维护者批准、处理未解决评论并在新提交后重新审阅。确认受信任的应急维护方式后再执行规则，避免锁住维护流程。仓库规则属于 GitHub 设置，不随源码自动生效。
+单维护者阶段审批数为 0，不设置自己无法满足的“必须由他人批准”；代码仍需全部检查。多人协作后可要求 1 名其他维护者批准。仓库管理员保留编辑规则的能力用于修复规则错误，但不设置持续绕过权限。规则属于 GitHub 设置，不随源码自动生效。
 
 Actions 保持最小权限，fork PR 不提供发布密钥，不使用 pull_request_target 执行贡献者代码。当前候选 workflow 的 id-token/attestations 写权限仅限候选 job；正式发布另使用受保护 environment 和受限 registry/GitHub 凭据。
 

@@ -13,7 +13,7 @@ Unicore 是面向 AI 辅助开发的 Go + React 应用框架。共享领域与�
 
 作者：yunnuo · ymz@ebox.vip · 当前版本：[VERSION](VERSION) · **开发预览**
 
-[快速开始](#快速开始) · [创建自己的应用](#创建自己的应用) · [文档](docs/README.md) · [参与贡献](CONTRIBUTING.md) · [支持与反馈](SUPPORT.md) · [变更记录](CHANGELOG.md)
+[快速开始](#快速开始) · [创建自己的应用](#创建自己的应用) · [Wiki](https://github.com/yunnuo88520/Unicore/wiki) · [文档源码](docs/README.md) · [参与贡献](CONTRIBUTING.md) · [支持与反馈](SUPPORT.md) · [变更记录](CHANGELOG.md)
 
 ## 选择运行形态
 
@@ -30,7 +30,7 @@ Unicore 是面向 AI 辅助开发的 Go + React 应用框架。共享领域与�
 
 ![平台笔记与附件](docs/04-ai/evidence-developer-kit/notes-platform.png)
 
-当前尚未发布正式 tag、GitHub Release 或注册表镜像。真实授权/OTA、正式签名/公证仍待接入；能力与验收边界见 [PRD](docs/00-product/PRD.md) 和 [最新验收](docs/04-ai/acceptance-developer-kit.md)。
+当前尚未发布 tag、[GitHub Release](https://github.com/yunnuo88520/Unicore/releases) 或注册表镜像，可从源码构建或下载通过检查的 Actions 预览产物。真实授权/OTA、正式签名/公证仍待接入；能力与验收边界见 [PRD](docs/00-product/PRD.md) 和 [最新验收](docs/04-ai/acceptance-developer-kit.md)。
 
 ## 快速开始
 
@@ -113,5 +113,6 @@ make build-ops                   # 独立加密备份/恢复工具
 | 查看 API 与运行配置 | [契约约定](docs/02-standards/api-contract.md)、[运行基座](docs/02-standards/runtime.md)；设置 `APP_API_DOCS=true` 开启 `/docs/api` |
 | 提交改动或反馈问题 | [贡献指南](CONTRIBUTING.md)、[支持](SUPPORT.md)、[安全报告](SECURITY.md)、[行为准则](CODE_OF_CONDUCT.md) |
 | 维护 GitHub 开源仓库 | [维护手册](docs/03-runbooks/open-source.md) |
+| 更新 Wiki | [同步说明](docs/wiki/README.md)；`make wiki` 生成，明确发布时 `make wiki-publish` |
 
 仓库采用 [MIT License](LICENSE)，允许使用、修改和再分发，保留版权与许可证。完整导航见 [docs/README.md](docs/README.md)。

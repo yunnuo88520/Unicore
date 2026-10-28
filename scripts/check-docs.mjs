@@ -5,6 +5,7 @@ import { dirname, resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
 
 execFileSync(process.execPath,['scripts/ai-context.mjs','--check'],{stdio:'inherit'});
+execFileSync(process.execPath,['scripts/wiki.mjs','--check'],{stdio:'inherit'});
 const files=execFileSync('rg',['--files','--no-require-git','--hidden','README.md','AGENTS.md','CONTRIBUTING.md','CODE_OF_CONDUCT.md','SUPPORT.md','SECURITY.md','CHANGELOG.md','docs','.agents/skills','.github'],{encoding:'utf8'}).trim().split('\n').filter(path=>path.endsWith('.md'));
 const failures=[];
 for(const file of files){

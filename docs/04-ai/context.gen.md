@@ -40,6 +40,7 @@
 | contributing | [CONTRIBUTING.md](../../CONTRIBUTING.md) |
 | community | [docs/03-runbooks/open-source.md](../../docs/03-runbooks/open-source.md) |
 | currentAcceptance | [docs/04-ai/acceptance-developer-kit.md](../../docs/04-ai/acceptance-developer-kit.md) |
+| wiki | [docs/wiki/README.md](../../docs/wiki/README.md) |
 
 OpenAPI 当前包含 101 个 operation、102 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
 
@@ -73,5 +74,7 @@ OpenAPI 当前包含 101 个 operation、102 个 schema。Go/TS 模型、调用�
 - doctor：`make doctor`
 - maintenance：`make build-ops`
 - devDependencies：`make dev-deps-up`
+- wiki：`make wiki`
+- wikiPublish：`make wiki-publish`
 
 不保存凭据到上下文或验收记录。任务记录使用 [任务模板](task-template.md)，交付记录须区分实测、未测与未来目标。

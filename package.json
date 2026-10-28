@@ -29,7 +29,10 @@
     "check:docs": "node scripts/check-docs.mjs",
     "create:project": "node scripts/create-project.mjs",
     "doctor": "node scripts/doctor.mjs",
-    "test:tooling": "node --test scripts/create-project.test.mjs"
+    "test:tooling": "node --test scripts/create-project.test.mjs scripts/wiki.test.mjs",
+    "wiki:generate": "node scripts/wiki.mjs",
+    "check:wiki": "node scripts/wiki.mjs --check",
+    "wiki:publish": "node scripts/wiki.mjs --publish"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",

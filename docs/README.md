@@ -3,6 +3,8 @@
 
 Unicore 将需求、架构、契约、Skills 和验收记录一同维护。AI 从 [上下文地图](04-ai/context.gen.md) 开始，只加载当前任务需要的规范；代码和文档必须共同反映实际行为。
 
+在线阅读可使用 [GitHub Wiki](https://github.com/yunnuo88520/Unicore/wiki)。Wiki 从本仓库文档生成，修改仍提交到对应源码；[同步方式](wiki/README.md) 随仓库维护。
+
 | 要解决的问题 | 入口 |
 | --- | --- |
 | 产品范围、各 profile 有什么 | [PRD](00-product/PRD.md)、[当前基础能力](04-ai/foundation-audit.md) |

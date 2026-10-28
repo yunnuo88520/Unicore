@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # Security
 
-请通过仓库的 GitHub Private Vulnerability Reporting 提交可复现问题；如果该入口未启用，可联系维护者 ymz@ebox.vip。不要在公开 Issue 粘贴密钥、备份、安装凭据或用户数据。请提供受影响提交/profile、最小复现和影响范围。
+请通过仓库的 [GitHub 私密漏洞报告](https://github.com/yunnuo88520/Unicore/security/advisories/new) 提交可复现问题；无法使用该入口时，可联系维护者 ymz@ebox.vip。不要在公开 Issue 粘贴密钥、备份、安装凭据或用户数据。请提供受影响提交/profile、最小复现和影响范围。
 
 当前仍为 0.x 开发预览，仅维护 main 的修复，不承诺历史版本安全支持或响应 SLA。修复后在 CHANGELOG 标明影响、升级和数据恢复要求。
 

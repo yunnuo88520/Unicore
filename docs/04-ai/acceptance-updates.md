@@ -36,4 +36,6 @@ GitHub PR #14 首轮实际运行：依赖安全、macOS/Windows 原生测试/构
 
 Windows 盘符无前导斜杠时，旧 url.URL 将 C: 放入 file URI authority，SQLite 打开失败，GUI 无控制台而表现为双击无反应。SQLite adapter 已绝对化路径并补齐 URI 路径斜杠，盘符不作 host；实际文件测试覆盖中文/空格/#/%/&、相对/绝对路径、WAL/外键/忙等待及关闭再打开后的数据保留。影响 desktop、使用 SQLite 的 Web 与离线 ops，CLI 不装配；无数据库格式或迁移变更。
 
-Windows 普通启动错误增加原生对话框，仍退出 1；内部更新 helper 不弹框。新增原生 CI 用实际 exe 在随机临时数据目录验证 React 页面渲染、数据库初始化、正常退出与再次打开，再以不可用路径验证错误弹窗。证据随 windows-startup-evidence artifact 上传，单独 windows-exe artifact 供维护者验证。用户明确要求本人验证通过后再合并，PR 保持草稿；真实 Windows 执行结果将在完成后补充。
+Windows 普通启动错误增加原生对话框，仍退出 1；内部更新 helper 不弹框。原生 CI 用实际 exe 在随机临时数据目录验证 React 页面渲染、数据库初始化、正常退出与再次打开，再以不可用路径验证错误弹窗。分支提交 068f89b 在运行 40695642723 中完成真实 Windows 验收：first-start/reopen 均退出 0、startup-error 弹窗关闭后退出 1。对应 PR 运行 40695652428 的 Windows、macOS、Linux 原生任务及 Docker 构建/部署均通过；本机 make test、Windows 交叉编译及 macOS 原生构建通过。无 schema 变化，不需要数据重建或迁移。
+
+同次分支构建的 windows-exe artifact 为 12819059009，windows-startup-evidence 包含首启/重启/错误对话框截图、可访问性文本与 results.json。068f89b 的 push/PR 两套完整 CI 及依赖安全检查均通过，包括数据库回归、页面测试、四种功能组合、发行包矩阵与三系统原生构建。用户明确要求本人验证通过后再合并，PR #14 保持草稿，未发布新 Release；自动化验收不能代替用户自己的 Windows 环境验证。

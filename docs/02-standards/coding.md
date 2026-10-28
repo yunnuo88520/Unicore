@@ -11,4 +11,4 @@ OpenAPI 变更后运行 `pnpm generate`；生成器对不支持的类型 fail cl
 
 新增核心模块遵循 ports → usecase → adapter → composition；新增设置、权限、迁移时读取相应 Skill。文档与 ADR 随代码更新。测试不抄实现公式，优先固定已知摘要、不同入口一致性、错误码、越权与恢复行为。
 
-锁文件提交，缓存/二进制/生成静态资源不提交。应用版本只手改 VERSION；包元数据、OpenAPI info.version、Wails productVersion、Go 默认版本都是 scripts/version.mjs 的生成投影，pnpm check:version 阻止漂移。推荐 make version NEW_VERSION=x.y.z 同时准备 Changelog。Go/Node/pnpm/Wails 是工具链版本，不跟随应用版本。禁止将个人数据和生产凭据加入仓库；日志不包含请求体和敏感 headers。M1 不擅自选择开源许可，许可条款待作者决定。
+锁文件提交，缓存/二进制/生成静态资源不提交。应用版本只手改 VERSION；包元数据、OpenAPI info.version、Wails productVersion、Go 默认版本都是 scripts/version.mjs 的生成投影，pnpm check:version 阻止漂移。推荐 make version NEW_VERSION=x.y.z 同时准备 Changelog。Go/Node/pnpm/Wails 是工具链版本，不跟随应用版本。禁止将个人数据和生产凭据加入仓库；日志不包含请求体和敏感 headers。源码现采用 [MIT](../../LICENSE)，保留版权和许可声明，第三方内容需核对兼容性；贡献方式见 [CONTRIBUTING](../../CONTRIBUTING.md)。

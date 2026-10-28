@@ -37,6 +37,9 @@
 | businessExample | [docs/03-runbooks/business-example.md](../../docs/03-runbooks/business-example.md) |
 | backup | [docs/03-runbooks/backup.md](../../docs/03-runbooks/backup.md) |
 | frameworkUpgrade | [docs/03-runbooks/framework-upgrade.md](../../docs/03-runbooks/framework-upgrade.md) |
+| contributing | [CONTRIBUTING.md](../../CONTRIBUTING.md) |
+| community | [docs/03-runbooks/open-source.md](../../docs/03-runbooks/open-source.md) |
+| currentAcceptance | [docs/04-ai/acceptance-developer-kit.md](../../docs/04-ai/acceptance-developer-kit.md) |
 
 OpenAPI 当前包含 101 个 operation、102 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
 

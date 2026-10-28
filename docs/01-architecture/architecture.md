@@ -1,18 +1,19 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
-# 当前架构（M3b）
+# 当前架构
 
-共享业务依赖链：`entry → adapter → usecase → domain`。`internal/contracts` 从 OpenAPI 生成；domain 无传输/DB/身份依赖。CLI 只调用 bootstrap.Core；Web 装配 install 与按安装 profile 初始化的平台身份；桌面只装配 bootstrap/local 的 SQLite 与 settings。
+共享业务依赖链：`entry → adapter → usecase → domain`。`internal/contracts` 从 OpenAPI 生成；domain 无传输/DB/身份依赖。CLI 只调用 bootstrap.Core；Web 装配 install、业务 Repository 与按安装 profile 初始化的平台身份；桌面装配 bootstrap/local 的 SQLite、appearance settings 与笔记 Repository，不引入平台模块。当前开发基座见 [ADR-0017](../adr/ADR-0017-developer-kit-business-backup.md)，下方保留历史增量的决策来由。
 
 ```text
-React web-ui → AppClient → HTTP adapter → install / platform / settings
-                      └→ Wails bridge → local settings
+React web-ui → AppClient → HTTP adapter → install / platform / settings / notes
+                      └→ Wails bridge → local appearance / notes
 CLI / HTTP / Wails → usecase.Executor → domain.Analyze
-                          ports → SQL adapter（仅实际需要的形态）
+HTTP / Wails → usecase.Notes → domain.Note / NoteRepository port → SQL adapter
+离线 unicore-ops → maintenance → 加密快照 / 新目标恢复（不进入业务 CLI）
 ```
 
 | 模块 | 责任 |
 | --- | --- |
-| internal/domain / usecase | 文本分析规则、context 与 DTO 映射 |
+| internal/domain / usecase | 文本分析、笔记规则、Repository port、context 与 DTO 映射 |
 | internal/install | 安装状态/凭据/恢复、DB 配置加密、按 profile 装配 |
 | internal/platform | Argon2id、会话、权限策略、限流/验证码与 identity ports |
 | internal/settings | Definition 注册、类型/范围校验与持久化 port |
@@ -20,7 +21,9 @@ CLI / HTTP / Wails → usecase.Executor → domain.Analyze
 | adapter/storage/sqlstore | 无驱动/身份依赖的 SQL、迁移、设置与审计基础 |
 | adapter/storage/platformsql | 平台身份 SQL 实现 |
 | adapter/storage/sqlite / webdb | 桌面只 SQLite；Web 组合所有 DB 驱动 |
-| bootstrap/local | 桌面自动 SQLite、进程锁、profile 校验，不 import platform |
+| adapter/storage/notessql | 笔记身份域、版本冲突与事务审计 |
+| bootstrap/local | 桌面自动 SQLite、业务迁移、进程锁、profile 校验，不 import platform |
+| cmd/ops / internal/maintenance | 停服锁边界的离线加密备份、校验和新目标恢复 |
 | packages/contracts / sdk / web-ui | 唯一契约源、双 transport、共享界面 |
 
 ## 安装与迁移

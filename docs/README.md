@@ -17,8 +17,10 @@ Unicore 将需求、架构、契约、Skills 和验收记录一同维护。AI �
 | 系统设置与授权/升级占位 | [设置需求](00-product/feature-settings.md)、[ADR-0010](adr/ADR-0010-settings-edition.md)、[设置验收](04-ai/acceptance-settings.md) |
 | 修改配置、日志和生命周期 | [运行基座](02-standards/runtime.md)、[部署手册](03-runbooks/deployment.md) |
 | 打包、统一版本与部署 | [发版流程](03-runbooks/release.md)、[部署手册](03-runbooks/deployment.md)、[部署验收](04-ai/acceptance-deployment.md) |
+| 派生应用、业务样板与备份 | [创建与上游合并](03-runbooks/framework-upgrade.md)、[笔记样板](03-runbooks/business-example.md)、[备份恢复](03-runbooks/backup.md) |
+| 参与开源与维护 GitHub | [贡献指南](../CONTRIBUTING.md)、[支持](../SUPPORT.md)、[开源维护](03-runbooks/open-source.md) |
 | 让 AI 实现功能 | [开发工作流](04-ai/development.md)、[Skill 导航](04-ai/context.gen.md)、[任务模板](04-ai/task-template.md) |
 
 `make docs` 生成契约文档和 AI 上下文，`pnpm check:docs` 检查本地链接、命令、Skill 清单与生成漂移。`framework.manifest.json` 是机器可读的入口索引，不替代 OpenAPI、主题源或 ADR。
 
-开发基座： [个人笔记样板](03-runbooks/business-example.md) · [派生与上游更新](03-runbooks/framework-upgrade.md) · [离线备份恢复](03-runbooks/backup.md) · [ADR-0017](adr/ADR-0017-developer-kit-business-backup.md)。
+当前实现先看 PRD、架构与 [最新开发基座验收](04-ai/acceptance-developer-kit.md)；各阶段 acceptance-* 和 ADR 保留当时的结果与决策，不把旧测试计数、旧功能限制当作当前状态。当前设计与阶段历史冲突时，以最新需求、后续 ADR 和代码为准。

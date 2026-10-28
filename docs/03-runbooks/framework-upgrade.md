@@ -18,7 +18,9 @@ make build-web build-cli build-ops
 
 生成后再提交初始基线。创建器导出被 Git 跟踪的文件当前内容；请先提交或暂存完整框架改动，避免遗漏未跟踪文件。导出不携带运行数据、环境文件或 .git。Go module 的文本引用一起替换；pnpm 内部 @unicore 包名和 unicore/unicore-ops 工具名保留以降低上游合并冲突，发行归档/默认镜像名使用产品 slug。桌面默认数据目录由应用名称生成；产品更名后已有数据需显式 APP_DATA_DIR。
 
-project.provenance.json 保存上游 URL 和起点 commit。框架可共享部分主要在 packages/*、internal/platform/settings/files/install/adapter 与 scripts；样板业务在 domain/usecase/notes、notessql 与 notes-page。当前没有能隔离全部改动的插件 ABI，团队应尽量让自己的业务进入独立目录，少修改框架基座。
+project.provenance.json 保存上游 URL 和起点 commit。创建器不改写所有社区文件中的仓库链接、作者邮箱或维护者策略；建立自己的仓库后，检查 .github/ISSUE_TEMPLATE/config.yml、SUPPORT/SECURITY/CONTRIBUTING/CODE_OF_CONDUCT、工作流和文档里的反馈地址，按应用实际情况改为自己的渠道，避免把应用业务问题导向框架维护者。保留框架 MIT 版权和来源，勿把框架 CI 徽章当作派生应用验证。
+
+框架可共享部分主要在 packages/*、internal/platform/settings/files/install/adapter 与 scripts；样板业务在 domain/usecase/notes、notessql 与 notes-page。当前没有能隔离全部改动的插件 ABI，团队应尽量让自己的业务进入独立目录，少修改框架基座。
 
 升级采用常规三方合并，不提供“覆盖式更新”脚本：
 

@@ -53,7 +53,10 @@
     "fileStorage": "docs/03-runbooks/storage.md",
     "businessExample": "docs/03-runbooks/business-example.md",
     "backup": "docs/03-runbooks/backup.md",
-    "frameworkUpgrade": "docs/03-runbooks/framework-upgrade.md"
+    "frameworkUpgrade": "docs/03-runbooks/framework-upgrade.md",
+    "contributing": "CONTRIBUTING.md",
+    "community": "docs/03-runbooks/open-source.md",
+    "currentAcceptance": "docs/04-ai/acceptance-developer-kit.md"
   },
   "commands": {
     "generate": "pnpm generate",

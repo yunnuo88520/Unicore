@@ -61,6 +61,8 @@ func TestMain(m *testing.M) {
 		}
 		MarkHealthy(data, v, updates.Target{Profile: profile, OS: runtime.GOOS, Arch: runtime.GOARCH, Migration: 1, BusinessMigration: 1, Updater: true})
 		_ = os.WriteFile(filepath.Join(data, "running"), []byte(v), 0600)
+		cwd, _ := os.Getwd()
+		_ = os.WriteFile(filepath.Join(data, "working-directory"), []byte(cwd), 0600)
 		for {
 			if _, e := os.Stat(filepath.Join(data, "stop")); e == nil {
 				break
@@ -114,6 +116,8 @@ func archive(t *testing.T, destination string, entries map[string][]byte) {
 }
 func installFixture(t *testing.T) (*Installer, updates.Payload, string) {
 	t.Helper()
+	// The fixture manages its own child processes, independently of a CI runner's service.
+	t.Setenv("INVOCATION_ID", "")
 	base := t.TempDir()
 	root := filepath.Join(base, "current")
 	data := filepath.Join(base, "data")
@@ -172,6 +176,7 @@ func TestRealHelperUpgradeAndRollback(t *testing.T) {
 	for _, fail := range []bool{false, true} {
 		t.Run(strconv.FormatBool(fail), func(t *testing.T) {
 			i, p, _ := installFixture(t)
+			t.Chdir(i.Root)
 			if fail {
 				t.Setenv("UNICORE_UPDATE_FIXTURE_FAIL", "1.0.1")
 			}
@@ -208,6 +213,12 @@ func TestRealHelperUpgradeAndRollback(t *testing.T) {
 			b, _ = os.ReadFile(filepath.Join(i.DataDir, "sentinel"))
 			if string(b) != "preserve data" {
 				t.Fatal("data changed")
+			}
+			if !fail {
+				b, e := os.ReadFile(filepath.Join(i.DataDir, "working-directory"))
+				if e != nil || string(b) != i.Root {
+					t.Fatal("restart changed the working directory", string(b), e)
+				}
 			}
 		})
 	}
@@ -250,6 +261,19 @@ func TestDataDirectoryAliasesCannotEnterInstallation(t *testing.T) {
 	blocked = New(options)
 	if blocked.Readiness() == "" || blocked.StateDir != "" || blocked.Job().Status != "idle" {
 		t.Fatal("invalid data directory must disable installation without relative state access")
+	}
+}
+
+func TestSystemdRequiresExplicitSupervisor(t *testing.T) {
+	i, _, _ := installFixture(t)
+	t.Setenv("INVOCATION_ID", "fixture-systemd")
+	options := i.Options
+	if reason := New(options).Readiness(); !strings.Contains(reason, "systemd") {
+		t.Fatal("systemd must require an explicit restart policy", reason)
+	}
+	options.RestartMode = "supervisor"
+	if reason := New(options).Readiness(); reason != "" {
+		t.Fatal(reason)
 	}
 }
 

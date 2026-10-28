@@ -312,9 +312,8 @@ func (i *Installer) prepare(job contracts.UpdateJob, payload updates.Payload) er
 	if e != nil {
 		return e
 	}
-	if within(i.Root, cwd) {
-		cwd = filepath.Dir(i.Root)
-	}
+	// Atomic exchange retains the installation path. Preserve the working directory
+	// so relative configuration arguments and environment values resolve identically.
 	plan := Plan{ID: job.ID, Root: i.Root, DataDir: i.DataDir, Stage: stage, NewRoot: newRoot, Executable: i.Executable, RelativeExecutable: relative, Args: i.Args, Directory: cwd, RestartMode: i.RestartMode, OldVersion: i.Version, Target: i.Target(), Payload: payload, Nonce: hex.EncodeToString(nonce)}
 	raw, _ := json.Marshal(plan)
 	if e = updatechannel.Atomic(filepath.Join(directory, "plan.json"), raw); e != nil {

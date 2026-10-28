@@ -15,7 +15,7 @@
 
 本机验证结果：
 
-- `make docs`、`make test`：契约/作者/依赖边界、Go vet/race、前端类型检查与 36 项单测通过。补充测试限制数据目录的符号链接、空路径、准确 target 的启动确认及 Docker 提示优先级。
+- `make docs`、`make test`：契约/作者/依赖边界、Go vet/race、前端类型检查与 36 项单测通过。补充测试限制数据目录的符号链接、空路径、准确 target 的启动确认、重启工作目录保持及 Docker 提示优先级。
 - 全部浏览器回归：46 项通过、6 项外部服务或特定编译条件跳过；发现 2 项管理流程仍引用旧占位菜单，改为「系统更新」后单独复跑 PC/375px，2 项通过。更新/设置专项共 10 项通过，浅/深色、无页面横向溢出、备份弹窗焦点/Escape/取消均已验证。截图在 `build/acceptance/m3a/`、`build/acceptance/management/`。
 - 授权/更新四种编译组合：验证实际 Go 文件、前端裁剪和 PC/375px 页面。CLI 不引入更新渠道或安装器。
 - `make release`：本机完成 10 个 Web/CLI 预览包；macOS arm64 真实 Wails 构建及原生品牌校验通过。Windows 安装器测试包交叉编译通过，不能替代实际 Windows 运行。
@@ -25,5 +25,7 @@
 原生 GUI 升级复现：先 `make build-desktop`，再执行 `node scripts/test-native-update.mjs`；脚本只在随机临时目录创建两份真实 Wails 应用、独立实例/密钥和受控 HTTPS CA。2026-10-28 本机通过页面执行 `0.1.1 → 0.1.2`，任务 `54c3281c565193416c2d41cb93e2de69` 完成，准确版本/target/nonce 启动确认成功；更新前笔记仍可读取。关闭测试渠道后再次检查失败，三条内置/缓存历史仍显示。截图 `build/acceptance/updates/native-updated-offline.png`。测试版本没有修改仓库 VERSION、公开 Release 或现有用户实例；测试应用使用 ad-hoc 签名，不能当作 Developer ID。
 
 平台开发者证书未提供，真实 Developer ID/公证、Windows Authenticode 与三系统生产签名验收未执行；unsigned 与 required 缺凭据拒绝分支已实测。远端三 OS CI 结果另记；本机 macOS 和 Linux 容器不能替代 Windows 原生运行。
+
+GitHub PR #14 首轮实际运行：依赖安全、macOS/Windows 原生测试/构建/打包、标准 Dockerfile 构建与 Docker/Tar 部署任务通过。Linux 原生测试发现 runner 继承了自身 systemd 的 INVOCATION_ID；隔离测试显式清空该继承值，并增加真实服务必须显式选择 supervisor 的拒绝/允许测试，不放宽生产检查。最终提交的完整 CI 结果以 PR checks 为准。
 
 发行者公钥已生成并进入集中配置；私钥仅在本机仓库外 0600 临时文件，上传 GitHub Secret 被自动审批拒绝，等待明确托管授权。缺 Secret 的候选流水线拒绝 OTA 签名，不输出可安装的未签名目标。现有 Release 不具备更新清单，需要后续经授权发行新版本，客户端才能发现真实可安装目标。

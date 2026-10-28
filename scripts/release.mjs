@@ -6,6 +6,8 @@ import { createHash } from 'node:crypto';
 import { readFeatures } from './build-features.mjs';
 const edition = readFeatures();
 
+const product = JSON.parse(readFileSync('package.json', 'utf8')).name;
+if (!/^[a-z][a-z0-9-]{1,39}$/.test(product)) throw new Error('package.name must be a portable product slug');
 const version = readFileSync('VERSION', 'utf8').trim();
 execFileSync(process.execPath, ['scripts/version.mjs', '--check'], { stdio: 'inherit' });
 if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error('VERSION must be SemVer');
@@ -30,18 +32,20 @@ for (const target of targets) {
   const [os, arch] = target.split('/');
   const profiles = selectedProfiles.filter(profile => os === 'linux' || profile === 'cli');
   for (const profile of profiles) {
-    const name = `unicore-${profile}-${os}-${arch}-v${version}`;
+    const name = `${product}-${profile}-${os}-${arch}-v${version}`;
     const dir = `build/staging/${name}`;
     rmSync(dir, { recursive: true, force: true }); mkdirSync(`${dir}/bin`, { recursive: true });
     const executable = profile === 'cli' ? 'unicore' : 'server';
     const profileFlags = profile === 'cli' ? ldflags : `${ldflags} -X github.com/yunnuo/unicore/internal/runtime.DefaultWebProfile=${profile}`;
     execFileSync('go', ['build','-trimpath','-tags',profile === 'cli' ? '' : edition.tags,'-ldflags',profileFlags,'-o',`${dir}/bin/${executable}${os === 'windows' ? '.exe' : ''}`,profile === 'cli' ? './cmd/cli' : './cmd/server'], { env: { ...process.env, CGO_ENABLED: '0', GOOS: os, GOARCH: arch }, stdio: 'inherit' });
+    if (profile !== 'cli') execFileSync('go', ['build','-trimpath','-ldflags',ldflags,'-o',`${dir}/bin/unicore-ops`,'./cmd/ops'], { env: { ...process.env, CGO_ENABLED: '0', GOOS: os, GOARCH: arch }, stdio: 'inherit' });
+    cpSync('LICENSE', `${dir}/LICENSE`);
     cpSync('docs', `${dir}/docs`, { recursive: true });
     writeFileSync(`${dir}/README_DEPLOY.md`, `<!-- Author: yunnuo <ymz@ebox.vip> -->\n# Unicore ${version}\n\n默认 profile：${profile}；目标：${os}/${arch}。\n\n${profile === 'cli' ? '运行 bin/unicore version 或 bin/unicore execute --text "Hello Unicore"（Windows 为 .exe）。' : '首次试运行：APP_DATA_DIR=/你的私有数据目录 bin/server，访问 http://127.0.0.1:8080/install，从该目录 bootstrap.token 读取安装凭据。生产请按手册配置 systemd/Nginx 和 HTTPS。'}\n\n[部署手册](docs/03-runbooks/deployment.md) · [构建与发版](docs/03-runbooks/release.md) · [变更记录](CHANGELOG.md)。本包是未签名开发预览；数据和密钥必须保存在包目录之外。\n`);
     cpSync('CHANGELOG.md', `${dir}/CHANGELOG.md`);
     writeFileSync(`${dir}/VERSION`, `${version}\n`);
     if (profile !== 'cli') { cpSync('apps/web/static', `${dir}/web`, { recursive: true }); cpSync('deploy/tar', `${dir}/deploy`, { recursive: true }); }
-    const manifest = { version, channel: 'development', profile, os, arch, commit, build_time: buildTime, features: { authentication: profile === 'web-platform', installation: profile !== 'cli', database: profile !== 'cli', email_accounts: profile === 'web-platform', oidc: profile === 'web-platform', license: profile !== 'cli' && edition.features.license, updater: profile !== 'cli' && edition.features.updater }, min_upgrade_version: null, migration_level: profile === 'cli' ? 0 : profile === 'web-platform' ? 9 : 1, signature: null, release_notes: releaseNotes };
+    const manifest = { version, channel: 'development', profile, os, arch, commit, build_time: buildTime, features: { authentication: profile === 'web-platform', installation: profile !== 'cli', database: profile !== 'cli', email_accounts: profile === 'web-platform', oidc: profile === 'web-platform', license: profile !== 'cli' && edition.features.license, updater: profile !== 'cli' && edition.features.updater }, min_upgrade_version: null, business_migration_level: profile === 'cli' ? 0 : 1, offline_backup: profile !== 'cli', migration_level: profile === 'cli' ? 0 : profile === 'web-platform' ? 9 : 1, signature: null, release_notes: releaseNotes };
     writeFileSync(`${dir}/manifest.json`, JSON.stringify(manifest, null, 2)+'\n');
     const artifact = `${name}.tar.gz`;
     execFileSync('tar',['-czf',`build/releases/${artifact}`,'-C','build/staging',name], { env: { ...process.env, COPYFILE_DISABLE: '1' } });

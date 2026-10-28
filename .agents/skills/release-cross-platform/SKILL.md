@@ -38,3 +38,5 @@ metadata:
 ## 可裁剪授权/升级占位
 
 FEATURE_LICENSE / FEATURE_UPDATER 默认 false，Make 分别映射 Go tags 与 Vite 编译常量；两端必须一致。见 [设置规范](../../../docs/00-product/feature-settings.md) 和 [ADR-0010](../../../docs/adr/ADR-0010-settings-edition.md)。运行 make test-features 检查四组合：Go 参与文件、前端残留 chunk 清理/文本排除、features.json、真实 PC/375px 页面。当前编译开启也只是待对接占位，不存在真实检查/OTA API，不能把 capability 当作授权有效或更新已实现。archive manifest 必须反映实际 flags；CLI 始终不装配。Docker 的 --build-arg 两阶段保持一致，make docker-build 统一注入；部署验收未覆盖的 feature/OS/Arch 组合明确记录。
+
+开发基座：make doctor、make build-ops；Web tar 包含 MIT LICENSE 和 unicore-ops，manifest 带 business_migration_level。候选 workflow 只上传校验过的 artifact/来源证明，不创建 Release/tag/镜像。发布前执行依赖安全扫描并用备份恢复副本做跨版本验收；具体见 docs/03-runbooks/backup.md 与 framework-upgrade.md。

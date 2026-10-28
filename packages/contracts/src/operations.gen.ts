@@ -1653,6 +1653,154 @@ export const operations = {
     "superAdmin": true,
     "csrf": true,
     "identityRealm": "administrator"
+  },
+  "listNotes": {
+    "method": "GET",
+    "path": "/api/v1/notes",
+    "requestSchema": null,
+    "responseSchema": "NoteListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform",
+      "web-standalone"
+    ],
+    "access": "platform-session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user"
+  },
+  "createNote": {
+    "method": "POST",
+    "path": "/api/v1/notes",
+    "requestSchema": "NoteInput",
+    "responseSchema": "NoteResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform",
+      "web-standalone"
+    ],
+    "access": "platform-session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "updateNote": {
+    "method": "PUT",
+    "path": "/api/v1/notes/{id}",
+    "requestSchema": "NoteUpdate",
+    "responseSchema": "NoteResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform",
+      "web-standalone"
+    ],
+    "access": "platform-session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "deleteNote": {
+    "method": "DELETE",
+    "path": "/api/v1/notes/{id}",
+    "requestSchema": "NoteVersion",
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform",
+      "web-standalone"
+    ],
+    "access": "platform-session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "adminListNotes": {
+    "method": "GET",
+    "path": "/api/v1/admin/notes",
+    "requestSchema": null,
+    "responseSchema": "NoteListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "admin:access"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminCreateNote": {
+    "method": "POST",
+    "path": "/api/v1/admin/notes",
+    "requestSchema": "NoteInput",
+    "responseSchema": "NoteResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "admin:access"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "adminUpdateNote": {
+    "method": "PUT",
+    "path": "/api/v1/admin/notes/{id}",
+    "requestSchema": "NoteUpdate",
+    "responseSchema": "NoteResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "admin:access"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "adminDeleteNote": {
+    "method": "DELETE",
+    "path": "/api/v1/admin/notes/{id}",
+    "requestSchema": "NoteVersion",
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "admin:access"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
   }
 } as const;
 export type OperationId = keyof typeof operations;
@@ -1750,6 +1898,14 @@ export interface OperationInputs {
   adminCompleteFileUpload: undefined;
   adminFileAccess: undefined;
   adminDeleteFile: undefined;
+  listNotes: undefined;
+  createNote: Models.NoteInput;
+  updateNote: Models.NoteUpdate;
+  deleteNote: Models.NoteVersion;
+  adminListNotes: undefined;
+  adminCreateNote: Models.NoteInput;
+  adminUpdateNote: Models.NoteUpdate;
+  adminDeleteNote: Models.NoteVersion;
 }
 export interface OperationData {
   bootstrap: Models.BootstrapResponse['data'];
@@ -1845,4 +2001,12 @@ export interface OperationData {
   adminCompleteFileUpload: Models.FileEntryResponse['data'];
   adminFileAccess: Models.FileAccessResponse['data'];
   adminDeleteFile: Models.ActionResultResponse['data'];
+  listNotes: Models.NoteListResponse['data'];
+  createNote: Models.NoteResponse['data'];
+  updateNote: Models.NoteResponse['data'];
+  deleteNote: Models.ActionResultResponse['data'];
+  adminListNotes: Models.NoteListResponse['data'];
+  adminCreateNote: Models.NoteResponse['data'];
+  adminUpdateNote: Models.NoteResponse['data'];
+  adminDeleteNote: Models.ActionResultResponse['data'];
 }

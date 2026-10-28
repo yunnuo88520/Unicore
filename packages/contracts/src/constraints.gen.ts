@@ -1382,6 +1382,9 @@ export const constraints = {
       "name": {
         "type": "string"
       },
+      "description": {
+        "type": "string"
+      },
       "group": {
         "type": "string"
       },
@@ -2409,6 +2412,288 @@ export const constraints = {
       "request_id": {
         "type": "string",
         "maxLength": 64
+      }
+    }
+  },
+  "NoteInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "title",
+      "body",
+      "status",
+      "attachment_ids"
+    ],
+    "properties": {
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 120
+      },
+      "body": {
+        "type": "string",
+        "maxLength": 5000
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "open",
+          "done"
+        ]
+      },
+      "attachment_ids": {
+        "type": "array",
+        "maxItems": 5,
+        "uniqueItems": true,
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        }
+      }
+    }
+  },
+  "NoteUpdate": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "title",
+      "body",
+      "status",
+      "attachment_ids",
+      "version"
+    ],
+    "properties": {
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 120
+      },
+      "body": {
+        "type": "string",
+        "maxLength": 5000
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "open",
+          "done"
+        ]
+      },
+      "attachment_ids": {
+        "type": "array",
+        "maxItems": 5,
+        "uniqueItems": true,
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        }
+      },
+      "version": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      }
+    }
+  },
+  "NoteVersion": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "version"
+    ],
+    "properties": {
+      "version": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      }
+    }
+  },
+  "NoteEntry": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "title",
+      "body",
+      "status",
+      "attachment_ids",
+      "version",
+      "created_at",
+      "updated_at"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 120
+      },
+      "body": {
+        "type": "string",
+        "maxLength": 5000
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "open",
+          "done"
+        ]
+      },
+      "attachment_ids": {
+        "type": "array",
+        "maxItems": 5,
+        "uniqueItems": true,
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        }
+      },
+      "version": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "created_at": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      },
+      "updated_at": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      }
+    }
+  },
+  "NoteQuery": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "search",
+      "status",
+      "sort",
+      "direction",
+      "page"
+    ],
+    "properties": {
+      "search": {
+        "type": "string",
+        "maxLength": 128
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "",
+          "open",
+          "done"
+        ]
+      },
+      "sort": {
+        "type": "string",
+        "enum": [
+          "updated_at",
+          "title"
+        ]
+      },
+      "direction": {
+        "type": "string",
+        "enum": [
+          "asc",
+          "desc"
+        ]
+      },
+      "page": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100000
+      }
+    }
+  },
+  "NoteList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items",
+      "total",
+      "page",
+      "page_size"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NoteEntry"
+        }
+      },
+      "total": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      },
+      "page": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "page_size": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 50
+      }
+    }
+  },
+  "NoteResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/NoteEntry"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "NoteListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/NoteList"
+      },
+      "request_id": {
+        "type": "string"
       }
     }
   }

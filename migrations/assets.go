@@ -4,5 +4,5 @@ package migrations
 
 import "embed"
 
-//go:embed sqlite/*.sql postgres/*.sql mysql/*.sql
+//go:embed sqlite/*.sql postgres/*.sql mysql/*.sql sqlite/business/*.sql postgres/business/*.sql mysql/business/*.sql
 var Files embed.FS

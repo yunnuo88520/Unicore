@@ -26,7 +26,10 @@
     "check:native": "node scripts/check-native-brand.mjs",
     "test:theme": "node scripts/verify-theme.mjs",
     "ai:context": "node scripts/ai-context.mjs",
-    "check:docs": "node scripts/check-docs.mjs"
+    "check:docs": "node scripts/check-docs.mjs",
+    "create:project": "node scripts/create-project.mjs",
+    "doctor": "node scripts/doctor.mjs",
+    "test:tooling": "node --test scripts/create-project.test.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",
@@ -42,5 +45,6 @@
     "typescript": "~5.9.3",
     "vite": "^7.1.12",
     "vitest": "^3.2.4"
-  }
+  },
+  "license": "MIT"
 }

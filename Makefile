@@ -12,7 +12,7 @@ export RELEASE_TARGETS RELEASE_PROFILES
 FEATURE_TAGS = $(strip $(if $(filter true,$(FEATURE_LICENSE)),license) $(if $(filter true,$(FEATURE_UPDATER)),updater))
 LDFLAGS := -X github.com/yunnuo/unicore/internal/buildinfo.Version=$(VERSION) -X github.com/yunnuo/unicore/internal/buildinfo.Commit=$(COMMIT) -X github.com/yunnuo/unicore/internal/buildinfo.BuildTime=$(BUILD_TIME)
 
-.PHONY: install dev-web dev-server dev-desktop dev-cli generate docs test test-e2e test-features build-web build-cli build-desktop build-all release package version docker-build compose-up compose-down test-deploy check-features
+.PHONY: install dev-web dev-server dev-desktop dev-cli generate docs test test-e2e test-features build-web build-cli build-desktop build-all build-ops doctor dev-deps-up dev-deps-down release package version docker-build compose-up compose-down test-deploy test-upgrade check-features
 install:
 	pnpm install --frozen-lockfile
 	go mod download
@@ -33,6 +33,7 @@ docs: generate
 test:
 	pnpm check:version
 	node scripts/test-version.mjs
+	pnpm test:tooling
 	node scripts/build-features.mjs
 	pnpm check:docs
 	pnpm check:design
@@ -59,7 +60,15 @@ build-desktop: check-features
 	pnpm design:generate
 	cd cmd/desktop && wails build -tags 'desktop $(FEATURE_TAGS)' -ldflags '$(LDFLAGS)'
 	pnpm check:native --bundle
-build-all: build-web build-cli build-desktop
+build-ops:
+	go build -trimpath -ldflags '$(LDFLAGS)' -o build/bin/unicore-ops ./cmd/ops
+build-all: build-web build-cli build-ops build-desktop
+doctor:
+	node scripts/doctor.mjs $(ARGS)
+dev-deps-up:
+	docker compose -f deploy/docker/compose.dev.yaml up -d --wait $(SERVICES)
+dev-deps-down:
+	docker compose -f deploy/docker/compose.dev.yaml down
 release:
 	node scripts/release.mjs
 package:
@@ -73,5 +82,7 @@ compose-up:
 	node scripts/container.mjs up
 compose-down:
 	node scripts/container.mjs down
+test-upgrade:
+	UPGRADE_FROM_REF='$(FROM_REF)' node scripts/test-upgrade.mjs
 test-deploy:
 	node scripts/test-deployment.mjs

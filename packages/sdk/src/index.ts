@@ -1,13 +1,13 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Shared UI client; pages know neither fetch nor Wails globals.
  */
-import type { StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
+import type { NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
 import { operations, type OperationId, type OperationInputs, type OperationData } from '@unicore/contracts/operations';
 import { validate, type SchemaName } from '@unicore/contracts/validate';
 export { validate, type SchemaName } from '@unicore/contracts/validate';
 export { operations, type OperationId } from '@unicore/contracts/operations';
 
-export type { StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
+export type { NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
 
 export class AppError extends Error {
   constructor(public readonly code: string, message: string, public readonly requestId = '', public readonly fields: Record<string, string> = {}) { super(message); this.name = 'AppError'; }
@@ -28,10 +28,18 @@ export interface AppClient {
  branding?(): Promise<Branding>;
  updateBranding?(input: BrandingInput): Promise<Branding>;
   web?: WebClient;
+ notes?: NoteClient;
  files?: FileClient;
  storage?: StorageClient;
   subscribeSession?(listener: (event: SessionEvent) => void): () => void;
   resetSession?(): void;
+}
+
+export interface NoteClient {
+ listNotes(query:NoteQuery):Promise<NoteList>;
+ createNote(input:NoteInput):Promise<NoteEntry>;
+ updateNote(id:string,input:NoteUpdate):Promise<NoteEntry>;
+ deleteNote(id:string,version:number):Promise<{success:boolean}>;
 }
 
 export interface FileClient {
@@ -96,6 +104,10 @@ function unwrap<T>(response: { code: string; message: string; data: T; request_i
 
 const administratorOperations: Partial<Record<OperationId, OperationId>> = {
   "bootstrap": "adminBootstrap",
+  "listNotes": "adminListNotes",
+  "createNote": "adminCreateNote",
+  "updateNote": "adminUpdateNote",
+  "deleteNote": "adminDeleteNote",
   "execute": "adminExecute",
   "captcha": "adminCaptcha",
   "login": "adminLogin",
@@ -125,6 +137,7 @@ const administratorOperations: Partial<Record<OperationId, OperationId>> = {
 
 export class HttpTransport implements AppClient, WebClient, FileClient, StorageClient {
   readonly transport = 'http' as const;
+  readonly notes:NoteClient=this;
   readonly web: WebClient = this;
  readonly files:FileClient=this;
  readonly storage:StorageClient=this;
@@ -257,11 +270,19 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   options?.onStage?.('confirming');
   return this.call('completeFileUpload',undefined,{params:{id:grant.file_id},signal:options?.signal,timeoutMs:600000});
  }
+  listNotes(query:NoteQuery) { return this.call('listNotes',undefined,{query:{...query}}); }
+  createNote(input:NoteInput) { return this.call('createNote',input); }
+  updateNote(id:string,input:NoteUpdate) { return this.call('updateNote',input,{params:{id}}); }
+  deleteNote(id:string,version:number) { return this.call('deleteNote',{version},{params:{id}}); }
   settings() { return this.call(this.platform ? 'adminSettings' : 'localSettings'); }
   patchSettings(input: SettingPatch) { return this.call(this.platform ? 'adminPatchSettings' : 'localPatchSettings', input); }
 }
 
 export interface DesktopBridge {
+  ListNotes?(query:NoteQuery):Promise<NoteListResponse>;
+  CreateNote?(input:NoteInput):Promise<NoteResponse>;
+  UpdateNote?(id:string,input:NoteUpdate):Promise<NoteResponse>;
+  DeleteNote?(id:string,input:NoteVersion):Promise<ActionResultResponse>;
   Bootstrap(): Promise<BootstrapResponse>;
   Execute(input: ExecuteInput): Promise<ExecuteResponse>;
   Settings?(): Promise<SettingsResponse>;
@@ -270,6 +291,11 @@ export interface DesktopBridge {
 
 export class WailsTransport implements AppClient {
   readonly transport = 'wails' as const;
+  readonly notes:NoteClient=this;
+  async listNotes(q:NoteQuery) { const method=this.bridge().ListNotes; if(!method)throw new AppError('NOT_AVAILABLE','笔记存储未初始化');return unwrap(await method(q)); }
+  async createNote(input:NoteInput) { const method=this.bridge().CreateNote;if(!method)throw new AppError('NOT_AVAILABLE','笔记存储未初始化');return unwrap(await method(input)); }
+  async updateNote(id:string,input:NoteUpdate) {const method=this.bridge().UpdateNote;if(!method)throw new AppError('NOT_AVAILABLE','笔记存储未初始化');return unwrap(await method(id,input));}
+  async deleteNote(id:string,version:number) {const method=this.bridge().DeleteNote;if(!method)throw new AppError('NOT_AVAILABLE','笔记存储未初始化');return unwrap(await method(id,{version}));}
   constructor(private readonly bridge: () => DesktopBridge) {}
   async bootstrap() { return unwrap(await this.bridge().Bootstrap()); }
   async execute(input: ExecuteInput) { return unwrap(await this.bridge().Execute(input)); }

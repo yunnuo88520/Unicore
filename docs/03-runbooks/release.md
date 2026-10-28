@@ -5,7 +5,7 @@
 
 ## 拿到仓库开发
 
-需要 Go 1.25+、Node 22+、pnpm 11.25.0；Docker 验收另需 Docker Engine + Compose v2，桌面另需 Wails 原生依赖。
+需要 Go 1.26.10+、Node 22+、pnpm 11.25.0；Docker 验收另需 Docker Engine + Compose v2，桌面另需 Wails 原生依赖。
 
 ```sh
 make install
@@ -43,7 +43,7 @@ make build-desktop
 镜像不能下载官方源时，可显式替换同版本基础镜像来源，例如：
 
 ```sh
-GO_IMAGE=mirror.gcr.io/library/golang:1.26-bookworm \
+GO_IMAGE=mirror.gcr.io/library/golang:1.26.10-bookworm \
 NODE_IMAGE=mirror.gcr.io/library/node:22-bookworm-slim make docker-build
 ```
 
@@ -79,3 +79,15 @@ make test-deploy
 Linux amd64 daemon 将上例改为 linux/amd64。验收只创建随机命名容器/网络/卷，结束删除这些一次性资源；不会操作已有实例。包括 Tar 真二进制解包 + Nginx，Docker、Compose 的 `/install`、PC/375px 向导、演示账号、验证码、CSRF、动态品牌、安装锁、重启与替换容器后持久化，报告/截图位于 build/acceptance/deployment。CI 在 Ubuntu amd64 跑同一命令；本机实测见 [部署验收](../04-ai/acceptance-deployment.md)。
 
 当前产物仍是开发预览：归档没有外部签名，`signature:null`；已有 checksum 不能替代签名。真实授权服务器、OTA、自动备份恢复、发行签名/公证仍未实现。`make test-deploy` 的同版本替换证明挂载和配置保留，不等于跨版本迁移回滚或生产恢复演练。跨版本 DDL 兼容仍按对应 ADR/迁移文档验收，不承诺替换旧 binary 就能回滚。
+
+## 发布候选与恢复门禁
+
+源码采用 MIT，各 tar 包包含 LICENSE；Web tar 同时包含 unicore-ops 和 business_migration_level。归档及默认镜像名读取根 package.name，VERSION 仍唯一版本源。派生项目构建前按 [上游约定](framework-upgrade.md) 保留 provenance 与作者。
+
+提交 VERSION/CHANGELOG 后，可手动运行 Prepare release candidate workflow，输入完全匹配的版本。workflow 执行质量门禁、全 Web/CLI tar 矩阵、checksum 和 GitHub 构建来源证明，只上传候选 artifact，不创建 tag/Release 或推送镜像。正式发布必须另获授权并验证工作流结果；可用 gh attestation verify 验证 GitHub 来源，manifest signature:null 仍表示没有框架自己的升级签名，禁止因此开启自动 OTA。原生系统签名、公证、镜像注册表策略与 SBOM 仍需发布环境对接。
+
+Dependency security workflow 运行固定版 govulncheck 和前端生产依赖审计。安装新依赖需跟踪误报与升级影响，不静默忽略失败。发布前在目标环境恢复副本验证，参见 [备份恢复](backup.md)。跨版本升级/回退验收与同版本容器替换分开记录。
+
+`make test-upgrade FROM_REF=<可信本地旧提交或tag>` 在临时实例构建旧 binary，安装/保存设置和账号，备份后用当前 binary 向前迁移业务账本，重启确认，再将升级前快照恢复到新目录并由旧 binary 验证。当前脚本针对 SQLite、平台 schema9→业务schema1 的这次变更；其他历史版本/外部DB的跨版本升级需对应迁移夹具，不能泛化为任意版本可回退。
+
+构建网络受限时，可显式 `GOPROXY=https://goproxy.cn,direct make docker-build`（选用团队信任的 Go 模块代理，sumdb 校验保持启用），Compose 读取相同变量；GO_IMAGE/NODE_IMAGE/RUNTIME_IMAGE 同样可指定可信镜像源。不要使用跳过 TLS 或关闭 checksum 的方式解决下载问题。

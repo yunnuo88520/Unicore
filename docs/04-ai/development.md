@@ -21,3 +21,5 @@
 完成一项功能时，更新该能力的规范、使用说明和当前状态；重大选择新增 ADR。运行 `make test` 与受影响构建，UI 用真实服务做 E2E，原生桥接用原生应用验证。报告具体结果与未测范围，不能以“已生成代码”“已构建”代替功能验收。
 
 文件业务使用 `file_id` 与 `internal/files`，不自行拼路径或保存永久外链。存储扩展见 add-file-storage Skill、[运行手册](../03-runbooks/storage.md) 和 [ADR-0015](../adr/ADR-0015-file-storage.md)。
+
+新业务优先参考可运行的 [个人笔记纵向样板](../03-runbooks/business-example.md)。派生项目用 create:project 和 doctor 初始化，自建业务迁移不改框架历史账本；代码归属及上游合并见 [约定](../03-runbooks/framework-upgrade.md)。

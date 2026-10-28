@@ -1,5 +1,5 @@
 # Author: yunnuo <ymz@ebox.vip>
-ARG GO_IMAGE=golang:1.26-bookworm
+ARG GO_IMAGE=golang:1.26.10-bookworm
 ARG NODE_IMAGE=node:22-bookworm-slim
 ARG RUNTIME_IMAGE=gcr.io/distroless/static-debian12:nonroot
 FROM ${GO_IMAGE} AS go-toolchain
@@ -25,7 +25,8 @@ RUN FEATURE_LICENSE=${FEATURE_LICENSE} FEATURE_UPDATER=${FEATURE_UPDATER} pnpm -
 FROM go-toolchain AS backend
 WORKDIR /src
 COPY go.mod go.sum ./
-RUN go mod download
+ARG GOPROXY=https://proxy.golang.org,direct
+RUN GOPROXY=${GOPROXY} go mod download
 COPY . .
 COPY --from=frontend /src/apps/web/static ./apps/web/static
 ARG VERSION

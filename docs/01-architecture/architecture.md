@@ -27,7 +27,7 @@ CLI / HTTP / Wails → usecase.Executor → domain.Analyze
 
 `UNINITIALIZED → INSTALLING → INSTALLED`，失败为 INSTALL_FAILED。私有 data dir 使用跨平台 flock；token 首次由文件/环境提供；换新 API 必须验证当前凭据，只返回新值。准备操作先持久化 intent；确认空库或显式清空目标成功、保存 schema ownership 后才迁移。非空库必须独立勾选和精确库名确认，外部已安装数据库始终拒绝，失败重试不能绕过此检查。DB 的 install_state 与默认设置/管理员同一事务提交。重启恢复以唯一 DB 安装标记和实例 ID 为依据；profile 与实例不匹配拒绝接管。INSTALLED 后数据库或标记缺失在迁移前拒绝，不回到安装状态。结构化连接字段、默认 MySQL、自动 origin 和清空边界见 [ADR-0013](../adr/ADR-0013-installation-experience.md)。
 
-SQLite 使用 WAL、5 秒 busy timeout、单连接；PostgreSQL/MySQL 使用 bounded pool。分方言迁移嵌入二进制，版本 checksum 不可修改。SQLite/PostgreSQL DDL 事务；MySQL DDL 隐式提交，采用幂等 SQL，完全成功再记录版本。只创建本 profile 所需表；不自动回滚或 drop 数据。M2b 平台新增 0003 的 account_tokens/mail_jobs，M2a 迁移 checksum 不变，单机/桌面停留 framework。M2b 不承诺备份恢复工具已实现。
+SQLite 使用 WAL、5 秒 busy timeout、单连接；PostgreSQL/MySQL 使用 bounded pool。分方言迁移嵌入二进制，版本 checksum 不可修改。SQLite/PostgreSQL DDL 事务；MySQL DDL 隐式提交，采用幂等 SQL，完全成功再记录版本。只创建本 profile 所需表；不自动回滚或 drop 数据。M2b 平台新增 0003 的 account_tokens/mail_jobs，M2a 迁移 checksum 不变，单机/桌面停留 framework。此为历史 M2b 边界；当前离线工具见 ADR-0017。
 
 ## 认证与 API
 
@@ -39,7 +39,7 @@ SQLite 使用 WAL、5 秒 busy timeout、单连接；PostgreSQL/MySQL 使用 bou
 
 ## 界面与扩展
 
-HttpTransport 管理 cookie/CSRF 与 WebClient；页面不直接 fetch。WailsTransport 只提供 bootstrap/execute/appearance settings，没有 Web 身份/安装接口。SessionBoundary 按会话代际隔离 Query cache/组件状态，SDK epoch 拒绝旧响应，多标签页同步失效；routes.ts 与 PageContent 集中路由/权限及渲染，公共 Form/Field 与契约校验处理提交错误。TanStack Query 管理状态；DashboardWidgetRegistry 以唯一 id 扩展业务首页。工作台概览为默认首页，不再提供重复平台仪表盘；操作与投递记录通过独立系统日志页读取真实数据。
+HttpTransport 管理 cookie/CSRF 与 WebClient；页面不直接 fetch。WailsTransport 提供 bootstrap/execute/appearance settings/notes，没有 Web 身份/安装接口。SessionBoundary 按会话代际隔离 Query cache/组件状态，SDK epoch 拒绝旧响应，多标签页同步失效；routes.ts 与 PageContent 集中路由/权限及渲染，公共 Form/Field 与契约校验处理提交错误。TanStack Query 管理状态；DashboardWidgetRegistry 以唯一 id 扩展业务首页。工作台概览为默认首页，不再提供重复平台仪表盘；操作与投递记录通过独立系统日志页读取真实数据。
 
 平台主题只存在当前客户端 localStorage，不读取/保存全局默认主题；普通用户只渲染本地外观卡片。单机/桌面的本地默认主题仍在设置注册表，设备偏好优先。设置使用共享可键盘操作的单层 Tabs，品牌图片使用三张并列卡片，外观卡片合并到设置、兼容旧 #settings 地址；主标签由 #site?tab=… 保留；按当前分组构造 PATCH，跨标签保留表单/图片预览草稿。UI hash 子页面复用到 Wails，Web 的 /install、/login、/register、可配置后台入口由服务器处理。light/dark/system 与 375px 浏览器测试，表格可横向滚动但页面不溢出。
 
@@ -104,3 +104,5 @@ React 的独立可折叠导航、共享原生 dialog、头像密码/退出、邮
 当前范围见 [ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md)。用户 main.tsx 与管理员 admin.tsx 独立构建，管理页仅由 admin-app.tsx 导入，公共 Workspace 通过注入复用。Go 按 admin.path 返回 admin.html，非平台返回 404；用户 bootstrap 不公开后台路径。HttpTransport 构造时显式选域，使用契约中的固定 counterpart；所有页面仍通过 AppClient。旧身份请求头被忽略。管理员 auth/account 是管理员身份端点，管理业务继续逐权限校验。
 
 单机/桌面仅业务与本地外观，SettingDefinition 非平台只允许 appearance，旧站点/品牌记录不再使用。原生品牌由构建源生成；Wails 不再暴露 Branding/UpdateBranding。上传组件与两端 shell 共用，SDK 只提供真实阶段回调。
+
+开发基座与离线维护见 [ADR-0017](../adr/ADR-0017-developer-kit-business-backup.md)：notes usecase/SQL port 共享到 HTTP 与原生桥接，业务账本独立；cmd/ops 在实例锁边界做加密备份和新目标恢复，不进入业务 CLI。

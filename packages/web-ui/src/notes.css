@@ -1,0 +1,23 @@
+/* Author: yunnuo <ymz@ebox.vip> */
+.notes-panel{padding:calc(24 * var(--space-unit));min-width:0}
+.notes-panel>.panel-heading{padding:0 0 calc(22 * var(--space-unit));align-items:center}
+.notes-panel h2,.note-attachment-picker legend{display:flex;gap:calc(8 * var(--space-unit));align-items:center}
+.notes-filters{display:flex;gap:calc(10 * var(--space-unit));align-items:center;flex-wrap:wrap;margin-bottom:calc(24 * var(--space-unit))}
+.notes-search{display:flex;align-items:center;gap:calc(8 * var(--space-unit));flex:1;min-width:180px;color:var(--muted)}
+.notes-search input{width:100%;min-width:0}
+.notes-filters input,.notes-filters select,.note-form textarea,.note-attachment-picker>input,.note-attachment-picker>select{background:var(--surface-alt);color:var(--text);border:1px solid var(--border);border-radius:var(--radius-8);padding:calc(10 * var(--space-unit));font:inherit;font-size:var(--font-12)}
+.notes-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:calc(16 * var(--space-unit))}
+.note-card{display:flex;flex-direction:column;min-width:0;border:1px solid var(--border);border-radius:var(--radius-12);padding:calc(20 * var(--space-unit));background:var(--surface-alt)}
+.note-card-top{display:flex;align-items:center;justify-content:space-between;gap:calc(10 * var(--space-unit))}
+.note-status{display:inline-flex;align-items:center;gap:calc(6 * var(--space-unit));color:var(--primary);font-size:var(--font-11)}
+.note-status.is-done{color:var(--success)}
+.note-card h3{margin:calc(16 * var(--space-unit)) 0 calc(8 * var(--space-unit));font-size:var(--font-17);overflow-wrap:anywhere}
+.note-body{white-space:pre-wrap;overflow-wrap:anywhere;color:var(--muted);font-size:var(--font-13);line-height:1.8;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden;margin:0 0 calc(20 * var(--space-unit));flex:1}
+.note-card>small{color:var(--muted);font-size:var(--font-10);margin-top:auto}
+.note-attachments{display:flex;flex-wrap:wrap;gap:calc(10 * var(--space-unit));margin-bottom:calc(16 * var(--space-unit))}
+.note-attachments button{display:flex;align-items:center;gap:calc(4 * var(--space-unit));font-size:var(--font-11)}
+.note-form textarea{resize:vertical;min-height:120px;width:100%}
+.note-attachment-picker{display:grid;gap:calc(10 * var(--space-unit));padding:calc(12 * var(--space-unit));border:1px solid var(--border);border-radius:var(--radius-8);min-width:0}
+.note-selected-file{display:flex;align-items:center;gap:calc(8 * var(--space-unit));font-size:var(--font-12);min-width:0}
+.note-selected-file span{flex:1;overflow-wrap:anywhere;min-width:0}
+@media(max-width:700px){.notes-panel{padding:calc(16 * var(--space-unit))}.notes-grid{grid-template-columns:1fr}.notes-filters>label{flex:1}.notes-filters select{width:100%}.notes-panel>.panel-heading{gap:calc(12 * var(--space-unit))}}

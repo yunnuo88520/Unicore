@@ -36,11 +36,21 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
+      - name: Prepare dedicated backup databases
+        run: |
+          docker exec ${{ job.services.postgres.id }} psql -U unicore -d unicore_test -c 'CREATE DATABASE backup_source' -c 'CREATE DATABASE backup_target'
+          docker exec -e MYSQL_PWD=unicore_ci_root ${{ job.services.mysql.id }} mysql -u root -e "CREATE DATABASE backup_source; CREATE DATABASE backup_target; GRANT ALL ON backup_source.* TO 'unicore'@'%'; GRANT ALL ON backup_target.* TO 'unicore'@'%';"
       - run: make test
         env:
+          UNICORE_MAINTENANCE_POSTGRES_DSN: postgres://unicore:unicore_ci_test@127.0.0.1:5432/backup_source?sslmode=disable
+          UNICORE_MAINTENANCE_POSTGRES_TARGET_DSN: postgres://unicore:unicore_ci_test@127.0.0.1:5432/backup_target?sslmode=disable
+          UNICORE_MAINTENANCE_POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+          UNICORE_MAINTENANCE_MYSQL_DSN: unicore:unicore_ci_test@tcp(127.0.0.1:3306)/backup_source
+          UNICORE_MAINTENANCE_MYSQL_TARGET_DSN: unicore:unicore_ci_test@tcp(127.0.0.1:3306)/backup_target
+          UNICORE_MAINTENANCE_MYSQL_CONTAINER: ${{ job.services.mysql.id }}
           UNICORE_TEST_POSTGRES_DSN: postgres://unicore:unicore_ci_test@127.0.0.1:5432/unicore_test?sslmode=disable
           UNICORE_TEST_MYSQL_DSN: unicore:unicore_ci_test@tcp(127.0.0.1:3306)/unicore_test
-      - run: pnpm build && make build-web build-cli
+      - run: pnpm build && make build-web build-cli build-ops
       - run: pnpm exec playwright install --with-deps chromium
       - run: make test-e2e
       - run: make test-features

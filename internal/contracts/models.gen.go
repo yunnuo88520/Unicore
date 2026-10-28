@@ -643,3 +643,62 @@ type FileAccessResponse struct {
 	Data      FileAccess `json:"data"`
 	RequestID string     `json:"request_id"`
 }
+
+type NoteInput struct {
+	Title         string   `json:"title"`
+	Body          string   `json:"body"`
+	Status        string   `json:"status"`
+	AttachmentIds []string `json:"attachment_ids"`
+}
+
+type NoteUpdate struct {
+	Title         string   `json:"title"`
+	Body          string   `json:"body"`
+	Status        string   `json:"status"`
+	AttachmentIds []string `json:"attachment_ids"`
+	Version       int      `json:"version"`
+}
+
+type NoteVersion struct {
+	Version int `json:"version"`
+}
+
+type NoteEntry struct {
+	ID            string   `json:"id"`
+	Title         string   `json:"title"`
+	Body          string   `json:"body"`
+	Status        string   `json:"status"`
+	AttachmentIds []string `json:"attachment_ids"`
+	Version       int      `json:"version"`
+	CreatedAt     int      `json:"created_at"`
+	UpdatedAt     int      `json:"updated_at"`
+}
+
+type NoteQuery struct {
+	Search    string `json:"search"`
+	Status    string `json:"status"`
+	Sort      string `json:"sort"`
+	Direction string `json:"direction"`
+	Page      int    `json:"page"`
+}
+
+type NoteList struct {
+	Items    []NoteEntry `json:"items"`
+	Total    int         `json:"total"`
+	Page     int         `json:"page"`
+	PageSize int         `json:"page_size"`
+}
+
+type NoteResponse struct {
+	Code      string    `json:"code"`
+	Message   string    `json:"message"`
+	Data      NoteEntry `json:"data"`
+	RequestID string    `json:"request_id"`
+}
+
+type NoteListResponse struct {
+	Code      string   `json:"code"`
+	Message   string   `json:"message"`
+	Data      NoteList `json:"data"`
+	RequestID string   `json:"request_id"`
+}

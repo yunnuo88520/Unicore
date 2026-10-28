@@ -22,8 +22,10 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	desktopassets "github.com/yunnuo/unicore/apps/desktop"
 	"github.com/yunnuo/unicore/internal/adapter/desktop"
+	"github.com/yunnuo/unicore/internal/adapter/storage/notessql"
 	"github.com/yunnuo/unicore/internal/bootstrap"
 	"github.com/yunnuo/unicore/internal/bootstrap/local"
+	"github.com/yunnuo/unicore/internal/usecase"
 )
 
 func main() {
@@ -51,7 +53,7 @@ func runDesktop() (result error) {
 			return err
 		}
 		defer func() { result = errors.Join(result, store.Close()) }()
-		bridge = desktop.NewLocal(bootstrap.Core(), service)
+		bridge = desktop.NewLocal(bootstrap.Core(), service, &usecase.Notes{Repo: &notessql.Repository{Store: store}})
 	}
 	if err := wails.Run(&options.App{
 		Title: theme.Current.Brand.Name, Width: 1280, Height: 840, MinWidth: 375, MinHeight: 600,

@@ -138,5 +138,29 @@
     "fields": [
       "role"
     ]
+  },
+  {
+    "name": "note title is a business property, not a schema annotation",
+    "schema": "NoteInput",
+    "value": {
+      "title": "A useful title",
+      "body": "body",
+      "status": "open",
+      "attachment_ids": []
+    },
+    "fields": []
+  },
+  {
+    "name": "note optimistic version is required",
+    "schema": "NoteUpdate",
+    "value": {
+      "title": "A useful title",
+      "body": "",
+      "status": "done",
+      "attachment_ids": []
+    },
+    "fields": [
+      "version"
+    ]
   }
 ]

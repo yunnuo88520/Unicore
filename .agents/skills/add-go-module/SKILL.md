@@ -33,3 +33,5 @@ Core import HTTP/Wails/SQL/身份模块；CLI 为复用连接 DB；在 domain �
 ## validation
 
 make test、go run ./scripts/check-boundaries，以及受影响 profile build。
+
+参考可运行的个人笔记纵向样板 docs/03-runbooks/business-example.md；有 DB 的三种形态使用 notessql，CLI 不增加 DB。业务迁移登记独立 business_migrations，平台 scope 固定在入口生成。

@@ -34,8 +34,11 @@
 | files | [internal/files/service.go](../../internal/files/service.go) |
 | blob | [internal/blob/store.go](../../internal/blob/store.go) |
 | fileStorage | [docs/03-runbooks/storage.md](../../docs/03-runbooks/storage.md) |
+| businessExample | [docs/03-runbooks/business-example.md](../../docs/03-runbooks/business-example.md) |
+| backup | [docs/03-runbooks/backup.md](../../docs/03-runbooks/backup.md) |
+| frameworkUpgrade | [docs/03-runbooks/framework-upgrade.md](../../docs/03-runbooks/framework-upgrade.md) |
 
-OpenAPI 当前包含 93 个 operation、94 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
+OpenAPI 当前包含 101 个 operation、102 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
 
 | 任务 Skill | 用途 |
 | --- | --- |
@@ -63,5 +66,9 @@ OpenAPI 当前包含 93 个 operation、94 个 schema。Go/TS 模型、调用描
 - package：`make package`
 - image：`make docker-build`
 - deploy：`make test-deploy`
+- create：`pnpm create:project`
+- doctor：`make doctor`
+- maintenance：`make build-ops`
+- devDependencies：`make dev-deps-up`
 
 不保存凭据到上下文或验收记录。任务记录使用 [任务模板](task-template.md)，交付记录须区分实测、未测与未来目标。

@@ -47,4 +47,7 @@ var ErrorCatalog = map[string]ErrorDefinition{
 	"FILE_NOT_FOUND":          {Status: 404, Message: "文件不存在或无权访问"},
 	"FILE_INVALID":            {Status: 400, Message: "文件名称、类型或大小不符合上传要求"},
 	"FILE_BUSY":               {Status: 409, Message: "文件正在处理中，请稍后重试"},
+	"NOTE_NOT_FOUND":          {Status: 404, Message: "笔记不存在或无权访问"},
+	"NOTE_CONFLICT":           {Status: 409, Message: "笔记已被修改，请重新打开后再保存"},
+	"NOTE_INVALID":            {Status: 400, Message: "标题、正文、状态或附件不符合要求"},
 }

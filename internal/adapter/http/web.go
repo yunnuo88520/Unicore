@@ -19,12 +19,14 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/yunnuo/unicore/internal/branding"
 	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/domain"
 	"github.com/yunnuo/unicore/internal/files"
 	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/mailer"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/runtime"
 	"github.com/yunnuo/unicore/internal/settings"
+	"github.com/yunnuo/unicore/internal/usecase"
 	apispec "github.com/yunnuo/unicore/packages/contracts"
 )
 
@@ -37,6 +39,12 @@ func failure(w http.ResponseWriter, status int, code, message string) {
 func webError(w http.ResponseWriter, err error) {
 	code := "INTERNAL_ERROR"
 	switch {
+	case errors.Is(err, domain.ErrNoteInvalid):
+		code = "NOTE_INVALID"
+	case errors.Is(err, usecase.ErrNoteNotFound):
+		code = "NOTE_NOT_FOUND"
+	case errors.Is(err, usecase.ErrNoteConflict):
+		code = "NOTE_CONFLICT"
 	case errors.Is(err, files.ErrInvalid):
 		code = "FILE_INVALID"
 	case errors.Is(err, files.ErrNotFound):
@@ -312,6 +320,7 @@ func super(user contracts.User) bool {
 func mountWeb(api chi.Router, config Config) {
 	mountBranding(api, config)
 	mountStorage(api, config)
+	mountNotes(api, config)
 	manager := config.Install
 	mountAccounts(api, config)
 	mountRoles(api, config)

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gofrs/flock"
+	"github.com/yunnuo/unicore/assets/theme"
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlite"
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/settings"
@@ -22,7 +23,7 @@ func Open(ctx context.Context, directory string) (*sqlstore.Store, *settings.Ser
 		if err != nil {
 			return nil, nil, err
 		}
-		directory = filepath.Join(base, "Unicore", "desktop")
+		directory = filepath.Join(base, theme.Current.Brand.Name, "desktop")
 	}
 	directory, err := filepath.Abs(directory)
 	if err != nil {

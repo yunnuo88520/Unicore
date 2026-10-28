@@ -16,12 +16,17 @@ import (
 type Bridge struct {
 	core     usecase.Executor
 	settings *settings.Service
+	notes    *usecase.Notes
 }
 
 func New(core usecase.Executor) *Bridge { return &Bridge{core: core} }
 
-func NewLocal(core usecase.Executor, service *settings.Service) *Bridge {
-	return &Bridge{core: core, settings: service}
+func NewLocal(core usecase.Executor, service *settings.Service, notes ...*usecase.Notes) *Bridge {
+	b := &Bridge{core: core, settings: service}
+	if len(notes) > 0 {
+		b.notes = notes[0]
+	}
+	return b
 }
 
 func (b *Bridge) Bootstrap() contracts.BootstrapResponse {

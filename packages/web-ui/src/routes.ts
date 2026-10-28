@@ -5,6 +5,7 @@ import type { Bootstrap } from '@unicore/sdk';
 export const routes = {
   overview: { label: '工作台概览', title: '一份核心，无限可能', description: '从这里出发，让同一份业务逻辑运行于 Web、桌面与命令行。' },
   lab: { label: '核心实验室', title: '探索核心的每一种可能', description: '修改输入、运行用例，验证跨形态一致的执行结果。' },
+  notes:{label:'我的笔记',title:'我的笔记',description:'记录想法、跟进事项，让每一次进展都有迹可循。'},
   files:{label:'文件管理',title:'文件管理',description:'统一管理文件，按需获取临时访问链接。',authenticated:true},
   storage:{label:'对象存储',title:'对象存储',description:'按需切换本地与云存储，让业务只关心文件。',permission:'storage:read'},
   users: { label: '用户列表', title: '用户管理', description: '管理账号、角色和状态，权限由服务端逐一校验。', permission: 'users:read' },
@@ -30,6 +31,7 @@ export function isAdministrator(metadata?: Bootstrap): boolean {
 }
 export function canAccess(page: Page, metadata?: Bootstrap): boolean {
   if (!metadata) return false;
+  if (page === 'notes') return metadata.capabilities.database;
   if (page === 'site') return metadata.capabilities.settings && (metadata.profile !== 'web-platform' || !!metadata.current_user);
   const route = routes[page];
   if ('authenticated' in route) return metadata.profile === 'web-platform' && !!metadata.current_user;

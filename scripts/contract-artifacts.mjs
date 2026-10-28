@@ -35,7 +35,14 @@ export function contractArtifacts(spec){
  let errors=header+'\npackage contracts\n\ntype ErrorDefinition struct { Status int; Message string }\n\nvar ErrorCatalog = map[string]ErrorDefinition{\n';
  for(const [code,error] of Object.entries(spec['x-error-codes']))errors+=`${JSON.stringify(code)}: {Status: ${error.status}, Message: ${JSON.stringify(error.message)}},\n`;errors+='}\n';
  errors=execFileSync('gofmt',[],{input:errors,encoding:'utf8'});
- const constraints=JSON.parse(JSON.stringify(spec.components.schemas, (key,value)=>['description','title','example','examples'].includes(key)?undefined:value));
+ // Strip annotations at schema nodes only; property names such as title/description are business data.
+ function constraintsFor(schema){const result={};for(const [key,value] of Object.entries(schema)){
+  if(['description','title','example','examples'].includes(key))continue;
+  if(key==='properties')result[key]=Object.fromEntries(Object.entries(value).map(([name,child])=>[name,constraintsFor(child)]));
+  else if((key==='items'||key==='additionalProperties')&&typeof value==='object')result[key]=constraintsFor(value);
+  else result[key]=value;
+ }return result;}
+ const constraints=Object.fromEntries(Object.entries(spec.components.schemas).map(([name,schema])=>[name,constraintsFor(schema)]));
  const supported=new Set(['type','$ref','required','properties','additionalProperties','items','enum','minLength','maxLength','pattern','format','minimum','maximum','minItems','maxItems','uniqueItems','x-max-utf8-bytes']);
  function check(schema){for(const key of Object.keys(schema))if(!supported.has(key))throw new Error(`Extend runtime validation before adding schema keyword: ${key}`);if(schema.pattern)new RegExp(schema.pattern);if(schema.format&&!['email','uri','date-time'].includes(schema.format))throw new Error(`Unsupported format ${schema.format}`);for(const child of Object.values(schema.properties??{}))check(child);if(schema.items)check(schema.items);if(typeof schema.additionalProperties==='object')check(schema.additionalProperties);}
  for(const schema of Object.values(constraints))check(schema);

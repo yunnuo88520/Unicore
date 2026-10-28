@@ -121,7 +121,7 @@ func (s *Store) Migrate(ctx context.Context, platform bool) error {
 			return err
 		}
 	}
-	return nil
+	return s.MigrateBusiness(ctx)
 }
 
 func (s *Store) Installation(ctx context.Context) (profile, instance string, err error) {

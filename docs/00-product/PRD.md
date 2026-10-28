@@ -20,7 +20,8 @@ Unicore · yunnuo / ymz@ebox.vip。完整目标见 [design-v1.1.md](design-v1.1.
 | 实例品牌上传/恢复默认 | 已实现，仅管理端 | 构建品牌 | 构建品牌 | 不适用 |
 | 备案页脚 / SMTP 别名 / 系统通知 port | 已实现 | 备案页脚 | 备案页脚 | 不适用 |
 | 授权/升级占位及编译裁剪 | 已实现，默认关闭 | 已实现，默认关闭 | 已实现，默认关闭 | 不装配 |
-| 备份恢复 / 正式发布 / 升级 | M4 后续 | M4 后续 | 后续 | 后续 |
+| 离线加密备份恢复 | 已实现，独立 ops | 已实现，独立 ops | 已实现，独立 ops | 不装配 |
+| 正式签名发布 / OTA | 后续 | 后续 | 后续 | 不适用 |
 
 M2a：首次选择 Web 两模式，安装后固定；私有安装凭据、文件锁、DB 唯一安装标记与事务 seed，失败可恢复。平台默认开启图形验证码，不开放注册；内置 super_admin/user，服务端逐 API 权限与 CSRF，保护最后超管；用户搜索/分页/创建/启停/角色关联。持久设置通过 SettingDefinition 注册表管理，覆盖站点基础、主题、安全和后台路径。桌面自动 SQLite，平台身份与外部驱动不进入桌面组合。
 
@@ -38,7 +39,7 @@ M2c：主题、字号/字体、圆角、间距、图标线宽、动效集中配�
 
 设置按业务域 Tabs 展示，保持单层标签，品牌用三张卡片、外观复用主题预览卡片并移除侧栏重复入口，保留草稿并只保存当前分组，减少页面滚动。设置清单补齐：ICP/独立发件人别名、ICO favicon、共用系统通知模板和内部队列；授权/升级仅编译开关与待接入占位，不执行真实检查或更新。具体范围见 [设置需求](feature-settings.md) 与 [设置验收](../04-ai/acceptance-settings.md)。
 
-交付基座：VERSION 单源生成各端版本、Changelog 准备、按 target/profile 快速归档和镜像/Compose 入口。Nginx 保留安装/后台/品牌路由边界；实际运行范围见 [部署验收](../04-ai/acceptance-deployment.md) 与 [ADR-0011](../adr/ADR-0011-release-deployment.md)。正式签名、自动发布、OTA 和备份恢复仍为后续。
+交付基座：VERSION 单源生成各端版本、Changelog 准备、按 target/profile 快速归档和镜像/Compose 入口。Nginx 保留安装/后台/品牌路由边界；实际运行范围见 [部署验收](../04-ai/acceptance-deployment.md) 与 [ADR-0011](../adr/ADR-0011-release-deployment.md)。正式签名、自动发布和 OTA 仍为后续；离线备份恢复见 ADR-0017。
 
 首次安装改为 MySQL 默认、结构化数据库字段、三方言连接测试、非空库精确确认初始化；自动记录访问 origin，凭据可经当前凭据验证后换新，已安装实例缺失 DB/标记时拒绝启动。需求见 [安装规范](feature-installation.md)，三数据库/PC/375px/重启证据见 [安装验收](../04-ai/acceptance-installation.md)。
 
@@ -49,3 +50,5 @@ M2c：主题、字号/字体、圆角、间距、图标线宽、动效集中配�
 对象存储与私有文件：在线平台新增本地/MinIO/S3/OSS/COS 位置、直传与签名访问、文件元数据和清理。桌面/单机使用构建品牌；详见 [文件存储需求](feature-storage.md)、[ADR-0015](../adr/ADR-0015-file-storage.md) 与 [存储手册](../03-runbooks/storage.md)。
 
 当前页面/API 分离以 [ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md) 为准。管理端独立 HTML 入口与 admin API；用户端只有个人业务、文件、账号和本地外观。单机/桌面不提供任何全局配置页面或运行时品牌修改。
+
+开发基座增量以 [ADR-0017](../adr/ADR-0017-developer-kit-business-backup.md) 为准：MIT、源码创建器/doctor/开发依赖、三种有 DB 形态的笔记纵向样板、独立业务迁移、离线加密备份恢复与手动发布候选。当前状态与实测边界见 [开发基座验收](../04-ai/acceptance-developer-kit.md)。

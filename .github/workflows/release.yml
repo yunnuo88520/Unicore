@@ -1,0 +1,37 @@
+# Author: yunnuo <ymz@ebox.vip>
+name: Prepare release candidate
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact VERSION already committed with CHANGELOG
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  candidate:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+      - run: test "$(cat VERSION)" = "$EXPECTED_VERSION"
+        env:
+          EXPECTED_VERSION: ${{ inputs.version }}
+      - uses: actions/setup-go@v5
+        with: { go-version-file: go.mod }
+      - uses: pnpm/action-setup@v4
+        with: { version: 11.25.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: make docs && git diff --exit-code && make test
+      - run: make release
+      - run: cd build/releases && sha256sum --check checksums.txt
+      - uses: actions/attest-build-provenance@v2
+        with: { subject-path: build/releases/*.tar.gz }
+      - uses: actions/upload-artifact@v4
+        with: { name: release-candidate, path: build/releases/, if-no-files-found: error }

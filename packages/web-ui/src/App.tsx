@@ -1,13 +1,14 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Shared responsive workspace. All business calls use AppClient.
  */
+import { NotesPage } from './notes-page';
 import { FileManagement } from './files-page';
 import { Form } from './forms';
 import { MessageProvider, useMessage } from './message';
 import { SiteFooter } from './site-footer';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { Cloud, FolderOpen, Activity, ArrowDown, ArrowRight, ArrowUpRight, Braces, Check, CheckCircle2, ChevronRight, Circle, Code2, Copy, Cpu, ExternalLink, FlaskConical, Globe2, Info, Layers3, LayoutDashboard, LoaderCircle, Menu, Monitor, Moon, Play, Radio, RotateCcw, Settings2, ShieldCheck, Sparkles, Sun, Terminal, Users, UserRound, UserCog, Mail, ScrollText, PackageCheck, X, type LucideIcon } from 'lucide-react';
+import { NotebookPen, Cloud, FolderOpen, Activity, ArrowDown, ArrowRight, ArrowUpRight, Braces, Check, CheckCircle2, ChevronRight, Circle, Code2, Copy, Cpu, ExternalLink, FlaskConical, Globe2, Info, Layers3, LayoutDashboard, LoaderCircle, Menu, Monitor, Moon, Play, Radio, RotateCcw, Settings2, ShieldCheck, Sparkles, Sun, Terminal, Users, UserRound, UserCog, Mail, ScrollText, PackageCheck, X, type LucideIcon } from 'lucide-react';
 import { BrandProvider, BrandMark, BrandLockup } from './brand';
 import { type AppClient, type Bootstrap, type ExecuteOutput, type Profile } from '@unicore/sdk';
 import { useTheme, type Theme } from './theme';
@@ -74,7 +75,7 @@ function App({ client, registry, notice, administratorPage }: { client: AppClien
       <a className="brand" href="#overview" onClick={() => navigate('overview')}><BrandLockup name={metadata.data?.site_name} /><span className="brand-tag">FRAMEWORK</span></a>
       <button className="workspace-switch" onClick={() => setAbout(true)}><span className="workspace-icon"><Braces size={19} /></span><span><strong>{metadata.data?.site_name ?? '默认工作空间'}</strong><small>Unicore 应用基座</small></span><span className="workspace-stage">{metadata.data?.stage ?? 'M2a'}</span></button>
       <div className="sidebar-navigation">
-      <nav aria-label="工作台">{([{ id: 'overview', icon: LayoutDashboard }, { id: 'lab', icon: FlaskConical }] as const).map(({ id, icon: Icon }) => <button key={id} className={`nav-item ${page === id ? 'active' : ''}`} aria-current={page === id ? 'page' : undefined} onClick={() => navigate(id)}><Icon size={19} /><span>{PAGE_LABELS[id]}</span>{page === id && <span className="nav-active-dot" />}</button>)}</nav>
+      <nav aria-label="工作台">{([{ id: 'overview', icon: LayoutDashboard }, { id: 'lab', icon: FlaskConical }, { id:'notes',icon:NotebookPen }] as const).filter(({id})=>canAccess(id,metadata.data)).map(({ id, icon: Icon }) => <button key={id} className={`nav-item ${page === id ? 'active' : ''}`} aria-current={page === id ? 'page' : undefined} onClick={() => navigate(id)}><Icon size={19} /><span>{PAGE_LABELS[id]}</span>{page === id && <span className="nav-active-dot" />}</button>)}</nav>
       {canAccess('files',metadata.data)&&<button className={`nav-item ${page==='files'?'active':''}`} onClick={()=>navigate('files')}><FolderOpen size={19}/><span>{isAdministrator(metadata.data)?'文件管理':'我的文件'}</span></button>}
       {isAdministrator(metadata.data)&&<NavGroup title="用户管理" icon={<Users size={19}/>}><NavEntry id="users" page={page} navigate={navigate}/><NavEntry id="administrators" page={page} navigate={navigate}/><NavEntry id="roles" page={page} navigate={navigate}/></NavGroup>}
       {canAccess('site',metadata.data)&&(personalSettings?<button className={`nav-item ${page==='site'?'active':''}`} onClick={()=>navigate('site')}><Settings2 size={19}/><span>外观设置</span></button>:<NavGroup title="系统管理" icon={<Settings2 size={19}/>}><NavEntry id="site" page={page} navigate={navigate}/>{(['mail','storage','logs','edition'] as const).filter(id=>canAccess(id,metadata.data)).map(id=><NavEntry key={id} id={id} page={page} navigate={navigate}/>)}</NavGroup>)}
@@ -108,9 +109,10 @@ function NavEntry({id,page,navigate}:{id:Page;page:Page;navigate:(p:Page)=>void}
 function PageContent(props: PageProps & { administratorPage?: WorkspaceProps['administratorPage'] }) {
   const {page,client,metadata,registry,theme,setTheme,refresh}=props;
   const administration=metadata.identity_realm==='administrator';
-  if(administration && props.administratorPage && !['overview','lab','account','files','not-found'].includes(page)) return props.administratorPage(props);
+  if(administration && props.administratorPage && !['overview','lab','notes','account','files','not-found'].includes(page)) return props.administratorPage(props);
   switch(page){
     case 'overview': case 'lab': return <CoreWorkspace page={page} client={client} metadata={metadata} registry={registry}/>;
+    case 'notes': return client.notes && <NotesPage client={client} metadata={metadata}/>;
     case 'files': return client.files && <FileManagement client={client} administrator={administration}/>;
     case 'account': return client.web && <AccountSecurity web={client.web} userID={metadata.current_user?.id??''} onChanged={refresh}/>;
     case 'site': return <ClientAppearance theme={theme} onSaved={setTheme}/>;

@@ -1,5 +1,5 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
-# 基础能力当前状态（2026-10-27）
+# 基础能力当前状态（2026-10-28）
 
 本轮已补齐上一轮审计列出的开发基座缺口，验收见 [AI 开发基座验收](acceptance-ai-foundations.md)。这表示当前 M3a 基座可持续扩展，不等于完整 v1 或正式生产发行。原生品牌的上一轮证据保留在下方。
 
@@ -9,7 +9,7 @@
 | 响应与错误 | OpenAPI 错误目录生成 ErrorCatalog，HTTP/presenter/桌面复用，支持 fields、request_id | 业务错误仍由服务手写映射；INVALID_CREDENTIALS 与 AUTH_REQUIRED 区分密码错误/会话失效 |
 | 日志 | 共享 slog 等级/JSON或text，Web 请求路由模板/状态/耗时，CLI日志 stderr | 不打印请求值/凭据/原始 query；外部日志平台后续接入 |
 | DB 初始化与迁移 | database/sql + Repository、池/Ping、分方言嵌入 SQL/checksum 已有 | [ADR-0003](../adr/ADR-0003-m2-install-storage-identity.md) 决定不用 GORM；平台固定角色 0007 + 管理员拆表 0008，其他形态无平台迁移，不叠加 AutoMigrate |
-| 自动 API 文档 | 同源生成 Go/TS DTO、typed operation、约束、错误和离线 HTML；可选 /docs/api、/openapi.json；真实 Chi 路由覆盖检查 | 48 个 operation；handler/业务授权手写；文档默认关闭，非交互调试控制台 |
+| 自动 API 文档 | 同源生成 Go/TS DTO、typed operation、约束、错误和离线 HTML；可选 /docs/api、/openapi.json；真实 Chi 路由覆盖检查 | 当前 operation 数以生成 API 索引为准；handler/业务授权手写；文档默认关闭，非交互调试控制台 |
 | 健康与观测 | live/ready、独立 DB 超时、可选回环 /metrics：请求数/活动数/耗时与 DB 池 | 指标使用低基数模板；未实现 OpenTelemetry tracing、远程采集/告警部署 |
 | API Client | 生成操作驱动请求、CSRF/Cookie、20秒超时/取消、字段错误、统一失效、旧请求 epoch 拒绝 | 浏览器 OIDC callback 走导航；Wails 只暴露适用接口 |
 | 会话与守卫 | useSession + SessionBoundary、身份代际 cache/局部状态清空、多标签页同步、可见时复核、集中权限判断 | 服务端撤销在下个请求或恢复可见时发现；没有推送通道 |
@@ -18,9 +18,9 @@
 | 样式与品牌 | 全局 tokens/identity 生成 UI、邮件、Web/native 图标；API 文档复用同一浅深配色/尺度 | 本机 macOS arm64 原生实测；Windows/Linux 原生显示仍需对应机器 |
 | 表单与校验 | 公共 Form/Field、HTML约束、契约前置校验、服务端再次校验、字段错误/聚焦、pending；Go/TS 共用边界样例 | 明确受支持 schema 子集；业务不变量仍在服务端，分步/设置表单保留局部编辑逻辑 |
 | 唯一契约 | OpenAPI 3.1.0 维护 schema/security/profile/权限/CSRF/响应/错误，CI 检查漂移与路由 | 不引入第二份 Protobuf；非完整 JSON Schema 验证器，不自动生成业务实现 |
-| AI 开发内建 | manifest、AGENTS、文档导航、生成上下文、11 个项目 Skills、任务/中断模板；make docs/check:docs 进入质量流程 | Skills 不隐含生产/发布授权，不存个人凭据；历史验收与当前状态分开 |
+| AI 开发内建 | manifest、AGENTS、文档导航、生成上下文、12 个项目 Skills、任务/中断模板；make docs/check:docs 进入质量流程 | Skills 不隐含生产/发布授权，不存个人凭据；历史验收与当前状态分开 |
 
-M3b 品牌上传已完成，见 [需求](../00-product/feature-branding.md) 和 [验收](acceptance-m3b.md)。设置清单补齐与授权/升级编译占位见 [规范](../00-product/feature-settings.md) 和 [验收](acceptance-settings.md)。仍未完成的产品范围：M4 备份恢复、真实授权/版本服务、受控升级与正式签名发行。详见 [PRD](../00-product/PRD.md)；各轮实测范围以对应验收为准；本轮固定角色变更已在 PostgreSQL/MySQL/SQLite 复验，其他 OS 原生显示仍未本机验证。
+M3b 品牌上传已完成，见 [需求](../00-product/feature-branding.md) 和 [验收](acceptance-m3b.md)。设置清单补齐与授权/升级编译占位见 [规范](../00-product/feature-settings.md) 和 [验收](acceptance-settings.md)。仍未完成的产品范围：真实授权/版本服务、受控升级与正式签名发行。详见 [PRD](../00-product/PRD.md)；各轮实测范围以对应验收为准；本轮固定角色变更已在 PostgreSQL/MySQL/SQLite 复验，其他 OS 原生显示仍未本机验证。
 
 ## 上轮原生品牌与排空修正（146e75f）
 
@@ -50,3 +50,5 @@ M3b 品牌上传已完成，见 [需求](../00-product/feature-branding.md) 和 
 管理员/普通用户的独立身份、弹窗新增、固定侧栏、邮件/日志分工和头像改密退出以 [ADR-0014](../adr/ADR-0014-separate-identities-management.md) 与 [管理验收](acceptance-management.md) 为当前基线；历史角色升降描述不再适用。
 
 对象存储增量：平台新增 blob/files/filesql 分层、本地默认与 MinIO/S3/OSS/COS adapter、文件元数据、直传和临时访问、迁移与清理，品牌也通过 blob port；见 [需求](../00-product/feature-storage.md)、[ADR-0015](../adr/ADR-0015-file-storage.md) 和 [运行手册](../03-runbooks/storage.md)。真实云端验收以 MinIO 开发环境为限。
+
+当前开发基座已补源码创建/环境自检、开发依赖、持久化笔记样板、独立业务迁移、MIT 与候选发布流程；离线备份恢复已实现。最新验证及未测事项见 [开发基座验收](acceptance-developer-kit.md)，不将旧阶段测试计数当作当前覆盖。

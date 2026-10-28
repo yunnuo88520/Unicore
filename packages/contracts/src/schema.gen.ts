@@ -641,3 +641,62 @@ export interface FileAccessResponse {
   data: FileAccess;
   request_id: string;
 }
+
+export interface NoteInput {
+  title: string;
+  body: string;
+  status: "open" | "done";
+  attachment_ids: Array<string>;
+}
+
+export interface NoteUpdate {
+  title: string;
+  body: string;
+  status: "open" | "done";
+  attachment_ids: Array<string>;
+  version: number;
+}
+
+export interface NoteVersion {
+  version: number;
+}
+
+export interface NoteEntry {
+  id: string;
+  title: string;
+  body: string;
+  status: "open" | "done";
+  attachment_ids: Array<string>;
+  version: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface NoteQuery {
+  search: string;
+  status: "" | "open" | "done";
+  sort: "updated_at" | "title";
+  direction: "asc" | "desc";
+  page: number;
+}
+
+export interface NoteList {
+  items: Array<NoteEntry>;
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface NoteResponse {
+  code: string;
+  message: string;
+  data: NoteEntry;
+  request_id: string;
+}
+
+export interface NoteListResponse {
+  code: string;
+  message: string;
+  data: NoteList;
+  request_id: string;
+}

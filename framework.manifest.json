@@ -50,7 +50,10 @@
     "installation": "docs/00-product/feature-installation.md",
     "files": "internal/files/service.go",
     "blob": "internal/blob/store.go",
-    "fileStorage": "docs/03-runbooks/storage.md"
+    "fileStorage": "docs/03-runbooks/storage.md",
+    "businessExample": "docs/03-runbooks/business-example.md",
+    "backup": "docs/03-runbooks/backup.md",
+    "frameworkUpgrade": "docs/03-runbooks/framework-upgrade.md"
   },
   "commands": {
     "generate": "pnpm generate",
@@ -61,7 +64,11 @@
     "docs": "make docs",
     "package": "make package",
     "image": "make docker-build",
-    "deploy": "make test-deploy"
+    "deploy": "make test-deploy",
+    "create": "pnpm create:project",
+    "doctor": "make doctor",
+    "maintenance": "make build-ops",
+    "devDependencies": "make dev-deps-up"
   },
   "skills": [
     "add-api-operation",

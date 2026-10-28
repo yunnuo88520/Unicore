@@ -11,7 +11,7 @@
 
 ## 启动
 
-需要 Go 1.25+、Node 22+、pnpm 11.25.0。桌面另需 [Wails v2 原生依赖](https://wails.io/docs/gettingstarted/installation)。
+需要 Go 1.26.10+、Node 22+、pnpm 11.25.0。桌面另需 [Wails v2 原生依赖](https://wails.io/docs/gettingstarted/installation)。
 
 ```sh
 make install
@@ -57,7 +57,7 @@ make version NEW_VERSION=0.1.1    # 准备版本与 Changelog，不发布
 
 ## 文档
 
-AI 开发从 [文档入口](docs/README.md) 和 [上下文地图](docs/04-ai/context.gen.md) 开始。框架自带 11 个任务 Skills、机器可读 manifest、任务模板和文档漂移检查；`make docs` 生成，`make test` 检查。
+AI 开发从 [文档入口](docs/README.md) 和 [上下文地图](docs/04-ai/context.gen.md) 开始。框架自带 12 个任务 Skills、机器可读 manifest、任务模板和文档漂移检查；`make docs` 生成，`make test` 检查。
 
 `APP_API_DOCS=true build/bin/server` 开启 `/docs/api` 和 `/openapi.json`；日志、退出超时及独立指标端口见 [运行基座](docs/02-standards/runtime.md)。
 
@@ -70,8 +70,27 @@ AI 开发从 [文档入口](docs/README.md) 和 [上下文地图](docs/04-ai/con
 - [架构](docs/01-architecture/architecture.md)、[规范](docs/02-standards/coding.md)、[部署与密钥恢复](docs/03-runbooks/deployment.md)
 - [M2 决策](docs/adr/ADR-0003-m2-install-storage-identity.md)、[权限清单](docs/api/permissions.md)、[协作约定](AGENTS.md)
 
-仓库尚未选定开源许可证；采用或再分发前由作者明确条款。
+仓库采用 MIT，使用、修改和再分发时保留版权与许可证。
 
 主题和品牌统一由 `assets/theme/tokens.json` 与 `assets/brand/identity.json` 管理。只换主色修改 brand.accent；构建自动同步 Logo、ICO、原生图标与邮件配色。字体、圆角、间距、线宽、动效也有集中入口。
 
 开发与打包完整流程见 [发版手册](docs/03-runbooks/release.md)，宝塔/Nginx、Docker/Compose 与首次安装见 [部署手册](docs/03-runbooks/deployment.md)。演示安装可填写 admin / Admin@123456，框架不预置管理员。部署真实验收记录见 [报告](docs/04-ai/acceptance-deployment.md)。
+
+## 派生应用与开发自检
+
+仓库采用 [MIT](LICENSE)。快速派生独立应用（先提交完整框架源码）：
+
+```sh
+pnpm create:project --directory ../my-app --name 'My App' --slug my-app --module github.com/team/my-app --bundle com.team.myapp
+cd ../my-app
+git init
+make install
+make docs
+make doctor
+make dev-server
+# 另开终端：make dev-web
+```
+
+`make doctor ARGS='--native --docker'` 可检查原生和容器环境；`make dev-deps-up` 启动隔离 PostgreSQL/MySQL/MinIO/Mailpit（需先设置 UNICORE_DEV_DB_PASSWORD、UNICORE_DEV_MINIO_ACCESS_KEY、UNICORE_DEV_MINIO_SECRET_KEY），`make dev-deps-down` 停止，默认保留卷。端口和镜像见 deploy/docker/compose.dev.yaml。如只需数据库/邮件可用 `make dev-deps-up SERVICES='postgres mysql mail'`。MinIO 镜像可由 UNICORE_DEV_MINIO_IMAGE 指定可信镜像源；本机拉取官方镜像受限，实际对象存储另用授权开发环境验证。已有远程依赖可直接在安装/设置页填写，不必启动整套开发容器。
+
+[持久化业务样板](docs/03-runbooks/business-example.md) · [加密备份恢复](docs/03-runbooks/backup.md) · [框架与业务归属/上游合并](docs/03-runbooks/framework-upgrade.md)。`make build-ops` 构建独立运维工具，业务 CLI 继续不依赖数据库。发版候选 workflow 只生成构建及来源证明，不自动发布 Release/镜像。

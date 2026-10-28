@@ -86,7 +86,7 @@ routes.ts 集中管理员菜单/直达页守卫，settings-page.tsx 将平台本
 
 [ADR-0009](../adr/ADR-0009-runtime-branding.md) 定义共享 internal/branding、私有规范化 PNG 与 DB 托管引用。管理端使用生成 DTO，通过 AppClient 驱动品牌预览/保存/恢复面板；本地形态使用构建品牌；BrandProvider 覆盖工作台和账号分支。平台公开当前哈希图片；Wails 不装配运行时品牌桥接，无 HTTP 模拟。邮件创建时快照图片字节到加密队列，SMTP CID 和预览同源；存储/清理顺序与恢复边界见 [需求](../00-product/feature-branding.md)。
 
-[ADR-0010](../adr/ADR-0010-settings-edition.md) 补齐 ICP/别名/ICO/内部系统通知队列。internal/edition 按 license/updater tags 编译两个未来接入 port；Vite 编译常量裁剪对应卡片，默认均关闭。当前开启仅显示待接入状态，没有授权/版本 HTTP handler 或 OTA 行为。设置矩阵见 [规范](../00-product/feature-settings.md)。
+[ADR-0010](../adr/ADR-0010-settings-edition.md) 补齐 ICP/别名/ICO/内部系统通知队列。授权仍由 license tag 默认关闭；更新以 [ADR-0018](../adr/ADR-0018-signed-updates.md) 取代占位，updater tag 默认通过 Make 开启。internal/updates 隔离 Provider/Cache/Installer ports，adapter/updatechannel 与 updateinstall 分别实现渠道和安全安装，bootstrap/updating 按形态装配。HTTP 使用窄 updateport 并独立鉴权，原生 bridge 直接调用。内置日志、私有缓存、签名清单和 helper 原子切换不依赖平台身份模块；CLI 不装配。设置矩阵见 [规范](../00-product/feature-settings.md)。
 
 版本与交付由 VERSION → scripts/version.mjs → 各端投影，Docker/归档读取相同元数据。Nginx 仅直接处理指纹资源，其余请求交 Go 保持安装/身份/动态品牌边界；详见 [ADR-0011](../adr/ADR-0011-release-deployment.md)。
 
@@ -111,3 +111,5 @@ React 的独立可折叠导航、共享原生 dialog、头像密码/退出、邮
 单机/桌面仅业务与本地外观，SettingDefinition 非平台只允许 appearance，旧站点/品牌记录不再使用。原生品牌由构建源生成；Wails 不再暴露 Branding/UpdateBranding。上传组件与两端 shell 共用，SDK 只提供真实阶段回调。
 
 开发基座与离线维护见 [ADR-0017](../adr/ADR-0017-developer-kit-business-backup.md)：notes usecase/SQL port 共享到 HTTP 与原生桥接，业务账本独立；cmd/ops 在实例锁边界做加密备份和新目标恢复，不进入业务 CLI。
+
+更新没有数据库变更。Tar/GUI 只接受相同迁移级别的签名包，helper 等待 instance.lock、原子交换程序并检查 nonce/version，失败恢复程序。Docker 不修改自身 binary。版本签名与系统签名独立，运行/清理/恢复边界见 [更新手册](../03-runbooks/updates.md)。

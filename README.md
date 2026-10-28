@@ -30,7 +30,7 @@ Unicore 是面向 AI 辅助开发的 Go + React 应用框架。共享领域与�
 
 ![平台笔记与附件](docs/04-ai/evidence-developer-kit/notes-platform.png)
 
-预览安装包与校验和见 [GitHub Releases](https://github.com/yunnuo88520/Unicore/releases)，也可从源码构建；尚无公开注册表镜像。真实授权/OTA、正式签名/公证仍待接入；能力与验收边界见 [PRD](docs/00-product/PRD.md) 和 [最新验收](docs/04-ai/acceptance-developer-kit.md)。
+预览安装包与校验和见 [GitHub Releases](https://github.com/yunnuo88520/Unicore/releases)，也可从源码构建；尚无公开注册表镜像。已接入可替换渠道的签名 OTA、离线版本日志及平台签名/公证流程；真实开发者凭据和下一版签名发行仍待配置，授权服务保持占位。详见 [系统更新](docs/03-runbooks/updates.md)；能力与验收边界见 [PRD](docs/00-product/PRD.md) 和 [最新验收](docs/04-ai/acceptance-updates.md)。
 
 ## 快速开始
 
@@ -101,7 +101,7 @@ make build-ops                   # 独立加密备份/恢复工具
 
 应用版本只维护 [VERSION](VERSION)；`make version NEW_VERSION=x.y.z` 同步投影和 Changelog。tar 输出到 `build/releases/`，带 manifest/checksums；Web 包含运维工具，镜像标签读取相同版本。宝塔/Nginx、Docker/Compose、版本准备和恢复步骤见 [发版手册](docs/03-runbooks/release.md)、[部署手册](docs/03-runbooks/deployment.md) 与 [备份手册](docs/03-runbooks/backup.md)。
 
-最新基线已通过三数据库测试、页面回归、四种部署场景与三系统原生构建 CI；macOS arm64 有真实窗口交互验证，Windows/Linux 窗口交互仍待实测。结果与未测范围见 [验收报告](docs/04-ai/acceptance-developer-kit.md)，实时状态以当前提交的 Actions 为准。
+最新基线已通过三数据库测试、页面回归、四种部署场景与三系统原生构建 CI；macOS arm64 有真实窗口交互验证，Windows/Linux 窗口交互仍待实测。结果与未测范围见 [验收报告](docs/04-ai/acceptance-updates.md)，实时状态以当前提交的 Actions 为准。
 
 ## 文档与协作
 

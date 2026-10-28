@@ -24,3 +24,9 @@ apps/desktop/static/*
 data/
 *.key
 bootstrap.token
+
+# Signing credentials stay outside source control.
+*.pem
+*.p12
+*.pfx
+*.p8

@@ -700,3 +700,56 @@ export interface NoteListResponse {
   data: NoteList;
   request_id: string;
 }
+
+export interface UpdateRelease {
+  version: string;
+  notes: string;
+  published_at: string;
+  prerelease: boolean;
+  url: string;
+  source: string;
+}
+
+export interface UpdateJob {
+  id: string;
+  status: string;
+  message: string;
+  progress: number;
+  version: string;
+  started_at: string;
+  finished_at: string;
+}
+
+export interface UpdateOverview {
+  current_version: string;
+  latest_version: string;
+  channel: string;
+  source: string;
+  available: boolean;
+  verified: boolean;
+  can_apply: boolean;
+  reason: string;
+  checked_at: string;
+  last_error: string;
+  history: Array<UpdateRelease>;
+  job: UpdateJob;
+}
+
+export interface UpdateApplyInput {
+  version: string;
+  backup_confirmed: boolean;
+}
+
+export interface UpdateOverviewResponse {
+  code: string;
+  message: string;
+  data: UpdateOverview;
+  request_id: string;
+}
+
+export interface UpdateJobResponse {
+  code: string;
+  message: string;
+  data: UpdateJob;
+  request_id: string;
+}

@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 产品基线与当前范围
 
-Unicore · yunnuo / ymz@ebox.vip。完整目标见 [design-v1.1.md](design-v1.1.md)。当前基线包含多形态业务基座、平台双入口/固定身份、统一私有文件存储和可派生开发工具，仍为开发预览，不等同完整 v1。当前规则以本表及 ADR-0012～0017 为准，旧里程碑在下方保留为历史。
+Unicore · yunnuo / ymz@ebox.vip。完整目标见 [design-v1.1.md](design-v1.1.md)。当前基线包含多形态业务基座、平台双入口/固定身份、统一私有文件存储和可派生开发工具，仍为开发预览，不等同完整 v1。当前规则以本表及 ADR-0012～0018 为准，旧里程碑在下方保留为历史。
 
 基础能力本轮收尾：统一会话/缓存边界、路由/表单、契约文档/校验、运行配置/观测与 AI 开发入口，当前范围见 [基础能力审计](../04-ai/foundation-audit.md) 和 [验收](../04-ai/acceptance-ai-foundations.md)。
 
@@ -21,9 +21,10 @@ Unicore · yunnuo / ymz@ebox.vip。完整目标见 [design-v1.1.md](design-v1.1.
 | 实例品牌上传/恢复默认 | 已实现，仅管理端 | 构建品牌 | 构建品牌 | 不适用 |
 | 文件/对象存储、直传与临时访问 | 已实现，本地默认；MinIO 真实云验收 | 不装配 | 不装配 | 不装配 |
 | 备案页脚 / SMTP 别名 / 系统通知 port | 已实现 | 不提供全局配置 | 不提供全局配置 | 不适用 |
-| 授权/升级占位及编译裁剪 | 已实现，默认关闭 | 不提供管理页 | 不提供管理页 | 不装配 |
+| 授权占位及编译裁剪 | 默认关闭，管理员 | 不装配 | 不装配 | 不装配 |
 | 离线加密备份恢复 | 已实现，独立 ops | 已实现，独立 ops | 已实现，独立 ops | 不装配 |
-| 正式签名发布 / OTA | 后续 | 后续 | 后续 | 不适用 |
+| 签名 OTA / 离线版本日志 | 管理员；Tar 更新，Docker 仅检查 | loopback；Tar 更新 | 原生更新 | 不装配 |
+| 系统签名 / 公证 | 发行流程已接入，等待开发者凭据 | 同左 | 同左 | 不适用 |
 
 MIT、创建器、doctor、文档/Skills 和候选发版随源码分发；GitHub 设置与首次公开发行另见 [开源维护](../03-runbooks/open-source.md)。最近三数据库、页面、部署及原生验证见 [开发基座验收](../04-ai/acceptance-developer-kit.md)。
 
@@ -45,9 +46,9 @@ M2c：主题、字号/字体、圆角、间距、图标线宽、动效集中配�
 
 当前权限：M2d 业务角色由固定管理员/普通用户方案取代。菜单、页面和全部管理 API 仅管理员；普通用户可使用 Core、本人账号和本地外观，不能读取全局设置。角色/状态变化撤销会话与验证码，最后管理员受保护。迁移 0007 规范旧角色并撤销存量凭据；见 [角色需求](feature-roles.md)、[ADR-0012](../adr/ADR-0012-fixed-platform-roles.md) 和 [验收](../04-ai/acceptance-permissions.md)。
 
-设置按业务域 Tabs 展示，保持单层标签，品牌用三张卡片、外观复用主题预览卡片并移除侧栏重复入口，保留草稿并只保存当前分组，减少页面滚动。设置清单补齐：ICP/独立发件人别名、ICO favicon、共用系统通知模板和内部队列；授权/升级仅编译开关与待接入占位，不执行真实检查或更新。具体范围见 [设置需求](feature-settings.md) 与 [设置验收](../04-ai/acceptance-settings.md)。
+设置按业务域 Tabs 展示，保持单层标签，品牌用三张卡片、外观复用主题预览卡片并移除侧栏重复入口，保留草稿并只保存当前分组，减少页面滚动。设置清单补齐：ICP/独立发件人别名、ICO favicon、共用系统通知模板和内部队列；授权仍为编译占位；升级以 ADR-0018 的签名 OTA 与内置日志取代占位。具体范围见 [设置需求](feature-settings.md) 与 [设置验收](../04-ai/acceptance-settings.md)。
 
-交付基座：VERSION 单源生成各端版本、Changelog 准备、按 target/profile 快速归档和镜像/Compose 入口。Nginx 保留安装/后台/品牌路由边界；实际运行范围见 [部署验收](../04-ai/acceptance-deployment.md) 与 [ADR-0011](../adr/ADR-0011-release-deployment.md)。正式签名、自动发布和 OTA 仍为后续；离线备份恢复见 ADR-0017。
+交付基座：VERSION 单源生成各端版本、Changelog 准备、按 target/profile 快速归档和镜像/Compose 入口。Nginx 保留安装/后台/品牌路由边界；实际运行范围见 [部署验收](../04-ai/acceptance-deployment.md) 与 [ADR-0011](../adr/ADR-0011-release-deployment.md)。签名 OTA 与可配置系统签名/公证流程见 [更新需求](feature-updates.md)，公开发布仍需授权，实际开发者凭据待提供；离线备份恢复见 ADR-0017。
 
 首次安装改为 MySQL 默认、结构化数据库字段、三方言连接测试、非空库精确确认初始化；自动记录访问 origin，凭据可经当前凭据验证后换新，已安装实例缺失 DB/标记时拒绝启动。需求见 [安装规范](feature-installation.md)，三数据库/PC/375px/重启证据见 [安装验收](../04-ai/acceptance-installation.md)。
 

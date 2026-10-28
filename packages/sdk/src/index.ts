@@ -1,13 +1,13 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Shared UI client; pages know neither fetch nor Wails globals.
  */
-import type { NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
+import type { UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
 import { operations, type OperationId, type OperationInputs, type OperationData } from '@unicore/contracts/operations';
 import { validate, type SchemaName } from '@unicore/contracts/validate';
 export { validate, type SchemaName } from '@unicore/contracts/validate';
 export { operations, type OperationId } from '@unicore/contracts/operations';
 
-export type { NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
+export type { UpdateOverview, UpdateJob, UpdateApplyInput, UpdateRelease, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
 
 export class AppError extends Error {
   constructor(public readonly code: string, message: string, public readonly requestId = '', public readonly fields: Record<string, string> = {}) { super(message); this.name = 'AppError'; }
@@ -18,7 +18,14 @@ export type RequestOptions = { signal?: AbortSignal };
 export type UploadOptions = RequestOptions & { onStage?: (stage: 'uploading' | 'confirming') => void };
 export type OperationOptions = RequestOptions & { timeoutMs?:number; params?: Record<string, string>; query?: Record<string, string | number>; headers?: Record<string, string> };
 
+export interface UpdateClient {
+ overview():Promise<UpdateOverview>;
+ check():Promise<UpdateOverview>;
+ apply(input:UpdateApplyInput):Promise<UpdateJob>;
+}
+
 export interface AppClient {
+ updates?:UpdateClient;
   readonly transport: 'http' | 'wails';
   readonly sessionScope?: 'user' | 'administrator';
   bootstrap(options?: RequestOptions): Promise<Bootstrap>;
@@ -103,6 +110,7 @@ function unwrap<T>(response: { code: string; message: string; data: T; request_i
 }
 
 const administratorOperations: Partial<Record<OperationId, OperationId>> = {
+ updateOverview:"adminUpdateOverview",checkUpdate:"adminCheckUpdate",applyUpdate:"adminApplyUpdate",
   "bootstrap": "adminBootstrap",
   "listNotes": "adminListNotes",
   "createNote": "adminCreateNote",
@@ -137,6 +145,7 @@ const administratorOperations: Partial<Record<OperationId, OperationId>> = {
 
 export class HttpTransport implements AppClient, WebClient, FileClient, StorageClient {
   readonly transport = 'http' as const;
+ readonly updates:UpdateClient={overview:()=>this.call('updateOverview'),check:()=>this.call('checkUpdate',undefined,{headers:{'Content-Type':'application/json'},timeoutMs:20000}),apply:input=>this.call('applyUpdate',input)};
   readonly notes:NoteClient=this;
   readonly web: WebClient = this;
  readonly files:FileClient=this;
@@ -279,6 +288,9 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
 }
 
 export interface DesktopBridge {
+ Updates?():Promise<UpdateOverviewResponse>;
+ CheckUpdate?():Promise<UpdateOverviewResponse>;
+ ApplyUpdate?(input:UpdateApplyInput):Promise<UpdateJobResponse>;
   ListNotes?(query:NoteQuery):Promise<NoteListResponse>;
   CreateNote?(input:NoteInput):Promise<NoteResponse>;
   UpdateNote?(id:string,input:NoteUpdate):Promise<NoteResponse>;
@@ -291,6 +303,11 @@ export interface DesktopBridge {
 
 export class WailsTransport implements AppClient {
   readonly transport = 'wails' as const;
+ readonly updates:UpdateClient={
+ overview:async()=>{const m=this.bridge().Updates;if(!m)throw new AppError('NOT_AVAILABLE','此版本未启用系统更新');return unwrap(await m());},
+ check:async()=>{const m=this.bridge().CheckUpdate;if(!m)throw new AppError('NOT_AVAILABLE','此版本未启用系统更新');return unwrap(await m());},
+ apply:async input=>{const m=this.bridge().ApplyUpdate;if(!m)throw new AppError('NOT_AVAILABLE','此版本未启用系统更新');return unwrap(await m(input));}
+ };
   readonly notes:NoteClient=this;
   async listNotes(q:NoteQuery) { const method=this.bridge().ListNotes; if(!method)throw new AppError('NOT_AVAILABLE','笔记存储未初始化');return unwrap(await method(q)); }
   async createNote(input:NoteInput) { const method=this.bridge().CreateNote;if(!method)throw new AppError('NOT_AVAILABLE','笔记存储未初始化');return unwrap(await method(input)); }

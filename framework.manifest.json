@@ -56,8 +56,12 @@
     "frameworkUpgrade": "docs/03-runbooks/framework-upgrade.md",
     "contributing": "CONTRIBUTING.md",
     "community": "docs/03-runbooks/open-source.md",
-    "currentAcceptance": "docs/04-ai/acceptance-developer-kit.md",
-    "wiki": "docs/wiki/README.md"
+    "currentAcceptance": "docs/04-ai/acceptance-updates.md",
+    "wiki": "docs/wiki/README.md",
+    "updates": "internal/updates/service.go",
+    "updateTrust": "assets/updates/config.json",
+    "updateHistory": "assets/updates/history.gen.json",
+    "systemUpdates": "docs/03-runbooks/updates.md"
   },
   "commands": {
     "generate": "pnpm generate",
@@ -75,7 +79,8 @@
     "devDependencies": "make dev-deps-up",
     "wiki": "make wiki",
     "wikiPublish": "make wiki-publish",
-    "packageDesktop": "make package-desktop"
+    "packageDesktop": "make package-desktop",
+    "signDesktop": "make sign-desktop"
   },
   "skills": [
     "add-api-operation",

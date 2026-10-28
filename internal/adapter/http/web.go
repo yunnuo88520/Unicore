@@ -263,6 +263,7 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 		realm = "administrator"
 	}
 	data.IdentityRealm = &realm
+	data.Capabilities.Updater = config.Updates != nil && data.Installed
 	data.Capabilities.Installation = true
 	data.Capabilities.Database = data.Installed
 	data.Capabilities.Settings = data.Installed
@@ -297,6 +298,12 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 			data.CurrentUser = &session.User
 			data.CsrfToken = &session.CsrfToken
 		}
+	}
+	if profile == runtime.WebPlatform && (!administratorRequest(r) || data.CurrentUser == nil) {
+		data.Version = ""
+		data.Commit = ""
+		data.BuildTime = ""
+		data.Capabilities.Updater = false
 	}
 	return data
 }

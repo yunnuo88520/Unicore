@@ -19,3 +19,9 @@ data
 **/installation.json
 .agents
 .codex
+
+*.pem
+**/*.pem
+*.p12
+*.pfx
+*.p8

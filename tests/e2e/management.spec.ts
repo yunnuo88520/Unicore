@@ -48,7 +48,11 @@ test('management groups, modal creation, independent logins and avatar password 
  await expect(page.getByRole('cell',{name:'sharedname',exact:true})).toBeVisible();
  await nav('邮件设置');await expect(page.getByRole('tab')).toHaveCount(0);await expect(page.getByRole('button',{name:'发送测试',exact:true})).toBeVisible();await expect(page.getByText('投递记录',{exact:true})).toHaveCount(0);
  await nav('系统日志');await expect(page.getByRole('tab',{name:'操作日志',exact:true})).toBeVisible();await expect(page.getByRole('cell',{name:'新增用户',exact:true}).first()).toBeVisible();
- await nav('授权与更新');await expect(page.getByText('待对接',{exact:true})).toBeVisible();
+ if(process.env.FEATURE_UPDATER!=='false' || process.env.FEATURE_LICENSE==='true') {
+  await nav('系统更新');
+  if(process.env.FEATURE_UPDATER!=='false')await expect(page.getByRole('heading',{name:'更新日志',exact:true})).toBeVisible();
+  if(process.env.FEATURE_LICENSE==='true')await expect(page.getByText('待对接',{exact:true})).toBeVisible();
+ }
  const member=await context.newPage();await member.goto(instance.url);await login(member,'sharedname','administrator-password-strong');await expect(member.getByRole('alert')).toContainText('账号或密码不正确');
  await login(member,'sharedname','member-password-strong');await expect(member.getByRole('button',{name:'运行用例',exact:true})).toBeVisible();
  const adminBoot=(await(await page.request.get(`${instance.url}/api/v1/admin/bootstrap`,{headers:{}})).json()).data;

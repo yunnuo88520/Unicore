@@ -1801,6 +1801,111 @@ export const operations = {
     "superAdmin": true,
     "csrf": true,
     "identityRealm": "administrator"
+  },
+  "updateOverview": {
+    "method": "GET",
+    "path": "/api/v1/updates",
+    "requestSchema": null,
+    "responseSchema": "UpdateOverviewResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-standalone"
+    ],
+    "access": "local",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "adminUpdateOverview": {
+    "method": "GET",
+    "path": "/api/v1/admin/updates",
+    "requestSchema": null,
+    "responseSchema": "UpdateOverviewResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "updates:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "checkUpdate": {
+    "method": "POST",
+    "path": "/api/v1/updates/check",
+    "requestSchema": null,
+    "responseSchema": "UpdateOverviewResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-standalone"
+    ],
+    "access": "local",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "adminCheckUpdate": {
+    "method": "POST",
+    "path": "/api/v1/admin/updates/check",
+    "requestSchema": null,
+    "responseSchema": "UpdateOverviewResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "updates:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "applyUpdate": {
+    "method": "POST",
+    "path": "/api/v1/updates/apply",
+    "requestSchema": "UpdateApplyInput",
+    "responseSchema": "UpdateJobResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-standalone"
+    ],
+    "access": "local",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "adminApplyUpdate": {
+    "method": "POST",
+    "path": "/api/v1/admin/updates/apply",
+    "requestSchema": "UpdateApplyInput",
+    "responseSchema": "UpdateJobResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "updates:apply"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
   }
 } as const;
 export type OperationId = keyof typeof operations;
@@ -1906,6 +2011,12 @@ export interface OperationInputs {
   adminCreateNote: Models.NoteInput;
   adminUpdateNote: Models.NoteUpdate;
   adminDeleteNote: Models.NoteVersion;
+  updateOverview: undefined;
+  adminUpdateOverview: undefined;
+  checkUpdate: undefined;
+  adminCheckUpdate: undefined;
+  applyUpdate: Models.UpdateApplyInput;
+  adminApplyUpdate: Models.UpdateApplyInput;
 }
 export interface OperationData {
   bootstrap: Models.BootstrapResponse['data'];
@@ -2009,4 +2120,10 @@ export interface OperationData {
   adminCreateNote: Models.NoteResponse['data'];
   adminUpdateNote: Models.NoteResponse['data'];
   adminDeleteNote: Models.ActionResultResponse['data'];
+  updateOverview: Models.UpdateOverviewResponse['data'];
+  adminUpdateOverview: Models.UpdateOverviewResponse['data'];
+  checkUpdate: Models.UpdateOverviewResponse['data'];
+  adminCheckUpdate: Models.UpdateOverviewResponse['data'];
+  applyUpdate: Models.UpdateJobResponse['data'];
+  adminApplyUpdate: Models.UpdateJobResponse['data'];
 }

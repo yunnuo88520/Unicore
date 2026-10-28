@@ -36,13 +36,14 @@ export function createProject({ source = frameworkRoot, directory, name, module,
       }
     }
     const edit = (path, fn) => { const full = join(staging,path); const value = JSON.parse(readFileSync(full,'utf8')); fn(value); writeFileSync(full,JSON.stringify(value,null,2)+'\n'); };
+    edit('assets/updates/config.json', p => { p.repository=''; p.keys={}; p.channel='stable'; p.allow_unsigned_platform=false; });
     edit('package.json', p => { p.name=slug; p.license='MIT'; });
     edit('assets/theme/tokens.json', p => { p.brand.name=name; });
     edit('assets/brand/identity.json', p => { p.bundleId=bundle; });
     edit('cmd/desktop/wails.json', p => { p.name=name; p.outputfilename=slug+'-desktop'; p.info.productName=name; });
     const upstream = execFileSync('git',['-C',source,'rev-parse','HEAD'],{encoding:'utf8'}).trim();
     writeFileSync(join(staging,'project.provenance.json'),JSON.stringify({author:'yunnuo <ymz@ebox.vip>',framework:'Unicore',upstream:'https://github.com/yunnuo88520/Unicore',revision:upstream,worktree_modified:execFileSync('git',['-C',source,'status','--porcelain'],{encoding:'utf8'}).trim()!=='',created_at:new Date().toISOString()},null,2)+'\n');
-    writeFileSync(join(staging,'README.md'),`<!-- Author: yunnuo <ymz@ebox.vip> -->\n# ${name}\n\n基于 Unicore 的应用。上游版本见 project.provenance.json，保留 LICENSE 与框架作者头。\n\nGo module：${module}；桌面标识：${bundle}。主题/名称入口为 assets/theme/tokens.json，图标入口为 assets/brand/identity.json。\n\n开发：\n\n\`\`\`sh\nmake install\nmake docs\nmake doctor\nmake dev-server\n# 第二个终端\nmake dev-web\n\`\`\`\n\n首次启动访问 /install；平台与本地模式按需选择。业务样板见 docs/03-runbooks/business-example.md，扩展与上游更新见 docs/03-runbooks/framework-upgrade.md。\n\n提交前执行 make docs、make test 和受影响构建。\n`);
+    writeFileSync(join(staging,'README.md'),`<!-- Author: yunnuo <ymz@ebox.vip> -->\n# ${name}\n\n基于 Unicore 的应用。上游版本见 project.provenance.json，保留 LICENSE 与框架作者头。\n\nGo module：${module}；桌面标识：${bundle}。主题/名称入口为 assets/theme/tokens.json，图标入口为 assets/brand/identity.json。\n\n开发：\n\n\`\`\`sh\nmake install\nmake docs\nmake doctor\nmake dev-server\n# 第二个终端\nmake dev-web\n\`\`\`\n\n首次启动访问 /install；平台与本地模式按需选择。业务样板见 docs/03-runbooks/business-example.md，扩展与上游更新见 docs/03-runbooks/framework-upgrade.md。\n\n更新渠道默认清空，避免安装上游框架发行包。按 docs/03-runbooks/updates.md 配置自己的仓库、公钥和发布私钥。\n\n提交前执行 make docs、make test 和受影响构建。\n`);
     // Sources are exported only; package installation and code execution remain explicit next steps.
     renameSync(staging,target);
     return target;

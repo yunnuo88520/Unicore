@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 运行、安装与恢复边界
 
-当前为开发预览，已有安装、身份、持久数据、邮件账号、OIDC 与离线加密备份恢复。真实授权、签名发布与 OTA 尚未实现，正式上线仍需后续验收。
+当前为开发预览，已有安装、身份、持久数据、邮件账号、OIDC 与离线加密备份恢复。真实授权仍为占位；签名 OTA 与系统签名/公证流程见 [更新手册](updates.md)，正式开发者凭据与生产部署需对应验收。
 
 ## Web
 
@@ -87,7 +87,7 @@ docker run -d --name unicore --read-only --cap-drop=ALL \
 
 镜像为 nonroot，根目录只读，命名卷保存完整 `/data`。已有 bind mount 需要管理员提前设置目录为 UID/GID 65532、0700；框架不会自动放宽权限。数据/密钥/本地 env 不进入 Docker build context。不要 `down -v` 删除真实实例卷。替换镜像由外部 Compose/CI 完成，保留卷；不挂载 socket，不覆盖容器内 binary。
 
-使用预构建镜像可先设置 UNICORE_VERSION/UNICORE_IMAGE，再 `docker compose -f deploy/docker/compose.yaml up -d --no-build --pull always`；正式仓库地址由维护者配置。更新前停服成套备份，替换包 current 链接或镜像后启动、检查 ready、登录与数据。回退受迁移兼容约束，不能只替换旧程序。当前同版本替换与卷保留验收见 [部署验收](../04-ai/acceptance-deployment.md)，自动恢复/签名 OTA 仍未实现。
+使用预构建镜像可先设置 UNICORE_VERSION/UNICORE_IMAGE，再 `docker compose -f deploy/docker/compose.yaml up -d --no-build --pull always`；正式仓库地址由维护者配置。更新前停服成套备份，替换包 current 链接或镜像后启动、检查 ready、登录与数据。回退受迁移兼容约束，不能只替换旧程序。当前同版本替换与卷保留验收见 [部署验收](../04-ai/acceptance-deployment.md)，签名 OTA 的程序切换/恢复与 Docker 外部更新边界见 [更新手册](updates.md)。
 
 ## 检查与备份边界
 
@@ -152,7 +152,7 @@ brand-assets/ 位于 APP_DATA_DIR（桌面为其配置目录）内，目录 0700
 图片缺失会在界面回退默认；先检查目录挂载、文件权限及历史存储位置，恢复同一快照的图片，或由管理员恢复默认再上传。不要手工塞原始图片或外部路径进 system_settings。当前品牌已接统一存储接口与文件元数据，新图片写入当前默认位置，旧 brand-assets 文件通过 legacy-brand 位置读取，不因切换默认位置自动迁移。公开品牌仍通过应用的当前引用路由提供，私有桶不需公开；未接 CDN。未引用文件由存储清理策略处理，已缓存旧图可短暂保留，队列邮件使用创建时图片。
 
 
-## 设置与可选授权/升级占位
+## 设置与可裁剪授权/系统更新
 
 平台备案号/HTTPS 查询链接在「系统管理 → 基础设置 → 基础信息」保存，登录页与工作台共用；编号留空隐藏。SMTP 别名在「邮件设置」填写，留空跟随站点名，用于测试/账号/系统通知显示名；密钥仍只显示配置状态。业务通知调用与限制见 [设置规范](../00-product/feature-settings.md)。
 
@@ -183,3 +183,5 @@ MySQL DDL 可能已提交，失败后保持停服，解决错误并用同版本�
 当前双入口、单机边界和升级兼容说明见 [ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md)。
 
 当前已有 [私有对象存储](storage.md) 和 [离线加密备份恢复](backup.md)；旧阶段中“后续备份/对象存储”的描述仅代表当时边界。新业务样板迁移在实例启动时创建独立 business_migrations，框架历史迁移 checksum 不变。
+
+系统更新以 [ADR-0018](../adr/ADR-0018-signed-updates.md) 取代升级占位：FEATURE_UPDATER 默认 true，FEATURE_LICENSE 默认 false。平台仅管理员，单机/桌面可看内置离线日志，Docker 不执行应用内安装。Tar 默认 systemd 模板未开放安装目录写权限，启用 OTA 前必须按 [更新手册](updates.md) 配置安装根、supervisor 与目录权限。

@@ -3,6 +3,9 @@
 
 ## Unreleased
 
+- 接入管理员专用的 GitHub/HTTPS 签名 OTA、离线版本历史、备份确认、程序切换与失败回滚；Docker 保持外部镜像更新。
+- 增加 Ed25519 发行清单、派生项目信任隔离，以及可配置的 macOS Developer ID/公证和 Windows Authenticode 流程。
+
 ## 0.1.1 — 2026-10-28
 
 - 修复 GitHub 依赖告警：升级 Chi、JOSE、Wails、Echo、Compress、Edwards25519、x/net 和 Vitest；移除旧 Tinypool 依赖链。安全门禁增加全部前端依赖与桌面导入包检查。

@@ -40,7 +40,7 @@ make build-desktop
 make package-desktop
 ```
 
-每次 package/release 重建 `build/releases/`（先保存需要保留的旧产物），其中为 tar.gz、checksums.txt 和 manifest.json；包内包含 VERSION、CHANGELOG、manifest、部署手册，Web 另含 bin/server、web/ 与 deploy/。manifest 的 profile 是默认首装选择，安装向导仍允许选择两种 Web 形态；安装后固定。编译扩展统一传 `FEATURE_LICENSE=true FEATURE_UPDATER=true`，默认均关闭；开启也只是授权/升级接入占位。
+每次 package/release 重建 `build/releases/`（先保存需要保留的旧产物），其中为 tar.gz、checksums.txt 和 manifest.json；包内包含 VERSION、CHANGELOG、manifest、部署手册，Web 另含 bin/server、web/ 与 deploy/。manifest 的 profile 是默认首装选择，安装向导仍允许选择两种 Web 形态；安装后固定。编译扩展统一传 `FEATURE_LICENSE=true FEATURE_UPDATER=true`，授权默认关闭并保持占位，更新默认开启并使用签名清单。
 
 镜像不能下载官方源时，可显式替换同版本基础镜像来源，例如：
 
@@ -80,15 +80,15 @@ make test-deploy
 
 Linux amd64 daemon 将上例改为 linux/amd64。验收只创建随机命名容器/网络/卷，结束删除这些一次性资源；不会操作已有实例。包括 Tar 真二进制解包 + Nginx，Docker、Compose 的 `/install`、PC/375px 向导、演示账号、验证码、CSRF、动态品牌、安装锁、重启与替换容器后持久化，报告/截图位于 build/acceptance/deployment。CI 在 Ubuntu amd64 跑同一命令；本机实测见 [部署验收](../04-ai/acceptance-deployment.md)。
 
-当前产物仍是开发预览：归档没有外部签名，`signature:null`；已有 checksum 不能替代签名。真实授权服务器、OTA、自动备份恢复、发行签名/公证仍未实现。`make test-deploy` 的同版本替换证明挂载和配置保留，不等于跨版本迁移回滚或生产恢复演练。跨版本 DDL 兼容仍按对应 ADR/迁移文档验收，不承诺替换旧 binary 就能回滚。
+当前产物仍是开发预览：单包 manifest 的 `signature:null` 为保留字段，完整候选的 OTA 发行授权由 update-manifest.json/.sig 表示；platform_signature 独立记录系统签名。已有 checksum 不能替代签名。真实授权服务仍未接入；OTA 签名和平台签名/公证流程见 [更新手册](updates.md)，真实开发者凭据与下一版公开签名发行仍待配置。`make test-deploy` 的同版本替换证明挂载和配置保留，不等于跨版本迁移回滚或生产恢复演练。跨版本 DDL 兼容仍按对应 ADR/迁移文档验收，不承诺替换旧 binary 就能回滚。
 
 ## 发布候选与恢复门禁
 
 源码采用 MIT，各 tar 包包含 LICENSE；Web tar 同时包含 unicore-ops 和 business_migration_level。归档及默认镜像名读取根 package.name，VERSION 仍唯一版本源。派生项目构建前按 [上游约定](framework-upgrade.md) 保留 provenance 与作者。
 
-提交 VERSION/CHANGELOG 并合入 main，等待 Quality and profile builds 与 Dependency security 全部成功，再手动运行 Prepare release candidate workflow，输入完全匹配的 version 和该 main 质量 workflow 的 ci_run_id。候选构建全 Web/CLI tar，合并同一提交的三系统原生桌面归档，校验 13 个包的版本、来源提交、目标矩阵和 SHA-256；生成 GitHub 构建来源证明，输出 release-bundle artifact。旧运行、PR 构建、不同提交、缺包或校验和不符均拒绝；不创建 tag/Release 或推送镜像。
+提交 VERSION/CHANGELOG 并合入 main，等待 Quality and profile builds 与 Dependency security 全部成功，再手动运行 Prepare release candidate workflow，输入完全匹配的 version 和该 main 质量 workflow 的 ci_run_id。候选构建全 Web/CLI tar，合并同一提交的三系统原生桌面归档，校验 13 个包的版本、来源提交、目标矩阵和 SHA-256；要求 GitHub Secret UNICORE_UPDATE_SIGNING_KEY 匹配已提交公钥，签发两份 OTA 清单，再生成 GitHub 构建来源证明，输出 release-bundle artifact。旧运行、PR 构建、不同提交、缺包或校验和不符均拒绝；不创建 tag/Release 或推送镜像。
 
-用户已授权公开发布时，下载该 artifact，验证 checksums/manifest 和 `gh attestation verify <tar.gz> --repo <owner/repo>`，在完全相同的 main 提交创建 `v<VERSION>` tag，将 13 个 tar.gz、manifest.json、checksums.txt 上传 GitHub prerelease。发布说明列出实际 OS/Arch、安装入口、备份/恢复、未签名及未测范围；核对 Release 页面和下载后的 checksum 后才能宣告完成。首次预览沿用正常递增版本流程，不重写已归档 Changelog。manifest signature:null 仍表示没有框架自己的升级签名，禁止因此开启自动 OTA；原生系统签名、公证、镜像注册表策略与 SBOM 仍需发布环境对接。
+用户已授权公开发布时，下载该 artifact，验证 checksums/manifest 和 `gh attestation verify <tar.gz> --repo <owner/repo>`，在完全相同的 main 提交创建 `v<VERSION>` tag，将 13 个 tar.gz、manifest.json、checksums.txt、update-manifest.json、update-manifest.sig 上传 GitHub prerelease。发布说明列出实际 OS/Arch、安装入口、备份/恢复、未签名及未测范围；核对 Release 页面和下载后的 checksum 后才能宣告完成。首次预览沿用正常递增版本流程，不重写已归档 Changelog。必须验证独立 Ed25519 OTA 清单，而非依据保留字段 signature:null 判断签名。macOS/Windows 凭据配置、密钥轮换与缺凭据行为见 [更新手册](updates.md)；镜像注册表策略与 SBOM 另行对接。
 
 Dependency security workflow 运行固定版 govulncheck：Web/CLI/ops 符号检查、全部业务导入包和桌面 bindings 导入包检查；前端审计包含开发依赖，low 及以上阻断。没有导入的废弃子包单独记录，不以排除开发依赖掩盖测试工具漏洞。安装新依赖需跟踪误报与升级影响，不静默忽略失败。发布前在目标环境恢复副本验证，参见 [备份恢复](backup.md)。跨版本升级/回退验收与同版本容器替换分开记录。
 

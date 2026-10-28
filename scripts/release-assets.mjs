@@ -6,6 +6,7 @@ import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, write
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { readFeatures } from './build-features.mjs';
+import { verifyPlatform } from './platform-sign.mjs';
 
 const json = path => JSON.parse(readFileSync(path, 'utf8'));
 const hash = path => createHash('sha256').update(readFileSync(path)).digest('hex');
@@ -27,9 +28,13 @@ export function packageDesktop(root = process.cwd()) {
   rmSync(staging,{recursive:true,force:true}); mkdirSync(staging,{recursive:true}); mkdirSync(output,{recursive:true});
   cpSync(built,join(staging,binary),{recursive:true});
   for (const file of ['LICENSE','CHANGELOG.md','VERSION']) cpSync(join(root,file),join(staging,file));
-  const metadata = {version,channel:'development',profile:'desktop',os:targetOS,arch,commit,build_time:new Date().toISOString(),features:readFeatures().features,migration_level:1,business_migration_level:1,offline_backup:false,signature:null};
+  const compiledFeatures=json(join(root,'apps/desktop/static/features.json'));
+  for(const [feature,value] of Object.entries(readFeatures().features))if(compiledFeatures[feature]!==value)throw Error('Native feature flags differ from packaging flags');
+  const platformSignature=verifyPlatform(built,json(join(root,'assets/brand/identity.json')).bundleId);
+  if(process.env.UNICORE_PLATFORM_SIGNING==='required'&&targetOS!=='linux'&&platformSignature==='unsigned')throw Error('Required native signature is missing');
+  const metadata = {platform_signature:platformSignature,version,channel:'development',profile:'desktop',os:targetOS,arch,commit,build_time:new Date().toISOString(),features:readFeatures().features,migration_level:1,business_migration_level:1,offline_backup:false,signature:null};
   writeFileSync(join(staging,'manifest.json'),JSON.stringify(metadata,null,2)+'\n');
-  writeFileSync(join(staging,'README_DESKTOP.md'),`<!-- Author: yunnuo <ymz@ebox.vip> -->\n# Unicore ${version}\n\n原生 ${targetOS}/${arch} 开发预览。解压后运行 ${binary}。没有平台登录或管理功能。Linux 需要 GTK3/WebKitGTK 4.0，Windows 需要 WebView2。系统签名/公证尚未接入，不承诺各系统窗口均已实测。\n\nhttps://github.com/yunnuo88520/Unicore/wiki\n`);
+  writeFileSync(join(staging,'README_DESKTOP.md'),`<!-- Author: yunnuo <ymz@ebox.vip> -->\n# Unicore ${version}\n\n原生 ${targetOS}/${arch} 开发预览。解压后运行 ${binary}。没有平台登录或管理功能。Linux 需要 GTK3/WebKitGTK 4.0，Windows 需要 WebView2。系统签名状态：${platformSignature}。unsigned 为未完成操作系统签名的开发预览；OTA 另须发行者签名清单。不承诺各系统窗口均已实测。\n\nhttps://github.com/yunnuo88520/Unicore/wiki\n`);
   const artifact = name+'.tar.gz';
   execFileSync('tar',['-czf',join(output,artifact),'-C',join(root,'build/native-staging'),name],{env:{...process.env,COPYFILE_DISABLE:'1'}});
   writeFileSync(join(output,name+'.manifest.json'),JSON.stringify({...metadata,artifact,sha256:hash(join(output,artifact))},null,2)+'\n');
@@ -46,7 +51,8 @@ export function assembleRelease(directory, {version,commit}) {
     if (item.version !== version || !/^[a-f0-9]{7,40}$/.test(item.commit) || !commit.startsWith(item.commit)) throw Error('Mixed version/source artifacts');
     if (!/^[a-zA-Z0-9._-]+\.tar\.gz$/.test(item.artifact) || seen.has(item.artifact) || targets.has(target)) throw Error('Invalid/duplicate release artifact');
     if (hash(join(directory,item.artifact)) !== item.sha256) throw Error(`Checksum mismatch: ${item.artifact}`);
-    if (item.signature !== null) throw Error('Unexpected signing claim');
+    if (item.signature !== null) throw Error('Unexpected archive signature field');
+    if (!['unsigned','developer-id-notarized','authenticode'].includes(item.platform_signature??'unsigned')) throw Error('Invalid platform signature status');
     seen.add(item.artifact); targets.add(target);
   }
   const expected = ['web-platform/linux/amd64','web-platform/linux/arm64','web-standalone/linux/amd64','web-standalone/linux/arm64',...['linux','darwin','windows'].flatMap(os=>['amd64','arm64'].map(arch=>`cli/${os}/${arch}`))];

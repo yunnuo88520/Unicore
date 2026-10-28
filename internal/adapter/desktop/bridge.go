@@ -10,10 +10,12 @@ import (
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/runtime"
 	"github.com/yunnuo/unicore/internal/settings"
+	"github.com/yunnuo/unicore/internal/updateport"
 	"github.com/yunnuo/unicore/internal/usecase"
 )
 
 type Bridge struct {
+	updates  updateport.API
 	core     usecase.Executor
 	settings *settings.Service
 	notes    *usecase.Notes
@@ -31,6 +33,7 @@ func NewLocal(core usecase.Executor, service *settings.Service, notes ...*usecas
 
 func (b *Bridge) Bootstrap() contracts.BootstrapResponse {
 	data := runtime.Metadata(runtime.Desktop, "native")
+	data.Capabilities.Updater = b.updates != nil
 	if b.settings != nil {
 		data.Stage = "M3b"
 		data.Capabilities.Database = true

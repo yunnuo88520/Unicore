@@ -40,7 +40,7 @@ func TestSeparateSurfacesAndCreatedUserLogin(t *testing.T) {
 		t.Fatal(err)
 	}
 	adminCookie := &http.Cookie{Name: administratorSessionCookie, Value: raw}
-	router := New(Config{Core: bootstrap.Core(), Install: manager, Assets: fstest.MapFS{"index.html": {Data: []byte("USER_ENTRY")}, "admin.html": {Data: []byte("ADMIN_ENTRY")}}, Logger: slog.New(slog.NewTextHandler(io.Discard, nil))})
+	router := New(Config{Core: bootstrap.Core(), Install: manager, Updates: &updateProbe{}, Assets: fstest.MapFS{"index.html": {Data: []byte("USER_ENTRY")}, "admin.html": {Data: []byte("ADMIN_ENTRY")}}, Logger: slog.New(slog.NewTextHandler(io.Discard, nil))})
 	request := func(method, path string, input any, cookie *http.Cookie, csrf, spoof string) *httptest.ResponseRecorder {
 		t.Helper()
 		body, _ := json.Marshal(input)
@@ -71,6 +71,21 @@ func TestSeparateSurfacesAndCreatedUserLogin(t *testing.T) {
 		t.Fatal("realm switched by header")
 	}
 	check(request("GET", "/api/v1/admin/users", nil, memberCookie, "", "administrator"), 403)
+	for _, path := range []string{"/api/v1/admin/updates", "/api/v1/admin/updates/check", "/api/v1/admin/updates/apply"} {
+		method := "POST"
+		if path == "/api/v1/admin/updates" {
+			method = "GET"
+		}
+		check(request(method, path, nil, nil, "", ""), 401)
+		check(request(method, path, nil, memberCookie, "", "administrator"), 403)
+		if method == "POST" {
+			check(request(method, path, nil, adminCookie, "", ""), 403)
+		}
+	}
+	check(request("GET", "/api/v1/admin/updates", nil, adminCookie, "", ""), 200)
+	check(request("POST", "/api/v1/admin/updates/check", nil, adminCookie, session.CsrfToken, ""), 200)
+	check(request("POST", "/api/v1/admin/updates/apply", contracts.UpdateApplyInput{Version: "1.1.0", BackupConfirmed: true}, adminCookie, session.CsrfToken, ""), 200)
+	check(request("GET", "/api/v1/updates", nil, memberCookie, "", ""), 404)
 	check(request("GET", "/api/v1/admin/auth/session", nil, memberCookie, "", "administrator"), 403)
 	check(request("GET", "/api/v1/auth/session", nil, adminCookie, "", "administrator"), 401)
 	check(request("GET", "/api/v1/admin/auth/session", nil, adminCookie, "", "user"), 200)
@@ -78,7 +93,7 @@ func TestSeparateSurfacesAndCreatedUserLogin(t *testing.T) {
 	check(w, 200)
 	var boot contracts.BootstrapResponse
 	_ = json.Unmarshal(w.Body.Bytes(), &boot)
-	if boot.Data.CurrentUser == nil || boot.Data.CurrentUser.Username != "createdmember" || boot.Data.AdminPath != "" {
+	if boot.Data.CurrentUser == nil || boot.Data.CurrentUser.Username != "createdmember" || boot.Data.AdminPath != "" || boot.Data.Version != "" || boot.Data.Capabilities.Updater {
 		t.Fatal(w.Body.String())
 	}
 	for path, entry := range map[string]string{"/": "USER_ENTRY", "/login": "USER_ENTRY", "/register": "USER_ENTRY", "/admin": "ADMIN_ENTRY"} {

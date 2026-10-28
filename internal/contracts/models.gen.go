@@ -702,3 +702,56 @@ type NoteListResponse struct {
 	Data      NoteList `json:"data"`
 	RequestID string   `json:"request_id"`
 }
+
+type UpdateRelease struct {
+	Version     string `json:"version"`
+	Notes       string `json:"notes"`
+	PublishedAt string `json:"published_at"`
+	Prerelease  bool   `json:"prerelease"`
+	Url         string `json:"url"`
+	Source      string `json:"source"`
+}
+
+type UpdateJob struct {
+	ID         string `json:"id"`
+	Status     string `json:"status"`
+	Message    string `json:"message"`
+	Progress   int    `json:"progress"`
+	Version    string `json:"version"`
+	StartedAt  string `json:"started_at"`
+	FinishedAt string `json:"finished_at"`
+}
+
+type UpdateOverview struct {
+	CurrentVersion string          `json:"current_version"`
+	LatestVersion  string          `json:"latest_version"`
+	Channel        string          `json:"channel"`
+	Source         string          `json:"source"`
+	Available      bool            `json:"available"`
+	Verified       bool            `json:"verified"`
+	CanApply       bool            `json:"can_apply"`
+	Reason         string          `json:"reason"`
+	CheckedAt      string          `json:"checked_at"`
+	LastError      string          `json:"last_error"`
+	History        []UpdateRelease `json:"history"`
+	Job            UpdateJob       `json:"job"`
+}
+
+type UpdateApplyInput struct {
+	Version         string `json:"version"`
+	BackupConfirmed bool   `json:"backup_confirmed"`
+}
+
+type UpdateOverviewResponse struct {
+	Code      string         `json:"code"`
+	Message   string         `json:"message"`
+	Data      UpdateOverview `json:"data"`
+	RequestID string         `json:"request_id"`
+}
+
+type UpdateJobResponse struct {
+	Code      string    `json:"code"`
+	Message   string    `json:"message"`
+	Data      UpdateJob `json:"data"`
+	RequestID string    `json:"request_id"`
+}

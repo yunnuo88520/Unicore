@@ -28,6 +28,12 @@ import (
 )
 
 func main() {
+	if handled, err := updateHelper(os.Args[1:]); handled {
+		if err != nil {
+			os.Exit(1)
+		}
+		return
+	}
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
 	if err := run(os.Args[1:]); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
@@ -42,6 +48,9 @@ func main() {
 func run(args []string) (result error) {
 	options, err := config.LoadWeb(args, os.Getenv)
 	if err != nil {
+		return err
+	}
+	if err = updateGuard(options.DataDir); err != nil {
 		return err
 	}
 	logger, err := logging.New(os.Stdout, options.Log, "web")
@@ -66,8 +75,12 @@ func run(args []string) (result error) {
 	}
 	logger = logger.With("version", metadata.Version)
 	slog.SetDefault(logger)
+	updater, err := updateService(ctx, options.DataDir, options.Deployment, func() string { _, _, _, p := manager.Services(); return string(p) }, stop)
+	if err != nil {
+		return err
+	}
 	metrics := observability.New()
-	server := &http.Server{Addr: options.Listen, Handler: httpadapter.New(httpadapter.Config{Metadata: metadata, Core: bootstrap.Core(), Assets: webassets.FS(), Logger: logger, Install: manager, APIDocs: options.APIDocs, ReadinessTimeout: options.ReadinessTimeout, Metrics: metrics}), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
+	server := &http.Server{Addr: options.Listen, Handler: httpadapter.New(httpadapter.Config{Updates: updater, Metadata: metadata, Core: bootstrap.Core(), Assets: webassets.FS(), Logger: logger, Install: manager, APIDocs: options.APIDocs, ReadinessTimeout: options.ReadinessTimeout, Metrics: metrics}), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
 	listener, err := net.Listen("tcp", server.Addr)
 	if err != nil {
 		return fmt.Errorf("listen failed: %w", err)
@@ -138,6 +151,7 @@ func run(args []string) (result error) {
 	if !manager.Installed() {
 		logger.Info("installation credential is available in a restricted file", "event", "install.token_file", "path", manager.TokenPath())
 	}
+	updateHealthy(options.DataDir, string(profile))
 	return lifecycle.ServeHTTP(ctx, server, listener, options.ShutdownTimeout)
 }
 

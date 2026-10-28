@@ -22,11 +22,13 @@ import (
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/observability"
+	"github.com/yunnuo/unicore/internal/updateport"
 	"github.com/yunnuo/unicore/internal/usecase"
 	apispec "github.com/yunnuo/unicore/packages/contracts"
 )
 
 type Config struct {
+	Updates          updateport.API
 	Metadata         contracts.Bootstrap
 	Core             usecase.Executor
 	Assets           fs.FS
@@ -119,6 +121,9 @@ func New(config Config) http.Handler {
 	router.Get("/brand-assets/{name}", func(w http.ResponseWriter, r *http.Request) { serveBrandAsset(config, w, r) })
 	router.Head("/brand-assets/{name}", func(w http.ResponseWriter, r *http.Request) { serveBrandAsset(config, w, r) })
 	router.Route("/api/v1", func(api chi.Router) {
+		if config.Install != nil {
+			mountUpdates(api, config)
+		}
 		for _, bootstrapPath := range []string{"/bootstrap", "/admin/bootstrap"} {
 			api.Get(bootstrapPath, func(w http.ResponseWriter, r *http.Request) {
 				if strings.HasPrefix(bootstrapPath, "/admin/") && (config.Install == nil || config.Install.Identity(true) == nil) {

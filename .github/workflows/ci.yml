@@ -76,11 +76,28 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev build-essential pkg-config
+      - name: Verify signed update helpers on the native OS
+        run: go test ./internal/updates ./internal/adapter/updatechannel ./internal/adapter/updateinstall
       - name: Install matching Wails CLI
         shell: bash
         run: go install "github.com/wailsapp/wails/v2/cmd/wails@$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v2)"
       - run: make build-desktop
+      - name: Sign and notarize native desktop when configured
+        if: github.event_name != 'pull_request' && vars.UNICORE_PLATFORM_SIGNING == 'required'
+        run: node scripts/platform-sign.mjs
+        env:
+          UNICORE_PLATFORM_SIGNING: ${{ github.event_name != 'pull_request' && vars.UNICORE_PLATFORM_SIGNING || 'unsigned' }}
+          MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          MACOS_SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+          APPLE_NOTARY_KEY_P8: ${{ secrets.APPLE_NOTARY_KEY_P8 }}
+          APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
+          APPLE_NOTARY_ISSUER: ${{ secrets.APPLE_NOTARY_ISSUER }}
+          WINDOWS_CERTIFICATE_PFX: ${{ secrets.WINDOWS_CERTIFICATE_PFX }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
       - run: make package-desktop
+        env:
+          UNICORE_PLATFORM_SIGNING: ${{ github.event_name != 'pull_request' && vars.UNICORE_PLATFORM_SIGNING || 'unsigned' }}
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-${{ matrix.os }}

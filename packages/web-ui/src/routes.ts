@@ -12,7 +12,7 @@ export const routes = {
   administrators: { label:'管理员列表',title:'管理员管理',description:'独立的后台账号，管理整个实例。',permission:'administrators:read' },
   mail: { label:'邮件设置',title:'邮件设置',description:'配置 SMTP、测试投递与账号邮件流程。',permission:'settings:read' },
   logs: { label:'系统日志',title:'系统日志',description:'查看真实操作与邮件投递记录。',permission:'logs:read' },
-  edition: { label:'授权与更新',title:'授权与更新',description:'授权与在线更新服务的接入入口。',permission:'settings:read' },
+  edition: { label:'系统更新',title:'系统更新',description:'查看版本记录，检查并安装可信的新版本。',permission:'updates:read' },
   roles: { label: '角色权限', title: '角色权限', description: '管理员与普通用户的固定权限边界。', permission: 'roles:read' },
   site: { label: '基础设置', title: '基础设置', description: '集中管理站点、品牌与适用的实例配置。', permission: 'settings:read' },
   account: { label: '账号资料', title: '账号资料', description: '管理本地密码与企业登录绑定。', authenticated: true },
@@ -31,6 +31,7 @@ export function isAdministrator(metadata?: Bootstrap): boolean {
 }
 export function canAccess(page: Page, metadata?: Bootstrap): boolean {
   if (!metadata) return false;
+  if (page === 'edition') return metadata.profile==='web-platform' ? isAdministrator(metadata) && ((__FEATURE_UPDATER__ && metadata.capabilities.updater) || (__FEATURE_LICENSE__ && metadata.capabilities.license)) : __FEATURE_UPDATER__ && metadata.capabilities.updater;
   if (page === 'notes') return metadata.capabilities.database;
   if (page === 'site') return metadata.capabilities.settings && (metadata.profile !== 'web-platform' || !!metadata.current_user);
   const route = routes[page];

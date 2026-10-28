@@ -65,8 +65,16 @@ jobs:
           run-id: ${{ inputs.ci_run_id }}
           github-token: ${{ github.token }}
       - run: node scripts/release-assets.mjs assemble build/candidate
+      - name: Sign OTA manifest with the committed publisher trust root
+        run: node scripts/update-sign.mjs build/candidate
+        env:
+          UNICORE_UPDATE_SIGNING_KEY: ${{ secrets.UNICORE_UPDATE_SIGNING_KEY }}
       - run: cd build/candidate && sha256sum --check checksums.txt
       - uses: actions/attest-build-provenance@v2
-        with: { subject-path: build/candidate/*.tar.gz }
+        with:
+          subject-path: |
+            build/candidate/*.tar.gz
+            build/candidate/update-manifest.json
+            build/candidate/update-manifest.sig
       - uses: actions/upload-artifact@v4
         with: { name: release-bundle, path: build/candidate/, if-no-files-found: error }

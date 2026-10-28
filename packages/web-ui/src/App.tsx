@@ -1,6 +1,7 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Shared responsive workspace. All business calls use AppClient.
  */
+import { UpdatePanel } from './update-panel';
 import { NotesPage } from './notes-page';
 import { FileManagement } from './files-page';
 import { Form } from './forms';
@@ -79,6 +80,7 @@ function App({ client, registry, notice, administratorPage }: { client: AppClien
       {canAccess('files',metadata.data)&&<button className={`nav-item ${page==='files'?'active':''}`} onClick={()=>navigate('files')}><FolderOpen size={19}/><span>{isAdministrator(metadata.data)?'文件管理':'我的文件'}</span></button>}
       {isAdministrator(metadata.data)&&<NavGroup title="用户管理" icon={<Users size={19}/>}><NavEntry id="users" page={page} navigate={navigate}/><NavEntry id="administrators" page={page} navigate={navigate}/><NavEntry id="roles" page={page} navigate={navigate}/></NavGroup>}
       {canAccess('site',metadata.data)&&(personalSettings?<button className={`nav-item ${page==='site'?'active':''}`} onClick={()=>navigate('site')}><Settings2 size={19}/><span>外观设置</span></button>:<NavGroup title="系统管理" icon={<Settings2 size={19}/>}><NavEntry id="site" page={page} navigate={navigate}/>{(['mail','storage','logs','edition'] as const).filter(id=>canAccess(id,metadata.data)).map(id=><NavEntry key={id} id={id} page={page} navigate={navigate}/>)}</NavGroup>)}
+      {!isAdministrator(metadata.data)&&canAccess('edition',metadata.data)&&<button className={`nav-item ${page==='edition'?'active':''}`} onClick={()=>navigate('edition')}><PackageCheck size={19}/><span>系统更新</span></button>}
       </div>
       <div className="sidebar-bottom"><div className="core-note"><div className="core-note-icon"><Cpu size={20} /></div><strong>One core. Every interface.</strong><p>让业务逻辑专注于业务，<br />让框架连接每一个终端。</p><button onClick={() => setAbout(true)}>了解架构 <ArrowUpRight size={14} /></button></div><button className="author" onClick={() => setAbout(true)}><span className="avatar">Y</span><span><strong>yunnuo</strong><small>框架作者</small></span><Info size={16} /></button></div>
     </aside>
@@ -115,6 +117,7 @@ function PageContent(props: PageProps & { administratorPage?: WorkspaceProps['ad
     case 'notes': return client.notes && <NotesPage client={client} metadata={metadata}/>;
     case 'files': return client.files && <FileManagement client={client} administrator={administration}/>;
     case 'account': return client.web && <AccountSecurity web={client.web} userID={metadata.current_user?.id??''} onChanged={refresh}/>;
+    case 'edition': return __FEATURE_UPDATER__ && <UpdatePanel client={client} metadata={metadata}/>;
     case 'site': return <ClientAppearance theme={theme} onSaved={setTheme}/>;
     default: return <div className="state-card" role="alert"><Info size={26}/><strong>找不到这个页面</strong><p>请通过导航进入已有页面。</p><a className="primary-button" href="#overview">返回工作台</a></div>;
   }
@@ -134,7 +137,7 @@ function RuntimeCards({ metadata, transport }: { metadata: Bootstrap; transport:
     { label: '当前运行形态', value: PROFILE_LABELS[metadata.profile], detail: metadata.profile, icon: metadata.profile === 'desktop' ? Monitor : Globe2, color: 'purple' },
     { label: '核心服务', value: '运行正常', detail: '共享用例已就绪', icon: Activity, color: 'green' },
     { label: '连接方式', value: transport === 'http' ? 'HTTP API' : 'Wails Bridge', detail: transport === 'http' ? '/api/v1 · 统一接口契约' : '原生桥接 · 无 HTTP 服务', icon: Braces, color: 'blue' },
-    { label: '框架版本', value: `v${metadata.version}`, detail: `${metadata.stage} · ${metadata.deployment_kind}`, icon: Layers3, color: 'orange' },
+    metadata.version ? { label: '框架版本', value: `v${metadata.version}`, detail: `${metadata.stage} · ${metadata.deployment_kind}`, icon: Layers3, color: 'orange' } : {label:'工作空间',value:'个人空间',detail:'专注于你的业务',icon:Layers3,color:'orange'},
   ];
   return <section className="runtime-cards" aria-label="运行状态">{cards.map(card => <article className="runtime-card" key={card.label}><div><p>{card.label}</p><strong>{card.value}</strong><small>{card.detail}</small></div><span className={`card-icon ${card.color}`}><card.icon size={20} /></span></article>)}</section>;
 }

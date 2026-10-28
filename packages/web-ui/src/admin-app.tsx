@@ -17,7 +17,7 @@ function AdministrationPage({page,client,metadata,theme,setTheme,refresh}:PagePr
  case 'users': case 'administrators': return <UserManagement key={page} web={client.web} metadata={metadata} administrators={page==='administrators'}/>;
  case 'roles': return <RoleManagement web={client.web}/>;
  case 'logs': return <SystemLogs web={client.web}/>;
- case 'edition': return <EditionPanel metadata={metadata}/>;
+ case 'edition': return <EditionPanel client={client} metadata={metadata}/>;
  default:return null;
  }
 }

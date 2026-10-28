@@ -39,10 +39,14 @@
 | frameworkUpgrade | [docs/03-runbooks/framework-upgrade.md](../../docs/03-runbooks/framework-upgrade.md) |
 | contributing | [CONTRIBUTING.md](../../CONTRIBUTING.md) |
 | community | [docs/03-runbooks/open-source.md](../../docs/03-runbooks/open-source.md) |
-| currentAcceptance | [docs/04-ai/acceptance-developer-kit.md](../../docs/04-ai/acceptance-developer-kit.md) |
+| currentAcceptance | [docs/04-ai/acceptance-updates.md](../../docs/04-ai/acceptance-updates.md) |
 | wiki | [docs/wiki/README.md](../../docs/wiki/README.md) |
+| updates | [internal/updates/service.go](../../internal/updates/service.go) |
+| updateTrust | [assets/updates/config.json](../../assets/updates/config.json) |
+| updateHistory | [assets/updates/history.gen.json](../../assets/updates/history.gen.json) |
+| systemUpdates | [docs/03-runbooks/updates.md](../../docs/03-runbooks/updates.md) |
 
-OpenAPI 当前包含 101 个 operation、102 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
+OpenAPI 当前包含 107 个 operation、108 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
 
 | 任务 Skill | 用途 |
 | --- | --- |
@@ -77,5 +81,6 @@ OpenAPI 当前包含 101 个 operation、102 个 schema。Go/TS 模型、调用�
 - wiki：`make wiki`
 - wikiPublish：`make wiki-publish`
 - packageDesktop：`make package-desktop`
+- signDesktop：`make sign-desktop`
 
 不保存凭据到上下文或验收记录。任务记录使用 [任务模板](task-template.md)，交付记录须区分实测、未测与未来目标。

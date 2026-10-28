@@ -50,4 +50,7 @@ var ErrorCatalog = map[string]ErrorDefinition{
 	"NOTE_NOT_FOUND":          {Status: 404, Message: "笔记不存在或无权访问"},
 	"NOTE_CONFLICT":           {Status: 409, Message: "笔记已被修改，请重新打开后再保存"},
 	"NOTE_INVALID":            {Status: 400, Message: "标题、正文、状态或附件不符合要求"},
+	"UPDATE_BUSY":             {Status: 409, Message: "已有更新任务正在执行"},
+	"UPDATE_REJECTED":         {Status: 409, Message: "更新条件不满足，请重新检查版本与安装说明"},
+	"UPDATE_UNAVAILABLE":      {Status: 503, Message: "无法检查更新，仍可查看本地更新日志"},
 }

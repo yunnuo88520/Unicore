@@ -2696,5 +2696,200 @@ export const constraints = {
         "type": "string"
       }
     }
+  },
+  "UpdateRelease": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "version",
+      "notes",
+      "published_at",
+      "prerelease",
+      "url",
+      "source"
+    ],
+    "properties": {
+      "version": {
+        "type": "string"
+      },
+      "notes": {
+        "type": "string"
+      },
+      "published_at": {
+        "type": "string"
+      },
+      "prerelease": {
+        "type": "boolean"
+      },
+      "url": {
+        "type": "string"
+      },
+      "source": {
+        "type": "string"
+      }
+    }
+  },
+  "UpdateJob": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "status",
+      "message",
+      "progress",
+      "version",
+      "started_at",
+      "finished_at"
+    ],
+    "properties": {
+      "id": {
+        "type": "string"
+      },
+      "status": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "progress": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 100
+      },
+      "version": {
+        "type": "string"
+      },
+      "started_at": {
+        "type": "string"
+      },
+      "finished_at": {
+        "type": "string"
+      }
+    }
+  },
+  "UpdateOverview": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "current_version",
+      "latest_version",
+      "channel",
+      "source",
+      "available",
+      "verified",
+      "can_apply",
+      "reason",
+      "checked_at",
+      "last_error",
+      "history",
+      "job"
+    ],
+    "properties": {
+      "current_version": {
+        "type": "string"
+      },
+      "latest_version": {
+        "type": "string"
+      },
+      "channel": {
+        "type": "string"
+      },
+      "source": {
+        "type": "string"
+      },
+      "available": {
+        "type": "boolean"
+      },
+      "verified": {
+        "type": "boolean"
+      },
+      "can_apply": {
+        "type": "boolean"
+      },
+      "reason": {
+        "type": "string"
+      },
+      "checked_at": {
+        "type": "string"
+      },
+      "last_error": {
+        "type": "string"
+      },
+      "history": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/UpdateRelease"
+        }
+      },
+      "job": {
+        "$ref": "#/components/schemas/UpdateJob"
+      }
+    }
+  },
+  "UpdateApplyInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "version",
+      "backup_confirmed"
+    ],
+    "properties": {
+      "version": {
+        "type": "string",
+        "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+        "maxLength": 40
+      },
+      "backup_confirmed": {
+        "type": "boolean"
+      }
+    }
+  },
+  "UpdateOverviewResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/UpdateOverview"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "UpdateJobResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/UpdateJob"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
   }
 };

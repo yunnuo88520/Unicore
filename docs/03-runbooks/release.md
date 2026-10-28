@@ -40,6 +40,8 @@ make build-desktop
 make package-desktop
 ```
 
+Windows 原生 CI 在构建后执行 scripts/test-windows-startup.ps1：使用随机临时数据目录，验证真实 Wails 窗口/页面、SQLite 初始化、再次启动以及失败弹窗；截图/可访问性文本为 windows-startup-evidence artifact。windows-exe artifact 另提供可直接验证的 exe，desktop-windows-latest 保留完整 tar 包与 metadata。分支候选用于维护者验收，不能代替正式 Release。
+
 每次 package/release 重建 `build/releases/`（先保存需要保留的旧产物），其中为 tar.gz、checksums.txt 和 manifest.json；包内包含 VERSION、CHANGELOG、manifest、部署手册，Web 另含 bin/server、web/ 与 deploy/。manifest 的 profile 是默认首装选择，安装向导仍允许选择两种 Web 形态；安装后固定。编译扩展统一传 `FEATURE_LICENSE=true FEATURE_UPDATER=true`，授权默认关闭并保持占位，更新默认开启并使用签名清单。
 
 镜像不能下载官方源时，可显式替换同版本基础镜像来源，例如：

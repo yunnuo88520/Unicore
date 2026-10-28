@@ -31,3 +31,9 @@ GitHub PR #14 首轮实际运行：依赖安全、macOS/Windows 原生测试/构
 实现提交 01d83ec 的全部 12 项 PR 检查已通过，包括三系统原生更新测试/构建/打包、标准 Docker 构建与部署、数据库与页面回归、四种功能组合、发行包矩阵及依赖安全。
 
 发行者公钥已进入集中配置。2026-10-28 获得维护者明确授权后，已将私钥托管为 yunnuo88520/Unicore 的 GitHub 加密 Secret UNICORE_UPDATE_SIGNING_KEY，并核对远端名称与更新时间；未输出私钥。此前自动审批拒绝的托管动作已由本次明确授权解决。本机仓库外 0600 密钥副本仍保留；私钥不进入源码或发行产物。候选流水线使用该 Secret 签名，缺失或不匹配时拒绝生成可安装目标；本次未触发候选发布。现有 Release 不具备更新清单，仍需后续经授权发行新版本，客户端才能发现真实可安装目标。
+
+## Windows SQLite 启动修复
+
+Windows 盘符无前导斜杠时，旧 url.URL 将 C: 放入 file URI authority，SQLite 打开失败，GUI 无控制台而表现为双击无反应。SQLite adapter 已绝对化路径并补齐 URI 路径斜杠，盘符不作 host；实际文件测试覆盖中文/空格/#/%/&、相对/绝对路径、WAL/外键/忙等待及关闭再打开后的数据保留。影响 desktop、使用 SQLite 的 Web 与离线 ops，CLI 不装配；无数据库格式或迁移变更。
+
+Windows 普通启动错误增加原生对话框，仍退出 1；内部更新 helper 不弹框。新增原生 CI 用实际 exe 在随机临时数据目录验证 React 页面渲染、数据库初始化、正常退出与再次打开，再以不可用路径验证错误弹窗。证据随 windows-startup-evidence artifact 上传，单独 windows-exe artifact 供维护者验证。用户明确要求本人验证通过后再合并，PR 保持草稿；真实 Windows 执行结果将在完成后补充。

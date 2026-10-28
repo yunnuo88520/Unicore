@@ -78,10 +78,19 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev build-essential pkg-config
       - name: Verify signed update helpers on the native OS
         run: go test ./internal/updates ./internal/adapter/updatechannel ./internal/adapter/updateinstall
+      - name: Verify native SQLite paths and desktop persistence
+        run: go test ./internal/adapter/storage/sqlite ./internal/bootstrap/local
       - name: Install matching Wails CLI
         shell: bash
         run: go install "github.com/wailsapp/wails/v2/cmd/wails@$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v2)"
       - run: make build-desktop
+      - name: Launch real Windows desktop with isolated data
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/test-windows-startup.ps1
+      - uses: actions/upload-artifact@v4
+        if: always() && runner.os == 'Windows'
+        with: { name: windows-startup-evidence, path: build/acceptance/windows-startup/ }
       - name: Sign and notarize native desktop when configured
         if: github.event_name != 'pull_request' && vars.UNICORE_PLATFORM_SIGNING == 'required'
         run: node scripts/platform-sign.mjs
@@ -102,6 +111,12 @@ jobs:
         with:
           name: desktop-${{ matrix.os }}
           path: build/native-releases/
+      - uses: actions/upload-artifact@v4
+        if: runner.os == 'Windows'
+        with:
+          name: windows-exe
+          path: build/desktop/bin/*.exe
+          if-no-files-found: error
   docker-build:
     runs-on: ubuntu-22.04
     steps:

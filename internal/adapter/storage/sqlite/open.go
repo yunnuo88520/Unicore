@@ -8,12 +8,17 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	_ "modernc.org/sqlite"
 )
 
 func Open(ctx context.Context, path string) (*sqlstore.Store, error) {
+	path, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return nil, err
 	}
@@ -22,8 +27,7 @@ func Open(ctx context.Context, path string) (*sqlstore.Store, error) {
 		return nil, err
 	}
 	_ = file.Close()
-	u := url.URL{Scheme: "file", Path: filepath.ToSlash(path)}
-	db, err := sql.Open("sqlite", u.String()+"?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)")
+	db, err := sql.Open("sqlite", fileURI(filepath.ToSlash(path))+"?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)")
 	if err != nil {
 		return nil, err
 	}
@@ -33,4 +37,13 @@ func Open(ctx context.Context, path string) (*sqlstore.Store, error) {
 		return nil, err
 	}
 	return &sqlstore.Store{DB: db, Dialect: "sqlite"}, nil
+}
+
+// SQLite requires an empty URI authority. A Windows drive belongs to the path,
+// so C:/data/app.db must become file:///C:/data/app.db, never file://C:/data/app.db.
+func fileURI(absolutePath string) string {
+	if !strings.HasPrefix(absolutePath, "/") {
+		absolutePath = "/" + absolutePath
+	}
+	return (&url.URL{Scheme: "file", Path: absolutePath}).String()
 }

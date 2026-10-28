@@ -32,6 +32,8 @@ HTTP / Wails → usecase.Notes → domain.Note / NoteRepository port → SQL ada
 
 SQLite 使用 WAL、5 秒 busy timeout、单连接；PostgreSQL/MySQL 使用 bounded pool。分方言迁移嵌入二进制，版本 checksum 不可修改。SQLite/PostgreSQL DDL 事务；MySQL DDL 隐式提交，采用幂等 SQL，完全成功再记录版本。只创建本 profile 所需表；不自动回滚或 drop 数据。M2b 平台新增 0003 的 account_tokens/mail_jobs，M2a 迁移 checksum 不变，单机/桌面停留 framework。此为历史 M2b 边界；当前离线工具见 ADR-0017。
 
+SQLite adapter 统一将文件路径绝对化并生成空 authority、正确转义的 file URI；Windows 盘符保留在路径中，避免 file://C:/ 被解析成主机名。Windows 普通桌面启动失败使用原生对话框报告，无 schema 或存量数据迁移。CI 在 Windows 原生 runner 实际打开 Wails、读取渲染内容并重启同一隔离数据目录，再验证失败提示；测试与产物来源见 [更新验收](../04-ai/acceptance-updates.md)。
+
 ## 认证与 API
 
 公开 bootstrap 仅返回脱敏基础信息；安装 token 不暴露。平台 bootstrap 只对有效 session 回传用户/权限与 CSRF token。服务器 session token 仅哈希入库，Cookie 为 HttpOnly/SameSite；Secure 根据受验证的 base_url 决定。写操作校验 same-origin 和会话派生 CSRF。API 权限见 [permissions](../api/permissions.md)。改变用户角色/禁用使旧 session 失效，最后超管规则在锁安装标记的事务内检查。登录按真实连接 IP/账号限流，不信任可伪造的 X-Forwarded-For；反代应另有边缘限流。

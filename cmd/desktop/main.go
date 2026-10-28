@@ -38,6 +38,7 @@ func main() {
 	}
 	if err := runDesktop(); err != nil {
 		slog.Error("desktop stopped", "event", "desktop.stop_failed", "error", err)
+		showStartupError(err)
 		os.Exit(1)
 	}
 }

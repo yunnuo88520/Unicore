@@ -3,6 +3,7 @@
 
 ## Unreleased
 
+- 修复 Windows SQLite 盘符被误解析为 file URI 主机名导致桌面启动失败；支持路径转义和相对路径持久化，启动失败显示原生错误弹窗，并增加实际 Windows exe 启动/重启验收。
 - 接入管理员专用的 GitHub/HTTPS 签名 OTA、离线版本历史、备份确认、程序切换与失败回滚；Docker 保持外部镜像更新。
 - 增加 Ed25519 发行清单、派生项目信任隔离，以及可配置的 macOS Developer ID/公证和 Windows Authenticode 流程。
 

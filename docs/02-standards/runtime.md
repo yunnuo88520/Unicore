@@ -20,6 +20,8 @@ Web 配置由 internal/config.LoadWeb 加载并验证：flag > APP_* 环境 > �
 
 组合根先校验配置、打开存储、绑定全部 listener，再启动 worker 和 HTTP。启动失败会逆序关闭已创建组件，清理失败合并返回。退出先排空 HTTP，再停监控/worker，最后关闭存储；到达截止时间关闭连接并取消请求 context，handler 和外部调用必须遵守取消。内部 Stack 不进入 CLI，避免引入 net/http。桌面 Wails 返回后执行存储清理，main 最后决定退出码。
 
+Windows 桌面是无控制台 GUI；普通启动失败除 stderr 外还显示原生「启动失败」弹窗与错误详情，关闭后退出码为 1。更新 helper 仍使用自己的任务诊断，不弹出交互框阻塞回滚。排查时可在终端设置 APP_DATA_DIR 为独立临时目录再运行 exe，不删除真实 AppData 或安装标记。SQLite 接收绝对本地路径，构造空 authority 的 file URI（Windows 为 file:///C:/...），并转义中文、空格、#、% 等路径字符；不能将盘符作为 host。
+
 `/api/v1/health/live` 表示进程能响应；`/api/v1/health/ready` 在完成安装且 DB Ping 在独立超时内成功时返回 200，否则 503。示例：`APP_MONITOR_LISTEN=127.0.0.1:9090 build/bin/server` 开启独立 `/metrics`，支持 Prometheus HTTP 请求计数、活动数、耗时直方图及 DB 连接池/等待计数。标签仅使用路由模板、标准方法、状态码，未知路径统一 unmatched。监控端口不开放业务 API、不默认映射容器公网；通过受控同机采集使用。默认不启用 tracing，OpenTelemetry 与外部日志/告警平台后续按实际部署接入。
 
 数据库沿用 [ADR-0003](../adr/ADR-0003-m2-install-storage-identity.md) 的 database/sql + Repository + 嵌入式分方言 SQL；连接池/Ping/迁移与 checksum 已有，不叠加 GORM AutoMigrate。数据库变更使用 [db-migration](../../.agents/skills/db-migration/SKILL.md)，部署、密钥和恢复边界见 [运行手册](../03-runbooks/deployment.md)。

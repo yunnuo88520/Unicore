@@ -37,7 +37,7 @@ bootstrap.token 用于证明服务器所有权、防止别人抢先建管理员�
 
 ## Desktop / CLI
 
-`make dev-desktop` 使用 Wails v2.12.0，默认系统 AppData/Unicore/desktop 自动 SQLite；APP_DATA_DIR 可隔离测试。没有安装/登录，用户表不会创建；进程锁防止同时使用同一目录。绑定生成不读写真实数据。macOS 需 Xcode tools，Linux Ubuntu22.04 需 WebKitGTK4.0，4.1 环境追加 webkit2_41；Windows 需 WebView2。
+`make dev-desktop` 使用 go.mod 锁定的 Wails（当前 v2.13.0），CLI 工具应安装匹配版本；默认系统 AppData/Unicore/desktop 自动 SQLite，APP_DATA_DIR 可隔离测试。没有安装/登录，用户表不会创建；进程锁防止同时使用同一目录。绑定生成不读写真实数据。macOS 需 Xcode tools，Linux Ubuntu22.04 需 WebKitGTK4.0，4.1 环境追加 webkit2_41；Windows 需 WebView2。
 
 CLI 直接运行 `build/bin/unicore execute --text "Hello Unicore"`，不打开 HTTP/Wails/DB。仅业务文本分析无持久化，输入不会写日志。
 

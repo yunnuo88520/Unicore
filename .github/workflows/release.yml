@@ -7,15 +7,15 @@ on:
         description: Exact VERSION already committed with CHANGELOG
         required: true
         type: string
+      ci_run_id:
+        description: Successful main Quality and profile builds run for this exact commit
+        required: true
+        type: string
 permissions:
   contents: read
 jobs:
   candidate:
     runs-on: ubuntu-22.04
-    permissions:
-      contents: read
-      id-token: write
-      attestations: write
     steps:
       - uses: actions/checkout@v4
       - name: Install quality tooling
@@ -33,7 +33,40 @@ jobs:
       - run: make docs && git diff --exit-code && make test
       - run: make release
       - run: cd build/releases && sha256sum --check checksums.txt
-      - uses: actions/attest-build-provenance@v2
-        with: { subject-path: build/releases/*.tar.gz }
       - uses: actions/upload-artifact@v4
         with: { name: release-candidate, path: build/releases/, if-no-files-found: error }
+  bundle:
+    needs: candidate
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Verify native build source and result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_RUN_ID: ${{ inputs.ci_run_id }}
+        run: |
+          [[ "$CI_RUN_ID" =~ ^[0-9]+$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CI_RUN_ID" > "$RUNNER_TEMP/release-ci.json"
+          node --input-type=module -e 'import {readFileSync} from "node:fs"; const run=JSON.parse(readFileSync(process.env.RUNNER_TEMP+"/release-ci.json")); if(run.head_sha!==process.env.GITHUB_SHA || run.head_branch!=="main" || run.event!=="push" || run.name!=="Quality and profile builds" || run.conclusion!=="success") throw Error("Native CI must pass on this exact main commit");'
+      - uses: actions/download-artifact@v4
+        with: { name: release-candidate, path: build/candidate }
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-*
+          merge-multiple: true
+          path: build/candidate
+          run-id: ${{ inputs.ci_run_id }}
+          github-token: ${{ github.token }}
+      - run: node scripts/release-assets.mjs assemble build/candidate
+      - run: cd build/candidate && sha256sum --check checksums.txt
+      - uses: actions/attest-build-provenance@v2
+        with: { subject-path: build/candidate/*.tar.gz }
+      - uses: actions/upload-artifact@v4
+        with: { name: release-bundle, path: build/candidate/, if-no-files-found: error }

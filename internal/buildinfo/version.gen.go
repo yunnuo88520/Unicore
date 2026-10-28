@@ -3,4 +3,4 @@
 
 package buildinfo
 
-const sourceVersion = "0.1.0"
+const sourceVersion = "0.1.1"

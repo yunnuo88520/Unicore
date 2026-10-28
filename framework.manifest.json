@@ -74,7 +74,8 @@
     "maintenance": "make build-ops",
     "devDependencies": "make dev-deps-up",
     "wiki": "make wiki",
-    "wikiPublish": "make wiki-publish"
+    "wikiPublish": "make wiki-publish",
+    "packageDesktop": "make package-desktop"
   },
   "skills": [
     "add-api-operation",

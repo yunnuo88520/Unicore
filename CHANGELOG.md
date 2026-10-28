@@ -3,6 +3,10 @@
 
 ## Unreleased
 
+## 0.1.1 — 2026-10-28
+
+- 修复 GitHub 依赖告警：升级 Chi、JOSE、Wails、Echo、Compress、Edwards25519、x/net 和 Vitest；移除旧 Tinypool 依赖链。安全门禁增加全部前端依赖与桌面导入包检查。
+- 原生桌面按实际 runner OS/Arch 生成保留权限的 tar.gz；候选发布合并相同 main 提交的 Web/CLI/三系统桌面共 13 个包，验证版本、来源、矩阵与校验和，并生成 GitHub 构建来源证明。
 - Wiki 从仓库文档生成与显式同步，提供完整阅读导航；纠正部署手册的旧设置入口、备份和品牌存储说明，完善开源仓库安全入口、依赖告警待办、主分支规则和首个开发预览说明。
 - 更新开源 README、当前能力与 CI 结果，新增贡献/支持/行为准则、Issue/PR 模板、Dependabot 版本更新和 GitHub 维护手册；社区文档纳入链接检查。
 - MIT 许可、应用源码创建器、环境自检和隔离开发依赖。

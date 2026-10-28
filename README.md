@@ -30,7 +30,7 @@ Unicore 是面向 AI 辅助开发的 Go + React 应用框架。共享领域与�
 
 ![平台笔记与附件](docs/04-ai/evidence-developer-kit/notes-platform.png)
 
-当前尚未发布 tag、[GitHub Release](https://github.com/yunnuo88520/Unicore/releases) 或注册表镜像，可从源码构建或下载通过检查的 Actions 预览产物。真实授权/OTA、正式签名/公证仍待接入；能力与验收边界见 [PRD](docs/00-product/PRD.md) 和 [最新验收](docs/04-ai/acceptance-developer-kit.md)。
+预览安装包与校验和见 [GitHub Releases](https://github.com/yunnuo88520/Unicore/releases)，也可从源码构建；尚无公开注册表镜像。真实授权/OTA、正式签名/公证仍待接入；能力与验收边界见 [PRD](docs/00-product/PRD.md) 和 [最新验收](docs/04-ai/acceptance-developer-kit.md)。
 
 ## 快速开始
 

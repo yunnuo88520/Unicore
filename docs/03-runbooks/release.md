@@ -36,6 +36,8 @@ make compose-up
 make compose-down
 # 原生桌面，必须在对应系统构建
 make build-desktop
+# 原生构建后按当前 OS/Arch 归档（保留 macOS app 和 Linux 执行权限）
+make package-desktop
 ```
 
 每次 package/release 重建 `build/releases/`（先保存需要保留的旧产物），其中为 tar.gz、checksums.txt 和 manifest.json；包内包含 VERSION、CHANGELOG、manifest、部署手册，Web 另含 bin/server、web/ 与 deploy/。manifest 的 profile 是默认首装选择，安装向导仍允许选择两种 Web 形态；安装后固定。编译扩展统一传 `FEATURE_LICENSE=true FEATURE_UPDATER=true`，默认均关闭；开启也只是授权/升级接入占位。
@@ -84,9 +86,11 @@ Linux amd64 daemon 将上例改为 linux/amd64。验收只创建随机命名容�
 
 源码采用 MIT，各 tar 包包含 LICENSE；Web tar 同时包含 unicore-ops 和 business_migration_level。归档及默认镜像名读取根 package.name，VERSION 仍唯一版本源。派生项目构建前按 [上游约定](framework-upgrade.md) 保留 provenance 与作者。
 
-提交 VERSION/CHANGELOG 后，可手动运行 Prepare release candidate workflow，输入完全匹配的版本。workflow 执行质量门禁、全 Web/CLI tar 矩阵、checksum 和 GitHub 构建来源证明，只上传候选 artifact，不创建 tag/Release 或推送镜像。正式发布必须另获授权并验证工作流结果；可用 gh attestation verify 验证 GitHub 来源，manifest signature:null 仍表示没有框架自己的升级签名，禁止因此开启自动 OTA。原生系统签名、公证、镜像注册表策略与 SBOM 仍需发布环境对接。
+提交 VERSION/CHANGELOG 并合入 main，等待 Quality and profile builds 与 Dependency security 全部成功，再手动运行 Prepare release candidate workflow，输入完全匹配的 version 和该 main 质量 workflow 的 ci_run_id。候选构建全 Web/CLI tar，合并同一提交的三系统原生桌面归档，校验 13 个包的版本、来源提交、目标矩阵和 SHA-256；生成 GitHub 构建来源证明，输出 release-bundle artifact。旧运行、PR 构建、不同提交、缺包或校验和不符均拒绝；不创建 tag/Release 或推送镜像。
 
-Dependency security workflow 运行固定版 govulncheck 和前端生产依赖审计。安装新依赖需跟踪误报与升级影响，不静默忽略失败。发布前在目标环境恢复副本验证，参见 [备份恢复](backup.md)。跨版本升级/回退验收与同版本容器替换分开记录。
+用户已授权公开发布时，下载该 artifact，验证 checksums/manifest 和 `gh attestation verify <tar.gz> --repo <owner/repo>`，在完全相同的 main 提交创建 `v<VERSION>` tag，将 13 个 tar.gz、manifest.json、checksums.txt 上传 GitHub prerelease。发布说明列出实际 OS/Arch、安装入口、备份/恢复、未签名及未测范围；核对 Release 页面和下载后的 checksum 后才能宣告完成。首次预览沿用正常递增版本流程，不重写已归档 Changelog。manifest signature:null 仍表示没有框架自己的升级签名，禁止因此开启自动 OTA；原生系统签名、公证、镜像注册表策略与 SBOM 仍需发布环境对接。
+
+Dependency security workflow 运行固定版 govulncheck：Web/CLI/ops 符号检查、全部业务导入包和桌面 bindings 导入包检查；前端审计包含开发依赖，low 及以上阻断。没有导入的废弃子包单独记录，不以排除开发依赖掩盖测试工具漏洞。安装新依赖需跟踪误报与升级影响，不静默忽略失败。发布前在目标环境恢复副本验证，参见 [备份恢复](backup.md)。跨版本升级/回退验收与同版本容器替换分开记录。
 
 `make test-upgrade FROM_REF=<可信本地旧提交或tag>` 在临时实例构建旧 binary，安装/保存设置和账号，备份后用当前 binary 向前迁移业务账本，重启确认，再将升级前快照恢复到新目录并由旧 binary 验证。当前脚本针对 SQLite、平台 schema9→业务schema1 的这次变更；其他历史版本/外部DB的跨版本升级需对应迁移夹具，不能泛化为任意版本可回退。
 

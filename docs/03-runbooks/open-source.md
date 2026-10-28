@@ -19,7 +19,7 @@
 
 Dependabot 的版本更新配置不等于 GitHub 已开启安全更新。pnpm 使用 npm ecosystem，后续更新后核对锁文件与实际 CI；工具链、Wails、Go 和原生依赖升级需要对应目标验证。
 
-2026-10-28 开启扫描后核对到 16 条未解决依赖告警（3 critical、6 high、6 medium、1 low），涉及 Go 运行依赖和 Vitest/Tinypool 开发依赖；以 [Dependabot 告警](https://github.com/yunnuo88520/Unicore/security/dependabot) 的实时结果为准。当前安全 job 的 govulncheck 检查 Web/CLI/ops 可达代码，pnpm audit 只检查生产依赖，不能据此断言桌面或开发工具链没有漏洞。依赖升级、受影响路径判断及对应回归仍是待办，不批量自动合并 Dependabot PR，也不以关闭告警代替修复。
+2026-10-28 首次扫描的 16 条告警涉及 Go 运行依赖和 Vitest/Tinypool 开发依赖。本轮已将对应依赖升级到修复版本，安全 job 同时检查 Web/CLI/ops 可达符号、所有 Go 业务导入包和桌面 bindings 导入包；pnpm audit 包含开发依赖并在 low 级别阻断。模块级扫描还提示 x/crypto 的废弃 openpgp 子包无修复版，框架未导入该包；不能把模块存在直接等同漏洞路径可达，也不能据此关闭全量检查。实时闭环以 [Dependabot 告警](https://github.com/yunnuo88520/Unicore/security/dependabot) 为准，不手动忽略告警或批量合并 PR。修复与首版验收见 [安全发版记录](../04-ai/acceptance-security-release.md)。
 
 ## GitHub 设置
 
@@ -36,7 +36,7 @@ Dependabot 的版本更新配置不等于 GitHub 已开启安全更新。pnpm �
 | main 保护 | Unicore main quality gate 规则 | 要求 PR、quality/docker-build/scan 与三系统原生检查，禁止强推和删除；不要求另一个维护者批准 |
 | 合并与分支清理 | 允许 Squash，自动删除已合并分支开启 | 主分支受保护；功能分支合并后自动清理 |
 | Wiki | 已初始化，支持源码同步 | 页面清单见 docs/wiki/pages.json；执行 make wiki-publish 前检查 main 已干净推送 |
-| Releases / tags | 首次开发预览按下节验收后发布 | 实际可下载资产以 GitHub Releases 为准，不把 VERSION 或 workflow 配置当作已经发布 |
+| Releases / tags | 按下节验收，开发预览使用 prerelease | 实际可下载资产以 GitHub Releases 为准，不把 VERSION 或 workflow 配置当作已经发布 |
 
 不要仅为了资料完整而创建空文档站、不可访问的演示、FUNDING 或未经同意的 CODEOWNERS。当前维护者较少，先使用源码文档和明确的反馈入口即可。Template repository 为可选项；派生应用优先使用创建器完成 module/品牌定制。
 

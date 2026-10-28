@@ -90,6 +90,8 @@ routes.ts 集中管理员菜单/直达页守卫，settings-page.tsx 将平台本
 
 版本与交付由 VERSION → scripts/version.mjs → 各端投影，Docker/归档读取相同元数据。Nginx 仅直接处理指纹资源，其余请求交 Go 保持安装/身份/动态品牌边界；详见 [ADR-0011](../adr/ADR-0011-release-deployment.md)。
 
+原生 runner 将桌面结果归档后与同一 main 提交的 Web/CLI 包汇总；release-assets.mjs 检查版本、来源、矩阵和摘要，候选 workflow 为全部归档生成 GitHub 来源证明。CI 安全扫描包含桌面导入包和前端开发依赖。来源证明不替代平台代码签名或 OTA 签名，具体流程与限制见 [发版](../03-runbooks/release.md) 和 [安全发版记录](../04-ai/acceptance-security-release.md)。
+
 ## 管理员与用户身份域
 
 当前身份/导航以 [ADR-0014](../adr/ADR-0014-separate-identities-management.md) 为准。platformsql.Repository 以固定 Administrators 标志映射七张身份表，SQL 标识符只来自固定代码映射；共享设置、审计与队列不映射。安装创建独立管理员，普通用户与管理员服务不回退。HTTP 固定用户/admin 路径与独立 Cookie 选择服务，写事务从管理员仓库重查操作者。管理员与用户管理端点分别固定身份，禁止角色转换；JIT 仅普通域。升级 0008 保留账号/绑定并撤销旧凭据。

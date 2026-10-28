@@ -15,7 +15,7 @@ require (
 	github.com/minio/minio-go/v7 v7.0.100
 	github.com/spf13/cobra v1.10.2
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.60
-	github.com/wailsapp/wails/v2 v2.12.0
+	github.com/wailsapp/wails/v2 v2.13.0
 	golang.org/x/crypto v0.57.0
 	golang.org/x/oauth2 v0.32.0
 	modernc.org/sqlite v1.39.1
@@ -39,7 +39,7 @@ require (
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jchv/go-winloader v0.0.0-20210711035445-715c2860da7e // indirect
 	github.com/klauspost/compress v1.18.2 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.11 // indirect
+	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/klauspost/crc32 v1.3.0 // indirect
 	github.com/labstack/echo/v4 v4.13.3 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect

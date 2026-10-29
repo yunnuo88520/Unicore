@@ -3,6 +3,8 @@
 
 ## Unreleased
 
+- 统一更新 Go/Wails/SQLite/对象存储 SDK、Vitest 5、jsdom 30 与 GitHub Actions；Node 开发最低补丁版本提升至 22.22.2，自检读取 package.json 兼容范围。保留与 Node 22 基线配套的类型定义，Dependabot 继续跟踪其补丁/次版本。
+
 - 在线平台本地/MinIO/S3/OSS/COS 统一持久分片上传、断点续传、暂停/继续/放弃与确认字节进度；管理员可视化配置大小（默认 100 MiB，上限 64 GiB）、分片及并发。平台迁移 0012 保存会话，持久中止清理覆盖崩溃与失败重试；大对象采用服务端分片复制。
 
 - 升级 Goldmark 至 1.7.17，修复 GO-2026-5320 Markdown 链接/图片 XSS，保留公告安全白名单并补充编码 URL 回归验证。

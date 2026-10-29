@@ -19,6 +19,8 @@
 
 Dependabot 的版本更新配置不等于 GitHub 已开启安全更新。pnpm 使用 npm ecosystem，后续更新后核对锁文件与实际 CI；工具链、Wails、Go 和原生依赖升级需要对应目标验证。
 
+Node 开发/CI 基线保留 22 系列，@types/node 随基线维护；Dependabot 只忽略这个包的 major 更新，仍检查 patch/minor，不屏蔽其他依赖或安全扫描。提高 Node 基线时同步类型、engines、Docker、工作流与自检。2026-10-29 的七项 PR 评估、组合验证与清理见 [依赖维护记录](../04-ai/acceptance-dependency-maintenance.md)。
+
 2026-10-28 首次扫描的 16 条告警涉及 Go 运行依赖和 Vitest/Tinypool 开发依赖。本轮已将对应依赖升级到修复版本，安全 job 同时检查 Web/CLI/ops 可达符号、所有 Go 业务导入包和桌面 bindings 导入包；pnpm audit 包含开发依赖并在 low 级别阻断。模块级扫描还提示 x/crypto 的废弃 openpgp 子包无修复版，框架未导入该包；不能把模块存在直接等同漏洞路径可达，也不能据此关闭全量检查。实时闭环以 [Dependabot 告警](https://github.com/yunnuo88520/Unicore/security/dependabot) 为准，不手动忽略告警或批量合并 PR。修复与首版验收见 [安全发版记录](../04-ai/acceptance-security-release.md)。
 
 ## GitHub 设置

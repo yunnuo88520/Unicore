@@ -6,7 +6,17 @@ const results=[];
 function command(name,args,required=true,accept=()=>true){const p=spawnSync(name,args,{encoding:'utf8',timeout:15000});const ok=p.status===0&&accept(p.stdout+p.stderr);results.push({name:`${name} ${args.join(' ')}`,ok,required});}
 const requiredGo=readFileSync('go.mod','utf8').match(/^go (\S+)/m)[1].split('.').map(Number);
 command('go',['version'],true,s=>{const actual=s.match(/go(\d+)\.(\d+)\.(\d+)/)?.slice(1).map(Number);return !!actual&&actual.reduce((comparison,n,i)=>comparison||Math.sign(n-(requiredGo[i]??0)),0)>=0;});
-command('node',['--version'],true,s=>Number(s.match(/v(\d+)/)?.[1])>=22);
+const supportedNode=JSON.parse(readFileSync('package.json','utf8')).engines.node;
+command('node',['--version'],true,s=>{
+  const actual=s.match(/v(\d+)\.(\d+)\.(\d+)/)?.slice(1).map(Number);
+  return !!actual&&supportedNode.split('||').some(range=>{
+    const minimum=range.trim().match(/^(\^|>=)(\d+)\.(\d+)\.(\d+)$/);
+    if(!minimum)return false;
+    const required=minimum.slice(2).map(Number);
+    const comparison=actual.reduce((result,n,i)=>result||Math.sign(n-required[i]),0);
+    return comparison>=0&&(minimum[1]==='>='||actual[0]===required[0]);
+  });
+});
 command('pnpm',['--version'],true,s=>s.trim()==='11.25.0');
 command('git',['--version']);
 command('rg',['--version']);

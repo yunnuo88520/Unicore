@@ -39,7 +39,7 @@ Unicore 是面向 AI 辅助开发的 Go + React 应用框架。共享领域与�
 
 ## 快速开始
 
-开发需要 Go 1.26.10+、Node 22+、pnpm 11.25.0、Git、Make 和 ripgrep（`rg`）。pnpm 版本见 `packageManager`；`make doctor` 检查环境。macOS 可用 `brew install ripgrep`，Ubuntu/Debian 可用 `sudo apt-get install ripgrep`。Windows 建议使用 WSL2 开发 Web/CLI；构建 Windows 原生桌面请在 Windows 上安装 Make、Wails 和 WebView2，详见 [Wails 原生依赖](https://wails.io/docs/gettingstarted/installation)。
+开发需要 Go 1.26.10+、Node 22.22.2+（22 系列为 CI 基线）、pnpm 11.25.0、Git、Make 和 ripgrep（`rg`）。其他 Node 系列的兼容范围见 `package.json` 的 `engines`，pnpm 版本见 `packageManager`；`make doctor` 检查环境。macOS 可用 `brew install ripgrep`，Ubuntu/Debian 可用 `sudo apt-get install ripgrep`。Windows 建议使用 WSL2 开发 Web/CLI；构建 Windows 原生桌面请在 Windows 上安装 Make、Wails 和 WebView2，详见 [Wails 原生依赖](https://wails.io/docs/gettingstarted/installation)。
 
 ```sh
 git clone https://github.com/yunnuo88520/Unicore.git

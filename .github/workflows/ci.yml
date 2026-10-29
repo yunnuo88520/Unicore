@@ -28,12 +28,12 @@ jobs:
         ports: ["3306:3306"]
         options: --health-cmd "mysqladmin ping --silent" --health-interval 5s --health-timeout 5s --health-retries 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install quality tooling
         run: sudo apt-get update && sudo apt-get install -y ripgrep
       - uses: actions/setup-go@v5
         with: { go-version-file: go.mod }
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with: { version: 11.25.0 }
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
@@ -77,10 +77,10 @@ jobs:
         os: [ubuntu-22.04, macos-14, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-go@v5
         with: { go-version-file: go.mod }
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with: { version: 11.25.0 }
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
@@ -131,10 +131,10 @@ jobs:
   docker-build:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-go@v5
         with: { go-version-file: go.mod }
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with: { version: 11.25.0 }
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }

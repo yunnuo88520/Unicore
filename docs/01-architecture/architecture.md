@@ -126,3 +126,7 @@ React 的独立可折叠导航、共享原生 dialog、头像密码/退出、邮
 ## 审计快照与配置化邮件
 
 [ADR-0020](../adr/ADR-0020-audit-mail-templates.md) 定义平台 audit_metadata 追加表与 schema10，保留 audit_logs 的历史记录；真实连接/身份/操作目标通过服务端 context 传给存储，参数绑定和固定排序支持查询、分页与有上限的 CSV。mail.template.* 在 SettingDefinition 注册，只通过管理员专用 API 校验/保存。独立 mailcontent 统一变量与受限 HTML，mailer 使预览、六位码、通知和测试一致；新邮件入队时快照，不读取未保存草稿。以上都不进入单机/桌面/CLI 组合。
+
+## 业务实体与公告
+
+[ADR-0021](../adr/ADR-0021-business-entities-announcements.md) 统一嵌入式 BaseEntity、软删除/版本及实体/DTO 映射，完整分层示例为公告模块；平台 schema=11、business=2。公告仅平台装配，admin/user 固定接口与最小用户投影，写事务重查管理员，安全 Markdown/HTML 通过渲染 port 接入。规范与例外见 [backend.md](../02-standards/backend.md)。

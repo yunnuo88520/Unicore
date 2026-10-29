@@ -70,6 +70,7 @@ func ValidBaseURL(value string) bool {
 }
 
 var Definitions = append([]SettingDefinition{
+	{"announcements.enabled", "boolean", "announcements", "平台公告", "true", true, false, oneOf("true", "false")},
 	{"branding.logo", "string", "branding", "Logo", "", false, false, branding.ValidReference},
 	{"branding.logo_dark", "string", "branding", "深色 Logo", "", false, false, branding.ValidReference},
 	{"branding.favicon", "string", "branding", "站点图标", "", false, false, branding.ValidReference},
@@ -174,7 +175,7 @@ func (s *Service) List(ctx context.Context) (contracts.Settings, error) {
 		if !applies(d, s.Profile) {
 			continue
 		}
-		if branding.Managed(d.Key) || ManagedMailTemplate(d.Key) {
+		if branding.Managed(d.Key) || ManagedMailTemplate(d.Key) || d.Key == "announcements.enabled" {
 			continue
 		}
 		value := values[d.Key]
@@ -256,7 +257,7 @@ func (s *Service) Patch(ctx context.Context, input contracts.SettingPatch, actor
 	values := map[string]string{}
 	seen := map[string]bool{}
 	for _, change := range input.Changes {
-		if ManagedMailTemplate(change.Key) || branding.Managed(change.Key) || change.Key == "storage.active" || seen[change.Key] {
+		if change.Key == "announcements.enabled" || ManagedMailTemplate(change.Key) || branding.Managed(change.Key) || change.Key == "storage.active" || seen[change.Key] {
 			return contracts.Settings{}, ErrInvalid
 		}
 		seen[change.Key] = true

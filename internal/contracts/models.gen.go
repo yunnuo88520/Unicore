@@ -817,3 +817,129 @@ type MailTemplateResponse struct {
 type MailTemplateReset struct {
 	Purpose string `json:"purpose"`
 }
+
+type AnnouncementInput struct {
+	Content   string `json:"content"`
+	Format    string `json:"format"`
+	Type      string `json:"type"`
+	Note      string `json:"note"`
+	Status    string `json:"status"`
+	PublishAt int    `json:"publish_at"`
+}
+
+type AnnouncementUpdate struct {
+	Content   string `json:"content"`
+	Format    string `json:"format"`
+	Type      string `json:"type"`
+	Note      string `json:"note"`
+	Status    string `json:"status"`
+	PublishAt int    `json:"publish_at"`
+	Version   int    `json:"version"`
+}
+
+type AnnouncementEntry struct {
+	ID          string `json:"id"`
+	Version     int    `json:"version"`
+	CreatedAt   int    `json:"created_at"`
+	UpdatedAt   int    `json:"updated_at"`
+	Content     string `json:"content"`
+	Format      string `json:"format"`
+	Type        string `json:"type"`
+	Note        string `json:"note"`
+	Status      string `json:"status"`
+	PublishAt   int    `json:"publish_at"`
+	ContentHtml string `json:"content_html"`
+	CreatedBy   string `json:"created_by"`
+	UpdatedBy   string `json:"updated_by"`
+}
+
+type AnnouncementPublic struct {
+	ID          string `json:"id"`
+	Content     string `json:"content"`
+	ContentHtml string `json:"content_html"`
+	Format      string `json:"format"`
+	Type        string `json:"type"`
+	PublishAt   int    `json:"publish_at"`
+}
+
+type AnnouncementQuery struct {
+	Search   string `json:"search"`
+	Status   string `json:"status"`
+	Page     int    `json:"page"`
+	PageSize int    `json:"page_size"`
+}
+
+type AnnouncementList struct {
+	Items    []AnnouncementEntry `json:"items"`
+	Total    int                 `json:"total"`
+	Page     int                 `json:"page"`
+	PageSize int                 `json:"page_size"`
+	Enabled  bool                `json:"enabled"`
+}
+
+type AnnouncementFeed struct {
+	Items    []AnnouncementPublic `json:"items"`
+	Total    int                  `json:"total"`
+	Page     int                  `json:"page"`
+	PageSize int                  `json:"page_size"`
+	Enabled  bool                 `json:"enabled"`
+}
+
+type AnnouncementSelection struct {
+	ID      string `json:"id"`
+	Version int    `json:"version"`
+}
+
+type AnnouncementDelete struct {
+	Items []AnnouncementSelection `json:"items"`
+}
+
+type AnnouncementSetting struct {
+	Enabled bool `json:"enabled"`
+}
+
+type AnnouncementPreview struct {
+	ContentHtml string `json:"content_html"`
+}
+
+type AnnouncementEntryResponse struct {
+	Code      string            `json:"code"`
+	Message   string            `json:"message"`
+	Data      AnnouncementEntry `json:"data"`
+	RequestID string            `json:"request_id"`
+}
+
+type AnnouncementListResponse struct {
+	Code      string           `json:"code"`
+	Message   string           `json:"message"`
+	Data      AnnouncementList `json:"data"`
+	RequestID string           `json:"request_id"`
+}
+
+type AnnouncementFeedResponse struct {
+	Code      string           `json:"code"`
+	Message   string           `json:"message"`
+	Data      AnnouncementFeed `json:"data"`
+	RequestID string           `json:"request_id"`
+}
+
+type AnnouncementPublicResponse struct {
+	Code      string             `json:"code"`
+	Message   string             `json:"message"`
+	Data      AnnouncementPublic `json:"data"`
+	RequestID string             `json:"request_id"`
+}
+
+type AnnouncementSettingResponse struct {
+	Code      string              `json:"code"`
+	Message   string              `json:"message"`
+	Data      AnnouncementSetting `json:"data"`
+	RequestID string              `json:"request_id"`
+}
+
+type AnnouncementPreviewResponse struct {
+	Code      string              `json:"code"`
+	Message   string              `json:"message"`
+	Data      AnnouncementPreview `json:"data"`
+	RequestID string              `json:"request_id"`
+}

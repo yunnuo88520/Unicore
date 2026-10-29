@@ -5,6 +5,8 @@ package platform
 import "github.com/yunnuo/unicore/internal/contracts"
 
 var PermissionCatalog = []contracts.PermissionDefinition{
+	{ID: "announcements:read", Name: "查看平台公告", Description: "查看公告列表、草稿与配置", Group: "系统管理"},
+	{ID: "announcements:write", Name: "管理平台公告", Description: "发布、编辑、删除公告与控制展示", Group: "系统管理"},
 	{ID: "updates:read", Name: "查看系统更新", Description: "查看版本、更新历史与检查结果", Group: "系统管理"},
 	{ID: "updates:apply", Name: "安装系统更新", Description: "安装可信兼容版本并重启实例", Group: "系统管理"},
 	{ID: "admin:access", Name: "访问管理工作台", Description: "使用管理员端的共享业务工具", Group: "管理入口"},

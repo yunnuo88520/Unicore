@@ -2001,6 +2001,173 @@ export const operations = {
     "superAdmin": true,
     "csrf": true,
     "identityRealm": "administrator"
+  },
+  "adminAnnouncements": {
+    "method": "GET",
+    "path": "/api/v1/admin/announcements",
+    "requestSchema": null,
+    "responseSchema": "AnnouncementListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "announcements:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "createAnnouncement": {
+    "method": "POST",
+    "path": "/api/v1/admin/announcements",
+    "requestSchema": "AnnouncementInput",
+    "responseSchema": "AnnouncementEntryResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "announcements:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "updateAnnouncement": {
+    "method": "PUT",
+    "path": "/api/v1/admin/announcements/{id}",
+    "requestSchema": "AnnouncementUpdate",
+    "responseSchema": "AnnouncementEntryResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "announcements:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "deleteAnnouncements": {
+    "method": "POST",
+    "path": "/api/v1/admin/announcements/delete",
+    "requestSchema": "AnnouncementDelete",
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "announcements:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "announcementSettings": {
+    "method": "GET",
+    "path": "/api/v1/admin/announcements/settings",
+    "requestSchema": null,
+    "responseSchema": "AnnouncementSettingResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "announcements:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "saveAnnouncementSettings": {
+    "method": "PUT",
+    "path": "/api/v1/admin/announcements/settings",
+    "requestSchema": "AnnouncementSetting",
+    "responseSchema": "AnnouncementSettingResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "announcements:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "previewAnnouncement": {
+    "method": "POST",
+    "path": "/api/v1/admin/announcements/preview",
+    "requestSchema": "AnnouncementInput",
+    "responseSchema": "AnnouncementPreviewResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "announcements:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "announcements": {
+    "method": "GET",
+    "path": "/api/v1/announcements",
+    "requestSchema": null,
+    "responseSchema": "AnnouncementFeedResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user"
+  },
+  "announcement": {
+    "method": "GET",
+    "path": "/api/v1/announcements/{id}",
+    "requestSchema": null,
+    "responseSchema": "AnnouncementPublicResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user"
   }
 } as const;
 export type OperationId = keyof typeof operations;
@@ -2117,6 +2284,15 @@ export interface OperationInputs {
   previewMailTemplate: Models.MailTemplateInput;
   testMailTemplate: Models.MailTemplateTestInput;
   resetMailTemplate: Models.MailTemplateReset;
+  adminAnnouncements: undefined;
+  createAnnouncement: Models.AnnouncementInput;
+  updateAnnouncement: Models.AnnouncementUpdate;
+  deleteAnnouncements: Models.AnnouncementDelete;
+  announcementSettings: undefined;
+  saveAnnouncementSettings: Models.AnnouncementSetting;
+  previewAnnouncement: Models.AnnouncementInput;
+  announcements: undefined;
+  announcement: undefined;
 }
 export interface OperationData {
   bootstrap: Models.BootstrapResponse['data'];
@@ -2231,4 +2407,13 @@ export interface OperationData {
   previewMailTemplate: Models.MailTemplateResponse['data'];
   testMailTemplate: Models.ActionResultResponse['data'];
   resetMailTemplate: Models.MailTemplateResponse['data'];
+  adminAnnouncements: Models.AnnouncementListResponse['data'];
+  createAnnouncement: Models.AnnouncementEntryResponse['data'];
+  updateAnnouncement: Models.AnnouncementEntryResponse['data'];
+  deleteAnnouncements: Models.ActionResultResponse['data'];
+  announcementSettings: Models.AnnouncementSettingResponse['data'];
+  saveAnnouncementSettings: Models.AnnouncementSettingResponse['data'];
+  previewAnnouncement: Models.AnnouncementPreviewResponse['data'];
+  announcements: Models.AnnouncementFeedResponse['data'];
+  announcement: Models.AnnouncementPublicResponse['data'];
 }

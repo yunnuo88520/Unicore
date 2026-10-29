@@ -9,6 +9,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/yunnuo/unicore/internal/audit"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -72,7 +74,7 @@ func (s *Store) Migrate(ctx context.Context, platform bool) error {
 	}
 	files := []string{"0001_framework.sql"}
 	if platform {
-		files = append(files, "0002_platform.sql", "0003_platform_mail.sql", "0004_email_challenges.sql", "0005_role_management.sql", "0006_oidc.sql", "0007_fixed_roles.sql", "0008_separate_administrators.sql", "0009_file_storage.sql", "0010_audit_metadata.sql")
+		files = append(files, "0002_platform.sql", "0003_platform_mail.sql", "0004_email_challenges.sql", "0005_role_management.sql", "0006_oidc.sql", "0007_fixed_roles.sql", "0008_separate_administrators.sql", "0009_file_storage.sql", "0010_audit_metadata.sql", "0011_announcements.sql")
 	}
 	for index, file := range files {
 		data, err := migrations.Files.ReadFile(s.Dialect + "/" + file)
@@ -178,6 +180,18 @@ func (s *Store) SaveSettings(ctx context.Context, values map[string]string, acto
 		if strings.HasPrefix(key, "mail.template.") {
 			action = "mail.template.updated"
 		}
+	}
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	if metadata, ok := audit.From(ctx); ok && metadata.Detail == "" {
+		target := metadata.Target
+		if target == "" {
+			target = "settings"
+		}
+		ctx = audit.Target(ctx, target, "fields="+strings.Join(keys, ","))
 	}
 	if err = s.Audit(ctx, tx, actor, action); err != nil {
 		return err

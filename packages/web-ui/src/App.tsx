@@ -1,6 +1,7 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Shared responsive workspace. All business calls use AppClient.
  */
+import { AnnouncementCard } from './announcements-card';
 import { ClientControls } from './client-controls';
 import { SidebarTools, VersionBadge } from './shell-tools';
 import {defineMessages, useLocale, t, currentLocale } from './i18n';
@@ -11,9 +12,9 @@ import { FileManagement } from './files-page';
 import { Form } from './forms';
 import { MessageProvider, useMessage } from './message';
 import { SiteFooter } from './site-footer';
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useId, useRef, useState, type ReactNode } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { NotebookPen, Cloud, FolderOpen, Activity, ArrowDown, ArrowRight, ArrowUpRight, Braces, Check, CheckCircle2, ChevronRight, Circle, Code2, Copy, Cpu, ExternalLink, FlaskConical, Globe2, Info, Layers3, LayoutDashboard, LoaderCircle, Menu, Monitor, Moon, Play, Radio, RotateCcw, Settings2, ShieldCheck, Sparkles, Sun, Terminal, Users, UserRound, UserCog, Mail, ScrollText, PackageCheck, X, type LucideIcon } from 'lucide-react';
+import { Megaphone, NotebookPen, Cloud, FolderOpen, Activity, ArrowDown, ArrowRight, ArrowUpRight, Braces, Check, CheckCircle2, ChevronRight, Circle, Code2, Copy, Cpu, ExternalLink, FlaskConical, Globe2, Info, Layers3, LayoutDashboard, LoaderCircle, Menu, Monitor, Moon, Play, Radio, RotateCcw, Settings2, ShieldCheck, Sparkles, Sun, Terminal, Users, UserRound, UserCog, Mail, ScrollText, PackageCheck, X, type LucideIcon } from 'lucide-react';
 import { BrandProvider, BrandMark, BrandLockup } from './brand';
 import { type AppClient, type Bootstrap, type ExecuteOutput, type Profile } from '@unicore/sdk';
 import { useTheme, type Theme } from './theme';
@@ -34,9 +35,14 @@ const PAGE_LABELS = Object.fromEntries(Object.entries(routes).map(([id, route]) 
 
 export type PageProps = { page: Page; client: AppClient; metadata: Bootstrap; registry: DashboardWidgetRegistry; theme: Theme; setTheme: (theme: Theme) => void; refresh: () => void };
 type WorkspaceProps = { client: AppClient; registry?: DashboardWidgetRegistry; administratorPage?: (props: PageProps) => ReactNode };
-export function Workspace({ client, registry = new DashboardWidgetRegistry(), administratorPage }: WorkspaceProps) {
+export function Workspace({ client, registry, administratorPage }: WorkspaceProps) {
   useLocale();
-  return <MessageProvider><SessionBoundary client={client}>{notice => <BrandedApp client={client} registry={registry} notice={t(notice)} administratorPage={administratorPage} />}</SessionBoundary></MessageProvider>;
+ const dashboard=useMemo(()=>{
+ const widgets=new DashboardWidgetRegistry().register({id:'platform-announcements',render:metadata=>metadata.profile==='web-platform'&&metadata.identity_realm==='user'&&client.web?<AnnouncementCard web={client.web}/>:null});
+ for(const widget of registry?.entries()??[])widgets.register(widget);
+ return widgets;
+ },[client,registry]);
+  return <MessageProvider><SessionBoundary client={client}>{notice => <BrandedApp client={client} registry={dashboard} notice={t(notice)} administratorPage={administratorPage} />}</SessionBoundary></MessageProvider>;
 }
 
 function BrandedApp(props: {client: AppClient; registry: DashboardWidgetRegistry; notice: string; administratorPage?: WorkspaceProps['administratorPage']}) {
@@ -84,7 +90,7 @@ function App({ client, registry, notice, administratorPage }: { client: AppClien
       <nav aria-label={t("工作台")}>{([{ id: 'overview', icon: LayoutDashboard }, { id: 'lab', icon: FlaskConical }, { id:'notes',icon:NotebookPen }] as const).filter(({id})=>canAccess(id,metadata.data)).map(({ id, icon: Icon }) => <button key={id} className={`nav-item ${page === id ? 'active' : ''}`} aria-current={page === id ? 'page' : undefined} onClick={() => navigate(id)}><Icon size={19} /><span>{t(PAGE_LABELS[id])}</span>{page === id && <span className="nav-active-dot" />}</button>)}</nav>
       {canAccess('files',metadata.data)&&<button className={`nav-item ${page==='files'?'active':''}`} onClick={()=>navigate('files')}><FolderOpen size={19}/><span>{isAdministrator(metadata.data)?t('文件管理'):t('我的文件')}</span></button>}
       {isAdministrator(metadata.data)&&<NavGroup title={t("用户管理")} icon={<Users size={19}/>}><NavEntry id="users" page={page} navigate={navigate}/><NavEntry id="administrators" page={page} navigate={navigate}/><NavEntry id="roles" page={page} navigate={navigate}/></NavGroup>}
-      {canAccess('site',metadata.data)&&(personalSettings?<button className={`nav-item ${page==='site'?'active':''}`} onClick={()=>navigate('site')}><Settings2 size={19}/><span>{t("外观设置")}</span></button>:<NavGroup title={t("系统管理")} icon={<Settings2 size={19}/>}><NavEntry id="site" page={page} navigate={navigate}/>{(['mail','mail-templates','storage','logs','edition'] as const).filter(id=>canAccess(id,metadata.data)).map(id=><NavEntry key={id} id={id} page={page} navigate={navigate}/>)}</NavGroup>)}
+      {canAccess('site',metadata.data)&&(personalSettings?<button className={`nav-item ${page==='site'?'active':''}`} onClick={()=>navigate('site')}><Settings2 size={19}/><span>{t("外观设置")}</span></button>:<NavGroup title={t("系统管理")} icon={<Settings2 size={19}/>}><NavEntry id="site" page={page} navigate={navigate}/>{(['mail','mail-templates','announcements','storage','logs','edition'] as const).filter(id=>canAccess(id,metadata.data)).map(id=><NavEntry key={id} id={id} page={page} navigate={navigate}/>)}</NavGroup>)}
       {!isAdministrator(metadata.data)&&canAccess('edition',metadata.data)&&<button className={`nav-item ${page==='edition'?'active':''}`} onClick={()=>navigate('edition')}><PackageCheck size={19}/><span>{t("系统更新")}</span></button>}
       </div>
       <div className="sidebar-bottom"><SidebarTools onAbout={openAbout}/></div>
@@ -103,7 +109,7 @@ function NavGroup({title,icon,children}:{title:string;icon:ReactNode;children:Re
  const [open,setOpen]=useState(true);const id=useId();
  return <section className="nav-group"><button className="nav-item nav-group-toggle" aria-expanded={open} aria-controls={id} onClick={()=>setOpen(v=>!v)}>{icon}<span>{t(title)}</span><ChevronRight size={15} className={open?'expanded':''}/></button><nav id={id} aria-label={t(title)} hidden={!open}>{children}</nav></section>;
 }
-const NAV_ICONS: Partial<Record<Page, LucideIcon>> = { storage:Cloud,files:FolderOpen,users: UserRound, administrators: UserCog, roles: ShieldCheck, site: Settings2, mail: Mail, 'mail-templates': Mail, logs: ScrollText, edition: PackageCheck };
+const NAV_ICONS: Partial<Record<Page, LucideIcon>> = { announcements:Megaphone,storage:Cloud,files:FolderOpen,users: UserRound, administrators: UserCog, roles: ShieldCheck, site: Settings2, mail: Mail, 'mail-templates': Mail, logs: ScrollText, edition: PackageCheck };
 function NavEntry({id,page,navigate}:{id:Page;page:Page;navigate:(p:Page)=>void}) {
   useLocale();
   const Icon = NAV_ICONS[id] ?? Circle;
@@ -129,10 +135,11 @@ function CoreWorkspace({ page, client, metadata, registry }: { page: Page; clien
   useLocale();
   return <>
             <RuntimeCards metadata={metadata} transport={client.transport} />
+{page==='overview'&&registry.entries().map(widget=>{const content=widget.render(metadata);return content?<section className="dashboard-widget" key={widget.id}>{content}</section>:null;})}
             {page === 'overview' && <div className="intro-banner"><span className="banner-orbit orbit-one" /><span className="banner-orbit orbit-two" /><div className="banner-content"><span className="banner-tag"><Sparkles size={13} />{t("为下一款产品而生")}</span><h2>{t("构建一次，连接每个终端。")}</h2><p>{t("领域逻辑保持纯粹，交互体验始终一致。")}</p><button onClick={() => { window.location.hash = 'lab'; }}>{t("探索核心实验室")}<ArrowRight size={15} /></button></div><div className="banner-diagram" aria-hidden="true"><div className="diagram-core"><BrandMark size={30} /><span>Go Core</span></div><span className="diagram-line" /><div className="diagram-targets"><span><Globe2 size={17} /> Web</span><span><Monitor size={17} /> Desktop</span><span><Terminal size={17} /> CLI</span></div></div></div>}
             {page==='overview' && metadata.identity_realm!=='administrator' && <section className="business-placeholders" aria-label={t("业务空间")}><article className="panel"><FolderOpen size={22}/><h2>{t("我的项目")}</h2><p>{t("为你的业务预留空间，项目功能待接入。")}</p><span className="subtle-badge">{t("待接入")}</span></article><article className="panel"><Activity size={22}/><h2>{t("最近动态")}</h2><p>{t("业务接入后，在这里汇集与你有关的更新。")}</p><span className="subtle-badge">{t("待接入")}</span></article></section>}
             <div className="workspace-grid"><CoreLab client={client} /><div className="right-column"><Profiles current={metadata.profile} /><Architecture /></div></div>
-            {registry.entries().map(widget => <section key={widget.id}>{widget.render(metadata)}</section>)}
+
   </>;
 }
 

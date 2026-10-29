@@ -8,7 +8,7 @@
 | 生命周期与配置 | Web 集中 flag > env > 默认、参数校验、可配置排空/探测超时；组件逆序清理并合并错误；桌面返回后关闭存储 | CLI/桌面共用日志 env 选项，各形态存储配置保持独立；handler 必须遵守 context |
 | 响应与错误 | OpenAPI 错误目录生成 ErrorCatalog，HTTP/presenter/桌面复用，支持 fields、request_id | 业务错误仍由服务手写映射；INVALID_CREDENTIALS 与 AUTH_REQUIRED 区分密码错误/会话失效 |
 | 日志 | 共享 slog 等级/JSON或text，Web 请求路由模板/状态/耗时，CLI日志 stderr | 不打印请求值/凭据/原始 query；外部日志平台后续接入 |
-| DB 初始化与迁移 | database/sql + Repository、池/Ping、分方言嵌入 SQL/checksum；framework=1、platform=9、独立 business=1 | [ADR-0003](../adr/ADR-0003-m2-install-storage-identity.md) 决定不用 GORM；单机/桌面不装配平台迁移，CLI 无数据库，不叠加 AutoMigrate |
+| DB 初始化与迁移 | database/sql + Repository、池/Ping、分方言嵌入 SQL/checksum；framework=1、platform=11、独立 business=2 | [ADR-0003](../adr/ADR-0003-m2-install-storage-identity.md) 决定不用 GORM；单机/桌面不装配平台迁移，CLI 无数据库，不叠加 AutoMigrate |
 | 自动 API 文档 | 同源生成 Go/TS DTO、typed operation、约束、错误和离线 HTML；可选 /docs/api、/openapi.json；真实 Chi 路由覆盖检查 | 当前 operation 数以生成 API 索引为准；handler/业务授权手写；文档默认关闭，非交互调试控制台 |
 | 健康与观测 | live/ready、独立 DB 超时、可选回环 /metrics：请求数/活动数/耗时与 DB 池 | 指标使用低基数模板；未实现 OpenTelemetry tracing、远程采集/告警部署 |
 | API Client | 生成操作驱动请求、CSRF/Cookie、20秒超时/取消、字段错误、统一失效、旧请求 epoch 拒绝 | 浏览器 OIDC callback 走导航；Wails 只暴露适用接口 |
@@ -54,3 +54,5 @@ M3b 品牌上传已完成，见 [需求](../00-product/feature-branding.md) 和 
 对象存储增量：平台新增 blob/files/filesql 分层、本地默认与 MinIO/S3/OSS/COS adapter、文件元数据、直传和临时访问、迁移与清理，品牌也通过 blob port；见 [需求](../00-product/feature-storage.md)、[ADR-0015](../adr/ADR-0015-file-storage.md) 和 [运行手册](../03-runbooks/storage.md)。真实云端验收以 MinIO 开发环境为限。
 
 当前开发基座已补源码创建/环境自检、开发依赖、持久化笔记样板、独立业务迁移、MIT 与候选发布流程；离线备份恢复已实现。最新验证及未测事项见 [开发基座验收](acceptance-developer-kit.md)，不将旧阶段测试计数当作当前覆盖。
+
+公告及实体规范当前能力见 [本轮验收](acceptance-announcements.md)，历史报告保留其当时 schema 记录。

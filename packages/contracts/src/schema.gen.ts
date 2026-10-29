@@ -815,3 +815,129 @@ export interface MailTemplateResponse {
 export interface MailTemplateReset {
   purpose: "test" | "verify" | "login" | "reset" | "notification";
 }
+
+export interface AnnouncementInput {
+  content: string;
+  format: "markdown" | "html";
+  type: "info" | "success" | "warning" | "error";
+  note: string;
+  status: "draft" | "published";
+  publish_at: number;
+}
+
+export interface AnnouncementUpdate {
+  content: string;
+  format: "markdown" | "html";
+  type: "info" | "success" | "warning" | "error";
+  note: string;
+  status: "draft" | "published";
+  publish_at: number;
+  version: number;
+}
+
+export interface AnnouncementEntry {
+  id: string;
+  version: number;
+  created_at: number;
+  updated_at: number;
+  content: string;
+  format: "markdown" | "html";
+  type: "info" | "success" | "warning" | "error";
+  note: string;
+  status: "draft" | "published";
+  publish_at: number;
+  content_html: string;
+  created_by: string;
+  updated_by: string;
+}
+
+export interface AnnouncementPublic {
+  id: string;
+  content: string;
+  content_html: string;
+  format: "markdown" | "html";
+  type: "info" | "success" | "warning" | "error";
+  publish_at: number;
+}
+
+export interface AnnouncementQuery {
+  search: string;
+  status: "" | "draft" | "published" | "scheduled";
+  page: number;
+  page_size: number;
+}
+
+export interface AnnouncementList {
+  items: Array<AnnouncementEntry>;
+  total: number;
+  page: number;
+  page_size: number;
+  enabled: boolean;
+}
+
+export interface AnnouncementFeed {
+  items: Array<AnnouncementPublic>;
+  total: number;
+  page: number;
+  page_size: number;
+  enabled: boolean;
+}
+
+export interface AnnouncementSelection {
+  id: string;
+  version: number;
+}
+
+export interface AnnouncementDelete {
+  items: Array<AnnouncementSelection>;
+}
+
+export interface AnnouncementSetting {
+  enabled: boolean;
+}
+
+export interface AnnouncementPreview {
+  content_html: string;
+}
+
+export interface AnnouncementEntryResponse {
+  code: string;
+  message: string;
+  data: AnnouncementEntry;
+  request_id: string;
+}
+
+export interface AnnouncementListResponse {
+  code: string;
+  message: string;
+  data: AnnouncementList;
+  request_id: string;
+}
+
+export interface AnnouncementFeedResponse {
+  code: string;
+  message: string;
+  data: AnnouncementFeed;
+  request_id: string;
+}
+
+export interface AnnouncementPublicResponse {
+  code: string;
+  message: string;
+  data: AnnouncementPublic;
+  request_id: string;
+}
+
+export interface AnnouncementSettingResponse {
+  code: string;
+  message: string;
+  data: AnnouncementSetting;
+  request_id: string;
+}
+
+export interface AnnouncementPreviewResponse {
+  code: string;
+  message: string;
+  data: AnnouncementPreview;
+  request_id: string;
+}

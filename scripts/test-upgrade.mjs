@@ -29,17 +29,19 @@ try{
  let boot=await bootstrap();let headers={'Origin':url,'X-CSRF-Token':boot.csrf_token};
  expect((await client.patch('/api/v1/admin/settings',{headers,data:{changes:[{key:'site.name',value:'Preserved upgrade brand'}]}})).status()).toBe(200);
  expect((await client.post('/api/v1/admin/users',{headers,data:{username:'member',email:'member@example.test',password,role:'user'}})).status()).toBe(200);
+ const legacyResponse=await client.post('/api/v1/admin/notes',{headers,data:{title:'Before upgrade',body:'preserve previous business data',status:'open',attachment_ids:[]}});expect([200,404]).toContain(legacyResponse.status());const legacyNote=legacyResponse.status()===200?(await legacyResponse.json()).data:null;
  const instance=JSON.parse(readFileSync(join(data,'installation.json'))).instance,keyHash=hash(join(data,'secret.key'));
  await stop();const backup=join(root,'before.age');
  const snapshot=JSON.parse(execFileSync(ops,['backup','--data-dir',data,'--output',backup],{env,encoding:'utf8'}));
- expect(snapshot.business_schema).toBe(0);
+ expect(snapshot.business_schema).toBe(legacyNote?1:0);
  await start(current,data);boot=await bootstrap();expect(boot.site_name).toBe('Preserved upgrade brand');expect(JSON.parse(readFileSync(join(data,'installation.json'))).instance).toBe(instance);expect(hash(join(data,'secret.key'))).toBe(keyHash);
  expect((await(await client.get('/api/v1/admin/users')).json()).data.total).toBe(1);
+ if(legacyNote){const preserved=(await(await client.get('/api/v1/admin/notes')).json()).data.items.find(item=>item.id===legacyNote.id);expect(preserved.body).toBe(legacyNote.body);expect(preserved.version).toBe(legacyNote.version);}
  headers={'Origin':url,'X-CSRF-Token':boot.csrf_token};const note=(await(await client.post('/api/v1/admin/notes',{headers,data:{title:'After upgrade',body:'business migration',status:'open',attachment_ids:[]}})).json()).data;expect(note.version).toBe(1);
- await stop();await start(current,data);expect((await(await client.get('/api/v1/admin/notes')).json()).data.items[0].id).toBe(note.id);await stop();
+ await stop();const afterSnapshot=JSON.parse(execFileSync(ops,['backup','--data-dir',data,'--output',join(root,'after.age')],{env,encoding:'utf8'}));expect(afterSnapshot.schema).toBe(11);expect(afterSnapshot.business_schema).toBe(2);await start(current,data);expect((await(await client.get('/api/v1/admin/notes')).json()).data.items.some(item=>item.id===note.id)).toBe(true);await stop();
  execFileSync(ops,['restore','--input',backup,'--data-dir',restored,'--base-url',url],{env,stdio:'pipe'});
  await start(join(root,'old-server'),restored);boot=await bootstrap();expect(boot.site_name).toBe('Preserved upgrade brand');expect((await(await client.get('/api/v1/admin/users')).json()).data.total).toBe(1);expect(hash(join(restored,'secret.key'))).toBe(keyHash);
- expect((await client.get('/api/v1/admin/notes')).status()).toBe(404);
- const evidence={from_revision:revision,to_revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),to_worktree:true,profile:'web-platform',driver:'sqlite',schema:10,business_before:0,business_after:1,upgrade:true,restart:true,restore_old_binary:true,source_instance_preserved:true};
+ const restoredNotes=await client.get('/api/v1/admin/notes');if(legacyNote){expect(restoredNotes.status()).toBe(200);const restoredItems=(await restoredNotes.json()).data.items;expect(restoredItems.length).toBe(1);expect(restoredItems[0].id).toBe(legacyNote.id);}else expect(restoredNotes.status()).toBe(404);
+ const evidence={from_revision:revision,to_revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),to_worktree:true,profile:'web-platform',driver:'sqlite',schema:afterSnapshot.schema,business_before:snapshot.business_schema,business_after:afterSnapshot.business_schema,upgrade:true,restart:true,restore_old_binary:true,source_instance_preserved:true};
  mkdirSync('build/acceptance/developer-kit',{recursive:true});writeFileSync('build/acceptance/developer-kit/upgrade.json',JSON.stringify(evidence,null,2)+'\n');console.log('PASS previous revision upgrade, business migration, restart and pre-upgrade backup restored with previous binary');
 }finally{await stop();if(client)await client.dispose();rmSync(root,{recursive:true,force:true});}

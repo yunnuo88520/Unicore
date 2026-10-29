@@ -24,3 +24,5 @@ Web 用户与管理员分别从 main.tsx/admin.tsx 装配；全局管理页仅�
 语言与本地外观统一使用 `preferences.ts` / `i18n.ts`，不得各页另存 localStorage。组件用 `useI18n()` 或 `useLocale()` 订阅，再对界面文案调用 `t()`；新增词条同步英文资源，业务数据保留原文，插值用命名参数。语言切换不能重建表单或清掉草稿。ClientControls / AppearanceDrawer 供所有图形入口复用，主题抽屉本地即时应用，不提交全局设置。扩展与英文长标签、键盘/持久化验收见 [客户端偏好](../03-runbooks/client-preferences.md)。
 
 新增页面先读 [前端基础封装](../03-runbooks/frontend-foundations.md)。WorkspaceLayout 唯一拥有固定导航与内容占位，使用逻辑方向和统一 767px 抽屉断点；业务页不得重设 main-shell 偏移。工作区和主题面板固定 LTR，已移除阅读方向选项。`pnpm check:i18n` 会递归检查共享 UI 和两套 shell 的中文直写、静态词条、设置/权限元数据、契约错误、英文资源及插值；Web/GUI 构建与 make test 必须通过，不以文档约定替代构建检查。
+
+公告管理和用户卡片复用 Modal/Form/Switch/Message、DashboardWidgetRegistry 与安全 RichContent；公告/邮件主题正文是原始业务数据，不经过 t()。默认邮件模板固定中文，UI 的双语约束不能用于翻译用户内容。

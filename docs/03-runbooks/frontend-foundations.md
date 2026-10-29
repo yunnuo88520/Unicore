@@ -36,3 +36,5 @@ return <button aria-label={t('保存')}>{t('保存')}</button>;
 基础组织参考 [New API 的布局组件](https://github.com/QuantumNous/new-api/tree/main/web/src/components/layout) 与 [语言资源同步](https://github.com/QuantumNous/new-api/blob/main/web/scripts/sync-i18n.mjs) 的职责分离与资源检查思路；这里沿用 Unicore 的 tokens、AppClient 和 profile 边界独立实现，不引入其业务组件或源码。
 
 管理端操作日志与邮件模板复用这些入口，详见 [管理工具](admin-tools.md)。模板正文/主题属于业务内容，语言巡检仅排除输入及 `.rich-surface`，不跳过整个页面。
+
+可配置公告与邮件正文不调用 t()；共用安全富内容展示 rich-content.tsx，编辑与服务端预览分离。用户公告通过 DashboardWidgetRegistry 注入，仅平台用户身份启用，管理页独立入口。见 [公告手册](announcements.md)。

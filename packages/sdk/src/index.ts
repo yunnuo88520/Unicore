@@ -1,13 +1,13 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Shared UI client; pages know neither fetch nor Wails globals.
  */
-import type { AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
+import type { AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
 import { operations, type OperationId, type OperationInputs, type OperationData } from '@unicore/contracts/operations';
 import { validate, type SchemaName } from '@unicore/contracts/validate';
 export { validate, type SchemaName } from '@unicore/contracts/validate';
 export { operations, type OperationId } from '@unicore/contracts/operations';
 
-export type { AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateRelease, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
+export type { AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateRelease, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
 
 export class AppError extends Error {
   constructor(public readonly code: string, message: string, public readonly requestId = '', public readonly fields: Record<string, string> = {}) { super(message); this.name = 'AppError'; }
@@ -67,6 +67,15 @@ export interface StorageClient {
 }
 
 export interface WebClient {
+ adminAnnouncements(query:AnnouncementQuery):Promise<AnnouncementList>;
+ createAnnouncement(input:AnnouncementInput):Promise<AnnouncementEntry>;
+ updateAnnouncement(id:string,input:AnnouncementUpdate):Promise<AnnouncementEntry>;
+ deleteAnnouncements(items:AnnouncementSelection[]):Promise<{success:boolean}>;
+ saveAnnouncementSettings(enabled:boolean):Promise<{enabled:boolean}>;
+ previewAnnouncement(input:AnnouncementInput):Promise<{content_html:string}>;
+ announcements(page?:number,pageSize?:number):Promise<AnnouncementFeed>;
+ announcement(id:string):Promise<AnnouncementPublic>;
+
   oidcInfo(): Promise<OIDCInfo>;
   oidcAccount(): Promise<OIDCInfo>;
   oidcStart(): Promise<OIDCStart>;
@@ -219,7 +228,15 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
     return data;
   }
   execute(input: ExecuteInput, options?: RequestOptions) { return this.call('execute', input, options); }
-  oidcInfo() { return this.call('oidcInfo'); }
+  adminAnnouncements(query:AnnouncementQuery){return this.call('adminAnnouncements',undefined,{query:{...query}});}
+ createAnnouncement(input:AnnouncementInput){return this.call('createAnnouncement',input);}
+ updateAnnouncement(id:string,input:AnnouncementUpdate){return this.call('updateAnnouncement',input,{params:{id}});}
+ deleteAnnouncements(items:AnnouncementSelection[]){return this.call('deleteAnnouncements',{items});}
+ saveAnnouncementSettings(enabled:boolean){return this.call('saveAnnouncementSettings',{enabled});}
+ previewAnnouncement(input:AnnouncementInput){return this.call('previewAnnouncement',input);}
+ announcements(page=1,pageSize=5){return this.call('announcements',undefined,{query:{page,page_size:pageSize}});}
+ announcement(id:string){return this.call('announcement',undefined,{params:{id}});}
+ oidcInfo() { return this.call('oidcInfo'); }
   oidcAccount() { return this.call('oidcAccount'); }
   oidcStart() { return this.call('oidcStart'); }
   oidcLink(password: string) { return this.call('oidcLink', {password}); }

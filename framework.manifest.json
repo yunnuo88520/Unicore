@@ -56,7 +56,7 @@
     "frameworkUpgrade": "docs/03-runbooks/framework-upgrade.md",
     "contributing": "CONTRIBUTING.md",
     "community": "docs/03-runbooks/open-source.md",
-    "currentAcceptance": "docs/04-ai/acceptance-admin-tools.md",
+    "currentAcceptance": "docs/04-ai/acceptance-announcements.md",
     "wiki": "docs/wiki/README.md",
     "updates": "internal/updates/service.go",
     "updateTrust": "assets/updates/config.json",
@@ -71,7 +71,10 @@
     "adminTools": "docs/03-runbooks/admin-tools.md",
     "auditMetadata": "internal/audit/context.go",
     "mailContent": "internal/mailcontent/template.go",
-    "richTextEditor": "packages/web-ui/src/rich-text-editor.tsx"
+    "richTextEditor": "packages/web-ui/src/rich-text-editor.tsx",
+    "backendStandards": "docs/02-standards/backend.md",
+    "baseEntity": "internal/domain/entity.go",
+    "announcements": "docs/03-runbooks/announcements.md"
   },
   "commands": {
     "generate": "pnpm generate",

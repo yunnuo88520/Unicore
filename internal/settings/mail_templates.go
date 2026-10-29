@@ -40,5 +40,10 @@ func (s *Service) SaveMailTemplate(ctx context.Context, purpose string, value *m
 		data, _ := json.Marshal(value)
 		raw = string(data)
 	}
-	return s.Store.SaveSettings(audit.Target(ctx, "mail-template/"+purpose, ""), map[string]string{mailcontent.Key(purpose): raw}, actor)
+	return s.Store.SaveSettings(audit.Target(ctx, "mail-template/"+purpose, func() string {
+		if value == nil {
+			return "defaults=restored"
+		}
+		return "fields=subject,body"
+	}()), map[string]string{mailcontent.Key(purpose): raw}, actor)
 }

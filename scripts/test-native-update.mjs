@@ -20,11 +20,11 @@ run('/usr/libexec/PlistBuddy',['-c',`Set :CFBundleShortVersionString ${next}`,jo
 run('/usr/libexec/PlistBuddy',['-c',`Set :CFBundleVersion ${next}`,join(staging,app,'Contents/Info.plist')]);
 run('/usr/bin/codesign',['--force','--deep','--sign','-',join(staging,app)]);
 const os='darwin',arch={arm64:'arm64',x64:'amd64'}[process.arch],commit=run('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
-writeFileSync(join(staging,'VERSION'),next+'\n');writeFileSync(join(staging,'manifest.json'),JSON.stringify({version:next,profile:'desktop',os,arch,commit,migration_level:1,business_migration_level:1,features:{license:false,updater:true}}));
+writeFileSync(join(staging,'VERSION'),next+'\n');writeFileSync(join(staging,'manifest.json'),JSON.stringify({version:next,profile:'desktop',os,arch,commit,migration_level:1,business_migration_level:2,features:{license:false,updater:true}}));
 const artifact='native-fixture.tar.gz',archive=join(base,artifact);run('tar',['-czf',archive,'-C',join(base,'package'),'release'],{env:{...process.env,COPYFILE_DISABLE:'1'}});
 const bytes=readFileSync(archive),pair=generateKeyPairSync('ed25519'),publicKey=Buffer.from(pair.publicKey.export({format:'jwk'}).x,'base64url').toString('base64');
 const trust=join(base,'trust.json');writeFileSync(trust,JSON.stringify({repository:'',channel:'preview',keys:{fixture:publicKey},allow_unsigned_platform:true}),{mode:0o600});
-const manifest=Buffer.from(JSON.stringify({schema:1,application_id:identity.bundleId,version:next,source_commit:commit,issued_at:new Date().toISOString(),expires_at:new Date(Date.now()+86400000).toISOString(),artifacts:[{artifact,profile:'desktop',os,arch,migration_level:1,business_migration_level:1,license:false,updater:true,size:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex'),platform_signature:'unsigned'}]}));
+const manifest=Buffer.from(JSON.stringify({schema:1,application_id:identity.bundleId,version:next,source_commit:commit,issued_at:new Date().toISOString(),expires_at:new Date(Date.now()+86400000).toISOString(),artifacts:[{artifact,profile:'desktop',os,arch,migration_level:1,business_migration_level:2,license:false,updater:true,size:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex'),platform_signature:'unsigned'}]}));
 const signature=JSON.stringify({key_id:'fixture',algorithm:'ed25519',signature:sign(null,manifest,pair.privateKey).toString('base64')});
 const key=join(base,'tls.key'),cert=join(base,'tls.crt');run('openssl',['req','-x509','-newkey','rsa:2048','-nodes','-keyout',key,'-out',cert,'-days','1','-subj','/CN=127.0.0.1','-addext','subjectAltName=IP:127.0.0.1']);
 const server=createServer({key:readFileSync(key),cert:readFileSync(cert)},(req,res)=>{

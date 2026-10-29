@@ -68,9 +68,9 @@ func Guard(dataDir string) error {
 func currentTarget(profile string) updates.Target {
 	migration := 1
 	if profile == "web-platform" {
-		migration = 10
+		migration = 11
 	}
-	return updates.Target{Profile: profile, OS: runtime.GOOS, Arch: runtime.GOARCH, Migration: migration, BusinessMigration: 1, License: edition.License, Updater: true}
+	return updates.Target{Profile: profile, OS: runtime.GOOS, Arch: runtime.GOARCH, Migration: migration, BusinessMigration: 2, License: edition.License, Updater: true}
 }
 func Healthy(dataDir, profile string) {
 	directory, err := filepath.Abs(dataDir)

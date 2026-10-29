@@ -23,3 +23,10 @@ func ValidateNote(title, body, status string, attachments []string) error {
 	}
 	return nil
 }
+
+// Note embeds the shared lifecycle without making generated transport DTOs persistence entities.
+type Note struct {
+	BaseEntity
+	Title, Body, Status string
+	AttachmentIDs       []string
+}

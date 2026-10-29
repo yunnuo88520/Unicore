@@ -79,3 +79,10 @@ func (r *Repository) RoleOptions(ctx context.Context, actorID string) (contracts
 	}
 	return result, nil
 }
+
+// AuthorizeAdministrator must run after LockInstallation in the mutation transaction.
+// Fixed identity table, active state and permission are rechecked against current data.
+func (r *Repository) AuthorizeAdministrator(ctx context.Context, tx *sql.Tx, id, permission string) error {
+	_, err := r.actor(ctx, tx, id, permission)
+	return err
+}

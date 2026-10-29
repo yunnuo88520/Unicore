@@ -120,6 +120,16 @@
       "slug": "Wiki-Maintenance",
       "title": "Wiki 同步方式",
       "source": "docs/wiki/README.md"
+    },
+    {
+      "slug": "Backend-Standards",
+      "title": "后端基础规范",
+      "source": "docs/02-standards/backend.md"
+    },
+    {
+      "slug": "Announcements",
+      "title": "平台公告",
+      "source": "docs/03-runbooks/announcements.md"
     }
   ]
 }

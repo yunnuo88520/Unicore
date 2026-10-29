@@ -121,3 +121,5 @@ make build-ops                   # 独立加密备份/恢复工具
 | 更新 Wiki | [同步说明](docs/wiki/README.md)；`make wiki` 生成，明确发布时 `make wiki-publish` |
 
 仓库采用 [MIT License](LICENSE)，允许使用、修改和再分发，保留版权与许可证。完整导航见 [docs/README.md](docs/README.md)。
+
+后端开发遵循[统一实体与分层规范](docs/02-standards/backend.md)，平台公告提供[完整双端业务样板](docs/03-runbooks/announcements.md)，支持管理员发布、定时展示与用户工作台读取。邮件默认内容保持中文，界面支持中英文切换。

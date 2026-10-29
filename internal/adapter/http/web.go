@@ -40,6 +40,12 @@ func failure(w http.ResponseWriter, status int, code, message string) {
 func webError(w http.ResponseWriter, err error) {
 	code := "INTERNAL_ERROR"
 	switch {
+	case errors.Is(err, domain.ErrAnnouncementInvalid):
+		code = "ANNOUNCEMENT_INVALID"
+	case errors.Is(err, usecase.ErrEntityNotFound):
+		code = "ENTITY_NOT_FOUND"
+	case errors.Is(err, usecase.ErrEntityConflict):
+		code = "ENTITY_CONFLICT"
 	case errors.Is(err, domain.ErrNoteInvalid):
 		code = "NOTE_INVALID"
 	case errors.Is(err, usecase.ErrNoteNotFound):
@@ -332,6 +338,7 @@ func mountWeb(api chi.Router, config Config) {
 	mountBranding(api, config)
 	mountStorage(api, config)
 	mountNotes(api, config)
+	mountAnnouncements(api, config)
 	manager := config.Install
 	mountAccounts(api, config)
 	mountRoles(api, config)

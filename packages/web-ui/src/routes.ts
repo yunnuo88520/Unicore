@@ -13,6 +13,7 @@ export const routes = defineMessages({
   administrators: { label:'管理员列表',title:'管理员管理',description:'独立的后台账号，管理整个实例。',permission:'administrators:read' },
   mail: { label:'邮件设置',title:'邮件设置',description:'配置 SMTP、测试投递与账号邮件流程。',permission:'settings:read' },
   'mail-templates': {label:'邮件模板',title:'邮件模板',description:'自定义邮件主题与内容，让每封通知保持一致。',permission:'settings:read'},
+  announcements:{label:'平台公告',title:'平台公告',description:'发布平台消息，让用户及时了解重要动态。',permission:'announcements:read'},
   logs: { label:'系统日志',title:'系统日志',description:'查看真实操作与邮件投递记录。',permission:'logs:read' },
   edition: { label:'系统更新',title:'系统更新',description:'查看版本记录，检查并安装可信的新版本。',permission:'updates:read' },
   roles: { label: '角色权限', title: '角色权限', description: '管理员与普通用户的固定权限边界。', permission: 'roles:read' },

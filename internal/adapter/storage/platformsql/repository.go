@@ -81,7 +81,7 @@ func (r *Repository) insert(ctx context.Context, tx *sql.Tx, input contracts.Use
 	if r.Administrators {
 		action = "administrators.created"
 	}
-	if err := r.audit(audit.Target(ctx, r.roleID()+"/"+id, ""), tx, actor, action); err != nil {
+	if err := r.audit(audit.Target(ctx, r.roleID()+"/"+id, "role="+input.Role+"; status=active"), tx, actor, action); err != nil {
 		return contracts.User{}, err
 	}
 	return r.user(ctx, tx, id)
@@ -194,7 +194,7 @@ func (r *Repository) UpdateUser(ctx context.Context, id string, input contracts.
 	if r.Administrators {
 		action = "administrators.updated"
 	}
-	if err = r.audit(audit.Target(ctx, r.roleID()+"/"+id, "status="+input.Status), tx, actor, action); err != nil {
+	if err = r.audit(audit.Target(ctx, r.roleID()+"/"+id, "status="+before.Status+"->"+input.Status+"; sessions=revoked"), tx, actor, action); err != nil {
 		return contracts.User{}, err
 	}
 	user, err := r.user(ctx, tx, id)

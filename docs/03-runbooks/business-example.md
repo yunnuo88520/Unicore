@@ -20,3 +20,5 @@
 新增业务时按 add-go-module/add-api-operation/add-react-page Skills：先改 OpenAPI、pnpm generate，再实现 domain/usecase/SQL/入口/页面与权限测试。不要复制平台身份到 domain，也不要为复用业务把数据库接入 cmd/cli。审计仅写动作与操作者，不记录笔记正文。
 
 business_migrations 与框架迁移独立。后续添加连续版本、逐方言测试和恢复说明；已经交付的迁移不可改 checksum。要移除样板，可在新项目首次交付前移除 Note* 契约、入口装配、SDK/page/导航、迁移和 MigrateBusiness 调用，并重新生成与跑全部检查。已有实例不得直接删迁移或删表，应另写有备份的向前迁移。
+
+当前笔记通过 BaseEntity 统一生命周期，业务迁移 0002 添加 deleted_at；列表/更新排除已删除行，删除原子递增 version，附件元数据原文件保持其自身生命周期。新增业务遵循 [后端规范](../02-standards/backend.md)。

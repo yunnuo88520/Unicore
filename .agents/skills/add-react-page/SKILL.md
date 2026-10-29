@@ -45,3 +45,5 @@ pnpm typecheck、pnpm test、pnpm build；交互变更运行 make build-web test
 本地偏好与双语遵循 [ADR-0019](../../../docs/adr/ADR-0019-local-preferences-i18n.md)：用 preferences.ts / i18n.ts 统一入口，组件订阅 useI18n 或 useLocale；新文案补英文 catalog，插值保留业务数据，不用 DOM 翻译。不要按 locale 重建表单或会话。右上 ClientControls 和 AppearanceDrawer 全入口共享，resetAppearance 保留语言；不得用实例 settings API 保存设备偏好。验证英文长标签、跨标签通知、刷新持久化、375px、全宽导航与旧 RTL 偏好恢复 LTR、Escape/回焦与原生 Wails；详见 [扩展指南](../../../docs/03-runbooks/client-preferences.md)。
 
 新增页面必须遵循 [前端基础封装](../../../docs/03-runbooks/frontend-foundations.md)：WorkspaceLayout 提供插槽，禁止页内计算侧栏 margin/宽度或复制 shell。组件用 useI18n，常量用 defineMessages，渲染时 t；中英文与实现同一变更提交。`pnpm check:i18n` 是 Web/GUI 构建和 CI 的必过项，会递归发现新目录中的中文直写与缺失英文，不得忽略或关闭。新页/标签加入英文真实页面巡检；测试 loading/empty/error/success、表单错误与消息。布局改动跑 layout.spec.ts 的组合矩阵，检查实际导航/正文矩形不重叠；工作区和主题控制面板固定 LTR；阅读方向选项已移除，旧 RTL 字段由偏好白名单忽略。
+
+邮件默认主题正文固定中文，公告/邮件编辑内容和预览均是原始业务数据，不调用 t()；UI 标签/提示仍同步双语。公告管理与用户 widget 参考 announcements-page/card，安全内容渲染复用 rich-content；禁用后不渲染用户卡片，本地形态不请求公告。

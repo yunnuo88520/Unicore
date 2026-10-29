@@ -11,7 +11,7 @@ test('administrator audit filters, sort, pagination, export and member denial',a
  for(let i=0;i<23;i++){expect((await page.request.post(`${instance.url}/api/v1/admin/users`,{headers:{'X-CSRF-Token':metadata.csrf_token},data:{username:`member${i}`,email:`member${i}@example.test`,password:'test-password-strong',role:'user'}})).status()).toBe(200);}
  await page.goto(`${instance.url}/admin#logs`);await expect(page.getByRole('tab',{name:'操作日志',exact:true})).toBeVisible();
  await page.getByRole('combobox',{name:'操作类型',exact:true}).selectOption('users.created');
- await expect(page.locator('.audit-table tbody tr')).toHaveCount(20);await expect(page.locator('.audit-table tbody tr').first()).toContainText('admin');await expect(page.locator('.audit-table tbody tr').first()).toContainText('127.0.0.1');
+ await expect(page.locator('.audit-table tbody tr')).toHaveCount(20);await expect(page.locator('.audit-table tbody tr').first()).toContainText('admin');await expect(page.locator('.audit-table tbody tr').first()).toContainText('127.0.0.1');await expect(page.locator('.audit-table tbody tr').first().locator('td').nth(4)).toContainText('role=user; status=active');
  await page.getByRole('button',{name:'下一页',exact:true}).click();await expect(page.locator('.audit-table tbody tr')).toHaveCount(3);
  await page.getByRole('button',{name:'上一页',exact:true}).click();await expect(page.locator('.audit-table tbody tr')).toHaveCount(20);
  await page.getByRole('button',{name:'时间',exact:true}).click();await expect(page.locator('th[aria-sort=ascending]')).toBeVisible();
@@ -43,6 +43,12 @@ test('editable email templates preserve drafts and send through real SMTP',async
  expect((await page.request.post(`${instance.url}/api/v1/admin/settings/mail/test`,{headers,data:{recipient:'recipient@example.test'}})).status()).toBe(200);
  await page.goto(`${instance.url}/admin#mail-templates`);await expect(page.getByRole('tab',{name:'注册验证',exact:true})).toBeVisible();
  if(info.project.name==='chromium'){const actions=await page.locator('.template-actions').boundingBox();expect(actions!.y+actions!.height).toBeLessThanOrEqual(page.viewportSize()!.height);}
+ const defaults=(await(await page.request.get(`${instance.url}/api/v1/admin/settings/mail/templates`)).json()).data.items.find((item:{purpose:string})=>item.purpose==='verify');
+ await page.getByRole('button',{name:'切换语言',exact:true}).click();await page.getByRole('menuitemradio',{name:'English',exact:true}).click();
+ await expect(page.getByRole('textbox',{name:'Email subject',exact:true})).toHaveValue(defaults.subject);await expect(page.getByRole('textbox',{name:'Email content',exact:true})).toHaveText(/验证码/);
+ await page.getByRole('textbox',{name:'Email subject',exact:true}).fill('自定义中文主题 {{site_name}}');
+ await page.getByRole('button',{name:'Change language',exact:true}).click();await page.getByRole('menuitemradio',{name:'中文',exact:true}).click();
+ await expect(page.getByRole('textbox',{name:'邮件主题',exact:true})).toHaveValue('自定义中文主题 {{site_name}}');
  const editor=page.getByRole('textbox',{name:'邮件内容',exact:true});
  await editor.fill('Link {{code}}');await editor.press('ControlOrMeta+A');
  await page.getByRole('button',{name:'插入链接',exact:true}).click();await page.getByRole('textbox',{name:'链接地址',exact:true}).fill('https://example.test/help');await page.getByRole('button',{name:'插入',exact:true}).click();await expect(editor.locator('a')).toHaveAttribute('href','https://example.test/help');await expect(page.getByText('邮件模板已保存',{exact:true})).toHaveCount(0);

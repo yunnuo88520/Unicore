@@ -32,7 +32,7 @@ export function packageDesktop(root = process.cwd()) {
   for(const [feature,value] of Object.entries(readFeatures().features))if(compiledFeatures[feature]!==value)throw Error('Native feature flags differ from packaging flags');
   const platformSignature=verifyPlatform(built,json(join(root,'assets/brand/identity.json')).bundleId);
   if(process.env.UNICORE_PLATFORM_SIGNING==='required'&&targetOS!=='linux'&&platformSignature==='unsigned')throw Error('Required native signature is missing');
-  const metadata = {platform_signature:platformSignature,version,channel:'development',profile:'desktop',os:targetOS,arch,commit,build_time:new Date().toISOString(),features:readFeatures().features,migration_level:1,business_migration_level:1,offline_backup:false,signature:null};
+  const metadata = {platform_signature:platformSignature,version,channel:'development',profile:'desktop',os:targetOS,arch,commit,build_time:new Date().toISOString(),features:readFeatures().features,migration_level:1,business_migration_level:2,offline_backup:false,signature:null};
   writeFileSync(join(staging,'manifest.json'),JSON.stringify(metadata,null,2)+'\n');
   writeFileSync(join(staging,'README_DESKTOP.md'),`<!-- Author: yunnuo <ymz@ebox.vip> -->\n# Unicore ${version}\n\n原生 ${targetOS}/${arch} 开发预览。解压后运行 ${binary}。没有平台登录或管理功能。Linux 需要 GTK3/WebKitGTK 4.0，Windows 需要 WebView2。系统签名状态：${platformSignature}。unsigned 为未完成操作系统签名的开发预览；OTA 另须发行者签名清单。不承诺各系统窗口均已实测。\n\nhttps://github.com/yunnuo88520/Unicore/wiki\n`);
   const artifact = name+'.tar.gz';

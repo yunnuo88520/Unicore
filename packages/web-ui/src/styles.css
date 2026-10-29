@@ -22,3 +22,5 @@
 svg.lucide{stroke-width:var(--icon-stroke)}
 /* Keep all management entries reachable when the viewport is shorter than the navigation. */
 .sidebar{overflow-y:auto;overscroll-behavior:contain}.sidebar>*{flex-shrink:0}
+
+.dashboard-widget{min-width:0;margin-block-end:24px}

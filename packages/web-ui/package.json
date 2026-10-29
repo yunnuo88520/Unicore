@@ -8,7 +8,11 @@
     ".": "./src/App.tsx",
     "./styles.css": "./src/styles.css",
     "./message": "./src/message.tsx",
-    "./admin": "./src/admin-app.tsx"
+    "./admin": "./src/admin-app.tsx",
+    "./i18n": "./src/i18n.ts",
+    "./preferences": "./src/preferences.ts",
+    "./appearance": "./src/appearance-drawer.tsx",
+    "./client-controls": "./src/client-controls.tsx"
   },
   "dependencies": {
     "@unicore/sdk": "workspace:*",

@@ -67,6 +67,11 @@
       "source": "docs/03-runbooks/release.md"
     },
     {
+      "slug": "Client-Preferences",
+      "title": "中英文与本地外观",
+      "source": "docs/03-runbooks/client-preferences.md"
+    },
+    {
       "slug": "System-Updates",
       "title": "系统更新与签名公证",
       "source": "docs/03-runbooks/updates.md"

@@ -18,6 +18,7 @@ Unicore 将需求、架构、契约、Skills 和验收记录一同维护。AI �
 | 首次安装、连接测试与重启恢复 | [安装规范](00-product/feature-installation.md)、[ADR-0013](adr/ADR-0013-installation-experience.md)、[安装验收](04-ai/acceptance-installation.md) |
 | 系统设置与授权占位 | [设置需求](00-product/feature-settings.md)、[ADR-0010](adr/ADR-0010-settings-edition.md)、[设置验收](04-ai/acceptance-settings.md) |
 | 签名 OTA、离线日志与平台公证 | [需求](00-product/feature-updates.md)、[ADR-0018](adr/ADR-0018-signed-updates.md)、[手册](03-runbooks/updates.md)、[验收](04-ai/acceptance-updates.md) |
+| 中英文、主题抽屉与本地偏好 | [使用与扩展](03-runbooks/client-preferences.md)、[ADR-0019](adr/ADR-0019-local-preferences-i18n.md)、[验收](04-ai/acceptance-preferences.md) |
 | 修改配置、日志和生命周期 | [运行基座](02-standards/runtime.md)、[部署手册](03-runbooks/deployment.md) |
 | 打包、统一版本与部署 | [发版流程](03-runbooks/release.md)、[部署手册](03-runbooks/deployment.md)、[部署验收](04-ai/acceptance-deployment.md) |
 | 依赖安全修复与首次预览 | [安全发版记录](04-ai/acceptance-security-release.md) |

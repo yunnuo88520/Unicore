@@ -41,3 +41,5 @@ pnpm typecheck、pnpm test、pnpm build；交互变更运行 make build-web test
 二级导航向内缩进并配套 Lucide/SVG 图标，全局 UI 禁止 Emoji；单机/桌面不显示用户头像。短暂操作反馈复用 message.tsx 的 useMessage（五态，默认顶部 3 秒），提交失败由 QueryScope MutationCache 统一处理，成功回调给明确文案；不在保存按钮旁插入提示。保留字段校验、可重试加载错误与完成页状态；验证消息不挤动布局、自动消失及原生 dialog 内可见。
 
 当前形态与入口以 [ADR-0016](../../../docs/adr/ADR-0016-separate-client-admin-surfaces.md) 为准：用户 main.tsx 与管理员 admin.tsx 独立入口，管理页只在 admin-app.tsx 装配，共享 Workspace/表单/消息/主题。单机/桌面仅业务和本地外观，不提供站点、品牌、SMTP、对象存储和后台。管理员公开 auth/bootstrap 只返回固定域最小投影；本人 account 需管理员会话，其余管理资源须 permissions/superAdmin，不能宽泛豁免 admin 路由。新增普通用户立即 active 并验证用户入口登录；注册默认关闭，安全页 Switch 控制且须 SMTP 测试。布尔控件用 Switch，上传用自定义拖拽弹窗与 SDK 真实阶段。
+
+本地偏好与双语遵循 [ADR-0019](../../../docs/adr/ADR-0019-local-preferences-i18n.md)：用 preferences.ts / i18n.ts 统一入口，组件订阅 useI18n 或 useLocale；新文案补英文 catalog，插值保留业务数据，不用 DOM 翻译。不要按 locale 重建表单或会话。右上 ClientControls 和 AppearanceDrawer 全入口共享，resetAppearance 保留语言；不得用实例 settings API 保存设备偏好。验证英文长标签、跨标签通知、刷新持久化、375px、RTL/全宽导航、Escape/回焦与原生 Wails；详见 [扩展指南](../../../docs/03-runbooks/client-preferences.md)。

@@ -1,5 +1,6 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Own query caches and component state for exactly one browser session generation.
+import { t, useLocale } from './i18n';
 import { useEffect, useState, type ReactNode } from 'react';
 import { MutationCache, QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { AppError, type AppClient, type SessionEvent } from '@unicore/sdk';
@@ -7,11 +8,12 @@ import { useMessage } from './message';
 
 const sessionKey = 'unicore.session.changed';
 export function SessionBoundary({ client, children }: { client: AppClient; children: (notice: string) => ReactNode }) {
+  useLocale();
   const [generation, setGeneration] = useState(0);
   const [notice, setNotice] = useState('');
   useEffect(() => {
     function changed(event: SessionEvent) {
-      setNotice(event === 'expired' ? '会话已失效，请重新登录。' : event === 'password-changed' ? '密码已更新，所有设备的旧会话已退出，请重新登录。' : '');
+      setNotice(event === 'expired' ? t('会话已失效，请重新登录。') : event === 'password-changed' ? t('密码已更新，所有设备的旧会话已退出，请重新登录。') : '');
       setGeneration(value => value + 1);
       if (event !== 'external') {
         // This is only an invalidation signal. No identity, CSRF or credential is persisted.
@@ -29,6 +31,7 @@ export function SessionBoundary({ client, children }: { client: AppClient; child
 }
 
 function QueryScope({ children }: { children: ReactNode }) {
+  useLocale();
   const message = useMessage();
   const [queries] = useState(() => new QueryClient({ mutationCache: new MutationCache({
     onMutate: () => message.destroy('mutation-error'),

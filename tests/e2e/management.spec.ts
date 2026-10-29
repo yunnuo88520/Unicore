@@ -30,9 +30,9 @@ test('management groups, modal creation, independent logins and avatar password 
  const directory=`build/acceptance/management/${info.project.name}`;await mkdir(directory,{recursive:true});
  if(info.project.name==='chromium'){
   await page.setViewportSize({width:1440,height:720});
-  await expect(page.locator('.sidebar .author')).toBeInViewport();
-  const before=await page.locator('.sidebar .author').boundingBox();await page.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));
-  expect((await page.locator('.sidebar .author').boundingBox())!.y).toBe(before!.y);
+  await expect(page.locator('.sidebar .sidebar-utilities')).toBeInViewport();
+  const before=await page.locator('.sidebar .sidebar-utilities').boundingBox();await page.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));
+  expect((await page.locator('.sidebar .sidebar-utilities').boundingBox())!.y).toBe(before!.y);
   await page.screenshot({path:`${directory}/fixed-sidebar-720.png`});await page.evaluate(()=>window.scrollTo(0,0));
  }
  await page.getByRole('button',{name:'用户列表',exact:true}).click();
@@ -69,5 +69,5 @@ test('management groups, modal creation, independent logins and avatar password 
  await member.getByRole('button',{name:'账号菜单',exact:true}).click();await member.getByRole('button',{name:'退出登录',exact:true}).click();await expect(member.getByRole('heading',{name:'登录 Unicore',exact:true})).toBeVisible();await member.close();
  await page.reload();await expect(page.getByRole('button',{name:'账号菜单',exact:true})).toBeVisible();
  await nav('用户列表');
- for(const scheme of ['light','dark'] as const){await page.evaluate(value=>localStorage.setItem('unicore.theme',value),scheme);await page.reload();await page.screenshot({path:`${directory}/management-${scheme}.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}
+ for(const scheme of ['light','dark'] as const){await page.evaluate(value=>localStorage.setItem('unicore.preferences.v1',JSON.stringify({...JSON.parse(localStorage.getItem('unicore.preferences.v1')??'{}'),theme:value})),scheme);await page.reload();await page.screenshot({path:`${directory}/management-${scheme}.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}
 });

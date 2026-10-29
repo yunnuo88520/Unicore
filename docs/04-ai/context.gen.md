@@ -45,6 +45,9 @@
 | updateTrust | [assets/updates/config.json](../../assets/updates/config.json) |
 | updateHistory | [assets/updates/history.gen.json](../../assets/updates/history.gen.json) |
 | systemUpdates | [docs/03-runbooks/updates.md](../../docs/03-runbooks/updates.md) |
+| clientPreferences | [packages/web-ui/src/preferences.ts](../../packages/web-ui/src/preferences.ts) |
+| i18n | [packages/web-ui/src/i18n.ts](../../packages/web-ui/src/i18n.ts) |
+| clientAppearance | [docs/03-runbooks/client-preferences.md](../../docs/03-runbooks/client-preferences.md) |
 
 OpenAPI 当前包含 107 个 operation、108 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
 

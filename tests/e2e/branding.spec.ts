@@ -47,7 +47,7 @@ test('instance brand preview, save, system theme and restore defaults', async ({
   await capture(page, info, 'brand-saved');
   await page.reload();
   await expect(light.getByAltText('浅色 Logo当前预览')).toBeVisible();
-  await page.evaluate(() => { localStorage.setItem('unicore.theme', 'system'); });
+  await page.evaluate(() => { localStorage.setItem('unicore.preferences.v1',JSON.stringify({...JSON.parse(localStorage.getItem('unicore.preferences.v1')??'{}'),theme:'system'})); });
   await page.reload();
   for (const colorScheme of ['dark','light'] as const) {
     await page.emulateMedia({colorScheme});

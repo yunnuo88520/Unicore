@@ -61,3 +61,7 @@ M2c：主题、字号/字体、圆角、间距、图标线宽、动效集中配�
 当前页面/API 分离以 [ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md) 为准。管理端独立 HTML 入口与 admin API；用户端只有个人业务、文件、账号和本地外观。单机/桌面不提供任何全局配置页面或运行时品牌修改。
 
 开发基座增量以 [ADR-0017](../adr/ADR-0017-developer-kit-business-backup.md) 为准：MIT、源码创建器/doctor/开发依赖、三种有 DB 形态的笔记纵向样板、独立业务迁移、离线加密备份恢复与手动发布候选。当前状态与实测边界见 [开发基座验收](../04-ai/acceptance-developer-kit.md)。
+
+## 客户端语言与外观
+
+Web 用户/管理员、单机和桌面共用中英文切换、明暗快捷按钮与右侧主题抽屉。配色、圆角、密度、侧栏、布局、内容宽度与阅读方向即时生效，仅保存在当前客户端；重置外观保留语言，不影响业务草稿或全局设置。版本气泡使用统一版本源与状态点，普通在线用户不显示版本或请求更新。详见 [ADR-0019](../adr/ADR-0019-local-preferences-i18n.md)、[扩展指南](../03-runbooks/client-preferences.md) 与 [验收](../04-ai/acceptance-preferences.md)。

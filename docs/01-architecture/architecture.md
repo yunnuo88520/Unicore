@@ -115,3 +115,7 @@ React 的独立可折叠导航、共享原生 dialog、头像密码/退出、邮
 开发基座与离线维护见 [ADR-0017](../adr/ADR-0017-developer-kit-business-backup.md)：notes usecase/SQL port 共享到 HTTP 与原生桥接，业务账本独立；cmd/ops 在实例锁边界做加密备份和新目标恢复，不进入业务 CLI。
 
 更新没有数据库变更。Tar/GUI 只接受相同迁移级别的签名包，helper 等待 instance.lock、原子交换程序并检查 nonce/version，失败恢复程序。Docker 不修改自身 binary。版本签名与系统签名独立，运行/清理/恢复边界见 [更新手册](../03-runbooks/updates.md)。
+
+## 客户端偏好与双语
+
+[ADR-0019](../adr/ADR-0019-local-preferences-i18n.md)：preferences.ts 白名单管理版本化本地状态与跨标签通知，theme.ts 统一应用生成 tokens、dataset、lang/dir 与系统主题；i18n.ts/locale catalog 只翻译界面文案。Workspace、安装、登录和 Wails 复用 ClientControls 与原生 dialog 抽屉；不在 locale 切换时重建会话、查询缓存或表单。版本气泡仅对有权限的 bootstrap 展示并读取本地更新概览。无 API/数据库迁移，CLI 不受影响。

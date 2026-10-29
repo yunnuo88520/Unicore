@@ -43,7 +43,7 @@ test('settings audit: site identity, ICP, ICO and compile-time update capabiliti
   await expect(page).toHaveTitle('配套设置工作空间 · 工作空间');
   if (info.project.name === 'chromium') {
     const name = (await page.locator('.brand .brand-name').boundingBox())!;
-    const tag = (await page.locator('.brand-tag').boundingBox())!;
+    const tag = (await page.locator('.brand-version .version-badge').boundingBox())!;
     expect(tag.y).toBeGreaterThanOrEqual(name.y + name.height);
     await expect(page.getByRole('button', { name: '保存设置', exact: true })).toBeInViewport();
   }

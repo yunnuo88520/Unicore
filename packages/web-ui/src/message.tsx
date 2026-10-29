@@ -1,6 +1,7 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Shared themed messages with a three-second default lifetime and modal-aware placement.
  */
+import { t, useLocale } from './i18n';
 import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell, CheckCircle2, CircleAlert, Info, TriangleAlert, X } from 'lucide-react';
@@ -14,6 +15,7 @@ const Context = createContext<MessageAPI | null>(null);
 const icons = { primary: Bell, success: CheckCircle2, warning: TriangleAlert, info: Info, error: CircleAlert };
 
 export function MessageProvider({ children }: { children: ReactNode }) {
+  useLocale();
   const [items, setItems] = useState<MessageItem[]>([]);
   const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   const sequence = useRef(0);
@@ -37,6 +39,7 @@ export function MessageProvider({ children }: { children: ReactNode }) {
 }
 
 function MessageViewport({ items, dismiss }: { items: MessageItem[]; dismiss: (id: string) => void }) {
+  useLocale();
   const [target, setTarget] = useState<Element>(document.body);
   useLayoutEffect(() => {
     // A native dialog is in the browser's top layer. Keep feedback inside it,
@@ -47,9 +50,9 @@ function MessageViewport({ items, dismiss }: { items: MessageItem[]; dismiss: (i
     update();
     return () => observer.disconnect();
   }, []);
-  return createPortal(<div className="message-stack" role="region" aria-label="消息提示">{items.map(item => {
+  return createPortal(<div className="message-stack" role="region" aria-label={t("消息提示")}>{items.map(item => {
     const Icon = icons[item.type];
-    return <div key={item.id} className={`message message-${item.type}`} data-message-type={item.type} role={item.type === 'error' || item.type === 'warning' ? 'alert' : 'status'} aria-atomic="true"><Icon size={18} aria-hidden="true" /><span>{item.content}</span><button type="button" className="message-dismiss" aria-label="关闭消息" onClick={() => dismiss(item.id)}><X size={14} aria-hidden="true" /></button></div>;
+    return <div key={item.id} className={`message message-${item.type}`} data-message-type={item.type} role={item.type === 'error' || item.type === 'warning' ? 'alert' : 'status'} aria-atomic="true"><Icon size={18} aria-hidden="true" /><span>{t(item.content)}</span><button type="button" className="message-dismiss" aria-label={t("关闭消息")} onClick={() => dismiss(item.id)}><X size={14} aria-hidden="true" /></button></div>;
   })}</div>, target);
 }
 

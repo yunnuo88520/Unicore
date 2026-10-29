@@ -31,3 +31,5 @@ FEATURE_LICENSE 默认 false，保留独立授权服务待对接卡片；FEATURE
 在线平台新增独立“对象存储”设置页，按本地/MinIO/S3/OSS/COS 单层 Tabs 配置；仅管理员可见，默认本地，测试后显式切换，文件策略登记 storage.*。详见 [文件存储](feature-storage.md) 与 [运行手册](../03-runbooks/storage.md)。
 
 当前单机/桌面只提供本地外观，拒绝站点/品牌/邮件等设置，详见 [ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md)。布尔设置用 Switch；开放注册移至安全与控制，默认关闭且保留 SMTP 就绪门槛。
+
+本地外观新增共享右侧抽屉与中英文入口；既有外观页的更多设置复用该抽屉。即时偏好只写当前客户端，不进入 SettingDefinition 或实例 PATCH；具体选项和兼容见 [客户端偏好](../03-runbooks/client-preferences.md)。

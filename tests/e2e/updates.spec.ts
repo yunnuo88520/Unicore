@@ -17,7 +17,7 @@ test('updates: standalone embedded history, offline check and responsive themes'
  await expect(page.getByText('暂时无法连接更新渠道，以下保留内置与已缓存的更新日志',{exact:true})).toBeVisible();
  await expect(page.locator('.update-release').first()).toBeVisible();
  await expect(page.getByRole('button',{name:'更新并重启',exact:true})).toBeDisabled();
- for(const theme of ['light','dark']){await page.evaluate(v=>localStorage.setItem('unicore.theme',v),theme);await page.emulateMedia({colorScheme:theme as 'light'|'dark'});await page.reload();await expect(page.getByRole('heading',{name:'更新日志',exact:true})).toBeVisible();await capture(page,info,'updates-'+theme);}
+ for(const theme of ['light','dark']){await page.evaluate(v=>localStorage.setItem('unicore.preferences.v1',JSON.stringify({...JSON.parse(localStorage.getItem('unicore.preferences.v1')??'{}'),theme:v})),theme);await page.emulateMedia({colorScheme:theme as 'light'|'dark'});await page.reload();await expect(page.getByRole('heading',{name:'更新日志',exact:true})).toBeVisible();await capture(page,info,'updates-'+theme);}
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
 test('updates: ordinary users have no version, route or API access',async({page,instance},info)=>{

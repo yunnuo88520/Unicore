@@ -61,7 +61,10 @@
     "updates": "internal/updates/service.go",
     "updateTrust": "assets/updates/config.json",
     "updateHistory": "assets/updates/history.gen.json",
-    "systemUpdates": "docs/03-runbooks/updates.md"
+    "systemUpdates": "docs/03-runbooks/updates.md",
+    "clientPreferences": "packages/web-ui/src/preferences.ts",
+    "i18n": "packages/web-ui/src/i18n.ts",
+    "clientAppearance": "docs/03-runbooks/client-preferences.md"
   },
   "commands": {
     "generate": "pnpm generate",

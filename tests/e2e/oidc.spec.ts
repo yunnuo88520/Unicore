@@ -92,7 +92,7 @@ test('enterprise settings, real JIT, explicit binding and password fallback', as
     await employee.goto(`${instance.url}/admin`); await expect(employee.getByLabel('账号或邮箱')).toBeVisible(); await expect(employee.getByRole('button',{name:'使用企业账号登录',exact:true})).toHaveCount(0);
     await employee.getByLabel('账号或邮箱').fill('admin'); await employee.getByLabel('密码',{exact:true}).fill('test-password-strong'); await employee.getByRole('button',{name:'登录工作空间',exact:true}).click(); await expect(employee.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
     // Follow-system mode on the new page, in addition to the explicit palette captures.
-    await employee.evaluate(()=>{localStorage.setItem('unicore.theme','system');}); await employee.emulateMedia({colorScheme:'dark'}); await employee.goto(`${instance.url}/admin#account`);
+    await employee.evaluate(()=>{localStorage.setItem('unicore.preferences.v1',JSON.stringify({...JSON.parse(localStorage.getItem('unicore.preferences.v1')??'{}'),theme:'system'}));}); await employee.emulateMedia({colorScheme:'dark'}); await employee.goto(`${instance.url}/admin#account`);
     await expect(employee.getByRole('heading',{name:'企业账号绑定',exact:true})).toBeVisible();
     await expect(employee.locator('html')).toHaveAttribute('data-theme','dark');
     await employee.screenshot({path:`build/acceptance/m3a/${info.project.name}/system-account.png`,fullPage:true});

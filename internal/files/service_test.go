@@ -24,6 +24,9 @@ import (
 )
 
 func setup(t *testing.T) (*install.Manager, files.Actor, string) {
+	return setupDatabase(t, contracts.DatabaseInput{Driver: "sqlite"})
+}
+func setupDatabase(t *testing.T, database contracts.DatabaseInput) (*install.Manager, files.Actor, string) {
 	t.Helper()
 	dir := t.TempDir()
 	m, e := install.Open(context.Background(), install.Options{DataDir: dir})
@@ -35,7 +38,7 @@ func setup(t *testing.T) (*install.Manager, files.Actor, string) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	_, admin, e := m.Complete(context.Background(), strings.TrimSpace(string(token)), contracts.InstallInput{Profile: "web-platform", Database: contracts.DatabaseInput{Driver: "sqlite", Dsn: ""}, SiteName: "Unicore", BaseUrl: "http://127.0.0.1:8080", AdminUsername: "admin", AdminEmail: "admin@example.test", AdminPassword: "test-password-strong"})
+	_, admin, e := m.Complete(context.Background(), strings.TrimSpace(string(token)), contracts.InstallInput{Profile: "web-platform", Database: database, SiteName: "Unicore", BaseUrl: "http://127.0.0.1:8080", AdminUsername: "admin", AdminEmail: "admin@example.test", AdminPassword: "test-password-strong"})
 	if e != nil {
 		t.Fatal(e)
 	}

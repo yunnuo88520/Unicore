@@ -2166,7 +2166,7 @@ export const constraints = {
       "size": {
         "type": "integer",
         "minimum": 0,
-        "maximum": 1073741824
+        "maximum": 68719476736
       },
       "creator_id": {
         "type": "string",
@@ -2252,7 +2252,7 @@ export const constraints = {
       "size": {
         "type": "integer",
         "minimum": 1,
-        "maximum": 1073741824
+        "maximum": 68719476736
       }
     }
   },
@@ -3719,6 +3719,193 @@ export const constraints = {
       },
       "request_id": {
         "type": "string"
+      }
+    }
+  },
+  "MultipartUploadInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "original_name",
+      "mime_type",
+      "size",
+      "fingerprint"
+    ],
+    "properties": {
+      "original_name": {
+        "type": "string",
+        "maxLength": 255,
+        "minLength": 1
+      },
+      "mime_type": {
+        "type": "string",
+        "maxLength": 255,
+        "minLength": 1
+      },
+      "size": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 68719476736
+      },
+      "fingerprint": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$",
+        "minLength": 64,
+        "maxLength": 64
+      }
+    }
+  },
+  "UploadPolicy": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "max_size",
+      "part_size",
+      "parallelism",
+      "resume_hours"
+    ],
+    "properties": {
+      "max_size": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 68719476736
+      },
+      "part_size": {
+        "type": "integer",
+        "minimum": 5242880,
+        "maximum": 67108864
+      },
+      "parallelism": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 6
+      },
+      "resume_hours": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 168
+      }
+    }
+  },
+  "UploadPart": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "number",
+      "size"
+    ],
+    "properties": {
+      "number": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10000
+      },
+      "size": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 67108864
+      }
+    }
+  },
+  "MultipartUpload": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "file",
+      "fingerprint",
+      "part_size",
+      "part_count",
+      "expires_at",
+      "parts"
+    ],
+    "properties": {
+      "file": {
+        "$ref": "#/components/schemas/FileEntry"
+      },
+      "fingerprint": {
+        "type": "string",
+        "maxLength": 64,
+        "minLength": 1
+      },
+      "part_size": {
+        "type": "integer",
+        "minimum": 5242880,
+        "maximum": 67108864
+      },
+      "part_count": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10000
+      },
+      "expires_at": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      },
+      "parts": {
+        "type": "array",
+        "maxItems": 10000,
+        "items": {
+          "$ref": "#/components/schemas/UploadPart"
+        }
+      }
+    }
+  },
+  "UploadPartInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "number"
+    ],
+    "properties": {
+      "number": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10000
+      }
+    }
+  },
+  "UploadPolicyResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "data": {
+        "$ref": "#/components/schemas/UploadPolicy"
+      },
+      "request_id": {
+        "type": "string",
+        "maxLength": 64
+      }
+    }
+  },
+  "MultipartUploadResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "data": {
+        "$ref": "#/components/schemas/MultipartUpload"
+      },
+      "request_id": {
+        "type": "string",
+        "maxLength": 64
       }
     }
   }

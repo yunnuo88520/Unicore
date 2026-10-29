@@ -103,7 +103,16 @@ func (s *s3Store) Delete(ctx context.Context, k string) error {
 	return s.client.RemoveObject(ctx, s.config.Bucket, s.key(k), minio.RemoveObjectOptions{})
 }
 func (s *s3Store) Copy(ctx context.Context, a, b, etag string) error {
-	_, e := s.client.CopyObject(ctx, minio.CopyDestOptions{Bucket: s.config.Bucket, Object: s.key(b)}, minio.CopySrcOptions{Bucket: s.config.Bucket, Object: s.key(a), MatchETag: etag})
+	o, e := s.Stat(ctx, a)
+	if e != nil {
+		return e
+	}
+	if o.Size > 5<<30 {
+		_, e := s.client.ComposeObject(ctx, minio.CopyDestOptions{Bucket: s.config.Bucket, Object: s.key(b)}, minio.CopySrcOptions{Bucket: s.config.Bucket, Object: s.key(a), MatchETag: etag})
+		return e
+	}
+
+	_, e = s.client.CopyObject(ctx, minio.CopyDestOptions{Bucket: s.config.Bucket, Object: s.key(b)}, minio.CopySrcOptions{Bucket: s.config.Bucket, Object: s.key(a), MatchETag: etag})
 	return e
 }
 func (s *s3Store) SignPut(ctx context.Context, k string, n int64, m string, ttl time.Duration) (blob.Grant, error) {
@@ -147,7 +156,7 @@ func (s *s3Store) Browser(ctx context.Context, origin string) error {
 		c = &cors.Config{}
 	}
 	for _, r := range c.CORSRules {
-		if corsReady(origin, r.AllowedOrigin, r.AllowedMethod, r.AllowedHeader, "POST") {
+		if corsReady(origin, r.AllowedOrigin, r.AllowedMethod, r.AllowedHeader, "POST") && corsReady(origin, r.AllowedOrigin, r.AllowedMethod, r.AllowedHeader, "PUT") {
 			return nil
 		}
 	}
@@ -156,19 +165,25 @@ func (s *s3Store) Browser(ctx context.Context, origin string) error {
 }
 
 func (s *s3Store) browserReady(ctx context.Context, origin string) bool {
-	request, e := http.NewRequestWithContext(ctx, "OPTIONS", s.origin+"/"+s.config.Bucket, nil)
-	if e != nil {
-		return false
+	for _, method := range []string{"POST", "PUT"} {
+		request, e := http.NewRequestWithContext(ctx, "OPTIONS", s.origin+"/"+s.config.Bucket, nil)
+		if e != nil {
+			return false
+		}
+		request.Header.Set("Origin", origin)
+		request.Header.Set("Access-Control-Request-Method", method)
+		request.Header.Set("Access-Control-Request-Headers", "content-type")
+		response, e := (&http.Client{Timeout: 10 * time.Second}).Do(request)
+		if e != nil {
+			return false
+		}
+		response.Body.Close()
+		allowed := response.Header.Get("Access-Control-Allow-Origin")
+		if response.StatusCode >= 300 || (allowed != origin && allowed != "*") || !strings.Contains(response.Header.Get("Access-Control-Allow-Methods"), method) {
+			return false
+		}
 	}
-	request.Header.Set("Origin", origin)
-	request.Header.Set("Access-Control-Request-Method", "POST")
-	response, e := (&http.Client{Timeout: 10 * time.Second}).Do(request)
-	if e != nil {
-		return false
-	}
-	defer response.Body.Close()
-	allowed := response.Header.Get("Access-Control-Allow-Origin")
-	return response.StatusCode < 300 && (allowed == origin || allowed == "*") && strings.Contains(response.Header.Get("Access-Control-Allow-Methods"), "POST")
+	return true
 }
 
 func corsReady(origin string, origins, methods, headers []string, method string) bool {

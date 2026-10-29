@@ -63,6 +63,9 @@ func (r *Repository) RemoveLocation(ctx context.Context, id, actor string) error
 		return e
 	}
 	defer tx.Rollback()
+	if _, e = r.Store.Exec(ctx, tx, "DELETE FROM file_upload_sessions WHERE file_id IN (SELECT id FROM file_metadata WHERE location_id=? AND state='deleted')", id); e != nil {
+		return e
+	}
 	if _, e = r.Store.Exec(ctx, tx, "DELETE FROM file_metadata WHERE location_id=? AND state='deleted'", id); e != nil {
 		return e
 	}
@@ -246,4 +249,21 @@ func (r *Repository) BusyLocation(ctx context.Context, id string) (bool, error) 
 	var n int
 	e := r.Store.Row(ctx, r.Store.DB, "SELECT (SELECT COUNT(*) FROM file_metadata WHERE location_id=? AND state<>'deleted')+(SELECT COUNT(*) FROM file_cleanup_jobs WHERE location_id=?)", id, id).Scan(&n)
 	return n > 0, e
+}
+
+func (r *Repository) Session(ctx context.Context, id string) (files.UploadSession, error) {
+	var v files.UploadSession
+	e := r.Store.Row(ctx, r.Store.DB, "SELECT file_id,upload_id,fingerprint,part_size FROM file_upload_sessions WHERE file_id=?", id).Scan(&v.FileID, &v.UploadID, &v.Fingerprint, &v.PartSize)
+	if errors.Is(e, sql.ErrNoRows) {
+		e = files.ErrNotFound
+	}
+	return v, e
+}
+func (r *Repository) SaveSession(ctx context.Context, v files.UploadSession, create bool) error {
+	if create {
+		_, e := r.Store.Exec(ctx, r.Store.DB, "INSERT INTO file_upload_sessions(file_id,upload_id,fingerprint,part_size) VALUES(?,?,?,?)", v.FileID, v.UploadID, v.Fingerprint, v.PartSize)
+		return e
+	}
+	_, e := r.Store.Exec(ctx, r.Store.DB, "UPDATE file_upload_sessions SET upload_id=? WHERE file_id=?", v.UploadID, v.FileID)
+	return e
 }

@@ -15,7 +15,7 @@ import (
 
 func main() {
 	if e := run(); e != nil {
-		fmt.Fprintln(os.Stderr, "MinIO fixture failed")
+		fmt.Fprintln(os.Stderr, "Storage fixture failed:", safeCloudError(e))
 		os.Exit(1)
 	}
 }
@@ -25,6 +25,9 @@ func run() error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+	if provider := os.Getenv("UNICORE_TEST_STORAGE_PROVIDER"); provider == "oss" || provider == "cos" {
+		return cloudFixture(ctx, provider)
+	}
 	u, e := url.Parse(os.Getenv("UNICORE_TEST_MINIO_ENDPOINT"))
 	if e != nil || u.Host == "" {
 		return fmt.Errorf("endpoint required")
@@ -45,8 +48,16 @@ func run() error {
 		}
 		return nil
 	case "cleanup":
-		if len(os.Args) != 3 || !strings.HasPrefix(os.Args[2], "unicore-browser-") || strings.ContainsAny(os.Args[2], "/\\") {
+		if len(os.Args) < 3 || !strings.HasPrefix(os.Args[2], "unicore-browser-") || strings.ContainsAny(os.Args[2], "/\\") {
 			return fmt.Errorf("task-owned prefix required")
+		}
+		for o := range c.ListIncompleteUploads(ctx, bucket, os.Args[2]+"/", true) {
+			if o.Err != nil {
+				return o.Err
+			}
+			if e = c.RemoveIncompleteUpload(ctx, bucket, o.Key); e != nil {
+				return e
+			}
 		}
 		for o := range c.ListObjects(ctx, bucket, minio.ListObjectsOptions{Prefix: os.Args[2] + "/", Recursive: true}) {
 			if o.Err != nil {

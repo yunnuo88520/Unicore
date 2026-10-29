@@ -53,13 +53,13 @@ async function exercise(mode,profile) {
       expect(manifest?.sha256).toBe(digest(readFileSync(file)));
       execFileSync('tar',['-xzf',file,'-C',release,'--strip-components=1']);
       expect(readFileSync(join(release,'VERSION'),'utf8').trim()).toBe(version);
-      expect(JSON.parse(readFileSync(join(release,'manifest.json'),'utf8')).migration_level).toBe(profile==='web-platform'?11:1);
+      expect(JSON.parse(readFileSync(join(release,'manifest.json'),'utf8')).migration_level).toBe(profile==='web-platform'?12:1);
       expect(JSON.parse(readFileSync(join(release,'manifest.json'),'utf8')).business_migration_level).toBe(2);
       expect(readFileSync(join(release,'LICENSE'),'utf8')).toContain('MIT License');
       expect(readFileSync(join(release,'bin/unicore-ops')).byteLength).toBeGreaterThan(1000);
       const network=`${name}-network`;networks.add(network);docker(['network','create',network]);
       run.push('--network',network,'--network-alias','backend','-v',`${release}:/release:ro`,'--entrypoint','/release/bin/server','-e','APP_DEPLOYMENT_KIND=tar');
-      const config=readFileSync(join(release,'deploy/nginx.conf.example'),'utf8').replace('127.0.0.1:8088','0.0.0.0:80').replace('/opt/unicore/current/web','/release/web').replace('127.0.0.1:8080','backend:8080').replace('add_header Cache-Control','add_header X-Unicore-Static nginx;\n        add_header Cache-Control');
+      const config=readFileSync(join(release,'deploy/nginx.conf.example'),'utf8').replace('127.0.0.1:8088','0.0.0.0:80').replace('/opt/unicore/current/web','/release/web').replaceAll('127.0.0.1:8080','backend:8080').replace('add_header Cache-Control','add_header X-Unicore-Static nginx;\n        add_header Cache-Control');
       const conf=join(temp,`${mode}.conf`);writeFileSync(conf,config);
       const nginx=`${name}-nginx`;containers.add(nginx);
       docker([...run,image]);containers.add(name);
@@ -88,7 +88,10 @@ async function exercise(mode,profile) {
     await page.getByLabel('一次性安装凭据').fill(token);
 
     await page.getByRole('button',{name:'下一步'}).click();
-    await expect(page.getByRole('radio',{name:mode==='tar-platform'?/多用户平台/:/单机模式/})).toBeChecked();
+    // Archives carry a profile default; the generic Docker image starts standalone and allows choosing either mode.
+    const initialProfile=mode.startsWith('tar')?profile:'web-standalone';
+    expect((await json('/api/v1/install/status')).profile).toBe(initialProfile);
+    await expect(page.getByRole('radio',{name:initialProfile==='web-platform'?/多用户平台/:/单机模式/})).toBeChecked();
     await page.getByRole('radio',{name:profile==='web-platform'?/多用户平台/:/单机模式/}).check();
     await page.getByRole('button',{name:'下一步'}).click();
     await page.getByLabel('数据库类型').selectOption('sqlite');
@@ -100,6 +103,19 @@ async function exercise(mode,profile) {
     const boot=await json(bootstrapPath);expect(boot.version).toBe(version);expect(boot.profile).toBe(profile);expect(boot.deployment_kind).toBe(mode.startsWith('tar')?'tar':'docker');
     const admin=profile==='web-platform';const headers={...realm,'Origin':url,...(admin?{'X-CSRF-Token':boot.csrf_token}:{})};
     const base=admin?'/api/v1/admin':'/api/v1';
+    if(mode==='tar-platform') {
+      const payload=Buffer.alloc(9*1024*1024,97);
+      const initialized=await context.request.post(`${url}${base}/files/multipart`,{headers,data:{original_name:'nginx-multipart.bin',mime_type:'application/octet-stream',size:payload.length,fingerprint:digest(payload)}});
+      expect(initialized.status()).toBe(200);const session=(await initialized.json()).data;
+      for(let number=1;number<=session.part_count;number++){
+        const signed=await context.request.post(`${url}${base}/files/multipart/${session.file.file_id}/parts`,{headers,data:{number}});expect(signed.status()).toBe(200);const grant=(await signed.json()).data;
+        const part=payload.subarray((number-1)*session.part_size,number*session.part_size);
+        expect((await context.request.put(`${url}${grant.url}`,{headers:{...headers,...grant.headers},data:part})).status()).toBe(200);
+      }
+      expect((await context.request.post(`${url}${base}/files/multipart/${session.file.file_id}/complete`,{headers,timeout:120000})).status()).toBe(200);
+      const access=(await(await context.request.post(`${url}${base}/files/${session.file.file_id}/access`,{headers})).json()).data;
+      const downloaded=await context.request.get(`${url}${access.url}`);expect(downloaded.status()).toBe(200);expect(digest(await downloaded.body())).toBe(digest(payload));
+    }
     if(admin && boot.capabilities.updater) {
       const updates=await json(`${base}/updates`);
       expect(updates.current_version).toBe(version);expect(updates.history.length).toBeGreaterThan(0);

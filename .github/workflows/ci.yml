@@ -38,10 +38,10 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
-      - name: Prepare dedicated backup and announcement databases
+      - name: Prepare dedicated backup, announcement and file databases
         run: |
-          docker exec ${{ job.services.postgres.id }} psql -U unicore -d unicore_test -c 'CREATE DATABASE backup_source' -c 'CREATE DATABASE backup_target' -c 'CREATE DATABASE announcement_test'
-          docker exec -e MYSQL_PWD=unicore_ci_root ${{ job.services.mysql.id }} mysql -u root -e "CREATE DATABASE backup_source; CREATE DATABASE backup_target; CREATE DATABASE announcement_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; GRANT ALL ON backup_source.* TO 'unicore'@'%'; GRANT ALL ON backup_target.* TO 'unicore'@'%'; GRANT ALL ON announcement_test.* TO 'unicore'@'%';"
+          docker exec ${{ job.services.postgres.id }} psql -U unicore -d unicore_test -c 'CREATE DATABASE backup_source' -c 'CREATE DATABASE backup_target' -c 'CREATE DATABASE announcement_test' -c 'CREATE DATABASE file_test'
+          docker exec -e MYSQL_PWD=unicore_ci_root ${{ job.services.mysql.id }} mysql -u root -e "CREATE DATABASE backup_source; CREATE DATABASE backup_target; CREATE DATABASE announcement_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE DATABASE file_test; GRANT ALL ON backup_source.* TO 'unicore'@'%'; GRANT ALL ON backup_target.* TO 'unicore'@'%'; GRANT ALL ON announcement_test.* TO 'unicore'@'%'; GRANT ALL ON file_test.* TO 'unicore'@'%';"
       - run: make test
         env:
           UNICORE_MAINTENANCE_POSTGRES_DSN: postgres://unicore:unicore_ci_test@127.0.0.1:5432/backup_source?sslmode=disable
@@ -50,6 +50,8 @@ jobs:
           UNICORE_MAINTENANCE_MYSQL_DSN: unicore:unicore_ci_test@tcp(127.0.0.1:3306)/backup_source
           UNICORE_MAINTENANCE_MYSQL_TARGET_DSN: unicore:unicore_ci_test@tcp(127.0.0.1:3306)/backup_target
           UNICORE_MAINTENANCE_MYSQL_CONTAINER: ${{ job.services.mysql.id }}
+          UNICORE_FILE_TEST_POSTGRES_DSN: postgres://unicore:unicore_ci_test@127.0.0.1:5432/file_test?sslmode=disable
+          UNICORE_FILE_TEST_MYSQL_DSN: unicore:unicore_ci_test@tcp(127.0.0.1:3306)/file_test
           UNICORE_TEST_POSTGRES_DSN: postgres://unicore:unicore_ci_test@127.0.0.1:5432/unicore_test?sslmode=disable
           UNICORE_TEST_MYSQL_DSN: unicore:unicore_ci_test@tcp(127.0.0.1:3306)/unicore_test
           UNICORE_ANNOUNCEMENT_POSTGRES_DSN: postgres://unicore:unicore_ci_test@127.0.0.1:5432/announcement_test?sslmode=disable

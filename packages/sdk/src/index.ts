@@ -1,13 +1,14 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Shared UI client; pages know neither fetch nor Wails globals.
  */
-import type { AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
+import {fileFingerprint,retryDelay} from './upload';
+import type { UploadPolicy, MultipartUpload, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
 import { operations, type OperationId, type OperationInputs, type OperationData } from '@unicore/contracts/operations';
 import { validate, type SchemaName } from '@unicore/contracts/validate';
 export { validate, type SchemaName } from '@unicore/contracts/validate';
 export { operations, type OperationId } from '@unicore/contracts/operations';
 
-export type { AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateRelease, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
+export type { UploadPolicy, MultipartUpload, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateRelease, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
 
 export class AppError extends Error {
   constructor(public readonly code: string, message: string, public readonly requestId = '', public readonly fields: Record<string, string> = {}) { super(message); this.name = 'AppError'; }
@@ -15,7 +16,9 @@ export class AppError extends Error {
 
 export type SessionEvent = 'authenticated' | 'password-changed' | 'signed-out' | 'expired' | 'external';
 export type RequestOptions = { signal?: AbortSignal };
-export type UploadOptions = RequestOptions & { onStage?: (stage: 'uploading' | 'confirming') => void };
+export type UploadStage='hashing'|'uploading'|'confirming';
+export type UploadProgress={loaded:number;total:number;completedParts:number;totalParts:number};
+export type UploadOptions = RequestOptions & { resumeId?:string; onStage?: (stage: UploadStage) => void; onSession?:(session:MultipartUpload)=>void; onProgress?:(progress:UploadProgress)=>void; onHashProgress?:(loaded:number)=>void };
 export type OperationOptions = RequestOptions & { timeoutMs?:number; params?: Record<string, string>; query?: Record<string, string | number>; headers?: Record<string, string> };
 
 export interface UpdateClient {
@@ -50,6 +53,8 @@ export interface NoteClient {
 }
 
 export interface FileClient {
+ uploadPolicy():Promise<UploadPolicy>;
+ uploadStatus(id:string):Promise<MultipartUpload>;
  listFiles(search:string,page:number):Promise<FileList>;
  uploadFile(file:File,options?:UploadOptions):Promise<FileEntry>;
  fileAccess(id:string):Promise<FileAccess>;
@@ -124,6 +129,8 @@ function unwrap<T>(response: { code: string; message: string; data: T; request_i
 }
 
 const administratorOperations: Partial<Record<OperationId, OperationId>> = {
+ fileUploadPolicy:'adminFileUploadPolicy',createMultipartUpload:'adminCreateMultipartUpload',multipartUpload:'adminMultipartUpload',signUploadPart:'adminSignUploadPart',uploadLocalPart:'adminUploadLocalPart',completeMultipartUpload:'adminCompleteMultipartUpload',
+
  updateOverview:"adminUpdateOverview",checkUpdate:"adminCheckUpdate",applyUpdate:"adminApplyUpdate",
   "bootstrap": "adminBootstrap",
   "listNotes": "adminListNotes",
@@ -289,22 +296,57 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
  fileAccess(id:string){return this.call('fileAccess',undefined,{params:{id}});}
  deleteFile(id:string){return this.call('deleteFile',undefined,{params:{id}});}
  migrateFile(id:string,locationID:string){return this.call('migrateFile',{location_id:locationID},{params:{id},timeoutMs:600000});}
+ uploadPolicy(){return this.call('fileUploadPolicy');}
+ uploadStatus(id:string){return this.call('multipartUpload',undefined,{params:{id}});}
  async uploadFile(file:File,options?:UploadOptions):Promise<FileEntry>{
-  const epoch=this.epoch;
-  const grant=await this.call('createFileUpload',{original_name:file.name,mime_type:file.type||'application/octet-stream',size:file.size},{signal:options?.signal});
-  const timeout=AbortSignal.timeout(600000);const signal=options?.signal?AbortSignal.any([options.signal,timeout]):timeout;
-  options?.onStage?.('uploading');
-  if(grant.direct){
-   let body:BodyInit=file;
-   if(grant.method==='POST'){const form=new FormData();for(const [key,value] of Object.entries(grant.fields))form.append(key,value);form.append('file',file);body=form;}
-   try{const response=await this.fetcher(grant.url,{method:grant.method,body,headers:grant.headers,credentials:'omit',redirect:'error',signal});if(!response.ok)throw new Error('storage');}
-   catch{throw new AppError(signal.aborted?'REQUEST_CANCELLED':'STORAGE_UPLOAD_FAILED',signal.aborted?'上传已取消或超时':'直传失败，请检查存储服务、站点跨域配置与文件大小');}
-  }else{
-   await this.request(grant.url.replace(/^\/api\/v1/,''),{method:'PUT',body:file,headers:grant.headers,signal},600000);
-  }
-  if(epoch!==this.epoch)throw new AppError('SESSION_CHANGED','会话已变化，请重新登录');
-  options?.onStage?.('confirming');
-  return this.call('completeFileUpload',undefined,{params:{id:grant.file_id},signal:options?.signal,timeoutMs:600000});
+  const epoch=this.epoch;const stop=new AbortController();
+  const signal=options?.signal?AbortSignal.any([options.signal,stop.signal]):stop.signal;
+  const unsubscribe=this.subscribeSession(()=>stop.abort());
+  try{
+   const policy=await this.call('fileUploadPolicy',undefined,{signal});
+   if(!options?.resumeId&&file.size>policy.max_size)throw new AppError('INVALID_INPUT','文件超过管理员设置的大小上限');
+   options?.onStage?.('hashing');
+   const fingerprint=await fileFingerprint(file,signal,options?.onHashProgress);
+   const session=options?.resumeId?await this.call('multipartUpload',undefined,{params:{id:options.resumeId},signal}):await this.call('createMultipartUpload',{original_name:file.name,mime_type:file.type||'application/octet-stream',size:file.size,fingerprint},{signal,timeoutMs:35000});
+   if(session.fingerprint!==fingerprint||session.file.size!==file.size||session.file.original_name!==file.name||session.file.mime_type!==(file.type||'application/octet-stream'))throw new AppError('UPLOAD_FILE_MISMATCH','请选择原来上传的同一个文件，文件内容不一致');
+   options?.onSession?.(session);
+   if(session.file.state==='ready')return session.file;
+   options?.onStage?.('uploading');
+   let loaded=session.parts.reduce((sum,part)=>sum+part.size,0);let completed=session.parts.length;
+   const progress=()=>options?.onProgress?.({loaded,total:file.size,completedParts:completed,totalParts:session.part_count});progress();
+   const present=new Set(session.parts.map(p=>p.number));
+   const missing=Array.from({length:session.part_count},(_,i)=>i+1).filter(n=>!present.has(n));let cursor=0;
+   if(session.file.state==='pending'){
+    const worker=async()=>{while(cursor<missing.length){const number=missing[cursor++];const start=(number-1)*session.part_size;const part=file.slice(start,start+session.part_size);
+     for(let attempt=0;;attempt++){
+      signal.throwIfAborted();if(epoch!==this.epoch)throw new AppError('SESSION_CHANGED','会话已变化，请重新登录');
+      try{
+       // A fresh grant on every retry also renews expired cloud signatures without discarding good parts.
+       const grant=await this.call('signUploadPart',{number},{params:{id:session.file.file_id},signal,timeoutMs:35000});
+       if(grant.direct){
+        const response=await this.fetcher(grant.url,{method:'PUT',body:part,headers:grant.headers,credentials:'omit',redirect:'error',signal:AbortSignal.any([signal,AbortSignal.timeout(600000)])});
+        if(!response.ok)throw new AppError('STORAGE_UPLOAD_FAILED','分片上传失败，已完成的分片会保留，可继续重试');
+       }else await this.request(grant.url.replace(/^\/api\/v1/,''),{method:'PUT',body:part,headers:grant.headers,signal},600000);
+       loaded+=part.size;completed++;progress();break;
+      }catch(error){
+       if(signal.aborted||attempt>=2||error instanceof AppError&&!['NETWORK_ERROR','REQUEST_TIMEOUT','STORAGE_UPLOAD_FAILED','STORAGE_UNAVAILABLE'].includes(error.code))throw error;
+       await retryDelay(500*2**attempt,signal);
+      }
+     }
+    }};
+    let failure:unknown;
+    await Promise.allSettled(Array.from({length:Math.min(policy.parallelism,missing.length)},()=>worker().catch(error=>{if(!failure)failure=error;stop.abort();throw error;})));
+    if(failure)throw failure;
+   }
+   signal.throwIfAborted();if(epoch!==this.epoch)throw new AppError('SESSION_CHANGED','会话已变化，请重新登录');
+   options?.onStage?.('confirming');
+   return await this.call('completeMultipartUpload',undefined,{params:{id:session.file.file_id},signal,timeoutMs:7200000});
+  }catch(error){
+   if(epoch!==this.epoch)throw new AppError('SESSION_CHANGED','会话已变化，请重新登录');
+   if(options?.signal?.aborted)throw new AppError('REQUEST_CANCELLED','上传已暂停，已完成的分片会保留');
+   if(!(error instanceof AppError))throw new AppError('STORAGE_UPLOAD_FAILED','分片上传失败，已完成的分片会保留，可继续重试');
+   throw error;
+  }finally{unsubscribe();}
  }
   listNotes(query:NoteQuery) { return this.call('listNotes',undefined,{query:{...query}}); }
   createNote(input:NoteInput) { return this.call('createNote',input); }

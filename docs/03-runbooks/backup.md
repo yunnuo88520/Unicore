@@ -32,4 +32,6 @@ build/bin/unicore-ops restore --input /srv/backups/snapshot.tar.gz.age --data-di
 
 manifest 的 tool_version 是备份工具构建版本，schema/business_schema 是源库等级。不要据此推断原实例 binary 版本；运维应同时保存原二进制版本、部署配置和发布 checksum。跨版本回退需旧二进制与旧快照成套恢复。未实现在线备份、增量备份、定时调度、PITR 或跨数据库引擎转换。
 
-当前支持 schema 上限：平台 11、本地 1、独立 business 2。0011 公告与业务 0002 软删除均需纳入完整 DB 备份；回退恢复对应旧库，不仅回退二进制。公告及已软删笔记会随数据库备份完整保留。
+当前支持 schema 上限：平台 12、本地 1、独立 business 2。0011 公告与业务 0002 软删除均需纳入完整 DB 备份；回退恢复对应旧库，不仅回退二进制。公告及已软删笔记会随数据库备份完整保留。
+
+0012 的上传会话包含在 DB 备份，本地未完成分片包含在完整 data 备份；云未完成 upload ID 无法由普通对象备份复原，不可用会话需放弃重传。回退须匹配旧快照并停止进行中的上传，见 ADR-0022。

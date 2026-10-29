@@ -14,12 +14,13 @@ import (
 type ossStore struct {
 	client *oss.Client
 	bucket *oss.Bucket
+	signer *oss.Bucket
 	config Config
 	origin string
 }
 
 func newOSS(c Config) (Managed, error) {
-	client, e := oss.New(c.Endpoint, c.AccessKey, c.SecretKey, oss.AuthVersion(oss.AuthV4), oss.Region(c.Region), oss.AdditionalHeaders([]string{"content-length"}))
+	client, e := oss.New(c.Endpoint, c.AccessKey, c.SecretKey, oss.AuthVersion(oss.AuthV4), oss.Region(c.Region))
 	if e != nil {
 		return nil, e
 	}
@@ -27,8 +28,16 @@ func newOSS(c Config) (Managed, error) {
 	if e != nil {
 		return nil, e
 	}
+	signingClient, e := oss.New(c.Endpoint, c.AccessKey, c.SecretKey, oss.AuthVersion(oss.AuthV4), oss.Region(c.Region), oss.AdditionalHeaders([]string{"content-length"}))
+	if e != nil {
+		return nil, e
+	}
+	signer, e := signingClient.Bucket(c.Bucket)
+	if e != nil {
+		return nil, e
+	}
 	u, _ := url.Parse(c.Endpoint)
-	return &ossStore{client, bucket, c, u.Scheme + "://" + c.Bucket + "." + u.Host}, nil
+	return &ossStore{client: client, bucket: bucket, signer: signer, config: c, origin: u.Scheme + "://" + c.Bucket + "." + u.Host}, nil
 }
 func (s *ossStore) key(k string) string { return prefixed(s.config.Prefix, k) }
 func (s *ossStore) Origin() string      { return s.origin }
@@ -55,15 +64,23 @@ func (s *ossStore) Delete(ctx context.Context, k string) error {
 	return s.bucket.DeleteObject(s.key(k), oss.WithContext(ctx))
 }
 func (s *ossStore) Copy(ctx context.Context, a, b, etag string) error {
-	_, e := s.bucket.CopyObject(s.key(a), s.key(b), oss.WithContext(ctx), oss.CopySourceIfMatch("\""+etag+"\""))
+	o, e := s.Stat(ctx, a)
+	if e != nil {
+		return e
+	}
+	if o.Size > 1<<30 {
+		return s.largeCopy(ctx, a, b, etag, o)
+	}
+
+	_, e = s.bucket.CopyObject(s.key(a), s.key(b), oss.WithContext(ctx), oss.CopySourceIfMatch("\""+etag+"\""))
 	return e
 }
 func (s *ossStore) SignPut(ctx context.Context, k string, n int64, m string, ttl time.Duration) (blob.Grant, error) {
-	u, e := s.bucket.SignURL(s.key(k), oss.HTTPPut, int64(ttl.Seconds()), oss.WithContext(ctx), oss.ContentType(m), oss.ContentLength(n))
+	u, e := s.signer.SignURL(s.key(k), oss.HTTPPut, int64(ttl.Seconds()), oss.WithContext(ctx), oss.ContentType(m), oss.ContentLength(n))
 	return blob.Grant{URL: u, Method: "PUT", Headers: map[string]string{"Content-Type": m}, Fields: map[string]string{}}, e
 }
 func (s *ossStore) SignGet(ctx context.Context, k, name string, ttl time.Duration) (string, error) {
-	return s.bucket.SignURL(s.key(k), oss.HTTPGet, int64(ttl.Seconds()), oss.WithContext(ctx), oss.ResponseContentDisposition(disposition(name)), oss.ResponseContentType("application/octet-stream"))
+	return s.bucket.SignURL(s.key(k), oss.HTTPGet, int64(ttl.Seconds()), oss.WithContext(ctx), oss.ResponseContentDisposition(disposition(name)))
 }
 func (s *ossStore) Browser(ctx context.Context, origin string) error {
 	v, e := s.client.GetBucketCORS(s.config.Bucket, oss.WithContext(ctx))

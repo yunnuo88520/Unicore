@@ -6,7 +6,9 @@ import "context"
 
 var StorageDefinitions = []SettingDefinition{
 	{"storage.active", "string", "storage", "默认存储位置", "local", true, false, text(80)},
-	{"storage.max_size_mb", "integer", "storage", "单文件上限（MiB）", "100", true, false, integer(1, 1024)},
+	{"storage.max_size_mb", "integer", "storage", "单文件上限（MiB）", "100", true, false, integer(1, 65536)},
+	{"storage.part_size_mb", "integer", "storage", "分片大小（MiB）", "8", true, false, integer(5, 64)},
+	{"storage.parallelism", "integer", "storage", "同时上传分片数", "3", true, false, integer(1, 6)},
 	{"storage.url_ttl", "integer", "storage", "下载链接有效期（秒）", "300", true, false, integer(60, 3600)},
 	{"storage.upload_ttl", "integer", "storage", "上传凭证有效期（秒）", "900", true, false, integer(60, 3600)},
 	{"storage.pending_hours", "integer", "storage", "未完成上传清理（小时）", "24", true, false, integer(1, 168)},

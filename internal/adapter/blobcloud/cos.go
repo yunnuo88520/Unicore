@@ -54,8 +54,16 @@ func (s *cosStore) Delete(ctx context.Context, k string) error {
 	return e
 }
 func (s *cosStore) Copy(ctx context.Context, a, b, etag string) error {
+	o, e := s.Stat(ctx, a)
+	if e != nil {
+		return e
+	}
+	if o.Size > 1<<30 {
+		return s.largeCopy(ctx, a, b, etag, o)
+	}
+
 	u := s.origin + "/" + s.key(a)
-	_, _, e := s.client.Object.Copy(ctx, s.key(b), u, &cos.ObjectCopyOptions{ObjectCopyHeaderOptions: &cos.ObjectCopyHeaderOptions{XCosCopySourceIfMatch: "\"" + etag + "\""}})
+	_, _, e = s.client.Object.Copy(ctx, s.key(b), u, &cos.ObjectCopyOptions{ObjectCopyHeaderOptions: &cos.ObjectCopyHeaderOptions{XCosCopySourceIfMatch: "\"" + etag + "\""}})
 	return e
 }
 func (s *cosStore) SignPut(ctx context.Context, k string, n int64, m string, ttl time.Duration) (blob.Grant, error) {

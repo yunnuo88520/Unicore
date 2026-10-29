@@ -17,7 +17,7 @@ func (r *Repository) EnqueueNotification(ctx context.Context, encrypted, actor s
 	if _, err = r.exec(ctx, tx, "INSERT INTO mail_jobs(id,token_hash,payload,state,attempts,created_at,available_at,expires_at,lease_id,lease_until,last_error) VALUES(?,?,?,'pending',0,?,?,?,'',0,'')", sqlstore.ID(), "", encrypted, now, now, expires); err != nil {
 		return err
 	}
-	if err = r.Store.Audit(ctx, tx, actor, "mail.notification.queued"); err != nil {
+	if err = r.audit(ctx, tx, actor, "mail.notification.queued"); err != nil {
 		return err
 	}
 	return tx.Commit()

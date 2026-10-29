@@ -36,3 +36,5 @@ make build-desktop
 提交 PR 时使用仓库模板，包含问题、四个 profile 的影响、验证证据、迁移/恢复说明。用户可感知的改动写入 [CHANGELOG](CHANGELOG.md) 的 Unreleased，相关规范/运行手册同步更新，重大决策新增 ADR。维护者审阅后合并；不要自行发布 tag、Release、镜像或向真实外部服务发送消息。
 
 交流遵守 [行为准则](CODE_OF_CONDUCT.md)。维护者会按影响与资源安排处理，不承诺固定响应时间。
+
+界面功能必须同时交付中文与英文，复用 [前端基础封装](docs/03-runbooks/frontend-foundations.md)。提交前运行 `pnpm check:i18n`，新增页面加入英文巡检，不能关闭检查或用忽略规则绕过。布局改动还需布局/方向组合与真实 Wails 验证。

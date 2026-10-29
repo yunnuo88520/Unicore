@@ -177,6 +177,11 @@ type AuditEntry struct {
 	ActorID   string `json:"actor_id"`
 	Action    string `json:"action"`
 	CreatedAt int    `json:"created_at"`
+	ActorName string `json:"actor_name"`
+	Realm     string `json:"realm"`
+	Target    string `json:"target"`
+	Detail    string `json:"detail"`
+	IpAddress string `json:"ip_address"`
 }
 
 type Dashboard struct {
@@ -353,10 +358,13 @@ type EmailCodeInput struct {
 }
 
 type MailTemplate struct {
-	Purpose string `json:"purpose"`
-	Subject string `json:"subject"`
-	Html    string `json:"html"`
-	Text    string `json:"text"`
+	Purpose    string                 `json:"purpose"`
+	Subject    string                 `json:"subject"`
+	Html       string                 `json:"html"`
+	Text       string                 `json:"text"`
+	Body       string                 `json:"body"`
+	Customized bool                   `json:"customized"`
+	Variables  []MailTemplateVariable `json:"variables"`
 }
 
 type MailTemplateList struct {
@@ -516,6 +524,7 @@ type AuditLogList struct {
 	Total    int          `json:"total"`
 	Page     int          `json:"page"`
 	PageSize int          `json:"page_size"`
+	Actions  []string     `json:"actions"`
 }
 
 type AuditLogResponse struct {
@@ -701,4 +710,236 @@ type NoteListResponse struct {
 	Message   string   `json:"message"`
 	Data      NoteList `json:"data"`
 	RequestID string   `json:"request_id"`
+}
+
+type UpdateRelease struct {
+	Version     string `json:"version"`
+	Notes       string `json:"notes"`
+	PublishedAt string `json:"published_at"`
+	Prerelease  bool   `json:"prerelease"`
+	Url         string `json:"url"`
+	Source      string `json:"source"`
+}
+
+type UpdateJob struct {
+	ID         string `json:"id"`
+	Status     string `json:"status"`
+	Message    string `json:"message"`
+	Progress   int    `json:"progress"`
+	Version    string `json:"version"`
+	StartedAt  string `json:"started_at"`
+	FinishedAt string `json:"finished_at"`
+}
+
+type UpdateOverview struct {
+	CurrentVersion string          `json:"current_version"`
+	LatestVersion  string          `json:"latest_version"`
+	Channel        string          `json:"channel"`
+	Source         string          `json:"source"`
+	Available      bool            `json:"available"`
+	Verified       bool            `json:"verified"`
+	CanApply       bool            `json:"can_apply"`
+	Reason         string          `json:"reason"`
+	CheckedAt      string          `json:"checked_at"`
+	LastError      string          `json:"last_error"`
+	History        []UpdateRelease `json:"history"`
+	Job            UpdateJob       `json:"job"`
+}
+
+type UpdateApplyInput struct {
+	Version         string `json:"version"`
+	BackupConfirmed bool   `json:"backup_confirmed"`
+}
+
+type UpdateOverviewResponse struct {
+	Code      string         `json:"code"`
+	Message   string         `json:"message"`
+	Data      UpdateOverview `json:"data"`
+	RequestID string         `json:"request_id"`
+}
+
+type UpdateJobResponse struct {
+	Code      string    `json:"code"`
+	Message   string    `json:"message"`
+	Data      UpdateJob `json:"data"`
+	RequestID string    `json:"request_id"`
+}
+
+type AuditLogQuery struct {
+	Action    string `json:"action"`
+	Search    string `json:"search"`
+	Start     int    `json:"start"`
+	End       int    `json:"end"`
+	Sort      string `json:"sort"`
+	Direction string `json:"direction"`
+	Page      int    `json:"page"`
+	PageSize  int    `json:"page_size"`
+}
+
+type AuditLogExport struct {
+	Filename  string `json:"filename"`
+	Content   string `json:"content"`
+	Exported  int    `json:"exported"`
+	Total     int    `json:"total"`
+	Truncated bool   `json:"truncated"`
+}
+
+type AuditLogExportResponse struct {
+	Code      string         `json:"code"`
+	Message   string         `json:"message"`
+	Data      AuditLogExport `json:"data"`
+	RequestID string         `json:"request_id"`
+}
+
+type MailTemplateInput struct {
+	Purpose string `json:"purpose"`
+	Subject string `json:"subject"`
+	Body    string `json:"body"`
+}
+
+type MailTemplateTestInput struct {
+	Template  MailTemplateInput `json:"template"`
+	Recipient string            `json:"recipient"`
+}
+
+type MailTemplateVariable struct {
+	Key    string `json:"key"`
+	Sample string `json:"sample"`
+}
+
+type MailTemplateResponse struct {
+	Code      string       `json:"code"`
+	Message   string       `json:"message"`
+	Data      MailTemplate `json:"data"`
+	RequestID string       `json:"request_id"`
+}
+
+type MailTemplateReset struct {
+	Purpose string `json:"purpose"`
+}
+
+type AnnouncementInput struct {
+	Content   string `json:"content"`
+	Format    string `json:"format"`
+	Type      string `json:"type"`
+	Note      string `json:"note"`
+	Status    string `json:"status"`
+	PublishAt int    `json:"publish_at"`
+}
+
+type AnnouncementUpdate struct {
+	Content   string `json:"content"`
+	Format    string `json:"format"`
+	Type      string `json:"type"`
+	Note      string `json:"note"`
+	Status    string `json:"status"`
+	PublishAt int    `json:"publish_at"`
+	Version   int    `json:"version"`
+}
+
+type AnnouncementEntry struct {
+	ID          string `json:"id"`
+	Version     int    `json:"version"`
+	CreatedAt   int    `json:"created_at"`
+	UpdatedAt   int    `json:"updated_at"`
+	Content     string `json:"content"`
+	Format      string `json:"format"`
+	Type        string `json:"type"`
+	Note        string `json:"note"`
+	Status      string `json:"status"`
+	PublishAt   int    `json:"publish_at"`
+	ContentHtml string `json:"content_html"`
+	CreatedBy   string `json:"created_by"`
+	UpdatedBy   string `json:"updated_by"`
+}
+
+type AnnouncementPublic struct {
+	ID          string `json:"id"`
+	Content     string `json:"content"`
+	ContentHtml string `json:"content_html"`
+	Format      string `json:"format"`
+	Type        string `json:"type"`
+	PublishAt   int    `json:"publish_at"`
+}
+
+type AnnouncementQuery struct {
+	Search   string `json:"search"`
+	Status   string `json:"status"`
+	Page     int    `json:"page"`
+	PageSize int    `json:"page_size"`
+}
+
+type AnnouncementList struct {
+	Items    []AnnouncementEntry `json:"items"`
+	Total    int                 `json:"total"`
+	Page     int                 `json:"page"`
+	PageSize int                 `json:"page_size"`
+	Enabled  bool                `json:"enabled"`
+}
+
+type AnnouncementFeed struct {
+	Items    []AnnouncementPublic `json:"items"`
+	Total    int                  `json:"total"`
+	Page     int                  `json:"page"`
+	PageSize int                  `json:"page_size"`
+	Enabled  bool                 `json:"enabled"`
+}
+
+type AnnouncementSelection struct {
+	ID      string `json:"id"`
+	Version int    `json:"version"`
+}
+
+type AnnouncementDelete struct {
+	Items []AnnouncementSelection `json:"items"`
+}
+
+type AnnouncementSetting struct {
+	Enabled bool `json:"enabled"`
+}
+
+type AnnouncementPreview struct {
+	ContentHtml string `json:"content_html"`
+}
+
+type AnnouncementEntryResponse struct {
+	Code      string            `json:"code"`
+	Message   string            `json:"message"`
+	Data      AnnouncementEntry `json:"data"`
+	RequestID string            `json:"request_id"`
+}
+
+type AnnouncementListResponse struct {
+	Code      string           `json:"code"`
+	Message   string           `json:"message"`
+	Data      AnnouncementList `json:"data"`
+	RequestID string           `json:"request_id"`
+}
+
+type AnnouncementFeedResponse struct {
+	Code      string           `json:"code"`
+	Message   string           `json:"message"`
+	Data      AnnouncementFeed `json:"data"`
+	RequestID string           `json:"request_id"`
+}
+
+type AnnouncementPublicResponse struct {
+	Code      string             `json:"code"`
+	Message   string             `json:"message"`
+	Data      AnnouncementPublic `json:"data"`
+	RequestID string             `json:"request_id"`
+}
+
+type AnnouncementSettingResponse struct {
+	Code      string              `json:"code"`
+	Message   string              `json:"message"`
+	Data      AnnouncementSetting `json:"data"`
+	RequestID string              `json:"request_id"`
+}
+
+type AnnouncementPreviewResponse struct {
+	Code      string              `json:"code"`
+	Message   string              `json:"message"`
+	Data      AnnouncementPreview `json:"data"`
+	RequestID string              `json:"request_id"`
 }

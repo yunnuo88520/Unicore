@@ -30,7 +30,12 @@ Unicore 是面向 AI 辅助开发的 Go + React 应用框架。共享领域与�
 
 ![平台笔记与附件](docs/04-ai/evidence-developer-kit/notes-platform.png)
 
-预览安装包与校验和见 [GitHub Releases](https://github.com/yunnuo88520/Unicore/releases)，也可从源码构建；尚无公开注册表镜像。真实授权/OTA、正式签名/公证仍待接入；能力与验收边界见 [PRD](docs/00-product/PRD.md) 和 [最新验收](docs/04-ai/acceptance-developer-kit.md)。
+预览安装包与校验和见 [GitHub Releases](https://github.com/yunnuo88520/Unicore/releases)，也可从源码构建；尚无公开注册表镜像。已接入可替换渠道的签名 OTA、离线版本日志及平台签名/公证流程；真实开发者凭据和下一版签名发行仍待配置，授权服务保持占位。详见 [系统更新](docs/03-runbooks/updates.md)；能力与验收边界见 [PRD](docs/00-product/PRD.md) 和 [最新验收](docs/04-ai/acceptance-updates.md)。
+
+
+平台管理端提供可筛选、排序、分页和导出的操作日志，以及独立邮件模板编辑、预览与测试发送；权限、迁移和开发约定见 [管理工具](docs/03-runbooks/admin-tools.md)。
+
+图形入口共用中英文切换与本地主题抽屉，可调整配色、圆角、密度和布局，刷新后保留；与服务器全局配置隔离。扩展入口见 [客户端语言与外观](docs/03-runbooks/client-preferences.md)。
 
 ## 快速开始
 
@@ -101,7 +106,7 @@ make build-ops                   # 独立加密备份/恢复工具
 
 应用版本只维护 [VERSION](VERSION)；`make version NEW_VERSION=x.y.z` 同步投影和 Changelog。tar 输出到 `build/releases/`，带 manifest/checksums；Web 包含运维工具，镜像标签读取相同版本。宝塔/Nginx、Docker/Compose、版本准备和恢复步骤见 [发版手册](docs/03-runbooks/release.md)、[部署手册](docs/03-runbooks/deployment.md) 与 [备份手册](docs/03-runbooks/backup.md)。
 
-最新基线已通过三数据库测试、页面回归、四种部署场景与三系统原生构建 CI；macOS arm64 有真实窗口交互验证，Windows/Linux 窗口交互仍待实测。结果与未测范围见 [验收报告](docs/04-ai/acceptance-developer-kit.md)，实时状态以当前提交的 Actions 为准。
+最新基线已通过三数据库测试、页面回归、四种部署场景与三系统原生构建 CI；macOS arm64 有真实窗口交互验证，Windows/Linux 窗口交互仍待实测。结果与未测范围见 [验收报告](docs/04-ai/acceptance-updates.md)，实时状态以当前提交的 Actions 为准。
 
 ## 文档与协作
 
@@ -116,3 +121,5 @@ make build-ops                   # 独立加密备份/恢复工具
 | 更新 Wiki | [同步说明](docs/wiki/README.md)；`make wiki` 生成，明确发布时 `make wiki-publish` |
 
 仓库采用 [MIT License](LICENSE)，允许使用、修改和再分发，保留版权与许可证。完整导航见 [docs/README.md](docs/README.md)。
+
+后端开发遵循[统一实体与分层规范](docs/02-standards/backend.md)，平台公告提供[完整双端业务样板](docs/03-runbooks/announcements.md)，支持管理员发布、定时展示与用户工作台读取。邮件默认内容保持中文，界面支持中英文切换。

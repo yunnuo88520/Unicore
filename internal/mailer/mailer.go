@@ -38,6 +38,7 @@ type Store interface {
 var ErrUnavailable = errors.New("mail delivery unavailable")
 
 type Service struct {
+	BaseURL  string
 	Store    Store
 	Settings *settings.Service
 	Secrets  Secrets
@@ -66,7 +67,12 @@ func (s *Service) Test(ctx context.Context, recipient, actor string) error {
 	if err != nil {
 		return err
 	}
-	if err = s.Sender.Send(ctx, Configuration(values), Render(values["site.name"], values["site.copyright"], "test", "", recipient, false, logo)); err != nil {
+	values["site.base_url"] = s.BaseURL
+	message, err := RenderConfigured(values, "test", "", recipient, false, logo, nil)
+	if err != nil {
+		return err
+	}
+	if err = s.Sender.Send(ctx, Configuration(values), message); err != nil {
 		return ErrUnavailable
 	}
 	return s.Settings.MarkMailTested(ctx, settings.MailFingerprint(values), actor)

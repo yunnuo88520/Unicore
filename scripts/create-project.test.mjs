@@ -10,7 +10,7 @@ import {createProject} from './create-project.mjs';
 
 test('project export and destination boundaries',()=>{
  const root=mkdtempSync(join(tmpdir(),'unicore-creator-')),source=join(root,'source');mkdirSync(source);
- const files={'go.mod':'module github.com/yunnuo/unicore\n','framework.manifest.json':'{}','package.json':'{"name":"unicore"}','assets/theme/tokens.json':'{"brand":{"name":"Unicore"}}','assets/brand/identity.json':'{"bundleId":"vip.ebox.unicore"}','cmd/desktop/wails.json':'{"name":"Unicore","info":{}}','main.go':'package main // github.com/yunnuo/unicore/internal/domain\n','LICENSE':'MIT license fixture','data/private.txt':'must not copy','.env':'must not copy'};
+ const files={'go.mod':'module github.com/yunnuo/unicore\n','framework.manifest.json':'{}','assets/updates/config.json':'{"repository":"upstream/repo","keys":{"upstream":"test"}}','package.json':'{"name":"unicore"}','assets/theme/tokens.json':'{"brand":{"name":"Unicore"}}','assets/brand/identity.json':'{"bundleId":"vip.ebox.unicore"}','cmd/desktop/wails.json':'{"name":"Unicore","info":{}}','main.go':'package main // github.com/yunnuo/unicore/internal/domain\n','LICENSE':'MIT license fixture','data/private.txt':'must not copy','.env':'must not copy'};
  try{
   for(const [p,text] of Object.entries(files)){mkdirSync(dirname(join(source,p)),{recursive:true});writeFileSync(join(source,p),text);}
   const git=(...args)=>execFileSync('git',['-C',source,...args],{stdio:'pipe'});
@@ -19,6 +19,7 @@ test('project export and destination boundaries',()=>{
   const options={source,directory:join(root,'app'),name:'My Product',slug:'my-product',module:'example.test/team/product',bundle:'test.example.product'};
   createProject(options);
   assert.equal(JSON.parse(readFileSync(join(options.directory,'package.json'))).name,'my-product');
+  const trust=JSON.parse(readFileSync(join(options.directory,'assets/updates/config.json')));assert.equal(trust.repository,'');assert.deepEqual(trust.keys,{});assert.equal(trust.allow_unsigned_platform,false);
   assert.equal(JSON.parse(readFileSync(join(options.directory,'assets/theme/tokens.json'))).brand.name,'My Product');
   assert.match(readFileSync(join(options.directory,'main.go'),'utf8'),/example.test\/team\/product\/internal\/domain/);
   assert.match(readFileSync(join(options.directory,'project.provenance.json'),'utf8'),/"revision": "[0-9a-f]{40}"/);

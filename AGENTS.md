@@ -17,3 +17,5 @@
 开发输出包含：需求与影响矩阵、文件清单、实现及迁移、验证结果、docs/ADR、未验证事项。小改动可合并描述。
 
 任务流程位于 `.agents/skills/`；阅读与你的任务直接相关的 Skill，用户当前指令优先。
+
+9. 共享前端新增或修改界面必须同时提供中英文：组件用 useI18n/useLocale 与 t，静态路由/选项用 defineMessages 并在渲染时翻译；禁止中文直写后再补翻译。运行 pnpm check:i18n（构建与 make test 均执行），新增设置/权限描述也须补词条。布局只复用 WorkspaceLayout，不在业务页设置侧栏偏移；工作区固定 LTR，忽略旧 RTL 偏好。见 docs/03-runbooks/frontend-foundations.md。

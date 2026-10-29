@@ -29,10 +29,11 @@
     "check:docs": "node scripts/check-docs.mjs",
     "create:project": "node scripts/create-project.mjs",
     "doctor": "node scripts/doctor.mjs",
-    "test:tooling": "node --test scripts/create-project.test.mjs scripts/wiki.test.mjs scripts/release-assets.test.mjs",
+    "test:tooling": "node --test scripts/create-project.test.mjs scripts/wiki.test.mjs scripts/release-assets.test.mjs scripts/update-sign.test.mjs scripts/check-i18n.test.mjs",
     "wiki:generate": "node scripts/wiki.mjs",
     "check:wiki": "node scripts/wiki.mjs --check",
-    "wiki:publish": "node scripts/wiki.mjs --publish"
+    "wiki:publish": "node scripts/wiki.mjs --publish",
+    "check:i18n": "node scripts/check-i18n.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",

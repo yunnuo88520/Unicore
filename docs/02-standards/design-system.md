@@ -32,3 +32,5 @@
 M3b 运行时图片使用 [实例品牌规范](../00-product/feature-branding.md)：内页/登录页经 BrandProvider/BrandMark 共用，编译矢量是默认回退；不要在页面拼图片路径。BrandingPanel 通过 AppClient 和 Query 刷新 bootstrap/品牌/模板，图片选择先预览再提交。原生包图标仍由编译源生成，上传不影响签名或应用标识。
 
 导航与反馈使用统一 Lucide/SVG 图标，禁止用 Emoji/表情符号替代；`check:design` 扫描共享 UI 源码并校验 message.css 的颜色均来自 tokens。全局消息样式在 `packages/web-ui/src/message.css`，语义颜色、字体、圆角与动效随全局主题；接入与反馈生命周期见 [前端规范](frontend.md)。
+
+客户端通过同一 tokens 源的 `presets` 选择配色，圆角/字号/间距以 CSS 运行时系数叠加构建尺度；`preferences.ts` 为唯一设备状态入口。右侧 AppearanceDrawer 与右上 ClientControls 全入口共享，不能复制一套主题控件或页面颜色。布局、RTL 与系统外观处理见 [客户端偏好](../03-runbooks/client-preferences.md)；原生标题栏不随网页主题强行修改。

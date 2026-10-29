@@ -16,3 +16,5 @@ metadata:
 身份接口同时考虑两域：用户与管理员由固定 API 路径区分（管理员 /api/v1/admin/*），使用独立仓库/Cookie，不支持身份请求头选域；管理 actor 复核须查管理员表，目标用户/管理员由固定端点决定。不得因同邮箱合并、回退认证或恢复角色升降；见 ADR-0014。OIDC 两个固定 callback 分别验证各自 browser proof，管理员不 JIT。
 
 当前形态与入口以 [ADR-0016](../../../docs/adr/ADR-0016-separate-client-admin-surfaces.md) 为准：用户 main.tsx 与管理员 admin.tsx 独立入口，管理页只在 admin-app.tsx 装配，共享 Workspace/表单/消息/主题。单机/桌面仅业务和本地外观，不提供站点、品牌、SMTP、对象存储和后台。管理员公开 auth/bootstrap 只返回固定域最小投影；本人 account 需管理员会话，其余管理资源须 permissions/superAdmin，不能宽泛豁免 admin 路由。新增普通用户立即 active 并验证用户入口登录；注册默认关闭，安全页 Switch 控制且须 SMTP 测试。布尔控件用 Switch，上传用自定义拖拽弹窗与 SDK 真实阶段。
+
+接口/业务/数据层统一遵守 [后端规范](../../../docs/02-standards/backend.md)：固定身份域与最小投影，管理写事务重查管理员并与审计原子提交。公告用户 DTO 排除内部备注与草稿，详情每次重新鉴权；以 announcements_test.go 为完整权限矩阵样板。

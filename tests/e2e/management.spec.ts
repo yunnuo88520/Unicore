@@ -30,9 +30,9 @@ test('management groups, modal creation, independent logins and avatar password 
  const directory=`build/acceptance/management/${info.project.name}`;await mkdir(directory,{recursive:true});
  if(info.project.name==='chromium'){
   await page.setViewportSize({width:1440,height:720});
-  await expect(page.locator('.sidebar .author')).toBeInViewport();
-  const before=await page.locator('.sidebar .author').boundingBox();await page.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));
-  expect((await page.locator('.sidebar .author').boundingBox())!.y).toBe(before!.y);
+  await expect(page.locator('.sidebar .sidebar-utilities')).toBeInViewport();
+  const before=await page.locator('.sidebar .sidebar-utilities').boundingBox();await page.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));
+  expect((await page.locator('.sidebar .sidebar-utilities').boundingBox())!.y).toBe(before!.y);
   await page.screenshot({path:`${directory}/fixed-sidebar-720.png`});await page.evaluate(()=>window.scrollTo(0,0));
  }
  await page.getByRole('button',{name:'用户列表',exact:true}).click();
@@ -48,7 +48,11 @@ test('management groups, modal creation, independent logins and avatar password 
  await expect(page.getByRole('cell',{name:'sharedname',exact:true})).toBeVisible();
  await nav('邮件设置');await expect(page.getByRole('tab')).toHaveCount(0);await expect(page.getByRole('button',{name:'发送测试',exact:true})).toBeVisible();await expect(page.getByText('投递记录',{exact:true})).toHaveCount(0);
  await nav('系统日志');await expect(page.getByRole('tab',{name:'操作日志',exact:true})).toBeVisible();await expect(page.getByRole('cell',{name:'新增用户',exact:true}).first()).toBeVisible();
- await nav('授权与更新');await expect(page.getByText('待对接',{exact:true})).toBeVisible();
+ if(process.env.FEATURE_UPDATER!=='false' || process.env.FEATURE_LICENSE==='true') {
+  await nav('系统更新');
+  if(process.env.FEATURE_UPDATER!=='false')await expect(page.getByRole('heading',{name:'更新日志',exact:true})).toBeVisible();
+  if(process.env.FEATURE_LICENSE==='true')await expect(page.getByText('待对接',{exact:true})).toBeVisible();
+ }
  const member=await context.newPage();await member.goto(instance.url);await login(member,'sharedname','administrator-password-strong');await expect(member.getByRole('alert')).toContainText('账号或密码不正确');
  await login(member,'sharedname','member-password-strong');await expect(member.getByRole('button',{name:'运行用例',exact:true})).toBeVisible();
  const adminBoot=(await(await page.request.get(`${instance.url}/api/v1/admin/bootstrap`,{headers:{}})).json()).data;
@@ -65,5 +69,5 @@ test('management groups, modal creation, independent logins and avatar password 
  await member.getByRole('button',{name:'账号菜单',exact:true}).click();await member.getByRole('button',{name:'退出登录',exact:true}).click();await expect(member.getByRole('heading',{name:'登录 Unicore',exact:true})).toBeVisible();await member.close();
  await page.reload();await expect(page.getByRole('button',{name:'账号菜单',exact:true})).toBeVisible();
  await nav('用户列表');
- for(const scheme of ['light','dark'] as const){await page.evaluate(value=>localStorage.setItem('unicore.theme',value),scheme);await page.reload();await page.screenshot({path:`${directory}/management-${scheme}.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}
+ for(const scheme of ['light','dark'] as const){await page.evaluate(value=>localStorage.setItem('unicore.preferences.v1',JSON.stringify({...JSON.parse(localStorage.getItem('unicore.preferences.v1')??'{}'),theme:value})),scheme);await page.reload();await page.screenshot({path:`${directory}/management-${scheme}.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}
 });

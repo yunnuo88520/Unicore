@@ -1,18 +1,18 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 系统设置与可裁剪扩展
 
-系统管理分为基础设置、邮件设置、系统日志、授权与更新。基础设置使用单层 Tabs（基础信息、品牌图片、外观、安全与控制、企业登录）；保留品牌三卡片、外观预览卡片及切换草稿。平台外观仅当前客户端 localStorage；普通用户只可访问这一项。单机/桌面保留本地默认外观。
+系统管理分为基础设置、邮件设置、邮件模板、系统日志、系统更新与可选授权。基础设置使用单层 Tabs（基础信息、品牌图片、外观、安全与控制、企业登录）；保留品牌三卡片、外观预览卡片及切换草稿。平台外观仅当前客户端 localStorage；普通用户只可访问这一项。单机/桌面保留本地默认外观。
 
-邮件设置将 SMTP 配置、账号邮件策略和真实发送测试合并到一页，无子标签；测试收件地址在弹窗填写。投递记录在系统日志的邮件投递页，与操作日志并列；不在设置展示邮件模板。模板由框架内部统一生成，业务可通过内部预览 API 验证。全局设置/品牌/SMTP 仅管理员读写，投递和审计需要 logs:read；写请求校验 CSRF/Origin，敏感值不回传。设置源仍为 SettingDefinition。
+邮件设置将 SMTP 配置、账号邮件策略和真实发送测试合并到一页，无子标签；测试收件地址在弹窗填写。投递记录在系统日志的邮件投递页，与操作日志并列；邮件模板为独立页面，使用单层场景 Tabs 配置主题/受限 HTML 正文，支持变量、预览、指定收件人测试与恢复默认，保留品牌框架。具体边界见 [管理工具手册](../03-runbooks/admin-tools.md) 与 [ADR-0020](../adr/ADR-0020-audit-mail-templates.md)。全局设置/品牌/SMTP 仅管理员读写，投递和审计需要 logs:read；写请求校验 CSRF/Origin，敏感值不回传。设置源仍为 SettingDefinition。
 
 | 分组 | 当前行为 | 适用 profile |
 | --- | --- | --- |
 | 基础信息/实例品牌 | 浅深 Logo、favicon 上传/预览/恢复；站点名、描述、版权、ICP备案号与 HTTPS 查询链接 | web-platform 管理端 |
 | 外观 | 平台只存当前客户端；单机/桌面保留本地默认主题 | Web 两模式、desktop |
 | 安全与后台 | 登录/注册图形验证码分别默认开启，会话时长；默认 /admin，可修改且排除保留路径，APP_ADMIN_PATH 恢复 | web-platform |
-| 邮件服务 | 主机/端口/TLS/账号/加密密钥、发件邮箱、独立发件人别名、真实测试；五套模板内部生成，队列记录在系统日志 | web-platform |
+| 邮件服务 | 主机/端口/TLS/账号/加密密钥、发件邮箱、独立发件人别名、真实测试；五套模板独立管理，队列记录在系统日志 | web-platform |
 | 账号/企业登录 | 注册/六位码登录/找回密码分别开启；SMTP 测试门槛；OIDC 与 JIT 策略 | web-platform |
-| 授权与升级 | 独立编译开关、当前版本、待对接状态、禁用的检查按钮/空更新日志 | web-platform 管理端；默认编译关闭 |
+| 系统更新 / 授权 | 更新默认开启，离线日志/可信检查/确认安装；授权默认关闭并保持占位 | 平台仅管理员，单机/桌面仅更新 |
 
 站点名/版权/备案信息用于工作台和公开登录/注册/找回页面；备案号留空隐藏，查询链接留空显示纯文本，非空只接受无凭据的 HTTPS。读取旧数据时 UI 再次限制可点击链接。新增设置由默认值补齐，复用 system_settings，无 schema 迁移。
 
@@ -22,14 +22,14 @@ mail.from_name 留空时使用邮件内的站点名称；非空作为测试/账�
 
 系统通知使用第五套主题/Logo/版权模板、HTML 转义和纯文本。平台业务可在提交事件后调用 `manager.Mail().Notify(ctx, mailer.Notification{To: recipient, Title: title, Detail: detail}, actor)`；SMTP 未就绪拒绝入队，载荷加密，24 小时过期，沿用五次重试和元信息审计。没有公开任意发信 API。框架不默认订阅用户或对所有设置变更群发；具体事件、接收人及事务 outbox 由业务明确，跨业务提交与入队仍需调用方处理一致性。
 
-## 授权与升级的占位边界
+## 授权与更新的编译边界
 
-`FEATURE_LICENSE`、`FEATURE_UPDATER` 仅接受 true/false，默认均为 false。Make 将两项分别映射为 Go 的 license/updater build tag，Vite 在构建时替换常量并输出 features.json。独立授权服务器适配 port 是 LicenseProvider，版本查询 port 是 ReleaseProvider；关闭时对应 port 文件不参与编译，对应集成卡片被裁掉；通用版本/待对接占位仍在独立页面，不创建客户端或发出外部请求。CLI 始终不声明这些能力。
+FEATURE_LICENSE 默认 false，保留独立授权服务待对接卡片；FEATURE_UPDATER 默认 true，提供真实签名 OTA 与内置历史。均只接受 true/false，Make 映射为 license/updater Go tags，Vite 编译常量裁剪相同功能。禁用更新时不装配渠道/安装器，CLI 始终不装配；capability 由实际组合根服务决定。
 
-开启后，bootstrap.capabilities 只表示占位模块已编入；不代表授权有效或 OTA 可执行。卡片明确“待对接”，检测/检查版本按钮禁用，更新日志为空。当前不注册授权/升级 API，不创建 license_state/upgrade_history 表，不接受许可证密钥、不联系服务器、不安装更新。后续接入真实服务、返回真实 Update Log 及签名/部署方式校验后才能启用操作，见 [ADR-0010](../adr/ADR-0010-settings-edition.md)。
-
-构建与接入入口见 [部署手册](../03-runbooks/deployment.md)，验收和未测范围见 [设置验收](../04-ai/acceptance-settings.md)。
+平台版本页面与更新 API 仅管理员，本地系统更新由 loopback/原生桥接开放。Docker 只检查、不覆盖自己。签名、备份确认、兼容边界和恢复见 [更新需求](feature-updates.md)、[ADR-0018](../adr/ADR-0018-signed-updates.md)、[运行手册](../03-runbooks/updates.md)。没有新增设置表或数据库迁移；渠道与信任根由受控构建/部署配置管理，不能让远端 feed 修改公钥。
 
 在线平台新增独立“对象存储”设置页，按本地/MinIO/S3/OSS/COS 单层 Tabs 配置；仅管理员可见，默认本地，测试后显式切换，文件策略登记 storage.*。详见 [文件存储](feature-storage.md) 与 [运行手册](../03-runbooks/storage.md)。
 
 当前单机/桌面只提供本地外观，拒绝站点/品牌/邮件等设置，详见 [ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md)。布尔设置用 Switch；开放注册移至安全与控制，默认关闭且保留 SMTP 就绪门槛。
+
+本地外观新增共享右侧抽屉与中英文入口；既有外观页的更多设置复用该抽屉。即时偏好只写当前客户端，不进入 SettingDefinition 或实例 PATCH；具体选项和兼容见 [客户端偏好](../03-runbooks/client-preferences.md)。

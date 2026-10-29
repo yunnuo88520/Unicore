@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 运行、安装与恢复边界
 
-当前为开发预览，已有安装、身份、持久数据、邮件账号、OIDC 与离线加密备份恢复。真实授权、签名发布与 OTA 尚未实现，正式上线仍需后续验收。
+当前为开发预览，已有安装、身份、持久数据、邮件账号、OIDC 与离线加密备份恢复。真实授权仍为占位；签名 OTA 与系统签名/公证流程见 [更新手册](updates.md)，正式开发者凭据与生产部署需对应验收。
 
 ## Web
 
@@ -87,7 +87,7 @@ docker run -d --name unicore --read-only --cap-drop=ALL \
 
 镜像为 nonroot，根目录只读，命名卷保存完整 `/data`。已有 bind mount 需要管理员提前设置目录为 UID/GID 65532、0700；框架不会自动放宽权限。数据/密钥/本地 env 不进入 Docker build context。不要 `down -v` 删除真实实例卷。替换镜像由外部 Compose/CI 完成，保留卷；不挂载 socket，不覆盖容器内 binary。
 
-使用预构建镜像可先设置 UNICORE_VERSION/UNICORE_IMAGE，再 `docker compose -f deploy/docker/compose.yaml up -d --no-build --pull always`；正式仓库地址由维护者配置。更新前停服成套备份，替换包 current 链接或镜像后启动、检查 ready、登录与数据。回退受迁移兼容约束，不能只替换旧程序。当前同版本替换与卷保留验收见 [部署验收](../04-ai/acceptance-deployment.md)，自动恢复/签名 OTA 仍未实现。
+使用预构建镜像可先设置 UNICORE_VERSION/UNICORE_IMAGE，再 `docker compose -f deploy/docker/compose.yaml up -d --no-build --pull always`；正式仓库地址由维护者配置。更新前停服成套备份，替换包 current 链接或镜像后启动、检查 ready、登录与数据。回退受迁移兼容约束，不能只替换旧程序。当前同版本替换与卷保留验收见 [部署验收](../04-ai/acceptance-deployment.md)，签名 OTA 的程序切换/恢复与 Docker 外部更新边界见 [更新手册](updates.md)。
 
 ## 检查与备份边界
 
@@ -97,7 +97,7 @@ live 是进程存活；ready 要求已安装并 DB Ping 成功。测试通过独
 
 ## SMTP、注册与密码恢复
 
-只有平台管理端提供邮件设置。进入「系统管理 → 邮件设置」，先保存主机/端口/加密方式/发件人及可选登录凭据，再点击同一页面的「发送测试」，在弹窗填写收件邮箱，等待真实测试成功。在本页「账号流程」可开启“邮件找回密码”/“邮箱验证码登录”；开放注册默认关闭，需到「系统管理 → 基础设置 → 安全与控制」开启，同样要求已测试 SMTP。布尔项使用开关，邮件配置与测试不拆成嵌套标签；模板在内部统一生成，不提供模板管理页。邮件策略不进入单机或桌面。密钥输入留空保留，清除按钮只在保存时清空；读取不会返回原值。更改 SMTP 前先关闭三项邮件流程，改完重测再开启。
+只有平台管理端提供邮件设置。进入「系统管理 → 邮件设置」，先保存主机/端口/加密方式/发件人及可选登录凭据，再点击同一页面的「发送测试」，在弹窗填写收件邮箱，等待真实测试成功。在本页「账号流程」可开启“邮件找回密码”/“邮箱验证码登录”；开放注册默认关闭，需到「系统管理 → 基础设置 → 安全与控制」开启，同样要求已测试 SMTP。布尔项使用开关，邮件配置与测试不拆成嵌套标签；邮件主题/内容可在「系统管理 → 邮件模板」独立配置，支持变量、预览、测试发送与恢复默认，详见 [管理工具](admin-tools.md)。邮件策略不进入单机或桌面。密钥输入留空保留，清除按钮只在保存时清空；读取不会返回原值。更改 SMTP 前先关闭三项邮件流程，改完重测再开启。
 
 推荐 STARTTLS 587 或 TLS 465；证书由系统根证书验证，不提供跳过验证选项。plain 仅供 loopback SMTP sink/本机 relay，不能用于远程明文凭据传输。测试通过表示 SMTP 已接受邮件，不保证收件箱投递。监控 SMTP 服务商告警、退信与配额；M2c 已使用经用户授权的 QQ SMTP 做四种模板真实投递，收件人确认显示正常；个人凭据不进入仓库。
 
@@ -152,11 +152,11 @@ brand-assets/ 位于 APP_DATA_DIR（桌面为其配置目录）内，目录 0700
 图片缺失会在界面回退默认；先检查目录挂载、文件权限及历史存储位置，恢复同一快照的图片，或由管理员恢复默认再上传。不要手工塞原始图片或外部路径进 system_settings。当前品牌已接统一存储接口与文件元数据，新图片写入当前默认位置，旧 brand-assets 文件通过 legacy-brand 位置读取，不因切换默认位置自动迁移。公开品牌仍通过应用的当前引用路由提供，私有桶不需公开；未接 CDN。未引用文件由存储清理策略处理，已缓存旧图可短暂保留，队列邮件使用创建时图片。
 
 
-## 设置与可选授权/升级占位
+## 设置与可裁剪授权/系统更新
 
 平台备案号/HTTPS 查询链接在「系统管理 → 基础设置 → 基础信息」保存，登录页与工作台共用；编号留空隐藏。SMTP 别名在「邮件设置」填写，留空跟随站点名，用于测试/账号/系统通知显示名；密钥仍只显示配置状态。业务通知调用与限制见 [设置规范](../00-product/feature-settings.md)。
 
-默认构建剔除授权/升级卡片与接入 port。平台管理端需要占位界面时，前后端必须使用同一组编译输入；单机/桌面仍不提供授权升级管理页：
+默认 FEATURE_LICENSE=false、FEATURE_UPDATER=true。平台管理员可使用系统更新，授权检测仍可选占位；单机/桌面仅提供系统更新。前后端必须使用同一组编译输入：
 
 ```sh
 make build-web FEATURE_LICENSE=true FEATURE_UPDATER=true
@@ -166,7 +166,7 @@ make release FEATURE_LICENSE=true FEATURE_UPDATER=false
 
 两项均可独立 true/false，非法值使构建失败。make dev-server/dev-web/dev-desktop 使用相同变量；直接 pnpm/Vite 构建需传入对应 FEATURE_* 环境变量，直接 go build 需对应 -tags license,updater。生产进程启动后修改 FEATURE_* 不会重新引入被裁剪代码。Docker 构建参数为 --build-arg FEATURE_LICENSE=true / --build-arg FEATURE_UPDATER=true，两阶段使用同一输入；推荐 make docker-build FEATURE_LICENSE=true。镜像实际验收范围见部署验收。
 
-前端产物 features.json 记录编译能力；后端 bootstrap.capabilities 返回相应占位能力，CLI 始终 false。页面同时检查两端能力，任一端关闭都不显示。开启也只是“待对接”卡片、禁用检查按钮、空更新日志，不产生外部请求或执行安装；真实对接后才增加 API/权限/签名与按部署方式的更新流程。测试构建和 E2E 时同样传入相同变量。
+前端产物 features.json 记录编译能力；后端 bootstrap.capabilities 返回实际装配能力，CLI 始终 false。页面同时检查两端能力，任一端关闭都不显示；普通用户不能读取平台版本/更新能力。打开更新页先读本机历史，仅主动检查才联网；手动安装必须通过发行签名与兼容性校验。授权开启后仍显示待对接卡片。测试构建和 E2E 同样传入相同变量，部署和恢复要求见 [更新手册](updates.md)。
 
 ## 管理员身份拆分升级（0008）
 
@@ -183,3 +183,5 @@ MySQL DDL 可能已提交，失败后保持停服，解决错误并用同版本�
 当前双入口、单机边界和升级兼容说明见 [ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md)。
 
 当前已有 [私有对象存储](storage.md) 和 [离线加密备份恢复](backup.md)；旧阶段中“后续备份/对象存储”的描述仅代表当时边界。新业务样板迁移在实例启动时创建独立 business_migrations，框架历史迁移 checksum 不变。
+
+系统更新以 [ADR-0018](../adr/ADR-0018-signed-updates.md) 取代升级占位：FEATURE_UPDATER 默认 true，FEATURE_LICENSE 默认 false。平台仅管理员，单机/桌面可看内置离线日志，Docker 不执行应用内安装。Tar 默认 systemd 模板未开放安装目录写权限，启用 OTA 前必须按 [更新手册](updates.md) 配置安装根、supervisor 与目录权限。

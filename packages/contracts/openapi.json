@@ -1696,6 +1696,63 @@
         ],
         "summary": "mailTemplates",
         "parameters": []
+      },
+      "put": {
+        "operationId": "saveMailTemplate",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailTemplateResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MailTemplateInput"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "settings:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "settings:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "saveMailTemplate",
+        "parameters": []
       }
     },
     "/api/v1/admin/roles": {
@@ -2893,8 +2950,89 @@
           "identityRealm": "administrator"
         },
         "summary": "Read system audit log",
-        "x-permission": "dashboard:read; administrator only",
-        "parameters": []
+        "x-permission": "logs:read; administrator only",
+        "parameters": [
+          {
+            "name": "action",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "created_at",
+                "id"
+              ]
+            }
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 20,
+              "maximum": 100
+            }
+          }
+        ]
       }
     },
     "/api/v1/admin/mail/jobs": {
@@ -6318,6 +6456,1147 @@
         ],
         "description": "可移除的持久化业务样板。所有读写按当前身份域和本人 ID 限定，更新及删除采用版本号防止覆盖并发修改。附件仅在线平台可用。"
       }
+    },
+    "/api/v1/updates": {
+      "get": {
+        "operationId": "updateOverview",
+        "summary": "本机：updateOverview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateOverviewResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [],
+        "x-unicore": {
+          "profiles": [
+            "web-standalone"
+          ],
+          "access": "local",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        }
+      }
+    },
+    "/api/v1/admin/updates": {
+      "get": {
+        "operationId": "adminUpdateOverview",
+        "summary": "管理员：updateOverview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateOverviewResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "updates:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        }
+      }
+    },
+    "/api/v1/updates/check": {
+      "post": {
+        "operationId": "checkUpdate",
+        "summary": "本机：checkUpdate",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateOverviewResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [],
+        "x-unicore": {
+          "profiles": [
+            "web-standalone"
+          ],
+          "access": "local",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        }
+      }
+    },
+    "/api/v1/admin/updates/check": {
+      "post": {
+        "operationId": "adminCheckUpdate",
+        "summary": "管理员：checkUpdate",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateOverviewResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": [],
+            "CSRFToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "updates:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        }
+      }
+    },
+    "/api/v1/updates/apply": {
+      "post": {
+        "operationId": "applyUpdate",
+        "summary": "本机：applyUpdate",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateJobResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [],
+        "x-unicore": {
+          "profiles": [
+            "web-standalone"
+          ],
+          "access": "local",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateApplyInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/updates/apply": {
+      "post": {
+        "operationId": "adminApplyUpdate",
+        "summary": "管理员：applyUpdate",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateJobResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": [],
+            "CSRFToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "updates:apply"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateApplyInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/logs/export": {
+      "get": {
+        "operationId": "exportSystemLogs",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditLogExportResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "logs:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "Export filtered audit metadata as spreadsheet-safe CSV (maximum 10000 records)",
+        "x-permission": "logs:read; administrator only",
+        "parameters": [
+          {
+            "name": "action",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "created_at",
+                "id"
+              ]
+            }
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 20,
+              "maximum": 100
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/settings/mail/templates/preview": {
+      "post": {
+        "operationId": "previewMailTemplate",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailTemplateResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MailTemplateInput"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "settings:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "settings:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "previewMailTemplate",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/settings/mail/templates/test": {
+      "post": {
+        "operationId": "testMailTemplate",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MailTemplateTestInput"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "settings:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "settings:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "testMailTemplate",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/settings/mail/templates/reset": {
+      "post": {
+        "operationId": "resetMailTemplate",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailTemplateResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MailTemplateReset"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "settings:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "settings:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "resetMailTemplate",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/announcements": {
+      "get": {
+        "operationId": "adminAnnouncements",
+        "summary": "adminAnnouncements",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "enum": [
+                "",
+                "draft",
+                "published",
+                "scheduled"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnnouncementListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "announcements:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "createAnnouncement",
+        "summary": "createAnnouncement",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnnouncementEntryResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "announcements:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": [],
+            "CSRFToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnnouncementInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/announcements/{id}": {
+      "put": {
+        "operationId": "updateAnnouncement",
+        "summary": "updateAnnouncement",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnnouncementEntryResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "announcements:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": [],
+            "CSRFToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnnouncementUpdate"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/announcements/delete": {
+      "post": {
+        "operationId": "deleteAnnouncements",
+        "summary": "deleteAnnouncements",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "announcements:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": [],
+            "CSRFToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnnouncementDelete"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/announcements/settings": {
+      "get": {
+        "operationId": "announcementSettings",
+        "summary": "announcementSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnnouncementSettingResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "announcements:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "saveAnnouncementSettings",
+        "summary": "saveAnnouncementSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnnouncementSettingResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "announcements:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": [],
+            "CSRFToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnnouncementSetting"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/announcements/preview": {
+      "post": {
+        "operationId": "previewAnnouncement",
+        "summary": "previewAnnouncement",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnnouncementPreviewResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "announcements:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": [],
+            "CSRFToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnnouncementInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/announcements": {
+      "get": {
+        "operationId": "announcements",
+        "summary": "announcements",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnnouncementFeedResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "user"
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/announcements/{id}": {
+      "get": {
+        "operationId": "announcement",
+        "summary": "announcement",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnnouncementPublicResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "user"
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -6979,7 +8258,12 @@
           "id",
           "actor_id",
           "action",
-          "created_at"
+          "created_at",
+          "actor_name",
+          "realm",
+          "target",
+          "detail",
+          "ip_address"
         ],
         "properties": {
           "id": {
@@ -6993,6 +8277,21 @@
           },
           "created_at": {
             "type": "integer"
+          },
+          "actor_name": {
+            "type": "string"
+          },
+          "realm": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "ip_address": {
+            "type": "string"
           }
         }
       },
@@ -7615,7 +8914,10 @@
           "purpose",
           "subject",
           "html",
-          "text"
+          "text",
+          "body",
+          "customized",
+          "variables"
         ],
         "properties": {
           "purpose": {
@@ -7629,6 +8931,18 @@
           },
           "text": {
             "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "customized": {
+            "type": "boolean"
+          },
+          "variables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MailTemplateVariable"
+            }
           }
         }
       },
@@ -8180,7 +9494,8 @@
           "items",
           "total",
           "page",
-          "page_size"
+          "page_size",
+          "actions"
         ],
         "properties": {
           "items": {
@@ -8197,6 +9512,12 @@
           },
           "page_size": {
             "type": "integer"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -9027,6 +10348,989 @@
             "type": "string"
           }
         }
+      },
+      "UpdateRelease": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "version",
+          "notes",
+          "published_at",
+          "prerelease",
+          "url",
+          "source"
+        ],
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "published_at": {
+            "type": "string"
+          },
+          "prerelease": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateJob": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "status",
+          "message",
+          "progress",
+          "version",
+          "started_at",
+          "finished_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "progress": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "version": {
+            "type": "string"
+          },
+          "started_at": {
+            "type": "string"
+          },
+          "finished_at": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateOverview": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "current_version",
+          "latest_version",
+          "channel",
+          "source",
+          "available",
+          "verified",
+          "can_apply",
+          "reason",
+          "checked_at",
+          "last_error",
+          "history",
+          "job"
+        ],
+        "properties": {
+          "current_version": {
+            "type": "string"
+          },
+          "latest_version": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "can_apply": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "checked_at": {
+            "type": "string"
+          },
+          "last_error": {
+            "type": "string"
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UpdateRelease"
+            }
+          },
+          "job": {
+            "$ref": "#/components/schemas/UpdateJob"
+          }
+        }
+      },
+      "UpdateApplyInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "version",
+          "backup_confirmed"
+        ],
+        "properties": {
+          "version": {
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+            "maxLength": 40
+          },
+          "backup_confirmed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "UpdateOverviewResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UpdateOverview"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateJobResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UpdateJob"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "AuditLogQuery": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "action",
+          "search",
+          "start",
+          "end",
+          "sort",
+          "direction",
+          "page",
+          "page_size"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "search": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "start": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "end": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sort": {
+            "type": "string",
+            "enum": [
+              "created_at",
+              "id"
+            ]
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ]
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 20,
+            "maximum": 100
+          }
+        }
+      },
+      "AuditLogExport": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "filename",
+          "content",
+          "exported",
+          "total",
+          "truncated"
+        ],
+        "properties": {
+          "filename": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "exported": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AuditLogExportResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AuditLogExport"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "MailTemplateInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "purpose",
+          "subject",
+          "body"
+        ],
+        "properties": {
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "test",
+              "verify",
+              "login",
+              "reset",
+              "notification"
+            ]
+          },
+          "subject": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 12000
+          }
+        }
+      },
+      "MailTemplateTestInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "template",
+          "recipient"
+        ],
+        "properties": {
+          "template": {
+            "$ref": "#/components/schemas/MailTemplateInput"
+          },
+          "recipient": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          }
+        }
+      },
+      "MailTemplateVariable": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "sample"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "sample": {
+            "type": "string"
+          }
+        }
+      },
+      "MailTemplateResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MailTemplate"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "MailTemplateReset": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "purpose"
+        ],
+        "properties": {
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "test",
+              "verify",
+              "login",
+              "reset",
+              "notification"
+            ]
+          }
+        }
+      },
+      "AnnouncementInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "content",
+          "format",
+          "type",
+          "note",
+          "status",
+          "publish_at"
+        ],
+        "properties": {
+          "content": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1
+          },
+          "format": {
+            "type": "string",
+            "maxLength": 64,
+            "enum": [
+              "markdown",
+              "html"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "maxLength": 64,
+            "enum": [
+              "info",
+              "success",
+              "warning",
+              "error"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "status": {
+            "type": "string",
+            "maxLength": 64,
+            "enum": [
+              "draft",
+              "published"
+            ]
+          },
+          "publish_at": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4102444800
+          }
+        }
+      },
+      "AnnouncementUpdate": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "content",
+          "format",
+          "type",
+          "note",
+          "status",
+          "publish_at",
+          "version"
+        ],
+        "properties": {
+          "content": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1
+          },
+          "format": {
+            "type": "string",
+            "maxLength": 64,
+            "enum": [
+              "markdown",
+              "html"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "maxLength": 64,
+            "enum": [
+              "info",
+              "success",
+              "warning",
+              "error"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "status": {
+            "type": "string",
+            "maxLength": 64,
+            "enum": [
+              "draft",
+              "published"
+            ]
+          },
+          "publish_at": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4102444800
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        }
+      },
+      "AnnouncementEntry": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "version",
+          "created_at",
+          "updated_at",
+          "content",
+          "format",
+          "type",
+          "note",
+          "status",
+          "publish_at",
+          "content_html",
+          "created_by",
+          "updated_by"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "created_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "updated_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1
+          },
+          "format": {
+            "type": "string",
+            "maxLength": 64,
+            "enum": [
+              "markdown",
+              "html"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "maxLength": 64,
+            "enum": [
+              "info",
+              "success",
+              "warning",
+              "error"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "status": {
+            "type": "string",
+            "maxLength": 64,
+            "enum": [
+              "draft",
+              "published"
+            ]
+          },
+          "publish_at": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4102444800
+          },
+          "content_html": {
+            "type": "string",
+            "maxLength": 20000
+          },
+          "created_by": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "updated_by": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      },
+      "AnnouncementPublic": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "content",
+          "content_html",
+          "format",
+          "type",
+          "publish_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1
+          },
+          "content_html": {
+            "type": "string",
+            "maxLength": 20000
+          },
+          "format": {
+            "type": "string",
+            "maxLength": 64,
+            "enum": [
+              "markdown",
+              "html"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "maxLength": 64,
+            "enum": [
+              "info",
+              "success",
+              "warning",
+              "error"
+            ]
+          },
+          "publish_at": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4102444800
+          }
+        }
+      },
+      "AnnouncementQuery": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "search",
+          "status",
+          "page",
+          "page_size"
+        ],
+        "properties": {
+          "search": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "status": {
+            "type": "string",
+            "maxLength": 64,
+            "enum": [
+              "",
+              "draft",
+              "published",
+              "scheduled"
+            ]
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          }
+        }
+      },
+      "AnnouncementList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size",
+          "enabled"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnnouncementEntry"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AnnouncementFeed": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size",
+          "enabled"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnnouncementPublic"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AnnouncementSelection": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "version"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        }
+      },
+      "AnnouncementDelete": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/AnnouncementSelection"
+            }
+          }
+        }
+      },
+      "AnnouncementSetting": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AnnouncementPreview": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "content_html"
+        ],
+        "properties": {
+          "content_html": {
+            "type": "string",
+            "maxLength": 20000
+          }
+        }
+      },
+      "AnnouncementEntryResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AnnouncementEntry"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "AnnouncementListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AnnouncementList"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "AnnouncementFeedResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AnnouncementFeed"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "AnnouncementPublicResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AnnouncementPublic"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "AnnouncementSettingResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AnnouncementSetting"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "AnnouncementPreviewResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AnnouncementPreview"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
       }
     },
     "securitySchemes": {
@@ -9218,6 +11522,30 @@
     "NOTE_INVALID": {
       "status": 400,
       "message": "标题、正文、状态或附件不符合要求"
+    },
+    "UPDATE_BUSY": {
+      "status": 409,
+      "message": "已有更新任务正在执行"
+    },
+    "UPDATE_REJECTED": {
+      "status": 409,
+      "message": "更新条件不满足，请重新检查版本与安装说明"
+    },
+    "UPDATE_UNAVAILABLE": {
+      "status": 503,
+      "message": "无法检查更新，仍可查看本地更新日志"
+    },
+    "ANNOUNCEMENT_INVALID": {
+      "status": 400,
+      "message": "公告内容、格式、类型或发布时间不符合要求"
+    },
+    "ENTITY_NOT_FOUND": {
+      "status": 404,
+      "message": "记录不存在或无权访问"
+    },
+    "ENTITY_CONFLICT": {
+      "status": 409,
+      "message": "记录已被修改，请刷新后重试"
     }
   }
 }

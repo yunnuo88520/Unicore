@@ -21,7 +21,7 @@ const evidence = resolve('build/acceptance/deployment'); mkdirSync(evidence,{rec
 rmSync(join(evidence,'results.json'),{force:true});
 const containers = new Set(), volumes = new Set(), networks = new Set();
 const results=[];
-const browser = await chromium.launch({headless:true});
+const browser = await chromium.launch({headless:true,...(process.env.PLAYWRIGHT_CHANNEL?{channel:process.env.PLAYWRIGHT_CHANNEL}:{})});
 const composeEnv={...process.env, UNICORE_VERSION:version, UNICORE_IMAGE:image, UNICORE_PORT:'0'};
 const compose = (project,args) => execFileSync('docker',['compose','-p',project,'-f','deploy/docker/compose.yaml',...args],{env:composeEnv,encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
 const projects = new Set();
@@ -53,8 +53,8 @@ async function exercise(mode,profile) {
       expect(manifest?.sha256).toBe(digest(readFileSync(file)));
       execFileSync('tar',['-xzf',file,'-C',release,'--strip-components=1']);
       expect(readFileSync(join(release,'VERSION'),'utf8').trim()).toBe(version);
-      expect(JSON.parse(readFileSync(join(release,'manifest.json'),'utf8')).migration_level).toBe(profile==='web-platform'?9:1);
-      expect(JSON.parse(readFileSync(join(release,'manifest.json'),'utf8')).business_migration_level).toBe(1);
+      expect(JSON.parse(readFileSync(join(release,'manifest.json'),'utf8')).migration_level).toBe(profile==='web-platform'?11:1);
+      expect(JSON.parse(readFileSync(join(release,'manifest.json'),'utf8')).business_migration_level).toBe(2);
       expect(readFileSync(join(release,'LICENSE'),'utf8')).toContain('MIT License');
       expect(readFileSync(join(release,'bin/unicore-ops')).byteLength).toBeGreaterThan(1000);
       const network=`${name}-network`;networks.add(network);docker(['network','create',network]);
@@ -100,6 +100,17 @@ async function exercise(mode,profile) {
     const boot=await json(bootstrapPath);expect(boot.version).toBe(version);expect(boot.profile).toBe(profile);expect(boot.deployment_kind).toBe(mode.startsWith('tar')?'tar':'docker');
     const admin=profile==='web-platform';const headers={...realm,'Origin':url,...(admin?{'X-CSRF-Token':boot.csrf_token}:{})};
     const base=admin?'/api/v1/admin':'/api/v1';
+    if(admin && boot.capabilities.updater) {
+      const updates=await json(`${base}/updates`);
+      expect(updates.current_version).toBe(version);expect(updates.history.length).toBeGreaterThan(0);
+      if(!mode.startsWith('tar')) {
+        expect(updates.can_apply).toBe(false);expect(updates.reason).toContain('容器');
+        await page.goto(`${url}/admin#edition`);
+        await expect(page.getByRole('heading',{name:'更新日志',exact:true})).toBeVisible();
+        await expect(page.getByRole('button',{name:'更新并重启',exact:true})).toBeDisabled();
+        await page.screenshot({path:join(evidence,`${mode}-updates.png`),fullPage:true});
+      }
+    }
     if(admin) {const noCSRF=await context.request.patch(`${url}${base}/settings`,{headers:realm,data:{changes:[{key:'site.name',value:'denied'}]}});expect(noCSRF.status()).toBe(403);}
     const changes=admin?[{key:'site.name',value:`持久部署 ${mode}`},{key:'admin.path',value:'/manage'}]:[{key:'appearance.theme',value:'dark'}];
     expect((await context.request.patch(`${url}${base}/settings`,{headers,data:{changes}})).status()).toBe(200);

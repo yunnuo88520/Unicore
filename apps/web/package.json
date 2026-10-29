@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm -w design:generate && vite --host 127.0.0.1",
-    "build": "pnpm -w design:generate && vite build",
+    "build": "pnpm -w check:i18n && pnpm -w design:generate && vite build",
     "preview": "vite preview --host 127.0.0.1"
   },
   "dependencies": {

@@ -16,7 +16,10 @@ Unicore 将需求、架构、契约、Skills 和验收记录一同维护。AI �
 | 管理端/用户端分离 | [ADR-0016](adr/ADR-0016-separate-client-admin-surfaces.md)、[当前验收](04-ai/acceptance-surfaces.md) |
 | 用户、管理员权限及本地外观 | [角色需求](00-product/feature-roles.md)、[ADR-0014](adr/ADR-0014-separate-identities-management.md)、[管理验收](04-ai/acceptance-management.md) |
 | 首次安装、连接测试与重启恢复 | [安装规范](00-product/feature-installation.md)、[ADR-0013](adr/ADR-0013-installation-experience.md)、[安装验收](04-ai/acceptance-installation.md) |
-| 系统设置与授权/升级占位 | [设置需求](00-product/feature-settings.md)、[ADR-0010](adr/ADR-0010-settings-edition.md)、[设置验收](04-ai/acceptance-settings.md) |
+| 操作日志、邮件主题/正文配置 | [管理工具](03-runbooks/admin-tools.md)、[ADR-0020](adr/ADR-0020-audit-mail-templates.md)、[验收](04-ai/acceptance-admin-tools.md) |
+| 系统设置与授权占位 | [设置需求](00-product/feature-settings.md)、[ADR-0010](adr/ADR-0010-settings-edition.md)、[设置验收](04-ai/acceptance-settings.md) |
+| 签名 OTA、离线日志与平台公证 | [需求](00-product/feature-updates.md)、[ADR-0018](adr/ADR-0018-signed-updates.md)、[手册](03-runbooks/updates.md)、[验收](04-ai/acceptance-updates.md) |
+| 中英文、主题抽屉与本地偏好 | [使用与扩展](03-runbooks/client-preferences.md)、[ADR-0019](adr/ADR-0019-local-preferences-i18n.md)、[验收](04-ai/acceptance-preferences.md) |
 | 修改配置、日志和生命周期 | [运行基座](02-standards/runtime.md)、[部署手册](03-runbooks/deployment.md) |
 | 打包、统一版本与部署 | [发版流程](03-runbooks/release.md)、[部署手册](03-runbooks/deployment.md)、[部署验收](04-ai/acceptance-deployment.md) |
 | 依赖安全修复与首次预览 | [安全发版记录](04-ai/acceptance-security-release.md) |
@@ -27,3 +30,8 @@ Unicore 将需求、架构、契约、Skills 和验收记录一同维护。AI �
 `make docs` 生成契约文档、AI 上下文和本地 Wiki 页面，`pnpm check:docs` 检查本地链接、Wiki 映射、命令、Skill 清单与生成漂移。`framework.manifest.json` 是机器可读的入口索引，不替代 OpenAPI、主题源或 ADR。
 
 当前实现先看 PRD、架构与 [最新开发基座验收](04-ai/acceptance-developer-kit.md)；各阶段 acceptance-* 和 ADR 保留当时的结果与决策，不把旧测试计数、旧功能限制当作当前状态。当前设计与阶段历史冲突时，以最新需求、后续 ADR 和代码为准。
+
+前端新增业务先读 [基础封装索引](03-runbooks/frontend-foundations.md)，复用布局、会话、请求、表单、反馈和双语入口。
+
+- [后端基础规范](02-standards/backend.md)：嵌入实体、三层职责、权限、分页与生命周期例外。
+- [平台公告](03-runbooks/announcements.md) · [ADR-0021](adr/ADR-0021-business-entities-announcements.md) · [验收](04-ai/acceptance-announcements.md)。

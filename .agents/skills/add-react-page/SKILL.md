@@ -36,8 +36,14 @@ metadata:
 
 pnpm typecheck、pnpm test、pnpm build；交互变更运行 make build-web test-e2e，桥接变更做原生构建。
 
-新增实体表单使用 modal.tsx，不在列表下方展开。验证初始焦点、Escape/取消、焦点返回及 pending；安装/认证页面和设置编辑按自身流程呈现。导航沿用用户管理/系统管理的独立折叠组，默认工作台概览；不恢复重复平台仪表盘。系统日志承载审计/邮件投递，模板不做设置页面；见 ADR-0014。共享 sidebar 固定视口，导航区独立滚动，验证 720px 高和 375px 宽。
+新增实体表单使用 modal.tsx，不在列表下方展开。验证初始焦点、Escape/取消、焦点返回及 pending；安装/认证页面和设置编辑按自身流程呈现。导航沿用用户管理/系统管理的独立折叠组，默认工作台概览；不恢复重复平台仪表盘。系统日志承载可筛选/排序/分页/导出的审计与邮件投递；邮件模板是系统管理独立页，复用 rich-text-editor.tsx，单层场景 Tabs；见 ADR-0020 和 docs/03-runbooks/admin-tools.md。共享 sidebar 固定视口，导航区独立滚动，验证 720px 高和 375px 宽。
 
 二级导航向内缩进并配套 Lucide/SVG 图标，全局 UI 禁止 Emoji；单机/桌面不显示用户头像。短暂操作反馈复用 message.tsx 的 useMessage（五态，默认顶部 3 秒），提交失败由 QueryScope MutationCache 统一处理，成功回调给明确文案；不在保存按钮旁插入提示。保留字段校验、可重试加载错误与完成页状态；验证消息不挤动布局、自动消失及原生 dialog 内可见。
 
 当前形态与入口以 [ADR-0016](../../../docs/adr/ADR-0016-separate-client-admin-surfaces.md) 为准：用户 main.tsx 与管理员 admin.tsx 独立入口，管理页只在 admin-app.tsx 装配，共享 Workspace/表单/消息/主题。单机/桌面仅业务和本地外观，不提供站点、品牌、SMTP、对象存储和后台。管理员公开 auth/bootstrap 只返回固定域最小投影；本人 account 需管理员会话，其余管理资源须 permissions/superAdmin，不能宽泛豁免 admin 路由。新增普通用户立即 active 并验证用户入口登录；注册默认关闭，安全页 Switch 控制且须 SMTP 测试。布尔控件用 Switch，上传用自定义拖拽弹窗与 SDK 真实阶段。
+
+本地偏好与双语遵循 [ADR-0019](../../../docs/adr/ADR-0019-local-preferences-i18n.md)：用 preferences.ts / i18n.ts 统一入口，组件订阅 useI18n 或 useLocale；新文案补英文 catalog，插值保留业务数据，不用 DOM 翻译。不要按 locale 重建表单或会话。右上 ClientControls 和 AppearanceDrawer 全入口共享，resetAppearance 保留语言；不得用实例 settings API 保存设备偏好。验证英文长标签、跨标签通知、刷新持久化、375px、全宽导航与旧 RTL 偏好恢复 LTR、Escape/回焦与原生 Wails；详见 [扩展指南](../../../docs/03-runbooks/client-preferences.md)。
+
+新增页面必须遵循 [前端基础封装](../../../docs/03-runbooks/frontend-foundations.md)：WorkspaceLayout 提供插槽，禁止页内计算侧栏 margin/宽度或复制 shell。组件用 useI18n，常量用 defineMessages，渲染时 t；中英文与实现同一变更提交。`pnpm check:i18n` 是 Web/GUI 构建和 CI 的必过项，会递归发现新目录中的中文直写与缺失英文，不得忽略或关闭。新页/标签加入英文真实页面巡检；测试 loading/empty/error/success、表单错误与消息。布局改动跑 layout.spec.ts 的组合矩阵，检查实际导航/正文矩形不重叠；工作区和主题控制面板固定 LTR；阅读方向选项已移除，旧 RTL 字段由偏好白名单忽略。
+
+邮件默认主题正文固定中文，公告/邮件编辑内容和预览均是原始业务数据，不调用 t()；UI 标签/提示仍同步双语。公告管理与用户 widget 参考 announcements-page/card，安全内容渲染复用 rich-content；禁用后不渲染用户卡片，本地形态不请求公告。

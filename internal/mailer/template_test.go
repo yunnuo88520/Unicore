@@ -23,3 +23,16 @@ func TestBrandedTemplates(t *testing.T) {
 		t.Fatal("unsafe or incorrect notification template")
 	}
 }
+
+func TestConfiguredTemplateEscaping(t *testing.T) {
+	values := map[string]string{"site.name": "<img src=x onerror=alert(1)>", "site.base_url": "https://example.test", "site.copyright": "Copyright", "mail.template.login": `{"subject":"{{site_name}} · Sign in","body":"<p>Your code: <b>{{code}}</b></p><a href=\"{{site_url}}\">Visit</a>"}`}
+	message, e := RenderConfigured(values, "login", "012345", "recipient@example.test", false, nil, nil)
+	if e != nil || !strings.Contains(message.Body, "012345") || strings.Contains(message.HTML, "onerror=alert(1)> ·") || !strings.Contains(message.HTML, `href="https://example.test"`) {
+		t.Fatal("configured render", message.Body, e)
+	}
+	values["mail.template.notification"] = `{"subject":"{{site_name}}","body":"<p>{{detail}}</p>"}`
+	message, e = RenderConfigured(values, "notification", "", "", true, nil, map[string]string{"detail": "literal {{unknown}} <script>bad</script>"})
+	if e != nil || strings.Contains(message.HTML, "<script>bad") || !strings.Contains(message.Body, "{{unknown}}") {
+		t.Fatal("business content was reinterpreted", e)
+	}
+}

@@ -67,7 +67,7 @@ func (r *Repository) QueueEmailChallenge(ctx context.Context, email string, c pl
 	if err = r.codeAndMail(ctx, tx, user, c); err != nil {
 		return err
 	}
-	if err = r.Store.Audit(ctx, tx, user, "auth."+c.Purpose+".requested"); err != nil {
+	if err = r.audit(ctx, tx, user, "auth."+c.Purpose+".requested"); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -134,7 +134,7 @@ func (r *Repository) ConsumeEmailChallenge(ctx context.Context, id, purpose, dig
 	if err = r.cancelTokens(ctx, tx, user, cancelPurpose); err != nil {
 		return contracts.User{}, err
 	}
-	if err = r.Store.Audit(ctx, tx, user, "auth."+purpose+".completed"); err != nil {
+	if err = r.audit(ctx, tx, user, "auth."+purpose+".completed"); err != nil {
 		return contracts.User{}, err
 	}
 	result, err := r.user(ctx, tx, user)

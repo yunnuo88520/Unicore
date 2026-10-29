@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm -w design:generate && vite --host 127.0.0.1 --port 5174 --strictPort",
-    "build": "pnpm -w design:generate && vite build"
+    "build": "pnpm -w check:i18n && pnpm -w design:generate && vite build"
   },
   "dependencies": {
     "@unicore/sdk": "workspace:*",

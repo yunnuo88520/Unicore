@@ -17,6 +17,7 @@ HTTP / Wails → usecase.Notes → domain.Note / NoteRepository port → SQL ada
 | internal/install | 安装状态/凭据/恢复、DB 配置加密、按 profile 装配 |
 | internal/platform | Argon2id、会话、权限策略、限流/验证码与 identity ports |
 | internal/settings | Definition 注册、类型/范围校验与持久化 port |
+| internal/mailcontent / audit | 受限邮件内容、变量转义 / 服务端审计元数据 context |
 | internal/secret | AES-256-GCM 与受限密钥/原子配置文件 |
 | adapter/storage/sqlstore | 无驱动/身份依赖的 SQL、迁移、设置与审计基础 |
 | adapter/storage/platformsql | 平台身份 SQL 实现 |
@@ -31,6 +32,8 @@ HTTP / Wails → usecase.Notes → domain.Note / NoteRepository port → SQL ada
 `UNINITIALIZED → INSTALLING → INSTALLED`，失败为 INSTALL_FAILED。私有 data dir 使用跨平台 flock；token 首次由文件/环境提供；换新 API 必须验证当前凭据，只返回新值。准备操作先持久化 intent；确认空库或显式清空目标成功、保存 schema ownership 后才迁移。非空库必须独立勾选和精确库名确认，外部已安装数据库始终拒绝，失败重试不能绕过此检查。DB 的 install_state 与默认设置/管理员同一事务提交。重启恢复以唯一 DB 安装标记和实例 ID 为依据；profile 与实例不匹配拒绝接管。INSTALLED 后数据库或标记缺失在迁移前拒绝，不回到安装状态。结构化连接字段、默认 MySQL、自动 origin 和清空边界见 [ADR-0013](../adr/ADR-0013-installation-experience.md)。
 
 SQLite 使用 WAL、5 秒 busy timeout、单连接；PostgreSQL/MySQL 使用 bounded pool。分方言迁移嵌入二进制，版本 checksum 不可修改。SQLite/PostgreSQL DDL 事务；MySQL DDL 隐式提交，采用幂等 SQL，完全成功再记录版本。只创建本 profile 所需表；不自动回滚或 drop 数据。M2b 平台新增 0003 的 account_tokens/mail_jobs，M2a 迁移 checksum 不变，单机/桌面停留 framework。此为历史 M2b 边界；当前离线工具见 ADR-0017。
+
+SQLite adapter 统一将文件路径绝对化并生成空 authority、正确转义的 file URI；Windows 盘符保留在路径中，避免 file://C:/ 被解析成主机名。Windows 普通桌面启动失败使用原生对话框报告，无 schema 或存量数据迁移。CI 在 Windows 原生 runner 实际打开 Wails、读取渲染内容并重启同一隔离数据目录，再验证失败提示；测试与产物来源见 [更新验收](../04-ai/acceptance-updates.md)。
 
 ## 认证与 API
 
@@ -86,7 +89,7 @@ routes.ts 集中管理员菜单/直达页守卫，settings-page.tsx 将平台本
 
 [ADR-0009](../adr/ADR-0009-runtime-branding.md) 定义共享 internal/branding、私有规范化 PNG 与 DB 托管引用。管理端使用生成 DTO，通过 AppClient 驱动品牌预览/保存/恢复面板；本地形态使用构建品牌；BrandProvider 覆盖工作台和账号分支。平台公开当前哈希图片；Wails 不装配运行时品牌桥接，无 HTTP 模拟。邮件创建时快照图片字节到加密队列，SMTP CID 和预览同源；存储/清理顺序与恢复边界见 [需求](../00-product/feature-branding.md)。
 
-[ADR-0010](../adr/ADR-0010-settings-edition.md) 补齐 ICP/别名/ICO/内部系统通知队列。internal/edition 按 license/updater tags 编译两个未来接入 port；Vite 编译常量裁剪对应卡片，默认均关闭。当前开启仅显示待接入状态，没有授权/版本 HTTP handler 或 OTA 行为。设置矩阵见 [规范](../00-product/feature-settings.md)。
+[ADR-0010](../adr/ADR-0010-settings-edition.md) 补齐 ICP/别名/ICO/内部系统通知队列。授权仍由 license tag 默认关闭；更新以 [ADR-0018](../adr/ADR-0018-signed-updates.md) 取代占位，updater tag 默认通过 Make 开启。internal/updates 隔离 Provider/Cache/Installer ports，adapter/updatechannel 与 updateinstall 分别实现渠道和安全安装，bootstrap/updating 按形态装配。HTTP 使用窄 updateport 并独立鉴权，原生 bridge 直接调用。内置日志、私有缓存、签名清单和 helper 原子切换不依赖平台身份模块；CLI 不装配。设置矩阵见 [规范](../00-product/feature-settings.md)。
 
 版本与交付由 VERSION → scripts/version.mjs → 各端投影，Docker/归档读取相同元数据。Nginx 仅直接处理指纹资源，其余请求交 Go 保持安装/身份/动态品牌边界；详见 [ADR-0011](../adr/ADR-0011-release-deployment.md)。
 
@@ -111,3 +114,19 @@ React 的独立可折叠导航、共享原生 dialog、头像密码/退出、邮
 单机/桌面仅业务与本地外观，SettingDefinition 非平台只允许 appearance，旧站点/品牌记录不再使用。原生品牌由构建源生成；Wails 不再暴露 Branding/UpdateBranding。上传组件与两端 shell 共用，SDK 只提供真实阶段回调。
 
 开发基座与离线维护见 [ADR-0017](../adr/ADR-0017-developer-kit-business-backup.md)：notes usecase/SQL port 共享到 HTTP 与原生桥接，业务账本独立；cmd/ops 在实例锁边界做加密备份和新目标恢复，不进入业务 CLI。
+
+更新没有数据库变更。Tar/GUI 只接受相同迁移级别的签名包，helper 等待 instance.lock、原子交换程序并检查 nonce/version，失败恢复程序。Docker 不修改自身 binary。版本签名与系统签名独立，运行/清理/恢复边界见 [更新手册](../03-runbooks/updates.md)。
+
+## 客户端偏好与双语
+
+[ADR-0019](../adr/ADR-0019-local-preferences-i18n.md)：preferences.ts 白名单管理版本化本地状态与跨标签通知，theme.ts 统一应用生成 tokens、dataset、lang/dir 与系统主题；i18n.ts/locale catalog 只翻译界面文案。Workspace、安装、登录和 Wails 复用 ClientControls 与原生 dialog 抽屉；不在 locale 切换时重建会话、查询缓存或表单。版本气泡仅对有权限的 bootstrap 展示并读取本地更新概览。无 API/数据库迁移，CLI 不受影响。
+
+共享前端结构由 WorkspaceLayout 单独拥有，navigation/header/content/overlays 为内容插槽，几何规则集中 workspace-layout.css；styles.css 是所有 shell 共用的样式入口。布局、侧栏和内容宽度不再由业务页面各自设置偏移。check:i18n 在 Web/GUI 构建与 CI 中验证翻译来源；工作区与主题控制面板统一 LTR；阅读方向选项已移除，旧 RTL 偏好忽略。
+
+## 审计快照与配置化邮件
+
+[ADR-0020](../adr/ADR-0020-audit-mail-templates.md) 定义平台 audit_metadata 追加表与 schema10，保留 audit_logs 的历史记录；真实连接/身份/操作目标通过服务端 context 传给存储，参数绑定和固定排序支持查询、分页与有上限的 CSV。mail.template.* 在 SettingDefinition 注册，只通过管理员专用 API 校验/保存。独立 mailcontent 统一变量与受限 HTML，mailer 使预览、六位码、通知和测试一致；新邮件入队时快照，不读取未保存草稿。以上都不进入单机/桌面/CLI 组合。
+
+## 业务实体与公告
+
+[ADR-0021](../adr/ADR-0021-business-entities-announcements.md) 统一嵌入式 BaseEntity、软删除/版本及实体/DTO 映射，完整分层示例为公告模块；平台 schema=11、business=2。公告仅平台装配，admin/user 固定接口与最小用户投影，写事务重查管理员，安全 Markdown/HTML 通过渲染 port 接入。规范与例外见 [backend.md](../02-standards/backend.md)。

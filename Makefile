@@ -4,7 +4,7 @@ override VERSION := $(shell cat VERSION)
 COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)
 BUILD_TIME := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 FEATURE_LICENSE ?= false
-FEATURE_UPDATER ?= false
+FEATURE_UPDATER ?= true
 RELEASE_TARGETS ?= linux/amd64,linux/arm64,darwin/amd64,darwin/arm64,windows/amd64,windows/arm64
 RELEASE_PROFILES ?= web-platform,web-standalone,cli
 export FEATURE_LICENSE FEATURE_UPDATER
@@ -27,6 +27,7 @@ dev-desktop: check-features
 dev-cli:
 	go run ./cmd/cli $(ARGS)
 generate:
+	node scripts/update-history.mjs
 	pnpm design:generate
 docs: generate
 	pnpm ai:context
@@ -36,17 +37,20 @@ wiki:
 wiki-publish:
 	pnpm wiki:publish
 test:
+	node scripts/update-history.mjs --check
 	pnpm check:version
 	node scripts/test-version.mjs
 	pnpm test:tooling
 	node scripts/build-features.mjs
 	pnpm check:docs
 	pnpm check:design
+	pnpm check:i18n
 	pnpm check:contracts
 	pnpm check:authors
 	go run ./scripts/check-boundaries
 	go vet ./...
 	go test -race ./...
+	go test -race -tags updater ./cmd/server ./internal/adapter/http ./internal/adapter/desktop
 	pnpm typecheck
 	pnpm test
 test-e2e:
@@ -93,3 +97,7 @@ test-upgrade:
 	UPGRADE_FROM_REF='$(FROM_REF)' node scripts/test-upgrade.mjs
 test-deploy:
 	node scripts/test-deployment.mjs
+
+# Native credentials are optional for previews; required mode fails closed.
+sign-desktop:
+	node scripts/platform-sign.mjs

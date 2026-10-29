@@ -56,8 +56,25 @@
     "frameworkUpgrade": "docs/03-runbooks/framework-upgrade.md",
     "contributing": "CONTRIBUTING.md",
     "community": "docs/03-runbooks/open-source.md",
-    "currentAcceptance": "docs/04-ai/acceptance-developer-kit.md",
-    "wiki": "docs/wiki/README.md"
+    "currentAcceptance": "docs/04-ai/acceptance-announcements.md",
+    "wiki": "docs/wiki/README.md",
+    "updates": "internal/updates/service.go",
+    "updateTrust": "assets/updates/config.json",
+    "updateHistory": "assets/updates/history.gen.json",
+    "systemUpdates": "docs/03-runbooks/updates.md",
+    "clientPreferences": "packages/web-ui/src/preferences.ts",
+    "i18n": "packages/web-ui/src/i18n.ts",
+    "clientAppearance": "docs/03-runbooks/client-preferences.md",
+    "workspaceLayout": "packages/web-ui/src/workspace-layout.tsx",
+    "frontendFoundations": "docs/03-runbooks/frontend-foundations.md",
+    "i18nGate": "scripts/check-i18n.mjs",
+    "adminTools": "docs/03-runbooks/admin-tools.md",
+    "auditMetadata": "internal/audit/context.go",
+    "mailContent": "internal/mailcontent/template.go",
+    "richTextEditor": "packages/web-ui/src/rich-text-editor.tsx",
+    "backendStandards": "docs/02-standards/backend.md",
+    "baseEntity": "internal/domain/entity.go",
+    "announcements": "docs/03-runbooks/announcements.md"
   },
   "commands": {
     "generate": "pnpm generate",
@@ -75,7 +92,9 @@
     "devDependencies": "make dev-deps-up",
     "wiki": "make wiki",
     "wikiPublish": "make wiki-publish",
-    "packageDesktop": "make package-desktop"
+    "packageDesktop": "make package-desktop",
+    "signDesktop": "make sign-desktop",
+    "i18n": "pnpm check:i18n"
   },
   "skills": [
     "add-api-operation",

@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 产品基线与当前范围
 
-Unicore · yunnuo / ymz@ebox.vip。完整目标见 [design-v1.1.md](design-v1.1.md)。当前基线包含多形态业务基座、平台双入口/固定身份、统一私有文件存储和可派生开发工具，仍为开发预览，不等同完整 v1。当前规则以本表及 ADR-0012～0017 为准，旧里程碑在下方保留为历史。
+Unicore · yunnuo / ymz@ebox.vip。完整目标见 [design-v1.1.md](design-v1.1.md)。当前基线包含多形态业务基座、平台双入口/固定身份、统一私有文件存储和可派生开发工具，仍为开发预览，不等同完整 v1。当前规则以本表及 ADR-0012～0021 为准，旧里程碑在下方保留为历史。
 
 基础能力本轮收尾：统一会话/缓存边界、路由/表单、契约文档/校验、运行配置/观测与 AI 开发入口，当前范围见 [基础能力审计](../04-ai/foundation-audit.md) 和 [验收](../04-ai/acceptance-ai-foundations.md)。
 
@@ -14,6 +14,8 @@ Unicore · yunnuo / ymz@ebox.vip。完整目标见 [design-v1.1.md](design-v1.1.
 | 数据库 | MySQL/PostgreSQL 推荐；小型 SQLite 可选 | MySQL/PostgreSQL 推荐；SQLite 可选 | SQLite | 禁止强依赖 |
 | 登录/RBAC/用户管理/固定两角色 | 已实现，管理员/普通用户 | 不装配 | 不装配 | 不装配 |
 | 持久化设置 | 全局仅管理端；外观仅本客户端 | 仅外观 | 仅外观 | 不装配 |
+| 操作日志筛选/分页/CSV、可配置邮件模板 | 已实现，仅管理员 | 不装配 | 不装配 | 不装配 |
+| 平台公告发布/开关、用户工作台展示 | 已实现，管理/读取接口分域 | 不装配 | 不装配 | 不装配 |
 | SMTP / 六位验证码注册、登录、找回密码 | 已实现，需测试 SMTP 后显式启用 | 不装配 | 不装配 | 不装配 |
 | 统一设计源 / Logo、ICO、原生图标 | 已实现 | 已实现 | 已实现，macOS 实测 | 不适用 |
 | AI 文档/Skills/契约生成与检查 | 已实现 | 已实现 | 已实现 | 已实现 |
@@ -21,9 +23,10 @@ Unicore · yunnuo / ymz@ebox.vip。完整目标见 [design-v1.1.md](design-v1.1.
 | 实例品牌上传/恢复默认 | 已实现，仅管理端 | 构建品牌 | 构建品牌 | 不适用 |
 | 文件/对象存储、直传与临时访问 | 已实现，本地默认；MinIO 真实云验收 | 不装配 | 不装配 | 不装配 |
 | 备案页脚 / SMTP 别名 / 系统通知 port | 已实现 | 不提供全局配置 | 不提供全局配置 | 不适用 |
-| 授权/升级占位及编译裁剪 | 已实现，默认关闭 | 不提供管理页 | 不提供管理页 | 不装配 |
+| 授权占位及编译裁剪 | 默认关闭，管理员 | 不装配 | 不装配 | 不装配 |
 | 离线加密备份恢复 | 已实现，独立 ops | 已实现，独立 ops | 已实现，独立 ops | 不装配 |
-| 正式签名发布 / OTA | 后续 | 后续 | 后续 | 不适用 |
+| 签名 OTA / 离线版本日志 | 管理员；Tar 更新，Docker 仅检查 | loopback；Tar 更新 | 原生更新 | 不装配 |
+| 系统签名 / 公证 | 发行流程已接入，等待开发者凭据 | 同左 | 同左 | 不适用 |
 
 MIT、创建器、doctor、文档/Skills 和候选发版随源码分发；GitHub 设置与首次公开发行另见 [开源维护](../03-runbooks/open-source.md)。最近三数据库、页面、部署及原生验证见 [开发基座验收](../04-ai/acceptance-developer-kit.md)。
 
@@ -45,9 +48,9 @@ M2c：主题、字号/字体、圆角、间距、图标线宽、动效集中配�
 
 当前权限：M2d 业务角色由固定管理员/普通用户方案取代。菜单、页面和全部管理 API 仅管理员；普通用户可使用 Core、本人账号和本地外观，不能读取全局设置。角色/状态变化撤销会话与验证码，最后管理员受保护。迁移 0007 规范旧角色并撤销存量凭据；见 [角色需求](feature-roles.md)、[ADR-0012](../adr/ADR-0012-fixed-platform-roles.md) 和 [验收](../04-ai/acceptance-permissions.md)。
 
-设置按业务域 Tabs 展示，保持单层标签，品牌用三张卡片、外观复用主题预览卡片并移除侧栏重复入口，保留草稿并只保存当前分组，减少页面滚动。设置清单补齐：ICP/独立发件人别名、ICO favicon、共用系统通知模板和内部队列；授权/升级仅编译开关与待接入占位，不执行真实检查或更新。具体范围见 [设置需求](feature-settings.md) 与 [设置验收](../04-ai/acceptance-settings.md)。
+设置按业务域 Tabs 展示，保持单层标签，品牌用三张卡片、外观复用主题预览卡片并移除侧栏重复入口，保留草稿并只保存当前分组，减少页面滚动。设置清单补齐：ICP/独立发件人别名、ICO favicon、共用系统通知模板和内部队列；授权仍为编译占位；升级以 ADR-0018 的签名 OTA 与内置日志取代占位。具体范围见 [设置需求](feature-settings.md) 与 [设置验收](../04-ai/acceptance-settings.md)。
 
-交付基座：VERSION 单源生成各端版本、Changelog 准备、按 target/profile 快速归档和镜像/Compose 入口。Nginx 保留安装/后台/品牌路由边界；实际运行范围见 [部署验收](../04-ai/acceptance-deployment.md) 与 [ADR-0011](../adr/ADR-0011-release-deployment.md)。正式签名、自动发布和 OTA 仍为后续；离线备份恢复见 ADR-0017。
+交付基座：VERSION 单源生成各端版本、Changelog 准备、按 target/profile 快速归档和镜像/Compose 入口。Nginx 保留安装/后台/品牌路由边界；实际运行范围见 [部署验收](../04-ai/acceptance-deployment.md) 与 [ADR-0011](../adr/ADR-0011-release-deployment.md)。签名 OTA 与可配置系统签名/公证流程见 [更新需求](feature-updates.md)，公开发布仍需授权，实际开发者凭据待提供；离线备份恢复见 ADR-0017。
 
 首次安装改为 MySQL 默认、结构化数据库字段、三方言连接测试、非空库精确确认初始化；自动记录访问 origin，凭据可经当前凭据验证后换新，已安装实例缺失 DB/标记时拒绝启动。需求见 [安装规范](feature-installation.md)，三数据库/PC/375px/重启证据见 [安装验收](../04-ai/acceptance-installation.md)。
 
@@ -60,3 +63,17 @@ M2c：主题、字号/字体、圆角、间距、图标线宽、动效集中配�
 当前页面/API 分离以 [ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md) 为准。管理端独立 HTML 入口与 admin API；用户端只有个人业务、文件、账号和本地外观。单机/桌面不提供任何全局配置页面或运行时品牌修改。
 
 开发基座增量以 [ADR-0017](../adr/ADR-0017-developer-kit-business-backup.md) 为准：MIT、源码创建器/doctor/开发依赖、三种有 DB 形态的笔记纵向样板、独立业务迁移、离线加密备份恢复与手动发布候选。当前状态与实测边界见 [开发基座验收](../04-ai/acceptance-developer-kit.md)。
+
+## 客户端语言与外观
+
+Web 用户/管理员、单机和桌面共用中英文切换、明暗快捷按钮与右侧主题抽屉。配色、圆角、密度、侧栏、布局与内容宽度即时生效，仅保存在当前客户端；重置外观保留语言，不影响业务草稿或全局设置。版本气泡使用统一版本源与状态点，普通在线用户不显示版本或请求更新。详见 [ADR-0019](../adr/ADR-0019-local-preferences-i18n.md)、[扩展指南](../03-runbooks/client-preferences.md) 与 [验收](../04-ai/acceptance-preferences.md)。
+
+布局切换必须保持导航与正文互不遮挡；阅读方向选项已移除，工作区固定 LTR 并忽略旧 RTL 偏好；主题抽屉内部顺序固定。新增界面的中英文是交付条件，由构建检查拒绝中文直写、缺失英文词条及插值不一致。前端基础封装和验收入口见 [使用约定](../03-runbooks/frontend-foundations.md)。
+
+## 管理工具增量
+
+当前操作日志与独立邮件模板规则以 [ADR-0020](../adr/ADR-0020-audit-mail-templates.md) 为准，取代历史“模板仅内部生成”与最近 50 条日志限制。在线平台管理员可筛选/分页/导出审计、编辑实际发送内容；全局配置读写仍受后端权限与 CSRF 保护。平台 schema 为 10，跨 schema 升级需备份并人工部署，详见 [管理工具手册](../03-runbooks/admin-tools.md)。
+
+## 平台公告与后端约定
+
+平台管理员通过独立公告页管理草稿、定时发布、备注及展示开关；普通用户仅在工作台读取有效发布内容，平台默认启用，其他形态无公告。详见 [公告](../03-runbooks/announcements.md)、[后端基础规范](../02-standards/backend.md) 与 [ADR-0021](../adr/ADR-0021-business-entities-announcements.md)。邮件默认中文业务内容不随 UI 语言切换；操作详情不得重复类型。

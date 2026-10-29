@@ -1,6 +1,8 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # ADR-0010：补齐设置并在编译期裁剪授权/升级占位
 
+> 升级占位部分由 [ADR-0018](ADR-0018-signed-updates.md) 的签名 OTA 取代，其余决策继续适用。
+
 状态：接受 · 日期：2026-10-27 · 作者：yunnuo / ymz@ebox.vip
 
 设置清单审计发现缺少 ICP、独立发件人名、ICO 上传和版本授权占位。补齐这些边界，继续使用统一设置注册表、OpenAPI bootstrap、AppClient 和同源设计，不引入第二套配置或 schema。

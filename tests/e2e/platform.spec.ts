@@ -30,6 +30,7 @@ test('first-install platform wizard, users, settings, logout and captcha login',
   for (const [name, slug] of [['工作台概览', 'overview'], ['核心实验室', 'lab'], ['基础设置', 'site'], ['系统日志', 'logs']] as const) {
     await nav(name); await capture(page, info, slug);
   }
+  if(info.project.name==='mobile') await page.getByRole('button',{name:'打开导航',exact:true}).click();
   await page.getByRole('button', { name: '关于 Unicore', exact: true }).click();
   await expect(page.getByRole('dialog')).toBeVisible(); await capture(page, info, 'about');
   await page.getByRole('button', { name: '关闭关于' }).click();

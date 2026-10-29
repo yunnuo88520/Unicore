@@ -11,7 +11,7 @@ env.UNICORE_IMAGE ??= `${JSON.parse(readFileSync('package.json', 'utf8')).name}:
 const action = process.argv[2];
 if (action === 'build') {
   const args = ['build','-f','deploy/docker/Dockerfile','-t',env.UNICORE_IMAGE];
-  for (const [key, value] of Object.entries({ VERSION: version, COMMIT: env.UNICORE_COMMIT, BUILD_TIME: env.UNICORE_BUILD_TIME, FEATURE_LICENSE: env.FEATURE_LICENSE ?? 'false', FEATURE_UPDATER: env.FEATURE_UPDATER ?? 'false' })) args.push('--build-arg', `${key}=${value}`);
+  for (const [key, value] of Object.entries({ VERSION: version, COMMIT: env.UNICORE_COMMIT, BUILD_TIME: env.UNICORE_BUILD_TIME, FEATURE_LICENSE: env.FEATURE_LICENSE ?? 'false', FEATURE_UPDATER: env.FEATURE_UPDATER ?? 'true' })) args.push('--build-arg', `${key}=${value}`);
   for (const key of ['GO_IMAGE','NODE_IMAGE','RUNTIME_IMAGE','GOPROXY']) if (env[key]) args.push('--build-arg',`${key}=${env[key]}`);
   if (env.DOCKER_PLATFORM) args.push('--platform',env.DOCKER_PLATFORM);
   execFileSync('docker',[...args,'.'],{stdio:'inherit',env});

@@ -89,6 +89,17 @@ func exerciseNotes(t *testing.T, ctx context.Context, store *sqlstore.Store) {
 	if err = n.Delete(ctx, "user/example", created.ID, 2); err != nil {
 		t.Fatal(err)
 	}
+	var removedAt, version int
+	if err = store.Row(ctx, store.DB, "SELECT deleted_at,version FROM example_notes WHERE scope_key=? AND id=?", "user/example", created.ID).Scan(&removedAt, &version); err != nil || removedAt == 0 || version != 3 {
+		t.Fatal("soft deletion", removedAt, version, err)
+	}
+	if _, err = n.Update(ctx, "user/example", created.ID, update); !errors.Is(err, usecase.ErrNoteNotFound) {
+		t.Fatal("deleted note update", err)
+	}
+	list, err = n.List(ctx, "user/example", q)
+	if err != nil || list.Total != 0 {
+		t.Fatal("deleted note listed", list, err)
+	}
 	var audit int
 	if err = store.Row(ctx, store.DB, "SELECT COUNT(*) FROM audit_logs WHERE actor_id=? AND action IN ('notes.created','notes.updated','notes.deleted')", "user/example").Scan(&audit); err != nil || audit != 24 {
 		t.Fatal("audit", audit, err)

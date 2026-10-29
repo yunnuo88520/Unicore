@@ -1,7 +1,7 @@
 //go:build !updater
 
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Open-source default excludes the release integration port.
+// Description: Build without the signed update integration.
 package edition
 
 const Updater = false

@@ -1,13 +1,13 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Shared UI client; pages know neither fetch nor Wails globals.
  */
-import type { NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
+import type { AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
 import { operations, type OperationId, type OperationInputs, type OperationData } from '@unicore/contracts/operations';
 import { validate, type SchemaName } from '@unicore/contracts/validate';
 export { validate, type SchemaName } from '@unicore/contracts/validate';
 export { operations, type OperationId } from '@unicore/contracts/operations';
 
-export type { NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
+export type { AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateRelease, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
 
 export class AppError extends Error {
   constructor(public readonly code: string, message: string, public readonly requestId = '', public readonly fields: Record<string, string> = {}) { super(message); this.name = 'AppError'; }
@@ -18,7 +18,14 @@ export type RequestOptions = { signal?: AbortSignal };
 export type UploadOptions = RequestOptions & { onStage?: (stage: 'uploading' | 'confirming') => void };
 export type OperationOptions = RequestOptions & { timeoutMs?:number; params?: Record<string, string>; query?: Record<string, string | number>; headers?: Record<string, string> };
 
+export interface UpdateClient {
+ overview():Promise<UpdateOverview>;
+ check():Promise<UpdateOverview>;
+ apply(input:UpdateApplyInput):Promise<UpdateJob>;
+}
+
 export interface AppClient {
+ updates?:UpdateClient;
   readonly transport: 'http' | 'wails';
   readonly sessionScope?: 'user' | 'administrator';
   bootstrap(options?: RequestOptions): Promise<Bootstrap>;
@@ -60,6 +67,15 @@ export interface StorageClient {
 }
 
 export interface WebClient {
+ adminAnnouncements(query:AnnouncementQuery):Promise<AnnouncementList>;
+ createAnnouncement(input:AnnouncementInput):Promise<AnnouncementEntry>;
+ updateAnnouncement(id:string,input:AnnouncementUpdate):Promise<AnnouncementEntry>;
+ deleteAnnouncements(items:AnnouncementSelection[]):Promise<{success:boolean}>;
+ saveAnnouncementSettings(enabled:boolean):Promise<{enabled:boolean}>;
+ previewAnnouncement(input:AnnouncementInput):Promise<{content_html:string}>;
+ announcements(page?:number,pageSize?:number):Promise<AnnouncementFeed>;
+ announcement(id:string):Promise<AnnouncementPublic>;
+
   oidcInfo(): Promise<OIDCInfo>;
   oidcAccount(): Promise<OIDCInfo>;
   oidcStart(): Promise<OIDCStart>;
@@ -70,6 +86,10 @@ export interface WebClient {
  requestCode(purpose:"verify"|"reset"|"login",input:EmailRequest):Promise<EmailChallenge>;
  completeCode(purpose:"verify"|"reset"|"login",input:EmailCodeInput):Promise<Session|{success:boolean}>;
  mailTemplates():Promise<MailTemplateList>;
+ saveMailTemplate(input:MailTemplateInput):Promise<MailTemplate>;
+ previewMailTemplate(input:MailTemplateInput):Promise<MailTemplate>;
+ resetMailTemplate(purpose:MailTemplateInput['purpose']):Promise<MailTemplate>;
+ testMailTemplate(input:MailTemplateTestInput):Promise<{success:boolean}>;
  authPolicy(): Promise<AuthPolicy>;
  register(input:RegisterInput):Promise<{success:boolean}>;
  requestVerification(input:EmailRequest):Promise<{success:boolean}>;
@@ -85,7 +105,8 @@ export interface WebClient {
   captcha(): Promise<Captcha>;
   login(input: LoginInput): Promise<Session>;
   logout(): Promise<{ success: boolean }>;
-  systemLogs(): Promise<AuditLogList>;
+  systemLogs(query?:AuditLogQuery): Promise<AuditLogList>;
+ exportSystemLogs(query:AuditLogQuery):Promise<AuditLogExport>;
  changePassword(input:ChangePasswordInput):Promise<{success:boolean}>;
  administrators(search:string,page:number):Promise<UserList>;
  createAdministrator(input:UserCreate):Promise<User>;
@@ -103,6 +124,7 @@ function unwrap<T>(response: { code: string; message: string; data: T; request_i
 }
 
 const administratorOperations: Partial<Record<OperationId, OperationId>> = {
+ updateOverview:"adminUpdateOverview",checkUpdate:"adminCheckUpdate",applyUpdate:"adminApplyUpdate",
   "bootstrap": "adminBootstrap",
   "listNotes": "adminListNotes",
   "createNote": "adminCreateNote",
@@ -137,6 +159,7 @@ const administratorOperations: Partial<Record<OperationId, OperationId>> = {
 
 export class HttpTransport implements AppClient, WebClient, FileClient, StorageClient {
   readonly transport = 'http' as const;
+ readonly updates:UpdateClient={overview:()=>this.call('updateOverview'),check:()=>this.call('checkUpdate',undefined,{headers:{'Content-Type':'application/json'},timeoutMs:20000}),apply:input=>this.call('applyUpdate',input)};
   readonly notes:NoteClient=this;
   readonly web: WebClient = this;
  readonly files:FileClient=this;
@@ -205,7 +228,15 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
     return data;
   }
   execute(input: ExecuteInput, options?: RequestOptions) { return this.call('execute', input, options); }
-  oidcInfo() { return this.call('oidcInfo'); }
+  adminAnnouncements(query:AnnouncementQuery){return this.call('adminAnnouncements',undefined,{query:{...query}});}
+ createAnnouncement(input:AnnouncementInput){return this.call('createAnnouncement',input);}
+ updateAnnouncement(id:string,input:AnnouncementUpdate){return this.call('updateAnnouncement',input,{params:{id}});}
+ deleteAnnouncements(items:AnnouncementSelection[]){return this.call('deleteAnnouncements',{items});}
+ saveAnnouncementSettings(enabled:boolean){return this.call('saveAnnouncementSettings',{enabled});}
+ previewAnnouncement(input:AnnouncementInput){return this.call('previewAnnouncement',input);}
+ announcements(page=1,pageSize=5){return this.call('announcements',undefined,{query:{page,page_size:pageSize}});}
+ announcement(id:string){return this.call('announcement',undefined,{params:{id}});}
+ oidcInfo() { return this.call('oidcInfo'); }
   oidcAccount() { return this.call('oidcAccount'); }
   oidcStart() { return this.call('oidcStart'); }
   oidcLink(password: string) { return this.call('oidcLink', {password}); }
@@ -215,6 +246,10 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
  requestCode(purpose:'verify'|'reset'|'login',input:EmailRequest){return this.call(purpose==='login'?'requestEmailLogin':purpose==='reset'?'requestEmailReset':'requestEmailVerify',input);}
  async completeCode(purpose:'verify'|'reset'|'login',input:EmailCodeInput){const result=await this.call(purpose==='login'?'completeEmailLogin':purpose==='reset'?'completeEmailReset':'completeEmailVerify',input);if('csrf_token' in result){this.csrf=result.csrf_token;this.identity=result.user.id;this.authenticated=true;this.sessionChanged('authenticated');}return result;}
  mailTemplates(){return this.call('mailTemplates');}
+ saveMailTemplate(input:MailTemplateInput){return this.call('saveMailTemplate',input);}
+ previewMailTemplate(input:MailTemplateInput){return this.call('previewMailTemplate',input);}
+ resetMailTemplate(purpose:MailTemplateInput['purpose']){return this.call('resetMailTemplate',{purpose});}
+ testMailTemplate(input:MailTemplateTestInput){return this.call('testMailTemplate',input);}
  authPolicy(){return this.call('authPolicy');}
  register(input:RegisterInput){return this.call('register',input);}
  requestVerification(input:EmailRequest){return this.call('requestVerification',input);}
@@ -230,7 +265,8 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   captcha() { return this.call('captcha'); }
   async login(input: LoginInput) { const session = await this.call('login', input); this.csrf = session.csrf_token; this.identity = session.user.id; this.authenticated = true; this.sessionChanged('authenticated'); return session; }
   async logout() { const data = await this.call('logout'); this.csrf = ''; this.identity = ''; this.authenticated = false; this.sessionChanged('signed-out'); return data; }
-  systemLogs(){return this.call('systemLogs');}
+  systemLogs(query?:AuditLogQuery){return this.call('systemLogs',undefined,{query:query?{...query}:undefined});}
+ exportSystemLogs(query:AuditLogQuery){return this.call('exportSystemLogs',undefined,{query:{...query}});}
  async changePassword(input:ChangePasswordInput){const result=await this.call('changePassword',input);this.csrf='';this.identity='';this.authenticated=false;this.sessionChanged('password-changed');return result;}
  administrators(search:string,page:number){return this.call('listAdministrators',undefined,{query:{search,page}});}
  createAdministrator(input:UserCreate){return this.call('createAdministrator',input);}
@@ -279,6 +315,9 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
 }
 
 export interface DesktopBridge {
+ Updates?():Promise<UpdateOverviewResponse>;
+ CheckUpdate?():Promise<UpdateOverviewResponse>;
+ ApplyUpdate?(input:UpdateApplyInput):Promise<UpdateJobResponse>;
   ListNotes?(query:NoteQuery):Promise<NoteListResponse>;
   CreateNote?(input:NoteInput):Promise<NoteResponse>;
   UpdateNote?(id:string,input:NoteUpdate):Promise<NoteResponse>;
@@ -291,6 +330,11 @@ export interface DesktopBridge {
 
 export class WailsTransport implements AppClient {
   readonly transport = 'wails' as const;
+ readonly updates:UpdateClient={
+ overview:async()=>{const m=this.bridge().Updates;if(!m)throw new AppError('NOT_AVAILABLE','此版本未启用系统更新');return unwrap(await m());},
+ check:async()=>{const m=this.bridge().CheckUpdate;if(!m)throw new AppError('NOT_AVAILABLE','此版本未启用系统更新');return unwrap(await m());},
+ apply:async input=>{const m=this.bridge().ApplyUpdate;if(!m)throw new AppError('NOT_AVAILABLE','此版本未启用系统更新');return unwrap(await m(input));}
+ };
   readonly notes:NoteClient=this;
   async listNotes(q:NoteQuery) { const method=this.bridge().ListNotes; if(!method)throw new AppError('NOT_AVAILABLE','笔记存储未初始化');return unwrap(await method(q)); }
   async createNote(input:NoteInput) { const method=this.bridge().CreateNote;if(!method)throw new AppError('NOT_AVAILABLE','笔记存储未初始化');return unwrap(await method(input)); }

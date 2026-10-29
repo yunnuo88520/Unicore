@@ -4,12 +4,11 @@ package usecase
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/domain"
 	"strings"
+	"time"
 	"unicode/utf8"
 )
 
@@ -28,7 +27,7 @@ type Notes struct {
 }
 
 func (n *Notes) List(ctx context.Context, scope string, q contracts.NoteQuery) (contracts.NoteList, error) {
-	if scope == "" || q.Page < 1 || q.Page > 100000 || utf8.RuneCountInString(q.Search) > 128 || (q.Status != "" && q.Status != "open" && q.Status != "done") || (q.Sort != "title" && q.Sort != "updated_at") || (q.Direction != "asc" && q.Direction != "desc") {
+	if scope == "" || !domain.ValidPage(q.Page, 20) || utf8.RuneCountInString(q.Search) > 128 || (q.Status != "" && q.Status != "open" && q.Status != "done") || (q.Sort != "title" && q.Sort != "updated_at") || (q.Direction != "asc" && q.Direction != "desc") {
 		return contracts.NoteList{}, domain.ErrNoteInvalid
 	}
 	return n.Repo.List(ctx, scope, q)
@@ -73,10 +72,4 @@ func (n *Notes) Delete(ctx context.Context, scope, id string, version int) error
 	}
 	return n.Repo.Delete(ctx, scope, id, version)
 }
-func NoteID() string {
-	var raw [24]byte
-	if _, err := rand.Read(raw[:]); err != nil {
-		panic(err)
-	}
-	return hex.EncodeToString(raw[:])
-}
+func NoteID() string { return domain.NewEntity(time.Now()).ID }

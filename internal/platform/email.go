@@ -42,8 +42,13 @@ func (a *Accounts) challenge(ctx context.Context, email, purpose string) (EmailC
 		return EmailChallenge{}, err
 	}
 	id, code := Token(), SixDigits()
+	values["site.base_url"] = a.BaseURL
+	message, err := mailer.RenderConfigured(values, purpose, code, email, false, logo, nil)
+	if err != nil {
+		return EmailChallenge{}, err
+	}
 	now := int(time.Now().Unix())
-	return EmailChallenge{ID: id, Purpose: purpose, Digest: a.codeDigest(id, purpose, code), Payload: a.Mail.Encrypt(mailer.Render(values["site.name"], values["site.copyright"], purpose, code, email, false, logo)), Created: now, Expires: now + 600}, nil
+	return EmailChallenge{ID: id, Purpose: purpose, Digest: a.codeDigest(id, purpose, code), Payload: a.Mail.Encrypt(message), Created: now, Expires: now + 600}, nil
 }
 func challengeResult(c EmailChallenge) contracts.EmailChallenge {
 	return contracts.EmailChallenge{ChallengeID: c.ID, ExpiresIn: 600, RetryAfter: 60}

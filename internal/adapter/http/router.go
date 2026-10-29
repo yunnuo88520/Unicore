@@ -19,14 +19,17 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/yunnuo/unicore/internal/adapter/presenter"
+	"github.com/yunnuo/unicore/internal/audit"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/observability"
+	"github.com/yunnuo/unicore/internal/updateport"
 	"github.com/yunnuo/unicore/internal/usecase"
 	apispec "github.com/yunnuo/unicore/packages/contracts"
 )
 
 type Config struct {
+	Updates          updateport.API
 	Metadata         contracts.Bootstrap
 	Core             usecase.Executor
 	Assets           fs.FS
@@ -88,6 +91,13 @@ func New(config Config) http.Handler {
 				}
 				config.Logger.Info("request completed", "event", "http.request", "request_id", requestID, "method", r.Method, "route", route, "status", status, "duration_ms", time.Since(start).Milliseconds())
 			}()
+			if config.Install != nil && config.Install.Identity(administratorRequest(r)) != nil {
+				realm := "user"
+				if administratorRequest(r) {
+					realm = "administrator"
+				}
+				r = r.WithContext(audit.With(r.Context(), audit.Metadata{IP: ip(r), Realm: realm, Target: r.URL.Path}))
+			}
 			next.ServeHTTP(w, r)
 		})
 	})
@@ -119,6 +129,9 @@ func New(config Config) http.Handler {
 	router.Get("/brand-assets/{name}", func(w http.ResponseWriter, r *http.Request) { serveBrandAsset(config, w, r) })
 	router.Head("/brand-assets/{name}", func(w http.ResponseWriter, r *http.Request) { serveBrandAsset(config, w, r) })
 	router.Route("/api/v1", func(api chi.Router) {
+		if config.Install != nil {
+			mountUpdates(api, config)
+		}
 		for _, bootstrapPath := range []string{"/bootstrap", "/admin/bootstrap"} {
 			api.Get(bootstrapPath, func(w http.ResponseWriter, r *http.Request) {
 				if strings.HasPrefix(bootstrapPath, "/admin/") && (config.Install == nil || config.Install.Identity(true) == nil) {

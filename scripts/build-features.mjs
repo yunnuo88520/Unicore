@@ -6,7 +6,7 @@ import { resolve } from 'node:path';
 
 export function readFeatures(env = process.env) {
   const read = name => {
-    const value = env[name] ?? 'false';
+    const value = env[name] ?? (name === 'FEATURE_UPDATER' ? 'true' : 'false');
     if (value !== 'true' && value !== 'false') throw new Error(`${name} must be true or false`);
     return value === 'true';
   };
@@ -24,7 +24,7 @@ export function featureBuild() {
       configResolved(config) { if (config.command === 'build') output = resolve(config.root, config.build.outDir, config.build.assetsDir); },
       // Keep generated root brand assets, but never embed stale chunks from another edition.
       buildStart() { if (output) rmSync(output, { recursive: true, force: true }); },
-      generateBundle() { this.emitFile({ type: 'asset', fileName: 'features.json', source: JSON.stringify({ ...features, integration: 'placeholder' }) + '\n' }); },
+      generateBundle() { this.emitFile({ type: 'asset', fileName: 'features.json', source: JSON.stringify({ ...features, integration: features.updater ? 'signed-updates' : 'disabled' }) + '\n' }); },
     },
   };
 }

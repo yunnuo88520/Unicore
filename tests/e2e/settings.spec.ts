@@ -4,7 +4,7 @@ import { readFile, mkdir } from 'node:fs/promises';
 import { test, expect, installStandalone } from './fixtures';
 import { capture } from './visual';
 
-test('settings audit: site identity, ICP, ICO and compile-time placeholders', async ({ page, instance }, info) => {
+test('settings audit: site identity, ICP, ICO and compile-time update capabilities', async ({ page, instance }, info) => {
   const installed=await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}});expect(installed.status()).toBe(200);
   await page.goto(`${instance.url}/admin#site`);
   const mainTabs = page.getByRole('tablist', { name: '设置分组', exact: true });
@@ -43,7 +43,7 @@ test('settings audit: site identity, ICP, ICO and compile-time placeholders', as
   await expect(page).toHaveTitle('配套设置工作空间 · 工作空间');
   if (info.project.name === 'chromium') {
     const name = (await page.locator('.brand .brand-name').boundingBox())!;
-    const tag = (await page.locator('.brand-tag').boundingBox())!;
+    const tag = (await page.locator('.brand-version .version-badge').boundingBox())!;
     expect(tag.y).toBeGreaterThanOrEqual(name.y + name.height);
     await expect(page.getByRole('button', { name: '保存设置', exact: true })).toBeInViewport();
   }
@@ -62,17 +62,18 @@ test('settings audit: site identity, ICP, ICO and compile-time placeholders', as
   await mainTabs.getByRole('tab', { name: '基础信息', exact: true }).click();
   await expect(page.getByLabel('备案号（ICP）', { exact: true })).toHaveValue('测试ICP备00000000号');
   const bootstrap = (await (await page.request.get(`${instance.url}/api/v1/admin/bootstrap`)).json()).data;
-  const license = process.env.FEATURE_LICENSE === 'true', updater = process.env.FEATURE_UPDATER === 'true';
+  const license = process.env.FEATURE_LICENSE === 'true', updater = process.env.FEATURE_UPDATER !== 'false';
   expect(bootstrap.capabilities.license).toBe(license); expect(bootstrap.capabilities.updater).toBe(updater);
   await page.goto(`${instance.url}/admin#edition`);
-  await expect(page.getByText('待对接',{exact:true})).toBeVisible();
+  if (license) await expect(page.getByText('待对接',{exact:true})).toBeVisible();
   if (license || updater) {
     await expect(page.getByRole('heading', { name: '授权检测', exact: true })).toHaveCount(license ? 1 : 0);
-    await expect(page.getByRole('heading', { name: '在线升级', exact: true })).toHaveCount(updater ? 1 : 0);
+    await expect(page.getByRole('heading', { name: '在线更新', exact: true })).toHaveCount(updater ? 1 : 0);
     if (license) await expect(page.getByRole('button', { name: '检测授权', exact: true })).toBeDisabled();
-    if (updater) { await expect(page.getByRole('button', { name: '检查新版本', exact: true })).toBeDisabled(); await expect(page.getByText('暂无版本服务返回的更新日志。')).toBeVisible(); }
+    if (updater) { await expect(page.getByRole('button', { name: '检查更新', exact: true })).toBeEnabled(); await expect(page.getByRole('heading',{name:'更新日志',exact:true})).toBeVisible(); await expect(page.getByRole('button',{name:'更新并重启',exact:true})).toBeDisabled(); }
   }
-  for (const path of ['/api/v1/admin/license', '/api/v1/admin/updates']) expect((await page.request.get(`${instance.url}${path}`)).status()).toBe(404);
+  expect((await page.request.get(`${instance.url}/api/v1/admin/license`)).status()).toBe(404);
+  expect((await page.request.get(`${instance.url}/api/v1/admin/updates`)).status()).toBe(updater?200:404);
   await capture(page, info, `settings-edition-${license}-${updater}`);
   const invalid = await page.request.patch(`${instance.url}/api/v1/admin/settings`, { headers:{'X-CSRF-Token':bootstrap.csrf_token}, data: { changes: [{ key: 'site.icp_url', value: 'javascript:alert(1)' }] } });
   expect(invalid.status()).toBe(400);

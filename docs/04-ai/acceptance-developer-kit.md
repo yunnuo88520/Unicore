@@ -1,6 +1,8 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 开发基座验收（2026-10-28）
 
+> 本文保留该阶段的验收记录；系统更新、签名流程及其后续验证以 [更新验收](acceptance-updates.md) 为准，早期占位与未实现描述不再代表当前能力。
+
 本轮以 6905ffe 为升级前基线，当前工作区实现见 [ADR-0017](../adr/ADR-0017-developer-kit-business-backup.md)。仍为0.1.0开发预览，没有发布正式 tag、Release 或镜像。MIT 由作者明确选择。
 
 ## 影响与实现清单

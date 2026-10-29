@@ -39,10 +39,27 @@
 | frameworkUpgrade | [docs/03-runbooks/framework-upgrade.md](../../docs/03-runbooks/framework-upgrade.md) |
 | contributing | [CONTRIBUTING.md](../../CONTRIBUTING.md) |
 | community | [docs/03-runbooks/open-source.md](../../docs/03-runbooks/open-source.md) |
-| currentAcceptance | [docs/04-ai/acceptance-developer-kit.md](../../docs/04-ai/acceptance-developer-kit.md) |
+| currentAcceptance | [docs/04-ai/acceptance-announcements.md](../../docs/04-ai/acceptance-announcements.md) |
 | wiki | [docs/wiki/README.md](../../docs/wiki/README.md) |
+| updates | [internal/updates/service.go](../../internal/updates/service.go) |
+| updateTrust | [assets/updates/config.json](../../assets/updates/config.json) |
+| updateHistory | [assets/updates/history.gen.json](../../assets/updates/history.gen.json) |
+| systemUpdates | [docs/03-runbooks/updates.md](../../docs/03-runbooks/updates.md) |
+| clientPreferences | [packages/web-ui/src/preferences.ts](../../packages/web-ui/src/preferences.ts) |
+| i18n | [packages/web-ui/src/i18n.ts](../../packages/web-ui/src/i18n.ts) |
+| clientAppearance | [docs/03-runbooks/client-preferences.md](../../docs/03-runbooks/client-preferences.md) |
+| workspaceLayout | [packages/web-ui/src/workspace-layout.tsx](../../packages/web-ui/src/workspace-layout.tsx) |
+| frontendFoundations | [docs/03-runbooks/frontend-foundations.md](../../docs/03-runbooks/frontend-foundations.md) |
+| i18nGate | [scripts/check-i18n.mjs](../../scripts/check-i18n.mjs) |
+| adminTools | [docs/03-runbooks/admin-tools.md](../../docs/03-runbooks/admin-tools.md) |
+| auditMetadata | [internal/audit/context.go](../../internal/audit/context.go) |
+| mailContent | [internal/mailcontent/template.go](../../internal/mailcontent/template.go) |
+| richTextEditor | [packages/web-ui/src/rich-text-editor.tsx](../../packages/web-ui/src/rich-text-editor.tsx) |
+| backendStandards | [docs/02-standards/backend.md](../../docs/02-standards/backend.md) |
+| baseEntity | [internal/domain/entity.go](../../internal/domain/entity.go) |
+| announcements | [docs/03-runbooks/announcements.md](../../docs/03-runbooks/announcements.md) |
 
-OpenAPI 当前包含 101 个 operation、102 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
+OpenAPI 当前包含 121 个 operation、133 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
 
 | 任务 Skill | 用途 |
 | --- | --- |
@@ -77,5 +94,7 @@ OpenAPI 当前包含 101 个 operation、102 个 schema。Go/TS 模型、调用�
 - wiki：`make wiki`
 - wikiPublish：`make wiki-publish`
 - packageDesktop：`make package-desktop`
+- signDesktop：`make sign-desktop`
+- i18n：`pnpm check:i18n`
 
 不保存凭据到上下文或验收记录。任务记录使用 [任务模板](task-template.md)，交付记录须区分实测、未测与未来目标。

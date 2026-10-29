@@ -128,7 +128,7 @@ func (r *Repository) oidcSession(ctx context.Context, tx *sql.Tx, id, sessionHas
 	if _, err = r.exec(ctx, tx, "UPDATE users SET last_login_at=? WHERE id=?", time.Now().Unix(), id); err != nil {
 		return user, err
 	}
-	return user, r.Store.Audit(ctx, tx, id, action)
+	return user, r.audit(ctx, tx, id, action)
 }
 func (r *Repository) CompleteOIDC(ctx context.Context, f platform.OIDCFlow, claims platform.OIDCClaims, sessionHash string, expires int) (contracts.User, error) {
 	tx, err := r.Store.DB.BeginTx(ctx, nil)

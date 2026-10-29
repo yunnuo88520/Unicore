@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/yunnuo/unicore/internal/audit"
 	"github.com/yunnuo/unicore/internal/branding"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/domain"
@@ -39,6 +40,12 @@ func failure(w http.ResponseWriter, status int, code, message string) {
 func webError(w http.ResponseWriter, err error) {
 	code := "INTERNAL_ERROR"
 	switch {
+	case errors.Is(err, domain.ErrAnnouncementInvalid):
+		code = "ANNOUNCEMENT_INVALID"
+	case errors.Is(err, usecase.ErrEntityNotFound):
+		code = "ENTITY_NOT_FOUND"
+	case errors.Is(err, usecase.ErrEntityConflict):
+		code = "ENTITY_CONFLICT"
 	case errors.Is(err, domain.ErrNoteInvalid):
 		code = "NOTE_INVALID"
 	case errors.Is(err, usecase.ErrNoteNotFound):
@@ -230,6 +237,9 @@ func require(manager *install.Manager, w http.ResponseWriter, r *http.Request, p
 		webError(w, platform.ErrForbidden)
 		return session, false
 	}
+	m, _ := audit.From(r.Context())
+	m.ActorName = session.User.Username
+	*r = *r.WithContext(audit.With(r.Context(), m))
 	return session, true
 }
 func coreAccess(manager *install.Manager, w http.ResponseWriter, r *http.Request) bool {
@@ -263,6 +273,7 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 		realm = "administrator"
 	}
 	data.IdentityRealm = &realm
+	data.Capabilities.Updater = config.Updates != nil && data.Installed
 	data.Capabilities.Installation = true
 	data.Capabilities.Database = data.Installed
 	data.Capabilities.Settings = data.Installed
@@ -298,6 +309,12 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 			data.CsrfToken = &session.CsrfToken
 		}
 	}
+	if profile == runtime.WebPlatform && (!administratorRequest(r) || data.CurrentUser == nil) {
+		data.Version = ""
+		data.Commit = ""
+		data.BuildTime = ""
+		data.Capabilities.Updater = false
+	}
 	return data
 }
 func setSession(manager *install.Manager, w http.ResponseWriter, token string, expires int, r *http.Request) {
@@ -321,6 +338,7 @@ func mountWeb(api chi.Router, config Config) {
 	mountBranding(api, config)
 	mountStorage(api, config)
 	mountNotes(api, config)
+	mountAnnouncements(api, config)
 	manager := config.Install
 	mountAccounts(api, config)
 	mountRoles(api, config)
@@ -389,18 +407,7 @@ func mountWeb(api chi.Router, config Config) {
 		success(w, result)
 	})
 	mountAuthentication(api, config)
-	api.Get("/admin/logs", func(w http.ResponseWriter, r *http.Request) {
-		if _, ok := require(manager, w, r, "logs:read"); !ok {
-			return
-		}
-		identity := manager.Identity(administratorRequest(r))
-		data, err := identity.Store.SystemLogs(r.Context())
-		if err != nil {
-			webError(w, err)
-			return
-		}
-		success(w, data)
-	})
+	mountLogs(api, config)
 	for _, administrators := range []bool{false, true} {
 		path, permission, role := "/admin/users", "users", "user"
 		if administrators {

@@ -576,6 +576,25 @@ export const operations = {
     "csrf": false,
     "identityRealm": "administrator"
   },
+  "saveMailTemplate": {
+    "method": "PUT",
+    "path": "/api/v1/admin/settings/mail/templates",
+    "requestSchema": "MailTemplateInput",
+    "responseSchema": "MailTemplateResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "settings:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
   "listRoles": {
     "method": "GET",
     "path": "/api/v1/admin/roles",
@@ -1801,6 +1820,354 @@ export const operations = {
     "superAdmin": true,
     "csrf": true,
     "identityRealm": "administrator"
+  },
+  "updateOverview": {
+    "method": "GET",
+    "path": "/api/v1/updates",
+    "requestSchema": null,
+    "responseSchema": "UpdateOverviewResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-standalone"
+    ],
+    "access": "local",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "adminUpdateOverview": {
+    "method": "GET",
+    "path": "/api/v1/admin/updates",
+    "requestSchema": null,
+    "responseSchema": "UpdateOverviewResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "updates:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "checkUpdate": {
+    "method": "POST",
+    "path": "/api/v1/updates/check",
+    "requestSchema": null,
+    "responseSchema": "UpdateOverviewResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-standalone"
+    ],
+    "access": "local",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "adminCheckUpdate": {
+    "method": "POST",
+    "path": "/api/v1/admin/updates/check",
+    "requestSchema": null,
+    "responseSchema": "UpdateOverviewResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "updates:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "applyUpdate": {
+    "method": "POST",
+    "path": "/api/v1/updates/apply",
+    "requestSchema": "UpdateApplyInput",
+    "responseSchema": "UpdateJobResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-standalone"
+    ],
+    "access": "local",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "adminApplyUpdate": {
+    "method": "POST",
+    "path": "/api/v1/admin/updates/apply",
+    "requestSchema": "UpdateApplyInput",
+    "responseSchema": "UpdateJobResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "updates:apply"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "exportSystemLogs": {
+    "method": "GET",
+    "path": "/api/v1/admin/logs/export",
+    "requestSchema": null,
+    "responseSchema": "AuditLogExportResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "logs:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "previewMailTemplate": {
+    "method": "POST",
+    "path": "/api/v1/admin/settings/mail/templates/preview",
+    "requestSchema": "MailTemplateInput",
+    "responseSchema": "MailTemplateResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "settings:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "testMailTemplate": {
+    "method": "POST",
+    "path": "/api/v1/admin/settings/mail/templates/test",
+    "requestSchema": "MailTemplateTestInput",
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "settings:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "resetMailTemplate": {
+    "method": "POST",
+    "path": "/api/v1/admin/settings/mail/templates/reset",
+    "requestSchema": "MailTemplateReset",
+    "responseSchema": "MailTemplateResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "settings:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "adminAnnouncements": {
+    "method": "GET",
+    "path": "/api/v1/admin/announcements",
+    "requestSchema": null,
+    "responseSchema": "AnnouncementListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "announcements:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "createAnnouncement": {
+    "method": "POST",
+    "path": "/api/v1/admin/announcements",
+    "requestSchema": "AnnouncementInput",
+    "responseSchema": "AnnouncementEntryResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "announcements:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "updateAnnouncement": {
+    "method": "PUT",
+    "path": "/api/v1/admin/announcements/{id}",
+    "requestSchema": "AnnouncementUpdate",
+    "responseSchema": "AnnouncementEntryResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "announcements:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "deleteAnnouncements": {
+    "method": "POST",
+    "path": "/api/v1/admin/announcements/delete",
+    "requestSchema": "AnnouncementDelete",
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "announcements:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "announcementSettings": {
+    "method": "GET",
+    "path": "/api/v1/admin/announcements/settings",
+    "requestSchema": null,
+    "responseSchema": "AnnouncementSettingResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "announcements:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "saveAnnouncementSettings": {
+    "method": "PUT",
+    "path": "/api/v1/admin/announcements/settings",
+    "requestSchema": "AnnouncementSetting",
+    "responseSchema": "AnnouncementSettingResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "announcements:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "previewAnnouncement": {
+    "method": "POST",
+    "path": "/api/v1/admin/announcements/preview",
+    "requestSchema": "AnnouncementInput",
+    "responseSchema": "AnnouncementPreviewResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "announcements:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "announcements": {
+    "method": "GET",
+    "path": "/api/v1/announcements",
+    "requestSchema": null,
+    "responseSchema": "AnnouncementFeedResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user"
+  },
+  "announcement": {
+    "method": "GET",
+    "path": "/api/v1/announcements/{id}",
+    "requestSchema": null,
+    "responseSchema": "AnnouncementPublicResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user"
   }
 } as const;
 export type OperationId = keyof typeof operations;
@@ -1838,6 +2205,7 @@ export interface OperationInputs {
   requestEmailLogin: Models.EmailRequest;
   completeEmailLogin: Models.EmailCodeInput;
   mailTemplates: undefined;
+  saveMailTemplate: Models.MailTemplateInput;
   listRoles: undefined;
   roleOptions: undefined;
   oidcInfo: undefined;
@@ -1906,6 +2274,25 @@ export interface OperationInputs {
   adminCreateNote: Models.NoteInput;
   adminUpdateNote: Models.NoteUpdate;
   adminDeleteNote: Models.NoteVersion;
+  updateOverview: undefined;
+  adminUpdateOverview: undefined;
+  checkUpdate: undefined;
+  adminCheckUpdate: undefined;
+  applyUpdate: Models.UpdateApplyInput;
+  adminApplyUpdate: Models.UpdateApplyInput;
+  exportSystemLogs: undefined;
+  previewMailTemplate: Models.MailTemplateInput;
+  testMailTemplate: Models.MailTemplateTestInput;
+  resetMailTemplate: Models.MailTemplateReset;
+  adminAnnouncements: undefined;
+  createAnnouncement: Models.AnnouncementInput;
+  updateAnnouncement: Models.AnnouncementUpdate;
+  deleteAnnouncements: Models.AnnouncementDelete;
+  announcementSettings: undefined;
+  saveAnnouncementSettings: Models.AnnouncementSetting;
+  previewAnnouncement: Models.AnnouncementInput;
+  announcements: undefined;
+  announcement: undefined;
 }
 export interface OperationData {
   bootstrap: Models.BootstrapResponse['data'];
@@ -1941,6 +2328,7 @@ export interface OperationData {
   requestEmailLogin: Models.EmailChallengeResponse['data'];
   completeEmailLogin: Models.SessionResponse['data'];
   mailTemplates: Models.MailTemplateListResponse['data'];
+  saveMailTemplate: Models.MailTemplateResponse['data'];
   listRoles: Models.RoleListResponse['data'];
   roleOptions: Models.RoleOptionsResponse['data'];
   oidcInfo: Models.OIDCInfoResponse['data'];
@@ -2009,4 +2397,23 @@ export interface OperationData {
   adminCreateNote: Models.NoteResponse['data'];
   adminUpdateNote: Models.NoteResponse['data'];
   adminDeleteNote: Models.ActionResultResponse['data'];
+  updateOverview: Models.UpdateOverviewResponse['data'];
+  adminUpdateOverview: Models.UpdateOverviewResponse['data'];
+  checkUpdate: Models.UpdateOverviewResponse['data'];
+  adminCheckUpdate: Models.UpdateOverviewResponse['data'];
+  applyUpdate: Models.UpdateJobResponse['data'];
+  adminApplyUpdate: Models.UpdateJobResponse['data'];
+  exportSystemLogs: Models.AuditLogExportResponse['data'];
+  previewMailTemplate: Models.MailTemplateResponse['data'];
+  testMailTemplate: Models.ActionResultResponse['data'];
+  resetMailTemplate: Models.MailTemplateResponse['data'];
+  adminAnnouncements: Models.AnnouncementListResponse['data'];
+  createAnnouncement: Models.AnnouncementEntryResponse['data'];
+  updateAnnouncement: Models.AnnouncementEntryResponse['data'];
+  deleteAnnouncements: Models.ActionResultResponse['data'];
+  announcementSettings: Models.AnnouncementSettingResponse['data'];
+  saveAnnouncementSettings: Models.AnnouncementSettingResponse['data'];
+  previewAnnouncement: Models.AnnouncementPreviewResponse['data'];
+  announcements: Models.AnnouncementFeedResponse['data'];
+  announcement: Models.AnnouncementPublicResponse['data'];
 }

@@ -38,10 +38,10 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
-      - name: Prepare dedicated backup databases
+      - name: Prepare dedicated backup and announcement databases
         run: |
-          docker exec ${{ job.services.postgres.id }} psql -U unicore -d unicore_test -c 'CREATE DATABASE backup_source' -c 'CREATE DATABASE backup_target'
-          docker exec -e MYSQL_PWD=unicore_ci_root ${{ job.services.mysql.id }} mysql -u root -e "CREATE DATABASE backup_source; CREATE DATABASE backup_target; GRANT ALL ON backup_source.* TO 'unicore'@'%'; GRANT ALL ON backup_target.* TO 'unicore'@'%';"
+          docker exec ${{ job.services.postgres.id }} psql -U unicore -d unicore_test -c 'CREATE DATABASE backup_source' -c 'CREATE DATABASE backup_target' -c 'CREATE DATABASE announcement_test'
+          docker exec -e MYSQL_PWD=unicore_ci_root ${{ job.services.mysql.id }} mysql -u root -e "CREATE DATABASE backup_source; CREATE DATABASE backup_target; CREATE DATABASE announcement_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; GRANT ALL ON backup_source.* TO 'unicore'@'%'; GRANT ALL ON backup_target.* TO 'unicore'@'%'; GRANT ALL ON announcement_test.* TO 'unicore'@'%';"
       - run: make test
         env:
           UNICORE_MAINTENANCE_POSTGRES_DSN: postgres://unicore:unicore_ci_test@127.0.0.1:5432/backup_source?sslmode=disable
@@ -52,9 +52,18 @@ jobs:
           UNICORE_MAINTENANCE_MYSQL_CONTAINER: ${{ job.services.mysql.id }}
           UNICORE_TEST_POSTGRES_DSN: postgres://unicore:unicore_ci_test@127.0.0.1:5432/unicore_test?sslmode=disable
           UNICORE_TEST_MYSQL_DSN: unicore:unicore_ci_test@tcp(127.0.0.1:3306)/unicore_test
+          UNICORE_ANNOUNCEMENT_POSTGRES_DSN: postgres://unicore:unicore_ci_test@127.0.0.1:5432/announcement_test?sslmode=disable
+          UNICORE_ANNOUNCEMENT_MYSQL_DSN: unicore:unicore_ci_test@tcp(127.0.0.1:3306)/announcement_test
       - run: pnpm build && make build-web build-cli build-ops
       - run: pnpm exec playwright install --with-deps chromium
       - run: make test-e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-acceptance
+          path: |
+            build/acceptance/
+            test-results/
       - run: make test-features
       - run: make release
       - uses: actions/upload-artifact@v4
@@ -76,15 +85,47 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev build-essential pkg-config
+      - name: Verify signed update helpers on the native OS
+        run: go test ./internal/updates ./internal/adapter/updatechannel ./internal/adapter/updateinstall
+      - name: Verify native SQLite paths and desktop persistence
+        run: go test ./internal/adapter/storage/sqlite ./internal/bootstrap/local
       - name: Install matching Wails CLI
         shell: bash
         run: go install "github.com/wailsapp/wails/v2/cmd/wails@$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v2)"
       - run: make build-desktop
+      - name: Launch real Windows desktop with isolated data
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/test-windows-startup.ps1
+      - uses: actions/upload-artifact@v4
+        if: always() && runner.os == 'Windows'
+        with: { name: windows-startup-evidence, path: build/acceptance/windows-startup/ }
+      - name: Sign and notarize native desktop when configured
+        if: github.event_name != 'pull_request' && vars.UNICORE_PLATFORM_SIGNING == 'required'
+        run: node scripts/platform-sign.mjs
+        env:
+          UNICORE_PLATFORM_SIGNING: ${{ github.event_name != 'pull_request' && vars.UNICORE_PLATFORM_SIGNING || 'unsigned' }}
+          MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          MACOS_SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+          APPLE_NOTARY_KEY_P8: ${{ secrets.APPLE_NOTARY_KEY_P8 }}
+          APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
+          APPLE_NOTARY_ISSUER: ${{ secrets.APPLE_NOTARY_ISSUER }}
+          WINDOWS_CERTIFICATE_PFX: ${{ secrets.WINDOWS_CERTIFICATE_PFX }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
       - run: make package-desktop
+        env:
+          UNICORE_PLATFORM_SIGNING: ${{ github.event_name != 'pull_request' && vars.UNICORE_PLATFORM_SIGNING || 'unsigned' }}
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-${{ matrix.os }}
           path: build/native-releases/
+      - uses: actions/upload-artifact@v4
+        if: runner.os == 'Windows'
+        with:
+          name: windows-exe
+          path: build/desktop/bin/*.exe
+          if-no-files-found: error
   docker-build:
     runs-on: ubuntu-22.04
     steps:

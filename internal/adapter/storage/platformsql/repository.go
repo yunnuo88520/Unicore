@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
+	"github.com/yunnuo/unicore/internal/audit"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/platform"
 )
@@ -80,7 +81,7 @@ func (r *Repository) insert(ctx context.Context, tx *sql.Tx, input contracts.Use
 	if r.Administrators {
 		action = "administrators.created"
 	}
-	if err := r.Store.Audit(ctx, tx, actor, action); err != nil {
+	if err := r.audit(audit.Target(ctx, r.roleID()+"/"+id, "role="+input.Role+"; status=active"), tx, actor, action); err != nil {
 		return contracts.User{}, err
 	}
 	return r.user(ctx, tx, id)
@@ -193,7 +194,7 @@ func (r *Repository) UpdateUser(ctx context.Context, id string, input contracts.
 	if r.Administrators {
 		action = "administrators.updated"
 	}
-	if err = r.Store.Audit(ctx, tx, actor, action); err != nil {
+	if err = r.audit(audit.Target(ctx, r.roleID()+"/"+id, "status="+before.Status+"->"+input.Status+"; sessions=revoked"), tx, actor, action); err != nil {
 		return contracts.User{}, err
 	}
 	user, err := r.user(ctx, tx, id)
@@ -262,7 +263,7 @@ func (r *Repository) CreateSession(ctx context.Context, hash, userID string, exp
 	if _, err = r.exec(ctx, tx, "UPDATE users SET last_login_at=? WHERE id=?", time.Now().Unix(), userID); err != nil {
 		return err
 	}
-	if err = r.Store.Audit(ctx, tx, userID, "auth.login"); err != nil {
+	if err = r.audit(ctx, tx, userID, "auth.login"); err != nil {
 		return err
 	}
 	return tx.Commit()

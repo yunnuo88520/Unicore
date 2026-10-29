@@ -175,6 +175,11 @@ export interface AuditEntry {
   actor_id: string;
   action: string;
   created_at: number;
+  actor_name: string;
+  realm: string;
+  target: string;
+  detail: string;
+  ip_address: string;
 }
 
 export interface Dashboard {
@@ -355,6 +360,9 @@ export interface MailTemplate {
   subject: string;
   html: string;
   text: string;
+  body: string;
+  customized: boolean;
+  variables: Array<MailTemplateVariable>;
 }
 
 export interface MailTemplateList {
@@ -514,6 +522,7 @@ export interface AuditLogList {
   total: number;
   page: number;
   page_size: number;
+  actions: Array<string>;
 }
 
 export interface AuditLogResponse {
@@ -698,5 +707,237 @@ export interface NoteListResponse {
   code: string;
   message: string;
   data: NoteList;
+  request_id: string;
+}
+
+export interface UpdateRelease {
+  version: string;
+  notes: string;
+  published_at: string;
+  prerelease: boolean;
+  url: string;
+  source: string;
+}
+
+export interface UpdateJob {
+  id: string;
+  status: string;
+  message: string;
+  progress: number;
+  version: string;
+  started_at: string;
+  finished_at: string;
+}
+
+export interface UpdateOverview {
+  current_version: string;
+  latest_version: string;
+  channel: string;
+  source: string;
+  available: boolean;
+  verified: boolean;
+  can_apply: boolean;
+  reason: string;
+  checked_at: string;
+  last_error: string;
+  history: Array<UpdateRelease>;
+  job: UpdateJob;
+}
+
+export interface UpdateApplyInput {
+  version: string;
+  backup_confirmed: boolean;
+}
+
+export interface UpdateOverviewResponse {
+  code: string;
+  message: string;
+  data: UpdateOverview;
+  request_id: string;
+}
+
+export interface UpdateJobResponse {
+  code: string;
+  message: string;
+  data: UpdateJob;
+  request_id: string;
+}
+
+export interface AuditLogQuery {
+  action: string;
+  search: string;
+  start: number;
+  end: number;
+  sort: "created_at" | "id";
+  direction: "asc" | "desc";
+  page: number;
+  page_size: number;
+}
+
+export interface AuditLogExport {
+  filename: string;
+  content: string;
+  exported: number;
+  total: number;
+  truncated: boolean;
+}
+
+export interface AuditLogExportResponse {
+  code: string;
+  message: string;
+  data: AuditLogExport;
+  request_id: string;
+}
+
+export interface MailTemplateInput {
+  purpose: "test" | "verify" | "login" | "reset" | "notification";
+  subject: string;
+  body: string;
+}
+
+export interface MailTemplateTestInput {
+  template: MailTemplateInput;
+  recipient: string;
+}
+
+export interface MailTemplateVariable {
+  key: string;
+  sample: string;
+}
+
+export interface MailTemplateResponse {
+  code: string;
+  message: string;
+  data: MailTemplate;
+  request_id: string;
+}
+
+export interface MailTemplateReset {
+  purpose: "test" | "verify" | "login" | "reset" | "notification";
+}
+
+export interface AnnouncementInput {
+  content: string;
+  format: "markdown" | "html";
+  type: "info" | "success" | "warning" | "error";
+  note: string;
+  status: "draft" | "published";
+  publish_at: number;
+}
+
+export interface AnnouncementUpdate {
+  content: string;
+  format: "markdown" | "html";
+  type: "info" | "success" | "warning" | "error";
+  note: string;
+  status: "draft" | "published";
+  publish_at: number;
+  version: number;
+}
+
+export interface AnnouncementEntry {
+  id: string;
+  version: number;
+  created_at: number;
+  updated_at: number;
+  content: string;
+  format: "markdown" | "html";
+  type: "info" | "success" | "warning" | "error";
+  note: string;
+  status: "draft" | "published";
+  publish_at: number;
+  content_html: string;
+  created_by: string;
+  updated_by: string;
+}
+
+export interface AnnouncementPublic {
+  id: string;
+  content: string;
+  content_html: string;
+  format: "markdown" | "html";
+  type: "info" | "success" | "warning" | "error";
+  publish_at: number;
+}
+
+export interface AnnouncementQuery {
+  search: string;
+  status: "" | "draft" | "published" | "scheduled";
+  page: number;
+  page_size: number;
+}
+
+export interface AnnouncementList {
+  items: Array<AnnouncementEntry>;
+  total: number;
+  page: number;
+  page_size: number;
+  enabled: boolean;
+}
+
+export interface AnnouncementFeed {
+  items: Array<AnnouncementPublic>;
+  total: number;
+  page: number;
+  page_size: number;
+  enabled: boolean;
+}
+
+export interface AnnouncementSelection {
+  id: string;
+  version: number;
+}
+
+export interface AnnouncementDelete {
+  items: Array<AnnouncementSelection>;
+}
+
+export interface AnnouncementSetting {
+  enabled: boolean;
+}
+
+export interface AnnouncementPreview {
+  content_html: string;
+}
+
+export interface AnnouncementEntryResponse {
+  code: string;
+  message: string;
+  data: AnnouncementEntry;
+  request_id: string;
+}
+
+export interface AnnouncementListResponse {
+  code: string;
+  message: string;
+  data: AnnouncementList;
+  request_id: string;
+}
+
+export interface AnnouncementFeedResponse {
+  code: string;
+  message: string;
+  data: AnnouncementFeed;
+  request_id: string;
+}
+
+export interface AnnouncementPublicResponse {
+  code: string;
+  message: string;
+  data: AnnouncementPublic;
+  request_id: string;
+}
+
+export interface AnnouncementSettingResponse {
+  code: string;
+  message: string;
+  data: AnnouncementSetting;
+  request_id: string;
+}
+
+export interface AnnouncementPreviewResponse {
+  code: string;
+  message: string;
+  data: AnnouncementPreview;
   request_id: string;
 }

@@ -32,7 +32,7 @@ func (r *Repository) ChangePassword(ctx context.Context, id, expected, next stri
 	}
 	// Link callbacks recheck their credential snapshot under this lock; stale flows
 	// for this account fail without cancelling unrelated users' in-flight sign-ins.
-	if err = r.Store.Audit(ctx, tx, id, "account.password.changed"); err != nil {
+	if err = r.audit(ctx, tx, id, "account.password.changed"); err != nil {
 		return err
 	}
 	return tx.Commit()

@@ -70,7 +70,7 @@ jobs:
         env:
           UNICORE_UPDATE_SIGNING_KEY: ${{ secrets.UNICORE_UPDATE_SIGNING_KEY }}
       - run: cd build/candidate && sha256sum --check checksums.txt
-      - uses: actions/attest-build-provenance@v2
+      - uses: actions/attest-build-provenance@v4
         with:
           subject-path: |
             build/candidate/*.tar.gz

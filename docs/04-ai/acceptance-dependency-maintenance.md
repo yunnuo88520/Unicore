@@ -19,6 +19,23 @@ Go 依赖影响 web-platform、web-standalone、desktop 和 cli 的各自依赖�
 
 Node 兼容范围以 package.json 为源，自检读取该范围；CI 与 Docker 继续使用最新 Node 22 补丁。其他被上游工具允许的 Node 系列列在 engines 中，不据此宣称已经逐一原生验收。Dependabot 对 Go、Actions 和其他 npm 更新继续开放，@types/node 的 patch/minor 更新仍开放；提高 Node 主版本时须一并重新评估类型和这条 ignore。
 
+## 后续积压队列
+
+首批替代 PR #17 已合并。每类三个 PR 的限制导致关闭旧 PR 后机器人继续创建积压候选，故再核对实际 outdated 清单并集中处理。此轮以本次检查到的版本为边界，未来新发行仍按每周维护流程评估。
+
+| 候选 | 决定 | 依据 |
+| --- | --- | --- |
+| #18 OAuth2 0.37.0 | 采用 | Go 1.26 满足要求；上游变更为 Google metadata 路径修正，不改变当前通用 OIDC API |
+| #19 setup-node v7、#20 setup-go v7 | 采用 | Node 24 action runtime 与 hosted runners 兼容，保留精确 pnpm/Go 和 Node 22 构建基线 |
+| #21 upload-artifact v7 | 采用 | 保留 archive=true 与现有命名；候选下载配套升至 download-artifact v8，输入接口已核对 |
+| #22 hashes 2.4.0 / React Query 5.105.0 | 采用 | 保留哈希与缓存入口契约，上传/会话回归验证 |
+| #23 TypeScript 7.0.2 | 不采用 | 根模块改为版本信息/新 unstable API，现有双语检查及其测试使用的 createSourceFile 等 compiler API 需要迁移 |
+| #24 Lucide 1.61 候选 | 采用已检查的 1.63.0 | 现有图标导出、类型与 47 项测试兼容，保留共享尺寸/线宽设计，页面回归继续验证 |
+| jest-dom 7.0.1 | 采用 | 最低 Node 22 满足；显式增加其必需 @testing-library/dom 10 peer，matcher 回归通过 |
+| Vite 8 / plugin-react 6 | 不采用 | 构建器改为 Rolldown，React 插件 peer 要求 Vite 8，需另行迁移 feature/多 HTML entry/Wails 构建；维持已验证配套版本 |
+
+TypeScript、Vite、plugin-react 仅忽略 major，修复和次版本继续检查；未来迁移必须重新评估这些约束。本轮不通过全局关闭 Dependabot 或取消安全门禁来减少分支。
+
 ## 验证边界
 
 合并必须通过当前提交的 quality、scan、docker-build 和 Linux/macOS/Windows 三个 native-desktop 门禁；这些 job 继续执行三数据库、页面、feature 组合、归档、真实 Docker/Compose/Tar 部署和 Windows exe 启动/重启。具体远端结果查看替代维护 PR 的 Checks，不能沿用原 Dependabot PR 在旧 main 上的绿灯。

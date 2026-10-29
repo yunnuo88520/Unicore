@@ -18,7 +18,7 @@
   "dependencies": {
     "@unicore/sdk": "workspace:*",
     "@tanstack/react-query": "^5.90.5",
-    "lucide-react": "^0.468.0",
+    "lucide-react": "^1.61.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   }

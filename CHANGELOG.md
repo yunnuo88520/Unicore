@@ -4,6 +4,7 @@
 ## Unreleased
 
 - 统一更新 Go/Wails/SQLite/对象存储 SDK、Vitest 5、jsdom 30 与 GitHub Actions；Node 开发最低补丁版本提升至 22.22.2，自检读取 package.json 兼容范围。保留与 Node 22 基线配套的类型定义，Dependabot 继续跟踪其补丁/次版本。
+- 清理 Dependabot 积压队列，补齐 OAuth2 0.37、前端哈希/查询/图标与测试 matcher 更新；构建工具与 artifact 上传/下载 Actions 配套升级。保留 TypeScript AST 和 Vite 构建基线，大版本迁移须单独验证。
 
 - 在线平台本地/MinIO/S3/OSS/COS 统一持久分片上传、断点续传、暂停/继续/放弃与确认字节进度；管理员可视化配置大小（默认 100 MiB，上限 64 GiB）、分片及并发。平台迁移 0012 保存会话，持久中止清理覆盖崩溃与失败重试；大对象采用服务端分片复制。
 

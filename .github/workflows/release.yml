@@ -23,17 +23,17 @@ jobs:
       - run: test "$(cat VERSION)" = "$EXPECTED_VERSION"
         env:
           EXPECTED_VERSION: ${{ inputs.version }}
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with: { go-version-file: go.mod }
       - uses: pnpm/action-setup@v6
         with: { version: 11.25.0 }
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: make docs && git diff --exit-code && make test
       - run: make release
       - run: cd build/releases && sha256sum --check checksums.txt
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: release-candidate, path: build/releases/, if-no-files-found: error }
   bundle:
     needs: candidate
@@ -45,7 +45,7 @@ jobs:
       attestations: write
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: { node-version: 22 }
       - name: Verify native build source and result
         env:
@@ -55,9 +55,9 @@ jobs:
           [[ "$CI_RUN_ID" =~ ^[0-9]+$ ]]
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CI_RUN_ID" > "$RUNNER_TEMP/release-ci.json"
           node --input-type=module -e 'import {readFileSync} from "node:fs"; const run=JSON.parse(readFileSync(process.env.RUNNER_TEMP+"/release-ci.json")); if(run.head_sha!==process.env.GITHUB_SHA || run.head_branch!=="main" || run.event!=="push" || run.name!=="Quality and profile builds" || run.conclusion!=="success") throw Error("Native CI must pass on this exact main commit");'
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with: { name: release-candidate, path: build/candidate }
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: desktop-*
           merge-multiple: true
@@ -76,5 +76,5 @@ jobs:
             build/candidate/*.tar.gz
             build/candidate/update-manifest.json
             build/candidate/update-manifest.sig
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: release-bundle, path: build/candidate/, if-no-files-found: error }

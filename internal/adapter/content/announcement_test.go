@@ -27,3 +27,17 @@ func TestSafeAnnouncementRendering(t *testing.T) {
 		t.Fatal("blank content")
 	}
 }
+
+// GO-2026-5320: encoded destinations and autolinks must never bypass the
+// renderer's safe mode or our announcement-specific HTTP(S) allowlist.
+func TestAnnouncementRejectsDangerousURLReferences(t *testing.T) {
+	for _, source := range []string{
+		`[click](&#106;avascript:alert(1))`,
+		`<javascript:alert(document.domain)>`,
+		`![alt](javascript:alert(document.domain))`,
+	} {
+		if html, err := Announcement(source, "markdown"); err == nil {
+			t.Fatalf("accepted dangerous reference %q: %s", source, html)
+		}
+	}
+}

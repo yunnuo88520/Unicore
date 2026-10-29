@@ -38,7 +38,7 @@ export function ClientControls() {
     }}>
       <Tooltip label={t('切换语言')}><button ref={trigger} className="icon-button" aria-label={t('切换语言')} aria-haspopup="menu" aria-expanded={language} onClick={() => setLanguage(value => !value)}><Languages size={18} /></button></Tooltip>
       {language && <div className="locale-dropdown" role="menu" aria-label={t('语言')}>
-        {(['zh-CN', 'en'] as const).map(value => <button type="button" role="menuitemradio" tabIndex={-1} aria-checked={locale === value} key={value} lang={value} onClick={() => { setLocale(value); closeLanguage(); }}>{value === 'zh-CN' ? '中文' : 'English'}{locale === value && <Check size={15} />}</button>)}
+        {(['zh-CN', 'en'] as const).map(value => <button type="button" role="menuitemradio" tabIndex={-1} aria-checked={locale === value} key={value} lang={value} onClick={() => { setLocale(value); closeLanguage(); }}>{value === 'zh-CN' ? t('中文') : 'English'}{locale === value && <Check size={15} />}</button>)}
       </div>}
     </div>
     <Tooltip label={t('切换主题')}><button className="icon-button" aria-label={t('切换主题')} onClick={() => setPreferences({ theme: dark ? 'light' : 'dark' })}>{dark ? <Moon size={18} /> : <Sun size={18} />}</button></Tooltip>

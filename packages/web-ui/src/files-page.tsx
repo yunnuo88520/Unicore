@@ -1,7 +1,7 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Owner-scoped files; cancellable direct uploads and temporary download grants through AppClient.
  */
-import { t, useLocale, currentLocale } from './i18n';
+import {defineMessages, t, useLocale, currentLocale } from './i18n';
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Upload, Download, Trash2, ArrowRightLeft, File, Search, FileText, Image, Video, Music, FileArchive, X, LoaderCircle, CheckCircle2 } from 'lucide-react';
@@ -11,7 +11,7 @@ import { Form } from './forms';
 import { useMessage } from './message';
 import './storage.css';
 const bytes=(n:number)=>n>=1048576?`${(n/1048576).toFixed(1)} MiB`:n>=1024?`${(n/1024).toFixed(1)} KiB`:`${n} B`;
-const states:Record<string,string>={pending:'待上传',copying:'待确认',ready:'可用',deleted:'已删除'};
+const states:Record<string,string>=defineMessages({pending:'待上传',copying:'待确认',ready:'可用',deleted:'已删除'});
 export function FileManagement({client,administrator}:{client:AppClient;administrator:boolean}){
   useLocale();
  const api=client.files!;const cache=useQueryClient();const message=useMessage();const [search,setSearch]=useState('');const [page,setPage]=useState(1);const [upload,setUpload]=useState(false);const [dialog,setDialog]=useState<{kind:'delete'|'migrate';file:FileEntry}|null>(null);const [target,setTarget]=useState('');

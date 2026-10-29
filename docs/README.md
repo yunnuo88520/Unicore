@@ -29,3 +29,5 @@ Unicore 将需求、架构、契约、Skills 和验收记录一同维护。AI �
 `make docs` 生成契约文档、AI 上下文和本地 Wiki 页面，`pnpm check:docs` 检查本地链接、Wiki 映射、命令、Skill 清单与生成漂移。`framework.manifest.json` 是机器可读的入口索引，不替代 OpenAPI、主题源或 ADR。
 
 当前实现先看 PRD、架构与 [最新开发基座验收](04-ai/acceptance-developer-kit.md)；各阶段 acceptance-* 和 ADR 保留当时的结果与决策，不把旧测试计数、旧功能限制当作当前状态。当前设计与阶段历史冲突时，以最新需求、后续 ADR 和代码为准。
+
+前端新增业务先读 [基础封装索引](03-runbooks/frontend-foundations.md)，复用布局、会话、请求、表单、反馈和双语入口。

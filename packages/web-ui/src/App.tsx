@@ -3,8 +3,8 @@
  */
 import { ClientControls } from './client-controls';
 import { SidebarTools, VersionBadge } from './shell-tools';
-import { useLocale, t, currentLocale } from './i18n';
-import './preferences.css';
+import {defineMessages, useLocale, t, currentLocale } from './i18n';
+import { WorkspaceLayout } from './workspace-layout';
 import { UpdatePanel } from './update-panel';
 import { NotesPage } from './notes-page';
 import { FileManagement } from './files-page';
@@ -28,8 +28,8 @@ import { routes, pageFromHash, canAccess, isAdministrator, type Page } from './r
 import './flows.css';
 
 export { DashboardWidgetRegistry } from './registry';
-const SAMPLE = 'Hello, Unicore.\n一份 Go 核心，连接每一种可能。\nBuild once. Run everywhere.';
-const PROFILE_LABELS: Record<Profile, string> = { 'web-platform': 'Web 平台', 'web-standalone': 'Web 单机', desktop: '桌面应用', cli: '命令行' };
+import {SAMPLE} from '../data/analyze-sample';
+const PROFILE_LABELS: Record<Profile, string> = defineMessages({ 'web-platform': 'Web 平台', 'web-standalone': 'Web 单机', desktop: '桌面应用', cli: '命令行' });
 const PAGE_LABELS = Object.fromEntries(Object.entries(routes).map(([id, route]) => [id, route.label])) as Record<Page, string>;
 
 export type PageProps = { page: Page; client: AppClient; metadata: Bootstrap; registry: DashboardWidgetRegistry; theme: Theme; setTheme: (theme: Theme) => void; refresh: () => void };
@@ -77,10 +77,7 @@ function App({ client, registry, notice, administratorPage }: { client: AppClien
   const permitted = canAccess(page, metadata.data);
   if (metadata.data?.capabilities.installation && !metadata.data.installed && client.web) return <><div className="public-client-controls"><ClientControls/></div><InstallWizard web={client.web} initialProfile={metadata.data.profile} onDone={result => { if(result.profile==='web-platform'){window.location.assign(result.admin_url);return;}window.history.replaceState({}, '', '/');navigate('overview');refresh(); }} /></>;
   if (metadata.data?.capabilities.authentication && (!metadata.data.current_user || /^#(verify-email|reset-password)(\?|$)/.test(route)) && client.web) return <div className="account-layout"><div className="public-client-controls"><ClientControls/></div><LoginPage key={route} administrator={metadata.data.identity_realm==='administrator'} adminPath={metadata.data.admin_path} web={client.web} siteName={metadata.data.site_name} onDone={refresh} notice={t(notice)} /><SiteFooter metadata={metadata.data} compact /></div>;
-  return <div className="app-shell">
-    <a className="skip-link" href="#main-content" onClick={event => { event.preventDefault(); document.getElementById('main-content')?.focus(); }}>{t("跳至主要内容")}</a>
-    {mobileOpen && <button className="nav-scrim" aria-label={t("关闭导航")} onClick={() => setMobileOpen(false)} />}
-    <aside className={`sidebar ${mobileOpen ? 'is-open' : ''}`} aria-label={t("主导航")}>
+  return <WorkspaceLayout navigationOpen={mobileOpen} onNavigationClose={()=>setMobileOpen(false)} contentClassName={page==='site'?'settings-content':''} navigation={<>
       <div className={`brand-region ${metadata.data?.version ? 'has-version' : ''}`}><a className="brand" href="#overview" onClick={() => navigate('overview')}><BrandLockup name={metadata.data?.site_name} />{!metadata.data?.version&&<span className="brand-tag">FRAMEWORK</span>}</a>{metadata.data?.version&&<div className="brand-version"><VersionBadge client={client} metadata={metadata.data} onOpen={()=>navigate('edition')}/></div>}</div>
       <button className="workspace-switch" onClick={openAbout}><span className="workspace-icon"><Braces size={19} /></span><span><strong>{metadata.data?.site_name ?? t('默认工作空间')}</strong><small>{t("Unicore 应用基座")}</small></span><span className="workspace-stage">{metadata.data?.stage ?? 'M2a'}</span></button>
       <div className="sidebar-navigation">
@@ -91,19 +88,14 @@ function App({ client, registry, notice, administratorPage }: { client: AppClien
       {!isAdministrator(metadata.data)&&canAccess('edition',metadata.data)&&<button className={`nav-item ${page==='edition'?'active':''}`} onClick={()=>navigate('edition')}><PackageCheck size={19}/><span>{t("系统更新")}</span></button>}
       </div>
       <div className="sidebar-bottom"><SidebarTools onAbout={openAbout}/></div>
-    </aside>
-    <div className="main-shell"><header className="topbar"><div className="breadcrumbs"><button className="icon-button mobile-menu" aria-label={t("打开导航")} onClick={() => setMobileOpen(true)}><Menu size={20} /></button><span className="breadcrumb-root">{t("工作空间")}</span><ChevronRight size={14} /><strong>{page === 'site' ? settingsLabel : t(PAGE_LABELS[page])}</strong></div><div className="top-actions"><span className={`connection ${metadata.isSuccess ? 'connected' : ''}`}><span />{metadata.isSuccess ? t('核心已连接') : metadata.isPending ? t('连接中') : t('连接失败')}</span><span className="top-divider" /><ClientControls/>{metadata.data?.profile === 'web-platform' && metadata.data.current_user && <div className="account-menu" ref={avatarRef}><button className="avatar top-avatar" aria-label={t("账号菜单")} aria-expanded={avatarOpen} aria-controls="account-actions" onClick={()=>setAvatarOpen(v=>!v)}>{(metadata.data?.current_user?.username??'Y').slice(0,1).toUpperCase()}</button>{avatarOpen&&<div id="account-actions" className="account-dropdown"><strong>{metadata.data?.current_user?.username??metadata.data?.site_name}</strong><small>{metadata.data?.current_user?(isAdministrator(metadata.data)?t('管理员'):t('普通用户')):t('本地工作空间')}</small>{client.web&&<><button onClick={()=>{setAvatarOpen(false);setPasswordOpen(true);}}>{t("修改密码")}</button><button onClick={()=>{setAvatarOpen(false);navigate('account');}}>{t("账号资料")}</button><button onClick={()=>{setAvatarOpen(false);void client.web!.logout().then(()=>{navigate('overview');refresh();},refresh);}}>{t("退出登录")}</button></>}</div>}</div>}</div></header>
-      <main id="main-content" tabIndex={-1} className={`main-content${page === 'site' ? ' settings-content' : ''}`}><div className="page-heading"><div><div className="eyebrow"><span /> {isAdministrator(metadata.data) ? 'UNICORE ADMINISTRATION' : 'UNICORE WORKSPACE'}</div><h1>{t(page === 'site' && personalSettings ? '外观设置' : routes[page].title)}<span className="heading-dot">.</span></h1><p>{t(page === 'site' && personalSettings ? '只影响当前客户端，不修改全局配置。' : routes[page].description)}</p></div><span className="stage-pill"><span /> {metadata.data?.stage ?? 'M2a'}{t("· 核心已就绪")}</span></div>
+    </>} header={<><div className="breadcrumbs"><button className="icon-button mobile-menu" aria-label={t("打开导航")} aria-expanded={mobileOpen} aria-controls="workspace-navigation" onClick={() => setMobileOpen(true)}><Menu size={20} /></button><span className="breadcrumb-root">{t("工作空间")}</span><ChevronRight size={14} /><strong>{page === 'site' ? settingsLabel : t(PAGE_LABELS[page])}</strong></div><div className="top-actions"><span className={`connection ${metadata.isSuccess ? 'connected' : ''}`}><span />{metadata.isSuccess ? t('核心已连接') : metadata.isPending ? t('连接中') : t('连接失败')}</span><span className="top-divider" /><ClientControls/>{metadata.data?.profile === 'web-platform' && metadata.data.current_user && <div className="account-menu" ref={avatarRef}><button className="avatar top-avatar" aria-label={t("账号菜单")} aria-expanded={avatarOpen} aria-controls="account-actions" onClick={()=>setAvatarOpen(v=>!v)}>{(metadata.data?.current_user?.username??'Y').slice(0,1).toUpperCase()}</button>{avatarOpen&&<div id="account-actions" className="account-dropdown"><strong>{metadata.data?.current_user?.username??metadata.data?.site_name}</strong><small>{metadata.data?.current_user?(isAdministrator(metadata.data)?t('管理员'):t('普通用户')):t('本地工作空间')}</small>{client.web&&<><button onClick={()=>{setAvatarOpen(false);setPasswordOpen(true);}}>{t("修改密码")}</button><button onClick={()=>{setAvatarOpen(false);navigate('account');}}>{t("账号资料")}</button><button onClick={()=>{setAvatarOpen(false);void client.web!.logout().then(()=>{navigate('overview');refresh();},refresh);}}>{t("退出登录")}</button></>}</div>}</div>}</div></>} overlays={<>{passwordOpen&&client.web&&<PasswordDialog web={client.web} onClose={()=>setPasswordOpen(false)}/>}
+    {about && <About onClose={() => setAbout(false)} />}</>}><div className="page-heading"><div><div className="eyebrow"><span /> {isAdministrator(metadata.data) ? 'UNICORE ADMINISTRATION' : 'UNICORE WORKSPACE'}</div><h1>{t(page === 'site' && personalSettings ? '外观设置' : routes[page].title)}<span className="heading-dot">.</span></h1><p>{t(page === 'site' && personalSettings ? '只影响当前客户端，不修改全局配置。' : routes[page].description)}</p></div><span className="stage-pill"><span /> {metadata.data?.stage ?? 'M2a'}{t("· 核心已就绪")}</span></div>
         {metadata.isPending ? <div className="state-card" role="status"><LoaderCircle className="spin" size={24} /><strong>{t("正在连接 Go 核心")}</strong><p>{t("正在获取当前运行形态与能力信息…")}</p></div> : metadata.isError ? <div className="state-card error-state" role="alert"><Radio size={26} /><strong>{t("暂时无法连接核心")}</strong><p>{t(metadata.error.message)}</p><button className="primary-button" onClick={() => metadata.refetch()}><RotateCcw size={16} />{t("重新连接")}</button></div> : <>
           {!permitted ? <div className="state-card" role="alert"><ShieldCheck size={26} /><strong>{t("没有访问权限")}</strong><p>{t("请联系实例管理员授予相关权限。")}</p></div> : <PageContent page={page} client={client} metadata={metadata.data} registry={registry} theme={theme} setTheme={setTheme} refresh={refresh} administratorPage={administratorPage} />}
           <div className="foundation-note"><Info size={15} /><span>{t("文本分析不保存输入，外观偏好仅在当前客户端生效。")}</span></div>
         </>}
         <SiteFooter metadata={metadata.data} />
-      </main>
-    </div>
-    {passwordOpen&&client.web&&<PasswordDialog web={client.web} onClose={()=>setPasswordOpen(false)}/>}
-    {about && <About onClose={() => setAbout(false)} />}
-  </div>;
+  </WorkspaceLayout>;
 }
 
 function NavGroup({title,icon,children}:{title:string;icon:ReactNode;children:ReactNode}){

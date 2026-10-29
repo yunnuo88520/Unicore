@@ -1,7 +1,7 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Explicit preview/save/reset for normalized instance images over the shared client.
  */
-import { t, useLocale } from './i18n';
+import {defineMessages, t, useLocale } from './i18n';
 import { useState, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AppClient, Branding, BrandingInput } from '@unicore/sdk';
@@ -9,7 +9,7 @@ import { DefaultBrandMark } from './brand';
 import { Form } from './forms';
 import { useMessage } from './message';
 import { invalidateAfter } from './queries';
-const slots = [{ id: 'logo', label: '浅色 Logo', help: '网站与账号邮件使用；建议透明背景。' }, { id: 'logo_dark', label: '深色 Logo', help: '深色主题使用；未设置时沿用浅色 Logo。' }, { id: 'favicon', label: '站点图标', help: '浏览器标签和网站安装图标；建议正方形。' }] as const;
+const slots = defineMessages([{ id: 'logo', label: '浅色 Logo', help: '网站与账号邮件使用；建议透明背景。' }, { id: 'logo_dark', label: '深色 Logo', help: '深色主题使用；未设置时沿用浅色 Logo。' }, { id: 'favicon', label: '站点图标', help: '浏览器标签和网站安装图标；建议正方形。' }] as const);
 export function BrandingPanel({ client, canWrite, onSaved }: { client: AppClient; canWrite: boolean; onSaved: () => void }) {
   useLocale();
   const query = useQuery({ queryKey: ['branding'], queryFn: () => client.branding!() });
@@ -25,7 +25,7 @@ function BrandSlot({ id, label, help, branding, client, canWrite, onSaved }: { i
     if (!file) return;
     const icon = id === 'favicon' && (['image/x-icon', 'image/vnd.microsoft.icon'].includes(file.type) || /\.ico$/i.test(file.name));
     const contentType = icon ? 'image/x-icon' : file.type;
-    if (file.size > 256 * 1024 || (!icon && !['image/png', 'image/jpeg'].includes(file.type))) { message.error(t("请选择不超过 256 KiB 的 PNG 或 JPEG 图片{{v0}}",{v0:id === 'favicon' ? '，也支持 ICO' : ''})); return; }
+    if (file.size > 256 * 1024 || (!icon && !['image/png', 'image/jpeg'].includes(file.type))) { message.error(id==='favicon'?t('请选择不超过 256 KiB 的 PNG、JPEG 或 ICO 图片'):t('请选择不超过 256 KiB 的 PNG 或 JPEG 图片')); return; }
     try {
       const content = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onerror = reject; reader.onload = () => resolve(String(reader.result).split(',')[1]); reader.readAsDataURL(file); });
       const image = new Image(); image.src = `data:${contentType};base64,${content}`; await image.decode();
@@ -34,5 +34,5 @@ function BrandSlot({ id, label, help, branding, client, canWrite, onSaved }: { i
     } catch { if(revision===selection.current)message.error(t('图片无法读取，或边长超出 16–2048 像素')); }
   }
   const preview = draft ? `data:${mime};base64,${draft}` : branding[id];
-  return <Form error={save.error} pending={save.isPending} className="brand-slot" aria-label={t(label)} onSubmit={event => { event.preventDefault(); if (draft) save.mutate(draft); }}><h3>{t(label)}</h3><div className={`brand-preview ${id === 'logo_dark' ? 'brand-preview-dark' : ''}`}>{preview ? <img src={preview} alt={t("{{v0}}{{v1}}预览",{v0:label,v1:draft ? '待保存' : '当前'})} /> : <DefaultBrandMark size={64} />}</div><p className="help-text">{help}</p><label htmlFor={`brand-${id}`}>{t("选择{{label}}",{label:t(label)})}</label><div className="brand-file-control"><button type="button" className="secondary-button" disabled={!canWrite || save.isPending} onClick={() => input.current?.click()}>{t("选择图片")}</button><span className="help-text">{filename || t('尚未选择图片')}</span></div><input className="brand-file-input" ref={input} id={`brand-${id}`} type="file" accept={id === 'favicon' ? 'image/png,image/jpeg,image/x-icon,image/vnd.microsoft.icon,.ico' : 'image/png,image/jpeg'} disabled={!canWrite || save.isPending} onChange={event => { void select(event.target.files?.[0]); }} />{draft && <p className="help-text" role="status">{t("待保存预览，点击保存后生效。")}</p>}<div className="brand-actions"><button className="primary-button" disabled={!canWrite || !draft || save.isPending}>{t("保存{{label}}",{label:t(label)})}</button>{draft && <button type="button" className="text-button" disabled={save.isPending} onClick={() => { setDraft(''); setFilename(''); if (input.current) input.current.value = ''; }}>{t("取消预览")}</button>}<button type="button" className="text-button" disabled={!canWrite || !branding[id] || save.isPending} onClick={() => setReset(true)}>{t("恢复默认")}</button></div>{reset && <div className="brand-reset"><p>{t("确认恢复{{label}}",{label:t(label)})}？</p><button type="button" className="secondary-button" disabled={save.isPending} onClick={() => save.mutate('')}>{t("确认恢复")}</button><button type="button" className="text-button" onClick={() => setReset(false)}>{t("取消")}</button></div>}</Form>;
+  return <Form error={save.error} pending={save.isPending} className="brand-slot" aria-label={t(label)} onSubmit={event => { event.preventDefault(); if (draft) save.mutate(draft); }}><h3>{t(label)}</h3><div className={`brand-preview ${id === 'logo_dark' ? 'brand-preview-dark' : ''}`}>{preview ? <img src={preview} alt={t("{{v0}}{{v1}}预览",{v0:t(label),v1:draft ? t('待保存') : t('当前')})} /> : <DefaultBrandMark size={64} />}</div><p className="help-text">{t(help)}</p><label htmlFor={`brand-${id}`}>{t("选择{{label}}",{label:t(label)})}</label><div className="brand-file-control"><button type="button" className="secondary-button" disabled={!canWrite || save.isPending} onClick={() => input.current?.click()}>{t("选择图片")}</button><span className="help-text">{filename || t('尚未选择图片')}</span></div><input className="brand-file-input" ref={input} id={`brand-${id}`} type="file" accept={id === 'favicon' ? 'image/png,image/jpeg,image/x-icon,image/vnd.microsoft.icon,.ico' : 'image/png,image/jpeg'} disabled={!canWrite || save.isPending} onChange={event => { void select(event.target.files?.[0]); }} />{draft && <p className="help-text" role="status">{t("待保存预览，点击保存后生效。")}</p>}<div className="brand-actions"><button className="primary-button" disabled={!canWrite || !draft || save.isPending}>{t("保存{{label}}",{label:t(label)})}</button>{draft && <button type="button" className="text-button" disabled={save.isPending} onClick={() => { setDraft(''); setFilename(''); if (input.current) input.current.value = ''; }}>{t("取消预览")}</button>}<button type="button" className="text-button" disabled={!canWrite || !branding[id] || save.isPending} onClick={() => setReset(true)}>{t("恢复默认")}</button></div>{reset && <div className="brand-reset"><p>{t("确认恢复{{label}}",{label:t(label)})}？</p><button type="button" className="secondary-button" disabled={save.isPending} onClick={() => save.mutate('')}>{t("确认恢复")}</button><button type="button" className="text-button" onClick={() => setReset(false)}>{t("取消")}</button></div>}</Form>;
 }

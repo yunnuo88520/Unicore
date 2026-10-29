@@ -5,15 +5,18 @@ import licenseEnglish from './locales/license.en.json';
 import updateEnglish from './locales/updates.en.json';
 import { getPreferences, setPreferences, usePreferences, type Preferences } from './preferences';
 
+// Static metadata retains message keys until the rendering component calls t().
+export function defineMessages<const T>(messages:T):T { return messages; }
+
 export type Locale = Preferences['locale'];
 const catalog: Record<string, string> = {
   ...english, ...(__FEATURE_LICENSE__ ? licenseEnglish : {}), ...(__FEATURE_UPDATER__ ? updateEnglish : {}),
 };
-const validationPatterns = [
+const validationPatterns = defineMessages([
   [/^至少 (\d+) 个字符$/, '至少 {{count}} 个字符'],
   [/^最多 (\d+) 个字符$/, '最多 {{count}} 个字符'],
   [/^最多 (\d+) 字节$/, '最多 {{count}} 字节'],
-] as const;
+] as const);
 export function t<T>(value: T, parameters?: Record<string, unknown>): T {
   if (typeof value !== 'string') return value;
   let key: string = value;

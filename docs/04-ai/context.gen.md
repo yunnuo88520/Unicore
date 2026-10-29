@@ -48,6 +48,9 @@
 | clientPreferences | [packages/web-ui/src/preferences.ts](../../packages/web-ui/src/preferences.ts) |
 | i18n | [packages/web-ui/src/i18n.ts](../../packages/web-ui/src/i18n.ts) |
 | clientAppearance | [docs/03-runbooks/client-preferences.md](../../docs/03-runbooks/client-preferences.md) |
+| workspaceLayout | [packages/web-ui/src/workspace-layout.tsx](../../packages/web-ui/src/workspace-layout.tsx) |
+| frontendFoundations | [docs/03-runbooks/frontend-foundations.md](../../docs/03-runbooks/frontend-foundations.md) |
+| i18nGate | [scripts/check-i18n.mjs](../../scripts/check-i18n.mjs) |
 
 OpenAPI 当前包含 107 个 operation、108 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
 
@@ -85,5 +88,6 @@ OpenAPI 当前包含 107 个 operation、108 个 schema。Go/TS 模型、调用�
 - wikiPublish：`make wiki-publish`
 - packageDesktop：`make package-desktop`
 - signDesktop：`make sign-desktop`
+- i18n：`pnpm check:i18n`
 
 不保存凭据到上下文或验收记录。任务记录使用 [任务模板](task-template.md)，交付记录须区分实测、未测与未来目标。

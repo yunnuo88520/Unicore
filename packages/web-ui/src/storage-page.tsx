@@ -1,7 +1,7 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Single-level provider tabs, encrypted location configuration and instance file policies.
  */
-import { t, useLocale } from './i18n';
+import {defineMessages, t, useLocale } from './i18n';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Cloud, HardDrive, Plus, Check, FlaskConical, Pencil, Trash2, Save, Globe, RefreshCw } from 'lucide-react';
@@ -11,7 +11,7 @@ import { Modal } from './modal';
 import { Form, Field } from './forms';
 import { useMessage } from './message';
 import './storage.css';
-const providers=[{id:'local',label:'本地'},{id:'minio',label:'MinIO'},{id:'s3',label:'Amazon S3'},{id:'oss',label:'阿里云 OSS'},{id:'cos',label:'腾讯云 COS'}] as const;
+const providers=defineMessages([{id:'local',label:'本地'},{id:'minio',label:'MinIO'},{id:'s3',label:'Amazon S3'},{id:'oss',label:'阿里云 OSS'},{id:'cos',label:'腾讯云 COS'}] as const);
 const providerName=(id:string)=>t(providers.find(p=>p.id===id)?.label??id);
 export function StorageSettings({client}:{client:AppClient}){
   useLocale();

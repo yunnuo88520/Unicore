@@ -72,6 +72,11 @@
       "source": "docs/03-runbooks/client-preferences.md"
     },
     {
+      "slug": "Frontend-Foundations",
+      "title": "前端基础封装",
+      "source": "docs/03-runbooks/frontend-foundations.md"
+    },
+    {
       "slug": "System-Updates",
       "title": "系统更新与签名公证",
       "source": "docs/03-runbooks/updates.md"

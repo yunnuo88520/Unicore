@@ -18,7 +18,7 @@ export function useTheme(defaultTheme?: string) {
       const p=getPreferences(),root=document.documentElement;
       root.dataset.theme=p.theme==='system'?(media.matches?'dark':'light'):p.theme;
       for(const key of ['accent','radius','density','sidebar','layout','content'] as const)root.dataset[key]=p[key];
-      root.dir=p.direction;root.lang=p.locale;
+      root.dir='ltr';root.lang=p.locale;
       root.style.setProperty('--ui-font-scale',String({default:1,compact:1,comfortable:1.08,large:1.18}[p.density]));
       root.style.setProperty('--ui-space-scale',String({default:1,compact:.88,comfortable:1.05,large:1.1}[p.density]));
       root.style.setProperty('--ui-radius-scale',String({default:1,none:0,small:.5,medium:1,large:1.4,round:2}[p.radius]));

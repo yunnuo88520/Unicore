@@ -1,7 +1,7 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Scoped settings tabs retain drafts and save only the current business section.
  */
-import { t, useLocale } from './i18n';
+import {defineMessages, t, useLocale } from './i18n';
 import { BrandingPanel } from './branding-panel';
 import { Modal } from './modal';
 import { useMessage } from './message';
@@ -18,15 +18,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { LoaderCircle, Save } from 'lucide-react';
 import type { AppClient, Bootstrap, SettingPatch, WebClient } from '@unicore/sdk';
 
-const groupNames: Record<string, string> = { site: '站点信息', appearance: '默认外观', admin: '后台入口', security: '安全', account: '账号流程', mail: '邮件服务', oidc: '企业登录（OIDC）' };
+const groupNames: Record<string, string> = defineMessages({ site: '站点信息', appearance: '默认外观', admin: '后台入口', security: '安全', account: '账号流程', mail: '邮件服务', oidc: '企业登录（OIDC）' });
 // Keep one tab level; every task owns one visible panel.
-const sections: { id: string; label: string; groups: string[]; requires?: string }[] = [
+const sections: { id: string; label: string; groups: string[]; requires?: string }[] = defineMessages([
   { id: 'site', label: '基础信息', groups: ['site'] },
   { id: 'branding', label: '品牌图片', groups: [] },
   { id: 'appearance', label: '外观设置', groups: ['appearance'] },
   { id: 'security', label: '安全与控制', groups: ['security', 'admin'] },
   { id: 'oidc', label: '企业登录', groups: ['oidc'] },
-];
+]);
 
 type SettingsProps = { section?:'base'|'mail'; client: AppClient; metadata: Bootstrap; onSaved: () => void; canWrite?: boolean; theme: Theme; onThemeSaved?: (theme: Theme) => void };
 export function PersistentSettings(props: SettingsProps) {

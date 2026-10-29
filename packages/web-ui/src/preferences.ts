@@ -7,12 +7,12 @@ export const preferenceOptions = {
   accent: ['brand', 'rose', 'emerald', 'ocean', 'amber', 'slate'],
   radius: ['default', 'none', 'small', 'medium', 'large', 'round'],
   density: ['default', 'compact', 'comfortable', 'large'], sidebar: ['plain', 'inset', 'floating'],
-  layout: ['default', 'compact', 'full'], content: ['full', 'centered'], direction: ['ltr', 'rtl'],
+  layout: ['default', 'compact', 'full'], content: ['full', 'centered'],
 } as const;
 export type Preferences = { [K in keyof typeof preferenceOptions]: (typeof preferenceOptions)[K][number] };
 export const defaultPreferences: Preferences = {
   locale: 'zh-CN', theme: 'system', accent: 'brand', radius: 'default', density: 'default',
-  sidebar: 'plain', layout: 'default', content: 'full', direction: 'ltr',
+  sidebar: 'plain', layout: 'default', content: 'full',
 };
 export const preferencesKey = 'unicore.preferences.v1';
 const changed = 'unicore:preferences';

@@ -1,8 +1,9 @@
 // Author: yunnuo <ymz@ebox.vip>
+import {defineMessages} from './i18n';
 // Description: Shared hash route metadata; backend authorization remains authoritative.
 import type { Bootstrap } from '@unicore/sdk';
 
-export const routes = {
+export const routes = defineMessages({
   overview: { label: '工作台概览', title: '一份核心，无限可能', description: '从这里出发，让同一份业务逻辑运行于 Web、桌面与命令行。' },
   lab: { label: '核心实验室', title: '探索核心的每一种可能', description: '修改输入、运行用例，验证跨形态一致的执行结果。' },
   notes:{label:'我的笔记',title:'我的笔记',description:'记录想法、跟进事项，让每一次进展都有迹可循。'},
@@ -17,7 +18,7 @@ export const routes = {
   site: { label: '基础设置', title: '基础设置', description: '集中管理站点、品牌与适用的实例配置。', permission: 'settings:read' },
   account: { label: '账号资料', title: '账号资料', description: '管理本地密码与企业登录绑定。', authenticated: true },
   'not-found': { label: '页面不存在', title: '页面不存在', description: '这个地址尚未注册，请通过导航进入已有页面。' },
-} as const;
+} as const);
 export type Page = keyof typeof routes;
 export function pageFromHash(hash: string): Page {
   const path = hash.replace(/^#/, '').split('?')[0];

@@ -12,7 +12,8 @@
     "./i18n": "./src/i18n.ts",
     "./preferences": "./src/preferences.ts",
     "./appearance": "./src/appearance-drawer.tsx",
-    "./client-controls": "./src/client-controls.tsx"
+    "./client-controls": "./src/client-controls.tsx",
+    "./layout": "./src/workspace-layout.tsx"
   },
   "dependencies": {
     "@unicore/sdk": "workspace:*",

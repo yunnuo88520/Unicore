@@ -23,3 +23,5 @@
 | 贡献代码或报告问题 | [贡献指南](../../CONTRIBUTING.md)、[支持](../../SUPPORT.md)、[安全报告](../../SECURITY.md) |
 
 Wiki 从仓库 Markdown 生成，源码文档是唯一维护入口。阅读某个旧版本时，切换主仓库对应 tag/commit；Wiki 展示 main 的文档，不代表某个已发布版本。维护方式见 [Wiki 同步](README.md)。
+
+前端开发：[基础封装与双语构建检查](../03-runbooks/frontend-foundations.md)。

@@ -1,12 +1,12 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Audit and delivery records belong to system logs, independently of configuration.
  */
-import { t, useLocale, currentLocale } from './i18n';
+import {defineMessages, t, useLocale, currentLocale } from './i18n';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { WebClient } from '@unicore/sdk';
 import { Tabs } from './tabs';
-const actions:Record<string,string>={"users.created":"新增用户","users.updated":"更新用户状态","administrators.created":"新增管理员","administrators.updated":"更新管理员状态","settings.updated":"更新系统设置","auth.login":"账号登录","account.password.changed":"修改密码","mail.notification.queued":"系统通知入队","auth.verify.requested":"申请邮箱验证","auth.verify.completed":"完成邮箱验证","auth.reset.requested":"申请密码重置","auth.reset.completed":"完成密码重置","auth.login.requested":"申请邮箱登录","auth.login.completed":"邮箱登录成功","oidc.login":"企业账号登录","oidc.link":"绑定企业身份","oidc.unlink":"解除企业绑定"};
+const actions:Record<string,string>=defineMessages({"users.created":"新增用户","users.updated":"更新用户状态","administrators.created":"新增管理员","administrators.updated":"更新管理员状态","settings.updated":"更新系统设置","auth.login":"账号登录","account.password.changed":"修改密码","mail.notification.queued":"系统通知入队","auth.verify.requested":"申请邮箱验证","auth.verify.completed":"完成邮箱验证","auth.reset.requested":"申请密码重置","auth.reset.completed":"完成密码重置","auth.login.requested":"申请邮箱登录","auth.login.completed":"邮箱登录成功","oidc.login":"企业账号登录","oidc.link":"绑定企业身份","oidc.unlink":"解除企业绑定"});
 export function SystemLogs({web}:{web:WebClient}){
   useLocale();
  const [tab,setTab]=useState('audit');

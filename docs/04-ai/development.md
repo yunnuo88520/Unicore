@@ -23,3 +23,5 @@
 文件业务使用 `file_id` 与 `internal/files`，不自行拼路径或保存永久外链。存储扩展见 add-file-storage Skill、[运行手册](../03-runbooks/storage.md) 和 [ADR-0015](../adr/ADR-0015-file-storage.md)。
 
 新业务优先参考可运行的 [个人笔记纵向样板](../03-runbooks/business-example.md)。派生项目用 create:project 和 doctor 初始化，自建业务迁移不改框架历史账本；代码归属及上游合并见 [约定](../03-runbooks/framework-upgrade.md)。
+
+前端任务必须先查 [基础封装索引](../03-runbooks/frontend-foundations.md)；新增界面与中文词条、英文资源同一变更提交。先运行 `pnpm check:i18n`，再做英文页面、375px 与相关布局/方向验证。检查失败应补正确翻译或接入统一组件，不允许增加全局忽略列表、把界面文字搬到数据目录或关闭检查。业务样本文本与用户数据才保留原文。

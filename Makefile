@@ -44,6 +44,7 @@ test:
 	node scripts/build-features.mjs
 	pnpm check:docs
 	pnpm check:design
+	pnpm check:i18n
 	pnpm check:contracts
 	pnpm check:authors
 	go run ./scripts/check-boundaries

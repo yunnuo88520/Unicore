@@ -64,7 +64,10 @@
     "systemUpdates": "docs/03-runbooks/updates.md",
     "clientPreferences": "packages/web-ui/src/preferences.ts",
     "i18n": "packages/web-ui/src/i18n.ts",
-    "clientAppearance": "docs/03-runbooks/client-preferences.md"
+    "clientAppearance": "docs/03-runbooks/client-preferences.md",
+    "workspaceLayout": "packages/web-ui/src/workspace-layout.tsx",
+    "frontendFoundations": "docs/03-runbooks/frontend-foundations.md",
+    "i18nGate": "scripts/check-i18n.mjs"
   },
   "commands": {
     "generate": "pnpm generate",
@@ -83,7 +86,8 @@
     "wiki": "make wiki",
     "wikiPublish": "make wiki-publish",
     "packageDesktop": "make package-desktop",
-    "signDesktop": "make sign-desktop"
+    "signDesktop": "make sign-desktop",
+    "i18n": "pnpm check:i18n"
   },
   "skills": [
     "add-api-operation",

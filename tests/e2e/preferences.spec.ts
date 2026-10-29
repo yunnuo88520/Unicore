@@ -51,13 +51,13 @@ test('bilingual drafts, local drawer, persistence and responsive layouts', async
   await trigger.click();
   for (const [section, value, attribute, expected] of [
     ['density', 'Larger text', 'density', 'large'], ['sidebar', 'Floating', 'sidebar', 'floating'],
-    ['content', 'Centered', 'content', 'centered'], ['direction', 'Right to left', 'dir', 'rtl'],
+    ['content', 'Centered', 'content', 'centered'],
   ]) {
     await drawer.locator(`.preference-${section}`).getByRole('button', { name: value, exact: true }).click();
     await expect(page.locator('html')).toHaveAttribute(attribute === 'dir' ? 'dir' : `data-${attribute}`, expected);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
-  await page.screenshot({ path: `${directory}/drawer-rtl.png` });
+  await page.screenshot({ path: `${directory}/drawer-layout.png` });
   await drawer.getByRole('button', { name: 'Reset appearance', exact: true }).click();
   await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
@@ -84,7 +84,7 @@ test('English administrator pages and public authentication share controls', asy
   expect(installed.status()).toBe(200);
   await page.goto(`${instance.url}/admin`);
   await page.getByRole('button', { name:'切换语言', exact:true }).click(); await page.getByRole('menuitemradio', { name:'English', exact:true }).click();
-  for (const route of ['users','administrators','roles','site','site?tab=security','site?tab=oidc','mail','storage','logs']) {
+  for (const route of ['users','administrators','roles','site','site?tab=branding','site?tab=security','site?tab=oidc','mail','storage','logs']) {
     await page.goto(`${instance.url}/admin#${route}`);
     await expect(page.locator('.page-heading h1')).toBeVisible();
     await expect(page.locator('[role=status]').filter({hasText:/Loading/})).toHaveCount(0);

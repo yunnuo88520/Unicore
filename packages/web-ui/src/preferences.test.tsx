@@ -11,7 +11,7 @@ it('migrates the old theme and ignores invalid or unexpected stored values', () 
   expect(getPreferences().theme).toBe('dark');
   localStorage.setItem(preferencesKey, '{broken');
   expect(getPreferences()).toEqual(defaultPreferences);
-  localStorage.setItem(preferencesKey, JSON.stringify({ locale: 'en', accent: 'javascript:', density: {}, extra: 'ignored' }));
+  localStorage.setItem(preferencesKey, JSON.stringify({ locale: 'en', accent: 'javascript:', density: {}, extra: 'ignored', direction: 'rtl' }));
   expect(getPreferences()).toEqual({ ...defaultPreferences, locale: 'en' });
   setPreferences({ accent: 'ocean', radius: 'round' });
   expect(getPreferences()).toMatchObject({ locale: 'en', accent: 'ocean', radius: 'round' });
@@ -36,7 +36,7 @@ it('responds to same-window changes and browser storage events', () => {
   expect(screen.getByRole('status')).toHaveTextContent('zh-CN:dark');
 });
 it('interpolates user data without translating it and resets only presentation', () => {
-  setPreferences({ locale: 'en', theme: 'dark', direction: 'rtl', accent: 'rose' });
+  setPreferences({ locale: 'en', theme: 'dark', accent: 'rose' });
   expect(t('下载 {{v0}}', { v0: '我的笔记.txt' })).toBe('Download 我的笔记.txt');
   expect(t('至少 12 个字符')).toBe('Use at least 12 characters');
   resetAppearance();

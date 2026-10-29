@@ -119,3 +119,5 @@ React 的独立可折叠导航、共享原生 dialog、头像密码/退出、邮
 ## 客户端偏好与双语
 
 [ADR-0019](../adr/ADR-0019-local-preferences-i18n.md)：preferences.ts 白名单管理版本化本地状态与跨标签通知，theme.ts 统一应用生成 tokens、dataset、lang/dir 与系统主题；i18n.ts/locale catalog 只翻译界面文案。Workspace、安装、登录和 Wails 复用 ClientControls 与原生 dialog 抽屉；不在 locale 切换时重建会话、查询缓存或表单。版本气泡仅对有权限的 bootstrap 展示并读取本地更新概览。无 API/数据库迁移，CLI 不受影响。
+
+共享前端结构由 WorkspaceLayout 单独拥有，navigation/header/content/overlays 为内容插槽，几何规则集中 workspace-layout.css；styles.css 是所有 shell 共用的样式入口。布局、侧栏和内容宽度不再由业务页面各自设置偏移。check:i18n 在 Web/GUI 构建与 CI 中验证翻译来源；工作区与主题控制面板统一 LTR；阅读方向选项已移除，旧 RTL 偏好忽略。

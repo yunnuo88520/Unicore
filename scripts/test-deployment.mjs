@@ -88,7 +88,10 @@ async function exercise(mode,profile) {
     await page.getByLabel('一次性安装凭据').fill(token);
 
     await page.getByRole('button',{name:'下一步'}).click();
-    await expect(page.getByRole('radio',{name:profile==='web-platform'?/多用户平台/:/单机模式/})).toBeChecked();
+    // Archives carry a profile default; the generic Docker image starts standalone and allows choosing either mode.
+    const initialProfile=mode.startsWith('tar')?profile:'web-standalone';
+    expect((await json('/api/v1/install/status')).profile).toBe(initialProfile);
+    await expect(page.getByRole('radio',{name:initialProfile==='web-platform'?/多用户平台/:/单机模式/})).toBeChecked();
     await page.getByRole('radio',{name:profile==='web-platform'?/多用户平台/:/单机模式/}).check();
     await page.getByRole('button',{name:'下一步'}).click();
     await page.getByLabel('数据库类型').selectOption('sqlite');

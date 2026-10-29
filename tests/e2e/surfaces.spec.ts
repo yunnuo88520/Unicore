@@ -24,6 +24,7 @@ test('separate entries, registration policy and redesigned file selection',async
  const transfer=await page.evaluateHandle(()=>{const data=new DataTransfer();data.items.add(new File(['private drag bytes'],'drag-example.txt',{type:'text/plain'}));return data;});
  await dialog.locator('.upload-zone').dispatchEvent('drop',{dataTransfer:transfer});await expect(dialog.locator('.upload-file-card')).toContainText('drag-example.txt');
  await dialog.getByRole('button',{name:'移除已选文件',exact:true}).click();await expect(dialog.locator('.upload-file-card')).toHaveCount(0);
+ await expect(dialog.locator('.upload-zone')).toBeFocused();await expect(dialog.getByRole('button',{name:'开始上传',exact:true})).toBeDisabled();
  await dialog.getByLabel('选择文件').setInputFiles({name:'design-review.txt',mimeType:'text/plain',buffer:Buffer.from('private upload verification')});
  const directory=`build/acceptance/surfaces/${info.project.name}`;await mkdir(directory,{recursive:true});
  for(const theme of ['light','dark']){await page.evaluate(t=>document.documentElement.dataset.theme=t,theme);await page.screenshot({path:`${directory}/upload-${theme}.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}

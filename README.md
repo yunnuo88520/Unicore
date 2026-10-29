@@ -33,6 +33,8 @@ Unicore 是面向 AI 辅助开发的 Go + React 应用框架。共享领域与�
 预览安装包与校验和见 [GitHub Releases](https://github.com/yunnuo88520/Unicore/releases)，也可从源码构建；尚无公开注册表镜像。已接入可替换渠道的签名 OTA、离线版本日志及平台签名/公证流程；真实开发者凭据和下一版签名发行仍待配置，授权服务保持占位。详见 [系统更新](docs/03-runbooks/updates.md)；能力与验收边界见 [PRD](docs/00-product/PRD.md) 和 [最新验收](docs/04-ai/acceptance-updates.md)。
 
 
+平台管理端提供可筛选、排序、分页和导出的操作日志，以及独立邮件模板编辑、预览与测试发送；权限、迁移和开发约定见 [管理工具](docs/03-runbooks/admin-tools.md)。
+
 图形入口共用中英文切换与本地主题抽屉，可调整配色、圆角、密度和布局，刷新后保留；与服务器全局配置隔离。扩展入口见 [客户端语言与外观](docs/03-runbooks/client-preferences.md)。
 
 ## 快速开始

@@ -197,7 +197,7 @@ func (m *Manager) attach(store *sqlstore.Store) {
 		admins := &platformsql.Repository{Store: store, Administrators: true}
 		m.identity = platform.New(repository)
 		m.administrator = platform.New(admins)
-		m.mail = &mailer.Service{Store: repository, Settings: m.settingService, Secrets: m.secret, Sender: mailadapter.SMTP{}}
+		m.mail = &mailer.Service{BaseURL: m.config.BaseURL, Store: repository, Settings: m.settingService, Secrets: m.secret, Sender: mailadapter.SMTP{}}
 		m.accounts = &platform.Accounts{Identity: m.identity, Store: repository, Settings: m.settingService, Mail: m.mail, BaseURL: m.config.BaseURL}
 		m.adminAccounts = &platform.Accounts{Administrator: true, Identity: m.administrator, Store: admins, Settings: m.settingService, Mail: m.mail, BaseURL: m.config.BaseURL}
 		m.oidc = &platform.OIDC{Identity: m.identity, Store: repository, Settings: m.settingService, Secrets: m.secret, Provider: oidcadapter.Provider{}, BaseURL: m.config.BaseURL}

@@ -40,6 +40,6 @@ try{
  execFileSync(ops,['restore','--input',backup,'--data-dir',restored,'--base-url',url],{env,stdio:'pipe'});
  await start(join(root,'old-server'),restored);boot=await bootstrap();expect(boot.site_name).toBe('Preserved upgrade brand');expect((await(await client.get('/api/v1/admin/users')).json()).data.total).toBe(1);expect(hash(join(restored,'secret.key'))).toBe(keyHash);
  expect((await client.get('/api/v1/admin/notes')).status()).toBe(404);
- const evidence={from_revision:revision,to_revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),to_worktree:true,profile:'web-platform',driver:'sqlite',schema:9,business_before:0,business_after:1,upgrade:true,restart:true,restore_old_binary:true,source_instance_preserved:true};
+ const evidence={from_revision:revision,to_revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),to_worktree:true,profile:'web-platform',driver:'sqlite',schema:10,business_before:0,business_after:1,upgrade:true,restart:true,restore_old_binary:true,source_instance_preserved:true};
  mkdirSync('build/acceptance/developer-kit',{recursive:true});writeFileSync('build/acceptance/developer-kit/upgrade.json',JSON.stringify(evidence,null,2)+'\n');console.log('PASS previous revision upgrade, business migration, restart and pre-upgrade backup restored with previous binary');
 }finally{await stop();if(client)await client.dispose();rmSync(root,{recursive:true,force:true});}

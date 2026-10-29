@@ -5,7 +5,6 @@ package httpadapter
 import (
 	"github.com/go-chi/chi/v5"
 	"github.com/yunnuo/unicore/internal/contracts"
-	"github.com/yunnuo/unicore/internal/mailer"
 	"github.com/yunnuo/unicore/internal/platform"
 	"net/http"
 )
@@ -84,24 +83,5 @@ func mountEmail(api chi.Router, config Config) {
 		}
 
 	}
-	api.Get("/admin/settings/mail/templates", func(w http.ResponseWriter, r *http.Request) {
-		if _, ok := require(config.Install, w, r, "settings:read"); !ok {
-			return
-		}
-		a := accounts(w, r)
-		if a == nil {
-			return
-		}
-		values, err := a.Settings.Raw(r.Context())
-		if err != nil {
-			webError(w, err)
-			return
-		}
-		logo, err := a.Settings.Logo(r.Context())
-		if err != nil {
-			webError(w, err)
-			return
-		}
-		success(w, mailer.Previews(values["site.name"], values["site.copyright"], logo))
-	})
+	mountMailTemplates(api, config)
 }

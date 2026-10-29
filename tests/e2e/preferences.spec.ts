@@ -13,7 +13,7 @@ async function untranslated(page: import('@playwright/test').Page) {
       const node = walk.currentNode as Text;
       if (!/[\u3400-\u9fff]/.test(node.textContent ?? '')) continue;
       const parent = node.parentElement;
-      if (!parent || !parent.checkVisibility() || parent.closest('textarea,input,script,style,.update-notes,.note-body')) continue;
+      if (!parent || !parent.checkVisibility() || parent.closest('textarea,input,script,style,.update-notes,.note-body,.rich-surface')) continue;
       found.push(node.textContent!.trim());
     }
     return found;
@@ -84,7 +84,7 @@ test('English administrator pages and public authentication share controls', asy
   expect(installed.status()).toBe(200);
   await page.goto(`${instance.url}/admin`);
   await page.getByRole('button', { name:'切换语言', exact:true }).click(); await page.getByRole('menuitemradio', { name:'English', exact:true }).click();
-  for (const route of ['users','administrators','roles','site','site?tab=branding','site?tab=security','site?tab=oidc','mail','storage','logs']) {
+  for (const route of ['users','administrators','roles','site','site?tab=branding','site?tab=security','site?tab=oidc','mail','mail-templates','storage','logs']) {
     await page.goto(`${instance.url}/admin#${route}`);
     await expect(page.locator('.page-heading h1')).toBeVisible();
     await expect(page.locator('[role=status]').filter({hasText:/Loading/})).toHaveCount(0);

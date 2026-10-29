@@ -177,6 +177,11 @@ type AuditEntry struct {
 	ActorID   string `json:"actor_id"`
 	Action    string `json:"action"`
 	CreatedAt int    `json:"created_at"`
+	ActorName string `json:"actor_name"`
+	Realm     string `json:"realm"`
+	Target    string `json:"target"`
+	Detail    string `json:"detail"`
+	IpAddress string `json:"ip_address"`
 }
 
 type Dashboard struct {
@@ -353,10 +358,13 @@ type EmailCodeInput struct {
 }
 
 type MailTemplate struct {
-	Purpose string `json:"purpose"`
-	Subject string `json:"subject"`
-	Html    string `json:"html"`
-	Text    string `json:"text"`
+	Purpose    string                 `json:"purpose"`
+	Subject    string                 `json:"subject"`
+	Html       string                 `json:"html"`
+	Text       string                 `json:"text"`
+	Body       string                 `json:"body"`
+	Customized bool                   `json:"customized"`
+	Variables  []MailTemplateVariable `json:"variables"`
 }
 
 type MailTemplateList struct {
@@ -516,6 +524,7 @@ type AuditLogList struct {
 	Total    int          `json:"total"`
 	Page     int          `json:"page"`
 	PageSize int          `json:"page_size"`
+	Actions  []string     `json:"actions"`
 }
 
 type AuditLogResponse struct {
@@ -754,4 +763,57 @@ type UpdateJobResponse struct {
 	Message   string    `json:"message"`
 	Data      UpdateJob `json:"data"`
 	RequestID string    `json:"request_id"`
+}
+
+type AuditLogQuery struct {
+	Action    string `json:"action"`
+	Search    string `json:"search"`
+	Start     int    `json:"start"`
+	End       int    `json:"end"`
+	Sort      string `json:"sort"`
+	Direction string `json:"direction"`
+	Page      int    `json:"page"`
+	PageSize  int    `json:"page_size"`
+}
+
+type AuditLogExport struct {
+	Filename  string `json:"filename"`
+	Content   string `json:"content"`
+	Exported  int    `json:"exported"`
+	Total     int    `json:"total"`
+	Truncated bool   `json:"truncated"`
+}
+
+type AuditLogExportResponse struct {
+	Code      string         `json:"code"`
+	Message   string         `json:"message"`
+	Data      AuditLogExport `json:"data"`
+	RequestID string         `json:"request_id"`
+}
+
+type MailTemplateInput struct {
+	Purpose string `json:"purpose"`
+	Subject string `json:"subject"`
+	Body    string `json:"body"`
+}
+
+type MailTemplateTestInput struct {
+	Template  MailTemplateInput `json:"template"`
+	Recipient string            `json:"recipient"`
+}
+
+type MailTemplateVariable struct {
+	Key    string `json:"key"`
+	Sample string `json:"sample"`
+}
+
+type MailTemplateResponse struct {
+	Code      string       `json:"code"`
+	Message   string       `json:"message"`
+	Data      MailTemplate `json:"data"`
+	RequestID string       `json:"request_id"`
+}
+
+type MailTemplateReset struct {
+	Purpose string `json:"purpose"`
 }

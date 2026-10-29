@@ -84,7 +84,7 @@ function App({ client, registry, notice, administratorPage }: { client: AppClien
       <nav aria-label={t("工作台")}>{([{ id: 'overview', icon: LayoutDashboard }, { id: 'lab', icon: FlaskConical }, { id:'notes',icon:NotebookPen }] as const).filter(({id})=>canAccess(id,metadata.data)).map(({ id, icon: Icon }) => <button key={id} className={`nav-item ${page === id ? 'active' : ''}`} aria-current={page === id ? 'page' : undefined} onClick={() => navigate(id)}><Icon size={19} /><span>{t(PAGE_LABELS[id])}</span>{page === id && <span className="nav-active-dot" />}</button>)}</nav>
       {canAccess('files',metadata.data)&&<button className={`nav-item ${page==='files'?'active':''}`} onClick={()=>navigate('files')}><FolderOpen size={19}/><span>{isAdministrator(metadata.data)?t('文件管理'):t('我的文件')}</span></button>}
       {isAdministrator(metadata.data)&&<NavGroup title={t("用户管理")} icon={<Users size={19}/>}><NavEntry id="users" page={page} navigate={navigate}/><NavEntry id="administrators" page={page} navigate={navigate}/><NavEntry id="roles" page={page} navigate={navigate}/></NavGroup>}
-      {canAccess('site',metadata.data)&&(personalSettings?<button className={`nav-item ${page==='site'?'active':''}`} onClick={()=>navigate('site')}><Settings2 size={19}/><span>{t("外观设置")}</span></button>:<NavGroup title={t("系统管理")} icon={<Settings2 size={19}/>}><NavEntry id="site" page={page} navigate={navigate}/>{(['mail','storage','logs','edition'] as const).filter(id=>canAccess(id,metadata.data)).map(id=><NavEntry key={id} id={id} page={page} navigate={navigate}/>)}</NavGroup>)}
+      {canAccess('site',metadata.data)&&(personalSettings?<button className={`nav-item ${page==='site'?'active':''}`} onClick={()=>navigate('site')}><Settings2 size={19}/><span>{t("外观设置")}</span></button>:<NavGroup title={t("系统管理")} icon={<Settings2 size={19}/>}><NavEntry id="site" page={page} navigate={navigate}/>{(['mail','mail-templates','storage','logs','edition'] as const).filter(id=>canAccess(id,metadata.data)).map(id=><NavEntry key={id} id={id} page={page} navigate={navigate}/>)}</NavGroup>)}
       {!isAdministrator(metadata.data)&&canAccess('edition',metadata.data)&&<button className={`nav-item ${page==='edition'?'active':''}`} onClick={()=>navigate('edition')}><PackageCheck size={19}/><span>{t("系统更新")}</span></button>}
       </div>
       <div className="sidebar-bottom"><SidebarTools onAbout={openAbout}/></div>
@@ -103,7 +103,7 @@ function NavGroup({title,icon,children}:{title:string;icon:ReactNode;children:Re
  const [open,setOpen]=useState(true);const id=useId();
  return <section className="nav-group"><button className="nav-item nav-group-toggle" aria-expanded={open} aria-controls={id} onClick={()=>setOpen(v=>!v)}>{icon}<span>{t(title)}</span><ChevronRight size={15} className={open?'expanded':''}/></button><nav id={id} aria-label={t(title)} hidden={!open}>{children}</nav></section>;
 }
-const NAV_ICONS: Partial<Record<Page, LucideIcon>> = { storage:Cloud,files:FolderOpen,users: UserRound, administrators: UserCog, roles: ShieldCheck, site: Settings2, mail: Mail, logs: ScrollText, edition: PackageCheck };
+const NAV_ICONS: Partial<Record<Page, LucideIcon>> = { storage:Cloud,files:FolderOpen,users: UserRound, administrators: UserCog, roles: ShieldCheck, site: Settings2, mail: Mail, 'mail-templates': Mail, logs: ScrollText, edition: PackageCheck };
 function NavEntry({id,page,navigate}:{id:Page;page:Page;navigate:(p:Page)=>void}) {
   useLocale();
   const Icon = NAV_ICONS[id] ?? Circle;

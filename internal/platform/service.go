@@ -25,7 +25,7 @@ type Store interface {
 	CreateSession(context.Context, string, string, int, string) error
 	Session(context.Context, string) (contracts.User, int, error)
 	DeleteSession(context.Context, string) error
-	SystemLogs(context.Context) (contracts.AuditLogList, error)
+	SystemLogs(context.Context, ...contracts.AuditLogQuery) (contracts.AuditLogList, error)
 	Dashboard(context.Context) (contracts.Dashboard, error)
 	ListRoles(context.Context) (contracts.RoleList, error)
 	RoleOptions(context.Context, string) (contracts.RoleOptions, error)

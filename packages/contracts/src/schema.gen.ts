@@ -175,6 +175,11 @@ export interface AuditEntry {
   actor_id: string;
   action: string;
   created_at: number;
+  actor_name: string;
+  realm: string;
+  target: string;
+  detail: string;
+  ip_address: string;
 }
 
 export interface Dashboard {
@@ -355,6 +360,9 @@ export interface MailTemplate {
   subject: string;
   html: string;
   text: string;
+  body: string;
+  customized: boolean;
+  variables: Array<MailTemplateVariable>;
 }
 
 export interface MailTemplateList {
@@ -514,6 +522,7 @@ export interface AuditLogList {
   total: number;
   page: number;
   page_size: number;
+  actions: Array<string>;
 }
 
 export interface AuditLogResponse {
@@ -752,4 +761,57 @@ export interface UpdateJobResponse {
   message: string;
   data: UpdateJob;
   request_id: string;
+}
+
+export interface AuditLogQuery {
+  action: string;
+  search: string;
+  start: number;
+  end: number;
+  sort: "created_at" | "id";
+  direction: "asc" | "desc";
+  page: number;
+  page_size: number;
+}
+
+export interface AuditLogExport {
+  filename: string;
+  content: string;
+  exported: number;
+  total: number;
+  truncated: boolean;
+}
+
+export interface AuditLogExportResponse {
+  code: string;
+  message: string;
+  data: AuditLogExport;
+  request_id: string;
+}
+
+export interface MailTemplateInput {
+  purpose: "test" | "verify" | "login" | "reset" | "notification";
+  subject: string;
+  body: string;
+}
+
+export interface MailTemplateTestInput {
+  template: MailTemplateInput;
+  recipient: string;
+}
+
+export interface MailTemplateVariable {
+  key: string;
+  sample: string;
+}
+
+export interface MailTemplateResponse {
+  code: string;
+  message: string;
+  data: MailTemplate;
+  request_id: string;
+}
+
+export interface MailTemplateReset {
+  purpose: "test" | "verify" | "login" | "reset" | "notification";
 }

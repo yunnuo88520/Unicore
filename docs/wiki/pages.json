@@ -62,6 +62,11 @@
       "source": "docs/03-runbooks/backup.md"
     },
     {
+      "slug": "Administrator-Tools",
+      "title": "操作日志与邮件模板",
+      "source": "docs/03-runbooks/admin-tools.md"
+    },
+    {
       "slug": "Release",
       "title": "构建与发版",
       "source": "docs/03-runbooks/release.md"

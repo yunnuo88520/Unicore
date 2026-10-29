@@ -94,6 +94,6 @@ Linux amd64 daemon 将上例改为 linux/amd64。验收只创建随机命名容�
 
 Dependency security workflow 运行固定版 govulncheck：Web/CLI/ops 符号检查、全部业务导入包和桌面 bindings 导入包检查；前端审计包含开发依赖，low 及以上阻断。没有导入的废弃子包单独记录，不以排除开发依赖掩盖测试工具漏洞。安装新依赖需跟踪误报与升级影响，不静默忽略失败。发布前在目标环境恢复副本验证，参见 [备份恢复](backup.md)。跨版本升级/回退验收与同版本容器替换分开记录。
 
-`make test-upgrade FROM_REF=<可信本地旧提交或tag>` 在临时实例构建旧 binary，安装/保存设置和账号，备份后用当前 binary 向前迁移业务账本，重启确认，再将升级前快照恢复到新目录并由旧 binary 验证。当前脚本针对 SQLite、平台 schema9→业务schema1 的这次变更；其他历史版本/外部DB的跨版本升级需对应迁移夹具，不能泛化为任意版本可回退。
+`make test-upgrade FROM_REF=<可信本地旧提交或tag>` 在临时实例构建旧 binary，安装/保存设置和账号，备份后用当前 binary 向前迁移业务账本，重启确认，再将升级前快照恢复到新目录并由旧 binary 验证。当前脚本针对 SQLite、旧平台 schema9/业务schema0 → 当前平台 schema10/业务schema1 的变更；其他历史版本/外部DB的跨版本升级需对应迁移夹具，不能泛化为任意版本可回退。
 
 构建网络受限时，可显式 `GOPROXY=https://goproxy.cn,direct make docker-build`（选用团队信任的 Go 模块代理，sumdb 校验保持启用），Compose 读取相同变量；GO_IMAGE/NODE_IMAGE/RUNTIME_IMAGE 同样可指定可信镜像源。不要使用跳过 TLS 或关闭 checksum 的方式解决下载问题。

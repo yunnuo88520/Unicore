@@ -576,6 +576,25 @@ export const operations = {
     "csrf": false,
     "identityRealm": "administrator"
   },
+  "saveMailTemplate": {
+    "method": "PUT",
+    "path": "/api/v1/admin/settings/mail/templates",
+    "requestSchema": "MailTemplateInput",
+    "responseSchema": "MailTemplateResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "settings:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
   "listRoles": {
     "method": "GET",
     "path": "/api/v1/admin/roles",
@@ -1906,6 +1925,82 @@ export const operations = {
     "superAdmin": true,
     "csrf": true,
     "identityRealm": "administrator"
+  },
+  "exportSystemLogs": {
+    "method": "GET",
+    "path": "/api/v1/admin/logs/export",
+    "requestSchema": null,
+    "responseSchema": "AuditLogExportResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "logs:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "previewMailTemplate": {
+    "method": "POST",
+    "path": "/api/v1/admin/settings/mail/templates/preview",
+    "requestSchema": "MailTemplateInput",
+    "responseSchema": "MailTemplateResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "settings:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "testMailTemplate": {
+    "method": "POST",
+    "path": "/api/v1/admin/settings/mail/templates/test",
+    "requestSchema": "MailTemplateTestInput",
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "settings:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "resetMailTemplate": {
+    "method": "POST",
+    "path": "/api/v1/admin/settings/mail/templates/reset",
+    "requestSchema": "MailTemplateReset",
+    "responseSchema": "MailTemplateResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "settings:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
   }
 } as const;
 export type OperationId = keyof typeof operations;
@@ -1943,6 +2038,7 @@ export interface OperationInputs {
   requestEmailLogin: Models.EmailRequest;
   completeEmailLogin: Models.EmailCodeInput;
   mailTemplates: undefined;
+  saveMailTemplate: Models.MailTemplateInput;
   listRoles: undefined;
   roleOptions: undefined;
   oidcInfo: undefined;
@@ -2017,6 +2113,10 @@ export interface OperationInputs {
   adminCheckUpdate: undefined;
   applyUpdate: Models.UpdateApplyInput;
   adminApplyUpdate: Models.UpdateApplyInput;
+  exportSystemLogs: undefined;
+  previewMailTemplate: Models.MailTemplateInput;
+  testMailTemplate: Models.MailTemplateTestInput;
+  resetMailTemplate: Models.MailTemplateReset;
 }
 export interface OperationData {
   bootstrap: Models.BootstrapResponse['data'];
@@ -2052,6 +2152,7 @@ export interface OperationData {
   requestEmailLogin: Models.EmailChallengeResponse['data'];
   completeEmailLogin: Models.SessionResponse['data'];
   mailTemplates: Models.MailTemplateListResponse['data'];
+  saveMailTemplate: Models.MailTemplateResponse['data'];
   listRoles: Models.RoleListResponse['data'];
   roleOptions: Models.RoleOptionsResponse['data'];
   oidcInfo: Models.OIDCInfoResponse['data'];
@@ -2126,4 +2227,8 @@ export interface OperationData {
   adminCheckUpdate: Models.UpdateOverviewResponse['data'];
   applyUpdate: Models.UpdateJobResponse['data'];
   adminApplyUpdate: Models.UpdateJobResponse['data'];
+  exportSystemLogs: Models.AuditLogExportResponse['data'];
+  previewMailTemplate: Models.MailTemplateResponse['data'];
+  testMailTemplate: Models.ActionResultResponse['data'];
+  resetMailTemplate: Models.MailTemplateResponse['data'];
 }

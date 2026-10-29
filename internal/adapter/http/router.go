@@ -19,6 +19,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/yunnuo/unicore/internal/adapter/presenter"
+	"github.com/yunnuo/unicore/internal/audit"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/observability"
@@ -90,6 +91,13 @@ func New(config Config) http.Handler {
 				}
 				config.Logger.Info("request completed", "event", "http.request", "request_id", requestID, "method", r.Method, "route", route, "status", status, "duration_ms", time.Since(start).Milliseconds())
 			}()
+			if config.Install != nil && config.Install.Identity(administratorRequest(r)) != nil {
+				realm := "user"
+				if administratorRequest(r) {
+					realm = "administrator"
+				}
+				r = r.WithContext(audit.With(r.Context(), audit.Metadata{IP: ip(r), Realm: realm, Target: r.URL.Path}))
+			}
 			next.ServeHTTP(w, r)
 		})
 	})

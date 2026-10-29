@@ -13,6 +13,7 @@
 | 主题与布局控件 | AppearanceDrawer / AppearanceControls | 选项来自 preferenceOptions，标签满足完整类型映射；控件固定 LTR，工作区统一 LTR |
 | 表单与校验 | forms.tsx / Form、Field | 原生与契约约束、服务端字段错误、pending 防重；新实体用 Modal |
 | 反馈与控件 | useMessage / Modal / Tabs / Switch / Tooltip | 使用统一消息、焦点/关闭和键盘行为，避免自写重复弹层 |
+| 富文本 | rich-text-editor.tsx | 受限标签、选择范围、变量插入、源码净化、纯文本粘贴；服务端再次校验，场景页复用组件 |
 | 视觉基础 | styles.css / tokens.json | 引入一个共享样式入口；颜色/尺度使用 tokens，不写页面专属主题常量 |
 
 ## 新页面的最小双语写法
@@ -33,3 +34,5 @@ return <button aria-label={t('保存')}>{t('保存')}</button>;
 静态检查不能证明动态数据与任意新流程的全部状态。新增界面仍必须实际切换中英文，验证 loading/empty/error/success、表单错误、消息、弹窗与英文长标签；在 preferences.spec.ts 的英文巡检加入新的管理页/标签。布局改动运行 layout.spec.ts，覆盖 375/767/768/850/900/1280px、三种布局/侧栏、两种内容宽度，含旧 RTL 数据恢复 LTR，并断言正文未被导航覆盖，而非只检查 scrollWidth。桌面共享改动还需真实 Wails 窗口，不能用 HTTP 替代。
 
 基础组织参考 [New API 的布局组件](https://github.com/QuantumNous/new-api/tree/main/web/src/components/layout) 与 [语言资源同步](https://github.com/QuantumNous/new-api/blob/main/web/scripts/sync-i18n.mjs) 的职责分离与资源检查思路；这里沿用 Unicore 的 tokens、AppClient 和 profile 边界独立实现，不引入其业务组件或源码。
+
+管理端操作日志与邮件模板复用这些入口，详见 [管理工具](admin-tools.md)。模板正文/主题属于业务内容，语言巡检仅排除输入及 `.rich-surface`，不跳过整个页面。

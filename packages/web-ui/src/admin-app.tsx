@@ -7,6 +7,7 @@ import type { AppClient } from '@unicore/sdk';
 import { StorageSettings } from './storage-page';
 import { UserManagement } from './web-flows';
 import { PersistentSettings } from './settings-page';
+import { MailTemplates } from './mail-templates-page';
 import { SystemLogs } from './logs-page';
 import { EditionPanel } from './edition-panel';
 import { RoleManagement } from './roles-page';
@@ -18,6 +19,7 @@ function AdministrationPage({page,client,metadata,theme,setTheme,refresh}:PagePr
  case 'storage': return client.storage && <StorageSettings client={client}/>;
  case 'users': case 'administrators': return <UserManagement key={page} web={client.web} metadata={metadata} administrators={page==='administrators'}/>;
  case 'roles': return <RoleManagement web={client.web}/>;
+ case 'mail-templates': return <MailTemplates web={client.web}/>;
  case 'logs': return <SystemLogs web={client.web}/>;
  case 'edition': return <EditionPanel client={client} metadata={metadata}/>;
  default:return null;

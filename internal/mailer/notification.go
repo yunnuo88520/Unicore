@@ -37,7 +37,12 @@ func (s *Service) Notify(ctx context.Context, input Notification, actor string) 
 	if err != nil {
 		return err
 	}
-	payload := s.Encrypt(RenderNotification(values["site.name"], values["site.copyright"], input.Title, input.Detail, input.To, false, logo))
+	values["site.base_url"] = s.BaseURL
+	message, err := RenderConfigured(values, "notification", "", input.To, false, logo, map[string]string{"title": input.Title, "detail": input.Detail})
+	if err != nil {
+		return err
+	}
+	payload := s.Encrypt(message)
 	if len(payload) > 65535 {
 		return settings.ErrInvalid
 	}

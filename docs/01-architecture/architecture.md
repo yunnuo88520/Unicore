@@ -17,6 +17,7 @@ HTTP / Wails → usecase.Notes → domain.Note / NoteRepository port → SQL ada
 | internal/install | 安装状态/凭据/恢复、DB 配置加密、按 profile 装配 |
 | internal/platform | Argon2id、会话、权限策略、限流/验证码与 identity ports |
 | internal/settings | Definition 注册、类型/范围校验与持久化 port |
+| internal/mailcontent / audit | 受限邮件内容、变量转义 / 服务端审计元数据 context |
 | internal/secret | AES-256-GCM 与受限密钥/原子配置文件 |
 | adapter/storage/sqlstore | 无驱动/身份依赖的 SQL、迁移、设置与审计基础 |
 | adapter/storage/platformsql | 平台身份 SQL 实现 |
@@ -121,3 +122,7 @@ React 的独立可折叠导航、共享原生 dialog、头像密码/退出、邮
 [ADR-0019](../adr/ADR-0019-local-preferences-i18n.md)：preferences.ts 白名单管理版本化本地状态与跨标签通知，theme.ts 统一应用生成 tokens、dataset、lang/dir 与系统主题；i18n.ts/locale catalog 只翻译界面文案。Workspace、安装、登录和 Wails 复用 ClientControls 与原生 dialog 抽屉；不在 locale 切换时重建会话、查询缓存或表单。版本气泡仅对有权限的 bootstrap 展示并读取本地更新概览。无 API/数据库迁移，CLI 不受影响。
 
 共享前端结构由 WorkspaceLayout 单独拥有，navigation/header/content/overlays 为内容插槽，几何规则集中 workspace-layout.css；styles.css 是所有 shell 共用的样式入口。布局、侧栏和内容宽度不再由业务页面各自设置偏移。check:i18n 在 Web/GUI 构建与 CI 中验证翻译来源；工作区与主题控制面板统一 LTR；阅读方向选项已移除，旧 RTL 偏好忽略。
+
+## 审计快照与配置化邮件
+
+[ADR-0020](../adr/ADR-0020-audit-mail-templates.md) 定义平台 audit_metadata 追加表与 schema10，保留 audit_logs 的历史记录；真实连接/身份/操作目标通过服务端 context 传给存储，参数绑定和固定排序支持查询、分页与有上限的 CSV。mail.template.* 在 SettingDefinition 注册，只通过管理员专用 API 校验/保存。独立 mailcontent 统一变量与受限 HTML，mailer 使预览、六位码、通知和测试一致；新邮件入队时快照，不读取未保存草稿。以上都不进入单机/桌面/CLI 组合。

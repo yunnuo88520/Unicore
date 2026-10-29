@@ -13,7 +13,7 @@ useSession 从 bootstrap 推导 loading/error/unavailable/authenticated/anonymou
 
 使用语义 CSS 与 tokens，详见 [设计系统](design-system.md)。每个页面检查 loading/empty/error/success、权限拒绝、键盘、PC/375px 和 light/dark/system。UI 验收须使用真实 Go 服务；桌面复用的改动还需实际 Wails 原生运行。新增流程使用项目内 [add-react-page](../../.agents/skills/add-react-page/SKILL.md)。
 
-新增实体表单使用 modal.tsx 的原生 dialog，不在列表内展开；使用 Form/Field 的契约校验，验证取消、Escape、焦点返回及 pending 防重。登录/安装和设置编辑保留适合各自流程的页面。导航与邮件/日志页面分工见 ADR-0014；避免重新加入平台仪表盘、模板设置或嵌套标签。头像操作调用统一 SDK；管理员/普通用户必须保留独立入口和身份域。
+新增实体表单使用 modal.tsx 的原生 dialog，不在列表内展开；使用 Form/Field 的契约校验，验证取消、Escape、焦点返回及 pending 防重。登录/安装和设置编辑保留适合各自流程的页面。导航与邮件/日志页面分工见 ADR-0014；避免重新加入平台仪表盘或嵌套标签；邮件模板独立管理页按 ADR-0020 实现。头像操作调用统一 SDK；管理员/普通用户必须保留独立入口和身份域。
 
 二级导航在分组内部缩进，使用 Lucide 语义图标；图标与 UI 不使用 Emoji/表情字符（check:design 检查）。仅 web-platform 已登录账号显示头像与账号菜单；web-standalone/desktop 无用户概念，不渲染头像。
 

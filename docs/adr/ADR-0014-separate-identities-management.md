@@ -3,6 +3,8 @@
 
 > 升级占位部分由 [ADR-0018](ADR-0018-signed-updates.md) 的签名 OTA 取代，其余决策继续适用。
 
+邮件模板展示与操作日志能力由 [ADR-0020](ADR-0020-audit-mail-templates.md) 更新。
+
 当前入口与单机范围以 [ADR-0016](ADR-0016-separate-client-admin-surfaces.md) 为准，以下保留原决策背景。
 
 状态：采纳，2026-10-27。身份存储与登录边界取代 ADR-0012 的同表身份分配，保留固定两角色和本地外观规则。

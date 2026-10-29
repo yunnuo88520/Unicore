@@ -39,7 +39,7 @@
 | frameworkUpgrade | [docs/03-runbooks/framework-upgrade.md](../../docs/03-runbooks/framework-upgrade.md) |
 | contributing | [CONTRIBUTING.md](../../CONTRIBUTING.md) |
 | community | [docs/03-runbooks/open-source.md](../../docs/03-runbooks/open-source.md) |
-| currentAcceptance | [docs/04-ai/acceptance-updates.md](../../docs/04-ai/acceptance-updates.md) |
+| currentAcceptance | [docs/04-ai/acceptance-admin-tools.md](../../docs/04-ai/acceptance-admin-tools.md) |
 | wiki | [docs/wiki/README.md](../../docs/wiki/README.md) |
 | updates | [internal/updates/service.go](../../internal/updates/service.go) |
 | updateTrust | [assets/updates/config.json](../../assets/updates/config.json) |
@@ -51,8 +51,12 @@
 | workspaceLayout | [packages/web-ui/src/workspace-layout.tsx](../../packages/web-ui/src/workspace-layout.tsx) |
 | frontendFoundations | [docs/03-runbooks/frontend-foundations.md](../../docs/03-runbooks/frontend-foundations.md) |
 | i18nGate | [scripts/check-i18n.mjs](../../scripts/check-i18n.mjs) |
+| adminTools | [docs/03-runbooks/admin-tools.md](../../docs/03-runbooks/admin-tools.md) |
+| auditMetadata | [internal/audit/context.go](../../internal/audit/context.go) |
+| mailContent | [internal/mailcontent/template.go](../../internal/mailcontent/template.go) |
+| richTextEditor | [packages/web-ui/src/rich-text-editor.tsx](../../packages/web-ui/src/rich-text-editor.tsx) |
 
-OpenAPI 当前包含 107 个 operation、108 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
+OpenAPI 当前包含 112 个 operation、116 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
 
 | 任务 Skill | 用途 |
 | --- | --- |

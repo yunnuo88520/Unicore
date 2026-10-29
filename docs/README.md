@@ -16,6 +16,7 @@ Unicore 将需求、架构、契约、Skills 和验收记录一同维护。AI �
 | 管理端/用户端分离 | [ADR-0016](adr/ADR-0016-separate-client-admin-surfaces.md)、[当前验收](04-ai/acceptance-surfaces.md) |
 | 用户、管理员权限及本地外观 | [角色需求](00-product/feature-roles.md)、[ADR-0014](adr/ADR-0014-separate-identities-management.md)、[管理验收](04-ai/acceptance-management.md) |
 | 首次安装、连接测试与重启恢复 | [安装规范](00-product/feature-installation.md)、[ADR-0013](adr/ADR-0013-installation-experience.md)、[安装验收](04-ai/acceptance-installation.md) |
+| 操作日志、邮件主题/正文配置 | [管理工具](03-runbooks/admin-tools.md)、[ADR-0020](adr/ADR-0020-audit-mail-templates.md)、[验收](04-ai/acceptance-admin-tools.md) |
 | 系统设置与授权占位 | [设置需求](00-product/feature-settings.md)、[ADR-0010](adr/ADR-0010-settings-edition.md)、[设置验收](04-ai/acceptance-settings.md) |
 | 签名 OTA、离线日志与平台公证 | [需求](00-product/feature-updates.md)、[ADR-0018](adr/ADR-0018-signed-updates.md)、[手册](03-runbooks/updates.md)、[验收](04-ai/acceptance-updates.md) |
 | 中英文、主题抽屉与本地偏好 | [使用与扩展](03-runbooks/client-preferences.md)、[ADR-0019](adr/ADR-0019-local-preferences-i18n.md)、[验收](04-ai/acceptance-preferences.md) |

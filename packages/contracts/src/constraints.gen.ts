@@ -649,7 +649,12 @@ export const constraints = {
       "id",
       "actor_id",
       "action",
-      "created_at"
+      "created_at",
+      "actor_name",
+      "realm",
+      "target",
+      "detail",
+      "ip_address"
     ],
     "properties": {
       "id": {
@@ -663,6 +668,21 @@ export const constraints = {
       },
       "created_at": {
         "type": "integer"
+      },
+      "actor_name": {
+        "type": "string"
+      },
+      "realm": {
+        "type": "string"
+      },
+      "target": {
+        "type": "string"
+      },
+      "detail": {
+        "type": "string"
+      },
+      "ip_address": {
+        "type": "string"
       }
     }
   },
@@ -1285,7 +1305,10 @@ export const constraints = {
       "purpose",
       "subject",
       "html",
-      "text"
+      "text",
+      "body",
+      "customized",
+      "variables"
     ],
     "properties": {
       "purpose": {
@@ -1299,6 +1322,18 @@ export const constraints = {
       },
       "text": {
         "type": "string"
+      },
+      "body": {
+        "type": "string"
+      },
+      "customized": {
+        "type": "boolean"
+      },
+      "variables": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/MailTemplateVariable"
+        }
       }
     }
   },
@@ -1849,7 +1884,8 @@ export const constraints = {
       "items",
       "total",
       "page",
-      "page_size"
+      "page_size",
+      "actions"
     ],
     "properties": {
       "items": {
@@ -1866,6 +1902,12 @@ export const constraints = {
       },
       "page_size": {
         "type": "integer"
+      },
+      "actions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
       }
     }
   },
@@ -2889,6 +2931,222 @@ export const constraints = {
       },
       "request_id": {
         "type": "string"
+      }
+    }
+  },
+  "AuditLogQuery": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "action",
+      "search",
+      "start",
+      "end",
+      "sort",
+      "direction",
+      "page",
+      "page_size"
+    ],
+    "properties": {
+      "action": {
+        "type": "string",
+        "maxLength": 128
+      },
+      "search": {
+        "type": "string",
+        "maxLength": 128
+      },
+      "start": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "end": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "sort": {
+        "type": "string",
+        "enum": [
+          "created_at",
+          "id"
+        ]
+      },
+      "direction": {
+        "type": "string",
+        "enum": [
+          "asc",
+          "desc"
+        ]
+      },
+      "page": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100000
+      },
+      "page_size": {
+        "type": "integer",
+        "minimum": 20,
+        "maximum": 100
+      }
+    }
+  },
+  "AuditLogExport": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "filename",
+      "content",
+      "exported",
+      "total",
+      "truncated"
+    ],
+    "properties": {
+      "filename": {
+        "type": "string"
+      },
+      "content": {
+        "type": "string"
+      },
+      "exported": {
+        "type": "integer"
+      },
+      "total": {
+        "type": "integer"
+      },
+      "truncated": {
+        "type": "boolean"
+      }
+    }
+  },
+  "AuditLogExportResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/AuditLogExport"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "MailTemplateInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "purpose",
+      "subject",
+      "body"
+    ],
+    "properties": {
+      "purpose": {
+        "type": "string",
+        "enum": [
+          "test",
+          "verify",
+          "login",
+          "reset",
+          "notification"
+        ]
+      },
+      "subject": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 160
+      },
+      "body": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 12000
+      }
+    }
+  },
+  "MailTemplateTestInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "template",
+      "recipient"
+    ],
+    "properties": {
+      "template": {
+        "$ref": "#/components/schemas/MailTemplateInput"
+      },
+      "recipient": {
+        "type": "string",
+        "format": "email",
+        "maxLength": 254
+      }
+    }
+  },
+  "MailTemplateVariable": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "key",
+      "sample"
+    ],
+    "properties": {
+      "key": {
+        "type": "string"
+      },
+      "sample": {
+        "type": "string"
+      }
+    }
+  },
+  "MailTemplateResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/MailTemplate"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "MailTemplateReset": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "purpose"
+    ],
+    "properties": {
+      "purpose": {
+        "type": "string",
+        "enum": [
+          "test",
+          "verify",
+          "login",
+          "reset",
+          "notification"
+        ]
       }
     }
   }

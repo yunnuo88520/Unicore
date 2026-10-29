@@ -1,13 +1,13 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Shared UI client; pages know neither fetch nor Wails globals.
  */
-import type { UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
+import type { AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
 import { operations, type OperationId, type OperationInputs, type OperationData } from '@unicore/contracts/operations';
 import { validate, type SchemaName } from '@unicore/contracts/validate';
 export { validate, type SchemaName } from '@unicore/contracts/validate';
 export { operations, type OperationId } from '@unicore/contracts/operations';
 
-export type { UpdateOverview, UpdateJob, UpdateApplyInput, UpdateRelease, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
+export type { AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateRelease, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, InstallToken, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
 
 export class AppError extends Error {
   constructor(public readonly code: string, message: string, public readonly requestId = '', public readonly fields: Record<string, string> = {}) { super(message); this.name = 'AppError'; }
@@ -77,6 +77,10 @@ export interface WebClient {
  requestCode(purpose:"verify"|"reset"|"login",input:EmailRequest):Promise<EmailChallenge>;
  completeCode(purpose:"verify"|"reset"|"login",input:EmailCodeInput):Promise<Session|{success:boolean}>;
  mailTemplates():Promise<MailTemplateList>;
+ saveMailTemplate(input:MailTemplateInput):Promise<MailTemplate>;
+ previewMailTemplate(input:MailTemplateInput):Promise<MailTemplate>;
+ resetMailTemplate(purpose:MailTemplateInput['purpose']):Promise<MailTemplate>;
+ testMailTemplate(input:MailTemplateTestInput):Promise<{success:boolean}>;
  authPolicy(): Promise<AuthPolicy>;
  register(input:RegisterInput):Promise<{success:boolean}>;
  requestVerification(input:EmailRequest):Promise<{success:boolean}>;
@@ -92,7 +96,8 @@ export interface WebClient {
   captcha(): Promise<Captcha>;
   login(input: LoginInput): Promise<Session>;
   logout(): Promise<{ success: boolean }>;
-  systemLogs(): Promise<AuditLogList>;
+  systemLogs(query?:AuditLogQuery): Promise<AuditLogList>;
+ exportSystemLogs(query:AuditLogQuery):Promise<AuditLogExport>;
  changePassword(input:ChangePasswordInput):Promise<{success:boolean}>;
  administrators(search:string,page:number):Promise<UserList>;
  createAdministrator(input:UserCreate):Promise<User>;
@@ -224,6 +229,10 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
  requestCode(purpose:'verify'|'reset'|'login',input:EmailRequest){return this.call(purpose==='login'?'requestEmailLogin':purpose==='reset'?'requestEmailReset':'requestEmailVerify',input);}
  async completeCode(purpose:'verify'|'reset'|'login',input:EmailCodeInput){const result=await this.call(purpose==='login'?'completeEmailLogin':purpose==='reset'?'completeEmailReset':'completeEmailVerify',input);if('csrf_token' in result){this.csrf=result.csrf_token;this.identity=result.user.id;this.authenticated=true;this.sessionChanged('authenticated');}return result;}
  mailTemplates(){return this.call('mailTemplates');}
+ saveMailTemplate(input:MailTemplateInput){return this.call('saveMailTemplate',input);}
+ previewMailTemplate(input:MailTemplateInput){return this.call('previewMailTemplate',input);}
+ resetMailTemplate(purpose:MailTemplateInput['purpose']){return this.call('resetMailTemplate',{purpose});}
+ testMailTemplate(input:MailTemplateTestInput){return this.call('testMailTemplate',input);}
  authPolicy(){return this.call('authPolicy');}
  register(input:RegisterInput){return this.call('register',input);}
  requestVerification(input:EmailRequest){return this.call('requestVerification',input);}
@@ -239,7 +248,8 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   captcha() { return this.call('captcha'); }
   async login(input: LoginInput) { const session = await this.call('login', input); this.csrf = session.csrf_token; this.identity = session.user.id; this.authenticated = true; this.sessionChanged('authenticated'); return session; }
   async logout() { const data = await this.call('logout'); this.csrf = ''; this.identity = ''; this.authenticated = false; this.sessionChanged('signed-out'); return data; }
-  systemLogs(){return this.call('systemLogs');}
+  systemLogs(query?:AuditLogQuery){return this.call('systemLogs',undefined,{query:query?{...query}:undefined});}
+ exportSystemLogs(query:AuditLogQuery){return this.call('exportSystemLogs',undefined,{query:{...query}});}
  async changePassword(input:ChangePasswordInput){const result=await this.call('changePassword',input);this.csrf='';this.identity='';this.authenticated=false;this.sessionChanged('password-changed');return result;}
  administrators(search:string,page:number){return this.call('listAdministrators',undefined,{query:{search,page}});}
  createAdministrator(input:UserCreate){return this.call('createAdministrator',input);}

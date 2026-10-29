@@ -68,7 +68,7 @@ func Guard(dataDir string) error {
 func currentTarget(profile string) updates.Target {
 	migration := 1
 	if profile == "web-platform" {
-		migration = 9
+		migration = 10
 	}
 	return updates.Target{Profile: profile, OS: runtime.GOOS, Arch: runtime.GOARCH, Migration: migration, BusinessMigration: 1, License: edition.License, Updater: true}
 }

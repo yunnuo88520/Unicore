@@ -72,7 +72,7 @@ func (s *Store) Migrate(ctx context.Context, platform bool) error {
 	}
 	files := []string{"0001_framework.sql"}
 	if platform {
-		files = append(files, "0002_platform.sql", "0003_platform_mail.sql", "0004_email_challenges.sql", "0005_role_management.sql", "0006_oidc.sql", "0007_fixed_roles.sql", "0008_separate_administrators.sql", "0009_file_storage.sql")
+		files = append(files, "0002_platform.sql", "0003_platform_mail.sql", "0004_email_challenges.sql", "0005_role_management.sql", "0006_oidc.sql", "0007_fixed_roles.sql", "0008_separate_administrators.sql", "0009_file_storage.sql", "0010_audit_metadata.sql")
 	}
 	for index, file := range files {
 		data, err := migrations.Files.ReadFile(s.Dialect + "/" + file)
@@ -173,7 +173,13 @@ func (s *Store) SaveSettings(ctx context.Context, values map[string]string, acto
 			return err
 		}
 	}
-	if err = s.Audit(ctx, tx, actor, "settings.updated"); err != nil {
+	action := "settings.updated"
+	for key := range values {
+		if strings.HasPrefix(key, "mail.template.") {
+			action = "mail.template.updated"
+		}
+	}
+	if err = s.Audit(ctx, tx, actor, action); err != nil {
 		return err
 	}
 	return tx.Commit()

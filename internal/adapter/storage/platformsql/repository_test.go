@@ -110,6 +110,7 @@ func TestDialectMigrationsAndIdentity(t *testing.T) {
 			if err != nil || list.Total != 1 {
 				t.Fatalf("search: %+v %v", list, err)
 			}
+			exerciseLogs(t, ctx, store)
 			exerciseMailLifecycle(t, ctx, store, repository, admin)
 			exerciseRoles(t, ctx, store, repository, admin)
 			exerciseOIDC(t, ctx, store, repository, admin)

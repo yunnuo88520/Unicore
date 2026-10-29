@@ -98,7 +98,7 @@ func (r *Repository) QueueAccountToken(ctx context.Context, email, purpose, hash
 	if err = r.tokenAndMail(ctx, tx, user, purpose, hash, expires, payload); err != nil {
 		return err
 	}
-	if err = r.Store.Audit(ctx, tx, user, "auth."+purpose+".requested"); err != nil {
+	if err = r.audit(ctx, tx, user, "auth."+purpose+".requested"); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -135,7 +135,7 @@ func (r *Repository) ConsumeAccountToken(ctx context.Context, hash, purpose, pas
 	if err = r.cancelTokens(ctx, tx, user, ""); err != nil {
 		return err
 	}
-	if err = r.Store.Audit(ctx, tx, user, "auth."+purpose+".completed"); err != nil {
+	if err = r.audit(ctx, tx, user, "auth."+purpose+".completed"); err != nil {
 		return err
 	}
 	return tx.Commit()

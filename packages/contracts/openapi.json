@@ -1696,6 +1696,63 @@
         ],
         "summary": "mailTemplates",
         "parameters": []
+      },
+      "put": {
+        "operationId": "saveMailTemplate",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailTemplateResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MailTemplateInput"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "settings:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "settings:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "saveMailTemplate",
+        "parameters": []
       }
     },
     "/api/v1/admin/roles": {
@@ -2893,8 +2950,89 @@
           "identityRealm": "administrator"
         },
         "summary": "Read system audit log",
-        "x-permission": "dashboard:read; administrator only",
-        "parameters": []
+        "x-permission": "logs:read; administrator only",
+        "parameters": [
+          {
+            "name": "action",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "created_at",
+                "id"
+              ]
+            }
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 20,
+              "maximum": 100
+            }
+          }
+        ]
       }
     },
     "/api/v1/admin/mail/jobs": {
@@ -6601,6 +6739,312 @@
           }
         }
       }
+    },
+    "/api/v1/admin/logs/export": {
+      "get": {
+        "operationId": "exportSystemLogs",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditLogExportResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "logs:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "Export filtered audit metadata as spreadsheet-safe CSV (maximum 10000 records)",
+        "x-permission": "logs:read; administrator only",
+        "parameters": [
+          {
+            "name": "action",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "created_at",
+                "id"
+              ]
+            }
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 20,
+              "maximum": 100
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/settings/mail/templates/preview": {
+      "post": {
+        "operationId": "previewMailTemplate",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailTemplateResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MailTemplateInput"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "settings:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "settings:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "previewMailTemplate",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/settings/mail/templates/test": {
+      "post": {
+        "operationId": "testMailTemplate",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MailTemplateTestInput"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "settings:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "settings:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "testMailTemplate",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/settings/mail/templates/reset": {
+      "post": {
+        "operationId": "resetMailTemplate",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailTemplateResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MailTemplateReset"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "settings:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "settings:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "resetMailTemplate",
+        "parameters": []
+      }
     }
   },
   "components": {
@@ -7262,7 +7706,12 @@
           "id",
           "actor_id",
           "action",
-          "created_at"
+          "created_at",
+          "actor_name",
+          "realm",
+          "target",
+          "detail",
+          "ip_address"
         ],
         "properties": {
           "id": {
@@ -7276,6 +7725,21 @@
           },
           "created_at": {
             "type": "integer"
+          },
+          "actor_name": {
+            "type": "string"
+          },
+          "realm": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "ip_address": {
+            "type": "string"
           }
         }
       },
@@ -7898,7 +8362,10 @@
           "purpose",
           "subject",
           "html",
-          "text"
+          "text",
+          "body",
+          "customized",
+          "variables"
         ],
         "properties": {
           "purpose": {
@@ -7912,6 +8379,18 @@
           },
           "text": {
             "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "customized": {
+            "type": "boolean"
+          },
+          "variables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MailTemplateVariable"
+            }
           }
         }
       },
@@ -8463,7 +8942,8 @@
           "items",
           "total",
           "page",
-          "page_size"
+          "page_size",
+          "actions"
         ],
         "properties": {
           "items": {
@@ -8480,6 +8960,12 @@
           },
           "page_size": {
             "type": "integer"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -9503,6 +9989,222 @@
           },
           "request_id": {
             "type": "string"
+          }
+        }
+      },
+      "AuditLogQuery": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "action",
+          "search",
+          "start",
+          "end",
+          "sort",
+          "direction",
+          "page",
+          "page_size"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "search": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "start": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "end": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sort": {
+            "type": "string",
+            "enum": [
+              "created_at",
+              "id"
+            ]
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ]
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 20,
+            "maximum": 100
+          }
+        }
+      },
+      "AuditLogExport": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "filename",
+          "content",
+          "exported",
+          "total",
+          "truncated"
+        ],
+        "properties": {
+          "filename": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "exported": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AuditLogExportResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AuditLogExport"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "MailTemplateInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "purpose",
+          "subject",
+          "body"
+        ],
+        "properties": {
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "test",
+              "verify",
+              "login",
+              "reset",
+              "notification"
+            ]
+          },
+          "subject": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 12000
+          }
+        }
+      },
+      "MailTemplateTestInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "template",
+          "recipient"
+        ],
+        "properties": {
+          "template": {
+            "$ref": "#/components/schemas/MailTemplateInput"
+          },
+          "recipient": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          }
+        }
+      },
+      "MailTemplateVariable": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "sample"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "sample": {
+            "type": "string"
+          }
+        }
+      },
+      "MailTemplateResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MailTemplate"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "MailTemplateReset": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "purpose"
+        ],
+        "properties": {
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "test",
+              "verify",
+              "login",
+              "reset",
+              "notification"
+            ]
           }
         }
       }

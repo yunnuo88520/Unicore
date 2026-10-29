@@ -17,6 +17,8 @@ COPY cmd/desktop/wails.json ./cmd/desktop/wails.json
 COPY tsconfig.json ./
 COPY VERSION ./
 COPY internal/buildinfo ./internal/buildinfo
+COPY internal/settings ./internal/settings
+COPY internal/platform/roles.go ./internal/platform/roles.go
 ARG FEATURE_LICENSE=false
 ARG FEATURE_UPDATER=true
 RUN pnpm install --frozen-lockfile

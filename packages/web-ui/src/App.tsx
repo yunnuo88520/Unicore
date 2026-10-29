@@ -28,7 +28,7 @@ import { routes, pageFromHash, canAccess, isAdministrator, type Page } from './r
 import './flows.css';
 
 export { DashboardWidgetRegistry } from './registry';
-import {SAMPLE} from '../data/analyze-sample';
+import {SAMPLE} from '../fixtures/analyze-sample';
 const PROFILE_LABELS: Record<Profile, string> = defineMessages({ 'web-platform': 'Web 平台', 'web-standalone': 'Web 单机', desktop: '桌面应用', cli: '命令行' });
 const PAGE_LABELS = Object.fromEntries(Object.entries(routes).map(([id, route]) => [id, route.label])) as Record<Page, string>;
 

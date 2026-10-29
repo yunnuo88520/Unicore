@@ -19,7 +19,7 @@
 
 - `workspace-layout.tsx` / `workspace-layout.css` 统一 navigation/header/children/overlays 插槽、固定导航占位、767px 断点、侧栏与内容宽度；App 组合内容，移除散落偏移。全宽和移动导航可真实打开、跳转与关闭，隐藏导航不进入键盘/可访问树。
 - `preferences.ts` / `theme.ts` / `appearance-drawer.tsx` 移除阅读方向 schema、控件与样式；旧 RTL 自动恢复 LTR，抽屉选项由单一偏好 schema 管理。`tooltip.tsx` 使用 portal 和视口边界定位，避免窄屏气泡扩大页面、按下与抬起时按钮移位。
-- `i18n.ts` / `locales/` / `scripts/check-i18n.mjs` 约束 t/defineMessages、英文目录、插值、设置/权限标签与契约错误；递归扫描新目录，Web/GUI 构建和 make test/CI 必跑。`check-i18n.test.mjs` 验证中文直写、缺词条、动态模板 key、插值缺失和嵌套目录会被拒绝。示例业务文本放 `packages/web-ui/data/analyze-sample.ts`，保持用户内容原文。
+- `i18n.ts` / `locales/` / `scripts/check-i18n.mjs` 约束 t/defineMessages、英文目录、插值、设置/权限标签与契约错误；递归扫描新目录，Web/GUI 构建和 make test/CI 必跑。`check-i18n.test.mjs` 验证中文直写、缺词条、动态模板 key、插值缺失和嵌套目录会被拒绝。示例业务文本放 `packages/web-ui/fixtures/analyze-sample.ts`，保持用户内容原文。公开样例不能放通用排除的 data 目录，避免 Docker 构建漏文件；Docker 前端阶段同时复制设置/权限定义，保持与本地相同的双语检查范围。
 - `tests/e2e/layout.spec.ts` / `preferences.spec.ts` 与前端偏好测试覆盖旧数据恢复、布局几何和英文界面。AGENTS、页面/设置/文档 Skills、PRD、架构、ADR、前端规范、manifest、文档入口、Wiki 源和 CHANGELOG 同步更新。
 
 ## 最终验证

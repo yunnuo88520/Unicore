@@ -17,7 +17,7 @@ jobs:
   candidate:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install quality tooling
         run: sudo apt-get update && sudo apt-get install -y ripgrep
       - run: test "$(cat VERSION)" = "$EXPECTED_VERSION"
@@ -44,7 +44,7 @@ jobs:
       id-token: write
       attestations: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
       - name: Verify native build source and result

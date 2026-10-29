@@ -23,7 +23,7 @@ jobs:
       - run: test "$(cat VERSION)" = "$EXPECTED_VERSION"
         env:
           EXPECTED_VERSION: ${{ inputs.version }}
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with: { go-version-file: go.mod }
       - uses: pnpm/action-setup@v6
         with: { version: 11.25.0 }

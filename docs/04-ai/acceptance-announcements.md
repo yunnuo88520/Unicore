@@ -26,3 +26,5 @@
 页面证据位于 `build/acceptance/announcements/{chromium,mobile}`（构建产物，不提交）；包含管理列表/新增弹窗/英文深色、用户空态/公告卡片/详情。原生 DB 证据为 native.json，升级证据位于 build/acceptance/developer-kit/upgrade.json。
 
 最新 Windows/Linux 原生运行与正式系统签名/Apple 公证未在本机验证；保留既有接入流程，不以 macOS/HTTP 测试代替原生结果。Wiki 源与离线页面已生成，本分支不发布远端 Wiki。
+
+公告条布局修订：仅影响 web-platform 用户工作台，无 API/数据库变化。桌面约 58px、375px 手机约 54px，移除大标题区和多条列表留白。零条有效公告/后台关闭时隐藏整个组件及间距，单条静态且无动画/控件，多条每 5 秒轮播。6 项真实 Chrome PC/手机测试通过：长文省略、高度/溢出、自动切换、悬停/手动暂停、跨后端分页循环、减少动态效果、英文/深色、错误重试以及既有权限/弹窗/本地排除。默认/多条/深色证据为 ticker-default.png、ticker-many.png、ticker-dark-en.png；user-empty.png 证明无公告时不占位。

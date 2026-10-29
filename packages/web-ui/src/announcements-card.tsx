@@ -1,8 +1,8 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: User-only dashboard widget; disabled platform feeds disappear, detail is reauthorized on every open.
-import {useState} from 'react';
-import {useQuery} from '@tanstack/react-query';
-import {Megaphone,ChevronRight,Info,CheckCircle2,AlertTriangle,OctagonAlert} from 'lucide-react';
+import {useCallback,useEffect,useState} from 'react';
+import {keepPreviousData,useQuery} from '@tanstack/react-query';
+import {Megaphone,ChevronRight,ChevronDown,Pause,Play,Info,CheckCircle2,AlertTriangle,OctagonAlert} from 'lucide-react';
 import type {WebClient,AnnouncementPublic} from '@unicore/sdk';
 import {useI18n,currentLocale,defineMessages} from './i18n';
 import {Modal} from './modal';
@@ -11,13 +11,40 @@ import './announcements.css';
 export const announcementTypes=defineMessages({info:'通知',success:'好消息',warning:'注意事项',error:'重要提醒'});
 const icons={info:Info,success:CheckCircle2,warning:AlertTriangle,error:OctagonAlert};
 export function AnnouncementType({type}:{type:AnnouncementPublic['type']}){const {t}=useI18n();const Icon=icons[type];return <span className={`announcement-type is-${type}`}><Icon size={13}/>{t(announcementTypes[type])}</span>;}
+const feedSize=5;
 export function AnnouncementCard({web}:{web:WebClient}){
- const {t}=useI18n();const [page,setPage]=useState(1),[selected,setSelected]=useState('');
- const query=useQuery({queryKey:['announcements',page],queryFn:()=>web.announcements(page),refetchInterval:60000,refetchOnWindowFocus:'always'});
- if(query.data&&!query.data.enabled)return null;
- return <article className="panel announcement-card" aria-label={t('平台公告')}><div className="panel-heading"><div><h2><Megaphone size={18}/>{t('平台公告')}</h2><p>{t('来自平台的最新消息与重要通知')}</p></div><span className="subtle-badge">{query.data?.total??0}</span></div>
- {query.isPending?<div className="announcement-empty" role="status">{t('正在读取公告…')}</div>:query.error?<div className="announcement-empty"><p role="alert">{t(query.error.message)}</p><button className="secondary-button" onClick={()=>query.refetch()}>{t('重试')}</button></div>:!query.data?.items.length?<div className="announcement-empty"><span className="announcement-empty-icon"><Megaphone size={26}/></span><strong>{t('暂无公告')}</strong><p>{t('平台发布新公告后，将在这里展示。')}</p></div>:<div className="announcement-feed">{query.data.items.map(item=><button key={item.id} className="announcement-feed-item" onClick={()=>setSelected(item.id)}><span className={`announcement-feed-dot is-${item.type}`}/><div><div className="announcement-feed-meta"><AnnouncementType type={item.type}/><time dateTime={new Date(item.publish_at*1000).toISOString()}>{new Date(item.publish_at*1000).toLocaleString(currentLocale(),{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</time></div><p>{contentSummary(item.content_html)}</p></div><ChevronRight size={16}/></button>)}</div>}
- {!!query.data?.total&&query.data.total>5&&<div className="announcement-pagination"><button className="text-button" disabled={page===1} onClick={()=>setPage(v=>v-1)}>{t('上一页')}</button><small>{page} / {Math.ceil(query.data.total/5)}</small><button className="text-button" disabled={page*5>=query.data.total} onClick={()=>setPage(v=>v+1)}>{t('下一页')}</button></div>}
+ const {t}=useI18n();
+ const [cursor,setCursor]=useState({page:1,index:0}),[selected,setSelected]=useState('');
+ const [hovered,setHovered]=useState(false),[focused,setFocused]=useState(false),[stopped,setStopped]=useState(false);
+ const [reducedMotion,setReducedMotion]=useState(()=>window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+ const query=useQuery({queryKey:['announcements',cursor.page,feedSize],queryFn:()=>web.announcements(cursor.page,feedSize),placeholderData:keepPreviousData,refetchInterval:60000,refetchOnWindowFocus:'always'});
+ const feed=query.data;
+ const index=feed?Math.min(query.isPlaceholderData?feed.items.length-1:cursor.index,feed.items.length-1):0;
+ const item=feed?.items[index];
+ const advance=useCallback(()=>{
+  if(!feed?.items.length||query.isPlaceholderData)return;
+  setCursor(current=>current.index+1<feed.items.length?{...current,index:current.index+1}:{page:current.page*feedSize<feed.total?current.page+1:1,index:0});
+ },[feed,query.isPlaceholderData]);
+ useEffect(()=>{
+  const media=window.matchMedia('(prefers-reduced-motion: reduce)');
+  const changed=()=>setReducedMotion(media.matches);media.addEventListener('change',changed);
+  return()=>media.removeEventListener('change',changed);
+ },[]);
+ useEffect(()=>{
+  if(feed&&!query.isPlaceholderData&&cursor.page>Math.max(1,Math.ceil(feed.total/feedSize)))setCursor({page:1,index:0});
+ },[feed,query.isPlaceholderData,cursor.page]);
+ useEffect(()=>{
+  if(!feed?.enabled||feed.total<2||query.isFetching||reducedMotion||stopped||hovered||focused||selected)return;
+  const timer=window.setInterval(()=>{if(!document.hidden)advance();},5000);
+  return()=>window.clearInterval(timer);
+ },[feed,query.isFetching,reducedMotion,stopped,hovered,focused,selected,advance]);
+ if(query.isPending||(feed&&(!feed.enabled||feed.total===0)))return null;
+ return <article className="panel announcement-card" data-multiple={!!feed&&feed.total>1} aria-label={t('平台公告')} onMouseEnter={()=>setHovered(true)} onMouseLeave={()=>setHovered(false)} onFocusCapture={()=>setFocused(true)} onBlurCapture={event=>{if(!event.currentTarget.contains(event.relatedTarget as Node|null))setFocused(false);}}>
+ <div className="announcement-ticker-label"><Megaphone size={17}/><h2>{t('平台公告')}</h2></div>
+ <div className="announcement-ticker-body">
+ {query.error?<div className="announcement-ticker-state"><span role="alert">{t('公告暂时无法加载')}</span><button className="text-button" onClick={()=>query.refetch()}>{t('重试')}</button></div>:item&&<button className="announcement-feed-item" onClick={()=>setSelected(item.id)} aria-label={t('查看公告：{{content}}',{content:contentSummary(item.content_html)})}><span key={item.id} className="announcement-ticker-slide"><span className={`announcement-feed-dot is-${item.type}`} title={t(announcementTypes[item.type])}/><span className="announcement-ticker-summary">{contentSummary(item.content_html)}</span><time dateTime={new Date(item.publish_at*1000).toISOString()}>{new Date(item.publish_at*1000).toLocaleDateString(currentLocale(),{month:'2-digit',day:'2-digit'})}</time><ChevronRight size={15}/></span></button>}
+ </div>
+ {item&&feed&&feed.total>1&&<div className="announcement-ticker-controls"><span className="announcement-ticker-count">{(feed.page-1)*feedSize+index+1}<span>/</span>{feed.total}</span>{!reducedMotion&&<button className="icon-button" aria-label={t(stopped?'继续公告轮播':'暂停公告轮播')} title={t(stopped?'继续公告轮播':'暂停公告轮播')} onClick={()=>setStopped(value=>!value)}>{stopped?<Play size={13}/>:<Pause size={13}/>}</button>}<button className="icon-button" aria-label={t('下一条公告')} title={t('下一条公告')} disabled={query.isFetching} onClick={advance}><ChevronDown size={15}/></button></div>}
  {selected&&<AnnouncementDetail web={web} id={selected} onClose={()=>setSelected('')}/>}
  </article>;
 }

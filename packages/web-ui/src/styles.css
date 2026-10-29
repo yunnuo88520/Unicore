@@ -24,3 +24,4 @@ svg.lucide{stroke-width:var(--icon-stroke)}
 .sidebar{overflow-y:auto;overscroll-behavior:contain}.sidebar>*{flex-shrink:0}
 
 .dashboard-widget{min-width:0;margin-block-end:24px}
+.dashboard-widget:empty{display:none}

@@ -7,7 +7,7 @@
 
 列表支持关键词、发布状态、固定排序、分页、勾选本页和批量删除。批量删除在一个事务内检查所有版本，任一过期则全部回滚；刷新列表后重新选择。删除是软删除，但当前没有业务恢复入口，用户随即无法继续读取。客户端旧详情缓存不能作为下一次访问授权。
 
-用户卡片提供空态、出错重试、发布时间/类型、分页与详情弹窗。正文为业务数据，切换界面语言不会翻译公告或邮件模板。邮件默认主题与正文固定中文；管理员可以任意编辑，界面按钮、校验和消息仍中英双语。
+用户端使用紧凑单行公告条，默认只展示一条摘要，去掉独立大标题区、说明和列表留白。多条公告每 5 秒向上轮播，支持暂停/继续、手动下一条及跨页循环；鼠标悬停、键盘焦点、详情打开或标签页隐藏时暂停，系统减少动态效果时仅手动切换。单条静态显示，无动画或轮播控件；没有有效公告、加载中或管理员关闭展示时不渲染公告条，也不保留 widget 间距。接口失败才显示紧凑的错误重试行。长文省略，点击后由详情弹窗展示完整内容并重新鉴权。正文为业务数据，切换界面语言不会翻译公告或邮件模板。邮件默认主题与正文固定中文；管理员可以任意编辑，界面按钮、校验和消息仍中英双语。
 
 主要入口：domain/{entity,announcement}.go，usecase/announcements.go，adapter/storage/announcementsql，adapter/content/announcement.go，adapter/http/announcements.go；前端 announcements-page、announcements-card、rich-content，SDK 统一使用生成 operation。设置键 announcements.enabled 注册于 SettingDefinition 且只由公告专用端点修改，不能通过通用 settings PATCH 绕过。
 

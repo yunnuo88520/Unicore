@@ -119,6 +119,80 @@ func mountStorage(api chi.Router, config Config) {
 			}
 			return handler(permission, fn)
 		}
+
+		api.Get(prefix+"/files/policy", fileHandler(false, func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
+			success(w, s.UploadPolicy(r.Context()))
+		}).ServeHTTP)
+		api.Post(prefix+"/files/multipart", fileHandler(true, func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
+			var input contracts.MultipartUploadInput
+			if !decode(w, r, &input) {
+				return
+			}
+			ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+			defer cancel()
+			v, e := s.BeginUpload(ctx, a, input)
+			if e != nil {
+				webError(w, e)
+				return
+			}
+			success(w, v)
+		}).ServeHTTP)
+		api.Get(prefix+"/files/multipart/{id}", fileHandler(false, func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
+			ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+			defer cancel()
+			v, e := s.UploadStatus(ctx, a, chi.URLParam(r, "id"))
+			if e != nil {
+				webError(w, e)
+				return
+			}
+			success(w, v)
+		}).ServeHTTP)
+		api.Post(prefix+"/files/multipart/{id}/parts", fileHandler(true, func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
+			var input contracts.UploadPartInput
+			if !decode(w, r, &input) {
+				return
+			}
+			ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+			defer cancel()
+			v, e := s.UploadPartGrant(ctx, a, chi.URLParam(r, "id"), input.Number)
+			if e != nil {
+				webError(w, e)
+				return
+			}
+			if !v.Direct && prefix != "" {
+				v.Url = "/api/v1/admin" + strings.TrimPrefix(v.Url, "/api/v1")
+			}
+			success(w, v)
+		}).ServeHTTP)
+		api.Put(prefix+"/files/multipart/{id}/parts/{part}", fileHandler(true, func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
+			if r.Header.Get("Content-Type") != "application/octet-stream" {
+				failure(w, 415, "UNSUPPORTED_MEDIA_TYPE", "请使用 application/octet-stream")
+				return
+			}
+			number, _ := strconv.Atoi(chi.URLParam(r, "part"))
+			ctx, cancel := context.WithTimeout(r.Context(), 10*time.Minute)
+			defer cancel()
+			controller := http.NewResponseController(w)
+			controller.SetReadDeadline(time.Now().Add(10 * time.Minute))
+			controller.SetWriteDeadline(time.Now().Add(10 * time.Minute))
+			r.Body = http.MaxBytesReader(w, r.Body, 64<<20)
+			if e := s.ReceiveUploadPart(ctx, a, chi.URLParam(r, "id"), number, r.Body, r.ContentLength); e != nil {
+				webError(w, e)
+				return
+			}
+			success(w, contracts.ActionResult{Success: true})
+		}).ServeHTTP)
+		api.Post(prefix+"/files/multipart/{id}/complete", fileHandler(true, func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
+			ctx, cancel := context.WithTimeout(r.Context(), 2*time.Hour)
+			defer cancel()
+			http.NewResponseController(w).SetWriteDeadline(time.Now().Add(2 * time.Hour))
+			v, e := s.FinishUpload(ctx, a, chi.URLParam(r, "id"))
+			if e != nil {
+				webError(w, e)
+				return
+			}
+			success(w, v)
+		}).ServeHTTP)
 		api.Get(prefix+"/files", fileHandler(false, func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
 			page := 1
 			if r.URL.Query().Get("page") != "" {

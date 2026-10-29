@@ -282,7 +282,7 @@ func Restore(ctx context.Context, o RestoreOptions) (Manifest, error) {
 	if err != nil {
 		return m, err
 	}
-	if m.Schema < 1 || m.Schema > 11 || m.BusinessSchema > 2 || (m.Profile != "desktop" && m.Profile != "web-platform" && m.Profile != "web-standalone") {
+	if m.Schema < 1 || m.Schema > 12 || m.BusinessSchema > 2 || (m.Profile != "desktop" && m.Profile != "web-platform" && m.Profile != "web-standalone") {
 		return m, errors.New("backup schema/profile is not supported by this tool version")
 	}
 	directory := filepath.Join(stage, "data")

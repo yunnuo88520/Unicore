@@ -205,7 +205,7 @@ func (s *Service) probe(ctx context.Context, l Location) error {
 	if e != nil {
 		return e
 	}
-	k := "probes/" + id()
+	k := "multipart/probe-" + id()
 	target := k + "-copy"
 	jobs := []Job{s.job(l.ID, k, s.now().Add(time.Hour).Unix()), s.job(l.ID, target, s.now().Add(time.Hour).Unix())}
 	if e = s.Repo.Queue(ctx, jobs); e != nil {
@@ -235,6 +235,18 @@ func (s *Service) probe(ctx context.Context, l Location) error {
 	}
 	if e = st.Delete(ctx, k); e != nil {
 		return ErrUnavailable
+	}
+	if mp, ok := st.(blob.Multipart); ok {
+		upload, e := mp.BeginMultipart(ctx, k, "application/octet-stream")
+		if e != nil {
+			return ErrUnavailable
+		}
+		if _, e = mp.ListParts(ctx, k, upload); e != nil {
+			return ErrUnavailable
+		}
+		if e = mp.AbortMultipart(ctx, k); e != nil {
+			return ErrUnavailable
+		}
 	}
 	for _, j := range jobs {
 		if e = s.Repo.JobDone(ctx, j, true); e != nil {
@@ -334,7 +346,7 @@ func (s *Service) Origins(ctx context.Context) []string {
 	return result
 }
 func validFile(in contracts.FileUploadInput) bool {
-	if strings.TrimSpace(in.OriginalName) == "" || len([]rune(in.OriginalName)) > 255 || strings.ContainsAny(in.OriginalName, "/\\") || strings.IndexFunc(in.OriginalName, unicode.IsControl) >= 0 || in.Size < 1 || in.Size > 1<<30 {
+	if strings.TrimSpace(in.OriginalName) == "" || len([]rune(in.OriginalName)) > 255 || strings.ContainsAny(in.OriginalName, "/\\") || strings.IndexFunc(in.OriginalName, unicode.IsControl) >= 0 || in.Size < 1 || int64(in.Size) > 64<<30 {
 		return false
 	}
 	m, _, e := mime.ParseMediaType(in.MimeType)
@@ -362,7 +374,7 @@ func (s *Service) List(ctx context.Context, a Actor, search string, page int) (c
 func (s *Service) Upload(ctx context.Context, a Actor, input contracts.FileUploadInput) (contracts.FileUploadGrant, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if !validFile(input) || input.Size > s.policy(ctx, "max_size_mb", 100)*1024*1024 {
+	if !validFile(input) || input.Size > 1<<30 || input.Size > s.policy(ctx, "max_size_mb", 100)*1024*1024 {
 		return contracts.FileUploadGrant{}, ErrInvalid
 	}
 	active, e := s.active(ctx)
@@ -413,7 +425,7 @@ func (s *Service) Receive(ctx context.Context, a Actor, fileID string, source io
 	if e != nil {
 		return e
 	}
-	if f.State != "pending" || f.StorageType != "local" || f.UploadExpires <= s.now().Unix() {
+	if isMultipart(f) || f.State != "pending" || f.StorageType != "local" || f.UploadExpires <= s.now().Unix() {
 		return ErrBusy
 	}
 	if n != int64(f.Size) {
@@ -442,6 +454,9 @@ func (s *Service) Complete(ctx context.Context, a Actor, fileID string) (contrac
 	}
 	if f.State == "ready" {
 		return f.FileEntry, nil
+	}
+	if isMultipart(f) {
+		return f.FileEntry, ErrBusy
 	}
 	if f.CleanupAt <= s.now().Unix() {
 		return f.FileEntry, ErrBusy
@@ -593,7 +608,14 @@ func (s *Service) Cleanup(ctx context.Context) error {
 			if e == nil {
 				st, e := s.store(l)
 				if e == nil {
-					ok = st.Delete(ctx, j.Key) == nil
+					ok = true
+					if strings.HasPrefix(j.Key, "multipart/") || strings.HasPrefix(j.Key, "objects/") {
+						mp, exists := st.(blob.Multipart)
+						ok = exists && mp.AbortMultipart(ctx, j.Key) == nil
+					}
+					if ok {
+						ok = st.Delete(ctx, j.Key) == nil
+					}
 				}
 			}
 		}

@@ -54,3 +54,5 @@ metadata:
 当前形态与入口以 [ADR-0016](../../../docs/adr/ADR-0016-separate-client-admin-surfaces.md) 为准：用户 main.tsx 与管理员 admin.tsx 独立入口，管理页只在 admin-app.tsx 装配，共享 Workspace/表单/消息/主题。单机/桌面仅业务和本地外观，不提供站点、品牌、SMTP、对象存储和后台。管理员公开 auth/bootstrap 只返回固定域最小投影；本人 account 需管理员会话，其余管理资源须 permissions/superAdmin，不能宽泛豁免 admin 路由。新增普通用户立即 active 并验证用户入口登录；注册默认关闭，安全页 Switch 控制且须 SMTP 测试。布尔控件用 Switch，上传用自定义拖拽弹窗与 SDK 真实阶段。
 
 新增 SettingDefinition 的 Label、界面帮助/选项和权限描述同时补英文资源；check:i18n 检查服务端设置/权限的静态 UI 元数据及所有前端文案。使用 defineMessages 登记静态选项，在渲染处 t(label)；不要把用户设置值当成文案翻译。运行 pnpm check:i18n，并用真实页面验证中文/英文、字段错误与提示；不得仅添加中文功能后留待翻译。
+
+上传大小/分片/并发/续传等统一登记 storage 定义，本地和云共用。管理员配置页可直接编辑，普通用户只通过 fileUploadPolicy 安全投影读取；新设置不可改变既有会话固定大小/分片几何/位置/到期时间。新增字段同步中英文、SDK/契约及存储手册，见 ADR-0022。

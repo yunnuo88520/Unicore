@@ -38,3 +38,5 @@ return <button aria-label={t('保存')}>{t('保存')}</button>;
 管理端操作日志与邮件模板复用这些入口，详见 [管理工具](admin-tools.md)。模板正文/主题属于业务内容，语言巡检仅排除输入及 `.rich-surface`，不跳过整个页面。
 
 可配置公告与邮件正文不调用 t()；共用安全富内容展示 rich-content.tsx，编辑与服务端预览分离。用户公告通过 DashboardWidgetRegistry 注入，仅平台用户身份启用，管理页独立入口。见 [公告手册](announcements.md)。
+
+持久分片上传统一使用 file-upload-dialog.tsx / AppClient.files.uploadFile；支持暂停/刷新续传、指纹核对和确认字节进度。平台专用安全投影 uploadPolicy，配置页不得向用户端暴露。详见 [存储手册](storage.md)。

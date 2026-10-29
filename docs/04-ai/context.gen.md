@@ -39,7 +39,7 @@
 | frameworkUpgrade | [docs/03-runbooks/framework-upgrade.md](../../docs/03-runbooks/framework-upgrade.md) |
 | contributing | [CONTRIBUTING.md](../../CONTRIBUTING.md) |
 | community | [docs/03-runbooks/open-source.md](../../docs/03-runbooks/open-source.md) |
-| currentAcceptance | [docs/04-ai/acceptance-announcements.md](../../docs/04-ai/acceptance-announcements.md) |
+| currentAcceptance | [docs/04-ai/acceptance-multipart.md](../../docs/04-ai/acceptance-multipart.md) |
 | wiki | [docs/wiki/README.md](../../docs/wiki/README.md) |
 | updates | [internal/updates/service.go](../../internal/updates/service.go) |
 | updateTrust | [assets/updates/config.json](../../assets/updates/config.json) |
@@ -58,8 +58,10 @@
 | backendStandards | [docs/02-standards/backend.md](../../docs/02-standards/backend.md) |
 | baseEntity | [internal/domain/entity.go](../../internal/domain/entity.go) |
 | announcements | [docs/03-runbooks/announcements.md](../../docs/03-runbooks/announcements.md) |
+| multipart | [internal/blob/multipart.go](../../internal/blob/multipart.go) |
+| uploadDialog | [packages/web-ui/src/file-upload-dialog.tsx](../../packages/web-ui/src/file-upload-dialog.tsx) |
 
-OpenAPI 当前包含 121 个 operation、133 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
+OpenAPI 当前包含 133 个 operation、140 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
 
 | 任务 Skill | 用途 |
 | --- | --- |

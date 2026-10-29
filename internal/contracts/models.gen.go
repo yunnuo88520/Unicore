@@ -943,3 +943,47 @@ type AnnouncementPreviewResponse struct {
 	Data      AnnouncementPreview `json:"data"`
 	RequestID string              `json:"request_id"`
 }
+
+type MultipartUploadInput struct {
+	OriginalName string `json:"original_name"`
+	MimeType     string `json:"mime_type"`
+	Size         int    `json:"size"`
+	Fingerprint  string `json:"fingerprint"`
+}
+
+type UploadPolicy struct {
+	MaxSize     int `json:"max_size"`
+	PartSize    int `json:"part_size"`
+	Parallelism int `json:"parallelism"`
+	ResumeHours int `json:"resume_hours"`
+}
+
+type UploadPart struct {
+	Number int `json:"number"`
+	Size   int `json:"size"`
+}
+
+type MultipartUpload struct {
+	File        FileEntry    `json:"file"`
+	Fingerprint string       `json:"fingerprint"`
+	PartSize    int          `json:"part_size"`
+	PartCount   int          `json:"part_count"`
+	ExpiresAt   int          `json:"expires_at"`
+	Parts       []UploadPart `json:"parts"`
+}
+
+type UploadPartInput struct {
+	Number int `json:"number"`
+}
+
+type UploadPolicyResponse struct {
+	Code      string       `json:"code"`
+	Data      UploadPolicy `json:"data"`
+	RequestID string       `json:"request_id"`
+}
+
+type MultipartUploadResponse struct {
+	Code      string          `json:"code"`
+	Data      MultipartUpload `json:"data"`
+	RequestID string          `json:"request_id"`
+}

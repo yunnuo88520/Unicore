@@ -941,3 +941,47 @@ export interface AnnouncementPreviewResponse {
   data: AnnouncementPreview;
   request_id: string;
 }
+
+export interface MultipartUploadInput {
+  original_name: string;
+  mime_type: string;
+  size: number;
+  fingerprint: string;
+}
+
+export interface UploadPolicy {
+  max_size: number;
+  part_size: number;
+  parallelism: number;
+  resume_hours: number;
+}
+
+export interface UploadPart {
+  number: number;
+  size: number;
+}
+
+export interface MultipartUpload {
+  file: FileEntry;
+  fingerprint: string;
+  part_size: number;
+  part_count: number;
+  expires_at: number;
+  parts: Array<UploadPart>;
+}
+
+export interface UploadPartInput {
+  number: number;
+}
+
+export interface UploadPolicyResponse {
+  code: string;
+  data: UploadPolicy;
+  request_id: string;
+}
+
+export interface MultipartUploadResponse {
+  code: string;
+  data: MultipartUpload;
+  request_id: string;
+}

@@ -35,12 +35,18 @@ type Record struct {
 	UploadExpires               int64
 	CleanupAt                   int64
 }
+type UploadSession struct {
+	FileID, UploadID, Fingerprint string
+	PartSize                      int64
+}
 type Job struct {
 	ID, LocationID, Key string
 	Due                 int64
 	Attempts            int
 }
 type Repository interface {
+	Session(context.Context, string) (UploadSession, error)
+	SaveSession(context.Context, UploadSession, bool) error
 	Locations(context.Context) ([]Location, error)
 	SaveLocation(context.Context, Location, bool, string) error
 	RemoveLocation(context.Context, string, string) error
@@ -77,5 +83,14 @@ type Service struct {
 	Activate func(context.Context, string, string) error
 	Now      func() time.Time
 	// Single-instance composition holds a process lock; all metadata transitions use this mutex.
-	mu sync.Mutex
+	mu          sync.Mutex
+	uploadLocks [64]sync.Mutex
+}
+
+func (s *Service) fileLock(id string) *sync.Mutex {
+	var hash uint64
+	for _, c := range id {
+		hash = hash*31 + uint64(c)
+	}
+	return &s.uploadLocks[hash%64]
 }

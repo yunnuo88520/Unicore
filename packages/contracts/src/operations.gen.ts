@@ -2168,6 +2168,224 @@ export const operations = {
     "superAdmin": false,
     "csrf": false,
     "identityRealm": "user"
+  },
+  "fileUploadPolicy": {
+    "method": "GET",
+    "path": "/api/v1/files/policy",
+    "requestSchema": null,
+    "responseSchema": "UploadPolicyResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user"
+  },
+  "adminFileUploadPolicy": {
+    "method": "GET",
+    "path": "/api/v1/admin/files/policy",
+    "requestSchema": null,
+    "responseSchema": "UploadPolicyResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "createMultipartUpload": {
+    "method": "POST",
+    "path": "/api/v1/files/multipart",
+    "requestSchema": "MultipartUploadInput",
+    "responseSchema": "MultipartUploadResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "adminCreateMultipartUpload": {
+    "method": "POST",
+    "path": "/api/v1/admin/files/multipart",
+    "requestSchema": "MultipartUploadInput",
+    "responseSchema": "MultipartUploadResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "multipartUpload": {
+    "method": "GET",
+    "path": "/api/v1/files/multipart/{id}",
+    "requestSchema": null,
+    "responseSchema": "MultipartUploadResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user"
+  },
+  "adminMultipartUpload": {
+    "method": "GET",
+    "path": "/api/v1/admin/files/multipart/{id}",
+    "requestSchema": null,
+    "responseSchema": "MultipartUploadResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "signUploadPart": {
+    "method": "POST",
+    "path": "/api/v1/files/multipart/{id}/parts",
+    "requestSchema": "UploadPartInput",
+    "responseSchema": "FileUploadGrantResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "adminSignUploadPart": {
+    "method": "POST",
+    "path": "/api/v1/admin/files/multipart/{id}/parts",
+    "requestSchema": "UploadPartInput",
+    "responseSchema": "FileUploadGrantResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "uploadLocalPart": {
+    "method": "PUT",
+    "path": "/api/v1/files/multipart/{id}/parts/{part}",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": true,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user",
+    "streamingUpload": true
+  },
+  "adminUploadLocalPart": {
+    "method": "PUT",
+    "path": "/api/v1/admin/files/multipart/{id}/parts/{part}",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": true,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator",
+    "streamingUpload": true
+  },
+  "completeMultipartUpload": {
+    "method": "POST",
+    "path": "/api/v1/files/multipart/{id}/complete",
+    "requestSchema": null,
+    "responseSchema": "FileEntryResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "adminCompleteMultipartUpload": {
+    "method": "POST",
+    "path": "/api/v1/admin/files/multipart/{id}/complete",
+    "requestSchema": null,
+    "responseSchema": "FileEntryResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
   }
 } as const;
 export type OperationId = keyof typeof operations;
@@ -2293,6 +2511,18 @@ export interface OperationInputs {
   previewAnnouncement: Models.AnnouncementInput;
   announcements: undefined;
   announcement: undefined;
+  fileUploadPolicy: undefined;
+  adminFileUploadPolicy: undefined;
+  createMultipartUpload: Models.MultipartUploadInput;
+  adminCreateMultipartUpload: Models.MultipartUploadInput;
+  multipartUpload: undefined;
+  adminMultipartUpload: undefined;
+  signUploadPart: Models.UploadPartInput;
+  adminSignUploadPart: Models.UploadPartInput;
+  uploadLocalPart: undefined;
+  adminUploadLocalPart: undefined;
+  completeMultipartUpload: undefined;
+  adminCompleteMultipartUpload: undefined;
 }
 export interface OperationData {
   bootstrap: Models.BootstrapResponse['data'];
@@ -2416,4 +2646,16 @@ export interface OperationData {
   previewAnnouncement: Models.AnnouncementPreviewResponse['data'];
   announcements: Models.AnnouncementFeedResponse['data'];
   announcement: Models.AnnouncementPublicResponse['data'];
+  fileUploadPolicy: Models.UploadPolicyResponse['data'];
+  adminFileUploadPolicy: Models.UploadPolicyResponse['data'];
+  createMultipartUpload: Models.MultipartUploadResponse['data'];
+  adminCreateMultipartUpload: Models.MultipartUploadResponse['data'];
+  multipartUpload: Models.MultipartUploadResponse['data'];
+  adminMultipartUpload: Models.MultipartUploadResponse['data'];
+  signUploadPart: Models.FileUploadGrantResponse['data'];
+  adminSignUploadPart: Models.FileUploadGrantResponse['data'];
+  uploadLocalPart: Models.ActionResultResponse['data'];
+  adminUploadLocalPart: Models.ActionResultResponse['data'];
+  completeMultipartUpload: Models.FileEntryResponse['data'];
+  adminCompleteMultipartUpload: Models.FileEntryResponse['data'];
 }

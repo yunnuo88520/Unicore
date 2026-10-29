@@ -33,7 +33,7 @@ jobs:
       - run: make docs && git diff --exit-code && make test
       - run: make release
       - run: cd build/releases && sha256sum --check checksums.txt
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: release-candidate, path: build/releases/, if-no-files-found: error }
   bundle:
     needs: candidate
@@ -76,5 +76,5 @@ jobs:
             build/candidate/*.tar.gz
             build/candidate/update-manifest.json
             build/candidate/update-manifest.sig
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: release-bundle, path: build/candidate/, if-no-files-found: error }

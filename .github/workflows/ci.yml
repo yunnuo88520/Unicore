@@ -59,7 +59,7 @@ jobs:
       - run: pnpm build && make build-web build-cli build-ops
       - run: pnpm exec playwright install --with-deps chromium
       - run: make test-e2e
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: browser-acceptance
@@ -68,7 +68,7 @@ jobs:
             test-results/
       - run: make test-features
       - run: make release
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: web-cli-preview, path: build/releases/ }
   native-desktop:
     strategy:
@@ -99,7 +99,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: ./scripts/test-windows-startup.ps1
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always() && runner.os == 'Windows'
         with: { name: windows-startup-evidence, path: build/acceptance/windows-startup/ }
       - name: Sign and notarize native desktop when configured
@@ -118,11 +118,11 @@ jobs:
       - run: make package-desktop
         env:
           UNICORE_PLATFORM_SIGNING: ${{ github.event_name != 'pull_request' && vars.UNICORE_PLATFORM_SIGNING || 'unsigned' }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: desktop-${{ matrix.os }}
           path: build/native-releases/
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: runner.os == 'Windows'
         with:
           name: windows-exe
@@ -144,6 +144,6 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - run: docker pull nginx:latest
       - run: make test-deploy
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with: { name: deployment-evidence, path: build/acceptance/deployment/ }

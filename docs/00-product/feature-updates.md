@@ -7,4 +7,4 @@ web-platform 只向有效管理员开放版本面板与更新 API，前后端同
 
 更新渠道、签名信任和安装器通过 ports 分离，默认 GitHub Releases，可替换自有 HTTPS feed/Provider；派生项目不得保留上游签名根。发行包要求 Ed25519 清单绑定应用/版本/平台/flags/迁移/摘要/期限，拒绝篡改、降级及不兼容目标。helper 在释放进程锁后原子切换，启动确认失败恢复旧程序，数据不被覆盖。
 
-Apple/Windows 平台签名与公证为可配置发布步骤，凭据缺失时默认预览 unsigned；开启 required 必须失败关闭。无真实开发者凭据不声称完成平台签名验收。详见 [ADR-0018](../adr/ADR-0018-signed-updates.md)、[运行与发版](../03-runbooks/updates.md)、[验收](../04-ai/acceptance-updates.md)。
+默认目标是通过 GitHub Releases 或开发者自有 HTTPS 免费分发 Windows/macOS/Linux，不要求购买 OS 签名证书或官方公证。Apple/Windows 平台签名为可选严格策略，开启 required 必须失败关闭；应用层 Ed25519、SHA-256、防降级、目标匹配和安全安装不得关闭。当前创建器将 allow_unsigned_platform 设为 false，与目标不一致；修复需真实派生项目安装及无效签名拒绝回归，不能以文档声明替代。详见 [ADR-0018](../adr/ADR-0018-signed-updates.md)、[运行与发版](../03-runbooks/updates.md) 及 [支持范围](../support.md)。

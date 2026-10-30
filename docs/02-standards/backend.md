@@ -1,6 +1,8 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 后端基础规范
 
+数据库迁移按 [新世代规范](database-migrations.md) 和 [ADR-0024](../adr/ADR-0024-pre1-migration-squash.md)：R1.0b 新 core/platform/module.notes 基线与 Catalog 已隔离验收，正式运行时与启动保护尚未切换。下方 schema/business_migrations 是当前产品的历史结构，不应继续作为新模块账本设计模板。
+
 Go 采用组合：可变业务实体嵌入 `internal/domain/entity.go` 的 BaseEntity。ID 由服务端安全随机生成；created_at/updated_at/deleted_at 均为 UTC Unix 秒，0 表示未删除；version 从 1 开始。更新和软删除必须按 `id + version + deleted_at=0` 条件写入，原子递增版本及更新时间。未找到与版本冲突分别映射统一 404/409，不能覆盖别人的更新或复活已删除数据。domain/entity_test.go 会发现新领域结构体并检查基座；纯值对象要登记例外及理由。
 
 | 层 | 负责 | 禁止 |

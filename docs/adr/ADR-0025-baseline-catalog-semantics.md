@@ -20,7 +20,7 @@ core 包含安装标记、设置和审计三张基础表；platform 包含 24 �
 
 选择 Catalog 单源加生成投影，是为了让 Go 与发行/运维工具共享同一预期集合，而不是各自手填版本。SQL 是执行内容及原字节 SHA-256 的来源，Catalog 是预期集合/依赖/Profile/账本结构的定义，数据库账本仅记录实际执行事实；生成 Go descriptor 和 JSON 不能反过来成为手工定义。R1.0b 不接入运行时，保留旧 42 SQL 与执行器，可独立撤回新资产，避免把新结构验证和启动安全重构捆成一次切换。
 
-七份 `docs/04-ai/evidence-r10a/<dialect>-<profile>.json` 是此候选唯一的历史比较输入。它们来自维护者工作区先前 R1.0a 的隔离数据库实测，尚未进入父提交；不是某个已提交 R1.0a commit 的产物。`scripts/compare-baselines.py` 固定读取这七个文件，不读取历史 Markdown、旧 ADR 或其余证据。文件路径、来源和 SHA-256 见 [验收报告](../04-ai/acceptance-r10b.md)；原始摘要与入口/收尾保护记录一致。本轮新数据库输出写入另一个独立目录，不能用历史 JSON 冒充本轮执行成功。
+七份 `docs/04-ai/evidence-r10a/<dialect>-<profile>.json` 是历史比较夹具，来自原R1.0a隔离数据库实测，在R1.0b与比较器一起固化。`scripts/compare-baselines.py` 固定读取它们，不依赖历史Markdown、旧ADR或其余实验输出。它们是测试输入，必须保留原路径与原字节；摘要可从Git原件或直接计算SHA-256核验，不另手工维护一份版本定义。新的执行输出写到独立目录，不能把历史JSON当本次执行成功。
 
 ## 单源和确定性
 
@@ -53,7 +53,7 @@ R1.0c 必须在写入前以“四列格式 + 当前方言 core@1 锚点 + 完整
 | 登录键 | 保持已有注册、安装、管理创建、登录的 TrimSpace+ToLower。ASCII 用户名校验为 3–64 字符；邮箱依现有解析规则，最长 254 字节。不改变 collation、查询 SQL 或归一化算法 |
 | 默认/重复 Seed | SQL 前无账号/密钥/业务内容；Go Seed 创建本轮显式合成管理员。重复 install id=1 被主键拒绝；重复真实 Seed 返回 ErrConflict 后 rollback，角色/权限/账号/审计无重复，不将安装专用 Seed 宣称为成功返回的通用幂等初始化 |
 
-长度的实码审计和完整数据对比见 [验收报告](../04-ai/acceptance-r10b.md)。Notes 120 Unicode 字符标题实际通过三 DB，121 被 Go 拒绝；audit actor_id 的直接 SQL 65 字符在 SQLite 接受、PG/MySQL 拒绝，差异保留。若将来允许导入器/其他写入端绕过 Go，应对关键 identifier/hash/有限枚举等建立集中验证，必要时另加 CHECK，不能仅改 VARCHAR 声明。已用临时 TEXT CHECK 验证 SQLite/PG 的 length、MySQL 的 CHAR_LENGTH 对 64/65 Unicode 字符边界；未加入本次 baseline。
+长度校验以Go输入约束和当前三方言探针为准。Notes 120 Unicode 字符标题实际通过三 DB，121 被 Go 拒绝；audit actor_id 的直接 SQL 65 字符在 SQLite 接受、PG/MySQL 拒绝，差异保留。若将来允许导入器/其他写入端绕过 Go，应对关键 identifier/hash/有限枚举等建立集中验证，必要时另加 CHECK，不能仅改 VARCHAR 声明。已用临时 TEXT CHECK 验证 SQLite/PG 的 length、MySQL 的 CHAR_LENGTH 对 64/65 Unicode 字符边界；未加入本次 baseline。
 
 ## 两项需要维护者后续决定的建议
 

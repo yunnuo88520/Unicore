@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # GitHub 开源仓库维护
 
-源码、社区文件与仓库设置分开管理。修改本手册或 workflow 不等于已开启 GitHub 功能，也不授权创建公开 Release、推送镜像或改变访问权限。当前应用能力与验证见 [PRD](../00-product/PRD.md) 和 [最新验收](../04-ai/acceptance-developer-kit.md)。
+源码、社区文件与仓库设置分开管理。修改手册或workflow不等于已开启GitHub功能，也不授权创建Release、推送镜像或改变访问权限。用户支持范围见 [支持范围](../support.md)，产品约束见 [PRD](../00-product/PRD.md)，验证以当前提交CI和目标环境为准。
 
 ## 仓库内已有入口
 
@@ -15,13 +15,13 @@
 | [CI](../../.github/workflows/ci.yml) / [安全扫描](../../.github/workflows/security.yml) | 质量、数据库、页面、原生构建、部署与依赖检查 |
 | [Dependabot](../../.github/dependabot.yml) | 每周检查 Go、pnpm 工作区和 Actions；每类最多 3 个版本更新 PR，minor/patch 分组，不自动合并 |
 | [发布候选](../../.github/workflows/release.yml) | 手动构建候选包、checksum 与 GitHub 来源证明，不自动公开发行 |
-| [Wiki 生成与同步](../wiki/README.md) | 19 篇主题文档及侧栏/页脚，从仓库 Markdown 生成，手动显式同步 |
+| [Wiki 生成与同步](../wiki/README.md) | 主题清单以 distribution/manifest.json 为准，页面及侧栏/页脚从仓库 Markdown 生成；本地生成不等于远端已同步 |
 
 Dependabot 的版本更新配置不等于 GitHub 已开启安全更新。pnpm 使用 npm ecosystem，后续更新后核对锁文件与实际 CI；工具链、Wails、Go 和原生依赖升级需要对应目标验证。
 
-Node 开发/CI 基线保留 22 系列，@types/node 随基线维护；TypeScript 5 的 AST API 和 Vite 7/React 插件 5 是当前验证过的开发基座。这四个包只忽略 major 更新，patch/minor 与安全扫描继续开放；升级基线时重新评估对应 ignore，并同步工具、脚本及验证。Dependabot 每类 PR 上限只限制并发数，关闭旧 PR 后会补开队列候选，需要核对实际依赖，而不能把暂时没有 PR 当作没有后续升级。2026-10-29 的评估、组合验证与清理见 [依赖维护记录](../04-ai/acceptance-dependency-maintenance.md)。
+Node 开发/CI 基线保留 22 系列，@types/node 随基线维护；TypeScript 5 的 AST API 和 Vite 7/React 插件 5 是当前验证过的开发基座。这四个包只忽略 major 更新，patch/minor 与安全扫描继续开放；升级基线时重新评估对应 ignore，并同步工具、脚本及验证。Dependabot 每类 PR 上限只限制并发数，关闭旧 PR 后会补开队列候选，需要核对实际依赖，而不能把暂时没有 PR 当作没有后续升级。依赖升级需记录实际检查结果，不把历史组合通过作为当前证明。
 
-2026-10-28 首次扫描的 16 条告警涉及 Go 运行依赖和 Vitest/Tinypool 开发依赖。本轮已将对应依赖升级到修复版本，安全 job 同时检查 Web/CLI/ops 可达符号、所有 Go 业务导入包和桌面 bindings 导入包；pnpm audit 包含开发依赖并在 low 级别阻断。模块级扫描还提示 x/crypto 的废弃 openpgp 子包无修复版，框架未导入该包；不能把模块存在直接等同漏洞路径可达，也不能据此关闭全量检查。实时闭环以 [Dependabot 告警](https://github.com/yunnuo88520/Unicore/security/dependabot) 为准，不手动忽略告警或批量合并 PR。修复与首版验收见 [安全发版记录](../04-ai/acceptance-security-release.md)。
+安全job检查Web/CLI/ops可达符号、业务导入包和桌面bindings导入包；pnpm audit包含开发依赖并在low级别阻断。模块级扫描与实际可达漏洞路径须区分，不能据此关闭全量检查。实时闭环以 [Dependabot告警](https://github.com/yunnuo88520/Unicore/security/dependabot) 和当前安全CI为准，不手动忽略告警或批量合并PR。
 
 ## GitHub 设置
 
@@ -37,7 +37,7 @@ Node 开发/CI 基线保留 22 系列，@types/node 随基线维护；TypeScript
 | Dependabot 安全更新 | 告警及安全更新已开启 | 已有每周版本检查；安全 PR 仍需检查锁文件、变更影响与 CI，不自动合并 |
 | main 保护 | Unicore main quality gate 规则 | 要求 PR、quality/docker-build/scan 与三系统原生检查，禁止强推和删除；不要求另一个维护者批准 |
 | 合并与分支清理 | 允许 Squash，自动删除已合并分支开启 | 主分支受保护；功能分支合并后自动清理 |
-| Wiki | 已初始化，支持源码同步 | 页面清单见 docs/wiki/pages.json；执行 make wiki-publish 前检查 main 已干净推送 |
+| Wiki | 已初始化，支持源码同步 | 页面清单见 distribution/manifest.json；执行 make wiki-publish 前检查 main 已干净推送 |
 | Releases / tags | 按下节验收，开发预览使用 prerelease | 实际可下载资产以 GitHub Releases 为准，不把 VERSION 或 workflow 配置当作已经发布 |
 
 不要仅为了资料完整而创建空文档站、不可访问的演示、FUNDING 或未经同意的 CODEOWNERS。当前维护者较少，先使用源码文档和明确的反馈入口即可。Template repository 为可选项；派生应用优先使用创建器完成 module/品牌定制。
@@ -55,7 +55,7 @@ Actions 保持最小权限，fork PR 不提供发布密钥，不使用 pull_requ
 1. 确定发布点：整理 Unreleased、兼容说明与未实现范围，版本仍只从 VERSION 生成。当前可先发布标记为 prerelease 的开发预览，不宣称稳定版。
 2. 在可信提交运行质量/安全/原生构建与部署检查，再手动运行 Prepare release candidate；核对下载的归档、manifest、checksum 与构建来源。失败不使用旧 artifact 冒充新提交。
 3. 另获发布授权后，创建匹配 VERSION 的 tag 和 GitHub Release，附各 profile 的 tar、checksums、manifest、系统/架构和安装/备份/升级说明。未签名与窗口未实测范围要写清；不附数据目录、实例配置、密钥或安装凭据。
-4. 原生桌面公开分发前考虑平台签名/公证；需要镜像时对接 GHCR 等受控 registry、版本标签和 digest，先验收公开拉取再提供运行命令。当前只配置候选 artifact，不存在可承诺的公开镜像地址。
+4. 原生桌面支持免费分发策略，应用发布者签名与摘要等 OTA 校验必需，平台签名/公证为可选严格策略；当前派生默认差异见 R4，不能先宣称已修复。需要镜像时对接 GHCR 等受控 registry、版本标签和 digest，先验收公开拉取再提供运行命令。当前只配置候选 artifact，不存在可承诺的公开镜像地址。
 5. 建立后续小版本记录、迁移/恢复证据和已知问题。开源初期可逐步补英文 README、独立文档站、示例视频与 SBOM；这些不应阻塞已验证源码的使用。
 
 构建和发布操作见 [发版手册](release.md)，派生项目需替换仓库链接、Issue 联系方式、维护者和上游反馈入口，见 [框架更新约定](framework-upgrade.md)。

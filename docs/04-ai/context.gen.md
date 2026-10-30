@@ -4,7 +4,7 @@
 
 此文件只提供导航；行为与完成状态以链接的源码、当前需求和验收为准。用户本次指令优先。
 
-先读：[AGENTS.md](../../AGENTS.md) → [docs/README.md](../../docs/README.md) → [docs/00-product/PRD.md](../../docs/00-product/PRD.md) → [docs/01-architecture/architecture.md](../../docs/01-architecture/architecture.md) → [docs/04-ai/development.md](../../docs/04-ai/development.md)。
+先读：[AGENTS.md](../../AGENTS.md) → [docs/README.md](../../docs/README.md)。
 
 | Profile | 组合根 | 身份 | 存储 |
 | --- | --- | --- | --- |
@@ -24,8 +24,9 @@
 | routes | [packages/web-ui/src/routes.ts](../../packages/web-ui/src/routes.ts) |
 | session | [packages/web-ui/src/session.tsx](../../packages/web-ui/src/session.tsx) |
 | migrations | [migrations](../../migrations) |
+| databaseMigrationStandard | [docs/02-standards/database-migrations.md](../../docs/02-standards/database-migrations.md) |
 | decisions | [docs/adr](../../docs/adr) |
-| status | [docs/04-ai/foundation-audit.md](../../docs/04-ai/foundation-audit.md) |
+| status | [docs/support.md](../../docs/support.md) |
 | version | [VERSION](../../VERSION) |
 | release | [docs/03-runbooks/release.md](../../docs/03-runbooks/release.md) |
 | platformPermissions | [internal/platform/roles.go](../../internal/platform/roles.go) |
@@ -39,7 +40,6 @@
 | frameworkUpgrade | [docs/03-runbooks/framework-upgrade.md](../../docs/03-runbooks/framework-upgrade.md) |
 | contributing | [CONTRIBUTING.md](../../CONTRIBUTING.md) |
 | community | [docs/03-runbooks/open-source.md](../../docs/03-runbooks/open-source.md) |
-| currentAcceptance | [docs/04-ai/acceptance-multipart.md](../../docs/04-ai/acceptance-multipart.md) |
 | wiki | [docs/wiki/README.md](../../docs/wiki/README.md) |
 | updates | [internal/updates/service.go](../../internal/updates/service.go) |
 | updateTrust | [assets/updates/config.json](../../assets/updates/config.json) |
@@ -60,6 +60,9 @@
 | announcements | [docs/03-runbooks/announcements.md](../../docs/03-runbooks/announcements.md) |
 | multipart | [internal/blob/multipart.go](../../internal/blob/multipart.go) |
 | uploadDialog | [packages/web-ui/src/file-upload-dialog.tsx](../../packages/web-ui/src/file-upload-dialog.tsx) |
+| migrationCatalog | [migrations/catalog.json](../../migrations/catalog.json) |
+| migrationMetadata | [migrations/metadata.gen.json](../../migrations/metadata.gen.json) |
+| migrationGenerator | [scripts/generate-migrations.mjs](../../scripts/generate-migrations.mjs) |
 
 OpenAPI 当前包含 133 个 operation、140 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
 
@@ -74,7 +77,7 @@ OpenAPI 当前包含 133 个 operation、140 个 schema。Go/TS 模型、调用�
 | [add-setting](../../.agents/skills/add-setting/SKILL.md) | 向 Unicore SettingDefinition 增加分组设置、profile 范围、校验与敏感值处理。 |
 | [app-lifecycle](../../.agents/skills/app-lifecycle/SKILL.md) | 修改 Unicore 配置加载、组件生命周期、日志或监控入口，并验证各 profile 的启动与退出。 |
 | [db-migration](../../.agents/skills/db-migration/SKILL.md) | 创建 Unicore 分方言数据库迁移、兼容评估与数据恢复说明。 |
-| [maintain-framework-docs](../../.agents/skills/maintain-framework-docs/SKILL.md) | 维护 Unicore 面向 AI 开发的文档入口、框架 manifest、任务 Skills 与上下文生成检查。 |
+| [maintain-framework-docs](../../.agents/skills/maintain-framework-docs/SKILL.md) | 维护 Unicore 使用与开发文档、框架 manifest、任务 Skills 和生成检查，避免引入研发流水。 |
 | [release-cross-platform](../../.agents/skills/release-cross-platform/SKILL.md) | 构建 Unicore profile/OS/Arch 发行包、checksum/manifest 和原生桌面产物。 |
 | [security-review](../../.agents/skills/security-review/SKILL.md) | 有范围地审查 Unicore 安装、身份、设置、传输、上传或升级的实际安全边界。 |
 

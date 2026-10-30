@@ -15,4 +15,4 @@ SDK 对完整文件做流式 SHA-256，固定 8 MiB 内存块；使用成熟 SHA
 
 平台迁移 0012 仅追加会话表，SQLite/PostgreSQL 事务 DDL，MySQL IF NOT EXISTS 可重试；旧 checksum 不变，本地 framework=1/business=2 不变，平台=12。回退前停服，恢复匹配 DB、data、实例密钥、二进制与桶快照；旧二进制不支持续传，不应在进行中的会话上运行。跨 schema OTA 仍需备份后人工部署。
 
-旧单请求 API 保留兼容，最高 1 GiB；新 SDK 默认统一分片。分片请求每次最多 64 MiB、10 分钟，确认最多两小时。反代须同步设置 body/timeout 并关闭流式上传的请求缓冲。64 GiB 是配置/协议上限，验收数据量与云厂商范围见 [本轮验收](../04-ai/acceptance-multipart.md)，不代表已经做满额性能压测。
+旧单请求 API 保留兼容，最高 1 GiB；新 SDK 默认统一分片。分片请求每次最多 64 MiB、10 分钟，确认最多两小时。反代须同步设置 body/timeout 并关闭流式上传的请求缓冲。64 GiB 是配置/协议上限，云厂商验证范围见 [支持范围](../support.md)，不代表已经做满额性能压测。

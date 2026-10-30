@@ -13,4 +13,4 @@
 
 本轮迁移为平台 0011、业务 0002；所有原有记录保留，笔记历史行默认活跃。首次启动自动执行增量迁移，不重装；先停机备份，恢复见 [备份手册](backup.md)。自动 OTA 只允许相同迁移级别，不能将这次 DB 变更视为无迁移在线替换。MySQL DDL 隐式提交，失败后用同版本重试；回退先恢复完整备份。
 
-验证：Go 集成测试覆盖 SQLite，设置 UNICORE_ANNOUNCEMENT_MYSQL_DSN / UNICORE_ANNOUNCEMENT_POSTGRES_DSN 可在独立空库执行同一公告套件；既有 platformsql 套件使用另一对 UNICORE_TEST_* DSN，禁止多个测试包争用同一库。浏览器测试见 tests/e2e/announcements.spec.ts，含真实双身份域、375px、英文深色、持久化及本地形态无请求。验收结果见 [本轮报告](../04-ai/acceptance-announcements.md)。
+验证：Go 集成测试覆盖 SQLite，设置 UNICORE_ANNOUNCEMENT_MYSQL_DSN / UNICORE_ANNOUNCEMENT_POSTGRES_DSN 可在独立空库执行同一公告套件；既有 platformsql 套件使用另一对 UNICORE_TEST_* DSN，禁止多个测试包争用同一库。浏览器测试见 tests/e2e/announcements.spec.ts，含真实双身份域、375px、英文深色、持久化及本地形态无请求。结果以当前实际执行的套件和目标环境为准。

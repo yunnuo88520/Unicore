@@ -1,29 +1,28 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
-# 以 AI 开发为主的工作流
+# AI 开发工作流
 
-从 [context.gen.md](context.gen.md) 确定组合根和唯一来源，再阅读当前需求与相关 ADR。`.agents/skills/` 随框架提交，不依赖作者个人的全局 Skill 安装；标准 Markdown/YAML 可供不同 AI 工具读取。根 [AGENTS.md](../../AGENTS.md) 保留跨任务约束，各 Skill 只写该任务特有的路径、约束和验收。
+先核对分支、HEAD 和未提交修改，明确用户可观察的目标与受影响 Profile。按下面的任务索引读取对应 Skill、规范和必要代码，不默认读取完整 PRD、全部 ADR 或历史过程材料。
 
-一次任务先定义用户能观察的结果和四个 profile 的影响，再改契约/设计源、实现、验证及文档。先检查已有功能和工作区修改，避免覆盖用户工作。可以在已有授权范围内连续实现和本地验证；提交、推送、发布、真实消息或生产变更遵循用户当前授权，Skill 不授予额外权限。
+| 任务 | Skill | 按需规范 |
+| --- | --- | --- |
+| Go 模块/用例 | add-go-module | [后端规范](../02-standards/backend.md)、[笔记样板](../03-runbooks/business-example.md) |
+| API/DTO/SDK | add-api-operation | [接口契约](../02-standards/api-contract.md)、目标 OpenAPI operation 与服务端权限 |
+| 页面/主题/双语 | add-react-page、add-setting | [前端规范](../02-standards/frontend.md)、[基础封装](../03-runbooks/frontend-foundations.md) |
+| 身份与权限 | add-platform-permission | [权限契约](../api/permissions.md)、当前入口及事务鉴权 |
+| 数据库 | db-migration | [迁移规范](../02-standards/database-migrations.md)、目标 SQL/Catalog 与当前执行入口 |
+| 文件与对象存储 | add-file-storage | [存储手册](../03-runbooks/storage.md)、相关 blob/files 实现 |
+| CLI | add-cli-command | CLI/Core 用例与依赖边界，不加载平台身份/数据库资料 |
+| 生命周期/日志 | app-lifecycle | [运行规范](../02-standards/runtime.md) |
+| 构建/发行 | release-cross-platform | [发行](../03-runbooks/release.md)、[升级](../03-runbooks/updates.md) |
+| 文档 | maintain-framework-docs | 本次受影响来源、导航、生成与链接检查 |
+| 安全审查 | security-review | 本次入口、权限/状态边界与相关测试 |
 
-| 任务举例 | 需要修改的来源与验收 |
-| --- | --- |
-| 增加共享业务用例 | 领域/用例/ports，按需装配 adapter；用 CLI、HTTP、Wails 的同输入比对结果 |
-| 新增平台接口 | OpenAPI operation/schema/权限，生成后端描述与 SDK 调用，handler 独立鉴权，检查路由覆盖 |
-| 新增页面 | 注册 routes 与 PageContent，调用 AppClient；状态由 Query/会话边界管理；公共 Form 处理校验/字段错误 |
-| 调整主题或品牌 | tokens.json/identity.json，生成后验证 PC/375px、浅深/系统及相应原生位置 |
-| 修改存储 | 新增对应方言迁移，保留历史 checksum；独立测试库验证升级与失败重试 |
-| 修改本工作流 | 更新 manifest/Skill 与实际命令；重新生成上下文并运行 check:docs |
+跨任务硬约束以 [AGENTS](../../AGENTS.md) 为准。`framework.manifest.json` 和 [生成地图](context.gen.md) 是可选导航，不替代契约、代码或权威规范；Skill 正文只在对应任务加载。只有涉及重大选择时追加相关架构/ADR。
 
-上下文只记录可维护的事实：目标、边界、来源、关键决策和证据路径。不要复制完整会话历史、私人邮箱/密码、令牌、SMTP 凭据、真实数据库数据或未经核实的完成声明。阶段验收是历史记录；当前状态另行维护，不能把后续改动倒写成旧阶段已经实测。
+开发先查已有能力，复用领域/用例、AppClient、表单、布局、反馈和双语入口；API/DTO 改 OpenAPI 后生成，设置登记 Definition，迁移遵守原字节 checksum 与 Profile 边界。文件通过 file_id 与统一存储 port，业务代码不拼本地路径。
 
-中断后按 [任务模板](task-template.md) 记录当前分支/提交、已修改文件、已完成目标、失败/未执行检查和下一步。恢复任务时先核对工作区与当前文档；只重复因新修改或未解决问题而必要的检查。
+完成后运行 make docs、make test 和受影响检查；UI 用真实后端验证，原生修改在目标系统验证。区分代码存在、构建、自动化、目标系统实测和生产验证，只报告实际执行结果，不用历史通过数冒充当前结果。
 
-完成一项功能时，更新该能力的规范、使用说明和当前状态；重大选择新增 ADR。运行 `make test` 与受影响构建，UI 用真实服务做 E2E，原生桥接用原生应用验证。报告具体结果与未测范围，不能以“已生成代码”“已构建”代替功能验收。
+长期有效的使用说明、开发规范、已知限制和重大 ADR 随实现更新。任务审查/验收报告、商业路线图、实验输出和本机记录放仓库外或 build/、CI artifact，不进入主仓库；确有测试消费者的夹具保留，不能因目录名像证据就删除。禁止保存密码、密钥、真实用户数据或整段会话历史。
 
-文件业务使用 `file_id` 与 `internal/files`，不自行拼路径或保存永久外链。存储扩展见 add-file-storage Skill、[运行手册](../03-runbooks/storage.md) 和 [ADR-0015](../adr/ADR-0015-file-storage.md)。
-
-新业务优先参考可运行的 [个人笔记纵向样板](../03-runbooks/business-example.md)。派生项目用 create:project 和 doctor 初始化，自建业务迁移不改框架历史账本；代码归属及上游合并见 [约定](../03-runbooks/framework-upgrade.md)。
-
-前端任务必须先查 [基础封装索引](../03-runbooks/frontend-foundations.md)；新增界面与中文词条、英文资源同一变更提交。先运行 `pnpm check:i18n`，再做英文页面、375px 与相关布局/方向验证。检查失败应补正确翻译或接入统一组件，不允许增加全局忽略列表、把界面文字搬到数据目录或关闭检查。业务样本文本与用户数据才保留原文。
-
-新增后端业务先读 [统一后端规范](../02-standards/backend.md)，参考公告完整纵向样板；新聚合 BaseEntity 与稳定错误/分页、固定 admin/user 域及事务内鉴权必须落到实现和测试。邮件/公告正文是原始业务数据，不以 i18n 门禁为由翻译；界面仍补中英文。
+中断交接使用 [任务模板](task-template.md)，记录目标、改动、失败/未执行检查与下一步，保存于任务会话或团队的仓库外工作区。提交、推送、外发消息、发行及生产操作按用户明确授权；Git 提交标题和正文用英文。

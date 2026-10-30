@@ -1,37 +1,39 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
-# Unicore 开发文档入口
+# 文档入口
 
-Unicore 将需求、架构、契约、Skills 和验收记录一同维护。AI 从 [上下文地图](04-ai/context.gen.md) 开始，只加载当前任务需要的规范；代码和文档必须共同反映实际行为。
+按需要选择入口；使用框架不需要阅读上游开发过程或全部架构决策。
 
-在线阅读可使用 [GitHub Wiki](https://github.com/yunnuo88520/Unicore/wiki)。Wiki 从本仓库文档生成，修改仍提交到对应源码；[同步方式](wiki/README.md) 随仓库维护。
+## 使用与部署
 
-| 要解决的问题 | 入口 |
+| 目标 | 文档 |
 | --- | --- |
-| 产品范围、各 profile 有什么 | [PRD](00-product/PRD.md)、[当前基础能力](04-ai/foundation-audit.md) |
-| 模块边界与装配 | [架构](01-architecture/architecture.md)、[ADR](adr) |
-| 修改接口或校验 | [OpenAPI](../packages/contracts/openapi.json)、[接口开发约定](02-standards/api-contract.md) |
-| 修改页面、会话或表单 | [前端约定](02-standards/frontend.md)、[设计系统](02-standards/design-system.md) |
-| 实例品牌上传与恢复 | [品牌需求](00-product/feature-branding.md)、[ADR-0009](adr/ADR-0009-runtime-branding.md)、[M3b 验收](04-ai/acceptance-m3b.md) |
-| 文件、直传与对象存储 | [需求](00-product/feature-storage.md)、[ADR-0015](adr/ADR-0015-file-storage.md)、[配置/开发手册](03-runbooks/storage.md)、[基础验收](04-ai/acceptance-storage.md)、[分片/续传](04-ai/acceptance-multipart.md) |
-| 管理端/用户端分离 | [ADR-0016](adr/ADR-0016-separate-client-admin-surfaces.md)、[当前验收](04-ai/acceptance-surfaces.md) |
-| 用户、管理员权限及本地外观 | [角色需求](00-product/feature-roles.md)、[ADR-0014](adr/ADR-0014-separate-identities-management.md)、[管理验收](04-ai/acceptance-management.md) |
-| 首次安装、连接测试与重启恢复 | [安装规范](00-product/feature-installation.md)、[ADR-0013](adr/ADR-0013-installation-experience.md)、[安装验收](04-ai/acceptance-installation.md) |
-| 操作日志、邮件主题/正文配置 | [管理工具](03-runbooks/admin-tools.md)、[ADR-0020](adr/ADR-0020-audit-mail-templates.md)、[验收](04-ai/acceptance-admin-tools.md) |
-| 系统设置与授权占位 | [设置需求](00-product/feature-settings.md)、[ADR-0010](adr/ADR-0010-settings-edition.md)、[设置验收](04-ai/acceptance-settings.md) |
-| 签名 OTA、离线日志与平台公证 | [需求](00-product/feature-updates.md)、[ADR-0018](adr/ADR-0018-signed-updates.md)、[手册](03-runbooks/updates.md)、[验收](04-ai/acceptance-updates.md) |
-| 中英文、主题抽屉与本地偏好 | [使用与扩展](03-runbooks/client-preferences.md)、[ADR-0019](adr/ADR-0019-local-preferences-i18n.md)、[验收](04-ai/acceptance-preferences.md) |
-| 修改配置、日志和生命周期 | [运行基座](02-standards/runtime.md)、[部署手册](03-runbooks/deployment.md) |
-| 打包、统一版本与部署 | [发版流程](03-runbooks/release.md)、[部署手册](03-runbooks/deployment.md)、[部署验收](04-ai/acceptance-deployment.md) |
-| 依赖安全修复与维护 | [安全发版记录](04-ai/acceptance-security-release.md)、[依赖更新与清理](04-ai/acceptance-dependency-maintenance.md) |
-| 派生应用、业务样板与备份 | [创建与上游合并](03-runbooks/framework-upgrade.md)、[笔记样板](03-runbooks/business-example.md)、[备份恢复](03-runbooks/backup.md) |
-| 参与开源与维护 GitHub | [贡献指南](../CONTRIBUTING.md)、[支持](../SUPPORT.md)、[开源维护](03-runbooks/open-source.md) |
-| 让 AI 实现功能 | [开发工作流](04-ai/development.md)、[Skill 导航](04-ai/context.gen.md)、[任务模板](04-ai/task-template.md) |
+| 安装、快速开始、选择形态 | [使用指南](product/index.md)、[支持范围与已知限制](support.md) |
+| 配置数据库、安全与邮件 | [配置](product/configuration.md)、[安装与故障处理](03-runbooks/deployment.md) |
+| 构建 Web、Desktop、CLI | [构建指南](product/build.md) |
+| tar、Nginx、Docker/Compose | [部署指南](product/deployment.md) |
+| 更新、签名与恢复 | [更新指南](product/updates.md)、[备份指南](product/backup.md) |
+| 本地/云文件与大文件上传 | [存储指南](product/storage.md)、[详细配置](03-runbooks/storage.md) |
+| 管理日志、邮件模板与公告 | [管理工具](03-runbooks/admin-tools.md)、[公告](03-runbooks/announcements.md) |
+| 语言、主题与本地外观 | [客户端偏好](03-runbooks/client-preferences.md) |
 
-`make docs` 生成契约文档、AI 上下文和本地 Wiki 页面，`pnpm check:docs` 检查本地链接、Wiki 映射、命令、Skill 清单与生成漂移。`framework.manifest.json` 是机器可读的入口索引，不替代 OpenAPI、主题源或 ADR。
+[用户 Wiki](https://github.com/yunnuo88520/Unicore/wiki) 单独生成，内容以当前已同步版本为准。
 
-当前实现先看 PRD、架构与 [最新开发基座验收](04-ai/acceptance-developer-kit.md)；各阶段 acceptance-* 和 ADR 保留当时的结果与决策，不把旧测试计数、旧功能限制当作当前状态。当前设计与阶段历史冲突时，以最新需求、后续 ADR 和代码为准。
+## 应用开发
 
-前端新增业务先读 [基础封装索引](03-runbooks/frontend-foundations.md)，复用布局、会话、请求、表单、反馈和双语入口。
+从 [应用开发指南](product/development.md) 和 [笔记业务样板](03-runbooks/business-example.md) 开始。
 
-- [后端基础规范](02-standards/backend.md)：嵌入实体、三层职责、权限、分页与生命周期例外。
-- [平台公告](03-runbooks/announcements.md) · [ADR-0021](adr/ADR-0021-business-entities-announcements.md) · [验收](04-ai/acceptance-announcements.md)。
+| 任务 | 权威入口 |
+| --- | --- |
+| API、DTO、SDK、权限 | [API 约定](02-standards/api-contract.md)、[权限契约](api/permissions.md) |
+| Go 领域、用例与数据层 | [后端规范](02-standards/backend.md)、[架构](01-architecture/architecture.md) |
+| 页面、表单、主题与双语 | [前端规范](02-standards/frontend.md)、[基础封装](03-runbooks/frontend-foundations.md)、[设计系统](02-standards/design-system.md) |
+| 数据库迁移 | [迁移规范](02-standards/database-migrations.md)、[目录状态](../migrations/README.md)、[开发库重建](03-runbooks/development-database-reset.md) |
+| 配置、日志、生命周期与指标 | [运行基座](02-standards/runtime.md) |
+| 创建项目、跟进上游 | [创建与合并](03-runbooks/framework-upgrade.md) |
+| AI 协作 | [工作流与任务索引](04-ai/development.md)、[任务模板](04-ai/task-template.md) |
+
+## 贡献与维护
+
+贡献者阅读 [CONTRIBUTING](../CONTRIBUTING.md) 和 [代码规范](02-standards/coding.md)，按任务选择相关规范与 Skill。重大选择记录在 [ADR](adr)，产品目标见 [PRD](00-product/PRD.md)；这些不是每次开发的必读全集。
+
+维护者按需查 [发行流程](03-runbooks/release.md)、[开源维护](03-runbooks/open-source.md) 和 [Wiki 同步](wiki/README.md)。真实支持状态看当前 CI 与目标环境检查；过程报告、实验快照和工作区记录不进入源码文档。

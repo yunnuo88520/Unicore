@@ -9,38 +9,36 @@ metadata:
 
 ## trigger
 
-创建或变更 schema/数据格式；当前 database/sql + modernc SQLite/pgx/MySQL，先读 ADR-0003。
+数据库 schema/迁移/版本元数据/启动校验/恢复边界任务。先读 docs/02-standards/database-migrations.md、ADR-0024 和当次授权；ADR-0023 保守方案已被取代。
+
+## current-stage
+
+Pre-1.0 squash is approved. New SQL/catalog/data generation assets exist; see migrations/README.md and ADR-0025. The product still uses the original 42 SQL and legacy executor. R1.0c startup validation/locks/engine/metadata consumers require separate authorization. Do not remove legacy files or activate the new ledger early.
 
 ## inputs
 
-profile、数据规模、方言、向前兼容、停机、备份和恢复窗口。
+阶段授权、profile、namespace、三方言、支持的源世代/版本、数据规模及停机/备份恢复窗口。
 
 ## steps
 
-1. 阅读原始设计第 9 节和 DB ADR，明确 framework/platform/business 归属。
-2. 各方言连续版本迁移含作者、目的、兼容影响和回滚策略；平台表仅用于 web-platform。
-3. 临时 DB 验证空库、前版升级、重复执行及失败重试；SQLite 设置 WAL 与忙等待。
-4. 高风险 DDL 说明真实备份恢复步骤和非事务行为。首次安装清空边界见 [ADR-0013](../../../docs/adr/ADR-0013-installation-experience.md)：测试连接不清空，reset 需明确同意和精确目标名；已安装库/其他 PG schema 不接管，启动路径不 reset。用隔离库验证已有数据、失败与连续重启，不能用删配置模拟升级。
-5. 同步 Repository SQL、schema 和运行文档。
+1. 检查HEAD/branch/dirty并保留已有工作；读产品/架构、新迁移规范及相关ADR，基于真实代码/DB证据，不抄历史结果。
+2. 新世代仅catalog.json定义预期集合：core（所有DB产品）、platform（仅平台）、module.<slug>（Notes=module.notes），各自从1递增，明确依赖/Profile/三方言SQL。CLI不import数据库/迁移资产。Catalog now exists; Profile namespaces are membership only. Derive order exclusively from depends_on with deterministic topological sorting. Check pnpm check:migrations and test:migrations; never hand-edit generated metadata.
+3. SHA-256取原SQL字节；Go/JS/发行/OTA/ops向量及账本引导DDL只生成，不手填最大版本。目标账本(namespace,version,checksum,applied_at)，联合主键namespace+version，成功才登记。
+4. 新世代SQL一旦分发（含preview）不可修改，只追加版本；不得规范化行尾再改hash。基线不含密码/hash/密钥/用户数据；角色权限/管理员/设置交Go Seed，保留有运行代码依赖的静态基础记录。
+5. 仅用当次授权的显式隔离库真测空库、合法前缀、重复执行、future/unknown/gap/checksum/Profile/legacy拒绝及失败恢复。清除不明APP_*/UNICORE_*配置，不触碰已有开发/生产库。三方言和Profile分别记pass/fail/skip。
+6. 写前完整检查；SQLite验证DB/WAL/SHM零提前写；PG/MySQL固定连接+DB级互斥，MySQL承认隐式DDL提交。无force/skipValidation、删账本、补造checksum或自动reset后门。
+7. 同步SQL/catalog、生成消费者、需求/架构/规范、测试、运行手册和本轮证据；三个namespace不能压成旧两整数手抄。只审计任务不擅自转实施。
 
 ## output
 
-分方言迁移、真实 DB 测试、恢复策略与 ADR。
+影响矩阵、SQL/catalog或设计、真实七组合/方言证据、数据/约束差异、失败恢复、docs/ADR、未验证项和隔离资源清理。
 
 ## forbidden
 
-CLI 加载 SQL；只测一种 DB 宣称全支持；不可逆 DDL 后承诺仅回滚 binary；测试使用生产库。
+CLI加载SQL；给新模块另建business_migrations；跨namespace串版本；只测一种宣称全支持；检查前创建SQLite/WAL；自动DROP/reset、改checksum；仅换旧binary承诺回退；将真实凭据写入证据/SQL。
 
 ## validation
 
-实际运行每个声称支持的方言迁移、约束与恢复测试，make test 与 profile build，记录未测项。
+按授权运行生成检查、make docs/test、相关profile构建及目标OS实测，区分代码/构建/自动化/原生/生产。R1.0a只证明历史结构/Seed/约束，不代表新baseline/锁/WAL保护通过。对比docs/04-ai/evidence-r10a并解释有意差异；文件/双身份/邮件/公告/Notes软删乐观锁及附件引用回归不可省。开发重建见docs/03-runbooks/development-database-reset.md，采用新空目标而非接管旧库。
 
-平台当前迁移至 0012：新增分片会话；0011 新增平台公告；0010 追加审计快照表；0009 新增文件位置、元数据与持久清理队列；0008 的管理员七张身份表独立于普通用户。身份变化验证旧版本账号/企业绑定保留、旧凭据撤销及 MySQL 复制后版本未记录时的幂等重试；不要修改已发布迁移 checksum 或在迁移测试中绕过表间外键。
-
-文件存储变更同时遵守 add-file-storage：三方言索引和幂等重试要实际验证，迁移/回退保留 DB、data、实例密钥与桶备份。不得修改已发布的旧迁移 checksum；云测试只清理本轮登记的专属前缀。
-
-业务迁移位于 migrations/{dialect}/business，独立 business_migrations 当前为2（0002 笔记软删除）。框架账本本地为1、平台为12，不合并版本序列；新版本需三方言/重复启动/冲突测试。离线备份恢复使用 cmd/ops，见 docs/03-runbooks/backup.md；只允许新目录和空专用库，MySQL失败可能留下部分目标库，禁止自动drop。
-
-公告/笔记生命周期见 ADR-0021。MySQL 业务 0002 单条 ALTER 添加列/索引，DDL 已完成而账本未记录时可重试；不要修改旧迁移。同步维护备份兼容上限与发行/OTA 的 platform=12、business=2 元数据，并用隔离库验证旧数据、重复启动和失败重试。
-
-平台最新迁移为0012（分片会话），本地 framework=1、business=2。同步发行、OTA、备份上限与测试元数据；完整 DB/data 备份包含会话及本地分片，云端未完成 upload ID 不由普通对象备份恢复，不可用会话需放弃重传。旧二进制不支持续传，回退恢复匹配快照，不改0011及之前checksum。
+R1.0b generation identity persists as the actual core@1 ledger checksum, with per-dialect expected anchors generated from raw SQL. Keep four columns; no separate settings marker or fabricated ledger row. Username/email comparison changes, install_state singleton CHECK and additional length CHECK remain proposals; preserve current login and SQLite rowid behavior until reviewed. New roots are core/platform/modules; old dialect roots are excluded from registration checks.

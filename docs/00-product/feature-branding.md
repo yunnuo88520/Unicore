@@ -20,6 +20,6 @@
 
 实例品牌不会改变已安装应用包的图标、bundle ID、可执行文件名或编译主题色。修改这些入口继续使用 assets/brand/identity.json、assets/theme/tokens.json 与重新构建；用户上传文件不会进入源码生成链。
 
-早期品牌验证见 [M3b 验收](../04-ai/acceptance-m3b.md)；平台统一存储及单机裁剪后的当前范围见 [文件验收](../04-ai/acceptance-storage.md)、[双入口验收](../04-ai/acceptance-surfaces.md) 和 [开发基座验收](../04-ai/acceptance-developer-kit.md)。早期原生运行时品牌修改不代表当前仍提供该功能。
+品牌适用范围以 [ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md) 为准；平台使用统一文件存储，单机/桌面只在构建时配置品牌，不提供运行时品牌管理。
 
 单机范围已按 [ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md) 收敛；历史本地品牌文件/行保留但不使用，原 M3b 原生品牌验收属于历史能力。

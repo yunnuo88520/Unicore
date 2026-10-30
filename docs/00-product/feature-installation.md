@@ -21,4 +21,4 @@ bootstrap.token 是首次配置的所有权证明；secret.key/APP_SECRET_KEY �
 
 安装中断时，未拥有 schema 的实例需再次明确确认才能清空；MySQL DDL 可能部分完成，不能承诺事务回滚。拥有的部分 schema 按原配置重试迁移；已提交 DB 标记则恢复完成。INSTALLED 后 DB 不可达、安装表/标记缺失或实例不匹配均停止启动，不自动回到安装页，不重建管理员。
 
-无新增表或配置格式迁移，历史安装配置仍可读取。更新只替换程序，保留完整私有目录与数据库；错误的数据删除只能通过成套备份恢复。操作见 [部署手册](../03-runbooks/deployment.md)，决策见 [ADR-0013](../adr/ADR-0013-installation-experience.md)，证据见 [安装验收](../04-ai/acceptance-installation.md)。
+无新增表或配置格式迁移，历史安装配置仍可读取。更新只替换程序，保留完整私有目录与数据库；错误的数据删除只能通过成套备份恢复。操作见 [部署手册](../03-runbooks/deployment.md)，决策见 [ADR-0013](../adr/ADR-0013-installation-experience.md)。安装、重启与异常状态在隔离实例逐项验证，不以历史结果代替当前测试。

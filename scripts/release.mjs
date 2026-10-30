@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync, mkdirSync, writeFileSync, cpSync, rmSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { readFeatures } from './build-features.mjs';
+import { copyDistribution } from './distribution.mjs';
 const edition = readFeatures();
 
 const product = JSON.parse(readFileSync('package.json', 'utf8')).name;
@@ -39,9 +40,8 @@ for (const target of targets) {
     const profileFlags = profile === 'cli' ? ldflags : `${ldflags} -X github.com/yunnuo/unicore/internal/runtime.DefaultWebProfile=${profile}`;
     execFileSync('go', ['build','-trimpath','-tags',profile === 'cli' ? '' : edition.tags,'-ldflags',profileFlags,'-o',`${dir}/bin/${executable}${os === 'windows' ? '.exe' : ''}`,profile === 'cli' ? './cmd/cli' : './cmd/server'], { env: { ...process.env, CGO_ENABLED: '0', GOOS: os, GOARCH: arch }, stdio: 'inherit' });
     if (profile !== 'cli') execFileSync('go', ['build','-trimpath','-ldflags',ldflags,'-o',`${dir}/bin/unicore-ops`,'./cmd/ops'], { env: { ...process.env, CGO_ENABLED: '0', GOOS: os, GOARCH: arch }, stdio: 'inherit' });
-    cpSync('LICENSE', `${dir}/LICENSE`);
-    cpSync('docs', `${dir}/docs`, { recursive: true });
-    writeFileSync(`${dir}/README_DEPLOY.md`, `<!-- Author: yunnuo <ymz@ebox.vip> -->\n# Unicore ${version}\n\n默认 profile：${profile}；目标：${os}/${arch}。\n\n${profile === 'cli' ? '运行 bin/unicore version 或 bin/unicore execute --text "Hello Unicore"（Windows 为 .exe）。' : '首次试运行：APP_DATA_DIR=/你的私有数据目录 bin/server，访问 http://127.0.0.1:8080/install，从该目录 bootstrap.token 读取安装凭据。生产请按手册配置 systemd/Nginx 和 HTTPS。'}\n\n[部署手册](docs/03-runbooks/deployment.md) · [构建与发版](docs/03-runbooks/release.md) · [变更记录](CHANGELOG.md)。本包是未签名开发预览；数据和密钥必须保存在包目录之外。\n`);
+    copyDistribution(process.cwd(), dir, 'user-release');
+    writeFileSync(`${dir}/README_DEPLOY.md`, `<!-- Author: yunnuo <ymz@ebox.vip> -->\n# Unicore ${version}\n\n默认 profile：${profile}；目标：${os}/${arch}。\n\n${profile === 'cli' ? '运行 bin/unicore version 或 bin/unicore execute --text "Hello Unicore"（Windows 为 .exe）。' : '首次试运行：APP_DATA_DIR=/你的私有数据目录 bin/server，访问 http://127.0.0.1:8080/install，从该目录 bootstrap.token 读取安装凭据。生产请按手册配置 systemd/Nginx 和 HTTPS。'}\n\n[部署手册](docs/product/deployment.md) · [构建与发版](docs/product/build.md) · [变更记录](CHANGELOG.md)。本包是未签名开发预览；数据和密钥必须保存在包目录之外。\n`);
     cpSync('CHANGELOG.md', `${dir}/CHANGELOG.md`);
     writeFileSync(`${dir}/VERSION`, `${version}\n`);
     if (profile !== 'cli') { cpSync('apps/web/static', `${dir}/web`, { recursive: true }); cpSync('deploy/tar', `${dir}/deploy`, { recursive: true }); }

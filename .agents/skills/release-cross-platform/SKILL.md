@@ -17,7 +17,7 @@ metadata:
 
 ## steps
 
-1. 阅读 [发版手册](../../../docs/03-runbooks/release.md)、[部署手册](../../../docs/03-runbooks/deployment.md) 和 [部署验收](../../../docs/04-ai/acceptance-deployment.md)。VERSION 是唯一人工应用版本；用 make version NEW_VERSION=x.y.z 准备 Changelog 与生成投影，pnpm check:version 检查，禁止多处手改。执行 make docs、make test、UI 构建与 E2E。
+1. 阅读 [发版手册](../../../docs/03-runbooks/release.md)、[部署手册](../../../docs/03-runbooks/deployment.md) 和 [支持范围](../../../docs/support.md)。VERSION 是唯一人工应用版本；用 make version NEW_VERSION=x.y.z 准备 Changelog 与生成投影，pnpm check:version 检查，禁止多处手改。执行 make docs、make test、UI 构建与 E2E。
 2. make release 生成完整 Web/CLI 矩阵；make package RELEASE_TARGETS=linux/amd64 RELEASE_PROFILES=web-platform 可只出目标包。输出 build/releases 每次重建，先保存需保留的旧产物。核对 checksum、包内版本、manifest 和 Changelog。
 3. GUI 各 OS 原生 runner 构建，记录实测 OS/Arch。
 4. make docker-build / make compose-up 自动注入统一版本/metadata/flags；有本机架构两个 Web 包和同版本镜像后 make test-deploy 跑真实 Tar+Nginx、Docker/Compose 安装、验证码登录、重启及替换容器的持久化，保存 PC/375px 证据。只删除该脚本自己创建的随机测试资源，不复用真实数据。

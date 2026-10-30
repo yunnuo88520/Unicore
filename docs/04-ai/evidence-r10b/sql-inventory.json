@@ -1,0 +1,78 @@
+{
+  "author": "yunnuo <ymz@ebox.vip>",
+  "generated_evidence": true,
+  "files": [
+    {
+      "namespace": "core",
+      "version": 1,
+      "dialect": "mysql",
+      "path": "core/mysql/0001_initial.sql",
+      "bytes": 1119,
+      "checksum": "51e4df83a6d6d02dbfb74d594abccb6ac19522f82bf41d483cc2f78a8ce5afa2"
+    },
+    {
+      "namespace": "core",
+      "version": 1,
+      "dialect": "postgres",
+      "path": "core/postgres/0001_initial.sql",
+      "bytes": 1101,
+      "checksum": "5df9a3031d055057d3ee0be23439afd07cf237cd5489e5c53ae0c94843203cf9"
+    },
+    {
+      "namespace": "core",
+      "version": 1,
+      "dialect": "sqlite",
+      "path": "core/sqlite/0001_initial.sql",
+      "bytes": 928,
+      "checksum": "d72770af3c5b8b8b8a6a7f75017f0e9e0603528e9bddb39f70b98ea1f5d9f149"
+    },
+    {
+      "namespace": "module.notes",
+      "version": 1,
+      "dialect": "mysql",
+      "path": "modules/notes/mysql/0001_initial.sql",
+      "bytes": 1018,
+      "checksum": "fb35e39bae2523afbffe1a6ed05d3cfe2581d7f9264dd3d24a20f546eb30f268"
+    },
+    {
+      "namespace": "module.notes",
+      "version": 1,
+      "dialect": "postgres",
+      "path": "modules/notes/postgres/0001_initial.sql",
+      "bytes": 1110,
+      "checksum": "50a441fbd38e19ac04a963e6efa1c3b8763e8f8c989ec47e0ce1fdee3bc59deb"
+    },
+    {
+      "namespace": "module.notes",
+      "version": 1,
+      "dialect": "sqlite",
+      "path": "modules/notes/sqlite/0001_initial.sql",
+      "bytes": 1048,
+      "checksum": "199a2c422701338f802c75a555efad4b91b03c17a318ddbf5110b7924efb76a0"
+    },
+    {
+      "namespace": "platform",
+      "version": 1,
+      "dialect": "mysql",
+      "path": "platform/mysql/0001_initial.sql",
+      "bytes": 11281,
+      "checksum": "76f4cffb4d9d88a4064e31423ea3635be089c8faf4d0b937aa16ad416970ab3b"
+    },
+    {
+      "namespace": "platform",
+      "version": 1,
+      "dialect": "postgres",
+      "path": "platform/postgres/0001_initial.sql",
+      "bytes": 11798,
+      "checksum": "170709b2868ad7085f2a93ccff72f0d44a967761702bcbf9b98f0a74721323ad"
+    },
+    {
+      "namespace": "platform",
+      "version": 1,
+      "dialect": "sqlite",
+      "path": "platform/sqlite/0001_initial.sql",
+      "bytes": 7562,
+      "checksum": "15c8697b4fdd4d2894374c9f8374d5bee1b0dd8d8a070eb9b6b4299a30fb9151"
+    }
+  ]
+}

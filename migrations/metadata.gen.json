@@ -1,0 +1,213 @@
+{
+  "author": "yunnuo <ymz@ebox.vip>",
+  "generated": true,
+  "format_version": 1,
+  "schema_generation": "unicore-1",
+  "checksum_algorithm": "sha256-raw-v1",
+  "generation_anchor": {
+    "namespace": "core",
+    "version": 1,
+    "checksums": {
+      "mysql": "51e4df83a6d6d02dbfb74d594abccb6ac19522f82bf41d483cc2f78a8ce5afa2",
+      "postgres": "5df9a3031d055057d3ee0be23439afd07cf237cd5489e5c53ae0c94843203cf9",
+      "sqlite": "d72770af3c5b8b8b8a6a7f75017f0e9e0603528e9bddb39f70b98ea1f5d9f149"
+    }
+  },
+  "dialects": [
+    "mysql",
+    "postgres",
+    "sqlite"
+  ],
+  "sql_roots": [
+    "core",
+    "modules",
+    "platform"
+  ],
+  "ledger": {
+    "table": "schema_migrations",
+    "columns": [
+      {
+        "name": "namespace",
+        "type": "varchar",
+        "length": 96,
+        "nullable": false
+      },
+      {
+        "name": "version",
+        "type": "bigint",
+        "nullable": false
+      },
+      {
+        "name": "checksum",
+        "type": "varchar",
+        "length": 64,
+        "nullable": false
+      },
+      {
+        "name": "applied_at",
+        "type": "bigint",
+        "nullable": false
+      }
+    ],
+    "primary_key": [
+      "namespace",
+      "version"
+    ],
+    "applied_at_unit": "utc_unix_seconds",
+    "ddl": {
+      "mysql": "CREATE TABLE schema_migrations (\n  namespace VARCHAR(96) NOT NULL,\n  version BIGINT NOT NULL,\n  checksum VARCHAR(64) NOT NULL,\n  applied_at BIGINT NOT NULL,\n  PRIMARY KEY (namespace, version)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;\n",
+      "postgres": "CREATE TABLE schema_migrations (\n  namespace VARCHAR(96) NOT NULL,\n  version BIGINT NOT NULL,\n  checksum VARCHAR(64) NOT NULL,\n  applied_at BIGINT NOT NULL,\n  PRIMARY KEY (namespace, version)\n);\n",
+      "sqlite": "CREATE TABLE schema_migrations (\n  namespace VARCHAR(96) NOT NULL,\n  version BIGINT NOT NULL,\n  checksum VARCHAR(64) NOT NULL,\n  applied_at BIGINT NOT NULL,\n  PRIMARY KEY (namespace, version)\n);\n"
+    }
+  },
+  "namespaces": [
+    {
+      "id": "core",
+      "depends_on": [],
+      "migrations": [
+        {
+          "version": 1,
+          "files": {
+            "mysql": {
+              "path": "core/mysql/0001_initial.sql",
+              "bytes": 1119,
+              "checksum": "51e4df83a6d6d02dbfb74d594abccb6ac19522f82bf41d483cc2f78a8ce5afa2"
+            },
+            "postgres": {
+              "path": "core/postgres/0001_initial.sql",
+              "bytes": 1101,
+              "checksum": "5df9a3031d055057d3ee0be23439afd07cf237cd5489e5c53ae0c94843203cf9"
+            },
+            "sqlite": {
+              "path": "core/sqlite/0001_initial.sql",
+              "bytes": 928,
+              "checksum": "d72770af3c5b8b8b8a6a7f75017f0e9e0603528e9bddb39f70b98ea1f5d9f149"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "module.notes",
+      "depends_on": [
+        "core"
+      ],
+      "migrations": [
+        {
+          "version": 1,
+          "files": {
+            "mysql": {
+              "path": "modules/notes/mysql/0001_initial.sql",
+              "bytes": 1018,
+              "checksum": "fb35e39bae2523afbffe1a6ed05d3cfe2581d7f9264dd3d24a20f546eb30f268"
+            },
+            "postgres": {
+              "path": "modules/notes/postgres/0001_initial.sql",
+              "bytes": 1110,
+              "checksum": "50a441fbd38e19ac04a963e6efa1c3b8763e8f8c989ec47e0ce1fdee3bc59deb"
+            },
+            "sqlite": {
+              "path": "modules/notes/sqlite/0001_initial.sql",
+              "bytes": 1048,
+              "checksum": "199a2c422701338f802c75a555efad4b91b03c17a318ddbf5110b7924efb76a0"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "platform",
+      "depends_on": [
+        "core"
+      ],
+      "migrations": [
+        {
+          "version": 1,
+          "files": {
+            "mysql": {
+              "path": "platform/mysql/0001_initial.sql",
+              "bytes": 11281,
+              "checksum": "76f4cffb4d9d88a4064e31423ea3635be089c8faf4d0b937aa16ad416970ab3b"
+            },
+            "postgres": {
+              "path": "platform/postgres/0001_initial.sql",
+              "bytes": 11798,
+              "checksum": "170709b2868ad7085f2a93ccff72f0d44a967761702bcbf9b98f0a74721323ad"
+            },
+            "sqlite": {
+              "path": "platform/sqlite/0001_initial.sql",
+              "bytes": 7562,
+              "checksum": "15c8697b4fdd4d2894374c9f8374d5bee1b0dd8d8a070eb9b6b4299a30fb9151"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "profiles": {
+    "cli": {
+      "dialects": [],
+      "namespaces": [],
+      "order": [],
+      "levels": {}
+    },
+    "desktop": {
+      "dialects": [
+        "sqlite"
+      ],
+      "namespaces": [
+        "core",
+        "module.notes"
+      ],
+      "order": [
+        "core",
+        "module.notes"
+      ],
+      "levels": {
+        "core": 1,
+        "module.notes": 1
+      }
+    },
+    "web-platform": {
+      "dialects": [
+        "mysql",
+        "postgres",
+        "sqlite"
+      ],
+      "namespaces": [
+        "core",
+        "module.notes",
+        "platform"
+      ],
+      "order": [
+        "core",
+        "module.notes",
+        "platform"
+      ],
+      "levels": {
+        "core": 1,
+        "module.notes": 1,
+        "platform": 1
+      }
+    },
+    "web-standalone": {
+      "dialects": [
+        "mysql",
+        "postgres",
+        "sqlite"
+      ],
+      "namespaces": [
+        "core",
+        "module.notes"
+      ],
+      "order": [
+        "core",
+        "module.notes"
+      ],
+      "levels": {
+        "core": 1,
+        "module.notes": 1
+      }
+    }
+  }
+}

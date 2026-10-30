@@ -1,0 +1,3103 @@
+{
+  "author": "yunnuo \u003cymz@ebox.vip\u003e",
+  "behavior_probes": {
+    "case_variant_usernames": {
+      "accepted": true
+    },
+    "dangling_session_fk": {
+      "accepted": false,
+      "error": "ERROR: insert or update on table \"sessions\" violates foreign key constraint \"sessions_user_id_fkey\" (SQLSTATE 23503)"
+    },
+    "notes_default_deleted_at": 0,
+    "null_text_primary_key": {
+      "accepted": false,
+      "error": "ERROR: null value in column \"id\" of relation \"audit_logs\" violates not-null constraint (SQLSTATE 23502)"
+    },
+    "varchar_64_accepts_65_chars": {
+      "accepted": false,
+      "error": "ERROR: value too long for type character varying(64) (SQLSTATE 22001)"
+    }
+  },
+  "combination": "postgres-web-platform",
+  "generated_evidence": true,
+  "go_seed": {
+    "administrator_rows": 1,
+    "method": "audit transaction invokes actual settings.Defaults and platformsql.Repository.Seed; not a full HTTP installer test",
+    "ordinary_user_rows": 0,
+    "permissions": [
+      {
+        "id": "admin:access"
+      },
+      {
+        "id": "administrators:create"
+      },
+      {
+        "id": "administrators:read"
+      },
+      {
+        "id": "administrators:update"
+      },
+      {
+        "id": "announcements:read"
+      },
+      {
+        "id": "announcements:write"
+      },
+      {
+        "id": "logs:read"
+      },
+      {
+        "id": "roles:read"
+      },
+      {
+        "id": "settings:read"
+      },
+      {
+        "id": "settings:write"
+      },
+      {
+        "id": "storage:read"
+      },
+      {
+        "id": "storage:write"
+      },
+      {
+        "id": "updates:apply"
+      },
+      {
+        "id": "updates:read"
+      },
+      {
+        "id": "users:create"
+      },
+      {
+        "id": "users:read"
+      },
+      {
+        "id": "users:update"
+      }
+    ],
+    "role_permissions_count": 17,
+    "setting_count": 43,
+    "setting_keys": [
+      "account.email_login_enabled",
+      "account.password_reset_enabled",
+      "account.registration_enabled",
+      "admin.path",
+      "announcements.enabled",
+      "branding.favicon",
+      "branding.logo",
+      "branding.logo_dark",
+      "mail.from",
+      "mail.from_name",
+      "mail.host",
+      "mail.password",
+      "mail.port",
+      "mail.template.login",
+      "mail.template.notification",
+      "mail.template.reset",
+      "mail.template.test",
+      "mail.template.verify",
+      "mail.tls",
+      "mail.username",
+      "oidc.client_id",
+      "oidc.client_secret",
+      "oidc.enabled",
+      "oidc.issuer",
+      "oidc.jit_enabled",
+      "oidc.provider_name",
+      "oidc.scopes",
+      "security.login_captcha",
+      "security.register_captcha",
+      "security.session_hours",
+      "site.copyright",
+      "site.description",
+      "site.icp_number",
+      "site.icp_url",
+      "site.name",
+      "storage.active",
+      "storage.max_size_mb",
+      "storage.parallelism",
+      "storage.part_size_mb",
+      "storage.pending_hours",
+      "storage.retention_days",
+      "storage.upload_ttl",
+      "storage.url_ttl"
+    ]
+  },
+  "migration_only_data": {
+    "business_ledger": [
+      {
+        "checksum": "a126718a9c9436e758548942cc69f5f50c276d9d23d230e4e3f552ff89f4fb86",
+        "version": 1
+      },
+      {
+        "checksum": "ac454135d0fe3a92bec04dc9990cf6909e26152e81b3ca6a67f06af027b691e1",
+        "version": 2
+      }
+    ],
+    "framework_ledger": [
+      {
+        "checksum": "b62eb39d5906dab920daeb336faecc60efb7b18ad7eb9c101279be7dde223cd3",
+        "version": 1
+      },
+      {
+        "checksum": "c26d18c2c970827e5072ad69ea70b10b9c14adc0af89d72d6ed9a7ab5986d9c0",
+        "version": 2
+      },
+      {
+        "checksum": "3ff98b137b8d5029af73494a8817d439f50d0493e9953ea73d7713f112d4236d",
+        "version": 3
+      },
+      {
+        "checksum": "351e93fe4358d67b6a7160b36e672e72f41daf9695e353b489c70fc70d596305",
+        "version": 4
+      },
+      {
+        "checksum": "70bec13ddc6f78bc8b4ba0b0cc91c36977404aecfe84bb41dc14e9948cae895e",
+        "version": 5
+      },
+      {
+        "checksum": "f27a8980db7eed0998b1621dda8a41118db5f7718af0490f4ffd89cb0425c877",
+        "version": 6
+      },
+      {
+        "checksum": "5c0ed1222e16bf10c8498c3a989dcc61cd208c153459c996b2618b221b5ab831",
+        "version": 7
+      },
+      {
+        "checksum": "55ab0607bc68694b95a9417d9aea88d79e105a1dcfde155f04636f6a85aa64f9",
+        "version": 8
+      },
+      {
+        "checksum": "32bc1cca8259948f7e5d067d8554602a144f32fd716cf6aa9a09c8d51967f25b",
+        "version": 9
+      },
+      {
+        "checksum": "1d057f072bc7dc98be8088fbf27c47f9c2fd5c5967147b96117aa21d5758dc06",
+        "version": 10
+      },
+      {
+        "checksum": "7702e474ebad3ef423618b85e91c7f626476ecf757c09b2455bfd54b16ef6d13",
+        "version": 11
+      },
+      {
+        "checksum": "0362485f46e0ea87d286034428322566ec74a03135346fb6384851722b4d0534",
+        "version": 12
+      }
+    ],
+    "permissions": [
+      {
+        "id": "roles:read"
+      }
+    ],
+    "role_permissions": [],
+    "roles": [
+      {
+        "id": "super_admin",
+        "name": "super_admin"
+      },
+      {
+        "id": "user",
+        "name": "user"
+      }
+    ],
+    "row_counts": {
+      "account_tokens": 0,
+      "administrator_account_tokens": 0,
+      "administrator_email_challenges": 0,
+      "administrator_external_identities": 0,
+      "administrator_oidc_flows": 0,
+      "administrator_roles": 0,
+      "administrator_sessions": 0,
+      "administrators": 0,
+      "audit_logs": 0,
+      "audit_metadata": 0,
+      "business_migrations": 2,
+      "email_challenges": 0,
+      "example_notes": 0,
+      "external_identities": 0,
+      "file_cleanup_jobs": 0,
+      "file_metadata": 0,
+      "file_upload_sessions": 0,
+      "install_state": 0,
+      "mail_jobs": 0,
+      "oidc_flows": 0,
+      "permissions": 1,
+      "platform_announcements": 0,
+      "role_permissions": 0,
+      "roles": 2,
+      "schema_migrations": 12,
+      "sessions": 0,
+      "storage_locations": 2,
+      "system_settings": 0,
+      "user_roles": 0,
+      "users": 0
+    },
+    "storage_locations": [
+      {
+        "bucket": "",
+        "created_at": 0,
+        "credentials": "",
+        "endpoint": "",
+        "id": "legacy-brand",
+        "name": "历史品牌文件",
+        "path_style": 1,
+        "prefix": "",
+        "provider": "local",
+        "region": "",
+        "tested": 1
+      },
+      {
+        "bucket": "",
+        "created_at": 0,
+        "credentials": "",
+        "endpoint": "",
+        "id": "local",
+        "name": "本地存储",
+        "path_style": 1,
+        "prefix": "",
+        "provider": "local",
+        "region": "",
+        "tested": 1
+      }
+    ]
+  },
+  "passed": true,
+  "post_seed_data": {
+    "business_ledger": [
+      {
+        "checksum": "a126718a9c9436e758548942cc69f5f50c276d9d23d230e4e3f552ff89f4fb86",
+        "version": 1
+      },
+      {
+        "checksum": "ac454135d0fe3a92bec04dc9990cf6909e26152e81b3ca6a67f06af027b691e1",
+        "version": 2
+      }
+    ],
+    "framework_ledger": [
+      {
+        "checksum": "b62eb39d5906dab920daeb336faecc60efb7b18ad7eb9c101279be7dde223cd3",
+        "version": 1
+      },
+      {
+        "checksum": "c26d18c2c970827e5072ad69ea70b10b9c14adc0af89d72d6ed9a7ab5986d9c0",
+        "version": 2
+      },
+      {
+        "checksum": "3ff98b137b8d5029af73494a8817d439f50d0493e9953ea73d7713f112d4236d",
+        "version": 3
+      },
+      {
+        "checksum": "351e93fe4358d67b6a7160b36e672e72f41daf9695e353b489c70fc70d596305",
+        "version": 4
+      },
+      {
+        "checksum": "70bec13ddc6f78bc8b4ba0b0cc91c36977404aecfe84bb41dc14e9948cae895e",
+        "version": 5
+      },
+      {
+        "checksum": "f27a8980db7eed0998b1621dda8a41118db5f7718af0490f4ffd89cb0425c877",
+        "version": 6
+      },
+      {
+        "checksum": "5c0ed1222e16bf10c8498c3a989dcc61cd208c153459c996b2618b221b5ab831",
+        "version": 7
+      },
+      {
+        "checksum": "55ab0607bc68694b95a9417d9aea88d79e105a1dcfde155f04636f6a85aa64f9",
+        "version": 8
+      },
+      {
+        "checksum": "32bc1cca8259948f7e5d067d8554602a144f32fd716cf6aa9a09c8d51967f25b",
+        "version": 9
+      },
+      {
+        "checksum": "1d057f072bc7dc98be8088fbf27c47f9c2fd5c5967147b96117aa21d5758dc06",
+        "version": 10
+      },
+      {
+        "checksum": "7702e474ebad3ef423618b85e91c7f626476ecf757c09b2455bfd54b16ef6d13",
+        "version": 11
+      },
+      {
+        "checksum": "0362485f46e0ea87d286034428322566ec74a03135346fb6384851722b4d0534",
+        "version": 12
+      }
+    ],
+    "permissions": [
+      {
+        "id": "admin:access"
+      },
+      {
+        "id": "administrators:create"
+      },
+      {
+        "id": "administrators:read"
+      },
+      {
+        "id": "administrators:update"
+      },
+      {
+        "id": "announcements:read"
+      },
+      {
+        "id": "announcements:write"
+      },
+      {
+        "id": "logs:read"
+      },
+      {
+        "id": "roles:read"
+      },
+      {
+        "id": "settings:read"
+      },
+      {
+        "id": "settings:write"
+      },
+      {
+        "id": "storage:read"
+      },
+      {
+        "id": "storage:write"
+      },
+      {
+        "id": "updates:apply"
+      },
+      {
+        "id": "updates:read"
+      },
+      {
+        "id": "users:create"
+      },
+      {
+        "id": "users:read"
+      },
+      {
+        "id": "users:update"
+      }
+    ],
+    "role_permissions": [
+      {
+        "permission_id": "admin:access",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "administrators:create",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "administrators:read",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "administrators:update",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "announcements:read",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "announcements:write",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "logs:read",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "roles:read",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "settings:read",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "settings:write",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "storage:read",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "storage:write",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "updates:apply",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "updates:read",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "users:create",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "users:read",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "users:update",
+        "role_id": "super_admin"
+      }
+    ],
+    "roles": [
+      {
+        "id": "super_admin",
+        "name": "super_admin"
+      },
+      {
+        "id": "user",
+        "name": "user"
+      }
+    ],
+    "row_counts": {
+      "account_tokens": 0,
+      "administrator_account_tokens": 0,
+      "administrator_email_challenges": 0,
+      "administrator_external_identities": 0,
+      "administrator_oidc_flows": 0,
+      "administrator_roles": 1,
+      "administrator_sessions": 0,
+      "administrators": 1,
+      "audit_logs": 2,
+      "audit_metadata": 1,
+      "business_migrations": 2,
+      "email_challenges": 0,
+      "example_notes": 0,
+      "external_identities": 0,
+      "file_cleanup_jobs": 0,
+      "file_metadata": 0,
+      "file_upload_sessions": 0,
+      "install_state": 1,
+      "mail_jobs": 0,
+      "oidc_flows": 0,
+      "permissions": 17,
+      "platform_announcements": 0,
+      "role_permissions": 17,
+      "roles": 2,
+      "schema_migrations": 12,
+      "sessions": 0,
+      "storage_locations": 2,
+      "system_settings": 43,
+      "user_roles": 0,
+      "users": 0
+    },
+    "storage_locations": [
+      {
+        "bucket": "",
+        "created_at": 0,
+        "credentials": "",
+        "endpoint": "",
+        "id": "legacy-brand",
+        "name": "历史品牌文件",
+        "path_style": 1,
+        "prefix": "",
+        "provider": "local",
+        "region": "",
+        "tested": 1
+      },
+      {
+        "bucket": "",
+        "created_at": 0,
+        "credentials": "",
+        "endpoint": "",
+        "id": "local",
+        "name": "本地存储",
+        "path_style": 1,
+        "prefix": "",
+        "provider": "local",
+        "region": "",
+        "tested": 1
+      }
+    ]
+  },
+  "repeat_migration_passed": true,
+  "schema": {
+    "other_objects": [],
+    "server": [
+      {
+        "collation": "en_US.utf8",
+        "current_database": "r10a_platform",
+        "current_schema": "public",
+        "encoding": "UTF8",
+        "version": "PostgreSQL 15.17 (Debian 15.17-1.pgdg13+1) on aarch64-unknown-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit"
+      }
+    ],
+    "tables": {
+      "account_tokens": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "token_hash",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "user_id",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "purpose",
+            "not_null": true,
+            "ordinal": 3,
+            "type": "character varying(16)"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "expires_at",
+            "not_null": true,
+            "ordinal": 4,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "FOREIGN KEY (user_id) REFERENCES users(id)",
+            "delete_action": "a",
+            "initially_deferred": false,
+            "name": "account_tokens_user_id_fkey",
+            "type": "f",
+            "update_action": "a"
+          },
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (token_hash)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "account_tokens_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX account_tokens_pkey ON public.account_tokens USING btree (token_hash)",
+            "name": "account_tokens_pkey"
+          }
+        ]
+      },
+      "administrator_account_tokens": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "token_hash",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "user_id",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "purpose",
+            "not_null": true,
+            "ordinal": 3,
+            "type": "character varying(16)"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "expires_at",
+            "not_null": true,
+            "ordinal": 4,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "FOREIGN KEY (user_id) REFERENCES administrators(id)",
+            "delete_action": "a",
+            "initially_deferred": false,
+            "name": "administrator_account_tokens_user_id_fkey",
+            "type": "f",
+            "update_action": "a"
+          },
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (token_hash)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "administrator_account_tokens_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX administrator_account_tokens_pkey ON public.administrator_account_tokens USING btree (token_hash)",
+            "name": "administrator_account_tokens_pkey"
+          }
+        ]
+      },
+      "administrator_email_challenges": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "id",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "user_id",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "purpose",
+            "not_null": true,
+            "ordinal": 3,
+            "type": "character varying(16)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "code_digest",
+            "not_null": true,
+            "ordinal": 4,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "expires_at",
+            "not_null": true,
+            "ordinal": 5,
+            "type": "bigint"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "created_at",
+            "not_null": true,
+            "ordinal": 6,
+            "type": "bigint"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "attempts",
+            "not_null": true,
+            "ordinal": 7,
+            "type": "integer"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "FOREIGN KEY (user_id) REFERENCES administrators(id)",
+            "delete_action": "a",
+            "initially_deferred": false,
+            "name": "administrator_email_challenges_user_id_fkey",
+            "type": "f",
+            "update_action": "a"
+          },
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (id)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "administrator_email_challenges_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX administrator_email_challenges_pkey ON public.administrator_email_challenges USING btree (id)",
+            "name": "administrator_email_challenges_pkey"
+          }
+        ]
+      },
+      "administrator_external_identities": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "identity_hash",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "user_id",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "issuer",
+            "not_null": true,
+            "ordinal": 3,
+            "type": "text"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "subject",
+            "not_null": true,
+            "ordinal": 4,
+            "type": "text"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "created_at",
+            "not_null": true,
+            "ordinal": 5,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "FOREIGN KEY (user_id) REFERENCES administrators(id)",
+            "delete_action": "a",
+            "initially_deferred": false,
+            "name": "administrator_external_identities_user_id_fkey",
+            "type": "f",
+            "update_action": "a"
+          },
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (identity_hash)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "administrator_external_identities_pkey",
+            "type": "p",
+            "update_action": " "
+          },
+          {
+            "deferrable": false,
+            "definition": "UNIQUE (user_id)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "administrator_external_identities_user_id_key",
+            "type": "u",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX administrator_external_identities_pkey ON public.administrator_external_identities USING btree (identity_hash)",
+            "name": "administrator_external_identities_pkey"
+          },
+          {
+            "definition": "CREATE UNIQUE INDEX administrator_external_identities_user_id_key ON public.administrator_external_identities USING btree (user_id)",
+            "name": "administrator_external_identities_user_id_key"
+          }
+        ]
+      },
+      "administrator_oidc_flows": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "state_hash",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "browser_hash",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "sealed_payload",
+            "not_null": true,
+            "ordinal": 3,
+            "type": "text"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "expires_at",
+            "not_null": true,
+            "ordinal": 4,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (state_hash)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "administrator_oidc_flows_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX administrator_oidc_flows_pkey ON public.administrator_oidc_flows USING btree (state_hash)",
+            "name": "administrator_oidc_flows_pkey"
+          }
+        ]
+      },
+      "administrator_roles": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "user_id",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "role_id",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(64)"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "FOREIGN KEY (role_id) REFERENCES roles(id)",
+            "delete_action": "a",
+            "initially_deferred": false,
+            "name": "administrator_roles_role_id_fkey",
+            "type": "f",
+            "update_action": "a"
+          },
+          {
+            "deferrable": false,
+            "definition": "FOREIGN KEY (user_id) REFERENCES administrators(id)",
+            "delete_action": "a",
+            "initially_deferred": false,
+            "name": "administrator_roles_user_id_fkey",
+            "type": "f",
+            "update_action": "a"
+          },
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (user_id, role_id)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "administrator_roles_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX administrator_roles_pkey ON public.administrator_roles USING btree (user_id, role_id)",
+            "name": "administrator_roles_pkey"
+          }
+        ]
+      },
+      "administrator_sessions": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "token_hash",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "user_id",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "expires_at",
+            "not_null": true,
+            "ordinal": 3,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "FOREIGN KEY (user_id) REFERENCES administrators(id)",
+            "delete_action": "a",
+            "initially_deferred": false,
+            "name": "administrator_sessions_user_id_fkey",
+            "type": "f",
+            "update_action": "a"
+          },
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (token_hash)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "administrator_sessions_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX administrator_sessions_pkey ON public.administrator_sessions USING btree (token_hash)",
+            "name": "administrator_sessions_pkey"
+          }
+        ]
+      },
+      "administrators": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "id",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "username",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "email",
+            "not_null": true,
+            "ordinal": 3,
+            "type": "character varying(254)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "password_hash",
+            "not_null": true,
+            "ordinal": 4,
+            "type": "text"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "status",
+            "not_null": true,
+            "ordinal": 5,
+            "type": "character varying(16)"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "created_at",
+            "not_null": true,
+            "ordinal": 6,
+            "type": "bigint"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "updated_at",
+            "not_null": true,
+            "ordinal": 7,
+            "type": "bigint"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "last_login_at",
+            "not_null": true,
+            "ordinal": 8,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (id)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "administrators_pkey",
+            "type": "p",
+            "update_action": " "
+          },
+          {
+            "deferrable": false,
+            "definition": "UNIQUE (email)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "administrators_email_key",
+            "type": "u",
+            "update_action": " "
+          },
+          {
+            "deferrable": false,
+            "definition": "UNIQUE (username)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "administrators_username_key",
+            "type": "u",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX administrators_email_key ON public.administrators USING btree (email)",
+            "name": "administrators_email_key"
+          },
+          {
+            "definition": "CREATE UNIQUE INDEX administrators_pkey ON public.administrators USING btree (id)",
+            "name": "administrators_pkey"
+          },
+          {
+            "definition": "CREATE UNIQUE INDEX administrators_username_key ON public.administrators USING btree (username)",
+            "name": "administrators_username_key"
+          }
+        ]
+      },
+      "audit_logs": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "id",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "actor_id",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "action",
+            "not_null": true,
+            "ordinal": 3,
+            "type": "character varying(128)"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "created_at",
+            "not_null": true,
+            "ordinal": 4,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (id)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "audit_logs_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX audit_logs_pkey ON public.audit_logs USING btree (id)",
+            "name": "audit_logs_pkey"
+          }
+        ]
+      },
+      "audit_metadata": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "audit_id",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "actor_name",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "realm",
+            "not_null": true,
+            "ordinal": 3,
+            "type": "character varying(32)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "target",
+            "not_null": true,
+            "ordinal": 4,
+            "type": "character varying(256)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "detail",
+            "not_null": true,
+            "ordinal": 5,
+            "type": "character varying(512)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "ip_address",
+            "not_null": true,
+            "ordinal": 6,
+            "type": "character varying(64)"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "FOREIGN KEY (audit_id) REFERENCES audit_logs(id)",
+            "delete_action": "a",
+            "initially_deferred": false,
+            "name": "audit_metadata_audit_id_fkey",
+            "type": "f",
+            "update_action": "a"
+          },
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (audit_id)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "audit_metadata_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX audit_metadata_pkey ON public.audit_metadata USING btree (audit_id)",
+            "name": "audit_metadata_pkey"
+          }
+        ]
+      },
+      "business_migrations": {
+        "columns": [
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "version",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "integer"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "checksum",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(64)"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (version)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "business_migrations_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX business_migrations_pkey ON public.business_migrations USING btree (version)",
+            "name": "business_migrations_pkey"
+          }
+        ]
+      },
+      "email_challenges": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "id",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "user_id",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "purpose",
+            "not_null": true,
+            "ordinal": 3,
+            "type": "character varying(16)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "code_digest",
+            "not_null": true,
+            "ordinal": 4,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "expires_at",
+            "not_null": true,
+            "ordinal": 5,
+            "type": "bigint"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "created_at",
+            "not_null": true,
+            "ordinal": 6,
+            "type": "bigint"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "attempts",
+            "not_null": true,
+            "ordinal": 7,
+            "type": "integer"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "FOREIGN KEY (user_id) REFERENCES users(id)",
+            "delete_action": "a",
+            "initially_deferred": false,
+            "name": "email_challenges_user_id_fkey",
+            "type": "f",
+            "update_action": "a"
+          },
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (id)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "email_challenges_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX email_challenges_pkey ON public.email_challenges USING btree (id)",
+            "name": "email_challenges_pkey"
+          }
+        ]
+      },
+      "example_notes": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "scope_key",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(96)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "id",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "title",
+            "not_null": true,
+            "ordinal": 3,
+            "type": "character varying(120)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "body",
+            "not_null": true,
+            "ordinal": 4,
+            "type": "text"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "status",
+            "not_null": true,
+            "ordinal": 5,
+            "type": "character varying(16)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "attachment_ids",
+            "not_null": true,
+            "ordinal": 6,
+            "type": "text"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "version",
+            "not_null": true,
+            "ordinal": 7,
+            "type": "integer"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "created_at",
+            "not_null": true,
+            "ordinal": 8,
+            "type": "bigint"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "updated_at",
+            "not_null": true,
+            "ordinal": 9,
+            "type": "bigint"
+          },
+          {
+            "collation": null,
+            "default_expression": "0",
+            "generated": "",
+            "identity": "",
+            "name": "deleted_at",
+            "not_null": true,
+            "ordinal": 10,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (scope_key, id)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "example_notes_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE INDEX example_notes_owner_updated ON public.example_notes USING btree (scope_key, updated_at, id)",
+            "name": "example_notes_owner_updated"
+          },
+          {
+            "definition": "CREATE UNIQUE INDEX example_notes_pkey ON public.example_notes USING btree (scope_key, id)",
+            "name": "example_notes_pkey"
+          },
+          {
+            "definition": "CREATE INDEX idx_notes_active ON public.example_notes USING btree (scope_key, deleted_at, updated_at)",
+            "name": "idx_notes_active"
+          }
+        ]
+      },
+      "external_identities": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "identity_hash",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "user_id",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "issuer",
+            "not_null": true,
+            "ordinal": 3,
+            "type": "text"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "subject",
+            "not_null": true,
+            "ordinal": 4,
+            "type": "text"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "created_at",
+            "not_null": true,
+            "ordinal": 5,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "FOREIGN KEY (user_id) REFERENCES users(id)",
+            "delete_action": "a",
+            "initially_deferred": false,
+            "name": "external_identities_user_id_fkey",
+            "type": "f",
+            "update_action": "a"
+          },
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (identity_hash)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "external_identities_pkey",
+            "type": "p",
+            "update_action": " "
+          },
+          {
+            "deferrable": false,
+            "definition": "UNIQUE (user_id)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "external_identities_user_id_key",
+            "type": "u",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX external_identities_pkey ON public.external_identities USING btree (identity_hash)",
+            "name": "external_identities_pkey"
+          },
+          {
+            "definition": "CREATE UNIQUE INDEX external_identities_user_id_key ON public.external_identities USING btree (user_id)",
+            "name": "external_identities_user_id_key"
+          }
+        ]
+      },
+      "file_cleanup_jobs": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "id",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(80)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "location_id",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(80)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "file_key",
+            "not_null": true,
+            "ordinal": 3,
+            "type": "character varying(1024)"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "due_at",
+            "not_null": true,
+            "ordinal": 4,
+            "type": "bigint"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "attempts",
+            "not_null": true,
+            "ordinal": 5,
+            "type": "integer"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "last_error",
+            "not_null": true,
+            "ordinal": 6,
+            "type": "character varying(64)"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "FOREIGN KEY (location_id) REFERENCES storage_locations(id)",
+            "delete_action": "a",
+            "initially_deferred": false,
+            "name": "file_cleanup_jobs_location_id_fkey",
+            "type": "f",
+            "update_action": "a"
+          },
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (id)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "file_cleanup_jobs_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE INDEX file_cleanup_due ON public.file_cleanup_jobs USING btree (due_at)",
+            "name": "file_cleanup_due"
+          },
+          {
+            "definition": "CREATE UNIQUE INDEX file_cleanup_jobs_pkey ON public.file_cleanup_jobs USING btree (id)",
+            "name": "file_cleanup_jobs_pkey"
+          },
+          {
+            "definition": "CREATE INDEX file_cleanup_location ON public.file_cleanup_jobs USING btree (location_id)",
+            "name": "file_cleanup_location"
+          }
+        ]
+      },
+      "file_metadata": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "id",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(80)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "original_name",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(255)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "storage_type",
+            "not_null": true,
+            "ordinal": 3,
+            "type": "character varying(16)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "location_id",
+            "not_null": true,
+            "ordinal": 4,
+            "type": "character varying(80)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "file_key",
+            "not_null": true,
+            "ordinal": 5,
+            "type": "character varying(1024)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "staging_key",
+            "not_null": true,
+            "ordinal": 6,
+            "type": "character varying(1024)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "mime_type",
+            "not_null": true,
+            "ordinal": 7,
+            "type": "character varying(160)"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "size",
+            "not_null": true,
+            "ordinal": 8,
+            "type": "bigint"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "etag",
+            "not_null": true,
+            "ordinal": 9,
+            "type": "character varying(200)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "state",
+            "not_null": true,
+            "ordinal": 10,
+            "type": "character varying(16)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "purpose",
+            "not_null": true,
+            "ordinal": 11,
+            "type": "character varying(16)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "creator_id",
+            "not_null": true,
+            "ordinal": 12,
+            "type": "character varying(80)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "creator_realm",
+            "not_null": true,
+            "ordinal": 13,
+            "type": "character varying(24)"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "created_at",
+            "not_null": true,
+            "ordinal": 14,
+            "type": "bigint"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "expires_at",
+            "not_null": true,
+            "ordinal": 15,
+            "type": "bigint"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "upload_expires_at",
+            "not_null": true,
+            "ordinal": 16,
+            "type": "bigint"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "cleanup_at",
+            "not_null": true,
+            "ordinal": 17,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "FOREIGN KEY (location_id) REFERENCES storage_locations(id)",
+            "delete_action": "a",
+            "initially_deferred": false,
+            "name": "file_metadata_location_id_fkey",
+            "type": "f",
+            "update_action": "a"
+          },
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (id)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "file_metadata_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE INDEX file_created ON public.file_metadata USING btree (purpose, created_at, id)",
+            "name": "file_created"
+          },
+          {
+            "definition": "CREATE INDEX file_expiry ON public.file_metadata USING btree (expires_at)",
+            "name": "file_expiry"
+          },
+          {
+            "definition": "CREATE INDEX file_location_state ON public.file_metadata USING btree (location_id, state)",
+            "name": "file_location_state"
+          },
+          {
+            "definition": "CREATE UNIQUE INDEX file_metadata_pkey ON public.file_metadata USING btree (id)",
+            "name": "file_metadata_pkey"
+          },
+          {
+            "definition": "CREATE INDEX file_owner_created ON public.file_metadata USING btree (purpose, creator_realm, creator_id, created_at, id)",
+            "name": "file_owner_created"
+          },
+          {
+            "definition": "CREATE INDEX file_pending_cleanup ON public.file_metadata USING btree (state, cleanup_at)",
+            "name": "file_pending_cleanup"
+          }
+        ]
+      },
+      "file_upload_sessions": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "file_id",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(80)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "upload_id",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "text"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "fingerprint",
+            "not_null": true,
+            "ordinal": 3,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "part_size",
+            "not_null": true,
+            "ordinal": 4,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "FOREIGN KEY (file_id) REFERENCES file_metadata(id)",
+            "delete_action": "a",
+            "initially_deferred": false,
+            "name": "file_upload_sessions_file_id_fkey",
+            "type": "f",
+            "update_action": "a"
+          },
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (file_id)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "file_upload_sessions_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX file_upload_sessions_pkey ON public.file_upload_sessions USING btree (file_id)",
+            "name": "file_upload_sessions_pkey"
+          }
+        ]
+      },
+      "install_state": {
+        "columns": [
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "id",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "integer"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "profile",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(32)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "instance_id",
+            "not_null": true,
+            "ordinal": 3,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "installed_at",
+            "not_null": true,
+            "ordinal": 4,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (id)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "install_state_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX install_state_pkey ON public.install_state USING btree (id)",
+            "name": "install_state_pkey"
+          }
+        ]
+      },
+      "mail_jobs": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "id",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "token_hash",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "payload",
+            "not_null": true,
+            "ordinal": 3,
+            "type": "text"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "state",
+            "not_null": true,
+            "ordinal": 4,
+            "type": "character varying(16)"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "attempts",
+            "not_null": true,
+            "ordinal": 5,
+            "type": "integer"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "created_at",
+            "not_null": true,
+            "ordinal": 6,
+            "type": "bigint"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "available_at",
+            "not_null": true,
+            "ordinal": 7,
+            "type": "bigint"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "expires_at",
+            "not_null": true,
+            "ordinal": 8,
+            "type": "bigint"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "lease_id",
+            "not_null": true,
+            "ordinal": 9,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "lease_until",
+            "not_null": true,
+            "ordinal": 10,
+            "type": "bigint"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "last_error",
+            "not_null": true,
+            "ordinal": 11,
+            "type": "character varying(32)"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (id)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "mail_jobs_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX mail_jobs_pkey ON public.mail_jobs USING btree (id)",
+            "name": "mail_jobs_pkey"
+          }
+        ]
+      },
+      "oidc_flows": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "state_hash",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "browser_hash",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "sealed_payload",
+            "not_null": true,
+            "ordinal": 3,
+            "type": "text"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "expires_at",
+            "not_null": true,
+            "ordinal": 4,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (state_hash)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "oidc_flows_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX oidc_flows_pkey ON public.oidc_flows USING btree (state_hash)",
+            "name": "oidc_flows_pkey"
+          }
+        ]
+      },
+      "permissions": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "id",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(128)"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (id)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "permissions_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX permissions_pkey ON public.permissions USING btree (id)",
+            "name": "permissions_pkey"
+          }
+        ]
+      },
+      "platform_announcements": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "id",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "content",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "text"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "content_html",
+            "not_null": true,
+            "ordinal": 3,
+            "type": "text"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "format",
+            "not_null": true,
+            "ordinal": 4,
+            "type": "character varying(16)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "type",
+            "not_null": true,
+            "ordinal": 5,
+            "type": "character varying(16)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "note",
+            "not_null": true,
+            "ordinal": 6,
+            "type": "character varying(400)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "status",
+            "not_null": true,
+            "ordinal": 7,
+            "type": "character varying(16)"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "publish_at",
+            "not_null": true,
+            "ordinal": 8,
+            "type": "bigint"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "created_by",
+            "not_null": true,
+            "ordinal": 9,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "updated_by",
+            "not_null": true,
+            "ordinal": 10,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "created_at",
+            "not_null": true,
+            "ordinal": 11,
+            "type": "bigint"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "updated_at",
+            "not_null": true,
+            "ordinal": 12,
+            "type": "bigint"
+          },
+          {
+            "collation": null,
+            "default_expression": "0",
+            "generated": "",
+            "identity": "",
+            "name": "deleted_at",
+            "not_null": true,
+            "ordinal": 13,
+            "type": "bigint"
+          },
+          {
+            "collation": null,
+            "default_expression": "1",
+            "generated": "",
+            "identity": "",
+            "name": "version",
+            "not_null": true,
+            "ordinal": 14,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (id)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "platform_announcements_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE INDEX idx_announcements_feed ON public.platform_announcements USING btree (deleted_at, status, publish_at, id)",
+            "name": "idx_announcements_feed"
+          },
+          {
+            "definition": "CREATE UNIQUE INDEX platform_announcements_pkey ON public.platform_announcements USING btree (id)",
+            "name": "platform_announcements_pkey"
+          }
+        ]
+      },
+      "role_permissions": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "role_id",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "permission_id",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(128)"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "FOREIGN KEY (permission_id) REFERENCES permissions(id)",
+            "delete_action": "a",
+            "initially_deferred": false,
+            "name": "role_permissions_permission_id_fkey",
+            "type": "f",
+            "update_action": "a"
+          },
+          {
+            "deferrable": false,
+            "definition": "FOREIGN KEY (role_id) REFERENCES roles(id)",
+            "delete_action": "a",
+            "initially_deferred": false,
+            "name": "role_permissions_role_id_fkey",
+            "type": "f",
+            "update_action": "a"
+          },
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (role_id, permission_id)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "role_permissions_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX role_permissions_pkey ON public.role_permissions USING btree (role_id, permission_id)",
+            "name": "role_permissions_pkey"
+          }
+        ]
+      },
+      "roles": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "id",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "name",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(64)"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (id)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "roles_pkey",
+            "type": "p",
+            "update_action": " "
+          },
+          {
+            "deferrable": false,
+            "definition": "UNIQUE (name)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "roles_name_key",
+            "type": "u",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX roles_name_key ON public.roles USING btree (name)",
+            "name": "roles_name_key"
+          },
+          {
+            "definition": "CREATE UNIQUE INDEX roles_pkey ON public.roles USING btree (id)",
+            "name": "roles_pkey"
+          }
+        ]
+      },
+      "schema_migrations": {
+        "columns": [
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "version",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "integer"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "checksum",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(64)"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (version)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "schema_migrations_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX schema_migrations_pkey ON public.schema_migrations USING btree (version)",
+            "name": "schema_migrations_pkey"
+          }
+        ]
+      },
+      "sessions": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "token_hash",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "user_id",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "expires_at",
+            "not_null": true,
+            "ordinal": 3,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "FOREIGN KEY (user_id) REFERENCES users(id)",
+            "delete_action": "a",
+            "initially_deferred": false,
+            "name": "sessions_user_id_fkey",
+            "type": "f",
+            "update_action": "a"
+          },
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (token_hash)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "sessions_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX sessions_pkey ON public.sessions USING btree (token_hash)",
+            "name": "sessions_pkey"
+          }
+        ]
+      },
+      "storage_locations": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "id",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(80)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "name",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(80)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "provider",
+            "not_null": true,
+            "ordinal": 3,
+            "type": "character varying(16)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "endpoint",
+            "not_null": true,
+            "ordinal": 4,
+            "type": "character varying(2048)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "bucket",
+            "not_null": true,
+            "ordinal": 5,
+            "type": "character varying(128)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "region",
+            "not_null": true,
+            "ordinal": 6,
+            "type": "character varying(128)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "prefix",
+            "not_null": true,
+            "ordinal": 7,
+            "type": "character varying(200)"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "path_style",
+            "not_null": true,
+            "ordinal": 8,
+            "type": "integer"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "credentials",
+            "not_null": true,
+            "ordinal": 9,
+            "type": "text"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "tested",
+            "not_null": true,
+            "ordinal": 10,
+            "type": "integer"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "created_at",
+            "not_null": true,
+            "ordinal": 11,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (id)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "storage_locations_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX storage_locations_pkey ON public.storage_locations USING btree (id)",
+            "name": "storage_locations_pkey"
+          }
+        ]
+      },
+      "system_settings": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "setting_key",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(128)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "setting_value",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "text"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (setting_key)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "system_settings_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX system_settings_pkey ON public.system_settings USING btree (setting_key)",
+            "name": "system_settings_pkey"
+          }
+        ]
+      },
+      "user_roles": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "user_id",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "role_id",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(64)"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "FOREIGN KEY (role_id) REFERENCES roles(id)",
+            "delete_action": "a",
+            "initially_deferred": false,
+            "name": "user_roles_role_id_fkey",
+            "type": "f",
+            "update_action": "a"
+          },
+          {
+            "deferrable": false,
+            "definition": "FOREIGN KEY (user_id) REFERENCES users(id)",
+            "delete_action": "a",
+            "initially_deferred": false,
+            "name": "user_roles_user_id_fkey",
+            "type": "f",
+            "update_action": "a"
+          },
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (user_id, role_id)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "user_roles_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX user_roles_pkey ON public.user_roles USING btree (user_id, role_id)",
+            "name": "user_roles_pkey"
+          }
+        ]
+      },
+      "users": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "id",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "username",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "email",
+            "not_null": true,
+            "ordinal": 3,
+            "type": "character varying(254)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "password_hash",
+            "not_null": true,
+            "ordinal": 4,
+            "type": "text"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "status",
+            "not_null": true,
+            "ordinal": 5,
+            "type": "character varying(16)"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "created_at",
+            "not_null": true,
+            "ordinal": 6,
+            "type": "bigint"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "updated_at",
+            "not_null": true,
+            "ordinal": 7,
+            "type": "bigint"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "last_login_at",
+            "not_null": true,
+            "ordinal": 8,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (id)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "users_pkey",
+            "type": "p",
+            "update_action": " "
+          },
+          {
+            "deferrable": false,
+            "definition": "UNIQUE (email)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "users_email_key",
+            "type": "u",
+            "update_action": " "
+          },
+          {
+            "deferrable": false,
+            "definition": "UNIQUE (username)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "users_username_key",
+            "type": "u",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX users_email_key ON public.users USING btree (email)",
+            "name": "users_email_key"
+          },
+          {
+            "definition": "CREATE UNIQUE INDEX users_pkey ON public.users USING btree (id)",
+            "name": "users_pkey"
+          },
+          {
+            "definition": "CREATE UNIQUE INDEX users_username_key ON public.users USING btree (username)",
+            "name": "users_username_key"
+          }
+        ]
+      }
+    },
+    "triggers": []
+  },
+  "scope": "historical migration reconstruction; not new-engine validation",
+  "source_commit": "cecf28115d3d4d6e36b425557e6c6388e754fae8"
+}

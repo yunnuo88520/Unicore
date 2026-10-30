@@ -1,0 +1,4078 @@
+{
+  "all_text_and_composite_pk_null_checks": {
+    "account_tokens.token_hash": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: account_tokens.token_hash (1299)"
+    },
+    "administrator_account_tokens.token_hash": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: administrator_account_tokens.token_hash (1299)"
+    },
+    "administrator_email_challenges.id": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: administrator_email_challenges.id (1299)"
+    },
+    "administrator_external_identities.identity_hash": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: administrator_external_identities.identity_hash (1299)"
+    },
+    "administrator_oidc_flows.state_hash": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: administrator_oidc_flows.state_hash (1299)"
+    },
+    "administrator_roles.role_id": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: administrator_roles.role_id (1299)"
+    },
+    "administrator_roles.user_id": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: administrator_roles.user_id (1299)"
+    },
+    "administrator_sessions.token_hash": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: administrator_sessions.token_hash (1299)"
+    },
+    "administrators.id": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: administrators.id (1299)"
+    },
+    "audit_logs.id": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: audit_logs.id (1299)"
+    },
+    "audit_metadata.audit_id": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: audit_metadata.audit_id (1299)"
+    },
+    "email_challenges.id": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: email_challenges.id (1299)"
+    },
+    "example_notes.id": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: example_notes.id (1299)"
+    },
+    "example_notes.scope_key": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: example_notes.scope_key (1299)"
+    },
+    "external_identities.identity_hash": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: external_identities.identity_hash (1299)"
+    },
+    "file_cleanup_jobs.id": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: file_cleanup_jobs.id (1299)"
+    },
+    "file_metadata.id": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: file_metadata.id (1299)"
+    },
+    "file_upload_sessions.file_id": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: file_upload_sessions.file_id (1299)"
+    },
+    "mail_jobs.id": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: mail_jobs.id (1299)"
+    },
+    "oidc_flows.state_hash": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: oidc_flows.state_hash (1299)"
+    },
+    "permissions.id": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: permissions.id (1299)"
+    },
+    "platform_announcements.id": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: platform_announcements.id (1299)"
+    },
+    "role_permissions.permission_id": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: role_permissions.permission_id (1299)"
+    },
+    "role_permissions.role_id": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: role_permissions.role_id (1299)"
+    },
+    "roles.id": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: roles.id (1299)"
+    },
+    "schema_migrations.namespace": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: schema_migrations.namespace (1299)"
+    },
+    "schema_migrations.version": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: schema_migrations.version (1299)"
+    },
+    "sessions.token_hash": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: sessions.token_hash (1299)"
+    },
+    "storage_locations.id": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: storage_locations.id (1299)"
+    },
+    "system_settings.setting_key": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: system_settings.setting_key (1299)"
+    },
+    "user_roles.role_id": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: user_roles.role_id (1299)"
+    },
+    "user_roles.user_id": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: user_roles.user_id (1299)"
+    },
+    "users.id": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: users.id (1299)"
+    }
+  },
+  "author": "yunnuo \u003cymz@ebox.vip\u003e",
+  "behavior_probes": {
+    "case_variant_emails": {
+      "accepted": true
+    },
+    "case_variant_usernames": {
+      "accepted": true
+    },
+    "dangling_session_fk": {
+      "accepted": false,
+      "error": "constraint failed: FOREIGN KEY constraint failed (787)"
+    },
+    "notes_default_deleted_at": 0,
+    "null_text_primary_key": {
+      "accepted": false,
+      "error": "constraint failed: NOT NULL constraint failed: audit_logs.id (1299)"
+    },
+    "varchar_64_accepts_65_chars": {
+      "accepted": true
+    }
+  },
+  "business": {
+    "announcements": "PASS authorized create/feed/soft-delete, ordinary-user mutation rejected, audit foreign keys",
+    "files": "PASS actual legacy-brand fallback twice, one metadata row, local blob bytes and upload-session persistence; no cloud network",
+    "identity": "PASS actual Service.Create/Login lower+trim, mixed-case username/email login, duplicate canonical values rejected; raw SQL collation remains dialect-specific",
+    "notes": "PASS create/list/update/conflict/scope/soft-delete/audit; 120-rune title accepted, 121 rejected by Go"
+  },
+  "combination": "sqlite-web-platform",
+  "generated_evidence": true,
+  "go_seed": {
+    "duplicate_marker_rejected": true,
+    "duplicate_seed": "actual Seed returns ErrConflict; rollback preserves roles/grants/accounts/audit counts; Seed is install-only, not a successful repeatable installer",
+    "method": "test install transaction using actual settings.Defaults and platformsql.Repository.Seed; no HTTP installer or bootstrap/local.Open",
+    "setting_count": 43,
+    "settings": [
+      "account.email_login_enabled",
+      "account.password_reset_enabled",
+      "account.registration_enabled",
+      "admin.path",
+      "announcements.enabled",
+      "branding.favicon",
+      "branding.logo",
+      "branding.logo_dark",
+      "mail.from",
+      "mail.from_name",
+      "mail.host",
+      "mail.password",
+      "mail.port",
+      "mail.template.login",
+      "mail.template.notification",
+      "mail.template.reset",
+      "mail.template.test",
+      "mail.template.verify",
+      "mail.tls",
+      "mail.username",
+      "oidc.client_id",
+      "oidc.client_secret",
+      "oidc.enabled",
+      "oidc.issuer",
+      "oidc.jit_enabled",
+      "oidc.provider_name",
+      "oidc.scopes",
+      "security.login_captcha",
+      "security.register_captcha",
+      "security.session_hours",
+      "site.copyright",
+      "site.description",
+      "site.icp_number",
+      "site.icp_url",
+      "site.name",
+      "storage.active",
+      "storage.max_size_mb",
+      "storage.parallelism",
+      "storage.part_size_mb",
+      "storage.pending_hours",
+      "storage.retention_days",
+      "storage.upload_ttl",
+      "storage.url_ttl"
+    ]
+  },
+  "install_state_semantics": {
+    "current_allows_second_id": true,
+    "omitted_and_null_integer_pk_allocate_rowid": true,
+    "proposed_check_id_one": "PASS explicit id=1 accepted; id=0/2 and duplicate id=1 rejected; TEMPORARY table only, not baseline",
+    "proposed_explicit_length_check": "PASS 64 Unicode characters accepted, 65 rejected by explicit TEXT CHECK; TEMPORARY table only, no baseline length policy change"
+  },
+  "passed": true,
+  "post_seed_data": {
+    "ledger": [
+      {
+        "applied_at": 1793327876,
+        "checksum": "d72770af3c5b8b8b8a6a7f75017f0e9e0603528e9bddb39f70b98ea1f5d9f149",
+        "namespace": "core",
+        "version": 1
+      },
+      {
+        "applied_at": 1793327876,
+        "checksum": "199a2c422701338f802c75a555efad4b91b03c17a318ddbf5110b7924efb76a0",
+        "namespace": "module.notes",
+        "version": 1
+      },
+      {
+        "applied_at": 1793327876,
+        "checksum": "15c8697b4fdd4d2894374c9f8374d5bee1b0dd8d8a070eb9b6b4299a30fb9151",
+        "namespace": "platform",
+        "version": 1
+      }
+    ],
+    "permissions": [
+      {
+        "id": "admin:access"
+      },
+      {
+        "id": "administrators:create"
+      },
+      {
+        "id": "administrators:read"
+      },
+      {
+        "id": "administrators:update"
+      },
+      {
+        "id": "announcements:read"
+      },
+      {
+        "id": "announcements:write"
+      },
+      {
+        "id": "logs:read"
+      },
+      {
+        "id": "roles:read"
+      },
+      {
+        "id": "settings:read"
+      },
+      {
+        "id": "settings:write"
+      },
+      {
+        "id": "storage:read"
+      },
+      {
+        "id": "storage:write"
+      },
+      {
+        "id": "updates:apply"
+      },
+      {
+        "id": "updates:read"
+      },
+      {
+        "id": "users:create"
+      },
+      {
+        "id": "users:read"
+      },
+      {
+        "id": "users:update"
+      }
+    ],
+    "role_permissions": [
+      {
+        "permission_id": "admin:access",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "administrators:create",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "administrators:read",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "administrators:update",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "announcements:read",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "announcements:write",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "logs:read",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "roles:read",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "settings:read",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "settings:write",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "storage:read",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "storage:write",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "updates:apply",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "updates:read",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "users:create",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "users:read",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "users:update",
+        "role_id": "super_admin"
+      }
+    ],
+    "roles": [
+      {
+        "id": "super_admin",
+        "name": "super_admin"
+      },
+      {
+        "id": "user",
+        "name": "user"
+      }
+    ],
+    "row_counts": {
+      "account_tokens": 0,
+      "administrator_account_tokens": 0,
+      "administrator_email_challenges": 0,
+      "administrator_external_identities": 0,
+      "administrator_oidc_flows": 0,
+      "administrator_roles": 1,
+      "administrator_sessions": 0,
+      "administrators": 1,
+      "audit_logs": 2,
+      "audit_metadata": 1,
+      "email_challenges": 0,
+      "example_notes": 0,
+      "external_identities": 0,
+      "file_cleanup_jobs": 0,
+      "file_metadata": 0,
+      "file_upload_sessions": 0,
+      "install_state": 1,
+      "mail_jobs": 0,
+      "oidc_flows": 0,
+      "permissions": 17,
+      "platform_announcements": 0,
+      "role_permissions": 17,
+      "roles": 2,
+      "schema_migrations": 3,
+      "sessions": 0,
+      "storage_locations": 2,
+      "system_settings": 43,
+      "user_roles": 0,
+      "users": 0
+    },
+    "storage_locations": [
+      {
+        "bucket": "",
+        "created_at": 0,
+        "credentials": "",
+        "endpoint": "",
+        "id": "legacy-brand",
+        "name": "历史品牌文件",
+        "path_style": 1,
+        "prefix": "",
+        "provider": "local",
+        "region": "",
+        "tested": 1
+      },
+      {
+        "bucket": "",
+        "created_at": 0,
+        "credentials": "",
+        "endpoint": "",
+        "id": "local",
+        "name": "本地存储",
+        "path_style": 1,
+        "prefix": "",
+        "provider": "local",
+        "region": "",
+        "tested": 1
+      }
+    ]
+  },
+  "schema": {
+    "connection": {
+      "busy_timeout": [
+        {
+          "timeout": 5000
+        }
+      ],
+      "foreign_keys": [
+        {
+          "foreign_keys": 1
+        }
+      ],
+      "journal_mode": [
+        {
+          "journal_mode": "wal"
+        }
+      ]
+    },
+    "other_objects": [],
+    "server": [
+      {
+        "version": "3.54.1"
+      }
+    ],
+    "tables": {
+      "account_tokens": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "token_hash",
+            "notnull": 1,
+            "pk": 1,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 1,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "user_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 2,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "purpose",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(16)"
+          },
+          {
+            "cid": 3,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "expires_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE account_tokens (token_hash VARCHAR(64) NOT NULL PRIMARY KEY, user_id VARCHAR(64) NOT NULL REFERENCES users(id), purpose VARCHAR(16) NOT NULL, expires_at BIGINT NOT NULL)"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "from": "user_id",
+            "id": 0,
+            "match": "NONE",
+            "on_delete": "NO ACTION",
+            "on_update": "NO ACTION",
+            "seq": 0,
+            "table": "users",
+            "to": "id"
+          }
+        ],
+        "indexes": [
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "token_hash",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_account_tokens_1",
+            "origin": "pk",
+            "partial": 0,
+            "seq": 0,
+            "unique": 1
+          }
+        ]
+      },
+      "administrator_account_tokens": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "token_hash",
+            "notnull": 1,
+            "pk": 1,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 1,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "user_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 2,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "purpose",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(16)"
+          },
+          {
+            "cid": 3,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "expires_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE administrator_account_tokens (token_hash VARCHAR(64) NOT NULL PRIMARY KEY, user_id VARCHAR(64) NOT NULL REFERENCES administrators(id), purpose VARCHAR(16) NOT NULL, expires_at BIGINT NOT NULL)"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "from": "user_id",
+            "id": 0,
+            "match": "NONE",
+            "on_delete": "NO ACTION",
+            "on_update": "NO ACTION",
+            "seq": 0,
+            "table": "administrators",
+            "to": "id"
+          }
+        ],
+        "indexes": [
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "token_hash",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_administrator_account_tokens_1",
+            "origin": "pk",
+            "partial": 0,
+            "seq": 0,
+            "unique": 1
+          }
+        ]
+      },
+      "administrator_email_challenges": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "id",
+            "notnull": 1,
+            "pk": 1,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 1,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "user_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 2,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "purpose",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(16)"
+          },
+          {
+            "cid": 3,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "code_digest",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 4,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "expires_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          },
+          {
+            "cid": 5,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "created_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          },
+          {
+            "cid": 6,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "attempts",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE administrator_email_challenges (\n id VARCHAR(64) NOT NULL PRIMARY KEY,\n user_id VARCHAR(64) NOT NULL,\n purpose VARCHAR(16) NOT NULL,\n code_digest VARCHAR(64) NOT NULL,\n expires_at BIGINT NOT NULL,\n created_at BIGINT NOT NULL,\n attempts INTEGER NOT NULL,\n FOREIGN KEY (user_id) REFERENCES administrators(id)\n)"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "from": "user_id",
+            "id": 0,
+            "match": "NONE",
+            "on_delete": "NO ACTION",
+            "on_update": "NO ACTION",
+            "seq": 0,
+            "table": "administrators",
+            "to": "id"
+          }
+        ],
+        "indexes": [
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "id",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_administrator_email_challenges_1",
+            "origin": "pk",
+            "partial": 0,
+            "seq": 0,
+            "unique": 1
+          }
+        ]
+      },
+      "administrator_external_identities": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "identity_hash",
+            "notnull": 1,
+            "pk": 1,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 1,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "user_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 2,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "issuer",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "cid": 3,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "subject",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "cid": 4,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "created_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE administrator_external_identities (\n identity_hash VARCHAR(64) NOT NULL PRIMARY KEY,\n user_id VARCHAR(64) NOT NULL UNIQUE,\n issuer TEXT NOT NULL,\n subject TEXT NOT NULL,\n created_at BIGINT NOT NULL,\n FOREIGN KEY (user_id) REFERENCES administrators(id)\n)"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "from": "user_id",
+            "id": 0,
+            "match": "NONE",
+            "on_delete": "NO ACTION",
+            "on_update": "NO ACTION",
+            "seq": 0,
+            "table": "administrators",
+            "to": "id"
+          }
+        ],
+        "indexes": [
+          {
+            "columns": [
+              {
+                "cid": 1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "user_id",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_administrator_external_identities_2",
+            "origin": "u",
+            "partial": 0,
+            "seq": 0,
+            "unique": 1
+          },
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "identity_hash",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_administrator_external_identities_1",
+            "origin": "pk",
+            "partial": 0,
+            "seq": 1,
+            "unique": 1
+          }
+        ]
+      },
+      "administrator_oidc_flows": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "state_hash",
+            "notnull": 1,
+            "pk": 1,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 1,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "browser_hash",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 2,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "sealed_payload",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "cid": 3,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "expires_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE administrator_oidc_flows (\n state_hash VARCHAR(64) NOT NULL PRIMARY KEY,\n browser_hash VARCHAR(64) NOT NULL,\n sealed_payload TEXT NOT NULL,\n expires_at BIGINT NOT NULL\n)"
+          }
+        ],
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "state_hash",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_administrator_oidc_flows_1",
+            "origin": "pk",
+            "partial": 0,
+            "seq": 0,
+            "unique": 1
+          }
+        ]
+      },
+      "administrator_roles": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "user_id",
+            "notnull": 1,
+            "pk": 1,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 1,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "role_id",
+            "notnull": 1,
+            "pk": 2,
+            "type": "VARCHAR(64)"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE administrator_roles (user_id VARCHAR(64) NOT NULL REFERENCES administrators(id), role_id VARCHAR(64) NOT NULL REFERENCES roles(id), PRIMARY KEY (user_id, role_id))"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "from": "role_id",
+            "id": 0,
+            "match": "NONE",
+            "on_delete": "NO ACTION",
+            "on_update": "NO ACTION",
+            "seq": 0,
+            "table": "roles",
+            "to": "id"
+          },
+          {
+            "from": "user_id",
+            "id": 1,
+            "match": "NONE",
+            "on_delete": "NO ACTION",
+            "on_update": "NO ACTION",
+            "seq": 0,
+            "table": "administrators",
+            "to": "id"
+          }
+        ],
+        "indexes": [
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "user_id",
+                "seqno": 0
+              },
+              {
+                "cid": 1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "role_id",
+                "seqno": 1
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 2
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_administrator_roles_1",
+            "origin": "pk",
+            "partial": 0,
+            "seq": 0,
+            "unique": 1
+          }
+        ]
+      },
+      "administrator_sessions": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "token_hash",
+            "notnull": 1,
+            "pk": 1,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 1,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "user_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 2,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "expires_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE administrator_sessions (token_hash VARCHAR(64) NOT NULL PRIMARY KEY, user_id VARCHAR(64) NOT NULL REFERENCES administrators(id), expires_at BIGINT NOT NULL)"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "from": "user_id",
+            "id": 0,
+            "match": "NONE",
+            "on_delete": "NO ACTION",
+            "on_update": "NO ACTION",
+            "seq": 0,
+            "table": "administrators",
+            "to": "id"
+          }
+        ],
+        "indexes": [
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "token_hash",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_administrator_sessions_1",
+            "origin": "pk",
+            "partial": 0,
+            "seq": 0,
+            "unique": 1
+          }
+        ]
+      },
+      "administrators": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "id",
+            "notnull": 1,
+            "pk": 1,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 1,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "username",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 2,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "email",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(254)"
+          },
+          {
+            "cid": 3,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "password_hash",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "cid": 4,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "status",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(16)"
+          },
+          {
+            "cid": 5,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "created_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          },
+          {
+            "cid": 6,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "updated_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          },
+          {
+            "cid": 7,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "last_login_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE administrators (id VARCHAR(64) NOT NULL PRIMARY KEY, username VARCHAR(64) NOT NULL UNIQUE, email VARCHAR(254) NOT NULL UNIQUE, password_hash TEXT NOT NULL, status VARCHAR(16) NOT NULL, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, last_login_at BIGINT NOT NULL)"
+          }
+        ],
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "columns": [
+              {
+                "cid": 2,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "email",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_administrators_3",
+            "origin": "u",
+            "partial": 0,
+            "seq": 0,
+            "unique": 1
+          },
+          {
+            "columns": [
+              {
+                "cid": 1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "username",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_administrators_2",
+            "origin": "u",
+            "partial": 0,
+            "seq": 1,
+            "unique": 1
+          },
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "id",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_administrators_1",
+            "origin": "pk",
+            "partial": 0,
+            "seq": 2,
+            "unique": 1
+          }
+        ]
+      },
+      "audit_logs": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "id",
+            "notnull": 1,
+            "pk": 1,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 1,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "actor_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 2,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "action",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(128)"
+          },
+          {
+            "cid": 3,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "created_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE audit_logs (id VARCHAR(64) NOT NULL PRIMARY KEY, actor_id VARCHAR(64) NOT NULL, action VARCHAR(128) NOT NULL, created_at BIGINT NOT NULL)"
+          }
+        ],
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "id",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_audit_logs_1",
+            "origin": "pk",
+            "partial": 0,
+            "seq": 0,
+            "unique": 1
+          }
+        ]
+      },
+      "audit_metadata": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "audit_id",
+            "notnull": 1,
+            "pk": 1,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 1,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "actor_name",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 2,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "realm",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(32)"
+          },
+          {
+            "cid": 3,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "target",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(256)"
+          },
+          {
+            "cid": 4,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "detail",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(512)"
+          },
+          {
+            "cid": 5,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "ip_address",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(64)"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE audit_metadata (audit_id VARCHAR(64) NOT NULL PRIMARY KEY, actor_name VARCHAR(64) NOT NULL, realm VARCHAR(32) NOT NULL, target VARCHAR(256) NOT NULL, detail VARCHAR(512) NOT NULL, ip_address VARCHAR(64) NOT NULL, FOREIGN KEY (audit_id) REFERENCES audit_logs(id))"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "from": "audit_id",
+            "id": 0,
+            "match": "NONE",
+            "on_delete": "NO ACTION",
+            "on_update": "NO ACTION",
+            "seq": 0,
+            "table": "audit_logs",
+            "to": "id"
+          }
+        ],
+        "indexes": [
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "audit_id",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_audit_metadata_1",
+            "origin": "pk",
+            "partial": 0,
+            "seq": 0,
+            "unique": 1
+          }
+        ]
+      },
+      "email_challenges": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "id",
+            "notnull": 1,
+            "pk": 1,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 1,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "user_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 2,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "purpose",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(16)"
+          },
+          {
+            "cid": 3,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "code_digest",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 4,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "expires_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          },
+          {
+            "cid": 5,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "created_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          },
+          {
+            "cid": 6,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "attempts",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE email_challenges (\n id VARCHAR(64) NOT NULL PRIMARY KEY,\n user_id VARCHAR(64) NOT NULL,\n purpose VARCHAR(16) NOT NULL,\n code_digest VARCHAR(64) NOT NULL,\n expires_at BIGINT NOT NULL,\n created_at BIGINT NOT NULL,\n attempts INTEGER NOT NULL,\n FOREIGN KEY (user_id) REFERENCES users(id)\n)"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "from": "user_id",
+            "id": 0,
+            "match": "NONE",
+            "on_delete": "NO ACTION",
+            "on_update": "NO ACTION",
+            "seq": 0,
+            "table": "users",
+            "to": "id"
+          }
+        ],
+        "indexes": [
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "id",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_email_challenges_1",
+            "origin": "pk",
+            "partial": 0,
+            "seq": 0,
+            "unique": 1
+          }
+        ]
+      },
+      "example_notes": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "scope_key",
+            "notnull": 1,
+            "pk": 1,
+            "type": "VARCHAR(96)"
+          },
+          {
+            "cid": 1,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "id",
+            "notnull": 1,
+            "pk": 2,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 2,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "title",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(120)"
+          },
+          {
+            "cid": 3,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "body",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "cid": 4,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "status",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(16)"
+          },
+          {
+            "cid": 5,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "attachment_ids",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "cid": 6,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "version",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "cid": 7,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "created_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          },
+          {
+            "cid": 8,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "updated_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          },
+          {
+            "cid": 9,
+            "dflt_value": "0",
+            "hidden": 0,
+            "name": "deleted_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE example_notes (\n scope_key VARCHAR(96) NOT NULL,\n id VARCHAR(64) NOT NULL,\n title VARCHAR(120) NOT NULL,\n body TEXT NOT NULL,\n status VARCHAR(16) NOT NULL,\n attachment_ids TEXT NOT NULL,\n version INTEGER NOT NULL,\n created_at BIGINT NOT NULL,\n updated_at BIGINT NOT NULL, deleted_at BIGINT NOT NULL DEFAULT 0,\n PRIMARY KEY(scope_key,id)\n)"
+          }
+        ],
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "scope_key",
+                "seqno": 0
+              },
+              {
+                "cid": 8,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "updated_at",
+                "seqno": 1
+              },
+              {
+                "cid": 1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "id",
+                "seqno": 2
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 3
+              }
+            ],
+            "ddl": [
+              {
+                "sql": "CREATE INDEX example_notes_owner_updated ON example_notes(scope_key,updated_at,id)"
+              }
+            ],
+            "name": "example_notes_owner_updated",
+            "origin": "c",
+            "partial": 0,
+            "seq": 0,
+            "unique": 0
+          },
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "scope_key",
+                "seqno": 0
+              },
+              {
+                "cid": 9,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "deleted_at",
+                "seqno": 1
+              },
+              {
+                "cid": 8,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "updated_at",
+                "seqno": 2
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 3
+              }
+            ],
+            "ddl": [
+              {
+                "sql": "CREATE INDEX idx_notes_active ON example_notes(scope_key,deleted_at,updated_at)"
+              }
+            ],
+            "name": "idx_notes_active",
+            "origin": "c",
+            "partial": 0,
+            "seq": 1,
+            "unique": 0
+          },
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "scope_key",
+                "seqno": 0
+              },
+              {
+                "cid": 1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "id",
+                "seqno": 1
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 2
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_example_notes_1",
+            "origin": "pk",
+            "partial": 0,
+            "seq": 2,
+            "unique": 1
+          }
+        ]
+      },
+      "external_identities": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "identity_hash",
+            "notnull": 1,
+            "pk": 1,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 1,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "user_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 2,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "issuer",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "cid": 3,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "subject",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "cid": 4,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "created_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE external_identities (\n identity_hash VARCHAR(64) NOT NULL PRIMARY KEY,\n user_id VARCHAR(64) NOT NULL UNIQUE,\n issuer TEXT NOT NULL,\n subject TEXT NOT NULL,\n created_at BIGINT NOT NULL,\n FOREIGN KEY (user_id) REFERENCES users(id)\n)"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "from": "user_id",
+            "id": 0,
+            "match": "NONE",
+            "on_delete": "NO ACTION",
+            "on_update": "NO ACTION",
+            "seq": 0,
+            "table": "users",
+            "to": "id"
+          }
+        ],
+        "indexes": [
+          {
+            "columns": [
+              {
+                "cid": 1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "user_id",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_external_identities_2",
+            "origin": "u",
+            "partial": 0,
+            "seq": 0,
+            "unique": 1
+          },
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "identity_hash",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_external_identities_1",
+            "origin": "pk",
+            "partial": 0,
+            "seq": 1,
+            "unique": 1
+          }
+        ]
+      },
+      "file_cleanup_jobs": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "id",
+            "notnull": 1,
+            "pk": 1,
+            "type": "VARCHAR(80)"
+          },
+          {
+            "cid": 1,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "location_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(80)"
+          },
+          {
+            "cid": 2,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "file_key",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(1024)"
+          },
+          {
+            "cid": 3,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "due_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          },
+          {
+            "cid": 4,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "attempts",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "cid": 5,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "last_error",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(64)"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE file_cleanup_jobs (\n id VARCHAR(80) NOT NULL PRIMARY KEY, location_id VARCHAR(80) NOT NULL,\n file_key VARCHAR(1024) NOT NULL, due_at BIGINT NOT NULL,\n attempts INTEGER NOT NULL, last_error VARCHAR(64) NOT NULL,\n FOREIGN KEY (location_id) REFERENCES storage_locations(id)\n)"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "from": "location_id",
+            "id": 0,
+            "match": "NONE",
+            "on_delete": "NO ACTION",
+            "on_update": "NO ACTION",
+            "seq": 0,
+            "table": "storage_locations",
+            "to": "id"
+          }
+        ],
+        "indexes": [
+          {
+            "columns": [
+              {
+                "cid": 3,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "due_at",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": "CREATE INDEX file_cleanup_due ON file_cleanup_jobs(due_at)"
+              }
+            ],
+            "name": "file_cleanup_due",
+            "origin": "c",
+            "partial": 0,
+            "seq": 0,
+            "unique": 0
+          },
+          {
+            "columns": [
+              {
+                "cid": 1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "location_id",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": "CREATE INDEX file_cleanup_location ON file_cleanup_jobs(location_id)"
+              }
+            ],
+            "name": "file_cleanup_location",
+            "origin": "c",
+            "partial": 0,
+            "seq": 1,
+            "unique": 0
+          },
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "id",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_file_cleanup_jobs_1",
+            "origin": "pk",
+            "partial": 0,
+            "seq": 2,
+            "unique": 1
+          }
+        ]
+      },
+      "file_metadata": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "id",
+            "notnull": 1,
+            "pk": 1,
+            "type": "VARCHAR(80)"
+          },
+          {
+            "cid": 1,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "original_name",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(255)"
+          },
+          {
+            "cid": 2,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "storage_type",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(16)"
+          },
+          {
+            "cid": 3,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "location_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(80)"
+          },
+          {
+            "cid": 4,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "file_key",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(1024)"
+          },
+          {
+            "cid": 5,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "staging_key",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(1024)"
+          },
+          {
+            "cid": 6,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "mime_type",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(160)"
+          },
+          {
+            "cid": 7,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "size",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          },
+          {
+            "cid": 8,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "etag",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(200)"
+          },
+          {
+            "cid": 9,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "state",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(16)"
+          },
+          {
+            "cid": 10,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "purpose",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(16)"
+          },
+          {
+            "cid": 11,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "creator_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(80)"
+          },
+          {
+            "cid": 12,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "creator_realm",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(24)"
+          },
+          {
+            "cid": 13,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "created_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          },
+          {
+            "cid": 14,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "expires_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          },
+          {
+            "cid": 15,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "upload_expires_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          },
+          {
+            "cid": 16,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "cleanup_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE file_metadata (\n id VARCHAR(80) NOT NULL PRIMARY KEY, original_name VARCHAR(255) NOT NULL,\n storage_type VARCHAR(16) NOT NULL, location_id VARCHAR(80) NOT NULL,\n file_key VARCHAR(1024) NOT NULL, staging_key VARCHAR(1024) NOT NULL,\n mime_type VARCHAR(160) NOT NULL, size BIGINT NOT NULL, etag VARCHAR(200) NOT NULL,\n state VARCHAR(16) NOT NULL, purpose VARCHAR(16) NOT NULL,\n creator_id VARCHAR(80) NOT NULL, creator_realm VARCHAR(24) NOT NULL,\n created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL, upload_expires_at BIGINT NOT NULL, cleanup_at BIGINT NOT NULL,\n FOREIGN KEY (location_id) REFERENCES storage_locations(id)\n)"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "from": "location_id",
+            "id": 0,
+            "match": "NONE",
+            "on_delete": "NO ACTION",
+            "on_update": "NO ACTION",
+            "seq": 0,
+            "table": "storage_locations",
+            "to": "id"
+          }
+        ],
+        "indexes": [
+          {
+            "columns": [
+              {
+                "cid": 10,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "purpose",
+                "seqno": 0
+              },
+              {
+                "cid": 12,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "creator_realm",
+                "seqno": 1
+              },
+              {
+                "cid": 11,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "creator_id",
+                "seqno": 2
+              },
+              {
+                "cid": 13,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "created_at",
+                "seqno": 3
+              },
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "id",
+                "seqno": 4
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 5
+              }
+            ],
+            "ddl": [
+              {
+                "sql": "CREATE INDEX file_owner_created ON file_metadata(purpose,creator_realm,creator_id,created_at,id)"
+              }
+            ],
+            "name": "file_owner_created",
+            "origin": "c",
+            "partial": 0,
+            "seq": 0,
+            "unique": 0
+          },
+          {
+            "columns": [
+              {
+                "cid": 10,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "purpose",
+                "seqno": 0
+              },
+              {
+                "cid": 13,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "created_at",
+                "seqno": 1
+              },
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "id",
+                "seqno": 2
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 3
+              }
+            ],
+            "ddl": [
+              {
+                "sql": "CREATE INDEX file_created ON file_metadata(purpose,created_at,id)"
+              }
+            ],
+            "name": "file_created",
+            "origin": "c",
+            "partial": 0,
+            "seq": 1,
+            "unique": 0
+          },
+          {
+            "columns": [
+              {
+                "cid": 3,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "location_id",
+                "seqno": 0
+              },
+              {
+                "cid": 9,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "state",
+                "seqno": 1
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 2
+              }
+            ],
+            "ddl": [
+              {
+                "sql": "CREATE INDEX file_location_state ON file_metadata(location_id,state)"
+              }
+            ],
+            "name": "file_location_state",
+            "origin": "c",
+            "partial": 0,
+            "seq": 2,
+            "unique": 0
+          },
+          {
+            "columns": [
+              {
+                "cid": 9,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "state",
+                "seqno": 0
+              },
+              {
+                "cid": 16,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "cleanup_at",
+                "seqno": 1
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 2
+              }
+            ],
+            "ddl": [
+              {
+                "sql": "CREATE INDEX file_pending_cleanup ON file_metadata(state,cleanup_at)"
+              }
+            ],
+            "name": "file_pending_cleanup",
+            "origin": "c",
+            "partial": 0,
+            "seq": 3,
+            "unique": 0
+          },
+          {
+            "columns": [
+              {
+                "cid": 14,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "expires_at",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": "CREATE INDEX file_expiry ON file_metadata(expires_at)"
+              }
+            ],
+            "name": "file_expiry",
+            "origin": "c",
+            "partial": 0,
+            "seq": 4,
+            "unique": 0
+          },
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "id",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_file_metadata_1",
+            "origin": "pk",
+            "partial": 0,
+            "seq": 5,
+            "unique": 1
+          }
+        ]
+      },
+      "file_upload_sessions": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "file_id",
+            "notnull": 1,
+            "pk": 1,
+            "type": "VARCHAR(80)"
+          },
+          {
+            "cid": 1,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "upload_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "cid": 2,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "fingerprint",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 3,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "part_size",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE file_upload_sessions (\n file_id VARCHAR(80) NOT NULL PRIMARY KEY,\n upload_id TEXT NOT NULL,\n fingerprint VARCHAR(64) NOT NULL,\n part_size BIGINT NOT NULL,\n FOREIGN KEY (file_id) REFERENCES file_metadata(id)\n)"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "from": "file_id",
+            "id": 0,
+            "match": "NONE",
+            "on_delete": "NO ACTION",
+            "on_update": "NO ACTION",
+            "seq": 0,
+            "table": "file_metadata",
+            "to": "id"
+          }
+        ],
+        "indexes": [
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "file_id",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_file_upload_sessions_1",
+            "origin": "pk",
+            "partial": 0,
+            "seq": 0,
+            "unique": 1
+          }
+        ]
+      },
+      "install_state": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "id",
+            "notnull": 0,
+            "pk": 1,
+            "type": "INTEGER"
+          },
+          {
+            "cid": 1,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "profile",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(32)"
+          },
+          {
+            "cid": 2,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "instance_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 3,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "installed_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE install_state (id INTEGER PRIMARY KEY, profile VARCHAR(32) NOT NULL, instance_id VARCHAR(64) NOT NULL, installed_at BIGINT NOT NULL)"
+          }
+        ],
+        "foreign_keys": [],
+        "indexes": []
+      },
+      "mail_jobs": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "id",
+            "notnull": 1,
+            "pk": 1,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 1,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "token_hash",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 2,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "payload",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "cid": 3,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "state",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(16)"
+          },
+          {
+            "cid": 4,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "attempts",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "cid": 5,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "created_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          },
+          {
+            "cid": 6,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "available_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          },
+          {
+            "cid": 7,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "expires_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          },
+          {
+            "cid": 8,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "lease_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 9,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "lease_until",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          },
+          {
+            "cid": 10,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "last_error",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(32)"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE mail_jobs (id VARCHAR(64) NOT NULL PRIMARY KEY, token_hash VARCHAR(64) NOT NULL, payload TEXT NOT NULL, state VARCHAR(16) NOT NULL, attempts INTEGER NOT NULL, created_at BIGINT NOT NULL, available_at BIGINT NOT NULL, expires_at BIGINT NOT NULL, lease_id VARCHAR(64) NOT NULL, lease_until BIGINT NOT NULL, last_error VARCHAR(32) NOT NULL)"
+          }
+        ],
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "id",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_mail_jobs_1",
+            "origin": "pk",
+            "partial": 0,
+            "seq": 0,
+            "unique": 1
+          }
+        ]
+      },
+      "oidc_flows": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "state_hash",
+            "notnull": 1,
+            "pk": 1,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 1,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "browser_hash",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 2,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "sealed_payload",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "cid": 3,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "expires_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE oidc_flows (\n state_hash VARCHAR(64) NOT NULL PRIMARY KEY,\n browser_hash VARCHAR(64) NOT NULL,\n sealed_payload TEXT NOT NULL,\n expires_at BIGINT NOT NULL\n)"
+          }
+        ],
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "state_hash",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_oidc_flows_1",
+            "origin": "pk",
+            "partial": 0,
+            "seq": 0,
+            "unique": 1
+          }
+        ]
+      },
+      "permissions": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "id",
+            "notnull": 1,
+            "pk": 1,
+            "type": "VARCHAR(128)"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE permissions (id VARCHAR(128) NOT NULL PRIMARY KEY)"
+          }
+        ],
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "id",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_permissions_1",
+            "origin": "pk",
+            "partial": 0,
+            "seq": 0,
+            "unique": 1
+          }
+        ]
+      },
+      "platform_announcements": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "id",
+            "notnull": 1,
+            "pk": 1,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 1,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "content",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "cid": 2,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "content_html",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "cid": 3,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "format",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(16)"
+          },
+          {
+            "cid": 4,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "type",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(16)"
+          },
+          {
+            "cid": 5,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "note",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(400)"
+          },
+          {
+            "cid": 6,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "status",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(16)"
+          },
+          {
+            "cid": 7,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "publish_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          },
+          {
+            "cid": 8,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "created_by",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 9,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "updated_by",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 10,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "created_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          },
+          {
+            "cid": 11,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "updated_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          },
+          {
+            "cid": 12,
+            "dflt_value": "0",
+            "hidden": 0,
+            "name": "deleted_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          },
+          {
+            "cid": 13,
+            "dflt_value": "1",
+            "hidden": 0,
+            "name": "version",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE platform_announcements (\n id VARCHAR(64) NOT NULL PRIMARY KEY,\n content TEXT NOT NULL,\n content_html TEXT NOT NULL,\n format VARCHAR(16) NOT NULL,\n type VARCHAR(16) NOT NULL,\n note VARCHAR(400) NOT NULL,\n status VARCHAR(16) NOT NULL,\n publish_at BIGINT NOT NULL,\n created_by VARCHAR(64) NOT NULL,\n updated_by VARCHAR(64) NOT NULL,\n created_at BIGINT NOT NULL,\n updated_at BIGINT NOT NULL,\n deleted_at BIGINT NOT NULL DEFAULT 0,\n version BIGINT NOT NULL DEFAULT 1\n)"
+          }
+        ],
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "columns": [
+              {
+                "cid": 12,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "deleted_at",
+                "seqno": 0
+              },
+              {
+                "cid": 6,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "status",
+                "seqno": 1
+              },
+              {
+                "cid": 7,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "publish_at",
+                "seqno": 2
+              },
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "id",
+                "seqno": 3
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 4
+              }
+            ],
+            "ddl": [
+              {
+                "sql": "CREATE INDEX idx_announcements_feed ON platform_announcements(deleted_at,status,publish_at,id)"
+              }
+            ],
+            "name": "idx_announcements_feed",
+            "origin": "c",
+            "partial": 0,
+            "seq": 0,
+            "unique": 0
+          },
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "id",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_platform_announcements_1",
+            "origin": "pk",
+            "partial": 0,
+            "seq": 1,
+            "unique": 1
+          }
+        ]
+      },
+      "role_permissions": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "role_id",
+            "notnull": 1,
+            "pk": 1,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 1,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "permission_id",
+            "notnull": 1,
+            "pk": 2,
+            "type": "VARCHAR(128)"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE role_permissions (role_id VARCHAR(64) NOT NULL REFERENCES roles(id), permission_id VARCHAR(128) NOT NULL REFERENCES permissions(id), PRIMARY KEY (role_id, permission_id))"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "from": "permission_id",
+            "id": 0,
+            "match": "NONE",
+            "on_delete": "NO ACTION",
+            "on_update": "NO ACTION",
+            "seq": 0,
+            "table": "permissions",
+            "to": "id"
+          },
+          {
+            "from": "role_id",
+            "id": 1,
+            "match": "NONE",
+            "on_delete": "NO ACTION",
+            "on_update": "NO ACTION",
+            "seq": 0,
+            "table": "roles",
+            "to": "id"
+          }
+        ],
+        "indexes": [
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "role_id",
+                "seqno": 0
+              },
+              {
+                "cid": 1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "permission_id",
+                "seqno": 1
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 2
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_role_permissions_1",
+            "origin": "pk",
+            "partial": 0,
+            "seq": 0,
+            "unique": 1
+          }
+        ]
+      },
+      "roles": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "id",
+            "notnull": 1,
+            "pk": 1,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 1,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "name",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(64)"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE roles (id VARCHAR(64) NOT NULL PRIMARY KEY, name VARCHAR(64) NOT NULL UNIQUE)"
+          }
+        ],
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "columns": [
+              {
+                "cid": 1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "name",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_roles_2",
+            "origin": "u",
+            "partial": 0,
+            "seq": 0,
+            "unique": 1
+          },
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "id",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_roles_1",
+            "origin": "pk",
+            "partial": 0,
+            "seq": 1,
+            "unique": 1
+          }
+        ]
+      },
+      "schema_migrations": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "namespace",
+            "notnull": 1,
+            "pk": 1,
+            "type": "VARCHAR(96)"
+          },
+          {
+            "cid": 1,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "version",
+            "notnull": 1,
+            "pk": 2,
+            "type": "BIGINT"
+          },
+          {
+            "cid": 2,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "checksum",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 3,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "applied_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE schema_migrations (\n  namespace VARCHAR(96) NOT NULL,\n  version BIGINT NOT NULL,\n  checksum VARCHAR(64) NOT NULL,\n  applied_at BIGINT NOT NULL,\n  PRIMARY KEY (namespace, version)\n)"
+          }
+        ],
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "namespace",
+                "seqno": 0
+              },
+              {
+                "cid": 1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "version",
+                "seqno": 1
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 2
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_schema_migrations_1",
+            "origin": "pk",
+            "partial": 0,
+            "seq": 0,
+            "unique": 1
+          }
+        ]
+      },
+      "sessions": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "token_hash",
+            "notnull": 1,
+            "pk": 1,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 1,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "user_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 2,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "expires_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE sessions (token_hash VARCHAR(64) NOT NULL PRIMARY KEY, user_id VARCHAR(64) NOT NULL REFERENCES users(id), expires_at BIGINT NOT NULL)"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "from": "user_id",
+            "id": 0,
+            "match": "NONE",
+            "on_delete": "NO ACTION",
+            "on_update": "NO ACTION",
+            "seq": 0,
+            "table": "users",
+            "to": "id"
+          }
+        ],
+        "indexes": [
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "token_hash",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_sessions_1",
+            "origin": "pk",
+            "partial": 0,
+            "seq": 0,
+            "unique": 1
+          }
+        ]
+      },
+      "storage_locations": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "id",
+            "notnull": 1,
+            "pk": 1,
+            "type": "VARCHAR(80)"
+          },
+          {
+            "cid": 1,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "name",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(80)"
+          },
+          {
+            "cid": 2,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "provider",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(16)"
+          },
+          {
+            "cid": 3,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "endpoint",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(2048)"
+          },
+          {
+            "cid": 4,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "bucket",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(128)"
+          },
+          {
+            "cid": 5,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "region",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(128)"
+          },
+          {
+            "cid": 6,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "prefix",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(200)"
+          },
+          {
+            "cid": 7,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "path_style",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "cid": 8,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "credentials",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "cid": 9,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "tested",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "cid": 10,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "created_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE storage_locations (\n id VARCHAR(80) NOT NULL PRIMARY KEY, name VARCHAR(80) NOT NULL, provider VARCHAR(16) NOT NULL,\n endpoint VARCHAR(2048) NOT NULL, bucket VARCHAR(128) NOT NULL, region VARCHAR(128) NOT NULL,\n prefix VARCHAR(200) NOT NULL, path_style INTEGER NOT NULL, credentials TEXT NOT NULL,\n tested INTEGER NOT NULL, created_at BIGINT NOT NULL\n)"
+          }
+        ],
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "id",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_storage_locations_1",
+            "origin": "pk",
+            "partial": 0,
+            "seq": 0,
+            "unique": 1
+          }
+        ]
+      },
+      "system_settings": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "setting_key",
+            "notnull": 1,
+            "pk": 1,
+            "type": "VARCHAR(128)"
+          },
+          {
+            "cid": 1,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "setting_value",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE system_settings (setting_key VARCHAR(128) NOT NULL PRIMARY KEY, setting_value TEXT NOT NULL)"
+          }
+        ],
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "setting_key",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_system_settings_1",
+            "origin": "pk",
+            "partial": 0,
+            "seq": 0,
+            "unique": 1
+          }
+        ]
+      },
+      "user_roles": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "user_id",
+            "notnull": 1,
+            "pk": 1,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 1,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "role_id",
+            "notnull": 1,
+            "pk": 2,
+            "type": "VARCHAR(64)"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE user_roles (user_id VARCHAR(64) NOT NULL REFERENCES users(id), role_id VARCHAR(64) NOT NULL REFERENCES roles(id), PRIMARY KEY (user_id, role_id))"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "from": "role_id",
+            "id": 0,
+            "match": "NONE",
+            "on_delete": "NO ACTION",
+            "on_update": "NO ACTION",
+            "seq": 0,
+            "table": "roles",
+            "to": "id"
+          },
+          {
+            "from": "user_id",
+            "id": 1,
+            "match": "NONE",
+            "on_delete": "NO ACTION",
+            "on_update": "NO ACTION",
+            "seq": 0,
+            "table": "users",
+            "to": "id"
+          }
+        ],
+        "indexes": [
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "user_id",
+                "seqno": 0
+              },
+              {
+                "cid": 1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "role_id",
+                "seqno": 1
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 2
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_user_roles_1",
+            "origin": "pk",
+            "partial": 0,
+            "seq": 0,
+            "unique": 1
+          }
+        ]
+      },
+      "users": {
+        "columns": [
+          {
+            "cid": 0,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "id",
+            "notnull": 1,
+            "pk": 1,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 1,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "username",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(64)"
+          },
+          {
+            "cid": 2,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "email",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(254)"
+          },
+          {
+            "cid": 3,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "password_hash",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "cid": 4,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "status",
+            "notnull": 1,
+            "pk": 0,
+            "type": "VARCHAR(16)"
+          },
+          {
+            "cid": 5,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "created_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          },
+          {
+            "cid": 6,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "updated_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          },
+          {
+            "cid": 7,
+            "dflt_value": null,
+            "hidden": 0,
+            "name": "last_login_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "BIGINT"
+          }
+        ],
+        "ddl": [
+          {
+            "sql": "CREATE TABLE users (id VARCHAR(64) NOT NULL PRIMARY KEY, username VARCHAR(64) NOT NULL UNIQUE, email VARCHAR(254) NOT NULL UNIQUE, password_hash TEXT NOT NULL, status VARCHAR(16) NOT NULL, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, last_login_at BIGINT NOT NULL)"
+          }
+        ],
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "columns": [
+              {
+                "cid": 2,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "email",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_users_3",
+            "origin": "u",
+            "partial": 0,
+            "seq": 0,
+            "unique": 1
+          },
+          {
+            "columns": [
+              {
+                "cid": 1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "username",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_users_2",
+            "origin": "u",
+            "partial": 0,
+            "seq": 1,
+            "unique": 1
+          },
+          {
+            "columns": [
+              {
+                "cid": 0,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 1,
+                "name": "id",
+                "seqno": 0
+              },
+              {
+                "cid": -1,
+                "coll": "BINARY",
+                "desc": 0,
+                "key": 0,
+                "name": null,
+                "seqno": 1
+              }
+            ],
+            "ddl": [
+              {
+                "sql": null
+              }
+            ],
+            "name": "sqlite_autoindex_users_1",
+            "origin": "pk",
+            "partial": 0,
+            "seq": 2,
+            "unique": 1
+          }
+        ]
+      }
+    }
+  },
+  "scope": "new SQL empty-fixture/real Seed/business validation, not R1.0c startup protection",
+  "source_commit": "cecf28115d3d4d6e36b425557e6c6388e754fae8",
+  "sql_only_data": {
+    "ledger": [
+      {
+        "applied_at": 1793327876,
+        "checksum": "d72770af3c5b8b8b8a6a7f75017f0e9e0603528e9bddb39f70b98ea1f5d9f149",
+        "namespace": "core",
+        "version": 1
+      },
+      {
+        "applied_at": 1793327876,
+        "checksum": "199a2c422701338f802c75a555efad4b91b03c17a318ddbf5110b7924efb76a0",
+        "namespace": "module.notes",
+        "version": 1
+      },
+      {
+        "applied_at": 1793327876,
+        "checksum": "15c8697b4fdd4d2894374c9f8374d5bee1b0dd8d8a070eb9b6b4299a30fb9151",
+        "namespace": "platform",
+        "version": 1
+      }
+    ],
+    "permissions": [],
+    "role_permissions": [],
+    "roles": [],
+    "row_counts": {
+      "account_tokens": 0,
+      "administrator_account_tokens": 0,
+      "administrator_email_challenges": 0,
+      "administrator_external_identities": 0,
+      "administrator_oidc_flows": 0,
+      "administrator_roles": 0,
+      "administrator_sessions": 0,
+      "administrators": 0,
+      "audit_logs": 0,
+      "audit_metadata": 0,
+      "email_challenges": 0,
+      "example_notes": 0,
+      "external_identities": 0,
+      "file_cleanup_jobs": 0,
+      "file_metadata": 0,
+      "file_upload_sessions": 0,
+      "install_state": 0,
+      "mail_jobs": 0,
+      "oidc_flows": 0,
+      "permissions": 0,
+      "platform_announcements": 0,
+      "role_permissions": 0,
+      "roles": 0,
+      "schema_migrations": 3,
+      "sessions": 0,
+      "storage_locations": 2,
+      "system_settings": 0,
+      "user_roles": 0,
+      "users": 0
+    },
+    "storage_locations": [
+      {
+        "bucket": "",
+        "created_at": 0,
+        "credentials": "",
+        "endpoint": "",
+        "id": "legacy-brand",
+        "name": "历史品牌文件",
+        "path_style": 1,
+        "prefix": "",
+        "provider": "local",
+        "region": "",
+        "tested": 1
+      },
+      {
+        "bucket": "",
+        "created_at": 0,
+        "credentials": "",
+        "endpoint": "",
+        "id": "local",
+        "name": "本地存储",
+        "path_style": 1,
+        "prefix": "",
+        "provider": "local",
+        "region": "",
+        "tested": 1
+      }
+    ]
+  }
+}

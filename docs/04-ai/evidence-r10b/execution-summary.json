@@ -1,0 +1,51 @@
+{
+  "author": "yunnuo \u003cymz@ebox.vip\u003e",
+  "cli_database_created": false,
+  "combinations": [
+    {
+      "combination": "sqlite-web-platform",
+      "null_key_probes": 33,
+      "passed": true,
+      "tables": 29
+    },
+    {
+      "combination": "sqlite-web-standalone",
+      "null_key_probes": 6,
+      "passed": true,
+      "tables": 5
+    },
+    {
+      "combination": "sqlite-desktop",
+      "null_key_probes": 6,
+      "passed": true,
+      "tables": 5
+    },
+    {
+      "combination": "postgres-web-platform",
+      "null_key_probes": 33,
+      "passed": true,
+      "tables": 29
+    },
+    {
+      "combination": "postgres-web-standalone",
+      "null_key_probes": 6,
+      "passed": true,
+      "tables": 5
+    },
+    {
+      "combination": "mysql-web-platform",
+      "null_key_probes": 33,
+      "passed": true,
+      "tables": 29
+    },
+    {
+      "combination": "mysql-web-standalone",
+      "null_key_probes": 6,
+      "passed": true,
+      "tables": 5
+    }
+  ],
+  "generated_evidence": true,
+  "new_executor_implemented": false,
+  "source_commit": "cecf28115d3d4d6e36b425557e6c6388e754fae8"
+}

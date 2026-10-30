@@ -1,0 +1,342 @@
+{
+  "author": "yunnuo <ymz@ebox.vip>",
+  "generated_evidence": true,
+  "comparison_source": "R1.0a observed catalogs; no new engine or product-release claim",
+  "combinations": [
+    {
+      "combination": "sqlite-web-platform",
+      "passed": true,
+      "app_tables": 28,
+      "total_tables": 29,
+      "columns": 164,
+      "intentional_differences": [
+        {
+          "kind": "ledger_replacement",
+          "old": "schema_migrations(version,checksum) + business_migrations",
+          "new": "schema_migrations(namespace,version,checksum,applied_at)"
+        },
+        {
+          "kind": "sqlite_text_pk_not_null",
+          "table": "account_tokens",
+          "column": "token_hash"
+        },
+        {
+          "kind": "sqlite_text_pk_not_null",
+          "table": "administrator_account_tokens",
+          "column": "token_hash"
+        },
+        {
+          "kind": "sqlite_text_pk_not_null",
+          "table": "administrator_email_challenges",
+          "column": "id"
+        },
+        {
+          "kind": "sqlite_text_pk_not_null",
+          "table": "administrator_external_identities",
+          "column": "identity_hash"
+        },
+        {
+          "kind": "sqlite_text_pk_not_null",
+          "table": "administrator_oidc_flows",
+          "column": "state_hash"
+        },
+        {
+          "kind": "sqlite_text_pk_not_null",
+          "table": "administrator_sessions",
+          "column": "token_hash"
+        },
+        {
+          "kind": "sqlite_text_pk_not_null",
+          "table": "administrators",
+          "column": "id"
+        },
+        {
+          "kind": "sqlite_text_pk_not_null",
+          "table": "audit_logs",
+          "column": "id"
+        },
+        {
+          "kind": "sqlite_text_pk_not_null",
+          "table": "audit_metadata",
+          "column": "audit_id"
+        },
+        {
+          "kind": "sqlite_text_pk_not_null",
+          "table": "email_challenges",
+          "column": "id"
+        },
+        {
+          "kind": "sqlite_text_pk_not_null",
+          "table": "external_identities",
+          "column": "identity_hash"
+        },
+        {
+          "kind": "sqlite_text_pk_not_null",
+          "table": "file_cleanup_jobs",
+          "column": "id"
+        },
+        {
+          "kind": "sqlite_text_pk_not_null",
+          "table": "file_metadata",
+          "column": "id"
+        },
+        {
+          "kind": "sqlite_text_pk_not_null",
+          "table": "file_upload_sessions",
+          "column": "file_id"
+        },
+        {
+          "kind": "sqlite_text_pk_not_null",
+          "table": "mail_jobs",
+          "column": "id"
+        },
+        {
+          "kind": "sqlite_text_pk_not_null",
+          "table": "oidc_flows",
+          "column": "state_hash"
+        },
+        {
+          "kind": "sqlite_text_pk_not_null",
+          "table": "permissions",
+          "column": "id"
+        },
+        {
+          "kind": "sqlite_text_pk_not_null",
+          "table": "platform_announcements",
+          "column": "id"
+        },
+        {
+          "kind": "sqlite_text_pk_not_null",
+          "table": "roles",
+          "column": "id"
+        },
+        {
+          "kind": "sqlite_text_pk_not_null",
+          "table": "sessions",
+          "column": "token_hash"
+        },
+        {
+          "kind": "sqlite_text_pk_not_null",
+          "table": "storage_locations",
+          "column": "id"
+        },
+        {
+          "kind": "sqlite_text_pk_not_null",
+          "table": "system_settings",
+          "column": "setting_key"
+        },
+        {
+          "kind": "sqlite_text_pk_not_null",
+          "table": "users",
+          "column": "id"
+        },
+        {
+          "kind": "roles_permissions_go_seed_only",
+          "old_sql_roles": 2,
+          "old_sql_permissions": 1,
+          "new_sql_roles": 0,
+          "new_sql_permissions": 0,
+          "installed_state_equal": true
+        }
+      ],
+      "unexpected_differences": [],
+      "comparison_dimensions": [
+        "table set",
+        "column order/name/type/null/default",
+        "PK/unique/FK/actions",
+        "index key/uniqueness/order/prefix/expression",
+        "engine/charset/collation",
+        "SQL static rows",
+        "Seed role/permission/grant/location/settings/counts"
+      ],
+      "null_key_probe_count": 33
+    },
+    {
+      "combination": "sqlite-web-standalone",
+      "passed": true,
+      "app_tables": 4,
+      "total_tables": 5,
+      "columns": 24,
+      "intentional_differences": [
+        {
+          "kind": "ledger_replacement",
+          "old": "schema_migrations(version,checksum) + business_migrations",
+          "new": "schema_migrations(namespace,version,checksum,applied_at)"
+        },
+        {
+          "kind": "sqlite_text_pk_not_null",
+          "table": "audit_logs",
+          "column": "id"
+        },
+        {
+          "kind": "sqlite_text_pk_not_null",
+          "table": "system_settings",
+          "column": "setting_key"
+        }
+      ],
+      "unexpected_differences": [],
+      "comparison_dimensions": [
+        "table set",
+        "column order/name/type/null/default",
+        "PK/unique/FK/actions",
+        "index key/uniqueness/order/prefix/expression",
+        "engine/charset/collation",
+        "SQL static rows",
+        "Seed role/permission/grant/location/settings/counts"
+      ],
+      "null_key_probe_count": 6
+    },
+    {
+      "combination": "sqlite-desktop",
+      "passed": true,
+      "app_tables": 4,
+      "total_tables": 5,
+      "columns": 24,
+      "intentional_differences": [
+        {
+          "kind": "ledger_replacement",
+          "old": "schema_migrations(version,checksum) + business_migrations",
+          "new": "schema_migrations(namespace,version,checksum,applied_at)"
+        },
+        {
+          "kind": "sqlite_text_pk_not_null",
+          "table": "audit_logs",
+          "column": "id"
+        },
+        {
+          "kind": "sqlite_text_pk_not_null",
+          "table": "system_settings",
+          "column": "setting_key"
+        }
+      ],
+      "unexpected_differences": [],
+      "comparison_dimensions": [
+        "table set",
+        "column order/name/type/null/default",
+        "PK/unique/FK/actions",
+        "index key/uniqueness/order/prefix/expression",
+        "engine/charset/collation",
+        "SQL static rows",
+        "Seed role/permission/grant/location/settings/counts"
+      ],
+      "null_key_probe_count": 6
+    },
+    {
+      "combination": "postgres-web-platform",
+      "passed": true,
+      "app_tables": 28,
+      "total_tables": 29,
+      "columns": 164,
+      "intentional_differences": [
+        {
+          "kind": "ledger_replacement",
+          "old": "schema_migrations(version,checksum) + business_migrations",
+          "new": "schema_migrations(namespace,version,checksum,applied_at)"
+        },
+        {
+          "kind": "roles_permissions_go_seed_only",
+          "old_sql_roles": 2,
+          "old_sql_permissions": 1,
+          "new_sql_roles": 0,
+          "new_sql_permissions": 0,
+          "installed_state_equal": true
+        }
+      ],
+      "unexpected_differences": [],
+      "comparison_dimensions": [
+        "table set",
+        "column order/name/type/null/default",
+        "PK/unique/FK/actions",
+        "index key/uniqueness/order/prefix/expression",
+        "engine/charset/collation",
+        "SQL static rows",
+        "Seed role/permission/grant/location/settings/counts"
+      ],
+      "null_key_probe_count": 33
+    },
+    {
+      "combination": "postgres-web-standalone",
+      "passed": true,
+      "app_tables": 4,
+      "total_tables": 5,
+      "columns": 24,
+      "intentional_differences": [
+        {
+          "kind": "ledger_replacement",
+          "old": "schema_migrations(version,checksum) + business_migrations",
+          "new": "schema_migrations(namespace,version,checksum,applied_at)"
+        }
+      ],
+      "unexpected_differences": [],
+      "comparison_dimensions": [
+        "table set",
+        "column order/name/type/null/default",
+        "PK/unique/FK/actions",
+        "index key/uniqueness/order/prefix/expression",
+        "engine/charset/collation",
+        "SQL static rows",
+        "Seed role/permission/grant/location/settings/counts"
+      ],
+      "null_key_probe_count": 6
+    },
+    {
+      "combination": "mysql-web-platform",
+      "passed": true,
+      "app_tables": 28,
+      "total_tables": 29,
+      "columns": 164,
+      "intentional_differences": [
+        {
+          "kind": "ledger_replacement",
+          "old": "schema_migrations(version,checksum) + business_migrations",
+          "new": "schema_migrations(namespace,version,checksum,applied_at)"
+        },
+        {
+          "kind": "roles_permissions_go_seed_only",
+          "old_sql_roles": 2,
+          "old_sql_permissions": 1,
+          "new_sql_roles": 0,
+          "new_sql_permissions": 0,
+          "installed_state_equal": true
+        }
+      ],
+      "unexpected_differences": [],
+      "comparison_dimensions": [
+        "table set",
+        "column order/name/type/null/default",
+        "PK/unique/FK/actions",
+        "index key/uniqueness/order/prefix/expression",
+        "engine/charset/collation",
+        "SQL static rows",
+        "Seed role/permission/grant/location/settings/counts"
+      ],
+      "null_key_probe_count": 33
+    },
+    {
+      "combination": "mysql-web-standalone",
+      "passed": true,
+      "app_tables": 4,
+      "total_tables": 5,
+      "columns": 24,
+      "intentional_differences": [
+        {
+          "kind": "ledger_replacement",
+          "old": "schema_migrations(version,checksum) + business_migrations",
+          "new": "schema_migrations(namespace,version,checksum,applied_at)"
+        }
+      ],
+      "unexpected_differences": [],
+      "comparison_dimensions": [
+        "table set",
+        "column order/name/type/null/default",
+        "PK/unique/FK/actions",
+        "index key/uniqueness/order/prefix/expression",
+        "engine/charset/collation",
+        "SQL static rows",
+        "Seed role/permission/grant/location/settings/counts"
+      ],
+      "null_key_probe_count": 6
+    }
+  ],
+  "all_passed": true
+}

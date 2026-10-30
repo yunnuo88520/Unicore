@@ -80,9 +80,9 @@ make docker-build
 make test-deploy
 ```
 
-Linux amd64 daemon 将上例改为 linux/amd64。验收只创建随机命名容器/网络/卷，结束删除这些一次性资源；不会操作已有实例。包括 Tar 真二进制解包 + Nginx，Docker、Compose 的 `/install`、PC/375px 向导、演示账号、验证码、CSRF、动态品牌、安装锁、重启与替换容器后持久化，报告/截图位于 build/acceptance/deployment。CI 在 Ubuntu amd64 跑同一命令；本机实测见 [部署验收](../04-ai/acceptance-deployment.md)。
+Linux amd64 daemon 将上例改为 linux/amd64。验收只创建随机命名容器/网络/卷，结束删除这些一次性资源；不会操作已有实例。包括 Tar 真二进制解包 + Nginx，Docker、Compose 的 `/install`、PC/375px 向导、演示账号、验证码、CSRF、动态品牌、安装锁、重启与替换容器后持久化，报告/截图位于 build/acceptance/deployment。CI 在 Ubuntu amd64 跑同一命令；以该次隔离运行的实际结果为准，输出不提交主仓库。
 
-当前产物仍是开发预览：单包 manifest 的 `signature:null` 为保留字段，完整候选的 OTA 发行授权由 update-manifest.json/.sig 表示；platform_signature 独立记录系统签名。已有 checksum 不能替代签名。真实授权服务仍未接入；OTA 签名和平台签名/公证流程见 [更新手册](updates.md)，真实开发者凭据与下一版公开签名发行仍待配置。`make test-deploy` 的同版本替换证明挂载和配置保留，不等于跨版本迁移回滚或生产恢复演练。跨版本 DDL 兼容仍按对应 ADR/迁移文档验收，不承诺替换旧 binary 就能回滚。
+当前产物仍是开发预览：单包 manifest 的 `signature:null` 为保留字段，完整候选的 OTA 发行授权由 update-manifest.json/.sig 表示；platform_signature 独立记录系统签名。已有 checksum 不能替代 Ed25519 签名。真实授权服务仍未接入；下一版公开签名发行待执行，OS 开发者凭据只用于可选严格策略，并非免费发行前提。配置/创建器的当前策略差异见 [更新手册](updates.md)。`make test-deploy` 的同版本替换证明挂载和配置保留，不等于跨版本迁移回滚或生产恢复演练。跨版本 DDL 兼容仍按对应 ADR/迁移文档验收，不承诺替换旧 binary 就能回滚。报告该候选实际执行的检查与未测范围，输出存CI artifact或仓库外。
 
 ## 发布候选与恢复门禁
 
@@ -94,6 +94,6 @@ Linux amd64 daemon 将上例改为 linux/amd64。验收只创建随机命名容�
 
 Dependency security workflow 运行固定版 govulncheck：Web/CLI/ops 符号检查、全部业务导入包和桌面 bindings 导入包检查；前端审计包含开发依赖，low 及以上阻断。没有导入的废弃子包单独记录，不以排除开发依赖掩盖测试工具漏洞。安装新依赖需跟踪误报与升级影响，不静默忽略失败。发布前在目标环境恢复副本验证，参见 [备份恢复](backup.md)。跨版本升级/回退验收与同版本容器替换分开记录。
 
-`make test-upgrade FROM_REF=<可信本地旧提交或tag>` 在临时实例构建旧 binary，安装/保存设置和账号，备份后用当前 binary 向前迁移业务账本，重启确认，再将升级前快照恢复到新目录并由旧 binary 验证。当前脚本针对 SQLite、旧平台 schema9/业务schema0 → 当前平台 schema12/业务schema2 的变更；其他历史版本/外部DB的跨版本升级需对应迁移夹具，不能泛化为任意版本可回退。
+`make test-upgrade FROM_REF=<可信本地旧提交或tag>` 的流程是构建临时旧实例、保存设置/账号、备份、向前迁移、重启，再将升级前快照恢复到新目录供旧 binary 验证。脚本包含固定旧等级假设，历史 SQLite schema9/业务0 → 平台12/业务2 的验收不能泛化到任意 ref。基线 `cecf281` 执行 `FROM_REF=08a1df1` 在真正升级前失败：旧业务等级期望1、实际2。该起点当前待 R2 修复夹具，不能记为升级/恢复通过；外部 DB 也需对应跨版本夹具。R0 不改脚本或历史迁移。
 
 构建网络受限时，可显式 `GOPROXY=https://goproxy.cn,direct make docker-build`（选用团队信任的 Go 模块代理，sumdb 校验保持启用），Compose 读取相同变量；GO_IMAGE/NODE_IMAGE/RUNTIME_IMAGE 同样可指定可信镜像源。不要使用跳过 TLS 或关闭 checksum 的方式解决下载问题。

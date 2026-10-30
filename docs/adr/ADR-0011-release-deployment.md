@@ -11,4 +11,4 @@ Tar 分离 bin/web，Nginx 直接提供有指纹的 assets，页面入口/动态
 
 Docker 非 root、只读根文件系统，数据目录独立持久卷。Compose 使用同一 Dockerfile 与版本输入，数据不进入镜像层。更新通过外部替换镜像保留卷；不挂载 Docker socket，不修改容器内二进制。停止宽限期须覆盖服务端请求排空时间。
 
-验收使用真实 Linux 二进制/容器/Nginx 和浏览器页面，重启及同版本替换验证配置/密钥/数据库/图片保留；不声称宝塔面板、跨版本回滚、多架构运行或签名 OTA 已通过。正式上传、签名和生产部署仍需要对应授权。见 [运行](../03-runbooks/deployment.md)、[发版](../03-runbooks/release.md) 与 [验收](../04-ai/acceptance-deployment.md)。
+验收使用真实 Linux 二进制/容器/Nginx 和浏览器页面，重启及同版本替换验证配置/密钥/数据库/图片保留；不声称宝塔面板、跨版本回滚、多架构运行或签名 OTA 已通过。正式上传、签名和生产部署仍需要对应授权。见 [运行](../03-runbooks/deployment.md)、[发版](../03-runbooks/release.md) 及 [支持范围](../support.md)。

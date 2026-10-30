@@ -15,6 +15,8 @@ Unicore 是面向 AI 辅助开发的 Go + React 应用框架。共享领域与�
 
 [快速开始](#快速开始) · [创建自己的应用](#创建自己的应用) · [Wiki](https://github.com/yunnuo88520/Unicore/wiki) · [文档源码](docs/README.md) · [参与贡献](CONTRIBUTING.md) · [支持与反馈](SUPPORT.md) · [变更记录](CHANGELOG.md)
 
+运行形态、功能边界与待验证范围见 [支持范围与已知限制](docs/support.md)。使用与部署从 [指南](docs/product/index.md) 开始；开发任务按需查阅规范和 Skill。
+
 ## 选择运行形态
 
 | Profile | 适用场景 | 身份与管理 | 数据库 |
@@ -28,9 +30,9 @@ Unicore 是面向 AI 辅助开发的 Go + React 应用框架。共享领域与�
 
 三个有数据库的形态共享个人笔记业务样板，覆盖领域、Repository、迁移、API/原生桥接、并发控制和弹窗表单；平台另外演示本人 file_id 附件，CLI 保持无数据库。其他基座包括 OpenAPI 单一契约、统一主题/图标/消息、生命周期/健康检查、离线加密备份恢复，以及随仓库分发的 AI 文档和 12 个任务 Skills。
 
-![平台笔记与附件](docs/04-ai/evidence-developer-kit/notes-platform.png)
+![平台笔记与附件](docs/images/notes-platform.png)
 
-预览安装包与校验和见 [GitHub Releases](https://github.com/yunnuo88520/Unicore/releases)，也可从源码构建；尚无公开注册表镜像。已接入可替换渠道的签名 OTA、离线版本日志及平台签名/公证流程；真实开发者凭据和下一版签名发行仍待配置，授权服务保持占位。详见 [系统更新](docs/03-runbooks/updates.md)；能力与验收边界见 [PRD](docs/00-product/PRD.md) 和 [最新验收](docs/04-ai/acceptance-updates.md)。
+预览安装包与校验和见 [GitHub Releases](https://github.com/yunnuo88520/Unicore/releases)，也可从源码构建；尚无公开注册表镜像。已接入可替换渠道的签名 OTA 与离线版本日志；现有 v0.1.1 无公开签名更新清单。应用层发布者签名必须保留，OS 签名/公证可选，无需购买证书即可采用免费分发策略；创建器默认 OS 签名策略仍有已知差异，见支持范围。授权服务保持占位。详见 [系统更新](docs/03-runbooks/updates.md)与 [支持范围](docs/support.md)。
 
 
 平台管理端提供可筛选、排序、分页和导出的操作日志，以及独立邮件模板编辑、预览与测试发送；权限、迁移和开发约定见 [管理工具](docs/03-runbooks/admin-tools.md)。
@@ -64,7 +66,7 @@ build/bin/server
 make dev-cli ARGS='execute --text "Hello Unicore"'
 
 # 原生桌面：先安装当前系统的 Wails 原生依赖
-go install github.com/wailsapp/wails/v2/cmd/wails@v2.12.0
+go install "github.com/wailsapp/wails/v2/cmd/wails@$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v2)"
 make dev-desktop
 ```
 
@@ -106,13 +108,13 @@ make build-ops                   # 独立加密备份/恢复工具
 
 应用版本只维护 [VERSION](VERSION)；`make version NEW_VERSION=x.y.z` 同步投影和 Changelog。tar 输出到 `build/releases/`，带 manifest/checksums；Web 包含运维工具，镜像标签读取相同版本。宝塔/Nginx、Docker/Compose、版本准备和恢复步骤见 [发版手册](docs/03-runbooks/release.md)、[部署手册](docs/03-runbooks/deployment.md) 与 [备份手册](docs/03-runbooks/backup.md)。
 
-最新基线已通过三数据库测试、页面回归、四种部署场景与三系统原生构建 CI；macOS arm64 有真实窗口交互验证，Windows/Linux 窗口交互仍待实测。结果与未测范围见 [验收报告](docs/04-ai/acceptance-updates.md)，实时状态以当前提交的 Actions 为准。
+质量、依赖安全和 Profile 构建结果查看当前提交的 CI。原生构建/helper 测试不等于完整 GUI 更新与失败恢复；发布前按目标系统和部署环境验证，不能用历史结果代替当前检查。
 
 ## 文档与协作
 
 | 需要做什么 | 入口 |
 | --- | --- |
-| 了解范围和架构 | [PRD](docs/00-product/PRD.md)、[架构](docs/01-architecture/architecture.md)、[基础能力](docs/04-ai/foundation-audit.md) |
+| 了解范围和架构 | [支持范围](docs/support.md)、[架构](docs/01-architecture/architecture.md) |
 | 扩展业务、API、页面或设置 | [笔记样板](docs/03-runbooks/business-example.md)、[AI 工作流](docs/04-ai/development.md)、[上下文地图](docs/04-ai/context.gen.md) |
 | 调整主题、品牌或文件存储 | [设计系统](docs/02-standards/design-system.md)、[存储手册](docs/03-runbooks/storage.md) |
 | 查看 API 与运行配置 | [契约约定](docs/02-standards/api-contract.md)、[运行基座](docs/02-standards/runtime.md)；设置 `APP_API_DOCS=true` 开启 `/docs/api` |

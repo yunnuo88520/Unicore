@@ -87,7 +87,7 @@ docker run -d --name unicore --read-only --cap-drop=ALL \
 
 镜像为 nonroot，根目录只读，命名卷保存完整 `/data`。已有 bind mount 需要管理员提前设置目录为 UID/GID 65532、0700；框架不会自动放宽权限。数据/密钥/本地 env 不进入 Docker build context。不要 `down -v` 删除真实实例卷。替换镜像由外部 Compose/CI 完成，保留卷；不挂载 socket，不覆盖容器内 binary。
 
-使用预构建镜像可先设置 UNICORE_VERSION/UNICORE_IMAGE，再 `docker compose -f deploy/docker/compose.yaml up -d --no-build --pull always`；正式仓库地址由维护者配置。更新前停服成套备份，替换包 current 链接或镜像后启动、检查 ready、登录与数据。回退受迁移兼容约束，不能只替换旧程序。当前同版本替换与卷保留验收见 [部署验收](../04-ai/acceptance-deployment.md)，签名 OTA 的程序切换/恢复与 Docker 外部更新边界见 [更新手册](updates.md)。
+使用预构建镜像可先设置 UNICORE_VERSION/UNICORE_IMAGE，再 `docker compose -f deploy/docker/compose.yaml up -d --no-build --pull always`；正式仓库地址由维护者配置。更新前停服成套备份，替换包 current 链接或镜像后启动、检查 ready、登录与数据。回退受迁移兼容约束，不能只替换旧程序。同版本替换用于验证配置和卷保留，不证明跨版本回退；签名 OTA 的程序切换/恢复与 Docker 外部更新边界见 [更新手册](updates.md)。
 
 ## 检查与备份边界
 
@@ -113,7 +113,7 @@ M2c 新表单使用 6 位数字，10 分钟有效，60 秒后重新申请，连�
 
 完整配置优先级、日志与监控端口见 [运行基座](../02-standards/runtime.md)。API 文档默认关闭，开发/受控环境可设 APP_API_DOCS=true；独立指标设 APP_MONITOR_LISTEN=127.0.0.1:9090，不映射公网。
 
-Web 收到 SIGINT/SIGTERM 后停止接收新请求，等待在途请求默认最多 5 秒（APP_SHUTDOWN_TIMEOUT 可配置），再等待 worker 结束并关闭数据库；到期关闭连接并以错误退出。处理器须响应请求 context。基础能力的完成范围与剩余项见 [审计](../04-ai/foundation-audit.md)。
+Web 收到 SIGINT/SIGTERM 后停止接收新请求，等待在途请求默认最多 5 秒（APP_SHUTDOWN_TIMEOUT 可配置），再等待 worker 结束并关闭数据库；到期关闭连接并以错误退出。处理器须响应请求 context。基础能力的适用范围与限制见 [支持范围](../support.md)。
 
 桌面生产/开发 bundle ID 分别为 vip.ebox.unicore 和 vip.ebox.unicore.dev，不再使用框架默认标识；本地数据目录不因该标识改变。旧目录中复制出的应用包需要重新构建/替换才能更新图标；本次只验证仓库生成的包，不自动删除系统内其他副本或清理全局图标缓存。
 
@@ -125,7 +125,7 @@ Web 收到 SIGINT/SIGTERM 后停止接收新请求，等待在途请求默认最
 
 appearance.theme 从平台全局设置删除，平台主题只存当前浏览器；已有客户端的本地选择保留，没有本地选择时跟随系统。普通用户只显示外观入口，管理员管理所有全局配置。单机/桌面只运行 framework 迁移，不受平台数据收敛影响。
 
-验收：用原管理员登录管理端，检查用户数量/两角色、站点与 SMTP 配置状态；普通用户端检查无管理菜单，普通用户会话访问管理 API 被拒绝，外观保存只影响本客户端。0007 含删除旧角色/凭据，不能只换旧 binary 回退。恢复时停服，使用 [离线备份恢复工具](backup.md) 恢复同一时间点的数据库、data dir、installation.json、密钥和匹配版本程序，禁止用新配置配旧 DB。三数据库实测见 [权限验收](../04-ai/acceptance-permissions.md)。
+验收：用原管理员登录管理端，检查用户数量/两角色、站点与 SMTP 配置状态；普通用户端检查无管理菜单，普通用户会话访问管理 API 被拒绝，外观保存只影响本客户端。0007 含删除旧角色/凭据，不能只换旧 binary 回退。恢复时停服，使用 [离线备份恢复工具](backup.md) 恢复同一时间点的数据库、data dir、installation.json、密钥和匹配版本程序，禁止用新配置配旧 DB。每个受支持数据库分别验证，不用单方言结果推断其他方言。
 
 ## M3a OIDC 接入与恢复
 

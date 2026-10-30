@@ -41,7 +41,7 @@ HTTPS 站点必须使用浏览器可达的 HTTPS Endpoint；不要在公网页�
 
 迁移 0012 追加 file_upload_sessions，平台 schema=12；完整 DB 备份必须包含它。本地分片在私有数据目录下的 multipart 命名空间，跟随完整 data 备份，不能只备份已完成文件。云端未完成分片不属于普通对象备份：恢复时以原 upload ID 是否仍可用为准，不可用会话需放弃后重传。清理按登记的精确键 abort 再 delete，失败持久重试，不清空 Bucket。大对象服务端复制也受相同孤儿清理保护。
 
-设计见 [ADR-0022](../adr/ADR-0022-resumable-uploads.md)，本轮真实环境和未验证事项见 [续传验收](../04-ai/acceptance-multipart.md)。旧单请求上传 API 保留且最高 1 GiB，不提供断点续传。
+设计见 [ADR-0022](../adr/ADR-0022-resumable-uploads.md)，提供商范围和未验证事项见 [支持范围](../support.md)。旧单请求上传 API 保留且最高 1 GiB，不提供断点续传。
 
 OSS 实测已覆盖官方 SDK 和 PC/375px 浏览器，当前适配将服务端操作与绑定 Content-Length 的签名客户端隔离；下载只覆盖 Content-Disposition 为附件，避免 OSS 拒绝 response-content-type 覆盖。腾讯云开发凭据本轮返回 AccessDenied，用户选择待权限补齐后验证；AWS S3 仍未做真实账号测试，不能因为 MinIO 同协议而声明 AWS 通过。
 

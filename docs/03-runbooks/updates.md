@@ -14,7 +14,9 @@
 
 ## 配置更新渠道
 
-唯一构建入口为 assets/updates/config.json：repository、channel（stable/preview）、keys（key ID → Base64 原始 Ed25519 公钥）、allow_unsigned_platform。应用 ID 来自 assets/brand/identity.json。预览版允许独立 OTA 签名的未系统签名 GUI；有开发者证书后将 allow_unsigned_platform 改为 false，发布下一版。
+唯一构建入口为 assets/updates/config.json：repository、channel（stable/preview）、keys（key ID → Base64 原始 Ed25519 公钥）、allow_unsigned_platform。应用 ID 来自 assets/brand/identity.json。批准的默认策略是 GitHub Releases/自建 HTTPS 免费分发 Windows、macOS、Linux，不要求 Authenticode、Apple Developer ID 或公证；Ed25519、SHA-256、目标匹配、防降级和安全安装始终必需。OS 签名严格策略仅按需开启，不应自动随正式发行开启。
+
+**当前已知限制：**仓库配置允许未做 OS 签名的包，`scripts/create-project.mjs` 却设为 false，其测试也断言 false；verify 与 installer/helper 使用该值，因此派生 Windows/macOS 更新可能被拒绝。修复需覆盖真实派生项目默认信任、OS未签名但发布者签名有效的包安装，以及无效应用签名拒绝。当前不能将免费分发目标描述为派生默认策略已通过；见 [支持范围](../support.md)。
 
 运行环境可用 APP_UPDATE_REPOSITORY 替换公开 GitHub 仓库，APP_UPDATE_FEED_URL 指向自己的 HTTPS feed，APP_UPDATE_TRUST_FILE 指向同结构的受控公共配置文件；后者是部署操作者的信任设置，不由远端响应修改。私有 CA 渠道可通过 APP_UPDATE_CA_FILE 提供受控 PEM 根证书，追加系统信任且保持 TLS 校验；不提供跳过验证的选项。不要在 URL 填凭据。公开 GitHub 不需要 token；私有渠道可实现 internal/updates.Provider 并在 bootstrap/updating 装配。首次派生应用的创建器清空上游仓库和公钥，未配置时仍能显示内置日志，避免安装 Unicore 上游程序。
 
@@ -68,7 +70,7 @@ gh secret set UNICORE_UPDATE_SIGNING_KEY --repo owner/repository < /secure/offli
 
 ## Apple 与 Windows 凭据
 
-本项目当前没有开发者凭据，不能声称完成真实 Apple 公证或 Windows 签名。默认 unsigned 是开发预览。设置 GitHub repository variable UNICORE_PLATFORM_SIGNING=required 后，main 原生 CI 在打包前执行 scripts/platform-sign.mjs，签名失败或缺凭据会阻断。PR 不接触签名 Secret。
+本项目当前没有 OS 开发者凭据，不能声称完成真实 Apple 公证或 Windows 签名；OS unsigned 不表示应用层 OTA 未签名，也不应被限制为只能预览分发。按需设置 GitHub repository variable UNICORE_PLATFORM_SIGNING=required 后，main 原生 CI 在打包前执行 scripts/platform-sign.mjs，签名失败或缺凭据会阻断。PR 不接触签名 Secret。无 OS 证书场景的当前创建器缺口见上节。
 
 | 平台 | GitHub Secrets |
 | --- | --- |
@@ -77,4 +79,4 @@ gh secret set UNICORE_UPDATE_SIGNING_KEY --repo owner/repository < /secure/offli
 
 macOS 使用临时 keychain，codesign hardened runtime + timestamp，notarytool submit --wait，stapler staple/validate，Gatekeeper 与 app ID 复验，最后删除临时 keychain/证书。Windows 使用 SDK signtool SHA256/RFC3161 时间戳与 verify /pa，临时 PFX 完成后删除；HSM/云签名需替换此适配脚本。Linux 没有这两类平台签名，仍必须通过 OTA 发行签名。打包脚本独立检查实际系统签名后记录 platform_signature，运行时如包声明系统签名也再次校验；不把环境变量直接当成功证明。
 
-实测和未测矩阵见 [更新验收](../04-ai/acceptance-updates.md)。
+按当前提交、目标OS与部署方式分别记录检查结果；自动化与原生构建不替代完整更新和失败恢复。支持限制见 [支持范围](../support.md)。

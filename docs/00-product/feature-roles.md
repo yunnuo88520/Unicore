@@ -17,6 +17,6 @@
 
 全局设置影响所有用户，但仅管理员可读写；公共 bootstrap/Logo/favicon/版权/最小登录策略不公开敏感数据。普通用户设置仅本地外观，不请求管理 API。服务端逐 API 校验有效管理员/权限，写入校验 CSRF/Origin；账号写事务重查管理员域操作者。历史 grants 不授权普通用户，最后启用管理员及最后有本地密码管理员不能禁用。
 
-0007 将旧自定义角色归普通用户，0008 迁移管理员账号和企业绑定到独立表，保留 ID/密码；两次升级均撤销旧凭据、取消待发邮件。升级前成套备份，恢复匹配 DB/目录/密钥和程序，见 [部署手册](../03-runbooks/deployment.md)。实现决策见 [ADR-0014](../adr/ADR-0014-separate-identities-management.md)，本轮结果见 [管理验收](../04-ai/acceptance-management.md)。历史 [权限验收](../04-ai/acceptance-permissions.md) 描述拆表前状态。
+0007 将旧自定义角色归普通用户，0008 迁移管理员账号和企业绑定到独立表，保留 ID/密码；两次升级均撤销旧凭据、取消待发邮件。升级前成套备份，恢复匹配 DB/目录/密钥和程序，见 [部署手册](../03-runbooks/deployment.md)。实现决策见 [ADR-0014](../adr/ADR-0014-separate-identities-management.md)，旧角色同表方案不作为当前规则。
 
 当前双入口、单机边界和升级兼容说明见 [ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md)。

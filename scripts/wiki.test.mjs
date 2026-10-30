@@ -32,6 +32,9 @@ test('Wiki configuration renders all pages and validates target identity', () =>
   assert(pages.has('Home.md')); assert(pages.has('_Sidebar.md')); assert(pages.has('_Footer.md'));
   assert.match(pages.get('Deployment.md'), /仓库源码/);
   assert.match(pages.get('_Sidebar.md'), /wiki\/Backup-Restore/);
+  assert.equal(pages.size, 10);
+  for (const name of ['Commercial-Audit.md', 'Acceptance-R0.md', 'AI-Context.md', 'Wiki-Maintenance.md']) assert(!pages.has(name));
+  for (const content of pages.values()) assert.doesNotMatch(content, /docs\/04-ai|docs\/adr|Commercial-Audit|workspace-preservation/);
   for (const value of ['../repo', 'https://github.com/team/repo', 'team/repo.git', 'team/repo/extra']) assert.throws(() => repositoryName(value));
   assert.equal(repositoryName('team/my-app'), 'team/my-app');
 });

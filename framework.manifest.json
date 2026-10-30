@@ -4,10 +4,7 @@
   "contract": "packages/contracts/openapi.json",
   "readFirst": [
     "AGENTS.md",
-    "docs/README.md",
-    "docs/00-product/PRD.md",
-    "docs/01-architecture/architecture.md",
-    "docs/04-ai/development.md"
+    "docs/README.md"
   ],
   "profiles": {
     "web-platform": {
@@ -41,8 +38,9 @@
     "routes": "packages/web-ui/src/routes.ts",
     "session": "packages/web-ui/src/session.tsx",
     "migrations": "migrations",
+    "databaseMigrationStandard": "docs/02-standards/database-migrations.md",
     "decisions": "docs/adr",
-    "status": "docs/04-ai/foundation-audit.md",
+    "status": "docs/support.md",
     "version": "VERSION",
     "release": "docs/03-runbooks/release.md",
     "platformPermissions": "internal/platform/roles.go",
@@ -56,7 +54,6 @@
     "frameworkUpgrade": "docs/03-runbooks/framework-upgrade.md",
     "contributing": "CONTRIBUTING.md",
     "community": "docs/03-runbooks/open-source.md",
-    "currentAcceptance": "docs/04-ai/acceptance-multipart.md",
     "wiki": "docs/wiki/README.md",
     "updates": "internal/updates/service.go",
     "updateTrust": "assets/updates/config.json",
@@ -76,7 +73,10 @@
     "baseEntity": "internal/domain/entity.go",
     "announcements": "docs/03-runbooks/announcements.md",
     "multipart": "internal/blob/multipart.go",
-    "uploadDialog": "packages/web-ui/src/file-upload-dialog.tsx"
+    "uploadDialog": "packages/web-ui/src/file-upload-dialog.tsx",
+    "migrationCatalog": "migrations/catalog.json",
+    "migrationMetadata": "migrations/metadata.gen.json",
+    "migrationGenerator": "scripts/generate-migrations.mjs"
   },
   "commands": {
     "generate": "pnpm generate",

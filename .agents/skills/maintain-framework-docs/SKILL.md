@@ -1,20 +1,22 @@
 ---
 name: maintain-framework-docs
-description: 维护 Unicore 面向 AI 开发的文档入口、框架 manifest、任务 Skills 与上下文生成检查。
+description: 维护 Unicore 使用与开发文档、框架 manifest、任务 Skills 和生成检查，避免引入研发流水。
 metadata:
   author: yunnuo <ymz@ebox.vip>
 ---
 
 # maintain-framework-docs
 
-框架入口为 framework.manifest.json、AGENTS.md、docs/README.md、docs/04-ai/development.md 与 .agents/skills/。从真实任务和代码变化确定需要维护的内容；当前能力状态与历史验收分开，避免复制整份架构或用户会话。
+只读本次受影响入口：用户 docs/product，开发规范 docs/02-standards 与按任务的 runbook，贡献者 AGENTS/CONTRIBUTING，维护者 PRD/ADR/发布手册。不要要求每次读取全部 docs。
 
-新增 Skill 时用独立名称/用途描述、简短任务流程、实际路径和验证命令；只在条件需要时链接参考文档。新增目录同时登记 manifest。不要加入全局安装依赖、空模板、真实凭据或隐含的发布/生产授权。
+先核对真实代码、已有改动和读者，保留可复用操作说明、开发约定、当前限制和重大决策。一次性审查/验收报告、路线图、实测输出、截图流水、环境与工作区保护记录放 build/、CI artifact 或仓库外，不加入主仓库导航或生成上下文。真实测试夹具必须查消费者，不能作为文档垃圾删除。
 
-运行 pnpm ai:context、pnpm check:docs、pnpm check:authors，核对索引链接和命令确实可用。新脚本需实际执行；生成上下文不手改。与代码联动时同步相关规范和验收证据。
+framework.manifest.json 是机器索引；契约、主题、品牌、设置和 SQL 各自保留唯一来源。新增目录/Skill 时维护索引与元数据；Skill 正文只写任务流程、特有约束和检查，技术规则回链对应规范，不复制全文或固定阶段结论。
 
-派生项目初始化、笔记业务样板、离线备份/恢复和框架上游合并的当前说明位于 docs/03-runbooks；重大边界见 ADR-0017。最新状态记入 acceptance-developer-kit.md，不把候选工作流配置当作远端执行成功。
+用户发行、派生项目和 Wiki 的唯一白名单在 distribution/manifest.json；新增源码文件不自动进入产品。修改 audience 时验证真实生成目录、精确文件清单和正文链接闭包，不能只检查配置或隐藏侧栏。
 
-涉及前端时同步 frontend-foundations.md、frontend.md 与 add-react-page/add-setting Skill；manifest 保留 WorkspaceLayout 与 i18nGate 的真实入口。中英文不是后续可选项：验证 pnpm check:i18n 已纳入构建和 make test，新增功能页面加入英文巡检。不能用文档声明替代机器检查或页面验收。
+执行 make docs、pnpm check:docs、pnpm check:authors；工具或分发变更运行相应测试。生成文件从源再生，不手改；保留命令、Skill、manifest 路径、作者头和生成一致性门禁。发现链接目标要移出时先修复活动引用并保留必要规则，不通过关闭检查过关。
 
-后端约定集中于 docs/02-standards/backend.md，公告完整样板与当前验收见 docs/03-runbooks/announcements.md、acceptance-announcements.md；新增实体检查与迁移级别须和真实代码一致。不要把“中英文 UI”误扩展成自动翻译用户输入、公告或邮件默认业务内容。
+前端界面、设置/权限描述保持中英文，复用 WorkspaceLayout、表单和消息；用户邮件/公告/笔记内容不自动翻译。后端约定以 backend.md 为准，状态范围以 docs/support.md 和当前实际检查为准。
+
+交付说明实际修改、验证与未测项，放任务会话；不得把历史测试或本地 dirty 结果当当前远端/生产通过。此 Skill 不授予提交、外发或发布权限。

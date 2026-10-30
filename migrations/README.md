@@ -26,7 +26,7 @@ go test -count=1 ./migrations/catalogdata
 
 schema_generation 是元数据中的世代名称，其数据库识别锚点是实际执行后持久化的 `(core,1,checksum,applied_at)`。每方言锚点 checksum 从原 SQL 生成，不能另写 settings 键、版本 0 或虚构账本行。后续启动须同时验证四列格式、锚点、全部 namespace、Profile 及原字节 checksum，不能只看名称或 core 最大版本。见 [ADR-0025](../docs/adr/ADR-0025-baseline-catalog-semantics.md)。本轮仅独立空库 fixture 验证持久化，不代表 R1.0c 保护已实现。
 
-完整证据、三方言语义与回退见 [R1.0b 报告](../docs/04-ai/acceptance-r10b.md)。验证工具仅用于自身新建的隔离目标：
+三方言语义见 [ADR-0025](../docs/adr/ADR-0025-baseline-catalog-semantics.md)，开发与恢复边界见 [迁移规范](../docs/02-standards/database-migrations.md)。验证工具仅用于自身新建的隔离目标：
 
 ```sh
 python3 scripts/verify-baselines.py --output build/verification-r10b-new

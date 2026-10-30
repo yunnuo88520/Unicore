@@ -1,7 +1,0 @@
-PASS sqlite-web-platform schema/Seed equivalence; 25 intentional differences; 0 unexpected
-PASS sqlite-web-standalone schema/Seed equivalence; 3 intentional differences; 0 unexpected
-PASS sqlite-desktop schema/Seed equivalence; 3 intentional differences; 0 unexpected
-PASS postgres-web-platform schema/Seed equivalence; 2 intentional differences; 0 unexpected
-PASS postgres-web-standalone schema/Seed equivalence; 1 intentional differences; 0 unexpected
-PASS mysql-web-platform schema/Seed equivalence; 2 intentional differences; 0 unexpected
-PASS mysql-web-standalone schema/Seed equivalence; 1 intentional differences; 0 unexpected

@@ -3,6 +3,8 @@
 
 共享业务依赖链：`entry → adapter → usecase → domain`。`internal/contracts` 从 OpenAPI 生成；domain 无传输/DB/身份依赖。CLI 只调用 bootstrap.Core；Web 装配 install、业务 Repository 与按安装 profile 初始化的平台身份；桌面装配 bootstrap/local 的 SQLite、appearance settings 与笔记 Repository，不引入平台模块。当前开发基座见 [ADR-0017](../adr/ADR-0017-developer-kit-business-backup.md)，下方保留历史增量的决策来由。
 
+数据库新世代采用 [ADR-0024](../adr/ADR-0024-pre1-migration-squash.md) 的 core/platform/module.notes 和统一 namespace 账本方向，0.x 开发库不保证兼容。九份SQL/Catalog/生成描述与旧资产隔离，产品运行时仍为旧执行器，不能据新资产存在声称启动保护已接入。顺序由依赖拓扑生成，世代锚点与语义见 [ADR-0025](../adr/ADR-0025-baseline-catalog-semantics.md)。
+
 ```text
 React web-ui → AppClient → HTTP adapter → install / platform / settings / notes
                       └→ Wails bridge → local appearance / notes
@@ -33,7 +35,7 @@ HTTP / Wails → usecase.Notes → domain.Note / NoteRepository port → SQL ada
 
 SQLite 使用 WAL、5 秒 busy timeout、单连接；PostgreSQL/MySQL 使用 bounded pool。分方言迁移嵌入二进制，版本 checksum 不可修改。SQLite/PostgreSQL DDL 事务；MySQL DDL 隐式提交，采用幂等 SQL，完全成功再记录版本。只创建本 profile 所需表；不自动回滚或 drop 数据。M2b 平台新增 0003 的 account_tokens/mail_jobs，M2a 迁移 checksum 不变，单机/桌面停留 framework。此为历史 M2b 边界；当前离线工具见 ADR-0017。
 
-SQLite adapter 统一将文件路径绝对化并生成空 authority、正确转义的 file URI；Windows 盘符保留在路径中，避免 file://C:/ 被解析成主机名。Windows 普通桌面启动失败使用原生对话框报告，无 schema 或存量数据迁移。CI 在 Windows 原生 runner 实际打开 Wails、读取渲染内容并重启同一隔离数据目录，再验证失败提示；测试与产物来源见 [更新验收](../04-ai/acceptance-updates.md)。
+SQLite adapter 统一将文件路径绝对化并生成空 authority、正确转义的 file URI；Windows 盘符保留在路径中，避免 file://C:/ 被解析成主机名。Windows 普通桌面启动失败使用原生对话框报告，无 schema 或存量数据迁移。CI 在 Windows 原生 runner 实际打开 Wails、读取渲染内容并重启同一隔离数据目录，再验证失败提示；脚本入口为 scripts/test-windows-startup.ps1，结果以当前CI与目标系统执行为准。
 
 ## 认证与 API
 
@@ -51,7 +53,7 @@ HttpTransport 管理 cookie/CSRF 与 WebClient；页面不直接 fetch。WailsTr
 
 桌面入口 `desktop || bindings`；绑定生成用编译期标记跳过真实用户存储。代码不使用环境变量来绕过该边界。CLI、Core 与桌面依赖隔离在 scripts/check-boundaries 中按实际 Go 依赖图验证。
 
-Web 退出由 `internal/lifecycle.ServeHTTP` 先等待在途 HTTP 请求排空（默认 5 秒，可配置上限），再由组合根等待 worker 结束并关闭存储；超时关闭连接，handler 需响应 context。监听失败与退出错误向 main 返回，避免 os.Exit 跳过组合根清理。统一配置、日志、可选回环指标与契约文档端点见 [运行基座](../02-standards/runtime.md)。当前基础能力状态见 [基础能力审计](../04-ai/foundation-audit.md)。
+Web 退出由 `internal/lifecycle.ServeHTTP` 先等待在途 HTTP 请求排空（默认5秒，可配置上限），再由组合根等待 worker 结束并关闭存储；超时关闭连接，handler 需响应 context。监听失败与退出错误向 main 返回，避免 os.Exit 跳过组合根清理。配置、日志、回环指标与契约文档端点见 [运行基座](../02-standards/runtime.md)，实现范围和验证边界见 [支持范围](../support.md)。runtime 的历史 stage 标签不构成成熟度证明。
 
 ## 邮件与账号流程
 
@@ -75,7 +77,7 @@ internal/platform/Accounts 编排策略、验证码/限流、注册与令牌；m
 
 routes.ts 集中管理员菜单/直达页守卫，settings-page.tsx 将平台本地外观与管理员全局设置分离。所有 /api/v1/admin/*（包括只读）在 HTTP 上复核当前固定管理员与权限，写入仍校验 CSRF/Origin；用户写入在安装行锁内重新加载操作者，保护最后一个启用且有本地密码的管理员。角色/状态变更撤销会话与账号挑战。公共品牌与登录策略保留最小公开投影。
 
-平台迁移 0007 规范为单一固定角色、移除旧自定义角色与普通用户 grants、删除平台全局主题、撤销旧凭据和取消待发邮件。历史迁移 checksum 保持，其他形态只运行 framework 迁移。三方言实测和恢复边界见 [权限验收](../04-ai/acceptance-permissions.md)。
+平台迁移 0007 规范为单一固定角色、移除旧自定义角色与普通用户 grants、删除平台全局主题、撤销旧凭据和取消待发邮件。历史迁移 checksum 保持，其他形态只运行 framework 迁移。三方言迁移与恢复按 [部署手册](../03-runbooks/deployment.md) 在隔离实例验证。
 
 ## M3a 企业身份
 
@@ -93,7 +95,7 @@ routes.ts 集中管理员菜单/直达页守卫，settings-page.tsx 将平台本
 
 版本与交付由 VERSION → scripts/version.mjs → 各端投影，Docker/归档读取相同元数据。Nginx 仅直接处理指纹资源，其余请求交 Go 保持安装/身份/动态品牌边界；详见 [ADR-0011](../adr/ADR-0011-release-deployment.md)。
 
-原生 runner 将桌面结果归档后与同一 main 提交的 Web/CLI 包汇总；release-assets.mjs 检查版本、来源、矩阵和摘要，候选 workflow 为全部归档生成 GitHub 来源证明。CI 安全扫描包含桌面导入包和前端开发依赖。来源证明不替代平台代码签名或 OTA 签名，具体流程与限制见 [发版](../03-runbooks/release.md) 和 [安全发版记录](../04-ai/acceptance-security-release.md)。
+原生 runner 将桌面结果归档后与同一 main 提交的 Web/CLI 包汇总；release-assets.mjs 检查版本、来源、矩阵和摘要，候选 workflow 为全部归档生成 GitHub 来源证明。CI 安全扫描包含桌面导入包和前端开发依赖。来源证明不替代平台代码签名或 OTA 签名，具体流程与限制见 [发版](../03-runbooks/release.md) 及 [安全政策](../../SECURITY.md)。
 
 ## 管理员与用户身份域
 

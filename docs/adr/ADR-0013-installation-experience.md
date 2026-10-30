@@ -15,4 +15,4 @@ verify-db 在 bootstrap 授权后真实连接并返回表/视图数、目标名�
 
 服务访问地址从当前 origin 自动取值并按既有规则校验后持久化，移除手填。邮件、OIDC、Secure Cookie 需要稳定 origin，所以保留内部 base_url。安装必须从实际 HTTPS 域名访问，域名改变时按部署手册停服修改；不能每次请求根据任意 Host 重写已安装地址。
 
-兼容与恢复：历史 DSN 配置直接读取；保留数据库、installation.json 和原密钥成套恢复，不允许删配置以重新安装。无法事务恢复的目标库清空必须靠安装前备份；当前没有自动备份恢复工具。三方言与浏览器重启验证见 [验收](../04-ai/acceptance-installation.md)。
+兼容与恢复：历史 DSN 配置直接读取；保留数据库、installation.json 和原密钥成套恢复，不允许删配置以重新安装。无法事务恢复的目标库清空必须靠安装前备份；当前没有自动备份恢复工具。三方言与浏览器重启按 [部署手册](../03-runbooks/deployment.md) 分别验证；后续离线备份工具见 [ADR-0017](ADR-0017-developer-kit-business-backup.md)。

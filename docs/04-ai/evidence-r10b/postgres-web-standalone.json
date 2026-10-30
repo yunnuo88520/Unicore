@@ -1,0 +1,475 @@
+{
+  "all_text_and_composite_pk_null_checks": {
+    "audit_logs.id": {
+      "accepted": false,
+      "error": "ERROR: null value in column \"id\" of relation \"audit_logs\" violates not-null constraint (SQLSTATE 23502)"
+    },
+    "example_notes.id": {
+      "accepted": false,
+      "error": "ERROR: null value in column \"id\" of relation \"example_notes\" violates not-null constraint (SQLSTATE 23502)"
+    },
+    "example_notes.scope_key": {
+      "accepted": false,
+      "error": "ERROR: null value in column \"scope_key\" of relation \"example_notes\" violates not-null constraint (SQLSTATE 23502)"
+    },
+    "schema_migrations.namespace": {
+      "accepted": false,
+      "error": "ERROR: null value in column \"namespace\" of relation \"schema_migrations\" violates not-null constraint (SQLSTATE 23502)"
+    },
+    "schema_migrations.version": {
+      "accepted": false,
+      "error": "ERROR: null value in column \"version\" of relation \"schema_migrations\" violates not-null constraint (SQLSTATE 23502)"
+    },
+    "system_settings.setting_key": {
+      "accepted": false,
+      "error": "ERROR: null value in column \"setting_key\" of relation \"system_settings\" violates not-null constraint (SQLSTATE 23502)"
+    }
+  },
+  "author": "yunnuo \u003cymz@ebox.vip\u003e",
+  "behavior_probes": {
+    "notes_default_deleted_at": 0,
+    "null_text_primary_key": {
+      "accepted": false,
+      "error": "ERROR: null value in column \"id\" of relation \"audit_logs\" violates not-null constraint (SQLSTATE 23502)"
+    },
+    "varchar_64_accepts_65_chars": {
+      "accepted": false,
+      "error": "ERROR: value too long for type character varying(64) (SQLSTATE 22001)"
+    }
+  },
+  "business": {
+    "notes": "PASS create/list/update/conflict/scope/soft-delete/audit; 120-rune title accepted, 121 rejected by Go"
+  },
+  "combination": "postgres-web-standalone",
+  "generated_evidence": true,
+  "go_seed": {
+    "duplicate_marker_rejected": true,
+    "method": "test install transaction using actual settings.Defaults and platformsql.Repository.Seed; no HTTP installer or bootstrap/local.Open",
+    "setting_count": 1,
+    "settings": [
+      "appearance.theme"
+    ]
+  },
+  "install_state_semantics": {
+    "current_allows_second_id": true,
+    "proposed_check_id_one": "PASS explicit id=1 accepted; id=0/2 and duplicate id=1 rejected; TEMPORARY table only, not baseline",
+    "proposed_explicit_length_check": "PASS 64 Unicode characters accepted, 65 rejected by explicit TEXT CHECK; TEMPORARY table only, no baseline length policy change"
+  },
+  "passed": true,
+  "post_seed_data": {
+    "ledger": [
+      {
+        "applied_at": 1793327877,
+        "checksum": "5df9a3031d055057d3ee0be23439afd07cf237cd5489e5c53ae0c94843203cf9",
+        "namespace": "core",
+        "version": 1
+      },
+      {
+        "applied_at": 1793327877,
+        "checksum": "50a441fbd38e19ac04a963e6efa1c3b8763e8f8c989ec47e0ce1fdee3bc59deb",
+        "namespace": "module.notes",
+        "version": 1
+      }
+    ],
+    "row_counts": {
+      "audit_logs": 0,
+      "example_notes": 0,
+      "install_state": 1,
+      "schema_migrations": 2,
+      "system_settings": 1
+    }
+  },
+  "schema": {
+    "other_objects": [],
+    "server": [
+      {
+        "collation": "en_US.utf8",
+        "current_database": "r10b_standalone",
+        "current_schema": "public",
+        "encoding": "UTF8",
+        "version": "PostgreSQL 15.17 (Debian 15.17-1.pgdg13+1) on aarch64-unknown-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit"
+      }
+    ],
+    "tables": {
+      "audit_logs": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "id",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "actor_id",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "action",
+            "not_null": true,
+            "ordinal": 3,
+            "type": "character varying(128)"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "created_at",
+            "not_null": true,
+            "ordinal": 4,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (id)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "audit_logs_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX audit_logs_pkey ON public.audit_logs USING btree (id)",
+            "name": "audit_logs_pkey"
+          }
+        ]
+      },
+      "example_notes": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "scope_key",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(96)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "id",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "title",
+            "not_null": true,
+            "ordinal": 3,
+            "type": "character varying(120)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "body",
+            "not_null": true,
+            "ordinal": 4,
+            "type": "text"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "status",
+            "not_null": true,
+            "ordinal": 5,
+            "type": "character varying(16)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "attachment_ids",
+            "not_null": true,
+            "ordinal": 6,
+            "type": "text"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "version",
+            "not_null": true,
+            "ordinal": 7,
+            "type": "integer"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "created_at",
+            "not_null": true,
+            "ordinal": 8,
+            "type": "bigint"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "updated_at",
+            "not_null": true,
+            "ordinal": 9,
+            "type": "bigint"
+          },
+          {
+            "collation": null,
+            "default_expression": "0",
+            "generated": "",
+            "identity": "",
+            "name": "deleted_at",
+            "not_null": true,
+            "ordinal": 10,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (scope_key, id)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "example_notes_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE INDEX example_notes_owner_updated ON public.example_notes USING btree (scope_key, updated_at, id)",
+            "name": "example_notes_owner_updated"
+          },
+          {
+            "definition": "CREATE UNIQUE INDEX example_notes_pkey ON public.example_notes USING btree (scope_key, id)",
+            "name": "example_notes_pkey"
+          },
+          {
+            "definition": "CREATE INDEX idx_notes_active ON public.example_notes USING btree (scope_key, deleted_at, updated_at)",
+            "name": "idx_notes_active"
+          }
+        ]
+      },
+      "install_state": {
+        "columns": [
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "id",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "integer"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "profile",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "character varying(32)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "instance_id",
+            "not_null": true,
+            "ordinal": 3,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "installed_at",
+            "not_null": true,
+            "ordinal": 4,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (id)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "install_state_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX install_state_pkey ON public.install_state USING btree (id)",
+            "name": "install_state_pkey"
+          }
+        ]
+      },
+      "schema_migrations": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "namespace",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(96)"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "version",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "bigint"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "checksum",
+            "not_null": true,
+            "ordinal": 3,
+            "type": "character varying(64)"
+          },
+          {
+            "collation": null,
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "applied_at",
+            "not_null": true,
+            "ordinal": 4,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (namespace, version)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "schema_migrations_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX schema_migrations_pkey ON public.schema_migrations USING btree (namespace, version)",
+            "name": "schema_migrations_pkey"
+          }
+        ]
+      },
+      "system_settings": {
+        "columns": [
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "setting_key",
+            "not_null": true,
+            "ordinal": 1,
+            "type": "character varying(128)"
+          },
+          {
+            "collation": "default",
+            "default_expression": null,
+            "generated": "",
+            "identity": "",
+            "name": "setting_value",
+            "not_null": true,
+            "ordinal": 2,
+            "type": "text"
+          }
+        ],
+        "constraints": [
+          {
+            "deferrable": false,
+            "definition": "PRIMARY KEY (setting_key)",
+            "delete_action": " ",
+            "initially_deferred": false,
+            "name": "system_settings_pkey",
+            "type": "p",
+            "update_action": " "
+          }
+        ],
+        "indexes": [
+          {
+            "definition": "CREATE UNIQUE INDEX system_settings_pkey ON public.system_settings USING btree (setting_key)",
+            "name": "system_settings_pkey"
+          }
+        ]
+      }
+    },
+    "triggers": []
+  },
+  "scope": "new SQL empty-fixture/real Seed/business validation, not R1.0c startup protection",
+  "source_commit": "cecf28115d3d4d6e36b425557e6c6388e754fae8",
+  "sql_only_data": {
+    "ledger": [
+      {
+        "applied_at": 1793327877,
+        "checksum": "5df9a3031d055057d3ee0be23439afd07cf237cd5489e5c53ae0c94843203cf9",
+        "namespace": "core",
+        "version": 1
+      },
+      {
+        "applied_at": 1793327877,
+        "checksum": "50a441fbd38e19ac04a963e6efa1c3b8763e8f8c989ec47e0ce1fdee3bc59deb",
+        "namespace": "module.notes",
+        "version": 1
+      }
+    ],
+    "row_counts": {
+      "audit_logs": 0,
+      "example_notes": 0,
+      "install_state": 0,
+      "schema_migrations": 2,
+      "system_settings": 0
+    }
+  }
+}

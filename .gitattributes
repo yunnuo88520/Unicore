@@ -1,0 +1,7 @@
+# Author: yunnuo <ymz@ebox.vip>
+# Preserve published migration/checksum bytes across checkout platforms.
+migrations/core/**/*.sql -text
+migrations/platform/**/*.sql -text
+migrations/modules/**/*.sql -text
+migrations/metadata.gen.json -text
+migrations/catalogdata/catalog.gen.go -text

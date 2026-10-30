@@ -1,0 +1,7 @@
+PASS sqlite-web-platform 29 tables; all text/composite NULL keys, real Seed and business behavior
+PASS sqlite-web-standalone 5 tables; all text/composite NULL keys, real Seed and business behavior
+PASS sqlite-desktop 5 tables; all text/composite NULL keys, real Seed and business behavior
+PASS postgres-web-platform 29 tables; all text/composite NULL keys, real Seed and business behavior
+PASS postgres-web-standalone 5 tables; all text/composite NULL keys, real Seed and business behavior
+PASS mysql-web-platform 29 tables; all text/composite NULL keys, real Seed and business behavior
+PASS mysql-web-standalone 5 tables; all text/composite NULL keys, real Seed and business behavior

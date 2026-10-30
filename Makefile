@@ -29,6 +29,7 @@ dev-cli:
 generate:
 	node scripts/update-history.mjs
 	pnpm design:generate
+	pnpm generate:migrations
 docs: generate
 	pnpm ai:context
 	pnpm wiki:generate
@@ -41,6 +42,8 @@ test:
 	pnpm check:version
 	node scripts/test-version.mjs
 	pnpm test:tooling
+	pnpm check:migrations
+	pnpm test:migrations
 	node scripts/build-features.mjs
 	pnpm check:docs
 	pnpm check:design

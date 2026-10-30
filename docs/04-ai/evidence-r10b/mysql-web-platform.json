@@ -1,0 +1,4136 @@
+{
+  "all_text_and_composite_pk_null_checks": {
+    "account_tokens.token_hash": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'token_hash' cannot be null"
+    },
+    "administrator_account_tokens.token_hash": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'token_hash' cannot be null"
+    },
+    "administrator_email_challenges.id": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'id' cannot be null"
+    },
+    "administrator_external_identities.identity_hash": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'identity_hash' cannot be null"
+    },
+    "administrator_oidc_flows.state_hash": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'state_hash' cannot be null"
+    },
+    "administrator_roles.role_id": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'role_id' cannot be null"
+    },
+    "administrator_roles.user_id": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'user_id' cannot be null"
+    },
+    "administrator_sessions.token_hash": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'token_hash' cannot be null"
+    },
+    "administrators.id": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'id' cannot be null"
+    },
+    "audit_logs.id": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'id' cannot be null"
+    },
+    "audit_metadata.audit_id": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'audit_id' cannot be null"
+    },
+    "email_challenges.id": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'id' cannot be null"
+    },
+    "example_notes.id": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'id' cannot be null"
+    },
+    "example_notes.scope_key": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'scope_key' cannot be null"
+    },
+    "external_identities.identity_hash": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'identity_hash' cannot be null"
+    },
+    "file_cleanup_jobs.id": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'id' cannot be null"
+    },
+    "file_metadata.id": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'id' cannot be null"
+    },
+    "file_upload_sessions.file_id": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'file_id' cannot be null"
+    },
+    "mail_jobs.id": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'id' cannot be null"
+    },
+    "oidc_flows.state_hash": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'state_hash' cannot be null"
+    },
+    "permissions.id": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'id' cannot be null"
+    },
+    "platform_announcements.id": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'id' cannot be null"
+    },
+    "role_permissions.permission_id": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'permission_id' cannot be null"
+    },
+    "role_permissions.role_id": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'role_id' cannot be null"
+    },
+    "roles.id": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'id' cannot be null"
+    },
+    "schema_migrations.namespace": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'namespace' cannot be null"
+    },
+    "schema_migrations.version": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'version' cannot be null"
+    },
+    "sessions.token_hash": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'token_hash' cannot be null"
+    },
+    "storage_locations.id": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'id' cannot be null"
+    },
+    "system_settings.setting_key": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'setting_key' cannot be null"
+    },
+    "user_roles.role_id": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'role_id' cannot be null"
+    },
+    "user_roles.user_id": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'user_id' cannot be null"
+    },
+    "users.id": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'id' cannot be null"
+    }
+  },
+  "author": "yunnuo \u003cymz@ebox.vip\u003e",
+  "behavior_probes": {
+    "case_variant_emails": {
+      "accepted": false,
+      "error": "Error 1062 (23000): Duplicate entry 'case@example.test' for key 'users.email'"
+    },
+    "case_variant_usernames": {
+      "accepted": false,
+      "error": "Error 1062 (23000): Duplicate entry 'caseprobe' for key 'users.username'"
+    },
+    "dangling_session_fk": {
+      "accepted": false,
+      "error": "Error 1452 (23000): Cannot add or update a child row: a foreign key constraint fails (`r10b_platform`.`sessions`, CONSTRAINT `sessions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`))"
+    },
+    "notes_default_deleted_at": 0,
+    "null_text_primary_key": {
+      "accepted": false,
+      "error": "Error 1048 (23000): Column 'id' cannot be null"
+    },
+    "varchar_64_accepts_65_chars": {
+      "accepted": false,
+      "error": "Error 1406 (22001): Data too long for column 'actor_id' at row 1"
+    }
+  },
+  "business": {
+    "announcements": "PASS authorized create/feed/soft-delete, ordinary-user mutation rejected, audit foreign keys",
+    "files": "PASS actual legacy-brand fallback twice, one metadata row, local blob bytes and upload-session persistence; no cloud network",
+    "identity": "PASS actual Service.Create/Login lower+trim, mixed-case username/email login, duplicate canonical values rejected; raw SQL collation remains dialect-specific",
+    "notes": "PASS create/list/update/conflict/scope/soft-delete/audit; 120-rune title accepted, 121 rejected by Go"
+  },
+  "combination": "mysql-web-platform",
+  "generated_evidence": true,
+  "go_seed": {
+    "duplicate_marker_rejected": true,
+    "duplicate_seed": "actual Seed returns ErrConflict; rollback preserves roles/grants/accounts/audit counts; Seed is install-only, not a successful repeatable installer",
+    "method": "test install transaction using actual settings.Defaults and platformsql.Repository.Seed; no HTTP installer or bootstrap/local.Open",
+    "setting_count": 43,
+    "settings": [
+      "account.email_login_enabled",
+      "account.password_reset_enabled",
+      "account.registration_enabled",
+      "admin.path",
+      "announcements.enabled",
+      "branding.favicon",
+      "branding.logo",
+      "branding.logo_dark",
+      "mail.from",
+      "mail.from_name",
+      "mail.host",
+      "mail.password",
+      "mail.port",
+      "mail.template.login",
+      "mail.template.notification",
+      "mail.template.reset",
+      "mail.template.test",
+      "mail.template.verify",
+      "mail.tls",
+      "mail.username",
+      "oidc.client_id",
+      "oidc.client_secret",
+      "oidc.enabled",
+      "oidc.issuer",
+      "oidc.jit_enabled",
+      "oidc.provider_name",
+      "oidc.scopes",
+      "security.login_captcha",
+      "security.register_captcha",
+      "security.session_hours",
+      "site.copyright",
+      "site.description",
+      "site.icp_number",
+      "site.icp_url",
+      "site.name",
+      "storage.active",
+      "storage.max_size_mb",
+      "storage.parallelism",
+      "storage.part_size_mb",
+      "storage.pending_hours",
+      "storage.retention_days",
+      "storage.upload_ttl",
+      "storage.url_ttl"
+    ]
+  },
+  "install_state_semantics": {
+    "current_allows_second_id": true,
+    "proposed_check_id_one": "PASS explicit id=1 accepted; id=0/2 and duplicate id=1 rejected; TEMPORARY table only, not baseline",
+    "proposed_explicit_length_check": "PASS 64 Unicode characters accepted, 65 rejected by explicit TEXT CHECK; TEMPORARY table only, no baseline length policy change"
+  },
+  "passed": true,
+  "post_seed_data": {
+    "ledger": [
+      {
+        "applied_at": 1793327877,
+        "checksum": "51e4df83a6d6d02dbfb74d594abccb6ac19522f82bf41d483cc2f78a8ce5afa2",
+        "namespace": "core",
+        "version": 1
+      },
+      {
+        "applied_at": 1793327877,
+        "checksum": "fb35e39bae2523afbffe1a6ed05d3cfe2581d7f9264dd3d24a20f546eb30f268",
+        "namespace": "module.notes",
+        "version": 1
+      },
+      {
+        "applied_at": 1793327877,
+        "checksum": "76f4cffb4d9d88a4064e31423ea3635be089c8faf4d0b937aa16ad416970ab3b",
+        "namespace": "platform",
+        "version": 1
+      }
+    ],
+    "permissions": [
+      {
+        "id": "admin:access"
+      },
+      {
+        "id": "administrators:create"
+      },
+      {
+        "id": "administrators:read"
+      },
+      {
+        "id": "administrators:update"
+      },
+      {
+        "id": "announcements:read"
+      },
+      {
+        "id": "announcements:write"
+      },
+      {
+        "id": "logs:read"
+      },
+      {
+        "id": "roles:read"
+      },
+      {
+        "id": "settings:read"
+      },
+      {
+        "id": "settings:write"
+      },
+      {
+        "id": "storage:read"
+      },
+      {
+        "id": "storage:write"
+      },
+      {
+        "id": "updates:apply"
+      },
+      {
+        "id": "updates:read"
+      },
+      {
+        "id": "users:create"
+      },
+      {
+        "id": "users:read"
+      },
+      {
+        "id": "users:update"
+      }
+    ],
+    "role_permissions": [
+      {
+        "permission_id": "admin:access",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "administrators:create",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "administrators:read",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "administrators:update",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "announcements:read",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "announcements:write",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "logs:read",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "roles:read",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "settings:read",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "settings:write",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "storage:read",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "storage:write",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "updates:apply",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "updates:read",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "users:create",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "users:read",
+        "role_id": "super_admin"
+      },
+      {
+        "permission_id": "users:update",
+        "role_id": "super_admin"
+      }
+    ],
+    "roles": [
+      {
+        "id": "super_admin",
+        "name": "super_admin"
+      },
+      {
+        "id": "user",
+        "name": "user"
+      }
+    ],
+    "row_counts": {
+      "account_tokens": 0,
+      "administrator_account_tokens": 0,
+      "administrator_email_challenges": 0,
+      "administrator_external_identities": 0,
+      "administrator_oidc_flows": 0,
+      "administrator_roles": 1,
+      "administrator_sessions": 0,
+      "administrators": 1,
+      "audit_logs": 2,
+      "audit_metadata": 1,
+      "email_challenges": 0,
+      "example_notes": 0,
+      "external_identities": 0,
+      "file_cleanup_jobs": 0,
+      "file_metadata": 0,
+      "file_upload_sessions": 0,
+      "install_state": 1,
+      "mail_jobs": 0,
+      "oidc_flows": 0,
+      "permissions": 17,
+      "platform_announcements": 0,
+      "role_permissions": 17,
+      "roles": 2,
+      "schema_migrations": 3,
+      "sessions": 0,
+      "storage_locations": 2,
+      "system_settings": 43,
+      "user_roles": 0,
+      "users": 0
+    },
+    "storage_locations": [
+      {
+        "bucket": "",
+        "created_at": 0,
+        "credentials": "",
+        "endpoint": "",
+        "id": "legacy-brand",
+        "name": "历史品牌文件",
+        "path_style": 1,
+        "prefix": "",
+        "provider": "local",
+        "region": "",
+        "tested": 1
+      },
+      {
+        "bucket": "",
+        "created_at": 0,
+        "credentials": "",
+        "endpoint": "",
+        "id": "local",
+        "name": "本地存储",
+        "path_style": 1,
+        "prefix": "",
+        "provider": "local",
+        "region": "",
+        "tested": 1
+      }
+    ]
+  },
+  "schema": {
+    "other_objects": [],
+    "server": [
+      {
+        "charset": "utf8mb4",
+        "collation": "utf8mb4_0900_ai_ci",
+        "database_name": "r10b_platform",
+        "sql_mode": "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION",
+        "version": "8.0.45"
+      }
+    ],
+    "tables": {
+      "account_tokens": {
+        "columns": [
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "token_hash",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "MUL",
+            "default_expression": null,
+            "extra": "",
+            "name": "user_id",
+            "nullable": "NO",
+            "ordinal": 2,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "purpose",
+            "nullable": "NO",
+            "ordinal": 3,
+            "type": "varchar(16)"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "expires_at",
+            "nullable": "NO",
+            "ordinal": 4,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "account_tokens_ibfk_1",
+            "type": "FOREIGN KEY"
+          },
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `account_tokens` (\n  `token_hash` varchar(64) NOT NULL,\n  `user_id` varchar(64) NOT NULL,\n  `purpose` varchar(16) NOT NULL,\n  `expires_at` bigint NOT NULL,\n  PRIMARY KEY (`token_hash`),\n  KEY `user_id` (`user_id`),\n  CONSTRAINT `account_tokens_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
+            "Table": "account_tokens"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "column_name": "user_id",
+            "delete_rule": "NO ACTION",
+            "name": "account_tokens_ibfk_1",
+            "referenced_column": "id",
+            "referenced_table": "users",
+            "update_rule": "NO ACTION"
+          }
+        ],
+        "indexes": [
+          {
+            "column_name": "token_hash",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "user_id",
+            "expression": null,
+            "name": "user_id",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_0900_ai_ci"
+          }
+        ]
+      },
+      "administrator_account_tokens": {
+        "columns": [
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "token_hash",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "MUL",
+            "default_expression": null,
+            "extra": "",
+            "name": "user_id",
+            "nullable": "NO",
+            "ordinal": 2,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "purpose",
+            "nullable": "NO",
+            "ordinal": 3,
+            "type": "varchar(16)"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "expires_at",
+            "nullable": "NO",
+            "ordinal": 4,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "administrator_account_tokens_ibfk_1",
+            "type": "FOREIGN KEY"
+          },
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `administrator_account_tokens` (\n  `token_hash` varchar(64) NOT NULL,\n  `user_id` varchar(64) NOT NULL,\n  `purpose` varchar(16) NOT NULL,\n  `expires_at` bigint NOT NULL,\n  PRIMARY KEY (`token_hash`),\n  KEY `user_id` (`user_id`),\n  CONSTRAINT `administrator_account_tokens_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `administrators` (`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
+            "Table": "administrator_account_tokens"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "column_name": "user_id",
+            "delete_rule": "NO ACTION",
+            "name": "administrator_account_tokens_ibfk_1",
+            "referenced_column": "id",
+            "referenced_table": "administrators",
+            "update_rule": "NO ACTION"
+          }
+        ],
+        "indexes": [
+          {
+            "column_name": "token_hash",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "user_id",
+            "expression": null,
+            "name": "user_id",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_0900_ai_ci"
+          }
+        ]
+      },
+      "administrator_email_challenges": {
+        "columns": [
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "id",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "MUL",
+            "default_expression": null,
+            "extra": "",
+            "name": "user_id",
+            "nullable": "NO",
+            "ordinal": 2,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "purpose",
+            "nullable": "NO",
+            "ordinal": 3,
+            "type": "varchar(16)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "code_digest",
+            "nullable": "NO",
+            "ordinal": 4,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "expires_at",
+            "nullable": "NO",
+            "ordinal": 5,
+            "type": "bigint"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "created_at",
+            "nullable": "NO",
+            "ordinal": 6,
+            "type": "bigint"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "attempts",
+            "nullable": "NO",
+            "ordinal": 7,
+            "type": "int"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "administrator_email_challenges_ibfk_1",
+            "type": "FOREIGN KEY"
+          },
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `administrator_email_challenges` (\n  `id` varchar(64) NOT NULL,\n  `user_id` varchar(64) NOT NULL,\n  `purpose` varchar(16) NOT NULL,\n  `code_digest` varchar(64) NOT NULL,\n  `expires_at` bigint NOT NULL,\n  `created_at` bigint NOT NULL,\n  `attempts` int NOT NULL,\n  PRIMARY KEY (`id`),\n  KEY `user_id` (`user_id`),\n  CONSTRAINT `administrator_email_challenges_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `administrators` (`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
+            "Table": "administrator_email_challenges"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "column_name": "user_id",
+            "delete_rule": "NO ACTION",
+            "name": "administrator_email_challenges_ibfk_1",
+            "referenced_column": "id",
+            "referenced_table": "administrators",
+            "update_rule": "NO ACTION"
+          }
+        ],
+        "indexes": [
+          {
+            "column_name": "id",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "user_id",
+            "expression": null,
+            "name": "user_id",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_0900_ai_ci"
+          }
+        ]
+      },
+      "administrator_external_identities": {
+        "columns": [
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "identity_hash",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "UNI",
+            "default_expression": null,
+            "extra": "",
+            "name": "user_id",
+            "nullable": "NO",
+            "ordinal": 2,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "issuer",
+            "nullable": "NO",
+            "ordinal": 3,
+            "type": "text"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "subject",
+            "nullable": "NO",
+            "ordinal": 4,
+            "type": "text"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "created_at",
+            "nullable": "NO",
+            "ordinal": 5,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "administrator_external_identities_ibfk_1",
+            "type": "FOREIGN KEY"
+          },
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          },
+          {
+            "name": "user_id",
+            "type": "UNIQUE"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `administrator_external_identities` (\n  `identity_hash` varchar(64) NOT NULL,\n  `user_id` varchar(64) NOT NULL,\n  `issuer` text NOT NULL,\n  `subject` text NOT NULL,\n  `created_at` bigint NOT NULL,\n  PRIMARY KEY (`identity_hash`),\n  UNIQUE KEY `user_id` (`user_id`),\n  CONSTRAINT `administrator_external_identities_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `administrators` (`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
+            "Table": "administrator_external_identities"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "column_name": "user_id",
+            "delete_rule": "NO ACTION",
+            "name": "administrator_external_identities_ibfk_1",
+            "referenced_column": "id",
+            "referenced_table": "administrators",
+            "update_rule": "NO ACTION"
+          }
+        ],
+        "indexes": [
+          {
+            "column_name": "identity_hash",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "user_id",
+            "expression": null,
+            "name": "user_id",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_0900_ai_ci"
+          }
+        ]
+      },
+      "administrator_oidc_flows": {
+        "columns": [
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "state_hash",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "browser_hash",
+            "nullable": "NO",
+            "ordinal": 2,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "sealed_payload",
+            "nullable": "NO",
+            "ordinal": 3,
+            "type": "text"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "expires_at",
+            "nullable": "NO",
+            "ordinal": 4,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `administrator_oidc_flows` (\n  `state_hash` varchar(64) NOT NULL,\n  `browser_hash` varchar(64) NOT NULL,\n  `sealed_payload` text NOT NULL,\n  `expires_at` bigint NOT NULL,\n  PRIMARY KEY (`state_hash`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
+            "Table": "administrator_oidc_flows"
+          }
+        ],
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "column_name": "state_hash",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_0900_ai_ci"
+          }
+        ]
+      },
+      "administrator_roles": {
+        "columns": [
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "user_id",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "role_id",
+            "nullable": "NO",
+            "ordinal": 2,
+            "type": "varchar(64)"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "administrator_roles_ibfk_1",
+            "type": "FOREIGN KEY"
+          },
+          {
+            "name": "administrator_roles_ibfk_2",
+            "type": "FOREIGN KEY"
+          },
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `administrator_roles` (\n  `user_id` varchar(64) NOT NULL,\n  `role_id` varchar(64) NOT NULL,\n  PRIMARY KEY (`user_id`,`role_id`),\n  KEY `role_id` (`role_id`),\n  CONSTRAINT `administrator_roles_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `administrators` (`id`),\n  CONSTRAINT `administrator_roles_ibfk_2` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
+            "Table": "administrator_roles"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "column_name": "user_id",
+            "delete_rule": "NO ACTION",
+            "name": "administrator_roles_ibfk_1",
+            "referenced_column": "id",
+            "referenced_table": "administrators",
+            "update_rule": "NO ACTION"
+          },
+          {
+            "column_name": "role_id",
+            "delete_rule": "NO ACTION",
+            "name": "administrator_roles_ibfk_2",
+            "referenced_column": "id",
+            "referenced_table": "roles",
+            "update_rule": "NO ACTION"
+          }
+        ],
+        "indexes": [
+          {
+            "column_name": "user_id",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "role_id",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 2,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "role_id",
+            "expression": null,
+            "name": "role_id",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_0900_ai_ci"
+          }
+        ]
+      },
+      "administrator_sessions": {
+        "columns": [
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "token_hash",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "MUL",
+            "default_expression": null,
+            "extra": "",
+            "name": "user_id",
+            "nullable": "NO",
+            "ordinal": 2,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "expires_at",
+            "nullable": "NO",
+            "ordinal": 3,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "administrator_sessions_ibfk_1",
+            "type": "FOREIGN KEY"
+          },
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `administrator_sessions` (\n  `token_hash` varchar(64) NOT NULL,\n  `user_id` varchar(64) NOT NULL,\n  `expires_at` bigint NOT NULL,\n  PRIMARY KEY (`token_hash`),\n  KEY `user_id` (`user_id`),\n  CONSTRAINT `administrator_sessions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `administrators` (`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
+            "Table": "administrator_sessions"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "column_name": "user_id",
+            "delete_rule": "NO ACTION",
+            "name": "administrator_sessions_ibfk_1",
+            "referenced_column": "id",
+            "referenced_table": "administrators",
+            "update_rule": "NO ACTION"
+          }
+        ],
+        "indexes": [
+          {
+            "column_name": "token_hash",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "user_id",
+            "expression": null,
+            "name": "user_id",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_0900_ai_ci"
+          }
+        ]
+      },
+      "administrators": {
+        "columns": [
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "id",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "UNI",
+            "default_expression": null,
+            "extra": "",
+            "name": "username",
+            "nullable": "NO",
+            "ordinal": 2,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "UNI",
+            "default_expression": null,
+            "extra": "",
+            "name": "email",
+            "nullable": "NO",
+            "ordinal": 3,
+            "type": "varchar(254)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "password_hash",
+            "nullable": "NO",
+            "ordinal": 4,
+            "type": "text"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "status",
+            "nullable": "NO",
+            "ordinal": 5,
+            "type": "varchar(16)"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "created_at",
+            "nullable": "NO",
+            "ordinal": 6,
+            "type": "bigint"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "updated_at",
+            "nullable": "NO",
+            "ordinal": 7,
+            "type": "bigint"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "last_login_at",
+            "nullable": "NO",
+            "ordinal": 8,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "email",
+            "type": "UNIQUE"
+          },
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          },
+          {
+            "name": "username",
+            "type": "UNIQUE"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `administrators` (\n  `id` varchar(64) NOT NULL,\n  `username` varchar(64) NOT NULL,\n  `email` varchar(254) NOT NULL,\n  `password_hash` text NOT NULL,\n  `status` varchar(16) NOT NULL,\n  `created_at` bigint NOT NULL,\n  `updated_at` bigint NOT NULL,\n  `last_login_at` bigint NOT NULL,\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `username` (`username`),\n  UNIQUE KEY `email` (`email`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
+            "Table": "administrators"
+          }
+        ],
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "column_name": "email",
+            "expression": null,
+            "name": "email",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "id",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "username",
+            "expression": null,
+            "name": "username",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_0900_ai_ci"
+          }
+        ]
+      },
+      "audit_logs": {
+        "columns": [
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "id",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "actor_id",
+            "nullable": "NO",
+            "ordinal": 2,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "action",
+            "nullable": "NO",
+            "ordinal": 3,
+            "type": "varchar(128)"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "created_at",
+            "nullable": "NO",
+            "ordinal": 4,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `audit_logs` (\n  `id` varchar(64) NOT NULL,\n  `actor_id` varchar(64) NOT NULL,\n  `action` varchar(128) NOT NULL,\n  `created_at` bigint NOT NULL,\n  PRIMARY KEY (`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
+            "Table": "audit_logs"
+          }
+        ],
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "column_name": "id",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_0900_ai_ci"
+          }
+        ]
+      },
+      "audit_metadata": {
+        "columns": [
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "audit_id",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "actor_name",
+            "nullable": "NO",
+            "ordinal": 2,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "realm",
+            "nullable": "NO",
+            "ordinal": 3,
+            "type": "varchar(32)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "target",
+            "nullable": "NO",
+            "ordinal": 4,
+            "type": "varchar(256)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "detail",
+            "nullable": "NO",
+            "ordinal": 5,
+            "type": "varchar(512)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "ip_address",
+            "nullable": "NO",
+            "ordinal": 6,
+            "type": "varchar(64)"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "audit_metadata_ibfk_1",
+            "type": "FOREIGN KEY"
+          },
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `audit_metadata` (\n  `audit_id` varchar(64) NOT NULL,\n  `actor_name` varchar(64) NOT NULL,\n  `realm` varchar(32) NOT NULL,\n  `target` varchar(256) NOT NULL,\n  `detail` varchar(512) NOT NULL,\n  `ip_address` varchar(64) NOT NULL,\n  PRIMARY KEY (`audit_id`),\n  CONSTRAINT `audit_metadata_ibfk_1` FOREIGN KEY (`audit_id`) REFERENCES `audit_logs` (`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
+            "Table": "audit_metadata"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "column_name": "audit_id",
+            "delete_rule": "NO ACTION",
+            "name": "audit_metadata_ibfk_1",
+            "referenced_column": "id",
+            "referenced_table": "audit_logs",
+            "update_rule": "NO ACTION"
+          }
+        ],
+        "indexes": [
+          {
+            "column_name": "audit_id",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_0900_ai_ci"
+          }
+        ]
+      },
+      "email_challenges": {
+        "columns": [
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "id",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "MUL",
+            "default_expression": null,
+            "extra": "",
+            "name": "user_id",
+            "nullable": "NO",
+            "ordinal": 2,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "purpose",
+            "nullable": "NO",
+            "ordinal": 3,
+            "type": "varchar(16)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "code_digest",
+            "nullable": "NO",
+            "ordinal": 4,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "expires_at",
+            "nullable": "NO",
+            "ordinal": 5,
+            "type": "bigint"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "created_at",
+            "nullable": "NO",
+            "ordinal": 6,
+            "type": "bigint"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "attempts",
+            "nullable": "NO",
+            "ordinal": 7,
+            "type": "int"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "email_challenges_ibfk_1",
+            "type": "FOREIGN KEY"
+          },
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `email_challenges` (\n  `id` varchar(64) NOT NULL,\n  `user_id` varchar(64) NOT NULL,\n  `purpose` varchar(16) NOT NULL,\n  `code_digest` varchar(64) NOT NULL,\n  `expires_at` bigint NOT NULL,\n  `created_at` bigint NOT NULL,\n  `attempts` int NOT NULL,\n  PRIMARY KEY (`id`),\n  KEY `user_id` (`user_id`),\n  CONSTRAINT `email_challenges_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
+            "Table": "email_challenges"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "column_name": "user_id",
+            "delete_rule": "NO ACTION",
+            "name": "email_challenges_ibfk_1",
+            "referenced_column": "id",
+            "referenced_table": "users",
+            "update_rule": "NO ACTION"
+          }
+        ],
+        "indexes": [
+          {
+            "column_name": "id",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "user_id",
+            "expression": null,
+            "name": "user_id",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_0900_ai_ci"
+          }
+        ]
+      },
+      "example_notes": {
+        "columns": [
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "scope_key",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "varchar(96)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "id",
+            "nullable": "NO",
+            "ordinal": 2,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "title",
+            "nullable": "NO",
+            "ordinal": 3,
+            "type": "varchar(120)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "body",
+            "nullable": "NO",
+            "ordinal": 4,
+            "type": "text"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "status",
+            "nullable": "NO",
+            "ordinal": 5,
+            "type": "varchar(16)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "attachment_ids",
+            "nullable": "NO",
+            "ordinal": 6,
+            "type": "text"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "version",
+            "nullable": "NO",
+            "ordinal": 7,
+            "type": "int"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "created_at",
+            "nullable": "NO",
+            "ordinal": 8,
+            "type": "bigint"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "updated_at",
+            "nullable": "NO",
+            "ordinal": 9,
+            "type": "bigint"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": "0",
+            "extra": "",
+            "name": "deleted_at",
+            "nullable": "NO",
+            "ordinal": 10,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `example_notes` (\n  `scope_key` varchar(96) NOT NULL,\n  `id` varchar(64) NOT NULL,\n  `title` varchar(120) NOT NULL,\n  `body` text NOT NULL,\n  `status` varchar(16) NOT NULL,\n  `attachment_ids` text NOT NULL,\n  `version` int NOT NULL,\n  `created_at` bigint NOT NULL,\n  `updated_at` bigint NOT NULL,\n  `deleted_at` bigint NOT NULL DEFAULT '0',\n  PRIMARY KEY (`scope_key`,`id`),\n  KEY `example_notes_owner_updated` (`scope_key`,`updated_at`,`id`),\n  KEY `idx_notes_active` (`scope_key`,`deleted_at`,`updated_at`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
+            "Table": "example_notes"
+          }
+        ],
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "column_name": "scope_key",
+            "expression": null,
+            "name": "example_notes_owner_updated",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "updated_at",
+            "expression": null,
+            "name": "example_notes_owner_updated",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 2,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "id",
+            "expression": null,
+            "name": "example_notes_owner_updated",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 3,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "scope_key",
+            "expression": null,
+            "name": "idx_notes_active",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "deleted_at",
+            "expression": null,
+            "name": "idx_notes_active",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 2,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "updated_at",
+            "expression": null,
+            "name": "idx_notes_active",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 3,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "scope_key",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "id",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 2,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_0900_ai_ci"
+          }
+        ]
+      },
+      "external_identities": {
+        "columns": [
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "identity_hash",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "UNI",
+            "default_expression": null,
+            "extra": "",
+            "name": "user_id",
+            "nullable": "NO",
+            "ordinal": 2,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "issuer",
+            "nullable": "NO",
+            "ordinal": 3,
+            "type": "text"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "subject",
+            "nullable": "NO",
+            "ordinal": 4,
+            "type": "text"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "created_at",
+            "nullable": "NO",
+            "ordinal": 5,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "external_identities_ibfk_1",
+            "type": "FOREIGN KEY"
+          },
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          },
+          {
+            "name": "user_id",
+            "type": "UNIQUE"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `external_identities` (\n  `identity_hash` varchar(64) NOT NULL,\n  `user_id` varchar(64) NOT NULL,\n  `issuer` text NOT NULL,\n  `subject` text NOT NULL,\n  `created_at` bigint NOT NULL,\n  PRIMARY KEY (`identity_hash`),\n  UNIQUE KEY `user_id` (`user_id`),\n  CONSTRAINT `external_identities_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
+            "Table": "external_identities"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "column_name": "user_id",
+            "delete_rule": "NO ACTION",
+            "name": "external_identities_ibfk_1",
+            "referenced_column": "id",
+            "referenced_table": "users",
+            "update_rule": "NO ACTION"
+          }
+        ],
+        "indexes": [
+          {
+            "column_name": "identity_hash",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "user_id",
+            "expression": null,
+            "name": "user_id",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_0900_ai_ci"
+          }
+        ]
+      },
+      "file_cleanup_jobs": {
+        "columns": [
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "id",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "varchar(80)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "MUL",
+            "default_expression": null,
+            "extra": "",
+            "name": "location_id",
+            "nullable": "NO",
+            "ordinal": 2,
+            "type": "varchar(80)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "file_key",
+            "nullable": "NO",
+            "ordinal": 3,
+            "type": "varchar(1024)"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "MUL",
+            "default_expression": null,
+            "extra": "",
+            "name": "due_at",
+            "nullable": "NO",
+            "ordinal": 4,
+            "type": "bigint"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "attempts",
+            "nullable": "NO",
+            "ordinal": 5,
+            "type": "int"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "last_error",
+            "nullable": "NO",
+            "ordinal": 6,
+            "type": "varchar(64)"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "file_cleanup_jobs_ibfk_1",
+            "type": "FOREIGN KEY"
+          },
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `file_cleanup_jobs` (\n  `id` varchar(80) NOT NULL,\n  `location_id` varchar(80) NOT NULL,\n  `file_key` varchar(1024) NOT NULL,\n  `due_at` bigint NOT NULL,\n  `attempts` int NOT NULL,\n  `last_error` varchar(64) NOT NULL,\n  PRIMARY KEY (`id`),\n  KEY `file_cleanup_due` (`due_at`),\n  KEY `location_id` (`location_id`),\n  CONSTRAINT `file_cleanup_jobs_ibfk_1` FOREIGN KEY (`location_id`) REFERENCES `storage_locations` (`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
+            "Table": "file_cleanup_jobs"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "column_name": "location_id",
+            "delete_rule": "NO ACTION",
+            "name": "file_cleanup_jobs_ibfk_1",
+            "referenced_column": "id",
+            "referenced_table": "storage_locations",
+            "update_rule": "NO ACTION"
+          }
+        ],
+        "indexes": [
+          {
+            "column_name": "due_at",
+            "expression": null,
+            "name": "file_cleanup_due",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "location_id",
+            "expression": null,
+            "name": "location_id",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "id",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_0900_ai_ci"
+          }
+        ]
+      },
+      "file_metadata": {
+        "columns": [
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "id",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "varchar(80)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "original_name",
+            "nullable": "NO",
+            "ordinal": 2,
+            "type": "varchar(255)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "storage_type",
+            "nullable": "NO",
+            "ordinal": 3,
+            "type": "varchar(16)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "MUL",
+            "default_expression": null,
+            "extra": "",
+            "name": "location_id",
+            "nullable": "NO",
+            "ordinal": 4,
+            "type": "varchar(80)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "file_key",
+            "nullable": "NO",
+            "ordinal": 5,
+            "type": "varchar(1024)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "staging_key",
+            "nullable": "NO",
+            "ordinal": 6,
+            "type": "varchar(1024)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "mime_type",
+            "nullable": "NO",
+            "ordinal": 7,
+            "type": "varchar(160)"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "size",
+            "nullable": "NO",
+            "ordinal": 8,
+            "type": "bigint"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "etag",
+            "nullable": "NO",
+            "ordinal": 9,
+            "type": "varchar(200)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "MUL",
+            "default_expression": null,
+            "extra": "",
+            "name": "state",
+            "nullable": "NO",
+            "ordinal": 10,
+            "type": "varchar(16)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "MUL",
+            "default_expression": null,
+            "extra": "",
+            "name": "purpose",
+            "nullable": "NO",
+            "ordinal": 11,
+            "type": "varchar(16)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "creator_id",
+            "nullable": "NO",
+            "ordinal": 12,
+            "type": "varchar(80)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "creator_realm",
+            "nullable": "NO",
+            "ordinal": 13,
+            "type": "varchar(24)"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "created_at",
+            "nullable": "NO",
+            "ordinal": 14,
+            "type": "bigint"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "MUL",
+            "default_expression": null,
+            "extra": "",
+            "name": "expires_at",
+            "nullable": "NO",
+            "ordinal": 15,
+            "type": "bigint"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "upload_expires_at",
+            "nullable": "NO",
+            "ordinal": 16,
+            "type": "bigint"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "cleanup_at",
+            "nullable": "NO",
+            "ordinal": 17,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "file_metadata_ibfk_1",
+            "type": "FOREIGN KEY"
+          },
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `file_metadata` (\n  `id` varchar(80) NOT NULL,\n  `original_name` varchar(255) NOT NULL,\n  `storage_type` varchar(16) NOT NULL,\n  `location_id` varchar(80) NOT NULL,\n  `file_key` varchar(1024) NOT NULL,\n  `staging_key` varchar(1024) NOT NULL,\n  `mime_type` varchar(160) NOT NULL,\n  `size` bigint NOT NULL,\n  `etag` varchar(200) NOT NULL,\n  `state` varchar(16) NOT NULL,\n  `purpose` varchar(16) NOT NULL,\n  `creator_id` varchar(80) NOT NULL,\n  `creator_realm` varchar(24) NOT NULL,\n  `created_at` bigint NOT NULL,\n  `expires_at` bigint NOT NULL,\n  `upload_expires_at` bigint NOT NULL,\n  `cleanup_at` bigint NOT NULL,\n  PRIMARY KEY (`id`),\n  KEY `file_owner_created` (`purpose`,`creator_realm`,`creator_id`,`created_at`,`id`),\n  KEY `file_created` (`purpose`,`created_at`,`id`),\n  KEY `file_location_state` (`location_id`,`state`),\n  KEY `file_pending_cleanup` (`state`,`cleanup_at`),\n  KEY `file_expiry` (`expires_at`),\n  CONSTRAINT `file_metadata_ibfk_1` FOREIGN KEY (`location_id`) REFERENCES `storage_locations` (`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
+            "Table": "file_metadata"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "column_name": "location_id",
+            "delete_rule": "NO ACTION",
+            "name": "file_metadata_ibfk_1",
+            "referenced_column": "id",
+            "referenced_table": "storage_locations",
+            "update_rule": "NO ACTION"
+          }
+        ],
+        "indexes": [
+          {
+            "column_name": "purpose",
+            "expression": null,
+            "name": "file_created",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "created_at",
+            "expression": null,
+            "name": "file_created",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 2,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "id",
+            "expression": null,
+            "name": "file_created",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 3,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "expires_at",
+            "expression": null,
+            "name": "file_expiry",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "location_id",
+            "expression": null,
+            "name": "file_location_state",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "state",
+            "expression": null,
+            "name": "file_location_state",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 2,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "purpose",
+            "expression": null,
+            "name": "file_owner_created",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "creator_realm",
+            "expression": null,
+            "name": "file_owner_created",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 2,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "creator_id",
+            "expression": null,
+            "name": "file_owner_created",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 3,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "created_at",
+            "expression": null,
+            "name": "file_owner_created",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 4,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "id",
+            "expression": null,
+            "name": "file_owner_created",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 5,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "state",
+            "expression": null,
+            "name": "file_pending_cleanup",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "cleanup_at",
+            "expression": null,
+            "name": "file_pending_cleanup",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 2,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "id",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_0900_ai_ci"
+          }
+        ]
+      },
+      "file_upload_sessions": {
+        "columns": [
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "file_id",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "varchar(80)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "upload_id",
+            "nullable": "NO",
+            "ordinal": 2,
+            "type": "text"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "fingerprint",
+            "nullable": "NO",
+            "ordinal": 3,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "part_size",
+            "nullable": "NO",
+            "ordinal": 4,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "file_upload_sessions_ibfk_1",
+            "type": "FOREIGN KEY"
+          },
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `file_upload_sessions` (\n  `file_id` varchar(80) NOT NULL,\n  `upload_id` text NOT NULL,\n  `fingerprint` varchar(64) NOT NULL,\n  `part_size` bigint NOT NULL,\n  PRIMARY KEY (`file_id`),\n  CONSTRAINT `file_upload_sessions_ibfk_1` FOREIGN KEY (`file_id`) REFERENCES `file_metadata` (`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
+            "Table": "file_upload_sessions"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "column_name": "file_id",
+            "delete_rule": "NO ACTION",
+            "name": "file_upload_sessions_ibfk_1",
+            "referenced_column": "id",
+            "referenced_table": "file_metadata",
+            "update_rule": "NO ACTION"
+          }
+        ],
+        "indexes": [
+          {
+            "column_name": "file_id",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_0900_ai_ci"
+          }
+        ]
+      },
+      "install_state": {
+        "columns": [
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "id",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "int"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "profile",
+            "nullable": "NO",
+            "ordinal": 2,
+            "type": "varchar(32)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "instance_id",
+            "nullable": "NO",
+            "ordinal": 3,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "installed_at",
+            "nullable": "NO",
+            "ordinal": 4,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `install_state` (\n  `id` int NOT NULL,\n  `profile` varchar(32) NOT NULL,\n  `instance_id` varchar(64) NOT NULL,\n  `installed_at` bigint NOT NULL,\n  PRIMARY KEY (`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
+            "Table": "install_state"
+          }
+        ],
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "column_name": "id",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_0900_ai_ci"
+          }
+        ]
+      },
+      "mail_jobs": {
+        "columns": [
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "id",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "token_hash",
+            "nullable": "NO",
+            "ordinal": 2,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "payload",
+            "nullable": "NO",
+            "ordinal": 3,
+            "type": "text"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "state",
+            "nullable": "NO",
+            "ordinal": 4,
+            "type": "varchar(16)"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "attempts",
+            "nullable": "NO",
+            "ordinal": 5,
+            "type": "int"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "created_at",
+            "nullable": "NO",
+            "ordinal": 6,
+            "type": "bigint"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "available_at",
+            "nullable": "NO",
+            "ordinal": 7,
+            "type": "bigint"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "expires_at",
+            "nullable": "NO",
+            "ordinal": 8,
+            "type": "bigint"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "lease_id",
+            "nullable": "NO",
+            "ordinal": 9,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "lease_until",
+            "nullable": "NO",
+            "ordinal": 10,
+            "type": "bigint"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "last_error",
+            "nullable": "NO",
+            "ordinal": 11,
+            "type": "varchar(32)"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `mail_jobs` (\n  `id` varchar(64) NOT NULL,\n  `token_hash` varchar(64) NOT NULL,\n  `payload` text NOT NULL,\n  `state` varchar(16) NOT NULL,\n  `attempts` int NOT NULL,\n  `created_at` bigint NOT NULL,\n  `available_at` bigint NOT NULL,\n  `expires_at` bigint NOT NULL,\n  `lease_id` varchar(64) NOT NULL,\n  `lease_until` bigint NOT NULL,\n  `last_error` varchar(32) NOT NULL,\n  PRIMARY KEY (`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
+            "Table": "mail_jobs"
+          }
+        ],
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "column_name": "id",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_0900_ai_ci"
+          }
+        ]
+      },
+      "oidc_flows": {
+        "columns": [
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "state_hash",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "browser_hash",
+            "nullable": "NO",
+            "ordinal": 2,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "sealed_payload",
+            "nullable": "NO",
+            "ordinal": 3,
+            "type": "text"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "expires_at",
+            "nullable": "NO",
+            "ordinal": 4,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `oidc_flows` (\n  `state_hash` varchar(64) NOT NULL,\n  `browser_hash` varchar(64) NOT NULL,\n  `sealed_payload` text NOT NULL,\n  `expires_at` bigint NOT NULL,\n  PRIMARY KEY (`state_hash`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
+            "Table": "oidc_flows"
+          }
+        ],
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "column_name": "state_hash",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_0900_ai_ci"
+          }
+        ]
+      },
+      "permissions": {
+        "columns": [
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "id",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "varchar(128)"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `permissions` (\n  `id` varchar(128) NOT NULL,\n  PRIMARY KEY (`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
+            "Table": "permissions"
+          }
+        ],
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "column_name": "id",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_0900_ai_ci"
+          }
+        ]
+      },
+      "platform_announcements": {
+        "columns": [
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "id",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "content",
+            "nullable": "NO",
+            "ordinal": 2,
+            "type": "text"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "content_html",
+            "nullable": "NO",
+            "ordinal": 3,
+            "type": "text"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "format",
+            "nullable": "NO",
+            "ordinal": 4,
+            "type": "varchar(16)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "type",
+            "nullable": "NO",
+            "ordinal": 5,
+            "type": "varchar(16)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "note",
+            "nullable": "NO",
+            "ordinal": 6,
+            "type": "varchar(400)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "status",
+            "nullable": "NO",
+            "ordinal": 7,
+            "type": "varchar(16)"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "publish_at",
+            "nullable": "NO",
+            "ordinal": 8,
+            "type": "bigint"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "created_by",
+            "nullable": "NO",
+            "ordinal": 9,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "updated_by",
+            "nullable": "NO",
+            "ordinal": 10,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "created_at",
+            "nullable": "NO",
+            "ordinal": 11,
+            "type": "bigint"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "updated_at",
+            "nullable": "NO",
+            "ordinal": 12,
+            "type": "bigint"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "MUL",
+            "default_expression": "0",
+            "extra": "",
+            "name": "deleted_at",
+            "nullable": "NO",
+            "ordinal": 13,
+            "type": "bigint"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": "1",
+            "extra": "",
+            "name": "version",
+            "nullable": "NO",
+            "ordinal": 14,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `platform_announcements` (\n  `id` varchar(64) NOT NULL,\n  `content` text NOT NULL,\n  `content_html` text NOT NULL,\n  `format` varchar(16) NOT NULL,\n  `type` varchar(16) NOT NULL,\n  `note` varchar(400) NOT NULL,\n  `status` varchar(16) NOT NULL,\n  `publish_at` bigint NOT NULL,\n  `created_by` varchar(64) NOT NULL,\n  `updated_by` varchar(64) NOT NULL,\n  `created_at` bigint NOT NULL,\n  `updated_at` bigint NOT NULL,\n  `deleted_at` bigint NOT NULL DEFAULT '0',\n  `version` bigint NOT NULL DEFAULT '1',\n  PRIMARY KEY (`id`),\n  KEY `idx_announcements_feed` (`deleted_at`,`status`,`publish_at`,`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
+            "Table": "platform_announcements"
+          }
+        ],
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "column_name": "deleted_at",
+            "expression": null,
+            "name": "idx_announcements_feed",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "status",
+            "expression": null,
+            "name": "idx_announcements_feed",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 2,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "publish_at",
+            "expression": null,
+            "name": "idx_announcements_feed",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 3,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "id",
+            "expression": null,
+            "name": "idx_announcements_feed",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 4,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "id",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_0900_ai_ci"
+          }
+        ]
+      },
+      "role_permissions": {
+        "columns": [
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "role_id",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "permission_id",
+            "nullable": "NO",
+            "ordinal": 2,
+            "type": "varchar(128)"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          },
+          {
+            "name": "role_permissions_ibfk_1",
+            "type": "FOREIGN KEY"
+          },
+          {
+            "name": "role_permissions_ibfk_2",
+            "type": "FOREIGN KEY"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `role_permissions` (\n  `role_id` varchar(64) NOT NULL,\n  `permission_id` varchar(128) NOT NULL,\n  PRIMARY KEY (`role_id`,`permission_id`),\n  KEY `permission_id` (`permission_id`),\n  CONSTRAINT `role_permissions_ibfk_1` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`),\n  CONSTRAINT `role_permissions_ibfk_2` FOREIGN KEY (`permission_id`) REFERENCES `permissions` (`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
+            "Table": "role_permissions"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "column_name": "role_id",
+            "delete_rule": "NO ACTION",
+            "name": "role_permissions_ibfk_1",
+            "referenced_column": "id",
+            "referenced_table": "roles",
+            "update_rule": "NO ACTION"
+          },
+          {
+            "column_name": "permission_id",
+            "delete_rule": "NO ACTION",
+            "name": "role_permissions_ibfk_2",
+            "referenced_column": "id",
+            "referenced_table": "permissions",
+            "update_rule": "NO ACTION"
+          }
+        ],
+        "indexes": [
+          {
+            "column_name": "permission_id",
+            "expression": null,
+            "name": "permission_id",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "role_id",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "permission_id",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 2,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_0900_ai_ci"
+          }
+        ]
+      },
+      "roles": {
+        "columns": [
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "id",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "UNI",
+            "default_expression": null,
+            "extra": "",
+            "name": "name",
+            "nullable": "NO",
+            "ordinal": 2,
+            "type": "varchar(64)"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "name",
+            "type": "UNIQUE"
+          },
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `roles` (\n  `id` varchar(64) NOT NULL,\n  `name` varchar(64) NOT NULL,\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `name` (`name`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
+            "Table": "roles"
+          }
+        ],
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "column_name": "name",
+            "expression": null,
+            "name": "name",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "id",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_0900_ai_ci"
+          }
+        ]
+      },
+      "schema_migrations": {
+        "columns": [
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_bin",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "namespace",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "varchar(96)"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "version",
+            "nullable": "NO",
+            "ordinal": 2,
+            "type": "bigint"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_bin",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "checksum",
+            "nullable": "NO",
+            "ordinal": 3,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "applied_at",
+            "nullable": "NO",
+            "ordinal": 4,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `schema_migrations` (\n  `namespace` varchar(96) COLLATE utf8mb4_bin NOT NULL,\n  `version` bigint NOT NULL,\n  `checksum` varchar(64) COLLATE utf8mb4_bin NOT NULL,\n  `applied_at` bigint NOT NULL,\n  PRIMARY KEY (`namespace`,`version`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin",
+            "Table": "schema_migrations"
+          }
+        ],
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "column_name": "namespace",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "version",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 2,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_bin"
+          }
+        ]
+      },
+      "sessions": {
+        "columns": [
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "token_hash",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "MUL",
+            "default_expression": null,
+            "extra": "",
+            "name": "user_id",
+            "nullable": "NO",
+            "ordinal": 2,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "expires_at",
+            "nullable": "NO",
+            "ordinal": 3,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          },
+          {
+            "name": "sessions_ibfk_1",
+            "type": "FOREIGN KEY"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `sessions` (\n  `token_hash` varchar(64) NOT NULL,\n  `user_id` varchar(64) NOT NULL,\n  `expires_at` bigint NOT NULL,\n  PRIMARY KEY (`token_hash`),\n  KEY `user_id` (`user_id`),\n  CONSTRAINT `sessions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
+            "Table": "sessions"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "column_name": "user_id",
+            "delete_rule": "NO ACTION",
+            "name": "sessions_ibfk_1",
+            "referenced_column": "id",
+            "referenced_table": "users",
+            "update_rule": "NO ACTION"
+          }
+        ],
+        "indexes": [
+          {
+            "column_name": "token_hash",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "user_id",
+            "expression": null,
+            "name": "user_id",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_0900_ai_ci"
+          }
+        ]
+      },
+      "storage_locations": {
+        "columns": [
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "id",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "varchar(80)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "name",
+            "nullable": "NO",
+            "ordinal": 2,
+            "type": "varchar(80)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "provider",
+            "nullable": "NO",
+            "ordinal": 3,
+            "type": "varchar(16)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "endpoint",
+            "nullable": "NO",
+            "ordinal": 4,
+            "type": "varchar(2048)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "bucket",
+            "nullable": "NO",
+            "ordinal": 5,
+            "type": "varchar(128)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "region",
+            "nullable": "NO",
+            "ordinal": 6,
+            "type": "varchar(128)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "prefix",
+            "nullable": "NO",
+            "ordinal": 7,
+            "type": "varchar(200)"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "path_style",
+            "nullable": "NO",
+            "ordinal": 8,
+            "type": "int"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "credentials",
+            "nullable": "NO",
+            "ordinal": 9,
+            "type": "text"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "tested",
+            "nullable": "NO",
+            "ordinal": 10,
+            "type": "int"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "created_at",
+            "nullable": "NO",
+            "ordinal": 11,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `storage_locations` (\n  `id` varchar(80) NOT NULL,\n  `name` varchar(80) NOT NULL,\n  `provider` varchar(16) NOT NULL,\n  `endpoint` varchar(2048) NOT NULL,\n  `bucket` varchar(128) NOT NULL,\n  `region` varchar(128) NOT NULL,\n  `prefix` varchar(200) NOT NULL,\n  `path_style` int NOT NULL,\n  `credentials` text NOT NULL,\n  `tested` int NOT NULL,\n  `created_at` bigint NOT NULL,\n  PRIMARY KEY (`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
+            "Table": "storage_locations"
+          }
+        ],
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "column_name": "id",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_0900_ai_ci"
+          }
+        ]
+      },
+      "system_settings": {
+        "columns": [
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "setting_key",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "varchar(128)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "setting_value",
+            "nullable": "NO",
+            "ordinal": 2,
+            "type": "text"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `system_settings` (\n  `setting_key` varchar(128) NOT NULL,\n  `setting_value` text NOT NULL,\n  PRIMARY KEY (`setting_key`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
+            "Table": "system_settings"
+          }
+        ],
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "column_name": "setting_key",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_0900_ai_ci"
+          }
+        ]
+      },
+      "user_roles": {
+        "columns": [
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "user_id",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "role_id",
+            "nullable": "NO",
+            "ordinal": 2,
+            "type": "varchar(64)"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          },
+          {
+            "name": "user_roles_ibfk_1",
+            "type": "FOREIGN KEY"
+          },
+          {
+            "name": "user_roles_ibfk_2",
+            "type": "FOREIGN KEY"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `user_roles` (\n  `user_id` varchar(64) NOT NULL,\n  `role_id` varchar(64) NOT NULL,\n  PRIMARY KEY (`user_id`,`role_id`),\n  KEY `role_id` (`role_id`),\n  CONSTRAINT `user_roles_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),\n  CONSTRAINT `user_roles_ibfk_2` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
+            "Table": "user_roles"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "column_name": "user_id",
+            "delete_rule": "NO ACTION",
+            "name": "user_roles_ibfk_1",
+            "referenced_column": "id",
+            "referenced_table": "users",
+            "update_rule": "NO ACTION"
+          },
+          {
+            "column_name": "role_id",
+            "delete_rule": "NO ACTION",
+            "name": "user_roles_ibfk_2",
+            "referenced_column": "id",
+            "referenced_table": "roles",
+            "update_rule": "NO ACTION"
+          }
+        ],
+        "indexes": [
+          {
+            "column_name": "user_id",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "role_id",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 2,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "role_id",
+            "expression": null,
+            "name": "role_id",
+            "non_unique": 1,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_0900_ai_ci"
+          }
+        ]
+      },
+      "users": {
+        "columns": [
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "PRI",
+            "default_expression": null,
+            "extra": "",
+            "name": "id",
+            "nullable": "NO",
+            "ordinal": 1,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "UNI",
+            "default_expression": null,
+            "extra": "",
+            "name": "username",
+            "nullable": "NO",
+            "ordinal": 2,
+            "type": "varchar(64)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "UNI",
+            "default_expression": null,
+            "extra": "",
+            "name": "email",
+            "nullable": "NO",
+            "ordinal": 3,
+            "type": "varchar(254)"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "password_hash",
+            "nullable": "NO",
+            "ordinal": 4,
+            "type": "text"
+          },
+          {
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci",
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "status",
+            "nullable": "NO",
+            "ordinal": 5,
+            "type": "varchar(16)"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "created_at",
+            "nullable": "NO",
+            "ordinal": 6,
+            "type": "bigint"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "updated_at",
+            "nullable": "NO",
+            "ordinal": 7,
+            "type": "bigint"
+          },
+          {
+            "charset": null,
+            "collation": null,
+            "column_key": "",
+            "default_expression": null,
+            "extra": "",
+            "name": "last_login_at",
+            "nullable": "NO",
+            "ordinal": 8,
+            "type": "bigint"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "email",
+            "type": "UNIQUE"
+          },
+          {
+            "name": "PRIMARY",
+            "type": "PRIMARY KEY"
+          },
+          {
+            "name": "username",
+            "type": "UNIQUE"
+          }
+        ],
+        "ddl": [
+          {
+            "Create Table": "CREATE TABLE `users` (\n  `id` varchar(64) NOT NULL,\n  `username` varchar(64) NOT NULL,\n  `email` varchar(254) NOT NULL,\n  `password_hash` text NOT NULL,\n  `status` varchar(16) NOT NULL,\n  `created_at` bigint NOT NULL,\n  `updated_at` bigint NOT NULL,\n  `last_login_at` bigint NOT NULL,\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `username` (`username`),\n  UNIQUE KEY `email` (`email`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
+            "Table": "users"
+          }
+        ],
+        "foreign_keys": [],
+        "indexes": [
+          {
+            "column_name": "email",
+            "expression": null,
+            "name": "email",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "id",
+            "expression": null,
+            "name": "PRIMARY",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          },
+          {
+            "column_name": "username",
+            "expression": null,
+            "name": "username",
+            "non_unique": 0,
+            "ordering": "A",
+            "ordinal": 1,
+            "prefix_length": null,
+            "type": "BTREE"
+          }
+        ],
+        "table_options": [
+          {
+            "CREATE_OPTIONS": "",
+            "ENGINE": "InnoDB",
+            "ROW_FORMAT": "Dynamic",
+            "TABLE_COLLATION": "utf8mb4_0900_ai_ci"
+          }
+        ]
+      }
+    },
+    "triggers": []
+  },
+  "scope": "new SQL empty-fixture/real Seed/business validation, not R1.0c startup protection",
+  "source_commit": "cecf28115d3d4d6e36b425557e6c6388e754fae8",
+  "sql_only_data": {
+    "ledger": [
+      {
+        "applied_at": 1793327877,
+        "checksum": "51e4df83a6d6d02dbfb74d594abccb6ac19522f82bf41d483cc2f78a8ce5afa2",
+        "namespace": "core",
+        "version": 1
+      },
+      {
+        "applied_at": 1793327877,
+        "checksum": "fb35e39bae2523afbffe1a6ed05d3cfe2581d7f9264dd3d24a20f546eb30f268",
+        "namespace": "module.notes",
+        "version": 1
+      },
+      {
+        "applied_at": 1793327877,
+        "checksum": "76f4cffb4d9d88a4064e31423ea3635be089c8faf4d0b937aa16ad416970ab3b",
+        "namespace": "platform",
+        "version": 1
+      }
+    ],
+    "permissions": [],
+    "role_permissions": [],
+    "roles": [],
+    "row_counts": {
+      "account_tokens": 0,
+      "administrator_account_tokens": 0,
+      "administrator_email_challenges": 0,
+      "administrator_external_identities": 0,
+      "administrator_oidc_flows": 0,
+      "administrator_roles": 0,
+      "administrator_sessions": 0,
+      "administrators": 0,
+      "audit_logs": 0,
+      "audit_metadata": 0,
+      "email_challenges": 0,
+      "example_notes": 0,
+      "external_identities": 0,
+      "file_cleanup_jobs": 0,
+      "file_metadata": 0,
+      "file_upload_sessions": 0,
+      "install_state": 0,
+      "mail_jobs": 0,
+      "oidc_flows": 0,
+      "permissions": 0,
+      "platform_announcements": 0,
+      "role_permissions": 0,
+      "roles": 0,
+      "schema_migrations": 3,
+      "sessions": 0,
+      "storage_locations": 2,
+      "system_settings": 0,
+      "user_roles": 0,
+      "users": 0
+    },
+    "storage_locations": [
+      {
+        "bucket": "",
+        "created_at": 0,
+        "credentials": "",
+        "endpoint": "",
+        "id": "legacy-brand",
+        "name": "历史品牌文件",
+        "path_style": 1,
+        "prefix": "",
+        "provider": "local",
+        "region": "",
+        "tested": 1
+      },
+      {
+        "bucket": "",
+        "created_at": 0,
+        "credentials": "",
+        "endpoint": "",
+        "id": "local",
+        "name": "本地存储",
+        "path_style": 1,
+        "prefix": "",
+        "provider": "local",
+        "region": "",
+        "tested": 1
+      }
+    ]
+  }
+}

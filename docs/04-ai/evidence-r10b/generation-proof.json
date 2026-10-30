@@ -1,0 +1,20 @@
+{
+  "author": "yunnuo <ymz@ebox.vip>",
+  "generated_evidence": true,
+  "first": {
+    "migrations/catalogdata/catalog.gen.go": "9fe296f21b1e9a6215760e416ac89acfc5eb3cf419a567f08443197ab5ddc758",
+    "migrations/metadata.gen.json": "bea6ab373e630d25d64517430fdb6e33f6c4dba07c9dff837984211d7596d056"
+  },
+  "second": {
+    "migrations/catalogdata/catalog.gen.go": "9fe296f21b1e9a6215760e416ac89acfc5eb3cf419a567f08443197ab5ddc758",
+    "migrations/metadata.gen.json": "bea6ab373e630d25d64517430fdb6e33f6c4dba07c9dff837984211d7596d056"
+  },
+  "third": {
+    "migrations/catalogdata/catalog.gen.go": "9fe296f21b1e9a6215760e416ac89acfc5eb3cf419a567f08443197ab5ddc758",
+    "migrations/metadata.gen.json": "bea6ab373e630d25d64517430fdb6e33f6c4dba07c9dff837984211d7596d056"
+  },
+  "byte_identical_three_runs": true,
+  "check_mode_did_not_write_files": true,
+  "sql_count": 9,
+  "ledger_ddl_generated_from_catalog": true
+}

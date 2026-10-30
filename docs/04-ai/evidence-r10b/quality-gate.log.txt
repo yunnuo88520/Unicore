@@ -1,0 +1,349 @@
+node scripts/update-history.mjs --check
+pnpm check:version
+$ node scripts/version.mjs --check
+PASS application version 0.1.1
+node scripts/test-version.mjs
+PASS version drift rejection, isolated release preparation, changelog preservation and invalid/empty/downgrade rejection
+pnpm test:tooling
+$ node --test scripts/create-project.test.mjs scripts/wiki.test.mjs scripts/release-assets.test.mjs scripts/update-sign.test.mjs scripts/check-i18n.test.mjs
+TAP version 13
+# Subtest: rejects raw JSX, attributes, metadata and dynamic translation keys
+ok 1 - rejects raw JSX, attributes, metadata and dynamic translation keys
+  ---
+  duration_ms: 4.513833
+  type: 'test'
+  ...
+# Subtest: rejects missing interpolation and empty translations
+ok 2 - rejects missing interpolation and empty translations
+  ---
+  duration_ms: 0.126833
+  type: 'test'
+  ...
+# Subtest: discovers nested new feature sources and ignores test fixtures
+ok 3 - discovers nested new feature sources and ignores test fixtures
+  ---
+  duration_ms: 4.404791
+  type: 'test'
+  ...
+# Subtest: requires translations for settings and permission metadata
+ok 4 - requires translations for settings and permission metadata
+  ---
+  duration_ms: 0.211875
+  type: 'test'
+  ...
+# Subtest: project export and destination boundaries
+ok 5 - project export and destination boundaries
+  ---
+  duration_ms: 107.726125
+  type: 'test'
+  ...
+# Subtest: release assembly rejects tampering, partial matrices and mixed commits
+ok 6 - release assembly rejects tampering, partial matrices and mixed commits
+  ---
+  duration_ms: 4.308
+  type: 'test'
+  ...
+# Signed OTA manifest for 1.2.0 (1 artifacts)
+# Subtest: OTA signing binds trusted publisher, target and exact artifact bytes
+ok 7 - OTA signing binds trusted publisher, target and exact artifact bytes
+  ---
+  duration_ms: 18.568083
+  type: 'test'
+  ...
+# Subtest: Wiki link mapping preserves navigation and rejects escaping paths
+ok 8 - Wiki link mapping preserves navigation and rejects escaping paths
+  ---
+  duration_ms: 7.193208
+  type: 'test'
+  ...
+# Subtest: Wiki configuration renders all pages and validates target identity
+ok 9 - Wiki configuration renders all pages and validates target identity
+  ---
+  duration_ms: 22.254
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 248.210917
+pnpm check:migrations
+$ node scripts/generate-migrations.mjs --check
+PASS migration catalog, raw-byte SHA-256 and generated metadata check (9 SQL files)
+pnpm test:migrations
+$ node --test scripts/generate-migrations.test.mjs
+TAP version 13
+# Subtest: repeated generation is identical, check mode detects tampering, raw-byte SHA-256 includes CRLF
+ok 1 - repeated generation is identical, check mode detects tampering, raw-byte SHA-256 includes CRLF
+  ---
+  duration_ms: 30.107541
+  type: 'test'
+  ...
+# Subtest: profile members and namespace declaration order cannot become a second ordering source
+ok 2 - profile members and namespace declaration order cannot become a second ordering source
+  ---
+  duration_ms: 6.212417
+  type: 'test'
+  ...
+# Subtest: legacy SQL is excluded from registration while new unregistered SQL fails
+ok 3 - legacy SQL is excluded from registration while new unregistered SQL fails
+  ---
+  duration_ms: 5.195292
+  type: 'test'
+  ...
+# Subtest: dependency edges alone change execution order for an additional module
+ok 4 - dependency edges alone change execution order for an additional module
+  ---
+  duration_ms: 6.005416
+  type: 'test'
+  ...
+# Subtest: rejects unknown fields
+ok 5 - rejects unknown fields
+  ---
+  duration_ms: 3.35575
+  type: 'test'
+  ...
+# Subtest: rejects manual checksum
+ok 6 - rejects manual checksum
+  ---
+  duration_ms: 3.821708
+  type: 'test'
+  ...
+# Subtest: rejects duplicate namespace
+ok 7 - rejects duplicate namespace
+  ---
+  duration_ms: 3.434375
+  type: 'test'
+  ...
+# Subtest: rejects missing dialect
+ok 8 - rejects missing dialect
+  ---
+  duration_ms: 3.334792
+  type: 'test'
+  ...
+# Subtest: rejects fractional version
+ok 9 - rejects fractional version
+  ---
+  duration_ms: 4.164916
+  type: 'test'
+  ...
+# Subtest: rejects version gap
+ok 10 - rejects version gap
+  ---
+  duration_ms: 3.489583
+  type: 'test'
+  ...
+# Subtest: rejects duplicate version
+ok 11 - rejects duplicate version
+  ---
+  duration_ms: 3.447042
+  type: 'test'
+  ...
+# Subtest: rejects dependency cycle
+ok 12 - rejects dependency cycle
+  ---
+  duration_ms: 3.629959
+  type: 'test'
+  ...
+# Subtest: rejects unknown dependency
+ok 13 - rejects unknown dependency
+  ---
+  duration_ms: 3.383959
+  type: 'test'
+  ...
+# Subtest: rejects missing profile dependency
+ok 14 - rejects missing profile dependency
+  ---
+  duration_ms: 4.035416
+  type: 'test'
+  ...
+# Subtest: rejects platform profile leak
+ok 15 - rejects platform profile leak
+  ---
+  duration_ms: 4.299875
+  type: 'test'
+  ...
+# Subtest: rejects CLI database dependency
+ok 16 - rejects CLI database dependency
+  ---
+  duration_ms: 3.956541
+  type: 'test'
+  ...
+# Subtest: rejects desktop external driver
+ok 17 - rejects desktop external driver
+  ---
+  duration_ms: 3.844375
+  type: 'test'
+  ...
+# Subtest: rejects path traversal
+ok 18 - rejects path traversal
+  ---
+  duration_ms: 3.944375
+  type: 'test'
+  ...
+# Subtest: rejects absolute SQL path
+ok 19 - rejects absolute SQL path
+  ---
+  duration_ms: 3.303
+  type: 'test'
+  ...
+# Subtest: rejects wrong filename version
+ok 20 - rejects wrong filename version
+  ---
+  duration_ms: 3.275083
+  type: 'test'
+  ...
+# Subtest: rejects extra ledger column
+ok 21 - rejects extra ledger column
+  ---
+  duration_ms: 3.328917
+  type: 'test'
+  ...
+# Subtest: rejects nullable ledger field
+ok 22 - rejects nullable ledger field
+  ---
+  duration_ms: 3.58125
+  type: 'test'
+  ...
+# Subtest: rejects missing generation anchor
+ok 23 - rejects missing generation anchor
+  ---
+  duration_ms: 3.310916
+  type: 'test'
+  ...
+# Subtest: rejects non-string generation label
+ok 24 - rejects non-string generation label
+  ---
+  duration_ms: 3.505834
+  type: 'test'
+  ...
+# Subtest: duplicate JSON property names and symlink inputs/outputs fail closed
+ok 25 - duplicate JSON property names and symlink inputs/outputs fail closed
+  ---
+  duration_ms: 7.801166
+  type: 'test'
+  ...
+# Subtest: dangling generated-output links are rejected before any file is written
+ok 26 - dangling generated-output links are rejected before any file is written
+  ---
+  duration_ms: 7.024375
+  type: 'test'
+  ...
+1..26
+# tests 26
+# suites 0
+# pass 26
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 172.081041
+node scripts/build-features.mjs
+PASS compile-time feature flags
+pnpm check:docs
+$ node scripts/check-docs.mjs
+PASS 29 Wiki pages validated
+PASS documentation links, framework manifest, 12 discoverable skills and generated AI context
+pnpm check:design
+$ node scripts/generate-theme.mjs --check && node scripts/generate-brand.mjs --check && node scripts/check-design.mjs
+Generated Unicore vector, app icons, touch icons and multi-size ICO.
+PASS shared design tokens and synchronized Web/Desktop brand assets
+pnpm check:i18n
+$ node scripts/check-i18n.mjs
+PASS bilingual UI literals, catalogs, interpolation and contract errors
+pnpm check:contracts
+$ node scripts/generate-contracts.mjs --check
+pnpm check:authors
+$ node scripts/check-authors.mjs
+PASS handwritten source author metadata
+go run ./scripts/check-boundaries
+PASS ./cmd/cli dependency boundaries
+PASS ./internal/domain dependency boundaries
+PASS ./internal/usecase dependency boundaries
+PASS ./internal/bootstrap/local dependency boundaries
+PASS ./internal/adapter/desktop dependency boundaries
+go vet ./...
+go test -race ./...
+?   	github.com/yunnuo/unicore/apps/desktop	[no test files]
+?   	github.com/yunnuo/unicore/apps/web	[no test files]
+?   	github.com/yunnuo/unicore/assets/brand	[no test files]
+?   	github.com/yunnuo/unicore/assets/theme	[no test files]
+?   	github.com/yunnuo/unicore/assets/updates	[no test files]
+?   	github.com/yunnuo/unicore/build/acceptance/storage/live-verify	[no test files]
+?   	github.com/yunnuo/unicore/cmd/cli	[no test files]
+?   	github.com/yunnuo/unicore/cmd/ops	[no test files]
+?   	github.com/yunnuo/unicore/cmd/server	[no test files]
+ok  	github.com/yunnuo/unicore/internal/adapter/blobcloud	(cached)
+ok  	github.com/yunnuo/unicore/internal/adapter/bloblocal	(cached)
+ok  	github.com/yunnuo/unicore/internal/adapter/cli	(cached)
+ok  	github.com/yunnuo/unicore/internal/adapter/content	(cached)
+ok  	github.com/yunnuo/unicore/internal/adapter/desktop	(cached)
+ok  	github.com/yunnuo/unicore/internal/adapter/http	(cached)
+ok  	github.com/yunnuo/unicore/internal/adapter/mail	(cached)
+ok  	github.com/yunnuo/unicore/internal/adapter/oidc	(cached)
+?   	github.com/yunnuo/unicore/internal/adapter/presenter	[no test files]
+ok  	github.com/yunnuo/unicore/internal/adapter/storage/announcementsql	(cached)
+?   	github.com/yunnuo/unicore/internal/adapter/storage/filesql	[no test files]
+?   	github.com/yunnuo/unicore/internal/adapter/storage/notessql	[no test files]
+ok  	github.com/yunnuo/unicore/internal/adapter/storage/platformsql	(cached)
+ok  	github.com/yunnuo/unicore/internal/adapter/storage/sqlite	(cached)
+?   	github.com/yunnuo/unicore/internal/adapter/storage/sqlstore	[no test files]
+ok  	github.com/yunnuo/unicore/internal/adapter/storage/webdb	(cached)
+ok  	github.com/yunnuo/unicore/internal/adapter/updatechannel	(cached)
+ok  	github.com/yunnuo/unicore/internal/adapter/updateinstall	(cached)
+?   	github.com/yunnuo/unicore/internal/audit	[no test files]
+?   	github.com/yunnuo/unicore/internal/blob	[no test files]
+?   	github.com/yunnuo/unicore/internal/bootstrap	[no test files]
+ok  	github.com/yunnuo/unicore/internal/bootstrap/local	(cached)
+?   	github.com/yunnuo/unicore/internal/bootstrap/updating	[no test files]
+ok  	github.com/yunnuo/unicore/internal/branding	(cached)
+?   	github.com/yunnuo/unicore/internal/buildinfo	[no test files]
+ok  	github.com/yunnuo/unicore/internal/config	(cached)
+?   	github.com/yunnuo/unicore/internal/contracts	[no test files]
+ok  	github.com/yunnuo/unicore/internal/domain	(cached)
+?   	github.com/yunnuo/unicore/internal/edition	[no test files]
+ok  	github.com/yunnuo/unicore/internal/files	(cached)
+ok  	github.com/yunnuo/unicore/internal/install	(cached)
+ok  	github.com/yunnuo/unicore/internal/lifecycle	(cached)
+?   	github.com/yunnuo/unicore/internal/logging	[no test files]
+ok  	github.com/yunnuo/unicore/internal/mailcontent	(cached)
+ok  	github.com/yunnuo/unicore/internal/mailer	(cached)
+ok  	github.com/yunnuo/unicore/internal/maintenance	(cached)
+ok  	github.com/yunnuo/unicore/internal/observability	(cached)
+ok  	github.com/yunnuo/unicore/internal/platform	(cached)
+?   	github.com/yunnuo/unicore/internal/runtime	[no test files]
+ok  	github.com/yunnuo/unicore/internal/secret	(cached)
+ok  	github.com/yunnuo/unicore/internal/settings	(cached)
+?   	github.com/yunnuo/unicore/internal/testutil	[no test files]
+?   	github.com/yunnuo/unicore/internal/updateport	[no test files]
+ok  	github.com/yunnuo/unicore/internal/updates	(cached)
+ok  	github.com/yunnuo/unicore/internal/usecase	(cached)
+?   	github.com/yunnuo/unicore/migrations	[no test files]
+ok  	github.com/yunnuo/unicore/migrations/catalogdata	1.408s
+ok  	github.com/yunnuo/unicore/packages/contracts	(cached)
+?   	github.com/yunnuo/unicore/scripts/check-boundaries	[no test files]
+?   	github.com/yunnuo/unicore/scripts/verify-baselines	[no test files]
+?   	github.com/yunnuo/unicore/tests/oidcfixture	[no test files]
+?   	github.com/yunnuo/unicore/tests/oidcprovider	[no test files]
+?   	github.com/yunnuo/unicore/tests/storagefixture	[no test files]
+go test -race -tags updater ./cmd/server ./internal/adapter/http ./internal/adapter/desktop
+?   	github.com/yunnuo/unicore/cmd/server	[no test files]
+ok  	github.com/yunnuo/unicore/internal/adapter/http	(cached)
+ok  	github.com/yunnuo/unicore/internal/adapter/desktop	(cached)
+pnpm typecheck
+$ tsc --noEmit
+pnpm test
+$ vitest run
+
+ RUN  v5.0.5 /Users/yunnuo/Downloads/project/Unicore
+
+
+ Test Files  9 passed (9)
+      Tests  47 passed (47)
+   Start at  10:50:40
+   Duration  2.71s (environment 52%, tests 23%, setup 14%, import 6%, transform 4%)
+

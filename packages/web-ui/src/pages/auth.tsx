@@ -42,7 +42,7 @@ function AuthField({ label, children }: { label: ReactNode; children: ReactNode 
 function AuthStory({ administrator, siteName }: { administrator: boolean; siteName: string }) {
   useLocale();
   return <section className="relative flex flex-col justify-center overflow-hidden bg-primary-soft px-7 py-9 md:px-12 lg:px-16">
-    <div className="mb-7 self-start text-xl font-bold tracking-tight text-ink [&_.brand-dot]:text-primary"><BrandLockup name={siteName} /></div>
+    <div className="flow-brand mb-7 self-start text-xl font-bold tracking-tight text-ink [&_.brand-dot]:text-primary"><BrandLockup name={siteName} /></div>
     <span className="inline-flex items-center gap-2 text-sm font-medium text-primary"><ShieldCheck size={15} aria-hidden="true" />{administrator ? t('管理控制台') : t('用户工作空间')}</span>
     <h2 className="mt-5 text-3xl font-semibold leading-snug tracking-tight text-ink md:text-4xl">
       {administrator ? <>{t('有序管理，')}<br />{t('从容掌控。')}</> : <>{t('你的灵感，')}<br />{t('从这里开始。')}</>}
@@ -117,6 +117,7 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
             <strong className="block font-medium">{t('请检查表单输入')}</strong>
             <p>{fieldList.map(value => t(value)).join('; ')}</p>
           </div>}
+          {submit.error && fieldList.length === 0 && <p role="alert" className="rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">{t(submit.error.message)}</p>}
           {!challenge && (mode === 'login' || mode === 'register') && <AuthField label={mode === 'login' ? t('账号或邮箱') : t('账号')}>
             <Input name="username" required autoComplete="username" minLength={mode === 'register' ? 3 : undefined} maxLength={254} value={username} onChange={event => setUsername(event.target.value)} />
           </AuthField>}

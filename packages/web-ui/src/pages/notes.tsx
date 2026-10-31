@@ -125,7 +125,7 @@ export function NotesPage({ client, metadata }: PageProps) {
   </section>;
 }
 
-type NoteValues = { title: string; body: string; status: 'open' | 'done'; attachment_ids: string[] };
+type NoteValues = { title: string; body: string; status: 'open' | 'done'; attachment_ids: string[]; version?: number };
 
 function NoteEditor({ client, metadata, note, onClose, onSaved }: {
   client: AppClient; metadata: PageProps['metadata']; note?: NoteEntry; onClose: () => void; onSaved: () => void;
@@ -134,12 +134,12 @@ function NoteEditor({ client, metadata, note, onClose, onSaved }: {
   const message = useMessage();
   const [fileSearch, setFileSearch] = useState('');
   const save = useMutation({
-    mutationFn: (values: NoteValues) => note ? client.notes!.updateNote(note.id, { ...values, version: note.version }) : client.notes!.createNote(values),
+    mutationFn: (values: NoteValues) => note ? client.notes!.updateNote(note.id, { ...values, version: values.version ?? note.version }) : client.notes!.createNote(values),
     onSuccess: () => { message.success(note ? t('笔记已保存') : t('笔记已创建')); onSaved(); },
   });
   const form = useAppForm<NoteValues>({
     schema: note ? 'NoteUpdate' : 'NoteInput',
-    defaultValues: { title: note?.title ?? '', body: note?.body ?? '', status: note?.status ?? 'open', attachment_ids: note?.attachment_ids ?? [] },
+    defaultValues: { title: note?.title ?? '', body: note?.body ?? '', status: note?.status ?? 'open', attachment_ids: note?.attachment_ids ?? [], ...(note ? { version: note.version } : {}) },
     onSubmit: values => save.mutate(values, { onError: error => form.applyServerError(error) }),
   });
   const files = useQuery({
@@ -151,7 +151,9 @@ function NoteEditor({ client, metadata, note, onClose, onSaved }: {
   const value = form.watch();
   function setAttachments(next: string[]) { form.setValue('attachment_ids', next, { shouldDirty: true }); }
   return <Modal title={note ? t('编辑笔记') : t('新建笔记')} pending={save.isPending} onClose={onClose}>
-    <AppForm form={form} className="flex flex-col gap-3">
+    <AppForm form={form} className="note-form flex flex-col gap-3">
+      {save.error && <p role="alert" className="rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">{t(save.error.message)}</p>}
+      {note && <input type="hidden" {...form.register('version')} />}
       <AppField name="title" label={t('标题')}>
         <Input required maxLength={120} placeholder={t('给这条笔记一个名字')} />
       </AppField>

@@ -1,6 +1,6 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Radix dialog surface plus a legacy-compatible Modal with title, pending lock and first-field focus.
-import { forwardRef, useEffect, type ComponentPropsWithoutRef, type HTMLAttributes, type ReactNode } from 'react';
+import { forwardRef, useEffect, useRef, type ComponentPropsWithoutRef, type HTMLAttributes, type ReactNode } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog';
 import { X } from 'lucide-react';
@@ -12,11 +12,33 @@ export const Dialog = DialogPrimitive.Root;
 export const DialogTrigger = DialogPrimitive.Trigger;
 export const DialogClose = DialogPrimitive.Close;
 
-export const DialogContent = forwardRef<HTMLDivElement, ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { showClose?: boolean }>(function DialogContent({ className, children, showClose = true, ...props }, ref) {
+const FOCUSABLE = 'input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
+
+export const DialogContent = forwardRef<HTMLDivElement, ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { showClose?: boolean }>(function DialogContent({ className, children, showClose = true, onOpenAutoFocus, onCloseAutoFocus, ...props }, ref) {
   useLocale();
+  // Radix restores focus to its DialogTrigger, which state-controlled dialogs do not render;
+  // keep the legacy behavior of returning focus to the element that opened the surface.
+  const opener = useRef<HTMLElement | null>(null);
   return <DialogPrimitive.Portal>
     <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-scrim/70 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out" />
-    <DialogPrimitive.Content ref={ref} className={cn('fixed start-1/2 top-1/2 z-50 flex max-h-[85dvh] w-[calc(100%-16px)] max-w-dialog -translate-x-1/2 -translate-y-1/2 flex-col overflow-y-auto rounded-xl border border-line bg-surface p-4 shadow-modal data-[state=open]:animate-in data-[state=closed]:animate-out', className)} {...props}>
+    <DialogPrimitive.Content ref={ref} className={cn('fixed start-1/2 top-1/2 z-50 flex max-h-[85dvh] w-[calc(100%-16px)] max-w-dialog -translate-x-1/2 -translate-y-1/2 flex-col overflow-y-auto rounded-xl border border-line bg-surface p-4 shadow-modal data-[state=open]:animate-in data-[state=closed]:animate-out', className)}
+      onOpenAutoFocus={event => {
+        opener.current = (event.currentTarget as HTMLElement).ownerDocument.activeElement as HTMLElement | null;
+        // Keep the legacy first-field focus: an explicit data-autofocus target wins, else the first focusable control.
+        onOpenAutoFocus?.(event);
+        if (event.defaultPrevented) return;
+        event.preventDefault();
+        const root = event.currentTarget as HTMLElement;
+        const target = root.querySelector<HTMLElement>('[data-autofocus]') ?? root.querySelector<HTMLElement>(FOCUSABLE);
+        target?.focus();
+      }}
+      onCloseAutoFocus={event => {
+        onCloseAutoFocus?.(event);
+        if (event.defaultPrevented) return;
+        event.preventDefault();
+        if (opener.current && opener.current.isConnected) opener.current.focus({ preventScroll: true });
+      }}
+      {...props}>
       {children}
       {showClose && <DialogPrimitive.Close asChild><Button variant="ghost" size="icon" className="absolute end-3 top-3" aria-label={t('关闭对话框')}><X size={17} /></Button></DialogPrimitive.Close>}
     </DialogPrimitive.Content>

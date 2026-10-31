@@ -182,8 +182,9 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
   async function advance() {
     if (await validateStep(step)) setStep(value => value + 1);
   }
-  async function testConnection() {
-    if (await validateStep(step)) verify.mutate({ token, database: payloadDatabase(form.getValues('database')) });
+  function testConnection() {
+    // The connection probe must stay runnable before any check exists; consent only gates the next step.
+    verify.mutate({ token, database: payloadDatabase(form.getValues('database')) });
   }
   return <main className="flex min-h-dvh w-full flex-1 flex-col items-center px-4 py-10 sm:px-6">
     <div className="text-xl font-bold tracking-tight text-ink [&_.brand-dot]:text-primary"><BrandLockup /></div>
@@ -283,6 +284,7 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
             <div>
               <Button type="button" variant="secondary" pending={verify.isPending} onClick={() => void testConnection()}>{t('测试连接')}</Button>
             </div>
+            {verify.isError && <p role="alert" className="text-sm text-danger">{t(verify.error.message)}</p>}
             {check && <>
               <p role="status" className="flex items-center gap-1.5 text-sm text-success"><CheckCircle2 size={16} aria-hidden="true" />{t('连接测试成功')}</p>
               {check.initialized ? <p role="alert" className="text-sm text-danger">{t('此数据库已有安装记录，请恢复原实例配置；不能重新安装。')}</p>
@@ -326,10 +328,10 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
           <div className="flex flex-wrap items-center justify-between gap-2">
             {step > 0 ? <Button type="button" variant="secondary" disabled={complete.isPending} onClick={() => { setStep(value => value - 1); complete.reset(); }}>{t('上一步')}</Button> : <span />}
             {last
-              ? <Button type="submit" disabled={complete.isPending}>
+              ? <Button key="install-finish" type="submit" disabled={complete.isPending}>
                   {complete.isPending && <LoaderCircle size={15} className="animate-spin" aria-hidden="true" />}{t('完成安装')}<ArrowRight size={14} aria-hidden="true" />
                 </Button>
-              : <Button type="button" disabled={complete.isPending || (step === 0 && (status.isError || status.isPending)) || (current === 'database' && !canContinue)} onClick={() => void advance()}>
+              : <Button key="install-next" type="button" disabled={complete.isPending || (step === 0 && (status.isError || status.isPending)) || (current === 'database' && !canContinue)} onClick={() => void advance()}>
                   {t('下一步')}<ArrowRight size={14} aria-hidden="true" />
                 </Button>}
           </div>

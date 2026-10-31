@@ -14,7 +14,7 @@ async function login(page: Page,url: string){
 test('fixed roles enforce menus, all management APIs and client-only appearance',async({page,browser,instance},info)=>{
  test.setTimeout(60000);
  expect((await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}})).status()).toBe(200);
- await page.goto(`${instance.url}/admin#roles`);await expect(page.getByRole('heading',{name:'角色权限',exact:true})).toBeVisible();
+ await page.goto(`${instance.url}/admin/roles`);await expect(page.getByRole('heading',{name:'角色权限',exact:true})).toBeVisible();
  await expect(page.getByRole('button',{name:'新增角色',exact:true})).toHaveCount(0);await expect(page.locator('.role-card')).toHaveCount(2);
  const boot=(await(await page.request.get(`${instance.url}/api/v1/admin/bootstrap`,{headers:{}})).json()).data;const headers={'X-CSRF-Token':boot.csrf_token};
  const roles=(await(await page.request.get(`${instance.url}/api/v1/admin/roles`,{headers})).json()).data;
@@ -37,9 +37,9 @@ test('fixed roles enforce menus, all management APIs and client-only appearance'
    expect((await member.request.fetch(`${instance.url}${path}`,{...options,headers:memberHeaders})).status(),`member ${operation.method} ${path}`).toBe(403);
   }
   const managementReads:string[]=[];member.on('request',request=>{if(request.url().includes('/api/v1/admin/'))managementReads.push(request.url());});
-  for(const route of ['users','administrators','roles','mail','logs']){await member.goto(`${instance.url}/#${route}`);await expect(member.getByText('没有访问权限',{exact:true})).toBeVisible();}
+  for(const route of ['users','administrators','roles','mail','logs']){await member.goto(`${instance.url}/${route}`);await expect(member.getByText('没有访问权限',{exact:true})).toBeVisible();}
   expect((await member.request.get(`${instance.url}/admin`)).status()).toBe(200);
-  await member.goto(`${instance.url}/#site?tab=mail`);
+  await member.goto(`${instance.url}/site?tab=mail`);
   if(info.project.name==='mobile')await member.getByRole('button',{name:'打开导航'}).click();
   for(const name of ['平台仪表盘','用户管理','角色权限','基础设置'])await expect(member.getByRole('button',{name,exact:true})).toHaveCount(0);
   await member.getByRole('button',{name:'外观设置',exact:true}).click();

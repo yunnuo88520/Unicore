@@ -45,7 +45,7 @@ export function SidebarTools({ onAbout }: { onAbout: () => void }) {
     return () => { document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', key); };
   }, [open]);
   const link = 'flex items-center justify-between gap-3 rounded-md px-2.5 py-2.5 text-sm text-muted transition-colors outline-none hover:bg-primary-soft hover:text-accent focus-visible:bg-primary-soft';
-  return <div className="relative flex items-center justify-between border-t border-line px-0.5 pb-4 pt-3.5" ref={ref}>
+  return <div className="sidebar-utilities relative flex items-center justify-between border-t border-line px-0.5 pb-4 pt-3.5" ref={ref}>
     <button className="flex items-center gap-2 rounded-sm px-1 py-1.5 text-xs text-muted transition-colors outline-none hover:text-accent focus-visible:ring-2 focus-visible:ring-focus" onClick={() => setOpen(value => !value)} aria-expanded={open}>
       <BookOpen size={16} aria-hidden="true" />{t('文档与帮助')}
     </button>

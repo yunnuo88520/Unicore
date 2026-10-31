@@ -197,7 +197,7 @@ function MailTemplateForm({ draft, selected, pending, savePending, saveError, re
     )} />
     <div className="flex flex-wrap items-start justify-between gap-3">
       <span className="flex items-center gap-1.5 text-xs text-muted"><Braces size={14} aria-hidden="true" />{t('插入变量')}</span>
-      <div className="flex flex-wrap gap-1.5">
+      <div className="template-variables flex flex-wrap gap-1.5">
         {selected?.variables.map(variable => (
           <button type="button" key={variable.key} disabled={busy} title={`{{${variable.key}}} · ${variable.sample}`}
             onMouseDown={event => event.preventDefault()}
@@ -223,7 +223,7 @@ function MailTemplateForm({ draft, selected, pending, savePending, saveError, re
     <p className="text-xs leading-relaxed text-muted">
       {CODE_PURPOSES.includes(draft.purpose) ? t('验证码模板必须保留 {{code}}，测试与预览使用固定示例码。') : t('变量仅来自当前场景，邮件内容不会执行脚本或加载外部图片。')}
     </p>
-    <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
+    <div className="template-actions flex flex-wrap items-center gap-2 border-t border-line pt-3">
       <Button type="submit" pending={savePending} disabled={busy || !dirty}><Save size={15} />{savePending ? t('保存中…') : t('保存')}</Button>
       <Button variant="secondary" disabled={busy} onClick={() => onPreview({ purpose: draft.purpose, subject: values.subject ?? draft.subject, body: values.body ?? draft.body })}>
         <Eye size={15} />{onPreviewPending ? t('生成预览…') : t('预览')}

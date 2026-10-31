@@ -184,7 +184,7 @@ func mountOIDC(api chi.Router, config Config) {
 				destination = "/account?oidc=" + result
 			}
 			if admin {
-				destination = m.AdminPath(r.Context()) + strings.TrimPrefix(destination, "/")
+				destination = strings.TrimSuffix(m.AdminPath(r.Context()), "/") + destination
 			}
 			http.Redirect(w, r, destination, http.StatusSeeOther)
 		})

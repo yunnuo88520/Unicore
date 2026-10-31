@@ -210,7 +210,7 @@ function AnnouncementPanel({ web }: { web: WebClient }) {
           <span>{t(list.error.message)}</span>
           <Button variant="secondary" size="sm" onClick={() => void list.refetch()}>{t('重试')}</Button>
         </div>}
-        <div className="rounded-lg border border-line" aria-busy={list.isFetching}>
+        <div className="announcement-table announcement-table-content rounded-lg border border-line" aria-busy={list.isFetching}>
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map(group => <TableRow key={group.id} className="hover:bg-transparent">
@@ -341,7 +341,7 @@ function AnnouncementEditor({ web, entry, onClose, onSaved }: { web: WebClient; 
           </label>
         )} />
       </div>
-      {preview && render.data && <div className="max-h-44 overflow-auto rounded-lg border border-line bg-surface-alt p-3"><RichContent html={render.data.content_html} /></div>}
+      {preview && render.data && <div className="announcement-preview max-h-44 overflow-auto rounded-lg border border-line bg-surface-alt p-3"><RichContent html={render.data.content_html} /></div>}
       <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
         <Button variant="secondary" disabled={pending || !content.trim()} onClick={() => render.mutate(current())}>
           <Eye size={14} />{t('预览')}

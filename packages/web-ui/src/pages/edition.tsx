@@ -134,7 +134,7 @@ function UpdatePanel({ client, metadata }: { client: AppClient; metadata: Bootst
           ? <p role="status" className="text-sm text-muted">{t('正在读取本机版本记录…')}</p>
           : data?.history.length
             ? <div className="flex flex-col divide-y divide-line">
-                {data.history.map((release, index) => <article key={release.version} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0">
+                {data.history.map((release, index) => <article key={release.version} className="update-release flex flex-col gap-2 py-3 first:pt-0 last:pb-0">
                   <header className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <h3 className="text-md font-semibold text-ink">v{release.version}</h3>
@@ -160,7 +160,7 @@ function UpdatePanel({ client, metadata }: { client: AppClient; metadata: Bootst
         <p className="text-xs text-muted">{t('需要数据库结构迁移的版本须按部署手册人工升级。本次操作只接受兼容的签名更新包。')}</p>
         <div className="flex flex-wrap items-center justify-end gap-2">
           <Button variant="secondary" onClick={() => setConfirm(false)}>{t('取消')}</Button>
-          <Button disabled={!backup} pending={apply.isPending}><Download size={15} />{t('确认更新')}</Button>
+          <Button disabled={!backup} pending={apply.isPending} onClick={() => apply.mutate()}><Download size={15} />{t('确认更新')}</Button>
         </div>
       </div>
     </Modal>}

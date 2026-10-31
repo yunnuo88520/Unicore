@@ -196,7 +196,8 @@ export function FilesPage({ client, metadata }: PageProps) {
           </div>}
       <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
         <Button variant="secondary" disabled={mutate.isPending} onClick={() => setDialog(null)}>{t('取消')}</Button>
-        <Button pending={mutate.isPending} disabled={mutate.isPending || (dialog.kind === 'migrate' && !target)}>
+        <Button pending={mutate.isPending} disabled={mutate.isPending || (dialog.kind === 'migrate' && !target)}
+          onClick={() => mutate.mutate({ kind: dialog.kind, file: dialog.file })}>
           {mutate.isPending ? t('处理中…') : dialog.kind === 'delete' ? t('确认删除') : t('开始迁移')}
         </Button>
       </div>

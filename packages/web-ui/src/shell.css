@@ -55,3 +55,9 @@
 .mobile-menu { display: none; }
 @media (max-width: 767px) { .mobile-menu { display: inline-flex; } }
 :root[data-layout=full] .mobile-menu { display: inline-flex; }
+
+/* Instance brand images: only the theme-matching variant is rendered (restored with the Tailwind shell). */
+.instance-brand { display: inline-flex; flex-shrink: 0; }
+.instance-brand-dark { display: none; }
+:root[data-theme=dark] .instance-brand-light { display: none; }
+:root[data-theme=dark] .instance-brand-dark { display: inline-flex; }

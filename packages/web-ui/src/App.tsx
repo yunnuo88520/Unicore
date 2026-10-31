@@ -166,11 +166,13 @@ function SideNavigation({ page, data, client, onNavigate, onAbout }: {
   function go(next: Page) { onNavigate(); void router.navigate({ to: `/${next === 'not-found' ? '' : next}` }); }
   return <>
     <div className={`relative ${data.version ? 'min-h-[52px]' : 'min-h-[42px]'}`}>
-      <a className="flex items-center gap-[10px] px-[7px] text-[length:var(--font-27)] font-extrabold tracking-[-1.1px] text-ink" href="/" onClick={event => { event.preventDefault(); go('overview'); }}>
+      <a className={`brand flex gap-[10px] px-[7px] font-extrabold tracking-[-1.1px] text-ink ${data.version
+        ? 'items-start [&>:first-child]:mt-1 [&_.brand-name]:min-w-0 [&_.brand-name]:truncate [&_.brand-name]:text-[length:var(--font-25)] [&_.brand-name]:leading-[1.15]'
+        : 'items-center text-[length:var(--font-27)]'}`} href="/" onClick={event => { event.preventDefault(); go('overview'); }}>
         <BrandLockup name={data.site_name} />
         {!data.version && <span className="absolute top-[70px] start-[74px] text-[length:var(--font-8)] font-semibold tracking-[2.5px] text-muted">FRAMEWORK</span>}
       </a>
-      {data.version && <div className="absolute start-[53px] top-[29px]"><VersionBadge client={client} metadata={data} onOpen={() => go('edition')} /></div>}
+      {data.version && <div className="brand-version absolute start-[53px] top-[29px]"><VersionBadge client={client} metadata={data} onOpen={() => go('edition')} /></div>}
     </div>
     <button className="mt-[35px] mb-[29px] flex w-full items-center gap-[10px] rounded-[10px] border border-line bg-surface p-[12px] text-start shadow-card transition-colors hover:bg-surface-alt" onClick={onAbout}>
       <span className="flex h-[34px] w-[31px] shrink-0 items-center justify-center rounded-md border border-line bg-surface-alt text-accent"><Braces size={19} aria-hidden="true" /></span>

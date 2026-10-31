@@ -300,7 +300,7 @@ function OidcConnection({ web, dirty, revision }: { web: WebClient; dirty: boole
       <CardDescription>{t('在身份服务中登记以下固定回调地址。')}</CardDescription>
     </CardHeader>
     <CardContent className="flex flex-col gap-2">
-      {info.data && <code className="block overflow-x-auto rounded-md bg-surface-alt px-3 py-2 font-mono text-xs text-ink">{info.data.callback_url}</code>}
+      {info.data && <code className="oidc-callback block overflow-x-auto rounded-md bg-surface-alt px-3 py-2 font-mono text-xs text-ink">{info.data.callback_url}</code>}
       {info.error && <p role="alert" className="text-sm text-danger">{t(info.error.message)}</p>}
       <p className="text-xs text-muted">{t('保存配置后检查发现文档与端点。此检查不验证 Client Secret；请完成一次实际登录以确认接入。始终保留本地管理员账号。')}</p>
       <div className="flex items-center gap-3">

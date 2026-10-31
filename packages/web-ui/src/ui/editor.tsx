@@ -52,7 +52,9 @@ export const RichTextEditor = forwardRef<RichTextHandle, { value: string; onChan
     onUpdate({ editor: instance }) { onChange(safeEditorHTML(instance.getHTML())); },
   }, [value === '']);
 
-  useEffect(() => { editor?.setEditable(!disabled); }, [disabled, editor]);
+  // Toggling editability must not emit an update: tiptap v3 would otherwise rewrite
+  // the bound value with the editor serialization while a source-mode draft is pending.
+  useEffect(() => { editor?.setEditable(!disabled, false); }, [disabled, editor]);
   useEffect(() => {
     if (!editor || raw) return;
     const current = safeEditorHTML(value);
@@ -105,7 +107,7 @@ export const RichTextEditor = forwardRef<RichTextHandle, { value: string; onChan
     {raw
       ? <Textarea ref={source} aria-label={sourceLabel ?? t('邮件内容源代码')} value={value} maxLength={12000} disabled={disabled} onChange={event => onChange(event.target.value)} className="min-h-40 rounded-none border-0 font-mono text-sm focus-visible:ring-0" />
       : <div role="textbox" aria-label={label} aria-multiline="true" tabIndex={0} onFocus={() => editor?.commands.focus()}>
-          <EditorContent editor={editor} className="rich-editor-surface [&_.tiptap]:px-3 [&_.tiptap]:py-2" />
+          <EditorContent editor={editor} className="rich-editor-surface rich-surface [&_.tiptap]:px-3 [&_.tiptap]:py-2" />
         </div>}
     {link && <Modal title={t('插入链接')} onClose={() => setLink(false)}>
       <form className="flex flex-col gap-3" onSubmit={event => { event.preventDefault(); const data = new FormData(event.currentTarget); const address = String(data.get('url') ?? ''); if (!LINK_PATTERN.test(address)) return; insertLink(address); setLink(false); setURL(address); }}>

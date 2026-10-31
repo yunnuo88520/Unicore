@@ -22,8 +22,8 @@ export function WorkspaceLayout({ navigation, header, children, overlays, naviga
       onClick={event => { event.preventDefault(); document.getElementById('main-content')?.focus(); }}>
       {t('跳至主要内容')}
     </a>
-    {navigationOpen && <button className="fixed inset-0 z-[29] bg-scrim/80 backdrop-blur-[2px]" aria-label={t('关闭导航')} onClick={onNavigationClose} />}
-    <aside id="workspace-navigation" className={`sidebar flex flex-col overflow-y-auto border-e border-line bg-surface px-[19px] pt-[31px] ${navigationOpen ? 'is-open' : ''}`} aria-label={t('主导航')}>
+    {navigationOpen && <button className="nav-scrim fixed inset-0 z-[29] bg-scrim/80 backdrop-blur-[2px]" aria-label={t('关闭导航')} onClick={onNavigationClose} />}
+    <aside id="workspace-navigation" className={`sidebar z-30 flex flex-col overflow-y-auto border-e border-line bg-surface px-[19px] pt-[31px] ${navigationOpen ? 'is-open' : ''}`} aria-label={t('主导航')}>
       {navigation}
     </aside>
     <div className="main-shell min-w-0 w-full">

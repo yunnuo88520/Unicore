@@ -35,6 +35,7 @@ export function PasswordDialog({ web, onClose }: { web: WebClient; onClose: () =
         <strong className="block font-medium">{t('请检查表单输入')}</strong>
         <p>{fieldList.map(value => t(value)).join('; ')}</p>
       </div>}
+      {change.error && fieldList.length === 0 && <p role="alert" className="rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">{t(change.error.message)}</p>}
       <label className="flex flex-col gap-1.5 text-sm font-medium text-ink">
         {t('当前密码')}
         <Input name="current_password" type="password" required maxLength={128} autoComplete="current-password" aria-invalid={Object.hasOwn(fields, 'current_password') || undefined} value={current} onChange={event => setCurrent(event.target.value)} />

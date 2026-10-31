@@ -68,7 +68,7 @@ function RolePanel({ web }: { web: WebClient }) {
       </div>}
       {query.data && <>
         <div className="grid gap-3 sm:grid-cols-2">
-          {query.data.items.map(role => <article key={role.id} className="flex items-start gap-3 rounded-xl border border-line bg-surface-alt p-4">
+          {query.data.items.map(role => <article key={role.id} className="role-card flex items-start gap-3 rounded-xl border border-line bg-surface-alt p-4">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface text-accent shadow-tint"><ShieldCheck size={20} aria-hidden="true" /></span>
             <div className="min-w-0">
               <strong className="block text-sm font-medium text-ink">{role.id === 'super_admin' ? t(roleNames.super_admin) : t(roleNames.user)}</strong>

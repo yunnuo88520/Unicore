@@ -48,7 +48,7 @@ function CoreWorkspace({ page, client, metadata, registry }: PageProps & { page:
 function RuntimeCards({ metadata, transport }: { metadata: Bootstrap; transport: AppClient['transport'] }) {
   useLocale();
   const cards = [
-    { label: t('当前运行形态'), value: PROFILE_LABELS[metadata.profile], detail: metadata.profile, icon: metadata.profile === 'desktop' ? Monitor : Globe2, tone: 'bg-primary-soft text-accent' },
+    { label: t('当前运行形态'), value: t(PROFILE_LABELS[metadata.profile]), detail: metadata.profile, icon: metadata.profile === 'desktop' ? Monitor : Globe2, tone: 'bg-primary-soft text-accent' },
     { label: t('核心服务'), value: t('运行正常'), detail: t('共享用例已就绪'), icon: Activity, tone: 'bg-success-soft text-success' },
     { label: t('连接方式'), value: transport === 'http' ? 'HTTP API' : 'Wails Bridge', detail: transport === 'http' ? t('/api/v1 · 统一接口契约') : t('原生桥接 · 无 HTTP 服务'), icon: Braces, tone: 'bg-info-soft text-info' },
     metadata.version
@@ -168,7 +168,7 @@ function CoreLab({ client }: { client: AppClient }) {
           ? <span className="flex items-center gap-1 text-2xs text-success"><CheckCircle2 size={12} />{t('执行成功')}</span>
           : <span className="text-2xs text-subtle">Go Core</span>}
       </div>
-      <div className="grid grid-cols-3 gap-2" aria-live="polite">
+      <div className="result-grid grid grid-cols-3 gap-2" aria-live="polite">
         {([['characters', t('Unicode 字符'), Code2], ['words', t('空白分隔词'), Braces], ['lines', t('文本行数'), Layers3]] as const).map(([key, label, Icon]) =>
           <div key={key} className="rounded-lg bg-surface-alt px-3 py-2">
             <span className="flex items-center gap-1 text-2xs text-muted"><Icon size={12} aria-hidden="true" />{label}</span>
@@ -176,7 +176,7 @@ function CoreLab({ client }: { client: AppClient }) {
           </div>)}
       </div>
       {execution.data
-        ? <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line bg-surface-alt px-3 py-2">
+        ? <div className="digest flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line bg-surface-alt px-3 py-2">
             <div className="flex items-center gap-2">
               <span className="text-2xs text-muted">{t('SHA-256 摘要')}</span>
               <button type="button" className="inline-flex items-center gap-1 text-2xs text-accent hover:underline" onClick={copyDigest}>

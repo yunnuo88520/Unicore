@@ -60,7 +60,7 @@ export function AnnouncementCard({ web }: { web: WebClient }) {
     return () => window.clearInterval(timer);
   }, [feed, query.isFetching, reducedMotion, stopped, hovered, focused, selected, advance]);
   if (query.isPending || (feed && (!feed.enabled || feed.total === 0))) return null;
-  return <article className="flex min-h-14 min-w-0 items-center gap-3 px-4 py-2.5" aria-label={t('平台公告')}
+  return <article className="announcement-card flex min-h-14 min-w-0 items-center gap-3 px-4 py-2.5" aria-label={t('平台公告')}
     onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
     onFocusCapture={() => setFocused(true)} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false); }}>
     <div className="flex shrink-0 items-center gap-2 border-e border-line pe-3">
@@ -73,11 +73,11 @@ export function AnnouncementCard({ web }: { web: WebClient }) {
             <span className="truncate" role="alert">{t('公告暂时无法加载')}</span>
             <Button variant="link" size="sm" className="h-auto p-0" onClick={() => void query.refetch()}>{t('重试')}</Button>
           </div>
-        : item && <button type="button" className="block w-full min-w-0 rounded-md px-1 py-1.5 text-start hover:bg-surface-alt focus-visible:bg-primary-soft focus-visible:outline-none"
+        : item && <button type="button" className="announcement-feed-item block w-full min-w-0 rounded-md px-1 py-1.5 text-start hover:bg-surface-alt focus-visible:bg-primary-soft focus-visible:outline-none"
             onClick={() => setSelected(item.id)} aria-label={t('查看公告：{{content}}', { content: contentSummary(item.content_html) })}>
-            <span key={item.id} className="flex min-h-5 items-center gap-2.5">
+            <span key={item.id} className="announcement-ticker-slide flex min-h-5 items-center gap-2.5">
               <span className={`size-1.5 shrink-0 rounded-full ${dotTone[item.type]}`} title={t(announcementTypes[item.type])} />
-              <span className="min-w-0 flex-1 truncate text-xs leading-relaxed text-ink">{contentSummary(item.content_html)}</span>
+              <span className="announcement-ticker-summary min-w-0 flex-1 truncate text-xs leading-relaxed text-ink">{contentSummary(item.content_html)}</span>
               <time dateTime={new Date(item.publish_at * 1000).toISOString()} className="shrink-0 text-2xs tabular-nums text-muted">
                 {new Date(item.publish_at * 1000).toLocaleDateString(currentLocale(), { month: '2-digit', day: '2-digit' })}
               </time>

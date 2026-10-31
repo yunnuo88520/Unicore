@@ -77,8 +77,8 @@ export function FileUploadDialog({ client, resume, onClose }: { client: AppClien
       <form className="flex flex-col gap-3" aria-busy={pending} onSubmit={event => { event.preventDefault(); if (file && !tooLarge) upload.mutate(); }}>
         {upload.error && <p role="alert" className="rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">{t(upload.error.message)}</p>}
         <input ref={input} className="sr-only" type="file" aria-label={t('选择文件')} disabled={pending} tabIndex={-1} onChange={event => pick(event.target.files?.[0] ?? null)} />
-        <button ref={zone} type="button" data-autofocus
-          className={cn('flex flex-col items-center gap-1.5 rounded-lg border border-dashed px-4 py-7 text-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-55',
+      <button ref={zone} type="button" data-autofocus
+        className={cn('upload-zone flex flex-col items-center gap-1.5 rounded-lg border border-dashed px-4 py-7 text-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-55',
             dragging ? 'border-primary bg-primary-soft' : selected ? 'border-line bg-surface-alt' : 'border-line hover:border-primary hover:bg-primary-soft')}
           disabled={pending}
           onClick={() => input.current?.click()}
@@ -97,7 +97,7 @@ export function FileUploadDialog({ client, resume, onClose }: { client: AppClien
           </strong>
           <span className="text-xs text-muted">{policy.data ? t('单文件最大 {{size}} · 支持分片续传', { size: bytes(policy.data.max_size) }) : t('正在读取策略…')}</span>
         </button>
-        {selected && <div className="flex items-center gap-2.5 rounded-lg border border-line bg-surface-alt px-3 py-2">
+        {selected && <div className="upload-file-card flex items-center gap-2.5 rounded-lg border border-line bg-surface-alt px-3 py-2">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-surface text-muted"><File size={23} aria-hidden="true" /></span>
           <div className="min-w-0">
             <strong className="block truncate text-sm text-ink">{file?.name ?? resume?.original_name}</strong>

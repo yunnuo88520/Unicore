@@ -217,7 +217,7 @@ function LogsPanel({ web }: { web: WebClient }) {
                 onChange={event => { setEndInput(event.target.value); setDates(startInput, event.target.value); }} />
             </div>
             <Button variant="ghost" size="icon" aria-label={t('清除筛选')} onClick={resetFilters}><RotateCcw size={14} /></Button>
-            <Button pending={exported.isPending} disabled={audit.isPending || !audit.data?.total}>
+            <Button pending={exported.isPending} disabled={audit.isPending || !audit.data?.total} onClick={() => exported.mutate()}>
               <Download size={15} />{exported.isPending ? t('导出中…') : t('导出')}
             </Button>
           </form>
@@ -225,7 +225,7 @@ function LogsPanel({ web }: { web: WebClient }) {
             <span>{t(audit.error.message)}</span>
             <Button variant="secondary" size="sm" onClick={() => void audit.refetch()}>{t('重试')}</Button>
           </div>}
-          <div className="rounded-lg border border-line" aria-busy={audit.isFetching}>
+          <div className="audit-table audit-table-wrap rounded-lg border border-line" aria-busy={audit.isFetching}>
             <Table>
               <TableHeader>
                 {auditTable.getHeaderGroups().map(group => <TableRow key={group.id} className="hover:bg-transparent">
@@ -253,7 +253,7 @@ function LogsPanel({ web }: { web: WebClient }) {
               </TableBody>
             </Table>
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
+          <div className="audit-pagination flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
             <span>{t('共 {{v0}} 条操作记录', { v0: audit.data?.total ?? 0 })}</span>
             <div className="flex flex-wrap items-center gap-2">
               <SimpleSelect label={t('每页条数')} className="h-8 w-28" value={String(query.page_size)}

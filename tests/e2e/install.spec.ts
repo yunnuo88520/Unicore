@@ -3,6 +3,8 @@
 import { mkdir } from 'node:fs/promises';
 import { test, expect } from './fixtures';
 
+const DATABASE_LABELS = { mysql: 'MySQL · 在线部署推荐', postgres: 'PostgreSQL · 在线部署推荐', sqlite: 'SQLite · 本机或小型测试' } as const;
+
 for (const driver of ['sqlite','mysql','postgres'] as const) test(`installer ${driver}: fields, test, consent and repeated restart`,async({page,instance},info)=>{
   test.setTimeout(60000);
   const databaseName=`${process.env.UNICORE_INSTALL_DATABASE_PREFIX??'unicore_ui'}_${info.project.name}`;
@@ -17,9 +19,10 @@ for (const driver of ['sqlite','mysql','postgres'] as const) test(`installer ${d
   const wrong='x'.repeat(40);
   expect((await page.request.post(`${instance.url}/api/v1/install/verify-db`,{headers:{'X-Bootstrap-Token':wrong},data:{driver:'sqlite',dsn:''}})).status()).toBe(403);
   await page.getByRole('button',{name:'下一步'}).click();await page.getByRole('radio',{name:/多用户平台/}).check();await page.getByRole('button',{name:'下一步'}).click();
-  await expect(page.getByLabel('数据库类型')).toHaveValue('mysql');await expect(page.getByLabel('数据库地址',{exact:true})).toHaveValue('127.0.0.1');await expect(page.getByLabel('数据库端口',{exact:true})).toHaveValue('3306');await expect(page.getByLabel('数据库名',{exact:true})).toHaveValue('unicore');await expect(page.getByLabel('数据库用户名',{exact:true})).toHaveValue('root');
+  const databaseType=page.getByRole('combobox',{name:'数据库类型'});
+  await expect(databaseType).toContainText(DATABASE_LABELS.mysql);await expect(page.getByLabel('数据库地址',{exact:true})).toHaveValue('127.0.0.1');await expect(page.getByLabel('数据库端口',{exact:true})).toHaveValue('3306');await expect(page.getByLabel('数据库名',{exact:true})).toHaveValue('unicore');await expect(page.getByLabel('数据库用户名',{exact:true})).toHaveValue('root');
   await expect(page.getByRole('button',{name:'下一步'})).toBeDisabled();
-  await page.getByLabel('数据库类型').selectOption(driver);
+  await databaseType.click();await page.getByRole('option',{name:DATABASE_LABELS[driver],exact:true}).click();
   if(driver!=='sqlite'){
     if(driver==='postgres'){await expect(page.getByLabel('数据库端口',{exact:true})).toHaveValue('5432');await expect(page.getByLabel('数据库用户名',{exact:true})).toHaveValue('postgres');}
     await page.getByLabel('数据库端口',{exact:true}).fill(port!);await page.getByLabel('数据库名',{exact:true}).fill(databaseName);await page.getByLabel('数据库密码',{exact:true}).fill('wrong-password');

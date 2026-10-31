@@ -27,24 +27,24 @@ test('cross-tab logout/account switch, field focus and server revocation',async(
   await page.getByLabel('邮箱',{exact:true}).fill('member@example.test');
   await page.getByLabel('初始密码').fill('test-password-strong');
   await page.getByRole('button',{name:'创建用户',exact:true}).click();
-  await expect(page.getByRole('alert')).toContainText('格式不正确');
+  await expect(page.getByRole('alert', { name: '表单校验' })).toContainText('格式不正确');
   await expect(page.getByLabel('账号',{exact:true})).toBeFocused();
   await expect(page.getByLabel('账号',{exact:true})).toHaveAttribute('aria-invalid','true');
   await capture(page,info,'foundation-field-error');
   await page.getByLabel('账号',{exact:true}).fill('member');
   await page.getByRole('button',{name:'创建用户',exact:true}).click();
   await expect(page.getByRole('cell',{name:'member',exact:true})).toBeVisible();
-  const second=await context.newPage();await second.goto(`${instance.url}/admin#users`);
+  const second=await context.newPage();await second.goto(`${instance.url}/admin/users`);
   await expect(second.getByRole('cell',{name:'member',exact:true})).toBeVisible();
   await second.getByRole('button',{name:'新增用户',exact:true}).click();
   await second.getByLabel('初始密码').fill('private-unsent-draft');
   await page.getByRole('button',{name:'账号菜单',exact:true}).click();
-  await page.getByRole('button',{name:'退出登录',exact:true}).click();
+  await page.getByRole('menuitem',{name:'退出登录',exact:true}).click();
   await expect(page.getByRole('heading',{name:'管理员登录 · Unicore',exact:true})).toBeVisible();
   await expect(second.getByRole('heading',{name:'管理员登录 · Unicore',exact:true})).toBeVisible();
   await expect(second.getByRole('cell',{name:'member',exact:true})).toHaveCount(0);
   await capture(second,info,'foundation-cross-tab-logout');
-  await page.goto(instance.url);await second.goto(`${instance.url}/#users`);
+  await page.goto(instance.url);await second.goto(`${instance.url}/users`);
   await login(page,'member');
   await expect(second.getByText('没有访问权限',{exact:true})).toBeVisible();
   await expect(second.getByRole('button',{name:'新增用户',exact:true})).toHaveCount(0);
@@ -78,10 +78,10 @@ test('cross-tab logout/account switch, field focus and server revocation',async(
 
 test('unknown routes and generated API reference follow system theme',async({page,instance},info)=>{
   await installStandalone(instance);
-  await page.goto(`${instance.url}/#missing-page`);
+  await page.goto(`${instance.url}/missing-page`);
   await expect(page.getByText('找不到这个页面',{exact:true})).toBeVisible();
   await capture(page,info,'foundation-not-found');
-  await page.getByRole('link',{name:'返回工作台'}).click();
+  await page.getByRole('button',{name:'返回工作台'}).click();
   await expect(page.getByRole('button',{name:'运行用例'})).toBeVisible();
   await page.goto(`${instance.url}/docs/api`);
   await expect(page.getByRole('heading',{name:'API 文档',exact:true})).toBeVisible();

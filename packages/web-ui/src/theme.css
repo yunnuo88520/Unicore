@@ -118,6 +118,10 @@
 }
 
 @layer components {
+  /* Dashboard widgets disappear entirely when their content renders nothing,
+     matching the legacy behavior where an empty widget left no visible box. */
+  .dashboard-widget:empty { display: none; }
+
   /* Rendered rich HTML (announcements, mail template previews) and Tiptap editable content
      share the same constrained tag set; both need typography since the legacy CSS is gone. */
   .rich-content { @apply text-base leading-relaxed text-ink; }

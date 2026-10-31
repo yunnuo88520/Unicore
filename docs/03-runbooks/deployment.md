@@ -45,6 +45,8 @@ CLI 直接运行 `build/bin/unicore execute --text "Hello Unicore"`，不打开 
 
 快速构建、统一版本与发版流程见 [发版手册](release.md)。Linux amd64 服务器使用 `make package RELEASE_TARGETS=linux/amd64 RELEASE_PROFILES=web-platform`，ARM 服务器改 arm64。目标机器无需 Go/Node。核对 checksums.txt 后解压到 `/opt/unicore/releases/<版本>`，让 `/opt/unicore/current` 指向该目录；将数据单独放在 `/var/lib/unicore`，禁止放进公开站点根目录。
 
+包根目录提供 `./unicorehelp` / `./unicore help`，`./unicore` 无参数启动 Web/API，`bin/server` 仍兼容。可用 `./unicore config generate --output /你的私有目录/unicore.json` 生成可选启动配置，再以 `./unicore --config /你的私有目录/unicore.json` 运行；拒绝覆盖已有文件，兼容别名为 generate-config。JSON 不存数据库或管理员凭据，首次安装仍访问 `/install`；字段与优先级见 [配置指南](../product/configuration.md)。
+
 ```sh
 # 以下由运维在新服务器执行，路径按实际包名调整
 sudo useradd --system --home /var/lib/unicore --shell /usr/sbin/nologin unicore

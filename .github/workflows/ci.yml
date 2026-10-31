@@ -68,6 +68,8 @@ jobs:
             test-results/
       - run: make test-features
       - run: make release
+      - name: Exercise packaged Linux Web entry points
+        run: node scripts/check-release-entrypoints.mjs web
       - uses: actions/upload-artifact@v7
         with: { name: web-cli-preview, path: build/releases/ }
   native-desktop:
@@ -118,6 +120,8 @@ jobs:
       - run: make package-desktop
         env:
           UNICORE_PLATFORM_SIGNING: ${{ github.event_name != 'pull_request' && vars.UNICORE_PLATFORM_SIGNING || 'unsigned' }}
+      - name: Verify native desktop downloads
+        run: node scripts/check-release-entrypoints.mjs desktop
       - uses: actions/upload-artifact@v7
         with:
           name: desktop-${{ matrix.os }}

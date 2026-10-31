@@ -93,6 +93,8 @@ routes.ts 集中管理员菜单/直达页守卫，settings-page.tsx 将平台本
 
 [ADR-0010](../adr/ADR-0010-settings-edition.md) 补齐 ICP/别名/ICO/内部系统通知队列。授权仍由 license tag 默认关闭；更新以 [ADR-0018](../adr/ADR-0018-signed-updates.md) 取代占位，updater tag 默认通过 Make 开启。internal/updates 隔离 Provider/Cache/Installer ports，adapter/updatechannel 与 updateinstall 分别实现渠道和安全安装，bootstrap/updating 按形态装配。HTTP 使用窄 updateport 并独立鉴权，原生 bridge 直接调用。内置日志、私有缓存、签名清单和 helper 原子切换不依赖平台身份模块；CLI 不装配。设置矩阵见 [规范](../00-product/feature-settings.md)。
 
+Web 启动参数、APP_* 环境与可选 JSON 配置由 internal/config.LoadWeb 统一解析校验（flag > 环境 > 显式文件 > 默认值）；仅显式指定配置路径时读取，数据库和管理员仍由安装向导管理。发行包的 unicore/unicorehelp 只转发到 Web server，不进入无数据库的业务 CLI。原生桌面面向用户提供 macOS DMG、Windows 便携 EXE，原有 tar 仍供签名 OTA；下载文件在桌面 manifest.downloads 与总校验和中关联，派生产品沿用品牌源。
+
 版本与交付由 VERSION → scripts/version.mjs → 各端投影，Docker/归档读取相同元数据。Nginx 仅直接处理指纹资源，其余请求交 Go 保持安装/身份/动态品牌边界；详见 [ADR-0011](../adr/ADR-0011-release-deployment.md)。
 
 原生 runner 将桌面结果归档后与同一 main 提交的 Web/CLI 包汇总；release-assets.mjs 检查版本、来源、矩阵和摘要，候选 workflow 为全部归档生成 GitHub 来源证明。CI 安全扫描包含桌面导入包和前端开发依赖。来源证明不替代平台代码签名或 OTA 签名，具体流程与限制见 [发版](../03-runbooks/release.md) 及 [安全政策](../../SECURITY.md)。

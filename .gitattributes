@@ -5,3 +5,7 @@ migrations/platform/**/*.sql -text
 migrations/modules/**/*.sql -text
 migrations/metadata.gen.json -text
 migrations/catalogdata/catalog.gen.go -text
+
+# Linux archive entry points must remain executable shell scripts on every checkout OS.
+deploy/tar/unicore text eol=lf
+deploy/tar/unicorehelp text eol=lf

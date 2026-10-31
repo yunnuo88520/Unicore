@@ -28,6 +28,13 @@ import (
 )
 
 func main() {
+	if handled, err := managementMain(); handled {
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
 	if handled, err := updateHelper(os.Args[1:]); handled {
 		if err != nil {
 			os.Exit(1)
@@ -37,7 +44,7 @@ func main() {
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
 	if err := run(os.Args[1:]); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
-			fmt.Fprint(os.Stdout, config.WebUsage)
+			_, _ = management([]string{"help"}, os.Stdout)
 			return
 		}
 		slog.Error("server stopped", "event", "server.stop_failed", "error", err)

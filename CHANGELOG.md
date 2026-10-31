@@ -3,6 +3,8 @@
 
 ## Unreleased
 
+- 桌面发行补充 macOS 拖拽安装 DMG 与 Windows 直接运行 EXE，保留 OTA tar 并统一校验；Linux Web 包新增 unicore/unicorehelp、帮助菜单与拒绝覆盖的启动 JSON 生成/读取，首次安装仍由安装页引导。
+
 - 统一更新 Go/Wails/SQLite/对象存储 SDK、Vitest 5、jsdom 30 与 GitHub Actions；Node 开发最低补丁版本提升至 22.22.2，自检读取 package.json 兼容范围。保留与 Node 22 基线配套的类型定义，Dependabot 继续跟踪其补丁/次版本。
 - 清理 Dependabot 积压队列，补齐 OAuth2 0.37、前端哈希/查询/图标与测试 matcher 更新；构建工具与 artifact 上传/下载 Actions 配套升级。保留 TypeScript AST 和 Vite 构建基线，大版本迁移须单独验证。
 

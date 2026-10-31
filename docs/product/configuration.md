@@ -1,10 +1,11 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 配置、数据库与运行状态
 
-Web 参数优先级为 flag > APP_* 环境 > 默认值；已安装的 Profile、数据库与设置以持久化安装信息为准，启动参数不用于无声转换已安装形态。
+Web 参数优先级为 flag > APP_* 环境 > 显式 JSON 配置文件 > 默认值；已安装的 Profile、数据库与设置以持久化安装信息为准，启动参数不用于无声转换已安装形态。
 
 | 参数 | 环境变量 | 默认/说明 |
 | --- | --- | --- |
+| --config | APP_CONFIG | 可选启动 JSON；仅显式指定时读取 |
 | --listen | APP_LISTEN | 127.0.0.1:8080 |
 | --profile | APP_PROFILE | 首次选择 web-platform / web-standalone |
 | --data-dir | APP_DATA_DIR | data；生产必须使用独立私有目录 |
@@ -17,6 +18,19 @@ Web 参数优先级为 flag > APP_* 环境 > 默认值；已安装的 Profile、
 | --readiness-timeout | APP_READINESS_TIMEOUT | 2s；100ms–10s |
 
 使用 bin/server --help 查看当前参数。APP_DATA_DIR 包含安装配置、密钥与私有文件；SQLite 文件也在该实例目录。必须整套持久化，不能只保留 DB、丢弃 secret.key。使用 APP_SECRET_KEY 时备份恢复须保留对应密钥，不在命令输出、公开配置或浏览器中展示。
+
+Linux Web 包解压后可直接使用根目录入口：
+
+```sh
+./unicorehelp
+./unicore help
+./unicore config generate --output unicore.json
+./unicore --config unicore.json
+# 兼容别名，同样拒绝覆盖已有文件
+./unicore generate-config --output another-config.json
+```
+
+无参数 `./unicore` 继续按环境变量和默认值启动，不强制配置文件；生成后用 `--config` 或 `APP_CONFIG` 显式加载。JSON 字段为 listen、profile、data_dir、deployment、log_level、log_format、monitor_listen、shutdown_timeout、readiness_timeout、api_docs（布尔值）；未知字段、null、必填字段空字符串和无效参数会拒绝启动。相对路径以当前工作目录为准。生成文件使用 0600 权限，拒绝覆盖现有文件，不写入密钥或数据库凭据。数据库、管理员和首次安装由 `/install` 向导完成；此处的 Web 管理入口与无数据库的业务 CLI 独立。
 
 ## 数据库与权限
 

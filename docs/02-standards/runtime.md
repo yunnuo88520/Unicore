@@ -1,10 +1,11 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 配置、生命周期、日志与监控
 
-Web 配置由 internal/config.LoadWeb 加载并验证：flag > APP_* 环境 > 默认值。已安装的 profile/数据库/设置以私有持久配置为准，启动 profile 只是安装初始选择。SecretKey、BootstrapToken、AdminPath 继续由组合根注入，不打印完整有效配置。
+Web 配置由 internal/config.LoadWeb 统一解析与验证：flag > APP_* 环境 > 显式 JSON 文件 > 默认值。文件仅在 --config / APP_CONFIG 指定时读取；未知字段拒绝，config generate（别名 generate-config）使用 0600、拒绝覆盖，字段见 [配置指南](../product/configuration.md)。已安装的 profile/数据库/设置以私有持久配置为准，启动 profile 只是安装初始选择。SecretKey、BootstrapToken、AdminPath 继续由组合根注入，不打印完整有效配置。
 
 | Flag | 环境变量 | 默认/限制 |
 | --- | --- | --- |
+| --config | APP_CONFIG | 可选启动 JSON 文件 |
 | --listen | APP_LISTEN | 127.0.0.1:8080 |
 | --profile | APP_PROFILE | 空，由安装选择 web-platform/web-standalone |
 | --data-dir | APP_DATA_DIR | data |

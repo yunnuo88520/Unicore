@@ -534,6 +534,8 @@
     "scripts/desktop-downloads.mjs",
     "scripts/distribution.mjs",
     "scripts/distribution.test.mjs",
+    "scripts/framework-sync.mjs",
+    "scripts/framework-sync.test.mjs",
     "scripts/doctor.mjs",
     "scripts/generate-brand.mjs",
     "scripts/generate-contracts.mjs",
@@ -624,5 +626,21 @@
       "source": "distribution/template/skills/develop-application/SKILL.md",
       "target": ".agents/skills/develop-application/SKILL.md"
     }
-  ]
+  ],
+  "ownership": {
+    "product-owned": [
+      "product.identity.json",
+      "project.provenance.json",
+      "go.mod 的 module 行与派生业务代码"
+    ],
+    "generated": [
+      "internal/buildinfo/identity.gen.go",
+      "packages/web-ui/src/product.gen.ts",
+      "assets/theme/resolved.gen.json",
+      "assets/brand/wordmark.svg",
+      "apps/web/public/site.webmanifest",
+      "apps/desktop/public/site.webmanifest"
+    ],
+    "excluded": []
+  }
 }

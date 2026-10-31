@@ -50,7 +50,7 @@ Go 消费:`internal/buildinfo` 常量(ProductName/ProductSlug/CLIRootCommand/CLI
 
 ## 文件所有权
 
-上游同步与派生的前置分类,机器可读标注在 D4 落入 [distribution/manifest.json](../../distribution/manifest.json):
+上游同步与派生的前置分类,机器可读标注在 [distribution/manifest.json](../../distribution/manifest.json) 的 `ownership` 字段;`framework-template` 模板分支随附框架自身 `product.identity.json`,同步工具据此把派生树归一化回框架命名再三方合并:
 
 | 类别 | 内容 |
 | --- | --- |

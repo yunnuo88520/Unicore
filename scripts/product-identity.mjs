@@ -164,9 +164,10 @@ const tokenProjections = (identity, dir) => {
 };
 
 const applyTokens = (text, tokens) => tokens.reduce((current, [from, to]) => current.replaceAll(from, to), text);
+const bareToken = literal => new RegExp(`(?<![\\w@.-])${literal}(?![\\w./-])`, 'g');
 
-// Synchronize the declared projections; mixed files only ever change identity fields.
-export function applyIdentity(base, identity, check) {
+// Apply every content projection (fields, generated sources, token maps) except deployment renames and consumer gates.
+export function applyIdentityContent(base, identity, check) {
   const dir = base.endsWith('/') ? base : `${base}/`;
   const read = path => { try { return readFileSync(`${dir}${path}`, 'utf8'); } catch { return ''; } };
   const update = (path, next) => { if (next !== read(path)) { if (check) throw new Error(`${path} is stale; run pnpm product:generate`); writeFileSync(`${dir}${path}`, next); } };
@@ -201,6 +202,13 @@ export function applyIdentity(base, identity, check) {
     update(path, content);
   }
   for (const [path, tokens] of tokenProjections(identity, dir)) update(path, applyTokens(read(path), tokens));
+}
+
+export function applyIdentity(base, identity, check) {
+  const dir = base.endsWith('/') ? base : `${base}/`;
+  const read = path => { try { return readFileSync(`${dir}${path}`, 'utf8'); } catch { return ''; } };
+  const update = (path, next) => { if (next !== read(path)) { if (check) throw new Error(`${path} is stale; run pnpm product:generate`); writeFileSync(`${dir}${path}`, next); } };
+  applyIdentityContent(base, identity, check);
   for (const [from, to, tokens] of deploymentRenames(identity)) {
     const current = existsSync(`${dir}${to}`) || !existsSync(`${dir}${from}`) ? read(to) : read(from);
     const next = applyTokens(current, tokens);
@@ -214,6 +222,32 @@ export function applyIdentity(base, identity, check) {
   if (module !== identity.go.module) throw new Error(`go.mod module ${module} differs from product.identity.json; update them together`);
   if (!read('Makefile').includes('-X $(GO_MODULE)/internal/buildinfo.Version=')) throw new Error('Makefile LDFLAGS must inject versions through $(GO_MODULE); hardcoded module paths defeat the identity source');
 }
+
+// Upstream merge support: map product-named files and values back to the framework template naming.
+export function reverseRenames(frameworkIdentity, productIdentity) {
+  const frameworkSide = deploymentRenames(frameworkIdentity);
+  return deploymentRenames(productIdentity)
+    .map(([from, to, tokens], index) => ({
+      from: to,
+      to: from,
+      tokens: tokens.map(([fwLiteral, productValue], position) => [productValue, frameworkSide[index][2][position][1]]),
+    }))
+    .filter(pair => pair.from !== pair.to);
+}
+
+export function reverseTokenMaps(frameworkIdentity, productIdentity, dir) {
+  const normalized = dir.endsWith('/') ? dir : `${dir}/`;
+  const productSide = tokenProjections(productIdentity, normalized);
+  const frameworkSide = tokenProjections(frameworkIdentity, normalized);
+  return productSide.map(([path, pairs], index) => [
+    path,
+    pairs
+      .map(([fwLiteral, productValue], position) => [fwLiteral instanceof RegExp ? bareToken(productValue) : productValue, frameworkSide[index][1][position][1]])
+      .filter(([from, to]) => from !== to),
+  ]);
+}
+
+export { applyTokens };
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   try {

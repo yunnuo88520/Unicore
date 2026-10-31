@@ -13,7 +13,7 @@ it('calls the supplied client and displays actual output', async () => {
   await userEvent.click(await screen.findByRole('button', { name: '运行用例' }));
   expect(await screen.findByText('执行成功')).toBeVisible();
   expect(screen.getByText('42')).toBeVisible();
-  expect(api.execute).toHaveBeenCalledWith({ text: expect.stringContaining('Unicore') });
+  expect(api.execute).toHaveBeenCalledWith({ text: expect.stringContaining('Hello, world') });
   expect(screen.queryByText('总用户数')).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: '账号菜单' })).not.toBeInTheDocument();
 });

@@ -6,9 +6,11 @@ import {createHash} from 'node:crypto';
 import {mkdtempSync,mkdirSync,readFileSync,readlinkSync,rmSync,statSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
+import {loadIdentity} from './product-identity.mjs';
 
 const root=process.cwd(), os=process.platform==='win32'?'windows':process.platform;
 const arch={x64:'amd64',arm64:'arm64'}[process.arch];
+const identity=loadIdentity();
 const json=path=>JSON.parse(readFileSync(path,'utf8'));
 const hash=path=>createHash('sha256').update(readFileSync(path)).digest('hex');
 const product=json(join(root,'package.json')).name, version=readFileSync(join(root,'VERSION'),'utf8').trim();
@@ -29,9 +31,9 @@ async function web(){
     const destination=join(temporary,item.profile);mkdirSync(destination);
     execFileSync('tar',['-xzf',join(directory,item.artifact),'-C',destination]);
     const release=join(destination,item.artifact.replace(/\.tar\.gz$/,''));
-    for(const name of ['unicore','unicorehelp','bin/server'])assert(statSync(join(release,name)).mode&0o111);
-    const entry=join(release,'unicore'), configuration=join(destination,'startup.json');
-    const help=execFileSync(join(release,'unicorehelp'),[],{cwd:destination,env:environment,encoding:'utf8'});
+    for(const name of [identity.cli.command,`${identity.cli.command}help`,'bin/server'])assert(statSync(join(release,name)).mode&0o111);
+    const entry=join(release,identity.cli.command), configuration=join(destination,'startup.json');
+    const help=execFileSync(join(release,`${identity.cli.command}help`),[],{cwd:destination,env:environment,encoding:'utf8'});
     assert(help.includes('config generate')&&help.includes('/install'));
     execFileSync(entry,['config','generate','--output',configuration],{cwd:destination,env:environment});
     const before=readFileSync(configuration);

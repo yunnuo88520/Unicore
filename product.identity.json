@@ -4,14 +4,16 @@
   "product": {
     "name": "Unicore",
     "slug": "unicore",
-    "vendor": "yunnuo"
+    "vendor": "yunnuo",
+    "description": "一份核心，运行于每个终端"
   },
   "go": {
     "module": "github.com/yunnuo/unicore"
   },
   "cli": {
     "command": "unicore",
-    "opsCommand": "unicore-ops"
+    "opsCommand": "unicore-ops",
+    "description": "Unicore — one core, every interface"
   },
   "desktop": {
     "bundleId": "vip.ebox.unicore",

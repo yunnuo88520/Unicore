@@ -17,7 +17,7 @@ var ErrorCatalog = map[string]ErrorDefinition{
 	"BOOTSTRAP_TOKEN_INVALID": {Status: 403, Message: "安装凭据无效，请读取部署数据目录中的 bootstrap.token"},
 	"CAPTCHA_INVALID":         {Status: 400, Message: "验证码不正确或已过期，请刷新后重试"},
 	"CSRF_INVALID":            {Status: 403, Message: "请求校验已失效，请刷新页面"},
-	"DATABASE_INITIALIZED":    {Status: 409, Message: "目标数据库已有 Unicore 安装记录，请恢复原实例配置，不能重新安装"},
+	"DATABASE_INITIALIZED":    {Status: 409, Message: "目标数据库已有安装记录，请恢复原实例配置，不能重新安装"},
 	"DATABASE_UNAVAILABLE":    {Status: 400, Message: "无法连接或初始化数据库，请检查配置与权限后重试"},
 	"INSTALL_COMMITTED":       {Status: 500, Message: "安装已完成，请前往登录页面"},
 	"INSTALL_REQUIRED":        {Status: 409, Message: "请先完成安装"},

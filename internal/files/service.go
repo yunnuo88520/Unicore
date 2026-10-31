@@ -21,6 +21,7 @@ import (
 	"unicode"
 
 	"github.com/yunnuo/unicore/internal/blob"
+	"github.com/yunnuo/unicore/internal/buildinfo"
 	"github.com/yunnuo/unicore/internal/contracts"
 )
 
@@ -211,7 +212,7 @@ func (s *Service) probe(ctx context.Context, l Location) error {
 	if e = s.Repo.Queue(ctx, jobs); e != nil {
 		return ErrUnavailable
 	}
-	data := []byte("Unicore storage verification " + id())
+	data := []byte(buildinfo.ProductName + " storage verification " + id())
 	obj, e := st.Put(ctx, k, bytes.NewReader(data), int64(len(data)), "application/octet-stream")
 	if e != nil {
 		return ErrUnavailable

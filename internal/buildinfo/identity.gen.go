@@ -4,9 +4,10 @@
 package buildinfo
 
 const (
-	ProductName    = "Unicore"
-	ProductSlug    = "unicore"
-	CLIRootCommand = "unicore"
-	OpsCommandName = "unicore-ops"
-	BundleID       = "vip.ebox.unicore"
+	ProductName        = "Unicore"
+	ProductSlug        = "unicore"
+	CLIRootCommand     = "unicore"
+	CLIRootDescription = "Unicore — one core, every interface"
+	OpsCommandName     = "unicore-ops"
+	BundleID           = "vip.ebox.unicore"
 )

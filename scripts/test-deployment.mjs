@@ -6,12 +6,14 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { chromium, expect } from '@playwright/test';
+import { loadIdentity, ciSecretPrefix } from './product-identity.mjs';
 
+const identity = loadIdentity(), prefix = ciSecretPrefix(identity.product.slug);
 const docker = args => execFileSync('docker', args, { encoding: 'utf8', stdio: ['ignore','pipe','pipe'] }).trim();
 const version = readFileSync('VERSION','utf8').trim();
 const contract = JSON.parse(readFileSync('packages/contracts/openapi.json','utf8'));
 const management = Object.entries(contract.paths).filter(([path])=>path.startsWith('/api/v1/admin/')).flatMap(([path,item])=>Object.entries(item).filter(([,operation])=>operation.operationId&&operation['x-unicore'].access!=='public').map(([method])=>({path,method:method.toUpperCase()})));
-const image = process.env.UNICORE_IMAGE ?? `unicore:${version}`;
+const image = process.env[`${prefix}_IMAGE`] ?? `${identity.deployment.image}:${version}`;
 const daemonArch=docker(['info','--format','{{.Architecture}}']);
 const arch=({aarch64:'arm64',arm64:'arm64',x86_64:'amd64',amd64:'amd64'})[daemonArch];
 if(!arch)throw new Error(`Unsupported Docker architecture ${daemonArch}`);
@@ -22,7 +24,7 @@ rmSync(join(evidence,'results.json'),{force:true});
 const containers = new Set(), volumes = new Set(), networks = new Set();
 const results=[];
 const browser = await chromium.launch({headless:true,...(process.env.PLAYWRIGHT_CHANNEL?{channel:process.env.PLAYWRIGHT_CHANNEL}:{})});
-const composeEnv={...process.env, UNICORE_VERSION:version, UNICORE_IMAGE:image, UNICORE_PORT:'0'};
+const composeEnv={...process.env, [`${prefix}_VERSION`]:version, [`${prefix}_IMAGE`]:image, [`${prefix}_PORT`]:0};
 const compose = (project,args) => execFileSync('docker',['compose','-p',project,'-f','deploy/docker/compose.yaml',...args],{env:composeEnv,encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
 const projects = new Set();
 async function waitLive(url) {
@@ -46,7 +48,7 @@ async function exercise(mode,profile) {
     volumes.add(volume);docker(['volume','create',volume]);
     const run=['run','-d','--name',name,'--read-only','--cap-drop=ALL','--security-opt=no-new-privileges:true','-v',`${volume}:/data`];
     if(mode.startsWith('tar')) {
-      const artifact=`unicore-${profile}-linux-${arch}-v${version}.tar.gz`;
+      const artifact=`${identity.release.artifactPrefix}-${profile}-linux-${arch}-v${version}.tar.gz`;
       const release=join(temp,mode);mkdirSync(release);
       const file=resolve('build/releases',artifact);
       const manifest=JSON.parse(readFileSync('build/releases/manifest.json','utf8')).artifacts.find(item=>item.artifact===artifact);
@@ -56,10 +58,10 @@ async function exercise(mode,profile) {
       expect(JSON.parse(readFileSync(join(release,'manifest.json'),'utf8')).migration_level).toBe(profile==='web-platform'?12:1);
       expect(JSON.parse(readFileSync(join(release,'manifest.json'),'utf8')).business_migration_level).toBe(2);
       expect(readFileSync(join(release,'LICENSE'),'utf8')).toContain('MIT License');
-      expect(readFileSync(join(release,'bin/unicore-ops')).byteLength).toBeGreaterThan(1000);
+      expect(readFileSync(join(release,`bin/${identity.cli.opsCommand}`)).byteLength).toBeGreaterThan(1000);
       const network=`${name}-network`;networks.add(network);docker(['network','create',network]);
       run.push('--network',network,'--network-alias','backend','-v',`${release}:/release:ro`,'--entrypoint','/release/bin/server','-e','APP_DEPLOYMENT_KIND=tar');
-      const config=readFileSync(join(release,'deploy/nginx.conf.example'),'utf8').replace('127.0.0.1:8088','0.0.0.0:80').replace('/opt/unicore/current/web','/release/web').replaceAll('127.0.0.1:8080','backend:8080').replace('add_header Cache-Control','add_header X-Unicore-Static nginx;\n        add_header Cache-Control');
+      const config=readFileSync(join(release,'deploy/nginx.conf.example'),'utf8').replace('127.0.0.1:8088','0.0.0.0:80').replace(`${identity.deployment.installDirectory}/current/web`,'/release/web').replaceAll('127.0.0.1:8080','backend:8080').replace('add_header Cache-Control','add_header X-Unicore-Static nginx;\n        add_header Cache-Control');
       const conf=join(temp,`${mode}.conf`);writeFileSync(conf,config);
       const nginx=`${name}-nginx`;containers.add(nginx);
       docker([...run,image]);containers.add(name);
@@ -132,14 +134,14 @@ async function exercise(mode,profile) {
     expect((await context.request.patch(`${url}${base}/settings`,{headers,data:{changes}})).status()).toBe(200);
     if(admin)expect((await context.request.put(`${url}${base}/branding`,{headers,data:{slot:'favicon',content:readFileSync('assets/brand/icon-192.png').toString('base64')}})).status()).toBe(200);
     else expect((await context.request.put(`${url}${base}/branding`,{headers,data:{slot:'favicon',content:''}})).status()).toBe(404);
-    const manifest=await(await get('/site.webmanifest')).json();expect(manifest.name).toBe(admin?`持久部署 ${mode}`:'Unicore');
+    const manifest=await(await get('/site.webmanifest')).json();expect(manifest.name).toBe(admin?`持久部署 ${mode}`:identity.product.name);
     if(admin)expect(manifest.icons[0].src).toMatch(/^\/brand-assets\//);
     expect((await get(manifest.icons[0].src)).status()).toBe(200);
     const unknown=await get('/api/v1/unknown');expect(unknown.status()).toBe(404);expect((await unknown.json()).code).toBe('NOT_FOUND');
     for(const path of ['/docs/api','/openapi.json','/assets/missing.js'])expect((await get(path)).status()).toBe(404);
     if(admin) {expect((await get('/admin')).status()).toBe(404);expect((await get('/manage')).status()).toBe(200);}
     expect((await get('/api/v1/health/ready')).status()).toBe(200);
-    await page.goto(admin?`${url}/manage`:url);await expect(page).toHaveTitle(admin?`持久部署 ${mode} · 工作空间`:'Unicore · 工作空间');
+    await page.goto(admin?`${url}/manage`:url);await expect(page).toHaveTitle(admin?`持久部署 ${mode} · 工作空间`:`${identity.product.name} · 工作空间`);
     for(const width of [1440,375]) {await page.setViewportSize({width,height:1000});await page.screenshot({path:join(evidence,`${mode}-workspace-${width}.png`),fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}
     const fingerprints=Object.fromEntries(['secret.key','installation.json'].map(path=>[path,digest(dataFile(container,path))]));
     // A process restart followed by container replacement must retain the installation and key.
@@ -147,7 +149,7 @@ async function exercise(mode,profile) {
     if(!mode.startsWith('tar'))url=`http://${docker(['port',container,'8080/tcp'])}`;
     await waitLive(url);
     recreate();await waitLive(url);
-    expect((await json(bootstrapPath)).site_name).toBe(admin?`持久部署 ${mode}`:'Unicore');
+    expect((await json(bootstrapPath)).site_name).toBe(admin?`持久部署 ${mode}`:identity.product.name);
     for(const [path,hash] of Object.entries(fingerprints))expect(digest(dataFile(container,path))).toBe(hash);
     expect((await context.request.get(`${url}/install`,{maxRedirects:0})).status()).toBe(303);
     const replay=await context.request.post(`${url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':token},data:{profile,database:{driver:'sqlite',dsn:''},site_name:'Replay',base_url:url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'Admin@123456'}});

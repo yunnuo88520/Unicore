@@ -6,6 +6,7 @@ import {BookOpen,ExternalLink,Info} from 'lucide-react';
 import type {AppClient,Bootstrap} from '@unicore/sdk';
 import {canAccess} from './routes';
 import { t, useLocale } from './i18n';
+import { productName } from './product.gen';
 import {Tooltip} from './tooltip';
 export const workspaceLinks={documentation:'https://github.com/yunnuo88520/Unicore/tree/main/docs',quickStart:'https://github.com/yunnuo88520/Unicore#readme'};
 export function VersionBadge({client,metadata,onOpen}:{client:AppClient;metadata?:Bootstrap;onOpen:()=>void}){
@@ -20,5 +21,5 @@ export function VersionBadge({client,metadata,onOpen}:{client:AppClient;metadata
 export function SidebarTools({onAbout}:{onAbout:()=>void}){
   useLocale();const [open,setOpen]=useState(false),ref=useRef<HTMLDivElement>(null);
   useEffect(()=>{if(!open)return;const outside=(event:PointerEvent)=>{if(!ref.current?.contains(event.target as Node))setOpen(false);};const key=(event:KeyboardEvent)=>{if(event.key==='Escape'){setOpen(false);ref.current?.querySelector('button')?.focus();}};document.addEventListener('pointerdown',outside);document.addEventListener('keydown',key);return()=>{document.removeEventListener('pointerdown',outside);document.removeEventListener('keydown',key);};},[open]);
-  return <div className="sidebar-utilities" ref={ref}><button className="sidebar-help" onClick={()=>setOpen(value=>!value)} aria-expanded={open}><BookOpen size={16}/>{t('文档与帮助')}</button><Tooltip label={t('关于 Unicore')}><button className="icon-button" aria-label={t('关于 Unicore')} onClick={onAbout}><Info size={16}/></button></Tooltip>{open&&<div className="sidebar-help-menu"><a href={workspaceLinks.quickStart} target="_blank" rel="noopener noreferrer">{t('快速开始')}<ExternalLink size={13}/></a><a href={workspaceLinks.documentation} target="_blank" rel="noopener noreferrer">{t('开发文档')}<ExternalLink size={13}/></a></div>}</div>;
+  return <div className="sidebar-utilities" ref={ref}><button className="sidebar-help" onClick={()=>setOpen(value=>!value)} aria-expanded={open}><BookOpen size={16}/>{t('文档与帮助')}</button><Tooltip label={t('关于 {{name}}',{name:productName})}><button className="icon-button" aria-label={t('关于 {{name}}',{name:productName})} onClick={onAbout}><Info size={16}/></button></Tooltip>{open&&<div className="sidebar-help-menu"><a href={workspaceLinks.quickStart} target="_blank" rel="noopener noreferrer">{t('快速开始')}<ExternalLink size={13}/></a><a href={workspaceLinks.documentation} target="_blank" rel="noopener noreferrer">{t('开发文档')}<ExternalLink size={13}/></a></div>}</div>;
 }

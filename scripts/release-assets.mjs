@@ -8,6 +8,7 @@ import { pathToFileURL } from 'node:url';
 import { readFeatures } from './build-features.mjs';
 import { verifyPlatform } from './platform-sign.mjs';
 import { desktopDownloads } from './desktop-downloads.mjs';
+import { loadIdentity } from './product-identity.mjs';
 
 const json = path => JSON.parse(readFileSync(path, 'utf8'));
 const hash = path => createHash('sha256').update(readFileSync(path)).digest('hex');
@@ -35,7 +36,7 @@ export function packageDesktop(root = process.cwd()) {
   if(process.env.UNICORE_PLATFORM_SIGNING==='required'&&targetOS!=='linux'&&platformSignature==='unsigned')throw Error('Required native signature is missing');
   const metadata = {platform_signature:platformSignature,version,channel:'development',profile:'desktop',os:targetOS,arch,commit,build_time:new Date().toISOString(),features:readFeatures().features,migration_level:1,business_migration_level:2,offline_backup:false,signature:null};
   writeFileSync(join(staging,'manifest.json'),JSON.stringify(metadata,null,2)+'\n');
-  writeFileSync(join(staging,'README_DESKTOP.md'),`<!-- Author: yunnuo <ymz@ebox.vip> -->\n# Unicore ${version}\n\n原生 ${targetOS}/${arch} 开发预览。macOS 推荐下载 DMG，将 app 拖到 Applications；Windows 推荐直接下载运行 exe；本归档解压后运行 ${binary}，同时供 OTA 使用。没有平台登录或管理功能。Linux 需要 GTK3/WebKitGTK 4.0，Windows 需要 WebView2。系统签名状态：${platformSignature}。unsigned 为未完成操作系统签名的开发预览；OTA 另须发行者签名清单。不承诺各系统窗口均已实测。\n\n## English\n\nNative ${targetOS}/${arch} development preview. On macOS, use the DMG and drag the app into Applications; on Windows, run the EXE directly. Extract this archive and run ${binary}; it also serves as the OTA transport. No platform login or administration is included. Linux needs GTK3/WebKitGTK 4.0; Windows needs WebView2. OS signature: ${platformSignature}. Unsigned previews have no OS signing/notarization; OTA separately requires the publisher-signed manifest. Not every native window has been manually exercised.\n\nhttps://github.com/yunnuo88520/Unicore/wiki\n`);
+  writeFileSync(join(staging,'README_DESKTOP.md'),`<!-- Author: yunnuo <ymz@ebox.vip> -->\n# ${loadIdentity(root).product.name} ${version}\n\n原生 ${targetOS}/${arch} 开发预览。macOS 推荐下载 DMG，将 app 拖到 Applications；Windows 推荐直接下载运行 exe；本归档解压后运行 ${binary}，同时供 OTA 使用。没有平台登录或管理功能。Linux 需要 GTK3/WebKitGTK 4.0，Windows 需要 WebView2。系统签名状态：${platformSignature}。unsigned 为未完成操作系统签名的开发预览；OTA 另须发行者签名清单。不承诺各系统窗口均已实测。\n\n## English\n\nNative ${targetOS}/${arch} development preview. On macOS, use the DMG and drag the app into Applications; on Windows, run the EXE directly. Extract this archive and run ${binary}; it also serves as the OTA transport. No platform login or administration is included. Linux needs GTK3/WebKitGTK 4.0; Windows needs WebView2. OS signature: ${platformSignature}. Unsigned previews have no OS signing/notarization; OTA separately requires the publisher-signed manifest. Not every native window has been manually exercised.\n\nhttps://github.com/yunnuo88520/Unicore/wiki\n`);
   const artifact = name+'.tar.gz';
   execFileSync('tar',['-czf',join(output,artifact),'-C',join(root,'build/native-staging'),name],{env:{...process.env,COPYFILE_DISABLE:'1'}});
   const downloads=desktopDownloads({root,output,name,built,binary,targetOS,application:config.name,platformSignature});

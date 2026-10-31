@@ -14,7 +14,7 @@ make build-ops
 make build-desktop
 ```
 
-make docs 生成契约、主题/品牌、迁移投影和开发索引；make test 执行质量检查，不代表全部 OS 原生实测或生产环境验证。CLI 可运行 make dev-cli ARGS='execute --text "Hello Unicore"'。
+make docs 生成契约、主题/品牌、迁移投影和开发索引；make test 执行质量检查，不代表全部 OS 原生实测或生产环境验证。CLI 可运行 make dev-cli ARGS='execute --text "Hello world"'。
 
 ## 构建归档和镜像
 

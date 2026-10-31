@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/yunnuo/unicore/internal/buildinfo"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/mailer"
 	"github.com/yunnuo/unicore/internal/settings"
@@ -51,9 +52,9 @@ func (a *Accounts) allow(ip, email, id, answer string, captcha bool) error {
 	return nil
 }
 func (a *Accounts) payload(ctx context.Context, email, purpose, token string) string {
-	path, subject := "verify-email", "Verify your Unicore email"
+	path, subject := "verify-email", "Verify your "+buildinfo.ProductName+" email"
 	if purpose == "reset" {
-		path, subject = "reset-password", "Reset your Unicore password"
+		path, subject = "reset-password", "Reset your "+buildinfo.ProductName+" password"
 	}
 	entry := "/"
 	if a.Administrator {

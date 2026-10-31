@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"github.com/yunnuo/unicore/internal/buildinfo"
 	"github.com/yunnuo/unicore/internal/updates"
 	"io"
 	"net/http"
@@ -98,7 +99,7 @@ func (h *HTTP) request(ctx context.Context, address string) (*http.Response, err
 	if e != nil {
 		return nil, updates.ErrUnavailable
 	}
-	req.Header.Set("User-Agent", "Unicore-Updater/1")
+	req.Header.Set("User-Agent", buildinfo.ProductName+"-Updater/1")
 	req.Header.Set("Accept", "application/vnd.github+json")
 	response, e := h.Client.Do(req)
 	if e != nil {

@@ -8776,7 +8776,7 @@
           },
           "reset_database": {
             "type": "boolean",
-            "description": "Explicitly allow deleting existing tables/views in the dedicated target database. Never resets a completed Unicore installation."
+            "description": "Explicitly allow deleting existing tables/views in the dedicated target database. Never resets a completed installation."
           },
           "database_confirmation": {
             "type": "string",
@@ -12336,7 +12336,7 @@
     },
     "DATABASE_INITIALIZED": {
       "status": 409,
-      "message": "目标数据库已有 Unicore 安装记录，请恢复原实例配置，不能重新安装"
+      "message": "目标数据库已有安装记录，请恢复原实例配置，不能重新安装"
     },
     "DATABASE_UNAVAILABLE": {
       "status": 400,

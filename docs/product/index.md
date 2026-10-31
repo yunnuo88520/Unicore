@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
-# Unicore 使用指南
+# 使用指南
 
-Unicore 以 Go + React + TypeScript 共享核心业务，提供 Web 在线平台、Web 单机、Wails 桌面和 CLI。当前为开发预览，不能将构建成功等同于目标系统运行或生产升级验证。
+应用以 Go + React + TypeScript 共享核心业务，提供 Web 在线平台、Web 单机、Wails 桌面和 CLI。当前为开发预览，不能将构建成功等同于目标系统运行或生产升级验证。
 
 | 形态 | 适用场景 | 数据库与身份 |
 | --- | --- | --- |

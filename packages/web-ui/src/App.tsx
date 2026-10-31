@@ -5,6 +5,7 @@ import { AnnouncementCard } from './announcements-card';
 import { ClientControls } from './client-controls';
 import { SidebarTools, VersionBadge } from './shell-tools';
 import {defineMessages, useLocale, t, currentLocale } from './i18n';
+import { productName } from './product.gen';
 import { WorkspaceLayout } from './workspace-layout';
 import { UpdatePanel } from './update-panel';
 import { NotesPage } from './notes-page';
@@ -208,5 +209,5 @@ function About({ onClose }: { onClose: () => void }) {
     window.addEventListener('keydown', keydown);
     return () => { window.removeEventListener('keydown', keydown); const rect=previous?.getBoundingClientRect(); if(rect&&rect.right>0&&rect.left<window.innerWidth) previous?.focus(); else document.getElementById('main-content')?.focus(); };
   }, [onClose]);
-  return <div className="modal-scrim" onClick={event => { if (event.target === event.currentTarget) onClose(); }}><div className="about-dialog" role="dialog" aria-modal="true" aria-labelledby="about-title" tabIndex={-1} ref={dialogRef}><button className="icon-button close-dialog" aria-label={t("关闭关于")} onClick={onClose}><X size={20} /></button><BrandMark size={44} /><h2 id="about-title">Unicore</h2><p>{t("一套 Go Core，一套 React UI。")}<br />{t("为 Web、桌面与命令行构建可复用的应用基座。")}</p><div className="about-stack"><span>Go</span><span>React</span><span>Wails v2</span><span>Cobra</span></div><p className="muted">{t("可扩展的业务基座、共享界面与原生桥接。")}<br />{t("完整范围与开发指南请阅读项目文档。")}</p><a href="https://github.com/yunnuo88520/Unicore/tree/main/docs" target="_blank" rel="noopener noreferrer">{t("开发文档")}<ExternalLink size={13} /></a></div></div>;
+  return <div className="modal-scrim" onClick={event => { if (event.target === event.currentTarget) onClose(); }}><div className="about-dialog" role="dialog" aria-modal="true" aria-labelledby="about-title" tabIndex={-1} ref={dialogRef}><button className="icon-button close-dialog" aria-label={t("关闭关于")} onClick={onClose}><X size={20} /></button><BrandMark size={44} /><h2 id="about-title">{productName}</h2><p>{t("一套 Go Core，一套 React UI。")}<br />{t("为 Web、桌面与命令行构建可复用的应用基座。")}</p><div className="about-stack"><span>Go</span><span>React</span><span>Wails v2</span><span>Cobra</span></div><p className="muted">{t("可扩展的业务基座、共享界面与原生桥接。")}<br />{t("完整范围与开发指南请阅读项目文档。")}</p><a href="https://github.com/yunnuo88520/Unicore/tree/main/docs" target="_blank" rel="noopener noreferrer">{t("开发文档")}<ExternalLink size={13} /></a></div></div>;
 }

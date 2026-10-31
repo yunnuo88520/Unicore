@@ -80,11 +80,10 @@ function WorkspaceShell() {
   const [about, setAbout] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const pathname = useRouterState({ select: state => state.location.pathname });
-  const page = pageFromPath(pathname, router.basepath);
+  // location.pathname is already basepath-stripped by the router.
+  const page = pageFromPath(pathname);
   const data = metadata.data;
-  const base = router.basepath;
-  const rest = base !== '/' && pathname.startsWith(base) ? pathname.slice(base.length) : pathname;
-  const basename = rest.replace(/^\//, '').split('?')[0];
+  const basename = pathname.replace(/^\//, '').split('?')[0];
 
   const locale = useLocale();
   useEffect(() => { if (data) document.title = t('{{v0}} · 工作空间', { v0: data.site_name }); }, [data?.site_name, locale]);

@@ -16,6 +16,7 @@
   inline-size: 100%;
   min-block-size: 100dvh;
 }
+.app-shell > .main-shell { grid-column: 2; min-inline-size: 0; inline-size: 100%; }
 .app-shell > .sidebar {
   position: fixed;
   inset-block: 0;

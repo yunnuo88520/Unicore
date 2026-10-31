@@ -1,8 +1,12 @@
 /* Author: yunnuo <ymz@ebox.vip>
  * Description: Tailwind v4 entry bridging the generated design tokens; component styles live in src/ui.
- * Spacing utilities are pixel values driven by --space-unit (density preference), e.g. p-12 = 12px * scale.
+ * Spacing utilities follow the default 4-unit steps, scaled by --space-unit (density preference).
  */
 @import "tailwindcss";
+/* Utility classes live in the shared UI sources and the two app shells, not next to this file. */
+@source "./";
+@source "../../../apps/web/src";
+@source "../../../apps/desktop/src";
 @import "./tokens.gen.css";
 
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
@@ -74,8 +78,8 @@
   --text-4xl: var(--font-32);
   --text-4xl--line-height: 1.2;
 
-  /* One spacing step equals one design pixel scaled by --ui-space-scale. */
-  --spacing: var(--space-unit);
+  /* Standard Tailwind 4-unit steps, scaled by the --ui-space-scale density preference. */
+  --spacing: calc(var(--space-unit) * 4);
 
   /* Motion tokens. */
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);

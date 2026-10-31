@@ -109,10 +109,11 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
 
 type RouterLike = ReturnType<typeof createRouter>;
 
-/** Map a router pathname back to the page key used by navigation and permission checks. */
-export function pageFromPath(pathname: string, basepath = '/'): Page {
-  let rest = pathname;
-  if (basepath !== '/' && rest.startsWith(basepath)) rest = rest.slice(basepath.length) || '/';
+/** Map a router pathname back to the page key used by navigation and permission checks.
+ *  location.pathname is already basepath-stripped by the router; do not strip a prefix again here
+ *  (an admin entry at /admin would otherwise corrupt the /administrators page key). */
+export function pageFromPath(pathname: string): Page {
+  const rest = pathname;
   const path = rest.replace(/^\//, '').split('?')[0];
   if (!path || path === 'install' || path === 'login' || path === 'verify-email' || path === 'reset-password') return 'overview';
   if (path === 'settings') return 'site';
@@ -120,9 +121,9 @@ export function pageFromPath(pathname: string, basepath = '/'): Page {
 }
 
 /** Current page key derived from router state. */
-export function useCurrentPage(basepath?: string): Page {
+export function useCurrentPage(): Page {
   const pathname = useRouterState({ select: state => state.location.pathname });
-  return useMemo(() => pageFromPath(pathname, basepath), [pathname, basepath]);
+  return useMemo(() => pageFromPath(pathname), [pathname]);
 }
 
 export { useRouterState, Outlet, createBrowserHistory, createHashHistory };

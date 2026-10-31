@@ -7,7 +7,7 @@
 
 | 文件 | 用途 |
 | --- | --- |
-| [README](../../README.md) / [文档入口](../README.md) | 形态选择、启动、派生、构建与能力边界 |
+| [中文 README](../../README.md) / [English README](../../README.en.md) / [文档入口](../README.md) | 形态选择、启动、派生、构建与能力边界 |
 | [LICENSE](../../LICENSE) / [CHANGELOG](../../CHANGELOG.md) | MIT 条款与待发布变更 |
 | [CONTRIBUTING](../../CONTRIBUTING.md) / [AGENTS](../../AGENTS.md) | 人与 AI 的开发边界、验证和贡献方式 |
 | [SUPPORT](../../SUPPORT.md) / [SECURITY](../../SECURITY.md) / [行为准则](../../CODE_OF_CONDUCT.md) | 使用咨询、私密安全报告与社区规范 |
@@ -50,12 +50,12 @@ PR 合并前要求检查通过，并限制强制推送和删除。当前必需 j
 
 Actions 保持最小权限，fork PR 不提供发布密钥，不使用 pull_request_target 执行贡献者代码。当前候选 workflow 的 id-token/attestations 写权限仅限候选 job；正式发布另使用受保护 environment 和受限 registry/GitHub 凭据。
 
-## 首次可下载版本
+## 持续发布与双语维护
 
-1. 确定发布点：整理 Unreleased、兼容说明与未实现范围，版本仍只从 VERSION 生成。当前可先发布标记为 prerelease 的开发预览，不宣称稳定版。
+1. 确定发布点：按 [双语发行规范](release.md#双语文档与发布说明) 整理 Unreleased、兼容说明与未实现范围，版本仍只从 VERSION 生成。当前可先发布标记为 prerelease 的开发预览，不宣称稳定版。
 2. 在可信提交运行质量/安全/原生构建与部署检查，再手动运行 Prepare release candidate；核对下载的归档、manifest、checksum 与构建来源。失败不使用旧 artifact 冒充新提交。
 3. 另获发布授权后，创建匹配 VERSION 的 tag 和 GitHub Release，附各 profile 的 tar、checksums、manifest、系统/架构和安装/备份/升级说明。未签名与窗口未实测范围要写清；不附数据目录、实例配置、密钥或安装凭据。
-4. 原生桌面支持免费分发策略，应用发布者签名与摘要等 OTA 校验必需，平台签名/公证为可选严格策略；当前派生默认差异见 R4，不能先宣称已修复。需要镜像时对接 GHCR 等受控 registry、版本标签和 digest，先验收公开拉取再提供运行命令。当前只配置候选 artifact，不存在可承诺的公开镜像地址。
-5. 建立后续小版本记录、迁移/恢复证据和已知问题。开源初期可逐步补英文 README、独立文档站、示例视频与 SBOM；这些不应阻塞已验证源码的使用。
+4. 原生桌面支持免费分发策略，应用发布者签名与摘要等 OTA 校验必需，平台签名/公证为可选严格策略；当前派生默认差异见 [更新手册](updates.md)，不能先宣称已修复。需要镜像时对接 GHCR 等受控 registry、版本标签和 digest，先验收公开拉取再提供运行命令。当前只配置候选 artifact，不存在可承诺的公开镜像地址。
+5. 建立后续小版本记录、迁移/恢复证据和已知问题。中文/英文 README 同步维护，版本变更在 Changelog 用配对语言分区；候选工作流生成 RELEASE_NOTES.md 并纳入来源证明。独立文档站、示例视频与 SBOM 可按需补充；不把详细中文手册声称为已全量英译。
 
 构建和发布操作见 [发版手册](release.md)，派生项目需替换仓库链接、Issue 联系方式、维护者和上游反馈入口，见 [框架更新约定](framework-upgrade.md)。

@@ -36,6 +36,9 @@ test('project export and destination boundaries',()=>{
   assert.match(readFileSync(join(options.directory,'main.go'),'utf8'),/example.test\/team\/product\/internal\/domain/);
   assert.match(readFileSync(join(options.directory,'project.provenance.json'),'utf8'),/"revision": "[0-9a-f]{40}"/);
   assert.equal(readFileSync(join(options.directory,'LICENSE'),'utf8'),'MIT license fixture');
+  assert.match(readFileSync(join(options.directory,'README.md'),'utf8'),/\]\(README\.en\.md\)/);
+  assert.match(readFileSync(join(options.directory,'README.en.md'),'utf8'),/My Product[\s\S]*example\.test\/team\/product[\s\S]*test\.example\.product/);
+  assert.match(readFileSync(join(options.directory,'README.en.md'),'utf8'),/\]\(README\.md\)/);
   for(const p of ['.git','.env','data/private.txt','untracked.txt','docs/04-ai/audit.md'])assert.equal(existsSync(join(options.directory,p)),false);
   for(const directory of [options.directory,source,join(source,'nested')])assert.throws(()=>createProject({...options,directory}));
   assert.throws(()=>createProject({...options,directory:join(root,'bad'),module:'../../oops'}));

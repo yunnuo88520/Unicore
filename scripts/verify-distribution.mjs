@@ -18,7 +18,7 @@ export function verifyDistribution({source, output}) {
   const releaseFiles = copyDistribution(source, release, 'user-release');
   assert.deepEqual(inventory(release), releaseFiles);
   createProject({source, directory: project, name: 'Candidate Application', slug: 'candidate-application', module: 'example.test/candidate/application', bundle: 'test.example.candidate'});
-  const projectFiles = distributionPlan(source, 'project-template').map(file => file.target).concat(['README.md', 'project.provenance.json', 'docs/developer/context.gen.md']).sort();
+  const projectFiles = distributionPlan(source, 'project-template').map(file => file.target).concat(['README.md', 'README.en.md', 'project.provenance.json', 'docs/developer/context.gen.md']).sort();
   assert.deepEqual(inventory(project), projectFiles);
   const pages = generateWiki({sourceRoot: source, output: wiki});
   assert.deepEqual(inventory(wiki), [...pages.keys()].sort());
@@ -26,7 +26,7 @@ export function verifyDistribution({source, output}) {
   const outputs = {};
   for (const [name, directory] of Object.entries({'user-release': release, 'project-template': project, 'public-wiki': wiki})) {
     const files = inventory(directory); assert(!files.some(path => forbidden.test(path)), `${name} leaked an internal or sensitive path`);
-    for (const path of files.filter(path => name !== 'project-template' || path.startsWith('docs/') || path.startsWith('.agents/') || ['README.md', 'AGENTS.md', 'CONTRIBUTING.md', 'SECURITY.md', 'SUPPORT.md'].includes(path))) {
+    for (const path of files.filter(path => name !== 'project-template' || path.startsWith('docs/') || path.startsWith('.agents/') || ['README.md', 'README.en.md', 'AGENTS.md', 'CONTRIBUTING.md', 'SECURITY.md', 'SUPPORT.md'].includes(path))) {
       assert(!/(?:\/Users\/|BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY|docs\/04-ai|docs\/adr|workspace-preservation|documentation-productization-audit)/.test(readFileSync(join(directory, path), 'utf8')), `${name}/${path} leaked private content`);
     }
     outputs[name] = files.map(path => ({path, sha256: createHash('sha256').update(readFileSync(join(directory, path))).digest('hex')}));

@@ -55,6 +55,12 @@ jobs:
           [[ "$CI_RUN_ID" =~ ^[0-9]+$ ]]
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CI_RUN_ID" > "$RUNNER_TEMP/release-ci.json"
           node --input-type=module -e 'import {readFileSync} from "node:fs"; const run=JSON.parse(readFileSync(process.env.RUNNER_TEMP+"/release-ci.json")); if(run.head_sha!==process.env.GITHUB_SHA || run.head_branch!=="main" || run.event!=="push" || run.name!=="Quality and profile builds" || run.conclusion!=="success") throw Error("Native CI must pass on this exact main commit");'
+      - name: Require successful dependency security on the same main commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/actions/workflows/security.yml/runs?head_sha=$GITHUB_SHA&event=push&status=success&per_page=10" > "$RUNNER_TEMP/release-security.json"
+          node --input-type=module -e 'import {readFileSync,appendFileSync} from "node:fs"; const runs=JSON.parse(readFileSync(process.env.RUNNER_TEMP+"/release-security.json")).workflow_runs; const run=runs.find(r=>r.head_sha===process.env.GITHUB_SHA&&r.head_branch==="main"&&r.event==="push"&&r.conclusion==="success"); if(!run) throw Error("Dependency security must pass on this exact main commit"); appendFileSync(process.env.GITHUB_ENV,`SECURITY_RUN_ID=${run.id}\n`);'
       - uses: actions/download-artifact@v8
         with: { name: release-candidate, path: build/candidate }
       - uses: actions/download-artifact@v8
@@ -70,13 +76,12 @@ jobs:
         env:
           UNICORE_UPDATE_SIGNING_KEY: ${{ secrets.UNICORE_UPDATE_SIGNING_KEY }}
       - run: cd build/candidate && sha256sum --check checksums.txt
+      - name: Generate bilingual release notes from the committed Changelog
+        run: node scripts/release-notes.mjs build/candidate
+        env:
+          CI_RUN_ID: ${{ inputs.ci_run_id }}
       - uses: actions/attest-build-provenance@v4
         with:
-          subject-path: |
-            build/candidate/*.tar.gz
-            build/candidate/*.dmg
-            build/candidate/*.exe
-            build/candidate/update-manifest.json
-            build/candidate/update-manifest.sig
+          subject-path: build/candidate/*
       - uses: actions/upload-artifact@v7
         with: { name: release-bundle, path: build/candidate/, if-no-files-found: error }

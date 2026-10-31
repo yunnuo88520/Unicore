@@ -52,7 +52,7 @@ function RuntimeCards({ metadata, transport }: { metadata: Bootstrap; transport:
     { label: t('核心服务'), value: t('运行正常'), detail: t('共享用例已就绪'), icon: Activity, tone: 'bg-success-soft text-success' },
     { label: t('连接方式'), value: transport === 'http' ? 'HTTP API' : 'Wails Bridge', detail: transport === 'http' ? t('/api/v1 · 统一接口契约') : t('原生桥接 · 无 HTTP 服务'), icon: Braces, tone: 'bg-info-soft text-info' },
     metadata.version
-      ? { label: t('框架版本'), value: `v${metadata.version}`, detail: `${metadata.stage} · ${metadata.deployment_kind}`, icon: Layers3, tone: 'bg-warning-soft text-warning' }
+      ? { label: t('框架版本'), value: `v${metadata.version}`, detail: metadata.deployment_kind, icon: Layers3, tone: 'bg-warning-soft text-warning' }
       : { label: t('工作空间'), value: t('个人空间'), detail: t('专注于你的业务'), icon: Layers3, tone: 'bg-warning-soft text-warning' },
   ];
   return <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label={t('运行状态')}>
@@ -134,7 +134,7 @@ function CoreLab({ client }: { client: AppClient }) {
         <CardDescription>{t('用一个真实用例，验证所有入口')}</CardDescription></div>
       <span className="rounded-full border border-line bg-surface-alt px-2 py-0.5 text-2xs text-muted">{t('文本分析')}</span>
     </CardHeader>
-    <CardContent className="flex flex-col gap-3">
+    <CardContent className="flex flex-col gap-5">
       <form className="flex flex-col gap-3" onSubmit={event => { event.preventDefault(); execution.mutate(); }}>
         <div className="flex items-center justify-between">
           <label htmlFor="core-input" className="text-sm font-medium text-ink">{t('输入文本')}</label>
@@ -162,7 +162,7 @@ function CoreLab({ client }: { client: AppClient }) {
           </Button>
         </div>
       </form>
-      <div className="flex items-center justify-between border-t border-line pt-3">
+      <div className="flex items-center justify-between border-t border-line pt-4">
         <span className="text-xs font-medium text-muted">{t('执行结果')}</span>
         {execution.isSuccess
           ? <span className="flex items-center gap-1 text-2xs text-success"><CheckCircle2 size={12} />{t('执行成功')}</span>
@@ -170,7 +170,7 @@ function CoreLab({ client }: { client: AppClient }) {
       </div>
       <div className="result-grid grid grid-cols-3 gap-2" aria-live="polite">
         {([['characters', t('Unicode 字符'), Code2], ['words', t('空白分隔词'), Braces], ['lines', t('文本行数'), Layers3]] as const).map(([key, label, Icon]) =>
-          <div key={key} className="rounded-lg bg-surface-alt px-3 py-2">
+          <div key={key} className="rounded-lg bg-surface-alt px-3 py-3">
             <span className="flex items-center gap-1 text-2xs text-muted"><Icon size={12} aria-hidden="true" />{label}</span>
             <strong className="mt-0.5 block text-md font-semibold text-ink">{execution.data ? execution.data[key].toLocaleString() : '—'}</strong>
           </div>)}
@@ -187,7 +187,7 @@ function CoreLab({ client }: { client: AppClient }) {
           </div>
         : <div className="flex items-center gap-1.5 px-1 text-2xs text-subtle"><Circle size={9} aria-hidden="true" />{t('点击「运行用例」，查看来自真实核心的结果')}</div>}
       <div className="rounded-lg border border-line">
-        <div className="flex items-center justify-between border-b border-line px-3 py-2">
+        <div className="flex items-center justify-between border-b border-line bg-surface-alt/60 px-3 py-2">
           <h3 className="text-xs font-medium text-ink">{t('本次会话的运行记录')}</h3>
           <span className="text-2xs text-muted">{t('{{count}} 次', { count: recent.length })}</span>
         </div>

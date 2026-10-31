@@ -85,7 +85,7 @@ function Choices<K extends keyof Preferences>({ name, title, current }: { name: 
         const selected = current === value;
         return <button type="button" key={value} aria-pressed={selected} onClick={() => setPreferences({ [name]: value })}
           className="preference-choice group flex min-w-0 flex-col items-stretch gap-1.5 rounded-md text-center text-xs text-muted outline-none focus-visible:ring-2 focus-visible:ring-focus">
-          <span aria-hidden="true" className={cn('preference-preview relative flex h-14 items-center justify-center gap-1 rounded-md border bg-surface p-1.5 transition-colors',
+          <span aria-hidden="true" className={cn('preference-preview relative flex h-16 items-center justify-center gap-1 rounded-md border bg-surface p-1.5 transition-colors',
             selected ? 'border-primary shadow-[0_0_0_1px_var(--primary)]' : 'border-line group-hover:border-primary')}>
             <PreferencePreview name={name} value={value} />
             {selected && <span className="absolute -end-1 -top-1.5 flex size-4 items-center justify-center rounded-full border-2 border-surface bg-primary text-on-primary"><Check size={10} /></span>}

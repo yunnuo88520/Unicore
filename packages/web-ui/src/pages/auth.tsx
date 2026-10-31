@@ -42,7 +42,7 @@ function AuthField({ label, children }: { label: ReactNode; children: ReactNode 
 function AuthStory({ administrator, siteName }: { administrator: boolean; siteName: string }) {
   useLocale();
   return <section className="relative flex flex-col justify-center overflow-hidden bg-primary-soft px-7 py-9 md:px-12 lg:px-16">
-    <div className="flow-brand mb-7 self-start text-xl font-bold tracking-tight text-ink [&_.brand-dot]:text-primary"><BrandLockup name={siteName} /></div>
+    <div className="flow-brand mb-7 flex items-center gap-2.5 self-start text-xl font-bold tracking-tight text-ink [&_.brand-dot]:text-primary"><BrandLockup name={siteName} /></div>
     <span className="inline-flex items-center gap-2 text-sm font-medium text-primary"><ShieldCheck size={15} aria-hidden="true" />{administrator ? t('管理控制台') : t('用户工作空间')}</span>
     <h2 className="mt-5 text-3xl font-semibold leading-snug tracking-tight text-ink md:text-4xl">
       {administrator ? <>{t('有序管理，')}<br />{t('从容掌控。')}</> : <>{t('你的灵感，')}<br />{t('从这里开始。')}</>}
@@ -103,7 +103,7 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
   return <main className="flex min-h-dvh w-full flex-1 flex-col md:grid md:grid-cols-2">
     <AuthStory administrator={administrator} siteName={siteName} />
     <section className="flex flex-col items-center justify-center px-4 py-8 sm:px-6 md:px-10">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-sm">
         <div className="mb-5 flex size-12 items-center justify-center rounded-xl bg-primary-soft text-accent">{challenge ? <Mail size={24} aria-hidden="true" /> : <ShieldCheck size={24} aria-hidden="true" />}</div>
         <h1 className="text-2xl font-semibold text-ink">{challenge ? (purpose === 'verify' ? t('验证邮箱') : purpose === 'reset' ? t('设置新密码') : t('输入登录验证码')) : titles[mode]}</h1>
         <p className="mt-1.5 text-sm text-muted">{challenge ? t('若账号符合条件，验证码将发送至该邮箱。请检查收件箱或垃圾邮件。') : administrator ? t('使用独立的后台账号登录。') : t('继续你的工作，连接更多可能。')}</p>
@@ -205,7 +205,7 @@ function TokenFlow({ kind, web, siteName, onDone }: { kind: 'verify' | 'reset'; 
     onSuccess: () => { if (kind === 'reset') setPassword(''); setDone(true); },
   });
   return <main className="flex min-h-dvh w-full flex-1 flex-col items-center justify-center gap-8 px-4 py-10 sm:px-6">
-    <div className="text-xl font-bold tracking-tight text-ink [&_.brand-dot]:text-primary"><BrandLockup name={siteName} /></div>
+    <div className="flex items-center gap-2.5 self-start text-xl font-bold tracking-tight text-ink [&_.brand-dot]:text-primary"><BrandLockup name={siteName} /></div>
     <div className="w-full max-w-md">
       <div className="mb-5 flex size-12 items-center justify-center rounded-xl bg-primary-soft text-accent"><ShieldCheck size={24} aria-hidden="true" /></div>
       <h1 className="text-2xl font-semibold text-ink">{kind === 'verify' ? t('验证邮箱') : t('设置新密码')}</h1>

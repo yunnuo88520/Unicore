@@ -163,24 +163,25 @@ function SideNavigation({ page, data, client, onNavigate, onAbout }: {
   const router = useRouter();
   const administration = isAdministrator(data);
   const personalSettings = data.identity_realm !== 'administrator';
-  function go(next: Page) { onNavigate(); void router.navigate({ to: `/${next === 'not-found' ? '' : next}` }); }
+  const ROUTE_PATHS: Partial<Record<Page, string>> = { overview: '/' };
+  function go(next: Page) { onNavigate(); void router.navigate({ to: ROUTE_PATHS[next] ?? `/${next === 'not-found' ? '' : next}` }); }
   return <>
-    <div className={`relative ${data.version ? 'min-h-[52px]' : 'min-h-[42px]'}`}>
-      <a className={`brand flex gap-[10px] px-[7px] font-extrabold tracking-[-1.1px] text-ink ${data.version
+    <div className="px-[7px]">
+      <a className={`brand flex gap-[10px] font-extrabold tracking-[-1.1px] text-ink ${data.version
         ? 'items-start [&>:first-child]:mt-1 [&_.brand-name]:min-w-0 [&_.brand-name]:truncate [&_.brand-name]:text-[length:var(--font-25)] [&_.brand-name]:leading-[1.15]'
         : 'items-center text-[length:var(--font-27)]'}`} href="/" onClick={event => { event.preventDefault(); go('overview'); }}>
         <BrandLockup name={data.site_name} />
-        {!data.version && <span className="absolute top-[70px] start-[74px] text-[length:var(--font-8)] font-semibold tracking-[2.5px] text-muted">FRAMEWORK</span>}
       </a>
-      {data.version && <div className="brand-version absolute start-[53px] top-[29px]"><VersionBadge client={client} metadata={data} onOpen={() => go('edition')} /></div>}
+      {!data.version
+        ? <span className="mt-1.5 block text-[length:var(--font-8)] font-semibold tracking-[2.5px] text-muted">FRAMEWORK</span>
+        : <div className="brand-version mt-1.5 ms-[45px]"><VersionBadge client={client} metadata={data} onOpen={() => go('edition')} /></div>}
     </div>
-    <button className="mt-[35px] mb-[29px] flex w-full items-center gap-[10px] rounded-[10px] border border-line bg-surface p-[12px] text-start shadow-card transition-colors hover:bg-surface-alt" onClick={onAbout}>
+    <button className="mt-4 mb-5 flex w-full items-center gap-[10px] rounded-[10px] border border-line bg-surface p-[12px] text-start shadow-card transition-colors hover:bg-surface-alt" onClick={onAbout}>
       <span className="flex h-[34px] w-[31px] shrink-0 items-center justify-center rounded-md border border-line bg-surface-alt text-accent"><Braces size={19} aria-hidden="true" /></span>
       <span className="min-w-0"><strong className="block truncate text-[length:var(--font-12)] font-semibold text-ink">{data.site_name ?? t('默认工作空间')}</strong><small className="mt-[5px] block text-[length:var(--font-10)] text-muted">{t('Unicore 应用基座')}</small></span>
-      <span className="ms-auto rounded-xs border border-line bg-surface-alt px-[5px] py-[3px] text-[length:var(--font-9)] text-muted">{data.stage ?? 'M2a'}</span>
     </button>
-    <div className="flex flex-col gap-1">
-      <nav aria-label={t('工作台')}>
+    <div className="flex flex-col gap-0.5">
+      <nav aria-label={t('工作台')} className="flex flex-col gap-0.5">
         {([{ id: 'overview', icon: LayoutDashboard }, { id: 'lab', icon: FlaskConical }, { id: 'notes', icon: NotebookPen }] as const)
           .filter(({ id }) => canAccess(id, data))
           .map(({ id, icon: Icon }) => <NavItem key={id} icon={Icon} active={page === id} label={PAGE_LABELS[id]} onClick={() => go(id)} />)}
@@ -289,7 +290,7 @@ function PageHeading({ page, data, personalSettings, settingsLabel, administrati
       <p className="mt-[7px] text-[length:var(--font-11)] leading-[1.8] text-muted max-md:max-w-[290px] max-md:text-[length:var(--font-10)] max-md:leading-[1.9]">{t(page === 'site' && personalSettings ? '只影响当前客户端，不修改全局配置。' : route.description)}</p>
     </div>
     <span className="mt-5 flex items-center gap-1.5 whitespace-nowrap rounded-full border border-line bg-surface px-[11px] py-[7px] text-[length:var(--font-9)] text-muted max-sm:hidden">
-      <span className="size-[5px] rounded-full bg-success" aria-hidden="true" /> {data.stage ?? 'M2a'}{t('· 核心已就绪')}
+      <span className="size-[5px] rounded-full bg-success" aria-hidden="true" /> {t('核心已就绪')}
     </span>
   </div>;
 }

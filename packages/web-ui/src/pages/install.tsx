@@ -187,7 +187,7 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
     verify.mutate({ token, database: payloadDatabase(form.getValues('database')) });
   }
   return <main className="flex min-h-dvh w-full flex-1 flex-col items-center px-4 py-10 sm:px-6">
-    <div className="text-xl font-bold tracking-tight text-ink [&_.brand-dot]:text-primary"><BrandLockup /></div>
+    <div className="flex items-center gap-2.5 text-xl font-bold tracking-tight text-ink [&_.brand-dot]:text-primary max-sm:me-20"><BrandLockup /></div>
     <div className="mt-7 w-full max-w-2xl rounded-xl border border-line bg-surface p-5 shadow-card sm:p-8">
       <header className="flex flex-col gap-1.5">
         <p className="text-2xs font-medium tracking-[2px] text-muted">WELCOME TO {productName.toUpperCase()}</p>

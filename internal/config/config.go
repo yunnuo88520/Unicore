@@ -35,10 +35,35 @@ type Web struct {
 	APIDocs                                             bool
 }
 
+type webFlags struct {
+	Web
+	configPath, shutdown, ready, docs string
+}
+
 func LoadWeb(args []string, lookup Lookup) (Web, error) {
-	options := Web{}
-	flags := flag.NewFlagSet("unicore-server", flag.ContinueOnError)
+	parsed, err := parseWeb(args, lookup)
+	if err != nil {
+		return Web{}, err
+	}
+	if parsed.configPath != "" {
+		lookup, err = webFileLookup(parsed.configPath, lookup)
+		if err != nil {
+			return Web{}, err
+		}
+		parsed, err = parseWeb(args, lookup)
+		if err != nil {
+			return Web{}, err
+		}
+	}
+	return parsed.validate()
+}
+
+func parseWeb(args []string, lookup Lookup) (webFlags, error) {
+	parsed := webFlags{}
+	options := &parsed.Web
+	flags := flag.NewFlagSet("server", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
+	flags.StringVar(&parsed.configPath, "config", lookup("APP_CONFIG"), "optional startup JSON configuration")
 	flags.StringVar(&options.Listen, "listen", value(lookup, "APP_LISTEN", "127.0.0.1:8080"), "HTTP listen address")
 	flags.StringVar(&options.Profile, "profile", lookup("APP_PROFILE"), "initial profile; persisted after install")
 	flags.StringVar(&options.DataDir, "data-dir", value(lookup, "APP_DATA_DIR", "data"), "private data directory")
@@ -46,15 +71,29 @@ func LoadWeb(args []string, lookup Lookup) (Web, error) {
 	flags.StringVar(&options.Log.Level, "log-level", value(lookup, "APP_LOG_LEVEL", "info"), "debug/info/warn/error")
 	flags.StringVar(&options.Log.Format, "log-format", value(lookup, "APP_LOG_FORMAT", "json"), "json/text")
 	flags.StringVar(&options.MonitorListen, "monitor-listen", lookup("APP_MONITOR_LISTEN"), "optional literal loopback monitoring listener")
-	shutdown := flags.String("shutdown-timeout", value(lookup, "APP_SHUTDOWN_TIMEOUT", "5s"), "request drain deadline")
-	ready := flags.String("readiness-timeout", value(lookup, "APP_READINESS_TIMEOUT", "2s"), "dependency probe deadline")
-	docs := flags.String("api-docs", value(lookup, "APP_API_DOCS", "false"), "true/false: publish offline contract reference")
+	flags.StringVar(&parsed.shutdown, "shutdown-timeout", value(lookup, "APP_SHUTDOWN_TIMEOUT", "5s"), "request drain deadline")
+	flags.StringVar(&parsed.ready, "readiness-timeout", value(lookup, "APP_READINESS_TIMEOUT", "2s"), "dependency probe deadline")
+	flags.StringVar(&parsed.docs, "api-docs", value(lookup, "APP_API_DOCS", "false"), "true/false: publish offline contract reference")
 	if err := flags.Parse(args); err != nil {
-		return options, fmt.Errorf("invalid server arguments: %w", err)
+		return parsed, fmt.Errorf("invalid server arguments: %w", err)
 	}
 	if flags.NArg() != 0 {
-		return options, fmt.Errorf("unexpected positional server argument")
+		return parsed, fmt.Errorf("unexpected positional server argument")
 	}
+	var emptyConfig bool
+	flags.Visit(func(option *flag.Flag) {
+		if option.Name == "config" && parsed.configPath == "" {
+			emptyConfig = true
+		}
+	})
+	if emptyConfig {
+		return parsed, fmt.Errorf("--config requires a path")
+	}
+	return parsed, nil
+}
+
+func (parsed webFlags) validate() (Web, error) {
+	options := parsed.Web
 	if err := options.Log.Validate(); err != nil {
 		return options, err
 	}
@@ -71,13 +110,13 @@ func LoadWeb(args []string, lookup Lookup) (Web, error) {
 		return options, fmt.Errorf("data directory is required")
 	}
 	var err error
-	if options.ShutdownTimeout, err = time.ParseDuration(*shutdown); err != nil || options.ShutdownTimeout < 100*time.Millisecond || options.ShutdownTimeout > 2*time.Minute {
+	if options.ShutdownTimeout, err = time.ParseDuration(parsed.shutdown); err != nil || options.ShutdownTimeout < 100*time.Millisecond || options.ShutdownTimeout > 2*time.Minute {
 		return options, fmt.Errorf("shutdown timeout must be between 100ms and 2m")
 	}
-	if options.ReadinessTimeout, err = time.ParseDuration(*ready); err != nil || options.ReadinessTimeout < 100*time.Millisecond || options.ReadinessTimeout > 10*time.Second {
+	if options.ReadinessTimeout, err = time.ParseDuration(parsed.ready); err != nil || options.ReadinessTimeout < 100*time.Millisecond || options.ReadinessTimeout > 10*time.Second {
 		return options, fmt.Errorf("readiness timeout must be between 100ms and 10s")
 	}
-	if options.APIDocs, err = strconv.ParseBool(*docs); err != nil {
+	if options.APIDocs, err = strconv.ParseBool(parsed.docs); err != nil {
 		return options, fmt.Errorf("api-docs must be true/false")
 	}
 	if options.MonitorListen != "" {
@@ -100,8 +139,9 @@ func value(lookup Lookup, key, fallback string) string {
 	return fallback
 }
 
-const WebUsage = `Unicore Web server
-Flags override APP_* environment variables.
+const WebUsage = `Web server
+Priority: flags > APP_* environment > explicit JSON file > defaults.
+  --config PATH               APP_CONFIG (optional startup JSON file)
   --listen ADDRESS            APP_LISTEN (127.0.0.1:8080)
   --profile PROFILE           APP_PROFILE (installation choice)
   --data-dir PATH             APP_DATA_DIR (data)

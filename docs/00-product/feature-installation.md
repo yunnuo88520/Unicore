@@ -22,3 +22,5 @@ bootstrap.token 是首次配置的所有权证明；secret.key/APP_SECRET_KEY �
 安装中断时，未拥有 schema 的实例需再次明确确认才能清空；MySQL DDL 可能部分完成，不能承诺事务回滚。拥有的部分 schema 按原配置重试迁移；已提交 DB 标记则恢复完成。INSTALLED 后 DB 不可达、安装表/标记缺失或实例不匹配均停止启动，不自动回到安装页，不重建管理员。
 
 无新增表或配置格式迁移，历史安装配置仍可读取。更新只替换程序，保留完整私有目录与数据库；错误的数据删除只能通过成套备份恢复。操作见 [部署手册](../03-runbooks/deployment.md)，决策见 [ADR-0013](../adr/ADR-0013-installation-experience.md)。安装、重启与异常状态在隔离实例逐项验证，不以历史结果代替当前测试。
+
+Linux Web 发行包提供 unicore/unicorehelp：help 显示菜单，config generate（兼容 generate-config）创建拒绝覆盖的私有启动 JSON，--config / APP_CONFIG 显式读取；无参数保持启动服务。此配置只管理运行参数，数据库与管理员仍由安装页引导，不增加命令行管理员密码操作。macOS 桌面通过 DMG 拖入 Applications，Windows 桌面直接运行 EXE；用户下载格式与供 OTA 使用的 tar 归档分别保留。

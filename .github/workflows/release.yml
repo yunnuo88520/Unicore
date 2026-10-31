@@ -74,6 +74,8 @@ jobs:
         with:
           subject-path: |
             build/candidate/*.tar.gz
+            build/candidate/*.dmg
+            build/candidate/*.exe
             build/candidate/update-manifest.json
             build/candidate/update-manifest.sig
       - uses: actions/upload-artifact@v7

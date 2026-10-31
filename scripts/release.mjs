@@ -1,7 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Build Web and CLI archives and manifests; native GUI is built on native CI runners.
 import { execFileSync } from 'node:child_process';
-import { readFileSync, mkdirSync, writeFileSync, cpSync, rmSync } from 'node:fs';
+import { readFileSync, mkdirSync, writeFileSync, cpSync, rmSync, chmodSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { readFeatures } from './build-features.mjs';
 import { copyDistribution } from './distribution.mjs';
@@ -41,10 +41,13 @@ for (const target of targets) {
     execFileSync('go', ['build','-trimpath','-tags',profile === 'cli' ? '' : edition.tags,'-ldflags',profileFlags,'-o',`${dir}/bin/${executable}${os === 'windows' ? '.exe' : ''}`,profile === 'cli' ? './cmd/cli' : './cmd/server'], { env: { ...process.env, CGO_ENABLED: '0', GOOS: os, GOARCH: arch }, stdio: 'inherit' });
     if (profile !== 'cli') execFileSync('go', ['build','-trimpath','-ldflags',ldflags,'-o',`${dir}/bin/unicore-ops`,'./cmd/ops'], { env: { ...process.env, CGO_ENABLED: '0', GOOS: os, GOARCH: arch }, stdio: 'inherit' });
     copyDistribution(process.cwd(), dir, 'user-release');
-    writeFileSync(`${dir}/README_DEPLOY.md`, `<!-- Author: yunnuo <ymz@ebox.vip> -->\n# Unicore ${version}\n\n默认 profile：${profile}；目标：${os}/${arch}。\n\n${profile === 'cli' ? '运行 bin/unicore version 或 bin/unicore execute --text "Hello Unicore"（Windows 为 .exe）。' : '首次试运行：APP_DATA_DIR=/你的私有数据目录 bin/server，访问 http://127.0.0.1:8080/install，从该目录 bootstrap.token 读取安装凭据。生产请按手册配置 systemd/Nginx 和 HTTPS。'}\n\n[部署手册](docs/product/deployment.md) · [构建与发版](docs/product/build.md) · [变更记录](CHANGELOG.md)。本包是未签名开发预览；数据和密钥必须保存在包目录之外。\n`);
+    writeFileSync(`${dir}/README_DEPLOY.md`, `<!-- Author: yunnuo <ymz@ebox.vip> -->\n# Unicore ${version}\n\n默认 profile：${profile}；目标：${os}/${arch}。\n\n${profile === 'cli' ? '运行 bin/unicore version 或 bin/unicore execute --text "Hello Unicore"（Windows 为 .exe）。' : '帮助：./unicorehelp；生成可选配置：./unicore config generate；加载配置：./unicore --config unicore.json。首次试运行：APP_DATA_DIR=/你的私有数据目录 ./unicore，访问 http://127.0.0.1:8080/install，从该目录 bootstrap.token 读取安装凭据。生产请按手册配置 systemd/Nginx 和 HTTPS。'}\n\n[部署手册](docs/product/deployment.md) · [构建与发版](docs/product/build.md) · [变更记录](CHANGELOG.md)。本包是未签名开发预览；数据和密钥必须保存在包目录之外。\n`);
     cpSync('CHANGELOG.md', `${dir}/CHANGELOG.md`);
     writeFileSync(`${dir}/VERSION`, `${version}\n`);
-    if (profile !== 'cli') { cpSync('apps/web/static', `${dir}/web`, { recursive: true }); cpSync('deploy/tar', `${dir}/deploy`, { recursive: true }); }
+    if (profile !== 'cli') {
+      cpSync('apps/web/static', `${dir}/web`, { recursive: true }); cpSync('deploy/tar', `${dir}/deploy`, { recursive: true });
+      for (const entry of ['unicore','unicorehelp']) { cpSync(`deploy/tar/${entry}`, `${dir}/${entry}`); chmodSync(`${dir}/${entry}`,0o755); }
+    }
     const manifest = { version, channel: 'development', profile, os, arch, commit, build_time: buildTime, features: { authentication: profile === 'web-platform', installation: profile !== 'cli', database: profile !== 'cli', email_accounts: profile === 'web-platform', oidc: profile === 'web-platform', license: profile !== 'cli' && edition.features.license, updater: profile !== 'cli' && edition.features.updater }, min_upgrade_version: null, business_migration_level: profile === 'cli' ? 0 : 2, offline_backup: profile !== 'cli', migration_level: profile === 'cli' ? 0 : profile === 'web-platform' ? 12 : 1, signature: null, platform_signature: 'unsigned', release_notes: releaseNotes };
     writeFileSync(`${dir}/manifest.json`, JSON.stringify(manifest, null, 2)+'\n');
     const artifact = `${name}.tar.gz`;

@@ -33,6 +33,12 @@ test('project export and destination boundaries',()=>{
   assert.equal(JSON.parse(readFileSync(join(options.directory,'package.json'))).name,'my-product');
   const trust=JSON.parse(readFileSync(join(options.directory,'assets/updates/config.json')));assert.equal(trust.repository,'');assert.deepEqual(trust.keys,{});assert.equal(trust.allow_unsigned_platform,false);
   assert.equal(JSON.parse(readFileSync(join(options.directory,'assets/theme/tokens.json'))).brand.name,'My Product');
+  const identity=JSON.parse(readFileSync(join(options.directory,'product.identity.json')));
+  assert.equal(identity.product.name,'My Product');assert.equal(identity.go.module,'example.test/team/product');
+  assert.equal(identity.cli.command,'my-product');assert.equal(identity.cli.opsCommand,'my-product-ops');
+  assert.equal(identity.desktop.bundleId,'test.example.product');assert.equal(identity.desktop.outputName,'my-product-desktop');
+  assert.equal(identity.deployment.dataDirectory,'/var/lib/my-product');
+  assert.match(readFileSync(join(options.directory,'internal/buildinfo/identity.gen.go'),'utf8'),/CLIRootCommand\s+= "my-product"/);
   assert.match(readFileSync(join(options.directory,'main.go'),'utf8'),/example.test\/team\/product\/internal\/domain/);
   assert.match(readFileSync(join(options.directory,'project.provenance.json'),'utf8'),/"revision": "[0-9a-f]{40}"/);
   assert.equal(readFileSync(join(options.directory,'LICENSE'),'utf8'),'MIT license fixture');

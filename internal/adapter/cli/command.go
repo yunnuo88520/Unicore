@@ -15,7 +15,7 @@ import (
 )
 
 func New(core usecase.Executor) *cobra.Command {
-	root := &cobra.Command{Use: "unicore", Short: "Unicore — one core, every interface", SilenceUsage: true, SilenceErrors: true}
+	root := &cobra.Command{Use: buildinfo.CLIRootCommand, Short: "Unicore — one core, every interface", SilenceUsage: true, SilenceErrors: true}
 	root.Version = buildinfo.Version
 	root.AddCommand(&cobra.Command{Use: "version", Short: "Print version metadata", RunE: func(cmd *cobra.Command, args []string) error {
 		return json.NewEncoder(cmd.OutOrStdout()).Encode(map[string]string{"version": buildinfo.Version, "commit": buildinfo.Commit, "build_time": buildinfo.BuildTime, "profile": "cli"})

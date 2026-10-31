@@ -18,6 +18,8 @@
 | contract | [packages/contracts/openapi.json](../../packages/contracts/openapi.json) |
 | theme | [assets/theme/tokens.json](../../assets/theme/tokens.json) |
 | brand | [assets/brand/identity.json](../../assets/brand/identity.json) |
+| productIdentity | [product.identity.json](../../product.identity.json) |
+| productIdentityStandard | [docs/02-standards/product-identity.md](../../docs/02-standards/product-identity.md) |
 | instanceBrand | [internal/branding/service.go](../../internal/branding/service.go) |
 | settings | [internal/settings/service.go](../../internal/settings/service.go) |
 | edition | [scripts/build-features.mjs](../../scripts/build-features.mjs) |

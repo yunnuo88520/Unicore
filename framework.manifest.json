@@ -32,6 +32,8 @@
     "contract": "packages/contracts/openapi.json",
     "theme": "assets/theme/tokens.json",
     "brand": "assets/brand/identity.json",
+    "productIdentity": "product.identity.json",
+    "productIdentityStandard": "docs/02-standards/product-identity.md",
     "instanceBrand": "internal/branding/service.go",
     "settings": "internal/settings/service.go",
     "edition": "scripts/build-features.mjs",

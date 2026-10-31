@@ -540,6 +540,8 @@
     "scripts/generate-migrations.test.mjs",
     "scripts/generate-theme.mjs",
     "scripts/platform-sign.mjs",
+    "scripts/product-identity.mjs",
+    "scripts/product-identity.test.mjs",
     "scripts/release-assets.mjs",
     "scripts/release-assets.test.mjs",
     "scripts/release-notes.mjs",

@@ -10,7 +10,10 @@ RELEASE_PROFILES ?= web-platform,web-standalone,cli
 export FEATURE_LICENSE FEATURE_UPDATER
 export RELEASE_TARGETS RELEASE_PROFILES
 FEATURE_TAGS = $(strip $(if $(filter true,$(FEATURE_LICENSE)),license) $(if $(filter true,$(FEATURE_UPDATER)),updater))
-LDFLAGS := -X github.com/yunnuo/unicore/internal/buildinfo.Version=$(VERSION) -X github.com/yunnuo/unicore/internal/buildinfo.Commit=$(COMMIT) -X github.com/yunnuo/unicore/internal/buildinfo.BuildTime=$(BUILD_TIME)
+GO_MODULE := $(shell node -p "JSON.parse(require('fs').readFileSync('product.identity.json','utf8')).go.module")
+CLI_COMMAND := $(shell node -p "JSON.parse(require('fs').readFileSync('product.identity.json','utf8')).cli.command")
+OPS_COMMAND := $(shell node -p "JSON.parse(require('fs').readFileSync('product.identity.json','utf8')).cli.opsCommand")
+LDFLAGS := -X $(GO_MODULE)/internal/buildinfo.Version=$(VERSION) -X $(GO_MODULE)/internal/buildinfo.Commit=$(COMMIT) -X $(GO_MODULE)/internal/buildinfo.BuildTime=$(BUILD_TIME)
 
 .PHONY: install dev-web dev-server dev-desktop dev-cli generate docs wiki wiki-publish test test-e2e test-features build-web build-cli build-desktop build-all build-ops doctor dev-deps-up dev-deps-down release package package-desktop version docker-build compose-up compose-down test-deploy test-upgrade check-features
 install:
@@ -68,13 +71,13 @@ build-web: check-features
 	go build -trimpath -tags '$(FEATURE_TAGS)' -ldflags '$(LDFLAGS)' -o build/bin/server ./cmd/server
 build-cli:
 	pnpm design:generate
-	go build -trimpath -ldflags '$(LDFLAGS)' -o build/bin/unicore ./cmd/cli
+	go build -trimpath -ldflags '$(LDFLAGS)' -o build/bin/$(CLI_COMMAND) ./cmd/cli
 build-desktop: check-features
 	pnpm design:generate
 	cd cmd/desktop && wails build -tags 'desktop $(FEATURE_TAGS)' -ldflags '$(LDFLAGS)'
 	pnpm check:native --bundle
 build-ops:
-	go build -trimpath -ldflags '$(LDFLAGS)' -o build/bin/unicore-ops ./cmd/ops
+	go build -trimpath -ldflags '$(LDFLAGS)' -o build/bin/$(OPS_COMMAND) ./cmd/ops
 build-all: build-web build-cli build-ops build-desktop
 doctor:
 	node scripts/doctor.mjs $(ARGS)

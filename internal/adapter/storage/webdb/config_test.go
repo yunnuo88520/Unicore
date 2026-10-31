@@ -10,6 +10,8 @@ import (
 	"github.com/yunnuo/unicore/internal/contracts"
 )
 
+func pointer[T any](value T) *T { return &value }
+
 func TestStructuredCredentialsAndTLS(t *testing.T) {
 	password := "p:a@/ss ?#%"
 	for _, driver := range []string{"mysql", "postgres"} {
@@ -31,19 +33,20 @@ func TestStructuredCredentialsAndTLS(t *testing.T) {
 		}
 		host := "db.example.test"
 		input.Host = &host
+		input.Tls = pointer(true)
 		dsn, _, err = Resolve(input)
 		if err != nil {
 			t.Fatal(err)
 		}
 		if driver == "mysql" {
 			c, err := mysql.ParseDSN(dsn)
-			if err != nil || c.TLSConfig != "true" {
-				t.Fatal("remote TLS policy", err)
+			if err != nil || c.TLSConfig != "skip-verify" {
+				t.Fatal("encrypted TLS policy", err)
 			}
 		} else {
 			c, err := pgx.ParseConfig(dsn)
-			if err != nil || c.TLSConfig == nil || c.TLSConfig.InsecureSkipVerify || len(c.Fallbacks) > 0 {
-				t.Fatal("remote TLS policy", err)
+			if err != nil || c.TLSConfig == nil || !c.TLSConfig.InsecureSkipVerify || len(c.Fallbacks) > 0 {
+				t.Fatal("encrypted TLS policy", err)
 			}
 		}
 	}
@@ -57,9 +60,8 @@ func TestInvalidTargetsAndMixedInputs(t *testing.T) {
 	}
 	port := 0
 	host := "127.0.0.1"
-	tls := "skip-verify"
 	for _, input := range []contracts.DatabaseInput{
-		{Driver: "mysql", Port: &port}, {Driver: "mysql", Dsn: "root@tcp(127.0.0.1:3306)/unicore", Host: &host}, {Driver: "sqlite", Password: &host}, {Driver: "postgres", Tls: &tls},
+		{Driver: "mysql", Port: &port}, {Driver: "mysql", Dsn: "root@tcp(127.0.0.1:3306)/unicore", Host: &host}, {Driver: "sqlite", Password: &host}, {Driver: "sqlite", Tls: pointer(true)},
 	} {
 		if _, _, err := Resolve(input); err == nil {
 			t.Fatal("invalid or ambiguous input accepted")

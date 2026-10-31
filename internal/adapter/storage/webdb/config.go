@@ -85,35 +85,26 @@ func Resolve(input contracts.DatabaseInput) (dsn, name string, err error) {
 	if net.ParseIP(host) == nil && !regexp.MustCompile(`^[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$`).MatchString(host) {
 		return "", "", invalid
 	}
-	tls := field(input.Tls, "auto")
-	if tls == "auto" {
-		ip := net.ParseIP(host)
-		if host == "localhost" || (ip != nil && ip.IsLoopback()) {
-			tls = "disable"
-		} else {
-			tls = "require"
-		}
-	}
-	if tls != "require" && tls != "disable" {
-		return "", "", invalid
-	}
+	// TLS is a plain switch; off keeps local and intranet databases reachable by default.
+	encrypted := input.Tls != nil && *input.Tls
 	address := net.JoinHostPort(host, strconv.Itoa(port))
 	if input.Driver == "mysql" {
 		config := mysql.NewConfig()
 		config.User, config.Passwd, config.Net, config.Addr, config.DBName = username, password, "tcp", address, name
 		config.ParseTime = true
 		config.Params = map[string]string{"charset": "utf8mb4"}
-		if tls == "require" {
-			config.TLSConfig = "true"
+		if encrypted {
+			config.TLSConfig = "skip-verify"
 		} else {
 			config.TLSConfig = "false"
 		}
 		return config.FormatDSN(), name, nil
 	}
 	connection := url.URL{Scheme: "postgres", Host: address, Path: "/" + name, User: url.UserPassword(username, password)}
-	query := url.Values{"connect_timeout": {"5"}, "search_path": {"public"}, "sslmode": {"verify-full"}}
-	if tls == "disable" {
-		query.Set("sslmode", "disable")
+	query := url.Values{"connect_timeout": {"5"}, "search_path": {"public"}, "sslmode": {"disable"}}
+	if encrypted {
+		// "require" encrypts traffic without certificate checks so self-signed intranet certificates stay usable.
+		query.Set("sslmode", "require")
 	}
 	connection.RawQuery = query.Encode()
 	return connection.String(), name, nil

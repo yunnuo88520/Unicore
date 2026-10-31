@@ -30,7 +30,7 @@ func installDatabase(t *testing.T, driver string) contracts.DatabaseInput {
 	if dsn == "" {
 		t.Skip("isolated installer database not provided")
 	}
-	input.Tls = pointer("disable")
+	input.Tls = pointer(false)
 	if driver == "mysql" {
 		c, err := mysql.ParseDSN(dsn)
 		if err != nil {
@@ -180,18 +180,16 @@ func TestDatabaseFieldsResetAndRestart(t *testing.T) {
 		})
 	}
 }
-func TestRotateInstallationCredential(t *testing.T) {
+func TestInstallationCredentialRecovery(t *testing.T) {
 	ctx := context.Background()
 	m, options, token := testManager(t)
-	if _, err := m.RotateToken(""); !errors.Is(err, ErrToken) {
-		t.Fatal("anonymous rotation allowed", err)
+	if raw, _ := json.Marshal(m.Status()); strings.Contains(string(raw), token) {
+		t.Fatal("status leaked token")
 	}
-	next, err := m.RotateToken(token)
-	if err != nil || next.Token == token || len(next.Token) < 32 {
-		t.Fatal("credential not rotated", err)
-	}
-	if _, err = m.Verify(ctx, token, contracts.DatabaseInput{Driver: "sqlite"}); !errors.Is(err, ErrToken) {
-		t.Fatal("old token survived", err)
+	// Deleting bootstrap.token is the only supported credential reset: it needs
+	// data-directory access, so it proves server ownership just like the token does.
+	if err := os.Remove(filepath.Join(options.DataDir, "bootstrap.token")); err != nil {
+		t.Fatal(err)
 	}
 	_ = m.Close()
 	reopened, err := Open(ctx, options)
@@ -199,18 +197,27 @@ func TestRotateInstallationCredential(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer reopened.Close()
-	if _, err = reopened.Verify(ctx, next.Token, contracts.DatabaseInput{Driver: "sqlite"}); err != nil {
-		t.Fatal("new token not persisted", err)
+	next := string(mustRead(t, filepath.Join(options.DataDir, "bootstrap.token")))
+	if next == token || len(strings.TrimSpace(next)) < 32 {
+		t.Fatal("credential not regenerated")
 	}
-	if raw, _ := json.Marshal(reopened.Status()); strings.Contains(string(raw), next.Token) {
-		t.Fatal("status leaked token")
+	if _, err = reopened.Verify(ctx, token, contracts.DatabaseInput{Driver: "sqlite"}); !errors.Is(err, ErrToken) {
+		t.Fatal("old token survived regeneration", err)
 	}
-	if _, _, err = reopened.Complete(ctx, next.Token, standaloneInput()); err != nil {
+	if _, _, err = reopened.Complete(ctx, strings.TrimSpace(next), standaloneInput()); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = reopened.RotateToken(next.Token); !errors.Is(err, ErrInstalled) {
-		t.Fatal("installed token rotation accepted", err)
+	if _, err = reopened.Verify(ctx, strings.TrimSpace(next), contracts.DatabaseInput{Driver: "sqlite"}); !errors.Is(err, ErrInstalled) {
+		t.Fatal("installed verification accepted", err)
 	}
+}
+func mustRead(t *testing.T, path string) []byte {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
 }
 func TestMissingInstalledDatabaseNeverReinstalls(t *testing.T) {
 	for _, missing := range []string{"database", "table", "marker"} {

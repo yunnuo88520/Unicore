@@ -9,13 +9,13 @@
 | 分开填写连接信息 | MySQL 默认 127.0.0.1 / 3306 / unicore / root；PostgreSQL 默认 127.0.0.1 / 5432 / unicore / postgres；密码无默认值 |
 | 每种数据库可测试 | 验证凭据、实际 Ping、检查目标范围、表/视图数量和已完成安装标记；连接或凭据改变后必须重新测试 |
 | 初始化已有数据 | 先提示不可逆清空和备份；非空库必须勾选确认并准确输入数据库名，后端独立校验；已完成的 Unicore 数据库始终拒绝重新安装 |
-| 安装凭据生成 | 首次启动生成私有 bootstrap.token；页面持有当前有效凭据时可生成新凭据，旧值立即失效；不匿名发放 |
+| 安装凭据生成 | 首次启动生成私有 bootstrap.token；凭据只保存在数据目录文件中，页面不提供重置；需要更换时停服删除该文件并重启即重新生成；不匿名发放 |
 | 服务地址 | 页面不要求填写，自动保存当前浏览器 origin；邮件链接、OIDC callback 和 Secure Cookie 仍使用此值 |
 | 重启恢复 | 保存加密数据库配置、安装形态、实例 ID 和原密钥；DB 安装标记、默认设置和管理员同事务提交；连续重启保持原账号/设置 |
 
 数据库须提前创建并属于当前实例。MySQL 初始化当前库中的表/视图，PostgreSQL 限独占 public schema 并拒绝其他用户 schema，SQLite 固定为私有目录 unicore.db。系统/维护数据库不可作为安装目标。连接测试不清空、不迁移；SQLite 测试会创建空文件。新表只由完成安装创建。
 
-TLS 自动模式在 literal loopback/localhost 使用直连，远程必须验证证书；提供显式关闭项供受控内网，不能跳过证书验证。MySQL 用驱动配置、PostgreSQL 用 URL 编码处理特殊字符密码。旧 API 的 dsn 保留兼容，不能与结构化字段混传；页面不暴露 DSN。
+TLS 是显式开关且默认关闭，覆盖本机与内网直连；开启后 MySQL 使用 skip-verify、PostgreSQL 使用 sslmode=require，仅加密传输不校验证书，自签名内网证书可直接使用。需要严格证书校验的目标库通过旧版 dsn 兼容通道配置 sslmode。MySQL 用驱动配置、PostgreSQL 用 URL 编码处理特殊字符密码。旧 API 的 dsn 保留兼容，不能与结构化字段混传；页面不暴露 DSN。
 
 bootstrap.token 是首次配置的所有权证明；secret.key/APP_SECRET_KEY 才是 AES-GCM 加密密钥。安装 API 在安装后返回 409，bootstrap.token 删除且哈希吊销；按钮与状态接口不泄露凭据给匿名访问者。页面只在内存保留输入，不写浏览器持久存储或日志。
 

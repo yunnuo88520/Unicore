@@ -2677,61 +2677,6 @@
         "parameters": []
       }
     },
-    "/api/v1/install/token/rotate": {
-      "post": {
-        "operationId": "rotateInstallToken",
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InstallTokenResponse"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "Stable error code",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/InstallTokenRotate"
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BootstrapToken": []
-          }
-        ],
-        "x-unicore": {
-          "profiles": [
-            "web-platform",
-            "web-standalone"
-          ],
-          "access": "install-token",
-          "permissions": [],
-          "permissionMode": "all",
-          "superAdmin": false,
-          "csrf": false
-        },
-        "summary": "Rotate the server-generated installation credential after proving possession of the current one",
-        "parameters": []
-      }
-    },
     "/api/v1/admin/administrators": {
       "get": {
         "operationId": "listAdministrators",
@@ -8681,12 +8626,8 @@
             "maxLength": 1024
           },
           "tls": {
-            "type": "string",
-            "enum": [
-              "auto",
-              "require",
-              "disable"
-            ]
+            "type": "boolean",
+            "description": "加密连接开关；关闭为本机与内网直连的默认值，开启后加密传输但不校验服务器证书（自签名可用）。"
           }
         }
       },
@@ -10155,20 +10096,6 @@
           }
         }
       },
-      "InstallToken": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "token"
-        ],
-        "properties": {
-          "token": {
-            "type": "string",
-            "minLength": 32,
-            "maxLength": 256
-          }
-        }
-      },
       "DatabaseCheckResponse": {
         "type": "object",
         "additionalProperties": false,
@@ -10192,35 +10119,6 @@
             "type": "string"
           }
         }
-      },
-      "InstallTokenResponse": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "code",
-          "message",
-          "data",
-          "request_id"
-        ],
-        "properties": {
-          "code": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "data": {
-            "$ref": "#/components/schemas/InstallToken"
-          },
-          "request_id": {
-            "type": "string"
-          }
-        }
-      },
-      "InstallTokenRotate": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {}
       },
       "ChangePasswordInput": {
         "type": "object",

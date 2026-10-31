@@ -170,20 +170,27 @@ func validationResult(w http.ResponseWriter, fields map[string]string) bool {
 	writeJSON(w, definition.Status, contracts.ErrorResponse{Code: "INVALID_INPUT", Message: definition.Message, RequestID: w.Header().Get("X-Request-ID"), Fields: &fields})
 	return false
 }
-func sameOrigin(w http.ResponseWriter, r *http.Request) bool {
+// sameOrigin only rejects requests with positive cross-site evidence. Browsers
+// assert Sec-Fetch-Site and JavaScript cannot forge it, so same-page requests
+// stay accepted even when a gateway or tunnel rewrites Host. Legacy clients
+// without fetch metadata fall back to a strict Origin/Host comparison; clients
+// that send neither (curl, SDK) are not CSRF-relevant.
+func sameOrigin(r *http.Request) bool {
 	if r.Method == "GET" || r.Method == "HEAD" {
 		return true
 	}
+	switch r.Header.Get("Sec-Fetch-Site") {
+	case "same-origin":
+		return true
+	case "cross-site":
+		return false
+	}
 	if origin := r.Header.Get("Origin"); origin != "" {
 		u, err := url.Parse(origin)
-		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host != r.Host || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Path != "" && u.Path != "/") {
-			failure(w, 403, "ORIGIN_REJECTED", "请求来源不受信任")
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Path != "" && u.Path != "/") {
 			return false
 		}
-	}
-	if r.Header.Get("Sec-Fetch-Site") == "cross-site" {
-		failure(w, 403, "ORIGIN_REJECTED", "请求来源不受信任")
-		return false
+		return u.Host == r.Host
 	}
 	return true
 }
@@ -345,22 +352,6 @@ func mountWeb(api chi.Router, config Config) {
 	mountOIDC(api, config)
 	limiter := platform.NewLimiter()
 	api.Get("/install/status", func(w http.ResponseWriter, r *http.Request) { success(w, manager.Status()) })
-	api.Post("/install/token/rotate", func(w http.ResponseWriter, r *http.Request) {
-		if !limiter.Allow("install:"+ip(r), 15, time.Minute) {
-			webError(w, platform.ErrRateLimited)
-			return
-		}
-		var input contracts.InstallTokenRotate
-		if !decode(w, r, &input) {
-			return
-		}
-		result, err := manager.RotateToken(r.Header.Get("X-Bootstrap-Token"))
-		if err != nil {
-			webError(w, err)
-			return
-		}
-		success(w, result)
-	})
 	api.Post("/install/verify-db", func(w http.ResponseWriter, r *http.Request) {
 		if !limiter.Allow("install:"+ip(r), 15, time.Minute) {
 			webError(w, platform.ErrRateLimited)

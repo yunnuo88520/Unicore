@@ -11,12 +11,11 @@ for (const driver of ['sqlite','mysql','postgres'] as const) test(`installer ${d
   const directory=`build/acceptance/install/${info.project.name}`;await mkdir(directory,{recursive:true});
   await page.goto(instance.url);await expect(page).toHaveURL(/\/install$/);
   await expect(page.getByLabel('服务访问地址',{exact:true})).toHaveCount(0);
-  await expect(page.getByRole('button',{name:'生成新凭据',exact:true})).toBeDisabled();
-  expect((await page.request.post(`${instance.url}/api/v1/install/token/rotate`,{data:{}})).status()).toBe(403);
+  await expect(page.getByRole('button',{name:'生成新凭据',exact:true})).toHaveCount(0);
+  expect((await page.request.post(`${instance.url}/api/v1/install/token/rotate`,{data:{}})).status()).toBe(404);
   await page.getByLabel('一次性安装凭据',{exact:true}).fill(instance.token);
-  await page.getByRole('button',{name:'生成新凭据',exact:true}).click();await expect(page.getByText('新凭据已填入并保存到服务器 bootstrap.token，旧凭据已失效。',{exact:true})).toBeVisible();
-  const token=await page.getByLabel('一次性安装凭据',{exact:true}).inputValue();expect(token).not.toBe(instance.token);
-  expect((await page.request.post(`${instance.url}/api/v1/install/verify-db`,{headers:{'X-Bootstrap-Token':instance.token},data:{driver:'sqlite',dsn:''}})).status()).toBe(403);
+  const wrong='x'.repeat(40);
+  expect((await page.request.post(`${instance.url}/api/v1/install/verify-db`,{headers:{'X-Bootstrap-Token':wrong},data:{driver:'sqlite',dsn:''}})).status()).toBe(403);
   await page.getByRole('button',{name:'下一步'}).click();await page.getByRole('radio',{name:/多用户平台/}).check();await page.getByRole('button',{name:'下一步'}).click();
   await expect(page.getByLabel('数据库类型')).toHaveValue('mysql');await expect(page.getByLabel('数据库地址',{exact:true})).toHaveValue('127.0.0.1');await expect(page.getByLabel('数据库端口',{exact:true})).toHaveValue('3306');await expect(page.getByLabel('数据库名',{exact:true})).toHaveValue('unicore');await expect(page.getByLabel('数据库用户名',{exact:true})).toHaveValue('root');
   await expect(page.getByRole('button',{name:'下一步'})).toBeDisabled();
@@ -43,8 +42,8 @@ for (const driver of ['sqlite','mysql','postgres'] as const) test(`installer ${d
     await instance.restart();await page.reload();await expect(page.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
     const current=(await(await page.request.get(`${instance.url}/api/v1/admin/bootstrap`,{headers:{}})).json()).data;expect(current.installed).toBe(true);expect(current.site_name).toBe(`安装验收 ${driver}`);expect(current.current_user.id).toBe(before.current_user.id);
     expect((await page.request.get(`${instance.url}/install`,{maxRedirects:0})).status()).toBe(303);
-    expect((await page.request.post(`${instance.url}/api/v1/install/token/rotate`,{headers:{'X-Bootstrap-Token':token},data:{}})).status()).toBe(409);
+    expect((await page.request.post(`${instance.url}/api/v1/install/verify-db`,{headers:{'X-Bootstrap-Token':instance.token},data:{driver:'sqlite',dsn:''}})).status()).toBe(409);
   }
   await page.screenshot({path:`${directory}/${driver}-restarted.png`,fullPage:true});
-  const storage=await page.evaluate(()=>JSON.stringify(localStorage));expect(storage).not.toContain(token);expect(storage).not.toContain(process.env.UNICORE_INSTALL_TEST_PASSWORD??'test-password-strong');
+  const storage=await page.evaluate(()=>JSON.stringify(localStorage));expect(storage).not.toContain(instance.token);expect(storage).not.toContain(process.env.UNICORE_INSTALL_TEST_PASSWORD??'test-password-strong');
 });

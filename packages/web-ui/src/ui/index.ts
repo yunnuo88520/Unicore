@@ -14,5 +14,5 @@ export { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 export { Tabs, TabsPrimitive } from './tabs';
 export { Tooltip } from './tooltip';
 export { MessageProvider, useMessage, type MessageAPI, type MessageOptions, type MessageType } from './message';
-export { RichTextEditor, safeEditorHTML, type RichTextHandle } from './editor';
-export { ChartCard, TrendChart, DistributionChart, ShareChart, CHART_COLORS, type Series } from './charts';
+// RichTextEditor (Tiptap) and the Recharts layer stay out of this barrel: import from './editor' and './charts'
+// directly so heavy dependencies load only in the routes that use them.

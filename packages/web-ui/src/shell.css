@@ -1,0 +1,56 @@
+/* Author: yunnuo <ymz@ebox.vip>
+ * Shell geometry driven by runtime preference attributes (data-layout/sidebar/content).
+ * Component visuals live in Tailwind classes; only attribute selectors belong here.
+ */
+:root { --ui-font-scale: 1; --ui-space-scale: 1; --ui-radius-scale: 1; }
+
+.app-shell {
+  --shell-sidebar-width: var(--sidebar);
+  --shell-sidebar-gap: 0px;
+  --shell-navigation-space: calc(var(--shell-sidebar-width) + var(--shell-sidebar-gap));
+  --shell-navigation-visibility: visible;
+  --shell-navigation-transform: none;
+  display: grid;
+  grid-template-columns: var(--shell-navigation-space) minmax(0, 1fr);
+  min-inline-size: 0;
+  inline-size: 100%;
+  min-block-size: 100dvh;
+}
+.app-shell > .sidebar {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: var(--shell-sidebar-width);
+  block-size: 100dvh;
+  transition: transform var(--motion-normal);
+  visibility: var(--shell-navigation-visibility);
+  transform: var(--shell-navigation-transform);
+}
+/* Explicitly outrank every off-canvas state, including floating/full combinations. */
+.app-shell > .sidebar.is-open { visibility: visible; transform: none; }
+
+:root[data-layout=compact] .app-shell { --shell-sidebar-width: var(--sidebar-compact); }
+:root[data-layout=compact] .topbar { height: 60px; }
+:root[data-layout=compact] .main-content { padding-top: 24px; }
+:root[data-content=full] .main-content { max-inline-size: none; }
+:root[data-content=centered] .main-content { max-inline-size: var(--content-max); }
+:root[data-sidebar=inset] .app-shell > .sidebar { background: var(--bg); border-color: transparent; }
+:root[data-sidebar=floating] .app-shell { --shell-sidebar-gap: 24px; }
+:root[data-sidebar=floating] .app-shell > .sidebar {
+  inset-block: 12px;
+  inset-inline-start: 12px;
+  block-size: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-16);
+  box-shadow: 0 8px 30px var(--shadow-modal);
+}
+:root[data-layout=full] .app-shell { --shell-navigation-space: 0px; --shell-navigation-visibility: hidden; --shell-navigation-transform: translateX(-110%); }
+
+@media (max-width: 767px) {
+  .app-shell { --shell-navigation-space: 0px; --shell-sidebar-width: 246px; --shell-navigation-visibility: hidden; --shell-navigation-transform: translateX(-110%); }
+}
+
+/* The mobile menu button appears off-canvas-widths and the full (sidebarless) layout. */
+.mobile-menu { display: none; }
+@media (max-width: 767px) { .mobile-menu { display: inline-flex; } }
+:root[data-layout=full] .mobile-menu { display: inline-flex; }

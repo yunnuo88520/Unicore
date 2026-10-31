@@ -1034,5 +1034,12 @@
   "分布图": "Distribution chart",
   "占比图": "Share chart",
   "关闭对话框": "Close dialog",
-  "https:// 或 {{site_url}}": "https:// or {{site_url}}"
+  "https:// 或 {{site_url}}": "https:// or {{site_url}}",
+  "用户名": "Username",
+  "密码修改入口已移至顶部账号菜单。": "Password changes moved to the account menu in the header.",
+  "至少 12 个字符": "Use at least 12 characters",
+  "开发预览渠道": "Preview channel",
+  "开发预览": "Preview",
+  "重置": "Reset",
+  "至少 32 个字符": "Use at least 32 characters"
 }

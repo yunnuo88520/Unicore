@@ -105,9 +105,9 @@ function WorkspaceShell() {
   if (data.capabilities.installation && !data.installed && client.web) {
     const props: PageProps = { page: 'overview', client, metadata: data, registry, theme, setTheme, refresh: () => void metadata.refetch() };
     return <PagePropsProvider value={props}>
-      <div className="account-layout">
-        <div className="public-client-controls"><ClientControls /></div>
-        <InstallPage {...props} />
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-background px-4 py-10">
+        <div className="fixed top-[15px] end-[20px] z-[45] rounded-lg border border-line bg-surface px-2 py-[5px] shadow-tint"><ClientControls /></div>
+        <div className="w-full max-w-[520px]"><InstallPage {...props} /></div>
         <SiteFooter metadata={data} compact />
       </div>
     </PagePropsProvider>;
@@ -116,9 +116,9 @@ function WorkspaceShell() {
     const props: PageProps = { page: 'overview', client, metadata: data, registry, theme, setTheme, refresh: () => void metadata.refetch() };
     const Flow = basename === 'verify-email' ? VerifyEmailPage : basename === 'reset-password' ? ResetPasswordPage : LoginPage;
     return <PagePropsProvider value={props}>
-      <div className="account-layout">
-        <div className="public-client-controls"><ClientControls /></div>
-        <Flow {...props} />
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-background px-4 py-10">
+        <div className="fixed top-[15px] end-[20px] z-[45] rounded-lg border border-line bg-surface px-2 py-[5px] shadow-tint"><ClientControls /></div>
+        <div className="w-full max-w-[520px]"><Flow {...props} /></div>
         <SiteFooter metadata={data} compact />
       </div>
     </PagePropsProvider>;
@@ -166,19 +166,19 @@ function SideNavigation({ page, data, client, onNavigate, onAbout }: {
   const personalSettings = data.identity_realm !== 'administrator';
   function go(next: Page) { onNavigate(); void router.navigate({ to: `/${next === 'not-found' ? '' : next}` }); }
   return <>
-    <div className={`brand-region ${data.version ? 'has-version' : ''}`}>
-      <a className="brand" href="/" onClick={event => { event.preventDefault(); go('overview'); }}>
+    <div className={`relative ${data.version ? 'min-h-[52px]' : 'min-h-[42px]'}`}>
+      <a className="flex items-center gap-[10px] px-[7px] text-[length:var(--font-27)] font-extrabold tracking-[-1.1px] text-ink" href="/" onClick={event => { event.preventDefault(); go('overview'); }}>
         <BrandLockup name={data.site_name} />
-        {!data.version && <span className="brand-tag">FRAMEWORK</span>}
+        {!data.version && <span className="absolute top-[70px] start-[74px] text-[length:var(--font-8)] font-semibold tracking-[2.5px] text-muted">FRAMEWORK</span>}
       </a>
-      {data.version && <div className="brand-version"><VersionBadge client={client} metadata={data} onOpen={() => go('edition')} /></div>}
+      {data.version && <div className="absolute start-[53px] top-[29px]"><VersionBadge client={client} metadata={data} onOpen={() => go('edition')} /></div>}
     </div>
-    <button className="workspace-switch" onClick={onAbout}>
-      <span className="workspace-icon"><Braces size={19} /></span>
-      <span><strong>{data.site_name ?? t('默认工作空间')}</strong><small>{t('Unicore 应用基座')}</small></span>
-      <span className="workspace-stage">{data.stage ?? 'M2a'}</span>
+    <button className="mt-[35px] mb-[29px] flex w-full items-center gap-[10px] rounded-[10px] border border-line bg-surface p-[12px] text-start shadow-card transition-colors hover:bg-surface-alt" onClick={onAbout}>
+      <span className="flex h-[34px] w-[31px] shrink-0 items-center justify-center rounded-md border border-line bg-surface-alt text-accent"><Braces size={19} aria-hidden="true" /></span>
+      <span className="min-w-0"><strong className="block truncate text-[length:var(--font-12)] font-semibold text-ink">{data.site_name ?? t('默认工作空间')}</strong><small className="mt-[5px] block text-[length:var(--font-10)] text-muted">{t('Unicore 应用基座')}</small></span>
+      <span className="ms-auto rounded-xs border border-line bg-surface-alt px-[5px] py-[3px] text-[length:var(--font-9)] text-muted">{data.stage ?? 'M2a'}</span>
     </button>
-    <div className="sidebar-navigation">
+    <div className="flex flex-col gap-1">
       <nav aria-label={t('工作台')}>
         {([{ id: 'overview', icon: LayoutDashboard }, { id: 'lab', icon: FlaskConical }, { id: 'notes', icon: NotebookPen }] as const)
           .filter(({ id }) => canAccess(id, data))
@@ -198,25 +198,25 @@ function SideNavigation({ page, data, client, onNavigate, onAbout }: {
           </NavGroup>)}
       {!administration && canAccess('edition', data) && <NavItem icon={PackageCheck} active={page === 'edition'} label={t('系统更新')} onClick={() => go('edition')} />}
     </div>
-    <div className="sidebar-bottom"><SidebarTools onAbout={onAbout} /></div>
+    <div className="mt-auto pt-[14px]"><SidebarTools onAbout={onAbout} /></div>
   </>;
 }
 
 function NavItem({ icon: Icon, label, active, onClick }: { icon: LucideIcon; label: string; active: boolean; onClick: () => void }) {
   useLocale();
-  return <button className={`nav-item ${active ? 'active' : ''}`} aria-current={active ? 'page' : undefined} onClick={onClick}>
-    <Icon size={19} aria-hidden="true" /><span>{t(label)}</span>{active && <span className="nav-active-dot" />}
+  return <button className={`flex min-h-11 w-full items-center gap-[12px] rounded-lg px-[11px] text-start text-sm font-medium transition-colors ${active ? 'bg-primary-soft text-accent' : 'text-muted hover:bg-surface-alt hover:text-ink'}`} aria-current={active ? 'page' : undefined} onClick={onClick}>
+    <Icon size={19} aria-hidden="true" /><span className="truncate">{t(label)}</span>{active && <span className="ms-auto size-1.5 shrink-0 rounded-full bg-accent" />}
   </button>;
 }
 
 function NavGroup({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
   useLocale();
   const [open, setOpen] = useState(true);
-  return <section className="nav-group">
-    <button className="nav-item nav-group-toggle" aria-expanded={open} onClick={() => setOpen(value => !value)}>
-      {icon}<span>{t(title)}</span><ChevronRight size={15} className={open ? 'expanded' : ''} aria-hidden="true" />
+  return <section>
+    <button className={`flex min-h-11 w-full items-center gap-[12px] rounded-lg px-[11px] text-start text-sm font-medium transition-colors ${open ? 'text-ink' : 'text-muted hover:bg-surface-alt hover:text-ink'}`} aria-expanded={open} onClick={() => setOpen(value => !value)}>
+      {icon}<span className="truncate">{t(title)}</span><ChevronRight size={15} className={`ms-auto transition-transform ${open ? 'rotate-90' : ''}`} aria-hidden="true" />
     </button>
-    <nav aria-label={t(title)} hidden={!open}>{children}</nav>
+    <nav aria-label={t(title)} hidden={!open} className="ms-[18px] flex flex-col gap-0.5 border-s border-line ps-[9px]">{children}</nav>
   </section>;
 }
 
@@ -225,8 +225,8 @@ const NAV_ICONS: Partial<Record<Page, LucideIcon>> = { announcements: Megaphone,
 function NavEntry({ id, page, onNavigate }: { id: Page; page: Page; onNavigate: (page: Page) => void }) {
   useLocale();
   const Icon = NAV_ICONS[id] ?? Circle;
-  return <button className={`nav-item nav-child ${page === id ? 'active' : ''}`} aria-current={page === id ? 'page' : undefined} onClick={() => onNavigate(id)}>
-    <Icon size={16} aria-hidden="true" /><span>{t(PAGE_LABELS[id])}</span>{page === id && <span className="nav-active-dot" />}
+  return <button className={`flex min-h-10 w-full items-center gap-[10px] rounded-lg px-[10px] text-start text-[length:var(--font-12)] font-medium transition-colors ${page === id ? 'bg-primary-soft text-accent' : 'text-muted hover:bg-surface-alt hover:text-ink'}`} aria-current={page === id ? 'page' : undefined} onClick={() => onNavigate(id)}>
+    <Icon size={16} aria-hidden="true" /><span className="truncate">{t(PAGE_LABELS[id])}</span>{page === id && <span className="ms-auto size-1.5 shrink-0 rounded-full bg-accent" />}
   </button>;
 }
 
@@ -239,23 +239,23 @@ function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onO
   const administration = isAdministrator(data);
   const user = data.current_user;
   return <>
-    <div className="breadcrumbs">
-      <button className="icon-button mobile-menu" aria-label={t('打开导航')} aria-expanded={mobileOpen} aria-controls="workspace-navigation" onClick={onOpenMobile}><Menu size={20} /></button>
-      <span className="breadcrumb-root">{t('工作空间')}</span>
-      <ChevronRight size={14} aria-hidden="true" />
-      <strong>{page === 'site' ? settingsLabel : t(PAGE_LABELS[page])}</strong>
+    <div className="flex min-w-0 items-center gap-4 text-[length:var(--font-11)] text-muted max-md:gap-1.5">
+      <button className="mobile-menu size-8 items-center justify-center rounded-md text-muted hover:bg-primary-soft hover:text-accent max-md:-ms-1" aria-label={t('打开导航')} aria-expanded={mobileOpen} aria-controls="workspace-navigation" onClick={onOpenMobile}><Menu size={20} /></button>
+      <span className="hidden max-lg:inline">{t('工作空间')}</span>
+      <ChevronRight size={14} className="hidden max-md:block max-lg:hidden text-subtle" aria-hidden="true" />
+      <strong className="truncate font-medium text-ink">{page === 'site' ? settingsLabel : t(PAGE_LABELS[page])}</strong>
     </div>
-    <div className="top-actions">
-      <span className={`connection ${connection === 'connected' ? 'connected' : ''}`}>
-        <span />
+    <div className="flex shrink-0 items-center gap-[15px] max-md:gap-[9px]">
+      <span className="flex items-center gap-1.5 text-[length:var(--font-10)] text-muted max-sm:hidden">
+        <span className={`size-[5px] rounded-full ${connection === 'connected' ? 'bg-success shadow-[0_0_0_3px_var(--success-soft)]' : connection === 'pending' ? 'animate-pulse bg-muted' : 'bg-danger'}`} />
         {connection === 'connected' ? t('核心已连接') : connection === 'pending' ? t('连接中') : t('连接失败')}
       </span>
-      <span className="top-divider" aria-hidden="true" />
+      <span className="mx-1 h-[18px] w-px bg-line max-sm:hidden" aria-hidden="true" />
       <ClientControls />
       {data.profile === 'web-platform' && user && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="avatar top-avatar" aria-label={t('账号菜单')}>{(user.username ?? 'Y').slice(0, 1).toUpperCase()}</button>
+            <button className="flex size-[29px] items-center justify-center rounded-full bg-avatar text-[length:var(--font-11)] font-semibold text-avatar-ink" aria-label={t('账号菜单')}>{(user.username ?? 'Y').slice(0, 1).toUpperCase()}</button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>
@@ -279,19 +279,23 @@ function PageHeading({ page, data, personalSettings, settingsLabel, administrati
 }) {
   useLocale();
   const route = routes[page];
-  return <div className="page-heading">
-    <div>
-      <div className="eyebrow"><span /> {administration ? 'UNICORE ADMINISTRATION' : 'UNICORE WORKSPACE'}</div>
-      <h1>{t(page === 'site' && personalSettings ? '外观设置' : route.title)}<span className="heading-dot">.</span></h1>
-      <p>{t(page === 'site' && personalSettings ? '只影响当前客户端，不修改全局配置。' : route.description)}</p>
+  return <div className="page-heading mb-[27px] flex items-center justify-between gap-[20px] max-md:mb-[22px] max-md:gap-3">
+    <div className="min-w-0">
+      <div className="mb-3 flex items-center gap-[7px] text-[length:var(--font-9)] font-semibold tracking-[1.6px] text-muted">
+        <span className="size-[5px] rounded-full bg-primary" aria-hidden="true" /> {administration ? 'UNICORE ADMINISTRATION' : 'UNICORE WORKSPACE'}
+      </div>
+      <h1 className="text-[length:var(--font-24)] font-semibold text-ink max-md:text-[length:var(--font-23)]">{t(page === 'site' && personalSettings ? '外观设置' : route.title)}<span className="ms-1 text-primary">.</span></h1>
+      <p className="mt-[7px] text-[length:var(--font-11)] leading-[1.8] text-muted max-md:max-w-[290px] max-md:text-[length:var(--font-10)] max-md:leading-[1.9]">{t(page === 'site' && personalSettings ? '只影响当前客户端，不修改全局配置。' : route.description)}</p>
     </div>
-    <span className="stage-pill"><span /> {data.stage ?? 'M2a'}{t('· 核心已就绪')}</span>
+    <span className="mt-5 flex items-center gap-1.5 whitespace-nowrap rounded-full border border-line bg-surface px-[11px] py-[7px] text-[length:var(--font-9)] text-muted max-sm:hidden">
+      <span className="size-[5px] rounded-full bg-success" aria-hidden="true" /> {data.stage ?? 'M2a'}{t('· 核心已就绪')}
+    </span>
   </div>;
 }
 
 function StateCard({ tone, icon, title, detail, action }: { tone: 'pending' | 'error'; icon: ReactNode; title: string; detail: string; action?: ReactNode }) {
   useLocale();
-  return <div role={tone === 'error' ? 'alert' : 'status'} className="flex flex-col items-center gap-2 rounded-xl border border-line bg-surface px-6 py-10 text-center shadow-card">
+  return <div role={tone === 'error' ? 'alert' : 'status'} className={`state-card flex flex-col items-center gap-2 rounded-xl border bg-surface px-6 py-10 text-center shadow-card ${tone === 'error' ? 'border-danger-line' : 'border-line'}`}>
     {icon}
     <strong className="text-md font-semibold text-ink">{t(title)}</strong>
     <p className="max-w-md text-sm text-muted">{t(detail)}</p>

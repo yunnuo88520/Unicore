@@ -542,6 +542,8 @@
     "scripts/platform-sign.mjs",
     "scripts/release-assets.mjs",
     "scripts/release-assets.test.mjs",
+    "scripts/release-notes.mjs",
+    "scripts/release-notes.test.mjs",
     "scripts/release.mjs",
     "scripts/sync-brand.mjs",
     "scripts/test-deployment.mjs",

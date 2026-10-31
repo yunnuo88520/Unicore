@@ -53,7 +53,8 @@
     "create": "pnpm create:project",
     "doctor": "make doctor",
     "wiki": "make wiki",
-    "i18n": "pnpm check:i18n"
+    "i18n": "pnpm check:i18n",
+    "releaseNotes": "pnpm check:release-notes"
   },
   "skills": [
     "develop-application"

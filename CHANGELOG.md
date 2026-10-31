@@ -3,30 +3,37 @@
 
 ## Unreleased
 
-- 桌面发行补充 macOS 拖拽安装 DMG 与 Windows 直接运行 EXE，保留 OTA tar 并统一校验；Linux Web 包新增 unicore/unicorehelp、帮助菜单与拒绝覆盖的启动 JSON 生成/读取，首次安装仍由安装页引导。
+## 0.1.2 — 2026-10-31
 
-- 统一更新 Go/Wails/SQLite/对象存储 SDK、Vitest 5、jsdom 30 与 GitHub Actions；Node 开发最低补丁版本提升至 22.22.2，自检读取 package.json 兼容范围。保留与 Node 22 基线配套的类型定义，Dependabot 继续跟踪其补丁/次版本。
-- 清理 Dependabot 积压队列，补齐 OAuth2 0.37、前端哈希/查询/图标与测试 matcher 更新；构建工具与 artifact 上传/下载 Actions 配套升级。保留 TypeScript AST 和 Vite 构建基线，大版本迁移须单独验证。
+### 中文
 
-- 在线平台本地/MinIO/S3/OSS/COS 统一持久分片上传、断点续传、暂停/继续/放弃与确认字节进度；管理员可视化配置大小（默认 100 MiB，上限 64 GiB）、分片及并发。平台迁移 0012 保存会话，持久中止清理覆盖崩溃与失败重试；大对象采用服务端分片复制。
+- 桌面分发新增 macOS 拖拽安装 DMG、Windows 直接运行 EXE，保留 OTA tar；Linux Web 提供 unicore/unicorehelp、帮助及拒绝覆盖的可选 JSON 配置生成/加载，首次安装仍由 /install 引导。
+- 仓库 README 与新版本变更说明同步中英文；候选从 Changelog 和真实产物生成双语 Release 说明，版本准备与 CI 拒绝缺语言、缺配对条目或占位符；派生项目也生成双语入口。
+- 明确用户包、派生应用与 Wiki 的独立文档白名单，精简框架导航；新增工具显式纳入模板导出，保持品牌、契约和开发命令复用。
+- 平台统一本地/MinIO/S3/OSS/COS 持久分片上传，支持暂停、继续、刷新/重启续传与确认字节进度；管理员可设置大小、分片和并发策略（默认 100 MiB，策略上限 64 GiB，非压测承诺）。COS 实云权限及其他 S3 服务仍须独立验证。
+- 新增平台公告管理、定时/草稿、批量软删除、安全详情与用户工作台单行轮播；Goldmark 升至 1.7.17，修复 GO-2026-5320，并保留链接与富文本安全校验。
+- 引入统一业务实体、分页、软删除、并发与分层开发规范；修正日志详情重复，邮件默认中文内容独立于界面语言。
+- 管理端操作日志支持类型、关键词、日期、操作者/目标/IP 快照、排序分页与 CSV 导出；邮件模板独立编辑五种发送场景，包含预览、变量、测试发送与恢复默认。
+- 图形入口共用中英文切换和本地主题抽屉，偏好跨标签同步、刷新/原生重启保留；移除 RTL 偏好并修复布局遮挡，递归双语检查阻止遗漏英文。
+- 修复 Windows SQLite 盘符和 file URI 解析，启动失败显示原生错误弹窗；CI 验证真实 Windows exe 的窗口启动、SQLite 初始化、重启与失败提示。
+- 接入管理员专用 GitHub/HTTPS 签名 OTA、离线版本历史、备份确认、程序切换和失败回滚；Ed25519 更新清单与派生信任隔离独立于可选的 macOS/Windows 系统签名，Docker 继续外部替换镜像。
+- 更新 Go、Wails、SQLite、对象存储 SDK、OAuth2、前端工具与 GitHub Actions，最低 Node 22 补丁提升至 22.22.2；保留 TypeScript 5/Vite 7 基线与完整依赖安全门禁。
+- 从 v0.1.1 升级涉及平台迁移 0010–0012 与业务迁移 0002；升级前停服并完整备份数据库、私有目录和密钥，在隔离副本验证。回退须恢复升级前快照和匹配旧程序，不能只换旧 binary。
 
-- 升级 Goldmark 至 1.7.17，修复 GO-2026-5320 Markdown 链接/图片 XSS，保留公告安全白名单并补充编码 URL 回归验证。
-- 用户工作台公告改为紧凑单行轮播，支持暂停、手动切换、跨页循环及减少动态效果，移除大卡片留白。
-- 新增平台公告：管理员弹窗、定时/草稿、批量软删除及开关，用户工作台安全列表/详情；非平台排除。
-- 引入业务实体基座、分页/软删除/并发/分层规范与 AI 约束；修正日志详情重复，邮件默认中文内容独立于 UI 语言。
-- 平台迁移 0011、业务迁移 0002，跨 schema 部署须完整备份。
+### English
 
-- 在线管理端操作日志新增类型/关键词/日期筛选、操作者/目标/IP 快照、排序分页与 CSV 导出；平台迁移 0010 保留历史日志，新旧字段兼容。
-- 系统管理新增独立邮件模板页，支持五种实际发送场景的主题/受限富文本、变量插入、预览、测试发送、保存和恢复默认；六位码与通知共用渲染，中英文及管理员 API 权限同步。
-
-- 移除阅读方向并忽略旧 RTL 偏好，修复布局切换遮挡，统一共享布局几何入口；新增递归双语构建检查，阻止新功能遗漏英文。
-
-- 图形入口新增中英文切换与共享右侧本地主题抽屉，统一配色、圆角、密度、布局与侧栏；偏好跨标签同步、刷新/原生重启保留，不影响全局配置或业务草稿。
-- 侧栏品牌区使用版本气泡与更新状态点，底部改为文档/帮助与关于；保留普通用户的版本与更新权限边界。
-
-- 修复 Windows SQLite 盘符被误解析为 file URI 主机名导致桌面启动失败；支持路径转义和相对路径持久化，启动失败显示原生错误弹窗，并增加实际 Windows exe 启动/重启验收。
-- 接入管理员专用的 GitHub/HTTPS 签名 OTA、离线版本历史、备份确认、程序切换与失败回滚；Docker 保持外部镜像更新。
-- 增加 Ed25519 发行清单、派生项目信任隔离，以及可配置的 macOS Developer ID/公证和 Windows Authenticode 流程。
+- Add macOS drag-to-Applications DMG downloads and directly runnable Windows EXEs while retaining OTA tar archives. Linux Web includes unicore/unicorehelp, help, and optional JSON configuration generation/loading that refuses overwrites; /install remains the first-time setup entry.
+- Provide Chinese and English READMEs and new release entries. Candidates generate bilingual notes from the Changelog and actual artifacts; version preparation and CI reject missing languages, unpaired entries, and placeholders. Derived projects also get bilingual entry points.
+- Define separate documentation whitelists for user packages, derived applications, and the Wiki; simplify framework navigation and explicitly export new tooling while preserving reusable branding, contracts, and development commands.
+- Unify persistent multipart uploads across local/MinIO/S3/OSS/COS storage with pause, resume across refreshes/restarts, and confirmed-byte progress. Administrators control size, chunking, and concurrency (100 MiB default, 64 GiB policy ceiling, not a load-test claim). COS cloud permissions and other S3 services still require independent validation.
+- Add platform announcement administration, scheduling/drafts, bulk soft deletion, safe details, and a compact dashboard carousel. Upgrade Goldmark to 1.7.17 to fix GO-2026-5320 while retaining URL and rich-content safeguards.
+- Introduce shared business-entity, pagination, soft-deletion, concurrency, and layering conventions; fix duplicate log details and keep default Chinese email content independent of UI language.
+- Add audit-log type, keyword, date, actor/target/IP snapshots, sorting, pagination, and CSV export. A dedicated email-template editor covers five delivery scenarios with preview, variables, test delivery, and reset.
+- Share Chinese/English switching and a local theme drawer across graphical profiles, with cross-tab synchronization and persistence across refreshes/native restarts. Remove RTL preferences, fix layout overlap, and recursively check for missing English messages.
+- Fix Windows SQLite drive-letter and file-URI parsing and show native startup-error dialogs. CI exercises real Windows EXE window startup, SQLite initialization, restart, and failure messages.
+- Add administrator-only GitHub/HTTPS signed OTA, offline release history, backup confirmation, program switching, and failure rollback. Ed25519 update manifests and isolated derived-project trust are separate from optional macOS/Windows OS signatures; Docker continues to use external image replacement.
+- Update Go, Wails, SQLite, object-storage SDKs, OAuth2, frontend tooling, and GitHub Actions. Raise the minimum Node 22 patch to 22.22.2 while retaining the TypeScript 5/Vite 7 baseline and full dependency-security gates.
+- Upgrading from v0.1.1 applies platform migrations 0010–0012 and business migration 0002. Stop the service, back up the database, private directory, and keys together, and validate on an isolated copy. Rollback requires the pre-upgrade snapshot and matching old program, not just an old binary.
 
 ## 0.1.1 — 2026-10-28
 

@@ -96,7 +96,8 @@
     "wikiPublish": "make wiki-publish",
     "packageDesktop": "make package-desktop",
     "signDesktop": "make sign-desktop",
-    "i18n": "pnpm check:i18n"
+    "i18n": "pnpm check:i18n",
+    "releaseNotes": "pnpm check:release-notes"
   },
   "skills": [
     "add-api-operation",

@@ -101,5 +101,6 @@ OpenAPI 当前包含 133 个 operation、140 个 schema。Go/TS 模型、调用�
 - packageDesktop：`make package-desktop`
 - signDesktop：`make sign-desktop`
 - i18n：`pnpm check:i18n`
+- releaseNotes：`pnpm check:release-notes`
 
 不保存凭据到上下文或验收记录。任务记录使用 [任务模板](task-template.md)，交付记录须区分实测、未测与未来目标。

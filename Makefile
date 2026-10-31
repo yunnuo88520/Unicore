@@ -40,6 +40,7 @@ wiki-publish:
 test:
 	node scripts/update-history.mjs --check
 	pnpm check:version
+	pnpm check:release-notes
 	node scripts/test-version.mjs
 	pnpm test:tooling
 	pnpm check:migrations

@@ -15,7 +15,9 @@ framework.manifest.json 是机器索引；契约、主题、品牌、设置和 S
 
 用户发行、派生项目和 Wiki 的唯一白名单在 distribution/manifest.json；新增源码文件不自动进入产品。修改 audience 时验证真实生成目录、精确文件清单和正文链接闭包，不能只检查配置或隐藏侧栏。
 
-执行 make docs、pnpm check:docs、pnpm check:authors；工具或分发变更运行相应测试。生成文件从源再生，不手改；保留命令、Skill、manifest 路径、作者头和生成一致性门禁。发现链接目标要移出时先修复活动引用并保留必要规则，不通过关闭检查过关。
+中文/英文 README 在同一 PR 同步，新增版本说明遵循发版手册双语分区；不能把两份入口等同详细手册已全量英译。
+
+执行 make docs、pnpm check:docs、pnpm check:authors、pnpm check:release-notes；工具或分发变更运行相应测试。生成文件从源再生，不手改；保留命令、Skill、manifest 路径、作者头和生成一致性门禁。发现链接目标要移出时先修复活动引用并保留必要规则，不通过关闭检查过关。
 
 前端界面、设置/权限描述保持中英文，复用 WorkspaceLayout、表单和消息；用户邮件/公告/笔记内容不自动翻译。后端约定以 backend.md 为准，状态范围以 docs/support.md 和当前实际检查为准。
 

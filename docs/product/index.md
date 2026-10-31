@@ -25,7 +25,7 @@ Web 首次访问 /install。在线生产环境推荐 MySQL 或 PostgreSQL；向�
 
 管理员从 /admin（可配置）登录，用户从 /login 登录，两种身份分别校验。演示实例才使用 admin / Admin@123456，实际部署自行设置密码，不内置业务账号。单机与桌面不提供平台管理端。
 
-发行 tar 中运行 bin/server 或 bin/unicore；源码下的开发命令与发行二进制路径不同。先阅读 [配置](configuration.md)、[构建](build.md) 和 [部署](deployment.md)。
+macOS 桌面推荐下载 DMG 并拖入 Applications；Windows 桌面直接运行 EXE，Linux 桌面解压 tar。Web tar 解压后用 ./unicorehelp、./unicore config generate、./unicore --config unicore.json；配置可选，首次安装仍访问 /install。CLI tar 中运行 bin/unicore；源码下的开发命令与发行二进制路径不同。先阅读 [配置](configuration.md)、[构建](build.md) 和 [部署](deployment.md)。
 
 ## 按任务阅读
 

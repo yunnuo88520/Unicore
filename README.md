@@ -1,6 +1,8 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # Unicore
 
+**简体中文** · [English](README.en.md)
+
 ![Unicore](assets/brand/wordmark.svg)
 
 **一份 Go Core，一套 React UI，连接 Web、桌面与 CLI。**
@@ -32,7 +34,9 @@ Unicore 是面向 AI 辅助开发的 Go + React 应用框架。共享领域与�
 
 ![平台笔记与附件](docs/images/notes-platform.png)
 
-预览安装包与校验和见 [GitHub Releases](https://github.com/yunnuo88520/Unicore/releases)，也可从源码构建；尚无公开注册表镜像。已接入可替换渠道的签名 OTA 与离线版本日志；现有 v0.1.1 无公开签名更新清单。应用层发布者签名必须保留，OS 签名/公证可选，无需购买证书即可采用免费分发策略；创建器默认 OS 签名策略仍有已知差异，见支持范围。授权服务保持占位。详见 [系统更新](docs/03-runbooks/updates.md)与 [支持范围](docs/support.md)。
+macOS 下载 DMG 并拖到 Applications；Windows 下载 EXE 直接运行；Linux 桌面使用 tar。Web tar 解压后支持 `./unicorehelp`、`./unicore config generate` 和 `./unicore --config unicore.json`，首次安装继续访问 `/install`。OTA 仍使用完整 tar 发行目录。
+
+预览安装包与校验和见 [GitHub Releases](https://github.com/yunnuo88520/Unicore/releases)，也可从源码构建；尚无公开注册表镜像。已接入可替换渠道的签名 OTA 与离线版本日志；公开版本是否包含签名更新清单，以对应 Release 资产与验证结果为准。应用层发布者签名必须保留，OS 签名/公证可选，无需购买证书即可采用免费分发策略；创建器默认 OS 签名策略仍有已知差异，见支持范围。授权服务保持占位。详见 [系统更新](docs/03-runbooks/updates.md)与 [支持范围](docs/support.md)。
 
 
 平台管理端提供可筛选、排序、分页和导出的操作日志，以及独立邮件模板编辑、预览与测试发送；权限、迁移和开发约定见 [管理工具](docs/03-runbooks/admin-tools.md)。
@@ -53,7 +57,7 @@ make dev-server
 make dev-web
 ```
 
-访问 `http://127.0.0.1:5173`。首次进入 `/install`，从私有目录 `data/bootstrap.token` 读取一次性安装凭据，选择平台或单机。默认 MySQL，PostgreSQL 同为推荐；先创建专用数据库，填写连接参数并测试。快速本机体验可显式选 SQLite。平台管理员由安装页创建，演示可填写 `admin / Admin@123456`，框架不预置账号。
+访问 `http://127.0.0.1:5173`。首次进入 `/install`，从私有目录 `data/bootstrap.token` 读取一次性安装凭据，选择平台或单机。默认 MySQL，PostgreSQL 同为推荐；先创建专用数据库，填写连接参数并测试。快速本机体验可显式选 SQLite。平台管理员由安装页创建，请设置自己的强密码；框架不预置账号。
 
 非空库初始化会清空数据，必须备份并精确确认库名；已有 Unicore 安装不能覆盖。安装后保存数据库、私有目录和密钥，重启自动恢复。安装凭据与加密密钥不同；详见 [安装与部署](docs/03-runbooks/deployment.md)。
 
@@ -106,7 +110,7 @@ make build-desktop               # 在目标系统原生构建
 make build-ops                   # 独立加密备份/恢复工具
 ```
 
-应用版本只维护 [VERSION](VERSION)；`make version NEW_VERSION=x.y.z` 同步投影和 Changelog。tar 输出到 `build/releases/`，带 manifest/checksums；Web 包含运维工具，镜像标签读取相同版本。宝塔/Nginx、Docker/Compose、版本准备和恢复步骤见 [发版手册](docs/03-runbooks/release.md)、[部署手册](docs/03-runbooks/deployment.md) 与 [备份手册](docs/03-runbooks/backup.md)。
+应用版本只维护 [VERSION](VERSION)；`make version NEW_VERSION=x.y.z` 同步投影和中英文 Changelog；`pnpm check:release-notes` 检查双语入口与说明。tar 输出到 `build/releases/`，带 manifest/checksums；Web 包含运维工具，镜像标签读取相同版本。宝塔/Nginx、Docker/Compose、版本准备和恢复步骤见 [发版手册](docs/03-runbooks/release.md)、[部署手册](docs/03-runbooks/deployment.md) 与 [备份手册](docs/03-runbooks/backup.md)。
 
 质量、依赖安全和 Profile 构建结果查看当前提交的 CI。原生构建/helper 测试不等于完整 GUI 更新与失败恢复；发布前按目标系统和部署环境验证，不能用历史结果代替当前检查。
 

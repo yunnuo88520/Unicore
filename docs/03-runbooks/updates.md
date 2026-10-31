@@ -64,7 +64,7 @@ node scripts/update-keygen.mjs /secure/offline/product-ota.pem product-2026
 gh secret set UNICORE_UPDATE_SIGNING_KEY --repo owner/repository < /secure/offline/product-ota.pem
 ```
 
-私钥不进入源码、归档、日志、产物或运行实例。GitHub Secret 仅供手动候选流水线生成 update-manifest.json 与 update-manifest.sig；本地候选可通过安全环境注入同名变量。Prepare release candidate 校验完整同提交的 13 包矩阵，生成并自验签名，上传两份新清单资产与构建来源证明。缺密钥、key 不匹配、摘要不符均停止；不降级成未签名 OTA。公开 Release 需相同版本 tag、13 包、manifest/checksums 和这两份清单，仍需维护者明确发布授权。
+私钥不进入源码、归档、日志、产物或运行实例。GitHub Secret 仅供手动候选流水线生成 update-manifest.json 与 update-manifest.sig；本地候选可通过安全环境注入同名变量。Prepare release candidate 校验完整同提交的 13 包矩阵，生成并自验签名，上传两份新清单资产与构建来源证明。缺密钥、key 不匹配、摘要不符均停止；不降级成未签名 OTA。公开 Release 需相同版本 tag、13 个 tar 包、macOS DMG、Windows EXE、manifest/checksums、双语 RELEASE_NOTES.md 和这两份清单，仍需维护者明确发布授权。
 
 公钥轮换先发布同时信任旧/新公钥的一版，再切换签名 Secret；最后在后续版本移除旧 key。已失效旧版如不能验证新 key，需要人工安装可信包，不能远端替换信任根。
 

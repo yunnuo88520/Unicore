@@ -1,6 +1,8 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 文档入口
 
+仓库入口提供 [简体中文 README](../README.md) 与 [English README](../README.en.md)，新版本 Changelog/Release 说明同步中英文；详细规范与手册目前主要为中文。
+
 按需要选择入口；使用框架不需要阅读上游开发过程或全部架构决策。
 
 ## 使用与部署

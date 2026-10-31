@@ -33,7 +33,7 @@ make build-desktop
 
 外部数据库测试只使用显式提供的隔离库，参数见 [CI](.github/workflows/ci.yml) 和 [备份手册](docs/03-runbooks/backup.md)。修改数据库、文件或恢复逻辑时，还需覆盖目标方言、权限、失败恢复和已有数据兼容；新 UI 验证 PC/375px、主题及操作流程。仅文档修改无需重跑原生窗口或部署；如实填写已执行和未执行项目。
 
-提交 PR 时使用仓库模板，包含问题、四个 profile 的影响、验证证据、迁移/恢复说明。用户可感知的改动写入 [CHANGELOG](CHANGELOG.md) 的 Unreleased，相关规范/运行手册同步更新，重大决策新增 ADR。维护者审阅后合并；不要自行发布 tag、Release、镜像或向真实外部服务发送消息。
+提交 PR 时使用仓库模板，包含问题、四个 profile 的影响、验证证据、迁移/恢复说明。用户可感知的改动写入 [CHANGELOG](CHANGELOG.md) 的 Unreleased，按 [双语发行规范](docs/03-runbooks/release.md#双语文档与发布说明) 配对填写中文/English，并同步 README.md 与 README.en.md；运行 pnpm check:release-notes。相关规范/运行手册同步更新，重大决策新增 ADR。维护者审阅后合并；不要自行发布 tag、Release、镜像或向真实外部服务发送消息。
 
 所有新 Git 提交的标题和正文必须使用英文，包含 squash/merge 的最终提交消息；不要只检查标题或重写历史提交。中文文档、双语界面与用户业务内容仍遵循各自约定。当前通过贡献者和维护者审阅执行，不把自然语言识别作为阻塞质量门禁，不要求自然语言检测器。
 

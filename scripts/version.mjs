@@ -1,6 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: VERSION is the only handwritten application version; synchronize its projections.
 import { readFileSync, writeFileSync } from 'node:fs';
+import { bilingualNotes } from './release-notes.mjs';
 
 const check = process.argv.includes('--check');
 const next = process.argv[process.argv.indexOf('--release') + 1];
@@ -16,6 +17,7 @@ if (releasing) {
   if (log.includes(`## ${next} `)) throw new Error('Changelog version already exists');
   const match = log.match(/## Unreleased\n([\s\S]*?)(?=\n## |$)/);
   if (!match || !match[1].trim()) throw new Error('Add release notes under ## Unreleased first');
+  bilingualNotes(match[1]);
   const date = new Date().toISOString().slice(0, 10);
   writeFileSync('CHANGELOG.md', log.replace(match[0], `## Unreleased\n\n## ${next} — ${date}\n${match[1]}`));
   writeFileSync('VERSION', `${next}\n`);

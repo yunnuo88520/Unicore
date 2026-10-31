@@ -1,0 +1,36 @@
+# Author: yunnuo <ymz@ebox.vip>
+name: 功能建议
+description: 说明真实场景、形态边界和可验收结果。
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 使用场景与问题
+      description: 谁在什么情况下遇到什么限制？请先检索已有建议。
+    validations:
+      required: true
+  - type: dropdown
+    id: profile
+    attributes:
+      label: 影响的运行形态
+      multiple: true
+      options:
+        - web-platform
+        - web-standalone
+        - desktop
+        - cli
+        - 开发工具 / 文档
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议行为与验收
+      description: 描述可观察的结果；涉及权限、文件或数据库时说明边界，不要粘贴真实配置。
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 已考虑的替代方式
+      description: 现有能力为何不能满足？是否更适合在派生应用中实现？

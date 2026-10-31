@@ -1,0 +1,6 @@
+#!/bin/sh
+# Author: yunnuo <ymz@ebox.vip>
+# Description: Web service entry point; keep data/config paths relative to the caller.
+set -eu
+unicore_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+exec "$unicore_dir/bin/server" "$@"

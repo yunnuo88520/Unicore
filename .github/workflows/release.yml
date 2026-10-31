@@ -1,0 +1,87 @@
+# Author: yunnuo <ymz@ebox.vip>
+name: Prepare release candidate
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact VERSION already committed with CHANGELOG
+        required: true
+        type: string
+      ci_run_id:
+        description: Successful main Quality and profile builds run for this exact commit
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  candidate:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install quality tooling
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+      - run: test "$(cat VERSION)" = "$EXPECTED_VERSION"
+        env:
+          EXPECTED_VERSION: ${{ inputs.version }}
+      - uses: actions/setup-go@v7
+        with: { go-version-file: go.mod }
+      - uses: pnpm/action-setup@v6
+        with: { version: 11.25.0 }
+      - uses: actions/setup-node@v7
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: make docs && git diff --exit-code && make test
+      - run: make release
+      - run: cd build/releases && sha256sum --check checksums.txt
+      - uses: actions/upload-artifact@v7
+        with: { name: release-candidate, path: build/releases/, if-no-files-found: error }
+  bundle:
+    needs: candidate
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: 22 }
+      - name: Verify native build source and result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_RUN_ID: ${{ inputs.ci_run_id }}
+        run: |
+          [[ "$CI_RUN_ID" =~ ^[0-9]+$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CI_RUN_ID" > "$RUNNER_TEMP/release-ci.json"
+          node --input-type=module -e 'import {readFileSync} from "node:fs"; const run=JSON.parse(readFileSync(process.env.RUNNER_TEMP+"/release-ci.json")); if(run.head_sha!==process.env.GITHUB_SHA || run.head_branch!=="main" || run.event!=="push" || run.name!=="Quality and profile builds" || run.conclusion!=="success") throw Error("Native CI must pass on this exact main commit");'
+      - name: Require successful dependency security on the same main commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/actions/workflows/security.yml/runs?head_sha=$GITHUB_SHA&event=push&status=success&per_page=10" > "$RUNNER_TEMP/release-security.json"
+          node --input-type=module -e 'import {readFileSync,appendFileSync} from "node:fs"; const runs=JSON.parse(readFileSync(process.env.RUNNER_TEMP+"/release-security.json")).workflow_runs; const run=runs.find(r=>r.head_sha===process.env.GITHUB_SHA&&r.head_branch==="main"&&r.event==="push"&&r.conclusion==="success"); if(!run) throw Error("Dependency security must pass on this exact main commit"); appendFileSync(process.env.GITHUB_ENV,`SECURITY_RUN_ID=${run.id}\n`);'
+      - uses: actions/download-artifact@v8
+        with: { name: release-candidate, path: build/candidate }
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: desktop-*
+          merge-multiple: true
+          path: build/candidate
+          run-id: ${{ inputs.ci_run_id }}
+          github-token: ${{ github.token }}
+      - run: node scripts/release-assets.mjs assemble build/candidate
+      - name: Sign OTA manifest with the committed publisher trust root
+        run: node scripts/update-sign.mjs build/candidate
+        env:
+          UNICORE_UPDATE_SIGNING_KEY: ${{ secrets.UNICORE_UPDATE_SIGNING_KEY }}
+      - run: cd build/candidate && sha256sum --check checksums.txt
+      - name: Generate bilingual release notes from the committed Changelog
+        run: node scripts/release-notes.mjs build/candidate
+        env:
+          CI_RUN_ID: ${{ inputs.ci_run_id }}
+      - uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: build/candidate/*
+      - uses: actions/upload-artifact@v7
+        with: { name: release-bundle, path: build/candidate/, if-no-files-found: error }

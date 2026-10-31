@@ -1,0 +1,533 @@
+// Author: yunnuo <ymz@ebox.vip>
+// Description: Installation, authenticated platform routes and local settings; permissions are enforced here.
+package httpadapter
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"io"
+	"mime"
+	"net"
+	"net/http"
+	"net/url"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/yunnuo/unicore/internal/audit"
+	"github.com/yunnuo/unicore/internal/branding"
+	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/domain"
+	"github.com/yunnuo/unicore/internal/files"
+	"github.com/yunnuo/unicore/internal/install"
+	"github.com/yunnuo/unicore/internal/mailer"
+	"github.com/yunnuo/unicore/internal/platform"
+	"github.com/yunnuo/unicore/internal/runtime"
+	"github.com/yunnuo/unicore/internal/settings"
+	"github.com/yunnuo/unicore/internal/usecase"
+	apispec "github.com/yunnuo/unicore/packages/contracts"
+)
+
+const sessionCookie = "unicore_session"
+const administratorSessionCookie = "unicore_administrator_session"
+
+func failure(w http.ResponseWriter, status int, code, message string) {
+	writeJSON(w, status, contracts.ErrorResponse{Code: code, Message: message, RequestID: w.Header().Get("X-Request-ID")})
+}
+func webError(w http.ResponseWriter, err error) {
+	code := "INTERNAL_ERROR"
+	switch {
+	case errors.Is(err, domain.ErrAnnouncementInvalid):
+		code = "ANNOUNCEMENT_INVALID"
+	case errors.Is(err, usecase.ErrEntityNotFound):
+		code = "ENTITY_NOT_FOUND"
+	case errors.Is(err, usecase.ErrEntityConflict):
+		code = "ENTITY_CONFLICT"
+	case errors.Is(err, domain.ErrNoteInvalid):
+		code = "NOTE_INVALID"
+	case errors.Is(err, usecase.ErrNoteNotFound):
+		code = "NOTE_NOT_FOUND"
+	case errors.Is(err, usecase.ErrNoteConflict):
+		code = "NOTE_CONFLICT"
+	case errors.Is(err, files.ErrInvalid):
+		code = "FILE_INVALID"
+	case errors.Is(err, files.ErrNotFound):
+		code = "FILE_NOT_FOUND"
+	case errors.Is(err, files.ErrBusy):
+		code = "FILE_BUSY"
+	case errors.Is(err, files.ErrNotReady):
+		code = "STORAGE_NOT_READY"
+	case errors.Is(err, files.ErrUnavailable):
+		code = "STORAGE_UNAVAILABLE"
+	case errors.Is(err, branding.ErrInvalid):
+		code = "BRAND_INVALID"
+	case errors.Is(err, platform.ErrOIDCUnavailable):
+		code = "OIDC_UNAVAILABLE"
+	case errors.Is(err, platform.ErrOIDC), errors.Is(err, platform.ErrOIDCLinkRequired):
+		code = "OIDC_FAILED"
+	case errors.Is(err, platform.ErrLocalLoginRequired):
+		code = "LOCAL_PASSWORD_REQUIRED"
+	case errors.Is(err, settings.ErrMailNotReady):
+		code = "MAIL_NOT_READY"
+	case errors.Is(err, mailer.ErrUnavailable):
+		code = "MAIL_DELIVERY_FAILED"
+	case errors.Is(err, platform.ErrFlowDisabled):
+		code = "ACCOUNT_FLOW_DISABLED"
+	case errors.Is(err, platform.ErrAccountToken):
+		code = "TOKEN_INVALID"
+	case errors.Is(err, install.ErrToken):
+		code = "BOOTSTRAP_TOKEN_INVALID"
+	case errors.Is(err, install.ErrInstalled):
+		code = "ALREADY_INSTALLED"
+	case errors.Is(err, install.ErrTaken):
+		code = "DATABASE_INITIALIZED"
+	case errors.Is(err, install.ErrNotEmpty):
+		code = "DATABASE_NOT_EMPTY"
+	case errors.Is(err, install.ErrDatabase):
+		code = "DATABASE_UNAVAILABLE"
+	case errors.Is(err, install.ErrInput), errors.Is(err, platform.ErrInput), errors.Is(err, settings.ErrInvalid):
+		code = "INVALID_INPUT"
+	case errors.Is(err, platform.ErrCredentials):
+		code = "INVALID_CREDENTIALS"
+	case errors.Is(err, platform.ErrForbidden):
+		code = "PERMISSION_DENIED"
+	case errors.Is(err, platform.ErrConflict):
+		code = "ACCOUNT_EXISTS"
+	case errors.Is(err, platform.ErrLastAdmin):
+		code = "LAST_SUPER_ADMIN"
+	case errors.Is(err, platform.ErrRateLimited):
+		code = "RATE_LIMITED"
+	case errors.Is(err, platform.ErrCaptcha):
+		code = "CAPTCHA_INVALID"
+	}
+	definition := contracts.ErrorCatalog[code]
+	failure(w, definition.Status, code, definition.Message)
+}
+func success(w http.ResponseWriter, data any) {
+	writeJSON(w, 200, struct {
+		Code      string `json:"code"`
+		Message   string `json:"message"`
+		Data      any    `json:"data"`
+		RequestID string `json:"request_id"`
+	}{"OK", "", data, w.Header().Get("X-Request-ID")})
+}
+func decode(w http.ResponseWriter, r *http.Request, value any) bool {
+	media, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil || media != "application/json" {
+		failure(w, 415, "UNSUPPORTED_MEDIA_TYPE", "请使用 application/json")
+		return false
+	}
+	limit := 64 * 1024
+	if operation, ok := apispec.Lookup(strings.ToLower(r.Method), chi.RouteContext(r.Context()).RoutePattern()); ok && operation.Policy.MaxBodyBytes > 0 {
+		limit = operation.Policy.MaxBodyBytes
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, int64(limit))
+	raw, err := io.ReadAll(r.Body)
+	if err != nil {
+		failure(w, 413, "BODY_TOO_LARGE", "请求体过大")
+		return false
+	}
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if err = decoder.Decode(value); err != nil {
+		failure(w, 400, "INVALID_JSON", "JSON 格式不正确或请求体过大")
+		return false
+	}
+	if decoder.Decode(&struct{}{}) != io.EOF {
+		failure(w, 400, "INVALID_JSON", "只允许一个 JSON 对象")
+		return false
+	}
+	operation, ok := apispec.Lookup(strings.ToLower(r.Method), chi.RouteContext(r.Context()).RoutePattern())
+	if ok {
+		schema := operation.RequestBody.Content["application/json"].Schema.Ref
+		if schema != "" {
+			return validationResult(w, apispec.ValidateJSON(strings.TrimPrefix(schema, "#/components/schemas/"), raw))
+		}
+	}
+	return true
+}
+
+func validateInput(w http.ResponseWriter, r *http.Request, value any) bool {
+	operation, ok := apispec.Lookup(strings.ToLower(r.Method), chi.RouteContext(r.Context()).RoutePattern())
+	if !ok {
+		return true
+	}
+	schema := operation.RequestBody.Content["application/json"].Schema.Ref
+	if schema == "" {
+		return true
+	}
+	raw, _ := json.Marshal(value)
+	return validationResult(w, apispec.ValidateJSON(strings.TrimPrefix(schema, "#/components/schemas/"), raw))
+}
+func validationResult(w http.ResponseWriter, fields map[string]string) bool {
+	if len(fields) == 0 {
+		return true
+	}
+	definition := contracts.ErrorCatalog["INVALID_INPUT"]
+	writeJSON(w, definition.Status, contracts.ErrorResponse{Code: "INVALID_INPUT", Message: definition.Message, RequestID: w.Header().Get("X-Request-ID"), Fields: &fields})
+	return false
+}
+// sameOrigin only rejects requests with positive cross-site evidence. Browsers
+// assert Sec-Fetch-Site and JavaScript cannot forge it, so same-page requests
+// stay accepted even when a gateway or tunnel rewrites Host. Legacy clients
+// without fetch metadata fall back to a strict Origin/Host comparison; clients
+// that send neither (curl, SDK) are not CSRF-relevant.
+func sameOrigin(r *http.Request) bool {
+	if r.Method == "GET" || r.Method == "HEAD" {
+		return true
+	}
+	switch r.Header.Get("Sec-Fetch-Site") {
+	case "same-origin":
+		return true
+	case "cross-site":
+		return false
+	}
+	if origin := r.Header.Get("Origin"); origin != "" {
+		u, err := url.Parse(origin)
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Path != "" && u.Path != "/") {
+			return false
+		}
+		return u.Host == r.Host
+	}
+	return true
+}
+func administratorRequest(r *http.Request) bool {
+	return strings.HasPrefix(r.URL.Path, "/api/v1/admin/")
+}
+func identityCookie(r *http.Request) string {
+	if administratorRequest(r) {
+		return administratorSessionCookie
+	}
+	return sessionCookie
+}
+func rawSession(r *http.Request) string {
+	cookie, err := r.Cookie(identityCookie(r))
+	if err != nil {
+		return ""
+	}
+	return cookie.Value
+}
+func require(manager *install.Manager, w http.ResponseWriter, r *http.Request, permission string) (contracts.Session, bool) {
+	if !manager.Installed() {
+		failure(w, 409, "INSTALL_REQUIRED", "请先完成安装")
+		return contracts.Session{}, false
+	}
+	_, _, _, profile := manager.Services()
+	identity := manager.Identity(administratorRequest(r))
+	if profile != runtime.WebPlatform || identity == nil {
+		failure(w, 404, "NOT_FOUND", "此运行形态不提供平台接口")
+		return contracts.Session{}, false
+	}
+	session, err := identity.Session(r.Context(), rawSession(r))
+	if err != nil {
+		if administratorRequest(r) && rawSession(r) == "" {
+			if cookie, e := r.Cookie(sessionCookie); e == nil {
+				if userIdentity := manager.Identity(false); userIdentity != nil {
+					if _, e = userIdentity.Session(r.Context(), cookie.Value); e == nil {
+						webError(w, platform.ErrForbidden)
+						return session, false
+					}
+				}
+			}
+		}
+		failure(w, 401, "AUTH_REQUIRED", contracts.ErrorCatalog["AUTH_REQUIRED"].Message)
+		return session, false
+	}
+	if r.Method != "GET" && r.Method != "HEAD" && !platform.Equal(r.Header.Get("X-CSRF-Token"), session.CsrfToken) {
+		failure(w, 403, "CSRF_INVALID", "请求校验已失效，请刷新页面")
+		return session, false
+	}
+	if permission != "" && (!platform.Has(session.User, permission) || (platform.SuperOnly(permission) && !platform.IsSuper(session.User))) {
+		webError(w, platform.ErrForbidden)
+		return session, false
+	}
+	m, _ := audit.From(r.Context())
+	m.ActorName = session.User.Username
+	*r = *r.WithContext(audit.With(r.Context(), m))
+	return session, true
+}
+func coreAccess(manager *install.Manager, w http.ResponseWriter, r *http.Request) bool {
+	if !manager.Installed() {
+		failure(w, 409, "INSTALL_REQUIRED", "请先完成安装")
+		return false
+	}
+	_, _, _, profile := manager.Services()
+	if profile == runtime.WebPlatform {
+		permission := ""
+		if administratorRequest(r) {
+			permission = "admin:access"
+		}
+		_, ok := require(manager, w, r, permission)
+		return ok
+	}
+	return true
+}
+func metadata(config Config, r *http.Request) contracts.Bootstrap {
+	_, service, _, profile := config.Install.Services()
+	identity := config.Install.Identity(administratorRequest(r))
+	data := runtime.Metadata(profile, config.Metadata.DeploymentKind)
+	data.Stage = "M3b"
+	data.Installed = config.Install.Installed()
+	data.AdminPath = ""
+	if administratorRequest(r) {
+		data.AdminPath = config.Install.AdminPath(r.Context())
+	}
+	realm := "user"
+	if administratorRequest(r) {
+		realm = "administrator"
+	}
+	data.IdentityRealm = &realm
+	data.Capabilities.Updater = config.Updates != nil && data.Installed
+	data.Capabilities.Installation = true
+	data.Capabilities.Database = data.Installed
+	data.Capabilities.Settings = data.Installed
+	data.Capabilities.Authentication = data.Installed && identity != nil
+	if service != nil && profile == runtime.WebPlatform {
+		if service.Branding != nil {
+			if value, err := service.Branding.Snapshot(r.Context(), false); err == nil {
+				data.Branding = &value
+			}
+		}
+		if name, err := service.Value(r.Context(), "site.name"); err == nil {
+			data.SiteName = name
+		}
+		if value, err := service.Value(r.Context(), "site.description"); err == nil {
+			data.SiteDescription = &value
+		}
+		if value, err := service.Value(r.Context(), "site.copyright"); err == nil {
+			data.SiteCopyright = &value
+		}
+		if value, err := service.Value(r.Context(), "site.icp_number"); err == nil {
+			data.SiteIcpNumber = &value
+		}
+		if value, err := service.Value(r.Context(), "site.icp_url"); err == nil {
+			data.SiteIcpUrl = &value
+		}
+		if value, err := service.Value(r.Context(), "appearance.theme"); err == nil {
+			data.Theme = &value
+		}
+	}
+	if identity != nil {
+		if session, err := identity.Session(r.Context(), rawSession(r)); err == nil {
+			data.CurrentUser = &session.User
+			data.CsrfToken = &session.CsrfToken
+		}
+	}
+	if profile == runtime.WebPlatform && (!administratorRequest(r) || data.CurrentUser == nil) {
+		data.Version = ""
+		data.Commit = ""
+		data.BuildTime = ""
+		data.Capabilities.Updater = false
+	}
+	return data
+}
+func setSession(manager *install.Manager, w http.ResponseWriter, token string, expires int, r *http.Request) {
+	setSessionCookie(manager, w, token, expires, identityCookie(r))
+}
+func setSessionCookie(manager *install.Manager, w http.ResponseWriter, token string, expires int, name string) {
+	http.SetCookie(w, &http.Cookie{Name: name, Value: token, Path: "/", HttpOnly: true, Secure: strings.HasPrefix(manager.BaseURL(), "https://"), SameSite: http.SameSiteLaxMode, Expires: time.Unix(int64(expires), 0), MaxAge: expires - int(time.Now().Unix())})
+}
+func ip(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
+}
+func super(user contracts.User) bool {
+	return platform.IsSuper(user)
+}
+
+func mountWeb(api chi.Router, config Config) {
+	mountBranding(api, config)
+	mountStorage(api, config)
+	mountNotes(api, config)
+	mountAnnouncements(api, config)
+	manager := config.Install
+	mountAccounts(api, config)
+	mountRoles(api, config)
+	mountOIDC(api, config)
+	limiter := platform.NewLimiter()
+	api.Get("/install/status", func(w http.ResponseWriter, r *http.Request) { success(w, manager.Status()) })
+	api.Post("/install/verify-db", func(w http.ResponseWriter, r *http.Request) {
+		if !limiter.Allow("install:"+ip(r), 15, time.Minute) {
+			webError(w, platform.ErrRateLimited)
+			return
+		}
+		var input contracts.DatabaseInput
+		if !decode(w, r, &input) {
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 7*time.Second)
+		defer cancel()
+		result, err := manager.Verify(ctx, r.Header.Get("X-Bootstrap-Token"), input)
+		if err != nil {
+			webError(w, err)
+			return
+		}
+		success(w, result)
+	})
+	api.Post("/install/complete", func(w http.ResponseWriter, r *http.Request) {
+		if !limiter.Allow("install:"+ip(r), 15, time.Minute) {
+			webError(w, platform.ErrRateLimited)
+			return
+		}
+		var input contracts.InstallInput
+		if !decode(w, r, &input) {
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 12*time.Second)
+		defer cancel()
+		result, user, err := manager.Complete(ctx, r.Header.Get("X-Bootstrap-Token"), input)
+		if err != nil {
+			webError(w, err)
+			return
+		}
+		if user.ID != "" {
+			identity := manager.Identity(true)
+			session, token, err := identity.Issue(ctx, user, 24)
+			if err != nil {
+				failure(w, 500, "INSTALL_COMMITTED", "安装已完成，请前往登录页面")
+				return
+			}
+			setSessionCookie(manager, w, token, session.ExpiresAt, administratorSessionCookie)
+		}
+		success(w, result)
+	})
+	mountAuthentication(api, config)
+	mountLogs(api, config)
+	for _, administrators := range []bool{false, true} {
+		path, permission, role := "/admin/users", "users", "user"
+		if administrators {
+			path, permission, role = "/admin/administrators", "administrators", "super_admin"
+		}
+		api.Get(path, func(w http.ResponseWriter, r *http.Request) {
+			if _, ok := require(manager, w, r, permission+":read"); !ok {
+				return
+			}
+			page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+			size, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
+			if page < 1 {
+				page = 1
+			}
+			if page > 100000 {
+				page = 100000
+			}
+			if size < 1 || size > 50 {
+				size = 20
+			}
+			search := r.URL.Query().Get("search")
+			if len(search) > 128 {
+				webError(w, platform.ErrInput)
+				return
+			}
+			identity := manager.Identity(administrators)
+			data, err := identity.Store.ListUsers(r.Context(), search, page, size)
+			if err != nil {
+				webError(w, err)
+				return
+			}
+			success(w, data)
+		})
+		api.Post(path, func(w http.ResponseWriter, r *http.Request) {
+			actor, ok := require(manager, w, r, permission+":create")
+			if !ok {
+				return
+			}
+			var input contracts.UserCreate
+			if !decode(w, r, &input) {
+				return
+			}
+			if input.Role != role {
+				webError(w, platform.ErrInput)
+				return
+			}
+			identity := manager.Identity(administrators)
+			data, err := identity.Create(r.Context(), input, actor.User.ID)
+			if err != nil {
+				webError(w, err)
+				return
+			}
+			success(w, data)
+		})
+		api.Patch(path+"/{id}", func(w http.ResponseWriter, r *http.Request) {
+			actor, ok := require(manager, w, r, permission+":update")
+			if !ok {
+				return
+			}
+			var input contracts.UserUpdate
+			if !decode(w, r, &input) {
+				return
+			}
+			if input.Role != role {
+				webError(w, platform.ErrInput)
+				return
+			}
+			identity := manager.Identity(administrators)
+			data, err := identity.Store.UpdateUser(r.Context(), chi.URLParam(r, "id"), input, actor.User.ID)
+			if err != nil {
+				webError(w, err)
+				return
+			}
+			success(w, data)
+		})
+	}
+
+	for _, admin := range []bool{false, true} {
+		prefix := "/settings"
+		if admin {
+			prefix = "/admin/settings"
+		}
+		check := func(w http.ResponseWriter, r *http.Request) (*settings.Service, string, bool) {
+			_, service, _, profile := manager.Services()
+			if service == nil {
+				failure(w, 409, "INSTALL_REQUIRED", "请先完成安装")
+				return nil, "", false
+			}
+			if admin {
+				permission := "settings:read"
+				if r.Method == "PATCH" {
+					permission = "settings:write"
+				}
+				session, ok := require(manager, w, r, permission)
+				return service, session.User.ID, ok
+			}
+			if profile == runtime.WebPlatform {
+				failure(w, 404, "NOT_FOUND", "请使用受保护的平台设置接口")
+				return nil, "", false
+			}
+			return service, "local", true
+		}
+		api.Get(prefix, func(w http.ResponseWriter, r *http.Request) {
+			service, _, ok := check(w, r)
+			if !ok {
+				return
+			}
+			data, err := service.List(r.Context())
+			if err != nil {
+				webError(w, err)
+				return
+			}
+			success(w, data)
+		})
+		api.Patch(prefix, func(w http.ResponseWriter, r *http.Request) {
+			service, actor, ok := check(w, r)
+			if !ok {
+				return
+			}
+			var input contracts.SettingPatch
+			if !decode(w, r, &input) {
+				return
+			}
+			data, err := service.Patch(r.Context(), input, actor)
+			if err != nil {
+				webError(w, err)
+				return
+			}
+			success(w, data)
+		})
+	}
+}

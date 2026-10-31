@@ -1,0 +1,3739 @@
+<!doctype html>
+<!-- Code generated from OpenAPI; DO NOT EDIT. Author: yunnuo <ymz@ebox.vip> -->
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Unicore · API Reference</title><link rel="icon" href="/favicon.ico"><style>
+ :root{color-scheme:light dark;--bg:#f7f8fb;--surface:#ffffff;--text:#242735;--muted:#72798c;--border:#e5e8f0;--primary:#6662ec;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;--space:calc(1px * 1);font-size:calc(16px * 1);line-height:1.65}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text)}main{max-width:1080px;margin:auto;padding:calc(40 * var(--space)) calc(24 * var(--space))}a{color:var(--primary)}h1{font-size:2rem;margin-bottom:8px}h2{margin-top:2rem}p{color:var(--muted)}article,details{background:var(--surface);border:1px solid var(--border);border-radius:calc(16px * 1);padding:calc(18 * var(--space));margin:calc(14 * var(--space)) 0}summary{cursor:pointer;overflow-wrap:anywhere}code,pre{font-family:"SFMono-Regular",Consolas,"PingFang SC",monospace;overflow-wrap:anywhere}pre{white-space:pre-wrap;font-size:.85rem;max-width:100%}.method{color:var(--primary);font-weight:bold}nav{display:flex;gap:calc(18 * var(--space));flex-wrap:wrap}label{display:block;margin:24px 0}input{display:block;width:100%;max-width:500px;padding:12px;border:1px solid var(--border);border-radius:calc(10px * 1);background:var(--surface);color:var(--text)}small{color:var(--muted)}@media(prefers-color-scheme:dark){:root{--bg:#11131d;--surface:#191c29;--text:#eceef7;--muted:#a0a8be;--border:#2a2e40;--primary:#a8a6f4}@media(max-width:480px){main{padding:calc(24 * var(--space)) calc(16 * var(--space))}h1{font-size:1.65rem}}
+ </style></head><body><main><small>UNICORE · CONTRACT REFERENCE</small><h1>API 文档</h1><p>从唯一 OpenAPI 契约自动生成，包含 132 个接口。按运行形态装配；服务端仍独立执行身份、权限及业务校验。</p><nav><a href="#operations">接口目录</a><a href="#schemas">数据结构</a><a href="#errors">错误目录</a><a href="/openapi.json">下载 OpenAPI</a></nav><section id="operations"><h2>接口目录</h2><details id="bootstrap"><summary><span class="method">GET</span> <code>/api/v1/bootstrap</code></summary><p>bootstrap</p><small>Profile: web-platform, web-standalone · Access: public · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-BootstrapResponse">BootstrapResponse</a></p></details><details id="execute"><summary><span class="method">POST</span> <code>/api/v1/core/execute</code></summary><p>execute</p><small>Profile: web-platform, web-standalone · Access: platform-session · Permissions: — · CSRF: true</small><p>输入：<a href="#schema-ExecuteInput">ExecuteInput</a> · 响应：<a href="#schema-ExecuteResponse">ExecuteResponse</a></p></details><details id="liveness"><summary><span class="method">GET</span> <code>/api/v1/health/live</code></summary><p>liveness</p><small>Profile: web-platform, web-standalone · Access: public · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-HealthResponse">HealthResponse</a></p></details><details id="readiness"><summary><span class="method">GET</span> <code>/api/v1/health/ready</code></summary><p>readiness</p><small>Profile: web-platform, web-standalone · Access: public · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-HealthResponse">HealthResponse</a></p></details><details id="installStatus"><summary><span class="method">GET</span> <code>/api/v1/install/status</code></summary><p>installStatus</p><small>Profile: web-platform, web-standalone · Access: public · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-InstallStatusResponse">InstallStatusResponse</a></p></details><details id="verifyDatabase"><summary><span class="method">POST</span> <code>/api/v1/install/verify-db</code></summary><p>verifyDatabase</p><small>Profile: web-platform, web-standalone · Access: install-token · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-DatabaseInput">DatabaseInput</a> · 响应：<a href="#schema-DatabaseCheckResponse">DatabaseCheckResponse</a></p></details><details id="completeInstall"><summary><span class="method">POST</span> <code>/api/v1/install/complete</code></summary><p>completeInstall</p><small>Profile: web-platform, web-standalone · Access: install-token · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-InstallInput">InstallInput</a> · 响应：<a href="#schema-InstallResultResponse">InstallResultResponse</a></p></details><details id="captcha"><summary><span class="method">GET</span> <code>/api/v1/auth/captcha</code></summary><p>captcha</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-CaptchaResponse">CaptchaResponse</a></p></details><details id="login"><summary><span class="method">POST</span> <code>/api/v1/auth/login</code></summary><p>login</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-LoginInput">LoginInput</a> · 响应：<a href="#schema-SessionResponse">SessionResponse</a></p></details><details id="session"><summary><span class="method">GET</span> <code>/api/v1/auth/session</code></summary><p>session</p><small>Profile: web-platform · Access: session · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-SessionResponse">SessionResponse</a></p></details><details id="logout"><summary><span class="method">POST</span> <code>/api/v1/auth/logout</code></summary><p>logout</p><small>Profile: web-platform · Access: session · Permissions: — · CSRF: true</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="listUsers"><summary><span class="method">GET</span> <code>/api/v1/admin/users</code></summary><p>listUsers</p><small>Profile: web-platform · Access: session · Permissions: users:read · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-UserListResponse">UserListResponse</a></p></details><details id="createUser"><summary><span class="method">POST</span> <code>/api/v1/admin/users</code></summary><p>createUser</p><small>Profile: web-platform · Access: session · Permissions: users:create · CSRF: true</small><p>输入：<a href="#schema-UserCreate">UserCreate</a> · 响应：<a href="#schema-UserResponse">UserResponse</a></p></details><details id="updateUser"><summary><span class="method">PATCH</span> <code>/api/v1/admin/users/{id}</code></summary><p>updateUser</p><small>Profile: web-platform · Access: session · Permissions: users:update · CSRF: true</small><p>输入：<a href="#schema-UserUpdate">UserUpdate</a> · 响应：<a href="#schema-UserResponse">UserResponse</a></p></details><details id="adminSettings"><summary><span class="method">GET</span> <code>/api/v1/admin/settings</code></summary><p>adminSettings</p><small>Profile: web-platform · Access: session · Permissions: settings:read · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-SettingsResponse">SettingsResponse</a></p></details><details id="adminPatchSettings"><summary><span class="method">PATCH</span> <code>/api/v1/admin/settings</code></summary><p>adminPatchSettings</p><small>Profile: web-platform · Access: session · Permissions: settings:write · CSRF: true</small><p>输入：<a href="#schema-SettingPatch">SettingPatch</a> · 响应：<a href="#schema-SettingsResponse">SettingsResponse</a></p></details><details id="localSettings"><summary><span class="method">GET</span> <code>/api/v1/settings</code></summary><p>仅本地形态的外观偏好；站点信息与品牌不可由本地形态修改。</p><small>Profile: web-standalone · Access: local · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-SettingsResponse">SettingsResponse</a></p></details><details id="localPatchSettings"><summary><span class="method">PATCH</span> <code>/api/v1/settings</code></summary><p>仅本地形态的外观偏好；站点信息与品牌不可由本地形态修改。</p><small>Profile: web-standalone · Access: local · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-SettingPatch">SettingPatch</a> · 响应：<a href="#schema-SettingsResponse">SettingsResponse</a></p></details><details id="authPolicy"><summary><span class="method">GET</span> <code>/api/v1/auth/policy</code></summary><p>authPolicy</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-AuthPolicyResponse">AuthPolicyResponse</a></p></details><details id="register"><summary><span class="method">POST</span> <code>/api/v1/auth/register</code></summary><p>register</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-RegisterInput">RegisterInput</a> · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="requestVerification"><summary><span class="method">POST</span> <code>/api/v1/auth/verification/request</code></summary><p>requestVerification</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-EmailRequest">EmailRequest</a> · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="verifyEmail"><summary><span class="method">POST</span> <code>/api/v1/auth/verification/complete</code></summary><p>verifyEmail</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-TokenInput">TokenInput</a> · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="requestPasswordReset"><summary><span class="method">POST</span> <code>/api/v1/auth/password/request</code></summary><p>requestPasswordReset</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-EmailRequest">EmailRequest</a> · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="resetPassword"><summary><span class="method">POST</span> <code>/api/v1/auth/password/reset</code></summary><p>resetPassword</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-ResetInput">ResetInput</a> · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="testMail"><summary><span class="method">POST</span> <code>/api/v1/admin/settings/mail/test</code></summary><p>testMail</p><small>Profile: web-platform · Access: session · Permissions: settings:write · CSRF: true</small><p>输入：<a href="#schema-MailTestInput">MailTestInput</a> · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="registerEmailCode"><summary><span class="method">POST</span> <code>/api/v1/auth/email/register</code></summary><p>registerEmailCode</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-RegisterInput">RegisterInput</a> · 响应：<a href="#schema-EmailChallengeResponse">EmailChallengeResponse</a></p></details><details id="requestEmailVerify"><summary><span class="method">POST</span> <code>/api/v1/auth/email/verify/request</code></summary><p>requestEmailVerify</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-EmailRequest">EmailRequest</a> · 响应：<a href="#schema-EmailChallengeResponse">EmailChallengeResponse</a></p></details><details id="completeEmailVerify"><summary><span class="method">POST</span> <code>/api/v1/auth/email/verify/complete</code></summary><p>completeEmailVerify</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-EmailCodeInput">EmailCodeInput</a> · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="requestEmailReset"><summary><span class="method">POST</span> <code>/api/v1/auth/email/reset/request</code></summary><p>requestEmailReset</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-EmailRequest">EmailRequest</a> · 响应：<a href="#schema-EmailChallengeResponse">EmailChallengeResponse</a></p></details><details id="completeEmailReset"><summary><span class="method">POST</span> <code>/api/v1/auth/email/reset/complete</code></summary><p>completeEmailReset</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-EmailCodeInput">EmailCodeInput</a> · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="requestEmailLogin"><summary><span class="method">POST</span> <code>/api/v1/auth/email/login/request</code></summary><p>requestEmailLogin</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-EmailRequest">EmailRequest</a> · 响应：<a href="#schema-EmailChallengeResponse">EmailChallengeResponse</a></p></details><details id="completeEmailLogin"><summary><span class="method">POST</span> <code>/api/v1/auth/email/login/complete</code></summary><p>completeEmailLogin</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-EmailCodeInput">EmailCodeInput</a> · 响应：<a href="#schema-SessionResponse">SessionResponse</a></p></details><details id="mailTemplates"><summary><span class="method">GET</span> <code>/api/v1/admin/settings/mail/templates</code></summary><p>mailTemplates</p><small>Profile: web-platform · Access: session · Permissions: settings:read · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-MailTemplateListResponse">MailTemplateListResponse</a></p></details><details id="saveMailTemplate"><summary><span class="method">PUT</span> <code>/api/v1/admin/settings/mail/templates</code></summary><p>saveMailTemplate</p><small>Profile: web-platform · Access: session · Permissions: settings:write · CSRF: true</small><p>输入：<a href="#schema-MailTemplateInput">MailTemplateInput</a> · 响应：<a href="#schema-MailTemplateResponse">MailTemplateResponse</a></p></details><details id="listRoles"><summary><span class="method">GET</span> <code>/api/v1/admin/roles</code></summary><p>listRoles</p><small>Profile: web-platform · Access: session · Permissions: roles:read · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-RoleListResponse">RoleListResponse</a></p></details><details id="roleOptions"><summary><span class="method">GET</span> <code>/api/v1/admin/users/role-options</code></summary><p>roleOptions</p><small>Profile: web-platform · Access: session · Permissions: users:read, users:create, users:update · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-RoleOptionsResponse">RoleOptionsResponse</a></p></details><details id="oidcInfo"><summary><span class="method">GET</span> <code>/api/v1/auth/oidc</code></summary><p>public</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-OIDCInfoResponse">OIDCInfoResponse</a></p></details><details id="oidcStart"><summary><span class="method">POST</span> <code>/api/v1/auth/oidc/start</code></summary><p>public; same-origin; rate limited</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-OIDCStartResponse">OIDCStartResponse</a></p></details><details id="oidcAccount"><summary><span class="method">GET</span> <code>/api/v1/account/oidc</code></summary><p>authenticated self</p><small>Profile: web-platform · Access: session · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-OIDCInfoResponse">OIDCInfoResponse</a></p></details><details id="oidcLink"><summary><span class="method">POST</span> <code>/api/v1/account/oidc/link</code></summary><p>authenticated self; CSRF; local password</p><small>Profile: web-platform · Access: session · Permissions: — · CSRF: true</small><p>输入：<a href="#schema-OIDCPasswordInput">OIDCPasswordInput</a> · 响应：<a href="#schema-OIDCStartResponse">OIDCStartResponse</a></p></details><details id="oidcUnlink"><summary><span class="method">POST</span> <code>/api/v1/account/oidc/unlink</code></summary><p>authenticated self; CSRF; local password</p><small>Profile: web-platform · Access: session · Permissions: — · CSRF: true</small><p>输入：<a href="#schema-OIDCPasswordInput">OIDCPasswordInput</a> · 响应：<a href="#schema-SessionResponse">SessionResponse</a></p></details><details id="oidcCheck"><summary><span class="method">POST</span> <code>/api/v1/admin/settings/oidc/check</code></summary><p>settings:write + actual super_admin</p><small>Profile: web-platform · Access: session · Permissions: settings:write · CSRF: true</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="oidcCallback"><summary><span class="method">GET</span> <code>/api/v1/auth/oidc/callback</code></summary><p>One-time state + browser proof, PKCE, nonce, signed ID token. Fixed local redirect only.</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：浏览器回调跳转</p></details><details id="adminBranding"><summary><span class="method">GET</span> <code>/api/v1/admin/branding</code></summary><p>读取实例品牌</p><small>Profile: web-platform · Access: session · Permissions: settings:read · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-BrandingResponse">BrandingResponse</a></p></details><details id="adminUpdateBranding"><summary><span class="method">PUT</span> <code>/api/v1/admin/branding</code></summary><p>替换品牌图片；空 content 恢复默认。只接受 PNG/JPEG，服务端重新编码为 PNG。</p><small>Profile: web-platform · Access: session · Permissions: settings:write · CSRF: true</small><p>输入：<a href="#schema-BrandingInput">BrandingInput</a> · 响应：<a href="#schema-BrandingResponse">BrandingResponse</a></p></details><details id="listAdministrators"><summary><span class="method">GET</span> <code>/api/v1/admin/administrators</code></summary><p>listAdministrators</p><small>Profile: web-platform · Access: session · Permissions: administrators:read · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-UserListResponse">UserListResponse</a></p></details><details id="createAdministrator"><summary><span class="method">POST</span> <code>/api/v1/admin/administrators</code></summary><p>createAdministrator</p><small>Profile: web-platform · Access: session · Permissions: administrators:create · CSRF: true</small><p>输入：<a href="#schema-UserCreate">UserCreate</a> · 响应：<a href="#schema-UserResponse">UserResponse</a></p></details><details id="updateAdministrator"><summary><span class="method">PATCH</span> <code>/api/v1/admin/administrators/{id}</code></summary><p>updateAdministrator</p><small>Profile: web-platform · Access: session · Permissions: administrators:update · CSRF: true</small><p>输入：<a href="#schema-UserUpdate">UserUpdate</a> · 响应：<a href="#schema-UserResponse">UserResponse</a></p></details><details id="systemLogs"><summary><span class="method">GET</span> <code>/api/v1/admin/logs</code></summary><p>systemLogs</p><small>Profile: web-platform · Access: session · Permissions: logs:read · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-AuditLogResponse">AuditLogResponse</a></p></details><details id="mailJobs"><summary><span class="method">GET</span> <code>/api/v1/admin/mail/jobs</code></summary><p>mailJobs</p><small>Profile: web-platform · Access: session · Permissions: logs:read · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-MailJobListResponse">MailJobListResponse</a></p></details><details id="changePassword"><summary><span class="method">POST</span> <code>/api/v1/account/password</code></summary><p>changePassword</p><small>Profile: web-platform · Access: session · Permissions: — · CSRF: true</small><p>输入：<a href="#schema-ChangePasswordInput">ChangePasswordInput</a> · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="storageLocations"><summary><span class="method">GET</span> <code>/api/v1/admin/storage/locations</code></summary><p>管理员读取存储位置与当前默认；不返回密钥。</p><small>Profile: web-platform · Access: authenticated · Permissions: storage:read · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-StorageLocationListResponse">StorageLocationListResponse</a></p></details><details id="createStorageLocation"><summary><span class="method">POST</span> <code>/api/v1/admin/storage/locations</code></summary><p>创建不可变目标位置；密钥加密存储，需测试后显式激活。</p><small>Profile: web-platform · Access: authenticated · Permissions: storage:write · CSRF: true</small><p>输入：<a href="#schema-StorageLocationInput">StorageLocationInput</a> · 响应：<a href="#schema-StorageLocationResponse">StorageLocationResponse</a></p></details><details id="updateStorageLocation"><summary><span class="method">PUT</span> <code>/api/v1/admin/storage/locations/{id}</code></summary><p>修改名称或轮换密钥；地址、Bucket 与前缀不允许原地改动。</p><small>Profile: web-platform · Access: authenticated · Permissions: storage:write · CSRF: true</small><p>输入：<a href="#schema-StorageLocationInput">StorageLocationInput</a> · 响应：<a href="#schema-StorageLocationResponse">StorageLocationResponse</a></p></details><details id="deleteStorageLocation"><summary><span class="method">DELETE</span> <code>/api/v1/admin/storage/locations/{id}</code></summary><p>仅删除非默认、无文件及待清理任务的位置。</p><small>Profile: web-platform · Access: authenticated · Permissions: storage:write · CSRF: true</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="testStorageLocation"><summary><span class="method">POST</span> <code>/api/v1/admin/storage/locations/{id}/test</code></summary><p>在专属随机对象键验证读写、条件复制与删除。</p><small>Profile: web-platform · Access: authenticated · Permissions: storage:write · CSRF: true</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="activateStorageLocation"><summary><span class="method">POST</span> <code>/api/v1/admin/storage/locations/{id}/activate</code></summary><p>仅激活已测试位置，历史文件仍使用各自 location_id。</p><small>Profile: web-platform · Access: authenticated · Permissions: storage:write · CSRF: true</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="configureStorageBrowser"><summary><span class="method">POST</span> <code>/api/v1/admin/storage/locations/{id}/browser</code></summary><p>合并本站 CORS 规则；MinIO 服务级 CORS 已允许本站时只验证，不修改公共读策略。</p><small>Profile: web-platform · Access: authenticated · Permissions: storage:write · CSRF: true</small><p>输入：<a href="#schema-StorageMaintenanceInput">StorageMaintenanceInput</a> · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="cleanupFiles"><summary><span class="method">POST</span> <code>/api/v1/admin/storage/cleanup</code></summary><p>处理已到期的文件与持久清理任务，不扫描 Bucket。</p><small>Profile: web-platform · Access: authenticated · Permissions: storage:write · CSRF: true</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="listFiles"><summary><span class="method">GET</span> <code>/api/v1/files</code></summary><p>普通用户只读取本人所属身份域的文件；管理员可查看实例文件。</p><small>Profile: web-platform · Access: authenticated · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-FileListResponse">FileListResponse</a></p></details><details id="createFileUpload"><summary><span class="method">POST</span> <code>/api/v1/files/uploads</code></summary><p>生成仅可写临时对象的上传凭证，云存储使用浏览器直传；无需携带实例 Cookie/CSRF 至云。</p><small>Profile: web-platform · Access: authenticated · Permissions: — · CSRF: true</small><p>输入：<a href="#schema-FileUploadInput">FileUploadInput</a> · 响应：<a href="#schema-FileUploadGrantResponse">FileUploadGrantResponse</a></p></details><details id="uploadLocalFile"><summary><span class="method">PUT</span> <code>/api/v1/files/uploads/{id}/content</code></summary><p>仅本地模式：带身份和 CSRF 的原始二进制 PUT，长度必须与申请一致。</p><small>Profile: web-platform · Access: authenticated · Permissions: — · CSRF: true</small><p>输入：原始二进制流 · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="completeFileUpload"><summary><span class="method">POST</span> <code>/api/v1/files/uploads/{id}/complete</code></summary><p>校验临时对象，以 ETag 条件复制到正式对象后标记可用；可幂等重试。</p><small>Profile: web-platform · Access: authenticated · Permissions: — · CSRF: true</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-FileEntryResponse">FileEntryResponse</a></p></details><details id="fileAccess"><summary><span class="method">POST</span> <code>/api/v1/files/{id}/access</code></summary><p>验证本人或管理员后发放短期下载地址，默认 300 秒。</p><small>Profile: web-platform · Access: authenticated · Permissions: — · CSRF: true</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-FileAccessResponse">FileAccessResponse</a></p></details><details id="deleteFile"><summary><span class="method">DELETE</span> <code>/api/v1/files/{id}</code></summary><p>关闭文件访问，待既有签名到期后清理；匿名或他人文件统一返回 404。</p><small>Profile: web-platform · Access: authenticated · Permissions: — · CSRF: true</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="migrateFile"><summary><span class="method">POST</span> <code>/api/v1/admin/files/{id}/migrate</code></summary><p>管理员流式迁移并校验摘要，保持 file_id，成功后切换引用并延迟清理原对象。</p><small>Profile: web-platform · Access: authenticated · Permissions: storage:write · CSRF: true</small><p>输入：<a href="#schema-StorageTargetInput">StorageTargetInput</a> · 响应：<a href="#schema-FileEntryResponse">FileEntryResponse</a></p></details><details id="downloadLocalFile"><summary><span class="method">GET</span> <code>/api/v1/files/{id}/content</code></summary><p>校验文件状态、有效期与加密签名后，以 attachment 下载本地文件。</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：二进制文件下载</p></details><details id="administratorOIDCCallback"><summary><span class="method">GET</span> <code>/api/v1/admin/auth/oidc/callback</code></summary><p>One-time state + browser proof, PKCE, nonce, signed ID token. Fixed local redirect only.</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：浏览器回调跳转</p></details><details id="adminBootstrap"><summary><span class="method">GET</span> <code>/api/v1/admin/bootstrap</code></summary><p>固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-BootstrapResponse">BootstrapResponse</a></p></details><details id="adminExecute"><summary><span class="method">POST</span> <code>/api/v1/admin/core/execute</code></summary><p>固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。</p><small>Profile: web-platform · Access: authenticated · Permissions: admin:access · CSRF: true</small><p>输入：<a href="#schema-ExecuteInput">ExecuteInput</a> · 响应：<a href="#schema-ExecuteResponse">ExecuteResponse</a></p></details><details id="adminCaptcha"><summary><span class="method">GET</span> <code>/api/v1/admin/auth/captcha</code></summary><p>固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-CaptchaResponse">CaptchaResponse</a></p></details><details id="adminLogin"><summary><span class="method">POST</span> <code>/api/v1/admin/auth/login</code></summary><p>固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-LoginInput">LoginInput</a> · 响应：<a href="#schema-SessionResponse">SessionResponse</a></p></details><details id="adminSession"><summary><span class="method">GET</span> <code>/api/v1/admin/auth/session</code></summary><p>固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。</p><small>Profile: web-platform · Access: session · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-SessionResponse">SessionResponse</a></p></details><details id="adminLogout"><summary><span class="method">POST</span> <code>/api/v1/admin/auth/logout</code></summary><p>固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。</p><small>Profile: web-platform · Access: session · Permissions: — · CSRF: true</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="adminAuthPolicy"><summary><span class="method">GET</span> <code>/api/v1/admin/auth/policy</code></summary><p>固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-AuthPolicyResponse">AuthPolicyResponse</a></p></details><details id="adminRequestPasswordReset"><summary><span class="method">POST</span> <code>/api/v1/admin/auth/password/request</code></summary><p>固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-EmailRequest">EmailRequest</a> · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="adminResetPassword"><summary><span class="method">POST</span> <code>/api/v1/admin/auth/password/reset</code></summary><p>固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-ResetInput">ResetInput</a> · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="adminRequestEmailReset"><summary><span class="method">POST</span> <code>/api/v1/admin/auth/email/reset/request</code></summary><p>固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-EmailRequest">EmailRequest</a> · 响应：<a href="#schema-EmailChallengeResponse">EmailChallengeResponse</a></p></details><details id="adminCompleteEmailReset"><summary><span class="method">POST</span> <code>/api/v1/admin/auth/email/reset/complete</code></summary><p>固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-EmailCodeInput">EmailCodeInput</a> · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="adminRequestEmailLogin"><summary><span class="method">POST</span> <code>/api/v1/admin/auth/email/login/request</code></summary><p>固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-EmailRequest">EmailRequest</a> · 响应：<a href="#schema-EmailChallengeResponse">EmailChallengeResponse</a></p></details><details id="adminCompleteEmailLogin"><summary><span class="method">POST</span> <code>/api/v1/admin/auth/email/login/complete</code></summary><p>固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-EmailCodeInput">EmailCodeInput</a> · 响应：<a href="#schema-SessionResponse">SessionResponse</a></p></details><details id="adminOidcInfo"><summary><span class="method">GET</span> <code>/api/v1/admin/auth/oidc</code></summary><p>固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。public</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-OIDCInfoResponse">OIDCInfoResponse</a></p></details><details id="adminOidcStart"><summary><span class="method">POST</span> <code>/api/v1/admin/auth/oidc/start</code></summary><p>固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。public; same-origin; rate limited</p><small>Profile: web-platform · Access: public · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-OIDCStartResponse">OIDCStartResponse</a></p></details><details id="adminOidcAccount"><summary><span class="method">GET</span> <code>/api/v1/admin/account/oidc</code></summary><p>固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。authenticated self</p><small>Profile: web-platform · Access: session · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-OIDCInfoResponse">OIDCInfoResponse</a></p></details><details id="adminOidcLink"><summary><span class="method">POST</span> <code>/api/v1/admin/account/oidc/link</code></summary><p>固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。authenticated self; CSRF; local password</p><small>Profile: web-platform · Access: session · Permissions: — · CSRF: true</small><p>输入：<a href="#schema-OIDCPasswordInput">OIDCPasswordInput</a> · 响应：<a href="#schema-OIDCStartResponse">OIDCStartResponse</a></p></details><details id="adminOidcUnlink"><summary><span class="method">POST</span> <code>/api/v1/admin/account/oidc/unlink</code></summary><p>固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。authenticated self; CSRF; local password</p><small>Profile: web-platform · Access: session · Permissions: — · CSRF: true</small><p>输入：<a href="#schema-OIDCPasswordInput">OIDCPasswordInput</a> · 响应：<a href="#schema-SessionResponse">SessionResponse</a></p></details><details id="adminChangePassword"><summary><span class="method">POST</span> <code>/api/v1/admin/account/password</code></summary><p>固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。</p><small>Profile: web-platform · Access: session · Permissions: — · CSRF: true</small><p>输入：<a href="#schema-ChangePasswordInput">ChangePasswordInput</a> · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="adminListFiles"><summary><span class="method">GET</span> <code>/api/v1/admin/files</code></summary><p>固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。普通用户只读取本人所属身份域的文件；管理员可查看实例文件。</p><small>Profile: web-platform · Access: authenticated · Permissions: storage:read · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-FileListResponse">FileListResponse</a></p></details><details id="adminCreateFileUpload"><summary><span class="method">POST</span> <code>/api/v1/admin/files/uploads</code></summary><p>固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。生成仅可写临时对象的上传凭证，云存储使用浏览器直传；无需携带实例 Cookie/CSRF 至云。</p><small>Profile: web-platform · Access: authenticated · Permissions: storage:write · CSRF: true</small><p>输入：<a href="#schema-FileUploadInput">FileUploadInput</a> · 响应：<a href="#schema-FileUploadGrantResponse">FileUploadGrantResponse</a></p></details><details id="adminUploadLocalFile"><summary><span class="method">PUT</span> <code>/api/v1/admin/files/uploads/{id}/content</code></summary><p>固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。仅本地模式：带身份和 CSRF 的原始二进制 PUT，长度必须与申请一致。</p><small>Profile: web-platform · Access: authenticated · Permissions: storage:write · CSRF: true</small><p>输入：原始二进制流 · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="adminCompleteFileUpload"><summary><span class="method">POST</span> <code>/api/v1/admin/files/uploads/{id}/complete</code></summary><p>固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。校验临时对象，以 ETag 条件复制到正式对象后标记可用；可幂等重试。</p><small>Profile: web-platform · Access: authenticated · Permissions: storage:write · CSRF: true</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-FileEntryResponse">FileEntryResponse</a></p></details><details id="adminFileAccess"><summary><span class="method">POST</span> <code>/api/v1/admin/files/{id}/access</code></summary><p>固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。验证本人或管理员后发放短期下载地址，默认 300 秒。</p><small>Profile: web-platform · Access: authenticated · Permissions: storage:read · CSRF: true</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-FileAccessResponse">FileAccessResponse</a></p></details><details id="adminDeleteFile"><summary><span class="method">DELETE</span> <code>/api/v1/admin/files/{id}</code></summary><p>固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。关闭文件访问，待既有签名到期后清理；匿名或他人文件统一返回 404。</p><small>Profile: web-platform · Access: authenticated · Permissions: storage:write · CSRF: true</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="listNotes"><summary><span class="method">GET</span> <code>/api/v1/notes</code></summary><p>可移除的持久化业务样板。所有读写按当前身份域和本人 ID 限定，更新及删除采用版本号防止覆盖并发修改。附件仅在线平台可用。</p><small>Profile: web-platform, web-standalone · Access: platform-session · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-NoteListResponse">NoteListResponse</a></p></details><details id="createNote"><summary><span class="method">POST</span> <code>/api/v1/notes</code></summary><p>可移除的持久化业务样板。所有读写按当前身份域和本人 ID 限定，更新及删除采用版本号防止覆盖并发修改。附件仅在线平台可用。</p><small>Profile: web-platform, web-standalone · Access: platform-session · Permissions: — · CSRF: true</small><p>输入：<a href="#schema-NoteInput">NoteInput</a> · 响应：<a href="#schema-NoteResponse">NoteResponse</a></p></details><details id="updateNote"><summary><span class="method">PUT</span> <code>/api/v1/notes/{id}</code></summary><p>可移除的持久化业务样板。所有读写按当前身份域和本人 ID 限定，更新及删除采用版本号防止覆盖并发修改。附件仅在线平台可用。</p><small>Profile: web-platform, web-standalone · Access: platform-session · Permissions: — · CSRF: true</small><p>输入：<a href="#schema-NoteUpdate">NoteUpdate</a> · 响应：<a href="#schema-NoteResponse">NoteResponse</a></p></details><details id="deleteNote"><summary><span class="method">DELETE</span> <code>/api/v1/notes/{id}</code></summary><p>可移除的持久化业务样板。所有读写按当前身份域和本人 ID 限定，更新及删除采用版本号防止覆盖并发修改。附件仅在线平台可用。</p><small>Profile: web-platform, web-standalone · Access: platform-session · Permissions: — · CSRF: true</small><p>输入：<a href="#schema-NoteVersion">NoteVersion</a> · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="adminListNotes"><summary><span class="method">GET</span> <code>/api/v1/admin/notes</code></summary><p>可移除的持久化业务样板。所有读写按当前身份域和本人 ID 限定，更新及删除采用版本号防止覆盖并发修改。附件仅在线平台可用。</p><small>Profile: web-platform · Access: authenticated · Permissions: admin:access · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-NoteListResponse">NoteListResponse</a></p></details><details id="adminCreateNote"><summary><span class="method">POST</span> <code>/api/v1/admin/notes</code></summary><p>可移除的持久化业务样板。所有读写按当前身份域和本人 ID 限定，更新及删除采用版本号防止覆盖并发修改。附件仅在线平台可用。</p><small>Profile: web-platform · Access: authenticated · Permissions: admin:access · CSRF: true</small><p>输入：<a href="#schema-NoteInput">NoteInput</a> · 响应：<a href="#schema-NoteResponse">NoteResponse</a></p></details><details id="adminUpdateNote"><summary><span class="method">PUT</span> <code>/api/v1/admin/notes/{id}</code></summary><p>可移除的持久化业务样板。所有读写按当前身份域和本人 ID 限定，更新及删除采用版本号防止覆盖并发修改。附件仅在线平台可用。</p><small>Profile: web-platform · Access: authenticated · Permissions: admin:access · CSRF: true</small><p>输入：<a href="#schema-NoteUpdate">NoteUpdate</a> · 响应：<a href="#schema-NoteResponse">NoteResponse</a></p></details><details id="adminDeleteNote"><summary><span class="method">DELETE</span> <code>/api/v1/admin/notes/{id}</code></summary><p>可移除的持久化业务样板。所有读写按当前身份域和本人 ID 限定，更新及删除采用版本号防止覆盖并发修改。附件仅在线平台可用。</p><small>Profile: web-platform · Access: authenticated · Permissions: admin:access · CSRF: true</small><p>输入：<a href="#schema-NoteVersion">NoteVersion</a> · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="updateOverview"><summary><span class="method">GET</span> <code>/api/v1/updates</code></summary><p>updateOverview</p><small>Profile: web-standalone · Access: local · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-UpdateOverviewResponse">UpdateOverviewResponse</a></p></details><details id="adminUpdateOverview"><summary><span class="method">GET</span> <code>/api/v1/admin/updates</code></summary><p>adminUpdateOverview</p><small>Profile: web-platform · Access: session · Permissions: updates:read · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-UpdateOverviewResponse">UpdateOverviewResponse</a></p></details><details id="checkUpdate"><summary><span class="method">POST</span> <code>/api/v1/updates/check</code></summary><p>checkUpdate</p><small>Profile: web-standalone · Access: local · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-UpdateOverviewResponse">UpdateOverviewResponse</a></p></details><details id="adminCheckUpdate"><summary><span class="method">POST</span> <code>/api/v1/admin/updates/check</code></summary><p>adminCheckUpdate</p><small>Profile: web-platform · Access: session · Permissions: updates:read · CSRF: true</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-UpdateOverviewResponse">UpdateOverviewResponse</a></p></details><details id="applyUpdate"><summary><span class="method">POST</span> <code>/api/v1/updates/apply</code></summary><p>applyUpdate</p><small>Profile: web-standalone · Access: local · Permissions: — · CSRF: false</small><p>输入：<a href="#schema-UpdateApplyInput">UpdateApplyInput</a> · 响应：<a href="#schema-UpdateJobResponse">UpdateJobResponse</a></p></details><details id="adminApplyUpdate"><summary><span class="method">POST</span> <code>/api/v1/admin/updates/apply</code></summary><p>adminApplyUpdate</p><small>Profile: web-platform · Access: session · Permissions: updates:apply · CSRF: true</small><p>输入：<a href="#schema-UpdateApplyInput">UpdateApplyInput</a> · 响应：<a href="#schema-UpdateJobResponse">UpdateJobResponse</a></p></details><details id="exportSystemLogs"><summary><span class="method">GET</span> <code>/api/v1/admin/logs/export</code></summary><p>exportSystemLogs</p><small>Profile: web-platform · Access: session · Permissions: logs:read · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-AuditLogExportResponse">AuditLogExportResponse</a></p></details><details id="previewMailTemplate"><summary><span class="method">POST</span> <code>/api/v1/admin/settings/mail/templates/preview</code></summary><p>previewMailTemplate</p><small>Profile: web-platform · Access: session · Permissions: settings:write · CSRF: true</small><p>输入：<a href="#schema-MailTemplateInput">MailTemplateInput</a> · 响应：<a href="#schema-MailTemplateResponse">MailTemplateResponse</a></p></details><details id="testMailTemplate"><summary><span class="method">POST</span> <code>/api/v1/admin/settings/mail/templates/test</code></summary><p>testMailTemplate</p><small>Profile: web-platform · Access: session · Permissions: settings:write · CSRF: true</small><p>输入：<a href="#schema-MailTemplateTestInput">MailTemplateTestInput</a> · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="resetMailTemplate"><summary><span class="method">POST</span> <code>/api/v1/admin/settings/mail/templates/reset</code></summary><p>resetMailTemplate</p><small>Profile: web-platform · Access: session · Permissions: settings:write · CSRF: true</small><p>输入：<a href="#schema-MailTemplateReset">MailTemplateReset</a> · 响应：<a href="#schema-MailTemplateResponse">MailTemplateResponse</a></p></details><details id="adminAnnouncements"><summary><span class="method">GET</span> <code>/api/v1/admin/announcements</code></summary><p>adminAnnouncements</p><small>Profile: web-platform · Access: session · Permissions: announcements:read · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-AnnouncementListResponse">AnnouncementListResponse</a></p></details><details id="createAnnouncement"><summary><span class="method">POST</span> <code>/api/v1/admin/announcements</code></summary><p>createAnnouncement</p><small>Profile: web-platform · Access: session · Permissions: announcements:write · CSRF: true</small><p>输入：<a href="#schema-AnnouncementInput">AnnouncementInput</a> · 响应：<a href="#schema-AnnouncementEntryResponse">AnnouncementEntryResponse</a></p></details><details id="updateAnnouncement"><summary><span class="method">PUT</span> <code>/api/v1/admin/announcements/{id}</code></summary><p>updateAnnouncement</p><small>Profile: web-platform · Access: session · Permissions: announcements:write · CSRF: true</small><p>输入：<a href="#schema-AnnouncementUpdate">AnnouncementUpdate</a> · 响应：<a href="#schema-AnnouncementEntryResponse">AnnouncementEntryResponse</a></p></details><details id="deleteAnnouncements"><summary><span class="method">POST</span> <code>/api/v1/admin/announcements/delete</code></summary><p>deleteAnnouncements</p><small>Profile: web-platform · Access: session · Permissions: announcements:write · CSRF: true</small><p>输入：<a href="#schema-AnnouncementDelete">AnnouncementDelete</a> · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="announcementSettings"><summary><span class="method">GET</span> <code>/api/v1/admin/announcements/settings</code></summary><p>announcementSettings</p><small>Profile: web-platform · Access: session · Permissions: announcements:read · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-AnnouncementSettingResponse">AnnouncementSettingResponse</a></p></details><details id="saveAnnouncementSettings"><summary><span class="method">PUT</span> <code>/api/v1/admin/announcements/settings</code></summary><p>saveAnnouncementSettings</p><small>Profile: web-platform · Access: session · Permissions: announcements:write · CSRF: true</small><p>输入：<a href="#schema-AnnouncementSetting">AnnouncementSetting</a> · 响应：<a href="#schema-AnnouncementSettingResponse">AnnouncementSettingResponse</a></p></details><details id="previewAnnouncement"><summary><span class="method">POST</span> <code>/api/v1/admin/announcements/preview</code></summary><p>previewAnnouncement</p><small>Profile: web-platform · Access: session · Permissions: announcements:write · CSRF: true</small><p>输入：<a href="#schema-AnnouncementInput">AnnouncementInput</a> · 响应：<a href="#schema-AnnouncementPreviewResponse">AnnouncementPreviewResponse</a></p></details><details id="announcements"><summary><span class="method">GET</span> <code>/api/v1/announcements</code></summary><p>announcements</p><small>Profile: web-platform · Access: session · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-AnnouncementFeedResponse">AnnouncementFeedResponse</a></p></details><details id="announcement"><summary><span class="method">GET</span> <code>/api/v1/announcements/{id}</code></summary><p>announcement</p><small>Profile: web-platform · Access: session · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-AnnouncementPublicResponse">AnnouncementPublicResponse</a></p></details><details id="fileUploadPolicy"><summary><span class="method">GET</span> <code>/api/v1/files/policy</code></summary><p>持久分片会话；仅所属用户身份域或固定管理员可用。签名只针对临时对象，云请求不带平台凭据。</p><small>Profile: web-platform · Access: authenticated · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-UploadPolicyResponse">UploadPolicyResponse</a></p></details><details id="adminFileUploadPolicy"><summary><span class="method">GET</span> <code>/api/v1/admin/files/policy</code></summary><p>持久分片会话；仅所属用户身份域或固定管理员可用。签名只针对临时对象，云请求不带平台凭据。</p><small>Profile: web-platform · Access: authenticated · Permissions: storage:read · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-UploadPolicyResponse">UploadPolicyResponse</a></p></details><details id="createMultipartUpload"><summary><span class="method">POST</span> <code>/api/v1/files/multipart</code></summary><p>持久分片会话；仅所属用户身份域或固定管理员可用。签名只针对临时对象，云请求不带平台凭据。</p><small>Profile: web-platform · Access: authenticated · Permissions: — · CSRF: true</small><p>输入：<a href="#schema-MultipartUploadInput">MultipartUploadInput</a> · 响应：<a href="#schema-MultipartUploadResponse">MultipartUploadResponse</a></p></details><details id="adminCreateMultipartUpload"><summary><span class="method">POST</span> <code>/api/v1/admin/files/multipart</code></summary><p>持久分片会话；仅所属用户身份域或固定管理员可用。签名只针对临时对象，云请求不带平台凭据。</p><small>Profile: web-platform · Access: authenticated · Permissions: storage:write · CSRF: true</small><p>输入：<a href="#schema-MultipartUploadInput">MultipartUploadInput</a> · 响应：<a href="#schema-MultipartUploadResponse">MultipartUploadResponse</a></p></details><details id="multipartUpload"><summary><span class="method">GET</span> <code>/api/v1/files/multipart/{id}</code></summary><p>持久分片会话；仅所属用户身份域或固定管理员可用。签名只针对临时对象，云请求不带平台凭据。</p><small>Profile: web-platform · Access: authenticated · Permissions: — · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-MultipartUploadResponse">MultipartUploadResponse</a></p></details><details id="adminMultipartUpload"><summary><span class="method">GET</span> <code>/api/v1/admin/files/multipart/{id}</code></summary><p>持久分片会话；仅所属用户身份域或固定管理员可用。签名只针对临时对象，云请求不带平台凭据。</p><small>Profile: web-platform · Access: authenticated · Permissions: storage:read · CSRF: false</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-MultipartUploadResponse">MultipartUploadResponse</a></p></details><details id="signUploadPart"><summary><span class="method">POST</span> <code>/api/v1/files/multipart/{id}/parts</code></summary><p>持久分片会话；仅所属用户身份域或固定管理员可用。签名只针对临时对象，云请求不带平台凭据。</p><small>Profile: web-platform · Access: authenticated · Permissions: — · CSRF: true</small><p>输入：<a href="#schema-UploadPartInput">UploadPartInput</a> · 响应：<a href="#schema-FileUploadGrantResponse">FileUploadGrantResponse</a></p></details><details id="adminSignUploadPart"><summary><span class="method">POST</span> <code>/api/v1/admin/files/multipart/{id}/parts</code></summary><p>持久分片会话；仅所属用户身份域或固定管理员可用。签名只针对临时对象，云请求不带平台凭据。</p><small>Profile: web-platform · Access: authenticated · Permissions: storage:write · CSRF: true</small><p>输入：<a href="#schema-UploadPartInput">UploadPartInput</a> · 响应：<a href="#schema-FileUploadGrantResponse">FileUploadGrantResponse</a></p></details><details id="uploadLocalPart"><summary><span class="method">PUT</span> <code>/api/v1/files/multipart/{id}/parts/{part}</code></summary><p>持久分片会话；仅所属用户身份域或固定管理员可用。签名只针对临时对象，云请求不带平台凭据。</p><small>Profile: web-platform · Access: authenticated · Permissions: — · CSRF: true</small><p>输入：原始二进制流 · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="adminUploadLocalPart"><summary><span class="method">PUT</span> <code>/api/v1/admin/files/multipart/{id}/parts/{part}</code></summary><p>持久分片会话；仅所属用户身份域或固定管理员可用。签名只针对临时对象，云请求不带平台凭据。</p><small>Profile: web-platform · Access: authenticated · Permissions: storage:write · CSRF: true</small><p>输入：原始二进制流 · 响应：<a href="#schema-ActionResultResponse">ActionResultResponse</a></p></details><details id="completeMultipartUpload"><summary><span class="method">POST</span> <code>/api/v1/files/multipart/{id}/complete</code></summary><p>持久分片会话；仅所属用户身份域或固定管理员可用。签名只针对临时对象，云请求不带平台凭据。</p><small>Profile: web-platform · Access: authenticated · Permissions: — · CSRF: true</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-FileEntryResponse">FileEntryResponse</a></p></details><details id="adminCompleteMultipartUpload"><summary><span class="method">POST</span> <code>/api/v1/admin/files/multipart/{id}/complete</code></summary><p>持久分片会话；仅所属用户身份域或固定管理员可用。签名只针对临时对象，云请求不带平台凭据。</p><small>Profile: web-platform · Access: authenticated · Permissions: storage:write · CSRF: true</small><p>输入：无 JSON 请求体 · 响应：<a href="#schema-FileEntryResponse">FileEntryResponse</a></p></details></section><section id="schemas"><h2>数据结构与校验</h2><details id="schema-Profile"><summary>Profile</summary><pre>{
+  &quot;type&quot;: &quot;string&quot;,
+  &quot;enum&quot;: [
+    &quot;web-platform&quot;,
+    &quot;web-standalone&quot;,
+    &quot;desktop&quot;,
+    &quot;cli&quot;
+  ]
+}</pre></details><details id="schema-ExecuteInput"><summary>ExecuteInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;text&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;text&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 65536,
+      &quot;description&quot;: &quot;Non-blank valid UTF-8, at most 65,536 UTF-8 bytes. Never stored.&quot;,
+      &quot;x-max-utf8-bytes&quot;: 65536
+    }
+  }
+}</pre></details><details id="schema-ExecuteOutput"><summary>ExecuteOutput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;characters&quot;,
+    &quot;words&quot;,
+    &quot;lines&quot;,
+    &quot;bytes&quot;,
+    &quot;sha256&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;characters&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;words&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;description&quot;: &quot;Whitespace-separated fields, not language-specific segmentation&quot;
+    },
+    &quot;lines&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;bytes&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;sha256&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-Capabilities"><summary>Capabilities</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;execute&quot;,
+    &quot;database&quot;,
+    &quot;installation&quot;,
+    &quot;authentication&quot;,
+    &quot;license&quot;,
+    &quot;updater&quot;,
+    &quot;settings&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;execute&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;database&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;installation&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;authentication&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;license&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;updater&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;settings&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    }
+  }
+}</pre></details><details id="schema-Bootstrap"><summary>Bootstrap</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;profile&quot;,
+    &quot;version&quot;,
+    &quot;commit&quot;,
+    &quot;build_time&quot;,
+    &quot;stage&quot;,
+    &quot;deployment_kind&quot;,
+    &quot;capabilities&quot;,
+    &quot;installed&quot;,
+    &quot;site_name&quot;,
+    &quot;admin_path&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;profile&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Profile&quot;
+    },
+    &quot;version&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;commit&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;build_time&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;stage&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;deployment_kind&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;capabilities&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Capabilities&quot;
+    },
+    &quot;installed&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;site_name&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;admin_path&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;description&quot;: &quot;仅管理员 bootstrap 返回后台入口；用户端为空，单机不提供后台。&quot;
+    },
+    &quot;current_user&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/User&quot;
+    },
+    &quot;csrf_token&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;site_description&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;site_copyright&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;site_icp_number&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;site_icp_url&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;theme&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;branding&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Branding&quot;
+    },
+    &quot;identity_realm&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;user&quot;,
+        &quot;administrator&quot;
+      ]
+    }
+  }
+}</pre></details><details id="schema-BootstrapResponse"><summary>BootstrapResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Bootstrap&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-ExecuteResponse"><summary>ExecuteResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/ExecuteOutput&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-ErrorResponse"><summary>ErrorResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;fields&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;additionalProperties&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      },
+      &quot;description&quot;: &quot;Field path to safe validation message; never contains submitted values.&quot;
+    }
+  }
+}</pre></details><details id="schema-Health"><summary>Health</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;status&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;status&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-HealthResponse"><summary>HealthResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Health&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-DatabaseInput"><summary>DatabaseInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;driver&quot;,
+    &quot;dsn&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;driver&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;sqlite&quot;,
+        &quot;postgres&quot;,
+        &quot;mysql&quot;
+      ]
+    },
+    &quot;dsn&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 4096,
+      &quot;description&quot;: &quot;Legacy clients only; use structured fields for new installations. Must be empty when structured fields are supplied.&quot;
+    },
+    &quot;host&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 253
+    },
+    &quot;port&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 65535
+    },
+    &quot;name&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 63
+    },
+    &quot;username&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 128
+    },
+    &quot;password&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 1024
+    },
+    &quot;tls&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;,
+      &quot;description&quot;: &quot;加密连接开关；关闭为本机与内网直连的默认值，开启后加密传输但不校验服务器证书（自签名可用）。&quot;
+    }
+  }
+}</pre></details><details id="schema-EnvironmentCheck"><summary>EnvironmentCheck</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;name&quot;,
+    &quot;ok&quot;,
+    &quot;detail&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;name&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;ok&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;detail&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-InstallStatus"><summary>InstallStatus</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;status&quot;,
+    &quot;profile&quot;,
+    &quot;database_options&quot;,
+    &quot;checks&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;status&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;profile&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Profile&quot;
+    },
+    &quot;database_options&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      }
+    },
+    &quot;checks&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/EnvironmentCheck&quot;
+      }
+    }
+  }
+}</pre></details><details id="schema-InstallInput"><summary>InstallInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;profile&quot;,
+    &quot;database&quot;,
+    &quot;site_name&quot;,
+    &quot;base_url&quot;,
+    &quot;admin_username&quot;,
+    &quot;admin_email&quot;,
+    &quot;admin_password&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;profile&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Profile&quot;
+    },
+    &quot;database&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/DatabaseInput&quot;
+    },
+    &quot;site_name&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;base_url&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;admin_username&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;admin_email&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;admin_password&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;reset_database&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;,
+      &quot;description&quot;: &quot;Explicitly allow deleting existing tables/views in the dedicated target database. Never resets a completed installation.&quot;
+    },
+    &quot;database_confirmation&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 63,
+      &quot;description&quot;: &quot;Exact database name when reset_database is true; SQLite uses unicore.db.&quot;
+    }
+  }
+}</pre></details><details id="schema-InstallResult"><summary>InstallResult</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;profile&quot;,
+    &quot;site_url&quot;,
+    &quot;admin_url&quot;,
+    &quot;settings_url&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;profile&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Profile&quot;
+    },
+    &quot;site_url&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;admin_url&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;settings_url&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-User"><summary>User</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;username&quot;,
+    &quot;email&quot;,
+    &quot;status&quot;,
+    &quot;roles&quot;,
+    &quot;permissions&quot;,
+    &quot;created_at&quot;,
+    &quot;last_login_at&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;username&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;email&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;status&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;roles&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;,
+        &quot;enum&quot;: [
+          &quot;super_admin&quot;,
+          &quot;user&quot;
+        ]
+      }
+    },
+    &quot;permissions&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      }
+    },
+    &quot;created_at&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;last_login_at&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    }
+  }
+}</pre></details><details id="schema-UserList"><summary>UserList</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;items&quot;,
+    &quot;total&quot;,
+    &quot;page&quot;,
+    &quot;page_size&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/User&quot;
+      }
+    },
+    &quot;total&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;page&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;page_size&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    }
+  }
+}</pre></details><details id="schema-UserCreate"><summary>UserCreate</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;username&quot;,
+    &quot;email&quot;,
+    &quot;password&quot;,
+    &quot;role&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;username&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 3,
+      &quot;maxLength&quot;: 64,
+      &quot;pattern&quot;: &quot;^[a-zA-Z0-9][a-zA-Z0-9_.-]{2,63}$&quot;
+    },
+    &quot;email&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;email&quot;,
+      &quot;maxLength&quot;: 254
+    },
+    &quot;password&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 12,
+      &quot;maxLength&quot;: 128
+    },
+    &quot;role&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;super_admin&quot;,
+        &quot;user&quot;
+      ],
+      &quot;description&quot;: &quot;Fixed roles: administrator or ordinary user.&quot;
+    }
+  }
+}</pre></details><details id="schema-UserUpdate"><summary>UserUpdate</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;role&quot;,
+    &quot;status&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;role&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;super_admin&quot;,
+        &quot;user&quot;
+      ],
+      &quot;description&quot;: &quot;Fixed roles: administrator or ordinary user.&quot;
+    },
+    &quot;status&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-LoginInput"><summary>LoginInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;username&quot;,
+    &quot;password&quot;,
+    &quot;captcha_id&quot;,
+    &quot;captcha_answer&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;username&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 254
+    },
+    &quot;password&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 128
+    },
+    &quot;captcha_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;captcha_answer&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-Session"><summary>Session</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;user&quot;,
+    &quot;csrf_token&quot;,
+    &quot;expires_at&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;user&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/User&quot;
+    },
+    &quot;csrf_token&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;expires_at&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    }
+  }
+}</pre></details><details id="schema-Captcha"><summary>Captcha</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;image&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;image&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-AuditEntry"><summary>AuditEntry</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;actor_id&quot;,
+    &quot;action&quot;,
+    &quot;created_at&quot;,
+    &quot;actor_name&quot;,
+    &quot;realm&quot;,
+    &quot;target&quot;,
+    &quot;detail&quot;,
+    &quot;ip_address&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;actor_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;action&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;created_at&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;actor_name&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;realm&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;target&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;detail&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;ip_address&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-Dashboard"><summary>Dashboard</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;total_users&quot;,
+    &quot;today_new_users&quot;,
+    &quot;active_users_7d&quot;,
+    &quot;audit&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;total_users&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;today_new_users&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;active_users_7d&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;audit&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/AuditEntry&quot;
+      }
+    }
+  }
+}</pre></details><details id="schema-SettingEntry"><summary>SettingEntry</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;key&quot;,
+    &quot;value&quot;,
+    &quot;value_type&quot;,
+    &quot;group&quot;,
+    &quot;label&quot;,
+    &quot;sensitive&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;key&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;value&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;value_type&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;group&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;label&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;sensitive&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;configured&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    }
+  }
+}</pre></details><details id="schema-Settings"><summary>Settings</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;items&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/SettingEntry&quot;
+      }
+    }
+  }
+}</pre></details><details id="schema-SettingChange"><summary>SettingChange</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;key&quot;,
+    &quot;value&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;key&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;value&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;clear&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    }
+  }
+}</pre></details><details id="schema-SettingPatch"><summary>SettingPatch</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;changes&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;changes&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/SettingChange&quot;
+      },
+      &quot;minItems&quot;: 1,
+      &quot;maxItems&quot;: 100
+    }
+  }
+}</pre></details><details id="schema-ActionResult"><summary>ActionResult</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;success&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;success&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    }
+  }
+}</pre></details><details id="schema-InstallStatusResponse"><summary>InstallStatusResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/InstallStatus&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-InstallResultResponse"><summary>InstallResultResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/InstallResult&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-UserResponse"><summary>UserResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/User&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-UserListResponse"><summary>UserListResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/UserList&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-SessionResponse"><summary>SessionResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Session&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-CaptchaResponse"><summary>CaptchaResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Captcha&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-DashboardResponse"><summary>DashboardResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Dashboard&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-SettingsResponse"><summary>SettingsResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Settings&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-ActionResultResponse"><summary>ActionResultResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/ActionResult&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-AuthPolicy"><summary>AuthPolicy</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;registration_enabled&quot;,
+    &quot;reset_enabled&quot;,
+    &quot;login_captcha&quot;,
+    &quot;register_captcha&quot;,
+    &quot;mail_ready&quot;,
+    &quot;email_login_enabled&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;registration_enabled&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;reset_enabled&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;login_captcha&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;register_captcha&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;mail_ready&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;email_login_enabled&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    }
+  }
+}</pre></details><details id="schema-RegisterInput"><summary>RegisterInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;username&quot;,
+    &quot;email&quot;,
+    &quot;password&quot;,
+    &quot;captcha_id&quot;,
+    &quot;captcha_answer&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;username&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 3,
+      &quot;maxLength&quot;: 64,
+      &quot;pattern&quot;: &quot;^[a-zA-Z0-9][a-zA-Z0-9_.-]{2,63}$&quot;
+    },
+    &quot;email&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;email&quot;,
+      &quot;maxLength&quot;: 254
+    },
+    &quot;password&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 12,
+      &quot;maxLength&quot;: 128
+    },
+    &quot;captcha_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;captcha_answer&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-EmailRequest"><summary>EmailRequest</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;email&quot;,
+    &quot;captcha_id&quot;,
+    &quot;captcha_answer&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;email&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;email&quot;,
+      &quot;maxLength&quot;: 254,
+      &quot;minLength&quot;: 3
+    },
+    &quot;captcha_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;captcha_answer&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-TokenInput"><summary>TokenInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;token&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;token&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-ResetInput"><summary>ResetInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;token&quot;,
+    &quot;password&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;token&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;password&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-MailTestInput"><summary>MailTestInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;recipient&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;recipient&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;email&quot;,
+      &quot;maxLength&quot;: 254,
+      &quot;minLength&quot;: 3
+    }
+  }
+}</pre></details><details id="schema-MailJob"><summary>MailJob</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;state&quot;,
+    &quot;attempts&quot;,
+    &quot;created_at&quot;,
+    &quot;available_at&quot;,
+    &quot;last_error&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;state&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;attempts&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;created_at&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;available_at&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;last_error&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-MailJobList"><summary>MailJobList</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;items&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/MailJob&quot;
+      }
+    }
+  }
+}</pre></details><details id="schema-AuthPolicyResponse"><summary>AuthPolicyResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/AuthPolicy&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-MailJobListResponse"><summary>MailJobListResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/MailJobList&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-EmailChallenge"><summary>EmailChallenge</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;challenge_id&quot;,
+    &quot;expires_in&quot;,
+    &quot;retry_after&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;challenge_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;expires_in&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;retry_after&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    }
+  }
+}</pre></details><details id="schema-EmailCodeInput"><summary>EmailCodeInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;challenge_id&quot;,
+    &quot;code&quot;,
+    &quot;password&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;challenge_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;pattern&quot;: &quot;^[0-9]{6}$&quot;,
+      &quot;minLength&quot;: 6,
+      &quot;maxLength&quot;: 6
+    },
+    &quot;password&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-MailTemplate"><summary>MailTemplate</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;purpose&quot;,
+    &quot;subject&quot;,
+    &quot;html&quot;,
+    &quot;text&quot;,
+    &quot;body&quot;,
+    &quot;customized&quot;,
+    &quot;variables&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;purpose&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;subject&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;html&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;text&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;body&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;customized&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;variables&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/MailTemplateVariable&quot;
+      }
+    }
+  }
+}</pre></details><details id="schema-MailTemplateList"><summary>MailTemplateList</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;items&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/MailTemplate&quot;
+      }
+    }
+  }
+}</pre></details><details id="schema-EmailChallengeResponse"><summary>EmailChallengeResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/EmailChallenge&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-MailTemplateListResponse"><summary>MailTemplateListResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/MailTemplateList&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-PermissionDefinition"><summary>PermissionDefinition</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;name&quot;,
+    &quot;description&quot;,
+    &quot;group&quot;,
+    &quot;assignable&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;name&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;description&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;group&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;assignable&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    }
+  }
+}</pre></details><details id="schema-Role"><summary>Role</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;name&quot;,
+    &quot;builtin&quot;,
+    &quot;permissions&quot;,
+    &quot;user_count&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;super_admin&quot;,
+        &quot;user&quot;
+      ]
+    },
+    &quot;name&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;builtin&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;permissions&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      }
+    },
+    &quot;user_count&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    }
+  }
+}</pre></details><details id="schema-RoleList"><summary>RoleList</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;items&quot;,
+    &quot;permissions&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/Role&quot;
+      }
+    },
+    &quot;permissions&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/PermissionDefinition&quot;
+      }
+    }
+  }
+}</pre></details><details id="schema-RoleOption"><summary>RoleOption</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;name&quot;,
+    &quot;assignable&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;super_admin&quot;,
+        &quot;user&quot;
+      ]
+    },
+    &quot;name&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;assignable&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    }
+  }
+}</pre></details><details id="schema-RoleOptions"><summary>RoleOptions</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;items&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/RoleOption&quot;
+      }
+    }
+  }
+}</pre></details><details id="schema-RoleResponse"><summary>RoleResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Role&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-RoleListResponse"><summary>RoleListResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/RoleList&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-RoleOptionsResponse"><summary>RoleOptionsResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/RoleOptions&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-OIDCInfo"><summary>OIDCInfo</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;required&quot;: [
+    &quot;enabled&quot;,
+    &quot;provider_name&quot;,
+    &quot;callback_url&quot;,
+    &quot;linked&quot;,
+    &quot;issuer&quot;,
+    &quot;has_local_password&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;enabled&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;provider_name&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;callback_url&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;linked&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;issuer&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;has_local_password&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    }
+  }
+}</pre></details><details id="schema-OIDCPasswordInput"><summary>OIDCPasswordInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;required&quot;: [
+    &quot;password&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;password&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 128
+    }
+  }
+}</pre></details><details id="schema-OIDCStart"><summary>OIDCStart</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;required&quot;: [
+    &quot;authorization_url&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;authorization_url&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-OIDCInfoResponse"><summary>OIDCInfoResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/OIDCInfo&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-OIDCStartResponse"><summary>OIDCStartResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/OIDCStart&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-Branding"><summary>Branding</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;required&quot;: [
+    &quot;logo&quot;,
+    &quot;logo_dark&quot;,
+    &quot;favicon&quot;
+  ],
+  &quot;additionalProperties&quot;: false,
+  &quot;properties&quot;: {
+    &quot;logo&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 400000
+    },
+    &quot;logo_dark&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 400000
+    },
+    &quot;favicon&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 400000
+    }
+  }
+}</pre></details><details id="schema-BrandingInput"><summary>BrandingInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;required&quot;: [
+    &quot;slot&quot;,
+    &quot;content&quot;
+  ],
+  &quot;additionalProperties&quot;: false,
+  &quot;properties&quot;: {
+    &quot;slot&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;logo&quot;,
+        &quot;logo_dark&quot;,
+        &quot;favicon&quot;
+      ]
+    },
+    &quot;content&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 349528,
+      &quot;description&quot;: &quot;Raw base64 PNG/JPEG; favicon also accepts ICO (PNG or uncompressed DIB frames). Up to 256 KiB; empty restores default.&quot;
+    }
+  }
+}</pre></details><details id="schema-BrandingResponse"><summary>BrandingResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/Branding&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-DatabaseCheck"><summary>DatabaseCheck</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;success&quot;,
+    &quot;database_name&quot;,
+    &quot;table_count&quot;,
+    &quot;initialized&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;success&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;database_name&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;table_count&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;initialized&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    }
+  }
+}</pre></details><details id="schema-DatabaseCheckResponse"><summary>DatabaseCheckResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/DatabaseCheck&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-ChangePasswordInput"><summary>ChangePasswordInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;current_password&quot;,
+    &quot;password&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;current_password&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 128
+    },
+    &quot;password&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 12,
+      &quot;maxLength&quot;: 128,
+      &quot;x-max-utf8-bytes&quot;: 128
+    }
+  }
+}</pre></details><details id="schema-AuditLogList"><summary>AuditLogList</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;items&quot;,
+    &quot;total&quot;,
+    &quot;page&quot;,
+    &quot;page_size&quot;,
+    &quot;actions&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/AuditEntry&quot;
+      }
+    },
+    &quot;total&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;page&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;page_size&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;actions&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      }
+    }
+  }
+}</pre></details><details id="schema-AuditLogResponse"><summary>AuditLogResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/AuditLogList&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-StorageLocation"><summary>StorageLocation</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;name&quot;,
+    &quot;provider&quot;,
+    &quot;endpoint&quot;,
+    &quot;bucket&quot;,
+    &quot;region&quot;,
+    &quot;prefix&quot;,
+    &quot;path_style&quot;,
+    &quot;configured&quot;,
+    &quot;tested&quot;,
+    &quot;active&quot;,
+    &quot;file_count&quot;,
+    &quot;created_at&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    },
+    &quot;name&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 100,
+      &quot;minLength&quot;: 1
+    },
+    &quot;provider&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;local&quot;,
+        &quot;minio&quot;,
+        &quot;s3&quot;,
+        &quot;oss&quot;,
+        &quot;cos&quot;
+      ]
+    },
+    &quot;endpoint&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 2048
+    },
+    &quot;bucket&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 255
+    },
+    &quot;region&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    },
+    &quot;prefix&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 255
+    },
+    &quot;path_style&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;configured&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;tested&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;active&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;file_count&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 0,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;created_at&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 0,
+      &quot;maximum&quot;: 9007199254740991
+    }
+  }
+}</pre></details><details id="schema-StorageLocationInput"><summary>StorageLocationInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;name&quot;,
+    &quot;provider&quot;,
+    &quot;endpoint&quot;,
+    &quot;bucket&quot;,
+    &quot;region&quot;,
+    &quot;prefix&quot;,
+    &quot;path_style&quot;,
+    &quot;access_key&quot;,
+    &quot;secret_key&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;name&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 100,
+      &quot;minLength&quot;: 1
+    },
+    &quot;provider&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;local&quot;,
+        &quot;minio&quot;,
+        &quot;s3&quot;,
+        &quot;oss&quot;,
+        &quot;cos&quot;
+      ]
+    },
+    &quot;endpoint&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 2048
+    },
+    &quot;bucket&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 255
+    },
+    &quot;region&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    },
+    &quot;prefix&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 255
+    },
+    &quot;path_style&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;access_key&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 1024
+    },
+    &quot;secret_key&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 4096
+    }
+  }
+}</pre></details><details id="schema-StorageLocationList"><summary>StorageLocationList</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;items&quot;,
+    &quot;active_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/StorageLocation&quot;
+      }
+    },
+    &quot;active_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    }
+  }
+}</pre></details><details id="schema-StorageTargetInput"><summary>StorageTargetInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;location_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;location_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64,
+      &quot;minLength&quot;: 1
+    }
+  }
+}</pre></details><details id="schema-StorageMaintenanceInput"><summary>StorageMaintenanceInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;origin&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;origin&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 2048,
+      &quot;format&quot;: &quot;uri&quot;
+    }
+  }
+}</pre></details><details id="schema-FileEntry"><summary>FileEntry</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;file_id&quot;,
+    &quot;original_name&quot;,
+    &quot;storage_type&quot;,
+    &quot;location_id&quot;,
+    &quot;mime_type&quot;,
+    &quot;size&quot;,
+    &quot;creator_id&quot;,
+    &quot;creator_realm&quot;,
+    &quot;created_at&quot;,
+    &quot;expires_at&quot;,
+    &quot;state&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;file_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 80
+    },
+    &quot;original_name&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 255
+    },
+    &quot;storage_type&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;local&quot;,
+        &quot;minio&quot;,
+        &quot;s3&quot;,
+        &quot;oss&quot;,
+        &quot;cos&quot;
+      ]
+    },
+    &quot;location_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    },
+    &quot;mime_type&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 255
+    },
+    &quot;size&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 0,
+      &quot;maximum&quot;: 68719476736
+    },
+    &quot;creator_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    },
+    &quot;creator_realm&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 16
+    },
+    &quot;created_at&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 0,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;expires_at&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 0,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;state&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;pending&quot;,
+        &quot;copying&quot;,
+        &quot;ready&quot;,
+        &quot;deleted&quot;
+      ]
+    }
+  }
+}</pre></details><details id="schema-FileList"><summary>FileList</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;items&quot;,
+    &quot;total&quot;,
+    &quot;page&quot;,
+    &quot;page_size&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/FileEntry&quot;
+      }
+    },
+    &quot;total&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 0,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;page&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;page_size&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 50
+    }
+  }
+}</pre></details><details id="schema-FileUploadInput"><summary>FileUploadInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;original_name&quot;,
+    &quot;mime_type&quot;,
+    &quot;size&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;original_name&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 255,
+      &quot;minLength&quot;: 1
+    },
+    &quot;mime_type&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 255,
+      &quot;minLength&quot;: 1
+    },
+    &quot;size&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 68719476736
+    }
+  }
+}</pre></details><details id="schema-FileUploadGrant"><summary>FileUploadGrant</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;file_id&quot;,
+    &quot;url&quot;,
+    &quot;method&quot;,
+    &quot;headers&quot;,
+    &quot;fields&quot;,
+    &quot;direct&quot;,
+    &quot;expires_at&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;file_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 80
+    },
+    &quot;url&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 8192
+    },
+    &quot;method&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;PUT&quot;,
+        &quot;POST&quot;
+      ]
+    },
+    &quot;headers&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;additionalProperties&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      }
+    },
+    &quot;fields&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;additionalProperties&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      }
+    },
+    &quot;direct&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;expires_at&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 0,
+      &quot;maximum&quot;: 9007199254740991
+    }
+  }
+}</pre></details><details id="schema-FileAccess"><summary>FileAccess</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;url&quot;,
+    &quot;expires_at&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;url&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 8192
+    },
+    &quot;expires_at&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 0,
+      &quot;maximum&quot;: 9007199254740991
+    }
+  }
+}</pre></details><details id="schema-StorageLocationListResponse"><summary>StorageLocationListResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/StorageLocationList&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    }
+  }
+}</pre></details><details id="schema-StorageLocationResponse"><summary>StorageLocationResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/StorageLocation&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    }
+  }
+}</pre></details><details id="schema-FileListResponse"><summary>FileListResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/FileList&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    }
+  }
+}</pre></details><details id="schema-FileUploadGrantResponse"><summary>FileUploadGrantResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/FileUploadGrant&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    }
+  }
+}</pre></details><details id="schema-FileEntryResponse"><summary>FileEntryResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/FileEntry&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    }
+  }
+}</pre></details><details id="schema-FileAccessResponse"><summary>FileAccessResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/FileAccess&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    }
+  }
+}</pre></details><details id="schema-NoteInput"><summary>NoteInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;title&quot;,
+    &quot;body&quot;,
+    &quot;status&quot;,
+    &quot;attachment_ids&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;title&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 120
+    },
+    &quot;body&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 5000
+    },
+    &quot;status&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;open&quot;,
+        &quot;done&quot;
+      ]
+    },
+    &quot;attachment_ids&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;maxItems&quot;: 5,
+      &quot;uniqueItems&quot;: true,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;,
+        &quot;minLength&quot;: 1,
+        &quot;maxLength&quot;: 80
+      }
+    }
+  }
+}</pre></details><details id="schema-NoteUpdate"><summary>NoteUpdate</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;title&quot;,
+    &quot;body&quot;,
+    &quot;status&quot;,
+    &quot;attachment_ids&quot;,
+    &quot;version&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;title&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 120
+    },
+    &quot;body&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 5000
+    },
+    &quot;status&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;open&quot;,
+        &quot;done&quot;
+      ]
+    },
+    &quot;attachment_ids&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;maxItems&quot;: 5,
+      &quot;uniqueItems&quot;: true,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;,
+        &quot;minLength&quot;: 1,
+        &quot;maxLength&quot;: 80
+      }
+    },
+    &quot;version&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 9007199254740991
+    }
+  }
+}</pre></details><details id="schema-NoteVersion"><summary>NoteVersion</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;version&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;version&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 9007199254740991
+    }
+  }
+}</pre></details><details id="schema-NoteEntry"><summary>NoteEntry</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;title&quot;,
+    &quot;body&quot;,
+    &quot;status&quot;,
+    &quot;attachment_ids&quot;,
+    &quot;version&quot;,
+    &quot;created_at&quot;,
+    &quot;updated_at&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    },
+    &quot;title&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 120
+    },
+    &quot;body&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 5000
+    },
+    &quot;status&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;open&quot;,
+        &quot;done&quot;
+      ]
+    },
+    &quot;attachment_ids&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;maxItems&quot;: 5,
+      &quot;uniqueItems&quot;: true,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;,
+        &quot;minLength&quot;: 1,
+        &quot;maxLength&quot;: 80
+      }
+    },
+    &quot;version&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;created_at&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 0,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;updated_at&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 0,
+      &quot;maximum&quot;: 9007199254740991
+    }
+  }
+}</pre></details><details id="schema-NoteQuery"><summary>NoteQuery</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;search&quot;,
+    &quot;status&quot;,
+    &quot;sort&quot;,
+    &quot;direction&quot;,
+    &quot;page&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;search&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 128
+    },
+    &quot;status&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;&quot;,
+        &quot;open&quot;,
+        &quot;done&quot;
+      ]
+    },
+    &quot;sort&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;updated_at&quot;,
+        &quot;title&quot;
+      ]
+    },
+    &quot;direction&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;asc&quot;,
+        &quot;desc&quot;
+      ]
+    },
+    &quot;page&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 100000
+    }
+  }
+}</pre></details><details id="schema-NoteList"><summary>NoteList</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;items&quot;,
+    &quot;total&quot;,
+    &quot;page&quot;,
+    &quot;page_size&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/NoteEntry&quot;
+      }
+    },
+    &quot;total&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 0,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;page&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;page_size&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 50
+    }
+  }
+}</pre></details><details id="schema-NoteResponse"><summary>NoteResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/NoteEntry&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-NoteListResponse"><summary>NoteListResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/NoteList&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-UpdateRelease"><summary>UpdateRelease</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;version&quot;,
+    &quot;notes&quot;,
+    &quot;published_at&quot;,
+    &quot;prerelease&quot;,
+    &quot;url&quot;,
+    &quot;source&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;version&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;notes&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;published_at&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;prerelease&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;url&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;source&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-UpdateJob"><summary>UpdateJob</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;status&quot;,
+    &quot;message&quot;,
+    &quot;progress&quot;,
+    &quot;version&quot;,
+    &quot;started_at&quot;,
+    &quot;finished_at&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;status&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;progress&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 0,
+      &quot;maximum&quot;: 100
+    },
+    &quot;version&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;started_at&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;finished_at&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-UpdateOverview"><summary>UpdateOverview</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;current_version&quot;,
+    &quot;latest_version&quot;,
+    &quot;channel&quot;,
+    &quot;source&quot;,
+    &quot;available&quot;,
+    &quot;verified&quot;,
+    &quot;can_apply&quot;,
+    &quot;reason&quot;,
+    &quot;checked_at&quot;,
+    &quot;last_error&quot;,
+    &quot;history&quot;,
+    &quot;job&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;current_version&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;latest_version&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;channel&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;source&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;available&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;verified&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;can_apply&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;reason&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;checked_at&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;last_error&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;history&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/UpdateRelease&quot;
+      }
+    },
+    &quot;job&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/UpdateJob&quot;
+    }
+  }
+}</pre></details><details id="schema-UpdateApplyInput"><summary>UpdateApplyInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;version&quot;,
+    &quot;backup_confirmed&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;version&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;pattern&quot;: &quot;^[0-9]+\\.[0-9]+\\.[0-9]+$&quot;,
+      &quot;maxLength&quot;: 40
+    },
+    &quot;backup_confirmed&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    }
+  }
+}</pre></details><details id="schema-UpdateOverviewResponse"><summary>UpdateOverviewResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/UpdateOverview&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-UpdateJobResponse"><summary>UpdateJobResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/UpdateJob&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-AuditLogQuery"><summary>AuditLogQuery</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;action&quot;,
+    &quot;search&quot;,
+    &quot;start&quot;,
+    &quot;end&quot;,
+    &quot;sort&quot;,
+    &quot;direction&quot;,
+    &quot;page&quot;,
+    &quot;page_size&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;action&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 128
+    },
+    &quot;search&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 128
+    },
+    &quot;start&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 0
+    },
+    &quot;end&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 0
+    },
+    &quot;sort&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;created_at&quot;,
+        &quot;id&quot;
+      ]
+    },
+    &quot;direction&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;asc&quot;,
+        &quot;desc&quot;
+      ]
+    },
+    &quot;page&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 100000
+    },
+    &quot;page_size&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 20,
+      &quot;maximum&quot;: 100
+    }
+  }
+}</pre></details><details id="schema-AuditLogExport"><summary>AuditLogExport</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;filename&quot;,
+    &quot;content&quot;,
+    &quot;exported&quot;,
+    &quot;total&quot;,
+    &quot;truncated&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;filename&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;content&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;exported&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;total&quot;: {
+      &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;truncated&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    }
+  }
+}</pre></details><details id="schema-AuditLogExportResponse"><summary>AuditLogExportResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/AuditLogExport&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-MailTemplateInput"><summary>MailTemplateInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;purpose&quot;,
+    &quot;subject&quot;,
+    &quot;body&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;purpose&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;test&quot;,
+        &quot;verify&quot;,
+        &quot;login&quot;,
+        &quot;reset&quot;,
+        &quot;notification&quot;
+      ]
+    },
+    &quot;subject&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 160
+    },
+    &quot;body&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;minLength&quot;: 1,
+      &quot;maxLength&quot;: 12000
+    }
+  }
+}</pre></details><details id="schema-MailTemplateTestInput"><summary>MailTemplateTestInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;template&quot;,
+    &quot;recipient&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;template&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/MailTemplateInput&quot;
+    },
+    &quot;recipient&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;format&quot;: &quot;email&quot;,
+      &quot;maxLength&quot;: 254
+    }
+  }
+}</pre></details><details id="schema-MailTemplateVariable"><summary>MailTemplateVariable</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;key&quot;,
+    &quot;sample&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;key&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;sample&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-MailTemplateResponse"><summary>MailTemplateResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/MailTemplate&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-MailTemplateReset"><summary>MailTemplateReset</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;purpose&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;purpose&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;enum&quot;: [
+        &quot;test&quot;,
+        &quot;verify&quot;,
+        &quot;login&quot;,
+        &quot;reset&quot;,
+        &quot;notification&quot;
+      ]
+    }
+  }
+}</pre></details><details id="schema-AnnouncementInput"><summary>AnnouncementInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;content&quot;,
+    &quot;format&quot;,
+    &quot;type&quot;,
+    &quot;note&quot;,
+    &quot;status&quot;,
+    &quot;publish_at&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;content&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 500,
+      &quot;minLength&quot;: 1
+    },
+    &quot;format&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64,
+      &quot;enum&quot;: [
+        &quot;markdown&quot;,
+        &quot;html&quot;
+      ]
+    },
+    &quot;type&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64,
+      &quot;enum&quot;: [
+        &quot;info&quot;,
+        &quot;success&quot;,
+        &quot;warning&quot;,
+        &quot;error&quot;
+      ]
+    },
+    &quot;note&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 100
+    },
+    &quot;status&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64,
+      &quot;enum&quot;: [
+        &quot;draft&quot;,
+        &quot;published&quot;
+      ]
+    },
+    &quot;publish_at&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 4102444800
+    }
+  }
+}</pre></details><details id="schema-AnnouncementUpdate"><summary>AnnouncementUpdate</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;content&quot;,
+    &quot;format&quot;,
+    &quot;type&quot;,
+    &quot;note&quot;,
+    &quot;status&quot;,
+    &quot;publish_at&quot;,
+    &quot;version&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;content&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 500,
+      &quot;minLength&quot;: 1
+    },
+    &quot;format&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64,
+      &quot;enum&quot;: [
+        &quot;markdown&quot;,
+        &quot;html&quot;
+      ]
+    },
+    &quot;type&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64,
+      &quot;enum&quot;: [
+        &quot;info&quot;,
+        &quot;success&quot;,
+        &quot;warning&quot;,
+        &quot;error&quot;
+      ]
+    },
+    &quot;note&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 100
+    },
+    &quot;status&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64,
+      &quot;enum&quot;: [
+        &quot;draft&quot;,
+        &quot;published&quot;
+      ]
+    },
+    &quot;publish_at&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 4102444800
+    },
+    &quot;version&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 9007199254740991
+    }
+  }
+}</pre></details><details id="schema-AnnouncementEntry"><summary>AnnouncementEntry</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;version&quot;,
+    &quot;created_at&quot;,
+    &quot;updated_at&quot;,
+    &quot;content&quot;,
+    &quot;format&quot;,
+    &quot;type&quot;,
+    &quot;note&quot;,
+    &quot;status&quot;,
+    &quot;publish_at&quot;,
+    &quot;content_html&quot;,
+    &quot;created_by&quot;,
+    &quot;updated_by&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    },
+    &quot;version&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;created_at&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 0,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;updated_at&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 0,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;content&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 500,
+      &quot;minLength&quot;: 1
+    },
+    &quot;format&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64,
+      &quot;enum&quot;: [
+        &quot;markdown&quot;,
+        &quot;html&quot;
+      ]
+    },
+    &quot;type&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64,
+      &quot;enum&quot;: [
+        &quot;info&quot;,
+        &quot;success&quot;,
+        &quot;warning&quot;,
+        &quot;error&quot;
+      ]
+    },
+    &quot;note&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 100
+    },
+    &quot;status&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64,
+      &quot;enum&quot;: [
+        &quot;draft&quot;,
+        &quot;published&quot;
+      ]
+    },
+    &quot;publish_at&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 4102444800
+    },
+    &quot;content_html&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 20000
+    },
+    &quot;created_by&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    },
+    &quot;updated_by&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    }
+  }
+}</pre></details><details id="schema-AnnouncementPublic"><summary>AnnouncementPublic</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;content&quot;,
+    &quot;content_html&quot;,
+    &quot;format&quot;,
+    &quot;type&quot;,
+    &quot;publish_at&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    },
+    &quot;content&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 500,
+      &quot;minLength&quot;: 1
+    },
+    &quot;content_html&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 20000
+    },
+    &quot;format&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64,
+      &quot;enum&quot;: [
+        &quot;markdown&quot;,
+        &quot;html&quot;
+      ]
+    },
+    &quot;type&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64,
+      &quot;enum&quot;: [
+        &quot;info&quot;,
+        &quot;success&quot;,
+        &quot;warning&quot;,
+        &quot;error&quot;
+      ]
+    },
+    &quot;publish_at&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 4102444800
+    }
+  }
+}</pre></details><details id="schema-AnnouncementQuery"><summary>AnnouncementQuery</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;search&quot;,
+    &quot;status&quot;,
+    &quot;page&quot;,
+    &quot;page_size&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;search&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 128
+    },
+    &quot;status&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64,
+      &quot;enum&quot;: [
+        &quot;&quot;,
+        &quot;draft&quot;,
+        &quot;published&quot;,
+        &quot;scheduled&quot;
+      ]
+    },
+    &quot;page&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 100000
+    },
+    &quot;page_size&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 50
+    }
+  }
+}</pre></details><details id="schema-AnnouncementList"><summary>AnnouncementList</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;items&quot;,
+    &quot;total&quot;,
+    &quot;page&quot;,
+    &quot;page_size&quot;,
+    &quot;enabled&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/AnnouncementEntry&quot;
+      }
+    },
+    &quot;total&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 0,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;page&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;page_size&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 50
+    },
+    &quot;enabled&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    }
+  }
+}</pre></details><details id="schema-AnnouncementFeed"><summary>AnnouncementFeed</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;items&quot;,
+    &quot;total&quot;,
+    &quot;page&quot;,
+    &quot;page_size&quot;,
+    &quot;enabled&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/AnnouncementPublic&quot;
+      }
+    },
+    &quot;total&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 0,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;page&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;page_size&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 50
+    },
+    &quot;enabled&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    }
+  }
+}</pre></details><details id="schema-AnnouncementSelection"><summary>AnnouncementSelection</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;id&quot;,
+    &quot;version&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64,
+      &quot;minLength&quot;: 1
+    },
+    &quot;version&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 9007199254740991
+    }
+  }
+}</pre></details><details id="schema-AnnouncementDelete"><summary>AnnouncementDelete</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;items&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;items&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;minItems&quot;: 1,
+      &quot;maxItems&quot;: 50,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/AnnouncementSelection&quot;
+      }
+    }
+  }
+}</pre></details><details id="schema-AnnouncementSetting"><summary>AnnouncementSetting</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;enabled&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;enabled&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    }
+  }
+}</pre></details><details id="schema-AnnouncementPreview"><summary>AnnouncementPreview</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;content_html&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;content_html&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 20000
+    }
+  }
+}</pre></details><details id="schema-AnnouncementEntryResponse"><summary>AnnouncementEntryResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/AnnouncementEntry&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-AnnouncementListResponse"><summary>AnnouncementListResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/AnnouncementList&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-AnnouncementFeedResponse"><summary>AnnouncementFeedResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/AnnouncementFeed&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-AnnouncementPublicResponse"><summary>AnnouncementPublicResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/AnnouncementPublic&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-AnnouncementSettingResponse"><summary>AnnouncementSettingResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/AnnouncementSetting&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-AnnouncementPreviewResponse"><summary>AnnouncementPreviewResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;message&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;message&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/AnnouncementPreview&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;
+    }
+  }
+}</pre></details><details id="schema-MultipartUploadInput"><summary>MultipartUploadInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;original_name&quot;,
+    &quot;mime_type&quot;,
+    &quot;size&quot;,
+    &quot;fingerprint&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;original_name&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 255,
+      &quot;minLength&quot;: 1
+    },
+    &quot;mime_type&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 255,
+      &quot;minLength&quot;: 1
+    },
+    &quot;size&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 68719476736
+    },
+    &quot;fingerprint&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;pattern&quot;: &quot;^[a-f0-9]{64}$&quot;,
+      &quot;minLength&quot;: 64,
+      &quot;maxLength&quot;: 64
+    }
+  }
+}</pre></details><details id="schema-UploadPolicy"><summary>UploadPolicy</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;max_size&quot;,
+    &quot;part_size&quot;,
+    &quot;parallelism&quot;,
+    &quot;resume_hours&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;max_size&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 68719476736
+    },
+    &quot;part_size&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 5242880,
+      &quot;maximum&quot;: 67108864
+    },
+    &quot;parallelism&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 6
+    },
+    &quot;resume_hours&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 168
+    }
+  }
+}</pre></details><details id="schema-UploadPart"><summary>UploadPart</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;number&quot;,
+    &quot;size&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;number&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 10000
+    },
+    &quot;size&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 67108864
+    }
+  }
+}</pre></details><details id="schema-MultipartUpload"><summary>MultipartUpload</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;file&quot;,
+    &quot;fingerprint&quot;,
+    &quot;part_size&quot;,
+    &quot;part_count&quot;,
+    &quot;expires_at&quot;,
+    &quot;parts&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;file&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/FileEntry&quot;
+    },
+    &quot;fingerprint&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64,
+      &quot;minLength&quot;: 1
+    },
+    &quot;part_size&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 5242880,
+      &quot;maximum&quot;: 67108864
+    },
+    &quot;part_count&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 10000
+    },
+    &quot;expires_at&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 0,
+      &quot;maximum&quot;: 9007199254740991
+    },
+    &quot;parts&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;maxItems&quot;: 10000,
+      &quot;items&quot;: {
+        &quot;$ref&quot;: &quot;#/components/schemas/UploadPart&quot;
+      }
+    }
+  }
+}</pre></details><details id="schema-UploadPartInput"><summary>UploadPartInput</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;number&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;number&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 10000
+    }
+  }
+}</pre></details><details id="schema-UploadPolicyResponse"><summary>UploadPolicyResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/UploadPolicy&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    }
+  }
+}</pre></details><details id="schema-MultipartUploadResponse"><summary>MultipartUploadResponse</summary><pre>{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;required&quot;: [
+    &quot;code&quot;,
+    &quot;data&quot;,
+    &quot;request_id&quot;
+  ],
+  &quot;properties&quot;: {
+    &quot;code&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    },
+    &quot;data&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/MultipartUpload&quot;
+    },
+    &quot;request_id&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 64
+    }
+  }
+}</pre></details></section><section id="errors"><h2>错误目录</h2><p>统一响应包含 code、message、request_id；校验错误可附 fields。日志和错误响应不回显提交值。</p><article><code>ACCOUNT_EXISTS</code> · 409<p>账号或邮箱已存在</p></article><article><code>ACCOUNT_FLOW_DISABLED</code> · 409<p>此实例尚未开放该账号流程</p></article><article><code>ALREADY_INSTALLED</code> · 409<p>此实例已安装，不能重复初始化</p></article><article><code>AUTH_REQUIRED</code> · 401<p>登录已失效，请重新登录</p></article><article><code>BODY_TOO_LARGE</code> · 413<p>请求体过大</p></article><article><code>BOOTSTRAP_TOKEN_INVALID</code> · 403<p>安装凭据无效，请读取部署数据目录中的 bootstrap.token</p></article><article><code>CAPTCHA_INVALID</code> · 400<p>验证码不正确或已过期，请刷新后重试</p></article><article><code>CSRF_INVALID</code> · 403<p>请求校验已失效，请刷新页面</p></article><article><code>DATABASE_INITIALIZED</code> · 409<p>目标数据库已有安装记录，请恢复原实例配置，不能重新安装</p></article><article><code>DATABASE_UNAVAILABLE</code> · 400<p>无法连接或初始化数据库，请检查配置与权限后重试</p></article><article><code>INSTALL_COMMITTED</code> · 500<p>安装已完成，请前往登录页面</p></article><article><code>INSTALL_REQUIRED</code> · 409<p>请先完成安装</p></article><article><code>INTERNAL_ERROR</code> · 500<p>操作未完成，请重试</p></article><article><code>INVALID_INPUT</code> · 400<p>请检查输入类型、范围及当前形态是否支持</p></article><article><code>INVALID_JSON</code> · 400<p>JSON 格式不正确</p></article><article><code>LAST_SUPER_ADMIN</code> · 409<p>不能禁用或降权最后一个启用且可用本地密码登录的管理员</p></article><article><code>LOCAL_PASSWORD_REQUIRED</code> · 409<p>请先设置本地密码，再更改企业账号绑定</p></article><article><code>MAIL_DELIVERY_FAILED</code> · 502<p>邮件未能送达，请检查 SMTP 配置、TLS 与凭据</p></article><article><code>MAIL_NOT_READY</code> · 409<p>请先保存 SMTP 配置并成功发送测试邮件，再启用邮件账号流程</p></article><article><code>METHOD_NOT_ALLOWED</code> · 405<p>请求方法不受支持</p></article><article><code>NOT_AVAILABLE</code> · 404<p>此运行形态不提供该能力</p></article><article><code>NOT_FOUND</code> · 404<p>接口不存在</p></article><article><code>NOT_READY</code> · 503<p>安装尚未完成</p></article><article><code>OIDC_FAILED</code> · 409<p>企业身份验证未完成，请重新发起或先登录本地账号后绑定</p></article><article><code>OIDC_UNAVAILABLE</code> · 502<p>暂时无法连接企业身份服务，请检查已保存的配置或稍后重试</p></article><article><code>ORIGIN_REJECTED</code> · 403<p>请求来源不受信任</p></article><article><code>PERMISSION_DENIED</code> · 403<p>你没有执行此操作的权限</p></article><article><code>RATE_LIMITED</code> · 429<p>尝试过于频繁，请稍后重试</p></article><article><code>TOKEN_INVALID</code> · 400<p>链接无效、已过期或已经使用，请重新申请</p></article><article><code>UNSUPPORTED_MEDIA_TYPE</code> · 415<p>请使用 application/json</p></article><article><code>INVALID_CREDENTIALS</code> · 401<p>账号或密码不正确</p></article><article><code>BRAND_INVALID</code> · 400<p>请选择不超过 256 KiB、尺寸 16–2048 像素的 PNG/JPEG；站点图标也支持 16–256 像素 ICO</p></article><article><code>DATABASE_NOT_EMPTY</code> · 409<p>目标数据库已有表或视图；请先备份，再明确确认清空初始化</p></article><article><code>STORAGE_UNAVAILABLE</code> · 503<p>存储服务暂时不可用，请检查连接、Bucket 和访问权限</p></article><article><code>STORAGE_NOT_READY</code> · 409<p>存储配置需要先通过读写测试</p></article><article><code>FILE_NOT_FOUND</code> · 404<p>文件不存在或无权访问</p></article><article><code>FILE_INVALID</code> · 400<p>文件名称、类型或大小不符合上传要求</p></article><article><code>FILE_BUSY</code> · 409<p>文件正在处理中，请稍后重试</p></article><article><code>NOTE_NOT_FOUND</code> · 404<p>笔记不存在或无权访问</p></article><article><code>NOTE_CONFLICT</code> · 409<p>笔记已被修改，请重新打开后再保存</p></article><article><code>NOTE_INVALID</code> · 400<p>标题、正文、状态或附件不符合要求</p></article><article><code>UPDATE_BUSY</code> · 409<p>已有更新任务正在执行</p></article><article><code>UPDATE_REJECTED</code> · 409<p>更新条件不满足，请重新检查版本与安装说明</p></article><article><code>UPDATE_UNAVAILABLE</code> · 503<p>无法检查更新，仍可查看本地更新日志</p></article><article><code>ANNOUNCEMENT_INVALID</code> · 400<p>公告内容、格式、类型或发布时间不符合要求</p></article><article><code>ENTITY_NOT_FOUND</code> · 404<p>记录不存在或无权访问</p></article><article><code>ENTITY_CONFLICT</code> · 409<p>记录已被修改，请刷新后重试</p></article></section></main></body></html>

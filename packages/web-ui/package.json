@@ -1,0 +1,25 @@
+{
+  "name": "@unicore/web-ui",
+  "version": "0.1.2",
+  "private": true,
+  "author": "yunnuo <ymz@ebox.vip>",
+  "type": "module",
+  "exports": {
+    ".": "./src/App.tsx",
+    "./styles.css": "./src/styles.css",
+    "./message": "./src/message.tsx",
+    "./admin": "./src/admin-app.tsx",
+    "./i18n": "./src/i18n.ts",
+    "./preferences": "./src/preferences.ts",
+    "./appearance": "./src/appearance-drawer.tsx",
+    "./client-controls": "./src/client-controls.tsx",
+    "./layout": "./src/workspace-layout.tsx"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.105.0",
+    "@unicore/sdk": "workspace:*",
+    "lucide-react": "^1.63.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  }
+}

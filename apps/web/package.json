@@ -1,0 +1,18 @@
+{
+  "name": "@unicore/web",
+  "version": "0.1.2",
+  "private": true,
+  "author": "yunnuo <ymz@ebox.vip>",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm -w design:generate && vite --host 127.0.0.1",
+    "build": "pnpm -w check:i18n && pnpm -w design:generate && vite build",
+    "preview": "vite preview --host 127.0.0.1"
+  },
+  "dependencies": {
+    "@unicore/sdk": "workspace:*",
+    "@unicore/web-ui": "workspace:*",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  }
+}

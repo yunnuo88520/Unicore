@@ -1,0 +1,56 @@
+# Author: yunnuo <ymz@ebox.vip>
+name: 问题反馈
+description: 报告可复现的框架问题或提交使用咨询。
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请先检索已有 Issue，并运行 make doctor。使用咨询请在标题注明“使用咨询”。
+        不要粘贴密码、Cookie、安装凭据、数据库连接串或真实用户数据；安全漏洞请按 SECURITY.md 私密报告。
+  - type: input
+    id: version
+    attributes:
+      label: 版本或提交
+      description: 提供 VERSION 与 commit，说明是否修改过框架。
+      placeholder: VERSION + git rev-parse --short HEAD
+    validations:
+      required: true
+  - type: dropdown
+    id: profile
+    attributes:
+      label: 运行形态
+      multiple: true
+      options:
+        - web-platform
+        - web-standalone
+        - desktop
+        - cli
+        - 构建 / 文档 / 不确定
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: 环境
+      description: 系统/架构、浏览器、数据库类型/版本、tar/Docker/源码方式；开发问题附脱敏 doctor 输出。不要提供数据库密码或 DSN。
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 最小复现步骤
+      description: 从新实例或最小代码开始说明，可附无敏感数据的示例。
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期与实际结果
+      description: 写清期望行为、实际行为和稳定复现频率。
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 脱敏日志或截图
+      description: 可附 request_id；提交前遮盖个人数据和所有凭据。

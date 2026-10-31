@@ -1,0 +1,9 @@
+# Author: yunnuo <ymz@ebox.vip>
+blank_issues_enabled: false
+contact_links:
+  - name: 文档与使用支持
+    url: https://github.com/yunnuo88520/Unicore/blob/main/SUPPORT.md
+    about: 先查启动、部署、备份与反馈入口。
+  - name: 私密安全报告
+    url: https://github.com/yunnuo88520/Unicore/blob/main/SECURITY.md
+    about: 漏洞与凭据泄漏请使用私密渠道，不要提交公开 Issue。

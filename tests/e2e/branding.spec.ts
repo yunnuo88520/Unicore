@@ -1,0 +1,118 @@
+// Author: yunnuo <ymz@ebox.vip>
+// Description: Real brand preview/save/theme/favicon/login/template/reset across PC and 375px.
+import { test, expect, installStandalone } from './fixtures';
+import type {Page} from '@playwright/test';
+import { capture } from './visual';
+import { mkdir } from 'node:fs/promises';
+import { Resvg } from '@resvg/resvg-js';
+const variant = (dark: boolean) => new Resvg(`<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><rect width="128" height="128" rx="32" fill="${dark ? '#e4d3ff' : '#623ad6'}"/><path d="M35 32v40a29 29 0 0058 0V32H76v40a12 12 0 01-24 0V32z" fill="${dark ? '#2b1853' : 'white'}"/></svg>`).render().asPng();
+
+async function expectNavigationBrand(page:Page,mode:string){
+  const trigger=page.getByRole('button',{name:'打开导航',exact:true});
+  const overlay=await trigger.isVisible();
+  if(overlay)await trigger.click();
+  await expect(page.locator(`.brand .instance-brand-${mode} img`)).toBeVisible();
+  if(overlay)await page.keyboard.press('Escape');
+}
+
+test('instance brand preview, save, system theme and restore defaults', async ({ page, instance }, info) => {
+  const installed=await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}});expect(installed.status()).toBe(200);
+  await page.goto(`${instance.url}/admin#site`);
+  await page.getByRole('tab', { name: '品牌图片', exact: true }).click();
+  const light = page.getByRole('form', { name: '浅色 Logo', exact: true });
+  await light.getByLabel('选择浅色 Logo').setInputFiles({ name: 'unsafe.svg', mimeType: 'image/svg+xml', buffer: Buffer.from('<svg/>') });
+  await expect(page.getByRole('alert')).toContainText('PNG 或 JPEG');
+  await light.getByLabel('选择浅色 Logo').setInputFiles({ name: 'brand.png', mimeType: 'image/png', buffer: variant(false) });
+  await expect(light.getByText('待保存预览，点击保存后生效。')).toBeVisible();
+  await expect(page.locator('.brand .brand-image')).toHaveCount(0);
+  await page.getByRole('tab', { name: '基础信息', exact: true }).click();
+  await page.getByRole('tab', { name: '品牌图片', exact: true }).click();
+  await expect(light.getByText('待保存预览，点击保存后生效。')).toBeVisible();
+  await capture(page, info, 'brand-preview');
+  await light.getByRole('button',{name:'取消预览'}).click();
+  await expect(light.getByRole('button',{name:'保存浅色 Logo'})).toBeDisabled();
+  await expect(page.locator('.brand .brand-image')).toHaveCount(0);
+  await light.getByLabel('选择浅色 Logo').setInputFiles({ name: 'brand.png', mimeType: 'image/png', buffer: variant(false) });
+  await light.getByRole('button', { name: '保存浅色 Logo' }).click();
+  await expect(page.getByText('图片已保存', { exact: true })).toBeVisible();
+  await expectNavigationBrand(page,'light');
+  const dark = page.getByRole('form', { name: '深色 Logo', exact: true });
+  await dark.getByLabel('选择深色 Logo').setInputFiles({ name: 'dark.png', mimeType: 'image/png', buffer: variant(true) });
+  await dark.getByRole('button', { name: '保存深色 Logo' }).click();
+  await expect(page.getByText('图片已保存', { exact: true })).toBeVisible();
+  const icon = page.getByRole('form', { name: '站点图标', exact: true });
+  await icon.getByLabel('选择站点图标').setInputFiles({ name: 'favicon.png', mimeType: 'image/png', buffer: variant(false) });
+  await icon.getByRole('button', { name: '保存站点图标' }).click();
+  await expect(page.getByText('图片已保存', { exact: true })).toBeVisible();
+  await expect(page.locator('link[rel="icon"]').first()).toHaveAttribute('href', /^\/brand-assets\//);
+  await page.getByRole('tab', { name: '基础信息', exact: true }).click();
+  await page.getByLabel('站点名称', { exact: true }).fill('品牌工作空间');
+  await page.getByRole('button', { name: '保存设置' }).click();
+  await expect(page).toHaveTitle('品牌工作空间 · 工作空间');
+  const manifest = await (await page.request.get(`${instance.url}/site.webmanifest`)).json();
+  expect(manifest.name).toBe('品牌工作空间');expect(manifest.icons[0].src).toMatch(/^\/brand-assets\//);
+  await capture(page, info, 'brand-site-saved');
+  await page.getByRole('tab', { name: '品牌图片', exact: true }).click();
+  await capture(page, info, 'brand-saved');
+  await page.reload();
+  await expect(light.getByAltText('浅色 Logo当前预览')).toBeVisible();
+  await page.evaluate(() => { localStorage.setItem('unicore.preferences.v1',JSON.stringify({...JSON.parse(localStorage.getItem('unicore.preferences.v1')??'{}'),theme:'system'})); });
+  await page.reload();
+  for (const colorScheme of ['dark','light'] as const) {
+    await page.emulateMedia({colorScheme});
+    await expect(page.locator('html')).toHaveAttribute('data-theme', colorScheme);
+    await expectNavigationBrand(page,colorScheme);
+  }
+  await icon.getByRole('button', { name: '恢复默认', exact: true }).click();
+  await icon.getByRole('button', { name: '确认恢复' }).click();
+  await expect(page.locator('link[rel="icon"]').first()).toHaveAttribute('href', '/favicon.svg');
+  for (const [slot, name] of [[light, '浅色 Logo'], [dark, '深色 Logo']] as const) {await slot.getByRole('button', { name: '恢复默认', exact: true }).click();await slot.getByRole('button', { name: '确认恢复' }).click();}
+  await expect(page.locator('.brand .brand-image')).toHaveCount(0);
+  await capture(page, info, 'brand-restored');
+});
+
+test('platform login and all mail previews use public instance branding', async ({ page, instance }, info) => {
+  const installed = await page.request.post(`${instance.url}/api/v1/install/complete`, { headers: { 'X-Bootstrap-Token': instance.token }, data: { profile: 'web-platform', database: { driver: 'sqlite', dsn: '' }, site_name: '品牌平台', base_url: instance.url, admin_username: 'admin', admin_email: 'admin@example.test', admin_password: 'test-password-strong' } });
+  expect(installed.status()).toBe(200);
+  await page.goto(`${instance.url}/admin#site`);
+  await page.getByRole('tab', { name: '品牌图片', exact: true }).click();
+  const form=page.getByRole('form',{name:'浅色 Logo',exact:true});
+  await form.getByLabel('选择浅色 Logo').setInputFiles({name:'custom.png',mimeType:'image/png',buffer:variant(false)});
+  await form.getByRole('button',{name:'保存浅色 Logo'}).click();
+  await expect(page.getByText('图片已保存',{exact:true})).toBeVisible();
+  const previewLogo=await form.locator('img').getAttribute('src');
+  expect(previewLogo).toMatch(/^\/brand-assets\//);
+  // Templates remain internal; render their generated HTML directly for visual regression.
+  const templates=(await(await page.request.get(`${instance.url}/api/v1/admin/settings/mail/templates`,{headers:{}})).json()).data.items;
+  const preview=await page.context().newPage();let mailLogo='';
+  for(const template of templates){
+    await preview.setContent(template.html);
+    const image=preview.locator('img');await expect(image).toHaveAttribute('src',/^data:image\/png;base64,/);
+    const source=(await image.getAttribute('src'))!;if(!mailLogo)mailLogo=source;expect(source).toBe(mailLogo);
+    const png=Buffer.from(source.split(',')[1],'base64');expect(png.readUInt32BE(16)).toBe(64);expect(png.readUInt32BE(20)).toBe(64);
+    await expect(preview.getByRole('heading')).toBeVisible();
+    const directory=`build/acceptance/m3b/${info.project.name}`;await mkdir(directory,{recursive:true});
+    await preview.screenshot({path:`${directory}/mail-${template.purpose}.png`,fullPage:true});
+  }
+  await preview.close();
+  await expect(page.getByRole('tab',{name:'邮件模板',exact:true})).toHaveCount(0);
+  // A member sees public branding, while global brand management stays administrator-only.
+  const bootstrap=(await(await page.request.get(`${instance.url}/api/v1/admin/bootstrap`,{headers:{}})).json()).data;
+  const headers={'X-CSRF-Token':bootstrap.csrf_token};
+  expect((await page.request.post(`${instance.url}/api/v1/admin/users`,{headers,data:{username:'reader',email:'reader@example.test',password:'test-password-strong',role:'user'}})).status()).toBe(200);
+  await page.getByRole('button',{name:'账号菜单',exact:true}).click();
+  await page.getByRole('button',{name:'退出登录',exact:true}).click();
+  await page.goto(instance.url);
+  await expect(page.getByRole('heading',{name:'登录 品牌平台',exact:true})).toBeVisible();
+  await expect(page.locator('.flow-brand .instance-brand-light img')).toBeVisible();
+  await capture(page,info,'brand-login');
+  await page.getByLabel('账号或邮箱').fill('reader');await page.getByLabel('密码',{exact:true}).fill('test-password-strong');
+  const src=await page.getByAltText('六位数字验证码，点击刷新').getAttribute('src');const answer=[...Buffer.from(src!.split(',')[1],'base64').toString().matchAll(/>([0-9])<\/text>/g)].map(m=>m[1]).join('');await page.getByLabel('图形验证码',{exact:true}).fill(answer);await page.getByRole('button',{name:'登录工作空间'}).click();
+  await expect(page.getByRole('button',{name:'运行用例'})).toBeVisible();
+  await expectNavigationBrand(page,'light');
+  await page.goto(`${instance.url}/#site`);
+  await expect(page.getByText('仅当前客户端',{exact:true})).toBeVisible();
+  await expect(page.getByRole('tab', { name: '品牌图片', exact: true })).toHaveCount(0);
+  expect((await page.request.get(`${instance.url}/api/v1/admin/branding`)).status()).toBe(403);
+  await capture(page,info,'brand-member-local-appearance');
+});

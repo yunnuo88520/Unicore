@@ -1,0 +1,61 @@
+/* Author: yunnuo <ymz@ebox.vip>
+ * Geometry belongs to this shell. Use logical properties and one off-canvas breakpoint.
+ */
+.app-shell {
+  --shell-sidebar-width: var(--sidebar);
+  --shell-sidebar-gap: 0px;
+  --shell-navigation-space: calc(var(--shell-sidebar-width) + var(--shell-sidebar-gap));
+  display: grid;
+  grid-template-columns: var(--shell-navigation-space) minmax(0, 1fr);
+  min-inline-size: 0;
+  inline-size: 100%;
+  min-block-size: 100dvh;
+}
+.app-shell > .main-shell { grid-column: 2; min-inline-size: 0; inline-size: 100%; }
+.app-shell .main-content { min-inline-size: 0; inline-size: 100%; margin-inline: auto; }
+.app-shell > .sidebar {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: var(--shell-sidebar-width);
+  block-size: 100dvh;
+  border: 0;
+  border-inline-end: 1px solid var(--border);
+  transition: transform var(--motion-normal);
+  visibility: var(--shell-navigation-visibility, visible);
+  transform: var(--shell-navigation-transform, none);
+}
+.app-shell .workspace-switch,.app-shell .nav-item { text-align: start; }
+.app-shell .workspace-stage,.app-shell .nav-active-dot,.app-shell .nav-group-toggle > svg:last-child { margin-inline-start: auto; margin-inline-end: 0; }
+.app-shell .nav-group > nav { margin-inline-start: calc(var(--space-unit) * 18); padding-inline-start: calc(var(--space-unit) * 9); border-inline-start: 1px solid var(--border); }
+.app-shell .topbar { min-inline-size: 0; }
+.app-shell .breadcrumbs { min-inline-size: 0; }
+.app-shell .breadcrumbs strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-shell .top-actions { flex-shrink: 0; }
+.app-shell .page-heading > div,.app-shell .banner-content { min-inline-size: 0; }
+.app-shell .banner-content { flex-shrink: 1; }
+:root[data-layout=compact] .app-shell { --shell-sidebar-width: var(--sidebar-compact); }
+:root[data-layout=compact] .app-shell .topbar { height: 60px; }
+:root[data-layout=compact] .app-shell .main-content { padding-top: 24px; }
+:root[data-content=full] .app-shell .main-content { max-inline-size: none; }
+:root[data-content=centered] .app-shell .main-content { max-inline-size: var(--content-max); }
+:root[data-sidebar=inset] .app-shell > .sidebar { background: var(--bg); border-color: transparent; }
+:root[data-sidebar=floating] .app-shell { --shell-sidebar-gap: 24px; }
+:root[data-sidebar=floating] .app-shell > .sidebar {
+  inset-block: 12px;
+  inset-inline-start: 12px;
+  block-size: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-16);
+  box-shadow: 0 8px 30px var(--shadow-modal);
+}
+:root[data-layout=full] .app-shell { --shell-navigation-space: 0px; --shell-navigation-visibility: hidden; --shell-navigation-transform: translateX(-110%); }
+:root[data-layout=full] .app-shell .mobile-menu { display: inline-flex; }
+.app-shell > .nav-scrim { display: block; position: fixed; inset: 0; z-index: 29; background: var(--scrim); }
+@media (max-width: 767px) {
+  .app-shell { --shell-navigation-space: 0px; --shell-sidebar-width: 246px; }
+  :root[data-layout=compact] .app-shell { --shell-sidebar-width: 246px; }
+  .app-shell { --shell-navigation-visibility: hidden; --shell-navigation-transform: translateX(-110%); }
+}
+/* Explicitly outrank both off-canvas states, including floating/full combinations. */
+.app-shell > .sidebar.is-open { visibility: visible; transform: none; }

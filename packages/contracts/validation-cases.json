@@ -1,0 +1,166 @@
+[
+  {
+    "name": "valid Unicode text",
+    "schema": "ExecuteInput",
+    "value": {
+      "text": "你好 🌟"
+    },
+    "fields": []
+  },
+  {
+    "name": "missing field",
+    "schema": "ExecuteInput",
+    "value": {},
+    "fields": [
+      "text"
+    ]
+  },
+  {
+    "name": "unknown field",
+    "schema": "ExecuteInput",
+    "value": {
+      "text": "hello",
+      "admin": true
+    },
+    "fields": [
+      "admin"
+    ]
+  },
+  {
+    "name": "UTF8 byte bound",
+    "schema": "ExecuteInput",
+    "value": {
+      "text": "界"
+    },
+    "fields": [
+      "text"
+    ],
+    "repeatText": 21846
+  },
+  {
+    "name": "six digit code",
+    "schema": "EmailCodeInput",
+    "value": {
+      "challenge_id": "sample",
+      "code": "012345",
+      "password": ""
+    },
+    "fields": []
+  },
+  {
+    "name": "invalid code",
+    "schema": "EmailCodeInput",
+    "value": {
+      "challenge_id": "sample",
+      "code": "abcdef",
+      "password": ""
+    },
+    "fields": [
+      "code"
+    ]
+  },
+  {
+    "name": "username email password",
+    "schema": "UserCreate",
+    "value": {
+      "username": "!",
+      "email": "bad",
+      "password": "short",
+      "role": "user"
+    },
+    "fields": [
+      "email",
+      "password",
+      "username"
+    ]
+  },
+  {
+    "name": "empty changes",
+    "schema": "SettingPatch",
+    "value": {
+      "changes": []
+    },
+    "fields": [
+      "changes"
+    ]
+  },
+  {
+    "name": "nested change type",
+    "schema": "SettingPatch",
+    "value": {
+      "changes": [
+        {
+          "key": "site.name",
+          "value": false
+        }
+      ]
+    },
+    "fields": [
+      "changes[0].value"
+    ]
+  },
+  {
+    "name": "prototype key treated as unknown",
+    "schema": "ExecuteInput",
+    "value": {
+      "text": "ok",
+      "__proto__": "invalid"
+    },
+    "fields": [
+      "__proto__"
+    ]
+  },
+  {
+    "name": "fixed ordinary role",
+    "schema": "UserUpdate",
+    "value": {
+      "role": "user",
+      "status": "active"
+    },
+    "fields": []
+  },
+  {
+    "name": "fixed administrator role",
+    "schema": "UserUpdate",
+    "value": {
+      "role": "super_admin",
+      "status": "active"
+    },
+    "fields": []
+  },
+  {
+    "name": "custom role rejected",
+    "schema": "UserUpdate",
+    "value": {
+      "role": "custom",
+      "status": "active"
+    },
+    "fields": [
+      "role"
+    ]
+  },
+  {
+    "name": "note title is a business property, not a schema annotation",
+    "schema": "NoteInput",
+    "value": {
+      "title": "A useful title",
+      "body": "body",
+      "status": "open",
+      "attachment_ids": []
+    },
+    "fields": []
+  },
+  {
+    "name": "note optimistic version is required",
+    "schema": "NoteUpdate",
+    "value": {
+      "title": "A useful title",
+      "body": "",
+      "status": "done",
+      "attachment_ids": []
+    },
+    "fields": [
+      "version"
+    ]
+  }
+]

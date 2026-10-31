@@ -1,0 +1,31 @@
+# Author: yunnuo <ymz@ebox.vip>
+[Unit]
+Description=Unicore application server
+After=network.target
+
+[Service]
+User=unicore
+Group=unicore
+WorkingDirectory=/var/lib/unicore
+Environment=APP_DEPLOYMENT_KIND=tar
+Environment=APP_LISTEN=127.0.0.1:8080
+Environment=APP_DATA_DIR=/var/lib/unicore
+Environment=APP_UPDATE_RESTART=supervisor
+# Opt in through /etc/unicore/unicore.env: APP_UPDATE_INSTALL_DIR=/opt/unicore/current
+# Also grant the service user ownership of /opt/unicore and enable its ReadWritePaths below.
+EnvironmentFile=-/etc/unicore/unicore.env
+ExecStart=/opt/unicore/current/bin/server
+Restart=always
+# Keep the detached updater helper alive after the main process drains.
+KillMode=process
+RestartSec=3
+TimeoutStopSec=15
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/unicore
+# ReadWritePaths=/opt/unicore
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

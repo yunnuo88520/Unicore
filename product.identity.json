@@ -1,0 +1,33 @@
+{
+  "author": "yunnuo <ymz@ebox.vip>",
+  "schemaVersion": 1,
+  "product": {
+    "name": "Unicore",
+    "slug": "unicore",
+    "vendor": "yunnuo",
+    "description": "一份核心，运行于每个终端"
+  },
+  "go": {
+    "module": "github.com/yunnuo/unicore"
+  },
+  "cli": {
+    "command": "unicore",
+    "opsCommand": "unicore-ops",
+    "description": "Unicore — one core, every interface"
+  },
+  "desktop": {
+    "bundleId": "vip.ebox.unicore",
+    "outputName": "unicore-desktop"
+  },
+  "deployment": {
+    "serviceName": "unicore",
+    "serviceUser": "unicore",
+    "installDirectory": "/opt/unicore",
+    "dataDirectory": "/var/lib/unicore",
+    "image": "unicore",
+    "volume": "unicore_data"
+  },
+  "release": {
+    "artifactPrefix": "unicore"
+  }
+}

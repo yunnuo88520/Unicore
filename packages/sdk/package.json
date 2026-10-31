@@ -1,0 +1,14 @@
+{
+  "name": "@unicore/sdk",
+  "version": "0.1.2",
+  "private": true,
+  "author": "yunnuo <ymz@ebox.vip>",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@noble/hashes": "2.4.0",
+    "@unicore/contracts": "workspace:*"
+  }
+}

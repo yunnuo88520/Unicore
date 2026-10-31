@@ -7,9 +7,9 @@ import './shell.css';
 
 type WorkspaceLayoutProps = {
   navigation: ReactNode; header: ReactNode; children: ReactNode; overlays?: ReactNode;
-  navigationOpen: boolean; onNavigationClose: () => void; contentClassName?: string;
+  navigationOpen: boolean; onNavigationClose: () => void; contentClassName?: string; navigationCollapsed?: boolean;
 };
-export function WorkspaceLayout({ navigation, header, children, overlays, navigationOpen, onNavigationClose, contentClassName = '' }: WorkspaceLayoutProps) {
+export function WorkspaceLayout({ navigation, header, children, overlays, navigationOpen, onNavigationClose, contentClassName = '', navigationCollapsed = false }: WorkspaceLayoutProps) {
   const { t } = useI18n();
   useEffect(() => {
     if (!navigationOpen) return;
@@ -17,13 +17,13 @@ export function WorkspaceLayout({ navigation, header, children, overlays, naviga
     window.addEventListener('keydown', close);
     return () => window.removeEventListener('keydown', close);
   }, [navigationOpen, onNavigationClose]);
-  return <div className="app-shell" dir="ltr">
+  return <div className={`app-shell ${navigationCollapsed ? 'nav-collapsed' : ''}`} dir="ltr">
     <a className="fixed top-[-100px] start-5 z-50 rounded-sm border-2 border-primary bg-surface px-2.5 py-2.5 text-sm focus:top-3" href="#main-content"
       onClick={event => { event.preventDefault(); document.getElementById('main-content')?.focus(); }}>
       {t('跳至主要内容')}
     </a>
     {navigationOpen && <button className="nav-scrim fixed inset-0 z-[29] bg-scrim/80 backdrop-blur-[2px]" aria-label={t('关闭导航')} onClick={onNavigationClose} />}
-    <aside id="workspace-navigation" className={`sidebar z-30 flex flex-col overflow-y-auto border-e border-line bg-surface px-[19px] pt-[31px] ${navigationOpen ? 'is-open' : ''}`} aria-label={t('主导航')}>
+    <aside id="workspace-navigation" className={`sidebar z-30 flex flex-col overflow-hidden border-e border-line bg-surface px-[19px] pt-[24px] ${navigationOpen ? 'is-open' : ''}`} aria-label={t('主导航')}>
       {navigation}
     </aside>
     <div className="main-shell min-w-0 w-full">

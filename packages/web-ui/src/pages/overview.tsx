@@ -3,9 +3,10 @@
 import { defineMessages, t, useLocale, currentLocale } from '../i18n';
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
+import { canAccess, routes, type Page } from '../routes';
 import {
-  Activity, ArrowDown, ArrowRight, Braces, Check, CheckCircle2, Circle, Code2, Copy, Cpu, FlaskConical, Globe2,
+  Activity, ArrowDown, ArrowRight, Braces, Check, CheckCircle2, Circle, Code2, Copy, Cpu, FlaskConical, Globe2, NotebookPen,
   Layers3, LoaderCircle, Monitor, Play, RotateCcw, Sparkles, Terminal, FolderOpen, type LucideIcon,
 } from 'lucide-react';
 import type { AppClient, Bootstrap, ExecuteOutput, Profile } from '@unicore/sdk';
@@ -18,32 +19,59 @@ import type { PageProps } from '../router';
 const PROFILE_LABELS: Record<Profile, string> = defineMessages({ 'web-platform': 'Web 平台', 'web-standalone': 'Web 单机', desktop: '桌面应用', cli: '命令行' });
 
 export function OverviewPage(props: PageProps) {
-  return <CoreWorkspace {...props} page="overview" />;
+  return <CoreDashboard {...props} />;
 }
 
 export function LabPage(props: PageProps) {
-  return <CoreWorkspace {...props} page="lab" />;
+  return <CoreWorkbench {...props} />;
 }
 
-function CoreWorkspace({ page, client, metadata, registry }: PageProps & { page: 'overview' | 'lab' }) {
+/** Dashboard: runtime status, product widgets, intro banner, reserved business space and real quick links. */
+function CoreDashboard({ client, metadata, registry }: PageProps) {
   useLocale();
-  return <>
+  const navigate = useNavigate();
+  const quickLinks = ([{ id: 'notes', icon: NotebookPen }, { id: 'files', icon: FolderOpen }, { id: 'lab', icon: FlaskConical }] as const)
+    .filter(({ id }) => id === 'lab' || canAccess(id, metadata));
+  return <div className="flex flex-col gap-5">
     <RuntimeCards metadata={metadata} transport={client.transport} />
-    {page === 'overview' && registry.entries().map(widget => {
+    {registry.entries().map(widget => {
       const content = widget.render(metadata);
       return content ? <Card key={widget.id} className="dashboard-widget">{content}</Card> : null;
     })}
-    {page === 'overview' && <IntroBanner />}
-    {page === 'overview' && metadata.identity_realm !== 'administrator' && <BusinessPlaceholders />}
-    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+    <IntroBanner />
+    {metadata.identity_realm !== 'administrator' && <BusinessPlaceholders />}
+    <section aria-label={t('快捷入口')}>
+      <h2 className="mb-2 text-sm font-semibold text-ink">{t('快捷入口')}</h2>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {quickLinks.map(({ id, icon: Icon }) => {
+          const route = routes[id];
+          return <Link key={id} to={ROUTE_PATHS[id as Page] ?? `/${id}`} className="group flex flex-col items-start gap-1 rounded-xl border border-line bg-surface p-4 shadow-card transition-colors hover:border-primary-line hover:bg-surface-alt">
+            <span className="flex size-9 items-center justify-center rounded-lg bg-primary-soft text-accent"><Icon size={18} aria-hidden="true" /></span>
+            <strong className="mt-1 text-sm font-medium text-ink">{t(route.label)}</strong>
+            <small className="text-2xs text-muted">{t(route.description)}</small>
+            <span className="mt-1 inline-flex items-center gap-1 text-2xs text-accent opacity-0 transition-opacity group-hover:opacity-100">{t('前往')}<ArrowRight size={11} aria-hidden="true" /></span>
+          </Link>;
+        })}
+      </div>
+    </section>
+  </div>;
+}
+
+/** Workbench: the shared execute use case with the shape and architecture references alongside. */
+function CoreWorkbench({ client, metadata }: PageProps) {
+  useLocale();
+  return <div className="flex flex-col gap-5">
+    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
       <CoreLab client={client} />
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-5">
         <Profiles current={metadata.profile} />
         <Architecture />
       </div>
     </div>
-  </>;
+  </div>;
 }
+
+const ROUTE_PATHS: Partial<Record<Page, string>> = { overview: '/' };
 
 function RuntimeCards({ metadata, transport }: { metadata: Bootstrap; transport: AppClient['transport'] }) {
   useLocale();

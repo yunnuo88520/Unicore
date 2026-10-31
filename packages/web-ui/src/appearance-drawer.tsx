@@ -1,12 +1,12 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Device preference schema, direction-stable previews and an accessible side drawer.
 import { Check, Languages, RotateCcw, X } from 'lucide-react';
-import { preferenceOptions, resetAppearance, setPreferences, usePreferences, type Preferences } from './preferences';
+import { preferenceOptions, resetAppearance, setPreferences, usePreferences, type PreferenceKey, type Preferences } from './preferences';
 import { defineMessages, t, useI18n } from './i18n';
 import { Button, Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from './ui';
 import { cn } from './lib/cn';
 
-type PreferenceLabels = { [K in keyof Preferences]: Record<Preferences[K], string> };
+type PreferenceLabels = { [K in PreferenceKey]: Record<Preferences[K], string> };
 const labels = defineMessages({
   theme: { system: '跟随系统', light: '浅色', dark: '深色' },
   accent: { brand: '默认', rose: '玫瑰', emerald: '翡翠', ocean: '海洋', amber: '琥珀', slate: '石墨' },
@@ -22,9 +22,9 @@ const groups = defineMessages([
   { name: 'radius', title: '圆角' }, { name: 'density', title: '密度' },
   { name: 'sidebar', title: '侧边栏' }, { name: 'layout', title: '布局' },
   { name: 'content', title: '内容布局' }, { name: 'locale', title: '语言' },
-]) satisfies readonly { name: keyof Preferences; title: string }[];
+]) satisfies readonly { name: PreferenceKey; title: string }[];
 
-const columns: Record<keyof Preferences, string> = {
+const columns: Record<PreferenceKey, string> = {
   theme: 'grid-cols-3', accent: 'grid-cols-3', radius: 'grid-cols-6', density: 'grid-cols-4',
   sidebar: 'grid-cols-3', layout: 'grid-cols-3', content: 'grid-cols-2', locale: 'grid-cols-2',
 };
@@ -76,7 +76,7 @@ function PreferencePreview({ name, value }: { name: keyof Preferences; value: st
   </span>;
 }
 
-function Choices<K extends keyof Preferences>({ name, title, current }: { name: K; title: string; current: Preferences[K] }) {
+function Choices<K extends PreferenceKey>({ name, title, current }: { name: K; title: string; current: Preferences[K] }) {
   const { t } = useI18n();
   return <fieldset className={`preference-${name} flex flex-col gap-2.5`}>
     <legend className="text-sm font-semibold text-ink">{t(title)}</legend>

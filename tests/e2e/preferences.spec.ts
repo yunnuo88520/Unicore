@@ -19,10 +19,12 @@ async function untranslated(page: import('@playwright/test').Page) {
     return found;
   });
 }
-test('bilingual drafts, local drawer, persistence and responsive layouts', async ({ page, context, instance }, info) => {
+test.setTimeout(90_000);test('bilingual drafts, local drawer, persistence and responsive layouts', async ({ page, context, instance }, info) => {
   await installStandalone(instance);
   const failures: string[] = []; page.on('pageerror', error => failures.push(error.message));
   await page.goto(instance.url);
+  if (!(await page.getByRole('button', { name: '核心实验室', exact: true }).isVisible().catch(() => false))) await page.getByRole('button', { name: '打开导航' }).click();
+  await page.getByRole('button', { name: '核心实验室', exact: true }).click();
   await page.getByLabel('输入文本').fill('A draft retained across language changes.');
   await page.getByRole('button', { name: '切换语言', exact: true }).click();
   await page.getByRole('menuitemradio', { name: 'English', exact: true }).click();

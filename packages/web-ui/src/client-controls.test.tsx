@@ -11,6 +11,7 @@ beforeEach(() => { localStorage.clear(); window.location.hash = ''; });
 it('switches by keyboard without replacing drafts or requesting administrator resources', async () => {
   const api = { transport:'http', bootstrap:vi.fn().mockResolvedValue(metadata), execute:vi.fn(), settings:vi.fn(), patchSettings:vi.fn(), updates:{overview:vi.fn()} } as unknown as AppClient;
   render(<Workspace client={api} />);
+  await userEvent.click(await screen.findByRole('button', { name: '核心实验室' }, { timeout: 5000 }));
   const input = await screen.findByLabelText('输入文本');
   await userEvent.clear(input); await userEvent.type(input,'用户自己写的草稿');
   const language = screen.getByRole('button',{name:'切换语言'});

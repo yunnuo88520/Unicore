@@ -10,6 +10,7 @@ function client(): AppClient { return { transport: 'http', bootstrap: vi.fn().mo
 beforeEach(() => { window.location.hash = ''; localStorage.clear(); });
 it('calls the supplied client and displays actual output', async () => {
   const api = client(); render(<Workspace client={api} />);
+  await userEvent.click(await screen.findByRole('button', { name: '核心实验室' }, { timeout: 5000 }));
   await userEvent.click(await screen.findByRole('button', { name: '运行用例' }, { timeout: 5000 }));
   expect(await screen.findByText('执行成功')).toBeVisible();
   expect(screen.getByText('42')).toBeVisible();
@@ -20,6 +21,7 @@ it('calls the supplied client and displays actual output', async () => {
 it('shows recoverable failures and disables blank input', async () => {
   const api = client(); vi.mocked(api.execute).mockRejectedValue(new AppError('INVALID_INPUT', '文本不合法'));
   render(<Workspace client={api} />);
+  await userEvent.click(await screen.findByRole('button', { name: '核心实验室' }, { timeout: 5000 }));
   await userEvent.click(await screen.findByRole('button', { name: '运行用例' }, { timeout: 5000 }));
   expect(await screen.findByRole('alert')).toHaveTextContent('文本不合法');
   await userEvent.clear(screen.getByLabelText('输入文本'));

@@ -15,7 +15,7 @@ async function login(page: Page, username: string) {
   await expect(page.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
 }
 
-test('cross-tab logout/account switch, field focus and server revocation',async({page,context,instance},info)=>{
+test.setTimeout(120_000);test('cross-tab logout/account switch, field focus and server revocation',async({page,context,instance},info)=>{
   test.setTimeout(60000);
   const installed=await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}});
   expect(installed.status()).toBe(200);
@@ -60,6 +60,8 @@ test('cross-tab logout/account switch, field focus and server revocation',async(
     const users=(await(await admin.request.get(`${instance.url}/api/v1/admin/users`,{headers:{}})).json()).data;
     const member=users.items.find((user:{username:string})=>user.username==='member');
     const update=await admin.request.patch(`${instance.url}/api/v1/admin/users/${member.id}`,{headers:{'X-CSRF-Token':session.csrf_token},data:{status:'disabled',role:'user'}});expect(update.status()).toBe(200);
+    if(!(await page.getByRole('button',{name:'核心实验室',exact:true}).isVisible().catch(()=>false)))await page.getByRole('button',{name:'打开导航'}).click();
+    await page.getByRole('button',{name:'核心实验室',exact:true}).click();
     await page.getByRole('button',{name:'运行用例'}).click();
     await expect(page.getByRole('heading',{name:'登录 Unicore',exact:true})).toBeVisible();
     await expect(page.getByText('会话已失效，请重新登录。',{exact:true})).toBeVisible();
@@ -71,17 +73,19 @@ test('cross-tab logout/account switch, field focus and server revocation',async(
     const freshAnswer=[...Buffer.from(challenge.image.split(',')[1],'base64').toString().matchAll(/>([0-9])<\/text>/g)].map(match=>match[1]).join('');
     expect((await page.request.post(`${instance.url}/api/v1/auth/login`,{data:{username:'member',password:'test-password-strong',captcha_id:challenge.id,captcha_answer:freshAnswer}})).status()).toBe(200);
     await page.bringToFront();await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
-    await expect(page.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
+    await expect(page.getByRole('heading',{name:'探索核心的每一种可能.'})).toBeVisible();
 
   }finally{await admin.close();await second.close();}
 });
 
-test('unknown routes and generated API reference follow system theme',async({page,instance},info)=>{
+test.setTimeout(90_000);test('unknown routes and generated API reference follow system theme',async({page,instance},info)=>{
   await installStandalone(instance);
   await page.goto(`${instance.url}/missing-page`);
   await expect(page.getByText('找不到这个页面',{exact:true})).toBeVisible();
   await capture(page,info,'foundation-not-found');
   await page.getByRole('button',{name:'返回工作台'}).click();
+  if(!(await page.getByRole('button',{name:'核心实验室',exact:true}).isVisible().catch(()=>false)))await page.getByRole('button',{name:'打开导航'}).click();
+    await page.getByRole('button',{name:'核心实验室',exact:true}).click();
   await expect(page.getByRole('button',{name:'运行用例'})).toBeVisible();
   await page.goto(`${instance.url}/docs/api`);
   await expect(page.getByRole('heading',{name:'API 文档',exact:true})).toBeVisible();

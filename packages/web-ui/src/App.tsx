@@ -11,7 +11,7 @@ import { MessageProvider } from './ui';
 import { SiteFooter } from './site-footer';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { RouterProvider, Outlet, createBrowserHistory, useRouter, useRouterState, type RouterHistory } from '@tanstack/react-router';
-import { Braces, ChevronRight, ExternalLink, FlaskConical, LayoutDashboard, Mail, Megaphone, Menu, Monitor, NotebookPen, PackageCheck, Radio, RotateCcw, ScrollText, Settings2, ShieldCheck, UserCog, UserRound, Users, Cloud, FolderOpen, Circle, type LucideIcon } from 'lucide-react';
+import { Braces, ChevronRight, ExternalLink, FlaskConical, Info, LayoutDashboard, Mail, Megaphone, Menu, Monitor, NotebookPen, PackageCheck, PanelLeftClose, PanelLeftOpen, Radio, RotateCcw, ScrollText, Settings2, ShieldCheck, UserCog, UserRound, Users, Cloud, FolderOpen, Circle, type LucideIcon } from 'lucide-react';
 import { BrandProvider, BrandMark, BrandLockup } from './brand';
 import type { AppClient, Bootstrap } from '@unicore/sdk';
 import { useTheme, type Theme } from './theme';
@@ -19,7 +19,8 @@ import { DashboardWidgetRegistry } from './registry';
 import { PasswordDialog } from './password-dialog';
 import { SessionBoundary, useSession } from './session';
 import { routes, canAccess, isAdministrator, type Page } from './routes';
-import { Modal, Button, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel } from './ui';
+import { Modal, Button, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, Tooltip } from './ui';
+import { setPreferences, usePreferences } from './preferences';
 import {
   createWorkspaceRouter, pageFromPath, PagePropsProvider, ShellOptionsProvider, NoticeProvider,
   useShellOptions, useSessionNotice, usePageProps, type PageProps, type PageComponent,
@@ -79,6 +80,7 @@ function WorkspaceShell() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [about, setAbout] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const { navCollapsed, layout } = usePreferences();
   const pathname = useRouterState({ select: state => state.location.pathname });
   // location.pathname is already basepath-stripped by the router.
   const page = pageFromPath(pathname);
@@ -134,8 +136,9 @@ function WorkspaceShell() {
       navigationOpen={mobileOpen}
       onNavigationClose={() => setMobileOpen(false)}
       contentClassName={page === 'site' ? 'settings-content' : ''}
+      navigationCollapsed={navCollapsed}
       navigation={<SideNavigation page={page} data={data} client={client} onNavigate={() => setMobileOpen(false)} onAbout={() => { setMobileOpen(false); setAbout(true); }} />}
-      header={<TopBar page={page} data={data} client={client} settingsLabel={settingsLabel} connection={metadata.isSuccess ? 'connected' : metadata.isPending ? 'pending' : 'error'} mobileOpen={mobileOpen} onOpenMobile={() => setMobileOpen(true)} onOpenPassword={() => setPasswordOpen(true)} refresh={refresh} />}
+      header={<TopBar page={page} data={data} client={client} settingsLabel={settingsLabel} connection={metadata.isSuccess ? 'connected' : metadata.isPending ? 'pending' : 'error'} mobileOpen={mobileOpen} onOpenMobile={() => setMobileOpen(true)} onOpenPassword={() => setPasswordOpen(true)} refresh={refresh} navCollapsed={navCollapsed} navToggleVisible={layout !== 'full'} />}
       overlays={<>
         {passwordOpen && client.web && <PasswordDialog web={client.web} onClose={() => setPasswordOpen(false)} />}
         {about && <About onClose={() => setAbout(false)} />}
@@ -161,10 +164,46 @@ function SideNavigation({ page, data, client, onNavigate, onAbout }: {
 }) {
   useLocale();
   const router = useRouter();
+  const { navCollapsed } = usePreferences();
+  const desktop = useMinWidth(768);
   const administration = isAdministrator(data);
   const personalSettings = data.identity_realm !== 'administrator';
   const ROUTE_PATHS: Partial<Record<Page, string>> = { overview: '/' };
   function go(next: Page) { onNavigate(); void router.navigate({ to: ROUTE_PATHS[next] ?? `/${next === 'not-found' ? '' : next}` }); }
+  // Flat, permission-filtered entries drive the collapsed rail; groups exist only in the expanded variant.
+  const entries: { id: Page; icon: LucideIcon; label: string }[] = [];
+  for (const id of ['overview', 'lab', 'notes'] as const) if (canAccess(id, data)) entries.push({ id, icon: id === 'overview' ? LayoutDashboard : id === 'lab' ? FlaskConical : NotebookPen, label: PAGE_LABELS[id] });
+  if (canAccess('files', data)) entries.push({ id: 'files', icon: FolderOpen, label: administration ? t('文件管理') : t('我的文件') });
+  if (administration) for (const id of ['users', 'administrators', 'roles'] as const) if (canAccess(id, data)) entries.push({ id, icon: NAV_ICONS[id] ?? Circle, label: PAGE_LABELS[id] });
+  if (canAccess('site', data)) {
+    if (personalSettings) entries.push({ id: 'site', icon: Settings2, label: t('外观设置') });
+    else {
+      entries.push({ id: 'site', icon: Settings2, label: PAGE_LABELS.site });
+      for (const id of ['mail', 'mail-templates', 'announcements', 'storage', 'logs', 'edition'] as const) if (canAccess(id, data)) entries.push({ id, icon: NAV_ICONS[id] ?? Circle, label: PAGE_LABELS[id] });
+    }
+  }
+  if (!administration && canAccess('edition', data)) entries.push({ id: 'edition', icon: PackageCheck, label: PAGE_LABELS.edition });
+
+  if (navCollapsed && desktop) return <>
+    <div className="flex flex-col items-center pb-2">
+      <a className="flex size-10 items-center justify-center" href="/" onClick={event => { event.preventDefault(); go('overview'); }} aria-label={data.site_name}>
+        <BrandMark size={30} />
+      </a>
+    </div>
+    <nav aria-label={t('主导航')} className="mt-3 flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto pb-2">
+      {entries.map(({ id, icon: Icon, label }) => <Tooltip key={id} label={label}>
+        <button className={`nav-rail-item flex size-10 items-center justify-center rounded-lg transition-colors ${page === id ? 'bg-primary-soft text-accent' : 'text-muted hover:bg-surface-alt hover:text-ink'}`} aria-current={page === id ? 'page' : undefined} aria-label={t(label)} onClick={() => go(id)}>
+          <Icon size={19} aria-hidden="true" />
+        </button>
+      </Tooltip>)}
+    </nav>
+    <div className="shrink-0 border-t border-line pt-2">
+      <Tooltip label={t('关于 {{name}}', { name: productName })}>
+        <button className="nav-rail-item mx-auto flex size-10 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-alt hover:text-ink" aria-label={t('关于 {{name}}', { name: productName })} onClick={onAbout}><Info size={17} aria-hidden="true" /></button>
+      </Tooltip>
+    </div>
+  </>;
+
   return <>
     <div className="px-[7px]">
       <a className={`brand flex gap-[10px] font-extrabold tracking-[-1.1px] text-ink ${data.version
@@ -180,7 +219,7 @@ function SideNavigation({ page, data, client, onNavigate, onAbout }: {
       <span className="flex h-[34px] w-[31px] shrink-0 items-center justify-center rounded-md border border-line bg-surface-alt text-accent"><Braces size={19} aria-hidden="true" /></span>
       <span className="min-w-0"><strong className="block truncate text-[length:var(--font-12)] font-semibold text-ink">{data.site_name ?? t('默认工作空间')}</strong><small className="mt-[5px] block text-[length:var(--font-10)] text-muted">{t('Unicore 应用基座')}</small></span>
     </button>
-    <div className="flex flex-col gap-0.5">
+    <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto pb-2">
       <nav aria-label={t('工作台')} className="flex flex-col gap-0.5">
         {([{ id: 'overview', icon: LayoutDashboard }, { id: 'lab', icon: FlaskConical }, { id: 'notes', icon: NotebookPen }] as const)
           .filter(({ id }) => canAccess(id, data))
@@ -200,8 +239,19 @@ function SideNavigation({ page, data, client, onNavigate, onAbout }: {
           </NavGroup>)}
       {!administration && canAccess('edition', data) && <NavItem icon={PackageCheck} active={page === 'edition'} label={t('系统更新')} onClick={() => go('edition')} />}
     </div>
-    <div className="mt-auto pt-[14px]"><SidebarTools onAbout={onAbout} /></div>
+    <div className="shrink-0 pt-[14px]"><SidebarTools onAbout={onAbout} /></div>
   </>;
+}
+
+function useMinWidth(px: number) {
+  const [match, setMatch] = useState(() => window.matchMedia(`(min-width: ${px}px)`).matches);
+  useEffect(() => {
+    const media = window.matchMedia(`(min-width: ${px}px)`);
+    const update = () => setMatch(media.matches);
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, [px]);
+  return match;
 }
 
 function NavItem({ icon: Icon, label, active, onClick }: { icon: LucideIcon; label: string; active: boolean; onClick: () => void }) {
@@ -232,17 +282,27 @@ function NavEntry({ id, page, onNavigate }: { id: Page; page: Page; onNavigate: 
   </button>;
 }
 
-function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onOpenMobile, onOpenPassword, refresh }: {
+function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onOpenMobile, onOpenPassword, refresh, navCollapsed, navToggleVisible }: {
   page: Page; data: Bootstrap; client: AppClient; settingsLabel: string; connection: 'connected' | 'pending' | 'error';
-  mobileOpen: boolean; onOpenMobile: () => void; onOpenPassword: () => void; refresh: () => void;
+  mobileOpen: boolean; onOpenMobile: () => void; onOpenPassword: () => void; refresh: () => void; navCollapsed: boolean; navToggleVisible: boolean;
 }) {
   useLocale();
   const router = useRouter();
+  const desktop = useMinWidth(768);
   const administration = isAdministrator(data);
   const user = data.current_user;
   return <>
     <div className="flex min-w-0 items-center gap-4 text-[length:var(--font-11)] text-muted max-md:gap-1.5">
-      <button className="mobile-menu size-8 items-center justify-center rounded-md text-muted hover:bg-primary-soft hover:text-accent max-md:-ms-1" aria-label={t('打开导航')} aria-expanded={mobileOpen} aria-controls="workspace-navigation" onClick={onOpenMobile}><Menu size={20} /></button>
+      {desktop && navToggleVisible
+        ? <>
+            <Tooltip label={navCollapsed ? t('展开导航') : t('收起导航')}>
+              <button className="flex size-8 items-center justify-center rounded-md text-muted transition-colors hover:bg-primary-soft hover:text-accent" aria-label={navCollapsed ? t('展开导航') : t('收起导航')} aria-expanded={!navCollapsed} aria-controls="workspace-navigation" onClick={() => setPreferences({ navCollapsed: !navCollapsed })}>
+                {navCollapsed ? <PanelLeftOpen size={19} aria-hidden="true" /> : <PanelLeftClose size={19} aria-hidden="true" />}
+              </button>
+            </Tooltip>
+            <span className="hidden h-[18px] w-px bg-line sm:block" aria-hidden="true" />
+          </>
+        : <button className="mobile-menu size-8 items-center justify-center rounded-md text-muted hover:bg-primary-soft hover:text-accent max-md:-ms-1" aria-label={t('打开导航')} aria-expanded={mobileOpen} aria-controls="workspace-navigation" onClick={onOpenMobile}><Menu size={20} /></button>}
       <span className="hidden max-lg:inline">{t('工作空间')}</span>
       <ChevronRight size={14} className="hidden max-md:block max-lg:hidden text-subtle" aria-hidden="true" />
       <strong className="truncate font-medium text-ink">{page === 'site' ? settingsLabel : t(PAGE_LABELS[page])}</strong>

@@ -5,11 +5,13 @@
 
 ### 中文
 
+- 创建器升级为正式产品生成器：导出即完成 git init、初始基线提交与只读 framework 远端，provenance 新增上游模板版本、生成器版本与产品身份摘要，来源 VERSION 校验 SemVer；派生项目开箱通过 product:check 与 check:residuals。
 - 产品身份唯一来源覆盖全部产品可见面：CLI 帮助文案、Web/桌面 HTML 标题、PWA、词标与主题生成物、openapi 标题、部署启动器/服务/Compose/Nginx/Docker 标签及模板文档令牌均由 product.identity.json 生成；CLI 根命令帮助、邮件主题、更新 UA 与桌面程序名接入身份常量。
 - 新增 product:check 只读门禁与派生项目残留扫描 check:residuals（框架仓库自动跳过）；安装与数据库错误文案去产品化并同步中英文；示例文本与发行 README 改为按身份生成。
 
 ### English
 
+- The creator is now a full product generator: exports complete git init, the initial baseline commit, and the read-only framework remote; provenance gains the upstream template version, generator version, and identity digest, and the source VERSION is validated as SemVer; derived projects pass product:check and check:residuals out of the box.
 - The single product identity source now drives every product-visible surface: CLI help text, Web/desktop HTML titles, PWA manifest, wordmark and theme generations, OpenAPI title, deployment launchers/service/Compose/Nginx/Docker labels, and template document tokens all generate from product.identity.json; CLI root help, email subjects, the updater user-agent, and the desktop program name consume identity constants.
 - Adds the read-only product:check gate and the derived-project residue scan check:residuals (skipped automatically in the framework checkout); installation and database error copy is de-productized with paired zh/en updates; sample text and release READMEs generate from identity.
 

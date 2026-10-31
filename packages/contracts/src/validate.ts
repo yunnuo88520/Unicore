@@ -3,6 +3,7 @@
 import { constraints } from './constraints.gen';
 type Schema = { $ref?: string; type?: string; required?: string[]; properties?: Record<string, Schema>; additionalProperties?: boolean | Schema; items?: Schema; enum?: unknown[]; minLength?: number; maxLength?: number; pattern?: string; format?: string; minimum?: number; maximum?: number; minItems?: number; maxItems?: number; uniqueItems?: boolean; 'x-max-utf8-bytes'?: number };
 const schemas = constraints as Record<string, Schema>;
+export { constraints };
 export type SchemaName = keyof typeof constraints;
 export function validate(name: SchemaName, value: unknown): Record<string, string> {
   const errors: Record<string, string> = Object.create(null);

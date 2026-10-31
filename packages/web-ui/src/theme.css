@@ -1,0 +1,143 @@
+/* Author: yunnuo <ymz@ebox.vip>
+ * Description: Tailwind v4 entry bridging the generated design tokens; component styles live in src/ui.
+ * Spacing utilities are pixel values driven by --space-unit (density preference), e.g. p-12 = 12px * scale.
+ */
+@import "tailwindcss";
+@import "./tokens.gen.css";
+@import "./preferences.css";
+
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+@theme inline {
+  /* Palette mapped onto runtime tokens that switch with [data-theme]/[data-accent]. */
+  --color-background: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-alt: var(--surface-alt);
+  --color-ink: var(--text);
+  --color-muted: var(--muted);
+  --color-line: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-line: var(--primary-border);
+  --color-on-primary: var(--on-primary);
+  --color-button: var(--button-primary);
+  --color-button-hover: var(--button-hover);
+  --color-accent: var(--brand-accent);
+  --color-accent-soft: var(--brand-highlight);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-line: var(--danger-border);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-focus: var(--focus);
+  --color-subtle: var(--subtle);
+  --color-avatar: var(--avatar-bg);
+  --color-avatar-ink: var(--avatar-text);
+  --color-banner-from: var(--banner-start);
+  --color-banner-to: var(--banner-end);
+  --color-banner-ink: var(--banner-text);
+  --color-banner-muted: var(--banner-muted);
+  --color-glass: var(--glass);
+  --color-scrim: var(--scrim);
+
+  /* Radii follow --ui-radius-scale. */
+  --radius-xs: var(--radius-4);
+  --radius-sm: var(--radius-6);
+  --radius-md: var(--radius-8);
+  --radius-lg: var(--radius-10);
+  --radius-xl: var(--radius-12);
+  --radius-2xl: var(--radius-16);
+  --radius-3xl: var(--radius-20);
+
+  /* Font sizes follow --ui-font-scale. */
+  --text-2xs: var(--font-10);
+  --text-2xs--line-height: 1.4;
+  --text-xs: var(--font-11);
+  --text-xs--line-height: 1.45;
+  --text-sm: var(--font-12);
+  --text-sm--line-height: 1.5;
+  --text-base: var(--font-13);
+  --text-base--line-height: 1.55;
+  --text-md: var(--font-15);
+  --text-md--line-height: 1.5;
+  --text-lg: var(--font-17);
+  --text-lg--line-height: 1.45;
+  --text-xl: var(--font-20);
+  --text-xl--line-height: 1.35;
+  --text-2xl: var(--font-23);
+  --text-2xl--line-height: 1.3;
+  --text-3xl: var(--font-27);
+  --text-3xl--line-height: 1.25;
+  --text-4xl: var(--font-32);
+  --text-4xl--line-height: 1.2;
+
+  /* One spacing step equals one design pixel scaled by --ui-space-scale. */
+  --spacing: var(--space-unit);
+
+  /* Motion tokens. */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Structural widths from tokens. */
+  --container-sidebar: var(--sidebar);
+  --container-sidebar-compact: var(--sidebar-compact);
+  --container-sidebar-small: var(--sidebar-small);
+  --container-content: var(--content-max);
+  --container-dialog: var(--dialog-max);
+
+  /* Breakpoints aligned with the responsive acceptance matrix (375/767/768/1023/1199/1500). */
+  --breakpoint-sm: 480px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1200px;
+  --breakpoint-2xl: 1500px;
+
+  /* Shadows from tokens. */
+  --shadow-card: var(--shadow);
+  --shadow-tint: var(--shadow-tint);
+  --shadow-modal: var(--shadow-modal);
+
+  --icon-stroke: var(--icon-stroke);
+}
+
+@layer base {
+  html { color-scheme: light; }
+  html[data-theme="dark"] { color-scheme: dark; }
+  body { @apply bg-background text-ink font-sans text-base antialiased; }
+  ::selection { background: var(--primary-soft); }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+}
+
+@layer components {
+  /* Rendered rich HTML (announcements, mail template previews) and Tiptap editable content
+     share the same constrained tag set; both need typography since the legacy CSS is gone. */
+  .rich-content { @apply text-base leading-relaxed text-ink; }
+  .rich-content p { @apply my-2 first:mt-0 last:mb-0; }
+  .rich-content strong, .rich-content b { @apply font-semibold; }
+  .rich-content em, .rich-content i { @apply italic; }
+  .rich-content ul { @apply my-2 list-disc ps-5; }
+  .rich-content ol { @apply my-2 list-decimal ps-5; }
+  .rich-content li { @apply my-1; }
+  .rich-content a { @apply text-accent underline underline-offset-2 break-all; }
+  .rich-content blockquote { @apply my-2 border-s-2 border-line ps-3 text-muted; }
+  .rich-content code { @apply rounded-xs bg-surface-alt px-1 font-mono text-xs; }
+  .rich-content h1, .rich-content h2, .rich-content h3 { @apply my-3 font-semibold text-ink first:mt-0; }
+  .rich-content h1 { @apply text-xl; }
+  .rich-content h2 { @apply text-lg; }
+  .rich-content h3 { @apply text-md; }
+
+  .tiptap { @apply text-base leading-relaxed text-ink outline-none min-h-24; }
+  .tiptap p { @apply my-2 first:mt-0 last:mb-0; }
+  .tiptap ul { @apply my-2 list-disc ps-5; }
+  .tiptap a { @apply text-accent underline underline-offset-2 break-all; }
+  .tiptap p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    @apply pointer-events-none float-left h-0 text-muted;
+  }
+}

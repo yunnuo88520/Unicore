@@ -1029,5 +1029,10 @@
   "用于确认你拥有服务器，防止他人抢先创建管理员。服务器首次启动已自动生成，请从私有数据目录的 bootstrap.token 文件读取；它与加密密钥不同，也不会存入浏览器。凭据失效时，删除数据目录中的 bootstrap.token 并重启服务即可重新生成。": "Proves server ownership and prevents someone else from creating the administrator first. Read the generated bootstrap.token in the private data directory. It is separate from encryption keys and is never saved in the browser. If a credential becomes unusable, delete bootstrap.token in the data directory and restart the server to generate a new one.",
   "关闭 · 本机或内网直连": "Off · Local or intranet direct connection",
   "开启 · 加密连接，不校验证书": "On · Encrypted connection, certificates not verified",
-  "请先创建当前实例独占的数据库并授权。安装会初始化目标库；已有表和视图的数据会在明确确认后清空，请提前备份。连接信息加密保存。目标库未启用 TLS 时保持默认关闭；开启后仅加密传输，不校验服务器证书，内网自签名证书可直接使用。": "Create a dedicated database and grant access first. Setup initializes it, clearing existing tables and views only after explicit confirmation. Back up first. Connection details are encrypted. Keep TLS off by default when the target database does not enable it; turning it on encrypts traffic without certificate verification, so self-signed intranet certificates work."
+  "请先创建当前实例独占的数据库并授权。安装会初始化目标库；已有表和视图的数据会在明确确认后清空，请提前备份。连接信息加密保存。目标库未启用 TLS 时保持默认关闭；开启后仅加密传输，不校验服务器证书，内网自签名证书可直接使用。": "Create a dedicated database and grant access first. Setup initializes it, clearing existing tables and views only after explicit confirmation. Back up first. Connection details are encrypted. Keep TLS off by default when the target database does not enable it; turning it on encrypts traffic without certificate verification, so self-signed intranet certificates work.",
+  "趋势图": "Trend chart",
+  "分布图": "Distribution chart",
+  "占比图": "Share chart",
+  "关闭对话框": "Close dialog",
+  "https:// 或 {{site_url}}": "https:// or {{site_url}}"
 }

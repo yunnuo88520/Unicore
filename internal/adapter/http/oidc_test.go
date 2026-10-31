@@ -136,12 +136,12 @@ func TestOIDCHTTP(t *testing.T) {
 	path := callback(auth)
 	wrong := request("GET", path, nil, "", "", "wrong", "")
 	assert(wrong, 303)
-	if wrong.Header().Get("Location") != "/#oidc=failed" {
+	if wrong.Header().Get("Location") != "/?oidc=failed" {
 		t.Fatal("browser proof ignored")
 	}
 	w := request("GET", path, nil, "", "", proof, "")
 	assert(w, 303)
-	if w.Header().Get("Location") != "/#oidc=success" || w.Header().Get("Referrer-Policy") != "no-referrer" {
+	if w.Header().Get("Location") != "/?oidc=success" || w.Header().Get("Referrer-Policy") != "no-referrer" {
 		t.Fatal("callback result", w.Header())
 	}
 	var sessionCookieValue string
@@ -156,7 +156,7 @@ func TestOIDCHTTP(t *testing.T) {
 	}
 	assert(request("GET", "/admin/users", nil, sessionCookieValue, "", "", ""), 403)
 	w = request("GET", path, nil, "", "", proof, "")
-	if w.Header().Get("Location") != "/#oidc=failed" {
+	if w.Header().Get("Location") != "/?oidc=failed" {
 		t.Fatal("callback replay")
 	}
 	// Changing a configuration after authorization also rejects a valid signed identity.
@@ -167,7 +167,7 @@ func TestOIDCHTTP(t *testing.T) {
 		t.Fatal(err)
 	}
 	w = request("GET", path, nil, "", "", proof, "")
-	if w.Header().Get("Location") != "/#oidc=failed" {
+	if w.Header().Get("Location") != "/?oidc=failed" {
 		t.Fatal("disabled provider accepted")
 	}
 	// Existing password login always remains available when the IdP is disabled.

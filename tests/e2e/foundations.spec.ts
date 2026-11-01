@@ -84,8 +84,7 @@ test.setTimeout(90_000);test('unknown routes and generated API reference follow 
   await expect(page.getByText('找不到这个页面',{exact:true})).toBeVisible();
   await capture(page,info,'foundation-not-found');
   await page.getByRole('button',{name:'返回工作台'}).click();
-  if(!(await page.getByRole('button',{name:'核心实验室',exact:true}).isVisible().catch(()=>false)))await page.getByRole('button',{name:'打开导航'}).click();
-    await page.getByRole('button',{name:'核心实验室',exact:true}).click();
+  await page.goto(`${instance.url}/lab`);
   await expect(page.getByRole('button',{name:'运行用例'})).toBeVisible();
   await page.goto(`${instance.url}/docs/api`);
   await expect(page.getByRole('heading',{name:'API 文档',exact:true})).toBeVisible();

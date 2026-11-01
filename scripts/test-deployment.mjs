@@ -174,13 +174,13 @@ async function exercise(mode,profile) {
       const member=await browser.newContext({baseURL:url,viewport:{width:375,height:812}});
       try {
         for(const operation of management)expect((await member.request.fetch(operation.path.replace('{id}','missing'),{method:operation.method,...(operation.method==='GET'?{}:{data:{}})})).status(),`${operation.method} ${operation.path}`).toBe(401);
-        const personal=await member.newPage();await personal.goto(`${url}/#site?tab=mail`);
+        const personal=await member.newPage();await personal.goto(`${url}/site?tab=mail`);
         await personal.getByLabel('账号或邮箱').fill('member');await personal.getByLabel('密码',{exact:true}).fill('test-password-strong');
         const src=await personal.getByAltText('六位数字验证码，点击刷新').getAttribute('src');
         const answer=[...Buffer.from(src.split(',')[1],'base64').toString().matchAll(/>([0-9])<\/text>/g)].map(match=>match[1]).join('');
         await personal.getByLabel('图形验证码',{exact:true}).fill(answer);await personal.getByRole('button',{name:'登录工作空间'}).click();
         await expect(personal.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
-        await personal.goto(`${url}/#site`);
+        await personal.goto(`${url}/site`);
         await expect(personal.getByText('仅当前客户端',{exact:true})).toBeVisible();
         const metadata=(await(await member.request.get('/api/v1/bootstrap')).json()).data;
         expect(metadata.current_user.roles).toEqual(['user']);expect(metadata.current_user.permissions).toEqual([]);

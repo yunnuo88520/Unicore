@@ -7,6 +7,14 @@ import { capture } from './visual';
 test('settings audit: site identity, ICP, ICO and compile-time update capabilities', async ({ page, instance }, info) => {
   const installed=await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}});expect(installed.status()).toBe(200);
   await page.goto(`${instance.url}/admin/site`);
+  await expect(page.getByLabel('页脚版权',{exact:true})).toHaveValue('Crafted by Yunnuo');
+  await expect(page.locator('footer')).toContainText('Crafted by Yunnuo');
+  await expect(page.locator('footer')).not.toContainText('Go + React');
+  await expect(page.locator('footer')).not.toContainText(/v\d+\.\d+\.\d+/);
+  // Existing installations keep their stored value; only the known legacy default is presented with the corrected case.
+  const initialBootstrap=(await(await page.request.get(`${instance.url}/api/v1/admin/bootstrap`)).json()).data;
+  expect((await page.request.patch(`${instance.url}/api/v1/admin/settings`,{headers:{'X-CSRF-Token':initialBootstrap.csrf_token},data:{changes:[{key:'site.copyright',value:'Crafted by yunnuo'}]}})).status()).toBe(200);
+  await page.reload();await expect(page.locator('footer')).toContainText('Crafted by Yunnuo');
   const mainTabs = page.getByRole('tablist', { name: '设置分组', exact: true });
   await expect(page.getByRole('tablist')).toHaveCount(1);
   await expect(page.getByRole('button', { name: '外观设置', exact: true })).toHaveCount(0);

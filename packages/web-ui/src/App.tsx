@@ -153,7 +153,6 @@ function WorkspaceShell() {
           : !permitted
             ? <StateCard tone="error" icon={<ShieldCheck size={26} className="text-danger" />} title={t('没有访问权限')} detail={t('请联系实例管理员授予相关权限。')} />
             : page === 'not-found' ? <NotFoundPage /> : <Outlet />}
-      {!metadata.isPending && !metadata.isError && <div className="mt-6 flex items-center gap-1.5 text-2xs text-subtle"><Braces size={13} aria-hidden="true" /><span>{t('文本分析不保存输入，外观偏好仅在当前客户端生效。')}</span></div>}
       <SiteFooter metadata={data} />
     </WorkspaceLayout>
   </PagePropsProvider>;

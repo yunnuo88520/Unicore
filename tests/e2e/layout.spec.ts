@@ -67,6 +67,7 @@ test('navigation defaults to wide closed groups and the rail keeps children in k
   expect(installed.status()).toBe(200);
   await page.goto(`${instance.url}/admin`);
   await expect(page.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
+  await expect(page.getByText('文本分析不保存输入，外观偏好仅在当前客户端生效。',{exact:true})).toHaveCount(0);
   if(info.project.name==='mobile')await page.getByRole('button',{name:'打开导航',exact:true}).click();
   const sidebar=page.locator('.sidebar');
   expect((await sidebar.boundingBox())!.width).toBeGreaterThan(200);

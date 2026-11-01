@@ -5,6 +5,8 @@
 
 ### 中文
 
+- 精简全局页脚为版权与可选备案信息，移除重复版本/技术栈和误放到所有页面的文本分析说明；默认署名显示为 Crafted by Yunnuo，兼容旧默认值并保留自定义版权。
+
 - 导航默认保持宽侧栏并折叠菜单分组，窄栏只显示一级入口且通过分组弹出子菜单；修正内嵌/悬浮模式的顶部圆角、容器间距与明暗主题一致性。
 - 派生创建器支持 --repository 配置独立 origin、界面文档和反馈链接，保留作者/许可及只读上游；修复远端模板引用的共同祖先初始化，并让新界面标题、数据库/存储默认值跟随产品身份。
 
@@ -14,6 +16,8 @@
 - 新增 product:check 只读门禁与派生项目残留扫描 check:residuals（框架仓库自动跳过）；安装与数据库错误文案去产品化并同步中英文；示例文本与发行 README 改为按身份生成。
 
 ### English
+
+- Keep the global footer to copyright and optional registration details, removing duplicate version/stack labels and the lab-specific text-analysis note from shared pages. Display the default credit as Crafted by Yunnuo, including the legacy default, while preserving custom copyright text.
 
 - Keep the sidebar wide by default with collapsed menu groups; the rail shows only top-level entries and opens group menus for children. Align header corners, container spacing and light/dark surfaces in inset and floating layouts.
 - Let the creator configure an independent origin, UI documentation and feedback links with --repository while preserving authorship, licensing and a read-only upstream. Fix common-ancestor initialization from remote template refs and apply product identity to new UI headings and database/storage defaults.

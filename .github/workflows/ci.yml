@@ -73,10 +73,15 @@ jobs:
       - uses: actions/upload-artifact@v7
         with: { name: web-cli-preview, path: build/releases/ }
   native-desktop:
+    # Keep the protected check name stable while moving off the retired macOS 14 image.
+    name: native-desktop (${{ matrix.check_name || matrix.os }})
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, macos-14, windows-latest]
+        os: [ubuntu-22.04, macos-15, windows-latest]
+        include:
+          - os: macos-15
+            check_name: macos-14
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7

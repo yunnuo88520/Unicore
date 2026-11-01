@@ -46,6 +46,8 @@ Node 开发/CI 基线保留 22 系列，@types/node 随基线维护；TypeScript
 
 PR 合并前要求检查通过，并限制强制推送和删除。当前必需 job 名称为 quality、docker-build、scan，以及 native-desktop (ubuntu-22.04)、native-desktop (macos-14)、native-desktop (windows-latest)，绑定 GitHub Actions app（15368）。规则要求分支基于最新 main、对话解决、线性历史；无 bypass actor，管理员也走 PR。正常用 Squash 合并，不能再直接 push main。
 
+macOS 原生构建实际使用 `macos-15` runner；`macos-14` 镜像退役后仍保留历史检查名称 `native-desktop (macos-14)`，以匹配现有分支保护要求。该检查继续执行真实 macOS 原生构建、打包与 DMG 验证，不因名称兼容而跳过。
+
 单维护者阶段审批数为 0，不设置自己无法满足的“必须由他人批准”；代码仍需全部检查。多人协作后可要求 1 名其他维护者批准。仓库管理员保留编辑规则的能力用于修复规则错误，但不设置持续绕过权限。规则属于 GitHub 设置，不随源码自动生效。
 
 Actions 保持最小权限，fork PR 不提供发布密钥，不使用 pull_request_target 执行贡献者代码。当前候选 workflow 的 id-token/attestations 写权限仅限候选 job；正式发布另使用受保护 environment 和受限 registry/GitHub 凭据。

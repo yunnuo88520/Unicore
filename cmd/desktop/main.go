@@ -26,6 +26,7 @@ import (
 	"github.com/yunnuo/unicore/internal/adapter/storage/notessql"
 	"github.com/yunnuo/unicore/internal/bootstrap"
 	"github.com/yunnuo/unicore/internal/bootstrap/local"
+	"github.com/yunnuo/unicore/internal/buildinfo"
 	"github.com/yunnuo/unicore/internal/usecase"
 )
 
@@ -90,7 +91,7 @@ func runDesktop() (result error) {
 		Title:      theme.Current.Brand.Name, Width: 1280, Height: 840, MinWidth: 375, MinHeight: 600,
 		BackgroundColour: nativeBackground(),
 		Mac:              &mac.Options{About: &mac.AboutInfo{Title: theme.Current.Brand.Name, Message: "Go + React · yunnuo · ymz@ebox.vip", Icon: brand.AppIcon}},
-		Linux:            &linux.Options{Icon: brand.AppIcon, ProgramName: "unicore", WebviewGpuPolicy: linux.WebviewGpuPolicyNever},
+		Linux:            &linux.Options{Icon: brand.AppIcon, ProgramName: buildinfo.ProductSlug, WebviewGpuPolicy: linux.WebviewGpuPolicyNever},
 		AssetServer:      &assetserver.Options{Assets: desktopassets.FS()},
 		Bind:             []interface{}{bridge},
 	}); err != nil {

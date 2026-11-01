@@ -7,5 +7,5 @@ export function safeContentHTML(value:string){
  const walk=(parent:Element)=>{for(const child of [...parent.children]){if(!allowed.has(child.tagName)){child.remove();continue;}for(const attribute of [...child.attributes]){let valid=false;if(child.tagName==='A'&&attribute.name==='href'){try{const url=new URL(attribute.value);valid=['http:','https:'].includes(url.protocol)&&!!url.hostname&&!url.username&&!url.password;}catch{/* Unsafe links lose their href. */}}if(!valid)child.removeAttribute(attribute.name);}walk(child);}};
  walk(doc.body);return doc.body.innerHTML;
 }
-export function RichContent({html}:{html:string}){const safe=useMemo(()=>safeContentHTML(html),[html]);return <div className="announcement-content rich-surface" dangerouslySetInnerHTML={{__html:safe}}/>;}
+export function RichContent({html}:{html:string}){const safe=useMemo(()=>safeContentHTML(html),[html]);return <div className="rich-content" dangerouslySetInnerHTML={{__html:safe}}/>;}
 export function contentSummary(source:string){return new DOMParser().parseFromString(source,'text/html').body.textContent?.replace(/\s+/g,' ').trim()??'';}

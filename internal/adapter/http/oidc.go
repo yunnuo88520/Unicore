@@ -179,12 +179,12 @@ func mountOIDC(api chi.Router, config Config) {
 			} else {
 				setSession(m, w, token, session.ExpiresAt, r)
 			}
-			destination := "/#oidc=" + result
+			destination := "/?oidc=" + result
 			if mode == "link" {
-				destination = "/#account?oidc=" + result
+				destination = "/account?oidc=" + result
 			}
 			if admin {
-				destination = m.AdminPath(r.Context()) + strings.TrimPrefix(destination, "/")
+				destination = strings.TrimSuffix(m.AdminPath(r.Context()), "/") + destination
 			}
 			http.Redirect(w, r, destination, http.StatusSeeOther)
 		})

@@ -4,3 +4,4 @@ packages:
   - packages/*
 allowBuilds:
   esbuild: true
+pmOnFail: ignore # The pinned @pnpm/exe@11.25.0 ships no darwin-x64 binary; hosts on pnpm 12 skip the version switch.

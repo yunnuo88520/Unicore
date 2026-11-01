@@ -6,7 +6,7 @@ import { capture } from './visual';
 
 test('settings audit: site identity, ICP, ICO and compile-time update capabilities', async ({ page, instance }, info) => {
   const installed=await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}});expect(installed.status()).toBe(200);
-  await page.goto(`${instance.url}/admin#site`);
+  await page.goto(`${instance.url}/admin/site`);
   const mainTabs = page.getByRole('tablist', { name: '设置分组', exact: true });
   await expect(page.getByRole('tablist')).toHaveCount(1);
   await expect(page.getByRole('button', { name: '外观设置', exact: true })).toHaveCount(0);
@@ -50,7 +50,7 @@ test('settings audit: site identity, ICP, ICO and compile-time update capabiliti
   await capture(page, info, 'settings-site-tabs');
   await mainTabs.getByRole('tab', { name: '品牌图片', exact: true }).click();
   const icon = page.getByRole('form', { name: '站点图标', exact: true });
-  await icon.getByLabel('选择站点图标').setInputFiles({ name: 'favicon.ico', mimeType: 'image/x-icon', buffer: await readFile('apps/web/static/favicon.ico') });
+  await icon.locator('input[type="file"]').setInputFiles({ name: 'favicon.ico', mimeType: 'image/x-icon', buffer: await readFile('apps/web/static/favicon.ico') });
   await expect(icon.getByText('待保存预览，点击保存后生效。')).toBeVisible();
   await icon.getByRole('button', { name: '保存站点图标' }).click();
   await expect(page.getByText('图片已保存', { exact: true })).toBeVisible();
@@ -64,7 +64,7 @@ test('settings audit: site identity, ICP, ICO and compile-time update capabiliti
   const bootstrap = (await (await page.request.get(`${instance.url}/api/v1/admin/bootstrap`)).json()).data;
   const license = process.env.FEATURE_LICENSE === 'true', updater = process.env.FEATURE_UPDATER !== 'false';
   expect(bootstrap.capabilities.license).toBe(license); expect(bootstrap.capabilities.updater).toBe(updater);
-  await page.goto(`${instance.url}/admin#edition`);
+  await page.goto(`${instance.url}/admin/edition`);
   if (license) await expect(page.getByText('待对接',{exact:true})).toBeVisible();
   if (license || updater) {
     await expect(page.getByRole('heading', { name: '授权检测', exact: true })).toHaveCount(license ? 1 : 0);
@@ -77,7 +77,7 @@ test('settings audit: site identity, ICP, ICO and compile-time update capabiliti
   await capture(page, info, `settings-edition-${license}-${updater}`);
   const invalid = await page.request.patch(`${instance.url}/api/v1/admin/settings`, { headers:{'X-CSRF-Token':bootstrap.csrf_token}, data: { changes: [{ key: 'site.icp_url', value: 'javascript:alert(1)' }] } });
   expect(invalid.status()).toBe(400);
-  await page.goto(`${instance.url}/admin#site`);
+  await page.goto(`${instance.url}/admin/site`);
   await page.getByLabel('备案号（ICP）', { exact: true }).fill('');
   await page.getByRole('button', { name: '保存设置', exact: true }).click();
   await expect(page.getByRole('link', { name: '测试ICP备00000000号', exact: true })).toHaveCount(0);
@@ -86,7 +86,7 @@ test('settings audit: site identity, ICP, ICO and compile-time update capabiliti
 test('settings audit: platform security defaults, alias, admin path and public footer', async ({ page, instance }, info) => {
   const installed = await page.request.post(`${instance.url}/api/v1/install/complete`, { headers: { 'X-Bootstrap-Token': instance.token }, data: { profile: 'web-platform', database: { driver: 'sqlite', dsn: '' }, site_name: '设置平台', base_url: instance.url, admin_username: 'admin', admin_email: 'admin@example.test', admin_password: 'test-password-strong' } });
   expect(installed.status()).toBe(200);
-  await page.goto(`${instance.url}/admin#site`);
+  await page.goto(`${instance.url}/admin/site`);
   await page.getByLabel('页脚版权', { exact: true }).fill('平台版权示例');
   await page.getByLabel('备案号（ICP）', { exact: true }).fill('测试ICP备00000001号');
   await page.getByRole('button', { name: '保存设置', exact: true }).click();
@@ -99,7 +99,7 @@ test('settings audit: platform security defaults, alias, admin path and public f
   await page.getByRole('button', { name: '保存设置', exact: true }).click();
   await expect(page.getByRole('button', { name: '保存设置', exact: true })).toBeDisabled();
   await capture(page, info, 'settings-security-tabs');
-  await page.goto(`${instance.url}/control#mail`);
+  await page.goto(`${instance.url}/control/mail`);
   await page.getByLabel('发件人别名', { exact: true }).fill('Unicore Notices');
   await page.getByRole('button', { name: '保存设置', exact: true }).click();
   await expect(page.getByRole('button', { name: '保存设置', exact: true })).toBeDisabled();
@@ -110,11 +110,11 @@ test('settings audit: platform security defaults, alias, admin path and public f
   await capture(page, info, 'settings-smtp-tabs');
   await expect(page.getByRole('tab')).toHaveCount(0);
   await expect(page.getByRole('button',{name:'发送测试',exact:true})).toBeVisible();
-  await page.goto(`${instance.url}/control#logs`);
+  await page.goto(`${instance.url}/control/logs`);
   await page.getByRole('tab',{name:'邮件投递',exact:true}).click();
   await expect(page.getByText('暂无邮件任务',{exact:true})).toBeVisible();
   await page.getByRole('button',{name:'账号菜单',exact:true}).click();
-  await page.getByRole('button',{name:'退出登录',exact:true}).click();
+  await page.getByRole('menuitem',{name:'退出登录',exact:true}).click();
   await expect(page.getByRole('heading',{name:'管理员登录 · 设置平台',exact:true})).toBeVisible();
   await expect(page.locator('footer')).toContainText('平台版权示例');
   await expect(page.getByRole('link', { name: '测试ICP备00000001号', exact: true })).toBeVisible();

@@ -18,10 +18,15 @@
 | contract | [packages/contracts/openapi.json](../../packages/contracts/openapi.json) |
 | theme | [assets/theme/tokens.json](../../assets/theme/tokens.json) |
 | brand | [assets/brand/identity.json](../../assets/brand/identity.json) |
+| productIdentity | [product.identity.json](../../product.identity.json) |
+| productIdentityStandard | [docs/02-standards/product-identity.md](../../docs/02-standards/product-identity.md) |
 | instanceBrand | [internal/branding/service.go](../../internal/branding/service.go) |
 | settings | [internal/settings/service.go](../../internal/settings/service.go) |
 | edition | [scripts/build-features.mjs](../../scripts/build-features.mjs) |
 | routes | [packages/web-ui/src/routes.ts](../../packages/web-ui/src/routes.ts) |
+| router | [packages/web-ui/src/router.tsx](../../packages/web-ui/src/router.tsx) |
+| uiPrimitives | [packages/web-ui/src/ui/index.ts](../../packages/web-ui/src/ui/index.ts) |
+| formLayer | [packages/web-ui/src/lib/form.tsx](../../packages/web-ui/src/lib/form.tsx) |
 | session | [packages/web-ui/src/session.tsx](../../packages/web-ui/src/session.tsx) |
 | migrations | [migrations](../../migrations) |
 | databaseMigrationStandard | [docs/02-standards/database-migrations.md](../../docs/02-standards/database-migrations.md) |
@@ -54,7 +59,7 @@
 | adminTools | [docs/03-runbooks/admin-tools.md](../../docs/03-runbooks/admin-tools.md) |
 | auditMetadata | [internal/audit/context.go](../../internal/audit/context.go) |
 | mailContent | [internal/mailcontent/template.go](../../internal/mailcontent/template.go) |
-| richTextEditor | [packages/web-ui/src/rich-text-editor.tsx](../../packages/web-ui/src/rich-text-editor.tsx) |
+| richTextEditor | [packages/web-ui/src/ui/editor.tsx](../../packages/web-ui/src/ui/editor.tsx) |
 | backendStandards | [docs/02-standards/backend.md](../../docs/02-standards/backend.md) |
 | baseEntity | [internal/domain/entity.go](../../internal/domain/entity.go) |
 | announcements | [docs/03-runbooks/announcements.md](../../docs/03-runbooks/announcements.md) |
@@ -64,7 +69,7 @@
 | migrationMetadata | [migrations/metadata.gen.json](../../migrations/metadata.gen.json) |
 | migrationGenerator | [scripts/generate-migrations.mjs](../../scripts/generate-migrations.mjs) |
 
-OpenAPI 当前包含 133 个 operation、140 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
+OpenAPI 当前包含 132 个 operation、137 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
 
 | 任务 Skill | 用途 |
 | --- | --- |

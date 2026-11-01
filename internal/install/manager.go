@@ -317,25 +317,6 @@ func (m *Manager) authorized(token string) error {
 	}
 	return nil
 }
-func (m *Manager) RotateToken(token string) (contracts.InstallToken, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if err := m.authorized(token); err != nil {
-		return contracts.InstallToken{}, err
-	}
-	next := platform.Token()
-	if err := secret.AtomicWrite(m.TokenPath(), []byte(next+"\n")); err != nil {
-		return contracts.InstallToken{}, err
-	}
-	previous := m.config.TokenHash
-	m.config.TokenHash = platform.Hash(next)
-	if err := m.save(); err != nil {
-		m.config.TokenHash = previous
-		_ = secret.AtomicWrite(m.TokenPath(), []byte(token+"\n"))
-		return contracts.InstallToken{}, err
-	}
-	return contracts.InstallToken{Token: next}, nil
-}
 func (m *Manager) Verify(ctx context.Context, token string, input contracts.DatabaseInput) (contracts.DatabaseCheck, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()

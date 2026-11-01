@@ -320,12 +320,7 @@ export const constraints = {
         "maxLength": 1024
       },
       "tls": {
-        "type": "string",
-        "enum": [
-          "auto",
-          "require",
-          "disable"
-        ]
+        "type": "boolean"
       }
     }
   },
@@ -1789,20 +1784,6 @@ export const constraints = {
       }
     }
   },
-  "InstallToken": {
-    "type": "object",
-    "additionalProperties": false,
-    "required": [
-      "token"
-    ],
-    "properties": {
-      "token": {
-        "type": "string",
-        "minLength": 32,
-        "maxLength": 256
-      }
-    }
-  },
   "DatabaseCheckResponse": {
     "type": "object",
     "additionalProperties": false,
@@ -1826,35 +1807,6 @@ export const constraints = {
         "type": "string"
       }
     }
-  },
-  "InstallTokenResponse": {
-    "type": "object",
-    "additionalProperties": false,
-    "required": [
-      "code",
-      "message",
-      "data",
-      "request_id"
-    ],
-    "properties": {
-      "code": {
-        "type": "string"
-      },
-      "message": {
-        "type": "string"
-      },
-      "data": {
-        "$ref": "#/components/schemas/InstallToken"
-      },
-      "request_id": {
-        "type": "string"
-      }
-    }
-  },
-  "InstallTokenRotate": {
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {}
   },
   "ChangePasswordInput": {
     "type": "object",

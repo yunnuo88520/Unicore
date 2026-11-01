@@ -89,7 +89,7 @@ type DatabaseInput struct {
 	Name     *string `json:"name,omitempty"`
 	Username *string `json:"username,omitempty"`
 	Password *string `json:"password,omitempty"`
-	Tls      *string `json:"tls,omitempty"`
+	Tls      *bool   `json:"tls,omitempty"`
 }
 
 type EnvironmentCheck struct {
@@ -493,25 +493,11 @@ type DatabaseCheck struct {
 	Initialized  bool   `json:"initialized"`
 }
 
-type InstallToken struct {
-	Token string `json:"token"`
-}
-
 type DatabaseCheckResponse struct {
 	Code      string        `json:"code"`
 	Message   string        `json:"message"`
 	Data      DatabaseCheck `json:"data"`
 	RequestID string        `json:"request_id"`
-}
-
-type InstallTokenResponse struct {
-	Code      string       `json:"code"`
-	Message   string       `json:"message"`
-	Data      InstallToken `json:"data"`
-	RequestID string       `json:"request_id"`
-}
-
-type InstallTokenRotate struct {
 }
 
 type ChangePasswordInput struct {

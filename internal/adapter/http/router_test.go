@@ -89,6 +89,43 @@ func TestInvalidRequests(t *testing.T) {
 	}
 }
 
+func TestFetchSiteMetadataAuthorizesSamePageRequests(t *testing.T) {
+	body := `{"text":"hi"}`
+	for _, tc := range []struct {
+		name, origin, fetchSite string
+		status                  int
+	}{
+		// Gateways and tunnels legitimately rewrite Host; browser-asserted fetch
+		// metadata must keep same-page requests working.
+		{"rewritten host, same-origin", "https://unicore.example", "same-origin", 200},
+		{"no origin, same-origin", "", "same-origin", 200},
+		{"cross-site", "http://localhost:8080", "cross-site", 403},
+		{"mismatch without metadata", "https://attacker.example", "", 403},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := httptest.NewRequest("POST", "http://localhost/api/v1/core/execute", strings.NewReader(body))
+			r.Header.Set("Content-Type", "application/json")
+			if tc.origin != "" {
+				r.Header.Set("Origin", tc.origin)
+			}
+			if tc.fetchSite != "" {
+				r.Header.Set("Sec-Fetch-Site", tc.fetchSite)
+			}
+			w := httptest.NewRecorder()
+			handler().ServeHTTP(w, r)
+			if w.Code != tc.status {
+				t.Fatalf("got %d %s", w.Code, w.Body.String())
+			}
+			if tc.status == 200 {
+				var response contracts.ExecuteResponse
+				if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil || response.Code != "OK" {
+					t.Fatalf("accepted request failed: %s", w.Body.String())
+				}
+			}
+		})
+	}
+}
+
 func TestAPINeverFallsBackToHTML(t *testing.T) {
 	for _, tc := range []struct {
 		path    string

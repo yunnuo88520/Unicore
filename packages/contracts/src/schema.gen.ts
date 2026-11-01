@@ -87,7 +87,7 @@ export interface DatabaseInput {
   name?: string;
   username?: string;
   password?: string;
-  tls?: "auto" | "require" | "disable";
+  tls?: boolean;
 }
 
 export interface EnvironmentCheck {
@@ -491,25 +491,11 @@ export interface DatabaseCheck {
   initialized: boolean;
 }
 
-export interface InstallToken {
-  token: string;
-}
-
 export interface DatabaseCheckResponse {
   code: string;
   message: string;
   data: DatabaseCheck;
   request_id: string;
-}
-
-export interface InstallTokenResponse {
-  code: string;
-  message: string;
-  data: InstallToken;
-  request_id: string;
-}
-
-export interface InstallTokenRotate {
 }
 
 export interface ChangePasswordInput {

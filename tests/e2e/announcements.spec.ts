@@ -19,7 +19,7 @@ test('user announcement ticker stays compact and rotates one item with accessibl
  expect((await ticker.boundingBox())!.height).toBeLessThanOrEqual(64);
  expect(await ticker.evaluate(element=>element.scrollWidth<=element.clientWidth)).toBe(true);
  await mkdir(`build/acceptance/announcements/${info.project.name}`,{recursive:true});await page.screenshot({path:`build/acceptance/announcements/${info.project.name}/ticker-default.png`,animations:'disabled'});
- await page.clock.pauseAt(new Date());
+ await page.clock.pauseAt(new Date(Date.now()+1000));
  await page.mouse.move(0,0);await page.clock.runFor(5100);await expect(summary).toHaveText(contents[1]);
  await ticker.hover();await page.clock.runFor(10000);await expect(summary).toHaveText(contents[1]);
  await page.mouse.move(0,0);await page.clock.runFor(5100);await expect(summary).toHaveText(contents[2]);
@@ -45,7 +45,7 @@ test('announcements: modal CRUD, scheduling, member feed, switch, dark English a
  const meta=(await(await page.request.get(`${instance.url}/api/v1/admin/bootstrap`)).json()).data,headers={'X-CSRF-Token':meta.csrf_token};
  expect((await page.request.post(`${instance.url}/api/v1/admin/users`,{headers,data:{username:'member',email:'member@example.test',password:'test-password-strong',role:'user'}})).status()).toBe(200);
  expect((await page.request.patch(`${instance.url}/api/v1/admin/settings`,{headers,data:{changes:[{key:'security.login_captcha',value:'false'}]}})).status()).toBe(200);
- await page.goto(`${instance.url}/admin#announcements`);await expect(page.getByRole('switch',{name:'公告展示',exact:true})).toBeChecked();await expect(page.getByText('暂无公告',{exact:true})).toBeVisible();
+ await page.goto(`${instance.url}/admin/announcements`);const showSwitch=page.locator('#announcements-enabled');await expect(showSwitch).toBeChecked();await expect(page.getByText('暂无公告',{exact:true})).toBeVisible();
  const screenshot=async(name:string,target=page)=>{await mkdir(`build/acceptance/announcements/${info.project.name}`,{recursive:true});await target.evaluate(()=>window.scrollTo(0,0));await target.screenshot({path:`build/acceptance/announcements/${info.project.name}/${name}.png`,animations:'disabled'});expect(await target.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);};
  const userContext=await browser.newContext({viewport:page.viewportSize()!});
  try{
@@ -65,8 +65,8 @@ test('announcements: modal CRUD, scheduling, member feed, switch, dark English a
  await card.locator('.announcement-feed-item').click();const detail=user.getByRole('dialog',{name:'公告详情',exact:true});await expect(detail.getByRole('heading',{name:'平台维护通知',exact:true})).toBeVisible();await expect(detail.getByRole('link',{name:'帮助文档',exact:true})).toHaveAttribute('href','https://example.test/help');await expect(detail).not.toContainText('仅后台可见的内部记录');await screenshot('user-detail',user);await user.keyboard.press('Escape');await user.locator('h1').click();await screenshot('user-dashboard',user);
  for(const endpoint of ['announcements','announcements/settings'])expect((await userContext.request.get(`${instance.url}/api/v1/admin/${endpoint}`)).status()).toBe(403);
  for(const id of [draft.id,future.id])expect((await userContext.request.get(`${instance.url}/api/v1/announcements/${id}`)).status()).toBe(404);
- await page.getByRole('switch',{name:'公告展示',exact:true}).uncheck();await expect(page.getByText('公告展示设置已保存',{exact:true})).toBeVisible();await user.reload();await expect(user.getByRole('article',{name:'平台公告',exact:true})).toHaveCount(0);
- await instance.restart();await page.reload();await expect(page.getByRole('switch',{name:'公告展示',exact:true})).not.toBeChecked();await page.getByRole('switch',{name:'公告展示',exact:true}).check();await expect(page.getByText('公告展示设置已保存',{exact:true})).toBeVisible();
+ await showSwitch.uncheck();await expect(page.getByText('公告展示设置已保存',{exact:true})).toBeVisible();await user.reload();await expect(user.getByRole('article',{name:'平台公告',exact:true})).toHaveCount(0);
+ await instance.restart();await page.reload();await expect(showSwitch).not.toBeChecked();await showSwitch.check();await expect(page.getByText('公告展示设置已保存',{exact:true})).toBeVisible();
  await page.getByRole('combobox',{name:'公告状态',exact:true}).selectOption('draft');await expect(page.locator('.announcement-table tbody tr')).toHaveCount(1);await page.getByRole('button',{name:'编辑公告',exact:true}).click();const edit=page.getByRole('dialog',{name:'编辑公告',exact:true});await edit.getByRole('textbox',{name:'公告内容',exact:true}).fill('中文自定义内容保持原样');await edit.getByRole('combobox',{name:'内容格式',exact:true}).selectOption('html');await edit.getByRole('button',{name:'源代码',exact:true}).click();await edit.getByRole('textbox',{name:'公告内容源代码',exact:true}).fill('<p><strong>中文自定义内容保持原样</strong> <a href="https://example.test/help">查看</a></p>');await edit.getByRole('button',{name:'预览',exact:true}).click();await expect(edit.locator('.announcement-preview strong')).toHaveText('中文自定义内容保持原样');
  await edit.getByRole('button',{name:'保存',exact:true}).click();await expect(page.getByText('公告已保存',{exact:true})).toBeVisible();
  await page.getByRole('button',{name:'切换语言',exact:true}).click();await page.getByRole('menuitemradio',{name:'English',exact:true}).click();await expect(page.getByRole('heading',{name:'Announcement list',exact:true})).toBeVisible();await expect(page.locator('.announcement-table-content')).toContainText('中文自定义内容保持原样');

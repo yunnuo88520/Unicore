@@ -41,7 +41,7 @@ test('SMTP settings, verified registration and password recovery revoke old sess
     const installed = await instance.request.post('/api/v1/install/complete', { headers: { 'X-Bootstrap-Token': instance.token }, data: { profile: 'web-platform', database: { driver: 'sqlite', dsn: '' }, site_name: 'Mail Unicore', base_url: instance.url, admin_username: 'admin', admin_email: 'admin@example.test', admin_password: 'test-password-strong' } });
     expect(installed.status()).toBe(200);
     await page.context().addCookies((await instance.request.storageState()).cookies);
-    await page.goto(`${instance.url}/admin#mail`);
+    await page.goto(`${instance.url}/admin/mail`);
     await page.getByLabel('SMTP 主机').fill('127.0.0.1');
     await page.getByLabel('SMTP 端口').fill(String(smtp.port));
     await page.getByLabel('SMTP 加密方式').selectOption('plain');
@@ -58,19 +58,19 @@ test('SMTP settings, verified registration and password recovery revoke old sess
     await expect(page.getByText('测试邮件已发送，可开启邮件账号流程。')).toBeVisible();
     expect(smtp.messages[0]).toContain('From: "Unicore Notices" <sender@example.test>');
     await expect(page.getByRole('dialog',{name:'发送测试邮件',exact:true})).toHaveCount(0);
-    await page.getByLabel('邮件找回密码', { exact: true }).check();
-    await page.getByLabel('邮箱验证码登录', { exact: true }).check();
+    await page.getByRole('switch', { name: '邮件找回密码', exact: true }).check();
+    await page.getByRole('switch', { name: '邮箱验证码登录', exact: true }).check();
     await page.getByRole('button', { name: '保存设置' }).click();
     await expect(page.getByRole('button', { name: '保存设置' })).toBeDisabled();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await expect(page.getByRole('tab')).toHaveCount(0);
     await capture(page, info, 'mail-settings');
-    await page.goto(`${instance.url}/admin#site?tab=security`);
-    await page.getByRole('switch',{name:'开放注册（需验证邮箱）'}).check();
+    await page.goto(`${instance.url}/admin/site?tab=security`);
+    await page.getByRole('switch',{name:'开放注册（需验证邮箱）',exact:true}).check();
     await page.getByRole('button',{name:'保存设置',exact:true}).click();
     await expect(page.getByRole('button',{name:'保存设置',exact:true})).toBeDisabled();
     await page.getByRole('button',{name:'账号菜单',exact:true}).click();
-    await page.getByRole('button',{name:'退出登录',exact:true}).click();
+    await page.getByRole('menuitem',{name:'退出登录',exact:true}).click();
     await page.goto(instance.url);
     await page.getByRole('button', { name: '重发验证邮件', exact: true }).click();
     await expect(page.getByRole('heading', { name: '重新验证邮箱' })).toBeVisible();
@@ -95,7 +95,7 @@ test('SMTP settings, verified registration and password recovery revoke old sess
     await page.getByRole('button', { name: '确认验证邮箱' }).click();
     await expect(page.getByRole('status')).toContainText('邮箱验证成功');
     await capture(page, info, 'register-success');
-    await page.getByRole('button', { name: '返回登录' }).click();
+    await page.getByRole('button', { name: '返回登录' }).first().click();
     await page.getByLabel('账号或邮箱').fill('browsermember');
     await page.getByLabel('密码', { exact: true }).fill('original-password-strong');
     await solveCaptcha(page);
@@ -119,7 +119,7 @@ test('SMTP settings, verified registration and password recovery revoke old sess
       await resetPage.getByRole('button', { name: '保存新密码' }).click();
       await expect(resetPage.getByRole('status')).toContainText('密码已更新');
       await capture(resetPage, info, 'reset-success');
-      await resetPage.getByRole('button', { name: '返回登录' }).click();
+      await resetPage.getByRole('button', { name: '返回登录' }).first().click();
       await resetPage.getByLabel('账号或邮箱').fill('browsermember');
       await resetPage.getByLabel('密码', { exact: true }).fill('changed-password-strong');
       await solveCaptcha(resetPage);
@@ -141,12 +141,12 @@ test('SMTP settings, verified registration and password recovery revoke old sess
     const actualCode = mailCode();
     await page.getByLabel('邮箱验证码', { exact: true }).fill(actualCode === '000000' ? '000001' : '000000');
     await page.getByRole('button', { name: '验证并登录' }).click();
-    await expect(page.getByRole('alert')).toBeVisible();
+    await expect(page.locator('main').getByRole('alert')).toBeVisible();
     await capture(page, info, 'email-code-error');
     await page.getByLabel('邮箱验证码', { exact: true }).fill(actualCode);
     await page.getByRole('button', { name: '验证并登录' }).click();
     await expect(page.getByRole('heading', { name: '一份核心，无限可能.' })).toBeVisible();
-    await page.goto(`${instance.url}/#users`);
+    await page.goto(`${instance.url}/users`);
     await expect(page.getByText('没有访问权限')).toBeVisible();
     await capture(page, info, 'permission-denied');
   } finally { await smtp.close(); }

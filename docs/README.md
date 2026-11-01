@@ -31,6 +31,7 @@
 | 页面、表单、主题与双语 | [前端规范](02-standards/frontend.md)、[基础封装](03-runbooks/frontend-foundations.md)、[设计系统](02-standards/design-system.md) |
 | 数据库迁移 | [迁移规范](02-standards/database-migrations.md)、[目录状态](../migrations/README.md)、[开发库重建](03-runbooks/development-database-reset.md) |
 | 配置、日志、生命周期与指标 | [运行基座](02-standards/runtime.md) |
+| 产品身份、白标与环境变量 | [产品身份规范](02-standards/product-identity.md) |
 | 创建项目、跟进上游 | [创建与合并](03-runbooks/framework-upgrade.md) |
 | AI 协作 | [工作流与任务索引](04-ai/development.md)、[任务模板](04-ai/task-template.md) |
 

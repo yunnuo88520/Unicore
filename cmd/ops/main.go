@@ -23,7 +23,7 @@ func main() {
 }
 func run() error {
 	if len(os.Args) < 2 || os.Args[1] == "--help" || os.Args[1] == "-h" {
-		fmt.Fprintln(os.Stdout, "unicore-ops backup|verify|restore|version; append --help to a command. Offline backups require a stopped instance and UNICORE_BACKUP_PASSPHRASE.")
+		fmt.Fprintf(os.Stdout, "%s backup|verify|restore|version; append --help to a command. Offline backups require a stopped instance and UNICORE_BACKUP_PASSPHRASE.\n", buildinfo.OpsCommandName)
 		return nil
 	}
 	if os.Args[1] == "version" {

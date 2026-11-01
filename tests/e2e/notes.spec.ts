@@ -4,7 +4,7 @@ import {mkdir} from 'node:fs/promises';
 import {test,expect,installStandalone} from './fixtures';
 
 test('persistent standalone notes, modal CRUD, filtering and concurrency',async({page,instance},info)=>{
- await installStandalone(instance);await page.goto(`${instance.url}/#notes`);
+ await installStandalone(instance);await page.goto(`${instance.url}/notes`);
  await expect(page.getByRole('heading',{name:'个人笔记',exact:true})).toBeVisible();
  await page.getByRole('button',{name:'新建笔记',exact:true}).click();
  let dialog=page.getByRole('dialog',{name:'新建笔记',exact:true});
@@ -27,8 +27,8 @@ test('persistent standalone notes, modal CRUD, filtering and concurrency',async(
 
 test('administrator note attachment stays private across client/admin realms',async({page,instance},info)=>{
  const response=await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}});expect(response.status()).toBe(200);
- await page.goto(`${instance.url}/admin#files`);await page.getByRole('button',{name:'上传文件',exact:true}).click();let dialog=page.getByRole('dialog',{name:'上传文件',exact:true});await dialog.getByLabel('选择文件').setInputFiles({name:'note-attachment.txt',mimeType:'text/plain',buffer:Buffer.from('note private attachment')});await dialog.getByRole('button',{name:'开始上传',exact:true}).click();await expect(dialog).toHaveCount(0);
- await page.goto(`${instance.url}/admin#notes`);await page.getByRole('button',{name:'新建笔记',exact:true}).click();dialog=page.getByRole('dialog',{name:'新建笔记',exact:true});await dialog.getByRole('textbox',{name:'标题',exact:true}).fill('带附件的管理员笔记');await expect(dialog.getByLabel('添加已有附件').locator('option').filter({hasText:'note-attachment.txt'})).toHaveCount(1);await dialog.getByLabel('添加已有附件').selectOption({label:'note-attachment.txt'});await dialog.getByRole('button',{name:'保存笔记',exact:true}).click();await expect(dialog).toHaveCount(0);
+ await page.goto(`${instance.url}/admin/files`);await page.getByRole('button',{name:'上传文件',exact:true}).click();let dialog=page.getByRole('dialog',{name:'上传文件',exact:true});await dialog.getByLabel('选择文件').setInputFiles({name:'note-attachment.txt',mimeType:'text/plain',buffer:Buffer.from('note private attachment')});await dialog.getByRole('button',{name:'开始上传',exact:true}).click();await expect(dialog).toHaveCount(0);
+ await page.goto(`${instance.url}/admin/notes`);await page.getByRole('button',{name:'新建笔记',exact:true}).click();dialog=page.getByRole('dialog',{name:'新建笔记',exact:true});await dialog.getByRole('textbox',{name:'标题',exact:true}).fill('带附件的管理员笔记');await expect(dialog.getByLabel('添加已有附件').locator('option').filter({hasText:'note-attachment.txt'})).toHaveCount(1);await dialog.getByLabel('添加已有附件').selectOption({label:'note-attachment.txt'});await dialog.getByRole('button',{name:'保存笔记',exact:true}).click();await expect(dialog).toHaveCount(0);
  await page.getByRole('button',{name:/附件 1/}).click();
  const directory=`build/acceptance/developer-kit/${info.project.name}`;await mkdir(directory,{recursive:true});await page.screenshot({path:`${directory}/platform-notes.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  expect((await page.request.get(`${instance.url}/api/v1/notes`)).status()).toBe(401);

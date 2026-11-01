@@ -795,23 +795,6 @@ export const operations = {
     "maxBodyBytes": 393216,
     "identityRealm": "administrator"
   },
-  "rotateInstallToken": {
-    "method": "POST",
-    "path": "/api/v1/install/token/rotate",
-    "requestSchema": "InstallTokenRotate",
-    "responseSchema": "InstallTokenResponse",
-    "binaryRequest": false,
-    "binaryResponse": false,
-    "profiles": [
-      "web-platform",
-      "web-standalone"
-    ],
-    "access": "install-token",
-    "permissions": [],
-    "permissionMode": "all",
-    "superAdmin": false,
-    "csrf": false
-  },
   "listAdministrators": {
     "method": "GET",
     "path": "/api/v1/admin/administrators",
@@ -2435,7 +2418,6 @@ export interface OperationInputs {
   oidcCallback: undefined;
   adminBranding: undefined;
   adminUpdateBranding: Models.BrandingInput;
-  rotateInstallToken: Models.InstallTokenRotate;
   listAdministrators: undefined;
   createAdministrator: Models.UserCreate;
   updateAdministrator: Models.UserUpdate;
@@ -2570,7 +2552,6 @@ export interface OperationData {
   oidcCallback: void;
   adminBranding: Models.BrandingResponse['data'];
   adminUpdateBranding: Models.BrandingResponse['data'];
-  rotateInstallToken: Models.InstallTokenResponse['data'];
   listAdministrators: Models.UserListResponse['data'];
   createAdministrator: Models.UserResponse['data'];
   updateAdministrator: Models.UserResponse['data'];

@@ -37,5 +37,5 @@ export function BrandMark({ size = 36 }: { size?: number }) {
 }
 export function BrandLockup({ name = theme.brand.name }: { name?: string }) {
   useLocale();
-  return <><BrandMark /><strong className="brand-name">{name}<span className="brand-dot">.</span></strong></>;
+  return <span className="brand contents"><BrandMark /><strong className="brand-name">{name}<span className="brand-dot">.</span></strong></span>;
 }

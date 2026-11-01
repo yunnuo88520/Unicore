@@ -1,6 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 import { featureBuild } from '../../scripts/build-features.mjs';
 
 const features = featureBuild();
@@ -15,8 +16,9 @@ function administratorEntry(): Plugin {
           try {
             const response = await fetch(`${apiURL}/api/v1/admin/bootstrap`, { signal: AbortSignal.timeout(1500) });
             if (response.ok) {
-              const bootstrap = await response.json();
-              if (bootstrap.data?.admin_path === pathname) request.url = '/admin.html';
+              const adminPath: string = bootstrapPath(await response.json());
+              // History routing: serve the administrator entry for the prefix and any deep link under it.
+              if (adminPath && (pathname === adminPath || pathname.startsWith(`${adminPath}/`))) request.url = '/admin.html';
             }
           } catch { /* The shared shell reports API startup and connection failures. */ }
         }
@@ -25,8 +27,12 @@ function administratorEntry(): Plugin {
     },
   };
 }
+function bootstrapPath(payload: unknown): string {
+  const path = (payload as { data?: { admin_path?: string } })?.data?.admin_path;
+  return typeof path === 'string' && path.startsWith('/') ? path.replace(/\/$/, '') : '';
+}
 export default defineConfig({
-  plugins: [react(), features.plugin, administratorEntry()], define: features.define,
+  plugins: [react(), tailwindcss(), features.plugin, administratorEntry()], define: features.define,
   server: { port: 5173, strictPort: true, proxy: { '/api': apiURL } },
   build: { rollupOptions: { input: { client: 'index.html', administrator: 'admin.html' } }, outDir: 'static', emptyOutDir: false },
 });

@@ -11,7 +11,10 @@ test('first-install platform wizard, users, settings, logout and captcha login',
   await page.getByRole('radio', { name: /多用户平台/ }).check();
   await capture(page, info, 'install-profile');
   await page.getByRole('button', { name: '下一步' }).click();
-  await page.getByLabel('数据库类型').selectOption('sqlite');
+  await page.getByRole('combobox', { name: '数据库类型' }).click();
+  await expect(page.getByRole('option')).toHaveCount(3);
+  await page.getByRole('option', { name: /SQLite/ }).click();
+  await expect(page.getByRole('combobox', { name: '数据库类型' })).toContainText('SQLite');
   await capture(page, info, 'install-database');
   await page.getByRole('button', { name: '测试连接' }).click();
   await expect(page.getByText('连接测试成功')).toBeVisible();
@@ -33,7 +36,7 @@ test('first-install platform wizard, users, settings, logout and captcha login',
   if(info.project.name==='mobile') await page.getByRole('button',{name:'打开导航',exact:true}).click();
   await page.getByRole('button', { name: '关于 Unicore', exact: true }).click();
   await expect(page.getByRole('dialog')).toBeVisible(); await capture(page, info, 'about');
-  await page.getByRole('button', { name: '关闭关于' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: /关闭/ }).click();
   await nav('用户列表'); await capture(page, info, 'users');
   await page.getByRole('button', { name: '新增用户', exact: true }).click();
   await capture(page, info, 'user-create');
@@ -49,7 +52,7 @@ test('first-install platform wizard, users, settings, logout and captcha login',
   await expect(page.getByText('设置已保存')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole('button',{name:'账号菜单',exact:true}).click();
-  await page.getByRole('button',{name:'退出登录',exact:true}).click();
+  await page.getByRole('menuitem',{name:'退出登录',exact:true}).click();
   await expect(page.getByRole('heading', { name: '管理员登录 · My Unicore' })).toBeVisible();
   await page.getByLabel('账号或邮箱').fill('admin');
   await page.getByLabel('密码', { exact: true }).fill('test-password-strong');

@@ -11,7 +11,6 @@ import (
 	"log/slog"
 	"mime"
 	"net/http"
-	"net/url"
 	"path"
 	"strings"
 	"time"
@@ -104,9 +103,11 @@ func New(config Config) http.Handler {
 	if config.Install != nil {
 		router.Use(func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if sameOrigin(w, r) {
+				if sameOrigin(r) {
 					next.ServeHTTP(w, r)
+					return
 				}
+				failure(w, 403, "ORIGIN_REJECTED", "请求来源不受信任")
 			})
 		})
 	}
@@ -173,20 +174,13 @@ func New(config Config) http.Handler {
 					return
 				}
 				requestID := w.Header().Get("X-Request-ID")
-				fail := func(status int, code, message string) {
-					writeJSON(w, status, contracts.ErrorResponse{Code: code, Message: message, RequestID: requestID})
-				}
-				if origin := r.Header.Get("Origin"); origin != "" {
-					parsed, err := url.Parse(origin)
-					if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host != r.Host || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || (parsed.Path != "" && parsed.Path != "/") {
+					fail := func(status int, code, message string) {
+						writeJSON(w, status, contracts.ErrorResponse{Code: code, Message: message, RequestID: requestID})
+					}
+					if !sameOrigin(r) {
 						fail(403, "ORIGIN_REJECTED", "请求来源不受信任")
 						return
 					}
-				}
-				if r.Header.Get("Sec-Fetch-Site") == "cross-site" {
-					fail(403, "ORIGIN_REJECTED", "请求来源不受信任")
-					return
-				}
 				contentType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 				if err != nil || contentType != "application/json" {
 					fail(415, "UNSUPPORTED_MEDIA_TYPE", "请使用 application/json")

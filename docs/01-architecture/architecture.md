@@ -47,9 +47,9 @@ SQLite adapter 统一将文件路径绝对化并生成空 authority、正确转�
 
 ## 界面与扩展
 
-HttpTransport 管理 cookie/CSRF 与 WebClient；页面不直接 fetch。WailsTransport 提供 bootstrap/execute/appearance settings/notes，没有 Web 身份/安装接口。SessionBoundary 按会话代际隔离 Query cache/组件状态，SDK epoch 拒绝旧响应，多标签页同步失效；routes.ts 与 PageContent 集中路由/权限及渲染，公共 Form/Field 与契约校验处理提交错误。TanStack Query 管理状态；DashboardWidgetRegistry 以唯一 id 扩展业务首页。工作台概览为默认首页，不再提供重复平台仪表盘；操作与投递记录通过独立系统日志页读取真实数据。
+HttpTransport 管理 cookie/CSRF 与 WebClient；页面不直接 fetch。WailsTransport 提供 bootstrap/execute/appearance settings/notes，没有 Web 身份/安装接口。SessionBoundary 按会话代际隔离 Query cache/组件状态，SDK epoch 拒绝旧响应，多标签页同步失效；routes.ts 登记元数据、router.tsx 以 TanStack Router 代码式路由树挂载页面（Web history 导航、桌面 hash、管理端动态 basepath），canAccess 在壳层门禁裁剪；lib/form.tsx 的 RHF 表单经 constraintsToZod 契约校验处理提交错误。TanStack Query 管理状态；DashboardWidgetRegistry 以唯一 id 扩展业务首页。工作台概览为默认首页，不再提供重复平台仪表盘；操作与投递记录通过独立系统日志页读取真实数据。
 
-平台主题只存在当前客户端 localStorage，不读取/保存全局默认主题；普通用户只渲染本地外观卡片。单机/桌面的本地默认主题仍在设置注册表，设备偏好优先。设置使用共享可键盘操作的单层 Tabs，品牌图片使用三张并列卡片，外观卡片合并到设置、兼容旧 #settings 地址；主标签由 #site?tab=… 保留；按当前分组构造 PATCH，跨标签保留表单/图片预览草稿。UI hash 子页面复用到 Wails，Web 的 /install、/login、/register、可配置后台入口由服务器处理。light/dark/system 与 375px 浏览器测试，表格可横向滚动但页面不溢出。
+平台主题只存在当前客户端 localStorage，不读取/保存全局默认主题；普通用户只渲染本地外观卡片。单机/桌面的本地默认主题仍在设置注册表，设备偏好优先。设置使用共享可键盘操作的单层 Tabs，品牌图片使用三张并列卡片，外观卡片合并到设置、兼容旧 #settings 地址；主标签由 #site?tab=… 保留；按当前分组构造 PATCH，跨标签保留表单/图片预览草稿。UI 路由在桌面端以 hash history 复用，Web 使用 history 导航；/install、可配置后台入口由服务器处理，深链依赖既有 SPA fallback。light/dark/system 与 375px 浏览器测试，表格可横向滚动但页面不溢出。
 
 桌面入口 `desktop || bindings`；绑定生成用编译期标记跳过真实用户存储。代码不使用环境变量来绕过该边界。CLI、Core 与桌面依赖隔离在 scripts/check-boundaries 中按实际 Go 依赖图验证。
 
@@ -103,7 +103,7 @@ Web 启动参数、APP_* 环境与可选 JSON 配置由 internal/config.LoadWeb 
 
 当前身份/导航以 [ADR-0014](../adr/ADR-0014-separate-identities-management.md) 为准。platformsql.Repository 以固定 Administrators 标志映射七张身份表，SQL 标识符只来自固定代码映射；共享设置、审计与队列不映射。安装创建独立管理员，普通用户与管理员服务不回退。HTTP 固定用户/admin 路径与独立 Cookie 选择服务，写事务从管理员仓库重查操作者。管理员与用户管理端点分别固定身份，禁止角色转换；JIT 仅普通域。升级 0008 保留账号/绑定并撤销旧凭据。
 
-React 的独立可折叠导航、共享原生 dialog、头像密码/退出、邮件单页与系统日志由 routes.ts/PageContent 注册；基础设置保持单层业务 Tabs。后台改名同步地址，OIDC 解除不改变当前域路径。共享 shell 适用于 Web/Wails，身份组件仅平台装配。
+React 的独立可折叠导航、Radix dialog 弹层、头像密码/退出、邮件单页与系统日志由 routes.ts/router.tsx 注册；基础设置保持单层业务 Tabs。后台改名同步地址，OIDC 解除不改变当前域路径。共享 shell 适用于 Web/Wails，身份组件仅平台装配。
 
 全局 MessageProvider 位于 SessionBoundary 外，统一五种语义的顶部短消息（默认 3 秒）。QueryScope MutationCache 处理提交异常，业务成功回调提供语义文案；字段错误/可重试加载状态保留在对应页面。消息挂载点跟随原生 dialog，避免顶层遮挡；无平台身份的形态不渲染账号头像。导航二级图标与缩进由共享 shell 管理。
 
@@ -125,7 +125,7 @@ React 的独立可折叠导航、共享原生 dialog、头像密码/退出、邮
 
 [ADR-0019](../adr/ADR-0019-local-preferences-i18n.md)：preferences.ts 白名单管理版本化本地状态与跨标签通知，theme.ts 统一应用生成 tokens、dataset、lang/dir 与系统主题；i18n.ts/locale catalog 只翻译界面文案。Workspace、安装、登录和 Wails 复用 ClientControls 与原生 dialog 抽屉；不在 locale 切换时重建会话、查询缓存或表单。版本气泡仅对有权限的 bootstrap 展示并读取本地更新概览。无 API/数据库迁移，CLI 不受影响。
 
-共享前端结构由 WorkspaceLayout 单独拥有，navigation/header/content/overlays 为内容插槽，几何规则集中 workspace-layout.css；styles.css 是所有 shell 共用的样式入口。布局、侧栏和内容宽度不再由业务页面各自设置偏移。check:i18n 在 Web/GUI 构建与 CI 中验证翻译来源；工作区与主题控制面板统一 LTR；阅读方向选项已移除，旧 RTL 偏好忽略。
+共享前端结构由 WorkspaceLayout 单独拥有，navigation/header/content/overlays 为内容插槽，几何与偏好属性变体集中在 shell.css；theme.css 是所有 shell 共用的样式入口（Tailwind v4 + 生成令牌映射）。布局、侧栏和内容宽度不再由业务页面各自设置偏移。check:i18n 在 Web/GUI 构建与 CI 中验证翻译来源；工作区与主题控制面板统一 LTR；阅读方向选项已移除，旧 RTL 偏好忽略。
 
 ## 审计快照与配置化邮件
 

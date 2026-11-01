@@ -9,10 +9,11 @@ export const preferenceOptions = {
   density: ['default', 'compact', 'comfortable', 'large'], sidebar: ['plain', 'inset', 'floating'],
   layout: ['default', 'compact', 'full'], content: ['full', 'centered'],
 } as const;
-export type Preferences = { [K in keyof typeof preferenceOptions]: (typeof preferenceOptions)[K][number] };
+export type PreferenceKey = keyof typeof preferenceOptions;
+export type Preferences = { [K in PreferenceKey]: (typeof preferenceOptions)[K][number] } & { navCollapsed: boolean };
 export const defaultPreferences: Preferences = {
   locale: 'zh-CN', theme: 'system', accent: 'brand', radius: 'default', density: 'default',
-  sidebar: 'plain', layout: 'default', content: 'full',
+  sidebar: 'plain', layout: 'default', content: 'full', navCollapsed: false,
 };
 export const preferencesKey = 'unicore.preferences.v1';
 const changed = 'unicore:preferences';
@@ -31,9 +32,10 @@ function decode(raw: string): Preferences {
     if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) input = parsed;
   } catch { /* Invalid storage falls back to build defaults. */ }
   const result = { ...defaultPreferences };
-  for (const key of Object.keys(preferenceOptions) as (keyof Preferences)[]) {
+  for (const key of Object.keys(preferenceOptions) as PreferenceKey[]) {
     if ((preferenceOptions[key] as readonly unknown[]).includes(input[key])) Object.assign(result, { [key]: input[key] });
   }
+  if (typeof input.navCollapsed === 'boolean') result.navCollapsed = input.navCollapsed;
   return result;
 }
 function subscribe(listener: () => void) {

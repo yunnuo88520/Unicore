@@ -5,20 +5,20 @@ import {test,expect,installStandalone} from './fixtures';
 
 test('separate entries, registration policy and redesigned file selection',async({page,browser,instance},info)=>{
  const installed=await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}});expect(installed.status()).toBe(200);
- await page.goto(`${instance.url}/admin#site?tab=security`);
+ await page.goto(`${instance.url}/admin/site?tab=security`);
  await expect(page.getByRole('switch',{name:'登录图形验证码',exact:true})).toBeChecked();
  await expect(page.getByRole('switch',{name:'注册图形验证码',exact:true})).toBeChecked();
  await expect(page.getByRole('switch',{name:'开放注册（需验证邮箱）',exact:true})).not.toBeChecked();
  const other=await browser.newContext({viewport:page.viewportSize()!});
  try{
   const user=await other.newPage();await user.goto(`${instance.url}/register`);
-  await expect(user.getByRole('heading',{name:'创建账号',exact:true})).toBeVisible();
-  await expect(user.getByRole('button',{name:'注册并验证邮箱',exact:true})).toBeDisabled();
+  await expect(user.getByRole('heading',{name:'登录 Unicore',exact:true})).toBeVisible();
+  await expect(user.getByText('注册暂未开放。请联系实例管理员获取账号。',{exact:true})).toBeVisible();
+  await expect(user.getByRole('button',{name:'注册账号',exact:true})).toHaveCount(0);
   await expect(user.getByRole('link',{name:'管理员登录',exact:true})).toHaveCount(0);
-  await user.getByRole('button',{name:'返回登录',exact:true}).click();await expect(user).toHaveURL(/\/login$/);
   expect((await user.request.get(`${instance.url}/api/v1/admin/users`)).status()).toBe(401);
  }finally{await other.close();}
- await page.goto(`${instance.url}/admin#files`);await page.getByRole('button',{name:'上传文件',exact:true}).click();
+ await page.goto(`${instance.url}/admin/files`);await page.getByRole('button',{name:'上传文件',exact:true}).click();
  const dialog=page.getByRole('dialog',{name:'上传文件',exact:true});await expect(dialog.locator('.upload-zone')).toBeFocused();
  await expect(dialog.getByRole('button',{name:'开始上传',exact:true})).toBeDisabled();
  const transfer=await page.evaluateHandle(()=>{const data=new DataTransfer();data.items.add(new File(['private drag bytes'],'drag-example.txt',{type:'text/plain'}));return data;});

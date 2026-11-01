@@ -124,7 +124,7 @@ async function exercise(mode,profile) {
       expect(updates.current_version).toBe(version);expect(updates.history.length).toBeGreaterThan(0);
       if(!mode.startsWith('tar')) {
         expect(updates.can_apply).toBe(false);expect(updates.reason).toContain('容器');
-        await page.goto(`${url}/admin#edition`);
+        await page.goto(`${url}/admin/edition`);
         await expect(page.getByRole('heading',{name:'更新日志',exact:true})).toBeVisible();
         await expect(page.getByRole('button',{name:'更新并重启',exact:true})).toBeDisabled();
         await page.screenshot({path:join(evidence,`${mode}-updates.png`),fullPage:true});

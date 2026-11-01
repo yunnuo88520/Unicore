@@ -76,7 +76,7 @@ test.setTimeout(90_000);test('bilingual drafts, local drawer, persistence and re
     expect(await untranslated(page)).toEqual([]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
-  await page.goto(instance.url); await expect(page.getByLabel('Input text')).toBeVisible();
+  await page.goto(`${instance.url}/lab`); await expect(page.getByLabel('Input text')).toBeVisible();
   await page.screenshot({ path: `${directory}/workspace-light.png` });
   expect(failures).toEqual([]);
 });

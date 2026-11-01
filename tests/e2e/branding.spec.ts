@@ -108,6 +108,7 @@ test('platform login and all mail previews use public instance branding', async 
   await capture(page,info,'brand-login');
   await page.getByLabel('账号或邮箱').fill('reader');await page.getByLabel('密码',{exact:true}).fill('test-password-strong');
   const src=await page.getByAltText('六位数字验证码，点击刷新').getAttribute('src');const answer=[...Buffer.from(src!.split(',')[1],'base64').toString().matchAll(/>([0-9])<\/text>/g)].map(m=>m[1]).join('');await page.getByLabel('图形验证码',{exact:true}).fill(answer);await page.getByRole('button',{name:'登录工作空间'}).click();
+  if(!(await page.getByRole('button',{name:'运行用例'}).isVisible().catch(()=>false))){if(!(await page.getByRole('button',{name:'核心实验室',exact:true}).isVisible().catch(()=>false)))await page.getByRole('button',{name:'打开导航'}).click();await page.getByRole('button',{name:'核心实验室',exact:true}).click();}
   await expect(page.getByRole('button',{name:'运行用例'})).toBeVisible();
   await expectNavigationBrand(page,'light');
   await page.goto(`${instance.url}/site`);

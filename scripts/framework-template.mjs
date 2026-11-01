@@ -19,7 +19,9 @@ export function updateTemplateBranch(root = process.cwd()) {
   cpSync(join(root, 'product.identity.json'), join(staging, 'product.identity.json'));
   git(root, '-C', staging, 'init', '-q');
   git(root, '-C', staging, 'add', '-A');
-  const name = git(root, 'config', 'user.name'), email = git(root, 'config', 'user.email');
+  // CI runners carry no git identity; the mechanical template export falls back to the project author.
+  const gitIdentity = (key, fallback) => { try { const value = git(root, 'config', key); if (value) return value; } catch { /* Unset identity uses the fallback. */ } return fallback; };
+  const name = gitIdentity('config', 'user.name', 'yunnuo'), email = gitIdentity('config', 'user.email', 'ymz@ebox.vip');
   git(root, '-C', staging, '-c', `user.name=${name}`, '-c', `user.email=${email}`, 'commit', '-qm', `Framework template export ${version}`);
   git(root, 'fetch', staging);
   const tree = git(root, '-C', staging, 'rev-parse', 'HEAD^{tree}');

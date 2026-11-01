@@ -69,7 +69,8 @@ export function ciSecretPrefix(slug) {
 
 // Rewrite exactly one string field inside consistently indented JSON, leaving every other byte untouched.
 export function setJSONStringField(text, path, value) {
-  const lines = text.split('\n');
+  const eol = text.includes('\r\n') ? '\r\n' : '\n';
+  const lines = text.split(/\r?\n/);
   let from = 0, to = lines.length, indent = 2;
   for (const key of path.slice(0, -1)) {
     const open = new RegExp(`^ {${indent}}"${key}"\\s*:\\s*\\{$`);
@@ -87,7 +88,7 @@ export function setJSONStringField(text, path, value) {
   for (let i = from; i < to; i++) if (field.test(lines[i])) hits.push(i);
   if (hits.length !== 1) throw new Error(`product identity field ${path.join('.')}: matched ${hits.length} lines; keep one canonical string field`);
   lines[hits[0]] = lines[hits[0]].replace(field, `$1${value}$2`);
-  return lines.join('\n');
+  return lines.join(eol);
 }
 
 // Replace one HTML string element or attribute; both must occur exactly once.

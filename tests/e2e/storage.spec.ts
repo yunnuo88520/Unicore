@@ -1,6 +1,6 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Real platform pages exercise local/private uploads and opt-in MinIO browser direct uploads.
-import {test,expect} from './fixtures';
+import {test,expect,navigate} from './fixtures';
 import {execFileSync} from 'node:child_process';
 import {mkdir,readFile} from 'node:fs/promises';
 import type {Page} from '@playwright/test';
@@ -8,7 +8,7 @@ test.use({trace:'off'}); // Configured secrets and signed bearer URLs must not e
 async function install(instance:{url:string;token:string;request:import('@playwright/test').APIRequestContext}){
  const res=await instance.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}});expect(res.status()).toBe(200);
 }
-async function nav(page:Page,name:string,mobile:boolean){if(mobile)await page.getByRole('button',{name:'打开导航',exact:true}).click();await page.getByRole('button',{name,exact:true}).click();}
+async function nav(page:Page,name:string,_mobile:boolean){await navigate(page,name);}
  async function upload(page:Page,name:string,content:string|Buffer){await page.getByRole('button',{name:'上传文件',exact:true}).click();const dialog=page.getByRole('dialog',{name:'上传文件',exact:true});await dialog.getByLabel('选择文件').setInputFiles({name,mimeType:'text/plain',buffer:Buffer.from(content)});await dialog.getByRole('button',{name:'开始上传',exact:true}).click();await expect(dialog).toHaveCount(0,{timeout:60000});await expect(page.getByRole('cell').filter({hasText:name}).first()).toBeVisible();}
 
 test('local file pages, policies, private download, permissions and restart',async({page,instance,browser},info)=>{

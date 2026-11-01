@@ -10,11 +10,12 @@ import (
 	"testing"
 
 	"github.com/yunnuo/unicore/assets/theme"
+	"github.com/yunnuo/unicore/internal/buildinfo"
 )
 
 func TestManagement(t *testing.T) {
 	t.Setenv("APP_DATA_DIR", filepath.Join(t.TempDir(), "must-not-exist"))
-	for _, command := range []string{"help", "--help", "-h", "unicorehelp", "version"} {
+	for _, command := range []string{"help", "--help", "-h", buildinfo.CLIRootCommand + "help", "version"} {
 		var output bytes.Buffer
 		if handled, err := management([]string{command}, &output); !handled || err != nil || !strings.Contains(output.String(), theme.Current.Brand.Name) {
 			t.Fatal(command, handled, err, output.String())

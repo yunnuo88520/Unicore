@@ -78,7 +78,7 @@ var Definitions = append([]SettingDefinition{
 		return strings.TrimSpace(v) != "" && !strings.ContainsAny(v, "\r\n") && text(64)(v)
 	}},
 	{"site.description", "string", "site", "站点描述", "一份核心，无限可能", false, false, text(240)},
-	{"site.copyright", "string", "site", "页脚版权", "Crafted by yunnuo", false, false, text(160)},
+	{"site.copyright", "string", "site", "页脚版权", "Crafted by Yunnuo", false, false, text(160)},
 	{"site.icp_number", "string", "site", "备案号（ICP）", "", false, false, func(v string) bool { return text(80)(v) && !strings.ContainsAny(v, "\r\n") }},
 	{"site.icp_url", "string", "site", "备案查询链接", "https://beian.miit.gov.cn/", false, false, ValidPublicLink},
 	{"appearance.theme", "string", "appearance", "默认主题", "system", false, false, oneOf("light", "dark", "system")},

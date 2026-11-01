@@ -5,12 +5,22 @@
 
 ### 中文
 
+- 精简全局页脚为版权与可选备案信息，移除重复版本/技术栈和误放到所有页面的文本分析说明；默认署名显示为 Crafted by Yunnuo，兼容旧默认值并保留自定义版权。
+
+- 导航默认保持宽侧栏并折叠菜单分组，窄栏只显示一级入口且通过分组弹出子菜单；修正内嵌/悬浮模式的顶部圆角、容器间距与明暗主题一致性。
+- 派生创建器支持 --repository 配置独立 origin、界面文档和反馈链接，保留作者/许可及只读上游；修复远端模板引用的共同祖先初始化，并让新界面标题、数据库/存储默认值跟随产品身份。
+
 - 建立 framework-template 模板分支与上游同步体系：模板分支为孤儿根的连续白名单历史（含框架身份文件），创建器以模板提交为共同祖先派生项目，新增 framework:check 冲突预览与 framework:sync 归一化三方合并（备份分支、身份归一化、模块路径恢复、重投影校验、同步报告、冲突零改动）；分发清单登记文件所有权分类，派生项目二次同步经端到端验证。
 - 创建器升级为正式产品生成器：导出即完成 git init、初始基线提交与只读 framework 远端，provenance 新增上游模板版本、生成器版本与产品身份摘要，来源 VERSION 校验 SemVer；派生项目开箱通过 product:check 与 check:residuals。
 - 产品身份唯一来源覆盖全部产品可见面：CLI 帮助文案、Web/桌面 HTML 标题、PWA、词标与主题生成物、openapi 标题、部署启动器/服务/Compose/Nginx/Docker 标签及模板文档令牌均由 product.identity.json 生成；CLI 根命令帮助、邮件主题、更新 UA 与桌面程序名接入身份常量。
 - 新增 product:check 只读门禁与派生项目残留扫描 check:residuals（框架仓库自动跳过）；安装与数据库错误文案去产品化并同步中英文；示例文本与发行 README 改为按身份生成。
 
 ### English
+
+- Keep the global footer to copyright and optional registration details, removing duplicate version/stack labels and the lab-specific text-analysis note from shared pages. Display the default credit as Crafted by Yunnuo, including the legacy default, while preserving custom copyright text.
+
+- Keep the sidebar wide by default with collapsed menu groups; the rail shows only top-level entries and opens group menus for children. Align header corners, container spacing and light/dark surfaces in inset and floating layouts.
+- Let the creator configure an independent origin, UI documentation and feedback links with --repository while preserving authorship, licensing and a read-only upstream. Fix common-ancestor initialization from remote template refs and apply product identity to new UI headings and database/storage defaults.
 
 - Establishes the framework-template branch and the upstream sync system: the template branch is a continuous whitelist-only history with an orphan root (including the framework identity file), the creator derives projects with the template commit as a true common ancestor, and new framework:check conflict previews plus framework:sync normalized three-way merges (backup branch, identity normalization, module path restoration, re-projection checks, sync report, zero-change conflict refusal) land alongside ownership classification in the distribution manifest; a second upstream sync is covered end to end.
 - The creator is now a full product generator: exports complete git init, the initial baseline commit, and the read-only framework remote; provenance gains the upstream template version, generator version, and identity digest, and the source VERSION is validated as SemVer; derived projects pass product:check and check:residuals out of the box.

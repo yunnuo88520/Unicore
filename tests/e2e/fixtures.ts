@@ -1,6 +1,6 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Every browser test owns a fresh process, data directory and bootstrap credential.
-import { test as base, expect, type APIRequestContext } from '@playwright/test';
+import { test as base, expect, type APIRequestContext, type Page } from '@playwright/test';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -29,6 +29,17 @@ export const test = base.extend<{ instance: Instance }>({
   },
 });
 export { expect };
+// Open the actual navigation, expanding only the group that owns the requested destination.
+export async function navigate(page: Page, name: string) {
+  const expand = page.getByRole('button', { name: '展开导航', exact: true });
+  if (await expand.isVisible()) await expand.click();
+  const sidebar = page.locator('.sidebar');
+  if (!await sidebar.isVisible()) await page.getByRole('button', { name: '打开导航', exact: true }).click();
+  const group = sidebar.locator('section').filter({ has: page.getByRole('button', { name, exact: true, includeHidden: true }) });
+  const toggle = group.locator(':scope > button[aria-expanded="false"]');
+  if (await toggle.count()) await toggle.click();
+  await sidebar.getByRole('button', { name, exact: true }).click();
+}
 export async function installStandalone(instance: Instance) {
   const response = await instance.request.post('/api/v1/install/complete', { headers: { 'X-Bootstrap-Token': instance.token }, data: { profile: 'web-standalone', database: { driver: 'sqlite', dsn: '' }, site_name: 'Unicore', base_url: instance.url, admin_username: '', admin_email: '', admin_password: '' } });
   expect(response.status()).toBe(200);

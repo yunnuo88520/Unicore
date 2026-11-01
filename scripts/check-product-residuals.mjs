@@ -12,7 +12,8 @@ const ALLOWED = [
   /@[uU]nicore\//, /x-unicore/i, /__UNICORE_[A-Z_]+__/,
   /\bUNICORE_[A-Z_]+\b/,
   /unicore(_administrator)?_session/, /cid:unicore-brand/, /unicore\.db/,
-  /基于 Unicore/, /built with Unicore/i, /Unicore 应用基座/, /Unicore application foundation/,
+  /unicore\.preferences\.v1/, /unicore\.theme/, /unicore:preferences/, /unicore\.session\.changed/,
+  /基于 Unicore/, /built with Unicore/i,
 ];
 
 function violationsFor(path, text, framework) {
@@ -51,6 +52,14 @@ export function scanResiduals(base = root) {
   for (const document of JSON.parse(read('distribution/manifest.json')).documents.filter(entry => entry.audiences.includes('project-template'))) {
     if (!existsSync(`${dir}${document.target}`)) { violations.push(`${document.target}: missing template document`); continue; }
     violations.push(...violationsFor(document.target, read(document.target), framework));
+  }
+  // UI rewrites can introduce visible literals without changing generated HTML or identity files.
+  const manifest = JSON.parse(read('distribution/manifest.json'));
+  for (const entry of manifest.template_files ?? []) {
+    const path = typeof entry === 'string' ? entry : entry.target;
+    if (path !== 'cmd/server/commands.go' && (!path.startsWith('packages/web-ui/src/') || !/\.(?:tsx?|json)$/.test(path) || /(?:\.test\.|\.gen\.)/.test(path))) continue;
+    if (!existsSync(`${dir}${path}`)) { violations.push(`${path}: missing product UI source`); continue; }
+    violations.push(...violationsFor(path, read(path), framework));
   }
   for (const entry of readdirSync(`${dir}deploy/tar`)) if (new RegExp(framework, 'i').test(entry)) violations.push(`deploy/tar/${entry}: deployment file name still carries the framework identity`);
   return violations;

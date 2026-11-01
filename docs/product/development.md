@@ -1,6 +1,25 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 应用开发与 AI 任务入口
 
+## 创建独立商用产品
+
+MIT 允许商用、修改和再分发；保留 LICENSE 的版权和许可声明及框架原作者信息。示例：创建名为 LicenHub、命令为 licenhub 的独立产品（仓库地址替换为自己的地址）：
+
+```sh
+pnpm create:project --directory ../LicenHub --name LicenHub --slug licenhub --module github.com/team/LicenHub --bundle vip.ebox.licenhub --repository https://github.com/team/LicenHub
+cd ../LicenHub
+make install
+make docs
+pnpm product:check
+pnpm check:residuals
+make build-web build-cli build-ops
+./build/bin/licenhub --help
+```
+
+名称、CLI/运维命令、桌面标识、服务名、安装/数据目录与镜像名随 product.identity.json 投影。创建器完成本地 main 初始提交，origin 指向自己的仓库；只读 framework 远端和 project.provenance.json 保存上游来源，业务提交和推送在自己的仓库维护。--repository 不会创建托管仓库或推送，首次推送前确保目标仓库已建立。更新渠道、公钥默认清空，另行配置自己的签名发行。
+
+域名不是产品身份字段。部署到自己的域名时配置 DNS、Nginx server_name 和 TLS，首次从正式 HTTPS 地址打开 /install，基础地址默认取浏览器的实际 origin；生产配置与实例数据不写入仓库。自己的 Logo/图标仍由 assets/brand/identity.json 配置，产品更名不会凭空生成定制图案。
+
 按任务读取，不遍历全部文档。契约、代码和可重复测试比过期功能说明更可靠；先检查已有功能和工作区，不覆盖他人修改。根 AGENTS 是简短硬约束，.agents/skills/develop-application 按需加载流程。
 
 ## 目录和依赖

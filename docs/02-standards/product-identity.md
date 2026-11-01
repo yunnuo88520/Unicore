@@ -31,8 +31,9 @@
 | `package.json` → `name` | `product.slug` | 仅该字段;发行产物前缀随之派生 |
 | `packages/contracts/openapi.json` → `info.title` | `product.name` | 仅标题;`x-unicore` 扩展与 cookie 名是契约机制,不改 |
 | `internal/buildinfo/identity.gen.go` | 整文件 | 生成,随源提交;CLI `Use`/`Short`、ops 提示经常量消费 |
-| `packages/web-ui/src/product.gen.ts` | 整文件 | 生成;About 标题与「关于」提示消费 |
+| `packages/web-ui/src/product.gen.ts` | 整文件 | 生成;产品名称、slug 与描述由界面标题、安装数据库名、存储前缀及「关于」提示消费 |
 | `deploy/tar/unicore`、`unicorehelp`、`unicore.service` | 重命名为 `cli.command`/`opsCommand`/`serviceName` 并替换内容 token | 框架路径固定,派生项目导出时重命名 |
+| `distribution/manifest.json` 的部署启动器/服务路径 | 同部署文件重命名映射 | 精确更新路径并在上游同步时反向归一化,保证派生项目的分发检查仍可执行 |
 | `deploy/docker/compose.yaml` 变量与卷、`compose.dev.yaml`、`nginx.conf.example` 路径、`Dockerfile` 镜像标签 | slug 派生 | 显式 token 表,最长优先 |
 | `docs/product/*.md`(manifest project-template 清单) | 命令/服务/路径 token | 显式 token 表;`Unicore` 散文属性保留 |
 | `Makefile` LDFLAGS 与 `build-cli`/`build-ops` 产物名 | 运行时 `$(GO_MODULE)`/`$(CLI_COMMAND)`/`$(OPS_COMMAND)` | 手写结构,动态读取 |
@@ -46,7 +47,7 @@ Go 消费:`internal/buildinfo` 常量(ProductName/ProductSlug/CLIRootCommand/CLI
 
 ## 残留扫描
 
-`scripts/check-product-residuals.mjs` 只在派生项目生效(读取 `project.provenance.json` 的框架名):对上表全部产品可见文件逐行扫描框架名,命中且不在白名单即失败,并检查 `deploy/tar` 无框架名文件。白名单是显式数组,不接受"忽略全部匹配"。`make test` 在框架仓库自动跳过,在派生项目强制执行。
+`scripts/check-product-residuals.mjs` 只在派生项目生效(读取 `project.provenance.json` 的框架名):对上表全部产品可见文件与显式模板清单中的共享 UI 源码逐行扫描框架名,命中且不在白名单即失败,并检查 `deploy/tar` 无框架名文件。白名单是显式数组,不接受"忽略全部匹配"。`make test` 在框架仓库自动跳过,在派生项目强制执行。
 
 ## 文件所有权
 
@@ -72,4 +73,4 @@ Go 消费:`internal/buildinfo` 常量(ProductName/ProductSlug/CLIRootCommand/CLI
 
 ## 派生项目
 
-`create:project` 生成派生项目自己的 `product.identity.json`(部署字段按 slug 派生,description 默认「基于 Unicore 构建」),随后一次 `applyIdentity` 套用全部投影——混合文件身份字段、生成源、部署重命名与文档令牌——导出即可通过 `product:check` 与 `check:residuals`。上游同步不得覆盖 product-owned 身份文件,合并后执行 `make docs` 重新生成投影。流程见 [创建与合并](../03-runbooks/framework-upgrade.md)。
+`create:project` 生成派生项目自己的 `product.identity.json`(部署字段按 slug 派生,description 默认使用产品名加 workspace),随后一次 `applyIdentity` 套用全部投影——混合文件身份字段、生成源、部署重命名与文档令牌——导出即可通过 `product:check` 与 `check:residuals`。上游同步不得覆盖 product-owned 身份文件,合并后执行 `make docs` 重新生成投影。流程见 [创建与合并](../03-runbooks/framework-upgrade.md)。

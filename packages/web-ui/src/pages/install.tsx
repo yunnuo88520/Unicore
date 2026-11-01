@@ -8,7 +8,7 @@ import { ArrowRight, CheckCircle2, LoaderCircle } from 'lucide-react';
 import type { Bootstrap, DatabaseCheck, DatabaseInput, InstallInput, InstallResult, WebClient } from '@unicore/sdk';
 import type { PageProps } from '../router';
 import { BrandLockup } from '../brand';
-import { productName } from '../product.gen';
+import { productName, productSlug } from '../product.gen';
 import { AppForm, useAppForm } from '../lib/form';
 import { Button, Checkbox, Input, SimpleSelect } from '../ui';
 import { cn } from '../lib/cn';
@@ -45,7 +45,7 @@ const TOKEN_MAX = 256;
 function defaults(driver: WizardDatabase['driver']): WizardDatabase {
   return driver === 'sqlite'
     ? { driver, dsn: '', host: '', port: 3306, name: '', username: '', password: '', tls: false }
-    : { driver, dsn: '', host: '127.0.0.1', port: driver === 'mysql' ? 3306 : 5432, name: 'unicore', username: driver === 'mysql' ? 'root' : 'postgres', password: '', tls: false };
+    : { driver, dsn: '', host: '127.0.0.1', port: driver === 'mysql' ? 3306 : 5432, name: productSlug, username: driver === 'mysql' ? 'root' : 'postgres', password: '', tls: false };
 }
 
 /** The wizard keeps every field defined for the form layer; SQLite payloads stay minimal like the contract expects. */

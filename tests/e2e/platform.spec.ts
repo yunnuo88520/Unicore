@@ -1,5 +1,5 @@
 // Author: yunnuo <ymz@ebox.vip>
-import { test, expect, installStandalone } from './fixtures';
+import { test, expect, installStandalone, navigate } from './fixtures';
 import { capture } from './visual';
 
 test('first-install platform wizard, users, settings, logout and captcha login', async ({ page, instance }, info) => {
@@ -29,7 +29,7 @@ test('first-install platform wizard, users, settings, logout and captcha login',
   await expect(page.getByRole('heading', { name: '安装完成', exact: true })).toBeVisible();
   await capture(page, info, 'install-complete');
   await page.getByRole('button', { name: '进入工作空间' }).click();
-  async function nav(name: string) { if (info.project.name === 'mobile') await page.getByRole('button', { name: '打开导航' }).click(); await page.getByRole('button', { name, exact: true }).click(); }
+  async function nav(name: string) { await navigate(page,name); }
   for (const [name, slug] of [['工作台概览', 'overview'], ['核心实验室', 'lab'], ['基础设置', 'site'], ['系统日志', 'logs']] as const) {
     await nav(name); await capture(page, info, slug);
   }

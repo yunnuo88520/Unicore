@@ -19,8 +19,8 @@ func management(args []string, output io.Writer) (bool, error) {
 		return false, nil
 	}
 	switch args[0] {
-	case "help", "--help", "-h", "unicorehelp":
-		fmt.Fprintf(output, "%s %s · Web/API 服务\n\n用法 / Usage:\n  unicore [启动参数]          启动服务 / Start server (configuration optional)\n  unicorehelp                  显示帮助 / Show help\n\n命令 / Commands:\n  help                         显示帮助 / Show help\n  config generate [--output PATH]  生成配置，拒绝覆盖 / Generate configuration\n  version                      显示版本 / Show version\n\n兼容别名 / Alias:\n  generate-config              等同于 config generate\n\n首次安装 / First install: /install\n\n", theme.Current.Brand.Name, buildinfo.Version)
+	case "help", "--help", "-h", buildinfo.CLIRootCommand + "help":
+		fmt.Fprintf(output, "%s %s · Web/API 服务\n\n用法 / Usage:\n  %s [启动参数]          启动服务 / Start server (configuration optional)\n  %shelp                  显示帮助 / Show help\n\n命令 / Commands:\n  help                         显示帮助 / Show help\n  config generate [--output PATH]  生成配置，拒绝覆盖 / Generate configuration\n  version                      显示版本 / Show version\n\n兼容别名 / Alias:\n  generate-config              等同于 config generate\n\n首次安装 / First install: /install\n\n", theme.Current.Brand.Name, buildinfo.Version, buildinfo.CLIRootCommand, buildinfo.CLIRootCommand)
 		fmt.Fprint(output, config.WebUsage)
 		return true, nil
 	case "version":
@@ -39,7 +39,7 @@ func management(args []string, output io.Writer) (bool, error) {
 		}
 		flags := flag.NewFlagSet("config generate", flag.ContinueOnError)
 		flags.SetOutput(output)
-		path := flags.String("output", "unicore.json", "new configuration path; existing files are refused")
+		path := flags.String("output", buildinfo.ProductSlug+".json", "new configuration path; existing files are refused")
 		if err := flags.Parse(rest); err != nil {
 			return true, commandError(err)
 		}
@@ -49,7 +49,7 @@ func management(args []string, output io.Writer) (bool, error) {
 		if err := config.Generate(*path); err != nil {
 			return true, err
 		}
-		fmt.Fprintf(output, "配置已生成 / Configuration created: %s\n使用 / Run: unicore --config <path>\n", *path)
+		fmt.Fprintf(output, "配置已生成 / Configuration created: %s\n使用 / Run: %s --config <path>\n", *path, buildinfo.CLIRootCommand)
 		return true, nil
 	}
 	return false, nil

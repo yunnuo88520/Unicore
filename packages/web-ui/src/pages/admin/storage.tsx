@@ -10,6 +10,7 @@ import { AppField, AppForm, useAppForm } from '../../lib/form';
 import { Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, Input, Modal, SimpleSelect, useMessage } from '../../ui';
 import { useNavigate } from '@tanstack/react-router';
 import { useRouteSearch, type PageProps } from '../../router';
+import { productSlug } from '../../product.gen';
 
 const providers = defineMessages([
   { id: 'local', label: '本地' },
@@ -168,7 +169,7 @@ function LocationDialog({ storage, provider, item, onClose, onSaved }: {
       endpoint: item?.endpoint ?? '',
       bucket: item?.bucket ?? '',
       region: item?.region ?? '',
-      prefix: item?.prefix ?? 'unicore',
+      prefix: item?.prefix ?? productSlug,
       path_style: item?.path_style ?? provider === 'minio',
       access_key: '',
       secret_key: '',

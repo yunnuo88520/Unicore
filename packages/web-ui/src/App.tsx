@@ -3,7 +3,7 @@
  */
 import { AnnouncementCard } from './announcements-card';
 import { ClientControls } from './client-controls';
-import { SidebarTools, VersionBadge } from './shell-tools';
+import { SidebarTools, VersionBadge, workspaceLinks } from './shell-tools';
 import { useLocale, t } from './i18n';
 import { productName } from './product.gen';
 import { WorkspaceLayout } from './workspace-layout';
@@ -153,7 +153,6 @@ function WorkspaceShell() {
           : !permitted
             ? <StateCard tone="error" icon={<ShieldCheck size={26} className="text-danger" />} title={t('没有访问权限')} detail={t('请联系实例管理员授予相关权限。')} />
             : page === 'not-found' ? <NotFoundPage /> : <Outlet />}
-      {!metadata.isPending && !metadata.isError && <div className="mt-6 flex items-center gap-1.5 text-2xs text-subtle"><Braces size={13} aria-hidden="true" /><span>{t('文本分析不保存输入，外观偏好仅在当前客户端生效。')}</span></div>}
       <SiteFooter metadata={data} />
     </WorkspaceLayout>
   </PagePropsProvider>;
@@ -164,27 +163,22 @@ function SideNavigation({ page, data, client, onNavigate, onAbout }: {
 }) {
   useLocale();
   const router = useRouter();
-  const { navCollapsed } = usePreferences();
+  const { navCollapsed, layout } = usePreferences();
   const desktop = useMinWidth(768);
   const administration = isAdministrator(data);
   const personalSettings = data.identity_realm !== 'administrator';
   const ROUTE_PATHS: Partial<Record<Page, string>> = { overview: '/' };
   function go(next: Page) { onNavigate(); void router.navigate({ to: ROUTE_PATHS[next] ?? `/${next === 'not-found' ? '' : next}` }); }
-  // Flat, permission-filtered entries drive the collapsed rail; groups exist only in the expanded variant.
+  // The rail shows top-level entries only; management children stay inside their group menus.
   const entries: { id: Page; icon: LucideIcon; label: string }[] = [];
   for (const id of ['overview', 'lab', 'notes'] as const) if (canAccess(id, data)) entries.push({ id, icon: id === 'overview' ? LayoutDashboard : id === 'lab' ? FlaskConical : NotebookPen, label: PAGE_LABELS[id] });
   if (canAccess('files', data)) entries.push({ id: 'files', icon: FolderOpen, label: administration ? t('文件管理') : t('我的文件') });
-  if (administration) for (const id of ['users', 'administrators', 'roles'] as const) if (canAccess(id, data)) entries.push({ id, icon: NAV_ICONS[id] ?? Circle, label: PAGE_LABELS[id] });
-  if (canAccess('site', data)) {
-    if (personalSettings) entries.push({ id: 'site', icon: Settings2, label: t('外观设置') });
-    else {
-      entries.push({ id: 'site', icon: Settings2, label: PAGE_LABELS.site });
-      for (const id of ['mail', 'mail-templates', 'announcements', 'storage', 'logs', 'edition'] as const) if (canAccess(id, data)) entries.push({ id, icon: NAV_ICONS[id] ?? Circle, label: PAGE_LABELS[id] });
-    }
-  }
+  if (personalSettings && canAccess('site', data)) entries.push({ id: 'site', icon: Settings2, label: t('外观设置') });
   if (!administration && canAccess('edition', data)) entries.push({ id: 'edition', icon: PackageCheck, label: PAGE_LABELS.edition });
+  const userPages = (['users', 'administrators', 'roles'] as const).filter(id => canAccess(id, data));
+  const systemPages = (['site', 'mail', 'mail-templates', 'announcements', 'storage', 'logs', 'edition'] as const).filter(id => canAccess(id, data));
 
-  if (navCollapsed && desktop) return <>
+  if (navCollapsed && desktop && layout !== 'full') return <>
     <div className="flex flex-col items-center pb-2">
       <a className="flex size-10 items-center justify-center" href="/" onClick={event => { event.preventDefault(); go('overview'); }} aria-label={data.site_name}>
         <BrandMark size={30} />
@@ -192,10 +186,12 @@ function SideNavigation({ page, data, client, onNavigate, onAbout }: {
     </div>
     <nav aria-label={t('主导航')} className="mt-3 flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto pb-2">
       {entries.map(({ id, icon: Icon, label }) => <Tooltip key={id} label={label}>
-        <button className={`nav-rail-item flex size-10 items-center justify-center rounded-lg transition-colors ${page === id ? 'bg-primary-soft text-accent' : 'text-muted hover:bg-surface-alt hover:text-ink'}`} aria-current={page === id ? 'page' : undefined} aria-label={t(label)} onClick={() => go(id)}>
+        <button className={`nav-rail-item flex size-10 shrink-0 items-center justify-center rounded-lg transition-colors ${page === id ? 'bg-primary-soft text-accent' : 'text-muted hover:bg-surface-alt hover:text-ink'}`} aria-current={page === id ? 'page' : undefined} aria-label={t(label)} onClick={() => go(id)}>
           <Icon size={19} aria-hidden="true" />
         </button>
       </Tooltip>)}
+      {administration && userPages.length > 0 && <RailGroup title={t('用户管理')} icon={Users} pages={userPages} page={page} onNavigate={go} />}
+      {administration && systemPages.length > 0 && <RailGroup title={t('系统管理')} icon={Settings2} pages={systemPages} page={page} onNavigate={go} />}
     </nav>
     <div className="shrink-0 border-t border-line pt-2">
       <Tooltip label={t('关于 {{name}}', { name: productName })}>
@@ -217,7 +213,7 @@ function SideNavigation({ page, data, client, onNavigate, onAbout }: {
     </div>
     <button className="mt-4 mb-5 flex w-full items-center gap-[10px] rounded-[10px] border border-line bg-surface p-[12px] text-start shadow-card transition-colors hover:bg-surface-alt" onClick={onAbout}>
       <span className="flex h-[34px] w-[31px] shrink-0 items-center justify-center rounded-md border border-line bg-surface-alt text-accent"><Braces size={19} aria-hidden="true" /></span>
-      <span className="min-w-0"><strong className="block truncate text-[length:var(--font-12)] font-semibold text-ink">{data.site_name ?? t('默认工作空间')}</strong><small className="mt-[5px] block text-[length:var(--font-10)] text-muted">{t('Unicore 应用基座')}</small></span>
+      <span className="min-w-0"><strong className="block truncate text-[length:var(--font-12)] font-semibold text-ink">{data.site_name ?? productName}</strong><small className="mt-[5px] block text-[length:var(--font-10)] text-muted">{t('应用工作空间')}</small></span>
     </button>
     <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto pb-2">
       <nav aria-label={t('工作台')} className="flex flex-col gap-0.5">
@@ -226,14 +222,14 @@ function SideNavigation({ page, data, client, onNavigate, onAbout }: {
           .map(({ id, icon: Icon }) => <NavItem key={id} icon={Icon} active={page === id} label={PAGE_LABELS[id]} onClick={() => go(id)} />)}
       </nav>
       {canAccess('files', data) && <NavItem icon={FolderOpen} active={page === 'files'} label={administration ? t('文件管理') : t('我的文件')} onClick={() => go('files')} />}
-      {administration && <NavGroup title={t('用户管理')} icon={<Users size={19} />}>
+      {administration && <NavGroup title={t('用户管理')} icon={<Users size={19} />} active={userPages.some(id => id === page)}>
         <NavEntry id="users" page={page} onNavigate={go} />
         <NavEntry id="administrators" page={page} onNavigate={go} />
         <NavEntry id="roles" page={page} onNavigate={go} />
       </NavGroup>}
       {canAccess('site', data) && (personalSettings
         ? <NavItem icon={Settings2} active={page === 'site'} label={t('外观设置')} onClick={() => go('site')} />
-        : <NavGroup title={t('系统管理')} icon={<Settings2 size={19} />}>
+        : <NavGroup title={t('系统管理')} icon={<Settings2 size={19} />} active={systemPages.some(id => id === page)}>
             <NavEntry id="site" page={page} onNavigate={go} />
             {(['mail', 'mail-templates', 'announcements', 'storage', 'logs', 'edition'] as const).filter(id => canAccess(id, data)).map(id => <NavEntry key={id} id={id} page={page} onNavigate={go} />)}
           </NavGroup>)}
@@ -261,11 +257,32 @@ function NavItem({ icon: Icon, label, active, onClick }: { icon: LucideIcon; lab
   </button>;
 }
 
-function NavGroup({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
+function RailGroup({ title, icon: Icon, pages, page, onNavigate }: { title: string; icon: LucideIcon; pages: readonly Page[]; page: Page; onNavigate: (page: Page) => void }) {
   useLocale();
-  const [open, setOpen] = useState(true);
+  const active = pages.includes(page);
+  return <DropdownMenu>
+    <DropdownMenuTrigger asChild>
+      <button className={`nav-rail-item flex size-10 shrink-0 items-center justify-center rounded-lg transition-colors ${active ? 'bg-primary-soft text-accent' : 'text-muted hover:bg-surface-alt hover:text-ink'}`} aria-label={t(title)}>
+        <Icon size={19} aria-hidden="true" />
+      </button>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent side="right" align="start" aria-label={t(title)} className="min-w-48">
+      <DropdownMenuLabel>{t(title)}</DropdownMenuLabel>
+      {pages.map(id => {
+        const ChildIcon = NAV_ICONS[id] ?? Circle;
+        return <DropdownMenuItem key={id} aria-current={page === id ? 'page' : undefined} onSelect={() => onNavigate(id)}>
+          <ChildIcon size={16} aria-hidden="true" /><span>{t(PAGE_LABELS[id])}</span>
+        </DropdownMenuItem>;
+      })}
+    </DropdownMenuContent>
+  </DropdownMenu>;
+}
+
+function NavGroup({ title, icon, children, active = false }: { title: string; icon: ReactNode; children: ReactNode; active?: boolean }) {
+  useLocale();
+  const [open, setOpen] = useState(false);
   return <section>
-    <button className={`flex min-h-11 w-full items-center gap-[12px] rounded-lg px-[11px] text-start text-sm font-medium transition-colors ${open ? 'text-ink' : 'text-muted hover:bg-surface-alt hover:text-ink'}`} aria-expanded={open} onClick={() => setOpen(value => !value)}>
+    <button className={`flex min-h-11 w-full items-center gap-[12px] rounded-lg px-[11px] text-start text-sm font-medium transition-colors ${active ? 'bg-primary-soft text-accent' : open ? 'text-ink' : 'text-muted hover:bg-surface-alt hover:text-ink'}`} aria-expanded={open} onClick={() => setOpen(value => !value)}>
       {icon}<span className="truncate">{t(title)}</span><ChevronRight size={15} className={`ms-auto transition-transform ${open ? 'rotate-90' : ''}`} aria-hidden="true" />
     </button>
     <nav aria-label={t(title)} hidden={!open} className="ms-[18px] flex flex-col gap-0.5 border-s border-line ps-[9px]">{children}</nav>
@@ -344,7 +361,7 @@ function PageHeading({ page, data, personalSettings, settingsLabel, administrati
   return <div className="page-heading mb-[27px] flex items-center justify-between gap-[20px] max-md:mb-[22px] max-md:gap-3">
     <div className="min-w-0">
       <div className="mb-3 flex items-center gap-[7px] text-[length:var(--font-9)] font-semibold tracking-[1.6px] text-muted">
-        <span className="size-[5px] rounded-full bg-primary" aria-hidden="true" /> {administration ? 'UNICORE ADMINISTRATION' : 'UNICORE WORKSPACE'}
+        <span className="size-[5px] rounded-full bg-primary" aria-hidden="true" /> {productName} · {t(administration ? '管理员' : '工作空间')}
       </div>
       <h1 className="text-[length:var(--font-24)] font-semibold text-ink max-md:text-[length:var(--font-23)]">{t(page === 'site' && personalSettings ? '外观设置' : route.title)}<span className="ms-1 text-primary">.</span></h1>
       <p className="mt-[7px] text-[length:var(--font-11)] leading-[1.8] text-muted max-md:max-w-[290px] max-md:text-[length:var(--font-10)] max-md:leading-[1.9]">{t(page === 'site' && personalSettings ? '只影响当前客户端，不修改全局配置。' : route.description)}</p>
@@ -375,7 +392,7 @@ function About({ onClose }: { onClose: () => void }) {
       {['Go', 'React', 'TanStack', 'Tailwind', 'Wails v2', 'Cobra'].map(item => <span key={item} className="rounded-full border border-line bg-surface-alt px-2 py-0.5 font-mono text-2xs text-muted">{item}</span>)}
     </div>
     <p className="text-2xs text-subtle">{t('可扩展的业务基座、共享界面与原生桥接。')}<br />{t('完整范围与开发指南请阅读项目文档。')}</p>
-    <a className="inline-flex items-center gap-1 text-sm text-accent hover:underline" href="https://github.com/yunnuo88520/Unicore/tree/main/docs" target="_blank" rel="noopener noreferrer">
+    <a className="inline-flex items-center gap-1 text-sm text-accent hover:underline" href={workspaceLinks.documentation} target="_blank" rel="noopener noreferrer">
       {t('开发文档')}<ExternalLink size={13} aria-hidden="true" />
     </a>
   </Modal>;

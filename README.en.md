@@ -80,9 +80,8 @@ Desktop data defaults to `Unicore/desktop` under the OS application-data directo
 Run from committed framework source. The destination must not exist and must be outside this repository:
 
 ```sh
-pnpm create:project --directory ../my-app --name 'My App' --slug my-app --module github.com/team/my-app --bundle com.team.myapp
+pnpm create:project --directory ../my-app --name 'My App' --slug my-app --module github.com/team/my-app --bundle com.team.myapp --repository https://github.com/team/my-app
 cd ../my-app
-git init
 make install
 make docs
 make doctor
@@ -90,7 +89,7 @@ make dev-server
 # In a second terminal: make dev-web
 ```
 
-The creator replaces the name, Go module, product slug, and desktop bundle ID, and records the upstream revision. It excludes Git history, instance data, environment files, and build outputs. Edit [tokens.json](assets/theme/tokens.json) for the theme/name and [identity.json](assets/brand/identity.json) for brand identity; builds generate logos, ICO/native icons, and email colors. Replace repository links, support contacts, and security policy in the derived project. See [upstream integration](docs/03-runbooks/framework-upgrade.md).
+The MIT license permits commercial use, modification and redistribution while preserving the license, copyright notice and original authorship. The creator commits an independent main baseline and replaces the product name, Go module, CLI/ops commands and desktop identity. Optional --repository configures your origin, UI documentation links and community feedback links; the read-only framework remote preserves upstream provenance. It does not create a hosted repository or push code. Product identity lives in product.identity.json, the theme in [tokens.json](assets/theme/tokens.json), and graphics in [identity.json](assets/brand/identity.json). Your domain and TLS remain deployment configuration; installation uses the actual browser origin. Review support contacts, security policy and update signing. See [upstream integration](docs/03-runbooks/framework-upgrade.md).
 
 For isolated development services, configure temporary credentials in [development Compose](deploy/docker/compose.dev.yaml), then run `make dev-deps-up SERVICES='postgres mysql mail'`. Start MinIO separately if needed. `make dev-deps-down` stops services and preserves volumes by default. Never use production databases or real SMTP for automated tests.
 

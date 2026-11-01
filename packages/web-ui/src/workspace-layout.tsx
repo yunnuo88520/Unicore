@@ -27,7 +27,7 @@ export function WorkspaceLayout({ navigation, header, children, overlays, naviga
       {navigation}
     </aside>
     <div className="main-shell min-w-0 w-full">
-      <header className="sticky top-0 z-20 flex h-[76px] min-w-0 items-center justify-between border-b border-line bg-surface px-[38px] max-md:h-[65px] max-md:px-[22px]">{header}</header>
+      <header className="topbar sticky top-0 z-20 flex h-[76px] min-w-0 items-center justify-between border-b border-line bg-surface px-[38px] max-md:h-[65px] max-md:px-[22px]">{header}</header>
       <main id="main-content" tabIndex={-1} className={`main-content mx-auto w-full min-w-0 pt-9 px-[38px] pb-10 outline-none max-md:px-[22px] ${contentClassName}`}>{children}</main>
     </div>
     {overlays}

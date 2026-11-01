@@ -2,7 +2,7 @@
 // Description: Dialog accessibility, fixed navigation, independent accounts and functional avatar actions.
 import { mkdir } from 'node:fs/promises';
 import type { Page } from '@playwright/test';
-import { test, expect } from './fixtures';
+import { test, expect, navigate } from './fixtures';
 
 async function login(page:Page, username:string, password:string){
  await page.getByLabel('账号或邮箱').fill(username);await page.getByLabel('密码',{exact:true}).fill(password);
@@ -15,12 +15,11 @@ test('management groups, modal creation, independent logins and avatar password 
  test.setTimeout(60000);
  expect((await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}})).status()).toBe(200);
  await page.goto(`${instance.url}/admin`);
- const nav=async(name:string)=>{if(info.project.name==='mobile')await page.getByRole('button',{name:'打开导航',exact:true}).click();await page.getByRole('button',{name,exact:true}).click();};
+ const nav=async(name:string)=>navigate(page,name);
  if(info.project.name==='mobile')await page.getByRole('button',{name:'打开导航',exact:true}).click();
- for(const name of ['用户管理','系统管理'])await expect(page.getByRole('button',{name,exact:true})).toHaveAttribute('aria-expanded','true');
- await page.getByRole('button',{name:'用户管理',exact:true}).click();
+ for(const name of ['用户管理','系统管理'])await expect(page.getByRole('button',{name,exact:true})).toHaveAttribute('aria-expanded','false');
  await expect(page.getByRole('button',{name:'用户列表',exact:true})).toBeHidden();
- await expect(page.getByRole('button',{name:'基础设置',exact:true})).toBeVisible();
+ await expect(page.getByRole('button',{name:'基础设置',exact:true})).toBeHidden();
  await page.getByRole('button',{name:'用户管理',exact:true}).click();
  const parentIcon=await page.getByRole('button',{name:'用户管理',exact:true}).locator('svg').first().boundingBox();
  const childIcon=await page.getByRole('button',{name:'用户列表',exact:true}).locator('svg').boundingBox();

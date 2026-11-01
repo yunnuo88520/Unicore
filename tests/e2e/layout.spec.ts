@@ -17,7 +17,8 @@ test('layout matrix preserves shell geometry and stable appearance controls',asy
       await choose('layout',layout);await choose('sidebar',sidebar);await choose('content',content);
       const state=await page.evaluate(()=>{
         const rect=(selector:string)=>{const r=document.querySelector(selector)!.getBoundingClientRect();return {left:r.left,right:r.right,width:r.width,top:r.top,bottom:r.bottom};};
-        return {viewport:innerWidth,overflow:document.documentElement.scrollWidth>innerWidth+1,main:rect('.main-shell'),content:rect('.main-content'),navigation:rect('.sidebar'),heading:rect('.page-heading'),dir:document.documentElement.dir,
+        const header=document.querySelector('.topbar')!,sheet=document.querySelector('.main-shell')!;
+        return {viewport:innerWidth,overflow:document.documentElement.scrollWidth>innerWidth+1,main:rect('.main-shell'),content:rect('.main-content'),navigation:rect('.sidebar'),heading:rect('.page-heading'),header:rect('.topbar'),headerRadius:parseFloat(getComputedStyle(header).borderTopLeftRadius),sheetRadius:parseFloat(getComputedStyle(sheet).borderTopLeftRadius),headerBackground:getComputedStyle(header).backgroundColor,sheetBackground:getComputedStyle(sheet).backgroundColor,pageBackground:getComputedStyle(document.body).backgroundColor,dir:document.documentElement.dir,
           controls:[...document.querySelectorAll('.preference-content .preference-choice')].map(node=>node.getBoundingClientRect().left),
           navigationHidden:getComputedStyle(document.querySelector('.sidebar')!).transform!=='none'};
       });
@@ -30,7 +31,18 @@ test('layout matrix preserves shell geometry and stable appearance controls',asy
         expect(state.main.left,context).toBeGreaterThanOrEqual(state.navigation.right-1);
         expect(state.navigationHidden,context).toBe(false);
         expect(state.navigation.top,context).toBeGreaterThanOrEqual(0);expect(state.navigation.bottom,context).toBeLessThanOrEqual(901);
-      }else expect(state.main.width,context).toBeCloseTo(width,0);
+        if(sidebar!=='标准'){
+          expect(state.main.top,context).toBeGreaterThanOrEqual(12);
+          expect(state.main.right,context).toBeLessThanOrEqual(width-12);
+          expect(state.headerRadius,context).toBeGreaterThan(0);
+          expect(state.headerRadius,context).toBe(state.sheetRadius);
+          expect(state.headerBackground,context).toBe(state.sheetBackground);
+          expect(state.header.right,context).toBeLessThanOrEqual(state.main.right);
+        }
+      }else{
+        expect(state.main.width,context).toBeCloseTo(width,0);
+        if(sidebar!=='标准')expect(state.headerBackground,context).toBe(state.pageBackground);
+      }
     }
   }
   await page.setViewportSize({width:info.project.name==='mobile'?375:1280,height:900});
@@ -48,4 +60,53 @@ test('layout matrix preserves shell geometry and stable appearance controls',asy
   await page.getByRole('button',{name:'我的笔记',exact:true}).click();
   await expect(page.getByRole('heading',{name:'我的笔记.'})).toBeVisible();
   await expect(page.locator('.nav-scrim')).toHaveCount(0);
+});
+
+test('navigation defaults to wide closed groups and the rail keeps children in keyboard-accessible menus',async({page,instance},info)=>{
+  const installed=await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}});
+  expect(installed.status()).toBe(200);
+  await page.goto(`${instance.url}/admin`);
+  await expect(page.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
+  if(info.project.name==='mobile')await page.getByRole('button',{name:'打开导航',exact:true}).click();
+  const sidebar=page.locator('.sidebar');
+  expect((await sidebar.boundingBox())!.width).toBeGreaterThan(200);
+  for(const name of ['用户管理','系统管理'])await expect(sidebar.getByRole('button',{name,exact:true})).toHaveAttribute('aria-expanded','false');
+  await expect(sidebar.getByRole('button',{name:'用户列表',exact:true})).toBeHidden();
+  await sidebar.getByRole('button',{name:'用户管理',exact:true}).click();
+  await expect(sidebar.getByRole('button',{name:'用户列表',exact:true})).toBeVisible();
+  if(info.project.name==='mobile'){
+    await page.keyboard.press('Escape');
+    await expect(sidebar).not.toHaveClass(/is-open/);
+    return;
+  }
+  await page.getByRole('button',{name:'收起导航',exact:true}).click();
+  expect((await sidebar.boundingBox())!.width).toBe(68);
+  await expect(sidebar.getByRole('button',{name:'用户列表',exact:true})).toHaveCount(0);
+  await expect(sidebar.getByRole('button',{name:'基础设置',exact:true})).toHaveCount(0);
+  const group=sidebar.getByRole('button',{name:'用户管理',exact:true});
+  await group.focus();await page.keyboard.press('Enter');
+  const menu=page.getByRole('menu',{name:'用户管理',exact:true});
+  await expect(menu.getByRole('menuitem',{name:'用户列表',exact:true})).toBeVisible();
+  await page.keyboard.press('Escape');await expect(group).toBeFocused();
+  await group.click();await menu.getByRole('menuitem',{name:'用户列表',exact:true}).click();
+  await expect(page).toHaveURL(`${instance.url}/admin/users`);
+  await expect(menu).toHaveCount(0);
+  await page.getByRole('button',{name:'展开导航',exact:true}).click();
+  await expect(sidebar.getByRole('button',{name:'用户管理',exact:true})).toHaveAttribute('aria-expanded','false');
+});
+
+test('inset and floating headers match their content sheet in both themes',async({page,instance},info)=>{
+  await installStandalone(instance);await page.goto(instance.url);
+  await expect(page.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
+  await mkdir('build/acceptance/layout',{recursive:true});
+  for(const theme of ['light','dark'])for(const sidebar of ['inset','floating']){
+    await page.evaluate(value=>{localStorage.setItem('unicore.preferences.v1',JSON.stringify({...value,navCollapsed:false}));window.dispatchEvent(new StorageEvent('storage',{key:'unicore.preferences.v1'}));},{theme,sidebar});
+    await expect(page.locator('html')).toHaveAttribute('data-theme',theme);
+    await expect(page.locator('html')).toHaveAttribute('data-sidebar',sidebar);
+    await page.screenshot({path:`build/acceptance/layout/${info.project.name}-${sidebar}-${theme}.png`,fullPage:true});
+    if(info.project.name==='chromium'){
+      await page.getByRole('button',{name:'收起导航',exact:true}).click();
+      await page.screenshot({path:`build/acceptance/layout/${info.project.name}-${sidebar}-${theme}-rail.png`,fullPage:true});
+    }
+  }
 });

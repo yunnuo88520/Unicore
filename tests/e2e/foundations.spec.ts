@@ -1,7 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Real session isolation, contract field errors and offline documentation at PC/375px.
 import type { Page } from '@playwright/test';
-import { test, expect, installStandalone } from './fixtures';
+import { test, expect, installStandalone, navigate } from './fixtures';
 import { operations } from '../../packages/contracts/src/operations.gen';
 import { capture } from './visual';
 
@@ -20,7 +20,7 @@ test.setTimeout(120_000);test('cross-tab logout/account switch, field focus and 
   const installed=await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}});
   expect(installed.status()).toBe(200);
   await page.goto(`${instance.url}/admin`);
-  async function nav(target: Page,name:string){if(info.project.name==='mobile')await target.getByRole('button',{name:'打开导航'}).click();await target.getByRole('button',{name,exact:true}).click();}
+  async function nav(target: Page,name:string){await navigate(target,name);}
   await nav(page,'用户列表');
   await page.getByRole('button',{name:'新增用户',exact:true}).click();
   await page.getByLabel('账号',{exact:true}).fill('bad!');

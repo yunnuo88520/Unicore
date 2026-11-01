@@ -81,9 +81,8 @@ make dev-desktop
 在已提交的框架源码中执行，目标目录必须不存在且位于当前仓库之外：
 
 ```sh
-pnpm create:project --directory ../my-app --name 'My App' --slug my-app --module github.com/team/my-app --bundle com.team.myapp
+pnpm create:project --directory ../my-app --name 'My App' --slug my-app --module github.com/team/my-app --bundle com.team.myapp --repository https://github.com/team/my-app
 cd ../my-app
-git init
 make install
 make docs
 make doctor
@@ -91,7 +90,7 @@ make dev-server
 # 第二个终端：make dev-web
 ```
 
-创建器更换名称、Go module、产品 slug 和桌面 bundle ID，记录上游提交，不复制 Git 历史、实例数据、env 或构建产物。主题入口为 [tokens.json](assets/theme/tokens.json)，品牌轮廓入口为 [identity.json](assets/brand/identity.json)，构建统一生成 Logo、ICO、原生图标与邮件配色。派生后还需调整自己的仓库链接、反馈渠道和安全策略，见 [派生与上游更新](docs/03-runbooks/framework-upgrade.md)。
+源码采用 MIT，可商用、修改和再分发，保留许可证、版权声明与原作者信息。创建器完成独立仓库的 main 初始提交，更换名称、Go module、CLI/运维命令和桌面标识；可选 --repository 同时配置自己的 origin、界面文档与社区反馈链接，只读 framework 远端保留上游来源，不创建远程仓库或自动推送。产品身份入口为 product.identity.json，主题入口为 [tokens.json](assets/theme/tokens.json)，图形入口为 [identity.json](assets/brand/identity.json)。域名/TLS 属自己的运行部署配置；安装页使用实际访问地址。仍需审阅支持联系人、安全策略与更新签名，见 [派生与上游更新](docs/03-runbooks/framework-upgrade.md)。
 
 需要隔离开发依赖时，按 [开发依赖配置](deploy/docker/compose.dev.yaml) 设置临时凭据，再执行 `make dev-deps-up SERVICES='postgres mysql mail'`；MinIO 可另启或连接已有服务。`make dev-deps-down` 停止并默认保留卷。不要使用生产库或真实 SMTP 做自动化测试。
 

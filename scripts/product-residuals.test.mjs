@@ -67,3 +67,17 @@ test('residue scan requires provenance and identity',()=>{
   assert.throws(()=>scanResiduals(root),/must name the upstream framework/);
  }finally{rmSync(root,{recursive:true,force:true});}
 });
+
+test('residue scan catches UI branding outside generated projections while preserving internal namespaces',()=>{
+ const root=project();
+ try{
+  const path='packages/web-ui/src/App.tsx';
+  const manifest=JSON.parse(readFileSync(join(root,'distribution/manifest.json'),'utf8'));
+  manifest.template_files=[path];
+  writeFileSync(join(root,'distribution/manifest.json'),JSON.stringify(manifest));
+  writeFileSync(join(root,path),`import type { AppClient } from '@unicore/sdk';\nconst key = 'unicore.preferences.v1';\nconst label = 'UNICORE WORKSPACE';\n`);
+  assert.ok(scanResiduals(root).some(line=>line.startsWith(`${path}:3:`)));
+  writeFileSync(join(root,path),`import type { AppClient } from '@unicore/sdk';\nconst key = 'unicore.preferences.v1';\nconst label = productName;\n`);
+  assert.deepEqual(scanResiduals(root),[]);
+ }finally{rmSync(root,{recursive:true,force:true});}
+});

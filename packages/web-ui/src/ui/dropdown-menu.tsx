@@ -10,7 +10,7 @@ export const DropdownMenuTrigger = DropdownPrimitive.Trigger;
 export const DropdownMenuContent = forwardRef<HTMLDivElement, React.ComponentPropsWithoutRef<typeof DropdownPrimitive.Content>>(function DropdownMenuContent({ className, sideOffset = 6, ...props }, ref) {
   return <DropdownPrimitive.Portal>
     <DropdownPrimitive.Content ref={ref} sideOffset={sideOffset}
-      className={cn('z-50 min-w-44 overflow-hidden rounded-lg border border-line bg-surface p-1 text-base shadow-modal', className)} {...props} />
+      className={cn('z-50 max-h-[var(--radix-dropdown-menu-content-available-height)] min-w-44 overflow-y-auto rounded-lg border border-line bg-surface p-1 text-base shadow-modal', className)} {...props} />
   </DropdownPrimitive.Portal>;
 });
 

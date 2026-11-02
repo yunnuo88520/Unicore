@@ -41,10 +41,14 @@ export const test = base.extend<{ instance: Instance }>({
 export { expect };
 // Open the actual navigation, expanding only the group that owns the requested destination.
 export async function navigate(page: Page, name: string) {
+  const sidebar = page.locator('.sidebar');
+  const open = page.getByRole('button', { name: '打开导航', exact: true });
+  // A navigation immediately after install/login can precede the shell mount.
+  // Wait for either real desktop navigation or the mobile drawer control first.
+  await expect.poll(async () => await sidebar.isVisible() || await open.isVisible()).toBe(true);
   const expand = page.getByRole('button', { name: '展开导航', exact: true });
   if (await expand.isVisible()) await expand.click();
-  const sidebar = page.locator('.sidebar');
-  if (!await sidebar.isVisible()) await page.getByRole('button', { name: '打开导航', exact: true }).click();
+  if (!await sidebar.isVisible()) await open.click();
   const group = sidebar.locator('section').filter({ has: page.getByRole('button', { name, exact: true, includeHidden: true }) });
   const toggle = group.locator(':scope > button[aria-expanded="false"]');
   if (await toggle.count()) await toggle.click();

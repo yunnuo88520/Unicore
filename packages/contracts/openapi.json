@@ -10348,7 +10348,8 @@
           "roles",
           "permissions",
           "created_at",
-          "last_login_at"
+          "last_login_at",
+          "totp_enabled"
         ],
         "properties": {
           "id": {
@@ -10384,6 +10385,10 @@
           },
           "last_login_at": {
             "type": "integer"
+          },
+          "totp_enabled": {
+            "type": "boolean",
+            "description": "Read-only authenticator enrollment status; no keys or recovery codes are exposed."
           }
         }
       },
@@ -10933,7 +10938,8 @@
           "login_captcha",
           "register_captcha",
           "mail_ready",
-          "email_login_enabled"
+          "email_login_enabled",
+          "email_verification_required"
         ],
         "properties": {
           "registration_enabled": {
@@ -10952,6 +10958,9 @@
             "type": "boolean"
           },
           "email_login_enabled": {
+            "type": "boolean"
+          },
+          "email_verification_required": {
             "type": "boolean"
           }
         }
@@ -11169,6 +11178,10 @@
           },
           "retry_after": {
             "type": "integer"
+          },
+          "registration_complete": {
+            "type": "boolean",
+            "description": "True when registration completed without email verification; no challenge is created."
           }
         }
       },
@@ -12112,6 +12125,11 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 68719476736
+          },
+          "upload_path": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "One configured relative upload path; omitted selects the first configured path."
           }
         }
       },
@@ -13611,6 +13629,11 @@
             "pattern": "^[a-f0-9]{64}$",
             "minLength": 64,
             "maxLength": 64
+          },
+          "upload_path": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "One configured relative upload path; omitted selects the first configured path."
           }
         }
       },
@@ -13621,7 +13644,9 @@
           "max_size",
           "part_size",
           "parallelism",
-          "resume_hours"
+          "resume_hours",
+          "upload_paths",
+          "allowed_extensions"
         ],
         "properties": {
           "max_size": {
@@ -13643,6 +13668,18 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 168
+          },
+          "upload_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "allowed_extensions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },

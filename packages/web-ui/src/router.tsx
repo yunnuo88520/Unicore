@@ -95,6 +95,7 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
     pageRoute('/account-security', () => import('./pages/account').then(module => ({ default: module.AccountSecurityPage })), { search: { oidc: '' } }),
     pageRoute('/account-sessions', () => import('./pages/account').then(module => ({ default: module.AccountSessionsPage }))),
     pageRoute('/site', () => import('./pages/appearance').then(module => ({ default: module.AppearancePage })), { adminEligible: true, search: { tab: '' } }),
+    pageRoute('/account-policy', () => import('./pages/appearance').then(module => ({ default: module.AdminMailSettingsPage })), { adminEligible: true }),
     pageRoute('/mail', () => import('./pages/appearance').then(module => ({ default: module.AdminMailSettingsPage })), { adminEligible: true }),
     pageRoute('/users', () => import('./pages/admin/users').then(module => ({ default: module.AdminUsersPage })), { adminEligible: true }),
     pageRoute('/administrators', () => import('./pages/admin/users').then(module => ({ default: module.AdminAdministratorsPage })), { adminEligible: true }),

@@ -99,6 +99,9 @@ func New(config Config) http.Handler {
 				r = r.WithContext(audit.With(r.Context(), audit.Metadata{IP: ip(r), Realm: realm, Target: r.URL.Path}))
 			}
 			r = r.WithContext(platform.WithDevice(r.Context(), ip(r), r.UserAgent()))
+			if strings.HasSuffix(r.URL.Path, "/bootstrap") || strings.HasSuffix(r.URL.Path, "/auth/session") || strings.HasSuffix(r.URL.Path, "/account/sessions") {
+				r = r.WithContext(platform.WithPassive(r.Context()))
+			}
 			next.ServeHTTP(w, r)
 		})
 	})
@@ -116,6 +119,14 @@ func New(config Config) http.Handler {
 	if config.Install != nil {
 		router.Use(func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if strings.HasSuffix(r.URL.Path, "/auth/login") || strings.HasSuffix(r.URL.Path, "/auth/mfa") || strings.Contains(r.URL.Path, "/auth/email/login/") || strings.Contains(r.URL.Path, "/auth/oidc/") {
+					if identity := config.Install.Identity(administratorRequest(r)); identity != nil {
+						if err := identity.LoginAllowed(r.Context(), ip(r)); err != nil {
+							webError(w, err)
+							return
+						}
+					}
+				}
 				// Admin recovery, public metadata and probes remain reachable during maintenance.
 				path := r.URL.Path
 				if strings.HasPrefix(path, "/api/v1/") && path != "/api/v1/bootstrap" && !strings.HasPrefix(path, "/api/v1/admin/") && !strings.HasPrefix(path, "/api/v1/health/") {

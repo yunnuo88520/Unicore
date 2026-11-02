@@ -26,11 +26,19 @@ var ErrMFA = errors.New("second factor required")
 var ErrMFAInvalid = errors.New("invalid or replayed second factor")
 var ErrMFAEnrollment = errors.New("second factor enrollment required")
 
-type DeviceInfo struct{ IP, Agent string }
+type DeviceInfo struct {
+	IP, Agent string
+	Passive   bool
+}
 type deviceKey struct{}
 
 func WithDevice(ctx context.Context, ip, agent string) context.Context {
-	return context.WithValue(ctx, deviceKey{}, DeviceInfo{ip, agent})
+	return context.WithValue(ctx, deviceKey{}, DeviceInfo{IP: ip, Agent: agent})
+}
+func WithPassive(ctx context.Context) context.Context {
+	d := DeviceFrom(ctx)
+	d.Passive = true
+	return context.WithValue(ctx, deviceKey{}, d)
 }
 func DeviceFrom(ctx context.Context) DeviceInfo {
 	d, _ := ctx.Value(deviceKey{}).(DeviceInfo)
@@ -42,9 +50,9 @@ type PersonalState struct {
 	LastStep, SetupExpires, SetupAttempts                    int
 }
 type PersonalSession struct {
-	User                                 contracts.User
-	State                                PersonalState
-	Expires, Created, Verified, Attempts int
+	User                                           contracts.User
+	State                                          PersonalState
+	Expires, Created, LastSeen, Verified, Attempts int
 }
 type EmailChange struct {
 	ID, UserID, SessionHash, ParentID, Original, Target, Digest, Payload string
@@ -71,7 +79,7 @@ type Personal struct {
 
 func (p *Personal) profile(ctx context.Context, s PersonalSession) (contracts.AccountProfile, error) {
 	values, err := p.Settings.Raw(ctx)
-	return contracts.AccountProfile{User: s.User, DisplayName: s.State.DisplayName, TotpEnabled: s.State.Secret != "", Force2fa: values["security.force_2fa"] == "true", CanDisable2fa: values["security.force_2fa"] != "true" && values["security.allow_disable_2fa"] != "false"}, err
+	return contracts.AccountProfile{User: s.User, DisplayName: s.State.DisplayName, TotpEnabled: s.State.Secret != "", Force2fa: settings.Force2FA(values, IsSuper(s.User)), CanDisable2fa: !settings.Force2FA(values, IsSuper(s.User)) && values["security.allow_disable_2fa"] != "false"}, err
 }
 func (p *Personal) Profile(ctx context.Context, token string) (contracts.AccountProfile, error) {
 	s, err := p.Store.PersonalSession(ctx, Hash(token))
@@ -83,6 +91,17 @@ func (p *Personal) Profile(ctx context.Context, token string) (contracts.Account
 func (p *Personal) SaveName(ctx context.Context, token, name string) (contracts.AccountProfile, error) {
 	name = strings.TrimSpace(name)
 	if !utf8.ValidString(name) || utf8.RuneCountInString(name) > 80 || strings.ContainsAny(name, "\r\n\x00") {
+		return contracts.AccountProfile{}, ErrInput
+	}
+	values, err := p.Settings.Raw(ctx)
+	if err != nil {
+		return contracts.AccountProfile{}, err
+	}
+	state, err := p.Store.PersonalSession(ctx, Hash(token))
+	if err != nil {
+		return contracts.AccountProfile{}, err
+	}
+	if settings.BlockedText(values["account.nickname_blacklist"], name, false) || settings.BlockedText(values["account.username_blacklist"], state.User.Username, false) {
 		return contracts.AccountProfile{}, ErrInput
 	}
 	if err := p.Store.SaveDisplayName(ctx, Hash(token), name); err != nil {
@@ -126,7 +145,7 @@ func (p *Personal) BeginTOTP(ctx context.Context, token, password, ip string) (c
 		return contracts.TOTPSetup{}, err
 	}
 	secret := base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(bytes)
-	expires := int(time.Now().Unix()) + 60
+	expires := int(time.Now().Unix()) + 600
 	if err = p.Store.SaveTOTPSetup(ctx, Hash(token), a.PasswordHash, p.Mail.Secrets.Seal(secret), expires); err != nil {
 		return contracts.TOTPSetup{}, err
 	}
@@ -189,6 +208,11 @@ func (p *Personal) Enable(ctx context.Context, token, code string) (contracts.Re
 	return contracts.RecoveryCodes{Codes: codes}, nil
 }
 func (p *Personal) Factor(ctx context.Context, token, code, ip string, disable bool) error {
+	if !disable {
+		if err := p.Identity.LoginAllowed(ctx, ip); err != nil {
+			return err
+		}
+	}
 	if !p.Identity.Limiter.Allow("totp-check:"+Hash(token)+":"+ip, 8, time.Minute) {
 		return ErrRateLimited
 	}
@@ -214,7 +238,11 @@ func (p *Personal) Factor(ctx context.Context, token, code, ip string, disable b
 	if !disable && step < 0 && len(code) == 20 {
 		recovery = Hash(s.User.ID + ":" + code)
 	}
-	return p.Store.UseFactor(ctx, Hash(token), s.State.Secret, step, recovery, disable)
+	err = p.Store.UseFactor(ctx, Hash(token), s.State.Secret, step, recovery, disable)
+	if !disable && (err == nil || errors.Is(err, ErrMFAInvalid)) {
+		p.Identity.loginResult(ctx, ip, err == nil)
+	}
+	return err
 }
 func (p *Personal) RequestEmail(ctx context.Context, token, parent, email, ip string) (contracts.EmailChallenge, error) {
 	s, err := p.Store.PersonalSession(ctx, Hash(token))

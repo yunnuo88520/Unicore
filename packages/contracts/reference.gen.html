@@ -464,7 +464,8 @@
     &quot;roles&quot;,
     &quot;permissions&quot;,
     &quot;created_at&quot;,
-    &quot;last_login_at&quot;
+    &quot;last_login_at&quot;,
+    &quot;totp_enabled&quot;
   ],
   &quot;properties&quot;: {
     &quot;id&quot;: {
@@ -500,6 +501,10 @@
     },
     &quot;last_login_at&quot;: {
       &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;totp_enabled&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;,
+      &quot;description&quot;: &quot;Read-only authenticator enrollment status; no keys or recovery codes are exposed.&quot;
     }
   }
 }</pre></details><details id="schema-UserList"><summary>UserList</summary><pre>{
@@ -1026,7 +1031,8 @@
     &quot;login_captcha&quot;,
     &quot;register_captcha&quot;,
     &quot;mail_ready&quot;,
-    &quot;email_login_enabled&quot;
+    &quot;email_login_enabled&quot;,
+    &quot;email_verification_required&quot;
   ],
   &quot;properties&quot;: {
     &quot;registration_enabled&quot;: {
@@ -1045,6 +1051,9 @@
       &quot;type&quot;: &quot;boolean&quot;
     },
     &quot;email_login_enabled&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;email_verification_required&quot;: {
       &quot;type&quot;: &quot;boolean&quot;
     }
   }
@@ -1252,6 +1261,10 @@
     },
     &quot;retry_after&quot;: {
       &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;registration_complete&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;,
+      &quot;description&quot;: &quot;True when registration completed without email verification; no challenge is created.&quot;
     }
   }
 }</pre></details><details id="schema-EmailCodeInput"><summary>EmailCodeInput</summary><pre>{
@@ -2161,6 +2174,11 @@
       &quot;type&quot;: &quot;integer&quot;,
       &quot;minimum&quot;: 1,
       &quot;maximum&quot;: 68719476736
+    },
+    &quot;upload_path&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 200,
+      &quot;description&quot;: &quot;One configured relative upload path; omitted selects the first configured path.&quot;
     }
   }
 }</pre></details><details id="schema-FileUploadGrant"><summary>FileUploadGrant</summary><pre>{
@@ -3612,6 +3630,11 @@
       &quot;pattern&quot;: &quot;^[a-f0-9]{64}$&quot;,
       &quot;minLength&quot;: 64,
       &quot;maxLength&quot;: 64
+    },
+    &quot;upload_path&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;maxLength&quot;: 200,
+      &quot;description&quot;: &quot;One configured relative upload path; omitted selects the first configured path.&quot;
     }
   }
 }</pre></details><details id="schema-UploadPolicy"><summary>UploadPolicy</summary><pre>{
@@ -3621,7 +3644,9 @@
     &quot;max_size&quot;,
     &quot;part_size&quot;,
     &quot;parallelism&quot;,
-    &quot;resume_hours&quot;
+    &quot;resume_hours&quot;,
+    &quot;upload_paths&quot;,
+    &quot;allowed_extensions&quot;
   ],
   &quot;properties&quot;: {
     &quot;max_size&quot;: {
@@ -3643,6 +3668,18 @@
       &quot;type&quot;: &quot;integer&quot;,
       &quot;minimum&quot;: 1,
       &quot;maximum&quot;: 168
+    },
+    &quot;upload_paths&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      }
+    },
+    &quot;allowed_extensions&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;
+      }
     }
   }
 }</pre></details><details id="schema-UploadPart"><summary>UploadPart</summary><pre>{

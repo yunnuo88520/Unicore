@@ -129,8 +129,12 @@ function WorkspaceShell() {
     const Flow = basename === 'verify-email' ? VerifyEmailPage : basename === 'reset-password' ? ResetPasswordPage : LoginPage;
     return <PagePropsProvider value={props}>
       <div className="flex min-h-dvh flex-col bg-background">
-        <div className="fixed top-[15px] end-[20px] z-[45] rounded-lg border border-line bg-surface px-2 py-[5px] shadow-tint"><ClientControls /></div>
-        <Flow {...props} />
+        <div className="flex flex-1 items-center justify-center px-4 py-8 sm:px-6 lg:py-12">
+          <div className="relative w-full max-w-6xl overflow-hidden rounded-3xl border border-line bg-surface shadow-card">
+            <div className="absolute end-4 top-4 z-[45]"><ClientControls /></div>
+            <Flow {...props} />
+          </div>
+        </div>
         <SiteFooter metadata={data} compact />
       </div>
     </PagePropsProvider>;
@@ -191,7 +195,7 @@ function SideNavigation({ page, data, client, onNavigate, onAbout }: {
   if (!administration && canAccess('edition', data)) entries.push({ id: 'edition', icon: PackageCheck, label: PAGE_LABELS.edition });
   const userPages = (['users', 'administrators', 'roles'] as const).filter(id => canAccess(id, data));
   const personalPages = (['account','account-security','account-sessions'] as const).filter(id=>canAccess(id,data));
-  const systemPages = (['site', 'mail', 'mail-templates', 'announcements', 'storage', 'logs', 'edition'] as const).filter(id => canAccess(id, data));
+  const systemPages = (['site', 'account-policy', 'mail', 'mail-templates', 'announcements', 'storage', 'logs', 'edition'] as const).filter(id => canAccess(id, data));
 
   if (navCollapsed && desktop && layout !== 'full') return <>
     <div className="flex flex-col items-center pb-2">
@@ -248,7 +252,7 @@ function SideNavigation({ page, data, client, onNavigate, onAbout }: {
         ? <NavItem icon={Settings2} active={page === 'site'} label={t('外观设置')} onClick={() => go('site')} />
         : <NavGroup title={t('系统设置')} icon={<Settings2 size={19} />} active={systemPages.some(id => id === page)}>
             <NavEntry id="site" page={page} onNavigate={go} />
-            {(['mail', 'mail-templates', 'announcements', 'storage', 'logs', 'edition'] as const).filter(id => canAccess(id, data)).map(id => <NavEntry key={id} id={id} page={page} onNavigate={go} />)}
+            {(['account-policy', 'mail', 'mail-templates', 'announcements', 'storage', 'logs', 'edition'] as const).filter(id => canAccess(id, data)).map(id => <NavEntry key={id} id={id} page={page} onNavigate={go} />)}
           </NavGroup>)}
       {personalPages.length>0 && <NavGroup title={t('个人中心')} icon={<UserRound size={19} />} active={personalPages.some(id=>id===page)}>{personalPages.map(id=><NavEntry key={id} id={id} page={page} onNavigate={go}/>)}</NavGroup>}
       {!administration && canAccess('edition', data) && <NavItem icon={PackageCheck} active={page === 'edition'} label={t('系统更新')} onClick={() => go('edition')} />}
@@ -308,7 +312,7 @@ function NavGroup({ title, icon, children, active = false }: { title: string; ic
   </section>;
 }
 
-const NAV_ICONS: Partial<Record<Page, LucideIcon>> = { account:UserRound, 'account-security':ShieldCheck, 'account-sessions':Monitor, announcements: Megaphone, storage: Cloud, files: FolderOpen, users: UserRound, administrators: UserCog, roles: ShieldCheck, site: Settings2, mail: Mail, 'mail-templates': Mail, logs: ScrollText, edition: PackageCheck };
+const NAV_ICONS: Partial<Record<Page, LucideIcon>> = { 'account-policy':ShieldCheck, account:UserRound, 'account-security':ShieldCheck, 'account-sessions':Monitor, announcements: Megaphone, storage: Cloud, files: FolderOpen, users: UserRound, administrators: UserCog, roles: ShieldCheck, site: Settings2, mail: Mail, 'mail-templates': Mail, logs: ScrollText, edition: PackageCheck };
 
 function NavEntry({ id, page, onNavigate }: { id: Page; page: Page; onNavigate: (page: Page) => void }) {
   useLocale();

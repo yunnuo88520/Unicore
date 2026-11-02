@@ -88,23 +88,34 @@ func (r *Repository) oidcSettings(ctx context.Context, tx *sql.Tx) (map[string]s
 }
 func (r *Repository) oidcActor(ctx context.Context, tx *sql.Tx, f platform.OIDCFlow) error {
 	var hash, status string
-	var count int
 	if err := r.row(ctx, tx, "SELECT password_hash,status FROM unicore_users WHERE id=?", f.UserID).Scan(&hash, &status); err != nil {
 		return platform.ErrCredentials
 	}
 	if hash == "" || status != "active" || !platform.Equal(hash, f.CredentialHash) {
 		return platform.ErrCredentials
 	}
-	if err := r.row(ctx, tx, "SELECT COUNT(*) FROM unicore_sessions WHERE token_hash=? AND user_id=? AND expires_at>?", f.SessionHash, f.UserID, time.Now().Unix()).Scan(&count); err != nil {
-		return err
-	}
-	if count != 1 {
+	current, err := r.personalSession(ctx, tx, f.SessionHash)
+	if err != nil || current.User.ID != f.UserID {
 		return platform.ErrCredentials
 	}
+	if err = fullFactor(current); err != nil {
+		return err
+	}
+
 	return nil
 }
-func (r *Repository) oidcSession(ctx context.Context, tx *sql.Tx, id, sessionHash string, expires int, rotate bool, action string) (contracts.User, error) {
+func (r *Repository) oidcSession(ctx context.Context, tx *sql.Tx, id, sessionHash string, expires int, rotate bool, originalHash, action string) (contracts.User, error) {
+	created := 0
 	if rotate {
+		previous, err := r.personalSession(ctx, tx, originalHash)
+		if err != nil || previous.User.ID != id {
+			return contracts.User{}, platform.ErrCredentials
+		}
+		if err = fullFactor(previous); err != nil {
+			return contracts.User{}, err
+		}
+		created = previous.Created
+		expires = min(expires, previous.Expires)
 		if _, err := r.exec(ctx, tx, "DELETE FROM unicore_sessions WHERE user_id=?", id); err != nil {
 			return contracts.User{}, err
 		}
@@ -131,6 +142,11 @@ func (r *Repository) oidcSession(ctx context.Context, tx *sql.Tx, id, sessionHas
 	} // A binding rotation continues an already verified session.
 	if err = r.recordDevice(ctx, tx, sessionHash, id, verified); err != nil {
 		return user, err
+	}
+	if created > 0 {
+		if _, err = r.exec(ctx, tx, "UPDATE unicore_session_details SET created_at=? WHERE token_hash=?", created, sessionHash); err != nil {
+			return user, err
+		}
 	}
 	if _, err = r.exec(ctx, tx, "UPDATE unicore_users SET last_login_at=? WHERE id=?", time.Now().Unix(), id); err != nil {
 		return user, err
@@ -208,7 +224,7 @@ func (r *Repository) CompleteOIDC(ctx context.Context, f platform.OIDCFlow, clai
 	if f.Mode == "link" {
 		action = "auth.oidc.linked"
 	}
-	u, err := r.oidcSession(ctx, tx, id, sessionHash, expires, f.Mode == "link", action)
+	u, err := r.oidcSession(ctx, tx, id, sessionHash, expires, f.Mode == "link", f.SessionHash, action)
 	if err != nil {
 		return u, err
 	}
@@ -233,7 +249,7 @@ func (r *Repository) UnlinkOIDC(ctx context.Context, f platform.OIDCFlow, sessio
 	if n, _ := result.RowsAffected(); n != 1 {
 		return contracts.User{}, platform.ErrOIDC
 	}
-	u, err := r.oidcSession(ctx, tx, f.UserID, sessionHash, expires, true, "auth.oidc.unlinked")
+	u, err := r.oidcSession(ctx, tx, f.UserID, sessionHash, expires, true, f.SessionHash, "auth.oidc.unlinked")
 	if err != nil {
 		return u, err
 	}

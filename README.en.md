@@ -58,7 +58,9 @@ make dev-web
 
 Open `http://127.0.0.1:5173`. On first launch, visit `/install` and read the one-time installation token from the private `data/bootstrap.token` file. Choose the platform or standalone profile. MySQL is the default recommendation; PostgreSQL is also recommended. Create a dedicated database, fill in the connection fields, and test the connection. Explicitly choose SQLite for a quick local trial. Create the administrator in the wizard with your own strong password; the framework ships no account.
 
-Initializing a nonempty database clears its data and requires a backup and exact database-name confirmation. Existing Unicore installations cannot be overwritten. Preserve the database, private directory, and encryption key together; normal restarts restore the installation. The installation token and encryption key serve different purposes. See [installation and deployment](docs/03-runbooks/deployment.md).
+Initializing a nonempty database clears its data and requires a backup and exact database-name confirmation. Existing Unicore installations cannot be overwritten. Preserve the database, private directory, and encryption key together; normal restarts restore the installation. The installation token and encryption key serve different purposes. See [installation and deployment](docs/product/deployment.md).
+
+For a Web server, follow the [complete deployment guide (中文)](docs/product/deployment.md): prerequisites and databases, Docker/Compose, tar/systemd, HTTPS, installation, updates, and troubleshooting. See the [configuration tables (中文)](docs/product/configuration.md) for flags, environment variables, JSON, and administrator settings.
 
 ```sh
 # Build a Web binary with the embedded frontend; open http://127.0.0.1:8080

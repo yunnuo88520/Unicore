@@ -19,7 +19,7 @@ function AdministrationPage(props: PageProps) {
   useLocale();
   if (!props.client.web) return null;
   switch (props.page) {
-    case 'site': case 'mail': return <AdminMailSettingsPage {...props} />;
+    case 'site': case 'mail': case 'account-policy': return <AdminMailSettingsPage {...props} />;
     case 'storage': return props.client.storage && <AdminStoragePage {...props} />;
     case 'users': case 'administrators': return props.page === 'administrators' ? <AdminAdministratorsPage {...props} /> : <AdminUsersPage {...props} />;
     case 'roles': return <AdminRolesPage {...props} />;

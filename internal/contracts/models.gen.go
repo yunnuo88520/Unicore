@@ -139,6 +139,7 @@ type User struct {
 	Permissions []string `json:"permissions"`
 	CreatedAt   int      `json:"created_at"`
 	LastLoginAt int      `json:"last_login_at"`
+	TotpEnabled bool     `json:"totp_enabled"`
 }
 
 type UserList struct {
@@ -290,12 +291,13 @@ type ActionResultResponse struct {
 }
 
 type AuthPolicy struct {
-	RegistrationEnabled bool `json:"registration_enabled"`
-	ResetEnabled        bool `json:"reset_enabled"`
-	LoginCaptcha        bool `json:"login_captcha"`
-	RegisterCaptcha     bool `json:"register_captcha"`
-	MailReady           bool `json:"mail_ready"`
-	EmailLoginEnabled   bool `json:"email_login_enabled"`
+	RegistrationEnabled       bool `json:"registration_enabled"`
+	ResetEnabled              bool `json:"reset_enabled"`
+	LoginCaptcha              bool `json:"login_captcha"`
+	RegisterCaptcha           bool `json:"register_captcha"`
+	MailReady                 bool `json:"mail_ready"`
+	EmailLoginEnabled         bool `json:"email_login_enabled"`
+	EmailVerificationRequired bool `json:"email_verification_required"`
 }
 
 type RegisterInput struct {
@@ -353,9 +355,10 @@ type MailJobListResponse struct {
 }
 
 type EmailChallenge struct {
-	ChallengeID string `json:"challenge_id"`
-	ExpiresIn   int    `json:"expires_in"`
-	RetryAfter  int    `json:"retry_after"`
+	ChallengeID          string `json:"challenge_id"`
+	ExpiresIn            int    `json:"expires_in"`
+	RetryAfter           int    `json:"retry_after"`
+	RegistrationComplete *bool  `json:"registration_complete,omitempty"`
 }
 
 type EmailCodeInput struct {
@@ -591,9 +594,10 @@ type FileList struct {
 }
 
 type FileUploadInput struct {
-	OriginalName string `json:"original_name"`
-	MimeType     string `json:"mime_type"`
-	Size         int    `json:"size"`
+	OriginalName string  `json:"original_name"`
+	MimeType     string  `json:"mime_type"`
+	Size         int     `json:"size"`
+	UploadPath   *string `json:"upload_path,omitempty"`
 }
 
 type FileUploadGrant struct {
@@ -939,17 +943,20 @@ type AnnouncementPreviewResponse struct {
 }
 
 type MultipartUploadInput struct {
-	OriginalName string `json:"original_name"`
-	MimeType     string `json:"mime_type"`
-	Size         int    `json:"size"`
-	Fingerprint  string `json:"fingerprint"`
+	OriginalName string  `json:"original_name"`
+	MimeType     string  `json:"mime_type"`
+	Size         int     `json:"size"`
+	Fingerprint  string  `json:"fingerprint"`
+	UploadPath   *string `json:"upload_path,omitempty"`
 }
 
 type UploadPolicy struct {
-	MaxSize     int `json:"max_size"`
-	PartSize    int `json:"part_size"`
-	Parallelism int `json:"parallelism"`
-	ResumeHours int `json:"resume_hours"`
+	MaxSize           int      `json:"max_size"`
+	PartSize          int      `json:"part_size"`
+	Parallelism       int      `json:"parallelism"`
+	ResumeHours       int      `json:"resume_hours"`
+	UploadPaths       []string `json:"upload_paths"`
+	AllowedExtensions []string `json:"allowed_extensions"`
 }
 
 type UploadPart struct {

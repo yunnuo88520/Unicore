@@ -9,11 +9,11 @@
 
 个人安全状态、会话设备详情、邮箱换绑挑战分别落在 personal_accounts / session_details / email_changes，管理员使用独立 administrator_ 表，均带固定 unicore_ 前缀。运行时在原账本 0013 后追加三方言 0014，不激活新的 namespace 执行器。个人昵称不改变不可变用户名或权限。
 
-TOTP 使用 SHA-1、6 位、30 秒计数器与前后一周期容差；共享安装锁事务消费计数器，阻止同一代码在多个会话重放。密钥通过实例 SecretStore 加密；十个独立随机恢复码仅返回一次，数据库仅存 SHA-256 摘要，事务内逐个消费。启用需当前本地密码、当前会话绑定的短期设置密钥与验证器代码；设置每 30 秒刷新，旧密钥失效，60 秒过期，最多五次错误。关闭仅接受新的 TOTP，不接受恢复码。
+TOTP 使用 SHA-1、6 位、30 秒计数器与前后一周期容差；共享安装锁事务消费计数器，阻止同一代码在多个会话重放。密钥通过实例 SecretStore 加密；十个独立随机恢复码仅返回一次，数据库仅存 SHA-256 摘要，事务内逐个消费。启用需当前本地密码、当前会话绑定的短期设置密钥与验证器代码；绑定密钥保持稳定、10 分钟过期；手动刷新使旧密钥失效，验证码按标准每 30 秒变化，最多五次错误。关闭仅接受新的 TOTP，不接受恢复码。
 
 密码、邮箱码与 OIDC 登录产生的所有新会话初始均未完成二次验证。SQL Session 统一检查账号是否开启 TOTP；未验证会话不能通过 require 获取账号或业务资源。公开 bootstrap 仅给 mfa_pending 与绑定该 Cookie 的 CSRF，不给 current_user；MFA 端点验证固定身份域、CSRF、五分钟窗口与累计八次错误，再在锁事务中消费代码并标记会话。重启不清除失败次数；限流额外约束 IP/会话。OIDC 绑定/解绑的会话轮换只延续已通过 require 的当前登录，不是新的身份登录。
 
-security.force_2fa 默认 false，security.allow_disable_2fa 默认 true；均为平台 SettingDefinition。强制策略下已验证密码但尚未绑定验证器的账号只可访问本人 account、session 与 logout；其余受保护业务返回 MFA_ENROLLMENT_REQUIRED。共享 shell 显示安全设置。恢复码显示期间不立即切换页面，用户保存后再刷新策略状态。
+security.force_admin_2fa 与 security.force_user_2fa 分域默认 false，旧 security.force_2fa 兼容映射两域；security.allow_disable_2fa 默认 true，均为平台 SettingDefinition。强制策略下已验证密码但尚未绑定验证器的账号只可访问本人 account、session 与 logout；其余受保护业务返回 MFA_ENROLLMENT_REQUIRED。共享 shell 显示安全设置。恢复码显示期间不立即切换页面，用户保存后再刷新策略状态。
 
 邮箱换绑先证明原邮箱，再验证目标邮箱。两份挑战绑定账号、原邮箱、当前会话及用途，十分钟过期、六位随机码、持久化错误计数最多五次，60 秒重发间隔。邮件载荷进入加密持久队列；目标邮箱唯一性与会话有效性在提交锁下复核。完成换绑、改密、账号启停、身份绑定轮换和下线其他设备撤销对应旧证明与待发邮件。启用/关闭 TOTP、换邮箱撤销其他设备，改密撤销全部设备。
 

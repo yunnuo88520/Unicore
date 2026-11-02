@@ -137,6 +137,7 @@ export interface User {
   permissions: Array<string>;
   created_at: number;
   last_login_at: number;
+  totp_enabled: boolean;
 }
 
 export interface UserList {
@@ -294,6 +295,7 @@ export interface AuthPolicy {
   register_captcha: boolean;
   mail_ready: boolean;
   email_login_enabled: boolean;
+  email_verification_required: boolean;
 }
 
 export interface RegisterInput {
@@ -354,6 +356,7 @@ export interface EmailChallenge {
   challenge_id: string;
   expires_in: number;
   retry_after: number;
+  registration_complete?: boolean;
 }
 
 export interface EmailCodeInput {
@@ -592,6 +595,7 @@ export interface FileUploadInput {
   original_name: string;
   mime_type: string;
   size: number;
+  upload_path?: string;
 }
 
 export interface FileUploadGrant {
@@ -941,6 +945,7 @@ export interface MultipartUploadInput {
   mime_type: string;
   size: number;
   fingerprint: string;
+  upload_path?: string;
 }
 
 export interface UploadPolicy {
@@ -948,6 +953,8 @@ export interface UploadPolicy {
   part_size: number;
   parallelism: number;
   resume_hours: number;
+  upload_paths: Array<string>;
+  allowed_extensions: Array<string>;
 }
 
 export interface UploadPart {

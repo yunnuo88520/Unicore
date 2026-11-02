@@ -380,3 +380,77 @@ type failingCopy struct{ blob.Store }
 func (f failingCopy) Copy(context.Context, string, string, string) error {
 	return errors.New("isolated copy failure")
 }
+
+func TestUploadPathsAndExtensions(t *testing.T) {
+	ctx := context.Background()
+	m, a, dir := setup(t)
+	s := m.Files()
+	_, config, _, _ := m.Services()
+	patch := func(changes ...contracts.SettingChange) {
+		t.Helper()
+		if _, err := config.Patch(ctx, contracts.SettingPatch{Changes: changes}, a.ID); err != nil {
+			t.Fatal(err)
+		}
+	}
+	patch(contracts.SettingChange{Key: "storage.upload_paths", Value: "Images\narchives/2026"}, contracts.SettingChange{Key: "storage.allowed_extensions", Value: "txt\ntar.gz"})
+	policy := s.UploadPolicy(ctx)
+	if len(policy.UploadPaths) != 2 || len(policy.AllowedExtensions) != 2 {
+		t.Fatal(policy)
+	}
+	path := "archives/2026"
+	input := contracts.FileUploadInput{OriginalName: "Archive.TAR.GZ", MimeType: "application/octet-stream", Size: 4, UploadPath: &path}
+	grant, err := s.Upload(ctx, a, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = s.Receive(ctx, a, grant.FileID, strings.NewReader("data"), 4); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.Complete(ctx, a, grant.FileID); err != nil {
+		t.Fatal(err)
+	}
+	db, _, _, _ := m.Services()
+	var key string
+	if err = db.DB.QueryRowContext(ctx, "SELECT file_key FROM unicore_file_metadata WHERE id=?", grant.FileID).Scan(&key); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(key, "objects/archives/2026/") {
+		t.Fatal("path not applied", key)
+	}
+	for _, bad := range []string{"../escape", "unlisted", ""} {
+		input.UploadPath = &bad
+		if _, err = s.Upload(ctx, a, input); !errors.Is(err, files.ErrInvalid) {
+			t.Fatal("unapproved path", bad, err)
+		}
+	}
+	input.UploadPath = nil
+	input.OriginalName = "malware.exe"
+	if _, err = s.Upload(ctx, a, input); !errors.Is(err, files.ErrInvalid) {
+		t.Fatal("single upload extension bypass", err)
+	}
+	mp := contracts.MultipartUploadInput{OriginalName: "malware.exe", MimeType: input.MimeType, Size: 4, Fingerprint: strings.Repeat("a", 64)}
+	if _, err = s.BeginUpload(ctx, a, mp); !errors.Is(err, files.ErrInvalid) {
+		t.Fatal("multipart extension bypass", err)
+	}
+	mp.OriginalName = "allowed.txt"
+	mp.UploadPath = &path
+	if _, err = s.BeginUpload(ctx, a, mp); err != nil {
+		t.Fatal(err)
+	}
+	// New restrictions must not invalidate the already issued multipart session.
+	patch(contracts.SettingChange{Key: "storage.allowed_extensions", Value: "png"})
+	if _, err = s.Access(ctx, a, grant.FileID); err != nil {
+		t.Fatal("policy invalidated historical file", err)
+	}
+	if err = m.Close(); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := install.Open(ctx, install.Options{DataDir: dir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reopened.Close()
+	if _, err = reopened.Files().Access(ctx, a, grant.FileID); err != nil {
+		t.Fatal("custom path lost after restart", err)
+	}
+}

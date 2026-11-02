@@ -470,7 +470,8 @@ export const constraints = {
       "roles",
       "permissions",
       "created_at",
-      "last_login_at"
+      "last_login_at",
+      "totp_enabled"
     ],
     "properties": {
       "id": {
@@ -506,6 +507,9 @@ export const constraints = {
       },
       "last_login_at": {
         "type": "integer"
+      },
+      "totp_enabled": {
+        "type": "boolean"
       }
     }
   },
@@ -1052,7 +1056,8 @@ export const constraints = {
       "login_captcha",
       "register_captcha",
       "mail_ready",
-      "email_login_enabled"
+      "email_login_enabled",
+      "email_verification_required"
     ],
     "properties": {
       "registration_enabled": {
@@ -1071,6 +1076,9 @@ export const constraints = {
         "type": "boolean"
       },
       "email_login_enabled": {
+        "type": "boolean"
+      },
+      "email_verification_required": {
         "type": "boolean"
       }
     }
@@ -1288,6 +1296,9 @@ export const constraints = {
       },
       "retry_after": {
         "type": "integer"
+      },
+      "registration_complete": {
+        "type": "boolean"
       }
     }
   },
@@ -2229,6 +2240,10 @@ export const constraints = {
         "type": "integer",
         "minimum": 1,
         "maximum": 68719476736
+      },
+      "upload_path": {
+        "type": "string",
+        "maxLength": 200
       }
     }
   },
@@ -3728,6 +3743,10 @@ export const constraints = {
         "pattern": "^[a-f0-9]{64}$",
         "minLength": 64,
         "maxLength": 64
+      },
+      "upload_path": {
+        "type": "string",
+        "maxLength": 200
       }
     }
   },
@@ -3738,7 +3757,9 @@ export const constraints = {
       "max_size",
       "part_size",
       "parallelism",
-      "resume_hours"
+      "resume_hours",
+      "upload_paths",
+      "allowed_extensions"
     ],
     "properties": {
       "max_size": {
@@ -3760,6 +3781,18 @@ export const constraints = {
         "type": "integer",
         "minimum": 1,
         "maximum": 168
+      },
+      "upload_paths": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "allowed_extensions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
       }
     }
   },

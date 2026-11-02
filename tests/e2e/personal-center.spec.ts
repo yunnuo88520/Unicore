@@ -1,6 +1,8 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Real Go-backed personal-center, authenticator, recovery and device flows on PC and mobile.
 import {createHmac} from 'node:crypto';
+import jsQR from 'jsqr';
+import {PNG} from 'pngjs';
 import {mkdir} from 'node:fs/promises';
 import {test,expect,navigate} from './fixtures';
 
@@ -29,8 +31,16 @@ test('personal center supports profile, TOTP recovery login and device revocatio
  await setup.getByLabel('当前密码',{exact:true}).fill('test-password-strong');await setup.getByRole('button',{name:'验证并开始设置',exact:true}).click();
  await expect(setup.getByAltText('身份验证器设置二维码')).toBeVisible();
  const secret=await setup.getByLabel('手动密钥',{exact:true}).inputValue();expect(secret).toMatch(/^[A-Z2-7]{32}$/);
+ const png=PNG.sync.read(Buffer.from((await setup.getByAltText('身份验证器设置二维码').getAttribute('src'))!.split(',')[1], 'base64'));
+ const decoded=jsQR(new Uint8ClampedArray(png.data),png.width,png.height);expect(decoded).toBeTruthy();
+ const uri=new URL(decoded!.data);expect(uri.protocol).toBe('otpauth:');expect(uri.hostname).toBe('totp');expect(uri.searchParams.get('secret')).toBe(secret);expect(uri.searchParams.get('digits')).toBe('6');expect(uri.searchParams.get('period')).toBe('30');
+ // A scanned enrollment key must survive the next code period without being replaced.
+ await page.clock.install();await page.clock.fastForward(31000);await expect(setup.getByLabel('手动密钥',{exact:true})).toHaveValue(secret);
+
  await setup.getByLabel('身份验证器验证码',{exact:true}).fill(code(secret,Math.floor(Date.now()/30000)-1));await setup.getByRole('button',{name:'开启双重验证',exact:true}).click();
  await expect(setup).toHaveCount(0);await expect(page.getByRole('button',{name:'下载恢复码',exact:true})).toBeVisible();
+ const administrators=(await(await page.request.get(`${instance.url}/api/v1/admin/administrators`)).json()).data;
+ expect(administrators.items.find((user:{username:string})=>user.username==='admin').totp_enabled).toBe(true);
  const recovery=await page.locator('code').allTextContents();expect(recovery).toHaveLength(10);
  const downloadPromise=page.waitForEvent('download');await page.getByRole('button',{name:'下载恢复码',exact:true}).click();expect((await downloadPromise).suggestedFilename()).toBe('recovery-codes.txt');
  await page.getByRole('button',{name:'已保存，关闭',exact:true}).click();await expect(page.locator('code')).toHaveCount(0);
@@ -48,6 +58,11 @@ test('personal center supports profile, TOTP recovery login and device revocatio
  await page.getByRole('button',{name:'账号菜单',exact:true}).click();await page.getByRole('menuitem',{name:'退出登录',exact:true}).click();
  await page.getByLabel('账号或邮箱',{exact:true}).fill('admin');await page.getByLabel('密码',{exact:true}).fill('test-password-strong');await page.getByRole('button',{name:'登录工作空间',exact:true}).click();
  await expect(page.getByRole('heading',{name:'双重验证',exact:true})).toBeVisible();await expect(page.getByLabel('身份验证器验证码',{exact:true})).toBeVisible();
+ // Exercise a genuine six-digit authenticator login before recovery fallback.
+ await page.getByLabel('身份验证器验证码',{exact:true}).fill('000000');await page.getByRole('button',{name:'验证并登录',exact:true}).click();await expect(page.getByRole('heading',{name:'双重验证',exact:true})).toBeVisible();
+ await page.getByLabel('身份验证器验证码',{exact:true}).fill(code(secret,Math.floor(Date.now()/30000)));await page.getByRole('button',{name:'验证并登录',exact:true}).click();await expect(page.getByRole('heading',{name:'一份核心，无限可能.',exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'账号菜单',exact:true}).click();await page.getByRole('menuitem',{name:'退出登录',exact:true}).click();
+ await page.getByLabel('账号或邮箱',{exact:true}).fill('admin');await page.getByLabel('密码',{exact:true}).fill('test-password-strong');await page.getByRole('button',{name:'登录工作空间',exact:true}).click();await expect(page.getByRole('heading',{name:'双重验证',exact:true})).toBeVisible();
  await page.getByRole('button',{name:'使用恢复码',exact:true}).click();await page.getByLabel('恢复码',{exact:true}).fill(recovery[0]);await page.getByRole('button',{name:'验证并登录',exact:true}).click();await expect(page.getByRole('heading',{name:'双重验证',exact:true})).toBeVisible();
  await page.getByLabel('恢复码',{exact:true}).fill(recovery[1]);await page.getByRole('button',{name:'验证并登录',exact:true}).click();await expect(page.getByRole('heading',{name:'一份核心，无限可能.',exact:true})).toBeVisible();
  await page.evaluate(()=>{const key='unicore.preferences.v1';const v=JSON.parse(localStorage.getItem(key)||'{}');v.locale='en';v.theme='dark';localStorage.setItem(key,JSON.stringify(v));});
@@ -65,7 +80,8 @@ test('forced enrollment applies to ordinary users and preserves recovery codes a
  const boot=(await(await page.request.get(`${instance.url}/api/v1/admin/bootstrap`)).json()).data;
  const headers={'X-CSRF-Token':boot.csrf_token};
  expect((await page.request.post(`${instance.url}/api/v1/admin/users`,{headers,data:{username:'member',email:'member@example.test',password:'member-password-strong',role:'user'}})).status()).toBe(200);
- expect((await page.request.patch(`${instance.url}/api/v1/admin/settings`,{headers,data:{changes:[{key:'security.login_captcha',value:'false'},{key:'security.force_2fa',value:'true'}]}})).status()).toBe(200);
+ expect((await page.request.patch(`${instance.url}/api/v1/admin/settings`,{headers,data:{changes:[{key:'security.login_captcha',value:'false'},{key:'security.force_user_2fa',value:'true'}]}})).status()).toBe(200);
+ expect((await page.request.get(`${instance.url}/api/v1/admin/users`)).status()).toBe(200);
  expect((await page.request.post(`${instance.url}/api/v1/auth/login`,{data:{username:'member',password:'member-password-strong',captcha_id:'',captcha_answer:''}})).status()).toBe(200);
  // Install the clock before mounting the shell so its polling interval is controlled.
  await page.clock.install();
@@ -84,6 +100,8 @@ test('forced enrollment applies to ordinary users and preserves recovery codes a
  await expect(page.getByRole('button',{name:'关闭双重验证',exact:true})).toBeDisabled();
  await page.getByRole('button',{name:'已保存，关闭',exact:true}).click();await expect(page.locator('code')).toHaveCount(0);
  expect((await page.request.get(`${instance.url}/api/v1/notes`)).status()).toBe(200);
+ const users=(await(await page.request.get(`${instance.url}/api/v1/admin/users`)).json()).data;
+ expect(users.items.find((user:{username:string})=>user.username==='member').totp_enabled).toBe(true);
  if(info.project.name==='mobile')await page.getByRole('button',{name:'打开导航',exact:true}).click();
  await expect(page.locator('.sidebar').getByRole('button',{name:'个人中心',exact:true})).toBeVisible();
  await expect(page.locator('.sidebar').getByRole('button',{name:'系统设置',exact:true})).toHaveCount(0);

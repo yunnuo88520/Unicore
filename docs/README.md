@@ -12,9 +12,9 @@
 | 目标 | 文档 |
 | --- | --- |
 | 安装、快速开始、选择形态 | [使用指南](product/index.md)、[支持范围与已知限制](support.md) |
-| 配置数据库、安全与邮件 | [配置](product/configuration.md)、[安装与故障处理](03-runbooks/deployment.md) |
+| 配置参数、数据库、安全与邮件 | [配置说明与参数表](product/configuration.md)、[安装与恢复边界](03-runbooks/deployment.md) |
 | 构建 Web、Desktop、CLI | [构建指南](product/build.md) |
-| tar、Nginx、Docker/Compose | [部署指南](product/deployment.md) |
+| 从环境准备到 Web 上线：Docker、Compose、tar/systemd、HTTPS、安装向导 | [Web 从零部署指南](product/deployment.md) |
 | 更新、签名与恢复 | [更新指南](product/updates.md)、[备份指南](product/backup.md) |
 | 本地/云文件与大文件上传 | [存储指南](product/storage.md)、[详细配置](03-runbooks/storage.md) |
 | 管理日志、邮件模板与公告 | [管理工具](03-runbooks/admin-tools.md)、[公告](03-runbooks/announcements.md) |

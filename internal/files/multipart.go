@@ -15,10 +15,6 @@ import (
 	"github.com/yunnuo/unicore/internal/contracts"
 )
 
-func (s *Service) UploadPolicy(ctx context.Context) contracts.UploadPolicy {
-	return contracts.UploadPolicy{MaxSize: s.policy(ctx, "max_size_mb", 100) * 1024 * 1024, PartSize: s.policy(ctx, "part_size_mb", 8) * 1024 * 1024, Parallelism: s.policy(ctx, "parallelism", 3), ResumeHours: s.policy(ctx, "pending_hours", 24)}
-}
-
 var fingerprintPattern = regexp.MustCompile(`^[a-f0-9]{64}$`)
 
 func (s *Service) BeginUpload(ctx context.Context, a Actor, input contracts.MultipartUploadInput) (contracts.MultipartUpload, error) {
@@ -28,6 +24,10 @@ func (s *Service) BeginUpload(ctx context.Context, a Actor, input contracts.Mult
 	policy := s.UploadPolicy(ctx)
 	if !validFile(invalid) || input.Size > policy.MaxSize || !fingerprintPattern.MatchString(input.Fingerprint) {
 		return contracts.MultipartUpload{}, ErrInvalid
+	}
+	key, e := s.uploadTarget(ctx, input.OriginalName, input.UploadPath)
+	if e != nil {
+		return contracts.MultipartUpload{}, e
 	}
 	active, e := s.active(ctx)
 	if e != nil {
@@ -50,7 +50,7 @@ func (s *Service) BeginUpload(ctx context.Context, a Actor, input contracts.Mult
 	}
 	now := s.now()
 	expires := now.Add(time.Duration(policy.ResumeHours) * time.Hour).Unix()
-	f := Record{FileEntry: contracts.FileEntry{FileID: id(), OriginalName: input.OriginalName, MimeType: input.MimeType, Size: input.Size, StorageType: l.Provider, LocationID: l.ID, CreatorID: a.ID, CreatorRealm: a.Realm, CreatedAt: int(now.Unix()), State: "pending"}, Key: "objects/" + id(), Staging: "multipart/" + id(), Purpose: "user", UploadExpires: expires, CleanupAt: expires}
+	f := Record{FileEntry: contracts.FileEntry{FileID: id(), OriginalName: input.OriginalName, MimeType: input.MimeType, Size: input.Size, StorageType: l.Provider, LocationID: l.ID, CreatorID: a.ID, CreatorRealm: a.Realm, CreatedAt: int(now.Unix()), State: "pending"}, Key: key, Staging: "multipart/" + id(), Purpose: "user", UploadExpires: expires, CleanupAt: expires}
 	if days := s.policy(ctx, "retention_days", 0); days > 0 {
 		f.ExpiresAt = int(now.Add(time.Duration(days) * 24 * time.Hour).Unix())
 	}

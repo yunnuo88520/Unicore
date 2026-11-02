@@ -66,7 +66,8 @@ test('SMTP settings, verified registration and password recovery revoke old sess
     await expect(page.getByRole('tab')).toHaveCount(0);
     await capture(page, info, 'mail-settings');
     await page.goto(`${instance.url}/admin/site?tab=registration`);
-    await page.getByRole('switch',{name:'开放注册（需验证邮箱）',exact:true}).check();
+    await page.getByRole('switch',{name:'开放注册',exact:true}).check();
+    await page.getByRole('switch',{name:'注册邮箱验证',exact:true}).check();
     await page.getByRole('button',{name:'保存设置',exact:true}).click();
     await expect(page.getByRole('button',{name:'保存设置',exact:true})).toBeDisabled();
     await page.getByRole('button',{name:'账号菜单',exact:true}).click();

@@ -19,7 +19,7 @@ export type SessionEvent = 'authenticated' | 'password-changed' | 'signed-out' |
 export type RequestOptions = { signal?: AbortSignal };
 export type UploadStage='hashing'|'uploading'|'confirming';
 export type UploadProgress={loaded:number;total:number;completedParts:number;totalParts:number};
-export type UploadOptions = RequestOptions & { resumeId?:string; onStage?: (stage: UploadStage) => void; onSession?:(session:MultipartUpload)=>void; onProgress?:(progress:UploadProgress)=>void; onHashProgress?:(loaded:number)=>void };
+export type UploadOptions = RequestOptions & { resumeId?:string; uploadPath?:string; onStage?: (stage: UploadStage) => void; onSession?:(session:MultipartUpload)=>void; onProgress?:(progress:UploadProgress)=>void; onHashProgress?:(loaded:number)=>void };
 export type OperationOptions = RequestOptions & { timeoutMs?:number; params?: Record<string, string>; query?: Record<string, string | number>; headers?: Record<string, string> };
 
 export interface UpdateClient {
@@ -353,7 +353,7 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
    if(!options?.resumeId&&file.size>policy.max_size)throw new AppError('INVALID_INPUT','文件超过管理员设置的大小上限');
    options?.onStage?.('hashing');
    const fingerprint=await fileFingerprint(file,signal,options?.onHashProgress);
-   const session=options?.resumeId?await this.call('multipartUpload',undefined,{params:{id:options.resumeId},signal}):await this.call('createMultipartUpload',{original_name:file.name,mime_type:file.type||'application/octet-stream',size:file.size,fingerprint},{signal,timeoutMs:35000});
+   const session=options?.resumeId?await this.call('multipartUpload',undefined,{params:{id:options.resumeId},signal}):await this.call('createMultipartUpload',{original_name:file.name,mime_type:file.type||'application/octet-stream',size:file.size,fingerprint,...(options?.uploadPath ? {upload_path:options.uploadPath} : {})},{signal,timeoutMs:35000});
    if(session.fingerprint!==fingerprint||session.file.size!==file.size||session.file.original_name!==file.name||session.file.mime_type!==(file.type||'application/octet-stream'))throw new AppError('UPLOAD_FILE_MISMATCH','请选择原来上传的同一个文件，文件内容不一致');
    options?.onSession?.(session);
    if(session.file.state==='ready')return session.file;

@@ -164,3 +164,18 @@ func TestSiteConfigurationAndMaintenance(t *testing.T) {
 		}
 	}
 }
+
+func TestLegacyRegistrationAndPolicyValidation(t *testing.T) {
+	ctx := context.Background()
+	store := &memoryStore{values: map[string]string{"account.registration_enabled": "true"}}
+	s := &Service{Store: store, Profile: "web-platform"}
+	values, err := s.Raw(ctx)
+	if err != nil || values["account.email_verification_required"] != "true" {
+		t.Fatal("legacy verification weakened", values, err)
+	}
+	for key, value := range map[string]string{"account.ip_blacklist": "203.*.113.*", "account.email_domains": "https://example.com", "storage.upload_paths": "../escape", "storage.allowed_extensions": "*.exe"} {
+		if _, err = s.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: key, Value: value}}}, "admin"); !errors.Is(err, ErrInvalid) {
+			t.Fatal(key, "invalid rule accepted", err)
+		}
+	}
+}

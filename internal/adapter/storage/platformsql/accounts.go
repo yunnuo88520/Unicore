@@ -228,3 +228,19 @@ func (r *Repository) MailJobs(ctx context.Context) (contracts.MailJobList, error
 	}
 	return result, rows.Err()
 }
+
+// RegisterActiveAccount creates a usable ordinary account without queuing email.
+func (r *Repository) RegisterActiveAccount(ctx context.Context, input contracts.RegisterInput, hash string) error {
+	if r.Administrators {
+		return platform.ErrFlowDisabled
+	}
+	tx, err := r.accountTransaction(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err = r.insert(ctx, tx, contracts.UserCreate{Username: input.Username, Email: input.Email, Role: "user"}, hash, "registration"); err != nil {
+		return err
+	}
+	return tx.Commit()
+}

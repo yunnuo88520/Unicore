@@ -23,7 +23,7 @@ const baseSections = defineMessages([
   { id: 'site', label: '基础信息', groups: ['site'] },
   { id: 'branding', label: '品牌图片', groups: [] },
   { id: 'appearance', label: '外观设置', groups: ['appearance'] },
-  { id: 'security', label: '安全与控制', groups: ['security', 'admin'] },
+  { id: 'security', label: '安全与控制', groups: ['admin'] },
   { id: 'registration', label: '注册设置', groups: ['registration'] },
   { id: 'maintenance', label: '维护模式', groups: ['maintenance'] },
   { id: 'oidc', label: '企业登录', groups: ['oidc'] },
@@ -37,7 +37,7 @@ export function AppearancePage({ theme, setTheme }: PageProps) {
 export function AdminMailSettingsPage({ client, metadata, theme, setTheme, refresh, page }: PageProps) {
   useLocale();
   if (!client.settings || !client.patchSettings) return null;
-  return <AdminSettings section={page === 'mail' ? 'mail' : 'base'} client={client} metadata={metadata} theme={theme} onThemeSaved={setTheme} onSaved={refresh} />;
+  return <AdminSettings section={page === 'mail' ? 'mail' : page === 'account-policy' ? 'security' : 'base'} client={client} metadata={metadata} theme={theme} onThemeSaved={setTheme} onSaved={refresh} />;
 }
 
 /** Device-level appearance: theme cards save through preferences, deeper controls live in the drawer. */
@@ -111,7 +111,7 @@ function ThemePreview({ variant }: { variant: Theme }) {
 }
 
 type AdminSettingsProps = {
-  section: 'base' | 'mail';
+  section: 'base' | 'mail' | 'security';
   client: AppClient;
   metadata: Bootstrap;
   theme: Theme;
@@ -148,7 +148,7 @@ function AdminSettings({ section = 'base', client, metadata, theme, onThemeSaved
     <Button variant="secondary" onClick={() => void query.refetch()}>{t('重试')}</Button>
   </CardContent></Card>;
   const localAppearance = metadata.profile === 'web-platform';
-  const candidates = section === 'mail' ? [{ id: 'mail', label: t('邮件设置'), groups: ['mail', 'account'] }] : baseSections;
+  const candidates = section === 'security' ? [{id:'security',label:t('账户安全'),groups:['security']}] : section === 'mail' ? [{ id: 'mail', label: t('邮件设置'), groups: ['mail', 'account'] }] : baseSections;
   const available = candidates.filter(item => item.id === 'appearance' && localAppearance
     ? true
     : item.id === 'branding'
@@ -224,19 +224,19 @@ function SettingField({ entry, draft, cleared, onValue, onClear }: {
   useLocale();
   const current = draft[entry.key] ?? entry.value;
   const id = `setting-${entry.key}`;
-  return <div className={cn("flex min-w-0 flex-col gap-1.5", ['site.footer_html', 'maintenance.message'].includes(entry.key) && "md:col-span-2")}>
+  return <div className={cn("flex min-w-0 flex-col gap-1.5", ['site.footer_html', 'maintenance.message', 'account.email_domains', 'account.nickname_blacklist', 'account.username_blacklist', 'account.password_blacklist', 'account.ip_blacklist'].includes(entry.key) && "md:col-span-2")}>
     <label htmlFor={id} className="text-sm font-medium text-ink">{t(entry.label)}</label>
     {entry.value_type === 'boolean'
       ? <Switch id={id} checked={current === 'true'} onChange={checked => onValue(entry.key, String(checked))} />
-      : entry.key === 'appearance.theme' || entry.key === 'mail.tls'
+      : entry.key === 'appearance.theme' || entry.key === 'mail.tls' || entry.key === 'account.email_domain_mode'
         ? <NativeSelect id={id} value={current} onChange={event => onValue(entry.key, event.target.value)} className="max-w-56">
-            {(entry.key === 'mail.tls'
+            {(entry.key === 'account.email_domain_mode' ? [['unrestricted', t('不限制')], ['allowlist', t('白名单')], ['blocklist', t('黑名单')]] : entry.key === 'mail.tls'
               ? [['starttls', 'STARTTLS'], ['tls', 'TLS'], ['plain', t('明文（仅本机）')]]
               : [['system', t('跟随系统')], ['light', t('浅色')], ['dark', t('深色')]]
             ).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </NativeSelect>
-        : entry.key === 'site.footer_html' || entry.key === 'maintenance.message'
-          ? <Textarea id={id} rows={4} maxLength={entry.key === 'site.footer_html' ? 4000 : 1000} value={current} onChange={event => onValue(entry.key, event.target.value)} />
+        : entry.key === 'site.footer_html' || entry.key === 'maintenance.message' || entry.key === 'account.email_domains' || entry.key.endsWith('_blacklist')
+          ? <Textarea id={id} rows={4} maxLength={entry.key.startsWith('account.') ? 16000 : entry.key === 'site.footer_html' ? 4000 : 1000} value={current} onChange={event => onValue(entry.key, event.target.value)} />
         : <Input id={id}
             type={entry.sensitive ? 'password' : entry.value_type === 'integer' ? 'number' : ['site.icp_url', 'site.base_url'].includes(entry.key) ? 'url' : entry.key === 'site.admin_email' ? 'email' : 'text'}
             autoComplete={entry.sensitive ? 'new-password' : undefined}
@@ -248,7 +248,17 @@ function SettingField({ entry, draft, cleared, onValue, onClear }: {
         {cleared.includes(entry.key) ? t('保存时将清除') : t('清除已保存密钥')}
       </Button>
     </div>}
-    {entry.key === 'account.registration_enabled' && <small className="text-xs text-muted">{t('默认关闭。先配置并测试 SMTP，开放后用户可从注册页验证邮箱创建账号。')}</small>}
+    {entry.key === 'account.registration_enabled' && <small className="text-xs text-muted">{t('默认关闭。开启后允许用户自行注册；邮箱验证由独立开关控制。')}</small>}
+    {entry.key === 'security.login_failure_limit' && <small className="text-xs text-muted">{t('同一 IP 连续登录失败达到此次数后临时封禁，不冻结账号。')}</small>}
+    {entry.key === 'security.ip_ban_minutes' && <small className="text-xs text-muted">{t('封禁期间拒绝新的登录尝试；成功登录会清除连续失败计数。')}</small>}
+    {['security.user_idle_minutes', 'security.admin_idle_minutes'].includes(entry.key) && <small className="text-xs text-muted">{t('超过此时间没有主动请求时会话失效；后台状态轮询不会延长空闲时间。')}</small>}
+    {entry.key === 'security.admin_max_minutes' && <small className="text-xs text-muted">{t('从管理员首次登录计算，活动不会延长此上限；会话有效期同时生效，取较短者。')}</small>}
+    {['security.force_admin_2fa', 'security.force_user_2fa'].includes(entry.key) && <small className="text-xs text-muted">{t('对应身份的账号必须先绑定验证器才能使用业务功能，并且不能自行关闭两步验证。')}</small>}
+    {entry.key === 'account.email_verification_required' && <small className="text-xs text-muted">{t('开启后需验证邮箱才能激活账号，须先配置并测试 SMTP；关闭后注册立即生效，无需 SMTP。')}</small>}
+    {entry.key === 'account.email_domains' && <small className="text-xs text-muted">{t('每行一个邮箱域名，例如 example.com。白名单仅允许列出的后缀，黑名单拒绝列出的后缀；同时限制验证码发送。')}</small>}
+    {['account.nickname_blacklist', 'account.username_blacklist'].includes(entry.key) && <small className="text-xs text-muted">{t('每行一条，不区分大小写，包含匹配。命中后禁止注册与资料修改。')}</small>}
+    {entry.key === 'account.password_blacklist' && <small className="text-xs text-muted">{t('每行一条，不区分大小写，完整匹配。注册、修改与重置密码时拒绝这些密码。')}</small>}
+    {entry.key === 'account.ip_blacklist' && <small className="text-xs text-muted">{t('每行一条，支持单个 IP、CIDR 与末尾通配符，例如 203.0.113.*。命中后禁止注册与登录。')}</small>}
     {entry.key === 'site.base_url' && <small className="text-xs text-muted">{t('用于生成邮件中的链接，填写完整的 HTTP 或 HTTPS 站点地址；留空沿用安装地址。')}</small>}
     {entry.key === 'site.admin_email' && <small className="text-xs text-muted">{t('接收系统告警和通知；留空则不设置默认收件人。')}</small>}
     {entry.key === 'site.footer_html' && <small className="text-xs text-muted">{t('支持段落、列表、强调和 HTTP/HTTPS 链接；不支持脚本、样式或嵌入内容。')}</small>}

@@ -32,6 +32,11 @@ func (r *Repository) user(ctx context.Context, q sqlstore.Runner, id string) (co
 	if err := r.row(ctx, q, "SELECT id,username,email,status,created_at,last_login_at FROM unicore_users WHERE id=?", id).Scan(&user.ID, &user.Username, &user.Email, &user.Status, &user.CreatedAt, &user.LastLoginAt); err != nil {
 		return user, err
 	}
+	state, err := r.personalState(ctx, q, id)
+	if err != nil {
+		return user, err
+	}
+	user.TotpEnabled = state.Secret != ""
 	user.Roles = []string{r.roleID()}
 	if r.Administrators {
 		user.Permissions = append(user.Permissions, platform.Permissions...)
@@ -279,8 +284,10 @@ func (r *Repository) Session(ctx context.Context, hash string) (contracts.User, 
 	if err = fullFactor(s); err != nil {
 		return contracts.User{}, 0, err
 	}
-	if _, err = r.exec(ctx, r.Store.DB, "UPDATE unicore_session_details SET last_seen_at=? WHERE token_hash=? AND last_seen_at<?", time.Now().Unix(), hash, time.Now().Unix()-60); err != nil {
-		return contracts.User{}, 0, err
+	if !platform.DeviceFrom(ctx).Passive {
+		if _, err = r.exec(ctx, r.Store.DB, "UPDATE unicore_session_details SET last_seen_at=? WHERE token_hash=? AND last_seen_at<?", time.Now().Unix(), hash, time.Now().Unix()); err != nil {
+			return contracts.User{}, 0, err
+		}
 	}
 	return s.User, s.Expires, nil
 }

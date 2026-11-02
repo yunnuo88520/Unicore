@@ -378,6 +378,10 @@ func (s *Service) Upload(ctx context.Context, a Actor, input contracts.FileUploa
 	if !validFile(input) || input.Size > 1<<30 || input.Size > s.policy(ctx, "max_size_mb", 100)*1024*1024 {
 		return contracts.FileUploadGrant{}, ErrInvalid
 	}
+	key, e := s.uploadTarget(ctx, input.OriginalName, input.UploadPath)
+	if e != nil {
+		return contracts.FileUploadGrant{}, e
+	}
 	active, e := s.active(ctx)
 	if e != nil {
 		return contracts.FileUploadGrant{}, e
@@ -395,7 +399,7 @@ func (s *Service) Upload(ctx context.Context, a Actor, input contracts.FileUploa
 	}
 	now := s.now()
 	ttl := s.policy(ctx, "upload_ttl", 900)
-	f := Record{FileEntry: contracts.FileEntry{FileID: id(), OriginalName: input.OriginalName, MimeType: input.MimeType, Size: input.Size, StorageType: l.Provider, LocationID: l.ID, CreatorID: a.ID, CreatorRealm: a.Realm, CreatedAt: int(now.Unix()), State: "pending"}, Key: "objects/" + id(), Staging: "pending/" + id(), Purpose: "user", UploadExpires: now.Add(time.Duration(ttl) * time.Second).Unix()}
+	f := Record{FileEntry: contracts.FileEntry{FileID: id(), OriginalName: input.OriginalName, MimeType: input.MimeType, Size: input.Size, StorageType: l.Provider, LocationID: l.ID, CreatorID: a.ID, CreatorRealm: a.Realm, CreatedAt: int(now.Unix()), State: "pending"}, Key: key, Staging: "pending/" + id(), Purpose: "user", UploadExpires: now.Add(time.Duration(ttl) * time.Second).Unix()}
 	retention := s.policy(ctx, "retention_days", 0)
 	if retention > 0 {
 		f.ExpiresAt = int(now.Add(time.Duration(retention) * 24 * time.Hour).Unix())

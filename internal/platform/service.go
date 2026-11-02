@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/settings"
 )
 
 type Account struct {
@@ -47,6 +48,9 @@ func (s *Service) ChangePassword(ctx context.Context, user contracts.User, input
 	if err != nil || account.User.ID != user.ID || !VerifyPassword(account.PasswordHash, input.CurrentPassword) {
 		return ErrCredentials
 	}
+	if err := s.passwordAllowed(ctx, input.Password); err != nil {
+		return err
+	}
 	hash, err := HashPassword(input.Password)
 	if err != nil {
 		return err
@@ -55,6 +59,8 @@ func (s *Service) ChangePassword(ctx context.Context, user contracts.User, input
 }
 
 type Service struct {
+	loginGuard loginGuard
+	Settings   *settings.Service
 	Personal   *Personal
 	Store      Store
 	Limiter    *Limiter
@@ -84,6 +90,9 @@ func Has(user contracts.User, permission string) bool {
 }
 
 func (s *Service) Login(ctx context.Context, input contracts.LoginInput, ip string, captcha bool, hours int) (contracts.Session, string, error) {
+	if err := s.LoginAllowed(ctx, ip); err != nil {
+		return contracts.Session{}, "", err
+	}
 	if len(input.Username) > 254 || len(input.Password) > 128 {
 		return contracts.Session{}, "", ErrCredentials
 	}
@@ -92,6 +101,7 @@ func (s *Service) Login(ctx context.Context, input contracts.LoginInput, ip stri
 		return contracts.Session{}, "", ErrRateLimited
 	}
 	if captcha && !s.Captchas.Consume(input.CaptchaID, input.CaptchaAnswer) {
+		s.loginResult(ctx, ip, false)
 		return contracts.Session{}, "", ErrCaptcha
 	}
 	select {
@@ -108,9 +118,14 @@ func (s *Service) Login(ctx context.Context, input contracts.LoginInput, ip stri
 	}
 	valid := VerifyPassword(hash, input.Password)
 	if err != nil || !valid || account.User.Status != "active" {
+		s.loginResult(ctx, ip, false)
 		return contracts.Session{}, "", ErrCredentials
 	}
-	return s.issue(ctx, account.User, hours, account.PasswordHash)
+	session, token, err := s.issue(ctx, account.User, hours, account.PasswordHash)
+	if err == nil && (session.MfaPending == nil || !*session.MfaPending) {
+		s.loginResult(ctx, ip, true)
+	}
+	return session, token, err
 }
 func (s *Service) Issue(ctx context.Context, user contracts.User, hours int) (contracts.Session, string, error) {
 	return s.issue(ctx, user, hours, "")
@@ -155,4 +170,31 @@ func (s *Service) Create(ctx context.Context, input contracts.UserCreate, actor 
 	}
 	input.Password = ""
 	return s.Store.CreateUser(ctx, input, hash, actor)
+}
+
+func (s *Service) AllowIP(ctx context.Context, ip string) error {
+	if s.Settings == nil {
+		return nil
+	}
+	values, err := s.Settings.Raw(ctx)
+	if err != nil {
+		return err
+	}
+	if settings.IPBlocked(values, ip) {
+		return ErrCredentials
+	}
+	return nil
+}
+func (s *Service) passwordAllowed(ctx context.Context, password string) error {
+	if s.Settings == nil {
+		return nil
+	}
+	values, err := s.Settings.Raw(ctx)
+	if err != nil {
+		return err
+	}
+	if settings.BlockedText(values["account.password_blacklist"], password, true) {
+		return ErrInput
+	}
+	return nil
 }

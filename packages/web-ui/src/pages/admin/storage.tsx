@@ -7,7 +7,7 @@ import { Check, Cloud, FlaskConical, Globe, HardDrive, Pencil, Plus, RefreshCw, 
 import type { AppClient, StorageClient, StorageLocation, StorageLocationInput } from '@unicore/sdk';
 import { defineMessages, t, useLocale } from '../../i18n';
 import { AppField, AppForm, useAppForm } from '../../lib/form';
-import { Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, Input, Modal, SimpleSelect, useMessage } from '../../ui';
+import { Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, Input, SimpleSelect, Textarea, useMessage } from '../../ui';
 import { useNavigate } from '@tanstack/react-router';
 import { useRouteSearch, type PageProps } from '../../router';
 import { productSlug } from '../../product.gen';
@@ -34,7 +34,7 @@ function StoragePanel({ client, storage }: { client: AppClient; storage: Storage
   const navigate = useNavigate();
   const search = useRouteSearch<{ provider: string }>();
   const requested = search.provider ?? '';
-  const tab = providerIds.includes(requested) ? requested : 'local';
+
   const [editing, setEditing] = useState<StorageLocation | 'new' | null>(null);
   const [removing, setRemoving] = useState<StorageLocation | null>(null);
   const [actionID, setActionID] = useState('');
@@ -55,7 +55,7 @@ function StoragePanel({ client, storage }: { client: AppClient; storage: Storage
       message.success({ test: t('读写、复制与删除测试通过'), activate: t('默认存储已切换'), browser: t('本站跨域已就绪'), cleanup: t('到期清理已执行'), delete: t('存储位置已删除') }[vars.kind]);
       setRemoving(null);
       void cache.invalidateQueries({ queryKey: ['storage-locations'] });
-      if (vars.kind === 'activate') location.reload();
+      if (vars.kind === 'activate') { setDefaultID(''); void cache.invalidateQueries({ queryKey: ['persistent-settings'] }); }
     },
     onSettled: () => setActionID(''),
   });
@@ -65,7 +65,9 @@ function StoragePanel({ client, storage }: { client: AppClient; storage: Storage
     <Button variant="secondary" onClick={() => void locations.refetch()}>{t('重试')}</Button>
   </CardContent></Card>;
   const active = locations.data.items.find(item => item.active);
+  const tab = providerIds.includes(requested) ? requested : active?.provider ?? 'local';
   const items = locations.data.items.filter(item => item.provider === tab);
+  const current = editing === 'new' ? undefined : editing?.provider === tab ? editing : items.find(item => item.active) ?? items[0];
   return <div className="flex flex-col gap-4">
     <Card>
       <CardContent className="flex flex-wrap items-center gap-4">
@@ -90,7 +92,7 @@ function StoragePanel({ client, storage }: { client: AppClient; storage: Storage
     <div className="flex flex-wrap items-center gap-3">
       <span className="text-xs font-medium text-muted">{t('存储提供商')}</span>
       <SimpleSelect label={t('存储提供商')} className="h-9 w-44" value={tab}
-        onChange={id => void navigate({ to: '/storage', search: { provider: id }, replace: true })}
+        onChange={id => { setEditing(null); void navigate({ to: '/storage', search: { provider: id }, replace: true }); }}
         options={providers.map(provider => ({ value: provider.id, label: t(provider.label) }))} />
     </div>
     <Card>
@@ -102,11 +104,13 @@ function StoragePanel({ client, storage }: { client: AppClient; storage: Storage
           </div>
           {tab !== 'local' && <Button onClick={() => setEditing('new')}><Plus size={15} />{t('新增存储位置')}</Button>}
         </div>
-        {!items.length ? <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-line px-4 py-10 text-center">
-          <Cloud size={28} className="text-subtle" aria-hidden="true" />
-          <strong className="text-sm text-ink">{t('尚未配置 {{provider}}', { provider: providerName(tab) })}</strong>
-          <p className="text-xs text-muted">{t('配置保存在当前实例，密钥加密存储。')}</p>
-        </div> : <div className="grid gap-3 lg:grid-cols-2">
+        {tab !== 'local' && <>
+          {items.length > 0 && <label className="flex flex-col gap-1.5 text-sm font-medium">{t('存储配置')}<SimpleSelect label={t('存储配置')} value={current?.id ?? 'new'} onChange={id => setEditing(items.find(item => item.id === id) ?? 'new')} options={[...items.map(item => ({ value: item.id, label: item.name })), { value: 'new', label: t('新增存储位置') }]} /></label>}
+          <LocationEditor key={current?.id ?? `new-${tab}`} storage={storage} provider={tab} item={current} onSaved={item => { setEditing(item); void cache.invalidateQueries({ queryKey: ['storage-locations'] }); }} />
+          {current && <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3"><Badge variant={current.active ? 'primary' : current.tested ? 'success' : 'subtle'}>{current.active ? t('正在使用') : current.tested ? t('测试通过') : t('待测试')}</Badge><Button variant="secondary" disabled={action.isPending} onClick={() => action.mutate({ kind: 'test', item: current })}><FlaskConical size={14} />{t('测试连接')}</Button><Button variant="secondary" disabled={action.isPending} onClick={() => action.mutate({ kind: 'browser', item: current })}><Globe size={14} />{t('配置本站跨域')}</Button>{!current.active && <Button disabled={!current.tested || action.isPending} onClick={() => action.mutate({ kind: 'activate', item: current })}><Check size={14} />{t('设为默认')}</Button>}</div>}
+        </>}
+        <details open={tab === 'local'} className="rounded-lg border border-line p-3"><summary className="cursor-pointer text-sm font-medium">{t('已保存位置与连接测试')}</summary>
+        <div className="mt-3 grid gap-3 lg:grid-cols-2">
           {items.map(item => <article key={item.id} className={`rounded-xl border bg-surface p-4 ${item.active ? 'border-primary-line' : 'border-line'}`}>
             <div className="flex items-center gap-3">
               {item.provider === 'local' ? <HardDrive size={22} className="shrink-0 text-accent" aria-hidden="true" /> : <Cloud size={22} className="shrink-0 text-accent" aria-hidden="true" />}
@@ -141,7 +145,7 @@ function StoragePanel({ client, storage }: { client: AppClient; storage: Storage
               </div>
             </div>
           </article>)}
-        </div>}
+        </div></details>
         {tab !== 'local' && <p className="text-xs leading-relaxed text-muted">
           {t('请先在存储服务创建私有 Bucket。Endpoint 必须能被浏览器直接访问；HTTPS 站点请使用 HTTPS 存储地址。跨域按钮仅合并本站规则，不开启公共读。')}
           {tab === 'minio' ? t(' 部分 MinIO 版本使用服务级 CORS，请在服务配置允许本站 Origin。') : ''}
@@ -157,9 +161,6 @@ function StoragePanel({ client, storage }: { client: AppClient; storage: Storage
         </Button>
       </CardContent>
     </Card>
-    {editing && <LocationDialog key={editing === 'new' ? `new-${tab}` : editing.id} storage={storage} provider={tab}
-      item={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)}
-      onSaved={() => { setEditing(null); void cache.invalidateQueries({ queryKey: ['storage-locations'] }); }} />}
     {removing && <ConfirmDialog danger title={t('删除存储位置')} pending={action.isPending}
       description={t('确定删除“{{name}}”的配置？存在文件或待清理对象时无法删除。', { name: removing.name })}
       confirmLabel={t('确认删除')} cancelLabel={t('取消')}
@@ -167,8 +168,8 @@ function StoragePanel({ client, storage }: { client: AppClient; storage: Storage
   </div>;
 }
 
-function LocationDialog({ storage, provider, item, onClose, onSaved }: {
-  storage: StorageClient; provider: string; item?: StorageLocation; onClose: () => void; onSaved: () => void;
+function LocationEditor({ storage, provider, item, onSaved }: {
+  storage: StorageClient; provider: string; item?: StorageLocation; onSaved: (item: StorageLocation) => void;
 }) {
   useLocale();
   const message = useMessage();
@@ -187,17 +188,17 @@ function LocationDialog({ storage, provider, item, onClose, onSaved }: {
     },
     onSubmit: async values => {
       try {
-        await storage.saveStorage({ ...values, endpoint: values.endpoint.replace(/\/$/, '') }, item?.id);
+        const saved = await storage.saveStorage({ ...values, endpoint: values.endpoint.replace(/\/$/, '') }, item?.id);
+        form.reset({ ...values, access_key: '', secret_key: '' });
         message.success(t('存储位置已保存'));
-        onSaved();
+        onSaved(saved);
       } catch (error) {
         form.applyServerError(error);
       }
     },
   });
   const locked = !!item;
-  return <Modal title={item ? t('编辑存储位置') : t('新增存储位置')} onClose={onClose} pending={form.formState.isSubmitting}>
-    <AppForm form={form} className="flex flex-col gap-4">
+  return <AppForm form={form} aria-label={t('存储配置')} className="flex flex-col gap-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <AppField name="name" label={t('位置名称')}><Input required maxLength={80} disabled={form.formState.isSubmitting} /></AppField>
         <AppField name="endpoint" label="Endpoint">
@@ -224,11 +225,9 @@ function LocationDialog({ storage, provider, item, onClose, onSaved }: {
         {item ? t('目标地址、Bucket 和前缀固定；更换目标请新增位置。有文件或正在使用的位置，轮换密钥时会先验证新凭据。') : t('建议使用专用前缀与最小权限账号，允许读、写、复制和删除该前缀内对象。')}
       </p>
       <div className="flex justify-end gap-2">
-        <Button variant="secondary" disabled={form.formState.isSubmitting} onClick={onClose}>{t('取消')}</Button>
         <Button type="submit" pending={form.formState.isSubmitting}><Save size={14} />{form.formState.isSubmitting ? t('保存中…') : t('保存位置')}</Button>
       </div>
-    </AppForm>
-  </Modal>;
+    </AppForm>;
 }
 
 function StoragePolicy({ client }: { client: AppClient }) {
@@ -264,8 +263,9 @@ function StoragePolicy({ client }: { client: AppClient }) {
                   const range = bounds(item.key);
                   return <label key={item.key} className="flex flex-col gap-1.5">
                     <span className="text-sm font-medium text-ink">{t(item.label)}</span>
-                    <Input type="number" required {...range} value={draft[item.key] ?? item.value}
-                      onChange={event => setDraft(current => ({ ...current, [item.key]: event.target.value }))} />
+                    {item.value_type === 'integer' ? <Input type="number" required {...range} value={draft[item.key] ?? item.value} onChange={event => setDraft(current => ({ ...current, [item.key]: event.target.value }))} />
+                      : <><Textarea aria-label={t(item.label)} rows={4} maxLength={16000} value={draft[item.key] ?? item.value} onChange={event => setDraft(current => ({ ...current, [item.key]: event.target.value }))} /><small className="text-xs text-muted">{item.key === 'storage.upload_paths' ? t('每行一个相对路径，如 images 或 archives/2026。第一个为默认上传路径，上传时可选择；留空使用托管根目录。') : t('每行一个扩展名，如 jpg、png、tar.gz，不区分大小写；留空允许所有类型。')}</small></>}
+
                   </label>;
                 })}
               </div>

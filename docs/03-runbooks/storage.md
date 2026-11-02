@@ -35,7 +35,7 @@ HTTPS 站点必须使用浏览器可达的 HTTPS Endpoint；不要在公网页�
 
 平台用户和管理员共用 FileUploadDialog 与 AppClient.files.uploadFile。新文件统一分片，小文件为一片；页面显示已确认字节进度、暂停、继续、放弃。刷新、关闭或服务重启后，在未完成文件旁点击“继续上传”，重新选择原文件即可；文件指纹不符会拒绝继续，不会创建另一份覆盖原文件。超过续传窗口后需删除记录并重新上传。网络失败自动重试两次，签名过期时重新申请；需要保持原位置和凭据可用。
 
-调用 `uploadFile(file,{resumeId,onSession,onProgress,onStage,signal})` 可在业务组件复用；onStage 为 hashing/uploading/confirming，onProgress 仅统计已被存储确认的字节，按片推进。AbortSignal 表示暂停，不删除服务端会话；放弃用 deleteFile。不要自行拼对象键、缓存上传凭证或在 UI 保存身份令牌。普通用户 policy 只含大小/分片/并发/续传期，不泄露全局设置、位置或密钥。
+调用 `uploadFile(file,{resumeId,onSession,onProgress,onStage,signal})` 可在业务组件复用；onStage 为 hashing/uploading/confirming，onProgress 仅统计已被存储确认的字节，按片推进。AbortSignal 表示暂停，不删除服务端会话；放弃用 deleteFile。不要自行拼对象键、缓存上传凭证或在 UI 保存身份令牌。普通用户 policy 只含大小/分片/并发/续传期及允许的上传路径/扩展名，不泄露全局设置、位置或密钥。
 
 云账号新增所需权限：原生 multipart initiate、upload part、list parts、complete、abort，以及对专用前缀列举未完成 multipart（清理崩溃时丢失的 upload ID）、条件复制/分片复制、读写删除。S3/MinIO 对应 ListBucketMultipartUploads、ListMultipartUploadParts、AbortMultipartUpload、PutObject/GetObject/DeleteObject；OSS/COS 配置等效权限。测试连接同时探测 initiate/list/abort，真实上传与厂商测试仍需环境验收。云跨域必须允许 PUT 和 Content-Type；不要设置公共读。
 
@@ -46,3 +46,14 @@ HTTPS 站点必须使用浏览器可达的 HTTPS Endpoint；不要在公网页�
 OSS 实测已覆盖官方 SDK 和 PC/375px 浏览器，当前适配将服务端操作与绑定 Content-Length 的签名客户端隔离；下载只覆盖 Content-Disposition 为附件，避免 OSS 拒绝 response-content-type 覆盖。腾讯云开发凭据本轮返回 AccessDenied，用户选择待权限补齐后验证；AWS S3 仍未做真实账号测试，不能因为 MinIO 同协议而声明 AWS 通过。
 
 额外云环境使用 UNICORE_TEST_OSS_* / UNICORE_TEST_COS_* 的 ENDPOINT、BUCKET、REGION、ACCESS_KEY、SECRET_KEY 注入；Go `go test ./internal/adapter/blobcloud -run TestVendorMultipart -count=1`。测试只使用 unicore-acceptance-* / unicore-browser-* 随机前缀，密钥不落源码、报告或 trace。浏览器测试对同一桶的 CORS 采用串行（--workers 1），避免不同隔离实例同时 read-modify-write 覆盖临时 Origin；结束只移除本次临时 Origin，保留其他规则。不要并发运行多套修改同一桶 CORS 的验收。
+
+## 上传路径与扩展名
+
+对象存储页默认选中全局正在使用的提供商，选择不同方式直接显示对应配置表单。保存新位置后测试连接、配置本站跨域，再“设为默认”；历史位置保留，可在“已保存位置与连接测试”查看。更换 endpoint/bucket/region/prefix 仍需新增位置，轮换密钥留空保持。
+
+| 设置 | 默认 | 说明 |
+| --- | --- | --- |
+| `storage.upload_paths` | 空 | 每行一个相对路径，最多 200 条/16000 字符，如 images、archives/2026。禁止绝对路径、..、反斜杠和空白字符；留空使用托管根目录。第一项为默认，上传弹窗可选择其他项 |
+| `storage.allowed_extensions` | 空 | 每行一个扩展名，可带前导点，如 txt、.png、tar.gz；不区分大小写，空列表允许全部；最多 200 条/16000 字符 |
+
+策略适用于本地及所有云提供商，普通用户通过安全投影读取这两项，不接触位置凭据。SDK `uploadFile(file,{uploadPath})` 可传列表中的路径；不传选首项；单请求与 multipart 创建均由后端拒绝未配置路径和扩展名。对象键位于原位置 prefix 下的 objects/路径/随机 ID；不会使用用户原名作为磁盘路径。复用现有 blob port 和 file_key 元数据，无 schema 迁移；历史文件和已开始的续传会话保持原目标。品牌图片使用独立解码/格式策略，不受业务扩展名限制。扩展名是文件名策略，不替代业务 MIME/内容校验。

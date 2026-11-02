@@ -13,6 +13,7 @@ import (
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/platform"
+	"github.com/yunnuo/unicore/internal/settings"
 )
 
 func (r *Repository) personalState(ctx context.Context, q sqlstore.Runner, user string) (platform.PersonalState, error) {
@@ -67,9 +68,12 @@ func (r *Repository) personalSession(ctx context.Context, q sqlstore.Runner, has
 	if err != nil {
 		return s, err
 	}
-	err = r.row(ctx, q, "SELECT created_at,mfa_verified,mfa_attempts FROM unicore_session_details WHERE token_hash=? AND user_id=?", hash, user).Scan(&s.Created, &s.Verified, &s.Attempts)
+	err = r.row(ctx, q, "SELECT created_at,last_seen_at,mfa_verified,mfa_attempts FROM unicore_session_details WHERE token_hash=? AND user_id=?", hash, user).Scan(&s.Created, &s.LastSeen, &s.Verified, &s.Attempts)
 	if errors.Is(err, sql.ErrNoRows) {
 		err = nil
+	}
+	if err == nil {
+		err = r.sessionPolicy(ctx, q, &s)
 	}
 	return s, err
 }
@@ -220,14 +224,14 @@ func (r *Repository) UseFactor(ctx context.Context, hash, secret string, step in
 		if err = fullFactor(s); err != nil {
 			return err
 		}
-		var value string
-		err = r.Store.Row(ctx, tx, "SELECT setting_value FROM unicore_system_settings WHERE setting_key=?", "security.force_2fa").Scan(&value)
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		values, err := r.securityValues(ctx, tx)
+		if err != nil {
 			return err
 		}
-		if value == "true" {
+		if settings.Force2FA(values, r.Administrators) {
 			return platform.ErrForbidden
 		}
+		var value string
 		value = ""
 		err = r.Store.Row(ctx, tx, "SELECT setting_value FROM unicore_system_settings WHERE setting_key=?", "security.allow_disable_2fa").Scan(&value)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {

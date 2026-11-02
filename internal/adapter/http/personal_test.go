@@ -56,6 +56,9 @@ func TestPersonalCenterHTTP(t *testing.T) {
 		t.Fatal(err)
 	}
 	db, config, identity, _ := manager.Services()
+	if _, err = config.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "security.login_failure_limit", Value: "20"}}}, admin.ID); err != nil {
+		t.Fatal(err)
+	}
 	member, err := identity.Create(ctx, contracts.UserCreate{Username: "member", Email: "member@example.test", Password: "test-password-strong", Role: "user"}, admin.ID)
 	if err != nil {
 		t.Fatal(err)

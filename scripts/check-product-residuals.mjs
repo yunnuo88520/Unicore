@@ -19,7 +19,13 @@ const ALLOWED = [
 function violationsFor(path, text, framework) {
   const violations = [];
   text.split('\n').forEach((line, index) => {
-    if (!new RegExp(framework, 'i').test(line)) return;
+    // Product documentation must explain the stable SQL namespace. Remove only
+    // those technical tokens, so an unrelated visible brand on the same line is
+    // still reported. UI strings do not receive this documentation exemption.
+    const visible = path.startsWith('docs/product/')
+      ? line.replace(/\bunicore_(?:[a-z][a-z0-9_]*)?\b/g, '')
+      : line;
+    if (!new RegExp(framework, 'i').test(visible)) return;
     if (ALLOWED.some(pattern => pattern.test(line))) return;
     violations.push(`${path}:${index + 1}: ${line.trim().slice(0, 160)}`);
   });

@@ -68,6 +68,20 @@ test('residue scan requires provenance and identity',()=>{
  }finally{rmSync(root,{recursive:true,force:true});}
 });
 
+test('fixed SQL prefix documentation is allowed without hiding visible framework branding',()=>{
+ const root=project();
+ try{
+  const path='docs/product/guide.md';
+  writeFileSync(join(root,path),'Framework tables keep unicore_ and unicore_users across product names.\n');
+  assert.deepEqual(scanResiduals(root),[]);
+  writeFileSync(join(root,path),'Unicore workspace uses unicore_users.\n');
+  assert.ok(scanResiduals(root).some(line=>line.startsWith(`${path}:1:`)));
+  writeFileSync(join(root,path),'Framework tables keep unicore_users.\n');
+  writeFileSync(join(root,'apps/web/index.html'),'<title>unicore_workspace</title>\n');
+  assert.ok(scanResiduals(root).some(line=>line.startsWith('apps/web/index.html:1:')));
+ }finally{rmSync(root,{recursive:true,force:true});}
+});
+
 test('residue scan catches UI branding outside generated projections while preserving internal namespaces',()=>{
  const root=project();
  try{

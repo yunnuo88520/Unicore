@@ -38,6 +38,7 @@ function StoragePanel({ client, storage }: { client: AppClient; storage: Storage
   const [editing, setEditing] = useState<StorageLocation | 'new' | null>(null);
   const [removing, setRemoving] = useState<StorageLocation | null>(null);
   const [actionID, setActionID] = useState('');
+  const [defaultID, setDefaultID] = useState('');
   const locations = useQuery({ queryKey: ['storage-locations'], queryFn: () => storage.storageLocations() });
   const action = useMutation({
     mutationFn: async ({ kind, item }: { kind: 'test' | 'activate' | 'browser' | 'cleanup' | 'delete'; item?: StorageLocation }) => {
@@ -73,6 +74,16 @@ function StoragePanel({ client, storage }: { client: AppClient; storage: Storage
           <strong className="block text-md font-semibold text-ink">{t('文件存储')}</strong>
           <p className="mt-0.5 text-xs text-muted">{t('当前默认：')}{active?.provider === 'local' ? t('本地存储') : active?.name ?? t('本地存储')} · {providerName(active?.provider ?? 'local')}</p>
         </div>
+        <div className="flex w-full flex-wrap items-end gap-2 border-t border-line pt-3">
+          <label className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm font-medium text-ink">
+            {t('全局默认存储位置')}
+            <SimpleSelect label={t('全局默认存储位置')} value={defaultID || active?.id || 'local'}
+              onChange={setDefaultID} options={locations.data.items.filter(item => item.tested || item.active).map(item => ({ value: item.id, label: `${item.provider === 'local' ? t('本地存储') : item.name} · ${providerName(item.provider)}` }))} />
+          </label>
+          <Button disabled={!defaultID || defaultID === active?.id || action.isPending} pending={action.isPending && actionID === defaultID}
+            onClick={() => { const item = locations.data.items.find(item => item.id === defaultID); if (item) action.mutate({ kind: 'activate', item }); }}>{t('应用全局默认')}</Button>
+          <p className="w-full text-xs text-muted">{t('新上传统一使用此位置。历史文件保持原位置，可在文件管理中批量迁移；云位置需先通过连接测试并配置本站跨域。')}</p>
+        </div>
         <Badge className="ms-auto">{t('私有访问 · 临时签名')}</Badge>
       </CardContent>
     </Card>
@@ -80,7 +91,7 @@ function StoragePanel({ client, storage }: { client: AppClient; storage: Storage
       <span className="text-xs font-medium text-muted">{t('存储提供商')}</span>
       <SimpleSelect label={t('存储提供商')} className="h-9 w-44" value={tab}
         onChange={id => void navigate({ to: '/storage', search: { provider: id }, replace: true })}
-        options={providers.map(provider => ({ value: provider.id, label: provider.label }))} />
+        options={providers.map(provider => ({ value: provider.id, label: t(provider.label) }))} />
     </div>
     <Card>
       <CardContent className="flex flex-col gap-4">

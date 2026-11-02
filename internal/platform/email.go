@@ -42,7 +42,7 @@ func (a *Accounts) challenge(ctx context.Context, email, purpose string) (EmailC
 		return EmailChallenge{}, err
 	}
 	id, code := Token(), SixDigits()
-	values["site.base_url"] = a.BaseURL
+	values["site.base_url"] = settings.MailBaseURL(values, a.BaseURL)
 	message, err := mailer.RenderConfigured(values, purpose, code, email, false, logo, nil)
 	if err != nil {
 		return EmailChallenge{}, err

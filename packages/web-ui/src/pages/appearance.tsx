@@ -8,7 +8,7 @@ import { Building2, CheckCircle2, Monitor, Moon, Save, Sun, type LucideIcon } fr
 import { invalidateAfter } from '../queries';
 import { AppearanceDrawer } from '../appearance-drawer';
 import { BrandingPanel } from '../branding-panel';
-import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Modal, NativeSelect, Switch, Tabs, useMessage } from '../ui';
+import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Modal, NativeSelect, Switch, Tabs, Textarea, useMessage } from '../ui';
 import { cn } from '../lib/cn';
 import { AppField, AppForm, useAppForm } from '../lib/form';
 import { useRouteSearch, type PageProps } from '../router';
@@ -18,12 +18,14 @@ import type { Theme } from '../theme';
 /** Shape of one settings registry row as delivered by client.settings(). */
 type SettingEntry = { key: string; value: string; value_type: string; group: string; label: string; sensitive: boolean; configured?: boolean };
 
-const groupNames: Record<string, string> = defineMessages({ site: '站点信息', appearance: '默认外观', admin: '后台入口', security: '安全', account: '账号流程', mail: '邮件服务', oidc: '企业登录（OIDC）' });
+const groupNames: Record<string, string> = defineMessages({ site: '站点信息', maintenance: '维护模式', registration: '注册设置', appearance: '默认外观', admin: '后台入口', security: '安全', account: '账号流程', mail: '邮件服务', oidc: '企业登录（OIDC）' });
 const baseSections = defineMessages([
   { id: 'site', label: '基础信息', groups: ['site'] },
   { id: 'branding', label: '品牌图片', groups: [] },
   { id: 'appearance', label: '外观设置', groups: ['appearance'] },
   { id: 'security', label: '安全与控制', groups: ['security', 'admin'] },
+  { id: 'registration', label: '注册设置', groups: ['registration'] },
+  { id: 'maintenance', label: '维护模式', groups: ['maintenance'] },
   { id: 'oidc', label: '企业登录', groups: ['oidc'] },
 ]) as readonly { id: string; label: string; groups: string[] }[];
 
@@ -179,7 +181,12 @@ function AdminSettings({ section = 'base', client, metadata, theme, onThemeSaved
           <CardTitle>{t(active.label)}</CardTitle>
           <CardDescription>{t('配置保存在服务器，统一应用于整个实例')}</CardDescription>
         </div>
-        <Badge>{t('持久化')}</Badge>
+        <div className="flex shrink-0 items-center gap-2">
+          <Badge className="max-sm:hidden">{t('持久化')}</Badge>
+          <Button pending={save.isPending} disabled={save.isPending || !changes.length} onClick={() => save.mutate({ changes })}>
+            {!save.isPending && <Save size={14} aria-hidden="true" />}{t('保存设置')}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {groups.map(group => <fieldset key={group} className="flex flex-col gap-3 rounded-lg border border-line p-3" disabled={save.isPending}>
@@ -199,11 +206,6 @@ function AdminSettings({ section = 'base', client, metadata, theme, onThemeSaved
               }} />)}
           </div>
         </fieldset>)}
-        <div className="flex items-center justify-end">
-          <Button pending={save.isPending} disabled={save.isPending || !changes.length} onClick={() => save.mutate({ changes })}>
-            {!save.isPending && <Save size={14} aria-hidden="true" />}{t('保存设置')}
-          </Button>
-        </div>
       </CardContent>
     </Card>}
     {client.web && section === 'mail' && <MailTest web={client.web} canWrite dirty={dirty('mail') || dirty('account')} revision={query.dataUpdatedAt} />}
@@ -222,7 +224,7 @@ function SettingField({ entry, draft, cleared, onValue, onClear }: {
   useLocale();
   const current = draft[entry.key] ?? entry.value;
   const id = `setting-${entry.key}`;
-  return <div className="flex min-w-0 flex-col gap-1.5">
+  return <div className={cn("flex min-w-0 flex-col gap-1.5", ['site.footer_html', 'maintenance.message'].includes(entry.key) && "md:col-span-2")}>
     <label htmlFor={id} className="text-sm font-medium text-ink">{t(entry.label)}</label>
     {entry.value_type === 'boolean'
       ? <Switch id={id} checked={current === 'true'} onChange={checked => onValue(entry.key, String(checked))} />
@@ -233,8 +235,10 @@ function SettingField({ entry, draft, cleared, onValue, onClear }: {
               : [['system', t('跟随系统')], ['light', t('浅色')], ['dark', t('深色')]]
             ).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </NativeSelect>
+        : entry.key === 'site.footer_html' || entry.key === 'maintenance.message'
+          ? <Textarea id={id} rows={4} maxLength={entry.key === 'site.footer_html' ? 4000 : 1000} value={current} onChange={event => onValue(entry.key, event.target.value)} />
         : <Input id={id}
-            type={entry.sensitive ? 'password' : entry.value_type === 'integer' ? 'number' : entry.key === 'site.icp_url' ? 'url' : 'text'}
+            type={entry.sensitive ? 'password' : entry.value_type === 'integer' ? 'number' : ['site.icp_url', 'site.base_url'].includes(entry.key) ? 'url' : entry.key === 'site.admin_email' ? 'email' : 'text'}
             autoComplete={entry.sensitive ? 'new-password' : undefined}
             placeholder={entry.sensitive ? (entry.configured ? t('已配置 · 留空保留') : t('尚未配置')) : undefined}
             value={current}
@@ -245,6 +249,10 @@ function SettingField({ entry, draft, cleared, onValue, onClear }: {
       </Button>
     </div>}
     {entry.key === 'account.registration_enabled' && <small className="text-xs text-muted">{t('默认关闭。先配置并测试 SMTP，开放后用户可从注册页验证邮箱创建账号。')}</small>}
+    {entry.key === 'site.base_url' && <small className="text-xs text-muted">{t('用于生成邮件中的链接，填写完整的 HTTP 或 HTTPS 站点地址；留空沿用安装地址。')}</small>}
+    {entry.key === 'site.admin_email' && <small className="text-xs text-muted">{t('接收系统告警和通知；留空则不设置默认收件人。')}</small>}
+    {entry.key === 'site.footer_html' && <small className="text-xs text-muted">{t('支持段落、列表、强调和 HTTP/HTTPS 链接；不支持脚本、样式或嵌入内容。')}</small>}
+    {entry.key === 'maintenance.enabled' && <small className="text-xs text-muted">{t('默认关闭。开启后暂停用户访问和 API 操作，管理员仍可登录后台关闭维护。')}</small>}
     {entry.key === 'site.icp_url' && <small className="text-xs text-muted">{t('HTTPS 查询链接；备案号留空时隐藏页脚备案信息。')}</small>}
     {entry.key === 'mail.from_name' && <small className="text-xs text-muted">{t('留空时使用邮件中的站点名称；修改别名不影响 SMTP 连通性验证。')}</small>}
     {entry.key === 'admin.path' && <small className="text-xs text-muted">{t('配置错误可用 APP_ADMIN_PATH 恢复；接口仍执行权限检查。')}</small>}

@@ -165,6 +165,18 @@ export const constraints = {
           "user",
           "administrator"
         ]
+      },
+      "site_police_number": {
+        "type": "string"
+      },
+      "site_footer_html": {
+        "type": "string"
+      },
+      "maintenance_enabled": {
+        "type": "boolean"
+      },
+      "maintenance_message": {
+        "type": "string"
       }
     }
   },

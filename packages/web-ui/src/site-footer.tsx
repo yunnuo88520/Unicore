@@ -1,5 +1,6 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Shared public site identity and optional ICP link on workspace and account pages.
+import { RichContent } from './rich-content';
 import { cn } from './lib/cn';
 import { productName } from './product.gen';
 import type { Bootstrap } from '@unicore/sdk';
@@ -18,6 +19,8 @@ export function SiteFooter({ metadata, compact = false }: { metadata?: Bootstrap
       {metadata?.site_icp_number && (link
         ? <a href={link} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 transition-colors hover:text-muted">{metadata.site_icp_number}</a>
         : <span>{metadata.site_icp_number}</span>)}
+      {metadata?.site_police_number && <span>{metadata.site_police_number}</span>}
     </div>
+    {metadata?.site_footer_html && <div className="w-full break-words"><RichContent html={metadata.site_footer_html} /></div>}
   </footer>;
 }

@@ -28,25 +28,29 @@ type Capabilities struct {
 }
 
 type Bootstrap struct {
-	Profile         Profile      `json:"profile"`
-	Version         string       `json:"version"`
-	Commit          string       `json:"commit"`
-	BuildTime       string       `json:"build_time"`
-	Stage           string       `json:"stage"`
-	DeploymentKind  string       `json:"deployment_kind"`
-	Capabilities    Capabilities `json:"capabilities"`
-	Installed       bool         `json:"installed"`
-	SiteName        string       `json:"site_name"`
-	AdminPath       string       `json:"admin_path"`
-	CurrentUser     *User        `json:"current_user,omitempty"`
-	CsrfToken       *string      `json:"csrf_token,omitempty"`
-	SiteDescription *string      `json:"site_description,omitempty"`
-	SiteCopyright   *string      `json:"site_copyright,omitempty"`
-	SiteIcpNumber   *string      `json:"site_icp_number,omitempty"`
-	SiteIcpUrl      *string      `json:"site_icp_url,omitempty"`
-	Theme           *string      `json:"theme,omitempty"`
-	Branding        *Branding    `json:"branding,omitempty"`
-	IdentityRealm   *string      `json:"identity_realm,omitempty"`
+	Profile            Profile      `json:"profile"`
+	Version            string       `json:"version"`
+	Commit             string       `json:"commit"`
+	BuildTime          string       `json:"build_time"`
+	Stage              string       `json:"stage"`
+	DeploymentKind     string       `json:"deployment_kind"`
+	Capabilities       Capabilities `json:"capabilities"`
+	Installed          bool         `json:"installed"`
+	SiteName           string       `json:"site_name"`
+	AdminPath          string       `json:"admin_path"`
+	CurrentUser        *User        `json:"current_user,omitempty"`
+	CsrfToken          *string      `json:"csrf_token,omitempty"`
+	SiteDescription    *string      `json:"site_description,omitempty"`
+	SiteCopyright      *string      `json:"site_copyright,omitempty"`
+	SiteIcpNumber      *string      `json:"site_icp_number,omitempty"`
+	SiteIcpUrl         *string      `json:"site_icp_url,omitempty"`
+	Theme              *string      `json:"theme,omitempty"`
+	Branding           *Branding    `json:"branding,omitempty"`
+	IdentityRealm      *string      `json:"identity_realm,omitempty"`
+	SitePoliceNumber   *string      `json:"site_police_number,omitempty"`
+	SiteFooterHtml     *string      `json:"site_footer_html,omitempty"`
+	MaintenanceEnabled *bool        `json:"maintenance_enabled,omitempty"`
+	MaintenanceMessage *string      `json:"maintenance_message,omitempty"`
 }
 
 type BootstrapResponse struct {

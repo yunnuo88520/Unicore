@@ -94,6 +94,9 @@ test('navigation defaults to wide closed groups and the rail keeps children in k
   await expect(menu).toHaveCount(0);
   await page.getByRole('button',{name:'展开导航',exact:true}).click();
   await expect(sidebar.getByRole('button',{name:'用户管理',exact:true})).toHaveAttribute('aria-expanded','false');
+  await sidebar.getByRole('button',{name:'用户管理',exact:true}).click();
+  await expect(sidebar.getByRole('button',{name:'用户管理',exact:true})).not.toHaveClass(/bg-primary-soft/);
+  await expect(sidebar.getByRole('button',{name:'用户列表',exact:true})).toHaveClass(/bg-primary-soft/);
 });
 
 test('inset and floating headers match their content sheet in both themes',async({page,instance},info)=>{

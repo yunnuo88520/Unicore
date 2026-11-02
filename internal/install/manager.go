@@ -506,6 +506,12 @@ func (m *Manager) Complete(ctx context.Context, token string, input contracts.In
 		if key == "site.name" {
 			value = input.SiteName
 		}
+		if key == "site.base_url" {
+			value = strings.TrimRight(input.BaseUrl, "/")
+		}
+		if key == "site.admin_email" {
+			value = input.AdminEmail
+		}
 		if _, err = store.Exec(ctx, tx, "INSERT INTO unicore_system_settings(setting_key,setting_value) VALUES(?,?)", key, value); err != nil {
 			return result, user, ErrDatabase
 		}

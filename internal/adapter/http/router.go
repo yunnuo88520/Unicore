@@ -111,6 +111,30 @@ func New(config Config) http.Handler {
 			})
 		})
 	}
+	if config.Install != nil {
+		router.Use(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				// Admin recovery, public metadata and probes remain reachable during maintenance.
+				path := r.URL.Path
+				if strings.HasPrefix(path, "/api/v1/") && path != "/api/v1/bootstrap" && !strings.HasPrefix(path, "/api/v1/admin/") && !strings.HasPrefix(path, "/api/v1/health/") {
+					_, service, _, profile := config.Install.Services()
+					if profile == "web-platform" && service != nil {
+						values, err := service.Store.ReadSettings(r.Context())
+						if err != nil {
+							failure(w, 503, "NOT_READY", "存储尚未就绪")
+							return
+						}
+						if values["maintenance.enabled"] == "true" {
+							w.Header().Set("Retry-After", "60")
+							failure(w, 503, "MAINTENANCE_MODE", "站点维护中，请稍后再试")
+							return
+						}
+					}
+				}
+				next.ServeHTTP(w, r)
+			})
+		})
+	}
 	if config.APIDocs {
 		router.Get("/openapi.json", func(w http.ResponseWriter, r *http.Request) {
 			content, _ := apispec.Assets.ReadFile("openapi.json")
@@ -174,13 +198,13 @@ func New(config Config) http.Handler {
 					return
 				}
 				requestID := w.Header().Get("X-Request-ID")
-					fail := func(status int, code, message string) {
-						writeJSON(w, status, contracts.ErrorResponse{Code: code, Message: message, RequestID: requestID})
-					}
-					if !sameOrigin(r) {
-						fail(403, "ORIGIN_REJECTED", "请求来源不受信任")
-						return
-					}
+				fail := func(status int, code, message string) {
+					writeJSON(w, status, contracts.ErrorResponse{Code: code, Message: message, RequestID: requestID})
+				}
+				if !sameOrigin(r) {
+					fail(403, "ORIGIN_REJECTED", "请求来源不受信任")
+					return
+				}
 				contentType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 				if err != nil || contentType != "application/json" {
 					fail(415, "UNSUPPORTED_MEDIA_TYPE", "请使用 application/json")

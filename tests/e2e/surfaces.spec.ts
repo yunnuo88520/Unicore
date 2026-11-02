@@ -7,6 +7,7 @@ test('separate entries, registration policy and redesigned file selection',async
  const installed=await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}});expect(installed.status()).toBe(200);
  await page.goto(`${instance.url}/admin/site?tab=security`);
  await expect(page.getByRole('switch',{name:'登录图形验证码',exact:true})).toBeChecked();
+ await page.getByRole('tab',{name:'注册设置',exact:true}).click();
  await expect(page.getByRole('switch',{name:'注册图形验证码',exact:true})).toBeChecked();
  await expect(page.getByRole('switch',{name:'开放注册（需验证邮箱）',exact:true})).not.toBeChecked();
  const other=await browser.newContext({viewport:page.viewportSize()!});

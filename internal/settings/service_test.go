@@ -128,3 +128,39 @@ func TestPublicSiteLinks(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestSiteConfigurationAndMaintenance(t *testing.T) {
+	ctx := context.Background()
+	store := &memoryStore{values: map[string]string{}}
+	service := &Service{Store: store, Profile: "web-platform"}
+	for _, change := range []contracts.SettingChange{
+		{Key: "site.base_url", Value: "javascript:alert(1)"}, {Key: "site.base_url", Value: "https://user:password@example.test"},
+		{Key: "site.base_url", Value: "https://example.test/path"}, {Key: "site.base_url", Value: "https://:443"},
+		{Key: "site.admin_email", Value: "Name <admin@example.test>"}, {Key: "site.police_number", Value: "record\nheader"},
+		{Key: "site.footer_html", Value: `<script>alert(1)</script>`}, {Key: "site.footer_html", Value: `<p onclick="alert(1)">bad</p>`},
+		{Key: "site.footer_html", Value: `<a href="javascript:alert(1)">bad</a>`}, {Key: "maintenance.enabled", Value: "yes"},
+		{Key: "maintenance.message", Value: strings.Repeat("x", 1001)},
+	} {
+		if _, err := service.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{change}}, "admin"); !errors.Is(err, ErrInvalid) {
+			t.Fatalf("accepted invalid %s: %v", change.Key, err)
+		}
+	}
+	changes := []contracts.SettingChange{{Key: "site.base_url", Value: "https://example.test/"}, {Key: "site.admin_email", Value: "alerts@example.test"}, {Key: "site.footer_html", Value: `<p>Support <a href="https://example.test/help">Help</a></p>`}, {Key: "maintenance.enabled", Value: "true"}, {Key: "maintenance.message", Value: "Scheduled maintenance"}}
+	if _, err := service.Patch(ctx, contracts.SettingPatch{Changes: changes}, "admin"); err != nil {
+		t.Fatal(err)
+	}
+	if got := MailBaseURL(store.values, "http://localhost"); got != "https://example.test" {
+		t.Fatal(got)
+	}
+	if got := MailBaseURL(map[string]string{}, "http://localhost/"); got != "http://localhost" {
+		t.Fatal(got)
+	}
+	for _, profile := range []contracts.Profile{"desktop", "web-standalone"} {
+		service.Profile = profile
+		for _, change := range changes {
+			if _, err := service.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{change}}, "local"); !errors.Is(err, ErrInvalid) {
+				t.Fatalf("%s accepted %s", profile, change.Key)
+			}
+		}
+	}
+}

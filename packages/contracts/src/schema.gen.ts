@@ -45,6 +45,10 @@ export interface Bootstrap {
   theme?: string;
   branding?: Branding;
   identity_realm?: "user" | "administrator";
+  site_police_number?: string;
+  site_footer_html?: string;
+  maintenance_enabled?: boolean;
+  maintenance_message?: string;
 }
 
 export interface BootstrapResponse {

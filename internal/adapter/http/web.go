@@ -170,6 +170,7 @@ func validationResult(w http.ResponseWriter, fields map[string]string) bool {
 	writeJSON(w, definition.Status, contracts.ErrorResponse{Code: "INVALID_INPUT", Message: definition.Message, RequestID: w.Header().Get("X-Request-ID"), Fields: &fields})
 	return false
 }
+
 // sameOrigin only rejects requests with positive cross-site evidence. Browsers
 // assert Sec-Fetch-Site and JavaScript cannot forge it, so same-page requests
 // stay accepted even when a gateway or tunnel rewrites Host. Legacy clients
@@ -305,6 +306,19 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 		}
 		if value, err := service.Value(r.Context(), "site.icp_url"); err == nil {
 			data.SiteIcpUrl = &value
+		}
+		if value, err := service.Value(r.Context(), "site.police_number"); err == nil {
+			data.SitePoliceNumber = &value
+		}
+		if value, err := service.Value(r.Context(), "site.footer_html"); err == nil {
+			data.SiteFooterHtml = &value
+		}
+		if value, err := service.Value(r.Context(), "maintenance.enabled"); err == nil {
+			enabled := value == "true"
+			data.MaintenanceEnabled = &enabled
+		}
+		if value, err := service.Value(r.Context(), "maintenance.message"); err == nil {
+			data.MaintenanceMessage = &value
 		}
 		if value, err := service.Value(r.Context(), "appearance.theme"); err == nil {
 			data.Theme = &value

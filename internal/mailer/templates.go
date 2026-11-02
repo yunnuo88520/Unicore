@@ -48,7 +48,7 @@ func (s *Service) template(ctx context.Context, input contracts.MailTemplateInpu
 	if e != nil {
 		return contracts.MailTemplate{}, Message{}, e
 	}
-	values["site.base_url"] = s.BaseURL
+	values["site.base_url"] = settings.MailBaseURL(values, s.BaseURL)
 	data, _ := encodeTemplate(content)
 	values[mailcontent.Key(input.Purpose)] = data
 	logo, e := s.Settings.Logo(ctx)
@@ -60,7 +60,7 @@ func (s *Service) template(ctx context.Context, input contracts.MailTemplateInpu
 		return contracts.MailTemplate{}, Message{}, settings.ErrInvalid
 	}
 	variables := []contracts.MailTemplateVariable{}
-	samples := map[string]string{"site_name": values["site.name"], "site_url": s.BaseURL, "code": "654321", "expires_minutes": "10", "title": "系统通知", "detail": "实例设置已更新，请查看操作日志。"}
+	samples := map[string]string{"site_name": values["site.name"], "site_url": values["site.base_url"], "code": "654321", "expires_minutes": "10", "title": "系统通知", "detail": "实例设置已更新，请查看操作日志。"}
 	for _, key := range mailcontent.Variables(input.Purpose) {
 		variables = append(variables, contracts.MailTemplateVariable{Key: key, Sample: samples[key]})
 	}

@@ -113,6 +113,16 @@ function WorkspaceShell() {
       </div>
     </PagePropsProvider>;
   }
+  if (data.maintenance_enabled && data.identity_realm !== 'administrator') {
+    return <main className="flex min-h-dvh flex-col items-center justify-center gap-5 bg-background px-6 text-center">
+      <div className="fixed top-[15px] end-[20px] z-[45] rounded-lg border border-line bg-surface px-2 py-[5px] shadow-tint"><ClientControls /></div>
+      <BrandLockup name={data.site_name} />
+      <h1 className="text-2xl font-semibold text-ink">{t('站点维护中')}</h1>
+      <p className="max-w-xl whitespace-pre-wrap break-words text-sm text-muted">{data.maintenance_message || t('站点维护中，请稍后再试')}</p>
+      <Button onClick={() => void metadata.refetch()}>{t('重新检查')}</Button>
+      <SiteFooter metadata={data} compact />
+    </main>;
+  }
   if (data.capabilities.authentication && (!data.current_user || /^(verify-email|reset-password)$/.test(basename)) && client.web) {
     const props: PageProps = { page: 'overview', client, metadata: data, registry, theme, setTheme, refresh: () => void metadata.refetch() };
     const Flow = basename === 'verify-email' ? VerifyEmailPage : basename === 'reset-password' ? ResetPasswordPage : LoginPage;
@@ -282,7 +292,7 @@ function NavGroup({ title, icon, children, active = false }: { title: string; ic
   useLocale();
   const [open, setOpen] = useState(false);
   return <section>
-    <button className={`flex min-h-11 w-full items-center gap-[12px] rounded-lg px-[11px] text-start text-sm font-medium transition-colors ${active ? 'bg-primary-soft text-accent' : open ? 'text-ink' : 'text-muted hover:bg-surface-alt hover:text-ink'}`} aria-expanded={open} onClick={() => setOpen(value => !value)}>
+    <button className={`flex min-h-11 w-full items-center gap-[12px] rounded-lg px-[11px] text-start text-sm font-medium transition-colors ${active ? 'text-accent' : open ? 'text-ink' : 'text-muted hover:bg-surface-alt hover:text-ink'}`} aria-expanded={open} onClick={() => setOpen(value => !value)}>
       {icon}<span className="truncate">{t(title)}</span><ChevronRight size={15} className={`ms-auto transition-transform ${open ? 'rotate-90' : ''}`} aria-hidden="true" />
     </button>
     <nav aria-label={t(title)} hidden={!open} className="ms-[18px] flex flex-col gap-0.5 border-s border-line ps-[9px]">{children}</nav>

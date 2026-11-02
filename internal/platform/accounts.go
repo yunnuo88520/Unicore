@@ -60,7 +60,11 @@ func (a *Accounts) payload(ctx context.Context, email, purpose, token string) st
 	if a.Administrator {
 		entry, _ = a.Settings.Value(ctx, "admin.path")
 	}
-	return a.Mail.Encrypt(mailer.Message{To: email, Subject: subject, Body: "Open this link to continue:\n" + a.BaseURL + strings.TrimSuffix(entry, "/") + "/" + path + "?token=" + token + "\n\nThis link expires shortly and can be used once. If you did not request it, ignore this message."})
+	baseURL := a.BaseURL
+	if value, err := a.Settings.Value(ctx, "site.base_url"); err == nil && settings.ValidBaseURL(value) {
+		baseURL = strings.TrimRight(value, "/")
+	}
+	return a.Mail.Encrypt(mailer.Message{To: email, Subject: subject, Body: "Open this link to continue:\n" + baseURL + strings.TrimSuffix(entry, "/") + "/" + path + "?token=" + token + "\n\nThis link expires shortly and can be used once. If you did not request it, ignore this message."})
 }
 func (a *Accounts) Register(ctx context.Context, input contracts.RegisterInput, ip string) error {
 	policy, err := a.Policy(ctx)

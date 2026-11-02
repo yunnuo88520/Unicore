@@ -20,6 +20,7 @@ import (
 	"github.com/yunnuo/unicore/assets/theme"
 	"github.com/yunnuo/unicore/internal/branding"
 	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/mailcontent"
 )
 
 var ErrInvalid = errors.New("invalid setting")
@@ -66,7 +67,7 @@ func ValidAdminPath(value string) bool {
 }
 func ValidBaseURL(value string) bool {
 	u, err := url.Parse(value)
-	return err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != "" && u.User == nil && u.RawQuery == "" && u.Fragment == "" && (u.Path == "" || u.Path == "/")
+	return err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Hostname() != "" && !strings.ContainsAny(value, "\r\n\x00") && u.User == nil && u.RawQuery == "" && u.Fragment == "" && (u.Path == "" || u.Path == "/")
 }
 
 var Definitions = append([]SettingDefinition{
@@ -77,6 +78,14 @@ var Definitions = append([]SettingDefinition{
 	{"site.name", "string", "site", "站点名称", theme.Current.Brand.Name, false, false, func(v string) bool {
 		return strings.TrimSpace(v) != "" && !strings.ContainsAny(v, "\r\n") && text(64)(v)
 	}},
+	{"site.base_url", "string", "site", "站点地址", "", true, false, func(v string) bool { return v == "" || (text(2048)(v) && ValidBaseURL(v)) }},
+	{"site.admin_email", "string", "site", "管理员邮箱", "", true, false, func(v string) bool { return v == "" || ValidEmail(v) }},
+	{"site.police_number", "string", "site", "公安备案号", "", true, false, func(v string) bool { return text(80)(v) && !strings.ContainsAny(v, "\r\n") }},
+	{"site.footer_html", "string", "site", "自定义页脚 HTML", "", true, false, func(v string) bool {
+		return v == "" || (text(4000)(v) && !strings.Contains(v, "{{") && mailcontent.ValidateHTML(v) == nil)
+	}},
+	{"maintenance.enabled", "boolean", "maintenance", "开启维护模式", "false", true, false, oneOf("true", "false")},
+	{"maintenance.message", "string", "maintenance", "维护提示信息", "", true, false, text(1000)},
 	{"site.description", "string", "site", "站点描述", "一份核心，无限可能", false, false, text(240)},
 	{"site.copyright", "string", "site", "页脚版权", "Crafted by Yunnuo", false, false, text(160)},
 	{"site.icp_number", "string", "site", "备案号（ICP）", "", false, false, func(v string) bool { return text(80)(v) && !strings.ContainsAny(v, "\r\n") }},
@@ -85,8 +94,8 @@ var Definitions = append([]SettingDefinition{
 	{"admin.path", "string", "admin", "管理后台路径", "/admin", true, false, ValidAdminPath},
 	{"security.login_captcha", "boolean", "security", "登录图形验证码", "true", true, false, oneOf("true", "false")},
 	{"security.session_hours", "integer", "security", "会话有效期（小时）", "24", true, false, integer(1, 168)},
-	{"security.register_captcha", "boolean", "security", "注册图形验证码", "true", true, false, oneOf("true", "false")},
-	{"account.registration_enabled", "boolean", "security", "开放注册（需验证邮箱）", "false", true, false, oneOf("true", "false")},
+	{"security.register_captcha", "boolean", "registration", "注册图形验证码", "true", true, false, oneOf("true", "false")},
+	{"account.registration_enabled", "boolean", "registration", "开放注册（需验证邮箱）", "false", true, false, oneOf("true", "false")},
 	{"account.email_login_enabled", "boolean", "account", "邮箱验证码登录", "false", true, false, oneOf("true", "false")},
 	{"account.password_reset_enabled", "boolean", "account", "邮件找回密码", "false", true, false, oneOf("true", "false")},
 	{"mail.host", "string", "mail", "SMTP 主机", "", true, false, func(v string) bool { return len(v) <= 253 && !strings.ContainsAny(v, "\r\n /@") }},
@@ -327,4 +336,12 @@ func (s *Service) Logo(ctx context.Context) ([]byte, error) {
 		return nil, nil
 	}
 	return s.Branding.Logo(ctx)
+}
+
+// MailBaseURL changes generated mail links without changing cookies or OIDC callbacks.
+func MailBaseURL(values map[string]string, fallback string) string {
+	if value := values["site.base_url"]; ValidBaseURL(value) {
+		return strings.TrimRight(value, "/")
+	}
+	return strings.TrimRight(fallback, "/")
 }

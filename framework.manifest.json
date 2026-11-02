@@ -81,7 +81,9 @@
     "uploadDialog": "packages/web-ui/src/file-upload-dialog.tsx",
     "migrationCatalog": "migrations/catalog.json",
     "migrationMetadata": "migrations/metadata.gen.json",
-    "migrationGenerator": "scripts/generate-migrations.mjs"
+    "migrationGenerator": "scripts/generate-migrations.mjs",
+    "documentationSite": "website",
+    "documentationSiteGuide": "docs/03-runbooks/documentation-site.md"
   },
   "commands": {
     "generate": "pnpm generate",

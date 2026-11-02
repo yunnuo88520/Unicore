@@ -40,7 +40,7 @@ Node 开发/CI 基线保留 22 系列，@types/node 随基线维护；TypeScript
 | Wiki | 已初始化，支持源码同步 | 页面清单见 distribution/manifest.json；执行 make wiki-publish 前检查 main 已干净推送 |
 | Releases / tags | 按下节验收，开发预览使用 prerelease | 实际可下载资产以 GitHub Releases 为准，不把 VERSION 或 workflow 配置当作已经发布 |
 
-不要仅为了资料完整而创建空文档站、不可访问的演示、FUNDING 或未经同意的 CODEOWNERS。当前维护者较少，先使用源码文档和明确的反馈入口即可。Template repository 为可选项；派生应用优先使用创建器完成 module/品牌定制。
+文档站已提供来源复用、搜索和域名配置，实际是否上线以 DNS、TLS 与部署结果为准；上线后再将 About Website 从 Wiki 切换到正式地址。不要创建不可访问的演示、FUNDING 或未经同意的 CODEOWNERS。Template repository 为可选项；派生应用优先使用创建器完成 module/品牌定制。
 
 ### main 规则建议
 
@@ -58,6 +58,6 @@ Actions 保持最小权限，fork PR 不提供发布密钥，不使用 pull_requ
 2. 在可信提交运行质量/安全/原生构建与部署检查，再手动运行 Prepare release candidate；核对下载的归档、manifest、checksum 与构建来源。失败不使用旧 artifact 冒充新提交。
 3. 另获发布授权后，创建匹配 VERSION 的 tag 和 GitHub Release，附各 profile 的 tar、checksums、manifest、系统/架构和安装/备份/升级说明。未签名与窗口未实测范围要写清；不附数据目录、实例配置、密钥或安装凭据。
 4. 原生桌面支持免费分发策略，应用发布者签名与摘要等 OTA 校验必需，平台签名/公证为可选严格策略；当前派生默认差异见 [更新手册](updates.md)，不能先宣称已修复。需要镜像时对接 GHCR 等受控 registry、版本标签和 digest，先验收公开拉取再提供运行命令。当前只配置候选 artifact，不存在可承诺的公开镜像地址。
-5. 建立后续小版本记录、迁移/恢复证据和已知问题。中文/英文 README 同步维护，版本变更在 Changelog 用配对语言分区；候选工作流生成 RELEASE_NOTES.md 并纳入来源证明。独立文档站、示例视频与 SBOM 可按需补充；不把详细中文手册声称为已全量英译。
+5. 建立后续小版本记录、迁移/恢复证据和已知问题。中文/英文 README 同步维护，版本变更在 Changelog 用配对语言分区；候选工作流生成 RELEASE_NOTES.md 并纳入来源证明。文档站主题、示例视频与 SBOM 按需持续补充；不把详细中文手册声称为已全量英译。
 
 构建和发布操作见 [发版手册](release.md)，派生项目需替换仓库链接、Issue 联系方式、维护者和上游反馈入口，见 [框架更新约定](framework-upgrade.md)。

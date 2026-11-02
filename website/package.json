@@ -1,0 +1,17 @@
+{
+  "name": "@unicore/docs",
+  "private": true,
+  "type": "module",
+  "author": "yunnuo <ymz@ebox.vip>",
+  "license": "MIT",
+  "scripts": {
+    "dev": "node prepare.mjs && vitepress dev . --host 127.0.0.1",
+    "build": "node prepare.mjs && vitepress build .",
+    "preview": "vitepress preview . --host 127.0.0.1 --port 4174",
+    "check": "node --test prepare.test.mjs && node prepare.mjs --check"
+  },
+  "devDependencies": {
+    "vitepress": "1.6.4",
+    "vue": "^3.5.44"
+  }
+}

@@ -15,7 +15,7 @@ Unicore is an open-source Go + React application framework for AI-assisted devel
 
 Author: yunnuo · ymz@ebox.vip · Current version: [VERSION](VERSION) · **Development preview**
 
-[Quick start](#quick-start) · [Create your application](#create-your-application) · [Wiki](https://github.com/yunnuo88520/Unicore/wiki) · [Documentation](docs/README.md) · [Contributing](CONTRIBUTING.md) · [Support](SUPPORT.md) · [Changelog](CHANGELOG.md)
+[Documentation site](https://unicore.ebox.vip) · [Quick start](#quick-start) · [Create your application](#create-your-application) · [Wiki](https://github.com/yunnuo88520/Unicore/wiki) · [Documentation source](docs/README.md) · [Contributing](CONTRIBUTING.md) · [Support](SUPPORT.md) · [Changelog](CHANGELOG.md)
 
 The README and new release notes are available in Chinese and English. Detailed guides currently remain primarily in Chinese. See [support boundaries and known limitations](docs/support.md); start with the [user guide](docs/product/index.md) and consult standards and Skills as needed.
 
@@ -114,6 +114,14 @@ make build-ops                   # Offline encrypted backup/restore tool
 Use CI results for the current commit. Native builds/helper tests do not prove complete GUI upgrades and failure recovery. Verify target systems and deployment environments before release; historical results are not current acceptance evidence.
 
 ## Documentation and collaboration
+
+The VitePress documentation site is configured for [unicore.ebox.vip](https://unicore.ebox.vip), available once DNS and hosting are configured. It reuses repository Markdown with navigation, local search, and Chinese/English entry points; detailed guides remain primarily in Chinese. See the [site maintenance and deployment guide (Chinese)](docs/03-runbooks/documentation-site.md).
+
+```sh
+pnpm --dir website dev       # Local site; edit the original Markdown
+pnpm --dir website build     # Static output: build/docs-site-dist/
+pnpm --dir website preview   # Preview the static site
+```
 
 | Task | Entry point (detailed guides currently in Chinese) |
 | --- | --- |

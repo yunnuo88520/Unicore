@@ -6,6 +6,11 @@ import { execFileSync } from 'node:child_process';
 
 execFileSync(process.execPath,['scripts/ai-context.mjs','--check'],{stdio:'inherit'});
 execFileSync(process.execPath,['scripts/wiki.mjs','--check'],{stdio:'inherit'});
+// The upstream documentation site is deliberately excluded from application templates.
+if(existsSync('website/prepare.mjs')) {
+ execFileSync(process.execPath,['--test','website/prepare.test.mjs'],{stdio:'inherit'});
+ execFileSync(process.execPath,['website/prepare.mjs','--check'],{stdio:'inherit'});
+}
 const files=execFileSync('rg',['--files','--no-require-git','--hidden','README.md',...(existsSync('README.en.md') ? ['README.en.md'] : []),'AGENTS.md','CONTRIBUTING.md','CODE_OF_CONDUCT.md','SUPPORT.md','SECURITY.md','CHANGELOG.md','docs','.agents/skills','.github'],{encoding:'utf8'}).trim().split('\n').filter(path=>path.endsWith('.md'));
 const failures=[];
 for(const file of files){

@@ -191,7 +191,7 @@ func TestMinIODirectAndMigration(t *testing.T) {
 	}
 	db, _, _, _ := m.Services()
 	var encrypted string
-	if e = db.Row(ctx, db.DB, "SELECT credentials FROM storage_locations WHERE id=?", l.ID).Scan(&encrypted); e != nil || strings.Contains(encrypted, sk) {
+	if e = db.Row(ctx, db.DB, "SELECT credentials FROM unicore_storage_locations WHERE id=?", l.ID).Scan(&encrypted); e != nil || strings.Contains(encrypted, sk) {
 		t.Fatal("credential encryption")
 	}
 	changed := input

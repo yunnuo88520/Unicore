@@ -72,12 +72,12 @@ func TestAnnouncementDialects(t *testing.T) {
 			}
 			var oldDeleted, oldVersion int
 			var oldBody string
-			if e := store.Row(ctx, store.DB, "SELECT deleted_at,version,body FROM example_notes WHERE id='legacy-note'").Scan(&oldDeleted, &oldVersion, &oldBody); e != nil || oldDeleted != 0 || oldVersion != 4 || oldBody != "old body" {
+			if e := store.Row(ctx, store.DB, "SELECT deleted_at,version,body FROM unicore_example_notes WHERE id='legacy-note'").Scan(&oldDeleted, &oldVersion, &oldBody); e != nil || oldDeleted != 0 || oldVersion != 4 || oldBody != "old body" {
 				t.Fatal("legacy business data changed", oldDeleted, oldVersion, oldBody, e)
 			}
 			if dialect == "mysql" {
-				// MySQL DDL can commit before the migration ledger is written.
-				if _, e := store.Exec(ctx, store.DB, "DELETE FROM business_migrations WHERE version=2"); e != nil {
+				// The fixed namespace preserves interrupted legacy business-DDL retry.
+				if _, e := store.Exec(ctx, store.DB, "DELETE FROM unicore_business_migrations WHERE version=2"); e != nil {
 					t.Fatal(e)
 				}
 				if e := store.MigrateBusiness(ctx); e != nil {
@@ -88,7 +88,7 @@ func TestAnnouncementDialects(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if _, err = store.Exec(ctx, tx, "INSERT INTO install_state(id,profile,instance_id,installed_at) VALUES(1,'web-platform',?,?)", sqlstore.ID(), time.Now().Unix()); err != nil {
+			if _, err = store.Exec(ctx, tx, "INSERT INTO unicore_install_state(id,profile,instance_id,installed_at) VALUES(1,'web-platform',?,?)", sqlstore.ID(), time.Now().Unix()); err != nil {
 				t.Fatal(err)
 			}
 			admins := &platformsql.Repository{Store: store, Administrators: true}
@@ -173,14 +173,14 @@ func TestAnnouncementDialects(t *testing.T) {
 				t.Fatal("stale batch", err)
 			}
 			var deleted int
-			if err = store.Row(ctx, store.DB, "SELECT deleted_at FROM platform_announcements WHERE id=?", draft.ID).Scan(&deleted); err != nil || deleted != 0 {
+			if err = store.Row(ctx, store.DB, "SELECT deleted_at FROM unicore_platform_announcements WHERE id=?", draft.ID).Scan(&deleted); err != nil || deleted != 0 {
 				t.Fatal("partial delete", deleted, err)
 			}
 			if err = service.Delete(ctx, contracts.AnnouncementDelete{Items: []contracts.AnnouncementSelection{{ID: a.ID, Version: 2}, {ID: draft.ID, Version: 1}}}, admin.ID); err != nil {
 				t.Fatal(err)
 			}
 			var version int
-			if err = store.Row(ctx, store.DB, "SELECT deleted_at,version FROM platform_announcements WHERE id=?", a.ID).Scan(&deleted, &version); err != nil || deleted == 0 || version != 3 {
+			if err = store.Row(ctx, store.DB, "SELECT deleted_at,version FROM unicore_platform_announcements WHERE id=?", a.ID).Scan(&deleted, &version); err != nil || deleted == 0 || version != 3 {
 				t.Fatal("not soft deleted", deleted, version, err)
 			}
 			if _, err = service.Update(ctx, a.ID, update, admin.ID); !errors.Is(err, usecase.ErrEntityNotFound) {
@@ -191,7 +191,7 @@ func TestAnnouncementDialects(t *testing.T) {
 				t.Fatal("bypassed dedicated setting endpoint")
 			}
 			// Revocation is checked again in the mutation transaction, even with a previously accepted actor ID.
-			if _, err = store.Exec(ctx, store.DB, "UPDATE administrators SET status='disabled' WHERE id=?", admin.ID); err != nil {
+			if _, err = store.Exec(ctx, store.DB, "UPDATE unicore_administrators SET status='disabled' WHERE id=?", admin.ID); err != nil {
 				t.Fatal(err)
 			}
 			input.PublishAt = int(now.Unix())

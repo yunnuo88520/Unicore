@@ -41,7 +41,7 @@ func (r *Repository) SystemLogs(ctx context.Context, queries ...contracts.AuditL
 			args = append(args, v)
 		}
 	}
-	from := " FROM audit_logs a LEFT JOIN audit_metadata m ON m.audit_id=a.id"
+	from := " FROM unicore_audit_logs a LEFT JOIN unicore_audit_metadata m ON m.audit_id=a.id"
 	if e := r.Store.Row(ctx, r.Store.DB, "SELECT COUNT(*)"+from+" WHERE "+where, args...).Scan(&result.Total); e != nil {
 		return result, e
 	}
@@ -71,7 +71,7 @@ func (r *Repository) SystemLogs(ctx context.Context, queries ...contracts.AuditL
 	if e != nil {
 		return result, e
 	}
-	actions, e := r.Store.Rows(ctx, r.Store.DB, "SELECT DISTINCT action FROM audit_logs ORDER BY action")
+	actions, e := r.Store.Rows(ctx, r.Store.DB, "SELECT DISTINCT action FROM unicore_audit_logs ORDER BY action")
 	if e != nil {
 		return result, e
 	}

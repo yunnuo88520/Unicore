@@ -17,7 +17,7 @@ import (
 
 func exerciseOIDC(t *testing.T, ctx context.Context, store *sqlstore.Store, r *Repository, admin contracts.User) {
 	t.Helper()
-	for _, q := range []string{"DROP TABLE oidc_flows", "DROP TABLE external_identities", "DELETE FROM schema_migrations WHERE version=6"} {
+	for _, q := range []string{"DROP TABLE unicore_oidc_flows", "DROP TABLE unicore_external_identities", "DELETE FROM unicore_schema_migrations WHERE version=6"} {
 		if _, err := store.Exec(ctx, store.DB, q); err != nil {
 			t.Fatal(err)
 		}
@@ -26,7 +26,7 @@ func exerciseOIDC(t *testing.T, ctx context.Context, store *sqlstore.Store, r *R
 		t.Fatal("upgrade from M2d", err)
 	}
 	// Retry after only the first DDL has persisted (as can happen with MySQL).
-	for _, q := range []string{"DROP TABLE oidc_flows", "DELETE FROM schema_migrations WHERE version=6"} {
+	for _, q := range []string{"DROP TABLE unicore_oidc_flows", "DELETE FROM unicore_schema_migrations WHERE version=6"} {
 		if _, err := store.Exec(ctx, store.DB, q); err != nil {
 			t.Fatal(err)
 		}

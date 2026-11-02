@@ -489,6 +489,7 @@ export interface DatabaseCheck {
   database_name: string;
   table_count: number;
   initialized: boolean;
+  reset_allowed?: boolean;
 }
 
 export interface DatabaseCheckResponse {

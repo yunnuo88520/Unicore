@@ -65,12 +65,32 @@ func exerciseLegacyUpgrade(t *testing.T, ctx context.Context, s *sqlstore.Store)
 	for _, state := range []string{"pending", "sending", "sent"} {
 		exec("INSERT INTO mail_jobs(id,token_hash,payload,state,attempts,created_at,available_at,expires_at,lease_id,lease_until,last_error) VALUES(?, 'old-token','sealed',?,1,1,1,4102444800,'lease',4102444800,'')", "legacy-"+state, state)
 	}
+	// Execute the legacy role/split DDL with only version 7 recorded, then lose
+	// one table before the normal migration runner retries version 8 and prefixes.
+	for i, file := range []string{"0007_fixed_roles.sql", "0008_separate_administrators.sql"} {
+		body, readErr := migrations.Files.ReadFile(s.Dialect + "/" + file)
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		var lines []string
+		for _, line := range strings.Split(string(body), "\n") {
+			if !strings.HasPrefix(strings.TrimSpace(line), "--") {
+				lines = append(lines, line)
+			}
+		}
+		for _, q := range strings.Split(strings.Join(lines, "\n"), ";") {
+			if strings.TrimSpace(q) != "" {
+				exec(q)
+			}
+		}
+		if i == 0 {
+			exec("INSERT INTO schema_migrations(version,checksum) VALUES(7,?)", fmt.Sprintf("%x", sha256.Sum256(body)))
+		}
+	}
+	exec("DROP TABLE administrator_oidc_flows")
 	if err = s.Migrate(ctx, true); err != nil {
 		t.Fatal("upgrade", err)
 	}
-	// Retry after all copy DML persisted but version recording was interrupted.
-	exec("DELETE FROM schema_migrations WHERE version=8")
-	exec("DROP TABLE administrator_oidc_flows")
 	for range 2 {
 		if err = s.Migrate(ctx, true); err != nil {
 			t.Fatal("partial/repeated split", err)
@@ -91,18 +111,18 @@ func exerciseLegacyUpgrade(t *testing.T, ctx context.Context, s *sqlstore.Store)
 			t.Fatal(q, n, want, err)
 		}
 	}
-	count("SELECT COUNT(*) FROM administrator_external_identities WHERE user_id='old-admin'", 1)
-	count("SELECT COUNT(*) FROM users WHERE id='old-admin'", 0)
-	count("SELECT COUNT(*) FROM roles", 2)
-	count("SELECT COUNT(*) FROM role_permissions WHERE role_id='user'", 0)
-	count("SELECT COUNT(*) FROM system_settings WHERE setting_key='appearance.theme'", 0)
-	for _, table := range []string{"sessions", "account_tokens", "email_challenges", "oidc_flows", "administrator_sessions", "administrator_account_tokens", "administrator_email_challenges", "administrator_oidc_flows"} {
+	count("SELECT COUNT(*) FROM unicore_administrator_external_identities WHERE user_id='old-admin'", 1)
+	count("SELECT COUNT(*) FROM unicore_users WHERE id='old-admin'", 0)
+	count("SELECT COUNT(*) FROM unicore_roles", 2)
+	count("SELECT COUNT(*) FROM unicore_role_permissions WHERE role_id='user'", 0)
+	count("SELECT COUNT(*) FROM unicore_system_settings WHERE setting_key='appearance.theme'", 0)
+	for _, table := range []string{"unicore_sessions", "unicore_account_tokens", "unicore_email_challenges", "unicore_oidc_flows", "unicore_administrator_sessions", "unicore_administrator_account_tokens", "unicore_administrator_email_challenges", "unicore_administrator_oidc_flows"} {
 		count("SELECT COUNT(*) FROM "+table, 0)
 	}
-	count("SELECT COUNT(*) FROM mail_jobs WHERE state='cancelled' AND payload='' AND lease_id='' AND lease_until=0", 2)
-	count("SELECT COUNT(*) FROM mail_jobs WHERE state='sent'", 1)
+	count("SELECT COUNT(*) FROM unicore_mail_jobs WHERE state='cancelled' AND payload='' AND lease_id='' AND lease_until=0", 2)
+	count("SELECT COUNT(*) FROM unicore_mail_jobs WHERE state='sent'", 1)
 	// Leave the migrated schema empty for the normal lifecycle tests.
-	for _, table := range []string{"mail_jobs", "administrator_external_identities", "administrator_roles", "administrators", "user_roles", "users", "role_permissions", "roles", "permissions", "system_settings"} {
+	for _, table := range []string{"unicore_mail_jobs", "unicore_administrator_external_identities", "unicore_administrator_roles", "unicore_administrators", "unicore_user_roles", "unicore_users", "unicore_role_permissions", "unicore_roles", "unicore_permissions", "unicore_system_settings"} {
 		exec("DELETE FROM " + table)
 	}
 }

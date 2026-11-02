@@ -270,6 +270,8 @@
     "internal/adapter/storage/sqlstore/business.go",
     "internal/adapter/storage/sqlstore/inspect.go",
     "internal/adapter/storage/sqlstore/reset.go",
+    "internal/adapter/storage/sqlstore/prefix.go",
+    "internal/adapter/storage/sqlstore/prefix_test.go",
     "internal/adapter/storage/sqlstore/store.go",
     "internal/adapter/storage/webdb/config.go",
     "internal/adapter/storage/webdb/config_test.go",
@@ -327,6 +329,8 @@
     "internal/install/database_test.go",
     "internal/install/manager.go",
     "internal/install/manager_test.go",
+    "internal/install/reinstall.go",
+    "internal/install/reinstall_test.go",
     "internal/lifecycle/http.go",
     "internal/lifecycle/http_test.go",
     "internal/lifecycle/stack.go",
@@ -635,7 +639,13 @@
     {
       "source": "distribution/template/skills/develop-application/SKILL.md",
       "target": ".agents/skills/develop-application/SKILL.md"
-    }
+    },
+    "migrations/sqlite/0013_prefix_core.sql",
+    "migrations/sqlite/0013_prefix_platform.sql",
+    "migrations/postgres/0013_prefix_core.sql",
+    "migrations/postgres/0013_prefix_platform.sql",
+    "migrations/mysql/0013_prefix_core.sql",
+    "migrations/mysql/0013_prefix_platform.sql"
   ],
   "ownership": {
     "product-owned": [

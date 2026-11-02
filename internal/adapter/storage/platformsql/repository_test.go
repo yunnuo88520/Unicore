@@ -46,7 +46,7 @@ func TestDialectMigrationsAndIdentity(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if _, err = store.Exec(ctx, tx, "INSERT INTO install_state(id,profile,instance_id,installed_at) VALUES(1,?,?,?)", "web-platform", sqlstore.ID(), time.Now().Unix()); err != nil {
+			if _, err = store.Exec(ctx, tx, "INSERT INTO unicore_install_state(id,profile,instance_id,installed_at) VALUES(1,?,?,?)", "web-platform", sqlstore.ID(), time.Now().Unix()); err != nil {
 				t.Fatal(err)
 			}
 			repository := &Repository{Store: store}

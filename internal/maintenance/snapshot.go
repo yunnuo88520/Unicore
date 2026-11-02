@@ -112,11 +112,11 @@ func Backup(ctx context.Context, o BackupOptions) (Manifest, error) {
 		return m, errors.New("database installation marker does not match data directory")
 	}
 	m = Manifest{Format: 1, Snapshot: sqlstore.ID(), Version: buildinfo.Version, Created: time.Now().UTC(), Profile: profile, Driver: config.Driver, Files: []Entry{}, Objects: []CloudObject{}}
-	if err = store.DB.QueryRowContext(ctx, "SELECT MAX(version) FROM schema_migrations").Scan(&m.Schema); err != nil {
-		return m, err
+	if err = store.DB.QueryRowContext(ctx, "SELECT MAX(version) FROM unicore_schema_migrations").Scan(&m.Schema); err != nil {
+		return m, errors.New("framework schema is not supported by this backup tool; use the tool matching the installed version")
 	}
 	// The business ledger did not exist before the scaffold example was introduced.
-	_ = store.DB.QueryRowContext(ctx, "SELECT MAX(version) FROM business_migrations").Scan(&m.BusinessSchema)
+	_ = store.DB.QueryRowContext(ctx, "SELECT MAX(version) FROM unicore_business_migrations").Scan(&m.BusinessSchema)
 	temporary, err := os.MkdirTemp("", "unicore-backup-db-")
 	if err != nil {
 		return m, err
@@ -150,7 +150,7 @@ func Backup(ctx context.Context, o BackupOptions) (Manifest, error) {
 		if e := verifyLocalFiles(ctx, store, directory); e != nil {
 			return m, e
 		}
-		rows, e := store.DB.QueryContext(ctx, "SELECT id,file_key,mime_type,size,location_id FROM file_metadata WHERE state='ready' AND storage_type<>'local' ORDER BY id")
+		rows, e := store.DB.QueryContext(ctx, "SELECT id,file_key,mime_type,size,location_id FROM unicore_file_metadata WHERE state='ready' AND storage_type<>'local' ORDER BY id")
 		if e != nil {
 			return m, e
 		}
@@ -282,7 +282,7 @@ func Restore(ctx context.Context, o RestoreOptions) (Manifest, error) {
 	if err != nil {
 		return m, err
 	}
-	if m.Schema < 1 || m.Schema > 12 || m.BusinessSchema > 2 || (m.Profile != "desktop" && m.Profile != "web-platform" && m.Profile != "web-standalone") {
+	if m.Schema != 13 || m.BusinessSchema > 2 || (m.Profile != "desktop" && m.Profile != "web-platform" && m.Profile != "web-standalone") {
 		return m, errors.New("backup schema/profile is not supported by this tool version")
 	}
 	directory := filepath.Join(stage, "data")
@@ -412,7 +412,7 @@ func restoreCloud(ctx context.Context, db *sqlstore.Store, directory, stage stri
 	defer tx.Rollback()
 	seen := map[string]bool{}
 	var expected int
-	if err = db.Row(ctx, tx, "SELECT COUNT(*) FROM file_metadata WHERE state='ready' AND storage_type<>'local'").Scan(&expected); err != nil {
+	if err = db.Row(ctx, tx, "SELECT COUNT(*) FROM unicore_file_metadata WHERE state='ready' AND storage_type<>'local'").Scan(&expected); err != nil {
 		return err
 	}
 	if expected != len(m.Objects) {
@@ -449,7 +449,7 @@ func restoreCloud(ctx context.Context, db *sqlstore.Store, directory, stage stri
 		if hash == "" {
 			return errors.New("cloud payload checksum is missing")
 		}
-		result, e := db.Exec(ctx, tx, "UPDATE file_metadata SET storage_type='local',location_id='local',file_key=?,staging_key='',etag=? WHERE id=? AND storage_type<>'local' AND state='ready'", key, hash, object.ID)
+		result, e := db.Exec(ctx, tx, "UPDATE unicore_file_metadata SET storage_type='local',location_id='local',file_key=?,staging_key='',etag=? WHERE id=? AND storage_type<>'local' AND state='ready'", key, hash, object.ID)
 		if e != nil {
 			return e
 		}
@@ -459,11 +459,11 @@ func restoreCloud(ctx context.Context, db *sqlstore.Store, directory, stage stri
 		}
 	}
 	for _, query := range []string{
-		"DELETE FROM file_cleanup_jobs WHERE location_id IN (SELECT id FROM storage_locations WHERE provider<>'local')",
-		"UPDATE file_metadata SET state='deleted',file_key='',staging_key='' WHERE storage_type<>'local' AND state<>'ready'",
-		"UPDATE storage_locations SET credentials='',tested=0 WHERE provider<>'local'",
-		"DELETE FROM system_settings WHERE setting_key='storage.active'",
-		"INSERT INTO system_settings(setting_key,setting_value) VALUES('storage.active','local')",
+		"DELETE FROM unicore_file_cleanup_jobs WHERE location_id IN (SELECT id FROM unicore_storage_locations WHERE provider<>'local')",
+		"UPDATE unicore_file_metadata SET state='deleted',file_key='',staging_key='' WHERE storage_type<>'local' AND state<>'ready'",
+		"UPDATE unicore_storage_locations SET credentials='',tested=0 WHERE provider<>'local'",
+		"DELETE FROM unicore_system_settings WHERE setting_key='storage.active'",
+		"INSERT INTO unicore_system_settings(setting_key,setting_value) VALUES('storage.active','local')",
 	} {
 		if _, err = db.Exec(ctx, tx, query); err != nil {
 			return err
@@ -474,7 +474,7 @@ func restoreCloud(ctx context.Context, db *sqlstore.Store, directory, stage stri
 
 // Validate every ready local reference, including legacy brand files, before publishing a snapshot or restore.
 func verifyLocalFiles(ctx context.Context, db *sqlstore.Store, directory string) error {
-	rows, err := db.DB.QueryContext(ctx, "SELECT file_key,location_id,size,etag FROM file_metadata WHERE storage_type='local' AND state='ready'")
+	rows, err := db.DB.QueryContext(ctx, "SELECT file_key,location_id,size,etag FROM unicore_file_metadata WHERE storage_type='local' AND state='ready'")
 	if err != nil {
 		return err
 	}

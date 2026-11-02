@@ -50,7 +50,7 @@ func exerciseRoles(t *testing.T, ctx context.Context, store *sqlstore.Store, r *
 	if _, err = r.CreateUser(ctx, contracts.UserCreate{Username: "escalate", Email: "escalate@example.test", Role: "user"}, "unused", member.ID); !errors.Is(err, platform.ErrForbidden) {
 		t.Fatal("member managed accounts", err)
 	}
-	if _, err = store.Exec(ctx, store.DB, "INSERT INTO role_permissions(role_id,permission_id) VALUES('user','settings:read')"); err != nil {
+	if _, err = store.Exec(ctx, store.DB, "INSERT INTO unicore_role_permissions(role_id,permission_id) VALUES('user','settings:read')"); err != nil {
 		t.Fatal(err)
 	}
 	account, err := r.FindAccount(ctx, member.Username)
@@ -106,7 +106,7 @@ func exerciseRoles(t *testing.T, ctx context.Context, store *sqlstore.Store, r *
 	if err = r.ConsumeAccountToken(ctx, proof, "reset", "hash", int(time.Now().Unix())); !errors.Is(err, platform.ErrAccountToken) {
 		t.Fatal("cross realm recovery", err)
 	}
-	if _, err = store.Exec(ctx, store.DB, "DELETE FROM role_permissions WHERE role_id='user'"); err != nil {
+	if _, err = store.Exec(ctx, store.DB, "DELETE FROM unicore_role_permissions WHERE role_id='user'"); err != nil {
 		t.Fatal(err)
 	}
 }

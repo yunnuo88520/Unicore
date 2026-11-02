@@ -32,7 +32,7 @@ func scan(row scanner) (a domain.Announcement, err error) {
 }
 func (r *Repository) enabled(ctx context.Context, q sqlstore.Runner) (bool, error) {
 	var value string
-	err := r.Store.Row(ctx, q, "SELECT setting_value FROM system_settings WHERE setting_key='announcements.enabled'").Scan(&value)
+	err := r.Store.Row(ctx, q, "SELECT setting_value FROM unicore_system_settings WHERE setting_key='announcements.enabled'").Scan(&value)
 	if errors.Is(err, sql.ErrNoRows) {
 		return true, nil
 	}
@@ -42,11 +42,11 @@ func (r *Repository) Enabled(ctx context.Context) (bool, error) { return r.enabl
 func (r *Repository) rows(ctx context.Context, tx *sql.Tx, where string, args []any, page, size int) ([]domain.Announcement, int, error) {
 	result := []domain.Announcement{}
 	var total int
-	if err := r.Store.Row(ctx, tx, "SELECT COUNT(*) FROM platform_announcements WHERE "+where, args...).Scan(&total); err != nil {
+	if err := r.Store.Row(ctx, tx, "SELECT COUNT(*) FROM unicore_platform_announcements WHERE "+where, args...).Scan(&total); err != nil {
 		return result, 0, err
 	}
 	values := append(append([]any{}, args...), size, domain.PageOffset(page, size))
-	rows, err := r.Store.Rows(ctx, tx, "SELECT "+columns+" FROM platform_announcements WHERE "+where+" ORDER BY publish_at DESC,id DESC LIMIT ? OFFSET ?", values...)
+	rows, err := r.Store.Rows(ctx, tx, "SELECT "+columns+" FROM unicore_platform_announcements WHERE "+where+" ORDER BY publish_at DESC,id DESC LIMIT ? OFFSET ?", values...)
 	if err != nil {
 		return result, 0, err
 	}
@@ -106,7 +106,7 @@ func (r *Repository) Feed(ctx context.Context, page, size, now int) ([]domain.An
 }
 func (r *Repository) GetPublished(ctx context.Context, id string, now int) (domain.Announcement, error) {
 	// One SQL statement prevents disabled settings and publication checks from using different snapshots.
-	return scan(r.Store.Row(ctx, r.Store.DB, "SELECT "+columns+" FROM platform_announcements WHERE id=? AND deleted_at=0 AND status='published' AND publish_at<=? AND NOT EXISTS (SELECT 1 FROM system_settings WHERE setting_key='announcements.enabled' AND setting_value<>'true')", id, now))
+	return scan(r.Store.Row(ctx, r.Store.DB, "SELECT "+columns+" FROM unicore_platform_announcements WHERE id=? AND deleted_at=0 AND status='published' AND publish_at<=? AND NOT EXISTS (SELECT 1 FROM unicore_system_settings WHERE setting_key='announcements.enabled' AND setting_value<>'true')", id, now))
 }
 func (r *Repository) transaction(ctx context.Context, actor string) (*sql.Tx, error) {
 	tx, err := r.Store.DB.BeginTx(ctx, nil)
@@ -131,9 +131,9 @@ func (r *Repository) Save(ctx context.Context, a domain.Announcement, actor stri
 	action := "announcements.created"
 	detail := "status=" + a.Status + "; publish_at=" + strconv.Itoa(a.PublishAt)
 	if create {
-		_, err = r.Store.Exec(ctx, tx, "INSERT INTO platform_announcements("+columns+") VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)", a.ID, a.Content, a.ContentHTML, a.Format, a.Type, a.Note, a.Status, a.PublishAt, a.CreatedBy, a.UpdatedBy, a.CreatedAt, a.UpdatedAt, a.DeletedAt, a.Version)
+		_, err = r.Store.Exec(ctx, tx, "INSERT INTO unicore_platform_announcements("+columns+") VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)", a.ID, a.Content, a.ContentHTML, a.Format, a.Type, a.Note, a.Status, a.PublishAt, a.CreatedBy, a.UpdatedBy, a.CreatedAt, a.UpdatedAt, a.DeletedAt, a.Version)
 	} else {
-		previous, e := scan(r.Store.Row(ctx, tx, "SELECT "+columns+" FROM platform_announcements WHERE id=? AND deleted_at=0", a.ID))
+		previous, e := scan(r.Store.Row(ctx, tx, "SELECT "+columns+" FROM unicore_platform_announcements WHERE id=? AND deleted_at=0", a.ID))
 		if e != nil {
 			return a, e
 		}
@@ -147,7 +147,7 @@ func (r *Repository) Save(ctx context.Context, a domain.Announcement, actor stri
 			}
 		}
 		detail = "fields=" + strings.Join(changed, ",") + "; version=" + strconv.Itoa(a.Version) + "->" + strconv.Itoa(a.Version+1)
-		result, e := r.Store.Exec(ctx, tx, "UPDATE platform_announcements SET content=?,content_html=?,format=?,type=?,note=?,status=?,publish_at=?,updated_by=?,updated_at=?,version=version+1 WHERE id=? AND version=? AND deleted_at=0", a.Content, a.ContentHTML, a.Format, a.Type, a.Note, a.Status, a.PublishAt, actor, a.UpdatedAt, a.ID, a.Version)
+		result, e := r.Store.Exec(ctx, tx, "UPDATE unicore_platform_announcements SET content=?,content_html=?,format=?,type=?,note=?,status=?,publish_at=?,updated_by=?,updated_at=?,version=version+1 WHERE id=? AND version=? AND deleted_at=0", a.Content, a.ContentHTML, a.Format, a.Type, a.Note, a.Status, a.PublishAt, actor, a.UpdatedAt, a.ID, a.Version)
 		if e != nil {
 			return a, e
 		}
@@ -179,7 +179,7 @@ func (r *Repository) Delete(ctx context.Context, items []contracts.AnnouncementS
 	defer tx.Rollback()
 	for _, item := range items {
 		var version int
-		err = r.Store.Row(ctx, tx, "SELECT version FROM platform_announcements WHERE id=? AND deleted_at=0", item.ID).Scan(&version)
+		err = r.Store.Row(ctx, tx, "SELECT version FROM unicore_platform_announcements WHERE id=? AND deleted_at=0", item.ID).Scan(&version)
 		if errors.Is(err, sql.ErrNoRows) {
 			return usecase.ErrEntityNotFound
 		}
@@ -190,7 +190,7 @@ func (r *Repository) Delete(ctx context.Context, items []contracts.AnnouncementS
 			return usecase.ErrEntityConflict
 		}
 		now := time.Now().Unix()
-		result, e := r.Store.Exec(ctx, tx, "UPDATE platform_announcements SET deleted_at=?,updated_at=?,updated_by=?,version=version+1 WHERE id=? AND version=? AND deleted_at=0", now, now, actor, item.ID, item.Version)
+		result, e := r.Store.Exec(ctx, tx, "UPDATE unicore_platform_announcements SET deleted_at=?,updated_at=?,updated_by=?,version=version+1 WHERE id=? AND version=? AND deleted_at=0", now, now, actor, item.ID, item.Version)
 		if e != nil {
 			return e
 		}
@@ -213,10 +213,10 @@ func (r *Repository) SetEnabled(ctx context.Context, enabled bool, actor string)
 		return err
 	}
 	defer tx.Rollback()
-	if _, err = r.Store.Exec(ctx, tx, "DELETE FROM system_settings WHERE setting_key='announcements.enabled'"); err != nil {
+	if _, err = r.Store.Exec(ctx, tx, "DELETE FROM unicore_system_settings WHERE setting_key='announcements.enabled'"); err != nil {
 		return err
 	}
-	if _, err = r.Store.Exec(ctx, tx, "INSERT INTO system_settings(setting_key,setting_value) VALUES('announcements.enabled',?)", strconv.FormatBool(enabled)); err != nil {
+	if _, err = r.Store.Exec(ctx, tx, "INSERT INTO unicore_system_settings(setting_key,setting_value) VALUES('announcements.enabled',?)", strconv.FormatBool(enabled)); err != nil {
 		return err
 	}
 	if err = r.Store.Audit(audit.Target(ctx, "announcements.enabled", "enabled="+strconv.FormatBool(enabled)), tx, actor, "announcements.configured"); err != nil {

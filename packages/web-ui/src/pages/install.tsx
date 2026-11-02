@@ -129,7 +129,8 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
   const check: DatabaseCheck | undefined = verify.isSuccess && verify.variables.token === token
     && JSON.stringify(verify.variables.database) === JSON.stringify(payloadDatabase(input.database)) ? verify.data : undefined;
   const occupied = !!check && check.table_count > 0;
-  const canContinue = !!check && !check.initialized && (!occupied || (input.reset_database && input.database_confirmation === check.database_name));
+  const resetAllowed = !!check && (check.reset_allowed ?? !check.initialized);
+  const canContinue = !!check && resetAllowed && (!occupied || (input.reset_database && input.database_confirmation === check.database_name));
   mirrors.current = { step, token, canContinue };
   function dbError(field: keyof WizardDatabase): string | undefined {
     const message = form.formState.errors.database?.[field]?.message;
@@ -192,7 +193,7 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
       <header className="flex flex-col gap-1.5">
         <p className="text-2xs font-medium tracking-[2px] text-muted">WELCOME TO {productName.toUpperCase()}</p>
         <h1 className="text-2xl font-semibold text-ink">{result ? t('一切就绪，开始构建') : t('为你的产品，准备一个起点')}</h1>
-        <p className="text-sm text-muted">{result ? t('安装信息已持久化，重启自动恢复；一次性安装凭据已失效。') : t('只需几步，完成这个实例的首次配置。')}</p>
+        <p className="text-sm text-muted">{result ? t('安装信息已持久化并生成 install.lock；一次性安装凭据已失效。') : t('只需几步，完成这个实例的安装配置。')}</p>
       </header>
       {result ? <div className="mt-6 flex flex-col items-start gap-3">
         <CheckCircle2 size={44} className="text-success" aria-hidden="true" />
@@ -287,8 +288,9 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
             {verify.isError && <p role="alert" className="text-sm text-danger">{t(verify.error.message)}</p>}
             {check && <>
               <p role="status" className="flex items-center gap-1.5 text-sm text-success"><CheckCircle2 size={16} aria-hidden="true" />{t('连接测试成功')}</p>
-              {check.initialized ? <p role="alert" className="text-sm text-danger">{t('此数据库已有安装记录，请恢复原实例配置；不能重新安装。')}</p>
+              {!resetAllowed ? <p role="alert" className="text-sm text-danger">{t('此数据库属于其他实例或无法确认归属，禁止覆盖。请使用新的空数据库，或恢复原实例配置。')}</p>
                 : occupied ? <div className="flex flex-col gap-2 rounded-lg border border-danger-line bg-danger-soft px-3.5 py-3">
+                    {check.initialized && <p className="text-sm text-danger">{t('已识别为本站原数据库。重新安装会删除原账号、设置和业务数据，不会保留原站内容。')}</p>}
                     <strong className="text-sm text-danger">{t('将清空数据库 {{name}}', { name: check.database_name })}</strong>
                     <p className="text-sm text-danger">{t('检测到 {{count}} 个表或视图。完成安装将删除这些对象及其数据，此操作无法撤销；请先备份。', { count: check.table_count })}</p>
                     <Checkbox checked={input.reset_database} onChange={value => form.setValue('reset_database', value)}>{t('我已备份，确认清空目标数据库并初始化')}</Checkbox>
@@ -323,7 +325,7 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
               {input.profile === 'web-platform' && <><dt className="text-muted">{t('管理员')}</dt><dd className="text-ink">{input.admin_username}</dd></>}
             </dl>
             {input.reset_database && <p role="alert" className="text-sm text-danger">{t('你已确认清空 {{name}} 中的现有表、视图及数据，再初始化安装。', { name: input.database_confirmation })}</p>}
-            <p className="text-sm leading-relaxed text-muted">{t('安装记录、连接配置和密钥保存在服务器私有数据目录。重启、更新或替换容器时保留此目录，即可自动恢复，不会再次安装。')}</p>
+            <p className="text-sm leading-relaxed text-muted">{t('安装记录、连接配置和密钥保存在服务器私有数据目录。重启、更新或替换容器时保留此目录，即可自动恢复。仅服务器管理员停服删除 install.lock 并重启后，才能重新进入安装向导。')}</p>
           </>}
           <div className="flex flex-wrap items-center justify-between gap-2">
             {step > 0 ? <Button type="button" variant="secondary" disabled={complete.isPending} onClick={() => { setStep(value => value - 1); complete.reset(); }}>{t('上一步')}</Button> : <span />}

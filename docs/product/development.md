@@ -55,3 +55,5 @@ packages/contracts/openapi.json 是 DTO/operation 的唯一线契约。先改契
 创建器按 distribution/manifest.json 的显式模板导出，新的 Git 文件不会自动入模板。Git 来源选中文件若有未提交修改默认拒绝；确需导出经过审阅的修改，显式传 --allow-dirty，provenance 将记录来源状态与输入摘要。没有 Git 的源码目录标记为 unversioned，不能声称来自某个干净提交。
 
 长期保留自己的应用变更记录和上游 revision；升级框架时在独立分支审阅差异，不覆盖现有主题、认证、业务和数据库。备份/更新配置与签名根见 [更新](updates.md)、[备份](backup.md)。上游实验/工作区保护记录不进入应用模板。
+
+框架表统一保留 unicore_ 前缀，例如 unicore_users；产品身份生成器不会把它改成项目 slug。自建业务表可用项目自己的前缀，与框架保留表名分开；通过独立业务迁移维护，不批量替换上游 SQL。当前 0.x 的 0013 重命名迁移保留旧数据；升级前停服并成套备份，回退恢复旧快照。

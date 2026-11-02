@@ -14,7 +14,19 @@ import (
 )
 
 func (s *Store) MigrateBusiness(ctx context.Context) error {
-	if _, err := s.DB.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS business_migrations(version INTEGER PRIMARY KEY,checksum VARCHAR(64) NOT NULL)"); err != nil {
+	_, prefixed, err := s.frameworkLedger(ctx)
+	if err != nil {
+		return err
+	}
+	return s.migrateBusiness(ctx, prefixed)
+}
+
+func (s *Store) migrateBusiness(ctx context.Context, prefixed bool) error {
+	ledger := "business_migrations"
+	if prefixed {
+		ledger = "unicore_business_migrations"
+	}
+	if _, err := s.DB.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS "+ledger+"(version INTEGER PRIMARY KEY,checksum VARCHAR(64) NOT NULL)"); err != nil {
 		return err
 	}
 	for index, file := range []string{"0001_notes.sql", "0002_notes_lifecycle.sql"} {
@@ -25,7 +37,7 @@ func (s *Store) MigrateBusiness(ctx context.Context) error {
 		digest := sha256.Sum256(data)
 		checksum := hex.EncodeToString(digest[:])
 		var old string
-		err = s.Row(ctx, s.DB, "SELECT checksum FROM business_migrations WHERE version=?", index+1).Scan(&old)
+		err = s.Row(ctx, s.DB, "SELECT checksum FROM "+ledger+" WHERE version=?", index+1).Scan(&old)
 		if err == nil {
 			if old != checksum {
 				return fmt.Errorf("business migration %d checksum mismatch", index+1)
@@ -51,7 +63,11 @@ func (s *Store) MigrateBusiness(ctx context.Context) error {
 			}
 			if s.Dialect == "mysql" && index == 1 {
 				var exists int
-				err = s.Row(ctx, tx, "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='example_notes' AND column_name='deleted_at'").Scan(&exists)
+				table := "example_notes"
+				if prefixed {
+					table = "unicore_example_notes"
+				}
+				err = s.Row(ctx, tx, "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name=? AND column_name='deleted_at'", table).Scan(&exists)
 				if err != nil {
 					break
 				}
@@ -59,12 +75,15 @@ func (s *Store) MigrateBusiness(ctx context.Context) error {
 					continue
 				}
 			}
+			if prefixed {
+				statement = prefixedLegacySQL(statement)
+			}
 			if _, err = tx.ExecContext(ctx, statement); err != nil {
 				break
 			}
 		}
 		if err == nil {
-			_, err = s.Exec(ctx, tx, "INSERT INTO business_migrations(version,checksum) VALUES(?,?)", index+1, checksum)
+			_, err = s.Exec(ctx, tx, "INSERT INTO "+ledger+"(version,checksum) VALUES(?,?)", index+1, checksum)
 		}
 		if err != nil {
 			_ = tx.Rollback()

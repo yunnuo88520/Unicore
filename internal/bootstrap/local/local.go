@@ -58,11 +58,11 @@ func Open(ctx context.Context, directory string) (*sqlstore.Store, *settings.Ser
 		}
 		defer tx.Rollback()
 		abort := func(err error) (*sqlstore.Store, *settings.Service, error) { _ = tx.Rollback(); return fail(err) }
-		if _, e = store.Exec(ctx, tx, "INSERT INTO install_state(id,profile,instance_id,installed_at) VALUES(1,'desktop',?,?)", sqlstore.ID(), time.Now().Unix()); e != nil {
+		if _, e = store.Exec(ctx, tx, "INSERT INTO unicore_install_state(id,profile,instance_id,installed_at) VALUES(1,'desktop',?,?)", sqlstore.ID(), time.Now().Unix()); e != nil {
 			return abort(e)
 		}
 		for key, value := range settings.Defaults("desktop") {
-			if _, e = store.Exec(ctx, tx, "INSERT INTO system_settings(setting_key,setting_value) VALUES(?,?)", key, value); e != nil {
+			if _, e = store.Exec(ctx, tx, "INSERT INTO unicore_system_settings(setting_key,setting_value) VALUES(?,?)", key, value); e != nil {
 				return abort(e)
 			}
 		}

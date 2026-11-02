@@ -18,9 +18,9 @@ func (r *Repository) audit(ctx context.Context, tx sqlstore.Runner, actor, actio
 		}
 	}
 	if m.ActorName == "" {
-		table := "users"
+		table := "unicore_users"
 		if m.Realm == "administrator" {
-			table = "administrators"
+			table = "unicore_administrators"
 		}
 		_ = r.Store.Row(ctx, tx, "SELECT username FROM "+table+" WHERE id=?", actor).Scan(&m.ActorName)
 	}

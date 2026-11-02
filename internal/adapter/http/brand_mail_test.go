@@ -71,7 +71,7 @@ func TestQueuedMailBrandSnapshot(t *testing.T) {
 	}
 	store, _, _, _ := manager.Services()
 	var payload string
-	if err = store.Row(ctx, store.DB, "SELECT payload FROM mail_jobs WHERE payload<>'' LIMIT 1").Scan(&payload); err != nil {
+	if err = store.Row(ctx, store.DB, "SELECT payload FROM unicore_mail_jobs WHERE payload<>'' LIMIT 1").Scan(&payload); err != nil {
 		t.Fatal(err)
 	}
 	if len(payload) > 65535 {

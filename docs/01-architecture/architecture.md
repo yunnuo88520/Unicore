@@ -31,7 +31,7 @@ HTTP / Wails → usecase.Notes → domain.Note / NoteRepository port → SQL ada
 
 ## 安装与迁移
 
-`UNINITIALIZED → INSTALLING → INSTALLED`，失败为 INSTALL_FAILED。私有 data dir 使用跨平台 flock；token 首次由文件/环境提供；换新 API 必须验证当前凭据，只返回新值。准备操作先持久化 intent；确认空库或显式清空目标成功、保存 schema ownership 后才迁移。非空库必须独立勾选和精确库名确认，外部已安装数据库始终拒绝，失败重试不能绕过此检查。DB 的 install_state 与默认设置/管理员同一事务提交。重启恢复以唯一 DB 安装标记和实例 ID 为依据；profile 与实例不匹配拒绝接管。INSTALLED 后数据库或标记缺失在迁移前拒绝，不回到安装状态。结构化连接字段、默认 MySQL、自动 origin 和清空边界见 [ADR-0013](../adr/ADR-0013-installation-experience.md)。
+`UNINITIALIZED → INSTALLING → INSTALLED`，失败为 INSTALL_FAILED。私有 data dir 使用跨平台 flock；token 首次由文件/环境提供；不提供匿名凭据轮换 API，需服务器所有者停服更换私有文件。准备操作先持久化 intent；确认空库或显式清空目标成功、保存 schema ownership 后才迁移。非空库必须独立勾选和精确库名确认，其他实例数据库始终拒绝，失败重试不能绕过此检查。DB 的 install_state 与默认设置/管理员同一事务提交。重启恢复以唯一 DB 安装标记和实例 ID 为依据；profile 与实例不匹配拒绝接管。INSTALLED 后数据库或标记缺失在迁移前拒绝，不回到安装状态。结构化连接字段、默认 MySQL、自动 origin 和清空边界见 [ADR-0013](../adr/ADR-0013-installation-experience.md)。
 
 SQLite 使用 WAL、5 秒 busy timeout、单连接；PostgreSQL/MySQL 使用 bounded pool。分方言迁移嵌入二进制，版本 checksum 不可修改。SQLite/PostgreSQL DDL 事务；MySQL DDL 隐式提交，采用幂等 SQL，完全成功再记录版本。只创建本 profile 所需表；不自动回滚或 drop 数据。M2b 平台新增 0003 的 account_tokens/mail_jobs，M2a 迁移 checksum 不变，单机/桌面停留 framework。此为历史 M2b 边界；当前离线工具见 ADR-0017。
 
@@ -136,3 +136,5 @@ React 的独立可折叠导航、Radix dialog 弹层、头像密码/退出、邮
 [ADR-0021](../adr/ADR-0021-business-entities-announcements.md) 统一嵌入式 BaseEntity、软删除/版本及实体/DTO 映射，完整分层示例为公告模块；该增量迁移为 0011、business=2，当前平台 schema=12。公告仅平台装配，admin/user 固定接口与最小用户投影，写事务重查管理员，安全 Markdown/HTML 通过渲染 port 接入。规范与例外见 [backend.md](../02-standards/backend.md)。
 
 持久上传会话采用 blob.Multipart / PartReceiver 扩展，files 编排服务端权威分片与安全发布，filesql 存储不可变分片几何；长流不持有全局锁，确认复核删除状态。平台 schema=12，客户端复用 SDK 与 FileUploadDialog，见 [ADR-0022](../adr/ADR-0022-resumable-uploads.md)。
+
+Web 安装完成还写入私有 install.lock，配置中的 lock_version 区分历史无锁版本与明确删锁。只有启动边界检测到已启用锁的已安装实例缺锁，才转为带私有原库归属证明的重装 intent；新凭据、原库显式清空确认及别站/未知库拒绝均由后端执行，见 [ADR-0028](../adr/ADR-0028-explicit-installation-unlock.md)。框架表固定 unicore_，派生身份不参与数据库命名，兼容重命名见 [ADR-0029](../adr/ADR-0029-fixed-framework-table-prefix.md)。

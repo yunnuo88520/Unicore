@@ -1781,6 +1781,9 @@ export const constraints = {
       },
       "initialized": {
         "type": "boolean"
+      },
+      "reset_allowed": {
+        "type": "boolean"
       }
     }
   },

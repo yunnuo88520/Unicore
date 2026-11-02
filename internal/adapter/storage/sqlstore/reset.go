@@ -1,5 +1,5 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Explicit installer-only reset of tables/views in a dedicated, uninstalled database.
+// Description: Explicit installer-only reset of tables/views in an authorized dedicated database.
 package sqlstore
 
 import (
@@ -12,8 +12,8 @@ func quoted(name, quote string) string {
 	return quote + strings.ReplaceAll(name, quote, quote+quote) + quote
 }
 
-// Reset is called only after bootstrap authorization, absence of an installation
-// marker and an exact target-name confirmation. No startup path calls it.
+// Reset requires bootstrap authorization, an uninstalled target or proven prior
+// ownership after an explicit unlock, and exact name confirmation. Startup never calls it.
 func (s *Store) Reset(ctx context.Context) error {
 	conn, err := s.DB.Conn(ctx)
 	if err != nil {

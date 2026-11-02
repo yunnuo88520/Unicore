@@ -10,11 +10,11 @@ import (
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 )
 
-var identityTables = regexp.MustCompile(`\b(users|user_roles|sessions|account_tokens|email_challenges|external_identities|oidc_flows)\b`)
+var identityTables = regexp.MustCompile(`\b(unicore_users|unicore_user_roles|unicore_sessions|unicore_account_tokens|unicore_email_challenges|unicore_external_identities|unicore_oidc_flows)\b`)
 var administratorTables = map[string]string{
-	"users": "administrators", "user_roles": "administrator_roles", "sessions": "administrator_sessions",
-	"account_tokens": "administrator_account_tokens", "email_challenges": "administrator_email_challenges",
-	"external_identities": "administrator_external_identities", "oidc_flows": "administrator_oidc_flows",
+	"unicore_users": "unicore_administrators", "unicore_user_roles": "unicore_administrator_roles", "unicore_sessions": "unicore_administrator_sessions",
+	"unicore_account_tokens": "unicore_administrator_account_tokens", "unicore_email_challenges": "unicore_administrator_email_challenges",
+	"unicore_external_identities": "unicore_administrator_external_identities", "unicore_oidc_flows": "unicore_administrator_oidc_flows",
 }
 
 // Only repository-authored SQL passes here. Identifiers come from this fixed map,

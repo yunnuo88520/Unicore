@@ -23,6 +23,7 @@ test('project export and destination boundaries',()=>{
   files['AGENTS.md']='application instructions';
   files['packages/contracts/openapi.json']=JSON.stringify({info:{title:'Unicore platform foundation API'},paths:{},components:{schemas:{}}},null,2)+'\n';
   files['docs/public/start.md']='# Guide';
+  files['migrations/sqlite/0013_prefix_core.sql']='-- Author: yunnuo <ymz@ebox.vip>\nALTER TABLE users RENAME TO unicore_users;\n';
   files['.agents/skills/sample/SKILL.md']='---\nname: sample\ndescription: Fixture task\n---\n';
   const distribution={format_version:1,documents:[{source:'docs/public/start.md',target:'docs/public/start.md',audiences:['user-release','project-template','public-wiki'],slug:'Home',title:'Guide'}],template_files:Object.keys(files).filter(p=>!['data/private.txt','.env','docs/public/start.md'].includes(p))};
   distribution.template_files.push('distribution/manifest.json');
@@ -36,6 +37,7 @@ test('project export and destination boundaries',()=>{
   const options={source,directory:join(root,'app'),name:'My Product',slug:'my-product',module:'example.test/team/product',bundle:'test.example.product'};
   createProject(options);
   assert.equal(JSON.parse(readFileSync(join(options.directory,'package.json'))).name,'my-product');
+  assert.equal(readFileSync(join(options.directory,'migrations/sqlite/0013_prefix_core.sql'),'utf8'),files['migrations/sqlite/0013_prefix_core.sql']);
   const trust=JSON.parse(readFileSync(join(options.directory,'assets/updates/config.json')));assert.equal(trust.repository,'');assert.deepEqual(trust.keys,{});assert.equal(trust.allow_unsigned_platform,false);
   assert.equal(JSON.parse(readFileSync(join(options.directory,'assets/theme/tokens.json'))).brand.name,'My Product');
   const identity=JSON.parse(readFileSync(join(options.directory,'product.identity.json')));

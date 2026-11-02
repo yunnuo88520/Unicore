@@ -491,6 +491,7 @@ type DatabaseCheck struct {
 	DatabaseName string `json:"database_name"`
 	TableCount   int    `json:"table_count"`
 	Initialized  bool   `json:"initialized"`
+	ResetAllowed *bool  `json:"reset_allowed,omitempty"`
 }
 
 type DatabaseCheckResponse struct {

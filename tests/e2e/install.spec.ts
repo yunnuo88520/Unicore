@@ -5,6 +5,42 @@ import { test, expect } from './fixtures';
 
 const DATABASE_LABELS = { mysql: 'MySQL · 在线部署推荐', postgres: 'PostgreSQL · 在线部署推荐', sqlite: 'SQLite · 本机或小型测试' } as const;
 
+test('owner unlock: protected reinstallation, explicit consent and automatic relock', async ({ page, instance }) => {
+  const initial = { profile: 'web-platform', database: { driver: 'sqlite', dsn: '' }, site_name: 'Original site', base_url: instance.url, admin_username: 'oldadmin', admin_email: 'old@example.test', admin_password: 'Admin@123456' };
+  expect((await instance.request.post('/api/v1/install/complete', { headers: { 'X-Bootstrap-Token': instance.token }, data: initial })).status()).toBe(200);
+  expect((await page.request.get(`${instance.url}/install`, { maxRedirects: 0 })).status()).toBe(303);
+  const token = await instance.unlockForReinstall();
+  expect(token).not.toBe(instance.token);
+  expect((await page.request.post(`${instance.url}/api/v1/install/complete`, { headers: { 'X-Bootstrap-Token': instance.token }, data: initial })).status()).toBe(403);
+  await page.goto(`${instance.url}/install`);
+  await page.getByLabel('一次性安装凭据', { exact: true }).fill(token);
+  await page.getByRole('button', { name: '下一步' }).click();
+  await page.getByRole('button', { name: '下一步' }).click();
+  await page.getByRole('combobox', { name: '数据库类型' }).click();
+  await page.getByRole('option', { name: DATABASE_LABELS.sqlite, exact: true }).click();
+  await page.getByRole('button', { name: '测试连接' }).click();
+  await expect(page.getByText('已识别为本站原数据库。重新安装会删除原账号、设置和业务数据，不会保留原站内容。')).toBeVisible();
+  await expect(page.getByRole('button', { name: '下一步' })).toBeDisabled();
+  expect((await page.request.post(`${instance.url}/api/v1/install/complete`, { headers: { 'X-Bootstrap-Token': token }, data: initial })).status()).toBe(409);
+  await page.getByLabel('我已备份，确认清空目标数据库并初始化').check();
+  await page.getByLabel('输入数据库名确认').fill('wrong');
+  await expect(page.getByRole('button', { name: '下一步' })).toBeDisabled();
+  await page.getByLabel('输入数据库名确认').fill('unicore.db');
+  await page.getByRole('button', { name: '下一步' }).click();
+  await page.getByLabel('站点名称', { exact: true }).fill('Replacement site');
+  await page.getByLabel('管理员账号').fill('newadmin');
+  await page.getByLabel('管理员邮箱').fill('new@example.test');
+  await page.getByLabel('管理员密码').fill('Admin@123456');
+  await page.getByRole('button', { name: '下一步' }).click();
+  await page.getByRole('button', { name: '完成安装' }).click();
+  await expect(page.getByRole('heading', { name: '安装完成', exact: true })).toBeVisible();
+  await instance.restart();
+  expect((await page.request.get(`${instance.url}/install`, { maxRedirects: 0 })).status()).toBe(303);
+  expect((await page.request.post(`${instance.url}/api/v1/install/complete`, { headers: { 'X-Bootstrap-Token': token }, data: initial })).status()).toBe(409);
+  const serialized = await page.evaluate(() => JSON.stringify(localStorage));
+  expect(serialized).not.toContain(token);
+});
+
 for (const driver of ['sqlite','mysql','postgres'] as const) test(`installer ${driver}: fields, test, consent and repeated restart`,async({page,instance},info)=>{
   test.setTimeout(60000);
   const databaseName=`${process.env.UNICORE_INSTALL_DATABASE_PREFIX??'unicore_ui'}_${info.project.name}`;

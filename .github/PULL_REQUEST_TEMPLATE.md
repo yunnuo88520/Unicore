@@ -13,6 +13,7 @@
 
 - [ ] 已执行 `make docs` 和 `make test`；未执行时说明原因
 - [ ] 已按影响更新文档、Unreleased 及相关验证；不适用时说明
+- [ ] 功能/API/配置/扩展方式变更已同步对应指南；文档站变更已运行 `pnpm --dir website build`，新增页面登记公开白名单
 - [ ] 已检查未提交真实凭据、实例数据或受限第三方资源
 
 贡献约定见 [CONTRIBUTING.md](../CONTRIBUTING.md)。

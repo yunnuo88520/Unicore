@@ -15,7 +15,7 @@ Unicore 是面向 AI 辅助开发的 Go + React 应用框架。共享领域与�
 
 作者：yunnuo · ymz@ebox.vip · 当前版本：[VERSION](VERSION) · **开发预览**
 
-[快速开始](#快速开始) · [创建自己的应用](#创建自己的应用) · [Wiki](https://github.com/yunnuo88520/Unicore/wiki) · [文档源码](docs/README.md) · [参与贡献](CONTRIBUTING.md) · [支持与反馈](SUPPORT.md) · [变更记录](CHANGELOG.md)
+[文档站](https://unicore.ebox.vip) · [快速开始](#快速开始) · [创建自己的应用](#创建自己的应用) · [Wiki](https://github.com/yunnuo88520/Unicore/wiki) · [文档源码](docs/README.md) · [参与贡献](CONTRIBUTING.md) · [支持与反馈](SUPPORT.md) · [变更记录](CHANGELOG.md)
 
 运行形态、功能边界与待验证范围见 [支持范围与已知限制](docs/support.md)。使用与部署从 [指南](docs/product/index.md) 开始；开发任务按需查阅规范和 Skill。
 
@@ -114,6 +114,14 @@ make build-ops                   # 独立加密备份/恢复工具
 质量、依赖安全和 Profile 构建结果查看当前提交的 CI。原生构建/helper 测试不等于完整 GUI 更新与失败恢复；发布前按目标系统和部署环境验证，不能用历史结果代替当前检查。
 
 ## 文档与协作
+
+文档站使用 VitePress，正式域名配置为 [unicore.ebox.vip](https://unicore.ebox.vip)；域名与托管完成配置后生效。它复用仓库 Markdown，提供导航、本地搜索和中英文入口，详细手册目前主要为中文。开发与部署见 [文档站手册](docs/03-runbooks/documentation-site.md)。
+
+```sh
+pnpm --dir website dev       # 本地文档站，编辑原始 Markdown
+pnpm --dir website build     # 静态产物：build/docs-site-dist/
+pnpm --dir website preview   # 预览静态站
+```
 
 | 需要做什么 | 入口 |
 | --- | --- |

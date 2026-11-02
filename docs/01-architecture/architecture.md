@@ -141,4 +141,4 @@ Web 安装完成还写入私有 install.lock，配置中的 lock_version 区分�
 
 ## 个人中心与会话安全
 
-[ADR-0030](../adr/ADR-0030-personal-center-security.md) 在 platform.Personal 与 platformsql 增加本人资料、邮箱换绑、验证器与设备事务；共享 UI/SDK 只调用契约 operation。SQL Session 统一拦截尚未完成 TOTP 的登录，密码/邮件/OIDC 均不能绕过；bootstrap 只给受限挑战状态和 CSRF。安装锁事务原子消费计数器/恢复码，邮箱证明绑定原邮箱与同一会话，审计不含秘密。平台追加旧账本迁移 0014；独立/桌面仍为 0013，新 namespace baseline 不激活。
+[ADR-0031](../adr/ADR-0031-personal-center-security.md) 在 platform.Personal 与 platformsql 增加本人资料、邮箱换绑、验证器与设备事务；共享 UI/SDK 只调用契约 operation。SQL Session 统一拦截尚未完成 TOTP 的登录，密码/邮件/OIDC 均不能绕过；bootstrap 只给受限挑战状态和 CSRF。安装锁事务原子消费计数器/恢复码，邮箱证明绑定原邮箱与同一会话，审计不含秘密。平台追加旧账本迁移 0014；独立/桌面仍为 0013，新 namespace baseline 不激活。

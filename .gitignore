@@ -5,6 +5,7 @@ build/
 coverage/
 .cache/
 .pnpm-store/
+website/.vitepress/.temp/
 playwright-report/
 test-results/
 apps/desktop/wailsjs/

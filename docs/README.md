@@ -3,6 +3,8 @@
 
 仓库入口提供 [简体中文 README](../README.md) 与 [English README](../README.en.md)，新版本 Changelog/Release 说明同步中英文；详细规范与手册目前主要为中文。
 
+配套 VitePress 文档站的正式域名为 [unicore.ebox.vip](https://unicore.ebox.vip)，启用 DNS 与托管后提供统一导航和本地搜索。文档仍以仓库 Markdown 为来源，维护、版本策略与域名部署见 [文档站手册](03-runbooks/documentation-site.md)。
+
 按需要选择入口；使用框架不需要阅读上游开发过程或全部架构决策。
 
 ## 使用与部署

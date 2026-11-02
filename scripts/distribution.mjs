@@ -3,7 +3,7 @@
 import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, isAbsolute, join, posix, resolve } from 'node:path';
 
-export const audiences = ['user-release', 'project-template', 'public-wiki'];
+export const audiences = ['user-release', 'project-template', 'public-wiki', 'public-site'];
 const internal = /(?:^|\/)(?:04-ai|adr|maintainer|00-product|01-architecture|evidence[^/]*|acceptance[^/]*|workspace-preservation[^/]*|commercial-[^/]*|documentation-productization-audit[^/]*)(?:\/|\.|$)/i;
 const sensitive = /(?:^|\/)(?:\.git|node_modules|data|build)(?:\/|$)|(?:^|\/)(?:\.env(?:\..*)?|secret\.key|installation\.json|bootstrap\.token)$|\.(?:db(?:-wal|-shm)?|pem|p12|pfx|p8|key)$/i;
 export function safePath(path) {

@@ -21,4 +21,4 @@
 
 当前双入口、单机边界和升级兼容说明见 [ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md)。
 
-个人中心完整需求与安全规则见 [运行说明](../03-runbooks/personal-center.md) 和 [ADR-0030](../adr/ADR-0030-personal-center-security.md)。包含昵称、两步邮箱验证、TOTP 与一次性恢复码、全部登录入口的二次验证、本人设备查看/单个或其他设备下线；不增加角色委派或普通用户管理权限。
+个人中心完整需求与安全规则见 [运行说明](../03-runbooks/personal-center.md) 和 [ADR-0031](../adr/ADR-0031-personal-center-security.md)。包含昵称、两步邮箱验证、TOTP 与一次性恢复码、全部登录入口的二次验证、本人设备查看/单个或其他设备下线；不增加角色委派或普通用户管理权限。

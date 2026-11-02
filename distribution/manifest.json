@@ -8,10 +8,12 @@
       "audiences": [
         "user-release",
         "project-template",
-        "public-wiki"
+        "public-wiki",
+        "public-site"
       ],
       "slug": "Home",
-      "title": "使用指南"
+      "title": "使用指南",
+      "site_group": "guide"
     },
     {
       "source": "docs/product/configuration.md",
@@ -19,10 +21,12 @@
       "audiences": [
         "user-release",
         "project-template",
-        "public-wiki"
+        "public-wiki",
+        "public-site"
       ],
       "slug": "Configuration",
-      "title": "配置与数据库"
+      "title": "配置与数据库",
+      "site_group": "guide"
     },
     {
       "source": "docs/product/build.md",
@@ -30,10 +34,12 @@
       "audiences": [
         "user-release",
         "project-template",
-        "public-wiki"
+        "public-wiki",
+        "public-site"
       ],
       "slug": "Build",
-      "title": "Web / Desktop / CLI 构建"
+      "title": "Web / Desktop / CLI 构建",
+      "site_group": "guide"
     },
     {
       "source": "docs/product/deployment.md",
@@ -41,10 +47,12 @@
       "audiences": [
         "user-release",
         "project-template",
-        "public-wiki"
+        "public-wiki",
+        "public-site"
       ],
       "slug": "Deployment",
-      "title": "部署"
+      "title": "部署",
+      "site_group": "guide"
     },
     {
       "source": "docs/product/backup.md",
@@ -52,10 +60,12 @@
       "audiences": [
         "user-release",
         "project-template",
-        "public-wiki"
+        "public-wiki",
+        "public-site"
       ],
       "slug": "Backup-Restore",
-      "title": "备份恢复"
+      "title": "备份恢复",
+      "site_group": "guide"
     },
     {
       "source": "docs/product/storage.md",
@@ -63,10 +73,12 @@
       "audiences": [
         "user-release",
         "project-template",
-        "public-wiki"
+        "public-wiki",
+        "public-site"
       ],
       "slug": "Storage",
-      "title": "文件与对象存储"
+      "title": "文件与对象存储",
+      "site_group": "guide"
     },
     {
       "source": "docs/product/updates.md",
@@ -74,20 +86,237 @@
       "audiences": [
         "user-release",
         "project-template",
-        "public-wiki"
+        "public-wiki",
+        "public-site"
       ],
       "slug": "Updates",
-      "title": "更新与签名"
+      "title": "更新与签名",
+      "site_group": "guide"
     },
     {
       "source": "docs/product/development.md",
       "target": "docs/product/development.md",
       "audiences": [
         "project-template",
-        "public-wiki"
+        "public-wiki",
+        "public-site"
       ],
       "slug": "Development",
-      "title": "应用开发"
+      "title": "应用开发",
+      "site_group": "development"
+    },
+    {
+      "source": "docs/support.md",
+      "target": "docs/support.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "支持范围与已知限制",
+      "site_group": "guide"
+    },
+    {
+      "source": "docs/02-standards/api-contract.md",
+      "target": "docs/02-standards/api-contract.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "API 契约与 SDK",
+      "site_group": "development"
+    },
+    {
+      "source": "docs/02-standards/backend.md",
+      "target": "docs/02-standards/backend.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "Go 分层与业务实体",
+      "site_group": "development"
+    },
+    {
+      "source": "docs/02-standards/frontend.md",
+      "target": "docs/02-standards/frontend.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "共享前端开发",
+      "site_group": "development"
+    },
+    {
+      "source": "docs/03-runbooks/frontend-foundations.md",
+      "target": "docs/03-runbooks/frontend-foundations.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "布局、表单与双语基础",
+      "site_group": "development"
+    },
+    {
+      "source": "docs/03-runbooks/business-example.md",
+      "target": "docs/03-runbooks/business-example.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "笔记业务样板",
+      "site_group": "development"
+    },
+    {
+      "source": "docs/03-runbooks/framework-upgrade.md",
+      "target": "docs/03-runbooks/framework-upgrade.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "派生项目与上游更新",
+      "site_group": "development"
+    },
+    {
+      "source": "docs/02-standards/database-migrations.md",
+      "target": "docs/02-standards/database-migrations.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "数据库迁移",
+      "site_group": "development"
+    },
+    {
+      "source": "docs/02-standards/product-identity.md",
+      "target": "docs/02-standards/product-identity.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "产品身份与白标",
+      "site_group": "development"
+    },
+    {
+      "source": "docs/03-runbooks/deployment.md",
+      "target": "docs/03-runbooks/deployment.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "安装与故障处理",
+      "site_group": "operations"
+    },
+    {
+      "source": "docs/03-runbooks/storage.md",
+      "target": "docs/03-runbooks/storage.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "存储配置与分片上传",
+      "site_group": "operations"
+    },
+    {
+      "source": "docs/03-runbooks/backup.md",
+      "target": "docs/03-runbooks/backup.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "备份与恢复细节",
+      "site_group": "operations"
+    },
+    {
+      "source": "docs/03-runbooks/updates.md",
+      "target": "docs/03-runbooks/updates.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "签名更新与失败恢复",
+      "site_group": "operations"
+    },
+    {
+      "source": "docs/03-runbooks/client-preferences.md",
+      "target": "docs/03-runbooks/client-preferences.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "客户端偏好",
+      "site_group": "operations"
+    },
+    {
+      "source": "docs/03-runbooks/admin-tools.md",
+      "target": "docs/03-runbooks/admin-tools.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "管理工具",
+      "site_group": "operations"
+    },
+    {
+      "source": "docs/03-runbooks/announcements.md",
+      "target": "docs/03-runbooks/announcements.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "公告业务",
+      "site_group": "operations"
+    },
+    {
+      "source": "docs/03-runbooks/documentation-site.md",
+      "target": "docs/03-runbooks/documentation-site.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "文档站维护与部署",
+      "site_group": "operations"
+    },
+    {
+      "source": "docs/02-standards/coding.md",
+      "target": "docs/02-standards/coding.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "代码与交付规范",
+      "site_group": "reference"
+    },
+    {
+      "source": "docs/02-standards/design-system.md",
+      "target": "docs/02-standards/design-system.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "设计系统",
+      "site_group": "reference"
+    },
+    {
+      "source": "docs/02-standards/runtime.md",
+      "target": "docs/02-standards/runtime.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "配置、日志与生命周期",
+      "site_group": "reference"
+    },
+    {
+      "source": "docs/api/permissions.md",
+      "target": "docs/api/permissions.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "平台权限契约",
+      "site_group": "reference"
+    },
+    {
+      "source": "website/pages/index.md",
+      "target": "docs/index.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "Unicore 文档"
+    },
+    {
+      "source": "website/pages/en/index.md",
+      "target": "docs/en/index.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "Unicore Documentation"
+    },
+    {
+      "source": "website/pages/en/getting-started.md",
+      "target": "docs/en/getting-started.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "Get started"
     }
   ],
   "template_files": [
@@ -662,5 +891,15 @@
       "apps/desktop/public/site.webmanifest"
     ],
     "excluded": []
-  }
+  },
+  "site_assets": [
+    {
+      "source": "assets/brand/mark.svg",
+      "target": "brand/mark.svg"
+    },
+    {
+      "source": "assets/brand/mark-dark.svg",
+      "target": "brand/mark-dark.svg"
+    }
+  ]
 }

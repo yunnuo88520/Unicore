@@ -13,9 +13,11 @@ test('separate entries, registration policy and redesigned file selection',async
  const other=await browser.newContext({viewport:page.viewportSize()!});
  try{
   const user=await other.newPage();await user.goto(`${instance.url}/register`);
-  await expect(user.getByRole('heading',{name:'登录 Unicore',exact:true})).toBeVisible();
-  await expect(user.getByText('注册暂未开放。请联系实例管理员获取账号。',{exact:true})).toBeVisible();
-  await expect(user.getByRole('button',{name:'注册账号',exact:true})).toHaveCount(0);
+  await expect(user.getByRole('heading',{name:'创建账号',exact:true})).toBeVisible();
+  await expect(user.getByText('注册暂未开放，请联系管理员获取账号。',{exact:true})).toBeVisible();
+  await expect(user.getByRole('button',{name:'注册',exact:true})).toHaveCount(0);
+  await expect(user.getByLabel('账号',{exact:true})).toHaveCount(0);
+  await expect(user.getByRole('link',{name:'返回登录',exact:true})).toHaveAttribute('href','/login');
   await expect(user.getByRole('link',{name:'管理员登录',exact:true})).toHaveCount(0);
   expect((await user.request.get(`${instance.url}/api/v1/admin/users`)).status()).toBe(401);
  }finally{await other.close();}

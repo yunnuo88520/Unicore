@@ -74,6 +74,17 @@ func (r *Repository) insert(ctx context.Context, tx *sql.Tx, input contracts.Use
 	if input.Role != r.roleID() {
 		return contracts.User{}, platform.ErrInput
 	}
+	// Creation callers hold the installation transaction lock. Check each field
+	// for useful feedback, retaining UNIQUE constraints for competing writers.
+	for _, field := range []struct{ name, value string }{{"username", input.Username}, {"email", input.Email}} {
+		var count int
+		if err := r.row(ctx, tx, "SELECT COUNT(*) FROM unicore_users WHERE "+field.name+"=?", field.value).Scan(&count); err != nil {
+			return contracts.User{}, err
+		}
+		if count != 0 {
+			return contracts.User{}, &platform.AccountConflict{Field: field.name}
+		}
+	}
 	id := sqlstore.ID()
 	now := time.Now().Unix()
 	if _, err := r.exec(ctx, tx, "INSERT INTO unicore_users(id,username,email,password_hash,status,created_at,updated_at,last_login_at) VALUES(?,?,?,?,?,?,?,?)", id, input.Username, input.Email, hash, "active", now, now, 0); err != nil {

@@ -50,6 +50,45 @@ func TestRegistrationWithoutMailAndRestrictions(t *testing.T) {
 	if err != nil || result.RegistrationComplete == nil || !*result.RegistrationComplete || result.ChallengeID != "" {
 		t.Fatal(result, err)
 	}
+	for _, duplicate := range []struct{ username, email, field string }{
+		{" DIRECTMEMBER ", "new-email@example.test", "username"},
+		{"newusername", " DIRECT@EXAMPLE.TEST ", "email"},
+	} {
+		_, conflictErr := accounts.RegisterCode(ctx, contracts.RegisterInput{Username: duplicate.username, Email: duplicate.email, Password: "different-password-strong"}, "203.0.113.11")
+		var conflict *platform.AccountConflict
+		if !errors.Is(conflictErr, platform.ErrConflict) || !errors.As(conflictErr, &conflict) || conflict.Field != duplicate.field {
+			t.Fatal("duplicate registration did not identify its field", duplicate.field, conflictErr)
+		}
+	}
+	for _, sameEmail := range []bool{false, true} {
+		start := make(chan struct{})
+		results := make(chan error, 2)
+		for i := range 2 {
+			go func() {
+				<-start
+				username, email := "racingmember", []string{"race-one@example.test", "race-two@example.test"}[i]
+				if sameEmail {
+					username, email = []string{"emailraceone", "emailracetwo"}[i], "race-shared@example.test"
+				}
+				_, raceErr := accounts.RegisterCode(ctx, contracts.RegisterInput{Username: username, Email: email, Password: "race-password-strong"}, "203.0.113.12")
+				results <- raceErr
+			}()
+		}
+		close(start)
+		successes, conflicts := 0, 0
+		for range 2 {
+			if raceErr := <-results; raceErr == nil {
+				successes++
+			} else if errors.Is(raceErr, platform.ErrConflict) {
+				conflicts++
+			} else {
+				t.Fatal("unexpected concurrent registration result", raceErr)
+			}
+		}
+		if successes != 1 || conflicts != 1 {
+			t.Fatal("concurrent duplicate registration was accepted", successes, conflicts)
+		}
+	}
 	session, raw, err := identity.Login(ctx, contracts.LoginInput{Username: input.Username, Password: input.Password}, "203.0.113.1", false, 1)
 	if err != nil || session.User.Status != "active" {
 		t.Fatal("direct registration not active", err)

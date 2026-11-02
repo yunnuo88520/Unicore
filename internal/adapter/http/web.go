@@ -38,6 +38,17 @@ func failure(w http.ResponseWriter, status int, code, message string) {
 	writeJSON(w, status, contracts.ErrorResponse{Code: code, Message: message, RequestID: w.Header().Get("X-Request-ID")})
 }
 func webError(w http.ResponseWriter, err error) {
+	var conflict *platform.AccountConflict
+	if errors.As(err, &conflict) {
+		message := "账号已存在，请使用其他用户名"
+		if conflict.Field == "email" {
+			message = "邮箱已注册，请直接登录或找回密码"
+		}
+		fields := map[string]string{conflict.Field: message}
+		definition := contracts.ErrorCatalog["ACCOUNT_EXISTS"]
+		writeJSON(w, definition.Status, contracts.ErrorResponse{Code: "ACCOUNT_EXISTS", Message: definition.Message, RequestID: w.Header().Get("X-Request-ID"), Fields: &fields})
+		return
+	}
 	code := "INTERNAL_ERROR"
 	switch {
 	case errors.Is(err, platform.ErrMFA):

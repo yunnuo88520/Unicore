@@ -99,9 +99,6 @@ func (a *Accounts) Register(ctx context.Context, input contracts.RegisterInput, 
 	input.Password = ""
 	if !policy.EmailVerificationRequired {
 		err = a.Store.RegisterActiveAccount(ctx, input, hash)
-		if errors.Is(err, ErrConflict) {
-			return nil
-		}
 		return err
 	}
 	if !policy.MailReady {
@@ -110,9 +107,6 @@ func (a *Accounts) Register(ctx context.Context, input contracts.RegisterInput, 
 	token := Token()
 	expires := int(time.Now().Add(30 * time.Minute).Unix())
 	err = a.Store.RegisterAccount(ctx, input, hash, Hash(token), expires, a.payload(ctx, input.Email, "verify", token))
-	if errors.Is(err, ErrConflict) {
-		return nil
-	}
 	return err
 }
 func (a *Accounts) Request(ctx context.Context, input contracts.EmailRequest, ip, purpose string) error {

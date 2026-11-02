@@ -17,15 +17,15 @@ test('registration works without SMTP and exposes independent restrictions',asyn
  const directory=`build/acceptance/auth-layout/${info.project.name}`;await mkdir(directory,{recursive:true});
  await expect(page.getByRole('heading',{name:'登录 Unicore',exact:true})).toBeVisible();await expect(page.locator('.flow-brand')).toBeVisible();
  await page.screenshot({path:`${directory}/login-zh-light.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
- await expect(page.getByRole('button',{name:'重发验证邮件',exact:true})).toHaveCount(0);await page.getByRole('button',{name:'注册账号',exact:true}).click();
- await page.getByLabel('账号',{exact:true}).fill('newmember');await page.getByLabel('邮箱',{exact:true}).fill('newmember@other.test');await page.getByLabel('密码',{exact:true}).fill('member-password-strong');
+ await expect(page.getByRole('button',{name:'重发验证邮件',exact:true})).toHaveCount(0);await page.getByRole('link',{name:'注册账号',exact:true}).click();
+ await page.getByLabel('账号',{exact:true}).fill('newmember');await page.getByLabel('邮箱',{exact:true}).fill('newmember@other.test');await page.getByLabel('密码',{exact:true}).fill('member-password-strong');await page.getByLabel('确认密码',{exact:true}).fill('member-password-strong');
  await page.screenshot({path:`${directory}/register-zh-light.png`,fullPage:true});
  await page.evaluate(()=>{const key='unicore.preferences.v1';localStorage.setItem(key,JSON.stringify({...JSON.parse(localStorage.getItem(key)||'{}'),locale:'en',theme:'dark'}));window.dispatchEvent(new StorageEvent('storage',{key}));});
  await expect(page.getByRole('heading',{name:'Create account',exact:true})).toBeVisible();await expect(page.getByLabel('Email',{exact:true})).toHaveValue('newmember@other.test');await page.screenshot({path:`${directory}/register-en-dark.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.evaluate(()=>{const key='unicore.preferences.v1';localStorage.setItem(key,JSON.stringify({...JSON.parse(localStorage.getItem(key)||'{}'),locale:'zh-CN',theme:'light'}));window.dispatchEvent(new StorageEvent('storage',{key}));});
  const rejected=page.waitForResponse(r=>r.url().endsWith('/auth/email/register'));await page.getByRole('button',{name:'注册',exact:true}).click();expect((await rejected).status()).toBe(400);
  await page.getByLabel('邮箱',{exact:true}).fill('newmember@example.test');await page.getByRole('button',{name:'注册',exact:true}).click();await expect(page.getByText('账号已创建，现在可以登录。',{exact:true})).toBeVisible();
- await page.getByRole('button',{name:'返回登录',exact:true}).first().click();await page.getByLabel('账号或邮箱',{exact:true}).fill('newmember');await page.getByLabel('密码',{exact:true}).fill('member-password-strong');
+ await page.getByRole('link',{name:'返回登录',exact:true}).first().click();await page.getByLabel('账号或邮箱',{exact:true}).fill('newmember');await page.getByLabel('密码',{exact:true}).fill('member-password-strong');
  // Reloading the login page refreshes its own captcha; extract the displayed SVG test glyphs.
  const src=await page.getByAltText('六位数字验证码，点击刷新').getAttribute('src');const svg=Buffer.from(src!.split(',')[1],'base64').toString();const answer=[...svg.matchAll(/>([0-9])<\/text>/g)].map(v=>v[1]).join('');await page.getByLabel('图形验证码',{exact:true}).fill(answer);
  await page.getByRole('button',{name:'登录工作空间',exact:true}).click();await expect(page.getByRole('heading',{name:'一份核心，无限可能.',exact:true})).toBeVisible();

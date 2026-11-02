@@ -9,12 +9,14 @@ import { AppError, type EmailChallenge, type WebClient } from '@unicore/sdk';
 import { useRouteSearch, useSessionNotice, type PageProps } from '../router';
 import { BrandLockup, BrandMark } from '../brand';
 import { Button, Input } from '../ui';
+import { AppField, AppForm, useAppForm } from '../lib/form';
 
 type Mode = 'login' | 'email' | 'register' | 'forgot' | 'resend';
 
 export function LoginPage({ client, metadata, refresh }: PageProps) {
   const notice = useSessionNotice();
   if (!client.web) return null;
+  if (metadata.mfa_pending) return <MFAFlow web={client.web} onDone={refresh} />;
   return <AuthFlow web={client.web} siteName={metadata.site_name} administrator={metadata.identity_realm === 'administrator'} notice={notice} onDone={refresh} />;
 }
 
@@ -227,4 +229,13 @@ function TokenFlow({ kind, web, siteName, onDone }: { kind: 'verify' | 'reset'; 
       </form>}
     </div>
   </main>;
+}
+
+function MFAFlow({web,onDone}:{web:WebClient;onDone:()=>void}) {
+ useLocale();
+ const [recovery,setRecovery]=useState(false);
+ const form=useAppForm({schema:'SecurityCodeInput',defaultValues:{code:''},onSubmit:values=>{verify.mutate(values.code);}});
+ const verify=useMutation({mutationFn:(code:string)=>web.verifyMFA(code),onSuccess:()=>{form.reset();onDone();},onError:form.applyServerError});
+ const cancel=useMutation({mutationFn:()=>web.cancelMFA(),onSuccess:onDone});
+ return <main className="flex min-h-dvh items-center justify-center p-4"><section className="w-full max-w-sm rounded-xl border border-line bg-surface p-6 shadow-card"><ShieldCheck size={28} className="mb-4 text-accent"/><h1 className="text-xl font-semibold">{t('双重验证')}</h1><p className="mt-2 mb-5 text-sm text-muted">{t('登录凭据已验证，请在 5 分钟内完成双重验证。')}</p><AppForm form={form} className="flex flex-col gap-4"><AppField name="code" label={recovery?t('恢复码'):t('身份验证器验证码')}><Input required minLength={recovery?20:6} maxLength={recovery?20:6} pattern={recovery?undefined:'[0-9]{6}'} inputMode={recovery?'text':'numeric'} autoComplete="one-time-code"/></AppField><Button type="submit" pending={verify.isPending}>{t('验证并登录')}</Button><Button type="button" variant="ghost" disabled={verify.isPending||cancel.isPending} onClick={()=>{setRecovery(value=>!value);form.reset();}}>{recovery?t('使用身份验证器'):t('使用恢复码')}</Button><Button type="button" variant="secondary" pending={cancel.isPending} disabled={verify.isPending} onClick={()=>cancel.mutate()}>{t('返回登录')}</Button></AppForm></section></main>;
 }

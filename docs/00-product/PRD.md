@@ -53,3 +53,5 @@ API/DTO 以 OpenAPI 为唯一契约；后端依赖向内，实体与事务边界
 VERSION 单源生成各端版本；提供创建器、doctor、AI任务Skill、Web/GUI/CLI构建、tar/Docker/Compose及离线加密备份。发行包、派生应用、用户Wiki只纳入明确白名单，不携带上游研究流水。使用说明与代码一起维护，测试输出放 CI artifact/build/或仓库外。
 
 GitHub/自有HTTPS免费分发不要求购买 OS 证书或官方公证；应用层 Ed25519、SHA-256、平台匹配、防降级与安全安装始终必需。系统签名为可选严格策略，当前创建器默认值与该目标仍有差异。升级与恢复见 [更新手册](../03-runbooks/updates.md)、[备份手册](../03-runbooks/backup.md)，授权服务仍为占位。
+
+在线平台个人中心承载昵称、不可变用户名、角色/状态、两步邮箱换绑、密码修改、TOTP/单次恢复码与设备会话管理；侧栏以系统管理分区容纳系统设置和个人中心。普通用户本人能力与管理员全局权限分离，非平台不装配身份。详见 [角色需求](feature-roles.md)、[个人中心](../03-runbooks/personal-center.md) 与 [ADR-0030](../adr/ADR-0030-personal-center-security.md)。

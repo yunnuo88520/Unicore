@@ -41,3 +41,7 @@ FEATURE_LICENSE 默认 false，保留独立授权服务待对接卡片；FEATURE
 site.police_number 在公开账号页和工作台页脚显示；site.footer_html 支持受限段落、列表、强调和 HTTP/HTTPS 链接，服务端拒绝脚本/事件属性/样式/嵌入，浏览器再次净化。用户内容原样展示，不自动翻译。所有字段复用 system_settings，无 schema 迁移。
 
 维护模式默认关闭，提示可填写多行文字。开启后，用户页面展示维护提示，用户业务/认证/文件 API 返回 503 MAINTENANCE_MODE；bootstrap 与健康检查保留。用户页面每 30 秒复核维护状态，管理员入口和独立管理 API 保持原鉴权以便恢复。已经签发的云下载仍遵循有效期，已发起的请求不回滚；本地签名下载在维护期间暂停。关闭后用户可重新检查或等待自动复核恢复。仅 web-platform 提供这些设置。
+
+## 双重验证策略
+
+security.force_2fa 默认 false，security.allow_disable_2fa 默认 true，平台安全分组管理员可配置。前者强制尚未绑定验证器的账号先完成个人中心设置，后者控制本人能否关闭；强制开启时禁止关闭。两域登录后的二次验证、恢复码和设备撤销见 [个人中心](../03-runbooks/personal-center.md)。设置只作用在线平台，不暴露 SMTP 或验证器密钥。

@@ -18,7 +18,9 @@ export const routes = defineMessages({
   edition: { label:'系统更新',title:'系统更新',description:'查看版本记录，检查并安装可信的新版本。',permission:'updates:read' },
   roles: { label: '角色权限', title: '角色权限', description: '管理员与普通用户的固定权限边界。', permission: 'roles:read' },
   site: { label: '基础设置', title: '基础设置', description: '集中管理站点、品牌与适用的实例配置。', permission: 'settings:read' },
-  account: { label: '账号资料', title: '账号资料', description: '管理本地密码与企业登录绑定。', authenticated: true },
+  account: { label: '个人资料', title: '个人资料', description: '管理昵称、邮箱与账号信息。', authenticated: true },
+ 'account-security': {label:'安全设置',title:'安全设置',description:'管理密码、双重验证与企业账号绑定。',authenticated:true},
+ 'account-sessions': {label:'登录会话',title:'登录会话',description:'查看登录设备，及时下线不再使用的会话。',authenticated:true},
   'not-found': { label: '页面不存在', title: '页面不存在', description: '这个地址尚未注册，请通过导航进入已有页面。' },
 } as const);
 export type Page = keyof typeof routes;

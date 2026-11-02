@@ -157,5 +157,11 @@ func (a *Accounts) CompleteCode(ctx context.Context, input contracts.EmailCodeIn
 	if err != nil {
 		return contracts.Session{}, "", err
 	}
-	return contracts.Session{User: user, CsrfToken: CSRF(token), ExpiresAt: expires}, token, nil
+	pending := false
+	if purpose == "login" {
+		if _, _, err := a.Identity.Store.Session(ctx, Hash(token)); errors.Is(err, ErrMFA) {
+			pending = true
+		}
+	}
+	return contracts.Session{User: user, CsrfToken: CSRF(token), ExpiresAt: expires, MfaPending: &pending}, token, nil
 }

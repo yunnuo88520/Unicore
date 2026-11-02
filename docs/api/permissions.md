@@ -34,3 +34,5 @@ POST /account/password 与 /admin/account/password 分别仅对应域登录账�
 当前双入口、单机边界和升级兼容说明见 [ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md)。
 
 平台维护开启时，用户域认证与业务 API 在进入处理器前返回 503 MAINTENANCE_MODE；bootstrap/健康检查与管理员固定域保留，管理员资源仍独立鉴权。公开 bootstrap 仅新增维护状态/提示和可发布页脚字段，不包含管理员通知邮箱。
+
+本人个人中心使用 /account/profile、/account/totp/*、/account/email/*、/account/sessions*；管理员对应 /admin/account/*，仅对应域本人会话，不授予全局管理能力。所有写操作校验 CSRF/Origin。受限 MFA 会话只能访问 bootstrap 与固定 /auth/mfa、/auth/mfa/cancel（管理员 /admin/auth/*），需绑定 Cookie 的 CSRF；不能读取本人资料或业务。强制设置但未绑定验证器时仅允许 account/*、session/logout，其余受保护业务拒绝。代码规则与错误见 [ADR-0030](../adr/ADR-0030-personal-center-security.md)，不扩大 admin 前缀豁免范围。

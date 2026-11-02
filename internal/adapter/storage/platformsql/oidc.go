@@ -125,6 +125,13 @@ func (r *Repository) oidcSession(ctx context.Context, tx *sql.Tx, id, sessionHas
 	if _, err = r.exec(ctx, tx, "INSERT INTO unicore_sessions(token_hash,user_id,expires_at) VALUES(?,?,?)", sessionHash, id, expires); err != nil {
 		return user, err
 	}
+	verified := 0
+	if rotate {
+		verified = 1
+	} // A binding rotation continues an already verified session.
+	if err = r.recordDevice(ctx, tx, sessionHash, id, verified); err != nil {
+		return user, err
+	}
 	if _, err = r.exec(ctx, tx, "UPDATE unicore_users SET last_login_at=? WHERE id=?", time.Now().Unix(), id); err != nil {
 		return user, err
 	}

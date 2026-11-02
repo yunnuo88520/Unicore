@@ -49,6 +49,8 @@ export interface Bootstrap {
   site_footer_html?: string;
   maintenance_enabled?: boolean;
   maintenance_message?: string;
+  mfa_pending?: boolean;
+  mfa_enrollment_required?: boolean;
 }
 
 export interface BootstrapResponse {
@@ -167,6 +169,7 @@ export interface Session {
   user: User;
   csrf_token: string;
   expires_at: number;
+  mfa_pending?: boolean;
 }
 
 export interface Captcha {
@@ -974,5 +977,91 @@ export interface UploadPolicyResponse {
 export interface MultipartUploadResponse {
   code: string;
   data: MultipartUpload;
+  request_id: string;
+}
+
+export interface AccountProfile {
+  user: User;
+  display_name: string;
+  totp_enabled: boolean;
+  force_2fa: boolean;
+  can_disable_2fa: boolean;
+}
+
+export interface ProfileInput {
+  display_name: string;
+}
+
+export interface TOTPSetupInput {
+  password: string;
+}
+
+export interface TOTPSetup {
+  secret: string;
+  otpauth_url: string;
+  expires_at: number;
+}
+
+export interface SecurityCodeInput {
+  code: string;
+}
+
+export interface RecoveryCodes {
+  codes: Array<string>;
+}
+
+export interface LoginDevice {
+  id: string;
+  ip_address: string;
+  user_agent: string;
+  created_at: number;
+  last_seen_at: number;
+  expires_at: number;
+  current: boolean;
+}
+
+export interface LoginDevices {
+  items: Array<LoginDevice>;
+}
+
+export interface RevokeDeviceInput {
+  id: string;
+}
+
+export interface EmailChangeInput {
+  current_challenge_id: string;
+  email: string;
+}
+
+export interface EmailChangeVerifyInput {
+  challenge_id: string;
+  code: string;
+}
+
+export interface AccountProfileResponse {
+  code: string;
+  message: string;
+  data: AccountProfile;
+  request_id: string;
+}
+
+export interface TOTPSetupResponse {
+  code: string;
+  message: string;
+  data: TOTPSetup;
+  request_id: string;
+}
+
+export interface RecoveryCodesResponse {
+  code: string;
+  message: string;
+  data: RecoveryCodes;
+  request_id: string;
+}
+
+export interface LoginDevicesResponse {
+  code: string;
+  message: string;
+  data: LoginDevices;
   request_id: string;
 }

@@ -116,6 +116,7 @@ func TestDialectMigrationsAndIdentity(t *testing.T) {
 			exerciseOIDC(t, ctx, store, repository, admin)
 			exerciseFiles(t, ctx, store, admin)
 			exerciseNotes(t, ctx, store)
+			exercisePersonal(t, ctx, store, admin)
 		})
 	}
 }

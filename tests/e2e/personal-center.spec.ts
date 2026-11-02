@@ -1,0 +1,90 @@
+// Author: yunnuo <ymz@ebox.vip>
+// Description: Real Go-backed personal-center, authenticator, recovery and device flows on PC and mobile.
+import {createHmac} from 'node:crypto';
+import {mkdir} from 'node:fs/promises';
+import {test,expect,navigate} from './fixtures';
+
+function code(secret:string,step:number){
+ const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';let bits='';for(const c of secret)bits+=alphabet.indexOf(c).toString(2).padStart(5,'0');
+ const key=Buffer.from(bits.match(/.{8}/g)!.map(v=>parseInt(v,2)));const counter=Buffer.alloc(8);counter.writeBigUInt64BE(BigInt(step));const hash=createHmac('sha1',key).update(counter).digest();const offset=hash.at(-1)!&15;
+ return ((hash.readUInt32BE(offset)&0x7fffffff)%1000000).toString().padStart(6,'0');
+}
+
+test('personal center supports profile, TOTP recovery login and device revocation',async({page,instance},info)=>{
+ test.setTimeout(90000);
+ expect((await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}})).status()).toBe(200);
+ await page.goto(`${instance.url}/admin`);
+ let boot=(await(await page.request.get(`${instance.url}/api/v1/admin/bootstrap`)).json()).data;
+ expect((await page.request.patch(`${instance.url}/api/v1/admin/settings`,{headers:{'X-CSRF-Token':boot.csrf_token},data:{changes:[{key:'security.login_captcha',value:'false'}]}})).status()).toBe(200);
+ await navigate(page,'个人资料');
+ await expect(page.getByLabel('用户名',{exact:true})).toBeDisabled();
+ await page.getByLabel('昵称',{exact:true}).fill('My display name');await page.getByRole('button',{name:'保存个人资料',exact:true}).click();await expect(page.getByText('个人资料已保存',{exact:true})).toBeVisible();
+ await page.reload();await expect(page.getByLabel('昵称',{exact:true})).toHaveValue('My display name');
+ await page.getByRole('button',{name:'更换邮箱',exact:true}).click();const email=page.getByRole('dialog',{name:'更换邮箱',exact:true});
+ await expect(email.getByLabel('邮箱验证码',{exact:true})).toBeFocused();
+ await expect(email.getByRole('button',{name:'验证并继续',exact:true})).toBeDisabled();
+ await email.getByRole('button',{name:'发送验证码',exact:true}).click();await expect(page.getByText('请先保存 SMTP 配置并成功发送测试邮件，再启用邮件账号流程',{exact:true})).toBeVisible();
+ await expect(email).toBeVisible();await page.keyboard.press('Escape');await expect(email).toHaveCount(0);await expect(page.getByRole('button',{name:'更换邮箱',exact:true})).toBeFocused();
+ await navigate(page,'安全设置');await page.getByRole('button',{name:'设置身份验证器',exact:true}).click();const setup=page.getByRole('dialog',{name:'设置身份验证器',exact:true});
+ await setup.getByLabel('当前密码',{exact:true}).fill('test-password-strong');await setup.getByRole('button',{name:'验证并开始设置',exact:true}).click();
+ await expect(setup.getByAltText('身份验证器设置二维码')).toBeVisible();
+ const secret=await setup.getByLabel('手动密钥',{exact:true}).inputValue();expect(secret).toMatch(/^[A-Z2-7]{32}$/);
+ await setup.getByLabel('身份验证器验证码',{exact:true}).fill(code(secret,Math.floor(Date.now()/30000)-1));await setup.getByRole('button',{name:'开启双重验证',exact:true}).click();
+ await expect(setup).toHaveCount(0);await expect(page.getByRole('button',{name:'下载恢复码',exact:true})).toBeVisible();
+ const recovery=await page.locator('code').allTextContents();expect(recovery).toHaveLength(10);
+ const downloadPromise=page.waitForEvent('download');await page.getByRole('button',{name:'下载恢复码',exact:true}).click();expect((await downloadPromise).suggestedFilename()).toBe('recovery-codes.txt');
+ await page.getByRole('button',{name:'已保存，关闭',exact:true}).click();await expect(page.locator('code')).toHaveCount(0);
+ // A second login is restricted until one unused recovery code is consumed.
+ const extraLogin=await instance.request.post('/api/v1/admin/auth/login',{data:{username:'admin',password:'test-password-strong',captcha_id:'',captcha_answer:''}});expect(extraLogin.status()).toBe(200);
+ const extra=(await extraLogin.json()).data;expect(extra.mfa_pending).toBe(true);
+ expect((await instance.request.get('/api/v1/admin/account/profile')).status()).toBe(401);
+ expect((await instance.request.post('/api/v1/admin/auth/mfa',{headers:{'X-CSRF-Token':extra.csrf_token},data:{code:recovery[0]}})).status()).toBe(200);
+ await navigate(page,'登录会话');
+ await expect(page.getByText('当前会话',{exact:true})).toBeVisible();await page.getByRole('button',{name:'下线其他设备',exact:true}).click();await page.getByRole('alertdialog').getByRole('button',{name:'确认下线',exact:true}).click();
+ await expect(page.getByRole('alertdialog')).toHaveCount(0);expect((await instance.request.get('/api/v1/admin/auth/session')).status()).toBe(401);
+ await instance.restart();await page.reload();await expect(page.getByText('当前会话',{exact:true})).toBeVisible();
+ const directory=`build/acceptance/personal-center/${info.project.name}`;await mkdir(directory,{recursive:true});await page.screenshot({path:`${directory}/sessions-zh.png`,fullPage:true});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.getByRole('button',{name:'账号菜单',exact:true}).click();await page.getByRole('menuitem',{name:'退出登录',exact:true}).click();
+ await page.getByLabel('账号或邮箱',{exact:true}).fill('admin');await page.getByLabel('密码',{exact:true}).fill('test-password-strong');await page.getByRole('button',{name:'登录工作空间',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'双重验证',exact:true})).toBeVisible();await expect(page.getByLabel('身份验证器验证码',{exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'使用恢复码',exact:true}).click();await page.getByLabel('恢复码',{exact:true}).fill(recovery[0]);await page.getByRole('button',{name:'验证并登录',exact:true}).click();await expect(page.getByRole('heading',{name:'双重验证',exact:true})).toBeVisible();
+ await page.getByLabel('恢复码',{exact:true}).fill(recovery[1]);await page.getByRole('button',{name:'验证并登录',exact:true}).click();await expect(page.getByRole('heading',{name:'一份核心，无限可能.',exact:true})).toBeVisible();
+ await page.evaluate(()=>{const key='unicore.preferences.v1';const v=JSON.parse(localStorage.getItem(key)||'{}');v.locale='en';v.theme='dark';localStorage.setItem(key,JSON.stringify(v));});
+ await page.goto(`${instance.url}/admin/account-security`);await expect(page.getByRole('heading',{name:'Security.',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Disable two-factor authentication',exact:true})).toBeVisible();
+ await page.screenshot({path:`${directory}/security-en-dark.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ if(info.project.name==='mobile')await page.getByRole('button',{name:'Open navigation',exact:true}).click();
+ await expect(page.locator('.sidebar').getByRole('button',{name:'Personal center',exact:true})).toHaveAttribute('aria-expanded','true');
+ await expect(page.locator('.sidebar').getByRole('button',{name:'Security',exact:true})).toHaveClass(/bg-primary-soft/);
+ await expect(page.locator('.sidebar').getByRole('button',{name:'Personal center',exact:true})).not.toHaveClass(/bg-primary-soft/);
+});
+
+test('forced enrollment applies to ordinary users and preserves recovery codes across policy refresh',async({page,instance},info)=>{
+ test.setTimeout(60000);
+ expect((await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}})).status()).toBe(200);
+ const boot=(await(await page.request.get(`${instance.url}/api/v1/admin/bootstrap`)).json()).data;
+ const headers={'X-CSRF-Token':boot.csrf_token};
+ expect((await page.request.post(`${instance.url}/api/v1/admin/users`,{headers,data:{username:'member',email:'member@example.test',password:'member-password-strong',role:'user'}})).status()).toBe(200);
+ expect((await page.request.patch(`${instance.url}/api/v1/admin/settings`,{headers,data:{changes:[{key:'security.login_captcha',value:'false'},{key:'security.force_2fa',value:'true'}]}})).status()).toBe(200);
+ expect((await page.request.post(`${instance.url}/api/v1/auth/login`,{data:{username:'member',password:'member-password-strong',captcha_id:'',captcha_answer:''}})).status()).toBe(200);
+ // Install the clock before mounting the shell so its polling interval is controlled.
+ await page.clock.install();
+ await page.goto(`${instance.url}/lab`);await expect(page).toHaveURL(`${instance.url}/account-security`);
+ await expect(page.getByText('实例要求启用双重验证，请先完成安全设置。',{exact:true})).toBeVisible();
+ expect((await page.request.get(`${instance.url}/api/v1/notes`)).status()).toBe(403);
+ await page.getByRole('button',{name:'设置身份验证器',exact:true}).click();const dialog=page.getByRole('dialog',{name:'设置身份验证器',exact:true});
+ await dialog.getByLabel('当前密码',{exact:true}).fill('member-password-strong');await dialog.getByRole('button',{name:'验证并开始设置',exact:true}).click();
+ const secret=await dialog.getByLabel('手动密钥',{exact:true}).inputValue();await dialog.getByLabel('身份验证器验证码',{exact:true}).fill(code(secret,Math.floor(Date.now()/30000)-1));await dialog.getByRole('button',{name:'开启双重验证',exact:true}).click();
+ await expect(page.locator('code')).toHaveCount(10);
+ const policyRefresh=page.waitForResponse(response=>response.url()===`${instance.url}/api/v1/bootstrap` && response.request().method()==='GET');
+ await page.clock.fastForward(31000);
+ expect((await policyRefresh).status()).toBe(200);
+ await expect(page.getByText('实例要求启用双重验证，请先完成安全设置。',{exact:true})).toHaveCount(0);
+ await expect(page.locator('code')).toHaveCount(10); // A bootstrap refresh must not unmount the one-time recovery-code display.
+ await expect(page.getByRole('button',{name:'关闭双重验证',exact:true})).toBeDisabled();
+ await page.getByRole('button',{name:'已保存，关闭',exact:true}).click();await expect(page.locator('code')).toHaveCount(0);
+ expect((await page.request.get(`${instance.url}/api/v1/notes`)).status()).toBe(200);
+ if(info.project.name==='mobile')await page.getByRole('button',{name:'打开导航',exact:true}).click();
+ await expect(page.locator('.sidebar').getByRole('button',{name:'个人中心',exact:true})).toBeVisible();
+ await expect(page.locator('.sidebar').getByRole('button',{name:'系统设置',exact:true})).toHaveCount(0);
+});

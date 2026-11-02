@@ -22,6 +22,7 @@ import (
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/observability"
+	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/updateport"
 	"github.com/yunnuo/unicore/internal/usecase"
 	apispec "github.com/yunnuo/unicore/packages/contracts"
@@ -97,6 +98,7 @@ func New(config Config) http.Handler {
 				}
 				r = r.WithContext(audit.With(r.Context(), audit.Metadata{IP: ip(r), Realm: realm, Target: r.URL.Path}))
 			}
+			r = r.WithContext(platform.WithDevice(r.Context(), ip(r), r.UserAgent()))
 			next.ServeHTTP(w, r)
 		})
 	})

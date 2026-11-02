@@ -119,6 +119,9 @@ func (r *Repository) ConsumeEmailChallenge(ctx context.Context, id, purpose, dig
 			_, err = r.exec(ctx, tx, "INSERT INTO unicore_sessions(token_hash,user_id,expires_at) VALUES(?,?,?)", sessionHash, user, sessionExpires)
 		}
 		if err == nil {
+			err = r.recordDevice(ctx, tx, sessionHash, user, 0)
+		}
+		if err == nil {
 			_, err = r.exec(ctx, tx, "UPDATE unicore_users SET last_login_at=? WHERE id=?", now, user)
 		}
 	default:

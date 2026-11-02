@@ -22,6 +22,8 @@ const AUDIT_COLUMNS = 7;
 const MAIL_COLUMNS = 4;
 const PAGE_SIZES = [20, 50, 100] as const;
 const actions = defineMessages({
+ 'account.profile.updated':'修改个人资料','account.email.code.requested':'申请邮箱换绑验证码','account.email.changed':'更换账号邮箱',
+ 'account.totp.enabled':'开启双重验证','account.totp.disabled':'关闭双重验证','auth.mfa.verified':'完成双重验证','account.sessions.revoked':'下线登录设备',
   'announcements.created': '新增平台公告', 'announcements.updated': '更新平台公告', 'announcements.deleted': '删除平台公告', 'announcements.configured': '配置平台公告',
   'install.completed': '完成安装', 'users.created': '新增用户', 'users.updated': '更新用户状态', 'administrators.created': '新增管理员', 'administrators.updated': '更新管理员状态',
   'settings.updated': '更新系统设置', 'auth.login': '账号登录', 'account.password.changed': '修改密码', 'mail.notification.queued': '系统通知入队',

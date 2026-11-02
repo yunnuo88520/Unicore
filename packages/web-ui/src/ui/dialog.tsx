@@ -96,7 +96,7 @@ export function ConfirmDialog({ title, description, confirmLabel, cancelLabel, d
         <AlertDialogPrimitive.Title className="text-md font-semibold text-ink">{t(title)}</AlertDialogPrimitive.Title>
         {description && <AlertDialogPrimitive.Description className="mt-1 text-sm text-muted">{t(description)}</AlertDialogPrimitive.Description>}
         <AlertDialogPrimitive.Action asChild>
-          <Button variant={danger ? 'danger' : 'primary'} className="mt-4" pending={pending} onClick={onConfirm}>{t(confirmLabel)}</Button>
+          <Button variant={danger ? 'danger' : 'primary'} className="mt-4" pending={pending} onClick={event => { event.preventDefault(); onConfirm(); }}>{t(confirmLabel)}</Button>
         </AlertDialogPrimitive.Action>
         <AlertDialogPrimitive.Cancel asChild>
           <Button variant="secondary" className="mt-4 ms-2" disabled={pending} onClick={onCancel}>{t(cancelLabel)}</Button>

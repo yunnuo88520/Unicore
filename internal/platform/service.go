@@ -4,6 +4,7 @@ package platform
 
 import (
 	"context"
+	"errors"
 	"net/mail"
 	"regexp"
 	"strings"
@@ -54,6 +55,7 @@ func (s *Service) ChangePassword(ctx context.Context, user contracts.User, input
 }
 
 type Service struct {
+	Personal   *Personal
 	Store      Store
 	Limiter    *Limiter
 	Captchas   *Captchas
@@ -119,13 +121,23 @@ func (s *Service) issue(ctx context.Context, user contracts.User, hours int, cre
 	if err := s.Store.CreateSession(ctx, Hash(token), user.ID, expires, credentialHash); err != nil {
 		return contracts.Session{}, "", err
 	}
-	return contracts.Session{User: user, CsrfToken: CSRF(token), ExpiresAt: expires}, token, nil
+	pending := false
+	if _, _, err := s.Store.Session(ctx, Hash(token)); err != nil {
+		if !errors.Is(err, ErrMFA) {
+			return contracts.Session{}, "", err
+		}
+		pending = true
+	}
+	return contracts.Session{User: user, CsrfToken: CSRF(token), ExpiresAt: expires, MfaPending: &pending}, token, nil
 }
 func (s *Service) Session(ctx context.Context, token string) (contracts.Session, error) {
 	if len(token) != 43 {
 		return contracts.Session{}, ErrCredentials
 	}
 	user, expires, err := s.Store.Session(ctx, Hash(token))
+	if errors.Is(err, ErrMFA) {
+		return contracts.Session{}, ErrMFA
+	}
 	if err != nil || user.Status != "active" || expires <= int(time.Now().Unix()) {
 		return contracts.Session{}, ErrCredentials
 	}

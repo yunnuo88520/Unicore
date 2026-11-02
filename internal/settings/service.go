@@ -93,6 +93,8 @@ var Definitions = append([]SettingDefinition{
 	{"appearance.theme", "string", "appearance", "默认主题", "system", false, false, oneOf("light", "dark", "system")},
 	{"admin.path", "string", "admin", "管理后台路径", "/admin", true, false, ValidAdminPath},
 	{"security.login_captcha", "boolean", "security", "登录图形验证码", "true", true, false, oneOf("true", "false")},
+	{"security.force_2fa", "boolean", "security", "强制双重验证", "false", true, false, oneOf("true", "false")},
+	{"security.allow_disable_2fa", "boolean", "security", "允许关闭双重验证", "true", true, false, oneOf("true", "false")},
 	{"security.session_hours", "integer", "security", "会话有效期（小时）", "24", true, false, integer(1, 168)},
 	{"security.register_captcha", "boolean", "registration", "注册图形验证码", "true", true, false, oneOf("true", "false")},
 	{"account.registration_enabled", "boolean", "registration", "开放注册（需验证邮箱）", "false", true, false, oneOf("true", "false")},

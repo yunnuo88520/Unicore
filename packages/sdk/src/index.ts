@@ -2,14 +2,14 @@
  * Description: Shared UI client; pages know neither fetch nor Wails globals.
  */
 import {fileFingerprint,retryDelay} from './upload';
-import type { UploadPolicy, MultipartUpload, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
+import type { AccountProfile, ProfileInput, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
 import { operations, type OperationId, type OperationInputs, type OperationData } from '@unicore/contracts/operations';
 import { validate, type SchemaName } from '@unicore/contracts/validate';
 export { validate, constraints, type SchemaName } from '@unicore/contracts/validate';
 export { constraintsToZod, zodFieldErrors } from '@unicore/contracts/zod';
 export { operations, type OperationId } from '@unicore/contracts/operations';
 
-export type { UploadPolicy, MultipartUpload, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateRelease, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
+export type { AccountProfile, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateRelease, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
 
 export class AppError extends Error {
   constructor(public readonly code: string, message: string, public readonly requestId = '', public readonly fields: Record<string, string> = {}) { super(message); this.name = 'AppError'; }
@@ -73,6 +73,22 @@ export interface StorageClient {
 }
 
 export interface WebClient {
+ accountProfile():Promise<AccountProfile>;
+ saveAccountProfile(input:ProfileInput):Promise<AccountProfile>;
+ beginTOTP(password:string):Promise<TOTPSetup>;
+ cancelTOTP():Promise<{success:boolean}>;
+ enableTOTP(code:string):Promise<RecoveryCodes>;
+ disableTOTP(code:string):Promise<{success:boolean}>;
+ verifyMFA(code:string):Promise<Session>;
+ cancelMFA():Promise<{success:boolean}>;
+ accountSessions():Promise<LoginDevices>;
+ revokeAccountSession(id:string):Promise<{success:boolean}>;
+ revokeOtherSessions():Promise<{success:boolean}>;
+ requestCurrentEmail():Promise<EmailChallenge>;
+ verifyCurrentEmail(challenge_id:string,code:string):Promise<{success:boolean}>;
+ requestNewEmail(current_challenge_id:string,email:string):Promise<EmailChallenge>;
+ confirmNewEmail(challenge_id:string,code:string):Promise<AccountProfile>;
+
  adminAnnouncements(query:AnnouncementQuery):Promise<AnnouncementList>;
  createAnnouncement(input:AnnouncementInput):Promise<AnnouncementEntry>;
  updateAnnouncement(id:string,input:AnnouncementUpdate):Promise<AnnouncementEntry>;
@@ -129,6 +145,22 @@ function unwrap<T>(response: { code: string; message: string; data: T; request_i
 }
 
 const administratorOperations: Partial<Record<OperationId, OperationId>> = {
+ accountProfile:'adminAccountProfile',
+ saveAccountProfile:'adminSaveAccountProfile',
+ beginTOTP:'adminBeginTOTP',
+ cancelTOTP:'adminCancelTOTP',
+ enableTOTP:'adminEnableTOTP',
+ disableTOTP:'adminDisableTOTP',
+ verifyMFA:'adminVerifyMFA',
+ cancelMFA:'adminCancelMFA',
+ accountSessions:'adminAccountSessions',
+ revokeAccountSession:'adminRevokeAccountSession',
+ revokeOtherSessions:'adminRevokeOtherSessions',
+ requestCurrentEmail:'adminRequestCurrentEmail',
+ verifyCurrentEmail:'adminVerifyCurrentEmail',
+ requestNewEmail:'adminRequestNewEmail',
+ confirmNewEmail:'adminConfirmNewEmail',
+
  fileUploadPolicy:'adminFileUploadPolicy',createMultipartUpload:'adminCreateMultipartUpload',multipartUpload:'adminMultipartUpload',signUploadPart:'adminSignUploadPart',uploadLocalPart:'adminUploadLocalPart',completeMultipartUpload:'adminCompleteMultipartUpload',
 
  updateOverview:"adminUpdateOverview",checkUpdate:"adminCheckUpdate",applyUpdate:"adminApplyUpdate",
@@ -224,7 +256,7 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   async bootstrap(options?: RequestOptions) {
     let data = await this.call('bootstrap', undefined, options);
     const nextIdentity = data.current_user?.id ?? '';
-    const expired = this.authenticated && !data.current_user;
+    const expired = this.authenticated && !data.current_user && !data.mfa_pending;
     const switched = this.bootstrapped && this.identity !== nextIdentity;
     this.csrf = data.csrf_token ?? '';
     this.platform = data.profile === 'web-platform';
@@ -234,6 +266,21 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
     if (expired || switched) this.sessionChanged(expired ? 'expired' : 'external');
     return data;
   }
+ accountProfile(){return this.call('accountProfile');}
+ saveAccountProfile(input:ProfileInput){return this.call('saveAccountProfile',input);}
+ beginTOTP(password:string){return this.call('beginTOTP',{password});}
+ cancelTOTP(){return this.call('cancelTOTP');}
+ enableTOTP(code:string){return this.call('enableTOTP',{code});}
+ disableTOTP(code:string){return this.call('disableTOTP',{code});}
+ async verifyMFA(code:string){const session=await this.call('verifyMFA',{code});this.csrf=session.csrf_token;this.identity=session.user.id;this.authenticated=true;this.sessionChanged('authenticated');return session;}
+ async cancelMFA(){const result=await this.call('cancelMFA');this.resetSession();return result;}
+ accountSessions(){return this.call('accountSessions');}
+ revokeAccountSession(id:string){return this.call('revokeAccountSession',{id});}
+ revokeOtherSessions(){return this.call('revokeOtherSessions');}
+ requestCurrentEmail(){return this.call('requestCurrentEmail');}
+ verifyCurrentEmail(challenge_id:string,code:string){return this.call('verifyCurrentEmail',{challenge_id,code});}
+ requestNewEmail(current_challenge_id:string,email:string){return this.call('requestNewEmail',{current_challenge_id,email});}
+ confirmNewEmail(challenge_id:string,code:string){return this.call('confirmNewEmail',{challenge_id,code});}
   execute(input: ExecuteInput, options?: RequestOptions) { return this.call('execute', input, options); }
   adminAnnouncements(query:AnnouncementQuery){return this.call('adminAnnouncements',undefined,{query:{...query}});}
  createAnnouncement(input:AnnouncementInput){return this.call('createAnnouncement',input);}
@@ -251,7 +298,7 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   oidcCheck() { return this.call('oidcCheck'); }
   registerCode(input:RegisterInput){return this.call('registerEmailCode',input);}
  requestCode(purpose:'verify'|'reset'|'login',input:EmailRequest){return this.call(purpose==='login'?'requestEmailLogin':purpose==='reset'?'requestEmailReset':'requestEmailVerify',input);}
- async completeCode(purpose:'verify'|'reset'|'login',input:EmailCodeInput){const result=await this.call(purpose==='login'?'completeEmailLogin':purpose==='reset'?'completeEmailReset':'completeEmailVerify',input);if('csrf_token' in result){this.csrf=result.csrf_token;this.identity=result.user.id;this.authenticated=true;this.sessionChanged('authenticated');}return result;}
+ async completeCode(purpose:'verify'|'reset'|'login',input:EmailCodeInput){const result=await this.call(purpose==='login'?'completeEmailLogin':purpose==='reset'?'completeEmailReset':'completeEmailVerify',input);if('csrf_token' in result){this.csrf=result.csrf_token;this.identity=result.mfa_pending?'':result.user.id;this.authenticated=!result.mfa_pending;this.sessionChanged('authenticated');}return result;}
  mailTemplates(){return this.call('mailTemplates');}
  saveMailTemplate(input:MailTemplateInput){return this.call('saveMailTemplate',input);}
  previewMailTemplate(input:MailTemplateInput){return this.call('previewMailTemplate',input);}
@@ -269,7 +316,7 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   verifyDatabase(token: string, input: DatabaseInput) { return this.call('verifyDatabase', input, { headers: { 'X-Bootstrap-Token': token } }); }
   completeInstall(token: string, input: InstallInput) { return this.call('completeInstall', input, { headers: { 'X-Bootstrap-Token': token } }); }
   captcha() { return this.call('captcha'); }
-  async login(input: LoginInput) { const session = await this.call('login', input); this.csrf = session.csrf_token; this.identity = session.user.id; this.authenticated = true; this.sessionChanged('authenticated'); return session; }
+  async login(input: LoginInput) { const session = await this.call('login', input); this.csrf = session.csrf_token; this.identity = session.mfa_pending ? '' : session.user.id; this.authenticated = !session.mfa_pending; this.sessionChanged('authenticated'); return session; }
   async logout() { const data = await this.call('logout'); this.csrf = ''; this.identity = ''; this.authenticated = false; this.sessionChanged('signed-out'); return data; }
   systemLogs(query?:AuditLogQuery){return this.call('systemLogs',undefined,{query:query?{...query}:undefined});}
  exportSystemLogs(query:AuditLogQuery){return this.call('exportSystemLogs',undefined,{query:{...query}});}

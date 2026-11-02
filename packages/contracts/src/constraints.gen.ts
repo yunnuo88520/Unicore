@@ -177,6 +177,12 @@ export const constraints = {
       },
       "maintenance_message": {
         "type": "string"
+      },
+      "mfa_pending": {
+        "type": "boolean"
+      },
+      "mfa_enrollment_required": {
+        "type": "boolean"
       }
     }
   },
@@ -630,6 +636,9 @@ export const constraints = {
       },
       "expires_at": {
         "type": "integer"
+      },
+      "mfa_pending": {
+        "type": "boolean"
       }
     }
   },
@@ -3873,6 +3882,327 @@ export const constraints = {
       "request_id": {
         "type": "string",
         "maxLength": 64
+      }
+    }
+  },
+  "AccountProfile": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "user",
+      "display_name",
+      "totp_enabled",
+      "force_2fa",
+      "can_disable_2fa"
+    ],
+    "properties": {
+      "user": {
+        "$ref": "#/components/schemas/User"
+      },
+      "display_name": {
+        "type": "string",
+        "maxLength": 80,
+        "minLength": 0
+      },
+      "totp_enabled": {
+        "type": "boolean"
+      },
+      "force_2fa": {
+        "type": "boolean"
+      },
+      "can_disable_2fa": {
+        "type": "boolean"
+      }
+    }
+  },
+  "ProfileInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "display_name"
+    ],
+    "properties": {
+      "display_name": {
+        "type": "string",
+        "maxLength": 80,
+        "minLength": 0
+      }
+    }
+  },
+  "TOTPSetupInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "password"
+    ],
+    "properties": {
+      "password": {
+        "type": "string",
+        "maxLength": 128,
+        "minLength": 1
+      }
+    }
+  },
+  "TOTPSetup": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "secret",
+      "otpauth_url",
+      "expires_at"
+    ],
+    "properties": {
+      "secret": {
+        "type": "string",
+        "maxLength": 128,
+        "minLength": 0
+      },
+      "otpauth_url": {
+        "type": "string",
+        "maxLength": 2048,
+        "minLength": 0
+      },
+      "expires_at": {
+        "type": "integer"
+      }
+    }
+  },
+  "SecurityCodeInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code"
+    ],
+    "properties": {
+      "code": {
+        "type": "string",
+        "maxLength": 64,
+        "minLength": 6
+      }
+    }
+  },
+  "RecoveryCodes": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "codes"
+    ],
+    "properties": {
+      "codes": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 0
+        }
+      }
+    }
+  },
+  "LoginDevice": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "ip_address",
+      "user_agent",
+      "created_at",
+      "last_seen_at",
+      "expires_at",
+      "current"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 128,
+        "minLength": 0
+      },
+      "ip_address": {
+        "type": "string",
+        "maxLength": 128,
+        "minLength": 0
+      },
+      "user_agent": {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 0
+      },
+      "created_at": {
+        "type": "integer"
+      },
+      "last_seen_at": {
+        "type": "integer"
+      },
+      "expires_at": {
+        "type": "integer"
+      },
+      "current": {
+        "type": "boolean"
+      }
+    }
+  },
+  "LoginDevices": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/LoginDevice"
+        }
+      }
+    }
+  },
+  "RevokeDeviceInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64,
+        "minLength": 1
+      }
+    }
+  },
+  "EmailChangeInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "current_challenge_id",
+      "email"
+    ],
+    "properties": {
+      "current_challenge_id": {
+        "type": "string",
+        "maxLength": 64,
+        "minLength": 0
+      },
+      "email": {
+        "type": "string",
+        "format": "email",
+        "maxLength": 254
+      }
+    }
+  },
+  "EmailChangeVerifyInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "challenge_id",
+      "code"
+    ],
+    "properties": {
+      "challenge_id": {
+        "type": "string",
+        "maxLength": 64,
+        "minLength": 1
+      },
+      "code": {
+        "type": "string",
+        "pattern": "^[0-9]{6}$",
+        "minLength": 6,
+        "maxLength": 6
+      }
+    }
+  },
+  "AccountProfileResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/AccountProfile"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "TOTPSetupResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/TOTPSetup"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "RecoveryCodesResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/RecoveryCodes"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "LoginDevicesResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/LoginDevices"
+      },
+      "request_id": {
+        "type": "string"
       }
     }
   }

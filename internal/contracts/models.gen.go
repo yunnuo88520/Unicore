@@ -28,29 +28,31 @@ type Capabilities struct {
 }
 
 type Bootstrap struct {
-	Profile            Profile      `json:"profile"`
-	Version            string       `json:"version"`
-	Commit             string       `json:"commit"`
-	BuildTime          string       `json:"build_time"`
-	Stage              string       `json:"stage"`
-	DeploymentKind     string       `json:"deployment_kind"`
-	Capabilities       Capabilities `json:"capabilities"`
-	Installed          bool         `json:"installed"`
-	SiteName           string       `json:"site_name"`
-	AdminPath          string       `json:"admin_path"`
-	CurrentUser        *User        `json:"current_user,omitempty"`
-	CsrfToken          *string      `json:"csrf_token,omitempty"`
-	SiteDescription    *string      `json:"site_description,omitempty"`
-	SiteCopyright      *string      `json:"site_copyright,omitempty"`
-	SiteIcpNumber      *string      `json:"site_icp_number,omitempty"`
-	SiteIcpUrl         *string      `json:"site_icp_url,omitempty"`
-	Theme              *string      `json:"theme,omitempty"`
-	Branding           *Branding    `json:"branding,omitempty"`
-	IdentityRealm      *string      `json:"identity_realm,omitempty"`
-	SitePoliceNumber   *string      `json:"site_police_number,omitempty"`
-	SiteFooterHtml     *string      `json:"site_footer_html,omitempty"`
-	MaintenanceEnabled *bool        `json:"maintenance_enabled,omitempty"`
-	MaintenanceMessage *string      `json:"maintenance_message,omitempty"`
+	Profile               Profile      `json:"profile"`
+	Version               string       `json:"version"`
+	Commit                string       `json:"commit"`
+	BuildTime             string       `json:"build_time"`
+	Stage                 string       `json:"stage"`
+	DeploymentKind        string       `json:"deployment_kind"`
+	Capabilities          Capabilities `json:"capabilities"`
+	Installed             bool         `json:"installed"`
+	SiteName              string       `json:"site_name"`
+	AdminPath             string       `json:"admin_path"`
+	CurrentUser           *User        `json:"current_user,omitempty"`
+	CsrfToken             *string      `json:"csrf_token,omitempty"`
+	SiteDescription       *string      `json:"site_description,omitempty"`
+	SiteCopyright         *string      `json:"site_copyright,omitempty"`
+	SiteIcpNumber         *string      `json:"site_icp_number,omitempty"`
+	SiteIcpUrl            *string      `json:"site_icp_url,omitempty"`
+	Theme                 *string      `json:"theme,omitempty"`
+	Branding              *Branding    `json:"branding,omitempty"`
+	IdentityRealm         *string      `json:"identity_realm,omitempty"`
+	SitePoliceNumber      *string      `json:"site_police_number,omitempty"`
+	SiteFooterHtml        *string      `json:"site_footer_html,omitempty"`
+	MaintenanceEnabled    *bool        `json:"maintenance_enabled,omitempty"`
+	MaintenanceMessage    *string      `json:"maintenance_message,omitempty"`
+	MfaPending            *bool        `json:"mfa_pending,omitempty"`
+	MfaEnrollmentRequired *bool        `json:"mfa_enrollment_required,omitempty"`
 }
 
 type BootstrapResponse struct {
@@ -166,9 +168,10 @@ type LoginInput struct {
 }
 
 type Session struct {
-	User      User   `json:"user"`
-	CsrfToken string `json:"csrf_token"`
-	ExpiresAt int    `json:"expires_at"`
+	User       User   `json:"user"`
+	CsrfToken  string `json:"csrf_token"`
+	ExpiresAt  int    `json:"expires_at"`
+	MfaPending *bool  `json:"mfa_pending,omitempty"`
 }
 
 type Captcha struct {
@@ -977,4 +980,90 @@ type MultipartUploadResponse struct {
 	Code      string          `json:"code"`
 	Data      MultipartUpload `json:"data"`
 	RequestID string          `json:"request_id"`
+}
+
+type AccountProfile struct {
+	User          User   `json:"user"`
+	DisplayName   string `json:"display_name"`
+	TotpEnabled   bool   `json:"totp_enabled"`
+	Force2fa      bool   `json:"force_2fa"`
+	CanDisable2fa bool   `json:"can_disable_2fa"`
+}
+
+type ProfileInput struct {
+	DisplayName string `json:"display_name"`
+}
+
+type TOTPSetupInput struct {
+	Password string `json:"password"`
+}
+
+type TOTPSetup struct {
+	Secret     string `json:"secret"`
+	OtpauthUrl string `json:"otpauth_url"`
+	ExpiresAt  int    `json:"expires_at"`
+}
+
+type SecurityCodeInput struct {
+	Code string `json:"code"`
+}
+
+type RecoveryCodes struct {
+	Codes []string `json:"codes"`
+}
+
+type LoginDevice struct {
+	ID         string `json:"id"`
+	IpAddress  string `json:"ip_address"`
+	UserAgent  string `json:"user_agent"`
+	CreatedAt  int    `json:"created_at"`
+	LastSeenAt int    `json:"last_seen_at"`
+	ExpiresAt  int    `json:"expires_at"`
+	Current    bool   `json:"current"`
+}
+
+type LoginDevices struct {
+	Items []LoginDevice `json:"items"`
+}
+
+type RevokeDeviceInput struct {
+	ID string `json:"id"`
+}
+
+type EmailChangeInput struct {
+	CurrentChallengeID string `json:"current_challenge_id"`
+	Email              string `json:"email"`
+}
+
+type EmailChangeVerifyInput struct {
+	ChallengeID string `json:"challenge_id"`
+	Code        string `json:"code"`
+}
+
+type AccountProfileResponse struct {
+	Code      string         `json:"code"`
+	Message   string         `json:"message"`
+	Data      AccountProfile `json:"data"`
+	RequestID string         `json:"request_id"`
+}
+
+type TOTPSetupResponse struct {
+	Code      string    `json:"code"`
+	Message   string    `json:"message"`
+	Data      TOTPSetup `json:"data"`
+	RequestID string    `json:"request_id"`
+}
+
+type RecoveryCodesResponse struct {
+	Code      string        `json:"code"`
+	Message   string        `json:"message"`
+	Data      RecoveryCodes `json:"data"`
+	RequestID string        `json:"request_id"`
+}
+
+type LoginDevicesResponse struct {
+	Code      string       `json:"code"`
+	Message   string       `json:"message"`
+	Data      LoginDevices `json:"data"`
+	RequestID string       `json:"request_id"`
 }

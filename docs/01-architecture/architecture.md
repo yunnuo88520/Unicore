@@ -138,3 +138,7 @@ React 的独立可折叠导航、Radix dialog 弹层、头像密码/退出、邮
 持久上传会话采用 blob.Multipart / PartReceiver 扩展，files 编排服务端权威分片与安全发布，filesql 存储不可变分片几何；长流不持有全局锁，确认复核删除状态。平台 schema=12，客户端复用 SDK 与 FileUploadDialog，见 [ADR-0022](../adr/ADR-0022-resumable-uploads.md)。
 
 Web 安装完成还写入私有 install.lock，配置中的 lock_version 区分历史无锁版本与明确删锁。只有启动边界检测到已启用锁的已安装实例缺锁，才转为带私有原库归属证明的重装 intent；新凭据、原库显式清空确认及别站/未知库拒绝均由后端执行，见 [ADR-0028](../adr/ADR-0028-explicit-installation-unlock.md)。框架表固定 unicore_，派生身份不参与数据库命名，兼容重命名见 [ADR-0029](../adr/ADR-0029-fixed-framework-table-prefix.md)。
+
+## 个人中心与会话安全
+
+[ADR-0030](../adr/ADR-0030-personal-center-security.md) 在 platform.Personal 与 platformsql 增加本人资料、邮箱换绑、验证器与设备事务；共享 UI/SDK 只调用契约 operation。SQL Session 统一拦截尚未完成 TOTP 的登录，密码/邮件/OIDC 均不能绕过；bootstrap 只给受限挑战状态和 CSRF。安装锁事务原子消费计数器/恢复码，邮箱证明绑定原邮箱与同一会话，审计不含秘密。平台追加旧账本迁移 0014；独立/桌面仍为 0013，新 namespace baseline 不激活。

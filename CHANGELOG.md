@@ -5,6 +5,8 @@
 
 ### 中文
 
+- 重做登录、注册、找回密码与注册完成页，统一双栏布局、真实页面互链、密码显隐及注册/重置确认密码；注册完成不再重复登录入口。注册用户名/邮箱冲突返回 409 与字段提示，保留事务和唯一约束，修复重复注册被伪报成功的问题；邮件恢复仍不泄露账号存在性。
+
 - 新增账户安全二级菜单、两类账号 2FA 状态列、分域强制验证、登录失败 IP 封禁与会话超时；登录注册页采用双栏卡片与移动端布局。
 
 - 修复验证器绑定密钥自动失效，验证可解码二维码与真实 TOTP 登录；拆分开放注册/邮箱验证，新增后缀限制、黑名单、存储内联表单及上传路径/扩展名策略。
@@ -28,6 +30,8 @@
 - 新增 product:check 只读门禁与派生项目残留扫描 check:residuals（框架仓库自动跳过）；安装与数据库错误文案去产品化并同步中英文；示例文本与发行 README 改为按身份生成。
 
 ### English
+
+- Rebuild linked login, registration, recovery and registration-success pages with a shared split layout, password visibility and registration/reset confirmation. Keep one sign-in action on completion. Return 409 and field feedback for duplicate usernames/emails, preserve transaction and unique constraints, and stop reporting duplicate registration as success; recovery responses remain opaque.
 
 - Add account security management, read-only 2FA status, realm-specific enforcement, temporary login IP bans and session timeouts; redesign authentication with responsive split cards.
 

@@ -28,3 +28,5 @@ Web 用户与管理员分别从 main.tsx/admin.tsx 装配；全局管理页仅�
 公告管理和用户卡片复用 ui 原语、DashboardWidgetRegistry 与安全 RichContent；公告/邮件主题正文是原始业务数据，不经过 t()。默认邮件模板固定中文，UI 的双语约束不能用于翻译用户内容。富文本编辑使用 ui/editor.tsx 的 RichTextEditor（Tiptap，标签白名单与 {{site_url}} 链接校验），服务端仍对入站 HTML 做白名单再校验；渲染侧统一走 rich-content.tsx 的 safeContentHTML。Recharts 图表能力封装在 ui/charts.tsx，接入新统计前不得展示无真实数据支撑的图形。
 
 私有文件上传复用 FileUploadDialog 与 AppClient.files.uploadFile 的持久分片流程：字节进度以确认分片为准，signal 为暂停，deleteFile 为放弃；恢复需重新选择原文件并核对指纹，不在 localStorage 存签名 URL、File 或身份。仅平台装配，见 [存储手册](../03-runbooks/storage.md)。
+
+认证入口沿用共享表单和 SDK 生成校验：登录 /login、注册 /register、忘记密码 /forgot-password、注册完成 /registration-success 以真实 Link 导航，不用局部 mode 按钮冒充页面。注册/重置同时校验确认密码，确认值只留表单内存，不发送到 API。成功页只显示完成标题和一个主要返回入口；成功结果仅由实际 API 成功后写入非敏感 history state，不持久化账号、密码或凭据。普通用户的注册入口按策略呈现不可用状态，不能让管理员通过路径获得自助注册能力。

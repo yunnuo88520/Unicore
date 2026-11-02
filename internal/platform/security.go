@@ -29,6 +29,13 @@ var (
 	ErrCaptcha     = errors.New("invalid or expired captcha")
 )
 
+// AccountConflict identifies the already-used field without exposing database
+// messages or account details. Database uniqueness remains the final guard.
+type AccountConflict struct{ Field string }
+
+func (e *AccountConflict) Error() string { return ErrConflict.Error() }
+func (e *AccountConflict) Unwrap() error { return ErrConflict }
+
 func Token() string {
 	var data [32]byte
 	if _, err := rand.Read(data[:]); err != nil {

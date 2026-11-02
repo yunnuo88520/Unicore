@@ -85,9 +85,6 @@ func (a *Accounts) RegisterCode(ctx context.Context, input contracts.RegisterInp
 	input.Password = ""
 	if !policy.EmailVerificationRequired {
 		err = a.Store.RegisterActiveAccount(ctx, input, hash)
-		if errors.Is(err, ErrConflict) {
-			err = nil
-		}
 		complete := true
 		return contracts.EmailChallenge{RegistrationComplete: &complete}, err
 	}
@@ -99,9 +96,6 @@ func (a *Accounts) RegisterCode(ctx context.Context, input contracts.RegisterInp
 		return contracts.EmailChallenge{}, err
 	}
 	err = a.Store.RegisterEmailChallenge(ctx, input, hash, c)
-	if errors.Is(err, ErrConflict) {
-		err = nil
-	}
 	return challengeResult(c), err
 }
 func (a *Accounts) RequestCode(ctx context.Context, input contracts.EmailRequest, ip, purpose string) (contracts.EmailChallenge, error) {

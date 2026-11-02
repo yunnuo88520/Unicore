@@ -130,7 +130,7 @@ function WorkspaceShell() {
     return <PagePropsProvider value={props}>
       <div className="flex min-h-dvh flex-col bg-background">
         <div className="flex flex-1 items-center justify-center px-4 py-8 sm:px-6 lg:py-12">
-          <div className="relative w-full max-w-6xl overflow-hidden rounded-3xl border border-line bg-surface shadow-card">
+          <div className="relative w-full max-w-[1200px] overflow-hidden rounded-3xl border border-line bg-surface shadow-card">
             <div className="absolute end-4 top-4 z-[45]"><ClientControls /></div>
             <Flow {...props} />
           </div>

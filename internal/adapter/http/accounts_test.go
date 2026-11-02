@@ -127,7 +127,28 @@ func TestMailAccountHTTP(t *testing.T) {
 	id, answer = challenge()
 	duplicate := registration
 	duplicate.CaptchaID, duplicate.CaptchaAnswer = id, answer
-	assertStatus(request("POST", "/auth/register", duplicate, "", "", ""), 200)
+	duplicateResponse := request("POST", "/auth/register", duplicate, "", "", "")
+	assertStatus(duplicateResponse, 409)
+	if !strings.Contains(duplicateResponse.Body.String(), `"fields":{"username":`) {
+		t.Fatal("duplicate username was not identified", duplicateResponse.Body.String())
+	}
+	id, answer = challenge()
+	duplicate.Username = "anothermember"
+	duplicate.Email = strings.ToUpper(registration.Email)
+	duplicate.CaptchaID, duplicate.CaptchaAnswer = id, answer
+	duplicateResponse = request("POST", "/auth/register", duplicate, "", "", "")
+	assertStatus(duplicateResponse, 409)
+	if !strings.Contains(duplicateResponse.Body.String(), `"fields":{"email":`) {
+		t.Fatal("duplicate email was not identified", duplicateResponse.Body.String())
+	}
+	id, answer = challenge()
+	duplicate.Username, duplicate.Email = registration.Username, "code-duplicate@example.test"
+	duplicate.CaptchaID, duplicate.CaptchaAnswer = id, answer
+	duplicateResponse = request("POST", "/auth/email/register", duplicate, "", "", "")
+	assertStatus(duplicateResponse, 409)
+	if strings.Contains(duplicateResponse.Body.String(), "challenge_id") || !strings.Contains(duplicateResponse.Body.String(), `"fields":{"username":`) {
+		t.Fatal("code registration returned false success for a duplicate", duplicateResponse.Body.String())
+	}
 	// Close and reopen the actual database/key/config before delivering queued registration mail.
 	if err = manager.Close(); err != nil {
 		t.Fatal(err)

@@ -988,6 +988,16 @@
               }
             }
           },
+          "409": {
+            "description": "Account or email already registered, or registration disabled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "default": {
             "description": "Stable error code",
             "content": {
@@ -1023,7 +1033,8 @@
         },
         "security": [],
         "summary": "register",
-        "parameters": []
+        "parameters": [],
+        "description": " 用户名与邮箱按去除首尾空格、统一小写后的值判重；重复返回 ACCOUNT_EXISTS（409），fields 指明 username 或 email，不返回注册成功。"
       }
     },
     "/api/v1/auth/verification/request": {
@@ -1307,6 +1318,16 @@
               }
             }
           },
+          "409": {
+            "description": "Account or email already registered, or registration disabled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "default": {
             "description": "Stable error code",
             "content": {
@@ -1341,7 +1362,8 @@
         },
         "security": [],
         "summary": "registerEmailCode",
-        "parameters": []
+        "parameters": [],
+        "description": " 用户名与邮箱按去除首尾空格、统一小写后的值判重；重复返回 ACCOUNT_EXISTS（409），fields 指明 username 或 email，不返回注册成功。"
       }
     },
     "/api/v1/auth/email/verify/request": {

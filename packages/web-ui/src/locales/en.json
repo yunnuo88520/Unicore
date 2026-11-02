@@ -1045,5 +1045,10 @@
   "快捷入口": "Quick links",
   "前往": "Open",
   "展开导航": "Expand navigation",
-  "收起导航": "Collapse navigation"
+  "收起导航": "Collapse navigation",
+  "此数据库属于其他实例或无法确认归属，禁止覆盖。请使用新的空数据库，或恢复原实例配置。": "This database belongs to another instance or its ownership cannot be verified. Overwriting is blocked. Use a new empty database or restore the original instance configuration.",
+  "已识别为本站原数据库。重新安装会删除原账号、设置和业务数据，不会保留原站内容。": "This is the original database for this site. Reinstalling will delete its accounts, settings and application data.",
+  "只需几步，完成这个实例的安装配置。": "Set up this instance in just a few steps.",
+  "安装信息已持久化并生成 install.lock；一次性安装凭据已失效。": "Installation settings are saved and install.lock has been created. The one-time bootstrap token is now invalid.",
+  "安装记录、连接配置和密钥保存在服务器私有数据目录。重启、更新或替换容器时保留此目录，即可自动恢复。仅服务器管理员停服删除 install.lock 并重启后，才能重新进入安装向导。": "Installation records, connection settings and keys are stored in the private server data directory. Keep it across restarts, upgrades and container replacements. Only a server administrator can reopen setup by stopping the service, deleting install.lock and restarting."
 }

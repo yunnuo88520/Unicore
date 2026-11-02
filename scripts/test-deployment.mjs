@@ -55,7 +55,7 @@ async function exercise(mode,profile) {
       expect(manifest?.sha256).toBe(digest(readFileSync(file)));
       execFileSync('tar',['-xzf',file,'-C',release,'--strip-components=1']);
       expect(readFileSync(join(release,'VERSION'),'utf8').trim()).toBe(version);
-      expect(JSON.parse(readFileSync(join(release,'manifest.json'),'utf8')).migration_level).toBe(profile==='web-platform'?12:1);
+      expect(JSON.parse(readFileSync(join(release,'manifest.json'),'utf8')).migration_level).toBe(13);
       expect(JSON.parse(readFileSync(join(release,'manifest.json'),'utf8')).business_migration_level).toBe(2);
       expect(readFileSync(join(release,'LICENSE'),'utf8')).toContain('MIT License');
       expect(readFileSync(join(release,`bin/${identity.cli.opsCommand}`)).byteLength).toBeGreaterThan(1000);
@@ -102,7 +102,11 @@ async function exercise(mode,profile) {
     await page.getByRole('button',{name:'下一步'}).click();
     if(profile==='web-platform') {await page.getByLabel('站点名称',{exact:true}).fill(`部署验收 ${mode}`);await page.getByLabel('管理员账号').fill('admin');await page.getByLabel('管理员邮箱').fill('admin@example.test');await page.getByLabel('管理员密码').fill('Admin@123456');await page.getByRole('button',{name:'下一步'}).click();}
     await page.getByRole('button',{name:'完成安装'}).click();await expect(page.getByRole('heading',{name:'安装完成',exact:true})).toBeVisible();
-    await page.getByRole('button',{name:'进入工作空间'}).click();await expect(page.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
+    await page.getByRole('button',{name:'进入工作空间'}).click();
+    // The click starts a full document navigation for the administrator entry.
+    // Wait for its URL and document load before asserting the mounted shell.
+    await page.waitForURL(target=>target.origin===new URL(url).origin&&target.pathname.replace(/\/$/,'')===(profile==='web-platform'?'/admin':''));
+    await expect(page.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
     const boot=await json(bootstrapPath);expect(boot.version).toBe(version);expect(boot.profile).toBe(profile);expect(boot.deployment_kind).toBe(mode.startsWith('tar')?'tar':'docker');
     const admin=profile==='web-platform';const headers={...realm,'Origin':url,...(admin?{'X-CSRF-Token':boot.csrf_token}:{})};
     const base=admin?'/api/v1/admin':'/api/v1';
@@ -195,6 +199,13 @@ async function exercise(mode,profile) {
     }
     expect(errors).toEqual([]);results.push({mode,profile,version,status:'passed',checks:['install wizard PC/375',...(admin?['demo account and six-digit captcha login','CSRF and custom admin path','all management APIs reject anonymous/member','member local appearance only']:['platform APIs absent']),...(mode.startsWith('tar')?['Nginx serves fingerprinted assets']:[]),'API/brand/manifest/docs routing','restart and container replacement','persisted settings/key/database/brand','Core']});
     console.log(`PASS ${mode}`);
+  } catch(error) {
+    // Preserve the real failed page without logging form values or credentials.
+    const state={mode,profile,url:page.url(),body:await page.locator('body').innerText().catch(()=>''),errors};
+    writeFileSync(join(evidence,`${mode}-failure.json`),JSON.stringify(state,null,2)+'\n');
+    await page.screenshot({path:join(evidence,`${mode}-failure.png`),fullPage:true}).catch(()=>{});
+    console.error(`Failed ${mode} at ${new URL(page.url()).pathname}: ${state.body.slice(0,1200)}`);
+    throw error;
   } finally {await context.close();}
 }
 try {

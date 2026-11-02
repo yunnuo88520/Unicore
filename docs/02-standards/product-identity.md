@@ -74,3 +74,5 @@ Go 消费:`internal/buildinfo` 常量(ProductName/ProductSlug/CLIRootCommand/CLI
 ## 派生项目
 
 `create:project` 生成派生项目自己的 `product.identity.json`(部署字段按 slug 派生,description 默认使用产品名加 workspace),随后一次 `applyIdentity` 套用全部投影——混合文件身份字段、生成源、部署重命名与文档令牌——导出即可通过 `product:check` 与 `check:residuals`。上游同步不得覆盖 product-owned 身份文件,合并后执行 `make docs` 重新生成投影。流程见 [创建与合并](../03-runbooks/framework-upgrade.md)。
+
+数据库物理表名前缀属于框架兼容边界，固定为 unicore_，不投影 product.name/product.slug/Go module。LicenHub 等派生应用仍使用 unicore_users 等框架表；自己新增的业务表可以采用 licenhub_ 或其他命名，不能使用框架保留表名。数据库名称与部署卷名称仍可随项目身份变化；表名前缀不证明数据库属于本站。

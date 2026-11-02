@@ -82,7 +82,7 @@ func exerciseLogs(t *testing.T, ctx context.Context, store *sqlstore.Store) {
 	}
 	exerciseLogTimeBoundaries(t, ctx, store)
 	// Retry after additive DDL succeeded but its ledger entry was not recorded.
-	if _, e = store.Exec(ctx, store.DB, "DELETE FROM schema_migrations WHERE version=10"); e != nil {
+	if _, e = store.Exec(ctx, store.DB, "DELETE FROM unicore_schema_migrations WHERE version=10"); e != nil {
 		t.Fatal(e)
 	}
 	if e = store.Migrate(ctx, true); e != nil {
@@ -124,7 +124,7 @@ func exerciseLogTimeBoundaries(t *testing.T, ctx context.Context, store *sqlstor
 	defer tx.Rollback()
 	timestamps := make(map[string]int, len(fixtures))
 	for _, fixture := range fixtures {
-		if _, err = store.Exec(ctx, tx, "INSERT INTO audit_logs(id,actor_id,action,created_at) VALUES(?,?,?,?)", fixture.id, "boundary-actor", action, fixture.created); err != nil {
+		if _, err = store.Exec(ctx, tx, "INSERT INTO unicore_audit_logs(id,actor_id,action,created_at) VALUES(?,?,?,?)", fixture.id, "boundary-actor", action, fixture.created); err != nil {
 			t.Fatal(err)
 		}
 		timestamps[fixture.id] = fixture.created

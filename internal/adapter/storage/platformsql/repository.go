@@ -29,7 +29,7 @@ func accountError(err error) error {
 
 func (r *Repository) user(ctx context.Context, q sqlstore.Runner, id string) (contracts.User, error) {
 	user := contracts.User{Roles: []string{}, Permissions: []string{}}
-	if err := r.row(ctx, q, "SELECT id,username,email,status,created_at,last_login_at FROM users WHERE id=?", id).Scan(&user.ID, &user.Username, &user.Email, &user.Status, &user.CreatedAt, &user.LastLoginAt); err != nil {
+	if err := r.row(ctx, q, "SELECT id,username,email,status,created_at,last_login_at FROM unicore_users WHERE id=?", id).Scan(&user.ID, &user.Username, &user.Email, &user.Status, &user.CreatedAt, &user.LastLoginAt); err != nil {
 		return user, err
 	}
 	user.Roles = []string{r.roleID()}
@@ -40,7 +40,7 @@ func (r *Repository) user(ctx context.Context, q sqlstore.Runner, id string) (co
 }
 func (r *Repository) FindAccount(ctx context.Context, login string) (platform.Account, error) {
 	var id, hash string
-	err := r.row(ctx, r.Store.DB, "SELECT id,password_hash FROM users WHERE username=? OR email=?", login, login).Scan(&id, &hash)
+	err := r.row(ctx, r.Store.DB, "SELECT id,password_hash FROM unicore_users WHERE username=? OR email=?", login, login).Scan(&id, &hash)
 	if err != nil {
 		return platform.Account{}, err
 	}
@@ -51,15 +51,15 @@ func (r *Repository) FindAccount(ctx context.Context, login string) (platform.Ac
 // Seed only runs inside the install transaction, before the unique installation marker is committed.
 func (r *Repository) Seed(ctx context.Context, tx *sql.Tx, input contracts.UserCreate, hash string) (contracts.User, error) {
 	for _, role := range []string{"super_admin", "user"} {
-		if _, err := r.exec(ctx, tx, "INSERT INTO roles(id,name) SELECT ?,? WHERE NOT EXISTS (SELECT 1 FROM roles WHERE id=?)", role, role, role); err != nil {
+		if _, err := r.exec(ctx, tx, "INSERT INTO unicore_roles(id,name) SELECT ?,? WHERE NOT EXISTS (SELECT 1 FROM unicore_roles WHERE id=?)", role, role, role); err != nil {
 			return contracts.User{}, err
 		}
 	}
 	for _, permission := range platform.Permissions {
-		if _, err := r.exec(ctx, tx, "INSERT INTO permissions(id) SELECT ? WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE id=?)", permission, permission); err != nil {
+		if _, err := r.exec(ctx, tx, "INSERT INTO unicore_permissions(id) SELECT ? WHERE NOT EXISTS (SELECT 1 FROM unicore_permissions WHERE id=?)", permission, permission); err != nil {
 			return contracts.User{}, err
 		}
-		if _, err := r.exec(ctx, tx, "INSERT INTO role_permissions(role_id,permission_id) SELECT ?,? WHERE NOT EXISTS (SELECT 1 FROM role_permissions WHERE role_id=? AND permission_id=?)", "super_admin", permission, "super_admin", permission); err != nil {
+		if _, err := r.exec(ctx, tx, "INSERT INTO unicore_role_permissions(role_id,permission_id) SELECT ?,? WHERE NOT EXISTS (SELECT 1 FROM unicore_role_permissions WHERE role_id=? AND permission_id=?)", "super_admin", permission, "super_admin", permission); err != nil {
 			return contracts.User{}, err
 		}
 	}
@@ -71,10 +71,10 @@ func (r *Repository) insert(ctx context.Context, tx *sql.Tx, input contracts.Use
 	}
 	id := sqlstore.ID()
 	now := time.Now().Unix()
-	if _, err := r.exec(ctx, tx, "INSERT INTO users(id,username,email,password_hash,status,created_at,updated_at,last_login_at) VALUES(?,?,?,?,?,?,?,?)", id, input.Username, input.Email, hash, "active", now, now, 0); err != nil {
+	if _, err := r.exec(ctx, tx, "INSERT INTO unicore_users(id,username,email,password_hash,status,created_at,updated_at,last_login_at) VALUES(?,?,?,?,?,?,?,?)", id, input.Username, input.Email, hash, "active", now, now, 0); err != nil {
 		return contracts.User{}, accountError(err)
 	}
-	if _, err := r.exec(ctx, tx, "INSERT INTO user_roles(user_id,role_id) VALUES(?,?)", id, input.Role); err != nil {
+	if _, err := r.exec(ctx, tx, "INSERT INTO unicore_user_roles(user_id,role_id) VALUES(?,?)", id, input.Role); err != nil {
 		return contracts.User{}, err
 	}
 	action := "users.created"
@@ -156,18 +156,18 @@ func (r *Repository) UpdateUser(ctx context.Context, id string, input contracts.
 	}
 	if isAdmin && before.Status == "active" && (input.Role != "super_admin" || input.Status != "active") {
 		var count int
-		if err = r.row(ctx, tx, "SELECT COUNT(*) FROM users u JOIN user_roles ur ON ur.user_id=u.id WHERE ur.role_id='super_admin' AND u.status='active'").Scan(&count); err != nil {
+		if err = r.row(ctx, tx, "SELECT COUNT(*) FROM unicore_users u JOIN unicore_user_roles ur ON ur.user_id=u.id WHERE ur.role_id='super_admin' AND u.status='active'").Scan(&count); err != nil {
 			return contracts.User{}, err
 		}
 		if count <= 1 {
 			return contracts.User{}, platform.ErrLastAdmin
 		}
 		var passwordHash string
-		if err = r.row(ctx, tx, "SELECT password_hash FROM users WHERE id=?", id).Scan(&passwordHash); err != nil {
+		if err = r.row(ctx, tx, "SELECT password_hash FROM unicore_users WHERE id=?", id).Scan(&passwordHash); err != nil {
 			return contracts.User{}, err
 		}
 		if passwordHash != "" {
-			if err = r.row(ctx, tx, "SELECT COUNT(*) FROM users u JOIN user_roles ur ON ur.user_id=u.id WHERE ur.role_id='super_admin' AND u.status='active' AND u.password_hash<>''").Scan(&count); err != nil {
+			if err = r.row(ctx, tx, "SELECT COUNT(*) FROM unicore_users u JOIN unicore_user_roles ur ON ur.user_id=u.id WHERE ur.role_id='super_admin' AND u.status='active' AND u.password_hash<>''").Scan(&count); err != nil {
 				return contracts.User{}, err
 			}
 			if count <= 1 {
@@ -175,16 +175,16 @@ func (r *Repository) UpdateUser(ctx context.Context, id string, input contracts.
 			}
 		}
 	}
-	if _, err = r.exec(ctx, tx, "UPDATE users SET status=?,updated_at=? WHERE id=?", input.Status, time.Now().Unix(), id); err != nil {
+	if _, err = r.exec(ctx, tx, "UPDATE unicore_users SET status=?,updated_at=? WHERE id=?", input.Status, time.Now().Unix(), id); err != nil {
 		return contracts.User{}, err
 	}
-	if _, err = r.exec(ctx, tx, "DELETE FROM user_roles WHERE user_id=?", id); err != nil {
+	if _, err = r.exec(ctx, tx, "DELETE FROM unicore_user_roles WHERE user_id=?", id); err != nil {
 		return contracts.User{}, err
 	}
-	if _, err = r.exec(ctx, tx, "INSERT INTO user_roles(user_id,role_id) VALUES(?,?)", id, input.Role); err != nil {
+	if _, err = r.exec(ctx, tx, "INSERT INTO unicore_user_roles(user_id,role_id) VALUES(?,?)", id, input.Role); err != nil {
 		return contracts.User{}, err
 	}
-	if _, err = r.exec(ctx, tx, "DELETE FROM sessions WHERE user_id=?", id); err != nil {
+	if _, err = r.exec(ctx, tx, "DELETE FROM unicore_sessions WHERE user_id=?", id); err != nil {
 		return contracts.User{}, err
 	}
 	if err = r.cancelTokens(ctx, tx, id, ""); err != nil {
@@ -206,10 +206,10 @@ func (r *Repository) UpdateUser(ctx context.Context, id string, input contracts.
 func (r *Repository) ListUsers(ctx context.Context, search string, page, size int) (contracts.UserList, error) {
 	result := contracts.UserList{Items: []contracts.User{}, Page: page, PageSize: size}
 	filter := "%" + strings.ToLower(search) + "%"
-	if err := r.row(ctx, r.Store.DB, "SELECT COUNT(*) FROM users WHERE username LIKE ? OR email LIKE ?", filter, filter).Scan(&result.Total); err != nil {
+	if err := r.row(ctx, r.Store.DB, "SELECT COUNT(*) FROM unicore_users WHERE username LIKE ? OR email LIKE ?", filter, filter).Scan(&result.Total); err != nil {
 		return result, err
 	}
-	rows, err := r.rows(ctx, r.Store.DB, "SELECT id FROM users WHERE username LIKE ? OR email LIKE ? ORDER BY created_at DESC,id LIMIT ? OFFSET ?", filter, filter, size, (page-1)*size)
+	rows, err := r.rows(ctx, r.Store.DB, "SELECT id FROM unicore_users WHERE username LIKE ? OR email LIKE ? ORDER BY created_at DESC,id LIMIT ? OFFSET ?", filter, filter, size, (page-1)*size)
 	if err != nil {
 		return result, err
 	}
@@ -248,19 +248,19 @@ func (r *Repository) CreateSession(ctx context.Context, hash, userID string, exp
 		return err
 	}
 	var status, passwordHash string
-	if err = r.row(ctx, tx, "SELECT status,password_hash FROM users WHERE id=?", userID).Scan(&status, &passwordHash); err != nil {
+	if err = r.row(ctx, tx, "SELECT status,password_hash FROM unicore_users WHERE id=?", userID).Scan(&status, &passwordHash); err != nil {
 		return err
 	}
 	if status != "active" || (credentialHash != "" && credentialHash != passwordHash) {
 		return platform.ErrCredentials
 	}
-	if _, err = r.exec(ctx, tx, "DELETE FROM sessions WHERE expires_at<=?", time.Now().Unix()); err != nil {
+	if _, err = r.exec(ctx, tx, "DELETE FROM unicore_sessions WHERE expires_at<=?", time.Now().Unix()); err != nil {
 		return err
 	}
-	if _, err = r.exec(ctx, tx, "INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)", hash, userID, expires); err != nil {
+	if _, err = r.exec(ctx, tx, "INSERT INTO unicore_sessions(token_hash,user_id,expires_at) VALUES(?,?,?)", hash, userID, expires); err != nil {
 		return err
 	}
-	if _, err = r.exec(ctx, tx, "UPDATE users SET last_login_at=? WHERE id=?", time.Now().Unix(), userID); err != nil {
+	if _, err = r.exec(ctx, tx, "UPDATE unicore_users SET last_login_at=? WHERE id=?", time.Now().Unix(), userID); err != nil {
 		return err
 	}
 	if err = r.audit(ctx, tx, userID, "auth.login"); err != nil {
@@ -271,14 +271,14 @@ func (r *Repository) CreateSession(ctx context.Context, hash, userID string, exp
 func (r *Repository) Session(ctx context.Context, hash string) (contracts.User, int, error) {
 	var id string
 	var expires int
-	if err := r.row(ctx, r.Store.DB, "SELECT user_id,expires_at FROM sessions WHERE token_hash=?", hash).Scan(&id, &expires); err != nil {
+	if err := r.row(ctx, r.Store.DB, "SELECT user_id,expires_at FROM unicore_sessions WHERE token_hash=?", hash).Scan(&id, &expires); err != nil {
 		return contracts.User{}, 0, err
 	}
 	user, err := r.user(ctx, r.Store.DB, id)
 	return user, expires, err
 }
 func (r *Repository) DeleteSession(ctx context.Context, hash string) error {
-	_, err := r.exec(ctx, r.Store.DB, "DELETE FROM sessions WHERE token_hash=?", hash)
+	_, err := r.exec(ctx, r.Store.DB, "DELETE FROM unicore_sessions WHERE token_hash=?", hash)
 	return err
 }
 func (r *Repository) Dashboard(ctx context.Context) (contracts.Dashboard, error) {
@@ -288,15 +288,15 @@ func (r *Repository) Dashboard(ctx context.Context) (contracts.Dashboard, error)
 		args []any
 		out  *int
 	}{
-		{"SELECT COUNT(*) FROM users", nil, &result.TotalUsers},
-		{"SELECT COUNT(*) FROM users WHERE created_at>=?", []any{time.Now().UTC().Truncate(24 * time.Hour).Unix()}, &result.TodayNewUsers},
-		{"SELECT COUNT(*) FROM users WHERE last_login_at>=?", []any{time.Now().Add(-7 * 24 * time.Hour).Unix()}, &result.ActiveUsers7d},
+		{"SELECT COUNT(*) FROM unicore_users", nil, &result.TotalUsers},
+		{"SELECT COUNT(*) FROM unicore_users WHERE created_at>=?", []any{time.Now().UTC().Truncate(24 * time.Hour).Unix()}, &result.TodayNewUsers},
+		{"SELECT COUNT(*) FROM unicore_users WHERE last_login_at>=?", []any{time.Now().Add(-7 * 24 * time.Hour).Unix()}, &result.ActiveUsers7d},
 	} {
 		if err := r.row(ctx, r.Store.DB, query.sql, query.args...).Scan(query.out); err != nil {
 			return result, err
 		}
 	}
-	rows, err := r.rows(ctx, r.Store.DB, "SELECT id,actor_id,action,created_at FROM audit_logs ORDER BY created_at DESC,id DESC LIMIT 10")
+	rows, err := r.rows(ctx, r.Store.DB, "SELECT id,actor_id,action,created_at FROM unicore_audit_logs ORDER BY created_at DESC,id DESC LIMIT 10")
 	if err != nil {
 		return result, err
 	}

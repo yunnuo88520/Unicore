@@ -1,5 +1,8 @@
 # Author: yunnuo <ymz@ebox.vip>
 # Preserve published migration/checksum bytes across checkout platforms.
+migrations/sqlite/0013_prefix_*.sql -text
+migrations/postgres/0013_prefix_*.sql -text
+migrations/mysql/0013_prefix_*.sql -text
 migrations/core/**/*.sql -text
 migrations/platform/**/*.sql -text
 migrations/modules/**/*.sql -text

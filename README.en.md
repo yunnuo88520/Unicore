@@ -126,3 +126,5 @@ Use CI results for the current commit. Native builds/helper tests do not prove c
 | Wiki synchronization | [Guide](docs/wiki/README.md); `make wiki` generates locally; `make wiki-publish` publishes only with explicit authorization |
 
 Licensed under [MIT](LICENSE): use, modify, and redistribute while preserving copyright and license notices. Full navigation: [docs/README.md](docs/README.md). Backend extensions follow the [layering/entity standards](docs/02-standards/backend.md); [announcements](docs/03-runbooks/announcements.md) provide a complete administrator/user example.
+
+Framework tables keep the fixed unicore_ prefix across derived product names; application-owned tables can use their own names. Web setup creates install.lock. Only a server owner can stop, delete it and restart for a fresh-token reinstall; resetting the original database requires explicit consent and foreign instance data is rejected.

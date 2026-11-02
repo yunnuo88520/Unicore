@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 
-type Instance = { url: string; token: string; request: APIRequestContext; restart: () => Promise<void> };
+type Instance = { url: string; token: string; request: APIRequestContext; restart: () => Promise<void>; unlockForReinstall: () => Promise<string> };
 export const test = base.extend<{ instance: Instance }>({
   instance: async ({ playwright }, use) => {
     const directory = await mkdtemp(join(tmpdir(), 'unicore-e2e-'));
@@ -21,7 +21,17 @@ export const test = base.extend<{ instance: Instance }>({
     try {
       await expect.poll(async () => { try { return (await request.get('/api/v1/health/live')).status(); } catch { return 0; } }, { timeout: 15000 }).toBe(200);
       const token = (await readFile(join(directory, 'bootstrap.token'), 'utf8')).trim();
-      await use({ url, token, request, restart: async () => { await stop(); process = start(); await expect.poll(async () => { try { return (await request.get('/api/v1/health/ready')).status(); } catch { return 0; } }, { timeout: 15000 }).toBe(200); } });
+      await use({ url, token, request,
+        restart: async () => { await stop(); process = start(); await expect.poll(async () => { try { return (await request.get('/api/v1/health/ready')).status(); } catch { return 0; } }, { timeout: 15000 }).toBe(200); },
+        unlockForReinstall: async () => {
+          await stop();
+          await rm(join(directory, 'install.lock'));
+          process = start();
+          await expect.poll(async () => { try { return (await request.get('/api/v1/health/live')).status(); } catch { return 0; } }, { timeout: 15000 }).toBe(200);
+          expect((await request.get('/api/v1/health/ready')).status()).toBe(503);
+          return (await readFile(join(directory, 'bootstrap.token'), 'utf8')).trim();
+        },
+      });
     } finally {
       await stop();
       await request.dispose(); await rm(directory, { recursive: true, force: true });
@@ -31,10 +41,14 @@ export const test = base.extend<{ instance: Instance }>({
 export { expect };
 // Open the actual navigation, expanding only the group that owns the requested destination.
 export async function navigate(page: Page, name: string) {
+  const sidebar = page.locator('.sidebar');
+  const open = page.getByRole('button', { name: '打开导航', exact: true });
+  // A navigation immediately after install/login can precede the shell mount.
+  // Wait for either real desktop navigation or the mobile drawer control first.
+  await expect.poll(async () => await sidebar.isVisible() || await open.isVisible()).toBe(true);
   const expand = page.getByRole('button', { name: '展开导航', exact: true });
   if (await expand.isVisible()) await expand.click();
-  const sidebar = page.locator('.sidebar');
-  if (!await sidebar.isVisible()) await page.getByRole('button', { name: '打开导航', exact: true }).click();
+  if (!await sidebar.isVisible()) await open.click();
   const group = sidebar.locator('section').filter({ has: page.getByRole('button', { name, exact: true, includeHidden: true }) });
   const toggle = group.locator(':scope > button[aria-expanded="false"]');
   if (await toggle.count()) await toggle.click();

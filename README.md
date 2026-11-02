@@ -128,3 +128,5 @@ make build-ops                   # 独立加密备份/恢复工具
 仓库采用 [MIT License](LICENSE)，允许使用、修改和再分发，保留版权与许可证。完整导航见 [docs/README.md](docs/README.md)。
 
 后端开发遵循[统一实体与分层规范](docs/02-standards/backend.md)，平台公告提供[完整双端业务样板](docs/03-runbooks/announcements.md)，支持管理员发布、定时展示与用户工作台读取。邮件默认内容保持中文，界面支持中英文切换。
+
+框架表固定使用 unicore_ 前缀，不随派生产品名变化；业务自建表可自行命名。Web 完成安装后生成 install.lock，只有服务器管理员停服删锁并重启才能凭新凭据进入重装；重装原库须确认清空且拒绝其他实例数据。

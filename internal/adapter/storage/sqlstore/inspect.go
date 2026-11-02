@@ -36,14 +36,40 @@ func (s *Store) TableCount(ctx context.Context) (int, error) {
 	return count, err
 }
 func (s *Store) HasInstallationTable(ctx context.Context) (bool, error) {
-	query := `SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='install_state'`
+	table, err := s.installationTable(ctx)
+	if err != nil {
+		return false, err
+	}
+	return s.hasTable(ctx, table)
+}
+
+func (s *Store) hasTable(ctx context.Context, table string) (bool, error) {
+	query := `SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?`
 	if s.Dialect == "postgres" {
-		query = `SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=current_schema() AND table_name='install_state'`
+		query = `SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=current_schema() AND table_name=?`
 	}
 	if s.Dialect == "mysql" {
-		query = `SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='install_state'`
+		query = `SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name=?`
 	}
 	var count int
-	err := s.Row(ctx, s.DB, query).Scan(&count)
+	err := s.Row(ctx, s.DB, query, table).Scan(&count)
 	return count == 1, err
+}
+
+func (s *Store) installationTable(ctx context.Context) (string, error) {
+	legacy, err := s.hasTable(ctx, "install_state")
+	if err != nil {
+		return "", err
+	}
+	prefixed, err := s.hasTable(ctx, "unicore_install_state")
+	if err != nil {
+		return "", err
+	}
+	if legacy && prefixed {
+		return "", errors.New("conflicting installation tables")
+	}
+	if prefixed {
+		return "unicore_install_state", nil
+	}
+	return "install_state", nil
 }

@@ -177,6 +177,27 @@ func TestDatabaseFieldsResetAndRestart(t *testing.T) {
 					t.Fatal("installed database reset allowed", err)
 				}
 			}
+			m, nextToken := unlockManager(t, m, options)
+			defer m.Close()
+			check, err = m.Verify(ctx, nextToken, input.Database)
+			if err != nil || !check.Initialized || check.ResetAllowed == nil || !*check.ResetAllowed {
+				t.Fatal("original database not eligible after explicit unlock", check, err)
+			}
+			input.ResetDatabase = pointer(false)
+			if _, _, err = m.Complete(ctx, nextToken, input); !errors.Is(err, ErrNotEmpty) {
+				t.Fatal("reinstall cleared old database without consent", err)
+			}
+			input.ResetDatabase = pointer(true)
+			if _, _, err = m.Complete(ctx, nextToken, input); err != nil {
+				t.Fatal("explicit reinstall failed", err)
+			}
+			current, err := m.Identity(true).Store.FindAccount(ctx, "admin")
+			if err != nil || current.User.ID == adminID {
+				t.Fatal("reinstall failed to replace old administrator", err)
+			}
+			if locked, err := m.installLocked(); err != nil || !locked {
+				t.Fatal("reinstall failed to relock", err)
+			}
 		})
 	}
 }
@@ -228,9 +249,9 @@ func TestMissingInstalledDatabaseNeverReinstalls(t *testing.T) {
 				t.Fatal(err)
 			}
 			if missing != "database" {
-				query := "DELETE FROM install_state"
+				query := "DELETE FROM unicore_install_state"
 				if missing == "table" {
-					query = "DROP TABLE install_state"
+					query = "DROP TABLE unicore_install_state"
 				}
 				store, _, _, _ := m.Services()
 				if _, err := store.DB.ExecContext(ctx, query); err != nil {

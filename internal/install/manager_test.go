@@ -55,7 +55,7 @@ func TestStandaloneInstallOnceAndRestart(t *testing.T) {
 		t.Fatal("standalone loaded identity")
 	}
 	var count int
-	if err := store.Row(ctx, store.DB, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='users'").Scan(&count); err != nil || count != 0 {
+	if err := store.Row(ctx, store.DB, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='unicore_users'").Scan(&count); err != nil || count != 0 {
 		t.Fatal("standalone created users")
 	}
 	if _, err := service.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "appearance.theme", Value: "dark"}}}, "local"); err != nil {

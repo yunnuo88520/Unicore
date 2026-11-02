@@ -5,6 +5,8 @@
 
 ### 中文
 
+- Web 安装后生成 install.lock；服务器管理员停服删锁并重启后可凭新凭据从头安装，原库必须验证归属并确认清空，别站与归属不明非空库拒绝覆盖。框架表固定 unicore_ 前缀，派生项目保持，旧 0.x 表通过三方言追加迁移保留数据重命名。
+
 - 精简全局页脚为版权与可选备案信息，移除重复版本/技术栈和误放到所有页面的文本分析说明；默认署名显示为 Crafted by Yunnuo，兼容旧默认值并保留自定义版权。
 
 - 导航默认保持宽侧栏并折叠菜单分组，窄栏只显示一级入口且通过分组弹出子菜单；修正内嵌/悬浮模式的顶部圆角、容器间距与明暗主题一致性。
@@ -16,6 +18,8 @@
 - 新增 product:check 只读门禁与派生项目残留扫描 check:residuals（框架仓库自动跳过）；安装与数据库错误文案去产品化并同步中英文；示例文本与发行 README 改为按身份生成。
 
 ### English
+
+- Create install.lock after Web setup. Server owners can stop, delete the lock and restart for a fresh-token reinstall; resetting the original database requires verified ownership and explicit consent, while foreign or unrecognized occupied targets are blocked. Keep a fixed unicore_ framework table prefix in derived products and preserve legacy 0.x data through appended dialect-specific rename migrations.
 
 - Keep the global footer to copyright and optional registration details, removing duplicate version/stack labels and the lab-specific text-analysis note from shared pages. Display the default credit as Crafted by Yunnuo, including the legacy default, while preserving custom copyright text.
 

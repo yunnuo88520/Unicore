@@ -49,7 +49,7 @@ func (r *Repository) List(ctx context.Context, scope string, q contracts.NoteQue
 		escape := strings.NewReplacer("!", "!!", "%", "!%", "_", "!_")
 		args = append(args, "%"+escape.Replace(q.Search)+"%")
 	}
-	if err := r.Store.Row(ctx, r.Store.DB, "SELECT COUNT(*) FROM example_notes WHERE "+where, args...).Scan(&result.Total); err != nil {
+	if err := r.Store.Row(ctx, r.Store.DB, "SELECT COUNT(*) FROM unicore_example_notes WHERE "+where, args...).Scan(&result.Total); err != nil {
 		return result, err
 	}
 	sort := "updated_at"
@@ -61,7 +61,7 @@ func (r *Repository) List(ctx context.Context, scope string, q contracts.NoteQue
 		direction = "ASC"
 	}
 	args = append(args, result.PageSize, domain.PageOffset(q.Page, result.PageSize))
-	rows, err := r.Store.Rows(ctx, r.Store.DB, "SELECT "+columns+" FROM example_notes WHERE "+where+" ORDER BY "+sort+" "+direction+",id "+direction+" LIMIT ? OFFSET ?", args...)
+	rows, err := r.Store.Rows(ctx, r.Store.DB, "SELECT "+columns+" FROM unicore_example_notes WHERE "+where+" ORDER BY "+sort+" "+direction+",id "+direction+" LIMIT ? OFFSET ?", args...)
 	if err != nil {
 		return result, err
 	}
@@ -87,7 +87,7 @@ func (r *Repository) Create(ctx context.Context, scope string, in contracts.Note
 		return n, e
 	}
 	defer tx.Rollback()
-	if _, e = r.Store.Exec(ctx, tx, "INSERT INTO example_notes(scope_key,"+columns+") VALUES(?,?,?,?,?,?,?,?,?)", scope, n.ID, n.Title, n.Body, n.Status, string(ids), n.Version, n.CreatedAt, n.UpdatedAt); e != nil {
+	if _, e = r.Store.Exec(ctx, tx, "INSERT INTO unicore_example_notes(scope_key,"+columns+") VALUES(?,?,?,?,?,?,?,?,?)", scope, n.ID, n.Title, n.Body, n.Status, string(ids), n.Version, n.CreatedAt, n.UpdatedAt); e != nil {
 		return n, e
 	}
 	if e = r.Store.Audit(noteAudit(ctx, scope, n.ID, "status="+n.Status+"; version=1"), tx, scope, "notes.created"); e != nil {
@@ -105,7 +105,7 @@ func (r *Repository) Update(ctx context.Context, scope, id string, in contracts.
 		return contracts.NoteEntry{}, e
 	}
 	defer tx.Rollback()
-	before, e := scan(r.Store.Row(ctx, tx, "SELECT "+columns+" FROM example_notes WHERE scope_key=? AND id=? AND deleted_at=0", scope, id))
+	before, e := scan(r.Store.Row(ctx, tx, "SELECT "+columns+" FROM unicore_example_notes WHERE scope_key=? AND id=? AND deleted_at=0", scope, id))
 	if e != nil {
 		return contracts.NoteEntry{}, e
 	}
@@ -123,7 +123,7 @@ func (r *Repository) Update(ctx context.Context, scope, id string, in contracts.
 	if string(oldIDs) != string(ids) {
 		changed = append(changed, "attachment_ids")
 	}
-	result, e := r.Store.Exec(ctx, tx, "UPDATE example_notes SET title=?,body=?,status=?,attachment_ids=?,version=version+1,updated_at=? WHERE scope_key=? AND id=? AND version=? AND deleted_at=0", in.Title, in.Body, in.Status, string(ids), time.Now().Unix(), scope, id, in.Version)
+	result, e := r.Store.Exec(ctx, tx, "UPDATE unicore_example_notes SET title=?,body=?,status=?,attachment_ids=?,version=version+1,updated_at=? WHERE scope_key=? AND id=? AND version=? AND deleted_at=0", in.Title, in.Body, in.Status, string(ids), time.Now().Unix(), scope, id, in.Version)
 	if e != nil {
 		return contracts.NoteEntry{}, e
 	}
@@ -134,7 +134,7 @@ func (r *Repository) Update(ctx context.Context, scope, id string, in contracts.
 	if count == 0 {
 		return contracts.NoteEntry{}, r.missing(ctx, tx, scope, id)
 	}
-	n, e := scan(r.Store.Row(ctx, tx, "SELECT "+columns+" FROM example_notes WHERE scope_key=? AND id=? AND deleted_at=0", scope, id))
+	n, e := scan(r.Store.Row(ctx, tx, "SELECT "+columns+" FROM unicore_example_notes WHERE scope_key=? AND id=? AND deleted_at=0", scope, id))
 	if e != nil {
 		return n, e
 	}
@@ -149,7 +149,7 @@ func (r *Repository) Delete(ctx context.Context, scope, id string, version int) 
 		return e
 	}
 	defer tx.Rollback()
-	result, e := r.Store.Exec(ctx, tx, "UPDATE example_notes SET deleted_at=?,updated_at=?,version=version+1 WHERE scope_key=? AND id=? AND version=? AND deleted_at=0", time.Now().Unix(), time.Now().Unix(), scope, id, version)
+	result, e := r.Store.Exec(ctx, tx, "UPDATE unicore_example_notes SET deleted_at=?,updated_at=?,version=version+1 WHERE scope_key=? AND id=? AND version=? AND deleted_at=0", time.Now().Unix(), time.Now().Unix(), scope, id, version)
 	if e != nil {
 		return e
 	}
@@ -167,7 +167,7 @@ func (r *Repository) Delete(ctx context.Context, scope, id string, version int) 
 }
 func (r *Repository) missing(ctx context.Context, tx *sql.Tx, scope, id string) error {
 	var version int
-	e := r.Store.Row(ctx, tx, "SELECT version FROM example_notes WHERE scope_key=? AND id=? AND deleted_at=0", scope, id).Scan(&version)
+	e := r.Store.Row(ctx, tx, "SELECT version FROM unicore_example_notes WHERE scope_key=? AND id=? AND deleted_at=0", scope, id).Scan(&version)
 	if errors.Is(e, sql.ErrNoRows) {
 		return usecase.ErrNoteNotFound
 	}

@@ -34,3 +34,7 @@ SQLite 只读开库要验证 DB/WAL/SHM 与文件创建边界，不能先 touch 
 后续实现运行生成检查、make docs/test、相关 Profile 构建及真实原生边界验证；需外部副作用时使用本轮授权的隔离环境。R1.0a 只读/故障/新基线尚未验证，不能引用它代替新执行器验收。开发重置见 [手册](../03-runbooks/development-database-reset.md)。
 
 R1.0b 校验仅扫描 core/platform/modules，不将旧方言根误报漏登记；新资产未加入旧 assets.go。运行 pnpm generate:migrations / check:migrations / test:migrations 及 go test -count=1 ./migrations/catalogdata，make docs/test 已接入。schema_generation 以实际落库 core@1 原字节 checksum 识别，不增加账本列或设置副本；完整启动复核在 R1.0c 实施。新比较键、install_state 单例 CHECK 和额外长度 CHECK 均需另审阅，目前只验证提案，不无声修改登录/rowid 规则。
+
+## 当前运行体系的固定表名前缀
+
+[ADR-0029](../adr/ADR-0029-fixed-framework-table-prefix.md) 明确当前产品框架表使用固定 unicore_，不随派生产品名变化。三方言追加 0013 重命名，原 42 SQL/checksum 保持不变；这不启用 R1.0c namespace 执行器。自有业务表自行命名，框架不能自动加前缀或批量改名。新世代原九份 baseline 仍冻结，未来启用前需按 namespace 追加对应重命名尾迁移与账本名称定义。禁止借本次命名调整提前 squash 或启动新执行器。

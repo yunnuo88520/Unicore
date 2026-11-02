@@ -22,9 +22,9 @@ func (r *Repository) role(ctx context.Context, q sqlstore.Runner, id string) (co
 		result.Name = "管理员"
 		result.Permissions = append(result.Permissions, platform.Permissions...)
 	}
-	table := "users"
+	table := "unicore_users"
 	if id == "super_admin" {
-		table = "administrators"
+		table = "unicore_administrators"
 	}
 	err := r.Store.Row(ctx, q, "SELECT COUNT(*) FROM "+table).Scan(&result.UserCount)
 	return result, err

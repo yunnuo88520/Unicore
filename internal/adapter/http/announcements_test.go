@@ -120,7 +120,7 @@ func TestAnnouncementsUnavailableLocally(t *testing.T) {
 	}
 	store, _, _, _ := m.Services()
 	var count int
-	if e = store.DB.QueryRowContext(ctx, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='platform_announcements'").Scan(&count); e != nil || count != 0 {
+	if e = store.DB.QueryRowContext(ctx, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='unicore_platform_announcements'").Scan(&count); e != nil || count != 0 {
 		t.Fatal("local platform migration", count, e)
 	}
 }

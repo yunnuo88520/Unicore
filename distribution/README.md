@@ -1,7 +1,9 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 产品分发边界
 
-manifest.json 是 user-release、project-template、public-wiki 三个出口的唯一选择清单，不从目录扫描或 git ls-files 自动扩展。documents 复用同一源文件并声明 audience；template_files 枚举源码/资源与模板映射。增加项目代码后若需要被后续创建器导出，显式更新清单并验证，不靠 Git 跟踪状态决定分发。
+manifest.json 是 user-release、project-template、public-wiki、public-site 四个出口的唯一选择清单，不从目录扫描或 git ls-files 自动扩展。documents 复用同一源文件并声明 audience；template_files 枚举源码/资源与模板映射。增加项目代码后若需要被后续创建器导出，显式更新清单并验证，不靠 Git 跟踪状态决定分发。
+
+文档站按 public-site 生成 build/docs-site，再由独立 VitePress 工作区构建静态产物；site_assets 显式选择品牌/图片。站内文档链接重写为路由，未收录的源码引用转为 GitHub 链接，不复制对应文件；不会扩大其他三个 audience。website 与 Pages workflow 为上游维护工具，不随应用模板导出，详见 [文档站维护](../docs/03-runbooks/documentation-site.md)。
 
 用户发行文档由 release.mjs 调用 copyDistribution 复制；许可证始终保留。Wiki 从 public-wiki 文档生成并验证正文链接闭包；维护者流程与用户指南分开，研发过程材料不进入源码文档或产品。
 

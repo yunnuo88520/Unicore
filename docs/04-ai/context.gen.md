@@ -68,6 +68,8 @@
 | migrationCatalog | [migrations/catalog.json](../../migrations/catalog.json) |
 | migrationMetadata | [migrations/metadata.gen.json](../../migrations/metadata.gen.json) |
 | migrationGenerator | [scripts/generate-migrations.mjs](../../scripts/generate-migrations.mjs) |
+| documentationSite | [website](../../website) |
+| documentationSiteGuide | [docs/03-runbooks/documentation-site.md](../../docs/03-runbooks/documentation-site.md) |
 
 OpenAPI 当前包含 132 个 operation、137 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
 

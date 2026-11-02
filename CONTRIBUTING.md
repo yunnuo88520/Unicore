@@ -20,6 +20,8 @@ API/DTO 从 `packages/contracts/openapi.json` 修改并执行 `pnpm generate`；
 
 ## 验证与 PR
 
+框架功能、配置、API 或扩展方式变化时，同一 PR 更新对应使用指南与开发手册；新增公开主题登记 distribution/manifest.json 的 public-site 及导航标题。执行 `pnpm --dir website build` 检查站内链接与静态构建，中英文入口同步维护，版本/翻译范围如实标注。文档写作、预览与维护流程见 [文档站手册](docs/03-runbooks/documentation-site.md)。
+
 ```sh
 make docs
 make test

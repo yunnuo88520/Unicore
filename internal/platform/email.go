@@ -42,7 +42,7 @@ func (a *Accounts) challenge(ctx context.Context, email, purpose string) (EmailC
 		return EmailChallenge{}, err
 	}
 	id, code := Token(), SixDigits()
-	values["site.base_url"] = a.BaseURL
+	values["site.base_url"] = settings.MailBaseURL(values, a.BaseURL)
 	message, err := mailer.RenderConfigured(values, purpose, code, email, false, logo, nil)
 	if err != nil {
 		return EmailChallenge{}, err
@@ -66,6 +66,9 @@ func (a *Accounts) RegisterCode(ctx context.Context, input contracts.RegisterInp
 	if !ValidateAccount(input.Username, input.Email, input.Password) {
 		return contracts.EmailChallenge{}, ErrInput
 	}
+	if err = a.registrationAllowed(ctx, input, ip); err != nil {
+		return contracts.EmailChallenge{}, err
+	}
 	if err = a.allow(ip, input.Email, input.CaptchaID, input.CaptchaAnswer, policy.RegisterCaptcha); err != nil {
 		return contracts.EmailChallenge{}, err
 	}
@@ -80,6 +83,17 @@ func (a *Accounts) RegisterCode(ctx context.Context, input contracts.RegisterInp
 		return contracts.EmailChallenge{}, err
 	}
 	input.Password = ""
+	if !policy.EmailVerificationRequired {
+		err = a.Store.RegisterActiveAccount(ctx, input, hash)
+		if errors.Is(err, ErrConflict) {
+			err = nil
+		}
+		complete := true
+		return contracts.EmailChallenge{RegistrationComplete: &complete}, err
+	}
+	if !policy.MailReady {
+		return contracts.EmailChallenge{}, settings.ErrMailNotReady
+	}
 	c, err := a.challenge(ctx, input.Email, "verify")
 	if err != nil {
 		return contracts.EmailChallenge{}, err
@@ -95,10 +109,13 @@ func (a *Accounts) RequestCode(ctx context.Context, input contracts.EmailRequest
 	if err != nil {
 		return contracts.EmailChallenge{}, err
 	}
-	if (purpose == "verify" && !policy.RegistrationEnabled) || (purpose == "reset" && !policy.ResetEnabled) || (purpose == "login" && !policy.EmailLoginEnabled) {
+	if (purpose == "verify" && (!policy.RegistrationEnabled || !policy.EmailVerificationRequired)) || (purpose == "reset" && !policy.ResetEnabled) || (purpose == "login" && !policy.EmailLoginEnabled) {
 		return contracts.EmailChallenge{}, ErrFlowDisabled
 	}
 	email := strings.ToLower(strings.TrimSpace(input.Email))
+	if err = a.emailAllowed(ctx, email, ip, purpose == "verify"); err != nil {
+		return contracts.EmailChallenge{}, err
+	}
 	if !settings.ValidEmail(email) {
 		return contracts.EmailChallenge{}, ErrInput
 	}
@@ -130,11 +147,14 @@ func (a *Accounts) CompleteCode(ctx context.Context, input contracts.EmailCodeIn
 	if err != nil {
 		return contracts.Session{}, "", err
 	}
-	if (purpose == "login" && !policy.EmailLoginEnabled) || (purpose == "verify" && !policy.RegistrationEnabled) || (purpose == "reset" && !policy.ResetEnabled) {
+	if (purpose == "login" && !policy.EmailLoginEnabled) || (purpose == "verify" && (!policy.RegistrationEnabled || !policy.EmailVerificationRequired)) || (purpose == "reset" && !policy.ResetEnabled) {
 		return contracts.Session{}, "", ErrFlowDisabled
 	}
 	hash := ""
 	if purpose == "reset" {
+		if err = a.Identity.passwordAllowed(ctx, input.Password); err != nil {
+			return contracts.Session{}, "", err
+		}
 		select {
 		case a.Identity.loginSlots <- struct{}{}:
 			defer func() { <-a.Identity.loginSlots }()
@@ -153,9 +173,26 @@ func (a *Accounts) CompleteCode(ctx context.Context, input contracts.EmailCodeIn
 	hours, _ := strconv.Atoi(values["security.session_hours"])
 	token := Token()
 	expires := int(time.Now().Add(time.Duration(hours) * time.Hour).Unix())
+	if purpose == "login" {
+		if err = a.Identity.LoginAllowed(ctx, ip); err != nil {
+			return contracts.Session{}, "", err
+		}
+	}
 	user, err := a.Store.ConsumeEmailChallenge(ctx, input.ChallengeID, purpose, a.codeDigest(input.ChallengeID, purpose, input.Code), hash, Hash(token), expires, int(time.Now().Unix()))
 	if err != nil {
+		if purpose == "login" && errors.Is(err, ErrAccountToken) {
+			a.Identity.loginResult(ctx, ip, false)
+		}
 		return contracts.Session{}, "", err
 	}
-	return contracts.Session{User: user, CsrfToken: CSRF(token), ExpiresAt: expires}, token, nil
+	pending := false
+	if purpose == "login" {
+		if _, _, err := a.Identity.Store.Session(ctx, Hash(token)); errors.Is(err, ErrMFA) {
+			pending = true
+		}
+	}
+	if purpose == "login" && !pending {
+		a.Identity.loginResult(ctx, ip, true)
+	}
+	return contracts.Session{User: user, CsrfToken: CSRF(token), ExpiresAt: expires, MfaPending: &pending}, token, nil
 }

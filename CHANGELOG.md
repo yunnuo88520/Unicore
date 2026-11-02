@@ -5,6 +5,14 @@
 
 ### 中文
 
+- 新增账户安全二级菜单、两类账号 2FA 状态列、分域强制验证、登录失败 IP 封禁与会话超时；登录注册页采用双栏卡片与移动端布局。
+
+- 修复验证器绑定密钥自动失效，验证可解码二维码与真实 TOTP 登录；拆分开放注册/邮箱验证，新增后缀限制、黑名单、存储内联表单及上传路径/扩展名策略。
+
+- 将系统设置与完整个人中心归入系统管理分区；支持昵称、两步邮箱换绑、TOTP/一次性恢复码、所有登录方式的二次验证与设备下线，新增三方言平台迁移 0014。
+- 优化安装向导和二级导航选中态；增加默认存储策略、批量文件迁移进度、站点/管理员邮箱/公安备案/页脚设置、维护模式与注册开关。
+- 补全 Web 从零部署与配置手册：环境/数据库、Docker/Compose、tar/systemd、HTTPS、安装、验证、更新和故障排查，提供完整参数及设置表。
+
 - 新增 VitePress 文档站：复用显式公开文档白名单，提供中英文入口、全文搜索与开发/运维导航；配置 unicore.ebox.vip、静态构建检查和 main 手动 Pages 部署，附内容更新与域名部署手册。DNS、TLS 和线上发布需实际配置。
 
 - Web 安装后生成 install.lock；服务器管理员停服删锁并重启后可凭新凭据从头安装，原库必须验证归属并确认清空，别站与归属不明非空库拒绝覆盖。框架表固定 unicore_ 前缀，派生项目保持，旧 0.x 表通过三方言追加迁移保留数据重命名。
@@ -20,6 +28,14 @@
 - 新增 product:check 只读门禁与派生项目残留扫描 check:residuals（框架仓库自动跳过）；安装与数据库错误文案去产品化并同步中英文；示例文本与发行 README 改为按身份生成。
 
 ### English
+
+- Add account security management, read-only 2FA status, realm-specific enforcement, temporary login IP bans and session timeouts; redesign authentication with responsive split cards.
+
+- Fix authenticator enrollment rotation and verify scannable QR/TOTP login; separate registration and email verification, add restrictions and inline storage forms with path/extension policies.
+
+- Group system settings and a complete personal center under System Management, with display names, two-step email changes, TOTP/recovery codes, MFA for every login method, device revocation, and additive platform migration 0014 for three dialects.
+- Improve installation and nested navigation; add default storage policies, bulk migration progress, site/contact/footer settings, maintenance mode, and registration controls.
+- Expand Web deployment and configuration guides with prerequisites, databases, Docker/Compose, tar/systemd, HTTPS, installation, verification, updates, troubleshooting, and parameter tables.
 
 - Add a VitePress documentation site with an explicit public-document whitelist, Chinese/English entry points, full-text search, and development/operations navigation. Configure unicore.ebox.vip, static build checks, and manual Pages deployment from main, with content-maintenance and domain-deployment guides. DNS, TLS, and live publication still require configuration.
 

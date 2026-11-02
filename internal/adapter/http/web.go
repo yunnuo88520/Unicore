@@ -40,6 +40,12 @@ func failure(w http.ResponseWriter, status int, code, message string) {
 func webError(w http.ResponseWriter, err error) {
 	code := "INTERNAL_ERROR"
 	switch {
+	case errors.Is(err, platform.ErrMFA):
+		code = "MFA_REQUIRED"
+	case errors.Is(err, platform.ErrMFAInvalid):
+		code = "MFA_INVALID"
+	case errors.Is(err, platform.ErrMFAEnrollment):
+		code = "MFA_ENROLLMENT_REQUIRED"
 	case errors.Is(err, domain.ErrAnnouncementInvalid):
 		code = "ANNOUNCEMENT_INVALID"
 	case errors.Is(err, usecase.ErrEntityNotFound):
@@ -170,6 +176,7 @@ func validationResult(w http.ResponseWriter, fields map[string]string) bool {
 	writeJSON(w, definition.Status, contracts.ErrorResponse{Code: "INVALID_INPUT", Message: definition.Message, RequestID: w.Header().Get("X-Request-ID"), Fields: &fields})
 	return false
 }
+
 // sameOrigin only rejects requests with positive cross-site evidence. Browsers
 // assert Sec-Fetch-Site and JavaScript cannot forge it, so same-page requests
 // stay accepted even when a gateway or tunnel rewrites Host. Legacy clients
@@ -223,6 +230,10 @@ func require(manager *install.Manager, w http.ResponseWriter, r *http.Request, p
 	}
 	session, err := identity.Session(r.Context(), rawSession(r))
 	if err != nil {
+		if errors.Is(err, platform.ErrMFA) {
+			webError(w, err)
+			return session, false
+		}
 		if administratorRequest(r) && rawSession(r) == "" {
 			if cookie, e := r.Cookie(sessionCookie); e == nil {
 				if userIdentity := manager.Identity(false); userIdentity != nil {
@@ -243,6 +254,17 @@ func require(manager *install.Manager, w http.ResponseWriter, r *http.Request, p
 	if permission != "" && (!platform.Has(session.User, permission) || (platform.SuperOnly(permission) && !platform.IsSuper(session.User))) {
 		webError(w, platform.ErrForbidden)
 		return session, false
+	}
+	if identity.Personal != nil && !strings.Contains(r.URL.Path, "/account/") && !strings.HasSuffix(r.URL.Path, "/auth/logout") && !strings.HasSuffix(r.URL.Path, "/auth/session") {
+		info, err := identity.Personal.Profile(r.Context(), rawSession(r))
+		if err != nil {
+			webError(w, err)
+			return session, false
+		}
+		if info.Force2fa && !info.TotpEnabled {
+			webError(w, platform.ErrMFAEnrollment)
+			return session, false
+		}
 	}
 	m, _ := audit.From(r.Context())
 	m.ActorName = session.User.Username
@@ -306,6 +328,19 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 		if value, err := service.Value(r.Context(), "site.icp_url"); err == nil {
 			data.SiteIcpUrl = &value
 		}
+		if value, err := service.Value(r.Context(), "site.police_number"); err == nil {
+			data.SitePoliceNumber = &value
+		}
+		if value, err := service.Value(r.Context(), "site.footer_html"); err == nil {
+			data.SiteFooterHtml = &value
+		}
+		if value, err := service.Value(r.Context(), "maintenance.enabled"); err == nil {
+			enabled := value == "true"
+			data.MaintenanceEnabled = &enabled
+		}
+		if value, err := service.Value(r.Context(), "maintenance.message"); err == nil {
+			data.MaintenanceMessage = &value
+		}
 		if value, err := service.Value(r.Context(), "appearance.theme"); err == nil {
 			data.Theme = &value
 		}
@@ -314,6 +349,18 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 		if session, err := identity.Session(r.Context(), rawSession(r)); err == nil {
 			data.CurrentUser = &session.User
 			data.CsrfToken = &session.CsrfToken
+			if identity.Personal != nil {
+				if info, e := identity.Personal.Profile(r.Context(), rawSession(r)); e == nil {
+					required := info.Force2fa && !info.TotpEnabled
+					data.MfaEnrollmentRequired = &required
+				}
+			}
+		} else if errors.Is(err, platform.ErrMFA) && identity.Personal != nil {
+			if pending, e := identity.Personal.Pending(r.Context(), rawSession(r)); e == nil {
+				yes := true
+				data.MfaPending = &yes
+				data.CsrfToken = &pending.CsrfToken
+			}
 		}
 	}
 	if profile == runtime.WebPlatform && (!administratorRequest(r) || data.CurrentUser == nil) {
@@ -398,6 +445,7 @@ func mountWeb(api chi.Router, config Config) {
 		success(w, result)
 	})
 	mountAuthentication(api, config)
+	mountPersonal(api, config)
 	mountLogs(api, config)
 	for _, administrators := range []bool{false, true} {
 		path, permission, role := "/admin/users", "users", "user"

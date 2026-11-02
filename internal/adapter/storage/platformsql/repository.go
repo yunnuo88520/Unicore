@@ -32,6 +32,11 @@ func (r *Repository) user(ctx context.Context, q sqlstore.Runner, id string) (co
 	if err := r.row(ctx, q, "SELECT id,username,email,status,created_at,last_login_at FROM unicore_users WHERE id=?", id).Scan(&user.ID, &user.Username, &user.Email, &user.Status, &user.CreatedAt, &user.LastLoginAt); err != nil {
 		return user, err
 	}
+	state, err := r.personalState(ctx, q, id)
+	if err != nil {
+		return user, err
+	}
+	user.TotpEnabled = state.Secret != ""
 	user.Roles = []string{r.roleID()}
 	if r.Administrators {
 		user.Permissions = append(user.Permissions, platform.Permissions...)
@@ -260,6 +265,9 @@ func (r *Repository) CreateSession(ctx context.Context, hash, userID string, exp
 	if _, err = r.exec(ctx, tx, "INSERT INTO unicore_sessions(token_hash,user_id,expires_at) VALUES(?,?,?)", hash, userID, expires); err != nil {
 		return err
 	}
+	if err = r.recordDevice(ctx, tx, hash, userID, 0); err != nil {
+		return err
+	}
 	if _, err = r.exec(ctx, tx, "UPDATE unicore_users SET last_login_at=? WHERE id=?", time.Now().Unix(), userID); err != nil {
 		return err
 	}
@@ -269,13 +277,19 @@ func (r *Repository) CreateSession(ctx context.Context, hash, userID string, exp
 	return tx.Commit()
 }
 func (r *Repository) Session(ctx context.Context, hash string) (contracts.User, int, error) {
-	var id string
-	var expires int
-	if err := r.row(ctx, r.Store.DB, "SELECT user_id,expires_at FROM unicore_sessions WHERE token_hash=?", hash).Scan(&id, &expires); err != nil {
+	s, err := r.PersonalSession(ctx, hash)
+	if err != nil {
 		return contracts.User{}, 0, err
 	}
-	user, err := r.user(ctx, r.Store.DB, id)
-	return user, expires, err
+	if err = fullFactor(s); err != nil {
+		return contracts.User{}, 0, err
+	}
+	if !platform.DeviceFrom(ctx).Passive {
+		if _, err = r.exec(ctx, r.Store.DB, "UPDATE unicore_session_details SET last_seen_at=? WHERE token_hash=? AND last_seen_at<?", time.Now().Unix(), hash, time.Now().Unix()); err != nil {
+			return contracts.User{}, 0, err
+		}
+	}
+	return s.User, s.Expires, nil
 }
 func (r *Repository) DeleteSession(ctx context.Context, hash string) error {
 	_, err := r.exec(ctx, r.Store.DB, "DELETE FROM unicore_sessions WHERE token_hash=?", hash)

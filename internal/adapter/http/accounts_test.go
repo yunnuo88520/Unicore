@@ -108,7 +108,7 @@ func TestMailAccountHTTP(t *testing.T) {
 		t.Fatal("secret response leaked or lost mask")
 	}
 	assertStatus(request("POST", "/admin/settings/mail/test", contracts.MailTestInput{Recipient: "recipient@example.test"}, raw, session.CsrfToken, ""), 200)
-	assertStatus(patch(contracts.SettingChange{Key: "account.registration_enabled", Value: "true"}, contracts.SettingChange{Key: "account.password_reset_enabled", Value: "true"}), 200)
+	assertStatus(patch(contracts.SettingChange{Key: "account.registration_enabled", Value: "true"}, contracts.SettingChange{Key: "account.email_verification_required", Value: "true"}, contracts.SettingChange{Key: "account.password_reset_enabled", Value: "true"}), 200)
 	challenge := func() (string, string) {
 		response := request("GET", "/auth/captcha", nil, "", "", "")
 		assertStatus(response, 200)

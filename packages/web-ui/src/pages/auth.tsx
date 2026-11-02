@@ -4,17 +4,19 @@ import { t, useLocale } from '../i18n';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useRouter } from '@tanstack/react-router';
-import { ArrowUpRight, Building2, CheckCircle2, Layers3, LoaderCircle, Mail, ShieldCheck } from 'lucide-react';
+import { ArrowUpRight, Building2, CheckCircle2, Layers3, LoaderCircle, Mail, ShieldCheck, FolderOpen } from 'lucide-react';
 import { AppError, type EmailChallenge, type WebClient } from '@unicore/sdk';
 import { useRouteSearch, useSessionNotice, type PageProps } from '../router';
-import { BrandLockup, BrandMark } from '../brand';
+import { BrandLockup } from '../brand';
 import { Button, Input } from '../ui';
+import { AppField, AppForm, useAppForm } from '../lib/form';
 
 type Mode = 'login' | 'email' | 'register' | 'forgot' | 'resend';
 
 export function LoginPage({ client, metadata, refresh }: PageProps) {
   const notice = useSessionNotice();
   if (!client.web) return null;
+  if (metadata.mfa_pending) return <MFAFlow web={client.web} onDone={refresh} />;
   return <AuthFlow web={client.web} siteName={metadata.site_name} administrator={metadata.identity_realm === 'administrator'} notice={notice} onDone={refresh} />;
 }
 
@@ -39,24 +41,23 @@ function AuthField({ label, children }: { label: ReactNode; children: ReactNode 
   </label>;
 }
 
-function AuthStory({ administrator, siteName }: { administrator: boolean; siteName: string }) {
+function AuthStory({ administrator, siteName, registering }: { administrator: boolean; siteName: string; registering: boolean }) {
   useLocale();
-  return <section className="relative flex flex-col justify-center overflow-hidden bg-primary-soft px-7 py-9 md:px-12 lg:px-16">
-    <div className="flow-brand mb-7 flex items-center gap-2.5 self-start text-xl font-bold tracking-tight text-ink [&_.brand-dot]:text-primary"><BrandLockup name={siteName} /></div>
-    <span className="inline-flex items-center gap-2 text-sm font-medium text-primary"><ShieldCheck size={15} aria-hidden="true" />{administrator ? t('管理控制台') : t('用户工作空间')}</span>
-    <h2 className="mt-5 text-3xl font-semibold leading-snug tracking-tight text-ink md:text-4xl">
-      {administrator ? <>{t('有序管理，')}<br />{t('从容掌控。')}</> : <>{t('你的灵感，')}<br />{t('从这里开始。')}</>}
-    </h2>
-    <p className="mt-5 max-w-90 text-sm leading-loose text-muted">{administrator ? t('在统一的控制台管理用户、配置和服务，让每一次运营有据可依。') : t('一个熟悉而专注的空间，连接你的项目、文件与每一种可能。')}</p>
-    <div className="relative mt-4 hidden h-52 w-full max-w-80 place-items-center md:grid" aria-hidden="true">
-      <span className="absolute size-52 rounded-full border border-line" />
-      <span className="absolute inset-[26px] rounded-full border border-dashed border-line" />
-      <div className="flex size-24 -rotate-6 items-center justify-center rounded-2xl border border-line bg-surface shadow-card"><BrandMark size={44} /></div>
-      <span className="absolute bottom-5 start-0 inline-flex items-center gap-2.5 rounded-lg border border-line bg-surface px-5 py-3 text-sm text-primary"><Layers3 size={16} aria-hidden="true" />{administrator ? t('统一管理') : t('专注创造')}</span>
-      <span className="absolute end-1 top-4 rounded-full bg-primary p-3 text-on-primary"><ArrowUpRight size={20} aria-hidden="true" /></span>
+  return <section className="relative hidden flex-col justify-center overflow-hidden bg-primary-soft px-10 py-16 lg:flex lg:px-14" style={{ backgroundImage: 'radial-gradient(ellipse at top left, var(--color-primary-soft), transparent 65%), linear-gradient(145deg, var(--color-surface-alt), var(--color-primary-soft))' }}>
+    <span className="text-sm font-semibold tracking-widest text-accent">{registering ? t('快速开始') : administrator ? t('管理控制台') : t('用户工作空间')}</span>
+    <h2 className="mt-5 text-balance text-4xl font-semibold leading-snug tracking-tight text-ink">{registering ? t('创建账户，开启你的工作空间') : t('安全、便捷地连接每一种可能')}</h2>
+    <p className="mt-5 text-sm leading-loose text-muted">{registering ? t('完成几步设置，即可开始管理你的项目、文件与账号。') : t('一个熟悉而专注的空间，连接你的项目、文件与每一种可能。')}</p>
+    <div className="mt-10 flex flex-col gap-6">
+      {registering ? <ol className="grid grid-cols-3 gap-2 rounded-2xl border border-line bg-surface/80 p-5 text-center text-xs" aria-label={t('注册步骤')}>{[t('创建账号'),t('完成验证'),t('开始使用')].map((label,index) => <li key={label} className="flex flex-col items-center gap-3"><span className="flex size-9 items-center justify-center rounded-full border border-primary-line bg-primary-soft font-semibold text-accent">{index+1}</span>{label}</li>)}</ol> : <>
+        <AuthBenefit icon={<Layers3 size={19} />} title={t('统一工作空间')} detail={t('项目、笔记与文件，集中管理。')} />
+        <AuthBenefit icon={<ShieldCheck size={19} />} title={t('两步验证防护')} detail={t('动态验证码与恢复码，守护账号安全。')} />
+        <AuthBenefit icon={<FolderOpen size={19} />} title={t('私有文件管理')} detail={t('安全上传，按需授权访问。')} />
+      </>}
     </div>
-    <small className="mt-8 hidden text-2xs tracking-[2px] text-muted md:block">ONE CORE. EVERY POSSIBILITY.</small>
   </section>;
+}
+function AuthBenefit({icon,title,detail}:{icon:ReactNode;title:string;detail:string}){return <div className="flex items-start gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface text-accent">{icon}</span><div><strong className="text-sm text-ink">{title}</strong><p className="mt-1 text-xs leading-relaxed text-muted">{detail}</p></div></div>;
+
 }
 
 function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { administrator?: boolean; web: WebClient; siteName: string; onDone: () => void; notice?: string }) {
@@ -78,7 +79,7 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
       const graphic = { captcha_id: captcha.data?.id ?? '', captcha_answer: answer };
       if (mode === 'login') { await web.login({ username, password, ...graphic }); return null; }
       if (challenge) { await web.completeCode(purpose, { challenge_id: challenge.challenge_id, code, password: purpose === 'reset' ? password : '' }); return null; }
-      if (mode === 'register') return web.registerCode({ username, email, password, ...graphic });
+      if (mode === 'register') { const result = await web.registerCode({ username, email, password, ...graphic }); return result.registration_complete ? null : result; }
       return web.requestCode(purpose, { email, ...graphic });
     },
     onSuccess: result => {
@@ -91,7 +92,7 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
   });
   function change(next: Mode) { setMode(next); setChallenge(undefined); setDone(false); setPassword(''); setCode(''); setAnswer(''); submit.reset(); }
   const titles: Record<Mode, string> = { login: administrator ? t('管理员登录 · {{v0}}', { v0: siteName }) : t('登录 {{v0}}', { v0: siteName }), email: t('邮箱验证码登录'), register: t('创建账号'), forgot: t('找回密码'), resend: t('重新验证邮箱') };
-  const labels: Record<Mode, string> = { login: t('登录工作空间'), email: t('发送登录验证码'), register: t('注册并验证邮箱'), forgot: t('发送重置验证码'), resend: t('发送邮箱验证码') };
+  const labels: Record<Mode, string> = { login: t('登录工作空间'), email: t('发送登录验证码'), register: policy.data?.email_verification_required ? t('注册并验证邮箱') : t('注册'), forgot: t('发送重置验证码'), resend: t('发送邮箱验证码') };
   const fields = submit.error instanceof AppError ? submit.error.fields : {};
   const fieldList = Object.values(fields);
   useEffect(() => {
@@ -100,17 +101,18 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
     (control ?? form.current)?.focus();
     // Dependency intentionally tracks the mutation error object only.
   }, [submit.error]);
-  return <main className="flex min-h-dvh w-full flex-1 flex-col md:grid md:grid-cols-2">
-    <AuthStory administrator={administrator} siteName={siteName} />
-    <section className="flex flex-col items-center justify-center px-4 py-8 sm:px-6 md:px-10">
-      <div className="w-full max-w-sm">
-        <div className="mb-5 flex size-12 items-center justify-center rounded-xl bg-primary-soft text-accent">{challenge ? <Mail size={24} aria-hidden="true" /> : <ShieldCheck size={24} aria-hidden="true" />}</div>
-        <h1 className="text-2xl font-semibold text-ink">{challenge ? (purpose === 'verify' ? t('验证邮箱') : purpose === 'reset' ? t('设置新密码') : t('输入登录验证码')) : titles[mode]}</h1>
-        <p className="mt-1.5 text-sm text-muted">{challenge ? t('若账号符合条件，验证码将发送至该邮箱。请检查收件箱或垃圾邮件。') : administrator ? t('使用独立的后台账号登录。') : t('继续你的工作，连接更多可能。')}</p>
+  return <main className="relative flex w-full flex-1 flex-col lg:grid lg:min-h-[700px] lg:grid-cols-[0.45fr_0.55fr]">
+    <div className="flow-brand absolute start-5 top-6 z-10 flex max-w-[calc(100%-7rem)] items-center gap-2.5 text-xl font-bold tracking-tight text-ink lg:start-14 lg:top-14 lg:max-w-[35%]"><BrandLockup name={siteName} /></div>
+    <AuthStory administrator={administrator} siteName={siteName} registering={mode === 'register'} />
+    <section className="flex flex-col items-center justify-center px-5 pb-8 pt-20 sm:px-10 lg:py-20">
+      <div className="w-full max-w-sm [&_input]:h-12 [&_input]:rounded-xl [&_button[type=submit]]:h-12 [&_button[type=submit]]:w-full [&_button[type=submit]]:rounded-xl">
+        <div className="mx-auto mb-5 flex size-12 items-center justify-center rounded-xl bg-primary-soft text-accent">{challenge ? <Mail size={24} aria-hidden="true" /> : <ShieldCheck size={24} aria-hidden="true" />}</div>
+        <h1 className="text-center text-2xl font-semibold text-ink">{challenge ? (purpose === 'verify' ? t('验证邮箱') : purpose === 'reset' ? t('设置新密码') : t('输入登录验证码')) : titles[mode]}</h1>
+        <p className="mt-2 text-center text-sm text-muted">{challenge ? t('若账号符合条件，验证码将发送至该邮箱。请检查收件箱或垃圾邮件。') : administrator ? t('使用独立的后台账号登录。') : t('继续你的工作，连接更多可能。')}</p>
         {!administrator && mode === 'register' && policy.data && !policy.data.registration_enabled && <p role="status" className="mt-3 text-sm text-muted">{t('注册暂未开放，请联系管理员获取账号。')}</p>}
         {notice && <p role="status" className="mt-3 text-sm text-muted">{t(notice)}</p>}
         {done ? <div className="mt-5 flex flex-col items-start gap-4">
-          <p role="status" className="flex items-center gap-2 text-sm text-success"><CheckCircle2 size={18} aria-hidden="true" />{purpose === 'verify' ? t('邮箱验证成功，现在可以登录。') : t('密码已更新，旧会话已退出。')}</p>
+          <p role="status" className="flex items-center gap-2 text-sm text-success"><CheckCircle2 size={18} aria-hidden="true" />{purpose === 'verify' ? mode === 'register' && !policy.data?.email_verification_required ? t('账号已创建，现在可以登录。') : t('邮箱验证成功，现在可以登录。') : t('密码已更新，旧会话已退出。')}</p>
           <Button onClick={() => change('login')}>{t('返回登录')}</Button>
         </div> : <form ref={form} className="mt-5 flex flex-col gap-4" aria-busy={submit.isPending} onSubmit={event => { event.preventDefault(); if (!submit.isPending) submit.mutate(); }}>
           {fieldList.length > 0 && <div role="group" aria-label={t('表单校验')} tabIndex={-1} className="rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
@@ -156,7 +158,7 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
           {mode === 'login' && policy.data?.email_login_enabled && <TextLink onClick={() => change('email')}>{t('邮箱验证码登录')}</TextLink>}
           {!administrator && mode === 'login' && policy.data?.registration_enabled && <TextLink onClick={() => change('register')}>{t('注册账号')}</TextLink>}
           {policy.data?.reset_enabled && mode !== 'forgot' && <TextLink onClick={() => change('forgot')}>{t('找回密码')}</TextLink>}
-          {!administrator && policy.data?.registration_enabled && mode !== 'resend' && <TextLink onClick={() => change('resend')}>{t('重发验证邮件')}</TextLink>}
+          {!administrator && policy.data?.registration_enabled && policy.data?.email_verification_required && mode !== 'resend' && <TextLink onClick={() => change('resend')}>{t('重发验证邮件')}</TextLink>}
         </div>
         {!administrator && mode === 'login' && policy.data && !policy.data.registration_enabled && <p className="mt-3 text-sm text-muted">{t('注册暂未开放。请联系实例管理员获取账号。')}</p>}
         {mode === 'login' && <EnterpriseLoginBlock web={web} />}
@@ -204,10 +206,10 @@ function TokenFlow({ kind, web, siteName, onDone }: { kind: 'verify' | 'reset'; 
     mutationFn: async () => (kind === 'verify' ? web.verifyEmail(token) : web.resetPassword({ token, password })),
     onSuccess: () => { if (kind === 'reset') setPassword(''); setDone(true); },
   });
-  return <main className="flex min-h-dvh w-full flex-1 flex-col items-center justify-center gap-8 px-4 py-10 sm:px-6">
+  return <main className="flex min-h-[600px] w-full flex-1 flex-col items-center justify-center gap-8 px-4 py-10 sm:px-6">
     <div className="flex items-center gap-2.5 self-start text-xl font-bold tracking-tight text-ink [&_.brand-dot]:text-primary"><BrandLockup name={siteName} /></div>
     <div className="w-full max-w-md">
-      <div className="mb-5 flex size-12 items-center justify-center rounded-xl bg-primary-soft text-accent"><ShieldCheck size={24} aria-hidden="true" /></div>
+      <div className="mx-auto mb-5 flex size-12 items-center justify-center rounded-xl bg-primary-soft text-accent"><ShieldCheck size={24} aria-hidden="true" /></div>
       <h1 className="text-2xl font-semibold text-ink">{kind === 'verify' ? t('验证邮箱') : t('设置新密码')}</h1>
       <p className="mt-1.5 text-sm text-muted">{kind === 'reset' ? t('修改后，所有设备上的旧会话都会退出。') : t('确认后启用账号，再使用密码登录。')}</p>
       {done ? <div className="mt-5 flex flex-col items-start gap-4">
@@ -227,4 +229,13 @@ function TokenFlow({ kind, web, siteName, onDone }: { kind: 'verify' | 'reset'; 
       </form>}
     </div>
   </main>;
+}
+
+function MFAFlow({web,onDone}:{web:WebClient;onDone:()=>void}) {
+ useLocale();
+ const [recovery,setRecovery]=useState(false);
+ const form=useAppForm({schema:'SecurityCodeInput',defaultValues:{code:''},onSubmit:values=>{verify.mutate(values.code);}});
+ const verify=useMutation({mutationFn:(code:string)=>web.verifyMFA(code),onSuccess:()=>{form.reset();onDone();},onError:form.applyServerError});
+ const cancel=useMutation({mutationFn:()=>web.cancelMFA(),onSuccess:onDone});
+ return <main className="flex min-h-[600px] items-center justify-center p-4"><section className="w-full max-w-sm rounded-xl border border-line bg-surface p-6 shadow-card"><ShieldCheck size={28} className="mb-4 text-accent"/><h1 className="text-xl font-semibold">{t('双重验证')}</h1><p className="mt-2 mb-5 text-sm text-muted">{t('登录凭据已验证，请在 5 分钟内完成双重验证。')}</p><AppForm form={form} className="flex flex-col gap-4"><AppField name="code" label={recovery?t('恢复码'):t('身份验证器验证码')}><Input required minLength={recovery?20:6} maxLength={recovery?20:6} pattern={recovery?undefined:'[0-9]{6}'} inputMode={recovery?'text':'numeric'} autoComplete="one-time-code"/></AppField><Button type="submit" pending={verify.isPending}>{t('验证并登录')}</Button><Button type="button" variant="ghost" disabled={verify.isPending||cancel.isPending} onClick={()=>{setRecovery(value=>!value);form.reset();}}>{recovery?t('使用身份验证器'):t('使用恢复码')}</Button><Button type="button" variant="secondary" pending={cancel.isPending} disabled={verify.isPending} onClick={()=>cancel.mutate()}>{t('返回登录')}</Button></AppForm></section></main>;
 }

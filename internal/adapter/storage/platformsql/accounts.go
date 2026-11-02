@@ -47,7 +47,16 @@ func (r *Repository) cancelTokens(ctx context.Context, tx *sql.Tx, user, purpose
 		return err
 	}
 	_, err := r.exec(ctx, tx, "DELETE FROM unicore_account_tokens WHERE "+predicate, args...)
-	return err
+	if err != nil {
+		return err
+	}
+	if purpose == "" {
+		if _, err = r.exec(ctx, tx, "UPDATE unicore_personal_accounts SET setup_secret='',setup_session='',setup_expires=0 WHERE user_id=?", user); err != nil {
+			return err
+		}
+		return r.cancelEmailChanges(ctx, tx, user)
+	}
+	return nil
 }
 func (r *Repository) tokenAndMail(ctx context.Context, tx *sql.Tx, user, purpose, hash string, expires int, payload string) error {
 	if err := r.cancelTokens(ctx, tx, user, purpose); err != nil {
@@ -150,6 +159,15 @@ func (r *Repository) ClaimMail(ctx context.Context, now int) (mailer.Job, error)
 	// One shared worker cleans secrets in both identity realms before claiming the shared queue.
 	for _, administrators := range []bool{false, true} {
 		scope := &Repository{Store: r.Store, Administrators: administrators}
+		if _, err = scope.exec(ctx, tx, "UPDATE unicore_personal_accounts SET setup_secret='',setup_session='',setup_expires=0 WHERE setup_expires>0 AND setup_expires<=?", now); err != nil {
+			return mailer.Job{}, err
+		}
+		if _, err = scope.exec(ctx, tx, "UPDATE unicore_email_changes SET code_digest='' WHERE expires_at<=?", now); err != nil {
+			return mailer.Job{}, err
+		}
+		if _, err = scope.exec(ctx, tx, "DELETE FROM unicore_email_changes WHERE created_at<?", now-7*86400); err != nil {
+			return mailer.Job{}, err
+		}
 		if _, err = scope.exec(ctx, tx, "UPDATE unicore_email_challenges SET code_digest='' WHERE expires_at<=?", now); err != nil {
 			return mailer.Job{}, err
 		}
@@ -209,4 +227,20 @@ func (r *Repository) MailJobs(ctx context.Context) (contracts.MailJobList, error
 		result.Items = append(result.Items, item)
 	}
 	return result, rows.Err()
+}
+
+// RegisterActiveAccount creates a usable ordinary account without queuing email.
+func (r *Repository) RegisterActiveAccount(ctx context.Context, input contracts.RegisterInput, hash string) error {
+	if r.Administrators {
+		return platform.ErrFlowDisabled
+	}
+	tx, err := r.accountTransaction(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err = r.insert(ctx, tx, contracts.UserCreate{Username: input.Username, Email: input.Email, Role: "user"}, hash, "registration"); err != nil {
+		return err
+	}
+	return tx.Commit()
 }

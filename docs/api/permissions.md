@@ -23,7 +23,7 @@ POST /account/password 与 /admin/account/password 分别仅对应域登录账�
 
 统一成功响应为 `{code:"OK",message:"",data,request_id}`，失败使用稳定 code、脱敏 message 与可选字段错误。错误目录由契约生成；包括安装凭据/状态、数据库连接/非空确认、认证权限/CSRF、验证码限流、最后管理员、账号冲突和输入错误。未知接口 JSON 404，不使用 SPA fallback。bootstrap/session 返回会话派生 csrf_token，SDK 自动附加；令牌只哈希持久化。
 
-公开账号接口包括 /auth/policy、/auth/captcha、/auth/login、/auth/email/register、/auth/email/{verify,reset,login}/request 和 /complete，所有路径位于 /api/v1。注册仅普通域；SMTP 就绪、实例开关、图形验证码和限流仍适用。申请返回 challenge_id、expires_in、retry_after，未知/禁用账号同形成功。完成提交 challenge_id、六位 code 及用途需要的 password；10 分钟有效、60 秒重发、最多 5 次错误，分用途原子一次性消费。登录设置所选域 Cookie。密码重置撤销该域账号旧会话与挑战，创建会话再次检查密码版本。
+公开账号接口包括 /auth/policy、/auth/captcha、/auth/login、/auth/email/register、/auth/email/{verify,reset,login}/request 和 /complete，所有路径位于 /api/v1。注册仅普通域；开放注册与邮箱验证独立控制，图形验证码、限流与后端注册限制仍适用。关闭验证时无需 SMTP，创建 active 普通用户并返回 registration_complete=true，不创建邮件挑战；开启验证及其他邮件流程需 SMTP 就绪。申请返回 challenge_id、expires_in、retry_after，未知/禁用账号同形成功。完成提交 challenge_id、六位 code 及用途需要的 password；10 分钟有效、60 秒重发、最多 5 次错误，分用途原子一次性消费。登录设置所选域 Cookie。密码重置撤销该域账号旧会话与挑战，创建会话再次检查密码版本。
 
 旧 /auth/register、/auth/verification/{request,complete}、/auth/password/{request,reset} 仅兼容长链接，已 deprecated；无 GET 消费。链接回到对应域入口。模板管理为独立管理员页面与专用 API，固定预览示例码，不含真实验证码或 SMTP 密钥；内容受变量及 HTML 白名单约束，保存持久化到 mail.template.*，通用设置 PATCH 禁止写入。SMTP 敏感值始终为空并附 configured，空 PATCH 保留，clear:true 显式清除；任务列表/审计不包含密钥、正文或验证码。
 
@@ -32,3 +32,9 @@ POST /account/password 与 /admin/account/password 分别仅对应域登录账�
 对象存储：storage:read / storage:write 固定管理员，所有 /admin/storage/* 与 /admin/files/* 独立鉴权。/files 仅普通用户本人身份域，/admin/files 使用管理员域并校验存储权限；未登录返回 401，非本人文件返回 404；本地 content 只接受短期签名，不接受文件名或磁盘路径。完整接口见 OpenAPI，流式上传声明 streamingUpload，签名下载声明 signedDownload。
 
 当前双入口、单机边界和升级兼容说明见 [ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md)。
+
+平台维护开启时，用户域认证与业务 API 在进入处理器前返回 503 MAINTENANCE_MODE；bootstrap/健康检查与管理员固定域保留，管理员资源仍独立鉴权。公开 bootstrap 仅新增维护状态/提示和可发布页脚字段，不包含管理员通知邮箱。
+
+本人个人中心使用 /account/profile、/account/totp/*、/account/email/*、/account/sessions*；管理员对应 /admin/account/*，仅对应域本人会话，不授予全局管理能力。所有写操作校验 CSRF/Origin。受限 MFA 会话只能访问 bootstrap 与固定 /auth/mfa、/auth/mfa/cancel（管理员 /admin/auth/*），需绑定 Cookie 的 CSRF；不能读取本人资料或业务。强制设置但未绑定验证器时仅允许 account/*、session/logout，其余受保护业务拒绝。代码规则与错误见 [ADR-0031](../adr/ADR-0031-personal-center-security.md)，不扩大 admin 前缀豁免范围。
+
+账户安全页面复用 settings:read/write；用户与管理员列表的 totp_enabled 是只读安全状态，不能通过 UserCreate/UserUpdate 修改。服务器在所有固定域会话读取时校验空闲与管理员绝对时限，强制 2FA 按域生效，不能靠页面隐藏绕过。

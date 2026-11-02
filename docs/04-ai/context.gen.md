@@ -71,7 +71,7 @@
 | documentationSite | [website](../../website) |
 | documentationSiteGuide | [docs/03-runbooks/documentation-site.md](../../docs/03-runbooks/documentation-site.md) |
 
-OpenAPI 当前包含 132 个 operation、137 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
+OpenAPI 当前包含 162 个 operation、152 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
 
 | 任务 Skill | 用途 |
 | --- | --- |

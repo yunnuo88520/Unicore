@@ -14,7 +14,7 @@ import type { PageProps } from '../../router';
 const features = tableFeatures({ rowPaginationFeature, paginatedRowModel: createPaginatedRowModel() });
 const helper = createColumnHelper<typeof features, User>();
 const EMPTY_USERS: User[] = [];
-const COLUMN_COUNT = 5;
+const COLUMN_COUNT = 6;
 
 type UsersTableMeta = { kind: string; pending: boolean; currentUserId?: string; onToggle: (user: User) => void };
 
@@ -31,6 +31,7 @@ const columns = helper.columns([
   }),
   helper.accessor('email', { header: () => t('邮箱'), cell: info => <span className="text-muted">{info.getValue()}</span> }),
   helper.display({ id: 'role', header: () => t('身份'), cell: info => (info.table.options.meta as UsersTableMeta).kind }),
+  helper.accessor('totp_enabled', { header: () => t('双因素认证'), cell: info => <Badge variant={info.getValue() ? 'success' : 'subtle'}>{info.getValue() ? t('已开启') : t('未开启')}</Badge> }),
   helper.accessor('status', {
     header: () => t('状态'),
     cell: info => {

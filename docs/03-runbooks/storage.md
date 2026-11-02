@@ -6,7 +6,7 @@
 1. 在服务商创建私有 Bucket；使用限定 Bucket/前缀的读、写、复制、删除凭据。
 2. 在对应提供商标签“新增存储位置”，填写 API Endpoint、Bucket、Region、独立前缀与密钥。OSS 使用地域如 cn-hangzhou；COS Endpoint 填完整 Bucket 域名；S3 支持路径式寻址；MinIO Endpoint 填 API 端口，不能填控制台地址。
 3. 保存后“测试连接”，通过后“配置本站跨域”。S3/OSS/COS 合并新规则，保留原规则；部分 MinIO 使用服务级 CORS，当前已允许本站时直接检查通过，否则需运维配置服务允许站点 Origin。不要开启公共桶策略。
-4. “设为默认”后刷新页面，以加载允许目标 Origin 的 CSP。历史文件仍走原位置；不删除旧位置/密钥/本地目录。
+4. 在顶部“全局默认存储位置”选择已测试位置并“应用全局默认”（位置卡片也支持“设为默认”），切换后自动刷新页面，以加载允许目标 Origin 的 CSP。历史文件仍走原位置；不删除旧位置/密钥/本地目录。
 5. 在“文件大小与生命周期策略”设置大小、签名时效与保留期。默认单文件 100 MiB，最高 64 GiB；签名下载 300 秒，上传凭证 900 秒，未完成上传保留 24 小时；新文件永久保留（0）。分片默认 8 MiB（5–64），并发默认 3（1–6）；可暂停、继续或放弃，未完成记录按保留期清理。策略只作用于新建会话。
 
 HTTPS 站点必须使用浏览器可达的 HTTPS Endpoint；不要在公网页面使用仅服务器能访问的内网域名。Nginx 本地上传需要 client_max_body_size 与 proxy_read_timeout 对应上限；云直传不经过 Nginx/应用服务器。本地 multipart parts 路径每次最多 64 MiB、10 分钟；完成合并最多两小时。参考 deploy/tar/nginx.conf.example 的专用上传 location；不用将所有 JSON 请求上限一起放大。
@@ -21,7 +21,7 @@ HTTPS 站点必须使用浏览器可达的 HTTPS Endpoint；不要在公网页�
 
 ## 迁移、清理与恢复
 
-文件管理 → 迁移，选择已测试目标；传输和 SHA-256 校验成功才切换元数据，文件 ID 不变。跨提供商迁移会流经服务器；日常云上传/同桶确认直接发生在浏览器/对象存储。旧对象至少延迟 3660 秒清理，为已经签发的下载预留窗口。失败时保留原文件，目标孤儿由事先登记的任务清理。
+文件管理可跨页勾选可用文件并“批量迁移”，或使用单文件迁移。选择已测试目标；批量逐项调用相同迁移接口，显示等待、复制校验、完成、失败或同目标跳过及真实文件计数。保持页面打开，可在当前文件完成后停止，再继续或重试失败项；已成功项不重复迁移。关闭弹窗会保留未完成文件的选择，刷新页面不恢复客户端批次（每项服务端引用仍受原子保证）。传输和 SHA-256 校验成功才切换元数据，文件 ID 不变。跨提供商迁移会流经服务器；日常云上传/同桶确认直接发生在浏览器/对象存储。旧对象至少延迟 3660 秒清理，为已经签发的下载预留窗口。失败时保留原文件，目标孤儿由事先登记的任务清理。
 
 后台使用独立分钟定时器处理有限批次的到期元数据/清理任务，可在页面立即执行。删除失败会保留任务并延迟重试。应用只清理 DB 登记的键，不扫描整桶；桶内其他业务数据不接管。未完成直传对象等凭证到期/保留期后清理，防止晚到请求再次产生孤儿。建议为独立 pending / multipart 前缀增加桶生命周期后备规则，并启用桶版本/备份；规则由桶运维维护，不替换无关规则。
 
@@ -35,7 +35,7 @@ HTTPS 站点必须使用浏览器可达的 HTTPS Endpoint；不要在公网页�
 
 平台用户和管理员共用 FileUploadDialog 与 AppClient.files.uploadFile。新文件统一分片，小文件为一片；页面显示已确认字节进度、暂停、继续、放弃。刷新、关闭或服务重启后，在未完成文件旁点击“继续上传”，重新选择原文件即可；文件指纹不符会拒绝继续，不会创建另一份覆盖原文件。超过续传窗口后需删除记录并重新上传。网络失败自动重试两次，签名过期时重新申请；需要保持原位置和凭据可用。
 
-调用 `uploadFile(file,{resumeId,onSession,onProgress,onStage,signal})` 可在业务组件复用；onStage 为 hashing/uploading/confirming，onProgress 仅统计已被存储确认的字节，按片推进。AbortSignal 表示暂停，不删除服务端会话；放弃用 deleteFile。不要自行拼对象键、缓存上传凭证或在 UI 保存身份令牌。普通用户 policy 只含大小/分片/并发/续传期，不泄露全局设置、位置或密钥。
+调用 `uploadFile(file,{resumeId,onSession,onProgress,onStage,signal})` 可在业务组件复用；onStage 为 hashing/uploading/confirming，onProgress 仅统计已被存储确认的字节，按片推进。AbortSignal 表示暂停，不删除服务端会话；放弃用 deleteFile。不要自行拼对象键、缓存上传凭证或在 UI 保存身份令牌。普通用户 policy 只含大小/分片/并发/续传期及允许的上传路径/扩展名，不泄露全局设置、位置或密钥。
 
 云账号新增所需权限：原生 multipart initiate、upload part、list parts、complete、abort，以及对专用前缀列举未完成 multipart（清理崩溃时丢失的 upload ID）、条件复制/分片复制、读写删除。S3/MinIO 对应 ListBucketMultipartUploads、ListMultipartUploadParts、AbortMultipartUpload、PutObject/GetObject/DeleteObject；OSS/COS 配置等效权限。测试连接同时探测 initiate/list/abort，真实上传与厂商测试仍需环境验收。云跨域必须允许 PUT 和 Content-Type；不要设置公共读。
 
@@ -46,3 +46,14 @@ HTTPS 站点必须使用浏览器可达的 HTTPS Endpoint；不要在公网页�
 OSS 实测已覆盖官方 SDK 和 PC/375px 浏览器，当前适配将服务端操作与绑定 Content-Length 的签名客户端隔离；下载只覆盖 Content-Disposition 为附件，避免 OSS 拒绝 response-content-type 覆盖。腾讯云开发凭据本轮返回 AccessDenied，用户选择待权限补齐后验证；AWS S3 仍未做真实账号测试，不能因为 MinIO 同协议而声明 AWS 通过。
 
 额外云环境使用 UNICORE_TEST_OSS_* / UNICORE_TEST_COS_* 的 ENDPOINT、BUCKET、REGION、ACCESS_KEY、SECRET_KEY 注入；Go `go test ./internal/adapter/blobcloud -run TestVendorMultipart -count=1`。测试只使用 unicore-acceptance-* / unicore-browser-* 随机前缀，密钥不落源码、报告或 trace。浏览器测试对同一桶的 CORS 采用串行（--workers 1），避免不同隔离实例同时 read-modify-write 覆盖临时 Origin；结束只移除本次临时 Origin，保留其他规则。不要并发运行多套修改同一桶 CORS 的验收。
+
+## 上传路径与扩展名
+
+对象存储页默认选中全局正在使用的提供商，选择不同方式直接显示对应配置表单。保存新位置后测试连接、配置本站跨域，再“设为默认”；历史位置保留，可在“已保存位置与连接测试”查看。更换 endpoint/bucket/region/prefix 仍需新增位置，轮换密钥留空保持。
+
+| 设置 | 默认 | 说明 |
+| --- | --- | --- |
+| `storage.upload_paths` | 空 | 每行一个相对路径，最多 200 条/16000 字符，如 images、archives/2026。禁止绝对路径、..、反斜杠和空白字符；留空使用托管根目录。第一项为默认，上传弹窗可选择其他项 |
+| `storage.allowed_extensions` | 空 | 每行一个扩展名，可带前导点，如 txt、.png、tar.gz；不区分大小写，空列表允许全部；最多 200 条/16000 字符 |
+
+策略适用于本地及所有云提供商，普通用户通过安全投影读取这两项，不接触位置凭据。SDK `uploadFile(file,{uploadPath})` 可传列表中的路径；不传选首项；单请求与 multipart 创建均由后端拒绝未配置路径和扩展名。对象键位于原位置 prefix 下的 objects/路径/随机 ID；不会使用用户原名作为磁盘路径。复用现有 blob port 和 file_key 元数据，无 schema 迁移；历史文件和已开始的续传会话保持原目标。品牌图片使用独立解码/格式策略，不受业务扩展名限制。扩展名是文件名策略，不替代业务 MIME/内容校验。

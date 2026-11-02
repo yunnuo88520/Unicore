@@ -49,55 +49,11 @@ bootstrap.token 用于证明服务器所有权、防止别人抢先建管理员�
 
 CLI 直接运行 `build/bin/unicore execute --text "Hello Unicore"`，不打开 HTTP/Wails/DB。仅业务文本分析无持久化，输入不会写日志。
 
-## Tar / 宝塔 / Nginx
+## Web 发行部署
 
-快速构建、统一版本与发版流程见 [发版手册](release.md)。Linux amd64 服务器使用 `make package RELEASE_TARGETS=linux/amd64 RELEASE_PROFILES=web-platform`，ARM 服务器改 arm64。目标机器无需 Go/Node。核对 checksums.txt 后解压到 `/opt/unicore/releases/<版本>`，让 `/opt/unicore/current` 指向该目录；将数据单独放在 `/var/lib/unicore`，禁止放进公开站点根目录。
+完整的用户操作步骤统一维护在 [Web 从零部署指南](../product/deployment.md)：先说明系统/资源/架构/端口和数据库，再提供 Docker 命令、独立 Compose（含 PostgreSQL）、tar 下载校验与完整 unicore.service、Nginx/宝塔 HTTPS、安装向导、重启检查、更新与故障排查。新部署从该页开始，不需要先读开发阶段记录。
 
-包根目录提供 `./unicorehelp` / `./unicore help`，`./unicore` 无参数启动 Web/API，`bin/server` 仍兼容。可用 `./unicore config generate --output /你的私有目录/unicore.json` 生成可选启动配置，再以 `./unicore --config /你的私有目录/unicore.json` 运行；拒绝覆盖已有文件，兼容别名为 generate-config。JSON 不存数据库或管理员凭据，首次安装仍访问 `/install`；字段与优先级见 [配置指南](../product/configuration.md)。
-
-```sh
-# 以下由运维在新服务器执行，路径按实际包名调整
-sudo useradd --system --home /var/lib/unicore --shell /usr/sbin/nologin unicore
-sudo install -d -m 700 -o unicore -g unicore /var/lib/unicore
-sudo cp /opt/unicore/current/deploy/unicore.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now unicore
-sudo -u unicore cat /var/lib/unicore/bootstrap.token
-```
-
-可选配置文件 `/etc/unicore/unicore.env`（0600）；配置项见上表和 [运行基座](../02-standards/runtime.md)。服务默认只听 127.0.0.1:8080，日志走 journal，排空超时默认 5 秒、systemd 停止等待 15 秒。
-
-普通 Nginx 使用包内 deploy/nginx.conf.example，改 listen/server_name/root 并开启 HTTPS。宝塔创建静态站点，站点目录指向包内 web/，在站点配置中合并该 server 内的 location；不要再叠加宝塔的通用 SPA 伪静态。assets/ 由 Nginx 直接读取，其余路径反代 127.0.0.1:8080 并保留 Host。HTML 壳由 Go 处理以保持 `/install`、自定义后台、品牌/manifest 和文档开关的一致行为；不是将 index.html 直接公开的纯静态托管。替换配置前 `nginx -t`，验证后 reload。宝塔使用自己的 Nginx 可执行文件和面板重载入口。
-
-浏览器首次访问实际域名，必须跳转 `/install`，录入私有 token、数据库及管理员；访问地址自动取当前浏览器 origin，无需填写，请从最终实际 HTTPS 域名安装。演示可手动设置 `admin / Admin@123456`；生产填写自己的密码，框架不预置账号。安装完成 `/install` 回首页、原 token 失效，设置与账号重启保留。后台默认 `/admin`；修改后旧路径 404。远程单机没有身份模块，需外层认证/ACL。Nginx 另行配置 TLS、边缘限流和访问策略，Go 不将 X-Forwarded-For 视为真实客户端地址。
-
-## Docker / Compose
-
-```sh
-export UNICORE_VERSION="$(cat VERSION)" UNICORE_IMAGE="unicore:$(cat VERSION)"
-make compose-up
-# distroless 没有 shell/cat；复制凭据到权限受限的临时目录后读取
-umask 077
-mkdir -p /tmp/unicore-install-private
-docker compose -f deploy/docker/compose.yaml cp app:/data/bootstrap.token /tmp/unicore-install-private/token
-cat /tmp/unicore-install-private/token
-rm /tmp/unicore-install-private/token
-make compose-down
-```
-
-Compose 每次解析（包括 cp/logs/ps）均需要版本变量：在当前终端先执行 `export UNICORE_VERSION="$(cat VERSION)" UNICORE_IMAGE="unicore:$(cat VERSION)"`，或使用 Make 的 up/down 自动注入。默认访问 127.0.0.1:8088，可用 `UNICORE_PORT=8090 make compose-up` 修改本地端口。公网入口仍由 HTTPS 反代，保留外部 Host；安装页会自动登记访问 origin，应从真实公网 HTTPS 域名安装。live 在未安装时为 200、ready 为 503，安装和数据库可用后 ready 为 200；外部监控应区分这两者。
-
-不用 Compose 时先 `make docker-build`，然后：
-
-```sh
-docker run -d --name unicore --read-only --cap-drop=ALL \
-  --security-opt=no-new-privileges:true --stop-timeout=15 \
-  -p 127.0.0.1:8088:8080 -v unicore_data:/data "unicore:$(cat VERSION)"
-```
-
-镜像为 nonroot，根目录只读，命名卷保存完整 `/data`。已有 bind mount 需要管理员提前设置目录为 UID/GID 65532、0700；框架不会自动放宽权限。数据/密钥/本地 env 不进入 Docker build context。不要 `down -v` 删除真实实例卷。替换镜像由外部 Compose/CI 完成，保留卷；不挂载 socket，不覆盖容器内 binary。
-
-使用预构建镜像可先设置 UNICORE_VERSION/UNICORE_IMAGE，再 `docker compose -f deploy/docker/compose.yaml up -d --no-build --pull always`；正式仓库地址由维护者配置。更新前停服成套备份，替换包 current 链接或镜像后启动、检查 ready、登录与数据。回退受迁移兼容约束，不能只替换旧程序。同版本替换用于验证配置和卷保留，不证明跨版本回退；签名 OTA 的程序切换/恢复与 Docker 外部更新边界见 [更新手册](updates.md)。
+启动 flags、APP_* 环境、JSON 字段、systemd/容器优先级和后台配置表统一维护在 [配置说明](../product/configuration.md)。本文保留安装归属、重装、密钥及历史兼容边界，不再重复另一套部署步骤。
 
 ## 检查与备份边界
 
@@ -107,7 +63,7 @@ live 是进程存活；ready 要求已安装并 DB Ping 成功。测试通过独
 
 ## SMTP、注册与密码恢复
 
-只有平台管理端提供邮件设置。进入「系统管理 → 邮件设置」，先保存主机/端口/加密方式/发件人及可选登录凭据，再点击同一页面的「发送测试」，在弹窗填写收件邮箱，等待真实测试成功。在本页「账号流程」可开启“邮件找回密码”/“邮箱验证码登录”；开放注册默认关闭，需到「系统管理 → 基础设置 → 安全与控制」开启，同样要求已测试 SMTP。布尔项使用开关，邮件配置与测试不拆成嵌套标签；邮件主题/内容可在「系统管理 → 邮件模板」独立配置，支持变量、预览、测试发送与恢复默认，详见 [管理工具](admin-tools.md)。邮件策略不进入单机或桌面。密钥输入留空保留，清除按钮只在保存时清空；读取不会返回原值。更改 SMTP 前先关闭三项邮件流程，改完重测再开启。
+只有平台管理端提供邮件设置。进入「系统管理 → 邮件设置」，先保存主机/端口/加密方式/发件人及可选登录凭据，再点击同一页面的「发送测试」，在弹窗填写收件邮箱，等待真实测试成功。在本页「账号流程」可开启“邮件找回密码”/“邮箱验证码登录”；开放注册默认关闭，在「系统管理 → 系统设置 → 基础设置 → 注册设置」开启；“注册邮箱验证”独立控制，仅开启该选项时需要已测试 SMTP，关闭时注册立即生效。布尔项使用开关，邮件配置与测试不拆成嵌套标签；邮件主题/内容可在「系统管理 → 邮件模板」独立配置，支持变量、预览、测试发送与恢复默认，详见 [管理工具](admin-tools.md)。邮件策略不进入单机或桌面。密钥输入留空保留，清除按钮只在保存时清空；读取不会返回原值。更改 SMTP 前先关闭邮箱验证、邮箱登录与找回密码三项邮件流程，改完重测再开启。
 
 推荐 STARTTLS 587 或 TLS 465；证书由系统根证书验证，不提供跳过验证选项。plain 仅供 loopback SMTP sink/本机 relay，不能用于远程明文凭据传输。测试通过表示 SMTP 已接受邮件，不保证收件箱投递。监控 SMTP 服务商告警、退信与配额；M2c 已使用经用户授权的 QQ SMTP 做四种模板真实投递，收件人确认显示正常；个人凭据不进入仓库。
 
@@ -139,9 +95,9 @@ appearance.theme 从平台全局设置删除，平台主题只存当前浏览器
 
 ## M3a OIDC 接入与恢复
 
-仅平台启用。先确认安装登记的 BaseURL 为对外 HTTPS origin，再在企业 IdP 创建 OIDC 应用，登记「系统管理 → 基础设置 → 企业登录」中服务检查显示的精确 callback（包括 scheme/host/port/path）。用户与管理员回调分别为 `/api/v1/auth/oidc/callback`、`/api/v1/admin/auth/oidc/callback`，需要的地址均须登记到 IdP 白名单。默认使用 openid email profile；授权码、PKCE S256、签名 ID token 是必需条件。若使用机密客户端，支持 client_secret_basic/client_secret_post；public client 可不填密钥。绑定要求 IdP 支持 prompt=login/max_age=0 并返回新鲜 auth_time。
+仅平台启用。先确认安装登记的 BaseURL 为对外 HTTPS origin，再在企业 IdP 创建 OIDC 应用，登记「系统管理 → 系统设置 → 基础设置 → 企业登录」中服务检查显示的精确 callback（包括 scheme/host/port/path）。用户与管理员回调分别为 `/api/v1/auth/oidc/callback`、`/api/v1/admin/auth/oidc/callback`，需要的地址均须登记到 IdP 白名单。默认使用 openid email profile；授权码、PKCE S256、签名 ID token 是必需条件。若使用机密客户端，支持 client_secret_basic/client_secret_post；public client 可不填密钥。绑定要求 IdP 支持 prompt=login/max_age=0 并返回新鲜 auth_time。
 
-在同一「企业登录」标签保存 Issuer、Client ID、可选密钥，检查发现连接；通过只代表发现文档和端点可用，仍需用测试账号完成实际登录。确认后开启企业登录，按需要开启「首次登录创建普通账号」。JIT 用户必须有已验证邮箱，不存在于本地，且固定 user 权限；企业管理角色不导入，不开放管理员自注册。同邮箱已有本地用户应先在对应身份域密码登录，进入「账号资料」，确认本地密码后绑定；不要通过修改邮箱绕过归属证明。
+在同一「企业登录」标签保存 Issuer、Client ID、可选密钥，检查发现连接；通过只代表发现文档和端点可用，仍需用测试账号完成实际登录。确认后开启企业登录，按需要开启「首次登录创建普通账号」。JIT 用户必须有已验证邮箱，不存在于本地，且固定 user 权限；企业管理角色不导入，不开放管理员自注册。同邮箱已有本地用户应先在对应身份域密码登录，进入「个人中心 → 安全设置」，确认本地密码后绑定；不要通过修改邮箱绕过归属证明。
 
 仅本机隔离测试允许 literal loopback IP 的 HTTP，例如 127.0.0.1；不能用远程 HTTP、跳过证书验证或跨端点重定向。新装应直接从实际 HTTPS 域名进入 /install，页面自动登记该 origin；已有开发实例若登记了错误 BaseURL，停服务并成套备份后仅修正 installation.json 的 base_url，再启动核对 callback，不能更改 profile/instance/DSN/密钥字段。生产反代需使用固定受信任的 host，身份服务必须可被后端访问。
 
@@ -155,7 +111,7 @@ appearance.theme 从平台全局设置删除，平台主题只存当前浏览器
 
 ## M3b 品牌图片与恢复
 
-管理端「系统管理 → 基础设置 → 品牌图片」分别选择 PNG/JPEG（站点图标也可选 ICO），检查预览后保存；深色 Logo 可单独覆盖，站点图标影响标签/触屏链接和 manifest。每项“恢复默认”需确认，恢复到编译品牌。普通设置编辑不能写 branding.* 引用。更换主题主色/原生图标仍需修改代码设计源并构建；单机/桌面仅使用构建品牌，没有运行时品牌管理页。
+管理端「系统管理 → 系统设置 → 基础设置 → 品牌图片」分别选择 PNG/JPEG（站点图标也可选 ICO），检查预览后保存；深色 Logo 可单独覆盖，站点图标影响标签/触屏链接和 manifest。每项“恢复默认”需确认，恢复到编译品牌。普通设置编辑不能写 branding.* 引用。更换主题主色/原生图标仍需修改代码设计源并构建；单机/桌面仅使用构建品牌，没有运行时品牌管理页。
 
 brand-assets/ 位于 APP_DATA_DIR（桌面为其配置目录）内，目录 0700、图片 0600。tar 部署不要覆盖数据目录；Docker 必须将整个数据目录持久挂载到镜像外，包含已有配置/密钥和新图片目录，不单独挂载只读图片。迁机或手工备份先停止实例，成套保存同一时间点 DB、installation.json、原密钥和 brand-assets。外部 DB 同样需要配套目录；不要只复制 SQL 引用。当前离线加密备份恢复使用 unicore-ops，见 [备份手册](backup.md)。
 
@@ -164,7 +120,7 @@ brand-assets/ 位于 APP_DATA_DIR（桌面为其配置目录）内，目录 0700
 
 ## 设置与可裁剪授权/系统更新
 
-平台备案号/HTTPS 查询链接在「系统管理 → 基础设置 → 基础信息」保存，登录页与工作台共用；编号留空隐藏。SMTP 别名在「邮件设置」填写，留空跟随站点名，用于测试/账号/系统通知显示名；密钥仍只显示配置状态。业务通知调用与限制见 [设置规范](../00-product/feature-settings.md)。
+平台备案号/HTTPS 查询链接在「系统管理 → 系统设置 → 基础设置 → 基础信息」保存，登录页与工作台共用；编号留空隐藏。SMTP 别名在「邮件设置」填写，留空跟随站点名，用于测试/账号/系统通知显示名；密钥仍只显示配置状态。业务通知调用与限制见 [设置规范](../00-product/feature-settings.md)。
 
 默认 FEATURE_LICENSE=false、FEATURE_UPDATER=true。平台管理员可使用系统更新，授权检测仍可选占位；单机/桌面仅提供系统更新。前后端必须使用同一组编译输入：
 

@@ -62,7 +62,7 @@ func exerciseMailLifecycle(t *testing.T, ctx context.Context, store *sqlstore.St
 	if err = mail.Test(ctx, "recipient@example.test", admin.ID); err != nil {
 		t.Fatal("SMTP test failed", err)
 	}
-	_, err = config.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "account.registration_enabled", Value: "true"}, {Key: "account.password_reset_enabled", Value: "true"}}}, admin.ID)
+	_, err = config.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "account.registration_enabled", Value: "true"}, {Key: "account.email_verification_required", Value: "true"}, {Key: "account.password_reset_enabled", Value: "true"}}}, admin.ID)
 	if err != nil {
 		t.Fatal(err)
 	}

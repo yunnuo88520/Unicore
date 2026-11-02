@@ -74,7 +74,7 @@ for (const driver of ['sqlite','mysql','postgres'] as const) test(`installer ${d
   }
   await page.screenshot({path:`${directory}/${driver}-database.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.getByRole('button',{name:'下一步'}).click();await page.getByLabel('站点名称',{exact:true}).fill(`安装验收 ${driver}`);await page.getByLabel('管理员账号').fill('admin');await page.getByLabel('管理员邮箱').fill('admin@example.test');await page.getByLabel('管理员密码').fill('Admin@123456');await page.getByRole('button',{name:'下一步'}).click();
-  await page.getByRole('button',{name:'完成安装'}).click();await expect(page.getByRole('heading',{name:'安装完成',exact:true})).toBeVisible();await expect(page.getByText(`${instance.url}/`,{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'完成安装'}).click();await expect(page.getByRole('heading',{name:'安装完成',exact:true})).toBeVisible();await expect(page.getByRole('link',{name:`${instance.url}/`,exact:true})).toHaveAttribute('href',`${instance.url}/`);await expect(page.getByRole('link',{name:`${instance.url}/admin`,exact:true})).toHaveAttribute('href',`${instance.url}/admin`);
   await page.getByRole('button',{name:'进入工作空间'}).click();await expect(page.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
   const before=(await(await page.request.get(`${instance.url}/api/v1/admin/bootstrap`,{headers:{}})).json()).data;
   for(let attempt=0;attempt<2;attempt++){

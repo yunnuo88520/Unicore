@@ -42,7 +42,7 @@ function QueryScope({ children }: { children: ReactNode }) {
 }
 
 export function useSession(client: AppClient) {
-  const metadata = useQuery({ queryKey: ['bootstrap', client.transport], queryFn: ({ signal }) => client.bootstrap({ signal }) });
+  const metadata = useQuery({ queryKey: ['bootstrap', client.transport], queryFn: ({ signal }) => client.bootstrap({ signal }), refetchInterval: query => query.state.data?.profile === 'web-platform' && query.state.data.identity_realm !== 'administrator' ? 30000 : false });
   const status = metadata.isPending ? 'loading' : metadata.isError ? 'error' : !metadata.data.capabilities.authentication ? 'unavailable' : metadata.data.current_user ? 'authenticated' : 'anonymous';
   return { metadata, status } as const;
 }

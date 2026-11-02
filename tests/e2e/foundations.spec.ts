@@ -50,6 +50,9 @@ test.setTimeout(120_000);test('cross-tab logout/account switch, field focus and 
   await expect(second.getByRole('button',{name:'新增用户',exact:true})).toHaveCount(0);
   await expect(second.getByLabel('初始密码')).toHaveCount(0);
   await capture(second,info,'foundation-account-guard');
+  // Open the action before revocation: navigation itself may revalidate and expire the session.
+  await page.bringToFront();await nav(page,'核心实验室');
+  await expect(page.getByRole('button',{name:'运行用例'})).toBeVisible();
   // A separate admin session revokes the member; the next UI request must expire both tabs.
   const admin=await context.browser()!.newContext();
   try{
@@ -60,8 +63,6 @@ test.setTimeout(120_000);test('cross-tab logout/account switch, field focus and 
     const users=(await(await admin.request.get(`${instance.url}/api/v1/admin/users`,{headers:{}})).json()).data;
     const member=users.items.find((user:{username:string})=>user.username==='member');
     const update=await admin.request.patch(`${instance.url}/api/v1/admin/users/${member.id}`,{headers:{'X-CSRF-Token':session.csrf_token},data:{status:'disabled',role:'user'}});expect(update.status()).toBe(200);
-    if(!(await page.getByRole('button',{name:'核心实验室',exact:true}).isVisible().catch(()=>false)))await page.getByRole('button',{name:'打开导航'}).click();
-    await page.getByRole('button',{name:'核心实验室',exact:true}).click();
     await page.getByRole('button',{name:'运行用例'}).click();
     await expect(page.getByRole('heading',{name:'登录 Unicore',exact:true})).toBeVisible();
     await expect(page.getByText('会话已失效，请重新登录。',{exact:true})).toBeVisible();

@@ -189,7 +189,7 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
   }
   return <main className="flex min-h-dvh w-full flex-1 flex-col items-center px-4 py-10 sm:px-6">
     <div className="flex items-center gap-2.5 text-xl font-bold tracking-tight text-ink [&_.brand-dot]:text-primary max-sm:me-20"><BrandLockup /></div>
-    <div className="mt-7 w-full max-w-2xl rounded-xl border border-line bg-surface p-5 shadow-card sm:p-8">
+    <div className="mt-7 w-full max-w-4xl rounded-xl border border-line bg-surface p-5 shadow-card sm:p-10">
       <header className="flex flex-col gap-1.5">
         <p className="text-2xs font-medium tracking-[2px] text-muted">WELCOME TO {productName.toUpperCase()}</p>
         <h1 className="text-2xl font-semibold text-ink">{result ? t('一切就绪，开始构建') : t('为你的产品，准备一个起点')}</h1>
@@ -200,19 +200,19 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
         <h2 className="text-lg font-semibold text-ink">{t('安装完成')}</h2>
         <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-5 gap-y-1.5 text-sm">
           <dt className="text-muted">{t('运行形态')}</dt><dd className="text-ink">{result.profile === 'web-platform' ? t('Web 多用户平台') : t('Web 单机')}</dd>
-          <dt className="text-muted">{t('用户入口')}</dt><dd className="break-all text-ink">{result.site_url}</dd>
-          {result.admin_url ? <><dt className="text-muted">{t('管理后台')}</dt><dd className="break-all text-ink">{result.admin_url}</dd></>
-            : <><dt className="text-muted">{t('设置入口')}</dt><dd className="break-all text-ink">{result.settings_url}</dd></>}
+          <dt className="text-muted">{t('用户入口')}</dt><dd className="break-all text-ink"><a className="text-accent underline underline-offset-4" href={result.site_url}>{result.site_url}</a></dd>
+          {result.admin_url ? <><dt className="text-muted">{t('管理后台')}</dt><dd className="break-all text-ink"><a className="text-accent underline underline-offset-4" href={result.admin_url}>{result.admin_url}</a></dd></>
+            : <><dt className="text-muted">{t('设置入口')}</dt><dd className="break-all text-ink"><a className="text-accent underline underline-offset-4" href={result.settings_url}>{result.settings_url}</a></dd></>}
         </dl>
         <Button onClick={() => onDone(result)}>{t('进入工作空间')}<ArrowRight size={15} aria-hidden="true" /></Button>
       </div> : <>
-        <ol className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-line pb-4">
-          {stepList.map((key, index) => <li key={key} className={cn('flex items-center gap-1.5 text-2xs', index <= step ? 'text-ink' : 'text-muted')}>
-            <span className={cn('flex size-5 items-center justify-center rounded-full text-2xs font-medium',
+        <ol className="mt-7 grid grid-cols-1 gap-3 border-b border-line pb-6 sm:grid-cols-5">
+          {stepList.map((key, index) => <li key={key} aria-current={index === step ? 'step' : undefined} className={cn('flex min-w-0 items-center gap-2.5 text-sm', index <= step ? 'text-ink' : 'text-muted')}>
+            <span className={cn('flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold',
               index < step ? 'bg-primary text-on-primary' : index === step ? 'border border-primary text-primary' : 'bg-surface-alt text-muted')}>
-              {index < step ? <CheckCircle2 size={12} aria-hidden="true" /> : index + 1}
+              {index < step ? <CheckCircle2 size={18} aria-hidden="true" /> : index + 1}
             </span>
-            <small>{titles[key]}</small>
+            <span className="font-medium">{titles[key]}</span>
           </li>)}
         </ol>
         <AppForm form={form} className="mt-5 flex flex-col gap-4">

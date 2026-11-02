@@ -45,6 +45,12 @@ export interface Bootstrap {
   theme?: string;
   branding?: Branding;
   identity_realm?: "user" | "administrator";
+  site_police_number?: string;
+  site_footer_html?: string;
+  maintenance_enabled?: boolean;
+  maintenance_message?: string;
+  mfa_pending?: boolean;
+  mfa_enrollment_required?: boolean;
 }
 
 export interface BootstrapResponse {
@@ -131,6 +137,7 @@ export interface User {
   permissions: Array<string>;
   created_at: number;
   last_login_at: number;
+  totp_enabled: boolean;
 }
 
 export interface UserList {
@@ -163,6 +170,7 @@ export interface Session {
   user: User;
   csrf_token: string;
   expires_at: number;
+  mfa_pending?: boolean;
 }
 
 export interface Captcha {
@@ -287,6 +295,7 @@ export interface AuthPolicy {
   register_captcha: boolean;
   mail_ready: boolean;
   email_login_enabled: boolean;
+  email_verification_required: boolean;
 }
 
 export interface RegisterInput {
@@ -347,6 +356,7 @@ export interface EmailChallenge {
   challenge_id: string;
   expires_in: number;
   retry_after: number;
+  registration_complete?: boolean;
 }
 
 export interface EmailCodeInput {
@@ -585,6 +595,7 @@ export interface FileUploadInput {
   original_name: string;
   mime_type: string;
   size: number;
+  upload_path?: string;
 }
 
 export interface FileUploadGrant {
@@ -934,6 +945,7 @@ export interface MultipartUploadInput {
   mime_type: string;
   size: number;
   fingerprint: string;
+  upload_path?: string;
 }
 
 export interface UploadPolicy {
@@ -941,6 +953,8 @@ export interface UploadPolicy {
   part_size: number;
   parallelism: number;
   resume_hours: number;
+  upload_paths: Array<string>;
+  allowed_extensions: Array<string>;
 }
 
 export interface UploadPart {
@@ -970,5 +984,91 @@ export interface UploadPolicyResponse {
 export interface MultipartUploadResponse {
   code: string;
   data: MultipartUpload;
+  request_id: string;
+}
+
+export interface AccountProfile {
+  user: User;
+  display_name: string;
+  totp_enabled: boolean;
+  force_2fa: boolean;
+  can_disable_2fa: boolean;
+}
+
+export interface ProfileInput {
+  display_name: string;
+}
+
+export interface TOTPSetupInput {
+  password: string;
+}
+
+export interface TOTPSetup {
+  secret: string;
+  otpauth_url: string;
+  expires_at: number;
+}
+
+export interface SecurityCodeInput {
+  code: string;
+}
+
+export interface RecoveryCodes {
+  codes: Array<string>;
+}
+
+export interface LoginDevice {
+  id: string;
+  ip_address: string;
+  user_agent: string;
+  created_at: number;
+  last_seen_at: number;
+  expires_at: number;
+  current: boolean;
+}
+
+export interface LoginDevices {
+  items: Array<LoginDevice>;
+}
+
+export interface RevokeDeviceInput {
+  id: string;
+}
+
+export interface EmailChangeInput {
+  current_challenge_id: string;
+  email: string;
+}
+
+export interface EmailChangeVerifyInput {
+  challenge_id: string;
+  code: string;
+}
+
+export interface AccountProfileResponse {
+  code: string;
+  message: string;
+  data: AccountProfile;
+  request_id: string;
+}
+
+export interface TOTPSetupResponse {
+  code: string;
+  message: string;
+  data: TOTPSetup;
+  request_id: string;
+}
+
+export interface RecoveryCodesResponse {
+  code: string;
+  message: string;
+  data: RecoveryCodes;
+  request_id: string;
+}
+
+export interface LoginDevicesResponse {
+  code: string;
+  message: string;
+  data: LoginDevices;
   request_id: string;
 }

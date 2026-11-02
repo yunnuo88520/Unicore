@@ -71,7 +71,7 @@ test('navigation defaults to wide closed groups and the rail keeps children in k
   if(info.project.name==='mobile')await page.getByRole('button',{name:'打开导航',exact:true}).click();
   const sidebar=page.locator('.sidebar');
   expect((await sidebar.boundingBox())!.width).toBeGreaterThan(200);
-  for(const name of ['用户管理','系统管理'])await expect(sidebar.getByRole('button',{name,exact:true})).toHaveAttribute('aria-expanded','false');
+  for(const name of ['用户管理','系统设置','个人中心'])await expect(sidebar.getByRole('button',{name,exact:true})).toHaveAttribute('aria-expanded','false');
   await expect(sidebar.getByRole('button',{name:'用户列表',exact:true})).toBeHidden();
   await sidebar.getByRole('button',{name:'用户管理',exact:true}).click();
   await expect(sidebar.getByRole('button',{name:'用户列表',exact:true})).toBeVisible();
@@ -93,7 +93,9 @@ test('navigation defaults to wide closed groups and the rail keeps children in k
   await expect(page).toHaveURL(`${instance.url}/admin/users`);
   await expect(menu).toHaveCount(0);
   await page.getByRole('button',{name:'展开导航',exact:true}).click();
-  await expect(sidebar.getByRole('button',{name:'用户管理',exact:true})).toHaveAttribute('aria-expanded','false');
+  await expect(sidebar.getByRole('button',{name:'用户管理',exact:true})).toHaveAttribute('aria-expanded','true');
+  await expect(sidebar.getByRole('button',{name:'用户管理',exact:true})).not.toHaveClass(/bg-primary-soft/);
+  await expect(sidebar.getByRole('button',{name:'用户列表',exact:true})).toHaveClass(/bg-primary-soft/);
 });
 
 test('inset and floating headers match their content sheet in both themes',async({page,instance},info)=>{

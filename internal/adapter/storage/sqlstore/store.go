@@ -133,7 +133,13 @@ func (s *Store) Migrate(ctx context.Context, platform bool) error {
 	if err := s.migrateBusiness(ctx, prefixed); err != nil {
 		return err
 	}
-	return s.prefixSchema(ctx, platform)
+	if err := s.prefixSchema(ctx, platform); err != nil {
+		return err
+	}
+	if platform {
+		return s.personalSchema(ctx)
+	}
+	return nil
 }
 
 func (s *Store) Installation(ctx context.Context) (profile, instance string, err error) {

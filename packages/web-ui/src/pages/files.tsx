@@ -1,15 +1,15 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Owner-scoped files on TanStack Table v9: uploads, temporary grants, migration and deletion.
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowRightLeft, Download, File, Play, Search, Trash2, Upload } from 'lucide-react';
 import { columnVisibilityFeature, createColumnHelper, createCoreRowModel, createPaginatedRowModel, flexRender, rowPaginationFeature, tableFeatures, useTable } from '@tanstack/react-table';
 import { defineMessages, currentLocale, t, useLocale } from '../i18n';
-import { Button, Card, CardContent, Input, Modal, NativeSelect, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage } from '../ui';
+import { Button, Card, CardContent, Checkbox, Input, Modal, NativeSelect, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage } from '../ui';
 import { cn } from '../lib/cn';
 import { FileUploadDialog } from '../file-upload-dialog';
 import type { PageProps } from '../router';
-import type { FileEntry } from '@unicore/sdk';
+import type { AppClient, FileEntry } from '@unicore/sdk';
 
 const bytes = (n: number) => n >= 1073741824 ? `${(n / 1073741824).toFixed(1)} GiB` : n >= 1048576 ? `${(n / 1048576).toFixed(1)} MiB` : n >= 1024 ? `${(n / 1024).toFixed(1)} KiB` : `${n} B`;
 const states: Record<string, string> = defineMessages({ pending: '待上传', copying: '待确认', ready: '可用', deleted: '已删除' });
@@ -36,6 +36,8 @@ export function FilesPage({ client, metadata }: PageProps) {
   const [upload, setUpload] = useState<{ file?: FileEntry } | null>(null);
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const [target, setTarget] = useState('');
+  const [selected, setSelected] = useState<Record<string, FileEntry>>({});
+  const [batch, setBatch] = useState<FileEntry[] | null>(null);
   const q = useQuery({ queryKey: ['files', search, page], queryFn: () => api.listFiles(search, page) });
   const locations = useQuery({
     queryKey: ['storage-locations'],
@@ -64,6 +66,13 @@ export function FilesPage({ client, metadata }: PageProps) {
   });
 
   const columns = useMemo(() => helper.columns([
+    ...(administrator ? [helper.display({
+      id: 'selection',
+      header: () => <Checkbox aria-label={t('选择当前页可迁移文件')} checked={!!q.data?.items.some(file => file.state === 'ready') && q.data.items.filter(file => file.state === 'ready').every(file => !!selected[file.file_id])}
+        onChange={checked => setSelected(current => { const next = { ...current }; for (const file of q.data?.items ?? []) if (file.state === 'ready') { if (checked) next[file.file_id] = file; else delete next[file.file_id]; } return next; })} />,
+      cell: ({ row }) => <Checkbox aria-label={t('选择 {{name}}', { name: row.original.original_name })} checked={!!selected[row.original.file_id]} disabled={row.original.state !== 'ready'}
+        onChange={checked => setSelected(current => { const next = { ...current }; if (checked) next[row.original.file_id] = row.original; else delete next[row.original.file_id]; return next; })} />,
+    })] : []),
     helper.accessor('original_name', {
       header: () => t('文件'),
       cell: ({ row }) => <div className="min-w-0">
@@ -108,7 +117,7 @@ export function FilesPage({ client, metadata }: PageProps) {
         </div>;
       },
     }),
-  ]), [administrator, mutate]);
+  ]), [administrator, mutate, selected, q.data]);
 
   const total = q.data?.total ?? 0;
   const pageSize = q.data?.page_size ?? 1;
@@ -142,6 +151,11 @@ export function FilesPage({ client, metadata }: PageProps) {
           <Search size={15} className="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-subtle" aria-hidden="true" />
           <Input aria-label={t('搜索文件')} placeholder={t('搜索文件名')} value={search} onChange={event => { setSearch(event.target.value); setPage(1); }} className="ps-8" />
         </div>
+        {administrator && <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted">{t('已选择 {{count}} 个文件', { count: Object.keys(selected).length })}</span>
+          <Button variant="secondary" disabled={!Object.keys(selected).length} onClick={() => setBatch(Object.values(selected))}><ArrowRightLeft size={15} />{t('批量迁移')}</Button>
+          {!!Object.keys(selected).length && <Button variant="ghost" onClick={() => setSelected({})}>{t('清空选择')}</Button>}
+        </div>}
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map(group => <TableRow key={group.id}>
@@ -179,6 +193,12 @@ export function FilesPage({ client, metadata }: PageProps) {
       </CardContent>
     </Card>
     {upload && <FileUploadDialog client={client} resume={upload.file} onClose={() => { setUpload(null); void cache.invalidateQueries({ queryKey: ['files'] }); }} />}
+    {batch && <BatchMigration client={client} files={batch} onClose={completed => {
+      setBatch(null);
+      setSelected(current => Object.fromEntries(Object.entries(current).filter(([id]) => !completed.includes(id))));
+      void cache.invalidateQueries({ queryKey: ['files'] });
+      void cache.invalidateQueries({ queryKey: ['storage-locations'] });
+    }} />}
     {dialog && <Modal title={dialog.kind === 'delete' ? t('删除文件') : t('迁移文件')} pending={mutate.isPending} onClose={() => setDialog(null)}>
       <p className="truncate text-sm font-medium text-ink" title={dialog.file.original_name}>{dialog.file.original_name}</p>
       {dialog.kind === 'delete'
@@ -189,7 +209,7 @@ export function FilesPage({ client, metadata }: PageProps) {
               <label htmlFor="migrate-target" className="text-sm font-medium text-ink">{t('目标存储位置')}</label>
               <NativeSelect id="migrate-target" required value={target} onChange={event => setTarget(event.target.value)}>
                 <option value="">{t('请选择')}</option>
-                {locations.data?.items.filter(l => l.tested && l.id !== dialog.file.location_id).map(l => <option key={l.id} value={l.id}>{l.name} · {l.provider}</option>)}
+                {locations.data?.items.filter(l => l.tested && l.id !== dialog.file.location_id).map(l => <option key={l.id} value={l.id}>{l.provider === 'local' ? t('本地存储') : l.name} · {l.provider}</option>)}
               </NativeSelect>
               {locations.isError && <p role="alert" className="text-xs text-danger">{t(locations.error.message)}</p>}
             </div>
@@ -203,4 +223,65 @@ export function FilesPage({ client, metadata }: PageProps) {
       </div>
     </Modal>}
   </section>;
+}
+
+// Each request retains the server copy/verify/swap guarantees; progress counts completed files.
+export function BatchMigration({ client, files, onClose }: { client: AppClient; files: FileEntry[]; onClose: (completed: string[]) => void }) {
+  useLocale();
+  const [target, setTarget] = useState('');
+  const [results, setResults] = useState<Record<string, { state: 'running' | 'success' | 'failed' | 'skipped'; error?: string }>>({});
+  const stop = useRef(false);
+  const locations = useQuery({ queryKey: ['storage-locations'], queryFn: () => client.storage!.storageLocations() });
+  const migration = useMutation({
+    mutationFn: async () => {
+      stop.current = false;
+      for (const file of files) {
+        if (stop.current) break;
+        if (results[file.file_id]?.state === 'success' || results[file.file_id]?.state === 'skipped') continue;
+        setResults(current => ({ ...current, [file.file_id]: { state: 'running' } }));
+        try {
+          await client.files!.migrateFile(file.file_id, target);
+          setResults(current => ({ ...current, [file.file_id]: { state: file.location_id === target ? 'skipped' : 'success' } }));
+        } catch (error) {
+          setResults(current => ({ ...current, [file.file_id]: { state: 'failed', error: error instanceof Error ? error.message : '' } }));
+        }
+      }
+    },
+  });
+  const values = Object.values(results);
+  const completed = values.filter(result => result.state === 'success' || result.state === 'skipped').length;
+  const failed = values.filter(result => result.state === 'failed').length;
+  const processed = completed + failed;
+  const started = values.length > 0;
+  const statuses = defineMessages({ running: '复制并校验中', success: '迁移完成', failed: '迁移失败', skipped: '已在目标位置', waiting: '等待迁移' });
+  return <Modal title={t('批量迁移文件')} pending={migration.isPending} onClose={() => onClose(files.filter(file => ['success', 'skipped'].includes(results[file.file_id]?.state)).map(file => file.file_id))}>
+    <div className="flex flex-col gap-4">
+      <p className="text-sm text-muted">{t('逐个复制并校验，成功后切换引用，文件 ID 保持不变。请保持此页面打开；停止将在当前文件处理后生效。')}</p>
+      <label className="flex flex-col gap-1.5 text-sm font-medium text-ink">
+        {t('目标存储位置')}
+        <NativeSelect value={target} disabled={started || migration.isPending} onChange={event => setTarget(event.target.value)}>
+          <option value="">{t('请选择')}</option>
+          {locations.data?.items.filter(item => item.tested).map(item => <option key={item.id} value={item.id}>{item.provider === 'local' ? t('本地存储') : item.name} · {item.provider}</option>)}
+        </NativeSelect>
+      </label>
+      {locations.isError && <div role="alert"><p className="text-sm text-danger">{t(locations.error.message)}</p><Button variant="secondary" onClick={() => void locations.refetch()}>{t('重试')}</Button></div>}
+      <div aria-live="polite" role="status" className="text-sm text-muted">{t('已处理 {{processed}} / {{total}}，成功或跳过 {{completed}}，失败 {{failed}}', { processed, total: files.length, completed, failed })}</div>
+      <progress className="h-2 w-full accent-primary" aria-label={t('迁移进度')} max={files.length} value={processed} />
+      <ul className="max-h-64 overflow-y-auto divide-y divide-line">
+        {files.map(file => <li key={file.file_id} className="flex flex-col gap-1 py-2 text-sm">
+          <span className="break-all font-medium text-ink">{file.original_name}</span>
+          <span className={results[file.file_id]?.state === 'failed' ? 'text-danger' : 'text-muted'}>{t(statuses[results[file.file_id]?.state ?? 'waiting'])}</span>
+          {results[file.file_id]?.error && <span className="text-xs text-danger">{t(results[file.file_id].error!)}</span>}
+        </li>)}
+      </ul>
+      <div className="flex flex-wrap justify-end gap-2">
+        {migration.isPending
+          ? <Button variant="secondary" onClick={() => { stop.current = true; }}>{t('当前文件完成后停止')}</Button>
+          : <>
+              <Button variant="secondary" onClick={() => onClose(files.filter(file => ['success', 'skipped'].includes(results[file.file_id]?.state)).map(file => file.file_id))}>{t('关闭')}</Button>
+              {completed < files.length && <Button disabled={!target || locations.isPending} onClick={() => migration.mutate()}>{started ? t('重试或继续迁移') : t('开始迁移')}</Button>}
+            </>}
+      </div>
+    </div>
+  </Modal>;
 }

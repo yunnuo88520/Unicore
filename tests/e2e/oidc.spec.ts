@@ -17,14 +17,14 @@ const test = base.extend<{ idp: { url: string } }>({ idp: async ({ playwright },
 test('enterprise settings, real JIT, explicit binding and password fallback', async ({ page, browser, instance, idp }, info) => {
   test.setTimeout(90000);
   const install = await page.request.post(`${instance.url}/api/v1/install/complete`, { headers: {'X-Bootstrap-Token': instance.token}, data: {profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'} });
-  expect(install.status()).toBe(200); await page.goto(`${instance.url}/admin/account`);
+  expect(install.status()).toBe(200); await page.goto(`${instance.url}/admin/account-security`);
   await expect(page.getByRole('heading', {name:'企业账号绑定',exact:true})).toBeVisible();
   await expect(page.getByText('实例尚未启用',{exact:true})).toBeVisible(); await capture(page, info, 'oidc-account-disabled');
-  await page.goto(`${instance.url}/admin/site`);
-  await page.getByRole('tab', { name: '安全与控制', exact: true }).click();
+  await page.goto(`${instance.url}/admin/account-policy`);
   await page.getByRole('switch',{name:'登录图形验证码',exact:true}).uncheck();
   await page.getByRole('button',{name:'保存设置',exact:true}).click();
   await expect(page.getByRole('button',{name:'保存设置',exact:true})).toBeDisabled();
+  await page.goto(`${instance.url}/admin/site`);
   await page.getByRole('tab', { name: '企业登录', exact: true }).click();
   await page.getByLabel('Issuer 地址',{exact:true}).fill('http://127.0.0.1:1');
   await page.getByLabel('Client ID',{exact:true}).fill('unicore-test-client');
@@ -55,7 +55,7 @@ test('enterprise settings, real JIT, explicit binding and password fallback', as
     const newUser = (await (await employee.request.get(`${instance.url}/api/v1/bootstrap`)).json()).data;
     expect(newUser.current_user.roles).toEqual(['user']); expect(newUser.current_user.permissions).toEqual([]);
     expect((await employee.request.get(`${instance.url}/api/v1/admin/users`)).status()).toBe(403);
-    await employee.goto(`${instance.url}/account`); await expect(employee.getByText('已绑定',{exact:true})).toBeVisible();
+    await employee.goto(`${instance.url}/account-security`); await expect(employee.getByText('已绑定',{exact:true})).toBeVisible();
     await expect(employee.getByText('尚未设置',{exact:true})).toBeVisible(); await expect(employee.getByRole('button',{name:'确认解除绑定',exact:true})).toHaveCount(0); await capture(employee,info,'oidc-jit-account');
     // User email collisions never elevate into the administrator realm.
     await employee.request.post(`${instance.url}/api/v1/auth/logout`,{headers:{'X-CSRF-Token':newUser.csrf_token},data:{}});
@@ -70,7 +70,7 @@ test('enterprise settings, real JIT, explicit binding and password fallback', as
     await employee.getByRole('button',{name:'确认企业身份',exact:true}).click();
     await expect(employee.getByRole('alert')).toContainText('请先使用本地账号登录');await capture(employee,info,'oidc-admin-jit-blocked');
     // Confirm local password, then reauthenticate with the IdP before binding.
-    await page.goto(`${instance.url}/admin/account`); await page.getByLabel('确认本地密码',{exact:true}).fill('wrong-password');
+    await page.goto(`${instance.url}/admin/account-security`); await page.getByLabel('确认本地密码',{exact:true}).fill('wrong-password');
     await page.getByRole('button',{name:'验证并绑定企业账号',exact:true}).click(); await expect(page.getByRole('alert')).toContainText('账号或密码不正确'); await capture(page,info,'oidc-binding-password-error');
     await page.getByLabel('确认本地密码',{exact:true}).fill('test-password-strong');
     await page.getByRole('button',{name:'验证并绑定企业账号',exact:true}).click();
@@ -92,7 +92,7 @@ test('enterprise settings, real JIT, explicit binding and password fallback', as
     await employee.goto(`${instance.url}/admin`); await expect(employee.getByLabel('账号或邮箱')).toBeVisible(); await expect(employee.getByRole('button',{name:'使用企业账号登录',exact:true})).toHaveCount(0);
     await employee.getByLabel('账号或邮箱').fill('admin'); await employee.getByLabel('密码',{exact:true}).fill('test-password-strong'); await employee.getByRole('button',{name:'登录工作空间',exact:true}).click(); await expect(employee.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
     // Follow-system mode on the new page, in addition to the explicit palette captures.
-    await employee.evaluate(()=>{localStorage.setItem('unicore.preferences.v1',JSON.stringify({...JSON.parse(localStorage.getItem('unicore.preferences.v1')??'{}'),theme:'system'}));}); await employee.emulateMedia({colorScheme:'dark'}); await employee.goto(`${instance.url}/admin/account`);
+    await employee.evaluate(()=>{localStorage.setItem('unicore.preferences.v1',JSON.stringify({...JSON.parse(localStorage.getItem('unicore.preferences.v1')??'{}'),theme:'system'}));}); await employee.emulateMedia({colorScheme:'dark'}); await employee.goto(`${instance.url}/admin/account-security`);
     await expect(employee.getByRole('heading',{name:'企业账号绑定',exact:true})).toBeVisible();
     await expect(employee.locator('html')).toHaveAttribute('data-theme','dark');
     await employee.screenshot({path:`build/acceptance/m3a/${info.project.name}/system-account.png`,fullPage:true});

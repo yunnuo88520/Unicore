@@ -10,8 +10,9 @@ import (
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 )
 
-var identityTables = regexp.MustCompile(`\b(unicore_users|unicore_user_roles|unicore_sessions|unicore_account_tokens|unicore_email_challenges|unicore_external_identities|unicore_oidc_flows)\b`)
+var identityTables = regexp.MustCompile(`\b(unicore_users|unicore_user_roles|unicore_sessions|unicore_account_tokens|unicore_email_challenges|unicore_external_identities|unicore_oidc_flows|unicore_personal_accounts|unicore_session_details|unicore_email_changes)\b`)
 var administratorTables = map[string]string{
+	"unicore_personal_accounts": "unicore_administrator_personal_accounts", "unicore_session_details": "unicore_administrator_session_details", "unicore_email_changes": "unicore_administrator_email_changes",
 	"unicore_users": "unicore_administrators", "unicore_user_roles": "unicore_administrator_roles", "unicore_sessions": "unicore_administrator_sessions",
 	"unicore_account_tokens": "unicore_administrator_account_tokens", "unicore_email_challenges": "unicore_administrator_email_challenges",
 	"unicore_external_identities": "unicore_administrator_external_identities", "unicore_oidc_flows": "unicore_administrator_oidc_flows",

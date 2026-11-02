@@ -44,7 +44,7 @@ func TestQueuedMailBrandSnapshot(t *testing.T) {
 	defer smtp.Close()
 	host, port, _ := net.SplitHostPort(smtp.Listener.Addr().String())
 	_, service, _, _ := manager.Services()
-	_, err = service.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "mail.host", Value: host}, {Key: "mail.port", Value: port}, {Key: "mail.tls", Value: "plain"}, {Key: "mail.from", Value: "sender@example.test"}, {Key: "mail.from_name", Value: "品牌通知"}}}, admin.ID)
+	_, err = service.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "mail.host", Value: host}, {Key: "mail.port", Value: port}, {Key: "mail.tls", Value: "plain"}, {Key: "mail.from", Value: "sender@example.test"}, {Key: "mail.from_name", Value: "品牌通知"}, {Key: "site.base_url", Value: "https://mail-links.example.test"}, {Key: "site.admin_email", Value: "recipient@example.test"}}}, admin.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,6 +56,10 @@ func TestQueuedMailBrandSnapshot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	preview, err := manager.Mail().PreviewTemplate(ctx, contracts.MailTemplateInput{Purpose: "test", Subject: "Links", Body: `<p><a href="{{site_url}}">Visit</a></p>`})
+	if err != nil || !strings.Contains(preview.Html, `href="https://mail-links.example.test"`) {
+		t.Fatal("mail link ignored configured URL", err)
+	}
 	if err = manager.Mail().Test(ctx, "recipient@example.test", admin.ID); err != nil {
 		t.Fatal(err)
 	}
@@ -66,7 +70,7 @@ func TestQueuedMailBrandSnapshot(t *testing.T) {
 	if _, err = manager.AccountService(true).RequestCode(ctx, contracts.EmailRequest{Email: admin.Email}, "brand-test", "login"); err != nil {
 		t.Fatal(err)
 	}
-	if err = manager.Mail().Notify(ctx, mailer.Notification{To: "recipient@example.test", Title: "设置变更提醒", Detail: "<script>unsafe</script>\n请查看审计记录。"}, admin.ID); err != nil {
+	if err = manager.Mail().Notify(ctx, mailer.Notification{Title: "设置变更提醒", Detail: "<script>unsafe</script>\n请查看审计记录。"}, admin.ID); err != nil {
 		t.Fatal(err)
 	}
 	store, _, _, _ := manager.Services()

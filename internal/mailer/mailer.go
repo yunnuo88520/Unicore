@@ -67,7 +67,7 @@ func (s *Service) Test(ctx context.Context, recipient, actor string) error {
 	if err != nil {
 		return err
 	}
-	values["site.base_url"] = s.BaseURL
+	values["site.base_url"] = settings.MailBaseURL(values, s.BaseURL)
 	message, err := RenderConfigured(values, "test", "", recipient, false, logo, nil)
 	if err != nil {
 		return err

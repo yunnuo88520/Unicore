@@ -233,7 +233,11 @@ func (m *Manager) attach(store *sqlstore.Store) {
 		admins := &platformsql.Repository{Store: store, Administrators: true}
 		m.identity = platform.New(repository)
 		m.administrator = platform.New(admins)
+		m.identity.Settings = m.settingService
+		m.administrator.Settings = m.settingService
 		m.mail = &mailer.Service{BaseURL: m.config.BaseURL, Store: repository, Settings: m.settingService, Secrets: m.secret, Sender: mailadapter.SMTP{}}
+		m.identity.Personal = &platform.Personal{Store: repository, Identity: m.identity, Settings: m.settingService, Mail: m.mail}
+		m.administrator.Personal = &platform.Personal{Store: admins, Identity: m.administrator, Settings: m.settingService, Mail: m.mail}
 		m.accounts = &platform.Accounts{Identity: m.identity, Store: repository, Settings: m.settingService, Mail: m.mail, BaseURL: m.config.BaseURL}
 		m.adminAccounts = &platform.Accounts{Administrator: true, Identity: m.administrator, Store: admins, Settings: m.settingService, Mail: m.mail, BaseURL: m.config.BaseURL}
 		m.oidc = &platform.OIDC{Identity: m.identity, Store: repository, Settings: m.settingService, Secrets: m.secret, Provider: oidcadapter.Provider{}, BaseURL: m.config.BaseURL}
@@ -505,6 +509,12 @@ func (m *Manager) Complete(ctx context.Context, token string, input contracts.In
 	for key, value := range settings.Defaults(input.Profile) {
 		if key == "site.name" {
 			value = input.SiteName
+		}
+		if key == "site.base_url" {
+			value = strings.TrimRight(input.BaseUrl, "/")
+		}
+		if key == "site.admin_email" {
+			value = input.AdminEmail
 		}
 		if _, err = store.Exec(ctx, tx, "INSERT INTO unicore_system_settings(setting_key,setting_value) VALUES(?,?)", key, value); err != nil {
 			return result, user, ErrDatabase

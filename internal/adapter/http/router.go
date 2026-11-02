@@ -22,6 +22,7 @@ import (
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/observability"
+	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/updateport"
 	"github.com/yunnuo/unicore/internal/usecase"
 	apispec "github.com/yunnuo/unicore/packages/contracts"
@@ -97,6 +98,10 @@ func New(config Config) http.Handler {
 				}
 				r = r.WithContext(audit.With(r.Context(), audit.Metadata{IP: ip(r), Realm: realm, Target: r.URL.Path}))
 			}
+			r = r.WithContext(platform.WithDevice(r.Context(), ip(r), r.UserAgent()))
+			if strings.HasSuffix(r.URL.Path, "/bootstrap") || strings.HasSuffix(r.URL.Path, "/auth/session") || strings.HasSuffix(r.URL.Path, "/account/sessions") {
+				r = r.WithContext(platform.WithPassive(r.Context()))
+			}
 			next.ServeHTTP(w, r)
 		})
 	})
@@ -108,6 +113,38 @@ func New(config Config) http.Handler {
 					return
 				}
 				failure(w, 403, "ORIGIN_REJECTED", "请求来源不受信任")
+			})
+		})
+	}
+	if config.Install != nil {
+		router.Use(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if strings.HasSuffix(r.URL.Path, "/auth/login") || strings.HasSuffix(r.URL.Path, "/auth/mfa") || strings.Contains(r.URL.Path, "/auth/email/login/") || strings.Contains(r.URL.Path, "/auth/oidc/") {
+					if identity := config.Install.Identity(administratorRequest(r)); identity != nil {
+						if err := identity.LoginAllowed(r.Context(), ip(r)); err != nil {
+							webError(w, err)
+							return
+						}
+					}
+				}
+				// Admin recovery, public metadata and probes remain reachable during maintenance.
+				path := r.URL.Path
+				if strings.HasPrefix(path, "/api/v1/") && path != "/api/v1/bootstrap" && !strings.HasPrefix(path, "/api/v1/admin/") && !strings.HasPrefix(path, "/api/v1/health/") {
+					_, service, _, profile := config.Install.Services()
+					if profile == "web-platform" && service != nil {
+						values, err := service.Store.ReadSettings(r.Context())
+						if err != nil {
+							failure(w, 503, "NOT_READY", "存储尚未就绪")
+							return
+						}
+						if values["maintenance.enabled"] == "true" {
+							w.Header().Set("Retry-After", "60")
+							failure(w, 503, "MAINTENANCE_MODE", "站点维护中，请稍后再试")
+							return
+						}
+					}
+				}
+				next.ServeHTTP(w, r)
 			})
 		})
 	}
@@ -174,13 +211,13 @@ func New(config Config) http.Handler {
 					return
 				}
 				requestID := w.Header().Get("X-Request-ID")
-					fail := func(status int, code, message string) {
-						writeJSON(w, status, contracts.ErrorResponse{Code: code, Message: message, RequestID: requestID})
-					}
-					if !sameOrigin(r) {
-						fail(403, "ORIGIN_REJECTED", "请求来源不受信任")
-						return
-					}
+				fail := func(status int, code, message string) {
+					writeJSON(w, status, contracts.ErrorResponse{Code: code, Message: message, RequestID: requestID})
+				}
+				if !sameOrigin(r) {
+					fail(403, "ORIGIN_REJECTED", "请求来源不受信任")
+					return
+				}
 				contentType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 				if err != nil || contentType != "application/json" {
 					fail(415, "UNSUPPORTED_MEDIA_TYPE", "请使用 application/json")

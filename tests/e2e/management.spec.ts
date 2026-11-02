@@ -17,7 +17,7 @@ test('management groups, modal creation, independent logins and avatar password 
  await page.goto(`${instance.url}/admin`);
  const nav=async(name:string)=>navigate(page,name);
  if(info.project.name==='mobile')await page.getByRole('button',{name:'打开导航',exact:true}).click();
- for(const name of ['用户管理','系统管理'])await expect(page.getByRole('button',{name,exact:true})).toHaveAttribute('aria-expanded','false');
+ for(const name of ['用户管理','系统设置','个人中心'])await expect(page.getByRole('button',{name,exact:true})).toHaveAttribute('aria-expanded','false');
  await expect(page.getByRole('button',{name:'用户列表',exact:true})).toBeHidden();
  await expect(page.getByRole('button',{name:'基础设置',exact:true})).toBeHidden();
  await page.getByRole('button',{name:'用户管理',exact:true}).click();

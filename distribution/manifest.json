@@ -25,7 +25,7 @@
         "public-site"
       ],
       "slug": "Configuration",
-      "title": "配置与数据库",
+      "title": "配置说明与参数表",
       "site_group": "guide"
     },
     {
@@ -51,7 +51,7 @@
         "public-site"
       ],
       "slug": "Deployment",
-      "title": "部署",
+      "title": "Web 从零部署",
       "site_group": "guide"
     },
     {
@@ -317,6 +317,15 @@
         "public-site"
       ],
       "title": "Get started"
+    },
+    {
+      "source": "docs/03-runbooks/personal-center.md",
+      "target": "docs/03-runbooks/personal-center.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "个人中心与账户安全",
+      "site_group": "operations"
     }
   ],
   "template_files": [
@@ -874,7 +883,29 @@
     "migrations/postgres/0013_prefix_core.sql",
     "migrations/postgres/0013_prefix_platform.sql",
     "migrations/mysql/0013_prefix_core.sql",
-    "migrations/mysql/0013_prefix_platform.sql"
+    "migrations/mysql/0013_prefix_platform.sql",
+    "internal/adapter/http/personal.go",
+    "internal/adapter/http/personal_test.go",
+    "internal/adapter/storage/platformsql/personal.go",
+    "internal/adapter/storage/platformsql/personal_email.go",
+    "internal/adapter/storage/platformsql/personal_test.go",
+    "internal/adapter/storage/sqlstore/personal.go",
+    "internal/platform/personal.go",
+    "internal/platform/totp_test.go",
+    "migrations/mysql/0014_personal_center.sql",
+    "migrations/postgres/0014_personal_center.sql",
+    "migrations/sqlite/0014_personal_center.sql",
+    "tests/e2e/personal-center.spec.ts",
+    "internal/settings/registration.go",
+    "internal/settings/security.go",
+    "internal/platform/login_guard.go",
+    "internal/platform/registration_test.go",
+    "internal/files/policy.go",
+    "internal/adapter/storage/platformsql/session_policy.go",
+    "tests/e2e/registration.spec.ts",
+    "internal/platform/login_guard_test.go",
+    "internal/platform/session_policy_test.go",
+    "tests/e2e/account-policy.spec.ts"
   ],
   "ownership": {
     "product-owned": [

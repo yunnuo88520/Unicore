@@ -59,7 +59,9 @@ make dev-web
 
 访问 `http://127.0.0.1:5173`。首次进入 `/install`，从私有目录 `data/bootstrap.token` 读取一次性安装凭据，选择平台或单机。默认 MySQL，PostgreSQL 同为推荐；先创建专用数据库，填写连接参数并测试。快速本机体验可显式选 SQLite。平台管理员由安装页创建，请设置自己的强密码；框架不预置账号。
 
-非空库初始化会清空数据，必须备份并精确确认库名；已有 Unicore 安装不能覆盖。安装后保存数据库、私有目录和密钥，重启自动恢复。安装凭据与加密密钥不同；详见 [安装与部署](docs/03-runbooks/deployment.md)。
+非空库初始化会清空数据，必须备份并精确确认库名；已有 Unicore 安装不能覆盖。安装后保存数据库、私有目录和密钥，重启自动恢复。安装凭据与加密密钥不同；详见 [安装与部署](docs/product/deployment.md)。
+
+Web 服务器请从 [从零部署指南](docs/product/deployment.md) 开始：环境和数据库、Docker/Compose、tar/systemd、HTTPS、安装向导和更新排查；参数与配置表见 [配置说明](docs/product/configuration.md)。
 
 ```sh
 # 构建内嵌前端的 Web 二进制，访问 http://127.0.0.1:8080

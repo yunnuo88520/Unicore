@@ -817,38 +817,53 @@ type MailTemplateReset struct {
 }
 
 type AnnouncementInput struct {
-	Content   string `json:"content"`
-	Format    string `json:"format"`
-	Type      string `json:"type"`
-	Note      string `json:"note"`
-	Status    string `json:"status"`
-	PublishAt int    `json:"publish_at"`
+	Content      string   `json:"content"`
+	Format       string   `json:"format"`
+	Type         string   `json:"type"`
+	Note         string   `json:"note"`
+	Status       string   `json:"status"`
+	PublishAt    int      `json:"publish_at"`
+	Title        string   `json:"title"`
+	NotifyMode   string   `json:"notify_mode"`
+	EndsAt       int      `json:"ends_at"`
+	Audience     string   `json:"audience"`
+	RecipientIds []string `json:"recipient_ids"`
 }
 
 type AnnouncementUpdate struct {
-	Content   string `json:"content"`
-	Format    string `json:"format"`
-	Type      string `json:"type"`
-	Note      string `json:"note"`
-	Status    string `json:"status"`
-	PublishAt int    `json:"publish_at"`
-	Version   int    `json:"version"`
+	Content      string   `json:"content"`
+	Format       string   `json:"format"`
+	Type         string   `json:"type"`
+	Note         string   `json:"note"`
+	Status       string   `json:"status"`
+	PublishAt    int      `json:"publish_at"`
+	Version      int      `json:"version"`
+	Title        string   `json:"title"`
+	NotifyMode   string   `json:"notify_mode"`
+	EndsAt       int      `json:"ends_at"`
+	Audience     string   `json:"audience"`
+	RecipientIds []string `json:"recipient_ids"`
 }
 
 type AnnouncementEntry struct {
-	ID          string `json:"id"`
-	Version     int    `json:"version"`
-	CreatedAt   int    `json:"created_at"`
-	UpdatedAt   int    `json:"updated_at"`
-	Content     string `json:"content"`
-	Format      string `json:"format"`
-	Type        string `json:"type"`
-	Note        string `json:"note"`
-	Status      string `json:"status"`
-	PublishAt   int    `json:"publish_at"`
-	ContentHtml string `json:"content_html"`
-	CreatedBy   string `json:"created_by"`
-	UpdatedBy   string `json:"updated_by"`
+	ID           string   `json:"id"`
+	Version      int      `json:"version"`
+	CreatedAt    int      `json:"created_at"`
+	UpdatedAt    int      `json:"updated_at"`
+	Content      string   `json:"content"`
+	Format       string   `json:"format"`
+	Type         string   `json:"type"`
+	Note         string   `json:"note"`
+	Status       string   `json:"status"`
+	PublishAt    int      `json:"publish_at"`
+	ContentHtml  string   `json:"content_html"`
+	CreatedBy    string   `json:"created_by"`
+	UpdatedBy    string   `json:"updated_by"`
+	Title        string   `json:"title"`
+	NotifyMode   string   `json:"notify_mode"`
+	EndsAt       int      `json:"ends_at"`
+	Audience     string   `json:"audience"`
+	RecipientIds []string `json:"recipient_ids"`
 }
 
 type AnnouncementPublic struct {
@@ -858,6 +873,10 @@ type AnnouncementPublic struct {
 	Format      string `json:"format"`
 	Type        string `json:"type"`
 	PublishAt   int    `json:"publish_at"`
+	Title       string `json:"title"`
+	NotifyMode  string `json:"notify_mode"`
+	EndsAt      int    `json:"ends_at"`
+	ReadAt      int    `json:"read_at"`
 }
 
 type AnnouncementQuery struct {
@@ -876,11 +895,12 @@ type AnnouncementList struct {
 }
 
 type AnnouncementFeed struct {
-	Items    []AnnouncementPublic `json:"items"`
-	Total    int                  `json:"total"`
-	Page     int                  `json:"page"`
-	PageSize int                  `json:"page_size"`
-	Enabled  bool                 `json:"enabled"`
+	Items       []AnnouncementPublic `json:"items"`
+	Total       int                  `json:"total"`
+	Page        int                  `json:"page"`
+	PageSize    int                  `json:"page_size"`
+	Enabled     bool                 `json:"enabled"`
+	UnreadCount int                  `json:"unread_count"`
 }
 
 type AnnouncementSelection struct {
@@ -1073,4 +1093,26 @@ type LoginDevicesResponse struct {
 	Message   string       `json:"message"`
 	Data      LoginDevices `json:"data"`
 	RequestID string       `json:"request_id"`
+}
+
+type AnnouncementReader struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Eligible bool   `json:"eligible"`
+	ReadAt   int    `json:"read_at"`
+}
+
+type AnnouncementReadStatus struct {
+	Items    []AnnouncementReader `json:"items"`
+	Total    int                  `json:"total"`
+	Page     int                  `json:"page"`
+	PageSize int                  `json:"page_size"`
+}
+
+type AnnouncementReadStatusResponse struct {
+	Code      string                 `json:"code"`
+	Message   string                 `json:"message"`
+	Data      AnnouncementReadStatus `json:"data"`
+	RequestID string                 `json:"request_id"`
 }

@@ -162,6 +162,19 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
     await submit.mutateAsync().catch(() => {});
   } });
   const values = form.watch();
+  function validateRegistrationPassword(name: 'password' | 'confirm_password') {
+    const current = form.getValues();
+    const message = current[name] ? passwordErrors(current.password, current.confirm_password)[name] : undefined;
+    if (message) form.setError(name, { type: 'password-rule', message });
+    else form.clearErrors(name);
+  }
+  function passwordField(event: React.SyntheticEvent<HTMLFormElement>) {
+    if (mode !== 'register' || challenge || !(event.target instanceof HTMLInputElement)) return;
+    const name = event.target.name;
+    if (name !== 'password' && name !== 'confirm_password') return;
+    if (event.type === 'blur' || form.formState.touchedFields[name] || form.getFieldState(name).error) validateRegistrationPassword(name);
+    if (name === 'password' && (form.formState.touchedFields.confirm_password || form.getFieldState('confirm_password').error)) validateRegistrationPassword('confirm_password');
+  }
   function clearSecrets() { form.setValue('password', ''); form.setValue('confirm_password', ''); form.setValue('captcha_answer', ''); }
   function acceptChallenge(result: EmailChallenge) {
     setChallenge(result); setRetryAt(Date.now() + result.retry_after * 1000); setNow(Date.now()); form.setValue('code', ''); clearSecrets(); form.clearErrors();
@@ -242,7 +255,7 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
       <Link to="/login" replace onClick={beforeNavigation} className={cn(buttonVariants(), 'h-12 w-full rounded-xl shadow-tint')}>{t('返回登录')}<ArrowRight size={17} aria-hidden="true" /></Link>
     </div> : <>
       {registrationClosed || resetClosed ? <p role="status" className="mb-6 rounded-xl border border-line bg-surface-alt p-5 text-sm leading-7 text-muted">{registrationClosed ? t('注册暂未开放，请联系管理员获取账号。') : t('本站暂未开放邮件找回密码，请联系管理员协助恢复账号。')}</p> :
-        <AppForm form={form} className="flex flex-col gap-5">
+        <AppForm form={form} className="flex flex-col gap-5" onBlur={passwordField} onChange={passwordField}>
           {error && !(error instanceof AppError && Object.keys(error.fields).length) && <p role="alert" className="rounded-xl border border-danger-line bg-danger-soft px-4 py-3 text-sm text-danger">{t(error.message)}</p>}
           <fieldset disabled={busy} className="contents">
             {!challenge && (mode === 'login' || mode === 'register') && <AppField<AuthValues> name="username" label={mode === 'login' ? t('账号或邮箱') : t('账号')} className="[&_label]:sr-only">
@@ -280,7 +293,6 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
               {challenge ? purpose === 'reset' ? t('保存新密码') : purpose === 'verify' ? t('确认验证邮箱') : t('验证并登录') : labels[mode]}
             </Button>
             {challenge && mode !== 'forgot' && <button type="button" className="text-center text-sm font-medium text-accent disabled:opacity-50" disabled={retry > 0} onClick={() => { setChallenge(undefined); form.setValue('code', ''); form.setValue('captcha_answer', ''); form.clearErrors(); submit.reset(); }}>{retry > 0 ? t('{{v0}} 秒后可重新获取', { v0: retry }) : t('重新获取验证码')}</button>}
-            {mode === 'register' && !challenge && <p className="text-center text-xs leading-5 text-muted">{t('密码至少 12 个字符，请妥善保管你的登录信息。')}</p>}
           </fieldset>
         </AppForm>}
       <div className="mt-6 text-sm">
@@ -294,7 +306,6 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
         {!administrator && policy.data?.registration_enabled && policy.data?.email_verification_required && <AuthLink to="/resend-verification" disabled={busy} onNavigate={beforeNavigation}>{t('重发验证邮件')}</AuthLink>}
       </div>}
       {mode === 'login' && <EnterpriseLoginBlock web={web} />}
-      {administrator && <p className="mt-6 text-center text-sm"><a className="text-accent hover:underline" href="/login">{t('返回用户登录')}</a></p>}
     </>}
   </AuthLayout>;
 }

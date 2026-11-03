@@ -91,7 +91,7 @@ func TestFixedFrameworkPrefix(t *testing.T) {
 				count, err := store.TableCount(ctx)
 				want := 7 // Six framework tables and the independent product table.
 				if platform {
-					want = 37
+					want = 39
 				}
 				if err != nil || count != want {
 					t.Fatal("unexpected schema", count, want, err)

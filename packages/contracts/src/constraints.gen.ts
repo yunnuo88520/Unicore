@@ -3150,12 +3150,17 @@ export const constraints = {
       "type",
       "note",
       "status",
-      "publish_at"
+      "publish_at",
+      "title",
+      "notify_mode",
+      "ends_at",
+      "audience",
+      "recipient_ids"
     ],
     "properties": {
       "content": {
         "type": "string",
-        "maxLength": 500,
+        "maxLength": 10000,
         "minLength": 1
       },
       "format": {
@@ -3185,13 +3190,49 @@ export const constraints = {
         "maxLength": 64,
         "enum": [
           "draft",
-          "published"
+          "published",
+          "archived"
         ]
       },
       "publish_at": {
         "type": "integer",
         "minimum": 1,
         "maximum": 4102444800
+      },
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "notify_mode": {
+        "type": "string",
+        "enum": [
+          "silent",
+          "popup"
+        ],
+        "maxLength": 16
+      },
+      "ends_at": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 4102444800
+      },
+      "audience": {
+        "type": "string",
+        "enum": [
+          "all",
+          "selected"
+        ],
+        "maxLength": 16
+      },
+      "recipient_ids": {
+        "type": "array",
+        "maxItems": 500,
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
       }
     }
   },
@@ -3205,12 +3246,17 @@ export const constraints = {
       "note",
       "status",
       "publish_at",
-      "version"
+      "version",
+      "title",
+      "notify_mode",
+      "ends_at",
+      "audience",
+      "recipient_ids"
     ],
     "properties": {
       "content": {
         "type": "string",
-        "maxLength": 500,
+        "maxLength": 10000,
         "minLength": 1
       },
       "format": {
@@ -3240,7 +3286,8 @@ export const constraints = {
         "maxLength": 64,
         "enum": [
           "draft",
-          "published"
+          "published",
+          "archived"
         ]
       },
       "publish_at": {
@@ -3252,6 +3299,41 @@ export const constraints = {
         "type": "integer",
         "minimum": 1,
         "maximum": 9007199254740991
+      },
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "notify_mode": {
+        "type": "string",
+        "enum": [
+          "silent",
+          "popup"
+        ],
+        "maxLength": 16
+      },
+      "ends_at": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 4102444800
+      },
+      "audience": {
+        "type": "string",
+        "enum": [
+          "all",
+          "selected"
+        ],
+        "maxLength": 16
+      },
+      "recipient_ids": {
+        "type": "array",
+        "maxItems": 500,
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
       }
     }
   },
@@ -3271,7 +3353,12 @@ export const constraints = {
       "publish_at",
       "content_html",
       "created_by",
-      "updated_by"
+      "updated_by",
+      "title",
+      "notify_mode",
+      "ends_at",
+      "audience",
+      "recipient_ids"
     ],
     "properties": {
       "id": {
@@ -3295,7 +3382,7 @@ export const constraints = {
       },
       "content": {
         "type": "string",
-        "maxLength": 500,
+        "maxLength": 10000,
         "minLength": 1
       },
       "format": {
@@ -3325,7 +3412,8 @@ export const constraints = {
         "maxLength": 64,
         "enum": [
           "draft",
-          "published"
+          "published",
+          "archived"
         ]
       },
       "publish_at": {
@@ -3335,7 +3423,7 @@ export const constraints = {
       },
       "content_html": {
         "type": "string",
-        "maxLength": 20000
+        "maxLength": 100000
       },
       "created_by": {
         "type": "string",
@@ -3344,6 +3432,41 @@ export const constraints = {
       "updated_by": {
         "type": "string",
         "maxLength": 64
+      },
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "notify_mode": {
+        "type": "string",
+        "enum": [
+          "silent",
+          "popup"
+        ],
+        "maxLength": 16
+      },
+      "ends_at": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 4102444800
+      },
+      "audience": {
+        "type": "string",
+        "enum": [
+          "all",
+          "selected"
+        ],
+        "maxLength": 16
+      },
+      "recipient_ids": {
+        "type": "array",
+        "maxItems": 500,
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
       }
     }
   },
@@ -3356,7 +3479,11 @@ export const constraints = {
       "content_html",
       "format",
       "type",
-      "publish_at"
+      "publish_at",
+      "title",
+      "notify_mode",
+      "ends_at",
+      "read_at"
     ],
     "properties": {
       "id": {
@@ -3365,12 +3492,12 @@ export const constraints = {
       },
       "content": {
         "type": "string",
-        "maxLength": 500,
+        "maxLength": 10000,
         "minLength": 1
       },
       "content_html": {
         "type": "string",
-        "maxLength": 20000
+        "maxLength": 100000
       },
       "format": {
         "type": "string",
@@ -3393,6 +3520,29 @@ export const constraints = {
       "publish_at": {
         "type": "integer",
         "minimum": 1,
+        "maximum": 4102444800
+      },
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "notify_mode": {
+        "type": "string",
+        "enum": [
+          "silent",
+          "popup"
+        ],
+        "maxLength": 16
+      },
+      "ends_at": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 4102444800
+      },
+      "read_at": {
+        "type": "integer",
+        "minimum": 0,
         "maximum": 4102444800
       }
     }
@@ -3418,7 +3568,9 @@ export const constraints = {
           "",
           "draft",
           "published",
-          "scheduled"
+          "scheduled",
+          "archived",
+          "expired"
         ]
       },
       "page": {
@@ -3478,7 +3630,8 @@ export const constraints = {
       "total",
       "page",
       "page_size",
-      "enabled"
+      "enabled",
+      "unread_count"
     ],
     "properties": {
       "items": {
@@ -3504,6 +3657,11 @@ export const constraints = {
       },
       "enabled": {
         "type": "boolean"
+      },
+      "unread_count": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
       }
     }
   },
@@ -3565,7 +3723,7 @@ export const constraints = {
     "properties": {
       "content_html": {
         "type": "string",
-        "maxLength": 20000
+        "maxLength": 100000
       }
     }
   },
@@ -4233,6 +4391,90 @@ export const constraints = {
       },
       "data": {
         "$ref": "#/components/schemas/LoginDevices"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "AnnouncementReader": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "username",
+      "email",
+      "eligible",
+      "read_at"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "username": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "email": {
+        "type": "string",
+        "maxLength": 254
+      },
+      "eligible": {
+        "type": "boolean"
+      },
+      "read_at": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 4102444800
+      }
+    }
+  },
+  "AnnouncementReadStatus": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items",
+      "total",
+      "page",
+      "page_size"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/AnnouncementReader"
+        }
+      },
+      "total": {
+        "type": "integer"
+      },
+      "page": {
+        "type": "integer"
+      },
+      "page_size": {
+        "type": "integer"
+      }
+    }
+  },
+  "AnnouncementReadStatusResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/AnnouncementReadStatus"
       },
       "request_id": {
         "type": "string"

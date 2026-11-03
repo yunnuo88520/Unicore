@@ -20,6 +20,11 @@ test('separate entries, registration policy and redesigned file selection',async
   await expect(user.getByRole('link',{name:'返回登录',exact:true})).toHaveAttribute('href','/login');
   await expect(user.getByRole('link',{name:'管理员登录',exact:true})).toHaveCount(0);
   expect((await user.request.get(`${instance.url}/api/v1/admin/users`)).status()).toBe(401);
+  await user.goto(`${instance.url}/admin/login`);
+  await expect(user.getByRole('heading',{name:'管理员登录 · Unicore',exact:true})).toBeVisible();
+  await expect(user.getByRole('link',{name:'返回用户登录',exact:true})).toHaveCount(0);
+  await expect(user.getByRole('link',{name:'注册账号',exact:true})).toHaveCount(0);
+  await expect(user.locator('main a[href="/login"],main a[href="/register"]')).toHaveCount(0);
  }finally{await other.close();}
  await page.goto(`${instance.url}/admin/files`);await page.getByRole('button',{name:'上传文件',exact:true}).click();
  const dialog=page.getByRole('dialog',{name:'上传文件',exact:true});await expect(dialog.locator('.upload-zone')).toBeFocused();

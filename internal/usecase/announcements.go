@@ -13,8 +13,11 @@ import (
 
 type AnnouncementRepository interface {
 	List(context.Context, contracts.AnnouncementQuery) ([]domain.Announcement, int, bool, error)
-	Feed(context.Context, int, int, int) ([]domain.Announcement, int, bool, error)
-	GetPublished(context.Context, string, int) (domain.Announcement, error)
+	UserFeed(context.Context, string, int, int, int, bool) ([]domain.Announcement, int, int, bool, error)
+	MarkRead(context.Context, string, string, int) error
+	MarkAllRead(context.Context, string, int) error
+	ReadStatus(context.Context, string, string, int, int) (contracts.AnnouncementReadStatus, error)
+	GetPublished(context.Context, string, string, int) (domain.Announcement, error)
 	Save(context.Context, domain.Announcement, string, bool) (domain.Announcement, error)
 	Delete(context.Context, []contracts.AnnouncementSelection, string) error
 	Enabled(context.Context) (bool, error)
@@ -33,7 +36,7 @@ func (s *Announcements) now() time.Time {
 	return time.Now()
 }
 func (s *Announcements) Prepare(in contracts.AnnouncementInput) (domain.Announcement, error) {
-	a := domain.Announcement{Content: strings.TrimSpace(in.Content), Format: in.Format, Type: in.Type, Note: strings.TrimSpace(in.Note), Status: in.Status, PublishAt: in.PublishAt}
+	a := domain.Announcement{Content: strings.TrimSpace(in.Content), Format: in.Format, Type: in.Type, Note: strings.TrimSpace(in.Note), Status: in.Status, PublishAt: in.PublishAt, Title: strings.TrimSpace(in.Title), NotifyMode: in.NotifyMode, EndsAt: in.EndsAt, Audience: in.Audience, RecipientIDs: in.RecipientIds}
 	if err := a.Validate(); err != nil {
 		return a, err
 	}
@@ -42,7 +45,7 @@ func (s *Announcements) Prepare(in contracts.AnnouncementInput) (domain.Announce
 	}
 	var err error
 	a.ContentHTML, err = s.Render(a.Content, a.Format)
-	if err != nil || len(a.ContentHTML) > 20000 {
+	if err != nil || len(a.ContentHTML) > 100000 {
 		return a, domain.ErrAnnouncementInvalid
 	}
 	return a, nil
@@ -58,7 +61,7 @@ func (s *Announcements) Create(ctx context.Context, in contracts.AnnouncementInp
 	return s.Repo.Save(ctx, a, actor, true)
 }
 func (s *Announcements) Update(ctx context.Context, id string, in contracts.AnnouncementUpdate, actor string) (domain.Announcement, error) {
-	a, err := s.Prepare(contracts.AnnouncementInput{Content: in.Content, Format: in.Format, Type: in.Type, Note: in.Note, Status: in.Status, PublishAt: in.PublishAt})
+	a, err := s.Prepare(contracts.AnnouncementInput{Content: in.Content, Format: in.Format, Type: in.Type, Note: in.Note, Status: in.Status, PublishAt: in.PublishAt, Title: strings.TrimSpace(in.Title), NotifyMode: in.NotifyMode, EndsAt: in.EndsAt, Audience: in.Audience, RecipientIds: in.RecipientIds})
 	if err != nil {
 		return a, err
 	}
@@ -73,7 +76,7 @@ func (s *Announcements) Update(ctx context.Context, id string, in contracts.Anno
 }
 func (s *Announcements) List(ctx context.Context, q contracts.AnnouncementQuery) (contracts.AnnouncementList, error) {
 	out := contracts.AnnouncementList{Items: []contracts.AnnouncementEntry{}, Page: q.Page, PageSize: q.PageSize}
-	if !domain.ValidPage(q.Page, q.PageSize) || utf8.RuneCountInString(q.Search) > 128 || (q.Status != "" && q.Status != "draft" && q.Status != "published" && q.Status != "scheduled") {
+	if !domain.ValidPage(q.Page, q.PageSize) || utf8.RuneCountInString(q.Search) > 128 || (q.Status != "" && q.Status != "draft" && q.Status != "published" && q.Status != "scheduled" && q.Status != "archived" && q.Status != "expired") {
 		return out, domain.ErrAnnouncementInvalid
 	}
 	rows, total, enabled, err := s.Repo.List(ctx, q)
@@ -84,12 +87,13 @@ func (s *Announcements) List(ctx context.Context, q contracts.AnnouncementQuery)
 	}
 	return out, err
 }
-func (s *Announcements) Feed(ctx context.Context, page, size int) (contracts.AnnouncementFeed, error) {
+func (s *Announcements) Feed(ctx context.Context, page, size int, user string, popupOnly bool) (contracts.AnnouncementFeed, error) {
 	out := contracts.AnnouncementFeed{Items: []contracts.AnnouncementPublic{}, Page: page, PageSize: size}
 	if !domain.ValidPage(page, size) {
 		return out, domain.ErrAnnouncementInvalid
 	}
-	rows, total, enabled, err := s.Repo.Feed(ctx, page, size, int(s.now().Unix()))
+	rows, total, unread, enabled, err := s.Repo.UserFeed(ctx, user, page, size, int(s.now().Unix()), popupOnly)
+	out.UnreadCount = unread
 	out.Total = total
 	out.Enabled = enabled
 	for _, a := range rows {
@@ -97,11 +101,11 @@ func (s *Announcements) Feed(ctx context.Context, page, size int) (contracts.Ann
 	}
 	return out, err
 }
-func (s *Announcements) Published(ctx context.Context, id string) (contracts.AnnouncementPublic, error) {
+func (s *Announcements) Published(ctx context.Context, id string, user string) (contracts.AnnouncementPublic, error) {
 	if id == "" || len(id) > 64 {
 		return contracts.AnnouncementPublic{}, ErrEntityNotFound
 	}
-	a, err := s.Repo.GetPublished(ctx, id, int(s.now().Unix()))
+	a, err := s.Repo.GetPublished(ctx, id, user, int(s.now().Unix()))
 	return publicAnnouncement(a), err
 }
 func (s *Announcements) Delete(ctx context.Context, in contracts.AnnouncementDelete, actor string) error {
@@ -118,10 +122,10 @@ func (s *Announcements) Delete(ctx context.Context, in contracts.AnnouncementDel
 	return s.Repo.Delete(ctx, in.Items, actor)
 }
 func AnnouncementDTO(a domain.Announcement) contracts.AnnouncementEntry {
-	return contracts.AnnouncementEntry{ID: a.ID, CreatedAt: a.CreatedAt, UpdatedAt: a.UpdatedAt, Version: a.Version, Content: a.Content, ContentHtml: a.ContentHTML, Format: a.Format, Type: a.Type, Note: a.Note, Status: a.Status, PublishAt: a.PublishAt, CreatedBy: a.CreatedBy, UpdatedBy: a.UpdatedBy}
+	return contracts.AnnouncementEntry{ID: a.ID, CreatedAt: a.CreatedAt, UpdatedAt: a.UpdatedAt, Version: a.Version, Content: a.Content, ContentHtml: a.ContentHTML, Format: a.Format, Type: a.Type, Note: a.Note, Status: a.Status, PublishAt: a.PublishAt, Title: a.Title, NotifyMode: a.NotifyMode, EndsAt: a.EndsAt, Audience: a.Audience, RecipientIds: append([]string{}, a.RecipientIDs...), CreatedBy: a.CreatedBy, UpdatedBy: a.UpdatedBy}
 }
 func publicAnnouncement(a domain.Announcement) contracts.AnnouncementPublic {
-	return contracts.AnnouncementPublic{ID: a.ID, Content: a.Content, ContentHtml: a.ContentHTML, Format: a.Format, Type: a.Type, PublishAt: a.PublishAt}
+	return contracts.AnnouncementPublic{ID: a.ID, Content: a.Content, ContentHtml: a.ContentHTML, Format: a.Format, Type: a.Type, PublishAt: a.PublishAt, Title: a.Title, NotifyMode: a.NotifyMode, EndsAt: a.EndsAt, ReadAt: a.ReadAt}
 }
 
 func (s *Announcements) Enabled(ctx context.Context) (contracts.AnnouncementSetting, error) {
@@ -130,4 +134,20 @@ func (s *Announcements) Enabled(ctx context.Context) (contracts.AnnouncementSett
 }
 func (s *Announcements) SetEnabled(ctx context.Context, in contracts.AnnouncementSetting, actor string) error {
 	return s.Repo.SetEnabled(ctx, in.Enabled, actor)
+}
+
+func (s *Announcements) MarkRead(ctx context.Context, id, user string) error {
+	if id == "" || len(id) > 64 {
+		return ErrEntityNotFound
+	}
+	return s.Repo.MarkRead(ctx, id, user, int(s.now().Unix()))
+}
+func (s *Announcements) MarkAllRead(ctx context.Context, user string) error {
+	return s.Repo.MarkAllRead(ctx, user, int(s.now().Unix()))
+}
+func (s *Announcements) ReadStatus(ctx context.Context, id, search string, page, size int) (contracts.AnnouncementReadStatus, error) {
+	if id == "" || len(id) > 64 || !domain.ValidPage(page, size) || utf8.RuneCountInString(search) > 128 {
+		return contracts.AnnouncementReadStatus{}, domain.ErrAnnouncementInvalid
+	}
+	return s.Repo.ReadStatus(ctx, id, search, page, size)
 }

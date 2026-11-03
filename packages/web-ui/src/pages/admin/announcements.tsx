@@ -7,19 +7,19 @@ import { Controller, useWatch } from 'react-hook-form';
 import { ChevronLeft, ChevronRight, Eye, Megaphone, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import type { AnnouncementEntry, AnnouncementInput, AnnouncementQuery, AnnouncementSelection, WebClient } from '@unicore/sdk';
 import { currentLocale, defineMessages, t, useI18n } from '../../i18n';
-import { AppForm, useAppForm } from '../../lib/form';
+import { AppField, AppForm, useAppForm } from '../../lib/form';
 import { Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, Input, Label, Modal, NativeSelect, Switch, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage } from '../../ui';
 import { RichTextEditor } from '../../ui/editor';
-import { RichContent, contentSummary } from '../../rich-content';
-import { AnnouncementType, announcementTypes } from '../../announcements-card';
+import { RichContent } from '../../rich-content';
+import { AnnouncementType, announcementTypes } from '../../announcement-center';
 import type { PageProps } from '../../router';
 
 const features = tableFeatures({ rowPaginationFeature, paginatedRowModel: createPaginatedRowModel() });
 const helper = createColumnHelper<typeof features, AnnouncementEntry>();
 const EMPTY_ITEMS: AnnouncementEntry[] = [];
-const COLUMN_COUNT = 7;
+const COLUMN_COUNT = 9;
 const PAGE_SIZE = 10;
-const statuses = defineMessages({ draft: '草稿', published: '已发布', scheduled: '定时发布' });
+const statuses = defineMessages({ draft: '草稿', published: '已发布', scheduled: '定时发布', archived: '已归档', expired: '已过期' });
 const localDate = (seconds: number) => {
   const date = new Date(seconds * 1000);
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
@@ -32,6 +32,7 @@ type AnnouncementTableMeta = {
   onToggle: (item: AnnouncementEntry, checked: boolean) => void;
   onEdit: (item: AnnouncementEntry) => void;
   onRemove: (item: AnnouncementEntry) => void;
+ onReaders: (item:AnnouncementEntry)=>void;
 };
 
 const columns = helper.columns([
@@ -49,10 +50,10 @@ const columns = helper.columns([
   }),
   helper.display({
     id: 'content',
-    header: () => t('公告内容'),
+    header: () => t('公告标题'),
     cell: info => <button type="button" className="block max-w-72 min-w-44 truncate text-start text-ink hover:text-accent hover:underline"
       onClick={() => (info.table.options.meta as AnnouncementTableMeta).onEdit(info.row.original)}>
-      {contentSummary(info.row.original.content_html)}
+      {info.row.original.title}
     </button>,
   }),
   helper.display({ id: 'type', header: () => t('类型'), cell: info => <AnnouncementType type={info.row.original.type} /> }),
@@ -61,16 +62,19 @@ const columns = helper.columns([
     header: () => t('状态'),
     cell: info => {
       const item = info.row.original;
-      const scheduled = item.status === 'published' && item.publish_at > Date.now() / 1000;
-      return <Badge variant={scheduled || item.status === 'published' ? 'primary' : 'subtle'}>{t(statuses[scheduled ? 'scheduled' : item.status])}</Badge>;
+      const expired=item.status==='published' && item.ends_at>0 && item.ends_at<=Date.now()/1000;
+ const scheduled = item.status === 'published' && item.publish_at > Date.now() / 1000;
+      return <Badge variant={scheduled || item.status === 'published' ? 'primary' : 'subtle'}>{t(statuses[expired ? 'expired' : scheduled ? 'scheduled' : item.status])}</Badge>;
     },
   }),
   helper.display({
     id: 'publish_at',
     header: () => t('发布时间'),
-    cell: info => <time className="whitespace-nowrap text-muted">{new Date(info.row.original.publish_at * 1000).toLocaleString(currentLocale(), { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</time>,
+    cell: info => <time className="whitespace-nowrap text-muted">{new Date(info.row.original.publish_at * 1000).toLocaleString(currentLocale(), { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}<span className="mt-1 block text-2xs text-subtle">{info.row.original.ends_at ? `${t('结束时间')} · ${new Date(info.row.original.ends_at * 1000).toLocaleString(currentLocale())}` : t('无结束时间')}</span></time>,
   }),
-  helper.display({
+  helper.display({id:'notify_mode',header:()=>t('通知方式'),cell:info=><Badge variant={info.row.original.notify_mode==='popup'?'warning':'subtle'}>{t(info.row.original.notify_mode==='popup'?'弹窗提醒':'静默通知')}</Badge>}),
+ helper.display({id:'audience',header:()=>t('接收范围'),cell:info=><span className="whitespace-nowrap text-muted">{t(info.row.original.audience==='all'?'全部用户':'指定用户')}</span>}),
+ helper.display({
     id: 'note',
     header: () => t('备注'),
     cell: info => <span title={info.row.original.note} className="block max-w-36 truncate text-muted">{info.row.original.note || '—'}</span>,
@@ -82,6 +86,7 @@ const columns = helper.columns([
       const meta = info.table.options.meta as AnnouncementTableMeta;
       const item = info.row.original;
       return <div className="flex items-center gap-1">
+        <Button variant="ghost" size="icon" aria-label={t('阅读情况')} onClick={() => meta.onReaders(item)}><Eye size={14} /></Button>
         <Button variant="ghost" size="icon" aria-label={t('编辑公告')} onClick={() => meta.onEdit(item)}><Pencil size={14} /></Button>
         <Button variant="ghost" size="icon" aria-label={t('删除公告')} onClick={() => meta.onRemove(item)}><Trash2 size={14} /></Button>
       </div>;
@@ -101,7 +106,8 @@ function AnnouncementPanel({ web }: { web: WebClient }) {
   const [switchValue, setSwitchValue] = useState<boolean | null>(null);
   const [search, setSearch] = useState('');
   const [query, setQuery] = useState<AnnouncementQuery>({ search: '', status: '', page: 1, page_size: PAGE_SIZE });
-  const [editor, setEditor] = useState<AnnouncementEntry | 'new' | null>(null);
+  const [readers,setReaders]=useState<AnnouncementEntry|null>(null);
+ const [editor, setEditor] = useState<AnnouncementEntry | 'new' | null>(null);
   const [selection, setSelection] = useState<AnnouncementSelection[]>([]);
   const [removing, setRemoving] = useState<AnnouncementSelection[] | null>(null);
   const list = useQuery({
@@ -149,6 +155,7 @@ function AnnouncementPanel({ web }: { web: WebClient }) {
       ? [...current, { id: item.id, version: item.version }]
       : current.filter(entry => entry.id !== item.id)),
     onEdit: item => setEditor(item),
+ onReaders:item=>setReaders(item),
     onRemove: item => setRemoving([{ id: item.id, version: item.version }]),
   };
   const pagination: PaginationState = { pageIndex: query.page - 1, pageSize: query.page_size };
@@ -173,7 +180,7 @@ function AnnouncementPanel({ web }: { web: WebClient }) {
         <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-accent"><Megaphone size={22} aria-hidden="true" /></span>
         <div className="min-w-0">
           <h2 className="text-md font-semibold text-ink">{t('公告展示')}</h2>
-          <p className="mt-0.5 text-xs text-muted">{t('开启后，已发布公告会显示在用户工作台。')}</p>
+          <p className="mt-0.5 text-xs text-muted">{t('开启后，用户可通过顶部铃铛查看公告，并接收弹窗提醒。')}</p>
         </div>
         <div className="ms-auto">
           <Switch id="announcements-enabled" checked={switchValue ?? list.data?.enabled ?? true} disabled={!list.data || toggle.isPending}
@@ -193,7 +200,7 @@ function AnnouncementPanel({ web }: { web: WebClient }) {
         <form className="flex flex-wrap items-center gap-2" onSubmit={event => { event.preventDefault(); setFilter({ search }); }}>
           <label className="flex h-9 min-w-44 flex-1 items-center gap-2 rounded-md border border-line bg-surface px-3 text-base text-muted shadow-tint focus-within:border-focus focus-within:ring-2 focus-within:ring-focus sm:max-w-xs">
             <Search size={15} aria-hidden="true" />
-            <input aria-label={t('搜索公告')} placeholder={t('搜索公告内容或备注…')} maxLength={128} className="w-full min-w-0 bg-transparent text-ink outline-none placeholder:text-subtle"
+            <input aria-label={t('搜索公告')} placeholder={t('搜索公告标题、内容或备注…')} maxLength={128} className="w-full min-w-0 bg-transparent text-ink outline-none placeholder:text-subtle"
               value={search} onChange={event => setSearch(event.target.value)} />
           </label>
           <NativeSelect aria-label={t('公告状态')} className="h-9 w-auto" value={query.status} disabled={list.isFetching}
@@ -245,6 +252,7 @@ function AnnouncementPanel({ web }: { web: WebClient }) {
         </div>
       </CardContent>
     </Card>
+    {readers && <AnnouncementReaders web={web} entry={readers} onClose={()=>setReaders(null)}/>}
     {editor && <AnnouncementEditor key={editor === 'new' ? 'new' : editor.id} web={web} entry={editor === 'new' ? undefined : editor}
       onClose={() => setEditor(null)} onSaved={() => { setEditor(null); refresh(); }} />}
     {removing && <ConfirmDialog danger title={t('删除公告')} description={t('确定删除选中的 {{count}} 条公告？用户将无法继续查看。', { count: removing.length })}
@@ -260,14 +268,18 @@ function AnnouncementEditor({ web, entry, onClose, onSaved }: { web: WebClient; 
   const form = useAppForm<AnnouncementInput>({
     schema: 'AnnouncementInput',
     defaultValues: {
-      content: entry?.content ?? '',
+      title: entry?.title ?? '',
+ notify_mode:entry?.notify_mode ?? 'silent',ends_at:entry?.ends_at ?? 0,audience:entry?.audience ?? 'all',recipient_ids:entry?.recipient_ids ?? [],
+ content: entry?.content ?? '',
       format: entry?.format ?? 'markdown',
       type: entry?.type ?? 'info',
       note: entry?.note ?? '',
-      status: entry?.status ?? 'published',
+      status: entry?.status ?? 'draft',
       publish_at: entry?.publish_at ?? Math.floor(Date.now() / 1000),
     },
     onSubmit: async values => {
+      if (values.ends_at && values.ends_at <= values.publish_at) { form.setError('ends_at', { type: 'validate', message: t('结束时间必须晚于发布时间。') }); return; }
+      if (values.audience === 'selected' && !values.recipient_ids.length) { form.setError('recipient_ids', { type: 'validate', message: t('请至少选择一位接收用户。') }); return; }
       try {
         await (entry ? web.updateAnnouncement(entry.id, { ...values, version: entry.version }) : web.createAnnouncement(values));
         message.success(t('公告已保存'));
@@ -289,11 +301,12 @@ function AnnouncementEditor({ web, entry, onClose, onSaved }: { web: WebClient; 
   const current = (): AnnouncementInput => ({ ...form.getValues() });
   return <Modal title={t(entry ? '编辑公告' : '新增公告')} onClose={onClose} pending={pending}>
     <AppForm form={form} className="flex flex-col gap-4">
+ <AppField name="title" label={t('公告标题')}><Input required maxLength={200} disabled={pending}/></AppField>
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center justify-between gap-3">
           <Label htmlFor="announcement-content">{t('公告内容')}</Label>
           <div className="flex items-center gap-3">
-            <small className="text-2xs text-muted">{[...content].length} / 500</small>
+            <small className="text-2xs text-muted">{[...content].length} / 10000</small>
             <NativeSelect aria-label={t('内容格式')} className="h-7 w-auto py-0 text-xs" disabled={pending} value={format}
               onChange={event => { setPreview(false); form.setValue('format', event.target.value as AnnouncementInput['format'], { shouldDirty: true }); }}>
               <option value="markdown">Markdown</option>
@@ -302,7 +315,7 @@ function AnnouncementEditor({ web, entry, onClose, onSaved }: { web: WebClient; 
           </div>
         </div>
         {format === 'markdown'
-          ? <Textarea id="announcement-content" required rows={6} maxLength={500} disabled={pending} value={content}
+          ? <Textarea id="announcement-content" required rows={6} maxLength={10000} disabled={pending} value={content}
               placeholder={t('输入公告内容，支持 Markdown。')} onChange={event => { setPreview(false); form.setValue('content', event.target.value, { shouldDirty: true }); }} />
           : <RichTextEditor value={content} label={t('公告内容')} sourceLabel={t('公告内容源代码')} disabled={pending}
               onChange={value => { setPreview(false); form.setValue('content', value, { shouldDirty: true }); }} />}
@@ -316,6 +329,8 @@ function AnnouncementEditor({ web, entry, onClose, onSaved }: { web: WebClient; 
               onChange={event => { if (event.target.value) { setPreview(false); field.onChange(Math.floor(new Date(event.target.value).getTime() / 1000)); } }} />
           </label>
         )} />
+        <Controller control={form.control} name="ends_at" render={({field})=><label className="flex flex-col gap-1.5"><span className="text-sm font-medium text-ink">{t('结束时间（可选）')}</span><Input type="datetime-local" disabled={pending} value={field.value?localDate(field.value):''} min={localDate(values.publish_at ?? Math.floor(Date.now()/1000))} onChange={event=>field.onChange(event.target.value?Math.floor(new Date(event.target.value).getTime()/1000):0)}/></label>}/>
+        <Controller control={form.control} name="notify_mode" render={({field})=><label className="flex flex-col gap-1.5"><span className="text-sm font-medium text-ink">{t('通知方式')}</span><NativeSelect disabled={pending} value={field.value} onChange={field.onChange}><option value="silent">{t('静默通知')}</option><option value="popup">{t('弹窗提醒')}</option></NativeSelect></label>}/>
         <Controller control={form.control} name="type" render={({ field }) => (
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-ink">{t('公告类型')}</span>
@@ -327,9 +342,10 @@ function AnnouncementEditor({ web, entry, onClose, onSaved }: { web: WebClient; 
         <Controller control={form.control} name="status" render={({ field }) => (
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-ink">{t('发布状态')}</span>
-            <NativeSelect disabled={pending} value={field.value ?? 'published'} onChange={event => { setPreview(false); field.onChange(event.target.value); }}>
+            <NativeSelect disabled={pending} value={field.value ?? 'draft'} onChange={event => { setPreview(false); field.onChange(event.target.value); }}>
               <option value="published">{t((values.publish_at ?? 0) > Date.now() / 1000 ? '定时发布' : '发布')}</option>
               <option value="draft">{t('草稿')}</option>
+ <option value="archived">{t('已归档')}</option>
             </NativeSelect>
           </label>
         )} />
@@ -341,6 +357,9 @@ function AnnouncementEditor({ web, entry, onClose, onSaved }: { web: WebClient; 
           </label>
         )} />
       </div>
+      <Controller control={form.control} name="audience" render={({field})=><label className="flex flex-col gap-1.5"><span className="text-sm font-medium text-ink">{t('接收范围')}</span><NativeSelect value={field.value} disabled={pending} onChange={event=>{field.onChange(event.target.value);if(event.target.value==='all')form.setValue('recipient_ids',[]);}}><option value="all">{t('全部用户')}</option><option value="selected">{t('指定用户')}</option></NativeSelect></label>}/>
+      {values.audience==='selected' && <RecipientPicker web={web} selected={values.recipient_ids ?? []} disabled={pending} onChange={ids=>form.setValue('recipient_ids',ids,{shouldDirty:true})}/>}
+      <p className="text-xs text-muted">{t('修改公告不会重置已读记录；需要重新提醒时，请新建公告。')}</p>
       {preview && render.data && <div className="announcement-preview max-h-44 overflow-auto rounded-lg border border-line bg-surface-alt p-3"><RichContent html={render.data.content_html} /></div>}
       <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
         <Button variant="secondary" disabled={pending || !content.trim()} onClick={() => render.mutate(current())}>
@@ -351,5 +370,38 @@ function AnnouncementEditor({ web, entry, onClose, onSaved }: { web: WebClient; 
         <Button type="submit" pending={form.formState.isSubmitting}>{pending ? t('处理中…') : t('保存')}</Button>
       </div>
     </AppForm>
+  </Modal>;
+}
+
+function RecipientPicker({ web, selected, disabled, onChange }: { web: WebClient; selected: string[]; disabled: boolean; onChange: (ids: string[]) => void }) {
+  const { t } = useI18n();
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const users = useQuery({ queryKey: ['announcement-recipient-options', search, page], queryFn: () => web.users(search, page), placeholderData: keepPreviousData });
+  return <div className="rounded-lg border border-line p-3">
+    <p className="mb-2 text-xs text-muted">{t('已选择 {{count}} 位用户（最多 500 位）', { count: selected.length })}</p>
+    <Input aria-label={t('搜索接收用户')} placeholder={t('搜索账号或邮箱')} value={search} maxLength={128} disabled={disabled} onChange={event => { setSearch(event.target.value); setPage(1); }} />
+    {users.isError ? <div role="alert" className="mt-2"><span className="text-xs text-danger">{t(users.error.message)}</span><Button variant="link" onClick={() => void users.refetch()}>{t('重试')}</Button></div>
+      : users.isPending ? <p role="status" className="py-3 text-xs text-muted">{t('加载中…')}</p>
+      : <div className="my-2 flex max-h-40 flex-col gap-2 overflow-y-auto">{users.data.items.map(user => <label key={user.id} className="flex items-center gap-2 text-sm"><Checkbox checked={selected.includes(user.id)} disabled={disabled || (!selected.includes(user.id) && selected.length >= 500)} onChange={checked => onChange(checked ? [...selected, user.id] : selected.filter(id => id !== user.id))} /><span className="min-w-0 truncate">{user.username} · {user.email}</span></label>)}{!users.data.items.length && <p className="text-xs text-muted">{t('没有匹配的用户')}</p>}</div>}
+    <div className="flex justify-end gap-2"><Button size="sm" variant="ghost" disabled={disabled || page === 1 || users.isFetching} onClick={() => setPage(value => value - 1)}>{t('上一页')}</Button><Button size="sm" variant="ghost" disabled={disabled || !users.data || page * users.data.page_size >= users.data.total || users.isFetching} onClick={() => setPage(value => value + 1)}>{t('下一页')}</Button><Button size="sm" variant="secondary" disabled={disabled || !selected.length} onClick={() => onChange([])}>{t('清空选择')}</Button></div>
+  </div>;
+}
+
+function AnnouncementReaders({ web, entry, onClose }: { web: WebClient; entry: AnnouncementEntry; onClose: () => void }) {
+  const { t } = useI18n();
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const query = useQuery({ queryKey: ['announcement-read-status', entry.id, search, page], queryFn: () => web.announcementReadStatus(entry.id, page, 10, search), placeholderData: keepPreviousData });
+  return <Modal title={t('阅读情况')} onClose={onClose}>
+    <p className="mb-2 break-words text-sm font-semibold text-ink">{entry.title}</p>
+    <p className="mb-3 text-xs text-muted">{t('接收范围按当前配置判断；已读时间记录首次打开或确认，不代表完整阅读。')}</p>
+    <Input aria-label={t('搜索阅读用户')} placeholder={t('搜索账号或邮箱')} maxLength={128} value={search} onChange={event => { setSearch(event.target.value); setPage(1); }} />
+    {query.isError ? <div role="alert" className="mt-3"><span className="text-sm text-danger">{t(query.error.message)}</span><Button variant="link" onClick={() => void query.refetch()}>{t('重试')}</Button></div>
+      : <div className="mt-3 overflow-x-auto"><Table><TableHeader><TableRow><TableHead>{t('账号')}</TableHead><TableHead>{t('接收范围')}</TableHead><TableHead>{t('首次已读时间')}</TableHead></TableRow></TableHeader><TableBody>
+          {query.isPending ? <TableEmpty colSpan={3}>{t('加载中…')}</TableEmpty> : query.data.items.map(user => <TableRow key={user.id}><TableCell><span className="block">{user.username}</span><small className="text-muted">{user.email}</small></TableCell><TableCell>{t(user.eligible ? '符合条件' : '不符合条件')}</TableCell><TableCell><span className="whitespace-nowrap">{user.read_at ? new Date(user.read_at * 1000).toLocaleString(currentLocale()) : t('未读')}</span></TableCell></TableRow>)}
+          {!query.isPending && !query.data?.items.length && <TableEmpty colSpan={3}>{t('没有匹配的用户')}</TableEmpty>}
+        </TableBody></Table></div>}
+    <div className="mt-3 flex items-center justify-end gap-2 text-xs text-muted"><span>{page} / {Math.max(1, Math.ceil((query.data?.total ?? 0) / 10))}</span><Button variant="secondary" size="sm" disabled={page === 1 || query.isFetching} onClick={() => setPage(value => value - 1)}>{t('上一页')}</Button><Button variant="secondary" size="sm" disabled={page * 10 >= (query.data?.total ?? 0) || query.isFetching} onClick={() => setPage(value => value + 1)}>{t('下一页')}</Button></div>
   </Modal>;
 }

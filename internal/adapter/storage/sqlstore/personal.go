@@ -14,17 +14,20 @@ import (
 )
 
 func (s *Store) personalSchema(ctx context.Context) error {
-	data, err := migrations.Files.ReadFile(s.Dialect + "/0014_personal_center.sql")
+	return s.additivePlatformSchema(ctx, 14, "0014_personal_center.sql")
+}
+func (s *Store) additivePlatformSchema(ctx context.Context, version int, file string) error {
+	data, err := migrations.Files.ReadFile(s.Dialect + "/" + file)
 	if err != nil {
 		return err
 	}
 	sum := sha256.Sum256(data)
 	checksum := hex.EncodeToString(sum[:])
 	var previous string
-	err = s.Row(ctx, s.DB, "SELECT checksum FROM unicore_schema_migrations WHERE version=14").Scan(&previous)
+	err = s.Row(ctx, s.DB, "SELECT checksum FROM unicore_schema_migrations WHERE version=?", version).Scan(&previous)
 	if err == nil {
 		if previous != checksum {
-			return fmt.Errorf("migration 14 checksum mismatch")
+			return fmt.Errorf("migration %d checksum mismatch", version)
 		}
 		return nil
 	}
@@ -49,7 +52,7 @@ func (s *Store) personalSchema(ctx context.Context) error {
 			}
 		}
 	}
-	if _, err = s.Exec(ctx, tx, "INSERT INTO unicore_schema_migrations(version,checksum) VALUES(14,?)", checksum); err != nil {
+	if _, err = s.Exec(ctx, tx, "INSERT INTO unicore_schema_migrations(version,checksum) VALUES(?,?)", version, checksum); err != nil {
 		return err
 	}
 	return tx.Commit()

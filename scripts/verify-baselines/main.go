@@ -320,15 +320,15 @@ func business(s *sqlstore.Store, profile, temp, admin string) map[string]any {
 	check(reflect.DeepEqual(stored, fetched), "upload session roundtrip")
 	result["files"] = "PASS actual legacy-brand fallback twice, one metadata row, local blob bytes and upload-session persistence; no cloud network"
 	announcements := usecase.Announcements{Repo: &announcementsql.Repository{Store: s}, Render: func(content, format string) (string, error) { return "<p>fixture</p>", nil }}
-	a, e := announcements.Create(ctx, contracts.AnnouncementInput{Content: "synthetic", Format: "markdown", Type: "info", Status: "published", PublishAt: 1}, admin)
+	a, e := announcements.Create(ctx, contracts.AnnouncementInput{Title: "Synthetic announcement", NotifyMode: "silent", Audience: "all", RecipientIds: []string{}, Content: "synthetic", Format: "markdown", Type: "info", Status: "published", PublishAt: 1}, admin)
 	must(e)
-	feed, e := announcements.Feed(ctx, 1, 20)
+	feed, e := announcements.Feed(ctx, 1, 20, user.ID, false)
 	must(e)
 	check(feed.Total == 1, "announcement published feed")
-	_, e = announcements.Create(ctx, contracts.AnnouncementInput{Content: "forbidden", Format: "markdown", Type: "info", Status: "published", PublishAt: 1}, user.ID)
+	_, e = announcements.Create(ctx, contracts.AnnouncementInput{Title: "Synthetic announcement", NotifyMode: "silent", Audience: "all", RecipientIds: []string{}, Content: "forbidden", Format: "markdown", Type: "info", Status: "published", PublishAt: 1}, user.ID)
 	check(errors.Is(e, platform.ErrForbidden), "announcement user cannot write")
 	must(announcements.Delete(ctx, contracts.AnnouncementDelete{Items: []contracts.AnnouncementSelection{{ID: a.ID, Version: a.Version}}}, admin))
-	feed, e = announcements.Feed(ctx, 1, 20)
+	feed, e = announcements.Feed(ctx, 1, 20, user.ID, false)
 	must(e)
 	check(feed.Total == 0, "announcement delete")
 	result["announcements"] = "PASS authorized create/feed/soft-delete, ordinary-user mutation rejected, audit foreign keys"

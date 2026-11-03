@@ -195,6 +195,16 @@ test('linked auth pages, confirmation, duplicate feedback and recovery preview',
     await screenshot('login');
     await page.getByRole('link', { name: '注册账号', exact: true }).click();
     await expect(page).toHaveURL(/\/register$/);
+    await expect(page.getByText('密码至少 12 个字符，请妥善保管你的登录信息。', { exact: true })).toHaveCount(0);
+    const registrationPassword = page.getByLabel('密码', { exact: true });
+    await expect(registrationPassword).toHaveAttribute('aria-invalid', 'false');
+    await registrationPassword.fill('short');
+    await expect(registrationPassword).toHaveAttribute('aria-invalid', 'false');
+    await page.getByLabel('确认密码', { exact: true }).focus();
+    await expect(registrationPassword).toHaveAttribute('aria-invalid', 'true');
+    await expect(registrationPassword).toHaveAccessibleDescription('密码至少 12 个字符，且不超过 128 字节');
+    await registrationPassword.fill(password);
+    await expect(registrationPassword).toHaveAttribute('aria-invalid', 'false');
     await screenshot('register');
     let registrations = 0;
     page.on('request', request => { if (request.url().endsWith('/auth/email/register')) registrations++; });

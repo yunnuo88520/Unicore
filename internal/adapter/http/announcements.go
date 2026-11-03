@@ -117,7 +117,7 @@ func mountAnnouncements(api chi.Router, config Config) {
 	}))
 	api.Get("/announcements", handler("", func(w http.ResponseWriter, r *http.Request, s *usecase.Announcements, actor string) {
 		p, size := page(r)
-		out, e := s.Feed(r.Context(), p, size)
+		out, e := s.Feed(r.Context(), p, size, actor, r.URL.Query().Get("popup_only") == "true")
 		if e != nil {
 			webError(w, e)
 			return
@@ -125,11 +125,35 @@ func mountAnnouncements(api chi.Router, config Config) {
 		success(w, out)
 	}))
 	api.Get("/announcements/{id}", handler("", func(w http.ResponseWriter, r *http.Request, s *usecase.Announcements, actor string) {
-		out, e := s.Published(r.Context(), chi.URLParam(r, "id"))
+		out, e := s.Published(r.Context(), chi.URLParam(r, "id"), actor)
 		if e != nil {
 			webError(w, e)
 			return
 		}
 		success(w, out)
 	}))
+	api.Post("/announcements/{id}/read", handler("", func(w http.ResponseWriter, r *http.Request, s *usecase.Announcements, actor string) {
+		if e := s.MarkRead(r.Context(), chi.URLParam(r, "id"), actor); e != nil {
+			webError(w, e)
+			return
+		}
+		success(w, contracts.ActionResult{Success: true})
+	}))
+	api.Post("/announcements/read-all", handler("", func(w http.ResponseWriter, r *http.Request, s *usecase.Announcements, actor string) {
+		if e := s.MarkAllRead(r.Context(), actor); e != nil {
+			webError(w, e)
+			return
+		}
+		success(w, contracts.ActionResult{Success: true})
+	}))
+	api.Get(base+"/{id}/read-status", handler("announcements:read", func(w http.ResponseWriter, r *http.Request, s *usecase.Announcements, actor string) {
+		p, size := page(r)
+		out, e := s.ReadStatus(r.Context(), chi.URLParam(r, "id"), r.URL.Query().Get("search"), p, size)
+		if e != nil {
+			webError(w, e)
+			return
+		}
+		success(w, out)
+	}))
+
 }

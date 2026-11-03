@@ -5,6 +5,12 @@
 
 ### 中文
 
+- 公告改为顶部铃铛、分页列表与确认弹窗，新增标题、结束时间、归档、指定接收用户、全量未读统计与首次已读查询；保留软删除/版本审计，追加三方言平台迁移 0015。
+
+- 对象存储改为横向切换的单配置表单，移除新增位置和重复的默认选择器；上传规则独立分组，支持路径标签增删及折叠的分片/清理设置，保留历史文件目标与密钥保护。
+
+- 注册密码规则改为输入后按字段提示，移除注册按钮下的常驻说明；管理员认证页移除跳转普通用户登录的链接。
+
 - 重做登录、注册、找回密码与注册完成页，统一双栏布局、真实页面互链、密码显隐及注册/重置确认密码；注册完成不再重复登录入口。注册用户名/邮箱冲突返回 409 与字段提示，保留事务和唯一约束，修复重复注册被伪报成功的问题；邮件恢复仍不泄露账号存在性。
 
 - 新增账户安全二级菜单、两类账号 2FA 状态列、分域强制验证、登录失败 IP 封禁与会话超时；登录注册页采用双栏卡片与移动端布局。
@@ -30,6 +36,12 @@
 - 新增 product:check 只读门禁与派生项目残留扫描 check:residuals（框架仓库自动跳过）；安装与数据库错误文案去产品化并同步中英文；示例文本与发行 README 改为按身份生成。
 
 ### English
+
+- Replace dashboard announcements with a header bell, paginated inbox and acknowledged popups; add titles, expiration, archives, selected recipients, global unread counts and first-read receipts, preserving versioned soft deletion and transactional audit with platform migration 0015.
+
+- Redesign storage settings with horizontal provider selection and one configuration per provider; remove location creation and duplicate default controls, separate upload rules, add path chips and collapsible multipart/cleanup settings, and preserve historical targets and credential protection.
+
+- Show registration password validation after input instead of a persistent footer hint, and remove the user-login link from administrator authentication pages.
 
 - Rebuild linked login, registration, recovery and registration-success pages with a shared split layout, password visibility and registration/reset confirmation. Keep one sign-in action on completion. Return 409 and field feedback for duplicate usernames/emails, preserve transaction and unique constraints, and stop reporting duplicate registration as success; recovery responses remain opaque.
 

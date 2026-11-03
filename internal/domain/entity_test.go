@@ -56,7 +56,7 @@ func TestBaseEntityAndPublication(t *testing.T) {
 	if a.ID == b.ID || len(a.ID) != 48 || a.Version != 1 || a.DeletedAt != 0 || a.CreatedAt != 1234 || a.UpdatedAt != 1234 {
 		t.Fatal(a, b)
 	}
-	announcement := Announcement{BaseEntity: a, Content: "notice", Format: "markdown", Type: "info", Status: "published", PublishAt: 1234}
+	announcement := Announcement{Title: "Test", NotifyMode: "silent", Audience: "all", BaseEntity: a, Content: "notice", Format: "markdown", Type: "info", Status: "published", PublishAt: 1234}
 	if announcement.Validate() != nil || !announcement.Visible(true, 1234) || announcement.Visible(false, 1234) || announcement.Visible(true, 1233) {
 		t.Fatal("publication boundary")
 	}

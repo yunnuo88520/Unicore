@@ -2,14 +2,14 @@
  * Description: Shared UI client; pages know neither fetch nor Wails globals.
  */
 import {fileFingerprint,retryDelay} from './upload';
-import type { AccountProfile, ProfileInput, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
+import type { AccountProfile, ProfileInput, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
 import { operations, type OperationId, type OperationInputs, type OperationData } from '@unicore/contracts/operations';
 import { validate, type SchemaName } from '@unicore/contracts/validate';
 export { validate, constraints, type SchemaName } from '@unicore/contracts/validate';
 export { constraintsToZod, zodFieldErrors } from '@unicore/contracts/zod';
 export { operations, type OperationId } from '@unicore/contracts/operations';
 
-export type { AccountProfile, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateRelease, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
+export type { AccountProfile, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateRelease, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
 
 export class AppError extends Error {
   constructor(public readonly code: string, message: string, public readonly requestId = '', public readonly fields: Record<string, string> = {}) { super(message); this.name = 'AppError'; }
@@ -20,7 +20,7 @@ export type RequestOptions = { signal?: AbortSignal };
 export type UploadStage='hashing'|'uploading'|'confirming';
 export type UploadProgress={loaded:number;total:number;completedParts:number;totalParts:number};
 export type UploadOptions = RequestOptions & { resumeId?:string; uploadPath?:string; onStage?: (stage: UploadStage) => void; onSession?:(session:MultipartUpload)=>void; onProgress?:(progress:UploadProgress)=>void; onHashProgress?:(loaded:number)=>void };
-export type OperationOptions = RequestOptions & { timeoutMs?:number; params?: Record<string, string>; query?: Record<string, string | number>; headers?: Record<string, string> };
+export type OperationOptions = RequestOptions & { timeoutMs?:number; params?: Record<string, string>; query?: Record<string, string | number | boolean>; headers?: Record<string, string> };
 
 export interface UpdateClient {
  overview():Promise<UpdateOverview>;
@@ -95,8 +95,11 @@ export interface WebClient {
  deleteAnnouncements(items:AnnouncementSelection[]):Promise<{success:boolean}>;
  saveAnnouncementSettings(enabled:boolean):Promise<{enabled:boolean}>;
  previewAnnouncement(input:AnnouncementInput):Promise<{content_html:string}>;
- announcements(page?:number,pageSize?:number):Promise<AnnouncementFeed>;
+ announcements(page?:number,pageSize?:number,popupOnly?:boolean):Promise<AnnouncementFeed>;
  announcement(id:string):Promise<AnnouncementPublic>;
+ markAnnouncementRead(id:string):Promise<{success:boolean}>;
+ markAllAnnouncementsRead():Promise<{success:boolean}>;
+ announcementReadStatus(id:string,page:number,pageSize:number,search:string):Promise<AnnouncementReadStatus>;
 
   oidcInfo(): Promise<OIDCInfo>;
   oidcAccount(): Promise<OIDCInfo>;
@@ -288,7 +291,10 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
  deleteAnnouncements(items:AnnouncementSelection[]){return this.call('deleteAnnouncements',{items});}
  saveAnnouncementSettings(enabled:boolean){return this.call('saveAnnouncementSettings',{enabled});}
  previewAnnouncement(input:AnnouncementInput){return this.call('previewAnnouncement',input);}
- announcements(page=1,pageSize=5){return this.call('announcements',undefined,{query:{page,page_size:pageSize}});}
+ announcements(page=1,pageSize=10,popupOnly=false){return this.call('announcements',undefined,{query:{page,page_size:pageSize,popup_only:popupOnly}});}
+ markAnnouncementRead(id:string){return this.call('markAnnouncementRead',undefined,{params:{id}});}
+ markAllAnnouncementsRead(){return this.call('markAllAnnouncementsRead');}
+ announcementReadStatus(id:string,page=1,pageSize=10,search=''){return this.call('announcementReadStatus',undefined,{params:{id},query:{page,page_size:pageSize,search}});}
  announcement(id:string){return this.call('announcement',undefined,{params:{id}});}
  oidcInfo() { return this.call('oidcInfo'); }
   oidcAccount() { return this.call('oidcAccount'); }

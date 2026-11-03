@@ -107,7 +107,7 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
     pageRoute('/roles', () => import('./pages/admin/roles').then(module => ({ default: module.AdminRolesPage })), { adminEligible: true }),
     pageRoute('/mail-templates', () => import('./pages/admin/mail-templates').then(module => ({ default: module.AdminMailTemplatesPage })), { adminEligible: true }),
     pageRoute('/announcements', () => import('./pages/admin/announcements').then(module => ({ default: module.AdminAnnouncementsPage })), { adminEligible: true }),
-    pageRoute('/storage', () => import('./pages/admin/storage').then(module => ({ default: module.AdminStoragePage })), { adminEligible: true, search: { provider: '' } }),
+    pageRoute('/storage', () => import('./pages/admin/storage').then(module => ({ default: module.AdminStoragePage })), { adminEligible: true, search: { provider: '', tab: 'config' } }),
     pageRoute('/logs', () => import('./pages/admin/logs').then(module => ({ default: module.AdminLogsPage })), { adminEligible: true }),
     pageRoute('/edition', () => import('./pages/edition').then(module => ({ default: module.UserEditionPage })), { adminEligible: true }),
     createRoute({ getParentRoute: () => rootRoute, path: '/settings', beforeLoad: () => { throw redirect({ to: '/site', replace: true }); } }) as unknown as AnyRoute,

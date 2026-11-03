@@ -1,7 +1,7 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Shared responsive workspace shell on TanStack Router. All business calls use AppClient.
  */
-import { AnnouncementCard } from './announcements-card';
+import { AnnouncementCenter } from './announcement-center';
 import { ClientControls } from './client-controls';
 import { SidebarTools, VersionBadge, workspaceLinks } from './shell-tools';
 import { useLocale, t } from './i18n';
@@ -45,7 +45,7 @@ export type WorkspaceProps = {
 export function Workspace({ client, registry, administratorPage, history, basepath }: WorkspaceProps) {
   useLocale();
   const dashboard = useMemo(() => {
-    const widgets = new DashboardWidgetRegistry().register({ id: 'platform-announcements', render: metadata => metadata.profile === 'web-platform' && metadata.identity_realm === 'user' && client.web ? <AnnouncementCard web={client.web} /> : null });
+    const widgets = new DashboardWidgetRegistry();
     for (const widget of registry?.entries() ?? []) widgets.register(widget);
     return widgets;
   }, [client, registry]);
@@ -353,6 +353,7 @@ function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onO
         {connection === 'connected' ? t('核心已连接') : connection === 'pending' ? t('连接中') : t('连接失败')}
       </span>
       <span className="mx-1 h-[18px] w-px bg-line max-sm:hidden" aria-hidden="true" />
+      {data.profile === 'web-platform' && data.identity_realm === 'user' && user && client.web && !data.mfa_enrollment_required && <AnnouncementCenter web={client.web} />}
       <ClientControls />
       {data.profile === 'web-platform' && user && (
         <DropdownMenu>

@@ -819,8 +819,13 @@ export interface AnnouncementInput {
   format: "markdown" | "html";
   type: "info" | "success" | "warning" | "error";
   note: string;
-  status: "draft" | "published";
+  status: "draft" | "published" | "archived";
   publish_at: number;
+  title: string;
+  notify_mode: "silent" | "popup";
+  ends_at: number;
+  audience: "all" | "selected";
+  recipient_ids: Array<string>;
 }
 
 export interface AnnouncementUpdate {
@@ -828,9 +833,14 @@ export interface AnnouncementUpdate {
   format: "markdown" | "html";
   type: "info" | "success" | "warning" | "error";
   note: string;
-  status: "draft" | "published";
+  status: "draft" | "published" | "archived";
   publish_at: number;
   version: number;
+  title: string;
+  notify_mode: "silent" | "popup";
+  ends_at: number;
+  audience: "all" | "selected";
+  recipient_ids: Array<string>;
 }
 
 export interface AnnouncementEntry {
@@ -842,11 +852,16 @@ export interface AnnouncementEntry {
   format: "markdown" | "html";
   type: "info" | "success" | "warning" | "error";
   note: string;
-  status: "draft" | "published";
+  status: "draft" | "published" | "archived";
   publish_at: number;
   content_html: string;
   created_by: string;
   updated_by: string;
+  title: string;
+  notify_mode: "silent" | "popup";
+  ends_at: number;
+  audience: "all" | "selected";
+  recipient_ids: Array<string>;
 }
 
 export interface AnnouncementPublic {
@@ -856,11 +871,15 @@ export interface AnnouncementPublic {
   format: "markdown" | "html";
   type: "info" | "success" | "warning" | "error";
   publish_at: number;
+  title: string;
+  notify_mode: "silent" | "popup";
+  ends_at: number;
+  read_at: number;
 }
 
 export interface AnnouncementQuery {
   search: string;
-  status: "" | "draft" | "published" | "scheduled";
+  status: "" | "draft" | "published" | "scheduled" | "archived" | "expired";
   page: number;
   page_size: number;
 }
@@ -879,6 +898,7 @@ export interface AnnouncementFeed {
   page: number;
   page_size: number;
   enabled: boolean;
+  unread_count: number;
 }
 
 export interface AnnouncementSelection {
@@ -1070,5 +1090,27 @@ export interface LoginDevicesResponse {
   code: string;
   message: string;
   data: LoginDevices;
+  request_id: string;
+}
+
+export interface AnnouncementReader {
+  id: string;
+  username: string;
+  email: string;
+  eligible: boolean;
+  read_at: number;
+}
+
+export interface AnnouncementReadStatus {
+  items: Array<AnnouncementReader>;
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface AnnouncementReadStatusResponse {
+  code: string;
+  message: string;
+  data: AnnouncementReadStatus;
   request_id: string;
 }

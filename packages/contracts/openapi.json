@@ -7036,7 +7036,9 @@
                 "",
                 "draft",
                 "published",
-                "scheduled"
+                "scheduled",
+                "archived",
+                "expired"
               ]
             }
           },
@@ -7466,6 +7468,13 @@
               "type": "integer",
               "minimum": 1,
               "maximum": 50
+            }
+          },
+          {
+            "in": "query",
+            "name": "popup_only",
+            "schema": {
+              "type": "boolean"
             }
           }
         ],
@@ -9888,6 +9897,193 @@
         },
         "parameters": [],
         "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+      }
+    },
+    "/api/v1/announcements/{id}/read": {
+      "post": {
+        "operationId": "markAnnouncementRead",
+        "summary": "markAnnouncementRead",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "user"
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          }
+        ]
+      }
+    },
+    "/api/v1/announcements/read-all": {
+      "post": {
+        "operationId": "markAllAnnouncementsRead",
+        "summary": "markAllAnnouncementsRead",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "user"
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/announcements/{id}/read-status": {
+      "get": {
+        "operationId": "announcementReadStatus",
+        "summary": "announcementReadStatus",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnnouncementReadStatusResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "announcements:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ]
       }
     }
   },
@@ -13058,12 +13254,17 @@
           "type",
           "note",
           "status",
-          "publish_at"
+          "publish_at",
+          "title",
+          "notify_mode",
+          "ends_at",
+          "audience",
+          "recipient_ids"
         ],
         "properties": {
           "content": {
             "type": "string",
-            "maxLength": 500,
+            "maxLength": 10000,
             "minLength": 1
           },
           "format": {
@@ -13093,13 +13294,49 @@
             "maxLength": 64,
             "enum": [
               "draft",
-              "published"
+              "published",
+              "archived"
             ]
           },
           "publish_at": {
             "type": "integer",
             "minimum": 1,
             "maximum": 4102444800
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "notify_mode": {
+            "type": "string",
+            "enum": [
+              "silent",
+              "popup"
+            ],
+            "maxLength": 16
+          },
+          "ends_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4102444800
+          },
+          "audience": {
+            "type": "string",
+            "enum": [
+              "all",
+              "selected"
+            ],
+            "maxLength": 16
+          },
+          "recipient_ids": {
+            "type": "array",
+            "maxItems": 500,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
           }
         }
       },
@@ -13113,12 +13350,17 @@
           "note",
           "status",
           "publish_at",
-          "version"
+          "version",
+          "title",
+          "notify_mode",
+          "ends_at",
+          "audience",
+          "recipient_ids"
         ],
         "properties": {
           "content": {
             "type": "string",
-            "maxLength": 500,
+            "maxLength": 10000,
             "minLength": 1
           },
           "format": {
@@ -13148,7 +13390,8 @@
             "maxLength": 64,
             "enum": [
               "draft",
-              "published"
+              "published",
+              "archived"
             ]
           },
           "publish_at": {
@@ -13160,6 +13403,41 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 9007199254740991
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "notify_mode": {
+            "type": "string",
+            "enum": [
+              "silent",
+              "popup"
+            ],
+            "maxLength": 16
+          },
+          "ends_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4102444800
+          },
+          "audience": {
+            "type": "string",
+            "enum": [
+              "all",
+              "selected"
+            ],
+            "maxLength": 16
+          },
+          "recipient_ids": {
+            "type": "array",
+            "maxItems": 500,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
           }
         }
       },
@@ -13179,7 +13457,12 @@
           "publish_at",
           "content_html",
           "created_by",
-          "updated_by"
+          "updated_by",
+          "title",
+          "notify_mode",
+          "ends_at",
+          "audience",
+          "recipient_ids"
         ],
         "properties": {
           "id": {
@@ -13203,7 +13486,7 @@
           },
           "content": {
             "type": "string",
-            "maxLength": 500,
+            "maxLength": 10000,
             "minLength": 1
           },
           "format": {
@@ -13233,7 +13516,8 @@
             "maxLength": 64,
             "enum": [
               "draft",
-              "published"
+              "published",
+              "archived"
             ]
           },
           "publish_at": {
@@ -13243,7 +13527,7 @@
           },
           "content_html": {
             "type": "string",
-            "maxLength": 20000
+            "maxLength": 100000
           },
           "created_by": {
             "type": "string",
@@ -13252,6 +13536,41 @@
           "updated_by": {
             "type": "string",
             "maxLength": 64
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "notify_mode": {
+            "type": "string",
+            "enum": [
+              "silent",
+              "popup"
+            ],
+            "maxLength": 16
+          },
+          "ends_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4102444800
+          },
+          "audience": {
+            "type": "string",
+            "enum": [
+              "all",
+              "selected"
+            ],
+            "maxLength": 16
+          },
+          "recipient_ids": {
+            "type": "array",
+            "maxItems": 500,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
           }
         }
       },
@@ -13264,7 +13583,11 @@
           "content_html",
           "format",
           "type",
-          "publish_at"
+          "publish_at",
+          "title",
+          "notify_mode",
+          "ends_at",
+          "read_at"
         ],
         "properties": {
           "id": {
@@ -13273,12 +13596,12 @@
           },
           "content": {
             "type": "string",
-            "maxLength": 500,
+            "maxLength": 10000,
             "minLength": 1
           },
           "content_html": {
             "type": "string",
-            "maxLength": 20000
+            "maxLength": 100000
           },
           "format": {
             "type": "string",
@@ -13301,6 +13624,29 @@
           "publish_at": {
             "type": "integer",
             "minimum": 1,
+            "maximum": 4102444800
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "notify_mode": {
+            "type": "string",
+            "enum": [
+              "silent",
+              "popup"
+            ],
+            "maxLength": 16
+          },
+          "ends_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4102444800
+          },
+          "read_at": {
+            "type": "integer",
+            "minimum": 0,
             "maximum": 4102444800
           }
         }
@@ -13326,7 +13672,9 @@
               "",
               "draft",
               "published",
-              "scheduled"
+              "scheduled",
+              "archived",
+              "expired"
             ]
           },
           "page": {
@@ -13386,7 +13734,8 @@
           "total",
           "page",
           "page_size",
-          "enabled"
+          "enabled",
+          "unread_count"
         ],
         "properties": {
           "items": {
@@ -13412,6 +13761,11 @@
           },
           "enabled": {
             "type": "boolean"
+          },
+          "unread_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
           }
         }
       },
@@ -13473,7 +13827,7 @@
         "properties": {
           "content_html": {
             "type": "string",
-            "maxLength": 20000
+            "maxLength": 100000
           }
         }
       },
@@ -14142,6 +14496,90 @@
           },
           "data": {
             "$ref": "#/components/schemas/LoginDevices"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "AnnouncementReader": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "username",
+          "email",
+          "eligible",
+          "read_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "username": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 254
+          },
+          "eligible": {
+            "type": "boolean"
+          },
+          "read_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4102444800
+          }
+        }
+      },
+      "AnnouncementReadStatus": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnnouncementReader"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          }
+        }
+      },
+      "AnnouncementReadStatusResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AnnouncementReadStatus"
           },
           "request_id": {
             "type": "string"

@@ -695,7 +695,7 @@
     "packages/web-ui/src/App.test.tsx",
     "packages/web-ui/src/App.tsx",
     "packages/web-ui/src/admin-app.tsx",
-    "packages/web-ui/src/announcements-card.tsx",
+    "packages/web-ui/src/announcement-center.tsx",
     "packages/web-ui/src/appearance-drawer.tsx",
     "packages/web-ui/src/brand.tsx",
     "packages/web-ui/src/branding-panel.tsx",
@@ -905,7 +905,13 @@
     "tests/e2e/registration.spec.ts",
     "internal/platform/login_guard_test.go",
     "internal/platform/session_policy_test.go",
-    "tests/e2e/account-policy.spec.ts"
+    "tests/e2e/account-policy.spec.ts",
+    "migrations/sqlite/0015_announcement_notifications.sql",
+    "migrations/postgres/0015_announcement_notifications.sql",
+    "migrations/mysql/0015_announcement_notifications.sql",
+    "migrations/platform/sqlite/0002_announcement_notifications.sql",
+    "migrations/platform/postgres/0002_announcement_notifications.sql",
+    "migrations/platform/mysql/0002_announcement_notifications.sql"
   ],
   "ownership": {
     "product-owned": [

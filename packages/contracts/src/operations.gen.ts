@@ -2879,6 +2879,59 @@ export const operations = {
     "superAdmin": false,
     "csrf": true,
     "identityRealm": "administrator"
+  },
+  "markAnnouncementRead": {
+    "method": "POST",
+    "path": "/api/v1/announcements/{id}/read",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "markAllAnnouncementsRead": {
+    "method": "POST",
+    "path": "/api/v1/announcements/read-all",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "announcementReadStatus": {
+    "method": "GET",
+    "path": "/api/v1/admin/announcements/{id}/read-status",
+    "requestSchema": null,
+    "responseSchema": "AnnouncementReadStatusResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "announcements:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
   }
 } as const;
 export type OperationId = keyof typeof operations;
@@ -3045,6 +3098,9 @@ export interface OperationInputs {
   adminVerifyCurrentEmail: Models.EmailChangeVerifyInput;
   adminRequestNewEmail: Models.EmailChangeInput;
   adminConfirmNewEmail: Models.EmailChangeVerifyInput;
+  markAnnouncementRead: undefined;
+  markAllAnnouncementsRead: undefined;
+  announcementReadStatus: undefined;
 }
 export interface OperationData {
   bootstrap: Models.BootstrapResponse['data'];
@@ -3209,4 +3265,7 @@ export interface OperationData {
   adminVerifyCurrentEmail: Models.ActionResultResponse['data'];
   adminRequestNewEmail: Models.EmailChallengeResponse['data'];
   adminConfirmNewEmail: Models.AccountProfileResponse['data'];
+  markAnnouncementRead: Models.ActionResultResponse['data'];
+  markAllAnnouncementsRead: Models.ActionResultResponse['data'];
+  announcementReadStatus: Models.AnnouncementReadStatusResponse['data'];
 }

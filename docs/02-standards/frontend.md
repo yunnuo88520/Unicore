@@ -30,3 +30,7 @@ Web 用户与管理员分别从 main.tsx/admin.tsx 装配；全局管理页仅�
 私有文件上传复用 FileUploadDialog 与 AppClient.files.uploadFile 的持久分片流程：字节进度以确认分片为准，signal 为暂停，deleteFile 为放弃；恢复需重新选择原文件并核对指纹，不在 localStorage 存签名 URL、File 或身份。仅平台装配，见 [存储手册](../03-runbooks/storage.md)。
 
 认证入口沿用共享表单和 SDK 生成校验：登录 /login、注册 /register、忘记密码 /forgot-password、注册完成 /registration-success 以真实 Link 导航，不用局部 mode 按钮冒充页面。注册/重置同时校验确认密码，确认值只留表单内存，不发送到 API。成功页只显示完成标题和一个主要返回入口；成功结果仅由实际 API 成功后写入非敏感 history state，不持久化账号、密码或凭据。普通用户的注册入口按策略呈现不可用状态，不能让管理员通过路径获得自助注册能力。
+
+注册页不在提交按钮下常驻密码规则说明；密码字段输入并失焦后显示不合格提示，修改后同步清除已满足的规则错误，未填写的字段在提交时校验。管理员认证页只保留本身份域的登录/找回入口，不添加跳转普通用户登录或注册的链接。
+
+公告用户入口统一使用 announcement-center 顶部铃铛，不再注册工作台轮播 widget。服务端状态走 TanStack Query；弹窗须明确确认并在已读保存成功后关闭，失败保留重试；保持 SessionBoundary、详情重新鉴权及中英文支持，见 [公告手册](../03-runbooks/announcements.md)。

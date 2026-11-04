@@ -4,8 +4,8 @@ import { forwardRef, useEffect, useRef, type ComponentPropsWithoutRef, type HTML
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog';
 import { X } from 'lucide-react';
-import { t, useLocale } from '../i18n';
-import { cn } from '../lib/cn';
+import { t, useLocale } from './i18n';
+import { cn } from './cn';
 import { Button } from './button';
 
 export const Dialog = DialogPrimitive.Root;

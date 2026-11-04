@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bell, Braces, Check, Eye, Send, ShieldCheck, Webhook } from 'lucide-react';
 import type { NotifyConfiguration, NotifyPreview, NotifyTemplate, NotifyTest, WebClient } from '@unicore/sdk';
 import { defineMessages, useI18n } from '../../i18n';
-import { Button, Card, CardContent, Input, Textarea, Modal, Switch as Toggle, Tabs, useMessage } from '../../ui';
+import { Button, Card, CardContent, Input, Textarea, Modal, Switch as Toggle, Tabs, useMessage } from '@unicore/ui';
 import type { PageProps } from '../../router';
 
 const events = defineMessages({ login:'登录成功', ip_banned:'登录 IP 封禁', password_changed:'密码修改', totp_enabled:'开启双因素认证', totp_disabled:'关闭双因素认证', account_disabled:'账户停用', account_enabled:'账户启用', registered:'用户注册', user_created:'创建用户', admin_created:'创建管理员', sessions_revoked:'会话失效', email_changed:'邮箱变更' });

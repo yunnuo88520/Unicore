@@ -2,7 +2,7 @@
 // Description: Radix tooltip with the legacy single-child label API; viewport collision is handled by Radix.
 import type { ReactElement, HTMLAttributes } from 'react';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
-import { t, useLocale } from '../i18n';
+import { t, useLocale } from './i18n';
 
 export function Tooltip({ label, children }: { label: string; children: ReactElement<HTMLAttributes<HTMLElement>> }) {
   useLocale();

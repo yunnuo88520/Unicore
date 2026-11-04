@@ -3,8 +3,8 @@
 import { forwardRef } from 'react';
 import * as SelectPrimitive from '@radix-ui/react-select';
 import { Check, ChevronDown } from 'lucide-react';
-import { t, useLocale } from '../i18n';
-import { cn } from '../lib/cn';
+import { t, useLocale } from './i18n';
+import { cn } from './cn';
 
 export const Select = SelectPrimitive.Root;
 export const SelectValue = SelectPrimitive.Value;

@@ -52,7 +52,7 @@ export function checkI18n(root){
   const catalogs=['en','license.en','updates.en'].map(name=>JSON.parse(readFileSync(resolve(root,`packages/web-ui/src/locales/${name}.json`),'utf8')));
   const catalog=Object.assign({},...catalogs),errors=inspectCatalog(catalog);
   const seen=new Set();for(const values of catalogs)for(const key of Object.keys(values)){if(seen.has(key))errors.push(`Duplicate catalog key across features: ${key}`);seen.add(key);}
-  for(const directory of ['packages/web-ui/src','apps/web/src','apps/desktop/src'])for(const file of files(resolve(root,directory))){
+  for(const directory of ['packages/web-ui/src','packages/ui/src','packages/form/src','packages/theme/src','apps/web/src','apps/desktop/src'])for(const file of files(resolve(root,directory))){
     if(!/\.tsx?$/.test(file)||/\.(test|spec|gen)\.|\.d\.ts$/.test(file))continue;
     errors.push(...inspectSource(relative(root,file),readFileSync(file,'utf8'),catalog));
   }

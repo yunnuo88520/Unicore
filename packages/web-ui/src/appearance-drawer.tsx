@@ -3,8 +3,8 @@
 import { Check, Languages, RotateCcw, X } from 'lucide-react';
 import { preferenceOptions, resetAppearance, setPreferences, usePreferences, type PreferenceKey, type Preferences } from '@unicore/theme/preferences';
 import { defineMessages, t, useI18n } from './i18n';
-import { Button, Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from './ui';
-import { cn } from './lib/cn';
+import { Button, Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from '@unicore/ui';
+import { cn } from '@unicore/ui/cn';
 
 type PreferenceLabels = { [K in PreferenceKey]: Record<Preferences[K], string> };
 const labels = defineMessages({

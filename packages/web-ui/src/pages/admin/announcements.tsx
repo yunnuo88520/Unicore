@@ -8,8 +8,8 @@ import { ChevronLeft, ChevronRight, Eye, Megaphone, Pencil, Plus, Search, Trash2
 import type { AnnouncementEntry, AnnouncementInput, AnnouncementQuery, AnnouncementSelection, WebClient } from '@unicore/sdk';
 import { currentLocale, defineMessages, t, useI18n } from '../../i18n';
 import { AppField, AppForm, useAppForm } from '../../lib/form';
-import { Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, Input, Label, Modal, NativeSelect, Switch, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage } from '../../ui';
-import { RichTextEditor } from '../../ui/editor';
+import { Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, Input, Label, Modal, NativeSelect, Switch, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage } from '@unicore/ui';
+import { RichTextEditor } from '@unicore/ui/editor';
 import { RichContent } from '../../rich-content';
 import { AnnouncementType, announcementTypes } from '../../announcement-center';
 import type { PageProps } from '../../router';

@@ -5,7 +5,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { AlertTriangle, Bell, CheckCheck, CheckCircle2, ChevronLeft, ChevronRight, Info, OctagonAlert } from 'lucide-react';
 import type { AnnouncementPublic, WebClient } from '@unicore/sdk';
 import { currentLocale, defineMessages, useI18n } from './i18n';
-import { Badge, Button, Dialog, DialogContent, DialogHeader, DialogTitle } from './ui';
+import { Badge, Button, Dialog, DialogContent, DialogHeader, DialogTitle } from '@unicore/ui';
 import { RichContent, contentSummary } from './rich-content';
 
 export const announcementTypes = defineMessages({ info: '通知', success: '好消息', warning: '注意事项', error: '重要提醒' });

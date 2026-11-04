@@ -5,8 +5,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { File, LoaderCircle, Pause, Play, ShieldCheck, Trash2, Upload, X } from 'lucide-react';
 import { AppError, type AppClient, type FileEntry, type UploadProgress, type UploadStage } from '@unicore/sdk';
 import { t, useLocale } from './i18n';
-import { Button, Dialog, DialogContent, DialogDescription, DialogTitle, NativeSelect, Progress, useMessage } from './ui';
-import { cn } from './lib/cn';
+import { Button, Dialog, DialogContent, DialogDescription, DialogTitle, NativeSelect, Progress, useMessage } from '@unicore/ui';
+import { cn } from '@unicore/ui/cn';
 
 const bytes = (n: number) => n >= 1073741824 ? `${(n / 1073741824).toFixed(1)} GiB` : n >= 1048576 ? `${(n / 1048576).toFixed(1)} MiB` : `${(n / 1024).toFixed(1)} KiB`;
 

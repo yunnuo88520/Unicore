@@ -6,8 +6,8 @@ import { EditorContent, useEditor, type Editor as TiptapEditorInstance } from '@
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import { Bold, Italic, List, ListOrdered, Link as LinkIcon, Code2, Undo2, Redo2 } from 'lucide-react';
-import { defineMessages, useI18n, t } from '../i18n';
-import { cn } from '../lib/cn';
+import { defineMessages, useI18n, t } from './i18n';
+import { cn } from './cn';
 import { Button } from './button';
 import { Textarea } from './input';
 import { Modal } from './dialog';

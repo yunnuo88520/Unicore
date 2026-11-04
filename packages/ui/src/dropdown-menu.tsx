@@ -2,7 +2,7 @@
 // Description: Radix dropdown menu surface used by navigation and row actions.
 import { forwardRef } from 'react';
 import * as DropdownPrimitive from '@radix-ui/react-dropdown-menu';
-import { cn } from '../lib/cn';
+import { cn } from './cn';
 
 export const DropdownMenu = DropdownPrimitive.Root;
 export const DropdownMenuTrigger = DropdownPrimitive.Trigger;

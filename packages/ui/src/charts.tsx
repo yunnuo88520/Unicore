@@ -1,10 +1,10 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Recharts capability layer bound to design tokens. Charts stay out of pages until a real statistics API lands.
-import { useLocale, t } from '../i18n';
+import { useLocale, t } from './i18n';
 import type { ReactNode } from 'react';
 import { ResponsiveContainer, LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, Legend } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './card';
-import { cn } from '../lib/cn';
+import { cn } from './cn';
 
 export const CHART_COLORS = ['var(--primary)', 'var(--info)', 'var(--success)', 'var(--warning)', 'var(--danger)'] as const;
 

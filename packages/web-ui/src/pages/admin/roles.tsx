@@ -6,7 +6,7 @@ import { createColumnHelper, flexRender, tableFeatures, useTable } from '@tansta
 import { CheckCircle2, RotateCcw, ShieldCheck } from 'lucide-react';
 import type { RoleList, WebClient } from '@unicore/sdk';
 import { defineMessages, t, useLocale } from '../../i18n';
-import { Badge, Button, Card, CardContent, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow } from '../../ui';
+import { Badge, Button, Card, CardContent, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow } from '@unicore/ui';
 import type { PageProps } from '../../router';
 
 const features = tableFeatures({});

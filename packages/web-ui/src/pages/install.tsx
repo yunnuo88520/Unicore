@@ -10,8 +10,8 @@ import type { PageProps } from '../router';
 import { BrandLockup } from '../brand';
 import { productName, productSlug } from '../product.gen';
 import { AppForm, useAppForm } from '../lib/form';
-import { Button, Checkbox, Input, SimpleSelect } from '../ui';
-import { cn } from '../lib/cn';
+import { Button, Checkbox, Input, SimpleSelect } from '@unicore/ui';
+import { cn } from '@unicore/ui/cn';
 
 type Profile = Bootstrap['profile'];
 type WizardDatabase = { driver: DatabaseInput['driver']; dsn: string; host: string; port: number; name: string; username: string; password: string; tls: boolean };

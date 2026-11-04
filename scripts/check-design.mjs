@@ -13,6 +13,8 @@ const definedTokens=new Set(styles.flatMap(file=>[...readFileSync(file,'utf8').m
 for(const file of entries)for(const match of readFileSync(file,'utf8').matchAll(/var\((--[\w-]+)/g)){
  // Template-built prefixes like var(--preset-${id}) resolve to defined tokens at runtime.
  if(match[1].endsWith('-'))continue;
+ // Radix injects its own positioning variables on popovers, selects and menus at runtime.
+ if(match[1].startsWith('--radix-'))continue;
  if(!definedTokens.has(match[1]))throw new Error(`${file}: undefined design token ${match[1]}`);
 }
 for(const file of entries){

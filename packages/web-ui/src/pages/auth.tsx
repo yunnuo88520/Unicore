@@ -8,10 +8,10 @@ import { ArrowRight, Building2, Check, CheckCircle2, Eye, EyeOff, LockKeyhole, S
 import { AppError, validate, type EmailChallenge, type WebClient } from '@unicore/sdk';
 import { useRouteSearch, useSessionNotice, type PageProps } from '../router';
 import { BrandLockup } from '../brand';
-import { Button, Input } from '../ui';
-import { buttonVariants } from '../ui/button';
+import { Button, Input } from '@unicore/ui';
+import { buttonVariants } from '@unicore/ui';
 import { AppField, AppForm, useAppForm } from '../lib/form';
-import { cn } from '../lib/cn';
+import { cn } from '@unicore/ui/cn';
 
 type Mode = 'login' | 'email' | 'register' | 'forgot' | 'resend';
 type AuthValues = { username: string; email: string; password: string; confirm_password: string; code: string; captcha_answer: string };

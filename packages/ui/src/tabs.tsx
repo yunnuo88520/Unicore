@@ -1,8 +1,8 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Radix tab bar with the legacy controlled items API; panels stay owned by the page.
-import { useLocale } from '../i18n';
+import { useLocale } from './i18n';
 import * as TabsPrimitive from '@radix-ui/react-tabs';
-import { cn } from '../lib/cn';
+import { cn } from './cn';
 
 export function Tabs({ id, label, items, value, onChange, className }: {
   id: string; label: string; items: readonly { id: string; label: string; dirty?: boolean }[]; value: string; onChange: (id: string) => void; className?: string;

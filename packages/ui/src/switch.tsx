@@ -2,8 +2,8 @@
 // Description: Radix switch with the legacy boolean API and an audible on/off state text.
 import { forwardRef, useId, type ReactNode } from 'react';
 import * as SwitchPrimitive from '@radix-ui/react-switch';
-import { t, useLocale } from '../i18n';
-import { cn } from '../lib/cn';
+import { t, useLocale } from './i18n';
+import { cn } from './cn';
 
 export const Switch = forwardRef<HTMLButtonElement, { id?: string; checked: boolean; onChange: (value: boolean) => void; disabled?: boolean; children?: ReactNode; className?: string }>(function Switch({ id, checked, onChange, disabled = false, children, className }, ref) {
   useLocale();

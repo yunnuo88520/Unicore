@@ -25,7 +25,7 @@
 | edition | [scripts/build-features.mjs](../../scripts/build-features.mjs) |
 | routes | [packages/web-ui/src/routes.ts](../../packages/web-ui/src/routes.ts) |
 | router | [packages/web-ui/src/router.tsx](../../packages/web-ui/src/router.tsx) |
-| uiPrimitives | [packages/web-ui/src/ui/index.ts](../../packages/web-ui/src/ui/index.ts) |
+| uiPrimitives | [packages/ui/src/index.ts](../../packages/ui/src/index.ts) |
 | formLayer | [packages/web-ui/src/lib/form.tsx](../../packages/web-ui/src/lib/form.tsx) |
 | session | [packages/web-ui/src/session.tsx](../../packages/web-ui/src/session.tsx) |
 | migrations | [migrations](../../migrations) |
@@ -59,7 +59,7 @@
 | adminTools | [docs/03-runbooks/admin-tools.md](../../docs/03-runbooks/admin-tools.md) |
 | auditMetadata | [internal/audit/context.go](../../internal/audit/context.go) |
 | mailContent | [internal/mailcontent/template.go](../../internal/mailcontent/template.go) |
-| richTextEditor | [packages/web-ui/src/ui/editor.tsx](../../packages/web-ui/src/ui/editor.tsx) |
+| richTextEditor | [packages/ui/src/editor.tsx](../../packages/ui/src/editor.tsx) |
 | backendStandards | [docs/02-standards/backend.md](../../docs/02-standards/backend.md) |
 | baseEntity | [internal/domain/entity.go](../../internal/domain/entity.go) |
 | announcements | [docs/03-runbooks/announcements.md](../../docs/03-runbooks/announcements.md) |

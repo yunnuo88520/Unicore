@@ -8,7 +8,7 @@ import type { Bootstrap, User, UserCreate, WebClient } from '@unicore/sdk';
 import { t, useLocale } from '../../i18n';
 import { invalidateAfter } from '../../queries';
 import { AppField, AppForm, useAppForm } from '../../lib/form';
-import { Badge, Button, Card, CardContent, Input, Modal, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage } from '../../ui';
+import { Badge, Button, Card, CardContent, Input, Modal, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage } from '@unicore/ui';
 import type { PageProps } from '../../router';
 
 const features = tableFeatures({ rowPaginationFeature, paginatedRowModel: createPaginatedRowModel() });

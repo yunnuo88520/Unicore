@@ -3,7 +3,7 @@
 import { forwardRef, useId, type ReactNode } from 'react';
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
 import { Check } from 'lucide-react';
-import { cn } from '../lib/cn';
+import { cn } from './cn';
 
 export const Checkbox = forwardRef<HTMLButtonElement, { id?: string; checked: boolean | 'indeterminate'; onChange: (value: boolean) => void; disabled?: boolean; children?: ReactNode; className?: string; 'aria-label'?: string }>(function Checkbox({ id, checked, onChange, disabled, children, className, 'aria-label': ariaLabel }, ref) {
   const generated = useId();

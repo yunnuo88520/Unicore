@@ -7,8 +7,8 @@ import { CheckCircle2, Cloud, FlaskConical, Globe, HardDrive, Info, Plus, Refres
 import type { AppClient, StorageClient, StorageLocation, StorageLocationInput } from '@unicore/sdk';
 import { defineMessages, t, useLocale } from '../../i18n';
 import { AppField, AppForm, useAppForm } from '../../lib/form';
-import { cn } from '../../lib/cn';
-import { Badge, Button, Card, CardContent, CardFooter, CardHeader, Input, Switch, TabsPrimitive, Textarea, useMessage } from '../../ui';
+import { cn } from '@unicore/ui/cn';
+import { Badge, Button, Card, CardContent, CardFooter, CardHeader, Input, Switch, TabsPrimitive, Textarea, useMessage } from '@unicore/ui';
 import { useNavigate } from '@tanstack/react-router';
 import { useRouteSearch, type PageProps } from '../../router';
 import { productSlug } from '../../product.gen';

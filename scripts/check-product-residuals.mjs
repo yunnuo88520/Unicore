@@ -63,7 +63,7 @@ export function scanResiduals(base = root) {
   const manifest = JSON.parse(read('distribution/manifest.json'));
   for (const entry of manifest.template_files ?? []) {
     const path = typeof entry === 'string' ? entry : entry.target;
-    if (path !== 'cmd/server/commands.go' && (!path.startsWith('packages/web-ui/src/') || !/\.(?:tsx?|json)$/.test(path) || /(?:\.test\.|\.gen\.)/.test(path))) continue;
+    if (path !== 'cmd/server/commands.go' && (!/^(?:packages\/(?:web-ui|ui|form|theme)\/src\/)/.test(path) || !/\.(?:tsx?|mjs|json)$/.test(path) || /(?:\.test\.|\.gen\.)/.test(path))) continue;
     if (!existsSync(`${dir}${path}`)) { violations.push(`${path}: missing product UI source`); continue; }
     violations.push(...violationsFor(path, read(path), framework));
   }

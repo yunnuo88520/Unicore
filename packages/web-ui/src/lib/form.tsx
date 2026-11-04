@@ -5,7 +5,7 @@ import { cloneElement, isValidElement, useId, useMemo, useState, type ReactEleme
 import { useForm, FormProvider, useFormContext, Controller, type DefaultValues, type FieldValues, type Resolver, type UseFormReturn, type Path } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AppError, constraintsToZod, type SchemaName } from '@unicore/sdk';
-import { cn } from './cn';
+import { cn } from '@unicore/ui/cn';
 
 type AppFormOptions<T extends FieldValues> = {
   schema?: SchemaName;

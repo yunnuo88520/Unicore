@@ -4,7 +4,7 @@ import { t, useLocale } from './i18n';
 import { useEffect, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { AppError, type WebClient } from '@unicore/sdk';
-import { Button, Input, Modal, useMessage } from './ui';
+import { Button, Input, Modal, useMessage } from '@unicore/ui';
 
 export function PasswordDialog({ web, onClose }: { web: WebClient; onClose: () => void }) {
   useLocale();

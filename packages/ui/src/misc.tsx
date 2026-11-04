@@ -4,7 +4,7 @@ import { forwardRef, type HTMLAttributes } from 'react';
 import * as SeparatorPrimitive from '@radix-ui/react-separator';
 import * as AvatarPrimitive from '@radix-ui/react-avatar';
 import * as ProgressPrimitive from '@radix-ui/react-progress';
-import { cn } from '../lib/cn';
+import { cn } from './cn';
 
 export const Separator = forwardRef<HTMLDivElement, React.ComponentPropsWithoutRef<typeof SeparatorPrimitive.Root>>(function Separator({ className, orientation = 'horizontal', decorative = true, ...props }, ref) {
   return <SeparatorPrimitive.Root ref={ref} decorative={decorative} orientation={orientation}

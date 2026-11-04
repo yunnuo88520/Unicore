@@ -1,7 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Styled table surface for TanStack Table renders; keeps reading order and selection states accessible.
 import { forwardRef, type HTMLAttributes, type TdHTMLAttributes, type ThHTMLAttributes } from 'react';
-import { cn } from '../lib/cn';
+import { cn } from './cn';
 
 export const Table = forwardRef<HTMLTableElement, HTMLAttributes<HTMLTableElement>>(function Table({ className, ...props }, ref) {
   return <div className="w-full overflow-x-auto">

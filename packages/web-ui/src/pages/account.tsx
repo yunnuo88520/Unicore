@@ -7,7 +7,7 @@ import { Copy, Download, Link2, Monitor, ShieldCheck, Smartphone, Unlink, UserRo
 import QRCode from 'qrcode';
 import type { AccountProfile, TOTPSetup, WebClient } from '@unicore/sdk';
 import { t, useLocale } from '../i18n';
-import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Modal, ConfirmDialog, useMessage } from '../ui';
+import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Modal, ConfirmDialog, useMessage } from '@unicore/ui';
 import { AppField, AppForm, StaticField, useAppForm } from '../lib/form';
 import { useRouteSearch, type PageProps } from '../router';
 import { PasswordDialog } from '../password-dialog';

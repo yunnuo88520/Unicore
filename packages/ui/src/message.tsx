@@ -1,10 +1,10 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Shared themed messages with a three-second default lifetime; API identical to the legacy provider.
-import { t, useLocale } from '../i18n';
+import { t, useLocale } from './i18n';
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell, CheckCircle2, CircleAlert, Info, TriangleAlert, X } from 'lucide-react';
-import { cn } from '../lib/cn';
+import { cn } from './cn';
 
 export type MessageType = 'primary' | 'success' | 'warning' | 'info' | 'error';
 export type MessageOptions = { content: string; type?: MessageType; duration?: number; id?: string };

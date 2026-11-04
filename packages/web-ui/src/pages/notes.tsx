@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, Circle, Download, NotebookPen, Paperclip, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
 import type { AppClient, NoteEntry, NoteQuery } from '@unicore/sdk';
 import { currentLocale, t, useLocale } from '../i18n';
-import { Badge, Button, Card, CardContent, Input, Modal, NativeSelect, Textarea, useMessage } from '../ui';
+import { Badge, Button, Card, CardContent, Input, Modal, NativeSelect, Textarea, useMessage } from '@unicore/ui';
 import { AppField, AppForm, useAppForm } from '../lib/form';
 import type { PageProps } from '../router';
 

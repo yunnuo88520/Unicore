@@ -2,7 +2,7 @@
 // Description: Text input, textarea and radix label with a shared control surface.
 import { forwardRef, type InputHTMLAttributes, type LabelHTMLAttributes, type TextareaHTMLAttributes } from 'react';
 import * as LabelPrimitive from '@radix-ui/react-label';
-import { cn } from '../lib/cn';
+import { cn } from './cn';
 
 const control = 'w-full rounded-md border border-line bg-surface px-3 text-base text-ink shadow-tint transition-colors placeholder:text-subtle outline-none focus-visible:border-focus focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-55 aria-invalid:border-danger aria-invalid:ring-danger';
 

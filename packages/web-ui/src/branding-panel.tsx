@@ -6,7 +6,7 @@ import { useState, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AppClient, Branding, BrandingInput } from '@unicore/sdk';
 import { DefaultBrandMark } from './brand';
-import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, useMessage } from './ui';
+import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, useMessage } from '@unicore/ui';
 import { invalidateAfter } from './queries';
 
 const slots = defineMessages([

@@ -8,8 +8,8 @@ import { Building2, CheckCircle2, Monitor, Moon, Save, Sun, type LucideIcon } fr
 import { invalidateAfter } from '../queries';
 import { AppearanceDrawer } from '../appearance-drawer';
 import { BrandingPanel } from '../branding-panel';
-import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Modal, NativeSelect, Switch, Tabs, Textarea, useMessage } from '../ui';
-import { cn } from '../lib/cn';
+import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Modal, NativeSelect, Switch, Tabs, Textarea, useMessage } from '@unicore/ui';
+import { cn } from '@unicore/ui/cn';
 import { AppField, AppForm, useAppForm } from '../lib/form';
 import { useRouteSearch, type PageProps } from '../router';
 import type { AppClient, Bootstrap, SettingPatch, WebClient } from '@unicore/sdk';

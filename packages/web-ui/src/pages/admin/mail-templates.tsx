@@ -7,8 +7,8 @@ import { Braces, Eye, MailCheck, RotateCcw, Save, Send } from 'lucide-react';
 import type { MailTemplate, MailTemplateInput, MailTemplateTestInput, WebClient } from '@unicore/sdk';
 import { defineMessages, t, useI18n } from '../../i18n';
 import { AppForm, useAppForm } from '../../lib/form';
-import { Button, Card, CardContent, Input, Label, Modal, Tabs, useMessage } from '../../ui';
-import { RichTextEditor, type RichTextHandle } from '../../ui/editor';
+import { Button, Card, CardContent, Input, Label, Modal, Tabs, useMessage } from '@unicore/ui';
+import { RichTextEditor, type RichTextHandle } from '@unicore/ui/editor';
 import type { PageProps } from '../../router';
 
 const purposes = defineMessages({ test: '服务测试', verify: '注册验证', login: '登录验证码', reset: '密码重置', notification: '系统通知' });

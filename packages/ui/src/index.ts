@@ -2,7 +2,7 @@
 // Description: Barrel for the shared UI primitive layer.
 export { Button, buttonVariants, type ButtonProps } from './button';
 export { Input, Textarea, NativeSelect, Label, controlSurface } from './input';
-export { Badge, type BadgeProps } from './badge';
+export { Badge, badgeVariants, type BadgeProps } from './badge';
 export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from './card';
 export { Separator, Skeleton, Avatar, Progress } from './misc';
 export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableEmpty } from './table';

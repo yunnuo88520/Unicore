@@ -44,5 +44,11 @@
   "devDependencies": {
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
-  }
+  },
+  "scripts": {
+    "build": "tsup"
+  },
+  "files": [
+    "dist"
+  ]
 }

@@ -52,9 +52,12 @@ export function checkI18n(root){
   const catalogs=['en','license.en','updates.en'].map(name=>JSON.parse(readFileSync(resolve(root,`packages/web-ui/src/locales/${name}.json`),'utf8')));
   const catalog=Object.assign({},...catalogs),errors=inspectCatalog(catalog);
   const seen=new Set();for(const values of catalogs)for(const key of Object.keys(values)){if(seen.has(key))errors.push(`Duplicate catalog key across features: ${key}`);seen.add(key);}
-  for(const directory of ['packages/web-ui/src','packages/ui/src','packages/form/src','packages/theme/src','apps/web/src','apps/desktop/src'])for(const file of files(resolve(root,directory))){
-    if(!/\.tsx?$/.test(file)||/\.(test|spec|gen)\.|\.d\.ts$/.test(file))continue;
-    errors.push(...inspectSource(relative(root,file),readFileSync(file,'utf8'),catalog));
+  for(const directory of ['packages/web-ui/src','packages/ui/src','packages/form/src','packages/theme/src','apps/web/src','apps/desktop/src']){
+    const base=resolve(root,directory);if(!existsSync(base))continue; // Downstream trees may not carry every shared package.
+    for(const file of files(base)){
+      if(!/\.tsx?$/.test(file)||/\.(test|spec|gen)\.|\.d\.ts$/.test(file))continue;
+      errors.push(...inspectSource(relative(root,file),readFileSync(file,'utf8'),catalog));
+    }
   }
   const settings=resolve(root,'internal/settings');
   if(existsSync(settings))for(const file of files(settings).filter(file=>file.endsWith('.go')&&!file.endsWith('_test.go'))){

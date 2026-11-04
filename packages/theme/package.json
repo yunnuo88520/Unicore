@@ -18,5 +18,12 @@
   },
   "devDependencies": {
     "react": "^19.2.0"
-  }
+  },
+  "scripts": {
+    "build": "tsup"
+  },
+  "files": [
+    "dist",
+    "src/*.css"
+  ]
 }

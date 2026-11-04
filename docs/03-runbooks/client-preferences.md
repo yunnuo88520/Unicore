@@ -9,11 +9,11 @@
 
 ## 框架扩展入口
 
-- 全局构建主题：`assets/theme/tokens.json`。默认主色改 `brand.accent`；可选配色改 `presets`，运行 `pnpm design:generate`。它继续驱动品牌、邮件与原生资源，客户端配色只作用于当前 UI。
-- 本地默认偏好：`packages/web-ui/src/preferences.ts` 的 `defaultPreferences`。新增选项先扩展白名单、类型和默认值，再接入共享控件与主题应用；不要在业务组件直接操作存储或写死颜色。
-- 偏好 API：从 `@unicore/web-ui/preferences` 导入 `usePreferences`、`setPreferences`、`resetAppearance`。后者重置外观并保留语言，`resetPreferences` 才恢复全部默认值。
+- 全局构建主题：`assets/theme/tokens.json`。默认主色改 `brand.accent`；可选配色改 `presets`，运行 `pnpm design:generate`。它继续驱动品牌、邮件与原生资源，客户端配色只作用于当前 UI。已安装实例的运行期主色由品牌面板设置（`branding.accent`），前端 `setCustomAccent` 用与构建期同一份派生模块即时生效，不回写 tokens.json。
+- 本地默认偏好：`packages/theme/src/preferences.ts` 的 `defaultPreferences`。新增选项先扩展白名单、类型和默认值，再接入共享控件与主题应用；不要在业务组件直接操作存储或写死颜色。
+- 偏好 API：从 `@unicore/theme/preferences` 导入 `usePreferences`、`setPreferences`、`resetAppearance`。后者重置外观并保留语言，`resetPreferences` 才恢复全部默认值。
 - 中英文：从 `@unicore/web-ui/i18n` 导入 `useI18n` 或 `useLocale`/`t`。例如 `const {t}=useI18n(); t('下载 {{v0}}',{v0:file.original_name})`。新增界面文案同步 `src/locales/en.json`；license/updater 专属词条放对应文件并保持编译裁剪。日期通过 `formatDate` 或 `currentLocale` 格式化。
-- 共享交互：`@unicore/web-ui/client-controls` 的 `ClientControls`；`@unicore/web-ui/appearance` 的 `AppearanceDrawer` 和 `AppearanceControls`。自定义入口先装配共享 Workspace/useTheme 与 CSS，不复制抽屉和状态。
+- 共享交互：语言/外观控件由 Workspace 内部装配 `client-controls.tsx`（ClientControls）与 `appearance-drawer.tsx`（AppearanceDrawer），不是包出口；自定义入口先装配共享 Workspace/useTheme 与 CSS，不复制抽屉和状态。
 - 文档外链：`packages/web-ui/src/shell-tools.tsx` 的 `workspaceLinks`。派生应用替换这一个对象；版本仍来自统一 `VERSION` 与 bootstrap，不另设常量。
 
 只翻译系统界面和已知错误，不把业务内容交给 `t()`；笔记正文、文件名、站点名称、第三方身份提供商名称和更新日志保持原文。切换语言不得给表单加 locale key 或重建业务状态。新页面须检查英文长标签、无横向溢出、浅深色与 375px。

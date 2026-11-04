@@ -1,6 +1,6 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Apply shared device preferences through generated design tokens and live system changes.
-import tokens from '../../../assets/theme/resolved.gen.json';
+import tokens from './resolved.gen.json';
 import modes from './modes.gen.json';
 import { accentVariables, derivePalette } from './derive.mjs';
 import { useEffect, useSyncExternalStore } from 'react';

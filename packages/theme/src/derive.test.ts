@@ -1,7 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Golden parity between the shared derivation and the compiled default palette.
 import { expect, it } from 'vitest';
-import resolved from '../../../assets/theme/resolved.gen.json';
+import resolved from './resolved.gen.json';
 import modes from './modes.gen.json';
 import { accentVariables, derivePalette } from './derive.mjs';
 

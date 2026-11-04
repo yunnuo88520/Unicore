@@ -1,21 +1,21 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 前端基础封装与新增功能
 
-共享组件位于 packages/web-ui，Web 用户/管理员和 Wails 只负责装配 transport、允许的页面与全局样式。新增业务先组合下面的公共入口，不复制布局、请求、主题、翻译或表单实现。
+共享层按包拆分：组件原语 `@unicore/ui`（packages/ui）、表单层 `@unicore/form`（packages/form）、令牌与偏好 `@unicore/theme`（packages/theme），业务 Workspace 仍在 packages/web-ui，Web 用户/管理员和 Wails 只负责装配 transport、允许的页面与全局样式。新增业务先组合下面的公共入口，不复制布局、请求、主题、翻译或表单实现。
 
 | 职责 | 入口 | 新功能约定 |
 | --- | --- | --- |
 | 页面骨架 | `@unicore/web-ui/layout` / WorkspaceLayout | navigation/header/children/overlays 插槽；布局宽度、固定侧栏、滚动与移动断点由 shell 管理（几何属性变体在 shell.css），页面不设主区域偏移 |
 | 身份与请求 | Workspace / SessionBoundary / AppClient / queries.ts | 会话代际隔离、统一错误与失效；Query 管服务端状态，不绕过 SDK |
 | 路由与权限 | routes.ts / router.tsx / admin-app.tsx | routes.ts 登记/标题/说明；createWorkspaceRouter 挂载 page 模块（history 导航，桌面 hash，管理端动态 basepath）；管理员入口独立，API 再授权 |
-| 界面语言 | `@unicore/web-ui/i18n` | 组件 `useI18n()`，正文/属性/提示 `t()`；静态配置 `defineMessages()` 登记后在渲染处翻译 |
-| 本地偏好 | `@unicore/web-ui/preferences` / ClientControls | 唯一设备状态入口；不得用业务设置 API 或独立 localStorage |
+| 界面语言 | `@unicore/web-ui/i18n` | 组件 `useI18n()`，正文/属性/提示 `t()`；静态配置 `defineMessages()` 登记后在渲染处翻译；共享组件经 `@unicore/ui/i18n` 翻译桩渲染 key，宿主在 i18n.ts 注入 setTranslator |
+| 本地偏好 | `@unicore/theme/preferences` / ClientControls | 唯一设备状态入口；不得用业务设置 API 或独立 localStorage |
 | 主题与布局控件 | AppearanceDrawer / AppearanceControls | 选项来自 preferenceOptions，标签满足完整类型映射；控件固定 LTR，工作区统一 LTR |
-| 表单与校验 | lib/form.tsx / useAppForm、AppForm、AppField | 契约约束经 constraintsToZod 生成 Zod schema 驱动 RHF；服务端 AppError.fields 用 applyServerError 合并、pending 防重；新实体用 Modal/ConfirmDialog |
-| 反馈与控件 | `@unicore/web-ui/ui`（useMessage / Modal / Tabs / Switch / Tooltip / Table 等） | 使用统一消息、焦点/关闭和键盘行为，避免自写重复弹层；TanStack Table 渲染列表用 ui/table |
-| 富文本 | ui/editor.tsx / RichTextEditor | Tiptap 受限标签、选择范围、变量插入、源码净化、纯文本粘贴；服务端再次校验，场景页复用组件 |
-| 图表 | ui/charts.tsx | Recharts 能力层，令牌取色；接入真实统计 API 前不在页面落图 |
-| 视觉基础 | theme.css / tokens.json | Tailwind v4 经 `@theme inline` 映射生成令牌；颜色/尺度使用语义令牌类，不写页面专属主题常量 |
+| 表单与校验 | `@unicore/form` / useAppForm、AppForm、AppField | 契约约束经 constraintsToZod 生成 Zod schema 驱动 RHF；label/hint 收已翻译 ReactNode；服务端 AppError.fields 用 applyServerError 合并（聚焦限本表单）、pending 防重；新实体用 Modal/ConfirmDialog |
+| 反馈与控件 | `@unicore/ui`（useMessage / Modal / Tabs / Switch / Tooltip / Table 等） | 使用统一消息、焦点/关闭和键盘行为，避免自写重复弹层；TanStack Table 渲染列表用 ui/table |
+| 富文本 | `@unicore/ui/editor` / RichTextEditor | Tiptap 受限标签、选择范围、变量插入、源码净化、纯文本粘贴；服务端再次校验，场景页复用组件 |
+| 图表 | `@unicore/ui/charts` | Recharts 能力层，令牌取色；接入真实统计 API 前不在页面落图 |
+| 视觉基础 | `@unicore/theme/styles.css` / tokens.json | Tailwind v4 经 `@theme inline` 映射生成令牌；颜色/尺度使用语义令牌类，不写页面专属主题常量 |
 
 ## 新页面的最小双语写法
 

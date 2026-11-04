@@ -93,7 +93,7 @@ routes.ts 集中管理员菜单/直达页守卫，settings-page.tsx 将平台本
 
 [ADR-0010](../adr/ADR-0010-settings-edition.md) 补齐 ICP/别名/ICO/内部系统通知队列。授权仍由 license tag 默认关闭；更新以 [ADR-0018](../adr/ADR-0018-signed-updates.md) 取代占位，updater tag 默认通过 Make 开启。internal/updates 隔离 Provider/Cache/Installer ports，adapter/updatechannel 与 updateinstall 分别实现渠道和安全安装，bootstrap/updating 按形态装配。HTTP 使用窄 updateport 并独立鉴权，原生 bridge 直接调用。内置日志、私有缓存、签名清单和 helper 原子切换不依赖平台身份模块；CLI 不装配。设置矩阵见 [规范](../00-product/feature-settings.md)。
 
-Web 启动参数、APP_* 环境与可选 JSON 配置由 internal/config.LoadWeb 统一解析校验（flag > 环境 > 显式文件 > 默认值）；仅显式指定配置路径时读取，数据库和管理员仍由安装向导管理。发行包的 unicore/unicorehelp 只转发到 Web server，不进入无数据库的业务 CLI。原生桌面面向用户提供 macOS DMG、Windows 便携 EXE，原有 tar 仍供签名 OTA；下载文件在桌面 manifest.downloads 与总校验和中关联，派生产品沿用品牌源。
+Web 启动参数、APP_* 环境与可选 YAML/JSON 配置由 internal/config.LoadWeb 统一解析校验（flag > 环境 > 显式文件 > 默认值）；仅显式指定配置路径时读取，数据库和管理员仍由安装向导管理。Web 发行包统一使用 unicore 二进制，help/config generate 与离线 backup/verify/restore 共用入口；前端内嵌，不重复打包静态目录，不进入无数据库的业务 CLI。原生桌面面向用户提供 macOS DMG、Windows 便携 EXE，原有 tar 仍供签名 OTA；下载文件在桌面 manifest.downloads 与总校验和中关联，派生产品沿用品牌源。
 
 版本与交付由 VERSION → scripts/version.mjs → 各端投影，Docker/归档读取相同元数据。Nginx 仅直接处理指纹资源，其余请求交 Go 保持安装/身份/动态品牌边界；详见 [ADR-0011](../adr/ADR-0011-release-deployment.md)。
 
@@ -142,3 +142,10 @@ Web 安装完成还写入私有 install.lock，配置中的 lock_version 区分�
 ## 个人中心与会话安全
 
 [ADR-0031](../adr/ADR-0031-personal-center-security.md) 在 platform.Personal 与 platformsql 增加本人资料、邮箱换绑、验证器与设备事务；共享 UI/SDK 只调用契约 operation。SQL Session 统一拦截尚未完成 TOTP 的登录，密码/邮件/OIDC 均不能绕过；bootstrap 只给受限挑战状态和 CSRF。安装锁事务原子消费计数器/恢复码，邮箱证明绑定原邮箱与同一会话，审计不含秘密。平台追加旧账本迁移 0014；独立/桌面仍为 0013，新 namespace baseline 不激活。
+
+## 事件通知
+
+平台设置通过专用管理员 API 管理通知渠道、纯文本模板和用户邮件/管理员邮件/管理员渠道事件矩阵。`notifycontent` 定义纯规则，`mailer.Plan` 生成邮件/渠道消息，`platformsql` 在身份业务事务内快照并加密写入既有 mail_jobs。共享 worker 按租约重试，`adapter/notify` 实现 DNS 固定、公网 HTTPS、WeCom 响应校验与 HMAC webhook；发送不在数据库事务中进行。无新表、无 schema 升级；默认关闭自动事件通知，其他 profile 不装配。边界、事件目录及扩展协议见 [事件通知](../03-runbooks/notifications.md)。
+
+
+Web 发行入口另提供 `internal/webmanage` 终端运维适配器，通过配置解析、既有 SQL repository 与实例密钥执行离线恢复，并在 Linux 生成 systemd unit。它不进入业务 CLI 或桌面；服务生命周期仍交给 systemd/Docker，程序不实现第二套后台守护器。OS owner 恢复边界与实例锁见 [ADR-0032](../adr/ADR-0032-web-management.md)。

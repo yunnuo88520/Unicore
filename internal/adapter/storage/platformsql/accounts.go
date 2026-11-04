@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
@@ -209,6 +210,9 @@ func (r *Repository) FinishMail(ctx context.Context, job mailer.Job, delivered b
 	} else if job.Attempts >= 5 || next >= job.Expires {
 		state, payload = "dead", ""
 	}
+	if job.Cancelled {
+		state, lastError, payload = "cancelled", "DISABLED", ""
+	}
 	_, err := r.exec(ctx, r.Store.DB, "UPDATE unicore_mail_jobs SET state=?,last_error=?,payload=?,available_at=?,lease_id='',lease_until=0 WHERE id=? AND state='sending' AND lease_id=?", state, lastError, payload, next, job.ID, job.Lease)
 	return err
 }
@@ -224,6 +228,13 @@ func (r *Repository) MailJobs(ctx context.Context) (contracts.MailJobList, error
 		if err = rows.Scan(&item.ID, &item.State, &item.Attempts, &item.CreatedAt, &item.AvailableAt, &item.LastError); err != nil {
 			return result, err
 		}
+		channel := "email"
+		for _, provider := range []string{"wecom", "webhook"} {
+			if strings.HasPrefix(item.ID, "notify-"+provider+"-") {
+				channel = provider
+			}
+		}
+		item.Channel = &channel
 		result.Items = append(result.Items, item)
 	}
 	return result, rows.Err()
@@ -239,7 +250,11 @@ func (r *Repository) RegisterActiveAccount(ctx context.Context, input contracts.
 		return err
 	}
 	defer tx.Rollback()
-	if _, err = r.insert(ctx, tx, contracts.UserCreate{Username: input.Username, Email: input.Email, Role: "user"}, hash, "registration"); err != nil {
+	user, err := r.insert(ctx, tx, contracts.UserCreate{Username: input.Username, Email: input.Email, Role: "user"}, hash, "registration")
+	if err != nil {
+		return err
+	}
+	if err = r.queueEvent(ctx, tx, "registered", user.ID, "registration_completed"); err != nil {
 		return err
 	}
 	return tx.Commit()

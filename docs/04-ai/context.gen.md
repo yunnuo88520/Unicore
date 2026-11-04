@@ -70,8 +70,11 @@
 | migrationGenerator | [scripts/generate-migrations.mjs](../../scripts/generate-migrations.mjs) |
 | documentationSite | [website](../../website) |
 | documentationSiteGuide | [docs/03-runbooks/documentation-site.md](../../docs/03-runbooks/documentation-site.md) |
+| notifications | [docs/03-runbooks/notifications.md](../../docs/03-runbooks/notifications.md) |
+| notificationContent | [internal/notifycontent/content.go](../../internal/notifycontent/content.go) |
+| notificationIntegration | [docs/product/notifications.md](../../docs/product/notifications.md) |
 
-OpenAPI 当前包含 165 个 operation、155 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
+OpenAPI 当前包含 173 个 operation、162 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
 
 | 任务 Skill | 用途 |
 | --- | --- |

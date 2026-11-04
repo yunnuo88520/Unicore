@@ -120,14 +120,13 @@ export function productGenTs(identity) {
 
 // Deployment launchers carry the product command name in their path; renames stay idempotent.
 const deploymentRenames = identity => [
-  ['deploy/tar/unicore', `deploy/tar/${identity.cli.command}`, [['unicore_dir', `${identity.product.slug}_dir`]]],
-  ['deploy/tar/unicorehelp', `deploy/tar/${identity.cli.command}help`, [['unicore_dir', `${identity.product.slug}_dir`]]],
   ['deploy/tar/unicore.service', `deploy/tar/${identity.deployment.serviceName}.service`, [
     ['/etc/unicore/unicore.env', `/etc/${identity.product.slug}/${identity.product.slug}.env`],
     ['/var/lib/unicore', identity.deployment.dataDirectory],
     ['/opt/unicore', identity.deployment.installDirectory],
     ['User=unicore', `User=${identity.deployment.serviceUser}`],
     ['Group=unicore', `Group=${identity.deployment.serviceUser}`],
+    ['/current/unicore', `/current/${identity.cli.command}`],
     ['Description=Unicore application server', `Description=${identity.product.name} application server`],
   ]],
 ];

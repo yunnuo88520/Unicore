@@ -328,12 +328,13 @@ type MailTestInput struct {
 }
 
 type MailJob struct {
-	ID          string `json:"id"`
-	State       string `json:"state"`
-	Attempts    int    `json:"attempts"`
-	CreatedAt   int    `json:"created_at"`
-	AvailableAt int    `json:"available_at"`
-	LastError   string `json:"last_error"`
+	ID          string  `json:"id"`
+	State       string  `json:"state"`
+	Attempts    int     `json:"attempts"`
+	CreatedAt   int     `json:"created_at"`
+	AvailableAt int     `json:"available_at"`
+	LastError   string  `json:"last_error"`
+	Channel     *string `json:"channel,omitempty"`
 }
 
 type MailJobList struct {
@@ -1115,4 +1116,57 @@ type AnnouncementReadStatusResponse struct {
 	Message   string                 `json:"message"`
 	Data      AnnouncementReadStatus `json:"data"`
 	RequestID string                 `json:"request_id"`
+}
+
+type NotifyRule struct {
+	Event        string `json:"event"`
+	UserEmail    bool   `json:"user_email"`
+	AdminEmail   bool   `json:"admin_email"`
+	AdminChannel bool   `json:"admin_channel"`
+}
+
+type NotifyTemplate struct {
+	Event string `json:"event"`
+	Title string `json:"title"`
+	Body  string `json:"body"`
+}
+
+type NotifyConfiguration struct {
+	Enabled            bool             `json:"enabled"`
+	ChannelEnabled     bool             `json:"channel_enabled"`
+	Provider           string           `json:"provider"`
+	WecomKey           string           `json:"wecom_key"`
+	WebhookUrl         string           `json:"webhook_url"`
+	SigningSecret      string           `json:"signing_secret"`
+	ClearWecomKey      bool             `json:"clear_wecom_key"`
+	ClearWebhookUrl    bool             `json:"clear_webhook_url"`
+	ClearSigningSecret bool             `json:"clear_signing_secret"`
+	WecomConfigured    bool             `json:"wecom_configured"`
+	WebhookConfigured  bool             `json:"webhook_configured"`
+	SigningConfigured  bool             `json:"signing_configured"`
+	Rules              []NotifyRule     `json:"rules"`
+	Templates          []NotifyTemplate `json:"templates"`
+}
+
+type NotifyPreview struct {
+	Title string `json:"title"`
+	Body  string `json:"body"`
+}
+
+type NotifyTest struct {
+	Template    NotifyTemplate `json:"template"`
+	Destination string         `json:"destination"`
+	Recipient   string         `json:"recipient"`
+}
+
+type NotifyConfigurationResponse struct {
+	Code    string              `json:"code"`
+	Message string              `json:"message"`
+	Data    NotifyConfiguration `json:"data"`
+}
+
+type NotifyPreviewResponse struct {
+	Code    string        `json:"code"`
+	Message string        `json:"message"`
+	Data    NotifyPreview `json:"data"`
 }

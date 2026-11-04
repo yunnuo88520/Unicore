@@ -121,8 +121,8 @@ test('settings audit: platform security defaults, alias, admin path and public f
   await expect(page.getByRole('tab')).toHaveCount(0);
   await expect(page.getByRole('button',{name:'发送测试',exact:true})).toBeVisible();
   await page.goto(`${instance.url}/control/logs`);
-  await page.getByRole('tab',{name:'邮件投递',exact:true}).click();
-  await expect(page.getByText('暂无邮件任务',{exact:true})).toBeVisible();
+  await page.getByRole('tab',{name:'通知投递',exact:true}).click();
+  await expect(page.getByText('暂无投递任务',{exact:true})).toBeVisible();
   await page.getByRole('button',{name:'账号菜单',exact:true}).click();
   await page.getByRole('menuitem',{name:'退出登录',exact:true}).click();
   await expect(page.getByRole('heading',{name:'管理员登录 · 设置平台',exact:true})).toBeVisible();

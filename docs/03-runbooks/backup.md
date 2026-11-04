@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 离线加密备份与恢复
 
-使用 make build-ops 构建 build/bin/unicore-ops，Web tar 已随包提供 bin/unicore-ops。业务 CLI 仍不连接数据库。先停服务/退出桌面；工具使用同一 instance.lock，运行中的实例会被拒绝。
+使用 make build-ops 构建 build/bin/unicore-ops，Web tar 的同一 `./unicore` 入口已提供 backup/verify/restore，无须第二个程序。业务 CLI 仍不连接数据库。先停服务/退出桌面；工具使用同一 instance.lock，运行中的实例会被拒绝。
 
 ```sh
 read -s UNICORE_BACKUP_PASSPHRASE

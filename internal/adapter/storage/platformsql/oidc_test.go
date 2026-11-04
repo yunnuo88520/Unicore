@@ -175,4 +175,67 @@ func exerciseOIDC(t *testing.T, ctx context.Context, store *sqlstore.Store, r *R
 	if _, err = r.ConsumeOIDCFlow(ctx, "expired", browser); !errors.Is(err, platform.ErrOIDC) {
 		t.Fatal("expired flow", err)
 	}
+	exerciseOIDCTOTP(t, ctx, store, admin, f.Fingerprint)
+}
+
+// Run enrollment commit invariants in both independent account repositories.
+func exerciseOIDCTOTP(t *testing.T, ctx context.Context, store *sqlstore.Store, admin contracts.User, fingerprint string) {
+	t.Helper()
+	for _, administrators := range []bool{false, true} {
+		r := &Repository{Store: store, Administrators: administrators}
+		identity := platform.New(r)
+		name := "sso_totp_" + r.roleID()
+		user, err := identity.Create(ctx, contracts.UserCreate{Username: name, Email: name + "@example.test", Password: "test-password-strong", Role: r.roleID()}, admin.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err = r.exec(ctx, store.DB, "UPDATE unicore_users SET password_hash='' WHERE id=?", user.ID); err != nil {
+			t.Fatal(err)
+		}
+		claims := platform.OIDCClaims{Issuer: "https://idp.example.test", Subject: name, Email: user.Email, EmailVerified: true}
+		if _, err = r.exec(ctx, store.DB, "INSERT INTO unicore_external_identities(identity_hash,user_id,issuer,subject,created_at) VALUES(?,?,?,?,?)", platform.Hash(claims.Issuer+"\x00"+claims.Subject), user.ID, claims.Issuer, claims.Subject, time.Now().Unix()); err != nil {
+			t.Fatal(err)
+		}
+		_, token, err := identity.Issue(ctx, user, 1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		f := platform.OIDCFlow{Mode: "totp", UserID: user.ID, SessionHash: platform.Hash(token), Fingerprint: fingerprint, SetupSecret: "encrypted-setup"}
+		expires := int(time.Now().Unix()) + 600
+		if _, err = r.CompleteOIDC(ctx, f, claims, "", int(time.Now().Unix())-1); err != platform.ErrOIDC {
+			t.Fatal("expired enterprise setup accepted", err)
+		}
+		wrong := f
+		wrong.SessionHash = platform.Hash(platform.Token())
+		if _, err = r.CompleteOIDC(ctx, wrong, claims, "", expires); err != platform.ErrCredentials {
+			t.Fatal("unrelated session accepted", err)
+		}
+		wrong = f
+		wrong.UserID = admin.ID
+		if _, err = r.CompleteOIDC(ctx, wrong, claims, "", expires); err != platform.ErrOIDC {
+			t.Fatal("unrelated user accepted", err)
+		}
+		if _, err = r.exec(ctx, store.DB, "UPDATE unicore_users SET password_hash='local-password' WHERE id=?", user.ID); err != nil {
+			t.Fatal(err)
+		}
+		if _, err = r.CompleteOIDC(ctx, f, claims, "", expires); err != platform.ErrCredentials {
+			t.Fatal("local password bypassed", err)
+		}
+		if _, err = r.exec(ctx, store.DB, "UPDATE unicore_users SET password_hash='' WHERE id=?", user.ID); err != nil {
+			t.Fatal(err)
+		}
+		if _, err = r.CompleteOIDC(ctx, f, claims, "", expires); err != nil {
+			t.Fatal(err)
+		}
+		current, err := r.PersonalSession(ctx, f.SessionHash)
+		if err != nil || current.State.SetupSecret != f.SetupSecret || current.State.SetupSession != f.SessionHash {
+			t.Fatal("setup not bound", current, err)
+		}
+		if err = r.EnableTOTP(ctx, f.SessionHash, f.SetupSecret, 1000, "[]"); err != nil {
+			t.Fatal(err)
+		}
+		if _, err = r.CompleteOIDC(ctx, f, claims, "", expires); err != platform.ErrCredentials {
+			t.Fatal("existing factor could be replaced", err)
+		}
+	}
 }

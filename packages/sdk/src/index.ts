@@ -2,14 +2,14 @@
  * Description: Shared UI client; pages know neither fetch nor Wails globals.
  */
 import {fileFingerprint,retryDelay} from './upload';
-import type { AccountProfile, ProfileInput, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
+import type { NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, ProfileInput, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
 import { operations, type OperationId, type OperationInputs, type OperationData } from '@unicore/contracts/operations';
 import { validate, type SchemaName } from '@unicore/contracts/validate';
 export { validate, constraints, type SchemaName } from '@unicore/contracts/validate';
 export { constraintsToZod, zodFieldErrors } from '@unicore/contracts/zod';
 export { operations, type OperationId } from '@unicore/contracts/operations';
 
-export type { AccountProfile, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateRelease, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
+export type { NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateRelease, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
 
 export class AppError extends Error {
   constructor(public readonly code: string, message: string, public readonly requestId = '', public readonly fields: Record<string, string> = {}) { super(message); this.name = 'AppError'; }
@@ -76,6 +76,8 @@ export interface WebClient {
  accountProfile():Promise<AccountProfile>;
  saveAccountProfile(input:ProfileInput):Promise<AccountProfile>;
  beginTOTP(password:string):Promise<TOTPSetup>;
+ pendingTOTP():Promise<TOTPSetup>;
+ oidcTOTP():Promise<OIDCStart>;
  cancelTOTP():Promise<{success:boolean}>;
  enableTOTP(code:string):Promise<RecoveryCodes>;
  disableTOTP(code:string):Promise<{success:boolean}>;
@@ -110,6 +112,10 @@ export interface WebClient {
  registerCode(input:RegisterInput):Promise<EmailChallenge>;
  requestCode(purpose:"verify"|"reset"|"login",input:EmailRequest):Promise<EmailChallenge>;
  completeCode(purpose:"verify"|"reset"|"login",input:EmailCodeInput):Promise<Session|{success:boolean}>;
+ notificationSettings():Promise<NotifyConfiguration>;
+ saveNotificationSettings(input:NotifyConfiguration):Promise<NotifyConfiguration>;
+ previewNotification(input:NotifyTemplate):Promise<NotifyPreview>;
+ testNotification(input:NotifyTest):Promise<{success:boolean}>;
  mailTemplates():Promise<MailTemplateList>;
  saveMailTemplate(input:MailTemplateInput):Promise<MailTemplate>;
  previewMailTemplate(input:MailTemplateInput):Promise<MailTemplate>;
@@ -151,6 +157,8 @@ const administratorOperations: Partial<Record<OperationId, OperationId>> = {
  accountProfile:'adminAccountProfile',
  saveAccountProfile:'adminSaveAccountProfile',
  beginTOTP:'adminBeginTOTP',
+ pendingTOTP:'adminPendingTOTP',
+ oidcTOTP:'adminOidcTOTP',
  cancelTOTP:'adminCancelTOTP',
  enableTOTP:'adminEnableTOTP',
  disableTOTP:'adminDisableTOTP',
@@ -272,6 +280,8 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
  accountProfile(){return this.call('accountProfile');}
  saveAccountProfile(input:ProfileInput){return this.call('saveAccountProfile',input);}
  beginTOTP(password:string){return this.call('beginTOTP',{password});}
+ pendingTOTP(){return this.call('pendingTOTP');}
+ oidcTOTP(){return this.call('oidcTOTP');}
  cancelTOTP(){return this.call('cancelTOTP');}
  enableTOTP(code:string){return this.call('enableTOTP',{code});}
  disableTOTP(code:string){return this.call('disableTOTP',{code});}
@@ -305,6 +315,10 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   registerCode(input:RegisterInput){return this.call('registerEmailCode',input);}
  requestCode(purpose:'verify'|'reset'|'login',input:EmailRequest){return this.call(purpose==='login'?'requestEmailLogin':purpose==='reset'?'requestEmailReset':'requestEmailVerify',input);}
  async completeCode(purpose:'verify'|'reset'|'login',input:EmailCodeInput){const result=await this.call(purpose==='login'?'completeEmailLogin':purpose==='reset'?'completeEmailReset':'completeEmailVerify',input);if('csrf_token' in result){this.csrf=result.csrf_token;this.identity=result.mfa_pending?'':result.user.id;this.authenticated=!result.mfa_pending;this.sessionChanged('authenticated');}return result;}
+ notificationSettings(){return this.call('notificationSettings');}
+ saveNotificationSettings(input:NotifyConfiguration){return this.call('saveNotificationSettings',input);}
+ previewNotification(input:NotifyTemplate){return this.call('previewNotification',input);}
+ testNotification(input:NotifyTest){return this.call('testNotification',input);}
  mailTemplates(){return this.call('mailTemplates');}
  saveMailTemplate(input:MailTemplateInput){return this.call('saveMailTemplate',input);}
  previewMailTemplate(input:MailTemplateInput){return this.call('previewMailTemplate',input);}

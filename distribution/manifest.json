@@ -6,7 +6,6 @@
       "source": "docs/product/index.md",
       "target": "docs/product/index.md",
       "audiences": [
-        "user-release",
         "project-template",
         "public-wiki",
         "public-site"
@@ -19,7 +18,6 @@
       "source": "docs/product/configuration.md",
       "target": "docs/product/configuration.md",
       "audiences": [
-        "user-release",
         "project-template",
         "public-wiki",
         "public-site"
@@ -32,7 +30,6 @@
       "source": "docs/product/build.md",
       "target": "docs/product/build.md",
       "audiences": [
-        "user-release",
         "project-template",
         "public-wiki",
         "public-site"
@@ -45,7 +42,6 @@
       "source": "docs/product/deployment.md",
       "target": "docs/product/deployment.md",
       "audiences": [
-        "user-release",
         "project-template",
         "public-wiki",
         "public-site"
@@ -58,7 +54,6 @@
       "source": "docs/product/backup.md",
       "target": "docs/product/backup.md",
       "audiences": [
-        "user-release",
         "project-template",
         "public-wiki",
         "public-site"
@@ -71,7 +66,6 @@
       "source": "docs/product/storage.md",
       "target": "docs/product/storage.md",
       "audiences": [
-        "user-release",
         "project-template",
         "public-wiki",
         "public-site"
@@ -84,7 +78,6 @@
       "source": "docs/product/updates.md",
       "target": "docs/product/updates.md",
       "audiences": [
-        "user-release",
         "project-template",
         "public-wiki",
         "public-site"
@@ -326,6 +319,28 @@
       ],
       "title": "个人中心与账户安全",
       "site_group": "operations"
+    },
+    {
+      "source": "docs/03-runbooks/notifications.md",
+      "target": "docs/03-runbooks/notifications.md",
+      "audiences": [
+        "project-template",
+        "public-site"
+      ],
+      "title": "事件通知",
+      "site_group": "operations"
+    },
+    {
+      "source": "docs/product/notifications.md",
+      "target": "docs/product/notifications.md",
+      "audiences": [
+        "project-template",
+        "public-wiki",
+        "public-site"
+      ],
+      "slug": "Notifications",
+      "title": "通知与邮件接入",
+      "site_group": "guide"
     }
   ],
   "template_files": [
@@ -413,9 +428,7 @@
     "deploy/docker/compose.dev.yaml",
     "deploy/docker/compose.yaml",
     "deploy/tar/nginx.conf.example",
-    "deploy/tar/unicore",
     "deploy/tar/unicore.service",
-    "deploy/tar/unicorehelp",
     "distribution/manifest.json",
     "distribution/template/AGENTS.md",
     "distribution/template/CONTRIBUTING.md",
@@ -911,7 +924,21 @@
     "migrations/mysql/0015_announcement_notifications.sql",
     "migrations/platform/sqlite/0002_announcement_notifications.sql",
     "migrations/platform/postgres/0002_announcement_notifications.sql",
-    "migrations/platform/mysql/0002_announcement_notifications.sql"
+    "migrations/platform/mysql/0002_announcement_notifications.sql",
+    "internal/adapter/http/notifications.go",
+    "internal/adapter/http/notifications_test.go",
+    "internal/adapter/notify/webhook.go",
+    "internal/adapter/notify/webhook_test.go",
+    "internal/mailer/events.go",
+    "internal/mailer/events_test.go",
+    "internal/notifycontent/content.go",
+    "internal/notifycontent/content_test.go",
+    "internal/settings/notifications.go",
+    "packages/web-ui/src/pages/admin/notifications.tsx",
+    "tests/e2e/notifications.spec.ts",
+    "internal/adapter/storage/platformsql/notification_events_test.go",
+    "scripts/release-layout.mjs",
+    "internal/maintenance/command.go"
   ],
   "ownership": {
     "product-owned": [

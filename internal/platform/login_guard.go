@@ -79,5 +79,13 @@ func (s *Service) loginResult(ctx context.Context, ip string, success bool) {
 			}
 		}
 	}
+	wasAllowed := s.loginGuard.check(ip, time.Now())
 	s.loginGuard.record(ip, success, limit, time.Duration(minutes)*time.Minute, time.Now())
+	if !success && wasAllowed && !s.loginGuard.check(ip, time.Now()) {
+		if store, ok := s.Store.(interface {
+			QueueIPBan(context.Context, string) error
+		}); ok {
+			_ = store.QueueIPBan(ctx, ip)
+		}
+	}
 }

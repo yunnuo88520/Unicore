@@ -12,7 +12,7 @@
 | `web-platform` | 服务器、多用户在线站点 | 独立管理员/用户入口；SQLite、PostgreSQL、MySQL；公网使用域名和 HTTPS |
 | `web-standalone` | 自己电脑上的浏览器应用 | 同样需要安装数据库；没有登录、用户管理、SMTP 或全局后台；只监听本机，远程访问另配 VPN/访问认证 |
 | `desktop` | 原生 GUI | 安装桌面包直接运行，自动使用本地 SQLite，不需要本页的 Nginx/systemd/安装向导 |
-| `cli` | 命令行执行核心业务 | 解压后运行 `bin/unicore`，不启动 Web、不创建数据库 |
+| `cli` | 命令行执行核心业务 | 解压后运行 `./unicore`，不启动 Web、不创建数据库 |
 
 以下服务器示例使用 **Linux + web-platform**。Web 单机使用相同二进制部署方式，在首次向导选择 `web-standalone`；不要将没有账号验证的单机版直接暴露到公网。需要远程个人使用时，优先 SSH 隧道或 VPN；仅换端口不构成访问控制。
 
@@ -29,7 +29,7 @@
 | 源码构建 | 另需 Git、Go 1.26.10+、Node（满足 package.json engines）、pnpm 11.25.0、make/ripgrep；Docker 构建所需 Go/Node 已在构建镜像中 |
 | 数据库 | 准备专用空库和账号，推荐 PostgreSQL 15 或 Oracle MySQL 8.0；SQLite 适合本机/小型试用，不应从示例推断高并发能力 |
 | 域名与 TLS | 平台公网部署先准备域名、DNS A/AAAA 和证书，示例使用 `app.example.com`，均需换成自己的值 |
-| 端口 | 公网只放行 HTTPS 443；HTTP 80 用于跳转/证书签发；SSH 按运维策略开放。应用 8080/8088 和数据库 5432/3306 只给本机/私网 |
+| 端口 | 公网只放行 HTTPS 443；HTTP 80 用于跳转/证书签发；SSH 按运维策略开放。应用 3000 和数据库 5432/3306 只给本机/私网 |
 | 出站访问 | 构建需访问源码/镜像仓库；注册邮箱验证、邮件登录与找回密码需 SMTP，直接注册无需 SMTP；企业登录需 IdP；对象存储和更新按启用功能放通 |
 
 Ubuntu/Debian 的 tar 路径可先执行：
@@ -133,14 +133,14 @@ docker run -d --name unicore --restart unless-stopped \
   --read-only --cap-drop=ALL --security-opt=no-new-privileges:true \
   --stop-timeout=15 \
   -e APP_PROFILE=web-platform \
-  -p 127.0.0.1:8088:8080 \
+  -p 127.0.0.1:3000:3000 \
   -v unicore_data:/data \
   "$UNICORE_IMAGE"
 docker logs --tail 100 unicore
-curl -fsS http://127.0.0.1:8088/api/v1/health/live
+curl -fsS http://127.0.0.1:3000/api/v1/health/live
 ```
 
-镜像默认 `APP_LISTEN=0.0.0.0:8080`、`APP_DATA_DIR=/data`、`APP_DEPLOYMENT_KIND=docker`，以 UID/GID `65532:65532` 运行。容器内监听所有接口是为了端口映射；宿主机仍只绑定 `127.0.0.1:8088`。不要把容器内监听改成回环地址，否则映射端口无法访问。
+镜像默认 `APP_LISTEN=0.0.0.0:3000`、`APP_DATA_DIR=/data`、`APP_DEPLOYMENT_KIND=docker`，以 UID/GID `65532:65532` 运行。容器内监听所有接口是为了端口映射；宿主机仍只绑定 `127.0.0.1:3000`。不要把容器内监听改成回环地址，否则映射端口无法访问。
 
 命名卷初始化会继承镜像内 `/data` 的权限。使用宿主机目录代替卷时，先创建独立目录并设置 UID/GID `65532:65532`、权限 `0700`，例如 `sudo install -d -m 700 -o 65532 -g 65532 /srv/unicore-data`，再用 `-v /srv/unicore-data:/data`。SELinux 主机还需按当地策略设置挂载标签。不要通过 `chmod 777` 处理密钥目录权限。
 
@@ -158,7 +158,7 @@ rm -f "$unicore_token_dir/bootstrap.token"
 rmdir "$unicore_token_dir"
 ```
 
-token 只供当前服务器所有者完成首次安装，不发给其他人。接着按第 6 节配置 HTTPS 入口、第 7 节完成向导；本机试用可直接访问 `http://127.0.0.1:8088/install`。
+token 只供当前服务器所有者完成首次安装，不发给其他人。接着按第 6 节配置 HTTPS 入口、第 7 节完成向导；本机试用可直接访问 `http://127.0.0.1:3000/install`。
 
 常用命令：
 
@@ -181,11 +181,11 @@ cd /opt/unicore-compose
 umask 077
 ```
 
-创建 `.env`，镜像名与 3.1 构建结果一致，数据库口令换成自己的长随机值。此文件用于 Compose 变量替换，不是应用启动 JSON，也不会被应用自动读取。
+创建 `.env`，镜像名与 3.1 构建结果一致，数据库口令换成自己的长随机值。此文件用于 Compose 变量替换，不是应用启动 YAML/JSON，也不会被应用自动读取。
 
 ```dotenv
 UNICORE_IMAGE=unicore:0.1.2
-UNICORE_PORT=8088
+UNICORE_PORT=3000
 POSTGRES_PASSWORD=REPLACE_WITH_A_LONG_RANDOM_PASSWORD
 ```
 
@@ -202,11 +202,11 @@ services:
     image: ${UNICORE_IMAGE:?Set UNICORE_IMAGE in .env}
     environment:
       APP_PROFILE: web-platform
-      APP_LISTEN: 0.0.0.0:8080
+      APP_LISTEN: 0.0.0.0:3000
       APP_DATA_DIR: /data
       APP_DEPLOYMENT_KIND: docker
     ports:
-      - "127.0.0.1:${UNICORE_PORT:-8088}:8080"
+      - "127.0.0.1:${UNICORE_PORT:-3000}:3000"
     volumes:
       - app_data:/data
     depends_on:
@@ -258,7 +258,7 @@ docker compose config --quiet
 docker compose up -d
 docker compose ps
 docker compose logs --tail 100 app db
-curl -fsS http://127.0.0.1:8088/api/v1/health/live
+curl -fsS http://127.0.0.1:3000/api/v1/health/live
 
 umask 077
 unicore_token_dir=$(mktemp -d)
@@ -303,7 +303,7 @@ awk -v file="$UNICORE_PACKAGE.tar.gz" '$2 == file {print}' checksums.txt > selec
 test -s selected-checksum.txt && sha256sum -c selected-checksum.txt
 ```
 
-只有校验通过才继续；摘要只验证文件与发布记录一致，来源和签名仍需按发行说明核对。无 Release 资产时，可在开发机运行 `make package RELEASE_TARGETS=linux/amd64 RELEASE_PROFILES=web-platform`，传输 `build/releases/` 中的包与校验和；目标机无需构建工具。不要只复制 `bin/server`，完整包还包含部署模板、静态文件、帮助入口和 `bin/unicore-ops`。
+只有校验通过才继续；摘要只验证文件与发布记录一致，来源和签名仍需按发行说明核对。无 Release 资产时，可在开发机运行 `make package RELEASE_TARGETS=linux/amd64 RELEASE_PROFILES=web-platform`，传输 `build/releases/` 中的包与校验和；目标机无需构建工具。完整包只有 `unicore` 一个程序入口，以及安装说明、许可证、VERSION/manifest.json 和部署模板；前端已内嵌，不需要 docs/、web/ 或独立帮助/维护工具。保留升级元数据。
 
 ```sh
 # 版本目录应为新空目录，不能覆盖正在运行的版本。
@@ -312,10 +312,43 @@ sudo mkdir "/opt/unicore/releases/$UNICORE_VERSION"
 sudo tar -xzf "$UNICORE_PACKAGE.tar.gz" \
   -C "/opt/unicore/releases/$UNICORE_VERSION" --strip-components=1
 sudo ln -s "/opt/unicore/releases/$UNICORE_VERSION" /opt/unicore/current
-/opt/unicore/current/unicorehelp
+/opt/unicore/current/unicore help
 ```
 
 首次创建 `current` 用普通 `ln -s`，存在时先检查是否为已有部署。不要用首次安装命令覆盖在用实例。平台/单机包分别编译默认 profile；若显式设置 `APP_PROFILE`，须与计划安装的形态一致。
+
+### 使用内置服务管理（推荐简化部署）
+
+Linux/systemd 可直接由程序生成匹配实际路径的服务，不必照抄 `/var/lib/unicore`。以下操作在解压目录执行；默认数据为该工作目录的 `data/`，也可在配置中指定外部私有目录：
+
+```sh
+./unicore config generate
+# 按需要编辑 config.yaml 的 listen、data_dir 等启动配置
+sudo ./unicore service install --config config.yaml
+unicore help
+sudo unicore service status
+sudo unicore manage
+```
+
+默认生成 systemd unit、启动配置与绑定记录；启用开机自启并立即启动，随后访问 `/install` 完成数据库与管理员安装。`service install --now=false` 只安装不启动，`--enable=false` 不启用自启，`--link=false` 不创建 `/usr/local/bin/unicore` 命令链接。命令链接不覆盖已有其他程序；不需要额外帮助/启动脚本。root 通过 sudo 调用时默认使用原 sudo 用户运行服务；直接以 root 调用时默认创建无登录的 `unicore` 服务账号，也可 `--run-as NAME` 使用已有账号。程序检查该账号对工作目录、可执行文件和数据目录的访问权限；不会递归改已有数据所有者。在 `/root` 下解压的程序通常不允许普通服务账号访问，应先放到可访问的安装目录。
+
+生成服务使用安装时的绝对程序路径与工作目录，`Restart=always` 提供异常退出重启，日志进入 journal。使用 `current` 版本链接部署时，应从 `/opt/unicore/current/unicore` 调用，保持后续版本切换入口稳定。默认数据目录不是强制 `/var/lib/unicore`；下面手动部署章节只是传统目录布局的另一种方式，**不要对同一服务重复安装两套 unit**。已有手工 unit 不会被内置安装覆盖，内置卸载也不会删除它。
+
+```sh
+sudo unicore start
+sudo unicore stop
+sudo unicore restart
+sudo unicore logs --lines 100 --follow
+sudo unicore service disable  # 只关自启，不停当前进程
+sudo unicore service enable
+sudo unicore service uninstall  # 停止并移除受管服务，保留用户数据
+```
+
+普通 Linux 用户可用 `./unicore service install --user --config config.yaml` 安装用户服务；后续命令都加 `--user`。命令链接为 `~/.local/bin/unicore`，需确保该目录在 PATH。用户服务默认随用户管理器启动；若需要未登录时运行/开机启动，由系统管理员按策略执行 `loginctl enable-linger USER`。不能把用户服务的 enable 等同于已配置系统级开机自启。
+
+Windows/macOS 保留前台启动，不提供 systemd/Windows Service/launchd 安装。Docker 使用宿主机 `docker start/stop/restart` 或 Compose 与 restart policy，容器内不安装 systemd、不挂载 Docker socket。账号恢复等离线命令仍需要停止容器，并通过保留原数据挂载和密钥的同版本临时工具容器执行；不能向正在运行的实例并发写入。
+
+后台路径、忘记管理员密码、维护模式与数据库连接恢复命令见 [配置与管理命令](configuration.md#web-管理命令)。
 
 ### 5.2 服务用户和私有数据
 
@@ -338,7 +371,7 @@ APP_LOG_FORMAT=json
 APP_API_DOCS=false
 ```
 
-这是 systemd 的 `EnvironmentFile` 格式，写 `KEY=value`，不写 `export`、shell 命令或 `$()`。`APP_SECRET_KEY`/安装 token 通常无需手动配置，让程序生成私有文件即可。更多参数及可选 JSON 配置见 [配置说明](configuration.md)。
+这是 systemd 的 `EnvironmentFile` 格式，写 `KEY=value`，不写 `export`、shell 命令或 `$()`。`APP_SECRET_KEY`/安装 token 通常无需手动配置，让程序生成私有文件即可。更多参数及可选 YAML/JSON 配置见 [配置说明](configuration.md)。
 
 ### 5.3 安装 unicore.service
 
@@ -361,11 +394,11 @@ User=unicore
 Group=unicore
 WorkingDirectory=/var/lib/unicore
 Environment=APP_DEPLOYMENT_KIND=tar
-Environment=APP_LISTEN=127.0.0.1:8080
+Environment=APP_LISTEN=127.0.0.1:3000
 Environment=APP_DATA_DIR=/var/lib/unicore
 Environment=APP_UPDATE_RESTART=supervisor
 EnvironmentFile=-/etc/unicore/unicore.env
-ExecStart=/opt/unicore/current/bin/server
+ExecStart=/opt/unicore/current/unicore
 Restart=always
 KillMode=process
 RestartSec=3
@@ -388,7 +421,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now unicore.service
 sudo systemctl status unicore.service --no-pager
 sudo journalctl -u unicore.service -n 100 --no-pager
-curl -fsS http://127.0.0.1:8080/api/v1/health/live
+curl -fsS http://127.0.0.1:3000/api/v1/health/live
 sudo -u unicore cat /var/lib/unicore/bootstrap.token
 ```
 
@@ -400,7 +433,7 @@ sudo -u unicore cat /var/lib/unicore/bootstrap.token
 
 先把自己的域名解析到服务器并准备可读的完整证书链/私钥。以下示例中的 `app.example.com` 和 `/etc/letsencrypt/live/app.example.com/` 都须替换。证书可通过 ACME 客户端或宝塔面板签发，并配置自动续期与续期后的 Nginx reload；本文不假设证书已随程序提供。
 
-宿主机 Nginx 反代地址：tar 为 `127.0.0.1:8080`；本文 Docker/Compose 为 `127.0.0.1:8088`。下例默认 tar，容器部署修改**所有** `proxy_pass` 端口。所有页面交给 Go 路由，无需给 Nginx 开放 `/var/lib/unicore` 或容器卷。
+tar、Docker 和 Compose 的默认宿主机 Nginx 上游均为 `127.0.0.1:3000`。如果自定义监听或映射端口，需要同步修改所有 `proxy_pass`。所有页面交给 Go 路由，无需给 Nginx 开放 `/var/lib/unicore` 或容器卷。
 
 ```nginx
 # Author: yunnuo <ymz@ebox.vip>
@@ -420,14 +453,14 @@ server {
     location ~ ^/api/v1/(admin/)?files/multipart/[^/]+/parts/[0-9]+$ {
         client_max_body_size 64m;
         proxy_request_buffering off;
-        proxy_pass http://127.0.0.1:8080;
+        proxy_pass http://127.0.0.1:3000;
         proxy_set_header Host $http_host;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_read_timeout 600s;
         proxy_send_timeout 600s;
     }
     location ~ ^/api/v1/(admin/)?files/multipart/[^/]+/complete$ {
-        proxy_pass http://127.0.0.1:8080;
+        proxy_pass http://127.0.0.1:3000;
         proxy_set_header Host $http_host;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_read_timeout 7200s;
@@ -435,14 +468,14 @@ server {
     location ~ ^/api/v1/(admin/)?files/uploads/[^/]+/content$ {
         client_max_body_size 1024m;
         proxy_request_buffering off;
-        proxy_pass http://127.0.0.1:8080;
+        proxy_pass http://127.0.0.1:3000;
         proxy_set_header Host $http_host;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_read_timeout 600s;
         proxy_send_timeout 600s;
     }
     location / {
-        proxy_pass http://127.0.0.1:8080;
+        proxy_pass http://127.0.0.1:3000;
         proxy_set_header Host $http_host;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -465,19 +498,19 @@ curl -fsS https://app.example.com/api/v1/health/live
 
 服务器有其他站点时先确认端口和 `server_name` 不冲突；使用系统的 `conf.d` 布局则直接放入其已 include 的目录。证书尚不存在时不要加载引用它的 HTTPS 配置，先完成签发流程。
 
-宝塔中创建自己的域名站点并申请证书，在该站点 server 块内合并上述反代 location，调整上游端口；不要额外添加会抢先返回 `index.html` 的 SPA 伪静态。使用面板的 Nginx 配置检测/重载。tar 包内另有 `deploy/nginx.conf.example`，允许 Nginx 直接读取同版本 `web/assets/`；容器方案无需复制 Web 静态目录，统一反代更便于维护。
+宝塔中创建自己的域名站点并申请证书，在该站点 server 块内合并上述反代 location，调整上游端口；不要额外添加会抢先返回 `index.html` 的 SPA 伪静态。使用面板的 Nginx 配置检测/重载。tar 包内另有 `deploy/nginx.conf.example`，与容器方案一样统一反代；前端静态资源由程序内嵌提供，无需 Nginx 文件根目录。
 
 安装前固定最终域名和 HTTPS。安装 origin 会用于 Secure Cookie 和 OIDC 回调；只在后台修改“站点地址”不会改变这两个边界。反代需保留外部 Host 和协议，推荐根域部署，不把改后台路径当子路径托管。Go 当前记录真实 socket IP，不信任 `X-Forwarded-For` 作为客户端地址，反代后设备页 IP 可能是代理地址。
 
 ### 单机或暂未准备域名
 
-本机直接访问回环地址即可。服务器上的临时试用可以从自己电脑建立隧道（tar 改成 8080）：
+本机直接访问回环地址即可。服务器上的临时试用可以从自己电脑建立隧道（自定义端口时对应调整）：
 
 ```sh
-ssh -L 8088:127.0.0.1:8088 your-ssh-user@your-server
+ssh -L 3000:127.0.0.1:3000 your-ssh-user@your-server
 ```
 
-浏览器访问 `http://127.0.0.1:8088/install`。平台如果计划随后迁到公网域名，建议先准备最终 HTTPS 地址再安装；不要假设换 Nginx 域名即可同步已保存的安装 origin。
+浏览器访问 `http://127.0.0.1:3000/install`。平台如果计划随后迁到公网域名，建议先准备最终 HTTPS 地址再安装；不要假设换 Nginx 域名即可同步已保存的安装 origin。
 
 ## 7. 首次安装：从打开页面到可以登录
 
@@ -510,9 +543,9 @@ ssh -L 8088:127.0.0.1:8088 your-ssh-user@your-server
 | 企业登录 | 配置 IdP 和两个固定回调，分别验证用户/管理员登录；相同邮箱不自动绑定 |
 
 ```sh
-# tar 用 8080；本文 Docker/Compose 用 8088。公网再用最终域名检查一次。
-curl -fsS http://127.0.0.1:8088/api/v1/health/live
-curl -fsS http://127.0.0.1:8088/api/v1/health/ready
+# 三种部署默认均用 3000；自定义端口时调整。公网再用最终域名检查一次。
+curl -fsS http://127.0.0.1:3000/api/v1/health/live
+curl -fsS http://127.0.0.1:3000/api/v1/health/ready
 curl -fsS https://app.example.com/api/v1/health/ready
 ```
 
@@ -524,7 +557,7 @@ curl -fsS https://app.example.com/api/v1/health/ready
 
 ### 先停写并成套备份
 
-tar 停 `sudo systemctl stop unicore`；Docker 命令用 `docker stop unicore`；本文 Compose 用 `docker compose stop app`（保留 db 运行以便原生客户端导出）。维护模式不能替代停进程。使用匹配版本 `bin/unicore-ops`，完整步骤、外部数据库客户端与云对象要求见 [备份与恢复](backup.md)。
+tar 停 `sudo systemctl stop unicore`；Docker 命令用 `docker stop unicore`；本文 Compose 用 `docker compose stop app`（保留 db 运行以便原生客户端导出）。维护模式不能替代停进程。使用匹配版本 `./unicore backup|verify|restore`，完整步骤、外部数据库客户端与云对象要求见 [备份与恢复](backup.md)。
 
 保存数据库、完整私有目录/密钥、部署配置、原程序/镜像版本及校验和。备份落在独立受控目录并做恢复演练。Docker 镜像内没有 ops/数据库客户端；在宿主机或专用运维环境执行，不能对运行中的数据库卷直接打 tar 当作一致备份。
 
@@ -539,7 +572,7 @@ sudo systemctl stop unicore
 sudo ln -sfn /opt/unicore/releases/NEW_VERSION /opt/unicore/current
 sudo systemctl start unicore
 sudo journalctl -u unicore -n 100 --no-pager
-curl -fsS http://127.0.0.1:8080/api/v1/health/ready
+curl -fsS http://127.0.0.1:3000/api/v1/health/ready
 ```
 
 不覆盖 `/var/lib/unicore`。数据库迁移只在正常启动边界执行；失败停止排查，不删除账本或手改 checksum。tar 可信 OTA 是额外配置，不在默认 systemd 模板中开放安装目录写权限；签名、staging 和 supervisor 条件见 [更新说明](updates.md)。
@@ -551,7 +584,7 @@ curl -fsS http://127.0.0.1:8080/api/v1/health/ready
 ```sh
 docker compose up -d --no-deps --force-recreate app
 docker compose logs --tail 100 app
-curl -fsS http://127.0.0.1:8088/api/v1/health/ready
+curl -fsS http://127.0.0.1:3000/api/v1/health/ready
 ```
 
 `docker restart` 不会应用新镜像。Docker 命令方式停止并删除旧容器（`docker rm unicore`），再用 3.2 相同参数和原 `unicore_data` 卷、新镜像创建容器。不使用 `docker volume rm` 或 `compose down -v`；不向应用挂载 Docker socket，也不在容器内覆盖二进制。
@@ -564,7 +597,7 @@ curl -fsS http://127.0.0.1:8088/api/v1/health/ready
 
 | 现象 | 优先检查 |
 | --- | --- |
-| 页面连接拒绝/502 | `systemctl status`/`docker compose ps`、应用日志、监听端口、Nginx 上游；容器监听应为 `0.0.0.0:8080`，宿主端口为 8088 |
+| 页面连接拒绝/502 | `systemctl status`/`docker compose ps`、应用日志、监听端口、Nginx 上游；容器监听应为 `0.0.0.0:3000`，宿主端口为 3000 |
 | 目录 permission denied | tar 的服务用户与 `/var/lib/unicore` 权限；容器挂载目录 UID/GID 65532、只读根下 `/data` 是否独立可写 |
 | Docker 无法执行 cat/sh | distroless 无 shell，使用 `docker cp`/`docker compose cp`，宿主机 `curl` |
 | 找不到 bootstrap.token | 安装成功后会删除；先检查是否已经安装、是否读取正确数据目录/卷，不重新建目录 |

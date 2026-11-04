@@ -34,7 +34,7 @@ Unicore 是面向 AI 辅助开发的 Go + React 应用框架。共享领域与�
 
 ![平台笔记与附件](docs/images/notes-platform.png)
 
-macOS 下载 DMG 并拖到 Applications；Windows 下载 EXE 直接运行；Linux 桌面使用 tar。Web tar 解压后支持 `./unicorehelp`、`./unicore config generate` 和 `./unicore --config unicore.json`，首次安装继续访问 `/install`。OTA 仍使用完整 tar 发行目录。
+macOS 下载 DMG 并拖到 Applications；Windows 下载 EXE 直接运行；Linux 桌面使用 tar。Web tar 解压后支持 `./unicore help`、`./unicore config generate` 和 `./unicore --config config.yaml`，首次安装继续访问 `/install`。Linux 可用 `./unicore service install` 安装守护服务，再用 `unicore manage` 打开管理菜单；启停、密码恢复及后台路径等见 [管理命令](docs/product/configuration.md#web-管理命令)。OTA 仍使用完整 tar 发行目录。
 
 预览安装包与校验和见 [GitHub Releases](https://github.com/yunnuo88520/Unicore/releases)，也可从源码构建；尚无公开注册表镜像。已接入可替换渠道的签名 OTA 与离线版本日志；公开版本是否包含签名更新清单，以对应 Release 资产与验证结果为准。应用层发布者签名必须保留，OS 签名/公证可选，无需购买证书即可采用免费分发策略；创建器默认 OS 签名策略仍有已知差异，见支持范围。授权服务保持占位。详见 [系统更新](docs/03-runbooks/updates.md)与 [支持范围](docs/support.md)。
 
@@ -64,7 +64,7 @@ make dev-web
 Web 服务器请从 [从零部署指南](docs/product/deployment.md) 开始：环境和数据库、Docker/Compose、tar/systemd、HTTPS、安装向导和更新排查；参数与配置表见 [配置说明](docs/product/configuration.md)。
 
 ```sh
-# 构建内嵌前端的 Web 二进制，访问 http://127.0.0.1:8080
+# 构建内嵌前端的 Web 二进制，访问 http://127.0.0.1:3000
 make build-web
 build/bin/server
 
@@ -106,7 +106,7 @@ make build-web && make test-e2e  # 独立实例，PC / 375px 页面回归
 make package RELEASE_TARGETS=linux/amd64 RELEASE_PROFILES=web-platform
 make release                     # 完整 Web / CLI tar 矩阵
 make docker-build                # 本机架构镜像，不执行 push
-make compose-up                  # 构建并启动 127.0.0.1:8088
+make compose-up                  # 构建并启动 127.0.0.1:3000
 make build-desktop               # 在目标系统原生构建
 make build-ops                   # 独立加密备份/恢复工具
 ```

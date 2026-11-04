@@ -14,6 +14,7 @@ import (
 
 type Message struct {
 	To, Subject, Body, HTML, FromName string
+	Channel, Event                    string `json:",omitempty"`
 	Logo                              []byte `json:",omitempty"`
 }
 type Config struct{ Host, Port, TLS, From, FromName, Username, Password string }
@@ -28,6 +29,7 @@ type Secrets interface {
 type Job struct {
 	ID, Payload, Lease string
 	Attempts, Expires  int
+	Cancelled          bool
 }
 type Store interface {
 	ClaimMail(context.Context, int) (Job, error)
@@ -43,6 +45,7 @@ type Service struct {
 	Settings *settings.Service
 	Secrets  Secrets
 	Sender   Sender
+	Channels ChannelSender
 }
 
 func Configuration(values map[string]string) Config {
@@ -86,12 +89,27 @@ func (s *Service) Tick(ctx context.Context, now int) error {
 	}
 	delivered := false
 	values, configErr := s.Settings.Raw(ctx)
-	if configErr == nil && settings.MailReady(values) {
+	if configErr == nil {
 		payload, openErr := s.Secrets.Open(job.Payload)
 		var message Message
 		if openErr == nil && json.Unmarshal([]byte(payload), &message) == nil {
 			delivery, cancel := context.WithTimeout(ctx, 10*time.Second)
-			delivered = s.Sender.Send(delivery, Configuration(values), message) == nil
+			c := settings.NotificationConfig(values)
+			disabled := message.Event != "" && !c.Enabled
+			if message.Channel != "" {
+				disabled = disabled || !c.ChannelEnabled || c.Provider != message.Channel
+				if disabled {
+					job.Cancelled = true
+					delivered = true
+				} else if s.Channels != nil {
+					delivered = s.Channels.SendChannel(delivery, values, message) == nil
+				}
+			} else if disabled {
+				job.Cancelled = true
+				delivered = true
+			} else if settings.MailReady(values) {
+				delivered = s.Sender.Send(delivery, Configuration(values), message) == nil
+			}
 			cancel()
 		}
 	}

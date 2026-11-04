@@ -41,7 +41,7 @@ metadata:
 
 ## 公共站点与邮件设置
 
-备案号/HTTPS 查询链接、SMTP 别名和通知约定见 [设置规范](../../../docs/00-product/feature-settings.md)。公开设置变化同时检查 HTTP/Wails bootstrap 与工作台/账号页页脚；不公开敏感值。mail.from_name 是显示名，不参与连接指纹；主机/端口/TLS/账号/密钥仍需重新测试。系统通知调用内部 Notify，复用加密队列，不添加任意公开发信 API 或默认群发订阅。favicon 另支持有边界的 ICO→PNG 解码，Logo 仍仅 PNG/JPEG。
+备案号/HTTPS 查询链接、SMTP 别名和通知约定见 [设置规范](../../../docs/00-product/feature-settings.md)。公开设置变化同时检查 HTTP/Wails bootstrap 与工作台/账号页页脚；不公开敏感值。mail.from_name 是显示名，不参与连接指纹；主机/端口/TLS/账号/密钥仍需重新测试。事件通知配置见 [事件通知](../../../docs/03-runbooks/notifications.md)：notifications.* 注册但只走专用 API，三项凭据加密且不回显；扩展事件目录、模板、矩阵和中英文文案，使用 mailer.Plan 并在业务事务内加密入队。保留内部 Notify 兼容，不添加任意公开发送 API 或默认群发订阅。favicon 另支持有边界的 ICO→PNG 解码，Logo 仍仅 PNG/JPEG。
 
 ## 标签与保存约定
 

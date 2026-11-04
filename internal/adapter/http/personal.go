@@ -51,6 +51,19 @@ func mountPersonal(api chi.Router, config Config) {
 			}
 			success(w, result)
 		})
+		api.Get(prefix+"/account/totp/setup", func(w http.ResponseWriter, r *http.Request) {
+			p := personal(w, r)
+			if p == nil {
+				return
+			}
+			w.Header().Set("Cache-Control", "no-store")
+			result, err := p.PendingTOTP(r.Context(), rawSession(r))
+			if err != nil {
+				webError(w, err)
+				return
+			}
+			success(w, result)
+		})
 		api.Post(prefix+"/account/totp/setup", func(w http.ResponseWriter, r *http.Request) {
 			p := personal(w, r)
 			if p == nil {

@@ -17,6 +17,7 @@ import (
 	"github.com/yunnuo/unicore/internal/adapter/blobcloud"
 	"github.com/yunnuo/unicore/internal/adapter/bloblocal"
 	mailadapter "github.com/yunnuo/unicore/internal/adapter/mail"
+	notifyadapter "github.com/yunnuo/unicore/internal/adapter/notify"
 	oidcadapter "github.com/yunnuo/unicore/internal/adapter/oidc"
 	"github.com/yunnuo/unicore/internal/adapter/storage/filesql"
 	"github.com/yunnuo/unicore/internal/adapter/storage/platformsql"
@@ -229,13 +230,14 @@ func (m *Manager) attach(store *sqlstore.Store) {
 			return blobcloud.New(blobcloud.Config{Provider: l.Provider, Endpoint: l.Endpoint, Bucket: l.Bucket, Region: l.Region, Prefix: l.Prefix, PathStyle: l.PathStyle, AccessKey: c.AccessKey, SecretKey: c.SecretKey})
 		}}
 		m.settingService.Branding = branding.New(store, m.files.BrandStore())
-		repository := &platformsql.Repository{Store: store}
-		admins := &platformsql.Repository{Store: store, Administrators: true}
+		repository := &platformsql.Repository{Store: store, NotificationSecrets: m.secret}
+		admins := &platformsql.Repository{Store: store, Administrators: true, NotificationSecrets: m.secret}
+		m.settingService.NotificationWriter = admins
 		m.identity = platform.New(repository)
 		m.administrator = platform.New(admins)
 		m.identity.Settings = m.settingService
 		m.administrator.Settings = m.settingService
-		m.mail = &mailer.Service{BaseURL: m.config.BaseURL, Store: repository, Settings: m.settingService, Secrets: m.secret, Sender: mailadapter.SMTP{}}
+		m.mail = &mailer.Service{BaseURL: m.config.BaseURL, Store: repository, Settings: m.settingService, Secrets: m.secret, Sender: mailadapter.SMTP{}, Channels: notifyadapter.Sender{}}
 		m.identity.Personal = &platform.Personal{Store: repository, Identity: m.identity, Settings: m.settingService, Mail: m.mail}
 		m.administrator.Personal = &platform.Personal{Store: admins, Identity: m.administrator, Settings: m.settingService, Mail: m.mail}
 		m.accounts = &platform.Accounts{Identity: m.identity, Store: repository, Settings: m.settingService, Mail: m.mail, BaseURL: m.config.BaseURL}

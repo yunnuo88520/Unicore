@@ -27,5 +27,8 @@ func (r *Repository) audit(ctx context.Context, tx sqlstore.Runner, actor, actio
 	if m.Target == "" {
 		m.Target = strings.Split(action, ".")[0]
 	}
-	return r.Store.Audit(audit.With(ctx, m), tx, actor, action)
+	if err := r.Store.Audit(audit.With(ctx, m), tx, actor, action); err != nil {
+		return err
+	}
+	return r.eventNotifications(audit.With(ctx, m), tx, actor, action)
 }

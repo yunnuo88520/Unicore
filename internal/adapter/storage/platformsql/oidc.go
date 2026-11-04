@@ -175,6 +175,32 @@ func (r *Repository) CompleteOIDC(ctx context.Context, f platform.OIDCFlow, clai
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return contracts.User{}, err
 	}
+	if f.Mode == "totp" {
+		if id == "" || id != f.UserID || f.SetupSecret == "" || expires <= int(time.Now().Unix()) || expires > int(time.Now().Unix())+600 {
+			return contracts.User{}, platform.ErrOIDC
+		}
+		current, e := r.personalSession(ctx, tx, f.SessionHash)
+		if e != nil || current.User.ID != id || current.State.Secret != "" {
+			return contracts.User{}, platform.ErrCredentials
+		}
+		var password string
+		if e = r.row(ctx, tx, "SELECT password_hash FROM unicore_users WHERE id=?", id).Scan(&password); e != nil {
+			return contracts.User{}, e
+		}
+		if password != "" {
+			return contracts.User{}, platform.ErrCredentials
+		}
+		if e = r.ensurePersonal(ctx, tx, id); e != nil {
+			return contracts.User{}, e
+		}
+		if _, e = r.exec(ctx, tx, "UPDATE unicore_personal_accounts SET setup_secret=?,setup_session=?,setup_expires=?,setup_attempts=0 WHERE user_id=?", f.SetupSecret, f.SessionHash, expires, id); e != nil {
+			return contracts.User{}, e
+		}
+		if e = r.audit(ctx, tx, id, "account.totp.enterprise_verified"); e != nil {
+			return contracts.User{}, e
+		}
+		return current.User, tx.Commit()
+	}
 	if f.Mode == "link" {
 		if err = r.oidcActor(ctx, tx, f); err != nil {
 			return contracts.User{}, err

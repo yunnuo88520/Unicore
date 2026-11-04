@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { featureBuild } from '../../scripts/build-features.mjs';
 
 const features = featureBuild();
-const apiURL = process.env.UNICORE_API_URL ?? 'http://127.0.0.1:8080';
+const apiURL = process.env.UNICORE_API_URL ?? 'http://127.0.0.1:3000';
 function administratorEntry(): Plugin {
   return {
     name: 'administrator-entry',

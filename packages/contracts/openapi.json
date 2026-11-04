@@ -8483,6 +8483,50 @@
           }
         },
         "parameters": []
+      },
+      "get": {
+        "operationId": "pendingTOTP",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TOTPSetupResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "user"
+        },
+        "summary": "Read the pending authenticator setup for this session",
+        "parameters": [],
+        "description": "Authenticated self in the fixed identity realm; no-store. Only the current live session may read an unexpired pending setup before enrollment. Does not return an enrolled TOTP secret."
       }
     },
     "/api/v1/account/totp/cancel": {
@@ -9264,6 +9308,50 @@
         },
         "parameters": [],
         "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+      },
+      "get": {
+        "operationId": "adminPendingTOTP",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TOTPSetupResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "Read the pending authenticator setup for this session",
+        "parameters": [],
+        "description": "Authenticated self in the fixed identity realm; no-store. Only the current live session may read an unexpired pending setup before enrollment. Does not return an enrolled TOTP secret."
       }
     },
     "/api/v1/admin/account/totp/cancel": {
@@ -10084,6 +10172,443 @@
             "AdministratorSession": []
           }
         ]
+      }
+    },
+    "/api/v1/admin/settings/notifications": {
+      "get": {
+        "operationId": "notificationSettings",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotifyConfigurationResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": "settings:read; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "settings:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "summary": "mailTemplates",
+        "parameters": []
+      },
+      "put": {
+        "operationId": "saveNotificationSettings",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotifyConfigurationResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "settings:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "settings:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "saveMailTemplate",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotifyConfiguration"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/settings/notifications/preview": {
+      "post": {
+        "operationId": "previewNotification",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotifyPreviewResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "settings:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "settings:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "saveMailTemplate",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotifyTemplate"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/settings/notifications/test": {
+      "post": {
+        "operationId": "testNotification",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "settings:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "settings:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "saveMailTemplate",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotifyTest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/oidc/totp": {
+      "post": {
+        "operationId": "oidcTOTP",
+        "description": "Authenticated self in the fixed identity realm; CSRF/Origin required. Only linked accounts without a local password or existing TOTP. Fresh auth_time and current session required at callback; no login, account creation or identity changes.",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OIDCStartResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Flow unavailable or conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Identity provider unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error envelope; error codes are listed in x-error-codes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "user"
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          }
+        ],
+        "summary": "Reauthenticate the linked enterprise identity for initial TOTP enrollment",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/account/oidc/totp": {
+      "post": {
+        "operationId": "adminOidcTOTP",
+        "description": "Authenticated self in the fixed identity realm; CSRF/Origin required. Only linked accounts without a local password or existing TOTP. Fresh auth_time and current session required at callback; no login, account creation or identity changes.",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OIDCStartResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Flow unavailable or conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Identity provider unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error envelope; error codes are listed in x-error-codes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          }
+        ],
+        "summary": "Reauthenticate the linked enterprise identity for initial TOTP enrollment",
+        "parameters": []
       }
     }
   },
@@ -11313,6 +11838,14 @@
           },
           "last_error": {
             "type": "string"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "email",
+              "wecom",
+              "webhook"
+            ]
           }
         }
       },
@@ -14583,6 +15116,216 @@
           },
           "request_id": {
             "type": "string"
+          }
+        }
+      },
+      "NotifyRule": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "event",
+          "user_email",
+          "admin_email",
+          "admin_channel"
+        ],
+        "properties": {
+          "event": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "user_email": {
+            "type": "boolean"
+          },
+          "admin_email": {
+            "type": "boolean"
+          },
+          "admin_channel": {
+            "type": "boolean"
+          }
+        }
+      },
+      "NotifyTemplate": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "event",
+          "title",
+          "body"
+        ],
+        "properties": {
+          "event": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 4000
+          }
+        }
+      },
+      "NotifyConfiguration": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enabled",
+          "channel_enabled",
+          "provider",
+          "wecom_key",
+          "webhook_url",
+          "signing_secret",
+          "clear_wecom_key",
+          "clear_webhook_url",
+          "clear_signing_secret",
+          "wecom_configured",
+          "webhook_configured",
+          "signing_configured",
+          "rules",
+          "templates"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "channel_enabled": {
+            "type": "boolean"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "wecom",
+              "webhook"
+            ]
+          },
+          "wecom_key": {
+            "type": "string",
+            "maxLength": 512
+          },
+          "webhook_url": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "signing_secret": {
+            "type": "string",
+            "maxLength": 512
+          },
+          "clear_wecom_key": {
+            "type": "boolean"
+          },
+          "clear_webhook_url": {
+            "type": "boolean"
+          },
+          "clear_signing_secret": {
+            "type": "boolean"
+          },
+          "wecom_configured": {
+            "type": "boolean"
+          },
+          "webhook_configured": {
+            "type": "boolean"
+          },
+          "signing_configured": {
+            "type": "boolean"
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotifyRule"
+            },
+            "maxItems": 32
+          },
+          "templates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotifyTemplate"
+            },
+            "maxItems": 32
+          }
+        }
+      },
+      "NotifyPreview": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title",
+          "body"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 512
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 12000
+          }
+        }
+      },
+      "NotifyTest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "template",
+          "destination",
+          "recipient"
+        ],
+        "properties": {
+          "template": {
+            "$ref": "#/components/schemas/NotifyTemplate"
+          },
+          "destination": {
+            "type": "string",
+            "enum": [
+              "channel",
+              "email"
+            ]
+          },
+          "recipient": {
+            "type": "string",
+            "maxLength": 254
+          }
+        }
+      },
+      "NotifyConfigurationResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/NotifyConfiguration"
+          }
+        }
+      },
+      "NotifyPreviewResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/NotifyPreview"
           }
         }
       }

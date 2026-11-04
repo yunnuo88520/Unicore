@@ -105,7 +105,7 @@ var Definitions = append([]SettingDefinition{
 	{"mail.from_name", "string", "mail", "发件人别名", "", true, false, func(v string) bool { return text(64)(v) && !strings.ContainsAny(v, "\r\n\x00") }},
 	{"mail.username", "string", "mail", "SMTP 用户名", "", true, false, func(v string) bool { return text(254)(v) && !strings.ContainsAny(v, "\r\n") }},
 	{"mail.password", "string", "mail", "SMTP 密钥", "", true, true, text(512)},
-}, append(append(append(OIDCDefinitions, StorageDefinitions...), RegistrationDefinitions...), append(SecurityDefinitions, MailTemplateDefinitions...)...)...)
+}, append(append(append(OIDCDefinitions, StorageDefinitions...), RegistrationDefinitions...), append(append(SecurityDefinitions, MailTemplateDefinitions...), NotificationDefinitions...)...)...)
 
 // ValidPublicLink permits only explicit HTTPS links without credentials or header controls.
 func ValidPublicLink(value string) bool {
@@ -126,11 +126,14 @@ type Secrets interface {
 	Open(string) (string, error)
 }
 type Service struct {
-	Branding *branding.Service
-	Store    Store
-	Secrets  Secrets
-	mu       sync.Mutex
-	Profile  contracts.Profile
+	Branding           *branding.Service
+	NotificationWriter interface {
+		SaveNotificationSettings(context.Context, map[string]string, string) error
+	}
+	Store   Store
+	Secrets Secrets
+	mu      sync.Mutex
+	Profile contracts.Profile
 }
 
 func applies(d SettingDefinition, profile contracts.Profile) bool {
@@ -193,7 +196,7 @@ func (s *Service) List(ctx context.Context) (contracts.Settings, error) {
 		if !applies(d, s.Profile) {
 			continue
 		}
-		if d.Key == "security.force_2fa" || branding.Managed(d.Key) || ManagedMailTemplate(d.Key) || d.Key == "announcements.enabled" {
+		if d.Key == "security.force_2fa" || branding.Managed(d.Key) || ManagedMailTemplate(d.Key) || ManagedNotification(d.Key) || d.Key == "announcements.enabled" {
 			continue
 		}
 		value := values[d.Key]
@@ -275,7 +278,7 @@ func (s *Service) Patch(ctx context.Context, input contracts.SettingPatch, actor
 	values := map[string]string{}
 	seen := map[string]bool{}
 	for _, change := range input.Changes {
-		if change.Key == "announcements.enabled" || ManagedMailTemplate(change.Key) || branding.Managed(change.Key) || change.Key == "storage.active" || seen[change.Key] {
+		if change.Key == "announcements.enabled" || ManagedMailTemplate(change.Key) || ManagedNotification(change.Key) || branding.Managed(change.Key) || change.Key == "storage.active" || seen[change.Key] {
 			return contracts.Settings{}, ErrInvalid
 		}
 		seen[change.Key] = true

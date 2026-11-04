@@ -9,7 +9,7 @@
 
 ```sh
 make install
-make dev-server                       # 终端一，8080
+make dev-server                       # 终端一，3000
 make dev-web                          # 终端二，5173
 make docs                             # 变更契约/设计/文档后生成
 make test                             # 提交前质量门禁
@@ -31,7 +31,7 @@ make docker-build
 make docker-build DOCKER_PLATFORM=linux/amd64
 # 私有仓库命名只构建本地镜像，不执行 push
 make docker-build UNICORE_IMAGE=registry.example.com/team/unicore:preview
-# Compose 读取同一个 VERSION 并构建、启动，默认访问 127.0.0.1:8088
+# Compose 读取同一个 VERSION 并构建、启动，默认访问 127.0.0.1:3000
 make compose-up
 make compose-down
 # 原生桌面，必须在对应系统构建
@@ -42,9 +42,9 @@ make package-desktop
 
 Windows 原生 CI 在构建后执行 scripts/test-windows-startup.ps1：使用随机临时数据目录，验证真实 Wails 窗口/页面、SQLite 初始化、再次启动以及失败弹窗；截图/可访问性文本为 windows-startup-evidence artifact。windows-exe artifact 另提供可直接验证的 exe，desktop-windows-latest 同时提供直接运行的版本化 exe、OTA tar 包、metadata 与目标专属校验和。macOS desktop artifact 同时提供 DMG（app + Applications 链接，可拖拽安装）、OTA tar 与 metadata；hdiutil 创建后校验镜像完整性。DMG 内 app 沿用原生系统签名状态，不因生成镜像而变成已公证。分支候选用于维护者验收，不能代替正式 Release。
 
-CI 在原生 runner 打包后运行 `node scripts/check-release-entrypoints.mjs desktop`：macOS 只读挂载 DMG 并复制到临时 Applications 目录，Windows 核对下载 EXE 与原构建逐字节一致；Linux 质量 job 的 `node scripts/check-release-entrypoints.mjs web` 解包两个 Web profile，使用临时数据目录验证帮助、配置生成/拒绝覆盖、无参数启动与 /install。均不使用真实实例数据。
+CI 在原生 runner 打包后运行 `node scripts/check-release-entrypoints.mjs desktop`：macOS 只读挂载 DMG 并复制到临时 Applications 目录，Windows 核对下载 EXE 与原构建逐字节一致；Linux 质量 job 的 `node scripts/check-release-entrypoints.mjs web` 解包两个 Web profile，使用临时数据目录验证精确文件清单、统一入口的帮助/维护命令、配置生成/拒绝覆盖、无参数启动与 /install。均不使用真实实例数据。
 
-每次 package/release 重建 `build/releases/`（先保存需要保留的旧产物），其中为 tar.gz、checksums.txt 和 manifest.json；包内包含 VERSION、CHANGELOG、manifest、部署手册，Web 另含 bin/server、web/ 与 deploy/。manifest 的 profile 是默认首装选择，安装向导仍允许选择两种 Web 形态；安装后固定。编译扩展统一传 `FEATURE_LICENSE=true FEATURE_UPDATER=true`，授权默认关闭并保持占位，更新默认开启并使用签名清单。
+每次 package/release 重建 `build/releases/`（先保存需要保留的旧产物），其中为 tar.gz、checksums.txt 和 manifest.json；各包只含单一应用入口、README.md 安装说明、LICENSE、VERSION 和 manifest.json；Web 另含 deploy/ 下两个 systemd/Nginx 模板。前端已嵌入二进制，不重复附带 web/、docs/、bin/ 或完整 CHANGELOG。scripts/release-layout.mjs 在打包时检查精确白名单。manifest 的 profile 是默认首装选择，安装向导仍允许选择两种 Web 形态；安装后固定。编译扩展统一传 `FEATURE_LICENSE=true FEATURE_UPDATER=true`，授权默认关闭并保持占位，更新默认开启并使用签名清单。
 
 镜像不能下载官方源时，可显式替换同版本基础镜像来源，例如：
 
@@ -110,7 +110,7 @@ Linux amd64 daemon 将上例改为 linux/amd64。验收只创建随机命名容�
 
 ## 发布候选与恢复门禁
 
-源码采用 MIT，各 tar 包包含 LICENSE；Web tar 同时包含 unicore-ops 和 business_migration_level。归档及默认镜像名读取根 package.name，VERSION 仍唯一版本源。派生项目构建前按 [上游约定](framework-upgrade.md) 保留 provenance 与作者。
+源码采用 MIT，各 tar 包包含 LICENSE；Web 的备份/恢复共用 unicore 入口，manifest 保留 business_migration_level。归档及默认镜像名读取根 package.name，VERSION 仍唯一版本源。派生项目构建前按 [上游约定](framework-upgrade.md) 保留 provenance 与作者。
 
 提交 VERSION/CHANGELOG 并合入 main，等待 Quality and profile builds 与 Dependency security 全部成功，再手动运行 Prepare release candidate workflow，输入完全匹配的 version 和该 main 质量 workflow 的 ci_run_id。候选构建全 Web/CLI tar，合并同一提交的三系统原生桌面归档，校验 13 个 tar 包以及 macOS DMG、Windows 便携 EXE 的版本、来源提交、目标矩阵和 SHA-256；后两者记录在对应桌面 artifact 的 downloads 字段，统一进入 checksums.txt 与来源证明，OTA 清单仍只选择 tar；同时核对该 main 提交的 Dependency security 成功后，要求 GitHub Secret UNICORE_UPDATE_SIGNING_KEY 匹配已提交公钥，签发两份 OTA 清单，再生成 GitHub 构建来源证明，输出 release-bundle artifact。旧运行、PR 构建、不同提交、缺包或校验和不符均拒绝；不创建 tag/Release 或推送镜像。
 

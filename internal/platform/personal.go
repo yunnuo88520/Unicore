@@ -140,21 +140,47 @@ func (p *Personal) BeginTOTP(ctx context.Context, token, password, ip string) (c
 	if err != nil || a.User.ID != s.User.ID || !VerifyPassword(a.PasswordHash, password) {
 		return contracts.TOTPSetup{}, ErrCredentials
 	}
-	bytes := make([]byte, 20)
-	if _, err = rand.Read(bytes); err != nil {
+	secret, err := newTOTPSecret()
+	if err != nil {
 		return contracts.TOTPSetup{}, err
 	}
-	secret := base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(bytes)
 	expires := int(time.Now().Unix()) + 600
 	if err = p.Store.SaveTOTPSetup(ctx, Hash(token), a.PasswordHash, p.Mail.Secrets.Seal(secret), expires); err != nil {
 		return contracts.TOTPSetup{}, err
 	}
+	return p.totpSetup(ctx, s.User.Username, secret, expires)
+}
+
+func newTOTPSecret() (string, error) {
+	bytes := make([]byte, 20)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(bytes), nil
+}
+
+// PendingTOTP reveals only the unconsumed setup bound to this live session.
+func (p *Personal) PendingTOTP(ctx context.Context, token string) (contracts.TOTPSetup, error) {
+	s, err := p.Store.PersonalSession(ctx, Hash(token))
+	if err != nil {
+		return contracts.TOTPSetup{}, err
+	}
+	if s.State.Secret != "" || s.State.SetupSecret == "" || s.State.SetupSession != Hash(token) || s.State.SetupExpires <= int(time.Now().Unix()) || s.State.SetupAttempts >= 5 {
+		return contracts.TOTPSetup{}, ErrMFAInvalid
+	}
+	secret, err := p.Mail.Secrets.Open(s.State.SetupSecret)
+	if err != nil {
+		return contracts.TOTPSetup{}, err
+	}
+	return p.totpSetup(ctx, s.User.Username, secret, s.State.SetupExpires)
+}
+func (p *Personal) totpSetup(ctx context.Context, username, secret string, expires int) (contracts.TOTPSetup, error) {
 	issuer, err := p.Settings.Value(ctx, "site.name")
 	if err != nil {
 		return contracts.TOTPSetup{}, err
 	}
 	q := url.Values{"secret": {secret}, "issuer": {issuer}, "algorithm": {"SHA1"}, "digits": {"6"}, "period": {"30"}}
-	return contracts.TOTPSetup{Secret: secret, OtpauthUrl: "otpauth://totp/" + url.PathEscape(issuer+":"+s.User.Username) + "?" + q.Encode(), ExpiresAt: expires}, nil
+	return contracts.TOTPSetup{Secret: secret, OtpauthUrl: "otpauth://totp/" + url.PathEscape(issuer+":"+username) + "?" + q.Encode(), ExpiresAt: expires}, nil
 }
 
 // TOTPStep returns the accepted 30-second counter; the repository consumes it atomically.

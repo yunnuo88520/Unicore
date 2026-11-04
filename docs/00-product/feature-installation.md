@@ -23,7 +23,7 @@ bootstrap.token 是首次配置的所有权证明；secret.key/APP_SECRET_KEY �
 
 历史安装配置仍可读取；已安装且尚无 lock_version 的旧实例先验证原 DB 再补锁，不自动开放重装。新增 lock_version/reinstall 私有字段，不对外返回。更新只替换程序，保留完整私有目录与数据库；错误的数据删除只能通过成套备份恢复。操作见 [部署手册](../03-runbooks/deployment.md)，决策见 [ADR-0013](../adr/ADR-0013-installation-experience.md)。安装、重启与异常状态在隔离实例逐项验证，不以历史结果代替当前测试。
 
-Linux Web 发行包提供 unicore/unicorehelp：help 显示菜单，config generate（兼容 generate-config）创建拒绝覆盖的私有启动 JSON，--config / APP_CONFIG 显式读取；无参数保持启动服务。此配置只管理运行参数，数据库与管理员仍由安装页引导，不增加命令行管理员密码操作。macOS 桌面通过 DMG 拖入 Applications，Windows 桌面直接运行 EXE；用户下载格式与供 OTA 使用的 tar 归档分别保留。
+Linux Web 发行包只提供一个 unicore 可执行入口（含 help/config/backup/verify/restore）：help 显示菜单，config generate（兼容 generate-config）创建拒绝覆盖的私有启动 YAML/JSON，--config / APP_CONFIG 显式读取；无参数保持启动服务。此配置只管理运行参数，数据库与管理员仍由安装页引导，不增加命令行管理员密码操作。macOS 桌面通过 DMG 拖入 Applications，Windows 桌面直接运行 EXE；用户下载格式与供 OTA 使用的 tar 归档分别保留。
 
 ## 管理员明确重装
 
@@ -38,3 +38,6 @@ Linux Web 发行包提供 unicore/unicorehelp：help 显示菜单，config gener
 框架物理表统一使用固定 unicore_ 前缀，例如 unicore_users、unicore_install_state；派生项目名/slug 不改变它。本站归属以实例 ID 和持久配置判断，不以表名前缀或站点名称判断。
 
 安装向导使用响应式宽卡片与清晰步骤条：桌面各步骤并列，小屏逐项排列；完成页的用户入口、后台/设置入口均为可点击链接，并保留进入工作空间按钮。
+
+
+安装后的 Web 运维由同一可执行文件提供：终端菜单、Linux/systemd 服务安装/启停/自启/日志、实例检查、同类型数据库连接修复、管理员密码恢复、后台路径与维护模式。用户可选默认 `./data` 或外置目录，受管服务记录定位信息，无需每次传路径。离线修改要求停止实例并持有原实例密钥；不迁移数据、不自动重装、不清除已启用的双因素验证。Windows/macOS/Docker 不安装 systemd。使用说明见 [管理命令](../product/configuration.md#web-管理命令)。

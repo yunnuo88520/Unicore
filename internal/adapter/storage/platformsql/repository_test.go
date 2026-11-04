@@ -117,6 +117,7 @@ func TestDialectMigrationsAndIdentity(t *testing.T) {
 			exerciseFiles(t, ctx, store, admin)
 			exerciseNotes(t, ctx, store)
 			exercisePersonal(t, ctx, store, admin)
+			exerciseNotificationEvents(t, ctx, store, admin)
 		})
 	}
 }

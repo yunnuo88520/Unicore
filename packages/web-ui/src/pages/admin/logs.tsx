@@ -19,7 +19,7 @@ const mailHelper = createColumnHelper<typeof mailFeatures, MailJob>();
 const EMPTY_AUDIT: AuditEntry[] = [];
 const EMPTY_JOBS: MailJob[] = [];
 const AUDIT_COLUMNS = 7;
-const MAIL_COLUMNS = 4;
+const MAIL_COLUMNS = 5;
 const PAGE_SIZES = [20, 50, 100] as const;
 const actions = defineMessages({
  'account.profile.updated':'修改个人资料','account.email.code.requested':'申请邮箱换绑验证码','account.email.changed':'更换账号邮箱',
@@ -101,6 +101,7 @@ const mailColumns = mailHelper.columns([
       return <Badge variant="subtle">{label}</Badge>;
     },
   }),
+  mailHelper.display({id:'channel',header:()=>t('通知渠道'),cell:info=>info.row.original.channel==='wecom'?t('企业微信群机器人'):info.row.original.channel==='webhook'?'Webhook':t('邮件通知')}),
   mailHelper.display({ id: 'attempts', header: () => t('尝试次数'), cell: info => info.row.original.attempts }),
   mailHelper.display({
     id: 'created_at',
@@ -112,7 +113,7 @@ const mailColumns = mailHelper.columns([
     header: () => t('结果'),
     cell: info => {
       const item = info.row.original;
-      return <span className="text-muted">{item.last_error === 'EXPIRED' ? t('邮件已过期') : item.last_error ? t('发送失败') : '—'}</span>;
+      return <span className="text-muted">{item.last_error === 'EXPIRED' ? t('通知已过期') : item.last_error === 'DISABLED' ? t('通知已关闭或渠道已切换') : item.last_error ? t('发送失败') : '—'}</span>;
     },
   }),
 ]);
@@ -197,7 +198,7 @@ function LogsPanel({ web }: { web: WebClient }) {
     getRowId: row => row.id,
   });
   return <div className="flex flex-col gap-4">
-    <Tabs id="system-logs" label={t('日志类型')} value={tab} onChange={setTab} items={[{ id: 'audit', label: t('操作日志') }, { id: 'mail', label: t('邮件投递') }]} />
+    <Tabs id="system-logs" label={t('日志类型')} value={tab} onChange={setTab} items={[{ id: 'audit', label: t('操作日志') }, { id: 'mail', label: t('通知投递') }]} />
     <section role="tabpanel" id={`system-logs-panel-${tab}`} aria-labelledby={`system-logs-tab-${tab}`}>
       {tab === 'audit' ? <Card>
         <CardContent className="flex flex-col gap-4">
@@ -273,7 +274,7 @@ function LogsPanel({ web }: { web: WebClient }) {
         : <Card>
           <CardContent className="flex flex-col gap-4">
             <div>
-              <h2 className="text-md font-semibold text-ink">{t('邮件投递记录')}</h2>
+              <h2 className="text-md font-semibold text-ink">{t('通知投递记录')}</h2>
               <p className="mt-0.5 text-xs text-muted">{t('最近 30 个任务；失败自动重试，最多 5 次')}</p>
             </div>
             {mail.isError && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
@@ -293,7 +294,7 @@ function LogsPanel({ web }: { web: WebClient }) {
                     : mailTable.getRowModel().rows.map(row => <TableRow key={row.id}>
                         {row.getAllCells().map(cell => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}
                       </TableRow>)}
-                  {!mail.isPending && !mail.data?.items.length && <TableEmpty colSpan={MAIL_COLUMNS}>{t('暂无邮件任务')}</TableEmpty>}
+                  {!mail.isPending && !mail.data?.items.length && <TableEmpty colSpan={MAIL_COLUMNS}>{t('暂无投递任务')}</TableEmpty>}
                 </TableBody>
               </Table>
             </div>

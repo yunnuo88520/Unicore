@@ -14,17 +14,24 @@ import { Modal } from './dialog';
 import { Input } from './input';
 
 export type RichTextHandle = { insert: (value: string) => void };
+export type RichTextOptions = { siteTemplate?: boolean };
 
-export function safeEditorHTML(value: string) {
+/** Link contract: plain absolute URLs, or additionally the {{site_url}} template when the host opts in. */
+function linkPattern(siteTemplate: boolean) {
+  return siteTemplate ? /^(https?:\/\/[^\s]+|\{\{site_url\}\})$/i : /^https?:\/\/[^\s]+$/i;
+}
+
+export function safeEditorHTML(value: string, { siteTemplate = false }: RichTextOptions = {}) {
   const doc = new DOMParser().parseFromString(value, 'text/html');
   const tags = new Set(['P', 'BR', 'STRONG', 'B', 'EM', 'I', 'U', 'UL', 'OL', 'LI', 'A', 'BLOCKQUOTE']);
+  const pattern = linkPattern(siteTemplate);
   const walk = (parent: Element) => {
     for (const node of [...parent.children]) {
       if (['SCRIPT', 'STYLE', 'IFRAME', 'OBJECT', 'IMG', 'SVG', 'MATH'].includes(node.tagName)) { node.remove(); continue; }
       walk(node);
       if (!tags.has(node.tagName)) { node.replaceWith(...node.childNodes); continue; }
       for (const attr of [...node.attributes]) {
-        if (node.tagName !== 'A' || attr.name !== 'href' || !(/^(https?:\/\/[^\s]+|\{\{site_url\}\})$/i.test(attr.value))) node.removeAttribute(attr.name);
+        if (node.tagName !== 'A' || attr.name !== 'href' || !pattern.test(attr.value)) node.removeAttribute(attr.name);
       }
     }
   };
@@ -33,14 +40,14 @@ export function safeEditorHTML(value: string) {
 }
 
 const tools = defineMessages({ bold: '加粗', italic: '斜体', list: '无序列表', numbered: '有序列表', undo: '撤销', redo: '重做' });
-const LINK_PATTERN = /^(https?:\/\/[^\s]+|\{\{site_url\}\})$/i;
 
-export const RichTextEditor = forwardRef<RichTextHandle, { value: string; onChange: (value: string) => void; label: string; disabled?: boolean; sourceLabel?: string; className?: string }>(function RichTextEditor({ value, onChange, label, disabled, sourceLabel, className }, ref) {
+export const RichTextEditor = forwardRef<RichTextHandle, { value: string; onChange: (value: string) => void; label: string; disabled?: boolean; sourceLabel?: string; siteTemplate?: boolean; maxLength?: number; className?: string }>(function RichTextEditor({ value, onChange, label, disabled, sourceLabel, siteTemplate = false, maxLength = 12000, className }, ref) {
   const { t } = useI18n();
   const [raw, setRaw] = useState(false);
   const [link, setLink] = useState(false);
   const [url, setURL] = useState('https://');
   const source = useRef<HTMLTextAreaElement>(null);
+  const pattern = linkPattern(siteTemplate);
 
   const editor: TiptapEditorInstance | null = useEditor({
     extensions: [
@@ -49,17 +56,18 @@ export const RichTextEditor = forwardRef<RichTextHandle, { value: string; onChan
     ],
     content: value,
     editable: !disabled,
-    onUpdate({ editor: instance }) { onChange(safeEditorHTML(instance.getHTML())); },
-  }, [value === '']);
+    editorProps: { attributes: { 'aria-label': label } },
+    onUpdate({ editor: instance }) { onChange(safeEditorHTML(instance.getHTML(), { siteTemplate })); },
+  }, [value === '', siteTemplate]);
 
   // Toggling editability must not emit an update: tiptap v3 would otherwise rewrite
   // the bound value with the editor serialization while a source-mode draft is pending.
   useEffect(() => { editor?.setEditable(!disabled, false); }, [disabled, editor]);
   useEffect(() => {
     if (!editor || raw) return;
-    const current = safeEditorHTML(value);
-    if (safeEditorHTML(editor.getHTML()) !== current) editor.commands.setContent(current, { emitUpdate: false });
-  }, [value, raw, editor]);
+    const current = safeEditorHTML(value, { siteTemplate });
+    if (safeEditorHTML(editor.getHTML(), { siteTemplate }) !== current) editor.commands.setContent(current, { emitUpdate: false });
+  }, [value, raw, editor, siteTemplate]);
 
   useImperativeHandle(ref, () => ({
     insert(text) {
@@ -78,21 +86,30 @@ export const RichTextEditor = forwardRef<RichTextHandle, { value: string; onChan
     editor?.chain().focus().extendMarkRange('link').setLink({ href: address }).run();
   }
 
+  // Toggle buttons expose their active state; undo/redo expose availability through disabled instead.
   const toolButtons: [typeof Bold, () => boolean, () => void, string][] = editor ? [
     [Bold, () => editor.isActive('bold'), () => editor.chain().focus().toggleBold().run(), tools.bold],
     [Italic, () => editor.isActive('italic'), () => editor.chain().focus().toggleItalic().run(), tools.italic],
     [List, () => editor.isActive('bulletList'), () => editor.chain().focus().toggleBulletList().run(), tools.list],
     [ListOrdered, () => editor.isActive('orderedList'), () => editor.chain().focus().toggleOrderedList().run(), tools.numbered],
-    [Undo2, () => false, () => editor.chain().focus().undo().run(), tools.undo],
-    [Redo2, () => false, () => editor.chain().focus().redo().run(), tools.redo],
+  ] : [];
+  const historyButtons: [typeof Undo2, string, () => void, () => boolean][] = editor ? [
+    [Undo2, tools.undo, () => editor.chain().focus().undo().run(), () => !editor.can().undo()],
+    [Redo2, tools.redo, () => editor.chain().focus().redo().run(), () => !editor.can().redo()],
   ] : [];
 
   return <div className={cn('overflow-hidden rounded-lg border border-line bg-surface', className)}>
     <div className="flex items-center justify-between gap-2 border-b border-line bg-surface-alt px-2 py-1.5">
       <div className="flex items-center gap-0.5">
         {toolButtons.map(([Icon, active, command, title]) => (
-          <Button key={title} variant="ghost" size="icon" aria-label={t(title)} aria-pressed={active()} disabled={raw || disabled}
-            onMouseDown={event => event.preventDefault()} onClick={command} className={active() ? 'bg-primary-soft text-accent' : ''}>
+          <Button key={title} variant="ghost" size="icon" aria-label={t(title)} aria-pressed={active()}
+            disabled={raw || disabled} onMouseDown={event => event.preventDefault()} onClick={command} className={active() ? 'bg-primary-soft text-accent' : ''}>
+            <Icon size={15} />
+          </Button>
+        ))}
+        {historyButtons.map(([Icon, title, command, unavailable]) => (
+          <Button key={title} variant="ghost" size="icon" aria-label={t(title)} disabled={raw || disabled || unavailable()}
+            onMouseDown={event => event.preventDefault()} onClick={command}>
             <Icon size={15} />
           </Button>
         ))}
@@ -100,20 +117,18 @@ export const RichTextEditor = forwardRef<RichTextHandle, { value: string; onChan
           <LinkIcon size={15} />
         </Button>
       </div>
-      <Button variant="ghost" size="sm" aria-pressed={raw} disabled={disabled} onClick={() => { if (raw) onChange(safeEditorHTML(value)); setRaw(current => !current); }}>
+      <Button variant="ghost" size="sm" aria-pressed={raw} disabled={disabled} onClick={() => { if (raw) onChange(safeEditorHTML(value, { siteTemplate })); setRaw(current => !current); }}>
         <Code2 size={14} />{raw ? t('可视化') : t('源代码')}
       </Button>
     </div>
     {raw
-      ? <Textarea ref={source} aria-label={sourceLabel ?? t('邮件内容源代码')} value={value} maxLength={12000} disabled={disabled} onChange={event => onChange(event.target.value)} className="min-h-40 rounded-none border-0 font-mono text-sm focus-visible:ring-0" />
-      : <div role="textbox" aria-label={label} aria-multiline="true" tabIndex={0} onFocus={() => editor?.commands.focus()}>
-          <EditorContent editor={editor} className="rich-editor-surface rich-surface [&_.tiptap]:px-3 [&_.tiptap]:py-2" />
-        </div>}
+      ? <Textarea ref={source} aria-label={sourceLabel ?? t('内容源代码')} value={value} maxLength={maxLength} disabled={disabled} onChange={event => onChange(event.target.value)} className="min-h-40 rounded-none border-0 font-mono text-sm focus-visible:ring-0" />
+      : <EditorContent editor={editor} className="rich-editor-surface rich-surface [&_.tiptap]:px-3 [&_.tiptap]:py-2" />}
     {link && <Modal title={t('插入链接')} onClose={() => setLink(false)}>
-      <form className="flex flex-col gap-3" onSubmit={event => { event.preventDefault(); const data = new FormData(event.currentTarget); const address = String(data.get('url') ?? ''); if (!LINK_PATTERN.test(address)) return; insertLink(address); setLink(false); setURL(address); }}>
+      <form className="flex flex-col gap-3" onSubmit={event => { event.preventDefault(); const data = new FormData(event.currentTarget); const address = String(data.get('url') ?? ''); if (!pattern.test(address)) return; insertLink(address); setLink(false); setURL(address); }}>
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-ink">{t('链接地址')}</span>
-          <Input type="url" name="url" required pattern="https?://.+" maxLength={2048} defaultValue={url} placeholder={t('https:// 或 {{site_url}}')} />
+          <Input type={siteTemplate ? 'text' : 'url'} name="url" required maxLength={2048} defaultValue={url} placeholder={siteTemplate ? t('https:// 或 {{site_url}}') : 'https://'} pattern={siteTemplate ? undefined : 'https?://.+'} />
         </label>
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={() => setLink(false)}>{t('取消')}</Button>

@@ -216,7 +216,7 @@ function MailTemplateForm({ draft, selected, pending, savePending, saveError, re
       </div>
       <Controller control={form.control} name="body" render={({ field }) => (
         <div onFocusCapture={event => { if (!(event.target as HTMLElement).closest('button')) target.current = 'body'; }}>
-          <RichTextEditor ref={editor} label={t('邮件内容')} value={field.value} disabled={busy} onChange={value => field.onChange(value)} />
+          <RichTextEditor ref={editor} label={t('邮件内容')} value={field.value} disabled={busy} siteTemplate sourceLabel={t('邮件内容源代码')} onChange={value => field.onChange(value)} />
         </div>
       )} />
     </div>

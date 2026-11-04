@@ -17,7 +17,7 @@ useSession 从 bootstrap 推导 loading/error/unavailable/authenticated/anonymou
 
 二级导航在分组内部缩进，使用 Lucide 语义图标；图标与 UI 不使用 Emoji/表情字符（check:design 检查）。仅 web-platform 已登录账号显示头像与账号菜单；web-standalone/desktop 无用户概念，不渲染头像。
 
-短暂反馈统一使用 `useMessage()`，由 Workspace 外层 MessageProvider 装配；支持 primary/success/warning/info/error，默认顶部居中、3 秒移除，固定视口层级（z-[70]）保持在 Radix 弹层之上。需要跨模块使用时从 `@unicore/ui` 导入；`message.success('设置已保存')` 或 `message.open({type:'warning',content:'请先保存',duration:5000})`，同类型简写替换前一条，open 可指定 id 替换/重置计时，destroy 手动关闭。QueryScope 的 MutationCache 统一处理提交失败（忽略 SESSION_CHANGED）；成功由业务 mutation 提供具体文案，不能在保存按钮旁追加占位。字段校验/聚焦、需要重试的加载错误、安装确认和认证完成页保留上下文状态，不将其替换成会消失的唯一说明。
+短暂反馈统一使用 `useMessage()`，由 Workspace 外层 MessageProvider 装配；支持 primary/success/warning/info/error，默认顶部居中、3 秒移除，固定视口层级（z-[70]）保持在 Radix 弹层之上。需要跨模块使用时从 `@unicore/ui` 导入；`message.success('设置已保存')` 或 `message.open({type:'warning',content:'请先保存',duration:5000})`，同类型简写替换前一条，open 可指定 id 替换/重置计时，destroy 手动关闭；SDK 回调等 React 树外场景使用同名的静态 `message` 代理（Provider 未挂载时静默丢弃）。消息 content 渲染调用方传入的原文，组件不做目录查找——业务文本（文件名、错误详情）不会被误翻译，界面文案仍由调用方 t()。视觉 tone 走 danger 令牌系，`error` 保留为消息方法名。QueryScope 的 MutationCache 统一处理提交失败（忽略 SESSION_CHANGED）；成功由业务 mutation 提供具体文案，不能在保存按钮旁追加占位。字段校验/聚焦、需要重试的加载错误、安装确认和认证完成页保留上下文状态，不将其替换成会消失的唯一说明。
 
 Web 用户与管理员分别从 main.tsx/admin.tsx 装配；全局管理页仅从 admin-app.tsx 注入（administratorPage 渲染器，默认实现指向 pages/admin/*），共享 Workspace 接受管理页渲染器。用户/单机页面不得导入全局配置页。所有 boolean 设置使用共享 Switch，上传使用自定义可键盘选择/拖拽弹窗与真实阶段。登录注册 md 起双栏布局，375px 单列。详见 [ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md)。
 
@@ -25,7 +25,7 @@ Web 用户与管理员分别从 main.tsx/admin.tsx 装配；全局管理页仅�
 
 新增页面先读 [前端基础封装](../03-runbooks/frontend-foundations.md)。WorkspaceLayout 唯一拥有固定导航与内容占位，使用逻辑方向和统一 767px 抽屉断点；业务页不得重设 main-shell 偏移。工作区和主题面板固定 LTR，已移除阅读方向选项。`pnpm check:i18n` 会递归检查共享 UI 和两套 shell 的中文直写、静态词条、设置/权限元数据、契约错误、英文资源及插值；Web/GUI 构建与 make test 必须通过，不以文档约定替代构建检查。
 
-公告管理和用户卡片复用 ui 原语、DashboardWidgetRegistry 与安全 RichContent；公告/邮件主题正文是原始业务数据，不经过 t()。默认邮件模板固定中文，UI 的双语约束不能用于翻译用户内容。富文本编辑使用 `@unicore/ui/editor` 的 RichTextEditor（Tiptap，标签白名单与 {{site_url}} 链接校验），服务端仍对入站 HTML 做白名单再校验；渲染侧统一走 rich-content.tsx 的 safeContentHTML。Recharts 图表能力封装在 `@unicore/ui/charts`，接入新统计前不得展示无真实数据支撑的图形。
+公告管理和用户卡片复用 ui 原语、DashboardWidgetRegistry 与安全 RichContent；公告/邮件主题正文是原始业务数据，不经过 t()。默认邮件模板固定中文，UI 的双语约束不能用于翻译用户内容。富文本编辑使用 `@unicore/ui/editor` 的 RichTextEditor（Tiptap，标签白名单与安全链接校验）：链接契约默认仅接受绝对 URL，邮件场景传 `siteTemplate` 额外允许 {{site_url}} 模板变量，`sourceLabel` 与 `maxLength`（默认 12000）由调用方给定；服务端仍对入站 HTML 做白名单再校验；渲染侧统一走 rich-content.tsx 的 safeContentHTML。Recharts 图表能力封装在 `@unicore/ui/charts`，接入新统计前不得展示无真实数据支撑的图形。
 
 私有文件上传复用 FileUploadDialog 与 AppClient.files.uploadFile 的持久分片流程：字节进度以确认分片为准，signal 为暂停，deleteFile 为放弃；恢复需重新选择原文件并核对指纹，不在 localStorage 存签名 URL、File 或身份。仅平台装配，见 [存储手册](../03-runbooks/storage.md)。
 

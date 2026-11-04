@@ -18,6 +18,7 @@
 | 更新、签名与恢复 | [更新指南](product/updates.md)、[备份指南](product/backup.md) |
 | 本地/云文件与大文件上传 | [存储指南](product/storage.md)、[详细配置](03-runbooks/storage.md) |
 | 管理日志、邮件模板与公告 | [管理工具](03-runbooks/admin-tools.md)、[公告](03-runbooks/announcements.md) |
+| 通知渠道、通知模板与事件接入 | [通知与邮件接入](product/notifications.md)、[事件通知细节](03-runbooks/notifications.md) |
 | 个人资料、双重验证与登录设备 | [个人中心](03-runbooks/personal-center.md) |
 | 语言、主题与本地外观 | [客户端偏好](03-runbooks/client-preferences.md) |
 

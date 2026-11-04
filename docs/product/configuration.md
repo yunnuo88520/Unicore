@@ -204,6 +204,8 @@ SQLite 不填写上述外部连接字段/DSN，固定使用 data 目录中的 `u
 
 ### SMTP、邮件与企业登录
 
+SMTP 的完整配置步骤和业务调用示例见 [通知与邮件接入](notifications.md)。
+
 | 设置 key | 默认值 | 说明 |
 | --- | --- | --- |
 | `mail.host` | 空 | SMTP 主机，不带协议/路径 |
@@ -273,3 +275,16 @@ Web 日志到 stdout，systemd 用 `journalctl -u unicore -f`，Docker 用 `dock
 Windows GUI 无控制台，启动错误显示原生错误弹窗；桌面数据默认位于系统应用数据目录的 `Unicore/desktop`，可用 `APP_DATA_DIR` 指定隔离目录。排查不要删真实 AppData。正常重启又进安装页，应先找回原目录/卷；数据库失败先恢复连接和原密钥，不删除安装状态自动重装。
 
 返回 [使用指南](index.md)；完整操作见 [部署指南](deployment.md)、[备份恢复](backup.md)。
+
+### 业务通知与渠道配置
+
+完整配置步骤、模板层次、Go 调用示例、事务入队与 SDK 方法见 [通知与邮件接入](notifications.md)。
+
+| 设置 key | 默认值 | 说明 |
+| --- | --- | --- |
+| `notifications.config` | 自动事件关闭、渠道关闭、默认企业微信 | 托管 JSON，包含事件矩阵与纯文本模板，只能通过通知专用接口保存，不能用普通设置 PATCH 写入 |
+| `notifications.wecom_key` | 空，敏感 | 只填写企业微信群机器人 Webhook 的 key 参数；加密保存、不回显 |
+| `notifications.webhook_url` | 空，敏感 | 公网 HTTPS 回调地址，可带查询参数；加密保存 |
+| `notifications.signing_secret` | 空，敏感 | 可选 HMAC-SHA256 密钥，加密保存 |
+
+邮件与渠道独立，未配置 SMTP 也可使用企业微信 / Webhook。自动事件需要系统总开关、对应事件开关及相应渠道配置；测试发送不会自动开启业务通知。用户邮件发给事件所属普通用户，管理员邮件发给 `site.admin_email`。

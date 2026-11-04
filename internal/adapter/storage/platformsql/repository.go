@@ -12,12 +12,14 @@ import (
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/audit"
 	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/mailer"
 	"github.com/yunnuo/unicore/internal/platform"
 )
 
 type Repository struct {
-	Store          *sqlstore.Store
-	Administrators bool
+	Store               *sqlstore.Store
+	Administrators      bool
+	NotificationSecrets mailer.Secrets
 }
 
 func accountError(err error) error {

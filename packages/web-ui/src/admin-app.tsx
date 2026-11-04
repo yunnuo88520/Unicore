@@ -10,6 +10,7 @@ import { AdminStoragePage } from './pages/admin/storage';
 import { AdminUsersPage, AdminAdministratorsPage } from './pages/admin/users';
 import { AdminMailSettingsPage } from './pages/appearance';
 import { AdminEditionPage } from './pages/edition';
+import { AdminNotificationsPage } from './pages/admin/notifications';
 import { AdminMailTemplatesPage } from './pages/admin/mail-templates';
 import { AdminAnnouncementsPage } from './pages/admin/announcements';
 import { AdminLogsPage } from './pages/admin/logs';
@@ -23,6 +24,7 @@ function AdministrationPage(props: PageProps) {
     case 'storage': return props.client.storage && <AdminStoragePage {...props} />;
     case 'users': case 'administrators': return props.page === 'administrators' ? <AdminAdministratorsPage {...props} /> : <AdminUsersPage {...props} />;
     case 'roles': return <AdminRolesPage {...props} />;
+    case 'notification-channels': case 'notification-templates': case 'system-notifications': return <AdminNotificationsPage {...props} />;
     case 'mail-templates': return <AdminMailTemplatesPage {...props} />;
     case 'announcements': return <AdminAnnouncementsPage {...props} />;
     case 'logs': return <AdminLogsPage {...props} />;

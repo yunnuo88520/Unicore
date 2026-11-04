@@ -332,6 +332,7 @@ export interface MailJob {
   created_at: number;
   available_at: number;
   last_error: string;
+  channel?: "email" | "wecom" | "webhook";
 }
 
 export interface MailJobList {
@@ -1113,4 +1114,57 @@ export interface AnnouncementReadStatusResponse {
   message: string;
   data: AnnouncementReadStatus;
   request_id: string;
+}
+
+export interface NotifyRule {
+  event: string;
+  user_email: boolean;
+  admin_email: boolean;
+  admin_channel: boolean;
+}
+
+export interface NotifyTemplate {
+  event: string;
+  title: string;
+  body: string;
+}
+
+export interface NotifyConfiguration {
+  enabled: boolean;
+  channel_enabled: boolean;
+  provider: "wecom" | "webhook";
+  wecom_key: string;
+  webhook_url: string;
+  signing_secret: string;
+  clear_wecom_key: boolean;
+  clear_webhook_url: boolean;
+  clear_signing_secret: boolean;
+  wecom_configured: boolean;
+  webhook_configured: boolean;
+  signing_configured: boolean;
+  rules: Array<NotifyRule>;
+  templates: Array<NotifyTemplate>;
+}
+
+export interface NotifyPreview {
+  title: string;
+  body: string;
+}
+
+export interface NotifyTest {
+  template: NotifyTemplate;
+  destination: "channel" | "email";
+  recipient: string;
+}
+
+export interface NotifyConfigurationResponse {
+  code: string;
+  message: string;
+  data: NotifyConfiguration;
+}
+
+export interface NotifyPreviewResponse {
+  code: string;
+  message: string;
+  data: NotifyPreview;
 }

@@ -1213,6 +1213,14 @@ export const constraints = {
       },
       "last_error": {
         "type": "string"
+      },
+      "channel": {
+        "type": "string",
+        "enum": [
+          "email",
+          "wecom",
+          "webhook"
+        ]
       }
     }
   },
@@ -4478,6 +4486,216 @@ export const constraints = {
       },
       "request_id": {
         "type": "string"
+      }
+    }
+  },
+  "NotifyRule": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "event",
+      "user_email",
+      "admin_email",
+      "admin_channel"
+    ],
+    "properties": {
+      "event": {
+        "type": "string",
+        "maxLength": 40
+      },
+      "user_email": {
+        "type": "boolean"
+      },
+      "admin_email": {
+        "type": "boolean"
+      },
+      "admin_channel": {
+        "type": "boolean"
+      }
+    }
+  },
+  "NotifyTemplate": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "event",
+      "title",
+      "body"
+    ],
+    "properties": {
+      "event": {
+        "type": "string",
+        "maxLength": 40
+      },
+      "title": {
+        "type": "string",
+        "maxLength": 160
+      },
+      "body": {
+        "type": "string",
+        "maxLength": 4000
+      }
+    }
+  },
+  "NotifyConfiguration": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "enabled",
+      "channel_enabled",
+      "provider",
+      "wecom_key",
+      "webhook_url",
+      "signing_secret",
+      "clear_wecom_key",
+      "clear_webhook_url",
+      "clear_signing_secret",
+      "wecom_configured",
+      "webhook_configured",
+      "signing_configured",
+      "rules",
+      "templates"
+    ],
+    "properties": {
+      "enabled": {
+        "type": "boolean"
+      },
+      "channel_enabled": {
+        "type": "boolean"
+      },
+      "provider": {
+        "type": "string",
+        "enum": [
+          "wecom",
+          "webhook"
+        ]
+      },
+      "wecom_key": {
+        "type": "string",
+        "maxLength": 512
+      },
+      "webhook_url": {
+        "type": "string",
+        "maxLength": 2048
+      },
+      "signing_secret": {
+        "type": "string",
+        "maxLength": 512
+      },
+      "clear_wecom_key": {
+        "type": "boolean"
+      },
+      "clear_webhook_url": {
+        "type": "boolean"
+      },
+      "clear_signing_secret": {
+        "type": "boolean"
+      },
+      "wecom_configured": {
+        "type": "boolean"
+      },
+      "webhook_configured": {
+        "type": "boolean"
+      },
+      "signing_configured": {
+        "type": "boolean"
+      },
+      "rules": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NotifyRule"
+        },
+        "maxItems": 32
+      },
+      "templates": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NotifyTemplate"
+        },
+        "maxItems": 32
+      }
+    }
+  },
+  "NotifyPreview": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "title",
+      "body"
+    ],
+    "properties": {
+      "title": {
+        "type": "string",
+        "maxLength": 512
+      },
+      "body": {
+        "type": "string",
+        "maxLength": 12000
+      }
+    }
+  },
+  "NotifyTest": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "template",
+      "destination",
+      "recipient"
+    ],
+    "properties": {
+      "template": {
+        "$ref": "#/components/schemas/NotifyTemplate"
+      },
+      "destination": {
+        "type": "string",
+        "enum": [
+          "channel",
+          "email"
+        ]
+      },
+      "recipient": {
+        "type": "string",
+        "maxLength": 254
+      }
+    }
+  },
+  "NotifyConfigurationResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/NotifyConfiguration"
+      }
+    }
+  },
+  "NotifyPreviewResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/NotifyPreview"
       }
     }
   }

@@ -83,7 +83,10 @@
     "migrationMetadata": "migrations/metadata.gen.json",
     "migrationGenerator": "scripts/generate-migrations.mjs",
     "documentationSite": "website",
-    "documentationSiteGuide": "docs/03-runbooks/documentation-site.md"
+    "documentationSiteGuide": "docs/03-runbooks/documentation-site.md",
+    "notifications": "docs/03-runbooks/notifications.md",
+    "notificationContent": "internal/notifycontent/content.go",
+    "notificationIntegration": "docs/product/notifications.md"
   },
   "commands": {
     "generate": "pnpm generate",

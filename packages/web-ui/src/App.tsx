@@ -11,7 +11,7 @@ import { MessageProvider } from './ui';
 import { SiteFooter } from './site-footer';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { RouterProvider, Outlet, createBrowserHistory, useRouter, useRouterState, type RouterHistory } from '@tanstack/react-router';
-import { Braces, ChevronRight, ExternalLink, FlaskConical, Info, LayoutDashboard, Mail, Megaphone, Menu, Monitor, NotebookPen, PackageCheck, PanelLeftClose, PanelLeftOpen, Radio, RotateCcw, ScrollText, Settings2, ShieldCheck, UserCog, UserRound, Users, Cloud, FolderOpen, Circle, type LucideIcon } from 'lucide-react';
+import { Bell, Webhook, FileText, Braces, ChevronRight, ExternalLink, FlaskConical, Info, LayoutDashboard, Mail, Megaphone, Menu, Monitor, NotebookPen, PackageCheck, PanelLeftClose, PanelLeftOpen, Radio, RotateCcw, ScrollText, Settings2, ShieldCheck, UserCog, UserRound, Users, Cloud, FolderOpen, Circle, type LucideIcon } from 'lucide-react';
 import { BrandProvider, BrandMark, BrandLockup } from './brand';
 import type { AppClient, Bootstrap } from '@unicore/sdk';
 import { useTheme, type Theme } from './theme';
@@ -195,7 +195,7 @@ function SideNavigation({ page, data, client, onNavigate, onAbout }: {
   if (!administration && canAccess('edition', data)) entries.push({ id: 'edition', icon: PackageCheck, label: PAGE_LABELS.edition });
   const userPages = (['users', 'administrators', 'roles'] as const).filter(id => canAccess(id, data));
   const personalPages = (['account','account-security','account-sessions'] as const).filter(id=>canAccess(id,data));
-  const systemPages = (['site', 'account-policy', 'mail', 'mail-templates', 'announcements', 'storage', 'logs', 'edition'] as const).filter(id => canAccess(id, data));
+  const systemPages = (['site', 'account-policy', 'mail', 'mail-templates', 'notification-channels', 'notification-templates', 'system-notifications', 'announcements', 'storage', 'logs', 'edition'] as const).filter(id => canAccess(id, data));
 
   if (navCollapsed && desktop && layout !== 'full') return <>
     <div className="flex flex-col items-center pb-2">
@@ -252,7 +252,7 @@ function SideNavigation({ page, data, client, onNavigate, onAbout }: {
         ? <NavItem icon={Settings2} active={page === 'site'} label={t('外观设置')} onClick={() => go('site')} />
         : <NavGroup title={t('系统设置')} icon={<Settings2 size={19} />} active={systemPages.some(id => id === page)}>
             <NavEntry id="site" page={page} onNavigate={go} />
-            {(['account-policy', 'mail', 'mail-templates', 'announcements', 'storage', 'logs', 'edition'] as const).filter(id => canAccess(id, data)).map(id => <NavEntry key={id} id={id} page={page} onNavigate={go} />)}
+            {(['account-policy', 'mail', 'mail-templates', 'notification-channels', 'notification-templates', 'system-notifications', 'announcements', 'storage', 'logs', 'edition'] as const).filter(id => canAccess(id, data)).map(id => <NavEntry key={id} id={id} page={page} onNavigate={go} />)}
           </NavGroup>)}
       {personalPages.length>0 && <NavGroup title={t('个人中心')} icon={<UserRound size={19} />} active={personalPages.some(id=>id===page)}>{personalPages.map(id=><NavEntry key={id} id={id} page={page} onNavigate={go}/>)}</NavGroup>}
       {!administration && canAccess('edition', data) && <NavItem icon={PackageCheck} active={page === 'edition'} label={t('系统更新')} onClick={() => go('edition')} />}
@@ -312,7 +312,7 @@ function NavGroup({ title, icon, children, active = false }: { title: string; ic
   </section>;
 }
 
-const NAV_ICONS: Partial<Record<Page, LucideIcon>> = { 'account-policy':ShieldCheck, account:UserRound, 'account-security':ShieldCheck, 'account-sessions':Monitor, announcements: Megaphone, storage: Cloud, files: FolderOpen, users: UserRound, administrators: UserCog, roles: ShieldCheck, site: Settings2, mail: Mail, 'mail-templates': Mail, logs: ScrollText, edition: PackageCheck };
+const NAV_ICONS: Partial<Record<Page, LucideIcon>> = { 'notification-channels':Webhook, 'notification-templates':FileText, 'system-notifications':Bell, 'account-policy':ShieldCheck, account:UserRound, 'account-security':ShieldCheck, 'account-sessions':Monitor, announcements: Megaphone, storage: Cloud, files: FolderOpen, users: UserRound, administrators: UserCog, roles: ShieldCheck, site: Settings2, mail: Mail, 'mail-templates': Mail, logs: ScrollText, edition: PackageCheck };
 
 function NavEntry({ id, page, onNavigate }: { id: Page; page: Page; onNavigate: (page: Page) => void }) {
   useLocale();

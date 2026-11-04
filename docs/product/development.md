@@ -38,6 +38,10 @@ packages/contracts/openapi.json 是 DTO/operation 的唯一线契约。先改契
 
 主题由 assets/theme/tokens.json、品牌由 assets/brand/identity.json 生成，pnpm design:generate 同步，不手改投影。页面要验证桌面/375px、权限状态、双语和实际 GUI，不能用 HTTP 代替 Wails 原生验收。
 
+## 复用通知与邮件
+
+平台功能可注入已有 `*mailer.Service` 调用 `Notify`，将业务邮件加密入队；需要遵循用户/管理员事件策略并与业务原子提交时，使用 `mailer.Plan` 和事务内队列写入。不要直接从页面调用机器人 URL、在 usecase 引入 SQL/SMTP，或在数据库事务内另开连接发信。完整参数、可复制 Go 示例、SDK 方法、错误处理和测试要求见 [通知与邮件接入](notifications.md)。
+
 ## 数据库迁移与文件
 
 当前产品仍使用旧迁移执行器；migrations/core、platform、modules 及 catalog.json 是已构建的新世代资产，尚未接管启动。不要通过增加业务需求顺便启用新账本。

@@ -2932,6 +2932,82 @@ export const operations = {
     "superAdmin": true,
     "csrf": false,
     "identityRealm": "administrator"
+  },
+  "notificationSettings": {
+    "method": "GET",
+    "path": "/api/v1/admin/settings/notifications",
+    "requestSchema": null,
+    "responseSchema": "NotifyConfigurationResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "settings:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "saveNotificationSettings": {
+    "method": "PUT",
+    "path": "/api/v1/admin/settings/notifications",
+    "requestSchema": "NotifyConfiguration",
+    "responseSchema": "NotifyConfigurationResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "settings:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "previewNotification": {
+    "method": "POST",
+    "path": "/api/v1/admin/settings/notifications/preview",
+    "requestSchema": "NotifyTemplate",
+    "responseSchema": "NotifyPreviewResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "settings:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "testNotification": {
+    "method": "POST",
+    "path": "/api/v1/admin/settings/notifications/test",
+    "requestSchema": "NotifyTest",
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "settings:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
   }
 } as const;
 export type OperationId = keyof typeof operations;
@@ -3101,6 +3177,10 @@ export interface OperationInputs {
   markAnnouncementRead: undefined;
   markAllAnnouncementsRead: undefined;
   announcementReadStatus: undefined;
+  notificationSettings: undefined;
+  saveNotificationSettings: Models.NotifyConfiguration;
+  previewNotification: Models.NotifyTemplate;
+  testNotification: Models.NotifyTest;
 }
 export interface OperationData {
   bootstrap: Models.BootstrapResponse['data'];
@@ -3268,4 +3348,8 @@ export interface OperationData {
   markAnnouncementRead: Models.ActionResultResponse['data'];
   markAllAnnouncementsRead: Models.ActionResultResponse['data'];
   announcementReadStatus: Models.AnnouncementReadStatusResponse['data'];
+  notificationSettings: Models.NotifyConfigurationResponse['data'];
+  saveNotificationSettings: Models.NotifyConfigurationResponse['data'];
+  previewNotification: Models.NotifyPreviewResponse['data'];
+  testNotification: Models.ActionResultResponse['data'];
 }

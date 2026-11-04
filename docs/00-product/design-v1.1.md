@@ -359,26 +359,22 @@ HTTP API 使用 `/api/v1` 版本前缀；默认 JSON 响应形如 `{ "code": "OK
 
 ## 12. 服务器部署与升级设计
 
-### 12.1 tar.gz：Nginx + Go 前后端分离
+### 12.1 tar.gz：单一程序 + Nginx 反代
 
 发行包示例：
 
 ```text
-unicore-web-linux-amd64-v1.0.0.tar.gz
-├── bin/server
-├── web/dist/
+unicore-web-platform-linux-amd64-v1.0.0/
+├── unicore
 ├── deploy/nginx.conf.example
 ├── deploy/unicore.service
-├── configs/config.example.yaml
-├── migrations/
-├── scripts/install.sh
-├── scripts/upgrade.sh
-├── scripts/rollback.sh
-├── VERSION / checksums.txt / manifest.json
-└── README_DEPLOY.md
+├── LICENSE
+├── VERSION
+├── manifest.json
+└── README.md
 ```
 
-宝塔/Nginx 静态站点负责 `/` 前端及资源，`/api/` 反向代理到 Go 后端（如 `127.0.0.1:8080`）；动态 SPA 路由回退到 `index.html`，但 API 不允许回退为 HTML。独立数据目录及配置目录不放在公开 Web root，系统服务使用低权限专用用户。
+前端静态资源内嵌于程序，Nginx 将全部页面/API/资源反代给 Go；不再独立发布 web/、docs/ 或帮助脚本。数据库迁移内嵌，数据和配置位于发行目录之外。单一入口提供启动、帮助、配置和离线备份恢复；业务 CLI 的无数据库边界不变。保留 VERSION/manifest 供签名更新校验。旧 bin/server 布局需要一次手动停服迁移并更新 systemd ExecStart，不能把新归档覆盖到旧目录。
 
 升级路径：后台确认版本 → 查询签名 manifest → 下载 staging → 校验签名/哈希/兼容性 → 备份 DB 与配置 → 辅助升级器替换 versioned 目录与 `current` 软链 → 重启 systemd → readiness 检查 → 成功标记 / 自动回滚代码和静态资源。**自我重启和文件替换交给具备最小权限的外部 updater**，Go Web 进程不得随意获取 root 权限。
 

@@ -7,7 +7,7 @@ Web 部署先按 [从零部署指南](deployment.md) 启动并完成安装。本
 
 | 类别 | 配置入口 | 保存位置/生效方式 |
 | --- | --- | --- |
-| 启动参数 | `bin/server`/`./unicore` flags、进程环境变量、显式 JSON | 控制监听/数据目录/日志等；修改后重启进程或重建容器 |
+| 启动参数 | `./unicore` flags、进程环境变量、显式 YAML/JSON | 控制监听/数据目录/日志等；修改后重启进程或重建容器 |
 | 首次安装 | 浏览器 `/install` | profile、加密数据库连接、安装 origin、实例 ID 持久化；正常重启不重填 |
 | 全局管理设置 | 平台后台“系统管理 → 系统设置” | SettingDefinition 校验后写入数据库；保存后按功能生效；仅管理员 |
 | 个人中心 | 个人资料、安全设置、登录会话 | 只影响当前身份域本人；不能修改全局配置 |
@@ -18,53 +18,50 @@ Web 部署先按 [从零部署指南](deployment.md) 启动并完成安装。本
 
 ## 2. Web 启动参数完整对照
 
-优先级：**命令行 flag > 非空 `APP_*` 环境变量 > 显式 JSON 文件 > 默认值**。配置文件只有 `--config`/`APP_CONFIG` 指定才读取，不会自动加载当前目录的 `unicore.json` 或 `.env`。环境变量为空时视为未指定，禁用布尔项请明确使用 `false`。
+优先级：**命令行 flag > 非空 `APP_*` 环境变量 > 显式 YAML/JSON 文件 > 默认值**。配置文件只有 `--config`/`APP_CONFIG` 指定才读取，不会自动加载当前目录的 `config.yaml` 或 `.env`。环境变量为空时视为未指定，禁用布尔项请明确使用 `false`。
 
-| flag | 环境变量 | JSON 字段 | 默认值 | 格式、用途与限制 |
+| flag | 环境变量 | 配置字段 | 默认值 | 格式、用途与限制 |
 | --- | --- | --- | --- | --- |
-| `--config PATH` | `APP_CONFIG` | 不适用 | 不读取文件 | 显式 JSON 路径；文件可读且必须合法，传空路径报错 |
-| `--listen ADDRESS` | `APP_LISTEN` | `listen` | `127.0.0.1:8080` | `IP:端口`；容器默认另设 `0.0.0.0:8080`，宿主机限制映射地址 |
+| `--config PATH` | `APP_CONFIG` | 不适用 | 不读取文件 | 显式 YAML/JSON 路径；文件可读且必须合法，传空路径报错 |
+| `--listen ADDRESS` | `APP_LISTEN` | `listen` | `127.0.0.1:3000` | `IP:端口`；容器默认另设 `0.0.0.0:3000`，宿主机限制映射地址 |
 | `--profile PROFILE` | `APP_PROFILE` | `profile` | 未显式指定时使用程序默认 Web 形态 | `web-platform`/`web-standalone`；Web 发行包各自编译默认值，已安装时不能与持久化形态冲突 |
 | `--data-dir PATH` | `APP_DATA_DIR` | `data_dir` | `data` | 完整私有数据目录；生产使用绝对路径，Docker 默认 `/data` |
 | `--deployment KIND` | `APP_DEPLOYMENT_KIND` | `deployment` | `development` | `development`/`tar`/`docker`；表示交付介质和更新能力，不决定用户身份形态 |
 | `--log-level LEVEL` | `APP_LOG_LEVEL` | `log_level` | `info` | `debug`/`info`/`warn`/`error` |
 | `--log-format FORMAT` | `APP_LOG_FORMAT` | `log_format` | `json` | `json`/`text`，输出到进程 stdout，由 journal/容器日志接收 |
-| `--api-docs=true` | `APP_API_DOCS` | `api_docs` | `false` | JSON 使用布尔值；开启 `/docs/api` 与 `/openapi.json`，关闭为 404 |
+| `--api-docs=true` | `APP_API_DOCS` | `api_docs` | `false` | 配置使用布尔值；开启 `/docs/api` 与 `/openapi.json`，关闭为 404 |
 | `--monitor-listen ADDRESS` | `APP_MONITOR_LISTEN` | `monitor_listen` | 空，关闭 | 独立 `/metrics`；只能填字面回环 IP，例如 `127.0.0.1:9090`，不能用 `0.0.0.0`/`localhost` |
 | `--shutdown-timeout DURATION` | `APP_SHUTDOWN_TIMEOUT` | `shutdown_timeout` | `5s` | `100ms`–`2m`；SIGTERM 后在途请求排空期限；supervisor 停止等待需相应留余量 |
 | `--readiness-timeout DURATION` | `APP_READINESS_TIMEOUT` | `readiness_timeout` | `2s` | `100ms`–`10s`；数据库等依赖就绪探测的超时 |
 
-相对路径以**进程当前工作目录**为准，shell 入口不会自动切到解压目录。systemd 模板的工作目录为 `/var/lib/unicore`，容器与交互终端也可能不同，因此线上推荐绝对路径。
+相对路径以**进程当前工作目录**为准，可执行文件不会自动切到解压目录。systemd 模板的工作目录为 `/var/lib/unicore`，容器与交互终端也可能不同，因此线上推荐绝对路径。
 
-### 生成并使用 JSON
+### 生成并使用 YAML
 
-Linux Web 包根目录可运行：
+Linux Web 包根目录可运行。默认生成 `config.yaml`（也支持 `.yml`），保留旧 JSON 读取兼容；显式指定 `--output legacy.json` 时仍可生成 JSON。YAML/JSON 均拒绝未知或重复字段、null、错误类型和多个文档。配置只在显式 `--config` / `APP_CONFIG` 指定时读取：
 
 ```sh
-./unicorehelp
 ./unicore help
-./unicore config generate --output unicore.json
+./unicore config generate
 # 先编辑数据目录、监听等，再启动
-./unicore --config unicore.json
+./unicore --config config.yaml
 # 兼容命令，语义相同，拒绝覆盖已有文件
-./unicore generate-config --output another-config.json
+./unicore generate-config --output another-config.yaml
 ```
 
-也可用 `bin/server config generate`、`bin/server --config`。生成文件权限为 `0600`，拒绝覆盖已有文件/符号链接，不包含密钥、数据库密码或管理员密码。示例：
+源码开发构建的对应入口为 `build/bin/server`；发行包统一为 `./unicore`。生成文件权限为 `0600`，拒绝覆盖已有文件/符号链接，不包含密钥、数据库密码或管理员密码。示例：
 
-```json
-{
-  "listen": "127.0.0.1:8080",
-  "profile": "web-platform",
-  "data_dir": "/var/lib/unicore",
-  "deployment": "tar",
-  "log_level": "info",
-  "log_format": "json",
-  "monitor_listen": "",
-  "shutdown_timeout": "5s",
-  "readiness_timeout": "2s",
-  "api_docs": false
-}
+```yaml
+listen: 127.0.0.1:3000
+profile: web-platform
+data_dir: /var/lib/unicore
+deployment: tar
+log_level: info
+log_format: json
+monitor_listen: ""
+shutdown_timeout: 5s
+readiness_timeout: 2s
+api_docs: false
 ```
 
 可以只提供需要覆盖的字段，其余取默认值。未知字段、`null`、除 `profile`/`monitor_listen` 外的显式空字符串、无效枚举和超时会拒绝启动。JSON 不允许注释或尾逗号；不要在里面添加 `database`、`password`、`secret_key` 等未定义字段。
@@ -72,41 +69,41 @@ Linux Web 包根目录可运行：
 命令行覆盖示例（启动服务后按 Ctrl+C 结束）：
 
 ```sh
-APP_LOG_LEVEL=warn ./unicore --config unicore.json --log-level info
+APP_LOG_LEVEL=warn ./unicore --config config.yaml --log-level info
 ```
 
-最终日志级别为 `info`。排查未生效时先检查 service/env/容器 `environment` 是否设置了同名项，不要反复修改被更高优先级覆盖的 JSON。
+最终日志级别为 `info`。排查未生效时先检查 service/env/容器 `environment` 是否设置了同名项，不要反复修改被更高优先级覆盖的文件。
 
-### systemd 使用 JSON
+### systemd 使用配置文件
 
-默认 unit 已有 `APP_LISTEN`、`APP_DATA_DIR`、`APP_DEPLOYMENT_KIND`；这些值优先于 JSON。采用本文部署指南默认目录时，可保留 unit、在 `/etc/unicore/unicore.env` 设置 `APP_CONFIG=/etc/unicore/unicore.json`，JSON 中其他参数生效。要以 JSON 为唯一启动参数来源，创建 drop-in，清除已有三项环境并指定配置路径：
+默认 unit 已有 `APP_LISTEN`、`APP_DATA_DIR`、`APP_DEPLOYMENT_KIND`；这些值优先于 YAML/JSON。采用本文部署指南默认目录时，可保留 unit、在 `/etc/unicore/unicore.env` 设置 `APP_CONFIG=/etc/unicore/config.yaml`，文件中其他参数生效。要以配置文件为唯一启动参数来源，创建 drop-in，清除已有三项环境并指定配置路径：
 
 ```ini
 # /etc/systemd/system/unicore.service.d/config.conf
 # Author: yunnuo <ymz@ebox.vip>
 [Service]
 UnsetEnvironment=APP_LISTEN APP_DATA_DIR APP_DEPLOYMENT_KIND
-Environment=APP_CONFIG=/etc/unicore/unicore.json
+Environment=APP_CONFIG=/etc/unicore/config.yaml
 ```
 
-`UnsetEnvironment` 在最终进程环境组装时生效，包括 env 文件中的同名项；JSON 的数据目录仍须与 unit 的 `ReadWritePaths`/用户权限匹配。若还需 flag，在 drop-in 中先写空 `ExecStart=` 再写完整启动命令。完成后 `systemctl daemon-reload`、`systemctl restart unicore`，查看日志。
+`UnsetEnvironment` 在最终进程环境组装时生效，包括 env 文件中的同名项；文件中的数据目录仍须与 unit 的 `ReadWritePaths`/用户权限匹配。若还需 flag，在 drop-in 中先写空 `ExecStart=` 再写完整启动命令。完成后 `systemctl daemon-reload`、`systemctl restart unicore`，查看日志。
 
-### Docker 使用 JSON
+### Docker 使用配置文件
 
-镜像已有 `APP_LISTEN`、`APP_DATA_DIR`、`APP_DEPLOYMENT_KIND`，推荐直接通过环境配置容器启动。必须用 JSON 时，只读挂入容器并传 `--config`；注意 JSON 的 `listen`/`data_dir` 仍会被上述镜像环境覆盖，除非用 flags 明确覆盖。例：
+镜像已有 `APP_LISTEN`、`APP_DATA_DIR`、`APP_DEPLOYMENT_KIND`，推荐直接通过环境配置容器启动。需要使用 YAML/JSON 时，只读挂入容器并传 `--config`；注意文件中的 `listen`/`data_dir` 仍会被上述镜像环境覆盖，除非用 flags 明确覆盖。例：
 
 ```sh
 # 在完整 docker run 参数中加入：
-# --mount type=bind,src=/绝对路径/unicore.json,dst=/etc/unicore.json,readonly
+# --mount type=bind,src=/绝对路径/config.yaml,dst=/etc/config.yaml,readonly
 # 镜像名后追加：
-# --config /etc/unicore.json --listen 0.0.0.0:8080 --data-dir /data --deployment docker
+# --config /etc/config.yaml --listen 0.0.0.0:3000 --data-dir /data --deployment docker
 ```
 
 容器 UID 65532 必须可读取挂入文件；`0600 root:root` 文件对它不可读。使用受限属组/ACL 或合适的属主，不放宽整个数据目录权限。
 
 ## 3. 安装、安全与更新环境变量
 
-这些变量不属于上面的 JSON schema；没有同名 flag 时不要自行发明。通常只需设置 data/listen/deployment，安装 token 和密钥让程序生成即可。
+这些变量不属于上面的启动配置 schema；没有同名 flag 时不要自行发明。通常只需设置 data/listen/deployment，安装 token 和密钥让程序生成即可。
 
 | 环境变量 | 默认/格式 | 用途与操作 |
 | --- | --- | --- |
@@ -141,11 +138,11 @@ SQLite 不填写上述外部连接字段/DSN，固定使用 data 目录中的 `u
 
 安装 origin 自动取浏览器实际地址，影响 Secure Cookie 与 OIDC callback；`site.base_url` 只覆盖邮件生成链接。需变更正式域名时先评估安装 origin 的迁移/恢复方案，不能只改邮件地址后宣称站点迁移完成。
 
-安装配置保存后优先恢复原配置，环境变量不用于改数据库或更换形态。换 profile 应部署新实例/新数据目录，数据库迁移或跨引擎转换不由修改 JSON 实现。
+安装配置保存后优先恢复原配置，环境变量不用于改数据库或更换形态。换 profile 应部署新实例/新数据目录，数据库迁移或跨引擎转换不由修改启动配置实现。
 
 ## 5. 平台后台设置表
 
-以下为实例全局配置，**只在 `web-platform` 管理后台修改**，不是启动 JSON/环境变量。设置 key 供开发/API 对照，使用者在对应页面填写即可；敏感项加密保存、接口不返回明文。详细安全与设备流程另见后台“个人中心”。
+以下为实例全局配置，**只在 `web-platform` 管理后台修改**，不是启动配置/环境变量。设置 key 供开发/API 对照，使用者在对应页面填写即可；敏感项加密保存、接口不返回明文。详细安全与设备流程另见后台“个人中心”。
 
 ### 站点、备案与维护
 
@@ -239,14 +236,14 @@ https://app.example.com/api/v1/admin/auth/oidc/callback
 | `storage.upload_paths` | 空 | 每行一个相对路径，首项默认，上传时可选择；禁止绝对路径、.. 和反斜杠 |
 | `storage.allowed_extensions` | 空 | 每行一个扩展名，如 png、tar.gz；大小写不敏感，留空允许所有类型 |
 
-文件位置、默认存储策略、单文件/分片限制另见 [存储指南](storage.md)；更新渠道与可信签名见 [更新指南](updates.md)。它们不是将同名任意配置追加到启动 JSON。
+文件位置、默认存储策略、单文件/分片限制另见 [存储指南](storage.md)；更新渠道与可信签名见 [更新指南](updates.md)。它们不是将同名任意配置追加到启动配置。
 
 ## 6. Compose 变量与应用环境的区别
 
 | Compose 变量 | 本文示例值 | 谁读取 |
 | --- | --- | --- |
 | `UNICORE_IMAGE` | `unicore:0.1.2` | Docker Compose 选镜像；不等于应用版本开关 |
-| `UNICORE_PORT` | `8088` | Compose 的宿主端口映射；容器内仍为 8080 |
+| `UNICORE_PORT` | `3000` | Compose 的宿主端口映射；容器内仍为 3000 |
 | `POSTGRES_PASSWORD` | 自己的随机口令 | 示例 db 容器初始化；不会自动更新已存在数据库用户或应用安装记录 |
 | `UNICORE_VERSION` | 源码 `VERSION` | 仅仓库自带的构建型 Compose 需要，本文独立 Compose 不需要 |
 | `APP_*` | app 的 `environment` 中显式列出 | 只有传进 app 容器后才成为应用环境 |
@@ -288,3 +285,56 @@ Windows GUI 无控制台，启动错误显示原生错误弹窗；桌面数据�
 | `notifications.signing_secret` | 空，敏感 | 可选 HMAC-SHA256 密钥，加密保存 |
 
 邮件与渠道独立，未配置 SMTP 也可使用企业微信 / Webhook。自动事件需要系统总开关、对应事件开关及相应渠道配置；测试发送不会自动开启业务通知。用户邮件发给事件所属普通用户，管理员邮件发给 `site.admin_email`。
+
+
+## Web 管理命令
+
+Web 发行包的同一个 `unicore` 程序包含前台服务与运维入口；独立业务 CLI 不提供这些管理能力。直接运行 `./unicore` 或 `./unicore serve` 仍为前台启动，`./unicore manage` 打开中英文终端菜单。所有命令支持 `--help`；实例操作输出 JSON，服务状态可加 `--json`。
+
+| 命令 | 用途 | 是否需要停服 |
+| --- | --- | --- |
+| `manage`（别名 `menu`） | 交互选择下列操作，不自动停止服务 | 按所选操作 |
+| `service install` | Linux 安装 systemd 服务、记录配置、默认启用并启动 | 首次安装时不能已有进程占用端口 |
+| `start` / `stop` / `restart` | 操作已安装的 systemd 服务 | 不适用 |
+| `service status` / `logs --lines 100 --follow` | 服务状态与 journal 日志 | 否 |
+| `service enable` / `service disable` | 开启/关闭开机自启；disable 不停止当前进程 | 否 |
+| `service uninstall` | 停止并移除本工具生成的服务、配置绑定和匹配的命令链接，保留用户数据 | 自动停服务 |
+| `status` | 显示实例目录、安装形态、数据库类型与是否运行，不回传数据库连接 | 否 |
+| `doctor` / `database check` | 校验原密钥可读、数据库连接及实例标记一致性，不执行迁移 | 是 |
+| `config check` / `config show` | 验证/显示最终启动配置；不显示密钥或数据库凭据 | 否 |
+| `admin list` | 列出前 50 个管理员及总数、状态和 2FA 状态 | 是 |
+| `admin reset-password [--username NAME]` | 隐藏输入新密码并重复确认，撤销该管理员旧会话/找回挑战 | 是 |
+| `admin path` / `admin set-path --path /manage` | 查看/更换后台路径；固定 API 与 OIDC callback 不变 | 是 |
+| `database configure` | 隐藏输入同类型数据库的新连接，验证为同一实例后加密保存 | 是 |
+| `sessions revoke --username NAME --realm administrator` | 撤销所选身份域账号的会话；`--realm user` 为普通用户，`--all` 替代用户名选择域内全部账号 | 是 |
+| `maintenance on --message TEXT` / `maintenance off` | 更改维护开关及可选提示；不是停止进程 | 是 |
+| `site set-url --url https://example.com` | 同时修改安装 origin 与邮件站点地址，输出需登记的 OIDC 回调 | 是 |
+
+账号、站点和维护命令仅 `web-platform` 可用，不能把单机切换为平台。`database configure` 不迁移、复制或转换数据，也不能把实例改指向空库或其他实例；先由运维完成同类型数据库的数据搬迁。旧连接已不可用时也能通过新连接验证并修复。SQLite 固定使用数据目录中的 `unicore.db`，不提供 DSN 替换。
+
+### 默认目录和服务配置发现
+
+未安装受管服务时，默认 `./data` 相对于当前工作目录；`--config`、`APP_CONFIG` 与 `--data-dir` 的含义沿用启动配置。`config.yaml` 不包含数据库连接，只用于定位 `data_dir`；随后读取该目录的 `installation.json` 与原实例密钥。不会因为文件缺失而创建新实例或新密钥。
+
+通过 `service install` 安装后，管理命令默认使用 `/etc/unicore/services/unicore.json` 记录的生成配置；`--user` 模式使用 `$XDG_CONFIG_HOME/unicore/services/`（默认 `~/.config/unicore/services/`）。`--name NAME` 选择其他服务。绑定中保留安装时的工作目录，因此从其他目录执行管理命令也能正确解析相对数据路径。显式指定 `--config`、`--data-dir` 或相应环境变量时，改为用户明确选择的目标。
+
+```sh
+# 默认目录或已安装服务：无需反复传 data-dir
+unicore stop
+unicore admin reset-password
+unicore admin set-path --path /control
+unicore start
+
+# 未安装服务、数据放在外面时
+./unicore admin reset-password --data-dir /srv/app-data --username admin
+# 或从原启动配置定位
+./unicore admin reset-password --config /etc/app/config.yaml --username admin
+```
+
+密码至少 12、至多 128 字节，遵守实例密码黑名单；不会改变管理员角色、启停状态或清除已启用的双因素验证。忘记验证器请使用原恢复码；该命令不是绕过 2FA 的入口。单个管理员可省略用户名，多个时须明确指定。离线恢复记录安全审计，密码与 DSN 不进入输出或审计。
+
+自动化可用 `--password-stdin` / `--dsn-stdin` 从标准输入读取单行秘密；数据库连接替换和站点地址变更加 `--yes` 跳过本机确认。不要将真实凭据作为命令参数或写在 shell 历史中。
+
+服务安装可用 `--env-file /path/instance.env` 提供外置 `APP_SECRET_KEY` 等变量，不从当前 shell 自动复制秘密。文件采用单行字面 `KEY=value`，可用成对单/双引号；不执行 shell、不支持反斜杠续行或复杂转义。首次生成服务时，监听、数据目录、profile、日志等启动项放 `--config` 或安装参数，不放该 env 文件。服务绑定发现会读取此 env 文件以复用外置密钥；文件读取权限仍由 OS 控制。显式选择其他数据目录/配置时，要另外提供它自己的原 `APP_SECRET_KEY`。`APP_ADMIN_PATH` 如覆盖了保存值，需先同步或移除覆盖再改后台路径。
+
+`site set-url` 不配置 DNS、TLS 或反向代理；更改后同步代理域名和企业 IdP 回调白名单。命令先更改邮件地址，再原子替换安装记录；若进程/主机在两次持久化间崩溃，停服后核对安装 origin 与 `site.base_url`，用同一命令重试。备份仍使用现有 `backup/verify/restore` 参数规则，恢复目标目录须明确指定且不存在。

@@ -5,12 +5,12 @@
 
 ## Web
 
-`make install` 后运行 `make dev-server` 与 `make dev-web`，访问 5173；或 `make build-web` 后运行 build/bin/server，访问 8080。默认监听 loopback。首次请求进入 /install，从私有数据目录的 bootstrap.token 读取一次性凭据，选择 Web 平台/单机；平台必须填写管理员，单机不出现账号步骤。
+`make install` 后运行 `make dev-server` 与 `make dev-web`，访问 5173；或 `make build-web` 后运行 build/bin/server，访问 3000。默认监听 loopback。首次请求进入 /install，从私有数据目录的 bootstrap.token 读取一次性凭据，选择 Web 平台/单机；平台必须填写管理员，单机不出现账号步骤。
 
 | 环境变量 / flag | 用途 |
 | --- | --- |
 | APP_DATA_DIR / --data-dir | 私有目录，默认 data/，不放公开 Web root |
-| APP_LISTEN / --listen | 默认 127.0.0.1:8080；远程必须有受控反代/ACL |
+| APP_LISTEN / --listen | 默认 127.0.0.1:3000；远程必须有受控反代/ACL |
 | APP_PROFILE / --profile | 首装默认模式；已安装实例不允许与持久 profile 冲突 |
 | APP_BOOTSTRAP_TOKEN | 部署时注入 32～256 字符；不注入则生成受限文件，成功后逻辑吊销 |
 | APP_SECRET_KEY | 32 字节的标准 base64 外部密钥；不注入则生成 0600 secret.key |
@@ -50,6 +50,8 @@ bootstrap.token 用于证明服务器所有权、防止别人抢先建管理员�
 CLI 直接运行 `build/bin/unicore execute --text "Hello Unicore"`，不打开 HTTP/Wails/DB。仅业务文本分析无持久化，输入不会写日志。
 
 ## Web 发行部署
+
+Web 程序内置 `manage` 交互菜单与 Linux/systemd 的 `service install`、`start`、`stop`、`restart`、`logs`。离线恢复命令、服务配置发现和外部密钥文件约束见 [Web 管理命令](../product/configuration.md#web-管理命令)；安装受管服务的完整步骤见 [内置服务管理](../product/deployment.md#使用内置服务管理推荐简化部署)。独立业务 CLI 不装配这些能力。
 
 完整的用户操作步骤统一维护在 [Web 从零部署指南](../product/deployment.md)：先说明系统/资源/架构/端口和数据库，再提供 Docker 命令、独立 Compose（含 PostgreSQL）、tar 下载校验与完整 unicore.service、Nginx/宝塔 HTTPS、安装向导、重启检查、更新与故障排查。新部署从该页开始，不需要先读开发阶段记录。
 
@@ -101,7 +103,7 @@ appearance.theme 从平台全局设置删除，平台主题只存当前浏览器
 
 仅本机隔离测试允许 literal loopback IP 的 HTTP，例如 127.0.0.1；不能用远程 HTTP、跳过证书验证或跨端点重定向。新装应直接从实际 HTTPS 域名进入 /install，页面自动登记该 origin；已有开发实例若登记了错误 BaseURL，停服务并成套备份后仅修正 installation.json 的 base_url，再启动核对 callback，不能更改 profile/instance/DSN/密钥字段。生产反代需使用固定受信任的 host，身份服务必须可被后端访问。
 
-每浏览器完成最新一次授权；过期/重放/校验失败请从登录按钮重新发起，旧地址不可重用。SSO-only 账号不能直接解绑；请由管理员按现有 SMTP 流程开放找回密码，完成邮箱验证设置本地密码后再解绑。绑定或解除后其他设备退出，待用验证码失效。账号禁用及本地角色改变依然撤销会话。外部 IdP 停用不会主动吊销已有本地 session，按需要缩短会话或本地禁用账号。
+每浏览器完成最新一次授权；过期/重放/校验失败请从登录按钮重新发起，旧地址不可重用。SSO-only 账号可重新验证已绑定企业身份后设置本地 TOTP，无需 SMTP；它仍不能直接解绑，解绑前请由管理员按现有 SMTP 流程开放找回密码，完成邮箱验证设置本地密码。绑定或解除后其他设备退出，待用验证码失效。账号禁用及本地角色改变依然撤销会话。外部 IdP 停用不会主动吊销已有本地 session，按需要缩短会话或本地禁用账号。
 
 始终保留一个已验证能密码登录的本地超管。IdP 故障时使用登录页的本地账号入口，关闭 oidc.enabled 或修复配置；不删除绑定表。Client Secret 轮换先在 IdP 配置，再在本地保存新值，旧授权会因配置指纹变化失败，需要重新发起。修改 OIDC 配置不撤销已建立 session，如需立即撤销，应禁用对应本地账号。
 

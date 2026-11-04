@@ -36,10 +36,10 @@ HTTPS feed 示例（资产必须同一 HTTPS host；GitHub adapter 另允许其�
 APP_DEPLOYMENT_KIND=tar \
 APP_DATA_DIR=/var/lib/unicore \
 APP_UPDATE_INSTALL_DIR=/opt/unicore/current \
-/opt/unicore/current/bin/server
+/opt/unicore/current/unicore
 ```
 
-解压完整包到 current，保留 VERSION 和 manifest.json；单个开发 binary、数据放包内、不可写的 /Applications 或 Windows Program Files 只允许检查。macOS 从完整 .app 运行，可通过 DMG 拖入 Applications；Windows 单个 EXE 可直接运行，但缺少 VERSION 时只允许查看/检查更新，安装更新仍需解压完整 tar 发行目录。Windows/Linux 的自动安装从完整桌面发行目录运行。Linux 需支持 renameat2(RENAME_EXCHANGE)，macOS 需 renamex_np(RENAME_SWAP)；不支持时拒绝切换并保留旧程序。
+旧 bin/server 布局首次迁移须手动停服，替换为新的完整目录，并将 systemd ExecStart 改为 current/unicore；旧程序的更新器不能跨越可执行路径变化，不使用 OTA 覆盖迁移。之后仅更新同布局的包。解压完整包到 current，保留 VERSION 和 manifest.json；单个开发 binary、数据放包内、不可写的 /Applications 或 Windows Program Files 只允许检查。macOS 从完整 .app 运行，可通过 DMG 拖入 Applications；Windows 单个 EXE 可直接运行，但缺少 VERSION 时只允许查看/检查更新，安装更新仍需解压完整 tar 发行目录。Windows/Linux 的自动安装从完整桌面发行目录运行。Linux 需支持 renameat2(RENAME_EXCHANGE)，macOS 需 renamex_np(RENAME_SWAP)；不支持时拒绝切换并保留旧程序。
 
 systemd 使用 deploy/tar/unicore.service 的 Restart=always、KillMode=process、APP_UPDATE_RESTART=supervisor。先让 unicore 用户拥有 /opt/unicore，再在服务的 ReadWritePaths 中显式开放 /opt/unicore，并在受控环境文件配置 APP_UPDATE_INSTALL_DIR；默认模板未授予安装目录写权限。helper 等待旧实例释放 instance.lock，supervisor 拉起新程序；未通过确认时新进程配合退出，helper 回退旧程序，supervisor 再启动。停服维护请先等待更新任务完成；避免在更新进行中强杀整个 cgroup。
 

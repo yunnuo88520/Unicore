@@ -1,7 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Exercise real Linux archives, Nginx, image and Compose in disposable named instances.
 import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -42,8 +42,8 @@ async function exercise(mode,profile) {
   if(mode === 'compose') {
     projects.add(project);compose(project,['up','-d','--no-build','--pull','never']);
     container=compose(project,['ps','-q','app']);
-    url=`http://${compose(project,['port','app','8080'])}`;
-    recreate=()=>{compose(project,['up','-d','--no-build','--pull','never','--force-recreate']);container=compose(project,['ps','-q','app']);url=`http://${compose(project,['port','app','8080'])}`;};
+    url=`http://${compose(project,['port','app','3000'])}`;
+    recreate=()=>{compose(project,['up','-d','--no-build','--pull','never','--force-recreate']);container=compose(project,['ps','-q','app']);url=`http://${compose(project,['port','app','3000'])}`;};
   } else {
     volumes.add(volume);docker(['volume','create',volume]);
     const run=['run','-d','--name',name,'--read-only','--cap-drop=ALL','--security-opt=no-new-privileges:true','-v',`${volume}:/data`];
@@ -58,20 +58,22 @@ async function exercise(mode,profile) {
       expect(JSON.parse(readFileSync(join(release,'manifest.json'),'utf8')).migration_level).toBe(profile==='web-platform'?15:13);
       expect(JSON.parse(readFileSync(join(release,'manifest.json'),'utf8')).business_migration_level).toBe(2);
       expect(readFileSync(join(release,'LICENSE'),'utf8')).toContain('MIT License');
-      expect(readFileSync(join(release,`bin/${identity.cli.opsCommand}`)).byteLength).toBeGreaterThan(1000);
+      expect(readFileSync(join(release,identity.cli.command)).byteLength).toBeGreaterThan(1000);
       const network=`${name}-network`;networks.add(network);docker(['network','create',network]);
-      run.push('--network',network,'--network-alias','backend','-v',`${release}:/release:ro`,'--entrypoint','/release/bin/server','-e','APP_DEPLOYMENT_KIND=tar');
-      const config=readFileSync(join(release,'deploy/nginx.conf.example'),'utf8').replace('127.0.0.1:8088','0.0.0.0:80').replace(`${identity.deployment.installDirectory}/current/web`,'/release/web').replaceAll('127.0.0.1:8080','backend:8080').replace('add_header Cache-Control','add_header X-Unicore-Static nginx;\n        add_header Cache-Control');
+      run.push('--network',network,'--network-alias','backend','-v',`${release}:/release:ro`,'--entrypoint',`/release/${identity.cli.command}`,'-e','APP_DEPLOYMENT_KIND=tar');
+      const config=readFileSync(join(release,'deploy/nginx.conf.example'),'utf8').replaceAll('127.0.0.1:3000','backend:3000');
       const conf=join(temp,`${mode}.conf`);writeFileSync(conf,config);
       const nginx=`${name}-nginx`;containers.add(nginx);
       docker([...run,image]);containers.add(name);
       docker(['run','-d','--name',nginx,'--network',network,'-p','127.0.0.1::80','-v',`${release}:/release:ro`,'-v',`${conf}:/etc/nginx/conf.d/default.conf:ro`,process.env.NGINX_IMAGE??'nginx:latest']);
       docker(['exec',nginx,'nginx','-t']);
       url=`http://${docker(['port',nginx,'80/tcp'])}`;
-      const asset=readdirSync(join(release,'web/assets')).find(file=>file.endsWith('.js'));
-      let response;await expect.poll(async()=>{try{response=await fetch(`${url}/assets/${asset}`);return response.status;}catch{return 0;}},{timeout:30000}).toBe(200);expect(response.headers.get('x-unicore-static')).toBe('nginx');
-    } else {run.push('-p','127.0.0.1::8080');docker([...run,image]);containers.add(name);url=`http://${docker(['port',name,'8080/tcp'])}`;}
-    recreate=()=>{docker(['stop','-t','15',name]);expect(docker(['inspect','--format','{{.State.ExitCode}}',name])).toBe('0');docker(['rm',name]);docker([...run,image]);if(mode==='docker')url=`http://${docker(['port',name,'8080/tcp'])}`;};
+      let response;await expect.poll(async()=>{try{response=await fetch(`${url}/install`);return response.status;}catch{return 0;}},{timeout:30000}).toBe(200);
+      const html=await response.text();
+      const asset=html.match(/src="(\/assets\/[^"]+\.js)"/)?.[1];expect(asset).toBeTruthy();
+      expect((await fetch(`${url}${asset}`)).status).toBe(200);
+    } else {run.push('-p','127.0.0.1::3000');docker([...run,image]);containers.add(name);url=`http://${docker(['port',name,'3000/tcp'])}`;}
+    recreate=()=>{docker(['stop','-t','15',name]);expect(docker(['inspect','--format','{{.State.ExitCode}}',name])).toBe('0');docker(['rm',name]);docker([...run,image]);if(mode==='docker')url=`http://${docker(['port',name,'3000/tcp'])}`;};
   }
   await waitLive(url);
   const context=await browser.newContext({baseURL:url,viewport:{width:1440,height:1000}});
@@ -151,7 +153,7 @@ async function exercise(mode,profile) {
     const fingerprints=Object.fromEntries(['secret.key','installation.json'].map(path=>[path,digest(dataFile(container,path))]));
     // A process restart followed by container replacement must retain the installation and key.
     docker(['restart','-t','15',container]);
-    if(!mode.startsWith('tar'))url=`http://${docker(['port',container,'8080/tcp'])}`;
+    if(!mode.startsWith('tar'))url=`http://${docker(['port',container,'3000/tcp'])}`;
     await waitLive(url);
     recreate();await waitLive(url);
     expect((await json(bootstrapPath)).site_name).toBe(admin?`持久部署 ${mode}`:identity.product.name);
@@ -198,7 +200,7 @@ async function exercise(mode,profile) {
         await personal.screenshot({path:join(evidence,`${mode}-member-local-375.png`),fullPage:true});
       } finally {await member.close();}
     }
-    expect(errors).toEqual([]);results.push({mode,profile,version,status:'passed',checks:['install wizard PC/375',...(admin?['demo account and six-digit captcha login','CSRF and custom admin path','all management APIs reject anonymous/member','member local appearance only']:['platform APIs absent']),...(mode.startsWith('tar')?['Nginx serves fingerprinted assets']:[]),'API/brand/manifest/docs routing','restart and container replacement','persisted settings/key/database/brand','Core']});
+    expect(errors).toEqual([]);results.push({mode,profile,version,status:'passed',checks:['install wizard PC/375',...(admin?['demo account and six-digit captcha login','CSRF and custom admin path','all management APIs reject anonymous/member','member local appearance only']:['platform APIs absent']),...(mode.startsWith('tar')?['Nginx proxies embedded fingerprinted assets']:[]),'API/brand/manifest/docs routing','restart and container replacement','persisted settings/key/database/brand','Core']});
     console.log(`PASS ${mode}`);
   } catch(error) {
     // Preserve the real failed page without logging form values or credentials.

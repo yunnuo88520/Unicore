@@ -39,9 +39,9 @@ func TestMain(m *testing.M) {
 	if len(os.Args) > 1 && os.Args[1] == "--fixture-app" && os.Getenv("UNICORE_UPDATE_FIXTURE") == "1" {
 		data := os.Getenv("UNICORE_UPDATE_FIXTURE_DATA")
 		exe, _ := os.Executable()
-		versionFile := filepath.Join(filepath.Dir(exe), "..", "VERSION")
-		if runtime.GOOS == "windows" {
-			versionFile = filepath.Join(filepath.Dir(exe), "VERSION")
+		versionFile := filepath.Join(filepath.Dir(exe), "VERSION")
+		if filepath.Base(filepath.Dir(exe)) == "bin" {
+			versionFile = filepath.Join(filepath.Dir(exe), "..", "VERSION")
 		}
 		b, _ := os.ReadFile(versionFile)
 		v := strings.TrimSpace(string(b))
@@ -100,7 +100,7 @@ func archive(t *testing.T, destination string, entries map[string][]byte) {
 	w := tar.NewWriter(z)
 	for name, b := range entries {
 		mode := int64(0644)
-		if strings.HasSuffix(name, "/bin/server") {
+		if strings.HasSuffix(name, "/bin/server") || strings.HasSuffix(name, "/unicore") {
 			mode = 0755
 		}
 		if e = w.WriteHeader(&tar.Header{Name: name, Size: int64(len(b)), Mode: mode}); e != nil {
@@ -114,7 +114,7 @@ func archive(t *testing.T, destination string, entries map[string][]byte) {
 	_ = z.Close()
 	_ = f.Close()
 }
-func installFixture(t *testing.T) (*Installer, updates.Payload, string) {
+func installFixture(t *testing.T, layout ...string) (*Installer, updates.Payload, string) {
 	t.Helper()
 	// The fixture manages its own child processes, independently of a CI runner's service.
 	t.Setenv("INVOCATION_ID", "")
@@ -125,6 +125,9 @@ func installFixture(t *testing.T) (*Installer, updates.Payload, string) {
 	_ = os.MkdirAll(data, 0700)
 	executable, _ := os.Executable()
 	executableName := "bin/server"
+	if len(layout) > 0 {
+		executableName = layout[0]
+	}
 	profile := "web-standalone"
 	if runtime.GOOS == "windows" {
 		executableName = "server.exe"
@@ -173,52 +176,56 @@ func installFixture(t *testing.T) (*Installer, updates.Payload, string) {
 }
 func TestRealHelperUpgradeAndRollback(t *testing.T) {
 
-	for _, fail := range []bool{false, true} {
-		t.Run(strconv.FormatBool(fail), func(t *testing.T) {
-			i, p, _ := installFixture(t)
-			t.Chdir(i.Root)
-			if fail {
-				t.Setenv("UNICORE_UPDATE_FIXTURE_FAIL", "1.0.1")
-			}
-			if i.Readiness() != "" {
-				t.Fatal(i.Readiness())
-			}
-			if _, e := i.Start(p); e != nil {
-				t.Fatal(e)
-			}
-			expected := "completed"
-			version := "1.0.1"
-			if fail {
-				expected = "rolled_back"
-				version = "1.0.0"
-			}
-			deadline := time.Now().Add(20 * time.Second)
-			for time.Now().Before(deadline) {
-				job := i.Job()
-				if job.Status == expected {
-					break
-				}
-				if job.Status == "failed" {
-					t.Fatal(job)
-				}
-				time.Sleep(50 * time.Millisecond)
-			}
-			if job := i.Job(); job.Status != expected {
-				t.Fatal(job)
-			}
-			b, _ := os.ReadFile(filepath.Join(i.Root, "VERSION"))
-			if strings.TrimSpace(string(b)) != version {
-				t.Fatal("wrong program", string(b))
-			}
-			b, _ = os.ReadFile(filepath.Join(i.DataDir, "sentinel"))
-			if string(b) != "preserve data" {
-				t.Fatal("data changed")
-			}
-			if !fail {
-				b, e := os.ReadFile(filepath.Join(i.DataDir, "working-directory"))
-				if e != nil || string(b) != i.Root {
-					t.Fatal("restart changed the working directory", string(b), e)
-				}
+	for _, layout := range []string{"bin/server", "unicore"} {
+		t.Run(layout, func(t *testing.T) {
+			for _, fail := range []bool{false, true} {
+				t.Run(strconv.FormatBool(fail), func(t *testing.T) {
+					i, p, _ := installFixture(t, layout)
+					t.Chdir(i.Root)
+					if fail {
+						t.Setenv("UNICORE_UPDATE_FIXTURE_FAIL", "1.0.1")
+					}
+					if i.Readiness() != "" {
+						t.Fatal(i.Readiness())
+					}
+					if _, e := i.Start(p); e != nil {
+						t.Fatal(e)
+					}
+					expected := "completed"
+					version := "1.0.1"
+					if fail {
+						expected = "rolled_back"
+						version = "1.0.0"
+					}
+					deadline := time.Now().Add(20 * time.Second)
+					for time.Now().Before(deadline) {
+						job := i.Job()
+						if job.Status == expected {
+							break
+						}
+						if job.Status == "failed" {
+							t.Fatal(job)
+						}
+						time.Sleep(50 * time.Millisecond)
+					}
+					if job := i.Job(); job.Status != expected {
+						t.Fatal(job)
+					}
+					b, _ := os.ReadFile(filepath.Join(i.Root, "VERSION"))
+					if strings.TrimSpace(string(b)) != version {
+						t.Fatal("wrong program", string(b))
+					}
+					b, _ = os.ReadFile(filepath.Join(i.DataDir, "sentinel"))
+					if string(b) != "preserve data" {
+						t.Fatal("data changed")
+					}
+					if !fail {
+						b, e := os.ReadFile(filepath.Join(i.DataDir, "working-directory"))
+						if e != nil || string(b) != i.Root {
+							t.Fatal("restart changed the working directory", string(b), e)
+						}
+					}
+				})
 			}
 		})
 	}

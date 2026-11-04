@@ -6,7 +6,6 @@
       "source": "docs/product/index.md",
       "target": "docs/product/index.md",
       "audiences": [
-        "user-release",
         "project-template",
         "public-wiki",
         "public-site"
@@ -19,7 +18,6 @@
       "source": "docs/product/configuration.md",
       "target": "docs/product/configuration.md",
       "audiences": [
-        "user-release",
         "project-template",
         "public-wiki",
         "public-site"
@@ -32,7 +30,6 @@
       "source": "docs/product/build.md",
       "target": "docs/product/build.md",
       "audiences": [
-        "user-release",
         "project-template",
         "public-wiki",
         "public-site"
@@ -45,7 +42,6 @@
       "source": "docs/product/deployment.md",
       "target": "docs/product/deployment.md",
       "audiences": [
-        "user-release",
         "project-template",
         "public-wiki",
         "public-site"
@@ -58,7 +54,6 @@
       "source": "docs/product/backup.md",
       "target": "docs/product/backup.md",
       "audiences": [
-        "user-release",
         "project-template",
         "public-wiki",
         "public-site"
@@ -71,7 +66,6 @@
       "source": "docs/product/storage.md",
       "target": "docs/product/storage.md",
       "audiences": [
-        "user-release",
         "project-template",
         "public-wiki",
         "public-site"
@@ -84,7 +78,6 @@
       "source": "docs/product/updates.md",
       "target": "docs/product/updates.md",
       "audiences": [
-        "user-release",
         "project-template",
         "public-wiki",
         "public-site"
@@ -341,7 +334,6 @@
       "source": "docs/product/notifications.md",
       "target": "docs/product/notifications.md",
       "audiences": [
-        "user-release",
         "project-template",
         "public-wiki",
         "public-site"
@@ -436,9 +428,7 @@
     "deploy/docker/compose.dev.yaml",
     "deploy/docker/compose.yaml",
     "deploy/tar/nginx.conf.example",
-    "deploy/tar/unicore",
     "deploy/tar/unicore.service",
-    "deploy/tar/unicorehelp",
     "distribution/manifest.json",
     "distribution/template/AGENTS.md",
     "distribution/template/CONTRIBUTING.md",
@@ -946,7 +936,9 @@
     "internal/settings/notifications.go",
     "packages/web-ui/src/pages/admin/notifications.tsx",
     "tests/e2e/notifications.spec.ts",
-    "internal/adapter/storage/platformsql/notification_events_test.go"
+    "internal/adapter/storage/platformsql/notification_events_test.go",
+    "scripts/release-layout.mjs",
+    "internal/maintenance/command.go"
   ],
   "ownership": {
     "product-owned": [

@@ -1,14 +1,14 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 离线加密备份与恢复
 
-使用发行包 bin/unicore-ops 或源码 make build-ops 生成的工具。业务 CLI 仍不连接数据库。先停服务/退出桌面；工具使用实例锁，活动实例会被拒绝。
+Web 发行包使用同一入口 `./unicore backup|verify|restore`，不再附带第二个维护可执行文件。桌面用户或源码运维可用 make build-ops 生成独立工具。业务 CLI 仍不连接数据库。先停服务/退出桌面；工具使用实例锁，活动实例会被拒绝。
 
 ```sh
 read -s UNICORE_BACKUP_PASSPHRASE
 export UNICORE_BACKUP_PASSPHRASE
-bin/unicore-ops backup --data-dir /srv/my-app-data --output /srv/backups/snapshot.tar.gz.age
-bin/unicore-ops verify --input /srv/backups/snapshot.tar.gz.age
-bin/unicore-ops restore --input /srv/backups/snapshot.tar.gz.age --data-dir /srv/my-app-restored --base-url https://restored.example.com
+./unicore backup --data-dir /srv/my-app-data --output /srv/backups/snapshot.tar.gz.age
+./unicore verify --input /srv/backups/snapshot.tar.gz.age
+./unicore restore --input /srv/backups/snapshot.tar.gz.age --data-dir /srv/my-app-restored --base-url https://restored.example.com
 unset UNICORE_BACKUP_PASSPHRASE
 ```
 

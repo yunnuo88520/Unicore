@@ -48,7 +48,7 @@ export function scanResiduals(base = root) {
     'apps/web/index.html', 'apps/web/admin.html', 'apps/desktop/index.html',
     'apps/web/public/site.webmanifest', 'apps/desktop/public/site.webmanifest',
     'cmd/desktop/wails.json', 'packages/contracts/openapi.json',
-    `deploy/tar/${identity.cli.command}`, `deploy/tar/${identity.cli.command}help`, `deploy/tar/${identity.deployment.serviceName}.service`,
+    `deploy/tar/${identity.deployment.serviceName}.service`,
     'deploy/tar/nginx.conf.example', 'deploy/docker/compose.yaml', 'deploy/docker/compose.dev.yaml', 'deploy/docker/Dockerfile',
   ];
   for (const path of required) {

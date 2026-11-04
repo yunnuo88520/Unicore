@@ -1422,5 +1422,9 @@
   "通知投递记录": "Notification delivery history",
   "暂无投递任务": "No delivery jobs",
   "通知已过期": "Notification expired",
-  "通知已关闭或渠道已切换": "Notifications disabled or channel changed"
+  "通知已关闭或渠道已切换": "Notifications disabled or channel changed",
+  "企业身份验证未完成或已过期，请重新验证后设置身份验证器。": "Enterprise verification was incomplete or expired. Verify again to set up your authenticator.",
+  "此账号使用企业登录。重新验证已绑定的企业身份后，即可设置身份验证器，无需本地密码或邮件。": "This account uses enterprise sign-in. Verify your linked enterprise identity again to set up an authenticator. No local password or email is needed.",
+  "正在读取身份验证器设置…": "Loading authenticator setup…",
+  "验证企业身份并继续": "Verify enterprise identity and continue"
 }

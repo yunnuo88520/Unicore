@@ -28,6 +28,7 @@ type OIDCClaims struct {
 type OIDCFlow struct {
 	Mode, UserID, CredentialHash, SessionHash string
 	Nonce, Verifier, Fingerprint              string
+	SetupSecret                               string
 }
 type OIDCProvider interface {
 	Check(context.Context, OIDCConfig) error
@@ -119,6 +120,34 @@ func (s *OIDC) Start(ctx context.Context, user contracts.User, password, session
 	if !s.Identity.Limiter.Allow("oidc-start:"+clientIP, 20, time.Minute) {
 		return "", "", ErrRateLimited
 	}
+	f := OIDCFlow{Mode: "login"}
+	var err error
+	if user.ID != "" {
+		f, err = s.confirm(ctx, user, password, session, clientIP)
+		if err != nil {
+			return "", "", err
+		}
+	}
+	return s.startFlow(ctx, f)
+}
+
+// StartTOTP proves the already linked identity again; it cannot create or link accounts.
+func (s *OIDC) StartTOTP(ctx context.Context, user contracts.User, session, clientIP string) (string, string, error) {
+	if !s.Identity.Limiter.Allow("oidc-totp:"+user.ID+":"+clientIP, 8, time.Minute) {
+		return "", "", ErrRateLimited
+	}
+	current, err := s.Identity.Session(ctx, session)
+	if err != nil || current.User.ID != user.ID || current.User.TotpEnabled {
+		return "", "", ErrCredentials
+	}
+	info, err := s.Store.OIDCAccount(ctx, user.ID)
+	if err != nil || !info.Linked || info.HasLocalPassword {
+		return "", "", ErrCredentials
+	}
+	return s.startFlow(ctx, OIDCFlow{Mode: "totp", UserID: user.ID, SessionHash: Hash(session)})
+}
+
+func (s *OIDC) startFlow(ctx context.Context, f OIDCFlow) (string, string, error) {
 	c, values, err := s.configuration(ctx)
 	if err != nil {
 		return "", "", err
@@ -129,16 +158,9 @@ func (s *OIDC) Start(ctx context.Context, user contracts.User, password, session
 	if !settings.ValidOIDCURL(s.BaseURL) {
 		return "", "", ErrInput
 	}
-	f := OIDCFlow{Mode: "login"}
-	if user.ID != "" {
-		f, err = s.confirm(ctx, user, password, session, clientIP)
-		if err != nil {
-			return "", "", err
-		}
-	}
 	f.Nonce, f.Verifier, f.Fingerprint = Token(), Token(), settings.OIDCFingerprint(values)
 	state, browser := Token(), Token()
-	u, err := s.Provider.Authorize(ctx, c, state, f.Nonce, f.Verifier, f.Mode == "link")
+	u, err := s.Provider.Authorize(ctx, c, state, f.Nonce, f.Verifier, f.Mode != "login")
 	if err != nil {
 		return "", "", ErrOIDCUnavailable
 	}
@@ -146,7 +168,7 @@ func (s *OIDC) Start(ctx context.Context, user contracts.User, password, session
 	err = s.Store.CreateOIDCFlow(ctx, Hash(state), Hash(browser), s.Secrets.Seal(string(payload)), time.Now().Add(5*time.Minute).Unix())
 	return u, browser, err
 }
-func (s *OIDC) Complete(ctx context.Context, state, browser, code, responseIssuer string, providerError bool) (contracts.Session, string, string, error) {
+func (s *OIDC) Complete(ctx context.Context, state, browser, code, responseIssuer string, providerError bool, currentSession string) (contracts.Session, string, string, error) {
 	if len(state) != 43 || len(browser) != 43 {
 		return contracts.Session{}, "", "login", ErrOIDC
 	}
@@ -172,9 +194,25 @@ func (s *OIDC) Complete(ctx context.Context, state, browser, code, responseIssue
 	if values["oidc.enabled"] != "true" || settings.OIDCFingerprint(values) != f.Fingerprint || (responseIssuer != "" && responseIssuer != c.Issuer) {
 		return result(ErrOIDC)
 	}
-	claims, err := s.Provider.Verify(ctx, c, code, f.Nonce, f.Verifier, f.Mode == "link")
+	if f.Mode == "totp" && (len(currentSession) != 43 || !Equal(Hash(currentSession), f.SessionHash)) {
+		return result(ErrCredentials)
+	}
+	claims, err := s.Provider.Verify(ctx, c, code, f.Nonce, f.Verifier, f.Mode != "login")
 	if err != nil {
 		return result(ErrOIDC)
+	}
+	if f.Mode == "totp" {
+		secret, err := newTOTPSecret()
+		if err != nil {
+			return result(err)
+		}
+		f.SetupSecret = s.Secrets.Seal(secret)
+		// The consumed authorization becomes a ten-minute, current-session setup only.
+		user, err := s.Store.CompleteOIDC(ctx, f, claims, "", int(time.Now().Unix())+600)
+		if err != nil {
+			return result(err)
+		}
+		return contracts.Session{User: user}, "", f.Mode, nil
 	}
 	hours, _ := strconv.Atoi(values["security.session_hours"])
 	if hours < 1 || hours > 168 {

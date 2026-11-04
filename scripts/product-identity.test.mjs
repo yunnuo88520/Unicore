@@ -22,8 +22,8 @@ const files={
  'apps/desktop/index.html':'<!doctype html><html><head><title>Old · 桌面工作空间</title></head><body></body></html>\n',
  'apps/web/public/site.webmanifest':'{"name":"Old","short_name":"Old"}',
  'apps/desktop/public/site.webmanifest':'{"name":"Old","short_name":"Old"}',
- 'deploy/tar/unicore':'#!/bin/sh\nunicore_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\n',
- 'deploy/tar/unicorehelp':'#!/bin/sh\nunicore_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\n',
+
+
  'deploy/tar/unicore.service':'[Unit]\nDescription=Unicore application server\n\n[Service]\nUser=unicore\nGroup=unicore\nWorkingDirectory=/var/lib/unicore\nEnvironmentFile=-/etc/unicore/unicore.env\nExecStart=/opt/unicore/current/bin/server\n',
  'deploy/tar/nginx.conf.example':'server {\n    root /opt/unicore/current/web;\n}\n',
  'deploy/docker/compose.yaml':'services:\n  app:\n    image: ${UNICORE_IMAGE:-unicore:local}\n    volumes:\n      - unicore_data:/data\nvolumes:\n  unicore_data:\n',
@@ -76,8 +76,8 @@ test('applyIdentity applies every projection idempotently and check mode never w
  try{
   assert.equal(loadIdentity(root).product.slug,'my-product');
   applyIdentity(root,identity,false);
-  const renamed=['deploy/tar/unicore','deploy/tar/unicorehelp','deploy/tar/unicore.service'];
-  const paths=[...Object.keys(files).filter(p=>!renamed.includes(p)),'deploy/tar/my-product','deploy/tar/my-producthelp','deploy/tar/my-product.service','internal/buildinfo/identity.gen.go','packages/web-ui/src/product.gen.ts'];
+  const renamed=['deploy/tar/unicore.service'];
+  const paths=[...Object.keys(files).filter(p=>!renamed.includes(p)),'deploy/tar/my-product.service','internal/buildinfo/identity.gen.go','packages/web-ui/src/product.gen.ts'];
   const snapshot=Object.fromEntries(paths.map(p=>[p,readFileSync(join(root,p),'utf8')]));
   applyIdentity(root,identity,false);
   for(const [p,text] of Object.entries(snapshot))assert.equal(readFileSync(join(root,p),'utf8'),text,`second run changed ${p}`);
@@ -104,7 +104,6 @@ test('applyIdentity applies every projection idempotently and check mode never w
   assert.match(snapshot['deploy/tar/my-product.service'],/\/var\/lib\/my-product/);
   assert.match(snapshot['deploy/tar/my-product.service'],/\/etc\/my-product\/my-product\.env/);
   assert.match(snapshot['deploy/tar/my-product.service'],/Description=My Product application server/);
-  assert.match(snapshot['deploy/tar/my-product'],/my-product_dir/);
   assert.match(snapshot['deploy/docker/compose.yaml'],/MY_PRODUCT_IMAGE/);
   assert.match(snapshot['deploy/docker/compose.yaml'],/my-product_data/);
   assert.match(snapshot['deploy/docker/compose.dev.yaml'],/POSTGRES_USER: my-product/);

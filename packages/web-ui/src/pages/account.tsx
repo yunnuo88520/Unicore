@@ -94,7 +94,15 @@ export function AccountSecurityPage({ client, metadata, refresh }: PageProps) {
 function Authenticator({ web, profile, onChanged, onPolicyChanged }: { web: WebClient; profile: AccountProfile; onChanged: () => void; onPolicyChanged:()=>void }) {
   useLocale();
   const message = useMessage();
-  const [setupOpen, setSetupOpen] = useState(false);
+  const navigate = useNavigate();
+  const { oidc } = useRouteSearch<{ oidc: string }>();
+  const [enterpriseResume, setEnterpriseResume] = useState(oidc === 'totp_ready');
+  const enterprise = useQuery({ queryKey: ['oidc-account', profile.user.id], queryFn: () => web.oidcAccount() });
+  useEffect(() => {
+    if (oidc === 'totp_failed') message.error(t('企业身份验证未完成或已过期，请重新验证后设置身份验证器。'));
+    if (oidc === 'totp_ready' || oidc === 'totp_failed') void navigate({ to: '/account-security', search: {}, replace: true });
+  }, [oidc, navigate, message]);
+  const [setupOpen, setSetupOpen] = useState(oidc === 'totp_ready' && !profile.totp_enabled);
   const [recovery, setRecovery] = useState<string[]>([]);
   const [disableOpen, setDisableOpen] = useState(false);
   const form = useAppForm({ schema: 'SecurityCodeInput', defaultValues: { code: '' }, onSubmit: values => { disable.mutate(values.code); } });
@@ -104,33 +112,35 @@ function Authenticator({ web, profile, onChanged, onPolicyChanged }: { web: WebC
   return <Card><CardHeader className="flex-row items-start justify-between gap-2"><div><CardTitle><Smartphone size={18} aria-hidden="true" />{t('双重验证')}</CardTitle><CardDescription>{t('使用身份验证器生成一次性验证码，为所有登录方式增加一层保护。')}</CardDescription></div><Badge variant={profile.totp_enabled ? 'success' : 'subtle'}>{profile.totp_enabled ? t('已开启') : t('未开启')}</Badge></CardHeader>
     <CardContent className="flex flex-col items-start gap-4">
       {profile.force_2fa && <p role="status" className="text-sm text-muted">{t('实例要求当前账号启用双重验证。')}</p>}
-      {profile.totp_enabled ? <><Button variant="secondary" disabled={!profile.can_disable_2fa} onClick={() => setDisableOpen(true)}>{t('关闭双重验证')}</Button>{!profile.can_disable_2fa && <p className="text-xs text-muted">{t('实例策略不允许关闭双重验证。')}</p>}</> : <Button onClick={() => setSetupOpen(true)}>{t('设置身份验证器')}</Button>}
+      {profile.totp_enabled ? <><Button variant="secondary" disabled={!profile.can_disable_2fa} onClick={() => setDisableOpen(true)}>{t('关闭双重验证')}</Button>{!profile.can_disable_2fa && <p className="text-xs text-muted">{t('实例策略不允许关闭双重验证。')}</p>}</> : <Button disabled={!enterprise.data} onClick={() => { setEnterpriseResume(false); setSetupOpen(true); }}>{t('设置身份验证器')}</Button>}
       {recovery.length > 0 && <div className="w-full rounded-lg border border-line bg-surface-alt p-4"><h3 className="font-semibold">{t('恢复码')}</h3><p className="mt-1 text-sm text-muted">{t('仅显示一次。每个恢复码只能使用一次，请保存在安全位置。丢失验证器时可用恢复码登录。')}</p><div className="my-4 grid gap-2 font-mono text-xs sm:grid-cols-2">{recovery.map(code => <code key={code} className="select-all break-all rounded border border-line bg-surface px-2 py-1">{code}</code>)}</div><div className="flex flex-wrap gap-2"><Button variant="secondary" onClick={() => void copy(recovery.join('\n'))}><Copy size={15} />{t('复制恢复码')}</Button><Button variant="secondary" onClick={download}><Download size={15} />{t('下载恢复码')}</Button><Button variant="ghost" onClick={() => {setRecovery([]);onPolicyChanged();}}>{t('已保存，关闭')}</Button></div></div>}
-      {setupOpen && <TOTPSetupDialog web={web} onClose={() => setSetupOpen(false)} onEnabled={codes => { setRecovery(codes); setSetupOpen(false); message.success(t('双重验证已开启，其他设备已退出')); onChanged(); }} />}
+      {setupOpen && <TOTPSetupDialog web={web} enterprise={!!enterprise.data?.linked && !enterprise.data.has_local_password} resume={enterpriseResume} onClose={() => setSetupOpen(false)} onEnabled={codes => { setRecovery(codes); setSetupOpen(false); message.success(t('双重验证已开启，其他设备已退出')); onChanged(); }} />}
       {disableOpen && <Modal title={t('关闭双重验证')} onClose={() => setDisableOpen(false)} pending={disable.isPending}><p className="mb-4 text-sm text-muted">{t('输入身份验证器的新验证码。恢复码不能用于关闭双重验证。')}</p><AppForm form={form} className="flex flex-col gap-4"><AppField name="code" label={t('身份验证器验证码')}><Input inputMode="numeric" autoComplete="one-time-code" required pattern="[0-9]{6}" maxLength={6} /></AppField><Button type="submit" variant="danger" pending={disable.isPending}>{t('确认关闭')}</Button></AppForm></Modal>}
     </CardContent>
   </Card>;
 }
-function TOTPSetupDialog({ web, onClose, onEnabled }: { web: WebClient; onClose: () => void; onEnabled: (codes: string[]) => void }) {
+function TOTPSetupDialog({ web, enterprise, resume, onClose, onEnabled }: { web: WebClient; enterprise: boolean; resume: boolean; onClose: () => void; onEnabled: (codes: string[]) => void }) {
   useLocale();
   const message = useMessage();
+  const resumed = useQuery({ queryKey: ['pending-totp'], queryFn: () => web.pendingTOTP(), enabled: enterprise && resume, gcTime: 0, retry: false });
   const [setup, setSetup] = useState<TOTPSetup>();
   const [qr, setQR] = useState('');
   const [seconds, setSeconds] = useState(30);
   const inflight = useRef(false);
   const form = useAppForm({ defaultValues: { password: '', code: '' }, onSubmit: values => { if(setup) enable.mutate(values.code); else begin.mutate(); } });
+  useEffect(() => { if (resumed.data) setSetup(resumed.data); }, [resumed.data]);
   const begin = useMutation({
-    mutationFn: async () => { if (inflight.current) return; inflight.current = true; try { return await web.beginTOTP(form.getValues('password')); } finally { inflight.current = false; } },
+    mutationFn: async () => { if (inflight.current) return; inflight.current = true; try { if (enterprise) { const start = await web.oidcTOTP(); window.location.assign(start.authorization_url); return; } return await web.beginTOTP(form.getValues('password')); } finally { inflight.current = false; } },
     onSuccess: result => { if (!result) return; setSetup(result); setQR(''); form.setValue('code', ''); setSeconds(30); }, onError: form.applyServerError,
   });
   const enable = useMutation({ mutationFn: (code: string) => web.enableTOTP(code), onSuccess: result => { form.reset(); onEnabled(result.codes); }, onError: form.applyServerError });
   const cancel = useMutation({ mutationFn: () => web.cancelTOTP(), onSuccess: () => { form.reset(); onClose(); } });
-  const pending = begin.isPending || enable.isPending || cancel.isPending;
+  const pending = begin.isPending || enable.isPending || cancel.isPending || resumed.isFetching;
   useEffect(() => { if (!setup) return; let disposed = false; void QRCode.toDataURL(setup.otpauth_url, { width: 256, margin: 4 }).then(image => { if (!disposed) setQR(image); }).catch(() => { if (!disposed) message.error(t('二维码生成失败，请使用手动密钥')); }); return () => { disposed = true; }; }, [setup, message]);
   useEffect(() => { if (!setup) return; const timer = window.setInterval(() => setSeconds(30 - Math.floor(Date.now() / 1000) % 30), 1000); return () => window.clearInterval(timer); }, [setup]);
   return <Modal title={t('设置身份验证器')} onClose={() => cancel.mutate()} pending={pending}>
     <AppForm form={form} className="flex flex-col gap-4">
-      {!setup ? <><p className="text-sm text-muted">{t('先验证当前密码，再使用身份验证器扫描二维码。')}</p><AppField name="password" label={t('当前密码')}><Input type="password" required maxLength={128} autoComplete="current-password" /></AppField><Button type="submit" pending={begin.isPending}>{t('验证并开始设置')}</Button></> : <>
+      {!setup && enterprise ? <><p className="text-sm text-muted">{t('此账号使用企业登录。重新验证已绑定的企业身份后，即可设置身份验证器，无需本地密码或邮件。')}</p>{resumed.isFetching && <p role="status">{t('正在读取身份验证器设置…')}</p>}{resumed.error && <p role="alert">{t(resumed.error.message)}</p>}<Button type="button" pending={begin.isPending} disabled={pending} onClick={() => begin.mutate()}>{t('验证企业身份并继续')}</Button></> : !setup ? <><p className="text-sm text-muted">{t('先验证当前密码，再使用身份验证器扫描二维码。')}</p><AppField name="password" label={t('当前密码')}><Input type="password" required maxLength={128} autoComplete="current-password" /></AppField><Button type="submit" pending={begin.isPending}>{t('验证并开始设置')}</Button></> : <>
         <p className="text-sm text-muted">{t('使用 Google Authenticator、Microsoft Authenticator 或其他兼容应用扫描二维码，也可手动输入密钥，再填写 6 位验证码。')}</p>
         <div className="flex flex-wrap items-center gap-4">{qr ? <img src={qr} width={256} height={256} alt={t('身份验证器设置二维码')} className="max-w-full shrink-0 rounded-lg border border-line" /> : <p role="status">{t('正在生成二维码…')}</p>}<div className="flex flex-col items-start gap-2 text-sm text-muted"><span>{t('验证码每 30 秒更新，{{seconds}} 秒后进入下一周期', { seconds })}</span><span>{t('绑定密钥 10 分钟内有效；刷新会使旧二维码失效。')}</span><Button type="button" variant="secondary" disabled={pending} onClick={() => begin.mutate()}>{t('立即刷新')}</Button></div></div>
         <label className="flex flex-col gap-1.5 text-sm font-medium">{t('手动密钥')}<Input value={setup.secret} readOnly className="font-mono text-xs" /></label>

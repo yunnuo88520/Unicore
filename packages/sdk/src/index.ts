@@ -76,6 +76,8 @@ export interface WebClient {
  accountProfile():Promise<AccountProfile>;
  saveAccountProfile(input:ProfileInput):Promise<AccountProfile>;
  beginTOTP(password:string):Promise<TOTPSetup>;
+ pendingTOTP():Promise<TOTPSetup>;
+ oidcTOTP():Promise<OIDCStart>;
  cancelTOTP():Promise<{success:boolean}>;
  enableTOTP(code:string):Promise<RecoveryCodes>;
  disableTOTP(code:string):Promise<{success:boolean}>;
@@ -155,6 +157,8 @@ const administratorOperations: Partial<Record<OperationId, OperationId>> = {
  accountProfile:'adminAccountProfile',
  saveAccountProfile:'adminSaveAccountProfile',
  beginTOTP:'adminBeginTOTP',
+ pendingTOTP:'adminPendingTOTP',
+ oidcTOTP:'adminOidcTOTP',
  cancelTOTP:'adminCancelTOTP',
  enableTOTP:'adminEnableTOTP',
  disableTOTP:'adminDisableTOTP',
@@ -276,6 +280,8 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
  accountProfile(){return this.call('accountProfile');}
  saveAccountProfile(input:ProfileInput){return this.call('saveAccountProfile',input);}
  beginTOTP(password:string){return this.call('beginTOTP',{password});}
+ pendingTOTP(){return this.call('pendingTOTP');}
+ oidcTOTP(){return this.call('oidcTOTP');}
  cancelTOTP(){return this.call('cancelTOTP');}
  enableTOTP(code:string){return this.call('enableTOTP',{code});}
  disableTOTP(code:string){return this.call('disableTOTP',{code});}

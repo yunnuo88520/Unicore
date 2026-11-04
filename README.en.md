@@ -38,7 +38,7 @@ Platform administration includes searchable, sortable, paginated audit logs with
 
 Graphical profiles share Chinese/English UI switching and a local theme drawer for colors, radius, density, and layout. Preferences persist locally and remain separate from server settings. See [client preferences](docs/03-runbooks/client-preferences.md).
 
-Download development previews and checksums from [GitHub Releases](https://github.com/yunnuo88520/Unicore/releases). On macOS, use the DMG and drag the app into Applications. On Windows, run the EXE directly. Linux desktop uses a tar archive. Web archives include `./unicorehelp`, `./unicore config generate`, and `./unicore --config unicore.json`; first-time setup stays in `/install`. OTA continues to use complete tar release directories. A standalone Windows EXE only checks for updates without the full release directory.
+Download development previews and checksums from [GitHub Releases](https://github.com/yunnuo88520/Unicore/releases). On macOS, use the DMG and drag the app into Applications. On Windows, run the EXE directly. Linux desktop uses a tar archive. Web archives include `./unicore help`, `./unicore config generate`, and `./unicore --config config.yaml`; first-time setup stays in `/install`. OTA continues to use complete tar release directories. A standalone Windows EXE only checks for updates without the full release directory.
 
 Signed OTA channels and offline release history are implemented; inspect each release's actual signature assets and verification results. Publisher signatures are mandatory for OTA; OS signing/notarization is optional for free distribution. Derived projects currently default to requiring signed OS binaries, so their trust policy needs explicit review. Licensing remains a placeholder, and there is no public container-registry image. See [updates](docs/03-runbooks/updates.md) and [support boundaries](docs/support.md).
 
@@ -63,7 +63,7 @@ Initializing a nonempty database clears its data and requires a backup and exact
 For a Web server, follow the [complete deployment guide (中文)](docs/product/deployment.md): prerequisites and databases, Docker/Compose, tar/systemd, HTTPS, installation, updates, and troubleshooting. See the [configuration tables (中文)](docs/product/configuration.md) for flags, environment variables, JSON, and administrator settings.
 
 ```sh
-# Build a Web binary with the embedded frontend; open http://127.0.0.1:8080
+# Build a Web binary with the embedded frontend; open http://127.0.0.1:3000
 make build-web
 build/bin/server
 
@@ -105,7 +105,7 @@ make build-web && make test-e2e  # Isolated instance; desktop-size and 375px bro
 make package RELEASE_TARGETS=linux/amd64 RELEASE_PROFILES=web-platform
 make release                     # Complete Web / CLI tar matrix
 make docker-build                # Build locally; does not push
-make compose-up                  # Build and start on 127.0.0.1:8088
+make compose-up                  # Build and start on 127.0.0.1:3000
 make build-desktop               # Native build on the target OS
 make package-desktop             # Native tar plus DMG on macOS or EXE on Windows
 make build-ops                   # Offline encrypted backup/restore tool
@@ -138,3 +138,6 @@ pnpm --dir website preview   # Preview the static site
 Licensed under [MIT](LICENSE): use, modify, and redistribute while preserving copyright and license notices. Full navigation: [docs/README.md](docs/README.md). Backend extensions follow the [layering/entity standards](docs/02-standards/backend.md); [announcements](docs/03-runbooks/announcements.md) provide a complete administrator/user example.
 
 Framework tables keep the fixed unicore_ prefix across derived product names; application-owned tables can use their own names. Web setup creates install.lock. Only a server owner can stop, delete it and restart for a fresh-token reinstall; resetting the original database requires explicit consent and foreign instance data is rejected.
+
+
+The Web executable also provides a terminal management menu (`unicore manage`) and Linux systemd installation (`unicore service install`), service controls, offline administrator password recovery, database connection repair, maintenance mode and administrator path changes. See the [management command reference](docs/product/configuration.md#web-管理命令). Existing TOTP remains required after password recovery; database migration is outside this tool.

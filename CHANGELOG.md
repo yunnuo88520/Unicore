@@ -5,6 +5,12 @@
 
 ### 中文
 
+- Web 单程序新增交互管理菜单、Linux/systemd 服务安装与启停、自启和日志；支持停服后的管理员密码恢复、后台路径、维护模式、会话撤销及同实例数据库连接修复，自动复用受管服务配置，保留既有双因素验证，不迁移数据。
+
+- Web 默认生成 config.yaml，支持严格 YAML 配置及旧 JSON 兼容；默认监听与 Docker/Compose 端口统一改为 3000，部署模板、开发代理与文档同步调整。现有部署需显式保留旧端口或同步修改代理/映射。
+
+- 精简用户发行包：Web 使用一个 unicore 入口提供服务、帮助、配置和离线备份恢复，前端内嵌；CLI 入口移至根目录，桌面包只留运行与升级必需文件。移除重复静态资源、帮助脚本、完整文档与历史日志；旧 bin/server 部署需手动停服迁移并修改 systemd 入口。
+
 - 公告改为顶部铃铛、分页列表与确认弹窗，新增标题、结束时间、归档、指定接收用户、全量未读统计与首次已读查询；保留软删除/版本审计，追加三方言平台迁移 0015。
 
 - 对象存储改为横向切换的单配置表单，移除新增位置和重复的默认选择器；上传规则独立分组，支持路径标签增删及折叠的分片/清理设置，保留历史文件目标与密钥保护。
@@ -36,6 +42,12 @@
 - 新增 product:check 只读门禁与派生项目残留扫描 check:residuals（框架仓库自动跳过）；安装与数据库错误文案去产品化并同步中英文；示例文本与发行 README 改为按身份生成。
 
 ### English
+
+- Add a Web management menu, Linux/systemd installation, service controls, autostart and logs in the same executable. Offline commands recover administrator passwords, change the administrator path and maintenance mode, revoke sessions and repair same-instance database connections, reusing managed service configuration while retaining enrolled MFA and leaving data migration to operators.
+
+- Generate config.yaml by default with strict YAML loading and legacy JSON compatibility. Use port 3000 for Web and Docker/Compose defaults and align deployment templates, the development proxy and documentation. Existing deployments must explicitly retain the old port or update proxy/mapping settings.
+
+- Simplify user archives: one Web executable provides serving, help, configuration and offline backup/restore with embedded assets; CLI commands move to the archive root and desktop packages retain only runtime/update essentials. Remove duplicated assets, help scripts, full documentation and changelog history. Existing bin/server deployments require a stopped manual migration and a systemd entry-point change.
 
 - Replace dashboard announcements with a header bell, paginated inbox and acknowledged popups; add titles, expiration, archives, selected recipients, global unread counts and first-read receipts, preserving versioned soft deletion and transactional audit with platform migration 0015.
 

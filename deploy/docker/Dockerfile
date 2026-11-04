@@ -38,6 +38,6 @@ ARG BUILD_TIME=unknown
 LABEL org.opencontainers.image.title="Unicore" org.opencontainers.image.version=$VERSION org.opencontainers.image.revision=$COMMIT org.opencontainers.image.created=$BUILD_TIME
 COPY --from=backend /server /server
 COPY --from=backend --chown=65532:65532 /data /data
-ENV APP_LISTEN=0.0.0.0:8080 APP_DEPLOYMENT_KIND=docker APP_DATA_DIR=/data
-EXPOSE 8080
+ENV APP_LISTEN=0.0.0.0:3000 APP_DEPLOYMENT_KIND=docker APP_DATA_DIR=/data
+EXPOSE 3000
 ENTRYPOINT ["/server"]

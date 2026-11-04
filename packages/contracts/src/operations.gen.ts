@@ -2421,6 +2421,23 @@ export const operations = {
     "csrf": true,
     "identityRealm": "user"
   },
+  "pendingTOTP": {
+    "method": "GET",
+    "path": "/api/v1/account/totp/setup",
+    "requestSchema": null,
+    "responseSchema": "TOTPSetupResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user"
+  },
   "cancelTOTP": {
     "method": "POST",
     "path": "/api/v1/account/totp/cancel",
@@ -2674,6 +2691,23 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "adminPendingTOTP": {
+    "method": "GET",
+    "path": "/api/v1/admin/account/totp/setup",
+    "requestSchema": null,
+    "responseSchema": "TOTPSetupResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
     "identityRealm": "administrator"
   },
   "adminCancelTOTP": {
@@ -3008,6 +3042,40 @@ export const operations = {
     "superAdmin": true,
     "csrf": true,
     "identityRealm": "administrator"
+  },
+  "oidcTOTP": {
+    "method": "POST",
+    "path": "/api/v1/account/oidc/totp",
+    "requestSchema": null,
+    "responseSchema": "OIDCStartResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "adminOidcTOTP": {
+    "method": "POST",
+    "path": "/api/v1/admin/account/oidc/totp",
+    "requestSchema": null,
+    "responseSchema": "OIDCStartResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator"
   }
 } as const;
 export type OperationId = keyof typeof operations;
@@ -3147,6 +3215,7 @@ export interface OperationInputs {
   accountProfile: undefined;
   saveAccountProfile: Models.ProfileInput;
   beginTOTP: Models.TOTPSetupInput;
+  pendingTOTP: undefined;
   cancelTOTP: undefined;
   enableTOTP: Models.SecurityCodeInput;
   disableTOTP: Models.SecurityCodeInput;
@@ -3162,6 +3231,7 @@ export interface OperationInputs {
   adminAccountProfile: undefined;
   adminSaveAccountProfile: Models.ProfileInput;
   adminBeginTOTP: Models.TOTPSetupInput;
+  adminPendingTOTP: undefined;
   adminCancelTOTP: undefined;
   adminEnableTOTP: Models.SecurityCodeInput;
   adminDisableTOTP: Models.SecurityCodeInput;
@@ -3181,6 +3251,8 @@ export interface OperationInputs {
   saveNotificationSettings: Models.NotifyConfiguration;
   previewNotification: Models.NotifyTemplate;
   testNotification: Models.NotifyTest;
+  oidcTOTP: undefined;
+  adminOidcTOTP: undefined;
 }
 export interface OperationData {
   bootstrap: Models.BootstrapResponse['data'];
@@ -3318,6 +3390,7 @@ export interface OperationData {
   accountProfile: Models.AccountProfileResponse['data'];
   saveAccountProfile: Models.AccountProfileResponse['data'];
   beginTOTP: Models.TOTPSetupResponse['data'];
+  pendingTOTP: Models.TOTPSetupResponse['data'];
   cancelTOTP: Models.ActionResultResponse['data'];
   enableTOTP: Models.RecoveryCodesResponse['data'];
   disableTOTP: Models.ActionResultResponse['data'];
@@ -3333,6 +3406,7 @@ export interface OperationData {
   adminAccountProfile: Models.AccountProfileResponse['data'];
   adminSaveAccountProfile: Models.AccountProfileResponse['data'];
   adminBeginTOTP: Models.TOTPSetupResponse['data'];
+  adminPendingTOTP: Models.TOTPSetupResponse['data'];
   adminCancelTOTP: Models.ActionResultResponse['data'];
   adminEnableTOTP: Models.RecoveryCodesResponse['data'];
   adminDisableTOTP: Models.ActionResultResponse['data'];
@@ -3352,4 +3426,6 @@ export interface OperationData {
   saveNotificationSettings: Models.NotifyConfigurationResponse['data'];
   previewNotification: Models.NotifyPreviewResponse['data'];
   testNotification: Models.ActionResultResponse['data'];
+  oidcTOTP: Models.OIDCStartResponse['data'];
+  adminOidcTOTP: Models.OIDCStartResponse['data'];
 }

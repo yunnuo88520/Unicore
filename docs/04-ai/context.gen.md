@@ -50,7 +50,7 @@
 | updateTrust | [assets/updates/config.json](../../assets/updates/config.json) |
 | updateHistory | [assets/updates/history.gen.json](../../assets/updates/history.gen.json) |
 | systemUpdates | [docs/03-runbooks/updates.md](../../docs/03-runbooks/updates.md) |
-| clientPreferences | [packages/web-ui/src/preferences.ts](../../packages/web-ui/src/preferences.ts) |
+| clientPreferences | [packages/theme/src/preferences.ts](../../packages/theme/src/preferences.ts) |
 | i18n | [packages/web-ui/src/i18n.ts](../../packages/web-ui/src/i18n.ts) |
 | clientAppearance | [docs/03-runbooks/client-preferences.md](../../docs/03-runbooks/client-preferences.md) |
 | workspaceLayout | [packages/web-ui/src/workspace-layout.tsx](../../packages/web-ui/src/workspace-layout.tsx) |

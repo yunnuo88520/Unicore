@@ -27,7 +27,7 @@ function output(path, content) {
   if (check) { if (readFileSync(path, 'utf8') !== content) throw new Error(`${path} version is stale; run pnpm version:sync`); }
   else writeFileSync(path, content);
 }
-for (const path of ['package.json', 'apps/web/package.json', 'apps/desktop/package.json', 'packages/contracts/package.json', 'packages/sdk/package.json', 'packages/web-ui/package.json', 'packages/contracts/openapi.json', 'cmd/desktop/wails.json']) {
+for (const path of ['package.json', 'apps/web/package.json', 'apps/desktop/package.json', 'packages/contracts/package.json', 'packages/sdk/package.json', 'packages/theme/package.json', 'packages/web-ui/package.json', 'packages/contracts/openapi.json', 'cmd/desktop/wails.json']) {
   const data = JSON.parse(readFileSync(path, 'utf8'));
   if (path.endsWith('openapi.json')) data.info.version = version;
   else if (path.endsWith('wails.json')) data.info.productVersion = version;

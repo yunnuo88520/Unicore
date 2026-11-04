@@ -1,10 +1,12 @@
 /* Author: yunnuo <ymz@ebox.vip>
- * Description: Tailwind v4 entry bridging the generated design tokens; component styles live in src/ui.
+ * Description: Tailwind v4 entry bridging the generated design tokens; component styles live in @unicore/ui.
  * Spacing utilities follow the default 4-unit steps, scaled by --space-unit (density preference).
  */
 @import "tailwindcss";
 /* Utility classes live in the shared UI sources and the two app shells, not next to this file. */
-@source "./";
+@source "../../web-ui/src";
+@source "../../ui/src";
+@source "../../form/src";
 @source "../../../apps/web/src";
 @source "../../../apps/desktop/src";
 @import "./tokens.gen.css";

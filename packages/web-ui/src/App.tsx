@@ -14,13 +14,13 @@ import { RouterProvider, Outlet, createBrowserHistory, useRouter, useRouterState
 import { Bell, Webhook, FileText, Braces, ChevronRight, ExternalLink, FlaskConical, Info, LayoutDashboard, Mail, Megaphone, Menu, Monitor, NotebookPen, PackageCheck, PanelLeftClose, PanelLeftOpen, Radio, RotateCcw, ScrollText, Settings2, ShieldCheck, UserCog, UserRound, Users, Cloud, FolderOpen, Circle, type LucideIcon } from 'lucide-react';
 import { BrandProvider, BrandMark, BrandLockup } from './brand';
 import type { AppClient, Bootstrap } from '@unicore/sdk';
-import { useTheme, type Theme } from './theme';
+import { useTheme, type Theme } from '@unicore/theme';
 import { DashboardWidgetRegistry } from './registry';
 import { PasswordDialog } from './password-dialog';
 import { SessionBoundary, useSession } from './session';
 import { routes, canAccess, isAdministrator, type Page } from './routes';
 import { Modal, Button, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, Tooltip } from './ui';
-import { setPreferences, usePreferences } from './preferences';
+import { setPreferences, usePreferences } from '@unicore/theme/preferences';
 import {
   createWorkspaceRouter, pageFromPath, PagePropsProvider, ShellOptionsProvider, NoticeProvider,
   useShellOptions, useSessionNotice, usePageProps, type PageProps, type PageComponent,

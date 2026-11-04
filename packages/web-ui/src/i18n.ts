@@ -3,7 +3,7 @@
 import english from './locales/en.json';
 import licenseEnglish from './locales/license.en.json';
 import updateEnglish from './locales/updates.en.json';
-import { getPreferences, setPreferences, usePreferences, type Preferences } from './preferences';
+import { getPreferences, setPreferences, usePreferences, type Preferences } from '@unicore/theme/preferences';
 
 // Static metadata retains message keys until the rendering component calls t().
 export function defineMessages<const T>(messages:T):T { return messages; }

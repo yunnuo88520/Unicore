@@ -74,6 +74,9 @@ importers:
       '@unicore/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
+      '@unicore/theme':
+        specifier: workspace:*
+        version: link:../../packages/theme
       '@unicore/web-ui':
         specifier: workspace:*
         version: link:../../packages/web-ui
@@ -89,6 +92,9 @@ importers:
       '@unicore/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
+      '@unicore/theme':
+        specifier: workspace:*
+        version: link:../../packages/theme
       '@unicore/web-ui':
         specifier: workspace:*
         version: link:../../packages/web-ui
@@ -113,6 +119,12 @@ importers:
       '@unicore/contracts':
         specifier: workspace:*
         version: link:../contracts
+
+  packages/theme:
+    devDependencies:
+      react:
+        specifier: ^19.2.0
+        version: 19.3.1
 
   packages/web-ui:
     dependencies:
@@ -185,6 +197,9 @@ importers:
       '@unicore/sdk':
         specifier: workspace:*
         version: link:../sdk
+      '@unicore/theme':
+        specifier: workspace:*
+        version: link:../theme
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1

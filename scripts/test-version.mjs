@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import assert from 'node:assert/strict';
 const dir=mkdtempSync(join(tmpdir(),'unicore-version-'));
-const files=['scripts/version.mjs','scripts/release-notes.mjs','VERSION','CHANGELOG.md','package.json','apps/web/package.json','apps/desktop/package.json','packages/contracts/package.json','packages/sdk/package.json','packages/web-ui/package.json','packages/contracts/openapi.json','cmd/desktop/wails.json','internal/buildinfo/version.gen.go'];
+const files=['scripts/version.mjs','scripts/release-notes.mjs','VERSION','CHANGELOG.md','package.json','apps/web/package.json','apps/desktop/package.json','packages/contracts/package.json','packages/sdk/package.json','packages/theme/package.json','packages/web-ui/package.json','packages/contracts/openapi.json','cmd/desktop/wails.json','internal/buildinfo/version.gen.go'];
 for(const path of files){mkdirSync(dirname(join(dir,path)),{recursive:true});cpSync(path,join(dir,path));}
 const run=args=>execFileSync(process.execPath,['scripts/version.mjs',...args],{cwd:dir,stdio:'pipe'});
 const rejects=args=>assert.notEqual(spawnSync(process.execPath,['scripts/version.mjs',...args],{cwd:dir,stdio:'pipe'}).status,0);

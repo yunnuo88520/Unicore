@@ -13,7 +13,7 @@ import { cn } from '../lib/cn';
 import { AppField, AppForm, useAppForm } from '../lib/form';
 import { useRouteSearch, type PageProps } from '../router';
 import type { AppClient, Bootstrap, SettingPatch, WebClient } from '@unicore/sdk';
-import type { Theme } from '../theme';
+import type { Theme } from '@unicore/theme';
 
 /** Shape of one settings registry row as delivered by client.settings(). */
 type SettingEntry = { key: string; value: string; value_type: string; group: string; label: string; sensitive: boolean; configured?: boolean };

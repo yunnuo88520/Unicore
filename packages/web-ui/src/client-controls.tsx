@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, Languages, Moon, Settings2, Sun } from 'lucide-react';
 import { setLocale, t, useLocale } from './i18n';
-import { setPreferences } from './preferences';
-import { useResolvedTheme } from './theme';
+import { setPreferences } from '@unicore/theme/preferences';
+import { useResolvedTheme } from '@unicore/theme';
 import { AppearanceDrawer } from './appearance-drawer';
 import { Tooltip } from './ui';
 

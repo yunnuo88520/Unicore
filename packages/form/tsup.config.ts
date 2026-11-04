@@ -3,7 +3,7 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: ['src/form.tsx'],
+  entry: { form: 'src/form.tsx', fields: 'src/fields.tsx' },
   format: ['esm'],
   dts: true,
   esbuildOptions: options => { options.jsx = 'automatic'; },

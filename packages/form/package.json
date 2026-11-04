@@ -6,7 +6,8 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
-    ".": "./src/form.tsx"
+    ".": "./src/form.tsx",
+    "./fields": "./src/fields.tsx"
   },
   "dependencies": {
     "@hookform/resolvers": "^6.0.2",

@@ -2,7 +2,7 @@
 // Description: One configuration per provider, explicit activation and shared upload rules.
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Controller } from 'react-hook-form';
+import { AppSwitchField } from '@unicore/form/fields';
 import { CheckCircle2, Cloud, FlaskConical, Globe, HardDrive, Info, Plus, RefreshCw, RotateCcw, Save, Server, ShieldCheck, X } from 'lucide-react';
 import type { AppClient, StorageClient, StorageLocation, StorageLocationInput } from '@unicore/sdk';
 import { defineMessages, t, useLocale } from '../../i18n';
@@ -163,7 +163,7 @@ function LocationEditor({ storage, provider, item, busy, onBusy, onSaved, testCo
         <AppField name="secret_key" label="Secret Key"><Input autoComplete="new-password" type="password" required={!item} placeholder={item ? t('留空保留原值') : ''} /></AppField>
         <AppField name="prefix" label={t('对象前缀')} className="sm:col-span-2"><Input maxLength={200} readOnly={locked} /></AppField>
       </div>
-      {['minio', 's3'].includes(provider) && <Controller control={form.control} name="path_style" render={({ field }) => <label className="flex flex-wrap items-center gap-3 text-sm">{t('S3 路径式寻址')}<Switch checked={field.value === true} disabled={locked || provider === 'minio' || pending} onChange={field.onChange} /></label>} />}
+      {['minio', 's3'].includes(provider) && <AppSwitchField name="path_style" label={t('S3 路径式寻址')} disabled={locked || provider === 'minio' || pending} />}
       <p className="flex items-start gap-2 rounded-lg bg-surface-alt p-3 text-xs leading-relaxed text-muted"><ShieldCheck size={16} className="shrink-0" aria-hidden="true" />{locked ? t('已保存的目标地址、Bucket、Region 和前缀固定，以保护历史文件引用。密钥留空保留原值，轮换时自动验证。') : t('使用私有 Bucket 和限定前缀权限。保存配置后测试连接、配置本站跨域，再设为全局默认。')}</p>
     </fieldset>
     <CardFooter className="flex-wrap justify-between gap-2">

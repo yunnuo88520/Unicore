@@ -40,6 +40,18 @@ const form = useAppForm({
 </AppControllerField>
 ```
 
+## 非原生控件的声明式字段
+
+```tsx
+import { AppSelectField, AppSwitchField, AppCheckboxField } from '@unicore/form/fields';
+
+<AppSelectField name="notify_mode" label={t('通知方式')} options={[{ value: 'silent', label: notifyModes.silent }]} />
+<AppSwitchField name="path_style" label={t('S3 路径式寻址')} />
+<AppCheckboxField name="reset_database" label={t('我已备份，确认清空目标数据库并初始化')} />
+```
+
+三者都经 `AppControllerField` 接 Radix 原语：错误提示、aria 与聚焦行为与文本字段一致；选项 label 是目录 key（`SimpleSelect` 内部翻译），模块级常量用 `defineMessages` 登记。
+
 ## 构建
 
 `pnpm --filter @unicore/form build` 产出 `dist/`（ESM + d.ts）。`react-hook-form`/`zod` 为 peerDependencies。

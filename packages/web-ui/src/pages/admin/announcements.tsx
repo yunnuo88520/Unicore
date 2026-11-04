@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createColumnHelper, createPaginatedRowModel, flexRender, rowPaginationFeature, tableFeatures, useTable, type PaginationState, type TableOptions } from '@tanstack/react-table';
 import { Controller, useWatch } from 'react-hook-form';
+import { AppSelectField } from '@unicore/form/fields';
 import { ChevronLeft, ChevronRight, Eye, Megaphone, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import type { AnnouncementEntry, AnnouncementInput, AnnouncementQuery, AnnouncementSelection, WebClient } from '@unicore/sdk';
 import { currentLocale, defineMessages, t, useI18n } from '../../i18n';
@@ -20,6 +21,7 @@ const EMPTY_ITEMS: AnnouncementEntry[] = [];
 const COLUMN_COUNT = 9;
 const PAGE_SIZE = 10;
 const statuses = defineMessages({ draft: '草稿', published: '已发布', scheduled: '定时发布', archived: '已归档', expired: '已过期' });
+const notifyModes = defineMessages({ silent: '静默通知', popup: '弹窗提醒' });
 const localDate = (seconds: number) => {
   const date = new Date(seconds * 1000);
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
@@ -330,7 +332,7 @@ function AnnouncementEditor({ web, entry, onClose, onSaved }: { web: WebClient; 
           </label>
         )} />
         <Controller control={form.control} name="ends_at" render={({field})=><label className="flex flex-col gap-1.5"><span className="text-sm font-medium text-ink">{t('结束时间（可选）')}</span><Input type="datetime-local" disabled={pending} value={field.value?localDate(field.value):''} min={localDate(values.publish_at ?? Math.floor(Date.now()/1000))} onChange={event=>field.onChange(event.target.value?Math.floor(new Date(event.target.value).getTime()/1000):0)}/></label>}/>
-        <Controller control={form.control} name="notify_mode" render={({field})=><label className="flex flex-col gap-1.5"><span className="text-sm font-medium text-ink">{t('通知方式')}</span><NativeSelect disabled={pending} value={field.value} onChange={field.onChange}><option value="silent">{t('静默通知')}</option><option value="popup">{t('弹窗提醒')}</option></NativeSelect></label>}/>
+        <AppSelectField name="notify_mode" label={t('通知方式')} disabled={pending} options={[{ value: 'silent', label: notifyModes.silent }, { value: 'popup', label: notifyModes.popup }]} />
         <Controller control={form.control} name="type" render={({ field }) => (
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-ink">{t('公告类型')}</span>

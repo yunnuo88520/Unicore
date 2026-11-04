@@ -12,7 +12,7 @@ type AppFormOptions<T extends FieldValues> = {
   defaultValues: T;
   onSubmit: (values: T) => void | Promise<void>;
 };
-type AppForm<T extends FieldValues> = UseFormReturn<T> & {
+export type AppForm<T extends FieldValues> = UseFormReturn<T> & {
   /** Submit handler; focuses the first invalid field automatically. */
   submit: (event?: React.BaseSyntheticEvent) => Promise<void>;
   /** Merge server-side AppError field errors and focus the first offending control. */

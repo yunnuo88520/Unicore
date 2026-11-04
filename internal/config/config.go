@@ -63,8 +63,8 @@ func parseWeb(args []string, lookup Lookup) (webFlags, error) {
 	options := &parsed.Web
 	flags := flag.NewFlagSet("server", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-	flags.StringVar(&parsed.configPath, "config", lookup("APP_CONFIG"), "optional startup JSON configuration")
-	flags.StringVar(&options.Listen, "listen", value(lookup, "APP_LISTEN", "127.0.0.1:8080"), "HTTP listen address")
+	flags.StringVar(&parsed.configPath, "config", lookup("APP_CONFIG"), "optional startup YAML/JSON configuration")
+	flags.StringVar(&options.Listen, "listen", value(lookup, "APP_LISTEN", "127.0.0.1:3000"), "HTTP listen address")
 	flags.StringVar(&options.Profile, "profile", lookup("APP_PROFILE"), "initial profile; persisted after install")
 	flags.StringVar(&options.DataDir, "data-dir", value(lookup, "APP_DATA_DIR", "data"), "private data directory")
 	flags.StringVar(&options.Deployment, "deployment", value(lookup, "APP_DEPLOYMENT_KIND", "development"), "development/tar/docker")
@@ -140,9 +140,9 @@ func value(lookup Lookup, key, fallback string) string {
 }
 
 const WebUsage = `Web server
-Priority: flags > APP_* environment > explicit JSON file > defaults.
-  --config PATH               APP_CONFIG (optional startup JSON file)
-  --listen ADDRESS            APP_LISTEN (127.0.0.1:8080)
+Priority: flags > APP_* environment > explicit YAML/JSON file > defaults.
+  --config PATH               APP_CONFIG (optional startup YAML/JSON file)
+  --listen ADDRESS            APP_LISTEN (127.0.0.1:3000)
   --profile PROFILE           APP_PROFILE (installation choice)
   --data-dir PATH             APP_DATA_DIR (data)
   --deployment KIND           APP_DEPLOYMENT_KIND (development/tar/docker)

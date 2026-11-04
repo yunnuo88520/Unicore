@@ -17,6 +17,7 @@ import (
 	"github.com/yunnuo/unicore/internal/adapter/blobcloud"
 	"github.com/yunnuo/unicore/internal/adapter/bloblocal"
 	mailadapter "github.com/yunnuo/unicore/internal/adapter/mail"
+	notifyadapter "github.com/yunnuo/unicore/internal/adapter/notify"
 	oidcadapter "github.com/yunnuo/unicore/internal/adapter/oidc"
 	"github.com/yunnuo/unicore/internal/adapter/storage/filesql"
 	"github.com/yunnuo/unicore/internal/adapter/storage/platformsql"
@@ -44,14 +45,16 @@ var (
 
 type Options struct{ DataDir, Profile, SecretKey, BootstrapToken, AdminPath string }
 type record struct {
-	OwnsSchema bool              `json:"owns_schema"`
-	State      string            `json:"state"`
-	Profile    contracts.Profile `json:"profile"`
-	Instance   string            `json:"instance"`
-	Driver     string            `json:"driver"`
-	DSN        string            `json:"dsn_encrypted"`
-	TokenHash  string            `json:"bootstrap_hash"`
-	BaseURL    string            `json:"base_url"`
+	LockVersion int               `json:"lock_version,omitempty"`
+	Reinstall   *reinstallTarget  `json:"reinstall,omitempty"`
+	OwnsSchema  bool              `json:"owns_schema"`
+	State       string            `json:"state"`
+	Profile     contracts.Profile `json:"profile"`
+	Instance    string            `json:"instance"`
+	Driver      string            `json:"driver"`
+	DSN         string            `json:"dsn_encrypted"`
+	TokenHash   string            `json:"bootstrap_hash"`
+	BaseURL     string            `json:"base_url"`
 }
 type Manager struct {
 	mu             sync.RWMutex
@@ -103,6 +106,9 @@ func Open(ctx context.Context, options Options) (manager *Manager, err error) {
 	}
 	data, readErr := os.ReadFile(filepath.Join(directory, "installation.json"))
 	if errors.Is(readErr, os.ErrNotExist) {
+		if _, lockErr := os.Lstat(filepath.Join(directory, "install.lock")); !errors.Is(lockErr, os.ErrNotExist) {
+			return nil, ErrTaken
+		}
 		if _, dbErr := os.Stat(filepath.Join(directory, "unicore.db")); dbErr == nil {
 			return nil, ErrTaken
 		}
@@ -126,6 +132,27 @@ func Open(ctx context.Context, options Options) (manager *Manager, err error) {
 	if m.config.State != "UNINITIALIZED" && m.config.State != "INSTALLING" && m.config.State != "INSTALL_FAILED" && m.config.State != "INSTALLED" {
 		return nil, errors.New("invalid installation state")
 	}
+	if m.config.LockVersion != 0 && m.config.LockVersion != 1 {
+		return nil, errors.New("invalid installation lock version")
+	}
+	// Only a previously finalized install can be unlocked by removing its file.
+	// Do this before DB recovery so an owner can select a new empty database even
+	// when the original one is offline. No startup path resets database objects.
+	reopened := false
+	if m.config.State == "INSTALLED" && m.config.LockVersion == 1 {
+		locked, lockErr := m.installLocked()
+		if lockErr != nil {
+			return nil, lockErr
+		}
+		if !locked {
+			previous := &reinstallTarget{Driver: m.config.Driver, DSN: m.config.DSN, Instance: m.config.Instance, Profile: m.config.Profile}
+			m.config = record{State: "UNINITIALIZED", Profile: m.config.Profile, Instance: sqlstore.ID(), Driver: "sqlite", Reinstall: previous}
+			if err = m.save(); err != nil {
+				return nil, err
+			}
+			reopened = true
+		}
+	}
 	if m.config.State != "UNINITIALIZED" {
 		if err = m.recover(ctx); err != nil {
 			return nil, err
@@ -135,10 +162,20 @@ func Open(ctx context.Context, options Options) (manager *Manager, err error) {
 		if options.Profile != "" && options.Profile != string(m.config.Profile) {
 			return nil, errors.New("installed profile cannot be changed; use a separate deployment and migration")
 		}
+		if err = m.finalize(); err != nil {
+			return nil, err
+		}
 		_ = os.Remove(filepath.Join(directory, "bootstrap.token"))
 		return m, nil
 	}
 	token := strings.TrimSpace(options.BootstrapToken)
+	if m.config.Reinstall != nil {
+		token = "" // Reinstalls use a fresh private file, never a former injected token.
+	}
+	if reopened {
+		// A former bootstrap credential must never authorize a destructive reinstall.
+		token = platform.Token()
+	}
 	if token == "" {
 		if data, e := os.ReadFile(filepath.Join(directory, "bootstrap.token")); e == nil {
 			token = strings.TrimSpace(string(data))
@@ -193,11 +230,16 @@ func (m *Manager) attach(store *sqlstore.Store) {
 			return blobcloud.New(blobcloud.Config{Provider: l.Provider, Endpoint: l.Endpoint, Bucket: l.Bucket, Region: l.Region, Prefix: l.Prefix, PathStyle: l.PathStyle, AccessKey: c.AccessKey, SecretKey: c.SecretKey})
 		}}
 		m.settingService.Branding = branding.New(store, m.files.BrandStore())
-		repository := &platformsql.Repository{Store: store}
-		admins := &platformsql.Repository{Store: store, Administrators: true}
+		repository := &platformsql.Repository{Store: store, NotificationSecrets: m.secret}
+		admins := &platformsql.Repository{Store: store, Administrators: true, NotificationSecrets: m.secret}
+		m.settingService.NotificationWriter = admins
 		m.identity = platform.New(repository)
 		m.administrator = platform.New(admins)
-		m.mail = &mailer.Service{BaseURL: m.config.BaseURL, Store: repository, Settings: m.settingService, Secrets: m.secret, Sender: mailadapter.SMTP{}}
+		m.identity.Settings = m.settingService
+		m.administrator.Settings = m.settingService
+		m.mail = &mailer.Service{BaseURL: m.config.BaseURL, Store: repository, Settings: m.settingService, Secrets: m.secret, Sender: mailadapter.SMTP{}, Channels: notifyadapter.Sender{}}
+		m.identity.Personal = &platform.Personal{Store: repository, Identity: m.identity, Settings: m.settingService, Mail: m.mail}
+		m.administrator.Personal = &platform.Personal{Store: admins, Identity: m.administrator, Settings: m.settingService, Mail: m.mail}
 		m.accounts = &platform.Accounts{Identity: m.identity, Store: repository, Settings: m.settingService, Mail: m.mail, BaseURL: m.config.BaseURL}
 		m.adminAccounts = &platform.Accounts{Administrator: true, Identity: m.administrator, Store: admins, Settings: m.settingService, Mail: m.mail, BaseURL: m.config.BaseURL}
 		m.oidc = &platform.OIDC{Identity: m.identity, Store: repository, Settings: m.settingService, Secrets: m.secret, Provider: oidcadapter.Provider{}, BaseURL: m.config.BaseURL}
@@ -341,17 +383,13 @@ func (m *Manager) Verify(ctx context.Context, token string, input contracts.Data
 	if err != nil {
 		return result, ErrDatabase
 	}
-	exists, err := store.HasInstallationTable(ctx)
-	if err != nil {
-		return result, ErrDatabase
+	initialized, own, inspectErr := m.inspectTarget(ctx, store, input.Driver, dsn)
+	if inspectErr != nil {
+		return result, inspectErr
 	}
-	if exists {
-		_, _, err = store.Installation(ctx)
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			return result, ErrDatabase
-		}
-		result.Initialized = err == nil
-	}
+	result.Initialized = initialized
+	allowed := own || (!initialized && (m.config.Reinstall == nil || result.TableCount == 0))
+	result.ResetAllowed = &allowed
 	result.Success = true
 	return result, nil
 }
@@ -424,18 +462,12 @@ func (m *Manager) Complete(ctx context.Context, token string, input contracts.In
 	if err = store.InstallationScope(ctx); err != nil {
 		return result, user, ErrDatabase
 	}
-	exists, inspectErr := store.HasInstallationTable(ctx)
+	initialized, own, inspectErr := m.inspectTarget(ctx, store, input.Database.Driver, dsn)
 	if inspectErr != nil {
-		return result, user, ErrDatabase
+		return result, user, inspectErr
 	}
-	if exists {
-		_, _, markerErr := store.Installation(ctx)
-		if markerErr == nil {
-			return result, user, ErrTaken
-		}
-		if !errors.Is(markerErr, sql.ErrNoRows) {
-			return result, user, ErrDatabase
-		}
+	if initialized && !own {
+		return result, user, ErrTaken
 	}
 	if !resume {
 		count, countErr := store.TableCount(ctx)
@@ -443,6 +475,9 @@ func (m *Manager) Complete(ctx context.Context, token string, input contracts.In
 			return result, user, ErrDatabase
 		}
 		if count != 0 {
+			if m.config.Reinstall != nil && !own {
+				return result, user, ErrTaken
+			}
 			if !reset {
 				return result, user, ErrNotEmpty
 			}
@@ -470,14 +505,20 @@ func (m *Manager) Complete(ctx context.Context, token string, input contracts.In
 		return result, user, ErrDatabase
 	}
 	defer tx.Rollback()
-	if _, err = store.Exec(ctx, tx, "INSERT INTO install_state(id,profile,instance_id,installed_at) VALUES(1,?,?,?)", string(input.Profile), m.config.Instance, time.Now().Unix()); err != nil {
+	if _, err = store.Exec(ctx, tx, "INSERT INTO unicore_install_state(id,profile,instance_id,installed_at) VALUES(1,?,?,?)", string(input.Profile), m.config.Instance, time.Now().Unix()); err != nil {
 		return result, user, ErrTaken
 	}
 	for key, value := range settings.Defaults(input.Profile) {
 		if key == "site.name" {
 			value = input.SiteName
 		}
-		if _, err = store.Exec(ctx, tx, "INSERT INTO system_settings(setting_key,setting_value) VALUES(?,?)", key, value); err != nil {
+		if key == "site.base_url" {
+			value = strings.TrimRight(input.BaseUrl, "/")
+		}
+		if key == "site.admin_email" {
+			value = input.AdminEmail
+		}
+		if _, err = store.Exec(ctx, tx, "INSERT INTO unicore_system_settings(setting_key,setting_value) VALUES(?,?)", key, value); err != nil {
 			return result, user, ErrDatabase
 		}
 	}
@@ -499,7 +540,7 @@ func (m *Manager) Complete(ctx context.Context, token string, input contracts.In
 	m.config.TokenHash = ""
 	m.attach(store)
 	// The DB marker is authoritative even when local finalization fails; restart recovers it.
-	if err = m.save(); err != nil {
+	if err = m.finalize(); err != nil {
 		return result, user, errors.New("installation committed; free disk space and restart to finalize configuration")
 	}
 	_ = os.Remove(m.TokenPath())

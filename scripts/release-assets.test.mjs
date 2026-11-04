@@ -7,6 +7,9 @@ import {mkdtempSync,writeFileSync,readFileSync,mkdirSync,rmSync} from 'node:fs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {assembleRelease} from './release-assets.mjs';
+import {releaseFiles,checkReleaseLayout} from './release-layout.mjs';
+import {distributionPlan} from './distribution.mjs';
+import {loadIdentity} from './product-identity.mjs';
 import {desktopDownloads} from './desktop-downloads.mjs';
 
 test('release assembly rejects tampering, partial matrices and mixed commits',()=>{
@@ -60,4 +63,28 @@ test('complete bundle checks DMG and portable EXE while retaining thirteen OTA a
     mac.downloads[0].artifact='../outside.dmg';save();assert.throws(()=>assembleRelease(dir,{version,commit}),/Invalid/);
     mac.downloads=[];save();assert.throws(()=>assembleRelease(dir,{version,commit}),/Missing/);
   }finally{rmSync(dir,{recursive:true,force:true});}
+});
+
+
+test('every user archive rejects unrelated documentation, duplicate launchers and extra binaries',()=>{
+ const root=process.cwd(), identity=loadIdentity(root);
+ assert.deepEqual(distributionPlan(root,'user-release'),[{source:'LICENSE',target:'LICENSE'}]);
+ for(const [profile,os,binary] of [['web-platform','linux'],['web-standalone','linux'],['cli','linux'],['cli','windows'],['desktop','linux','unicore-desktop'],['desktop','windows','unicore-desktop.exe'],['desktop','darwin','Unicore.app']]){
+  const directory=mkdtempSync(join(tmpdir(),'unicore-minimal-'));
+  const options={profile,os,identity,binary};
+  try{
+   for(const file of releaseFiles(options)){
+    if(file.endsWith('.app')) {mkdirSync(join(directory,file,'Contents','MacOS'),{recursive:true});writeFileSync(join(directory,file,'Contents','MacOS','unicore-desktop'),'native fixture');}
+    else {mkdirSync(join(directory,...file.split('/').slice(0,-1)),{recursive:true});writeFileSync(join(directory,file),'fixture');}
+   }
+   checkReleaseLayout(directory,options);
+   for(const extra of ['docs/internal.md','unicorehelp','bin/server','bin/unicore-ops','web/assets/main.js','CHANGELOG.md']){
+    mkdirSync(join(directory,...extra.split('/').slice(0,-1)),{recursive:true});writeFileSync(join(directory,extra),'must not ship');
+    assert.throws(()=>checkReleaseLayout(directory,options),/unexpected files/);
+    rmSync(join(directory,extra));
+   }
+   rmSync(join(directory,'VERSION'));
+   assert.throws(()=>checkReleaseLayout(directory,options),/unexpected files/);
+  }finally{rmSync(directory,{recursive:true,force:true});}
+ }
 });

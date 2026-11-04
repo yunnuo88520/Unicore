@@ -48,7 +48,7 @@ func exerciseRoleHTTP(t *testing.T, manager *install.Manager, request func(strin
 	_, _, identity, _ := manager.Services()
 	repository := identity.Store.(*platformsql.Repository)
 	for _, permission := range platform.Permissions {
-		if _, err := repository.Store.Exec(t.Context(), repository.Store.DB, "INSERT INTO role_permissions(role_id,permission_id) VALUES('user',?)", permission); err != nil {
+		if _, err := repository.Store.Exec(t.Context(), repository.Store.DB, "INSERT INTO unicore_role_permissions(role_id,permission_id) VALUES('user',?)", permission); err != nil {
 			t.Fatal(err)
 		}
 	}

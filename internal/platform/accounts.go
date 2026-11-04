@@ -21,6 +21,7 @@ type AccountStore interface {
 	RegisterEmailChallenge(context.Context, contracts.RegisterInput, string, EmailChallenge) error
 	QueueEmailChallenge(context.Context, string, EmailChallenge) error
 	ConsumeEmailChallenge(context.Context, string, string, string, string, string, int, int) (contracts.User, error)
+	RegisterActiveAccount(context.Context, contracts.RegisterInput, string) error
 	RegisterAccount(context.Context, contracts.RegisterInput, string, string, int, string) error
 	QueueAccountToken(context.Context, string, string, string, int, string) error
 	ConsumeAccountToken(context.Context, string, string, string, int) error
@@ -40,7 +41,7 @@ func (a *Accounts) Policy(ctx context.Context) (contracts.AuthPolicy, error) {
 		return contracts.AuthPolicy{}, err
 	}
 	ready := settings.MailReady(values)
-	return contracts.AuthPolicy{EmailLoginEnabled: ready && values["account.email_login_enabled"] == "true", RegistrationEnabled: !a.Administrator && ready && values["account.registration_enabled"] == "true", ResetEnabled: ready && values["account.password_reset_enabled"] == "true", LoginCaptcha: values["security.login_captcha"] == "true", RegisterCaptcha: values["security.register_captcha"] == "true", MailReady: ready}, nil
+	return contracts.AuthPolicy{EmailLoginEnabled: ready && values["account.email_login_enabled"] == "true", EmailVerificationRequired: values["account.email_verification_required"] == "true", RegistrationEnabled: !a.Administrator && values["account.registration_enabled"] == "true", ResetEnabled: ready && values["account.password_reset_enabled"] == "true", LoginCaptcha: values["security.login_captcha"] == "true", RegisterCaptcha: values["security.register_captcha"] == "true", MailReady: ready}, nil
 }
 func (a *Accounts) allow(ip, email, id, answer string, captcha bool) error {
 	if !a.Identity.Limiter.Allow("mail-ip:"+ip, 20, time.Minute) || !a.Identity.Limiter.Allow("mail-account:"+email, 3, 15*time.Minute) {
@@ -60,7 +61,11 @@ func (a *Accounts) payload(ctx context.Context, email, purpose, token string) st
 	if a.Administrator {
 		entry, _ = a.Settings.Value(ctx, "admin.path")
 	}
-	return a.Mail.Encrypt(mailer.Message{To: email, Subject: subject, Body: "Open this link to continue:\n" + a.BaseURL + entry + "#" + path + "?token=" + token + "\n\nThis link expires shortly and can be used once. If you did not request it, ignore this message."})
+	baseURL := a.BaseURL
+	if value, err := a.Settings.Value(ctx, "site.base_url"); err == nil && settings.ValidBaseURL(value) {
+		baseURL = strings.TrimRight(value, "/")
+	}
+	return a.Mail.Encrypt(mailer.Message{To: email, Subject: subject, Body: "Open this link to continue:\n" + baseURL + strings.TrimSuffix(entry, "/") + "/" + path + "?token=" + token + "\n\nThis link expires shortly and can be used once. If you did not request it, ignore this message."})
 }
 func (a *Accounts) Register(ctx context.Context, input contracts.RegisterInput, ip string) error {
 	policy, err := a.Policy(ctx)
@@ -74,6 +79,9 @@ func (a *Accounts) Register(ctx context.Context, input contracts.RegisterInput, 
 	input.Email = strings.ToLower(strings.TrimSpace(input.Email))
 	if !ValidateAccount(input.Username, input.Email, input.Password) {
 		return ErrInput
+	}
+	if err = a.registrationAllowed(ctx, input, ip); err != nil {
+		return err
 	}
 	if err = a.allow(ip, input.Email, input.CaptchaID, input.CaptchaAnswer, policy.RegisterCaptcha); err != nil {
 		return err
@@ -89,12 +97,16 @@ func (a *Accounts) Register(ctx context.Context, input contracts.RegisterInput, 
 		return err
 	}
 	input.Password = ""
+	if !policy.EmailVerificationRequired {
+		err = a.Store.RegisterActiveAccount(ctx, input, hash)
+		return err
+	}
+	if !policy.MailReady {
+		return settings.ErrMailNotReady
+	}
 	token := Token()
 	expires := int(time.Now().Add(30 * time.Minute).Unix())
 	err = a.Store.RegisterAccount(ctx, input, hash, Hash(token), expires, a.payload(ctx, input.Email, "verify", token))
-	if errors.Is(err, ErrConflict) {
-		return nil
-	}
 	return err
 }
 func (a *Accounts) Request(ctx context.Context, input contracts.EmailRequest, ip, purpose string) error {
@@ -102,10 +114,13 @@ func (a *Accounts) Request(ctx context.Context, input contracts.EmailRequest, ip
 	if err != nil {
 		return err
 	}
-	if (purpose == "reset" && !policy.ResetEnabled) || (purpose == "verify" && !policy.RegistrationEnabled) {
+	if (purpose == "reset" && !policy.ResetEnabled) || (purpose == "verify" && (!policy.RegistrationEnabled || !policy.EmailVerificationRequired)) {
 		return ErrFlowDisabled
 	}
 	email := strings.ToLower(strings.TrimSpace(input.Email))
+	if err = a.emailAllowed(ctx, email, ip, purpose == "verify"); err != nil {
+		return err
+	}
 	if !settings.ValidEmail(email) {
 		return ErrInput
 	}
@@ -133,6 +148,9 @@ func (a *Accounts) Complete(ctx context.Context, token, purpose, password, ip st
 	}
 	hash := ""
 	if purpose == "reset" {
+		if err := a.Identity.passwordAllowed(ctx, password); err != nil {
+			return err
+		}
 		select {
 		case a.Identity.loginSlots <- struct{}{}:
 			defer func() { <-a.Identity.loginSlots }()
@@ -146,4 +164,25 @@ func (a *Accounts) Complete(ctx context.Context, token, purpose, password, ip st
 		}
 	}
 	return a.Store.ConsumeAccountToken(ctx, Hash(token), purpose, hash, int(time.Now().Unix()))
+}
+
+func (a *Accounts) emailAllowed(ctx context.Context, email, ip string, restrictDomain bool) error {
+	values, err := a.Settings.Raw(ctx)
+	if err != nil {
+		return err
+	}
+	if (restrictDomain && !settings.EmailAllowed(values, email)) || settings.IPBlocked(values, ip) {
+		return ErrInput
+	}
+	return nil
+}
+func (a *Accounts) registrationAllowed(ctx context.Context, input contracts.RegisterInput, ip string) error {
+	values, err := a.Settings.Raw(ctx)
+	if err != nil {
+		return err
+	}
+	if !settings.EmailAllowed(values, input.Email) || settings.IPBlocked(values, ip) || settings.BlockedText(values["account.username_blacklist"], input.Username, false) || settings.BlockedText(values["account.nickname_blacklist"], input.Username, false) || settings.BlockedText(values["account.password_blacklist"], input.Password, true) {
+		return ErrInput
+	}
+	return nil
 }

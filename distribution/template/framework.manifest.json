@@ -43,7 +43,9 @@
     "guide": "docs/product/index.md",
     "development": "docs/product/development.md",
     "updates": "docs/product/updates.md",
-    "backup": "docs/product/backup.md"
+    "backup": "docs/product/backup.md",
+    "notifications": "docs/03-runbooks/notifications.md",
+    "notificationIntegration": "docs/product/notifications.md"
   },
   "commands": {
     "generate": "pnpm generate",

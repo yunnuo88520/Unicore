@@ -18,6 +18,7 @@ data
 **/bootstrap.token
 **/installation.json
 .agents
+.zcode
 .codex
 
 *.pem

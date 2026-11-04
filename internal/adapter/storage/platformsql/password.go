@@ -15,16 +15,16 @@ func (r *Repository) ChangePassword(ctx context.Context, id, expected, next stri
 	}
 	defer tx.Rollback()
 	var hash, status string
-	if err = r.row(ctx, tx, "SELECT password_hash,status FROM users WHERE id=?", id).Scan(&hash, &status); err != nil {
+	if err = r.row(ctx, tx, "SELECT password_hash,status FROM unicore_users WHERE id=?", id).Scan(&hash, &status); err != nil {
 		return err
 	}
 	if status != "active" || !platform.Equal(hash, expected) {
 		return platform.ErrCredentials
 	}
-	if _, err = r.exec(ctx, tx, "UPDATE users SET password_hash=?,updated_at=? WHERE id=?", next, time.Now().Unix(), id); err != nil {
+	if _, err = r.exec(ctx, tx, "UPDATE unicore_users SET password_hash=?,updated_at=? WHERE id=?", next, time.Now().Unix(), id); err != nil {
 		return err
 	}
-	if _, err = r.exec(ctx, tx, "DELETE FROM sessions WHERE user_id=?", id); err != nil {
+	if _, err = r.exec(ctx, tx, "DELETE FROM unicore_sessions WHERE user_id=?", id); err != nil {
 		return err
 	}
 	if err = r.cancelTokens(ctx, tx, id, ""); err != nil {

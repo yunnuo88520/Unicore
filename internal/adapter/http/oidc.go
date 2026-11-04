@@ -95,6 +95,25 @@ func mountOIDC(api chi.Router, config Config) {
 				success(w, contracts.OIDCStart{AuthorizationUrl: u})
 			})
 		}
+		api.Post(prefix+"/account/oidc/totp", func(w http.ResponseWriter, r *http.Request) {
+			a, ok := require(m, w, r, "")
+			if !ok {
+				return
+			}
+			s := service(w, r)
+			if s == nil {
+				return
+			}
+			ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+			defer cancel()
+			u, browser, err := s.StartTOTP(ctx, a.User, rawSession(r), ip(r))
+			if err != nil {
+				webError(w, err)
+				return
+			}
+			cookie(w, r, browser, 300)
+			success(w, contracts.OIDCStart{AuthorizationUrl: u})
+		})
 		api.Post(prefix+"/account/oidc/unlink", func(w http.ResponseWriter, r *http.Request) {
 			a, ok := require(m, w, r, "")
 			if !ok {
@@ -168,7 +187,7 @@ func mountOIDC(api chi.Router, config Config) {
 			}
 			ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
 			defer cancel()
-			session, token, mode, err := s.Complete(ctx, q.Get("state"), proof, q.Get("code"), q.Get("iss"), !valid || q.Get("error") != "")
+			session, token, mode, err := s.Complete(ctx, q.Get("state"), proof, q.Get("code"), q.Get("iss"), !valid || q.Get("error") != "", rawSession(r))
 			cookie(w, r, "", -1)
 			result := "success"
 			if err != nil {
@@ -176,15 +195,22 @@ func mountOIDC(api chi.Router, config Config) {
 				if errors.Is(err, platform.ErrOIDCLinkRequired) {
 					result = "link_required"
 				}
-			} else {
+			} else if mode != "totp" {
 				setSession(m, w, token, session.ExpiresAt, r)
 			}
-			destination := "/#oidc=" + result
+			destination := "/?oidc=" + result
 			if mode == "link" {
-				destination = "/#account?oidc=" + result
+				destination = "/account-security?oidc=" + result
+			}
+			if mode == "totp" {
+				result = "totp_failed"
+				if err == nil {
+					result = "totp_ready"
+				}
+				destination = "/account-security?oidc=" + result
 			}
 			if admin {
-				destination = m.AdminPath(r.Context()) + strings.TrimPrefix(destination, "/")
+				destination = strings.TrimSuffix(m.AdminPath(r.Context()), "/") + destination
 			}
 			http.Redirect(w, r, destination, http.StatusSeeOther)
 		})

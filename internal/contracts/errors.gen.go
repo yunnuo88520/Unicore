@@ -56,4 +56,8 @@ var ErrorCatalog = map[string]ErrorDefinition{
 	"ANNOUNCEMENT_INVALID":    {Status: 400, Message: "公告内容、格式、类型或发布时间不符合要求"},
 	"ENTITY_NOT_FOUND":        {Status: 404, Message: "记录不存在或无权访问"},
 	"ENTITY_CONFLICT":         {Status: 409, Message: "记录已被修改，请刷新后重试"},
+	"MAINTENANCE_MODE":        {Status: 503, Message: "站点维护中，请稍后再试"},
+	"MFA_REQUIRED":            {Status: 401, Message: "请完成双重验证"},
+	"MFA_INVALID":             {Status: 400, Message: "验证代码无效、已使用或已过期"},
+	"MFA_ENROLLMENT_REQUIRED": {Status: 403, Message: "请先在安全设置中启用双重验证"},
 }

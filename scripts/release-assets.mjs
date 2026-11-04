@@ -8,6 +8,7 @@ import { pathToFileURL } from 'node:url';
 import { readFeatures } from './build-features.mjs';
 import { verifyPlatform } from './platform-sign.mjs';
 import { desktopDownloads } from './desktop-downloads.mjs';
+import { checkReleaseLayout } from './release-layout.mjs';
 import { loadIdentity } from './product-identity.mjs';
 
 const json = path => JSON.parse(readFileSync(path, 'utf8'));
@@ -27,18 +28,25 @@ export function packageDesktop(root = process.cwd()) {
   if (!existsSync(built)) throw Error(`Missing native build: ${binary}`);
   const name = `${product}-desktop-${targetOS}-${arch}-v${version}`;
   const staging = join(root,'build/native-staging',name), output = join(root,'build/native-releases');
-  rmSync(staging,{recursive:true,force:true}); mkdirSync(staging,{recursive:true}); mkdirSync(output,{recursive:true});
+  const prefix = `${product}-desktop-${targetOS}-${arch}-v`;
+  // Replace only this target's generated outputs; do not mix obsolete versions into downloads.
+  for (const directory of [join(root,'build/native-staging'), output]) {
+    mkdirSync(directory,{recursive:true});
+    for (const entry of readdirSync(directory).filter(entry=>entry.startsWith(prefix))) rmSync(join(directory,entry),{recursive:true,force:true});
+  }
+  mkdirSync(staging,{recursive:true});
   cpSync(built,join(staging,binary),{recursive:true});
-  for (const file of ['LICENSE','CHANGELOG.md','VERSION']) cpSync(join(root,file),join(staging,file));
+  for (const file of ['LICENSE','VERSION']) cpSync(join(root,file),join(staging,file));
   const compiledFeatures=json(join(root,'apps/desktop/static/features.json'));
   for(const [feature,value] of Object.entries(readFeatures().features))if(compiledFeatures[feature]!==value)throw Error('Native feature flags differ from packaging flags');
   const platformSignature=verifyPlatform(built,json(join(root,'assets/brand/identity.json')).bundleId);
   if(process.env.UNICORE_PLATFORM_SIGNING==='required'&&targetOS!=='linux'&&platformSignature==='unsigned')throw Error('Required native signature is missing');
-  const metadata = {platform_signature:platformSignature,version,channel:'development',profile:'desktop',os:targetOS,arch,commit,build_time:new Date().toISOString(),features:readFeatures().features,migration_level:1,business_migration_level:2,offline_backup:false,signature:null};
+  const metadata = {platform_signature:platformSignature,version,channel:'development',profile:'desktop',os:targetOS,arch,commit,build_time:new Date().toISOString(),features:readFeatures().features,migration_level:13,business_migration_level:2,offline_backup:false,signature:null};
   writeFileSync(join(staging,'manifest.json'),JSON.stringify(metadata,null,2)+'\n');
-  writeFileSync(join(staging,'README_DESKTOP.md'),`<!-- Author: yunnuo <ymz@ebox.vip> -->\n# ${loadIdentity(root).product.name} ${version}\n\n原生 ${targetOS}/${arch} 开发预览。macOS 推荐下载 DMG，将 app 拖到 Applications；Windows 推荐直接下载运行 exe；本归档解压后运行 ${binary}，同时供 OTA 使用。没有平台登录或管理功能。Linux 需要 GTK3/WebKitGTK 4.0，Windows 需要 WebView2。系统签名状态：${platformSignature}。unsigned 为未完成操作系统签名的开发预览；OTA 另须发行者签名清单。不承诺各系统窗口均已实测。\n\n## English\n\nNative ${targetOS}/${arch} development preview. On macOS, use the DMG and drag the app into Applications; on Windows, run the EXE directly. Extract this archive and run ${binary}; it also serves as the OTA transport. No platform login or administration is included. Linux needs GTK3/WebKitGTK 4.0; Windows needs WebView2. OS signature: ${platformSignature}. Unsigned previews have no OS signing/notarization; OTA separately requires the publisher-signed manifest. Not every native window has been manually exercised.\n\nhttps://github.com/yunnuo88520/Unicore/wiki\n`);
+  writeFileSync(join(staging,'README.md'),`<!-- Author: yunnuo <ymz@ebox.vip> -->\n# ${loadIdentity(root).product.name} ${version}\n\n原生 ${targetOS}/${arch} 开发预览。macOS 推荐下载 DMG，将 app 拖到 Applications；Windows 推荐直接下载运行 exe；本归档解压后运行 ${binary}，同时供 OTA 使用。没有平台登录或管理功能。Linux 需要 GTK3/WebKitGTK 4.0，Windows 需要 WebView2。系统签名状态：${platformSignature}。unsigned 为未完成操作系统签名的开发预览；OTA 另须发行者签名清单。不承诺各系统窗口均已实测。\n\n## English\n\nNative ${targetOS}/${arch} development preview. On macOS, use the DMG and drag the app into Applications; on Windows, run the EXE directly. Extract this archive and run ${binary}; it also serves as the OTA transport. No platform login or administration is included. Linux needs GTK3/WebKitGTK 4.0; Windows needs WebView2. OS signature: ${platformSignature}. Unsigned previews have no OS signing/notarization; OTA separately requires the publisher-signed manifest. Not every native window has been manually exercised.\n\nhttps://github.com/yunnuo88520/Unicore/wiki\n`);
+  checkReleaseLayout(staging, {profile:'desktop', os:targetOS, identity:loadIdentity(root), binary});
   const artifact = name+'.tar.gz';
-  execFileSync('tar',['-czf',join(output,artifact),'-C',join(root,'build/native-staging'),name],{env:{...process.env,COPYFILE_DISABLE:'1'}});
+  execFileSync('tar',['--no-xattrs','--no-acls','-czf',join(output,artifact),'-C',join(root,'build/native-staging'),name],{env:{...process.env,COPYFILE_DISABLE:'1'}});
   const downloads=desktopDownloads({root,output,name,built,binary,targetOS,application:config.name,platformSignature});
   writeFileSync(join(output,name+'.manifest.json'),JSON.stringify({...metadata,artifact,sha256:hash(join(output,artifact)),downloads},null,2)+'\n');
   writeFileSync(join(output,name+'.checksums.txt'),[{artifact,sha256:hash(join(output,artifact))},...downloads].map(item=>`${item.sha256}  ${item.artifact}`).join('\n')+'\n');

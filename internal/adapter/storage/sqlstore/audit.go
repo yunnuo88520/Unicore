@@ -21,7 +21,7 @@ func ID() string {
 }
 func (s *Store) Audit(ctx context.Context, r Runner, actor, action string) error {
 	id := ID()
-	_, err := s.Exec(ctx, r, "INSERT INTO audit_logs(id,actor_id,action,created_at) VALUES(?,?,?,?)", id, actor, action, time.Now().Unix())
+	_, err := s.Exec(ctx, r, "INSERT INTO unicore_audit_logs(id,actor_id,action,created_at) VALUES(?,?,?,?)", id, actor, action, time.Now().Unix())
 	if err != nil {
 		return err
 	}
@@ -38,7 +38,7 @@ func (s *Store) Audit(ctx context.Context, r Runner, actor, action string) error
 			}
 			return string(r)
 		}
-		_, err = s.Exec(ctx, r, "INSERT INTO audit_metadata(audit_id,actor_name,realm,target,detail,ip_address) VALUES(?,?,?,?,?,?)", id, clean(m.ActorName, 64), clean(m.Realm, 32), clean(m.Target, 256), clean(m.Detail, 512), clean(m.IP, 64))
+		_, err = s.Exec(ctx, r, "INSERT INTO unicore_audit_metadata(audit_id,actor_name,realm,target,detail,ip_address) VALUES(?,?,?,?,?,?)", id, clean(m.ActorName, 64), clean(m.Realm, 32), clean(m.Target, 256), clean(m.Detail, 512), clean(m.IP, 64))
 	}
 	return err
 }

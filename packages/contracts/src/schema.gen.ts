@@ -45,6 +45,12 @@ export interface Bootstrap {
   theme?: string;
   branding?: Branding;
   identity_realm?: "user" | "administrator";
+  site_police_number?: string;
+  site_footer_html?: string;
+  maintenance_enabled?: boolean;
+  maintenance_message?: string;
+  mfa_pending?: boolean;
+  mfa_enrollment_required?: boolean;
 }
 
 export interface BootstrapResponse {
@@ -131,6 +137,7 @@ export interface User {
   permissions: Array<string>;
   created_at: number;
   last_login_at: number;
+  totp_enabled: boolean;
 }
 
 export interface UserList {
@@ -163,6 +170,7 @@ export interface Session {
   user: User;
   csrf_token: string;
   expires_at: number;
+  mfa_pending?: boolean;
 }
 
 export interface Captcha {
@@ -287,6 +295,7 @@ export interface AuthPolicy {
   register_captcha: boolean;
   mail_ready: boolean;
   email_login_enabled: boolean;
+  email_verification_required: boolean;
 }
 
 export interface RegisterInput {
@@ -323,6 +332,7 @@ export interface MailJob {
   created_at: number;
   available_at: number;
   last_error: string;
+  channel?: "email" | "wecom" | "webhook";
 }
 
 export interface MailJobList {
@@ -347,6 +357,7 @@ export interface EmailChallenge {
   challenge_id: string;
   expires_in: number;
   retry_after: number;
+  registration_complete?: boolean;
 }
 
 export interface EmailCodeInput {
@@ -489,6 +500,7 @@ export interface DatabaseCheck {
   database_name: string;
   table_count: number;
   initialized: boolean;
+  reset_allowed?: boolean;
 }
 
 export interface DatabaseCheckResponse {
@@ -584,6 +596,7 @@ export interface FileUploadInput {
   original_name: string;
   mime_type: string;
   size: number;
+  upload_path?: string;
 }
 
 export interface FileUploadGrant {
@@ -807,8 +820,13 @@ export interface AnnouncementInput {
   format: "markdown" | "html";
   type: "info" | "success" | "warning" | "error";
   note: string;
-  status: "draft" | "published";
+  status: "draft" | "published" | "archived";
   publish_at: number;
+  title: string;
+  notify_mode: "silent" | "popup";
+  ends_at: number;
+  audience: "all" | "selected";
+  recipient_ids: Array<string>;
 }
 
 export interface AnnouncementUpdate {
@@ -816,9 +834,14 @@ export interface AnnouncementUpdate {
   format: "markdown" | "html";
   type: "info" | "success" | "warning" | "error";
   note: string;
-  status: "draft" | "published";
+  status: "draft" | "published" | "archived";
   publish_at: number;
   version: number;
+  title: string;
+  notify_mode: "silent" | "popup";
+  ends_at: number;
+  audience: "all" | "selected";
+  recipient_ids: Array<string>;
 }
 
 export interface AnnouncementEntry {
@@ -830,11 +853,16 @@ export interface AnnouncementEntry {
   format: "markdown" | "html";
   type: "info" | "success" | "warning" | "error";
   note: string;
-  status: "draft" | "published";
+  status: "draft" | "published" | "archived";
   publish_at: number;
   content_html: string;
   created_by: string;
   updated_by: string;
+  title: string;
+  notify_mode: "silent" | "popup";
+  ends_at: number;
+  audience: "all" | "selected";
+  recipient_ids: Array<string>;
 }
 
 export interface AnnouncementPublic {
@@ -844,11 +872,15 @@ export interface AnnouncementPublic {
   format: "markdown" | "html";
   type: "info" | "success" | "warning" | "error";
   publish_at: number;
+  title: string;
+  notify_mode: "silent" | "popup";
+  ends_at: number;
+  read_at: number;
 }
 
 export interface AnnouncementQuery {
   search: string;
-  status: "" | "draft" | "published" | "scheduled";
+  status: "" | "draft" | "published" | "scheduled" | "archived" | "expired";
   page: number;
   page_size: number;
 }
@@ -867,6 +899,7 @@ export interface AnnouncementFeed {
   page: number;
   page_size: number;
   enabled: boolean;
+  unread_count: number;
 }
 
 export interface AnnouncementSelection {
@@ -933,6 +966,7 @@ export interface MultipartUploadInput {
   mime_type: string;
   size: number;
   fingerprint: string;
+  upload_path?: string;
 }
 
 export interface UploadPolicy {
@@ -940,6 +974,8 @@ export interface UploadPolicy {
   part_size: number;
   parallelism: number;
   resume_hours: number;
+  upload_paths: Array<string>;
+  allowed_extensions: Array<string>;
 }
 
 export interface UploadPart {
@@ -970,4 +1006,165 @@ export interface MultipartUploadResponse {
   code: string;
   data: MultipartUpload;
   request_id: string;
+}
+
+export interface AccountProfile {
+  user: User;
+  display_name: string;
+  totp_enabled: boolean;
+  force_2fa: boolean;
+  can_disable_2fa: boolean;
+}
+
+export interface ProfileInput {
+  display_name: string;
+}
+
+export interface TOTPSetupInput {
+  password: string;
+}
+
+export interface TOTPSetup {
+  secret: string;
+  otpauth_url: string;
+  expires_at: number;
+}
+
+export interface SecurityCodeInput {
+  code: string;
+}
+
+export interface RecoveryCodes {
+  codes: Array<string>;
+}
+
+export interface LoginDevice {
+  id: string;
+  ip_address: string;
+  user_agent: string;
+  created_at: number;
+  last_seen_at: number;
+  expires_at: number;
+  current: boolean;
+}
+
+export interface LoginDevices {
+  items: Array<LoginDevice>;
+}
+
+export interface RevokeDeviceInput {
+  id: string;
+}
+
+export interface EmailChangeInput {
+  current_challenge_id: string;
+  email: string;
+}
+
+export interface EmailChangeVerifyInput {
+  challenge_id: string;
+  code: string;
+}
+
+export interface AccountProfileResponse {
+  code: string;
+  message: string;
+  data: AccountProfile;
+  request_id: string;
+}
+
+export interface TOTPSetupResponse {
+  code: string;
+  message: string;
+  data: TOTPSetup;
+  request_id: string;
+}
+
+export interface RecoveryCodesResponse {
+  code: string;
+  message: string;
+  data: RecoveryCodes;
+  request_id: string;
+}
+
+export interface LoginDevicesResponse {
+  code: string;
+  message: string;
+  data: LoginDevices;
+  request_id: string;
+}
+
+export interface AnnouncementReader {
+  id: string;
+  username: string;
+  email: string;
+  eligible: boolean;
+  read_at: number;
+}
+
+export interface AnnouncementReadStatus {
+  items: Array<AnnouncementReader>;
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface AnnouncementReadStatusResponse {
+  code: string;
+  message: string;
+  data: AnnouncementReadStatus;
+  request_id: string;
+}
+
+export interface NotifyRule {
+  event: string;
+  user_email: boolean;
+  admin_email: boolean;
+  admin_channel: boolean;
+}
+
+export interface NotifyTemplate {
+  event: string;
+  title: string;
+  body: string;
+}
+
+export interface NotifyConfiguration {
+  enabled: boolean;
+  channel_enabled: boolean;
+  provider: "wecom" | "webhook";
+  wecom_key: string;
+  webhook_url: string;
+  signing_secret: string;
+  clear_wecom_key: boolean;
+  clear_webhook_url: boolean;
+  clear_signing_secret: boolean;
+  wecom_configured: boolean;
+  webhook_configured: boolean;
+  signing_configured: boolean;
+  rules: Array<NotifyRule>;
+  templates: Array<NotifyTemplate>;
+}
+
+export interface NotifyPreview {
+  title: string;
+  body: string;
+}
+
+export interface NotifyTest {
+  template: NotifyTemplate;
+  destination: "channel" | "email";
+  recipient: string;
+}
+
+export interface NotifyConfigurationResponse {
+  code: string;
+  message: string;
+  data: NotifyConfiguration;
+}
+
+export interface NotifyPreviewResponse {
+  code: string;
+  message: string;
+  data: NotifyPreview;
 }

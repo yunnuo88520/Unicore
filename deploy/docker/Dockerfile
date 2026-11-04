@@ -9,19 +9,12 @@ COPY --from=go-toolchain /usr/local/go/bin/gofmt /usr/local/bin/gofmt
 RUN corepack enable && corepack prepare pnpm@11.25.0 --activate
 WORKDIR /src
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
-COPY packages ./packages
-COPY apps ./apps
-COPY assets ./assets
-COPY scripts ./scripts
-COPY cmd/desktop/wails.json ./cmd/desktop/wails.json
-COPY tsconfig.json ./
-COPY VERSION ./
-COPY internal/buildinfo ./internal/buildinfo
-COPY internal/settings ./internal/settings
-COPY internal/platform/roles.go ./internal/platform/roles.go
+RUN pnpm install --frozen-lockfile
+# The identity chain validates and projects the whole repository (go.mod, Makefile, deploy, docs),
+# so the frontend stage receives the full source just like the backend stage.
+COPY . .
 ARG FEATURE_LICENSE=false
 ARG FEATURE_UPDATER=true
-RUN pnpm install --frozen-lockfile
 RUN FEATURE_LICENSE=${FEATURE_LICENSE} FEATURE_UPDATER=${FEATURE_UPDATER} pnpm --filter @unicore/web build
 
 FROM go-toolchain AS backend
@@ -45,6 +38,6 @@ ARG BUILD_TIME=unknown
 LABEL org.opencontainers.image.title="Unicore" org.opencontainers.image.version=$VERSION org.opencontainers.image.revision=$COMMIT org.opencontainers.image.created=$BUILD_TIME
 COPY --from=backend /server /server
 COPY --from=backend --chown=65532:65532 /data /data
-ENV APP_LISTEN=0.0.0.0:8080 APP_DEPLOYMENT_KIND=docker APP_DATA_DIR=/data
-EXPOSE 8080
+ENV APP_LISTEN=0.0.0.0:3000 APP_DEPLOYMENT_KIND=docker APP_DATA_DIR=/data
+EXPOSE 3000
 ENTRYPOINT ["/server"]

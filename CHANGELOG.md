@@ -5,12 +5,74 @@
 
 ### 中文
 
+- Web 单程序新增交互管理菜单、Linux/systemd 服务安装与启停、自启和日志；支持停服后的管理员密码恢复、后台路径、维护模式、会话撤销及同实例数据库连接修复，自动复用受管服务配置，保留既有双因素验证，不迁移数据。
+
+- Web 默认生成 config.yaml，支持严格 YAML 配置及旧 JSON 兼容；默认监听与 Docker/Compose 端口统一改为 3000，部署模板、开发代理与文档同步调整。现有部署需显式保留旧端口或同步修改代理/映射。
+
+- 精简用户发行包：Web 使用一个 unicore 入口提供服务、帮助、配置和离线备份恢复，前端内嵌；CLI 入口移至根目录，桌面包只留运行与升级必需文件。移除重复静态资源、帮助脚本、完整文档与历史日志；旧 bin/server 部署需手动停服迁移并修改 systemd 入口。
+
+- 公告改为顶部铃铛、分页列表与确认弹窗，新增标题、结束时间、归档、指定接收用户、全量未读统计与首次已读查询；保留软删除/版本审计，追加三方言平台迁移 0015。
+
+- 对象存储改为横向切换的单配置表单，移除新增位置和重复的默认选择器；上传规则独立分组，支持路径标签增删及折叠的分片/清理设置，保留历史文件目标与密钥保护。
+
+- 注册密码规则改为输入后按字段提示，移除注册按钮下的常驻说明；管理员认证页移除跳转普通用户登录的链接。
+
+- 重做登录、注册、找回密码与注册完成页，统一双栏布局、真实页面互链、密码显隐及注册/重置确认密码；注册完成不再重复登录入口。注册用户名/邮箱冲突返回 409 与字段提示，保留事务和唯一约束，修复重复注册被伪报成功的问题；邮件恢复仍不泄露账号存在性。
+
+- 新增账户安全二级菜单、两类账号 2FA 状态列、分域强制验证、登录失败 IP 封禁与会话超时；登录注册页采用双栏卡片与移动端布局。
+
+- 修复验证器绑定密钥自动失效，验证可解码二维码与真实 TOTP 登录；拆分开放注册/邮箱验证，新增后缀限制、黑名单、存储内联表单及上传路径/扩展名策略。
+
+- 将系统设置与完整个人中心归入系统管理分区；支持昵称、两步邮箱换绑、TOTP/一次性恢复码、所有登录方式的二次验证与设备下线，新增三方言平台迁移 0014。
+- 优化安装向导和二级导航选中态；增加默认存储策略、批量文件迁移进度、站点/管理员邮箱/公安备案/页脚设置、维护模式与注册开关。
+- 补全 Web 从零部署与配置手册：环境/数据库、Docker/Compose、tar/systemd、HTTPS、安装、验证、更新和故障排查，提供完整参数及设置表。
+
+- 新增 VitePress 文档站：复用显式公开文档白名单，提供中英文入口、全文搜索与开发/运维导航；配置 unicore.ebox.vip、静态构建检查和 main 手动 Pages 部署，附内容更新与域名部署手册。DNS、TLS 和线上发布需实际配置。
+
+- Web 安装后生成 install.lock；服务器管理员停服删锁并重启后可凭新凭据从头安装，原库必须验证归属并确认清空，别站与归属不明非空库拒绝覆盖。框架表固定 unicore_ 前缀，派生项目保持，旧 0.x 表通过三方言追加迁移保留数据重命名。
+
+- 精简全局页脚为版权与可选备案信息，移除重复版本/技术栈和误放到所有页面的文本分析说明；默认署名显示为 Crafted by Yunnuo，兼容旧默认值并保留自定义版权。
+
+- 导航默认保持宽侧栏并折叠菜单分组，窄栏只显示一级入口且通过分组弹出子菜单；修正内嵌/悬浮模式的顶部圆角、容器间距与明暗主题一致性。
+- 派生创建器支持 --repository 配置独立 origin、界面文档和反馈链接，保留作者/许可及只读上游；修复远端模板引用的共同祖先初始化，并让新界面标题、数据库/存储默认值跟随产品身份。
+
 - 建立 framework-template 模板分支与上游同步体系：模板分支为孤儿根的连续白名单历史（含框架身份文件），创建器以模板提交为共同祖先派生项目，新增 framework:check 冲突预览与 framework:sync 归一化三方合并（备份分支、身份归一化、模块路径恢复、重投影校验、同步报告、冲突零改动）；分发清单登记文件所有权分类，派生项目二次同步经端到端验证。
 - 创建器升级为正式产品生成器：导出即完成 git init、初始基线提交与只读 framework 远端，provenance 新增上游模板版本、生成器版本与产品身份摘要，来源 VERSION 校验 SemVer；派生项目开箱通过 product:check 与 check:residuals。
 - 产品身份唯一来源覆盖全部产品可见面：CLI 帮助文案、Web/桌面 HTML 标题、PWA、词标与主题生成物、openapi 标题、部署启动器/服务/Compose/Nginx/Docker 标签及模板文档令牌均由 product.identity.json 生成；CLI 根命令帮助、邮件主题、更新 UA 与桌面程序名接入身份常量。
 - 新增 product:check 只读门禁与派生项目残留扫描 check:residuals（框架仓库自动跳过）；安装与数据库错误文案去产品化并同步中英文；示例文本与发行 README 改为按身份生成。
 
 ### English
+
+- Add a Web management menu, Linux/systemd installation, service controls, autostart and logs in the same executable. Offline commands recover administrator passwords, change the administrator path and maintenance mode, revoke sessions and repair same-instance database connections, reusing managed service configuration while retaining enrolled MFA and leaving data migration to operators.
+
+- Generate config.yaml by default with strict YAML loading and legacy JSON compatibility. Use port 3000 for Web and Docker/Compose defaults and align deployment templates, the development proxy and documentation. Existing deployments must explicitly retain the old port or update proxy/mapping settings.
+
+- Simplify user archives: one Web executable provides serving, help, configuration and offline backup/restore with embedded assets; CLI commands move to the archive root and desktop packages retain only runtime/update essentials. Remove duplicated assets, help scripts, full documentation and changelog history. Existing bin/server deployments require a stopped manual migration and a systemd entry-point change.
+
+- Replace dashboard announcements with a header bell, paginated inbox and acknowledged popups; add titles, expiration, archives, selected recipients, global unread counts and first-read receipts, preserving versioned soft deletion and transactional audit with platform migration 0015.
+
+- Redesign storage settings with horizontal provider selection and one configuration per provider; remove location creation and duplicate default controls, separate upload rules, add path chips and collapsible multipart/cleanup settings, and preserve historical targets and credential protection.
+
+- Show registration password validation after input instead of a persistent footer hint, and remove the user-login link from administrator authentication pages.
+
+- Rebuild linked login, registration, recovery and registration-success pages with a shared split layout, password visibility and registration/reset confirmation. Keep one sign-in action on completion. Return 409 and field feedback for duplicate usernames/emails, preserve transaction and unique constraints, and stop reporting duplicate registration as success; recovery responses remain opaque.
+
+- Add account security management, read-only 2FA status, realm-specific enforcement, temporary login IP bans and session timeouts; redesign authentication with responsive split cards.
+
+- Fix authenticator enrollment rotation and verify scannable QR/TOTP login; separate registration and email verification, add restrictions and inline storage forms with path/extension policies.
+
+- Group system settings and a complete personal center under System Management, with display names, two-step email changes, TOTP/recovery codes, MFA for every login method, device revocation, and additive platform migration 0014 for three dialects.
+- Improve installation and nested navigation; add default storage policies, bulk migration progress, site/contact/footer settings, maintenance mode, and registration controls.
+- Expand Web deployment and configuration guides with prerequisites, databases, Docker/Compose, tar/systemd, HTTPS, installation, verification, updates, troubleshooting, and parameter tables.
+
+- Add a VitePress documentation site with an explicit public-document whitelist, Chinese/English entry points, full-text search, and development/operations navigation. Configure unicore.ebox.vip, static build checks, and manual Pages deployment from main, with content-maintenance and domain-deployment guides. DNS, TLS, and live publication still require configuration.
+
+- Create install.lock after Web setup. Server owners can stop, delete the lock and restart for a fresh-token reinstall; resetting the original database requires verified ownership and explicit consent, while foreign or unrecognized occupied targets are blocked. Keep a fixed unicore_ framework table prefix in derived products and preserve legacy 0.x data through appended dialect-specific rename migrations.
+
+- Keep the global footer to copyright and optional registration details, removing duplicate version/stack labels and the lab-specific text-analysis note from shared pages. Display the default credit as Crafted by Yunnuo, including the legacy default, while preserving custom copyright text.
+
+- Keep the sidebar wide by default with collapsed menu groups; the rail shows only top-level entries and opens group menus for children. Align header corners, container spacing and light/dark surfaces in inset and floating layouts.
+- Let the creator configure an independent origin, UI documentation and feedback links with --repository while preserving authorship, licensing and a read-only upstream. Fix common-ancestor initialization from remote template refs and apply product identity to new UI headings and database/storage defaults.
 
 - Establishes the framework-template branch and the upstream sync system: the template branch is a continuous whitelist-only history with an orphan root (including the framework identity file), the creator derives projects with the template commit as a true common ancestor, and new framework:check conflict previews plus framework:sync normalized three-way merges (backup branch, identity normalization, module path restoration, re-projection checks, sync report, zero-change conflict refusal) land alongside ownership classification in the distribution manifest; a second upstream sync is covered end to end.
 - The creator is now a full product generator: exports complete git init, the initial baseline commit, and the read-only framework remote; provenance gains the upstream template version, generator version, and identity digest, and the source VERSION is validated as SemVer; derived projects pass product:check and check:residuals out of the box.

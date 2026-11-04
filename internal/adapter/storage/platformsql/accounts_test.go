@@ -27,7 +27,7 @@ import (
 func exerciseMailLifecycle(t *testing.T, ctx context.Context, store *sqlstore.Store, repository *Repository, admin contracts.User) {
 	t.Helper()
 	// Recreate the exact M2a schema level without touching its users, sessions or settings.
-	for _, query := range []string{"DROP TABLE email_challenges", "DELETE FROM schema_migrations WHERE version=4", "DROP TABLE mail_jobs", "DROP TABLE account_tokens", "DELETE FROM schema_migrations WHERE version=3"} {
+	for _, query := range []string{"DROP TABLE unicore_email_challenges", "DELETE FROM unicore_schema_migrations WHERE version=4", "DROP TABLE unicore_mail_jobs", "DROP TABLE unicore_account_tokens", "DELETE FROM unicore_schema_migrations WHERE version=3"} {
 		if _, err := store.DB.ExecContext(ctx, query); err != nil {
 			t.Fatal(err)
 		}
@@ -62,7 +62,7 @@ func exerciseMailLifecycle(t *testing.T, ctx context.Context, store *sqlstore.St
 	if err = mail.Test(ctx, "recipient@example.test", admin.ID); err != nil {
 		t.Fatal("SMTP test failed", err)
 	}
-	_, err = config.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "account.registration_enabled", Value: "true"}, {Key: "account.password_reset_enabled", Value: "true"}}}, admin.ID)
+	_, err = config.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "account.registration_enabled", Value: "true"}, {Key: "account.email_verification_required", Value: "true"}, {Key: "account.password_reset_enabled", Value: "true"}}}, admin.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +91,7 @@ func exerciseMailLifecycle(t *testing.T, ctx context.Context, store *sqlstore.St
 		t.Fatal("pending account logged in", err)
 	}
 	var payload string
-	if err = store.Row(ctx, store.DB, "SELECT payload FROM mail_jobs LIMIT 1").Scan(&payload); err != nil {
+	if err = store.Row(ctx, store.DB, "SELECT payload FROM unicore_mail_jobs LIMIT 1").Scan(&payload); err != nil {
 		t.Fatal(err)
 	}
 	if strings.Contains(payload, "newmember") || strings.Contains(payload, "token=") {
@@ -212,7 +212,7 @@ func exerciseMailLifecycle(t *testing.T, ctx context.Context, store *sqlstore.St
 		t.Fatal(err)
 	}
 	var state string
-	if err = store.Row(ctx, store.DB, "SELECT state FROM mail_jobs WHERE id=?", second.ID).Scan(&state); err != nil || state != "sending" {
+	if err = store.Row(ctx, store.DB, "SELECT state FROM unicore_mail_jobs WHERE id=?", second.ID).Scan(&state); err != nil || state != "sending" {
 		t.Fatal("stale worker committed", state, err)
 	}
 	for attempt := second.Attempts; attempt <= 5; attempt++ {
@@ -226,7 +226,7 @@ func exerciseMailLifecycle(t *testing.T, ctx context.Context, store *sqlstore.St
 			}
 		}
 	}
-	if err = store.Row(ctx, store.DB, "SELECT payload,state FROM mail_jobs WHERE id=?", second.ID).Scan(&payload, &state); err != nil || payload != "" || state != "dead" {
+	if err = store.Row(ctx, store.DB, "SELECT payload,state FROM unicore_mail_jobs WHERE id=?", second.ID).Scan(&payload, &state); err != nil || payload != "" || state != "dead" {
 		t.Fatal("terminal secret retention", state, err)
 	}
 	list, err := repository.MailJobs(ctx)

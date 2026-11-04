@@ -19,7 +19,7 @@ func TestNativeLocalSettingsBoundary(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err = store.Exec(ctx, store.DB, "INSERT INTO system_settings(setting_key,setting_value) VALUES('site.name','Legacy local name'),('branding.logo','legacy-reference')"); err != nil {
+	if _, err = store.Exec(ctx, store.DB, "INSERT INTO unicore_system_settings(setting_key,setting_value) VALUES('site.name','Legacy local name'),('branding.logo','legacy-reference')"); err != nil {
 		t.Fatal(err)
 	}
 	bridge := NewLocal(bootstrap.Core(), service)

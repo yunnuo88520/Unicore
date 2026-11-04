@@ -1,7 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Exercise real Linux archives, Nginx, image and Compose in disposable named instances.
 import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -12,7 +12,7 @@ const identity = loadIdentity(), prefix = ciSecretPrefix(identity.product.slug);
 const docker = args => execFileSync('docker', args, { encoding: 'utf8', stdio: ['ignore','pipe','pipe'] }).trim();
 const version = readFileSync('VERSION','utf8').trim();
 const contract = JSON.parse(readFileSync('packages/contracts/openapi.json','utf8'));
-const management = Object.entries(contract.paths).filter(([path])=>path.startsWith('/api/v1/admin/')).flatMap(([path,item])=>Object.entries(item).filter(([,operation])=>operation.operationId&&operation['x-unicore'].access!=='public').map(([method])=>({path,method:method.toUpperCase()})));
+const management = Object.entries(contract.paths).filter(([path])=>path.startsWith('/api/v1/admin/')).flatMap(([path,item])=>Object.entries(item).filter(([,operation])=>operation.operationId&&operation['x-unicore'].access!=='public').map(([method,operation])=>({path,method:method.toUpperCase(),pendingMFA:['adminVerifyMFA','adminCancelMFA'].includes(operation.operationId)})));
 const image = process.env[`${prefix}_IMAGE`] ?? `${identity.deployment.image}:${version}`;
 const daemonArch=docker(['info','--format','{{.Architecture}}']);
 const arch=({aarch64:'arm64',arm64:'arm64',x86_64:'amd64',amd64:'amd64'})[daemonArch];
@@ -42,8 +42,8 @@ async function exercise(mode,profile) {
   if(mode === 'compose') {
     projects.add(project);compose(project,['up','-d','--no-build','--pull','never']);
     container=compose(project,['ps','-q','app']);
-    url=`http://${compose(project,['port','app','8080'])}`;
-    recreate=()=>{compose(project,['up','-d','--no-build','--pull','never','--force-recreate']);container=compose(project,['ps','-q','app']);url=`http://${compose(project,['port','app','8080'])}`;};
+    url=`http://${compose(project,['port','app','3000'])}`;
+    recreate=()=>{compose(project,['up','-d','--no-build','--pull','never','--force-recreate']);container=compose(project,['ps','-q','app']);url=`http://${compose(project,['port','app','3000'])}`;};
   } else {
     volumes.add(volume);docker(['volume','create',volume]);
     const run=['run','-d','--name',name,'--read-only','--cap-drop=ALL','--security-opt=no-new-privileges:true','-v',`${volume}:/data`];
@@ -55,23 +55,25 @@ async function exercise(mode,profile) {
       expect(manifest?.sha256).toBe(digest(readFileSync(file)));
       execFileSync('tar',['-xzf',file,'-C',release,'--strip-components=1']);
       expect(readFileSync(join(release,'VERSION'),'utf8').trim()).toBe(version);
-      expect(JSON.parse(readFileSync(join(release,'manifest.json'),'utf8')).migration_level).toBe(profile==='web-platform'?12:1);
+      expect(JSON.parse(readFileSync(join(release,'manifest.json'),'utf8')).migration_level).toBe(profile==='web-platform'?15:13);
       expect(JSON.parse(readFileSync(join(release,'manifest.json'),'utf8')).business_migration_level).toBe(2);
       expect(readFileSync(join(release,'LICENSE'),'utf8')).toContain('MIT License');
-      expect(readFileSync(join(release,`bin/${identity.cli.opsCommand}`)).byteLength).toBeGreaterThan(1000);
+      expect(readFileSync(join(release,identity.cli.command)).byteLength).toBeGreaterThan(1000);
       const network=`${name}-network`;networks.add(network);docker(['network','create',network]);
-      run.push('--network',network,'--network-alias','backend','-v',`${release}:/release:ro`,'--entrypoint','/release/bin/server','-e','APP_DEPLOYMENT_KIND=tar');
-      const config=readFileSync(join(release,'deploy/nginx.conf.example'),'utf8').replace('127.0.0.1:8088','0.0.0.0:80').replace(`${identity.deployment.installDirectory}/current/web`,'/release/web').replaceAll('127.0.0.1:8080','backend:8080').replace('add_header Cache-Control','add_header X-Unicore-Static nginx;\n        add_header Cache-Control');
+      run.push('--network',network,'--network-alias','backend','-v',`${release}:/release:ro`,'--entrypoint',`/release/${identity.cli.command}`,'-e','APP_DEPLOYMENT_KIND=tar');
+      const config=readFileSync(join(release,'deploy/nginx.conf.example'),'utf8').replaceAll('127.0.0.1:3000','backend:3000');
       const conf=join(temp,`${mode}.conf`);writeFileSync(conf,config);
       const nginx=`${name}-nginx`;containers.add(nginx);
       docker([...run,image]);containers.add(name);
       docker(['run','-d','--name',nginx,'--network',network,'-p','127.0.0.1::80','-v',`${release}:/release:ro`,'-v',`${conf}:/etc/nginx/conf.d/default.conf:ro`,process.env.NGINX_IMAGE??'nginx:latest']);
       docker(['exec',nginx,'nginx','-t']);
       url=`http://${docker(['port',nginx,'80/tcp'])}`;
-      const asset=readdirSync(join(release,'web/assets')).find(file=>file.endsWith('.js'));
-      let response;await expect.poll(async()=>{try{response=await fetch(`${url}/assets/${asset}`);return response.status;}catch{return 0;}},{timeout:30000}).toBe(200);expect(response.headers.get('x-unicore-static')).toBe('nginx');
-    } else {run.push('-p','127.0.0.1::8080');docker([...run,image]);containers.add(name);url=`http://${docker(['port',name,'8080/tcp'])}`;}
-    recreate=()=>{docker(['stop','-t','15',name]);expect(docker(['inspect','--format','{{.State.ExitCode}}',name])).toBe('0');docker(['rm',name]);docker([...run,image]);if(mode==='docker')url=`http://${docker(['port',name,'8080/tcp'])}`;};
+      let response;await expect.poll(async()=>{try{response=await fetch(`${url}/install`);return response.status;}catch{return 0;}},{timeout:30000}).toBe(200);
+      const html=await response.text();
+      const asset=html.match(/src="(\/assets\/[^"]+\.js)"/)?.[1];expect(asset).toBeTruthy();
+      expect((await fetch(`${url}${asset}`)).status).toBe(200);
+    } else {run.push('-p','127.0.0.1::3000');docker([...run,image]);containers.add(name);url=`http://${docker(['port',name,'3000/tcp'])}`;}
+    recreate=()=>{docker(['stop','-t','15',name]);expect(docker(['inspect','--format','{{.State.ExitCode}}',name])).toBe('0');docker(['rm',name]);docker([...run,image]);if(mode==='docker')url=`http://${docker(['port',name,'3000/tcp'])}`;};
   }
   await waitLive(url);
   const context=await browser.newContext({baseURL:url,viewport:{width:1440,height:1000}});
@@ -96,12 +98,17 @@ async function exercise(mode,profile) {
     await expect(page.getByRole('radio',{name:initialProfile==='web-platform'?/多用户平台/:/单机模式/})).toBeChecked();
     await page.getByRole('radio',{name:profile==='web-platform'?/多用户平台/:/单机模式/}).check();
     await page.getByRole('button',{name:'下一步'}).click();
-    await page.getByLabel('数据库类型').selectOption('sqlite');
+    await page.getByRole('combobox',{name:'数据库类型'}).click();
+    await page.getByRole('option',{name:/SQLite/}).click();
     await page.getByRole('button',{name:'测试连接'}).click();await expect(page.getByText('连接测试成功')).toBeVisible();
     await page.getByRole('button',{name:'下一步'}).click();
     if(profile==='web-platform') {await page.getByLabel('站点名称',{exact:true}).fill(`部署验收 ${mode}`);await page.getByLabel('管理员账号').fill('admin');await page.getByLabel('管理员邮箱').fill('admin@example.test');await page.getByLabel('管理员密码').fill('Admin@123456');await page.getByRole('button',{name:'下一步'}).click();}
     await page.getByRole('button',{name:'完成安装'}).click();await expect(page.getByRole('heading',{name:'安装完成',exact:true})).toBeVisible();
-    await page.getByRole('button',{name:'进入工作空间'}).click();await expect(page.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
+    await page.getByRole('button',{name:'进入工作空间'}).click();
+    // The click starts a full document navigation for the administrator entry.
+    // Wait for its URL and document load before asserting the mounted shell.
+    await page.waitForURL(target=>target.origin===new URL(url).origin&&target.pathname.replace(/\/$/,'')===(profile==='web-platform'?'/admin':''));
+    await expect(page.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
     const boot=await json(bootstrapPath);expect(boot.version).toBe(version);expect(boot.profile).toBe(profile);expect(boot.deployment_kind).toBe(mode.startsWith('tar')?'tar':'docker');
     const admin=profile==='web-platform';const headers={...realm,'Origin':url,...(admin?{'X-CSRF-Token':boot.csrf_token}:{})};
     const base=admin?'/api/v1/admin':'/api/v1';
@@ -123,7 +130,7 @@ async function exercise(mode,profile) {
       expect(updates.current_version).toBe(version);expect(updates.history.length).toBeGreaterThan(0);
       if(!mode.startsWith('tar')) {
         expect(updates.can_apply).toBe(false);expect(updates.reason).toContain('容器');
-        await page.goto(`${url}/admin#edition`);
+        await page.goto(`${url}/admin/edition`);
         await expect(page.getByRole('heading',{name:'更新日志',exact:true})).toBeVisible();
         await expect(page.getByRole('button',{name:'更新并重启',exact:true})).toBeDisabled();
         await page.screenshot({path:join(evidence,`${mode}-updates.png`),fullPage:true});
@@ -146,7 +153,7 @@ async function exercise(mode,profile) {
     const fingerprints=Object.fromEntries(['secret.key','installation.json'].map(path=>[path,digest(dataFile(container,path))]));
     // A process restart followed by container replacement must retain the installation and key.
     docker(['restart','-t','15',container]);
-    if(!mode.startsWith('tar'))url=`http://${docker(['port',container,'8080/tcp'])}`;
+    if(!mode.startsWith('tar'))url=`http://${docker(['port',container,'3000/tcp'])}`;
     await waitLive(url);
     recreate();await waitLive(url);
     expect((await json(bootstrapPath)).site_name).toBe(admin?`持久部署 ${mode}`:identity.product.name);
@@ -173,17 +180,18 @@ async function exercise(mode,profile) {
       const member=await browser.newContext({baseURL:url,viewport:{width:375,height:812}});
       try {
         for(const operation of management)expect((await member.request.fetch(operation.path.replace('{id}','missing'),{method:operation.method,...(operation.method==='GET'?{}:{data:{}})})).status(),`${operation.method} ${operation.path}`).toBe(401);
-        const personal=await member.newPage();await personal.goto(`${url}/#site?tab=mail`);
+        const personal=await member.newPage();await personal.goto(`${url}/site?tab=mail`);
         await personal.getByLabel('账号或邮箱').fill('member');await personal.getByLabel('密码',{exact:true}).fill('test-password-strong');
         const src=await personal.getByAltText('六位数字验证码，点击刷新').getAttribute('src');
         const answer=[...Buffer.from(src.split(',')[1],'base64').toString().matchAll(/>([0-9])<\/text>/g)].map(match=>match[1]).join('');
         await personal.getByLabel('图形验证码',{exact:true}).fill(answer);await personal.getByRole('button',{name:'登录工作空间'}).click();
         await expect(personal.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
-        await personal.goto(`${url}/#site`);
+        await personal.goto(`${url}/site`);
         await expect(personal.getByText('仅当前客户端',{exact:true})).toBeVisible();
         const metadata=(await(await member.request.get('/api/v1/bootstrap')).json()).data;
         expect(metadata.current_user.roles).toEqual(['user']);expect(metadata.current_user.permissions).toEqual([]);
-        for(const operation of management)expect((await member.request.fetch(operation.path.replace('{id}','missing'),{method:operation.method,headers:{Origin:url,'X-CSRF-Token':metadata.csrf_token},...(operation.method==='GET'?{}:{data:{}})})).status(),`${operation.method} ${operation.path}`).toBe(403);
+        // MFA requires a pending session in this exact realm, rather than a fully signed-in user.
+        for(const operation of management)expect((await member.request.fetch(operation.path.replace('{id}','missing'),{method:operation.method,headers:{Origin:url,'X-CSRF-Token':metadata.csrf_token},...(operation.method==='GET'?{}:{data:{}})})).status(),`${operation.method} ${operation.path}`).toBe(operation.pendingMFA?401:403);
         expect((await member.request.get('/manage')).status()).toBe(200);
         await expect(personal.getByLabel('站点名称',{exact:true})).toHaveCount(0);
         const writes=[];personal.on('request',request=>{if(request.method()!=='GET')writes.push(request.url());});
@@ -192,8 +200,15 @@ async function exercise(mode,profile) {
         await personal.screenshot({path:join(evidence,`${mode}-member-local-375.png`),fullPage:true});
       } finally {await member.close();}
     }
-    expect(errors).toEqual([]);results.push({mode,profile,version,status:'passed',checks:['install wizard PC/375',...(admin?['demo account and six-digit captcha login','CSRF and custom admin path','all management APIs reject anonymous/member','member local appearance only']:['platform APIs absent']),...(mode.startsWith('tar')?['Nginx serves fingerprinted assets']:[]),'API/brand/manifest/docs routing','restart and container replacement','persisted settings/key/database/brand','Core']});
+    expect(errors).toEqual([]);results.push({mode,profile,version,status:'passed',checks:['install wizard PC/375',...(admin?['demo account and six-digit captcha login','CSRF and custom admin path','all management APIs reject anonymous/member','member local appearance only']:['platform APIs absent']),...(mode.startsWith('tar')?['Nginx proxies embedded fingerprinted assets']:[]),'API/brand/manifest/docs routing','restart and container replacement','persisted settings/key/database/brand','Core']});
     console.log(`PASS ${mode}`);
+  } catch(error) {
+    // Preserve the real failed page without logging form values or credentials.
+    const state={mode,profile,url:page.url(),body:await page.locator('body').innerText().catch(()=>''),errors};
+    writeFileSync(join(evidence,`${mode}-failure.json`),JSON.stringify(state,null,2)+'\n');
+    await page.screenshot({path:join(evidence,`${mode}-failure.png`),fullPage:true}).catch(()=>{});
+    console.error(`Failed ${mode} at ${new URL(page.url()).pathname}: ${state.body.slice(0,1200)}`);
+    throw error;
   } finally {await context.close();}
 }
 try {

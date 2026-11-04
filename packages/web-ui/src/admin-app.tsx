@@ -1,31 +1,46 @@
 /** Author: yunnuo <ymz@ebox.vip>
- * Description: Administrator-only entry composition; shared shell and business components remain reusable.
+ * Description: Administrator-only entry composition; the router basepath follows the configured admin path.
+ * Products can override any administration page through the administratorPage injection point.
  */
+import { useEffect, useState } from 'react';
 import { t, useLocale } from './i18n';
 import { Workspace, type PageProps } from './App';
 import type { AppClient } from '@unicore/sdk';
-import { StorageSettings } from './storage-page';
-import { UserManagement } from './web-flows';
-import { PersistentSettings } from './settings-page';
-import { MailTemplates } from './mail-templates-page';
-import { AnnouncementManagement } from './announcements-page';
-import { SystemLogs } from './logs-page';
-import { EditionPanel } from './edition-panel';
-import { RoleManagement } from './roles-page';
-function AdministrationPage({page,client,metadata,theme,setTheme,refresh}:PageProps){
+import { AdminStoragePage } from './pages/admin/storage';
+import { AdminUsersPage, AdminAdministratorsPage } from './pages/admin/users';
+import { AdminMailSettingsPage } from './pages/appearance';
+import { AdminEditionPage } from './pages/edition';
+import { AdminNotificationsPage } from './pages/admin/notifications';
+import { AdminMailTemplatesPage } from './pages/admin/mail-templates';
+import { AdminAnnouncementsPage } from './pages/admin/announcements';
+import { AdminLogsPage } from './pages/admin/logs';
+import { AdminRolesPage } from './pages/admin/roles';
+
+function AdministrationPage(props: PageProps) {
   useLocale();
- if(!client.web)return null;
- switch(page){
- case 'site': case 'mail': return <PersistentSettings key={page} section={page==='mail'?'mail':'base'} client={client} metadata={metadata} theme={theme} onThemeSaved={setTheme} onSaved={refresh}/>;
- case 'storage': return client.storage && <StorageSettings client={client}/>;
- case 'users': case 'administrators': return <UserManagement key={page} web={client.web} metadata={metadata} administrators={page==='administrators'}/>;
- case 'roles': return <RoleManagement web={client.web}/>;
- case 'mail-templates': return <MailTemplates web={client.web}/>;
- case 'announcements': return <AnnouncementManagement web={client.web}/>;
- case 'logs': return <SystemLogs web={client.web}/>;
- case 'edition': return <EditionPanel client={client} metadata={metadata}/>;
- default:return null;
- }
+  if (!props.client.web) return null;
+  switch (props.page) {
+    case 'site': case 'mail': case 'account-policy': return <AdminMailSettingsPage {...props} />;
+    case 'storage': return props.client.storage && <AdminStoragePage {...props} />;
+    case 'users': case 'administrators': return props.page === 'administrators' ? <AdminAdministratorsPage {...props} /> : <AdminUsersPage {...props} />;
+    case 'roles': return <AdminRolesPage {...props} />;
+    case 'notification-channels': case 'notification-templates': case 'system-notifications': return <AdminNotificationsPage {...props} />;
+    case 'mail-templates': return <AdminMailTemplatesPage {...props} />;
+    case 'announcements': return <AdminAnnouncementsPage {...props} />;
+    case 'logs': return <AdminLogsPage {...props} />;
+    case 'edition': return <AdminEditionPage {...props} />;
+    default: return null;
+  }
 }
-export function AdminWorkspace({client}:{client:AppClient}) {
-  useLocale();return <Workspace client={client} administratorPage={AdministrationPage}/>;}
+
+export function AdminWorkspace({ client }: { client: AppClient }) {
+  useLocale();
+  const [adminPath, setAdminPath] = useState('');
+  useEffect(() => {
+    let alive = true;
+    client.bootstrap().then(data => { if (alive) setAdminPath(data.admin_path || '/admin'); }, () => { if (alive) setAdminPath('/admin'); });
+    return () => { alive = false; };
+  }, [client]);
+  if (!adminPath) return <div className="flex min-h-dvh items-center justify-center bg-background text-sm text-muted" role="status">{t('正在连接 Go 核心')}</div>;
+  return <Workspace client={client} administratorPage={AdministrationPage} basepath={adminPath} />;
+}

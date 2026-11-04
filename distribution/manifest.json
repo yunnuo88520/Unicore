@@ -6,88 +6,341 @@
       "source": "docs/product/index.md",
       "target": "docs/product/index.md",
       "audiences": [
-        "user-release",
         "project-template",
-        "public-wiki"
+        "public-wiki",
+        "public-site"
       ],
       "slug": "Home",
-      "title": "使用指南"
+      "title": "使用指南",
+      "site_group": "guide"
     },
     {
       "source": "docs/product/configuration.md",
       "target": "docs/product/configuration.md",
       "audiences": [
-        "user-release",
         "project-template",
-        "public-wiki"
+        "public-wiki",
+        "public-site"
       ],
       "slug": "Configuration",
-      "title": "配置与数据库"
+      "title": "配置说明与参数表",
+      "site_group": "guide"
     },
     {
       "source": "docs/product/build.md",
       "target": "docs/product/build.md",
       "audiences": [
-        "user-release",
         "project-template",
-        "public-wiki"
+        "public-wiki",
+        "public-site"
       ],
       "slug": "Build",
-      "title": "Web / Desktop / CLI 构建"
+      "title": "Web / Desktop / CLI 构建",
+      "site_group": "guide"
     },
     {
       "source": "docs/product/deployment.md",
       "target": "docs/product/deployment.md",
       "audiences": [
-        "user-release",
         "project-template",
-        "public-wiki"
+        "public-wiki",
+        "public-site"
       ],
       "slug": "Deployment",
-      "title": "部署"
+      "title": "Web 从零部署",
+      "site_group": "guide"
     },
     {
       "source": "docs/product/backup.md",
       "target": "docs/product/backup.md",
       "audiences": [
-        "user-release",
         "project-template",
-        "public-wiki"
+        "public-wiki",
+        "public-site"
       ],
       "slug": "Backup-Restore",
-      "title": "备份恢复"
+      "title": "备份恢复",
+      "site_group": "guide"
     },
     {
       "source": "docs/product/storage.md",
       "target": "docs/product/storage.md",
       "audiences": [
-        "user-release",
         "project-template",
-        "public-wiki"
+        "public-wiki",
+        "public-site"
       ],
       "slug": "Storage",
-      "title": "文件与对象存储"
+      "title": "文件与对象存储",
+      "site_group": "guide"
     },
     {
       "source": "docs/product/updates.md",
       "target": "docs/product/updates.md",
       "audiences": [
-        "user-release",
         "project-template",
-        "public-wiki"
+        "public-wiki",
+        "public-site"
       ],
       "slug": "Updates",
-      "title": "更新与签名"
+      "title": "更新与签名",
+      "site_group": "guide"
     },
     {
       "source": "docs/product/development.md",
       "target": "docs/product/development.md",
       "audiences": [
         "project-template",
-        "public-wiki"
+        "public-wiki",
+        "public-site"
       ],
       "slug": "Development",
-      "title": "应用开发"
+      "title": "应用开发",
+      "site_group": "development"
+    },
+    {
+      "source": "docs/support.md",
+      "target": "docs/support.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "支持范围与已知限制",
+      "site_group": "guide"
+    },
+    {
+      "source": "docs/02-standards/api-contract.md",
+      "target": "docs/02-standards/api-contract.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "API 契约与 SDK",
+      "site_group": "development"
+    },
+    {
+      "source": "docs/02-standards/backend.md",
+      "target": "docs/02-standards/backend.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "Go 分层与业务实体",
+      "site_group": "development"
+    },
+    {
+      "source": "docs/02-standards/frontend.md",
+      "target": "docs/02-standards/frontend.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "共享前端开发",
+      "site_group": "development"
+    },
+    {
+      "source": "docs/03-runbooks/frontend-foundations.md",
+      "target": "docs/03-runbooks/frontend-foundations.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "布局、表单与双语基础",
+      "site_group": "development"
+    },
+    {
+      "source": "docs/03-runbooks/business-example.md",
+      "target": "docs/03-runbooks/business-example.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "笔记业务样板",
+      "site_group": "development"
+    },
+    {
+      "source": "docs/03-runbooks/framework-upgrade.md",
+      "target": "docs/03-runbooks/framework-upgrade.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "派生项目与上游更新",
+      "site_group": "development"
+    },
+    {
+      "source": "docs/02-standards/database-migrations.md",
+      "target": "docs/02-standards/database-migrations.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "数据库迁移",
+      "site_group": "development"
+    },
+    {
+      "source": "docs/02-standards/product-identity.md",
+      "target": "docs/02-standards/product-identity.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "产品身份与白标",
+      "site_group": "development"
+    },
+    {
+      "source": "docs/03-runbooks/deployment.md",
+      "target": "docs/03-runbooks/deployment.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "安装与故障处理",
+      "site_group": "operations"
+    },
+    {
+      "source": "docs/03-runbooks/storage.md",
+      "target": "docs/03-runbooks/storage.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "存储配置与分片上传",
+      "site_group": "operations"
+    },
+    {
+      "source": "docs/03-runbooks/backup.md",
+      "target": "docs/03-runbooks/backup.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "备份与恢复细节",
+      "site_group": "operations"
+    },
+    {
+      "source": "docs/03-runbooks/updates.md",
+      "target": "docs/03-runbooks/updates.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "签名更新与失败恢复",
+      "site_group": "operations"
+    },
+    {
+      "source": "docs/03-runbooks/client-preferences.md",
+      "target": "docs/03-runbooks/client-preferences.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "客户端偏好",
+      "site_group": "operations"
+    },
+    {
+      "source": "docs/03-runbooks/admin-tools.md",
+      "target": "docs/03-runbooks/admin-tools.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "管理工具",
+      "site_group": "operations"
+    },
+    {
+      "source": "docs/03-runbooks/announcements.md",
+      "target": "docs/03-runbooks/announcements.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "公告业务",
+      "site_group": "operations"
+    },
+    {
+      "source": "docs/03-runbooks/documentation-site.md",
+      "target": "docs/03-runbooks/documentation-site.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "文档站维护与部署",
+      "site_group": "operations"
+    },
+    {
+      "source": "docs/02-standards/coding.md",
+      "target": "docs/02-standards/coding.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "代码与交付规范",
+      "site_group": "reference"
+    },
+    {
+      "source": "docs/02-standards/design-system.md",
+      "target": "docs/02-standards/design-system.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "设计系统",
+      "site_group": "reference"
+    },
+    {
+      "source": "docs/02-standards/runtime.md",
+      "target": "docs/02-standards/runtime.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "配置、日志与生命周期",
+      "site_group": "reference"
+    },
+    {
+      "source": "docs/api/permissions.md",
+      "target": "docs/api/permissions.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "平台权限契约",
+      "site_group": "reference"
+    },
+    {
+      "source": "website/pages/index.md",
+      "target": "docs/index.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "Unicore 文档"
+    },
+    {
+      "source": "website/pages/en/index.md",
+      "target": "docs/en/index.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "Unicore Documentation"
+    },
+    {
+      "source": "website/pages/en/getting-started.md",
+      "target": "docs/en/getting-started.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "Get started"
+    },
+    {
+      "source": "docs/03-runbooks/personal-center.md",
+      "target": "docs/03-runbooks/personal-center.md",
+      "audiences": [
+        "public-site"
+      ],
+      "title": "个人中心与账户安全",
+      "site_group": "operations"
+    },
+    {
+      "source": "docs/03-runbooks/notifications.md",
+      "target": "docs/03-runbooks/notifications.md",
+      "audiences": [
+        "project-template",
+        "public-site"
+      ],
+      "title": "事件通知",
+      "site_group": "operations"
+    },
+    {
+      "source": "docs/product/notifications.md",
+      "target": "docs/product/notifications.md",
+      "audiences": [
+        "project-template",
+        "public-wiki",
+        "public-site"
+      ],
+      "slug": "Notifications",
+      "title": "通知与邮件接入",
+      "site_group": "guide"
     }
   ],
   "template_files": [
@@ -175,9 +428,7 @@
     "deploy/docker/compose.dev.yaml",
     "deploy/docker/compose.yaml",
     "deploy/tar/nginx.conf.example",
-    "deploy/tar/unicore",
     "deploy/tar/unicore.service",
-    "deploy/tar/unicorehelp",
     "distribution/manifest.json",
     "distribution/template/AGENTS.md",
     "distribution/template/CONTRIBUTING.md",
@@ -270,6 +521,8 @@
     "internal/adapter/storage/sqlstore/business.go",
     "internal/adapter/storage/sqlstore/inspect.go",
     "internal/adapter/storage/sqlstore/reset.go",
+    "internal/adapter/storage/sqlstore/prefix.go",
+    "internal/adapter/storage/sqlstore/prefix_test.go",
     "internal/adapter/storage/sqlstore/store.go",
     "internal/adapter/storage/webdb/config.go",
     "internal/adapter/storage/webdb/config_test.go",
@@ -298,6 +551,7 @@
     "internal/branding/ico_test.go",
     "internal/branding/service.go",
     "internal/branding/service_test.go",
+    "internal/buildinfo/identity.gen.go",
     "internal/buildinfo/info.go",
     "internal/buildinfo/version.gen.go",
     "internal/config/config.go",
@@ -326,6 +580,8 @@
     "internal/install/database_test.go",
     "internal/install/manager.go",
     "internal/install/manager_test.go",
+    "internal/install/reinstall.go",
+    "internal/install/reinstall_test.go",
     "internal/lifecycle/http.go",
     "internal/lifecycle/http_test.go",
     "internal/lifecycle/stack.go",
@@ -438,6 +694,8 @@
     "packages/contracts/src/schema.gen.ts",
     "packages/contracts/src/validate.test.ts",
     "packages/contracts/src/validate.ts",
+    "packages/contracts/src/zod-schema.test.ts",
+    "packages/contracts/src/zod-schema.ts",
     "packages/contracts/validate.go",
     "packages/contracts/validate_test.go",
     "packages/contracts/validation-cases.json",
@@ -449,68 +707,74 @@
     "packages/web-ui/package.json",
     "packages/web-ui/src/App.test.tsx",
     "packages/web-ui/src/App.tsx",
-    "packages/web-ui/src/account-flows.tsx",
     "packages/web-ui/src/admin-app.tsx",
-    "packages/web-ui/src/announcements-card.tsx",
-    "packages/web-ui/src/announcements-page.tsx",
-    "packages/web-ui/src/announcements.css",
+    "packages/web-ui/src/announcement-center.tsx",
     "packages/web-ui/src/appearance-drawer.tsx",
-    "packages/web-ui/src/appearance.tsx",
     "packages/web-ui/src/brand.tsx",
     "packages/web-ui/src/branding-panel.tsx",
     "packages/web-ui/src/build-flags.d.ts",
     "packages/web-ui/src/client-controls.test.tsx",
     "packages/web-ui/src/client-controls.tsx",
-    "packages/web-ui/src/edition-panel.tsx",
     "packages/web-ui/src/file-upload-dialog.tsx",
-    "packages/web-ui/src/files-page.tsx",
-    "packages/web-ui/src/flows.css",
-    "packages/web-ui/src/forms.test.tsx",
-    "packages/web-ui/src/forms.tsx",
+    "packages/web-ui/src/form.test.tsx",
     "packages/web-ui/src/i18n.catalog.test.ts",
     "packages/web-ui/src/i18n.ts",
-    "packages/web-ui/src/install-page.tsx",
-    "packages/web-ui/src/legacy-account-flows.tsx",
+    "packages/web-ui/src/lib/cn.ts",
+    "packages/web-ui/src/lib/form.tsx",
     "packages/web-ui/src/locales/en.json",
     "packages/web-ui/src/locales/license.en.json",
     "packages/web-ui/src/locales/updates.en.json",
-    "packages/web-ui/src/logs-page.tsx",
-    "packages/web-ui/src/mail-templates-page.tsx",
-    "packages/web-ui/src/management.css",
-    "packages/web-ui/src/message.css",
     "packages/web-ui/src/message.test.tsx",
     "packages/web-ui/src/message.tsx",
-    "packages/web-ui/src/modal.tsx",
-    "packages/web-ui/src/notes-page.tsx",
-    "packages/web-ui/src/notes.css",
-    "packages/web-ui/src/oidc-page.tsx",
+    "packages/web-ui/src/pages/account.tsx",
+    "packages/web-ui/src/pages/admin/announcements.tsx",
+    "packages/web-ui/src/pages/admin/logs.tsx",
+    "packages/web-ui/src/pages/admin/mail-templates.tsx",
+    "packages/web-ui/src/pages/admin/roles.tsx",
+    "packages/web-ui/src/pages/admin/storage.tsx",
+    "packages/web-ui/src/pages/admin/users.tsx",
+    "packages/web-ui/src/pages/appearance.tsx",
+    "packages/web-ui/src/pages/auth.tsx",
+    "packages/web-ui/src/pages/edition.tsx",
+    "packages/web-ui/src/pages/files.tsx",
+    "packages/web-ui/src/pages/install.tsx",
+    "packages/web-ui/src/pages/not-found.tsx",
+    "packages/web-ui/src/pages/notes.tsx",
+    "packages/web-ui/src/pages/overview.tsx",
     "packages/web-ui/src/password-dialog.tsx",
-    "packages/web-ui/src/preferences.css",
     "packages/web-ui/src/preferences.test.tsx",
     "packages/web-ui/src/preferences.ts",
+    "packages/web-ui/src/product.gen.ts",
     "packages/web-ui/src/queries.ts",
     "packages/web-ui/src/registry.tsx",
     "packages/web-ui/src/rich-content.tsx",
-    "packages/web-ui/src/rich-text-editor.tsx",
-    "packages/web-ui/src/roles-page.tsx",
+    "packages/web-ui/src/router.tsx",
     "packages/web-ui/src/routes.test.ts",
     "packages/web-ui/src/routes.ts",
     "packages/web-ui/src/session.tsx",
-    "packages/web-ui/src/settings-page.tsx",
     "packages/web-ui/src/shell-tools.tsx",
+    "packages/web-ui/src/shell.css",
     "packages/web-ui/src/site-footer.tsx",
-    "packages/web-ui/src/storage-page.tsx",
-    "packages/web-ui/src/storage.css",
-    "packages/web-ui/src/styles.css",
-    "packages/web-ui/src/switch.tsx",
-    "packages/web-ui/src/tabs.tsx",
+    "packages/web-ui/src/theme.css",
     "packages/web-ui/src/theme.ts",
     "packages/web-ui/src/tokens.gen.css",
-    "packages/web-ui/src/tooltip.tsx",
-    "packages/web-ui/src/update-panel.tsx",
-    "packages/web-ui/src/updates.css",
-    "packages/web-ui/src/web-flows.tsx",
-    "packages/web-ui/src/workspace-layout.css",
+    "packages/web-ui/src/ui/badge.tsx",
+    "packages/web-ui/src/ui/button.tsx",
+    "packages/web-ui/src/ui/card.tsx",
+    "packages/web-ui/src/ui/charts.tsx",
+    "packages/web-ui/src/ui/checkbox.tsx",
+    "packages/web-ui/src/ui/dialog.tsx",
+    "packages/web-ui/src/ui/dropdown-menu.tsx",
+    "packages/web-ui/src/ui/editor.tsx",
+    "packages/web-ui/src/ui/index.ts",
+    "packages/web-ui/src/ui/input.tsx",
+    "packages/web-ui/src/ui/message.tsx",
+    "packages/web-ui/src/ui/misc.tsx",
+    "packages/web-ui/src/ui/select.tsx",
+    "packages/web-ui/src/ui/switch.tsx",
+    "packages/web-ui/src/ui/table.tsx",
+    "packages/web-ui/src/ui/tabs.tsx",
+    "packages/web-ui/src/ui/tooltip.tsx",
     "packages/web-ui/src/workspace-layout.tsx",
     "playwright.config.ts",
     "pnpm-lock.yaml",
@@ -534,9 +798,10 @@
     "scripts/desktop-downloads.mjs",
     "scripts/distribution.mjs",
     "scripts/distribution.test.mjs",
+    "scripts/doctor.mjs",
     "scripts/framework-sync.mjs",
     "scripts/framework-sync.test.mjs",
-    "scripts/doctor.mjs",
+    "scripts/framework-template.mjs",
     "scripts/generate-brand.mjs",
     "scripts/generate-contracts.mjs",
     "scripts/generate-migrations.mjs",
@@ -625,7 +890,55 @@
     {
       "source": "distribution/template/skills/develop-application/SKILL.md",
       "target": ".agents/skills/develop-application/SKILL.md"
-    }
+    },
+    "migrations/sqlite/0013_prefix_core.sql",
+    "migrations/sqlite/0013_prefix_platform.sql",
+    "migrations/postgres/0013_prefix_core.sql",
+    "migrations/postgres/0013_prefix_platform.sql",
+    "migrations/mysql/0013_prefix_core.sql",
+    "migrations/mysql/0013_prefix_platform.sql",
+    "internal/adapter/http/personal.go",
+    "internal/adapter/http/personal_test.go",
+    "internal/adapter/storage/platformsql/personal.go",
+    "internal/adapter/storage/platformsql/personal_email.go",
+    "internal/adapter/storage/platformsql/personal_test.go",
+    "internal/adapter/storage/sqlstore/personal.go",
+    "internal/platform/personal.go",
+    "internal/platform/totp_test.go",
+    "migrations/mysql/0014_personal_center.sql",
+    "migrations/postgres/0014_personal_center.sql",
+    "migrations/sqlite/0014_personal_center.sql",
+    "tests/e2e/personal-center.spec.ts",
+    "internal/settings/registration.go",
+    "internal/settings/security.go",
+    "internal/platform/login_guard.go",
+    "internal/platform/registration_test.go",
+    "internal/files/policy.go",
+    "internal/adapter/storage/platformsql/session_policy.go",
+    "tests/e2e/registration.spec.ts",
+    "internal/platform/login_guard_test.go",
+    "internal/platform/session_policy_test.go",
+    "tests/e2e/account-policy.spec.ts",
+    "migrations/sqlite/0015_announcement_notifications.sql",
+    "migrations/postgres/0015_announcement_notifications.sql",
+    "migrations/mysql/0015_announcement_notifications.sql",
+    "migrations/platform/sqlite/0002_announcement_notifications.sql",
+    "migrations/platform/postgres/0002_announcement_notifications.sql",
+    "migrations/platform/mysql/0002_announcement_notifications.sql",
+    "internal/adapter/http/notifications.go",
+    "internal/adapter/http/notifications_test.go",
+    "internal/adapter/notify/webhook.go",
+    "internal/adapter/notify/webhook_test.go",
+    "internal/mailer/events.go",
+    "internal/mailer/events_test.go",
+    "internal/notifycontent/content.go",
+    "internal/notifycontent/content_test.go",
+    "internal/settings/notifications.go",
+    "packages/web-ui/src/pages/admin/notifications.tsx",
+    "tests/e2e/notifications.spec.ts",
+    "internal/adapter/storage/platformsql/notification_events_test.go",
+    "scripts/release-layout.mjs",
+    "internal/maintenance/command.go"
   ],
   "ownership": {
     "product-owned": [
@@ -642,5 +955,15 @@
       "apps/desktop/public/site.webmanifest"
     ],
     "excluded": []
-  }
+  },
+  "site_assets": [
+    {
+      "source": "assets/brand/mark.svg",
+      "target": "brand/mark.svg"
+    },
+    {
+      "source": "assets/brand/mark-dark.svg",
+      "target": "brand/mark-dark.svg"
+    }
+  ]
 }

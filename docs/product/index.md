@@ -10,6 +10,12 @@
 | desktop | 原生本地应用 | SQLite；无平台账号 |
 | cli | 命令行调用共享核心 | 无数据库、HTTP 或平台身份依赖 |
 
+## 直接部署与安装
+
+不改源码的 Web 用户从 [Web 从零部署指南](deployment.md) 开始：环境要求、数据库准备、Docker 命令、完整 Compose、tar/systemd、Nginx/HTTPS、首次安装与更新排查均按步骤给出。运行已构建 Web 包/镜像不需要在服务器安装 Go/Node。所有 flags、环境变量、JSON 和后台设置表见 [配置说明](configuration.md)。
+
+桌面用户下载对应系统安装包直接运行；CLI 解压后执行 `./unicore version` 或 `./unicore execute --text "Hello Unicore"`，都不需要 Web 部署。
+
 ## 源码开发
 
 准备 Go 1.26.10+、满足 package.json engines 的 Node、pnpm 11.25.0、Git 和 ripgrep。桌面还需要本系统 Wails 原生依赖。运行 make doctor 检查环境。
@@ -25,13 +31,13 @@ Web 首次访问 /install。在线生产环境推荐 MySQL 或 PostgreSQL；向�
 
 管理员从 /admin（可配置）登录，用户从 /login 登录，两种身份分别校验。演示实例才使用 admin / Admin@123456，实际部署自行设置密码，不内置业务账号。单机与桌面不提供平台管理端。
 
-macOS 桌面推荐下载 DMG 并拖入 Applications；Windows 桌面直接运行 EXE，Linux 桌面解压 tar。Web tar 解压后用 ./unicorehelp、./unicore config generate、./unicore --config unicore.json；配置可选，首次安装仍访问 /install。CLI tar 中运行 bin/unicore；源码下的开发命令与发行二进制路径不同。先阅读 [配置](configuration.md)、[构建](build.md) 和 [部署](deployment.md)。
+macOS 桌面推荐下载 DMG 并拖入 Applications；Windows 桌面直接运行 EXE，Linux 桌面解压 tar。Web tar 解压后用 ./unicore help、./unicore config generate、./unicore --config config.yaml；配置可选，首次安装仍访问 /install。CLI tar 中运行 ./unicore；源码下的开发命令与发行二进制路径不同。先阅读 [配置](configuration.md)、[构建](build.md) 和 [部署](deployment.md)。
 
 ## 按任务阅读
 
 - [配置与监控](configuration.md)
 - [Web / Desktop / CLI 构建](build.md)
-- [Nginx、tar 与 Docker 部署](deployment.md)
+- [Web 从零部署](deployment.md)
 - [备份与恢复](backup.md)
 - [文件与对象存储](storage.md)
 - [更新渠道与安全升级](updates.md)

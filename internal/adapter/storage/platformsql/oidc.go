@@ -23,17 +23,17 @@ func (r *Repository) CreateOIDCFlow(ctx context.Context, state, browser, payload
 	if err = r.Store.LockInstallation(ctx, tx); err != nil {
 		return err
 	}
-	if _, err = r.exec(ctx, tx, "DELETE FROM oidc_flows WHERE expires_at<=?", time.Now().Unix()); err != nil {
+	if _, err = r.exec(ctx, tx, "DELETE FROM unicore_oidc_flows WHERE expires_at<=?", time.Now().Unix()); err != nil {
 		return err
 	}
 	var count int
-	if err = r.row(ctx, tx, "SELECT COUNT(*) FROM oidc_flows").Scan(&count); err != nil {
+	if err = r.row(ctx, tx, "SELECT COUNT(*) FROM unicore_oidc_flows").Scan(&count); err != nil {
 		return err
 	}
 	if count >= 2048 {
 		return platform.ErrRateLimited
 	}
-	if _, err = r.exec(ctx, tx, "INSERT INTO oidc_flows(state_hash,browser_hash,sealed_payload,expires_at) VALUES(?,?,?,?)", state, browser, payload, expires); err != nil {
+	if _, err = r.exec(ctx, tx, "INSERT INTO unicore_oidc_flows(state_hash,browser_hash,sealed_payload,expires_at) VALUES(?,?,?,?)", state, browser, payload, expires); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -48,10 +48,10 @@ func (r *Repository) ConsumeOIDCFlow(ctx context.Context, state, browser string)
 		return "", err
 	}
 	var payload string
-	if err = r.row(ctx, tx, "SELECT sealed_payload FROM oidc_flows WHERE state_hash=? AND browser_hash=? AND expires_at>?", state, browser, time.Now().Unix()).Scan(&payload); err != nil {
+	if err = r.row(ctx, tx, "SELECT sealed_payload FROM unicore_oidc_flows WHERE state_hash=? AND browser_hash=? AND expires_at>?", state, browser, time.Now().Unix()).Scan(&payload); err != nil {
 		return "", platform.ErrOIDC
 	}
-	if _, err = r.exec(ctx, tx, "DELETE FROM oidc_flows WHERE state_hash=?", state); err != nil {
+	if _, err = r.exec(ctx, tx, "DELETE FROM unicore_oidc_flows WHERE state_hash=?", state); err != nil {
 		return "", err
 	}
 	return payload, tx.Commit()
@@ -59,11 +59,11 @@ func (r *Repository) ConsumeOIDCFlow(ctx context.Context, state, browser string)
 func (r *Repository) OIDCAccount(ctx context.Context, userID string) (contracts.OIDCInfo, error) {
 	var hash string
 	result := contracts.OIDCInfo{}
-	if err := r.row(ctx, r.Store.DB, "SELECT password_hash FROM users WHERE id=?", userID).Scan(&hash); err != nil {
+	if err := r.row(ctx, r.Store.DB, "SELECT password_hash FROM unicore_users WHERE id=?", userID).Scan(&hash); err != nil {
 		return result, err
 	}
 	result.HasLocalPassword = hash != ""
-	err := r.row(ctx, r.Store.DB, "SELECT issuer FROM external_identities WHERE user_id=?", userID).Scan(&result.Issuer)
+	err := r.row(ctx, r.Store.DB, "SELECT issuer FROM unicore_external_identities WHERE user_id=?", userID).Scan(&result.Issuer)
 	if errors.Is(err, sql.ErrNoRows) {
 		return result, nil
 	}
@@ -71,7 +71,7 @@ func (r *Repository) OIDCAccount(ctx context.Context, userID string) (contracts.
 	return result, err
 }
 func (r *Repository) oidcSettings(ctx context.Context, tx *sql.Tx) (map[string]string, error) {
-	rows, err := r.rows(ctx, tx, "SELECT setting_key,setting_value FROM system_settings")
+	rows, err := r.rows(ctx, tx, "SELECT setting_key,setting_value FROM unicore_system_settings")
 	if err != nil {
 		return nil, err
 	}
@@ -88,24 +88,35 @@ func (r *Repository) oidcSettings(ctx context.Context, tx *sql.Tx) (map[string]s
 }
 func (r *Repository) oidcActor(ctx context.Context, tx *sql.Tx, f platform.OIDCFlow) error {
 	var hash, status string
-	var count int
-	if err := r.row(ctx, tx, "SELECT password_hash,status FROM users WHERE id=?", f.UserID).Scan(&hash, &status); err != nil {
+	if err := r.row(ctx, tx, "SELECT password_hash,status FROM unicore_users WHERE id=?", f.UserID).Scan(&hash, &status); err != nil {
 		return platform.ErrCredentials
 	}
 	if hash == "" || status != "active" || !platform.Equal(hash, f.CredentialHash) {
 		return platform.ErrCredentials
 	}
-	if err := r.row(ctx, tx, "SELECT COUNT(*) FROM sessions WHERE token_hash=? AND user_id=? AND expires_at>?", f.SessionHash, f.UserID, time.Now().Unix()).Scan(&count); err != nil {
-		return err
-	}
-	if count != 1 {
+	current, err := r.personalSession(ctx, tx, f.SessionHash)
+	if err != nil || current.User.ID != f.UserID {
 		return platform.ErrCredentials
 	}
+	if err = fullFactor(current); err != nil {
+		return err
+	}
+
 	return nil
 }
-func (r *Repository) oidcSession(ctx context.Context, tx *sql.Tx, id, sessionHash string, expires int, rotate bool, action string) (contracts.User, error) {
+func (r *Repository) oidcSession(ctx context.Context, tx *sql.Tx, id, sessionHash string, expires int, rotate bool, originalHash, action string) (contracts.User, error) {
+	created := 0
 	if rotate {
-		if _, err := r.exec(ctx, tx, "DELETE FROM sessions WHERE user_id=?", id); err != nil {
+		previous, err := r.personalSession(ctx, tx, originalHash)
+		if err != nil || previous.User.ID != id {
+			return contracts.User{}, platform.ErrCredentials
+		}
+		if err = fullFactor(previous); err != nil {
+			return contracts.User{}, err
+		}
+		created = previous.Created
+		expires = min(expires, previous.Expires)
+		if _, err := r.exec(ctx, tx, "DELETE FROM unicore_sessions WHERE user_id=?", id); err != nil {
 			return contracts.User{}, err
 		}
 		if err := r.cancelTokens(ctx, tx, id, ""); err != nil {
@@ -119,13 +130,25 @@ func (r *Repository) oidcSession(ctx context.Context, tx *sql.Tx, id, sessionHas
 	if user.Status != "active" {
 		return user, platform.ErrCredentials
 	}
-	if _, err = r.exec(ctx, tx, "DELETE FROM sessions WHERE expires_at<=?", time.Now().Unix()); err != nil {
+	if _, err = r.exec(ctx, tx, "DELETE FROM unicore_sessions WHERE expires_at<=?", time.Now().Unix()); err != nil {
 		return user, err
 	}
-	if _, err = r.exec(ctx, tx, "INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)", sessionHash, id, expires); err != nil {
+	if _, err = r.exec(ctx, tx, "INSERT INTO unicore_sessions(token_hash,user_id,expires_at) VALUES(?,?,?)", sessionHash, id, expires); err != nil {
 		return user, err
 	}
-	if _, err = r.exec(ctx, tx, "UPDATE users SET last_login_at=? WHERE id=?", time.Now().Unix(), id); err != nil {
+	verified := 0
+	if rotate {
+		verified = 1
+	} // A binding rotation continues an already verified session.
+	if err = r.recordDevice(ctx, tx, sessionHash, id, verified); err != nil {
+		return user, err
+	}
+	if created > 0 {
+		if _, err = r.exec(ctx, tx, "UPDATE unicore_session_details SET created_at=? WHERE token_hash=?", created, sessionHash); err != nil {
+			return user, err
+		}
+	}
+	if _, err = r.exec(ctx, tx, "UPDATE unicore_users SET last_login_at=? WHERE id=?", time.Now().Unix(), id); err != nil {
 		return user, err
 	}
 	return user, r.audit(ctx, tx, id, action)
@@ -148,9 +171,35 @@ func (r *Repository) CompleteOIDC(ctx context.Context, f platform.OIDCFlow, clai
 	}
 	identityHash := platform.Hash(claims.Issuer + "\x00" + claims.Subject)
 	var id string
-	err = r.row(ctx, tx, "SELECT user_id FROM external_identities WHERE identity_hash=?", identityHash).Scan(&id)
+	err = r.row(ctx, tx, "SELECT user_id FROM unicore_external_identities WHERE identity_hash=?", identityHash).Scan(&id)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return contracts.User{}, err
+	}
+	if f.Mode == "totp" {
+		if id == "" || id != f.UserID || f.SetupSecret == "" || expires <= int(time.Now().Unix()) || expires > int(time.Now().Unix())+600 {
+			return contracts.User{}, platform.ErrOIDC
+		}
+		current, e := r.personalSession(ctx, tx, f.SessionHash)
+		if e != nil || current.User.ID != id || current.State.Secret != "" {
+			return contracts.User{}, platform.ErrCredentials
+		}
+		var password string
+		if e = r.row(ctx, tx, "SELECT password_hash FROM unicore_users WHERE id=?", id).Scan(&password); e != nil {
+			return contracts.User{}, e
+		}
+		if password != "" {
+			return contracts.User{}, platform.ErrCredentials
+		}
+		if e = r.ensurePersonal(ctx, tx, id); e != nil {
+			return contracts.User{}, e
+		}
+		if _, e = r.exec(ctx, tx, "UPDATE unicore_personal_accounts SET setup_secret=?,setup_session=?,setup_expires=?,setup_attempts=0 WHERE user_id=?", f.SetupSecret, f.SessionHash, expires, id); e != nil {
+			return contracts.User{}, e
+		}
+		if e = r.audit(ctx, tx, id, "account.totp.enterprise_verified"); e != nil {
+			return contracts.User{}, e
+		}
+		return current.User, tx.Commit()
 	}
 	if f.Mode == "link" {
 		if err = r.oidcActor(ctx, tx, f); err != nil {
@@ -160,7 +209,7 @@ func (r *Repository) CompleteOIDC(ctx context.Context, f platform.OIDCFlow, clai
 			return contracts.User{}, platform.ErrOIDCLinkRequired
 		}
 		var count int
-		if err = r.row(ctx, tx, "SELECT COUNT(*) FROM external_identities WHERE user_id=?", f.UserID).Scan(&count); err != nil {
+		if err = r.row(ctx, tx, "SELECT COUNT(*) FROM unicore_external_identities WHERE user_id=?", f.UserID).Scan(&count); err != nil {
 			return contracts.User{}, err
 		}
 		if count > 0 {
@@ -173,7 +222,7 @@ func (r *Repository) CompleteOIDC(ctx context.Context, f platform.OIDCFlow, clai
 				return contracts.User{}, platform.ErrOIDCLinkRequired
 			}
 			var count int
-			if err = r.row(ctx, tx, "SELECT COUNT(*) FROM users WHERE email=?", claims.Email).Scan(&count); err != nil {
+			if err = r.row(ctx, tx, "SELECT COUNT(*) FROM unicore_users WHERE email=?", claims.Email).Scan(&count); err != nil {
 				return contracts.User{}, err
 			}
 			if count > 0 {
@@ -189,11 +238,11 @@ func (r *Repository) CompleteOIDC(ctx context.Context, f platform.OIDCFlow, clai
 		return contracts.User{}, platform.ErrOIDC
 	}
 	var exists int
-	if err = r.row(ctx, tx, "SELECT COUNT(*) FROM external_identities WHERE identity_hash=?", identityHash).Scan(&exists); err != nil {
+	if err = r.row(ctx, tx, "SELECT COUNT(*) FROM unicore_external_identities WHERE identity_hash=?", identityHash).Scan(&exists); err != nil {
 		return contracts.User{}, err
 	}
 	if exists == 0 {
-		if _, err = r.exec(ctx, tx, "INSERT INTO external_identities(identity_hash,user_id,issuer,subject,created_at) VALUES(?,?,?,?,?)", identityHash, id, claims.Issuer, claims.Subject, time.Now().Unix()); err != nil {
+		if _, err = r.exec(ctx, tx, "INSERT INTO unicore_external_identities(identity_hash,user_id,issuer,subject,created_at) VALUES(?,?,?,?,?)", identityHash, id, claims.Issuer, claims.Subject, time.Now().Unix()); err != nil {
 			return contracts.User{}, accountError(err)
 		}
 	}
@@ -201,7 +250,7 @@ func (r *Repository) CompleteOIDC(ctx context.Context, f platform.OIDCFlow, clai
 	if f.Mode == "link" {
 		action = "auth.oidc.linked"
 	}
-	u, err := r.oidcSession(ctx, tx, id, sessionHash, expires, f.Mode == "link", action)
+	u, err := r.oidcSession(ctx, tx, id, sessionHash, expires, f.Mode == "link", f.SessionHash, action)
 	if err != nil {
 		return u, err
 	}
@@ -219,14 +268,14 @@ func (r *Repository) UnlinkOIDC(ctx context.Context, f platform.OIDCFlow, sessio
 	if err = r.oidcActor(ctx, tx, f); err != nil {
 		return contracts.User{}, err
 	}
-	result, err := r.exec(ctx, tx, "DELETE FROM external_identities WHERE user_id=?", f.UserID)
+	result, err := r.exec(ctx, tx, "DELETE FROM unicore_external_identities WHERE user_id=?", f.UserID)
 	if err != nil {
 		return contracts.User{}, err
 	}
 	if n, _ := result.RowsAffected(); n != 1 {
 		return contracts.User{}, platform.ErrOIDC
 	}
-	u, err := r.oidcSession(ctx, tx, f.UserID, sessionHash, expires, true, "auth.oidc.unlinked")
+	u, err := r.oidcSession(ctx, tx, f.UserID, sessionHash, expires, true, f.SessionHash, "auth.oidc.unlinked")
 	if err != nil {
 		return u, err
 	}

@@ -5,6 +5,7 @@ build/
 coverage/
 .cache/
 .pnpm-store/
+website/.vitepress/.temp/
 playwright-report/
 test-results/
 apps/desktop/wailsjs/
@@ -30,3 +31,4 @@ bootstrap.token
 *.p12
 *.pfx
 *.p8
+.zcode

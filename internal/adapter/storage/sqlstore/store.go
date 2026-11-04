@@ -69,7 +69,11 @@ func (s *Store) Close() error {
 // Migrate records each checksum only after all statements succeed. MySQL DDL is
 // intentionally retryable; installation is not committed until separate seed DML succeeds.
 func (s *Store) Migrate(ctx context.Context, platform bool) error {
-	if _, err := s.DB.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, checksum VARCHAR(64) NOT NULL)`); err != nil {
+	ledger, prefixed, err := s.frameworkLedger(ctx)
+	if err != nil {
+		return err
+	}
+	if _, err := s.DB.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS `+ledger+` (version INTEGER PRIMARY KEY, checksum VARCHAR(64) NOT NULL)`); err != nil {
 		return err
 	}
 	files := []string{"0001_framework.sql"}
@@ -84,7 +88,7 @@ func (s *Store) Migrate(ctx context.Context, platform bool) error {
 		digest := sha256.Sum256(data)
 		checksum := hex.EncodeToString(digest[:])
 		var previous string
-		err = s.Row(ctx, s.DB, "SELECT checksum FROM schema_migrations WHERE version=?", index+1).Scan(&previous)
+		err = s.Row(ctx, s.DB, "SELECT checksum FROM "+ledger+" WHERE version=?", index+1).Scan(&previous)
 		if err == nil {
 			if previous != checksum {
 				return fmt.Errorf("migration %d checksum mismatch", index+1)
@@ -108,12 +112,15 @@ func (s *Store) Migrate(ctx context.Context, platform bool) error {
 			if strings.TrimSpace(statement) == "" {
 				continue
 			}
+			if prefixed {
+				statement = prefixedLegacySQL(statement)
+			}
 			if _, err = s.Exec(ctx, tx, statement); err != nil {
 				break
 			}
 		}
 		if err == nil {
-			_, err = s.Exec(ctx, tx, "INSERT INTO schema_migrations(version,checksum) VALUES(?,?)", index+1, checksum)
+			_, err = s.Exec(ctx, tx, "INSERT INTO "+ledger+"(version,checksum) VALUES(?,?)", index+1, checksum)
 		}
 		if err != nil {
 			_ = tx.Rollback()
@@ -123,17 +130,33 @@ func (s *Store) Migrate(ctx context.Context, platform bool) error {
 			return err
 		}
 	}
-	return s.MigrateBusiness(ctx)
+	if err := s.migrateBusiness(ctx, prefixed); err != nil {
+		return err
+	}
+	if err := s.prefixSchema(ctx, platform); err != nil {
+		return err
+	}
+	if platform {
+		if err := s.personalSchema(ctx); err != nil {
+			return err
+		}
+		return s.additivePlatformSchema(ctx, 15, "0015_announcement_notifications.sql")
+	}
+	return nil
 }
 
 func (s *Store) Installation(ctx context.Context) (profile, instance string, err error) {
-	err = s.Row(ctx, s.DB, "SELECT profile,instance_id FROM install_state WHERE id=1").Scan(&profile, &instance)
+	table, err := s.installationTable(ctx)
+	if err != nil {
+		return "", "", err
+	}
+	err = s.Row(ctx, s.DB, "SELECT profile,instance_id FROM "+table+" WHERE id=1").Scan(&profile, &instance)
 	return
 }
 
 // LockInstallation serializes privilege changes and protects the last active super-admin.
 func (s *Store) LockInstallation(ctx context.Context, tx *sql.Tx) error {
-	query := "SELECT id FROM install_state WHERE id=1"
+	query := "SELECT id FROM unicore_install_state WHERE id=1"
 	if s.Dialect != "sqlite" {
 		query += " FOR UPDATE"
 	}
@@ -142,7 +165,7 @@ func (s *Store) LockInstallation(ctx context.Context, tx *sql.Tx) error {
 }
 
 func (s *Store) ReadSettings(ctx context.Context) (map[string]string, error) {
-	rows, err := s.Rows(ctx, s.DB, "SELECT setting_key,setting_value FROM system_settings")
+	rows, err := s.Rows(ctx, s.DB, "SELECT setting_key,setting_value FROM unicore_system_settings")
 	if err != nil {
 		return nil, err
 	}
@@ -168,10 +191,10 @@ func (s *Store) SaveSettings(ctx context.Context, values map[string]string, acto
 		return err
 	}
 	for key, value := range values {
-		if _, err = s.Exec(ctx, tx, "DELETE FROM system_settings WHERE setting_key=?", key); err != nil {
+		if _, err = s.Exec(ctx, tx, "DELETE FROM unicore_system_settings WHERE setting_key=?", key); err != nil {
 			return err
 		}
-		if _, err = s.Exec(ctx, tx, "INSERT INTO system_settings(setting_key,setting_value) VALUES(?,?)", key, value); err != nil {
+		if _, err = s.Exec(ctx, tx, "INSERT INTO unicore_system_settings(setting_key,setting_value) VALUES(?,?)", key, value); err != nil {
 			return err
 		}
 	}

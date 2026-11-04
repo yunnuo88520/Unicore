@@ -16,7 +16,7 @@ services:
         NODE_IMAGE: ${NODE_IMAGE:-node:22-bookworm-slim}
         RUNTIME_IMAGE: ${RUNTIME_IMAGE:-gcr.io/distroless/static-debian12:nonroot}
     ports:
-      - "127.0.0.1:${UNICORE_PORT:-8088}:8080"
+      - "127.0.0.1:${UNICORE_PORT:-3000}:3000"
     volumes:
       - unicore_data:/data
     read_only: true

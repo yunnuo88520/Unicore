@@ -2,13 +2,14 @@
  * Description: Shared UI client; pages know neither fetch nor Wails globals.
  */
 import {fileFingerprint,retryDelay} from './upload';
-import type { UploadPolicy, MultipartUpload, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
+import type { NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, ProfileInput, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
 import { operations, type OperationId, type OperationInputs, type OperationData } from '@unicore/contracts/operations';
 import { validate, type SchemaName } from '@unicore/contracts/validate';
-export { validate, type SchemaName } from '@unicore/contracts/validate';
+export { validate, constraints, type SchemaName } from '@unicore/contracts/validate';
+export { constraintsToZod, zodFieldErrors } from '@unicore/contracts/zod';
 export { operations, type OperationId } from '@unicore/contracts/operations';
 
-export type { UploadPolicy, MultipartUpload, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateRelease, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
+export type { NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateRelease, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
 
 export class AppError extends Error {
   constructor(public readonly code: string, message: string, public readonly requestId = '', public readonly fields: Record<string, string> = {}) { super(message); this.name = 'AppError'; }
@@ -18,8 +19,8 @@ export type SessionEvent = 'authenticated' | 'password-changed' | 'signed-out' |
 export type RequestOptions = { signal?: AbortSignal };
 export type UploadStage='hashing'|'uploading'|'confirming';
 export type UploadProgress={loaded:number;total:number;completedParts:number;totalParts:number};
-export type UploadOptions = RequestOptions & { resumeId?:string; onStage?: (stage: UploadStage) => void; onSession?:(session:MultipartUpload)=>void; onProgress?:(progress:UploadProgress)=>void; onHashProgress?:(loaded:number)=>void };
-export type OperationOptions = RequestOptions & { timeoutMs?:number; params?: Record<string, string>; query?: Record<string, string | number>; headers?: Record<string, string> };
+export type UploadOptions = RequestOptions & { resumeId?:string; uploadPath?:string; onStage?: (stage: UploadStage) => void; onSession?:(session:MultipartUpload)=>void; onProgress?:(progress:UploadProgress)=>void; onHashProgress?:(loaded:number)=>void };
+export type OperationOptions = RequestOptions & { timeoutMs?:number; params?: Record<string, string>; query?: Record<string, string | number | boolean>; headers?: Record<string, string> };
 
 export interface UpdateClient {
  overview():Promise<UpdateOverview>;
@@ -72,14 +73,35 @@ export interface StorageClient {
 }
 
 export interface WebClient {
+ accountProfile():Promise<AccountProfile>;
+ saveAccountProfile(input:ProfileInput):Promise<AccountProfile>;
+ beginTOTP(password:string):Promise<TOTPSetup>;
+ pendingTOTP():Promise<TOTPSetup>;
+ oidcTOTP():Promise<OIDCStart>;
+ cancelTOTP():Promise<{success:boolean}>;
+ enableTOTP(code:string):Promise<RecoveryCodes>;
+ disableTOTP(code:string):Promise<{success:boolean}>;
+ verifyMFA(code:string):Promise<Session>;
+ cancelMFA():Promise<{success:boolean}>;
+ accountSessions():Promise<LoginDevices>;
+ revokeAccountSession(id:string):Promise<{success:boolean}>;
+ revokeOtherSessions():Promise<{success:boolean}>;
+ requestCurrentEmail():Promise<EmailChallenge>;
+ verifyCurrentEmail(challenge_id:string,code:string):Promise<{success:boolean}>;
+ requestNewEmail(current_challenge_id:string,email:string):Promise<EmailChallenge>;
+ confirmNewEmail(challenge_id:string,code:string):Promise<AccountProfile>;
+
  adminAnnouncements(query:AnnouncementQuery):Promise<AnnouncementList>;
  createAnnouncement(input:AnnouncementInput):Promise<AnnouncementEntry>;
  updateAnnouncement(id:string,input:AnnouncementUpdate):Promise<AnnouncementEntry>;
  deleteAnnouncements(items:AnnouncementSelection[]):Promise<{success:boolean}>;
  saveAnnouncementSettings(enabled:boolean):Promise<{enabled:boolean}>;
  previewAnnouncement(input:AnnouncementInput):Promise<{content_html:string}>;
- announcements(page?:number,pageSize?:number):Promise<AnnouncementFeed>;
+ announcements(page?:number,pageSize?:number,popupOnly?:boolean):Promise<AnnouncementFeed>;
  announcement(id:string):Promise<AnnouncementPublic>;
+ markAnnouncementRead(id:string):Promise<{success:boolean}>;
+ markAllAnnouncementsRead():Promise<{success:boolean}>;
+ announcementReadStatus(id:string,page:number,pageSize:number,search:string):Promise<AnnouncementReadStatus>;
 
   oidcInfo(): Promise<OIDCInfo>;
   oidcAccount(): Promise<OIDCInfo>;
@@ -90,6 +112,10 @@ export interface WebClient {
  registerCode(input:RegisterInput):Promise<EmailChallenge>;
  requestCode(purpose:"verify"|"reset"|"login",input:EmailRequest):Promise<EmailChallenge>;
  completeCode(purpose:"verify"|"reset"|"login",input:EmailCodeInput):Promise<Session|{success:boolean}>;
+ notificationSettings():Promise<NotifyConfiguration>;
+ saveNotificationSettings(input:NotifyConfiguration):Promise<NotifyConfiguration>;
+ previewNotification(input:NotifyTemplate):Promise<NotifyPreview>;
+ testNotification(input:NotifyTest):Promise<{success:boolean}>;
  mailTemplates():Promise<MailTemplateList>;
  saveMailTemplate(input:MailTemplateInput):Promise<MailTemplate>;
  previewMailTemplate(input:MailTemplateInput):Promise<MailTemplate>;
@@ -128,6 +154,24 @@ function unwrap<T>(response: { code: string; message: string; data: T; request_i
 }
 
 const administratorOperations: Partial<Record<OperationId, OperationId>> = {
+ accountProfile:'adminAccountProfile',
+ saveAccountProfile:'adminSaveAccountProfile',
+ beginTOTP:'adminBeginTOTP',
+ pendingTOTP:'adminPendingTOTP',
+ oidcTOTP:'adminOidcTOTP',
+ cancelTOTP:'adminCancelTOTP',
+ enableTOTP:'adminEnableTOTP',
+ disableTOTP:'adminDisableTOTP',
+ verifyMFA:'adminVerifyMFA',
+ cancelMFA:'adminCancelMFA',
+ accountSessions:'adminAccountSessions',
+ revokeAccountSession:'adminRevokeAccountSession',
+ revokeOtherSessions:'adminRevokeOtherSessions',
+ requestCurrentEmail:'adminRequestCurrentEmail',
+ verifyCurrentEmail:'adminVerifyCurrentEmail',
+ requestNewEmail:'adminRequestNewEmail',
+ confirmNewEmail:'adminConfirmNewEmail',
+
  fileUploadPolicy:'adminFileUploadPolicy',createMultipartUpload:'adminCreateMultipartUpload',multipartUpload:'adminMultipartUpload',signUploadPart:'adminSignUploadPart',uploadLocalPart:'adminUploadLocalPart',completeMultipartUpload:'adminCompleteMultipartUpload',
 
  updateOverview:"adminUpdateOverview",checkUpdate:"adminCheckUpdate",applyUpdate:"adminApplyUpdate",
@@ -223,7 +267,7 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   async bootstrap(options?: RequestOptions) {
     let data = await this.call('bootstrap', undefined, options);
     const nextIdentity = data.current_user?.id ?? '';
-    const expired = this.authenticated && !data.current_user;
+    const expired = this.authenticated && !data.current_user && !data.mfa_pending;
     const switched = this.bootstrapped && this.identity !== nextIdentity;
     this.csrf = data.csrf_token ?? '';
     this.platform = data.profile === 'web-platform';
@@ -233,6 +277,23 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
     if (expired || switched) this.sessionChanged(expired ? 'expired' : 'external');
     return data;
   }
+ accountProfile(){return this.call('accountProfile');}
+ saveAccountProfile(input:ProfileInput){return this.call('saveAccountProfile',input);}
+ beginTOTP(password:string){return this.call('beginTOTP',{password});}
+ pendingTOTP(){return this.call('pendingTOTP');}
+ oidcTOTP(){return this.call('oidcTOTP');}
+ cancelTOTP(){return this.call('cancelTOTP');}
+ enableTOTP(code:string){return this.call('enableTOTP',{code});}
+ disableTOTP(code:string){return this.call('disableTOTP',{code});}
+ async verifyMFA(code:string){const session=await this.call('verifyMFA',{code});this.csrf=session.csrf_token;this.identity=session.user.id;this.authenticated=true;this.sessionChanged('authenticated');return session;}
+ async cancelMFA(){const result=await this.call('cancelMFA');this.resetSession();return result;}
+ accountSessions(){return this.call('accountSessions');}
+ revokeAccountSession(id:string){return this.call('revokeAccountSession',{id});}
+ revokeOtherSessions(){return this.call('revokeOtherSessions');}
+ requestCurrentEmail(){return this.call('requestCurrentEmail');}
+ verifyCurrentEmail(challenge_id:string,code:string){return this.call('verifyCurrentEmail',{challenge_id,code});}
+ requestNewEmail(current_challenge_id:string,email:string){return this.call('requestNewEmail',{current_challenge_id,email});}
+ confirmNewEmail(challenge_id:string,code:string){return this.call('confirmNewEmail',{challenge_id,code});}
   execute(input: ExecuteInput, options?: RequestOptions) { return this.call('execute', input, options); }
   adminAnnouncements(query:AnnouncementQuery){return this.call('adminAnnouncements',undefined,{query:{...query}});}
  createAnnouncement(input:AnnouncementInput){return this.call('createAnnouncement',input);}
@@ -240,7 +301,10 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
  deleteAnnouncements(items:AnnouncementSelection[]){return this.call('deleteAnnouncements',{items});}
  saveAnnouncementSettings(enabled:boolean){return this.call('saveAnnouncementSettings',{enabled});}
  previewAnnouncement(input:AnnouncementInput){return this.call('previewAnnouncement',input);}
- announcements(page=1,pageSize=5){return this.call('announcements',undefined,{query:{page,page_size:pageSize}});}
+ announcements(page=1,pageSize=10,popupOnly=false){return this.call('announcements',undefined,{query:{page,page_size:pageSize,popup_only:popupOnly}});}
+ markAnnouncementRead(id:string){return this.call('markAnnouncementRead',undefined,{params:{id}});}
+ markAllAnnouncementsRead(){return this.call('markAllAnnouncementsRead');}
+ announcementReadStatus(id:string,page=1,pageSize=10,search=''){return this.call('announcementReadStatus',undefined,{params:{id},query:{page,page_size:pageSize,search}});}
  announcement(id:string){return this.call('announcement',undefined,{params:{id}});}
  oidcInfo() { return this.call('oidcInfo'); }
   oidcAccount() { return this.call('oidcAccount'); }
@@ -250,7 +314,11 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   oidcCheck() { return this.call('oidcCheck'); }
   registerCode(input:RegisterInput){return this.call('registerEmailCode',input);}
  requestCode(purpose:'verify'|'reset'|'login',input:EmailRequest){return this.call(purpose==='login'?'requestEmailLogin':purpose==='reset'?'requestEmailReset':'requestEmailVerify',input);}
- async completeCode(purpose:'verify'|'reset'|'login',input:EmailCodeInput){const result=await this.call(purpose==='login'?'completeEmailLogin':purpose==='reset'?'completeEmailReset':'completeEmailVerify',input);if('csrf_token' in result){this.csrf=result.csrf_token;this.identity=result.user.id;this.authenticated=true;this.sessionChanged('authenticated');}return result;}
+ async completeCode(purpose:'verify'|'reset'|'login',input:EmailCodeInput){const result=await this.call(purpose==='login'?'completeEmailLogin':purpose==='reset'?'completeEmailReset':'completeEmailVerify',input);if('csrf_token' in result){this.csrf=result.csrf_token;this.identity=result.mfa_pending?'':result.user.id;this.authenticated=!result.mfa_pending;this.sessionChanged('authenticated');}return result;}
+ notificationSettings(){return this.call('notificationSettings');}
+ saveNotificationSettings(input:NotifyConfiguration){return this.call('saveNotificationSettings',input);}
+ previewNotification(input:NotifyTemplate){return this.call('previewNotification',input);}
+ testNotification(input:NotifyTest){return this.call('testNotification',input);}
  mailTemplates(){return this.call('mailTemplates');}
  saveMailTemplate(input:MailTemplateInput){return this.call('saveMailTemplate',input);}
  previewMailTemplate(input:MailTemplateInput){return this.call('previewMailTemplate',input);}
@@ -268,7 +336,7 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   verifyDatabase(token: string, input: DatabaseInput) { return this.call('verifyDatabase', input, { headers: { 'X-Bootstrap-Token': token } }); }
   completeInstall(token: string, input: InstallInput) { return this.call('completeInstall', input, { headers: { 'X-Bootstrap-Token': token } }); }
   captcha() { return this.call('captcha'); }
-  async login(input: LoginInput) { const session = await this.call('login', input); this.csrf = session.csrf_token; this.identity = session.user.id; this.authenticated = true; this.sessionChanged('authenticated'); return session; }
+  async login(input: LoginInput) { const session = await this.call('login', input); this.csrf = session.csrf_token; this.identity = session.mfa_pending ? '' : session.user.id; this.authenticated = !session.mfa_pending; this.sessionChanged('authenticated'); return session; }
   async logout() { const data = await this.call('logout'); this.csrf = ''; this.identity = ''; this.authenticated = false; this.sessionChanged('signed-out'); return data; }
   systemLogs(query?:AuditLogQuery){return this.call('systemLogs',undefined,{query:query?{...query}:undefined});}
  exportSystemLogs(query:AuditLogQuery){return this.call('exportSystemLogs',undefined,{query:{...query}});}
@@ -305,7 +373,7 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
    if(!options?.resumeId&&file.size>policy.max_size)throw new AppError('INVALID_INPUT','文件超过管理员设置的大小上限');
    options?.onStage?.('hashing');
    const fingerprint=await fileFingerprint(file,signal,options?.onHashProgress);
-   const session=options?.resumeId?await this.call('multipartUpload',undefined,{params:{id:options.resumeId},signal}):await this.call('createMultipartUpload',{original_name:file.name,mime_type:file.type||'application/octet-stream',size:file.size,fingerprint},{signal,timeoutMs:35000});
+   const session=options?.resumeId?await this.call('multipartUpload',undefined,{params:{id:options.resumeId},signal}):await this.call('createMultipartUpload',{original_name:file.name,mime_type:file.type||'application/octet-stream',size:file.size,fingerprint,...(options?.uploadPath ? {upload_path:options.uploadPath} : {})},{signal,timeoutMs:35000});
    if(session.fingerprint!==fingerprint||session.file.size!==file.size||session.file.original_name!==file.name||session.file.mime_type!==(file.type||'application/octet-stream'))throw new AppError('UPLOAD_FILE_MISMATCH','请选择原来上传的同一个文件，文件内容不一致');
    options?.onSession?.(session);
    if(session.file.state==='ready')return session.file;

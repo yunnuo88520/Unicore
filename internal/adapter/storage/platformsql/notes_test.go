@@ -60,7 +60,7 @@ func exerciseNotes(t *testing.T, ctx context.Context, store *sqlstore.Store) {
 	if err != nil || list.Total != 0 {
 		t.Fatal("search injection", list, err)
 	}
-	q.Sort = "title; DROP TABLE example_notes"
+	q.Sort = "title; DROP TABLE unicore_example_notes"
 	if _, err = n.List(ctx, "user/example", q); !errors.Is(err, domain.ErrNoteInvalid) {
 		t.Fatal("sort accepted", err)
 	}
@@ -90,7 +90,7 @@ func exerciseNotes(t *testing.T, ctx context.Context, store *sqlstore.Store) {
 		t.Fatal(err)
 	}
 	var removedAt, version int
-	if err = store.Row(ctx, store.DB, "SELECT deleted_at,version FROM example_notes WHERE scope_key=? AND id=?", "user/example", created.ID).Scan(&removedAt, &version); err != nil || removedAt == 0 || version != 3 {
+	if err = store.Row(ctx, store.DB, "SELECT deleted_at,version FROM unicore_example_notes WHERE scope_key=? AND id=?", "user/example", created.ID).Scan(&removedAt, &version); err != nil || removedAt == 0 || version != 3 {
 		t.Fatal("soft deletion", removedAt, version, err)
 	}
 	if _, err = n.Update(ctx, "user/example", created.ID, update); !errors.Is(err, usecase.ErrNoteNotFound) {
@@ -101,7 +101,7 @@ func exerciseNotes(t *testing.T, ctx context.Context, store *sqlstore.Store) {
 		t.Fatal("deleted note listed", list, err)
 	}
 	var audit int
-	if err = store.Row(ctx, store.DB, "SELECT COUNT(*) FROM audit_logs WHERE actor_id=? AND action IN ('notes.created','notes.updated','notes.deleted')", "user/example").Scan(&audit); err != nil || audit != 24 {
+	if err = store.Row(ctx, store.DB, "SELECT COUNT(*) FROM unicore_audit_logs WHERE actor_id=? AND action IN ('notes.created','notes.updated','notes.deleted')", "user/example").Scan(&audit); err != nil || audit != 24 {
 		t.Fatal("audit", audit, err)
 	}
 }

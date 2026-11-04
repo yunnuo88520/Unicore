@@ -6,6 +6,7 @@ test('real Go execution, themes and responsive layout', async ({ page, instance 
   await page.goto(instance.url);
   await expect(page.getByRole('button', { name: '账号菜单', exact: true })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: '一份核心，无限可能.' })).toBeVisible();
+  await page.goto(`${instance.url}/lab`);
   await page.getByLabel('输入文本').fill('hello world');
   await page.getByRole('button', { name: '运行用例' }).click();
   await expect(page.getByText('执行成功')).toBeVisible();
@@ -30,7 +31,7 @@ test('real Go execution, themes and responsive layout', async ({ page, instance 
   await page.screenshot({path:`build/acceptance/management/${testInfo.project.name}/settings-message.png`});
   await expect(page.getByText('外观已保存到当前客户端', { exact: true })).toHaveCount(0, {timeout:4500});
   expect(await page.evaluate(() => localStorage.getItem('unicore.theme'))).toBe('system');
-  await page.goto(`${instance.url}/#settings`);
+  await page.goto(`${instance.url}/settings`);
   await expect(page.getByText('仅当前客户端',{exact:true})).toBeVisible();
   await expect(page.getByLabel('站点名称')).toHaveCount(0);
   await expect(page.getByRole('tab')).toHaveCount(0);
@@ -38,7 +39,7 @@ test('real Go execution, themes and responsive layout', async ({ page, instance 
 
 test('API returns JSON and unsupported features remain absent', async ({ instance, page }) => {
   await installStandalone(instance);
-  await page.goto(`${instance.url}/#account`);
+  await page.goto(`${instance.url}/account`);
   await expect(page.getByText('没有访问权限', {exact:true})).toBeVisible();
   await expect(page.getByRole('button', {name:'账号安全',exact:true})).toHaveCount(0);
   const request = instance.request;

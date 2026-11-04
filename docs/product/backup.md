@@ -1,14 +1,14 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 离线加密备份与恢复
 
-使用发行包 bin/unicore-ops 或源码 make build-ops 生成的工具。业务 CLI 仍不连接数据库。先停服务/退出桌面；工具使用实例锁，活动实例会被拒绝。
+Web 发行包使用同一入口 `./unicore backup|verify|restore`，不再附带第二个维护可执行文件。桌面用户或源码运维可用 make build-ops 生成独立工具。业务 CLI 仍不连接数据库。先停服务/退出桌面；工具使用实例锁，活动实例会被拒绝。
 
 ```sh
 read -s UNICORE_BACKUP_PASSPHRASE
 export UNICORE_BACKUP_PASSPHRASE
-bin/unicore-ops backup --data-dir /srv/my-app-data --output /srv/backups/snapshot.tar.gz.age
-bin/unicore-ops verify --input /srv/backups/snapshot.tar.gz.age
-bin/unicore-ops restore --input /srv/backups/snapshot.tar.gz.age --data-dir /srv/my-app-restored --base-url https://restored.example.com
+./unicore backup --data-dir /srv/my-app-data --output /srv/backups/snapshot.tar.gz.age
+./unicore verify --input /srv/backups/snapshot.tar.gz.age
+./unicore restore --input /srv/backups/snapshot.tar.gz.age --data-dir /srv/my-app-restored --base-url https://restored.example.com
 unset UNICORE_BACKUP_PASSPHRASE
 ```
 
@@ -23,3 +23,7 @@ SQLite 使用一致快照；PostgreSQL 需要匹配服务端主版本的 pg_dump
 云对象恢复为本地私有文件并保留 file_id，旧云凭据/清理任务停用；重新配置并测试云位置后再迁移。未完成云分片无法作为普通对象备份恢复，应放弃并重传。切流时只运行一个实例，注意快照中的会话和待发送通知。
 
 同时保留原二进制版本、发布校验和、部署配置和密钥。工具版本不等于源实例版本；新世代数据库与 0.x 开发库不承诺升级兼容，不能通过手改账本伪造兼容。恢复演练与 [部署](deployment.md)、[更新](updates.md) 一并执行。
+
+当前备份/恢复工具支持匹配 profile 的固定前缀快照（平台 schema=13/14，单机/桌面 schema=13），包含 install.lock；旧 0.x（迁移 0013 之前）快照须使用对应旧版本工具。执行重命名升级前用旧工具备份，升级后用新工具备份；恢复不通过迁移改写快照，回退必须成套恢复旧快照与旧程序。
+
+平台个人中心的 schema=14 还包含加密验证器密钥、恢复码摘要/消费状态与登录设备。完整保存原实例密钥；恢复旧快照可能恢复旧凭据，不允许新旧实例同时运行。

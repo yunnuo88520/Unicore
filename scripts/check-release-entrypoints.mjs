@@ -6,6 +6,7 @@ import {createHash} from 'node:crypto';
 import {mkdtempSync,mkdirSync,readFileSync,readlinkSync,rmSync,statSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
+import {checkReleaseLayout} from './release-layout.mjs';
 import {loadIdentity} from './product-identity.mjs';
 
 const root=process.cwd(), os=process.platform==='win32'?'windows':process.platform;
@@ -31,17 +32,19 @@ async function web(){
     const destination=join(temporary,item.profile);mkdirSync(destination);
     execFileSync('tar',['-xzf',join(directory,item.artifact),'-C',destination]);
     const release=join(destination,item.artifact.replace(/\.tar\.gz$/,''));
-    for(const name of [identity.cli.command,`${identity.cli.command}help`,'bin/server'])assert(statSync(join(release,name)).mode&0o111);
-    const entry=join(release,identity.cli.command), configuration=join(destination,'startup.json');
-    const help=execFileSync(join(release,`${identity.cli.command}help`),[],{cwd:destination,env:environment,encoding:'utf8'});
+    checkReleaseLayout(release, {profile:item.profile, os, identity});
+    assert(statSync(join(release,identity.cli.command)).mode&0o111);
+    const entry=join(release,identity.cli.command), configuration=join(destination,'config.yaml');
+    const help=execFileSync(entry,['help'],{cwd:destination,env:environment,encoding:'utf8'});
     assert(help.includes('config generate')&&help.includes('/install'));
     execFileSync(entry,['config','generate','--output',configuration],{cwd:destination,env:environment});
     const before=readFileSync(configuration);
     assert.notEqual(spawnSync(entry,['generate-config','--output',configuration],{cwd:destination,env:environment}).status,0);
     assert.deepEqual(readFileSync(configuration),before);
     assert.equal(statSync(configuration).mode&0o777,0o600);
-    const settings=json(configuration);settings.listen='127.0.0.1:0';settings.data_dir=join(destination,'private-data');
-    writeFileSync(configuration,JSON.stringify(settings));
+    const settings=readFileSync(configuration,'utf8').replace(/^listen:.*$/m,'listen: 127.0.0.1:0').replace(/^data_dir:.*$/m,'data_dir: '+JSON.stringify(join(destination,'private-data')));
+    assert.match(settings,/^listen: 127\.0\.0\.1:0$/m);
+    writeFileSync(configuration,settings);
     execFileSync(entry,['--config',configuration,'--help'],{cwd:destination,env:environment});
     const child=spawn(entry,[],{cwd:destination,env:{...environment,APP_CONFIG:configuration},stdio:['ignore','pipe','pipe']});
     const exited=new Promise(resolve=>child.once('close',resolve));
@@ -76,6 +79,10 @@ function desktop(){
   const name=`${product}-desktop-${os}-${arch}-v${version}`;
   const metadata=json(join(directory,name+'.manifest.json'));
   verify(directory,metadata);
+  const extracted=join(temporary,'desktop');mkdirSync(extracted);
+  execFileSync('tar',['-xzf',join(directory,metadata.artifact),'-C',extracted]);
+  const binary=os==='darwin'?json(join(root,'cmd/desktop/wails.json')).name+'.app':json(join(root,'cmd/desktop/wails.json')).outputfilename+(os==='windows'?'.exe':'');
+  checkReleaseLayout(join(extracted,name), {profile:'desktop',os,identity,binary});
   for(const download of metadata.downloads)verify(directory,download);
   const config=json(join(root,'cmd/desktop/wails.json'));
   if(os==='windows'){

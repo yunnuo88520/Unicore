@@ -1,6 +1,25 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 应用开发与 AI 任务入口
 
+## 创建独立商用产品
+
+MIT 允许商用、修改和再分发；保留 LICENSE 的版权和许可声明及框架原作者信息。示例：创建名为 LicenHub、命令为 licenhub 的独立产品（仓库地址替换为自己的地址）：
+
+```sh
+pnpm create:project --directory ../LicenHub --name LicenHub --slug licenhub --module github.com/team/LicenHub --bundle vip.ebox.licenhub --repository https://github.com/team/LicenHub
+cd ../LicenHub
+make install
+make docs
+pnpm product:check
+pnpm check:residuals
+make build-web build-cli build-ops
+./build/bin/licenhub --help
+```
+
+名称、CLI/运维命令、桌面标识、服务名、安装/数据目录与镜像名随 product.identity.json 投影。创建器完成本地 main 初始提交，origin 指向自己的仓库；只读 framework 远端和 project.provenance.json 保存上游来源，业务提交和推送在自己的仓库维护。--repository 不会创建托管仓库或推送，首次推送前确保目标仓库已建立。更新渠道、公钥默认清空，另行配置自己的签名发行。
+
+域名不是产品身份字段。部署到自己的域名时配置 DNS、Nginx server_name 和 TLS，首次从正式 HTTPS 地址打开 /install，基础地址默认取浏览器的实际 origin；生产配置与实例数据不写入仓库。自己的 Logo/图标仍由 assets/brand/identity.json 配置，产品更名不会凭空生成定制图案。
+
 按任务读取，不遍历全部文档。契约、代码和可重复测试比过期功能说明更可靠；先检查已有功能和工作区，不覆盖他人修改。根 AGENTS 是简短硬约束，.agents/skills/develop-application 按需加载流程。
 
 ## 目录和依赖
@@ -19,6 +38,10 @@ packages/contracts/openapi.json 是 DTO/operation 的唯一线契约。先改契
 
 主题由 assets/theme/tokens.json、品牌由 assets/brand/identity.json 生成，pnpm design:generate 同步，不手改投影。页面要验证桌面/375px、权限状态、双语和实际 GUI，不能用 HTTP 代替 Wails 原生验收。
 
+## 复用通知与邮件
+
+平台功能可注入已有 `*mailer.Service` 调用 `Notify`，将业务邮件加密入队；需要遵循用户/管理员事件策略并与业务原子提交时，使用 `mailer.Plan` 和事务内队列写入。不要直接从页面调用机器人 URL、在 usecase 引入 SQL/SMTP，或在数据库事务内另开连接发信。完整参数、可复制 Go 示例、SDK 方法、错误处理和测试要求见 [通知与邮件接入](notifications.md)。
+
 ## 数据库迁移与文件
 
 当前产品仍使用旧迁移执行器；migrations/core、platform、modules 及 catalog.json 是已构建的新世代资产，尚未接管启动。不要通过增加业务需求顺便启用新账本。
@@ -36,3 +59,5 @@ packages/contracts/openapi.json 是 DTO/operation 的唯一线契约。先改契
 创建器按 distribution/manifest.json 的显式模板导出，新的 Git 文件不会自动入模板。Git 来源选中文件若有未提交修改默认拒绝；确需导出经过审阅的修改，显式传 --allow-dirty，provenance 将记录来源状态与输入摘要。没有 Git 的源码目录标记为 unversioned，不能声称来自某个干净提交。
 
 长期保留自己的应用变更记录和上游 revision；升级框架时在独立分支审阅差异，不覆盖现有主题、认证、业务和数据库。备份/更新配置与签名根见 [更新](updates.md)、[备份](backup.md)。上游实验/工作区保护记录不进入应用模板。
+
+框架表统一保留 unicore_ 前缀，例如 unicore_users；产品身份生成器不会把它改成项目 slug。自建业务表可用项目自己的前缀，与框架保留表名分开；通过独立业务迁移维护，不批量替换上游 SQL。当前 0.x 的 0013 重命名迁移保留旧数据；升级前停服并成套备份，回退恢复旧快照。

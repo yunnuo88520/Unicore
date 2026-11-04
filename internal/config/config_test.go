@@ -27,3 +27,10 @@ func TestInvalidWebOptions(t *testing.T) {
 		}
 	}
 }
+
+func TestWebDefaultPort(t *testing.T) {
+	options, err := LoadWeb(nil, func(string) string { return "" })
+	if err != nil || options.Listen != "127.0.0.1:3000" {
+		t.Fatal(options, err)
+	}
+}

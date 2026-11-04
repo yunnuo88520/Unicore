@@ -28,25 +28,31 @@ type Capabilities struct {
 }
 
 type Bootstrap struct {
-	Profile         Profile      `json:"profile"`
-	Version         string       `json:"version"`
-	Commit          string       `json:"commit"`
-	BuildTime       string       `json:"build_time"`
-	Stage           string       `json:"stage"`
-	DeploymentKind  string       `json:"deployment_kind"`
-	Capabilities    Capabilities `json:"capabilities"`
-	Installed       bool         `json:"installed"`
-	SiteName        string       `json:"site_name"`
-	AdminPath       string       `json:"admin_path"`
-	CurrentUser     *User        `json:"current_user,omitempty"`
-	CsrfToken       *string      `json:"csrf_token,omitempty"`
-	SiteDescription *string      `json:"site_description,omitempty"`
-	SiteCopyright   *string      `json:"site_copyright,omitempty"`
-	SiteIcpNumber   *string      `json:"site_icp_number,omitempty"`
-	SiteIcpUrl      *string      `json:"site_icp_url,omitempty"`
-	Theme           *string      `json:"theme,omitempty"`
-	Branding        *Branding    `json:"branding,omitempty"`
-	IdentityRealm   *string      `json:"identity_realm,omitempty"`
+	Profile               Profile      `json:"profile"`
+	Version               string       `json:"version"`
+	Commit                string       `json:"commit"`
+	BuildTime             string       `json:"build_time"`
+	Stage                 string       `json:"stage"`
+	DeploymentKind        string       `json:"deployment_kind"`
+	Capabilities          Capabilities `json:"capabilities"`
+	Installed             bool         `json:"installed"`
+	SiteName              string       `json:"site_name"`
+	AdminPath             string       `json:"admin_path"`
+	CurrentUser           *User        `json:"current_user,omitempty"`
+	CsrfToken             *string      `json:"csrf_token,omitempty"`
+	SiteDescription       *string      `json:"site_description,omitempty"`
+	SiteCopyright         *string      `json:"site_copyright,omitempty"`
+	SiteIcpNumber         *string      `json:"site_icp_number,omitempty"`
+	SiteIcpUrl            *string      `json:"site_icp_url,omitempty"`
+	Theme                 *string      `json:"theme,omitempty"`
+	Branding              *Branding    `json:"branding,omitempty"`
+	IdentityRealm         *string      `json:"identity_realm,omitempty"`
+	SitePoliceNumber      *string      `json:"site_police_number,omitempty"`
+	SiteFooterHtml        *string      `json:"site_footer_html,omitempty"`
+	MaintenanceEnabled    *bool        `json:"maintenance_enabled,omitempty"`
+	MaintenanceMessage    *string      `json:"maintenance_message,omitempty"`
+	MfaPending            *bool        `json:"mfa_pending,omitempty"`
+	MfaEnrollmentRequired *bool        `json:"mfa_enrollment_required,omitempty"`
 }
 
 type BootstrapResponse struct {
@@ -133,6 +139,7 @@ type User struct {
 	Permissions []string `json:"permissions"`
 	CreatedAt   int      `json:"created_at"`
 	LastLoginAt int      `json:"last_login_at"`
+	TotpEnabled bool     `json:"totp_enabled"`
 }
 
 type UserList struct {
@@ -162,9 +169,10 @@ type LoginInput struct {
 }
 
 type Session struct {
-	User      User   `json:"user"`
-	CsrfToken string `json:"csrf_token"`
-	ExpiresAt int    `json:"expires_at"`
+	User       User   `json:"user"`
+	CsrfToken  string `json:"csrf_token"`
+	ExpiresAt  int    `json:"expires_at"`
+	MfaPending *bool  `json:"mfa_pending,omitempty"`
 }
 
 type Captcha struct {
@@ -283,12 +291,13 @@ type ActionResultResponse struct {
 }
 
 type AuthPolicy struct {
-	RegistrationEnabled bool `json:"registration_enabled"`
-	ResetEnabled        bool `json:"reset_enabled"`
-	LoginCaptcha        bool `json:"login_captcha"`
-	RegisterCaptcha     bool `json:"register_captcha"`
-	MailReady           bool `json:"mail_ready"`
-	EmailLoginEnabled   bool `json:"email_login_enabled"`
+	RegistrationEnabled       bool `json:"registration_enabled"`
+	ResetEnabled              bool `json:"reset_enabled"`
+	LoginCaptcha              bool `json:"login_captcha"`
+	RegisterCaptcha           bool `json:"register_captcha"`
+	MailReady                 bool `json:"mail_ready"`
+	EmailLoginEnabled         bool `json:"email_login_enabled"`
+	EmailVerificationRequired bool `json:"email_verification_required"`
 }
 
 type RegisterInput struct {
@@ -319,12 +328,13 @@ type MailTestInput struct {
 }
 
 type MailJob struct {
-	ID          string `json:"id"`
-	State       string `json:"state"`
-	Attempts    int    `json:"attempts"`
-	CreatedAt   int    `json:"created_at"`
-	AvailableAt int    `json:"available_at"`
-	LastError   string `json:"last_error"`
+	ID          string  `json:"id"`
+	State       string  `json:"state"`
+	Attempts    int     `json:"attempts"`
+	CreatedAt   int     `json:"created_at"`
+	AvailableAt int     `json:"available_at"`
+	LastError   string  `json:"last_error"`
+	Channel     *string `json:"channel,omitempty"`
 }
 
 type MailJobList struct {
@@ -346,9 +356,10 @@ type MailJobListResponse struct {
 }
 
 type EmailChallenge struct {
-	ChallengeID string `json:"challenge_id"`
-	ExpiresIn   int    `json:"expires_in"`
-	RetryAfter  int    `json:"retry_after"`
+	ChallengeID          string `json:"challenge_id"`
+	ExpiresIn            int    `json:"expires_in"`
+	RetryAfter           int    `json:"retry_after"`
+	RegistrationComplete *bool  `json:"registration_complete,omitempty"`
 }
 
 type EmailCodeInput struct {
@@ -491,6 +502,7 @@ type DatabaseCheck struct {
 	DatabaseName string `json:"database_name"`
 	TableCount   int    `json:"table_count"`
 	Initialized  bool   `json:"initialized"`
+	ResetAllowed *bool  `json:"reset_allowed,omitempty"`
 }
 
 type DatabaseCheckResponse struct {
@@ -583,9 +595,10 @@ type FileList struct {
 }
 
 type FileUploadInput struct {
-	OriginalName string `json:"original_name"`
-	MimeType     string `json:"mime_type"`
-	Size         int    `json:"size"`
+	OriginalName string  `json:"original_name"`
+	MimeType     string  `json:"mime_type"`
+	Size         int     `json:"size"`
+	UploadPath   *string `json:"upload_path,omitempty"`
 }
 
 type FileUploadGrant struct {
@@ -805,38 +818,53 @@ type MailTemplateReset struct {
 }
 
 type AnnouncementInput struct {
-	Content   string `json:"content"`
-	Format    string `json:"format"`
-	Type      string `json:"type"`
-	Note      string `json:"note"`
-	Status    string `json:"status"`
-	PublishAt int    `json:"publish_at"`
+	Content      string   `json:"content"`
+	Format       string   `json:"format"`
+	Type         string   `json:"type"`
+	Note         string   `json:"note"`
+	Status       string   `json:"status"`
+	PublishAt    int      `json:"publish_at"`
+	Title        string   `json:"title"`
+	NotifyMode   string   `json:"notify_mode"`
+	EndsAt       int      `json:"ends_at"`
+	Audience     string   `json:"audience"`
+	RecipientIds []string `json:"recipient_ids"`
 }
 
 type AnnouncementUpdate struct {
-	Content   string `json:"content"`
-	Format    string `json:"format"`
-	Type      string `json:"type"`
-	Note      string `json:"note"`
-	Status    string `json:"status"`
-	PublishAt int    `json:"publish_at"`
-	Version   int    `json:"version"`
+	Content      string   `json:"content"`
+	Format       string   `json:"format"`
+	Type         string   `json:"type"`
+	Note         string   `json:"note"`
+	Status       string   `json:"status"`
+	PublishAt    int      `json:"publish_at"`
+	Version      int      `json:"version"`
+	Title        string   `json:"title"`
+	NotifyMode   string   `json:"notify_mode"`
+	EndsAt       int      `json:"ends_at"`
+	Audience     string   `json:"audience"`
+	RecipientIds []string `json:"recipient_ids"`
 }
 
 type AnnouncementEntry struct {
-	ID          string `json:"id"`
-	Version     int    `json:"version"`
-	CreatedAt   int    `json:"created_at"`
-	UpdatedAt   int    `json:"updated_at"`
-	Content     string `json:"content"`
-	Format      string `json:"format"`
-	Type        string `json:"type"`
-	Note        string `json:"note"`
-	Status      string `json:"status"`
-	PublishAt   int    `json:"publish_at"`
-	ContentHtml string `json:"content_html"`
-	CreatedBy   string `json:"created_by"`
-	UpdatedBy   string `json:"updated_by"`
+	ID           string   `json:"id"`
+	Version      int      `json:"version"`
+	CreatedAt    int      `json:"created_at"`
+	UpdatedAt    int      `json:"updated_at"`
+	Content      string   `json:"content"`
+	Format       string   `json:"format"`
+	Type         string   `json:"type"`
+	Note         string   `json:"note"`
+	Status       string   `json:"status"`
+	PublishAt    int      `json:"publish_at"`
+	ContentHtml  string   `json:"content_html"`
+	CreatedBy    string   `json:"created_by"`
+	UpdatedBy    string   `json:"updated_by"`
+	Title        string   `json:"title"`
+	NotifyMode   string   `json:"notify_mode"`
+	EndsAt       int      `json:"ends_at"`
+	Audience     string   `json:"audience"`
+	RecipientIds []string `json:"recipient_ids"`
 }
 
 type AnnouncementPublic struct {
@@ -846,6 +874,10 @@ type AnnouncementPublic struct {
 	Format      string `json:"format"`
 	Type        string `json:"type"`
 	PublishAt   int    `json:"publish_at"`
+	Title       string `json:"title"`
+	NotifyMode  string `json:"notify_mode"`
+	EndsAt      int    `json:"ends_at"`
+	ReadAt      int    `json:"read_at"`
 }
 
 type AnnouncementQuery struct {
@@ -864,11 +896,12 @@ type AnnouncementList struct {
 }
 
 type AnnouncementFeed struct {
-	Items    []AnnouncementPublic `json:"items"`
-	Total    int                  `json:"total"`
-	Page     int                  `json:"page"`
-	PageSize int                  `json:"page_size"`
-	Enabled  bool                 `json:"enabled"`
+	Items       []AnnouncementPublic `json:"items"`
+	Total       int                  `json:"total"`
+	Page        int                  `json:"page"`
+	PageSize    int                  `json:"page_size"`
+	Enabled     bool                 `json:"enabled"`
+	UnreadCount int                  `json:"unread_count"`
 }
 
 type AnnouncementSelection struct {
@@ -931,17 +964,20 @@ type AnnouncementPreviewResponse struct {
 }
 
 type MultipartUploadInput struct {
-	OriginalName string `json:"original_name"`
-	MimeType     string `json:"mime_type"`
-	Size         int    `json:"size"`
-	Fingerprint  string `json:"fingerprint"`
+	OriginalName string  `json:"original_name"`
+	MimeType     string  `json:"mime_type"`
+	Size         int     `json:"size"`
+	Fingerprint  string  `json:"fingerprint"`
+	UploadPath   *string `json:"upload_path,omitempty"`
 }
 
 type UploadPolicy struct {
-	MaxSize     int `json:"max_size"`
-	PartSize    int `json:"part_size"`
-	Parallelism int `json:"parallelism"`
-	ResumeHours int `json:"resume_hours"`
+	MaxSize           int      `json:"max_size"`
+	PartSize          int      `json:"part_size"`
+	Parallelism       int      `json:"parallelism"`
+	ResumeHours       int      `json:"resume_hours"`
+	UploadPaths       []string `json:"upload_paths"`
+	AllowedExtensions []string `json:"allowed_extensions"`
 }
 
 type UploadPart struct {
@@ -972,4 +1008,165 @@ type MultipartUploadResponse struct {
 	Code      string          `json:"code"`
 	Data      MultipartUpload `json:"data"`
 	RequestID string          `json:"request_id"`
+}
+
+type AccountProfile struct {
+	User          User   `json:"user"`
+	DisplayName   string `json:"display_name"`
+	TotpEnabled   bool   `json:"totp_enabled"`
+	Force2fa      bool   `json:"force_2fa"`
+	CanDisable2fa bool   `json:"can_disable_2fa"`
+}
+
+type ProfileInput struct {
+	DisplayName string `json:"display_name"`
+}
+
+type TOTPSetupInput struct {
+	Password string `json:"password"`
+}
+
+type TOTPSetup struct {
+	Secret     string `json:"secret"`
+	OtpauthUrl string `json:"otpauth_url"`
+	ExpiresAt  int    `json:"expires_at"`
+}
+
+type SecurityCodeInput struct {
+	Code string `json:"code"`
+}
+
+type RecoveryCodes struct {
+	Codes []string `json:"codes"`
+}
+
+type LoginDevice struct {
+	ID         string `json:"id"`
+	IpAddress  string `json:"ip_address"`
+	UserAgent  string `json:"user_agent"`
+	CreatedAt  int    `json:"created_at"`
+	LastSeenAt int    `json:"last_seen_at"`
+	ExpiresAt  int    `json:"expires_at"`
+	Current    bool   `json:"current"`
+}
+
+type LoginDevices struct {
+	Items []LoginDevice `json:"items"`
+}
+
+type RevokeDeviceInput struct {
+	ID string `json:"id"`
+}
+
+type EmailChangeInput struct {
+	CurrentChallengeID string `json:"current_challenge_id"`
+	Email              string `json:"email"`
+}
+
+type EmailChangeVerifyInput struct {
+	ChallengeID string `json:"challenge_id"`
+	Code        string `json:"code"`
+}
+
+type AccountProfileResponse struct {
+	Code      string         `json:"code"`
+	Message   string         `json:"message"`
+	Data      AccountProfile `json:"data"`
+	RequestID string         `json:"request_id"`
+}
+
+type TOTPSetupResponse struct {
+	Code      string    `json:"code"`
+	Message   string    `json:"message"`
+	Data      TOTPSetup `json:"data"`
+	RequestID string    `json:"request_id"`
+}
+
+type RecoveryCodesResponse struct {
+	Code      string        `json:"code"`
+	Message   string        `json:"message"`
+	Data      RecoveryCodes `json:"data"`
+	RequestID string        `json:"request_id"`
+}
+
+type LoginDevicesResponse struct {
+	Code      string       `json:"code"`
+	Message   string       `json:"message"`
+	Data      LoginDevices `json:"data"`
+	RequestID string       `json:"request_id"`
+}
+
+type AnnouncementReader struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Eligible bool   `json:"eligible"`
+	ReadAt   int    `json:"read_at"`
+}
+
+type AnnouncementReadStatus struct {
+	Items    []AnnouncementReader `json:"items"`
+	Total    int                  `json:"total"`
+	Page     int                  `json:"page"`
+	PageSize int                  `json:"page_size"`
+}
+
+type AnnouncementReadStatusResponse struct {
+	Code      string                 `json:"code"`
+	Message   string                 `json:"message"`
+	Data      AnnouncementReadStatus `json:"data"`
+	RequestID string                 `json:"request_id"`
+}
+
+type NotifyRule struct {
+	Event        string `json:"event"`
+	UserEmail    bool   `json:"user_email"`
+	AdminEmail   bool   `json:"admin_email"`
+	AdminChannel bool   `json:"admin_channel"`
+}
+
+type NotifyTemplate struct {
+	Event string `json:"event"`
+	Title string `json:"title"`
+	Body  string `json:"body"`
+}
+
+type NotifyConfiguration struct {
+	Enabled            bool             `json:"enabled"`
+	ChannelEnabled     bool             `json:"channel_enabled"`
+	Provider           string           `json:"provider"`
+	WecomKey           string           `json:"wecom_key"`
+	WebhookUrl         string           `json:"webhook_url"`
+	SigningSecret      string           `json:"signing_secret"`
+	ClearWecomKey      bool             `json:"clear_wecom_key"`
+	ClearWebhookUrl    bool             `json:"clear_webhook_url"`
+	ClearSigningSecret bool             `json:"clear_signing_secret"`
+	WecomConfigured    bool             `json:"wecom_configured"`
+	WebhookConfigured  bool             `json:"webhook_configured"`
+	SigningConfigured  bool             `json:"signing_configured"`
+	Rules              []NotifyRule     `json:"rules"`
+	Templates          []NotifyTemplate `json:"templates"`
+}
+
+type NotifyPreview struct {
+	Title string `json:"title"`
+	Body  string `json:"body"`
+}
+
+type NotifyTest struct {
+	Template    NotifyTemplate `json:"template"`
+	Destination string         `json:"destination"`
+	Recipient   string         `json:"recipient"`
+}
+
+type NotifyConfigurationResponse struct {
+	Code    string              `json:"code"`
+	Message string              `json:"message"`
+	Data    NotifyConfiguration `json:"data"`
+}
+
+type NotifyPreviewResponse struct {
+	Code    string        `json:"code"`
+	Message string        `json:"message"`
+	Data    NotifyPreview `json:"data"`
 }

@@ -36,6 +36,7 @@ generate:
 docs: generate
 	pnpm ai:context
 	pnpm wiki:generate
+	@if [ -f website/prepare.mjs ]; then node website/prepare.mjs; fi
 wiki:
 	pnpm wiki:generate
 wiki-publish:

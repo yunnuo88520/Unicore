@@ -28,9 +28,11 @@ make build-desktop
 make package-desktop
 ```
 
-package/release 重建 build/releases，先另存需要的旧产物。Web tar 包含 server、unicore-ops、web、deploy、许可证、用户文档、VERSION、CHANGELOG 和 manifest/checksums；CLI 包不含服务端数据库。原生 GUI 必须在目标 OS 构建和运行，交叉编译成功不能替代窗口/更新验证。Docker 跨架构需要 buildx/QEMU 或原生 builder。
+package/release 重建 build/releases 和 build/staging，先另存需要的旧产物。所有用户包仅保留一个应用入口、README.md 安装说明、LICENSE、VERSION 与 manifest.json；Web 另含 deploy/ 下的 systemd 和 Nginx 模板。Web 前端已经嵌入可执行文件，不另附 web/、bin/、整套 docs/、完整 CHANGELOG 或帮助脚本。校验和位于归档外的 checksums.txt。CLI 不含服务端数据库。每次打包按精确文件白名单校验，意外文件会使打包失败。
 
-Web 包根目录另提供 unicore、unicorehelp，帮助和配置生成见 [配置](configuration.md)。`make package-desktop` 在 macOS 额外生成 DMG，打开后将 app 拖到 Applications；Windows 额外生成可直接运行的 exe，不经过安装向导，需要 WebView2。Windows 单个 EXE 可直接使用；应用内安装更新仍要求完整发行目录中的 VERSION 等文件，单文件模式只支持查看/检查更新，见 [更新](updates.md)。Linux 桌面仍提供 tar.gz。三系统原有桌面 tar.gz 保留给 OTA，macOS/Windows 用户优先选择 DMG/EXE；同目录的目标专属校验和和 manifest 包含相应下载文件。DMG 通过系统 hdiutil 创建/校验；打包格式不改变 OS 签名状态，也不代表已经公证。
+Web 和 CLI 的根目录入口均为 unicore（Windows CLI 为 unicore.exe）；Web 的 help、config generate、backup/verify/restore 共用同一个二进制，帮助和配置见 [配置](configuration.md)。离线维护也可从源码 make build-ops 单独构建，业务 CLI 仍不连接数据库。原生 GUI 必须在目标 OS 构建和运行，交叉编译成功不能替代窗口/更新验证。Docker 跨架构需要 buildx/QEMU 或原生 builder。
+
+`make package-desktop` 在 macOS 额外生成 DMG，打开后将 app 拖到 Applications；Windows 额外生成可直接运行的 exe，不经过安装向导，需要 WebView2。Windows 单个 EXE 可直接使用；应用内安装更新仍要求完整发行目录中的 VERSION 等文件，单文件模式只支持查看/检查更新，见 [更新](updates.md)。Linux 桌面仍提供 tar.gz。三系统原有桌面 tar.gz 保留给 OTA，macOS/Windows 用户优先选择 DMG/EXE；同目录的目标专属校验和和 manifest 包含相应下载文件。DMG 通过系统 hdiutil 创建/校验；打包格式不改变 OS 签名状态，也不代表已经公证。
 
 FEATURE_LICENSE 默认 false，FEATURE_UPDATER 默认 true；Make 将同一开关传给 Go 和前端。授权服务仍为占位。直接 go build 不等于已经装配 updater，使用一致的构建入口。
 

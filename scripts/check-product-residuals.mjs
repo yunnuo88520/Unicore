@@ -12,13 +12,20 @@ const ALLOWED = [
   /@[uU]nicore\//, /x-unicore/i, /__UNICORE_[A-Z_]+__/,
   /\bUNICORE_[A-Z_]+\b/,
   /unicore(_administrator)?_session/, /cid:unicore-brand/, /unicore\.db/,
-  /基于 Unicore/, /built with Unicore/i, /Unicore 应用基座/, /Unicore application foundation/,
+  /unicore\.preferences\.v1/, /unicore\.theme/, /unicore:preferences/, /unicore\.session\.changed/,
+  /基于 Unicore/, /built with Unicore/i,
 ];
 
 function violationsFor(path, text, framework) {
   const violations = [];
   text.split('\n').forEach((line, index) => {
-    if (!new RegExp(framework, 'i').test(line)) return;
+    // Product documentation must explain the stable SQL namespace. Remove only
+    // those technical tokens, so an unrelated visible brand on the same line is
+    // still reported. UI strings do not receive this documentation exemption.
+    const visible = path.startsWith('docs/product/')
+      ? line.replace(/\bunicore_(?:[a-z][a-z0-9_]*)?\b/g, '')
+      : line;
+    if (!new RegExp(framework, 'i').test(visible)) return;
     if (ALLOWED.some(pattern => pattern.test(line))) return;
     violations.push(`${path}:${index + 1}: ${line.trim().slice(0, 160)}`);
   });
@@ -41,7 +48,7 @@ export function scanResiduals(base = root) {
     'apps/web/index.html', 'apps/web/admin.html', 'apps/desktop/index.html',
     'apps/web/public/site.webmanifest', 'apps/desktop/public/site.webmanifest',
     'cmd/desktop/wails.json', 'packages/contracts/openapi.json',
-    `deploy/tar/${identity.cli.command}`, `deploy/tar/${identity.cli.command}help`, `deploy/tar/${identity.deployment.serviceName}.service`,
+    `deploy/tar/${identity.deployment.serviceName}.service`,
     'deploy/tar/nginx.conf.example', 'deploy/docker/compose.yaml', 'deploy/docker/compose.dev.yaml', 'deploy/docker/Dockerfile',
   ];
   for (const path of required) {
@@ -51,6 +58,14 @@ export function scanResiduals(base = root) {
   for (const document of JSON.parse(read('distribution/manifest.json')).documents.filter(entry => entry.audiences.includes('project-template'))) {
     if (!existsSync(`${dir}${document.target}`)) { violations.push(`${document.target}: missing template document`); continue; }
     violations.push(...violationsFor(document.target, read(document.target), framework));
+  }
+  // UI rewrites can introduce visible literals without changing generated HTML or identity files.
+  const manifest = JSON.parse(read('distribution/manifest.json'));
+  for (const entry of manifest.template_files ?? []) {
+    const path = typeof entry === 'string' ? entry : entry.target;
+    if (path !== 'cmd/server/commands.go' && (!path.startsWith('packages/web-ui/src/') || !/\.(?:tsx?|json)$/.test(path) || /(?:\.test\.|\.gen\.)/.test(path))) continue;
+    if (!existsSync(`${dir}${path}`)) { violations.push(`${path}: missing product UI source`); continue; }
+    violations.push(...violationsFor(path, read(path), framework));
   }
   for (const entry of readdirSync(`${dir}deploy/tar`)) if (new RegExp(framework, 'i').test(entry)) violations.push(`deploy/tar/${entry}: deployment file name still carries the framework identity`);
   return violations;

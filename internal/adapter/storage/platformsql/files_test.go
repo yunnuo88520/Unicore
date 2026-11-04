@@ -75,7 +75,7 @@ func exerciseFiles(t *testing.T, ctx context.Context, store *sqlstore.Store, adm
 	if _, e = reader.Stat(ctx, record.Key); e == nil {
 		t.Fatal("cleanup failed")
 	}
-	if _, e = store.Exec(ctx, store.DB, "DELETE FROM schema_migrations WHERE version=9"); e != nil {
+	if _, e = store.Exec(ctx, store.DB, "DELETE FROM unicore_schema_migrations WHERE version=9"); e != nil {
 		t.Fatal(e)
 	}
 	if e = store.Migrate(ctx, true); e != nil {

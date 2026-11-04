@@ -28,7 +28,7 @@ func exerciseEmailCodes(t *testing.T, ctx context.Context, store *sqlstore.Store
 		t.Fatal(err)
 	}
 	var stored string
-	if err := store.Row(ctx, store.DB, "SELECT code_digest FROM email_challenges WHERE id=?", c.ID).Scan(&stored); err != nil || stored == "012345" || len(stored) != 64 {
+	if err := store.Row(ctx, store.DB, "SELECT code_digest FROM unicore_email_challenges WHERE id=?", c.ID).Scan(&stored); err != nil || stored == "012345" || len(stored) != 64 {
 		t.Fatal("invalid code digest", err)
 	}
 	// Repeated request within 60 seconds leaves the original code in place.
@@ -38,7 +38,7 @@ func exerciseEmailCodes(t *testing.T, ctx context.Context, store *sqlstore.Store
 		t.Fatal(err)
 	}
 	var count int
-	_ = store.Row(ctx, store.DB, "SELECT COUNT(*) FROM email_challenges WHERE id=?", next.ID).Scan(&count)
+	_ = store.Row(ctx, store.DB, "SELECT COUNT(*) FROM unicore_email_challenges WHERE id=?", next.ID).Scan(&count)
 	if count != 0 {
 		t.Fatal("persistent resend cooldown bypassed")
 	}
@@ -54,7 +54,7 @@ func exerciseEmailCodes(t *testing.T, ctx context.Context, store *sqlstore.Store
 		t.Fatal("locked code accepted", err)
 	}
 	var payload string
-	_ = store.Row(ctx, store.DB, "SELECT payload FROM mail_jobs WHERE token_hash=?", c.ID).Scan(&payload)
+	_ = store.Row(ctx, store.DB, "SELECT payload FROM unicore_mail_jobs WHERE token_hash=?", c.ID).Scan(&payload)
 	if payload != "" {
 		t.Fatal("locked code retained pending mail")
 	}

@@ -31,12 +31,16 @@ it('supports five semantic styles, dismisses after three seconds and resets a re
   fireEvent.click(screen.getByRole('button', { name: '关闭消息' }));
   expect(screen.queryByText('替换消息')).not.toBeInTheDocument();
 });
-it('keeps feedback in the active dialog and returns it to body when the dialog closes', async () => {
+it('renders the stack above overlay surfaces and keeps it in the document viewport', async () => {
   render(<MessageProvider><Examples /></MessageProvider>);
-  const dialog = document.createElement('dialog');
-  await act(async () => { dialog.setAttribute('open', ''); document.body.append(dialog); });
+  const overlay = document.createElement('div');
+  overlay.style.position = 'fixed';
+  overlay.style.zIndex = '50';
+  await act(async () => { document.body.append(overlay); });
   fireEvent.click(screen.getByRole('button', { name: 'error' }));
-  expect(dialog.querySelector('.message-error')).toHaveTextContent('error 提示');
-  await act(async () => { dialog.remove(); });
+  const stack = document.querySelector('[role="region"][aria-label="消息提示"]');
+  expect(stack).not.toBeNull();
+  expect(stack!.querySelector('.message-error')).toHaveTextContent('error 提示');
+  await act(async () => { overlay.remove(); });
   expect(screen.getByRole('alert')).toHaveTextContent('error 提示');
 });

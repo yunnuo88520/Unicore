@@ -53,6 +53,9 @@ func main() {
 }
 
 func run(args []string) (result error) {
+	if len(args) > 0 && args[0] == "serve" {
+		args = args[1:]
+	}
 	options, err := config.LoadWeb(args, os.Getenv)
 	if err != nil {
 		return err

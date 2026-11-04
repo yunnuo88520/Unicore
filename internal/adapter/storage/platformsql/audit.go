@@ -18,14 +18,17 @@ func (r *Repository) audit(ctx context.Context, tx sqlstore.Runner, actor, actio
 		}
 	}
 	if m.ActorName == "" {
-		table := "users"
+		table := "unicore_users"
 		if m.Realm == "administrator" {
-			table = "administrators"
+			table = "unicore_administrators"
 		}
 		_ = r.Store.Row(ctx, tx, "SELECT username FROM "+table+" WHERE id=?", actor).Scan(&m.ActorName)
 	}
 	if m.Target == "" {
 		m.Target = strings.Split(action, ".")[0]
 	}
-	return r.Store.Audit(audit.With(ctx, m), tx, actor, action)
+	if err := r.Store.Audit(audit.With(ctx, m), tx, actor, action); err != nil {
+		return err
+	}
+	return r.eventNotifications(audit.With(ctx, m), tx, actor, action)
 }

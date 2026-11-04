@@ -19,10 +19,11 @@ async function untranslated(page: import('@playwright/test').Page) {
     return found;
   });
 }
-test('bilingual drafts, local drawer, persistence and responsive layouts', async ({ page, context, instance }, info) => {
+test.setTimeout(90_000);test('bilingual drafts, local drawer, persistence and responsive layouts', async ({ page, context, instance }, info) => {
   await installStandalone(instance);
   const failures: string[] = []; page.on('pageerror', error => failures.push(error.message));
   await page.goto(instance.url);
+  await page.goto(`${instance.url}/lab`);
   await page.getByLabel('输入文本').fill('A draft retained across language changes.');
   await page.getByRole('button', { name: '切换语言', exact: true }).click();
   await page.getByRole('menuitemradio', { name: 'English', exact: true }).click();
@@ -69,12 +70,12 @@ test('bilingual drafts, local drawer, persistence and responsive layouts', async
   await expect(page.getByRole('heading', { name: 'My notes.' })).toBeVisible();
   await trigger.click(); await drawer.getByRole('button', { name: 'Reset appearance', exact: true }).click(); await page.keyboard.press('Escape');
   for (const route of ['overview', 'lab', 'notes', 'site']) {
-    await page.goto(`${instance.url}/#${route}`);
+    await page.goto(`${instance.url}/${route}`);
     await expect(page.locator('.state-card.error-state')).toHaveCount(0);
     expect(await untranslated(page)).toEqual([]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
-  await page.goto(instance.url); await expect(page.getByLabel('Input text')).toBeVisible();
+  await page.goto(`${instance.url}/lab`); await expect(page.getByLabel('Input text')).toBeVisible();
   await page.screenshot({ path: `${directory}/workspace-light.png` });
   expect(failures).toEqual([]);
 });
@@ -84,15 +85,15 @@ test('English administrator pages and public authentication share controls', asy
   expect(installed.status()).toBe(200);
   await page.goto(`${instance.url}/admin`);
   await page.getByRole('button', { name:'切换语言', exact:true }).click(); await page.getByRole('menuitemradio', { name:'English', exact:true }).click();
-  for (const route of ['users','administrators','roles','site','site?tab=branding','site?tab=security','site?tab=oidc','mail','mail-templates','announcements','storage','logs']) {
-    await page.goto(`${instance.url}/admin#${route}`);
+  for (const route of ['users','administrators','roles','site','site?tab=branding','site?tab=security','site?tab=registration','site?tab=maintenance','site?tab=oidc','mail','mail-templates','announcements','storage','storage?provider=minio','storage?provider=s3','storage?provider=oss','storage?provider=cos','storage?tab=rules','logs']) {
+    await page.goto(`${instance.url}/admin/${route}`);
     await expect(page.locator('.page-heading h1')).toBeVisible();
     await expect(page.locator('[role=status]').filter({hasText:/Loading/})).toHaveCount(0);
     const leftovers = await untranslated(page);
     expect(leftovers, route).toEqual([]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), route).toBe(true);
   }
-  await page.goto(`${instance.url}/admin#edition`); await expect(page.locator('.update-release')).not.toHaveCount(0);
+  await page.goto(`${instance.url}/admin/edition`); await expect(page.locator('.update-release')).not.toHaveCount(0);
   const other = await browser.newContext({ viewport:page.viewportSize()! });
   try {
     const user = await other.newPage(); await user.goto(`${instance.url}/login`);

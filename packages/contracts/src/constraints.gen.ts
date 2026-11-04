@@ -165,6 +165,24 @@ export const constraints = {
           "user",
           "administrator"
         ]
+      },
+      "site_police_number": {
+        "type": "string"
+      },
+      "site_footer_html": {
+        "type": "string"
+      },
+      "maintenance_enabled": {
+        "type": "boolean"
+      },
+      "maintenance_message": {
+        "type": "string"
+      },
+      "mfa_pending": {
+        "type": "boolean"
+      },
+      "mfa_enrollment_required": {
+        "type": "boolean"
       }
     }
   },
@@ -452,7 +470,8 @@ export const constraints = {
       "roles",
       "permissions",
       "created_at",
-      "last_login_at"
+      "last_login_at",
+      "totp_enabled"
     ],
     "properties": {
       "id": {
@@ -488,6 +507,9 @@ export const constraints = {
       },
       "last_login_at": {
         "type": "integer"
+      },
+      "totp_enabled": {
+        "type": "boolean"
       }
     }
   },
@@ -618,6 +640,9 @@ export const constraints = {
       },
       "expires_at": {
         "type": "integer"
+      },
+      "mfa_pending": {
+        "type": "boolean"
       }
     }
   },
@@ -1031,7 +1056,8 @@ export const constraints = {
       "login_captcha",
       "register_captcha",
       "mail_ready",
-      "email_login_enabled"
+      "email_login_enabled",
+      "email_verification_required"
     ],
     "properties": {
       "registration_enabled": {
@@ -1050,6 +1076,9 @@ export const constraints = {
         "type": "boolean"
       },
       "email_login_enabled": {
+        "type": "boolean"
+      },
+      "email_verification_required": {
         "type": "boolean"
       }
     }
@@ -1184,6 +1213,14 @@ export const constraints = {
       },
       "last_error": {
         "type": "string"
+      },
+      "channel": {
+        "type": "string",
+        "enum": [
+          "email",
+          "wecom",
+          "webhook"
+        ]
       }
     }
   },
@@ -1267,6 +1304,9 @@ export const constraints = {
       },
       "retry_after": {
         "type": "integer"
+      },
+      "registration_complete": {
+        "type": "boolean"
       }
     }
   },
@@ -1781,6 +1821,9 @@ export const constraints = {
       },
       "initialized": {
         "type": "boolean"
+      },
+      "reset_allowed": {
+        "type": "boolean"
       }
     }
   },
@@ -2205,6 +2248,10 @@ export const constraints = {
         "type": "integer",
         "minimum": 1,
         "maximum": 68719476736
+      },
+      "upload_path": {
+        "type": "string",
+        "maxLength": 200
       }
     }
   },
@@ -3111,12 +3158,17 @@ export const constraints = {
       "type",
       "note",
       "status",
-      "publish_at"
+      "publish_at",
+      "title",
+      "notify_mode",
+      "ends_at",
+      "audience",
+      "recipient_ids"
     ],
     "properties": {
       "content": {
         "type": "string",
-        "maxLength": 500,
+        "maxLength": 10000,
         "minLength": 1
       },
       "format": {
@@ -3146,13 +3198,49 @@ export const constraints = {
         "maxLength": 64,
         "enum": [
           "draft",
-          "published"
+          "published",
+          "archived"
         ]
       },
       "publish_at": {
         "type": "integer",
         "minimum": 1,
         "maximum": 4102444800
+      },
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "notify_mode": {
+        "type": "string",
+        "enum": [
+          "silent",
+          "popup"
+        ],
+        "maxLength": 16
+      },
+      "ends_at": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 4102444800
+      },
+      "audience": {
+        "type": "string",
+        "enum": [
+          "all",
+          "selected"
+        ],
+        "maxLength": 16
+      },
+      "recipient_ids": {
+        "type": "array",
+        "maxItems": 500,
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
       }
     }
   },
@@ -3166,12 +3254,17 @@ export const constraints = {
       "note",
       "status",
       "publish_at",
-      "version"
+      "version",
+      "title",
+      "notify_mode",
+      "ends_at",
+      "audience",
+      "recipient_ids"
     ],
     "properties": {
       "content": {
         "type": "string",
-        "maxLength": 500,
+        "maxLength": 10000,
         "minLength": 1
       },
       "format": {
@@ -3201,7 +3294,8 @@ export const constraints = {
         "maxLength": 64,
         "enum": [
           "draft",
-          "published"
+          "published",
+          "archived"
         ]
       },
       "publish_at": {
@@ -3213,6 +3307,41 @@ export const constraints = {
         "type": "integer",
         "minimum": 1,
         "maximum": 9007199254740991
+      },
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "notify_mode": {
+        "type": "string",
+        "enum": [
+          "silent",
+          "popup"
+        ],
+        "maxLength": 16
+      },
+      "ends_at": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 4102444800
+      },
+      "audience": {
+        "type": "string",
+        "enum": [
+          "all",
+          "selected"
+        ],
+        "maxLength": 16
+      },
+      "recipient_ids": {
+        "type": "array",
+        "maxItems": 500,
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
       }
     }
   },
@@ -3232,7 +3361,12 @@ export const constraints = {
       "publish_at",
       "content_html",
       "created_by",
-      "updated_by"
+      "updated_by",
+      "title",
+      "notify_mode",
+      "ends_at",
+      "audience",
+      "recipient_ids"
     ],
     "properties": {
       "id": {
@@ -3256,7 +3390,7 @@ export const constraints = {
       },
       "content": {
         "type": "string",
-        "maxLength": 500,
+        "maxLength": 10000,
         "minLength": 1
       },
       "format": {
@@ -3286,7 +3420,8 @@ export const constraints = {
         "maxLength": 64,
         "enum": [
           "draft",
-          "published"
+          "published",
+          "archived"
         ]
       },
       "publish_at": {
@@ -3296,7 +3431,7 @@ export const constraints = {
       },
       "content_html": {
         "type": "string",
-        "maxLength": 20000
+        "maxLength": 100000
       },
       "created_by": {
         "type": "string",
@@ -3305,6 +3440,41 @@ export const constraints = {
       "updated_by": {
         "type": "string",
         "maxLength": 64
+      },
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "notify_mode": {
+        "type": "string",
+        "enum": [
+          "silent",
+          "popup"
+        ],
+        "maxLength": 16
+      },
+      "ends_at": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 4102444800
+      },
+      "audience": {
+        "type": "string",
+        "enum": [
+          "all",
+          "selected"
+        ],
+        "maxLength": 16
+      },
+      "recipient_ids": {
+        "type": "array",
+        "maxItems": 500,
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
       }
     }
   },
@@ -3317,7 +3487,11 @@ export const constraints = {
       "content_html",
       "format",
       "type",
-      "publish_at"
+      "publish_at",
+      "title",
+      "notify_mode",
+      "ends_at",
+      "read_at"
     ],
     "properties": {
       "id": {
@@ -3326,12 +3500,12 @@ export const constraints = {
       },
       "content": {
         "type": "string",
-        "maxLength": 500,
+        "maxLength": 10000,
         "minLength": 1
       },
       "content_html": {
         "type": "string",
-        "maxLength": 20000
+        "maxLength": 100000
       },
       "format": {
         "type": "string",
@@ -3354,6 +3528,29 @@ export const constraints = {
       "publish_at": {
         "type": "integer",
         "minimum": 1,
+        "maximum": 4102444800
+      },
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "notify_mode": {
+        "type": "string",
+        "enum": [
+          "silent",
+          "popup"
+        ],
+        "maxLength": 16
+      },
+      "ends_at": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 4102444800
+      },
+      "read_at": {
+        "type": "integer",
+        "minimum": 0,
         "maximum": 4102444800
       }
     }
@@ -3379,7 +3576,9 @@ export const constraints = {
           "",
           "draft",
           "published",
-          "scheduled"
+          "scheduled",
+          "archived",
+          "expired"
         ]
       },
       "page": {
@@ -3439,7 +3638,8 @@ export const constraints = {
       "total",
       "page",
       "page_size",
-      "enabled"
+      "enabled",
+      "unread_count"
     ],
     "properties": {
       "items": {
@@ -3465,6 +3665,11 @@ export const constraints = {
       },
       "enabled": {
         "type": "boolean"
+      },
+      "unread_count": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
       }
     }
   },
@@ -3526,7 +3731,7 @@ export const constraints = {
     "properties": {
       "content_html": {
         "type": "string",
-        "maxLength": 20000
+        "maxLength": 100000
       }
     }
   },
@@ -3704,6 +3909,10 @@ export const constraints = {
         "pattern": "^[a-f0-9]{64}$",
         "minLength": 64,
         "maxLength": 64
+      },
+      "upload_path": {
+        "type": "string",
+        "maxLength": 200
       }
     }
   },
@@ -3714,7 +3923,9 @@ export const constraints = {
       "max_size",
       "part_size",
       "parallelism",
-      "resume_hours"
+      "resume_hours",
+      "upload_paths",
+      "allowed_extensions"
     ],
     "properties": {
       "max_size": {
@@ -3736,6 +3947,18 @@ export const constraints = {
         "type": "integer",
         "minimum": 1,
         "maximum": 168
+      },
+      "upload_paths": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "allowed_extensions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
       }
     }
   },
@@ -3858,6 +4081,621 @@ export const constraints = {
       "request_id": {
         "type": "string",
         "maxLength": 64
+      }
+    }
+  },
+  "AccountProfile": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "user",
+      "display_name",
+      "totp_enabled",
+      "force_2fa",
+      "can_disable_2fa"
+    ],
+    "properties": {
+      "user": {
+        "$ref": "#/components/schemas/User"
+      },
+      "display_name": {
+        "type": "string",
+        "maxLength": 80,
+        "minLength": 0
+      },
+      "totp_enabled": {
+        "type": "boolean"
+      },
+      "force_2fa": {
+        "type": "boolean"
+      },
+      "can_disable_2fa": {
+        "type": "boolean"
+      }
+    }
+  },
+  "ProfileInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "display_name"
+    ],
+    "properties": {
+      "display_name": {
+        "type": "string",
+        "maxLength": 80,
+        "minLength": 0
+      }
+    }
+  },
+  "TOTPSetupInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "password"
+    ],
+    "properties": {
+      "password": {
+        "type": "string",
+        "maxLength": 128,
+        "minLength": 1
+      }
+    }
+  },
+  "TOTPSetup": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "secret",
+      "otpauth_url",
+      "expires_at"
+    ],
+    "properties": {
+      "secret": {
+        "type": "string",
+        "maxLength": 128,
+        "minLength": 0
+      },
+      "otpauth_url": {
+        "type": "string",
+        "maxLength": 2048,
+        "minLength": 0
+      },
+      "expires_at": {
+        "type": "integer"
+      }
+    }
+  },
+  "SecurityCodeInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code"
+    ],
+    "properties": {
+      "code": {
+        "type": "string",
+        "maxLength": 64,
+        "minLength": 6
+      }
+    }
+  },
+  "RecoveryCodes": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "codes"
+    ],
+    "properties": {
+      "codes": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 0
+        }
+      }
+    }
+  },
+  "LoginDevice": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "ip_address",
+      "user_agent",
+      "created_at",
+      "last_seen_at",
+      "expires_at",
+      "current"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 128,
+        "minLength": 0
+      },
+      "ip_address": {
+        "type": "string",
+        "maxLength": 128,
+        "minLength": 0
+      },
+      "user_agent": {
+        "type": "string",
+        "maxLength": 512,
+        "minLength": 0
+      },
+      "created_at": {
+        "type": "integer"
+      },
+      "last_seen_at": {
+        "type": "integer"
+      },
+      "expires_at": {
+        "type": "integer"
+      },
+      "current": {
+        "type": "boolean"
+      }
+    }
+  },
+  "LoginDevices": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/LoginDevice"
+        }
+      }
+    }
+  },
+  "RevokeDeviceInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64,
+        "minLength": 1
+      }
+    }
+  },
+  "EmailChangeInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "current_challenge_id",
+      "email"
+    ],
+    "properties": {
+      "current_challenge_id": {
+        "type": "string",
+        "maxLength": 64,
+        "minLength": 0
+      },
+      "email": {
+        "type": "string",
+        "format": "email",
+        "maxLength": 254
+      }
+    }
+  },
+  "EmailChangeVerifyInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "challenge_id",
+      "code"
+    ],
+    "properties": {
+      "challenge_id": {
+        "type": "string",
+        "maxLength": 64,
+        "minLength": 1
+      },
+      "code": {
+        "type": "string",
+        "pattern": "^[0-9]{6}$",
+        "minLength": 6,
+        "maxLength": 6
+      }
+    }
+  },
+  "AccountProfileResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/AccountProfile"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "TOTPSetupResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/TOTPSetup"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "RecoveryCodesResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/RecoveryCodes"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "LoginDevicesResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/LoginDevices"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "AnnouncementReader": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "username",
+      "email",
+      "eligible",
+      "read_at"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "username": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "email": {
+        "type": "string",
+        "maxLength": 254
+      },
+      "eligible": {
+        "type": "boolean"
+      },
+      "read_at": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 4102444800
+      }
+    }
+  },
+  "AnnouncementReadStatus": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items",
+      "total",
+      "page",
+      "page_size"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/AnnouncementReader"
+        }
+      },
+      "total": {
+        "type": "integer"
+      },
+      "page": {
+        "type": "integer"
+      },
+      "page_size": {
+        "type": "integer"
+      }
+    }
+  },
+  "AnnouncementReadStatusResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/AnnouncementReadStatus"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "NotifyRule": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "event",
+      "user_email",
+      "admin_email",
+      "admin_channel"
+    ],
+    "properties": {
+      "event": {
+        "type": "string",
+        "maxLength": 40
+      },
+      "user_email": {
+        "type": "boolean"
+      },
+      "admin_email": {
+        "type": "boolean"
+      },
+      "admin_channel": {
+        "type": "boolean"
+      }
+    }
+  },
+  "NotifyTemplate": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "event",
+      "title",
+      "body"
+    ],
+    "properties": {
+      "event": {
+        "type": "string",
+        "maxLength": 40
+      },
+      "title": {
+        "type": "string",
+        "maxLength": 160
+      },
+      "body": {
+        "type": "string",
+        "maxLength": 4000
+      }
+    }
+  },
+  "NotifyConfiguration": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "enabled",
+      "channel_enabled",
+      "provider",
+      "wecom_key",
+      "webhook_url",
+      "signing_secret",
+      "clear_wecom_key",
+      "clear_webhook_url",
+      "clear_signing_secret",
+      "wecom_configured",
+      "webhook_configured",
+      "signing_configured",
+      "rules",
+      "templates"
+    ],
+    "properties": {
+      "enabled": {
+        "type": "boolean"
+      },
+      "channel_enabled": {
+        "type": "boolean"
+      },
+      "provider": {
+        "type": "string",
+        "enum": [
+          "wecom",
+          "webhook"
+        ]
+      },
+      "wecom_key": {
+        "type": "string",
+        "maxLength": 512
+      },
+      "webhook_url": {
+        "type": "string",
+        "maxLength": 2048
+      },
+      "signing_secret": {
+        "type": "string",
+        "maxLength": 512
+      },
+      "clear_wecom_key": {
+        "type": "boolean"
+      },
+      "clear_webhook_url": {
+        "type": "boolean"
+      },
+      "clear_signing_secret": {
+        "type": "boolean"
+      },
+      "wecom_configured": {
+        "type": "boolean"
+      },
+      "webhook_configured": {
+        "type": "boolean"
+      },
+      "signing_configured": {
+        "type": "boolean"
+      },
+      "rules": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NotifyRule"
+        },
+        "maxItems": 32
+      },
+      "templates": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NotifyTemplate"
+        },
+        "maxItems": 32
+      }
+    }
+  },
+  "NotifyPreview": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "title",
+      "body"
+    ],
+    "properties": {
+      "title": {
+        "type": "string",
+        "maxLength": 512
+      },
+      "body": {
+        "type": "string",
+        "maxLength": 12000
+      }
+    }
+  },
+  "NotifyTest": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "template",
+      "destination",
+      "recipient"
+    ],
+    "properties": {
+      "template": {
+        "$ref": "#/components/schemas/NotifyTemplate"
+      },
+      "destination": {
+        "type": "string",
+        "enum": [
+          "channel",
+          "email"
+        ]
+      },
+      "recipient": {
+        "type": "string",
+        "maxLength": 254
+      }
+    }
+  },
+  "NotifyConfigurationResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/NotifyConfiguration"
+      }
+    }
+  },
+  "NotifyPreviewResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/NotifyPreview"
       }
     }
   }

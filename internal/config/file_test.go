@@ -3,6 +3,7 @@
 package config
 
 import (
+	"bytes"
 	"errors"
 	"flag"
 	"os"
@@ -39,7 +40,7 @@ func TestStartupFile(t *testing.T) {
 	if err != nil || options.Listen != "127.0.0.1:9002" {
 		t.Fatal(options, err)
 	}
-	for _, data := range []string{`null`, `[]`, `{"listen":null}`, `{"api_docs":null}`, `{"data_dir":""}`, `{"listen":""}`, `{"lissten":"127.0.0.1:8000"}`, `{"listen":42}`, `{"api_docs":"yes"}`, `{} {}`, `{"profile":"desktop"}`, `{"monitor_listen":"0.0.0.0:9090"}`} {
+	for _, data := range []string{`null`, `[]`, `{"listen":null}`, `{"api_docs":null}`, `{"data_dir":""}`, `{"listen":""}`, `{"lissten":"127.0.0.1:8000"}`, `{"listen":42}`, `{"listen":"127.0.0.1:3000","listen":"127.0.0.1:9000"}`, `{"api_docs":"yes"}`, `{} {}`, `{"profile":"desktop"}`, `{"monitor_listen":"0.0.0.0:9090"}`} {
 		if err = os.WriteFile(path, []byte(data), 0600); err != nil {
 			t.Fatal(err)
 		}
@@ -80,5 +81,42 @@ func TestStartupFlagsUseStandardParsing(t *testing.T) {
 	}
 	if _, err := LoadWeb([]string{"-config", path}, env); err != nil {
 		t.Fatal("explicit config did not override environment", err)
+	}
+}
+
+func TestYAMLStartupConfiguration(t *testing.T) {
+	path := filepath.Join(t.TempDir(), DefaultFileName)
+	if err := Generate(path); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil || !bytes.Contains(raw, []byte("listen: 127.0.0.1:3000")) || bytes.HasPrefix(raw, []byte("{")) {
+		t.Fatal(string(raw), err)
+	}
+	if info, err := os.Stat(path); err != nil || info.Mode().Perm() != 0600 {
+		t.Fatal(info, err)
+	}
+	if err := Generate(path); err == nil {
+		t.Fatal("overwrote YAML configuration")
+	}
+	options, err := LoadWeb([]string{"--config", path}, func(string) string { return "" })
+	if err != nil || options.Listen != "127.0.0.1:3000" || options.Deployment != "tar" {
+		t.Fatal(options, err)
+	}
+	if err := os.WriteFile(path, []byte("# startup settings\nlisten: 127.0.0.1:9001\nlog_level: warn\napi_docs: true\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	env := map[string]string{"APP_CONFIG": path, "APP_LISTEN": "127.0.0.1:9002"}
+	options, err = LoadWeb([]string{"--listen", "127.0.0.1:9003"}, func(key string) string { return env[key] })
+	if err != nil || options.Listen != "127.0.0.1:9003" || options.Log.Level != "warn" || !options.APIDocs {
+		t.Fatal(options, err)
+	}
+	for _, invalid := range []string{"", "null", "[]", "listen: null", "listen: 42", "api_docs: yes", "api_docs: 'true'", "data_dir: ''", "lissten: localhost:3000", "listen: localhost:3000\nlisten: localhost:9000", "{}\n---\n{}", "{}\n---", "listen: [localhost:3000]", "listen: &host localhost:3000\nmonitor_listen: *host", "? [listen]\n: localhost:3000", "api_docs: null"} {
+		if err := os.WriteFile(path, []byte(invalid), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := LoadWeb([]string{"--config", path}, func(string) string { return "" }); err == nil {
+			t.Errorf("accepted YAML %q", invalid)
+		}
 	}
 }

@@ -2,5 +2,10 @@
 packages:
   - apps/*
   - packages/*
+  - website
 allowBuilds:
   esbuild: true
+# VitePress 1.6 declares Vite 5; use the patched compatible Vite 6 line.
+overrides:
+  'vitepress>vite': 6.4.5
+pmOnFail: ignore # The pinned @pnpm/exe@11.25.0 ships no darwin-x64 binary; hosts on pnpm 12 skip the version switch.

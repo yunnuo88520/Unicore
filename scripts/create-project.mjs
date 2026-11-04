@@ -9,11 +9,13 @@ import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync,
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 const frameworkRoot = fileURLToPath(new URL('../', import.meta.url));
-export function createProject({ source = frameworkRoot, directory, name, module, bundle, slug, allowDirty = false }) {
+export function createProject({ source = frameworkRoot, directory, name, module, bundle, slug, repository, allowDirty = false }) {
   if (!/^[a-z][a-z0-9-]{1,39}$/.test(slug ?? '')) throw Error('slug must contain 2–40 lowercase letters, digits or hyphens');
   if (!/^[\p{L}\p{N}][\p{L}\p{N} ._-]{1,39}$/u.test(name ?? '')) throw Error('name must contain 2–40 letters, digits, spaces, dots, underscores or hyphens');
   if (!/^[a-zA-Z0-9][a-zA-Z0-9.-]+\/[a-zA-Z0-9_./-]+$/.test(module ?? '') || module.includes('..')) throw Error('module must be a Go module path, e.g. github.com/team/product');
   if (!/^[a-z][a-z0-9]*(\.[a-z][a-z0-9-]*){2,}$/.test(bundle ?? '')) throw Error('bundle must be a reverse-domain application identifier');
+  if (repository !== undefined && (typeof repository !== 'string' || !/^https:\/\/github\.com\/[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9][A-Za-z0-9_.-]*\/?$/.test(repository))) throw Error('repository must be an HTTPS GitHub repository URL without credentials, query or fragment');
+  const repositoryUrl = repository?.replace(/\/$/, '').replace(/\.git$/, '');
   source = realpathSync(resolve(source)); let target = resolve(directory);
   if (target === source || relative(source, target).split(sep)[0] !== '..' && !isAbsolute(relative(source, target))) throw Error('destination must be outside the framework checkout');
   if (existsSync(target)) throw Error('destination already exists; choose a new directory');
@@ -55,23 +57,31 @@ export function createProject({ source = frameworkRoot, directory, name, module,
     }
     const edit = (path, fn) => { const full = join(staging,path); const value = JSON.parse(readFileSync(full,'utf8')); fn(value); writeFileSync(full,JSON.stringify(value,null,2)+'\n'); };
     edit('assets/updates/config.json', p => { p.repository=''; p.keys={}; p.channel='stable'; p.allow_unsigned_platform=false; });
-    const identity = validateIdentity({author: 'yunnuo <ymz@ebox.vip>', schemaVersion: 1, product: {name, slug, description: `${name} · 基于 Unicore 构建`}, go: {module}, cli: {command: slug, opsCommand: `${slug}-ops`, description: `${name} CLI`}, desktop: {bundleId: bundle, outputName: `${slug}-desktop`}, deployment: {serviceName: slug, serviceUser: slug, installDirectory: `/opt/${slug}`, dataDirectory: `/var/lib/${slug}`, image: slug, volume: `${slug}_data`}, release: {artifactPrefix: slug}});
+    const identity = validateIdentity({author: 'yunnuo <ymz@ebox.vip>', schemaVersion: 1, product: {name, slug, description: `${name} workspace`}, go: {module}, cli: {command: slug, opsCommand: `${slug}-ops`, description: `${name} CLI`}, desktop: {bundleId: bundle, outputName: `${slug}-desktop`}, deployment: {serviceName: slug, serviceUser: slug, installDirectory: `/opt/${slug}`, dataDirectory: `/var/lib/${slug}`, image: slug, volume: `${slug}_data`}, release: {artifactPrefix: slug}});
     mkdirSync(join(staging, 'internal/buildinfo'), {recursive: true});
     writeFileSync(join(staging, 'product.identity.json'), JSON.stringify(identity, null, 2)+'\n');
     // One identity pass applies every projection: mixed-file fields, generated sources, deployment renames and doc tokens.
     applyIdentity(staging, identity, false);
+    // Project-facing help and feedback follow its own repository; provenance and author metadata stay upstream.
+    if (repositoryUrl) for (const path of ['packages/web-ui/src/shell-tools.tsx', '.github/ISSUE_TEMPLATE/config.yml', 'SUPPORT.md', 'SECURITY.md', 'CONTRIBUTING.md', 'CODE_OF_CONDUCT.md']) {
+      const full = join(staging, path);
+      if (existsSync(full)) writeFileSync(full, readFileSync(full, 'utf8').replaceAll(upstreamUrl, repositoryUrl));
+    }
     edit('package.json', p => { p.license='MIT'; });
     writeFileSync(join(staging, 'project.provenance.json'), JSON.stringify({author: 'yunnuo <ymz@ebox.vip>', framework: 'Unicore', upstream: upstreamUrl, framework_version: frameworkVersion, generator_version: 1, identity_sha256: createHash('sha256').update(readFileSync(join(staging, 'product.identity.json'))).digest('hex'), template_revision: templateRevision, revision: upstream, source_mode: upstream ? (dirty ? 'reviewed-working-tree' : 'clean-git-inputs') : 'unversioned', worktree_modified: worktreeModified, selected_inputs_modified: dirty, input_files: inputFiles, created_at: new Date().toISOString()}, null, 2)+'\n');
-    writeFileSync(join(staging,'README.md'),`<!-- Author: yunnuo <ymz@ebox.vip> -->\n# ${name}\n\n**简体中文** · [English](README.en.md)\n\n基于 Unicore 的应用。上游版本见 project.provenance.json，保留 LICENSE 与框架作者头。\n\nGo module：${module}；桌面标识：${bundle}。产品身份唯一入口为 product.identity.json（名称、CLI 命令与部署标识），变更后运行 pnpm product:generate 并用 pnpm product:check 对账；主题色板 assets/theme/tokens.json，图标矢量 assets/brand/identity.json。\n\n开发：\n\n\`\`\`sh\nmake install\nmake docs\nmake doctor\nmake dev-server\n# 第二个终端\nmake dev-web\n\`\`\`\n\nWeb 首次启动访问 /install，选择平台或单机；桌面自动初始化本地数据库，CLI 不连接数据库。业务样板见 docs/product/development.md，扩展与上游更新见 docs/product/development.md。\n\n更新渠道默认清空，避免安装上游框架发行包。按 docs/product/updates.md 配置自己的仓库、公钥和发布私钥。\n\n创建器已完成 git init 与初始基线提交，并添加只读 framework 远端指向上游；推送前先添加自己的 origin，升级流程见 docs/product/development.md。\n\n提交前执行 make docs、make test 和受影响构建；两份 README 和新增 Changelog 条目须同步中英文。\n`);
-    writeFileSync(join(staging,'README.en.md'),`<!-- Author: yunnuo <ymz@ebox.vip> -->\n# ${name}\n\n[简体中文](README.md) · **English**\n\nAn application built with Unicore. See project.provenance.json for the upstream revision. Preserve LICENSE and framework author headers.\n\nGo module: ${module}; desktop bundle: ${bundle}. product.identity.json is the single identity entry (name, CLI commands, deployment names); run pnpm product:generate after changes and reconcile with pnpm product:check. Theme palette lives in assets/theme/tokens.json and icon vectors in assets/brand/identity.json.\n\nDevelopment:\n\n\`\`\`sh\nmake install\nmake docs\nmake doctor\nmake dev-server\n# In a second terminal:\nmake dev-web\n\`\`\`\n\nOpen /install on first Web launch and choose the platform or standalone profile. Desktop initializes its local database automatically; CLI has no database. See docs/product/development.md for the business sample and upstream integration. Detailed guides currently remain primarily in Chinese.\n\nUpdate channels default to empty to prevent installation of upstream framework packages. Configure your own repository, public key, and release private key as described in docs/product/updates.md.\n\nThe creator has already run git init, committed the initial baseline, and added the read-only framework remote pointing upstream; add your own origin before pushing. See docs/product/development.md for the upgrade flow.\n\nRun make docs, make test, and affected builds before committing. Maintain both READMEs and paired Chinese/English Changelog entries together.\n`);
+    const repositoryInstructions = repositoryUrl
+      ? { zh: `创建器已配置自己的 origin：${repositoryUrl}，只读 framework 远端仍指向上游；没有创建远程仓库或推送代码。升级流程见 docs/product/development.md。`, en: `Your origin is configured as ${repositoryUrl}; the read-only framework remote still points upstream. No remote repository was created and no code was pushed. See docs/product/development.md for upgrades.` }
+      : { zh: '创建器已完成 git init 与初始基线提交，并添加只读 framework 远端指向上游；推送前先添加自己的 origin，升级流程见 docs/product/development.md。', en: 'The creator has already run git init, committed the initial baseline, and added the read-only framework remote pointing upstream; add your own origin before pushing. See docs/product/development.md for the upgrade flow.' };
+    writeFileSync(join(staging,'README.md'),`<!-- Author: yunnuo <ymz@ebox.vip> -->\n# ${name}\n\n**简体中文** · [English](README.en.md)\n\n基于 Unicore 的应用。上游版本见 project.provenance.json，保留 LICENSE 与框架作者头。\n\nGo module：${module}；桌面标识：${bundle}。产品身份唯一入口为 product.identity.json（名称、CLI 命令与部署标识），变更后运行 pnpm product:generate 并用 pnpm product:check 对账；主题色板 assets/theme/tokens.json，图标矢量 assets/brand/identity.json。\n\n开发：\n\n\`\`\`sh\nmake install\nmake docs\nmake doctor\nmake dev-server\n# 第二个终端\nmake dev-web\n\`\`\`\n\nWeb 首次启动访问 /install，选择平台或单机；桌面自动初始化本地数据库，CLI 不连接数据库。业务样板见 docs/product/development.md，扩展与上游更新见 docs/product/development.md。\n\n更新渠道默认清空，避免安装上游框架发行包。按 docs/product/updates.md 配置自己的仓库、公钥和发布私钥。\n\n${repositoryInstructions.zh}\n\n提交前执行 make docs、make test 和受影响构建；两份 README 和新增 Changelog 条目须同步中英文。\n`);
+    writeFileSync(join(staging,'README.en.md'),`<!-- Author: yunnuo <ymz@ebox.vip> -->\n# ${name}\n\n[简体中文](README.md) · **English**\n\nAn application built with Unicore. See project.provenance.json for the upstream revision. Preserve LICENSE and framework author headers.\n\nGo module: ${module}; desktop bundle: ${bundle}. product.identity.json is the single identity entry (name, CLI commands, deployment names); run pnpm product:generate after changes and reconcile with pnpm product:check. Theme palette lives in assets/theme/tokens.json and icon vectors in assets/brand/identity.json.\n\nDevelopment:\n\n\`\`\`sh\nmake install\nmake docs\nmake doctor\nmake dev-server\n# In a second terminal:\nmake dev-web\n\`\`\`\n\nOpen /install on first Web launch and choose the platform or standalone profile. Desktop initializes its local database automatically; CLI has no database. See docs/product/development.md for the business sample and upstream integration. Detailed guides currently remain primarily in Chinese.\n\nUpdate channels default to empty to prevent installation of upstream framework packages. Configure your own repository, public key, and release private key as described in docs/product/updates.md.\n\n${repositoryInstructions.en}\n\nRun make docs, make test, and affected builds before committing. Maintain both READMEs and paired Chinese/English Changelog entries together.\n`);
     writeAIContext(staging);
     // Initialize the independent Git workspace: one baseline commit from the whitelisted export, plus the read-only framework remote.
     const targetGit = (...args) => execFileSync('git', ['-C', staging, ...args], {encoding: 'utf8', stdio: ['ignore','pipe','pipe']}).trim();
     try { targetGit('version'); } catch { throw Error('git is required to initialize the project workspace'); }
-    targetGit('init', '-q');
+    targetGit('init', '-q', '--initial-branch=main');
     if (templateRevision) {
       // Base the baseline commit on the template commit so upstream merges have a true common ancestor.
-      targetGit('fetch', source, 'framework-template');
+      targetGit('fetch', source, templateRevision);
       const templateVersion = targetGit('show', 'FETCH_HEAD:VERSION').trim();
       if (templateVersion !== frameworkVersion) process.stderr.write(`Warning: framework-template is at ${templateVersion} while the source checkout is ${frameworkVersion}; regenerate the template branch.\n`);
       targetGit('reset', '--soft', 'FETCH_HEAD');
@@ -83,6 +93,8 @@ export function createProject({ source = frameworkRoot, directory, name, module,
       throw Error(`Initial baseline commit failed; configure git user.name and user.email (or GIT_AUTHOR_*/GIT_COMMITTER_* environment) and retry. ${error.stderr ?? error.message}`);
     }
     targetGit('remote', 'add', 'framework', upstreamUrl);
+    targetGit('remote', 'set-url', '--push', 'framework', 'disabled://framework');
+    if (repositoryUrl) targetGit('remote', 'add', 'origin', `${repositoryUrl}.git`);
     // No source-tree scripts are executed; the trusted context renderer only reads template data.
     // Sources are exported only; package installation and code execution remain explicit next steps.
     renameSync(staging,target);
@@ -92,8 +104,8 @@ export function createProject({ source = frameworkRoot, directory, name, module,
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   try {
     const args=process.argv.slice(2), options={};
-    for(let i=0;i<args.length;i+=2){if(args[i]==='--allow-dirty'){options.allowDirty=true;i--;continue;}if(!['--directory','--name','--module','--bundle','--slug'].includes(args[i])||!args[i+1])throw Error('Use --directory PATH --name NAME --slug SLUG --module MODULE --bundle ID');options[args[i].slice(2)]=args[i+1];}
+    for(let i=0;i<args.length;i+=2){if(args[i]==='--allow-dirty'){options.allowDirty=true;i--;continue;}if(!['--directory','--name','--module','--bundle','--slug','--repository'].includes(args[i])||!args[i+1])throw Error('Use --directory PATH --name NAME --slug SLUG --module MODULE --bundle ID [--repository https://github.com/OWNER/REPO]');options[args[i].slice(2)]=args[i+1];}
     if(!options.directory)throw Error('--directory is required');
-    console.log(`Created ${createProject(options)}\nInitial baseline committed; the read-only framework remote points upstream. Add your own origin before pushing.\nNext: cd into the project; make install; make docs; make doctor`);
+    console.log(`Created ${createProject(options)}\nInitial baseline committed on main; the read-only framework remote points upstream. ${options.repository ? 'Your origin is configured; no repository was created and no code was pushed.' : 'Add your own origin before pushing.'}\nNext: cd into the project; make install; make docs; make doctor`);
   } catch(error) { console.error(error.message); process.exitCode=1; }
 }

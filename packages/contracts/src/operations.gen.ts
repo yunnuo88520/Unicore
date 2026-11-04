@@ -2369,6 +2369,713 @@ export const operations = {
     "superAdmin": true,
     "csrf": true,
     "identityRealm": "administrator"
+  },
+  "accountProfile": {
+    "method": "GET",
+    "path": "/api/v1/account/profile",
+    "requestSchema": null,
+    "responseSchema": "AccountProfileResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user"
+  },
+  "saveAccountProfile": {
+    "method": "PATCH",
+    "path": "/api/v1/account/profile",
+    "requestSchema": "ProfileInput",
+    "responseSchema": "AccountProfileResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "beginTOTP": {
+    "method": "POST",
+    "path": "/api/v1/account/totp/setup",
+    "requestSchema": "TOTPSetupInput",
+    "responseSchema": "TOTPSetupResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "pendingTOTP": {
+    "method": "GET",
+    "path": "/api/v1/account/totp/setup",
+    "requestSchema": null,
+    "responseSchema": "TOTPSetupResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user"
+  },
+  "cancelTOTP": {
+    "method": "POST",
+    "path": "/api/v1/account/totp/cancel",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "enableTOTP": {
+    "method": "POST",
+    "path": "/api/v1/account/totp/enable",
+    "requestSchema": "SecurityCodeInput",
+    "responseSchema": "RecoveryCodesResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "disableTOTP": {
+    "method": "POST",
+    "path": "/api/v1/account/totp/disable",
+    "requestSchema": "SecurityCodeInput",
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "verifyMFA": {
+    "method": "POST",
+    "path": "/api/v1/auth/mfa",
+    "requestSchema": "SecurityCodeInput",
+    "responseSchema": "SessionResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "cancelMFA": {
+    "method": "POST",
+    "path": "/api/v1/auth/mfa/cancel",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "accountSessions": {
+    "method": "GET",
+    "path": "/api/v1/account/sessions",
+    "requestSchema": null,
+    "responseSchema": "LoginDevicesResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user"
+  },
+  "revokeAccountSession": {
+    "method": "POST",
+    "path": "/api/v1/account/sessions/revoke",
+    "requestSchema": "RevokeDeviceInput",
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "revokeOtherSessions": {
+    "method": "POST",
+    "path": "/api/v1/account/sessions/revoke-others",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "requestCurrentEmail": {
+    "method": "POST",
+    "path": "/api/v1/account/email/current",
+    "requestSchema": null,
+    "responseSchema": "EmailChallengeResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "verifyCurrentEmail": {
+    "method": "POST",
+    "path": "/api/v1/account/email/verify-current",
+    "requestSchema": "EmailChangeVerifyInput",
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "requestNewEmail": {
+    "method": "POST",
+    "path": "/api/v1/account/email/new",
+    "requestSchema": "EmailChangeInput",
+    "responseSchema": "EmailChallengeResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "confirmNewEmail": {
+    "method": "POST",
+    "path": "/api/v1/account/email/confirm",
+    "requestSchema": "EmailChangeVerifyInput",
+    "responseSchema": "AccountProfileResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "adminAccountProfile": {
+    "method": "GET",
+    "path": "/api/v1/admin/account/profile",
+    "requestSchema": null,
+    "responseSchema": "AccountProfileResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminSaveAccountProfile": {
+    "method": "PATCH",
+    "path": "/api/v1/admin/account/profile",
+    "requestSchema": "ProfileInput",
+    "responseSchema": "AccountProfileResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "adminBeginTOTP": {
+    "method": "POST",
+    "path": "/api/v1/admin/account/totp/setup",
+    "requestSchema": "TOTPSetupInput",
+    "responseSchema": "TOTPSetupResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "adminPendingTOTP": {
+    "method": "GET",
+    "path": "/api/v1/admin/account/totp/setup",
+    "requestSchema": null,
+    "responseSchema": "TOTPSetupResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminCancelTOTP": {
+    "method": "POST",
+    "path": "/api/v1/admin/account/totp/cancel",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "adminEnableTOTP": {
+    "method": "POST",
+    "path": "/api/v1/admin/account/totp/enable",
+    "requestSchema": "SecurityCodeInput",
+    "responseSchema": "RecoveryCodesResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "adminDisableTOTP": {
+    "method": "POST",
+    "path": "/api/v1/admin/account/totp/disable",
+    "requestSchema": "SecurityCodeInput",
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "adminVerifyMFA": {
+    "method": "POST",
+    "path": "/api/v1/admin/auth/mfa",
+    "requestSchema": "SecurityCodeInput",
+    "responseSchema": "SessionResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "adminCancelMFA": {
+    "method": "POST",
+    "path": "/api/v1/admin/auth/mfa/cancel",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "adminAccountSessions": {
+    "method": "GET",
+    "path": "/api/v1/admin/account/sessions",
+    "requestSchema": null,
+    "responseSchema": "LoginDevicesResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminRevokeAccountSession": {
+    "method": "POST",
+    "path": "/api/v1/admin/account/sessions/revoke",
+    "requestSchema": "RevokeDeviceInput",
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "adminRevokeOtherSessions": {
+    "method": "POST",
+    "path": "/api/v1/admin/account/sessions/revoke-others",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "adminRequestCurrentEmail": {
+    "method": "POST",
+    "path": "/api/v1/admin/account/email/current",
+    "requestSchema": null,
+    "responseSchema": "EmailChallengeResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "adminVerifyCurrentEmail": {
+    "method": "POST",
+    "path": "/api/v1/admin/account/email/verify-current",
+    "requestSchema": "EmailChangeVerifyInput",
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "adminRequestNewEmail": {
+    "method": "POST",
+    "path": "/api/v1/admin/account/email/new",
+    "requestSchema": "EmailChangeInput",
+    "responseSchema": "EmailChallengeResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "adminConfirmNewEmail": {
+    "method": "POST",
+    "path": "/api/v1/admin/account/email/confirm",
+    "requestSchema": "EmailChangeVerifyInput",
+    "responseSchema": "AccountProfileResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "markAnnouncementRead": {
+    "method": "POST",
+    "path": "/api/v1/announcements/{id}/read",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "markAllAnnouncementsRead": {
+    "method": "POST",
+    "path": "/api/v1/announcements/read-all",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "announcementReadStatus": {
+    "method": "GET",
+    "path": "/api/v1/admin/announcements/{id}/read-status",
+    "requestSchema": null,
+    "responseSchema": "AnnouncementReadStatusResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "announcements:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "notificationSettings": {
+    "method": "GET",
+    "path": "/api/v1/admin/settings/notifications",
+    "requestSchema": null,
+    "responseSchema": "NotifyConfigurationResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "settings:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "saveNotificationSettings": {
+    "method": "PUT",
+    "path": "/api/v1/admin/settings/notifications",
+    "requestSchema": "NotifyConfiguration",
+    "responseSchema": "NotifyConfigurationResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "settings:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "previewNotification": {
+    "method": "POST",
+    "path": "/api/v1/admin/settings/notifications/preview",
+    "requestSchema": "NotifyTemplate",
+    "responseSchema": "NotifyPreviewResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "settings:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "testNotification": {
+    "method": "POST",
+    "path": "/api/v1/admin/settings/notifications/test",
+    "requestSchema": "NotifyTest",
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "settings:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "oidcTOTP": {
+    "method": "POST",
+    "path": "/api/v1/account/oidc/totp",
+    "requestSchema": null,
+    "responseSchema": "OIDCStartResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "adminOidcTOTP": {
+    "method": "POST",
+    "path": "/api/v1/admin/account/oidc/totp",
+    "requestSchema": null,
+    "responseSchema": "OIDCStartResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator"
   }
 } as const;
 export type OperationId = keyof typeof operations;
@@ -2505,6 +3212,47 @@ export interface OperationInputs {
   adminUploadLocalPart: undefined;
   completeMultipartUpload: undefined;
   adminCompleteMultipartUpload: undefined;
+  accountProfile: undefined;
+  saveAccountProfile: Models.ProfileInput;
+  beginTOTP: Models.TOTPSetupInput;
+  pendingTOTP: undefined;
+  cancelTOTP: undefined;
+  enableTOTP: Models.SecurityCodeInput;
+  disableTOTP: Models.SecurityCodeInput;
+  verifyMFA: Models.SecurityCodeInput;
+  cancelMFA: undefined;
+  accountSessions: undefined;
+  revokeAccountSession: Models.RevokeDeviceInput;
+  revokeOtherSessions: undefined;
+  requestCurrentEmail: undefined;
+  verifyCurrentEmail: Models.EmailChangeVerifyInput;
+  requestNewEmail: Models.EmailChangeInput;
+  confirmNewEmail: Models.EmailChangeVerifyInput;
+  adminAccountProfile: undefined;
+  adminSaveAccountProfile: Models.ProfileInput;
+  adminBeginTOTP: Models.TOTPSetupInput;
+  adminPendingTOTP: undefined;
+  adminCancelTOTP: undefined;
+  adminEnableTOTP: Models.SecurityCodeInput;
+  adminDisableTOTP: Models.SecurityCodeInput;
+  adminVerifyMFA: Models.SecurityCodeInput;
+  adminCancelMFA: undefined;
+  adminAccountSessions: undefined;
+  adminRevokeAccountSession: Models.RevokeDeviceInput;
+  adminRevokeOtherSessions: undefined;
+  adminRequestCurrentEmail: undefined;
+  adminVerifyCurrentEmail: Models.EmailChangeVerifyInput;
+  adminRequestNewEmail: Models.EmailChangeInput;
+  adminConfirmNewEmail: Models.EmailChangeVerifyInput;
+  markAnnouncementRead: undefined;
+  markAllAnnouncementsRead: undefined;
+  announcementReadStatus: undefined;
+  notificationSettings: undefined;
+  saveNotificationSettings: Models.NotifyConfiguration;
+  previewNotification: Models.NotifyTemplate;
+  testNotification: Models.NotifyTest;
+  oidcTOTP: undefined;
+  adminOidcTOTP: undefined;
 }
 export interface OperationData {
   bootstrap: Models.BootstrapResponse['data'];
@@ -2639,4 +3387,45 @@ export interface OperationData {
   adminUploadLocalPart: Models.ActionResultResponse['data'];
   completeMultipartUpload: Models.FileEntryResponse['data'];
   adminCompleteMultipartUpload: Models.FileEntryResponse['data'];
+  accountProfile: Models.AccountProfileResponse['data'];
+  saveAccountProfile: Models.AccountProfileResponse['data'];
+  beginTOTP: Models.TOTPSetupResponse['data'];
+  pendingTOTP: Models.TOTPSetupResponse['data'];
+  cancelTOTP: Models.ActionResultResponse['data'];
+  enableTOTP: Models.RecoveryCodesResponse['data'];
+  disableTOTP: Models.ActionResultResponse['data'];
+  verifyMFA: Models.SessionResponse['data'];
+  cancelMFA: Models.ActionResultResponse['data'];
+  accountSessions: Models.LoginDevicesResponse['data'];
+  revokeAccountSession: Models.ActionResultResponse['data'];
+  revokeOtherSessions: Models.ActionResultResponse['data'];
+  requestCurrentEmail: Models.EmailChallengeResponse['data'];
+  verifyCurrentEmail: Models.ActionResultResponse['data'];
+  requestNewEmail: Models.EmailChallengeResponse['data'];
+  confirmNewEmail: Models.AccountProfileResponse['data'];
+  adminAccountProfile: Models.AccountProfileResponse['data'];
+  adminSaveAccountProfile: Models.AccountProfileResponse['data'];
+  adminBeginTOTP: Models.TOTPSetupResponse['data'];
+  adminPendingTOTP: Models.TOTPSetupResponse['data'];
+  adminCancelTOTP: Models.ActionResultResponse['data'];
+  adminEnableTOTP: Models.RecoveryCodesResponse['data'];
+  adminDisableTOTP: Models.ActionResultResponse['data'];
+  adminVerifyMFA: Models.SessionResponse['data'];
+  adminCancelMFA: Models.ActionResultResponse['data'];
+  adminAccountSessions: Models.LoginDevicesResponse['data'];
+  adminRevokeAccountSession: Models.ActionResultResponse['data'];
+  adminRevokeOtherSessions: Models.ActionResultResponse['data'];
+  adminRequestCurrentEmail: Models.EmailChallengeResponse['data'];
+  adminVerifyCurrentEmail: Models.ActionResultResponse['data'];
+  adminRequestNewEmail: Models.EmailChallengeResponse['data'];
+  adminConfirmNewEmail: Models.AccountProfileResponse['data'];
+  markAnnouncementRead: Models.ActionResultResponse['data'];
+  markAllAnnouncementsRead: Models.ActionResultResponse['data'];
+  announcementReadStatus: Models.AnnouncementReadStatusResponse['data'];
+  notificationSettings: Models.NotifyConfigurationResponse['data'];
+  saveNotificationSettings: Models.NotifyConfigurationResponse['data'];
+  previewNotification: Models.NotifyPreviewResponse['data'];
+  testNotification: Models.ActionResultResponse['data'];
+  oidcTOTP: Models.OIDCStartResponse['data'];
+  adminOidcTOTP: Models.OIDCStartResponse['data'];
 }

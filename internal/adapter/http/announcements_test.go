@@ -63,11 +63,11 @@ func TestAnnouncementEndpointPolicy(t *testing.T) {
 			t.Fatalf("want %d got %d %s", status, w.Code, w.Body.String())
 		}
 	}
-	input := contracts.AnnouncementInput{Content: "中文公告 **欢迎**", Format: "markdown", Type: "info", Status: "published", PublishAt: int(time.Now().Unix()), Note: "private"}
+	input := contracts.AnnouncementInput{Title: "Test announcement", NotifyMode: "silent", Audience: "all", RecipientIds: []string{}, Content: "中文公告 **欢迎**", Format: "markdown", Type: "info", Status: "published", PublishAt: int(time.Now().Unix()), Note: "private"}
 	for _, route := range []struct {
 		method, path string
 		body         any
-	}{{"GET", "/admin/announcements", nil}, {"POST", "/admin/announcements", input}, {"PUT", "/admin/announcements/unknown", contracts.AnnouncementUpdate{Content: input.Content, Format: "markdown", Type: "info", Status: "published", PublishAt: input.PublishAt, Version: 1}}, {"POST", "/admin/announcements/delete", contracts.AnnouncementDelete{Items: []contracts.AnnouncementSelection{{ID: "unknown", Version: 1}}}}, {"GET", "/admin/announcements/settings", nil}, {"PUT", "/admin/announcements/settings", contracts.AnnouncementSetting{Enabled: false}}, {"POST", "/admin/announcements/preview", input}} {
+	}{{"GET", "/admin/announcements", nil}, {"POST", "/admin/announcements", input}, {"PUT", "/admin/announcements/unknown", contracts.AnnouncementUpdate{Title: "Test announcement", NotifyMode: "silent", Audience: "all", RecipientIds: []string{}, Content: input.Content, Format: "markdown", Type: "info", Status: "published", PublishAt: input.PublishAt, Version: 1}}, {"POST", "/admin/announcements/delete", contracts.AnnouncementDelete{Items: []contracts.AnnouncementSelection{{ID: "unknown", Version: 1}}}}, {"GET", "/admin/announcements/unknown/read-status", nil}, {"GET", "/admin/announcements/settings", nil}, {"PUT", "/admin/announcements/settings", contracts.AnnouncementSetting{Enabled: false}}, {"POST", "/admin/announcements/preview", input}} {
 		check(request(route.method, route.path, route.body, "", "", ""), 401)
 		check(request(route.method, route.path, route.body, sessionCookie, uraw, u.CsrfToken), 403)
 		if route.method != "GET" {
@@ -88,6 +88,13 @@ func TestAnnouncementEndpointPolicy(t *testing.T) {
 	}
 	check(request("GET", "/announcements/"+envelope.Data.ID, nil, sessionCookie, uraw, ""), 200)
 	check(request("GET", "/admin/announcements?page_size=999", nil, administratorSessionCookie, araw, ""), 400)
+
+	check(request("POST", "/announcements/"+envelope.Data.ID+"/read", nil, sessionCookie, uraw, ""), 403)
+	check(request("POST", "/announcements/"+envelope.Data.ID+"/read", nil, administratorSessionCookie, araw, a.CsrfToken), 401)
+	check(request("POST", "/announcements/"+envelope.Data.ID+"/read", nil, sessionCookie, uraw, u.CsrfToken), 200)
+	check(request("POST", "/announcements/read-all", nil, sessionCookie, uraw, u.CsrfToken), 200)
+	check(request("GET", "/admin/announcements/"+envelope.Data.ID+"/read-status", nil, administratorSessionCookie, araw, a.CsrfToken), 200)
+	check(request("GET", "/announcements?popup_only=true", nil, sessionCookie, uraw, ""), 200)
 	input.Format = "html"
 	input.Content = `<p onclick="alert(1)">bad</p>`
 	check(request("POST", "/admin/announcements", input, administratorSessionCookie, araw, a.CsrfToken), 400)
@@ -120,7 +127,7 @@ func TestAnnouncementsUnavailableLocally(t *testing.T) {
 	}
 	store, _, _, _ := m.Services()
 	var count int
-	if e = store.DB.QueryRowContext(ctx, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='platform_announcements'").Scan(&count); e != nil || count != 0 {
+	if e = store.DB.QueryRowContext(ctx, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='unicore_platform_announcements'").Scan(&count); e != nil || count != 0 {
 		t.Fatal("local platform migration", count, e)
 	}
 }

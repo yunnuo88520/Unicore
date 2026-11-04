@@ -20,6 +20,7 @@ import (
 	"github.com/yunnuo/unicore/assets/theme"
 	"github.com/yunnuo/unicore/internal/branding"
 	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/mailcontent"
 )
 
 var ErrInvalid = errors.New("invalid setting")
@@ -66,7 +67,7 @@ func ValidAdminPath(value string) bool {
 }
 func ValidBaseURL(value string) bool {
 	u, err := url.Parse(value)
-	return err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != "" && u.User == nil && u.RawQuery == "" && u.Fragment == "" && (u.Path == "" || u.Path == "/")
+	return err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Hostname() != "" && !strings.ContainsAny(value, "\r\n\x00") && u.User == nil && u.RawQuery == "" && u.Fragment == "" && (u.Path == "" || u.Path == "/")
 }
 
 var Definitions = append([]SettingDefinition{
@@ -78,15 +79,23 @@ var Definitions = append([]SettingDefinition{
 		return strings.TrimSpace(v) != "" && !strings.ContainsAny(v, "\r\n") && text(64)(v)
 	}},
 	{"site.description", "string", "site", "站点描述", "一份核心，无限可能", false, false, text(240)},
-	{"site.copyright", "string", "site", "页脚版权", "Crafted by yunnuo", false, false, text(160)},
+	{"site.base_url", "string", "site", "站点地址", "", true, false, func(v string) bool { return v == "" || (text(2048)(v) && ValidBaseURL(v)) }},
+	{"site.admin_email", "string", "site", "管理员邮箱", "", true, false, func(v string) bool { return v == "" || ValidEmail(v) }},
+	{"site.copyright", "string", "site", "页脚版权", "Crafted by Yunnuo", false, false, text(160)},
 	{"site.icp_number", "string", "site", "备案号（ICP）", "", false, false, func(v string) bool { return text(80)(v) && !strings.ContainsAny(v, "\r\n") }},
 	{"site.icp_url", "string", "site", "备案查询链接", "https://beian.miit.gov.cn/", false, false, ValidPublicLink},
+	{"site.police_number", "string", "site", "公安备案号", "", true, false, func(v string) bool { return text(80)(v) && !strings.ContainsAny(v, "\r\n") }},
+	{"site.footer_html", "string", "site", "自定义页脚 HTML", "", true, false, func(v string) bool {
+		return v == "" || (text(4000)(v) && !strings.Contains(v, "{{") && mailcontent.ValidateHTML(v) == nil)
+	}},
+	{"maintenance.enabled", "boolean", "maintenance", "开启维护模式", "false", true, false, oneOf("true", "false")},
+	{"maintenance.message", "string", "maintenance", "维护提示信息", "", true, false, text(1000)},
 	{"appearance.theme", "string", "appearance", "默认主题", "system", false, false, oneOf("light", "dark", "system")},
 	{"admin.path", "string", "admin", "管理后台路径", "/admin", true, false, ValidAdminPath},
 	{"security.login_captcha", "boolean", "security", "登录图形验证码", "true", true, false, oneOf("true", "false")},
+	{"security.force_2fa", "boolean", "security", "强制双重验证", "false", true, false, oneOf("true", "false")},
+	{"security.allow_disable_2fa", "boolean", "security", "允许关闭双重验证", "true", true, false, oneOf("true", "false")},
 	{"security.session_hours", "integer", "security", "会话有效期（小时）", "24", true, false, integer(1, 168)},
-	{"security.register_captcha", "boolean", "security", "注册图形验证码", "true", true, false, oneOf("true", "false")},
-	{"account.registration_enabled", "boolean", "security", "开放注册（需验证邮箱）", "false", true, false, oneOf("true", "false")},
 	{"account.email_login_enabled", "boolean", "account", "邮箱验证码登录", "false", true, false, oneOf("true", "false")},
 	{"account.password_reset_enabled", "boolean", "account", "邮件找回密码", "false", true, false, oneOf("true", "false")},
 	{"mail.host", "string", "mail", "SMTP 主机", "", true, false, func(v string) bool { return len(v) <= 253 && !strings.ContainsAny(v, "\r\n /@") }},
@@ -96,7 +105,7 @@ var Definitions = append([]SettingDefinition{
 	{"mail.from_name", "string", "mail", "发件人别名", "", true, false, func(v string) bool { return text(64)(v) && !strings.ContainsAny(v, "\r\n\x00") }},
 	{"mail.username", "string", "mail", "SMTP 用户名", "", true, false, func(v string) bool { return text(254)(v) && !strings.ContainsAny(v, "\r\n") }},
 	{"mail.password", "string", "mail", "SMTP 密钥", "", true, true, text(512)},
-}, append(append(OIDCDefinitions, StorageDefinitions...), MailTemplateDefinitions...)...)
+}, append(append(append(OIDCDefinitions, StorageDefinitions...), RegistrationDefinitions...), append(append(SecurityDefinitions, MailTemplateDefinitions...), NotificationDefinitions...)...)...)
 
 // ValidPublicLink permits only explicit HTTPS links without credentials or header controls.
 func ValidPublicLink(value string) bool {
@@ -117,11 +126,14 @@ type Secrets interface {
 	Open(string) (string, error)
 }
 type Service struct {
-	Branding *branding.Service
-	Store    Store
-	Secrets  Secrets
-	mu       sync.Mutex
-	Profile  contracts.Profile
+	Branding           *branding.Service
+	NotificationWriter interface {
+		SaveNotificationSettings(context.Context, map[string]string, string) error
+	}
+	Store   Store
+	Secrets Secrets
+	mu      sync.Mutex
+	Profile contracts.Profile
 }
 
 func applies(d SettingDefinition, profile contracts.Profile) bool {
@@ -136,6 +148,15 @@ func (s *Service) Raw(ctx context.Context) (map[string]string, error) {
 	values, err := s.Store.ReadSettings(ctx)
 	if err != nil {
 		return nil, err
+	}
+	for _, key := range []string{"security.force_admin_2fa", "security.force_user_2fa"} {
+		if _, ok := values[key]; !ok && values["security.force_2fa"] == "true" {
+			values[key] = "true"
+		}
+	}
+	// Preserve email verification on previously enabled installations until explicitly changed.
+	if _, exists := values["account.email_verification_required"]; !exists && values["account.registration_enabled"] == "true" {
+		values["account.email_verification_required"] = "true"
 	}
 	for _, d := range Definitions {
 		if !applies(d, s.Profile) {
@@ -175,7 +196,7 @@ func (s *Service) List(ctx context.Context) (contracts.Settings, error) {
 		if !applies(d, s.Profile) {
 			continue
 		}
-		if branding.Managed(d.Key) || ManagedMailTemplate(d.Key) || d.Key == "announcements.enabled" {
+		if d.Key == "security.force_2fa" || branding.Managed(d.Key) || ManagedMailTemplate(d.Key) || ManagedNotification(d.Key) || d.Key == "announcements.enabled" {
 			continue
 		}
 		value := values[d.Key]
@@ -257,7 +278,7 @@ func (s *Service) Patch(ctx context.Context, input contracts.SettingPatch, actor
 	values := map[string]string{}
 	seen := map[string]bool{}
 	for _, change := range input.Changes {
-		if change.Key == "announcements.enabled" || ManagedMailTemplate(change.Key) || branding.Managed(change.Key) || change.Key == "storage.active" || seen[change.Key] {
+		if change.Key == "announcements.enabled" || ManagedMailTemplate(change.Key) || ManagedNotification(change.Key) || branding.Managed(change.Key) || change.Key == "storage.active" || seen[change.Key] {
 			return contracts.Settings{}, ErrInvalid
 		}
 		seen[change.Key] = true
@@ -298,7 +319,24 @@ func (s *Service) Patch(ctx context.Context, input contracts.SettingPatch, actor
 			return contracts.Settings{}, ErrInvalid
 		}
 	}
-	if current["account.email_login_enabled"] == "true" || current["account.registration_enabled"] == "true" || current["account.password_reset_enabled"] == "true" {
+	if seen["security.force_2fa"] {
+		for _, key := range []string{"security.force_admin_2fa", "security.force_user_2fa"} {
+			if !seen[key] {
+				current[key] = current["security.force_2fa"]
+				values[key] = current[key]
+			}
+		}
+	}
+	if seen["security.force_admin_2fa"] || seen["security.force_user_2fa"] {
+		values["security.force_2fa"] = "false"
+		for _, key := range []string{"security.force_admin_2fa", "security.force_user_2fa"} {
+			values[key] = current[key]
+		}
+	}
+	if seen["account.registration_enabled"] && !seen["account.email_verification_required"] {
+		values["account.email_verification_required"] = current["account.email_verification_required"]
+	}
+	if current["account.email_login_enabled"] == "true" || current["account.email_verification_required"] == "true" || current["account.password_reset_enabled"] == "true" {
 		if !MailReady(current) {
 			return contracts.Settings{}, ErrMailNotReady
 		}
@@ -327,4 +365,12 @@ func (s *Service) Logo(ctx context.Context) ([]byte, error) {
 		return nil, nil
 	}
 	return s.Branding.Logo(ctx)
+}
+
+// MailBaseURL changes generated mail links without changing cookies or OIDC callbacks.
+func MailBaseURL(values map[string]string, fallback string) string {
+	if value := values["site.base_url"]; ValidBaseURL(value) {
+		return strings.TrimRight(value, "/")
+	}
+	return strings.TrimRight(fallback, "/")
 }

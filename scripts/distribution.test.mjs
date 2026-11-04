@@ -3,9 +3,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync, existsSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import ts from 'typescript';
 import { copyDistribution, inventory, readDistribution } from './distribution.mjs';
 import { generateWiki } from './wiki.mjs';
 
@@ -35,6 +37,37 @@ test('tracked and untracked research never expand any actual output whitelist', 
   assert.deepEqual(inventory(output), ['Home.md', '_Footer.md', '_Sidebar.md']);
   assert(!readFileSync(join(output, 'Home.md'), 'utf8').includes('sentinel'));
 }));
+
+test('the actual project template exports existing files and closes UI imports and package entry points',()=>{
+  const output=mkdtempSync(join(tmpdir(),'unicore-template-closure-'));
+  try{
+    const root=fileURLToPath(new URL('../',import.meta.url));
+    copyDistribution(root,output,'project-template');
+    const files=inventory(output), missing=[];
+    const exists=path=>existsSync(path)&&statSync(path).isFile();
+    for(const file of files){
+      if(/\.(?:tsx?|mjs)$/.test(file)){
+        const parsed=ts.createSourceFile(file,readFileSync(join(output,file),'utf8'),ts.ScriptTarget.Latest,true);
+        const check=specifier=>{
+          if(!specifier.startsWith('.'))return;
+          const path=resolve(dirname(join(output,file)),specifier);
+          if(![path,...['.ts','.tsx','.mjs','.js','.json','.css'].flatMap(ext=>[path+ext,join(path,'index'+ext)])].some(exists))missing.push(`${file}: ${specifier}`);
+        };
+        const visit=node=>{
+          if((ts.isImportDeclaration(node)||ts.isExportDeclaration(node))&&node.moduleSpecifier&&ts.isStringLiteral(node.moduleSpecifier))check(node.moduleSpecifier.text);
+          if(ts.isCallExpression(node)&&node.expression.kind===ts.SyntaxKind.ImportKeyword&&node.arguments[0]&&ts.isStringLiteral(node.arguments[0]))check(node.arguments[0].text);
+          ts.forEachChild(node,visit);
+        };
+        visit(parsed);
+      }
+      if(file.startsWith('packages/')&&file.endsWith('/package.json')){
+        const exports=JSON.parse(readFileSync(join(output,file),'utf8')).exports??{};
+        for(const entry of Object.values(exports))if(typeof entry==='string'&&entry.startsWith('./')&&!exists(resolve(dirname(join(output,file)),entry)))missing.push(`${file}: ${entry}`);
+      }
+    }
+    assert.deepEqual(missing,[],'Every exported source must retain its local imports and public package entry points');
+  }finally{rmSync(output,{recursive:true,force:true});}
+});
 for (const target of ['../04-ai/missing.md', '../04-ai/%61cceptance-r0.md', 'https://github.com/team/repo/blob/main/docs/04-ai/audit.md', 'https://github.com/team/repo/tree/main/docs', 'https://github.com/team/repo/wiki/Release', '/private.md', '//other.example/file', 'javascript:alert']) {
   test(`public output rejects cross-link ${target}`, () => fixture(({root, directory, put}) => {
     put('docs/public/start.md', `[leak](${target})`);

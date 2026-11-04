@@ -7,6 +7,10 @@
   "exports": {
     ".": "./src/schema.gen.ts",
     "./operations": "./src/operations.gen.ts",
-    "./validate": "./src/validate.ts"
+    "./validate": "./src/validate.ts",
+    "./zod": "./src/zod-schema.ts"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
   }
 }

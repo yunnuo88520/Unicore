@@ -6,7 +6,7 @@ import { Controller, useWatch } from 'react-hook-form';
 import { Braces, Eye, MailCheck, RotateCcw, Save, Send } from 'lucide-react';
 import type { MailTemplate, MailTemplateInput, MailTemplateTestInput, WebClient } from '@unicore/sdk';
 import { defineMessages, t, useI18n } from '../../i18n';
-import { AppForm, useAppForm } from '../../lib/form';
+import { AppForm, useAppForm } from '@unicore/form';
 import { Button, Card, CardContent, Input, Label, Modal, Tabs, useMessage } from '@unicore/ui';
 import { RichTextEditor, type RichTextHandle } from '@unicore/ui/editor';
 import type { PageProps } from '../../router';

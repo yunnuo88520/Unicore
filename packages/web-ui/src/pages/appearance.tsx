@@ -10,7 +10,7 @@ import { AppearanceDrawer } from '../appearance-drawer';
 import { BrandingPanel } from '../branding-panel';
 import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Modal, NativeSelect, Switch, Tabs, Textarea, useMessage } from '@unicore/ui';
 import { cn } from '@unicore/ui/cn';
-import { AppField, AppForm, useAppForm } from '../lib/form';
+import { AppField, AppForm, useAppForm } from '@unicore/form';
 import { useRouteSearch, type PageProps } from '../router';
 import type { AppClient, Bootstrap, SettingPatch, WebClient } from '@unicore/sdk';
 import type { Theme } from '@unicore/theme';

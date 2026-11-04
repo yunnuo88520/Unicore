@@ -9,14 +9,13 @@
     "./admin": "./src/admin-app.tsx",
     "./i18n": "./src/i18n.ts",
     "./layout": "./src/workspace-layout.tsx",
-    "./form": "./src/lib/form.tsx",
     "./router": "./src/router.tsx"
   },
   "dependencies": {
-    "@hookform/resolvers": "^6.0.2",
     "@tanstack/react-query": "^5.105.0",
     "@tanstack/react-router": "^1.170.46",
     "@tanstack/react-table": "^9.3.1",
+    "@unicore/form": "workspace:*",
     "@unicore/sdk": "workspace:*",
     "@unicore/theme": "workspace:*",
     "@unicore/ui": "workspace:*",
@@ -24,8 +23,7 @@
     "qrcode": "^1.5.4",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-hook-form": "^7.91.0",
-    "zod": "^4.6.7"
+    "react-hook-form": "^7.91.0"
   },
   "devDependencies": {
     "@types/qrcode": "^1.5.6"

@@ -9,7 +9,7 @@ import type { Bootstrap, DatabaseCheck, DatabaseInput, InstallInput, InstallResu
 import type { PageProps } from '../router';
 import { BrandLockup } from '../brand';
 import { productName, productSlug } from '../product.gen';
-import { AppForm, useAppForm } from '../lib/form';
+import { AppForm, useAppForm } from '@unicore/form';
 import { Button, Checkbox, Input, SimpleSelect } from '@unicore/ui';
 import { cn } from '@unicore/ui/cn';
 

@@ -7,7 +7,7 @@ import { Controller, useWatch } from 'react-hook-form';
 import { ChevronLeft, ChevronRight, Eye, Megaphone, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import type { AnnouncementEntry, AnnouncementInput, AnnouncementQuery, AnnouncementSelection, WebClient } from '@unicore/sdk';
 import { currentLocale, defineMessages, t, useI18n } from '../../i18n';
-import { AppField, AppForm, useAppForm } from '../../lib/form';
+import { AppField, AppForm, useAppForm } from '@unicore/form';
 import { Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, Input, Label, Modal, NativeSelect, Switch, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage } from '@unicore/ui';
 import { RichTextEditor } from '@unicore/ui/editor';
 import { RichContent } from '../../rich-content';

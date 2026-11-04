@@ -7,7 +7,7 @@ import { RotateCcw, UserPlus } from 'lucide-react';
 import type { Bootstrap, User, UserCreate, WebClient } from '@unicore/sdk';
 import { t, useLocale } from '../../i18n';
 import { invalidateAfter } from '../../queries';
-import { AppField, AppForm, useAppForm } from '../../lib/form';
+import { AppField, AppForm, useAppForm } from '@unicore/form';
 import { Badge, Button, Card, CardContent, Input, Modal, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage } from '@unicore/ui';
 import type { PageProps } from '../../router';
 

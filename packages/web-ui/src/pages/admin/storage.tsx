@@ -6,7 +6,7 @@ import { Controller } from 'react-hook-form';
 import { CheckCircle2, Cloud, FlaskConical, Globe, HardDrive, Info, Plus, RefreshCw, RotateCcw, Save, Server, ShieldCheck, X } from 'lucide-react';
 import type { AppClient, StorageClient, StorageLocation, StorageLocationInput } from '@unicore/sdk';
 import { defineMessages, t, useLocale } from '../../i18n';
-import { AppField, AppForm, useAppForm } from '../../lib/form';
+import { AppField, AppForm, useAppForm } from '@unicore/form';
 import { cn } from '@unicore/ui/cn';
 import { Badge, Button, Card, CardContent, CardFooter, CardHeader, Input, Switch, TabsPrimitive, Textarea, useMessage } from '@unicore/ui';
 import { useNavigate } from '@tanstack/react-router';

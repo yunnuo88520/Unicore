@@ -10,7 +10,7 @@ import { useRouteSearch, useSessionNotice, type PageProps } from '../router';
 import { BrandLockup } from '../brand';
 import { Button, Input } from '@unicore/ui';
 import { buttonVariants } from '@unicore/ui';
-import { AppField, AppForm, useAppForm } from '../lib/form';
+import { AppField, AppForm, useAppForm } from '@unicore/form';
 import { cn } from '@unicore/ui/cn';
 
 type Mode = 'login' | 'email' | 'register' | 'forgot' | 'resend';

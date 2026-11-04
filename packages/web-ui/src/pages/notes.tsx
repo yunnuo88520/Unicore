@@ -6,7 +6,7 @@ import { CheckCircle2, Circle, Download, NotebookPen, Paperclip, Pencil, Plus, S
 import type { AppClient, NoteEntry, NoteQuery } from '@unicore/sdk';
 import { currentLocale, t, useLocale } from '../i18n';
 import { Badge, Button, Card, CardContent, Input, Modal, NativeSelect, Textarea, useMessage } from '@unicore/ui';
-import { AppField, AppForm, useAppForm } from '../lib/form';
+import { AppField, AppForm, useAppForm } from '@unicore/form';
 import type { PageProps } from '../router';
 
 const initialQuery: NoteQuery = { search: '', status: '', sort: 'updated_at', direction: 'desc', page: 1 };

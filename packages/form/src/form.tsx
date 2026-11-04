@@ -1,6 +1,6 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: React Hook Form layer bound to contract schemas: pending, server field errors, first-error focus.
-import { t, useLocale } from '../i18n';
+import { t, useLocale } from '@unicore/ui/i18n';
 import { cloneElement, isValidElement, useId, useMemo, useState, type ReactElement, type ReactNode, type InputHTMLAttributes } from 'react';
 import { useForm, FormProvider, useFormContext, Controller, type DefaultValues, type FieldValues, type Resolver, type UseFormReturn, type Path } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,13 +18,17 @@ type AppForm<T extends FieldValues> = UseFormReturn<T> & {
   /** Merge server-side AppError field errors and focus the first offending control. */
   applyServerError: (error: unknown) => void;
   serverError: AppError | null;
+  /** @internal Rendered form element; AppForm registers it so focus never escapes this form. */
+  focusScope: { current: HTMLFormElement | null };
 };
 
 export function useAppForm<T extends FieldValues>({ schema, defaultValues, onSubmit }: AppFormOptions<T>): AppForm<T> {
   const [serverError, setServerError] = useState<AppError | null>(null);
+  // Error focus stays inside this form; a document-wide query would hit sibling forms.
+  const scope = { current: null as HTMLFormElement | null };
   const resolver = useMemo(() => (schema ? (zodResolver(constraintsToZod(schema) as never) as Resolver<T>) : undefined), [schema]);
   const form = useForm<T, never, T>({ resolver, defaultValues: defaultValues as DefaultValues<T>, mode: 'onSubmit' });
-  const submit: AppForm<T>['submit'] = form.handleSubmit(async values => { setServerError(null); await onSubmit(values); });
+  const submit: AppForm<T>['submit'] = event => form.handleSubmit(async values => { setServerError(null); await onSubmit(values); })(event);
   function applyServerError(error: unknown) {
     if (!(error instanceof AppError)) return;
     setServerError(error);
@@ -35,18 +39,18 @@ export function useAppForm<T extends FieldValues>({ schema, defaultValues, onSub
     }
     if (fields.$form || fields['']) form.setError('root', { type: 'server', message: fields.$form ?? fields[''] });
     queueMicrotask(() => {
-      const controls = Array.from(document.querySelectorAll<HTMLElement>('form [name]'));
+      const controls = Array.from((scope.current ?? document).querySelectorAll<HTMLElement>('[name]'));
       const target = controls.find(element => Object.hasOwn(fields, element.getAttribute('name') ?? ''));
       target?.focus();
     });
   }
-  return Object.assign(form, { submit, applyServerError, serverError }) as AppForm<T>;
+  return Object.assign(form, { submit, applyServerError, serverError, focusScope: scope }) as AppForm<T>;
 }
 
 export function AppForm<T extends FieldValues>({ form, className, children, ...props }: { form: AppForm<T>; className?: string; children: ReactNode } & Omit<React.FormHTMLAttributes<HTMLFormElement>, 'onSubmit' | 'children'>) {
   useLocale();
   return <FormProvider {...form}>
-    <form {...props} className={className} noValidate aria-busy={form.formState.isSubmitting} onSubmit={event => { event.preventDefault(); void form.submit(event); }}>
+    <form {...props} ref={element => { form.focusScope.current = element; }} className={className} noValidate aria-busy={form.formState.isSubmitting} onSubmit={event => { event.preventDefault(); void form.submit(event); }}>
       <FormSummary />
       {children}
     </form>
@@ -54,22 +58,22 @@ export function AppForm<T extends FieldValues>({ form, className, children, ...p
 }
 
 /** Contract-style field wrapper: label, injected registration, aria-invalid and localized error message. */
-export function AppField<T extends FieldValues>({ name, label, hint, children, className }: { name: Path<T>; label: string; hint?: string; children: ReactElement<InputHTMLAttributes<HTMLInputElement>>; className?: string }) {
+export function AppField<T extends FieldValues>({ name, label, hint, children, className }: { name: Path<T>; label: ReactNode; hint?: ReactNode; children: ReactElement<InputHTMLAttributes<HTMLInputElement>>; className?: string }) {
   useLocale();
   const { register, formState } = useFormContext<T>();
   const id = useId();
   const message = formState.errors[name]?.message as string | undefined;
   const registration = register(name);
   return <div className={cn('flex flex-col gap-1.5', className)}>
-    <label htmlFor={id} className="text-sm font-medium text-ink">{t(label)}</label>
-    {hint && <p className="text-xs text-muted">{t(hint)}</p>}
+    <label htmlFor={id} className="text-sm font-medium text-ink">{label}</label>
+    {hint && <p className="text-xs text-muted">{hint}</p>}
     {isValidElement(children) ? cloneElement(children, { id, name: registration.name, onChange: registration.onChange, onBlur: registration.onBlur, ref: registration.ref, 'aria-invalid': !!message, 'aria-describedby': message ? `${id}-error` : children.props['aria-describedby'] } as InputHTMLAttributes<HTMLInputElement>) : children}
     {message && <p id={`${id}-error`} role="alert" className="text-xs text-danger">{t(message)}</p>}
   </div>;
 }
 
 /** Controller-based field for non-native controls (Radix Select, Switch, Checkbox...). */
-export function AppControllerField<T extends FieldValues>({ name, label, hint, children, className }: { name: Path<T>; label: string; hint?: string; children: (field: { value: unknown; onChange: (value: unknown) => void; onBlur: () => void; disabled?: boolean }) => ReactNode; className?: string }) {
+export function AppControllerField<T extends FieldValues>({ name, label, hint, children, className }: { name: Path<T>; label: ReactNode; hint?: ReactNode; children: (field: { value: unknown; onChange: (value: unknown) => void; onBlur: () => void; disabled?: boolean }) => ReactNode; className?: string }) {
   useLocale();
   const { control, formState } = useFormContext<T>();
   const message = formState.errors[name]?.message as string | undefined;
@@ -77,8 +81,8 @@ export function AppControllerField<T extends FieldValues>({ name, label, hint, c
     control={control}
     name={name}
     render={({ field, fieldState }) => <div className={cn('flex flex-col gap-1.5', className)}>
-      <span className="text-sm font-medium text-ink">{t(label)}</span>
-      {hint && <p className="text-xs text-muted">{t(hint)}</p>}
+      <span className="text-sm font-medium text-ink">{label}</span>
+      {hint && <p className="text-xs text-muted">{hint}</p>}
       {children({ value: field.value, onChange: field.onChange, onBlur: field.onBlur, disabled: field.disabled })}
       {(message ?? fieldState.error?.message) && <p role="alert" className="text-xs text-danger">{t((message ?? fieldState.error?.message) as string)}</p>}
     </div>}
@@ -103,10 +107,10 @@ export function FormSummary() {
 }
 
 /** Readonly display row for detail panels. */
-export function StaticField({ label, children }: { label: string; children: ReactNode }) {
+export function StaticField({ label, children }: { label: ReactNode; children: ReactNode }) {
   useLocale();
   return <div className="flex flex-col gap-1">
-    <span className="text-xs text-muted">{t(label)}</span>
+    <span className="text-xs text-muted">{label}</span>
     <span className="text-sm text-ink">{children}</span>
   </div>;
 }

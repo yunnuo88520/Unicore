@@ -16,7 +16,7 @@ for(const file of entries)for(const match of readFileSync(file,'utf8').matchAll(
  if(!definedTokens.has(match[1]))throw new Error(`${file}: undefined design token ${match[1]}`);
 }
 for(const file of entries){
- if(file.includes('.gen.'))continue; // Generated projections mirror assets/theme/tokens.json verbatim.
+ if(file.includes('.gen.')||file.includes('.test.'))continue; // Generated and test files may carry literal colors.
  const text=readFileSync(file,'utf8');
  if(/#[0-9a-f]{3,8}\b/i.test(text)||/\brgba?\(/i.test(text))throw new Error(`${file}: move raw palette colors into assets/theme/tokens.json`);
 }

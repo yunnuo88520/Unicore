@@ -1,12 +1,24 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Apply shared device preferences through generated design tokens and live system changes.
 import tokens from '../../../assets/theme/resolved.gen.json';
+import modes from './modes.gen.json';
+import { accentVariables, derivePalette } from './derive.mjs';
 import { useEffect, useSyncExternalStore } from 'react';
 import { getPreferences, preferencesKey, setPreferences, usePreferences, type Preferences } from './preferences';
 
 export type Theme = Preferences['theme'];
 const mediaSubscribe=(listener:()=>void)=>{const media=window.matchMedia('(prefers-color-scheme: dark)');media.addEventListener('change',listener);return()=>media.removeEventListener('change',listener);};
 export function useResolvedTheme(){const p=usePreferences(),dark=useSyncExternalStore(mediaSubscribe,()=>window.matchMedia('(prefers-color-scheme: dark)').matches,()=>false);return p.theme==='system'?(dark?'dark':'light'):p.theme;}
+let customAccent='';
+const accentRerenders=new Set<()=>void>();
+/** Apply an instance-level brand accent (empty string restores the compiled palette). */
+export function setCustomAccent(hex:string){customAccent=/^#[0-9a-f]{6}$/i.test(hex)?hex.toLowerCase():'';for(const rerender of accentRerenders)rerender();}
+function applyAccent(root:HTMLElement){
+  // Presets stay a user-level choice: the instance accent only fills the default brand slot.
+  if(!customAccent||root.dataset.accent!=='brand'){for(const variable of accentVariables)root.style.removeProperty(`--${variable}`);return;}
+  const resolved=derivePalette(customAccent,modes)[root.dataset.theme==='dark'?'dark':'light'];
+  for(const variable of accentVariables)root.style.setProperty(`--${variable}`,resolved[variable]);
+}
 export function useTheme(defaultTheme?: string) {
   const preferences=usePreferences();
   useEffect(()=>{
@@ -22,9 +34,11 @@ export function useTheme(defaultTheme?: string) {
       root.style.setProperty('--ui-font-scale',String({default:1,compact:1,comfortable:1.08,large:1.18}[p.density]));
       root.style.setProperty('--ui-space-scale',String({default:1,compact:.88,comfortable:1.05,large:1.1}[p.density]));
       root.style.setProperty('--ui-radius-scale',String({default:1,none:0,small:.5,medium:1,large:1.4,round:2}[p.radius]));
+      applyAccent(root);
       document.querySelector('meta[name="theme-color"]')?.setAttribute('content',getComputedStyle(root).getPropertyValue('--brand-accent').trim()||tokens[root.dataset.theme as 'light'|'dark']['brand-accent']);
     };
-    apply();media.addEventListener('change',apply);return()=>media.removeEventListener('change',apply);
+    apply();media.addEventListener('change',apply);accentRerenders.add(apply);
+    return()=>{media.removeEventListener('change',apply);accentRerenders.delete(apply);};
   },[preferences]);
   return [preferences.theme,(theme:Theme)=>setPreferences({theme})] as const;
 }

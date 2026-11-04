@@ -30,11 +30,51 @@ export function BrandingPanel({ client, canWrite, onSaved }: { client: AppClient
       <p className="text-xs text-muted">{t('图片保存后用于网站、登录页和新建邮件。应用安装包图标由项目品牌源生成。')}{!canWrite && t(' 当前账号仅可查看。')}</p>
       {query.isPending ? <p role="status" className="text-sm text-muted">{t('正在读取品牌…')}</p>
         : query.error ? <p role="alert" className="text-sm text-danger">{t(query.error.message)}<button className="ms-2 text-xs text-accent hover:underline" onClick={() => query.refetch()}>{t('重试')}</button></p>
-          : <div className="grid gap-3 md:grid-cols-3">
+          : <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {slots.map(slot => <BrandSlot key={slot.id} {...slot} branding={query.data!} client={client} canWrite={canWrite} onSaved={onSaved} />)}
+              <BrandAccent branding={query.data!} client={client} canWrite={canWrite} onSaved={onSaved} />
             </div>}
     </CardContent>
   </Card>;
+}
+
+/** Instance accent color card: overrides the compiled brand accent unless the user picks a preset. */
+function BrandAccent({ branding, client, canWrite, onSaved }: { branding: Branding; client: AppClient; canWrite: boolean; onSaved: () => void }) {
+  useLocale();
+  const [draft, setDraft] = useState('');
+  const queryClient = useQueryClient();
+  const message = useMessage();
+  const valid = /^#[0-9a-fA-F]{6}$/.test(draft);
+  const save = useMutation({
+    mutationFn: (content: string) => client.updateBranding!({ slot: 'accent', content }),
+    onSuccess: async (_, content) => {
+      message.success(content ? t('主色已保存') : t('已恢复默认'));
+      setDraft('');
+      await invalidateAfter(queryClient, 'branding');
+      onSaved();
+    },
+  });
+  const current = valid ? draft : branding.accent ?? '';
+  const swatch = current || getComputedStyle(document.documentElement).getPropertyValue('--preset-brand').trim();
+  const colorValue = /^#[0-9a-fA-F]{6}$/.test(swatch) ? swatch : getComputedStyle(document.documentElement).getPropertyValue('--preset-brand').trim();
+  return <form className="flex flex-col gap-2 rounded-lg border border-line bg-surface-alt p-3" aria-label={t('品牌主色')} onSubmit={event => { event.preventDefault(); if (valid) save.mutate(draft); }}>
+    <h3 className="text-sm font-medium text-ink">{t('品牌主色')}</h3>
+    <div className="flex h-24 items-center justify-center rounded-md border border-line p-2">
+      <span className="size-10 rounded-full border border-line" style={swatch ? { background: swatch } : undefined} />
+    </div>
+    <p className="text-2xs text-muted">{t('覆盖编译期品牌主色；用户选择的主题预设仍然优先。')}</p>
+    <div className="flex items-center gap-2">
+      <input aria-label={t('选择颜色')} type="color" className="size-8 shrink-0 cursor-pointer rounded-xs border border-line bg-surface p-0.5 disabled:opacity-55" disabled={!canWrite || save.isPending} value={colorValue} onChange={event => setDraft(event.target.value)} />
+      <input className="h-8 w-full min-w-0 rounded-md border border-line bg-surface px-2 text-xs text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-55" aria-label={t('品牌主色')} aria-invalid={!!draft && !valid} disabled={!canWrite || save.isPending} value={draft} placeholder={t('跟随编译期品牌')} onChange={event => setDraft(event.target.value)} />
+    </div>
+    {draft && !valid && <p role="alert" className="text-2xs text-danger">{t('主色格式为 #RRGGBB')}</p>}
+    {save.error && <p role="alert" className="text-2xs text-danger">{t(save.error.message)}</p>}
+    <div className="mt-auto flex flex-wrap items-center gap-2">
+      <Button type="submit" size="sm" pending={save.isPending} disabled={!canWrite || !valid}>{t('保存品牌主色')}</Button>
+      {draft && <Button type="button" variant="ghost" size="sm" disabled={save.isPending} onClick={() => setDraft('')}>{t('取消预览')}</Button>}
+      <Button type="button" variant="ghost" size="sm" disabled={!canWrite || !branding.accent || save.isPending} onClick={() => save.mutate('')}>{t('恢复默认')}</Button>
+    </div>
+  </form>;
 }
 
 function BrandSlot({ id, label, help, branding, client, canWrite, onSaved }: { id: BrandingInput['slot']; label: string; help: string; branding: Branding; client: AppClient; canWrite: boolean; onSaved: () => void }) {

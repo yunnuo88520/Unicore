@@ -14,7 +14,7 @@ import { RouterProvider, Outlet, createBrowserHistory, useRouter, useRouterState
 import { Bell, Webhook, FileText, Braces, ChevronRight, ExternalLink, FlaskConical, Info, LayoutDashboard, Mail, Megaphone, Menu, Monitor, NotebookPen, PackageCheck, PanelLeftClose, PanelLeftOpen, Radio, RotateCcw, ScrollText, Settings2, ShieldCheck, UserCog, UserRound, Users, Cloud, FolderOpen, Circle, type LucideIcon } from 'lucide-react';
 import { BrandProvider, BrandMark, BrandLockup } from './brand';
 import type { AppClient, Bootstrap } from '@unicore/sdk';
-import { useTheme, type Theme } from '@unicore/theme';
+import { setCustomAccent, useTheme, type Theme } from '@unicore/theme';
 import { DashboardWidgetRegistry } from './registry';
 import { PasswordDialog } from './password-dialog';
 import { SessionBoundary, useSession } from './session';
@@ -59,6 +59,8 @@ export function Workspace({ client, registry, administratorPage, history, basepa
 function BrandedApp({ client, registry, notice, administratorPage, history, basepath }: Omit<WorkspaceProps, 'registry'> & { registry: DashboardWidgetRegistry; notice: string }) {
   useLocale();
   const { metadata } = useSession(client);
+  const accent = metadata.data?.branding?.accent;
+  useEffect(() => { setCustomAccent(accent ?? ''); }, [accent]);
   const [router] = useState(() => createWorkspaceRouter({ history: history ?? createBrowserHistory, basepath, shell: WorkspaceShell }));
   return <ShellOptionsProvider value={{ client, registry, administratorPage }}>
     <NoticeProvider value={notice}>

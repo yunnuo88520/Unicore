@@ -75,6 +75,7 @@ var Definitions = append([]SettingDefinition{
 	{"branding.logo", "string", "branding", "Logo", "", false, false, branding.ValidReference},
 	{"branding.logo_dark", "string", "branding", "深色 Logo", "", false, false, branding.ValidReference},
 	{"branding.favicon", "string", "branding", "站点图标", "", false, false, branding.ValidReference},
+	{"branding.accent", "string", "branding", "品牌主色", "", false, false, branding.ValidAccent},
 	{"site.name", "string", "site", "站点名称", theme.Current.Brand.Name, false, false, func(v string) bool {
 		return strings.TrimSpace(v) != "" && !strings.ContainsAny(v, "\r\n") && text(64)(v)
 	}},

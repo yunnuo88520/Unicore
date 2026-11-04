@@ -12377,6 +12377,11 @@
           "favicon": {
             "type": "string",
             "maxLength": 400000
+          },
+          "accent": {
+            "type": "string",
+            "pattern": "^#[0-9a-f]{6}$",
+            "description": "Optional instance accent overriding the compiled brand color; users still win with an explicit preset."
           }
         }
       },
@@ -12393,13 +12398,14 @@
             "enum": [
               "logo",
               "logo_dark",
-              "favicon"
+              "favicon",
+              "accent"
             ]
           },
           "content": {
             "type": "string",
             "maxLength": 349528,
-            "description": "Raw base64 PNG/JPEG; favicon also accepts ICO (PNG or uncompressed DIB frames). Up to 256 KiB; empty restores default."
+            "description": "Raw base64 PNG/JPEG; favicon also accepts ICO (PNG or uncompressed DIB frames). Up to 256 KiB; empty restores default. The accent slot takes a #RRGGBB color instead."
           }
         }
       },

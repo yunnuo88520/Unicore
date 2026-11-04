@@ -481,10 +481,11 @@ export interface Branding {
   logo: string;
   logo_dark: string;
   favicon: string;
+  accent?: string;
 }
 
 export interface BrandingInput {
-  slot: "logo" | "logo_dark" | "favicon";
+  slot: "logo" | "logo_dark" | "favicon" | "accent";
   content: string;
 }
 

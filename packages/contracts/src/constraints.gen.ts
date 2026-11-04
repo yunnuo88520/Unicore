@@ -1751,6 +1751,10 @@ export const constraints = {
       "favicon": {
         "type": "string",
         "maxLength": 400000
+      },
+      "accent": {
+        "type": "string",
+        "pattern": "^#[0-9a-f]{6}$"
       }
     }
   },
@@ -1767,7 +1771,8 @@ export const constraints = {
         "enum": [
           "logo",
           "logo_dark",
-          "favicon"
+          "favicon",
+          "accent"
         ]
       },
       "content": {

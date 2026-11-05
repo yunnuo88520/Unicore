@@ -12,14 +12,14 @@
     "./router": "./src/router.tsx"
   },
   "dependencies": {
-    "@tanstack/react-query": "^5.105.0",
+    "@tanstack/react-query": "^5.105.1",
     "@tanstack/react-router": "^1.170.46",
     "@tanstack/react-table": "^9.3.1",
     "@unicore/form": "workspace:*",
     "@unicore/sdk": "workspace:*",
     "@unicore/theme": "workspace:*",
     "@unicore/ui": "workspace:*",
-    "lucide-react": "^1.63.0",
+    "lucide-react": "^1.66.0",
     "qrcode": "^1.5.4",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

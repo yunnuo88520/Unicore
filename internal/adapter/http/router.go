@@ -3,7 +3,9 @@
 package httpadapter
 
 import (
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"log/slog"
 	"mime"
@@ -224,11 +226,32 @@ func serveEntry(assets fs.FS, name string, w http.ResponseWriter, r *http.Reques
 		http.Error(w, "Frontend not built. Run pnpm build first.", 503)
 		return
 	}
+	if serveWithETag(w, r, content, "no-cache") {
+		return
+	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-cache")
 	if r.Method == http.MethodGet {
 		_, _ = w.Write(content)
 	}
+}
+
+// serveWithETag answers conditional requests with 304 and stamps the entity
+// tag for the caller-chosen Cache-Control policy; it reports whether the
+// response was written.
+func serveWithETag(w http.ResponseWriter, r *http.Request, content []byte, cacheControl string) bool {
+	etag := `"` + fmt.Sprintf("%x", sha256.Sum256(content))[:16] + `"`
+	w.Header().Set("ETag", etag)
+	w.Header().Set("Cache-Control", cacheControl)
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		return false
+	}
+	for _, candidate := range strings.Split(r.Header.Get("If-None-Match"), ",") {
+		if candidate = strings.TrimSpace(candidate); candidate == etag || candidate == "W/"+etag || candidate == "*" {
+			w.WriteHeader(http.StatusNotModified)
+			return true
+		}
+	}
+	return false
 }
 
 func serveSPA(assets fs.FS, w http.ResponseWriter, r *http.Request) {
@@ -255,9 +278,11 @@ func serveSPA(assets fs.FS, w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", mime.TypeByExtension(path.Ext(name)))
 	if strings.HasPrefix(name, "assets/") {
-		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
-	} else {
-		w.Header().Set("Cache-Control", "no-cache")
+		if serveWithETag(w, r, content, "public, max-age=31536000, immutable") {
+			return
+		}
+	} else if serveWithETag(w, r, content, "no-cache") {
+		return
 	}
 	if r.Method == http.MethodGet {
 		_, _ = w.Write(content)

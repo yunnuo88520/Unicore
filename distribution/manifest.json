@@ -823,6 +823,7 @@
     "packages/web-ui/src/router.tsx",
     "packages/web-ui/src/routes.test.ts",
     "packages/web-ui/src/routes.ts",
+    "packages/web-ui/src/navigation.ts",
     "packages/web-ui/src/session.tsx",
     "packages/web-ui/src/shell-tools.tsx",
     "packages/web-ui/src/shell.css",

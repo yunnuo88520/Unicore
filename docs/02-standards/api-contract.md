@@ -3,7 +3,7 @@
 
 唯一来源为 [OpenAPI](../../packages/contracts/openapi.json)。先改 schema、operationId、参数、响应、security 与 x-unicore，再执行 `pnpm generate`。生成 Go/TS DTO、typed operation 描述、约束表、错误目录和离线 HTML；`pnpm check:contracts` 检测漂移。HTTP handler 与业务授权仍手写，不能把生成 DTO 等同于自动实现接口。
 
-每个 operation 的 x-unicore 声明适用 profiles、access、permissions、permissionMode、superAdmin 和 csrf。CookieSession、CSRFToken、BootstrapToken 在 securitySchemes 登记。元数据用于文档和完整性检查，服务端仍逐接口执行 require/CSRF/事务内授权。真实 Chi 路由测试覆盖完整 Web 装配与最小 Core 装配，缺 handler 或未登记接口会失败。
+每个 operation 的 x-unicore 声明适用 profiles、access、permissions、permissionMode、superAdmin 和 csrf。CookieSession、CSRFToken、BootstrapToken 在 securitySchemes 登记。运行时策略中间件按契约 fail-closed 执行：没有 x-unicore 声明的已注册 API 路由直接 500 拒绝，session/authenticated/platform-session 访问在中间件解析会话并强制 permissions 与 superAdmin（`require` 复用其会话，补充 2FA 注册与审计 actor），public/install-token/local 仍由 handler 自行守卫。事务内授权与业务校验仍在 handler/service。真实 Chi 路由测试覆盖完整 Web 装配与最小 Core 装配，并以双向遍历断言"路由↔契约"完全一致，缺 handler 或未登记接口会失败。
 
 响应遵循 `{code, data, request_id}`；失败为 `{code, message, request_id, fields?}`。错误 code 的默认状态和安全提示登记于 x-error-codes；生成 ErrorCatalog 给 HTTP、presenter 与桌面复用。上下文相关提示可以更具体，但不能暴露原始错误、数据库信息或提交值。字段错误使用 name 或 `changes[0].value` 等路径，表单显示摘要并聚焦对应控件。请求 ID 可以反馈给维护者排查。
 

@@ -99,6 +99,18 @@
       "site_group": "development"
     },
     {
+      "source": "docs/product/ui-components.md",
+      "target": "docs/product/ui-components.md",
+      "audiences": [
+        "project-template",
+        "public-wiki",
+        "public-site"
+      ],
+      "slug": "UI-Components",
+      "title": "UI 组件参考",
+      "site_group": "development"
+    },
+    {
       "source": "docs/support.md",
       "target": "docs/support.md",
       "audiences": [

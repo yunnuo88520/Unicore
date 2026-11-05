@@ -22,6 +22,10 @@ make build-web build-cli build-ops
 
 按任务读取，不遍历全部文档。契约、代码和可重复测试比过期功能说明更可靠；先检查已有功能和工作区，不覆盖他人修改。根 AGENTS 是简短硬约束，.agents/skills/develop-application 按需加载流程。
 
+## UI 组件
+
+共享界面原语（Button/Select/Modal/Message/表单层）的接入方式、翻译注入与行为约定见 [UI 组件参考](ui-components.md)。
+
 ## 目录和依赖
 
 internal/domain 放业务规则，不依赖 HTTP、Wails、SQL 或认证；internal/usecase 通过 ports 编排领域能力。adapter 实现传输/数据库/外部系统，bootstrap/runtime 按 Profile 装配。CLI 直接调用共享核心，不引入 HTTP、数据库驱动、迁移或平台身份。Web 平台模块不得被单机/桌面强制引入。

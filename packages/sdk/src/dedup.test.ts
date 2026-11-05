@@ -6,6 +6,13 @@ const ok = (data: unknown) => new Response(JSON.stringify({ code: 'OK', message:
 
 const roles = { items: [], total: 0 };
 
+// A fetcher that honors abort signals like real fetch does; mocks that
+// ignore signals hide shared-request cancellation bugs.
+const responsive = (body: unknown) => vi.fn((_url: string, init?: RequestInit) => new Promise<Response>((resolve, reject) => {
+  init?.signal?.addEventListener('abort', () => reject(new DOMException('The operation was aborted', 'AbortError')), { once: true });
+  resolve(ok(body));
+}));
+
 describe('GET in-flight dedup', () => {
   it('shares identical concurrent GETs into one request', async () => {
     const fetcher = vi.fn().mockImplementation(() => Promise.resolve(ok(roles)));
@@ -31,17 +38,31 @@ describe('GET in-flight dedup', () => {
   });
 
   it('aborting one caller neither cancels the shared fetch nor its siblings', async () => {
-    let release!: (response: Response) => void;
-    const fetcher = vi.fn().mockImplementation(() => new Promise<Response>(resolve => { release = resolve; }));
+    const fetcher = responsive(roles);
     const http = new HttpTransport('', fetcher);
     const controller = new AbortController();
     const aborted = http.call('listRoles', undefined, { signal: controller.signal });
     const survivor = http.roles();
     controller.abort();
     await expect(aborted).rejects.toMatchObject({ code: 'REQUEST_CANCELLED' });
-    release(ok(roles));
     await expect(survivor).resolves.toEqual(roles);
     expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it('creates the shared GET without any caller signal', async () => {
+    // React Query cancels superseded queries through their signal; the shared
+    // request must not die with the first caller's cancellation.
+    const fetcher = responsive(roles);
+    const http = new HttpTransport('', fetcher);
+    const controller = new AbortController();
+    const first = http.call('listRoles', undefined, { signal: controller.signal });
+    const second = http.roles();
+    controller.abort();
+    await expect(first).rejects.toMatchObject({ code: 'REQUEST_CANCELLED' });
+    await expect(second).resolves.toEqual(roles);
+    const sharedSignal = fetcher.mock.calls[0][1]?.signal as AbortSignal | undefined;
+    expect(sharedSignal).not.toBe(controller.signal);
+    expect(sharedSignal?.aborted).toBe(false);
   });
 
   it('rejects pre-aborted callers without issuing a request', async () => {

@@ -264,13 +264,16 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
     const query = new URLSearchParams(Object.entries(options?.query ?? {}).map(([key, value]) => [key, String(value)]));
     if (query.size) path += `?${query}`;
     const relative = path.replace(/^\/api\/v1/, '');
-    const execute = () => this.request<OperationData[K]>(relative, { method: operation.method, signal: options?.signal, headers: { ...(input === undefined ? {} : { 'Content-Type': 'application/json' }), ...options?.headers }, ...(input === undefined ? {} : { body: JSON.stringify(input) }) },options?.timeoutMs);
-    if (operation.method.toUpperCase() !== 'GET') return execute();
+    const execute = (signal?: AbortSignal) => this.request<OperationData[K]>(relative, { method: operation.method, signal, headers: { ...(input === undefined ? {} : { 'Content-Type': 'application/json' }), ...options?.headers }, ...(input === undefined ? {} : { body: JSON.stringify(input) }) },options?.timeoutMs);
+    if (operation.method.toUpperCase() !== 'GET') return execute(options?.signal);
     if (options?.signal?.aborted) return Promise.reject(new AppError('REQUEST_CANCELLED', '请求已取消或超时'));
-    // Identical concurrent GETs share one request; each caller keeps its own
-    // abort semantics and the shared fetch ignores caller signals.
+    // Identical concurrent GETs share one request. The shared fetch carries
+    // no caller signal: when the first caller's environment cancels its own
+    // query (invalidation, unmount), the request must survive for the
+    // siblings that joined it. Personal cancellation layers on via
+    // ownAbort; the shared deadline comes from the first caller's options.
     const pending = this.inflightGets.get(path);
-    const shared = (pending ?? execute().finally(() => { this.inflightGets.delete(path); })) as Promise<OperationData[K]>;
+    const shared = (pending ?? execute(undefined).finally(() => { this.inflightGets.delete(path); })) as Promise<OperationData[K]>;
     if (!pending) this.inflightGets.set(path, shared);
     return this.ownAbort(shared, options?.signal);
   }

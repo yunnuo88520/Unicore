@@ -22,6 +22,22 @@ for(const file of files){
   if(!existsSync(path))failures.push(`${file}: missing linked resource ${target}`);
  }
 }
+// Skill texts also cite repository paths in prose; a renamed source must
+// fail here before a stale instruction reaches an AI task. Matches after a
+// "make " shorthand or with a trailing Go symbol (blob.Store) are not paths.
+const skillTexts=execFileSync('rg',['--files','--no-require-git','.agents/skills'],{encoding:'utf8'}).trim().split('\n').filter(path=>path.endsWith('.md'));
+const citedPath=/(?:docs|internal|packages|scripts|migrations|distribution|assets|apps|cmd|tests)\/[A-Za-z0-9][A-Za-z0-9_./-]*/g;
+const symbolSuffix=/^(.*\/[^/]+)\.[A-Z][A-Za-z0-9_]*$/;
+for(const file of skillTexts){
+ const text=readFileSync(file,'utf8');
+ for(const match of text.matchAll(citedPath)){
+  if(match.index>=5 && text.slice(match.index-5,match.index)==='make ')continue;
+  let target=match[0].replace(/[.,;:)）`]+$/,'');
+  const symbol=target.match(symbolSuffix);
+  if(symbol)target=symbol[1];
+  if(!existsSync(target))failures.push(`${file}: missing cited path ${target}`);
+ }
+}
 const manifest=JSON.parse(readFileSync('framework.manifest.json','utf8'));
 const pkg=JSON.parse(readFileSync('package.json','utf8'));
 const make=readFileSync('Makefile','utf8');

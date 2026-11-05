@@ -13,7 +13,7 @@ metadata:
 
 ## current-stage
 
-Pre-1.0 squash is approved. New SQL/catalog/data generation assets exist; see migrations/README.md and ADR-0025. The product still uses the original 42 SQL and legacy executor. R1.0c startup validation/locks/engine/metadata consumers require separate authorization. Do not remove legacy files or activate the new ledger early.
+Pre-1.0 squash is approved. New SQL/catalog/data generation assets exist; see migrations/README.md and ADR-0025. The standalone catalog executor `migrations/runner` (advisory locks, ledger shape/anchor/checksum refusals, notx convention, read-only Verify) exists and is SQLite-tested, but is NOT wired into install/startup: the product still uses the original 42 SQL and legacy executor. Wiring the runner into runtime, startup guards and metadata consumers remains R1.0c and requires separate authorization. Do not remove legacy files or activate the new ledger early; reference runner.Apply/Verify instead of re-implementing locks in tasks.
 
 ## inputs
 
@@ -25,7 +25,7 @@ Pre-1.0 squash is approved. New SQL/catalog/data generation assets exist; see mi
 2. 新世代仅catalog.json定义预期集合：core（所有DB产品）、platform（仅平台）、module.<slug>（Notes=module.notes），各自从1递增，明确依赖/Profile/三方言SQL。CLI不import数据库/迁移资产。Catalog now exists; Profile namespaces are membership only. Derive order exclusively from depends_on with deterministic topological sorting. Check pnpm check:migrations and test:migrations; never hand-edit generated metadata.
 3. SHA-256取原SQL字节；Go/JS/发行/OTA/ops向量及账本引导DDL只生成，不手填最大版本。目标账本(namespace,version,checksum,applied_at)，联合主键namespace+version，成功才登记。
 4. 新世代SQL一旦分发（含preview）不可修改，只追加版本；不得规范化行尾再改hash。基线不含密码/hash/密钥/用户数据；角色权限/管理员/设置交Go Seed，保留有运行代码依赖的静态基础记录。
-5. 仅用当次授权的显式隔离库真测空库、合法前缀、重复执行、future/unknown/gap/checksum/Profile/legacy拒绝及失败恢复。清除不明APP_*/UNICORE_*配置，不触碰已有开发/生产库。三方言和Profile分别记pass/fail/skip。
+5. 仅用当次授权的显式隔离库真测空库、合法前缀、重复执行、future/unknown/gap/checksum/Profile/legacy拒绝及失败恢复。清除不明APP_*/UNICORE_*配置，不触碰已有开发/生产库。三方言和Profile分别记pass/fail/skip。迁移执行优先复用 migrations/runner（锁、账本校验、事务登记已内置），不为任务重写执行逻辑。
 6. 写前完整检查；SQLite验证DB/WAL/SHM零提前写；PG/MySQL固定连接+DB级互斥，MySQL承认隐式DDL提交。无force/skipValidation、删账本、补造checksum或自动reset后门。
 7. 同步SQL/catalog、生成消费者、需求/架构/规范、测试、运行手册和本轮证据；三个namespace不能压成旧两整数手抄。只审计任务不擅自转实施。
 

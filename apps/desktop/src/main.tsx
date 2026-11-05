@@ -5,7 +5,7 @@ import { createRoot } from 'react-dom/client';
 import { Workspace } from '@unicore/web-ui';
 import { createHashHistory } from '@unicore/web-ui/router';
 import { AppError, WailsTransport, type DesktopBridge } from '@unicore/sdk';
-import '@unicore/web-ui/styles.css';
+import '@unicore/theme/styles.css';
 
 declare global { interface Window { go?: { desktop?: { Bridge?: DesktopBridge } } } }
 const client = new WailsTransport(() => {

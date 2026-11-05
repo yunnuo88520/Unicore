@@ -6,7 +6,7 @@ import { createRootRoute, createRoute, createRouter, redirect, useRouterState, u
 import type { AppClient, Bootstrap } from '@unicore/sdk';
 import { routes, type Page } from './routes';
 import type { DashboardWidgetRegistry } from './registry';
-import type { Theme } from './theme';
+import type { Theme } from '@unicore/theme';
 import { NotFoundPage } from './pages/not-found';
 
 export type PageProps = { page: Page; client: AppClient; metadata: Bootstrap; registry: DashboardWidgetRegistry; theme: Theme; setTheme: (theme: Theme) => void; refresh: () => void };

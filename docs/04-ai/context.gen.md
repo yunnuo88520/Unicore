@@ -25,8 +25,8 @@
 | edition | [scripts/build-features.mjs](../../scripts/build-features.mjs) |
 | routes | [packages/web-ui/src/routes.ts](../../packages/web-ui/src/routes.ts) |
 | router | [packages/web-ui/src/router.tsx](../../packages/web-ui/src/router.tsx) |
-| uiPrimitives | [packages/web-ui/src/ui/index.ts](../../packages/web-ui/src/ui/index.ts) |
-| formLayer | [packages/web-ui/src/lib/form.tsx](../../packages/web-ui/src/lib/form.tsx) |
+| uiPrimitives | [packages/ui/src/index.ts](../../packages/ui/src/index.ts) |
+| formLayer | [packages/form/src/form.tsx](../../packages/form/src/form.tsx) |
 | session | [packages/web-ui/src/session.tsx](../../packages/web-ui/src/session.tsx) |
 | migrations | [migrations](../../migrations) |
 | databaseMigrationStandard | [docs/02-standards/database-migrations.md](../../docs/02-standards/database-migrations.md) |
@@ -50,7 +50,7 @@
 | updateTrust | [assets/updates/config.json](../../assets/updates/config.json) |
 | updateHistory | [assets/updates/history.gen.json](../../assets/updates/history.gen.json) |
 | systemUpdates | [docs/03-runbooks/updates.md](../../docs/03-runbooks/updates.md) |
-| clientPreferences | [packages/web-ui/src/preferences.ts](../../packages/web-ui/src/preferences.ts) |
+| clientPreferences | [packages/theme/src/preferences.ts](../../packages/theme/src/preferences.ts) |
 | i18n | [packages/web-ui/src/i18n.ts](../../packages/web-ui/src/i18n.ts) |
 | clientAppearance | [docs/03-runbooks/client-preferences.md](../../docs/03-runbooks/client-preferences.md) |
 | workspaceLayout | [packages/web-ui/src/workspace-layout.tsx](../../packages/web-ui/src/workspace-layout.tsx) |
@@ -59,7 +59,7 @@
 | adminTools | [docs/03-runbooks/admin-tools.md](../../docs/03-runbooks/admin-tools.md) |
 | auditMetadata | [internal/audit/context.go](../../internal/audit/context.go) |
 | mailContent | [internal/mailcontent/template.go](../../internal/mailcontent/template.go) |
-| richTextEditor | [packages/web-ui/src/ui/editor.tsx](../../packages/web-ui/src/ui/editor.tsx) |
+| richTextEditor | [packages/ui/src/editor.tsx](../../packages/ui/src/editor.tsx) |
 | backendStandards | [docs/02-standards/backend.md](../../docs/02-standards/backend.md) |
 | baseEntity | [internal/domain/entity.go](../../internal/domain/entity.go) |
 | announcements | [docs/03-runbooks/announcements.md](../../docs/03-runbooks/announcements.md) |

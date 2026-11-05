@@ -480,9 +480,10 @@ type OIDCStartResponse struct {
 }
 
 type Branding struct {
-	Logo     string `json:"logo"`
-	LogoDark string `json:"logo_dark"`
-	Favicon  string `json:"favicon"`
+	Logo     string  `json:"logo"`
+	LogoDark string  `json:"logo_dark"`
+	Favicon  string  `json:"favicon"`
+	Accent   *string `json:"accent,omitempty"`
 }
 
 type BrandingInput struct {

@@ -1,0 +1,30 @@
+{
+  "light": {
+    "bg": "#f7f8fb",
+    "surface": "#ffffff",
+    "surface-alt": "#fafbfe",
+    "text": "#242735",
+    "muted": "#72798c",
+    "border": "#e5e8f0",
+    "success": "#148461",
+    "danger": "#c63e58",
+    "info": "#477dc5",
+    "warning": "#a96720",
+    "avatar-bg": "#ece9e5",
+    "avatar-text": "#817263"
+  },
+  "dark": {
+    "bg": "#11131d",
+    "surface": "#191c29",
+    "surface-alt": "#151824",
+    "text": "#eceef7",
+    "muted": "#a0a8be",
+    "border": "#2a2e40",
+    "success": "#54d9ac",
+    "danger": "#ff8ba1",
+    "info": "#83b4fa",
+    "warning": "#eeb775",
+    "avatar-bg": "#393332",
+    "avatar-text": "#cdbba7"
+  }
+}

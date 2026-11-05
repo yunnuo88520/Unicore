@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowRight, CheckCircle2, Download, History, KeyRound, RefreshCw, ShieldCheck, WifiOff } from 'lucide-react';
 import type { AppClient, Bootstrap, UpdateRelease } from '@unicore/sdk';
 import { currentLocale, t, useLocale } from '../i18n';
-import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Checkbox, Modal, Progress, useMessage } from '../ui';
+import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Checkbox, Modal, Progress, useMessage } from '@unicore/ui';
 import type { PageProps } from '../router';
 
 const busy = (status?: string) => ['downloading', 'preparing', 'restarting', 'swapping', 'awaiting_health', 'rolling_back'].includes(status ?? '');

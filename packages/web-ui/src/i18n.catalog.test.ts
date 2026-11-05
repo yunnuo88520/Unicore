@@ -10,18 +10,21 @@ import updates from './locales/updates.en.json';
 
 it('covers literal UI copy and preserves every interpolation parameter', () => {
   const catalog: Record<string, string> = { ...english, ...license, ...updates };
-  const directory = resolve('packages/web-ui/src') + '/';
+  const directories = ['packages/web-ui/src', 'packages/ui/src', 'packages/form/src', 'packages/theme/src'];
   const missing: string[] = [];
-  for (const file of readdirSync(directory).filter(file => file.endsWith('.tsx') && !file.includes('.test.'))) {
-    const source = ts.createSourceFile(file, readFileSync(directory + file, 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-    function visit(node: ts.Node) {
-      if (ts.isCallExpression(node) && node.expression.getText(source) === 't' && node.arguments[0] && ts.isStringLiteral(node.arguments[0])) {
-        const text = node.arguments[0].text;
-        if (/[\u3400-\u9fff]/.test(text) && !catalog[text]) missing.push(`${file}: ${text}`);
+  for (const directory of directories) {
+    const base = resolve(directory) + '/';
+    for (const file of readdirSync(base).filter(file => file.endsWith('.tsx') && !file.includes('.test.'))) {
+      const source = ts.createSourceFile(file, readFileSync(base + file, 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+      function visit(node: ts.Node) {
+        if (ts.isCallExpression(node) && node.expression.getText(source) === 't' && node.arguments[0] && ts.isStringLiteral(node.arguments[0])) {
+          const text = node.arguments[0].text;
+          if (/[\u3400-\u9fff]/.test(text) && !catalog[text]) missing.push(`${directory}/${file}: ${text}`);
+        }
+        ts.forEachChild(node, visit);
       }
-      ts.forEachChild(node, visit);
+      visit(source);
     }
-    visit(source);
   }
   const spec = JSON.parse(readFileSync('packages/contracts/openapi.json', 'utf8'));
   for (const error of Object.values(spec['x-error-codes']) as {message: string}[]) {

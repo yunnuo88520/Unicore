@@ -960,7 +960,15 @@
     {
       "source": "distribution/template/framework.manifest.json",
       "target": "framework.manifest.json"
-    }
+    },
+    "packages/web-ui/AGENTS.md",
+    "packages/sdk/AGENTS.md",
+    "packages/ui/AGENTS.md",
+    "internal/adapter/http/AGENTS.md",
+    ".zcode/config.json",
+    "scripts/ai-guard.mjs",
+    "scripts/audit-dependencies.mjs",
+    "scripts/audit-exceptions.json"
   ],
   "ownership": {
     "product-owned": [

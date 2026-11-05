@@ -2,7 +2,7 @@
 // Description: React Hook Form layer bound to contract schemas: pending, server field errors, first-error focus.
 import { t, useLocale } from '@unicore/ui/i18n';
 import { cloneElement, isValidElement, useId, useMemo, useState, type ReactElement, type ReactNode, type InputHTMLAttributes } from 'react';
-import { useForm, FormProvider, useFormContext, Controller, type DefaultValues, type FieldValues, type Resolver, type UseFormReturn, type Path } from 'react-hook-form';
+import { useForm, FormProvider, useFormContext, Controller, type DefaultValues, type FieldValues, type RegisterOptions, type Resolver, type UseFormReturn, type Path } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AppError, constraintsToZod, type SchemaName } from '@unicore/sdk';
 import { cn } from '@unicore/ui/cn';
@@ -58,16 +58,34 @@ export function AppForm<T extends FieldValues>({ form, className, children, ...p
 }
 
 /** Contract-style field wrapper: label, injected registration, aria-invalid and localized error message. */
-export function AppField<T extends FieldValues>({ name, label, hint, children, className }: { name: Path<T>; label: ReactNode; hint?: ReactNode; children: ReactElement<InputHTMLAttributes<HTMLInputElement>>; className?: string }) {
+export function AppField<T extends FieldValues>({ name, label, hint, rules, onFieldChange, children, className }: {
+  name: Path<T>;
+  label: ReactNode;
+  hint?: ReactNode;
+  /** Extra react-hook-form registration options (valueAsNumber, validate, blur rules...). */
+  rules?: RegisterOptions<T, Path<T>>;
+  /** Side effect alongside registration, for pages that reset wizard state on field edits. */
+  onFieldChange?: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
+  children: ReactElement<InputHTMLAttributes<HTMLInputElement>>;
+  className?: string;
+}) {
   useLocale();
   const { register, formState } = useFormContext<T>();
   const id = useId();
   const message = formState.errors[name]?.message as string | undefined;
-  const registration = register(name);
+  const registration = register(name, rules);
   return <div className={cn('flex flex-col gap-1.5', className)}>
     <label htmlFor={id} className="text-sm font-medium text-ink">{label}</label>
     {hint && <p className="text-xs text-muted">{hint}</p>}
-    {isValidElement(children) ? cloneElement(children, { id, name: registration.name, onChange: registration.onChange, onBlur: registration.onBlur, ref: registration.ref, 'aria-invalid': !!message, 'aria-describedby': message ? `${id}-error` : children.props['aria-describedby'] } as InputHTMLAttributes<HTMLInputElement>) : children}
+    {isValidElement(children) ? cloneElement(children, {
+      id,
+      name: registration.name,
+      onChange: event => { registration.onChange(event); onFieldChange?.(event); },
+      onBlur: registration.onBlur,
+      ref: registration.ref,
+      'aria-invalid': !!message,
+      'aria-describedby': message ? `${id}-error` : children.props['aria-describedby'],
+    } as InputHTMLAttributes<HTMLInputElement>) : children}
     {message && <p id={`${id}-error`} role="alert" className="text-xs text-danger">{t(message)}</p>}
   </div>;
 }

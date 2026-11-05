@@ -31,7 +31,7 @@ Pre-1.0 squash is approved. New SQL/catalog/data generation assets exist; see mi
 
 ## output
 
-影响矩阵、SQL/catalog或设计、真实七组合/方言证据、数据/约束差异、失败恢复、docs/ADR、未验证项和隔离资源清理。
+影响矩阵、SQL/catalog或设计、真实七组合/方言证据、数据/约束差异、失败恢复、docs/adr、未验证项和隔离资源清理。
 
 ## forbidden
 

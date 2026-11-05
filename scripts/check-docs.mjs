@@ -1,6 +1,6 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Keep documentation/skills discoverable and reject broken local references and command drift.
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
 
@@ -28,6 +28,22 @@ for(const file of files){
 const skillTexts=execFileSync('rg',['--files','--no-require-git','.agents/skills'],{encoding:'utf8'}).trim().split('\n').filter(path=>path.endsWith('.md'));
 const citedPath=/(?:docs|internal|packages|scripts|migrations|distribution|assets|apps|cmd|tests)\/[A-Za-z0-9][A-Za-z0-9_./-]*/g;
 const symbolSuffix=/^(.*\/[^/]+)\.[A-Z][A-Za-z0-9_]*$/;
+// Case-exact existence: macOS and Windows filesystems accept the wrong case,
+// CI does not, so paths are verified segment by segment against readdir.
+const dirCache=new Map();
+function caseExactExists(path){
+ let current='';
+ for(const part of path.split('/')){
+  const base=current;
+  if(!dirCache.has(base)){
+   try{dirCache.set(base,new Set(readdirSync(base||'.',{withFileTypes:true}).map(entry=>entry.name)));}
+   catch{dirCache.set(base,new Set());}
+  }
+  if(!dirCache.get(base).has(part))return false;
+  current=current?`${current}/${part}`:part;
+ }
+ return true;
+}
 for(const file of skillTexts){
  const text=readFileSync(file,'utf8');
  for(const match of text.matchAll(citedPath)){
@@ -35,7 +51,7 @@ for(const file of skillTexts){
   let target=match[0].replace(/[.,;:)）`]+$/,'');
   const symbol=target.match(symbolSuffix);
   if(symbol)target=symbol[1];
-  if(!existsSync(target))failures.push(`${file}: missing cited path ${target}`);
+  if(!caseExactExists(target))failures.push(`${file}: missing cited path ${target}`);
  }
 }
 const manifest=JSON.parse(readFileSync('framework.manifest.json','utf8'));

@@ -34,7 +34,8 @@ test('Wiki configuration renders all pages and validates target identity', () =>
   assert.match(pages.get('_Sidebar.md'), /wiki\/Backup-Restore/);
   assert.match(pages.get('_Sidebar.md'), /wiki\/Notifications/);
   assert.match(pages.get('Notifications.md'), /mailer\.Service/);
-  assert.equal(pages.size, 11);
+  assert.match(pages.get('UI-Components.md'), /UI/);
+  assert.equal(pages.size, 12);
   for (const name of ['Commercial-Audit.md', 'Acceptance-R0.md', 'AI-Context.md', 'Wiki-Maintenance.md']) assert(!pages.has(name));
   for (const content of pages.values()) assert.doesNotMatch(content, /docs\/04-ai|docs\/adr|Commercial-Audit|workspace-preservation/);
   for (const value of ['../repo', 'https://github.com/team/repo', 'team/repo.git', 'team/repo/extra']) assert.throws(() => repositoryName(value));

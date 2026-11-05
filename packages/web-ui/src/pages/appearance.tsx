@@ -263,6 +263,7 @@ function SettingField({ entry, draft, cleared, onValue, onClear }: {
     {entry.key === 'site.admin_email' && <small className="text-xs text-muted">{t('接收系统告警和通知；留空则不设置默认收件人。')}</small>}
     {entry.key === 'site.footer_html' && <small className="text-xs text-muted">{t('支持段落、列表、强调和 HTTP/HTTPS 链接；不支持脚本、样式或嵌入内容。')}</small>}
     {entry.key === 'maintenance.enabled' && <small className="text-xs text-muted">{t('默认关闭。开启后暂停用户访问和 API 操作，管理员仍可登录后台关闭维护。')}</small>}
+    {entry.key === 'site.home_enabled' && <small className="text-xs text-muted">{t('默认关闭。开启后未登录访问站点根路径时展示产品首页，已登录用户直接进入工作空间。')}</small>}
     {entry.key === 'site.icp_url' && <small className="text-xs text-muted">{t('HTTPS 查询链接；备案号留空时隐藏页脚备案信息。')}</small>}
     {entry.key === 'mail.from_name' && <small className="text-xs text-muted">{t('留空时使用邮件中的站点名称；修改别名不影响 SMTP 连通性验证。')}</small>}
     {entry.key === 'admin.path' && <small className="text-xs text-muted">{t('配置错误可用 APP_ADMIN_PATH 恢复；接口仍执行权限检查。')}</small>}

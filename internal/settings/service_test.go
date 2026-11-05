@@ -139,13 +139,14 @@ func TestSiteConfigurationAndMaintenance(t *testing.T) {
 		{Key: "site.admin_email", Value: "Name <admin@example.test>"}, {Key: "site.police_number", Value: "record\nheader"},
 		{Key: "site.footer_html", Value: `<script>alert(1)</script>`}, {Key: "site.footer_html", Value: `<p onclick="alert(1)">bad</p>`},
 		{Key: "site.footer_html", Value: `<a href="javascript:alert(1)">bad</a>`}, {Key: "maintenance.enabled", Value: "yes"},
+		{Key: "site.home_enabled", Value: "yes"},
 		{Key: "maintenance.message", Value: strings.Repeat("x", 1001)},
 	} {
 		if _, err := service.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{change}}, "admin"); !errors.Is(err, ErrInvalid) {
 			t.Fatalf("accepted invalid %s: %v", change.Key, err)
 		}
 	}
-	changes := []contracts.SettingChange{{Key: "site.base_url", Value: "https://example.test/"}, {Key: "site.admin_email", Value: "alerts@example.test"}, {Key: "site.footer_html", Value: `<p>Support <a href="https://example.test/help">Help</a></p>`}, {Key: "maintenance.enabled", Value: "true"}, {Key: "maintenance.message", Value: "Scheduled maintenance"}}
+	changes := []contracts.SettingChange{{Key: "site.base_url", Value: "https://example.test/"}, {Key: "site.admin_email", Value: "alerts@example.test"}, {Key: "site.footer_html", Value: `<p>Support <a href="https://example.test/help">Help</a></p>`}, {Key: "maintenance.enabled", Value: "true"}, {Key: "maintenance.message", Value: "Scheduled maintenance"}, {Key: "site.home_enabled", Value: "true"}}
 	if _, err := service.Patch(ctx, contracts.SettingPatch{Changes: changes}, "admin"); err != nil {
 		t.Fatal(err)
 	}

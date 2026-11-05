@@ -10747,6 +10747,10 @@
           "site_name": {
             "type": "string"
           },
+          "home_enabled": {
+            "type": "boolean",
+            "description": "Whether the public product homepage is enabled for unauthenticated visitors."
+          },
           "admin_path": {
             "type": "string",
             "description": "仅管理员 bootstrap 返回后台入口；用户端为空，单机不提供后台。"

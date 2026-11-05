@@ -35,6 +35,7 @@ export interface Bootstrap {
   capabilities: Capabilities;
   installed: boolean;
   site_name: string;
+  home_enabled?: boolean;
   admin_path: string;
   current_user?: User;
   csrf_token?: string;

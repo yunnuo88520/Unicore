@@ -132,6 +132,9 @@ export const constraints = {
       "site_name": {
         "type": "string"
       },
+      "home_enabled": {
+        "type": "boolean"
+      },
       "admin_path": {
         "type": "string"
       },

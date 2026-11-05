@@ -327,6 +327,10 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 		if name, err := service.Value(r.Context(), "site.name"); err == nil {
 			data.SiteName = name
 		}
+		if value, err := service.Value(r.Context(), "site.home_enabled"); err == nil {
+			enabled := value == "true"
+			data.HomeEnabled = &enabled
+		}
 		if value, err := service.Value(r.Context(), "site.description"); err == nil {
 			data.SiteDescription = &value
 		}

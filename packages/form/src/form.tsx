@@ -91,7 +91,7 @@ export function AppField<T extends FieldValues>({ name, label, hint, rules, onFi
 }
 
 /** Controller-based field for non-native controls (Radix Select, Switch, Checkbox...). */
-export function AppControllerField<T extends FieldValues>({ name, label, hint, children, className }: { name: Path<T>; label: ReactNode; hint?: ReactNode; children: (field: { value: unknown; onChange: (value: unknown) => void; onBlur: () => void; disabled?: boolean }) => ReactNode; className?: string }) {
+export function AppControllerField<T extends FieldValues>({ name, label, hint, children, className }: { name: Path<T>; label?: ReactNode; hint?: ReactNode; children: (field: { value: unknown; onChange: (value: unknown) => void; onBlur: () => void; disabled?: boolean }) => ReactNode; className?: string }) {
   useLocale();
   const { control, formState } = useFormContext<T>();
   const message = formState.errors[name]?.message as string | undefined;
@@ -99,7 +99,7 @@ export function AppControllerField<T extends FieldValues>({ name, label, hint, c
     control={control}
     name={name}
     render={({ field, fieldState }) => <div className={cn('flex flex-col gap-1.5', className)}>
-      <span className="text-sm font-medium text-ink">{label}</span>
+      {label && <span className="text-sm font-medium text-ink">{label}</span>}
       {hint && <p className="text-xs text-muted">{hint}</p>}
       {children({ value: field.value, onChange: field.onChange, onBlur: field.onBlur, disabled: field.disabled })}
       {(message ?? fieldState.error?.message) && <p role="alert" className="text-xs text-danger">{t((message ?? fieldState.error?.message) as string)}</p>}

@@ -25,7 +25,7 @@ Web 用户与管理员分别从 main.tsx/admin.tsx 装配；全局管理页仅�
 
 新增页面先读 [前端基础封装](../03-runbooks/frontend-foundations.md)。WorkspaceLayout 唯一拥有固定导航与内容占位，使用逻辑方向和统一 767px 抽屉断点；业务页不得重设 main-shell 偏移。工作区和主题面板固定 LTR，已移除阅读方向选项。`pnpm check:i18n` 会递归检查共享 UI 和两套 shell 的中文直写、静态词条、设置/权限元数据、契约错误、英文资源及插值；Web/GUI 构建与 make test 必须通过，不以文档约定替代构建检查。
 
-公告管理和用户卡片复用 ui 原语、DashboardWidgetRegistry 与安全 RichContent；公告/邮件主题正文是原始业务数据，不经过 t()。默认邮件模板固定中文，UI 的双语约束不能用于翻译用户内容。富文本编辑使用 `@unicore/ui/editor` 的 RichTextEditor（Tiptap，标签白名单与安全链接校验）：链接契约默认仅接受绝对 URL，邮件场景传 `siteTemplate` 额外允许 {{site_url}} 模板变量，`sourceLabel` 与 `maxLength`（默认 12000）由调用方给定；服务端仍对入站 HTML 做白名单再校验；渲染侧统一走 rich-content.tsx 的 safeContentHTML。Recharts 图表能力封装在 `@unicore/ui/charts`，接入新统计前不得展示无真实数据支撑的图形。
+公告管理和用户卡片复用 ui 原语、DashboardWidgetRegistry 与安全 RichContent；公告/邮件主题正文是原始业务数据，不经过 t()。默认邮件模板固定中文，UI 的双语约束不能用于翻译用户内容。富文本编辑使用 `@unicore/ui/editor` 的 RichTextEditor（Tiptap，标签白名单与安全链接校验）：链接契约默认仅接受绝对 URL，邮件场景传 `siteTemplate` 额外允许 {{site_url}} 模板变量，`sourceLabel` 与 `maxLength`（默认 12000）由调用方给定；服务端仍对入站 HTML 做白名单再校验；渲染侧统一走 rich-content.tsx 的 safeContentHTML。图表能力暂未随包提供（此前封装无消费者已移除），接入真实统计 API 时再重新设计，不得展示无真实数据支撑的图形。
 
 私有文件上传复用 FileUploadDialog 与 AppClient.files.uploadFile 的持久分片流程：字节进度以确认分片为准，signal 为暂停，deleteFile 为放弃；恢复需重新选择原文件并核对指纹，不在 localStorage 存签名 URL、File 或身份。仅平台装配，见 [存储手册](../03-runbooks/storage.md)。
 

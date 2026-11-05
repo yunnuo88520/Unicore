@@ -762,7 +762,6 @@
     "packages/ui/src/badge.tsx",
     "packages/ui/src/button.tsx",
     "packages/ui/src/card.tsx",
-    "packages/ui/src/charts.tsx",
     "packages/ui/src/checkbox.tsx",
     "packages/ui/src/cn.ts",
     "packages/ui/src/dialog.tsx",

@@ -11,7 +11,8 @@ import { MessageProvider } from '@unicore/ui';
 import { SiteFooter } from './site-footer';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { RouterProvider, Outlet, createBrowserHistory, useRouter, useRouterState, type RouterHistory } from '@tanstack/react-router';
-import { Bell, Webhook, FileText, Braces, ChevronRight, ExternalLink, FlaskConical, Info, LayoutDashboard, Mail, Megaphone, Menu, Monitor, NotebookPen, PackageCheck, PanelLeftClose, PanelLeftOpen, Radio, RotateCcw, ScrollText, Settings2, ShieldCheck, UserCog, UserRound, Users, Cloud, FolderOpen, Circle, type LucideIcon } from 'lucide-react';
+import { Braces, ChevronRight, ExternalLink, FlaskConical, Info, Menu, PanelLeftClose, PanelLeftOpen, Radio, RotateCcw, Settings2, ShieldCheck, UserRound, Users, type LucideIcon } from 'lucide-react';
+import { buildNavigation } from './navigation';
 import { BrandProvider, BrandMark, BrandLockup } from './brand';
 import type { AppClient, Bootstrap } from '@unicore/sdk';
 import { setCustomAccent, useTheme, type Theme } from '@unicore/theme';
@@ -31,8 +32,6 @@ import { NotFoundPage } from './pages/not-found';
 
 export { DashboardWidgetRegistry } from './registry';
 export type { PageProps, PageComponent } from './router';
-
-const PAGE_LABELS = Object.fromEntries(Object.entries(routes).map(([id, route]) => [id, route.label])) as Record<Page, string>;
 
 export type WorkspaceProps = {
   client: AppClient;
@@ -189,15 +188,13 @@ function SideNavigation({ page, data, client, onNavigate, onAbout }: {
   const personalSettings = data.identity_realm !== 'administrator';
   const ROUTE_PATHS: Partial<Record<Page, string>> = { overview: '/' };
   function go(next: Page) { onNavigate(); void router.navigate({ to: ROUTE_PATHS[next] ?? `/${next === 'not-found' ? '' : next}` }); }
-  // The rail shows top-level entries only; management children stay inside their group menus.
-  const entries: { id: Page; icon: LucideIcon; label: string }[] = [];
-  for (const id of ['overview', 'lab', 'notes'] as const) if (canAccess(id, data)) entries.push({ id, icon: id === 'overview' ? LayoutDashboard : id === 'lab' ? FlaskConical : NotebookPen, label: PAGE_LABELS[id] });
-  if (canAccess('files', data)) entries.push({ id: 'files', icon: FolderOpen, label: administration ? t('文件管理') : t('我的文件') });
-  if (personalSettings && canAccess('site', data)) entries.push({ id: 'site', icon: Settings2, label: t('外观设置') });
-  if (!administration && canAccess('edition', data)) entries.push({ id: 'edition', icon: PackageCheck, label: PAGE_LABELS.edition });
-  const userPages = (['users', 'administrators', 'roles'] as const).filter(id => canAccess(id, data));
-  const personalPages = (['account','account-security','account-sessions'] as const).filter(id=>canAccess(id,data));
-  const systemPages = (['site', 'account-policy', 'mail', 'mail-templates', 'notification-channels', 'notification-templates', 'system-notifications', 'announcements', 'storage', 'logs', 'edition'] as const).filter(id => canAccess(id, data));
+  // The navigation model comes from navigation.ts; rail shows top-level entries, groups stay inside their menus.
+  const navigation = buildNavigation(data);
+  const entries = [...navigation.primary, ...(navigation.files ? [navigation.files] : []), ...navigation.standalone];
+  const groupEntries = (id: 'administration' | 'system' | 'personal') => navigation.groups.find(group => group.id === id)?.entries ?? [];
+  const userPages = groupEntries('administration').map(item => item.id);
+  const personalPages = groupEntries('personal').map(item => item.id);
+  const systemPages = groupEntries('system').map(item => item.id);
 
   if (navCollapsed && desktop && layout !== 'full') return <>
     <div className="flex flex-col items-center pb-2">
@@ -239,25 +236,20 @@ function SideNavigation({ page, data, client, onNavigate, onAbout }: {
     </button>
     <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto pb-2">
       <nav aria-label={t('工作台')} className="flex flex-col gap-0.5">
-        {([{ id: 'overview', icon: LayoutDashboard }, { id: 'lab', icon: FlaskConical }, { id: 'notes', icon: NotebookPen }] as const)
-          .filter(({ id }) => canAccess(id, data))
-          .map(({ id, icon: Icon }) => <NavItem key={id} icon={Icon} active={page === id} label={PAGE_LABELS[id]} onClick={() => go(id)} />)}
+        {navigation.primary.map(({ id, icon: Icon, label }) => <NavItem key={id} icon={Icon} active={page === id} label={label} onClick={() => go(id)} />)}
       </nav>
-      {canAccess('files', data) && <NavItem icon={FolderOpen} active={page === 'files'} label={administration ? t('文件管理') : t('我的文件')} onClick={() => go('files')} />}
-      {administration && <NavGroup title={t('用户管理')} icon={<Users size={19} />} active={userPages.some(id => id === page)}>
-        <NavEntry id="users" page={page} onNavigate={go} />
-        <NavEntry id="administrators" page={page} onNavigate={go} />
-        <NavEntry id="roles" page={page} onNavigate={go} />
+      {navigation.files && <NavItem icon={navigation.files.icon} active={page === 'files'} label={navigation.files.label} onClick={() => go('files')} />}
+      {groupEntries('administration').length > 0 && <NavGroup title={t('用户管理')} icon={<Users size={19} />} active={userPages.some(id => id === page)}>
+        {groupEntries('administration').map(item => <NavEntry key={item.id} id={item.id} page={page} onNavigate={go} />)}
       </NavGroup>}
       {personalPages.length>0 && <p className="mt-5 mb-1 px-[11px] text-2xs font-semibold tracking-wider text-subtle">{t('系统管理')}</p>}
-      {canAccess('site', data) && (personalSettings
-        ? <NavItem icon={Settings2} active={page === 'site'} label={t('外观设置')} onClick={() => go('site')} />
-        : <NavGroup title={t('系统设置')} icon={<Settings2 size={19} />} active={systemPages.some(id => id === page)}>
-            <NavEntry id="site" page={page} onNavigate={go} />
-            {(['account-policy', 'mail', 'mail-templates', 'notification-channels', 'notification-templates', 'system-notifications', 'announcements', 'storage', 'logs', 'edition'] as const).filter(id => canAccess(id, data)).map(id => <NavEntry key={id} id={id} page={page} onNavigate={go} />)}
-          </NavGroup>)}
+      {(administration ? groupEntries('system').length > 0 : navigation.standalone.some(item => item.id === 'site')) && (administration
+        ? <NavGroup title={t('系统设置')} icon={<Settings2 size={19} />} active={systemPages.some(id => id === page)}>
+            {groupEntries('system').map(item => <NavEntry key={item.id} id={item.id} page={page} onNavigate={go} />)}
+          </NavGroup>
+        : navigation.standalone.filter(item => item.id === 'site').map(item => <NavItem key={item.id} icon={item.icon} active={page === item.id} label={item.label} onClick={() => go(item.id)} />))}
       {personalPages.length>0 && <NavGroup title={t('个人中心')} icon={<UserRound size={19} />} active={personalPages.some(id=>id===page)}>{personalPages.map(id=><NavEntry key={id} id={id} page={page} onNavigate={go}/>)}</NavGroup>}
-      {!administration && canAccess('edition', data) && <NavItem icon={PackageCheck} active={page === 'edition'} label={t('系统更新')} onClick={() => go('edition')} />}
+      {navigation.standalone.filter(item => item.id === 'edition').map(item => <NavItem key={item.id} icon={item.icon} active={page === item.id} label={item.label} onClick={() => go(item.id)} />)}
     </div>
     <div className="shrink-0 pt-[14px]"><SidebarTools onAbout={onAbout} /></div>
   </>;
@@ -293,9 +285,9 @@ function RailGroup({ title, icon: Icon, pages, page, onNavigate }: { title: stri
     <DropdownMenuContent side="right" align="start" aria-label={t(title)} className="min-w-48">
       <DropdownMenuLabel>{t(title)}</DropdownMenuLabel>
       {pages.map(id => {
-        const ChildIcon = NAV_ICONS[id] ?? Circle;
+        const ChildIcon = routes[id].icon;
         return <DropdownMenuItem key={id} aria-current={page === id ? 'page' : undefined} onSelect={() => onNavigate(id)}>
-          <ChildIcon size={16} aria-hidden="true" /><span>{t(PAGE_LABELS[id])}</span>
+          <ChildIcon size={16} aria-hidden="true" /><span>{t(routes[id].label)}</span>
         </DropdownMenuItem>;
       })}
     </DropdownMenuContent>
@@ -314,13 +306,11 @@ function NavGroup({ title, icon, children, active = false }: { title: string; ic
   </section>;
 }
 
-const NAV_ICONS: Partial<Record<Page, LucideIcon>> = { 'notification-channels':Webhook, 'notification-templates':FileText, 'system-notifications':Bell, 'account-policy':ShieldCheck, account:UserRound, 'account-security':ShieldCheck, 'account-sessions':Monitor, announcements: Megaphone, storage: Cloud, files: FolderOpen, users: UserRound, administrators: UserCog, roles: ShieldCheck, site: Settings2, mail: Mail, 'mail-templates': Mail, logs: ScrollText, edition: PackageCheck };
-
 function NavEntry({ id, page, onNavigate }: { id: Page; page: Page; onNavigate: (page: Page) => void }) {
   useLocale();
-  const Icon = NAV_ICONS[id] ?? Circle;
+  const Icon = routes[id].icon;
   return <button className={`flex min-h-10 w-full items-center gap-[10px] rounded-lg px-[10px] text-start text-[length:var(--font-12)] font-medium transition-colors ${page === id ? 'bg-primary-soft text-accent' : 'text-muted hover:bg-surface-alt hover:text-ink'}`} aria-current={page === id ? 'page' : undefined} onClick={() => onNavigate(id)}>
-    <Icon size={16} aria-hidden="true" /><span className="truncate">{t(PAGE_LABELS[id])}</span>{page === id && <span className="ms-auto size-1.5 shrink-0 rounded-full bg-accent" />}
+    <Icon size={16} aria-hidden="true" /><span className="truncate">{t(routes[id].label)}</span>{page === id && <span className="ms-auto size-1.5 shrink-0 rounded-full bg-accent" />}
   </button>;
 }
 
@@ -347,7 +337,7 @@ function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onO
         : <button className="mobile-menu size-8 items-center justify-center rounded-md text-muted hover:bg-primary-soft hover:text-accent max-md:-ms-1" aria-label={t('打开导航')} aria-expanded={mobileOpen} aria-controls="workspace-navigation" onClick={onOpenMobile}><Menu size={20} /></button>}
       <span className="hidden max-lg:inline">{t('工作空间')}</span>
       <ChevronRight size={14} className="hidden max-md:block max-lg:hidden text-subtle" aria-hidden="true" />
-      <strong className="truncate font-medium text-ink">{page === 'site' ? settingsLabel : t(PAGE_LABELS[page])}</strong>
+      <strong className="truncate font-medium text-ink">{page === 'site' ? settingsLabel : t(routes[page].label)}</strong>
     </div>
     <div className="flex shrink-0 items-center gap-[15px] max-md:gap-[9px]">
       <span className="flex items-center gap-1.5 text-[length:var(--font-10)] text-muted max-sm:hidden">

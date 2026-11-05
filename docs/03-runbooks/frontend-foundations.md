@@ -7,7 +7,7 @@
 | --- | --- | --- |
 | 页面骨架 | `@unicore/web-ui/layout` / WorkspaceLayout | navigation/header/children/overlays 插槽；布局宽度、固定侧栏、滚动与移动断点由 shell 管理（几何属性变体在 shell.css），页面不设主区域偏移 |
 | 身份与请求 | Workspace / SessionBoundary / AppClient / queries.ts | 会话代际隔离、统一错误与失效；Query 管服务端状态，不绕过 SDK |
-| 路由与权限 | routes.ts / router.tsx / admin-app.tsx | routes.ts 登记/标题/说明；createWorkspaceRouter 挂载 page 模块（history 导航，桌面 hash，管理端动态 basepath）；管理员入口独立，API 再授权 |
+| 路由与权限 | routes.ts / router.tsx / admin-app.tsx | routes.ts 是页面事实的唯一登记源（标题/说明/权限/图标/导航分组），导航模型由 navigation.ts 的 buildNavigation 派生（含外观设置、系统更新的上下文例外）；createWorkspaceRouter 挂载 page 模块（history 导航，桌面 hash，管理端动态 basepath）；管理员入口独立，API 再授权 |
 | 界面语言 | `@unicore/web-ui/i18n` | 组件 `useI18n()`，正文/属性/提示 `t()`；静态配置 `defineMessages()` 登记后在渲染处翻译；共享组件经 `@unicore/ui/i18n` 翻译桩渲染 key，宿主在 i18n.ts 注入 setTranslator |
 | 本地偏好 | `@unicore/theme/preferences` / ClientControls | 唯一设备状态入口；不得用业务设置 API 或独立 localStorage |
 | 主题与布局控件 | AppearanceDrawer / AppearanceControls | 选项来自 preferenceOptions，标签满足完整类型映射；控件固定 LTR，工作区统一 LTR |

@@ -229,44 +229,20 @@ func rawSession(r *http.Request) string {
 	return cookie.Value
 }
 func require(manager *install.Manager, w http.ResponseWriter, r *http.Request, permission string) (contracts.Session, bool) {
-	if !manager.Installed() {
-		failure(w, 409, "INSTALL_REQUIRED", "请先完成安装")
-		return contracts.Session{}, false
-	}
-	_, _, _, profile := manager.Services()
-	identity := manager.Identity(administratorRequest(r))
-	if profile != runtime.WebPlatform || identity == nil {
-		failure(w, 404, "NOT_FOUND", "此运行形态不提供平台接口")
-		return contracts.Session{}, false
-	}
-	session, err := identity.Session(r.Context(), rawSession(r))
-	if err != nil {
-		if errors.Is(err, platform.ErrMFA) {
-			webError(w, err)
+	session, ok := r.Context().Value(policySessionKey{}).(contracts.Session)
+	if !ok {
+		var resolved bool
+		session, resolved = resolveSession(manager, w, r)
+		if !resolved {
 			return session, false
 		}
-		if administratorRequest(r) && rawSession(r) == "" {
-			if cookie, e := r.Cookie(sessionCookie); e == nil {
-				if userIdentity := manager.Identity(false); userIdentity != nil {
-					if _, e = userIdentity.Session(r.Context(), cookie.Value); e == nil {
-						webError(w, platform.ErrForbidden)
-						return session, false
-					}
-				}
-			}
-		}
-		failure(w, 401, "AUTH_REQUIRED", contracts.ErrorCatalog["AUTH_REQUIRED"].Message)
-		return session, false
-	}
-	if r.Method != "GET" && r.Method != "HEAD" && !platform.Equal(r.Header.Get("X-CSRF-Token"), session.CsrfToken) {
-		failure(w, 403, "CSRF_INVALID", "请求校验已失效，请刷新页面")
-		return session, false
 	}
 	if permission != "" && (!platform.Has(session.User, permission) || (platform.SuperOnly(permission) && !platform.IsSuper(session.User))) {
 		webError(w, platform.ErrForbidden)
 		return session, false
 	}
-	if identity.Personal != nil && !strings.Contains(r.URL.Path, "/account/") && !strings.HasSuffix(r.URL.Path, "/auth/logout") && !strings.HasSuffix(r.URL.Path, "/auth/session") {
+	identity := manager.Identity(administratorRequest(r))
+	if identity != nil && identity.Personal != nil && !strings.Contains(r.URL.Path, "/account/") && !strings.HasSuffix(r.URL.Path, "/auth/logout") && !strings.HasSuffix(r.URL.Path, "/auth/session") {
 		info, err := identity.Personal.Profile(r.Context(), rawSession(r))
 		if err != nil {
 			webError(w, err)

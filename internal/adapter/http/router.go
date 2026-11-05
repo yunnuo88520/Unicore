@@ -3,10 +3,7 @@
 package httpadapter
 
 import (
-	"context"
 	"encoding/json"
-	"errors"
-	"io"
 	"io/fs"
 	"log/slog"
 	"mime"
@@ -167,98 +164,7 @@ func New(config Config) http.Handler {
 	router.Get("/brand-assets/{name}", func(w http.ResponseWriter, r *http.Request) { serveBrandAsset(config, w, r) })
 	router.Head("/brand-assets/{name}", func(w http.ResponseWriter, r *http.Request) { serveBrandAsset(config, w, r) })
 	router.Route("/api/v1", func(api chi.Router) {
-		if config.Install != nil {
-			mountUpdates(api, config)
-		}
-		for _, bootstrapPath := range []string{"/bootstrap", "/admin/bootstrap"} {
-			api.Get(bootstrapPath, func(w http.ResponseWriter, r *http.Request) {
-				if strings.HasPrefix(bootstrapPath, "/admin/") && (config.Install == nil || config.Install.Identity(true) == nil) {
-					failure(w, 404, "NOT_FOUND", "接口不存在")
-					return
-				}
-				data := config.Metadata
-				if config.Install != nil {
-					data = metadata(config, r)
-				}
-				writeJSON(w, 200, contracts.BootstrapResponse{Code: "OK", Data: data, RequestID: w.Header().Get("X-Request-ID")})
-			})
-		}
-		for _, route := range []string{"/health/live", "/health/ready"} {
-			api.Get(route, func(w http.ResponseWriter, r *http.Request) {
-				if config.Install != nil && r.URL.Path == "/api/v1/health/ready" {
-					store, _, _, _ := config.Install.Services()
-					if store == nil {
-						failure(w, 503, "NOT_READY", "安装尚未完成")
-						return
-					}
-					ctx, cancel := context.WithTimeout(r.Context(), config.ReadinessTimeout)
-					defer cancel()
-					if err := store.DB.PingContext(ctx); err != nil {
-						failure(w, 503, "NOT_READY", "存储尚未就绪")
-						return
-					}
-				}
-				writeJSON(w, 200, contracts.HealthResponse{Code: "OK", Data: contracts.Health{Status: "ok"}, RequestID: w.Header().Get("X-Request-ID")})
-			})
-		}
-		for _, corePath := range []string{"/core/execute", "/admin/core/execute"} {
-			api.Post(corePath, func(w http.ResponseWriter, r *http.Request) {
-				if strings.HasPrefix(corePath, "/admin/") && (config.Install == nil || config.Install.Identity(true) == nil) {
-					failure(w, 404, "NOT_FOUND", "接口不存在")
-					return
-				}
-				if config.Install != nil && !coreAccess(config.Install, w, r) {
-					return
-				}
-				requestID := w.Header().Get("X-Request-ID")
-				fail := func(status int, code, message string) {
-					writeJSON(w, status, contracts.ErrorResponse{Code: code, Message: message, RequestID: requestID})
-				}
-				if !sameOrigin(r) {
-					fail(403, "ORIGIN_REJECTED", "请求来源不受信任")
-					return
-				}
-				contentType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
-				if err != nil || contentType != "application/json" {
-					fail(415, "UNSUPPORTED_MEDIA_TYPE", "请使用 application/json")
-					return
-				}
-				r.Body = http.MaxBytesReader(w, r.Body, 512*1024)
-				decoder := json.NewDecoder(r.Body)
-				decoder.DisallowUnknownFields()
-				var input contracts.ExecuteInput
-				if err := decoder.Decode(&input); err != nil {
-					var tooLarge *http.MaxBytesError
-					if errors.As(err, &tooLarge) {
-						fail(413, "BODY_TOO_LARGE", "请求体过大")
-					} else {
-						fail(400, "INVALID_JSON", "JSON 格式不正确")
-					}
-					return
-				}
-				if err := decoder.Decode(&struct{}{}); err != io.EOF {
-					fail(400, "INVALID_JSON", "只允许一个 JSON 对象")
-					return
-				}
-				if !validateInput(w, r, input) {
-					return
-				}
-				output, err := config.Core.Execute(r.Context(), input)
-				if err != nil {
-					response := presenter.Error(err, requestID)
-					status := 500
-					if response.Code == "INVALID_INPUT" {
-						status = 400
-					}
-					writeJSON(w, status, response)
-					return
-				}
-				writeJSON(w, 200, contracts.ExecuteResponse{Code: "OK", Data: output, RequestID: requestID})
-			})
-		}
-		if config.Install != nil {
-			mountWeb(api, config)
-		}
+		mountAPI(api, config)
 	})
 	apiError := func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 404, contracts.ErrorResponse{Code: "NOT_FOUND", Message: "接口不存在", RequestID: w.Header().Get("X-Request-ID")})

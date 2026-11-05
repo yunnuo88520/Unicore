@@ -4,6 +4,7 @@
 import { t, useLocale } from './i18n';
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { cva } from 'class-variance-authority';
 import { Bell, CheckCircle2, CircleAlert, Info, TriangleAlert, X } from 'lucide-react';
 import { cn } from './cn';
 
@@ -13,13 +14,17 @@ type MessageItem = Required<MessageOptions>;
 export type MessageAPI = { open: (options: MessageOptions) => string; destroy: (id: string) => void } & Record<MessageType, (content: ReactNode) => string>;
 const Context = createContext<MessageAPI | null>(null);
 const icons = { primary: Bell, success: CheckCircle2, warning: TriangleAlert, info: Info, error: CircleAlert };
-const tone: Record<MessageType, string> = {
-  primary: 'border-primary-line text-accent',
-  success: 'border-transparent text-success',
-  warning: 'border-transparent text-warning',
-  info: 'border-transparent text-info',
-  error: 'border-danger-line text-danger',
-};
+export const messageToneVariants = cva('', {
+  variants: {
+    tone: {
+      primary: 'border-primary-line text-accent',
+      success: 'border-transparent text-success',
+      warning: 'border-transparent text-warning',
+      info: 'border-transparent text-info',
+      error: 'border-danger-line text-danger',
+    },
+  },
+});
 
 // Static access for contexts outside the React tree (SDK callbacks, global handlers);
 // calls are no-ops until a MessageProvider mounts and are dropped after it unmounts.
@@ -66,7 +71,7 @@ function MessageViewport({ items, dismiss }: { items: MessageItem[]; dismiss: (i
     <div className="pointer-events-none fixed inset-x-0 top-3 z-[70] mx-auto flex w-fit max-w-[calc(100vw-24px)] flex-col gap-2" role="region" aria-label={t('消息提示')}>
       {items.map(item => {
         const Icon = icons[item.type];
-        return <div key={item.id} className={cn('message', `message-${item.type}`, 'pointer-events-auto flex items-center gap-2.5 rounded-lg border border-line bg-surface px-3 py-2 shadow-modal', tone[item.type])}
+        return <div key={item.id} className={cn('message', `message-${item.type}`, 'pointer-events-auto flex items-center gap-2.5 rounded-lg border border-line bg-surface px-3 py-2 shadow-modal', messageToneVariants({ tone: item.type }))}
           data-message-type={item.type} role={item.type === 'error' || item.type === 'warning' ? 'alert' : 'status'} aria-atomic="true">
           <Icon size={17} aria-hidden="true" className="shrink-0" />
           <span className="text-sm text-ink">{item.content}</span>

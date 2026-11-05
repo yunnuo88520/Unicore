@@ -2,7 +2,7 @@
 // Description: Input family renders native semantics with shared control styling.
 import { render, screen } from '@testing-library/react';
 import { expect, it } from 'vitest';
-import { Input, Label, NativeSelect, Textarea } from './input';
+import { controlVariants, Input, Label, NativeSelect, Textarea } from './input';
 
 it('input forwards value and type to the native element', () => {
   render(<Input value="文本" type="email" onChange={() => {}} aria-label="邮箱" />);
@@ -26,4 +26,9 @@ it('textarea and native select stay controllable', () => {
 it('label associates through htmlFor', () => {
   render(<><Label htmlFor="name">名称</Label><Input id="name" /></>);
   expect(screen.getByLabelText('名称')).toBeInTheDocument();
+});
+
+it('exports the control surface through cva for composition', () => {
+  expect(controlVariants()).toContain('focus-visible:ring-focus');
+  expect(controlVariants()).toContain('aria-invalid:border-danger');
 });

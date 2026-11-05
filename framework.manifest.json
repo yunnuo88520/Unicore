@@ -92,6 +92,10 @@
     "generate": "pnpm generate",
     "context": "pnpm ai:context",
     "verify": "make test",
+    "verifyGo": "make test-go",
+    "verifyWeb": "make test-web",
+    "verifyContracts": "make test-gen",
+    "audit": "make audit",
     "pages": "make test-e2e",
     "native": "make build-desktop",
     "docs": "make docs",
@@ -112,16 +116,18 @@
   "skills": [
     "add-api-operation",
     "add-cli-command",
+    "add-e2e-test",
+    "add-file-storage",
     "add-go-module",
     "add-platform-permission",
     "add-react-page",
     "add-setting",
     "app-lifecycle",
     "db-migration",
+    "debug-failure",
     "maintain-framework-docs",
     "release-cross-platform",
-    "security-review",
-    "add-file-storage"
+    "security-review"
   ],
   "surfaces": {
     "client": "apps/web/src/main.tsx",

@@ -14,6 +14,8 @@
 | CLI | add-cli-command | CLI/Core 用例与依赖边界，不加载平台身份/数据库资料 |
 | 生命周期/日志 | app-lifecycle | [运行规范](../02-standards/runtime.md) |
 | 构建/发行 | release-cross-platform | [发行](../03-runbooks/release.md)、[升级](../03-runbooks/updates.md) |
+| 失败排查 | debug-failure | [后端规范](../02-standards/backend.md)、对应生成检查 |
+| E2E 扩展 | add-e2e-test | playwright.config.ts 与 tests/e2e 同域样板 |
 | 文档 | maintain-framework-docs | 本次受影响来源、导航、生成与链接检查 |
 | 安全审查 | security-review | 本次入口、权限/状态边界与相关测试 |
 
@@ -23,7 +25,7 @@
 
 涉及框架功能/API/配置或扩展方式时，同步更新对应文档站来源；新增公开主题登记 distribution/manifest.json 的 public-site，并运行 pnpm --dir website build，流程见 [文档站维护](../03-runbooks/documentation-site.md)。
 
-完成后运行 make docs、make test 和受影响检查；UI 用真实后端验证，原生修改在目标系统验证。区分代码存在、构建、自动化、目标系统实测和生产验证，只报告实际执行结果，不用历史通过数冒充当前结果。
+完成后运行 make docs、make test 和受影响检查；迭代期先跑受影响面（make test-go / test-web / test-gen），交付前跑 make test 全量。UI 用真实后端验证，原生修改在目标系统验证。区分代码存在、构建、自动化、目标系统实测和生产验证，只报告实际执行结果，不用历史通过数冒充当前结果。
 
 长期有效的使用说明、开发规范、已知限制和重大 ADR 随实现更新。任务审查/验收报告、商业路线图、实验输出和本机记录放仓库外或 build/、CI artifact，不进入主仓库；确有测试消费者的夹具保留，不能因目录名像证据就删除。禁止保存密码、密钥、真实用户数据或整段会话历史。
 

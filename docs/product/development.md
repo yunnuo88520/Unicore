@@ -20,7 +20,7 @@ make build-web build-cli build-ops
 
 域名不是产品身份字段。部署到自己的域名时配置 DNS、Nginx server_name 和 TLS，首次从正式 HTTPS 地址打开 /install，基础地址默认取浏览器的实际 origin；生产配置与实例数据不写入仓库。自己的 Logo/图标仍由 assets/brand/identity.json 配置，产品更名不会凭空生成定制图案。
 
-按任务读取，不遍历全部文档。契约、代码和可重复测试比过期功能说明更可靠；先检查已有功能和工作区，不覆盖他人修改。根 AGENTS 是简短硬约束，.agents/skills/develop-application 按需加载流程。
+按任务读取，不遍历全部文档。契约、代码和可重复测试比过期功能说明更可靠；先检查已有功能和工作区，不覆盖他人修改。根 AGENTS 是简短硬约束，.agents/skills/develop-application 按需加载流程；触碰受保护源（迁移 SQL、契约、生成文件、权限目录）时工具会收到自动提醒，先读对应规范再改。
 
 ## UI 组件
 
@@ -58,7 +58,7 @@ packages/contracts/openapi.json 是 DTO/operation 的唯一线契约。先改契
 
 ## 验证与维护自己的项目
 
-每个手写文件保留 Author: yunnuo <ymz@ebox.vip> 作者元信息（严格 JSON/锁/生成文件按其格式处理）。新提交标题/正文使用英文。运行 make docs、make test、受影响 Profile 构建和相应页面/数据库测试；区分代码存在、构建、自动测试、原生实测与生产验证，未执行如实标明。
+每个手写文件保留 Author: yunnuo <ymz@ebox.vip> 作者元信息（严格 JSON/锁/生成文件按其格式处理）。新提交标题/正文使用英文。迭代期先跑受影响面（make test-go / test-web / test-gen），交付前运行 make docs、make test、受影响 Profile 构建和相应页面/数据库测试；区分代码存在、构建、自动测试、原生实测与生产验证，未执行如实标明。
 
 创建器按 distribution/manifest.json 的显式模板导出，新的 Git 文件不会自动入模板。Git 来源选中文件若有未提交修改默认拒绝；确需导出经过审阅的修改，显式传 --allow-dirty，provenance 将记录来源状态与输入摘要。没有 Git 的源码目录标记为 unversioned，不能声称来自某个干净提交。
 

@@ -80,6 +80,7 @@ OpenAPI 当前包含 173 个 operation、162 个 schema。Go/TS 模型、调用�
 | --- | --- |
 | [add-api-operation](../../.agents/skills/add-api-operation/SKILL.md) | 增加或修改 Unicore OpenAPI operation、共享 DTO、SDK 与 HTTP 接口，并验证契约及服务端权限。 |
 | [add-cli-command](../../.agents/skills/add-cli-command/SKILL.md) | 为 Unicore Cobra CLI 增加直接调用共享 Core 的命令、stdin/文件输入和结构化输出。 |
+| [add-e2e-test](../../.agents/skills/add-e2e-test/SKILL.md) | 扩展 Unicore Playwright E2E：真实后端与 Go 夹具编译、双视口断言与证据留存边界。 |
 | [add-file-storage](../../.agents/skills/add-file-storage/SKILL.md) | 扩展 Unicore 文件业务、存储提供商、直传或签名下载，保持 file_id 元数据与生命周期边界。 |
 | [add-go-module](../../.agents/skills/add-go-module/SKILL.md) | 新增 Unicore Go 领域模块、用例、ports 与按 profile 装配的 adapter。 |
 | [add-platform-permission](../../.agents/skills/add-platform-permission/SKILL.md) | 实现 Unicore web-platform 固定管理员/普通用户的菜单、页面与 API 权限，并验证越权边界。 |
@@ -87,6 +88,7 @@ OpenAPI 当前包含 173 个 operation、162 个 schema。Go/TS 模型、调用�
 | [add-setting](../../.agents/skills/add-setting/SKILL.md) | 向 Unicore SettingDefinition 增加分组设置、profile 范围、校验与敏感值处理。 |
 | [app-lifecycle](../../.agents/skills/app-lifecycle/SKILL.md) | 修改 Unicore 配置加载、组件生命周期、日志或监控入口，并验证各 profile 的启动与退出。 |
 | [db-migration](../../.agents/skills/db-migration/SKILL.md) | 创建 Unicore 分方言数据库迁移、兼容评估与数据恢复说明。 |
+| [debug-failure](../../.agents/skills/debug-failure/SKILL.md) | 分流 Unicore 自动化失败：按受影响面选择粒度目标、对照常见失败签名、定位日志与 trace。 |
 | [maintain-framework-docs](../../.agents/skills/maintain-framework-docs/SKILL.md) | 维护 Unicore 使用与开发文档、框架 manifest、任务 Skills 和生成检查，避免引入研发流水。 |
 | [release-cross-platform](../../.agents/skills/release-cross-platform/SKILL.md) | 构建 Unicore profile/OS/Arch 发行包、checksum/manifest 和原生桌面产物。 |
 | [security-review](../../.agents/skills/security-review/SKILL.md) | 有范围地审查 Unicore 安装、身份、设置、传输、上传或升级的实际安全边界。 |
@@ -96,6 +98,10 @@ OpenAPI 当前包含 173 个 operation、162 个 schema。Go/TS 模型、调用�
 - generate：`pnpm generate`
 - context：`pnpm ai:context`
 - verify：`make test`
+- verifyGo：`make test-go`
+- verifyWeb：`make test-web`
+- verifyContracts：`make test-gen`
+- audit：`make audit`
 - pages：`make test-e2e`
 - native：`make build-desktop`
 - docs：`make docs`

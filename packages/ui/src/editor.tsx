@@ -56,9 +56,12 @@ export const RichTextEditor = forwardRef<RichTextHandle, { value: string; onChan
     ],
     content: value,
     editable: !disabled,
-    editorProps: { attributes: { 'aria-label': label } },
+    editorProps: { attributes: { 'aria-label': label, role: 'textbox', 'aria-multiline': 'true' } },
     onUpdate({ editor: instance }) { onChange(safeEditorHTML(instance.getHTML(), { siteTemplate })); },
   }, [value === '', siteTemplate]);
+
+  // The accessible name follows the locale without recreating the editor (which would move the caret).
+  useEffect(() => { editor?.setOptions({ editorProps: { attributes: { 'aria-label': label, role: 'textbox', 'aria-multiline': 'true' } } }); }, [editor, label]);
 
   // Toggling editability must not emit an update: tiptap v3 would otherwise rewrite
   // the bound value with the editor serialization while a source-mode draft is pending.

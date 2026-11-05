@@ -37,6 +37,7 @@ export function PasswordDialog({ web, onClose }: { web: WebClient; onClose: () =
   return <Modal title={t('修改密码')} onClose={onClose} pending={change.isPending}>
     <p className="text-sm text-muted">{t('验证当前密码后设置新密码。成功后该账号的所有设备需重新登录。')}</p>
     <AppForm form={form} className="mt-4 flex flex-col gap-4">
+      {form.serverError && !Object.keys(form.serverError.fields ?? {}).length && <p role="alert" className="rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">{t(form.serverError.message)}</p>}
       <AppField name="current_password" label={t('当前密码')}><Input type="password" required maxLength={128} autoComplete="current-password" /></AppField>
       <AppField name="password" label={t('新密码')}><Input type="password" required minLength={12} maxLength={128} autoComplete="new-password" /></AppField>
       <div className="flex flex-col gap-1.5">

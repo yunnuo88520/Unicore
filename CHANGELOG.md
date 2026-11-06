@@ -5,6 +5,8 @@
 
 ### 中文
 
+- 文档站侧栏重组为快速开始、部署运维、应用开发、功能与边界、框架规范（维护者）五组，维护者深度手册显式标注并默认折叠；新增常见问题、桌面与 CLI 安装、安全策略与加固页面。部署指南补充最快路径、Caddy 反代示例、日志与监控接入和单实例边界说明。Release 发布时自动构建并推送多架构镜像到 ghcr.io/yunnuo88520/unicore，历史已发布版本无镜像。
+
 - Web 单程序新增交互管理菜单、Linux/systemd 服务安装与启停、自启和日志；支持停服后的管理员密码恢复、后台路径、维护模式、会话撤销及同实例数据库连接修复，自动复用受管服务配置，保留既有双因素验证，不迁移数据。
 
 - Web 默认生成 config.yaml，支持严格 YAML 配置及旧 JSON 兼容；默认监听与 Docker/Compose 端口统一改为 3000，部署模板、开发代理与文档同步调整。现有部署需显式保留旧端口或同步修改代理/映射。
@@ -42,6 +44,8 @@
 - 新增 product:check 只读门禁与派生项目残留扫描 check:residuals（框架仓库自动跳过）；安装与数据库错误文案去产品化并同步中英文；示例文本与发行 README 改为按身份生成。
 
 ### English
+
+- Reorganize the documentation site sidebar into get-started, deploy & operate, develop, features & boundaries and framework internals (maintainer) groups; maintainer deep-dives are labeled and collapsed. Add FAQ, desktop/CLI installation and security policy pages. The deployment guide gains a fastest-path section, a Caddy example, logging/metrics notes and a single-instance boundary statement. Published releases now build and push multi-arch images to ghcr.io/yunnuo88520/unicore; historical releases have no image.
 
 - Add a Web management menu, Linux/systemd installation, service controls, autostart and logs in the same executable. Offline commands recover administrator passwords, change the administrator path and maintenance mode, revoke sessions and repair same-instance database connections, reusing managed service configuration while retaining enrolled MFA and leaving data migration to operators.
 

@@ -12,7 +12,6 @@ import (
 	"github.com/yunnuo/unicore/internal/settings"
 	"math/big"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -164,7 +163,11 @@ func (a *Accounts) CompleteCode(ctx context.Context, input contracts.EmailCodeIn
 	if err != nil {
 		return contracts.Session{}, "", err
 	}
-	hours, _ := strconv.Atoi(values["security.session_hours"])
+	var sessionPolicy settings.SessionPolicy
+	if err := settings.Bind(values, &sessionPolicy); err != nil {
+		return contracts.Session{}, "", err
+	}
+	hours := sessionPolicy.SessionHours
 	token := Token()
 	expires := int(time.Now().Add(time.Duration(hours) * time.Hour).Unix())
 	if purpose == "login" {

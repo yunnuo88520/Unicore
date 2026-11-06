@@ -29,6 +29,8 @@ make test
 make build-web build-cli build-ops
 pnpm exec playwright install chromium
 make test-e2e
+# 依赖漏洞门禁（需要网络；high/critical 须升级或登记带过期时间的豁免）
+make audit
 # 原生桥接或桌面 UI 改动，在对应系统运行
 make build-desktop
 ```

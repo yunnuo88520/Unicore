@@ -84,5 +84,5 @@ func mountEmail(api chi.Router, config Config) {
 
 	}
 	mountMailTemplates(api, config)
- mountNotifications(api,config)
+	mountNotifications(api, config)
 }

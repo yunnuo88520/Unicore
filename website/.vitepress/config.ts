@@ -11,14 +11,15 @@ const require = createRequire(import.meta.url);
 // VitePress serializes this function for the browser: it must have no captured variables.
 const editPattern = (page: PageData) => page.frontmatter.editURL;
 const groups = [
-  ['guide', '开始使用', 'Get started'],
-  ['development', '应用开发', 'Development'],
-  ['operations', '运行与维护', 'Operations'],
-  ['reference', '规范与参考', 'Standards & reference'],
+  ['guide', '快速开始', 'Get started', false],
+  ['deploy', '部署与运维', 'Deploy & operate', false],
+  ['develop', '应用开发', 'Develop', false],
+  ['features', '功能与边界', 'Features & boundaries', true],
+  ['reference', '框架规范（维护者）', 'Framework internals', true],
 ] as const;
-const sidebar = (english = false) => groups.map(([id, zh, en]) => ({
+const sidebar = (english = false) => groups.map(([id, zh, en, collapsed]) => ({
   text: english ? `${en} (中文)` : zh,
-  collapsed: id === 'reference',
+  collapsed,
   items: documents.filter(doc => doc.site_group === id).map(doc => ({ text: doc.title, link: pageLink(doc) })),
 }));
 
@@ -46,12 +47,14 @@ export default defineConfig({
       label: '简体中文', lang: 'zh-CN',
       themeConfig: {
         nav: [
-          { text: '使用指南', link: '/product/index' },
+          { text: '快速开始', link: '/product/index' },
+          { text: '部署', link: '/product/deployment' },
           { text: '应用开发', link: '/product/development' },
           { text: '支持范围', link: '/support' },
           { text: `v${version} · 开发预览`, items: [
             { text: '当前开发文档 · 随 main 更新', link: '/03-runbooks/documentation-site' },
             { text: '发行与版本记录', link: `${repository}/releases` },
+            { text: '安全策略', link: '/product/security' },
           ] },
         ],
         sidebar: sidebar(),
@@ -71,7 +74,10 @@ export default defineConfig({
           { text: 'Get started', link: '/en/getting-started' },
           { text: 'Development (中文)', link: '/product/development' },
           { text: 'Support (中文)', link: '/support' },
-          { text: `v${version} · Preview`, link: `${repository}/releases` },
+          { text: `v${version} · Preview`, items: [
+            { text: 'Releases & version notes', link: `${repository}/releases` },
+            { text: 'Security policy (中文)', link: '/product/security' },
+          ] },
         ],
         sidebar: [
           { text: 'Overview', items: [{ text: 'Get started', link: '/en/getting-started' }] },

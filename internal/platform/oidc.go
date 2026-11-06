@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"strconv"
 	"time"
 
 	"github.com/yunnuo/unicore/internal/contracts"
@@ -214,7 +213,11 @@ func (s *OIDC) Complete(ctx context.Context, state, browser, code, responseIssue
 		}
 		return contracts.Session{User: user}, "", f.Mode, nil
 	}
-	hours, _ := strconv.Atoi(values["security.session_hours"])
+	var sessionPolicy settings.SessionPolicy
+	if err := settings.Bind(values, &sessionPolicy); err != nil {
+		return result(err)
+	}
+	hours := sessionPolicy.SessionHours
 	if hours < 1 || hours > 168 {
 		hours = 24
 	}
@@ -235,7 +238,11 @@ func (s *OIDC) Unlink(ctx context.Context, user contracts.User, password, sessio
 	if err != nil {
 		return contracts.Session{}, "", err
 	}
-	hours, _ := strconv.Atoi(v["security.session_hours"])
+	var sessionPolicy settings.SessionPolicy
+	if err := settings.Bind(v, &sessionPolicy); err != nil {
+		return contracts.Session{}, "", err
+	}
+	hours := sessionPolicy.SessionHours
 	if hours < 1 || hours > 168 {
 		hours = 24
 	}

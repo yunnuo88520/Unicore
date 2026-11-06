@@ -3,15 +3,19 @@
 import { forwardRef } from 'react';
 import * as SelectPrimitive from '@radix-ui/react-select';
 import { Check, ChevronDown } from 'lucide-react';
+import { cva } from 'class-variance-authority';
 import { t, useLocale } from './i18n';
 import { cn } from './cn';
 
 export const Select = SelectPrimitive.Root;
 export const SelectValue = SelectPrimitive.Value;
 
+// The aria-invalid:* selector reacts to the DOM attribute, mirroring the input control surface.
+export const selectTriggerVariants = cva('flex h-9 w-full items-center justify-between gap-2 rounded-md border border-line bg-surface px-3 text-base text-ink shadow-tint outline-none focus-visible:border-focus focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-55 aria-invalid:border-danger data-[placeholder]:text-subtle');
+
 export const SelectTrigger = forwardRef<HTMLButtonElement, React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>>(function SelectTrigger({ className, children, ...props }, ref) {
   return <SelectPrimitive.Trigger ref={ref}
-    className={cn('flex h-9 w-full items-center justify-between gap-2 rounded-md border border-line bg-surface px-3 text-base text-ink shadow-tint outline-none focus-visible:border-focus focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-55 aria-invalid:border-danger data-[placeholder]:text-subtle', className)}
+    className={cn(selectTriggerVariants(), className)}
     {...props}>
     {children}
     <SelectPrimitive.Icon asChild><ChevronDown size={15} className="opacity-60" aria-hidden="true" /></SelectPrimitive.Icon>

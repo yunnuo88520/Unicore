@@ -12,7 +12,6 @@ Unicore 共享 UI 原语层：基于 Radix UI + Tailwind v4 设计令牌的 17 �
 | i18n 桩 | `@unicore/ui/i18n` | `t`/`useLocale`/`useI18n`/`defineMessages`/`setTranslator` |
 | 消息 | `@unicore/ui/message` | MessageProvider/useMessage（五态、自动消失） |
 | 富文本 | `@unicore/ui/editor` | Tiptap 封装（较重，刻意不入 barrel 以保持代码分割） |
-| 图表 | `@unicore/ui/charts` | Recharts 薄封装（同上） |
 
 ## 主题接线
 
@@ -71,5 +70,5 @@ message.success(t('已保存')); // success/info/warning/error/loading
 ## 已知边界
 
 - `editor.tsx` 仍带少量业务残留（`{{site_url}}` 链接模板、邮件场景默认 aria 文案）；
-- `charts.tsx` 目前无仓库内消费者，属预置能力；
+- 图表封装已从包中移除（此前无消费者）；待真实统计 API 落地时再按需求重新设计引入（历史实现可从 git 找回）；
 - 组件不负责权限与数据获取，页面层（`@unicore/web-ui`）负责。

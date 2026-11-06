@@ -27,6 +27,7 @@ import {
   useShellOptions, useSessionNotice, usePageProps, type PageProps, type PageComponent,
 } from './router';
 import { InstallPage } from './pages/install';
+import { HomePage } from './pages/home';
 import { LoginPage, VerifyEmailPage, ResetPasswordPage } from './pages/auth';
 import { NotFoundPage } from './pages/not-found';
 
@@ -127,6 +128,14 @@ function WorkspaceShell() {
   }
   if (data.capabilities.authentication && (!data.current_user || /^(verify-email|reset-password)$/.test(basename)) && client.web) {
     const props: PageProps = { page: 'overview', client, metadata: data, registry, theme, setTheme, refresh: () => void metadata.refetch() };
+    // Optional public homepage: guests land on it instead of the login flow when site.home_enabled is on.
+    if (!data.current_user && !basename && data.home_enabled) {
+      return <PagePropsProvider value={props}>
+        <div className="flex min-h-dvh flex-col bg-background">
+          <HomePage {...props} />
+        </div>
+      </PagePropsProvider>;
+    }
     const Flow = basename === 'verify-email' ? VerifyEmailPage : basename === 'reset-password' ? ResetPasswordPage : LoginPage;
     return <PagePropsProvider value={props}>
       <div className="flex min-h-dvh flex-col bg-background">

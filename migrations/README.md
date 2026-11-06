@@ -1,7 +1,9 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 数据库迁移目录：R1.0b 双轨状态
 
-当前产品运行时仍调用旧 `Store.Migrate`，`assets.go` 只 embed 原 sqlite/postgres/mysql 及其 business 子目录的 42 份历史 SQL，以及本次追加的三方言 core/platform 两组 0013 固定前缀迁移。**本阶段没有切换安装/启动入口**，也没有提供可用于升级真实数据库的新执行器。0.x 文件、路径和 checksum 保持原样。
+当前产品运行时仍调用旧 `Store.Migrate`，`assets.go` 只 embed 原 sqlite/postgres/mysql 及其 business 子目录的 42 份历史 SQL，以及本次追加的三方言 core/platform 两组 0013 固定前缀迁移。**运行时仍未切换安装/启动入口**；新执行器已作为独立包提供（`migrations/runner`），未被 install/startup 引用，0.x 文件、路径和 checksum 保持原样。
+
+`migrations/runner` 按 [catalog.json](catalog.json) 与 [ADR-0025](../docs/adr/ADR-0025-baseline-catalog-semantics.md) 执行空库基线：postgres 用 `pg_advisory_lock`、MySQL 用 `GET_LOCK` 串行化并发执行；写入前拒绝旧两列账本（legacy_schema_requires_reinstall 语义）、未知账本行、checksum 漂移和缺失 core@1 世代锚点；每份迁移与其账本行同事务提交，`*.notx.sql` 后缀文件按语句自动提交（供并发建索引等不可回滚 DDL 使用，首次使用时需生成器支持该命名）；`Verify` 提供只读校验供未来启动守卫复用。隔离 SQLite 测试覆盖基线应用、幂等、profile 裁剪与全部拒绝路径；postgres/mysql 执行路径尚未在真实实例上验证，接入运行时前须先跑 verify-baselines fixture。
 
 新世代定义只有 [catalog.json](catalog.json)，覆盖下列目录；校验器只扫描这三个根，不把旧 0.x SQL 当作遗漏登记：
 

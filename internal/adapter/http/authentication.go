@@ -6,8 +6,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/platform"
+	"github.com/yunnuo/unicore/internal/settings"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -44,18 +44,17 @@ func mountAuthentication(api chi.Router, config Config) {
 			if !decode(w, r, &input) {
 				return
 			}
-			captcha, err := service.Value(r.Context(), "security.login_captcha")
+			values, err := service.Raw(r.Context())
 			if err != nil {
 				webError(w, err)
 				return
 			}
-			hoursValue, err := service.Value(r.Context(), "security.session_hours")
-			if err != nil {
+			var policy settings.SessionPolicy
+			if err := settings.Bind(values, &policy); err != nil {
 				webError(w, err)
 				return
 			}
-			hours, _ := strconv.Atoi(hoursValue)
-			session, token, err := identity.Login(r.Context(), input, ip(r), captcha == "true", hours)
+			session, token, err := identity.Login(r.Context(), input, ip(r), policy.LoginCaptcha, policy.SessionHours)
 			if err != nil {
 				webError(w, err)
 				return

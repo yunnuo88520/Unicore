@@ -24,7 +24,7 @@
       ],
       "slug": "Configuration",
       "title": "配置说明与参数表",
-      "site_group": "guide"
+      "site_group": "deploy"
     },
     {
       "source": "docs/product/build.md",
@@ -48,7 +48,7 @@
       ],
       "slug": "Deployment",
       "title": "Web 从零部署",
-      "site_group": "guide"
+      "site_group": "deploy"
     },
     {
       "source": "docs/product/backup.md",
@@ -60,7 +60,7 @@
       ],
       "slug": "Backup-Restore",
       "title": "备份恢复",
-      "site_group": "guide"
+      "site_group": "deploy"
     },
     {
       "source": "docs/product/storage.md",
@@ -72,7 +72,7 @@
       ],
       "slug": "Storage",
       "title": "文件与对象存储",
-      "site_group": "guide"
+      "site_group": "deploy"
     },
     {
       "source": "docs/product/updates.md",
@@ -84,7 +84,7 @@
       ],
       "slug": "Updates",
       "title": "更新与签名",
-      "site_group": "guide"
+      "site_group": "deploy"
     },
     {
       "source": "docs/product/development.md",
@@ -96,7 +96,19 @@
       ],
       "slug": "Development",
       "title": "应用开发",
-      "site_group": "development"
+      "site_group": "develop"
+    },
+    {
+      "source": "docs/product/ui-components.md",
+      "target": "docs/product/ui-components.md",
+      "audiences": [
+        "project-template",
+        "public-wiki",
+        "public-site"
+      ],
+      "slug": "UI-Components",
+      "title": "UI 组件参考",
+      "site_group": "develop"
     },
     {
       "source": "docs/support.md",
@@ -114,7 +126,7 @@
         "public-site"
       ],
       "title": "API 契约与 SDK",
-      "site_group": "development"
+      "site_group": "develop"
     },
     {
       "source": "docs/02-standards/backend.md",
@@ -123,7 +135,7 @@
         "public-site"
       ],
       "title": "Go 分层与业务实体",
-      "site_group": "development"
+      "site_group": "reference"
     },
     {
       "source": "docs/02-standards/frontend.md",
@@ -132,7 +144,7 @@
         "public-site"
       ],
       "title": "共享前端开发",
-      "site_group": "development"
+      "site_group": "reference"
     },
     {
       "source": "docs/03-runbooks/frontend-foundations.md",
@@ -141,7 +153,7 @@
         "public-site"
       ],
       "title": "布局、表单与双语基础",
-      "site_group": "development"
+      "site_group": "develop"
     },
     {
       "source": "docs/03-runbooks/business-example.md",
@@ -150,7 +162,7 @@
         "public-site"
       ],
       "title": "笔记业务样板",
-      "site_group": "development"
+      "site_group": "develop"
     },
     {
       "source": "docs/03-runbooks/framework-upgrade.md",
@@ -159,7 +171,7 @@
         "public-site"
       ],
       "title": "派生项目与上游更新",
-      "site_group": "development"
+      "site_group": "reference"
     },
     {
       "source": "docs/02-standards/database-migrations.md",
@@ -168,7 +180,7 @@
         "public-site"
       ],
       "title": "数据库迁移",
-      "site_group": "development"
+      "site_group": "reference"
     },
     {
       "source": "docs/02-standards/product-identity.md",
@@ -177,7 +189,7 @@
         "public-site"
       ],
       "title": "产品身份与白标",
-      "site_group": "development"
+      "site_group": "reference"
     },
     {
       "source": "docs/03-runbooks/deployment.md",
@@ -185,8 +197,8 @@
       "audiences": [
         "public-site"
       ],
-      "title": "安装与故障处理",
-      "site_group": "operations"
+      "title": "运行边界与故障处理（维护者）",
+      "site_group": "features"
     },
     {
       "source": "docs/03-runbooks/storage.md",
@@ -194,8 +206,8 @@
       "audiences": [
         "public-site"
       ],
-      "title": "存储配置与分片上传",
-      "site_group": "operations"
+      "title": "存储配置与分片上传（维护者）",
+      "site_group": "features"
     },
     {
       "source": "docs/03-runbooks/backup.md",
@@ -203,8 +215,8 @@
       "audiences": [
         "public-site"
       ],
-      "title": "备份与恢复细节",
-      "site_group": "operations"
+      "title": "备份与恢复细节（维护者）",
+      "site_group": "features"
     },
     {
       "source": "docs/03-runbooks/updates.md",
@@ -212,8 +224,8 @@
       "audiences": [
         "public-site"
       ],
-      "title": "签名更新与失败恢复",
-      "site_group": "operations"
+      "title": "签名更新与失败恢复（维护者）",
+      "site_group": "features"
     },
     {
       "source": "docs/03-runbooks/client-preferences.md",
@@ -222,7 +234,7 @@
         "public-site"
       ],
       "title": "客户端偏好",
-      "site_group": "operations"
+      "site_group": "reference"
     },
     {
       "source": "docs/03-runbooks/admin-tools.md",
@@ -231,7 +243,7 @@
         "public-site"
       ],
       "title": "管理工具",
-      "site_group": "operations"
+      "site_group": "deploy"
     },
     {
       "source": "docs/03-runbooks/announcements.md",
@@ -240,7 +252,7 @@
         "public-site"
       ],
       "title": "公告业务",
-      "site_group": "operations"
+      "site_group": "features"
     },
     {
       "source": "docs/03-runbooks/documentation-site.md",
@@ -249,7 +261,7 @@
         "public-site"
       ],
       "title": "文档站维护与部署",
-      "site_group": "operations"
+      "site_group": "reference"
     },
     {
       "source": "docs/02-standards/coding.md",
@@ -285,7 +297,7 @@
         "public-site"
       ],
       "title": "平台权限契约",
-      "site_group": "reference"
+      "site_group": "develop"
     },
     {
       "source": "website/pages/index.md",
@@ -318,7 +330,7 @@
         "public-site"
       ],
       "title": "个人中心与账户安全",
-      "site_group": "operations"
+      "site_group": "features"
     },
     {
       "source": "docs/03-runbooks/notifications.md",
@@ -327,8 +339,8 @@
         "project-template",
         "public-site"
       ],
-      "title": "事件通知",
-      "site_group": "operations"
+      "title": "事件通知（维护者）",
+      "site_group": "features"
     },
     {
       "source": "docs/product/notifications.md",
@@ -340,7 +352,43 @@
       ],
       "slug": "Notifications",
       "title": "通知与邮件接入",
-      "site_group": "guide"
+      "site_group": "develop"
+    },
+    {
+      "source": "docs/product/faq.md",
+      "target": "docs/product/faq.md",
+      "audiences": [
+        "project-template",
+        "public-wiki",
+        "public-site"
+      ],
+      "title": "常见问题",
+      "site_group": "guide",
+      "slug": "FAQ"
+    },
+    {
+      "source": "docs/product/install-desktop.md",
+      "target": "docs/product/install-desktop.md",
+      "audiences": [
+        "project-template",
+        "public-wiki",
+        "public-site"
+      ],
+      "title": "桌面与 CLI 安装",
+      "site_group": "guide",
+      "slug": "Desktop-CLI-Install"
+    },
+    {
+      "source": "docs/product/security.md",
+      "target": "docs/product/security.md",
+      "audiences": [
+        "project-template",
+        "public-wiki",
+        "public-site"
+      ],
+      "title": "安全策略与加固",
+      "site_group": "deploy",
+      "slug": "Security"
     }
   ],
   "template_files": [
@@ -762,7 +810,6 @@
     "packages/ui/src/badge.tsx",
     "packages/ui/src/button.tsx",
     "packages/ui/src/card.tsx",
-    "packages/ui/src/charts.tsx",
     "packages/ui/src/checkbox.tsx",
     "packages/ui/src/cn.ts",
     "packages/ui/src/dialog.tsx",
@@ -810,6 +857,7 @@
     "packages/web-ui/src/pages/auth.tsx",
     "packages/web-ui/src/pages/edition.tsx",
     "packages/web-ui/src/pages/files.tsx",
+    "packages/web-ui/src/pages/home.tsx",
     "packages/web-ui/src/pages/install.tsx",
     "packages/web-ui/src/pages/not-found.tsx",
     "packages/web-ui/src/pages/notes.tsx",
@@ -948,7 +996,15 @@
     {
       "source": "distribution/template/framework.manifest.json",
       "target": "framework.manifest.json"
-    }
+    },
+    "packages/web-ui/AGENTS.md",
+    "packages/sdk/AGENTS.md",
+    "packages/ui/AGENTS.md",
+    "internal/adapter/http/AGENTS.md",
+    ".zcode/config.json",
+    "scripts/ai-guard.mjs",
+    "scripts/audit-dependencies.mjs",
+    "scripts/audit-exceptions.json"
   ],
   "ownership": {
     "product-owned": [

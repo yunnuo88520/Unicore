@@ -14,6 +14,9 @@ hero:
     - theme: brand
       text: 开始使用 →
       link: /product/index
+    - theme: brand
+      text: 部署到服务器
+      link: /product/deployment
     - theme: alt
       text: 创建自己的应用
       link: /product/development
@@ -41,9 +44,11 @@ features:
 | 你的目标 | 推荐入口 |
 | --- | --- |
 | 跑起来，了解支持边界 | [使用指南](../../docs/product/index.md) · [支持范围](../../docs/support.md) |
+| 部署到服务器 | [从零部署](../../docs/product/deployment.md)（Docker / Compose / tar+systemd） · [常见问题](../../docs/product/faq.md) |
+| 安装桌面与命令行 | [桌面与 CLI 安装](../../docs/product/install-desktop.md) · [备份恢复](../../docs/product/backup.md) |
 | 开发自己的应用 | [创建项目](../../docs/product/development.md) · [业务样板](../../docs/03-runbooks/business-example.md) |
-| 部署与日常维护 | [部署](../../docs/product/deployment.md) · [备份恢复](../../docs/product/backup.md) · [更新](../../docs/product/updates.md) |
 | 修改 API、页面和数据库 | [API 契约](../../docs/02-standards/api-contract.md) · [前端基础](../../docs/03-runbooks/frontend-foundations.md) · [迁移](../../docs/02-standards/database-migrations.md) |
+| 安全与报告漏洞 | [安全策略](../../docs/product/security.md) |
 
 ::: info 当前开发文档
 Unicore 目前为 0.x 开发预览。本站随仓库 main 的文档更新，可能包含尚未发行的改动；已发行版本请结合对应 tag 的文档和 Release 说明。详细手册主要为中文，英文入口提供独立的快速开始。

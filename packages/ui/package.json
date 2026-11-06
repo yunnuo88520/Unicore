@@ -10,8 +10,7 @@
     "./cn": "./src/cn.ts",
     "./i18n": "./src/i18n.ts",
     "./message": "./src/message.tsx",
-    "./editor": "./src/editor.tsx",
-    "./charts": "./src/charts.tsx"
+    "./editor": "./src/editor.tsx"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.2.1",
@@ -34,7 +33,6 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.66.0",
-    "recharts": "^3.10.1",
     "tailwind-merge": "^3.7.0"
   },
   "peerDependencies": {

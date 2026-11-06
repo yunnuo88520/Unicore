@@ -154,14 +154,27 @@ func (s *Store) Installation(ctx context.Context) (profile, instance string, err
 	return
 }
 
+// LockQuery appends a row-lock clause for dialects that support FOR UPDATE.
+// SQLite serializes writers database-wide, so the clause stays off there.
+// Keep the query single-column and single-row: the lock is held for the
+// caller's transaction by reading the row.
+func LockQuery(dialect, query string) string {
+	if dialect == "sqlite" {
+		return query
+	}
+	return query + " FOR UPDATE"
+}
+
+// LockForUpdate runs query under a dialect-appropriate row lock and requires
+// exactly one row, keeping the lock until the caller's transaction ends.
+func (s *Store) LockForUpdate(ctx context.Context, exec Runner, query string, args ...any) error {
+	var locked any
+	return s.Row(ctx, exec, LockQuery(s.Dialect, query), args...).Scan(&locked)
+}
+
 // LockInstallation serializes privilege changes and protects the last active super-admin.
 func (s *Store) LockInstallation(ctx context.Context, tx *sql.Tx) error {
-	query := "SELECT id FROM unicore_install_state WHERE id=1"
-	if s.Dialect != "sqlite" {
-		query += " FOR UPDATE"
-	}
-	var id int
-	return s.Row(ctx, tx, query).Scan(&id)
+	return s.LockForUpdate(ctx, tx, "SELECT id FROM unicore_install_state WHERE id=1")
 }
 
 func (s *Store) ReadSettings(ctx context.Context) (map[string]string, error) {

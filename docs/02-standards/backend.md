@@ -16,9 +16,9 @@ Go 采用组合：可变业务实体嵌入 `internal/domain/entity.go` 的 BaseE
 
 分页复用 domain.ValidPage/PageOffset；页码 1–100000，单页不超过 50，列表响应统一 items/total/page/page_size。每个接口定义稳定排序及 tie-break ID；页码排序验证、LIKE 字面量转义、SQL 参数绑定各自不可省略。公告和笔记各自保留窄的业务 query，避免设计任意 SQL 查询器。
 
-管理员与普通用户使用不同数据库身份表、会话 Cookie 和固定 API 路径。所有管理资源（包含只读）位于 `/api/v1/admin/*`，声明权限和 superAdmin 并实际调用 require；写请求还需 CSRF/Origin。在安装锁内重查操作者以防请求鉴权后的停用竞争，参考 platformsql.AuthorizeAdministrator 和 announcementsql.transaction。用户路径只返回本人或业务明确开放的最小投影，不提供管理 DTO；公告用户读取不包含内部备注、草稿、版本及管理员 ID。真实 Chi 路由与契约比对、身份域/CSRF 矩阵纳入 make test。
+管理员与普通用户使用不同数据库身份表、会话 Cookie 和固定 API 路径。所有管理资源（包含只读）位于 `/api/v1/admin/*`，其 x-unicore 契约策略由策略中间件 fail-closed 强制（未声明路由 500），handler 内仍实际调用 require 补充 2FA/审计；写请求还需 CSRF/Origin。在安装锁内重查操作者以防请求鉴权后的停用竞争，参考 platformsql.AuthorizeAdministrator 和 announcementsql.transaction。用户路径只返回本人或业务明确开放的最小投影，不提供管理 DTO；公告用户读取不包含内部备注、草稿、版本及管理员 ID。真实 Chi 路由与契约的双向遍历比对、身份域/CSRF 矩阵、响应信封形状与错误码/状态一致性测试纳入 make test。
 
-数据库实体与 DTO 分离：手写领域实体嵌入公共字段；SQL adapter 映射生成 DTO，客户端不得提交 id/created_at/updated_at/deleted_at/actor。更新请求只接收必要 version。当前 Note 的既有 Repository DTO port 为兼容 Wails 保留，实体在 adapter 映射；Announcement 则完整展示 domain port → DTO 的新模块推荐结构。
+数据库实体与 DTO 分离：手写领域实体嵌入公共字段；SQL adapter 映射生成 DTO，客户端不得提交 id/created_at/updated_at/deleted_at/actor。更新请求只接收必要 version。当前 Note 的既有 Repository DTO port 为兼容 Wails 保留，实体在 adapter 映射；Announcement 则完整展示 domain port → DTO 的新模块推荐结构。事务内行锁统一用 `sqlstore.LockForUpdate`（SQLite 自动省略 FOR UPDATE），不要再手写方言分支；设置的结构化读取用 `settings.Bind`（tag 绑定，解析失败显式报错），不要回到散落的 strconv。
 
 以下物理表有明确不同生命周期，不能机械添加通用软删除或伪造公共 ID：
 

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Unicore platform foundation API",
-    "version": "0.1.2",
+    "version": "0.1.3",
     "description": "Fixed administrator/member roles. Global management APIs require an administrator and mutating authenticated requests require X-CSRF-Token. Platform appearance is client-local and never saved through instance settings.",
     "contact": {
       "name": "yunnuo",
@@ -10746,6 +10746,10 @@
           },
           "site_name": {
             "type": "string"
+          },
+          "home_enabled": {
+            "type": "boolean",
+            "description": "Whether the public product homepage is enabled for unauthenticated visitors."
           },
           "admin_path": {
             "type": "string",

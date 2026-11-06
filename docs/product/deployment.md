@@ -5,6 +5,13 @@
 
 网站文档随 main 更新；下载包内文档对应该包的版本。示例版本 `0.1.2` 仅用于说明命名，实际使用 [Releases](https://github.com/yunnuo88520/Unicore/releases) 中存在的版本。尚未发布的新功能需从对应提交构建，不会因同一个 VERSION 自动出现在旧下载包中。
 
+::: tip 最快路径（已决定用 tar + systemd 时）
+1. 从 [Releases](https://github.com/yunnuo88520/Unicore/releases) 下载与架构匹配的 `web-platform` 完整包和 `checksums.txt`，`sha256sum -c` 校验通过再继续。
+2. 解压到新版本目录，执行 `./unicore config generate && sudo ./unicore service install --config config.yaml`，程序自动生成 systemd 服务并启动。
+3. 浏览器打开 `http://<服务器地址>/install`，输入私有数据目录中的 `bootstrap.token` 完成安装向导。数据库准备与 HTTPS 入口按下文第 2、6 节执行。
+
+:::
+
 ## 1. 先选择形态与部署环境
 
 | 形态 | 适用场景 | 身份、数据库与网络 |
@@ -109,7 +116,7 @@ GRANT ALL PRIVILEGES ON unicore.* TO 'unicore'@'10.0.0.20';
 
 ### 3.1 获取镜像
 
-当前框架**没有公开注册表镜像**，不要直接假设 `docker pull unicore` 可用。下面从源码构建本地镜像；若你的产品维护者提供可信镜像，改用其明确版本/digest，并跳过构建。
+公开镜像随后续发行版本在 `ghcr.io/yunnuo88520/unicore` 提供，是否可用以对应 Release 说明为准；**已发布的旧版本没有镜像**，不要直接假设 `docker pull unicore` 可用。下面从源码构建本地镜像；若你的产品维护者提供可信镜像，改用其明确版本/digest，并跳过构建。
 
 ```sh
 git clone https://github.com/yunnuo88520/Unicore.git
@@ -500,6 +507,19 @@ curl -fsS https://app.example.com/api/v1/health/live
 
 宝塔中创建自己的域名站点并申请证书，在该站点 server 块内合并上述反代 location，调整上游端口；不要额外添加会抢先返回 `index.html` 的 SPA 伪静态。使用面板的 Nginx 配置检测/重载。tar 包内另有 `deploy/nginx.conf.example`，与容器方案一样统一反代；前端静态资源由程序内嵌提供，无需 Nginx 文件根目录。
 
+偏好 Caddy 时等价配置更短（自动 HTTPS，证书与续期内置）：
+
+```caddyfile
+app.example.com {
+    reverse_proxy 127.0.0.1:3000
+    request_body {
+        max_size 64m
+    }
+}
+```
+
+通用 JSON 请求的应用侧上限仍为 2 MiB，分片路径按上文 Nginx 一节同样的思路放宽；`request_body` 只需覆盖最大分片体积，应用策略继续约束文件总大小。
+
 安装前固定最终域名和 HTTPS。安装 origin 会用于 Secure Cookie 和 OIDC 回调；只在后台修改“站点地址”不会改变这两个边界。反代需保留外部 Host 和协议，推荐根域部署，不把改后台路径当子路径托管。Go 当前记录真实 socket IP，不信任 `X-Forwarded-For` 作为客户端地址，反代后设备页 IP 可能是代理地址。
 
 ### 单机或暂未准备域名
@@ -552,6 +572,16 @@ curl -fsS https://app.example.com/api/v1/health/ready
 `live=200` 只表示进程可响应；`ready=200` 要求已安装且数据库可连接。安装前 `ready=503` 正常，安装后持续 503 应检查数据库/实例状态。再做一次真实登录、业务读写和上传测试；仅健康接口通过不足以证明配置完整。
 
 重启应用后复查 ready、原账号、设置和文件是否保留。数据量、内存、磁盘和日志增长按实际负载监控；`APP_MONITOR_LISTEN=127.0.0.1:9090` 的独立指标仅给受控本机采集，容器内没有宿主可见的回环指标端口。
+
+### 日志与监控接入
+
+- tar/systemd：日志进 journald，`sudo journalctl -u unicore -f --output=json` 可持续采集；JSON 行包含 request_id、route、status 与耗时。
+- Docker/Compose：`docker logs`/`docker compose logs`，Compose 示例已配置 json-file 轮转（10 MiB × 3）。
+- 指标：设置 `APP_MONITOR_LISTEN`（默认关闭，只接受字面回环地址）后在 `/metrics` 抓取 Prometheus 文本格式：HTTP 请求计数、状态分布与时延直方图，外加数据库连接池指标；只对本机/私网采集器开放，不要暴露公网。应用指标不替代业务侧监控与告警。
+
+### 单实例边界
+
+当前产品按**单实例**设计与验收：一个应用进程连接一个数据库，水平扩容（多副本共享一库）不在已验证范围内，会话、限流与后台任务都以单进程为前提。需要更高容量时先垂直扩容或读写分离评估，不要自行多副本部署后默认其受支持；水平扩容属于未验证范围，见文档站"支持范围与已知限制"。
 
 ## 9. 更新、备份与回退
 

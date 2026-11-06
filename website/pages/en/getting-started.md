@@ -30,6 +30,16 @@ Open the frontend address printed by Vite and visit `/install` on the first Web 
 
 For packaged downloads, use [GitHub Releases](https://github.com/yunnuo88520/Unicore/releases) and the matching tag's instructions. macOS uses a DMG, Windows a standalone EXE, and Linux desktop a tar archive. Web and CLI archives have different entry points; see [builds (中文)](../../../docs/product/build.md).
 
+## Deploy to a server
+
+Three supported paths share the same installation wizard; the full walkthrough — databases, HTTPS, updates and rollback — is the [deployment guide (中文)](../../../docs/product/deployment.md).
+
+- **tar + systemd (recommended for servers):** download the `web-platform` package for your architecture from [Releases](https://github.com/yunnuo88520/Unicore/releases), verify `checksums.txt`, unpack into a new version directory, then run `./unicore config generate && sudo ./unicore service install --config config.yaml`. The program generates its own systemd unit and starts listening on `127.0.0.1:3000`.
+- **Docker:** build the image from source (`docker build -f deploy/docker/Dockerfile .`). Public registry images follow later releases on `ghcr.io/yunnuo88520/unicore` — check the matching release notes; already-published versions have no image.
+- **Docker Compose:** the deployment guide ships a compose file with PostgreSQL, persistent volumes and hardened defaults.
+
+Then open `http://<your-server>/install`, enter the one-time `bootstrap.token` from the private data directory, choose the profile, and complete the wizard. Post-install checks, backups and troubleshooting are covered in [backup (中文)](../../../docs/product/backup.md), [updates (中文)](../../../docs/product/updates.md), and the deployment guide's troubleshooting table.
+
 ## Create your application
 
 ```sh

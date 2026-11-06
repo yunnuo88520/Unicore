@@ -8,7 +8,7 @@ const roles = { items: [], total: 0 };
 
 // A fetcher that honors abort signals like real fetch does; mocks that
 // ignore signals hide shared-request cancellation bugs.
-const responsive = (body: unknown) => vi.fn((_url: string, init?: RequestInit) => new Promise<Response>((resolve, reject) => {
+const responsive = (body: unknown) => vi.fn((_url: string | URL | RequestInfo, init?: RequestInit) => new Promise<Response>((resolve, reject) => {
   init?.signal?.addEventListener('abort', () => reject(new DOMException('The operation was aborted', 'AbortError')), { once: true });
   resolve(ok(body));
 }));

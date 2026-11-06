@@ -5,7 +5,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -33,7 +32,7 @@ import (
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/settings"
 	"github.com/yunnuo/unicore/internal/usecase"
-	"github.com/yunnuo/unicore/migrations/catalogdata"
+	"github.com/yunnuo/unicore/migrations/runner"
 )
 
 type config struct{ Temp, Output, PG, MySQL, Commit, Root string }
@@ -57,38 +56,14 @@ func summary(s *sqlstore.Store) map[string]any {
 
 // This intentionally supports version-1 empty test fixtures only. It has no resume,
 // upgrade, validation-bypass, lock or recovery path, and is never imported by a product.
-func createEmptyFixture(s *sqlstore.Store, profile, root string) {
+func createEmptyFixture(s *sqlstore.Store, profile string) {
 	check(len(tables(s)) == 0, "verification target must be completely empty")
-	catalog := catalogdata.Catalog
-	exec(s, catalog.Ledger.Ddl[s.Dialect])
-	for _, id := range catalog.Profiles[profile].Order {
-		for _, ns := range catalog.Namespaces {
-			if ns.Id != id {
-				continue
-			}
-			check(len(ns.Migrations) == 1 && ns.Migrations[0].Version == 1, "R1.0b fixture accepts initial versions only")
-			file := ns.Migrations[0].Files[s.Dialect]
-			raw, e := os.ReadFile(filepath.Join(root, "migrations", file.Path))
-			must(e)
-			check(len(raw) == file.Bytes && fmt.Sprintf("%x", sha256.Sum256(raw)) == file.Checksum, "fixture source checksum drift")
-			lines := []string{}
-			for _, line := range strings.Split(string(raw), "\n") {
-				if !strings.HasPrefix(strings.TrimSpace(line), "--") {
-					lines = append(lines, line)
-				}
-			}
-			// These nine reviewed initial SQL files contain no semicolons in literals or routines.
-			for _, statement := range strings.Split(strings.Join(lines, "\n"), ";") {
-				if strings.TrimSpace(statement) != "" {
-					exec(s, statement)
-				}
-			}
-			exec(s, "INSERT INTO schema_migrations(namespace,version,checksum,applied_at) VALUES(?,?,?,?)", id, 1, file.Checksum, time.Now().Unix())
-		}
-	}
-	var anchor string
-	must(s.Row(ctx, s.DB, "SELECT checksum FROM schema_migrations WHERE namespace=? AND version=?", catalog.GenerationAnchor.Namespace, catalog.GenerationAnchor.Version).Scan(&anchor))
-	check(anchor == catalog.GenerationAnchor.Checksums[s.Dialect], "persisted generation anchor")
+	// Execute the runner itself and then its read-only Verify. The harness
+	// previously replayed baselines by hand and recorded ledger rows through
+	// the store's placeholder binding, which let an executor defect (a
+	// PostgreSQL placeholder bug) ship without ever running Apply.
+	must(runner.Apply(ctx, s.DB, runner.Options{Dialect: s.Dialect, Profile: profile}))
+	must(runner.Verify(ctx, s.DB, runner.Options{Dialect: s.Dialect, Profile: profile}))
 }
 
 func seedFixture(s *sqlstore.Store, profile string) (map[string]any, string) {
@@ -389,7 +364,7 @@ func main() {
 			}
 			dir := filepath.Join(c.Temp, id)
 			s := open(driver, name, filepath.Join(dir, "unicore.db"))
-			createEmptyFixture(s, profile, c.Root)
+			createEmptyFixture(s, profile)
 			schema := inventory(s)
 			sqlOnly := summary(s)
 			seed, admin := seedFixture(s, profile)

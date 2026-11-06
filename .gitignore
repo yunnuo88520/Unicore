@@ -33,3 +33,4 @@ bootstrap.token
 *.p8
 .zcode/*
 !.zcode/config.json
+verify-baselines

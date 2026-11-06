@@ -33,7 +33,7 @@ SQLite 只读开库要验证 DB/WAL/SHM 与文件创建边界，不能先 touch 
 
 新增/修改迁移后，在独立空库执行三方言真实测试，验证每个 Profile 的表/列/索引/唯一/外键、静态默认行、Go Seed、重复启动、重放幂等（删除账本行后重放不得产生重复对象或种子）和失败场景。比较语义而非仅表数：SQLite PK/长度、MySQL collation/隐式 FK 索引、PG search_path 都要记录。数据库版本及 pass/fail/skip 逐项写明，不用一种方言推断另一种通过。
 
-运行 pnpm generate:migrations / check:migrations / test:migrations 及 go test ./migrations/...，make docs/test 已接入。schema_generation 以实际落库 core@1 原字节 checksum 识别，不增加账本列或设置副本。新比较键、install_state 单例 CHECK 和额外长度 CHECK 均需另审阅，不能无声修改登录/rowid 规则。PG/MySQL 真实实例用 `scripts/verify-baselines.py` 隔离验收。开发重置见 [手册](../03-runbooks/development-database-reset.md)。
+运行 pnpm generate:migrations / check:migrations / test:migrations 及 go test ./migrations/...，make docs/test 已接入。**首次给任一 namespace 追加新版本时**，必须用 scripts/test-upgrade.mjs（FROM_REF 指向上一发布版）完整演练一次真实升级：旧版建库装数据 → 换新版 binary 启动（runner.Apply 增量应用）→ 数据保留断言 → 快照回滚；空库验收（verify-baselines 现已直接执行 runner.Apply 与 Verify）不能替代升级演练。schema_generation 以实际落库 core@1 原字节 checksum 识别，不增加账本列或设置副本。新比较键、install_state 单例 CHECK 和额外长度 CHECK 均需另审阅，不能无声修改登录/rowid 规则。PG/MySQL 真实实例用 `scripts/verify-baselines.py` 隔离验收。开发重置见 [手册](../03-runbooks/development-database-reset.md)。
 
 ## 固定表名前缀
 

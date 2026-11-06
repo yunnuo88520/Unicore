@@ -242,3 +242,73 @@ func TestNoTxConventionRunsOutsideTransaction(t *testing.T) {
 		t.Fatalf("want one ledger row, got %v", rows)
 	}
 }
+
+func TestApplyUpgradesAppendedVersion(t *testing.T) {
+	ctx := context.Background()
+	db := openSQLite(t)
+	v1 := []byte("CREATE TABLE widget (id INTEGER PRIMARY KEY, name TEXT NOT NULL);\nINSERT INTO widget (id, name) VALUES (1, 'kept');\n")
+	v2 := []byte("ALTER TABLE widget ADD COLUMN note TEXT NOT NULL DEFAULT '';\nCREATE TABLE widget_log (id INTEGER PRIMARY KEY, widget_id INTEGER NOT NULL);\n")
+	build := func(withSecond bool) catalogdata.Descriptor {
+		migrations := []catalogdata.Migration{{Version: 1, Files: map[string]catalogdata.SQLFile{
+			"sqlite": {Path: "t/sqlite/0001_initial.sql", Checksum: checksum(v1)},
+		}}}
+		if withSecond {
+			migrations = append(migrations, catalogdata.Migration{Version: 2, Files: map[string]catalogdata.SQLFile{
+				"sqlite": {Path: "t/sqlite/0002_log.sql", Checksum: checksum(v2)},
+			}})
+		}
+		return catalogdata.Descriptor{
+			SchemaGeneration: "test-1",
+			Ledger: catalogdata.Ledger{
+				Table: "schema_migrations",
+				Columns: []catalogdata.LedgerColumn{
+					{Name: "namespace"}, {Name: "version"}, {Name: "checksum"}, {Name: "applied_at"},
+				},
+				Ddl: map[string]string{"sqlite": catalogdata.Catalog.Ledger.Ddl["sqlite"]},
+			},
+			GenerationAnchor: catalogdata.GenerationAnchor{Namespace: "t", Version: 1, Checksums: map[string]string{"sqlite": checksum(v1)}},
+			Namespaces:       []catalogdata.Namespace{{Id: "t", Migrations: migrations}},
+			Profiles:         map[string]catalogdata.Profile{"test": {Dialects: []string{"sqlite"}, Namespaces: []string{"t"}, Order: []string{"t"}}},
+		}
+	}
+	opts := Options{Dialect: "sqlite", Profile: "test", Now: func() time.Time { return time.Unix(fixedStamp, 0) }, Source: func(path string) ([]byte, error) {
+		switch path {
+		case "t/sqlite/0001_initial.sql":
+			return v1, nil
+		case "t/sqlite/0002_log.sql":
+			return v2, nil
+		}
+		return nil, os.ErrNotExist
+	}}
+	if err := ApplyDescriptor(ctx, db, build(false), opts); err != nil {
+		t.Fatal(err)
+	}
+	var name string
+	if err := db.QueryRow("SELECT name FROM widget WHERE id=1").Scan(&name); err != nil || name != "kept" {
+		t.Fatalf("seed row missing before upgrade: %q %v", name, err)
+	}
+	// The appended version upgrades in place and preserves rows.
+	if err := ApplyDescriptor(ctx, db, build(true), opts); err != nil {
+		t.Fatal(err)
+	}
+	var note string
+	if err := db.QueryRow("SELECT note FROM widget WHERE id=1").Scan(&note); err != nil || note != "" {
+		t.Fatalf("upgraded column missing: %q %v", note, err)
+	}
+	if !tableExists(t, db, "widget_log") {
+		t.Fatal("appended table missing")
+	}
+	if rows := ledgerRows(t, db); len(rows) != 2 {
+		t.Fatalf("want two ledger rows after upgrade, got %v", rows)
+	}
+	if err := VerifyDescriptor(ctx, db, build(true), opts); err != nil {
+		t.Fatalf("verify after upgrade: %v", err)
+	}
+	// Re-applying the upgraded catalog changes nothing.
+	if err := ApplyDescriptor(ctx, db, build(true), opts); err != nil {
+		t.Fatal(err)
+	}
+	if rows := ledgerRows(t, db); len(rows) != 2 {
+		t.Fatalf("re-apply mutated the ledger: %v", rows)
+	}
+}

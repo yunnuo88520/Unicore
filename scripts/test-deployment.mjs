@@ -109,7 +109,8 @@ async function exercise(mode,profile) {
     // The click starts a full document navigation for the administrator entry.
     // Wait for its URL and document load before asserting the mounted shell.
     await page.waitForURL(target=>target.origin===new URL(url).origin&&target.pathname.replace(/\/$/,'')===(profile==='web-platform'?'/admin':''));
-    await expect(page.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
+    // The hero heading splits across a line break, so whitespace varies with rendering.
+    await expect(page.getByRole('heading',{name:/一份核心，\s*无限可能/})).toBeVisible();
     const boot=await json(bootstrapPath);expect(boot.version).toBe(version);expect(boot.profile).toBe(profile);expect(boot.deployment_kind).toBe(mode.startsWith('tar')?'tar':'docker');
     const admin=profile==='web-platform';const headers={...realm,'Origin':url,...(admin?{'X-CSRF-Token':boot.csrf_token}:{})};
     const base=admin?'/api/v1/admin':'/api/v1';
@@ -171,7 +172,8 @@ async function exercise(mode,profile) {
       const src=await page.getByAltText('六位数字验证码，点击刷新').getAttribute('src');
       const answer=[...Buffer.from(src.split(',')[1],'base64').toString().matchAll(/>([0-9])<\/text>/g)].map(match=>match[1]).join('');
       await page.getByLabel('图形验证码',{exact:true}).fill(answer);await page.getByRole('button',{name:'登录工作空间'}).click();
-      await expect(page.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
+      // The hero heading splits across a line break, so whitespace varies with rendering.
+    await expect(page.getByRole('heading',{name:/一份核心，\s*无限可能/})).toBeVisible();
     } else {expect((await get('/api/v1/admin/users')).status()).toBe(404);await page.goto(url);}
     const session=await json(bootstrapPath);
     const executed=await context.request.post(`${url}/api/v1${admin?'/admin':''}/core/execute`,{headers:{...realm,Origin:url,...(admin?{'X-CSRF-Token':session.csrf_token}:{})},data:{text:'hello world'}});
@@ -186,7 +188,7 @@ async function exercise(mode,profile) {
         const src=await personal.getByAltText('六位数字验证码，点击刷新').getAttribute('src');
         const answer=[...Buffer.from(src.split(',')[1],'base64').toString().matchAll(/>([0-9])<\/text>/g)].map(match=>match[1]).join('');
         await personal.getByLabel('图形验证码',{exact:true}).fill(answer);await personal.getByRole('button',{name:'登录工作空间'}).click();
-        await expect(personal.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
+        await expect(personal.getByRole('heading',{name:/一份核心，\s*无限可能/})).toBeVisible();
         await personal.goto(`${url}/site`);
         await expect(personal.getByText('仅当前客户端',{exact:true})).toBeVisible();
         const metadata=(await(await member.request.get('/api/v1/bootstrap')).json()).data;

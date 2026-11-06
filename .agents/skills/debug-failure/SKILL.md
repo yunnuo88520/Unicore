@@ -19,7 +19,7 @@ make test / make test-go / make test-web / make test-gen / pnpm test:e2e 失败�
    - TestAPIRoutesMatchContract 失败 → 新端点漏登记契约或漏注册路由；双向遍历要求完全一致。
    - 响应 500 ROUTE_POLICY_UNDECLARED → 路由存在但 x-unicore 未声明访问策略（见 policy.go 与 add-api-operation）。
    - 页面批量变成"暂时无法连接核心 · 请求已取消或超时" → 有请求被调用方的 abort signal 连带取消（React Query 失效/卸载会中止自己的查询）：检查共享请求或 AbortSignal.any 是否携带了会中止的调用者 signal；回归用响应 abort 的 mock fetcher——忽略 signal 的 mock 恰好会掩盖这类 bug（真实案例：SDK 共享 GET 去重，见 packages/sdk/src/dedup.test.ts 的 responsive fetcher）。
-   - 本地过、CI 挂的路径/链接检查（missing cited path、missing linked resource） → 大小写漂移：macOS/Windows 文件系统不区分大小写，Linux CI 区分；引用路径必须与磁盘真实大小写一致（真实案例：docs/ADR 写成大写而目录是 docs/adr）。check-docs 已按大小写精确校验。
+   - 本地过、CI 挂的路径/链接检查（missing cited path、missing linked resource） → 大小写漂移：macOS/Windows 文件系统不区分大小写，Linux CI 区分；引用路径必须与磁盘真实大小写一致（真实案例：把小写的 docs/adr 路径写成了全大写三个字母，本地通过、CI 拒绝）。check-docs 已按大小写精确校验，连签名表里的错误示例都会被拦下。
    - check:i18n 失败 → 中英词条不同步；按列出的 key 补齐。
    - check:boundaries 失败 → CLI/domain/usecase 引入了越界包；按报错的 import 链裁剪。
    - check:migrations / catalog 测试失败 → SQL 原字节、checksum 或 catalog 登记不一致；禁止手改生成物或已分发 SQL。

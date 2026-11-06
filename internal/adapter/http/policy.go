@@ -200,13 +200,21 @@ func policyHandler(config Config) func(http.Handler) http.Handler {
 			if !ok {
 				return
 			}
+			_, _, _, profile := config.Install.Services()
+			webPlatform := profile == runtime.WebPlatform
 			for _, permission := range operation.Policy.Permissions {
+				_ = permission
+				// Profiles without the account system (standalone, desktop) have
+				// no role model; the session check above stays their boundary.
+				if !webPlatform {
+					break
+				}
 				if !platform.Has(session.User, permission) || (platform.SuperOnly(permission) && !platform.IsSuper(session.User)) {
 					webError(w, platform.ErrForbidden)
 					return
 				}
 			}
-			if operation.Policy.SuperAdmin && !platform.IsSuper(session.User) {
+			if webPlatform && operation.Policy.SuperAdmin && !platform.IsSuper(session.User) {
 				webError(w, platform.ErrForbidden)
 				return
 			}

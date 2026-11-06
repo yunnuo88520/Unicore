@@ -2,14 +2,14 @@
  * Description: Shared UI client; pages know neither fetch nor Wails globals.
  */
 import {fileFingerprint,retryDelay} from './upload';
-import type { NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, ProfileInput, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
+import type { NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, ProfileInput, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, RoleSaveInput, MenuEntry, MenuList, MenuSaveInput, DictionarySummary, DictionaryList, DictionaryItemEntry, DictionaryDetail, DictionaryCreateInput, DictionaryUpdateInput, DictionaryItemsInput, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
 import { operations, type OperationId, type OperationInputs, type OperationData } from '@unicore/contracts/operations';
 import { validate, type SchemaName } from '@unicore/contracts/validate';
 export { validate, constraints, type SchemaName } from '@unicore/contracts/validate';
 export { constraintsToZod, zodFieldErrors } from '@unicore/contracts/zod';
 export { operations, type OperationId } from '@unicore/contracts/operations';
 
-export type { NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateRelease, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
+export type { NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateRelease, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, DictionaryItemsInput, DictionaryUpdateInput, DictionaryCreateInput, DictionaryDetail, DictionaryItemEntry, DictionaryList, DictionarySummary, MenuSaveInput, MenuList, RoleSaveInput, MenuEntry, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
 
 export class AppError extends Error {
   constructor(public readonly code: string, message: string, public readonly requestId = '', public readonly fields: Record<string, string> = {}) { super(message); this.name = 'AppError'; }
@@ -146,6 +146,18 @@ export interface WebClient {
   createUser(input: UserCreate): Promise<User>;
   updateUser(id: string, input: UserUpdate): Promise<User>;
   roles(): Promise<RoleList>;
+  createRole(input: RoleSaveInput): Promise<Role>;
+  updateRole(id: string, input: RoleSaveInput): Promise<Role>;
+  deleteRole(id: string): Promise<Role>;
+  menuConfig(): Promise<MenuList>;
+  saveMenuConfig(input: MenuSaveInput): Promise<MenuList>;
+  dictionaries(): Promise<DictionaryList>;
+  dictionary(id: string): Promise<DictionaryDetail>;
+  createDictionary(input: DictionaryCreateInput): Promise<DictionarySummary>;
+  updateDictionary(id: string, input: DictionaryUpdateInput): Promise<DictionaryDetail>;
+  deleteDictionary(id: string): Promise<DictionaryDetail>;
+  replaceDictionaryItems(id: string, input: DictionaryItemsInput): Promise<DictionaryDetail>;
+  dictionaryByCode(code: string): Promise<DictionaryDetail>;
   roleOptions(): Promise<RoleOptions>;
 }
 
@@ -376,6 +388,18 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   createUser(input: UserCreate) { return this.call('createUser', input); }
   updateUser(id: string, input: UserUpdate) { return this.call('updateUser', input, { params: { id } }); }
   roles() { return this.call('listRoles'); }
+  createRole(input: RoleSaveInput) { return this.call('createRole', input); }
+  updateRole(id: string, input: RoleSaveInput) { return this.call('updateRole', input, { params: { id } }); }
+  deleteRole(id: string) { return this.call('deleteRole', undefined, { params: { id } }); }
+  menuConfig() { return this.call('listMenus'); }
+  saveMenuConfig(input: MenuSaveInput) { return this.call('saveMenus', input); }
+  dictionaries() { return this.call('listDictionaries'); }
+  dictionary(id: string) { return this.call('getDictionary', undefined, { params: { id } }); }
+  createDictionary(input: DictionaryCreateInput) { return this.call('createDictionary', input); }
+  updateDictionary(id: string, input: DictionaryUpdateInput) { return this.call('updateDictionary', input, { params: { id } }); }
+  deleteDictionary(id: string) { return this.call('deleteDictionary', undefined, { params: { id } }); }
+  replaceDictionaryItems(id: string, input: DictionaryItemsInput) { return this.call('replaceDictionaryItems', input, { params: { id } }); }
+  dictionaryByCode(code: string) { return this.call('dictionary', undefined, { params: { code } }); }
   roleOptions() { return this.call('roleOptions'); }
   branding() { return this.call('adminBranding'); }
   updateBranding(input: BrandingInput) { return this.call('adminUpdateBranding',input); }

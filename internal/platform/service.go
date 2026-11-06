@@ -31,6 +31,18 @@ type Store interface {
 	Dashboard(context.Context) (contracts.Dashboard, error)
 	ListRoles(context.Context) (contracts.RoleList, error)
 	RoleOptions(context.Context, string) (contracts.RoleOptions, error)
+	CreateRole(context.Context, string, []string, string) (contracts.Role, error)
+	UpdateRole(context.Context, string, string, []string, string) (contracts.Role, error)
+	DeleteRole(context.Context, string, string) (contracts.Role, error)
+	ListMenuConfig(context.Context) (contracts.MenuList, error)
+	SaveMenuConfig(context.Context, []contracts.MenuEntry, string) (contracts.MenuList, error)
+	ListDictionaries(context.Context) (contracts.DictionaryList, error)
+	Dictionary(context.Context, string, bool) (contracts.DictionaryDetail, error)
+	DictionaryByCode(context.Context, string, bool) (contracts.DictionaryDetail, error)
+	CreateDictionary(context.Context, contracts.DictionaryCreateInput, string) (contracts.DictionarySummary, error)
+	UpdateDictionary(context.Context, string, contracts.DictionaryUpdateInput, string) (contracts.DictionaryDetail, error)
+	DeleteDictionary(context.Context, string, string) (contracts.DictionaryDetail, error)
+	ReplaceDictionaryItems(context.Context, string, []contracts.DictionaryItemEntry, string) (contracts.DictionaryDetail, error)
 	ChangePassword(context.Context, string, string, string) error
 }
 
@@ -85,8 +97,12 @@ var phonePattern = regexp.MustCompile(`^\+?[0-9]{5,20}$`)
 func ValidPhone(phone string) bool {
 	return phonePattern.MatchString(phone)
 }
+
+// Has reports whether the user holds a permission point. Grants come from the
+// role_permissions table (user realm) or the full catalogue (super_admin), and
+// SuperOnly still refuses management points to non-super identities.
 func Has(user contracts.User, permission string) bool {
-	if !IsSuper(user) || !SuperOnly(permission) {
+	if SuperOnly(permission) && !IsSuper(user) {
 		return false
 	}
 	for _, p := range user.Permissions {

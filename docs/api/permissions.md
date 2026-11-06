@@ -1,21 +1,28 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 权限与错误契约
 
-平台默认拒绝：匿名 401，普通用户访问管理 API 为 403。管理业务 API 需实际管理员身份与权限；管理员认证前的 bootstrap/auth 仅返回公开最小投影，本人 account 需对应管理员会话；写操作校验 CSRF/Origin。权限源 internal/platform/roles.go，API/DTO 唯一源 packages/contracts/openapi.json；历史 role_permissions 不授权普通用户。
+平台默认拒绝：匿名 401，普通用户访问管理 API 为 403。管理业务 API 需实际管理员身份与权限；管理员认证前的 bootstrap/auth 仅返回公开最小投影，本人 account 需对应管理员会话；写操作校验 CSRF/Origin。权限源 internal/platform/roles.go（Assignable 标记决定能否授予用户域自建角色），API/DTO 唯一源 packages/contracts/openapi.json。用户域授权由 role_permissions 表驱动：自定义角色经 /admin/roles CRUD（roles:write）创建并勾选 assignable 权限点，成员变更/权限变更吊销对应会话；管理员域恒为目录全量。见 [ADR-0033](../adr/ADR-0033-dynamic-user-roles.md)。
+
+| 权限 | API（均在 /api/v1 下） |
+| --- | --- |
+| roles:write | POST /admin/roles；PUT/DELETE /admin/roles/{id}（仅 super_admin） |
+| menus:write | GET/PUT /admin/menus（用户端导航配置，仅 super_admin） |
+| dictionaries:read/write | GET/POST /admin/dictionaries；GET/PUT/DELETE /admin/dictionaries/{id}；PUT /admin/dictionaries/{id}/items（仅 super_admin）；用户域 GET /dictionaries/{code} 读取 active 条目 |
+| files:access / notes:access | 用户域页面与 API 的业务权限点（assignable，可授予自建角色；内置 user 角色默认持有） |
 
 | 权限 | API（均在 /api/v1 下） |
 | --- | --- |
 | admin:access | POST /admin/core/execute |
-| users:read/create/update | GET/POST /admin/users；PATCH /admin/users/{id}，role 必须为 user |
+| users:read/create/update | GET/POST /admin/users；PATCH /admin/users/{id}，用户域 role 可为 user 或任意自建角色 |
 | administrators:read/create/update | GET/POST /admin/administrators；PATCH /admin/administrators/{id}，role 必须为 super_admin |
-| roles:read | GET /admin/roles；GET /admin/users/role-options，只读固定目录 |
+| roles:read | GET /admin/roles（含自建角色与成员数）；GET /admin/users/role-options（用户域返回 user+自建角色） |
 | settings:read | GET /admin/settings、/admin/branding、/admin/settings/mail/templates |
 | settings:write | PATCH /admin/settings；PUT /admin/branding；POST /admin/settings/mail/test、/admin/settings/oidc/check；PUT /admin/settings/mail/templates；POST /admin/settings/mail/templates/{preview,test,reset} |
 | logs:read | GET /admin/logs、/admin/logs/export、/admin/mail/jobs |
 | updates:read | GET /admin/updates；POST /admin/updates/check |
 | updates:apply | POST /admin/updates/apply，需确认已备份 |
 
-管理员/普通用户使用不同账号和凭据表。固定 API 路径选择域：用户 /api/v1/auth、account、files，管理员 /api/v1/admin/auth、account、files；身份请求头不再生效，无回退；Cookie 分别为 unicore_session/unicore_administrator_session，HttpOnly/SameSite=Lax，HTTPS origin 时 Secure。管理端点的目标仓库固定，actor 在事务中从管理员表重查，保护最后启用及最后有本地密码管理员。禁止用户角色升降，不提供自定义角色写接口。后台 HTML 为公开登录壳，不因普通用户 Cookie 返回管理信息；API 始终独立鉴权。详见 [ADR-0014](../adr/ADR-0014-separate-identities-management.md)。
+管理员/普通用户使用不同账号和凭据表。固定 API 路径选择域：用户 /api/v1/auth、account、files，管理员 /api/v1/admin/auth、account、files；身份请求头不再生效，无回退；Cookie 分别为 unicore_session/unicore_administrator_session，HttpOnly/SameSite=Lax，HTTPS origin 时 Secure。管理端点的目标仓库固定，actor 在事务中从管理员表重查，保护最后启用及最后有本地密码管理员。禁止用户域账号持有 super_admin（403），管理员域账号恒为 super_admin；自定义角色只经 /admin/roles 接口维护。后台 HTML 为公开登录壳，不因普通用户 Cookie 返回管理信息；API 始终独立鉴权。详见 [ADR-0014](../adr/ADR-0014-separate-identities-management.md)。
 
 POST /account/password 与 /admin/account/password 分别仅对应域登录账号，需 CSRF/Origin，提交 current_password/password（新密码 12–128 位）。旧密码验证及锁内密码快照复核后更新，撤销该账号的当前域会话/账号挑战，清除对应 Cookie，重新登录；其他域不受影响。企业绑定也受当前域限制；两个固定 callback 使用独立浏览器证明 Cookie，管理员不允许 JIT。
 

@@ -54,6 +54,7 @@ type Bootstrap struct {
 	MaintenanceMessage    *string      `json:"maintenance_message,omitempty"`
 	MfaPending            *bool        `json:"mfa_pending,omitempty"`
 	MfaEnrollmentRequired *bool        `json:"mfa_enrollment_required,omitempty"`
+	Menus                 *[]MenuEntry `json:"menus,omitempty"`
 }
 
 type BootstrapResponse struct {
@@ -1213,4 +1214,99 @@ type NotifyPreviewResponse struct {
 	Code    string        `json:"code"`
 	Message string        `json:"message"`
 	Data    NotifyPreview `json:"data"`
+}
+
+type RoleSaveInput struct {
+	Name        string   `json:"name"`
+	Permissions []string `json:"permissions"`
+}
+
+type MenuEntry struct {
+	MenuKey  string `json:"menu_key"`
+	Label    string `json:"label"`
+	GroupKey string `json:"group_key"`
+	Sort     int    `json:"sort"`
+	Visible  bool   `json:"visible"`
+}
+
+type MenuList struct {
+	Items []MenuEntry `json:"items"`
+}
+
+type MenuSaveInput struct {
+	Items []MenuEntry `json:"items"`
+}
+
+type MenuListResponse struct {
+	Code      string   `json:"code"`
+	Message   string   `json:"message"`
+	Data      MenuList `json:"data"`
+	RequestID string   `json:"request_id"`
+}
+
+type DictionarySummary struct {
+	ID          string `json:"id"`
+	Code        string `json:"code"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	ItemCount   int    `json:"item_count"`
+	CreatedAt   int    `json:"created_at"`
+	UpdatedAt   int    `json:"updated_at"`
+}
+
+type DictionaryList struct {
+	Items []DictionarySummary `json:"items"`
+}
+
+type DictionaryItemEntry struct {
+	ID     string `json:"id"`
+	Value  string `json:"value"`
+	Label  string `json:"label"`
+	Remark string `json:"remark"`
+	Sort   int    `json:"sort"`
+	Status string `json:"status"`
+}
+
+type DictionaryDetail struct {
+	ID          string                `json:"id"`
+	Code        string                `json:"code"`
+	Name        string                `json:"name"`
+	Description string                `json:"description"`
+	Items       []DictionaryItemEntry `json:"items"`
+}
+
+type DictionaryCreateInput struct {
+	Code        string `json:"code"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+type DictionaryUpdateInput struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+type DictionaryItemsInput struct {
+	Items []DictionaryItemEntry `json:"items"`
+}
+
+type DictionaryListResponse struct {
+	Code      string         `json:"code"`
+	Message   string         `json:"message"`
+	Data      DictionaryList `json:"data"`
+	RequestID string         `json:"request_id"`
+}
+
+type DictionaryDetailResponse struct {
+	Code      string           `json:"code"`
+	Message   string           `json:"message"`
+	Data      DictionaryDetail `json:"data"`
+	RequestID string           `json:"request_id"`
+}
+
+type DictionarySummaryResponse struct {
+	Code      string            `json:"code"`
+	Message   string            `json:"message"`
+	Data      DictionarySummary `json:"data"`
+	RequestID string            `json:"request_id"`
 }

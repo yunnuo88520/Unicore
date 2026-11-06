@@ -21,8 +21,10 @@ func exerciseRoles(t *testing.T, ctx context.Context, store *sqlstore.Store, r *
 	if err != nil {
 		t.Fatal(err)
 	}
-	if member.ID == admin.ID || len(member.Permissions) != 0 {
-		t.Fatal("identities not separated")
+	// The builtin user role starts with the assignable permission points only;
+	// the administrator realm keeps the full catalogue.
+	if member.ID == admin.ID || len(member.Permissions) != 2 || member.Permissions[0] != "files:access" {
+		t.Fatal("identities not separated", member.Permissions)
 	}
 	if _, _, err = identity.Login(ctx, contracts.LoginInput{Username: admin.Username, Password: "test-password-strong"}, "realm-member", false, false, 1); !errors.Is(err, platform.ErrCredentials) {
 		t.Fatal("administrator credential worked in user realm", err)
@@ -44,7 +46,7 @@ func exerciseRoles(t *testing.T, ctx context.Context, store *sqlstore.Store, r *
 	if _, err = administrator.Session(ctx, memberToken); !errors.Is(err, platform.ErrCredentials) {
 		t.Fatal("cross realm member session", err)
 	}
-	if _, err = r.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: "super_admin", Status: "active"}, admin.ID); !errors.Is(err, platform.ErrInput) {
+	if _, err = r.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: "super_admin", Status: "active"}, admin.ID); !errors.Is(err, platform.ErrForbidden) {
 		t.Fatal("role conversion", err)
 	}
 	if _, err = r.CreateUser(ctx, contracts.UserCreate{Username: "escalate", Email: "escalate@example.test", Role: "user"}, "unused", member.ID); !errors.Is(err, platform.ErrForbidden) {
@@ -53,16 +55,25 @@ func exerciseRoles(t *testing.T, ctx context.Context, store *sqlstore.Store, r *
 	if _, err = store.Exec(ctx, store.DB, "INSERT INTO unicore_role_permissions(role_id,permission_id) VALUES('user','settings:read')"); err != nil {
 		t.Fatal(err)
 	}
+	// Grants are now table-driven: a written role_permissions row reaches the
+	// user, while SuperOnly still refuses management points at the policy layer.
+	if _, err = store.Exec(ctx, store.DB, "DELETE FROM unicore_role_permissions WHERE role_id='user' AND permission_id='files:access'"); err != nil {
+		t.Fatal(err)
+	}
 	account, err := r.FindAccount(ctx, member.Username)
-	if err != nil || platform.Has(account.User, "settings:read") {
-		t.Fatal("residual grant authorized", err)
+	if err != nil || platform.Has(account.User, "files:access") {
+		t.Fatal("revoked grant still authorized", err)
 	}
 	if _, err = r.RoleOptions(ctx, member.ID); !errors.Is(err, platform.ErrForbidden) {
 		t.Fatal("member role catalogue", err)
 	}
 	options, err := r.RoleOptions(ctx, admin.ID)
-	if err != nil || len(options.Items) != 2 {
-		t.Fatal("role catalogue", err)
+	if err != nil || len(options.Items) != 1 || options.Items[0].ID != "user" {
+		t.Fatal("user realm role catalogue", err, options.Items)
+	}
+	adminOptions, err := admins.RoleOptions(ctx, admin.ID)
+	if err != nil || len(adminOptions.Items) != 1 || adminOptions.Items[0].ID != "super_admin" {
+		t.Fatal("administrator realm role catalogue", err, adminOptions.Items)
 	}
 	if err = identity.ChangePassword(ctx, member, contracts.ChangePasswordInput{CurrentPassword: "wrong-password-strong", Password: "next-password-strong"}, "change-member"); !errors.Is(err, platform.ErrCredentials) {
 		t.Fatal("wrong current password", err)

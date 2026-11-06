@@ -7,8 +7,8 @@ import { Bell, Circle, Cloud, FileText, FlaskConical, FolderOpen, LayoutDashboar
 export const routes = defineMessages({
   overview: { label: '工作台概览', title: '一份核心，无限可能', description: '从这里出发，让同一份业务逻辑运行于 Web、桌面与命令行。', icon: LayoutDashboard },
   lab: { label: '核心实验室', title: '探索核心的每一种可能', description: '修改输入、运行用例，验证跨形态一致的执行结果。', icon: FlaskConical },
-  notes:{label:'我的笔记',title:'我的笔记',description:'记录想法、跟进事项，让每一次进展都有迹可循。',icon:NotebookPen},
-  files:{label:'文件管理',title:'文件管理',description:'统一管理文件，按需获取临时访问链接。',authenticated:true,icon:FolderOpen},
+  notes:{label:'我的笔记',title:'我的笔记',description:'记录想法、跟进事项，让每一次进展都有迹可循。',permission:'notes:access',icon:NotebookPen},
+  files:{label:'文件管理',title:'文件管理',description:'统一管理文件，按需获取临时访问链接。',permission:'files:access',icon:FolderOpen},
   site: { label: '基础设置', title: '基础设置', description: '集中管理站点、品牌与适用的实例配置。', permission: 'settings:read', icon: Settings2, group: 'system' },
   storage:{label:'对象存储',title:'对象存储',description:'按需切换本地与云存储，让业务只关心文件。',permission:'storage:read',icon:Cloud,group:'system'},
   users: { label: '用户列表', title: '用户管理', description: '管理账号、角色和状态，权限由服务端逐一校验。', permission: 'users:read', icon: UserRound, group: 'administration' },
@@ -22,7 +22,9 @@ export const routes = defineMessages({
   'system-notifications':{label:'系统通知',title:'系统通知',description:'按事件和接收对象配置自动通知策略。',permission:'settings:read',icon:Bell,group:'system'},
   logs: { label:'系统日志',title:'系统日志',description:'查看真实操作与邮件投递记录。',permission:'logs:read',icon:ScrollText,group:'system' },
   edition: { label:'系统更新',title:'系统更新',description:'查看版本记录，检查并安装可信的新版本。',permission:'updates:read',icon:PackageCheck,group:'system' },
-  roles: { label: '角色权限', title: '角色权限', description: '管理员与普通用户的固定权限边界。', permission: 'roles:read', icon: ShieldCheck, group: 'administration' },
+  roles: { label: '角色权限', title: '角色权限', description: '维护用户角色的权限点与成员分配。', permission: 'roles:read', icon: ShieldCheck, group: 'administration' },
+  menus: { label: '菜单管理', title: '菜单管理', description: '调整用户端导航的顺序、分组与可见性。', permission: 'menus:write', icon: LayoutDashboard, group: 'administration' },
+  dictionaries: { label: '数据字典', title: '数据字典', description: '维护业务表单可复用的枚举字典。', permission: 'dictionaries:read', icon: FileText, group: 'administration' },
   account: { label: '个人资料', title: '个人资料', description: '管理昵称、邮箱与账号信息。', authenticated: true, icon: UserRound, group: 'personal' },
  'account-security': {label:'安全设置',title:'安全设置',description:'管理密码、双重验证与企业账号绑定。',authenticated:true,icon:ShieldCheck,group:'personal'},
  'account-sessions': {label:'登录会话',title:'登录会话',description:'查看登录设备，及时下线不再使用的会话。',authenticated:true,icon:Monitor,group:'personal'},
@@ -42,9 +44,16 @@ export function isAdministrator(metadata?: Bootstrap): boolean {
 export function canAccess(page: Page, metadata?: Bootstrap): boolean {
   if (!metadata) return false;
   if (page === 'edition') return metadata.profile==='web-platform' ? isAdministrator(metadata) && ((__FEATURE_UPDATER__ && metadata.capabilities.updater) || (__FEATURE_LICENSE__ && metadata.capabilities.license)) : __FEATURE_UPDATER__ && metadata.capabilities.updater;
-  if (page === 'notes') return metadata.capabilities.database;
   if (page === 'site') return metadata.capabilities.settings && (metadata.profile !== 'web-platform' || !!metadata.current_user);
   const route = routes[page];
-  if ('authenticated' in route) return metadata.profile === 'web-platform' && !!metadata.current_user;
-  return !('permission' in route) || (isAdministrator(metadata) && !!metadata.current_user?.permissions.includes(route.permission));
+  if (metadata.profile !== 'web-platform') return !('permission' in route) && !('authenticated' in route);
+  if (!metadata.current_user) return false;
+  const permission = 'permission' in route ? route.permission : null;
+  // One permission point gates the page, its buttons and its API: the builtin
+  // super_admin holds the full catalogue, user-realm roles resolve assignable
+  // grants from the database.
+  if (permission && !metadata.current_user.permissions.includes(permission)) return false;
+  if ((route as { group?: string }).group === 'administration' && !isAdministrator(metadata)) return false;
+  if (page === 'notes') return metadata.capabilities.database;
+  return true;
 }

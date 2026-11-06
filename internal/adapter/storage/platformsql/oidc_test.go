@@ -111,7 +111,7 @@ func exerciseOIDC(t *testing.T, ctx context.Context, store *sqlstore.Store, r *R
 	if _, err = complete(f, claims); !errors.Is(err, platform.ErrCredentials) {
 		t.Fatal("disabled identity signed in", err)
 	}
-	if _, err = r.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: "super_admin", Status: "active"}, admin.ID); !errors.Is(err, platform.ErrInput) {
+	if _, err = r.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: "super_admin", Status: "active"}, admin.ID); !errors.Is(err, platform.ErrForbidden) {
 		t.Fatal("cross realm conversion", err)
 	}
 	if _, err = r.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: "user", Status: "active"}, admin.ID); err != nil {

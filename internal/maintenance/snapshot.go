@@ -17,6 +17,7 @@ import (
 	"github.com/yunnuo/unicore/internal/buildinfo"
 	"github.com/yunnuo/unicore/internal/files"
 	"github.com/yunnuo/unicore/internal/secret"
+	"github.com/yunnuo/unicore/migrations/catalogdata"
 	"io"
 	"io/fs"
 	"net/url"
@@ -112,9 +113,19 @@ func Backup(ctx context.Context, o BackupOptions) (Manifest, error) {
 		return m, errors.New("database installation marker does not match data directory")
 	}
 	m = Manifest{Format: 1, Snapshot: sqlstore.ID(), Version: buildinfo.Version, Created: time.Now().UTC(), Profile: profile, Driver: config.Driver, Files: []Entry{}, Objects: []CloudObject{}}
-	if err = store.DB.QueryRowContext(ctx, "SELECT COALESCE(MAX(version),0) FROM schema_migrations").Scan(&m.Schema); err != nil {
+	// Generation anchor, not MAX(version): appended namespace versions must not
+	// change the catalogue generation the backup belongs to. PostgreSQL's
+	// extended protocol rejects ? placeholders, so the dialect's own form is used.
+	anchor := catalogdata.Catalog.GenerationAnchor
+	var checksum string
+	anchorQuery := "SELECT checksum FROM schema_migrations WHERE namespace=? AND version=?"
+	if config.Driver == "postgres" {
+		anchorQuery = "SELECT checksum FROM schema_migrations WHERE namespace=$1 AND version=$2"
+	}
+	if err = store.DB.QueryRowContext(ctx, anchorQuery, anchor.Namespace, anchor.Version).Scan(&checksum); err != nil || checksum != anchor.Checksums[config.Driver] {
 		return m, errors.New("framework schema is not supported by this backup tool; use the tool matching the installed version")
 	}
+	m.Schema = 1
 	temporary, err := os.MkdirTemp("", "unicore-backup-db-")
 	if err != nil {
 		return m, err

@@ -614,6 +614,25 @@ export const operations = {
     "csrf": false,
     "identityRealm": "administrator"
   },
+  "createRole": {
+    "method": "POST",
+    "path": "/api/v1/admin/roles",
+    "requestSchema": "RoleSaveInput",
+    "responseSchema": "RoleResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "roles:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
   "roleOptions": {
     "method": "GET",
     "path": "/api/v1/admin/users/role-options",
@@ -1087,7 +1106,9 @@ export const operations = {
       "web-platform"
     ],
     "access": "authenticated",
-    "permissions": [],
+    "permissions": [
+      "files:access"
+    ],
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
@@ -1104,7 +1125,9 @@ export const operations = {
       "web-platform"
     ],
     "access": "authenticated",
-    "permissions": [],
+    "permissions": [
+      "files:access"
+    ],
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
@@ -1122,7 +1145,9 @@ export const operations = {
       "web-platform"
     ],
     "access": "authenticated",
-    "permissions": [],
+    "permissions": [
+      "files:access"
+    ],
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
@@ -1668,7 +1693,9 @@ export const operations = {
       "web-standalone"
     ],
     "access": "platform-session",
-    "permissions": [],
+    "permissions": [
+      "notes:access"
+    ],
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
@@ -1686,7 +1713,9 @@ export const operations = {
       "web-standalone"
     ],
     "access": "platform-session",
-    "permissions": [],
+    "permissions": [
+      "notes:access"
+    ],
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
@@ -1704,7 +1733,9 @@ export const operations = {
       "web-standalone"
     ],
     "access": "platform-session",
-    "permissions": [],
+    "permissions": [
+      "notes:access"
+    ],
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
@@ -1722,7 +1753,9 @@ export const operations = {
       "web-standalone"
     ],
     "access": "platform-session",
-    "permissions": [],
+    "permissions": [
+      "notes:access"
+    ],
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
@@ -3093,6 +3126,213 @@ export const operations = {
     "superAdmin": false,
     "csrf": false,
     "identityRealm": "user"
+  },
+  "updateRole": {
+    "method": "PUT",
+    "path": "/api/v1/admin/roles/{id}",
+    "requestSchema": "RoleSaveInput",
+    "responseSchema": "RoleResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "roles:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "deleteRole": {
+    "method": "DELETE",
+    "path": "/api/v1/admin/roles/{id}",
+    "requestSchema": null,
+    "responseSchema": "RoleResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "roles:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "listMenus": {
+    "method": "GET",
+    "path": "/api/v1/admin/menus",
+    "requestSchema": null,
+    "responseSchema": "MenuListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "menus:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "saveMenus": {
+    "method": "PUT",
+    "path": "/api/v1/admin/menus",
+    "requestSchema": "MenuSaveInput",
+    "responseSchema": "MenuListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "menus:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "listDictionaries": {
+    "method": "GET",
+    "path": "/api/v1/admin/dictionaries",
+    "requestSchema": null,
+    "responseSchema": "DictionaryListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "dictionaries:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "createDictionary": {
+    "method": "POST",
+    "path": "/api/v1/admin/dictionaries",
+    "requestSchema": "DictionaryCreateInput",
+    "responseSchema": "DictionarySummaryResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "dictionaries:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "getDictionary": {
+    "method": "GET",
+    "path": "/api/v1/admin/dictionaries/{id}",
+    "requestSchema": null,
+    "responseSchema": "DictionaryDetailResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "dictionaries:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "updateDictionary": {
+    "method": "PUT",
+    "path": "/api/v1/admin/dictionaries/{id}",
+    "requestSchema": "DictionaryUpdateInput",
+    "responseSchema": "DictionaryDetailResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "dictionaries:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "deleteDictionary": {
+    "method": "DELETE",
+    "path": "/api/v1/admin/dictionaries/{id}",
+    "requestSchema": null,
+    "responseSchema": "DictionaryDetailResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "dictionaries:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "replaceDictionaryItems": {
+    "method": "PUT",
+    "path": "/api/v1/admin/dictionaries/{id}/items",
+    "requestSchema": "DictionaryItemsInput",
+    "responseSchema": "DictionaryDetailResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "dictionaries:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "dictionary": {
+    "method": "GET",
+    "path": "/api/v1/dictionaries/{code}",
+    "requestSchema": null,
+    "responseSchema": "DictionaryDetailResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user"
   }
 } as const;
 export type OperationId = keyof typeof operations;
@@ -3132,6 +3372,7 @@ export interface OperationInputs {
   mailTemplates: undefined;
   saveMailTemplate: Models.MailTemplateInput;
   listRoles: undefined;
+  createRole: Models.RoleSaveInput;
   roleOptions: undefined;
   oidcInfo: undefined;
   oidcStart: undefined;
@@ -3271,6 +3512,17 @@ export interface OperationInputs {
   oidcTOTP: undefined;
   adminOidcTOTP: undefined;
   oidcBindLogin: Models.OIDCBindLoginInput;
+  updateRole: Models.RoleSaveInput;
+  deleteRole: undefined;
+  listMenus: undefined;
+  saveMenus: Models.MenuSaveInput;
+  listDictionaries: undefined;
+  createDictionary: Models.DictionaryCreateInput;
+  getDictionary: undefined;
+  updateDictionary: Models.DictionaryUpdateInput;
+  deleteDictionary: undefined;
+  replaceDictionaryItems: Models.DictionaryItemsInput;
+  dictionary: undefined;
 }
 export interface OperationData {
   bootstrap: Models.BootstrapResponse['data'];
@@ -3308,6 +3560,7 @@ export interface OperationData {
   mailTemplates: Models.MailTemplateListResponse['data'];
   saveMailTemplate: Models.MailTemplateResponse['data'];
   listRoles: Models.RoleListResponse['data'];
+  createRole: Models.RoleResponse['data'];
   roleOptions: Models.RoleOptionsResponse['data'];
   oidcInfo: Models.OIDCInfoResponse['data'];
   oidcStart: Models.OIDCStartResponse['data'];
@@ -3447,4 +3700,15 @@ export interface OperationData {
   oidcTOTP: Models.OIDCStartResponse['data'];
   adminOidcTOTP: Models.OIDCStartResponse['data'];
   oidcBindLogin: Models.SessionResponse['data'];
+  updateRole: Models.RoleResponse['data'];
+  deleteRole: Models.RoleResponse['data'];
+  listMenus: Models.MenuListResponse['data'];
+  saveMenus: Models.MenuListResponse['data'];
+  listDictionaries: Models.DictionaryListResponse['data'];
+  createDictionary: Models.DictionarySummaryResponse['data'];
+  getDictionary: Models.DictionaryDetailResponse['data'];
+  updateDictionary: Models.DictionaryDetailResponse['data'];
+  deleteDictionary: Models.DictionaryDetailResponse['data'];
+  replaceDictionaryItems: Models.DictionaryDetailResponse['data'];
+  dictionary: Models.DictionaryDetailResponse['data'];
 }

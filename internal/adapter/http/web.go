@@ -165,7 +165,8 @@ func decode(w http.ResponseWriter, r *http.Request, value any) bool {
 	if ok {
 		schema := operation.RequestBody.Content["application/json"].Schema.Ref
 		if schema != "" {
-			return validationResult(w, apispec.ValidateJSON(strings.TrimPrefix(schema, "#/components/schemas/"), raw))
+			fields := apispec.ValidateJSON(strings.TrimPrefix(schema, "#/components/schemas/"), raw)
+			return validationResult(w, fields)
 		}
 	}
 	return true
@@ -344,6 +345,9 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 		if session, err := identity.Session(r.Context(), rawSession(r)); err == nil {
 			data.CurrentUser = &session.User
 			data.CsrfToken = &session.CsrfToken
+			if entries, err := identity.Store.ListMenuConfig(r.Context()); err == nil && len(entries.Items) != 0 {
+				data.Menus = &entries.Items
+			}
 			if identity.Personal != nil {
 				if info, e := identity.Personal.Profile(r.Context(), rawSession(r)); e == nil {
 					required := info.Force2fa && !info.TotpEnabled
@@ -391,6 +395,8 @@ func mountWeb(api chi.Router, config Config) {
 	manager := config.Install
 	mountAccounts(api, config)
 	mountRoles(api, config)
+	mountMenus(api, config)
+	mountDictionaries(api, config)
 	mountOIDC(api, config)
 	limiter := platform.NewLimiter()
 	api.Get("/install/status", func(w http.ResponseWriter, r *http.Request) { success(w, manager.Status()) })
@@ -484,7 +490,9 @@ func mountWeb(api chi.Router, config Config) {
 			if !decode(w, r, &input) {
 				return
 			}
-			if input.Role != role {
+			// The administrator realm stays fixed on super_admin; the user realm
+			// assigns any existing role (validated against the database).
+			if administrators && input.Role != role {
 				webError(w, platform.ErrInput)
 				return
 			}
@@ -505,7 +513,9 @@ func mountWeb(api chi.Router, config Config) {
 			if !decode(w, r, &input) {
 				return
 			}
-			if input.Role != role {
+			// The administrator realm stays fixed on super_admin; the user realm
+			// assigns any existing role (validated against the database).
+			if administrators && input.Role != role {
 				webError(w, platform.ErrInput)
 				return
 			}

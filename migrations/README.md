@@ -8,12 +8,13 @@
 ```text
 core/{sqlite,postgres,mysql}/0001_initial.sql        # install_state / system_settings / audit_logs
 platform/{sqlite,postgres,mysql}/0001_initial.sql    # 32 张平台应用表（含公告通知、手机号、个人中心终态）
+platform/{sqlite,postgres,mysql}/0002_rbac_menus_dictionaries.sql  # 菜单配置 + 数据字典（首个追加版本）
 modules/notes/{sqlite,postgres,mysql}/0001_initial.sql
 catalogdata/catalog.gen.go    # 生成 Go descriptor，不由 CLI import
 metadata.gen.json             # 生成发行/运维投影
 ```
 
-表数口径：web-platform = 3 + 32 + 1 + 1（四列账本 `schema_migrations`）= 37 张；web-standalone/desktop = 3 + 1 + 1 = 5 张；CLI 不创建数据库。Profile 的 namespaces 仅为成员集合；depends_on 是唯一依赖来源。生成器使用 Kahn 拓扑排序，每轮可选节点按标识字节序取最小者。当前顺序为 core→module.notes→platform。
+表数口径：web-platform = 3 + 35 + 1 + 1（四列账本 `schema_migrations`）= 40 张；web-standalone/desktop = 3 + 1 + 1 = 5 张；CLI 不创建数据库。Profile 的 namespaces 仅为成员集合；depends_on 是唯一依赖来源。生成器使用 Kahn 拓扑排序，每轮可选节点按标识字节序取最小者。当前顺序为 core→module.notes→platform。
 
 ```sh
 pnpm generate:migrations   # 改 catalog.json 或 SQL 后重新生成

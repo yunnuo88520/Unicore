@@ -52,6 +52,7 @@ export interface Bootstrap {
   maintenance_message?: string;
   mfa_pending?: boolean;
   mfa_enrollment_required?: boolean;
+  menus?: Array<MenuEntry>;
 }
 
 export interface BootstrapResponse {
@@ -154,11 +155,11 @@ export interface UserCreate {
   email: string;
   password: string;
   phone?: string;
-  role: "super_admin" | "user";
+  role: string;
 }
 
 export interface UserUpdate {
-  role: "super_admin" | "user";
+  role: string;
   status: string;
 }
 
@@ -419,7 +420,7 @@ export interface PermissionDefinition {
 }
 
 export interface Role {
-  id: "super_admin" | "user";
+  id: string;
   name: string;
   builtin: boolean;
   permissions: Array<string>;
@@ -1211,4 +1212,99 @@ export interface NotifyPreviewResponse {
   code: string;
   message: string;
   data: NotifyPreview;
+}
+
+export interface RoleSaveInput {
+  name: string;
+  permissions: Array<string>;
+}
+
+export interface MenuEntry {
+  menu_key: string;
+  label: string;
+  group_key: string;
+  sort: number;
+  visible: boolean;
+}
+
+export interface MenuList {
+  items: Array<MenuEntry>;
+}
+
+export interface MenuSaveInput {
+  items: Array<MenuEntry>;
+}
+
+export interface MenuListResponse {
+  code: string;
+  message: string;
+  data: MenuList;
+  request_id: string;
+}
+
+export interface DictionarySummary {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  item_count: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface DictionaryList {
+  items: Array<DictionarySummary>;
+}
+
+export interface DictionaryItemEntry {
+  id: string;
+  value: string;
+  label: string;
+  remark: string;
+  sort: number;
+  status: string;
+}
+
+export interface DictionaryDetail {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  items: Array<DictionaryItemEntry>;
+}
+
+export interface DictionaryCreateInput {
+  code: string;
+  name: string;
+  description: string;
+}
+
+export interface DictionaryUpdateInput {
+  name: string;
+  description: string;
+}
+
+export interface DictionaryItemsInput {
+  items: Array<DictionaryItemEntry>;
+}
+
+export interface DictionaryListResponse {
+  code: string;
+  message: string;
+  data: DictionaryList;
+  request_id: string;
+}
+
+export interface DictionaryDetailResponse {
+  code: string;
+  message: string;
+  data: DictionaryDetail;
+  request_id: string;
+}
+
+export interface DictionarySummaryResponse {
+  code: string;
+  message: string;
+  data: DictionarySummary;
+  request_id: string;
 }

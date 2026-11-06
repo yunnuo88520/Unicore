@@ -1823,6 +1823,62 @@
         },
         "summary": "listRoles",
         "parameters": []
+      },
+      "post": {
+        "operationId": "createRole",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "roles:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "roles:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "createRole",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleSaveInput"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/admin/users/role-options": {
@@ -3687,7 +3743,9 @@
             "web-platform"
           ],
           "access": "authenticated",
-          "permissions": [],
+          "permissions": [
+            "files:access"
+          ],
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
@@ -3745,7 +3803,9 @@
             "web-platform"
           ],
           "access": "authenticated",
-          "permissions": [],
+          "permissions": [
+            "files:access"
+          ],
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
@@ -3816,7 +3876,9 @@
             "web-platform"
           ],
           "access": "authenticated",
-          "permissions": [],
+          "permissions": [
+            "files:access"
+          ],
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
@@ -5865,7 +5927,9 @@
             "web-standalone"
           ],
           "access": "platform-session",
-          "permissions": [],
+          "permissions": [
+            "notes:access"
+          ],
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
@@ -5973,7 +6037,9 @@
             "web-standalone"
           ],
           "access": "platform-session",
-          "permissions": [],
+          "permissions": [
+            "notes:access"
+          ],
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
@@ -6032,7 +6098,9 @@
             "web-standalone"
           ],
           "access": "platform-session",
-          "permissions": [],
+          "permissions": [
+            "notes:access"
+          ],
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
@@ -6100,7 +6168,9 @@
             "web-standalone"
           ],
           "access": "platform-session",
-          "permissions": [],
+          "permissions": [
+            "notes:access"
+          ],
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
@@ -10722,6 +10792,617 @@
           }
         }
       }
+    },
+    "/api/v1/admin/roles/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      ],
+      "put": {
+        "operationId": "updateRole",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "roles:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "roles:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "updateRole",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleSaveInput"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteRole",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "roles:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "roles:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "deleteRole",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/menus": {
+      "get": {
+        "operationId": "listMenus",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MenuListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "menus:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "menus:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "listMenus",
+        "parameters": []
+      },
+      "put": {
+        "operationId": "saveMenus",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MenuListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "menus:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "menus:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "saveMenus",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MenuSaveInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/dictionaries": {
+      "get": {
+        "operationId": "listDictionaries",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "dictionaries:read; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "dictionaries:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "listDictionaries",
+        "parameters": []
+      },
+      "post": {
+        "operationId": "createDictionary",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionarySummaryResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "dictionaries:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "dictionaries:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "createDictionary",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DictionaryCreateInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/dictionaries/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getDictionary",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryDetailResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "dictionaries:read; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "dictionaries:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "getDictionary",
+        "parameters": []
+      },
+      "put": {
+        "operationId": "updateDictionary",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryDetailResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "dictionaries:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "dictionaries:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "updateDictionary",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DictionaryUpdateInput"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteDictionary",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryDetailResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "dictionaries:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "dictionaries:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "deleteDictionary",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/dictionaries/{id}/items": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      ],
+      "put": {
+        "operationId": "replaceDictionaryItems",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryDetailResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "dictionaries:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "dictionaries:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "replaceDictionaryItems",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DictionaryItemsInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/dictionaries/{code}": {
+      "parameters": [
+        {
+          "name": "code",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9_]*$"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "dictionary",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryDetailResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "x-permission": "active session",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "user"
+        },
+        "summary": "dictionary",
+        "parameters": []
+      }
     }
   },
   "components": {
@@ -10915,6 +11596,13 @@
           },
           "mfa_enrollment_required": {
             "type": "boolean"
+          },
+          "menus": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MenuEntry"
+            },
+            "description": "Operator-edited menu overrides; absent entries fall back to route defaults."
           }
         }
       },
@@ -11316,11 +12004,8 @@
           },
           "role": {
             "type": "string",
-            "enum": [
-              "super_admin",
-              "user"
-            ],
-            "description": "Fixed roles: administrator or ordinary user."
+            "maxLength": 64,
+            "description": "User-realm builtin or custom role id; the administrator realm only assigns super_admin."
           }
         }
       },
@@ -11334,11 +12019,8 @@
         "properties": {
           "role": {
             "type": "string",
-            "enum": [
-              "super_admin",
-              "user"
-            ],
-            "description": "Fixed roles: administrator or ordinary user."
+            "maxLength": 64,
+            "description": "User-realm builtin or custom role id; the administrator realm only assigns super_admin."
           },
           "status": {
             "type": "string"
@@ -12295,10 +12977,8 @@
         "properties": {
           "id": {
             "type": "string",
-            "enum": [
-              "super_admin",
-              "user"
-            ]
+            "maxLength": 64,
+            "description": "Builtin super_admin/user or a custom role id."
           },
           "name": {
             "type": "string"
@@ -15626,6 +16306,371 @@
           },
           "data": {
             "$ref": "#/components/schemas/NotifyPreview"
+          }
+        }
+      },
+      "RoleSaveInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "permissions"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 64
+          }
+        }
+      },
+      "MenuEntry": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "menu_key",
+          "label",
+          "group_key",
+          "sort",
+          "visible"
+        ],
+        "properties": {
+          "menu_key": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "group_key": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "sort": {
+            "type": "integer"
+          },
+          "visible": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MenuList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MenuEntry"
+            }
+          }
+        }
+      },
+      "MenuSaveInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MenuEntry"
+            },
+            "maxItems": 256
+          }
+        }
+      },
+      "MenuListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MenuList"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "DictionarySummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "code",
+          "name",
+          "description",
+          "item_count",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "item_count": {
+            "type": "integer"
+          },
+          "created_at": {
+            "type": "integer"
+          },
+          "updated_at": {
+            "type": "integer"
+          }
+        }
+      },
+      "DictionaryList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DictionarySummary"
+            }
+          }
+        }
+      },
+      "DictionaryItemEntry": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "value",
+          "label",
+          "remark",
+          "sort",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "remark": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "sort": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "maxLength": 16
+          }
+        }
+      },
+      "DictionaryDetail": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "code",
+          "name",
+          "description",
+          "items"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DictionaryItemEntry"
+            }
+          }
+        }
+      },
+      "DictionaryCreateInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "name",
+          "description"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 200
+          }
+        }
+      },
+      "DictionaryUpdateInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "description"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 200
+          }
+        }
+      },
+      "DictionaryItemsInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DictionaryItemEntry"
+            },
+            "maxItems": 512
+          }
+        }
+      },
+      "DictionaryListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DictionaryList"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "DictionaryDetailResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DictionaryDetail"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "DictionarySummaryResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DictionarySummary"
+          },
+          "request_id": {
+            "type": "string"
           }
         }
       }

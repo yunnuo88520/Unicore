@@ -140,6 +140,26 @@
               "checksum": "0480b2768d8f616e16bf1c9fba24d8b35c4f735f73b05dd1eb62500f4b64170e"
             }
           }
+        },
+        {
+          "version": 2,
+          "files": {
+            "mysql": {
+              "path": "platform/mysql/0002_rbac_menus_dictionaries.sql",
+              "bytes": 1854,
+              "checksum": "6c538c188b58fd2db02fd59333cf7e0f8270515c0b630616a04e6ee2c9bb3640"
+            },
+            "postgres": {
+              "path": "platform/postgres/0002_rbac_menus_dictionaries.sql",
+              "bytes": 1933,
+              "checksum": "d5583d9cfbe7b5eeca3656cc48fbffcdbaaa59267bc1ed32cd4d8f62b066e2f4"
+            },
+            "sqlite": {
+              "path": "platform/sqlite/0002_rbac_menus_dictionaries.sql",
+              "bytes": 1471,
+              "checksum": "bba7aaf553b8749030d0b423a88ba8136398037d169b437a4c1c0053efdde224"
+            }
+          }
         }
       ]
     }
@@ -187,7 +207,7 @@
       "levels": {
         "core": 1,
         "module.notes": 1,
-        "platform": 1
+        "platform": 2
       }
     },
     "web-standalone": {

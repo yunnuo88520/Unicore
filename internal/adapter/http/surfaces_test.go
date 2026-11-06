@@ -114,6 +114,9 @@ func TestSeparateSurfacesAndCreatedUserLogin(t *testing.T) {
 	check(request("GET", "/api/v1/admin/notes", nil, memberCookie, "", "administrator"), 403)
 	w = request("GET", "/api/v1/notes", nil, memberCookie, "", "administrator")
 	check(w, 200)
+	if dbg2 := request("GET", "/api/v1/notes", nil, memberCookie, "", ""); dbg2.Code != 200 {
+		t.Logf("DEBUG notes without realm header: %d %s", dbg2.Code, dbg2.Body.String())
+	}
 	var notes contracts.NoteListResponse
 	_ = json.Unmarshal(w.Body.Bytes(), &notes)
 	if notes.Data.Total != 0 {

@@ -186,6 +186,12 @@ export const constraints = {
       },
       "mfa_enrollment_required": {
         "type": "boolean"
+      },
+      "menus": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/MenuEntry"
+        }
       }
     }
   },
@@ -579,10 +585,7 @@ export const constraints = {
       },
       "role": {
         "type": "string",
-        "enum": [
-          "super_admin",
-          "user"
-        ]
+        "maxLength": 64
       }
     }
   },
@@ -596,10 +599,7 @@ export const constraints = {
     "properties": {
       "role": {
         "type": "string",
-        "enum": [
-          "super_admin",
-          "user"
-        ]
+        "maxLength": 64
       },
       "status": {
         "type": "string"
@@ -1542,10 +1542,7 @@ export const constraints = {
     "properties": {
       "id": {
         "type": "string",
-        "enum": [
-          "super_admin",
-          "user"
-        ]
+        "maxLength": 64
       },
       "name": {
         "type": "string"
@@ -4865,6 +4862,371 @@ export const constraints = {
       },
       "data": {
         "$ref": "#/components/schemas/NotifyPreview"
+      }
+    }
+  },
+  "RoleSaveInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "name",
+      "permissions"
+    ],
+    "properties": {
+      "name": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "permissions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "maxItems": 64
+      }
+    }
+  },
+  "MenuEntry": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "menu_key",
+      "label",
+      "group_key",
+      "sort",
+      "visible"
+    ],
+    "properties": {
+      "menu_key": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "label": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "group_key": {
+        "type": "string",
+        "maxLength": 32
+      },
+      "sort": {
+        "type": "integer"
+      },
+      "visible": {
+        "type": "boolean"
+      }
+    }
+  },
+  "MenuList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/MenuEntry"
+        }
+      }
+    }
+  },
+  "MenuSaveInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/MenuEntry"
+        },
+        "maxItems": 256
+      }
+    }
+  },
+  "MenuListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/MenuList"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "DictionarySummary": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "code",
+      "name",
+      "description",
+      "item_count",
+      "created_at",
+      "updated_at"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "code": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "name": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "description": {
+        "type": "string",
+        "maxLength": 200
+      },
+      "item_count": {
+        "type": "integer"
+      },
+      "created_at": {
+        "type": "integer"
+      },
+      "updated_at": {
+        "type": "integer"
+      }
+    }
+  },
+  "DictionaryList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/DictionarySummary"
+        }
+      }
+    }
+  },
+  "DictionaryItemEntry": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "value",
+      "label",
+      "remark",
+      "sort",
+      "status"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "value": {
+        "type": "string",
+        "maxLength": 128
+      },
+      "label": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "remark": {
+        "type": "string",
+        "maxLength": 200
+      },
+      "sort": {
+        "type": "integer"
+      },
+      "status": {
+        "type": "string",
+        "maxLength": 16
+      }
+    }
+  },
+  "DictionaryDetail": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "code",
+      "name",
+      "description",
+      "items"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "code": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "name": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "description": {
+        "type": "string",
+        "maxLength": 200
+      },
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/DictionaryItemEntry"
+        }
+      }
+    }
+  },
+  "DictionaryCreateInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "name",
+      "description"
+    ],
+    "properties": {
+      "code": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 64,
+        "pattern": "^[a-z][a-z0-9_]*$"
+      },
+      "name": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "description": {
+        "type": "string",
+        "maxLength": 200
+      }
+    }
+  },
+  "DictionaryUpdateInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "name",
+      "description"
+    ],
+    "properties": {
+      "name": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "description": {
+        "type": "string",
+        "maxLength": 200
+      }
+    }
+  },
+  "DictionaryItemsInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/DictionaryItemEntry"
+        },
+        "maxItems": 512
+      }
+    }
+  },
+  "DictionaryListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/DictionaryList"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "DictionaryDetailResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/DictionaryDetail"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "DictionarySummaryResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/DictionarySummary"
+      },
+      "request_id": {
+        "type": "string"
       }
     }
   }

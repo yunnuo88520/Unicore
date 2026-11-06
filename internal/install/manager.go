@@ -31,9 +31,9 @@ import (
 	"github.com/yunnuo/unicore/internal/mailer"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/runtime"
-	"github.com/yunnuo/unicore/migrations/runner"
 	"github.com/yunnuo/unicore/internal/secret"
 	"github.com/yunnuo/unicore/internal/settings"
+	"github.com/yunnuo/unicore/migrations/runner"
 )
 
 var (
@@ -302,6 +302,16 @@ func (m *Manager) recover(ctx context.Context) error {
 		m.config.State = "INSTALLED"
 		m.config.TokenHash = ""
 		m.attach(store)
+		// Catalogue upgrades add permission points; re-apply the grant set so
+		// super_admin keeps the full catalogue on an upgraded database.
+		if m.config.Profile == runtime.WebPlatform {
+			if repo, ok := m.identity.Store.(*platformsql.Repository); ok {
+				if err = repo.EnsurePermissions(ctx); err != nil {
+					_ = store.Close()
+					return ErrDatabase
+				}
+			}
+		}
 		return m.save()
 	}
 	_ = store.Close()

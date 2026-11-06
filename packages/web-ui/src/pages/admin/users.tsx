@@ -8,7 +8,7 @@ import type { Bootstrap, User, UserCreate, WebClient } from '@unicore/sdk';
 import { t, useLocale } from '../../i18n';
 import { invalidateAfter } from '../../queries';
 import { AppField, AppForm, useAppForm } from '@unicore/form';
-import { Badge, Button, Card, CardContent, Input, Modal, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage } from '@unicore/ui';
+import { Badge, Button, Card, CardContent, Input, Modal, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage , NativeSelect} from '@unicore/ui';
 import type { PageProps } from '../../router';
 
 const features = tableFeatures({ rowPaginationFeature, paginatedRowModel: createPaginatedRowModel() });
@@ -16,7 +16,7 @@ const helper = createColumnHelper<typeof features, User>();
 const EMPTY_USERS: User[] = [];
 const COLUMN_COUNT = 6;
 
-type UsersTableMeta = { kind: string; pending: boolean; currentUserId?: string; onToggle: (user: User) => void };
+type UsersTableMeta = { kind: string; pending: boolean; administrators?: boolean; currentUserId?: string; onToggle: (user: User) => void; onRole?: (user: User) => void };
 
 const columns = helper.columns([
   helper.accessor('username', {
@@ -48,9 +48,12 @@ const columns = helper.columns([
     cell: info => {
       const user = info.row.original;
       const meta = info.table.options.meta as UsersTableMeta;
-      return <Button variant="link" size="sm" className="h-auto p-0" disabled={meta.pending} onClick={() => meta.onToggle(user)}>
-        {user.status === 'active' ? t('禁用') : t('启用')}
-      </Button>;
+      return <div className="flex gap-2">
+        <Button variant="link" size="sm" className="h-auto p-0" disabled={meta.pending} onClick={() => meta.onToggle(user)}>
+          {user.status === 'active' ? t('禁用') : t('启用')}
+        </Button>
+        {!meta.administrators && meta.onRole && <Button variant="link" size="sm" className="h-auto p-0" disabled={meta.pending} onClick={() => meta.onRole?.(user)}>{t('改角色')}</Button>}
+      </div>;
     },
   }),
 ]);
@@ -74,6 +77,16 @@ function UserListPanel({ web, metadata, administrators }: { web: WebClient; meta
   const [search, setSearch] = useState('');
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 20 });
   const [creating, setCreating] = useState(false);
+  const [roleTarget, setRoleTarget] = useState<User | null>(null);
+  const roleChange = useMutation({
+    mutationFn: ({ id, role }: { id: string; role: string }) => (administrators ? web.updateAdministrator(id, { status: 'active', role }) : web.updateUser(id, { status: 'active', role })),
+    onSuccess: () => {
+      message.success(t('角色已更新'));
+      setRoleTarget(null);
+      refresh();
+    },
+    onError: error => message.error(t(error.message)),
+  });
   const list = useQuery({
     queryKey: [administrators ? 'administrators' : 'users', search, pagination],
     queryFn: () => (administrators ? web.administrators(search, pagination.pageIndex + 1) : web.users(search, pagination.pageIndex + 1)),
@@ -92,9 +105,11 @@ function UserListPanel({ web, metadata, administrators }: { web: WebClient; meta
     data: list.data?.items ?? EMPTY_USERS,
     meta: {
       kind,
-      pending: update.isPending,
+      pending: update.isPending || roleChange.isPending,
+      administrators,
       currentUserId: metadata.current_user?.id,
       onToggle: user => update.mutate({ id: user.id, status: user.status === 'active' ? 'disabled' : 'active' }),
+      onRole: user => setRoleTarget(user),
     } satisfies UsersTableMeta,
     state: { pagination },
     onPaginationChange: setPagination,
@@ -144,6 +159,7 @@ function UserListPanel({ web, metadata, administrators }: { web: WebClient; meta
       </div>
     </CardContent>
     {creating && <UserCreateDialog web={web} kind={kind} role={role} administrators={administrators} onClose={() => setCreating(false)} onCreated={refresh} />}
+    {roleTarget && <UserRoleDialog web={web} administrators={administrators} user={roleTarget} onClose={() => setRoleTarget(null)} />}
   </Card>;
 }
 
@@ -152,6 +168,7 @@ function UserCreateDialog({ web, kind, role, administrators, onClose, onCreated 
 }) {
   useLocale();
   const message = useMessage();
+  const options = useQuery({ queryKey: ['role-options'], queryFn: () => web.roleOptions(), enabled: !administrators });
   const form = useAppForm<UserCreate>({
     schema: 'UserCreate',
     defaultValues: { username: '', email: '', password: '', role },
@@ -171,6 +188,11 @@ function UserCreateDialog({ web, kind, role, administrators, onClose, onCreated 
       <AppField name="username" label={t('账号')}><Input required minLength={3} maxLength={64} autoComplete="off" /></AppField>
       <AppField name="email" label={t('邮箱')}><Input required type="email" maxLength={254} /></AppField>
       <AppField name="password" label={t('初始密码')}><Input required type="password" minLength={12} maxLength={128} autoComplete="new-password" /></AppField>
+      {!administrators && <AppField name="role" label={t('角色')}>
+        <NativeSelect aria-label={t('角色')} disabled={options.isLoading}>
+          {(options.data?.items ?? []).map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
+        </NativeSelect>
+      </AppField>}
       <p className="text-xs leading-relaxed text-muted">
         {administrators ? t('使用当前后台入口登录。') : t('创建后即可从 /login 使用初始密码登录，无需邮件验证。')}
         {t('密码至少 12 位。')}
@@ -180,5 +202,35 @@ function UserCreateDialog({ web, kind, role, administrators, onClose, onCreated 
         <Button type="submit" pending={form.formState.isSubmitting}>{form.formState.isSubmitting ? t('正在创建…') : t('创建{{v0}}', { v0: kind })}</Button>
       </div>
     </AppForm>
+  </Modal>;
+}
+
+function UserRoleDialog({ web, administrators, user, onClose }: {
+  web: WebClient; administrators: boolean; user: User; onClose: () => void;
+}) {
+  useLocale();
+  const message = useMessage();
+  const current = user.roles[0] ?? '';
+  const options = useQuery({ queryKey: ['role-options'], queryFn: () => web.roleOptions() });
+  const [role, setRole] = useState<string>(current);
+  return <Modal title={t('调整{{v0}}的角色', { v0: user.username })} onClose={onClose} pending={false}>
+    <div className="flex flex-col gap-3">
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="text-muted">{t('角色')}</span>
+        <NativeSelect aria-label={t('角色')} value={role} onChange={event => setRole(event.target.value)} disabled={administrators || options.isLoading}>
+          {(options.data?.items ?? [{ id: current, name: current }]).map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
+        </NativeSelect>
+      </label>
+      <div className="flex justify-end gap-2">
+        <Button variant="secondary" onClick={onClose}>{t('取消')}</Button>
+        <Button pending={false} onClick={() => {
+          const submit = administrators ? web.updateAdministrator(user.id, { status: user.status, role }) : web.updateUser(user.id, { status: user.status, role });
+          void submit.then(() => {
+            message.success(t('角色已更新'));
+            onClose();
+          }).catch(error => message.error(t(error.message)));
+        }}>{t('保存')}</Button>
+      </div>
+    </div>
   </Modal>;
 }

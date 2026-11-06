@@ -106,6 +106,8 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
     pageRoute('/users', () => import('./pages/admin/users').then(module => ({ default: module.AdminUsersPage })), { adminEligible: true }),
     pageRoute('/administrators', () => import('./pages/admin/users').then(module => ({ default: module.AdminAdministratorsPage })), { adminEligible: true }),
     pageRoute('/roles', () => import('./pages/admin/roles').then(module => ({ default: module.AdminRolesPage })), { adminEligible: true }),
+    pageRoute('/menus', () => import('./pages/admin/menus').then(module => ({ default: module.AdminMenusPage })), { adminEligible: true }),
+    pageRoute('/dictionaries', () => import('./pages/admin/dictionaries').then(module => ({ default: module.AdminDictionariesPage })), { adminEligible: true }),
     pageRoute('/notification-channels', () => import('./pages/admin/notifications').then(module => ({ default: module.AdminNotificationsPage })), { adminEligible: true }),
     pageRoute('/notification-templates', () => import('./pages/admin/notifications').then(module => ({ default: module.AdminNotificationsPage })), { adminEligible: true }),
     pageRoute('/system-notifications', () => import('./pages/admin/notifications').then(module => ({ default: module.AdminNotificationsPage })), { adminEligible: true }),

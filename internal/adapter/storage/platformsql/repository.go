@@ -42,6 +42,22 @@ func (r *Repository) user(ctx context.Context, q sqlstore.Runner, id string) (co
 	user.Roles = []string{r.roleID()}
 	if r.Administrators {
 		user.Permissions = append(user.Permissions, platform.Permissions...)
+	} else {
+		rows, err := r.rows(ctx, q, "SELECT rp.permission_id FROM unicore_user_roles ur JOIN unicore_role_permissions rp ON rp.role_id=ur.role_id WHERE ur.user_id=? ORDER BY rp.permission_id", id)
+		if err != nil {
+			return user, err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var permission string
+			if err = rows.Scan(&permission); err != nil {
+				return user, err
+			}
+			user.Permissions = append(user.Permissions, permission)
+		}
+		if err = rows.Err(); err != nil {
+			return user, err
+		}
 	}
 	return user, nil
 }
@@ -70,10 +86,20 @@ func (r *Repository) Seed(ctx context.Context, tx *sql.Tx, input contracts.UserC
 			return contracts.User{}, err
 		}
 	}
+	// The builtin user role starts with every assignable permission point, so
+	// existing deployments keep their behaviour after the switch to grants.
+	for _, permission := range platform.PermissionCatalog {
+		if !permission.Assignable {
+			continue
+		}
+		if _, err := r.exec(ctx, tx, "INSERT INTO unicore_role_permissions(role_id,permission_id) SELECT 'user',? WHERE NOT EXISTS (SELECT 1 FROM unicore_role_permissions WHERE role_id='user' AND permission_id=?)", permission.ID, permission.ID); err != nil {
+			return contracts.User{}, err
+		}
+	}
 	return r.insert(ctx, tx, input, hash, "bootstrap")
 }
 func (r *Repository) insert(ctx context.Context, tx *sql.Tx, input contracts.UserCreate, hash, actor string) (contracts.User, error) {
-	if input.Role != r.roleID() {
+	if r.Administrators && input.Role != r.roleID() {
 		return contracts.User{}, platform.ErrInput
 	}
 	// Creation callers hold the installation transaction lock. Check each field
@@ -134,9 +160,12 @@ func (r *Repository) CreateUser(ctx context.Context, input contracts.UserCreate,
 	if err != nil {
 		return contracts.User{}, err
 	}
-	if !canAssign(current, role) {
+	// super_admin belongs to the administrator realm only; custom roles are
+	// user-realm assets and must never reach administrator accounts either.
+	if r.Administrators && role.ID != "super_admin" || !r.Administrators && role.ID == "super_admin" {
 		return contracts.User{}, platform.ErrForbidden
 	}
+	_ = current
 	user, err := r.insert(ctx, tx, input, hash, actor)
 	if err != nil {
 		return user, err
@@ -144,7 +173,7 @@ func (r *Repository) CreateUser(ctx context.Context, input contracts.UserCreate,
 	return user, tx.Commit()
 }
 func (r *Repository) UpdateUser(ctx context.Context, id string, input contracts.UserUpdate, actor string) (contracts.User, error) {
-	if (input.Status != "active" && input.Status != "disabled" && input.Status != "pending") || input.Role != r.roleID() {
+	if (input.Status != "active" && input.Status != "disabled" && input.Status != "pending") || (r.Administrators && input.Role != r.roleID()) {
 		return contracts.User{}, platform.ErrInput
 	}
 	tx, err := r.Store.DB.BeginTx(ctx, nil)
@@ -164,6 +193,9 @@ func (r *Repository) UpdateUser(ctx context.Context, id string, input contracts.
 	}
 	if _, err = r.role(ctx, tx, input.Role); err != nil {
 		return contracts.User{}, err
+	}
+	if r.Administrators && input.Role != "super_admin" || !r.Administrators && input.Role == "super_admin" {
+		return contracts.User{}, platform.ErrForbidden
 	}
 	before, err := r.user(ctx, tx, id)
 	if errors.Is(err, sql.ErrNoRows) {

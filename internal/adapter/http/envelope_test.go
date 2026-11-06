@@ -5,8 +5,8 @@ package httpadapter
 import (
 	"context"
 	"encoding/json"
-	"log/slog"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"

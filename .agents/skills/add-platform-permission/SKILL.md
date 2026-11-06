@@ -1,17 +1,17 @@
 ---
 name: add-platform-permission
-description: 实现 Unicore web-platform 固定管理员/普通用户的菜单、页面与 API 权限，并验证越权边界。
+description: 登记 web-platform 权限点并实现菜单、页面与 API 权限（用户域动态角色 + 管理端固定 super_admin），验证越权边界。
 metadata:
   author: yunnuo <ymz@ebox.vip>
 ---
 
 # add-platform-permission
 
-先读 [当前角色需求](../../../docs/00-product/feature-roles.md)、[权限清单](../../../docs/api/permissions.md) 和 [ADR-0012](../../../docs/adr/ADR-0012-fixed-platform-roles.md)。当前仅管理员 super_admin / 普通用户 user，身份分域，详见 [ADR-0014](../../../docs/adr/ADR-0014-separate-identities-management.md)；旧同表升降与 M2d 自定义角色方案已废弃。
+先读 [当前角色需求](../../../docs/00-product/feature-roles.md)、[权限清单](../../../docs/api/permissions.md) 和 [ADR-0033](../../../docs/adr/ADR-0033-dynamic-user-roles.md)。用户域角色动态可运营（role_permissions 表驱动），管理员域固定 super_admin；身份分域见 [ADR-0014](../../../docs/adr/ADR-0014-separate-identities-management.md)。
 
-- 管理权限登记 internal/platform/roles.go，OpenAPI 的管理 operation 声明权限与 superAdmin；所有管理业务 API（含只读）独立校验有效 session、真实固定管理员和权限，写请求校验 CSRF/Origin。新增权限不能默认委派；历史 role_permissions 不参与授权。
+- 权限点登记 internal/platform/roles.go 的 PermissionCatalog（Assignable 标记决定能否授予自建角色：管理权限点 false，业务权限点 true），OpenAPI 的管理 operation 声明权限与 superAdmin；所有管理业务 API（含只读）独立校验有效 session、真实固定管理员和权限，写请求校验 CSRF/Origin。管理权限点不可默认委派；role_permissions 是用户域授权的运行时事实。
 - 菜单与直达页使用 routes.ts 的统一管理员判定，页面隐藏不能代替 API 校验。账号创建/启停在安装锁事务内重查操作者，保护最后启用管理员和最后有本地密码的管理员。
-- 注册/OIDC JIT 固定普通用户，企业 claim 不升管理员；状态变化撤销会话及待用挑战。不要增加自定义角色写接口或恢复 RoleInput/roles:write。
+- 注册/OIDC JIT 固定普通用户（user 角色，初始含全部 assignable 权限点），企业 claim 不升管理员；状态变化撤销会话及待用挑战。用户域角色经 /api/v1/admin/roles CRUD 管理（roles:write）；自定义角色只能持有 assignable 权限点，管理员域账号永远只能持有 super_admin。
 - 全局设置、品牌管理、SMTP/模板/投递、OIDC 配置仅管理员；公共品牌和登录策略只给页面必需投影。本地外观不使用管理 API，不读写全局主题。
 - 平台模块只装配 web-platform；写入审计不含敏感值。若需要持久数据变化，新增分方言迁移与恢复说明，不修改历史 checksum。
 

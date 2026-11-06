@@ -32,11 +32,11 @@ jobs:
           path: build/docs-site-dist/
           if-no-files-found: error
       - uses: actions/upload-pages-artifact@v5
-        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.repository == 'yunnuo88520/Unicore'
+        if: (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.ref == 'refs/heads/main' && github.repository == 'yunnuo88520/Unicore'
         with:
           path: build/docs-site-dist/
   deploy:
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.repository == 'yunnuo88520/Unicore'
+    if: (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.ref == 'refs/heads/main' && github.repository == 'yunnuo88520/Unicore'
     needs: build
     runs-on: ubuntu-22.04
     permissions:

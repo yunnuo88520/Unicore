@@ -43,7 +43,7 @@ public-site 与 user-release、project-template、public-wiki 独立：新增站
 
 推荐 GitHub Pages：公开仓库可由 GitHub 托管静态产物，不需要额外购买公网服务器，也不需要手动把 HTML 上传到自己的服务器。GitHub Actions 负责构建和上传，Pages 负责对外提供文件，DNS 负责让域名找到 Pages。只增加 CNAME 不会自动创建或部署站点。
 
-PR 和 main/dev 的文档变更只构建并上传 documentation-site artifact；正式发布使用手动 workflow。首次上线由具有仓库管理权限和域名 DNS 管理权限的人依次操作：
+PR 和 dev 分支的文档变更只构建并上传 documentation-site artifact；push 到 main 自动构建并部署到 GitHub Pages，同一 workflow 的手动 Run workflow（分支 main）用于首次上线或需要立即重发的场景。首次上线由具有仓库管理权限和域名 DNS 管理权限的人依次操作：
 
 1. **先让配置进入 main。** 提交文档站、依赖锁文件及 `.github/workflows/docs.yml` 等配套变更，通过 PR 审阅后合并到 main。只有本地文件或 dev 分支有配置时，不能认为主分支已经可以部署。所有新提交使用英文标题和正文。
 2. **建议验证域名所有权。** 打开 [账号 Settings → Pages](https://github.com/settings/pages)，选择 Add a domain，输入 `ebox.vip`。在该域名实际使用的 DNS 服务商添加 GitHub 给出的 TXT 名称和值，然后点击 Verify。以 GitHub 显示的内容为准，不自行编造验证值；验证后保留 TXT。所有权验证有助于保护域名绑定，并非普通 Pages 配置的必填前提。
@@ -56,7 +56,7 @@ PR 和 main/dev 的文档变更只构建并上传 documentation-site artifact；
    | CNAME | `unicore` | `yunnuo88520.github.io` | 默认或 600 秒 |
 
    部分服务商要求完整主机名，此时输入 `unicore.ebox.vip`；普通相对名称输入框只填 `unicore`。目标不带 `https://`、仓库名 `/Unicore` 或其他路径。CNAME 与同名 A/AAAA 等记录不能并存。
-6. **运行正式部署。** 打开 [Actions → Documentation site](https://github.com/yunnuo88520/Unicore/actions/workflows/docs.yml)，点击 Run workflow，分支选择 **main**，再点击运行。等待同一次运行的 `build` 和 `deploy` 都成功；如果 environment 要求审批，完成审批。选择 dev 或普通 push/PR 只会构建，`deploy` 显示 skipped 属于预期，不代表已发布。
+6. **正式部署。** 文档合并进 main 后由 workflow 自动构建并部署；等待同一次运行的 `build` 和 `deploy` 都成功，如果 environment 要求审批，完成审批。选择 dev 或普通 push/PR 只会构建，`deploy` 显示 skipped 属于预期。需要立即重发（例如刚调整 Pages 或域名配置）时，点击 [Actions → Documentation site](https://github.com/yunnuo88520/Unicore/actions/workflows/docs.yml) 的 Run workflow，分支选择 **main** 手动触发一次。
 7. **完成 HTTPS。** 回到仓库 Pages，确认 Custom domain 保存正确、DNS check successful；等待证书签发后勾选 **Enforce HTTPS**。DNS 传播及证书就绪可能需要最长 24 小时，不保证立即可用；证书由 GitHub 自动管理，无需在自己的服务器安装。DNS 检查失败时先修正解析，再等待证书。
 8. **验证并设置仓库入口。** 用浏览器检查 `https://unicore.ebox.vip`、`/en/`、任意深层页面直接刷新、搜索、404、`/sitemap.xml`、`/robots.txt` 和移动端导航。成功后回到仓库首页右侧 About 齿轮，在 Website 填入 `https://unicore.ebox.vip` 并保存。中英文 README 顶部也提供该固定地址，开发者可以直接进入文档站。
 

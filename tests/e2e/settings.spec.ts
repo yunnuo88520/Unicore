@@ -112,10 +112,12 @@ test('settings audit: platform security defaults, alias, admin path and public f
   await expect(page.getByLabel('注册图形验证码', { exact: true })).toBeChecked();
   await expect(page.getByLabel('邮件找回密码', { exact: true })).not.toBeChecked();
   await expect(page.getByLabel('管理后台路径', { exact: true })).toHaveValue('/admin');
+  await capture(page, info, 'settings-security-tabs');
   await page.getByLabel('管理后台路径', { exact: true }).fill('/control');
   await page.getByRole('button', { name: '保存设置', exact: true }).click();
   await expect(page.getByRole('button', { name: '保存设置', exact: true })).toBeDisabled();
-  await capture(page, info, 'settings-security-tabs');
+  // Saving the admin entrance remounts the console; the browser is redirected automatically.
+  await page.waitForURL(/\/control($|\?|\/)/);
   await page.goto(`${instance.url}/control/mail`);
   await page.getByLabel('发件人别名', { exact: true }).fill('Unicore Notices');
   await page.getByRole('button', { name: '保存设置', exact: true }).click();

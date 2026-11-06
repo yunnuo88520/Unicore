@@ -13,6 +13,7 @@ import (
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/domain"
 	"github.com/yunnuo/unicore/internal/usecase"
+	"github.com/yunnuo/unicore/migrations/runner"
 )
 
 func exerciseNotes(t *testing.T, ctx context.Context, store *sqlstore.Store) {
@@ -78,7 +79,7 @@ func exerciseNotes(t *testing.T, ctx context.Context, store *sqlstore.Store) {
 	if _, err = n.Create(ctx, "user/example", contracts.NoteInput{Title: "attachment", Status: "open", AttachmentIds: []string{"foreign-file"}}); !errors.Is(err, domain.ErrNoteInvalid) {
 		t.Fatal("unvalidated attachment", err)
 	}
-	if err = store.Migrate(ctx, true); err != nil {
+	if err = runner.Apply(ctx, store.DB, runner.Options{Dialect: store.Dialect, Profile: "web-platform"}); err != nil {
 		t.Fatal("business migration retry", err)
 	}
 	q = contracts.NoteQuery{Page: 1, Sort: "updated_at", Direction: "desc", Status: "done"}

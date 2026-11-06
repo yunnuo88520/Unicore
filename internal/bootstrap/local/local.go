@@ -15,6 +15,7 @@ import (
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlite"
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/settings"
+	"github.com/yunnuo/unicore/migrations/runner"
 )
 
 func Open(ctx context.Context, directory string) (*sqlstore.Store, *settings.Service, error) {
@@ -47,7 +48,7 @@ func Open(ctx context.Context, directory string) (*sqlstore.Store, *settings.Ser
 	}
 	store.OnClose = func() { _ = lock.Unlock() }
 	fail := func(err error) (*sqlstore.Store, *settings.Service, error) { _ = store.Close(); return nil, nil, err }
-	if err = store.Migrate(ctx, false); err != nil {
+	if err = runner.Apply(ctx, store.DB, runner.Options{Dialect: store.Dialect, Profile: "desktop"}); err != nil {
 		return fail(err)
 	}
 	profile, _, err := store.Installation(ctx)

@@ -13,28 +13,29 @@ import (
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/settings"
+	"github.com/yunnuo/unicore/migrations/runner"
 )
 
 func exerciseOIDC(t *testing.T, ctx context.Context, store *sqlstore.Store, r *Repository, admin contracts.User) {
 	t.Helper()
-	for _, q := range []string{"DROP TABLE unicore_oidc_flows", "DROP TABLE unicore_external_identities", "DELETE FROM unicore_schema_migrations WHERE version=6"} {
+	for _, q := range []string{"DROP TABLE unicore_oidc_flows", "DROP TABLE unicore_external_identities", "DELETE FROM schema_migrations WHERE namespace='platform' AND version=1"} {
 		if _, err := store.Exec(ctx, store.DB, q); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if err := store.Migrate(ctx, true); err != nil {
-		t.Fatal("upgrade from M2d", err)
+	if err := runner.Apply(ctx, store.DB, runner.Options{Dialect: store.Dialect, Profile: "web-platform"}); err != nil {
+		t.Fatal("rebuild platform namespace", err)
 	}
 	// Retry after only the first DDL has persisted (as can happen with MySQL).
-	for _, q := range []string{"DROP TABLE unicore_oidc_flows", "DELETE FROM unicore_schema_migrations WHERE version=6"} {
+	for _, q := range []string{"DROP TABLE unicore_oidc_flows", "DELETE FROM schema_migrations WHERE namespace='platform' AND version=1"} {
 		if _, err := store.Exec(ctx, store.DB, q); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if err := store.Migrate(ctx, true); err != nil {
+	if err := runner.Apply(ctx, store.DB, runner.Options{Dialect: store.Dialect, Profile: "web-platform"}); err != nil {
 		t.Fatal("partial DDL recovery", err)
 	}
-	if err := store.Migrate(ctx, true); err != nil {
+	if err := runner.Apply(ctx, store.DB, runner.Options{Dialect: store.Dialect, Profile: "web-platform"}); err != nil {
 		t.Fatal("repeat migration", err)
 	}
 	v := settings.Defaults("web-platform")

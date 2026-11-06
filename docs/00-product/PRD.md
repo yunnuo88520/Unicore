@@ -48,7 +48,7 @@ API/DTO 以 OpenAPI 为唯一契约；后端依赖向内，实体与事务边界
 
 文件业务用 file_id 和统一 blob/files port，不拼接本地路径。平台本地/云位置支持直传、临时签名访问、元数据、分片、暂停/刷新/重启续传与清理；管理员统一大小/分片/并发策略，已接受会话保留快照。详见 [文件需求](feature-storage.md) 与 [ADR-0022](../adr/ADR-0022-resumable-uploads.md)。
 
-数据库 Catalog 已定义 core/platform/module.notes 三命名空间、三方言初始基线与生成元数据；产品仍调用旧42份SQL/旧执行器，新账本与写前保护尚未接入。0.x 开发库不承诺向新世代兼容，不自动 DROP/reset 或提供强制跳过校验。详见 [迁移规范](../02-standards/database-migrations.md)、[ADR-0024](../adr/ADR-0024-pre1-migration-squash.md) 和 [ADR-0025](../adr/ADR-0025-baseline-catalog-semantics.md)。
+数据库为 Catalog 单轨：core/platform/module.notes 三命名空间、三方言 `unicore_` 前缀终态基线，安装与启动统一经 `migrations/runner` 执行并带写前拒绝保护。0.x 开发库不承诺向新世代兼容，不自动 DROP/reset 或提供强制跳过校验。详见 [迁移规范](../02-standards/database-migrations.md)、[ADR-0024](../adr/ADR-0024-pre1-migration-squash.md) 和 [ADR-0025](../adr/ADR-0025-baseline-catalog-semantics.md)。
 
 VERSION 单源生成各端版本；提供创建器、doctor、AI任务Skill、Web/GUI/CLI构建、tar/Docker/Compose及离线加密备份。发行包、派生应用、用户Wiki只纳入明确白名单，不携带上游研究流水。使用说明与代码一起维护，测试输出放 CI artifact/build/或仓库外。
 

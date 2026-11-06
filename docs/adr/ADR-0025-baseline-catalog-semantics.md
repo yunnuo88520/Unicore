@@ -66,3 +66,17 @@ install_state：建议将来增加 CHECK(id=1)（SQLite/PG；MySQL 8.0.16+ 用 e
 新旧目录在本阶段并存；assets.go、旧 Store.Migrate/安装/启动/OTA/ops 未改，正式程序不会执行这九份 SQL。只生成数据包和测试工具不等于运行时启用。回退本阶段是撤回新 SQL/Catalog/生成器/质量入口/文档，保留此前修改，不回滚数据库，因为现有环境未被修改。临时库销毁，无需 down SQL。
 
 R1.0c 另获授权后才接入目录/统一执行器、只读拒绝矩阵、DB 互斥、MySQL 失败处理和各元数据消费者，并在那时决定移出旧活动 SQL。不能提前删除旧目录，不能把新 fixture 的四列账本当作已验证的升级恢复功能。
+
+## R1.0c 运行时切换补记（2026-11-06）
+
+维护者授权 R1.0c 后，本节记录实际切换结果与上文 R1.0b 计划的偏差及理由；上文计划性表述（"须追加各 namespace 的前缀尾迁移"）由本节取代。
+
+**基线直接写入 `unicore_` 前缀，不追加前缀尾迁移。** 三个偏差事实共同否决了尾迁移路线：其一，catalog 基线是终态快照，从未有任何数据库用旧版（未前缀）基线建成（runner 未接线、框架未发布），"先建未前缀再改名"只是对旧轨演进史的无谓复刻；其二，重试单位是 namespace 版本，若 rename 位于后继版本，删除 platform@1 账本行后的重放会在已改名的世界里重建一整套未前缀表，跨版本的终态依赖破坏了重试语义；其三，运行时对 SQLite 保持 `foreign_keys=OFF`（与旧执行器一致），RENAME 只有在 foreign_keys=ON 时才改写引用目标，尾迁移会留下 18 处悬空 FK，而 PG/MySQL 因 rename 自动跟随引用反而掩盖该差异。因此 core@1/notes@1/platform@1 的三方言 SQL 直接定义 `unicore_` 前缀终态，checksum 与世代锚点按新字节重新生成。
+
+**终态并入增量。** 旧轨 0014（个人中心）、0015（公告通知扩展）、0016（手机号绑定）不再是待追加版本，其表与列并入 platform@1 终态：platform 应用表 24 + 2（公告接受人/已读）+ 6（个人中心）= 32 张；web-platform 全库 3 + 32 + 1 + 1 = 37 张，web-standalone/desktop 仍为 5 张。公告接受人/已读表在 PostgreSQL/MySQL 携带指向 `unicore_platform_announcements`/`unicore_users` 的真实外键；SQLite 基线不含 FK 子句（运行时 foreign_keys=OFF，级联与跨表一致性由 usecase 层保证——R1.0b 的行为分叉在本节被显式化为基线事实）。
+
+**重试幂等成为基线契约。** 全部 `CREATE TABLE`/`CREATE INDEX`（SQLite/PG）带 `IF NOT EXISTS`，MySQL 二级索引内联于 `CREATE TABLE`，种子行用 `INSERT ... SELECT ... WHERE NOT EXISTS` 守护；MySQL DDL 隐式提交造成的中断窗口（表已建、账本无行）由此可自愈重放。
+
+**运行时接线与退役。** 安装（`install.Manager` 安装与 recover 两处）与 desktop/standalone 本地启动（`bootstrap/local`）改为调用 `migrations/runner.Apply`；runner 新增写前守卫 `ErrForeignDatabase`（账本缺席但库非空——旧前缀世界或异构库——一律拒绝），与既有的 `ErrLegacyLedger`（旧两列账本）共同构成拒绝矩阵；修复 `Options.Now` 为 nil 时的空指针。旧轨全部退役：`migrations/{sqlite,postgres,mysql}/` 历史 SQL、`assets.go` 的 `Files` embed、`Store.Migrate`/`prefixSchema`/`migrateBusiness`/`personalSchema`/`additivePlatformSchema` 及其测试删除；备份工具改读四列账本（`schema=1` 即 unicore-1 世代，`business_schema` 字段移除）；发行 manifest 的 `migration_level`/`business_migration_level` 统一为 1。
+
+**兼容声明。** 按维护者前置决策，不兼容 0.1.x 开发库：旧轨建立的数据库在启动时被 `ErrForeignDatabase` 拒绝，须重建或重装；不存在需要迁移的已发布备份。PG/MySQL 真实实例验证沿用 `scripts/verify-baselines.py` fixture；SQLite 全链（含数据搬迁与重放幂等）在切换验证中实测。

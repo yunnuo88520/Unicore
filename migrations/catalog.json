@@ -115,22 +115,6 @@
             "postgres": "platform/postgres/0001_initial.sql",
             "mysql": "platform/mysql/0001_initial.sql"
           }
-        },
-        {
-          "version": 2,
-          "files": {
-            "sqlite": "platform/sqlite/0002_announcement_notifications.sql",
-            "postgres": "platform/postgres/0002_announcement_notifications.sql",
-            "mysql": "platform/mysql/0002_announcement_notifications.sql"
-          }
-        },
-        {
-          "version": 3,
-          "files": {
-            "sqlite": "platform/sqlite/0003_user_phone.sql",
-            "postgres": "platform/postgres/0003_user_phone.sql",
-            "mysql": "platform/mysql/0003_user_phone.sql"
-          }
         }
       ]
     },

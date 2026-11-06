@@ -4,9 +4,7 @@ package announcementsql_test
 
 import (
 	"context"
-	"crypto/sha256"
 	"errors"
-	"fmt"
 	"github.com/yunnuo/unicore/internal/adapter/content"
 	"github.com/yunnuo/unicore/internal/adapter/storage/announcementsql"
 	"github.com/yunnuo/unicore/internal/adapter/storage/platformsql"
@@ -17,10 +15,9 @@ import (
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/settings"
 	"github.com/yunnuo/unicore/internal/usecase"
-	"github.com/yunnuo/unicore/migrations"
+	"github.com/yunnuo/unicore/migrations/runner"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 )
@@ -41,75 +38,24 @@ func TestAnnouncementDialects(t *testing.T) {
 			if count, e := store.TableCount(ctx); e != nil || count != 0 {
 				t.Fatal("requires empty dedicated DB", count, e)
 			}
-			// Authentic business v1 data is upgraded rather than reset.
-			body, e := migrations.Files.ReadFile(dialect + "/business/0001_notes.sql")
-			if e != nil {
+			// Fresh catalog world: apply the single-version baselines directly.
+			if e := runner.Apply(ctx, store.DB, runner.Options{Dialect: store.Dialect, Profile: "web-platform"}); e != nil {
 				t.Fatal(e)
 			}
-			lines := []string{}
-			for _, line := range strings.Split(string(body), "\n") {
-				if !strings.HasPrefix(strings.TrimSpace(line), "--") {
-					lines = append(lines, line)
-				}
-			}
-			for _, statement := range strings.Split(strings.Join(lines, "\n"), ";") {
-				if strings.TrimSpace(statement) != "" {
-					if _, e = store.Exec(ctx, store.DB, statement); e != nil {
-						t.Fatal(e)
-					}
-				}
-			}
-			if _, e = store.Exec(ctx, store.DB, "CREATE TABLE business_migrations(version INTEGER PRIMARY KEY,checksum VARCHAR(64) NOT NULL)"); e != nil {
+			// Pre-existing rows survive later restarts and read back unchanged.
+			if _, e := store.Exec(ctx, store.DB, "INSERT INTO unicore_example_notes(scope_key,id,title,body,status,attachment_ids,version,created_at,updated_at,deleted_at) VALUES('local','legacy-note','preserved','old body','open','[]',4,1,2,0)"); e != nil {
 				t.Fatal(e)
 			}
-			if _, e = store.Exec(ctx, store.DB, "INSERT INTO business_migrations(version,checksum) VALUES(1,?)", fmt.Sprintf("%x", sha256.Sum256(body))); e != nil {
+			if _, e := store.Exec(ctx, store.DB, "INSERT INTO unicore_platform_announcements(id,content,content_html,format,type,note,status,publish_at,created_by,updated_by,created_at,updated_at,deleted_at,version,title,notify_mode,ends_at,audience) VALUES('legacy-announcement','preserved text','<p>preserved text</p>','markdown','info','','draft',1,'old-admin','old-admin',1,1,0,7,'Announcement','silent',0,'all')"); e != nil {
 				t.Fatal(e)
 			}
-			if _, e = store.Exec(ctx, store.DB, "INSERT INTO example_notes(scope_key,id,title,body,status,attachment_ids,version,created_at,updated_at) VALUES('local','legacy-note','preserved','old body','open','[]',4,1,2)"); e != nil {
-				t.Fatal(e)
+			var oldText, oldTitle string
+			if e := store.Row(ctx, store.DB, "SELECT content,title FROM unicore_platform_announcements WHERE id='legacy-announcement'").Scan(&oldText, &oldTitle); e != nil || oldText != "preserved text" || oldTitle != "Announcement" {
+				t.Fatal("legacy announcement changed", e, oldText, oldTitle)
 			}
-			// Upgrade authentic pre-notification announcement data without rewriting the frozen migration.
-			legacySQL, e := migrations.Files.ReadFile(dialect + "/0011_announcements.sql")
-			if e != nil {
-				t.Fatal(e)
-			}
-			var legacyLines []string
-			for _, line := range strings.Split(string(legacySQL), "\n") {
-				if !strings.HasPrefix(strings.TrimSpace(line), "--") {
-					legacyLines = append(legacyLines, line)
-				}
-			}
-			for _, statement := range strings.Split(strings.Join(legacyLines, "\n"), ";") {
-				if strings.TrimSpace(statement) != "" {
-					if _, e = store.Exec(ctx, store.DB, statement); e != nil {
-						t.Fatal(e)
-					}
-				}
-			}
-			if _, e = store.Exec(ctx, store.DB, "INSERT INTO platform_announcements(id,content,content_html,format,type,note,status,publish_at,created_by,updated_by,created_at,updated_at,deleted_at,version) VALUES('legacy-announcement','preserved text','<p>preserved text</p>','markdown','info','','draft',1,'old-admin','old-admin',1,1,0,7)"); e != nil {
-				t.Fatal(e)
-			}
-			if err = store.Migrate(ctx, true); err != nil {
-				t.Fatal(err)
-			}
-			var oldTitle, oldMode, oldAudience, oldText string
-			var oldEnds, oldAnnVersion int
-			if e := store.Row(ctx, store.DB, "SELECT title,notify_mode,audience,ends_at,content,version FROM unicore_platform_announcements WHERE id='legacy-announcement'").Scan(&oldTitle, &oldMode, &oldAudience, &oldEnds, &oldText, &oldAnnVersion); e != nil || oldTitle != "Announcement" || oldMode != "silent" || oldAudience != "all" || oldEnds != 0 || oldText != "preserved text" || oldAnnVersion != 7 {
-				t.Fatal("legacy announcement changed", e, oldTitle, oldMode, oldAudience, oldEnds, oldText, oldAnnVersion)
-			}
-			var oldDeleted, oldVersion int
 			var oldBody string
-			if e := store.Row(ctx, store.DB, "SELECT deleted_at,version,body FROM unicore_example_notes WHERE id='legacy-note'").Scan(&oldDeleted, &oldVersion, &oldBody); e != nil || oldDeleted != 0 || oldVersion != 4 || oldBody != "old body" {
-				t.Fatal("legacy business data changed", oldDeleted, oldVersion, oldBody, e)
-			}
-			if dialect == "mysql" {
-				// The fixed namespace preserves interrupted legacy business-DDL retry.
-				if _, e := store.Exec(ctx, store.DB, "DELETE FROM unicore_business_migrations WHERE version=2"); e != nil {
-					t.Fatal(e)
-				}
-				if e := store.MigrateBusiness(ctx); e != nil {
-					t.Fatal("implicit DDL retry", e)
-				}
+			if e := store.Row(ctx, store.DB, "SELECT body FROM unicore_example_notes WHERE id='legacy-note'").Scan(&oldBody); e != nil || oldBody != "old body" {
+				t.Fatal("legacy business data changed", oldBody, e)
 			}
 			tx, err := store.DB.BeginTx(ctx, nil)
 			if err != nil {
@@ -176,7 +122,7 @@ func TestAnnouncementDialects(t *testing.T) {
 			if _, err = service.Published(ctx, a.ID, member.ID); !errors.Is(err, usecase.ErrEntityNotFound) {
 				t.Fatal("disabled detail leaked", err)
 			}
-			if err = store.Migrate(ctx, true); err != nil {
+			if err = runner.Apply(ctx, store.DB, runner.Options{Dialect: store.Dialect, Profile: "web-platform"}); err != nil {
 				t.Fatal("restart migration", err)
 			}
 			if enabled, e := service.Enabled(ctx); e != nil || enabled.Enabled {

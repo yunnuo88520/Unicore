@@ -14,6 +14,7 @@ import (
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/settings"
+	"github.com/yunnuo/unicore/migrations/runner"
 )
 
 func TestDialectMigrationsAndIdentity(t *testing.T) {
@@ -32,14 +33,13 @@ func TestDialectMigrationsAndIdentity(t *testing.T) {
 			if count, err := store.TableCount(ctx); err != nil || count != 0 {
 				t.Fatalf("test database must be empty: %d %v", count, err)
 			}
-			exerciseLegacyUpgrade(t, ctx, store)
-			if err = store.Migrate(ctx, true); err != nil {
+			if err = runner.Apply(ctx, store.DB, runner.Options{Dialect: store.Dialect, Profile: "web-platform"}); err != nil {
 				t.Fatal(err)
 			}
 			if exists, err := store.HasInstallationTable(ctx); err != nil || !exists {
 				t.Fatal("installation catalog inspection failed", err)
 			}
-			if err = store.Migrate(ctx, true); err != nil {
+			if err = runner.Apply(ctx, store.DB, runner.Options{Dialect: store.Dialect, Profile: "web-platform"}); err != nil {
 				t.Fatal("migration not idempotent", err)
 			}
 			tx, err := store.DB.BeginTx(ctx, nil)

@@ -31,6 +31,7 @@ import (
 	"github.com/yunnuo/unicore/internal/mailer"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/runtime"
+	"github.com/yunnuo/unicore/migrations/runner"
 	"github.com/yunnuo/unicore/internal/secret"
 	"github.com/yunnuo/unicore/internal/settings"
 )
@@ -284,7 +285,7 @@ func (m *Manager) recover(ctx context.Context) error {
 		_ = store.Close()
 		return ErrTaken
 	}
-	if err = store.Migrate(ctx, m.config.Profile == runtime.WebPlatform); err != nil {
+	if err = runner.Apply(ctx, store.DB, runner.Options{Dialect: store.Dialect, Profile: string(m.config.Profile)}); err != nil {
 		_ = store.Close()
 		if m.config.State == "INSTALLED" {
 			return ErrDatabase
@@ -521,7 +522,7 @@ func (m *Manager) Complete(ctx context.Context, token string, input contracts.In
 	if err = m.save(); err != nil {
 		return result, user, err
 	}
-	if err = store.Migrate(ctx, input.Profile == runtime.WebPlatform); err != nil {
+	if err = runner.Apply(ctx, store.DB, runner.Options{Dialect: store.Dialect, Profile: string(input.Profile)}); err != nil {
 		return result, user, ErrDatabase
 	}
 	if _, _, err = store.Installation(ctx); err == nil {

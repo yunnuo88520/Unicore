@@ -3,7 +3,7 @@
 
 共享业务依赖链：`entry → adapter → usecase → domain`。`internal/contracts` 从 OpenAPI 生成；domain 无传输/DB/身份依赖。CLI 只调用 bootstrap.Core；Web 装配 install、业务 Repository 与按安装 profile 初始化的平台身份；桌面装配 bootstrap/local 的 SQLite、appearance settings 与笔记 Repository，不引入平台模块。当前开发基座见 [ADR-0017](../adr/ADR-0017-developer-kit-business-backup.md)，下方保留历史增量的决策来由。
 
-数据库新世代采用 [ADR-0024](../adr/ADR-0024-pre1-migration-squash.md) 的 core/platform/module.notes 和统一 namespace 账本方向，0.x 开发库不保证兼容。九份SQL/Catalog/生成描述与旧资产隔离，产品运行时仍为旧执行器，不能据新资产存在声称启动保护已接入。顺序由依赖拓扑生成，世代锚点与语义见 [ADR-0025](../adr/ADR-0025-baseline-catalog-semantics.md)。
+数据库采用 [ADR-0024](../adr/ADR-0024-pre1-migration-squash.md) 的 core/platform/module.notes 与统一 namespace 账本，0.x 开发库不保证兼容。安装与启动已统一执行 `migrations/runner.Apply`（Catalog 单轨，基线直接定义 `unicore_` 前缀终态），旧 42+4 份 SQL 与旧执行器已删除；写前拒绝矩阵见 [ADR-0025](../adr/ADR-0025-baseline-catalog-semantics.md) 的 R1.0c 补记。顺序由依赖拓扑生成。
 
 ```text
 React web-ui → AppClient → HTTP adapter → install / platform / settings / notes

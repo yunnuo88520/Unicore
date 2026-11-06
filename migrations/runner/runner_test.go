@@ -72,14 +72,14 @@ func TestApplyCreatesBaselineAndIsIdempotent(t *testing.T) {
 		t.Fatal(err)
 	}
 	rows := ledgerRows(t, db)
-	if len(rows) != 5 {
-		t.Fatalf("want 5 ledger rows, got %v", rows)
+	if len(rows) != 3 {
+		t.Fatalf("want 3 ledger rows, got %v", rows)
 	}
 	for _, expected := range []struct {
 		namespace string
 		version   int
 	}{
-		{"core", 1}, {"module.notes", 1}, {"platform", 1}, {"platform", 2}, {"platform", 3},
+		{"core", 1}, {"module.notes", 1}, {"platform", 1},
 	} {
 		entry, ok := rows[fmt.Sprintf("%s@%d", expected.namespace, expected.version)]
 		if !ok {
@@ -90,7 +90,7 @@ func TestApplyCreatesBaselineAndIsIdempotent(t *testing.T) {
 			t.Fatalf("bad ledger entry for %s@%d: %q (want %s@%d)", expected.namespace, expected.version, entry, file.Checksum, fixedStamp)
 		}
 	}
-	for _, table := range []string{"install_state", "system_settings", "audit_logs", "users", "example_notes", "announcement_recipients"} {
+	for _, table := range []string{"unicore_install_state", "unicore_system_settings", "unicore_audit_logs", "unicore_users", "unicore_example_notes", "unicore_announcement_recipients", "unicore_personal_accounts"} {
 		if !tableExists(t, db, table) {
 			t.Fatalf("table %s missing after baseline", table)
 		}
@@ -120,7 +120,7 @@ func TestApplyRespectsProfileScope(t *testing.T) {
 	if _, ok := rows["platform@1"]; ok {
 		t.Fatal("desktop must not apply the platform namespace")
 	}
-	if !tableExists(t, db, "example_notes") || tableExists(t, db, "users") {
+	if !tableExists(t, db, "unicore_example_notes") || tableExists(t, db, "unicore_users") {
 		t.Fatal("desktop table scope wrong")
 	}
 }

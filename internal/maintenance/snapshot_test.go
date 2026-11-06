@@ -135,7 +135,7 @@ func TestInstalledBackupRestore(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if m.Schema != 16 || m.BusinessSchema != 2 {
+			if m.Schema != 1 {
 				t.Fatal(m)
 			}
 			if _, err = Verify(backup, testPassphrase, 1<<30); err != nil {

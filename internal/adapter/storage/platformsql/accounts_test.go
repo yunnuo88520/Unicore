@@ -22,20 +22,21 @@ import (
 	"github.com/yunnuo/unicore/internal/secret"
 	"github.com/yunnuo/unicore/internal/settings"
 	"github.com/yunnuo/unicore/internal/testutil"
+	"github.com/yunnuo/unicore/migrations/runner"
 )
 
 func exerciseMailLifecycle(t *testing.T, ctx context.Context, store *sqlstore.Store, repository *Repository, admin contracts.User) {
 	t.Helper()
 	// Recreate the exact M2a schema level without touching its users, sessions or settings.
-	for _, query := range []string{"DROP TABLE unicore_email_challenges", "DELETE FROM unicore_schema_migrations WHERE version=4", "DROP TABLE unicore_mail_jobs", "DROP TABLE unicore_account_tokens", "DELETE FROM unicore_schema_migrations WHERE version=3"} {
+	for _, query := range []string{"DROP TABLE unicore_email_challenges", "DELETE FROM schema_migrations WHERE namespace='platform' AND version=1"} {
 		if _, err := store.DB.ExecContext(ctx, query); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if err := store.Migrate(ctx, true); err != nil {
-		t.Fatal("M2a upgrade failed", err)
+	if err := runner.Apply(ctx, store.DB, runner.Options{Dialect: store.Dialect, Profile: "web-platform"}); err != nil {
+		t.Fatal("rebuild platform namespace", err)
 	}
-	if err := store.Migrate(ctx, true); err != nil {
+	if err := runner.Apply(ctx, store.DB, runner.Options{Dialect: store.Dialect, Profile: "web-platform"}); err != nil {
 		t.Fatal("upgrade retry failed", err)
 	}
 	if account, err := (&Repository{Store: store, Administrators: true}).FindAccount(ctx, "admin"); err != nil || account.User.ID != admin.ID {

@@ -4,7 +4,7 @@
 -- Recovery: discard only an explicitly owned test target, or restore matching full snapshots to a new target.
 -- Runtime activation is deferred to R1.0c; the legacy executor does not embed this file.
 
-CREATE TABLE `example_notes` (
+CREATE TABLE IF NOT EXISTS `unicore_example_notes` (
   `scope_key` varchar(96) NOT NULL,
   `id` varchar(64) NOT NULL,
   `title` varchar(120) NOT NULL,

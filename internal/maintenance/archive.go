@@ -36,8 +36,9 @@ type Manifest struct {
 	Created        time.Time     `json:"created_at"`
 	Profile        string        `json:"profile"`
 	Driver         string        `json:"driver"`
+	// Schema is the catalog generation stamp (unicore-1 = 1): every namespace
+	// carries a single final-state version, so one number identifies the world.
 	Schema         int           `json:"schema"`
-	BusinessSchema int           `json:"business_schema"`
 	Files          []Entry       `json:"files"`
 	Objects        []CloudObject `json:"objects"`
 }

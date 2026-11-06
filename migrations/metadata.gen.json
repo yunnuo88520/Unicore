@@ -126,13 +126,13 @@
           "files": {
             "mysql": {
               "path": "platform/mysql/0001_initial.sql",
-              "bytes": 15989,
-              "checksum": "fac5e4dcd69b5f77ffe57b71012df2f2ac38c54dcc46c64271c16903829c9eec"
+              "bytes": 16166,
+              "checksum": "07c72452ba8d61a4aeb53ad8d85ef07dc8e6c3f2544b31aebf39820700f29aa9"
             },
             "postgres": {
               "path": "platform/postgres/0001_initial.sql",
-              "bytes": 16517,
-              "checksum": "702dddf1194679f8afeb56356b15fffbe64e8b9f416c9338dcb9f0347e6c2169"
+              "bytes": 16674,
+              "checksum": "4f26460e35eec870447896305db72ddec2ba47662916bdd8fa5cade47a7c40c1"
             },
             "sqlite": {
               "path": "platform/sqlite/0001_initial.sql",

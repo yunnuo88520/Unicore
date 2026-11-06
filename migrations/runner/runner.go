@@ -427,7 +427,7 @@ func execute(ctx context.Context, conn session, schema schemaPlan, applied ledge
 		if checksum(body) != migration.file.Checksum {
 			return fmt.Errorf("%w: %s", ErrChecksumMismatch, migration.file.Path)
 		}
-		if err = runMigration(ctx, conn, schema.ledger.Table, migration, body, stamp); err != nil {
+		if err = runMigration(ctx, conn, opts.Dialect, schema.ledger.Table, migration, body, stamp); err != nil {
 			return err
 		}
 		applied.rows[key] = true
@@ -435,7 +435,7 @@ func execute(ctx context.Context, conn session, schema schemaPlan, applied ledge
 	return nil
 }
 
-func runMigration(ctx context.Context, conn session, ledgerTable string, migration plannedMigration, body []byte, stamp int64) error {
+func runMigration(ctx context.Context, conn session, dialect, ledgerTable string, migration plannedMigration, body []byte, stamp int64) error {
 	run := func(exec Querier) error {
 		for _, statement := range splitStatements(body) {
 			if _, err := exec.ExecContext(ctx, statement); err != nil {
@@ -445,7 +445,14 @@ func runMigration(ctx context.Context, conn session, ledgerTable string, migrati
 		return nil
 	}
 	record := func(exec Querier) error {
-		_, err := exec.ExecContext(ctx, "INSERT INTO "+ledgerTable+"(namespace, version, checksum, applied_at) VALUES(?, ?, ?, ?)",
+		// PostgreSQL's extended protocol rejects ? placeholders; the baselines
+		// themselves are executed without parameters, so only this insert
+		// needs the dialect's placeholder form.
+		placeholders := "?, ?, ?, ?"
+		if dialect == "postgres" {
+			placeholders = "$1, $2, $3, $4"
+		}
+		_, err := exec.ExecContext(ctx, "INSERT INTO "+ledgerTable+"(namespace, version, checksum, applied_at) VALUES("+placeholders+")",
 			migration.namespace, migration.version, migration.file.Checksum, stamp)
 		if err != nil {
 			return fmt.Errorf("%s@%d: %w", migration.namespace, migration.version, err)

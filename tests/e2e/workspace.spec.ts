@@ -55,7 +55,8 @@ test('API returns JSON and unsupported features remain absent', async ({ instanc
     expect(response.status()).toBe(404);
     expect((await response.json()).code).toBe('NOT_FOUND');
   }
-  const removed = await request.post('/api/v1/admin/roles', { data: {} });
-  expect(removed.status()).toBe(405);
-  expect((await removed.json()).code).toBe('METHOD_NOT_ALLOWED');
+  // Role management now exists (ADR-0033); anonymous access is refused 401.
+  const rolesApi = await request.post('/api/v1/admin/roles', { data: {} });
+  expect(rolesApi.status()).toBe(401);
+  expect((await rolesApi.json()).code).toBe('AUTH_REQUIRED');
 });

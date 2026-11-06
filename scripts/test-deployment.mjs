@@ -192,7 +192,7 @@ async function exercise(mode,profile) {
         await personal.goto(`${url}/site`);
         await expect(personal.getByText('仅当前客户端',{exact:true})).toBeVisible();
         const metadata=(await(await member.request.get('/api/v1/bootstrap')).json()).data;
-        expect(metadata.current_user.roles).toEqual(['user']);expect(metadata.current_user.permissions).toEqual([]);
+        expect(metadata.current_user.roles).toEqual(['user']);expect(metadata.current_user.permissions).toEqual(['files:access','notes:access']);
         // MFA requires a pending session in this exact realm, rather than a fully signed-in user.
         for(const operation of management)expect((await member.request.fetch(operation.path.replace('{id}','missing'),{method:operation.method,headers:{Origin:url,'X-CSRF-Token':metadata.csrf_token},...(operation.method==='GET'?{}:{data:{}})})).status(),`${operation.method} ${operation.path}`).toBe(operation.pendingMFA?401:403);
         expect((await member.request.get('/manage')).status()).toBe(200);

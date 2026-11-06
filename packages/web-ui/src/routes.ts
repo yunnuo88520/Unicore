@@ -45,6 +45,13 @@ export function canAccess(page: Page, metadata?: Bootstrap): boolean {
   if (!metadata) return false;
   if (page === 'edition') return metadata.profile==='web-platform' ? isAdministrator(metadata) && ((__FEATURE_UPDATER__ && metadata.capabilities.updater) || (__FEATURE_LICENSE__ && metadata.capabilities.license)) : __FEATURE_UPDATER__ && metadata.capabilities.updater;
   if (page === 'site') return metadata.capabilities.settings && (metadata.profile !== 'web-platform' || !!metadata.current_user);
+  // Notes exist in every database profile: standalone and desktop keep the
+  // capability check, web-platform additionally gates on the role grant.
+  if (page === 'notes') {
+    if (!metadata.capabilities.database) return false;
+    if (metadata.profile !== 'web-platform') return true;
+    return !!metadata.current_user && metadata.current_user.permissions.includes('notes:access');
+  }
   const route = routes[page];
   if (metadata.profile !== 'web-platform') return !('permission' in route) && !('authenticated' in route);
   if (!metadata.current_user) return false;
@@ -54,6 +61,5 @@ export function canAccess(page: Page, metadata?: Bootstrap): boolean {
   // grants from the database.
   if (permission && !metadata.current_user.permissions.includes(permission)) return false;
   if ((route as { group?: string }).group === 'administration' && !isAdministrator(metadata)) return false;
-  if (page === 'notes') return metadata.capabilities.database;
   return true;
 }

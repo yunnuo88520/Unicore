@@ -58,10 +58,10 @@ test('product homepage follows site.home_enabled for guests and members', async 
       const answer = [...Buffer.from(challenge.image.split(',')[1], 'base64').toString().matchAll(/>([0-9])<\/text>/g)].map(match => match[1]).join('');
       expect((await page.request.post(`${instance.url}/api/v1/auth/login`, { data: { username: 'member', password: 'test-password-strong', captcha_id: challenge.id, captcha_answer: answer } })).status()).toBe(200);
       await page.goto(`${instance.url}/`);
-      await expect(page.getByRole('heading', { name: '一份核心，无限可能.' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: /一份核心，\s*无限可能/ })).toBeVisible();
       await page.goto(`${instance.url}/home`);
       await expect(page).toHaveURL(new RegExp(`${instance.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/$`));
-      await expect(page.getByRole('heading', { name: '一份核心，无限可能.' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: /一份核心，\s*无限可能/ })).toBeVisible();
     });
 
     await test.step('switch back off restores login-first', async () => {

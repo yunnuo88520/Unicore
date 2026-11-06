@@ -51,11 +51,12 @@ export function buildNavigation(data: Bootstrap): Navigation {
     if (administration) {
       // Administrators get platform announcements as a first-level entry — it is site content, not user administration.
       if (id === 'announcements') return 'standalone';
+      if (id === 'files') return 'files';
       if ('group' in routes[id]) return routes[id].group as 'system' | 'administration' | 'personal';
       return 'primary';
     }
     // Personal realms keep appearance and updates top-level instead of inside the system group.
-    const fallback = (id === 'site' || id === 'edition') ? 'standalone' : ('group' in routes[id] ? (routes[id].group as string) : 'primary');
+    const fallback = (id === 'site' || id === 'edition') ? 'standalone' : ('group' in routes[id] ? (routes[id].group as string) : id === 'files' ? 'files' : 'primary');
     return ((byId[id]?.group as string | undefined) ?? fallback) as 'primary' | 'files' | 'standalone' | 'system' | 'personal' | 'administration';
   };
 

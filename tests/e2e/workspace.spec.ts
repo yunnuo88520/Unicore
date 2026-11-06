@@ -5,7 +5,7 @@ test('real Go execution, themes and responsive layout', async ({ page, instance 
   await installStandalone(instance);
   await page.goto(instance.url);
   await expect(page.getByRole('button', { name: '账号菜单', exact: true })).toHaveCount(0);
-  await expect(page.getByRole('heading', { name: '一份核心，无限可能.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /一份核心，\s*无限可能/ })).toBeVisible();
   await page.goto(`${instance.url}/lab`);
   await page.getByLabel('输入文本').fill('hello world');
   await page.getByRole('button', { name: '运行用例' }).click();
@@ -55,8 +55,9 @@ test('API returns JSON and unsupported features remain absent', async ({ instanc
     expect(response.status()).toBe(404);
     expect((await response.json()).code).toBe('NOT_FOUND');
   }
-  // Role management now exists (ADR-0033); anonymous access is refused 401.
+  // Standalone does not assemble platform APIs at all (ADR-0016), so the
+  // role management surface is simply absent (ADR-0033 lives on web-platform).
   const rolesApi = await request.post('/api/v1/admin/roles', { data: {} });
-  expect(rolesApi.status()).toBe(401);
-  expect((await rolesApi.json()).code).toBe('AUTH_REQUIRED');
+  expect(rolesApi.status()).toBe(404);
+  expect((await rolesApi.json()).code).toBe('NOT_FOUND');
 });

@@ -28,7 +28,7 @@ it('keeps notes visible on standalone and desktop while gating by the role grant
   const standalone = { profile: 'web-standalone', capabilities: { database: true }, current_user: null } as unknown as Bootstrap;
   expect(canAccess('notes', standalone)).toBe(true);
   expect(canAccess('files', standalone)).toBe(false);
-  const platform = { profile: 'web-platform', identity_realm: 'user', capabilities: { database: true }, current_user: { roles: ['user'], permissions: [] } } as Bootstrap;
+  const platform = { profile: 'web-platform', identity_realm: 'user', capabilities: { database: true }, current_user: { roles: ['user'], permissions: [] } } as unknown as Bootstrap;
   expect(canAccess('notes', platform)).toBe(false);
   platform.current_user!.permissions = ['notes:access'];
   expect(canAccess('notes', platform)).toBe(true);

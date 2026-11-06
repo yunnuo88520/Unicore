@@ -47,10 +47,10 @@ func summary(s *sqlstore.Store) map[string]any {
 	}
 	result := map[string]any{"row_counts": counts, "ledger": query(s, "SELECT namespace,version,checksum,applied_at FROM schema_migrations ORDER BY namespace,version")}
 	if _, ok := counts["roles"]; ok {
-		result["roles"] = query(s, "SELECT id,name FROM roles ORDER BY id")
-		result["permissions"] = query(s, "SELECT id FROM permissions ORDER BY id")
-		result["role_permissions"] = query(s, "SELECT role_id,permission_id FROM role_permissions ORDER BY role_id,permission_id")
-		result["storage_locations"] = query(s, "SELECT * FROM storage_locations ORDER BY id")
+		result["roles"] = query(s, "SELECT id,name FROM unicore_roles ORDER BY id")
+		result["permissions"] = query(s, "SELECT id FROM unicore_permissions ORDER BY id")
+		result["role_permissions"] = query(s, "SELECT role_id,permission_id FROM unicore_role_permissions ORDER BY role_id,permission_id")
+		result["storage_locations"] = query(s, "SELECT * FROM unicore_storage_locations ORDER BY id")
 	}
 	return result
 }
@@ -95,12 +95,12 @@ func seedFixture(s *sqlstore.Store, profile string) (map[string]any, string) {
 	tx, e := s.DB.BeginTx(ctx, nil)
 	must(e)
 	defer tx.Rollback()
-	_, e = s.Exec(ctx, tx, "INSERT INTO install_state(id,profile,instance_id,installed_at) VALUES(1,?,?,?)", profile, "r10b-synthetic-instance", time.Now().Unix())
+	_, e = s.Exec(ctx, tx, "INSERT INTO unicore_install_state(id,profile,instance_id,installed_at) VALUES(1,?,?,?)", profile, "r10b-synthetic-instance", time.Now().Unix())
 	must(e)
 	defaults := settings.Defaults(contracts.Profile(profile))
 	keys := []string{}
 	for key, value := range defaults {
-		_, e = s.Exec(ctx, tx, "INSERT INTO system_settings(setting_key,setting_value) VALUES(?,?)", key, value)
+		_, e = s.Exec(ctx, tx, "INSERT INTO unicore_system_settings(setting_key,setting_value) VALUES(?,?)", key, value)
 		must(e)
 		keys = append(keys, key)
 	}
@@ -118,7 +118,7 @@ func seedFixture(s *sqlstore.Store, profile string) (map[string]any, string) {
 	must(tx.Commit())
 	result := map[string]any{"settings": keys, "setting_count": len(defaults), "method": "test install transaction using actual settings.Defaults and platformsql.Repository.Seed; no HTTP installer or bootstrap/local.Open"}
 	before := summary(s)
-	duplicate := probe(s, "INSERT INTO install_state(id,profile,instance_id,installed_at) VALUES(1,?,?,1)", profile, "duplicate")
+	duplicate := probe(s, "INSERT INTO unicore_install_state(id,profile,instance_id,installed_at) VALUES(1,?,?,1)", profile, "duplicate")
 	check(!duplicate["accepted"].(bool), "duplicate install marker accepted")
 	result["duplicate_marker_rejected"] = true
 	if profile == "web-platform" {
@@ -202,17 +202,17 @@ func nullKeyChecks(s *sqlstore.Store, schema map[string]any) map[string]any {
 }
 func installSemantics(s *sqlstore.Store) map[string]any {
 	result := map[string]any{}
-	current := probe(s, "INSERT INTO install_state(id,profile,instance_id,installed_at) VALUES(2,'desktop','probe',1)")
+	current := probe(s, "INSERT INTO unicore_install_state(id,profile,instance_id,installed_at) VALUES(2,'desktop','probe',1)")
 	check(current["accepted"].(bool), "existing singleton behavior unexpectedly changed")
 	result["current_allows_second_id"] = true
 	if s.Dialect == "sqlite" {
-		for _, q := range []string{"INSERT INTO install_state(profile,instance_id,installed_at) VALUES('desktop','rowid',1)", "INSERT INTO install_state(id,profile,instance_id,installed_at) VALUES(NULL,'desktop','rowid',1)"} {
+		for _, q := range []string{"INSERT INTO unicore_install_state(profile,instance_id,installed_at) VALUES('desktop','rowid',1)", "INSERT INTO unicore_install_state(id,profile,instance_id,installed_at) VALUES(NULL,'desktop','rowid',1)"} {
 			tx, e := s.DB.BeginTx(ctx, nil)
 			must(e)
 			_, e = s.Exec(ctx, tx, q)
 			must(e)
 			var id int
-			must(s.Row(ctx, tx, "SELECT id FROM install_state WHERE instance_id='rowid'").Scan(&id))
+			must(s.Row(ctx, tx, "SELECT id FROM unicore_install_state WHERE instance_id='rowid'").Scan(&id))
 			check(id == 2, "rowid allocation")
 			must(tx.Rollback())
 		}
@@ -275,7 +275,7 @@ func business(s *sqlstore.Store, profile, temp, admin string) map[string]any {
 	list, e = notes.List(ctx, scope, queryInput)
 	must(e)
 	check(list.Total == 0, "notes soft delete")
-	check(count(s, "SELECT COUNT(*) FROM example_notes WHERE id=? AND deleted_at>0 AND version=3", n.ID) == 1, "notes persisted lifecycle")
+	check(count(s, "SELECT COUNT(*) FROM unicore_example_notes WHERE id=? AND deleted_at>0 AND version=3", n.ID) == 1, "notes persisted lifecycle")
 	result["notes"] = "PASS create/list/update/conflict/scope/soft-delete/audit; 120-rune title accepted, 121 rejected by Go"
 	if profile != "web-platform" {
 		return result
@@ -312,7 +312,7 @@ func business(s *sqlstore.Store, profile, temp, admin string) map[string]any {
 		must(reader.Close())
 		check(bytes.Equal(payload, actual), "legacy brand fallback bytes")
 	}
-	check(count(s, "SELECT COUNT(*) FROM file_metadata WHERE id='legacy-probe.png' AND location_id='legacy-brand' AND purpose='branding'") == 1, "fallback metadata not duplicated")
+	check(count(s, "SELECT COUNT(*) FROM unicore_file_metadata WHERE id='legacy-probe.png' AND location_id='legacy-brand' AND purpose='branding'") == 1, "fallback metadata not duplicated")
 	stored := files.UploadSession{FileID: "legacy-probe.png", UploadID: "synthetic", Fingerprint: strings.Repeat("f", 64), PartSize: 5242880}
 	must(fsrepo.SaveSession(ctx, stored, true))
 	fetched, e := fsrepo.Session(ctx, stored.FileID)
@@ -402,10 +402,11 @@ func main() {
 			businessResult := business(s, profile, dir, admin)
 			expected := 5
 			if profile == "web-platform" {
-				expected = 29
+				// 3 core + 32 platform + 1 notes + 1 ledger.
+				expected = 37
 			}
 			check(len(tables(s)) == expected, "table count changed")
-			write(filepath.Join(c.Output, id+".json"), map[string]any{"author": "yunnuo <ymz@ebox.vip>", "generated_evidence": true, "source_commit": c.Commit, "combination": id, "passed": true, "scope": "new SQL empty-fixture/real Seed/business validation, not R1.0c startup protection", "schema": schema, "sql_only_data": sqlOnly, "go_seed": seed, "post_seed_data": afterSeed, "all_text_and_composite_pk_null_checks": nulls, "behavior_probes": behavior, "install_state_semantics": install, "business": businessResult})
+			write(filepath.Join(c.Output, id+".json"), map[string]any{"author": "yunnuo <ymz@ebox.vip>", "generated_evidence": true, "source_commit": c.Commit, "combination": id, "passed": true, "scope": "new SQL empty-fixture/real Seed/business validation on the catalog single track", "schema": schema, "sql_only_data": sqlOnly, "go_seed": seed, "post_seed_data": afterSeed, "all_text_and_composite_pk_null_checks": nulls, "behavior_probes": behavior, "install_state_semantics": install, "business": businessResult})
 			combinations = append(combinations, map[string]any{"combination": id, "passed": true, "tables": expected, "null_key_probes": len(nulls)})
 			must(s.Close())
 			fmt.Println("PASS", id, expected, "tables; all text/composite NULL keys, real Seed and business behavior")

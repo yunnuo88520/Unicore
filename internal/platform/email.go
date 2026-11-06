@@ -65,6 +65,9 @@ func (a *Accounts) RegisterCode(ctx context.Context, input contracts.RegisterInp
 	if !ValidateAccount(input.Username, input.Email, input.Password) {
 		return contracts.EmailChallenge{}, ErrInput
 	}
+	if err = bindPhone(&input, policy.PhoneRequired); err != nil {
+		return contracts.EmailChallenge{}, err
+	}
 	if err = a.registrationAllowed(ctx, input, ip); err != nil {
 		return contracts.EmailChallenge{}, err
 	}

@@ -609,4 +609,4 @@
   --shadow-modal: #eceef730;
   --shadow: none;
 }
-@media(prefers-reduced-motion:reduce){:root{--motion-fast:0ms;--motion-normal:0ms;--motion-slow:0ms}*,*::before,*::after{animation-duration:0.01ms!important;transition-duration:0.01ms!important}}
+@media(prefers-reduced-motion:reduce){:root{--motion-fast:0ms;--motion-normal:0ms;--motion-slow:0ms}*,*::before,*::after{animation-duration:0.01ms!important;transition-duration:0.01ms!important}.animate-spin{animation-duration:1.4s!important}}

@@ -31,7 +31,7 @@ func accountError(err error) error {
 
 func (r *Repository) user(ctx context.Context, q sqlstore.Runner, id string) (contracts.User, error) {
 	user := contracts.User{Roles: []string{}, Permissions: []string{}}
-	if err := r.row(ctx, q, "SELECT id,username,email,status,created_at,last_login_at FROM unicore_users WHERE id=?", id).Scan(&user.ID, &user.Username, &user.Email, &user.Status, &user.CreatedAt, &user.LastLoginAt); err != nil {
+	if err := r.row(ctx, q, "SELECT id,username,email,phone,status,created_at,last_login_at FROM unicore_users WHERE id=?", id).Scan(&user.ID, &user.Username, &user.Email, &user.Phone, &user.Status, &user.CreatedAt, &user.LastLoginAt); err != nil {
 		return user, err
 	}
 	state, err := r.personalState(ctx, q, id)
@@ -87,9 +87,18 @@ func (r *Repository) insert(ctx context.Context, tx *sql.Tx, input contracts.Use
 			return contracts.User{}, &platform.AccountConflict{Field: field.name}
 		}
 	}
+	if input.Phone != nil && *input.Phone != "" {
+		var count int
+		if err := r.row(ctx, tx, "SELECT COUNT(*) FROM unicore_users WHERE phone=?", *input.Phone).Scan(&count); err != nil {
+			return contracts.User{}, err
+		}
+		if count != 0 {
+			return contracts.User{}, &platform.AccountConflict{Field: "phone"}
+		}
+	}
 	id := sqlstore.ID()
 	now := time.Now().Unix()
-	if _, err := r.exec(ctx, tx, "INSERT INTO unicore_users(id,username,email,password_hash,status,created_at,updated_at,last_login_at) VALUES(?,?,?,?,?,?,?,?)", id, input.Username, input.Email, hash, "active", now, now, 0); err != nil {
+	if _, err := r.exec(ctx, tx, "INSERT INTO unicore_users(id,username,email,phone,password_hash,status,created_at,updated_at,last_login_at) VALUES(?,?,?,?,?,?,?,?,?)", id, input.Username, input.Email, input.Phone, hash, "active", now, now, 0); err != nil {
 		return contracts.User{}, accountError(err)
 	}
 	if _, err := r.exec(ctx, tx, "INSERT INTO unicore_user_roles(user_id,role_id) VALUES(?,?)", id, input.Role); err != nil {

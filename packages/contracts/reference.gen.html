@@ -481,6 +481,10 @@
     &quot;email&quot;: {
       &quot;type&quot;: &quot;string&quot;
     },
+    &quot;phone&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;description&quot;: &quot;Phone number bound at registration; empty when not collected.&quot;
+    },
     &quot;status&quot;: {
       &quot;type&quot;: &quot;string&quot;
     },
@@ -562,6 +566,12 @@
       &quot;type&quot;: &quot;string&quot;,
       &quot;minLength&quot;: 12,
       &quot;maxLength&quot;: 128
+    },
+    &quot;phone&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;description&quot;: &quot;Optional phone number bound to the account.&quot;,
+      &quot;maxLength&quot;: 21,
+      &quot;pattern&quot;: &quot;^(?:\\+?[0-9]{5,20})?$&quot;
     },
     &quot;role&quot;: {
       &quot;type&quot;: &quot;string&quot;,
@@ -1036,7 +1046,8 @@
     &quot;register_captcha&quot;,
     &quot;mail_ready&quot;,
     &quot;email_login_enabled&quot;,
-    &quot;email_verification_required&quot;
+    &quot;email_verification_required&quot;,
+    &quot;phone_required&quot;
   ],
   &quot;properties&quot;: {
     &quot;registration_enabled&quot;: {
@@ -1059,6 +1070,10 @@
     },
     &quot;email_verification_required&quot;: {
       &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;phone_required&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;,
+      &quot;description&quot;: &quot;Registration requires a phone number when enabled.&quot;
     }
   }
 }</pre></details><details id="schema-RegisterInput"><summary>RegisterInput</summary><pre>{
@@ -1087,6 +1102,12 @@
       &quot;type&quot;: &quot;string&quot;,
       &quot;minLength&quot;: 12,
       &quot;maxLength&quot;: 128
+    },
+    &quot;phone&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;description&quot;: &quot;Optional phone number bound at registration; required when the instance enables registration phone binding.&quot;,
+      &quot;maxLength&quot;: 21,
+      &quot;pattern&quot;: &quot;^(?:\\+?[0-9]{5,20})?$&quot;
     },
     &quot;captcha_id&quot;: {
       &quot;type&quot;: &quot;string&quot;

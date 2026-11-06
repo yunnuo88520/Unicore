@@ -15,25 +15,35 @@ function Harness({ onSubmit, serverError }: { onSubmit: (values: { recipient: st
   </AppForm>;
 }
 
-it('blocks invalid contracts and focuses/announces the field', async () => {
+it('blocks invalid contracts and focuses/announces the field without a duplicate banner', async () => {
   const submit = vi.fn();
   render(<Harness onSubmit={submit} />);
   await userEvent.click(screen.getByRole('button', { name: '保存' }));
   expect(submit).not.toHaveBeenCalled();
   expect(screen.getByLabelText('测试邮箱')).toHaveFocus();
   expect(screen.getByLabelText('测试邮箱')).toHaveAttribute('aria-invalid', 'true');
-  expect(screen.getByRole('alert', { name: '表单校验' })).toHaveTextContent('至少 3 个字符');
+  // Field errors render inline only; the form-wide banner must not repeat them.
+  expect(screen.queryByRole('alert', { name: '表单校验' })).toBeNull();
+  expect(screen.getByRole('alert')).toHaveTextContent('至少 3 个字符');
 });
 
-it('shows server field errors and submits valid values once resolved', async () => {
+it('shows server field errors inline and submits valid values once resolved', async () => {
   const submit = vi.fn();
   render(<Harness onSubmit={submit} serverError={new AppError('INVALID_INPUT', '请检查输入', 'request', { recipient: '邮箱格式不正确' })} />);
   await userEvent.click(screen.getByRole('button', { name: '应用服务端错误' }));
   expect(screen.getByLabelText('测试邮箱')).toHaveFocus();
-  expect(screen.getByRole('alert', { name: '表单校验' })).toHaveTextContent('邮箱格式不正确');
+  expect(screen.queryByRole('alert', { name: '表单校验' })).toBeNull();
+  expect(screen.getByRole('alert')).toHaveTextContent('邮箱格式不正确');
   await userEvent.type(screen.getByLabelText('测试邮箱'), 'user@example.test');
   await userEvent.click(screen.getByRole('button', { name: '保存' }));
   expect(submit).toHaveBeenCalledWith({ recipient: 'user@example.test' });
+});
+
+it('keeps the form-wide banner only for $form-level server errors', async () => {
+  const submit = vi.fn();
+  render(<Harness onSubmit={submit} serverError={new AppError('INVALID_INPUT', '请求无效', 'request', { $form: '请先保存 SMTP 配置并成功发送测试邮件' })} />);
+  await userEvent.click(screen.getByRole('button', { name: '应用服务端错误' }));
+  expect(screen.getByRole('alert', { name: '表单校验' })).toHaveTextContent('请先保存 SMTP 配置并成功发送测试邮件');
 });
 
 function TwinForms({ serverError }: { serverError: AppError }) {

@@ -18,12 +18,12 @@ import type { Theme } from '@unicore/theme';
 /** Shape of one settings registry row as delivered by client.settings(). */
 type SettingEntry = { key: string; value: string; value_type: string; group: string; label: string; sensitive: boolean; configured?: boolean };
 
-const groupNames: Record<string, string> = defineMessages({ site: '站点信息', maintenance: '维护模式', registration: '注册设置', appearance: '默认外观', admin: '后台入口', security: '安全', account: '账号流程', mail: '邮件服务', oidc: '企业登录（OIDC）' });
+const groupNames: Record<string, string> = defineMessages({ site: '站点信息', maintenance: '维护模式', registration: '注册设置', appearance: '默认外观', admin: '后台入口', protection: '站点防护', security: '安全', mail: '邮件服务', oidc: '企业登录（OIDC）' });
 const baseSections = defineMessages([
   { id: 'site', label: '基础信息', groups: ['site'] },
   { id: 'branding', label: '品牌图片', groups: [] },
   { id: 'appearance', label: '外观设置', groups: ['appearance'] },
-  { id: 'security', label: '安全与控制', groups: ['admin'] },
+  { id: 'security', label: '安全与控制', groups: ['protection', 'admin'] },
   { id: 'registration', label: '注册设置', groups: ['registration'] },
   { id: 'maintenance', label: '维护模式', groups: ['maintenance'] },
   { id: 'oidc', label: '企业登录', groups: ['oidc'] },
@@ -74,15 +74,16 @@ const themeChoices = defineMessages([
 
 export function ThemeChoices({ theme, onChange, disabled = false }: { theme: Theme; onChange: (theme: Theme) => void; disabled?: boolean }) {
   useLocale();
-  return <div className="grid gap-2 sm:grid-cols-3" role="group" aria-label={t('界面主题')}>
+  // Compact card row: the group stays at a fixed width so each preview keeps a phone-like ratio on wide panels.
+  return <div className="grid max-w-lg gap-3 sm:grid-cols-3" role="group" aria-label={t('界面主题')}>
     {themeChoices.map(({ id, title, detail, icon: Icon }) => {
       const selected = theme === id;
       return <button key={id} type="button" disabled={disabled} aria-pressed={selected} onClick={() => onChange(id)}
-        className={cn('flex flex-col items-start gap-1.5 rounded-lg border p-2.5 text-start transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-55',
+        className={cn('flex flex-col items-start gap-2 rounded-xl border p-2.5 text-start transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-55',
           selected ? 'border-primary-line bg-primary-soft' : 'border-line bg-surface hover:border-primary-line')}>
         <ThemePreview variant={id} />
-        <strong className="flex items-center gap-1.5 text-sm font-medium text-ink"><Icon size={16} aria-hidden="true" />{t(title)}{selected && <CheckCircle2 size={16} className="text-success" aria-hidden="true" />}</strong>
-        <small className="text-2xs text-muted">{t(detail)}</small>
+        <strong className="flex items-center gap-1.5 text-sm font-medium text-ink"><Icon size={15} aria-hidden="true" />{t(title)}{selected && <CheckCircle2 size={15} className="text-success" aria-hidden="true" />}</strong>
+        <small className="text-2xs leading-4 text-muted">{t(detail)}</small>
       </button>;
     })}
   </div>;
@@ -96,16 +97,26 @@ function ThemePreview({ variant }: { variant: Theme }) {
       : 'linear-gradient(105deg, var(--light-surface) 50%, var(--dark-surface) 50%)';
   const track = variant === 'dark' ? 'var(--dark-border)' : 'var(--light-border)';
   const line = variant === 'dark' ? 'var(--dark-muted)' : 'var(--light-muted)';
-  return <span aria-hidden="true" className="flex h-14 w-full gap-1 rounded-md border border-line p-1.5" style={{ background }}>
-    <span className="flex w-1/4 flex-col gap-1 rounded-xs p-1" style={{ background: track }}>
-      <i className="h-1 w-full rounded-full" style={{ background: line }} />
-      <i className="h-1 w-2/3 rounded-full" style={{ background: line }} />
+  const surface = variant === 'dark' ? 'var(--dark-surface-alt, var(--dark-border))' : 'var(--light-surface-alt, var(--light-border))';
+  return <span aria-hidden="true" className="flex h-28 w-full flex-col gap-1 rounded-lg border border-line p-1.5" style={{ background: track }}>
+    <span className="flex items-center gap-1 rounded-xs px-1 py-0.5" style={{ background }}>
+      <i className="h-1.5 w-1.5 rounded-full" style={{ background: line }} />
+      <i className="h-1 w-8 rounded-full" style={{ background: line }} />
+      <i className="ms-auto h-1 w-4 rounded-full" style={{ background: line }} />
     </span>
-    <span className="flex flex-1 flex-col gap-1 pt-1">
-      <i className="h-1.5 w-1/2 rounded-full" style={{ background: line }} />
-      <i className="h-1 w-full rounded-full" style={{ background: track }} />
-      <i className="h-1 w-3/4 rounded-full" style={{ background: track }} />
-      <i className="h-3 w-full rounded-xs" style={{ background: track }} />
+    <span className="flex flex-1 gap-1 overflow-hidden rounded-xs" style={{ background }}>
+      <span className="flex w-1/4 flex-col gap-1 rounded-xs p-1" style={{ background: surface }}>
+        <i className="h-1 w-full rounded-full" style={{ background: line }} />
+        <i className="h-1 w-2/3 rounded-full" style={{ background: line }} />
+        <i className="h-1 w-3/4 rounded-full" style={{ background: track }} />
+        <i className="h-1 w-1/2 rounded-full" style={{ background: track }} />
+      </span>
+      <span className="flex flex-1 flex-col gap-1 pt-1">
+        <i className="h-1.5 w-1/2 rounded-full" style={{ background: line }} />
+        <i className="h-1 w-full rounded-full" style={{ background: track }} />
+        <i className="h-1 w-3/4 rounded-full" style={{ background: track }} />
+        <i className="min-h-3 flex-1 w-full rounded-xs" style={{ background: track }} />
+      </span>
     </span>
   </span>;
 }
@@ -140,6 +151,11 @@ function AdminSettings({ section = 'base', client, metadata, theme, onThemeSaved
       message.success(t('设置已保存'));
       void invalidateAfter(queryClient, 'settings');
       onSaved();
+      // Moving the admin entrance remounts the whole administrator app; send the browser to the new path at once.
+      const adminPath = patch.changes.find(change => change.key === 'admin.path')?.value;
+      if (adminPath && metadata.identity_realm === 'administrator' && !window.location.pathname.startsWith(adminPath)) {
+        window.setTimeout(() => window.location.assign(adminPath), 600);
+      }
     },
   });
   if (query.isPending) return <Card><CardContent className="py-10 text-center text-sm text-muted" role="status">{t('正在读取设置…')}</CardContent></Card>;
@@ -148,7 +164,7 @@ function AdminSettings({ section = 'base', client, metadata, theme, onThemeSaved
     <Button variant="secondary" onClick={() => void query.refetch()}>{t('重试')}</Button>
   </CardContent></Card>;
   const localAppearance = metadata.profile === 'web-platform';
-  const candidates = section === 'security' ? [{id:'security',label:t('账户安全'),groups:['security']}] : section === 'mail' ? [{ id: 'mail', label: t('邮件设置'), groups: ['mail', 'account'] }] : baseSections;
+  const candidates = section === 'security' ? [{id:'security',label:t('账户安全'),groups:['security']}] : section === 'mail' ? [{ id: 'mail', label: t('邮件设置'), groups: ['mail'] }] : baseSections;
   const available = candidates.filter(item => item.id === 'appearance' && localAppearance
     ? true
     : item.id === 'branding'
@@ -191,13 +207,22 @@ function AdminSettings({ section = 'base', client, metadata, theme, onThemeSaved
       <CardContent className="flex flex-col gap-4">
         {groups.map(group => <fieldset key={group} className="flex flex-col gap-3 rounded-lg border border-line p-3" disabled={save.isPending}>
           <legend className="px-1 text-sm font-semibold text-ink">{t(groupNames[group] ?? group)}</legend>
-          {group === 'account' && <p className="text-xs text-muted">{t('先保存 SMTP 配置并发送测试，成功后再开启账号邮件流程。')}</p>}
-          {group === 'mail' && <p className="text-xs text-muted">{t('建议 STARTTLS（587）或 TLS（465）；明文仅允许本机测试。保存后点击下方“发送测试”验证连接。')}</p>}
+          {group === 'protection' && <p className="text-xs text-muted">{t('人机验证与找回密码面向整个站点；开启邮件找回密码前，请先在邮件设置完成 SMTP 测试。')}</p>}
+          {group === 'mail' && <p className="text-xs text-muted">{t('STARTTLS 使用端口 587，SSL/TLS（隐式 TLS）使用端口 465，明文仅允许本机（25）；切换加密方式会自动填入常用端口，可再手动修改。保存后点击下方“发送测试”验证连接。')}</p>}
           {group === 'oidc' && <p className="text-xs text-muted">{t('支持授权码 + PKCE；保存后在本页检查连接，再完成一次实际登录。')}</p>}
           <div className="grid gap-x-5 gap-y-4 md:grid-cols-2">
             {query.data.items.filter(item => item.group === group).map(entry => <SettingField key={entry.key} entry={entry} draft={draft} cleared={cleared}
               onValue={(key, value) => {
-                setDraft(current => ({ ...current, [key]: value }));
+                setDraft(current => {
+                  const next = { ...current, [key]: value };
+                  // Switching the SMTP encryption pre-fills its well-known port, but never overrides a custom one.
+                  if (key === 'mail.tls') {
+                    const suggested = { starttls: '587', tls: '465', plain: '25' }[value] ?? '';
+                    const saved = query.data.items.find(item => item.key === 'mail.port')?.value ?? '';
+                    if (suggested && ['', '25', '465', '587'].includes(next['mail.port'] ?? saved)) next['mail.port'] = suggested;
+                  }
+                  return next;
+                });
                 setCleared(current => current.filter(item => item !== key));
               }}
               onClear={key => {
@@ -208,7 +233,7 @@ function AdminSettings({ section = 'base', client, metadata, theme, onThemeSaved
         </fieldset>)}
       </CardContent>
     </Card>}
-    {client.web && section === 'mail' && <MailTest web={client.web} canWrite dirty={dirty('mail') || dirty('account')} revision={query.dataUpdatedAt} />}
+    {client.web && section === 'mail' && <MailTest web={client.web} canWrite dirty={dirty('mail')} revision={query.dataUpdatedAt} />}
     {client.web && active.id === 'oidc' && <OidcConnection key={query.dataUpdatedAt} web={client.web} dirty={dirty('oidc')} revision={query.dataUpdatedAt} />}
   </div>;
 }
@@ -231,7 +256,7 @@ function SettingField({ entry, draft, cleared, onValue, onClear }: {
       : entry.key === 'appearance.theme' || entry.key === 'mail.tls' || entry.key === 'account.email_domain_mode'
         ? <NativeSelect id={id} value={current} onChange={event => onValue(entry.key, event.target.value)} className="max-w-56">
             {(entry.key === 'account.email_domain_mode' ? [['unrestricted', t('不限制')], ['allowlist', t('白名单')], ['blocklist', t('黑名单')]] : entry.key === 'mail.tls'
-              ? [['starttls', 'STARTTLS'], ['tls', 'TLS'], ['plain', t('明文（仅本机）')]]
+              ? [['starttls', t('STARTTLS（推荐）')], ['tls', 'SSL/TLS'], ['plain', t('明文（仅本机）')]]
               : [['system', t('跟随系统')], ['light', t('浅色')], ['dark', t('深色')]]
             ).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </NativeSelect>
@@ -249,6 +274,12 @@ function SettingField({ entry, draft, cleared, onValue, onClear }: {
       </Button>
     </div>}
     {entry.key === 'account.registration_enabled' && <small className="text-xs text-muted">{t('默认关闭。开启后允许用户自行注册；邮箱验证由独立开关控制。')}</small>}
+    {entry.key === 'account.phone_required' && <small className="text-xs text-muted">{t('开启后注册必须填写手机号；仅做格式与唯一性校验，不发送短信验证码。')}</small>}
+    {['account.register_rate_minutes', 'account.register_rate_max'].includes(entry.key) && <small className="text-xs text-muted">{t('同一 IP 在窗口分钟数内最多注册上限次数，超出后返回“尝试过于频繁”；两者配合调节注册防刷强度。')}</small>}
+    {entry.key === 'security.login_captcha' && <small className="text-xs text-muted">{t('开启后登录页要求输入图形验证码，拦截脚本批量尝试。')}</small>}
+    {entry.key === 'security.register_captcha' && <small className="text-xs text-muted">{t('开启后注册页要求输入图形验证码，拦截机器人批量注册。')}</small>}
+    {entry.key === 'account.password_reset_enabled' && <small className="text-xs text-muted">{t('开启后登录页提供“通过邮箱重置密码”入口；须先在邮件设置保存 SMTP 并通过测试。')}</small>}
+    {entry.key === 'account.email_login_enabled' && <small className="text-xs text-muted">{t('开启后登录页支持邮箱验证码登录；须先在邮件设置保存 SMTP 并通过测试。')}</small>}
     {entry.key === 'security.login_failure_limit' && <small className="text-xs text-muted">{t('同一 IP 连续登录失败达到此次数后临时封禁，不冻结账号。')}</small>}
     {entry.key === 'security.ip_ban_minutes' && <small className="text-xs text-muted">{t('封禁期间拒绝新的登录尝试；成功登录会清除连续失败计数。')}</small>}
     {['security.user_idle_minutes', 'security.admin_idle_minutes'].includes(entry.key) && <small className="text-xs text-muted">{t('超过此时间没有主动请求时会话失效；后台状态轮询不会延长空闲时间。')}</small>}
@@ -263,7 +294,7 @@ function SettingField({ entry, draft, cleared, onValue, onClear }: {
     {entry.key === 'site.admin_email' && <small className="text-xs text-muted">{t('接收系统告警和通知；留空则不设置默认收件人。')}</small>}
     {entry.key === 'site.footer_html' && <small className="text-xs text-muted">{t('支持段落、列表、强调和 HTTP/HTTPS 链接；不支持脚本、样式或嵌入内容。')}</small>}
     {entry.key === 'maintenance.enabled' && <small className="text-xs text-muted">{t('默认关闭。开启后暂停用户访问和 API 操作，管理员仍可登录后台关闭维护。')}</small>}
-    {entry.key === 'site.home_enabled' && <small className="text-xs text-muted">{t('默认关闭。开启后未登录访问站点根路径时展示产品首页，已登录用户直接进入工作空间。')}</small>}
+    {entry.key === 'site.home_enabled' && <small className="text-xs text-muted">{t('默认关闭。开启后未登录访问站点根路径会跳转到 /home 产品首页，已登录用户直接进入工作空间。')}</small>}
     {entry.key === 'site.icp_url' && <small className="text-xs text-muted">{t('HTTPS 查询链接；备案号留空时隐藏页脚备案信息。')}</small>}
     {entry.key === 'mail.from_name' && <small className="text-xs text-muted">{t('留空时使用邮件中的站点名称；修改别名不影响 SMTP 连通性验证。')}</small>}
     {entry.key === 'admin.path' && <small className="text-xs text-muted">{t('配置错误可用 APP_ADMIN_PATH 恢复；接口仍执行权限检查。')}</small>}

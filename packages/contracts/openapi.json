@@ -11108,6 +11108,10 @@
           "email": {
             "type": "string"
           },
+          "phone": {
+            "type": "string",
+            "description": "Phone number bound at registration; empty when not collected."
+          },
           "status": {
             "type": "string"
           },
@@ -11191,6 +11195,12 @@
             "type": "string",
             "minLength": 12,
             "maxLength": 128
+          },
+          "phone": {
+            "type": "string",
+            "description": "Optional phone number bound to the account.",
+            "maxLength": 21,
+            "pattern": "^(?:\\+?[0-9]{5,20})?$"
           },
           "role": {
             "type": "string",
@@ -11686,7 +11696,8 @@
           "register_captcha",
           "mail_ready",
           "email_login_enabled",
-          "email_verification_required"
+          "email_verification_required",
+          "phone_required"
         ],
         "properties": {
           "registration_enabled": {
@@ -11709,6 +11720,10 @@
           },
           "email_verification_required": {
             "type": "boolean"
+          },
+          "phone_required": {
+            "type": "boolean",
+            "description": "Registration requires a phone number when enabled."
           }
         }
       },
@@ -11738,6 +11753,12 @@
             "type": "string",
             "minLength": 12,
             "maxLength": 128
+          },
+          "phone": {
+            "type": "string",
+            "description": "Optional phone number bound at registration; required when the instance enables registration phone binding.",
+            "maxLength": 21,
+            "pattern": "^(?:\\+?[0-9]{5,20})?$"
           },
           "captcha_id": {
             "type": "string"

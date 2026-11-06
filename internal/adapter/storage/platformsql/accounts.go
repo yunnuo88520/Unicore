@@ -76,7 +76,7 @@ func (r *Repository) RegisterAccount(ctx context.Context, input contracts.Regist
 		return err
 	}
 	defer tx.Rollback()
-	user, err := r.insert(ctx, tx, contracts.UserCreate{Username: input.Username, Email: input.Email, Role: "user"}, passwordHash, "registration")
+	user, err := r.insert(ctx, tx, contracts.UserCreate{Username: input.Username, Email: input.Email, Phone: input.Phone, Role: "user"}, passwordHash, "registration")
 	if err != nil {
 		return err
 	}
@@ -250,7 +250,7 @@ func (r *Repository) RegisterActiveAccount(ctx context.Context, input contracts.
 		return err
 	}
 	defer tx.Rollback()
-	user, err := r.insert(ctx, tx, contracts.UserCreate{Username: input.Username, Email: input.Email, Role: "user"}, hash, "registration")
+	user, err := r.insert(ctx, tx, contracts.UserCreate{Username: input.Username, Email: input.Email, Phone: input.Phone, Role: "user"}, hash, "registration")
 	if err != nil {
 		return err
 	}

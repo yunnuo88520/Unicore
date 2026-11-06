@@ -116,6 +116,8 @@
   :focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
   @media (prefers-reduced-motion: reduce) {
     *, ::before, ::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    /* Loading spinners are functional feedback, not decoration; keep them turning (slower). */
+    .animate-spin { animation-duration: 1.4s !important; }
   }
 }
 

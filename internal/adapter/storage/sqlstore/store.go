@@ -140,7 +140,10 @@ func (s *Store) Migrate(ctx context.Context, platform bool) error {
 		if err := s.personalSchema(ctx); err != nil {
 			return err
 		}
-		return s.additivePlatformSchema(ctx, 15, "0015_announcement_notifications.sql")
+		if err := s.additivePlatformSchema(ctx, 15, "0015_announcement_notifications.sql"); err != nil {
+			return err
+		}
+		return s.additivePlatformSchema(ctx, 16, "0016_user_phone.sql")
 	}
 	return nil
 }

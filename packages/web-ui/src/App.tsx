@@ -10,7 +10,7 @@ import { WorkspaceLayout } from './workspace-layout';
 import { MessageProvider } from '@unicore/ui';
 import { SiteFooter } from './site-footer';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { RouterProvider, Outlet, createBrowserHistory, useRouter, useRouterState, type RouterHistory } from '@tanstack/react-router';
+import { RouterProvider, Outlet, Navigate, createBrowserHistory, useRouter, useRouterState, type RouterHistory } from '@tanstack/react-router';
 import { Braces, ChevronRight, ExternalLink, FlaskConical, Info, Menu, PanelLeftClose, PanelLeftOpen, Radio, RotateCcw, Settings2, ShieldCheck, UserRound, Users, type LucideIcon } from 'lucide-react';
 import { buildNavigation } from './navigation';
 import { BrandProvider, BrandMark, BrandLockup } from './brand';
@@ -126,17 +126,27 @@ function WorkspaceShell() {
       <SiteFooter metadata={data} compact />
     </main>;
   }
+  // The public homepage owns /home; the console stays at /. Members skip the homepage, admin realm keeps its own login.
+  const publicHome = data.identity_realm !== 'administrator';
+  if (data.capabilities.authentication && data.current_user && basename === 'home') {
+    return <Navigate to="/" replace />;
+  }
   if (data.capabilities.authentication && (!data.current_user || /^(verify-email|reset-password)$/.test(basename)) && client.web) {
     const props: PageProps = { page: 'overview', client, metadata: data, registry, theme, setTheme, refresh: () => void metadata.refetch() };
-    // Optional public homepage: guests land on it instead of the login flow when site.home_enabled is on.
-    if (!data.current_user && !basename && data.home_enabled) {
+    // Optional public homepage: guests land on it at /home instead of the login flow when site.home_enabled is on.
+    if (!data.current_user && publicHome && data.home_enabled && (basename === 'home' || !basename)) {
+      if (!basename) return <Navigate to="/home" replace />;
       return <PagePropsProvider value={props}>
         <div className="flex min-h-dvh flex-col bg-background">
           <HomePage {...props} />
         </div>
       </PagePropsProvider>;
     }
-    const Flow = basename === 'verify-email' ? VerifyEmailPage : basename === 'reset-password' ? ResetPasswordPage : LoginPage;
+    // Guests get the real 404 page for unregistered paths instead of a misleading login form;
+    // registered pages (workspace and auth ones) keep the login wall.
+    const knownPath = !basename || basename === 'home' || Object.hasOwn(routes, basename)
+      || ['login', 'register', 'forgot-password', 'email-login', 'resend-verification', 'registration-success'].includes(basename);
+    const Flow = basename === 'verify-email' ? VerifyEmailPage : basename === 'reset-password' ? ResetPasswordPage : !data.current_user && !knownPath ? NotFoundPage : LoginPage;
     return <PagePropsProvider value={props}>
       <div className="flex min-h-dvh flex-col bg-background">
         <div className="flex flex-1 items-center justify-center px-4 py-8 sm:px-6 lg:py-12">

@@ -486,6 +486,9 @@ export const constraints = {
       "email": {
         "type": "string"
       },
+      "phone": {
+        "type": "string"
+      },
       "status": {
         "type": "string"
       },
@@ -568,6 +571,11 @@ export const constraints = {
         "type": "string",
         "minLength": 12,
         "maxLength": 128
+      },
+      "phone": {
+        "type": "string",
+        "maxLength": 21,
+        "pattern": "^(?:\\+?[0-9]{5,20})?$"
       },
       "role": {
         "type": "string",
@@ -1060,7 +1068,8 @@ export const constraints = {
       "register_captcha",
       "mail_ready",
       "email_login_enabled",
-      "email_verification_required"
+      "email_verification_required",
+      "phone_required"
     ],
     "properties": {
       "registration_enabled": {
@@ -1082,6 +1091,9 @@ export const constraints = {
         "type": "boolean"
       },
       "email_verification_required": {
+        "type": "boolean"
+      },
+      "phone_required": {
         "type": "boolean"
       }
     }
@@ -1112,6 +1124,11 @@ export const constraints = {
         "type": "string",
         "minLength": 12,
         "maxLength": 128
+      },
+      "phone": {
+        "type": "string",
+        "maxLength": 21,
+        "pattern": "^(?:\\+?[0-9]{5,20})?$"
       },
       "captcha_id": {
         "type": "string"

@@ -45,7 +45,7 @@ test('local file pages, policies, private download, permissions and restart',asy
 
 test('one saved configuration per provider, validation and activation guard',async({page,instance},info)=>{
  await install({...instance,request:page.request});await page.goto(`${instance.url}/admin/storage?provider=minio`);
- const form=page.getByRole('form',{name:'存储配置',exact:true});await form.getByRole('button',{name:'保存配置',exact:true}).click();await expect(form.getByRole('alert',{name:'表单校验'})).toBeVisible();await page.reload();
+ const form=page.getByRole('form',{name:'存储配置',exact:true});await form.getByRole('button',{name:'保存配置',exact:true}).click();await expect(form.getByText('此项为必填').first()).toBeVisible();await page.reload();
  for(const [label,value] of [['Endpoint','http://127.0.0.1:1'],['Bucket','unicore-test'],['Access Key','fixture-access'],['Secret Key','fixture-secret']])await form.getByLabel(label,{exact:true}).fill(value);
  await form.getByRole('button',{name:'保存配置',exact:true}).click();await expect(page.getByText('存储配置已保存',{exact:true})).toBeVisible();
  await expect(form.getByLabel('Secret Key',{exact:true})).toHaveValue('');await expect(form.getByLabel('Access Key',{exact:true})).toHaveValue('');await expect(form.getByLabel('Endpoint',{exact:true})).toHaveAttribute('readonly','');

@@ -33,6 +33,8 @@ export function useAppForm<T extends FieldValues>({ schema, defaultValues, onSub
     if (!(error instanceof AppError)) return;
     setServerError(error);
     const fields = error.fields ?? {};
+    // Field-level messages render inline next to their controls; messages without field targets
+    // surface through the global mutation toast, so the form never repeats them.
     for (const [name, message] of Object.entries(fields)) {
       if (name === '$form' || name === '') continue;
       form.setError(name as Path<T>, { type: 'server', message });
@@ -107,20 +109,16 @@ export function AppControllerField<T extends FieldValues>({ name, label, hint, c
   />;
 }
 
-/** Shared error summary listing every field message, mirroring the legacy form error box. */
+/** Form-wide error banner: root/server messages only. Field errors render inline in their AppField,
+ *  so the banner never duplicates them and never follows the user across wizard steps. */
 export function FormSummary() {
   useLocale();
   const { formState } = useFormContext();
-  const messages: string[] = [];
-  if (formState.errors.root?.message) messages.push(formState.errors.root.message as string);
-  for (const [name, error] of Object.entries(formState.errors)) {
-    if (name === 'root' || !error || typeof error !== 'object' || !('message' in error)) continue;
-    messages.push(String(error.message));
-  }
-  if (!messages.length) return null;
+  const root = formState.errors.root?.message as string | undefined;
+  if (!root) return null;
   return <div role="alert" aria-label={t('表单校验')} tabIndex={-1} className="mb-3 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
     <strong className="block font-medium">{t('请检查表单输入')}</strong>
-    <p>{messages.map(message => t(message)).join('; ')}</p>
+    <p>{t(root)}</p>
   </div>;
 }
 

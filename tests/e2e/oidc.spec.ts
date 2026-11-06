@@ -21,8 +21,8 @@ test('enterprise settings, real JIT, explicit binding and password fallback', as
   expect(install.status()).toBe(200); await page.goto(`${instance.url}/admin/account-security`);
   await expect(page.getByRole('heading', {name:'企业账号绑定',exact:true})).toBeVisible();
   await expect(page.getByText('实例尚未启用',{exact:true})).toBeVisible(); await capture(page, info, 'oidc-account-disabled');
-  await page.goto(`${instance.url}/admin/account-policy`);
-  await page.getByRole('switch',{name:'登录图形验证码',exact:true}).uncheck();
+  await page.goto(`${instance.url}/admin/site?tab=security`);
+  await page.getByRole('switch',{name:'登录人机验证',exact:true}).uncheck();
   await page.getByRole('button',{name:'保存设置',exact:true}).click();
   await expect(page.getByRole('button',{name:'保存设置',exact:true})).toBeDisabled();
   await page.goto(`${instance.url}/admin/site`);

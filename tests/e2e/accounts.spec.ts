@@ -58,13 +58,18 @@ test('SMTP settings, verified registration and password recovery revoke old sess
     await expect(page.getByText('测试邮件已发送，可开启邮件账号流程。')).toBeVisible();
     expect(smtp.messages[0]).toContain('From: "Unicore Notices" <sender@example.test>');
     await expect(page.getByRole('dialog',{name:'发送测试邮件',exact:true})).toHaveCount(0);
-    await page.getByRole('switch', { name: '邮件找回密码', exact: true }).check();
-    await page.getByRole('switch', { name: '邮箱验证码登录', exact: true }).check();
-    await page.getByRole('button', { name: '保存设置' }).click();
-    await expect(page.getByRole('button', { name: '保存设置' })).toBeDisabled();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await expect(page.getByRole('tab')).toHaveCount(0);
     await capture(page, info, 'mail-settings');
+    // The mail-flow toggles live outside the mail page: recovery under 安全与控制, email-code login under 账户安全.
+    await page.goto(`${instance.url}/admin/site?tab=security`);
+    await page.getByRole('switch', { name: '邮件找回密码', exact: true }).check();
+    await page.getByRole('button', { name: '保存设置' }).click();
+    await expect(page.getByRole('button', { name: '保存设置' })).toBeDisabled();
+    await page.goto(`${instance.url}/admin/account-policy`);
+    await page.getByRole('switch', { name: '邮箱验证码登录', exact: true }).check();
+    await page.getByRole('button', { name: '保存设置' }).click();
+    await expect(page.getByRole('button', { name: '保存设置' })).toBeDisabled();
     await page.goto(`${instance.url}/admin/site?tab=registration`);
     await page.getByRole('switch',{name:'开放注册',exact:true}).check();
     await page.getByRole('switch',{name:'注册邮箱验证',exact:true}).check();

@@ -27,7 +27,7 @@ test.setTimeout(120_000);test('cross-tab logout/account switch, field focus and 
   await page.getByLabel('邮箱',{exact:true}).fill('member@example.test');
   await page.getByLabel('初始密码').fill('test-password-strong');
   await page.getByRole('button',{name:'创建用户',exact:true}).click();
-  await expect(page.getByRole('alert', { name: '表单校验' })).toContainText('格式不正确');
+  await expect(page.getByRole('alert').filter({ hasText: '格式不正确' })).toBeVisible();
   await expect(page.getByLabel('账号',{exact:true})).toBeFocused();
   await expect(page.getByLabel('账号',{exact:true})).toHaveAttribute('aria-invalid','true');
   await capture(page,info,'foundation-field-error');

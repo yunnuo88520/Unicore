@@ -165,3 +165,70 @@ func TestRegistrationWithoutMailAndRestrictions(t *testing.T) {
 		t.Fatal("registration policy changed after restart", policy, err)
 	}
 }
+
+func TestRegistrationRateLimitAndPhone(t *testing.T) {
+	ctx := context.Background()
+	m, err := install.Open(ctx, install.Options{DataDir: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer m.Close()
+	token, _ := os.ReadFile(m.TokenPath())
+	_, admin, err := m.Complete(ctx, strings.TrimSpace(string(token)), contracts.InstallInput{Profile: "web-platform", Database: contracts.DatabaseInput{Driver: "sqlite"}, SiteName: "Unicore", BaseUrl: "http://localhost", AdminUsername: "admin", AdminEmail: "admin@example.test", AdminPassword: "test-password-strong"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	db, config, _, _ := m.Services()
+	accounts := m.AccountService(false)
+	patch := func(k, v string) {
+		t.Helper()
+		if _, err := config.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: k, Value: v}}}, admin.ID); err != nil {
+			t.Fatal(k, err)
+		}
+	}
+	patch("account.registration_enabled", "true")
+	patch("security.register_captcha", "false")
+	register := func(username, email, phone, ip string) error {
+		_, err := accounts.RegisterCode(ctx, contracts.RegisterInput{Username: username, Email: email, Password: "rate-password-strong", Phone: phonePtr(phone)}, ip)
+		return err
+	}
+	// The per-IP window defaults to five registrations per minute; tighten it to two.
+	patch("account.register_rate_max", "2")
+	if err = register("ratemember1", "rate1@example.test", "", "203.0.113.20"); err != nil {
+		t.Fatal(err)
+	}
+	if err = register("ratemember2", "rate2@example.test", "", "203.0.113.20"); err != nil {
+		t.Fatal(err)
+	}
+	if err = register("ratemember3", "rate3@example.test", "", "203.0.113.20"); !errors.Is(err, platform.ErrRateLimited) {
+		t.Fatal("third registration from the same IP was accepted", err)
+	}
+	if err = register("ratemember4", "rate4@example.test", "", "203.0.113.21"); err != nil {
+		t.Fatal("a different IP must not inherit the bucket", err)
+	}
+	// Phone binding: required, format-checked and unique once enabled.
+	patch("account.phone_required", "true")
+	if err = register("phonemember1", "phone1@example.test", "", "203.0.113.22"); !errors.Is(err, platform.ErrInput) {
+		t.Fatal("registration without the required phone was accepted", err)
+	}
+	if err = register("phonemember1", "phone1@example.test", "not-a-phone", "203.0.113.22"); !errors.Is(err, platform.ErrInput) {
+		t.Fatal("invalid phone was accepted", err)
+	}
+	if err = register("phonemember1", "phone1@example.test", "+8613800138000", "203.0.113.22"); err != nil {
+		t.Fatal(err)
+	}
+	if err = register("phonemember2", "phone2@example.test", "+8613800138000", "203.0.113.22"); !errors.Is(err, platform.ErrConflict) {
+		t.Fatal("duplicate phone was accepted", err)
+	}
+	var stored *string
+	if err = db.DB.QueryRowContext(ctx, "SELECT phone FROM unicore_users WHERE username='phonemember1'").Scan(&stored); err != nil || stored == nil || *stored != "+8613800138000" {
+		t.Fatal("phone was not stored", stored, err)
+	}
+}
+
+func phonePtr(phone string) *string {
+	if phone == "" {
+		return nil
+	}
+	return &phone
+}

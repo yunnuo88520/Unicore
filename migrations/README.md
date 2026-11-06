@@ -41,3 +41,5 @@ python3 scripts/verify-baselines.py --output build/verification-r10b-new
 个人中心在现行固定前缀/旧账本之后追加 `{sqlite,postgres,mysql}/0014_personal_center.sql`，仅平台执行，增加两个身份域的个人安全、设备与邮箱换绑表。平台运行时等级14，本地/桌面13；不修改旧字节、不接入新 namespace baseline。兼容与恢复见 [ADR-0030](../docs/adr/ADR-0030-personal-center-security.md)。
 
 公告通知追加当前运行体系 0015（三方言，platform-only）及未启用 Catalog 的 platform@2。原基线不变，新列与接收人/已读表的兼容及部分 DDL 恢复见 [公告手册](../docs/03-runbooks/announcements.md)。
+
+注册绑定手机号追加当前运行体系 0016（三方言，platform-only）及未启用 Catalog 的 platform@3：`unicore_users` 与 `unicore_administrators` 各加可空 `phone` 列及唯一索引（NULL 不冲突；管理员列仅为共享账号代码的 schema 对齐，不启用）。兼容与恢复说明见迁移文件头注。

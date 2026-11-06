@@ -84,6 +84,7 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
   }
   const tree = rootRoute.addChildren([
     pageRoute('/', () => import('./pages/overview').then(module => ({ default: module.OverviewPage })), { search: { oidc: '' } }),
+    pageRoute('/home', () => import('./pages/home').then(module => ({ default: module.HomePage }))),
     pageRoute('/lab', () => import('./pages/overview').then(module => ({ default: module.LabPage }))),
     pageRoute('/install', () => import('./pages/install').then(module => ({ default: module.InstallPage }))),
     pageRoute('/login', () => import('./pages/auth').then(module => ({ default: module.LoginPage })), { search: { oidc: '' } }),

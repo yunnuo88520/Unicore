@@ -135,6 +135,7 @@ type User struct {
 	ID          string   `json:"id"`
 	Username    string   `json:"username"`
 	Email       string   `json:"email"`
+	Phone       *string  `json:"phone,omitempty"`
 	Status      string   `json:"status"`
 	Roles       []string `json:"roles"`
 	Permissions []string `json:"permissions"`
@@ -151,10 +152,11 @@ type UserList struct {
 }
 
 type UserCreate struct {
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	Role     string `json:"role"`
+	Username string  `json:"username"`
+	Email    string  `json:"email"`
+	Password string  `json:"password"`
+	Phone    *string `json:"phone,omitempty"`
+	Role     string  `json:"role"`
 }
 
 type UserUpdate struct {
@@ -299,14 +301,16 @@ type AuthPolicy struct {
 	MailReady                 bool `json:"mail_ready"`
 	EmailLoginEnabled         bool `json:"email_login_enabled"`
 	EmailVerificationRequired bool `json:"email_verification_required"`
+	PhoneRequired             bool `json:"phone_required"`
 }
 
 type RegisterInput struct {
-	Username      string `json:"username"`
-	Email         string `json:"email"`
-	Password      string `json:"password"`
-	CaptchaID     string `json:"captcha_id"`
-	CaptchaAnswer string `json:"captcha_answer"`
+	Username      string  `json:"username"`
+	Email         string  `json:"email"`
+	Password      string  `json:"password"`
+	Phone         *string `json:"phone,omitempty"`
+	CaptchaID     string  `json:"captcha_id"`
+	CaptchaAnswer string  `json:"captcha_answer"`
 }
 
 type EmailRequest struct {

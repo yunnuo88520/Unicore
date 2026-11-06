@@ -133,6 +133,7 @@ export interface User {
   id: string;
   username: string;
   email: string;
+  phone?: string;
   status: string;
   roles: Array<"super_admin" | "user">;
   permissions: Array<string>;
@@ -152,6 +153,7 @@ export interface UserCreate {
   username: string;
   email: string;
   password: string;
+  phone?: string;
   role: "super_admin" | "user";
 }
 
@@ -297,12 +299,14 @@ export interface AuthPolicy {
   mail_ready: boolean;
   email_login_enabled: boolean;
   email_verification_required: boolean;
+  phone_required: boolean;
 }
 
 export interface RegisterInput {
   username: string;
   email: string;
   password: string;
+  phone?: string;
   captcha_id: string;
   captcha_answer: string;
 }

@@ -77,6 +77,13 @@ func ValidateAccount(username, email, password string) bool {
 	address, err := mail.ParseAddress(email)
 	return regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.-]{2,63}$`).MatchString(username) && err == nil && address.Address == email && len(email) <= 254 && len(password) >= 12 && len(password) <= 128
 }
+
+// ValidPhone accepts an optional leading + followed by 5-20 digits, matching the RegisterInput contract.
+var phonePattern = regexp.MustCompile(`^\+?[0-9]{5,20}$`)
+
+func ValidPhone(phone string) bool {
+	return phonePattern.MatchString(phone)
+}
 func Has(user contracts.User, permission string) bool {
 	if !IsSuper(user) || !SuperOnly(permission) {
 		return false
@@ -163,6 +170,16 @@ func (s *Service) Create(ctx context.Context, input contracts.UserCreate, actor 
 	input.Email = strings.ToLower(strings.TrimSpace(input.Email))
 	if !ValidateAccount(input.Username, input.Email, input.Password) || !BuiltinRole(input.Role) {
 		return contracts.User{}, ErrInput
+	}
+	if input.Phone != nil {
+		phone := strings.TrimSpace(*input.Phone)
+		if phone == "" {
+			input.Phone = nil
+		} else if !ValidPhone(phone) {
+			return contracts.User{}, ErrInput
+		} else {
+			input.Phone = &phone
+		}
 	}
 	hash, err := HashPassword(input.Password)
 	if err != nil {

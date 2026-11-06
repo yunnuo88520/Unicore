@@ -14,9 +14,9 @@ import { AppField, AppForm, useAppForm } from '@unicore/form';
 import { cn } from '@unicore/ui/cn';
 
 type Mode = 'login' | 'email' | 'register' | 'forgot' | 'resend';
-type AuthValues = { username: string; email: string; password: string; confirm_password: string; code: string; captcha_answer: string };
+type AuthValues = { username: string; email: string; phone: string; password: string; confirm_password: string; code: string; captcha_answer: string };
 const AUTH_PATHS: Record<Mode, string> = { login: '/login', register: '/register', forgot: '/forgot-password', email: '/email-login', resend: '/resend-verification' };
-const EMPTY_AUTH: AuthValues = { username: '', email: '', password: '', confirm_password: '', code: '', captcha_answer: '' };
+const EMPTY_AUTH: AuthValues = { username: '', email: '', phone: '', password: '', confirm_password: '', code: '', captcha_answer: '' };
 const AUTH_MESSAGES = defineMessages({
   invalid: '请检查表单输入',
   mismatch: '两次输入的密码不一致',
@@ -24,6 +24,7 @@ const AUTH_MESSAGES = defineMessages({
   password: '密码至少 12 个字符，且不超过 128 字节',
   captcha: '请输入 6 位图形验证码',
   code: '请先获取邮箱验证码',
+  phone: '请输入有效的手机号',
 });
 
 function modeForPath(pathname: string): Mode {
@@ -152,9 +153,10 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
     let fields: Record<string, string>;
     if (challenge) fields = validate('EmailCodeInput', { challenge_id: challenge.challenge_id, code: values.code, password: purpose === 'reset' ? values.password : '' });
     else if (mode === 'login') fields = validate('LoginInput', { username: values.username, password: values.password, ...graphic });
-    else if (mode === 'register') fields = validate('RegisterInput', { username: values.username, email: values.email, password: values.password, ...graphic });
+    else if (mode === 'register') fields = validate('RegisterInput', { username: values.username, email: values.email, password: values.password, phone: values.phone.trim(), ...graphic });
     else fields = validate('EmailRequest', { email: values.email, ...graphic });
     if ((!challenge && mode === 'register') || (challenge && purpose === 'reset')) Object.assign(fields, passwordErrors(values.password, values.confirm_password));
+    if (mode === 'register' && policy.data?.phone_required && !/^\+?[0-9]{5,20}$/.test(values.phone.trim())) fields.phone = AUTH_MESSAGES.phone;
     if (needsCaptcha && !/^[0-9]{6}$/.test(values.captcha_answer)) fields.captcha_answer = AUTH_MESSAGES.captcha;
     if (mode === 'forgot' && !challenge) fields.code = AUTH_MESSAGES.code;
     form.clearErrors();
@@ -187,7 +189,7 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
       let result: EmailChallenge | null = null;
       if (mode === 'login') await web.login({ username: current.username, password: current.password, ...graphic });
       else if (challenge) await web.completeCode(purpose, { challenge_id: challenge.challenge_id, code: current.code, password: purpose === 'reset' ? current.password : '' });
-      else if (mode === 'register') { const response = await web.registerCode({ username: current.username, email: current.email, password: current.password, ...graphic }); result = response.registration_complete ? null : response; }
+      else if (mode === 'register') { const response = await web.registerCode({ username: current.username, email: current.email, password: current.password, phone: current.phone.trim(), ...graphic }); result = response.registration_complete ? null : response; }
       else result = await web.requestCode(purpose, { email: current.email, ...graphic });
       return { result, version };
     },
@@ -266,6 +268,9 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
             </AppField>}
             {!challenge && mode === 'register' && <AppField<AuthValues> name="confirm_password" label={t('确认密码')} className="[&_label]:sr-only">
               <AuthPassword fieldLabel={t('确认密码')} required autoComplete="new-password" maxLength={128} placeholder={t('请再次输入密码')} />
+            </AppField>}
+            {!challenge && mode === 'register' && policy.data?.phone_required && <AppField<AuthValues> name="phone" label={t('手机号')} className="[&_label]:sr-only">
+              <Input type="tel" inputMode="tel" required autoComplete="tel" maxLength={21} placeholder={t('请输入手机号')} />
             </AppField>}
             {(!challenge && mode !== 'login' || mode === 'forgot') && <AppField<AuthValues> name="email" label={t('邮箱')} className={mode === 'forgot' ? undefined : '[&_label]:sr-only'}>
               <Input type="email" required autoComplete="email" maxLength={254} placeholder="name@example.com" readOnly={!!challenge} />

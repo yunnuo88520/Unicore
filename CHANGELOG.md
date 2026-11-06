@@ -3,6 +3,42 @@
 
 ## Unreleased
 
+### 中文
+
+- 系统设置导航将「基础设置」置于首位；设置分区边界重组：邮件设置只保留 SMTP 与发送测试，登录/注册人机验证与邮件找回密码移入「安全与控制」（新增站点防护分组），邮箱验证码登录移入「账户安全」页。
+
+- 安全与控制新增站点级人机验证开关（登录、注册）与邮件找回密码入口；注册设置新增「注册绑定手机号」（开启后注册必填手机号，仅格式与唯一性校验，不发送短信）与同 IP 注册频率限制（默认 1 分钟 5 次，可配置窗口与上限），追加三方言平台迁移 0016（users/administrators 可空 phone 列与唯一索引）。
+
+- 邮件设置加密方式选项更名澄清（STARTTLS 推荐、SSL/TLS 即隐式 TLS），切换加密方式自动填入常用端口（587/465/25），可手动覆盖；全局弱动效模式下加载指示器保持旋转（功能性反馈豁免）。
+
+- 外观设置界面主题卡片改为更高的站点缩略图预览，不再是细条。
+
+- 产品首页拥有独立路由 `/home`：开启 `site.home_enabled` 后未登录访问根路径跳转 `/home`，已登录用户访问 `/home` 回到工作台控制台；管理后台挂载点不受影响。
+
+- 修复共享表单校验对契约可选字段的处理：Zod 适配器此前把未提交的可选字符串判为“应为文本”，新增手机号字段后暴露；现在与 SDK 校验一致，仅校验提交中存在的键。
+
+- 表单错误提示去重：字段级错误只在对应控件下方内联展示，顶部横幅不再重复罗列也不再跨向导步骤残留；表单级错误仍横幅/提示呈现。安装向导输错邮箱不再出现双重错误与布局挤压。
+
+- 全站体验修缮：平台公告移入「用户管理」分组；外观主题卡片改为紧凑竖版并提高预览高度；访客访问未注册路径显示统一 404 页而非登录表单；修改管理后台路径保存后自动跳转新入口；邮件模板编辑改为左编辑右实时预览分栏（停顿自动渲染，可手动刷新）；产品首页导航 logo 与站名组合显示，滚动顶栏去掉描边。
+
+### English
+
+- The settings navigation puts "Basic settings" first; settings boundaries were regrouped: mail settings now only keep SMTP and the send-test panel, login/registration human verification and email password recovery moved into "Security & control" (new site protection group), and email code login moved to the "Account security" page.
+
+- Security & control gains site-wide human-verification switches (login, registration) and the email password recovery entry; registration settings gain "require phone at registration" (mandatory phone with format and uniqueness checks only, no SMS) and a per-IP registration rate limit (default 5 per minute, configurable window and cap), plus the three-dialect platform migration 0016 (nullable phone columns and unique indexes on users/administrators).
+
+- The mail encryption options were clarified (STARTTLS recommended, SSL/TLS means implicit TLS); switching the mode pre-fills the common port (587/465/25) and stays editable; loading spinners keep turning under reduced-motion as functional feedback.
+
+- Appearance theme cards use taller site-thumbnail previews instead of thin strips.
+
+- The product homepage owns the `/home` route: with `site.home_enabled` on, guests visiting the site root are redirected to `/home`, and signed-in users hitting `/home` return to the workspace console; the admin mount is unaffected.
+
+- Fixed shared form validation for contract-optional fields: the Zod adapter previously rejected absent optional strings as "应为文本" (exposed by the new phone field); it now mirrors the SDK validate() and only checks keys present in the submission.
+
+- De-duplicated form error display: field-level errors render inline under their controls only; the top banner no longer repeats them or lingers across wizard steps, while form-wide errors keep their banner/toast. A mistyped email in the install wizard no longer shows double errors or squeezes the layout.
+
+- Sitewide polish: platform announcements moved into the user-management group; appearance theme cards became compact portrait tiles with taller previews; guests hitting unregistered paths now see a unified 404 page instead of a login form; saving a new admin path jumps to the new entrance automatically; the mail template editor split into editor plus live preview (auto-render on typing pauses, manual refresh); the homepage nav keeps logo and site name together and drops the scrolled outline on the sticky header.
+
 ## 0.1.3 — 2026-11-06
 
 ### 中文

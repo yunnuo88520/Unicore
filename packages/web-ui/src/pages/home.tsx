@@ -31,8 +31,9 @@ export function HomePage({ metadata }: PageProps) {
     <header className={cn('sticky top-0 z-40 transition-all duration-500 ease-out', scrolled && 'pt-2.5')}>
       <div className={cn('mx-auto flex transition-all duration-500 ease-out', scrolled ? 'max-w-[52rem] px-3' : 'max-w-6xl px-4 md:px-6')}>
         <nav aria-label={t('站点导航')} className={cn('flex h-16 w-full items-center justify-between gap-2 transition-all duration-500 ease-out',
-          scrolled && 'h-12 rounded-2xl border-[0.5px] border-line bg-background/60 px-4 shadow-[0_2px_16px_-6px_var(--primary-shadow)] backdrop-blur-xl')}>
-          <BrandLockup name={metadata.site_name} />
+          scrolled && 'h-12 rounded-2xl bg-background/60 px-4 shadow-[0_2px_16px_-6px_var(--primary-shadow)] backdrop-blur-xl')}>
+          {/* display:contents on BrandLockup makes its children flex items; keep logo+title glued together. */}
+          <span className="flex items-center gap-2 text-lg font-semibold text-ink"><BrandLockup name={metadata.site_name} /></span>
           <div className="hidden min-w-0 items-center gap-0.5 lg:flex">
             <NavButton label={t('产品特性')} onClick={() => jump('home-features')} />
             <NavButton label={t('快速开始')} onClick={() => jump('home-how')} />

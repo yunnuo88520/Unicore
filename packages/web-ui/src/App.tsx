@@ -258,6 +258,7 @@ function SideNavigation({ page, data, client, onNavigate, onAbout }: {
         {navigation.primary.map(({ id, icon: Icon, label }) => <NavItem key={id} icon={Icon} active={page === id} label={label} onClick={() => go(id)} />)}
       </nav>
       {navigation.files && <NavItem icon={navigation.files.icon} active={page === 'files'} label={navigation.files.label} onClick={() => go('files')} />}
+      {navigation.standalone.filter(item => item.id === 'announcements').map(item => <NavItem key={item.id} icon={item.icon} active={page === item.id} label={item.label} onClick={() => go(item.id)} />)}
       {groupEntries('administration').length > 0 && <NavGroup title={t('用户管理')} icon={<Users size={19} />} active={userPages.some(id => id === page)}>
         {groupEntries('administration').map(item => <NavEntry key={item.id} id={item.id} page={page} onNavigate={go} />)}
       </NavGroup>}

@@ -13,7 +13,7 @@ export const routes = defineMessages({
   storage:{label:'对象存储',title:'对象存储',description:'按需切换本地与云存储，让业务只关心文件。',permission:'storage:read',icon:Cloud,group:'system'},
   users: { label: '用户列表', title: '用户管理', description: '管理账号、角色和状态，权限由服务端逐一校验。', permission: 'users:read', icon: UserRound, group: 'administration' },
   administrators: { label:'管理员列表',title:'管理员管理',description:'独立的后台账号，管理整个实例。',permission:'administrators:read',icon:UserCog,group:'administration' },
-  announcements:{label:'平台公告',title:'平台公告',description:'发布平台消息，让用户及时了解重要动态。',permission:'announcements:read',icon:Megaphone,group:'administration'},
+  announcements:{label:'平台公告',title:'平台公告',description:'发布平台消息，让用户及时了解重要动态。',permission:'announcements:read',icon:Megaphone},
   'account-policy': {label:'账户安全',title:'账户安全',description:'配置登录保护、会话超时和管理员与用户的两步验证策略。',permission:'settings:read',icon:ShieldCheck,group:'system'},
   mail: { label:'邮件设置',title:'邮件设置',description:'配置 SMTP、测试投递与账号邮件流程。',permission:'settings:read',icon:Mail,group:'system' },
   'mail-templates': {label:'邮件模板',title:'邮件模板',description:'自定义邮件主题与内容，让每封通知保持一致。',permission:'settings:read',icon:Mail,group:'system'},

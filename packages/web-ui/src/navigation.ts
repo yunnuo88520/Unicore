@@ -27,9 +27,11 @@ export function buildNavigation(data: Bootstrap): Navigation {
   const standalone: NavEntry[] = [];
   const site = access('site') ? entry('site') : null;
   const edition = access('edition') ? entry('edition') : null;
-  // Context exceptions: personal realms keep appearance and updates top-level instead of inside the system group.
+  // Context exceptions: personal realms keep appearance and updates top-level instead of inside the system group;
+  // administrators get platform announcements as a first-level entry — it is site content, not user administration.
   if (!administration && site) standalone.push(entry('site', t('外观设置')));
   if (!administration && edition) standalone.push(edition);
+  if (administration && access('announcements')) standalone.push(entry('announcements'));
   const groups = (Object.keys(groupTitles) as (keyof typeof groupTitles)[]).map(id => ({
     id,
     title: t(groupTitles[id]),

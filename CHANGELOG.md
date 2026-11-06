@@ -5,6 +5,8 @@
 
 ### 中文
 
+- 企业登录（OIDC）对真实 IdP 的兼容与登录体验增强：可开启 userinfo 补全身份（仅补 id_token 缺失字段，支持点路径适配非标准载荷）；JIT 的"企业邮箱必须已验证"改为可关闭开关；授权/令牌/userinfo/JWKS 四个端点支持逐项手动覆盖发现结果，发现文档残缺的 IdP 四项齐备即可接入，连接检查展示实际生效端点；JIT 建号写入企业显示名（userinfo/name/email 前缀优先级）。邮箱与本地账号冲突时不再要求两段操作：回调发放一次性 5 分钟绑定邀请，登录页"绑定企业账号并登录"卡片验证本地密码（TOTP 账号随后走既有 MFA 步骤）后单事务完成绑定、旧会话吊销并直接登录；绑定邀请失败即消耗，需重新发起企业验证。仅用户域提供，管理员域保持先本地登录再绑定。
+
 - 系统设置导航将「基础设置」置于首位；设置分区边界重组：邮件设置只保留 SMTP 与发送测试，登录/注册人机验证与邮件找回密码移入「安全与控制」（新增站点防护分组），邮箱验证码登录移入「账户安全」页。
 
 - 安全与控制新增站点级人机验证开关（登录、注册）与邮件找回密码入口；注册设置新增「注册绑定手机号」（开启后注册必填手机号，仅格式与唯一性校验，不发送短信）与同 IP 注册频率限制（默认 1 分钟 5 次，可配置窗口与上限），追加三方言平台迁移 0016（users/administrators 可空 phone 列与唯一索引）。
@@ -24,6 +26,8 @@
 - 新增点击式人机验证（安全与控制中的单一总开关，同时管登录与注册）：支持 Cloudflare Turnstile、腾讯云验证码与阿里云验证码 2.0 三家服务商，凭据加密保存；开启后登录与注册必须携带服务商验证结果，凭据不完整时直接拒绝（fail-closed），动态放开对应服务商的 CSP 来源；与图形验证码相互独立、可叠加。登录/注册图形验证码名称保持不变。设置面板按三选一服务商重做：未启用时只显示卡片头，启用后先选服务商再只显示该家的凭据表单，附站点与密钥说明、控制台和接入文档直达链接。
 
 ### English
+
+- Enterprise OIDC gains compatibility and sign-in UX for real identity providers: optional userinfo enrichment fills only fields missing from the verified ID token (dotted claim paths for non-standard payloads); the JIT "enterprise email must be verified" requirement became a switch; the authorization/token/userinfo/JWKS endpoints each accept a manual override on top of discovery, so an IdP with broken discovery works once all four are present, and the connection check now shows the effective endpoints; JIT provisioning writes the enterprise display name (userinfo/name/email-prefix priority). An email collision with a local account no longer needs two manual steps: the callback issues a one-shot 5-minute linking offer, and the login page's "link the enterprise account and sign in" card proves the local password (TOTP accounts continue through the existing MFA step) before one transaction links the identity, revokes old sessions and signs in; a failed proof consumes the offer and a fresh enterprise round trip is required. User realm only; the administrator realm keeps local login before binding.
 
 - The settings navigation puts "Basic settings" first; settings boundaries were regrouped: mail settings now only keep SMTP and the send-test panel, login/registration human verification and email password recovery moved into "Security & control" (new site protection group), and email code login moved to the "Account security" page.
 

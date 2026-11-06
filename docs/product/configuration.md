@@ -228,6 +228,14 @@ SMTP 的完整配置步骤和业务调用示例见 [通知与邮件接入](notif
 | `oidc.client_secret` | 空，敏感 | IdP 应用密钥，加密保存 |
 | `oidc.scopes` | `openid email profile` | 必须含 openid |
 | `oidc.jit_enabled` | `false` | 首次企业登录可建普通用户；永远不自动建管理员 |
+| `oidc.require_email_verified` | `true` | JIT 要求企业邮箱已验证；IdP 不提供该声明时可关闭 |
+| `oidc.userinfo_enabled` | `false` | 校验通过后拉取 userinfo，仅补空字段 |
+| `oidc.userinfo_email_path` | `email` | userinfo 中邮箱的点路径 |
+| `oidc.userinfo_username_path` | `preferred_username` | userinfo 中显示名的点路径；JIT 显示名来源 |
+| `oidc.authorize_url` | 空 | 手动授权端点，逐项覆盖发现结果 |
+| `oidc.token_url` | 空 | 手动令牌端点，逐项覆盖发现结果 |
+| `oidc.userinfo_url` | 空 | 手动 userinfo 端点，逐项覆盖发现结果 |
+| `oidc.jwks_url` | 空 | 手动 JWKS 端点，逐项覆盖发现结果；无发现文档的 IdP 四项齐备即可接入 |
 
 顺序为保存 SMTP → 发送并实际收到测试邮件 → 启用注册邮箱验证/验证码登录/找回密码。修改 SMTP 后重新测试。邮件模板由独立“邮件模板”页编辑，模板正文属于业务数据，不随 UI 语言翻译。
 

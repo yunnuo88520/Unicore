@@ -12,7 +12,7 @@ import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitl
 import { cn } from '@unicore/ui/cn';
 import { AppField, AppForm, useAppForm } from '@unicore/form';
 import { useRouteSearch, type PageProps } from '../router';
-import type { AppClient, Bootstrap, SettingPatch, WebClient } from '@unicore/sdk';
+import type { AppClient, Bootstrap, OIDCCheckInfo, SettingPatch, WebClient } from '@unicore/sdk';
 import type { Theme } from '@unicore/theme';
 
 /** Shape of one settings registry row as delivered by client.settings(). */
@@ -485,9 +485,10 @@ function OidcConnection({ web, dirty, revision }: { web: WebClient; dirty: boole
   useLocale();
   const message = useMessage();
   const info = useQuery({ queryKey: ['oidc-settings', revision], queryFn: () => web.oidcInfo() });
+  const [endpoints, setEndpoints] = useState<OIDCCheckInfo | null>(null);
   const check = useMutation({
     mutationFn: () => web.oidcCheck(),
-    onSuccess: () => message.success(t('发现文档及端点检查通过，请继续验证实际登录。')),
+    onSuccess: result => { setEndpoints(result); message.success(t('发现文档及端点检查通过，请继续验证实际登录。')); },
   });
   return <Card>
     <CardHeader>
@@ -502,6 +503,14 @@ function OidcConnection({ web, dirty, revision }: { web: WebClient; dirty: boole
         <Button variant="secondary" disabled={dirty || check.isPending} pending={check.isPending} onClick={() => check.mutate()}>{t('检查已保存的连接')}</Button>
         {dirty && <p className="text-xs text-muted">{t('请先保存设置。')}</p>}
       </div>
+      {endpoints && <dl className="flex flex-col gap-1 rounded-md border border-line bg-surface-alt p-3 text-xs" aria-label={t('生效端点')}>
+        {([[t('授权端点'), endpoints.authorization_url], [t('令牌端点'), endpoints.token_url], [t('userinfo 端点'), endpoints.userinfo_url], ['JWKS', endpoints.jwks_url]] as const).map(([name, value]) => (
+          <div key={name} className="flex gap-2">
+            <dt className="w-28 shrink-0 text-muted">{name}</dt>
+            <dd className="min-w-0 flex-1 truncate font-mono text-ink">{value || '—'}</dd>
+          </div>
+        ))}
+      </dl>}
     </CardContent>
   </Card>;
 }

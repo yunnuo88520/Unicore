@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/yunnuo/unicore/internal/contracts"
@@ -19,18 +20,39 @@ var (
 	ErrLocalLoginRequired = errors.New("a local password is required for this operation")
 )
 
-type OIDCConfig struct{ Issuer, ClientID, ClientSecret, Scopes, Callback string }
-type OIDCClaims struct {
-	Issuer, Subject, Email string
-	EmailVerified          bool
+type OIDCConfig struct {
+	Issuer, ClientID, ClientSecret, Scopes, Callback string
+	Userinfo                                         bool
+	UserinfoEmailPath, UserinfoUsernamePath          string
+	Manual                                           map[string]string
 }
+type OIDCClaims struct {
+	Issuer, Subject, Email, Username string
+	EmailVerified                    bool
+}
+// OIDCPendingBind carries an unlinked enterprise identity back to the login page so the
+// visitor can prove local account possession instead of starting a second bind flow.
+// It unwraps to ErrOIDCLinkRequired so existing failure handling keeps working.
+type OIDCPendingBind struct {
+	Issuer, Subject, Email, Username string
+}
+
+func (e *OIDCPendingBind) Error() string { return ErrOIDCLinkRequired.Error() }
+func (e *OIDCPendingBind) Unwrap() error { return ErrOIDCLinkRequired }
+
 type OIDCFlow struct {
 	Mode, UserID, CredentialHash, SessionHash string
 	Nonce, Verifier, Fingerprint              string
 	SetupSecret                               string
+	Issuer, Subject, Email, Username          string
+}
+type OIDCComplete struct {
+	Session                contracts.Session
+	Token, Mode            string
+	BindState, BindBrowser string
 }
 type OIDCProvider interface {
-	Check(context.Context, OIDCConfig) error
+	Check(context.Context, OIDCConfig) (map[string]string, error)
 	Authorize(context.Context, OIDCConfig, string, string, string, bool) (string, error)
 	Verify(context.Context, OIDCConfig, string, string, string, bool) (OIDCClaims, error)
 }
@@ -57,7 +79,7 @@ func (s *OIDC) configuration(ctx context.Context) (OIDCConfig, map[string]string
 	if callback == "" {
 		callback = "/api/v1/auth/oidc/callback"
 	}
-	return OIDCConfig{Issuer: v["oidc.issuer"], ClientID: v["oidc.client_id"], ClientSecret: v["oidc.client_secret"], Scopes: v["oidc.scopes"], Callback: s.BaseURL + callback}, v, err
+	return OIDCConfig{Issuer: v["oidc.issuer"], ClientID: v["oidc.client_id"], ClientSecret: v["oidc.client_secret"], Scopes: v["oidc.scopes"], Callback: s.BaseURL + callback, Userinfo: v["oidc.userinfo_enabled"] == "true", UserinfoEmailPath: v["oidc.userinfo_email_path"], UserinfoUsernamePath: v["oidc.userinfo_username_path"], Manual: settings.OIDCManualEndpoints(v)}, v, err
 }
 func (s *OIDC) Info(ctx context.Context, userID string) (contracts.OIDCInfo, error) {
 	c, values, err := s.configuration(ctx)
@@ -74,21 +96,22 @@ func (s *OIDC) Info(ctx context.Context, userID string) (contracts.OIDCInfo, err
 	}
 	return info, nil
 }
-func (s *OIDC) Check(ctx context.Context) error {
+func (s *OIDC) Check(ctx context.Context) (map[string]string, error) {
 	c, values, err := s.configuration(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if !settings.OIDCConfigured(values) {
-		return ErrInput
+		return nil, ErrInput
 	}
 	if !settings.ValidOIDCURL(s.BaseURL) {
-		return ErrInput
+		return nil, ErrInput
 	}
-	if err := s.Provider.Check(ctx, c); err != nil {
-		return ErrOIDCUnavailable
+	endpoints, err := s.Provider.Check(ctx, c)
+	if err != nil {
+		return nil, ErrOIDCUnavailable
 	}
-	return nil
+	return endpoints, nil
 }
 func (s *OIDC) confirm(ctx context.Context, user contracts.User, password, session, clientIP string) (OIDCFlow, error) {
 	if !s.Identity.Limiter.Allow("oidc-password:"+user.ID+":"+clientIP, 6, time.Minute) {
@@ -167,21 +190,21 @@ func (s *OIDC) startFlow(ctx context.Context, f OIDCFlow) (string, string, error
 	err = s.Store.CreateOIDCFlow(ctx, Hash(state), Hash(browser), s.Secrets.Seal(string(payload)), time.Now().Add(5*time.Minute).Unix())
 	return u, browser, err
 }
-func (s *OIDC) Complete(ctx context.Context, state, browser, code, responseIssuer string, providerError bool, currentSession string) (contracts.Session, string, string, error) {
+func (s *OIDC) Complete(ctx context.Context, state, browser, code, responseIssuer string, providerError bool, currentSession string) (OIDCComplete, error) {
 	if len(state) != 43 || len(browser) != 43 {
-		return contracts.Session{}, "", "login", ErrOIDC
+		return OIDCComplete{Mode: "login"}, ErrOIDC
 	}
 	sealed, err := s.Store.ConsumeOIDCFlow(ctx, Hash(state), Hash(browser))
 	if err != nil {
-		return contracts.Session{}, "", "login", ErrOIDC
+		return OIDCComplete{Mode: "login"}, ErrOIDC
 	}
 	payload, err := s.Secrets.Open(sealed)
 	var f OIDCFlow
 	if err != nil || json.Unmarshal([]byte(payload), &f) != nil {
-		return contracts.Session{}, "", "login", ErrOIDC
+		return OIDCComplete{Mode: f.Mode}, ErrOIDC
 	}
-	result := func(err error) (contracts.Session, string, string, error) {
-		return contracts.Session{}, "", f.Mode, err
+	result := func(err error) (OIDCComplete, error) {
+		return OIDCComplete{Mode: f.Mode}, err
 	}
 	if providerError || code == "" || len(code) > 2048 {
 		return result(ErrOIDC)
@@ -211,7 +234,7 @@ func (s *OIDC) Complete(ctx context.Context, state, browser, code, responseIssue
 		if err != nil {
 			return result(err)
 		}
-		return contracts.Session{User: user}, "", f.Mode, nil
+		return OIDCComplete{Session: contracts.Session{User: user}, Mode: f.Mode}, nil
 	}
 	var sessionPolicy settings.SessionPolicy
 	if err := settings.Bind(values, &sessionPolicy); err != nil {
@@ -225,9 +248,89 @@ func (s *OIDC) Complete(ctx context.Context, state, browser, code, responseIssue
 	token := Token()
 	user, err := s.Store.CompleteOIDC(ctx, f, claims, Hash(token), expires)
 	if err != nil {
+		var pending *OIDCPendingBind
+		// A colliding or unverified identity becomes a one-shot bind offer instead of a dead end.
+		if errors.As(err, &pending) {
+			bind := OIDCFlow{Mode: "bindlogin", Fingerprint: f.Fingerprint, Issuer: pending.Issuer, Subject: pending.Subject, Email: pending.Email, Username: pending.Username}
+			payload, _ := json.Marshal(bind)
+			bindState, bindBrowser := Token(), Token()
+			if err := s.Store.CreateOIDCFlow(ctx, Hash(bindState), Hash(bindBrowser), s.Secrets.Seal(string(payload)), time.Now().Add(5*time.Minute).Unix()); err != nil {
+				return result(err)
+			}
+			return OIDCComplete{Mode: f.Mode, BindState: bindState, BindBrowser: bindBrowser}, nil
+		}
 		return result(err)
 	}
-	return contracts.Session{User: user, CsrfToken: CSRF(token), ExpiresAt: expires}, token, f.Mode, nil
+	return OIDCComplete{Session: contracts.Session{User: user, CsrfToken: CSRF(token), ExpiresAt: expires}, Token: token, Mode: f.Mode}, nil
+}
+
+// BindLogin links the pending enterprise identity to the colliding local account after a
+// password proof, then signs the visitor in; identity ownership conflicts still refuse.
+func (s *OIDC) BindLogin(ctx context.Context, state, browser, email, password, clientIP string) (contracts.Session, string, error) {
+	if !s.Identity.Limiter.Allow("oidc-bind:"+clientIP, 10, time.Minute) {
+		return contracts.Session{}, "", ErrRateLimited
+	}
+	if len(state) != 43 || len(browser) != 43 {
+		return contracts.Session{}, "", ErrOIDC
+	}
+	sealed, err := s.Store.ConsumeOIDCFlow(ctx, Hash(state), Hash(browser))
+	if err != nil {
+		return contracts.Session{}, "", ErrOIDC
+	}
+	payload, err := s.Secrets.Open(sealed)
+	var f OIDCFlow
+	if err != nil || json.Unmarshal([]byte(payload), &f) != nil || f.Mode != "bindlogin" {
+		return contracts.Session{}, "", ErrOIDC
+	}
+	_, values, err := s.configuration(ctx)
+	if err != nil {
+		return contracts.Session{}, "", err
+	}
+	if values["oidc.enabled"] != "true" || settings.OIDCFingerprint(values) != f.Fingerprint {
+		return contracts.Session{}, "", ErrOIDC
+	}
+	if !Equal(strings.ToLower(strings.TrimSpace(email)), f.Email) {
+		return contracts.Session{}, "", ErrCredentials
+	}
+	if !s.Identity.Limiter.Allow("oidc-password:"+f.Email+":"+clientIP, 6, time.Minute) {
+		return contracts.Session{}, "", ErrRateLimited
+	}
+	if len(password) < 12 || len(password) > 128 {
+		return contracts.Session{}, "", ErrCredentials
+	}
+	select {
+	case s.Identity.loginSlots <- struct{}{}:
+		defer func() { <-s.Identity.loginSlots }()
+	default:
+		return contracts.Session{}, "", ErrRateLimited
+	}
+	a, err := s.Identity.Store.FindAccount(ctx, strings.ToLower(strings.TrimSpace(email)))
+	if err != nil || a.User.Status != "active" {
+		return contracts.Session{}, "", ErrCredentials
+	}
+	if a.PasswordHash == "" {
+		return contracts.Session{}, "", ErrLocalLoginRequired
+	}
+	if !VerifyPassword(a.PasswordHash, password) {
+		return contracts.Session{}, "", ErrCredentials
+	}
+	var sessionPolicy settings.SessionPolicy
+	if err := settings.Bind(values, &sessionPolicy); err != nil {
+		return contracts.Session{}, "", err
+	}
+	hours := sessionPolicy.SessionHours
+	if hours < 1 || hours > 168 {
+		hours = 24
+	}
+	expires := int(time.Now().Add(time.Duration(hours) * time.Hour).Unix())
+	token := Token()
+	f.Mode, f.UserID, f.CredentialHash, f.SessionHash = "bindlogin", a.User.ID, a.PasswordHash, Hash(token)
+	claims := OIDCClaims{Issuer: f.Issuer, Subject: f.Subject, Email: f.Email, Username: f.Username, EmailVerified: true}
+	user, err := s.Store.CompleteOIDC(ctx, f, claims, Hash(token), expires)
+	if err != nil {
+		return contracts.Session{}, "", err
+	}
+	return contracts.Session{User: user, CsrfToken: CSRF(token), ExpiresAt: expires}, token, nil
 }
 func (s *OIDC) Unlink(ctx context.Context, user contracts.User, password, session, clientIP string) (contracts.Session, string, error) {
 	f, err := s.confirm(ctx, user, password, session, clientIP)

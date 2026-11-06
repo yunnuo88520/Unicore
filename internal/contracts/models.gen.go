@@ -495,6 +495,33 @@ type OIDCStartResponse struct {
 	RequestID string    `json:"request_id"`
 }
 
+type OIDCBindLoginInput struct {
+	State    string `json:"state"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type OIDCBindLoginResponse struct {
+	Code      string  `json:"code"`
+	Message   string  `json:"message"`
+	RequestID string  `json:"request_id"`
+	Data      Session `json:"data"`
+}
+
+type OIDCCheckInfo struct {
+	AuthorizationUrl string `json:"authorization_url"`
+	TokenUrl         string `json:"token_url"`
+	UserinfoUrl      string `json:"userinfo_url"`
+	JwksUrl          string `json:"jwks_url"`
+}
+
+type OIDCCheckInfoResponse struct {
+	Code      string        `json:"code"`
+	Message   string        `json:"message"`
+	RequestID string        `json:"request_id"`
+	Data      OIDCCheckInfo `json:"data"`
+}
+
 type Branding struct {
 	Logo     string  `json:"logo"`
 	LogoDark string  `json:"logo_dark"`

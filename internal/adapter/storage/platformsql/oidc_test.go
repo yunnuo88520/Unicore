@@ -68,9 +68,35 @@ func exerciseOIDC(t *testing.T, ctx context.Context, store *sqlstore.Store, r *R
 	if len(member.Roles) != 1 || member.Roles[0] != "user" || len(member.Permissions) != 0 {
 		t.Fatal("JIT exceeded least privilege", member)
 	}
+	var display string
+	if err = r.row(ctx, store.DB, "SELECT display_name FROM unicore_personal_accounts WHERE user_id=?", member.ID).Scan(&display); err != nil || display != "oidc" {
+		t.Fatal("JIT display name fallback", display, err)
+	}
 	info, err := r.OIDCAccount(ctx, member.ID)
 	if err != nil || !info.Linked || info.HasLocalPassword {
 		t.Fatal(info, err)
+	}
+	// With the verification requirement lifted, an unverified enterprise email may still JIT,
+	// and the display name comes from the configured claim instead of the email prefix.
+	relaxed := settings.Defaults("web-platform")
+	relaxed["oidc.enabled"] = "true"
+	relaxed["oidc.issuer"] = "https://idp.example.test"
+	relaxed["oidc.client_id"] = "test-client"
+	relaxed["oidc.jit_enabled"] = "true"
+	relaxed["oidc.require_email_verified"] = "false"
+	if err = store.SaveSettings(ctx, relaxed, admin.ID); err != nil {
+		t.Fatal(err)
+	}
+	relaxedClaims := platform.OIDCClaims{Issuer: v["oidc.issuer"], Subject: "relaxed-jit", Email: "relaxed@example.test", Username: "测试员工", EmailVerified: false}
+	named, err := complete(platform.OIDCFlow{Mode: "login", Fingerprint: settings.OIDCFingerprint(relaxed)}, relaxedClaims)
+	if err != nil {
+		t.Fatal("relaxed unverified JIT", err)
+	}
+	if err = r.row(ctx, store.DB, "SELECT display_name FROM unicore_personal_accounts WHERE user_id=?", named.ID).Scan(&display); err != nil || display != "测试员工" {
+		t.Fatal("claim display name", display, err)
+	}
+	if err = store.SaveSettings(ctx, v, admin.ID); err != nil {
+		t.Fatal(err)
 	}
 	// Existing identity, never email, controls subsequent login.
 	claims.Email = admin.Email
@@ -141,6 +167,40 @@ func exerciseOIDC(t *testing.T, ctx context.Context, store *sqlstore.Store, r *R
 	info, err = r.OIDCAccount(ctx, local.ID)
 	if err != nil || info.Linked || !info.HasLocalPassword {
 		t.Fatal("local login lost", info, err)
+	}
+	// Bind-login links a colliding identity after the platform layer proved the local
+	// password: one transaction links, revokes other sessions and issues the new one.
+	_, staleSession, err := identity.Issue(ctx, local, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bind := platform.OIDCFlow{Mode: "bindlogin", UserID: local.ID, CredentialHash: account.PasswordHash, Fingerprint: f.Fingerprint}
+	bindClaims := platform.OIDCClaims{Issuer: v["oidc.issuer"], Subject: "enterprise-local", Email: local.Email, EmailVerified: true}
+	wrong := bind
+	wrong.CredentialHash = "stale"
+	if _, err = r.CompleteOIDC(ctx, wrong, bindClaims, platform.Hash(platform.Token()), expires); !errors.Is(err, platform.ErrCredentials) {
+		t.Fatal("bind-login without password proof", err)
+	}
+	if _, err = r.CompleteOIDC(ctx, bind, bindClaims, platform.Hash(platform.Token()), expires); err != nil {
+		t.Fatal("bind-login refused", err)
+	}
+	if _, err = identity.Session(ctx, staleSession); err == nil {
+		t.Fatal("old session survived bind-login")
+	}
+	if _, err = r.CompleteOIDC(ctx, bind, bindClaims, platform.Hash(platform.Token()), expires); !errors.Is(err, platform.ErrOIDCLinkRequired) {
+		t.Fatal("duplicate bind accepted", err)
+	}
+	other, err := identity.Create(ctx, contracts.UserCreate{Username: "oidclocal2", Email: "other@example.test", Password: "test-password-strong", Role: "user"}, admin.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	otherAccount, err := r.FindAccount(ctx, other.Username)
+	if err != nil {
+		t.Fatal(err)
+	}
+	steal := platform.OIDCFlow{Mode: "bindlogin", UserID: other.ID, CredentialHash: otherAccount.PasswordHash, Fingerprint: f.Fingerprint}
+	if _, err = r.CompleteOIDC(ctx, steal, bindClaims, platform.Hash(platform.Token()), expires); !errors.Is(err, platform.ErrOIDCLinkRequired) {
+		t.Fatal("identity theft via bind-login", err)
 	}
 	// Wrong browsers cannot consume the flow; correct callbacks consume it once, even concurrently.
 	state, browser := platform.Hash(platform.Token()), platform.Hash(platform.Token())

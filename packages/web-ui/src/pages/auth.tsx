@@ -133,6 +133,8 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
   const router = useRouter();
   const location = useRouterState({ select: state => state.location });
   const mode = administrator && (location.pathname === '/register' || location.pathname === '/registration-success') ? 'login' : modeForPath(location.pathname);
+  const search = useRouteSearch<{ oidc: string; state: string }>();
+  const bindState = !administrator && mode === 'login' && search.oidc === 'bind' && search.state?.length === 43 ? search.state : '';
   const successKind = 'authSuccess' in location.state ? location.state.authSuccess : undefined;
   const registrationSuccess = location.pathname === '/registration-success' && (successKind === 'registered' || successKind === 'verified');
   const generation = useRef({ path: location.pathname, value: 0 });
@@ -266,6 +268,7 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
       <p role={complete ? "status" : undefined} className="mt-3 text-sm leading-6 text-muted">{registrationSuccess ? successKind === 'verified' ? t('邮箱验证成功，现在可以登录。') : t('账号已创建，现在可以登录。') : done ? purpose === 'reset' ? t('密码已更新，旧会话已退出。') : t('邮箱验证成功，现在可以登录。') : mode === 'forgot' ? t('通过注册邮箱验证身份，重新设置登录密码。') : mode === 'register' ? t('填写账号信息，创建属于你的工作空间。') : challenge ? t('输入邮件中的 6 位验证码以继续。') : administrator ? t('使用独立的后台账号登录。') : t('使用账号或邮箱，继续你的工作。')}</p>
     </header>
     {notice && !complete && <p role="status" className="mb-5 rounded-xl bg-primary-soft px-4 py-3 text-sm text-ink">{t(notice)}</p>}
+    {bindState && !complete && <BindLoginCard web={web} state={bindState} onDone={onDone} />}
     {complete ? <div className="flex flex-col items-center gap-6">
       <Link to="/login" replace onClick={beforeNavigation} className={cn(buttonVariants(), 'h-12 w-full rounded-xl shadow-tint')}>{t('返回登录')}<ArrowRight size={17} aria-hidden="true" /></Link>
     </div> : <>
@@ -327,6 +330,46 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
       {mode === 'login' && <EnterpriseLoginBlock web={web} />}
     </>}
   </AuthLayout>;
+}
+
+/** One-shot bind offer: the enterprise identity matches a local account, so a local
+ *  password proof links it and signs in; the offer expires with its 5-minute flow. */
+function BindLoginCard({ web, state, onDone }: { web: WebClient; state: string; onDone: () => void }) {
+  useLocale();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState('');
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    setPending(true);
+    setError('');
+    try {
+      await web.oidcBindLogin({ state, email: email.trim(), password });
+      onDone();
+    } catch (e) {
+      setError(t((e as AppError).message));
+    } finally {
+      setPending(false);
+    }
+  }
+  return <form onSubmit={submit} className="mb-6 flex flex-col gap-4 rounded-xl border border-primary-line bg-primary-soft p-5 text-start">
+    <div>
+      <strong className="text-sm font-semibold text-ink">{t('绑定企业账号并登录')}</strong>
+      <p className="mt-1 text-xs leading-5 text-muted">{t('检测到与你本地账号同邮箱的企业身份。验证该账号的本地密码后即可完成绑定并直接登录。')}</p>
+    </div>
+    {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+    <label className="flex flex-col gap-1.5">
+      <span className="text-sm font-medium text-ink">{t('邮箱')}</span>
+      <Input type="email" required autoComplete="email" maxLength={254} value={email} onChange={event => setEmail(event.target.value)} placeholder="name@example.com" />
+    </label>
+    <label className="flex flex-col gap-1.5">
+      <span className="text-sm font-medium text-ink">{t('密码')}</span>
+      <Input type="password" required autoComplete="current-password" maxLength={128} value={password} onChange={event => setPassword(event.target.value)} placeholder={t('请输入密码')} />
+    </label>
+    <Button type="submit" pending={pending} className="h-11 w-full rounded-xl shadow-tint">{t('绑定并登录')}</Button>
+    <p className="text-2xs leading-4 text-muted">{t('绑定邀请 5 分钟内有效。成功后该账号的其他会话将被退出。')}</p>
+  </form>;
 }
 
 /** Enterprise single sign-on entry, including the OIDC result notice carried by the route search. */

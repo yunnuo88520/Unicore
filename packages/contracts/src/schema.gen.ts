@@ -493,6 +493,33 @@ export interface OIDCStartResponse {
   request_id: string;
 }
 
+export interface OIDCBindLoginInput {
+  state: string;
+  email: string;
+  password: string;
+}
+
+export interface OIDCBindLoginResponse {
+  code: string;
+  message: string;
+  request_id: string;
+  data: Session;
+}
+
+export interface OIDCCheckInfo {
+  authorization_url: string;
+  token_url: string;
+  userinfo_url: string;
+  jwks_url: string;
+}
+
+export interface OIDCCheckInfoResponse {
+  code: string;
+  message: string;
+  request_id: string;
+  data: OIDCCheckInfo;
+}
+
 export interface Branding {
   logo: string;
   logo_dark: string;

@@ -1797,6 +1797,104 @@ export const constraints = {
       }
     }
   },
+  "OIDCBindLoginInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "state",
+      "email",
+      "password"
+    ],
+    "properties": {
+      "state": {
+        "type": "string",
+        "minLength": 43,
+        "maxLength": 43
+      },
+      "email": {
+        "type": "string",
+        "format": "email",
+        "maxLength": 254
+      },
+      "password": {
+        "type": "string",
+        "minLength": 12,
+        "maxLength": 128
+      }
+    }
+  },
+  "OIDCBindLoginResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "request_id",
+      "data"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "request_id": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/Session"
+      }
+    }
+  },
+  "OIDCCheckInfo": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "authorization_url",
+      "token_url",
+      "jwks_url",
+      "userinfo_url"
+    ],
+    "properties": {
+      "authorization_url": {
+        "type": "string"
+      },
+      "token_url": {
+        "type": "string"
+      },
+      "userinfo_url": {
+        "type": "string"
+      },
+      "jwks_url": {
+        "type": "string"
+      }
+    }
+  },
+  "OIDCCheckInfoResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "request_id",
+      "data"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "request_id": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/OIDCCheckInfo"
+      }
+    }
+  },
   "Branding": {
     "type": "object",
     "required": [

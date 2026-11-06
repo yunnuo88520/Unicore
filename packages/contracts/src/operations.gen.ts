@@ -724,7 +724,7 @@ export const operations = {
     "method": "POST",
     "path": "/api/v1/admin/settings/oidc/check",
     "requestSchema": null,
-    "responseSchema": "ActionResultResponse",
+    "responseSchema": "OIDCCheckInfoResponse",
     "binaryRequest": false,
     "binaryResponse": false,
     "profiles": [
@@ -3076,6 +3076,23 @@ export const operations = {
     "superAdmin": false,
     "csrf": true,
     "identityRealm": "administrator"
+  },
+  "oidcBindLogin": {
+    "method": "POST",
+    "path": "/api/v1/auth/oidc/bind-login",
+    "requestSchema": "OIDCBindLoginInput",
+    "responseSchema": "SessionResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user"
   }
 } as const;
 export type OperationId = keyof typeof operations;
@@ -3253,6 +3270,7 @@ export interface OperationInputs {
   testNotification: Models.NotifyTest;
   oidcTOTP: undefined;
   adminOidcTOTP: undefined;
+  oidcBindLogin: Models.OIDCBindLoginInput;
 }
 export interface OperationData {
   bootstrap: Models.BootstrapResponse['data'];
@@ -3296,7 +3314,7 @@ export interface OperationData {
   oidcAccount: Models.OIDCInfoResponse['data'];
   oidcLink: Models.OIDCStartResponse['data'];
   oidcUnlink: Models.SessionResponse['data'];
-  oidcCheck: Models.ActionResultResponse['data'];
+  oidcCheck: Models.OIDCCheckInfoResponse['data'];
   oidcCallback: void;
   adminBranding: Models.BrandingResponse['data'];
   adminUpdateBranding: Models.BrandingResponse['data'];
@@ -3428,4 +3446,5 @@ export interface OperationData {
   testNotification: Models.ActionResultResponse['data'];
   oidcTOTP: Models.OIDCStartResponse['data'];
   adminOidcTOTP: Models.OIDCStartResponse['data'];
+  oidcBindLogin: Models.SessionResponse['data'];
 }

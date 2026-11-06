@@ -152,11 +152,37 @@ func mountOIDC(api chi.Router, config Config) {
 		}
 		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 		defer cancel()
-		if err := s.Check(ctx); err != nil {
+		endpoints, err := s.Check(ctx)
+		if err != nil {
 			webError(w, err)
 			return
 		}
-		success(w, contracts.ActionResult{Success: true})
+		success(w, contracts.OIDCCheckInfo{AuthorizationUrl: endpoints["authorize"], TokenUrl: endpoints["token"], UserinfoUrl: endpoints["userinfo"], JwksUrl: endpoints["jwks"]})
+	})
+	api.Post("/auth/oidc/bind-login", func(w http.ResponseWriter, r *http.Request) {
+		s := m.OIDCService(false)
+		if s == nil {
+			failure(w, 404, "NOT_FOUND", "此运行形态不提供企业登录")
+			return
+		}
+		var input contracts.OIDCBindLoginInput
+		if !decode(w, r, &input) {
+			return
+		}
+		proof := ""
+		if c, err := r.Cookie("unicore_oidc_bind"); err == nil {
+			proof = c.Value
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+		defer cancel()
+		session, token, err := s.BindLogin(ctx, input.State, proof, input.Email, input.Password, ip(r))
+		http.SetCookie(w, &http.Cookie{Name: "unicore_oidc_bind", Value: "", Path: "/api/v1/auth/oidc", HttpOnly: true, Secure: strings.HasPrefix(m.BaseURL(), "https://"), SameSite: http.SameSiteLaxMode, MaxAge: -1})
+		if err != nil {
+			webError(w, err)
+			return
+		}
+		setSession(m, w, token, session.ExpiresAt, r)
+		success(w, session)
 	})
 	for _, admin := range []bool{false, true} {
 		path := "/auth/oidc/callback"
@@ -187,8 +213,16 @@ func mountOIDC(api chi.Router, config Config) {
 			}
 			ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
 			defer cancel()
-			session, token, mode, err := s.Complete(ctx, q.Get("state"), proof, q.Get("code"), q.Get("iss"), !valid || q.Get("error") != "", rawSession(r))
+			complete, err := s.Complete(ctx, q.Get("state"), proof, q.Get("code"), q.Get("iss"), !valid || q.Get("error") != "", rawSession(r))
 			cookie(w, r, "", -1)
+			if err == nil && complete.BindState != "" && !admin {
+				// A colliding identity turns into a one-shot bind offer on the login page.
+				http.SetCookie(w, &http.Cookie{Name: "unicore_oidc_bind", Value: complete.BindBrowser, Path: "/api/v1/auth/oidc", HttpOnly: true, Secure: strings.HasPrefix(m.BaseURL(), "https://"), SameSite: http.SameSiteLaxMode, MaxAge: 300})
+				w.Header().Set("Referrer-Policy", "no-referrer")
+				http.Redirect(w, r, "/login?oidc=bind&state="+complete.BindState, http.StatusSeeOther)
+				return
+			}
+			mode, token, session := complete.Mode, complete.Token, complete.Session
 			result := "success"
 			if err != nil {
 				result = "failed"

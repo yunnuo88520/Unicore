@@ -87,7 +87,7 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
     pageRoute('/home', () => import('./pages/home').then(module => ({ default: module.HomePage }))),
     pageRoute('/lab', () => import('./pages/overview').then(module => ({ default: module.LabPage }))),
     pageRoute('/install', () => import('./pages/install').then(module => ({ default: module.InstallPage }))),
-    pageRoute('/login', () => import('./pages/auth').then(module => ({ default: module.LoginPage })), { search: { oidc: '' } }),
+    pageRoute('/login', () => import('./pages/auth').then(module => ({ default: module.LoginPage })), { search: { oidc: '', state: '' } }),
     pageRoute('/register', () => import('./pages/auth').then(module => ({ default: module.LoginPage }))),
     pageRoute('/forgot-password', () => import('./pages/auth').then(module => ({ default: module.LoginPage }))),
     pageRoute('/email-login', () => import('./pages/auth').then(module => ({ default: module.LoginPage }))),

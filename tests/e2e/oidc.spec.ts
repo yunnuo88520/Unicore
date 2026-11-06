@@ -4,6 +4,7 @@ import { createHmac } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 import { test as base, expect } from './fixtures';
+import type { Page } from '@playwright/test';
 import { capture } from './visual';
 
 const test = base.extend<{ idp: { url: string } }>({ idp: async ({ playwright }, use) => {
@@ -42,6 +43,7 @@ test('enterprise settings, real JIT, explicit binding and password fallback', as
   await expect(page.getByLabel('Client Secret',{exact:true})).toHaveValue('');
   await expect(page.getByLabel('Client Secret',{exact:true})).toHaveAttribute('placeholder','已配置 · 留空保留');
   await page.getByRole('button',{name:'检查已保存的连接',exact:true}).click(); await expect(page.getByText('发现文档及端点检查通过，请继续验证实际登录。')).toBeVisible();
+  await expect(page.getByText(`${idp.url}/userinfo`)).toBeVisible(); await capture(page,info,'oidc-endpoints');
   await expect(page.locator('.oidc-callback')).toHaveText(`${instance.url}/api/v1/admin/auth/oidc/callback`); await capture(page,info,'oidc-settings-ready');
   const adminBootstrap = (await (await page.request.get(`${instance.url}/api/v1/admin/bootstrap`,{headers:{}})).json()).data;
   const originalAdminCookie = (await page.context().cookies()).find(cookie => cookie.name === 'unicore_administrator_session')!.value;
@@ -128,6 +130,74 @@ test('browser proof, replay, callback errors and unavailable provider', async ({
   }finally{await context.close();}
 });
 
+
+/** Drives the isolated IdP end to end: SSO start, approve with scenario and follow the callback. */
+async function enterpriseSignIn(visitor: Page, origin: string, subject: string, email: string, scenario?: string) {
+  await visitor.goto(origin);
+  await visitor.getByRole('button',{name:'使用企业账号登录',exact:true}).click();
+  await expect(visitor.getByRole('heading',{name:'测试企业登录'})).toBeVisible();
+  const auth=new URL(visitor.url());
+  auth.searchParams.set('approve','yes');
+  if (subject) auth.searchParams.set('subject',subject);
+  if (email) auth.searchParams.set('email',email);
+  if (scenario) auth.searchParams.set('scenario',scenario);
+  const approved=await visitor.request.get(auth.toString(),{maxRedirects:0});
+  expect(approved.status()).toBe(303);
+  await visitor.goto(approved.headers().location);
+}
+
+test('userinfo enrichment, relaxed verification and password bind-login', async ({page, browser, instance, idp}, info) => {
+  test.setTimeout(150000);
+  expect((await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}})).status()).toBe(200);
+  const boot=(await(await page.request.get(`${instance.url}/api/v1/admin/bootstrap`,{headers:{}})).json()).data;
+  const patch=async (changes:Record<string,string>)=>page.request.patch(`${instance.url}/api/v1/admin/settings`,{headers:{'X-CSRF-Token':boot.csrf_token},data:{changes:Object.entries(changes).map(([key,value])=>({key,value}))}});
+  expect((await patch({'oidc.issuer':idp.url,'oidc.client_id':'unicore-test-client','oidc.client_secret':'isolated-test-secret','oidc.enabled':'true','oidc.jit_enabled':'true','oidc.userinfo_enabled':'true','security.login_captcha':'false'})).status()).toBe(200);
+  const context=await browser.newContext({viewport:page.viewportSize()!,isMobile:info.project.name==='mobile',hasTouch:info.project.name==='mobile'});
+  try {
+    const employee=await context.newPage();
+    // The ID token carries no email at all; userinfo enrichment supplies it plus the display name.
+    await enterpriseSignIn(employee,instance.url,'','', 'userinfo');
+    await expect(employee.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
+    expect((await(await employee.request.get(`${instance.url}/api/v1/account/profile`)).json()).data.display_name).toBe('userinfo-employee');
+    const session=(await(await employee.request.get(`${instance.url}/api/v1/bootstrap`)).json()).data;
+    await employee.request.post(`${instance.url}/api/v1/auth/logout`,{headers:{'X-CSRF-Token':session.csrf_token},data:{}});
+    // Without userinfo, an unverified enterprise email is refused until the requirement is lifted.
+    expect((await patch({'oidc.userinfo_enabled':'false'})).status()).toBe(200);
+    await enterpriseSignIn(employee,instance.url,'strict-employee','','unverified');
+    await expect(employee.getByRole('alert')).toContainText('请先使用本地账号登录'); await capture(employee,info,'oidc-unverified-blocked');
+    expect((await patch({'oidc.require_email_verified':'false'})).status()).toBe(200);
+    await enterpriseSignIn(employee,instance.url,'strict-employee','','unverified');
+    await expect(employee.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
+    expect((await(await employee.request.get(`${instance.url}/api/v1/account/profile`)).json()).data.display_name).toBe('employee');
+    // A colliding local email turns the dead end into a one-shot password bind offer.
+    const logout=async ()=>{const current=(await(await employee.request.get(`${instance.url}/api/v1/bootstrap`)).json()).data; await employee.request.post(`${instance.url}/api/v1/auth/logout`,{headers:{'X-CSRF-Token':current.csrf_token},data:{}});};
+    await logout();
+    expect((await page.request.post(`${instance.url}/api/v1/admin/users`,{headers:{'X-CSRF-Token':boot.csrf_token},data:{username:'binduser',email:'binduser@example.test',password:'bind-password-strong',role:'user'}})).status()).toBe(200);
+    // The pre-existing session is created on the isolated instance context so the employee page stays a guest.
+    const oldLogin=await instance.request.post(`${instance.url}/api/v1/auth/login`,{data:{username:'binduser',password:'bind-password-strong',captcha_id:'',captcha_answer:''}});
+    expect(oldLogin.status()).toBe(200);
+    const oldCookie=(oldLogin.headersArray().find(header=>header.name.toLowerCase()==='set-cookie')!.value.match(/unicore_session=([^;]+)/)![1]);
+    await enterpriseSignIn(employee,instance.url,'bind-subject','binduser@example.test');
+    const bind=employee.locator('form').filter({hasText:'绑定企业账号并登录'});
+    await expect(bind).toBeVisible(); await capture(employee,info,'oidc-bind-offer');
+    await bind.getByLabel('邮箱',{exact:true}).fill('binduser@example.test');
+    await bind.getByLabel('密码',{exact:true}).fill('wrong-password-wrong');
+    await bind.getByRole('button',{name:'绑定并登录',exact:true}).click();
+    await expect(bind.getByRole('alert')).toContainText('账号或密码不正确'); await capture(employee,info,'oidc-bind-password-error');
+    // A failed proof consumed the one-shot offer; a fresh enterprise round trip issues a new one.
+    await enterpriseSignIn(employee,instance.url,'bind-subject','binduser@example.test');
+    await bind.getByLabel('邮箱',{exact:true}).fill('binduser@example.test');
+    await bind.getByLabel('密码',{exact:true}).fill('bind-password-strong');
+    await bind.getByRole('button',{name:'绑定并登录',exact:true}).click();
+    await expect(employee.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible(); await capture(employee,info,'oidc-bind-success');
+    expect((await instance.request.get('/api/v1/auth/session',{headers:{Cookie:`unicore_session=${oldCookie}`}})).status()).toBe(401);
+    await logout();
+    // The linked identity now signs in directly; no second bind offer.
+    await enterpriseSignIn(employee,instance.url,'bind-subject','binduser@example.test');
+    await expect(employee.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
+    await expect(employee.getByText('绑定企业账号并登录',{exact:true})).toHaveCount(0);
+  } finally { await context.close(); }
+});
 
 function totpCode(secret: string, step: number) {
  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';

@@ -11,8 +11,8 @@ import {
 } from 'lucide-react';
 import type { AppClient, Bootstrap, ExecuteOutput, Profile } from '@unicore/sdk';
 import { BrandMark } from '../brand';
-import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, useMessage } from '../ui';
-import { cn } from '../lib/cn';
+import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, useMessage } from '@unicore/ui';
+import { cn } from '@unicore/ui/cn';
 import { SAMPLE } from '../../fixtures/analyze-sample';
 import type { PageProps } from '../router';
 

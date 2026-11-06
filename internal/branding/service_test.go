@@ -144,6 +144,32 @@ func TestPersistenceFailureAndCleanup(t *testing.T) {
 		t.Fatal("invalid slot accepted")
 	}
 }
+func TestAccentSlot(t *testing.T) {
+	ctx := context.Background()
+	store := &memoryStore{values: map[string]string{}}
+	service := New(store, bloblocal.New(filepath.Join(t.TempDir(), "brand-assets")))
+	saved, err := service.Update(ctx, contracts.BrandingInput{Slot: "accent", Content: "#6662EC"}, "actor", false)
+	if err != nil || saved.Accent == nil || *saved.Accent != "#6662ec" {
+		t.Fatal("accent not saved normalized", saved.Accent, err)
+	}
+	for _, invalid := range []string{"purple", "#6662ec<script>", "6662ec", "#6662", "javascript:alert(1)"} {
+		if _, err = service.Update(ctx, contracts.BrandingInput{Slot: "accent", Content: invalid}, "actor", false); !errors.Is(err, ErrInvalid) {
+			t.Fatalf("invalid accent accepted: %s", invalid)
+		}
+	}
+	snapshot, err := service.Snapshot(ctx, false)
+	if err != nil || snapshot.Accent == nil || *snapshot.Accent != "#6662ec" {
+		t.Fatal("snapshot lost accent", err)
+	}
+	if _, err = service.Update(ctx, contracts.BrandingInput{Slot: "accent"}, "actor", false); err != nil {
+		t.Fatal("accent reset failed", err)
+	}
+	after, _ := service.Snapshot(ctx, false)
+	if after.Accent != nil {
+		t.Fatal("reset accent still present")
+	}
+}
+
 func TestConcurrentSlots(t *testing.T) {
 	store := &memoryStore{values: map[string]string{}}
 	service := New(store, bloblocal.New(filepath.Join(t.TempDir(), "brand-assets")))
@@ -153,14 +179,18 @@ func TestConcurrentSlots(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if _, err := service.Update(context.Background(), contracts.BrandingInput{Slot: slot, Content: input}, "actor", false); err != nil {
+			content := input
+			if slot == "accent" {
+				content = "#6662ec"
+			}
+			if _, err := service.Update(context.Background(), contracts.BrandingInput{Slot: slot, Content: content}, "actor", false); err != nil {
 				t.Error(err)
 			}
 		}()
 	}
 	wg.Wait()
 	snapshot, _ := service.Snapshot(context.Background(), false)
-	if snapshot.Logo == "" || snapshot.LogoDark == "" || snapshot.Favicon == "" {
+	if snapshot.Logo == "" || snapshot.LogoDark == "" || snapshot.Favicon == "" || snapshot.Accent == nil {
 		t.Fatal("concurrent update lost a slot")
 	}
 }

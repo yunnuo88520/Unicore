@@ -2,7 +2,7 @@
 // Description: Not-found state rendered by the router for unregistered paths.
 import { t } from '../i18n';
 import { Info } from 'lucide-react';
-import { Button } from '../ui';
+import { Button } from '@unicore/ui';
 import { useNavigate } from '@tanstack/react-router';
 
 export function NotFoundPage() {

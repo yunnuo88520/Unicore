@@ -37,6 +37,7 @@ type Bootstrap struct {
 	Capabilities          Capabilities `json:"capabilities"`
 	Installed             bool         `json:"installed"`
 	SiteName              string       `json:"site_name"`
+	HomeEnabled           *bool        `json:"home_enabled,omitempty"`
 	AdminPath             string       `json:"admin_path"`
 	CurrentUser           *User        `json:"current_user,omitempty"`
 	CsrfToken             *string      `json:"csrf_token,omitempty"`
@@ -480,9 +481,10 @@ type OIDCStartResponse struct {
 }
 
 type Branding struct {
-	Logo     string `json:"logo"`
-	LogoDark string `json:"logo_dark"`
-	Favicon  string `json:"favicon"`
+	Logo     string  `json:"logo"`
+	LogoDark string  `json:"logo_dark"`
+	Favicon  string  `json:"favicon"`
+	Accent   *string `json:"accent,omitempty"`
 }
 
 type BrandingInput struct {

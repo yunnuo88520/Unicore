@@ -31,4 +31,5 @@ bootstrap.token
 *.p12
 *.pfx
 *.p8
-.zcode
+.zcode/*
+!.zcode/config.json

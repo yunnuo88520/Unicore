@@ -14,6 +14,7 @@ import (
 	"image/png"
 	"io"
 	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/yunnuo/unicore/internal/blob"
@@ -24,7 +25,8 @@ const MaxBytes = 256 * 1024
 
 var ErrInvalid = errors.New("invalid brand image")
 var filename = regexp.MustCompile(`^[a-f0-9]{64}\.png$`)
-var Slots = []string{"logo", "logo_dark", "favicon"}
+var accentPattern = regexp.MustCompile(`^#[0-9a-f]{6}$`)
+var Slots = []string{"logo", "logo_dark", "favicon", "accent"}
 
 type Store interface {
 	ReadSettings(context.Context) (map[string]string, error)
@@ -48,6 +50,9 @@ func Managed(key string) bool {
 	return false
 }
 func ValidReference(value string) bool { return value == "" || filename.MatchString(value) }
+
+// ValidAccent accepts an empty value (reset) or a normalized lowercase #RRGGBB color.
+func ValidAccent(value string) bool { return value == "" || accentPattern.MatchString(value) }
 
 // Normalize checks dimensions before allocating pixels and re-encodes decoded pixels only.
 func Normalize(content string) ([]byte, error) {
@@ -118,6 +123,9 @@ func (s *Service) read(ctx context.Context, name string) ([]byte, error) {
 func (s *Service) snapshot(ctx context.Context, values map[string]string, embedded bool) contracts.Branding {
 	urls := map[string]string{}
 	for _, slot := range Slots {
+		if slot == "accent" {
+			continue
+		}
 		name := values["branding."+slot]
 		if name == "" {
 			continue
@@ -132,7 +140,11 @@ func (s *Service) snapshot(ctx context.Context, values map[string]string, embedd
 			urls[slot] = "/brand-assets/" + name
 		}
 	}
-	return contracts.Branding{Logo: urls["logo"], LogoDark: urls["logo_dark"], Favicon: urls["favicon"]}
+	branding := contracts.Branding{Logo: urls["logo"], LogoDark: urls["logo_dark"], Favicon: urls["favicon"]}
+	if accent := strings.ToLower(values["branding.accent"]); ValidAccent(accent) && accent != "" {
+		branding.Accent = &accent
+	}
+	return branding
 }
 func (s *Service) Snapshot(ctx context.Context, embedded bool) (contracts.Branding, error) {
 	s.mu.Lock()
@@ -146,6 +158,9 @@ func (s *Service) Snapshot(ctx context.Context, embedded bool) (contracts.Brandi
 func (s *Service) Update(ctx context.Context, input contracts.BrandingInput, actor string, embedded bool) (contracts.Branding, error) {
 	if !Managed("branding." + input.Slot) {
 		return contracts.Branding{}, ErrInvalid
+	}
+	if input.Slot == "accent" {
+		return s.updateAccent(ctx, input.Content, actor, embedded)
 	}
 	var data []byte
 	var err error
@@ -181,6 +196,25 @@ func (s *Service) Update(ctx context.Context, input contracts.BrandingInput, act
 	}
 	values["branding."+input.Slot] = name
 	s.cleanup(ctx, values)
+	return s.snapshot(ctx, values, embedded), nil
+}
+
+// updateAccent persists a validated lowercase accent color; images and cleanup never apply to it.
+func (s *Service) updateAccent(ctx context.Context, content, actor string, embedded bool) (contracts.Branding, error) {
+	accent := strings.ToLower(content)
+	if !ValidAccent(accent) {
+		return contracts.Branding{}, ErrInvalid
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	values, err := s.store.ReadSettings(ctx)
+	if err != nil {
+		return contracts.Branding{}, err
+	}
+	if err = s.store.SaveSettings(ctx, map[string]string{"branding.accent": accent}, actor); err != nil {
+		return contracts.Branding{}, err
+	}
+	values["branding.accent"] = accent
 	return s.snapshot(ctx, values, embedded), nil
 }
 

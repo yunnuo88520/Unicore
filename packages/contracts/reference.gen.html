@@ -131,6 +131,10 @@
     &quot;site_name&quot;: {
       &quot;type&quot;: &quot;string&quot;
     },
+    &quot;home_enabled&quot;: {
+      &quot;type&quot;: &quot;boolean&quot;,
+      &quot;description&quot;: &quot;Whether the public product homepage is enabled for unauthenticated visitors.&quot;
+    },
     &quot;admin_path&quot;: {
       &quot;type&quot;: &quot;string&quot;,
       &quot;description&quot;: &quot;仅管理员 bootstrap 返回后台入口；用户端为空，单机不提供后台。&quot;
@@ -1698,6 +1702,11 @@
     &quot;favicon&quot;: {
       &quot;type&quot;: &quot;string&quot;,
       &quot;maxLength&quot;: 400000
+    },
+    &quot;accent&quot;: {
+      &quot;type&quot;: &quot;string&quot;,
+      &quot;pattern&quot;: &quot;^#[0-9a-f]{6}$&quot;,
+      &quot;description&quot;: &quot;Optional instance accent overriding the compiled brand color; users still win with an explicit preset.&quot;
     }
   }
 }</pre></details><details id="schema-BrandingInput"><summary>BrandingInput</summary><pre>{
@@ -1713,13 +1722,14 @@
       &quot;enum&quot;: [
         &quot;logo&quot;,
         &quot;logo_dark&quot;,
-        &quot;favicon&quot;
+        &quot;favicon&quot;,
+        &quot;accent&quot;
       ]
     },
     &quot;content&quot;: {
       &quot;type&quot;: &quot;string&quot;,
       &quot;maxLength&quot;: 349528,
-      &quot;description&quot;: &quot;Raw base64 PNG/JPEG; favicon also accepts ICO (PNG or uncompressed DIB frames). Up to 256 KiB; empty restores default.&quot;
+      &quot;description&quot;: &quot;Raw base64 PNG/JPEG; favicon also accepts ICO (PNG or uncompressed DIB frames). Up to 256 KiB; empty restores default. The accent slot takes a #RRGGBB color instead.&quot;
     }
   }
 }</pre></details><details id="schema-BrandingResponse"><summary>BrandingResponse</summary><pre>{

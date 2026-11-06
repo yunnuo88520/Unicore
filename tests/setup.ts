@@ -5,6 +5,13 @@ import { afterEach } from 'vitest';
 
 afterEach(() => cleanup());
 Object.defineProperty(window, 'matchMedia', { writable: true, value: () => ({ matches: false, addEventListener() {}, removeEventListener() {} }) });
+// Radix popovers/selects measure content through ResizeObserver, which jsdom does not implement.
+class ResizeObserverStub { observe() {} unobserve() {} disconnect() {} }
+Object.defineProperty(window, 'ResizeObserver', { writable: true, value: ResizeObserverStub });
+// Radix Select drives opening through pointer capture; jsdom implements neither it nor scrolling.
+Object.defineProperty(window.HTMLElement.prototype, 'scrollIntoView', { writable: true, value: () => {} });
+Object.defineProperty(window.Element.prototype, 'hasPointerCapture', { writable: true, value: () => false });
+Object.defineProperty(window.Element.prototype, 'releasePointerCapture', { writable: true, value: () => {} });
 
 
 // Vitest aliases window to the worker global. Use the real jsdom storage when Node exposes Web Storage too.

@@ -2,7 +2,7 @@
 // Description: Preference compatibility, fallback, cross-tab synchronization and locale behavior.
 import { act, render, screen } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
-import { defaultPreferences, getPreferences, preferencesKey, resetAppearance, resetPreferences, setPreferences, usePreferences } from './preferences';
+import { defaultPreferences, getPreferences, preferencesKey, resetAppearance, resetPreferences, setPreferences, usePreferences } from '@unicore/theme/preferences';
 import { t } from './i18n';
 
 beforeEach(() => { localStorage.clear(); resetPreferences(); });

@@ -15,7 +15,7 @@ CLI_COMMAND := $(shell node -p "JSON.parse(require('fs').readFileSync('product.i
 OPS_COMMAND := $(shell node -p "JSON.parse(require('fs').readFileSync('product.identity.json','utf8')).cli.opsCommand")
 LDFLAGS := -X $(GO_MODULE)/internal/buildinfo.Version=$(VERSION) -X $(GO_MODULE)/internal/buildinfo.Commit=$(COMMIT) -X $(GO_MODULE)/internal/buildinfo.BuildTime=$(BUILD_TIME)
 
-.PHONY: install dev-web dev-server dev-desktop dev-cli generate docs wiki wiki-publish test test-e2e test-features build-web build-cli build-desktop build-all build-ops doctor dev-deps-up dev-deps-down release package package-desktop version docker-build compose-up compose-down test-deploy test-upgrade check-features
+.PHONY: install dev-web dev-server dev-desktop dev-cli generate docs wiki wiki-publish test test-gen test-go test-web test-e2e test-features build-web build-cli build-desktop build-all build-ops doctor dev-deps-up dev-deps-down release package package-desktop version docker-build compose-up compose-down test-deploy test-upgrade check-features audit
 install:
 	pnpm install --frozen-lockfile
 	go mod download
@@ -41,7 +41,8 @@ wiki:
 	pnpm wiki:generate
 wiki-publish:
 	pnpm wiki:publish
-test:
+test: test-gen test-go test-web
+test-gen:
 	node scripts/update-history.mjs --check
 	pnpm check:version
 	pnpm check:release-notes
@@ -57,11 +58,16 @@ test:
 	pnpm check:contracts
 	pnpm check:authors
 	go run ./scripts/check-boundaries
+test-go:
 	go vet ./...
 	go test -race ./...
 	go test -race -tags updater ./cmd/server ./internal/adapter/http ./internal/adapter/desktop
+test-web:
+	node scripts/build-features.mjs
 	pnpm typecheck
 	pnpm test
+audit:
+	pnpm audit:deps
 test-e2e:
 	pnpm test:e2e
 test-features:

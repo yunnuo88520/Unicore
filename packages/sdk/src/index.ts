@@ -223,6 +223,7 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   private bootstrapped = false;
   private epoch = 0;
   private listeners = new Set<(event: SessionEvent) => void>();
+  private inflightGets = new Map<string, Promise<unknown>>();
   subscribeSession(listener: (event: SessionEvent) => void) { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; }
   private sessionChanged(event: SessionEvent) { this.epoch++; for (const listener of this.listeners) listener(event); }
   resetSession() { this.csrf = ''; this.identity = ''; this.authenticated = false; this.bootstrapped = false; this.sessionChanged('external'); }
@@ -262,7 +263,32 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
     });
     const query = new URLSearchParams(Object.entries(options?.query ?? {}).map(([key, value]) => [key, String(value)]));
     if (query.size) path += `?${query}`;
-    return this.request<OperationData[K]>(path.replace(/^\/api\/v1/, ''), { method: operation.method, signal: options?.signal, headers: { ...(input === undefined ? {} : { 'Content-Type': 'application/json' }), ...options?.headers }, ...(input === undefined ? {} : { body: JSON.stringify(input) }) },options?.timeoutMs);
+    const relative = path.replace(/^\/api\/v1/, '');
+    const execute = (signal?: AbortSignal) => this.request<OperationData[K]>(relative, { method: operation.method, signal, headers: { ...(input === undefined ? {} : { 'Content-Type': 'application/json' }), ...options?.headers }, ...(input === undefined ? {} : { body: JSON.stringify(input) }) },options?.timeoutMs);
+    if (operation.method.toUpperCase() !== 'GET') return execute(options?.signal);
+    if (options?.signal?.aborted) return Promise.reject(new AppError('REQUEST_CANCELLED', '请求已取消或超时'));
+    // Identical concurrent GETs share one request. The shared fetch carries
+    // no caller signal: when the first caller's environment cancels its own
+    // query (invalidation, unmount), the request must survive for the
+    // siblings that joined it. Personal cancellation layers on via
+    // ownAbort; the shared deadline comes from the first caller's options.
+    const pending = this.inflightGets.get(path);
+    const shared = (pending ?? execute(undefined).finally(() => { this.inflightGets.delete(path); })) as Promise<OperationData[K]>;
+    if (!pending) this.inflightGets.set(path, shared);
+    return this.ownAbort(shared, options?.signal);
+  }
+
+  private ownAbort<T>(shared: Promise<T>, signal?: AbortSignal): Promise<T> {
+    if (!signal) return shared;
+    if (signal.aborted) return Promise.reject(new AppError('REQUEST_CANCELLED', '请求已取消或超时'));
+    return new Promise<T>((resolve, reject) => {
+      const onAbort = () => reject(new AppError('REQUEST_CANCELLED', '请求已取消或超时'));
+      signal.addEventListener('abort', onAbort, { once: true });
+      shared.then(
+        value => { signal.removeEventListener('abort', onAbort); resolve(value); },
+        error => { signal.removeEventListener('abort', onAbort); reject(error); },
+      );
+    });
   }
   async bootstrap(options?: RequestOptions) {
     let data = await this.call('bootstrap', undefined, options);

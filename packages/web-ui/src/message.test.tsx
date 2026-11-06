@@ -1,8 +1,9 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Message lifetime, replacement and native dialog placement remain shared across profiles.
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, expect, it, vi } from 'vitest';
-import { MessageProvider, useMessage, type MessageType } from './message';
+import { message, MessageProvider, useMessage, type MessageType } from './message';
 
 afterEach(() => vi.useRealTimers());
 const types: MessageType[] = ['primary', 'success', 'warning', 'info', 'error'];
@@ -43,4 +44,19 @@ it('renders the stack above overlay surfaces and keeps it in the document viewpo
   expect(stack!.querySelector('.message-error')).toHaveTextContent('error 提示');
   await act(async () => { overlay.remove(); });
   expect(screen.getByRole('alert')).toHaveTextContent('error 提示');
+});
+
+it('static message works outside the provider tree and no-ops without one', async () => {
+  const user = userEvent.setup();
+  const { unmount } = render(<MessageProvider><Examples /></MessageProvider>);
+  await user.click(screen.getByRole('button', { name: 'error' }));
+  expect(await screen.findByText('error 提示')).toBeInTheDocument();
+  unmount();
+  expect(message.error('树外消息')).toBe('');
+});
+
+it('renders caller-provided content verbatim without catalog lookup', () => {
+  render(<MessageProvider><Examples /></MessageProvider>);
+  fireEvent.click(screen.getByRole('button', { name: 'info' }));
+  expect(screen.getByText('info 提示')).toBeInTheDocument();
 });

@@ -35,6 +35,7 @@ export interface Bootstrap {
   capabilities: Capabilities;
   installed: boolean;
   site_name: string;
+  home_enabled?: boolean;
   admin_path: string;
   current_user?: User;
   csrf_token?: string;
@@ -481,10 +482,11 @@ export interface Branding {
   logo: string;
   logo_dark: string;
   favicon: string;
+  accent?: string;
 }
 
 export interface BrandingInput {
-  slot: "logo" | "logo_dark" | "favicon";
+  slot: "logo" | "logo_dark" | "favicon" | "accent";
   content: string;
 }
 

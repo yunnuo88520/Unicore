@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, Languages, Moon, Settings2, Sun } from 'lucide-react';
 import { setLocale, t, useLocale } from './i18n';
-import { setPreferences } from './preferences';
-import { useResolvedTheme } from './theme';
+import { setPreferences } from '@unicore/theme/preferences';
+import { useResolvedTheme } from '@unicore/theme';
 import { AppearanceDrawer } from './appearance-drawer';
-import { Tooltip } from './ui';
+import { Tooltip } from '@unicore/ui';
 
 const iconButton = 'inline-flex size-8 items-center justify-center rounded-md text-muted transition-colors outline-none hover:bg-primary-soft hover:text-accent focus-visible:ring-2 focus-visible:ring-focus';
 

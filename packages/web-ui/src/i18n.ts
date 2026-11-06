@@ -3,10 +3,14 @@
 import english from './locales/en.json';
 import licenseEnglish from './locales/license.en.json';
 import updateEnglish from './locales/updates.en.json';
-import { getPreferences, setPreferences, usePreferences, type Preferences } from './preferences';
+import { setTranslator } from '@unicore/ui/i18n';
+import { getPreferences, setPreferences, usePreferences, type Preferences } from '@unicore/theme/preferences';
 
 // Static metadata retains message keys until the rendering component calls t().
 export function defineMessages<const T>(messages:T):T { return messages; }
+
+// Shared components translate through their own stub; this catalog is the single source of wording.
+setTranslator(t);
 
 export type Locale = Preferences['locale'];
 const catalog: Record<string, string> = {

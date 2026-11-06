@@ -1,7 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Shared public site identity and optional ICP link on workspace and account pages.
 import { RichContent } from './rich-content';
-import { cn } from './lib/cn';
+import { cn } from '@unicore/ui/cn';
 import { productName } from './product.gen';
 import type { Bootstrap } from '@unicore/sdk';
 

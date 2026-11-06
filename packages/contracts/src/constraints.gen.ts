@@ -132,6 +132,9 @@ export const constraints = {
       "site_name": {
         "type": "string"
       },
+      "home_enabled": {
+        "type": "boolean"
+      },
       "admin_path": {
         "type": "string"
       },
@@ -1751,6 +1754,10 @@ export const constraints = {
       "favicon": {
         "type": "string",
         "maxLength": 400000
+      },
+      "accent": {
+        "type": "string",
+        "pattern": "^#[0-9a-f]{6}$"
       }
     }
   },
@@ -1767,7 +1774,8 @@ export const constraints = {
         "enum": [
           "logo",
           "logo_dark",
-          "favicon"
+          "favicon",
+          "accent"
         ]
       },
       "content": {

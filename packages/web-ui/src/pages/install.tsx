@@ -9,9 +9,10 @@ import type { Bootstrap, DatabaseCheck, DatabaseInput, InstallInput, InstallResu
 import type { PageProps } from '../router';
 import { BrandLockup } from '../brand';
 import { productName, productSlug } from '../product.gen';
-import { AppForm, useAppForm } from '../lib/form';
-import { Button, Checkbox, Input, SimpleSelect } from '../ui';
-import { cn } from '../lib/cn';
+import { AppField, AppForm, useAppForm } from '@unicore/form';
+import { AppCheckboxField, AppControllerField } from '@unicore/form/fields';
+import { Button, Input, SimpleSelect } from '@unicore/ui';
+import { cn } from '@unicore/ui/cn';
 
 type Profile = Bootstrap['profile'];
 type WizardDatabase = { driver: DatabaseInput['driver']; dsn: string; host: string; port: number; name: string; username: string; password: string; tls: boolean };
@@ -132,20 +133,16 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
   const resetAllowed = !!check && (check.reset_allowed ?? !check.initialized);
   const canContinue = !!check && resetAllowed && (!occupied || (input.reset_database && input.database_confirmation === check.database_name));
   mirrors.current = { step, token, canContinue };
-  function dbError(field: keyof WizardDatabase): string | undefined {
-    const message = form.formState.errors.database?.[field]?.message;
-    return typeof message === 'string' ? t(message) : undefined;
-  }
-  function topError(field: 'site_name' | 'admin_username' | 'admin_email' | 'admin_password'): string | undefined {
-    const message = form.formState.errors[field]?.message;
-    return typeof message === 'string' ? t(message) : undefined;
-  }
-  function updateDatabase(patch: Partial<WizardDatabase>) {
-    form.setValue('database', { ...form.getValues('database'), ...patch });
+  // Registration owns the values; editing any database field invalidates prior verification and consent.
+  function touchDatabase() {
     form.setValue('reset_database', false);
     form.setValue('database_confirmation', '');
     verify.reset();
     complete.reset();
+  }
+  function updateDatabase(patch: Partial<WizardDatabase>) {
+    form.setValue('database', { ...form.getValues('database'), ...patch });
+    touchDatabase();
   }
   async function validateStep(target: number): Promise<boolean> {
     const key = stepListFor(form.getValues('profile'))[target];
@@ -252,33 +249,21 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
             <p className="text-sm text-muted">{t('安装完成后固定运行形态，更改模式需要独立部署与数据迁移。')}</p>
           </>}
           {current === 'database' && <>
-            <div className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium text-ink">{t('数据库类型')}</span>
-              <SimpleSelect label={t('数据库类型')} value={input.database.driver} onChange={value => updateDatabase(defaults(value as WizardDatabase['driver']))}
-                options={[{ value: 'mysql', label: t('MySQL · 在线部署推荐') }, { value: 'postgres', label: t('PostgreSQL · 在线部署推荐') }, { value: 'sqlite', label: t('SQLite · 本机或小型测试') }]} />
-            </div>
+            <AppControllerField<WizardValues> name="database.driver" label={t('数据库类型')}>
+              {field => <SimpleSelect label={t('数据库类型')} value={String(field.value)} onChange={value => { field.onChange(value); updateDatabase(defaults(value as WizardDatabase['driver'])); }}
+                options={[{ value: 'mysql', label: t('MySQL · 在线部署推荐') }, { value: 'postgres', label: t('PostgreSQL · 在线部署推荐') }, { value: 'sqlite', label: t('SQLite · 本机或小型测试') }]} />}
+            </AppControllerField>
             {input.database.driver === 'sqlite' ? <p className="text-sm text-muted">{t('文件固定保存在服务器私有数据目录 unicore.db，支持测试连接。在线多用户部署推荐 MySQL 或 PostgreSQL。')}</p> : <>
               <div className="grid gap-4 sm:grid-cols-2">
-                <FieldRow label={t('数据库地址')} error={dbError('host')}>
-                  <Input value={input.database.host ?? ''} maxLength={253} onChange={event => updateDatabase({ host: event.target.value })} />
-                </FieldRow>
-                <FieldRow label={t('数据库端口')} error={dbError('port')}>
-                  <Input type="number" min={1} max={65535} value={input.database.port || ''} onChange={event => updateDatabase({ port: event.target.valueAsNumber || 0 })} />
-                </FieldRow>
-                <FieldRow label={t('数据库名')} error={dbError('name')}>
-                  <Input value={input.database.name ?? ''} maxLength={63} onChange={event => updateDatabase({ name: event.target.value })} />
-                </FieldRow>
-                <FieldRow label={t('数据库用户名')} error={dbError('username')}>
-                  <Input value={input.database.username ?? ''} maxLength={128} autoComplete="off" onChange={event => updateDatabase({ username: event.target.value })} />
-                </FieldRow>
-                <FieldRow label={t('数据库密码')} error={dbError('password')}>
-                  <Input type="password" maxLength={1024} autoComplete="new-password" value={input.database.password ?? ''} onChange={event => updateDatabase({ password: event.target.value })} />
-                </FieldRow>
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-sm font-medium text-ink">{t('数据库 TLS')}</span>
-                  <SimpleSelect label={t('数据库 TLS')} value={input.database.tls ? 'on' : 'off'} onChange={value => updateDatabase({ tls: value === 'on' })}
-                    options={[{ value: 'off', label: t('关闭 · 本机或内网直连') }, { value: 'on', label: t('开启 · 加密连接，不校验证书') }]} />
-                </div>
+                <AppField name="database.host" label={t('数据库地址')} onFieldChange={touchDatabase}><Input maxLength={253} /></AppField>
+                <AppField name="database.port" label={t('数据库端口')} rules={{ valueAsNumber: true }} onFieldChange={touchDatabase}><Input type="number" min={1} max={65535} /></AppField>
+                <AppField name="database.name" label={t('数据库名')} onFieldChange={touchDatabase}><Input maxLength={63} /></AppField>
+                <AppField name="database.username" label={t('数据库用户名')} onFieldChange={touchDatabase}><Input maxLength={128} autoComplete="off" /></AppField>
+                <AppField name="database.password" label={t('数据库密码')} onFieldChange={touchDatabase}><Input type="password" maxLength={1024} autoComplete="new-password" /></AppField>
+                <AppControllerField<WizardValues> name="database.tls" label={t('数据库 TLS')}>
+                  {field => <SimpleSelect label={t('数据库 TLS')} value={field.value ? 'on' : 'off'} onChange={value => { field.onChange(value === 'on'); updateDatabase({ tls: value === 'on' }); }}
+                    options={[{ value: 'off', label: t('关闭 · 本机或内网直连') }, { value: 'on', label: t('开启 · 加密连接，不校验证书') }]} />}
+                </AppControllerField>
               </div>
               <p className="text-sm leading-relaxed text-muted">{t('请先创建当前实例独占的数据库并授权。安装会初始化目标库；已有表和视图的数据会在明确确认后清空，请提前备份。连接信息加密保存。目标库未启用 TLS 时保持默认关闭；开启后仅加密传输，不校验服务器证书，内网自签名证书可直接使用。')}{input.database.driver === 'postgres' && t(' PostgreSQL 使用独占的 public schema。')}</p>
             </>}
@@ -293,28 +278,17 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
                     {check.initialized && <p className="text-sm text-danger">{t('已识别为本站原数据库。重新安装会删除原账号、设置和业务数据，不会保留原站内容。')}</p>}
                     <strong className="text-sm text-danger">{t('将清空数据库 {{name}}', { name: check.database_name })}</strong>
                     <p className="text-sm text-danger">{t('检测到 {{count}} 个表或视图。完成安装将删除这些对象及其数据，此操作无法撤销；请先备份。', { count: check.table_count })}</p>
-                    <Checkbox checked={input.reset_database} onChange={value => form.setValue('reset_database', value)}>{t('我已备份，确认清空目标数据库并初始化')}</Checkbox>
-                    <label className="flex flex-col gap-1.5 text-sm font-medium text-ink">
-                      {t('输入数据库名确认')}
-                      <Input value={input.database_confirmation ?? ''} autoComplete="off" onChange={event => form.setValue('database_confirmation', event.target.value)} />
-                    </label>
+                    <AppCheckboxField name="reset_database" label={t('我已备份，确认清空目标数据库并初始化')} />
+                    <AppField name="database_confirmation" label={t('输入数据库名确认')}><Input autoComplete="off" /></AppField>
                   </div>
                 : <p className="text-sm text-muted">{t('目标数据库为空，安装将创建所选形态需要的表和初始配置。')}</p>}
             </>}
           </>}
           {current === 'admin' && <>
-            <FieldRow label={t('站点名称')} error={topError('site_name')}>
-              <Input value={input.site_name} maxLength={64} onChange={event => form.setValue('site_name', event.target.value)} />
-            </FieldRow>
-            <FieldRow label={t('管理员账号')} error={topError('admin_username')}>
-              <Input value={input.admin_username} maxLength={64} autoComplete="username" onChange={event => form.setValue('admin_username', event.target.value)} />
-            </FieldRow>
-            <FieldRow label={t('管理员邮箱')} error={topError('admin_email')}>
-              <Input type="email" value={input.admin_email} autoComplete="email" onChange={event => form.setValue('admin_email', event.target.value)} />
-            </FieldRow>
-            <FieldRow label={t('管理员密码')} error={topError('admin_password')}>
-              <Input type="password" maxLength={128} autoComplete="new-password" value={input.admin_password} onChange={event => form.setValue('admin_password', event.target.value)} />
-            </FieldRow>
+            <AppField name="site_name" label={t('站点名称')}><Input maxLength={64} /></AppField>
+            <AppField name="admin_username" label={t('管理员账号')}><Input maxLength={64} autoComplete="username" /></AppField>
+            <AppField name="admin_email" label={t('管理员邮箱')}><Input type="email" autoComplete="email" /></AppField>
+            <AppField name="admin_password" label={t('管理员密码')}><Input type="password" maxLength={128} autoComplete="new-password" /></AppField>
             <p className="text-sm text-muted">{t('至少 12 字节，最多 128 字节，使用 Argon2id，不保存明文。')}</p>
           </>}
           {current === 'confirm' && <>
@@ -344,10 +318,3 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
   </main>;
 }
 
-function FieldRow({ label, error, children }: { label: string; error?: string; children: ReactNode }) {
-  return <label className="flex flex-col gap-1.5 text-sm font-medium text-ink">
-    {label}
-    {children}
-    {error && <span role="alert" className="text-xs font-normal text-danger">{error}</span>}
-  </label>;
-}

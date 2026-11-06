@@ -1,10 +1,10 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Device preference schema, direction-stable previews and an accessible side drawer.
 import { Check, Languages, RotateCcw, X } from 'lucide-react';
-import { preferenceOptions, resetAppearance, setPreferences, usePreferences, type PreferenceKey, type Preferences } from './preferences';
+import { preferenceOptions, resetAppearance, setPreferences, usePreferences, type PreferenceKey, type Preferences } from '@unicore/theme/preferences';
 import { defineMessages, t, useI18n } from './i18n';
-import { Button, Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from './ui';
-import { cn } from './lib/cn';
+import { Button, Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from '@unicore/ui';
+import { cn } from '@unicore/ui/cn';
 
 type PreferenceLabels = { [K in PreferenceKey]: Record<Preferences[K], string> };
 const labels = defineMessages({

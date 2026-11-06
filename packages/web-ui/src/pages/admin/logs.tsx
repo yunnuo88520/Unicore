@@ -9,7 +9,7 @@ import type { AuditLogQuery, AuditLogList, MailJobList, WebClient } from '@unico
 type AuditEntry = AuditLogList['items'][number];
 type MailJob = MailJobList['items'][number];
 import { currentLocale, defineMessages, t, useI18n } from '../../i18n';
-import { Badge, Button, Card, CardContent, Input, SimpleSelect, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Tabs, useMessage } from '../../ui';
+import { Badge, Button, Card, CardContent, Input, SimpleSelect, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Tabs, useMessage } from '@unicore/ui';
 import type { PageProps } from '../../router';
 
 const auditFeatures = tableFeatures({ rowSortingFeature, sortedRowModel: createSortedRowModel() });

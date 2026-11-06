@@ -75,10 +75,12 @@ var Definitions = append([]SettingDefinition{
 	{"branding.logo", "string", "branding", "Logo", "", false, false, branding.ValidReference},
 	{"branding.logo_dark", "string", "branding", "深色 Logo", "", false, false, branding.ValidReference},
 	{"branding.favicon", "string", "branding", "站点图标", "", false, false, branding.ValidReference},
+	{"branding.accent", "string", "branding", "品牌主色", "", false, false, branding.ValidAccent},
 	{"site.name", "string", "site", "站点名称", theme.Current.Brand.Name, false, false, func(v string) bool {
 		return strings.TrimSpace(v) != "" && !strings.ContainsAny(v, "\r\n") && text(64)(v)
 	}},
 	{"site.description", "string", "site", "站点描述", "一份核心，无限可能", false, false, text(240)},
+	{"site.home_enabled", "boolean", "site", "启用产品首页", "false", true, false, oneOf("true", "false")},
 	{"site.base_url", "string", "site", "站点地址", "", true, false, func(v string) bool { return v == "" || (text(2048)(v) && ValidBaseURL(v)) }},
 	{"site.admin_email", "string", "site", "管理员邮箱", "", true, false, func(v string) bool { return v == "" || ValidEmail(v) }},
 	{"site.copyright", "string", "site", "页脚版权", "Crafted by Yunnuo", false, false, text(160)},

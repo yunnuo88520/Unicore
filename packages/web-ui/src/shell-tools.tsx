@@ -7,7 +7,7 @@ import type { AppClient, Bootstrap } from '@unicore/sdk';
 import { canAccess } from './routes';
 import { t, useLocale } from './i18n';
 import { productName } from './product.gen';
-import { Tooltip } from './ui';
+import { Tooltip } from '@unicore/ui';
 
 export const workspaceLinks = {
   documentation: 'https://github.com/yunnuo88520/Unicore/tree/main/docs',

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Unicore platform foundation API",
-    "version": "0.1.2",
+    "version": "0.1.3",
     "description": "Fixed administrator/member roles. Global management APIs require an administrator and mutating authenticated requests require X-CSRF-Token. Platform appearance is client-local and never saved through instance settings.",
     "contact": {
       "name": "yunnuo",
@@ -10747,6 +10747,10 @@
           "site_name": {
             "type": "string"
           },
+          "home_enabled": {
+            "type": "boolean",
+            "description": "Whether the public product homepage is enabled for unauthenticated visitors."
+          },
           "admin_path": {
             "type": "string",
             "description": "仅管理员 bootstrap 返回后台入口；用户端为空，单机不提供后台。"
@@ -12377,6 +12381,11 @@
           "favicon": {
             "type": "string",
             "maxLength": 400000
+          },
+          "accent": {
+            "type": "string",
+            "pattern": "^#[0-9a-f]{6}$",
+            "description": "Optional instance accent overriding the compiled brand color; users still win with an explicit preset."
           }
         }
       },
@@ -12393,13 +12402,14 @@
             "enum": [
               "logo",
               "logo_dark",
-              "favicon"
+              "favicon",
+              "accent"
             ]
           },
           "content": {
             "type": "string",
             "maxLength": 349528,
-            "description": "Raw base64 PNG/JPEG; favicon also accepts ICO (PNG or uncompressed DIB frames). Up to 256 KiB; empty restores default."
+            "description": "Raw base64 PNG/JPEG; favicon also accepts ICO (PNG or uncompressed DIB frames). Up to 256 KiB; empty restores default. The accent slot takes a #RRGGBB color instead."
           }
         }
       },

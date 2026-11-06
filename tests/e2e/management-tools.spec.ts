@@ -50,7 +50,7 @@ test('editable email templates preserve drafts and send through real SMTP',async
  await page.getByRole('textbox',{name:'Email subject',exact:true}).fill('自定义中文主题 {{site_name}}');
  await page.getByRole('button',{name:'Change language',exact:true}).click();await page.getByRole('menuitemradio',{name:'中文',exact:true}).click();
  await expect(page.getByRole('textbox',{name:'邮件主题',exact:true})).toHaveValue('自定义中文主题 {{site_name}}');
- const editor=page.getByRole('textbox',{name:'邮件内容',exact:true}).locator('[contenteditable="true"]');
+ const editor=page.getByRole('textbox',{name:'邮件内容',exact:true});
  await editor.fill('Link {{code}}');await editor.press('ControlOrMeta+A');
  await page.getByRole('button',{name:'插入链接',exact:true}).click();await page.getByRole('textbox',{name:'链接地址',exact:true}).fill('https://example.test/help');await page.getByRole('button',{name:'插入',exact:true}).click();await expect(editor.locator('a')).toHaveAttribute('href','https://example.test/help');await expect(page.getByText('邮件模板已保存',{exact:true})).toHaveCount(0);
  await editor.fill('Draft {{code}} ');await editor.press('End');

@@ -70,10 +70,10 @@ func TestOfflineOperations(t *testing.T) {
 	if _, e = m.Identity(true).Session(ctx, oldToken); e == nil {
 		t.Fatal("old session survived reset")
 	}
-	if _, _, e = m.Identity(true).Login(ctx, contracts.LoginInput{Username: "admin", Password: "test-password-strong"}, "old", false, 1); e != platform.ErrCredentials {
+	if _, _, e = m.Identity(true).Login(ctx, contracts.LoginInput{Username: "admin", Password: "test-password-strong"}, "old", false, false, 1); e != platform.ErrCredentials {
 		t.Fatal("old password accepted", e)
 	}
-	if _, _, e = m.Identity(true).Login(ctx, contracts.LoginInput{Username: "admin", Password: "next-password-strong"}, "new", false, 1); e != nil {
+	if _, _, e = m.Identity(true).Login(ctx, contracts.LoginInput{Username: "admin", Password: "next-password-strong"}, "new", false, false, 1); e != nil {
 		t.Fatal("new password rejected", e)
 	}
 	c, out := testConsole("")
@@ -245,7 +245,7 @@ func TestRecoveryPreservesFactorAndOtherRealm(t *testing.T) {
 	if e != nil || !state.User.TotpEnabled {
 		t.Fatal("existing factor was cleared", e)
 	}
-	login, _, e := m.Identity(true).Login(ctx, contracts.LoginInput{Username: "admin", Password: "recovered-password-strong"}, "recovery", false, 1)
+	login, _, e := m.Identity(true).Login(ctx, contracts.LoginInput{Username: "admin", Password: "recovered-password-strong"}, "recovery", false, false, 1)
 	if e != nil || login.MfaPending == nil || !*login.MfaPending {
 		t.Fatal("password recovery bypassed MFA", e)
 	}

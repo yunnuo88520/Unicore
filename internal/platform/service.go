@@ -65,6 +65,7 @@ type Service struct {
 	Store      Store
 	Limiter    *Limiter
 	Captchas   *Captchas
+	HumanCheck HumanCheckPort
 	dummy      string
 	loginSlots chan struct{}
 	once       sync.Once
@@ -96,7 +97,7 @@ func Has(user contracts.User, permission string) bool {
 	return false
 }
 
-func (s *Service) Login(ctx context.Context, input contracts.LoginInput, ip string, captcha bool, hours int) (contracts.Session, string, error) {
+func (s *Service) Login(ctx context.Context, input contracts.LoginInput, ip string, captcha, humanCheck bool, hours int) (contracts.Session, string, error) {
 	if err := s.LoginAllowed(ctx, ip); err != nil {
 		return contracts.Session{}, "", err
 	}
@@ -106,6 +107,11 @@ func (s *Service) Login(ctx context.Context, input contracts.LoginInput, ip stri
 	key := strings.ToLower(strings.TrimSpace(input.Username))
 	if !s.Limiter.Allow("ip:"+ip, 40, time.Minute) || !s.Limiter.Allow("account:"+key, 8, 15*time.Minute) {
 		return contracts.Session{}, "", ErrRateLimited
+	}
+	if humanCheck {
+		if err := s.verifyHumanCheck(ctx, derefString(input.HumanCheckToken), derefString(input.HumanCheckRandstr), ip); err != nil {
+			return contracts.Session{}, "", err
+		}
 	}
 	if captcha && !s.Captchas.Consume(input.CaptchaID, input.CaptchaAnswer) {
 		s.loginResult(ctx, ip, false)

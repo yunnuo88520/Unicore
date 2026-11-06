@@ -167,6 +167,8 @@ export interface LoginInput {
   password: string;
   captcha_id: string;
   captcha_answer: string;
+  human_check_token?: string;
+  human_check_randstr?: string;
 }
 
 export interface Session {
@@ -300,6 +302,11 @@ export interface AuthPolicy {
   email_login_enabled: boolean;
   email_verification_required: boolean;
   phone_required: boolean;
+  human_check_enabled: boolean;
+  human_check_provider: "turnstile" | "tencent" | "alibaba";
+  human_check_site_key?: string;
+  human_check_region?: string;
+  human_check_prefix?: string;
 }
 
 export interface RegisterInput {
@@ -307,6 +314,8 @@ export interface RegisterInput {
   email: string;
   password: string;
   phone?: string;
+  human_check_token?: string;
+  human_check_randstr?: string;
   captcha_id: string;
   captcha_answer: string;
 }
@@ -315,6 +324,8 @@ export interface EmailRequest {
   email: string;
   captcha_id: string;
   captcha_answer: string;
+  human_check_token?: string;
+  human_check_randstr?: string;
 }
 
 export interface TokenInput {

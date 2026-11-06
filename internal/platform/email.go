@@ -60,6 +60,11 @@ func (a *Accounts) RegisterCode(ctx context.Context, input contracts.RegisterInp
 	if !policy.RegistrationEnabled {
 		return contracts.EmailChallenge{}, ErrFlowDisabled
 	}
+	if policy.HumanCheckEnabled {
+		if err = a.Identity.verifyHumanCheck(ctx, derefString(input.HumanCheckToken), derefString(input.HumanCheckRandstr), ip); err != nil {
+			return contracts.EmailChallenge{}, err
+		}
+	}
 	input.Username = strings.ToLower(strings.TrimSpace(input.Username))
 	input.Email = strings.ToLower(strings.TrimSpace(input.Email))
 	if !ValidateAccount(input.Username, input.Email, input.Password) {
@@ -107,6 +112,11 @@ func (a *Accounts) RequestCode(ctx context.Context, input contracts.EmailRequest
 	}
 	if (purpose == "verify" && (!policy.RegistrationEnabled || !policy.EmailVerificationRequired)) || (purpose == "reset" && !policy.ResetEnabled) || (purpose == "login" && !policy.EmailLoginEnabled) {
 		return contracts.EmailChallenge{}, ErrFlowDisabled
+	}
+	if purpose == "login" && policy.HumanCheckEnabled {
+		if err = a.Identity.verifyHumanCheck(ctx, derefString(input.HumanCheckToken), derefString(input.HumanCheckRandstr), ip); err != nil {
+			return contracts.EmailChallenge{}, err
+		}
 	}
 	email := strings.ToLower(strings.TrimSpace(input.Email))
 	if err = a.emailAllowed(ctx, email, ip, purpose == "verify"); err != nil {

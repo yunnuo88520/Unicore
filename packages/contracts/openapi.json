@@ -11258,6 +11258,16 @@
           },
           "captcha_answer": {
             "type": "string"
+          },
+          "human_check_token": {
+            "type": "string",
+            "description": "Click-through human verification token; required when login human verification is enabled.",
+            "maxLength": 4096
+          },
+          "human_check_randstr": {
+            "type": "string",
+            "description": "Random string returned by Tencent captcha next to the ticket.",
+            "maxLength": 128
           }
         }
       },
@@ -11697,7 +11707,9 @@
           "mail_ready",
           "email_login_enabled",
           "email_verification_required",
-          "phone_required"
+          "phone_required",
+          "human_check_enabled",
+          "human_check_provider"
         ],
         "properties": {
           "registration_enabled": {
@@ -11724,6 +11736,31 @@
           "phone_required": {
             "type": "boolean",
             "description": "Registration requires a phone number when enabled."
+          },
+          "human_check_enabled": {
+            "type": "boolean",
+            "description": "Login and registration require a click-through human verification token when enabled."
+          },
+          "human_check_provider": {
+            "type": "string",
+            "enum": [
+              "turnstile",
+              "tencent",
+              "alibaba"
+            ],
+            "description": "Human verification provider backing the enabled switches."
+          },
+          "human_check_site_key": {
+            "type": "string",
+            "description": "Public widget identifier: Turnstile site key, Tencent CaptchaAppId or Aliyun SceneId."
+          },
+          "human_check_region": {
+            "type": "string",
+            "description": "Provider region for Tencent (cn/intl) or Aliyun (cn-shanghai/ap-southeast-1); empty for Turnstile."
+          },
+          "human_check_prefix": {
+            "type": "string",
+            "description": "Aliyun captcha frontend element prefix; empty for other providers."
           }
         }
       },
@@ -11760,6 +11797,16 @@
             "maxLength": 21,
             "pattern": "^(?:\\+?[0-9]{5,20})?$"
           },
+          "human_check_token": {
+            "type": "string",
+            "description": "Click-through human verification token; required when registration human verification is enabled.",
+            "maxLength": 4096
+          },
+          "human_check_randstr": {
+            "type": "string",
+            "description": "Random string returned by Tencent captcha next to the ticket.",
+            "maxLength": 128
+          },
           "captcha_id": {
             "type": "string"
           },
@@ -11788,6 +11835,15 @@
           },
           "captcha_answer": {
             "type": "string"
+          },
+          "human_check_token": {
+            "type": "string",
+            "description": "Click-through human verification token for email-code login requests.",
+            "maxLength": 4096
+          },
+          "human_check_randstr": {
+            "type": "string",
+            "maxLength": 128
           }
         }
       },
@@ -15462,6 +15518,14 @@
     "MAIL_NOT_READY": {
       "status": 409,
       "message": "请先保存 SMTP 配置并成功发送测试邮件，再启用邮件账号流程"
+    },
+    "HUMAN_CHECK_FAILED": {
+      "status": 400,
+      "message": "人机验证未通过，请完成验证后重试"
+    },
+    "HUMAN_CHECK_NOT_CONFIGURED": {
+      "status": 503,
+      "message": "人机验证服务尚未配置完整，请先在后台完成服务商凭据"
     },
     "METHOD_NOT_ALLOWED": {
       "status": 405,

@@ -42,8 +42,41 @@ func (a *Accounts) Policy(ctx context.Context) (contracts.AuthPolicy, error) {
 		return contracts.AuthPolicy{}, err
 	}
 	ready := settings.MailReady(values)
-	return contracts.AuthPolicy{EmailLoginEnabled: ready && values["account.email_login_enabled"] == "true", EmailVerificationRequired: values["account.email_verification_required"] == "true", RegistrationEnabled: !a.Administrator && values["account.registration_enabled"] == "true", ResetEnabled: ready && values["account.password_reset_enabled"] == "true", LoginCaptcha: values["security.login_captcha"] == "true", RegisterCaptcha: values["security.register_captcha"] == "true", MailReady: ready, PhoneRequired: values["account.phone_required"] == "true"}, nil
+	provider := values["security.human_check_provider"]
+	humanCheckRegion := values["security.tencent_captcha_region"]
+	if provider == "alibaba" {
+		humanCheckRegion = values["security.aliyun_captcha_region"]
+	}
+	return contracts.AuthPolicy{
+		EmailLoginEnabled:         ready && values["account.email_login_enabled"] == "true",
+		EmailVerificationRequired: values["account.email_verification_required"] == "true",
+		RegistrationEnabled:       !a.Administrator && values["account.registration_enabled"] == "true",
+		ResetEnabled:              ready && values["account.password_reset_enabled"] == "true",
+		LoginCaptcha:              values["security.login_captcha"] == "true",
+		RegisterCaptcha:           values["security.register_captcha"] == "true",
+		MailReady:                 ready,
+		PhoneRequired:             values["account.phone_required"] == "true",
+		HumanCheckEnabled:         values["security.human_check_enabled"] == "true",
+		HumanCheckProvider:        provider,
+		HumanCheckSiteKey:         strPtr(humanCheckSiteKey(values)),
+		HumanCheckRegion:          strPtr(humanCheckRegion),
+	}, nil
 }
+
+func strPtr(value string) *string { return &value }
+
+// humanCheckSiteKey exposes only the public widget identifier of the selected provider.
+func humanCheckSiteKey(values map[string]string) string {
+	switch values["security.human_check_provider"] {
+	case "tencent":
+		return values["security.tencent_captcha_app_id"]
+	case "alibaba":
+		return values["security.aliyun_captcha_scene_id"]
+	default:
+		return values["security.turnstile_site_key"]
+	}
+}
+
 func (a *Accounts) allow(ip, email, id, answer string, captcha bool) error {
 	if !a.Identity.Limiter.Allow("mail-ip:"+ip, 20, time.Minute) || !a.Identity.Limiter.Allow("mail-account:"+email, 3, 15*time.Minute) {
 		return ErrRateLimited
@@ -75,6 +108,11 @@ func (a *Accounts) Register(ctx context.Context, input contracts.RegisterInput, 
 	}
 	if !policy.RegistrationEnabled {
 		return ErrFlowDisabled
+	}
+	if policy.HumanCheckEnabled {
+		if err := a.Identity.verifyHumanCheck(ctx, derefString(input.HumanCheckToken), derefString(input.HumanCheckRandstr), ip); err != nil {
+			return err
+		}
 	}
 	input.Username = strings.ToLower(strings.TrimSpace(input.Username))
 	input.Email = strings.ToLower(strings.TrimSpace(input.Email))

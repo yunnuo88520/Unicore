@@ -6,8 +6,8 @@ import {test,expect,installStandalone} from './fixtures';
 test('separate entries, registration policy and redesigned file selection',async({page,browser,instance},info)=>{
  const installed=await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}});expect(installed.status()).toBe(200);
  await page.goto(`${instance.url}/admin/site?tab=security`);
- await expect(page.getByRole('switch',{name:'登录人机验证',exact:true})).toBeChecked();
- await expect(page.getByRole('switch',{name:'注册人机验证',exact:true})).toBeChecked();
+ await expect(page.getByRole('switch',{name:'登录图形验证码',exact:true})).toBeChecked();
+ await expect(page.getByRole('switch',{name:'注册图形验证码',exact:true})).toBeChecked();
  await page.goto(`${instance.url}/admin/site?tab=registration`);
  await expect(page.getByRole('switch',{name:'开放注册',exact:true})).not.toBeChecked();
  const other=await browser.newContext({viewport:page.viewportSize()!});

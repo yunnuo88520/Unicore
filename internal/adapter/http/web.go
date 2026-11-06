@@ -119,6 +119,10 @@ func webError(w http.ResponseWriter, err error) {
 		code = "RATE_LIMITED"
 	case errors.Is(err, platform.ErrCaptcha):
 		code = "CAPTCHA_INVALID"
+	case errors.Is(err, platform.ErrHumanCheck):
+		code = "HUMAN_CHECK_FAILED"
+	case errors.Is(err, platform.ErrHumanCheckConfig):
+		code = "HUMAN_CHECK_NOT_CONFIGURED"
 	}
 	definition := contracts.ErrorCatalog[code]
 	failure(w, definition.Status, code, definition.Message)

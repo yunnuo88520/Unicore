@@ -175,6 +175,11 @@ SQLite 不填写上述外部连接字段/DSN，固定使用 data 目录中的 `u
 | `account.phone_required` | `false` | 注册绑定手机号：开启后注册必须填写手机号；仅做格式（可选 + 号加 5–20 位数字）与唯一性校验，不发送短信验证码 |
 | `account.register_rate_minutes` | `1` | 注册频率窗口（分钟），1–1440；与下一项配合限制同一 IP 注册 |
 | `account.register_rate_max` | `5` | 窗口内同一 IP 最多注册次数，1–1000；超出返回“尝试过于频繁”，计数存内存，重启清空 |
+| `security.human_check_enabled` | `false` | 人机验证总开关：开启后登录与注册需先通过服务商的点击式验证（Cloudflare Turnstile、腾讯云验证码、阿里云验证码 2.0 三选一）；凭据不完整时接口直接拒绝（fail-closed）；验证组件由服务商提供、需外网访问；管理员后台登录不受影响 |
+| `security.human_check_provider` | `turnstile` | 人机验证服务商：`turnstile` / `tencent` / `alibaba`，同一时间只用一家 |
+| `security.turnstile_site_key` / `security.turnstile_secret_key` | 空 | Turnstile 公开站点密钥与加密保存的服务端密钥 |
+| `security.tencent_captcha_app_id` 等 | 空 | 腾讯验证码：CaptchaAppId、AppSecretKey（加密保存）、云 API SecretId/SecretKey（SecretKey 加密保存）与站点 `cn`/`intl` |
+| `security.aliyun_captcha_access_key_id` 等 | 空 | 阿里验证码 2.0：AccessKeyId、AccessKeySecret（加密保存）、SceneId 与服务区域 `cn-shanghai`/`ap-southeast-1` |
 | `account.email_domain_mode` | `unrestricted` | 邮箱后缀不限制 / `allowlist` 白名单 / `blocklist` 黑名单 |
 | `account.email_domains` | 空 | 每行一个精确域名，如 example.com，限制注册和注册验证发信 |
 | `account.nickname_blacklist` | 空 | 每行一条，不区分大小写，包含匹配；禁止注册/资料修改 |

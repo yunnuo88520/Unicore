@@ -64,12 +64,24 @@ func New(config Config) http.Handler {
 			w.Header().Set("X-Content-Type-Options", "nosniff")
 			w.Header().Set("Referrer-Policy", "same-origin")
 			connect := "'self'"
+			scripts := "'self'"
+			images := "'self' data:"
+			frames := ""
 			if config.Install != nil {
 				if fs := config.Install.Files(); fs != nil {
 					connect += " " + strings.Join(fs.Origins(r.Context()), " ")
 				}
+				// Click-through human verification loads the provider widget; widen
+				// script/frame/connect/img only while a switch is enabled.
+				if origins := config.Install.HumanCheckOrigins(r.Context()); len(origins) > 0 {
+					joined := strings.Join(origins, " ")
+					scripts += " " + joined
+					connect += " " + joined
+					images += " " + joined
+					frames = " frame-src " + joined + ";"
+				}
 			}
-			w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src "+connect+"; frame-ancestors 'none'; base-uri 'self'")
+			w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src "+scripts+"; style-src 'self' 'unsafe-inline'; img-src "+images+"; connect-src "+connect+";"+frames+" frame-ancestors 'none'; base-uri 'self'")
 			defer func() {
 				if recovered := recover(); recovered != nil {
 					if wrapped.Status() == 0 {

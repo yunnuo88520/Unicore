@@ -90,15 +90,15 @@ func TestSessionSecurityPolicy(t *testing.T) {
 	// Failed attempts block the source IP without freezing another account/source or the other realm.
 	patch(contracts.SettingChange{Key: "security.login_failure_limit", Value: "2"})
 	for i := 0; i < 2; i++ {
-		_, _, _ = memberIdentity.Login(ctx, contracts.LoginInput{Username: "member", Password: "wrong"}, "192.0.2.1", false, 24)
+		_, _, _ = memberIdentity.Login(ctx, contracts.LoginInput{Username: "member", Password: "wrong"}, "192.0.2.1", false, false, 24)
 	}
-	if _, _, err = memberIdentity.Login(ctx, contracts.LoginInput{Username: "member", Password: "member-password-strong"}, "192.0.2.1", false, 24); !errors.Is(err, platform.ErrRateLimited) {
+	if _, _, err = memberIdentity.Login(ctx, contracts.LoginInput{Username: "member", Password: "member-password-strong"}, "192.0.2.1", false, false, 24); !errors.Is(err, platform.ErrRateLimited) {
 		t.Fatal("IP ban bypass", err)
 	}
-	if _, _, err = memberIdentity.Login(ctx, contracts.LoginInput{Username: "member", Password: "member-password-strong"}, "192.0.2.2", false, 24); err != nil {
+	if _, _, err = memberIdentity.Login(ctx, contracts.LoginInput{Username: "member", Password: "member-password-strong"}, "192.0.2.2", false, false, 24); err != nil {
 		t.Fatal("account frozen", err)
 	}
-	if _, _, err = adminIdentity.Login(ctx, contracts.LoginInput{Username: "admin", Password: "test-password-strong"}, "192.0.2.1", false, 24); err != nil {
+	if _, _, err = adminIdentity.Login(ctx, contracts.LoginInput{Username: "admin", Password: "test-password-strong"}, "192.0.2.1", false, false, 24); err != nil {
 		t.Fatal("ban crossed identity realms", err)
 	}
 }

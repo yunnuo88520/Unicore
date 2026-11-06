@@ -16,6 +16,7 @@ import (
 	"github.com/gofrs/flock"
 	"github.com/yunnuo/unicore/internal/adapter/blobcloud"
 	"github.com/yunnuo/unicore/internal/adapter/bloblocal"
+	humancheck "github.com/yunnuo/unicore/internal/adapter/humancheck"
 	mailadapter "github.com/yunnuo/unicore/internal/adapter/mail"
 	notifyadapter "github.com/yunnuo/unicore/internal/adapter/notify"
 	oidcadapter "github.com/yunnuo/unicore/internal/adapter/oidc"
@@ -237,6 +238,7 @@ func (m *Manager) attach(store *sqlstore.Store) {
 		m.administrator = platform.New(admins)
 		m.identity.Settings = m.settingService
 		m.administrator.Settings = m.settingService
+		m.identity.HumanCheck = humancheck.Verifier{}
 		m.mail = &mailer.Service{BaseURL: m.config.BaseURL, Store: repository, Settings: m.settingService, Secrets: m.secret, Sender: mailadapter.SMTP{}, Channels: notifyadapter.Sender{}}
 		m.identity.Personal = &platform.Personal{Store: repository, Identity: m.identity, Settings: m.settingService, Mail: m.mail}
 		m.administrator.Personal = &platform.Personal{Store: admins, Identity: m.administrator, Settings: m.settingService, Mail: m.mail}
@@ -326,6 +328,33 @@ func (m *Manager) Installed() bool {
 	defer m.mu.RUnlock()
 	return m.config.State == "INSTALLED"
 }
+
+// HumanCheckOrigins returns the CSP origins required by the enabled human
+// verification provider; empty when the switches are off or not applicable.
+func (m *Manager) HumanCheckOrigins(ctx context.Context) []string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if m.settingService == nil || m.config.Profile != runtime.WebPlatform {
+		return nil
+	}
+	values, err := m.settingService.Raw(ctx)
+	if err != nil || (values["security.human_check_enabled"] != "true") {
+		return nil
+	}
+	switch values["security.human_check_provider"] {
+	case "tencent":
+		origins := []string{"https://turing.captcha.qcloud.com", "https://captcha.gtimg.com", "https://turing.captcha.gtimg.com"}
+		if values["security.tencent_captcha_region"] == "intl" {
+			origins = append(origins, "https://ca.turing.captcha.qcloud.com")
+		}
+		return origins
+	case "alibaba":
+		return []string{"https://o.alicdn.com", "https://*.aliyun.com", "https://*.aliyuncs.com"}
+	default:
+		return []string{"https://challenges.cloudflare.com"}
+	}
+}
+
 func (m *Manager) Services() (*sqlstore.Store, *settings.Service, *platform.Service, contracts.Profile) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()

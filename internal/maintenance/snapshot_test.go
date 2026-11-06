@@ -171,7 +171,7 @@ func TestInstalledBackupRestore(t *testing.T) {
 			if err != nil || len(rows.Items) != 1 || rows.Items[0].ID != note.ID || rows.Items[0].Body != "backup body" {
 				t.Fatal("business rows", rows, err)
 			}
-			if _, _, err = restored.Identity(true).Login(ctx, contracts.LoginInput{Username: "admin", Password: "restore-test-password-strong"}, "local", false, 1); err != nil {
+			if _, _, err = restored.Identity(true).Login(ctx, contracts.LoginInput{Username: "admin", Password: "restore-test-password-strong"}, "local", false, false, 1); err != nil {
 				t.Fatal("restored identity/key", err)
 			}
 			locations, err := restored.Files().Locations(ctx)

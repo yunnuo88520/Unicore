@@ -863,6 +863,7 @@
     "packages/web-ui/src/pages/notes.tsx",
     "packages/web-ui/src/pages/overview.tsx",
     "packages/web-ui/src/password-dialog.tsx",
+    "packages/web-ui/src/human-check.tsx",
     "packages/web-ui/src/preferences.test.tsx",
     "packages/web-ui/src/product.gen.ts",
     "packages/web-ui/src/queries.ts",

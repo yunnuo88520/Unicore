@@ -24,10 +24,10 @@ func exerciseRoles(t *testing.T, ctx context.Context, store *sqlstore.Store, r *
 	if member.ID == admin.ID || len(member.Permissions) != 0 {
 		t.Fatal("identities not separated")
 	}
-	if _, _, err = identity.Login(ctx, contracts.LoginInput{Username: admin.Username, Password: "test-password-strong"}, "realm-member", false, 1); !errors.Is(err, platform.ErrCredentials) {
+	if _, _, err = identity.Login(ctx, contracts.LoginInput{Username: admin.Username, Password: "test-password-strong"}, "realm-member", false, false, 1); !errors.Is(err, platform.ErrCredentials) {
 		t.Fatal("administrator credential worked in user realm", err)
 	}
-	if _, _, err = administrator.Login(ctx, contracts.LoginInput{Username: admin.Username, Password: "member-password-strong"}, "realm-admin", false, 1); !errors.Is(err, platform.ErrCredentials) {
+	if _, _, err = administrator.Login(ctx, contracts.LoginInput{Username: admin.Username, Password: "member-password-strong"}, "realm-admin", false, false, 1); !errors.Is(err, platform.ErrCredentials) {
 		t.Fatal("user credential worked in administrator realm", err)
 	}
 	_, memberToken, err := identity.Issue(ctx, member, 1)

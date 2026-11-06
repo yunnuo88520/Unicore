@@ -17,8 +17,8 @@ test('registration works without SMTP and exposes independent restrictions',asyn
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  // Human verification and password recovery live under 安全与控制; the register captcha is disabled there for this flow.
  await page.getByRole('tab',{name:'安全与控制',exact:true}).click();
- await expect(page.getByLabel('登录人机验证',{exact:true})).toBeChecked();await expect(page.getByLabel('注册人机验证',{exact:true})).toBeChecked();await expect(page.getByLabel('邮件找回密码',{exact:true})).not.toBeChecked();
- await page.getByLabel('注册人机验证',{exact:true}).uncheck();
+ await expect(page.getByLabel('登录图形验证码',{exact:true})).toBeChecked();await expect(page.getByLabel('注册图形验证码',{exact:true})).toBeChecked();await expect(page.getByLabel('邮件找回密码',{exact:true})).not.toBeChecked();
+ await page.getByLabel('注册图形验证码',{exact:true}).uncheck();
  await page.getByRole('button',{name:'保存设置',exact:true}).click();await expect(page.getByRole('button',{name:'保存设置',exact:true})).toBeDisabled();
  await page.getByRole('button',{name:'账号菜单',exact:true}).click();await page.getByRole('menuitem',{name:'退出登录',exact:true}).click();await page.goto(instance.url);
  const directory=`build/acceptance/auth-layout/${info.project.name}`;await mkdir(directory,{recursive:true});

@@ -294,7 +294,7 @@ func TestOIDCHTTP(t *testing.T) {
 		t.Fatal("disabled provider accepted")
 	}
 	// Existing password login always remains available when the IdP is disabled.
-	if _, _, err = m.Identity(true).Login(ctx, contracts.LoginInput{Username: "admin", Password: "test-password-strong"}, "test", false, 1); err != nil {
+	if _, _, err = m.Identity(true).Login(ctx, contracts.LoginInput{Username: "admin", Password: "test-password-strong"}, "test", false, false, 1); err != nil {
 		t.Fatal("local fallback lost", err)
 	}
 }

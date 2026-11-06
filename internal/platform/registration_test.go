@@ -89,7 +89,7 @@ func TestRegistrationWithoutMailAndRestrictions(t *testing.T) {
 			t.Fatal("concurrent duplicate registration was accepted", successes, conflicts)
 		}
 	}
-	session, raw, err := identity.Login(ctx, contracts.LoginInput{Username: input.Username, Password: input.Password}, "203.0.113.1", false, 1)
+	session, raw, err := identity.Login(ctx, contracts.LoginInput{Username: input.Username, Password: input.Password}, "203.0.113.1", false, false, 1)
 	if err != nil || session.User.Status != "active" {
 		t.Fatal("direct registration not active", err)
 	}
@@ -144,7 +144,7 @@ func TestRegistrationWithoutMailAndRestrictions(t *testing.T) {
 	}
 	patch("account.ip_blacklist", "203.0.113.*\n198.51.100.0/24\n2001:db8::/32")
 	for _, ip := range []string{"203.0.113.3", "198.51.100.4", "2001:db8::1"} {
-		if _, _, err = identity.Login(ctx, contracts.LoginInput{Username: "directmember", Password: "safe-password-strong"}, ip, false, 1); !errors.Is(err, platform.ErrCredentials) {
+		if _, _, err = identity.Login(ctx, contracts.LoginInput{Username: "directmember", Password: "safe-password-strong"}, ip, false, false, 1); !errors.Is(err, platform.ErrCredentials) {
 			t.Fatal("IP login bypass", ip, err)
 		}
 		if _, err = accounts.RegisterCode(ctx, input, ip); !errors.Is(err, platform.ErrInput) {

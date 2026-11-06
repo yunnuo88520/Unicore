@@ -54,7 +54,7 @@ func mountAuthentication(api chi.Router, config Config) {
 				webError(w, err)
 				return
 			}
-			session, token, err := identity.Login(r.Context(), input, ip(r), policy.LoginCaptcha, policy.SessionHours)
+			session, token, err := identity.Login(r.Context(), input, ip(r), policy.LoginCaptcha, policy.HumanCheckEnabled && identity.HumanCheck != nil, policy.SessionHours)
 			if err != nil {
 				webError(w, err)
 				return

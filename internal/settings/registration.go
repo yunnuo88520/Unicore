@@ -14,7 +14,7 @@ var RegistrationDefinitions = []SettingDefinition{
 	{"account.phone_required", "boolean", "registration", "注册绑定手机号", "false", true, false, oneOf("true", "false")},
 	{"account.register_rate_minutes", "integer", "registration", "注册频率窗口（分钟）", "1", true, false, integer(1, 1440)},
 	{"account.register_rate_max", "integer", "registration", "窗口内注册上限", "5", true, false, integer(1, 1000)},
-	{"security.register_captcha", "boolean", "protection", "注册人机验证", "true", true, false, oneOf("true", "false")},
+	{"security.register_captcha", "boolean", "protection", "注册图形验证码", "true", true, false, oneOf("true", "false")},
 	{"account.email_domain_mode", "string", "registration", "邮箱后缀限制模式", "unrestricted", true, false, oneOf("unrestricted", "allowlist", "blocklist")},
 	{"account.email_domains", "string", "registration", "邮箱后缀列表", "", true, false, validDomains},
 	{"account.nickname_blacklist", "string", "registration", "昵称黑名单", "", true, false, validList},

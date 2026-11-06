@@ -171,7 +171,7 @@ func TestNotificationPermissionsEventsAndQueue(t *testing.T) {
 		t.Fatal(e)
 	}
 	before, _ := m.Mail().Store.MailJobs(ctx)
-	pending, loginToken, e := identity.Login(ctx, contracts.LoginInput{Username: "member", Password: "new-password-strong"}, "203.0.113.10", false, 1)
+	pending, loginToken, e := identity.Login(ctx, contracts.LoginInput{Username: "member", Password: "new-password-strong"}, "203.0.113.10", false, false, 1)
 	if e != nil || pending.MfaPending == nil || !*pending.MfaPending {
 		t.Fatalf("MFA boundary: %v", e)
 	}

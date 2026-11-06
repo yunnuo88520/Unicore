@@ -5,6 +5,9 @@ go 1.26.10
 
 require (
 	filippo.io/age v1.3.2
+	github.com/alibabacloud-go/captcha-20230305 v1.1.3
+	github.com/alibabacloud-go/darabonba-openapi/v2 v2.1.13
+	github.com/alibabacloud-go/tea v1.3.13
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
 	github.com/coreos/go-oidc/v3 v3.21.0
 	github.com/go-chi/chi/v5 v5.5.0
@@ -14,6 +17,8 @@ require (
 	github.com/jackc/pgx/v5 v5.12.0
 	github.com/minio/minio-go/v7 v7.4.1
 	github.com/spf13/cobra v1.10.2
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/captcha v1.3.182
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.3.182
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.76
 	github.com/wailsapp/wails/v2 v2.17.1
 	github.com/yuin/goldmark v1.8.7
@@ -22,6 +27,18 @@ require (
 	golang.org/x/oauth2 v0.37.0
 	golang.org/x/sys v0.49.0
 	modernc.org/sqlite v1.61.1
+)
+
+require (
+	github.com/alibabacloud-go/alibabacloud-gateway-spi v0.0.5 // indirect
+	github.com/alibabacloud-go/debug v1.0.1 // indirect
+	github.com/alibabacloud-go/tea-utils/v2 v2.0.7 // indirect
+	github.com/aliyun/credentials-go v1.4.5 // indirect
+	github.com/clbanning/mxj/v2 v2.7.0 // indirect
+	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.2 // indirect
+	github.com/tjfoc/gmsm v1.4.1 // indirect
 )
 
 require (

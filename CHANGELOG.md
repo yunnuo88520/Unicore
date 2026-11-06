@@ -21,6 +21,8 @@
 
 - 全站体验修缮：平台公告移入「用户管理」分组；外观主题卡片改为紧凑竖版并提高预览高度；访客访问未注册路径显示统一 404 页而非登录表单；修改管理后台路径保存后自动跳转新入口；邮件模板编辑改为左编辑右实时预览分栏（停顿自动渲染，可手动刷新）；产品首页导航 logo 与站名组合显示，滚动顶栏去掉描边。
 
+- 新增点击式人机验证（安全与控制中的单一总开关，同时管登录与注册）：支持 Cloudflare Turnstile、腾讯云验证码与阿里云验证码 2.0 三家服务商，凭据加密保存；开启后登录与注册必须携带服务商验证结果，凭据不完整时直接拒绝（fail-closed），动态放开对应服务商的 CSP 来源；与图形验证码相互独立、可叠加。登录/注册图形验证码名称保持不变。设置面板按三选一服务商重做：未启用时只显示卡片头，启用后先选服务商再只显示该家的凭据表单，附站点与密钥说明、控制台和接入文档直达链接。
+
 ### English
 
 - The settings navigation puts "Basic settings" first; settings boundaries were regrouped: mail settings now only keep SMTP and the send-test panel, login/registration human verification and email password recovery moved into "Security & control" (new site protection group), and email code login moved to the "Account security" page.
@@ -38,6 +40,8 @@
 - De-duplicated form error display: field-level errors render inline under their controls only; the top banner no longer repeats them or lingers across wizard steps, while form-wide errors keep their banner/toast. A mistyped email in the install wizard no longer shows double errors or squeezes the layout.
 
 - Sitewide polish: platform announcements moved into the user-management group; appearance theme cards became compact portrait tiles with taller previews; guests hitting unregistered paths now see a unified 404 page instead of a login form; saving a new admin path jumps to the new entrance automatically; the mail template editor split into editor plus live preview (auto-render on typing pauses, manual refresh); the homepage nav keeps logo and site name together and drops the scrolled outline on the sticky header.
+
+- Added click-through human verification behind a single master switch under security and control, covering both login and registration: three providers are supported (Cloudflare Turnstile, Tencent captcha and Aliyun captcha 2.0) with sealed credentials; when enabled, login and registration must carry the provider proof, unconfigured providers fail closed, and the CSP widens only for the selected provider's origins. The existing image CAPTCHA switches keep their names and stack independently. The settings panel follows the three-way provider flow: collapsed to its card header until enabled, then a segmented provider choice reveals only that provider's credential form with helper text plus console and docs links.
 
 ## 0.1.3 — 2026-11-06
 

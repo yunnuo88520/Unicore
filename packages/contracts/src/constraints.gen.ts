@@ -631,6 +631,14 @@ export const constraints = {
       },
       "captcha_answer": {
         "type": "string"
+      },
+      "human_check_token": {
+        "type": "string",
+        "maxLength": 4096
+      },
+      "human_check_randstr": {
+        "type": "string",
+        "maxLength": 128
       }
     }
   },
@@ -1069,7 +1077,9 @@ export const constraints = {
       "mail_ready",
       "email_login_enabled",
       "email_verification_required",
-      "phone_required"
+      "phone_required",
+      "human_check_enabled",
+      "human_check_provider"
     ],
     "properties": {
       "registration_enabled": {
@@ -1095,6 +1105,26 @@ export const constraints = {
       },
       "phone_required": {
         "type": "boolean"
+      },
+      "human_check_enabled": {
+        "type": "boolean"
+      },
+      "human_check_provider": {
+        "type": "string",
+        "enum": [
+          "turnstile",
+          "tencent",
+          "alibaba"
+        ]
+      },
+      "human_check_site_key": {
+        "type": "string"
+      },
+      "human_check_region": {
+        "type": "string"
+      },
+      "human_check_prefix": {
+        "type": "string"
       }
     }
   },
@@ -1130,6 +1160,14 @@ export const constraints = {
         "maxLength": 21,
         "pattern": "^(?:\\+?[0-9]{5,20})?$"
       },
+      "human_check_token": {
+        "type": "string",
+        "maxLength": 4096
+      },
+      "human_check_randstr": {
+        "type": "string",
+        "maxLength": 128
+      },
       "captcha_id": {
         "type": "string"
       },
@@ -1158,6 +1196,14 @@ export const constraints = {
       },
       "captcha_answer": {
         "type": "string"
+      },
+      "human_check_token": {
+        "type": "string",
+        "maxLength": 4096
+      },
+      "human_check_randstr": {
+        "type": "string",
+        "maxLength": 128
       }
     }
   },

@@ -165,10 +165,12 @@ type UserUpdate struct {
 }
 
 type LoginInput struct {
-	Username      string `json:"username"`
-	Password      string `json:"password"`
-	CaptchaID     string `json:"captcha_id"`
-	CaptchaAnswer string `json:"captcha_answer"`
+	Username          string  `json:"username"`
+	Password          string  `json:"password"`
+	CaptchaID         string  `json:"captcha_id"`
+	CaptchaAnswer     string  `json:"captcha_answer"`
+	HumanCheckToken   *string `json:"human_check_token,omitempty"`
+	HumanCheckRandstr *string `json:"human_check_randstr,omitempty"`
 }
 
 type Session struct {
@@ -294,29 +296,38 @@ type ActionResultResponse struct {
 }
 
 type AuthPolicy struct {
-	RegistrationEnabled       bool `json:"registration_enabled"`
-	ResetEnabled              bool `json:"reset_enabled"`
-	LoginCaptcha              bool `json:"login_captcha"`
-	RegisterCaptcha           bool `json:"register_captcha"`
-	MailReady                 bool `json:"mail_ready"`
-	EmailLoginEnabled         bool `json:"email_login_enabled"`
-	EmailVerificationRequired bool `json:"email_verification_required"`
-	PhoneRequired             bool `json:"phone_required"`
+	RegistrationEnabled       bool    `json:"registration_enabled"`
+	ResetEnabled              bool    `json:"reset_enabled"`
+	LoginCaptcha              bool    `json:"login_captcha"`
+	RegisterCaptcha           bool    `json:"register_captcha"`
+	MailReady                 bool    `json:"mail_ready"`
+	EmailLoginEnabled         bool    `json:"email_login_enabled"`
+	EmailVerificationRequired bool    `json:"email_verification_required"`
+	PhoneRequired             bool    `json:"phone_required"`
+	HumanCheckEnabled         bool    `json:"human_check_enabled"`
+	HumanCheckProvider        string  `json:"human_check_provider"`
+	HumanCheckSiteKey         *string `json:"human_check_site_key,omitempty"`
+	HumanCheckRegion          *string `json:"human_check_region,omitempty"`
+	HumanCheckPrefix          *string `json:"human_check_prefix,omitempty"`
 }
 
 type RegisterInput struct {
-	Username      string  `json:"username"`
-	Email         string  `json:"email"`
-	Password      string  `json:"password"`
-	Phone         *string `json:"phone,omitempty"`
-	CaptchaID     string  `json:"captcha_id"`
-	CaptchaAnswer string  `json:"captcha_answer"`
+	Username          string  `json:"username"`
+	Email             string  `json:"email"`
+	Password          string  `json:"password"`
+	Phone             *string `json:"phone,omitempty"`
+	HumanCheckToken   *string `json:"human_check_token,omitempty"`
+	HumanCheckRandstr *string `json:"human_check_randstr,omitempty"`
+	CaptchaID         string  `json:"captcha_id"`
+	CaptchaAnswer     string  `json:"captcha_answer"`
 }
 
 type EmailRequest struct {
-	Email         string `json:"email"`
-	CaptchaID     string `json:"captcha_id"`
-	CaptchaAnswer string `json:"captcha_answer"`
+	Email             string  `json:"email"`
+	CaptchaID         string  `json:"captcha_id"`
+	CaptchaAnswer     string  `json:"captcha_answer"`
+	HumanCheckToken   *string `json:"human_check_token,omitempty"`
+	HumanCheckRandstr *string `json:"human_check_randstr,omitempty"`
 }
 
 type TokenInput struct {

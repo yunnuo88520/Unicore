@@ -286,7 +286,7 @@ func business(s *sqlstore.Store, profile, temp, admin string) map[string]any {
 	must(e)
 	check(user.Username == "mixed_user" && user.Email == "mixed@example.test", "create normalization")
 	for _, login := range []string{" MIXED_USER ", " MIXED@EXAMPLE.TEST "} {
-		session, token, err := identity.Login(ctx, contracts.LoginInput{Username: login, Password: fixturePassword}, "127.0.0.1", false, 1)
+		session, token, err := identity.Login(ctx, contracts.LoginInput{Username: login, Password: fixturePassword}, "127.0.0.1", false, false, 1)
 		must(err)
 		check(session.User.ID == user.ID, "normalized login")
 		must(r.DeleteSession(ctx, platform.Hash(token)))

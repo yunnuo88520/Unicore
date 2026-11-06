@@ -1,13 +1,14 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Linked authentication pages with shared forms, confirmed passwords and real email recovery.
 import { t, useLocale, defineMessages } from '../i18n';
-import { forwardRef, useEffect, useRef, useState, type InputHTMLAttributes, type ReactNode } from 'react';
+import { forwardRef, useCallback, useEffect, useRef, useState, type InputHTMLAttributes, type ReactNode } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link, Navigate, useRouter, useRouterState } from '@tanstack/react-router';
 import { ArrowRight, Building2, Check, CheckCircle2, Eye, EyeOff, LockKeyhole, ShieldCheck, UserRound } from 'lucide-react';
 import { AppError, validate, type EmailChallenge, type WebClient } from '@unicore/sdk';
 import { useRouteSearch, useSessionNotice, type PageProps } from '../router';
 import { BrandLockup } from '../brand';
+import { HumanCheck, type HumanCheckProvider } from '../human-check';
 import { Button, Input } from '@unicore/ui';
 import { buttonVariants } from '@unicore/ui';
 import { AppField, AppForm, useAppForm } from '@unicore/form';
@@ -142,6 +143,14 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
   const [done, setDone] = useState(false);
   const policy = useQuery({ queryKey: ['auth-policy'], queryFn: () => web.authPolicy() });
   const needsCaptcha = !challenge && (mode === 'register' || mode === 'resend' ? policy.data?.register_captcha : policy.data?.login_captcha);
+  // Click-through human verification guards user login, email-code login and registration.
+  const humanRequired = !challenge && !administrator && !!policy.data?.human_check_enabled;
+  const humanWidget = { provider: (policy.data?.human_check_provider ?? 'turnstile') as HumanCheckProvider, siteKey: policy.data?.human_check_site_key ?? '', region: policy.data?.human_check_region ?? '', prefix: policy.data?.human_check_prefix ?? '' };
+  const [humanToken, setHumanToken] = useState({ token: '', randstr: '' });
+  const [humanReset, setHumanReset] = useState(0);
+  const onHumanToken = useCallback((token: string, randstr: string) => setHumanToken({ token, randstr }), []);
+  useEffect(() => { setHumanToken({ token: '', randstr: '' }); }, [mode]);
+  const humanFields = () => humanToken.token ? { human_check_token: humanToken.token, human_check_randstr: humanToken.randstr } : {};
   const captcha = useQuery({ queryKey: ['account-captcha', mode, !!challenge], queryFn: () => web.captcha(), enabled: !!needsCaptcha && !registrationSuccess, staleTime: 0, gcTime: 0 });
   useEffect(() => { if (retryAt <= Date.now()) return; const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer); }, [retryAt]);
   useEffect(() => { if (location.pathname === '/registration-success' && !registrationSuccess) void router.navigate({ to: '/register', replace: true }); }, [location.pathname, registrationSuccess, router]);
@@ -187,10 +196,10 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
       const current = { ...form.getValues(), username: form.getValues('username').trim(), email: form.getValues('email').trim().toLowerCase() };
       const graphic = { captcha_id: captcha.data?.id ?? '', captcha_answer: current.captcha_answer };
       let result: EmailChallenge | null = null;
-      if (mode === 'login') await web.login({ username: current.username, password: current.password, ...graphic });
+      if (mode === 'login') await web.login({ username: current.username, password: current.password, ...graphic, ...humanFields() });
       else if (challenge) await web.completeCode(purpose, { challenge_id: challenge.challenge_id, code: current.code, password: purpose === 'reset' ? current.password : '' });
-      else if (mode === 'register') { const response = await web.registerCode({ username: current.username, email: current.email, password: current.password, phone: current.phone.trim(), ...graphic }); result = response.registration_complete ? null : response; }
-      else result = await web.requestCode(purpose, { email: current.email, ...graphic });
+      else if (mode === 'register') { const response = await web.registerCode({ username: current.username, email: current.email, password: current.password, phone: current.phone.trim(), ...graphic, ...humanFields() }); result = response.registration_complete ? null : response; }
+      else result = await web.requestCode(purpose, { email: current.email, ...graphic, ...humanFields() });
       return { result, version };
     },
     onSuccess: ({ result, version }) => {
@@ -203,7 +212,11 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
         void router.navigate({ to: '/registration-success', replace: true, state: previous => ({ ...previous, authSuccess: challenge ? 'verified' : 'registered' }) });
       } else { setDone(true); setChallenge(undefined); form.setValue('code', ''); }
     },
-    onError: error => { form.applyServerError(error); if (needsCaptcha) { form.setValue('captcha_answer', ''); void captcha.refetch(); } },
+    onError: error => {
+      form.applyServerError(error);
+      if (needsCaptcha) { form.setValue('captcha_answer', ''); void captcha.refetch(); }
+      if (error instanceof AppError && error.code === 'HUMAN_CHECK_FAILED') setHumanReset(value => value + 1);
+    },
   });
   const sendReset = useMutation({
     mutationFn: async () => {
@@ -293,8 +306,9 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
               <AppField<AuthValues> name="captcha_answer" label={t('图形验证码')}><Input inputMode="numeric" required maxLength={6} placeholder={t('请输入图形验证码')} /></AppField>
               <button type="button" aria-label={t('刷新验证码')} onClick={() => { form.setValue('captcha_answer', ''); void captcha.refetch(); }} className="flex h-12 w-28 items-center justify-center overflow-hidden rounded-xl border border-line bg-surface-alt focus-visible:outline-2 focus-visible:outline-focus">{captcha.data && !captcha.isFetching && <img src={captcha.data.image} alt={t('六位数字验证码，点击刷新')} />}</button>
             </div>}
+            {humanRequired && <HumanCheck widget={humanWidget} required token={humanToken.token} onToken={onHumanToken} resetSignal={humanReset} />}
             {(policy.error || (needsCaptcha && captcha.error)) && <p role="alert" className="text-sm text-danger">{t((policy.error ?? captcha.error)?.message)}</p>}
-            <Button type="submit" className="mt-1 h-12 w-full rounded-xl text-sm shadow-tint" pending={submit.isPending} disabled={policy.isPending || mode === 'forgot' && !challenge || !!needsCaptcha && (captcha.isFetching || !captcha.data)}>
+            <Button type="submit" className="mt-1 h-12 w-full rounded-xl text-sm shadow-tint" pending={submit.isPending} disabled={policy.isPending || mode === 'forgot' && !challenge || humanRequired && !humanToken.token || !!needsCaptcha && (captcha.isFetching || !captcha.data)}>
               {challenge ? purpose === 'reset' ? t('保存新密码') : purpose === 'verify' ? t('确认验证邮箱') : t('验证并登录') : labels[mode]}
             </Button>
             {challenge && mode !== 'forgot' && <button type="button" className="text-center text-sm font-medium text-accent disabled:opacity-50" disabled={retry > 0} onClick={() => { setChallenge(undefined); form.setValue('code', ''); form.setValue('captcha_answer', ''); form.clearErrors(); submit.reset(); }}>{retry > 0 ? t('{{v0}} 秒后可重新获取', { v0: retry }) : t('重新获取验证码')}</button>}

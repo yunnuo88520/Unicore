@@ -76,7 +76,7 @@ func TestDialectMigrationsAndIdentity(t *testing.T) {
 			if _, err = admins.UpdateUser(ctx, admin.ID, contracts.UserUpdate{Role: "super_admin", Status: "disabled"}, admin.ID); err != platform.ErrLastAdmin {
 				t.Fatal("last admin disabled", err)
 			}
-			session, token, err := service.Login(ctx, contracts.LoginInput{Username: "member", Password: "test-password-strong"}, "local", false, 1)
+			session, token, err := service.Login(ctx, contracts.LoginInput{Username: "member", Password: "test-password-strong"}, "local", false, false, 1)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -33,10 +33,12 @@ jobs:
         id: meta
         run: |
           tag="${{ steps.tag.outputs.tag }}"
+          repo="${{ github.repository }}"
           version="${tag#v}"
+          repo="${repo,,}"
           {
             echo "version=$version"
-            echo "tags=ghcr.io/${{ github.repository }}:$version,ghcr.io/${{ github.repository }}:${version%.*}"
+            echo "tags=ghcr.io/$repo:$version,ghcr.io/$repo:${version%.*}"
           } >> "$GITHUB_OUTPUT"
       - uses: docker/build-push-action@v6
         with:

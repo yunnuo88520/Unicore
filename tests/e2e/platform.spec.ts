@@ -60,7 +60,7 @@ test('first-install platform wizard, users, settings, logout and captcha login',
   const answer = [...Buffer.from(image!.split(',')[1], 'base64').toString('utf8').matchAll(/>([0-9])<\/text>/g)].map(match => match[1]).join('');
   await page.getByLabel('图形验证码', { exact: true }).fill(answer);
   await page.getByRole('button', { name: '登录工作空间' }).click();
-  await expect(page.getByRole('heading', { name: /一份核心，\s*无限可能/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '工作台概览' })).toBeVisible();
 });
 
 test('standalone has no administrator and settings persist after reload', async ({ page, instance }, info) => {

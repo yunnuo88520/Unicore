@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 前端基础封装与新增功能
 
-共享层按包拆分：组件原语 `@unicore/ui`（packages/ui）、表单层 `@unicore/form`（packages/form）、令牌与偏好 `@unicore/theme`（packages/theme），业务 Workspace 仍在 packages/web-ui，Web 用户/管理员和 Wails 只负责装配 transport、允许的页面与全局样式。新增业务先组合下面的公共入口，不复制布局、请求、主题、翻译或表单实现。
+共享层按包拆分：组件原语 `@unicore/ui`（packages/ui）、表单层 `@unicore/form`（packages/form）、令牌与偏好 `@unicore/theme`（packages/theme），业务 Workspace 仍在 packages/web-ui，Web 用户/管理员和 Wails 只负责装配 transport、允许的页面与全局样式。新增业务先组合下面的公共入口，不复制布局、请求、主题、翻译或表单实现。工作区由顶栏显示当前页面名称并承载一级标题；正文直接呈现业务内容，不再重复品牌、页面大标题、说明与核心就绪状态横幅。
 
 | 职责 | 入口 | 新功能约定 |
 | --- | --- | --- |

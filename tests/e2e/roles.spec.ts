@@ -235,7 +235,7 @@ test('restricted administrators keep user administration without role management
     await adminLogin(ops, instance.url, 'ops', 'ops-password-strong');
     // User administration and announcements stay reachable; role management does not.
     await navigate(ops, labelOf('users'));
-    await expect(ops.getByRole('heading', { name: /用户管理/ })).toBeVisible();
+    await expect(ops.getByRole('heading', { name: '用户列表', level: 1 })).toBeVisible();
     // Keep the mobile drawer open so the entry counts describe the real sidebar.
     if (info.project.name === 'mobile') await ops.getByRole('button', { name: '打开导航', exact: true }).click();
     await expect(ops.getByRole('button', { name: labelOf('announcements'), exact: true })).toHaveCount(1);

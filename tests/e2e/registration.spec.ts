@@ -39,6 +39,6 @@ test('registration works without SMTP and exposes independent restrictions',asyn
  await page.getByRole('link',{name:'返回登录',exact:true}).first().click();await page.getByLabel('账号或邮箱',{exact:true}).fill('newmember');await page.getByLabel('密码',{exact:true}).fill('member-password-strong');
  // Reloading the login page refreshes its own captcha; extract the displayed SVG test glyphs.
  const src=await page.getByAltText('六位数字验证码，点击刷新').getAttribute('src');const svg=Buffer.from(src!.split(',')[1],'base64').toString();const answer=[...svg.matchAll(/>([0-9])<\/text>/g)].map(v=>v[1]).join('');await page.getByLabel('图形验证码',{exact:true}).fill(answer);
- await page.getByRole('button',{name:'登录工作空间',exact:true}).click();await expect(page.getByRole('heading',{name:/一份核心，\s*无限可能/})).toBeVisible();
- await instance.restart();await page.reload();await expect(page.getByRole('heading',{name:/一份核心，\s*无限可能/})).toBeVisible();
+ await page.getByRole('button',{name:'登录工作空间',exact:true}).click();await expect(page.getByRole('heading',{name:'工作台概览'})).toBeVisible();
+ await instance.restart();await page.reload();await expect(page.getByRole('heading',{name:'工作台概览'})).toBeVisible();
 });

@@ -60,11 +60,11 @@ test('personal center supports profile, TOTP recovery login and device revocatio
  await expect(page.getByRole('heading',{name:'双重验证',exact:true})).toBeVisible();await expect(page.getByLabel('身份验证器验证码',{exact:true})).toBeVisible();
  // Exercise a genuine six-digit authenticator login before recovery fallback.
  await page.getByLabel('身份验证器验证码',{exact:true}).fill('000000');await page.getByRole('button',{name:'验证并登录',exact:true}).click();await expect(page.getByRole('heading',{name:'双重验证',exact:true})).toBeVisible();
- await page.getByLabel('身份验证器验证码',{exact:true}).fill(code(secret,Math.floor(Date.now()/30000)));await page.getByRole('button',{name:'验证并登录',exact:true}).click();await expect(page.getByRole('heading',{name:/一份核心，\s*无限可能/})).toBeVisible();
+ await page.getByLabel('身份验证器验证码',{exact:true}).fill(code(secret,Math.floor(Date.now()/30000)));await page.getByRole('button',{name:'验证并登录',exact:true}).click();await expect(page.getByRole('heading',{name:'工作台概览'})).toBeVisible();
  await page.getByRole('button',{name:'账号菜单',exact:true}).click();await page.getByRole('menuitem',{name:'退出登录',exact:true}).click();
  await page.getByLabel('账号或邮箱',{exact:true}).fill('admin');await page.getByLabel('密码',{exact:true}).fill('test-password-strong');await page.getByRole('button',{name:'登录工作空间',exact:true}).click();await expect(page.getByRole('heading',{name:'双重验证',exact:true})).toBeVisible();
  await page.getByRole('button',{name:'使用恢复码',exact:true}).click();await page.getByLabel('恢复码',{exact:true}).fill(recovery[0]);await page.getByRole('button',{name:'验证并登录',exact:true}).click();await expect(page.getByRole('heading',{name:'双重验证',exact:true})).toBeVisible();
- await page.getByLabel('恢复码',{exact:true}).fill(recovery[1]);await page.getByRole('button',{name:'验证并登录',exact:true}).click();await expect(page.getByRole('heading',{name:/一份核心，\s*无限可能/})).toBeVisible();
+ await page.getByLabel('恢复码',{exact:true}).fill(recovery[1]);await page.getByRole('button',{name:'验证并登录',exact:true}).click();await expect(page.getByRole('heading',{name:'工作台概览'})).toBeVisible();
  await page.evaluate(()=>{const key='unicore.preferences.v1';const v=JSON.parse(localStorage.getItem(key)||'{}');v.locale='en';v.theme='dark';localStorage.setItem(key,JSON.stringify(v));});
  await page.goto(`${instance.url}/admin/account-security`);await expect(page.getByRole('heading',{name:'Security.',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Disable two-factor authentication',exact:true})).toBeVisible();
  await page.screenshot({path:`${directory}/security-en-dark.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);

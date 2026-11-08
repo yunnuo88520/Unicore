@@ -80,13 +80,13 @@ async function submitLogin(page: Page, username: string, password: string) {
 export async function adminLogin(page: Page, url: string, username: string, password: string) {
   await page.goto(`${url}/admin`);
   await submitLogin(page, username, password);
-  await expect(page.getByRole('heading', { name: /一份核心，\s*无限可能/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '工作台概览' })).toBeVisible();
 }
 
 export async function workspaceLogin(page: Page, url: string, username: string, password = memberPassword) {
   await page.goto(url);
   await submitLogin(page, username, password);
-  await expect(page.getByRole('heading', { name: /一份核心，\s*无限可能/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '工作台概览' })).toBeVisible();
 }
 
 // The SDK runs in Node without a cookie jar: capture the session cookie between
@@ -165,7 +165,7 @@ const directoryLabels: Record<string, string> = { administration: '超级管理�
 // The label a node renders with: the operator override, the registered route
 // label or the seeded directory fallback.
 export function nodeDisplayLabel(node: { label: string; route_id?: string; id: string }): string {
-  return node.label.trim() || (node.route_id ? routeLabels[node.route_id] ?? node.route_id : directoryLabels[node.id] ?? node.id);
+  return node.label.trim() || (node.route_id ? routeLabels[node.route_id] ?? node.route_id : directoryLabels[node.id.replace(/^(user|administrator):/, '')] ?? node.id);
 }
 
 export function pageNode(config: MenuList, routeId: string): NavigationNode | undefined {

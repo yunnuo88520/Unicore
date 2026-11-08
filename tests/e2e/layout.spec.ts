@@ -21,7 +21,7 @@ test('layout matrix preserves shell geometry and stable appearance controls',asy
       const state=await page.evaluate(()=>{
         const rect=(selector:string)=>{const r=document.querySelector(selector)!.getBoundingClientRect();return {left:r.left,right:r.right,width:r.width,top:r.top,bottom:r.bottom};};
         const header=document.querySelector('.topbar')!,sheet=document.querySelector('.main-shell')!;
-        return {viewport:innerWidth,overflow:document.documentElement.scrollWidth>innerWidth+1,main:rect('.main-shell'),content:rect('.main-content'),navigation:rect('.sidebar'),heading:rect('.page-heading'),header:rect('.topbar'),headerRadius:parseFloat(getComputedStyle(header).borderTopLeftRadius),sheetRadius:parseFloat(getComputedStyle(sheet).borderTopLeftRadius),headerBackground:getComputedStyle(header).backgroundColor,sheetBackground:getComputedStyle(sheet).backgroundColor,pageBackground:getComputedStyle(document.body).backgroundColor,dir:document.documentElement.dir,
+        return {viewport:innerWidth,overflow:document.documentElement.scrollWidth>innerWidth+1,main:rect('.main-shell'),content:rect('.main-content'),navigation:rect('.sidebar'),header:rect('.topbar'),headerRadius:parseFloat(getComputedStyle(header).borderTopLeftRadius),sheetRadius:parseFloat(getComputedStyle(sheet).borderTopLeftRadius),headerBackground:getComputedStyle(header).backgroundColor,sheetBackground:getComputedStyle(sheet).backgroundColor,pageBackground:getComputedStyle(document.body).backgroundColor,dir:document.documentElement.dir,
           controls:[...document.querySelectorAll('.preference-content .preference-choice')].map(node=>node.getBoundingClientRect().left),
           navigationHidden:getComputedStyle(document.querySelector('.sidebar')!).transform!=='none'};
       });
@@ -61,7 +61,7 @@ test('layout matrix preserves shell geometry and stable appearance controls',asy
   await expect(page.locator('.sidebar')).toHaveClass(/is-open/);
   await expect(page.getByRole('button',{name:'我的笔记',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'我的笔记',exact:true}).click();
-  await expect(page.getByRole('heading',{name:'我的笔记.'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'我的笔记'})).toBeVisible();
   await expect(page.locator('.nav-scrim')).toHaveCount(0);
 });
 
@@ -78,7 +78,7 @@ test('navigation renders the persisted section tree with collapsed directories a
   const parentNode=usersNode.parent_id?config.nodes.find(node=>node.id===usersNode.parent_id):undefined;
   const parentLabel=parentNode?nodeDisplayLabel(parentNode):null;
   await page.goto(`${instance.url}/admin`);
-  await expect(page.getByRole('heading',{name:/一份核心，\s*无限可能/})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'工作台概览'})).toBeVisible();
   await expect(page.getByText('文本分析不保存输入，外观偏好仅在当前客户端生效。',{exact:true})).toHaveCount(0);
   if(info.project.name==='mobile')await page.getByRole('button',{name:'打开导航',exact:true}).click();
   const sidebar=page.locator('.sidebar');
@@ -126,7 +126,7 @@ test('navigation renders the persisted section tree with collapsed directories a
 
 test('inset and floating headers match their content sheet in both themes',async({page,instance},info)=>{
   await installStandalone(instance);await page.goto(instance.url);
-  await expect(page.getByRole('heading',{name:/一份核心，\s*无限可能/})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'工作台概览'})).toBeVisible();
   await mkdir('build/acceptance/layout',{recursive:true});
   for(const theme of ['light','dark'])for(const sidebar of ['inset','floating']){
     await page.evaluate(value=>{localStorage.setItem('unicore.preferences.v1',JSON.stringify({...value,navCollapsed:false}));window.dispatchEvent(new StorageEvent('storage',{key:'unicore.preferences.v1'}));},{theme,sidebar});

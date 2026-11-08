@@ -188,7 +188,6 @@ function WorkspaceShell() {
       </>}
     >
       {enrollment && <p role="alert" className="mb-4 rounded-lg border border-line bg-primary-soft p-4 text-sm text-ink">{t('实例要求启用双重验证，请先完成安全设置。')}</p>}
-      <PageHeading page={enrollment ? 'account-security' : page} data={data} personalSettings={personalSettings} settingsLabel={settingsLabel} administration={administration} />
       {metadata.isPending
         ? <StateCard tone="pending" icon={<Radio size={24} className="animate-pulse text-accent" />} title={t('正在连接 Go 核心')} detail={t('正在获取当前运行形态与能力信息…')} />
         : metadata.isError
@@ -277,7 +276,7 @@ function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onO
         : <button className="mobile-menu size-8 items-center justify-center rounded-md text-muted hover:bg-primary-soft hover:text-accent max-md:-ms-1" aria-label={t('打开导航')} aria-expanded={mobileOpen} aria-controls="workspace-navigation" onClick={onOpenMobile}><Menu size={20} /></button>}
       <span className="hidden max-lg:inline">{t('工作空间')}</span>
       <ChevronRight size={14} className="hidden max-md:block max-lg:hidden text-subtle" aria-hidden="true" />
-      <strong className="truncate font-medium text-ink">{page === 'site' ? settingsLabel : t(routes[page].label)}</strong>
+      <h1 className="m-0 truncate font-medium text-ink">{page === 'site' ? settingsLabel : t(routes[page].label)}</h1>
     </div>
     <div className="flex shrink-0 items-center gap-[15px] max-md:gap-[9px]">
       <span className="flex items-center gap-1.5 text-[length:var(--font-10)] text-muted max-sm:hidden">
@@ -309,25 +308,6 @@ function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onO
       )}
     </div>
   </>;
-}
-
-function PageHeading({ page, data, personalSettings, settingsLabel, administration }: {
-  page: Page; data: Bootstrap; personalSettings: boolean; settingsLabel: string; administration: boolean;
-}) {
-  useLocale();
-  const route = routes[page];
-  return <div className="page-heading mb-[27px] flex items-center justify-between gap-[20px] max-md:mb-[22px] max-md:gap-3">
-    <div className="min-w-0">
-      <div className="mb-3 flex items-center gap-[7px] text-[length:var(--font-9)] font-semibold tracking-[1.6px] text-muted">
-        <span className="size-[5px] rounded-full bg-primary" aria-hidden="true" /> {productName} · {t(administration ? '管理员' : '工作空间')}
-      </div>
-      <h1 className="text-[length:var(--font-24)] font-semibold text-ink max-md:text-[length:var(--font-23)]">{t(page === 'site' && personalSettings ? '外观设置' : route.title)}<span className="ms-1 text-primary">.</span></h1>
-      <p className="mt-[7px] text-[length:var(--font-11)] leading-[1.8] text-muted max-md:max-w-[290px] max-md:text-[length:var(--font-10)] max-md:leading-[1.9]">{t(page === 'site' && personalSettings ? '只影响当前客户端，不修改全局配置。' : route.description)}</p>
-    </div>
-    <span className="mt-5 flex items-center gap-1.5 whitespace-nowrap rounded-full border border-line bg-surface px-[11px] py-[7px] text-[length:var(--font-9)] text-muted max-sm:hidden">
-      <span className="size-[5px] rounded-full bg-success" aria-hidden="true" /> {t('核心已就绪')}
-    </span>
-  </div>;
 }
 
 function StateCard({ tone, icon, title, detail, action }: { tone: 'pending' | 'error'; icon: ReactNode; title: string; detail: string; action?: ReactNode }) {

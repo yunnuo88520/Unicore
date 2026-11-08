@@ -12,7 +12,7 @@ async function login(page: Page, username: string) {
   const answer=[...Buffer.from(image!.split(',')[1],'base64').toString().matchAll(/>([0-9])<\/text>/g)].map(match=>match[1]).join('');
   await page.getByLabel('图形验证码',{exact:true}).fill(answer);
   await page.getByRole('button',{name:'登录工作空间'}).click();
-  await expect(page.getByRole('heading',{name:/一份核心，\s*无限可能/})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'工作台概览'})).toBeVisible();
 }
 
 test.setTimeout(120_000);test('cross-tab logout/account switch, field focus and server revocation',async({page,context,instance},info)=>{

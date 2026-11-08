@@ -107,7 +107,7 @@ test('SMTP settings, verified registration and password recovery revoke old sess
     await page.getByLabel('密码', { exact: true }).fill('original-password-strong');
     await solveCaptcha(page);
     await page.getByRole('button', { name: '登录工作空间' }).click();
-    await expect(page.getByRole('heading', { name: /一份核心，\s*无限可能/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '工作台概览' })).toBeVisible();
     const oldCookies = await page.context().cookies();
     // A second browser context requests reset while the first remains authenticated.
     const recovery = await page.context().browser()!.newContext({ viewport: page.viewportSize()! });
@@ -153,7 +153,7 @@ test('SMTP settings, verified registration and password recovery revoke old sess
     await capture(page, info, 'email-code-error');
     await page.getByLabel('邮箱验证码', { exact: true }).fill(actualCode);
     await page.getByRole('button', { name: '验证并登录' }).click();
-    await expect(page.getByRole('heading', { name: /一份核心，\s*无限可能/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '工作台概览' })).toBeVisible();
     await page.goto(`${instance.url}/users`);
     await expect(page.getByText('没有访问权限')).toBeVisible();
     await capture(page, info, 'permission-denied');
@@ -278,7 +278,7 @@ test('linked auth pages, confirmation, duplicate feedback and recovery preview',
     await page.getByLabel('账号或邮箱', { exact: true }).fill('previewmember');
     await page.getByLabel('密码', { exact: true }).fill(newPassword);
     await page.getByRole('button', { name: '登录工作空间', exact: true }).click();
-    await expect(page.getByRole('heading', { name: /一份核心，\s*无限可能/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '工作台概览' })).toBeVisible();
     expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain(newPassword);
   } finally { await smtp.close(); }
 });

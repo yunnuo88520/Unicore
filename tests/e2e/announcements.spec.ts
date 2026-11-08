@@ -111,7 +111,7 @@ test('local workspace never requests announcement APIs', async ({ page, instance
   const requests: string[] = [];
   page.on('request', request => { if (request.url().includes('/announcements')) requests.push(request.url()); });
   await page.goto(instance.url);
-  await expect(page.getByRole('heading', { name: /一份核心，无限可能/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '工作台概览' })).toBeVisible();
   await expect(page.getByRole('button', { name: '平台公告', exact: true })).toHaveCount(0);
   expect(requests).toEqual([]);
 });

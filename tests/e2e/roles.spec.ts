@@ -317,20 +317,15 @@ test('button-level grants hide note and file actions while both pages stay reach
     await expect(uploadDialog).toHaveCount(0);
     await expect(memberPage.getByRole('button', { name: '下载 member-file.txt', exact: true })).toBeVisible();
     await expect(memberPage.getByRole('button', { name: '删除 member-file.txt', exact: true })).toHaveCount(0);
-    // Removing the create/upload points fails while their API grants remain:
-    // operation grants may never exceed the permission upper bound.
+    // Narrowing the permission upper bound prunes dependent API and action
+    // grants in the same save; unrelated grants stay intact.
     await page.goto(`${instance.url}/admin/roles`);
     await page.getByRole('row').filter({ hasText: '记录员' }).getByRole('button', { name: '编辑角色 记录员', exact: true }).click();
     const editDialog = page.getByRole('dialog', { name: '编辑角色', exact: true });
-    await editDialog.getByLabel('创建笔记', { exact: true }).uncheck();
-    await editDialog.getByLabel('上传文件', { exact: true }).uncheck();
-    await editDialog.getByRole('button', { name: '保存', exact: true }).click();
-    await expect(page.getByRole('alert').filter({ hasText: '你没有执行此操作的权限' })).toBeVisible();
-    // Unchecking the dependent API grants in the same save closes the gap.
+    const points = editDialog.getByLabel('权限点', { exact: true });
+    await points.getByRole('checkbox', { name: '创建笔记', exact: true }).uncheck();
+    await points.getByRole('checkbox', { name: '上传文件', exact: true }).uncheck();
     const keep = materializedOperations('user', ['notes:access', 'notes:update', 'files:access']);
-    for (const operation of recorder.operation_ids.filter((id: string) => !keep.includes(id))) {
-      await editDialog.getByLabel(operation, { exact: true }).uncheck();
-    }
     await editDialog.getByRole('button', { name: '保存', exact: true }).click();
     await expect(editDialog).toHaveCount(0);
     await loginClient(admin, 'admin', adminPassword);
@@ -365,7 +360,7 @@ test('button-level grants hide note and file actions while both pages stay reach
   }
 });
 
-test('departments back custom data scopes and refuse cyclic parents', async ({ page, instance }) => {
+test('department moves refuse cycles and revoke stale scope sessions', async ({ page, instance }) => {
   test.setTimeout(120000);
   await installPlatform(instance);
   await adminLogin(page, instance.url, 'admin', adminPassword);
@@ -410,6 +405,10 @@ test('departments back custom data scopes and refuse cyclic parents', async ({ p
   await moveDialog.getByLabel('上级部门', { exact: true }).selectOption(child!.id);
   await moveDialog.getByRole('button', { name: '保存', exact: true }).click();
   await expect(moveDialog).toHaveCount(0);
+  // Tree changes revoke existing sessions because department scopes may change.
+  await adminLogin(page, instance.url, 'admin', adminPassword);
+  await page.goto(`${instance.url}/admin/departments`);
+  await loginClient(admin, 'admin', adminPassword);
   const moved = (await admin.web!.listDepartments()).items.find(item => item.name === '研发二部')!;
   expect(moved.parent_id).toBe(child!.id);
   await page.getByRole('button', { name: '重命名 研发二部', exact: true }).click();
@@ -417,13 +416,29 @@ test('departments back custom data scopes and refuse cyclic parents', async ({ p
   await restoreDialog.getByLabel('上级部门', { exact: true }).selectOption('');
   await restoreDialog.getByRole('button', { name: '保存', exact: true }).click();
   await expect(restoreDialog).toHaveCount(0);
+  await adminLogin(page, instance.url, 'admin', adminPassword);
+  await page.goto(`${instance.url}/admin/departments`);
   // The unused helper department deletes cleanly.
   await page.getByRole('button', { name: '删除 研发二部', exact: true }).click();
   const unusedDialog = page.getByRole('alertdialog', { name: '删除部门', exact: true });
   await unusedDialog.getByRole('button', { name: '确认删除', exact: true }).click();
   await expect(unusedDialog).toHaveCount(0);
+  await adminLogin(page, instance.url, 'admin', adminPassword);
+  await page.goto(`${instance.url}/admin/departments`);
   await expect(page.getByRole('button', { name: '删除 研发二部', exact: true })).toHaveCount(0);
-  // A user-realm role scoped to the child department through the editor.
+  await loginClient(admin, 'admin', adminPassword);
+  expect((await admin.web!.listDepartments()).total).toBe(2);
+});
+
+test('custom department scopes echo in the role editor and guard attached departments', async ({ page, instance }) => {
+  test.setTimeout(120000);
+  await installPlatform(instance);
+  const admin = sdkClient(instance.url, 'administrator');
+  await loginClient(admin, 'admin', adminPassword);
+  const parent = await admin.web!.createDepartment({ name: '研发部', parent_id: '', sort: 0 });
+  const child = await admin.web!.createDepartment({ name: '前端组', parent_id: parent.id, sort: 0 });
+  await adminLogin(page, instance.url, 'admin', adminPassword);
+  // A role scoped to the child department through the editor.
   await page.goto(`${instance.url}/admin/roles`);
   await page.getByRole('button', { name: '新建角色', exact: true }).click();
   const editor = page.getByRole('dialog', { name: '新建角色', exact: true });
@@ -433,6 +448,7 @@ test('departments back custom data scopes and refuse cyclic parents', async ({ p
   await editor.getByRole('checkbox', { name: '前端组' }).check();
   await editor.getByRole('button', { name: '保存', exact: true }).click();
   await expect(editor).toHaveCount(0);
+  await loginClient(admin, 'admin', adminPassword);
   const roles = await admin.web!.roles();
   const scoped = roles.items.find(item => item.name === '区域记录员');
   expect(scoped?.data_scope).toBe('custom');
@@ -456,6 +472,7 @@ test('departments back custom data scopes and refuse cyclic parents', async ({ p
   const row = page.getByRole('row').filter({ hasText: 'deptmember' });
   await expect(row).toBeVisible();
   await expect(row.getByText('前端组')).toBeVisible();
+  await loginClient(admin, 'admin', adminPassword);
   const users = await admin.web!.users('', 1);
   expect(users.items.find(item => item.username === 'deptmember')?.department_id).toBe(child!.id);
   // Deleting the user-attached child reports the 409 constraint and keeps the tree intact.
@@ -468,6 +485,7 @@ test('departments back custom data scopes and refuse cyclic parents', async ({ p
   await confirm.getByRole('button', { name: '取消', exact: true }).click();
   await expect(confirm).toHaveCount(0);
   await expect(page.getByRole('button', { name: '删除 前端组' })).toBeVisible();
+  await loginClient(admin, 'admin', adminPassword);
   expect((await admin.web!.listDepartments()).total).toBe(2);
 });
 

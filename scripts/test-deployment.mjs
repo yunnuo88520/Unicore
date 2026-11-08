@@ -12,7 +12,7 @@ const identity = loadIdentity(), prefix = ciSecretPrefix(identity.product.slug);
 const docker = args => execFileSync('docker', args, { encoding: 'utf8', stdio: ['ignore','pipe','pipe'] }).trim();
 const version = readFileSync('VERSION','utf8').trim();
 const contract = JSON.parse(readFileSync('packages/contracts/openapi.json','utf8'));
-const management = Object.entries(contract.paths).filter(([path])=>path.startsWith('/api/v1/admin/')).flatMap(([path,item])=>Object.entries(item).filter(([,operation])=>operation.operationId&&operation['x-unicore'].access!=='public').map(([method,operation])=>({path,method:method.toUpperCase(),pendingMFA:['adminVerifyMFA','adminCancelMFA'].includes(operation.operationId)})));
+const management = Object.entries(contract.paths).filter(([path])=>path.startsWith('/api/v1/admin/')).flatMap(([path,item])=>Object.entries(item).filter(([,operation])=>operation.operationId&&operation['x-unicore'].access!=='public').map(([method,operation])=>({path,method:method.toUpperCase(),policy:operation['x-unicore'],pendingMFA:['adminVerifyMFA','adminCancelMFA'].includes(operation.operationId)})));
 const image = process.env[`${prefix}_IMAGE`] ?? `${identity.deployment.image}:${version}`;
 const daemonArch=docker(['info','--format','{{.Architecture}}']);
 const arch=({aarch64:'arm64',arm64:'arm64',x86_64:'amd64',amd64:'amd64'})[daemonArch];
@@ -109,8 +109,8 @@ async function exercise(mode,profile) {
     // The click starts a full document navigation for the administrator entry.
     // Wait for its URL and document load before asserting the mounted shell.
     await page.waitForURL(target=>target.origin===new URL(url).origin&&target.pathname.replace(/\/$/,'')===(profile==='web-platform'?'/admin':''));
-    // The hero heading splits across a line break, so whitespace varies with rendering.
-    await expect(page.getByRole('heading',{name:/一份核心，\s*无限可能/})).toBeVisible();
+    // The shell heading confirms the workspace mounted after navigation.
+    await expect(page.getByRole('heading',{name:'工作台概览',level:1,exact:true})).toBeVisible();
     const boot=await json(bootstrapPath);expect(boot.version).toBe(version);expect(boot.profile).toBe(profile);expect(boot.deployment_kind).toBe(mode.startsWith('tar')?'tar':'docker');
     const admin=profile==='web-platform';const headers={...realm,'Origin':url,...(admin?{'X-CSRF-Token':boot.csrf_token}:{})};
     const base=admin?'/api/v1/admin':'/api/v1';
@@ -172,8 +172,8 @@ async function exercise(mode,profile) {
       const src=await page.getByAltText('六位数字验证码，点击刷新').getAttribute('src');
       const answer=[...Buffer.from(src.split(',')[1],'base64').toString().matchAll(/>([0-9])<\/text>/g)].map(match=>match[1]).join('');
       await page.getByLabel('图形验证码',{exact:true}).fill(answer);await page.getByRole('button',{name:'登录工作空间'}).click();
-      // The hero heading splits across a line break, so whitespace varies with rendering.
-    await expect(page.getByRole('heading',{name:/一份核心，\s*无限可能/})).toBeVisible();
+      // The shell heading confirms the workspace mounted after navigation.
+    await expect(page.getByRole('heading',{name:'工作台概览',level:1,exact:true})).toBeVisible();
     } else {expect((await get('/api/v1/admin/users')).status()).toBe(404);await page.goto(url);}
     const session=await json(bootstrapPath);
     const executed=await context.request.post(`${url}/api/v1${admin?'/admin':''}/core/execute`,{headers:{...realm,Origin:url,...(admin?{'X-CSRF-Token':session.csrf_token}:{})},data:{text:'hello world'}});
@@ -188,13 +188,21 @@ async function exercise(mode,profile) {
         const src=await personal.getByAltText('六位数字验证码，点击刷新').getAttribute('src');
         const answer=[...Buffer.from(src.split(',')[1],'base64').toString().matchAll(/>([0-9])<\/text>/g)].map(match=>match[1]).join('');
         await personal.getByLabel('图形验证码',{exact:true}).fill(answer);await personal.getByRole('button',{name:'登录工作空间'}).click();
-        await expect(personal.getByRole('heading',{name:/一份核心，\s*无限可能/})).toBeVisible();
+        await expect(personal.getByRole('heading',{name:'工作台概览',level:1,exact:true})).toBeVisible();
         await personal.goto(`${url}/site`);
         await expect(personal.getByText('仅当前客户端',{exact:true})).toBeVisible();
         const metadata=(await(await member.request.get('/api/v1/bootstrap')).json()).data;
         expect(metadata.current_user.roles).toEqual(['user']);expect([...metadata.current_user.permissions].sort()).toEqual(['files:access','files:delete','files:upload','notes:access','notes:create','notes:delete','notes:update']);
-        // MFA requires a pending session in this exact realm, rather than a fully signed-in user.
-        for(const operation of management)expect((await member.request.fetch(operation.path.replace('{id}','missing'),{method:operation.method,headers:{Origin:url,'X-CSRF-Token':metadata.csrf_token},...(operation.method==='GET'?{}:{data:{}})})).status(),`${operation.method} ${operation.path}`).toBe(operation.pendingMFA?401:403);
+        // Workspace entry points share one identity. Denial follows each API's
+        // permission and super-admin policy; MFA still requires a pending session.
+        for(const operation of management) {
+          const points=operation.policy.permissions??[];
+          const held=point=>metadata.current_user.permissions.includes(point);
+          const allowed=operation.policy.permissionMode==='any'?points.some(held):points.every(held);
+          if(operation.pendingMFA||operation.policy.superAdmin||!allowed) {
+            expect((await member.request.fetch(operation.path.replace('{id}','missing'),{method:operation.method,headers:{Origin:url,'X-CSRF-Token':metadata.csrf_token},...(operation.method==='GET'?{}:{data:{}})})).status(),`${operation.method} ${operation.path}`).toBe(operation.pendingMFA?401:403);
+          }
+        }
         expect((await member.request.get('/manage')).status()).toBe(200);
         await expect(personal.getByLabel('站点名称',{exact:true})).toHaveCount(0);
         const writes=[];personal.on('request',request=>{if(request.method()!=='GET')writes.push(request.url());});

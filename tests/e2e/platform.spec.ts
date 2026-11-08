@@ -1,8 +1,8 @@
 // Author: yunnuo <ymz@ebox.vip>
-import { test, expect, installStandalone, navigate } from './fixtures';
+import { test, expect, installStandalone, installPlatform, navigate } from './fixtures';
 import { capture } from './visual';
 
-test('first-install platform wizard, users, settings, logout and captcha login', async ({ page, instance }, info) => {
+test('first-install platform wizard connects the database and enters the workspace', async ({ page, instance }, info) => {
   await page.goto(instance.url);
   await expect(page).toHaveURL(/\/install$/);
   await capture(page, info, 'install-credential');
@@ -29,6 +29,13 @@ test('first-install platform wizard, users, settings, logout and captcha login',
   await expect(page.getByRole('heading', { name: '安装完成', exact: true })).toBeVisible();
   await capture(page, info, 'install-complete');
   await page.getByRole('button', { name: '进入工作空间' }).click();
+  await expect(page.getByRole('heading', { name: '工作台概览', exact: true })).toBeVisible();
+});
+
+test('workspace consoles render and create users', async ({ page, instance }, info) => {
+  await installPlatform(instance, { username: 'admin', email: 'admin@example.test', password: 'test-password-strong' });
+  await page.context().addCookies((await instance.request.storageState()).cookies);
+  await page.goto(`${instance.url}/admin`);
   async function nav(name: string) { await navigate(page,name); }
   for (const [name, slug] of [['工作台概览', 'overview'], ['核心实验室', 'lab'], ['基础设置', 'site'], ['系统日志', 'logs']] as const) {
     await nav(name); await capture(page, info, slug);
@@ -45,7 +52,12 @@ test('first-install platform wizard, users, settings, logout and captcha login',
   await page.getByLabel('初始密码').fill('test-password-strong');
   await page.getByRole('button', { name: '创建用户', exact: true }).click();
   await expect(page.getByRole('cell', { name: 'member', exact: true })).toBeVisible();
-  await nav('基础设置');
+});
+
+test('site settings survive logout and captcha login', async ({ page, instance }, info) => {
+  await installPlatform(instance, { username: 'admin', email: 'admin@example.test', password: 'test-password-strong' });
+  await page.context().addCookies((await instance.request.storageState()).cookies);
+  await page.goto(`${instance.url}/admin/site`);
   await capture(page, info, 'site-settings');
   await page.getByLabel('站点名称').fill('My Unicore');
   await page.getByRole('button', { name: '保存设置' }).click();

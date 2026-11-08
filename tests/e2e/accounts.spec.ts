@@ -37,8 +37,9 @@ async function solveCaptcha(page: Page) {
 
 async function prepareMailFlow(instance: Instance, smtp: Awaited<ReturnType<typeof smtpSink>>) {
   await installPlatform(instance, { username: 'admin', email: 'admin@example.test', password: 'test-password-strong' });
-  const admin = sdkClient(instance.url);
+  const admin = sdkClient(instance.url, 'administrator');
   await loginClient(admin, 'admin', 'test-password-strong');
+  await admin.bootstrap();
   await admin.patchSettings({ changes: Object.entries({
     'site.name': 'Mail Unicore', 'mail.host': '127.0.0.1', 'mail.port': String(smtp.port),
     'mail.tls': 'plain', 'mail.from': 'sender@example.test',
@@ -99,7 +100,7 @@ test('SMTP settings validate saved secrets, delivery and mail-flow controls', as
   } finally { await smtp.close(); }
 });
 
-test('verified registration and email-code login enforce proof and role boundaries', async ({ page, instance }, info) => {
+test('verified registration enforces email proof before password login', async ({ page, instance }, info) => {
   const smtp = await smtpSink();
   try {
     await prepareMailFlow(instance, smtp);
@@ -133,13 +134,23 @@ test('verified registration and email-code login enforce proof and role boundari
     await page.getByRole('button', { name: '账号菜单', exact: true }).click();
     await page.getByRole('menuitem', { name: '退出登录', exact: true }).click();
     await expect(page.getByRole('heading', { name: '登录 Mail Unicore' })).toBeVisible();
+  } finally { await smtp.close(); }
+});
+
+test('email-code login rejects incorrect proof and preserves role boundaries', async ({ page, instance }, info) => {
+  const smtp = await smtpSink();
+  try {
+    const admin = await prepareMailFlow(instance, smtp);
+    await admin.web!.createUser({ username: 'browsermember', email: 'browsermember@example.test', password: 'original-password-strong', role: 'user' });
+    const mailCode = () => latestMailCode(smtp.messages);
+    await page.goto(instance.url);
     await page.getByRole('link', { name: '邮箱验证码登录', exact: true }).click();
     await page.getByLabel('邮箱', { exact: true }).fill('browsermember@example.test');
     await solveCaptcha(page);
     await capture(page, info, 'email-login-form');
     await page.getByRole('button', { name: '发送登录验证码' }).click();
     await expect(page.getByRole('heading', { name: '输入登录验证码' })).toBeVisible();
-    await expect.poll(() => smtp.messages.length).toBe(3);
+    await expect.poll(() => smtp.messages.length).toBe(2);
     await capture(page, info, 'email-login-code');
     const actualCode = mailCode();
     await page.getByLabel('邮箱验证码', { exact: true }).fill(actualCode === '000000' ? '000001' : '000000');

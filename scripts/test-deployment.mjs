@@ -12,7 +12,7 @@ const identity = loadIdentity(), prefix = ciSecretPrefix(identity.product.slug);
 const docker = args => execFileSync('docker', args, { encoding: 'utf8', stdio: ['ignore','pipe','pipe'] }).trim();
 const version = readFileSync('VERSION','utf8').trim();
 const contract = JSON.parse(readFileSync('packages/contracts/openapi.json','utf8'));
-const management = Object.entries(contract.paths).filter(([path])=>path.startsWith('/api/v1/admin/')).flatMap(([path,item])=>Object.entries(item).filter(([,operation])=>operation.operationId&&operation['x-unicore'].access!=='public').map(([method,operation])=>({path,method:method.toUpperCase(),policy:operation['x-unicore'],pendingMFA:['adminVerifyMFA','adminCancelMFA'].includes(operation.operationId)})));
+const management = Object.entries(contract.paths).filter(([path])=>path.startsWith('/api/v1/admin/')).flatMap(([path,item])=>Object.entries(item).filter(([,operation])=>operation.operationId&&operation['x-unicore'].access!=='public').map(([method,operation])=>({path,method:method.toUpperCase(),policy:operation['x-unicore'],pendingMFA:operation.operationId==='adminVerifyMFA'})));
 const image = process.env[`${prefix}_IMAGE`] ?? `${identity.deployment.image}:${version}`;
 const daemonArch=docker(['info','--format','{{.Architecture}}']);
 const arch=({aarch64:'arm64',arm64:'arm64',x86_64:'amd64',amd64:'amd64'})[daemonArch];
@@ -209,9 +209,14 @@ async function exercise(mode,profile) {
         await personal.getByRole('button',{name:/深色.*柔和低光/}).click();await personal.getByRole('button',{name:'保存设置',exact:true}).click();
         await expect(personal.locator('html')).toHaveAttribute('data-theme','dark');expect(writes).toEqual([]);
         await personal.screenshot({path:join(evidence,`${mode}-member-local-375.png`),fullPage:true});
+        // Cancelling MFA also closes a fully authenticated session. Both
+        // workspace entries act on this user's cookie, without affecting peers.
+        expect((await member.request.post('/api/v1/admin/auth/mfa/cancel',{headers:{Origin:url,'X-CSRF-Token':metadata.csrf_token},data:{}})).status()).toBe(200);
+        expect((await (await member.request.get('/api/v1/bootstrap')).json()).data.current_user).toBeFalsy();
+        expect((await json(bootstrapPath)).current_user.roles).toContain('super_admin');
       } finally {await member.close();}
     }
-    expect(errors).toEqual([]);results.push({mode,profile,version,status:'passed',checks:['install wizard PC/375',...(admin?['demo account and six-digit captcha login','CSRF and custom admin path','all management APIs reject anonymous/member','member local appearance only']:['platform APIs absent']),...(mode.startsWith('tar')?['Nginx proxies embedded fingerprinted assets']:[]),'API/brand/manifest/docs routing','restart and container replacement','persisted settings/key/database/brand','Core']});
+    expect(errors).toEqual([]);results.push({mode,profile,version,status:'passed',checks:['install wizard PC/375',...(admin?['demo account and six-digit captcha login','CSRF and custom admin path','anonymous denial and member permission boundaries','member local appearance only']:['platform APIs absent']),...(mode.startsWith('tar')?['Nginx proxies embedded fingerprinted assets']:[]),'API/brand/manifest/docs routing','restart and container replacement','persisted settings/key/database/brand','Core']});
     console.log(`PASS ${mode}`);
   } catch(error) {
     // Preserve the real failed page without logging form values or credentials.

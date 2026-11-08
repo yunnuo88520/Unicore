@@ -106,6 +106,9 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
     pageRoute('/users', () => import('./pages/admin/users').then(module => ({ default: module.AdminUsersPage })), { adminEligible: true }),
     pageRoute('/administrators', () => import('./pages/admin/users').then(module => ({ default: module.AdminAdministratorsPage })), { adminEligible: true }),
     pageRoute('/roles', () => import('./pages/admin/roles').then(module => ({ default: module.AdminRolesPage })), { adminEligible: true }),
+    pageRoute('/posts', () => import('./pages/admin/posts').then(module => ({ default: module.AdminPostsPage })), { adminEligible: true }),
+    pageRoute('/api-operations', () => import('./pages/admin/api-operations').then(module => ({ default: module.AdminApiOperationsPage })), { adminEligible: true }),
+    pageRoute('/departments', () => import('./pages/admin/departments').then(module => ({ default: module.AdminDepartmentsPage })), { adminEligible: true }),
     pageRoute('/menus', () => import('./pages/admin/menus').then(module => ({ default: module.AdminMenusPage })), { adminEligible: true }),
     pageRoute('/dictionaries', () => import('./pages/admin/dictionaries').then(module => ({ default: module.AdminDictionariesPage })), { adminEligible: true }),
     pageRoute('/notification-channels', () => import('./pages/admin/notifications').then(module => ({ default: module.AdminNotificationsPage })), { adminEligible: true }),
@@ -115,6 +118,8 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
     pageRoute('/announcements', () => import('./pages/admin/announcements').then(module => ({ default: module.AdminAnnouncementsPage })), { adminEligible: true }),
     pageRoute('/storage', () => import('./pages/admin/storage').then(module => ({ default: module.AdminStoragePage })), { adminEligible: true, search: { provider: '', tab: 'config' } }),
     pageRoute('/logs', () => import('./pages/admin/logs').then(module => ({ default: module.AdminLogsPage })), { adminEligible: true }),
+    pageRoute('/tasks', () => import('./pages/admin/tasks').then(module => ({ default: module.AdminTasksPage })), { adminEligible: true }),
+    pageRoute('/api-docs', () => import('./pages/api-docs').then(module => ({ default: module.ApiDocsPage }))),
     pageRoute('/edition', () => import('./pages/edition').then(module => ({ default: module.UserEditionPage })), { adminEligible: true }),
     createRoute({ getParentRoute: () => rootRoute, path: '/settings', beforeLoad: () => { throw redirect({ to: '/site', replace: true }); } }) as unknown as AnyRoute,
   ] as [AnyRoute, ...AnyRoute[]]);

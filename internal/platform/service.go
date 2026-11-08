@@ -23,7 +23,7 @@ type Store interface {
 	FindAccount(context.Context, string) (Account, error)
 	CreateUser(context.Context, contracts.UserCreate, string, string) (contracts.User, error)
 	UpdateUser(context.Context, string, contracts.UserUpdate, string) (contracts.User, error)
-	ListUsers(context.Context, string, int, int) (contracts.UserList, error)
+	ListUsers(context.Context, string, int, int, ...string) (contracts.UserList, error)
 	CreateSession(context.Context, string, string, int, string) error
 	Session(context.Context, string) (contracts.User, int, error)
 	DeleteSession(context.Context, string) error
@@ -31,11 +31,20 @@ type Store interface {
 	Dashboard(context.Context) (contracts.Dashboard, error)
 	ListRoles(context.Context) (contracts.RoleList, error)
 	RoleOptions(context.Context, string) (contracts.RoleOptions, error)
-	CreateRole(context.Context, string, []string, string) (contracts.Role, error)
-	UpdateRole(context.Context, string, string, []string, string) (contracts.Role, error)
+	CreateRole(context.Context, contracts.RoleSaveInput, string) (contracts.Role, error)
+	UpdateRole(context.Context, string, contracts.RoleSaveInput, string) (contracts.Role, error)
 	DeleteRole(context.Context, string, string) (contracts.Role, error)
+	ListDepartments(context.Context) (contracts.DepartmentList, error)
+	CreateDepartment(context.Context, contracts.DepartmentSaveInput, string) (contracts.Department, error)
+	UpdateDepartment(context.Context, string, contracts.DepartmentSaveInput, string) (contracts.Department, error)
+	DeleteDepartment(context.Context, string, string) (contracts.Department, error)
+	ListPosts(context.Context) (contracts.PostList, error)
+	CreatePost(context.Context, contracts.PostSaveInput, string) (contracts.Post, error)
+	UpdatePost(context.Context, string, contracts.PostSaveInput, string) (contracts.Post, error)
+	DeletePost(context.Context, string, string) (contracts.Post, error)
+	DataScope(context.Context, contracts.User) (ScopeFilter, error)
 	ListMenuConfig(context.Context) (contracts.MenuList, error)
-	SaveMenuConfig(context.Context, []contracts.MenuEntry, string) (contracts.MenuList, error)
+	SaveNavigation(context.Context, contracts.MenuSaveInput, string) (contracts.MenuList, error)
 	ListDictionaries(context.Context) (contracts.DictionaryList, error)
 	Dictionary(context.Context, string, bool) (contracts.DictionaryDetail, error)
 	DictionaryByCode(context.Context, string, bool) (contracts.DictionaryDetail, error)
@@ -43,6 +52,9 @@ type Store interface {
 	UpdateDictionary(context.Context, string, contracts.DictionaryUpdateInput, string) (contracts.DictionaryDetail, error)
 	DeleteDictionary(context.Context, string, string) (contracts.DictionaryDetail, error)
 	ReplaceDictionaryItems(context.Context, string, []contracts.DictionaryItemEntry, string) (contracts.DictionaryDetail, error)
+	InboxFeed(context.Context, string, int, int) (contracts.InboxList, error)
+	InboxRead(context.Context, string, string) (contracts.InboxList, error)
+	InboxReadAll(context.Context, string) (contracts.InboxList, error)
 	ChangePassword(context.Context, string, string, string) error
 }
 
@@ -98,13 +110,11 @@ func ValidPhone(phone string) bool {
 	return phonePattern.MatchString(phone)
 }
 
-// Has reports whether the user holds a permission point. Grants come from the
-// role_permissions table (user realm) or the full catalogue (super_admin), and
-// SuperOnly still refuses management points to non-super identities.
+// Has reports whether the user holds a permission point. Grants are data: the
+// role_permissions union of the assigned roles (either realm) or the full
+// catalogue for super_admin. Operation-level superAdmin policy stays the only
+// super_admin gate, enforced at the session layer.
 func Has(user contracts.User, permission string) bool {
-	if SuperOnly(permission) && !IsSuper(user) {
-		return false
-	}
 	for _, p := range user.Permissions {
 		if p == permission {
 			return true
@@ -190,7 +200,7 @@ func (s *Service) Session(ctx context.Context, token string) (contracts.Session,
 func (s *Service) Create(ctx context.Context, input contracts.UserCreate, actor string) (contracts.User, error) {
 	input.Username = strings.ToLower(strings.TrimSpace(input.Username))
 	input.Email = strings.ToLower(strings.TrimSpace(input.Email))
-	if !ValidateAccount(input.Username, input.Email, input.Password) || !BuiltinRole(input.Role) {
+	if !ValidateAccount(input.Username, input.Email, input.Password) || !regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,63}$`).MatchString(input.Role) {
 		return contracts.User{}, ErrInput
 	}
 	if input.Phone != nil {
@@ -202,6 +212,15 @@ func (s *Service) Create(ctx context.Context, input contracts.UserCreate, actor 
 		} else {
 			input.Phone = &phone
 		}
+	}
+	if err := s.passwordAllowed(ctx, input.Password); err != nil {
+		return contracts.User{}, err
+	}
+	select {
+	case s.loginSlots <- struct{}{}:
+		defer func() { <-s.loginSlots }()
+	case <-ctx.Done():
+		return contracts.User{}, ctx.Err()
 	}
 	hash, err := HashPassword(input.Password)
 	if err != nil {

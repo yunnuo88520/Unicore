@@ -14,6 +14,17 @@ export function usePermissions(data?: Bootstrap): { has: (permission: string) =>
   }, [data?.current_user?.permissions]);
 }
 
+// hasPermissionPoint gates single page actions (buttons) with the same
+// semantics as routes.canAccess: web-platform sessions carry the resolved
+// grant union (super_admin and role unions are expanded server-side), while
+// standalone and desktop profiles have no platform permission model and keep
+// every page action. The API policy layer stays the enforcement point.
+export function hasPermissionPoint(metadata: Bootstrap | undefined, permission: string): boolean {
+  if (!metadata) return false;
+  if (metadata.profile !== 'web-platform') return true;
+  return !!metadata.current_user?.permissions.includes(permission);
+}
+
 // useDictionary loads one business dictionary (active items) for form selects.
 export function useDictionary(client: { dictionaryByCode(code: string): Promise<unknown> }, code: string | undefined, enabled = true) {
   return useQuery({

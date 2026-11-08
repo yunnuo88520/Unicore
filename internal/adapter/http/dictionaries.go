@@ -34,7 +34,7 @@ func mountMenus(api chi.Router, config Config) {
 			return
 		}
 		_, _, identity, _ := manager.Services()
-		data, err := identity.Store.SaveMenuConfig(r.Context(), input.Items, actor.User.ID)
+		data, err := identity.Store.SaveNavigation(r.Context(), input, actor.User.ID)
 		if err != nil {
 			webError(w, err)
 			return

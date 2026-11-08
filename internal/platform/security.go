@@ -27,6 +27,13 @@ var (
 	ErrLastAdmin   = errors.New("cannot disable or demote the last super administrator")
 	ErrRateLimited = errors.New("too many attempts")
 	ErrCaptcha     = errors.New("invalid or expired captcha")
+	// ErrDepartmentInUse refuses deleting a department that still has child
+	// departments or attached users.
+	ErrDepartmentInUse = errors.New("department still has children or members")
+	// ErrPostInUse refuses deleting a post that still has user memberships.
+	ErrPostInUse = errors.New("post still has members")
+	// ErrPostConflict marks a duplicate post code distinct from account conflicts.
+	ErrPostConflict = errors.New("post code already exists")
 )
 
 // AccountConflict identifies the already-used field without exposing database

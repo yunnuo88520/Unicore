@@ -56,7 +56,10 @@ test('enterprise settings, real JIT, explicit binding and password fallback', as
     await employee.getByRole('button',{name:'确认企业身份',exact:true}).click();
     await expect(employee.getByRole('heading',{name:/一份核心，\s*无限可能/})).toBeVisible();
     const newUser = (await (await employee.request.get(`${instance.url}/api/v1/bootstrap`)).json()).data;
-    expect(newUser.current_user.roles).toEqual(['user']); expect(newUser.current_user.permissions).toEqual(['files:access','notes:access']);
+    expect(newUser.current_user.roles).toEqual(['user']);
+    // The builtin user role automatically holds every assignable business grant;
+    // the departments points stay administrator-realm management points.
+    expect(newUser.current_user.permissions).toEqual(['files:access','files:delete','files:upload','notes:access','notes:create','notes:delete','notes:update']);
     expect((await employee.request.get(`${instance.url}/api/v1/admin/users`)).status()).toBe(403);
     await employee.goto(`${instance.url}/account-security`); await expect(employee.getByText('已绑定',{exact:true})).toBeVisible();
     await expect(employee.getByText('尚未设置',{exact:true})).toBeVisible(); await expect(employee.getByRole('button',{name:'确认解除绑定',exact:true})).toHaveCount(0); await capture(employee,info,'oidc-jit-account');
@@ -74,7 +77,17 @@ test('enterprise settings, real JIT, explicit binding and password fallback', as
     await expect(employee.getByRole('alert')).toContainText('请先使用本地账号登录');await capture(employee,info,'oidc-admin-jit-blocked');
     // Confirm local password, then reauthenticate with the IdP before binding.
     await page.goto(`${instance.url}/admin/account-security`); await page.getByLabel('确认本地密码',{exact:true}).fill('wrong-password');
-    await page.getByRole('button',{name:'验证并绑定企业账号',exact:true}).click(); await expect(page.getByRole('alert')).toContainText('账号或密码不正确'); await capture(page,info,'oidc-binding-password-error');
+    const probe: string[] = [];
+    page.on('response', async r => { if (r.url().includes('/oidc/link') || r.url().includes('/bootstrap')) probe.push(r.url().replace(instance.url, '') + '->' + r.status()); });
+    page.on('console', m => { if (m.type() === 'error') probe.push('console:' + m.text().slice(0, 120)); });
+    await page.getByRole('button',{name:'验证并绑定企业账号',exact:true}).click();
+    await page.waitForTimeout(3000);
+    console.log('PROBE', JSON.stringify(probe));
+    console.log('PROBE-URL', page.url());
+    console.log('PROBE-TITLE', await page.title());
+    console.log('PROBE-DATA', await page.evaluate(() => JSON.stringify({ forms: [...document.querySelectorAll('form')].map(f => ({ banners: [...f.querySelectorAll('[data-probe-summary]')].map(b => b.getAttribute('data-probe-summary') + '/' + b.getAttribute('data-probe-server')) })), alertCount: document.querySelectorAll('[role="alert"]').length })));
+    console.log('PROBE-ALERTS', await page.locator('[role="alert"]').allTextContents().catch(e => ['ERR ' + e]));
+    await expect(page.getByRole('alert')).toContainText('账号或密码不正确'); await capture(page,info,'oidc-binding-password-error');
     await page.getByLabel('确认本地密码',{exact:true}).fill('test-password-strong');
     await page.getByRole('button',{name:'验证并绑定企业账号',exact:true}).click();
     await expect(page).toHaveURL(/prompt=login/); expect(new URL(page.url()).searchParams.get('max_age')).toBe('0');

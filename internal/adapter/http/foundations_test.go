@@ -71,6 +71,12 @@ func TestOfflineContractDocs(t *testing.T) {
 				}
 				continue
 			}
+			if path == "/docs/api" {
+				if w.Code != 302 || w.Header().Get("Location") != "/api-docs" {
+					t.Fatal("docs redirect", w.Code, w.Header().Get("Location"))
+				}
+				continue
+			}
 			if w.Code != 200 {
 				t.Fatal(w.Code)
 			}

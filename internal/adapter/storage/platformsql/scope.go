@@ -20,6 +20,9 @@ var administratorTables = map[string]string{
 
 // Only repository-authored SQL passes here. Identifiers come from this fixed map,
 // never from requests; shared settings, audit and mail queues retain their names.
+// The administrator membership table names its column administrator_id (not
+// user_id), so statements that join or write unicore_user_roles together with
+// its user_id column must stay realm-explicit instead of relying on this rewrite.
 func (r *Repository) scoped(query string) string {
 	if !r.Administrators {
 		return query

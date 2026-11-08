@@ -2,12 +2,14 @@
 // Description: Owner-scoped files on TanStack Table v9: uploads, temporary grants, migration and deletion.
 import { useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowRightLeft, Download, File, Play, Search, Trash2, Upload } from 'lucide-react';
+import { ArrowRightLeft, Download, File, Play, Search, Settings2, Trash2, Upload } from 'lucide-react';
 import { columnVisibilityFeature, createColumnHelper, createCoreRowModel, createPaginatedRowModel, flexRender, rowPaginationFeature, tableFeatures, useTable } from '@tanstack/react-table';
 import { defineMessages, currentLocale, t, useLocale } from '../i18n';
-import { Button, Card, CardContent, Checkbox, Input, Modal, NativeSelect, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage } from '@unicore/ui';
+import { Button, Card, CardContent, Checkbox, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, Input, Modal, NativeSelect, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage } from '@unicore/ui';
 import { cn } from '@unicore/ui/cn';
 import { FileUploadDialog } from '../file-upload-dialog';
+import { useColumnVisibility } from '../column-visibility';
+import { hasPermissionPoint } from '../permissions';
 import type { PageProps } from '../router';
 import type { AppClient, FileEntry } from '@unicore/sdk';
 
@@ -29,6 +31,11 @@ export function FilesPage({ client, metadata }: PageProps) {
   useLocale();
   const administrator = metadata.identity_realm === 'administrator';
   const api = client.files!;
+  // Upload stays on the files:upload point; row download/delete follow the
+  // server-projected per-row capabilities, so readable scope rows (other
+  // people's files) stay downloadable but never deletable.
+  const canUpload = hasPermissionPoint(metadata, 'files:upload');
+  const isOwn = (file: FileEntry) => file.creator_id === metadata.current_user?.id && file.creator_realm === metadata.identity_realm;
   const cache = useQueryClient();
   const message = useMessage();
   const [search, setSearch] = useState('');
@@ -39,6 +46,12 @@ export function FilesPage({ client, metadata }: PageProps) {
   const [selected, setSelected] = useState<Record<string, FileEntry>>({});
   const [batch, setBatch] = useState<FileEntry[] | null>(null);
   const q = useQuery({ queryKey: ['files', search, page], queryFn: () => api.listFiles(search, page) });
+  const { columnVisibility, menu, toggle } = useColumnVisibility('files', [
+    { id: 'original_name', label: t('文件') },
+    { id: 'size', label: t('大小 / 类型') },
+    { id: 'state', label: administrator ? t('存储 / 状态') : t('状态') },
+    { id: 'created_at', label: t('上传时间') },
+  ]);
   const locations = useQuery({
     queryKey: ['storage-locations'],
     queryFn: () => client.storage!.storageLocations(),
@@ -110,14 +123,14 @@ export function FilesPage({ client, metadata }: PageProps) {
       cell: ({ row }) => {
         const file = row.original;
         return <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" aria-label={t('下载 {{v0}}', { v0: file.original_name })} disabled={file.state !== 'ready' || mutate.isPending} onClick={() => mutate.mutate({ kind: 'access', file })}><Download size={17} /></Button>
-          {file.state !== 'ready' && <Button variant="ghost" size="icon" aria-label={t('继续上传 {{name}}', { name: file.original_name })} onClick={() => setUpload({ file })}><Play size={17} /></Button>}
+          {file.capabilities.download && <Button variant="ghost" size="icon" aria-label={t('下载 {{v0}}', { v0: file.original_name })} disabled={file.state !== 'ready' || mutate.isPending} onClick={() => mutate.mutate({ kind: 'access', file })}><Download size={17} /></Button>}
+          {canUpload && file.state !== 'ready' && isOwn(file) && <Button variant="ghost" size="icon" aria-label={t('继续上传 {{name}}', { name: file.original_name })} onClick={() => setUpload({ file })}><Play size={17} /></Button>}
           {administrator && <Button variant="ghost" size="icon" aria-label={t('迁移 {{v0}}', { v0: file.original_name })} disabled={file.state !== 'ready' || mutate.isPending} onClick={() => { setTarget(''); setDialog({ kind: 'migrate', file }); }}><ArrowRightLeft size={17} /></Button>}
-          <Button variant="ghost" size="icon" className="hover:text-danger" aria-label={t('删除 {{v0}}', { v0: file.original_name })} disabled={mutate.isPending} onClick={() => setDialog({ kind: 'delete', file })}><Trash2 size={17} /></Button>
+          {file.capabilities.delete && <Button variant="ghost" size="icon" className="hover:text-danger" aria-label={t('删除 {{v0}}', { v0: file.original_name })} disabled={mutate.isPending} onClick={() => setDialog({ kind: 'delete', file })}><Trash2 size={17} /></Button>}
         </div>;
       },
     }),
-  ]), [administrator, mutate, selected, q.data]);
+  ]), [administrator, canUpload, metadata.current_user?.id, metadata.identity_realm, mutate, selected, q.data]);
 
   const total = q.data?.total ?? 0;
   const pageSize = q.data?.page_size ?? 1;
@@ -128,7 +141,7 @@ export function FilesPage({ client, metadata }: PageProps) {
     data: q.data?.items ?? EMPTY_FILES,
     manualPagination: true,
     pageCount,
-    state: { pagination: { pageIndex: page - 1, pageSize } },
+    state: { pagination: { pageIndex: page - 1, pageSize }, columnVisibility },
     onPaginationChange: updater => {
       const next = typeof updater === 'function' ? updater({ pageIndex: page - 1, pageSize }) : updater;
       setPage(Math.min(Math.max(next.pageIndex + 1, 1), pageCount));
@@ -142,14 +155,27 @@ export function FilesPage({ client, metadata }: PageProps) {
           <h2 className="text-md font-semibold text-ink">{administrator ? t('实例文件') : t('我的文件')}</h2>
           <p className="text-xs text-muted">{administrator ? t('查看实例文件与存储分布，按需迁移。') : t('文件仅本人和管理员可访问，下载链接会自动过期。')}</p>
         </div>
-        <Button onClick={() => setUpload({})}><Upload size={16} />{t('上传文件')}</Button>
+        <div className="flex flex-wrap gap-2">{administrator && client.web && <FileExport web={client.web} search={search} />}{canUpload && <Button onClick={() => setUpload({})}><Upload size={16} />{t('上传文件')}</Button>}</div>
       </CardContent>
     </Card>
     <Card>
       <CardContent className="flex flex-col gap-3">
-        <div className="relative max-w-sm">
-          <Search size={15} className="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-subtle" aria-hidden="true" />
-          <Input aria-label={t('搜索文件')} placeholder={t('搜索文件名')} value={search} onChange={event => { setSearch(event.target.value); setPage(1); }} className="ps-8" />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="relative max-w-sm flex-1">
+            <Search size={15} className="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-subtle" aria-hidden="true" />
+            <Input aria-label={t('搜索文件')} placeholder={t('搜索文件名')} value={search} onChange={event => { setSearch(event.target.value); setPage(1); }} className="ps-8" />
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label={t('列设置')}><Settings2 size={15} /></Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-40">
+              <DropdownMenuLabel>{t('显示列')}</DropdownMenuLabel>
+              {menu.map(column => <DropdownMenuItem key={column.id} onSelect={event => event.preventDefault()}>
+                <Checkbox checked={column.visible} onChange={value => toggle(column.id, value)} aria-label={column.label}>{column.label}</Checkbox>
+              </DropdownMenuItem>)}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
         {administrator && <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs text-muted">{t('已选择 {{count}} 个文件', { count: Object.keys(selected).length })}</span>
@@ -166,14 +192,14 @@ export function FilesPage({ client, metadata }: PageProps) {
           </TableHeader>
           <TableBody>
             {q.isPending
-              ? <TableEmpty colSpan={columns.length}><span role="status">{t('正在读取文件…')}</span></TableEmpty>
+              ? <TableEmpty colSpan={table.getVisibleLeafColumns().length}><span role="status">{t('正在读取文件…')}</span></TableEmpty>
               : q.isError
-                ? <TableEmpty colSpan={columns.length}><span className="flex flex-col items-center gap-2" role="alert">
+                ? <TableEmpty colSpan={table.getVisibleLeafColumns().length}><span className="flex flex-col items-center gap-2" role="alert">
                     <span>{t(q.error.message)}</span>
                     <Button variant="secondary" size="sm" onClick={() => void q.refetch()}>{t('重试')}</Button>
                   </span></TableEmpty>
                 : !table.getRowModel().rows.length
-                  ? <TableEmpty colSpan={columns.length}><span className="flex flex-col items-center gap-1.5 py-6">
+                  ? <TableEmpty colSpan={table.getVisibleLeafColumns().length}><span className="flex flex-col items-center gap-1.5 py-6">
                       <File size={32} className="text-subtle" aria-hidden="true" />
                       <strong className="text-md font-semibold text-ink">{t('还没有文件')}</strong>
                       <span className="text-sm text-muted">{t('上传后可在这里获取临时下载链接。')}</span>
@@ -284,4 +310,14 @@ export function BatchMigration({ client, files, onClose }: { client: AppClient; 
       </div>
     </div>
   </Modal>;
+}
+
+function FileExport({ web, search }: { web: NonNullable<AppClient['web']>; search: string }) {
+  useLocale();
+  const download = useMutation({ mutationFn: () => web.exportFiles(search), onSuccess: blob => {
+    const url = URL.createObjectURL(blob); const link = document.createElement('a');
+    link.href = url; link.download = 'files.xlsx'; document.body.append(link); link.click(); link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } });
+  return <Button variant="secondary" pending={download.isPending} onClick={() => download.mutate()}><Download size={16} />{t('导出文件')}</Button>;
 }

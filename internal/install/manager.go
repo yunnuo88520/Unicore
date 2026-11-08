@@ -65,6 +65,7 @@ type Manager struct {
 	secret         *secret.Store
 	lock           *flock.Flock
 	store          *sqlstore.Store
+	tasks          TaskRunner
 	settingService *settings.Service
 	identity       *platform.Service
 	administrator  *platform.Service
@@ -241,8 +242,8 @@ func (m *Manager) attach(store *sqlstore.Store) {
 		m.administrator.Settings = m.settingService
 		m.identity.HumanCheck = humancheck.Verifier{}
 		m.mail = &mailer.Service{BaseURL: m.config.BaseURL, Store: repository, Settings: m.settingService, Secrets: m.secret, Sender: mailadapter.SMTP{}, Channels: notifyadapter.Sender{}}
-		m.identity.Personal = &platform.Personal{Store: repository, Identity: m.identity, Settings: m.settingService, Mail: m.mail}
-		m.administrator.Personal = &platform.Personal{Store: admins, Identity: m.administrator, Settings: m.settingService, Mail: m.mail}
+		m.identity.Personal = &platform.Personal{Store: repository, Identity: m.identity, Settings: m.settingService, Mail: m.mail, AvatarFiles: m.files, Realm: "user"}
+		m.administrator.Personal = &platform.Personal{Store: admins, Identity: m.administrator, Settings: m.settingService, Mail: m.mail, AvatarFiles: m.files, Realm: "administrator"}
 		m.accounts = &platform.Accounts{Identity: m.identity, Store: repository, Settings: m.settingService, Mail: m.mail, BaseURL: m.config.BaseURL}
 		m.adminAccounts = &platform.Accounts{Administrator: true, Identity: m.administrator, Store: admins, Settings: m.settingService, Mail: m.mail, BaseURL: m.config.BaseURL}
 		m.oidc = &platform.OIDC{Identity: m.identity, Store: repository, Settings: m.settingService, Secrets: m.secret, Provider: oidcadapter.Provider{}, BaseURL: m.config.BaseURL}
@@ -302,11 +303,18 @@ func (m *Manager) recover(ctx context.Context) error {
 		m.config.State = "INSTALLED"
 		m.config.TokenHash = ""
 		m.attach(store)
-		// Catalogue upgrades add permission points; re-apply the grant set so
-		// super_admin keeps the full catalogue on an upgraded database.
+		// Catalogue upgrades add permission points; re-apply the catalogue rows
+		// and the super_admin grant set. Role authorizations are NOT touched
+		// here: the one-time navigation materialization below seeds explicit
+		// equivalents for legacy roles exactly once, and later starts never
+		// resurrect revoked grants or auto-grant new operations.
 		if m.config.Profile == runtime.WebPlatform {
 			if repo, ok := m.identity.Store.(*platformsql.Repository); ok {
 				if err = repo.EnsurePermissions(ctx); err != nil {
+					_ = store.Close()
+					return ErrDatabase
+				}
+				if err = repo.EnsureNavigation(ctx); err != nil {
 					_ = store.Close()
 					return ErrDatabase
 				}
@@ -579,6 +587,16 @@ func (m *Manager) Complete(ctx context.Context, token string, input contracts.In
 	m.config.State = "INSTALLED"
 	m.config.TokenHash = ""
 	m.attach(store)
+	// Fresh installs seed the catalogue grants; the one-time navigation
+	// materialization still runs here so every role starts with explicit
+	// operation equivalents before the first request (ADR-0036).
+	if input.Profile == runtime.WebPlatform {
+		if repo, ok := m.identity.Store.(*platformsql.Repository); ok {
+			if err = repo.EnsureNavigation(ctx); err != nil {
+				return result, user, ErrDatabase
+			}
+		}
+	}
 	// The DB marker is authoritative even when local finalization fails; restart recovers it.
 	if err = m.finalize(); err != nil {
 		return result, user, errors.New("installation committed; free disk space and restart to finalize configuration")
@@ -597,6 +615,16 @@ func (m *Manager) Accounts() *platform.Accounts {
 	return m.accounts
 }
 func (m *Manager) Mail() *mailer.Service { m.mu.RLock(); defer m.mu.RUnlock(); return m.mail }
+
+// TaskRunner is the scheduled-job surface handed to the admin handlers.
+type TaskRunner interface {
+	ListTasks(context.Context) (contracts.TaskList, error)
+	SetTaskEnabled(ctx context.Context, name string, enabled bool, actor string) error
+	TriggerTask(ctx context.Context, name, actor string) error
+}
+
+func (m *Manager) SetTasks(runner TaskRunner) { m.mu.Lock(); m.tasks = runner; m.mu.Unlock() }
+func (m *Manager) Tasks() TaskRunner          { m.mu.RLock(); defer m.mu.RUnlock(); return m.tasks }
 
 // Identity scope is selected by the explicit entry/header, never by a fallback account lookup.
 func (m *Manager) Identity(admin bool) *platform.Service {

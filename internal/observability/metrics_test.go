@@ -1,5 +1,5 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Prometheus counters/histograms remain consistent and unknown methods stay bounded.
+// Description: Parse standard Prometheus exposition and verify bounded request accounting and runtime collectors.
 package observability
 
 import (
@@ -7,28 +7,68 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/prometheus/common/expfmt"
+	"github.com/prometheus/common/model"
 )
 
 func TestMetrics(t *testing.T) {
 	metrics := New()
 	done := metrics.Begin()
 	w := httptest.NewRecorder()
-	metrics.Handler(nil).ServeHTTP(w, httptest.NewRequest("GET", "/metrics", nil))
+	handler := metrics.Handler(nil)
+	handler.ServeHTTP(w, httptest.NewRequest("GET", "/metrics", nil))
 	if !strings.Contains(w.Body.String(), "unicore_http_active_requests 1") {
 		t.Fatal(w.Body.String())
 	}
 	done("UNTRUSTED", "", 404, 20*time.Millisecond)
-	done = metrics.Begin()
-	done("GET", "/api/v1/admin/users/{id}", 200, time.Second)
+	done("GET", "ignored", 200, time.Hour) // Completion callbacks are idempotent.
+	metrics.Begin()("GET", "/api/v1/admin/users/{id}", 200, time.Second)
 	w = httptest.NewRecorder()
-	metrics.Handler(nil).ServeHTTP(w, httptest.NewRequest("GET", "/metrics", nil))
+	handler.ServeHTTP(w, httptest.NewRequest("GET", "/metrics", nil))
 	text := w.Body.String()
-	for _, expected := range []string{"unicore_http_active_requests 0", `method="OTHER",route="unmatched",status="404"`, `unicore_http_duration_seconds_bucket{method="OTHER",route="unmatched",status="404",le="0.025"} 1`, `le="+Inf"} 1`} {
-		if !strings.Contains(text, expected) {
-			t.Errorf("missing %s: %s", expected, text)
+	if strings.Contains(text, "UNTRUSTED") || strings.Contains(text, "ignored") {
+		t.Fatal("unbounded or duplicate labels")
+	}
+	parser := expfmt.NewTextParser(model.LegacyValidation)
+	families, err := parser.TextToMetricFamilies(strings.NewReader(text))
+	if err != nil {
+		t.Fatal("invalid Prometheus exposition", err)
+	}
+	for _, name := range []string{"go_goroutines", "go_gc_duration_seconds", "go_memstats_alloc_bytes", "go_info", "process_start_time_seconds", "unicore_db_wait_total", "unicore_http_requests_total"} {
+		if families[name] == nil {
+			t.Errorf("missing collector %s", name)
 		}
 	}
-	if strings.Contains(text, "UNTRUSTED") {
-		t.Fatal("unbounded method label")
+	if got := families["unicore_http_active_requests"].Metric[0].Gauge.GetValue(); got != 0 {
+		t.Fatal(got)
+	}
+	var other bool
+	for _, metric := range families["unicore_http_duration_seconds"].Metric {
+		for _, label := range metric.Label {
+			if label.GetName() == "method" && label.GetValue() == "OTHER" {
+				other = true
+				if metric.Histogram.GetSampleCount() != 1 {
+					t.Fatal(metric)
+				}
+				var bucket bool
+				for _, b := range metric.Histogram.Bucket {
+					if b.GetUpperBound() == 0.025 && b.GetCumulativeCount() == 1 {
+						bucket = true
+					}
+				}
+				if !bucket {
+					t.Fatal("duration buckets", metric)
+				}
+			}
+		}
+	}
+	if !other {
+		t.Fatal("missing bounded method metric")
+	}
+	w = httptest.NewRecorder()
+	handler.ServeHTTP(w, httptest.NewRequest("POST", "/metrics", nil))
+	if w.Code != 405 || w.Header().Get("Allow") != "GET" {
+		t.Fatal(w.Code, w.Header())
 	}
 }

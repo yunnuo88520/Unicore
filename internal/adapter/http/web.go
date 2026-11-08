@@ -111,8 +111,17 @@ func webError(w http.ResponseWriter, err error) {
 		code = "INVALID_CREDENTIALS"
 	case errors.Is(err, platform.ErrForbidden):
 		code = "PERMISSION_DENIED"
+	// Bare conflicts (menu version CAS, role name uniqueness races) read as
+	// generic record conflicts; account duplicates keep their dedicated
+	// AccountConflict branch above, and post conflicts map below.
 	case errors.Is(err, platform.ErrConflict):
-		code = "ACCOUNT_EXISTS"
+		code = "ENTITY_CONFLICT"
+	case errors.Is(err, platform.ErrPostConflict):
+		code = "POST_CONFLICT"
+	case errors.Is(err, platform.ErrDepartmentInUse):
+		code = "DEPARTMENT_IN_USE"
+	case errors.Is(err, platform.ErrPostInUse):
+		code = "POST_IN_USE"
 	case errors.Is(err, platform.ErrLastAdmin):
 		code = "LAST_SUPER_ADMIN"
 	case errors.Is(err, platform.ErrRateLimited):
@@ -242,7 +251,7 @@ func require(manager *install.Manager, w http.ResponseWriter, r *http.Request, p
 			return session, false
 		}
 	}
-	if permission != "" && (!platform.Has(session.User, permission) || (platform.SuperOnly(permission) && !platform.IsSuper(session.User))) {
+	if permission != "" && !platform.Has(session.User, permission) {
 		webError(w, platform.ErrForbidden)
 		return session, false
 	}
@@ -345,8 +354,18 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 		if session, err := identity.Session(r.Context(), rawSession(r)); err == nil {
 			data.CurrentUser = &session.User
 			data.CsrfToken = &session.CsrfToken
-			if entries, err := identity.Store.ListMenuConfig(r.Context()); err == nil && len(entries.Items) != 0 {
-				data.Menus = &entries.Items
+			if entries, err := identity.Store.ListMenuConfig(r.Context()); err == nil {
+				if len(entries.Items) != 0 {
+					data.Menus = &entries.Items
+				}
+				// The normalized navigation is projected per surface and per
+				// member grants; the legacy items above stay as a compat echo.
+				surface := "user"
+				if administratorRequest(r) {
+					surface = "administrator"
+				}
+				projected := platform.NavigationFor(contracts.Navigation{Version: entries.Version, Sections: entries.Sections, Nodes: entries.Nodes}, session.User, surface)
+				data.Navigation = &projected
 			}
 			if identity.Personal != nil {
 				if info, e := identity.Personal.Profile(r.Context(), rawSession(r)); e == nil {
@@ -395,8 +414,16 @@ func mountWeb(api chi.Router, config Config) {
 	manager := config.Install
 	mountAccounts(api, config)
 	mountRoles(api, config)
+	mountDepartments(api, config)
+	mountPosts(api, config)
+	mountAPIOperations(api, config)
 	mountMenus(api, config)
+	mountTasks(api, config)
+	mountDashboard(api, config)
+	mountInbox(api, config)
+	mountEvents(api, config)
 	mountDictionaries(api, config)
+	mountXlsx(api, config)
 	mountOIDC(api, config)
 	limiter := platform.NewLimiter()
 	api.Get("/install/status", func(w http.ResponseWriter, r *http.Request) { success(w, manager.Status()) })
@@ -449,9 +476,9 @@ func mountWeb(api chi.Router, config Config) {
 	mountPersonal(api, config)
 	mountLogs(api, config)
 	for _, administrators := range []bool{false, true} {
-		path, permission, role := "/admin/users", "users", "user"
+		path, permission := "/admin/users", "users"
 		if administrators {
-			path, permission, role = "/admin/administrators", "administrators", "super_admin"
+			path, permission = "/admin/administrators", "administrators"
 		}
 		api.Get(path, func(w http.ResponseWriter, r *http.Request) {
 			if _, ok := require(manager, w, r, permission+":read"); !ok {
@@ -474,7 +501,7 @@ func mountWeb(api chi.Router, config Config) {
 				return
 			}
 			identity := manager.Identity(administrators)
-			data, err := identity.Store.ListUsers(r.Context(), search, page, size)
+			data, err := identity.Store.ListUsers(r.Context(), search, page, size, r.URL.Query().Get("post_id"))
 			if err != nil {
 				webError(w, err)
 				return
@@ -490,12 +517,9 @@ func mountWeb(api chi.Router, config Config) {
 			if !decode(w, r, &input) {
 				return
 			}
-			// The administrator realm stays fixed on super_admin; the user realm
-			// assigns any existing role (validated against the database).
-			if administrators && input.Role != role {
-				webError(w, platform.ErrInput)
-				return
-			}
+			// Roles never cross realms: the repository validates that
+			// administrator accounts take super_admin or an administrator-realm
+			// custom role, and user accounts a user-realm role.
 			identity := manager.Identity(administrators)
 			data, err := identity.Create(r.Context(), input, actor.User.ID)
 			if err != nil {
@@ -513,12 +537,9 @@ func mountWeb(api chi.Router, config Config) {
 			if !decode(w, r, &input) {
 				return
 			}
-			// The administrator realm stays fixed on super_admin; the user realm
-			// assigns any existing role (validated against the database).
-			if administrators && input.Role != role {
-				webError(w, platform.ErrInput)
-				return
-			}
+			// An omitted or empty role keeps the current assignment; a non-empty
+			// role must belong to the identity realm (validated against the
+			// database) and the last active super_admin stays protected.
 			identity := manager.Identity(administrators)
 			data, err := identity.Store.UpdateUser(r.Context(), chi.URLParam(r, "id"), input, actor.User.ID)
 			if err != nil {

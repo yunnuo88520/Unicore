@@ -21,12 +21,15 @@ export function contractArtifacts(spec){
   if(policy.maxBodyBytes!==undefined&&(!Number.isInteger(policy.maxBodyBytes)||policy.maxBodyBytes<1024||policy.maxBodyBytes>512*1024))throw new Error(`Invalid body limit: ${id}`);
   const requestSchema=refName(operation.requestBody?.content?.['application/json']?.schema);
   const responseSchema=refName(operation.responses?.['200']?.content?.['application/json']?.schema);
+  const multipartSchema=operation.requestBody?.content?.['multipart/form-data']?.schema;
+  const multipartRequest=!!multipartSchema;
+  if(multipartRequest && (Object.keys(operation.requestBody.content).length!==1 || multipartSchema.type!=='object' || multipartSchema.additionalProperties!==false || JSON.stringify(multipartSchema.required)!=='["file"]' || Object.keys(multipartSchema.properties??{}).join(',')!=='file' || multipartSchema.properties.file.type!=='string' || multipartSchema.properties.file.format!=='binary'))throw new Error(`Multipart upload must declare exactly one required binary file: ${id}`);
   const binaryRequest=operation.requestBody?.content?.['application/octet-stream']?.schema?.format==='binary';
-  const binaryResponse=operation.responses?.['200']?.content?.['application/octet-stream']?.schema?.format==='binary';
-  if(operation.requestBody&&!requestSchema&&!(binaryRequest&&policy.streamingUpload))throw new Error(`Request must use a named schema or declared streaming upload: ${id}`);
+  const binaryResponse=Object.values(operation.responses?.['200']?.content??{}).some(media=>media.schema?.format==='binary');
+  if(operation.requestBody&&!requestSchema&&!(binaryRequest&&policy.streamingUpload)&&!multipartRequest)throw new Error(`Request must use a named schema or declared streaming upload: ${id}`);
   const parameters=[...(item.parameters??[]),...(operation.parameters??[])];
   for(const name of [...path.matchAll(/\{([^}]+)\}/g)].map(match=>match[1]))if(!parameters.some(parameter=>parameter.in==='path'&&parameter.name===name&&parameter.required))throw new Error(`Missing required path parameter: ${id}/${name}`);
-  operations[id]={method:method.toUpperCase(),path,requestSchema:requestSchema??null,responseSchema:responseSchema??null,binaryRequest,binaryResponse,...policy};
+  operations[id]={method:method.toUpperCase(),path,requestSchema:requestSchema??null,responseSchema:responseSchema??null,binaryRequest,binaryResponse,multipartRequest,...policy};
  }
  let ts=header+"import type * as Models from './schema.gen';\n\n";
  ts+=`export const operations = ${JSON.stringify(operations,null,2)} as const;\nexport type OperationId = keyof typeof operations;\n`;

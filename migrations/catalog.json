@@ -123,6 +123,54 @@
             "postgres": "platform/postgres/0002_rbac_menus_dictionaries.sql",
             "mysql": "platform/mysql/0002_rbac_menus_dictionaries.sql"
           }
+        },
+        {
+          "version": 3,
+          "files": {
+            "sqlite": "platform/sqlite/0003_inbox_scheduler_avatars.sql",
+            "postgres": "platform/postgres/0003_inbox_scheduler_avatars.sql",
+            "mysql": "platform/mysql/0003_inbox_scheduler_avatars.sql"
+          }
+        },
+        {
+          "version": 4,
+          "files": {
+            "sqlite": "platform/sqlite/0004_administrator_realm_roles.sql",
+            "postgres": "platform/postgres/0004_administrator_realm_roles.sql",
+            "mysql": "platform/mysql/0004_administrator_realm_roles.sql"
+          }
+        },
+        {
+          "version": 5,
+          "files": {
+            "sqlite": "platform/sqlite/0005_menu_tree_links.sql",
+            "postgres": "platform/postgres/0005_menu_tree_links.sql",
+            "mysql": "platform/mysql/0005_menu_tree_links.sql"
+          }
+        },
+        {
+          "version": 6,
+          "files": {
+            "sqlite": "platform/sqlite/0006_departments_data_scope.sql",
+            "postgres": "platform/postgres/0006_departments_data_scope.sql",
+            "mysql": "platform/mysql/0006_departments_data_scope.sql"
+          }
+        },
+        {
+          "version": 7,
+          "files": {
+            "sqlite": "platform/sqlite/0007_navigation_authorization.sql",
+            "postgres": "platform/postgres/0007_navigation_authorization.sql",
+            "mysql": "platform/mysql/0007_navigation_authorization.sql"
+          }
+        },
+        {
+          "version": 8,
+          "files": {
+            "sqlite": "platform/sqlite/0008_posts.sql",
+            "postgres": "platform/postgres/0008_posts.sql",
+            "mysql": "platform/mysql/0008_posts.sql"
+          }
         }
       ]
     },

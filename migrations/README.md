@@ -3,18 +3,20 @@
 
 产品安装与启动（`install.Manager`、`bootstrap/local`）统一调用 `migrations/runner.Apply`，按 [catalog.json](catalog.json) 与 [ADR-0025](../docs/adr/ADR-0025-baseline-catalog-semantics.md) 执行空库基线。历史 42+4 份 SQL、旧执行器（`Store.Migrate`、前缀/业务/个人中心链）与 `assets.go` 的旧 embed 已删除；旧轨建立的 0.1.x 开发库不再被接受（写前守卫 `ErrForeignDatabase` 拒绝，须重建或重装），见 [ADR-0029](../docs/adr/ADR-0029-fixed-framework-table-prefix.md) 与 ADR-0025 的 R1.0c 补记。
 
-新世代定义只有 [catalog.json](catalog.json)：三个 namespace 各自只有一个 version=1 终态基线，SQL 直接定义 `unicore_` 前缀表名（不依赖 rename）。
+新世代定义只有 [catalog.json](catalog.json)：core 与 module.notes 当前各有 version=1 终态基线，platform 包含 version=1 基线和 version=2/3/4 追加迁移；SQL 直接定义 `unicore_` 前缀表名（不依赖 rename）。
 
 ```text
 core/{sqlite,postgres,mysql}/0001_initial.sql        # install_state / system_settings / audit_logs
 platform/{sqlite,postgres,mysql}/0001_initial.sql    # 32 张平台应用表（含公告通知、手机号、个人中心终态）
-platform/{sqlite,postgres,mysql}/0002_rbac_menus_dictionaries.sql  # 菜单配置 + 数据字典（首个追加版本）
+platform/{sqlite,postgres,mysql}/0002_rbac_menus_dictionaries.sql  # 动态角色权限 + 菜单配置 + 数据字典
+platform/{sqlite,postgres,mysql}/0003_inbox_scheduler_avatars.sql  # 站内信 + 任务登记 + 本人头像引用
+platform/{sqlite,postgres,mysql}/0004_administrator_realm_roles.sql  # 管理员域动态角色（realm 列 + administrator_id 成员列）
 modules/notes/{sqlite,postgres,mysql}/0001_initial.sql
 catalogdata/catalog.gen.go    # 生成 Go descriptor，不由 CLI import
 metadata.gen.json             # 生成发行/运维投影
 ```
 
-表数口径：web-platform = 3 + 35 + 1 + 1（四列账本 `schema_migrations`）= 40 张；web-standalone/desktop = 3 + 1 + 1 = 5 张；CLI 不创建数据库。Profile 的 namespaces 仅为成员集合；depends_on 是唯一依赖来源。生成器使用 Kahn 拓扑排序，每轮可选节点按标识字节序取最小者。当前顺序为 core→module.notes→platform。
+表数口径：web-platform = 3 + 38 + 1 + 1（四列账本 `schema_migrations`）= 43 张；web-standalone/desktop = 3 + 1 + 1 = 5 张；CLI 不创建数据库。Profile 的 namespaces 仅为成员集合；depends_on 是唯一依赖来源。生成器使用 Kahn 拓扑排序，每轮可选节点按标识字节序取最小者。当前顺序为 core→module.notes→platform。
 
 ```sh
 pnpm generate:migrations   # 改 catalog.json 或 SQL 后重新生成
@@ -22,7 +24,7 @@ pnpm check:migrations      # 漂移检查（make test 内含）
 go test ./migrations/runner/
 ```
 
-生成器不连接数据库；checksum 来自 SQL 全部字节 SHA-256。生成物不得手改。新迁移首次对外分发后冻结字节，只能追加下一版本。SQLite 基线不含 FK 子句（运行时 `foreign_keys=OFF`，级联由 usecase 层保证）；PostgreSQL/MySQL 保留真实约束。全部基线重放幂等：`CREATE TABLE/INDEX IF NOT EXISTS`（MySQL 索引内联）、种子行 `WHERE NOT EXISTS` 守护——MySQL DDL 隐式提交的中断窗口可自愈。
+生成器不连接数据库；checksum 来自 SQL 全部字节 SHA-256。生成物不得手改。新迁移首次对外分发后冻结字节，只能追加下一版本。SQLite 基线不含 FK 子句（运行时 `foreign_keys=OFF`，级联由 usecase 层保证）；PostgreSQL/MySQL 保留真实约束。基线与追加迁移（0002/0003）全部重放幂等：`CREATE TABLE/INDEX IF NOT EXISTS`（MySQL 索引内联）、种子行 `WHERE NOT EXISTS` 守护——MySQL DDL 隐式提交的中断窗口可自愈。0004 使用 `ALTER TABLE`（SQLite/PostgreSQL 事务性 DDL 回滚完整；MySQL 隐式提交，中断恢复见该 SQL 头注）。
 
 runner 行为：postgres 用 `pg_advisory_lock`、MySQL 用 `GET_LOCK` 串行化并发；写入前拒绝旧两列账本（`ErrLegacyLedger`）、账本缺席但库非空（`ErrForeignDatabase`）、未知账本行、checksum 漂移与缺失 core@1 世代锚点；每份迁移与其账本行同事务提交。`Verify` 提供只读校验。隔离 SQLite 测试覆盖基线应用、幂等、profile 裁剪与全部拒绝路径；PG/MySQL 执行路径用隔离实例验收：
 

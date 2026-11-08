@@ -56,7 +56,7 @@ func exerciseNotificationEvents(t *testing.T, ctx context.Context, store *sqlsto
 		t.Fatal(err)
 	}
 	before := len(jobs.Items)
-	if _, err = members.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: "user", Status: "disabled"}, admin.ID); err != nil {
+	if _, err = members.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: rolePtr("user"), Status: "disabled"}, admin.ID); err != nil {
 		t.Fatal(err)
 	}
 	jobs, err = members.MailJobs(ctx)

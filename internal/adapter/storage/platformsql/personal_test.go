@@ -44,6 +44,42 @@ func exercisePersonal(t *testing.T, ctx context.Context, store *sqlstore.Store, 
 		if state.State.DisplayName != "Personal name" {
 			t.Fatal("display name not saved")
 		}
+		// Invalid avatar bindings must roll back the name and preserve the prior reference.
+		invalidAvatar := "missing-file"
+		if err := r.SaveAccountProfile(ctx, first, "must roll back", &invalidAvatar); !errors.Is(err, platform.ErrInput) {
+			t.Fatal(err)
+		}
+		state, err = r.PersonalSession(ctx, first)
+		must(err)
+		if state.State.DisplayName != "Personal name" {
+			t.Fatal("invalid avatar partially saved name")
+		}
+		_, err = store.Exec(ctx, store.DB, "INSERT INTO unicore_account_avatars(user_id,creator_realm,file_id,updated_at) VALUES(?,?,?,0)", user.ID, r.avatarRealm(), "prior-file")
+		must(err)
+		must(r.SaveAccountProfile(ctx, first, "Name with preserved avatar", nil))
+		avatar, err := r.UserAvatar(ctx, user.ID)
+		must(err)
+		if avatar != "prior-file" {
+			t.Fatal("omitted avatar cleared reference")
+		}
+		otherRealm := "administrator"
+		if administrators {
+			otherRealm = "user"
+		}
+		_, err = store.Exec(ctx, store.DB, "INSERT INTO unicore_account_avatars(user_id,creator_realm,file_id,updated_at) VALUES(?,?,?,0)", user.ID, otherRealm, "other-realm-file")
+		must(err)
+		empty := ""
+		must(r.SaveAccountProfile(ctx, first, "Name after clear", &empty))
+		avatar, err = r.UserAvatar(ctx, user.ID)
+		must(err)
+		if avatar != "" {
+			t.Fatal("empty avatar did not clear reference")
+		}
+		var otherAvatar string
+		must(store.Row(ctx, store.DB, "SELECT file_id FROM unicore_account_avatars WHERE user_id=? AND creator_realm=?", user.ID, otherRealm).Scan(&otherAvatar))
+		if otherAvatar != "other-realm-file" {
+			t.Fatal("clear crossed identity realm")
+		}
 		now := int(time.Now().Unix())
 		proof := platform.EmailChange{ID: platform.Token(), UserID: user.ID, SessionHash: first, Original: user.Email, Target: user.Email, Digest: platform.Hash("proof"), Payload: "sealed mail", Created: now - 120, Expires: now + 600}
 		must(r.QueueEmailChange(ctx, proof))

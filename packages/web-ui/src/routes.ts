@@ -2,7 +2,7 @@
 import {defineMessages} from './i18n';
 // Description: Single source of page facts (labels, permissions, icons, nav groups); backend authorization remains authoritative.
 import type { Bootstrap } from '@unicore/sdk';
-import { Bell, Circle, Cloud, FileText, FlaskConical, FolderOpen, LayoutDashboard, Mail, Megaphone, Monitor, NotebookPen, PackageCheck, ScrollText, Settings2, ShieldCheck, UserCog, UserRound, Webhook, type LucideIcon } from 'lucide-react';
+import { Bell, BookOpen, Circle, Cloud, FileText, FlaskConical, FolderOpen, LayoutDashboard, ListChecks, Mail, Megaphone, Monitor, Network, NotebookPen, PackageCheck, ScrollText, Settings2, ShieldCheck, UserCog, UserRound, Webhook, type LucideIcon } from 'lucide-react';
 
 export const routes = defineMessages({
   overview: { label: '工作台概览', title: '一份核心，无限可能', description: '从这里出发，让同一份业务逻辑运行于 Web、桌面与命令行。', icon: LayoutDashboard },
@@ -23,11 +23,17 @@ export const routes = defineMessages({
   logs: { label:'系统日志',title:'系统日志',description:'查看真实操作与邮件投递记录。',permission:'logs:read',icon:ScrollText,group:'system' },
   edition: { label:'系统更新',title:'系统更新',description:'查看版本记录，检查并安装可信的新版本。',permission:'updates:read',icon:PackageCheck,group:'system' },
   roles: { label: '角色权限', title: '角色权限', description: '维护用户角色的权限点与成员分配。', permission: 'roles:read', icon: ShieldCheck, group: 'administration' },
+  posts: { label: '岗位管理', title: '岗位管理', description: '维护岗位目录和成员关系，岗位不隐式授予角色。', permission: 'posts:read', icon: UserCog, group: 'administration' },
+  'api-operations': { label: 'API 操作目录', title: 'API 操作目录', description: '查看接口安全策略并通过角色独立授权。', permission: 'roles:read', icon: BookOpen, group: 'administration' },
+  departments: { label: '部门管理', title: '部门管理', description: '维护部门层级，为数据权限提供组织范围。', permission: 'departments:read', icon: Network, group: 'administration' },
+  tasks: { label: '定时任务', title: '定时任务', description: '查看后台定时任务的计划与运行状态，支持启停和立即执行。', permission: 'tasks:read', icon: ListChecks, group: 'administration' },
   menus: { label: '菜单管理', title: '菜单管理', description: '调整用户端导航的顺序、分组与可见性。', permission: 'menus:write', icon: LayoutDashboard, group: 'administration' },
   dictionaries: { label: '数据字典', title: '数据字典', description: '维护业务表单可复用的枚举字典。', permission: 'dictionaries:read', icon: FileText, group: 'administration' },
   account: { label: '个人资料', title: '个人资料', description: '管理昵称、邮箱与账号信息。', authenticated: true, icon: UserRound, group: 'personal' },
  'account-security': {label:'安全设置',title:'安全设置',description:'管理密码、双重验证与企业账号绑定。',authenticated:true,icon:ShieldCheck,group:'personal'},
  'account-sessions': {label:'登录会话',title:'登录会话',description:'查看登录设备，及时下线不再使用的会话。',authenticated:true,icon:Monitor,group:'personal'},
+  // No permission or authenticated marker: reachable whenever the instance publishes /openapi.json (config.APIDocs).
+  'api-docs': { label: 'API 文档', title: 'API 文档', description: '浏览与下载 OpenAPI 接口契约。', icon: BookOpen },
   'not-found': { label: '页面不存在', title: '页面不存在', description: '这个地址尚未注册，请通过导航进入已有页面。', icon: Circle },
 } as const);
 export type Page = keyof typeof routes;
@@ -38,11 +44,18 @@ export function pageFromHash(hash: string): Page {
   if (!path || /^oidc=(success|failed|link_required)$/.test(path) || path === 'verify-email' || path === 'reset-password') return 'overview';
   return Object.hasOwn(routes, path) ? path as Page : 'not-found';
 }
+// isAdminRealm marks any signed-in administrator-realm operator (super or a
+// restricted custom admin role); super_admin semantics stay in isAdministrator.
+export function isAdminRealm(metadata?: Bootstrap): boolean {
+  return metadata?.profile === 'web-platform' && metadata.identity_realm === 'administrator';
+}
 export function isAdministrator(metadata?: Bootstrap): boolean {
-  return metadata?.profile === 'web-platform' && metadata.identity_realm === 'administrator' && metadata.current_user?.roles.length === 1 && metadata.current_user.roles[0] === 'super_admin';
+  return isAdminRealm(metadata) && !!metadata?.current_user?.roles.includes('super_admin');
 }
 export function canAccess(page: Page, metadata?: Bootstrap): boolean {
   if (!metadata) return false;
+  if (page === 'api-docs') return metadata.profile === 'web-platform' || metadata.profile === 'web-standalone';
+  // Updates stay super-only: restricted operators never reach the update panel.
   if (page === 'edition') return metadata.profile==='web-platform' ? isAdministrator(metadata) && ((__FEATURE_UPDATER__ && metadata.capabilities.updater) || (__FEATURE_LICENSE__ && metadata.capabilities.license)) : __FEATURE_UPDATER__ && metadata.capabilities.updater;
   if (page === 'site') return metadata.capabilities.settings && (metadata.profile !== 'web-platform' || !!metadata.current_user);
   // Notes exist in every database profile: standalone and desktop keep the
@@ -58,8 +71,9 @@ export function canAccess(page: Page, metadata?: Bootstrap): boolean {
   const permission = 'permission' in route ? route.permission : null;
   // One permission point gates the page, its buttons and its API: the builtin
   // super_admin holds the full catalogue, user-realm roles resolve assignable
-  // grants from the database.
+  // grants from the database and restricted administrator roles resolve the
+  // grants their operator assigned.
   if (permission && !metadata.current_user.permissions.includes(permission)) return false;
-  if ((route as { group?: string }).group === 'administration' && !isAdministrator(metadata)) return false;
+  if ((route as { group?: string }).group === 'administration' && !isAdminRealm(metadata)) return false;
   return true;
 }

@@ -1,17 +1,18 @@
 ---
 name: add-platform-permission
-description: 登记 web-platform 权限点并实现菜单、页面与 API 权限（用户域动态角色 + 管理端固定 super_admin），验证越权边界。
+description: 登记 web-platform 权限点并实现菜单、页面与 API 权限（双域动态角色 + superAdmin 保留集 + 菜单/动作/operation 细粒度授权），验证越权边界。
 metadata:
   author: yunnuo <ymz@ebox.vip>
 ---
 
 # add-platform-permission
 
-先读 [当前角色需求](../../../docs/00-product/feature-roles.md)、[权限清单](../../../docs/api/permissions.md) 和 [ADR-0033](../../../docs/adr/ADR-0033-dynamic-user-roles.md)。用户域角色动态可运营（role_permissions 表驱动），管理员域固定 super_admin；身份分域见 [ADR-0014](../../../docs/adr/ADR-0014-separate-identities-management.md)。
+先读 [当前角色需求](../../../docs/00-product/feature-roles.md)、[权限清单](../../../docs/api/permissions.md) 和 [ADR-0033](../../../docs/adr/ADR-0033-dynamic-user-roles.md)、[ADR-0034](../../../docs/adr/ADR-0034-administrator-restricted-roles.md)、[ADR-0036](../../../docs/adr/ADR-0036-navigation-regions-granular-authorization.md)。双域角色动态可运营（role_permissions 表驱动 + menu_ids/action_ids/operation_ids 三类授权），superAdmin 保留集权限点仍仅 super_admin；身份分域见 [ADR-0014](../../../docs/adr/ADR-0014-separate-identities-management.md)。
 
-- 权限点登记 internal/platform/roles.go 的 PermissionCatalog（Assignable 标记决定能否授予自建角色：管理权限点 false，业务权限点 true），OpenAPI 的管理 operation 声明权限与 superAdmin；所有管理业务 API（含只读）独立校验有效 session、真实固定管理员和权限，写请求校验 CSRF/Origin。管理权限点不可默认委派；role_permissions 是用户域授权的运行时事实。
-- 菜单与直达页使用 routes.ts 的统一管理员判定，页面隐藏不能代替 API 校验。账号创建/启停在安装锁事务内重查操作者，保护最后启用管理员和最后有本地密码的管理员。
-- 注册/OIDC JIT 固定普通用户（user 角色，初始含全部 assignable 权限点），企业 claim 不升管理员；状态变化撤销会话及待用挑战。用户域角色经 /api/v1/admin/roles CRUD 管理（roles:write）；自定义角色只能持有 assignable 权限点，管理员域账号永远只能持有 super_admin。
+- 权限点登记 internal/platform/roles.go 的 PermissionCatalog（Assignable 标记决定能否授予自建角色：保留集权限点 false，业务权限点 true），OpenAPI 的管理 operation 声明权限与 superAdmin；所有管理业务 API（含只读）独立校验有效 session、管理员域会话和权限，写请求校验 CSRF/Origin。保留集权限点不可默认委派；role_permissions 与三类授权表是授权的运行时事实。
+- 菜单与直达页按管理员域会话 + routes.ts 权限点判定；菜单/动作/operation 三类授权独立勾选、互不隐含，保存空数组被拒绝。页面隐藏不能代替 API 校验。账号创建/启停在安装锁事务内重查操作者，保护最后启用管理员和最后有本地密码的管理员。
+- 注册/OIDC JIT 固定普通用户（初始授权在安装与显式迁移时建立），企业 claim 不升管理员；状态变化撤销会话及待用挑战。用户域角色经 /api/v1/admin/roles CRUD 管理（roles:write）；自定义角色只能持有可授予项，跨 realm 角色分配拒绝。常规 `EnsurePermissions` 与重启只做幂等同步，不重新授予已撤销权限；内置 user 角色禁止放宽 data_scope（403）。
+- 新增可委派 API 时，operation 目录（GET /admin/api-operations）由契约 operationId 自动派生，必要流程与不可委派项不进集合；岗位/部门等目录类资源按独立权限点（posts:read/write、departments:read/write）登记，岗位不隐式授予任何权限。
 - 全局设置、品牌管理、SMTP/模板/投递、OIDC 配置仅管理员；公共品牌和登录策略只给页面必需投影。本地外观不使用管理 API，不读写全局主题。
 - 平台模块只装配 web-platform；写入审计不含敏感值。若需要持久数据变化，新增分方言迁移与恢复说明，不修改历史 checksum。
 

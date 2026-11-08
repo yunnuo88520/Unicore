@@ -22,6 +22,7 @@ import (
 	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/observability"
 	"github.com/yunnuo/unicore/internal/platform"
+	"github.com/yunnuo/unicore/internal/realtime"
 	"github.com/yunnuo/unicore/internal/updateport"
 	"github.com/yunnuo/unicore/internal/usecase"
 	apispec "github.com/yunnuo/unicore/packages/contracts"
@@ -37,6 +38,7 @@ type Config struct {
 	APIDocs          bool
 	ReadinessTimeout time.Duration
 	Metrics          *observability.Metrics
+	Hub              *realtime.Hub
 }
 
 func New(config Config) http.Handler {
@@ -166,9 +168,7 @@ func New(config Config) http.Handler {
 			_, _ = w.Write(content)
 		})
 		router.Get("/docs/api", func(w http.ResponseWriter, r *http.Request) {
-			content, _ := apispec.Assets.ReadFile("reference.gen.html")
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			_, _ = w.Write(content)
+			http.Redirect(w, r, "/api-docs", http.StatusFound)
 		})
 	} else {
 		router.Get("/openapi.json", http.NotFound)

@@ -55,6 +55,7 @@ type Bootstrap struct {
 	MfaPending            *bool        `json:"mfa_pending,omitempty"`
 	MfaEnrollmentRequired *bool        `json:"mfa_enrollment_required,omitempty"`
 	Menus                 *[]MenuEntry `json:"menus,omitempty"`
+	Navigation            *Navigation  `json:"navigation,omitempty"`
 }
 
 type BootstrapResponse struct {
@@ -133,16 +134,21 @@ type InstallResult struct {
 }
 
 type User struct {
-	ID          string   `json:"id"`
-	Username    string   `json:"username"`
-	Email       string   `json:"email"`
-	Phone       *string  `json:"phone,omitempty"`
-	Status      string   `json:"status"`
-	Roles       []string `json:"roles"`
-	Permissions []string `json:"permissions"`
-	CreatedAt   int      `json:"created_at"`
-	LastLoginAt int      `json:"last_login_at"`
-	TotpEnabled bool     `json:"totp_enabled"`
+	ID           string    `json:"id"`
+	Username     string    `json:"username"`
+	Email        string    `json:"email"`
+	Phone        *string   `json:"phone,omitempty"`
+	Status       string    `json:"status"`
+	Roles        []string  `json:"roles"`
+	Permissions  []string  `json:"permissions"`
+	CreatedAt    int       `json:"created_at"`
+	LastLoginAt  int       `json:"last_login_at"`
+	TotpEnabled  bool      `json:"totp_enabled"`
+	DepartmentID *string   `json:"department_id,omitempty"`
+	MenuIds      *[]string `json:"menu_ids,omitempty"`
+	ActionIds    *[]string `json:"action_ids,omitempty"`
+	OperationIds *[]string `json:"operation_ids,omitempty"`
+	PostIds      *[]string `json:"post_ids,omitempty"`
 }
 
 type UserList struct {
@@ -153,16 +159,20 @@ type UserList struct {
 }
 
 type UserCreate struct {
-	Username string  `json:"username"`
-	Email    string  `json:"email"`
-	Password string  `json:"password"`
-	Phone    *string `json:"phone,omitempty"`
-	Role     string  `json:"role"`
+	Username     string    `json:"username"`
+	Email        string    `json:"email"`
+	Password     string    `json:"password"`
+	Phone        *string   `json:"phone,omitempty"`
+	Role         string    `json:"role"`
+	DepartmentID *string   `json:"department_id,omitempty"`
+	PostIds      *[]string `json:"post_ids,omitempty"`
 }
 
 type UserUpdate struct {
-	Role   string `json:"role"`
-	Status string `json:"status"`
+	Role         *string   `json:"role,omitempty"`
+	Status       string    `json:"status"`
+	DepartmentID *string   `json:"department_id,omitempty"`
+	PostIds      *[]string `json:"post_ids,omitempty"`
 }
 
 type LoginInput struct {
@@ -199,10 +209,11 @@ type AuditEntry struct {
 }
 
 type Dashboard struct {
-	TotalUsers    int          `json:"total_users"`
-	TodayNewUsers int          `json:"today_new_users"`
-	ActiveUsers7d int          `json:"active_users_7d"`
-	Audit         []AuditEntry `json:"audit"`
+	TotalUsers    int           `json:"total_users"`
+	TodayNewUsers int           `json:"today_new_users"`
+	ActiveUsers7d int           `json:"active_users_7d"`
+	Audit         []AuditEntry  `json:"audit"`
+	Activity7d    []ActivityDay `json:"activity_7d"`
 }
 
 type SettingEntry struct {
@@ -422,11 +433,18 @@ type PermissionDefinition struct {
 }
 
 type Role struct {
-	ID          string   `json:"id"`
-	Name        string   `json:"name"`
-	Builtin     bool     `json:"builtin"`
-	Permissions []string `json:"permissions"`
-	UserCount   int      `json:"user_count"`
+	ID                       string   `json:"id"`
+	Name                     string   `json:"name"`
+	Builtin                  bool     `json:"builtin"`
+	Permissions              []string `json:"permissions"`
+	UserCount                int      `json:"user_count"`
+	Realm                    string   `json:"realm"`
+	DataScope                string   `json:"data_scope"`
+	DepartmentIds            []string `json:"department_ids"`
+	MenuIds                  []string `json:"menu_ids"`
+	ActionIds                []string `json:"action_ids"`
+	OperationIds             []string `json:"operation_ids"`
+	AuthorizationInitialized bool     `json:"authorization_initialized"`
 }
 
 type RoleList struct {
@@ -619,17 +637,18 @@ type StorageMaintenanceInput struct {
 }
 
 type FileEntry struct {
-	FileID       string `json:"file_id"`
-	OriginalName string `json:"original_name"`
-	StorageType  string `json:"storage_type"`
-	LocationID   string `json:"location_id"`
-	MimeType     string `json:"mime_type"`
-	Size         int    `json:"size"`
-	CreatorID    string `json:"creator_id"`
-	CreatorRealm string `json:"creator_realm"`
-	CreatedAt    int    `json:"created_at"`
-	ExpiresAt    int    `json:"expires_at"`
-	State        string `json:"state"`
+	FileID       string           `json:"file_id"`
+	OriginalName string           `json:"original_name"`
+	StorageType  string           `json:"storage_type"`
+	LocationID   string           `json:"location_id"`
+	MimeType     string           `json:"mime_type"`
+	Size         int              `json:"size"`
+	CreatorID    string           `json:"creator_id"`
+	CreatorRealm string           `json:"creator_realm"`
+	CreatedAt    int              `json:"created_at"`
+	ExpiresAt    int              `json:"expires_at"`
+	State        string           `json:"state"`
+	Capabilities FileCapabilities `json:"capabilities"`
 }
 
 type FileList struct {
@@ -698,10 +717,10 @@ type FileAccessResponse struct {
 }
 
 type NoteInput struct {
-	Title         string   `json:"title"`
-	Body          string   `json:"body"`
-	Status        string   `json:"status"`
-	AttachmentIds []string `json:"attachment_ids"`
+	Title         string    `json:"title"`
+	Body          string    `json:"body"`
+	Status        string    `json:"status"`
+	AttachmentIds *[]string `json:"attachment_ids,omitempty"`
 }
 
 type NoteUpdate struct {
@@ -717,14 +736,15 @@ type NoteVersion struct {
 }
 
 type NoteEntry struct {
-	ID            string   `json:"id"`
-	Title         string   `json:"title"`
-	Body          string   `json:"body"`
-	Status        string   `json:"status"`
-	AttachmentIds []string `json:"attachment_ids"`
-	Version       int      `json:"version"`
-	CreatedAt     int      `json:"created_at"`
-	UpdatedAt     int      `json:"updated_at"`
+	ID            string           `json:"id"`
+	Title         string           `json:"title"`
+	Body          string           `json:"body"`
+	Status        string           `json:"status"`
+	AttachmentIds []string         `json:"attachment_ids"`
+	Version       int              `json:"version"`
+	CreatedAt     int              `json:"created_at"`
+	UpdatedAt     int              `json:"updated_at"`
+	Capabilities  NoteCapabilities `json:"capabilities"`
 }
 
 type NoteQuery struct {
@@ -1056,15 +1076,17 @@ type MultipartUploadResponse struct {
 }
 
 type AccountProfile struct {
-	User          User   `json:"user"`
-	DisplayName   string `json:"display_name"`
-	TotpEnabled   bool   `json:"totp_enabled"`
-	Force2fa      bool   `json:"force_2fa"`
-	CanDisable2fa bool   `json:"can_disable_2fa"`
+	User          User    `json:"user"`
+	DisplayName   string  `json:"display_name"`
+	TotpEnabled   bool    `json:"totp_enabled"`
+	Force2fa      bool    `json:"force_2fa"`
+	CanDisable2fa bool    `json:"can_disable_2fa"`
+	AvatarUrl     *string `json:"avatar_url,omitempty"`
 }
 
 type ProfileInput struct {
-	DisplayName string `json:"display_name"`
+	DisplayName  string  `json:"display_name"`
+	AvatarFileID *string `json:"avatar_file_id,omitempty"`
 }
 
 type TOTPSetupInput struct {
@@ -1217,24 +1239,42 @@ type NotifyPreviewResponse struct {
 }
 
 type RoleSaveInput struct {
-	Name        string   `json:"name"`
-	Permissions []string `json:"permissions"`
+	Name          string    `json:"name"`
+	Permissions   []string  `json:"permissions"`
+	Realm         *string   `json:"realm,omitempty"`
+	DataScope     *string   `json:"data_scope,omitempty"`
+	DepartmentIds *[]string `json:"department_ids,omitempty"`
+	MenuIds       *[]string `json:"menu_ids,omitempty"`
+	ActionIds     *[]string `json:"action_ids,omitempty"`
+	OperationIds  *[]string `json:"operation_ids,omitempty"`
 }
 
 type MenuEntry struct {
-	MenuKey  string `json:"menu_key"`
-	Label    string `json:"label"`
-	GroupKey string `json:"group_key"`
-	Sort     int    `json:"sort"`
-	Visible  bool   `json:"visible"`
+	MenuKey   string  `json:"menu_key"`
+	Label     string  `json:"label"`
+	GroupKey  string  `json:"group_key"`
+	Sort      int     `json:"sort"`
+	Visible   bool    `json:"visible"`
+	ParentKey *string `json:"parent_key,omitempty"`
+	Type      string  `json:"type"`
+	Url       *string `json:"url,omitempty"`
 }
 
 type MenuList struct {
-	Items []MenuEntry `json:"items"`
+	Items    []MenuEntry         `json:"items"`
+	Version  int                 `json:"version"`
+	Sections []NavigationSection `json:"sections"`
+	Nodes    []NavigationNode    `json:"nodes"`
+	Pages    []NavigationPage    `json:"pages"`
 }
 
 type MenuSaveInput struct {
-	Items []MenuEntry `json:"items"`
+	Items           *[]MenuEntry                `json:"items,omitempty"`
+	Version         int                         `json:"version"`
+	Sections        []NavigationSection         `json:"sections"`
+	Nodes           []NavigationNode            `json:"nodes"`
+	RoleAssignments *[]NavigationRoleAssignment `json:"role_assignments,omitempty"`
+	Reset           *bool                       `json:"reset,omitempty"`
 }
 
 type MenuListResponse struct {
@@ -1290,6 +1330,40 @@ type DictionaryItemsInput struct {
 	Items []DictionaryItemEntry `json:"items"`
 }
 
+type Department struct {
+	ID        string  `json:"id"`
+	Name      string  `json:"name"`
+	ParentID  *string `json:"parent_id,omitempty"`
+	Sort      int     `json:"sort"`
+	CreatedAt int     `json:"created_at"`
+	UpdatedAt int     `json:"updated_at"`
+}
+
+type DepartmentList struct {
+	Items []Department `json:"items"`
+	Total int          `json:"total"`
+}
+
+type DepartmentSaveInput struct {
+	Name     string  `json:"name"`
+	ParentID *string `json:"parent_id,omitempty"`
+	Sort     *int    `json:"sort,omitempty"`
+}
+
+type DepartmentResponse struct {
+	Code      string     `json:"code"`
+	Message   string     `json:"message"`
+	Data      Department `json:"data"`
+	RequestID string     `json:"request_id"`
+}
+
+type DepartmentListResponse struct {
+	Code      string         `json:"code"`
+	Message   string         `json:"message"`
+	Data      DepartmentList `json:"data"`
+	RequestID string         `json:"request_id"`
+}
+
 type DictionaryListResponse struct {
 	Code      string         `json:"code"`
 	Message   string         `json:"message"`
@@ -1309,4 +1383,215 @@ type DictionarySummaryResponse struct {
 	Message   string            `json:"message"`
 	Data      DictionarySummary `json:"data"`
 	RequestID string            `json:"request_id"`
+}
+
+type TaskEntry struct {
+	Name       string `json:"name"`
+	Schedule   string `json:"schedule"`
+	Enabled    bool   `json:"enabled"`
+	LastRunAt  int    `json:"last_run_at"`
+	LastStatus string `json:"last_status"`
+	LastError  string `json:"last_error"`
+	RunCount   int    `json:"run_count"`
+	NextRunAt  int    `json:"next_run_at"`
+}
+
+type TaskList struct {
+	Items []TaskEntry `json:"items"`
+}
+
+type TaskUpdateInput struct {
+	Enabled bool `json:"enabled"`
+}
+
+type TaskListResponse struct {
+	Code      string   `json:"code"`
+	Message   string   `json:"message"`
+	Data      TaskList `json:"data"`
+	RequestID string   `json:"request_id"`
+}
+
+type TaskEntryResponse struct {
+	Code      string    `json:"code"`
+	Message   string    `json:"message"`
+	Data      TaskEntry `json:"data"`
+	RequestID string    `json:"request_id"`
+}
+
+type TaskTrigger struct {
+	Triggered bool `json:"triggered"`
+}
+
+type TaskTriggerResponse struct {
+	Code      string      `json:"code"`
+	Message   string      `json:"message"`
+	Data      TaskTrigger `json:"data"`
+	RequestID string      `json:"request_id"`
+}
+
+type InboxEntry struct {
+	ID        string `json:"id"`
+	Type      string `json:"type"`
+	SourceID  string `json:"source_id"`
+	Title     string `json:"title"`
+	Body      string `json:"body"`
+	CreatedAt int    `json:"created_at"`
+	ReadAt    int    `json:"read_at"`
+}
+
+type InboxList struct {
+	Items  []InboxEntry `json:"items"`
+	Unread int          `json:"unread"`
+}
+
+type InboxListResponse struct {
+	Code      string    `json:"code"`
+	Message   string    `json:"message"`
+	Data      InboxList `json:"data"`
+	RequestID string    `json:"request_id"`
+}
+
+type UserImportResult struct {
+	Created int                 `json:"created"`
+	Failed  []UserImportFailure `json:"failed"`
+}
+
+type UserImportResultResponse struct {
+	Code      string           `json:"code"`
+	Message   string           `json:"message"`
+	Data      UserImportResult `json:"data"`
+	RequestID string           `json:"request_id"`
+}
+
+type ActivityDay struct {
+	Date  string `json:"date"`
+	Count int    `json:"count"`
+}
+
+type UserImportFailure struct {
+	Row   int    `json:"row"`
+	Error string `json:"error"`
+}
+
+type NavigationSection struct {
+	ID        string `json:"id"`
+	Surface   string `json:"surface"`
+	Name      string `json:"name"`
+	Sort      int    `json:"sort"`
+	Visible   bool   `json:"visible"`
+	ShowTitle bool   `json:"show_title"`
+}
+
+type NavigationNode struct {
+	ID           string   `json:"id"`
+	SectionID    string   `json:"section_id"`
+	ParentID     *string  `json:"parent_id,omitempty"`
+	Type         string   `json:"type"`
+	RouteID      *string  `json:"route_id,omitempty"`
+	Label        string   `json:"label"`
+	Icon         string   `json:"icon"`
+	Sort         int      `json:"sort"`
+	Visible      bool     `json:"visible"`
+	Url          *string  `json:"url,omitempty"`
+	OpenMode     string   `json:"open_mode"`
+	BadgeText    string   `json:"badge_text"`
+	BadgeColor   string   `json:"badge_color"`
+	BadgeDot     bool     `json:"badge_dot"`
+	ActiveMenu   *string  `json:"active_menu,omitempty"`
+	Permission   *string  `json:"permission,omitempty"`
+	OperationIds []string `json:"operation_ids"`
+	Disabled     bool     `json:"disabled"`
+}
+
+type NavigationPage struct {
+	ID         string   `json:"id"`
+	Surfaces   []string `json:"surfaces"`
+	Permission string   `json:"permission"`
+	Group      string   `json:"group"`
+}
+
+type Navigation struct {
+	Version  int                 `json:"version"`
+	Sections []NavigationSection `json:"sections"`
+	Nodes    []NavigationNode    `json:"nodes"`
+}
+
+type NavigationRoleAssignment struct {
+	RoleID    string   `json:"role_id"`
+	MenuIds   []string `json:"menu_ids"`
+	ActionIds []string `json:"action_ids"`
+}
+
+type APIOperation struct {
+	OperationID    string   `json:"operation_id"`
+	Method         string   `json:"method"`
+	Path           string   `json:"path"`
+	Summary        string   `json:"summary"`
+	Tags           []string `json:"tags"`
+	Realm          string   `json:"realm"`
+	Permissions    []string `json:"permissions"`
+	PermissionMode string   `json:"permission_mode"`
+	Csrf           bool     `json:"csrf"`
+	SuperAdmin     bool     `json:"super_admin"`
+	Grantable      bool     `json:"grantable"`
+}
+
+type APIOperationList struct {
+	Items []APIOperation `json:"items"`
+}
+
+type APIOperationListResponse struct {
+	Code      string           `json:"code"`
+	Message   string           `json:"message"`
+	Data      APIOperationList `json:"data"`
+	RequestID string           `json:"request_id"`
+}
+
+type Post struct {
+	ID          string `json:"id"`
+	Code        string `json:"code"`
+	Name        string `json:"name"`
+	Sort        int    `json:"sort"`
+	Enabled     bool   `json:"enabled"`
+	Description string `json:"description"`
+	CreatedAt   int    `json:"created_at"`
+	UpdatedAt   int    `json:"updated_at"`
+	MemberCount int    `json:"member_count"`
+}
+
+type PostList struct {
+	Items []Post `json:"items"`
+	Total int    `json:"total"`
+}
+
+type PostSaveInput struct {
+	Code        string  `json:"code"`
+	Name        string  `json:"name"`
+	Sort        *int    `json:"sort,omitempty"`
+	Enabled     *bool   `json:"enabled,omitempty"`
+	Description *string `json:"description,omitempty"`
+}
+
+type PostResponse struct {
+	Code      string `json:"code"`
+	Message   string `json:"message"`
+	Data      Post   `json:"data"`
+	RequestID string `json:"request_id"`
+}
+
+type PostListResponse struct {
+	Code      string   `json:"code"`
+	Message   string   `json:"message"`
+	Data      PostList `json:"data"`
+	RequestID string   `json:"request_id"`
+}
+
+type NoteCapabilities struct {
+	Update bool `json:"update"`
+	Delete bool `json:"delete"`
+}
+
+type FileCapabilities struct {
+	Download bool `json:"download"`
+	Delete   bool `json:"delete"`
 }

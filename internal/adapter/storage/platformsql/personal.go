@@ -99,6 +99,11 @@ func fullFactor(s platform.PersonalSession) error {
 	return nil
 }
 func (r *Repository) SaveDisplayName(ctx context.Context, hash, name string) error {
+	return r.SaveAccountProfile(ctx, hash, name, nil)
+}
+
+// SaveAccountProfile rechecks the session and file metadata under the account transaction.
+func (r *Repository) SaveAccountProfile(ctx context.Context, hash, name string, avatar *string) error {
 	tx, s, err := r.ownTransaction(ctx, hash)
 	if err != nil {
 		return err
@@ -107,11 +112,35 @@ func (r *Repository) SaveDisplayName(ctx context.Context, hash, name string) err
 	if err = fullFactor(s); err != nil {
 		return err
 	}
+	if avatar != nil && *avatar != "" {
+		var owner, realm, state, purpose, mime string
+		var size, expires int64
+		err = r.Store.Row(ctx, tx, sqlstore.LockQuery(r.Store.Dialect, "SELECT creator_id,creator_realm,state,purpose,mime_type,size,expires_at FROM unicore_file_metadata WHERE id=?"), *avatar).Scan(&owner, &realm, &state, &purpose, &mime, &size, &expires)
+		if errors.Is(err, sql.ErrNoRows) {
+			return platform.ErrInput
+		}
+		if err != nil {
+			return err
+		}
+		if owner != s.User.ID || realm != r.avatarRealm() || state != "ready" || purpose != "user" || size <= 0 || size > 2<<20 || (mime != "image/png" && mime != "image/jpeg" && mime != "image/gif") || (expires > 0 && expires <= time.Now().Unix()) {
+			return platform.ErrInput
+		}
+	}
 	if err = r.ensurePersonal(ctx, tx, s.User.ID); err != nil {
 		return err
 	}
 	if _, err = r.exec(ctx, tx, "UPDATE unicore_personal_accounts SET display_name=? WHERE user_id=?", name, s.User.ID); err != nil {
 		return err
+	}
+	if avatar != nil {
+		if _, err = r.Store.Exec(ctx, tx, "DELETE FROM unicore_account_avatars WHERE user_id=? AND creator_realm=?", s.User.ID, r.avatarRealm()); err != nil {
+			return err
+		}
+		if *avatar != "" {
+			if _, err = r.Store.Exec(ctx, tx, "INSERT INTO unicore_account_avatars(user_id,creator_realm,file_id,updated_at) VALUES(?,?,?,?)", s.User.ID, r.avatarRealm(), *avatar, time.Now().Unix()); err != nil {
+				return err
+			}
+		}
 	}
 	if err = r.audit(ctx, tx, s.User.ID, "account.profile.updated"); err != nil {
 		return err
@@ -352,4 +381,21 @@ func (r *Repository) RevokeDevice(ctx context.Context, hash, target string, othe
 		return err
 	}
 	return tx.Commit()
+}
+
+func (r *Repository) avatarRealm() string {
+	if r.Administrators {
+		return "administrator"
+	}
+	return "user"
+}
+
+// UserAvatar uses the fixed repository realm, including when both realms share an ID.
+func (r *Repository) UserAvatar(ctx context.Context, userID string) (string, error) {
+	var fileID string
+	err := r.Store.Row(ctx, r.Store.DB, "SELECT file_id FROM unicore_account_avatars WHERE user_id=? AND creator_realm=?", userID, r.avatarRealm()).Scan(&fileID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	return fileID, err
 }

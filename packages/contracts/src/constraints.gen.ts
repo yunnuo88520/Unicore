@@ -192,6 +192,9 @@ export const constraints = {
         "items": {
           "$ref": "#/components/schemas/MenuEntry"
         }
+      },
+      "navigation": {
+        "$ref": "#/components/schemas/Navigation"
       }
     }
   },
@@ -501,11 +504,7 @@ export const constraints = {
       "roles": {
         "type": "array",
         "items": {
-          "type": "string",
-          "enum": [
-            "super_admin",
-            "user"
-          ]
+          "type": "string"
         }
       },
       "permissions": {
@@ -522,6 +521,46 @@ export const constraints = {
       },
       "totp_enabled": {
         "type": "boolean"
+      },
+      "department_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "menu_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "action_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "operation_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "post_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
       }
     }
   },
@@ -586,6 +625,19 @@ export const constraints = {
       "role": {
         "type": "string",
         "maxLength": 64
+      },
+      "department_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "post_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
       }
     }
   },
@@ -593,7 +645,6 @@ export const constraints = {
     "type": "object",
     "additionalProperties": false,
     "required": [
-      "role",
       "status"
     ],
     "properties": {
@@ -603,6 +654,19 @@ export const constraints = {
       },
       "status": {
         "type": "string"
+      },
+      "department_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "post_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
       }
     }
   },
@@ -732,7 +796,8 @@ export const constraints = {
       "total_users",
       "today_new_users",
       "active_users_7d",
-      "audit"
+      "audit",
+      "activity_7d"
     ],
     "properties": {
       "total_users": {
@@ -748,6 +813,12 @@ export const constraints = {
         "type": "array",
         "items": {
           "$ref": "#/components/schemas/AuditEntry"
+        }
+      },
+      "activity_7d": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/ActivityDay"
         }
       }
     }
@@ -1537,7 +1608,14 @@ export const constraints = {
       "name",
       "builtin",
       "permissions",
-      "user_count"
+      "user_count",
+      "realm",
+      "data_scope",
+      "department_ids",
+      "menu_ids",
+      "action_ids",
+      "operation_ids",
+      "authorization_initialized"
     ],
     "properties": {
       "id": {
@@ -1558,6 +1636,60 @@ export const constraints = {
       },
       "user_count": {
         "type": "integer"
+      },
+      "realm": {
+        "type": "string",
+        "enum": [
+          "user",
+          "administrator"
+        ]
+      },
+      "data_scope": {
+        "type": "string",
+        "enum": [
+          "all",
+          "dept",
+          "dept_and_below",
+          "custom",
+          "self"
+        ]
+      },
+      "department_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        }
+      },
+      "menu_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "action_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "operation_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "authorization_initialized": {
+        "type": "boolean"
       }
     }
   },
@@ -1593,11 +1725,7 @@ export const constraints = {
     ],
     "properties": {
       "id": {
-        "type": "string",
-        "enum": [
-          "super_admin",
-          "user"
-        ]
+        "type": "string"
       },
       "name": {
         "type": "string"
@@ -2295,7 +2423,8 @@ export const constraints = {
       "creator_realm",
       "created_at",
       "expires_at",
-      "state"
+      "state",
+      "capabilities"
     ],
     "properties": {
       "file_id": {
@@ -2355,6 +2484,9 @@ export const constraints = {
           "ready",
           "deleted"
         ]
+      },
+      "capabilities": {
+        "$ref": "#/components/schemas/FileCapabilities"
       }
     }
   },
@@ -2628,8 +2760,7 @@ export const constraints = {
     "required": [
       "title",
       "body",
-      "status",
-      "attachment_ids"
+      "status"
     ],
     "properties": {
       "title": {
@@ -2729,7 +2860,8 @@ export const constraints = {
       "attachment_ids",
       "version",
       "created_at",
-      "updated_at"
+      "updated_at",
+      "capabilities"
     ],
     "properties": {
       "id": {
@@ -2776,6 +2908,9 @@ export const constraints = {
         "type": "integer",
         "minimum": 0,
         "maximum": 9007199254740991
+      },
+      "capabilities": {
+        "$ref": "#/components/schemas/NoteCapabilities"
       }
     }
   },
@@ -4277,6 +4412,10 @@ export const constraints = {
       },
       "can_disable_2fa": {
         "type": "boolean"
+      },
+      "avatar_url": {
+        "type": "string",
+        "maxLength": 2000
       }
     }
   },
@@ -4291,6 +4430,10 @@ export const constraints = {
         "type": "string",
         "maxLength": 80,
         "minLength": 0
+      },
+      "avatar_file_id": {
+        "type": "string",
+        "maxLength": 80
       }
     }
   },
@@ -4883,6 +5026,58 @@ export const constraints = {
           "type": "string"
         },
         "maxItems": 64
+      },
+      "realm": {
+        "type": "string",
+        "enum": [
+          "user",
+          "administrator"
+        ]
+      },
+      "data_scope": {
+        "type": "string",
+        "enum": [
+          "all",
+          "dept",
+          "dept_and_below",
+          "custom",
+          "self"
+        ]
+      },
+      "department_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 100
+      },
+      "menu_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "action_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "operation_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
       }
     }
   },
@@ -4894,7 +5089,8 @@ export const constraints = {
       "label",
       "group_key",
       "sort",
-      "visible"
+      "visible",
+      "type"
     ],
     "properties": {
       "menu_key": {
@@ -4914,6 +5110,21 @@ export const constraints = {
       },
       "visible": {
         "type": "boolean"
+      },
+      "parent_key": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "type": {
+        "type": "string",
+        "enum": [
+          "page",
+          "link"
+        ]
+      },
+      "url": {
+        "type": "string",
+        "maxLength": 2048
       }
     }
   },
@@ -4921,13 +5132,39 @@ export const constraints = {
     "type": "object",
     "additionalProperties": false,
     "required": [
-      "items"
+      "items",
+      "version",
+      "sections",
+      "nodes",
+      "pages"
     ],
     "properties": {
       "items": {
         "type": "array",
         "items": {
           "$ref": "#/components/schemas/MenuEntry"
+        }
+      },
+      "version": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "sections": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NavigationSection"
+        }
+      },
+      "nodes": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NavigationNode"
+        }
+      },
+      "pages": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NavigationPage"
         }
       }
     }
@@ -4936,7 +5173,9 @@ export const constraints = {
     "type": "object",
     "additionalProperties": false,
     "required": [
-      "items"
+      "version",
+      "sections",
+      "nodes"
     ],
     "properties": {
       "items": {
@@ -4945,6 +5184,32 @@ export const constraints = {
           "$ref": "#/components/schemas/MenuEntry"
         },
         "maxItems": 256
+      },
+      "version": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "sections": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NavigationSection"
+        }
+      },
+      "nodes": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NavigationNode"
+        }
+      },
+      "role_assignments": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NavigationRoleAssignment"
+        },
+        "maxItems": 256
+      },
+      "reset": {
+        "type": "boolean"
       }
     }
   },
@@ -5158,6 +5423,128 @@ export const constraints = {
       }
     }
   },
+  "Department": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "name",
+      "sort",
+      "created_at",
+      "updated_at"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "name": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "parent_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "sort": {
+        "type": "integer"
+      },
+      "created_at": {
+        "type": "integer"
+      },
+      "updated_at": {
+        "type": "integer"
+      }
+    }
+  },
+  "DepartmentList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items",
+      "total"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Department"
+        }
+      },
+      "total": {
+        "type": "integer"
+      }
+    }
+  },
+  "DepartmentSaveInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "name"
+    ],
+    "properties": {
+      "name": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      },
+      "parent_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "sort": {
+        "type": "integer"
+      }
+    }
+  },
+  "DepartmentResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/Department"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "DepartmentListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/DepartmentList"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
   "DictionaryListResponse": {
     "type": "object",
     "additionalProperties": false,
@@ -5227,6 +5614,844 @@ export const constraints = {
       },
       "request_id": {
         "type": "string"
+      }
+    }
+  },
+  "TaskEntry": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "name",
+      "schedule",
+      "enabled",
+      "last_run_at",
+      "last_status",
+      "last_error",
+      "run_count",
+      "next_run_at"
+    ],
+    "properties": {
+      "name": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "schedule": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "enabled": {
+        "type": "boolean"
+      },
+      "last_run_at": {
+        "type": "integer"
+      },
+      "last_status": {
+        "type": "string",
+        "maxLength": 16
+      },
+      "last_error": {
+        "type": "string",
+        "maxLength": 200
+      },
+      "run_count": {
+        "type": "integer"
+      },
+      "next_run_at": {
+        "type": "integer"
+      }
+    }
+  },
+  "TaskList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/TaskEntry"
+        }
+      }
+    }
+  },
+  "TaskUpdateInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "enabled"
+    ],
+    "properties": {
+      "enabled": {
+        "type": "boolean"
+      }
+    }
+  },
+  "TaskListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/TaskList"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "TaskEntryResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/TaskEntry"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "TaskTrigger": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "triggered"
+    ],
+    "properties": {
+      "triggered": {
+        "type": "boolean"
+      }
+    }
+  },
+  "TaskTriggerResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/TaskTrigger"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "InboxEntry": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "type",
+      "source_id",
+      "title",
+      "body",
+      "created_at",
+      "read_at"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "type": {
+        "type": "string",
+        "maxLength": 32
+      },
+      "source_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "title": {
+        "type": "string",
+        "maxLength": 200
+      },
+      "body": {
+        "type": "string",
+        "maxLength": 2000
+      },
+      "created_at": {
+        "type": "integer"
+      },
+      "read_at": {
+        "type": "integer"
+      }
+    }
+  },
+  "InboxList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items",
+      "unread"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/InboxEntry"
+        }
+      },
+      "unread": {
+        "type": "integer"
+      }
+    }
+  },
+  "InboxListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/InboxList"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "UserImportResult": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "created",
+      "failed"
+    ],
+    "properties": {
+      "created": {
+        "type": "integer"
+      },
+      "failed": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/UserImportFailure"
+        }
+      }
+    }
+  },
+  "UserImportResultResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/UserImportResult"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "ActivityDay": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "date",
+      "count"
+    ],
+    "properties": {
+      "date": {
+        "type": "string",
+        "maxLength": 10
+      },
+      "count": {
+        "type": "integer"
+      }
+    }
+  },
+  "UserImportFailure": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "row",
+      "error"
+    ],
+    "properties": {
+      "row": {
+        "type": "integer"
+      },
+      "error": {
+        "type": "string",
+        "maxLength": 200
+      }
+    }
+  },
+  "NavigationSection": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "surface",
+      "name",
+      "sort",
+      "visible",
+      "show_title"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "surface": {
+        "type": "string",
+        "enum": [
+          "user",
+          "administrator"
+        ]
+      },
+      "name": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "sort": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "visible": {
+        "type": "boolean"
+      },
+      "show_title": {
+        "type": "boolean"
+      }
+    }
+  },
+  "NavigationNode": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "section_id",
+      "type",
+      "label",
+      "icon",
+      "sort",
+      "visible",
+      "open_mode",
+      "badge_text",
+      "badge_color",
+      "badge_dot",
+      "operation_ids",
+      "disabled"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "section_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "parent_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "type": {
+        "type": "string",
+        "enum": [
+          "directory",
+          "page",
+          "link",
+          "action"
+        ]
+      },
+      "route_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "label": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "icon": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "sort": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "visible": {
+        "type": "boolean"
+      },
+      "url": {
+        "type": "string",
+        "maxLength": 2048
+      },
+      "open_mode": {
+        "type": "string",
+        "enum": [
+          "same_tab",
+          "new_tab"
+        ]
+      },
+      "badge_text": {
+        "type": "string",
+        "maxLength": 40
+      },
+      "badge_color": {
+        "type": "string",
+        "maxLength": 32
+      },
+      "badge_dot": {
+        "type": "boolean"
+      },
+      "active_menu": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "permission": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "operation_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "disabled": {
+        "type": "boolean"
+      }
+    }
+  },
+  "NavigationPage": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "surfaces",
+      "permission",
+      "group"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "surfaces": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "permission": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "group": {
+        "type": "string",
+        "maxLength": 64
+      }
+    }
+  },
+  "Navigation": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "version",
+      "sections",
+      "nodes"
+    ],
+    "properties": {
+      "version": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "sections": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NavigationSection"
+        }
+      },
+      "nodes": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NavigationNode"
+        }
+      }
+    }
+  },
+  "NavigationRoleAssignment": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "role_id",
+      "menu_ids",
+      "action_ids"
+    ],
+    "properties": {
+      "role_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "menu_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "action_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      }
+    }
+  },
+  "APIOperation": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "operation_id",
+      "method",
+      "path",
+      "summary",
+      "tags",
+      "realm",
+      "permissions",
+      "permission_mode",
+      "csrf",
+      "super_admin",
+      "grantable"
+    ],
+    "properties": {
+      "operation_id": {
+        "type": "string",
+        "maxLength": 128
+      },
+      "method": {
+        "type": "string",
+        "maxLength": 16
+      },
+      "path": {
+        "type": "string",
+        "maxLength": 256
+      },
+      "summary": {
+        "type": "string",
+        "maxLength": 500
+      },
+      "tags": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "realm": {
+        "type": "string"
+      },
+      "permissions": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "permission_mode": {
+        "type": "string"
+      },
+      "csrf": {
+        "type": "boolean"
+      },
+      "super_admin": {
+        "type": "boolean"
+      },
+      "grantable": {
+        "type": "boolean"
+      }
+    }
+  },
+  "APIOperationList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/APIOperation"
+        }
+      }
+    }
+  },
+  "APIOperationListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/APIOperationList"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "Post": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "code",
+      "name",
+      "sort",
+      "enabled",
+      "description",
+      "created_at",
+      "updated_at",
+      "member_count"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "code": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "name": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "sort": {
+        "type": "integer"
+      },
+      "enabled": {
+        "type": "boolean"
+      },
+      "description": {
+        "type": "string",
+        "maxLength": 500
+      },
+      "created_at": {
+        "type": "integer"
+      },
+      "updated_at": {
+        "type": "integer"
+      },
+      "member_count": {
+        "type": "integer"
+      }
+    }
+  },
+  "PostList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items",
+      "total"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Post"
+        }
+      },
+      "total": {
+        "type": "integer"
+      }
+    }
+  },
+  "PostSaveInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "name"
+    ],
+    "properties": {
+      "code": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64,
+        "pattern": "^\\s*[A-Za-z0-9][A-Za-z0-9_.-]*\\s*$"
+      },
+      "name": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      },
+      "sort": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 2147483647
+      },
+      "enabled": {
+        "type": "boolean"
+      },
+      "description": {
+        "type": "string",
+        "maxLength": 500
+      }
+    }
+  },
+  "PostResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/Post"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "PostListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/PostList"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "NoteCapabilities": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "update",
+      "delete"
+    ],
+    "properties": {
+      "update": {
+        "type": "boolean"
+      },
+      "delete": {
+        "type": "boolean"
+      }
+    }
+  },
+  "FileCapabilities": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "download",
+      "delete"
+    ],
+    "properties": {
+      "download": {
+        "type": "boolean"
+      },
+      "delete": {
+        "type": "boolean"
       }
     }
   }

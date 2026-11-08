@@ -105,16 +105,16 @@ func exerciseOIDC(t *testing.T, ctx context.Context, store *sqlstore.Store, r *R
 	if err != nil || again.ID != member.ID {
 		t.Fatal("identity reidentified by email", again, err)
 	}
-	if _, err = r.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: "user", Status: "disabled"}, admin.ID); err != nil {
+	if _, err = r.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: rolePtr("user"), Status: "disabled"}, admin.ID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = complete(f, claims); !errors.Is(err, platform.ErrCredentials) {
 		t.Fatal("disabled identity signed in", err)
 	}
-	if _, err = r.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: "super_admin", Status: "active"}, admin.ID); !errors.Is(err, platform.ErrForbidden) {
+	if _, err = r.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: rolePtr("super_admin"), Status: "active"}, admin.ID); !errors.Is(err, platform.ErrForbidden) {
 		t.Fatal("cross realm conversion", err)
 	}
-	if _, err = r.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: "user", Status: "active"}, admin.ID); err != nil {
+	if _, err = r.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: rolePtr("user"), Status: "active"}, admin.ID); err != nil {
 		t.Fatal(err)
 	}
 	// A configuration change invalidates a flow even between token verification and commit.

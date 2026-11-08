@@ -19,6 +19,7 @@ var ErrorCatalog = map[string]ErrorDefinition{
 	"CSRF_INVALID":               {Status: 403, Message: "请求校验已失效，请刷新页面"},
 	"DATABASE_INITIALIZED":       {Status: 409, Message: "目标数据库已有安装记录，请恢复原实例配置，不能重新安装"},
 	"DATABASE_UNAVAILABLE":       {Status: 400, Message: "无法连接或初始化数据库，请检查配置与权限后重试"},
+	"DEPARTMENT_IN_USE":          {Status: 409, Message: "部门下仍有子部门或挂靠用户，请先迁移后再删除"},
 	"INSTALL_COMMITTED":          {Status: 500, Message: "安装已完成，请前往登录页面"},
 	"INSTALL_REQUIRED":           {Status: 409, Message: "请先完成安装"},
 	"INTERNAL_ERROR":             {Status: 500, Message: "操作未完成，请重试"},
@@ -62,4 +63,6 @@ var ErrorCatalog = map[string]ErrorDefinition{
 	"MFA_REQUIRED":               {Status: 401, Message: "请完成双重验证"},
 	"MFA_INVALID":                {Status: 400, Message: "验证代码无效、已使用或已过期"},
 	"MFA_ENROLLMENT_REQUIRED":    {Status: 403, Message: "请先在安全设置中启用双重验证"},
+	"POST_CONFLICT":              {Status: 409, Message: "岗位编码已被使用，请改用其他编码"},
+	"POST_IN_USE":                {Status: 409, Message: "岗位仍有成员引用，请先调整成员归属"},
 }

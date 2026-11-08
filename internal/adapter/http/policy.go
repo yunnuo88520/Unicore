@@ -202,14 +202,18 @@ func policyHandler(config Config) func(http.Handler) http.Handler {
 			}
 			_, _, _, profile := config.Install.Services()
 			webPlatform := profile == runtime.WebPlatform
-			for _, permission := range operation.Policy.Permissions {
-				_ = permission
+			if webPlatform {
 				// Profiles without the account system (standalone, desktop) have
 				// no role model; the session check above stays their boundary.
-				if !webPlatform {
-					break
+				// Grants are session data resolved from role_permissions; the
+				// declared mode decides all/any, unknown modes fail closed.
+				if !platform.PermissionsAllow(session.User.Permissions, operation.Policy.Permissions, operation.Policy.PermissionMode) {
+					webError(w, platform.ErrForbidden)
+					return
 				}
-				if !platform.Has(session.User, permission) || (platform.SuperOnly(permission) && !platform.IsSuper(session.User)) {
+				// Operation grants are the explicit refinement layer: new
+				// delegable operations default to denied, super_admin bypasses.
+				if !platform.OperationAllowed(session.User, operation.ID) {
 					webError(w, platform.ErrForbidden)
 					return
 				}

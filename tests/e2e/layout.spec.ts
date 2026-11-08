@@ -1,7 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Exercise real preference combinations and assert content never sits underneath fixed navigation.
 import {mkdir} from 'node:fs/promises';
-import {test,expect,installStandalone} from './fixtures';
+import {test,expect,installStandalone,sdkClient,loginClient,nodeDisplayLabel,pageNode} from './fixtures';
 
 test('layout matrix preserves shell geometry and stable appearance controls',async({page,instance},info)=>{
   test.setTimeout(60000);
@@ -15,6 +15,9 @@ test('layout matrix preserves shell geometry and stable appearance controls',asy
     await page.setViewportSize({width,height:900});
     for(const layout of ['默认','紧凑','全宽布局'])for(const sidebar of ['标准','内嵌','悬浮'])for(const content of ['全宽','居中']){
       await choose('layout',layout);await choose('sidebar',sidebar);await choose('content',content);
+      // Preference switches re-render the shell; wait two frames so the
+      // measured geometry reflects the applied classes.
+      await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
       const state=await page.evaluate(()=>{
         const rect=(selector:string)=>{const r=document.querySelector(selector)!.getBoundingClientRect();return {left:r.left,right:r.right,width:r.width,top:r.top,bottom:r.bottom};};
         const header=document.querySelector('.topbar')!,sheet=document.querySelector('.main-shell')!;
@@ -62,19 +65,39 @@ test('layout matrix preserves shell geometry and stable appearance controls',asy
   await expect(page.locator('.nav-scrim')).toHaveCount(0);
 });
 
-test('navigation defaults to wide closed groups and the rail keeps children in keyboard-accessible menus',async({page,instance},info)=>{
+test('navigation renders the persisted section tree with collapsed directories and the rail keeps children in keyboard-accessible menus',async({page,instance},info)=>{
+  // Installing through the browser request context signs the administrator in.
   const installed=await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}});
   expect(installed.status()).toBe(200);
+  // Resolve the persisted tree once so every label stays operator-owned.
+  const admin=sdkClient(instance.url,'administrator');
+  await loginClient(admin,'admin','test-password-strong');
+  const config=await admin.web!.menuConfig();
+  const labelOf=(routeId:string)=>nodeDisplayLabel(pageNode(config,routeId)??{label:'',id:routeId,route_id:routeId});
+  const usersNode=pageNode(config,'users')!;
+  const parentNode=usersNode.parent_id?config.nodes.find(node=>node.id===usersNode.parent_id):undefined;
+  const parentLabel=parentNode?nodeDisplayLabel(parentNode):null;
   await page.goto(`${instance.url}/admin`);
   await expect(page.getByRole('heading',{name:/一份核心，\s*无限可能/})).toBeVisible();
   await expect(page.getByText('文本分析不保存输入，外观偏好仅在当前客户端生效。',{exact:true})).toHaveCount(0);
   if(info.project.name==='mobile')await page.getByRole('button',{name:'打开导航',exact:true}).click();
   const sidebar=page.locator('.sidebar');
   expect((await sidebar.boundingBox())!.width).toBeGreaterThan(200);
-  for(const name of ['用户管理','系统设置','个人中心'])await expect(sidebar.getByRole('button',{name,exact:true})).toHaveAttribute('aria-expanded','false');
-  await expect(sidebar.getByRole('button',{name:'用户列表',exact:true})).toBeHidden();
-  await sidebar.getByRole('button',{name:'用户管理',exact:true}).click();
-  await expect(sidebar.getByRole('button',{name:'用户列表',exact:true})).toBeVisible();
+  // Sections render their entries; directories start collapsed and the
+  // operator's toggle stays authoritative in both directions.
+  if(parentLabel){
+    const group=sidebar.getByRole('button',{name:parentLabel,exact:true});
+    await expect(group).toHaveAttribute('aria-expanded','false');
+    await expect(sidebar.getByRole('button',{name:labelOf('users'),exact:true})).toHaveCount(0);
+    await group.click();
+    await expect(sidebar.getByRole('button',{name:labelOf('users'),exact:true})).toBeVisible();
+    await group.click();
+    await expect(sidebar.getByRole('button',{name:labelOf('users'),exact:true})).toHaveCount(0);
+    await group.click();
+    await expect(sidebar.getByRole('button',{name:labelOf('users'),exact:true})).toBeVisible();
+  } else {
+    await expect(sidebar.getByRole('button',{name:labelOf('users'),exact:true})).toBeVisible();
+  }
   if(info.project.name==='mobile'){
     await page.keyboard.press('Escape');
     await expect(sidebar).not.toHaveClass(/is-open/);
@@ -82,20 +105,23 @@ test('navigation defaults to wide closed groups and the rail keeps children in k
   }
   await page.getByRole('button',{name:'收起导航',exact:true}).click();
   expect((await sidebar.boundingBox())!.width).toBe(68);
-  await expect(sidebar.getByRole('button',{name:'用户列表',exact:true})).toHaveCount(0);
-  await expect(sidebar.getByRole('button',{name:'基础设置',exact:true})).toHaveCount(0);
-  const group=sidebar.getByRole('button',{name:'用户管理',exact:true});
+  await expect(sidebar.getByRole('button',{name:labelOf('users'),exact:true})).toHaveCount(0);
+  await expect(sidebar.getByRole('button',{name:labelOf('site'),exact:true})).toHaveCount(0);
+  const menuName=parentLabel??labelOf('users');
+  const group=sidebar.getByRole('button',{name:menuName,exact:true});
   await group.focus();await page.keyboard.press('Enter');
-  const menu=page.getByRole('menu',{name:'用户管理',exact:true});
-  await expect(menu.getByRole('menuitem',{name:'用户列表',exact:true})).toBeVisible();
+  const menu=page.getByRole('menu',{name:menuName,exact:true});
+  await expect(menu.getByRole('menuitem',{name:labelOf('users'),exact:true})).toBeVisible();
   await page.keyboard.press('Escape');await expect(group).toBeFocused();
-  await group.click();await menu.getByRole('menuitem',{name:'用户列表',exact:true}).click();
+  await group.click();await menu.getByRole('menuitem',{name:labelOf('users'),exact:true}).click();
   await expect(page).toHaveURL(`${instance.url}/admin/users`);
   await expect(menu).toHaveCount(0);
   await page.getByRole('button',{name:'展开导航',exact:true}).click();
-  await expect(sidebar.getByRole('button',{name:'用户管理',exact:true})).toHaveAttribute('aria-expanded','true');
-  await expect(sidebar.getByRole('button',{name:'用户管理',exact:true})).not.toHaveClass(/bg-primary-soft/);
-  await expect(sidebar.getByRole('button',{name:'用户列表',exact:true})).toHaveClass(/bg-primary-soft/);
+  if(parentLabel){
+    await expect(sidebar.getByRole('button',{name:parentLabel,exact:true})).toHaveAttribute('aria-expanded','true');
+    await expect(sidebar.getByRole('button',{name:parentLabel,exact:true})).not.toHaveClass(/bg-primary-soft/);
+  }
+  await expect(sidebar.getByRole('button',{name:labelOf('users'),exact:true})).toHaveClass(/bg-primary-soft/);
 });
 
 test('inset and floating headers match their content sheet in both themes',async({page,instance},info)=>{

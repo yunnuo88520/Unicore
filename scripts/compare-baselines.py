@@ -26,7 +26,7 @@ for combo in ['sqlite-web-platform', 'sqlite-web-standalone', 'sqlite-desktop', 
     new = json.loads((output / (combo + '.json')).read_text())
     assert new['passed']
     after = new['schema']['tables']
-    expected_tables = 37 if profile == 'web-platform' else 5
+    expected_tables = 54 if profile == 'web-platform' else 5
     assert len(after) == expected_tables, (combo, 'table count', len(after))
     apps = set(after) - {'schema_migrations'}
     unprefixed = sorted(name for name in apps if not name.startswith('unicore_'))
@@ -45,8 +45,9 @@ for combo in ['sqlite-web-platform', 'sqlite-web-standalone', 'sqlite-desktop', 
     if dialect == 'sqlite':
         intentional.append(dict(kind='sqlite_no_foreign_keys', reason='runtime keeps foreign_keys off; cascades live in the usecase layer'))
     sql_data = new['sql_only_data']
+    sql_seed_rows = {'unicore_storage_locations': 2, 'unicore_navigation_state': 1}
     for name in apps:
-        assert sql_data['row_counts'][name] == (2 if name == 'unicore_storage_locations' else 0), (combo, 'unexpected SQL data', name)
+        assert sql_data['row_counts'][name] == sql_seed_rows.get(name, 0), (combo, 'unexpected SQL data', name)
     seeded = new['post_seed_data']
     if profile == 'web-platform':
         counts = seeded['row_counts']
@@ -55,10 +56,16 @@ for combo in ['sqlite-web-platform', 'sqlite-web-standalone', 'sqlite-desktop', 
         assert counts['unicore_storage_locations'] == 2, (combo, 'seed locations missing')
     assert new['go_seed'].get('setting_count', 0) > 0, (combo, 'settings were not seeded')
     ledger = seeded['ledger']
-    assert [r['namespace'] for r in ledger] == sorted(metadata['profiles'][profile]['namespaces']), (combo, 'ledger namespaces')
+    namespace_rows = {}
     for r in ledger:
-        file = next(n for n in metadata['namespaces'] if n['id'] == r['namespace'])['migrations'][0]['files'][dialect]
-        assert r['version'] == 1 and r['checksum'] == file['checksum'] and r['applied_at'] > 0, (combo, 'ledger row', r)
+        namespace_rows.setdefault(r['namespace'], []).append(r)
+    assert sorted(namespace_rows) == sorted(metadata['profiles'][profile]['namespaces']), (combo, 'ledger namespaces', sorted(namespace_rows))
+    namespace_meta = {n['id']: n for n in metadata['namespaces']}
+    for ns, rows in namespace_rows.items():
+        assert [r['version'] for r in rows] == list(range(1, len(rows) + 1)), (combo, 'ledger versions', ns, [r['version'] for r in rows])
+    for r in ledger:
+        file = namespace_meta[r['namespace']]['migrations'][r['version'] - 1]['files'][dialect]
+        assert r['checksum'] == file['checksum'] and r['applied_at'] > 0, (combo, 'ledger row', r)
     assert all(not result['accepted'] for result in new['all_text_and_composite_pk_null_checks'].values())
     behavior = new['behavior_probes']
     assert behavior['varchar_64_accepts_65_chars']['accepted'] == (dialect == 'sqlite')

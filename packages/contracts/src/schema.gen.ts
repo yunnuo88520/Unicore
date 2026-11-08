@@ -53,6 +53,7 @@ export interface Bootstrap {
   mfa_pending?: boolean;
   mfa_enrollment_required?: boolean;
   menus?: Array<MenuEntry>;
+  navigation?: Navigation;
 }
 
 export interface BootstrapResponse {
@@ -136,11 +137,16 @@ export interface User {
   email: string;
   phone?: string;
   status: string;
-  roles: Array<"super_admin" | "user">;
+  roles: Array<string>;
   permissions: Array<string>;
   created_at: number;
   last_login_at: number;
   totp_enabled: boolean;
+  department_id?: string;
+  menu_ids?: Array<string>;
+  action_ids?: Array<string>;
+  operation_ids?: Array<string>;
+  post_ids?: Array<string>;
 }
 
 export interface UserList {
@@ -156,11 +162,15 @@ export interface UserCreate {
   password: string;
   phone?: string;
   role: string;
+  department_id?: string;
+  post_ids?: Array<string>;
 }
 
 export interface UserUpdate {
-  role: string;
+  role?: string;
   status: string;
+  department_id?: string;
+  post_ids?: Array<string>;
 }
 
 export interface LoginInput {
@@ -201,6 +211,7 @@ export interface Dashboard {
   today_new_users: number;
   active_users_7d: number;
   audit: Array<AuditEntry>;
+  activity_7d: Array<ActivityDay>;
 }
 
 export interface SettingEntry {
@@ -425,6 +436,13 @@ export interface Role {
   builtin: boolean;
   permissions: Array<string>;
   user_count: number;
+  realm: "user" | "administrator";
+  data_scope: "all" | "dept" | "dept_and_below" | "custom" | "self";
+  department_ids: Array<string>;
+  menu_ids: Array<string>;
+  action_ids: Array<string>;
+  operation_ids: Array<string>;
+  authorization_initialized: boolean;
 }
 
 export interface RoleList {
@@ -433,7 +451,7 @@ export interface RoleList {
 }
 
 export interface RoleOption {
-  id: "super_admin" | "user";
+  id: string;
   name: string;
   assignable: boolean;
 }
@@ -628,6 +646,7 @@ export interface FileEntry {
   created_at: number;
   expires_at: number;
   state: "pending" | "copying" | "ready" | "deleted";
+  capabilities: FileCapabilities;
 }
 
 export interface FileList {
@@ -699,7 +718,7 @@ export interface NoteInput {
   title: string;
   body: string;
   status: "open" | "done";
-  attachment_ids: Array<string>;
+  attachment_ids?: Array<string>;
 }
 
 export interface NoteUpdate {
@@ -723,6 +742,7 @@ export interface NoteEntry {
   version: number;
   created_at: number;
   updated_at: number;
+  capabilities: NoteCapabilities;
 }
 
 export interface NoteQuery {
@@ -1059,10 +1079,12 @@ export interface AccountProfile {
   totp_enabled: boolean;
   force_2fa: boolean;
   can_disable_2fa: boolean;
+  avatar_url?: string;
 }
 
 export interface ProfileInput {
   display_name: string;
+  avatar_file_id?: string;
 }
 
 export interface TOTPSetupInput {
@@ -1217,6 +1239,12 @@ export interface NotifyPreviewResponse {
 export interface RoleSaveInput {
   name: string;
   permissions: Array<string>;
+  realm?: "user" | "administrator";
+  data_scope?: "all" | "dept" | "dept_and_below" | "custom" | "self";
+  department_ids?: Array<string>;
+  menu_ids?: Array<string>;
+  action_ids?: Array<string>;
+  operation_ids?: Array<string>;
 }
 
 export interface MenuEntry {
@@ -1225,14 +1253,26 @@ export interface MenuEntry {
   group_key: string;
   sort: number;
   visible: boolean;
+  parent_key?: string;
+  type: "page" | "link";
+  url?: string;
 }
 
 export interface MenuList {
   items: Array<MenuEntry>;
+  version: number;
+  sections: Array<NavigationSection>;
+  nodes: Array<NavigationNode>;
+  pages: Array<NavigationPage>;
 }
 
 export interface MenuSaveInput {
-  items: Array<MenuEntry>;
+  items?: Array<MenuEntry>;
+  version: number;
+  sections: Array<NavigationSection>;
+  nodes: Array<NavigationNode>;
+  role_assignments?: Array<NavigationRoleAssignment>;
+  reset?: boolean;
 }
 
 export interface MenuListResponse {
@@ -1288,6 +1328,40 @@ export interface DictionaryItemsInput {
   items: Array<DictionaryItemEntry>;
 }
 
+export interface Department {
+  id: string;
+  name: string;
+  parent_id?: string;
+  sort: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface DepartmentList {
+  items: Array<Department>;
+  total: number;
+}
+
+export interface DepartmentSaveInput {
+  name: string;
+  parent_id?: string;
+  sort?: number;
+}
+
+export interface DepartmentResponse {
+  code: string;
+  message: string;
+  data: Department;
+  request_id: string;
+}
+
+export interface DepartmentListResponse {
+  code: string;
+  message: string;
+  data: DepartmentList;
+  request_id: string;
+}
+
 export interface DictionaryListResponse {
   code: string;
   message: string;
@@ -1307,4 +1381,215 @@ export interface DictionarySummaryResponse {
   message: string;
   data: DictionarySummary;
   request_id: string;
+}
+
+export interface TaskEntry {
+  name: string;
+  schedule: string;
+  enabled: boolean;
+  last_run_at: number;
+  last_status: string;
+  last_error: string;
+  run_count: number;
+  next_run_at: number;
+}
+
+export interface TaskList {
+  items: Array<TaskEntry>;
+}
+
+export interface TaskUpdateInput {
+  enabled: boolean;
+}
+
+export interface TaskListResponse {
+  code: string;
+  message: string;
+  data: TaskList;
+  request_id: string;
+}
+
+export interface TaskEntryResponse {
+  code: string;
+  message: string;
+  data: TaskEntry;
+  request_id: string;
+}
+
+export interface TaskTrigger {
+  triggered: boolean;
+}
+
+export interface TaskTriggerResponse {
+  code: string;
+  message: string;
+  data: TaskTrigger;
+  request_id: string;
+}
+
+export interface InboxEntry {
+  id: string;
+  type: string;
+  source_id: string;
+  title: string;
+  body: string;
+  created_at: number;
+  read_at: number;
+}
+
+export interface InboxList {
+  items: Array<InboxEntry>;
+  unread: number;
+}
+
+export interface InboxListResponse {
+  code: string;
+  message: string;
+  data: InboxList;
+  request_id: string;
+}
+
+export interface UserImportResult {
+  created: number;
+  failed: Array<UserImportFailure>;
+}
+
+export interface UserImportResultResponse {
+  code: string;
+  message: string;
+  data: UserImportResult;
+  request_id: string;
+}
+
+export interface ActivityDay {
+  date: string;
+  count: number;
+}
+
+export interface UserImportFailure {
+  row: number;
+  error: string;
+}
+
+export interface NavigationSection {
+  id: string;
+  surface: "user" | "administrator";
+  name: string;
+  sort: number;
+  visible: boolean;
+  show_title: boolean;
+}
+
+export interface NavigationNode {
+  id: string;
+  section_id: string;
+  parent_id?: string;
+  type: "directory" | "page" | "link" | "action";
+  route_id?: string;
+  label: string;
+  icon: string;
+  sort: number;
+  visible: boolean;
+  url?: string;
+  open_mode: "same_tab" | "new_tab";
+  badge_text: string;
+  badge_color: string;
+  badge_dot: boolean;
+  active_menu?: string;
+  permission?: string;
+  operation_ids: Array<string>;
+  disabled: boolean;
+}
+
+export interface NavigationPage {
+  id: string;
+  surfaces: Array<string>;
+  permission: string;
+  group: string;
+}
+
+export interface Navigation {
+  version: number;
+  sections: Array<NavigationSection>;
+  nodes: Array<NavigationNode>;
+}
+
+export interface NavigationRoleAssignment {
+  role_id: string;
+  menu_ids: Array<string>;
+  action_ids: Array<string>;
+}
+
+export interface APIOperation {
+  operation_id: string;
+  method: string;
+  path: string;
+  summary: string;
+  tags: Array<string>;
+  realm: string;
+  permissions: Array<string>;
+  permission_mode: string;
+  csrf: boolean;
+  super_admin: boolean;
+  grantable: boolean;
+}
+
+export interface APIOperationList {
+  items: Array<APIOperation>;
+}
+
+export interface APIOperationListResponse {
+  code: string;
+  message: string;
+  data: APIOperationList;
+  request_id: string;
+}
+
+export interface Post {
+  id: string;
+  code: string;
+  name: string;
+  sort: number;
+  enabled: boolean;
+  description: string;
+  created_at: number;
+  updated_at: number;
+  member_count: number;
+}
+
+export interface PostList {
+  items: Array<Post>;
+  total: number;
+}
+
+export interface PostSaveInput {
+  code: string;
+  name: string;
+  sort?: number;
+  enabled?: boolean;
+  description?: string;
+}
+
+export interface PostResponse {
+  code: string;
+  message: string;
+  data: Post;
+  request_id: string;
+}
+
+export interface PostListResponse {
+  code: string;
+  message: string;
+  data: PostList;
+  request_id: string;
+}
+
+export interface NoteCapabilities {
+  update: boolean;
+  delete: boolean;
+}
+
+export interface FileCapabilities {
+  download: boolean;
+  delete: boolean;
 }

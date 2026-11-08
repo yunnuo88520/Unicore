@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # ADR-0033：用户域动态角色、数据驱动菜单与数据字典
 
-日期：2026-11-07。状态：已实施（dev）。取代 ADR-0012/ADR-0029 时代「固定管理员/普通用户双角色、禁止自定义角色写接口」的运营层限制；双域物理隔离与 fail-closed 契约权限保持不变。
+日期：2026-11-07。状态：已实施（dev）；其「管理员域保持固定」的运营层限制后被 [ADR-0034](ADR-0034-administrator-restricted-roles.md) 放开，`EnsurePermissions` 每次启动补种的语义后被 [ADR-0036](ADR-0036-navigation-regions-granular-authorization.md) 修正为不复活已撤销授权，双域物理隔离与 fail-closed 契约权限保持不变。取代 ADR-0012/ADR-0029 时代「固定管理员/普通用户双角色、禁止自定义角色写接口」的运营层限制。
 
 ## 背景
 
@@ -18,8 +18,8 @@
 
 ## 后果
 
-- 自建角色可组合业务权限（页面可见性 + 按钮 + API 三处同一权限点）；`canAccess` 按 permissions 过滤菜单的机制（前端既有）自动生效。
+- 自建角色可组合业务权限（页面可见性 + API 同一权限点）；`canAccess` 按 permissions 过滤菜单的机制（前端既有）自动生效。页面内操作按钮当时随页面权限一起开放，独立按钮级授权已由 [ADR-0035](ADR-0035-action-permissions-departments.md) 实现。
 - 内置 `user` 角色种子绑定全部 assignable 权限点，存量行为不变。
 - 旧「residual grant ignored」测试语义废止：role_permissions 表数据参与授权。
 - 备份工具世代校验由 MAX(version) 改为 core@1 锚点（追加版本不再影响世代判定）。
-- 数据权限（部门/行级范围）仍不在本轮范围。
+- 数据权限（部门/行级范围）不在本轮范围，已由 [ADR-0035](ADR-0035-action-permissions-departments.md) 实现。

@@ -44,7 +44,7 @@ func mountPersonal(api chi.Router, config Config) {
 			if !decode(w, r, &input) {
 				return
 			}
-			result, err := p.SaveName(r.Context(), rawSession(r), input.DisplayName)
+			result, err := p.SaveProfile(r.Context(), rawSession(r), input)
 			if err != nil {
 				webError(w, err)
 				return

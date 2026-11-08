@@ -3,7 +3,7 @@
 
 唯一来源为 [OpenAPI](../../packages/contracts/openapi.json)。先改 schema、operationId、参数、响应、security 与 x-unicore，再执行 `pnpm generate`。生成 Go/TS DTO、typed operation 描述、约束表、错误目录和离线 HTML；`pnpm check:contracts` 检测漂移。HTTP handler 与业务授权仍手写，不能把生成 DTO 等同于自动实现接口。
 
-每个 operation 的 x-unicore 声明适用 profiles、access、permissions、permissionMode、superAdmin 和 csrf。CookieSession、CSRFToken、BootstrapToken 在 securitySchemes 登记。运行时策略中间件按契约 fail-closed 执行：没有 x-unicore 声明的已注册 API 路由直接 500 拒绝，session/authenticated/platform-session 访问在中间件解析会话并强制 permissions 与 superAdmin（`require` 复用其会话，补充 2FA 注册与审计 actor），public/install-token/local 仍由 handler 自行守卫。事务内授权与业务校验仍在 handler/service。真实 Chi 路由测试覆盖完整 Web 装配与最小 Core 装配，并以双向遍历断言"路由↔契约"完全一致，缺 handler 或未登记接口会失败。
+每个 operation 的 x-unicore 声明适用 profiles、access、permissions、permissionMode、superAdmin 和 csrf。CookieSession、CSRFToken、BootstrapToken 在 securitySchemes 登记。运行时策略中间件按契约 fail-closed 执行：没有 x-unicore 声明的已注册 API 路由直接 500 拒绝，session/authenticated/platform-session 访问在中间件解析会话并强制 permissions 与 superAdmin（`require` 复用其会话，补充 2FA 注册与审计 actor），public/install-token/local 仍由 handler 自行守卫。`permissionMode` 缺省与 `all` 要求全部权限点，`any` 要求至少一个，未知模式拒绝。角色可委派的 operation 授权（operation_ids）以契约 operationId 为标识、由 `GET /admin/api-operations` 目录派生，只能在契约允许范围内收窄调用面，不能放宽权限点或保留集（[ADR-0036](../adr/ADR-0036-navigation-regions-granular-authorization.md)）。事务内授权与业务校验仍在 handler/service。真实 Chi 路由测试覆盖完整 Web 装配与最小 Core 装配，并以双向遍历断言"路由↔契约"完全一致，缺 handler 或未登记接口会失败。
 
 响应遵循 `{code, data, request_id}`；失败为 `{code, message, request_id, fields?}`。错误 code 的默认状态和安全提示登记于 x-error-codes；生成 ErrorCatalog 给 HTTP、presenter 与桌面复用。上下文相关提示可以更具体，但不能暴露原始错误、数据库信息或提交值。字段错误使用 name 或 `changes[0].value` 等路径，表单显示摘要并聚焦对应控件。请求 ID 可以反馈给维护者排查。
 
@@ -11,7 +11,7 @@ SDK HttpTransport 的业务方法调用生成 operation，统一处理 Cookie、
 
 校验支持 `$ref`、object/array/string/integer/boolean、required、additionalProperties、enum、长度/正则、数值/列表范围、uniqueItems 与 x-max-utf8-bytes，以及 email、绝对 URI、date-time 格式。生成器拒绝未实现的 schema keyword；这是明确的 OpenAPI 子集，不是完整 JSON Schema 实现。Go/TS 共用 validation-cases.json 验证输入边界；整数限于 JavaScript 安全整数。业务条件（安装 profile、密码策略、非空白、权限委派等）继续在领域/服务层验证。新增约束需同步两端解释器和共享样例，不能只改表单。
 
-API 文档不依赖 CDN 或脚本。启动 `APP_API_DOCS=true build/bin/server` 后，`/docs/api` 提供文档，`/openapi.json` 提供原始契约；默认关闭时两路径返回 404。本地文件 `packages/contracts/reference.gen.html` 也可离线阅读。文档包含全部 profile 的操作，当前实例只装配适用能力；文档不携带实例配置或凭据。
+启动 `APP_API_DOCS=true build/bin/server` 后，在线 `/api-docs` 使用随应用打包的 Swagger UI（本地依赖，无 CDN 外呼）读取 `/openapi.json`，兼容路径 `/docs/api` 跳转到该参考页。默认关闭时 `/openapi.json` 与 `/docs/api` 返回 404，应用内参考页提示文档不可用。生成文件 `packages/contracts/reference.gen.html` 仍是不依赖脚本的离线参考，与在线页分别保留。文档包含全部 profile 的操作，当前实例只装配适用能力；文档不携带实例配置或凭据。参考页通过 AppClient 加载契约，禁用请求测试（`supportedSubmitMethods: []`）、校验外呼与持久化认证，不保存 Cookie、令牌或其他凭据；独立 API 调用仍受各 operation 的认证、CSRF 和权限控制。
 
 上传 operation 可在 x-unicore.maxBodyBytes 声明 1–512 KiB 的 JSON 体上限；通用 decoder 按真实路由读取元数据，未声明仍为 64 KiB。当前品牌 PUT 单独为 384 KiB，业务图片原始上限为 256 KiB；禁止为新增上传全局放大所有 API。公开品牌 PNG 与 manifest 是固定格式静态资源接口，不属于 JSON 业务契约。
 

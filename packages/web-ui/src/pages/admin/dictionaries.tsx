@@ -44,7 +44,9 @@ function DictionaryPanel({ web }: { web: WebClient }) {
     },
     onError: error => message.error(t(error.message)),
   });
-  return <div className="grid items-start gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
+  // grid-cols-1 keeps the mobile track at minmax(0,1fr): without it the implicit
+  // auto track grows to the entry table's min-content width and stretches the page.
+  return <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
     <Card>
       <CardContent className="flex flex-col gap-3">
         <div className="flex items-start justify-between gap-2">
@@ -138,8 +140,8 @@ function ItemsEditor({ web, id, items, onSaved }: { web: WebClient; id: string; 
   };
   const pending = save.isPending;
   return <div className="flex flex-col gap-3">
-    <div className="rounded-lg border border-line" aria-busy={pending}>
-      <Table>
+    <div className="min-w-0 rounded-lg border border-line" aria-busy={pending}>
+      <Table className="min-w-[640px]">
         <TableHeader>
           <TableRow className="hover:bg-transparent">
             <TableHead>{t('值')}</TableHead>

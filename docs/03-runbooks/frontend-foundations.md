@@ -7,13 +7,14 @@
 | --- | --- | --- |
 | 页面骨架 | `@unicore/web-ui/layout` / WorkspaceLayout | navigation/header/children/overlays 插槽；布局宽度、固定侧栏、滚动与移动断点由 shell 管理（几何属性变体在 shell.css），页面不设主区域偏移 |
 | 身份与请求 | Workspace / SessionBoundary / AppClient / queries.ts | 会话代际隔离、统一错误与失效；Query 管服务端状态，不绕过 SDK |
-| 路由与权限 | routes.ts / router.tsx / admin-app.tsx | routes.ts 是页面事实的唯一登记源（标题/说明/权限/图标/导航分组），导航模型由 navigation.ts 的 buildNavigation 派生（含外观设置、系统更新的上下文例外）；createWorkspaceRouter 挂载 page 模块（history 导航，桌面 hash，管理端动态 basepath）；管理员入口独立，API 再授权 |
+| 路由与权限 | routes.ts / router.tsx / admin-app.tsx | routes.ts 是页面事实的唯一登记源（标题/说明/权限/图标）；导航由服务端真实区域配置（区域 + directory/page/link/action 节点树）与 navigation.ts 派生合成，区域编辑器、侧栏、图标栏与移动抽屉消费同一模型；createWorkspaceRouter 挂载 page 模块（history 导航，桌面 hash，管理端动态 basepath）；管理员入口独立，API 再授权 |
 | 界面语言 | `@unicore/web-ui/i18n` | 组件 `useI18n()`，正文/属性/提示 `t()`；静态配置 `defineMessages()` 登记后在渲染处翻译；共享组件经 `@unicore/ui/i18n` 翻译桩渲染 key，宿主在 i18n.ts 注入 setTranslator |
 | 本地偏好 | `@unicore/theme/preferences` / ClientControls | 唯一设备状态入口；不得用业务设置 API 或独立 localStorage |
 | 主题与布局控件 | AppearanceDrawer / AppearanceControls | 选项来自 preferenceOptions，标签满足完整类型映射；控件固定 LTR，工作区统一 LTR |
 | 表单与校验 | `@unicore/form` / useAppForm、AppForm、AppField | 契约约束经 constraintsToZod 生成 Zod schema 驱动 RHF；label/hint 收已翻译 ReactNode；服务端 AppError.fields 用 applyServerError 合并（聚焦限本表单）、pending 防重；新实体用 Modal/ConfirmDialog |
 | 反馈与控件 | `@unicore/ui`（useMessage / Modal / Tabs / Switch / Tooltip / Table 等） | 使用统一消息、焦点/关闭和键盘行为，避免自写重复弹层；TanStack Table 渲染列表用 ui/table |
 | 富文本 | `@unicore/ui/editor` / RichTextEditor | Tiptap 受限标签、选择范围、变量插入、源码净化、纯文本粘贴；服务端再次校验，场景页复用组件 |
+| 图表与列设置 | widgets/activity.tsx / column-visibility.ts | Recharts 读取真实管理员统计；useColumnVisibility 按表 key 保存设备偏好，列隐藏不影响授权或导出 |
 | 视觉基础 | `@unicore/theme/styles.css` / tokens.json | Tailwind v4 经 `@theme inline` 映射生成令牌；颜色/尺度使用语义令牌类，不写页面专属主题常量 |
 
 ## 新页面的最小双语写法
@@ -37,6 +38,10 @@ return <button aria-label={t('保存')}>{t('保存')}</button>;
 
 管理端操作日志与邮件模板复用这些入口，详见 [管理工具](admin-tools.md)。模板正文/主题属于业务内容，语言巡检仅排除输入及 `.rich-content`/`.tiptap` 排版层，不跳过整个页面。
 
-可配置公告与邮件正文不调用 t()；共用安全富内容展示 rich-content.tsx，编辑与服务端预览分离。用户公告通过 DashboardWidgetRegistry 注入，仅平台用户身份启用，管理页独立入口。见 [公告手册](announcements.md)。
+可配置公告与邮件正文不调用 t()；共用安全富内容展示 rich-content.tsx，编辑与服务端预览分离。用户公告与站内信通过全局顶部铃铛查看，仅平台用户身份启用；SSE 通知后重新查询服务端，管理页独立入口。见 [公告手册](announcements.md)。
+
+已登记但身份无权访问的页面使用独立 ForbiddenPage（403），未知地址使用 NotFoundPage（404）；不要把无权访问静默重定向到另一个业务页面。Swagger API 参考页采用延迟加载，并遵循实例 API 文档开关；头像复用文件上传和本人 profile API。行为及扩展方式见 [UI 组件参考](../product/ui-components.md) 与 [个人中心](personal-center.md)。
+
+移动端（375px）验收必须覆盖**带数据的状态**：所有宽表格（输入行、多列矩阵）必须收在 `overflow-x-auto` 容器内滚动，双列栅格窄屏需显式 `grid-cols-1` 约束轨道，防止 min-content 撑开文档；E2E 对整页断言无横向溢出时必须让页面处于含数据的真实状态，仅验空态视为未覆盖。侧栏默认区域、成员与顺序由代码显式定义（业务区固定序列，系统设置组仅放全局设置类页面），不存在字母序兜底；调整默认结构必须随实现显式变更，操作员经菜单管理编辑区域树并持久化（[ADR-0036](../adr/ADR-0036-navigation-regions-granular-authorization.md)）。
 
 持久分片上传统一使用 file-upload-dialog.tsx / AppClient.files.uploadFile；支持暂停/刷新续传、指纹核对和确认字节进度。平台专用安全投影 uploadPolicy，配置页不得向用户端暴露。详见 [存储手册](storage.md)。

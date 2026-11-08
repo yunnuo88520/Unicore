@@ -17,7 +17,7 @@ HTTP / Wails → usecase.Notes → domain.Note / NoteRepository port → SQL ada
 | --- | --- |
 | internal/domain / usecase | 文本分析、笔记规则、Repository port、context 与 DTO 映射 |
 | internal/install | 安装状态/凭据/恢复、DB 配置加密、按 profile 装配 |
-| internal/platform | Argon2id、会话、权限策略、限流/验证码与 identity ports |
+| internal/platform | Argon2id、会话、权限策略、限流/验证码、operation 目录与数据范围解析、identity ports |
 | internal/settings | Definition 注册、类型/范围校验与持久化 port |
 | internal/mailcontent / audit | 受限邮件内容、变量转义 / 服务端审计元数据 context |
 | internal/secret | AES-256-GCM 与受限密钥/原子配置文件 |
@@ -71,13 +71,15 @@ internal/platform/Accounts 编排独立注册/邮箱验证策略、后缀与黑�
 
 [ADR-0005](../adr/ADR-0005-design-email-codes.md) 定义统一设计编译链与挑战事务。tokens.json → CSS/嵌入 JSON → React/Go 邮件/图形验证码/原生窗口；identity.json → Resvg → 网站/原生/邮件同源图标。M2b 长链接保留兼容，新 UI 走 /auth/email/*；平台迁移增加 0004，framework-only 形态不引入 email_challenges。邮箱登录开启需测试 SMTP，session 与码消费同事务提交。
 
-## 平台固定两角色
+## 平台角色与权限目录
 
-[ADR-0012](../adr/ADR-0012-fixed-platform-roles.md) 取代 M2d 业务角色。platform/roles.go 定义管理员/普通用户和管理权限目录；platformsql 仅按固定管理员角色投影权限，忽略历史 grants。OpenAPI 约束用户角色枚举，只生成 Role/RoleList/RoleOptions 读接口；roles-page.tsx 展示两角色矩阵，没有编辑接口。
+[ADR-0012](../adr/ADR-0012-fixed-platform-roles.md) 曾固定两角色并移除业务 grants；[ADR-0033](../adr/ADR-0033-dynamic-user-roles.md) 在保持双域隔离与 fail-closed 契约权限的前提下恢复用户域动态角色，[ADR-0034](../adr/ADR-0034-administrator-restricted-roles.md) 将角色表 realm 化并放开管理员域受限角色，[ADR-0035](../adr/ADR-0035-action-permissions-departments.md) 增加动作权限点与部门数据范围。platform/roles.go 的 PermissionCatalog 以 Assignable 区分仅 super_admin 的管理权限与可授予自建角色的业务权限；用户域权限由 user_roles JOIN role_permissions 表驱动，未知权限点默认拒绝。角色 CRUD 与权限矩阵由 /admin/roles 提供，角色或权限变更撤销成员会话。
 
-routes.ts 集中管理员菜单/直达页守卫，settings-page.tsx 将平台本地外观与管理员全局设置分离。所有 /api/v1/admin/*（包括只读）在 HTTP 上复核当前固定管理员与权限，写入仍校验 CSRF/Origin；用户写入在安装行锁内重新加载操作者，保护最后一个启用且有本地密码的管理员。角色/状态变更撤销会话与账号挑战。公共品牌与登录策略保留最小公开投影。
+[ADR-0036](../adr/ADR-0036-navigation-regions-granular-authorization.md) 把导航与授权细化：导航为真实区域实体（surface=user|administrator 的区域与 directory/page/link/action 节点树，`permission`/`operation_ids` 仅由 action 节点承载，深度上限 5，`navigation.{sections,nodes,version}` 整树提交、版本 CAS、`reset` 仅 super_admin），侧栏/图标栏/移动抽屉消费同一模型；角色分别授予 `menu_ids`/`action_ids`/`operation_ids` 三类能力（空数组拒绝、互不隐含，menu_ids 只过滤菜单可见性不授予 API），API 目录 `GET /admin/api-operations`（roles:read）从 OpenAPI operationId 派生；运行时策略（profile、access、身份域、契约权限点、operation grant、superAdmin 保留集、CSRF）构成不可逾越上界，事务内重查操作者；`EnsurePermissions` 只做幂等同步，不复活已撤销授权。岗位（platform@8）独立于角色与部门，普通用户多岗位关联、按岗位过滤，不隐式任何授权。internal/platform/operations.go 派生 operation 目录，datascope.go 解析范围（未知值按仅本人、数据库错误拒绝、分批解析不截断），platformsql 的 departments/posts/menu 存储在安装锁事务内校验并失效相关缓存。
 
-平台迁移 0007 规范为单一固定角色、移除旧自定义角色与普通用户 grants、删除平台全局主题、撤销旧凭据和取消待发邮件。历史迁移 checksum 保持，其他形态只运行 framework 迁移。三方言迁移与恢复按 [部署手册](../03-runbooks/deployment.md) 在隔离实例验证。
+routes.ts 集中页面/权限事实，canAccess 按会话权限过滤页面与直达页。所有 /api/v1/admin/*（包括只读）在 HTTP 上复核当前管理员与权限，写入仍校验 CSRF/Origin；用户写入在安装行锁内重新加载操作者，保护最后一个启用且有本地密码的管理员。角色/状态变更撤销会话与账号挑战。公共品牌与登录策略保留最小公开投影。数据字典随 platform 迁移提供。
+
+历史旧轨迁移 0007（旧编号，非当前 Catalog platform@7）曾规范为单一固定角色、移除旧自定义角色与普通用户 grants、删除平台全局主题、撤销旧凭据和取消待发邮件；历史迁移 checksum 保持，其他形态只运行 framework 迁移。当前 Catalog 链见 [管理工具](../03-runbooks/admin-tools.md) 与 [迁移规范](../02-standards/database-migrations.md)，三方言迁移与恢复按 [部署手册](../03-runbooks/deployment.md) 在隔离实例验证。
 
 ## M3a 企业身份
 
@@ -133,7 +135,9 @@ React 的独立可折叠导航、Radix dialog 弹层、头像密码/退出、邮
 
 ## 业务实体与公告
 
-[ADR-0021](../adr/ADR-0021-business-entities-announcements.md) 统一嵌入式 BaseEntity、软删除/版本及实体/DTO 映射，完整分层示例为公告模块；该增量迁移为 0011、business=2，当前平台 schema=15。公告通过 platform 0015 增加通知元数据、接收人和已读表，用户在顶部铃铛查看；未读统计、接收资格与有效期在 SQL 分页前校验。公告仅平台装配，admin/user 固定接口与最小用户投影，写事务重查管理员，安全 Markdown/HTML 通过渲染 port 接入。规范与例外见 [backend.md](../02-standards/backend.md)。
+[ADR-0021](../adr/ADR-0021-business-entities-announcements.md) 统一嵌入式 BaseEntity、软删除/版本及实体/DTO 映射，完整分层示例为公告模块。当前公告/接收人/首次阅读结构已在 Catalog `platform@1` 基线，站内信、任务登记与头像引用追加为 `platform@3`；旧轨 0011/0015 不是当前执行入口。用户在顶部铃铛查看；未读统计、接收资格与有效期在 SQL 分页前校验。公告仅平台装配，admin/user 固定接口与最小用户投影，写事务重查管理员，安全 Markdown/HTML 通过渲染 port 接入。规范与例外见 [backend.md](../02-standards/backend.md)。
+
+`internal/realtime` 为当前进程提供 SSE 用户通知；公告事务落库站内信后通知客户端重新查询。无持久事件重放或跨实例总线，站内信与公告阅读分别保存，查询按原公告当前可见性过滤。连接建立及推送/心跳前复核会话与强制两步验证，详情和写入仍单独鉴权。`internal/scheduler` 使用 robfig/cron 管理代码注册任务，数据库保存启停与运行摘要；默认 mail.queue、files.cleanup、announcements.refresh，管理接口只提供查询、启停和触发，不提供任意脚本或分布式调度。详见 [公告](../03-runbooks/announcements.md) 与 [管理工具](../03-runbooks/admin-tools.md)。
 
 持久上传会话采用 blob.Multipart / PartReceiver 扩展，files 编排服务端权威分片与安全发布，filesql 存储不可变分片几何；长流不持有全局锁，确认复核删除状态。平台 schema=12，客户端复用 SDK 与 FileUploadDialog，见 [ADR-0022](../adr/ADR-0022-resumable-uploads.md)。
 
@@ -141,7 +145,9 @@ Web 安装完成还写入私有 install.lock，配置中的 lock_version 区分�
 
 ## 个人中心与会话安全
 
-[ADR-0031](../adr/ADR-0031-personal-center-security.md) 在 platform.Personal 与 platformsql 增加本人资料、邮箱换绑、验证器与设备事务；共享 UI/SDK 只调用契约 operation。SQL Session 统一拦截尚未完成 TOTP 的登录，密码/邮件/OIDC 均不能绕过；bootstrap 只给受限挑战状态和 CSRF。安装锁事务原子消费计数器/恢复码，邮箱证明绑定原邮箱与同一会话，审计不含秘密。平台追加旧账本迁移 0014；独立/桌面仍为 0013，新 namespace baseline 不激活。
+[ADR-0031](../adr/ADR-0031-personal-center-security.md) 在 platform.Personal 与 platformsql 增加本人资料、邮箱换绑、验证器与设备事务；共享 UI/SDK 只调用契约 operation。SQL Session 统一拦截尚未完成 TOTP 的登录，密码/邮件/OIDC 均不能绕过；bootstrap 只给受限挑战状态和 CSRF。安装锁事务原子消费计数器/恢复码，邮箱证明绑定原邮箱与同一会话，审计不含秘密。当前结构在 `platform@1` 基线，`platform@3` 追加头像 file_id 引用；个人资料通过同身份域文件服务校验所有权并返回短期访问 URL，不能持久化外部 URL。单机/桌面不装配身份。
+
+管理员工作台 `GET /admin/dashboard` 由 admin:access 保护，返回真实用户概览、审计摘要与按 UTC 日分组的近七天活动；Recharts widget 经 AppClient/Query 读取。用户与文件 XLSX 由 HTTP adapter 用 excelize 处理有界工作簿，SDK 负责带会话/CSRF 的二进制下载或 multipart 导入。列可见性复用设备偏好；独立 403 与 404 区分已登记页面权限和未知地址。在线 API 文档以本地打包的 Swagger UI 读取受配置开关控制的 `/openapi.json`，离线生成参考继续保留。
 
 ## 事件通知
 

@@ -24,6 +24,8 @@ type Policy struct {
 }
 
 type Operation struct {
+	Summary     string `json:"summary"`
+	Tags        []string `json:"tags"`
 	ID          string `json:"operationId"`
 	Policy      Policy `json:"x-unicore"`
 	RequestBody struct {

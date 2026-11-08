@@ -26,7 +26,7 @@ Go 采用组合：可变业务实体嵌入 `internal/domain/entity.go` 的 BaseE
 | --- | --- |
 | users / administrators | 各自 identity repository；停用撤销本域凭据，保护最后管理员；不提供删除接口 |
 | sessions / tokens / challenges / oidc_flows | 过期、一次性消耗、撤销及清理；不能软删除后仍参与验证 |
-| roles / permissions / join tables | 固定角色，主外键与联合唯一键；不存在通用业务聚合 ID |
+| roles / permissions / join tables | 双域动态角色与菜单/动作/operation 授权、岗位、部门关联；主外键与联合唯一键，删除前校验成员引用；不存在通用业务聚合 ID |
 | schema/business_migrations、audit_logs/audit_metadata | 追加账本或快照，保留历史，不提供业务编辑/软删 |
 | install_state / system_settings | 单例/自然键配置，安装锁、SettingDefinition 和专用校验 |
 | 文件元数据/位置/清理任务、邮件队列、企业绑定 | 沿用已发布的专门状态机、引用完整性、清理/重试语义；不可绕过生命周期改成普通 CRUD |

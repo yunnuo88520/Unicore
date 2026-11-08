@@ -1,8 +1,8 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Real session isolation, contract field errors and offline documentation at PC/375px.
 import type { Page } from '@playwright/test';
+import { mkdir } from 'node:fs/promises';
 import { test, expect, installStandalone, navigate } from './fixtures';
-import { operations } from '../../packages/contracts/src/operations.gen';
 import { capture } from './visual';
 
 async function login(page: Page, username: string) {
@@ -87,17 +87,49 @@ test.setTimeout(90_000);test('unknown routes and generated API reference follow 
   await page.getByRole('button',{name:'返回工作台'}).click();
   await page.goto(`${instance.url}/lab`);
   await expect(page.getByRole('button',{name:'运行用例'})).toBeVisible();
+  const contract=page.waitForResponse(response=>new URL(response.url()).pathname==='/openapi.json'&&response.status()===200);
   await page.goto(`${instance.url}/docs/api`);
   await expect(page.getByRole('heading',{name:'API 文档',exact:true})).toBeVisible();
-  await expect(page.locator('#operations details')).toHaveCount(Object.keys(operations).length);
-  await page.locator('#createUser summary').click();
-  await expect(page.locator('#createUser')).toContainText('users:create');
-  await page.locator('#schema-EmailCodeInput summary').click();
-  await expect(page.locator('#schema-EmailCodeInput')).toContainText('^[0-9]{6}$');
-  await capture(page,info,'foundation-api-reference');
-  await page.emulateMedia({colorScheme:'dark'});
-  const dark=await page.evaluate(()=>getComputedStyle(document.body).backgroundColor);
+  const document=await(await contract).json();expect(document.openapi).toBe('3.1.0');
+  const reference=page.locator('.api-reference');
+  await expect(reference).toBeVisible({timeout:30000});
+  const swagger=reference.locator('.swagger-ui');
+  await expect(swagger).toBeVisible({timeout:30000});
+  // Swagger UI embeds the OAS badge inside h1.info .title, so match the title text itself.
+  await expect(swagger.locator('.info .title')).toContainText(document.info.title);
+  await expect(swagger.locator('.info .version-stamp')).toContainText('OAS 3');
+  // Swagger UI 5.x ships light styling only; the .api-reference panel keeps a fixed light background so the
+  // document stays readable when the shell follows the system theme into dark mode.
+  const referenceBackground=()=>reference.evaluate(element=>getComputedStyle(element).backgroundColor);
+  const referenceBrightness=async()=>{
+    const channels=(await referenceBackground()).match(/[\d.]+/g)!.slice(0,3).map(Number);
+    return channels[0]*0.2126+channels[1]*0.7152+channels[2]*0.0722;
+  };
+  // Swagger renders the full contract; retain viewport evidence instead of a huge full-document raster.
   await page.emulateMedia({colorScheme:'light'});
-  expect(await page.evaluate(()=>getComputedStyle(document.body).backgroundColor)).not.toBe(dark);
+  await expect(page.locator('html')).toHaveAttribute('data-theme','light');
+  const light=await page.evaluate(()=>getComputedStyle(document.body).backgroundColor);
+  await expect.poll(referenceBrightness,{message:'API reference panel must initially have a light background'}).toBeGreaterThan(180);
+  const panelLight=await referenceBackground();
+  expect(panelLight).not.toBe('rgba(0, 0, 0, 0)');
+  for(const theme of ['dark','light'] as const){
+    await page.emulateMedia({colorScheme:theme});
+    await expect(page.locator('html')).toHaveAttribute('data-theme',theme);
+    if(theme==='dark'){
+      await expect.poll(()=>page.evaluate(()=>getComputedStyle(document.body).backgroundColor)).not.toBe(light);
+      await expect.poll(referenceBackground,{message:'API reference panel must keep its readable light background in the dark shell'}).toBe(panelLight);
+      await expect.poll(referenceBrightness,{message:'API reference panel must stay light for readability'}).toBeGreaterThan(180);
+    }else{
+      await expect.poll(()=>page.evaluate(()=>getComputedStyle(document.body).backgroundColor)).toBe(light);
+      await expect.poll(referenceBackground,{message:'API reference panel background must stay light'}).toBe(panelLight);
+      await expect.poll(referenceBrightness,{message:'API reference panel must have a light background'}).toBeGreaterThan(180);
+    }
+    expect(await referenceBackground()).not.toBe('rgba(0, 0, 0, 0)');
+    await page.evaluate(async()=>{window.scrollTo(0,0);await document.fonts.ready;});
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+    const directory=`build/acceptance/m3a/${info.project.name}/${theme}`;
+    await mkdir(directory,{recursive:true});
+    await page.screenshot({path:`${directory}/foundation-api-reference.png`,fullPage:false,animations:'disabled'});
+  }
   const source=await page.request.get(`${instance.url}/openapi.json`);expect(source.status()).toBe(200);expect((await source.json()).openapi).toBe('3.1.0');
 });

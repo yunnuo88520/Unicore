@@ -10,10 +10,10 @@ export const preferenceOptions = {
   layout: ['default', 'compact', 'full'], content: ['full', 'centered'],
 } as const;
 export type PreferenceKey = keyof typeof preferenceOptions;
-export type Preferences = { [K in PreferenceKey]: (typeof preferenceOptions)[K][number] } & { navCollapsed: boolean };
+export type Preferences = { [K in PreferenceKey]: (typeof preferenceOptions)[K][number] } & { navCollapsed: boolean; hiddenColumns?: Record<string, string[]> };
 export const defaultPreferences: Preferences = {
   locale: 'zh-CN', theme: 'system', accent: 'brand', radius: 'default', density: 'default',
-  sidebar: 'plain', layout: 'default', content: 'full', navCollapsed: false,
+  sidebar: 'plain', layout: 'default', content: 'full', navCollapsed: false, hiddenColumns: {},
 };
 export const preferencesKey = 'unicore.preferences.v1';
 const changed = 'unicore:preferences';
@@ -36,6 +36,17 @@ function decode(raw: string): Preferences {
     if ((preferenceOptions[key] as readonly unknown[]).includes(input[key])) Object.assign(result, { [key]: input[key] });
   }
   if (typeof input.navCollapsed === 'boolean') result.navCollapsed = input.navCollapsed;
+  // Column settings are whitelisted per table key: only objects of string arrays survive decoding.
+  if (input.hiddenColumns && typeof input.hiddenColumns === 'object' && !Array.isArray(input.hiddenColumns)) {
+    const hiddenColumns: Record<string, string[]> = {};
+    for (const [table, columns] of Object.entries(input.hiddenColumns as Record<string, unknown>)) {
+      if (Array.isArray(columns)) {
+        const ids = columns.filter((id): id is string => typeof id === 'string');
+        if (ids.length) hiddenColumns[table] = ids;
+      }
+    }
+    result.hiddenColumns = hiddenColumns;
+  }
   return result;
 }
 function subscribe(listener: () => void) {
@@ -62,4 +73,4 @@ export function usePreferences() {
   return useMemo(() => decode(raw), [raw]);
 }
 // Reset presentation while keeping the user's chosen language.
-export function resetAppearance() { setPreferences({ ...defaultPreferences, locale: getPreferences().locale }); }
+export function resetAppearance() { const { locale, hiddenColumns } = getPreferences(); setPreferences({ ...defaultPreferences, locale, hiddenColumns }); }

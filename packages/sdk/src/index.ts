@@ -2,14 +2,14 @@
  * Description: Shared UI client; pages know neither fetch nor Wails globals.
  */
 import {fileFingerprint,retryDelay} from './upload';
-import type { NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, ProfileInput, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, RoleSaveInput, MenuEntry, MenuList, MenuSaveInput, DictionarySummary, DictionaryList, DictionaryItemEntry, DictionaryDetail, DictionaryCreateInput, DictionaryUpdateInput, DictionaryItemsInput, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
+import type { NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, ProfileInput, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, RoleSaveInput, MenuEntry, MenuList, MenuSaveInput, NavigationSection, NavigationNode, NavigationPage, NavigationRoleAssignment, Navigation, APIOperation, APIOperationList, Post, PostList, PostSaveInput, NoteCapabilities, FileCapabilities, DictionarySummary, DictionaryList, DictionaryItemEntry, DictionaryDetail, DictionaryCreateInput, DictionaryUpdateInput, DictionaryItemsInput, Department, DepartmentList, DepartmentSaveInput, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput, TaskList, TaskEntry, TaskUpdateInput, TaskTrigger, InboxList, FileUploadInput, FileUploadGrant } from '@unicore/contracts';
 import { operations, type OperationId, type OperationInputs, type OperationData } from '@unicore/contracts/operations';
 import { validate, type SchemaName } from '@unicore/contracts/validate';
 export { validate, constraints, type SchemaName } from '@unicore/contracts/validate';
 export { constraintsToZod, zodFieldErrors } from '@unicore/contracts/zod';
 export { operations, type OperationId } from '@unicore/contracts/operations';
 
-export type { NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateRelease, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, DictionaryItemsInput, DictionaryUpdateInput, DictionaryCreateInput, DictionaryDetail, DictionaryItemEntry, DictionaryList, DictionarySummary, MenuSaveInput, MenuList, RoleSaveInput, MenuEntry, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput } from '@unicore/contracts';
+export type { NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateRelease, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, DictionaryItemsInput, DictionaryUpdateInput, DictionaryCreateInput, DictionaryDetail, DictionaryItemEntry, DictionaryList, DictionarySummary, MenuSaveInput, MenuList, RoleSaveInput, MenuEntry, NavigationSection, NavigationNode, NavigationPage, NavigationRoleAssignment, Navigation, APIOperation, APIOperationList, Post, PostList, PostSaveInput, NoteCapabilities, FileCapabilities, Department, DepartmentList, DepartmentSaveInput, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput, TaskList, TaskEntry, TaskUpdateInput, TaskTrigger, InboxList, InboxEntry, FileUploadInput, FileUploadGrant } from '@unicore/contracts';
 
 export class AppError extends Error {
   constructor(public readonly code: string, message: string, public readonly requestId = '', public readonly fields: Record<string, string> = {}) { super(message); this.name = 'AppError'; }
@@ -38,6 +38,7 @@ export interface AppClient {
   patchSettings?(input: SettingPatch): Promise<Settings>;
  branding?(): Promise<Branding>;
  updateBranding?(input: BrandingInput): Promise<Branding>;
+  apiDocument?():Promise<Record<string,unknown>>;
   web?: WebClient;
  notes?: NoteClient;
  files?: FileClient;
@@ -73,6 +74,11 @@ export interface StorageClient {
 }
 
 export interface WebClient {
+ subscribeEvents(listener:(type:string)=>void):()=>void;
+ exportUsers(search?:string):Promise<Blob>;
+ usersImportTemplate():Promise<Blob>;
+ importUsers(file:File):Promise<{created:number;errors:string[]}>;
+ exportFiles(search?:string):Promise<Blob>;
  accountProfile():Promise<AccountProfile>;
  saveAccountProfile(input:ProfileInput):Promise<AccountProfile>;
  beginTOTP(password:string):Promise<TOTPSetup>;
@@ -142,9 +148,19 @@ export interface WebClient {
  administrators(search:string,page:number):Promise<UserList>;
  createAdministrator(input:UserCreate):Promise<User>;
  updateAdministrator(id:string,input:UserUpdate):Promise<User>;
-  users(search: string, page: number): Promise<UserList>;
+  users(search: string, page: number, postId?: string): Promise<UserList>;
+  listPosts(): Promise<PostList>;
+  createPost(input: PostSaveInput): Promise<Post>;
+  updatePost(id: string, input: PostSaveInput): Promise<Post>;
+  deletePost(id: string): Promise<Post>;
+  apiOperations(): Promise<APIOperationList>;
   createUser(input: UserCreate): Promise<User>;
   updateUser(id: string, input: UserUpdate): Promise<User>;
+  listDepartments(): Promise<DepartmentList>;
+  createDepartment(input: DepartmentSaveInput): Promise<Department>;
+  updateDepartment(id: string, input: DepartmentSaveInput): Promise<Department>;
+  deleteDepartment(id: string): Promise<Department>;
+  adminDashboard(): Promise<Dashboard>;
   roles(): Promise<RoleList>;
   createRole(input: RoleSaveInput): Promise<Role>;
   updateRole(id: string, input: RoleSaveInput): Promise<Role>;
@@ -159,6 +175,17 @@ export interface WebClient {
   replaceDictionaryItems(id: string, input: DictionaryItemsInput): Promise<DictionaryDetail>;
   dictionaryByCode(code: string): Promise<DictionaryDetail>;
   roleOptions(): Promise<RoleOptions>;
+  adminRoleOptions(): Promise<RoleList>;
+
+  inbox(): Promise<InboxList>;
+  readInbox(id: string): Promise<InboxList>;
+  readAllInbox(): Promise<InboxList>;
+  listTasks(): Promise<TaskList>;
+  updateTask(name: string, input: TaskUpdateInput): Promise<TaskEntry>;
+  triggerTask(name: string): Promise<TaskTrigger>;
+  createFileUpload(input: FileUploadInput): Promise<FileUploadGrant>;
+  uploadFileContent(grant: FileUploadGrant, content: Blob): Promise<{ success: boolean }>;
+  completeFileUpload(id: string): Promise<FileEntry>;
 }
 
 function unwrap<T>(response: { code: string; message: string; data: T; request_id: string; fields?: Record<string, string> }): T {
@@ -241,7 +268,7 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   private sessionChanged(event: SessionEvent) { this.epoch++; for (const listener of this.listeners) listener(event); }
   resetSession() { this.csrf = ''; this.identity = ''; this.authenticated = false; this.bootstrapped = false; this.sessionChanged('external'); }
   constructor(private readonly baseURL = '', private readonly fetcher: typeof fetch = globalThis.fetch.bind(globalThis), realm: 'user'|'administrator' = 'user') { this.administrator = realm === 'administrator'; }
-  private async request<T>(path: string, init?: RequestInit,timeoutMS=20000): Promise<T> {
+  private async request<T>(path: string, init?: RequestInit,timeoutMS=20000,binary=false): Promise<T> {
     const epoch = this.epoch;
     let response: Response;
     const headers = new Headers(init?.headers);
@@ -250,6 +277,11 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
     const signal = init?.signal ? AbortSignal.any([init.signal, timeout]) : timeout;
     try { response = await this.fetcher(`${this.baseURL}/api/v1${path}`, { credentials: 'same-origin', ...init, headers, signal }); }
     catch { throw new AppError(signal.aborted ? (timeout.aborted ? 'REQUEST_TIMEOUT' : 'REQUEST_CANCELLED') : 'NETWORK_ERROR', signal.aborted ? '请求已取消或超时' : '连接服务失败，请确认 Go 服务正在运行'); }
+    if (binary && response.ok) {
+      const result = await response.blob();
+      if (epoch !== this.epoch) throw new AppError('SESSION_CHANGED', '会话已变化，请重新获取数据');
+      return result as T;
+    }
     let envelope: { code: string; message: string; data: T; request_id: string; fields?: Record<string, string> };
     try { envelope = await response.json(); }
     catch { throw new AppError('INVALID_RESPONSE', '服务返回了无法识别的响应'); }
@@ -302,6 +334,34 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
         error => { signal.removeEventListener('abort', onAbort); reject(error); },
       );
     });
+  }
+  private workbook(id:'exportUsers'|'userImportTemplate'|'exportFiles',search?:string):Promise<Blob> {
+    const operation=operations[id];
+    const query=new URLSearchParams(search?{search}:{});
+    return this.request(operation.path.replace(/^\/api\/v1/, '')+(query.size?`?${query}`:''),{method:operation.method},60000,true);
+  }
+  exportUsers(search?:string){return this.workbook('exportUsers',search);}
+  usersImportTemplate(){return this.workbook('userImportTemplate');}
+  exportFiles(search?:string){return this.workbook('exportFiles',search);}
+  async importUsers(file:File):Promise<{created:number;errors:string[]}> {
+    if(file.size>5*1024*1024||!file.name.toLowerCase().endsWith('.xlsx'))throw new AppError('INVALID_INPUT','请选择 5 MiB 以内的 XLSX 文件');
+    const body=new FormData();body.append('file',file);
+    const operation=operations.importUsers;
+    const result=await this.request<OperationData['importUsers']>(operation.path.replace(/^\/api\/v1/,''),{method:operation.method,body},600000);
+    return {created:result.created,errors:result.failed.map(item=>`${item.row}: ${item.error}`)};
+  }
+  async apiDocument():Promise<Record<string,unknown>> {
+    const response=await this.fetcher(`${this.baseURL}/openapi.json`,{credentials:'same-origin',signal:AbortSignal.timeout(20000)});
+    if(!response.ok)throw new AppError('NOT_AVAILABLE','接口文档未启用');
+    return response.json();
+  }
+  subscribeEvents(listener:(type:string)=>void):()=>void {
+    if(this.administrator||typeof EventSource==='undefined')return ()=>{};
+    const source=new EventSource(`${this.baseURL}${operations.events.path}`,{withCredentials:true});
+    const notify=(event:Event)=>listener(event.type==='open'?'reconnect':event.type);
+    for(const type of ['open','message','inbox.new'])source.addEventListener(type,notify);
+    const unsubscribe=this.subscribeSession(()=>source.close());
+    return ()=>{source.close();unsubscribe();};
   }
   async bootstrap(options?: RequestOptions) {
     let data = await this.call('bootstrap', undefined, options);
@@ -384,9 +444,19 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
  administrators(search:string,page:number){return this.call('listAdministrators',undefined,{query:{search,page}});}
  createAdministrator(input:UserCreate){return this.call('createAdministrator',input);}
  updateAdministrator(id:string,input:UserUpdate){return this.call('updateAdministrator',input,{params:{id}});}
-  users(search: string, page: number) { return this.call('listUsers', undefined, { query: { search, page } }); }
+  users(search: string, page: number, postId?: string) { return this.call('listUsers', undefined, { query: { search, page, ...(postId ? { post_id: postId } : {}) } }); }
+  listPosts() { return this.call('listPosts'); }
+  createPost(input: PostSaveInput) { return this.call('createPost', input); }
+  updatePost(id: string, input: PostSaveInput) { return this.call('updatePost', input, { params: { id } }); }
+  deletePost(id: string) { return this.call('deletePost', undefined, { params: { id } }); }
+  apiOperations() { return this.call('listAPIOperations'); }
   createUser(input: UserCreate) { return this.call('createUser', input); }
   updateUser(id: string, input: UserUpdate) { return this.call('updateUser', input, { params: { id } }); }
+  listDepartments() { return this.call('listDepartments'); }
+  createDepartment(input: DepartmentSaveInput) { return this.call('createDepartment', input); }
+  updateDepartment(id: string, input: DepartmentSaveInput) { return this.call('updateDepartment', input, { params: { id } }); }
+  deleteDepartment(id: string) { return this.call('deleteDepartment', undefined, { params: { id } }); }
+  adminDashboard() { return this.call('adminDashboard'); }
   roles() { return this.call('listRoles'); }
   createRole(input: RoleSaveInput) { return this.call('createRole', input); }
   updateRole(id: string, input: RoleSaveInput) { return this.call('updateRole', input, { params: { id } }); }
@@ -401,6 +471,24 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   replaceDictionaryItems(id: string, input: DictionaryItemsInput) { return this.call('replaceDictionaryItems', input, { params: { id } }); }
   dictionaryByCode(code: string) { return this.call('dictionary', undefined, { params: { code } }); }
   roleOptions() { return this.call('roleOptions'); }
+  adminRoleOptions() { return this.call('adminRoleOptions'); }
+  inbox() { return this.call('inbox'); }
+  readInbox(id: string) { return this.call('readInbox', undefined, { params: { id } }); }
+  readAllInbox() { return this.call('readAllInbox'); }
+  listTasks() { return this.call('listTasks'); }
+  updateTask(name: string, input: TaskUpdateInput) { return this.call('updateTask', input, { params: { name } }); }
+  triggerTask(name: string) { return this.call('triggerTask', undefined, { params: { name } }); }
+  createFileUpload(input: FileUploadInput) { return this.call('createFileUpload', input); }
+  // Small uploads stream the raw bytes through the granted URL; direct grants go to object storage with omit credentials.
+  async uploadFileContent(grant: FileUploadGrant, content: Blob) {
+    if (grant.direct) {
+      const response = await this.fetcher(grant.url, { method: grant.method, body: content, headers: grant.headers, credentials: 'omit', redirect: 'error' });
+      if (!response.ok) throw new AppError('STORAGE_UPLOAD_FAILED', '文件上传失败，请重试');
+      return { success: true };
+    }
+    return await this.request<{ success: boolean }>(grant.url.replace(/^\/api\/v1/, ''), { method: 'PUT', body: content, headers: { 'Content-Type': 'application/octet-stream', ...grant.headers } });
+  }
+  completeFileUpload(id: string) { return this.call('completeFileUpload', undefined, { params: { id } }); }
   branding() { return this.call('adminBranding'); }
   updateBranding(input: BrandingInput) { return this.call('adminUpdateBranding',input); }
   storageLocations(){return this.call('storageLocations');}

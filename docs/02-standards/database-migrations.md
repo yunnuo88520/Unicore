@@ -15,7 +15,7 @@ core 面向所有有数据库的产品；platform 仅 web-platform；业务模�
 
 SQL 负责最终结构、索引/约束、固定字段默认值和必要静态基础记录；Go Seed 负责默认角色/权限、管理员、设置、实例标记/审计及运行期身份。密码、hash、密钥、DSN、SMTP/云凭据、演示用户、笔记/公告/邮件内容禁止写 baseline。当前 storage_locations 的 local/legacy-brand 两行有运行代码依赖，变更要连同文件/品牌用例论证。
 
-每个新手写 SQL 有 Author 头、用途、Profile、兼容和失败恢复说明。checksum 始终取原文件字节 SHA-256，包括注释/换行/BOM，不 normalize、不覆盖 DB checksum。跨 OS 检查发行 SQL 字节，避免 checkout 行尾破坏签名/账本。
+每个新手写 SQL 有 Author 头、用途、Profile、兼容和失败恢复说明。checksum 始终取原文件字节 SHA-256，包括注释/换行/BOM，不 normalize、不覆盖 DB checksum。跨 OS 检查发行 SQL 字节，避免 checkout 行尾破坏签名/账本。未进入升级演练或正式发布的 development preview 版本，允许在同一开发周期内修正基线并重生成 checksum（实例：platform@7 SQLite 两个单列主键补 NOT NULL，由 verify-baselines 结构比对发现的真实缺陷）；版本一旦进入升级演练或随正式版发布，即按下段冻结规则处理。
 
 冻结自**首个正式（stable）release**起：此前的 development preview / prerelease 不构成冻结起点，维护者仍可将各 namespace 的基线整体整合或改写（squash 回 version=1 或重组版本），因为不存在需要兼容的已发布安装。首个正式版发布后即冻结原文件，只能在该 namespace 追加下一个 version，不修改、删除、插号或再次 squash；需要改已分发结构时新增迁移。移除模块不删除执行历史；变更命名空间/方言/Profile 是单独兼容决策。
 
@@ -32,6 +32,8 @@ SQLite 只读开库要验证 DB/WAL/SHM 与文件创建边界，不能先 touch 
 ## 验收
 
 新增/修改迁移后，在独立空库执行三方言真实测试，验证每个 Profile 的表/列/索引/唯一/外键、静态默认行、Go Seed、重复启动、重放幂等（删除账本行后重放不得产生重复对象或种子）和失败场景。比较语义而非仅表数：SQLite PK/长度、MySQL collation/隐式 FK 索引、PG search_path 都要记录。数据库版本及 pass/fail/skip 逐项写明，不用一种方言推断另一种通过。
+
+探针与比较器按生成列适配：MySQL 的 `sibling_key` 等 STORED 生成列不可显式赋值，`scripts/verify-baselines.py`/`scripts/compare-baselines.py` 对生成列跳过显式赋值探针，属校验器适配而非基线缺陷。截至 platform@7/@8，三方言七组合（SQLite 三形态，MySQL/PostgreSQL 各 Web 两形态）基线验证全绿：全库 54 表 = core@1 3 表 + platform 49 表 + module.notes@1 1 表 + 账本 1 表；`scripts/compare-baselines.py` 已同步多版本账本与 @7 SQL 种子行。
 
 运行 pnpm generate:migrations / check:migrations / test:migrations 及 go test ./migrations/...，make docs/test 已接入。**首次给任一 namespace 追加新版本时**，必须用 scripts/test-upgrade.mjs（FROM_REF 指向上一发布版）完整演练一次真实升级：旧版建库装数据 → 换新版 binary 启动（runner.Apply 增量应用）→ 数据保留断言 → 快照回滚；空库验收（verify-baselines 现已直接执行 runner.Apply 与 Verify）不能替代升级演练。schema_generation 以实际落库 core@1 原字节 checksum 识别，不增加账本列或设置副本。新比较键、install_state 单例 CHECK 和额外长度 CHECK 均需另审阅，不能无声修改登录/rowid 规则。PG/MySQL 真实实例用 `scripts/verify-baselines.py` 隔离验收。开发重置见 [手册](../03-runbooks/development-database-reset.md)。
 

@@ -72,14 +72,14 @@ func TestApplyCreatesBaselineAndIsIdempotent(t *testing.T) {
 		t.Fatal(err)
 	}
 	rows := ledgerRows(t, db)
-	if len(rows) != 4 {
-		t.Fatalf("want 4 ledger rows, got %v", rows)
+	if len(rows) != 10 {
+		t.Fatalf("want 10 ledger rows, got %v", rows)
 	}
 	for _, expected := range []struct {
 		namespace string
 		version   int
 	}{
-		{"core", 1}, {"module.notes", 1}, {"platform", 1}, {"platform", 2},
+		{"core", 1}, {"module.notes", 1}, {"platform", 1}, {"platform", 2}, {"platform", 3}, {"platform", 4}, {"platform", 5}, {"platform", 6}, {"platform", 7}, {"platform", 8},
 	} {
 		entry, ok := rows[fmt.Sprintf("%s@%d", expected.namespace, expected.version)]
 		if !ok {
@@ -90,7 +90,7 @@ func TestApplyCreatesBaselineAndIsIdempotent(t *testing.T) {
 			t.Fatalf("bad ledger entry for %s@%d: %q (want %s@%d)", expected.namespace, expected.version, entry, file.Checksum, fixedStamp)
 		}
 	}
-	for _, table := range []string{"unicore_install_state", "unicore_system_settings", "unicore_audit_logs", "unicore_users", "unicore_example_notes", "unicore_announcement_recipients", "unicore_personal_accounts", "unicore_dict_types", "unicore_menus"} {
+	for _, table := range []string{"unicore_install_state", "unicore_system_settings", "unicore_audit_logs", "unicore_users", "unicore_example_notes", "unicore_announcement_recipients", "unicore_personal_accounts", "unicore_dict_types", "unicore_menus", "unicore_account_avatars", "unicore_inbox_messages", "unicore_scheduled_jobs", "unicore_administrator_roles", "unicore_departments", "unicore_role_departments", "unicore_posts", "unicore_user_posts"} {
 		if !tableExists(t, db, table) {
 			t.Fatalf("table %s missing after baseline", table)
 		}

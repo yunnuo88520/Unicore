@@ -55,6 +55,55 @@ func TestSessionSecurityPolicy(t *testing.T) {
 	if err != nil || adminProfile.Force2fa {
 		t.Fatal("user-only 2FA leaked into administrator realm", adminProfile, err)
 	}
+	// Forced 2FA follows the identity realm, not the super_admin flag: a
+	// restricted administrator is an administrator-domain session, so the user
+	// switch does not reach it and the administrator switch does.
+	administratorRealm := "administrator"
+	role, err := adminIdentity.Store.CreateRole(ctx, contracts.RoleSaveInput{Name: "运营管理员", Realm: &administratorRealm, Permissions: []string{"users:read"}}, admin.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	restricted, err := adminIdentity.Create(ctx, contracts.UserCreate{Username: "restricted", Email: "restricted@example.test", Password: "restricted-strong", Role: role.ID}, admin.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, restrictedToken, err := adminIdentity.Issue(ctx, restricted, 24)
+	if err != nil {
+		t.Fatal(err)
+	}
+	restrictedProfile, err := adminIdentity.Personal.Profile(ctx, restrictedToken)
+	if err != nil || restrictedProfile.Force2fa {
+		t.Fatal("user 2FA switch reached restricted administrator", restrictedProfile, err)
+	}
+	patch(contracts.SettingChange{Key: "security.force_user_2fa", Value: "false"}, contracts.SettingChange{Key: "security.force_admin_2fa", Value: "true"})
+	for _, account := range []struct {
+		profile contracts.AccountProfile
+		realm   string
+	}{
+		{func() contracts.AccountProfile {
+			p, e := adminIdentity.Personal.Profile(ctx, adminToken)
+			if e != nil {
+				t.Fatal(e)
+			}
+			return p
+		}(), "super"},
+		{func() contracts.AccountProfile {
+			p, e := adminIdentity.Personal.Profile(ctx, restrictedToken)
+			if e != nil {
+				t.Fatal(e)
+			}
+			return p
+		}(), "restricted"},
+	} {
+		if !account.profile.Force2fa {
+			t.Fatal("administrator 2FA switch missed", account.realm, account.profile)
+		}
+	}
+	memberProfile, err := memberIdentity.Personal.Profile(ctx, memberToken)
+	if err != nil || memberProfile.Force2fa {
+		t.Fatal("administrator 2FA switch reached user realm", memberProfile, err)
+	}
+	patch(contracts.SettingChange{Key: "security.force_admin_2fa", Value: "false"}, contracts.SettingChange{Key: "security.force_user_2fa", Value: "false"})
 	now := int(time.Now().Unix())
 	exec := func(query string, args ...any) {
 		t.Helper()

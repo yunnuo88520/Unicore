@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react';
 import { t, useLocale } from './i18n';
 import { Workspace, type PageProps } from './App';
+import { DashboardWidgetRegistry } from './registry';
 import type { AppClient } from '@unicore/sdk';
 import { AdminStoragePage } from './pages/admin/storage';
 import { AdminUsersPage, AdminAdministratorsPage } from './pages/admin/users';
@@ -15,8 +16,14 @@ import { AdminMailTemplatesPage } from './pages/admin/mail-templates';
 import { AdminAnnouncementsPage } from './pages/admin/announcements';
 import { AdminLogsPage } from './pages/admin/logs';
 import { AdminRolesPage } from './pages/admin/roles';
+import { AdminDepartmentsPage } from './pages/admin/departments';
+import { AdminTasksPage } from './pages/admin/tasks';
+import { AdminMenusPage } from './pages/admin/menus';
+import { AdminPostsPage } from './pages/admin/posts';
+import { AdminApiOperationsPage } from './pages/admin/api-operations';
+import { AdminDictionariesPage } from './pages/admin/dictionaries';
 
-function AdministrationPage(props: PageProps) {
+export function AdministrationPage(props: PageProps) {
   useLocale();
   if (!props.client.web) return null;
   switch (props.page) {
@@ -24,16 +31,22 @@ function AdministrationPage(props: PageProps) {
     case 'storage': return props.client.storage && <AdminStoragePage {...props} />;
     case 'users': case 'administrators': return props.page === 'administrators' ? <AdminAdministratorsPage {...props} /> : <AdminUsersPage {...props} />;
     case 'roles': return <AdminRolesPage {...props} />;
+    case 'departments': return <AdminDepartmentsPage {...props} />;
+    case 'posts': return <AdminPostsPage {...props} />;
+    case 'api-operations': return <AdminApiOperationsPage {...props} />;
+    case 'menus': return <AdminMenusPage {...props} />;
+    case 'dictionaries': return <AdminDictionariesPage {...props} />;
     case 'notification-channels': case 'notification-templates': case 'system-notifications': return <AdminNotificationsPage {...props} />;
     case 'mail-templates': return <AdminMailTemplatesPage {...props} />;
     case 'announcements': return <AdminAnnouncementsPage {...props} />;
     case 'logs': return <AdminLogsPage {...props} />;
+    case 'tasks': return <AdminTasksPage {...props} />;
     case 'edition': return <AdminEditionPage {...props} />;
     default: return null;
   }
 }
 
-export function AdminWorkspace({ client }: { client: AppClient }) {
+export function AdminWorkspace({ client, registry }: { client: AppClient; registry?: DashboardWidgetRegistry }) {
   useLocale();
   const [adminPath, setAdminPath] = useState('');
   useEffect(() => {
@@ -42,5 +55,5 @@ export function AdminWorkspace({ client }: { client: AppClient }) {
     return () => { alive = false; };
   }, [client]);
   if (!adminPath) return <div className="flex min-h-dvh items-center justify-center bg-background text-sm text-muted" role="status">{t('正在连接 Go 核心')}</div>;
-  return <Workspace client={client} administratorPage={AdministrationPage} basepath={adminPath} />;
+  return <Workspace client={client} registry={registry} administratorPage={AdministrationPage} basepath={adminPath} />;
 }

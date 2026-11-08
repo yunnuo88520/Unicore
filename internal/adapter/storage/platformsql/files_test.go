@@ -44,7 +44,7 @@ func exerciseFiles(t *testing.T, ctx context.Context, store *sqlstore.Store, adm
 	if _, e = s.Complete(ctx, a, g.FileID); e != nil {
 		t.Fatal(e)
 	}
-	list, e := repo.List(ctx, a, "dialect", 1)
+	list, e := repo.List(ctx, a, "dialect", 1, files.ScopeFilter{})
 	if e != nil || list.Total != 1 {
 		t.Fatal("list", list.Total, e)
 	}

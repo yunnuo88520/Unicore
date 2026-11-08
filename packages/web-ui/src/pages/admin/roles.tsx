@@ -1,13 +1,17 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Editable role console: list with member counts, grouped permission matrix editor and guarded deletion.
-import { useMemo, useState } from 'react';
+// Description: Editable role console per identity realm: realm tabs, member counts, permission matrix editor and guarded deletion.
+import { useMemo, useState, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createColumnHelper, flexRender, tableFeatures, useTable } from '@tanstack/react-table';
 import { Pencil, Plus, RotateCcw, ShieldCheck, Trash2 } from 'lucide-react';
-import type { PermissionDefinition, Role, RoleList, RoleSaveInput, WebClient } from '@unicore/sdk';
-import { t, useLocale } from '../../i18n';
-import { invalidateAfter } from '../../queries';
-import { Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, Input, Modal, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage } from '@unicore/ui';
+import type { Bootstrap, PermissionDefinition, Role, RoleList, RoleSaveInput, WebClient } from '@unicore/sdk';
+import { defineMessages, t, useLocale } from '../../i18n';
+import { isAdminRealm, routes } from '../../routes';
+import { sectionTitle } from '../../navigation';
+import { buildDepartmentTree, flattenDepartmentTree, invalidateAfter, useDepartmentsQuery } from '../../queries';
+import { usePermissions } from '../../permissions';
+import { Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, Input, Modal, NativeSelect, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Tabs, useMessage } from '@unicore/ui';
+import { OperationCatalogue } from './api-operations';
 import type { PageProps } from '../../router';
 
 const features = tableFeatures({});
@@ -16,7 +20,33 @@ const EMPTY_ROLES: Role[] = [];
 const EMPTY_PERMISSIONS: PermissionDefinition[] = [];
 const COLUMN_COUNT = 5;
 
-type RolesTableMeta = { onEdit: (role: Role) => void; onRemove: (role: Role) => void };
+// The server policy layer stays authoritative; this mirror only drives which
+// points the matrix keeps out of custom administrator-realm roles. Menu and
+// dictionary management are regular grants, not super_admin-exclusive ones.
+const SUPER_ONLY_PERMISSIONS: ReadonlySet<string> = new Set(['roles:write', 'administrators:read', 'administrators:create', 'administrators:update', 'settings:write', 'updates:apply', 'storage:write']);
+
+// User-realm custom roles hold assignable business grants only; administrator-
+// realm custom roles hold every catalogue point except the super-only ones.
+function lockedReason(realm: Role['realm'], permission: PermissionDefinition): string | null {
+  if (realm === 'administrator') return SUPER_ONLY_PERMISSIONS.has(permission.id) ? t('仅超级管理员') : null;
+  return permission.assignable ? null : t('仅管理员');
+}
+
+// Data scopes gate the business lists (notes, files) per member; administrator
+// roles stay self-scoped server-side, so the editor only exposes user realms.
+const dataScopeLabels = defineMessages({ self: '仅本人', dept: '本部门', dept_and_below: '本部门及以下', custom: '自定义', all: '全部' });
+const DATA_SCOPES = Object.keys(dataScopeLabels) as (keyof typeof dataScopeLabels)[];
+
+// Same display fallback as the navigation projection: the node's own label
+// first, then the registered page's route label, then the raw node id — so
+// menu authorization rows stay locatable for unnamed nodes in tests and E2E.
+function navigationLabel(node: { label: string; route_id?: string; id: string }): string {
+  if (node.label) return t(node.label);
+  const route = node.route_id && Object.hasOwn(routes, node.route_id) ? (routes as Record<string, { label?: string }>)[node.route_id] : undefined;
+  return t(route?.label ?? node.id);
+}
+
+type RolesTableMeta = { canWrite: boolean; onEdit: (role: Role) => void; onRemove: (role: Role) => void };
 
 const columns = helper.columns([
   helper.accessor('name', {
@@ -32,7 +62,7 @@ const columns = helper.columns([
     cell: info => <span className="text-muted">{info.getValue().length}</span>,
   }),
   helper.accessor('user_count', {
-    header: () => t('用户数'),
+    header: () => t('成员数'),
     cell: info => <span className="text-muted">{info.getValue()}</span>,
   }),
   helper.display({
@@ -42,7 +72,7 @@ const columns = helper.columns([
       const role = info.row.original;
       const meta = info.table.options.meta as RolesTableMeta;
       // super_admin is immutable server-side; the builtin user role cannot be deleted either.
-      if (role.id === 'super_admin') return null;
+      if (role.id === 'super_admin' || !meta.canWrite) return null;
       return <div className="flex items-center gap-1">
         <Button variant="ghost" size="icon" aria-label={t('编辑角色 {{name}}', { name: role.name })} onClick={() => meta.onEdit(role)}><Pencil size={14} /></Button>
         {!role.builtin && <Button variant="ghost" size="icon" aria-label={t('删除角色 {{name}}', { name: role.name })} onClick={() => meta.onRemove(role)}><Trash2 size={14} /></Button>}
@@ -51,15 +81,19 @@ const columns = helper.columns([
   }),
 ]);
 
-export function AdminRolesPage({ client }: PageProps) {
+export function AdminRolesPage({ client, metadata }: PageProps) {
   if (!client.web) return null;
-  return <RolePanel web={client.web} />;
+  return <RolePanel web={client.web} metadata={metadata} />;
 }
 
-function RolePanel({ web }: { web: WebClient }) {
+function RolePanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
   useLocale();
   const message = useMessage();
   const cache = useQueryClient();
+  const { has } = usePermissions(metadata);
+  const canWrite = has('roles:write');
+  const adminRealm = isAdminRealm(metadata);
+  const [realm, setRealm] = useState<Role['realm']>('user');
   const [editor, setEditor] = useState<Role | 'new' | null>(null);
   const [removing, setRemoving] = useState<Role | null>(null);
   const list = useQuery<RoleList>({ queryKey: ['roles'], queryFn: () => web.roles() });
@@ -73,23 +107,32 @@ function RolePanel({ web }: { web: WebClient }) {
     },
     onError: error => message.error(t(error.message)),
   });
-  const roles = list.data?.items ?? EMPTY_ROLES;
+  const roles = useMemo(() => (list.data?.items ?? EMPTY_ROLES).filter(role => role.realm === realm), [list.data, realm]);
+  const switchRealm = (next: string) => {
+    setRealm(next as Role['realm']);
+    setEditor(null);
+    setRemoving(null);
+  };
   const table = useTable({
     features,
     columns,
     data: roles,
-    meta: { onEdit: role => setEditor(role), onRemove: role => setRemoving(role) } satisfies RolesTableMeta,
+    meta: { canWrite, onEdit: role => setEditor(role), onRemove: role => setRemoving(role) } satisfies RolesTableMeta,
     getRowId: role => role.id,
   });
+  const tabs = adminRealm
+    ? [{ id: 'user', label: t('用户角色') }, { id: 'administrator', label: t('管理员角色') }]
+    : [{ id: 'user', label: t('用户角色') }];
   return <Card>
     <CardContent className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-md font-semibold text-ink">{t('角色权限')}</h2>
-          <p className="mt-0.5 text-xs text-muted">{t('为普通用户组合可分配的业务权限；内置角色由系统维护。')}</p>
+          <p className="mt-0.5 text-xs text-muted">{realm === 'administrator' ? t('为自建管理员角色组合管理权限；super_admin 由系统维护。') : t('为普通用户组合可分配的业务权限；内置角色由系统维护。')}</p>
         </div>
-        <Button onClick={() => setEditor('new')}><Plus size={15} />{t('新建角色')}</Button>
+        {canWrite && <Button onClick={() => setEditor('new')}><Plus size={15} />{t('新建角色')}</Button>}
       </div>
+      {adminRealm && <Tabs id="roles-realm" label={t('角色域')} items={tabs} value={realm} onChange={switchRealm} />}
       {list.isError && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
         <span>{t(list.error.message)}</span>
         <Button variant="secondary" size="sm" onClick={() => void list.refetch()}><RotateCcw size={13} />{t('重试')}</Button>
@@ -111,32 +154,60 @@ function RolePanel({ web }: { web: WebClient }) {
                 : <TableEmpty colSpan={COLUMN_COUNT}>
                     <span className="flex flex-col items-center gap-1.5 py-2">
                       <ShieldCheck size={24} className="text-subtle" aria-hidden="true" />
-                      <strong className="text-sm text-ink">{t(list.isError ? list.error.message : '还没有自定义角色')}</strong>
-                      <span className="text-xs text-muted">{t('新建角色，为不同用户组合业务权限。')}</span>
+                      <strong className="text-sm text-ink">{t(list.isError ? list.error.message : realm === 'administrator' ? '还没有自建管理员角色' : '还没有自定义角色')}</strong>
+                      <span className="text-xs text-muted">{t(realm === 'administrator' ? '新建管理员角色，为受限管理员组合管理权限。' : '新建角色，为不同用户组合业务权限。')}</span>
                     </span>
                   </TableEmpty>}
           </TableBody>
         </Table>
       </div>
-      <p className="text-xs leading-relaxed text-muted">{t('标记「仅管理员」的权限点不会出现在矩阵中：自定义角色始终不能授予管理类权限，super_admin 拥有全部权限。')}</p>
+      <p className="text-xs leading-relaxed text-muted">{realm === 'administrator'
+        ? t('自建管理员角色可组合除「仅超级管理员」外的全部权限点：角色管理、管理员账号、基础设置写入、系统更新与对象存储写入仍由 super_admin 专属。')
+        : t('自定义角色只能勾选可分配的业务权限点，其余权限点保持只读；super_admin 拥有全部权限。')}</p>
     </CardContent>
-    {editor && <RoleEditor key={editor === 'new' ? 'new' : editor.id} web={web} role={editor === 'new' ? undefined : editor}
+    {editor && <RoleEditor key={`${realm}-${editor === 'new' ? 'new' : editor.id}`} web={web} realm={realm} role={editor === 'new' ? undefined : editor}
       permissions={list.data?.permissions ?? EMPTY_PERMISSIONS} onClose={() => setEditor(null)}
       onSaved={() => { setEditor(null); void invalidateAfter(cache, 'roles'); }} />}
-    {removing && <ConfirmDialog danger title={t('删除角色')} description={t('确定删除角色「{{name}}」？该角色的 {{count}} 位用户将失去对应权限。', { name: removing.name, count: removing.user_count })}
+    {removing && <ConfirmDialog danger title={t('删除角色')} description={t('确定删除角色「{{name}}」？该角色的 {{count}} 位成员将失去对应权限。', { name: removing.name, count: removing.user_count })}
       confirmLabel={t('确认删除')} cancelLabel={t('取消')} pending={remove.isPending}
       onConfirm={() => remove.mutate(removing)} onCancel={() => setRemoving(null)} />}
   </Card>;
 }
 
-function RoleEditor({ web, role, permissions, onClose, onSaved }: {
-  web: WebClient; role?: Role; permissions: PermissionDefinition[]; onClose: () => void; onSaved: () => void;
+function RoleEditor({ web, realm, role, permissions, onClose, onSaved }: {
+  web: WebClient; realm: Role['realm']; role?: Role; permissions: PermissionDefinition[]; onClose: () => void; onSaved: () => void;
 }) {
   useLocale();
   const message = useMessage();
   const [name, setName] = useState(role?.name ?? '');
   const [grants, setGrants] = useState<string[]>(role?.permissions ?? []);
   const [nameError, setNameError] = useState('');
+  const [dataScope, setDataScope] = useState<Role['data_scope']>(role?.data_scope ?? 'self');
+  const [departmentIds, setDepartmentIds] = useState<string[]>(role?.department_ids ?? []);
+  const [menuIds, setMenuIds] = useState<string[]>(role?.menu_ids ?? []);
+  const [actionIds, setActionIds] = useState<string[]>(role?.action_ids ?? []);
+  const [operationIds, setOperationIds] = useState<string[]>(role?.operation_ids ?? []);
+  const navigation = useQuery({ queryKey: ['menu-config'], queryFn: () => web.menuConfig() });
+  const sections = navigation.data?.sections.filter(section => section.surface === realm) ?? [];
+  const nodes = navigation.data?.nodes ?? [];
+  const toggleAuthorization = (current: string[], id: string, checked: boolean) => checked ? [...new Set([...current, id])] : current.filter(value => value !== id);
+  const renderMenuTree = (sectionId: string, parentId?: string, trail: string[] = []): ReactNode => nodes
+    .filter(node => node.section_id === sectionId && (node.parent_id || undefined) === parentId && node.type !== 'action' && !trail.includes(node.id))
+    .sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id))
+    .map(node => {
+      const descendants = (id: string, seen = new Set<string>()): string[] => {
+        if (seen.has(id)) return []; seen.add(id);
+        return [id, ...nodes.filter(child => child.parent_id === id && child.type !== 'action').flatMap(child => descendants(child.id, seen))];
+      };
+      const ids = descendants(node.id);
+      return <div key={node.id} className="flex flex-col gap-1 border-s border-line ps-3">
+        <label className="flex items-center gap-2 text-sm"><Checkbox aria-label={navigationLabel(node)} disabled={pending || node.disabled}
+          checked={ids.every(id => menuIds.includes(id))} onChange={checked => setMenuIds(current => checked ? [...new Set([...current, ...ids])] : current.filter(id => !ids.includes(id)))} />{navigationLabel(node)}</label>
+        {renderMenuTree(sectionId, node.id, [...trail, node.id])}
+      </div>;
+    });
+  const departments = useDepartmentsQuery(web, { enabled: realm === 'user' && dataScope === 'custom' });
+  const departmentItems = flattenDepartmentTree(buildDepartmentTree(departments.data?.items ?? []));
   const groups = useMemo(() => {
     const result: { group: string; items: PermissionDefinition[] }[] = [];
     for (const permission of permissions) {
@@ -153,15 +224,37 @@ function RoleEditor({ web, role, permissions, onClose, onSaved }: {
   });
   const pending = save.isPending;
   const toggle = (id: string, checked: boolean) => setGrants(current => checked ? [...current, id] : current.filter(value => value !== id));
+  const toggleDepartment = (id: string, checked: boolean) => setDepartmentIds(current => checked ? [...current, id] : current.filter(value => value !== id));
   const submit = () => {
     const trimmed = name.trim();
     if (!trimmed) { setNameError(t('请输入角色名称')); return; }
     if (trimmed.length > 80) { setNameError(t('最多 {{count}} 个字符', { count: 80 })); return; }
     setNameError('');
-    save.mutate({ name: trimmed, permissions: grants });
+    // Creates carry the tab-fixed realm; updates cannot move a role between realms.
+    const authorization = { menu_ids: menuIds, action_ids: actionIds, operation_ids: operationIds };
+    const input: RoleSaveInput = role ? { name: trimmed, permissions: grants, ...authorization } : { name: trimmed, permissions: grants, realm, ...authorization };
+    if (realm === 'user') {
+      // Administrator roles stay self-scoped server-side; user roles carry the
+      // chosen scope, and only the custom scope keeps a department selection.
+      input.data_scope = dataScope;
+      input.department_ids = dataScope === 'custom' ? departmentIds : [];
+    }
+    save.mutate(input);
   };
   return <Modal title={t(role ? '编辑角色' : '新建角色')} onClose={onClose} pending={pending}>
     <form className="flex flex-col gap-4" onSubmit={event => { event.preventDefault(); submit(); }}>
+      {/* Guarded saves (403 PERMISSION_DENIED, version conflicts) render inside
+        * the dialog: the modal marks outside toasts aria-hidden, so an inline
+        * alert is the only reliably reachable feedback while editing. */}
+      {save.error && <p role="alert" className="rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">{t(save.error.message)}</p>}
+      <label className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium text-ink">{t('角色域')}</span>
+        <NativeSelect aria-label={t('角色域')} value={realm} disabled>
+          <option value="user">{t('用户角色')}</option>
+          <option value="administrator">{t('管理员角色')}</option>
+        </NativeSelect>
+        <small className="text-xs text-muted">{t('角色域由当前标签页决定，创建后不可更改。')}</small>
+      </label>
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-medium text-ink">{t('角色名称')}</span>
         <Input required maxLength={80} autoComplete="off" value={name} aria-invalid={!!nameError}
@@ -170,27 +263,70 @@ function RoleEditor({ web, role, permissions, onClose, onSaved }: {
         {role?.builtin && <small className="text-xs text-muted">{t('内置角色名称固定，仅可调整权限范围。')}</small>}
         {nameError && <p role="alert" className="text-xs text-danger">{nameError}</p>}
       </label>
+      <p className="text-xs text-muted">{t('未勾选表示不授权；菜单、按钮和 API 分别保存，业务权限始终作为访问上界。')}</p>
+      <fieldset disabled={pending} className="flex min-w-0 flex-col gap-2 rounded-lg border border-line p-3">
+        <legend className="px-1 font-medium">{t('菜单授权')}</legend>
+        {navigation.isError && <p role="alert" className="text-sm text-danger">{t(navigation.error.message)} <Button variant="secondary" onClick={() => void navigation.refetch()}>{t('重试')}</Button></p>}
+        {sections.map(section => <section key={section.id} className="flex flex-col gap-2"><h3 className="text-sm font-medium">{t(sectionTitle(section))}</h3>{renderMenuTree(section.id)}</section>)}
+        {!sections.length && <p className="text-xs text-muted">{navigation.isPending ? t('正在加载…') : t('没有可授权的菜单')}</p>}
+      </fieldset>
+      <fieldset disabled={pending} className="flex min-w-0 flex-col gap-2 rounded-lg border border-line p-3">
+        <legend className="px-1 font-medium">{t('按钮授权')}</legend>
+        {nodes.filter(node => node.type === 'action' && sections.some(section => section.id === node.section_id)).map(node => {
+          const parent = nodes.find(item => item.id === node.parent_id);
+          return <label key={node.id} className="flex items-start gap-2 text-sm">
+            <Checkbox aria-label={navigationLabel(node)} disabled={node.disabled} checked={actionIds.includes(node.id)} onChange={checked => setActionIds(current => toggleAuthorization(current, node.id, checked))} />
+            <span>{navigationLabel(node)}<small className="block text-muted">{parent ? navigationLabel(parent) : '—'} · {node.permission} · {node.operation_ids.join(', ')}</small></span>
+          </label>;
+        })}
+      </fieldset>
+      <fieldset disabled={pending} className="min-w-0 rounded-lg border border-line p-3">
+        <legend className="px-1 font-medium">{t('API 授权')}</legend>
+        <OperationCatalogue web={web} realm={realm} selected={operationIds} onChange={setOperationIds} disabled={pending} />
+      </fieldset>
+      {realm === 'user' && <fieldset disabled={pending} className="flex min-w-0 flex-col gap-1.5">
+        <span className="text-sm font-medium text-ink">{t('数据范围')}</span>
+        <NativeSelect aria-label={t('数据范围')} value={dataScope} onChange={event => setDataScope(event.target.value as Role['data_scope'])}>
+          {DATA_SCOPES.map(scope => <option key={scope} value={scope}>{t(dataScopeLabels[scope])}</option>)}
+        </NativeSelect>
+        <small className="text-xs text-muted">{t('数据范围决定角色成员在笔记、文件等业务列表中能看到的数据。')}</small>
+        {dataScope === 'custom' && <div className="flex flex-col gap-1.5">
+          <small className="text-xs text-muted">{t('勾选自定义范围包含的部门：')}</small>
+          <div role="group" aria-label={t('自定义部门范围')} className="flex max-h-48 flex-col gap-1 overflow-y-auto rounded-lg border border-line p-3">
+            {departmentItems.length
+              ? departmentItems.map(({ department, depth }) => <label key={department.id} className="flex items-center gap-2 text-sm" style={{ paddingInlineStart: `${depth * 16}px` }}>
+                  <Checkbox aria-label={department.name} checked={departmentIds.includes(department.id)}
+                    onChange={checked => toggleDepartment(department.id, checked)} />
+                  <span className="text-ink">{department.name}</span>
+                </label>)
+              : <p className="py-2 text-center text-xs text-muted">{t('部门目录加载中…')}</p>}
+          </div>
+        </div>}
+      </fieldset>}
       <fieldset disabled={pending} className="flex min-w-0 flex-col gap-1.5">
         <span className="text-sm font-medium text-ink">{t('权限点')}</span>
         <div className="flex max-h-72 flex-col gap-4 overflow-y-auto rounded-lg border border-line p-3" aria-label={t('权限点')}>
           {groups.map(group => <section key={group.group} className="flex flex-col gap-2">
             <h3 className="text-xs font-semibold text-muted">{t(group.group)}</h3>
-            {group.items.map(permission => permission.assignable
-              ? <label key={permission.id} className="flex items-start gap-2 text-sm">
-                  <Checkbox className="mt-0.5" aria-label={t(permission.name)} checked={grants.includes(permission.id)}
-                    onChange={checked => toggle(permission.id, checked)} />
-                  <span className="flex min-w-0 flex-col">
-                    <span className="font-medium text-ink">{t(permission.name)}</span>
-                    <small className="text-2xs text-muted">{permission.description}</small>
-                  </span>
-                </label>
-              : <div key={permission.id} className="flex items-start justify-between gap-2 rounded-md bg-surface-alt px-2 py-1.5 text-sm">
-                  <span className="min-w-0">
-                    <span className="block font-medium text-muted">{t(permission.name)}</span>
-                    <small className="text-2xs text-subtle">{permission.description}</small>
-                  </span>
-                  <Badge variant="subtle">{t('仅管理员')}</Badge>
-                </div>)}
+            {group.items.map(permission => {
+              const locked = lockedReason(realm, permission);
+              return locked
+                ? <div key={permission.id} className="flex items-start justify-between gap-2 rounded-md bg-surface-alt px-2 py-1.5 text-sm">
+                    <span className="min-w-0">
+                      <span className="block font-medium text-muted">{t(permission.name)}</span>
+                      <small className="text-2xs text-subtle">{t(permission.description)}</small>
+                    </span>
+                    <Badge variant="subtle">{locked}</Badge>
+                  </div>
+                : <label key={permission.id} className="flex items-start gap-2 text-sm">
+                    <Checkbox className="mt-0.5" aria-label={t(permission.name)} checked={grants.includes(permission.id)}
+                      onChange={checked => toggle(permission.id, checked)} />
+                    <span className="flex min-w-0 flex-col">
+                      <span className="font-medium text-ink">{t(permission.name)}</span>
+                      <small className="text-2xs text-muted">{t(permission.description)}</small>
+                    </span>
+                  </label>;
+            })}
           </section>)}
           {!groups.length && <p className="py-2 text-center text-xs text-muted">{t('权限目录加载中…')}</p>}
         </div>

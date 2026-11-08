@@ -17,8 +17,12 @@ export function validate(name: SchemaName, value: unknown): Record<string, strin
       if (!input || typeof input !== 'object' || Array.isArray(input)) { fail('应为对象'); return; }
       const object = input as Record<string, unknown>;
       const child = (field: string) => path ? `${path}.${field}` : field;
-      for (const field of schema.required ?? []) if (!Object.hasOwn(object, field) && Object.keys(errors).length < 20) errors[child(field)] = '此项为必填';
+      // JS objects can carry present keys with undefined values; JSON.stringify and the Go
+      // decoder both drop them, so a required field set to undefined stays 此项为必填 while
+      // an optional one is simply absent (mirrors zodSchema.requiredError).
+      for (const field of schema.required ?? []) if ((!Object.hasOwn(object, field) || object[field] === undefined) && Object.keys(errors).length < 20) errors[child(field)] = '此项为必填';
       for (const [field, item] of Object.entries(object)) {
+        if (item === undefined) continue;
         if (Object.hasOwn(schema.properties ?? {}, field)) walk(schema.properties![field], item, child(field), depth + 1);
         else if (schema.additionalProperties === false) { if(Object.keys(errors).length < 20) errors[child(field)] = '未定义的字段'; }
         else if (typeof schema.additionalProperties === 'object') walk(schema.additionalProperties, item, child(field), depth + 1);

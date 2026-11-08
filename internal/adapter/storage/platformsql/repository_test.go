@@ -70,10 +70,10 @@ func TestDialectMigrationsAndIdentity(t *testing.T) {
 			if platform.Has(member, "users:read") || !platform.Has(admin, "users:read") {
 				t.Fatal("RBAC grants incorrect")
 			}
-			if _, err = admins.UpdateUser(ctx, admin.ID, contracts.UserUpdate{Role: "user", Status: "active"}, admin.ID); err != platform.ErrInput {
+			if _, err = admins.UpdateUser(ctx, admin.ID, contracts.UserUpdate{Role: rolePtr("user"), Status: "active"}, admin.ID); err != platform.ErrForbidden {
 				t.Fatal("cross-realm conversion allowed", err)
 			}
-			if _, err = admins.UpdateUser(ctx, admin.ID, contracts.UserUpdate{Role: "super_admin", Status: "disabled"}, admin.ID); err != platform.ErrLastAdmin {
+			if _, err = admins.UpdateUser(ctx, admin.ID, contracts.UserUpdate{Role: rolePtr("super_admin"), Status: "disabled"}, admin.ID); err != platform.ErrLastAdmin {
 				t.Fatal("last admin disabled", err)
 			}
 			session, token, err := service.Login(ctx, contracts.LoginInput{Username: "member", Password: "test-password-strong"}, "local", false, false, 1)
@@ -86,7 +86,7 @@ func TestDialectMigrationsAndIdentity(t *testing.T) {
 			if _, err = service.Session(ctx, token); err != nil {
 				t.Fatal(err)
 			}
-			if _, err = repository.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: "user", Status: "disabled"}, admin.ID); err != nil {
+			if _, err = repository.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: rolePtr("user"), Status: "disabled"}, admin.ID); err != nil {
 				t.Fatal(err)
 			}
 			if _, err = service.Session(ctx, token); err == nil {
@@ -113,6 +113,13 @@ func TestDialectMigrationsAndIdentity(t *testing.T) {
 			exerciseLogs(t, ctx, store)
 			exerciseMailLifecycle(t, ctx, store, repository, admin)
 			exerciseRoles(t, ctx, store, repository, admin)
+			exerciseUserRoles(t, ctx, store, repository, admin)
+			exerciseAdministratorRoles(t, ctx, store, repository, admin)
+			exerciseDepartments(t, ctx, store, repository, admin)
+			exercisePosts(t, ctx, store, repository, admin)
+			exerciseUserDepartments(t, ctx, repository, admin)
+			exerciseDepartmentScopeValidation(t, ctx, repository, admin)
+			exerciseDataScopes(t, ctx, store, repository, admin)
 			exerciseOIDC(t, ctx, store, repository, admin)
 			exerciseFiles(t, ctx, store, admin)
 			exerciseNotes(t, ctx, store)

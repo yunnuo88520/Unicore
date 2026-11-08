@@ -112,6 +112,20 @@ func seedFixture(s *sqlstore.Store, profile string) (map[string]any, string) {
 func columnNameType(s *sqlstore.Store, c map[string]any) (string, string) {
 	return c["name"].(string), c["type"].(string)
 }
+
+// isGeneratedColumn reports whether the catalog row describes a generated
+// column (MySQL STORED/VIRTUAL, PostgreSQL GENERATED ALWAYS, SQLite hidden
+// generated column); such columns must never appear in probe INSERT lists.
+func isGeneratedColumn(dialect string, c map[string]any) bool {
+	switch dialect {
+	case "mysql":
+		return strings.Contains(strings.ToLower(fmt.Sprint(c["extra"])), "generated")
+	case "postgres":
+		return strings.TrimSpace(fmt.Sprint(c["generated"])) != ""
+	default:
+		return fmt.Sprint(c["hidden"]) != "0"
+	}
+}
 func primaryColumns(s *sqlstore.Store, table map[string]any) []string {
 	result := []string{}
 	if s.Dialect == "sqlite" {
@@ -149,6 +163,12 @@ func nullKeyChecks(s *sqlstore.Store, schema map[string]any) map[string]any {
 			marks := []string{}
 			targetType := ""
 			for _, c := range table["columns"].([]map[string]any) {
+				// Generated columns derive from other columns; assigning them
+				// (even a probe value) is rejected by the server before any
+				// NULL-key check, so they never belong in the insert list.
+				if isGeneratedColumn(s.Dialect, c) {
+					continue
+				}
 				column, typ := columnNameType(s, c)
 				columns = append(columns, column)
 				marks = append(marks, "?")
@@ -228,14 +248,14 @@ func business(s *sqlstore.Store, profile, temp, admin string) map[string]any {
 		scope = "user:" + admin
 	}
 	notes := usecase.Notes{Repo: &notessql.Repository{Store: s}}
-	input := contracts.NoteInput{Title: strings.Repeat("测", 120), Body: "baseline fixture", Status: "open", AttachmentIds: []string{}}
+	input := contracts.NoteInput{Title: strings.Repeat("测", 120), Body: "baseline fixture", Status: "open", AttachmentIds: &[]string{}}
 	n, e := notes.Create(ctx, scope, input)
 	must(e)
 	queryInput := contracts.NoteQuery{Page: 1, Sort: "updated_at", Direction: "desc"}
-	list, e := notes.List(ctx, scope, queryInput)
+	list, e := notes.List(ctx, scope, queryInput, usecase.NoteVisibility{})
 	must(e)
 	check(list.Total == 1, "notes create/read")
-	other, e := notes.List(ctx, "different-scope", queryInput)
+	other, e := notes.List(ctx, "different-scope", queryInput, usecase.NoteVisibility{})
 	must(e)
 	check(other.Total == 0, "notes scope isolation")
 	_, e = notes.Create(ctx, scope, contracts.NoteInput{Title: strings.Repeat("测", 121), Status: "open"})
@@ -247,7 +267,7 @@ func business(s *sqlstore.Store, profile, temp, admin string) map[string]any {
 	_, e = notes.Update(ctx, scope, n.ID, u)
 	check(errors.Is(e, usecase.ErrNoteConflict), "stale version rejected")
 	must(notes.Delete(ctx, scope, n.ID, updated.Version))
-	list, e = notes.List(ctx, scope, queryInput)
+	list, e = notes.List(ctx, scope, queryInput, usecase.NoteVisibility{})
 	must(e)
 	check(list.Total == 0, "notes soft delete")
 	check(count(s, "SELECT COUNT(*) FROM unicore_example_notes WHERE id=? AND deleted_at>0 AND version=3", n.ID) == 1, "notes persisted lifecycle")
@@ -377,10 +397,10 @@ func main() {
 			businessResult := business(s, profile, dir, admin)
 			expected := 5
 			if profile == "web-platform" {
-				// 3 core + 32 platform + 1 notes + 1 ledger.
-				expected = 37
+				// 3 core + 49 platform (through platform@8) + 1 notes + 1 ledger.
+				expected = 54
 			}
-			check(len(tables(s)) == expected, "table count changed")
+			check(len(tables(s)) == expected, "table count changed: got %d want %d", len(tables(s)), expected)
 			write(filepath.Join(c.Output, id+".json"), map[string]any{"author": "yunnuo <ymz@ebox.vip>", "generated_evidence": true, "source_commit": c.Commit, "combination": id, "passed": true, "scope": "new SQL empty-fixture/real Seed/business validation on the catalog single track", "schema": schema, "sql_only_data": sqlOnly, "go_seed": seed, "post_seed_data": afterSeed, "all_text_and_composite_pk_null_checks": nulls, "behavior_probes": behavior, "install_state_semantics": install, "business": businessResult})
 			combinations = append(combinations, map[string]any{"combination": id, "passed": true, "tables": expected, "null_key_probes": len(nulls)})
 			must(s.Close())

@@ -1,6 +1,7 @@
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Shared responsive workspace shell on TanStack Router. All business calls use AppClient.
  */
+import { useQuery } from '@tanstack/react-query';
 import { AnnouncementCenter } from './announcement-center';
 import { ClientControls } from './client-controls';
 import { SidebarTools, VersionBadge, workspaceLinks } from './shell-tools';
@@ -11,15 +12,16 @@ import { MessageProvider } from '@unicore/ui';
 import { SiteFooter } from './site-footer';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { RouterProvider, Outlet, Navigate, createBrowserHistory, useRouter, useRouterState, type RouterHistory } from '@tanstack/react-router';
-import { Braces, ChevronRight, ExternalLink, FlaskConical, Info, Menu, PanelLeftClose, PanelLeftOpen, Radio, RotateCcw, Settings2, ShieldCheck, UserRound, Users, type LucideIcon } from 'lucide-react';
-import { buildNavigation } from './navigation';
+import { Braces, ChevronRight, ExternalLink, FlaskConical, Info, Menu, PanelLeftClose, PanelLeftOpen, Radio, RotateCcw, Settings2, ShieldCheck, UserRound } from 'lucide-react';
+import { buildNavigation, isLinkEntry, routePath, type NavEntry } from './navigation';
+import { NavigationTree } from './navigation-view';
 import { BrandProvider, BrandMark, BrandLockup } from './brand';
 import type { AppClient, Bootstrap } from '@unicore/sdk';
 import { setCustomAccent, useTheme, type Theme } from '@unicore/theme';
 import { DashboardWidgetRegistry } from './registry';
 import { PasswordDialog } from './password-dialog';
 import { SessionBoundary, useSession } from './session';
-import { routes, canAccess, isAdministrator, type Page } from './routes';
+import { routes, canAccess, isAdminRealm, type Page } from './routes';
 import { Modal, Button, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, Tooltip } from '@unicore/ui';
 import { setPreferences, usePreferences } from '@unicore/theme/preferences';
 import {
@@ -30,6 +32,7 @@ import { InstallPage } from './pages/install';
 import { HomePage } from './pages/home';
 import { LoginPage, VerifyEmailPage, ResetPasswordPage } from './pages/auth';
 import { NotFoundPage } from './pages/not-found';
+import { ForbiddenPage } from './pages/forbidden';
 
 export { DashboardWidgetRegistry } from './registry';
 export type { PageProps, PageComponent } from './router';
@@ -126,6 +129,10 @@ function WorkspaceShell() {
       <SiteFooter metadata={data} compact />
     </main>;
   }
+  if (page === 'api-docs') {
+    const props: PageProps = { page, client, metadata: data, registry, theme, setTheme, refresh: () => void metadata.refetch() };
+    return <PagePropsProvider value={props}><main className="min-h-dvh bg-background p-4 sm:p-6"><div className="mb-4 flex justify-end"><ClientControls /></div><Outlet /></main></PagePropsProvider>;
+  }
   // The public homepage owns /home; the console stays at /. Members skip the homepage, admin realm keeps its own login.
   const publicHome = data.identity_realm !== 'administrator';
   if (data.capabilities.authentication && data.current_user && basename === 'home') {
@@ -189,7 +196,7 @@ function WorkspaceShell() {
               action={<Button onClick={() => void metadata.refetch()}><RotateCcw size={15} />{t('重新连接')}</Button>} />
           : enrollment && page!=='account-security' ? <StateCard tone="pending" icon={<ShieldCheck size={24}/>} title={t('正在打开安全设置')} detail={t('实例要求启用双重验证，请先完成安全设置。')}/>
           : !permitted
-            ? <StateCard tone="error" icon={<ShieldCheck size={26} className="text-danger" />} title={t('没有访问权限')} detail={t('请联系实例管理员授予相关权限。')} />
+            ? <ForbiddenPage />
             : page === 'not-found' ? <NotFoundPage /> : <Outlet />}
       <SiteFooter metadata={data} />
     </WorkspaceLayout>
@@ -203,75 +210,34 @@ function SideNavigation({ page, data, client, onNavigate, onAbout }: {
   const router = useRouter();
   const { navCollapsed, layout } = usePreferences();
   const desktop = useMinWidth(768);
-  const administration = isAdministrator(data);
-  const personalSettings = data.identity_realm !== 'administrator';
-  const ROUTE_PATHS: Partial<Record<Page, string>> = { overview: '/' };
-  function go(next: Page) { onNavigate(); void router.navigate({ to: ROUTE_PATHS[next] ?? `/${next === 'not-found' ? '' : next}` }); }
-  // The navigation model comes from navigation.ts; rail shows top-level entries, groups stay inside their menus.
-  const navigation = buildNavigation(data);
-  const entries = [...navigation.primary, ...(navigation.files ? [navigation.files] : []), ...navigation.standalone];
-  const groupEntries = (id: 'administration' | 'system' | 'personal') => navigation.groups.find(group => group.id === id)?.entries ?? [];
-  const userPages = groupEntries('administration').map(item => item.id);
-  const personalPages = groupEntries('personal').map(item => item.id);
-  const systemPages = groupEntries('system').map(item => item.id);
-
-  if (navCollapsed && desktop && layout !== 'full') return <>
-    <div className="flex flex-col items-center pb-2">
-      <a className="flex size-10 items-center justify-center" href="/" onClick={event => { event.preventDefault(); go('overview'); }} aria-label={data.site_name}>
-        <BrandMark size={30} />
-      </a>
-    </div>
-    <nav aria-label={t('主导航')} className="mt-3 flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto pb-2">
-      {entries.map(({ id, icon: Icon, label }) => <Tooltip key={id} label={label}>
-        <button className={`nav-rail-item flex size-10 shrink-0 items-center justify-center rounded-lg transition-colors ${page === id ? 'bg-primary-soft text-accent' : 'text-muted hover:bg-surface-alt hover:text-ink'}`} aria-current={page === id ? 'page' : undefined} aria-label={t(label)} onClick={() => go(id)}>
-          <Icon size={19} aria-hidden="true" />
-        </button>
-      </Tooltip>)}
-      {administration && userPages.length > 0 && <RailGroup title={t('用户管理')} icon={Users} pages={userPages} page={page} onNavigate={go} />}
-      {administration && systemPages.length > 0 && <RailGroup title={t('系统设置')} icon={Settings2} pages={systemPages} page={page} onNavigate={go} />}
-      {personalPages.length>0 && <RailGroup title={t('个人中心')} icon={UserRound} pages={personalPages} page={page} onNavigate={go} />}
-    </nav>
-    <div className="shrink-0 border-t border-line pt-2">
-      <Tooltip label={t('关于 {{name}}', { name: productName })}>
-        <button className="nav-rail-item mx-auto flex size-10 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-alt hover:text-ink" aria-label={t('关于 {{name}}', { name: productName })} onClick={onAbout}><Info size={17} aria-hidden="true" /></button>
-      </Tooltip>
-    </div>
-  </>;
-
+  const rail = navCollapsed && desktop && layout !== 'full';
+  function goPage(next: Page) { onNavigate(); void router.navigate({ to: routePath(next) }); }
+  function activate(node: NavEntry) {
+    if (node.disabled || node.type === 'directory') return;
+    onNavigate();
+    if (isLinkEntry(node)) {
+      if (node.openMode === 'new_tab') window.open(node.url.startsWith('/') ? router.buildLocation({ to: node.url }).href : node.url, '_blank', 'noopener,noreferrer');
+      else if (node.url.startsWith('/')) void router.navigate({ to: node.url });
+      else window.location.assign(node.url);
+    } else if (node.routeId) {
+      if (node.openMode === 'new_tab') window.open(router.buildLocation({ to: routePath(node.routeId) }).href, '_blank', 'noopener,noreferrer');
+      else goPage(node.routeId);
+    }
+  }
   return <>
-    <div className="px-[7px]">
-      <a className={`brand flex gap-[10px] font-extrabold tracking-[-1.1px] text-ink ${data.version
-        ? 'items-start [&>:first-child]:mt-1 [&_.brand-name]:min-w-0 [&_.brand-name]:truncate [&_.brand-name]:text-[length:var(--font-25)] [&_.brand-name]:leading-[1.15]'
-        : 'items-center text-[length:var(--font-27)]'}`} href="/" onClick={event => { event.preventDefault(); go('overview'); }}>
-        <BrandLockup name={data.site_name} />
+    <div className={rail ? 'flex flex-col items-center pb-2' : 'px-[7px]'}>
+      <a href="/" aria-label={data.site_name} className={rail ? 'flex size-10 items-center justify-center' : 'flex items-center gap-2 text-2xl font-extrabold text-ink'} onClick={event => { event.preventDefault(); goPage('overview'); }}>
+        {rail ? <BrandMark size={30} /> : <BrandLockup name={data.site_name} />}
       </a>
-      {!data.version
-        ? <span className="mt-1.5 block text-[length:var(--font-8)] font-semibold tracking-[2.5px] text-muted">FRAMEWORK</span>
-        : <div className="brand-version mt-1.5 ms-[45px]"><VersionBadge client={client} metadata={data} onOpen={() => go('edition')} /></div>}
+      {!rail && data.version && <div className="mt-1.5"><VersionBadge client={client} metadata={data} onOpen={() => goPage('edition')} /></div>}
     </div>
-    <button className="mt-4 mb-5 flex w-full items-center gap-[10px] rounded-[10px] border border-line bg-surface p-[12px] text-start shadow-card transition-colors hover:bg-surface-alt" onClick={onAbout}>
-      <span className="flex h-[34px] w-[31px] shrink-0 items-center justify-center rounded-md border border-line bg-surface-alt text-accent"><Braces size={19} aria-hidden="true" /></span>
-      <span className="min-w-0"><strong className="block truncate text-[length:var(--font-12)] font-semibold text-ink">{data.site_name ?? productName}</strong><small className="mt-[5px] block text-[length:var(--font-10)] text-muted">{t('应用工作空间')}</small></span>
-    </button>
-    <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto pb-2">
-      <nav aria-label={t('工作台')} className="flex flex-col gap-0.5">
-        {navigation.primary.map(({ id, icon: Icon, label }) => <NavItem key={id} icon={Icon} active={page === id} label={label} onClick={() => go(id)} />)}
-      </nav>
-      {navigation.files && <NavItem icon={navigation.files.icon} active={page === 'files'} label={navigation.files.label} onClick={() => go('files')} />}
-      {navigation.standalone.filter(item => item.id === 'announcements').map(item => <NavItem key={item.id} icon={item.icon} active={page === item.id} label={item.label} onClick={() => go(item.id)} />)}
-      {groupEntries('administration').length > 0 && <NavGroup title={t('用户管理')} icon={<Users size={19} />} active={userPages.some(id => id === page)}>
-        {groupEntries('administration').map(item => <NavEntry key={item.id} id={item.id} page={page} onNavigate={go} />)}
-      </NavGroup>}
-      {personalPages.length>0 && <p className="mt-5 mb-1 px-[11px] text-2xs font-semibold tracking-wider text-subtle">{t('系统管理')}</p>}
-      {(administration ? groupEntries('system').length > 0 : navigation.standalone.some(item => item.id === 'site')) && (administration
-        ? <NavGroup title={t('系统设置')} icon={<Settings2 size={19} />} active={systemPages.some(id => id === page)}>
-            {groupEntries('system').map(item => <NavEntry key={item.id} id={item.id} page={page} onNavigate={go} />)}
-          </NavGroup>
-        : navigation.standalone.filter(item => item.id === 'site').map(item => <NavItem key={item.id} icon={item.icon} active={page === item.id} label={item.label} onClick={() => go(item.id)} />))}
-      {personalPages.length>0 && <NavGroup title={t('个人中心')} icon={<UserRound size={19} />} active={personalPages.some(id=>id===page)}>{personalPages.map(id=><NavEntry key={id} id={id} page={page} onNavigate={go}/>)}</NavGroup>}
-      {navigation.standalone.filter(item => item.id === 'edition').map(item => <NavItem key={item.id} icon={item.icon} active={page === item.id} label={item.label} onClick={() => go(item.id)} />)}
-    </div>
-    <div className="shrink-0 pt-[14px]"><SidebarTools onAbout={onAbout} /></div>
+    {!rail && <button className="mt-4 mb-5 flex w-full items-center gap-3 rounded-lg border border-line bg-surface p-3 text-start shadow-card" onClick={onAbout}>
+      <Braces size={19} aria-hidden="true" className="text-accent" /><span className="min-w-0"><strong className="block truncate text-xs">{data.site_name ?? productName}</strong><small className="text-muted">{t('应用工作空间')}</small></span>
+    </button>}
+    <NavigationTree navigation={buildNavigation(data)} page={page} rail={rail} onNavigate={activate} />
+    <div className="shrink-0 border-t border-line pt-2">{rail
+      ? <Tooltip label={t('关于 {{name}}', { name: productName })}><button className="mx-auto flex size-10 items-center justify-center rounded-lg text-muted" aria-label={t('关于 {{name}}', { name: productName })} onClick={onAbout}><Info size={17} aria-hidden="true" /></button></Tooltip>
+      : <SidebarTools onAbout={onAbout} />}</div>
   </>;
 }
 
@@ -286,54 +252,6 @@ function useMinWidth(px: number) {
   return match;
 }
 
-function NavItem({ icon: Icon, label, active, onClick }: { icon: LucideIcon; label: string; active: boolean; onClick: () => void }) {
-  useLocale();
-  return <button className={`flex min-h-11 w-full items-center gap-[12px] rounded-lg px-[11px] text-start text-sm font-medium transition-colors ${active ? 'bg-primary-soft text-accent' : 'text-muted hover:bg-surface-alt hover:text-ink'}`} aria-current={active ? 'page' : undefined} onClick={onClick}>
-    <Icon size={19} aria-hidden="true" /><span className="truncate">{t(label)}</span>{active && <span className="ms-auto size-1.5 shrink-0 rounded-full bg-accent" />}
-  </button>;
-}
-
-function RailGroup({ title, icon: Icon, pages, page, onNavigate }: { title: string; icon: LucideIcon; pages: readonly Page[]; page: Page; onNavigate: (page: Page) => void }) {
-  useLocale();
-  const active = pages.includes(page);
-  return <DropdownMenu>
-    <DropdownMenuTrigger asChild>
-      <button className={`nav-rail-item flex size-10 shrink-0 items-center justify-center rounded-lg transition-colors ${active ? 'bg-primary-soft text-accent' : 'text-muted hover:bg-surface-alt hover:text-ink'}`} aria-label={t(title)}>
-        <Icon size={19} aria-hidden="true" />
-      </button>
-    </DropdownMenuTrigger>
-    <DropdownMenuContent side="right" align="start" aria-label={t(title)} className="min-w-48">
-      <DropdownMenuLabel>{t(title)}</DropdownMenuLabel>
-      {pages.map(id => {
-        const ChildIcon = routes[id].icon;
-        return <DropdownMenuItem key={id} aria-current={page === id ? 'page' : undefined} onSelect={() => onNavigate(id)}>
-          <ChildIcon size={16} aria-hidden="true" /><span>{t(routes[id].label)}</span>
-        </DropdownMenuItem>;
-      })}
-    </DropdownMenuContent>
-  </DropdownMenu>;
-}
-
-function NavGroup({ title, icon, children, active = false }: { title: string; icon: ReactNode; children: ReactNode; active?: boolean }) {
-  useLocale();
-  const [open, setOpen] = useState(active);
-  useEffect(()=>{if(active)setOpen(true);},[active]);
-  return <section>
-    <button className={`flex min-h-11 w-full items-center gap-[12px] rounded-lg px-[11px] text-start text-sm font-medium transition-colors ${active ? 'text-accent' : open ? 'text-ink' : 'text-muted hover:bg-surface-alt hover:text-ink'}`} aria-expanded={open} onClick={() => setOpen(value => !value)}>
-      {icon}<span className="truncate">{t(title)}</span><ChevronRight size={15} className={`ms-auto transition-transform ${open ? 'rotate-90' : ''}`} aria-hidden="true" />
-    </button>
-    <nav aria-label={t(title)} hidden={!open} className="ms-[18px] flex flex-col gap-0.5 border-s border-line ps-[9px]">{children}</nav>
-  </section>;
-}
-
-function NavEntry({ id, page, onNavigate }: { id: Page; page: Page; onNavigate: (page: Page) => void }) {
-  useLocale();
-  const Icon = routes[id].icon;
-  return <button className={`flex min-h-10 w-full items-center gap-[10px] rounded-lg px-[10px] text-start text-[length:var(--font-12)] font-medium transition-colors ${page === id ? 'bg-primary-soft text-accent' : 'text-muted hover:bg-surface-alt hover:text-ink'}`} aria-current={page === id ? 'page' : undefined} onClick={() => onNavigate(id)}>
-    <Icon size={16} aria-hidden="true" /><span className="truncate">{t(routes[id].label)}</span>{page === id && <span className="ms-auto size-1.5 shrink-0 rounded-full bg-accent" />}
-  </button>;
-}
-
 function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onOpenMobile, onOpenPassword, refresh, navCollapsed, navToggleVisible }: {
   page: Page; data: Bootstrap; client: AppClient; settingsLabel: string; connection: 'connected' | 'pending' | 'error';
   mobileOpen: boolean; onOpenMobile: () => void; onOpenPassword: () => void; refresh: () => void; navCollapsed: boolean; navToggleVisible: boolean;
@@ -341,8 +259,10 @@ function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onO
   useLocale();
   const router = useRouter();
   const desktop = useMinWidth(768);
-  const administration = isAdministrator(data);
+  // The account menu labels the identity realm, not the super_admin grant.
+  const administration = isAdminRealm(data);
   const user = data.current_user;
+  const profile = useQuery({ queryKey: ['account-profile'], queryFn: () => client.web!.accountProfile(), enabled: data.profile === 'web-platform' && !!user && !!client.web && !data.mfa_enrollment_required, staleTime: 60_000 });
   return <>
     <div className="flex min-w-0 items-center gap-4 text-[length:var(--font-11)] text-muted max-md:gap-1.5">
       {desktop && navToggleVisible
@@ -370,7 +290,7 @@ function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onO
       {data.profile === 'web-platform' && user && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex size-[29px] items-center justify-center rounded-full bg-avatar text-[length:var(--font-11)] font-semibold text-avatar-ink" aria-label={t('账号菜单')}>{(user.username ?? 'Y').slice(0, 1).toUpperCase()}</button>
+            <button className="flex size-[29px] items-center justify-center overflow-hidden rounded-full bg-avatar text-[length:var(--font-11)] font-semibold text-avatar-ink" aria-label={t('账号菜单')}>{profile.data?.avatar_url ? <img src={profile.data.avatar_url} className="size-full object-cover" alt={t('当前头像')} /> : (user.username ?? 'Y').slice(0, 1).toUpperCase()}</button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>

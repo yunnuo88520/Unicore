@@ -57,7 +57,15 @@ message.success(t('已保存'));
 - 显示文案由调用方翻译后传入（或传目录 key 由翻译桩处理）；业务数据（文件名、用户内容）不经过翻译。
 - 消息 `content` 渲染调用方传入的原文，组件不做目录查找。
 - 组件不负责权限与数据获取；键盘与焦点行为（焦点圈、焦点返回、Esc 抑制）内建。
-- 图表能力暂未提供；接入真实统计 API 时再重新设计引入。
+- 图表使用业务层的 Recharts widget，当前管理员工作台通过真实统计 API 展示近七天活动；它不属于 `@unicore/ui` 原语出口，也不向单机/桌面注入平台请求。
+
+## 图表、列设置与访问状态
+
+`packages/web-ui/src/widgets/activity.tsx` 组合 Recharts 的 ResponsiveContainer、BarChart 和 Tooltip，并通过管理员统计接口读取数据。新图表仍由 `DashboardWidgetRegistry` 在适用身份下注册，查询使用统一 SDK/Query；颜色使用主题令牌，标题、提示和空/错误状态同时提供中英文。不要以随机样本冒充业务统计，日期与统计口径以服务端为准。
+
+列表复用 `packages/web-ui/src/column-visibility.ts` 的 `useColumnVisibility(tableKey, columns)`。每张表使用稳定且唯一的 key，列 ID 与表格定义一致；返回的可见性接入 TanStack Table，菜单标签在渲染时翻译。隐藏列存入 `@unicore/theme/preferences` 的设备偏好，当前用户、管理员和文件列表已接入。列隐藏只是展示选择，不构成字段权限，也不改变 XLSX 导出内容。
+
+路由守卫将已登记但当前身份无权访问的页面呈现为独立 403，未知路径仍为 404。业务页复用对应状态页与返回入口；管理员 API 始终再次授权。Swagger API 参考页独立加载较重组件，从开启文档开关的实例 `/openapi.json` 读取契约，见 [应用开发的 API 说明](development.md#api权限与前端)。
 
 ## 已知边界
 

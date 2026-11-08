@@ -90,7 +90,7 @@ func TestPlatformInstallAuthAndRBAC(t *testing.T) {
 	}
 	var member contracts.UserResponse
 	_ = json.Unmarshal(w.Body.Bytes(), &member)
-	if w = request("PATCH", "/api/v1/admin/administrators/"+data.Data.CurrentUser.ID, contracts.UserUpdate{Status: "disabled", Role: "super_admin"}, adminCookie, csrf); w.Code != 409 {
+	if w = request("PATCH", "/api/v1/admin/administrators/"+data.Data.CurrentUser.ID, contracts.UserUpdate{Status: "disabled", Role: rolePtr("super_admin")}, adminCookie, csrf); w.Code != 409 {
 		t.Fatal("last admin disabled", w.Code, w.Body.String())
 	}
 	// Default captcha is returned as image data; extracting test glyphs verifies the round-trip without bypassing the endpoint.
@@ -126,7 +126,7 @@ func TestPlatformInstallAuthAndRBAC(t *testing.T) {
 	if w = request("GET", "/manage", nil, adminCookie, ""); w.Code != 200 {
 		t.Fatal("new admin path unavailable", w.Code)
 	}
-	if w = request("PATCH", "/api/v1/admin/users/"+member.Data.ID, contracts.UserUpdate{Status: "disabled", Role: "user"}, adminCookie, csrf); w.Code != 200 {
+	if w = request("PATCH", "/api/v1/admin/users/"+member.Data.ID, contracts.UserUpdate{Status: "disabled", Role: rolePtr("user")}, adminCookie, csrf); w.Code != 200 {
 		t.Fatal(w.Code, w.Body.String())
 	}
 	if w = request("GET", "/api/v1/auth/session", nil, memberCookie, ""); w.Code != 401 {

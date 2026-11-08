@@ -18,6 +18,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/files"
 	"github.com/yunnuo/unicore/internal/mailer"
 	"github.com/yunnuo/unicore/internal/settings"
 )
@@ -60,7 +61,8 @@ type EmailChange struct {
 }
 type PersonalStore interface {
 	PersonalSession(context.Context, string) (PersonalSession, error)
-	SaveDisplayName(context.Context, string, string) error
+	SaveAccountProfile(ctx context.Context, sessionHash, name string, avatarFileID *string) error
+	UserAvatar(context.Context, string) (string, error)
 	SaveTOTPSetup(context.Context, string, string, string, int) error
 	CancelTOTPSetup(context.Context, string) error
 	EnableTOTP(context.Context, string, string, int, string) error
@@ -70,16 +72,40 @@ type PersonalStore interface {
 	QueueEmailChange(context.Context, EmailChange) error
 	VerifyEmailChange(context.Context, string, string, string, bool) error
 }
+
+// AvatarFiles is the optional file-service surface for avatars; nil keeps
+// avatar_url empty and refuses avatar uploads.
+type AvatarFiles interface {
+	ValidateAvatar(ctx context.Context, actor files.Actor, fileID string) error
+	Access(ctx context.Context, actor files.Actor, fileID string) (contracts.FileAccess, error)
+}
+
 type Personal struct {
-	Store    PersonalStore
-	Identity *Service
-	Settings *settings.Service
-	Mail     *mailer.Service
+	Store       PersonalStore
+	Identity    *Service
+	Settings    *settings.Service
+	Mail        *mailer.Service
+	AvatarFiles AvatarFiles
+	Realm       string
 }
 
 func (p *Personal) profile(ctx context.Context, s PersonalSession) (contracts.AccountProfile, error) {
 	values, err := p.Settings.Raw(ctx)
-	return contracts.AccountProfile{User: s.User, DisplayName: s.State.DisplayName, TotpEnabled: s.State.Secret != "", Force2fa: settings.Force2FA(values, IsSuper(s.User)), CanDisable2fa: !settings.Force2FA(values, IsSuper(s.User)) && values["security.allow_disable_2fa"] != "false"}, err
+	// The 2FA switch follows the session's identity realm, not the super_admin
+	// flag: restricted administrators are administrator-domain sessions and use
+	// security.force_admin_2fa like any other administrator account.
+	administrator := p.Realm == "administrator"
+	force2fa := settings.Force2FA(values, administrator)
+	profile := contracts.AccountProfile{User: s.User, DisplayName: s.State.DisplayName, TotpEnabled: s.State.Secret != "", Force2fa: force2fa, CanDisable2fa: !force2fa && values["security.allow_disable_2fa"] != "false"}
+	if p.AvatarFiles != nil {
+		if fileID, avatarErr := p.Store.UserAvatar(ctx, s.User.ID); avatarErr == nil && fileID != "" {
+			access, accessErr := p.AvatarFiles.Access(ctx, files.Actor{ID: s.User.ID, Realm: p.Realm}, fileID)
+			if accessErr == nil {
+				profile.AvatarUrl = &access.Url
+			}
+		}
+	}
+	return profile, err
 }
 func (p *Personal) Profile(ctx context.Context, token string) (contracts.AccountProfile, error) {
 	s, err := p.Store.PersonalSession(ctx, Hash(token))
@@ -88,8 +114,11 @@ func (p *Personal) Profile(ctx context.Context, token string) (contracts.Account
 	}
 	return p.profile(ctx, s)
 }
-func (p *Personal) SaveName(ctx context.Context, token, name string) (contracts.AccountProfile, error) {
-	name = strings.TrimSpace(name)
+
+// SaveProfile validates the complete change before atomically saving it.
+// Omitted avatar_file_id preserves the reference; an empty value clears it.
+func (p *Personal) SaveProfile(ctx context.Context, token string, input contracts.ProfileInput) (contracts.AccountProfile, error) {
+	name := strings.TrimSpace(input.DisplayName)
 	if !utf8.ValidString(name) || utf8.RuneCountInString(name) > 80 || strings.ContainsAny(name, "\r\n\x00") {
 		return contracts.AccountProfile{}, ErrInput
 	}
@@ -104,10 +133,29 @@ func (p *Personal) SaveName(ctx context.Context, token, name string) (contracts.
 	if settings.BlockedText(values["account.nickname_blacklist"], name, false) || settings.BlockedText(values["account.username_blacklist"], state.User.Username, false) {
 		return contracts.AccountProfile{}, ErrInput
 	}
-	if err := p.Store.SaveDisplayName(ctx, Hash(token), name); err != nil {
+	if input.AvatarFileID != nil {
+		fileID := strings.TrimSpace(*input.AvatarFileID)
+		input.AvatarFileID = &fileID
+		if len(fileID) > 80 {
+			return contracts.AccountProfile{}, ErrInput
+		}
+		if fileID != "" {
+			if p.AvatarFiles == nil {
+				return contracts.AccountProfile{}, ErrForbidden
+			}
+			if err := p.AvatarFiles.ValidateAvatar(ctx, files.Actor{ID: state.User.ID, Realm: p.Realm}, fileID); err != nil {
+				return contracts.AccountProfile{}, ErrInput
+			}
+		}
+	}
+	if err := p.Store.SaveAccountProfile(ctx, Hash(token), name, input.AvatarFileID); err != nil {
 		return contracts.AccountProfile{}, err
 	}
 	return p.Profile(ctx, token)
+}
+
+func (p *Personal) SaveName(ctx context.Context, token, name string) (contracts.AccountProfile, error) {
+	return p.SaveProfile(ctx, token, contracts.ProfileInput{DisplayName: name})
 }
 func (p *Personal) Pending(ctx context.Context, token string) (contracts.Session, error) {
 	if len(token) != 43 {

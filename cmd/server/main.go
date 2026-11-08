@@ -16,15 +16,20 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/robfig/cron/v3"
+
 	webassets "github.com/yunnuo/unicore/apps/web"
 	httpadapter "github.com/yunnuo/unicore/internal/adapter/http"
+	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/bootstrap"
 	"github.com/yunnuo/unicore/internal/config"
 	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/lifecycle"
 	"github.com/yunnuo/unicore/internal/logging"
 	"github.com/yunnuo/unicore/internal/observability"
+	"github.com/yunnuo/unicore/internal/realtime"
 	"github.com/yunnuo/unicore/internal/runtime"
+	"github.com/yunnuo/unicore/internal/scheduler"
 )
 
 func main() {
@@ -89,8 +94,11 @@ func run(args []string) (result error) {
 	if err != nil {
 		return err
 	}
+	hub := realtime.New()
 	metrics := observability.New()
-	server := &http.Server{Addr: options.Listen, Handler: httpadapter.New(httpadapter.Config{Updates: updater, Metadata: metadata, Core: bootstrap.Core(), Assets: webassets.FS(), Logger: logger, Install: manager, APIDocs: options.APIDocs, ReadinessTimeout: options.ReadinessTimeout, Metrics: metrics}), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
+	workerCtx, cancelWorkers := context.WithCancel(context.Background())
+	defer cancelWorkers()
+	server := &http.Server{Addr: options.Listen, Handler: httpadapter.New(httpadapter.Config{Updates: updater, Metadata: metadata, Core: bootstrap.Core(), Assets: webassets.FS(), Logger: logger, Install: manager, APIDocs: options.APIDocs, ReadinessTimeout: options.ReadinessTimeout, Metrics: metrics, Hub: hub}), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
 	listener, err := net.Listen("tcp", server.Addr)
 	if err != nil {
 		return fmt.Errorf("listen failed: %w", err)
@@ -105,36 +113,103 @@ func run(args []string) (result error) {
 		}
 		resources.Defer("monitor listener", func() error { return closeListener(monitorListener) })
 	}
-	workerCtx, stopWorker := context.WithCancel(ctx)
-	mailDone := make(chan struct{})
+	// Scheduled jobs replace the hardcoded tickers: the mail queue keeps its
+	// 1s cadence and file cleanup runs every minute, both with operator
+	// enablement, bookkeeping and manual triggers via /api/v1/admin/tasks.
+	store, _, _, _ := manager.Services()
+	tasks := scheduler.New(store)
+	tasks.Register("mail.queue", "@every 1s", func(ctx context.Context) error {
+		service := manager.Mail()
+		if service == nil {
+			return nil
+		}
+		if err := service.Tick(ctx, int(time.Now().Unix())); err != nil && ctx.Err() == nil {
+			return fmt.Errorf("mail worker unavailable")
+		}
+		return nil
+	})
+	cleanupFiles := func(ctx context.Context) error {
+		fs := manager.Files()
+		if fs == nil {
+			return nil
+		}
+		cleanupCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		defer cancel()
+		if err := fs.Cleanup(cleanupCtx); err != nil && ctx.Err() == nil {
+			return fmt.Errorf("file cleanup unavailable")
+		}
+		return nil
+	}
+	tasks.Register("files.cleanup", "@every 1m", cleanupFiles)
+	// Standalone keeps file cleanup without platform registry tables or APIs.
+	localCron := cron.New(cron.WithChain(cron.SkipIfStillRunning(cron.DiscardLogger)))
+	_, err = localCron.AddFunc("@every 1m", func() {
+		_, _, _, currentProfile := manager.Services()
+		if currentProfile == runtime.WebStandalone {
+			if err := cleanupFiles(workerCtx); err != nil && workerCtx.Err() == nil {
+				logger.Warn("file cleanup unavailable", "event", "files.cleanup_unavailable")
+			}
+		}
+	})
+	if err != nil {
+		return err
+	}
+	localCron.Start()
+	tasks.Register("announcements.refresh", "@every 1m", scheduler.AnnouncementRefresh(func() *sqlstore.Store {
+		store, _, _, _ := manager.Services()
+		return store
+	}, func() { hub.Broadcast("inbox.new") }))
+	// A supervised lazy start supports installation through the wizard, without
+	// ever registering platform tasks against a standalone schema.
+	workerDone := make(chan struct{})
 	go func() {
-		defer close(mailDone)
-		ticker := time.NewTicker(time.Second)
+		defer close(workerDone)
+		ticker := time.NewTicker(2 * time.Second)
 		defer ticker.Stop()
-		fileTicker := time.NewTicker(time.Minute)
-		defer fileTicker.Stop()
 		for {
+			_, _, _, currentProfile := manager.Services()
+			if manager.Installed() && currentProfile == runtime.WebPlatform {
+				installedStore, _, _, _ := manager.Services()
+				tasks.SetStore(installedStore)
+				if err := tasks.Start(workerCtx); err == nil {
+					manager.SetTasks(tasks)
+					return
+				} else {
+					logger.Error("scheduler start failed", "event", "scheduler.start_failed")
+				}
+			}
 			select {
 			case <-workerCtx.Done():
 				return
-			case <-fileTicker.C:
-				if fs := manager.Files(); fs != nil {
-					cleanupCtx, cancel := context.WithTimeout(workerCtx, 30*time.Second)
-					if e := fs.Cleanup(cleanupCtx); e != nil && workerCtx.Err() == nil {
-						logger.Warn("file cleanup unavailable", "event", "files.cleanup_unavailable")
-					}
-					cancel()
-				}
 			case <-ticker.C:
-				if service := manager.Mail(); service != nil {
-					if err := service.Tick(workerCtx, int(time.Now().Unix())); err != nil && workerCtx.Err() == nil {
-						logger.Warn("mail worker unavailable", "event", "mail.worker_unavailable")
-					}
-				}
 			}
 		}
 	}()
-	resources.Defer("mail worker", func() error { stopWorker(); <-mailDone; return nil })
+	resources.Defer("scheduler", func() error {
+		cancelWorkers()
+		<-workerDone
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), options.ShutdownTimeout)
+		defer cancel()
+		localDone := localCron.Stop()
+		select {
+		case <-localDone.Done():
+		case <-shutdownCtx.Done():
+			return shutdownCtx.Err()
+		}
+		return tasks.Shutdown(shutdownCtx)
+	})
+	// Long-lived SSE streams must close when draining begins; otherwise an
+	// otherwise graceful HTTP shutdown would always exhaust its deadline.
+	streamDone := make(chan struct{})
+	go func() {
+		select {
+		case <-ctx.Done():
+			hub.Close()
+		case <-streamDone:
+		}
+	}()
+	defer close(streamDone)
+	defer hub.Close()
 	if monitorListener != nil {
 		mux := http.NewServeMux()
 		mux.Handle("/metrics", metrics.Handler(func() *sql.DB {

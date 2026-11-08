@@ -4,6 +4,14 @@
  */
 :root { --ui-font-scale: 1; --ui-space-scale: 1; --ui-radius-scale: 1; }
 
+/* Mobile layout viewport: any frame that lays out wider than the device width
+ * makes mobile browsers shrink-to-fit and lock a wrong zoom for the whole
+ * document (layout viewport 574x1243 inside a 375x812 screen), which leaves
+ * lower page content — dialogs, action footers — permanently unreachable.
+ * Clip horizontal overflow at the root so scrollWidth never exceeds the
+ * device width; clip (unlike hidden) keeps sticky headers working. */
+html, body { overflow-x: clip; }
+
 .app-shell {
   --shell-sidebar-width: var(--sidebar);
   --shell-sidebar-gap: 0px;

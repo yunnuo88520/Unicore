@@ -9,9 +9,13 @@
     "./admin": "./src/admin-app.tsx",
     "./i18n": "./src/i18n.ts",
     "./layout": "./src/workspace-layout.tsx",
-    "./router": "./src/router.tsx"
+    "./router": "./src/router.tsx",
+    "./widgets/activity": "./src/widgets/activity.tsx",
+    "./pages/forbidden": "./src/pages/forbidden.tsx"
   },
   "dependencies": {
+    "@dnd-kit/core": "6.3.1",
+    "@dnd-kit/sortable": "10.0.0",
     "@tanstack/react-query": "^5.105.1",
     "@tanstack/react-router": "^1.170.46",
     "@tanstack/react-table": "^9.3.1",
@@ -23,7 +27,9 @@
     "qrcode": "^1.5.4",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-hook-form": "^7.91.0"
+    "react-hook-form": "^7.91.0",
+    "recharts": "^3.10.1",
+    "swagger-ui-dist": "5.34.1"
   },
   "devDependencies": {
     "@types/qrcode": "^1.5.6"

@@ -69,9 +69,16 @@ test('personal center supports profile, TOTP recovery login and device revocatio
  await page.goto(`${instance.url}/admin/account-security`);await expect(page.getByRole('heading',{name:'Security.',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Disable two-factor authentication',exact:true})).toBeVisible();
  await page.screenshot({path:`${directory}/security-en-dark.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  if(info.project.name==='mobile')await page.getByRole('button',{name:'Open navigation',exact:true}).click();
- await expect(page.locator('.sidebar').getByRole('button',{name:'Personal center',exact:true})).toHaveAttribute('aria-expanded','true');
+ // Sections render as titled groups: the personal section stays visible and
+ // only the active entry carries the highlight.
+ // The locale was switched to English above; the personal section is a titled group.
+ // The realm decides the prefix: administrator sessions project admin:personal.
+ // The seed ships empty section names (operator-owned labels); the group is
+ // identified by its id and its entries carry the semantics.
+ const personalSection=page.locator('.sidebar section[data-nav-section$=":personal"]');
+ await expect(personalSection).toBeVisible();
  await expect(page.locator('.sidebar').getByRole('button',{name:'Security',exact:true})).toHaveClass(/bg-primary-soft/);
- await expect(page.locator('.sidebar').getByRole('button',{name:'Personal center',exact:true})).not.toHaveClass(/bg-primary-soft/);
+ await expect(personalSection.getByRole('button',{name:'Security',exact:true})).toBeVisible();
 });
 
 test('forced enrollment applies to ordinary users and preserves recovery codes across policy refresh',async({page,instance},info)=>{
@@ -103,6 +110,6 @@ test('forced enrollment applies to ordinary users and preserves recovery codes a
  const users=(await(await page.request.get(`${instance.url}/api/v1/admin/users`)).json()).data;
  expect(users.items.find((user:{username:string})=>user.username==='member').totp_enabled).toBe(true);
  if(info.project.name==='mobile')await page.getByRole('button',{name:'打开导航',exact:true}).click();
- await expect(page.locator('.sidebar').getByRole('button',{name:'个人中心',exact:true})).toBeVisible();
+ await expect(page.locator('.sidebar section[data-nav-section$=":personal"]')).toBeVisible();
  await expect(page.locator('.sidebar').getByRole('button',{name:'系统设置',exact:true})).toHaveCount(0);
 });

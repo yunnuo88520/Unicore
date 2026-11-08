@@ -603,13 +603,24 @@
             "users:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
           "identityRealm": "administrator"
         },
         "summary": "listUsers",
         "x-permission": "users:read; administrator only",
-        "parameters": []
+        "parameters": [
+          {
+            "name": "post_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "description": "Filter users assigned to this post."
+          }
+        ]
       },
       "post": {
         "operationId": "createUser",
@@ -660,7 +671,7 @@
             "users:create"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
           "identityRealm": "administrator"
         },
@@ -720,7 +731,7 @@
             "users:update"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
           "identityRealm": "administrator"
         },
@@ -777,7 +788,7 @@
             "settings:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
           "identityRealm": "administrator"
         },
@@ -1707,7 +1718,7 @@
             "settings:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
           "identityRealm": "administrator"
         },
@@ -1817,7 +1828,7 @@
             "roles:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
           "identityRealm": "administrator"
         },
@@ -1923,7 +1934,7 @@
             "users:update"
           ],
           "permissionMode": "any",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
           "identityRealm": "administrator"
         },
@@ -2686,7 +2697,7 @@
             "settings:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
           "identityRealm": "administrator"
         },
@@ -2968,7 +2979,7 @@
             "logs:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
           "identityRealm": "administrator"
         },
@@ -3098,7 +3109,7 @@
             "logs:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
           "identityRealm": "administrator"
         },
@@ -3201,7 +3212,7 @@
             "storage:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
           "identityRealm": "administrator"
         },
@@ -3677,7 +3688,9 @@
             "web-platform"
           ],
           "access": "authenticated",
-          "permissions": [],
+          "permissions": [
+            "files:access"
+          ],
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
@@ -3744,7 +3757,7 @@
           ],
           "access": "authenticated",
           "permissions": [
-            "files:access"
+            "files:upload"
           ],
           "permissionMode": "all",
           "superAdmin": false,
@@ -3804,7 +3817,7 @@
           ],
           "access": "authenticated",
           "permissions": [
-            "files:access"
+            "files:upload"
           ],
           "permissionMode": "all",
           "superAdmin": false,
@@ -3877,7 +3890,7 @@
           ],
           "access": "authenticated",
           "permissions": [
-            "files:access"
+            "files:upload"
           ],
           "permissionMode": "all",
           "superAdmin": false,
@@ -3937,8 +3950,11 @@
             "web-platform"
           ],
           "access": "authenticated",
-          "permissions": [],
-          "permissionMode": "all",
+          "permissions": [
+            "files:access",
+            "notes:access"
+          ],
+          "permissionMode": "any",
           "superAdmin": false,
           "csrf": true,
           "identityRealm": "user"
@@ -3954,6 +3970,15 @@
               "type": "string",
               "maxLength": 80,
               "minLength": 1
+            }
+          },
+          {
+            "name": "note_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
             }
           }
         ],
@@ -3996,7 +4021,9 @@
             "web-platform"
           ],
           "access": "authenticated",
-          "permissions": [],
+          "permissions": [
+            "files:delete"
+          ],
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
@@ -4353,7 +4380,7 @@
             "admin:access"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
           "identityRealm": "administrator"
         },
@@ -5552,7 +5579,7 @@
             "storage:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
           "identityRealm": "administrator"
         },
@@ -5811,10 +5838,11 @@
           ],
           "access": "authenticated",
           "permissions": [
-            "storage:read"
+            "files:access",
+            "notes:access"
           ],
-          "permissionMode": "all",
-          "superAdmin": true,
+          "permissionMode": "any",
+          "superAdmin": false,
           "csrf": true,
           "identityRealm": "administrator"
         },
@@ -5829,6 +5857,15 @@
               "type": "string",
               "maxLength": 80,
               "minLength": 1
+            }
+          },
+          {
+            "name": "note_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
             }
           }
         ],
@@ -6038,7 +6075,7 @@
           ],
           "access": "platform-session",
           "permissions": [
-            "notes:access"
+            "notes:create"
           ],
           "permissionMode": "all",
           "superAdmin": false,
@@ -6099,7 +6136,7 @@
           ],
           "access": "platform-session",
           "permissions": [
-            "notes:access"
+            "notes:update"
           ],
           "permissionMode": "all",
           "superAdmin": false,
@@ -6169,7 +6206,7 @@
           ],
           "access": "platform-session",
           "permissions": [
-            "notes:access"
+            "notes:delete"
           ],
           "permissionMode": "all",
           "superAdmin": false,
@@ -6230,10 +6267,11 @@
           ],
           "access": "authenticated",
           "permissions": [
-            "admin:access"
+            "admin:access",
+            "notes:access"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
           "identityRealm": "administrator"
         },
@@ -6338,10 +6376,11 @@
           ],
           "access": "authenticated",
           "permissions": [
-            "admin:access"
+            "admin:access",
+            "notes:create"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
           "identityRealm": "administrator"
         },
@@ -6397,10 +6436,11 @@
           ],
           "access": "authenticated",
           "permissions": [
-            "admin:access"
+            "admin:access",
+            "notes:update"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
           "identityRealm": "administrator"
         },
@@ -6465,10 +6505,11 @@
           ],
           "access": "authenticated",
           "permissions": [
-            "admin:access"
+            "admin:access",
+            "notes:delete"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
           "identityRealm": "administrator"
         },
@@ -6575,7 +6616,7 @@
             "updates:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
           "identityRealm": "administrator"
         }
@@ -6663,7 +6704,7 @@
             "updates:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
           "identityRealm": "administrator"
         }
@@ -6816,7 +6857,7 @@
             "logs:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
           "identityRealm": "administrator"
         },
@@ -7162,7 +7203,7 @@
             "announcements:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
           "identityRealm": "administrator"
         },
@@ -7207,7 +7248,7 @@
             "announcements:write"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
           "identityRealm": "administrator"
         },
@@ -7276,7 +7317,7 @@
             "announcements:write"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
           "identityRealm": "administrator"
         },
@@ -7334,7 +7375,7 @@
             "announcements:write"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
           "identityRealm": "administrator"
         },
@@ -7392,7 +7433,7 @@
             "announcements:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
           "identityRealm": "administrator"
         },
@@ -7437,7 +7478,7 @@
             "announcements:write"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
           "identityRealm": "administrator"
         },
@@ -7495,7 +7536,7 @@
             "announcements:write"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
           "identityRealm": "administrator"
         },
@@ -7730,7 +7771,7 @@
             "storage:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
           "identityRealm": "administrator"
         },
@@ -7776,7 +7817,9 @@
             "web-platform"
           ],
           "access": "authenticated",
-          "permissions": [],
+          "permissions": [
+            "files:upload"
+          ],
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
@@ -7893,7 +7936,9 @@
             "web-platform"
           ],
           "access": "authenticated",
-          "permissions": [],
+          "permissions": [
+            "files:upload"
+          ],
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
@@ -7955,7 +8000,7 @@
             "storage:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
           "identityRealm": "administrator"
         },
@@ -8012,7 +8057,9 @@
             "web-platform"
           ],
           "access": "authenticated",
-          "permissions": [],
+          "permissions": [
+            "files:upload"
+          ],
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
@@ -8152,7 +8199,9 @@
             "web-platform"
           ],
           "access": "authenticated",
-          "permissions": [],
+          "permissions": [
+            "files:upload"
+          ],
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
@@ -8316,7 +8365,9 @@
             "web-platform"
           ],
           "access": "authenticated",
-          "permissions": [],
+          "permissions": [
+            "files:upload"
+          ],
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
@@ -10233,7 +10284,7 @@
             "announcements:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
           "identityRealm": "administrator"
         },
@@ -10279,7 +10330,7 @@
             "settings:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
           "identityRealm": "administrator"
         },
@@ -10948,7 +10999,7 @@
             "menus:write"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
           "identityRealm": "administrator"
         },
@@ -10994,7 +11045,7 @@
             "menus:write"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
           "identityRealm": "administrator"
         },
@@ -11052,7 +11103,7 @@
             "dictionaries:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
           "identityRealm": "administrator"
         },
@@ -11098,7 +11149,7 @@
             "dictionaries:write"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
           "identityRealm": "administrator"
         },
@@ -11167,7 +11218,7 @@
             "dictionaries:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
           "identityRealm": "administrator"
         },
@@ -11213,7 +11264,7 @@
             "dictionaries:write"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
           "identityRealm": "administrator"
         },
@@ -11269,12 +11320,240 @@
             "dictionaries:write"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
           "identityRealm": "administrator"
         },
         "summary": "deleteDictionary",
         "parameters": []
+      }
+    },
+    "/api/v1/admin/departments": {
+      "get": {
+        "operationId": "listDepartments",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "departments:read; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "departments:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "listDepartments",
+        "parameters": []
+      },
+      "post": {
+        "operationId": "createDepartment",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "departments:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "departments:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "createDepartment",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DepartmentSaveInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/departments/{id}": {
+      "put": {
+        "operationId": "updateDepartment",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "departments:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "departments:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "updateDepartment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DepartmentSaveInput"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteDepartment",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "departments:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "departments:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "deleteDepartment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          }
+        ]
       }
     },
     "/api/v1/admin/dictionaries/{id}/items": {
@@ -11328,7 +11607,7 @@
             "dictionaries:write"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
           "identityRealm": "administrator"
         },
@@ -11402,6 +11681,975 @@
         },
         "summary": "dictionary",
         "parameters": []
+      }
+    },
+    "/api/v1/admin/tasks": {
+      "get": {
+        "operationId": "listTasks",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "tasks:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "listTasks",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/tasks/{name}": {
+      "parameters": [
+        {
+          "name": "name",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      ],
+      "put": {
+        "operationId": "updateTask",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskEntryResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "tasks:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "updateTask",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskUpdateInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/tasks/{name}/run": {
+      "parameters": [
+        {
+          "name": "name",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      ],
+      "post": {
+        "operationId": "triggerTask",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskTriggerResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "tasks:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "triggerTask",
+        "parameters": []
+      }
+    },
+    "/api/v1/inbox": {
+      "get": {
+        "operationId": "inbox",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboxListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "user"
+        },
+        "summary": "inbox",
+        "parameters": []
+      }
+    },
+    "/api/v1/inbox/read-all": {
+      "post": {
+        "operationId": "readAllInbox",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboxListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "user"
+        },
+        "summary": "readAllInbox",
+        "parameters": []
+      }
+    },
+    "/api/v1/inbox/{id}/read": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      ],
+      "post": {
+        "operationId": "readInbox",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboxListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "user"
+        },
+        "summary": "readInbox",
+        "parameters": []
+      }
+    },
+    "/api/v1/events": {
+      "get": {
+        "operationId": "events",
+        "responses": {
+          "200": {
+            "description": "Server-sent events stream",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "user"
+        },
+        "summary": "events",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/users/export.xlsx": {
+      "get": {
+        "operationId": "exportUsers",
+        "responses": {
+          "200": {
+            "description": "xlsx export",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "users:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "exportUsers",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            }
+          }
+        ],
+        "description": "Export matching records (maximum 10000). Exceeding the limit returns INVALID_INPUT; no partial workbook is returned."
+      }
+    },
+    "/api/v1/admin/users/import-template.xlsx": {
+      "get": {
+        "operationId": "userImportTemplate",
+        "responses": {
+          "200": {
+            "description": "xlsx template",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "users:create"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "userImportTemplate",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/users/import.xlsx": {
+      "post": {
+        "operationId": "importUsers",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserImportResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "users:create"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "importUsers",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "XLSX file, total multipart body at most 5 MiB, first sheet at most 1000 data rows and four columns: username,email,password,role. Blank rows are skipped. Malformed workbooks fail before writes. Each valid row commits independently with administrator reauthorization and audit; failed rows are returned without raw input or database details. Successful rows remain committed on cancellation or later failure."
+      }
+    },
+    "/api/v1/admin/files/export.xlsx": {
+      "get": {
+        "operationId": "exportFiles",
+        "responses": {
+          "200": {
+            "description": "xlsx export",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "storage:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "exportFiles",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            }
+          }
+        ],
+        "description": "Export matching records (maximum 10000). Exceeding the limit returns INVALID_INPUT; no partial workbook is returned."
+      }
+    },
+    "/api/v1/admin/dashboard": {
+      "get": {
+        "operationId": "adminDashboard",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "admin:access"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "adminDashboard",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/roles/admin-options": {
+      "get": {
+        "operationId": "adminRoleOptions",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "roles:read; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "roles:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "adminRoleOptions",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/api-operations": {
+      "get": {
+        "operationId": "listAPIOperations",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIOperationListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "roles:read; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "roles:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "List API operation authorization catalogue",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/posts": {
+      "get": {
+        "operationId": "listPosts",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "posts:read; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "posts:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "listPosts",
+        "parameters": []
+      },
+      "post": {
+        "operationId": "createPost",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "posts:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "posts:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "createPost",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostSaveInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/posts/{id}": {
+      "put": {
+        "operationId": "updatePost",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "posts:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "posts:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "updatePost",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostSaveInput"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deletePost",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "posts:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "posts:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "deletePost",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          }
+        ]
       }
     }
   },
@@ -11603,6 +12851,9 @@
               "$ref": "#/components/schemas/MenuEntry"
             },
             "description": "Operator-edited menu overrides; absent entries fall back to route defaults."
+          },
+          "navigation": {
+            "$ref": "#/components/schemas/Navigation"
           }
         }
       },
@@ -11919,10 +13170,7 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": [
-                "super_admin",
-                "user"
-              ]
+              "description": "Assigned role ids: the administrator realm is fixed to super_admin; user accounts hold the builtin user role and/or custom roles."
             }
           },
           "permissions": {
@@ -11940,6 +13188,47 @@
           "totp_enabled": {
             "type": "boolean",
             "description": "Read-only authenticator enrollment status; no keys or recovery codes are exposed."
+          },
+          "department_id": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Department the user belongs to; empty when unassigned. Administrator accounts never carry one."
+          },
+          "menu_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "action_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "operation_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "post_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
           }
         }
       },
@@ -12005,7 +13294,21 @@
           "role": {
             "type": "string",
             "maxLength": 64,
-            "description": "User-realm builtin or custom role id; the administrator realm only assigns super_admin."
+            "description": "User-realm builtin or custom role id; the administrator realm assigns super_admin or an administrator-realm custom role."
+          },
+          "department_id": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Optional department for user accounts; must reference an existing department. Administrator accounts ignore it."
+          },
+          "post_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
           }
         }
       },
@@ -12013,17 +13316,30 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "role",
           "status"
         ],
         "properties": {
           "role": {
             "type": "string",
             "maxLength": 64,
-            "description": "User-realm builtin or custom role id; the administrator realm only assigns super_admin."
+            "description": "User-realm builtin or custom role id; the administrator realm assigns super_admin or an administrator-realm custom role. Omit (or send empty) to keep the current roles; a non-empty value replaces them."
           },
           "status": {
             "type": "string"
+          },
+          "department_id": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "User accounts only: omit or null to keep the current department, empty string clears it, a non-empty id must reference an existing department. Administrator accounts ignore it."
+          },
+          "post_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
           }
         }
       },
@@ -12156,7 +13472,8 @@
           "total_users",
           "today_new_users",
           "active_users_7d",
-          "audit"
+          "audit",
+          "activity_7d"
         ],
         "properties": {
           "total_users": {
@@ -12172,6 +13489,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/AuditEntry"
+            }
+          },
+          "activity_7d": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityDay"
             }
           }
         }
@@ -12972,7 +14295,14 @@
           "name",
           "builtin",
           "permissions",
-          "user_count"
+          "user_count",
+          "realm",
+          "data_scope",
+          "department_ids",
+          "menu_ids",
+          "action_ids",
+          "operation_ids",
+          "authorization_initialized"
         ],
         "properties": {
           "id": {
@@ -12994,6 +14324,63 @@
           },
           "user_count": {
             "type": "integer"
+          },
+          "realm": {
+            "type": "string",
+            "enum": [
+              "user",
+              "administrator"
+            ],
+            "description": "Identity realm the role belongs to; administrator-realm roles may carry any permission point."
+          },
+          "data_scope": {
+            "type": "string",
+            "enum": [
+              "all",
+              "dept",
+              "dept_and_below",
+              "custom",
+              "self"
+            ],
+            "description": "Row-level data scope of user-realm roles: all disables owner filtering, dept keeps the member's own department, dept_and_below adds its subtree, custom uses department_ids, self keeps personal visibility. Administrator-realm roles are fixed to self."
+          },
+          "department_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "description": "Departments of the custom data scope; only persisted for data_scope=custom, cleared otherwise."
+          },
+          "menu_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "action_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "operation_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "authorization_initialized": {
+            "type": "boolean"
           }
         }
       },
@@ -13030,10 +14417,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "enum": [
-              "super_admin",
-              "user"
-            ]
+            "description": "Builtin super_admin/user or a custom role id from either realm."
           },
           "name": {
             "type": "string"
@@ -13737,7 +15121,8 @@
           "creator_realm",
           "created_at",
           "expires_at",
-          "state"
+          "state",
+          "capabilities"
         ],
         "properties": {
           "file_id": {
@@ -13797,6 +15182,9 @@
               "ready",
               "deleted"
             ]
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/FileCapabilities"
           }
         }
       },
@@ -14071,8 +15459,7 @@
         "required": [
           "title",
           "body",
-          "status",
-          "attachment_ids"
+          "status"
         ],
         "properties": {
           "title": {
@@ -14099,7 +15486,8 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 80
-            }
+            },
+            "description": "Attachment file ids bound at creation; omit for a plain note. Maximum five, order preserved."
           }
         }
       },
@@ -14172,7 +15560,8 @@
           "attachment_ids",
           "version",
           "created_at",
-          "updated_at"
+          "updated_at",
+          "capabilities"
         ],
         "properties": {
           "id": {
@@ -14219,6 +15608,9 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 9007199254740991
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/NoteCapabilities"
           }
         }
       },
@@ -15721,6 +17113,10 @@
           },
           "can_disable_2fa": {
             "type": "boolean"
+          },
+          "avatar_url": {
+            "type": "string",
+            "maxLength": 2000
           }
         }
       },
@@ -15735,6 +17131,11 @@
             "type": "string",
             "maxLength": 80,
             "minLength": 0
+          },
+          "avatar_file_id": {
+            "type": "string",
+            "maxLength": 80,
+            "description": "Omit to preserve; empty string clears. Otherwise an owned ready PNG/JPEG/GIF upload, at most 2 MiB and 4096 x 4096 pixels, in the same identity realm. Reference keeps the existing private-file expiry and deletion lifecycle."
           }
         }
       },
@@ -16327,6 +17728,61 @@
               "type": "string"
             },
             "maxItems": 64
+          },
+          "realm": {
+            "type": "string",
+            "enum": [
+              "user",
+              "administrator"
+            ],
+            "description": "Realm the role belongs to; omitted means user for backward compatibility. Update requests cannot move a role between realms."
+          },
+          "data_scope": {
+            "type": "string",
+            "enum": [
+              "all",
+              "dept",
+              "dept_and_below",
+              "custom",
+              "self"
+            ],
+            "description": "User-realm roles only: omitted means self. Administrator-realm roles are fixed to self and reject any other value."
+          },
+          "department_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 100,
+            "description": "Departments for the custom data scope; every id must reference an existing department. Only persisted when data_scope=custom."
+          },
+          "menu_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "action_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "operation_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
           }
         }
       },
@@ -16338,7 +17794,8 @@
           "label",
           "group_key",
           "sort",
-          "visible"
+          "visible",
+          "type"
         ],
         "properties": {
           "menu_key": {
@@ -16358,6 +17815,24 @@
           },
           "visible": {
             "type": "boolean"
+          },
+          "parent_key": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Key of the configured page or link row this entry nests under; omitted or empty places the entry at its top-level group. The tree depth is limited to 5 and cycles are rejected on save."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "page",
+              "link"
+            ],
+            "description": "page rows override a registered route page and never carry url; link rows are operator-created external links with a link: prefixed key and a required url."
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 2048,
+            "description": "Link target; only link rows carry it. Accepts http(s) URLs or in-site relative paths starting with /."
           }
         }
       },
@@ -16365,13 +17840,39 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "items"
+          "items",
+          "version",
+          "sections",
+          "nodes",
+          "pages"
         ],
         "properties": {
           "items": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MenuEntry"
+            }
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationSection"
+            }
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationNode"
+            }
+          },
+          "pages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationPage"
             }
           }
         }
@@ -16380,7 +17881,9 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "items"
+          "version",
+          "sections",
+          "nodes"
         ],
         "properties": {
           "items": {
@@ -16389,6 +17892,33 @@
               "$ref": "#/components/schemas/MenuEntry"
             },
             "maxItems": 256
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationSection"
+            }
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationNode"
+            }
+          },
+          "role_assignments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationRoleAssignment"
+            },
+            "maxItems": 256
+          },
+          "reset": {
+            "type": "boolean",
+            "description": "Restore registered defaults for both surfaces; requires super_admin. Empty sections/nodes alone saves an empty tree."
           }
         }
       },
@@ -16602,6 +18132,134 @@
           }
         }
       },
+      "Department": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "sort",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Department display name; unique among sibling departments."
+          },
+          "parent_id": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Parent department id; empty for a root department. Cycles are rejected."
+          },
+          "sort": {
+            "type": "integer",
+            "description": "Stable display order within the sibling group."
+          },
+          "created_at": {
+            "type": "integer"
+          },
+          "updated_at": {
+            "type": "integer"
+          }
+        }
+      },
+      "DepartmentList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "total"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Department"
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "DepartmentSaveInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "description": "Department display name; must stay unique among siblings under the same parent."
+          },
+          "parent_id": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Parent department id; omit or send empty for a root department. Updates reject moving a department under itself or one of its descendants."
+          },
+          "sort": {
+            "type": "integer",
+            "description": "Display order within the sibling group; defaults to 0."
+          }
+        }
+      },
+      "DepartmentResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Department"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "DepartmentListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DepartmentList"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
       "DictionaryListResponse": {
         "type": "object",
         "additionalProperties": false,
@@ -16673,6 +18331,845 @@
             "type": "string"
           }
         }
+      },
+      "TaskEntry": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "schedule",
+          "enabled",
+          "last_run_at",
+          "last_status",
+          "last_error",
+          "run_count",
+          "next_run_at"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "schedule": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "last_run_at": {
+            "type": "integer"
+          },
+          "last_status": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "last_error": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "run_count": {
+            "type": "integer"
+          },
+          "next_run_at": {
+            "type": "integer"
+          }
+        }
+      },
+      "TaskList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskEntry"
+            }
+          }
+        }
+      },
+      "TaskUpdateInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TaskListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TaskList"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "TaskEntryResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TaskEntry"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "TaskTrigger": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "triggered"
+        ],
+        "properties": {
+          "triggered": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TaskTriggerResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TaskTrigger"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "InboxEntry": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "type",
+          "source_id",
+          "title",
+          "body",
+          "created_at",
+          "read_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "type": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "source_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "created_at": {
+            "type": "integer"
+          },
+          "read_at": {
+            "type": "integer"
+          }
+        }
+      },
+      "InboxList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "unread"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InboxEntry"
+            }
+          },
+          "unread": {
+            "type": "integer"
+          }
+        }
+      },
+      "InboxListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/InboxList"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "UserImportResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "created",
+          "failed"
+        ],
+        "properties": {
+          "created": {
+            "type": "integer"
+          },
+          "failed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserImportFailure"
+            }
+          }
+        }
+      },
+      "UserImportResultResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UserImportResult"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "ActivityDay": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "date",
+          "count"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "maxLength": 10
+          },
+          "count": {
+            "type": "integer"
+          }
+        }
+      },
+      "UserImportFailure": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "row",
+          "error"
+        ],
+        "properties": {
+          "row": {
+            "type": "integer"
+          },
+          "error": {
+            "type": "string",
+            "maxLength": 200
+          }
+        }
+      },
+      "NavigationSection": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "surface",
+          "name",
+          "sort",
+          "visible",
+          "show_title"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "surface": {
+            "type": "string",
+            "enum": [
+              "user",
+              "administrator"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "sort": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "visible": {
+            "type": "boolean"
+          },
+          "show_title": {
+            "type": "boolean"
+          }
+        }
+      },
+      "NavigationNode": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "section_id",
+          "type",
+          "label",
+          "icon",
+          "sort",
+          "visible",
+          "open_mode",
+          "badge_text",
+          "badge_color",
+          "badge_dot",
+          "operation_ids",
+          "disabled"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "section_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "parent_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "directory",
+              "page",
+              "link",
+              "action"
+            ]
+          },
+          "route_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "icon": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "sort": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "visible": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "open_mode": {
+            "type": "string",
+            "enum": [
+              "same_tab",
+              "new_tab"
+            ]
+          },
+          "badge_text": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "badge_color": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "badge_dot": {
+            "type": "boolean"
+          },
+          "active_menu": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "permission": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "operation_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "disabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "NavigationPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "surfaces",
+          "permission",
+          "group"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "surfaces": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "permission": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "group": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      },
+      "Navigation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "version",
+          "sections",
+          "nodes"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationSection"
+            }
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationNode"
+            }
+          }
+        }
+      },
+      "NavigationRoleAssignment": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "role_id",
+          "menu_ids",
+          "action_ids"
+        ],
+        "properties": {
+          "role_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "menu_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "action_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          }
+        }
+      },
+      "APIOperation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "operation_id",
+          "method",
+          "path",
+          "summary",
+          "tags",
+          "realm",
+          "permissions",
+          "permission_mode",
+          "csrf",
+          "super_admin",
+          "grantable"
+        ],
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "method": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "path": {
+            "type": "string",
+            "maxLength": 256
+          },
+          "summary": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "realm": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "permission_mode": {
+            "type": "string"
+          },
+          "csrf": {
+            "type": "boolean"
+          },
+          "super_admin": {
+            "type": "boolean"
+          },
+          "grantable": {
+            "type": "boolean"
+          }
+        }
+      },
+      "APIOperationList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/APIOperation"
+            }
+          }
+        }
+      },
+      "APIOperationListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/APIOperationList"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "Post": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "code",
+          "name",
+          "sort",
+          "enabled",
+          "description",
+          "created_at",
+          "updated_at",
+          "member_count"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "sort": {
+            "type": "integer"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "created_at": {
+            "type": "integer"
+          },
+          "updated_at": {
+            "type": "integer"
+          },
+          "member_count": {
+            "type": "integer",
+            "description": "Number of users holding this post; computed from user_posts."
+          }
+        }
+      },
+      "PostList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "total"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Post"
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "PostSaveInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "name"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^\\s*[A-Za-z0-9][A-Za-z0-9_.-]*\\s*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "sort": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
+      "PostResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Post"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "PostListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PostList"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "NoteCapabilities": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "update",
+          "delete"
+        ],
+        "properties": {
+          "update": {
+            "type": "boolean"
+          },
+          "delete": {
+            "type": "boolean"
+          }
+        }
+      },
+      "FileCapabilities": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "download",
+          "delete"
+        ],
+        "properties": {
+          "download": {
+            "type": "boolean"
+          },
+          "delete": {
+            "type": "boolean"
+          }
+        }
       }
     },
     "securitySchemes": {
@@ -16740,6 +19237,10 @@
     "DATABASE_UNAVAILABLE": {
       "status": 400,
       "message": "无法连接或初始化数据库，请检查配置与权限后重试"
+    },
+    "DEPARTMENT_IN_USE": {
+      "status": 409,
+      "message": "部门下仍有子部门或挂靠用户，请先迁移后再删除"
     },
     "INSTALL_COMMITTED": {
       "status": 500,
@@ -16912,6 +19413,14 @@
     "MFA_ENROLLMENT_REQUIRED": {
       "status": 403,
       "message": "请先在安全设置中启用双重验证"
+    },
+    "POST_CONFLICT": {
+      "status": 409,
+      "message": "岗位编码已被使用，请改用其他编码"
+    },
+    "POST_IN_USE": {
+      "status": 409,
+      "message": "岗位仍有成员引用，请先调整成员归属"
     }
   }
 }

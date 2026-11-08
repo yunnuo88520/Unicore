@@ -29,7 +29,7 @@ func (b *Bridge) ListNotes(q contracts.NoteQuery) contracts.NoteListResponse {
 	if b.notes == nil {
 		return contracts.NoteListResponse{Code: "NOT_AVAILABLE", Message: "笔记存储未初始化", RequestID: presenter.RequestID()}
 	}
-	data, err := b.notes.List(context.Background(), "local", q)
+	data, err := b.notes.List(context.Background(), "local", q, usecase.NoteVisibility{})
 	code := noteCode(err)
 	return contracts.NoteListResponse{Code: code, Message: contracts.ErrorCatalog[code].Message, Data: data, RequestID: presenter.RequestID()}
 }

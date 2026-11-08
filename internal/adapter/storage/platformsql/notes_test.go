@@ -25,7 +25,7 @@ func exerciseNotes(t *testing.T, ctx context.Context, store *sqlstore.Store) {
 		t.Fatal(created, err)
 	}
 	for _, scope := range []string{"user/other", "administrator/example", "local"} {
-		list, e := n.List(ctx, scope, q)
+		list, e := n.List(ctx, scope, q, usecase.NoteVisibility{})
 		if e != nil || list.Total != 0 {
 			t.Fatal("scope leaked", scope, list, e)
 		}
@@ -41,28 +41,28 @@ func exerciseNotes(t *testing.T, ctx context.Context, store *sqlstore.Store) {
 			t.Fatal(err)
 		}
 	}
-	list, err := n.List(ctx, "user/example", q)
+	list, err := n.List(ctx, "user/example", q, usecase.NoteVisibility{})
 	if err != nil || list.Total != 22 || len(list.Items) != 20 || list.Items[0].ID != created.ID {
 		t.Fatal("page/order", list, err)
 	}
 	q.Page = 2
-	list, err = n.List(ctx, "user/example", q)
+	list, err = n.List(ctx, "user/example", q, usecase.NoteVisibility{})
 	if err != nil || len(list.Items) != 2 {
 		t.Fatal("second page", list, err)
 	}
 	q.Page = 1
 	q.Search = "%_!"
-	list, err = n.List(ctx, "user/example", q)
+	list, err = n.List(ctx, "user/example", q, usecase.NoteVisibility{})
 	if err != nil || list.Total != 1 {
 		t.Fatal("wildcards were not literal", list, err)
 	}
 	q.Search = "' OR 1=1 --"
-	list, err = n.List(ctx, "user/example", q)
+	list, err = n.List(ctx, "user/example", q, usecase.NoteVisibility{})
 	if err != nil || list.Total != 0 {
 		t.Fatal("search injection", list, err)
 	}
 	q.Sort = "title; DROP TABLE unicore_example_notes"
-	if _, err = n.List(ctx, "user/example", q); !errors.Is(err, domain.ErrNoteInvalid) {
+	if _, err = n.List(ctx, "user/example", q, usecase.NoteVisibility{}); !errors.Is(err, domain.ErrNoteInvalid) {
 		t.Fatal("sort accepted", err)
 	}
 	update := contracts.NoteUpdate{Title: created.Title, Body: "revised", Status: "done", Version: 1}
@@ -76,14 +76,14 @@ func exerciseNotes(t *testing.T, ctx context.Context, store *sqlstore.Store) {
 	if err = n.Delete(ctx, "user/example", created.ID, 1); !errors.Is(err, usecase.ErrNoteConflict) {
 		t.Fatal("stale delete", err)
 	}
-	if _, err = n.Create(ctx, "user/example", contracts.NoteInput{Title: "attachment", Status: "open", AttachmentIds: []string{"foreign-file"}}); !errors.Is(err, domain.ErrNoteInvalid) {
+	if _, err = n.Create(ctx, "user/example", contracts.NoteInput{Title: "attachment", Status: "open", AttachmentIds: &[]string{"foreign-file"}}); !errors.Is(err, domain.ErrNoteInvalid) {
 		t.Fatal("unvalidated attachment", err)
 	}
 	if err = runner.Apply(ctx, store.DB, runner.Options{Dialect: store.Dialect, Profile: "web-platform"}); err != nil {
 		t.Fatal("business migration retry", err)
 	}
 	q = contracts.NoteQuery{Page: 1, Sort: "updated_at", Direction: "desc", Status: "done"}
-	list, err = n.List(ctx, "user/example", q)
+	list, err = n.List(ctx, "user/example", q, usecase.NoteVisibility{})
 	if err != nil || list.Total != 1 || list.Items[0].Body != "revised" {
 		t.Fatal("migration/filter", list, err)
 	}
@@ -97,7 +97,7 @@ func exerciseNotes(t *testing.T, ctx context.Context, store *sqlstore.Store) {
 	if _, err = n.Update(ctx, "user/example", created.ID, update); !errors.Is(err, usecase.ErrNoteNotFound) {
 		t.Fatal("deleted note update", err)
 	}
-	list, err = n.List(ctx, "user/example", q)
+	list, err = n.List(ctx, "user/example", q, usecase.NoteVisibility{})
 	if err != nil || list.Total != 0 {
 		t.Fatal("deleted note listed", list, err)
 	}

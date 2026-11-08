@@ -13,7 +13,7 @@ test('announcement bell: management, popup retry, pagination, receipts, audience
   const base = { title: '平台消息', content: '欢迎 **Unicore** [帮助](https://example.test/help)', format: 'markdown', type: 'info', note: 'private-note', status: 'published', publish_at: Math.floor(Date.now() / 1000), ends_at: 0, notify_mode: 'silent', audience: 'all', recipient_ids: [] };
   for (let i = 0; i < 12; i++) expect((await page.request.post(`${instance.url}/api/v1/admin/announcements`, { headers, data: { ...base, title: `静默消息 ${i}` } })).status()).toBe(200);
   const popup = (await (await page.request.post(`${instance.url}/api/v1/admin/announcements`, { headers, data: { ...base, title: '重要通知', notify_mode: 'popup', audience: 'selected', recipient_ids: [member.id] } })).json()).data;
-  expect((await page.request.post(`${instance.url}/api/v1/admin/announcements`, { headers, data: { ...base, title: '后续通知', notify_mode: 'popup', publish_at: base.publish_at - 1 } })).status()).toBe(200);
+  const next = (await (await page.request.post(`${instance.url}/api/v1/admin/announcements`, { headers, data: { ...base, title: '后续通知', notify_mode: 'popup', publish_at: base.publish_at - 1 } })).json()).data;
   const hidden = (await (await page.request.post(`${instance.url}/api/v1/admin/announcements`, { headers, data: { ...base, title: '未到期发布', publish_at: base.publish_at + 3600 } })).json()).data;
   const directory = `build/acceptance/announcements/${info.project.name}`;
   await mkdir(directory, { recursive: true });
@@ -55,14 +55,16 @@ test('announcement bell: management, popup retry, pagination, receipts, audience
     await expect(nextNotice).toBeVisible();
     await nextNotice.getByRole('button', { name: '标为已读', exact: true }).click();
     await expect(nextNotice).toHaveCount(0);
+    await expect(nextNotice).toHaveCount(0);
     const firstRead = (await (await context.request.get(`${instance.url}/api/v1/announcements/${popup.id}`)).json()).data.read_at;
     expect(firstRead).toBeGreaterThan(0);
-    await context.request.post(`${instance.url}/api/v1/announcements/${popup.id}/read`, { headers: userHeaders });
+    expect((await context.request.post(`${instance.url}/api/v1/announcements/${popup.id}/read`, { headers: userHeaders })).status()).toBe(200);
     expect((await (await context.request.get(`${instance.url}/api/v1/announcements/${popup.id}`)).json()).data.read_at).toBe(firstRead);
     expect((await context.request.get(`${instance.url}/api/v1/announcements/${hidden.id}`)).status()).toBe(404);
     const bell = user.getByRole('button', { name: '平台公告', exact: true });
     await expect(bell).toBeVisible();
-    await expect(bell).toContainText('12');
+    // The bell combines 12 unread announcements and the independently unread personal delivery.
+    await expect(bell).toContainText('13');
     await bell.click();
     const inbox = user.getByRole('dialog', { name: '平台公告', exact: true });
     await expect(inbox.getByText('12 条未读公告', { exact: true })).toBeVisible();

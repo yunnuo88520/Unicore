@@ -1,13 +1,17 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Permission catalogue with assignable business grants; management permissions stay super-only.
+// Description: Permission catalogue; user-realm roles take assignable grants, administrator-realm roles any catalogue point.
 package platform
 
 import "github.com/yunnuo/unicore/internal/contracts"
 
 // Assignable marks permission points a custom user-realm role may hold. Management
-// permissions stay false: custom roles can never grant administrator account
-// control, role management, framework updates or instance configuration.
+// permissions stay false for the user realm: user-realm roles can never carry
+// administrator account control, role management, framework updates or instance
+// configuration. Administrator-realm roles may hold any catalogue point; only
+// operation-level superAdmin policy (contract x-unicore) stays super_admin-only.
 var PermissionCatalog = []contracts.PermissionDefinition{
+	{ID: "posts:read", Name: "查看岗位", Description: "查看岗位与成员分配", Group: "用户管理"},
+	{ID: "posts:write", Name: "管理岗位", Description: "创建、编辑与删除岗位", Group: "用户管理"},
 	{ID: "announcements:read", Name: "查看平台公告", Description: "查看公告列表、草稿与配置", Group: "系统管理"},
 	{ID: "announcements:write", Name: "管理平台公告", Description: "发布、编辑、删除公告与控制展示", Group: "系统管理"},
 	{ID: "updates:read", Name: "查看系统更新", Description: "查看版本、更新历史与检查结果", Group: "系统管理"},
@@ -22,15 +26,24 @@ var PermissionCatalog = []contracts.PermissionDefinition{
 	{ID: "users:read", Name: "查看用户", Description: "搜索和查看用户账号、角色与状态", Group: "用户管理"},
 	{ID: "users:create", Name: "创建用户", Description: "创建普通用户", Group: "用户管理"},
 	{ID: "users:update", Name: "管理用户身份", Description: "启停普通用户账号", Group: "用户管理"},
+	{ID: "departments:read", Name: "查看部门", Description: "查看部门组织树与用户归属", Group: "用户管理"},
+	{ID: "departments:write", Name: "管理部门", Description: "创建、编辑与删除部门", Group: "用户管理"},
 	{ID: "settings:read", Name: "查看基础设置", Description: "查看站点、品牌、安全和邮件配置", Group: "系统管理"},
 	{ID: "settings:write", Name: "修改基础设置", Description: "修改品牌、安全、SMTP 与账号策略", Group: "系统管理"},
 	{ID: "roles:read", Name: "查看角色权限", Description: "查看角色清单与权限配置", Group: "角色权限"},
 	{ID: "roles:write", Name: "管理角色", Description: "创建、编辑与删除用户角色并分配权限", Group: "角色权限"},
 	{ID: "menus:write", Name: "管理菜单", Description: "调整工作空间菜单的顺序、分组与可见性", Group: "角色权限"},
 	{ID: "dictionaries:read", Name: "查看数据字典", Description: "查看字典类型与字典项", Group: "角色权限"},
+	{ID: "tasks:read", Name: "查看定时任务", Description: "查看定时任务的计划与运行状态", Group: "系统管理"},
+	{ID: "tasks:write", Name: "管理定时任务", Description: "启停定时任务并手动触发执行", Group: "系统管理"},
 	{ID: "dictionaries:write", Name: "管理数据字典", Description: "维护字典类型与字典项", Group: "角色权限"},
-	{ID: "files:access", Name: "使用文件管理", Description: "访问文件管理页面并上传、下载文件", Group: "业务权限", Assignable: true},
-	{ID: "notes:access", Name: "使用我的笔记", Description: "访问笔记页面并读写个人笔记", Group: "业务权限", Assignable: true},
+	{ID: "files:access", Name: "使用文件管理", Description: "访问文件管理页面并查看、下载文件", Group: "业务权限", Assignable: true},
+	{ID: "files:upload", Name: "上传文件", Description: "发起分片或普通上传并写入文件内容", Group: "业务权限", Assignable: true},
+	{ID: "files:delete", Name: "删除文件", Description: "删除本人上传的文件", Group: "业务权限", Assignable: true},
+	{ID: "notes:access", Name: "使用我的笔记", Description: "访问笔记页面并查看个人笔记", Group: "业务权限", Assignable: true},
+	{ID: "notes:create", Name: "创建笔记", Description: "新建个人笔记", Group: "业务权限", Assignable: true},
+	{ID: "notes:update", Name: "编辑笔记", Description: "修改个人笔记内容与状态", Group: "业务权限", Assignable: true},
+	{ID: "notes:delete", Name: "删除笔记", Description: "删除个人笔记", Group: "业务权限", Assignable: true},
 }
 
 var Permissions = func() []string {
@@ -56,8 +69,20 @@ func IsSuper(user contracts.User) bool {
 	return len(user.Roles) == 1 && user.Roles[0] == "super_admin"
 }
 func BuiltinRole(id string) bool { return id == "super_admin" || id == "user" }
-func SuperOnly(permission string) bool { return !assignablePermissions[permission] }
 
 // AssignablePermission reports whether a permission point exists and may be
-// granted to a custom role. Unknown points are refused (fail-closed).
+// granted to a custom user-realm role. Unknown points are refused (fail-closed);
+// administrator-realm roles accept every catalogue point instead.
 func AssignablePermission(permission string) bool { return assignablePermissions[permission] }
+
+// CatalogPermission reports whether a permission point exists in the catalogue
+// at all. Administrator-realm roles may hold any catalogue point, so the role
+// CRUD uses this as their fail-closed bound.
+func CatalogPermission(permission string) bool {
+	for _, definition := range PermissionCatalog {
+		if definition.ID == permission {
+			return true
+		}
+	}
+	return false
+}

@@ -274,7 +274,8 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
     </div> : <>
       {registrationClosed || resetClosed ? <p role="status" className="mb-6 rounded-xl border border-line bg-surface-alt p-5 text-sm leading-7 text-muted">{registrationClosed ? t('注册暂未开放，请联系管理员获取账号。') : t('本站暂未开放邮件找回密码，请联系管理员协助恢复账号。')}</p> :
         <AppForm form={form} className="flex flex-col gap-5" onBlur={passwordField} onChange={passwordField}>
-          {error && !(error instanceof AppError && Object.keys(error.fields).length) && <p role="alert" className="rounded-xl border border-danger-line bg-danger-soft px-4 py-3 text-sm text-danger">{t(error.message)}</p>}
+          {/* Non-field auth errors render through the AppForm summary banner; field-carrying
+              errors (duplicate account) surface inline next to their controls. */}
           <fieldset disabled={busy} className="contents">
             {!challenge && (mode === 'login' || mode === 'register') && <AppField<AuthValues> name="username" label={mode === 'login' ? t('账号或邮箱') : t('账号')} className="[&_label]:sr-only">
               <Input required autoComplete="username" maxLength={mode === 'register' ? 64 : 254} placeholder={mode === 'login' ? t('请输入用户名或邮箱') : t('请输入用户名')} />

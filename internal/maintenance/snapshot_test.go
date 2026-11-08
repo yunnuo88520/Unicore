@@ -119,7 +119,7 @@ func TestInstalledBackupRestore(t *testing.T) {
 				})
 			}
 			n := &usecase.Notes{Repo: &notessql.Repository{Store: db}, Attachments: func(ctx context.Context, _ string, id string) error { return fs.ValidateAttachment(ctx, actor, id) }}
-			note, err := n.Create(ctx, "administrator/"+admin.ID, contracts.NoteInput{Title: "Persistent idea", Body: "backup body", Status: "open", AttachmentIds: ids})
+			note, err := n.Create(ctx, "administrator/"+admin.ID, contracts.NoteInput{Title: "Persistent idea", Body: "backup body", Status: "open", AttachmentIds: &ids})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -167,7 +167,7 @@ func TestInstalledBackupRestore(t *testing.T) {
 			}
 			defer restored.Close()
 			current, _, _, _ := restored.Services()
-			rows, err := (&notessql.Repository{Store: current}).List(ctx, "administrator/"+admin.ID, contracts.NoteQuery{Page: 1, Sort: "title", Direction: "asc"})
+			rows, err := (&notessql.Repository{Store: current}).List(ctx, "administrator/"+admin.ID, contracts.NoteQuery{Page: 1, Sort: "title", Direction: "asc"}, usecase.NoteVisibility{})
 			if err != nil || len(rows.Items) != 1 || rows.Items[0].ID != note.ID || rows.Items[0].Body != "backup body" {
 				t.Fatal("business rows", rows, err)
 			}
@@ -230,7 +230,7 @@ func TestDesktopBackupRestore(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer reopened.Close()
-	list, err := (&notessql.Repository{Store: reopened}).List(ctx, "local", contracts.NoteQuery{Page: 1, Sort: "title", Direction: "asc"})
+	list, err := (&notessql.Repository{Store: reopened}).List(ctx, "local", contracts.NoteQuery{Page: 1, Sort: "title", Direction: "asc"}, usecase.NoteVisibility{})
 	if err != nil || list.Total != 1 {
 		t.Fatal(list, err)
 	}

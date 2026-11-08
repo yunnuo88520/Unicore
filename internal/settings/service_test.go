@@ -180,3 +180,55 @@ func TestLegacyRegistrationAndPolicyValidation(t *testing.T) {
 		}
 	}
 }
+
+func TestLoggingRetentionSetting(t *testing.T) {
+	ctx := context.Background()
+	store := &memoryStore{values: map[string]string{}}
+	service := &Service{Store: store, Profile: "web-platform"}
+	values, err := service.List(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, entry := range values.Items {
+		if entry.Key == "logging.retention_days" {
+			found = true
+			if entry.Value != "30" || entry.Group != "logging" {
+				t.Fatalf("unexpected default entry: %+v", entry)
+			}
+		}
+	}
+	if !found {
+		t.Fatal("platform settings must expose logging.retention_days")
+	}
+	swept := 0
+	service.LoggingSweep = sweeperFunc(func() { swept++ })
+	if _, err = service.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "logging.retention_days", Value: "0"}}}, "admin"); err != nil {
+		t.Fatal("permanent retention rejected", err)
+	}
+	if swept != 1 {
+		t.Fatalf("saving a logging setting must trigger one sweep, got %d", swept)
+	}
+	if stored, _ := store.ReadSettings(ctx); stored["logging.retention_days"] != "0" {
+		t.Fatalf("stored value missing: %v", stored)
+	}
+	for _, invalid := range []string{"-1", "36501", "soon"} {
+		if _, err = service.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "logging.retention_days", Value: invalid}}}, "admin"); !errors.Is(err, ErrInvalid) {
+			t.Fatalf("accepted invalid retention %q", invalid)
+		}
+	}
+	// Other profiles never see the group: standalone and desktop cannot patch it.
+	for _, profile := range []contracts.Profile{"web-standalone", "desktop"} {
+		service.Profile = profile
+		if _, err = service.Value(ctx, "logging.retention_days"); !errors.Is(err, ErrInvalid) {
+			t.Fatalf("%s must not read the logging group", profile)
+		}
+		if _, err = service.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "logging.retention_days", Value: "7"}}}, "admin"); !errors.Is(err, ErrInvalid) {
+			t.Fatalf("%s must not patch the logging group", profile)
+		}
+	}
+}
+
+type sweeperFunc func()
+
+func (f sweeperFunc) Sweep() { f() }

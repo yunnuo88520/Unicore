@@ -18,19 +18,30 @@ import (
 	"github.com/yunnuo/unicore/migrations/runner"
 )
 
-func Open(ctx context.Context, directory string) (*sqlstore.Store, *settings.Service, error) {
+// ResolveDir maps an explicit APP_DATA_DIR (or the per-user default) to the
+// absolute desktop data directory and creates it; the log sink needs the path
+// before the store opens.
+func ResolveDir(directory string) (string, error) {
 	if directory == "" {
 		base, err := os.UserConfigDir()
 		if err != nil {
-			return nil, nil, err
+			return "", err
 		}
 		directory = filepath.Join(base, theme.Current.Brand.Name, "desktop")
 	}
 	directory, err := filepath.Abs(directory)
 	if err != nil {
-		return nil, nil, err
+		return "", err
 	}
 	if err = os.MkdirAll(directory, 0700); err != nil {
+		return "", err
+	}
+	return directory, nil
+}
+
+func Open(ctx context.Context, directory string) (*sqlstore.Store, *settings.Service, error) {
+	directory, err := ResolveDir(directory)
+	if err != nil {
 		return nil, nil, err
 	}
 	lock := flock.New(filepath.Join(directory, "instance.lock"))

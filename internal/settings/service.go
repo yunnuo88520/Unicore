@@ -120,7 +120,8 @@ var Definitions = append([]SettingDefinition{
 	{"mail.from_name", "string", "mail", "发件人别名", "", true, false, func(v string) bool { return text(64)(v) && !strings.ContainsAny(v, "\r\n\x00") }},
 	{"mail.username", "string", "mail", "SMTP 用户名", "", true, false, func(v string) bool { return text(254)(v) && !strings.ContainsAny(v, "\r\n") }},
 	{"mail.password", "string", "mail", "SMTP 密钥", "", true, true, text(512)},
-}, append(append(append(OIDCDefinitions, StorageDefinitions...), RegistrationDefinitions...), append(append(SecurityDefinitions, MailTemplateDefinitions...), NotificationDefinitions...)...)...)
+}, append(append(append(OIDCDefinitions, StorageDefinitions...), RegistrationDefinitions...),
+	append(append(append(SecurityDefinitions, MailTemplateDefinitions...), NotificationDefinitions...), LoggingDefinitions...)...)...)
 
 // ValidPublicLink permits only explicit HTTPS links without credentials or header controls.
 func ValidPublicLink(value string) bool {
@@ -145,10 +146,13 @@ type Service struct {
 	NotificationWriter interface {
 		SaveNotificationSettings(context.Context, map[string]string, string) error
 	}
-	Store   Store
-	Secrets Secrets
-	mu      sync.Mutex
-	Profile contracts.Profile
+	// LoggingSweep applies log retention right after a logging.* save; it
+	// stays nil where durable file logs are disabled.
+	LoggingSweep interface{ Sweep() }
+	Store        Store
+	Secrets      Secrets
+	mu           sync.Mutex
+	Profile      contracts.Profile
 }
 
 func applies(d SettingDefinition, profile contracts.Profile) bool {
@@ -361,6 +365,14 @@ func (s *Service) Patch(ctx context.Context, input contracts.SettingPatch, actor
 	}
 	if err = s.Store.SaveSettings(ctx, values, actor); err != nil {
 		return contracts.Settings{}, err
+	}
+	if s.LoggingSweep != nil {
+		for key := range values {
+			if strings.HasPrefix(key, "logging.") {
+				s.LoggingSweep.Sweep()
+				break
+			}
+		}
 	}
 	return s.List(ctx)
 }

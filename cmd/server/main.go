@@ -8,11 +8,14 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -32,7 +35,16 @@ import (
 	"github.com/yunnuo/unicore/internal/scheduler"
 )
 
+// logSink outlives run so the final stop_failed record still reaches the log
+// file before the process exits.
+var logSink *logging.FileSink
+
 func main() {
+	defer func() {
+		if logSink != nil {
+			_ = logSink.Close()
+		}
+	}()
 	if handled, err := managementMain(); handled {
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -68,7 +80,22 @@ func run(args []string) (result error) {
 	if err = updateGuard(options.DataDir); err != nil {
 		return err
 	}
-	logger, err := logging.New(os.Stdout, options.Log, "web")
+	// File logging is opt-in for web deployments; stdout keeps flowing either
+	// way, and a broken sink degrades to stdout instead of failing startup.
+	var sink *logging.FileSink
+	if options.Log.File {
+		opened, err := logging.OpenFileSink(logging.FileOptions{Dir: filepath.Join(options.DataDir, "logs"), MaxAgeDays: options.Log.MaxAgeDays, MaxSizeMB: options.Log.MaxSizeMB, MaxTotalMB: options.Log.MaxTotalMB})
+		if err != nil {
+			slog.Warn("log file unavailable", "event", "log.file_unavailable", "error", err.Error())
+		} else {
+			sink = opened
+		}
+	}
+	logWriter := io.Writer(os.Stdout)
+	if sink != nil {
+		logWriter = io.MultiWriter(os.Stdout, sink)
+	}
+	logger, err := logging.New(logWriter, options.Log, "web")
 	if err != nil {
 		return err
 	}
@@ -77,6 +104,10 @@ func run(args []string) (result error) {
 	defer stop()
 	var resources lifecycle.Stack
 	defer func() { result = errors.Join(result, resources.Close()) }()
+	if sink != nil {
+		// Closed by main after the final error log, not by the resource stack.
+		logSink = sink
+	}
 	manager, err := install.Open(ctx, install.Options{DataDir: options.DataDir, Profile: options.Profile, SecretKey: os.Getenv("APP_SECRET_KEY"), BootstrapToken: os.Getenv("APP_BOOTSTRAP_TOKEN"), AdminPath: os.Getenv("APP_ADMIN_PATH")})
 	if err != nil {
 		return fmt.Errorf("initialization failed: %w", err)
@@ -84,12 +115,15 @@ func run(args []string) (result error) {
 	resources.Defer("storage", manager.Close)
 	_, _, _, profile := manager.Services()
 	metadata := runtime.Metadata(profile, options.Deployment)
-	logger, err = logging.New(os.Stdout, options.Log, string(profile))
+	logger, err = logging.New(logWriter, options.Log, string(profile))
 	if err != nil {
 		return err
 	}
 	logger = logger.With("version", metadata.Version)
 	slog.SetDefault(logger)
+	if sink != nil {
+		sink.SetRetention(logRetention(manager, options.Log.MaxAgeDays))
+	}
 	updater, err := updateService(ctx, options.DataDir, options.Deployment, func() string { _, _, _, p := manager.Services(); return string(p) }, stop)
 	if err != nil {
 		return err
@@ -154,6 +188,13 @@ func run(args []string) (result error) {
 	if err != nil {
 		return err
 	}
+	if sink != nil {
+		// Retention changes from the platform settings apply within the hour
+		// even without a save-triggered sweep.
+		if _, err = localCron.AddFunc("@every 1h", sink.Sweep); err != nil {
+			return err
+		}
+	}
 	localCron.Start()
 	tasks.Register("announcements.refresh", "@every 1m", scheduler.AnnouncementRefresh(func() *sqlstore.Store {
 		store, _, _, _ := manager.Services()
@@ -169,8 +210,12 @@ func run(args []string) (result error) {
 		for {
 			_, _, _, currentProfile := manager.Services()
 			if manager.Installed() && currentProfile == runtime.WebPlatform {
-				installedStore, _, _, _ := manager.Services()
+				installedStore, installedSettings, _, _ := manager.Services()
 				tasks.SetStore(installedStore)
+				if sink != nil && installedSettings != nil && installedSettings.LoggingSweep == nil {
+					// The install wizard created the service after startup wiring.
+					installedSettings.LoggingSweep = sink
+				}
 				if err := tasks.Start(workerCtx); err == nil {
 					manager.SetTasks(tasks)
 					return
@@ -246,4 +291,24 @@ func closeListener(listener net.Listener) error {
 		return nil
 	}
 	return err
+}
+
+// logRetention resolves the effective age limit per sweep: the platform
+// profile reads the runtime logging.retention_days setting (0 keeps logs
+// forever), other profiles keep their boot-time value.
+func logRetention(manager *install.Manager, fallback int) logging.Retention {
+	return func() int {
+		_, service, _, profile := manager.Services()
+		if profile != runtime.WebPlatform || service == nil {
+			return fallback
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		if value, err := service.Value(ctx, "logging.retention_days"); err == nil {
+			if days, err := strconv.Atoi(value); err == nil && days >= 0 {
+				return days
+			}
+		}
+		return fallback
+	}
 }

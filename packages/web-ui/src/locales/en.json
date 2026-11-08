@@ -2006,5 +2006,9 @@
   "创建、编辑与删除岗位": "Create, edit and delete posts",
   "调整普通用户的产品导航：分组、顺序、名称、图标与可见性；角色可见性在角色权限编辑器中配置。": "Tune the product navigation end users see: grouping, order, names, icons and visibility; role visibility lives in the roles editor.",
   "维护管理控制台结构：受限管理员只看到被授权的页面；角色可见性在角色权限编辑器中配置。": "Maintain the console structure: restricted administrators only see authorized pages; role visibility lives in the roles editor.",
-  "显示或隐藏 {{name}}": "Show or hide {{name}}"
+  "显示或隐藏 {{name}}": "Show or hide {{name}}",
+  "日志保留": "Log retention",
+  "作用于数据目录 logs 内的本程序日志；桌面与单机版通过部署配置调整，站点日志在系统日志页查看。": "Applies to this application's logs inside the data directory; desktop and standalone adjust it through deployment config, and site logs live in the system logs page.",
+  "0 表示永久保留；超过保留天数或总量上限的轮转日志按天清理，保存后立即生效。需要部署侧已开启文件日志（APP_LOG_FILE）。": "0 keeps logs forever; rotated logs beyond the age or total-size limit are pruned daily, and saving applies the change immediately. Deployment must have file logging enabled (APP_LOG_FILE).",
+  "日志保留天数": "Log retention (days)"
 }

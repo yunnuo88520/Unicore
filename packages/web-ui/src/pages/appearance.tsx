@@ -18,7 +18,7 @@ import type { Theme } from '@unicore/theme';
 /** Shape of one settings registry row as delivered by client.settings(). */
 type SettingEntry = { key: string; value: string; value_type: string; group: string; label: string; sensitive: boolean; configured?: boolean };
 
-const groupNames: Record<string, string> = defineMessages({ site: '站点信息', maintenance: '维护模式', registration: '注册设置', appearance: '默认外观', admin: '后台入口', protection: '站点防护', security: '安全', mail: '邮件服务', oidc: '企业登录（OIDC）' });
+const groupNames: Record<string, string> = defineMessages({ site: '站点信息', maintenance: '维护模式', registration: '注册设置', appearance: '默认外观', admin: '后台入口', protection: '站点防护', security: '安全', mail: '邮件服务', oidc: '企业登录（OIDC）', logging: '日志保留' });
 const baseSections = defineMessages([
   { id: 'site', label: '基础信息', groups: ['site'] },
   { id: 'branding', label: '品牌图片', groups: [] },
@@ -26,6 +26,7 @@ const baseSections = defineMessages([
   { id: 'security', label: '安全与控制', groups: ['protection', 'admin'] },
   { id: 'registration', label: '注册设置', groups: ['registration'] },
   { id: 'maintenance', label: '维护模式', groups: ['maintenance'] },
+  { id: 'logs', label: '日志', groups: ['logging'] },
   { id: 'oidc', label: '企业登录', groups: ['oidc'] },
 ]) as readonly { id: string; label: string; groups: string[] }[];
 
@@ -210,6 +211,7 @@ function AdminSettings({ section = 'base', client, metadata, theme, onThemeSaved
           {group === 'protection' && <p className="text-xs text-muted">{t('人机验证与找回密码面向整个站点；开启邮件找回密码前，请先在邮件设置完成 SMTP 测试。')}</p>}
           {group === 'mail' && <p className="text-xs text-muted">{t('STARTTLS 使用端口 587，SSL/TLS（隐式 TLS）使用端口 465，明文仅允许本机（25）；切换加密方式会自动填入常用端口，可再手动修改。保存后点击下方“发送测试”验证连接。')}</p>}
           {group === 'oidc' && <p className="text-xs text-muted">{t('支持授权码 + PKCE；保存后在本页检查连接，再完成一次实际登录。')}</p>}
+          {group === 'logging' && <p className="text-xs text-muted">{t('作用于数据目录 logs 内的本程序日志；桌面与单机版通过部署配置调整，站点日志在系统日志页查看。')}</p>}
           <div className="grid gap-x-5 gap-y-4 md:grid-cols-2">
             {query.data.items.filter(item => item.group === group && !HUMAN_CHECK_KEYS.includes(item.key)).map(entry => <SettingField key={entry.key} entry={entry} draft={draft} cleared={cleared}
               onValue={(key, value) => {
@@ -443,6 +445,7 @@ function SettingField({ entry, draft, cleared, onValue, onClear }: {
     {entry.key === 'site.icp_url' && <small className="text-xs text-muted">{t('HTTPS 查询链接；备案号留空时隐藏页脚备案信息。')}</small>}
     {entry.key === 'mail.from_name' && <small className="text-xs text-muted">{t('留空时使用邮件中的站点名称；修改别名不影响 SMTP 连通性验证。')}</small>}
     {entry.key === 'admin.path' && <small className="text-xs text-muted">{t('配置错误可用 APP_ADMIN_PATH 恢复；接口仍执行权限检查。')}</small>}
+    {entry.key === 'logging.retention_days' && <small className="text-xs text-muted">{t('0 表示永久保留；超过保留天数或总量上限的轮转日志按天清理，保存后立即生效。需要部署侧已开启文件日志（APP_LOG_FILE）。')}</small>}
   </div>;
 }
 

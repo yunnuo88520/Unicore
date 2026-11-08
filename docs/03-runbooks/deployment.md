@@ -16,8 +16,10 @@
 | APP_SECRET_KEY | 32 字节的标准 base64 外部密钥；不注入则生成 0600 secret.key |
 | APP_ADMIN_PATH | 后台路径恢复覆盖，规则与设置一致，例如 /manage |
 | APP_DEPLOYMENT_KIND | development / tar / docker，仅表示交付介质 |
+| APP_LOG_FILE | true 时双写 APP_DATA_DIR/logs；桌面默认开启，其余见运行基座 |
+| APP_LOG_MAX_AGE_DAYS / _MAX_SIZE_MB / _MAX_TOTAL_MB | 轮转日志保留天数（0=永久）/单文件阈值/总量上限；平台可在设置页运行时调整保留天数 |
 
-数据目录包括 installation.json（DSN 密文与安装 intent）、secret.key（若未外置）、bootstrap.token（仅安装前）、instance.lock、安装完成生成的 install.lock、SQLite 时 unicore.db/WAL。不得删除安装状态来重新部署；缺少配置但存在 DB 时拒绝覆盖。profile 更换应新部署+独立迁移。其他已安装实例的 DB 始终拒绝接管；未安装非空库只有明确勾选清空并精确输入目标库名后才能初始化。
+数据目录包括 installation.json（DSN 密文与安装 intent）、secret.key（若未外置）、bootstrap.token（仅安装前）、instance.lock、安装完成生成的 install.lock、SQLite 时 unicore.db/WAL、开启文件日志时的 logs/。不得删除安装状态来重新部署；缺少配置但存在 DB 时拒绝覆盖。profile 更换应新部署+独立迁移。其他已安装实例的 DB 始终拒绝接管；未安装非空库只有明确勾选清空并精确输入目标库名后才能初始化。
 
 两个 Web 安装页默认 MySQL，PostgreSQL 同为在线推荐；SQLite 需显式选择。MySQL 分开填写地址（默认 127.0.0.1）、端口（3306）、数据库名（unicore）、用户名（root）、密码；PostgreSQL 默认端口 5432、用户名 postgres。先由运维创建当前实例独占数据库并授予表/索引/约束和必要清空权限，框架不创建数据库本身。Docker 里的 127.0.0.1 指当前容器；同网络数据库填服务名，宿主机数据库按 Docker 网络配置填写可达地址。
 
@@ -45,7 +47,7 @@ bootstrap.token 用于证明服务器所有权、防止别人抢先建管理员�
 
 ## Desktop / CLI
 
-`make dev-desktop` 使用 go.mod 锁定的 Wails（当前 v2.13.0），CLI 工具应安装匹配版本；默认系统 AppData/Unicore/desktop 自动 SQLite，APP_DATA_DIR 可隔离测试。没有安装/登录，用户表不会创建；进程锁防止同时使用同一目录。绑定生成不读写真实数据。macOS 需 Xcode tools，Linux Ubuntu22.04 需 WebKitGTK4.0，4.1 环境追加 webkit2_41；Windows 需 WebView2。
+`make dev-desktop` 使用 go.mod 锁定的 Wails（当前 v2.13.0），CLI 工具应安装匹配版本；默认系统 AppData/Unicore/desktop 自动 SQLite，APP_DATA_DIR 可隔离测试。没有安装/登录，用户表不会创建；进程锁防止同时使用同一目录。绑定生成不读写真实数据。桌面日志自动写入数据目录 logs/ 并保留 stderr 输出，保留策略用 APP_LOG_MAX_AGE_DAYS 等环境变量控制（重启生效）。macOS 需 Xcode tools，Linux Ubuntu22.04 需 WebKitGTK4.0，4.1 环境追加 webkit2_41；Windows 需 WebView2。
 
 CLI 直接运行 `build/bin/unicore execute --text "Hello Unicore"`，不打开 HTTP/Wails/DB。仅业务文本分析无持久化，输入不会写日志。
 

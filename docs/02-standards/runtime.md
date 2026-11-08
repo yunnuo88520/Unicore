@@ -12,12 +12,18 @@ Web 配置由 internal/config.LoadWeb 统一解析与验证：flag > APP_* 环�
 | --deployment | APP_DEPLOYMENT_KIND | development；另支持 tar/docker |
 | --log-level | APP_LOG_LEVEL | info；debug/info/warn/error |
 | --log-format | APP_LOG_FORMAT | json；json/text |
+| --log-file | APP_LOG_FILE | false；true 时同时写 APP_DATA_DIR/logs |
+| --log-max-age-days | APP_LOG_MAX_AGE_DAYS | 0=轮转文件永久保留；上限 36500 |
+| --log-max-size-mb | APP_LOG_MAX_SIZE_MB | 10；1–512，单文件轮转阈值 |
+| --log-max-total-mb | APP_LOG_MAX_TOTAL_MB | 500；0=不限，轮转文件总量上限 |
 | --shutdown-timeout | APP_SHUTDOWN_TIMEOUT | 5s；100ms–2m |
 | --readiness-timeout | APP_READINESS_TIMEOUT | 2s；100ms–10s |
 | --api-docs | APP_API_DOCS | false |
 | --monitor-listen | APP_MONITOR_LISTEN | 关闭；只允许字面量回环 IP:端口 |
 
 `build/bin/server --help` 查看参数。CLI/桌面共享日志的环境选项，日志发 stderr，CLI stdout 保持业务 JSON。Web 日志发 stdout，包含 event/service/profile、请求 ID、method、路由模板、状态码和耗时；不记录原始 URL/query、请求内容、凭据或 panic 值。安全审计仍通过既有持久审计记录处理，不以请求日志代替。
+
+桌面默认在数据目录 logs/ 落盘（同时保留 stderr 输出）；Web 默认仅 stdout，设置 APP_LOG_FILE=true 后双写 APP_DATA_DIR/logs。单文件达到 APP_LOG_MAX_SIZE_MB 轮转为 unicore-时间戳.log，清理任务只删除本程序轮转文件：超过保留天数（桌面/单机/CLI 按 APP_LOG_MAX_AGE_DAYS，默认 0 永久）或超出总量上限的最早文件先删；目录/文件权限 0700/0600，创建失败降级回控制台日志不阻塞启动。平台 profile 的保留天数可由管理员在「系统设置 → 基础设置 → 日志」运行时调整（logging.retention_days，0=永久，保存立即触发清理），覆盖 APP_LOG_MAX_AGE_DAYS；单机与桌面不装配该设置，只能用环境变量并在重启后生效。日志不进入 unicore-ops 备份范围。
 
 组合根先校验配置、打开存储、绑定全部 listener，再启动 worker 和 HTTP。启动失败会逆序关闭已创建组件，清理失败合并返回。退出先排空 HTTP，再停监控/worker，最后关闭存储；到达截止时间关闭连接并取消请求 context，handler 和外部调用必须遵守取消。内部 Stack 不进入 CLI，避免引入 net/http。桌面 Wails 返回后执行存储清理，main 最后决定退出码。
 

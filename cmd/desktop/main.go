@@ -7,15 +7,19 @@ package main
 import (
 	"context"
 	"errors"
+	"io"
+	"log/slog"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+
 	"github.com/wailsapp/wails/v2/pkg/options/linux"
 	"github.com/wailsapp/wails/v2/pkg/options/mac"
 	"github.com/yunnuo/unicore/assets/brand"
 	"github.com/yunnuo/unicore/assets/theme"
 	"github.com/yunnuo/unicore/internal/config"
 	"github.com/yunnuo/unicore/internal/logging"
-	"log/slog"
-	"os"
-	"strconv"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -30,7 +34,16 @@ import (
 	"github.com/yunnuo/unicore/internal/usecase"
 )
 
+// desktopLogSink outlives runDesktop so the final stop_failed record still
+// reaches the log file before the process exits.
+var desktopLogSink *logging.FileSink
+
 func main() {
+	defer func() {
+		if desktopLogSink != nil {
+			_ = desktopLogSink.Close()
+		}
+	}()
 	if handled, err := updateHelper(os.Args[1:]); handled {
 		if err != nil {
 			os.Exit(1)
@@ -49,13 +62,38 @@ func runDesktop() (result error) {
 	if err != nil {
 		return err
 	}
-	logger, err := logging.New(os.Stderr, optionsLog, "desktop")
+	// Binding generation must not initialize or touch real user data.
+	bridge := desktop.New(bootstrap.Core())
+	// Desktop always keeps durable logs under the data directory; stderr
+	// remains attached so dev runs still stream to the console. A broken sink
+	// degrades to stderr instead of failing startup.
+	var sink *logging.FileSink
+	logWriter := io.Writer(os.Stderr)
+	if !generatingBindings {
+		if directory, err := local.ResolveDir(os.Getenv("APP_DATA_DIR")); err == nil {
+			opened, err := logging.OpenFileSink(logging.FileOptions{Dir: filepath.Join(directory, "logs"), MaxAgeDays: optionsLog.MaxAgeDays, MaxSizeMB: optionsLog.MaxSizeMB, MaxTotalMB: optionsLog.MaxTotalMB})
+			if err != nil {
+				slog.Warn("log file unavailable", "event", "log.file_unavailable", "error", err.Error())
+			} else {
+				sink = opened
+				logWriter = io.MultiWriter(os.Stderr, sink)
+			}
+		} else {
+			slog.Warn("log file unavailable", "event", "log.file_unavailable", "error", err.Error())
+		}
+	}
+	logger, err := logging.New(logWriter, optionsLog, "desktop")
 	if err != nil {
 		return err
 	}
 	slog.SetDefault(logger)
-	// Binding generation must not initialize or touch real user data.
-	bridge := desktop.New(bootstrap.Core())
+	if sink != nil {
+		desktopLogSink = sink
+		sweepCtx, stopSweep := context.WithCancel(context.Background())
+		defer stopSweep()
+		sink.Start(sweepCtx, time.Hour)
+		sink.SetRetention(func() int { return optionsLog.MaxAgeDays })
+	}
 	if !generatingBindings {
 		if err := updateGuard(); err != nil {
 			return err

@@ -5628,7 +5628,10 @@ export const constraints = {
       "last_status",
       "last_error",
       "run_count",
-      "next_run_at"
+      "next_run_at",
+      "description",
+      "executor",
+      "custom"
     ],
     "properties": {
       "name": {
@@ -5638,6 +5641,17 @@ export const constraints = {
       "schedule": {
         "type": "string",
         "maxLength": 64
+      },
+      "description": {
+        "type": "string",
+        "maxLength": 200
+      },
+      "executor": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "custom": {
+        "type": "boolean"
       },
       "enabled": {
         "type": "boolean"
@@ -5665,13 +5679,20 @@ export const constraints = {
     "type": "object",
     "additionalProperties": false,
     "required": [
-      "items"
+      "items",
+      "executors"
     ],
     "properties": {
       "items": {
         "type": "array",
         "items": {
           "$ref": "#/components/schemas/TaskEntry"
+        }
+      },
+      "executors": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/TaskExecutor"
         }
       }
     }
@@ -5685,6 +5706,145 @@ export const constraints = {
     "properties": {
       "enabled": {
         "type": "boolean"
+      }
+    }
+  },
+  "TaskExecutor": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "key",
+      "description"
+    ],
+    "properties": {
+      "key": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "description": {
+        "type": "string",
+        "maxLength": 200
+      }
+    }
+  },
+  "TaskCreateInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "name",
+      "description",
+      "schedule",
+      "executor"
+    ],
+    "properties": {
+      "name": {
+        "type": "string",
+        "maxLength": 64,
+        "pattern": "^[a-z][a-z0-9._-]{1,63}$"
+      },
+      "description": {
+        "type": "string",
+        "maxLength": 200
+      },
+      "schedule": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      },
+      "executor": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      }
+    }
+  },
+  "TaskEditInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "description",
+      "schedule",
+      "executor"
+    ],
+    "properties": {
+      "description": {
+        "type": "string",
+        "maxLength": 200
+      },
+      "schedule": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      },
+      "executor": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      }
+    }
+  },
+  "TaskRunEntry": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "started_at",
+      "duration_ms",
+      "status",
+      "error"
+    ],
+    "properties": {
+      "started_at": {
+        "type": "integer"
+      },
+      "duration_ms": {
+        "type": "integer"
+      },
+      "status": {
+        "type": "string",
+        "maxLength": 16
+      },
+      "error": {
+        "type": "string",
+        "maxLength": 200
+      }
+    }
+  },
+  "TaskRunList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/TaskRunEntry"
+        }
+      }
+    }
+  },
+  "TaskRunListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/TaskRunList"
+      },
+      "request_id": {
+        "type": "string"
       }
     }
   },

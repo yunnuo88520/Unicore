@@ -152,7 +152,7 @@ func run(args []string) (result error) {
 	// enablement, bookkeeping and manual triggers via /api/v1/admin/tasks.
 	store, _, _, _ := manager.Services()
 	tasks := scheduler.New(store)
-	tasks.Register("mail.queue", "@every 1s", func(ctx context.Context) error {
+	queueMail := func(ctx context.Context) error {
 		service := manager.Mail()
 		if service == nil {
 			return nil
@@ -161,7 +161,8 @@ func run(args []string) (result error) {
 			return fmt.Errorf("mail worker unavailable")
 		}
 		return nil
-	})
+	}
+	tasks.Register("mail.queue", "@every 1s", queueMail)
 	cleanupFiles := func(ctx context.Context) error {
 		fs := manager.Files()
 		if fs == nil {
@@ -200,6 +201,20 @@ func run(args []string) (result error) {
 		store, _, _, _ := manager.Services()
 		return store
 	}, func() { hub.Broadcast("inbox.new") }))
+	// The executor whitelist is what custom tasks may schedule; the admin
+	// surface can never run anything outside these registered functions.
+	tasks.RegisterExecutor("mail.queue", "推进邮件投递队列", queueMail)
+	tasks.RegisterExecutor("files.cleanup", "清理过期的上传文件与孤元数据", cleanupFiles)
+	tasks.RegisterExecutor("announcements.refresh", "刷新公告推送并通知在线客户端", scheduler.AnnouncementRefresh(func() *sqlstore.Store {
+		store, _, _, _ := manager.Services()
+		return store
+	}, func() { hub.Broadcast("inbox.new") }))
+	if sink != nil {
+		tasks.RegisterExecutor("logging.sweep", "按保留策略清理数据目录内的轮转日志", func(ctx context.Context) error {
+			sink.Sweep()
+			return nil
+		})
+	}
 	// A supervised lazy start supports installation through the wizard, without
 	// ever registering platform tasks against a standalone schema.
 	workerDone := make(chan struct{})

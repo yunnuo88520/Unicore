@@ -22,8 +22,8 @@
 | settings:read | GET /admin/settings、/admin/branding、/admin/settings/mail/templates |
 | settings:write | PATCH /admin/settings；PUT /admin/branding；POST /admin/settings/mail/test、/admin/settings/oidc/check；PUT /admin/settings/mail/templates；POST /admin/settings/mail/templates/{preview,test,reset} |
 | logs:read | GET /admin/logs、/admin/logs/export、/admin/mail/jobs |
-| tasks:read | GET /admin/tasks |
-| tasks:write | PUT /admin/tasks/{name}（启停）；POST /admin/tasks/{name}/run（接收手动触发） |
+| tasks:read | GET /admin/tasks；GET /admin/tasks/{name}/runs（运行历史） |
+| tasks:write | POST /admin/tasks（创建）；PATCH /admin/tasks/{name}（编辑）；DELETE /admin/tasks/{name}（删除）；PUT /admin/tasks/{name}（启停）；POST /admin/tasks/{name}/run（接收手动触发） |
 | api-operations 目录 | GET /admin/api-operations（契约派生 operation 目录，供角色 operation_ids 授权勾选；要求 roles:read，管理员域可授） |
 | updates:read | GET /admin/updates；POST /admin/updates/check |
 | updates:apply | POST /admin/updates/apply，需确认已备份 |

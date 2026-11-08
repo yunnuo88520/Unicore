@@ -87,7 +87,7 @@
 | operationCatalog | [internal/platform/operations.go](../../internal/platform/operations.go) |
 | dataScope | [internal/platform/datascope.go](../../internal/platform/datascope.go) |
 
-OpenAPI 当前包含 208 个 operation、215 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
+OpenAPI 当前包含 212 个 operation、221 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
 
 | 任务 Skill | 用途 |
 | --- | --- |

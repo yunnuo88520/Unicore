@@ -204,3 +204,159 @@ func TestAnnouncementRefreshBoundaries(t *testing.T) {
 		t.Fatal("disabled broadcast")
 	}
 }
+
+func TestNormalizeSchedule(t *testing.T) {
+	for input, want := range map[string]string{
+		"*/5 * * * *":   "0 */5 * * * *",
+		"0 3 * * *":     "0 0 3 * * *",
+		"@daily":        "@daily",
+		"@every 30m":    "@every 30m",
+		"0 3 * * * *":   "0 3 * * * *",
+		"  @hourly    ": "@hourly",
+	} {
+		got, err := NormalizeSchedule(input)
+		if err != nil || got != want {
+			t.Fatalf("%q -> %q, %v (want %q)", input, got, err, want)
+		}
+	}
+	for _, bad := range []string{"", "   ", "not-a-cron", "* * * *", "@reboot", strings.Repeat("0 ", 40)} {
+		if _, err := NormalizeSchedule(bad); !errors.Is(err, ErrScheduleInvalid) {
+			t.Fatalf("accepted %q: %v", bad, err)
+		}
+	}
+}
+
+func TestCustomTaskLifecycle(t *testing.T) {
+	store, admin := fixture(t)
+	ctx := context.Background()
+	s := New(store)
+	s.RegisterExecutor("echo.demo", "演示执行器", func(context.Context) error { return nil })
+	if _, err := s.CreateTask(ctx, contracts.TaskCreateInput{Name: "demo.one", Description: "d", Schedule: "@daily", Executor: "missing"}, admin); !errors.Is(err, ErrExecutorUnknown) {
+		t.Fatal("unknown executor accepted", err)
+	}
+	if _, err := s.CreateTask(ctx, contracts.TaskCreateInput{Name: "demo.one", Description: "d", Schedule: "not-a-cron", Executor: "echo.demo"}, admin); !errors.Is(err, ErrScheduleInvalid) {
+		t.Fatal("invalid schedule accepted", err)
+	}
+	entry, err := s.CreateTask(ctx, contracts.TaskCreateInput{Name: "demo.one", Description: "演示", Schedule: "*/5 * * * *", Executor: "echo.demo"}, admin)
+	if err != nil || entry.Schedule != "0 */5 * * * *" || !entry.Custom {
+		t.Fatal("create", entry, err)
+	}
+	if _, err = s.CreateTask(ctx, contracts.TaskCreateInput{Name: "demo.one", Description: "d", Schedule: "@daily", Executor: "echo.demo"}, admin); !errors.Is(err, ErrTaskExists) {
+		t.Fatal("duplicate name accepted", err)
+	}
+	s.Register("builtin.one", "@hourly", func(context.Context) error { return nil })
+	if err = s.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
+	defer s.Stop()
+	list, err := s.ListTasks(ctx)
+	if err != nil || len(list.Executors) != 1 || list.Executors[0].Key != "echo.demo" {
+		t.Fatal("executor list", list.Executors, err)
+	}
+	if _, err = s.UpdateTask(ctx, "builtin.one", contracts.TaskEditInput{Description: "x", Schedule: "@daily", Executor: "echo.demo"}, admin); !errors.Is(err, ErrBuiltinImmutable) {
+		t.Fatal("builtin edit accepted", err)
+	}
+	if err = s.DeleteTask(ctx, "builtin.one", admin); !errors.Is(err, ErrBuiltinImmutable) {
+		t.Fatal("builtin delete accepted", err)
+	}
+	if entry, err = s.UpdateTask(ctx, "demo.one", contracts.TaskEditInput{Description: "调整", Schedule: "0 3 * * *", Executor: "echo.demo"}, admin); err != nil || entry.Schedule != "0 0 3 * * *" || entry.Description != "调整" {
+		t.Fatal("edit", entry, err)
+	}
+	if err = s.TriggerTask(ctx, "demo.one", admin); err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(3 * time.Second)
+	var runs contracts.TaskRunList
+	for time.Now().Before(deadline) {
+		if runs, err = s.TaskRuns(ctx, "demo.one"); err == nil && len(runs.Items) > 0 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if len(runs.Items) != 1 || runs.Items[0].Status != "ok" || runs.Items[0].DurationMs < 0 {
+		t.Fatal("run history", runs.Items)
+	}
+	if _, err = s.CreateTask(ctx, contracts.TaskCreateInput{Name: "demo.two", Description: "d", Schedule: "@daily", Executor: "echo.demo"}, admin); err != nil {
+		t.Fatal(err)
+	}
+	if err = s.DeleteTask(ctx, "demo.two", admin); err != nil {
+		t.Fatal(err)
+	}
+	var jobs, history int
+	if err = store.Row(ctx, store.DB, "SELECT COUNT(*) FROM unicore_scheduled_jobs WHERE name='demo.one'").Scan(&jobs); err != nil || jobs != 1 {
+		t.Fatal(jobs, err)
+	}
+	if err = s.DeleteTask(ctx, "demo.one", admin); err != nil {
+		t.Fatal(err)
+	}
+	if err = store.Row(ctx, store.DB, "SELECT COUNT(*) FROM unicore_task_runs WHERE job_name='demo.one'").Scan(&history); err != nil || history != 0 {
+		t.Fatal("history survived delete", history, err)
+	}
+}
+
+func TestCustomTaskBrokenRowSkipped(t *testing.T) {
+	store, admin := fixture(t)
+	ctx := context.Background()
+	s := New(store)
+	s.RegisterExecutor("echo.demo", "演示执行器", func(context.Context) error { return nil })
+	seed := func(name, schedule, executor string) {
+		t.Helper()
+		if _, err := store.Exec(ctx, store.DB, "INSERT INTO unicore_scheduled_jobs(name,schedule,description,executor) VALUES(?,?,?,?)", name, schedule, "seed", executor); err != nil {
+			t.Fatal(err)
+		}
+	}
+	seed("bad.executor", "@daily", "gone.executor")
+	seed("bad.schedule", "not-a-cron", "echo.demo")
+	seed("good.one", "@daily", "echo.demo")
+	if err := s.Start(ctx); err != nil {
+		t.Fatal("broken custom row must not abort startup", err)
+	}
+	defer s.Stop()
+	if err := s.TriggerTask(ctx, "good.one", admin); err != nil {
+		t.Fatal("healthy custom row was not scheduled", err)
+	}
+	for name, code := range map[string]string{"bad.executor": "TASK_EXECUTOR_UNKNOWN", "bad.schedule": "TASK_SCHEDULE_INVALID"} {
+		var status, lastError string
+		if err := store.Row(ctx, store.DB, "SELECT last_status,last_error FROM unicore_scheduled_jobs WHERE name=?", name).Scan(&status, &lastError); err != nil || status != "error" || lastError != code {
+			t.Fatal(name, status, lastError, err)
+		}
+		if err := s.DeleteTask(ctx, name, admin); err != nil {
+			t.Fatal("broken row not deletable", name, err)
+		}
+	}
+}
+
+func TestCustomTaskHistoryTrim(t *testing.T) {
+	store, admin := fixture(t)
+	ctx := context.Background()
+	s := New(store)
+	s.RegisterExecutor("echo.demo", "演示执行器", func(context.Context) error { return nil })
+	entry, err := s.CreateTask(ctx, contracts.TaskCreateInput{Name: "trim.one", Description: "d", Schedule: "@daily", Executor: "echo.demo"}, admin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = s.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
+	defer s.Stop()
+	for index := 0; index < 55; index++ {
+		if _, err = store.Exec(ctx, store.DB, "INSERT INTO unicore_task_runs(id,job_name,started_at,duration_ms,status,error) VALUES(?,?,?,?,?,?)", sqlstore.ID(), "trim.one", int64(index), 1, "ok", ""); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err = s.TriggerTask(ctx, entry.Name, admin); err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(3 * time.Second)
+	var count int
+	for time.Now().Before(deadline) {
+		if err = store.Row(ctx, store.DB, "SELECT COUNT(*) FROM unicore_task_runs WHERE job_name='trim.one'").Scan(&count); err != nil {
+			t.Fatal(err)
+		}
+		if count == 50 {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatal("history not trimmed to 50:", count)
+}

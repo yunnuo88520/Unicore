@@ -1386,22 +1386,62 @@ type DictionarySummaryResponse struct {
 }
 
 type TaskEntry struct {
-	Name       string `json:"name"`
-	Schedule   string `json:"schedule"`
-	Enabled    bool   `json:"enabled"`
-	LastRunAt  int    `json:"last_run_at"`
-	LastStatus string `json:"last_status"`
-	LastError  string `json:"last_error"`
-	RunCount   int    `json:"run_count"`
-	NextRunAt  int    `json:"next_run_at"`
+	Name        string `json:"name"`
+	Schedule    string `json:"schedule"`
+	Description string `json:"description"`
+	Executor    string `json:"executor"`
+	Custom      bool   `json:"custom"`
+	Enabled     bool   `json:"enabled"`
+	LastRunAt   int    `json:"last_run_at"`
+	LastStatus  string `json:"last_status"`
+	LastError   string `json:"last_error"`
+	RunCount    int    `json:"run_count"`
+	NextRunAt   int    `json:"next_run_at"`
 }
 
 type TaskList struct {
-	Items []TaskEntry `json:"items"`
+	Items     []TaskEntry    `json:"items"`
+	Executors []TaskExecutor `json:"executors"`
 }
 
 type TaskUpdateInput struct {
 	Enabled bool `json:"enabled"`
+}
+
+type TaskExecutor struct {
+	Key         string `json:"key"`
+	Description string `json:"description"`
+}
+
+type TaskCreateInput struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Schedule    string `json:"schedule"`
+	Executor    string `json:"executor"`
+}
+
+type TaskEditInput struct {
+	Description string `json:"description"`
+	Schedule    string `json:"schedule"`
+	Executor    string `json:"executor"`
+}
+
+type TaskRunEntry struct {
+	StartedAt  int    `json:"started_at"`
+	DurationMs int    `json:"duration_ms"`
+	Status     string `json:"status"`
+	Error      string `json:"error"`
+}
+
+type TaskRunList struct {
+	Items []TaskRunEntry `json:"items"`
+}
+
+type TaskRunListResponse struct {
+	Code      string      `json:"code"`
+	Message   string      `json:"message"`
+	Data      TaskRunList `json:"data"`
+	RequestID string      `json:"request_id"`
 }
 
 type TaskListResponse struct {

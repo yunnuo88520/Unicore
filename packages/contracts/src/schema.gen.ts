@@ -1386,6 +1386,9 @@ export interface DictionarySummaryResponse {
 export interface TaskEntry {
   name: string;
   schedule: string;
+  description: string;
+  executor: string;
+  custom: boolean;
   enabled: boolean;
   last_run_at: number;
   last_status: string;
@@ -1396,10 +1399,47 @@ export interface TaskEntry {
 
 export interface TaskList {
   items: Array<TaskEntry>;
+  executors: Array<TaskExecutor>;
 }
 
 export interface TaskUpdateInput {
   enabled: boolean;
+}
+
+export interface TaskExecutor {
+  key: string;
+  description: string;
+}
+
+export interface TaskCreateInput {
+  name: string;
+  description: string;
+  schedule: string;
+  executor: string;
+}
+
+export interface TaskEditInput {
+  description: string;
+  schedule: string;
+  executor: string;
+}
+
+export interface TaskRunEntry {
+  started_at: number;
+  duration_ms: number;
+  status: string;
+  error: string;
+}
+
+export interface TaskRunList {
+  items: Array<TaskRunEntry>;
+}
+
+export interface TaskRunListResponse {
+  code: string;
+  message: string;
+  data: TaskRunList;
+  request_id: string;
 }
 
 export interface TaskListResponse {

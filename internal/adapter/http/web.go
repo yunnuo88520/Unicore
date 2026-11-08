@@ -26,6 +26,7 @@ import (
 	"github.com/yunnuo/unicore/internal/mailer"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/runtime"
+	"github.com/yunnuo/unicore/internal/scheduler"
 	"github.com/yunnuo/unicore/internal/settings"
 	"github.com/yunnuo/unicore/internal/usecase"
 	apispec "github.com/yunnuo/unicore/packages/contracts"
@@ -132,6 +133,16 @@ func webError(w http.ResponseWriter, err error) {
 		code = "HUMAN_CHECK_FAILED"
 	case errors.Is(err, platform.ErrHumanCheckConfig):
 		code = "HUMAN_CHECK_NOT_CONFIGURED"
+	case errors.Is(err, scheduler.ErrScheduleInvalid):
+		code = "TASK_SCHEDULE_INVALID"
+	case errors.Is(err, scheduler.ErrExecutorUnknown):
+		code = "TASK_EXECUTOR_UNKNOWN"
+	case errors.Is(err, scheduler.ErrBuiltinImmutable):
+		code = "TASK_BUILTIN_IMMUTABLE"
+	case errors.Is(err, scheduler.ErrTaskNotFound):
+		code = "TASK_NOT_FOUND"
+	case errors.Is(err, scheduler.ErrTaskExists):
+		code = "TASK_NAME_EXISTS"
 	}
 	definition := contracts.ErrorCatalog[code]
 	failure(w, definition.Status, code, definition.Message)

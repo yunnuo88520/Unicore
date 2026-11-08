@@ -62,7 +62,7 @@ func mountNotes(api chi.Router, config Config) {
 				// Row-level data scopes widen the user-realm list only; the
 				// administrator list and local profiles keep their behaviour.
 				{
-					filter, err := identity.Store.DataScope(r.Context(), session.User)
+					filter, err := identity.Store.DataScope(r.Context(), session.User, "notes:access")
 					if err != nil {
 						webError(w, err)
 						return

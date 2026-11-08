@@ -1,7 +1,8 @@
+import { grantUI } from './test-authorization';
 // Author: yunnuo <ymz@ebox.vip>
 // Description: The section tree drives normal, rail and mobile presentation identically: one order, real page targets for directories, permission-filtered entries and a super-admin recovery path to menu management.
 import { expect, it } from 'vitest';
-import { buildMenuTree, buildNavigation, defaultNavigation, flattenMenuTree, isLinkEntry, registeredPath, validNavigationUrl } from './navigation';
+import { buildMenuTree, buildNavigation as renderNavigation, defaultNavigation, flattenMenuTree, isLinkEntry, registeredPath, validNavigationUrl } from './navigation';
 import type { Bootstrap, NavigationNode } from '@unicore/sdk';
 
 const superAdmin = {
@@ -66,13 +67,13 @@ it('shows the user tree without administration pages and renames appearance', ()
 
 it('hides entries the operator marked invisible and drops empty directories', () => {
   const config = defaultNavigation('administrator');
-  const nodes = config.nodes.map(node => node.id === 'users' ? { ...node, visible: false } : node.id === 'administrators' ? { ...node, visible: false } : node);
+  const nodes = config.nodes.map(node => bare(node.id) === 'users' ? { ...node, visible: false } : bare(node.id) === 'administrators' ? { ...node, visible: false } : node);
   const data = { ...superAdmin, navigation: { version: 1, sections: config.sections, nodes } } as unknown as Bootstrap;
   const navigation = buildNavigation(data);
   const administration = navigation.sections.find(section => section.id === 'admin:business')?.entries.find(entry => entry.id === 'administration');
   // Users and administrators are hidden; the remaining children keep the directory alive.
   expect(administration?.children.map(entry => entry.id)).toEqual(['roles', 'departments', 'posts', 'api-operations', 'menus', 'dictionaries', 'tasks']);
-  const empty = { ...superAdmin, navigation: { version: 1, sections: config.sections, nodes: config.nodes.map(node => node.id === 'administration' || node.parent_id === 'administration' ? { ...node, visible: false } : node) } } as unknown as Bootstrap;
+  const empty = { ...superAdmin, navigation: { version: 1, sections: config.sections, nodes: config.nodes.map(node => bare(node.id) === 'administration' || bare(node.parent_id ?? '') === 'administration' ? { ...node, visible: false } : node) } } as unknown as Bootstrap;
   // An administrator directory without visible children disappears entirely.
   const collapsed = buildNavigation(empty);
   expect(collapsed.sections.find(section => section.id === 'admin:business')?.entries.some(entry => entry.id === 'administration')).toBe(false);
@@ -80,8 +81,8 @@ it('hides entries the operator marked invisible and drops empty directories', ()
 
 it('filters pages by permission and keeps the whole subtree reachable only through granted parents', () => {
   const config = defaultNavigation('administrator');
-  const nodes: NavigationNode[] = config.nodes.map(node => node.id === 'menus'
-    ? { ...newChild(node), parent_id: 'users' }
+  const nodes: NavigationNode[] = config.nodes.map(node => bare(node.id) === 'menus'
+    ? { ...newChild(node), parent_id: 'administrator:users' }
     : node);
   const restricted = { ...superAdmin, current_user: { id: 'ops', roles: ['ops'], permissions: ['users:read', 'menus:write'] } } as unknown as Bootstrap;
   const data = { ...restricted, navigation: { version: 1, sections: config.sections, nodes } } as unknown as Bootstrap;
@@ -135,8 +136,8 @@ it('keeps action nodes and disabled nodes out of the sidebar', () => {
 
 it('always leaves the super administrator a reachable menu management entry', () => {
   const config = defaultNavigation('administrator');
-  const nodes = config.nodes.map(node => node.id === 'menus' ? { ...node, visible: false, disabled: true } : node)
-    .filter(node => node.section_id !== 'admin:system' || node.id === 'menus' || node.parent_id !== 'administration');
+  const nodes = config.nodes.map(node => bare(node.id) === 'menus' ? { ...node, visible: false, disabled: true } : node)
+    .filter(node => node.section_id !== 'admin:system' || bare(node.id) === 'menus' || node.parent_id !== 'administration');
   const stripped = config.sections.filter(section => section.id !== 'admin:system');
   const navigation = buildNavigation({ ...superAdmin, navigation: { version: 4, sections: stripped, nodes } } as unknown as Bootstrap);
   // Even with the system section deleted, the recovery entry points at the editor.
@@ -161,12 +162,12 @@ it('falls back to static defaults for standalone profiles and unknown parents', 
 
 it('cuts cyclic parents instead of losing rows', () => {
   const config = defaultNavigation('user');
-  const nodes: NavigationNode[] = config.nodes.map(node => node.id === 'lab' ? { ...node, parent_id: 'notes' } : node)
-    .concat([{ ...baseNode('notes', config.sections[0].id, 'page'), route_id: 'notes', parent_id: 'lab' }]);
+  const nodes: NavigationNode[] = config.nodes.map(node => bare(node.id) === 'lab' ? { ...node, parent_id: 'notes' } : node)
+    .concat([{ ...baseNode('notes', config.sections[0].id, 'page'), route_id: 'notes', parent_id: 'user:lab' }]);
   const tree = buildMenuTree({ sections: config.sections, nodes });
   const flat = flattenMenuTree(tree.flatMap(section => section.children));
   // Both rows survive; the cycle is cut at one point.
-  expect(flat.map(({ node }) => node.id).sort()).toEqual(expect.arrayContaining(['lab', 'notes']));
+  expect(flat.map(({ node }) => bare(node.id)).sort()).toEqual(expect.arrayContaining(['lab', 'notes']));
 });
 
 it('validates link targets against the registered route table only', () => {
@@ -180,3 +181,12 @@ it('validates link targets against the registered route table only', () => {
   expect(validNavigationUrl('javascript:alert(1)')).toBe(false);
   expect(validNavigationUrl('/notes extra')).toBe(false);
 });
+
+// Keep presentation assertions about route names, while production IDs include
+// their workspace. Authorization fixtures explicitly grant these menus.
+function bare(id: string): string { return id.replace(/^(user|administrator):/, ''); }
+function buildNavigation(metadata: Bootstrap): ReturnType<typeof renderNavigation> {
+ const result=renderNavigation(grantUI(metadata));
+ const strip=(entries: typeof result.sections[number]['entries']): typeof entries=>entries.map(entry=>({...entry,id:bare(entry.id),children:strip(entry.children)}));
+ return {...result,sections:result.sections.map(section=>({...section,entries:strip(section.entries)}))};
+}

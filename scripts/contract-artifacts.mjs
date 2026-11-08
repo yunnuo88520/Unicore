@@ -14,6 +14,7 @@ export function contractArtifacts(spec){
   const id=operation.operationId;const policy=operation['x-unicore'];
   if(!id||names.has(id))throw new Error(`Missing or duplicate operationId: ${method} ${path}`);names.add(id);
   if(!policy?.profiles?.length||!policy.access||!Array.isArray(policy.permissions)||typeof policy.csrf!=='boolean')throw new Error(`Missing access metadata: ${id}`);
+  if(policy.uiPage!==undefined && (typeof policy.uiPage!=='string'||!/^[-a-z]+$/.test(policy.uiPage)||!policy.permissions.length||policy.superAdmin||!['user','administrator'].includes(policy.identityRealm)))throw new Error(`Invalid UI action page: ${id}`);
   if(path.startsWith('/api/v1/admin/') && policy.identityRealm!=='administrator')throw new Error(`Admin operation must fix identityRealm: ${id}`);
   if(path.startsWith('/api/v1/admin/') && (operation.security??[]).some(item=>Object.hasOwn(item,'SessionCookie')))throw new Error(`Admin operation must use AdministratorSession: ${id}`);
   if(path.includes('/admin/')&&!policy.permissions.length&&!(policy.identityRealm==='administrator'&&/^\/api\/v1\/admin\/(bootstrap|auth(?:\/.*)?|account(?:\/.*)?)$/.test(path)))throw new Error(`Admin operation needs permissions: ${id}`);

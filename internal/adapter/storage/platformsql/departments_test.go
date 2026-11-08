@@ -172,7 +172,7 @@ func exerciseDataScopes(t *testing.T, ctx context.Context, store *sqlstore.Store
 		return mustUser(t, ctx, repository, user.ID)
 	}
 	resolve := func(user contracts.User) platform.ScopeFilter {
-		filter, err := repository.DataScope(ctx, user)
+		filter, err := repository.DataScope(ctx, user, "notes:access")
 		if err != nil {
 			t.Fatal("resolve", user.Username, err)
 		}
@@ -310,9 +310,9 @@ func exerciseDataScopes(t *testing.T, ctx context.Context, store *sqlstore.Store
 		}
 	}
 
-	// Administrator repositories never resolve department scopes.
-	adminFilter, err := (&Repository{Store: store, Administrators: true}).DataScope(ctx, admin)
-	if err != nil || adminFilter.All || len(adminFilter.UserIDs) != 1 || adminFilter.UserIDs[0] != admin.ID {
+	// Super administrators are unrestricted regardless of workspace adapter.
+	adminFilter, err := (&Repository{Store: store, Administrators: true}).DataScope(ctx, admin, "notes:access")
+	if err != nil || !adminFilter.All {
 		t.Fatal("administrator scope", adminFilter, err)
 	}
 

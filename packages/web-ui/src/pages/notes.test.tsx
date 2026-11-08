@@ -1,3 +1,4 @@
+import { grantUI } from '../test-authorization';
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Row actions follow server-projected note capabilities; create stays on the notes:create point.
  */
@@ -27,7 +28,7 @@ function mount(meta: Bootstrap, items = listNotes) {
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <MessageProvider>
-        <NotesPage {...({ client, metadata: meta, registry: {}, theme: 'light', setTheme: () => {}, refresh: () => {} } as unknown as PageProps)} />
+        <NotesPage {...({ client, metadata: grantUI(meta), registry: {}, theme: 'light', setTheme: () => {}, refresh: () => {} } as unknown as PageProps)} />
       </MessageProvider>
     </QueryClientProvider>,
   );
@@ -42,10 +43,10 @@ it('shows create plus capability-granted row actions when every point is granted
 });
 
 it('hides the create button without notes:create while the page stays reachable', async () => {
-  mount(metadata('web-platform', ['notes:access']));
+  mount(metadata('web-platform', ['notes:access', 'notes:update', 'notes:delete']));
   expect(await screen.findByText('记录想法')).toBeVisible();
   expect(screen.queryByRole('button', { name: '新建笔记' })).toBeNull();
-  // Row capabilities stay true here: the create point does not touch row actions.
+  // Independent update/delete point, action and API grants remain available.
   expect(screen.getByRole('button', { name: '编辑 记录想法' })).toBeVisible();
   expect(screen.getByRole('button', { name: '删除 记录想法' })).toBeVisible();
   expect(screen.getByText('把想法写下来，按自己的节奏推进。')).toBeVisible();

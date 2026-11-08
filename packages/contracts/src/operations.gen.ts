@@ -219,7 +219,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "users"
   },
   "createUser": {
     "method": "POST",
@@ -239,7 +240,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "users"
   },
   "updateUser": {
     "method": "PATCH",
@@ -259,7 +261,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "users"
   },
   "adminSettings": {
     "method": "GET",
@@ -279,7 +282,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "site"
   },
   "adminPatchSettings": {
     "method": "PATCH",
@@ -607,7 +611,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "mail-templates"
   },
   "saveMailTemplate": {
     "method": "PUT",
@@ -647,7 +652,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "roles"
   },
   "createRole": {
     "method": "POST",
@@ -689,7 +695,8 @@ export const operations = {
     "permissionMode": "any",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "users"
   },
   "oidcInfo": {
     "method": "GET",
@@ -938,7 +945,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "logs"
   },
   "mailJobs": {
     "method": "GET",
@@ -958,7 +966,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "mail"
   },
   "changePassword": {
     "method": "POST",
@@ -996,7 +1005,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "storage"
   },
   "createStorageLocation": {
     "method": "POST",
@@ -1156,7 +1166,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "user"
+    "identityRealm": "user",
+    "uiPage": "files"
   },
   "createFileUpload": {
     "method": "POST",
@@ -1176,7 +1187,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "user"
+    "identityRealm": "user",
+    "uiPage": "files"
   },
   "uploadLocalFile": {
     "method": "PUT",
@@ -1197,7 +1209,8 @@ export const operations = {
     "superAdmin": false,
     "csrf": true,
     "streamingUpload": true,
-    "identityRealm": "user"
+    "identityRealm": "user",
+    "uiPage": "files"
   },
   "completeFileUpload": {
     "method": "POST",
@@ -1217,7 +1230,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "user"
+    "identityRealm": "user",
+    "uiPage": "files"
   },
   "fileAccess": {
     "method": "POST",
@@ -1238,7 +1252,8 @@ export const operations = {
     "permissionMode": "any",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "user"
+    "identityRealm": "user",
+    "uiPage": "files"
   },
   "deleteFile": {
     "method": "DELETE",
@@ -1258,7 +1273,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "user"
+    "identityRealm": "user",
+    "uiPage": "files"
   },
   "migrateFile": {
     "method": "POST",
@@ -1353,7 +1369,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "lab"
   },
   "adminCaptcha": {
     "method": "GET",
@@ -1679,7 +1696,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "files"
   },
   "adminCreateFileUpload": {
     "method": "POST",
@@ -1761,7 +1779,8 @@ export const operations = {
     "permissionMode": "any",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "files"
   },
   "adminDeleteFile": {
     "method": "DELETE",
@@ -1802,7 +1821,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "user"
+    "identityRealm": "user",
+    "uiPage": "notes"
   },
   "createNote": {
     "method": "POST",
@@ -1823,7 +1843,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "user"
+    "identityRealm": "user",
+    "uiPage": "notes"
   },
   "updateNote": {
     "method": "PUT",
@@ -1844,7 +1865,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "user"
+    "identityRealm": "user",
+    "uiPage": "notes"
   },
   "deleteNote": {
     "method": "DELETE",
@@ -1865,7 +1887,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "user"
+    "identityRealm": "user",
+    "uiPage": "notes"
   },
   "adminListNotes": {
     "method": "GET",
@@ -1886,7 +1909,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "notes"
   },
   "adminCreateNote": {
     "method": "POST",
@@ -1907,7 +1931,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "notes"
   },
   "adminUpdateNote": {
     "method": "PUT",
@@ -1928,7 +1953,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "notes"
   },
   "adminDeleteNote": {
     "method": "DELETE",
@@ -1949,7 +1975,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "notes"
   },
   "updateOverview": {
     "method": "GET",
@@ -1986,7 +2013,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "edition"
   },
   "checkUpdate": {
     "method": "POST",
@@ -2023,7 +2051,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "edition"
   },
   "applyUpdate": {
     "method": "POST",
@@ -2080,7 +2109,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "logs"
   },
   "previewMailTemplate": {
     "method": "POST",
@@ -2160,7 +2190,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "announcements"
   },
   "createAnnouncement": {
     "method": "POST",
@@ -2180,7 +2211,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "announcements"
   },
   "updateAnnouncement": {
     "method": "PUT",
@@ -2200,7 +2232,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "announcements"
   },
   "deleteAnnouncements": {
     "method": "POST",
@@ -2220,7 +2253,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "announcements"
   },
   "announcementSettings": {
     "method": "GET",
@@ -2240,7 +2274,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "announcements"
   },
   "saveAnnouncementSettings": {
     "method": "PUT",
@@ -2260,7 +2295,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "announcements"
   },
   "previewAnnouncement": {
     "method": "POST",
@@ -2280,7 +2316,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "announcements"
   },
   "announcements": {
     "method": "GET",
@@ -2354,7 +2391,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "files"
   },
   "createMultipartUpload": {
     "method": "POST",
@@ -2374,7 +2412,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "user"
+    "identityRealm": "user",
+    "uiPage": "files"
   },
   "adminCreateMultipartUpload": {
     "method": "POST",
@@ -2414,7 +2453,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "user"
+    "identityRealm": "user",
+    "uiPage": "files"
   },
   "adminMultipartUpload": {
     "method": "GET",
@@ -2434,7 +2474,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "files"
   },
   "signUploadPart": {
     "method": "POST",
@@ -2454,7 +2495,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "user"
+    "identityRealm": "user",
+    "uiPage": "files"
   },
   "adminSignUploadPart": {
     "method": "POST",
@@ -2495,7 +2537,8 @@ export const operations = {
     "superAdmin": false,
     "csrf": true,
     "identityRealm": "user",
-    "streamingUpload": true
+    "streamingUpload": true,
+    "uiPage": "files"
   },
   "adminUploadLocalPart": {
     "method": "PUT",
@@ -2536,7 +2579,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "user"
+    "identityRealm": "user",
+    "uiPage": "files"
   },
   "adminCompleteMultipartUpload": {
     "method": "POST",
@@ -3188,7 +3232,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "announcements"
   },
   "notificationSettings": {
     "method": "GET",
@@ -3208,7 +3253,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "site"
   },
   "saveNotificationSettings": {
     "method": "PUT",
@@ -3382,7 +3428,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "menus"
   },
   "saveMenus": {
     "method": "PUT",
@@ -3402,7 +3449,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "menus"
   },
   "listDictionaries": {
     "method": "GET",
@@ -3422,7 +3470,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "dictionaries"
   },
   "createDictionary": {
     "method": "POST",
@@ -3442,7 +3491,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "dictionaries"
   },
   "getDictionary": {
     "method": "GET",
@@ -3462,7 +3512,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "dictionaries"
   },
   "updateDictionary": {
     "method": "PUT",
@@ -3482,7 +3533,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "dictionaries"
   },
   "deleteDictionary": {
     "method": "DELETE",
@@ -3502,7 +3554,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "dictionaries"
   },
   "listDepartments": {
     "method": "GET",
@@ -3522,7 +3575,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "departments"
   },
   "createDepartment": {
     "method": "POST",
@@ -3542,7 +3596,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "departments"
   },
   "updateDepartment": {
     "method": "PUT",
@@ -3562,7 +3617,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "departments"
   },
   "deleteDepartment": {
     "method": "DELETE",
@@ -3582,7 +3638,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "departments"
   },
   "replaceDictionaryItems": {
     "method": "PUT",
@@ -3602,7 +3659,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "dictionaries"
   },
   "dictionary": {
     "method": "GET",
@@ -3640,7 +3698,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "tasks"
   },
   "updateTask": {
     "method": "PUT",
@@ -3660,7 +3719,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "tasks"
   },
   "triggerTask": {
     "method": "POST",
@@ -3680,7 +3740,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "tasks"
   },
   "inbox": {
     "method": "GET",
@@ -3772,7 +3833,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "users"
   },
   "userImportTemplate": {
     "method": "GET",
@@ -3792,7 +3854,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "users"
   },
   "importUsers": {
     "method": "POST",
@@ -3812,7 +3875,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "users"
   },
   "exportFiles": {
     "method": "GET",
@@ -3832,7 +3896,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "files"
   },
   "adminDashboard": {
     "method": "GET",
@@ -3852,7 +3917,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "overview"
   },
   "adminRoleOptions": {
     "method": "GET",
@@ -3892,7 +3958,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "api-operations"
   },
   "listPosts": {
     "method": "GET",
@@ -3912,7 +3979,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "posts"
   },
   "createPost": {
     "method": "POST",
@@ -3932,7 +4000,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "posts"
   },
   "updatePost": {
     "method": "PUT",
@@ -3952,7 +4021,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "posts"
   },
   "deletePost": {
     "method": "DELETE",
@@ -3972,7 +4042,8 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "posts"
   }
 } as const;
 export type OperationId = keyof typeof operations;

@@ -93,13 +93,13 @@ function UserListPanel({ web, metadata, administrators }: { web: WebClient; meta
   useLocale();
   const message = useMessage();
   const cache = useQueryClient();
-  const { has } = usePermissions(metadata);
+  const { has, can } = usePermissions(metadata);
   const kind = administrators ? t('管理员') : t('用户');
   const role = administrators ? 'super_admin' : 'user';
   // Every mutating button gates on its own point; readers without them keep a
   // fully usable list. Post assignment additionally needs the post catalogue.
-  const canCreate = administrators ? has('administrators:create') : has('users:create');
-  const canUpdate = administrators ? has('administrators:update') : has('users:update');
+  const canCreate = can(administrators ? 'createAdministrator' : 'createUser');
+  const canUpdate = can(administrators ? 'updateAdministrator' : 'updateUser');
   const canPosts = !administrators && has('posts:read');
   const [search, setSearch] = useState('');
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 20 });
@@ -171,9 +171,9 @@ function UserListPanel({ web, metadata, administrators }: { web: WebClient; meta
         </div>
         <div className="flex flex-wrap gap-2">
           {!administrators && <>
-            <SpreadsheetDownload label={t('导出用户')} filename="users.xlsx" load={() => web.exportUsers(search)} />
-            <SpreadsheetDownload label={t('下载导入模板')} filename="users-import-template.xlsx" load={() => web.usersImportTemplate()} />
-            {canCreate && <Button variant="secondary" onClick={() => setImporting(true)}>{t('导入用户')}</Button>}
+            {can('exportUsers') && <SpreadsheetDownload label={t('导出用户')} filename="users.xlsx" load={() => web.exportUsers(search)} />}
+            {can('userImportTemplate') && <SpreadsheetDownload label={t('下载导入模板')} filename="users-import-template.xlsx" load={() => web.usersImportTemplate()} />}
+            {can('importUsers') && <Button variant="secondary" onClick={() => setImporting(true)}>{t('导入用户')}</Button>}
           </>}
         {canCreate && <Button onClick={() => setCreating(true)}><UserPlus size={15} />{t('新增{{kind}}', { kind })}</Button>}</div>
       </div>

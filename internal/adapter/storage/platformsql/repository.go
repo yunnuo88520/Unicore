@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"sort"
 	"strings"
 	"time"
 
@@ -260,7 +261,9 @@ func (r *Repository) CreateUser(ctx context.Context, input contracts.UserCreate,
 			return contracts.User{}, err
 		}
 	}
-	_ = current
+	if err = r.checkDestination(ctx, tx, current, permission, input.DepartmentID); err != nil {
+		return contracts.User{}, err
+	}
 	user, err := r.insert(ctx, tx, input, hash, actor)
 	if err != nil {
 		return user, err
@@ -313,6 +316,21 @@ func (r *Repository) UpdateUser(ctx context.Context, id string, input contracts.
 	}
 	if platform.IsSuper(before) && !platform.IsSuper(current) {
 		return contracts.User{}, platform.ErrForbidden
+	}
+	scope, err := r.dataScope(ctx, tx, current, permission)
+	if err != nil {
+		return contracts.User{}, err
+	}
+	if !scope.Contains(id) {
+		return contracts.User{}, platform.ErrForbidden
+	}
+	if input.DepartmentID != nil && *input.DepartmentID != text(before.DepartmentID) {
+		if actor == id && !platform.IsSuper(current) {
+			return contracts.User{}, platform.ErrForbidden
+		}
+		if err = r.checkDestination(ctx, tx, current, permission, input.DepartmentID); err != nil {
+			return contracts.User{}, err
+		}
 	}
 	roles, err := r.assignment(ctx, tx, role, input.RoleIds, before.Roles, current)
 	if err != nil {
@@ -605,4 +623,78 @@ func (r *Repository) assignment(ctx context.Context, tx *sql.Tx, single string, 
 		}
 	}
 	return roles, nil
+}
+
+// ListUsersScoped applies the actor's users:read scope before pagination/export.
+func (r *Repository) ListUsersScoped(ctx context.Context, actor contracts.User, search string, page, size int, postID ...string) (contracts.UserList, error) {
+	scope, err := r.DataScope(ctx, actor, "users:read")
+	if err != nil {
+		return contracts.UserList{}, err
+	}
+	if scope.All {
+		return r.ListUsers(ctx, search, page, size, postID...)
+	}
+	result := contracts.UserList{Items: []contracts.User{}, Page: page, PageSize: size}
+	if page < 1 || size < 1 || size > 50 {
+		return result, platform.ErrInput
+	}
+	type entry struct {
+		id      string
+		created int
+	}
+	entries := []entry{}
+	filter := "%" + strings.ToLower(search) + "%"
+	for start := 0; start < len(scope.UserIDs); start += platform.MaxScopeUserIDs {
+		end := start + platform.MaxScopeUserIDs
+		if end > len(scope.UserIDs) {
+			end = len(scope.UserIDs)
+		}
+		batch := scope.UserIDs[start:end]
+		args := []any{filter, filter}
+		for _, id := range batch {
+			args = append(args, id)
+		}
+		query := "SELECT id,created_at FROM unicore_users WHERE (username LIKE ? OR email LIKE ?) AND id IN (?" + strings.Repeat(",?", len(batch)-1) + ")"
+		if len(postID) > 0 && postID[0] != "" {
+			query += " AND EXISTS (SELECT 1 FROM unicore_user_posts p WHERE p.user_id=unicore_users.id AND p.post_id=?)"
+			args = append(args, postID[0])
+		}
+		rows, e := r.rows(ctx, r.Store.DB, query, args...)
+		if e != nil {
+			return result, e
+		}
+		for rows.Next() {
+			var item entry
+			if e = rows.Scan(&item.id, &item.created); e != nil {
+				rows.Close()
+				return result, e
+			}
+			entries = append(entries, item)
+		}
+		e = rows.Err()
+		rows.Close()
+		if e != nil {
+			return result, e
+		}
+	}
+	sort.Slice(entries, func(i, j int) bool {
+		if entries[i].created != entries[j].created {
+			return entries[i].created > entries[j].created
+		}
+		return entries[i].id < entries[j].id
+	})
+	result.Total = len(entries)
+	start := (page - 1) * size
+	end := start + size
+	if end > len(entries) {
+		end = len(entries)
+	}
+	for i := start; i < end; i++ {
+		user, e := r.user(ctx, r.Store.DB, entries[i].id)
+		if e != nil {
+			return result, e
+		}
+		result.Items = append(result.Items, user)
+	}
+	return result, nil
 }

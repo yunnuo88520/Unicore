@@ -20,10 +20,9 @@ import (
 
 func fileActor(r *http.Request, s contracts.Session) files.Actor {
 	realm := "user"
-	// Every administrator-domain session is a file-service admin: the instance
-	// file list stays gated by the contract storage:read permission, while
-	// ownership checks below keep user-realm actors scoped to their own files.
-	return files.Actor{ID: s.User.ID, Realm: realm, Admin: administratorRequest(r) && platform.Has(s.User, "storage:read")}
+	// Only a super administrator receives the service-wide bypass. Restricted
+	// operators use resource-specific scopes even in the management workspace.
+	return files.Actor{ID: s.User.ID, Realm: realm, Admin: administratorRequest(r) && platform.IsSuper(s.User)}
 }
 
 // fileActionCapabilities merges the storage-side ownership facts with the
@@ -217,14 +216,17 @@ func mountStorage(api chi.Router, config Config) {
 			if r.URL.Query().Get("page") != "" {
 				page, _ = strconv.Atoi(r.URL.Query().Get("page"))
 			}
-			// User-realm lists honour the session's role data scope; the
-			// administrator instance list and local profiles stay unchanged.
+			// Each workspace resolves the permission used by its file list.
+			scopePermission := "files:access"
+			if administratorRequest(r) {
+				scopePermission = "storage:read"
+			}
 			scope := files.ScopeFilter{}
 			if !a.Admin {
 				if policySession, ok := r.Context().Value(policySessionKey{}).(contracts.Session); ok {
 					identity := config.Install.Identity(false)
 					if identity != nil {
-						filter, err := identity.Store.DataScope(r.Context(), policySession.User)
+						filter, err := identity.Store.DataScope(r.Context(), policySession.User, scopePermission)
 						if err != nil {
 							webError(w, err)
 							return
@@ -294,10 +296,14 @@ func mountStorage(api chi.Router, config Config) {
 			// Every issuance re-resolves the session's current data scope: a
 			// grant never outlives the scope it was approved under.
 			scopes := []files.ScopeFilter{}
+			scopePermission := "files:access"
+			if noteID != "" {
+				scopePermission = "notes:access"
+			}
 			filter := platform.ScopeFilter{}
 			if !a.Admin && session.User.ID != "" {
 				if identity := config.Install.Identity(false); identity != nil {
-					resolved, err := identity.Store.DataScope(r.Context(), session.User)
+					resolved, err := identity.Store.DataScope(r.Context(), session.User, scopePermission)
 					if err != nil {
 						webError(w, err)
 						return

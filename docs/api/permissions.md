@@ -11,7 +11,7 @@
 | dictionaries:read/write | GET/POST /admin/dictionaries；GET/PUT/DELETE /admin/dictionaries/{id}；PUT /admin/dictionaries/{id}/items（可授权给管理员域角色）；用户域 GET /dictionaries/{code} 读取 active 条目 |
 | departments:read/write | GET/POST /admin/departments；PUT/DELETE /admin/departments/{id}（部门组织树，assignable 双域可授；删除被子部门或用户挂靠返回 409 DEPARTMENT_IN_USE） |
 | files:access / notes:access | 用户域页面与读取门槛（assignable，可授予自建角色；内置 user 角色默认持有）。files:access 覆盖 GET /files、/files/policy、/files/{id}/access；notes:access 覆盖 GET /notes；撤销后仅保留登录与数据归属校验 |
-| notes:create/update/delete<br>files:upload/delete | 用户域写操作的动作权限点（assignable，按钮级授权）：POST /notes、PUT/DELETE /notes/{id}；POST /files/uploads 与 multipart 全流程、DELETE /files/{id}。前端按钮按点渲染，API 与按钮同一权限点（见 [ADR-0035](../adr/ADR-0035-action-permissions-departments.md)） |
+| notes:create/update/delete<br>files:upload/delete | 用户域写操作的动作权限点（assignable，按钮级授权）：POST /notes、PUT/DELETE /notes/{id}；POST /files/uploads 与 multipart 全流程、DELETE /files/{id}。前端按钮联合校验权限点、动作授权及 API 授权，API 按契约权限点和 operation grant 校验（见 [ADR-0035](../adr/ADR-0035-action-permissions-departments.md)） |
 
 | 权限 | API（均在 /api/v1 下） |
 | --- | --- |
@@ -59,3 +59,11 @@ XLSX：`GET /admin/users/export.xlsx` 要求 users:read；`GET /admin/users/impo
 头像通过本人 `PATCH /account/profile` 或 `/admin/account/profile` 保存 avatar_file_id，服务端验证对应身份域和文件归属，并投影短期 avatar_url；不接受外部 URL 作为持久引用。文件访问继续受原有元数据、状态、时效及签名规则控制。
 
 无本地密码的已绑定账号可 POST `/account/oidc/totp`（管理员 `/admin/account/oidc/totp`）发起企业重新认证，需本人会话、CSRF/Origin，不授予管理权限。固定 OIDC callback 验证原浏览器与会话及原绑定身份，成功只准备 TOTP 设置；GET `/account/totp/setup`（管理员同前缀）以 no-store 返回当前会话尚未启用、未过期的待设置密钥，不返回已启用密钥。取消、过期、错误耗尽或成功启用后不能读取。此流程不绕过已有 TOTP，也不替代本地密码账号的密码确认；其他本人 TOTP 接口与业务门禁保持一致。
+
+## 独立授权与数据范围
+
+完整规则见 [ADR-0038](../adr/ADR-0038-rbac-enforcement.md)。菜单 ID 全局唯一，默认带工作台前缀；OpenAPI x-unicore.uiPage 注册默认动作。菜单只决定页面入口（含 URL 直达），按钮同时要求权限点、action_ids 与 operation_ids；禁止直接调用 API 需要撤销对应 operation grant。
+
+PUT 角色省略 menu_ids/action_ids/operation_ids/data_scope/department_ids 表示保留，权限收紧时仅裁剪失效引用。增加权限点不会自动重授已撤销 API 或动作。创建时省略授权数组派生初始授权，显式空数组保持空。
+
+数据范围按当前权限点解析：users:read 约束用户列表与导出，users:create/update 在事务内约束目标及目的部门；files:access 约束业务文件，storage:read 约束管理文件列表/导出，notes:access 约束示例及其附件。同权限多角色范围取并集；其他权限角色的 all 不参与。部门/岗位目录、公告、字典、任务及实例设置属于全局对象，不套用用户行范围。

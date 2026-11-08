@@ -27,3 +27,16 @@ type ScopeFilter struct {
 
 // Self reports whether the filter degrades to the personal-only behaviour.
 func (f ScopeFilter) Self() bool { return !f.All && len(f.UserIDs) == 0 }
+
+// Contains checks a target against the resolved resource scope.
+func (f ScopeFilter) Contains(id string) bool {
+	if f.All {
+		return true
+	}
+	for _, allowed := range f.UserIDs {
+		if allowed == id {
+			return true
+		}
+	}
+	return false
+}

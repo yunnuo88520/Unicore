@@ -156,7 +156,11 @@ func (r *Repository) initializeNavigation(ctx context.Context) error {
 		if sectionOf[node.SectionID] == "" {
 			continue
 		}
-		index[node.ID] = i
+		if node.RouteID != nil {
+			index[*node.RouteID] = i
+		} else {
+			index[node.ID] = i
+		}
 	}
 	for _, e := range legacy.Items {
 		id := e.MenuKey
@@ -300,14 +304,30 @@ func (r *Repository) materializeRoleAuthorizations(ctx context.Context, tx *sql.
 		if err != nil {
 			return err
 		}
-		menuIds := []string{}
+		menuIds, actionIds, operationIds := deriveGrants(role.realm, permissions, n)
+		menuIds = []string{}
+		actionIds = []string{}
 		for _, node := range n.Nodes {
-			if node.Type == "action" || surfaceOfNode[node.SectionID] != role.realm {
+			if surfaceOfNode[node.SectionID] != role.realm {
+				continue
+			}
+			if node.Type == "action" {
+				if node.Permission != nil && platform.PermissionsAllow(permissions, []string{*node.Permission}, "all") {
+					covered := true
+					for _, id := range node.OperationIds {
+						if !contains(operationIds, id) {
+							covered = false
+						}
+					}
+					if covered {
+						actionIds = append(actionIds, node.ID)
+					}
+				}
 				continue
 			}
 			menuIds = append(menuIds, node.ID)
 		}
-		if err = r.saveRoleAuthorization(ctx, tx, role.id, role.realm, permissions, menuIds, []string{}, platform.MaterializedOperations(role.realm, permissions), n); err != nil {
+		if err = r.saveRoleAuthorization(ctx, tx, role.id, role.realm, permissions, menuIds, actionIds, operationIds, n); err != nil {
 			return err
 		}
 	}
@@ -377,11 +397,16 @@ func validateNavigation(n contracts.Navigation) error {
 	// uniqueness and parent resolution are scoped per surface.
 	type nodeKey struct{ surface, id string }
 	nodes := map[nodeKey]contracts.NavigationNode{}
+	globalIDs := map[string]bool{}
 	for _, node := range n.Nodes {
 		surface, ok := sections[node.SectionID]
 		if !ok || node.ID == "" || len(node.ID) > 64 || node.Sort < 0 || len(node.Label) > 240 || len(node.Icon) > 64 || len(node.BadgeText) > 160 || len(node.BadgeColor) > 32 {
 			return platform.ErrInput
 		}
+		if globalIDs[node.ID] {
+			return platform.ErrInput
+		}
+		globalIDs[node.ID] = true
 		key := nodeKey{surface, node.ID}
 		if _, taken := nodes[key]; taken {
 			return platform.ErrInput
@@ -514,7 +539,7 @@ func (r *Repository) SaveNavigation(ctx context.Context, input contracts.MenuSav
 		}
 		// Grant-affecting saves revoke live sessions so stale envelopes cannot
 		// keep exercising removed buttons or menus.
-		for _, table := range []string{"unicore_sessions", "unicore_sessions"} {
+		for _, table := range []string{"unicore_sessions"} {
 			if _, err = r.Store.Exec(ctx, tx, "DELETE FROM "+table); err != nil {
 				return contracts.MenuList{}, err
 			}

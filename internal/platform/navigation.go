@@ -81,8 +81,8 @@ func NavigationPage(id, surface string) (contracts.NavigationPage, bool) {
 }
 
 // DefaultNavigation seeds exactly the frontend defaultNavigation model
-// (packages/web-ui/src/navigation.ts): the same sections, directories, bare
-// node ids, parents, icons and rank-based sorts. Node labels stay empty
+// (packages/web-ui/src/navigation.ts): the same sections, directories, workspace-qualified
+// node ids, parents, icons and rank-based sorts. Page labels stay empty
 // strings on purpose — display names fall back to the frontend route registry,
 // and only operator overrides are ever persisted.
 func DefaultNavigation() contracts.Navigation {
@@ -151,6 +151,21 @@ func DefaultNavigation() contracts.Navigation {
 			result.Nodes = append(result.Nodes, node)
 		}
 	}
+	// Node identity includes the workspace; route ids remain presentation facts.
+	surfaces := map[string]string{}
+	for _, section := range result.Sections {
+		surfaces[section.ID] = section.Surface
+	}
+	for i := range result.Nodes {
+		node := &result.Nodes[i]
+		prefix := surfaces[node.SectionID] + ":"
+		node.ID = prefix + node.ID
+		if node.ParentID != nil {
+			parent := prefix + *node.ParentID
+			node.ParentID = &parent
+		}
+	}
+	result.Nodes = append(result.Nodes, DefaultActions(result)...)
 	return result
 }
 
@@ -175,8 +190,7 @@ func NavigationFor(n contracts.Navigation, user contracts.User, surface string) 
 			result.Sections = append(result.Sections, s)
 		}
 	}
-	// Node ids are bare and shared across surfaces, so projection resolves
-	// parents strictly inside the requested surface.
+	// Resolve parents strictly inside the requested workspace.
 	nodes := map[string]contracts.NavigationNode{}
 	for _, node := range n.Nodes {
 		if sections[node.SectionID] {
@@ -203,22 +217,39 @@ func NavigationFor(n contracts.Navigation, user contracts.User, surface string) 
 		}
 		return user.MenuIds != nil && contains(*user.MenuIds, node.ID)
 	}
+	projected := map[string]bool{}
 	for _, node := range n.Nodes {
 		if !sections[node.SectionID] || !allowed(node) {
 			continue
 		}
 		valid := true
 		current := node
+		ancestors := []contracts.NavigationNode{}
+		seen := map[string]bool{node.ID: true}
 		for current.ParentID != nil && *current.ParentID != "" {
 			parent, ok := nodes[*current.ParentID]
-			if !ok || !allowed(parent) {
+			if !ok || seen[parent.ID] || parent.SectionID != node.SectionID || !parent.Visible || parent.Disabled || (node.Type != "action" && !allowed(parent)) {
 				valid = false
 				break
 			}
+			seen[parent.ID] = true
+			ancestors = append(ancestors, parent)
 			current = parent
 		}
 		if valid {
-			result.Nodes = append(result.Nodes, node)
+			if !projected[node.ID] {
+				result.Nodes = append(result.Nodes, node)
+				projected[node.ID] = true
+			}
+			// Structural ancestors do not implicitly grant their menus.
+			if node.Type == "action" {
+				for _, parent := range ancestors {
+					if !projected[parent.ID] {
+						result.Nodes = append(result.Nodes, parent)
+						projected[parent.ID] = true
+					}
+				}
+			}
 		}
 	}
 	if surface == "administrator" && IsSuper(user) {
@@ -232,7 +263,7 @@ func NavigationFor(n contracts.Navigation, user contracts.User, surface string) 
 			section := "admin:recovery"
 			route := "menus"
 			result.Sections = append(result.Sections, contracts.NavigationSection{ID: section, Surface: surface, Sort: 40, Visible: true, ShowTitle: true})
-			result.Nodes = append(result.Nodes, contracts.NavigationNode{ID: "menus", SectionID: section, Type: "page", RouteID: &route, Visible: true, OpenMode: "same_tab", OperationIds: []string{}})
+			result.Nodes = append(result.Nodes, contracts.NavigationNode{ID: "administrator:menus", SectionID: section, Type: "page", RouteID: &route, Visible: true, OpenMode: "same_tab", OperationIds: []string{}})
 		}
 	}
 	return result

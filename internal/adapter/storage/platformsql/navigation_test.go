@@ -66,7 +66,7 @@ func TestNavigationBootstrapAndSave(t *testing.T) {
 	}
 	ids := map[string]bool{}
 	for _, node := range listed.Nodes {
-		if surfaceOf[node.SectionID] == "" || node.Label != "" {
+		if surfaceOf[node.SectionID] == "" || (node.Type != "action" && node.Label != "") {
 			t.Fatal("seed violates the frontend model", node)
 		}
 		if ids["\x00"+node.ID+"\x00"+surfaceOf[node.SectionID]] {
@@ -93,7 +93,7 @@ func TestNavigationBootstrapAndSave(t *testing.T) {
 	page := func(id string) contracts.NavigationNode {
 		return contracts.NavigationNode{ID: id, SectionID: "user:business", Type: "page", RouteID: &id, Visible: true, OpenMode: "same_tab", OperationIds: []string{}}
 	}
-	action := contracts.NavigationNode{ID: "notes:rename", SectionID: "user:business", Type: "action", ParentID: strPtr("notes"), Label: "重命名", Visible: true, OpenMode: "same_tab", Permission: strPtr("notes:update"), OperationIds: []string{"updateNote"}}
+	action := contracts.NavigationNode{ID: "notes:rename", SectionID: "user:business", Type: "action", ParentID: strPtr("user:notes"), Label: "重命名", Visible: true, OpenMode: "same_tab", Permission: strPtr("notes:update"), OperationIds: []string{"updateNote"}}
 	if _, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: listed.Version, Sections: listed.Sections, Nodes: append(append([]contracts.NavigationNode{}, listed.Nodes...), action)}, admin.ID); err != nil {
 		t.Fatal("valid action refused", err)
 	}
@@ -156,7 +156,7 @@ func TestRoleGrantMaterializationAndBoundaries(t *testing.T) {
 		t.Fatal(err)
 	}
 	user, err := repo.role(ctx, repo.Store.DB, "user")
-	if err != nil || !user.AuthorizationInitialized || len(user.MenuIds) == 0 || len(user.OperationIds) == 0 || len(user.ActionIds) != 0 {
+	if err != nil || !user.AuthorizationInitialized || len(user.MenuIds) == 0 || len(user.OperationIds) == 0 || len(user.ActionIds) == 0 {
 		t.Fatal("builtin materialization", user.AuthorizationInitialized, len(user.MenuIds), len(user.OperationIds), err)
 	}
 	for _, id := range user.OperationIds {
@@ -170,14 +170,14 @@ func TestRoleGrantMaterializationAndBoundaries(t *testing.T) {
 	// submitted menus and operations, empty when omitted. Equivalence
 	// materialization is a one-time upgrade fact, never a creation default.
 	realm := "user"
-	files, err := repo.CreateRole(ctx, contracts.RoleSaveInput{Name: "文件员", Realm: &realm, Permissions: []string{"files:access"}, MenuIds: &[]string{"files"}, OperationIds: &[]string{"listFiles", "fileAccess"}}, admin.ID)
+	files, err := repo.CreateRole(ctx, contracts.RoleSaveInput{Name: "文件员", Realm: &realm, ActionIds: &[]string{}, Permissions: []string{"files:access"}, MenuIds: &[]string{"user:files"}, OperationIds: &[]string{"listFiles", "fileAccess"}}, admin.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !contains(files.OperationIds, "listFiles") || contains(files.OperationIds, "listNotes") {
 		t.Fatal("custom role grants", files.OperationIds)
 	}
-	if len(files.MenuIds) != 1 || files.MenuIds[0] != "files" {
+	if len(files.MenuIds) != 1 || files.MenuIds[0] != "user:files" {
 		t.Fatal("custom role menus", files.MenuIds)
 	}
 
@@ -200,17 +200,17 @@ func TestRoleGrantMaterializationAndBoundaries(t *testing.T) {
 		t.Fatal(listErr)
 	}
 	projected := platform.NavigationFor(contracts.Navigation{Version: listed.Version, Sections: listed.Sections, Nodes: listed.Nodes}, member, "user")
-	if len(projected.Nodes) != 1 || projected.Nodes[0].ID != "files" {
+	if len(projected.Nodes) != 1 || projected.Nodes[0].ID != "user:files" {
 		t.Fatal("projection filter", projected.Nodes)
 	}
 
 	// Role assignment through the menu editor is super+roles:write only.
 	super := admin
-	if _, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: listed.Version, Sections: listed.Sections, Nodes: listed.Nodes, RoleAssignments: &[]contracts.NavigationRoleAssignment{{RoleID: files.ID, MenuIds: []string{"overview"}, ActionIds: []string{}}}}, super.ID); err != nil {
+	if _, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: listed.Version, Sections: listed.Sections, Nodes: listed.Nodes, RoleAssignments: &[]contracts.NavigationRoleAssignment{{RoleID: files.ID, MenuIds: []string{"user:overview"}, ActionIds: []string{}}}}, super.ID); err != nil {
 		t.Fatal("super assignment refused", err)
 	}
 	after, err := repo.role(ctx, repo.Store.DB, files.ID)
-	if err != nil || len(after.MenuIds) != 1 || after.MenuIds[0] != "overview" {
+	if err != nil || len(after.MenuIds) != 1 || after.MenuIds[0] != "user:overview" {
 		t.Fatal("assignment echo", after.MenuIds, err)
 	}
 
@@ -260,7 +260,7 @@ func TestLegacyOverrideSurfaceMerge(t *testing.T) {
 	}
 	userNotes, adminNotes := -1, -1
 	for i, node := range listed.Nodes {
-		if node.ID != "notes" {
+		if node.RouteID == nil || *node.RouteID != "notes" {
 			continue
 		}
 		switch surfaceOf[node.SectionID] {

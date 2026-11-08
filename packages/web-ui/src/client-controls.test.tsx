@@ -1,3 +1,4 @@
+import { grantUI } from './test-authorization';
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Language keyboard controls preserve business drafts and permission boundaries.
 import { render, screen, waitFor } from '@testing-library/react';
@@ -9,7 +10,7 @@ import type { AppClient, Bootstrap } from '@unicore/sdk';
 const metadata: Bootstrap = { profile: 'web-platform', version: '', commit: '', build_time: '', stage: '', deployment_kind: 'development', installed: true, site_name: 'Unicore', admin_path: '', identity_realm: 'user', current_user: { totp_enabled:false, id:'user', status:'active', created_at:0, last_login_at:0, username:'demo', email:'demo@example.test', roles:['user'], permissions:[] }, capabilities: { execute:true, authentication:true, database:false, installation:false, settings:true, license:false, updater:false } };
 beforeEach(() => { localStorage.clear(); window.location.hash = ''; });
 it('switches by keyboard without replacing drafts or requesting administrator resources', async () => {
-  const api = { transport:'http', bootstrap:vi.fn().mockResolvedValue(metadata), execute:vi.fn(), settings:vi.fn(), patchSettings:vi.fn(), updates:{overview:vi.fn()} } as unknown as AppClient;
+  const api = { transport:'http', bootstrap:vi.fn().mockResolvedValue(grantUI(metadata)), execute:vi.fn(), settings:vi.fn(), patchSettings:vi.fn(), updates:{overview:vi.fn()} } as unknown as AppClient;
   render(<Workspace client={api} />);
   await userEvent.click(await screen.findByRole('button', { name: '核心实验室' }, { timeout: 5000 }));
   const input = await screen.findByLabelText('输入文本');

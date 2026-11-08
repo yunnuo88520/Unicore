@@ -11,6 +11,8 @@ import { AdminRolesPage } from './roles';
 import type { PageProps } from '../../router';
 
 const permissions = [
+ { id: 'notes:access', name: '访问笔记', description: '读取笔记', group: '业务权限', assignable: true },
+ { id: 'notes:delete', name: '删除笔记', description: '删除笔记', group: '业务权限', assignable: true },
   { id: 'users:read', name: '查看用户', description: '搜索和查看用户账号、角色与状态', group: '用户管理', assignable: false },
   { id: 'roles:write', name: '管理角色', description: '创建、编辑与删除角色并分配权限', group: '角色权限', assignable: false },
   { id: 'settings:write', name: '修改基础设置', description: '修改品牌、安全与账号策略', group: '系统管理', assignable: false },
@@ -193,6 +195,10 @@ it('authorizes page actions with their permission point and linked operations', 
   // The action row shows its owning page, permission point and operation ids.
   const action = within(dialog).getByRole('checkbox', { name: '导出笔记动作' });
   expect(within(dialog).getByText(/我的笔记 · notes:delete · listNotes/)).toBeVisible();
+  expect(action).toBeDisabled();
+  await userEvent.click(within(dialog).getByRole('checkbox', { name: '删除笔记' }));
+  await userEvent.click(within(dialog).getByRole('checkbox', { name: '访问笔记' }));
+  await userEvent.click(within(dialog).getByRole('checkbox', { name: 'listNotes' }));
   await userEvent.click(action);
   await userEvent.type(within(dialog).getByLabelText('角色名称'), '动作角色');
   await userEvent.click(within(dialog).getByRole('button', { name: '保存' }));
@@ -209,6 +215,7 @@ it('grants API operations per realm while super-admin and public operations stay
   expect(within(dialog).getByText('/api/v1/notes')).toBeVisible();
   // Grantable user-realm operation stays selectable; super-admin, cross-realm
   // and public operations render locked so the upper bound cannot be bypassed.
+  await userEvent.click(within(dialog).getByRole('checkbox', { name: '访问笔记' }));
   const listNotes = within(dialog).getByRole('checkbox', { name: 'listNotes' });
   expect(listNotes).toBeEnabled();
   expect(within(dialog).getByRole('checkbox', { name: 'applyUpdate' })).toBeDisabled();

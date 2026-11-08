@@ -482,7 +482,8 @@ func mountWeb(api chi.Router, config Config) {
 			path, permission = "/admin/administrators", "administrators"
 		}
 		api.Get(path, func(w http.ResponseWriter, r *http.Request) {
-			if _, ok := require(manager, w, r, permission+":read"); !ok {
+			actor, ok := require(manager, w, r, permission+":read")
+			if !ok {
 				return
 			}
 			page, _ := strconv.Atoi(r.URL.Query().Get("page"))
@@ -502,7 +503,7 @@ func mountWeb(api chi.Router, config Config) {
 				return
 			}
 			identity := manager.Identity(administrators)
-			data, err := identity.Store.ListUsers(r.Context(), search, page, size, r.URL.Query().Get("post_id"))
+			data, err := identity.Store.ListUsersScoped(r.Context(), actor.User, search, page, size, r.URL.Query().Get("post_id"))
 			if err != nil {
 				webError(w, err)
 				return

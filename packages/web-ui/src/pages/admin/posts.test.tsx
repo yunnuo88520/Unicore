@@ -1,3 +1,4 @@
+import { grantUI } from '../../test-authorization';
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Post console CRUD with normalized codes, member lookup through the paginated users query and guarded deletion; membership never touches roles.
  */
@@ -27,7 +28,7 @@ function mount(meta: Bootstrap, web: Record<string, unknown>) {
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <MessageProvider>
-        <AdminPostsPage {...({ client: { transport: 'http', web } as unknown as AppClient, metadata: meta, registry: {}, theme: 'light', setTheme: () => {}, refresh: () => {} } as unknown as PageProps)} />
+        <AdminPostsPage {...({ client: { transport: 'http', web } as unknown as AppClient, metadata: grantUI(meta), registry: {}, theme: 'light', setTheme: () => {}, refresh: () => {} } as unknown as PageProps)} />
       </MessageProvider>
     </QueryClientProvider>,
   );

@@ -83,7 +83,8 @@ func readUserWorkbook(reader io.Reader) ([][]string, error) {
 func mountXlsx(api chi.Router, config Config) {
 	manager := config.Install
 	api.Get("/admin/users/export.xlsx", func(w http.ResponseWriter, r *http.Request) {
-		if _, ok := require(manager, w, r, "users:read"); !ok {
+		actor, ok := require(manager, w, r, "users:read")
+		if !ok {
 			return
 		}
 		_, _, identity, _ := manager.Services()
@@ -96,7 +97,7 @@ func mountXlsx(api chi.Router, config Config) {
 		}
 		count := 0
 		for page := 1; ; page++ {
-			list, err := identity.Store.ListUsers(r.Context(), r.URL.Query().Get("search"), page, 50)
+			list, err := identity.Store.ListUsersScoped(r.Context(), actor.User, r.URL.Query().Get("search"), page, 50)
 			if err != nil {
 				webError(w, err)
 				return
@@ -215,7 +216,13 @@ func mountXlsx(api chi.Router, config Config) {
 		}
 		count := 0
 		for page := 1; ; page++ {
-			list, err := service.List(r.Context(), files.Actor{ID: actor.User.ID, Realm: "administrator", Admin: true}, r.URL.Query().Get("search"), page, files.ScopeFilter{})
+			identity := manager.Identity(false)
+			filter, err := identity.Store.DataScope(r.Context(), actor.User, "storage:read")
+			if err != nil {
+				webError(w, err)
+				return
+			}
+			list, err := service.List(r.Context(), files.Actor{ID: actor.User.ID, Realm: "user", Admin: platform.IsSuper(actor.User)}, r.URL.Query().Get("search"), page, files.ScopeFilter{All: filter.All, CreatorIDs: filter.UserIDs})
 			if err != nil {
 				webError(w, err)
 				return

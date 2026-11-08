@@ -9,7 +9,7 @@ import { Button, Card, CardContent, Checkbox, DropdownMenu, DropdownMenuContent,
 import { cn } from '@unicore/ui/cn';
 import { FileUploadDialog } from '../file-upload-dialog';
 import { useColumnVisibility } from '../column-visibility';
-import { hasPermissionPoint } from '../permissions';
+import { canAction } from '../permissions';
 import type { PageProps } from '../router';
 import type { AppClient, FileEntry } from '@unicore/sdk';
 
@@ -34,8 +34,8 @@ export function FilesPage({ client, metadata }: PageProps) {
   // Upload stays on the files:upload point; row download/delete follow the
   // server-projected per-row capabilities, so readable scope rows (other
   // people's files) stay downloadable but never deletable.
-  const canUpload = hasPermissionPoint(metadata, 'files:upload');
-  const isOwn = (file: FileEntry) => file.creator_id === metadata.current_user?.id && file.creator_realm === metadata.identity_realm;
+  const canUpload = (['createMultipartUpload','completeMultipartUpload','signUploadPart','uploadLocalPart'] as const).every(op => canAction(metadata,op));
+  const isOwn = (file: FileEntry) => file.creator_id === metadata.current_user?.id && file.creator_realm === 'user';
   const cache = useQueryClient();
   const message = useMessage();
   const [search, setSearch] = useState('');
@@ -123,10 +123,10 @@ export function FilesPage({ client, metadata }: PageProps) {
       cell: ({ row }) => {
         const file = row.original;
         return <div className="flex items-center gap-1">
-          {file.capabilities.download && <Button variant="ghost" size="icon" aria-label={t('下载 {{v0}}', { v0: file.original_name })} disabled={file.state !== 'ready' || mutate.isPending} onClick={() => mutate.mutate({ kind: 'access', file })}><Download size={17} /></Button>}
+          {file.capabilities.download && canAction(metadata, 'fileAccess') && <Button variant="ghost" size="icon" aria-label={t('下载 {{v0}}', { v0: file.original_name })} disabled={file.state !== 'ready' || mutate.isPending} onClick={() => mutate.mutate({ kind: 'access', file })}><Download size={17} /></Button>}
           {canUpload && file.state !== 'ready' && isOwn(file) && <Button variant="ghost" size="icon" aria-label={t('继续上传 {{name}}', { name: file.original_name })} onClick={() => setUpload({ file })}><Play size={17} /></Button>}
-          {administrator && <Button variant="ghost" size="icon" aria-label={t('迁移 {{v0}}', { v0: file.original_name })} disabled={file.state !== 'ready' || mutate.isPending} onClick={() => { setTarget(''); setDialog({ kind: 'migrate', file }); }}><ArrowRightLeft size={17} /></Button>}
-          {file.capabilities.delete && <Button variant="ghost" size="icon" className="hover:text-danger" aria-label={t('删除 {{v0}}', { v0: file.original_name })} disabled={mutate.isPending} onClick={() => setDialog({ kind: 'delete', file })}><Trash2 size={17} /></Button>}
+          {administrator && canAction(metadata,'migrateFile') && <Button variant="ghost" size="icon" aria-label={t('迁移 {{v0}}', { v0: file.original_name })} disabled={file.state !== 'ready' || mutate.isPending} onClick={() => { setTarget(''); setDialog({ kind: 'migrate', file }); }}><ArrowRightLeft size={17} /></Button>}
+          {file.capabilities.delete && canAction(metadata, 'deleteFile') && <Button variant="ghost" size="icon" className="hover:text-danger" aria-label={t('删除 {{v0}}', { v0: file.original_name })} disabled={mutate.isPending} onClick={() => setDialog({ kind: 'delete', file })}><Trash2 size={17} /></Button>}
         </div>;
       },
     }),
@@ -155,7 +155,7 @@ export function FilesPage({ client, metadata }: PageProps) {
           <h2 className="text-md font-semibold text-ink">{administrator ? t('实例文件') : t('我的文件')}</h2>
           <p className="text-xs text-muted">{administrator ? t('查看实例文件与存储分布，按需迁移。') : t('文件仅本人和管理员可访问，下载链接会自动过期。')}</p>
         </div>
-        <div className="flex flex-wrap gap-2">{administrator && client.web && <FileExport web={client.web} search={search} />}{canUpload && <Button onClick={() => setUpload({})}><Upload size={16} />{t('上传文件')}</Button>}</div>
+        <div className="flex flex-wrap gap-2">{administrator && canAction(metadata,'exportFiles') && client.web && <FileExport web={client.web} search={search} />}{canUpload && <Button onClick={() => setUpload({})}><Upload size={16} />{t('上传文件')}</Button>}</div>
       </CardContent>
     </Card>
     <Card>

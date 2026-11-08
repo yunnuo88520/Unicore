@@ -605,7 +605,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "users"
         },
         "summary": "listUsers",
         "x-permission": "users:read; administrator only",
@@ -673,7 +674,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "users"
         },
         "summary": "createUser",
         "x-permission": "users:create; administrator only",
@@ -733,7 +735,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "users"
         },
         "summary": "updateUser",
         "parameters": []
@@ -790,7 +793,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "site"
         },
         "summary": "adminSettings",
         "x-permission": "settings:read; administrator only",
@@ -1720,7 +1724,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "mail-templates"
         },
         "security": [
           {
@@ -1830,7 +1835,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "roles"
         },
         "summary": "listRoles",
         "parameters": []
@@ -1936,7 +1942,8 @@
           "permissionMode": "any",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "users"
         },
         "summary": "roleOptions",
         "parameters": []
@@ -2981,7 +2988,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "logs"
         },
         "summary": "Read system audit log",
         "x-permission": "logs:read; administrator only",
@@ -3111,7 +3119,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "mail"
         },
         "summary": "mailJobs",
         "parameters": []
@@ -3214,7 +3223,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "storage"
         },
         "summary": "storageLocations",
         "x-permission": "storage:read; administrator only",
@@ -3694,7 +3704,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "user"
+          "identityRealm": "user",
+          "uiPage": "files"
         },
         "summary": "listFiles",
         "x-permission": "owner or administrator; identity realm isolated",
@@ -3762,7 +3773,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "user"
+          "identityRealm": "user",
+          "uiPage": "files"
         },
         "summary": "createFileUpload",
         "x-permission": "owner or administrator; identity realm isolated",
@@ -3823,7 +3835,8 @@
           "superAdmin": false,
           "csrf": true,
           "streamingUpload": true,
-          "identityRealm": "user"
+          "identityRealm": "user",
+          "uiPage": "files"
         },
         "summary": "uploadLocalFile",
         "x-permission": "owner or administrator; identity realm isolated",
@@ -3895,7 +3908,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "user"
+          "identityRealm": "user",
+          "uiPage": "files"
         },
         "summary": "completeFileUpload",
         "x-permission": "owner or administrator; identity realm isolated",
@@ -3957,7 +3971,8 @@
           "permissionMode": "any",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "user"
+          "identityRealm": "user",
+          "uiPage": "files"
         },
         "summary": "fileAccess",
         "x-permission": "owner or administrator; identity realm isolated",
@@ -4027,7 +4042,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "user"
+          "identityRealm": "user",
+          "uiPage": "files"
         },
         "summary": "deleteFile",
         "x-permission": "owner or administrator; identity realm isolated",
@@ -4382,7 +4398,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "lab"
         },
         "security": [
           {},
@@ -5581,7 +5598,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "files"
         },
         "summary": "管理员端：listFiles",
         "x-permission": "storage:read; administrator only",
@@ -5844,7 +5862,8 @@
           "permissionMode": "any",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "files"
         },
         "summary": "管理员端：fileAccess",
         "x-permission": "storage:read; administrator only",
@@ -5970,7 +5989,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "user"
+          "identityRealm": "user",
+          "uiPage": "notes"
         },
         "security": [
           {},
@@ -6080,7 +6100,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "user"
+          "identityRealm": "user",
+          "uiPage": "notes"
         },
         "security": [
           {},
@@ -6141,7 +6162,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "user"
+          "identityRealm": "user",
+          "uiPage": "notes"
         },
         "security": [
           {},
@@ -6211,7 +6233,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "user"
+          "identityRealm": "user",
+          "uiPage": "notes"
         },
         "security": [
           {},
@@ -6273,7 +6296,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "notes"
         },
         "security": [
           {
@@ -6382,7 +6406,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "notes"
         },
         "security": [
           {
@@ -6442,7 +6467,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "notes"
         },
         "security": [
           {
@@ -6511,7 +6537,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "notes"
         },
         "security": [
           {
@@ -6618,7 +6645,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "edition"
         }
       }
     },
@@ -6706,7 +6734,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "edition"
         }
       }
     },
@@ -6859,7 +6888,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "logs"
         },
         "summary": "Export filtered audit metadata as spreadsheet-safe CSV (maximum 10000 records)",
         "x-permission": "logs:read; administrator only",
@@ -7205,7 +7235,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "announcements"
         },
         "security": [
           {
@@ -7250,7 +7281,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "announcements"
         },
         "security": [
           {
@@ -7319,7 +7351,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "announcements"
         },
         "security": [
           {
@@ -7377,7 +7410,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "announcements"
         },
         "security": [
           {
@@ -7435,7 +7469,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "announcements"
         },
         "security": [
           {
@@ -7480,7 +7515,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "announcements"
         },
         "security": [
           {
@@ -7538,7 +7574,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "announcements"
         },
         "security": [
           {
@@ -7773,7 +7810,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "files"
         },
         "summary": "管理员端：fileUploadPolicy",
         "x-permission": "storage:read/write; administrator only",
@@ -7823,7 +7861,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "user"
+          "identityRealm": "user",
+          "uiPage": "files"
         },
         "summary": "createMultipartUpload",
         "x-permission": "owner or administrator; identity realm isolated",
@@ -7942,7 +7981,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "user"
+          "identityRealm": "user",
+          "uiPage": "files"
         },
         "summary": "multipartUpload",
         "x-permission": "owner or administrator; identity realm isolated",
@@ -8002,7 +8042,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "files"
         },
         "summary": "管理员端：multipartUpload",
         "x-permission": "storage:read/write; administrator only",
@@ -8063,7 +8104,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "user"
+          "identityRealm": "user",
+          "uiPage": "files"
         },
         "summary": "signUploadPart",
         "x-permission": "owner or administrator; identity realm isolated",
@@ -8206,7 +8248,8 @@
           "superAdmin": false,
           "csrf": true,
           "identityRealm": "user",
-          "streamingUpload": true
+          "streamingUpload": true,
+          "uiPage": "files"
         },
         "summary": "uploadLocalPart",
         "x-permission": "owner or administrator; identity realm isolated",
@@ -8371,7 +8414,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "user"
+          "identityRealm": "user",
+          "uiPage": "files"
         },
         "summary": "completeMultipartUpload",
         "x-permission": "owner or administrator; identity realm isolated",
@@ -10286,7 +10330,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "announcements"
         },
         "security": [
           {
@@ -10332,7 +10377,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "site"
         },
         "security": [
           {
@@ -11001,7 +11047,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "menus"
         },
         "summary": "listMenus",
         "parameters": []
@@ -11047,7 +11094,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "menus"
         },
         "summary": "saveMenus",
         "parameters": [],
@@ -11105,7 +11153,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "dictionaries"
         },
         "summary": "listDictionaries",
         "parameters": []
@@ -11151,7 +11200,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "dictionaries"
         },
         "summary": "createDictionary",
         "parameters": [],
@@ -11220,7 +11270,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "dictionaries"
         },
         "summary": "getDictionary",
         "parameters": []
@@ -11266,7 +11317,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "dictionaries"
         },
         "summary": "updateDictionary",
         "parameters": [],
@@ -11322,7 +11374,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "dictionaries"
         },
         "summary": "deleteDictionary",
         "parameters": []
@@ -11370,7 +11423,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "departments"
         },
         "summary": "listDepartments",
         "parameters": []
@@ -11416,7 +11470,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "departments"
         },
         "summary": "createDepartment",
         "parameters": [],
@@ -11474,7 +11529,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "departments"
         },
         "summary": "updateDepartment",
         "parameters": [
@@ -11540,7 +11596,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "departments"
         },
         "summary": "deleteDepartment",
         "parameters": [
@@ -11609,7 +11666,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "dictionaries"
         },
         "summary": "replaceDictionaryItems",
         "parameters": [],
@@ -11724,7 +11782,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "tasks"
         },
         "summary": "listTasks",
         "parameters": []
@@ -11782,7 +11841,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "tasks"
         },
         "summary": "updateTask",
         "parameters": [],
@@ -11850,7 +11910,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "tasks"
         },
         "summary": "triggerTask",
         "parameters": []
@@ -12089,7 +12150,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "users"
         },
         "summary": "exportUsers",
         "parameters": [
@@ -12148,7 +12210,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "users"
         },
         "summary": "userImportTemplate",
         "parameters": []
@@ -12195,7 +12258,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "users"
         },
         "summary": "importUsers",
         "parameters": [],
@@ -12264,7 +12328,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "files"
         },
         "summary": "exportFiles",
         "parameters": [
@@ -12322,7 +12387,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "overview"
         },
         "summary": "adminDashboard",
         "parameters": []
@@ -12418,7 +12484,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "api-operations"
         },
         "summary": "List API operation authorization catalogue",
         "parameters": []
@@ -12466,7 +12533,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "posts"
         },
         "summary": "listPosts",
         "parameters": []
@@ -12512,7 +12580,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "posts"
         },
         "summary": "createPost",
         "parameters": [],
@@ -12570,7 +12639,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "posts"
         },
         "summary": "updatePost",
         "parameters": [
@@ -12636,7 +12706,8 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "posts"
         },
         "summary": "deletePost",
         "parameters": [

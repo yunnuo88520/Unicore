@@ -1,7 +1,8 @@
+import { grantUI } from './test-authorization';
 // Author: yunnuo <ymz@ebox.vip>
 import { expect, it } from 'vitest';
-import { canAccess, isAdminRealm, isAdministrator, pageFromHash } from './routes';
-import { buildNavigation } from './navigation';
+import { canAccess as routeAccess, isAdminRealm, isAdministrator, pageFromHash } from './routes';
+import { buildNavigation as navigation } from './navigation';
 import type { Bootstrap } from '@unicore/sdk';
 
 it('resolves explicit unknown routes without silently executing the overview', () => {
@@ -110,3 +111,10 @@ it('gates the new posts and api-operations pages inside the administration group
   expect(canAccess('api-operations', member)).toBe(false);
   expect(canAccess('posts', { ...superAdmin, profile: 'web-standalone' } as unknown as Bootstrap)).toBe(false);
 });
+
+function canAccess(page: Parameters<typeof routeAccess>[0], metadata?: Bootstrap) { return routeAccess(page,metadata?grantUI(metadata):metadata); }
+function buildNavigation(metadata: Bootstrap) {
+ const result=navigation(grantUI(metadata));
+ const strip=(entries: typeof result.sections[number]['entries']): typeof entries=>entries.map(entry=>({...entry,id:entry.id.replace(/^(user|administrator):/,''),children:strip(entry.children)}));
+ return {...result,sections:result.sections.map(section=>({...section,entries:strip(section.entries)}))};
+}

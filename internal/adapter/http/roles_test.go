@@ -258,7 +258,7 @@ func TestRestrictedAdministrator(t *testing.T) {
 
 	// The administrator-realm role takes management permission points; the
 	// omitted realm keeps the user-realm default.
-	w = request("POST", "/api/v1/admin/roles", map[string]any{"name": "受限管理员", "realm": "administrator", "permissions": []string{"users:read", "users:create", "users:update", "announcements:read", "menus:write"}}, adminCookie, csrf)
+	w = request("POST", "/api/v1/admin/roles", map[string]any{"name": "受限管理员", "data_scope": "all", "realm": "administrator", "permissions": []string{"users:read", "users:create", "users:update", "announcements:read", "menus:write"}}, adminCookie, csrf)
 	if w.Code != 200 {
 		t.Fatal("restricted role create", w.Code, w.Body.String())
 	}
@@ -374,7 +374,7 @@ func TestRestrictedAdministrator(t *testing.T) {
 	}
 
 	// A role permission change revokes the member session.
-	w = request("PUT", "/api/v1/admin/roles/"+roleID, map[string]any{"name": "受限管理员", "permissions": []string{"announcements:read"}}, adminCookie, csrf)
+	w = request("PUT", "/api/v1/admin/roles/"+roleID, map[string]any{"name": "受限管理员", "data_scope": "all", "permissions": []string{"announcements:read"}}, adminCookie, csrf)
 	if w.Code != 200 {
 		t.Fatal("role permission change", w.Code, w.Body.String())
 	}

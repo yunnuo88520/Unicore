@@ -1,3 +1,4 @@
+import { canAction } from '../../permissions';
 // Author: yunnuo <ymz@ebox.vip>
 // Description: One configuration per provider, explicit activation and shared upload rules.
 import { useState } from 'react';
@@ -23,9 +24,9 @@ const providers = defineMessages([
 const sections = defineMessages([{ id: 'config', label: '存储配置' }, { id: 'rules', label: '上传规则' }]);
 const providerName = (id: string) => t(providers.find(provider => provider.id === id)?.label ?? id);
 
-export function AdminStoragePage({ client }: PageProps) {
+export function AdminStoragePage({ client, metadata }: PageProps) {
   if (!client.storage) return null;
-  return <StoragePanel client={client} storage={client.storage} />;
+  return <fieldset className="contents" disabled={!canAction(metadata,'createStorageLocation')}><StoragePanel client={client} storage={client.storage} /></fieldset>;
 }
 
 function StoragePanel({ client, storage }: { client: AppClient; storage: StorageClient }) {

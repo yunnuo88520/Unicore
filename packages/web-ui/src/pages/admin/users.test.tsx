@@ -1,3 +1,4 @@
+import { grantUI } from '../../test-authorization';
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: User dialogs pick departments and posts (create, echo and clear), the list resolves both names, and every mutating button gates on its own point.
  */
@@ -46,7 +47,7 @@ function mount(metadata: Bootstrap, web: Record<string, unknown>) {
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <MessageProvider>
-        <AdminUsersPage {...({ client: { transport: 'http', web } as unknown as AppClient, metadata, registry: {}, theme: 'light', setTheme: () => {}, refresh: () => {} } as unknown as PageProps)} />
+        <AdminUsersPage {...({ client: { transport: 'http', web } as unknown as AppClient, metadata: grantUI(metadata), registry: {}, theme: 'light', setTheme: () => {}, refresh: () => {} } as unknown as PageProps)} />
       </MessageProvider>
     </QueryClientProvider>,
   );
@@ -99,7 +100,7 @@ it('keeps administrators without department controls', async () => {
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <MessageProvider>
-        <AdminAdministratorsPage {...({ client: { transport: 'http', web: { administrators: vi.fn().mockResolvedValue(users()), adminRoleOptions: roleOptions } } as unknown as AppClient, metadata: metadata(['administrators:read', 'administrators:create']), registry: {}, theme: 'light', setTheme: () => {}, refresh: () => {} } as unknown as PageProps)} />
+        <AdminAdministratorsPage {...({ client: { transport: 'http', web: { administrators: vi.fn().mockResolvedValue(users()), adminRoleOptions: roleOptions } } as unknown as AppClient, metadata: grantUI(metadata(['administrators:read', 'administrators:create'])), registry: {}, theme: 'light', setTheme: () => {}, refresh: () => {} } as unknown as PageProps)} />
       </MessageProvider>
     </QueryClientProvider>,
   );
@@ -184,7 +185,7 @@ it('gates the administrator edit entry on administrators:update', async () => {
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <MessageProvider>
-        <AdminAdministratorsPage {...({ client: { transport: 'http', web: { administrators: vi.fn().mockResolvedValue(users()), adminRoleOptions: roleOptions } } as unknown as AppClient, metadata: metadata(['administrators:read']), registry: {}, theme: 'light', setTheme: () => {}, refresh: () => {} } as unknown as PageProps)} />
+        <AdminAdministratorsPage {...({ client: { transport: 'http', web: { administrators: vi.fn().mockResolvedValue(users()), adminRoleOptions: roleOptions } } as unknown as AppClient, metadata: grantUI(metadata(['administrators:read'])), registry: {}, theme: 'light', setTheme: () => {}, refresh: () => {} } as unknown as PageProps)} />
       </MessageProvider>
     </QueryClientProvider>,
   );

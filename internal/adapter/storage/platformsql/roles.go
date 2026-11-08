@@ -359,7 +359,8 @@ func (r *Repository) CreateRole(ctx context.Context, input contracts.RoleSaveInp
 	if err = r.AuthorizeAdministrator(ctx, tx, actor, "roles:write"); err != nil {
 		return contracts.Role{}, err
 	}
-	departments, err := r.validateScopeDepartments(ctx, tx, scope, derefDepartmentIds(input.DepartmentIds))
+	departmentIDs := derefDepartmentIds(input.DepartmentIds)
+	departments, err := r.validateScopeDepartments(ctx, tx, scope, departmentIDs)
 	if err != nil {
 		return contracts.Role{}, err
 	}
@@ -389,6 +390,29 @@ func (r *Repository) CreateRole(ctx context.Context, input contracts.RoleSaveInp
 	}
 	if input.OperationIds != nil {
 		operationIds = *input.OperationIds
+	}
+	if input.ActionIds == nil {
+		covered := map[string]bool{}
+		for _, id := range operationIds {
+			covered[id] = true
+		}
+		actions := map[string]contracts.NavigationNode{}
+		for _, node := range nav.Nodes {
+			actions[node.ID] = node
+		}
+		filtered := []string{}
+		for _, id := range actionIds {
+			valid := true
+			for _, op := range actions[id].OperationIds {
+				if !covered[op] {
+					valid = false
+				}
+			}
+			if valid {
+				filtered = append(filtered, id)
+			}
+		}
+		actionIds = filtered
 	}
 	if err = r.saveRoleAuthorization(ctx, tx, id, realm, input.Permissions, menuIds, actionIds, operationIds, nav); err != nil {
 		return contracts.Role{}, err
@@ -448,7 +472,11 @@ func (r *Repository) UpdateRole(ctx context.Context, id string, input contracts.
 	if err = validateGrants(before.Realm, input.Permissions); err != nil {
 		return contracts.Role{}, err
 	}
-	scope, err := validateDataScope(before.Realm, input.DataScope)
+	scopeInput := input.DataScope
+	if scopeInput == nil {
+		scopeInput = &before.DataScope
+	}
+	scope, err := validateDataScope(before.Realm, scopeInput)
 	if err != nil {
 		return contracts.Role{}, err
 	}
@@ -457,7 +485,11 @@ func (r *Repository) UpdateRole(ctx context.Context, id string, input contracts.
 	if before.Builtin && scope != platform.ScopeSelf {
 		return contracts.Role{}, platform.ErrForbidden
 	}
-	departments, err := r.validateScopeDepartments(ctx, tx, scope, derefDepartmentIds(input.DepartmentIds))
+	departmentIDs := before.DepartmentIds
+	if input.DepartmentIds != nil {
+		departmentIDs = *input.DepartmentIds
+	}
+	departments, err := r.validateScopeDepartments(ctx, tx, scope, departmentIDs)
 	if err != nil {
 		return contracts.Role{}, err
 	}
@@ -472,12 +504,9 @@ func (r *Repository) UpdateRole(ctx context.Context, id string, input contracts.
 	if err = r.writeRoleDepartments(ctx, tx, id, departments); err != nil {
 		return contracts.Role{}, err
 	}
-	// Grant semantics: omitted operation/action arrays derive the exact
-	// equivalents of the submitted permission points (ADR-0036), so tightening
-	// permissions narrows them and widening reopens only what the points
-	// already unlock. Omitted menus keep the stored navigation assignment,
-	// filtered to the items the current tree still contains so tree pruning
-	// never bricks role editing; explicit arrays are validated strictly.
+	// Omitted grants preserve stored authorization, pruning only references
+	// invalidated by reduced permissions or removed navigation. Widening points
+	// never restores an explicitly revoked API or action.
 	nav, err := r.readNavigation(ctx, tx)
 	if err != nil {
 		return contracts.Role{}, err
@@ -496,12 +525,41 @@ func (r *Repository) UpdateRole(ctx context.Context, id string, input contracts.
 			}
 		}
 	}
-	_, actionIds, operationIds := deriveGrants(before.Realm, input.Permissions, nav)
-	if input.ActionIds != nil {
-		actionIds = *input.ActionIds
+	operationIds := []string{}
+	for _, id := range before.OperationIds {
+		if platform.ValidOperationGrant(before.Realm, input.Permissions, id) {
+			operationIds = append(operationIds, id)
+		}
 	}
 	if input.OperationIds != nil {
 		operationIds = *input.OperationIds
+	}
+	selected := map[string]bool{}
+	for _, id := range operationIds {
+		selected[id] = true
+	}
+	actionIds := []string{}
+	nodes := map[string]contracts.NavigationNode{}
+	for _, node := range nav.Nodes {
+		nodes[node.ID] = node
+	}
+	for _, id := range before.ActionIds {
+		node, ok := nodes[id]
+		if !ok || node.Type != "action" || node.Permission == nil || !platform.PermissionsAllow(input.Permissions, []string{*node.Permission}, "all") {
+			continue
+		}
+		allowed := true
+		for _, op := range node.OperationIds {
+			if !selected[op] {
+				allowed = false
+			}
+		}
+		if allowed {
+			actionIds = append(actionIds, id)
+		}
+	}
+	if input.ActionIds != nil {
+		actionIds = *input.ActionIds
 	}
 	if err = r.saveRoleAuthorization(ctx, tx, id, before.Realm, input.Permissions, menuIds, actionIds, operationIds, nav); err != nil {
 		return contracts.Role{}, err
@@ -627,7 +685,7 @@ func deriveGrants(realm string, permissions []string, n contracts.Navigation) ([
 	for _, permission := range permissions {
 		permissionSet[permission] = true
 	}
-	// Shared route ids are deduplicated across workspace sections.
+	// Workspace-qualified node ids remain independent across surfaces.
 	surfaceSections := map[string]bool{}
 	for _, section := range n.Sections {
 		if section.Surface == "user" || section.Surface == "administrator" {

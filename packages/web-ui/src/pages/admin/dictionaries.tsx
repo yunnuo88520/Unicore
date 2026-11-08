@@ -9,16 +9,19 @@ import { AppField, AppForm, useAppForm } from '@unicore/form';
 import { cn } from '@unicore/ui/cn';
 import { Badge, Button, Card, CardContent, ConfirmDialog, Input, Modal, NativeSelect, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage } from '@unicore/ui';
 import type { PageProps } from '../../router';
+import type { Bootstrap } from '@unicore/sdk';
+import { usePermissions } from '../../permissions';
 
 const EMPTY_TYPES: DictionarySummary[] = [];
 const ITEM_COLUMN_COUNT = 6;
 
-export function AdminDictionariesPage({ client }: PageProps) {
+export function AdminDictionariesPage({ client, metadata }: PageProps) {
   if (!client.web) return null;
-  return <DictionaryPanel web={client.web} />;
+  return <DictionaryPanel metadata={metadata} web={client.web} />;
 }
 
-function DictionaryPanel({ web }: { web: WebClient }) {
+function DictionaryPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
+ const {can} = usePermissions(metadata);
   useLocale();
   const message = useMessage();
   const cache = useQueryClient();
@@ -54,7 +57,7 @@ function DictionaryPanel({ web }: { web: WebClient }) {
             <h2 className="text-md font-semibold text-ink">{t('字典类型')}</h2>
             <p className="mt-0.5 text-xs text-muted">{t('按类型维护业务枚举值')}</p>
           </div>
-          <Button size="sm" onClick={() => setCreating(true)}><Plus size={14} />{t('新建')}</Button>
+          {can('createDictionary') && <Button size="sm" onClick={() => setCreating(true)}><Plus size={14} />{t('新建')}</Button>}
         </div>
         {list.isPending && <p role="status" className="py-4 text-center text-xs text-muted">{t('正在加载字典类型…')}</p>}
         {list.isError && <div role="alert" className="flex flex-col items-start gap-2 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-xs text-danger">
@@ -94,15 +97,15 @@ function DictionaryPanel({ web }: { web: WebClient }) {
                 <p className="mt-0.5 text-xs text-muted">{detail.data.code}{detail.data.description ? ` · ${detail.data.description}` : ''}</p>
               </div>
               <div className="flex gap-2">
-                <Button variant="secondary" size="sm" onClick={() => setRenaming({ id: detail.data.id, code: detail.data.code, name: detail.data.name, description: detail.data.description })}>
+                {can('updateDictionary') && <Button variant="secondary" size="sm" onClick={() => setRenaming({ id: detail.data.id, code: detail.data.code, name: detail.data.name, description: detail.data.description })}>
                   <Pencil size={13} />{t('编辑类型')}
-                </Button>
-                <Button variant="secondary" size="sm" onClick={() => setRemoving(types.find(type => type.id === activeId) ?? null)}>
+                </Button>}
+                {can('deleteDictionary') && <Button variant="secondary" size="sm" onClick={() => setRemoving(types.find(type => type.id === activeId) ?? null)}>
                   <Trash2 size={13} />{t('删除类型')}
-                </Button>
+                </Button>}
               </div>
             </div>
-            <ItemsEditor key={activeId} web={web} id={activeId} items={detail.data.items} onSaved={invalidate} />
+            <ItemsEditor writable={can('replaceDictionaryItems')} key={activeId} web={web} id={activeId} items={detail.data.items} onSaved={invalidate} />
           </>}
       </CardContent>
     </Card>
@@ -115,7 +118,7 @@ function DictionaryPanel({ web }: { web: WebClient }) {
   </div>;
 }
 
-function ItemsEditor({ web, id, items, onSaved }: { web: WebClient; id: string; items: DictionaryItemEntry[]; onSaved: () => void }) {
+function ItemsEditor({ web, id, items, onSaved, writable }: { writable:boolean; web: WebClient; id: string; items: DictionaryItemEntry[]; onSaved: () => void }) {
   useLocale();
   const message = useMessage();
   const cache = useQueryClient();
@@ -138,7 +141,7 @@ function ItemsEditor({ web, id, items, onSaved }: { web: WebClient; id: string; 
     if (draft.some(row => !row.value.trim())) { message.error(t('存在未填写「值」的字典项，请补全后再保存。')); return; }
     save.mutate(draft);
   };
-  const pending = save.isPending;
+  const pending = !writable || save.isPending;
   return <div className="flex flex-col gap-3">
     <div className="min-w-0 rounded-lg border border-line" aria-busy={pending}>
       <Table className="min-w-[640px]">
@@ -183,7 +186,7 @@ function ItemsEditor({ web, id, items, onSaved }: { web: WebClient; id: string; 
       <span>{t('保存时全量替换该类型的所有字典项；新增行与修改一并提交。')}</span>
       <div className="flex gap-2">
         <Button variant="secondary" size="sm" disabled={pending} onClick={addRow}><Plus size={13} />{t('添加字典项')}</Button>
-        <Button size="sm" pending={pending} disabled={!dirty} onClick={submit}><Save size={13} />{t('保存字典项')}</Button>
+        <Button size="sm" pending={pending} disabled={!writable || !dirty} onClick={submit}><Save size={13} />{t('保存字典项')}</Button>
       </div>
     </div>
   </div>;

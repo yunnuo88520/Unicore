@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, Circle, Download, NotebookPen, Paperclip, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
 import type { AppClient, NoteEntry, NoteQuery } from '@unicore/sdk';
 import { currentLocale, t, useLocale } from '../i18n';
-import { hasPermissionPoint } from '../permissions';
+import { canAction } from '../permissions';
 import { Badge, Button, Card, CardContent, Input, Modal, NativeSelect, Textarea, useMessage } from '@unicore/ui';
 import { AppField, AppForm, useAppForm } from '@unicore/form';
 import type { PageProps } from '../router';
@@ -18,7 +18,7 @@ export function NotesPage({ client, metadata }: PageProps) {
   // The page stays gated by notes:access for the create entry; row edit/delete
   // follow the server-projected per-row capabilities, so readable rows from a
   // shared scope stay read-only while own rows with the action grant keep buttons.
-  const canCreate = hasPermissionPoint(metadata, 'notes:create');
+  const canCreate = canAction(metadata, 'createNote');
   const cache = useQueryClient();
   const message = useMessage();
   const [query, setQuery] = useState<NoteQuery>(initialQuery);
@@ -97,8 +97,8 @@ export function NotesPage({ client, metadata }: PageProps) {
                       {note.status === 'done' ? t('已完成') : t('进行中')}
                     </Badge>
                     <div className="flex items-center gap-1">
-                      {note.capabilities.update && <Button variant="ghost" size="icon" aria-label={t('编辑 {{v0}}', { v0: note.title })} onClick={() => setEditing(note)}><Pencil size={16} /></Button>}
-                      {note.capabilities.delete && <Button variant="ghost" size="icon" aria-label={t('删除 {{v0}}', { v0: note.title })} onClick={() => setRemoving(note)}><Trash2 size={16} /></Button>}
+                      {note.capabilities.update && canAction(metadata, 'updateNote') && <Button variant="ghost" size="icon" aria-label={t('编辑 {{v0}}', { v0: note.title })} onClick={() => setEditing(note)}><Pencil size={16} /></Button>}
+                      {note.capabilities.delete && canAction(metadata, 'deleteNote') && <Button variant="ghost" size="icon" aria-label={t('删除 {{v0}}', { v0: note.title })} onClick={() => setRemoving(note)}><Trash2 size={16} /></Button>}
                     </div>
                   </div>
                   <h3 className="text-md font-semibold text-ink">{note.title}</h3>
@@ -152,7 +152,7 @@ function NoteEditor({ client, metadata, note, onClose, onSaved }: {
     queryFn: () => client.files!.listFiles(fileSearch, 1),
     enabled: metadata.profile === 'web-platform' && !!client.files,
   });
-  const mine = files.data?.items.filter(f => f.state === 'ready' && f.creator_id === metadata.current_user?.id && f.creator_realm === metadata.identity_realm) ?? [];
+  const mine = files.data?.items.filter(f => f.state === 'ready' && f.creator_id === metadata.current_user?.id && f.creator_realm === 'user') ?? [];
   const value = form.watch();
   function setAttachments(next: string[]) { form.setValue('attachment_ids', next, { shouldDirty: true }); }
   return <Modal title={note ? t('编辑笔记') : t('新建笔记')} pending={save.isPending} onClose={onClose}>

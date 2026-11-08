@@ -61,7 +61,7 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 	}
 	directories := 0
 	for _, node := range seed.Nodes {
-		if node.Label != "" {
+		if node.Type != "action" && node.Label != "" {
 			t.Fatal("seeded node carries a label", node.ID, node.Label)
 		}
 		switch node.Type {
@@ -72,18 +72,22 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 			if node.SectionID != "admin:business" && node.SectionID != "admin:system" {
 				t.Fatal("directory outside the business/system areas", node)
 			}
+		case "action":
+			if node.ParentID == nil || node.Permission == nil || len(node.OperationIds) == 0 {
+				t.Fatal("invalid action", node)
+			}
 		case "page":
 			if pages[node.ID] {
 				t.Fatal("unexpected surface duplication is fine only across surfaces; check the section", node)
 			}
 			pages[node.ID+"\x00"+surfaceOf[node.SectionID]] = true
-			if node.RouteID == nil || *node.RouteID != node.ID {
+			if node.RouteID == nil || surfaceOf[node.SectionID]+":"+*node.RouteID != node.ID {
 				t.Fatal("page route mismatch", node)
 			}
-			if node.Sort != sortRank[node.ID] {
+			if node.Sort != sortRank[*node.RouteID] {
 				t.Fatal("page sort drifted from defaultRank", node.ID, node.Sort)
 			}
-			if icon := navigationIcons[node.ID]; icon != "" && node.Icon != icon || icon == "" && node.Icon != "Circle" {
+			if icon := navigationIcons[*node.RouteID]; icon != "" && node.Icon != icon || icon == "" && node.Icon != "Circle" {
 				t.Fatal("icon drifted from the frontend table", node.ID, node.Icon)
 			}
 			if node.ID == "notes" || node.ID == "files" {
@@ -157,17 +161,17 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 	}
 	for _, page := range NavigationPages {
 		if page.Group == "administration" {
-			if parentOf[page.ID+"\x00administrator"] != "administration" {
-				t.Fatal("administration page parent", page.ID, parentOf[page.ID+"\x00administrator"])
+			if parentOf["administrator:"+page.ID+"\x00administrator"] != "administrator:administration" {
+				t.Fatal("administration page parent", page.ID, parentOf["administrator:"+page.ID+"\x00administrator"])
 			}
 		}
 		if page.Group == "system" {
-			if parentOf[page.ID+"\x00administrator"] != "settings" {
-				t.Fatal("system page parent", page.ID, parentOf[page.ID+"\x00administrator"])
+			if parentOf["administrator:"+page.ID+"\x00administrator"] != "administrator:settings" {
+				t.Fatal("system page parent", page.ID, parentOf["administrator:"+page.ID+"\x00administrator"])
 			}
 		}
-		if page.Group == "personal" && parentOf[page.ID+"\x00administrator"] != "personal" {
-			t.Fatal("administrator personal page parent", page.ID, parentOf[page.ID+"\x00administrator"])
+		if page.Group == "personal" && parentOf["administrator:"+page.ID+"\x00administrator"] != "administrator:personal" {
+			t.Fatal("administrator personal page parent", page.ID, parentOf["administrator:"+page.ID+"\x00administrator"])
 		}
 	}
 

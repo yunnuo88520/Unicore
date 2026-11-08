@@ -9,7 +9,7 @@ import { defineMessages, t, useLocale } from '../../i18n';
 import { routes } from '../../routes';
 import { sectionTitle } from '../../navigation';
 import { buildDepartmentTree, flattenDepartmentTree, invalidateAfter, useDepartmentsQuery } from '../../queries';
-import { usePermissions } from '../../permissions';
+import { operationPermissionsAllow, usePermissions } from '../../permissions';
 import { Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, Input, Modal, NativeSelect, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage } from '@unicore/ui';
 import { OperationCatalogue } from './api-operations';
 import type { PageProps } from '../../router';
@@ -219,7 +219,9 @@ function RoleEditor({ web, realm, role, permissions, onClose, onSaved }: {
     if (trimmed.length > 80) { setNameError(t('最多 {{count}} 个字符', { count: 80 })); return; }
     setNameError('');
     // Creates carry the tab-fixed realm; updates cannot move a role between realms.
-    const authorization = { menu_ids: menuIds, action_ids: actionIds, operation_ids: operationIds };
+    const validOperations = operationIds.filter(id => operationPermissionsAllow(grants, id));
+    const validActions = actionIds.filter(id => nodes.some(node => node.id === id && node.permission && grants.includes(node.permission) && node.operation_ids.every(op => validOperations.includes(op))));
+    const authorization = { menu_ids: menuIds, action_ids: validActions, operation_ids: validOperations };
     const input: RoleSaveInput = role ? { name: trimmed, permissions: grants, ...authorization } : { name: trimmed, permissions: grants, realm, ...authorization };
     {
       // Administrator roles stay self-scoped server-side; user roles carry the
@@ -255,14 +257,14 @@ function RoleEditor({ web, realm, role, permissions, onClose, onSaved }: {
         {nodes.filter(node => node.type === 'action' && sections.some(section => section.id === node.section_id)).map(node => {
           const parent = nodes.find(item => item.id === node.parent_id);
           return <label key={node.id} className="flex items-start gap-2 text-sm">
-            <Checkbox aria-label={navigationLabel(node)} disabled={node.disabled} checked={actionIds.includes(node.id)} onChange={checked => setActionIds(current => toggleAuthorization(current, node.id, checked))} />
+            <Checkbox aria-label={navigationLabel(node)} disabled={node.disabled || (!actionIds.includes(node.id) && (!node.permission || !grants.includes(node.permission) || !node.operation_ids.every(op => operationIds.includes(op))))} checked={actionIds.includes(node.id)} onChange={checked => setActionIds(current => toggleAuthorization(current, node.id, checked))} />
             <span>{navigationLabel(node)}<small className="block text-muted">{parent ? navigationLabel(parent) : '—'} · {node.permission} · {node.operation_ids.join(', ')}</small></span>
           </label>;
         })}
       </fieldset>
       <fieldset disabled={pending} className="min-w-0 rounded-lg border border-line p-3">
         <legend className="px-1 font-medium">{t('API 授权')}</legend>
-        <OperationCatalogue web={web} selected={operationIds} onChange={setOperationIds} disabled={pending} />
+        <OperationCatalogue web={web} permissions={grants} selected={operationIds} onChange={setOperationIds} disabled={pending} />
       </fieldset>
       {<fieldset disabled={pending} className="flex min-w-0 flex-col gap-1.5">
         <span className="text-sm font-medium text-ink">{t('数据范围')}</span>

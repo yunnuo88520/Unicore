@@ -7,6 +7,8 @@ import type { TaskEntry, WebClient } from '@unicore/sdk';
 import { currentLocale, t, useI18n, useLocale } from '../../i18n';
 import { Badge, Button, Card, CardContent, Switch as Toggle, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage } from '@unicore/ui';
 import type { PageProps } from '../../router';
+import type { Bootstrap } from '@unicore/sdk';
+import { usePermissions } from '../../permissions';
 
 const COLUMN_COUNT = 7;
 const timeText = (seconds: number) => seconds
@@ -26,12 +28,13 @@ function StatusBadge({ entry }: { entry: TaskEntry }) {
   return <Badge variant={variant} title={entry.last_error || undefined}>{status === 'ok' ? t('正常') : status === 'error' ? t('失败') : status}</Badge>;
 }
 
-export function AdminTasksPage({ client }: PageProps) {
+export function AdminTasksPage({ client, metadata }: PageProps) {
   if (!client.web) return null;
-  return <TaskPanel web={client.web} />;
+  return <TaskPanel metadata={metadata} web={client.web} />;
 }
 
-function TaskPanel({ web }: { web: WebClient }) {
+function TaskPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
+ const {can} = usePermissions(metadata);
   useLocale();
   const { t } = useI18n();
   const message = useMessage();
@@ -86,11 +89,11 @@ function TaskPanel({ web }: { web: WebClient }) {
           {items.map(entry => <TableRow key={entry.name}>
             <TableCell><strong className="font-medium text-ink">{entry.name}</strong></TableCell>
             <TableCell><code className="font-mono text-xs text-muted">{entry.schedule}</code></TableCell>
-            <TableCell><Switch label={`${t('启用')} ${entry.name}`} checked={entry.enabled} disabled={pending} onChange={value => toggle.mutate({ entry, enabled: value })} /></TableCell>
+            <TableCell><Switch label={`${t('启用')} ${entry.name}`} checked={entry.enabled} disabled={pending || !can('updateTask')} onChange={value => toggle.mutate({ entry, enabled: value })} /></TableCell>
             <TableCell><span className="flex items-center gap-2 whitespace-nowrap"><time className="text-muted">{timeText(entry.last_run_at)}</time><StatusBadge entry={entry} /></span></TableCell>
             <TableCell><time className="whitespace-nowrap text-muted">{entry.enabled ? timeText(entry.next_run_at) : '—'}</time></TableCell>
             <TableCell><span className="tabular-nums text-muted">{entry.run_count}</span></TableCell>
-            <TableCell><Button variant="link" size="sm" className="h-auto p-0" disabled={pending} onClick={() => trigger.mutate(entry)}><Play size={13} />{t('立即执行')}</Button></TableCell>
+            <TableCell><Button variant="link" size="sm" className="h-auto p-0" disabled={pending || !can('triggerTask')} onClick={() => trigger.mutate(entry)}><Play size={13} />{t('立即执行')}</Button></TableCell>
           </TableRow>)}
         </TableBody>
       </Table>

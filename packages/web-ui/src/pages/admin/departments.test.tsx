@@ -1,3 +1,4 @@
+import { grantUI } from '../../test-authorization';
 /** Author: yunnuo <ymz@ebox.vip>
  * Description: Department tree renders hierarchies; create targets the parent, delete reports DEPARTMENT_IN_USE and moves renumber siblings.
  */
@@ -25,7 +26,7 @@ function mount(metadata: Bootstrap, web: Record<string, unknown>) {
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <MessageProvider>
-        <AdminDepartmentsPage {...({ client: { transport: 'http', web } as unknown as AppClient, metadata, registry: {}, theme: 'light', setTheme: () => {}, refresh: () => {} } as unknown as PageProps)} />
+        <AdminDepartmentsPage {...({ client: { transport: 'http', web } as unknown as AppClient, metadata: grantUI(metadata), registry: {}, theme: 'light', setTheme: () => {}, refresh: () => {} } as unknown as PageProps)} />
       </MessageProvider>
     </QueryClientProvider>,
   );

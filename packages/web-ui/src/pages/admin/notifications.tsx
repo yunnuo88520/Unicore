@@ -1,3 +1,4 @@
+import { isAdministrator } from '../../routes';
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Dedicated channel, plain-text template and event-routing settings with bilingual accessible controls.
 import { useId, useRef, useState, type ReactNode } from 'react';
@@ -13,7 +14,7 @@ const events = defineMessages({ login:'登录成功', ip_banned:'登录 IP 封�
 const descriptions = defineMessages({ login:'密码、邮箱或 OIDC 登录完成，启用 2FA 时在验证通过后通知。', ip_banned:'连续登录失败达到阈值，临时封禁来源 IP。', password_changed:'密码修改或找回密码成功。', totp_enabled:'账户成功开启 TOTP 两步验证。', totp_disabled:'账户关闭 TOTP 两步验证。', account_disabled:'管理员停用账户并撤销其会话。', account_enabled:'停用账户重新启用。', registered:'注册完成；需要邮箱验证时，在验证通过后通知。', user_created:'管理员在后台创建普通用户。', admin_created:'管理员在后台创建管理员账户。', sessions_revoked:'账户主动撤销一个或多个登录会话。', email_changed:'完成原邮箱验证并成功更换绑定邮箱。' });
 const variables = defineMessages({site_name:'站点名称',site_url:'站点地址',username:'用户名',event_time:'事件时间',ip:'来源 IP',message:'事件详情'});
 type Section='channels'|'templates'|'system';
-export function AdminNotificationsPage({client,page}:PageProps){if(!client.web)return null;return <NotificationPanel web={client.web} section={page==='notification-channels'?'channels':page==='notification-templates'?'templates':'system'}/>}
+export function AdminNotificationsPage({client,page,metadata}:PageProps){if(!client.web)return null;return <fieldset className="contents" disabled={!isAdministrator(metadata)}><NotificationPanel web={client.web} section={page==='notification-channels'?'channels':page==='notification-templates'?'templates':'system'}/></fieldset>}
 function NotificationPanel({web,section}:{web:WebClient;section:Section}){
  const {t}=useI18n();
  const query=useQuery({queryKey:['notification-settings'],queryFn:()=>web.notificationSettings()});

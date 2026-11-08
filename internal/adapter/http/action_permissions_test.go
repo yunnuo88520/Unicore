@@ -137,7 +137,7 @@ func TestButtonLevelPermissions(t *testing.T) {
 
 	// Granting notes:create on the role reopens creation only; update and
 	// delete stay gated by their own points.
-	if w := request("PUT", "/api/v1/admin/roles/"+readerRole, map[string]any{"name": "笔记读者", "permissions": []string{"notes:access", "notes:create", "files:access"}}, adminCookie, adminCSRF); w.Code != 200 {
+	if w := request("PUT", "/api/v1/admin/roles/"+readerRole, map[string]any{"name": "笔记读者", "permissions": []string{"notes:access", "notes:create", "files:access"}, "operation_ids": []string{"listNotes", "createNote", "listFiles", "fileAccess"}}, adminCookie, adminCSRF); w.Code != 200 {
 		t.Fatal("role update", w.Code, w.Body.String())
 	}
 	memberCookie, memberCSRF = issueSession(t, manager, false, member)
@@ -203,6 +203,16 @@ func TestRestrictedAdministratorFiles(t *testing.T) {
 	restricted, err := adminIdentity.Create(t.Context(), contracts.UserCreate{Username: "filereader", Email: "filereader@example.test", Password: "test-password-strong", Role: restrictedRole}, adminUser(t, manager).ID)
 	if err != nil {
 		t.Fatal(err)
+	}
+	// storage:read alone keeps its default self scope even in the admin workspace.
+	limitedCookie, _ := issueSession(t, manager, true, restricted)
+	limited := request("GET", "/api/v1/admin/files", nil, limitedCookie, "")
+	var limitedList contracts.FileListResponse
+	if err := json.Unmarshal(limited.Body.Bytes(), &limitedList); err != nil || limited.Code != 200 || limitedList.Data.Total != 0 {
+		t.Fatal("storage permission bypassed self scope", limited.Code, limited.Body.String(), err)
+	}
+	if w := request("PUT", "/api/v1/admin/roles/"+restrictedRole, map[string]any{"name": "文件运营", "permissions": []string{"storage:read"}, "data_scope": "all"}, adminCookie, adminCSRF); w.Code != 200 {
+		t.Fatal(w.Body.String())
 	}
 	restrictedCookie, restrictedCSRF := issueSession(t, manager, true, restricted)
 	w := request("GET", "/api/v1/admin/files", nil, restrictedCookie, "")

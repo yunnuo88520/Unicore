@@ -217,7 +217,7 @@ func TestDepartmentChangesRevokeUserSessions(t *testing.T) {
 func TestDataScopeDatabaseErrorIsReturned(t *testing.T) {
 	store, repository, _ := scopeSecurityStore(t)
 	store.DB.Close()
-	if _, err := repository.DataScope(context.Background(), contracts.User{ID: "reader", Roles: []string{"user"}}); err == nil {
+	if _, err := repository.DataScope(context.Background(), contracts.User{ID: "reader", Roles: []string{"user"}}, "notes:access"); err == nil {
 		t.Fatal("database failure swallowed")
 	}
 	_ = platform.ScopeSelf

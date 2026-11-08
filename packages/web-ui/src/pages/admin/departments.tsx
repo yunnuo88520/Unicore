@@ -22,8 +22,8 @@ function DepartmentPanel({ web, metadata }: { web: WebClient; metadata: Bootstra
   useLocale();
   const message = useMessage();
   const cache = useQueryClient();
-  const { has } = usePermissions(metadata);
-  const canWrite = has('departments:write');
+  const { can } = usePermissions(metadata);
+  const canWrite = can('createDepartment') || can('updateDepartment') || can('deleteDepartment');
   const list = useDepartmentsQuery(web);
   const tree = buildDepartmentTree(list.data?.items ?? []);
   // Nodes expand by default; the set only tracks manually collapsed branches.
@@ -101,15 +101,15 @@ function DepartmentPanel({ web, metadata }: { web: WebClient; metadata: Bootstra
             onClick={() => setSelectedId(node.id)}>{node.name}</button>
           {canWrite && <span className="flex shrink-0 items-center gap-0.5">
             <Button variant="ghost" size="icon" className="size-7" aria-label={t('在 {{name}} 下新建子部门', { name: node.name })}
-              disabled={move.isPending || create.isPending} onClick={() => setCreating(node)}><Plus size={13} /></Button>
+              disabled={!can('createDepartment') || move.isPending || create.isPending} onClick={() => setCreating(node)}><Plus size={13} /></Button>
             <Button variant="ghost" size="icon" className="size-7" aria-label={t('重命名 {{name}}', { name: node.name })}
-              disabled={move.isPending || rename.isPending} onClick={() => setRenaming(node)}><Pencil size={13} /></Button>
+              disabled={!can('updateDepartment') || move.isPending || rename.isPending} onClick={() => setRenaming(node)}><Pencil size={13} /></Button>
             <Button variant="ghost" size="icon" className="size-7" aria-label={t('上移 {{name}}', { name: node.name })}
-              disabled={move.isPending || index <= 0} onClick={() => moveNode(node, -1)}><ArrowUp size={13} /></Button>
+              disabled={!can('updateDepartment') || move.isPending || index <= 0} onClick={() => moveNode(node, -1)}><ArrowUp size={13} /></Button>
             <Button variant="ghost" size="icon" className="size-7" aria-label={t('下移 {{name}}', { name: node.name })}
-              disabled={move.isPending || index < 0 || index >= siblings.length - 1} onClick={() => moveNode(node, 1)}><ArrowDown size={13} /></Button>
+              disabled={!can('updateDepartment') || move.isPending || index < 0 || index >= siblings.length - 1} onClick={() => moveNode(node, 1)}><ArrowDown size={13} /></Button>
             <Button variant="ghost" size="icon" className="size-7 text-danger" aria-label={t('删除 {{name}}', { name: node.name })}
-              disabled={remove.isPending} onClick={() => setRemoving(node)}><Trash2 size={13} /></Button>
+              disabled={!can('deleteDepartment') || remove.isPending} onClick={() => setRemoving(node)}><Trash2 size={13} /></Button>
           </span>}
         </div>
         {expanded && !!node.children.length && <div className="ms-4 border-s border-line ps-1">{renderNodes(node.children)}</div>}
@@ -124,7 +124,7 @@ function DepartmentPanel({ web, metadata }: { web: WebClient; metadata: Bootstra
           <h2 className="text-md font-semibold text-ink">{t('部门管理')}</h2>
           <p className="mt-0.5 text-xs text-muted">{t('维护部门层级，为角色的数据范围提供组织依据。')}</p>
         </div>
-        {canWrite && <Button onClick={() => setCreating('root')}><Plus size={15} />{t('新建根部门')}</Button>}
+        {can('createDepartment') && <Button onClick={() => setCreating('root')}><Plus size={15} />{t('新建根部门')}</Button>}
       </div>
       {list.isError && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
         <span>{t(list.error.message)}</span>
@@ -139,7 +139,7 @@ function DepartmentPanel({ web, metadata }: { web: WebClient; metadata: Bootstra
                 <Network size={24} className="text-subtle" aria-hidden="true" />
                 <strong className="text-sm text-ink">{t('还没有部门')}</strong>
                 <span className="text-xs text-muted">{t('新建第一个部门，让笔记与文件按组织范围可见。')}</span>
-                {canWrite && <Button size="sm" variant="secondary" className="mt-1" onClick={() => setCreating('root')}><Plus size={14} />{t('新建根部门')}</Button>}
+                {can('createDepartment') && <Button size="sm" variant="secondary" className="mt-1" onClick={() => setCreating('root')}><Plus size={14} />{t('新建根部门')}</Button>}
               </span>}
       </div>
       <p className="text-xs leading-relaxed text-muted">{t('部门挂靠用户或包含子部门时不可删除；删除前请先迁移子部门并调整用户归属。')}</p>

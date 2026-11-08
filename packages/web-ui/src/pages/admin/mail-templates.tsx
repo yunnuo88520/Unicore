@@ -1,3 +1,4 @@
+import { canAction } from '../../permissions';
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Mail template drafts on the restricted Tiptap editor: named variables, preview, test delivery and restore.
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -15,9 +16,9 @@ const purposes = defineMessages({ test: '服务测试', verify: '注册验证', 
 const variableLabels = defineMessages({ site_name: '站点名称', site_url: '站点地址', code: '验证码', expires_minutes: '有效分钟数', title: '通知标题', detail: '通知详情' });
 const CODE_PURPOSES = ['verify', 'login', 'reset'];
 
-export function AdminMailTemplatesPage({ client }: PageProps) {
+export function AdminMailTemplatesPage({ client, metadata }: PageProps) {
   if (!client.web) return null;
-  return <MailTemplatePanel web={client.web} />;
+  return <fieldset className="contents" disabled={!canAction(metadata,'saveMailTemplate')}><MailTemplatePanel web={client.web} /></fieldset>;
 }
 
 function MailTemplatePanel({ web }: { web: WebClient }) {

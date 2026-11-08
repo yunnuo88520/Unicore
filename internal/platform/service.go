@@ -24,6 +24,7 @@ type Store interface {
 	CreateUser(context.Context, contracts.UserCreate, string, string) (contracts.User, error)
 	UpdateUser(context.Context, string, contracts.UserUpdate, string) (contracts.User, error)
 	ListUsers(context.Context, string, int, int, ...string) (contracts.UserList, error)
+	ListUsersScoped(context.Context, contracts.User, string, int, int, ...string) (contracts.UserList, error)
 	CreateSession(context.Context, string, string, int, string) error
 	Session(context.Context, string) (contracts.User, int, error)
 	DeleteSession(context.Context, string) error
@@ -42,7 +43,7 @@ type Store interface {
 	CreatePost(context.Context, contracts.PostSaveInput, string) (contracts.Post, error)
 	UpdatePost(context.Context, string, contracts.PostSaveInput, string) (contracts.Post, error)
 	DeletePost(context.Context, string, string) (contracts.Post, error)
-	DataScope(context.Context, contracts.User) (ScopeFilter, error)
+	DataScope(context.Context, contracts.User, string) (ScopeFilter, error)
 	ListMenuConfig(context.Context) (contracts.MenuList, error)
 	SaveNavigation(context.Context, contracts.MenuSaveInput, string) (contracts.MenuList, error)
 	ListDictionaries(context.Context) (contracts.DictionaryList, error)

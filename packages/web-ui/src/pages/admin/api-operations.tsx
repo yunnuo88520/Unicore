@@ -16,8 +16,8 @@ export function filterOperations(items: readonly Operation[], filters: Record<st
   }));
 }
 
-export function OperationCatalogue({ web, selected, onChange, realm, disabled = false }: {
-  web: WebClient; selected?: string[]; onChange?: (ids: string[]) => void; realm?: string; disabled?: boolean;
+export function OperationCatalogue({ web, selected, onChange, realm, permissions, disabled = false }: {
+  web: WebClient; selected?: string[]; onChange?: (ids: string[]) => void; realm?: string; permissions?: string[]; disabled?: boolean;
 }) {
   useLocale();
   const [filters, setFilters] = useState({ module: '', method: '', path: '', name: '', permission: '' });
@@ -39,9 +39,10 @@ export function OperationCatalogue({ web, selected, onChange, realm, disabled = 
           <TableHead>{t('模块 / 名称')}</TableHead><TableHead>{t('方法 / 路径')}</TableHead><TableHead>{t('权限点')}</TableHead><TableHead>{t('安全边界')}</TableHead>
         </TableRow></TableHeader>
         <TableBody>{items.map(item => {
-          const grantable = item.grantable && (!realm || item.realm === realm || item.realm === 'both') && !item.super_admin;
+          const permitted = permissions === undefined || (item.permission_mode === 'any' ? item.permissions.some(p => permissions.includes(p)) : item.permissions.every(p => permissions.includes(p)));
+          const grantable = permitted && item.grantable && (!realm || item.realm === realm || item.realm === 'both') && !item.super_admin;
           return <TableRow key={item.operation_id}>
-            {onChange && <TableCell><Checkbox aria-label={item.operation_id} checked={selected?.includes(item.operation_id) ?? false} disabled={disabled || !grantable}
+            {onChange && <TableCell><Checkbox aria-label={item.operation_id} checked={selected?.includes(item.operation_id) ?? false} disabled={disabled || (!grantable && !selected?.includes(item.operation_id))}
               onChange={checked => onChange(checked ? [...(selected ?? []), item.operation_id] : (selected ?? []).filter(id => id !== item.operation_id))} /></TableCell>}
             <TableCell><strong>{item.summary || item.operation_id}</strong><small className="block text-muted">{item.tags.join(' / ')}</small><code className="text-xs">{item.operation_id}</code></TableCell>
             <TableCell><Badge>{item.method}</Badge><code className="block text-xs">{item.path}</code></TableCell>

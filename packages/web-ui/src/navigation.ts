@@ -1,5 +1,6 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: One ordered section/directory tree drives the menu editor and every workspace navigation presentation.
+import { operations } from '@unicore/sdk';
 import type { Bootstrap, MenuList, NavigationNode, NavigationSection } from '@unicore/sdk';
 import { Circle, type LucideIcon } from 'lucide-react';
 import { defineMessages, t } from './i18n';
@@ -52,6 +53,7 @@ export function sectionTitle(section: { id: string; name: string }): string {
   return section.name || sectionNames[section.id] || section.id;
 }
 export function directoryTitle(id: string): string {
+  id = id.replace(/^(user|administrator):/, '');
   return directoryNames[id as keyof typeof directoryNames] ?? id;
 }
 
@@ -89,6 +91,27 @@ export function defaultNavigation(surface: NavigationSection['surface'], profile
     nodes.push({ ...newNavigationNode(id, sectionId, 'page'), parent_id: directory || undefined, route_id: id,
       label: surface === 'user' && id === 'site' ? titles.appearance : route.label,
       icon: defaultIcons[id] ?? 'Circle', sort: defaultRank(id) * 10 });
+  }
+  if (profile === 'web-platform') {
+    for (const node of nodes) {
+      node.id = `${surface}:${node.id}`;
+      if (node.parent_id) node.parent_id = `${surface}:${node.parent_id}`;
+    }
+    const pages = [...nodes];
+    for (const [id, raw] of Object.entries(operations)) {
+      const op = raw as unknown as {
+        uiPage?: string; identityRealm?: string; permissions: readonly string[];
+        permissionMode?: string; superAdmin: boolean;
+      };
+      if (!op.uiPage || op.identityRealm !== surface || op.superAdmin || !op.permissions.length) continue;
+      const page = pages.find(node => node.type === 'page' && node.route_id === op.uiPage);
+      if (!page) continue;
+      const permissions = op.permissionMode === 'any' ? op.permissions : op.permissions.filter(p => p !== 'admin:access').slice(0, 1);
+      permissions.forEach((permission, index) => nodes.push({
+        ...newNavigationNode(`${surface}:op:${id}${index ? `:alt${index}` : ''}`, page.section_id, 'action'),
+        parent_id: page.id, permission, operation_ids: [id],
+      }));
+    }
   }
   return { version: 0, sections, nodes };
 }
@@ -137,13 +160,14 @@ export function buildNavigation(data: Bootstrap): Navigation {
   const model = buildMenuTree(config);
   const render = ({ node, children }: MenuTreeNode): NavEntry | null => {
     if (!node.visible || node.disabled || node.type === 'action') return null;
+    if (data.profile === 'web-platform' && !data.current_user?.roles.includes('super_admin') && !data.current_user?.menu_ids?.includes(node.id)) return null;
     const kids = children.map(render).filter((entry): entry is NavEntry => !!entry);
     if (node.type === 'directory' && !kids.length) return null;
     if (node.type === 'page' && (!isRegisteredPage(node.route_id) || !canAccess(node.route_id, data))) return null;
     if (node.type === 'link' && (!validNavigationUrl(node.url ?? '') || (registeredPath(node.url ?? '') && !canAccess(registeredPath(node.url!)!, data)))) return null;
     const fallbackIcon = isRegisteredPage(node.route_id) ? routes[node.route_id].icon
-      : directoryIcons[node.id] ? resolveNavigationIcon(directoryIcons[node.id]) : Circle;
-    return { id: node.id, type: node.type, label: node.label || (isRegisteredPage(node.route_id) ? routes[node.route_id].label : directoryNames[node.id as keyof typeof directoryNames] ?? node.id),
+      : directoryIcons[node.id.replace(/^(user|administrator):/, '')] ? resolveNavigationIcon(directoryIcons[node.id.replace(/^(user|administrator):/, '')]) : Circle;
+    return { id: node.id, type: node.type, label: node.label || (isRegisteredPage(node.route_id) ? routes[node.route_id].label : directoryTitle(node.id)),
       icon: node.icon ? resolveNavigationIcon(node.icon) : fallbackIcon,
       routeId: isRegisteredPage(node.route_id) ? node.route_id : undefined, url: node.url, openMode: node.open_mode,
       activeMenu: node.active_menu, badgeText: node.badge_text, badgeColor: node.badge_color, badgeDot: node.badge_dot, disabled: node.disabled, children: kids };

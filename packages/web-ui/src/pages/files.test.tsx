@@ -1,3 +1,4 @@
+import { grantUI } from '../test-authorization';
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Batch migration reports partial failure, retries only unfinished files and stops between requests; page actions gate per assignable point.
 import { render, screen, waitFor } from '@testing-library/react';
@@ -56,7 +57,7 @@ function mountFiles(permissions: string[], items: FileEntry[] = [entry]) {
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <MessageProvider>
-        <FilesPage {...({ client, metadata, registry: {}, theme: 'light', setTheme: () => {}, refresh: () => {} } as unknown as PageProps)} />
+        <FilesPage {...({ client, metadata: grantUI(metadata), registry: {}, theme: 'light', setTheme: () => {}, refresh: () => {} } as unknown as PageProps)} />
       </MessageProvider>
     </QueryClientProvider>,
   );

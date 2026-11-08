@@ -53,6 +53,28 @@ export function isAdministrator(metadata?: Bootstrap): boolean {
   return isAdminRealm(metadata) && !!metadata?.current_user?.roles.includes('super_admin');
 }
 export function canAccess(page: Page, metadata?: Bootstrap): boolean {
+  if (metadata?.profile === 'web-platform' && metadata.current_user &&
+    !metadata.current_user.roles.includes('super_admin') &&
+    !['account', 'account-security', 'account-sessions'].includes(page)) {
+    const navigation = metadata.navigation;
+    const sections = new Set(navigation?.sections.filter(section => section.visible &&
+      section.surface === (metadata.identity_realm ?? 'user')).map(section => section.id));
+    const nodes = navigation?.nodes.filter(node => sections.has(node.section_id)) ?? [];
+    const visible = (node: typeof nodes[number]) => {
+      const seen = new Set<string>();
+      let current: typeof node | undefined = node;
+      while (current) {
+        if (!current.visible || current.disabled || seen.has(current.id) ||
+          !metadata.current_user?.menu_ids?.includes(current.id)) return false;
+        seen.add(current.id);
+        if (!current.parent_id) return true;
+        current = nodes.find(parent => parent.id === current!.parent_id && parent.section_id === node.section_id);
+      }
+      return false;
+    };
+    if (!nodes.some(node => node.type === 'page' && node.route_id === page && visible(node))) return false;
+  }
+
   if (!metadata) return false;
   if (page === 'api-docs') return metadata.profile === 'web-platform' || metadata.profile === 'web-standalone';
   // Updates stay super-only: restricted operators never reach the update panel.
@@ -69,10 +91,7 @@ export function canAccess(page: Page, metadata?: Bootstrap): boolean {
   if (metadata.profile !== 'web-platform') return !('permission' in route) && !('authenticated' in route);
   if (!metadata.current_user) return false;
   const permission = 'permission' in route ? route.permission : null;
-  // One permission point gates the page, its buttons and its API: the builtin
-  // super_admin holds the full catalogue, user-realm roles resolve assignable
-  // grants from the database and restricted administrator roles resolve the
-  // grants their operator assigned.
+  // Page permissions remain the upper bound in addition to menu grants.
   if (permission && !metadata.current_user.permissions.includes(permission)) return false;
   if ((route as { group?: string }).group === 'administration' && !isAdminRealm(metadata)) return false;
   return true;

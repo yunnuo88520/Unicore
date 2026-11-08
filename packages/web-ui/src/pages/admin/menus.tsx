@@ -178,7 +178,7 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
   const surfaceSections = draft.sections.filter(section => section.surface === surface).sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id));
   const surfaceNodes = draft.nodes.filter(node => surfaceSections.some(section => section.id === node.section_id));
   const tree = buildMenuTree({ sections: surfaceSections, nodes: surfaceNodes });
-  const realmRoles = (roles.data?.items ?? []).filter(role => role.realm === surface);
+  const realmRoles = (roles.data?.items ?? []).filter(role => role.id !== 'super_admin');
 
   const patchSection = (id: string, patch: Partial<NavigationSection>) =>
     setDraft(current => current && { ...current, sections: current.sections.map(section => section.id === id ? { ...section, ...patch } : section) });

@@ -18,7 +18,7 @@ function adminProps(page: PageProps['page'], web: Record<string, unknown>): Page
     client: { transport: 'http', web } as unknown as AppClient,
     metadata: {
       profile: 'web-platform', identity_realm: 'administrator', capabilities: {},
-      current_user: { id: 'admin-1', roles: ['super_admin'], permissions: ['users:read', 'roles:read', 'roles:write', 'departments:read', 'menus:write', 'dictionaries:read', 'posts:read', 'posts:write'] },
+      current_user: { id: 'admin-1', roles: ['super_admin'], permissions: ['dictionaries:write', 'users:read', 'roles:read', 'roles:write', 'departments:read', 'menus:write', 'dictionaries:read', 'posts:read', 'posts:write'] },
     }, registry: {}, theme: 'light', setTheme: () => {}, refresh: () => {},
   } as unknown as PageProps;
 }

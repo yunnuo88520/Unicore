@@ -16,8 +16,8 @@ export function AdminPostsPage({ client, metadata }: PageProps) {
   const web = client.web!;
   const cache = useQueryClient();
   const message = useMessage();
-  const { has } = usePermissions(metadata);
-  const canWrite = has('posts:write');
+  const { can } = usePermissions(metadata);
+
   const list = usePostsQuery(web);
   const [editor, setEditor] = useState<Post | 'new' | null>(null);
   const [removing, setRemoving] = useState<Post | null>(null);
@@ -29,14 +29,14 @@ export function AdminPostsPage({ client, metadata }: PageProps) {
     onError: error => message.error(t(error.message)),
   });
   return <Card><CardContent className="flex min-w-0 flex-col gap-4">
-    <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="font-semibold">{t('岗位管理')}</h2>{canWrite && <Button onClick={() => setEditor('new')}>{t('新建岗位')}</Button>}</div>
+    <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="font-semibold">{t('岗位管理')}</h2>{can('createPost') && <Button onClick={() => setEditor('new')}>{t('新建岗位')}</Button>}</div>
     <p className="text-sm text-muted">{t('岗位用于组织成员，不会隐式授予角色或权限。')}</p>
     {list.isError && <div role="alert">{t(list.error.message)} <Button variant="secondary" onClick={() => void list.refetch()}>{t('重试')}</Button></div>}
     <div className="min-w-0 overflow-x-auto rounded-lg border border-line"><Table className="min-w-[680px]"><TableHeader><TableRow>
       <TableHead>{t('编码')}</TableHead><TableHead>{t('名称')}</TableHead><TableHead>{t('排序')}</TableHead><TableHead>{t('状态')}</TableHead><TableHead>{t('说明')}</TableHead><TableHead>{t('操作')}</TableHead>
     </TableRow></TableHeader><TableBody>
       {(list.data?.items ?? []).map(post => <TableRow key={post.id}><TableCell>{post.code}</TableCell><TableCell>{post.name}</TableCell><TableCell>{post.sort}</TableCell><TableCell>{post.enabled ? t('已启用') : t('已禁用')}</TableCell><TableCell className="max-w-64 break-words">{post.description || '—'}</TableCell><TableCell><div className="flex gap-2">
-        {has('users:read') && <Button variant="link" onClick={() => setMembers(post)}>{t('成员')}</Button>}{canWrite && <><Button variant="link" aria-label={t('编辑岗位 {{name}}', { name: post.name })} onClick={() => setEditor(post)}>{t('编辑')}</Button><Button variant="link" aria-label={t('删除岗位 {{name}}', { name: post.name })} onClick={() => setRemoving(post)}>{t('删除')}</Button></>}
+        {can('listUsers') && <Button variant="link" onClick={() => setMembers(post)}>{t('成员')}</Button>}{can('updatePost') && <Button variant="link" aria-label={t('编辑岗位 {{name}}', { name: post.name })} onClick={() => setEditor(post)}>{t('编辑')}</Button>}{can('deletePost') && <Button variant="link" aria-label={t('删除岗位 {{name}}', { name: post.name })} onClick={() => setRemoving(post)}>{t('删除')}</Button>}
       </div></TableCell></TableRow>)}
       {!list.data?.items.length && <TableEmpty colSpan={6}>{list.isPending ? t('正在加载…') : t('暂无岗位')}</TableEmpty>}
     </TableBody></Table></div>

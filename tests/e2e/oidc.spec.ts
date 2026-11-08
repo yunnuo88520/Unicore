@@ -177,7 +177,9 @@ test('userinfo enrichment, relaxed verification and password bind-login', async 
     // Without userinfo, an unverified enterprise email is refused until the requirement is lifted.
     expect((await patch({'oidc.userinfo_enabled':'false'})).status()).toBe(200);
     await enterpriseSignIn(employee,instance.url,'strict-employee','','unverified');
-    await expect(employee.getByRole('button', { name: '绑定并登录', exact: true })).toBeVisible(); await capture(employee,info,'oidc-unverified-blocked');
+    await expect(employee.getByRole('alert')).toContainText('请先使用本地账号登录');
+    expect((await (await employee.request.get(`${instance.url}/api/v1/bootstrap`)).json()).data.current_user).toBeFalsy();
+    await capture(employee,info,'oidc-unverified-blocked');
     expect((await patch({'oidc.require_email_verified':'false'})).status()).toBe(200);
     await enterpriseSignIn(employee,instance.url,'strict-employee','','unverified');
     await expect(employee.getByRole('heading',{name:'工作台概览'})).toBeVisible();

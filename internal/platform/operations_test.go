@@ -73,7 +73,7 @@ func TestOperationCatalogueBoundaries(t *testing.T) {
 		t.Fatal("files materialization", files)
 	}
 	// A user-realm role never materializes administrator operations.
-	for _, id := range MaterializedOperations("user", Permissions) {
+	for _, id := range MaterializedOperations("user", Permissions()) {
 		if op, _ := Operation(id); op.Realm != "user" {
 			t.Fatal("cross-realm materialization", id)
 		}
@@ -81,7 +81,7 @@ func TestOperationCatalogueBoundaries(t *testing.T) {
 
 	// The operation gate: super bypasses, unknown ids deny, non-grantable
 	// session operations stay open, grantable ones need the explicit grant.
-	super := contracts.User{Roles: []string{"super_admin"}, Permissions: Permissions}
+	super := contracts.User{Roles: []string{"super_admin"}, Permissions: Permissions()}
 	if !OperationAllowed(super, "listRoles") {
 		t.Fatal("super denied")
 	}

@@ -355,7 +355,7 @@ func (r *Repository) ListMenuConfig(ctx context.Context) (contracts.MenuList, er
 	if err != nil {
 		return contracts.MenuList{}, err
 	}
-	return contracts.MenuList{Items: legacy.Items, Version: n.Version, Sections: n.Sections, Nodes: n.Nodes, Pages: platform.NavigationPages}, nil
+	return contracts.MenuList{Items: legacy.Items, Version: n.Version, Sections: n.Sections, Nodes: n.Nodes, Pages: platform.NavigationPages()}, nil
 }
 
 // validateNavigation checks a complete replacement tree: unique ids, sections

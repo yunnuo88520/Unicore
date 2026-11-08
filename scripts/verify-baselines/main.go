@@ -21,14 +21,15 @@ import (
 	"github.com/yunnuo/unicore/internal/adapter/bloblocal"
 	"github.com/yunnuo/unicore/internal/adapter/storage/announcementsql"
 	"github.com/yunnuo/unicore/internal/adapter/storage/filesql"
-	"github.com/yunnuo/unicore/internal/adapter/storage/notessql"
 	"github.com/yunnuo/unicore/internal/adapter/storage/platformsql"
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/adapter/storage/webdb"
 	"github.com/yunnuo/unicore/internal/blob"
 	"github.com/yunnuo/unicore/internal/contracts"
-	"github.com/yunnuo/unicore/internal/domain"
 	"github.com/yunnuo/unicore/internal/files"
+	notesdomain "github.com/yunnuo/unicore/internal/modules/notes/domain"
+	"github.com/yunnuo/unicore/internal/modules/notes/storage/notessql"
+	notesusecase "github.com/yunnuo/unicore/internal/modules/notes/usecase"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/settings"
 	"github.com/yunnuo/unicore/internal/usecase"
@@ -247,27 +248,27 @@ func business(s *sqlstore.Store, profile, temp, admin string) map[string]any {
 	if profile == "web-platform" {
 		scope = "user:" + admin
 	}
-	notes := usecase.Notes{Repo: &notessql.Repository{Store: s}}
+	notes := notesusecase.Notes{Repo: &notessql.Repository{Store: s}}
 	input := contracts.NoteInput{Title: strings.Repeat("测", 120), Body: "baseline fixture", Status: "open", AttachmentIds: &[]string{}}
 	n, e := notes.Create(ctx, scope, input)
 	must(e)
 	queryInput := contracts.NoteQuery{Page: 1, Sort: "updated_at", Direction: "desc"}
-	list, e := notes.List(ctx, scope, queryInput, usecase.NoteVisibility{})
+	list, e := notes.List(ctx, scope, queryInput, notesusecase.NoteVisibility{})
 	must(e)
 	check(list.Total == 1, "notes create/read")
-	other, e := notes.List(ctx, "different-scope", queryInput, usecase.NoteVisibility{})
+	other, e := notes.List(ctx, "different-scope", queryInput, notesusecase.NoteVisibility{})
 	must(e)
 	check(other.Total == 0, "notes scope isolation")
 	_, e = notes.Create(ctx, scope, contracts.NoteInput{Title: strings.Repeat("测", 121), Status: "open"})
-	check(errors.Is(e, domain.ErrNoteInvalid), "Go title length validation")
+	check(errors.Is(e, notesdomain.ErrNoteInvalid), "Go title length validation")
 	u := contracts.NoteUpdate{Title: "updated", Body: "updated", Status: "done", Version: n.Version, AttachmentIds: []string{}}
 	updated, e := notes.Update(ctx, scope, n.ID, u)
 	must(e)
 	check(updated.Version == 2, "notes version")
 	_, e = notes.Update(ctx, scope, n.ID, u)
-	check(errors.Is(e, usecase.ErrNoteConflict), "stale version rejected")
+	check(errors.Is(e, notesusecase.ErrNoteConflict), "stale version rejected")
 	must(notes.Delete(ctx, scope, n.ID, updated.Version))
-	list, e = notes.List(ctx, scope, queryInput, usecase.NoteVisibility{})
+	list, e = notes.List(ctx, scope, queryInput, notesusecase.NoteVisibility{})
 	must(e)
 	check(list.Total == 0, "notes soft delete")
 	check(count(s, "SELECT COUNT(*) FROM unicore_example_notes WHERE id=? AND deleted_at>0 AND version=3", n.ID) == 1, "notes persisted lifecycle")

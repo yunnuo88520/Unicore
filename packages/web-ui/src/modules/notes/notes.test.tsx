@@ -7,7 +7,7 @@ import { expect, it, vi } from 'vitest';
 import { MessageProvider } from '@unicore/ui';
 import type { AppClient, Bootstrap, NoteEntry } from '@unicore/sdk';
 import { NotesPage } from './notes';
-import type { PageProps } from '../router';
+import type { PageProps } from '../../router';
 
 function note(capabilities: { update: boolean; delete: boolean }) {
   return { id: 'note-1', title: '记录想法', body: '正文内容', status: 'open', attachment_ids: [], version: 1, created_at: 1760000000, updated_at: 1760000000, capabilities } as NoteEntry;

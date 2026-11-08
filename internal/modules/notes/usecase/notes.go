@@ -5,11 +5,13 @@ package usecase
 import (
 	"context"
 	"errors"
-	"github.com/yunnuo/unicore/internal/contracts"
-	"github.com/yunnuo/unicore/internal/domain"
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/yunnuo/unicore/internal/contracts"
+	coredomain "github.com/yunnuo/unicore/internal/domain"
+	"github.com/yunnuo/unicore/internal/modules/notes/domain"
 )
 
 var ErrNoteNotFound = errors.New("note not found")
@@ -37,7 +39,7 @@ type Notes struct {
 }
 
 func (n *Notes) List(ctx context.Context, scope string, q contracts.NoteQuery, visibility NoteVisibility) (contracts.NoteList, error) {
-	if scope == "" || !domain.ValidPage(q.Page, 20) || utf8.RuneCountInString(q.Search) > 128 || (q.Status != "" && q.Status != "open" && q.Status != "done") || (q.Sort != "title" && q.Sort != "updated_at") || (q.Direction != "asc" && q.Direction != "desc") {
+	if scope == "" || !coredomain.ValidPage(q.Page, 20) || utf8.RuneCountInString(q.Search) > 128 || (q.Status != "" && q.Status != "open" && q.Status != "done") || (q.Sort != "title" && q.Sort != "updated_at") || (q.Direction != "asc" && q.Direction != "desc") {
 		return contracts.NoteList{}, domain.ErrNoteInvalid
 	}
 	return n.Repo.List(ctx, scope, q, visibility)
@@ -96,4 +98,4 @@ func (n *Notes) Delete(ctx context.Context, scope, id string, version int) error
 	}
 	return n.Repo.Delete(ctx, scope, id, version)
 }
-func NoteID() string { return domain.NewEntity(time.Now()).ID }
+func NoteID() string { return coredomain.NewEntity(time.Now()).ID }

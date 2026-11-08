@@ -2,14 +2,17 @@
 // Description: Permission catalogue; user-realm roles take assignable grants, administrator-realm roles any catalogue point.
 package platform
 
-import "github.com/yunnuo/unicore/internal/contracts"
+import (
+	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/module"
+)
 
 // Assignable marks permission points a custom user-realm role may hold. Management
 // permissions stay false for the user realm: user-realm roles can never carry
 // administrator account control, role management, framework updates or instance
 // configuration. Administrator-realm roles may hold any catalogue point; only
 // operation-level superAdmin policy (contract x-unicore) stays super_admin-only.
-var PermissionCatalog = []contracts.PermissionDefinition{
+var basePermissionCatalog = []contracts.PermissionDefinition{
 	{ID: "posts:read", Name: "查看岗位", Description: "查看岗位与成员分配", Group: "用户管理"},
 	{ID: "posts:write", Name: "管理岗位", Description: "创建、编辑与删除岗位", Group: "用户管理"},
 	{ID: "announcements:read", Name: "查看平台公告", Description: "查看公告列表、草稿与配置", Group: "系统管理"},
@@ -40,29 +43,34 @@ var PermissionCatalog = []contracts.PermissionDefinition{
 	{ID: "files:access", Name: "使用文件管理", Description: "访问文件管理页面并查看、下载文件", Group: "业务权限", Assignable: true},
 	{ID: "files:upload", Name: "上传文件", Description: "发起分片或普通上传并写入文件内容", Group: "业务权限", Assignable: true},
 	{ID: "files:delete", Name: "删除文件", Description: "删除本人上传的文件", Group: "业务权限", Assignable: true},
-	{ID: "notes:access", Name: "使用我的笔记", Description: "访问笔记页面并查看个人笔记", Group: "业务权限", Assignable: true},
-	{ID: "notes:create", Name: "创建笔记", Description: "新建个人笔记", Group: "业务权限", Assignable: true},
-	{ID: "notes:update", Name: "编辑笔记", Description: "修改个人笔记内容与状态", Group: "业务权限", Assignable: true},
-	{ID: "notes:delete", Name: "删除笔记", Description: "删除个人笔记", Group: "业务权限", Assignable: true},
 }
 
-var Permissions = func() []string {
-	result := make([]string, 0, len(PermissionCatalog))
-	for _, permission := range PermissionCatalog {
+// PermissionCatalog aggregates the built-in catalogue with the registered
+// business modules; module registration happens before any consumer runs.
+func PermissionCatalog() []contracts.PermissionDefinition {
+	return append(append([]contracts.PermissionDefinition{}, basePermissionCatalog...), module.Permissions()...)
+}
+
+// Permissions lists every catalogue point including module contributions.
+func Permissions() []string {
+	result := make([]string, 0, len(basePermissionCatalog)+8)
+	for _, permission := range PermissionCatalog() {
 		result = append(result, permission.ID)
 	}
 	return result
-}()
+}
 
-var assignablePermissions = func() map[string]bool {
-	result := map[string]bool{}
-	for _, permission := range PermissionCatalog {
-		if permission.Assignable {
-			result[permission.ID] = true
+// AssignablePermission reports whether a permission point exists and may be
+// granted to a custom user-realm role. Unknown points are refused (fail-closed);
+// administrator-realm roles accept every catalogue point instead.
+func AssignablePermission(permission string) bool {
+	for _, definition := range PermissionCatalog() {
+		if definition.ID == permission {
+			return definition.Assignable
 		}
 	}
-	return result
-}()
+	return false
+}
 
 // super_admin is retained as the existing administrator ID for data compatibility.
 func IsSuper(user contracts.User) bool {
@@ -70,16 +78,11 @@ func IsSuper(user contracts.User) bool {
 }
 func BuiltinRole(id string) bool { return id == "super_admin" || id == "user" }
 
-// AssignablePermission reports whether a permission point exists and may be
-// granted to a custom user-realm role. Unknown points are refused (fail-closed);
-// administrator-realm roles accept every catalogue point instead.
-func AssignablePermission(permission string) bool { return assignablePermissions[permission] }
-
 // CatalogPermission reports whether a permission point exists in the catalogue
 // at all. Administrator-realm roles may hold any catalogue point, so the role
 // CRUD uses this as their fail-closed bound.
 func CatalogPermission(permission string) bool {
-	for _, definition := range PermissionCatalog {
+	for _, definition := range PermissionCatalog() {
 		if definition.ID == permission {
 			return true
 		}

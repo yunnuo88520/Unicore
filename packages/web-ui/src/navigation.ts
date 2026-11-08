@@ -1,5 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: One ordered section/directory tree drives the menu editor and every workspace navigation presentation.
+import { notes } from './modules/notes';
+import { uiModules } from './module-registry';
 import type { Bootstrap, MenuList, NavigationNode, NavigationSection } from '@unicore/sdk';
 import { Circle, type LucideIcon } from 'lucide-react';
 import { defineMessages, t } from './i18n';
@@ -31,11 +33,13 @@ export function validNavigationUrl(value: string): boolean {
   if (value.startsWith('/')) return !!registeredPath(value);
   try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol) && !!url.hostname; } catch { return false; }
 }
-export const defaultPageOrder: string[] = [
+const builtinPageOrder: string[] = [
   'overview', 'lab', 'users', 'administrators', 'roles', 'departments', 'posts', 'api-operations', 'menus', 'dictionaries',
-  'announcements', 'tasks', 'files', 'notes', 'api-docs', 'site', 'storage', 'account-policy', 'mail', 'mail-templates',
+  'announcements', 'tasks', 'files', 'api-docs', 'site', 'storage', 'account-policy', 'mail', 'mail-templates',
   'notification-channels', 'notification-templates', 'system-notifications', 'logs', 'edition', 'account', 'account-security', 'account-sessions',
 ];
+// Module pages append after the builtins in each module's declared order.
+export const defaultPageOrder: string[] = [...builtinPageOrder, ...uiModules().flatMap(item => item.order ?? [])];
 export function defaultRank(id: string): number { const index = defaultPageOrder.indexOf(id); return index < 0 ? defaultPageOrder.length : index; }
 const titles = defineMessages({ business: '业务', system: '系统管理', administration: '超级管理员', settings: '系统设置', personal: '个人中心', appearance: '外观设置' });
 // Seeded directories persist empty labels (names are operator-overridable), so
@@ -91,13 +95,15 @@ export function defaultNavigation(surface: NavigationSection['surface'], profile
   }
   return { version: 0, sections, nodes };
 }
-const defaultIcons: Record<string, string> = {
+const builtinIcons: Record<string, string> = {
   overview: 'LayoutDashboard', lab: 'FlaskConical', notes: 'NotebookPen', files: 'FolderOpen', site: 'Settings2', storage: 'Cloud',
   users: 'UserRound', administrators: 'UserCog', announcements: 'Megaphone', 'account-policy': 'ShieldCheck', mail: 'Mail', 'mail-templates': 'Mail',
   'notification-channels': 'Webhook', 'notification-templates': 'FileText', 'system-notifications': 'Bell', logs: 'ScrollText', edition: 'PackageCheck',
   roles: 'ShieldCheck', departments: 'Network', tasks: 'ListChecks', menus: 'LayoutDashboard', dictionaries: 'FileText', posts: 'UserCog',
   'api-operations': 'BookOpen', account: 'UserRound', 'account-security': 'ShieldCheck', 'account-sessions': 'Monitor', 'api-docs': 'BookOpen',
 };
+// Module icons merge after the builtins so a seeded tree and the client default match.
+const defaultIcons: Record<string, string> = { ...builtinIcons, ...Object.fromEntries(uiModules().flatMap(item => Object.entries(item.icons ?? []))) };
 export function newNavigationNode(id: string, sectionId: string, type: NavigationNode['type']): NavigationNode {
   return { id, section_id: sectionId, type, label: '', icon: type === 'directory' ? 'Folder' : type === 'link' ? 'Link' : type === 'action' ? 'MousePointerClick' : 'Circle',
     sort: 100, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: [], disabled: false };

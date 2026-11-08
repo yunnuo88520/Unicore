@@ -20,6 +20,9 @@ import (
 	"github.com/yunnuo/unicore/assets/theme"
 	"github.com/yunnuo/unicore/internal/config"
 	"github.com/yunnuo/unicore/internal/logging"
+	"github.com/yunnuo/unicore/internal/module"
+	notesmodule "github.com/yunnuo/unicore/internal/modules/notes"
+	_ "github.com/yunnuo/unicore/internal/modules/notes/desktop"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -27,11 +30,9 @@ import (
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	desktopassets "github.com/yunnuo/unicore/apps/desktop"
 	"github.com/yunnuo/unicore/internal/adapter/desktop"
-	"github.com/yunnuo/unicore/internal/adapter/storage/notessql"
 	"github.com/yunnuo/unicore/internal/bootstrap"
 	"github.com/yunnuo/unicore/internal/bootstrap/local"
 	"github.com/yunnuo/unicore/internal/buildinfo"
-	"github.com/yunnuo/unicore/internal/usecase"
 )
 
 // desktopLogSink outlives runDesktop so the final stop_failed record still
@@ -103,7 +104,8 @@ func runDesktop() (result error) {
 			return err
 		}
 		defer func() { result = errors.Join(result, store.Close()) }()
-		bridge = desktop.NewLocal(bootstrap.Core(), service, &usecase.Notes{Repo: &notessql.Repository{Store: store}})
+		module.Register(notesmodule.Module)
+	bridge = desktop.NewLocal(bootstrap.Core(), service, store)
 	}
 	cancelUpdates := func() {}
 	defer func() { cancelUpdates() }()

@@ -16,13 +16,17 @@ import (
 	"time"
 
 	"github.com/yunnuo/unicore/internal/adapter/storage/filesql"
-	"github.com/yunnuo/unicore/internal/adapter/storage/notessql"
 	"github.com/yunnuo/unicore/internal/bootstrap"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/files"
 	"github.com/yunnuo/unicore/internal/install"
+	"github.com/yunnuo/unicore/internal/module"
+	notesmodule "github.com/yunnuo/unicore/internal/modules/notes"
+	"github.com/yunnuo/unicore/internal/modules/notes/storage/notessql"
 	"github.com/yunnuo/unicore/internal/runtime"
 )
+
+func init() { module.Register(notesmodule.Module) }
 
 // TestUserRealmScopeReadsAndSigns covers the data-scope surface over real HTTP:
 // an all-scope member sees peer user-realm rows but never administrator or

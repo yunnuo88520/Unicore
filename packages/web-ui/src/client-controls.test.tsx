@@ -6,7 +6,7 @@ import { beforeEach, expect, it, vi } from 'vitest';
 import { Workspace } from './App';
 import type { AppClient, Bootstrap } from '@unicore/sdk';
 
-const metadata: Bootstrap = { profile: 'web-platform', version: '', commit: '', build_time: '', stage: '', deployment_kind: 'development', installed: true, site_name: 'Unicore', admin_path: '', identity_realm: 'user', current_user: { totp_enabled:false, id:'user', status:'active', created_at:0, last_login_at:0, username:'demo', email:'demo@example.test', roles:['user'], permissions:[] }, capabilities: { execute:true, authentication:true, database:false, installation:false, settings:true, license:false, updater:false } };
+const metadata: Bootstrap = { profile: 'web-platform', version: '', commit: '', build_time: '', stage: '', deployment_kind: 'development', installed: true, site_name: 'Unicore', admin_path: '', identity_realm: 'user', current_user: { totp_enabled:false, id:'user', status:'active', created_at:0, last_login_at:0, username:'demo', email:'demo@example.test', roles:['user'], permissions:[] }, capabilities: { execute:true, authentication:true, database:false, installation:false, settings:true, license:false, updater:false, features:{notes:true} } };
 beforeEach(() => { localStorage.clear(); window.location.hash = ''; });
 it('switches by keyboard without replacing drafts or requesting administrator resources', async () => {
   const api = { transport:'http', bootstrap:vi.fn().mockResolvedValue(metadata), execute:vi.fn(), settings:vi.fn(), patchSettings:vi.fn(), updates:{overview:vi.fn()} } as unknown as AppClient;
@@ -31,7 +31,7 @@ it.each([
 ])('shows the $name version status without an automatic network check', async ({name,overview}) => {
   const check = vi.fn();
   const api = {
-    transport:'http', bootstrap:vi.fn().mockResolvedValue({...metadata,profile:'web-standalone',version:'0.1.1',current_user:undefined,capabilities:{...metadata.capabilities,authentication:false,updater:true}}),
+    transport:'http', bootstrap:vi.fn().mockResolvedValue({...metadata,profile:'web-standalone',version:'0.1.1',current_user:undefined,capabilities:{...metadata.capabilities,authentication:false,updater:true, features: { notes: true }}}),
     execute:vi.fn(), updates:{overview:vi.fn().mockResolvedValue(overview),check},
   } as unknown as AppClient;
   const {container} = render(<Workspace client={api}/>);

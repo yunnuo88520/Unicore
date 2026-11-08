@@ -12,6 +12,8 @@ import (
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/adapter/storage/webdb"
 	"github.com/yunnuo/unicore/internal/contracts"
+	notesnotessql "github.com/yunnuo/unicore/internal/modules/notes/storage/notessql"
+	notesusecase "github.com/yunnuo/unicore/internal/modules/notes/usecase"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/settings"
 	"github.com/yunnuo/unicore/migrations/runner"
@@ -127,4 +129,23 @@ func TestDialectMigrationsAndIdentity(t *testing.T) {
 			exerciseNotificationEvents(t, ctx, store, admin)
 		})
 	}
+}
+
+// exerciseNotes drives the cross-scope notes fixture shared by the platform
+// repository tests; the module tree owns the full integration test.
+func exerciseNotes(t *testing.T, ctx context.Context, store *sqlstore.Store) {
+	t.Helper()
+	notes := &notesusecase.Notes{Repo: &notesnotessql.Repository{Store: store}}
+	query := contracts.NoteQuery{Page: 1, Sort: "title", Direction: "asc"}
+	created, err := notes.Create(ctx, "user/example", contracts.NoteInput{Title: "fixture", Body: "body", Status: "open"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, scope := range []string{"user/other", "administrator/example", "local"} {
+		list, e := notes.List(ctx, scope, query, notesusecase.NoteVisibility{})
+		if e != nil || list.Total != 0 {
+			t.Fatal("scope leaked", scope, list, e)
+		}
+	}
+	_ = created
 }

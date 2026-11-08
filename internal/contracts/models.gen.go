@@ -18,13 +18,14 @@ type ExecuteOutput struct {
 }
 
 type Capabilities struct {
-	Execute        bool `json:"execute"`
-	Database       bool `json:"database"`
-	Installation   bool `json:"installation"`
-	Authentication bool `json:"authentication"`
-	License        bool `json:"license"`
-	Updater        bool `json:"updater"`
-	Settings       bool `json:"settings"`
+	Execute        bool            `json:"execute"`
+	Database       bool            `json:"database"`
+	Installation   bool            `json:"installation"`
+	Authentication bool            `json:"authentication"`
+	License        bool            `json:"license"`
+	Updater        bool            `json:"updater"`
+	Settings       bool            `json:"settings"`
+	Features       map[string]bool `json:"features"`
 }
 
 type Bootstrap struct {

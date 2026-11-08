@@ -29,6 +29,8 @@ import (
 	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/lifecycle"
 	"github.com/yunnuo/unicore/internal/logging"
+	"github.com/yunnuo/unicore/internal/module"
+	notesmodule "github.com/yunnuo/unicore/internal/modules/notes"
 	"github.com/yunnuo/unicore/internal/observability"
 	"github.com/yunnuo/unicore/internal/realtime"
 	"github.com/yunnuo/unicore/internal/runtime"
@@ -152,6 +154,14 @@ func run(args []string) (result error) {
 	// enablement, bookkeeping and manual triggers via /api/v1/admin/tasks.
 	store, _, _, _ := manager.Services()
 	tasks := scheduler.New(store)
+	// Registered business modules contribute their task executors here; the
+	// admin surface can only schedule these whitelisted functions.
+	module.Register(notesmodule.Module)
+	for _, item := range module.All() {
+		for _, executor := range item.Executors {
+			tasks.RegisterExecutor(executor.Key, executor.Description, executor.Fn)
+		}
+	}
 	queueMail := func(ctx context.Context) error {
 		service := manager.Mail()
 		if service == nil {

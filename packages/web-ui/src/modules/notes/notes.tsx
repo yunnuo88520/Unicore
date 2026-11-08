@@ -4,11 +4,11 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, Circle, Download, NotebookPen, Paperclip, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
 import type { AppClient, NoteEntry, NoteQuery } from '@unicore/sdk';
-import { currentLocale, t, useLocale } from '../i18n';
-import { hasPermissionPoint } from '../permissions';
+import { currentLocale, t, useLocale } from '../../i18n';
+import { hasPermissionPoint } from '../../permissions';
 import { Badge, Button, Card, CardContent, Input, Modal, NativeSelect, Textarea, useMessage } from '@unicore/ui';
 import { AppField, AppForm, useAppForm } from '@unicore/form';
-import type { PageProps } from '../router';
+import type { PageProps } from '../../router';
 
 const initialQuery: NoteQuery = { search: '', status: '', sort: 'updated_at', direction: 'desc', page: 1 };
 

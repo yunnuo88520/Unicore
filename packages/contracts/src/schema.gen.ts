@@ -23,6 +23,7 @@ export interface Capabilities {
   license: boolean;
   updater: boolean;
   settings: boolean;
+  features: Record<string, boolean>;
 }
 
 export interface Bootstrap {

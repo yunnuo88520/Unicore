@@ -1,13 +1,15 @@
 // Author: yunnuo <ymz@ebox.vip>
-import {defineMessages} from './i18n';
 // Description: Single source of page facts (labels, permissions, icons, nav groups); backend authorization remains authoritative.
+// Module pages merge in from src/modules; the backend module registry stays authoritative for grants.
+import { notes } from './modules/notes';
+import {defineMessages} from './i18n';
 import type { Bootstrap } from '@unicore/sdk';
 import { Bell, BookOpen, Circle, Cloud, FileText, FlaskConical, FolderOpen, LayoutDashboard, ListChecks, Mail, Megaphone, Monitor, Network, NotebookPen, PackageCheck, ScrollText, Settings2, ShieldCheck, UserCog, UserRound, Webhook, type LucideIcon } from 'lucide-react';
 
 export const routes = defineMessages({
+  ...notes.routes,
   overview: { label: '工作台概览', title: '一份核心，无限可能', description: '从这里出发，让同一份业务逻辑运行于 Web、桌面与命令行。', icon: LayoutDashboard },
   lab: { label: '核心实验室', title: '探索核心的每一种可能', description: '修改输入、运行用例，验证跨形态一致的执行结果。', icon: FlaskConical },
-  notes:{label:'我的笔记',title:'我的笔记',description:'记录想法、跟进事项，让每一次进展都有迹可循。',permission:'notes:access',icon:NotebookPen},
   files:{label:'文件管理',title:'文件管理',description:'统一管理文件，按需获取临时访问链接。',permission:'files:access',icon:FolderOpen},
   site: { label: '基础设置', title: '基础设置', description: '集中管理站点、品牌与适用的实例配置。', permission: 'settings:read', icon: Settings2, group: 'system' },
   storage:{label:'对象存储',title:'对象存储',description:'按需切换本地与云存储，让业务只关心文件。',permission:'storage:read',icon:Cloud,group:'system'},
@@ -58,14 +60,14 @@ export function canAccess(page: Page, metadata?: Bootstrap): boolean {
   // Updates stay super-only: restricted operators never reach the update panel.
   if (page === 'edition') return metadata.profile==='web-platform' ? isAdministrator(metadata) && ((__FEATURE_UPDATER__ && metadata.capabilities.updater) || (__FEATURE_LICENSE__ && metadata.capabilities.license)) : __FEATURE_UPDATER__ && metadata.capabilities.updater;
   if (page === 'site') return metadata.capabilities.settings && (metadata.profile !== 'web-platform' || !!metadata.current_user);
-  // Notes exist in every database profile: standalone and desktop keep the
-  // capability check, web-platform additionally gates on the role grant.
-  if (page === 'notes') {
-    if (!metadata.capabilities.database) return false;
-    if (metadata.profile !== 'web-platform') return true;
-    return !!metadata.current_user && metadata.current_user.permissions.includes('notes:access');
-  }
   const route = routes[page];
+  // Module pages flagged local exist in every database profile: standalone and
+  // desktop keep the capability check, web-platform gates on the role grant.
+  if ('local' in route && route.local) {
+    if ('database' in route && route.database && !metadata.capabilities.database) return false;
+    if (metadata.profile !== 'web-platform') return true;
+    return !!metadata.current_user && 'permission' in route && !!route.permission && metadata.current_user.permissions.includes(route.permission);
+  }
   if (metadata.profile !== 'web-platform') return !('permission' in route) && !('authenticated' in route);
   if (!metadata.current_user) return false;
   const permission = 'permission' in route ? route.permission : null;

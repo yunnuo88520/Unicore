@@ -6,6 +6,8 @@ import (
 	"errors"
 	"strings"
 	"unicode/utf8"
+
+	coredomain "github.com/yunnuo/unicore/internal/domain"
 )
 
 var ErrNoteInvalid = errors.New("invalid note")
@@ -26,7 +28,7 @@ func ValidateNote(title, body, status string, attachments []string) error {
 
 // Note embeds the shared lifecycle without making generated transport DTOs persistence entities.
 type Note struct {
-	BaseEntity
+	coredomain.BaseEntity
 	Title, Body, Status string
 	AttachmentIDs       []string
 }

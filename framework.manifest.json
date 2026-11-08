@@ -99,7 +99,9 @@
     "apiOperationsPage": "packages/web-ui/src/pages/admin/api-operations.tsx",
     "platformNavigation": "internal/platform/navigation.go",
     "operationCatalog": "internal/platform/operations.go",
-    "dataScope": "internal/platform/datascope.go"
+    "dataScope": "internal/platform/datascope.go",
+    "moduleRegistry": "internal/module/manifest.json",
+    "modules": "internal/modules"
   },
   "commands": {
     "generate": "pnpm generate",

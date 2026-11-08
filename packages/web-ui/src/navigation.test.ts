@@ -6,7 +6,7 @@ import type { Bootstrap, NavigationNode } from '@unicore/sdk';
 
 const superAdmin = {
   profile: 'web-platform', identity_realm: 'administrator',
-  capabilities: { settings: true, updater: true, database: true },
+  capabilities: { settings: true, updater: true, database: true, features: { notes: true } },
   current_user: { id: 'root', roles: ['super_admin'], permissions: ['users:read', 'administrators:read', 'roles:read', 'departments:read', 'posts:read', 'tasks:read', 'menus:write', 'dictionaries:read', 'announcements:read', 'files:access', 'notes:access', 'storage:read', 'settings:read', 'logs:read'] },
 } as unknown as Bootstrap;
 
@@ -34,7 +34,7 @@ it('renders the default administrator tree: business, system directories and per
   expect(administration.type).toBe('directory');
   expect(!!administration.label).toBe(true);
   expect(administration.children.map(entry => entry.id)).toEqual(['users', 'administrators', 'roles', 'departments', 'posts', 'api-operations', 'menus', 'dictionaries', 'tasks']);
-  expect(entriesOf(navigation, 'admin:business')).toEqual(['overview', 'lab', 'administration', 'announcements', 'files', 'notes', 'api-docs']);
+  expect(entriesOf(navigation, 'admin:business')).toEqual(['overview', 'lab', 'administration', 'announcements', 'files', 'api-docs', 'notes']);
   // The system region keeps 系统设置 and the 个人中心 directory with the profile pages.
   const system = navigation.sections.find(section => section.id === 'admin:system')!;
   expect(system.entries.map(entry => entry.id)).toEqual(['settings', 'personal']);
@@ -58,7 +58,7 @@ it('shows the user tree without administration pages and renames appearance', ()
   const navigation = buildNavigation(member(['notes:access', 'files:access']));
   expect(navigation.sections.map(section => section.id)).toEqual(['user:business', 'user:personal']);
   // 系统更新 stays super-only on web-platform; API 文档 needs no grant.
-  expect(walkAll(navigation)).toEqual(['overview', 'lab', 'files', 'notes', 'api-docs', 'site', 'account', 'account-security', 'account-sessions']);
+  expect(walkAll(navigation)).toEqual(['overview', 'lab', 'files', 'api-docs', 'site', 'notes', 'account', 'account-security', 'account-sessions']);
   const business = navigation.sections.find(section => section.id === 'user:business')!;
   const site = business.entries.find(entry => entry.id === 'site');
   expect(site?.label).toBe('外观设置');
@@ -149,7 +149,7 @@ it('always leaves the super administrator a reachable menu management entry', ()
 
 it('falls back to static defaults for standalone profiles and unknown parents', () => {
   const standalone = {
-    profile: 'web-standalone', identity_realm: 'user', capabilities: { database: true, settings: true, updater: true }, current_user: null,
+    profile: 'web-standalone', identity_realm: 'user', capabilities: { database: true, settings: true, updater: true, features: { notes: true } }, current_user: null,
     navigation: { version: 1, sections: [], nodes: [{ ...baseNode('lab', 'gone', 'page'), route_id: 'lab', parent_id: 'missing' }] },
   } as unknown as Bootstrap;
   const navigation = buildNavigation(standalone);

@@ -10,13 +10,13 @@ import (
 	"time"
 
 	"github.com/yunnuo/unicore/internal/adapter/storage/filesql"
-	"github.com/yunnuo/unicore/internal/adapter/storage/notessql"
+	"github.com/yunnuo/unicore/internal/modules/notes/storage/notessql"
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/adapter/storage/webdb"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/files"
 	"github.com/yunnuo/unicore/internal/platform"
-	"github.com/yunnuo/unicore/internal/usecase"
+	notesusecase "github.com/yunnuo/unicore/internal/modules/notes/usecase"
 	"github.com/yunnuo/unicore/migrations/runner"
 )
 
@@ -59,7 +59,7 @@ func TestNotesAllKeepsRealmAndPrivatePayloads(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	for _, visibility := range []usecase.NoteVisibility{{All: true}, {Scopes: []string{"user/peer", "administrator/reader", "local"}}} {
+	for _, visibility := range []notesusecase.NoteVisibility{{All: true}, {Scopes: []string{"user/peer", "administrator/reader", "local"}}} {
 		list, err := repo.List(ctx, "user/reader", contracts.NoteQuery{Page: 1, Sort: "title", Direction: "asc"}, visibility)
 		if err != nil {
 			t.Fatal(err)
@@ -104,7 +104,7 @@ func TestScopeBeyond500KeepsCountsPagesAndTies(t *testing.T) {
 	if err != nil || len(ids) != count+1 {
 		t.Fatalf("large scope silently narrowed: %d %v", len(ids), err)
 	}
-	visibility := usecase.NoteVisibility{}
+	visibility := notesusecase.NoteVisibility{}
 	for _, id := range ids {
 		visibility.Scopes = append(visibility.Scopes, "user/"+id)
 	}

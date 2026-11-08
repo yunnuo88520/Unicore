@@ -14,13 +14,17 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/yunnuo/unicore/internal/adapter/storage/notessql"
 	"github.com/yunnuo/unicore/internal/bootstrap"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/files"
 	"github.com/yunnuo/unicore/internal/install"
+	"github.com/yunnuo/unicore/internal/module"
+	notesmodule "github.com/yunnuo/unicore/internal/modules/notes"
+	"github.com/yunnuo/unicore/internal/modules/notes/storage/notessql"
 	"github.com/yunnuo/unicore/internal/runtime"
 )
+
+func init() { module.Register(notesmodule.Module) }
 
 // actionRouter boots an installed web-platform instance with the shared request helper.
 func actionRouter(t *testing.T) (*install.Manager, func(string, string, any, *http.Cookie, string) *httptest.ResponseRecorder) {

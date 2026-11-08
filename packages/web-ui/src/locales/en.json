@@ -2036,5 +2036,6 @@
   "关闭的任务不再按计划执行，已保存的配置保持不变。自建任务只能调度已注册的执行器。": "Disabled tasks stop running on schedule while their configuration is preserved. Custom tasks can only schedule registered executors.",
   "错误": "Error",
   "创建、编辑与删除自建任务，启停任务并手动触发执行": "Create, edit and delete custom tasks; toggle and trigger tasks manually",
-  "管理后台定时任务：内置任务启停与手动触发，自建任务在已注册执行器上创建、编辑与删除。": "Manage scheduled tasks: toggle and trigger builtins, create, edit and delete custom tasks over registered executors."
+  "管理后台定时任务：内置任务启停与手动触发，自建任务在已注册执行器上创建、编辑与删除。": "Manage scheduled tasks: toggle and trigger builtins, create, edit and delete custom tasks over registered executors.",
+  "记录个人笔记，支持附件、搜索与分页。": "Capture personal notes with attachments, search and pagination."
 }

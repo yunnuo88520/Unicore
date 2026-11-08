@@ -12,6 +12,8 @@ import (
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/adapter/storage/webdb"
 	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/module"
+	notesmodule "github.com/yunnuo/unicore/internal/modules/notes"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/migrations/runner"
 )
@@ -49,6 +51,8 @@ func navigationFixture(t *testing.T, ctx context.Context) (*sqlstore.Store, *Rep
 	}
 	return store, &Repository{Store: store}, admin
 }
+
+func init() { module.Register(notesmodule.Module) }
 
 func TestNavigationBootstrapAndSave(t *testing.T) {
 	ctx := context.Background()

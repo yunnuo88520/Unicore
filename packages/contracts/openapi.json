@@ -12932,7 +12932,8 @@
           "authentication",
           "license",
           "updater",
-          "settings"
+          "settings",
+          "features"
         ],
         "properties": {
           "execute": {
@@ -12955,6 +12956,13 @@
           },
           "settings": {
             "type": "boolean"
+          },
+          "features": {
+            "type": "object",
+            "description": "Module assembly state keyed by module slug; a missing or false entry means the edition is trimmed from this build.",
+            "additionalProperties": {
+              "type": "boolean"
+            }
           }
         }
       },

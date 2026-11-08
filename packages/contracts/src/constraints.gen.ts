@@ -63,7 +63,8 @@ export const constraints = {
       "authentication",
       "license",
       "updater",
-      "settings"
+      "settings",
+      "features"
     ],
     "properties": {
       "execute": {
@@ -86,6 +87,12 @@ export const constraints = {
       },
       "settings": {
         "type": "boolean"
+      },
+      "features": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "boolean"
+        }
       }
     }
   },

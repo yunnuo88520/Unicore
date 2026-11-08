@@ -63,7 +63,8 @@
     &quot;authentication&quot;,
     &quot;license&quot;,
     &quot;updater&quot;,
-    &quot;settings&quot;
+    &quot;settings&quot;,
+    &quot;features&quot;
   ],
   &quot;properties&quot;: {
     &quot;execute&quot;: {
@@ -86,6 +87,13 @@
     },
     &quot;settings&quot;: {
       &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;features&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;description&quot;: &quot;Module assembly state keyed by module slug; a missing or false entry means the edition is trimmed from this build.&quot;,
+      &quot;additionalProperties&quot;: {
+        &quot;type&quot;: &quot;boolean&quot;
+      }
     }
   }
 }</pre></details><details id="schema-Bootstrap"><summary>Bootstrap</summary><pre>{

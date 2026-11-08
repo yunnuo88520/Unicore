@@ -2,15 +2,17 @@
 // Description: Registered page facts and the frontend-isomorphic default navigation seed.
 package platform
 
-import "github.com/yunnuo/unicore/internal/contracts"
+import (
+	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/module"
+)
 
 // NavigationPages mirrors the shared page registry: every page the frontend
 // registers (routes.ts minus not-found) with its presentation group and
 // surface availability. Backend authorization stays authoritative.
-var NavigationPages = []contracts.NavigationPage{
+var baseNavigationPages = []contracts.NavigationPage{
 	{ID: "overview", Surfaces: []string{"user", "administrator"}},
 	{ID: "lab", Surfaces: []string{"user", "administrator"}},
-	{ID: "notes", Surfaces: []string{"user", "administrator"}, Permission: "notes:access"},
 	{ID: "files", Surfaces: []string{"user", "administrator"}, Permission: "files:access"},
 	{ID: "announcements", Surfaces: []string{"user", "administrator"}, Permission: "announcements:read"},
 	{ID: "api-docs", Surfaces: []string{"user", "administrator"}},
@@ -38,28 +40,58 @@ var NavigationPages = []contracts.NavigationPage{
 	{ID: "account-sessions", Surfaces: []string{"user", "administrator"}, Group: "personal"},
 }
 
+// NavigationPages aggregates built-in pages with registered module contributions.
+func NavigationPages() []contracts.NavigationPage {
+	return append(append([]contracts.NavigationPage{}, baseNavigationPages...), module.NavigationPages()...)
+}
+
 // defaultPageOrder mirrors packages/web-ui/src/navigation.ts defaultPageOrder:
 // the shared stable display order both seeds and editors rely on.
 var defaultPageOrder = []string{
 	"overview", "lab", "users", "administrators", "roles", "departments", "posts", "api-operations", "menus", "dictionaries",
-	"announcements", "tasks", "files", "notes", "api-docs", "site", "storage", "account-policy", "mail", "mail-templates",
+	"announcements", "tasks", "files", "api-docs", "site", "storage", "account-policy", "mail", "mail-templates",
 	"notification-channels", "notification-templates", "system-notifications", "logs", "edition", "account", "account-security", "account-sessions",
 }
 
-// navigationRank is the shared defaultRank: unregistered pages sort last.
+// navigationRank is the shared defaultRank: builtins keep the stable table
+// order, module pages sort after them by their declared Order, unregistered
+// pages sort last.
 func navigationRank(id string) int {
 	for index, candidate := range defaultPageOrder {
 		if candidate == id {
 			return index
 		}
 	}
-	return len(defaultPageOrder)
+	rank := len(defaultPageOrder)
+	for _, item := range module.All() {
+		for _, page := range item.Navigation {
+			if page.ID == id {
+				return rank + item.Order
+			}
+		}
+	}
+	return rank + 1000
+}
+
+// navigationIcon resolves built-in icons first, then module-declared icons.
+func navigationIcon(id string) string {
+	if icon, ok := navigationIcons[id]; ok {
+		return icon
+	}
+	for _, item := range module.All() {
+		for _, page := range item.Navigation {
+			if page.ID == id {
+				return item.Icon
+			}
+		}
+	}
+	return ""
 }
 
 // navigationIcons mirrors the frontend defaultIcons table so a seeded tree and
 // a client-computed default render identically.
 var navigationIcons = map[string]string{
-	"overview": "LayoutDashboard", "lab": "FlaskConical", "notes": "NotebookPen", "files": "FolderOpen", "site": "Settings2", "storage": "Cloud",
+	"overview": "LayoutDashboard", "lab": "FlaskConical", "files": "FolderOpen", "site": "Settings2", "storage": "Cloud",
 	"users": "UserRound", "administrators": "UserCog", "announcements": "Megaphone", "account-policy": "ShieldCheck", "mail": "Mail", "mail-templates": "Mail",
 	"notification-channels": "Webhook", "notification-templates": "FileText", "system-notifications": "Bell", "logs": "ScrollText", "edition": "PackageCheck",
 	"roles": "ShieldCheck", "departments": "Network", "tasks": "ListChecks", "menus": "LayoutDashboard", "dictionaries": "FileText", "posts": "UserCog",
@@ -69,7 +101,7 @@ var navigationIcons = map[string]string{
 }
 
 func NavigationPage(id, surface string) (contracts.NavigationPage, bool) {
-	for _, p := range NavigationPages {
+	for _, p := range NavigationPages() {
 		if p.ID == id {
 			for _, s := range p.Surfaces {
 				if s == surface {
@@ -98,7 +130,7 @@ func DefaultNavigation() contracts.Navigation {
 		Nodes: []contracts.NavigationNode{},
 	}
 	directory := func(id, section string, sort int) {
-		result.Nodes = append(result.Nodes, contracts.NavigationNode{ID: id, SectionID: section, Type: "directory", Icon: navigationIcons[id],
+		result.Nodes = append(result.Nodes, contracts.NavigationNode{ID: id, SectionID: section, Type: "directory", Icon: navigationIcon(id),
 			Sort: sort, Visible: true, OpenMode: "same_tab", OperationIds: []string{}})
 	}
 	// The 超级管理员 directory lives in the business region, right after the
@@ -106,7 +138,7 @@ func DefaultNavigation() contracts.Navigation {
 	directory("administration", "admin:business", 20)
 	directory("settings", "admin:system", 20)
 	directory("personal", "admin:system", 30)
-	for _, page := range NavigationPages {
+	for _, page := range NavigationPages() {
 		for _, surface := range page.Surfaces {
 			if surface == "user" && page.Group == "administration" {
 				continue

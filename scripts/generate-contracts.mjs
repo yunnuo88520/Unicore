@@ -34,7 +34,7 @@ for (const [name, schema] of Object.entries(schemas)) {
   for (const [key, value] of Object.entries(schema.properties)) {
     const required = schema.required?.includes(key);
     ts += `  ${key}${required ? '' : '?'}: ${type(value, 'ts')};\n`;
-    go += `  ${goName(key)} ${required ? '' : '*'}${type(value, 'go')} \`json:"${key}${required ? '' : ',omitempty'}"\`\n`;
+    go += `  ${goName(key)} ${required || value['x-go-value'] ? '' : '*'}${type(value, 'go')} \`json:"${key}${required ? '' : ',omitempty'}"\`\n`;
   }
   ts += '}\n\n';
   go += '}\n\n';

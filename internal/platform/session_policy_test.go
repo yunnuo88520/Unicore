@@ -132,7 +132,7 @@ func TestSessionSecurityPolicy(t *testing.T) {
 	if _, err = adminIdentity.Session(ctx, adminToken); err != nil {
 		t.Fatal("member idle invalidated admin", err)
 	}
-	exec("UPDATE unicore_administrator_session_details SET created_at=?,last_seen_at=? WHERE token_hash=?", now-181, now, platform.Hash(adminToken))
+	exec("UPDATE unicore_session_details SET created_at=?,last_seen_at=? WHERE token_hash=?", now-181, now, platform.Hash(adminToken))
 	if _, err = adminIdentity.Session(ctx, adminToken); !errors.Is(err, platform.ErrCredentials) {
 		t.Fatal("administrator maximum bypass", err)
 	}
@@ -147,7 +147,7 @@ func TestSessionSecurityPolicy(t *testing.T) {
 	if _, _, err = memberIdentity.Login(ctx, contracts.LoginInput{Username: "member", Password: "member-password-strong"}, "192.0.2.2", false, false, 24); err != nil {
 		t.Fatal("account frozen", err)
 	}
-	if _, _, err = adminIdentity.Login(ctx, contracts.LoginInput{Username: "admin", Password: "test-password-strong"}, "192.0.2.1", false, false, 24); err != nil {
-		t.Fatal("ban crossed identity realms", err)
+	if _, _, err = adminIdentity.Login(ctx, contracts.LoginInput{Username: "admin", Password: "test-password-strong"}, "192.0.2.1", false, false, 24); !errors.Is(err, platform.ErrRateLimited) {
+		t.Fatal("shared account ban was bypassed", err)
 	}
 }

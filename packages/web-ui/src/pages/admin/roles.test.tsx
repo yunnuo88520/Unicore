@@ -72,15 +72,14 @@ function mount(metadata: Bootstrap, web: Record<string, unknown>) {
 
 const baseWeb = (extra: Record<string, unknown> = {}) => ({ roles: vi.fn().mockResolvedValue(rolesPayload()), menuConfig: vi.fn().mockImplementation(menuConfig), apiOperations: vi.fn().mockImplementation(apiOperations), ...extra });
 
-it('filters the role list by realm tabs and shows member counts per role', async () => {
+it('lists all roles together and shows member counts per role', async () => {
   mount(metadata(['roles:read', 'roles:write']), baseWeb());
   expect(await screen.findByText('记录员')).toBeVisible();
-  expect(screen.queryByText('内容运营')).toBeNull();
-  expect(screen.queryByText('超级管理员')).toBeNull();
-  await userEvent.click(screen.getByRole('tab', { name: '管理员角色' }));
+  expect(screen.getByText('内容运营')).toBeVisible();
+  expect(screen.getByText('超级管理员')).toBeVisible();
   expect(await screen.findByText('内容运营')).toBeVisible();
   expect(screen.getByText('超级管理员')).toBeVisible();
-  expect(screen.queryByText('记录员')).toBeNull();
+  expect(screen.getByText('记录员')).toBeVisible();
   expect(screen.getByRole('row', { name: /内容运营/ })).toHaveTextContent('2');
 });
 
@@ -88,10 +87,9 @@ it('keeps menu and dictionary grants selectable while super-only points stay loc
   const createRole = vi.fn().mockResolvedValue({ id: 'ops-admin', name: '内容运营', builtin: false, permissions: ['menus:write'], user_count: 0, realm: 'administrator', menu_ids: [], action_ids: [], operation_ids: [], authorization_initialized: true });
   mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole }));
   await screen.findByText('记录员');
-  await userEvent.click(screen.getByRole('tab', { name: '管理员角色' }));
   await userEvent.click(await screen.findByRole('button', { name: '新建角色' }));
   const dialog = screen.getByRole('dialog', { name: '新建角色' });
-  expect(within(dialog).getByLabelText('角色域')).toBeDisabled();
+  expect(within(dialog).queryByLabelText('角色域')).toBeNull();
   await userEvent.type(within(dialog).getByLabelText('角色名称'), '内容运营');
   await userEvent.click(within(dialog).getByRole('checkbox', { name: '管理菜单' }));
   expect(within(dialog).getByRole('checkbox', { name: '查看用户' })).toBeEnabled();
@@ -99,18 +97,18 @@ it('keeps menu and dictionary grants selectable while super-only points stay loc
   expect(within(dialog).queryByRole('checkbox', { name: '修改基础设置' })).toBeNull();
   expect(within(dialog).getAllByText('仅超级管理员', { exact: true })).toHaveLength(2);
   await userEvent.click(within(dialog).getByRole('button', { name: '保存' }));
-  await vi.waitFor(() => expect(createRole).toHaveBeenCalledWith(expect.objectContaining({ name: '内容运营', permissions: ['menus:write'], realm: 'administrator' })));
+  await vi.waitFor(() => expect(createRole).toHaveBeenCalledWith(expect.objectContaining({ name: '内容运营', permissions: ['menus:write'], realm: 'user' })));
 });
 
-it('keeps the user-realm matrix assignable-only and notes the locked points', async () => {
+it('allows business and management permissions in the same role', async () => {
   mount(metadata(['roles:read', 'roles:write']), baseWeb());
   await screen.findByText('记录员');
   await userEvent.click(screen.getByRole('button', { name: '新建角色' }));
   const dialog = screen.getByRole('dialog', { name: '新建角色' });
   expect(within(dialog).getByRole('checkbox', { name: '使用文件管理' })).toBeEnabled();
-  expect(within(dialog).queryByRole('checkbox', { name: '管理菜单' })).toBeNull();
-  expect(within(dialog).queryByRole('checkbox', { name: '查看用户' })).toBeNull();
-  expect(within(dialog).getAllByText('仅管理员', { exact: true })).toHaveLength(4);
+  expect(within(dialog).getByRole('checkbox', { name: '管理菜单' })).toBeEnabled();
+  expect(within(dialog).getByRole('checkbox', { name: '查看用户' })).toBeEnabled();
+  expect(within(dialog).getAllByText('仅超级管理员', { exact: true })).toHaveLength(2);
 });
 
 it('renders the matrix grouped by catalogue group with action-point descriptions', async () => {
@@ -148,7 +146,7 @@ it('authorizes menu trees per realm surface where directories aggregate their de
   const dialog = screen.getByRole('dialog', { name: '新建角色' });
   // Only the current realm surface is offered; the administrator page stays out.
   expect(within(dialog).getByText('业务')).toBeVisible();
-  expect(within(dialog).queryByText('后台')).toBeNull();
+  expect(within(dialog).getByText('后台')).toBeVisible();
   expect(within(dialog).getByRole('checkbox', { name: '我的笔记' })).not.toBeChecked();
   await userEvent.click(within(dialog).getByRole('checkbox', { name: '组织目录' }));
   // Checking a directory selects the whole branch: the child page comes along.
@@ -241,7 +239,6 @@ it('hides write actions from operators without roles:write while both tabs stay 
   expect(await screen.findByText('记录员')).toBeVisible();
   expect(screen.queryByRole('button', { name: '新建角色' })).toBeNull();
   expect(screen.queryByRole('button', { name: '删除角色 记录员' })).toBeNull();
-  await userEvent.click(screen.getByRole('tab', { name: '管理员角色' }));
   expect(await screen.findByText('内容运营')).toBeVisible();
   expect(screen.queryByRole('button', { name: '编辑角色 内容运营' })).toBeNull();
 });
@@ -274,19 +271,18 @@ it('exposes the five user data scopes with a department tree for the custom scop
   await vi.waitFor(() => expect(createRole).toHaveBeenCalledWith(expect.objectContaining({ name: '区域角色', data_scope: 'custom', department_ids: ['d3'] })));
 });
 
-it('omits the data scope control and payload for administrator-realm roles', async () => {
+it('allows management roles to configure their data scope', async () => {
   const createRole = vi.fn().mockResolvedValue({ id: 'ops2', name: '内容运营二', builtin: false, permissions: ['users:read'], user_count: 0, realm: 'administrator', data_scope: 'self', department_ids: [], menu_ids: [], action_ids: [], operation_ids: [], authorization_initialized: true });
   mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole, listDepartments: vi.fn() }));
   await screen.findByText('记录员');
-  await userEvent.click(screen.getByRole('tab', { name: '管理员角色' }));
   await userEvent.click(await screen.findByRole('button', { name: '新建角色' }));
   const dialog = screen.getByRole('dialog', { name: '新建角色' });
-  expect(within(dialog).queryByLabelText('数据范围')).toBeNull();
+  expect(within(dialog).getByLabelText('数据范围')).toHaveValue('self');
   expect(within(dialog).queryByRole('group', { name: '自定义部门范围' })).toBeNull();
   await userEvent.type(within(dialog).getByLabelText('角色名称'), '内容运营二');
   await userEvent.click(within(dialog).getByRole('checkbox', { name: '查看用户' }));
   await userEvent.click(within(dialog).getByRole('button', { name: '保存' }));
-  await vi.waitFor(() => expect(createRole).toHaveBeenCalledWith(expect.objectContaining({ name: '内容运营二', permissions: ['users:read'], realm: 'administrator' })));
+  await vi.waitFor(() => expect(createRole).toHaveBeenCalledWith(expect.objectContaining({ name: '内容运营二', permissions: ['users:read'], realm: 'user' })));
 });
 
 it('echoes a saved custom scope with its department selection when editing', async () => {

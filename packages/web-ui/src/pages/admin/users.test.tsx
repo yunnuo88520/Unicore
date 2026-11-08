@@ -92,7 +92,7 @@ it('echoes the persisted department when editing and clears it via the unassigne
   await userEvent.selectOptions(within(dialog).getByLabelText('部门'), '');
   await userEvent.click(within(dialog).getByRole('button', { name: '保存' }));
   // The empty string keeps the clear semantics of the update contract.
-  await vi.waitFor(() => expect(updateUser).toHaveBeenCalledWith('u1', { status: 'active', role: 'user', department_id: '' }));
+  await vi.waitFor(() => expect(updateUser).toHaveBeenCalledWith('u1', { status: 'active', role_ids: ['user'], department_id: '' }));
 });
 
 it('keeps administrators without department controls', async () => {
@@ -191,4 +191,21 @@ it('gates the administrator edit entry on administrators:update', async () => {
   const row = await screen.findByRole('row', { name: /member/ });
   expect(within(row).queryByRole('button', { name: '编辑' })).toBeNull();
   expect(within(row).queryByRole('button', { name: '禁用' })).toBeNull();
+});
+
+
+it('echoes multiple assigned roles and submits the complete selected set', async () => {
+  const response = users();
+  response.items[0].roles = ['user', 'ops'];
+  const updateUser = vi.fn().mockResolvedValue(response.items[0]);
+  mount(metadata(['users:read', 'users:update']), { users: vi.fn().mockResolvedValue(response), roleOptions: () => ({ items: [{ id: 'user', name: '用户', assignable: true }, { id: 'ops', name: '运营', assignable: true }] }), listDepartments: vi.fn().mockResolvedValue(departments()), updateUser });
+  const row = await screen.findByRole('row', { name: /member/ });
+  await userEvent.click(within(row).getByRole('button', { name: '编辑' }));
+  const dialog = screen.getByRole('dialog', { name: '编辑member' });
+  expect(await within(dialog).findByRole('checkbox', { name: '用户' })).toBeChecked();
+  const operator = within(dialog).getByRole('checkbox', { name: '运营' });
+  expect(operator).toBeChecked();
+  await userEvent.click(operator);
+  await userEvent.click(within(dialog).getByRole('button', { name: '保存' }));
+  await vi.waitFor(() => expect(updateUser).toHaveBeenCalledWith('u1', expect.objectContaining({ role_ids: ['user'] })));
 });

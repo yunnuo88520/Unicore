@@ -237,13 +237,13 @@ func (m *Manager) attach(store *sqlstore.Store) {
 		admins := &platformsql.Repository{Store: store, Administrators: true, NotificationSecrets: m.secret}
 		m.settingService.NotificationWriter = admins
 		m.identity = platform.New(repository)
-		m.administrator = platform.New(admins)
+		m.administrator = m.identity
 		m.identity.Settings = m.settingService
 		m.administrator.Settings = m.settingService
 		m.identity.HumanCheck = humancheck.Verifier{}
 		m.mail = &mailer.Service{BaseURL: m.config.BaseURL, Store: repository, Settings: m.settingService, Secrets: m.secret, Sender: mailadapter.SMTP{}, Channels: notifyadapter.Sender{}}
 		m.identity.Personal = &platform.Personal{Store: repository, Identity: m.identity, Settings: m.settingService, Mail: m.mail, AvatarFiles: m.files, Realm: "user"}
-		m.administrator.Personal = &platform.Personal{Store: admins, Identity: m.administrator, Settings: m.settingService, Mail: m.mail, AvatarFiles: m.files, Realm: "administrator"}
+
 		m.accounts = &platform.Accounts{Identity: m.identity, Store: repository, Settings: m.settingService, Mail: m.mail, BaseURL: m.config.BaseURL}
 		m.adminAccounts = &platform.Accounts{Administrator: true, Identity: m.administrator, Store: admins, Settings: m.settingService, Mail: m.mail, BaseURL: m.config.BaseURL}
 		m.oidc = &platform.OIDC{Identity: m.identity, Store: repository, Settings: m.settingService, Secrets: m.secret, Provider: oidcadapter.Provider{}, BaseURL: m.config.BaseURL}

@@ -32,21 +32,7 @@ CREATE TABLE IF NOT EXISTS `unicore_users` (
   UNIQUE KEY `unicore_users_phone_key` (`phone`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE IF NOT EXISTS `unicore_administrators` (
-  `id` varchar(64) NOT NULL,
-  `username` varchar(64) NOT NULL,
-  `email` varchar(254) NOT NULL,
-  `password_hash` text NOT NULL,
-  `status` varchar(16) NOT NULL,
-  `created_at` bigint NOT NULL,
-  `updated_at` bigint NOT NULL,
-  `last_login_at` bigint NOT NULL,
-  `phone` varchar(21) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `username` (`username`),
-  UNIQUE KEY `email` (`email`),
-  UNIQUE KEY `unicore_administrators_phone_key` (`phone`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 
 CREATE TABLE IF NOT EXISTS `unicore_user_roles` (
   `user_id` varchar(64) NOT NULL,
@@ -132,65 +118,17 @@ CREATE TABLE IF NOT EXISTS `unicore_oidc_flows` (
   PRIMARY KEY (`state_hash`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE IF NOT EXISTS `unicore_administrator_roles` (
-  `user_id` varchar(64) NOT NULL,
-  `role_id` varchar(64) NOT NULL,
-  PRIMARY KEY (`user_id`,`role_id`),
-  KEY `role_id` (`role_id`),
-  CONSTRAINT `administrator_roles_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `unicore_administrators` (`id`),
-  CONSTRAINT `administrator_roles_ibfk_2` FOREIGN KEY (`role_id`) REFERENCES `unicore_roles` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE IF NOT EXISTS `unicore_administrator_sessions` (
-  `token_hash` varchar(64) NOT NULL,
-  `user_id` varchar(64) NOT NULL,
-  `expires_at` bigint NOT NULL,
-  PRIMARY KEY (`token_hash`),
-  KEY `user_id` (`user_id`),
-  CONSTRAINT `administrator_sessions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `unicore_administrators` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE IF NOT EXISTS `unicore_administrator_account_tokens` (
-  `token_hash` varchar(64) NOT NULL,
-  `user_id` varchar(64) NOT NULL,
-  `purpose` varchar(16) NOT NULL,
-  `expires_at` bigint NOT NULL,
-  PRIMARY KEY (`token_hash`),
-  KEY `user_id` (`user_id`),
-  CONSTRAINT `administrator_account_tokens_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `unicore_administrators` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE IF NOT EXISTS `unicore_administrator_email_challenges` (
-  `id` varchar(64) NOT NULL,
-  `user_id` varchar(64) NOT NULL,
-  `purpose` varchar(16) NOT NULL,
-  `code_digest` varchar(64) NOT NULL,
-  `expires_at` bigint NOT NULL,
-  `created_at` bigint NOT NULL,
-  `attempts` int NOT NULL,
-  PRIMARY KEY (`id`),
-  KEY `user_id` (`user_id`),
-  CONSTRAINT `administrator_email_challenges_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `unicore_administrators` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE IF NOT EXISTS `unicore_administrator_external_identities` (
-  `identity_hash` varchar(64) NOT NULL,
-  `user_id` varchar(64) NOT NULL,
-  `issuer` text NOT NULL,
-  `subject` text NOT NULL,
-  `created_at` bigint NOT NULL,
-  PRIMARY KEY (`identity_hash`),
-  UNIQUE KEY `user_id` (`user_id`),
-  CONSTRAINT `administrator_external_identities_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `unicore_administrators` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE IF NOT EXISTS `unicore_administrator_oidc_flows` (
-  `state_hash` varchar(64) NOT NULL,
-  `browser_hash` varchar(64) NOT NULL,
-  `sealed_payload` text NOT NULL,
-  `expires_at` bigint NOT NULL,
-  PRIMARY KEY (`state_hash`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+
+
+
+
+
 
 CREATE TABLE IF NOT EXISTS `unicore_storage_locations` (
   `id` varchar(80) NOT NULL,
@@ -325,24 +263,9 @@ CREATE TABLE IF NOT EXISTS unicore_email_changes (
  code_digest VARCHAR(64) NOT NULL, verified INTEGER NOT NULL, attempts INTEGER NOT NULL,
  created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL
 );
-CREATE TABLE IF NOT EXISTS unicore_administrator_personal_accounts (
- user_id VARCHAR(64) NOT NULL PRIMARY KEY REFERENCES unicore_administrators(id),
- display_name VARCHAR(80) NOT NULL, totp_secret TEXT NOT NULL, recovery_digests TEXT NOT NULL,
- last_step BIGINT NOT NULL, setup_secret TEXT NOT NULL, setup_session VARCHAR(64) NOT NULL, setup_expires BIGINT NOT NULL, setup_attempts INTEGER NOT NULL
-);
-CREATE TABLE IF NOT EXISTS unicore_administrator_session_details (
- token_hash VARCHAR(64) NOT NULL PRIMARY KEY REFERENCES unicore_administrator_sessions(token_hash) ON DELETE CASCADE,
- user_id VARCHAR(64) NOT NULL REFERENCES unicore_administrators(id),
- ip_address VARCHAR(64) NOT NULL, user_agent VARCHAR(512) NOT NULL,
- created_at BIGINT NOT NULL, last_seen_at BIGINT NOT NULL, mfa_verified INTEGER NOT NULL, mfa_attempts INTEGER NOT NULL
-);
-CREATE TABLE IF NOT EXISTS unicore_administrator_email_changes (
- id VARCHAR(64) NOT NULL PRIMARY KEY, user_id VARCHAR(64) NOT NULL REFERENCES unicore_administrators(id),
- session_hash VARCHAR(64) NOT NULL, parent_id VARCHAR(64) NOT NULL,
- original_email VARCHAR(254) NOT NULL, target_email VARCHAR(254) NOT NULL,
- code_digest VARCHAR(64) NOT NULL, verified INTEGER NOT NULL, attempts INTEGER NOT NULL,
- created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL
-);
+
+
+
 
 INSERT INTO unicore_storage_locations(id,name,provider,endpoint,bucket,region,prefix,path_style,credentials,tested,created_at) SELECT 'legacy-brand','历史品牌文件','local','','','','',1,'',1,0 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM unicore_storage_locations WHERE id='legacy-brand');
 

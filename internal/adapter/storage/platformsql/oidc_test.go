@@ -66,7 +66,7 @@ func exerciseOIDC(t *testing.T, ctx context.Context, store *sqlstore.Store, r *R
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(member.Roles) != 1 || member.Roles[0] != "user" || len(member.Permissions) != 0 {
+	if len(member.Roles) != 1 || member.Roles[0] != "user" || len(member.Permissions) != 7 || platform.HasManagementAccess(member) {
 		t.Fatal("JIT exceeded least privilege", member)
 	}
 	var display string
@@ -111,8 +111,8 @@ func exerciseOIDC(t *testing.T, ctx context.Context, store *sqlstore.Store, r *R
 	if _, err = complete(f, claims); !errors.Is(err, platform.ErrCredentials) {
 		t.Fatal("disabled identity signed in", err)
 	}
-	if _, err = r.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: rolePtr("super_admin"), Status: "active"}, admin.ID); !errors.Is(err, platform.ErrForbidden) {
-		t.Fatal("cross realm conversion", err)
+	if _, err = r.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: rolePtr("super_admin"), Status: "active"}, admin.ID); err != nil {
+		t.Fatal("explicit owner role assignment", err)
 	}
 	if _, err = r.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: rolePtr("user"), Status: "active"}, admin.ID); err != nil {
 		t.Fatal(err)
@@ -245,7 +245,10 @@ func exerciseOIDCTOTP(t *testing.T, ctx context.Context, store *sqlstore.Store, 
 	for _, administrators := range []bool{false, true} {
 		r := &Repository{Store: store, Administrators: administrators}
 		identity := platform.New(r)
-		name := "sso_totp_" + r.roleID()
+		name := "sso_totp_user"
+		if administrators {
+			name += "_management"
+		}
 		user, err := identity.Create(ctx, contracts.UserCreate{Username: name, Email: name + "@example.test", Password: "test-password-strong", Role: r.roleID()}, admin.ID)
 		if err != nil {
 			t.Fatal(err)

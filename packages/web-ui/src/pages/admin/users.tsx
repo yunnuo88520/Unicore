@@ -34,7 +34,7 @@ const columns = helper.columns([
   }),
   helper.accessor('email', { header: () => t('邮箱'), cell: info => <span className="text-muted">{info.getValue()}</span> }),
   helper.accessor('phone', { header: () => t('手机号'), cell: info => <span className="text-muted">{info.getValue() || '—'}</span> }),
-  helper.display({ id: 'role', header: () => t('身份'), cell: info => (info.table.options.meta as UsersTableMeta).kind }),
+  helper.display({ id: 'role', header: () => t('身份'), cell: info => info.row.original.roles.join(', ') }),
   helper.display({
     id: 'department',
     header: () => t('部门'),
@@ -167,7 +167,7 @@ function UserListPanel({ web, metadata, administrators }: { web: WebClient; meta
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-md font-semibold text-ink">{t('{{kind}}列表', { kind })}</h2>
-          <p className="mt-0.5 text-xs text-muted">{administrators ? t('管理后台账号及其启用状态') : t('普通用户创建后立即启用，使用用户登录入口进入工作空间')}</p>
+          <p className="mt-0.5 text-xs text-muted">{administrators ? t('管理后台账号及其启用状态') : t('统一账号可分配多个角色，按权限使用业务与管理工作台。')}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {!administrators && <>
@@ -230,7 +230,7 @@ function UserListPanel({ web, metadata, administrators }: { web: WebClient; meta
 }
 
 function UserCreateDialog({ web, kind, role, administrators, postsEnabled, onClose, onCreated }: {
-  web: WebClient; kind: string; role: UserCreate['role']; administrators: boolean; postsEnabled: boolean; onClose: () => void; onCreated: () => void;
+  web: WebClient; kind: string; role: string; administrators: boolean; postsEnabled: boolean; onClose: () => void; onCreated: () => void;
 }) {
   useLocale();
   const message = useMessage();
@@ -244,14 +244,15 @@ function UserCreateDialog({ web, kind, role, administrators, postsEnabled, onClo
   const departmentOptions = useDepartmentOptions(web, !administrators);
   const posts = usePostsQuery(web, { enabled: postsEnabled });
   const [postIds, setPostIds] = useState<string[]>([]);
+  const [roleIds, setRoleIds] = useState<string[]>([role]);
   const form = useAppForm<UserCreate>({
     // The relaxed contract lets the administrator realm carry a non-super role id.
     schema: 'UserCreate',
     defaultValues: { username: '', email: '', password: '', role, department_id: '' },
     onSubmit: async values => {
       try {
-        if (administrators) await web.createAdministrator({ username: values.username, email: values.email, password: values.password, role: values.role });
-        else await web.createUser({ ...values, department_id: values.department_id || undefined, ...(postIds.length ? { post_ids: postIds } : {}) });
+        if (administrators) await web.createAdministrator({ username: values.username, email: values.email, password: values.password, role: '', role_ids: roleIds });
+        else await web.createUser({ ...values, role: '', role_ids: roleIds, department_id: values.department_id || undefined, ...(postIds.length ? { post_ids: postIds } : {}) });
         message.success(t('{{v0}}已创建', { v0: kind }));
         onClose();
         onCreated();
@@ -265,11 +266,7 @@ function UserCreateDialog({ web, kind, role, administrators, postsEnabled, onClo
       <AppField name="username" label={t('账号')}><Input required minLength={3} maxLength={64} autoComplete="off" /></AppField>
       <AppField name="email" label={t('邮箱')}><Input required type="email" maxLength={254} /></AppField>
       <AppField name="password" label={t('初始密码')}><Input required type="password" minLength={12} maxLength={128} autoComplete="new-password" /></AppField>
-      <AppField name="role" label={t('角色')}>
-        <NativeSelect aria-label={t('角色')} disabled={options.isLoading}>
-          {(options.data?.items ?? []).map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
-        </NativeSelect>
-      </AppField>
+      <fieldset><legend>{t('角色')}</legend>{(options.data?.items ?? []).map(option => <Checkbox key={option.id} checked={roleIds.includes(option.id)} disabled={!option.assignable} onChange={checked => setRoleIds(ids => checked ? [...ids, option.id] : ids.filter(id => id !== option.id))}>{option.name}</Checkbox>)}</fieldset>
       {!administrators && <AppField name="department_id" label={t('部门')} hint={t('留空表示暂不分配部门。')}>
         <NativeSelect aria-label={t('部门')} disabled={departmentOptions.isLoading}>
           <option value="">{t('未分配')}</option>
@@ -292,7 +289,7 @@ function UserCreateDialog({ web, kind, role, administrators, postsEnabled, onClo
       </p>
       <div className="flex justify-end gap-2">
         <Button variant="secondary" disabled={form.formState.isSubmitting} onClick={onClose}>{t('取消')}</Button>
-        <Button type="submit" pending={form.formState.isSubmitting}>{form.formState.isSubmitting ? t('正在创建…') : t('创建{{v0}}', { v0: kind })}</Button>
+        <Button type="submit" disabled={!roleIds.length || options.isLoading} pending={form.formState.isSubmitting}>{form.formState.isSubmitting ? t('正在创建…') : t('创建{{v0}}', { v0: kind })}</Button>
       </div>
     </AppForm>
   </Modal>;
@@ -315,21 +312,16 @@ function UserRoleDialog({ web, administrators, user, postsEnabled, onClose, onSa
   const departmentOptions = useDepartmentOptions(web, !administrators);
   const posts = usePostsQuery(web, { enabled: postsEnabled });
   const currentPostIds = user.post_ids ?? [];
-  const [role, setRole] = useState<string>(current);
+  const [roleIds, setRoleIds] = useState<string[]>(user.roles);
   const [departmentId, setDepartmentId] = useState<string>(currentDepartment);
   const [postIds, setPostIds] = useState<string[]>(currentPostIds);
   const [touched, setTouched] = useState(false);
   // Follow refreshed list data until the operator edits the selection, so a
   // refetch landing after the dialog opens corrects a stale initial role.
-  useEffect(() => { if (!touched) { setRole(user.roles[0] ?? ''); setDepartmentId(user.department_id ?? ''); setPostIds(user.post_ids ?? []); } }, [touched, current, currentDepartment, user.post_ids]);
+  useEffect(() => { if (!touched) { setRoleIds(user.roles); setDepartmentId(user.department_id ?? ''); setPostIds(user.post_ids ?? []); } }, [touched, current, currentDepartment, user.post_ids]);
   return <Modal title={t('编辑{{v0}}', { v0: user.username })} onClose={onClose} pending={false}>
     <div className="flex flex-col gap-3">
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="text-muted">{t('角色')}</span>
-        <NativeSelect aria-label={t('角色')} value={role} onChange={event => { setTouched(true); setRole(event.target.value); }} disabled={options.isLoading}>
-          {(options.data?.items ?? [{ id: current, name: current }]).map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
-        </NativeSelect>
-      </label>
+      <fieldset><legend>{t('角色')}</legend>{(options.data?.items ?? []).map(option => <Checkbox key={option.id} checked={roleIds.includes(option.id)} disabled={!option.assignable} onChange={checked => { setTouched(true); setRoleIds(ids => checked ? [...ids, option.id] : ids.filter(id => id !== option.id)); }}>{option.name}</Checkbox>)}</fieldset>
       {!administrators && <label className="flex flex-col gap-1 text-sm">
         <span className="text-muted">{t('部门')}</span>
         <NativeSelect aria-label={t('部门')} value={departmentId} onChange={event => { setTouched(true); setDepartmentId(event.target.value); }} disabled={departmentOptions.isLoading}>
@@ -357,12 +349,12 @@ function UserRoleDialog({ web, administrators, user, postsEnabled, onClose, onSa
       </fieldset>}
       <div className="flex justify-end gap-2">
         <Button variant="secondary" onClick={onClose}>{t('取消')}</Button>
-        <Button pending={false} onClick={() => {
+        <Button pending={false} disabled={!roleIds.length || options.isLoading} onClick={() => {
           // Update semantics: omitting department_id keeps the assignment, an
           // empty string clears it, so the select maps 未分配 to ''.
           const submit = administrators
-            ? web.updateAdministrator(user.id, { status: user.status, role })
-            : web.updateUser(user.id, { status: user.status, role, department_id: departmentId, ...(postsEnabled ? { post_ids: postIds } : {}) });
+            ? web.updateAdministrator(user.id, { status: user.status, role_ids: roleIds })
+            : web.updateUser(user.id, { status: user.status, role_ids: roleIds, department_id: departmentId, ...(postsEnabled ? { post_ids: postIds } : {}) });
           void submit.then(() => {
             message.success(t('已保存'));
             onSaved();

@@ -23,7 +23,7 @@ Unicore 是面向 AI 辅助开发的 Go + React 应用框架。共享领域与�
 
 | Profile | 适用场景 | 身份与管理 | 数据库 |
 | --- | --- | --- | --- |
-| `web-platform` | 在线多用户应用 | 管理端/用户端独立入口与 API，管理员/普通用户物理拆表 | 推荐 MySQL / PostgreSQL，SQLite 可选 |
+| `web-platform` | 在线多用户应用 | 业务/管理工作台独立入口与 API，统一账号支持多个角色 | 推荐 MySQL / PostgreSQL，SQLite 可选 |
 | `web-standalone` | 自托管的单用户工具 | 无账号、管理端或全局设置页面，仅本地外观 | MySQL / PostgreSQL / SQLite |
 | `desktop` | Wails v2 原生桌面 | 无安装页、账号或平台管理模块 | 自动初始化本地 SQLite |
 | `cli` | 命令行与脚本集成 | 直接调用共享 Core | 不引入 HTTP、Wails 或数据库 |

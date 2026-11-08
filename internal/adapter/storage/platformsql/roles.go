@@ -1,5 +1,5 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Realm-aware role catalogue, custom role management and transactional administrator authorization.
+// Description: Unified role catalogue, custom role management and transactional authorization.
 package platformsql
 
 import (
@@ -15,9 +15,8 @@ import (
 )
 
 // role reads one row of unicore_roles. super_admin keeps the catalogue-wide grant
-// set; every other role resolves permissions from unicore_role_permissions. The
-// statements bypass scoped(): role tables are shared across realms, and the
-// member counts must always address the intended identity table literally.
+// set; every other role resolves permissions from unicore_role_permissions.
+// Every workspace uses the same membership relation.
 func (r *Repository) role(ctx context.Context, q sqlstore.Runner, id string) (contracts.Role, error) {
 	var name, realm, scope string
 	err := r.Store.Row(ctx, q, "SELECT name, realm, data_scope FROM unicore_roles WHERE id=?", id).Scan(&name, &realm, &scope)
@@ -33,7 +32,7 @@ func (r *Repository) role(ctx context.Context, q sqlstore.Runner, id string) (co
 		result.AuthorizationInitialized = true
 		result.MenuIds, result.ActionIds, result.OperationIds = []string{}, []string{}, []string{}
 		result.Permissions = append(result.Permissions, platform.Permissions...)
-		if err := r.Store.Row(ctx, q, "SELECT COUNT(*) FROM unicore_administrators").Scan(&result.UserCount); err != nil {
+		if err := r.Store.Row(ctx, q, "SELECT COUNT(*) FROM unicore_user_roles WHERE role_id='super_admin'").Scan(&result.UserCount); err != nil {
 			return contracts.Role{}, err
 		}
 		return result, nil
@@ -60,11 +59,7 @@ func (r *Repository) role(ctx context.Context, q sqlstore.Runner, id string) (co
 		}
 		result.DepartmentIds = departments
 	}
-	if realm == "administrator" {
-		err = r.Store.Row(ctx, q, "SELECT COUNT(*) FROM unicore_administrators a JOIN unicore_administrator_roles ar ON ar.administrator_id=a.id WHERE ar.role_id=?", id).Scan(&result.UserCount)
-	} else {
-		err = r.Store.Row(ctx, q, "SELECT COUNT(*) FROM unicore_users u JOIN unicore_user_roles ur ON ur.user_id=u.id WHERE ur.role_id=?", id).Scan(&result.UserCount)
-	}
+	err = r.Store.Row(ctx, q, "SELECT COUNT(*) FROM unicore_user_roles WHERE role_id=?", id).Scan(&result.UserCount)
 	if err != nil {
 		return contracts.Role{}, err
 	}
@@ -109,13 +104,10 @@ func (r *Repository) roleIDList(ctx context.Context, q sqlstore.Runner, table, r
 // catalogue permission the role holds, and operation grants never exceed the
 // role's permission points (the points remain the upper bound).
 func (r *Repository) saveRoleAuthorization(ctx context.Context, tx *sql.Tx, roleID, realm string, permissions, menuIds, actionIds, operationIds []string, n contracts.Navigation) error {
-	// Node ids are bare route ids shared across surfaces; grants resolve
-	// strictly inside the role's own surface.
+	// Grants can select navigation items from either workspace.
 	nodes := map[string]contracts.NavigationNode{}
 	for _, section := range n.Sections {
-		if section.Surface != realm {
-			continue
-		}
+
 		for _, node := range n.Nodes {
 			if node.SectionID == section.ID {
 				nodes[node.ID] = node
@@ -238,7 +230,7 @@ func (r *Repository) actor(ctx context.Context, tx *sql.Tx, id, permission strin
 	}
 	// Active state and the permission point are rechecked against current data;
 	// super_admin exclusivity is the policy middleware's session-layer decision.
-	if user.Status != "active" || !platform.Has(user, permission) {
+	if user.Status != "active" || !platform.Has(user, permission) || (platform.SuperOnlyPermission(permission) && !platform.IsSuper(user)) {
 		return user, platform.ErrForbidden
 	}
 	return user, nil
@@ -251,9 +243,7 @@ func (r *Repository) AuthorizeAdministrator(ctx context.Context, tx *sql.Tx, id,
 	return err
 }
 
-// RoleOptions lists the roles assignable in the repository's realm: the user
-// realm offers its builtin role plus user-realm custom roles, the administrator
-// realm super_admin plus administrator-realm custom roles.
+// RoleOptions is shared by both workspaces; assignment remains server-authorized.
 func (r *Repository) RoleOptions(ctx context.Context, actorID string) (contracts.RoleOptions, error) {
 	result := contracts.RoleOptions{Items: []contracts.RoleOption{}}
 	admins := &Repository{Store: r.Store, Administrators: true}
@@ -272,39 +262,23 @@ func (r *Repository) RoleOptions(ctx context.Context, actorID string) (contracts
 		return result, err
 	}
 	for _, role := range roles.Items {
-		if r.Administrators {
-			if role.ID != "super_admin" && role.Realm != "administrator" {
-				continue
-			}
-		} else if role.ID == "super_admin" || role.Realm != "user" {
-			continue
-		}
-		result.Items = append(result.Items, contracts.RoleOption{ID: role.ID, Name: role.Name, Assignable: true})
+
+		result.Items = append(result.Items, contracts.RoleOption{ID: role.ID, Name: role.Name, Assignable: platform.IsSuper(actor) || role.ID == "user"})
 	}
 	return result, nil
 }
 
-// validateGrants applies the realm's fail-closed bound: user-realm roles take
-// assignable points only, administrator-realm roles any catalogue point, and
-// unknown points are always refused.
+// Role grants must exist in the catalogue. Reserved operations still require super_admin.
 func validateGrants(realm string, permissions []string) error {
 	for _, permission := range permissions {
-		if realm == "administrator" {
-			if !platform.CatalogPermission(permission) {
-				return platform.ErrForbidden
-			}
-			continue
-		}
-		if !platform.AssignablePermission(permission) {
+		if !platform.CatalogPermission(permission) {
 			return platform.ErrForbidden
 		}
 	}
 	return nil
 }
 
-// validateDataScope normalizes the requested data scope against the role realm:
-// omitted means self, unknown values are input errors, administrator-realm roles
-// are fixed to self and reject anything else (fail-closed).
+// Data scopes apply to all roles. Unknown values are rejected.
 func validateDataScope(realm string, scope *string) (string, error) {
 	requested := platform.ScopeSelf
 	if scope != nil && *scope != "" {
@@ -315,9 +289,7 @@ func validateDataScope(realm string, scope *string) (string, error) {
 	default:
 		return "", platform.ErrInput
 	}
-	if realm == "administrator" && requested != platform.ScopeSelf {
-		return "", platform.ErrForbidden
-	}
+
 	return requested, nil
 }
 
@@ -465,6 +437,14 @@ func (r *Repository) UpdateRole(ctx context.Context, id string, input contracts.
 	if id == "super_admin" {
 		return contracts.Role{}, platform.ErrForbidden
 	}
+	// Public registration always uses user; its grants must remain business-only.
+	if id == "user" {
+		for _, permission := range input.Permissions {
+			if !platform.AssignablePermission(permission) {
+				return contracts.Role{}, platform.ErrForbidden
+			}
+		}
+	}
 	if err = validateGrants(before.Realm, input.Permissions); err != nil {
 		return contracts.Role{}, err
 	}
@@ -526,13 +506,8 @@ func (r *Repository) UpdateRole(ctx context.Context, id string, input contracts.
 	if err = r.saveRoleAuthorization(ctx, tx, id, before.Realm, input.Permissions, menuIds, actionIds, operationIds, nav); err != nil {
 		return contracts.Role{}, err
 	}
-	// A permission change re-evaluates every member session; each realm revokes
-	// its own session table only.
-	if before.Realm == "administrator" {
-		if _, err = r.Store.Exec(ctx, tx, "DELETE FROM unicore_administrator_sessions WHERE user_id IN (SELECT administrator_id FROM unicore_administrator_roles WHERE role_id=?)", id); err != nil {
-			return contracts.Role{}, err
-		}
-	} else if _, err = r.Store.Exec(ctx, tx, "DELETE FROM unicore_sessions WHERE user_id IN (SELECT user_id FROM unicore_user_roles WHERE role_id=?)", id); err != nil {
+	// Permission changes revoke every affected account's shared sessions.
+	if _, err = r.Store.Exec(ctx, tx, "DELETE FROM unicore_sessions WHERE user_id IN (SELECT user_id FROM unicore_user_roles WHERE role_id=?)", id); err != nil {
 		return contracts.Role{}, err
 	}
 	if err = r.audit(audit.Target(ctx, "role/"+id, "sessions=revoked; permissions="+strings.Join(input.Permissions, ",")+"; data_scope="+scope), tx, actor, "roles.updated"); err != nil {
@@ -545,8 +520,7 @@ func (r *Repository) UpdateRole(ctx context.Context, id string, input contracts.
 	return role, tx.Commit()
 }
 
-// DeleteRole refuses builtin roles and roles that still have members in either
-// realm membership table.
+// DeleteRole refuses builtin roles and roles that still have members.
 func (r *Repository) DeleteRole(ctx context.Context, id string, actor string) (contracts.Role, error) {
 	before, err := r.role(ctx, r.Store.DB, id)
 	if err != nil {
@@ -566,7 +540,7 @@ func (r *Repository) DeleteRole(ctx context.Context, id string, actor string) (c
 	if platform.BuiltinRole(id) {
 		return contracts.Role{}, platform.ErrForbidden
 	}
-	for _, table := range []string{"unicore_user_roles", "unicore_administrator_roles"} {
+	for _, table := range []string{"unicore_user_roles"} {
 		var count int
 		if err = r.Store.Row(ctx, tx, "SELECT COUNT(*) FROM "+table+" WHERE role_id=?", id).Scan(&count); err != nil {
 			return contracts.Role{}, err
@@ -653,11 +627,10 @@ func deriveGrants(realm string, permissions []string, n contracts.Navigation) ([
 	for _, permission := range permissions {
 		permissionSet[permission] = true
 	}
-	// Node ids are bare route ids shared across surfaces; derive only from the
-	// realm's own sections.
+	// Shared route ids are deduplicated across workspace sections.
 	surfaceSections := map[string]bool{}
 	for _, section := range n.Sections {
-		if section.Surface == realm {
+		if section.Surface == "user" || section.Surface == "administrator" {
 			surfaceSections[section.ID] = true
 		}
 	}
@@ -682,7 +655,7 @@ func deriveGrants(realm string, permissions []string, n contracts.Navigation) ([
 		}
 		menus = append(menus, node.ID)
 	}
-	return menus, actions, operations
+	return uniqueIDs(menus), uniqueIDs(actions), uniqueIDs(operations)
 }
 
 // derefIDs normalizes the optional contract arrays: nil means "keep" for
@@ -701,4 +674,16 @@ func derefDepartmentIds(ids *[]string) []string {
 		return nil
 	}
 	return *ids
+}
+
+func uniqueIDs(ids []string) []string {
+	seen := map[string]bool{}
+	result := []string{}
+	for _, id := range ids {
+		if !seen[id] {
+			seen[id] = true
+			result = append(result, id)
+		}
+	}
+	return result
 }

@@ -73,13 +73,9 @@ internal/platform/Accounts 编排独立注册/邮箱验证策略、后缀与黑�
 
 ## 平台角色与权限目录
 
-[ADR-0012](../adr/ADR-0012-fixed-platform-roles.md) 曾固定两角色并移除业务 grants；[ADR-0033](../adr/ADR-0033-dynamic-user-roles.md) 在保持双域隔离与 fail-closed 契约权限的前提下恢复用户域动态角色，[ADR-0034](../adr/ADR-0034-administrator-restricted-roles.md) 将角色表 realm 化并放开管理员域受限角色，[ADR-0035](../adr/ADR-0035-action-permissions-departments.md) 增加动作权限点与部门数据范围。platform/roles.go 的 PermissionCatalog 以 Assignable 区分仅 super_admin 的管理权限与可授予自建角色的业务权限；用户域权限由 user_roles JOIN role_permissions 表驱动，未知权限点默认拒绝。角色 CRUD 与权限矩阵由 /admin/roles 提供，角色或权限变更撤销成员会话。
+当前身份与授权以 [ADR-0037](../adr/ADR-0037-unified-user-identity.md) 和 [角色需求](../00-product/feature-roles.md) 为准：统一 users/user_roles/session/account 安全存储，用户与管理工作台共用账号；角色可以跨工作台组合业务与管理权限，多角色各类授权分别取并集。前端隐藏不构成权限控制，服务端始终校验契约、权限点、operation grant、超级管理员保留策略和 CSRF。角色变更仅超管执行，事务重查身份与权限，保护最后启用及最后有本地密码超管。角色/状态/密码变化撤销共享会话。
 
-[ADR-0036](../adr/ADR-0036-navigation-regions-granular-authorization.md) 把导航与授权细化：导航为真实区域实体（surface=user|administrator 的区域与 directory/page/link/action 节点树，`permission`/`operation_ids` 仅由 action 节点承载，深度上限 5，`navigation.{sections,nodes,version}` 整树提交、版本 CAS、`reset` 仅 super_admin），侧栏/图标栏/移动抽屉消费同一模型；角色分别授予 `menu_ids`/`action_ids`/`operation_ids` 三类能力（空数组拒绝、互不隐含，menu_ids 只过滤菜单可见性不授予 API），API 目录 `GET /admin/api-operations`（roles:read）从 OpenAPI operationId 派生；运行时策略（profile、access、身份域、契约权限点、operation grant、superAdmin 保留集、CSRF）构成不可逾越上界，事务内重查操作者；`EnsurePermissions` 只做幂等同步，不复活已撤销授权。岗位（platform@8）独立于角色与部门，普通用户多岗位关联、按岗位过滤，不隐式任何授权。internal/platform/operations.go 派生 operation 目录，datascope.go 解析范围（未知值按仅本人、数据库错误拒绝、分批解析不截断），platformsql 的 departments/posts/menu 存储在安装锁事务内校验并失效相关缓存。
-
-routes.ts 集中页面/权限事实，canAccess 按会话权限过滤页面与直达页。所有 /api/v1/admin/*（包括只读）在 HTTP 上复核当前管理员与权限，写入仍校验 CSRF/Origin；用户写入在安装行锁内重新加载操作者，保护最后一个启用且有本地密码的管理员。角色/状态变更撤销会话与账号挑战。公共品牌与登录策略保留最小公开投影。数据字典随 platform 迁移提供。
-
-历史旧轨迁移 0007（旧编号，非当前 Catalog platform@7）曾规范为单一固定角色、移除旧自定义角色与普通用户 grants、删除平台全局主题、撤销旧凭据和取消待发邮件；历史迁移 checksum 保持，其他形态只运行 framework 迁移。当前 Catalog 链见 [管理工具](../03-runbooks/admin-tools.md) 与 [迁移规范](../02-standards/database-migrations.md)，三方言迁移与恢复按 [部署手册](../03-runbooks/deployment.md) 在隔离实例验证。
+导航仍采用 ADR-0036 的 surface=user|administrator 区域树，两种 surface 描述工作台而非独立账号域；个人文件、头像与笔记归属固定为 user。部门、岗位与数据范围面向统一账号。公开注册与 JIT 只能创建 user，外部身份声明不自动授权。非平台形态不装配账号体系。旧双域 ADR 仅保留历史决策背景。
 
 ## M3a 企业身份
 
@@ -101,9 +97,9 @@ Web 启动参数、APP_* 环境与可选 YAML/JSON 配置由 internal/config.Loa
 
 原生 runner 将桌面结果归档后与同一 main 提交的 Web/CLI 包汇总；release-assets.mjs 检查版本、来源、矩阵和摘要，候选 workflow 为全部归档生成 GitHub 来源证明。CI 安全扫描包含桌面导入包和前端开发依赖。来源证明不替代平台代码签名或 OTA 签名，具体流程与限制见 [发版](../03-runbooks/release.md) 及 [安全政策](../../SECURITY.md)。
 
-## 管理员与用户身份域
+## 统一账号与多个工作台
 
-当前身份/导航以 [ADR-0014](../adr/ADR-0014-separate-identities-management.md) 为准。platformsql.Repository 以固定 Administrators 标志映射七张身份表，SQL 标识符只来自固定代码映射；共享设置、审计与队列不映射。安装创建独立管理员，普通用户与管理员服务不回退。HTTP 固定用户/admin 路径与独立 Cookie 选择服务，写事务从管理员仓库重查操作者。管理员与用户管理端点分别固定身份，禁止角色转换；JIT 仅普通域。升级 0008 保留账号/绑定并撤销旧凭据。
+[ADR-0037](../adr/ADR-0037-unified-user-identity.md) 定义统一 users/user_roles 及会话、安全存储。安装创建持 super_admin 角色的账号，角色可叠加，管理员资格由授权决定。HTTP 两种路径选择工作台接口，两端共用 Cookie、凭据和个人资源；无 SQL 表名映射。写事务从统一账号表重查操作者；角色分配与关键操作保留给超管，JIT 只创建默认 user。两工作台共享登录防护和会话失效通知，安全时限及强制 MFA 按实际管理权限选择。当前未发布分支直接调整新安装结构，不兼容旧双身份账本。
 
 React 的独立可折叠导航、Radix dialog 弹层、头像密码/退出、邮件单页与系统日志由 routes.ts/router.tsx 注册；基础设置保持单层业务 Tabs。后台改名同步地址，OIDC 解除不改变当前域路径。共享 shell 适用于 Web/Wails，身份组件仅平台装配。
 
@@ -115,7 +111,7 @@ React 的独立可折叠导航、Radix dialog 弹层、头像密码/退出、邮
 
 ## 双入口与本地业务界面
 
-当前范围见 [ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md)。用户 main.tsx 与管理员 admin.tsx 独立构建，管理页仅由 admin-app.tsx 导入，公共 Workspace 通过注入复用。Go 按 admin.path 返回 admin.html，非平台返回 404；用户 bootstrap 不公开后台路径。HttpTransport 构造时显式选域，使用契约中的固定 counterpart；所有页面仍通过 AppClient。旧身份请求头被忽略。管理员 auth/account 是管理员身份端点，管理业务继续逐权限校验。
+当前账号范围见 [ADR-0037](../adr/ADR-0037-unified-user-identity.md)，独立前端构建沿用 ADR-0016。用户 main.tsx 与管理员 admin.tsx 独立构建，管理页仅由 admin-app.tsx 导入，公共 Workspace 通过注入复用。Go 按 admin.path 返回 admin.html，非平台返回 404；用户 bootstrap 不公开后台路径。HttpTransport 构造时显式选域，使用契约中的固定 counterpart；所有页面仍通过 AppClient。旧身份请求头被忽略。管理员 auth/account 是管理员身份端点，管理业务继续逐权限校验。
 
 单机/桌面仅业务与本地外观，SettingDefinition 非平台只允许 appearance，旧站点/品牌记录不再使用。原生品牌由构建源生成；Wails 不再暴露 Branding/UpdateBranding。上传组件与两端 shell 共用，SDK 只提供真实阶段回调。
 

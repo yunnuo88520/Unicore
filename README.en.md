@@ -23,7 +23,7 @@ The README and new release notes are available in Chinese and English. Detailed 
 
 | Profile | Intended use | Identity and administration | Database |
 | --- | --- | --- | --- |
-| `web-platform` | Online applications with multiple users | Separate administrator/user pages, APIs, accounts, and sessions | MySQL / PostgreSQL recommended; SQLite optional |
+| `web-platform` | Online applications with multiple users | Separate business/management workspaces and APIs; unified accounts with multiple roles | MySQL / PostgreSQL recommended; SQLite optional |
 | `web-standalone` | Self-hosted tools for one user | No accounts, administration, or global settings pages; local appearance only | MySQL / PostgreSQL / SQLite |
 | `desktop` | Native Wails v2 applications | No installation wizard, accounts, or platform administration | Local SQLite initialized automatically |
 | `cli` | Commands and scripting | Calls the shared Core directly | No HTTP, Wails, or database dependencies |

@@ -119,15 +119,15 @@ func exercisePosts(t *testing.T, ctx context.Context, store *sqlstore.Store, r *
 	// The administrator realm never carries posts: validation and writes
 	// refuse any non-empty set, an empty set stays a no-op.
 	admins := &Repository{Store: store, Administrators: true}
-	if _, err = admins.validateUserPosts(ctx, store.DB, admin.ID, []string{engineer.ID}); !errors.Is(err, platform.ErrForbidden) {
-		t.Fatal("administrator posts validated", err)
+	if _, err = admins.validateUserPosts(ctx, store.DB, admin.ID, []string{engineer.ID}); err != nil {
+		t.Fatal("privileged user posts validation", err)
 	}
 	tx, err := store.DB.BeginTx(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = admins.writeUserPosts(ctx, tx, admin.ID, []string{engineer.ID}); !errors.Is(err, platform.ErrForbidden) {
-		t.Fatal("administrator posts written", err)
+	if err = admins.writeUserPosts(ctx, tx, admin.ID, []string{engineer.ID}); err != nil {
+		t.Fatal("privileged user posts write", err)
 	}
 	if err = admins.writeUserPosts(ctx, tx, admin.ID, nil); err != nil {
 		t.Fatal("administrator empty posts", err)

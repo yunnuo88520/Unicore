@@ -55,7 +55,7 @@ func TestMailAccountHTTP(t *testing.T) {
 		if cookie != "" {
 			name := sessionCookie
 			if cookie == raw {
-				name = "unicore_administrator_session"
+				name = "unicore_session"
 
 			}
 			req.AddCookie(&http.Cookie{Name: name, Value: cookie})

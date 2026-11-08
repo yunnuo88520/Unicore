@@ -20,13 +20,10 @@ import (
 
 func fileActor(r *http.Request, s contracts.Session) files.Actor {
 	realm := "user"
-	if administratorRequest(r) {
-		realm = "administrator"
-	}
 	// Every administrator-domain session is a file-service admin: the instance
 	// file list stays gated by the contract storage:read permission, while
 	// ownership checks below keep user-realm actors scoped to their own files.
-	return files.Actor{ID: s.User.ID, Realm: realm, Admin: realm == "administrator"}
+	return files.Actor{ID: s.User.ID, Realm: realm, Admin: administratorRequest(r) && platform.Has(s.User, "storage:read")}
 }
 
 // fileActionCapabilities merges the storage-side ownership facts with the

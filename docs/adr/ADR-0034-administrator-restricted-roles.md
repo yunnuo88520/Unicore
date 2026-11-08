@@ -1,6 +1,8 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # ADR-0034：管理员域受限角色
 
+> 账号分域与角色跨域限制已由 [ADR-0037](ADR-0037-unified-user-identity.md) 的统一账号、多角色方案取代；本文保留历史背景。
+
 日期：2026-11-07。状态：已实施（dev）。在 ADR-0033 的基础上放开「管理员域固定 super_admin」的运营层限制；双域物理隔离、fail-closed 契约权限与最后管理员保护保持不变。
 
 ## 背景

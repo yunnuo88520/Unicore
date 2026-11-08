@@ -90,7 +90,7 @@ func TestApplyCreatesBaselineAndIsIdempotent(t *testing.T) {
 			t.Fatalf("bad ledger entry for %s@%d: %q (want %s@%d)", expected.namespace, expected.version, entry, file.Checksum, fixedStamp)
 		}
 	}
-	for _, table := range []string{"unicore_install_state", "unicore_system_settings", "unicore_audit_logs", "unicore_users", "unicore_example_notes", "unicore_announcement_recipients", "unicore_personal_accounts", "unicore_dict_types", "unicore_menus", "unicore_account_avatars", "unicore_inbox_messages", "unicore_scheduled_jobs", "unicore_administrator_roles", "unicore_departments", "unicore_role_departments", "unicore_posts", "unicore_user_posts"} {
+	for _, table := range []string{"unicore_install_state", "unicore_system_settings", "unicore_audit_logs", "unicore_users", "unicore_example_notes", "unicore_announcement_recipients", "unicore_personal_accounts", "unicore_dict_types", "unicore_menus", "unicore_account_avatars", "unicore_inbox_messages", "unicore_scheduled_jobs", "unicore_departments", "unicore_role_departments", "unicore_posts", "unicore_user_posts"} {
 		if !tableExists(t, db, table) {
 			t.Fatalf("table %s missing after baseline", table)
 		}

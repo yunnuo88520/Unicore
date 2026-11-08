@@ -32,7 +32,7 @@ export function validNavigationUrl(value: string): boolean {
   try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol) && !!url.hostname; } catch { return false; }
 }
 export const defaultPageOrder: string[] = [
-  'overview', 'lab', 'users', 'administrators', 'roles', 'departments', 'posts', 'api-operations', 'menus', 'dictionaries',
+  'overview', 'lab', 'users', 'roles', 'departments', 'posts', 'api-operations', 'menus', 'dictionaries',
   'announcements', 'tasks', 'files', 'notes', 'api-docs', 'site', 'storage', 'account-policy', 'mail', 'mail-templates',
   'notification-channels', 'notification-templates', 'system-notifications', 'logs', 'edition', 'account', 'account-security', 'account-sessions',
 ];
@@ -75,6 +75,7 @@ export function defaultNavigation(surface: NavigationSection['surface'], profile
     nodes.push({ ...newNavigationNode('personal', 'admin:system', 'directory'), label: titles.personal, icon: 'UserRound', sort: 30 });
   }
   for (const id of Object.keys(routes).filter(isRegisteredPage)) {
+    if (id === 'administrators') continue;
     const route = routes[id];
     const group = 'group' in route ? String(route.group) : '';
     if (surface === 'user' && (group === 'administration' || (profile === 'web-platform' && group === 'system' && id !== 'site'))) continue;

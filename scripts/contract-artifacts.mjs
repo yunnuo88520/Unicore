@@ -40,7 +40,7 @@ export function contractArtifacts(spec){
  errors=execFileSync('gofmt',[],{input:errors,encoding:'utf8'});
  // Strip annotations at schema nodes only; property names such as title/description are business data.
  function constraintsFor(schema){const result={};for(const [key,value] of Object.entries(schema)){
-  if(['description','title','example','examples'].includes(key))continue;
+  if(['description','title','example','examples','x-go-value'].includes(key))continue;
   if(key==='properties')result[key]=Object.fromEntries(Object.entries(value).map(([name,child])=>[name,constraintsFor(child)]));
   else if((key==='items'||key==='additionalProperties')&&typeof value==='object')result[key]=constraintsFor(value);
   else result[key]=value;

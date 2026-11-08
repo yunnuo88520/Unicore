@@ -25,7 +25,6 @@ var NavigationPages = []contracts.NavigationPage{
 	{ID: "logs", Surfaces: []string{"administrator"}, Permission: "logs:read", Group: "system"},
 	{ID: "edition", Surfaces: []string{"administrator"}, Permission: "updates:read", Group: "system"},
 	{ID: "users", Surfaces: []string{"administrator"}, Permission: "users:read", Group: "administration"},
-	{ID: "administrators", Surfaces: []string{"administrator"}, Permission: "administrators:read", Group: "administration"},
 	{ID: "roles", Surfaces: []string{"administrator"}, Permission: "roles:read", Group: "administration"},
 	{ID: "departments", Surfaces: []string{"administrator"}, Permission: "departments:read", Group: "administration"},
 	{ID: "posts", Surfaces: []string{"administrator"}, Permission: "posts:read", Group: "administration"},
@@ -41,7 +40,7 @@ var NavigationPages = []contracts.NavigationPage{
 // defaultPageOrder mirrors packages/web-ui/src/navigation.ts defaultPageOrder:
 // the shared stable display order both seeds and editors rely on.
 var defaultPageOrder = []string{
-	"overview", "lab", "users", "administrators", "roles", "departments", "posts", "api-operations", "menus", "dictionaries",
+	"overview", "lab", "users", "roles", "departments", "posts", "api-operations", "menus", "dictionaries",
 	"announcements", "tasks", "files", "notes", "api-docs", "site", "storage", "account-policy", "mail", "mail-templates",
 	"notification-channels", "notification-templates", "system-notifications", "logs", "edition", "account", "account-security", "account-sessions",
 }

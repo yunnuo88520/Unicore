@@ -31,20 +31,7 @@ CREATE TABLE IF NOT EXISTS public."unicore_users" (
   CONSTRAINT "users_username_key" UNIQUE (username)
 );
 
-CREATE TABLE IF NOT EXISTS public."unicore_administrators" (
-  "id" character varying(64) NOT NULL,
-  "username" character varying(64) NOT NULL,
-  "email" character varying(254) NOT NULL,
-  "password_hash" text NOT NULL,
-  "status" character varying(16) NOT NULL,
-  "created_at" bigint NOT NULL,
-  "updated_at" bigint NOT NULL,
-  "last_login_at" bigint NOT NULL,
-  "phone" character varying(21),
-  CONSTRAINT "administrators_pkey" PRIMARY KEY (id),
-  CONSTRAINT "administrators_email_key" UNIQUE (email),
-  CONSTRAINT "administrators_username_key" UNIQUE (username)
-);
+
 
 CREATE TABLE IF NOT EXISTS public."unicore_user_roles" (
   "user_id" character varying(64) NOT NULL,
@@ -125,61 +112,17 @@ CREATE TABLE IF NOT EXISTS public."unicore_oidc_flows" (
   CONSTRAINT "oidc_flows_pkey" PRIMARY KEY (state_hash)
 );
 
-CREATE TABLE IF NOT EXISTS public."unicore_administrator_roles" (
-  "user_id" character varying(64) NOT NULL,
-  "role_id" character varying(64) NOT NULL,
-  CONSTRAINT "administrator_roles_role_id_fkey" FOREIGN KEY (role_id) REFERENCES unicore_roles(id),
-  CONSTRAINT "administrator_roles_user_id_fkey" FOREIGN KEY (user_id) REFERENCES unicore_administrators(id),
-  CONSTRAINT "administrator_roles_pkey" PRIMARY KEY (user_id, role_id)
-);
 
-CREATE TABLE IF NOT EXISTS public."unicore_administrator_sessions" (
-  "token_hash" character varying(64) NOT NULL,
-  "user_id" character varying(64) NOT NULL,
-  "expires_at" bigint NOT NULL,
-  CONSTRAINT "administrator_sessions_user_id_fkey" FOREIGN KEY (user_id) REFERENCES unicore_administrators(id),
-  CONSTRAINT "administrator_sessions_pkey" PRIMARY KEY (token_hash)
-);
 
-CREATE TABLE IF NOT EXISTS public."unicore_administrator_account_tokens" (
-  "token_hash" character varying(64) NOT NULL,
-  "user_id" character varying(64) NOT NULL,
-  "purpose" character varying(16) NOT NULL,
-  "expires_at" bigint NOT NULL,
-  CONSTRAINT "administrator_account_tokens_user_id_fkey" FOREIGN KEY (user_id) REFERENCES unicore_administrators(id),
-  CONSTRAINT "administrator_account_tokens_pkey" PRIMARY KEY (token_hash)
-);
 
-CREATE TABLE IF NOT EXISTS public."unicore_administrator_email_challenges" (
-  "id" character varying(64) NOT NULL,
-  "user_id" character varying(64) NOT NULL,
-  "purpose" character varying(16) NOT NULL,
-  "code_digest" character varying(64) NOT NULL,
-  "expires_at" bigint NOT NULL,
-  "created_at" bigint NOT NULL,
-  "attempts" integer NOT NULL,
-  CONSTRAINT "administrator_email_challenges_user_id_fkey" FOREIGN KEY (user_id) REFERENCES unicore_administrators(id),
-  CONSTRAINT "administrator_email_challenges_pkey" PRIMARY KEY (id)
-);
 
-CREATE TABLE IF NOT EXISTS public."unicore_administrator_external_identities" (
-  "identity_hash" character varying(64) NOT NULL,
-  "user_id" character varying(64) NOT NULL,
-  "issuer" text NOT NULL,
-  "subject" text NOT NULL,
-  "created_at" bigint NOT NULL,
-  CONSTRAINT "administrator_external_identities_user_id_fkey" FOREIGN KEY (user_id) REFERENCES unicore_administrators(id),
-  CONSTRAINT "administrator_external_identities_pkey" PRIMARY KEY (identity_hash),
-  CONSTRAINT "administrator_external_identities_user_id_key" UNIQUE (user_id)
-);
 
-CREATE TABLE IF NOT EXISTS public."unicore_administrator_oidc_flows" (
-  "state_hash" character varying(64) NOT NULL,
-  "browser_hash" character varying(64) NOT NULL,
-  "sealed_payload" text NOT NULL,
-  "expires_at" bigint NOT NULL,
-  CONSTRAINT "administrator_oidc_flows_pkey" PRIMARY KEY (state_hash)
-);
+
+
+
+
+
+
 
 CREATE TABLE IF NOT EXISTS public."unicore_storage_locations" (
   "id" character varying(80) NOT NULL,
@@ -299,7 +242,6 @@ CREATE TABLE IF NOT EXISTS public."unicore_announcement_reads" (
   CONSTRAINT "unicore_announcement_reads_pkey" PRIMARY KEY (announcement_id, user_id)
 );
 CREATE UNIQUE INDEX IF NOT EXISTS unicore_users_phone_key ON public.unicore_users USING btree (phone);
-CREATE UNIQUE INDEX IF NOT EXISTS unicore_administrators_phone_key ON public.unicore_administrators USING btree (phone);
 
 CREATE TABLE IF NOT EXISTS unicore_personal_accounts (
  user_id VARCHAR(64) NOT NULL PRIMARY KEY REFERENCES unicore_users(id),
@@ -319,24 +261,9 @@ CREATE TABLE IF NOT EXISTS unicore_email_changes (
  code_digest VARCHAR(64) NOT NULL, verified INTEGER NOT NULL, attempts INTEGER NOT NULL,
  created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL
 );
-CREATE TABLE IF NOT EXISTS unicore_administrator_personal_accounts (
- user_id VARCHAR(64) NOT NULL PRIMARY KEY REFERENCES unicore_administrators(id),
- display_name VARCHAR(80) NOT NULL, totp_secret TEXT NOT NULL, recovery_digests TEXT NOT NULL,
- last_step BIGINT NOT NULL, setup_secret TEXT NOT NULL, setup_session VARCHAR(64) NOT NULL, setup_expires BIGINT NOT NULL, setup_attempts INTEGER NOT NULL
-);
-CREATE TABLE IF NOT EXISTS unicore_administrator_session_details (
- token_hash VARCHAR(64) NOT NULL PRIMARY KEY REFERENCES unicore_administrator_sessions(token_hash) ON DELETE CASCADE,
- user_id VARCHAR(64) NOT NULL REFERENCES unicore_administrators(id),
- ip_address VARCHAR(64) NOT NULL, user_agent VARCHAR(512) NOT NULL,
- created_at BIGINT NOT NULL, last_seen_at BIGINT NOT NULL, mfa_verified INTEGER NOT NULL, mfa_attempts INTEGER NOT NULL
-);
-CREATE TABLE IF NOT EXISTS unicore_administrator_email_changes (
- id VARCHAR(64) NOT NULL PRIMARY KEY, user_id VARCHAR(64) NOT NULL REFERENCES unicore_administrators(id),
- session_hash VARCHAR(64) NOT NULL, parent_id VARCHAR(64) NOT NULL,
- original_email VARCHAR(254) NOT NULL, target_email VARCHAR(254) NOT NULL,
- code_digest VARCHAR(64) NOT NULL, verified INTEGER NOT NULL, attempts INTEGER NOT NULL,
- created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL
-);
+
+
+
 
 INSERT INTO unicore_storage_locations(id,name,provider,endpoint,bucket,region,prefix,path_style,credentials,tested,created_at) SELECT 'legacy-brand','历史品牌文件','local','','','','',1,'',1,0 WHERE NOT EXISTS (SELECT 1 FROM unicore_storage_locations WHERE id='legacy-brand');
 

@@ -96,7 +96,7 @@ OpenAPI 当前包含 208 个 operation、215 个 schema。Go/TS 模型、调用�
 | [add-e2e-test](../../.agents/skills/add-e2e-test/SKILL.md) | 扩展 Unicore Playwright E2E：真实后端与 Go 夹具编译、双视口断言与证据留存边界。 |
 | [add-file-storage](../../.agents/skills/add-file-storage/SKILL.md) | 扩展 Unicore 文件业务、存储提供商、直传或签名下载，保持 file_id 元数据与生命周期边界。 |
 | [add-go-module](../../.agents/skills/add-go-module/SKILL.md) | 新增 Unicore Go 领域模块、用例、ports 与按 profile 装配的 adapter。 |
-| [add-platform-permission](../../.agents/skills/add-platform-permission/SKILL.md) | 登记 web-platform 权限点并实现菜单、页面与 API 权限（双域动态角色 + superAdmin 保留集 + 菜单/动作/operation 细粒度授权），验证越权边界。 |
+| [add-platform-permission](../../.agents/skills/add-platform-permission/SKILL.md) | 登记 web-platform 权限点并实现菜单、页面与 API 权限（统一账号、多角色 + superAdmin 保留集 + 菜单/动作/operation 细粒度授权），验证越权边界。 |
 | [add-react-page](../../.agents/skills/add-react-page/SKILL.md) | 新增 Unicore Web/Wails 共用响应式页面、导航或仪表盘 widget。 |
 | [add-setting](../../.agents/skills/add-setting/SKILL.md) | 向 Unicore SettingDefinition 增加分组设置、profile 范围、校验与敏感值处理。 |
 | [app-lifecycle](../../.agents/skills/app-lifecycle/SKILL.md) | 修改 Unicore 配置加载、组件生命周期、日志或监控入口，并验证各 profile 的启动与退出。 |

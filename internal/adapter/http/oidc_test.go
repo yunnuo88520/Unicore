@@ -62,7 +62,7 @@ func TestOIDCHTTP(t *testing.T) {
 		if session != "" {
 			name := sessionCookie
 			if session == raw {
-				name = "unicore_administrator_session"
+				name = "unicore_session"
 
 			}
 			req.AddCookie(&http.Cookie{Name: name, Value: session})

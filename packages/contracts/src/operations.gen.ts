@@ -3858,7 +3858,7 @@ export const operations = {
     "method": "GET",
     "path": "/api/v1/admin/roles/admin-options",
     "requestSchema": null,
-    "responseSchema": "RoleListResponse",
+    "responseSchema": "RoleOptionsResponse",
     "binaryRequest": false,
     "binaryResponse": false,
     "multipartRequest": false,
@@ -4389,7 +4389,7 @@ export interface OperationData {
   importUsers: Models.UserImportResultResponse['data'];
   exportFiles: void;
   adminDashboard: Models.DashboardResponse['data'];
-  adminRoleOptions: Models.RoleListResponse['data'];
+  adminRoleOptions: Models.RoleOptionsResponse['data'];
   listAPIOperations: Models.APIOperationListResponse['data'];
   listPosts: Models.PostListResponse['data'];
   createPost: Models.PostResponse['data'];

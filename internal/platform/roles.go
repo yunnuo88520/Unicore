@@ -1,14 +1,12 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Permission catalogue; user-realm roles take assignable grants, administrator-realm roles any catalogue point.
+// Description: Unified role permission catalogue and privileged-account classification.
 package platform
 
 import "github.com/yunnuo/unicore/internal/contracts"
 
-// Assignable marks permission points a custom user-realm role may hold. Management
-// permissions stay false for the user realm: user-realm roles can never carry
-// administrator account control, role management, framework updates or instance
-// configuration. Administrator-realm roles may hold any catalogue point; only
-// operation-level superAdmin policy (contract x-unicore) stays super_admin-only.
+// Assignable classifies baseline business permissions granted to new members.
+// All roles can hold catalogue points; reserved operations still require super_admin.
+// Accounts with management permissions use the stricter session and MFA policies.
 var PermissionCatalog = []contracts.PermissionDefinition{
 	{ID: "posts:read", Name: "查看岗位", Description: "查看岗位与成员分配", Group: "用户管理"},
 	{ID: "posts:write", Name: "管理岗位", Description: "创建、编辑与删除岗位", Group: "用户管理"},
@@ -66,22 +64,47 @@ var assignablePermissions = func() map[string]bool {
 
 // super_admin is retained as the existing administrator ID for data compatibility.
 func IsSuper(user contracts.User) bool {
-	return len(user.Roles) == 1 && user.Roles[0] == "super_admin"
+	for _, role := range user.Roles {
+		if role == "super_admin" {
+			return true
+		}
+	}
+	return false
 }
 func BuiltinRole(id string) bool { return id == "super_admin" || id == "user" }
 
-// AssignablePermission reports whether a permission point exists and may be
-// granted to a custom user-realm role. Unknown points are refused (fail-closed);
-// administrator-realm roles accept every catalogue point instead.
+// AssignablePermission identifies baseline business grants allowed on the registration role.
 func AssignablePermission(permission string) bool { return assignablePermissions[permission] }
 
-// CatalogPermission reports whether a permission point exists in the catalogue
-// at all. Administrator-realm roles may hold any catalogue point, so the role
-// CRUD uses this as their fail-closed bound.
+// CatalogPermission bounds custom role grants to registered permission points.
 func CatalogPermission(permission string) bool {
 	for _, definition := range PermissionCatalog {
 		if definition.ID == permission {
 			return true
+		}
+	}
+	return false
+}
+
+// SuperOnlyPermission protects credential and authorization administration inside transactions too.
+func SuperOnlyPermission(id string) bool {
+	switch id {
+	case "roles:write", "administrators:read", "administrators:create", "administrators:update", "settings:write", "updates:apply", "storage:write":
+		return true
+	}
+	return false
+}
+
+// HasManagementAccess identifies privileged accounts independently of workspace URLs.
+func HasManagementAccess(user contracts.User) bool {
+	if IsSuper(user) {
+		return true
+	}
+	for _, p := range user.Permissions {
+		for _, def := range PermissionCatalog {
+			if p == def.ID && !def.Assignable {
+				return true
+			}
 		}
 	}
 	return false

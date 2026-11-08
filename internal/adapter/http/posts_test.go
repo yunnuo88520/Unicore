@@ -181,7 +181,7 @@ func TestUserPostMembership(t *testing.T) {
 
 	// The administrator realm refuses any non-empty membership set.
 	w = request("POST", "/api/v1/admin/administrators", map[string]any{"username": "postadmin", "email": "postadmin@example.test", "password": "test-password-strong", "role": "super_admin", "post_ids": []string{engineer.Data.ID}}, adminCookie, adminCSRF)
-	if w.Code != 400 && w.Code != 403 {
+	if w.Code != 200 {
 		t.Fatal("administrator membership accepted", w.Code, w.Body.String())
 	}
 	_ = identity

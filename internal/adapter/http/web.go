@@ -32,7 +32,7 @@ import (
 )
 
 const sessionCookie = "unicore_session"
-const administratorSessionCookie = "unicore_administrator_session"
+const administratorSessionCookie = sessionCookie
 
 func failure(w http.ResponseWriter, status int, code, message string) {
 	writeJSON(w, status, contracts.ErrorResponse{Code: code, Message: message, RequestID: w.Header().Get("X-Request-ID")})
@@ -230,9 +230,7 @@ func administratorRequest(r *http.Request) bool {
 	return strings.HasPrefix(r.URL.Path, "/api/v1/admin/")
 }
 func identityCookie(r *http.Request) string {
-	if administratorRequest(r) {
-		return administratorSessionCookie
-	}
+
 	return sessionCookie
 }
 func rawSession(r *http.Request) string {
@@ -353,6 +351,9 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 	if identity != nil {
 		if session, err := identity.Session(r.Context(), rawSession(r)); err == nil {
 			data.CurrentUser = &session.User
+			if platform.HasManagementAccess(session.User) {
+				data.AdminPath = config.Install.AdminPath(r.Context())
+			}
 			data.CsrfToken = &session.CsrfToken
 			if entries, err := identity.Store.ListMenuConfig(r.Context()); err == nil {
 				if len(entries.Items) != 0 {

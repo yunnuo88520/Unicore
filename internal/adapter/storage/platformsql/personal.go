@@ -257,7 +257,7 @@ func (r *Repository) UseFactor(ctx context.Context, hash, secret string, step in
 		if err != nil {
 			return err
 		}
-		if settings.Force2FA(values, r.Administrators) {
+		if settings.Force2FA(values, platform.HasManagementAccess(s.User)) {
 			return platform.ErrForbidden
 		}
 		var value string
@@ -384,9 +384,7 @@ func (r *Repository) RevokeDevice(ctx context.Context, hash, target string, othe
 }
 
 func (r *Repository) avatarRealm() string {
-	if r.Administrators {
-		return "administrator"
-	}
+
 	return "user"
 }
 

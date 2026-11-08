@@ -341,8 +341,8 @@ func exerciseDepartmentScopeValidation(t *testing.T, ctx context.Context, reposi
 	if _, err := repository.CreateRole(ctx, contracts.RoleSaveInput{Name: "非法范围", Realm: &userRealm, DataScope: scopeString("department")}, admin.ID); !errors.Is(err, platform.ErrInput) {
 		t.Fatal("invalid scope accepted", err)
 	}
-	if _, err := repository.CreateRole(ctx, contracts.RoleSaveInput{Name: "管理员越权范围", Realm: &administratorRealm, DataScope: scopeString(platform.ScopeDept)}, admin.ID); !errors.Is(err, platform.ErrForbidden) {
-		t.Fatal("administrator scope accepted", err)
+	if _, err := repository.CreateRole(ctx, contracts.RoleSaveInput{Name: "管理员越权范围", Realm: &administratorRealm, DataScope: scopeString(platform.ScopeDept)}, admin.ID); err != nil {
+		t.Fatal("management role department scope rejected", err)
 	}
 	missing := contracts.RoleSaveInput{Name: "未知部门范围", Realm: &userRealm, DataScope: scopeString(platform.ScopeCustom), DepartmentIds: &[]string{"missing-department"}}
 	if _, err := repository.CreateRole(ctx, missing, admin.ID); !errors.Is(err, platform.ErrInput) {
@@ -416,7 +416,7 @@ func exerciseUserDepartments(t *testing.T, ctx context.Context, repository *Repo
 	// Administrator accounts ignore departments entirely.
 	admins := &Repository{Store: repository.Store, Administrators: true}
 	created, err := admins.CreateUser(ctx, contracts.UserCreate{Username: "admindept", Email: "admindept@example.test", Password: "test-password-strong", Role: "super_admin", DepartmentID: &root.ID}, hash, admin.ID)
-	if err != nil || created.DepartmentID != nil {
+	if err != nil || created.DepartmentID == nil || *created.DepartmentID != root.ID {
 		t.Fatal("administrator department", created, err)
 	}
 }

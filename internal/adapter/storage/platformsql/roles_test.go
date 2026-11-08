@@ -18,113 +18,62 @@ func rolePtr(v string) *string { return &v }
 func exerciseRoles(t *testing.T, ctx context.Context, store *sqlstore.Store, r *Repository, admin contracts.User) {
 	t.Helper()
 	admins := &Repository{Store: store, Administrators: true}
-	identity, administrator := platform.New(r), platform.New(admins)
-	// The same username and email represent independent accounts with different credentials.
-	member, err := identity.Create(ctx, contracts.UserCreate{Username: admin.Username, Email: admin.Email, Password: "member-password-strong", Role: "user"}, admin.ID)
+	identity, administration := platform.New(r), platform.New(admins)
+	if _, err := identity.Create(ctx, contracts.UserCreate{Username: admin.Username, Email: admin.Email, Password: "member-password-strong", Role: "user"}, admin.ID); !errors.Is(err, platform.ErrConflict) {
+		t.Fatalf("duplicate account accepted: %v", err)
+	}
+	member, err := identity.Create(ctx, contracts.UserCreate{Username: "sharedmember", Email: "sharedmember@example.test", Password: "member-password-strong", Role: "user"}, admin.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	// The builtin user role starts with the assignable permission points only;
-	// the administrator realm keeps the full catalogue. Departments moved to
-	// administrator-only and posts never were assignable, so the assignable set
-	// is files:*/notes:* (seven points).
-	if member.ID == admin.ID || len(member.Permissions) != 7 || member.Permissions[0] != "files:access" {
-		t.Fatal("identities not separated", member.Permissions)
+	if len(member.Permissions) != 7 {
+		t.Fatal("default grants", member.Permissions)
 	}
-	if _, _, err = identity.Login(ctx, contracts.LoginInput{Username: admin.Username, Password: "test-password-strong"}, "realm-member", false, false, 1); !errors.Is(err, platform.ErrCredentials) {
-		t.Fatal("administrator credential worked in user realm", err)
-	}
-	if _, _, err = administrator.Login(ctx, contracts.LoginInput{Username: admin.Username, Password: "member-password-strong"}, "realm-admin", false, false, 1); !errors.Is(err, platform.ErrCredentials) {
-		t.Fatal("user credential worked in administrator realm", err)
-	}
-	_, memberToken, err := identity.Issue(ctx, member, 1)
+	_, token, err := administration.Login(ctx, contracts.LoginInput{Username: member.Username, Password: "member-password-strong"}, "shared-login", false, false, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, adminToken, err := administrator.Issue(ctx, admin, 1)
-	if err != nil {
+	if session, err := identity.Session(ctx, token); err != nil || session.User.ID != member.ID {
+		t.Fatalf("shared session %v", err)
+	}
+	if err = identity.ChangePassword(ctx, member, contracts.ChangePasswordInput{CurrentPassword: "wrong-password-strong", Password: "next-password-strong"}, "wrong"); !errors.Is(err, platform.ErrCredentials) {
 		t.Fatal(err)
 	}
-	if _, err = identity.Session(ctx, adminToken); !errors.Is(err, platform.ErrCredentials) {
-		t.Fatal("cross realm admin session", err)
-	}
-	if _, err = administrator.Session(ctx, memberToken); !errors.Is(err, platform.ErrCredentials) {
-		t.Fatal("cross realm member session", err)
-	}
-	if _, err = r.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: rolePtr("super_admin"), Status: "active"}, admin.ID); !errors.Is(err, platform.ErrForbidden) {
-		t.Fatal("role conversion", err)
-	}
-	if _, err = r.CreateUser(ctx, contracts.UserCreate{Username: "escalate", Email: "escalate@example.test", Role: "user"}, "unused", member.ID); !errors.Is(err, platform.ErrForbidden) {
-		t.Fatal("member managed accounts", err)
-	}
-	if _, err = store.Exec(ctx, store.DB, "INSERT INTO unicore_role_permissions(role_id,permission_id) VALUES('user','settings:read')"); err != nil {
+	if err = identity.ChangePassword(ctx, member, contracts.ChangePasswordInput{CurrentPassword: "member-password-strong", Password: "next-password-strong"}, "change"); err != nil {
 		t.Fatal(err)
 	}
-	// Grants are fully table-driven now: a written role_permissions row reaches
-	// the user, while the identity realm separation keeps management APIs out
-	// of user-realm reach.
-	if _, err = store.Exec(ctx, store.DB, "DELETE FROM unicore_role_permissions WHERE role_id='user' AND permission_id='files:access'"); err != nil {
-		t.Fatal(err)
+	if _, err = administration.Session(ctx, token); !errors.Is(err, platform.ErrCredentials) {
+		t.Fatal("password change retained workspace session", err)
 	}
-	account, err := r.FindAccount(ctx, member.Username)
-	if err != nil || platform.Has(account.User, "files:access") {
-		t.Fatal("revoked grant still authorized", err)
-	}
-	if _, err = r.RoleOptions(ctx, member.ID); !errors.Is(err, platform.ErrForbidden) {
-		t.Fatal("member role catalogue", err)
-	}
-	options, err := r.RoleOptions(ctx, admin.ID)
-	if err != nil || len(options.Items) != 1 || options.Items[0].ID != "user" {
-		t.Fatal("user realm role catalogue", err, options.Items)
-	}
-	adminOptions, err := admins.RoleOptions(ctx, admin.ID)
-	if err != nil || len(adminOptions.Items) != 1 || adminOptions.Items[0].ID != "super_admin" {
-		t.Fatal("administrator realm role catalogue", err, adminOptions.Items)
-	}
-	if err = identity.ChangePassword(ctx, member, contracts.ChangePasswordInput{CurrentPassword: "wrong-password-strong", Password: "next-password-strong"}, "change-member"); !errors.Is(err, platform.ErrCredentials) {
-		t.Fatal("wrong current password", err)
-	}
-	if err = identity.ChangePassword(ctx, member, contracts.ChangePasswordInput{CurrentPassword: "member-password-strong", Password: "next-password-strong"}, "change-member"); err != nil {
-		t.Fatal(err)
-	}
-	if _, err = identity.Session(ctx, memberToken); !errors.Is(err, platform.ErrCredentials) {
-		t.Fatal("old member session survived", err)
-	}
-	if _, err = administrator.Session(ctx, adminToken); err != nil {
-		t.Fatal("member password revoked administrator", err)
-	}
-	// Six-digit challenges and browser-bound enterprise proofs also stay in their realm.
 	now := int(time.Now().Unix())
 	challenge := platform.EmailChallenge{ID: platform.Token(), Purpose: "login", Digest: platform.Hash("654321"), Payload: "sealed", Created: now, Expires: now + 600}
-	if err = admins.QueueEmailChallenge(ctx, admin.Email, challenge); err != nil {
+	if err = admins.QueueEmailChallenge(ctx, member.Email, challenge); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = r.ConsumeEmailChallenge(ctx, challenge.ID, "login", challenge.Digest, "", platform.Hash(platform.Token()), now+600, now); !errors.Is(err, platform.ErrAccountToken) {
-		t.Fatal("cross realm six-digit code", err)
+	if got, err := r.ConsumeEmailChallenge(ctx, challenge.ID, "login", challenge.Digest, "", platform.Hash(platform.Token()), now+600, now); err != nil || got.ID != member.ID {
+		t.Fatal("shared email challenge", err)
 	}
-	if got, e := admins.ConsumeEmailChallenge(ctx, challenge.ID, "login", challenge.Digest, "", platform.Hash(platform.Token()), now+600, now); e != nil || got.ID != admin.ID {
-		t.Fatal("administrator code", e)
+	if _, err = admins.ConsumeEmailChallenge(ctx, challenge.ID, "login", challenge.Digest, "", platform.Hash(platform.Token()), now+600, now); !errors.Is(err, platform.ErrAccountToken) {
+		t.Fatal("challenge reused", err)
 	}
-	if err = admins.CreateOIDCFlow(ctx, "administrator-flow", "browser", "sealed", int64(now+600)); err != nil {
+	if err = admins.CreateOIDCFlow(ctx, "shared-flow", "browser", "sealed", int64(now+600)); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = r.ConsumeOIDCFlow(ctx, "administrator-flow", "browser"); !errors.Is(err, platform.ErrOIDC) {
-		t.Fatal("cross realm enterprise proof", err)
-	}
-	if _, err = admins.ConsumeOIDCFlow(ctx, "administrator-flow", "browser"); err != nil {
+	if _, err = r.ConsumeOIDCFlow(ctx, "shared-flow", "browser"); err != nil {
 		t.Fatal(err)
 	}
-	// A recovery proof from one realm cannot be consumed in the other.
+	if _, err = admins.ConsumeOIDCFlow(ctx, "shared-flow", "browser"); !errors.Is(err, platform.ErrOIDC) {
+		t.Fatal("OIDC flow reused", err)
+	}
 	proof := platform.Hash(platform.Token())
-	expiry := int(time.Now().Add(time.Minute).Unix())
-	if err = admins.QueueAccountToken(ctx, admin.Email, "reset", proof, expiry, "sealed"); err != nil {
+	if err = admins.QueueAccountToken(ctx, member.Email, "reset", proof, now+600, "sealed"); err != nil {
 		t.Fatal(err)
 	}
-	if err = r.ConsumeAccountToken(ctx, proof, "reset", "hash", int(time.Now().Unix())); !errors.Is(err, platform.ErrAccountToken) {
-		t.Fatal("cross realm recovery", err)
-	}
-	if _, err = store.Exec(ctx, store.DB, "DELETE FROM unicore_role_permissions WHERE role_id='user'"); err != nil {
+	if err = r.ConsumeAccountToken(ctx, proof, "reset", "new-hash", now); err != nil {
 		t.Fatal(err)
+	}
+	if err = admins.ConsumeAccountToken(ctx, proof, "reset", "other-hash", now); !errors.Is(err, platform.ErrAccountToken) {
+		t.Fatal("recovery proof reused", err)
 	}
 }
 
@@ -195,8 +144,8 @@ func exerciseUserRoles(t *testing.T, ctx context.Context, store *sqlstore.Store,
 	if _, err = admins.UpdateUser(ctx, admin.ID, contracts.UserUpdate{Status: "active"}, admin.ID); err != nil {
 		t.Fatal("administrator role omitted update", err)
 	}
-	if _, err = admins.UpdateUser(ctx, admin.ID, contracts.UserUpdate{Role: rolePtr("user"), Status: "active"}, admin.ID); !errors.Is(err, platform.ErrForbidden) {
-		t.Fatal("administrator cross realm role", err)
+	if _, err = admins.UpdateUser(ctx, admin.ID, contracts.UserUpdate{Role: rolePtr("user"), Status: "active"}, admin.ID); !errors.Is(err, platform.ErrLastAdmin) {
+		t.Fatal("last super administrator demoted", err)
 	}
 }
 
@@ -224,8 +173,8 @@ func exerciseAdministratorRoles(t *testing.T, ctx context.Context, store *sqlsto
 	if _, err = admins.CreateRole(ctx, contracts.RoleSaveInput{Name: "未知权限", Realm: &administratorRealm, Permissions: []string{"not:a:permission"}}, admin.ID); !errors.Is(err, platform.ErrForbidden) {
 		t.Fatal("unknown grant accepted", err)
 	}
-	if _, err = admins.CreateRole(ctx, contracts.RoleSaveInput{Name: "越界用户角色", Realm: &userRealm, Permissions: []string{"users:read"}}, admin.ID); !errors.Is(err, platform.ErrForbidden) {
-		t.Fatal("user realm assignable bound", err)
+	if _, err = admins.CreateRole(ctx, contracts.RoleSaveInput{Name: "越界用户角色", Realm: &userRealm, Permissions: []string{"users:read"}}, admin.ID); err != nil {
+		t.Fatal("unified management grant", err)
 	}
 
 	// Creating an administrator with the restricted role works and echoes the
@@ -254,14 +203,11 @@ func exerciseAdministratorRoles(t *testing.T, ctx context.Context, store *sqlsto
 		t.Fatal("administrator member count", role.UserCount, err)
 	}
 
-	// Roles never cross realms in either direction.
-	if _, err = administrator.Create(ctx, contracts.UserCreate{Username: "crossed", Email: "crossed@example.test", Password: "test-password-strong", Role: "user"}, admin.ID); !errors.Is(err, platform.ErrForbidden) {
-		t.Fatal("user realm role on administrator", err)
+	// Any existing account may receive roles associated with either workspace.
+	cross, err := identity.Create(ctx, contracts.UserCreate{Username: "crossed", Email: "crossed@example.test", Password: "test-password-strong", Role: restricted.ID}, admin.ID)
+	if err != nil || !platform.Has(cross, "users:read") {
+		t.Fatal("unified role assignment", err)
 	}
-	if _, err = identity.Create(ctx, contracts.UserCreate{Username: "crossed", Email: "crossed@example.test", Password: "test-password-strong", Role: restricted.ID}, admin.ID); !errors.Is(err, platform.ErrForbidden) {
-		t.Fatal("administrator role on user", err)
-	}
-
 	// A second administrator-realm role replaces the single assignment.
 	second, err := admins.CreateRole(ctx, contracts.RoleSaveInput{Name: "公告员", Realm: &administratorRealm, Permissions: []string{"announcements:read"}}, admin.ID)
 	if err != nil {
@@ -301,7 +247,7 @@ func exerciseAdministratorRoles(t *testing.T, ctx context.Context, store *sqlsto
 	for _, option := range options.Items {
 		seen[option.ID] = true
 	}
-	if !seen["super_admin"] || !seen[restricted.ID] || !seen[second.ID] || seen["user"] {
+	if !seen["super_admin"] || !seen[restricted.ID] || !seen[second.ID] || !seen["user"] {
 		t.Fatal("administrator realm options", options.Items)
 	}
 

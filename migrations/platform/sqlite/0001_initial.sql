@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS unicore_permissions (id VARCHAR(128) NOT NULL PRIMARY
 
 CREATE TABLE IF NOT EXISTS unicore_users (id VARCHAR(64) NOT NULL PRIMARY KEY, username VARCHAR(64) NOT NULL UNIQUE, email VARCHAR(254) NOT NULL UNIQUE, password_hash TEXT NOT NULL, status VARCHAR(16) NOT NULL, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, last_login_at BIGINT NOT NULL, phone VARCHAR(21) NULL);
 
-CREATE TABLE IF NOT EXISTS unicore_administrators (id VARCHAR(64) NOT NULL PRIMARY KEY, username VARCHAR(64) NOT NULL UNIQUE, email VARCHAR(254) NOT NULL UNIQUE, password_hash TEXT NOT NULL, status VARCHAR(16) NOT NULL, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, last_login_at BIGINT NOT NULL, phone VARCHAR(21) NULL);
+
 
 CREATE TABLE IF NOT EXISTS unicore_user_roles (user_id VARCHAR(64) NOT NULL, role_id VARCHAR(64) NOT NULL, PRIMARY KEY (user_id, role_id));
 
@@ -51,36 +51,17 @@ CREATE TABLE IF NOT EXISTS unicore_oidc_flows (
  expires_at BIGINT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS unicore_administrator_roles (user_id VARCHAR(64) NOT NULL, role_id VARCHAR(64) NOT NULL, PRIMARY KEY (user_id, role_id));
 
-CREATE TABLE IF NOT EXISTS unicore_administrator_sessions (token_hash VARCHAR(64) NOT NULL PRIMARY KEY, user_id VARCHAR(64) NOT NULL, expires_at BIGINT NOT NULL);
 
-CREATE TABLE IF NOT EXISTS unicore_administrator_account_tokens (token_hash VARCHAR(64) NOT NULL PRIMARY KEY, user_id VARCHAR(64) NOT NULL, purpose VARCHAR(16) NOT NULL, expires_at BIGINT NOT NULL);
 
-CREATE TABLE IF NOT EXISTS unicore_administrator_email_challenges (
- id VARCHAR(64) NOT NULL PRIMARY KEY,
- user_id VARCHAR(64) NOT NULL,
- purpose VARCHAR(16) NOT NULL,
- code_digest VARCHAR(64) NOT NULL,
- expires_at BIGINT NOT NULL,
- created_at BIGINT NOT NULL,
- attempts INTEGER NOT NULL
-);
 
-CREATE TABLE IF NOT EXISTS unicore_administrator_external_identities (
- identity_hash VARCHAR(64) NOT NULL PRIMARY KEY,
- user_id VARCHAR(64) NOT NULL UNIQUE,
- issuer TEXT NOT NULL,
- subject TEXT NOT NULL,
- created_at BIGINT NOT NULL
-);
 
-CREATE TABLE IF NOT EXISTS unicore_administrator_oidc_flows (
- state_hash VARCHAR(64) NOT NULL PRIMARY KEY,
- browser_hash VARCHAR(64) NOT NULL,
- sealed_payload TEXT NOT NULL,
- expires_at BIGINT NOT NULL
-);
+
+
+
+
+
+
 
 CREATE TABLE IF NOT EXISTS unicore_storage_locations (
  id VARCHAR(80) NOT NULL PRIMARY KEY, name VARCHAR(80) NOT NULL, provider VARCHAR(16) NOT NULL,
@@ -163,7 +144,6 @@ CREATE TABLE IF NOT EXISTS unicore_announcement_reads (
  PRIMARY KEY (announcement_id,user_id)
 );
 CREATE UNIQUE INDEX IF NOT EXISTS unicore_users_phone_key ON unicore_users(phone);
-CREATE UNIQUE INDEX IF NOT EXISTS unicore_administrators_phone_key ON unicore_administrators(phone);
 
 CREATE TABLE IF NOT EXISTS unicore_personal_accounts (
  user_id VARCHAR(64) NOT NULL PRIMARY KEY,
@@ -183,24 +163,9 @@ CREATE TABLE IF NOT EXISTS unicore_email_changes (
  code_digest VARCHAR(64) NOT NULL, verified INTEGER NOT NULL, attempts INTEGER NOT NULL,
  created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL
 );
-CREATE TABLE IF NOT EXISTS unicore_administrator_personal_accounts (
- user_id VARCHAR(64) NOT NULL PRIMARY KEY,
- display_name VARCHAR(80) NOT NULL, totp_secret TEXT NOT NULL, recovery_digests TEXT NOT NULL,
- last_step BIGINT NOT NULL, setup_secret TEXT NOT NULL, setup_session VARCHAR(64) NOT NULL, setup_expires BIGINT NOT NULL, setup_attempts INTEGER NOT NULL
-);
-CREATE TABLE IF NOT EXISTS unicore_administrator_session_details (
- token_hash VARCHAR(64) NOT NULL PRIMARY KEY,
- user_id VARCHAR(64) NOT NULL,
- ip_address VARCHAR(64) NOT NULL, user_agent VARCHAR(512) NOT NULL,
- created_at BIGINT NOT NULL, last_seen_at BIGINT NOT NULL, mfa_verified INTEGER NOT NULL, mfa_attempts INTEGER NOT NULL
-);
-CREATE TABLE IF NOT EXISTS unicore_administrator_email_changes (
- id VARCHAR(64) NOT NULL PRIMARY KEY, user_id VARCHAR(64) NOT NULL,
- session_hash VARCHAR(64) NOT NULL, parent_id VARCHAR(64) NOT NULL,
- original_email VARCHAR(254) NOT NULL, target_email VARCHAR(254) NOT NULL,
- code_digest VARCHAR(64) NOT NULL, verified INTEGER NOT NULL, attempts INTEGER NOT NULL,
- created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL
-);
+
+
+
 
 INSERT INTO unicore_storage_locations(id,name,provider,endpoint,bucket,region,prefix,path_style,credentials,tested,created_at) SELECT 'legacy-brand','历史品牌文件','local','','','','',1,'',1,0 WHERE NOT EXISTS (SELECT 1 FROM unicore_storage_locations WHERE id='legacy-brand');
 

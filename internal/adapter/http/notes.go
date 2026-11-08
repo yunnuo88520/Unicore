@@ -58,10 +58,10 @@ func mountNotes(api chi.Router, config Config) {
 					return
 				}
 				actor = fileActor(r, session)
-				scope = actor.Realm + "/" + actor.ID
+				scope = "user/" + actor.ID
 				// Row-level data scopes widen the user-realm list only; the
 				// administrator list and local profiles keep their behaviour.
-				if !administratorRequest(r) {
+				{
 					filter, err := identity.Store.DataScope(r.Context(), session.User)
 					if err != nil {
 						webError(w, err)
@@ -71,7 +71,7 @@ func mountNotes(api chi.Router, config Config) {
 						visibility.All = true
 					} else if !filter.Self() {
 						for _, id := range filter.UserIDs {
-							visibility.Scopes = append(visibility.Scopes, actor.Realm+"/"+id)
+							visibility.Scopes = append(visibility.Scopes, "user/"+id)
 						}
 					}
 				}

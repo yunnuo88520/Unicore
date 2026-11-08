@@ -20,3 +20,9 @@ for(const mutation of [schema=>{schema.additionalProperties=true;},schema=>{sche
   assert.throws(()=>contractArtifacts(spec),/Multipart upload must declare exactly one required binary file/);
  });
 }
+
+test('Go value metadata does not become a runtime validation keyword',()=>{
+ const spec=load(); spec.components.schemas.UserCreate.properties.role['x-go-value']=true;
+ const constraints=contractArtifacts(spec).find(([path])=>path.endsWith('constraints.gen.ts'))[1];
+ assert.ok(!constraints.includes('x-go-value'));
+});

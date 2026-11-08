@@ -41,7 +41,7 @@ func TestPlatformInstallAuthAndRBAC(t *testing.T) {
 		r.Header.Set("X-CSRF-Token", csrf)
 		if cookie != nil {
 			r.AddCookie(cookie)
-			if cookie.Name == "unicore_administrator_session" {
+			if cookie.Name == "unicore_session" {
 
 			}
 		}

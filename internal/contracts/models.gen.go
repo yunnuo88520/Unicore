@@ -163,9 +163,10 @@ type UserCreate struct {
 	Email        string    `json:"email"`
 	Password     string    `json:"password"`
 	Phone        *string   `json:"phone,omitempty"`
-	Role         string    `json:"role"`
+	Role         string    `json:"role,omitempty"`
 	DepartmentID *string   `json:"department_id,omitempty"`
 	PostIds      *[]string `json:"post_ids,omitempty"`
+	RoleIds      *[]string `json:"role_ids,omitempty"`
 }
 
 type UserUpdate struct {
@@ -173,6 +174,7 @@ type UserUpdate struct {
 	Status       string    `json:"status"`
 	DepartmentID *string   `json:"department_id,omitempty"`
 	PostIds      *[]string `json:"post_ids,omitempty"`
+	RoleIds      *[]string `json:"role_ids,omitempty"`
 }
 
 type LoginInput struct {

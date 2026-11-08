@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gofrs/flock"
@@ -16,6 +17,7 @@ import (
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/adapter/storage/webdb"
 	"github.com/yunnuo/unicore/internal/audit"
+	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/secret"
 	"github.com/yunnuo/unicore/internal/settings"
@@ -200,14 +202,14 @@ func instanceCommand(ctx context.Context, command string, o options, c Console) 
 	r := &platformsql.Repository{Store: i.db, Administrators: true}
 	switch command {
 	case "admin list":
-		users, e := r.ListUsers(ctx, "", 1, 50)
+		users, e := managementAccounts(ctx, r)
 		if e != nil {
 			return e
 		}
 		return c.emit(users)
 	case "admin reset-password":
 		if o.username == "" {
-			users, e := r.ListUsers(ctx, "", 1, 50)
+			users, e := managementAccounts(ctx, r)
 			if e != nil {
 				return e
 			}
@@ -248,11 +250,11 @@ func instanceCommand(ctx context.Context, command string, o options, c Console) 
 		if o.realm != "administrator" && o.realm != "user" {
 			return errors.New("realm must be administrator or user")
 		}
-		r.Administrators = o.realm == "administrator"
+		// The legacy realm flag selects no separate session store.
 		if e = r.RecoverSessions(ctx, o.username, o.all); e != nil {
 			return e
 		}
-		return c.emit(map[string]any{"status": "ok", "realm": o.realm, "sessions_revoked": true})
+		return c.emit(map[string]any{"status": "ok", "realm": o.realm, "shared_accounts": true, "sessions_revoked": true})
 	case "admin path", "admin set-path":
 		if o.path == "" && command == "admin path" {
 			values, e := i.db.ReadSettings(ctx)
@@ -310,4 +312,47 @@ func instanceCommand(ctx context.Context, command string, o options, c Console) 
 		return c.emit(map[string]string{"status": "ok", "base_url": o.url, "oidc_user_callback": o.url + "/api/v1/auth/oidc/callback", "oidc_administrator_callback": o.url + "/api/v1/admin/auth/oidc/callback"})
 	}
 	return errors.New("unsupported operation")
+}
+
+// managementAccounts keeps offline recovery focused on privileged accounts in the shared store.
+func managementAccounts(ctx context.Context, r *platformsql.Repository) (contracts.UserList, error) {
+	result := contracts.UserList{Items: []contracts.User{}, Page: 1, PageSize: 50}
+	placeholders := []string{}
+	args := []any{}
+	for _, definition := range platform.PermissionCatalog {
+		if !definition.Assignable {
+			placeholders = append(placeholders, "?")
+			args = append(args, definition.ID)
+		}
+	}
+	predicate := "id IN (SELECT ur.user_id FROM unicore_user_roles ur LEFT JOIN unicore_role_permissions rp ON rp.role_id=ur.role_id WHERE ur.role_id='super_admin' OR rp.permission_id IN (" + strings.Join(placeholders, ",") + "))"
+	if err := r.Store.Row(ctx, r.Store.DB, "SELECT COUNT(*) FROM unicore_users WHERE "+predicate, args...).Scan(&result.Total); err != nil {
+		return result, err
+	}
+	rows, err := r.Store.Rows(ctx, r.Store.DB, "SELECT username FROM unicore_users WHERE "+predicate+" ORDER BY username,id LIMIT 50", args...)
+	if err != nil {
+		return result, err
+	}
+	names := []string{}
+	for rows.Next() {
+		var name string
+		if err = rows.Scan(&name); err != nil {
+			rows.Close()
+			return result, err
+		}
+		names = append(names, name)
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return result, err
+	}
+	for _, name := range names {
+		account, e := r.FindAccount(ctx, name)
+		if e != nil {
+			return result, e
+		}
+		result.Items = append(result.Items, account.User)
+	}
+	return result, nil
 }

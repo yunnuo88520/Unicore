@@ -33,7 +33,7 @@ it('renders the default administrator tree: business, system directories and per
   const administration = business.entries.find(entry => entry.id === 'administration')!;
   expect(administration.type).toBe('directory');
   expect(!!administration.label).toBe(true);
-  expect(administration.children.map(entry => entry.id)).toEqual(['users', 'administrators', 'roles', 'departments', 'posts', 'api-operations', 'menus', 'dictionaries', 'tasks']);
+  expect(administration.children.map(entry => entry.id)).toEqual(['users', 'roles', 'departments', 'posts', 'api-operations', 'menus', 'dictionaries', 'tasks']);
   expect(entriesOf(navigation, 'admin:business')).toEqual(['overview', 'lab', 'administration', 'announcements', 'files', 'notes', 'api-docs']);
   // The system region keeps 系统设置 and the 个人中心 directory with the profile pages.
   const system = navigation.sections.find(section => section.id === 'admin:system')!;

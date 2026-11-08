@@ -161,9 +161,10 @@ export interface UserCreate {
   email: string;
   password: string;
   phone?: string;
-  role: string;
+  role?: string;
   department_id?: string;
   post_ids?: Array<string>;
+  role_ids?: Array<string>;
 }
 
 export interface UserUpdate {
@@ -171,6 +172,7 @@ export interface UserUpdate {
   status: string;
   department_id?: string;
   post_ids?: Array<string>;
+  role_ids?: Array<string>;
 }
 
 export interface LoginInput {

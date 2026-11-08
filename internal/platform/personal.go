@@ -91,10 +91,8 @@ type Personal struct {
 
 func (p *Personal) profile(ctx context.Context, s PersonalSession) (contracts.AccountProfile, error) {
 	values, err := p.Settings.Raw(ctx)
-	// The 2FA switch follows the session's identity realm, not the super_admin
-	// flag: restricted administrators are administrator-domain sessions and use
-	// security.force_admin_2fa like any other administrator account.
-	administrator := p.Realm == "administrator"
+	// Privileged accounts use the management security policy on every login surface.
+	administrator := HasManagementAccess(s.User)
 	force2fa := settings.Force2FA(values, administrator)
 	profile := contracts.AccountProfile{User: s.User, DisplayName: s.State.DisplayName, TotpEnabled: s.State.Secret != "", Force2fa: force2fa, CanDisable2fa: !force2fa && values["security.allow_disable_2fa"] != "false"}
 	if p.AvatarFiles != nil {

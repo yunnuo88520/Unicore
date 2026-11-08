@@ -2006,5 +2006,10 @@
   "创建、编辑与删除岗位": "Create, edit and delete posts",
   "调整普通用户的产品导航：分组、顺序、名称、图标与可见性；角色可见性在角色权限编辑器中配置。": "Tune the product navigation end users see: grouping, order, names, icons and visibility; role visibility lives in the roles editor.",
   "维护管理控制台结构：受限管理员只看到被授权的页面；角色可见性在角色权限编辑器中配置。": "Maintain the console structure: restricted administrators only see authorized pages; role visibility lives in the roles editor.",
-  "显示或隐藏 {{name}}": "Show or hide {{name}}"
+  "显示或隐藏 {{name}}": "Show or hide {{name}}",
+  "为用户组合业务与管理权限；super_admin 由系统维护。": "Combine business and management permissions for users; super_admin is maintained by the system.",
+  "角色可组合业务与管理权限；仅超级管理员权限保持保留。": "Roles can combine business and management permissions. Super administrator permissions remain reserved.",
+  "管理工作台": "Management workspace",
+  "统一账号可分配多个角色，按权限使用业务与管理工作台。": "Assign multiple roles to one account to access business and management workspaces according to permissions.",
+  "仅业务权限": "Business permissions only"
 }

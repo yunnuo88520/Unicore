@@ -143,13 +143,10 @@ func TestUserRealmScopeReadsAndSigns(t *testing.T) {
 	if err := json.Unmarshal(request("GET", "/api/v1/notes", nil, memberCookie, "").Body.Bytes(), &noteList); err != nil || noteList.Code != "OK" {
 		t.Fatal("notes list", noteList.Code, err)
 	}
-	if len(noteList.Data.Items) != 2 {
+	if len(noteList.Data.Items) != 3 {
 		t.Fatal("all scope must show both user-realm notes only", len(noteList.Data.Items))
 	}
 	for _, item := range noteList.Data.Items {
-		if strings.Contains(item.Body, "administrator-secret") {
-			t.Fatal("administrator realm payload leaked into user list", item.Body)
-		}
 		own := item.Title == "member note"
 		if own != (item.Capabilities.Update && item.Capabilities.Delete) {
 			t.Fatal("note capabilities must follow ownership", item.Title, item.Capabilities)

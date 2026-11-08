@@ -46,7 +46,7 @@ func TestBrandHTTP(t *testing.T) {
 				if cookie != "" {
 					name := sessionCookie
 					if cookie == adminRaw {
-						name = "unicore_administrator_session"
+						name = "unicore_session"
 
 					}
 					r.AddCookie(&http.Cookie{Name: name, Value: cookie})

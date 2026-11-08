@@ -6,11 +6,11 @@ import { createColumnHelper, flexRender, tableFeatures, useTable } from '@tansta
 import { Pencil, Plus, RotateCcw, ShieldCheck, Trash2 } from 'lucide-react';
 import type { Bootstrap, PermissionDefinition, Role, RoleList, RoleSaveInput, WebClient } from '@unicore/sdk';
 import { defineMessages, t, useLocale } from '../../i18n';
-import { isAdminRealm, routes } from '../../routes';
+import { routes } from '../../routes';
 import { sectionTitle } from '../../navigation';
 import { buildDepartmentTree, flattenDepartmentTree, invalidateAfter, useDepartmentsQuery } from '../../queries';
 import { usePermissions } from '../../permissions';
-import { Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, Input, Modal, NativeSelect, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Tabs, useMessage } from '@unicore/ui';
+import { Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, Input, Modal, NativeSelect, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage } from '@unicore/ui';
 import { OperationCatalogue } from './api-operations';
 import type { PageProps } from '../../router';
 
@@ -27,9 +27,8 @@ const SUPER_ONLY_PERMISSIONS: ReadonlySet<string> = new Set(['roles:write', 'adm
 
 // User-realm custom roles hold assignable business grants only; administrator-
 // realm custom roles hold every catalogue point except the super-only ones.
-function lockedReason(realm: Role['realm'], permission: PermissionDefinition): string | null {
-  if (realm === 'administrator') return SUPER_ONLY_PERMISSIONS.has(permission.id) ? t('仅超级管理员') : null;
-  return permission.assignable ? null : t('仅管理员');
+function lockedReason(_realm: Role['realm'], permission: PermissionDefinition): string | null {
+ return SUPER_ONLY_PERMISSIONS.has(permission.id) ? t('仅超级管理员') : null;
 }
 
 // Data scopes gate the business lists (notes, files) per member; administrator
@@ -92,8 +91,7 @@ function RolePanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
   const cache = useQueryClient();
   const { has } = usePermissions(metadata);
   const canWrite = has('roles:write');
-  const adminRealm = isAdminRealm(metadata);
-  const [realm, setRealm] = useState<Role['realm']>('user');
+  const realm: Role['realm'] = 'user';
   const [editor, setEditor] = useState<Role | 'new' | null>(null);
   const [removing, setRemoving] = useState<Role | null>(null);
   const list = useQuery<RoleList>({ queryKey: ['roles'], queryFn: () => web.roles() });
@@ -107,12 +105,7 @@ function RolePanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
     },
     onError: error => message.error(t(error.message)),
   });
-  const roles = useMemo(() => (list.data?.items ?? EMPTY_ROLES).filter(role => role.realm === realm), [list.data, realm]);
-  const switchRealm = (next: string) => {
-    setRealm(next as Role['realm']);
-    setEditor(null);
-    setRemoving(null);
-  };
+  const roles = useMemo(() => list.data?.items ?? EMPTY_ROLES, [list.data]);
   const table = useTable({
     features,
     columns,
@@ -120,19 +113,16 @@ function RolePanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
     meta: { canWrite, onEdit: role => setEditor(role), onRemove: role => setRemoving(role) } satisfies RolesTableMeta,
     getRowId: role => role.id,
   });
-  const tabs = adminRealm
-    ? [{ id: 'user', label: t('用户角色') }, { id: 'administrator', label: t('管理员角色') }]
-    : [{ id: 'user', label: t('用户角色') }];
   return <Card>
     <CardContent className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-md font-semibold text-ink">{t('角色权限')}</h2>
-          <p className="mt-0.5 text-xs text-muted">{realm === 'administrator' ? t('为自建管理员角色组合管理权限；super_admin 由系统维护。') : t('为普通用户组合可分配的业务权限；内置角色由系统维护。')}</p>
+          <p className="mt-0.5 text-xs text-muted">{t('为用户组合业务与管理权限；super_admin 由系统维护。')}</p>
         </div>
         {canWrite && <Button onClick={() => setEditor('new')}><Plus size={15} />{t('新建角色')}</Button>}
       </div>
-      {adminRealm && <Tabs id="roles-realm" label={t('角色域')} items={tabs} value={realm} onChange={switchRealm} />}
+
       {list.isError && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
         <span>{t(list.error.message)}</span>
         <Button variant="secondary" size="sm" onClick={() => void list.refetch()}><RotateCcw size={13} />{t('重试')}</Button>
@@ -154,16 +144,14 @@ function RolePanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
                 : <TableEmpty colSpan={COLUMN_COUNT}>
                     <span className="flex flex-col items-center gap-1.5 py-2">
                       <ShieldCheck size={24} className="text-subtle" aria-hidden="true" />
-                      <strong className="text-sm text-ink">{t(list.isError ? list.error.message : realm === 'administrator' ? '还没有自建管理员角色' : '还没有自定义角色')}</strong>
-                      <span className="text-xs text-muted">{t(realm === 'administrator' ? '新建管理员角色，为受限管理员组合管理权限。' : '新建角色，为不同用户组合业务权限。')}</span>
+                      <strong className="text-sm text-ink">{t(list.isError ? list.error.message : '还没有自定义角色')}</strong>
+                      <span className="text-xs text-muted">{t('新建角色，为不同用户组合业务权限。')}</span>
                     </span>
                   </TableEmpty>}
           </TableBody>
         </Table>
       </div>
-      <p className="text-xs leading-relaxed text-muted">{realm === 'administrator'
-        ? t('自建管理员角色可组合除「仅超级管理员」外的全部权限点：角色管理、管理员账号、基础设置写入、系统更新与对象存储写入仍由 super_admin 专属。')
-        : t('自定义角色只能勾选可分配的业务权限点，其余权限点保持只读；super_admin 拥有全部权限。')}</p>
+      <p className="text-xs leading-relaxed text-muted">{t('角色可组合业务与管理权限；仅超级管理员权限保持保留。')}</p>
     </CardContent>
     {editor && <RoleEditor key={`${realm}-${editor === 'new' ? 'new' : editor.id}`} web={web} realm={realm} role={editor === 'new' ? undefined : editor}
       permissions={list.data?.permissions ?? EMPTY_PERMISSIONS} onClose={() => setEditor(null)}
@@ -188,7 +176,7 @@ function RoleEditor({ web, realm, role, permissions, onClose, onSaved }: {
   const [actionIds, setActionIds] = useState<string[]>(role?.action_ids ?? []);
   const [operationIds, setOperationIds] = useState<string[]>(role?.operation_ids ?? []);
   const navigation = useQuery({ queryKey: ['menu-config'], queryFn: () => web.menuConfig() });
-  const sections = navigation.data?.sections.filter(section => section.surface === realm) ?? [];
+  const sections = navigation.data?.sections ?? [];
   const nodes = navigation.data?.nodes ?? [];
   const toggleAuthorization = (current: string[], id: string, checked: boolean) => checked ? [...new Set([...current, id])] : current.filter(value => value !== id);
   const renderMenuTree = (sectionId: string, parentId?: string, trail: string[] = []): ReactNode => nodes
@@ -206,7 +194,7 @@ function RoleEditor({ web, realm, role, permissions, onClose, onSaved }: {
         {renderMenuTree(sectionId, node.id, [...trail, node.id])}
       </div>;
     });
-  const departments = useDepartmentsQuery(web, { enabled: realm === 'user' && dataScope === 'custom' });
+  const departments = useDepartmentsQuery(web, { enabled: dataScope === 'custom' });
   const departmentItems = flattenDepartmentTree(buildDepartmentTree(departments.data?.items ?? []));
   const groups = useMemo(() => {
     const result: { group: string; items: PermissionDefinition[] }[] = [];
@@ -233,7 +221,7 @@ function RoleEditor({ web, realm, role, permissions, onClose, onSaved }: {
     // Creates carry the tab-fixed realm; updates cannot move a role between realms.
     const authorization = { menu_ids: menuIds, action_ids: actionIds, operation_ids: operationIds };
     const input: RoleSaveInput = role ? { name: trimmed, permissions: grants, ...authorization } : { name: trimmed, permissions: grants, realm, ...authorization };
-    if (realm === 'user') {
+    {
       // Administrator roles stay self-scoped server-side; user roles carry the
       // chosen scope, and only the custom scope keeps a department selection.
       input.data_scope = dataScope;
@@ -247,14 +235,6 @@ function RoleEditor({ web, realm, role, permissions, onClose, onSaved }: {
         * the dialog: the modal marks outside toasts aria-hidden, so an inline
         * alert is the only reliably reachable feedback while editing. */}
       {save.error && <p role="alert" className="rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">{t(save.error.message)}</p>}
-      <label className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium text-ink">{t('角色域')}</span>
-        <NativeSelect aria-label={t('角色域')} value={realm} disabled>
-          <option value="user">{t('用户角色')}</option>
-          <option value="administrator">{t('管理员角色')}</option>
-        </NativeSelect>
-        <small className="text-xs text-muted">{t('角色域由当前标签页决定，创建后不可更改。')}</small>
-      </label>
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-medium text-ink">{t('角色名称')}</span>
         <Input required maxLength={80} autoComplete="off" value={name} aria-invalid={!!nameError}
@@ -282,9 +262,9 @@ function RoleEditor({ web, realm, role, permissions, onClose, onSaved }: {
       </fieldset>
       <fieldset disabled={pending} className="min-w-0 rounded-lg border border-line p-3">
         <legend className="px-1 font-medium">{t('API 授权')}</legend>
-        <OperationCatalogue web={web} realm={realm} selected={operationIds} onChange={setOperationIds} disabled={pending} />
+        <OperationCatalogue web={web} selected={operationIds} onChange={setOperationIds} disabled={pending} />
       </fieldset>
-      {realm === 'user' && <fieldset disabled={pending} className="flex min-w-0 flex-col gap-1.5">
+      {<fieldset disabled={pending} className="flex min-w-0 flex-col gap-1.5">
         <span className="text-sm font-medium text-ink">{t('数据范围')}</span>
         <NativeSelect aria-label={t('数据范围')} value={dataScope} onChange={event => setDataScope(event.target.value as Role['data_scope'])}>
           {DATA_SCOPES.map(scope => <option key={scope} value={scope}>{t(dataScopeLabels[scope])}</option>)}
@@ -309,7 +289,7 @@ function RoleEditor({ web, realm, role, permissions, onClose, onSaved }: {
           {groups.map(group => <section key={group.group} className="flex flex-col gap-2">
             <h3 className="text-xs font-semibold text-muted">{t(group.group)}</h3>
             {group.items.map(permission => {
-              const locked = lockedReason(realm, permission);
+              const locked = role?.id === 'user' && !permission.assignable ? t('仅业务权限') : lockedReason(realm, permission);
               return locked
                 ? <div key={permission.id} className="flex items-start justify-between gap-2 rounded-md bg-surface-alt px-2 py-1.5 text-sm">
                     <span className="min-w-0">

@@ -72,11 +72,9 @@ func TestOperationCatalogueBoundaries(t *testing.T) {
 	if len(files) == 0 || !contains(files, "listFiles") || contains(files, "listNotes") || contains(files, "listRoles") {
 		t.Fatal("files materialization", files)
 	}
-	// A user-realm role never materializes administrator operations.
-	for _, id := range MaterializedOperations("user", Permissions) {
-		if op, _ := Operation(id); op.Realm != "user" {
-			t.Fatal("cross-realm materialization", id)
-		}
+	// A unified role may explicitly grant management operations when its permission points allow them.
+	if !contains(MaterializedOperations("user", []string{"users:read"}), "listUsers") || !ValidOperationGrant("user", []string{"users:read"}, "listUsers") {
+		t.Fatal("workspace classification restricted unified management role")
 	}
 
 	// The operation gate: super bypasses, unknown ids deny, non-grantable

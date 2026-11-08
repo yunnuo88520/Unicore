@@ -20,7 +20,7 @@ import (
 // Administrator repositories do not resolve department visibility.
 func (r *Repository) DataScope(ctx context.Context, user contracts.User) (platform.ScopeFilter, error) {
 	filter := platform.ScopeFilter{UserIDs: []string{user.ID}}
-	if user.ID == "" || r.Administrators {
+	if user.ID == "" {
 		return filter, nil
 	}
 	all := false

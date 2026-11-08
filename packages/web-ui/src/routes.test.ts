@@ -40,7 +40,7 @@ it('lands unconfigured administrator pages in the super-administrator group with
   const navigation = buildNavigation(metadata);
   // The unconfigured administrator pages default into the 超级管理员 directory of the 业务 section.
   const administration = navigation.sections.find(section => section.id === 'admin:business')?.entries.find(entry => entry.id === 'administration');
-  expect(administration?.children.map(entry => entry.id).filter(id => ['users', 'administrators', 'menus', 'dictionaries', 'tasks'].includes(id)).sort()).toEqual(['administrators', 'dictionaries', 'menus', 'tasks', 'users']);
+  expect(administration?.children.map(entry => entry.id).filter(id => ['users', 'administrators', 'menus', 'dictionaries', 'tasks'].includes(id)).sort()).toEqual(['dictionaries', 'menus', 'tasks', 'users']);
   // API 文档 needs no permission point and always joins the flat business sequence.
   expect(navigation.sections.find(section => section.id === 'admin:business')?.entries.map(entry => entry.id)).toContain('api-docs');
   const member = { ...metadata, identity_realm: 'user' } as Bootstrap;
@@ -57,7 +57,7 @@ it('gates the departments page on the departments:read grant inside the administ
   expect(canAccess('departments', superAdmin)).toBe(true);
   const navigation = buildNavigation(superAdmin);
   const administration = navigation.sections.find(section => section.id === 'admin:business')?.entries.find(entry => entry.id === 'administration');
-  expect(administration?.children.map(entry => entry.id).filter(id => ['users', 'administrators', 'roles', 'departments', 'menus', 'dictionaries'].includes(id)).sort()).toEqual(['administrators', 'departments', 'dictionaries', 'menus', 'roles', 'users']);
+  expect(administration?.children.map(entry => entry.id).filter(id => ['users', 'administrators', 'roles', 'departments', 'menus', 'dictionaries'].includes(id)).sort()).toEqual(['departments', 'dictionaries', 'menus', 'roles', 'users']);
   // A restricted operator without the grant loses both the route and the entry.
   const restricted = { ...superAdmin, current_user: { roles: ['ops'], permissions: ['users:read'] } } as unknown as Bootstrap;
   expect(canAccess('departments', restricted)).toBe(false);

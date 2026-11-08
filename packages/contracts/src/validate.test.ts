@@ -10,5 +10,5 @@ for(const entry of cases) it(entry.name,()=>expect(Object.keys(validate(entry.sc
 // The validator must mirror JSON.stringify and the Go decoder: undefined means absent.
 describe('undefined-valued keys mirror JSON encoding',()=>{
   it('optional field set to undefined stays absent',()=>expect(validate('UserCreate',{username:'member',email:'member@example.test',password:'test-password-strong',role:'user',department_id:undefined})).toEqual({}));
-  it('required field set to undefined stays required',()=>expect(validate('UserCreate',{username:'member',email:'member@example.test',password:'test-password-strong',role:undefined})).toEqual({role:'此项为必填'}));
+  it('required field set to undefined stays required',()=>expect(validate('UserCreate',{username:undefined,email:'member@example.test',password:'test-password-strong',role:'user'})).toEqual({username:'此项为必填'}));
 });

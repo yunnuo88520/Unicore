@@ -9,6 +9,7 @@ import (
 	"github.com/yunnuo/unicore/internal/audit"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/mailer"
+	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/settings"
 	"strings"
 	"time"
@@ -60,9 +61,6 @@ func (r *Repository) eventNotifications(ctx context.Context, tx sqlstore.Runner,
 			return nil
 		}
 		kind = "user_created"
-		if r.Administrators {
-			kind = "admin_created"
-		}
 		if actor == "registration" || actor == "oidc" {
 			return nil
 		}
@@ -136,9 +134,12 @@ func (r *Repository) queueEvent(ctx context.Context, tx sqlstore.Runner, kind, s
 			return nil
 		}
 	}
+	if kind == "user_created" && platform.HasManagementAccess(user) {
+		kind = "admin_created"
+	}
 	m, _ := audit.From(ctx)
 	now := int(time.Now().Unix())
-	messages, err := mailer.Plan(values, mailer.Event{Kind: kind, Username: user.Username, Email: user.Email, IP: m.IP, Detail: detail, Administrator: r.Administrators, At: now})
+	messages, err := mailer.Plan(values, mailer.Event{Kind: kind, Username: user.Username, Email: user.Email, IP: m.IP, Detail: detail, Administrator: platform.HasManagementAccess(user), At: now})
 	if err != nil {
 		return err
 	}

@@ -175,7 +175,7 @@ export interface WebClient {
   replaceDictionaryItems(id: string, input: DictionaryItemsInput): Promise<DictionaryDetail>;
   dictionaryByCode(code: string): Promise<DictionaryDetail>;
   roleOptions(): Promise<RoleOptions>;
-  adminRoleOptions(): Promise<RoleList>;
+  adminRoleOptions(): Promise<RoleOptions>;
 
   inbox(): Promise<InboxList>;
   readInbox(id: string): Promise<InboxList>;
@@ -254,7 +254,7 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   readonly web: WebClient = this;
  readonly files:FileClient=this;
  readonly storage:StorageClient=this;
-  get sessionScope(): 'user'|'administrator' { return this.administrator?'administrator':'user'; }
+  get sessionScope(): 'user'|'administrator' { return 'user'; }
   private csrf = '';
  private readonly administrator: boolean;
   private platform = false;

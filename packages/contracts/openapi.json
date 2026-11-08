@@ -12337,7 +12337,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RoleListResponse"
+                  "$ref": "#/components/schemas/RoleOptionsResponse"
                 }
               }
             }
@@ -13265,8 +13265,7 @@
         "required": [
           "username",
           "email",
-          "password",
-          "role"
+          "password"
         ],
         "properties": {
           "username": {
@@ -13294,12 +13293,13 @@
           "role": {
             "type": "string",
             "maxLength": 64,
-            "description": "User-realm builtin or custom role id; the administrator realm assigns super_admin or an administrator-realm custom role."
+            "description": "Optional single-role shorthand. Do not combine with role_ids.",
+            "x-go-value": true
           },
           "department_id": {
             "type": "string",
             "maxLength": 64,
-            "description": "Optional department for user accounts; must reference an existing department. Administrator accounts ignore it."
+            "description": "Shared account department: omit on update to retain it, empty string clears it; a non-empty id must reference an existing department."
           },
           "post_ids": {
             "type": "array",
@@ -13309,6 +13309,18 @@
             },
             "maxItems": 2048,
             "uniqueItems": true
+          },
+          "role_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "minItems": 1,
+            "maxItems": 64,
+            "uniqueItems": true,
+            "description": "Complete role assignment. Omit on update to retain existing roles. Role assignment requires roles:write."
           }
         }
       },
@@ -13322,7 +13334,7 @@
           "role": {
             "type": "string",
             "maxLength": 64,
-            "description": "User-realm builtin or custom role id; the administrator realm assigns super_admin or an administrator-realm custom role. Omit (or send empty) to keep the current roles; a non-empty value replaces them."
+            "description": "Optional single-role shorthand. Do not combine with role_ids."
           },
           "status": {
             "type": "string"
@@ -13330,7 +13342,7 @@
           "department_id": {
             "type": "string",
             "maxLength": 64,
-            "description": "User accounts only: omit or null to keep the current department, empty string clears it, a non-empty id must reference an existing department. Administrator accounts ignore it."
+            "description": "Shared account department: omit on update to retain it, empty string clears it; a non-empty id must reference an existing department."
           },
           "post_ids": {
             "type": "array",
@@ -13340,6 +13352,18 @@
             },
             "maxItems": 2048,
             "uniqueItems": true
+          },
+          "role_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "minItems": 1,
+            "maxItems": 64,
+            "uniqueItems": true,
+            "description": "Complete role assignment. Omit on update to retain existing roles. Role assignment requires roles:write."
           }
         }
       },

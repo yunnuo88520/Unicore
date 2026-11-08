@@ -198,9 +198,6 @@ func (r *Repository) userPostIDs(ctx context.Context, q sqlstore.Runner, userID 
 // validateUserPosts permits retained disabled memberships but rejects newly assigned disabled posts.
 // The caller holds LockInstallation and writes memberships in the same transaction.
 func (r *Repository) validateUserPosts(ctx context.Context, q sqlstore.Runner, userID string, ids []string) ([]string, error) {
-	if r.Administrators && len(ids) != 0 {
-		return nil, platform.ErrForbidden
-	}
 	result := []string{}
 	seen := map[string]bool{}
 	for _, id := range ids {
@@ -231,12 +228,6 @@ func (r *Repository) validateUserPosts(ctx context.Context, q sqlstore.Runner, u
 }
 
 func (r *Repository) writeUserPosts(ctx context.Context, tx *sql.Tx, userID string, ids []string) error {
-	if r.Administrators {
-		if len(ids) != 0 {
-			return platform.ErrForbidden
-		}
-		return nil
-	}
 	if _, err := r.Store.Exec(ctx, tx, "DELETE FROM unicore_user_posts WHERE user_id=?", userID); err != nil {
 		return err
 	}

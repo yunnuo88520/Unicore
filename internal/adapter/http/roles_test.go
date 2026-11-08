@@ -44,7 +44,11 @@ func exerciseRoleHTTP(t *testing.T, manager *install.Manager, request func(strin
 			if w := request(method, path, map[string]any{}, nil, ""); w.Code != 401 {
 				t.Fatal("anonymous", route, w.Code, w.Body.String())
 			}
-			if w := request(method, path, map[string]any{}, member, memberCSRF); w.Code != 403 {
+			expected := http.StatusForbidden
+			if operation.ID == "adminFileAccess" {
+				expected = http.StatusNotFound
+			}
+			if w := request(method, path, map[string]any{}, member, memberCSRF); w.Code != expected {
 				t.Fatal("member", route, w.Code, w.Body.String())
 			}
 			if method != "GET" {
@@ -82,8 +86,8 @@ func exerciseRoleHTTP(t *testing.T, manager *install.Manager, request func(strin
 	if w = request("POST", "/api/v1/admin/roles", map[string]any{"name": "", "permissions": []string{}}, admin, adminCSRF); w.Code != 400 {
 		t.Fatal("empty role name", w.Code)
 	}
-	if w = request("POST", "/api/v1/admin/roles", map[string]any{"name": "escalated", "permissions": []string{"users:read"}}, admin, adminCSRF); w.Code != 403 {
-		t.Fatal("management permission grantable", w.Code)
+	if w = request("POST", "/api/v1/admin/roles", map[string]any{"name": "escalated", "permissions": []string{"users:read"}}, admin, adminCSRF); w.Code != 200 {
+		t.Fatal("management permission assignment failed", w.Code)
 	}
 	w = request("POST", "/api/v1/admin/roles", map[string]any{"name": "编辑者", "permissions": []string{"files:access"}}, admin, adminCSRF)
 	if w.Code != 200 {
@@ -99,7 +103,7 @@ func exerciseRoleHTTP(t *testing.T, manager *install.Manager, request func(strin
 	}
 	w = request("GET", "/api/v1/admin/roles", nil, admin, "")
 	var roles contracts.RoleListResponse
-	if err := json.Unmarshal(w.Body.Bytes(), &roles); err != nil || w.Code != 200 || len(roles.Data.Items) != 3 {
+	if err := json.Unmarshal(w.Body.Bytes(), &roles); err != nil || w.Code != 200 || len(roles.Data.Items) != 4 {
 		t.Fatal("role catalogue", w.Code, w.Body.String(), err)
 	}
 	for _, role := range roles.Data.Items {
@@ -155,12 +159,12 @@ func exerciseRoleHTTP(t *testing.T, manager *install.Manager, request func(strin
 	// Role options follow the realm: user realm offers user + custom roles.
 	w = request("GET", "/api/v1/admin/users/role-options", nil, admin, "")
 	var options contracts.RoleOptionsResponse
-	if err := json.Unmarshal(w.Body.Bytes(), &options); err != nil || w.Code != 200 || len(options.Data.Items) != 2 {
+	if err := json.Unmarshal(w.Body.Bytes(), &options); err != nil || w.Code != 200 || len(options.Data.Items) != 4 {
 		t.Fatal("role options", w.Code, w.Body.String(), err)
 	}
 	// Administrator options list super_admin plus administrator-realm roles only.
 	w = request("GET", "/api/v1/admin/roles/admin-options", nil, admin, "")
-	if err := json.Unmarshal(w.Body.Bytes(), &options); err != nil || w.Code != 200 || len(options.Data.Items) != 1 || options.Data.Items[0].ID != "super_admin" {
+	if err := json.Unmarshal(w.Body.Bytes(), &options); err != nil || w.Code != 200 || len(options.Data.Items) != 4 || options.Data.Items[0].ID != "super_admin" {
 		t.Fatal("administrator role options", w.Code, w.Body.String(), err)
 	}
 	// Restore the builtin role, then delete the custom one.
@@ -271,7 +275,7 @@ func TestRestrictedAdministrator(t *testing.T) {
 	// Administrator options offer super_admin plus administrator-realm roles.
 	w = request("GET", "/api/v1/admin/roles/admin-options", nil, adminCookie, "")
 	var options contracts.RoleOptionsResponse
-	if err := json.Unmarshal(w.Body.Bytes(), &options); err != nil || w.Code != 200 || len(options.Data.Items) != 2 || options.Data.Items[0].ID != "super_admin" || options.Data.Items[1].ID != roleID {
+	if err := json.Unmarshal(w.Body.Bytes(), &options); err != nil || w.Code != 200 || len(options.Data.Items) != 4 || options.Data.Items[0].ID != "super_admin" {
 		t.Fatal("administrator options", w.Code, w.Body.String(), err)
 	}
 
@@ -282,8 +286,8 @@ func TestRestrictedAdministrator(t *testing.T) {
 		t.Fatal("restricted administrator create", w.Code, w.Body.String())
 	}
 	w = request("POST", "/api/v1/admin/administrators", contracts.UserCreate{Username: "crossed", Email: "crossed@example.test", Password: "test-password-strong", Role: "user"}, adminCookie, csrf)
-	if w.Code != 403 {
-		t.Fatal("cross realm administrator role", w.Code, w.Body.String())
+	if w.Code != 200 {
+		t.Fatal("unified role assignment", w.Code, w.Body.String())
 	}
 	w = request("GET", "/api/v1/admin/administrators", nil, adminCookie, "")
 	var admins contracts.UserListResponse

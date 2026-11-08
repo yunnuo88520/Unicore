@@ -105,7 +105,7 @@ func TestSchedulerControlsAndSafeFailures(t *testing.T) {
 	if err := store.Row(ctx, store.DB, "SELECT COUNT(*) FROM unicore_audit_logs WHERE action='tasks.triggered'").Scan(&auditCount); err != nil || auditCount != 1 {
 		t.Fatal(auditCount, err)
 	}
-	if _, err := store.Exec(ctx, store.DB, "UPDATE unicore_administrators SET status='disabled' WHERE id=?", admin); err != nil {
+	if _, err := store.Exec(ctx, store.DB, "UPDATE unicore_users SET status='disabled' WHERE id=?", admin); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.SetTaskEnabled(ctx, "test", true, admin); !errors.Is(err, platform.ErrForbidden) {

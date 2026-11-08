@@ -295,9 +295,11 @@ function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onO
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>
               <strong className="block text-sm text-ink">{user.username ?? data.site_name}</strong>
-              <small className="text-2xs">{administration ? t('管理员') : t('普通用户')}</small>
+              <small className="text-2xs">{user.roles.join(', ')}</small>
             </DropdownMenuLabel>
             {client.web && <>
+              {data.admin_path && !administration && <DropdownMenuItem onSelect={() => window.location.assign(data.admin_path)}>{t('管理工作台')}</DropdownMenuItem>}
+              {administration && <DropdownMenuItem onSelect={() => window.location.assign('/')}>{t('工作空间')}</DropdownMenuItem>}
               <DropdownMenuItem onSelect={() => onOpenPassword()}>{t('修改密码')}</DropdownMenuItem>
               <DropdownMenuItem onSelect={() => void router.navigate({ to: '/account' })}>{t('个人中心')}</DropdownMenuItem>
               <DropdownMenuItem onSelect={() => { void client.web!.logout().then(() => { void router.navigate({ to: '/' }); refresh(); }, refresh); }}>{t('退出登录')}</DropdownMenuItem>

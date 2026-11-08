@@ -63,7 +63,7 @@ func TestSeparateSurfacesAndCreatedUserLogin(t *testing.T) {
 	}
 	check(request("POST", "/api/v1/admin/users", contracts.UserCreate{Username: "createdmember", Email: "member@example.test", Password: "member-password-strong", Role: "user"}, adminCookie, session.CsrfToken, ""), 200)
 	login := contracts.LoginInput{Username: "createdmember", Password: "member-password-strong"}
-	check(request("POST", "/api/v1/admin/auth/login", login, nil, "", "user"), 401)
+	check(request("POST", "/api/v1/admin/auth/login", login, nil, "", "user"), 200)
 	w := request("POST", "/api/v1/auth/login", login, nil, "", "administrator")
 	check(w, 200)
 	memberCookie := w.Result().Cookies()[0]
@@ -86,8 +86,8 @@ func TestSeparateSurfacesAndCreatedUserLogin(t *testing.T) {
 	check(request("POST", "/api/v1/admin/updates/check", nil, adminCookie, session.CsrfToken, ""), 200)
 	check(request("POST", "/api/v1/admin/updates/apply", contracts.UpdateApplyInput{Version: "1.1.0", BackupConfirmed: true}, adminCookie, session.CsrfToken, ""), 200)
 	check(request("GET", "/api/v1/updates", nil, memberCookie, "", ""), 404)
-	check(request("GET", "/api/v1/admin/auth/session", nil, memberCookie, "", "administrator"), 403)
-	check(request("GET", "/api/v1/auth/session", nil, adminCookie, "", "administrator"), 401)
+	check(request("GET", "/api/v1/admin/auth/session", nil, memberCookie, "", "administrator"), 200)
+	check(request("GET", "/api/v1/auth/session", nil, adminCookie, "", "administrator"), 200)
 	check(request("GET", "/api/v1/admin/auth/session", nil, adminCookie, "", "user"), 200)
 	w = request("GET", "/api/v1/bootstrap", nil, memberCookie, "", "administrator")
 	check(w, 200)

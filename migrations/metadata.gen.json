@@ -126,18 +126,18 @@
           "files": {
             "mysql": {
               "path": "platform/mysql/0001_initial.sql",
-              "bytes": 16166,
-              "checksum": "07c72452ba8d61a4aeb53ad8d85ef07dc8e6c3f2544b31aebf39820700f29aa9"
+              "bytes": 11641,
+              "checksum": "626e88462d271c227775a10d348978f3bc2c7222fd26027a0391f0a8c6869ce1"
             },
             "postgres": {
               "path": "platform/postgres/0001_initial.sql",
-              "bytes": 16674,
-              "checksum": "4f26460e35eec870447896305db72ddec2ba47662916bdd8fa5cade47a7c40c1"
+              "bytes": 12045,
+              "checksum": "b63c129b446f2d76f82a4eed3ff18c98fd6ab371af8bd71da55e2166be7228dd"
             },
             "sqlite": {
               "path": "platform/sqlite/0001_initial.sql",
-              "bytes": 10996,
-              "checksum": "0480b2768d8f616e16bf1c9fba24d8b35c4f735f73b05dd1eb62500f4b64170e"
+              "bytes": 8205,
+              "checksum": "009c5deca924f22dbf3d2bf93845e46b5926e61a01fef63667b09e3362b4e75c"
             }
           }
         },
@@ -186,18 +186,18 @@
           "files": {
             "mysql": {
               "path": "platform/mysql/0004_administrator_realm_roles.sql",
-              "bytes": 1159,
-              "checksum": "d56d85ac4ce272d7aa0e83bdc6e6c17ea07b1960cc793faf95475e3be91ce057"
+              "bytes": 598,
+              "checksum": "4bf2476ff5d8fe242b2301e783caadcf0f5f13889d10ac55cbbf32b38c4cc768"
             },
             "postgres": {
               "path": "platform/postgres/0004_administrator_realm_roles.sql",
-              "bytes": 964,
-              "checksum": "d662d9152847e5016ea0640634ae94715c43833cbab86bddc5da21821888780a"
+              "bytes": 604,
+              "checksum": "323cbf602cc30f93fe8cee1370555bd01afe4c1fa6377551e0a6f068130d3deb"
             },
             "sqlite": {
               "path": "platform/sqlite/0004_administrator_realm_roles.sql",
-              "bytes": 975,
-              "checksum": "bf83c05d2189de4c29f521ac6813b92d19d40eed1ae2e55d7e05e15d34eb5c53"
+              "bytes": 628,
+              "checksum": "b6540e257edd6523b73b7f10495fea86d514905e9a5fe5974d5790b9b235bce3"
             }
           }
         },

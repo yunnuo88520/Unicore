@@ -1,11 +1,11 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 权限与错误契约
 
-平台默认拒绝：匿名 401，普通用户访问管理 API 为 403。管理业务 API 需实际管理员身份与权限；管理员认证前的 bootstrap/auth 仅返回公开最小投影，本人 account 需对应管理员会话；写操作校验 CSRF/Origin。权限源 internal/platform/roles.go（Assignable 标记决定能否授予自建角色），API/DTO 唯一源 packages/contracts/openapi.json。授权由 role_permissions 表驱动：用户域角色经 /admin/roles CRUD（roles:write）创建并勾选 assignable 权限点；管理员域在 super_admin 之外支持受限角色，会话权限为所配角色权限并集（含 super_admin 即目录全量），成员/权限变更吊销对应域会话。superAdmin 保留集（roles:write、administrators:*、settings:write、updates:apply、storage:write）仍仅 super_admin，即使授予自建角色也在会话层拦截。在权限点之上，角色分别授予 `menu_ids`（菜单/页面入口）、`action_ids`（页面动作）与 `operation_ids`（可委派 API operation），三类授权独立勾选、互不隐含，保存空数组被拒绝；`menu_ids` 只按角色过滤菜单可见性与入口，不授予任何 API 能力。运行时每次请求同时满足契约权限点与适用的 operation grant（grant 只能收窄，见 [ADR-0036](../adr/ADR-0036-navigation-regions-granular-authorization.md)）。API 目录（GET /admin/api-operations 及管理端 API 目录页）由契约 operationId 派生，必要流程（认证、bootstrap、本人账号恢复）与不可委派项不在可授予集合。权限目录同步与授权初始化分离：常规 `EnsurePermissions` 与重启不重新授予已撤销权限。见 [ADR-0033](../adr/ADR-0033-dynamic-user-roles.md)、[ADR-0034](../adr/ADR-0034-administrator-restricted-roles.md)。用户域角色另带 data_scope（all/dept_and_below/dept/custom/self，默认 self；administrator 域固定 self），驱动用户域笔记/文件的列表、读取与签名下载按部门范围过滤，行级 capabilities 标识真实可执行操作，写入仍按属主或显式业务规则校验；未知范围值按仅本人 fail-closed，范围解析或数据库错误拒绝请求，成员集合分批解析不静默截断（见 [ADR-0035](../adr/ADR-0035-action-permissions-departments.md)、[ADR-0036](../adr/ADR-0036-navigation-regions-granular-authorization.md)）。
+统一账号与多角色见 [ADR-0037](../adr/ADR-0037-unified-user-identity.md)。普通账号与管理操作共用账号和会话；是否允许操作取决于权限点、适用的 API operation grant、超级管理员保留策略及 CSRF/Origin，不由账号表或工作台路径授予。角色可组合业务与管理权限；菜单、动作、API 授权分别取并集。角色分配仅超管可执行，账号编辑者不得借机提权；最后启用超管及最后有本地密码超管受保护。两端本人 account API 均针对同一会话账号，identity_realm 仅描述工作台。匿名受保护请求为 401，缺少权限为 403。
 
 | 权限 | API（均在 /api/v1 下） |
 | --- | --- |
-| roles:write | POST /admin/roles；PUT/DELETE /admin/roles/{id}（仅 super_admin；自建角色声明 user/administrator 域，保存要求携带非空 menu_ids/action_ids/operation_ids） |
+| roles:write | POST /admin/roles；PUT/DELETE /admin/roles/{id}（仅 super_admin；角色可组合两个工作台的权限与授权） |
 | menus:write | GET/PUT /admin/menus（两域真实区域导航树 navigation.{sections,nodes,version}，PUT 版本号 CAS 冲突返回 409，空数组持久化为空树；`reset` 恢复两域默认，仅 super_admin） |
 | posts:read/write | GET /admin/posts；POST /admin/posts；PUT/DELETE /admin/posts/{id}（岗位目录，assignable；删除仍有用户关联的岗位返回冲突。用户创建/更新携带 post_ids 多岗位，用户列表支持 post_id 过滤） |
 | dictionaries:read/write | GET/POST /admin/dictionaries；GET/PUT/DELETE /admin/dictionaries/{id}；PUT /admin/dictionaries/{id}/items（可授权给管理员域角色）；用户域 GET /dictionaries/{code} 读取 active 条目 |
@@ -17,7 +17,7 @@
 | --- | --- |
 | admin:access | POST /admin/core/execute；GET /admin/dashboard（管理员工作台统计） |
 | users:read/create/update | GET/POST /admin/users；PATCH /admin/users/{id}，用户域 role 可为 user 或任意自建角色；用户保存可携带 post_ids 多岗位，列表支持 post_id 过滤 |
-| administrators:read/create/update | GET/POST /admin/administrators；PATCH /admin/administrators/{id}，role 为 super_admin 或管理员域自建角色（均仅 super_admin） |
+| administrators:read/create/update | GET/POST /admin/administrators；PATCH /admin/administrators/{id}，统一账号管理的旧别名（均仅 super_admin），新界面使用 /admin/users 与 role_ids |
 | roles:read | GET /admin/roles（双域自建角色与成员数）；GET /admin/users/role-options（用户域返回 user+自建角色）；GET /admin/roles/admin-options（管理员域返回 super_admin+自建角色，仅 super_admin） |
 | settings:read | GET /admin/settings、/admin/branding、/admin/settings/mail/templates |
 | settings:write | PATCH /admin/settings；PUT /admin/branding；POST /admin/settings/mail/test、/admin/settings/oidc/check；PUT /admin/settings/mail/templates；POST /admin/settings/mail/templates/{preview,test,reset} |
@@ -28,9 +28,7 @@
 | updates:read | GET /admin/updates；POST /admin/updates/check |
 | updates:apply | POST /admin/updates/apply，需确认已备份 |
 
-管理员/普通用户使用不同账号和凭据表。固定 API 路径选择域：用户 /api/v1/auth、account、files，管理员 /api/v1/admin/auth、account、files；身份请求头不再生效，无回退；Cookie 分别为 unicore_session/unicore_administrator_session，HttpOnly/SameSite=Lax，HTTPS origin 时 Secure。管理端点的目标仓库固定，actor 在事务中从管理员表重查，保护最后启用及最后有本地密码管理员。禁止用户域账号持有 super_admin（403），管理员域账号持有 super_admin 即目录全量，否则按所配角色并集；用户域角色与管理员域角色都在 /admin/roles 维护且不可跨域分配。后台 HTML 为公开登录壳，不因普通用户 Cookie 返回管理信息；API 始终独立鉴权。详见 [ADR-0014](../adr/ADR-0014-separate-identities-management.md)。
-
-POST /account/password 与 /admin/account/password 分别仅对应域登录账号，需 CSRF/Origin，提交 current_password/password（新密码 12–128 位）。旧密码验证及锁内密码快照复核后更新，撤销该账号的当前域会话/账号挑战，清除对应 Cookie，重新登录；其他域不受影响。企业绑定也受当前域限制；两个固定 callback 使用独立浏览器证明 Cookie，管理员不允许 JIT。
+用户与管理工作台共用账号与 unicore_session Cookie（HttpOnly/SameSite=Lax，HTTPS 时 Secure）。路径选择工作台接口，不选择账号仓库；身份请求头不参与认证。事务从统一账号表重查操作者，角色分配与保留操作重查超管资格。本人改密校验旧密码，锁内复核后撤销该账号的共享会话与挑战，两端同时失效。企业绑定共用账号；两种 OIDC callback 保留各自浏览器证明 Cookie，管理员入口不提供 JIT。详见 [ADR-0037](../adr/ADR-0037-unified-user-identity.md)。
 
 普通用户可以调用 Core、本人账号与本地外观，不能读取全局设置。平台 appearance.theme 不注册，PATCH 拒绝；外观只写当前客户端。单机/桌面没有平台表/认证接口，CLI 没有设置或 DB 强依赖。
 

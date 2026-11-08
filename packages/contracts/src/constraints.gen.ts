@@ -597,8 +597,7 @@ export const constraints = {
     "required": [
       "username",
       "email",
-      "password",
-      "role"
+      "password"
     ],
     "properties": {
       "username": {
@@ -638,6 +637,17 @@ export const constraints = {
         },
         "maxItems": 2048,
         "uniqueItems": true
+      },
+      "role_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "minItems": 1,
+        "maxItems": 64,
+        "uniqueItems": true
       }
     }
   },
@@ -666,6 +676,17 @@ export const constraints = {
           "maxLength": 64
         },
         "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "role_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "minItems": 1,
+        "maxItems": 64,
         "uniqueItems": true
       }
     }

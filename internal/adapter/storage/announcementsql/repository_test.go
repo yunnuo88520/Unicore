@@ -262,7 +262,7 @@ func TestAnnouncementDialects(t *testing.T) {
 
 			input.EndsAt = 0
 			// Revocation is checked again in the mutation transaction, even with a previously accepted actor ID.
-			if _, err = store.Exec(ctx, store.DB, "UPDATE unicore_administrators SET status='disabled' WHERE id=?", admin.ID); err != nil {
+			if _, err = store.Exec(ctx, store.DB, "UPDATE unicore_users SET status='disabled' WHERE id=?", admin.ID); err != nil {
 				t.Fatal(err)
 			}
 			input.PublishAt = int(now.Unix())

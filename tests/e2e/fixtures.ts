@@ -118,7 +118,6 @@ export function materializedOperations(realm: 'user' | 'administrator', permissi
     .filter(([id, operation]) => operation.superAdmin === false
       && operation.permissions.length > 0
       && !/\/(auth|account)\b|\/bootstrap/.test(operation.path)
-      && (operation.path.includes('/admin/') === (realm === 'administrator'))
       && ['session', 'authenticated', 'platform-session'].includes(operation.access)
       && (operation.permissionMode === 'any'
         ? operation.permissions.some(needed => permissions.includes(needed))

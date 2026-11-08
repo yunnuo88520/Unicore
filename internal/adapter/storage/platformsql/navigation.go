@@ -514,7 +514,7 @@ func (r *Repository) SaveNavigation(ctx context.Context, input contracts.MenuSav
 		}
 		// Grant-affecting saves revoke live sessions so stale envelopes cannot
 		// keep exercising removed buttons or menus.
-		for _, table := range []string{"unicore_sessions", "unicore_administrator_sessions"} {
+		for _, table := range []string{"unicore_sessions", "unicore_sessions"} {
 			if _, err = r.Store.Exec(ctx, tx, "DELETE FROM "+table); err != nil {
 				return contracts.MenuList{}, err
 			}

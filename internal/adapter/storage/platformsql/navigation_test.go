@@ -161,8 +161,8 @@ func TestRoleGrantMaterializationAndBoundaries(t *testing.T) {
 	}
 	for _, id := range user.OperationIds {
 		op, ok := platform.Operation(id)
-		if !ok || op.Realm != "user" {
-			t.Fatal("cross-realm materialized operation", id)
+		if !ok || !platform.PermissionsAllow(user.Permissions, op.Permissions, op.PermissionMode) {
+			t.Fatal("materialized operation exceeded permissions", id)
 		}
 	}
 

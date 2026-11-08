@@ -200,7 +200,7 @@ func (s *Service) Session(ctx context.Context, token string) (contracts.Session,
 func (s *Service) Create(ctx context.Context, input contracts.UserCreate, actor string) (contracts.User, error) {
 	input.Username = strings.ToLower(strings.TrimSpace(input.Username))
 	input.Email = strings.ToLower(strings.TrimSpace(input.Email))
-	if !ValidateAccount(input.Username, input.Email, input.Password) || !regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,63}$`).MatchString(input.Role) {
+	if !ValidateAccount(input.Username, input.Email, input.Password) || (input.Role != "" && !regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,63}$`).MatchString(input.Role)) {
 		return contracts.User{}, ErrInput
 	}
 	if input.Phone != nil {

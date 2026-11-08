@@ -30,6 +30,7 @@ type OIDCClaims struct {
 	Issuer, Subject, Email, Username string
 	EmailVerified                    bool
 }
+
 // OIDCPendingBind carries an unlinked enterprise identity back to the login page so the
 // visitor can prove local account possession instead of starting a second bind flow.
 // It unwraps to ErrOIDCLinkRequired so existing failure handling keeps working.

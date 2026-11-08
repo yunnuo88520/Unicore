@@ -1,6 +1,8 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # ADR-0014：独立管理员身份与管理界面
 
+> 账号分域与角色跨域限制已由 [ADR-0037](ADR-0037-unified-user-identity.md) 的统一账号、多角色方案取代；本文保留历史背景。
+
 > 升级占位部分由 [ADR-0018](ADR-0018-signed-updates.md) 的签名 OTA 取代，其余决策继续适用。
 
 邮件模板展示与操作日志能力由 [ADR-0020](ADR-0020-audit-mail-templates.md) 更新。

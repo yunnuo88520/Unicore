@@ -1,6 +1,8 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # ADR-0016：管理端与用户端独立入口
 
+> 账号分域与角色跨域限制已由 [ADR-0037](ADR-0037-unified-user-identity.md) 的统一账号、多角色方案取代；本文保留历史背景。
+
 状态：采用。取代 ADR-0014 的请求头选域、同一 SPA，以及 ADR-0009 的单机/桌面运行时品牌范围。
 
 web-platform 的普通用户是产品使用者，管理员是独立身份域。共享视觉不代表共享管理入口。Web 使用 index.html/main.tsx（用户）和 admin.html/admin.tsx（管理员）两个构建入口。管理员页面在 admin-app.tsx 装配，用户入口不导入这些页面；两端复用 Workspace、主题、表单、Modal、消息、文件和业务组件。默认用户端提供概览、Core、我的文件、本地外观、本人账号及明确的业务占位。

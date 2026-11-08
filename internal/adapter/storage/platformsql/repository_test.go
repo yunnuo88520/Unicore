@@ -70,8 +70,8 @@ func TestDialectMigrationsAndIdentity(t *testing.T) {
 			if platform.Has(member, "users:read") || !platform.Has(admin, "users:read") {
 				t.Fatal("RBAC grants incorrect")
 			}
-			if _, err = admins.UpdateUser(ctx, admin.ID, contracts.UserUpdate{Role: rolePtr("user"), Status: "active"}, admin.ID); err != platform.ErrForbidden {
-				t.Fatal("cross-realm conversion allowed", err)
+			if _, err = admins.UpdateUser(ctx, admin.ID, contracts.UserUpdate{Role: rolePtr("user"), Status: "active"}, admin.ID); err != platform.ErrLastAdmin {
+				t.Fatal("last super administrator demoted", err)
 			}
 			if _, err = admins.UpdateUser(ctx, admin.ID, contracts.UserUpdate{Role: rolePtr("super_admin"), Status: "disabled"}, admin.ID); err != platform.ErrLastAdmin {
 				t.Fatal("last admin disabled", err)
@@ -103,7 +103,7 @@ func TestDialectMigrationsAndIdentity(t *testing.T) {
 				t.Fatal(value)
 			}
 			dashboard, err := repository.Dashboard(ctx)
-			if err != nil || dashboard.TotalUsers != 1 || dashboard.ActiveUsers7d != 1 {
+			if err != nil || dashboard.TotalUsers != 2 || dashboard.ActiveUsers7d != 1 {
 				t.Fatalf("dashboard: %+v %v", dashboard, err)
 			}
 			list, err := repository.ListUsers(ctx, "member", 1, 20)

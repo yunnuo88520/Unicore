@@ -17,7 +17,8 @@ import (
 )
 
 type Repository struct {
-	Store               *sqlstore.Store
+	Store *sqlstore.Store
+	// Administrators selects the legacy management API alias, never a different account store.
 	Administrators      bool
 	NotificationSecrets mailer.Secrets
 }
@@ -32,10 +33,6 @@ func accountError(err error) error {
 func (r *Repository) user(ctx context.Context, q sqlstore.Runner, id string) (contracts.User, error) {
 	user := contracts.User{Roles: []string{}, Permissions: []string{}, MenuIds: &[]string{}, ActionIds: &[]string{}, OperationIds: &[]string{}, PostIds: &[]string{}}
 	query := "SELECT id,username,email,phone,status,created_at,last_login_at,department_id FROM unicore_users WHERE id=?"
-	if r.Administrators {
-		// The administrator identity table carries no department column.
-		query = "SELECT id,username,email,phone,status,created_at,last_login_at,NULL FROM unicore_administrators WHERE id=?"
-	}
 	var department *string
 	if err := r.row(ctx, q, query, id).Scan(&user.ID, &user.Username, &user.Email, &user.Phone, &user.Status, &user.CreatedAt, &user.LastLoginAt, &department); err != nil {
 		return user, err
@@ -46,59 +43,6 @@ func (r *Repository) user(ctx context.Context, q sqlstore.Runner, id string) (co
 		return user, err
 	}
 	user.TotpEnabled = state.Secret != ""
-	if r.Administrators {
-		// Administrator roles are data too: echo unicore_administrator_roles and
-		// union role_permissions across administrator-realm roles only. Unknown
-		// or cross-realm rows stay in the echo but never grant permissions.
-		roleRows, err := r.rows(ctx, q, "SELECT role_id FROM unicore_administrator_roles WHERE administrator_id=? ORDER BY role_id", id)
-		if err != nil {
-			return user, err
-		}
-		defer roleRows.Close()
-		super := false
-		for roleRows.Next() {
-			var role string
-			if err = roleRows.Scan(&role); err != nil {
-				return user, err
-			}
-			user.Roles = append(user.Roles, role)
-			if role == "super_admin" {
-				super = true
-			}
-		}
-		if err = roleRows.Err(); err != nil {
-			return user, err
-		}
-		if super {
-			user.Permissions = append(user.Permissions, platform.Permissions...)
-			return user, nil
-		}
-		rows, err := r.rows(ctx, q, "SELECT rp.permission_id FROM unicore_administrator_roles ar JOIN unicore_role_permissions rp ON rp.role_id=ar.role_id JOIN unicore_roles ro ON ro.id=ar.role_id WHERE ar.administrator_id=? AND ro.realm='administrator' ORDER BY rp.permission_id", id)
-		if err != nil {
-			return user, err
-		}
-		defer rows.Close()
-		catalogue := map[string]bool{}
-		for _, definition := range platform.PermissionCatalog {
-			catalogue[definition.ID] = true
-		}
-		for rows.Next() {
-			var permission string
-			if err = rows.Scan(&permission); err != nil {
-				return user, err
-			}
-			if catalogue[permission] {
-				user.Permissions = append(user.Permissions, permission)
-			}
-		}
-		if err = rows.Err(); err != nil {
-			return user, err
-		}
-		if err = r.loadAuthorizations(ctx, q, &user); err != nil {
-			return user, err
-		}
-		return user, nil
-	}
 	// User-realm roles are data: echo the assigned user_roles rows so custom
 	// roles surface in listings and sessions instead of the hardcoded builtin.
 	roleRows, err := r.rows(ctx, q, "SELECT role_id FROM unicore_user_roles WHERE user_id=? ORDER BY role_id", id)
@@ -116,7 +60,7 @@ func (r *Repository) user(ctx context.Context, q sqlstore.Runner, id string) (co
 	if err = roleRows.Err(); err != nil {
 		return user, err
 	}
-	rows, err := r.rows(ctx, q, "SELECT rp.permission_id FROM unicore_user_roles ur JOIN unicore_role_permissions rp ON rp.role_id=ur.role_id WHERE ur.user_id=? ORDER BY rp.permission_id", id)
+	rows, err := r.rows(ctx, q, "SELECT DISTINCT rp.permission_id FROM unicore_user_roles ur JOIN unicore_role_permissions rp ON rp.role_id=ur.role_id WHERE ur.user_id=? ORDER BY rp.permission_id", id)
 	if err != nil {
 		return user, err
 	}
@@ -126,13 +70,18 @@ func (r *Repository) user(ctx context.Context, q sqlstore.Runner, id string) (co
 		if err = rows.Scan(&permission); err != nil {
 			return user, err
 		}
-		user.Permissions = append(user.Permissions, permission)
+		if platform.CatalogPermission(permission) {
+			user.Permissions = append(user.Permissions, permission)
+		}
 	}
 	if err = rows.Err(); err != nil {
 		return user, err
 	}
 	if err = r.loadAuthorizations(ctx, q, &user); err != nil {
 		return user, err
+	}
+	if platform.IsSuper(user) {
+		user.Permissions = append([]string{}, platform.Permissions...)
 	}
 	posts, err := r.userPostIDs(ctx, q, id)
 	if err != nil {
@@ -157,9 +106,6 @@ func (r *Repository) loadAuthorizations(ctx context.Context, q sqlstore.Runner, 
 		{"unicore_role_operations ro", "ro.operation_id", user.OperationIds},
 	}
 	memberships := "SELECT role_id FROM unicore_user_roles WHERE user_id=?"
-	if r.Administrators {
-		memberships = "SELECT role_id FROM unicore_administrator_roles WHERE administrator_id=?"
-	}
 	for _, grant := range grants {
 		rows, err := r.rows(ctx, q, "SELECT DISTINCT "+grant.column+" FROM "+grant.table+" WHERE role_id IN ("+memberships+") ORDER BY 1", user.ID)
 		if err != nil {
@@ -245,12 +191,11 @@ func (r *Repository) insert(ctx context.Context, tx *sql.Tx, input contracts.Use
 	}
 	id := sqlstore.ID()
 	now := time.Now().Unix()
-	// Only the user identity table carries a department column; administrator
-	// accounts never belong to a department.
+	// Every account can belong to a department, regardless of its roles.
 	values := []any{id, input.Username, input.Email, input.Phone, hash, "active", now, now, 0}
 	columns := "id,username,email,phone,password_hash,status,created_at,updated_at,last_login_at"
 	holders := "?,?,?,?,?,?,?,?,?"
-	if !r.Administrators && input.DepartmentID != nil && *input.DepartmentID != "" {
+	if input.DepartmentID != nil && *input.DepartmentID != "" {
 		columns += ",department_id"
 		holders += ",?"
 		values = append(values, *input.DepartmentID)
@@ -258,18 +203,16 @@ func (r *Repository) insert(ctx context.Context, tx *sql.Tx, input contracts.Use
 	if _, err := r.exec(ctx, tx, "INSERT INTO unicore_users("+columns+") VALUES("+holders+")", values...); err != nil {
 		return contracts.User{}, accountError(err)
 	}
-	// The administrator membership table names its column administrator_id, so
-	// the assignment statement stays realm-specific instead of scoped-rewritten.
-	if r.Administrators {
-		if _, err := r.exec(ctx, tx, "INSERT INTO unicore_administrator_roles(administrator_id,role_id) VALUES(?,?)", id, input.Role); err != nil {
+	roles := []string{input.Role}
+	if input.RoleIds != nil {
+		roles = *input.RoleIds
+	}
+	for _, role := range roles {
+		if _, err := r.exec(ctx, tx, "INSERT INTO unicore_user_roles(user_id,role_id) VALUES(?,?)", id, role); err != nil {
 			return contracts.User{}, err
 		}
-	} else if _, err := r.exec(ctx, tx, "INSERT INTO unicore_user_roles(user_id,role_id) VALUES(?,?)", id, input.Role); err != nil {
-		return contracts.User{}, err
 	}
-	// Post memberships ride the same installation transaction: an omitted list
-	// creates no memberships, a non-empty one validates each post (disabled
-	// posts are refused for new members) and the administrator realm refuses.
+	// Post membership is validated and written in the account transaction.
 	if input.PostIds != nil && len(*input.PostIds) > 0 {
 		ids, err := r.validateUserPosts(ctx, tx, "", *input.PostIds)
 		if err != nil {
@@ -283,7 +226,7 @@ func (r *Repository) insert(ctx context.Context, tx *sql.Tx, input contracts.Use
 	if r.Administrators {
 		action = "administrators.created"
 	}
-	if err := r.audit(audit.Target(ctx, r.roleID()+"/"+id, "role="+input.Role+"; status=active"), tx, actor, action); err != nil {
+	if err := r.audit(audit.Target(ctx, r.roleID()+"/"+id, "roles="+strings.Join(roles, ",")+"; status=active"), tx, actor, action); err != nil {
 		return contracts.User{}, err
 	}
 	return r.user(ctx, tx, id)
@@ -305,17 +248,14 @@ func (r *Repository) CreateUser(ctx context.Context, input contracts.UserCreate,
 	if err != nil {
 		return contracts.User{}, err
 	}
-	role, err := r.role(ctx, tx, input.Role)
+	roles, err := r.assignment(ctx, tx, input.Role, input.RoleIds, nil, current)
 	if err != nil {
 		return contracts.User{}, err
 	}
-	// Roles never cross realms: administrator accounts take super_admin or an
-	// administrator-realm custom role, user accounts a user-realm role.
-	if r.Administrators && role.Realm != "administrator" || !r.Administrators && (role.Realm != "user" || role.ID == "super_admin") {
-		return contracts.User{}, platform.ErrForbidden
-	}
+	input.Role = ""
+	input.RoleIds = &roles
 	// Departments exist only for user accounts; a bad id is rejected here.
-	if !r.Administrators && input.DepartmentID != nil && *input.DepartmentID != "" {
+	if input.DepartmentID != nil && *input.DepartmentID != "" {
 		if _, err = r.department(ctx, tx, *input.DepartmentID); err != nil {
 			return contracts.User{}, err
 		}
@@ -328,8 +268,7 @@ func (r *Repository) CreateUser(ctx context.Context, input contracts.UserCreate,
 	return user, tx.Commit()
 }
 func (r *Repository) UpdateUser(ctx context.Context, id string, input contracts.UserUpdate, actor string) (contracts.User, error) {
-	// An omitted or empty role keeps the current membership rows; a non-empty
-	// role replaces them with a single assignment of the same realm.
+	// Omitted assignments preserve roles; role_ids replaces the entire set.
 	role := ""
 	if input.Role != nil {
 		role = *input.Role
@@ -352,15 +291,6 @@ func (r *Repository) UpdateUser(ctx context.Context, id string, input contracts.
 	if _, err = r.actor(ctx, tx, actor, permission); err != nil {
 		return contracts.User{}, err
 	}
-	if role != "" {
-		assigned, err := r.role(ctx, tx, role)
-		if err != nil {
-			return contracts.User{}, err
-		}
-		if r.Administrators && assigned.Realm != "administrator" || !r.Administrators && (assigned.Realm != "user" || assigned.ID == "super_admin") {
-			return contracts.User{}, platform.ErrForbidden
-		}
-	}
 	before, err := r.user(ctx, tx, id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return contracts.User{}, platform.ErrInput
@@ -377,24 +307,27 @@ func (r *Repository) UpdateUser(ctx context.Context, id string, input contracts.
 			isAdmin = true
 		}
 	}
-	// The effective role decides last-admin protection; an omitted role keeps
-	// the current assignment (restricted administrators are not super_admin
-	// holders and never trigger the guard).
-	effective := role
-	if effective == "" && len(before.Roles) > 0 {
-		effective = before.Roles[0]
+	current, err := r.user(ctx, tx, actor)
+	if err != nil {
+		return contracts.User{}, err
 	}
-	if isAdmin && before.Status == "active" && (effective != "super_admin" || input.Status != "active") {
-		// Only super_admin holders count toward the guard; restricted
-		// administrators keep the instance manageable. The membership join is
-		// realm-literal: the administrator table names its column
-		// administrator_id, which scoped() rewrites cannot express.
+	if platform.IsSuper(before) && !platform.IsSuper(current) {
+		return contracts.User{}, platform.ErrForbidden
+	}
+	roles, err := r.assignment(ctx, tx, role, input.RoleIds, before.Roles, current)
+	if err != nil {
+		return contracts.User{}, err
+	}
+	effectiveSuper := false
+	for _, assigned := range roles {
+		if assigned == "super_admin" {
+			effectiveSuper = true
+		}
+	}
+	if isAdmin && before.Status == "active" && (!effectiveSuper || input.Status != "active") {
+		// Only active super_admin members satisfy the recovery guard.
 		identityTable := "unicore_users"
 		membership := "unicore_user_roles ur ON ur.user_id=u.id"
-		if r.Administrators {
-			identityTable = "unicore_administrators"
-			membership = "unicore_administrator_roles ur ON ur.administrator_id=u.id"
-		}
 		var count int
 		if err = r.Store.Row(ctx, tx, "SELECT COUNT(*) FROM "+identityTable+" u JOIN "+membership+" WHERE ur.role_id='super_admin' AND u.status='active'").Scan(&count); err != nil {
 			return contracts.User{}, err
@@ -418,27 +351,15 @@ func (r *Repository) UpdateUser(ctx context.Context, id string, input contracts.
 	if _, err = r.exec(ctx, tx, "UPDATE unicore_users SET status=?,updated_at=? WHERE id=?", input.Status, time.Now().Unix(), id); err != nil {
 		return contracts.User{}, err
 	}
-	if role != "" {
-		if r.Administrators {
-			if _, err = r.exec(ctx, tx, "DELETE FROM unicore_administrator_roles WHERE administrator_id=?", id); err != nil {
-				return contracts.User{}, err
-			}
-			if _, err = r.exec(ctx, tx, "INSERT INTO unicore_administrator_roles(administrator_id,role_id) VALUES(?,?)", id, role); err != nil {
-				return contracts.User{}, err
-			}
-		} else {
-			if _, err = r.exec(ctx, tx, "DELETE FROM unicore_user_roles WHERE user_id=?", id); err != nil {
-				return contracts.User{}, err
-			}
-			if _, err = r.exec(ctx, tx, "INSERT INTO unicore_user_roles(user_id,role_id) VALUES(?,?)", id, role); err != nil {
-				return contracts.User{}, err
-			}
+	if _, err = r.exec(ctx, tx, "DELETE FROM unicore_user_roles WHERE user_id=?", id); err != nil {
+		return contracts.User{}, err
+	}
+	for _, assigned := range roles {
+		if _, err = r.exec(ctx, tx, "INSERT INTO unicore_user_roles(user_id,role_id) VALUES(?,?)", id, assigned); err != nil {
+			return contracts.User{}, err
 		}
 	}
-	// Post memberships are user-realm only: an omitted list keeps the current
-	// memberships, an explicit list replaces them (retained disabled posts stay
-	// allowed, newly assigned disabled posts are refused), and the
-	// administrator realm refuses any non-empty set.
+	// Omitted posts preserve membership; explicit posts replace the set.
 	if input.PostIds != nil {
 		if _, err = r.validateUserPosts(ctx, tx, id, *input.PostIds); err != nil {
 			return contracts.User{}, err
@@ -447,9 +368,8 @@ func (r *Repository) UpdateUser(ctx context.Context, id string, input contracts.
 			return contracts.User{}, err
 		}
 	}
-	// Department changes are user-realm only: omit/null keeps the current
-	// department, an empty string clears it, a non-empty id must exist.
-	if !r.Administrators && input.DepartmentID != nil {
+	// Omitted departments are retained; empty clears; a non-empty id must exist.
+	if input.DepartmentID != nil {
 		if *input.DepartmentID == "" {
 			if _, err = r.exec(ctx, tx, "UPDATE unicore_users SET department_id=NULL,updated_at=? WHERE id=?", time.Now().Unix(), id); err != nil {
 				return contracts.User{}, err
@@ -473,7 +393,7 @@ func (r *Repository) UpdateUser(ctx context.Context, id string, input contracts.
 	if r.Administrators {
 		action = "administrators.updated"
 	}
-	if err = r.audit(audit.Target(ctx, r.roleID()+"/"+id, "status="+before.Status+"->"+input.Status+"; sessions=revoked"), tx, actor, action); err != nil {
+	if err = r.audit(audit.Target(ctx, r.roleID()+"/"+id, "status="+before.Status+"->"+input.Status+"; roles="+strings.Join(before.Roles, ",")+"->"+strings.Join(roles, ",")+"; sessions=revoked"), tx, actor, action); err != nil {
 		return contracts.User{}, err
 	}
 	user, err := r.user(ctx, tx, id)
@@ -482,6 +402,7 @@ func (r *Repository) UpdateUser(ctx context.Context, id string, input contracts.
 	}
 	return user, tx.Commit()
 }
+
 // ListUsers lists the identity realm's users with the shared search filter; a
 // non-empty optional post id restricts the page to that post's members.
 func (r *Repository) ListUsers(ctx context.Context, search string, page, size int, postID ...string) (contracts.UserList, error) {
@@ -640,4 +561,48 @@ func (r *Repository) Dashboard(ctx context.Context) (contracts.Dashboard, error)
 		result.Activity7d = append(result.Activity7d, contracts.ActivityDay{Date: day, Count: buckets[day]})
 	}
 	return result, nil
+}
+
+// assignment validates the entire set before any writes. Account editors cannot grant roles.
+func (r *Repository) assignment(ctx context.Context, tx *sql.Tx, single string, ids *[]string, previous []string, actor contracts.User) ([]string, error) {
+	if ids != nil && single != "" {
+		return nil, platform.ErrInput
+	}
+	if ids == nil && single == "" {
+		if previous != nil {
+			return previous, nil
+		}
+		return []string{"user"}, nil
+	}
+	roles := []string{single}
+	if ids != nil {
+		roles = *ids
+	}
+	if len(roles) == 0 || len(roles) > 64 {
+		return nil, platform.ErrInput
+	}
+	same := len(roles) == len(previous)
+	old := map[string]bool{}
+	for _, id := range previous {
+		old[id] = true
+	}
+	for _, id := range roles {
+		if !old[id] {
+			same = false
+		}
+	}
+	if !same && !(previous == nil && len(roles) == 1 && roles[0] == "user") && !platform.IsSuper(actor) {
+		return nil, platform.ErrForbidden
+	}
+	seen := map[string]bool{}
+	for _, id := range roles {
+		if seen[id] {
+			return nil, platform.ErrInput
+		}
+		seen[id] = true
+		if _, err := r.role(ctx, tx, id); err != nil {
+			return nil, err
+		}
+	}
+	return roles, nil
 }

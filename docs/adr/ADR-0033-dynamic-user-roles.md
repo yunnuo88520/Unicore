@@ -1,6 +1,8 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # ADR-0033：用户域动态角色、数据驱动菜单与数据字典
 
+> 账号分域与角色跨域限制已由 [ADR-0037](ADR-0037-unified-user-identity.md) 的统一账号、多角色方案取代；本文保留历史背景。
+
 日期：2026-11-07。状态：已实施（dev）；其「管理员域保持固定」的运营层限制后被 [ADR-0034](ADR-0034-administrator-restricted-roles.md) 放开，`EnsurePermissions` 每次启动补种的语义后被 [ADR-0036](ADR-0036-navigation-regions-granular-authorization.md) 修正为不复活已撤销授权，双域物理隔离与 fail-closed 契约权限保持不变。取代 ADR-0012/ADR-0029 时代「固定管理员/普通用户双角色、禁止自定义角色写接口」的运营层限制。
 
 ## 背景

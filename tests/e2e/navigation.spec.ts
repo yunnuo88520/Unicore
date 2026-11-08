@@ -47,7 +47,11 @@ test('menu console edits the persisted tree and one save re-anchors every sessio
   // Both surfaces are editable; the administrator surface opens for admin sessions.
   await expect(page.getByRole('tab', { name: '管理端', exact: true })).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByRole('tab', { name: '用户端', exact: true })).toBeVisible();
-  // Registered pages of the surface all render as editable rows keyed by target.
+  // Directories start collapsed; expand both seeded directories so every
+  // registered page of the surface renders as an editable row keyed by target.
+  for (const directory of ['administration', 'settings']) {
+    await page.locator(`tr[data-node="${directory}"]`).getByRole('button', { name: /展开或收起/ }).click();
+  }
   const targets = await pageTargets(page);
   for (const route of ['users', 'roles', 'menus', 'tasks', 'edition', 'dictionaries', 'posts', 'api-operations']) {
     expect(targets, `editor row for ${route}`).toContain(route);
@@ -317,6 +321,7 @@ test('visibility toggles persist through save', async ({ page, instance }) => {
   await adminLogin(page, instance.url, 'admin', adminPassword);
   await page.goto(`${instance.url}/admin/menus`);
   await expect(page.getByRole('heading', { name: '菜单配置', exact: true })).toBeVisible();
+  await page.locator('tr[data-node="administration"]').getByRole('button', { name: /展开或收起/ }).click();
   const tasksRow = rowByTarget(page, 'tasks');
   await expect(tasksRow).toBeVisible();
   const tasksSwitch = tasksRow.getByRole('switch');

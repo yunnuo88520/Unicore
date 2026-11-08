@@ -26,9 +26,11 @@ test('management groups, modal creation, independent logins and avatar password 
  const parentNode=usersNode.parent_id?config.nodes.find(node=>node.id===usersNode.parent_id):undefined;
  const sidebar=page.locator('.sidebar');
  const usersButton=sidebar.getByRole('button',{name:labelOf('users'),exact:true});
- await expect(usersButton).toBeVisible();
  if(parentNode){
+  // Directories start collapsed; expanding the parent reveals the child row.
   const parentButton=sidebar.getByRole('button',{name:nodeDisplayLabel(parentNode),exact:true});
+  await parentButton.click();
+  await expect(usersButton).toBeVisible();
   const parentIcon=await parentButton.locator('svg').first().boundingBox();
   const childIcon=await usersButton.locator('svg').boundingBox();
   expect(childIcon!.x).toBeGreaterThan(parentIcon!.x+12);

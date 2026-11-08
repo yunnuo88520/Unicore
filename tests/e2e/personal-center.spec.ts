@@ -69,16 +69,13 @@ test('personal center supports profile, TOTP recovery login and device revocatio
  await page.goto(`${instance.url}/admin/account-security`);await expect(page.getByRole('heading',{name:'Security.',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Disable two-factor authentication',exact:true})).toBeVisible();
  await page.screenshot({path:`${directory}/security-en-dark.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  if(info.project.name==='mobile')await page.getByRole('button',{name:'Open navigation',exact:true}).click();
- // Sections render as titled groups: the personal section stays visible and
- // only the active entry carries the highlight.
- // The locale was switched to English above; the personal section is a titled group.
- // The realm decides the prefix: administrator sessions project admin:personal.
- // The seed ships empty section names (operator-owned labels); the group is
- // identified by its id and its entries carry the semantics.
- const personalSection=page.locator('.sidebar section[data-nav-section$=":personal"]');
- await expect(personalSection).toBeVisible();
+ // Administrator personal pages live in the system section's Personal center
+ // directory; the active page keeps that directory auto-expanded.
+ const systemSection=page.locator('.sidebar section[data-nav-section="admin:system"]');
+ const personalGroup=systemSection.getByRole('button',{name:'Personal center',exact:true});
+ await expect(personalGroup).toHaveAttribute('aria-expanded','true');
  await expect(page.locator('.sidebar').getByRole('button',{name:'Security',exact:true})).toHaveClass(/bg-primary-soft/);
- await expect(personalSection.getByRole('button',{name:'Security',exact:true})).toBeVisible();
+ await expect(systemSection.getByRole('button',{name:'Security',exact:true})).toBeVisible();
 });
 
 test('forced enrollment applies to ordinary users and preserves recovery codes across policy refresh',async({page,instance},info)=>{

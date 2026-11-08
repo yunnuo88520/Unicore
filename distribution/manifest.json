@@ -879,6 +879,7 @@
     "packages/web-ui/src/human-check.tsx",
     "packages/web-ui/src/i18n.catalog.test.ts",
     "packages/web-ui/src/i18n.ts",
+    "packages/web-ui/src/live-logs.tsx",
     "packages/web-ui/src/locales/en.json",
     "packages/web-ui/src/locales/license.en.json",
     "packages/web-ui/src/locales/updates.en.json",

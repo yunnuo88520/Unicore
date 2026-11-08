@@ -75,6 +75,7 @@ export interface StorageClient {
 
 export interface WebClient {
  subscribeEvents(listener:(type:string)=>void):()=>void;
+ subscribeLogEvents(onLine:(line:string)=>void,onStatus?:(status:'connected'|'disconnected')=>void):()=>void;
  exportUsers(search?:string):Promise<Blob>;
  usersImportTemplate():Promise<Blob>;
  importUsers(file:File):Promise<{created:number;errors:string[]}>;
@@ -364,6 +365,18 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
     const source=new EventSource(`${this.baseURL}${operations.events.path}`,{withCredentials:true});
     const notify=(event:Event)=>listener(event.type==='open'?'reconnect':event.type);
     for(const type of ['open','message','inbox.new'])source.addEventListener(type,notify);
+    const unsubscribe=this.subscribeSession(()=>source.close());
+    return ()=>{source.close();unsubscribe();};
+  }
+  // Live log lines for the administrator console; closing the returned thunk
+  // closes the EventSource and disconnects the server-side stream. EventSource
+  // reconnects on its own, so status only reports what the browser observes.
+  subscribeLogEvents(onLine:(line:string)=>void,onStatus?:(status:'connected'|'disconnected')=>void):()=>void {
+    if(!this.administrator||typeof EventSource==='undefined')return ()=>{};
+    const source=new EventSource(`${this.baseURL}${operations.logStream.path}`,{withCredentials:true});
+    source.onopen=()=>onStatus?.('connected');
+    source.onerror=()=>onStatus?.('disconnected');
+    source.addEventListener('message',(event:MessageEvent)=>{if(typeof event.data==='string')onLine(event.data);});
     const unsubscribe=this.subscribeSession(()=>source.close());
     return ()=>{source.close();unsubscribe();};
   }

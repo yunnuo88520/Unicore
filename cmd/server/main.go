@@ -93,9 +93,12 @@ func run(args []string) (result error) {
 			sink = opened
 		}
 	}
-	logWriter := io.Writer(os.Stdout)
+	// Live log streaming taps the same writer chain; stdout and the file sink
+	// stay the durable destinations and the broadcast only keeps recent lines.
+	broadcast := logging.NewBroadcastWriter()
+	logWriter := io.Writer(io.MultiWriter(os.Stdout, broadcast))
 	if sink != nil {
-		logWriter = io.MultiWriter(os.Stdout, sink)
+		logWriter = io.MultiWriter(os.Stdout, sink, broadcast)
 	}
 	logger, err := logging.New(logWriter, options.Log, "web")
 	if err != nil {
@@ -134,7 +137,7 @@ func run(args []string) (result error) {
 	metrics := observability.New()
 	workerCtx, cancelWorkers := context.WithCancel(context.Background())
 	defer cancelWorkers()
-	server := &http.Server{Addr: options.Listen, Handler: httpadapter.New(httpadapter.Config{Updates: updater, Metadata: metadata, Core: bootstrap.Core(), Assets: webassets.FS(), Logger: logger, Install: manager, APIDocs: options.APIDocs, ReadinessTimeout: options.ReadinessTimeout, Metrics: metrics, Hub: hub}), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
+	server := &http.Server{Addr: options.Listen, Handler: httpadapter.New(httpadapter.Config{Updates: updater, Metadata: metadata, Core: bootstrap.Core(), Assets: webassets.FS(), Logger: logger, Install: manager, APIDocs: options.APIDocs, ReadinessTimeout: options.ReadinessTimeout, Metrics: metrics, Hub: hub, LogBroadcast: broadcast}), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
 	listener, err := net.Listen("tcp", server.Addr)
 	if err != nil {
 		return fmt.Errorf("listen failed: %w", err)
@@ -269,17 +272,20 @@ func run(args []string) (result error) {
 		return tasks.Shutdown(shutdownCtx)
 	})
 	// Long-lived SSE streams must close when draining begins; otherwise an
-	// otherwise graceful HTTP shutdown would always exhaust its deadline.
+	// otherwise graceful HTTP shutdown would always exhaust its deadline. The
+	// log broadcast joins the hub so live log streams terminate the same way.
 	streamDone := make(chan struct{})
 	go func() {
 		select {
 		case <-ctx.Done():
 			hub.Close()
+			broadcast.Close()
 		case <-streamDone:
 		}
 	}()
 	defer close(streamDone)
 	defer hub.Close()
+	defer broadcast.Close()
 	if monitorListener != nil {
 		mux := http.NewServeMux()
 		mux.Handle("/metrics", metrics.Handler(func() *sql.DB {

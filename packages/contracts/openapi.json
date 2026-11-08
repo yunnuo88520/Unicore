@@ -12260,6 +12260,53 @@
         "parameters": []
       }
     },
+    "/api/v1/admin/logs/stream": {
+      "get": {
+        "operationId": "logStream",
+        "responses": {
+          "200": {
+            "description": "Server-sent events stream of log lines",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "logs:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "logStream",
+        "parameters": []
+      }
+    },
     "/api/v1/admin/users/export.xlsx": {
       "get": {
         "operationId": "exportUsers",

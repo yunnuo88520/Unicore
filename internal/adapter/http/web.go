@@ -435,6 +435,7 @@ func mountWeb(api chi.Router, config Config) {
 	mountDashboard(api, config)
 	mountInbox(api, config)
 	mountEvents(api, config)
+	mountLogStream(api, config)
 	mountDictionaries(api, config)
 	mountXlsx(api, config)
 	mountOIDC(api, config)

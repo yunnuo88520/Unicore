@@ -2037,5 +2037,18 @@
   "错误": "Error",
   "创建、编辑与删除自建任务，启停任务并手动触发执行": "Create, edit and delete custom tasks; toggle and trigger tasks manually",
   "管理后台定时任务：内置任务启停与手动触发，自建任务在已注册执行器上创建、编辑与删除。": "Manage scheduled tasks: toggle and trigger builtins, create, edit and delete custom tasks over registered executors.",
-  "记录个人笔记，支持附件、搜索与分页。": "Capture personal notes with attachments, search and pagination."
+  "记录个人笔记，支持附件、搜索与分页。": "Capture personal notes with attachments, search and pagination.",
+  "实时日志": "Live logs",
+  "实时日志行": "Live log lines",
+  "服务端日志实时推送，关闭窗口即断开连接；断开或重连后自动回放最近缓冲。": "Server logs stream in real time; closing this window disconnects. Recent buffered lines replay after a reconnect.",
+  "连接已断开，自动重连中": "Disconnected, reconnecting",
+  "级别": "Level",
+  "全部级别": "All levels",
+  "暂停滚动": "Pause scrolling",
+  "清屏": "Clear",
+  "显示 {{count}} 行 · 缓冲 {{total}} 行": "Showing {{count}} of {{total}} buffered lines",
+  "已连接，等待新的日志输出…": "Connected, waiting for new log output…",
+  "正在建立日志连接…": "Establishing the log stream…",
+  "回到底部（{{count}} 条新日志）": "Jump to latest ({{count}} new lines)",
+  "滚动已暂停，新日志仍在缓冲": "Scrolling paused; new lines keep buffering"
 }

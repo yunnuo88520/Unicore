@@ -89,7 +89,7 @@
 | moduleRegistry | [internal/module/manifest.json](../../internal/module/manifest.json) |
 | modules | [internal/modules](../../internal/modules) |
 
-OpenAPI 当前包含 212 个 operation、221 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
+OpenAPI 当前包含 213 个 operation、221 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
 
 | 任务 Skill | 用途 |
 | --- | --- |

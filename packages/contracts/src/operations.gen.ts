@@ -3834,6 +3834,26 @@ export const operations = {
     "csrf": false,
     "identityRealm": "user"
   },
+  "logStream": {
+    "method": "GET",
+    "path": "/api/v1/admin/logs/stream",
+    "requestSchema": null,
+    "responseSchema": null,
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "logs:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
   "exportUsers": {
     "method": "GET",
     "path": "/api/v1/admin/users/export.xlsx",
@@ -4258,6 +4278,7 @@ export interface OperationInputs {
   readAllInbox: undefined;
   readInbox: undefined;
   events: undefined;
+  logStream: undefined;
   exportUsers: undefined;
   userImportTemplate: undefined;
   importUsers: undefined;
@@ -4472,6 +4493,7 @@ export interface OperationData {
   readAllInbox: Models.InboxListResponse['data'];
   readInbox: Models.InboxListResponse['data'];
   events: void;
+  logStream: void;
   exportUsers: void;
   userImportTemplate: void;
   importUsers: Models.UserImportResultResponse['data'];

@@ -319,7 +319,7 @@ func managementAccounts(ctx context.Context, r *platformsql.Repository) (contrac
 	result := contracts.UserList{Items: []contracts.User{}, Page: 1, PageSize: 50}
 	placeholders := []string{}
 	args := []any{}
-	for _, definition := range platform.PermissionCatalog {
+	for _, definition := range platform.PermissionCatalog() {
 		if !definition.Assignable {
 			placeholders = append(placeholders, "?")
 			args = append(args, definition.ID)

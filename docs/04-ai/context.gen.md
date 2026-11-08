@@ -86,8 +86,10 @@
 | platformNavigation | [internal/platform/navigation.go](../../internal/platform/navigation.go) |
 | operationCatalog | [internal/platform/operations.go](../../internal/platform/operations.go) |
 | dataScope | [internal/platform/datascope.go](../../internal/platform/datascope.go) |
+| moduleRegistry | [internal/module/manifest.json](../../internal/module/manifest.json) |
+| modules | [internal/modules](../../internal/modules) |
 
-OpenAPI 当前包含 208 个 operation、215 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
+OpenAPI 当前包含 213 个 operation、221 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
 
 | 任务 Skill | 用途 |
 | --- | --- |
@@ -95,7 +97,7 @@ OpenAPI 当前包含 208 个 operation、215 个 schema。Go/TS 模型、调用�
 | [add-cli-command](../../.agents/skills/add-cli-command/SKILL.md) | 为 Unicore Cobra CLI 增加直接调用共享 Core 的命令、stdin/文件输入和结构化输出。 |
 | [add-e2e-test](../../.agents/skills/add-e2e-test/SKILL.md) | 扩展 Unicore Playwright E2E：真实后端与 Go 夹具编译、双视口断言与证据留存边界。 |
 | [add-file-storage](../../.agents/skills/add-file-storage/SKILL.md) | 扩展 Unicore 文件业务、存储提供商、直传或签名下载，保持 file_id 元数据与生命周期边界。 |
-| [add-go-module](../../.agents/skills/add-go-module/SKILL.md) | 新增 Unicore Go 领域模块、用例、ports 与按 profile 装配的 adapter。 |
+| [add-go-module](../../.agents/skills/add-go-module/SKILL.md) | 新增 Unicore 业务模块：自包含模块树、module 注册描述符、迁移命名空间与三端装配。 |
 | [add-platform-permission](../../.agents/skills/add-platform-permission/SKILL.md) | 登记 web-platform 权限点并实现菜单、页面与 API 权限（统一账号、多角色 + superAdmin 保留集 + 菜单/动作/operation 细粒度授权），验证越权边界。 |
 | [add-react-page](../../.agents/skills/add-react-page/SKILL.md) | 新增 Unicore Web/Wails 共用响应式页面、导航或仪表盘 widget。 |
 | [add-setting](../../.agents/skills/add-setting/SKILL.md) | 向 Unicore SettingDefinition 增加分组设置、profile 范围、校验与敏感值处理。 |

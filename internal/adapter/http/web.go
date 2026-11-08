@@ -24,8 +24,11 @@ import (
 	"github.com/yunnuo/unicore/internal/files"
 	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/mailer"
+	notesdomain "github.com/yunnuo/unicore/internal/modules/notes/domain"
+	notesusecase "github.com/yunnuo/unicore/internal/modules/notes/usecase"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/runtime"
+	"github.com/yunnuo/unicore/internal/scheduler"
 	"github.com/yunnuo/unicore/internal/settings"
 	"github.com/yunnuo/unicore/internal/usecase"
 	apispec "github.com/yunnuo/unicore/packages/contracts"
@@ -63,11 +66,11 @@ func webError(w http.ResponseWriter, err error) {
 		code = "ENTITY_NOT_FOUND"
 	case errors.Is(err, usecase.ErrEntityConflict):
 		code = "ENTITY_CONFLICT"
-	case errors.Is(err, domain.ErrNoteInvalid):
+	case errors.Is(err, notesdomain.ErrNoteInvalid):
 		code = "NOTE_INVALID"
-	case errors.Is(err, usecase.ErrNoteNotFound):
+	case errors.Is(err, notesusecase.ErrNoteNotFound):
 		code = "NOTE_NOT_FOUND"
-	case errors.Is(err, usecase.ErrNoteConflict):
+	case errors.Is(err, notesusecase.ErrNoteConflict):
 		code = "NOTE_CONFLICT"
 	case errors.Is(err, files.ErrInvalid):
 		code = "FILE_INVALID"
@@ -132,6 +135,16 @@ func webError(w http.ResponseWriter, err error) {
 		code = "HUMAN_CHECK_FAILED"
 	case errors.Is(err, platform.ErrHumanCheckConfig):
 		code = "HUMAN_CHECK_NOT_CONFIGURED"
+	case errors.Is(err, scheduler.ErrScheduleInvalid):
+		code = "TASK_SCHEDULE_INVALID"
+	case errors.Is(err, scheduler.ErrExecutorUnknown):
+		code = "TASK_EXECUTOR_UNKNOWN"
+	case errors.Is(err, scheduler.ErrBuiltinImmutable):
+		code = "TASK_BUILTIN_IMMUTABLE"
+	case errors.Is(err, scheduler.ErrTaskNotFound):
+		code = "TASK_NOT_FOUND"
+	case errors.Is(err, scheduler.ErrTaskExists):
+		code = "TASK_NAME_EXISTS"
 	}
 	definition := contracts.ErrorCatalog[code]
 	failure(w, definition.Status, code, definition.Message)
@@ -423,6 +436,7 @@ func mountWeb(api chi.Router, config Config) {
 	mountDashboard(api, config)
 	mountInbox(api, config)
 	mountEvents(api, config)
+	mountLogStream(api, config)
 	mountDictionaries(api, config)
 	mountXlsx(api, config)
 	mountOIDC(api, config)

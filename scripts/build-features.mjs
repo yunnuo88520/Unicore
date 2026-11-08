@@ -1,8 +1,16 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Strict compile-time flags shared by Vite, Make and archive builds.
 import { pathToFileURL } from 'node:url';
-import { rmSync } from 'node:fs';
+import { readFileSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
+
+// Module editions come from the Go module manifest; the same list drives the
+// Makefile tag validation and the frontend feature projection.
+export function moduleEditions() {
+  // Anchor on this script so nested Vite roots (apps/web) resolve the repo root.
+  const manifest = JSON.parse(readFileSync(new URL('../internal/module/manifest.json', import.meta.url), 'utf8'));
+  return manifest.modules.filter(item => item.edition).map(item => ({ slug: item.slug, edition: item.edition }));
+}
 
 export function readFeatures(env = process.env) {
   const read = name => {
@@ -10,8 +18,22 @@ export function readFeatures(env = process.env) {
     if (value !== 'true' && value !== 'false') throw new Error(`${name} must be true or false`);
     return value === 'true';
   };
-  const features = { license: read('FEATURE_LICENSE'), updater: read('FEATURE_UPDATER') };
-  return { features, tags: Object.keys(features).filter(key => features[key]).join(',') };
+  const editions = { license: 'license', updater: 'updater' };
+  for (const { slug, edition } of moduleEditions()) editions[slug] = edition;
+  // Unknown FEATURE_* names fail the build instead of being silently ignored.
+  for (const name of Object.keys(env)) {
+    if (name.startsWith('FEATURE_') && !Object.values(editions).includes(name.slice('FEATURE_'.length).toLowerCase())) {
+      throw new Error(`${name} does not match any known feature edition`);
+    }
+  }
+  const features = {};
+  const tags = [];
+  for (const [key, edition] of Object.entries(editions)) {
+    const enabled = read(`FEATURE_${edition.toUpperCase()}`);
+    features[key] = enabled;
+    if (enabled) tags.push(edition);
+  }
+  return { features, tags: tags.join(',') };
 }
 
 export function featureBuild() {

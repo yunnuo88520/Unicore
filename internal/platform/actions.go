@@ -48,7 +48,7 @@ func DefaultActions(n contracts.Navigation) []contracts.NavigationNode {
 				parent := page.ID
 				p := permission
 				label := op.Summary
-				for _, definition := range PermissionCatalog {
+				for _, definition := range PermissionCatalog() {
 					if definition.ID == permission {
 						label = definition.Name
 					}

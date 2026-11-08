@@ -5,11 +5,11 @@ package httpadapter
 import (
 	"context"
 	"github.com/go-chi/chi/v5"
-	"github.com/yunnuo/unicore/internal/adapter/storage/notessql"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/files"
+	"github.com/yunnuo/unicore/internal/modules/notes/storage/notessql"
+	"github.com/yunnuo/unicore/internal/modules/notes/usecase"
 	"github.com/yunnuo/unicore/internal/platform"
-	"github.com/yunnuo/unicore/internal/usecase"
 	"io"
 	"mime"
 	"net/http"

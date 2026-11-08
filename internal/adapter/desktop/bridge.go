@@ -7,6 +7,7 @@ import (
 	"errors"
 
 	"github.com/yunnuo/unicore/internal/adapter/presenter"
+	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/runtime"
 	"github.com/yunnuo/unicore/internal/settings"
@@ -14,21 +15,58 @@ import (
 	"github.com/yunnuo/unicore/internal/usecase"
 )
 
+// NotesAPI is the native surface a notes bridge contribution provides; the
+// bridge keeps only response shaping so the core never imports the module.
+type NotesAPI interface {
+	List(q contracts.NoteQuery) contracts.NoteListResponse
+	Create(in contracts.NoteInput) contracts.NoteResponse
+	Update(id string, in contracts.NoteUpdate) contracts.NoteResponse
+	Delete(id string, in contracts.NoteVersion) contracts.ActionResultResponse
+}
+
 type Bridge struct {
 	updates  updateport.API
 	core     usecase.Executor
 	settings *settings.Service
-	notes    *usecase.Notes
+	notes    NotesAPI
 }
 
 func New(core usecase.Executor) *Bridge { return &Bridge{core: core} }
 
-func NewLocal(core usecase.Executor, service *settings.Service, notes ...*usecase.Notes) *Bridge {
+func NewLocal(core usecase.Executor, service *settings.Service, store *sqlstore.Store) *Bridge {
 	b := &Bridge{core: core, settings: service}
-	if len(notes) > 0 {
-		b.notes = notes[0]
-	}
+	applyBridgeContributions(b, BridgeDeps{Core: core, Settings: service, Store: store})
 	return b
+}
+
+// AttachNotes installs a module-provided native notes capability.
+func (b *Bridge) AttachNotes(api NotesAPI) { b.notes = api }
+
+func notAvailable() string { return contracts.ErrorCatalog["NOT_AVAILABLE"].Message }
+
+func (b *Bridge) ListNotes(q contracts.NoteQuery) contracts.NoteListResponse {
+	if b.notes == nil {
+		return contracts.NoteListResponse{Code: "NOT_AVAILABLE", Message: notAvailable(), RequestID: presenter.RequestID()}
+	}
+	return b.notes.List(q)
+}
+func (b *Bridge) CreateNote(in contracts.NoteInput) contracts.NoteResponse {
+	if b.notes == nil {
+		return contracts.NoteResponse{Code: "NOT_AVAILABLE", Message: notAvailable(), RequestID: presenter.RequestID()}
+	}
+	return b.notes.Create(in)
+}
+func (b *Bridge) UpdateNote(id string, in contracts.NoteUpdate) contracts.NoteResponse {
+	if b.notes == nil {
+		return contracts.NoteResponse{Code: "NOT_AVAILABLE", Message: notAvailable(), RequestID: presenter.RequestID()}
+	}
+	return b.notes.Update(id, in)
+}
+func (b *Bridge) DeleteNote(id string, in contracts.NoteVersion) contracts.ActionResultResponse {
+	if b.notes == nil {
+		return contracts.ActionResultResponse{Code: "NOT_AVAILABLE", Message: notAvailable(), RequestID: presenter.RequestID()}
+	}
+	return b.notes.Delete(id, in)
 }
 
 func (b *Bridge) Bootstrap() contracts.BootstrapResponse {

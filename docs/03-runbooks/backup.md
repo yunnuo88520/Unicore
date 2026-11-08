@@ -12,7 +12,7 @@ build/bin/unicore-ops restore --input /srv/backups/snapshot.tar.gz.age --data-di
 unset UNICORE_BACKUP_PASSPHRASE
 ```
 
-密码至少12字节，单独安全保存；遗失无法恢复。使用外置 APP_SECRET_KEY 的原实例备份时须提供相同环境值，工具会将密钥物化到加密归档，恢复后默认读 secret.key。备份含数据库、data 私有文件、配置/密钥和所有 ready 云对象，必须按敏感资料保护。它不是浏览器下载接口，不需要在后台页面传输整库或密钥。
+密码至少12字节，单独安全保存；遗失无法恢复。使用外置 APP_SECRET_KEY 的原实例备份时须提供相同环境值，工具会将密钥物化到加密归档，恢复后默认读 secret.key。备份含数据库、data 私有文件、配置/密钥和所有 ready 云对象，必须按敏感资料保护。它不是浏览器下载接口，不需要在后台页面传输整库或密钥。数据目录 logs/ 内的程序运行日志不进入备份范围：日志可再生，按保留策略滚动，无需成套保存。
 
 SQLite 使用 VACUUM INTO 一致快照。PostgreSQL 需要匹配服务器主版本的 pg_dump/psql，MySQL 需要 Oracle MySQL8 mysqldump/mysql（非 MariaDB 客户端），支持 TCP DSN；PG 使用 postgres URL。应用账号还需拥有 dump 所需的读取/对象权限。工具凭据只放子进程环境，不进命令行和输出。MySQL 开启 tls=true 时客户端验证服务器身份；自定义/跳过验证的 TLS 配置被拒绝。备份期间其他进程不可更改 DB/本地文件/管理对象。
 

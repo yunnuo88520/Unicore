@@ -79,7 +79,7 @@ func TestOperationCatalogueBoundaries(t *testing.T) {
 
 	// The operation gate: super bypasses, unknown ids deny, non-grantable
 	// session operations stay open, grantable ones need the explicit grant.
-	super := contracts.User{Roles: []string{"super_admin"}, Permissions: Permissions}
+	super := contracts.User{Roles: []string{"super_admin"}, Permissions: Permissions()}
 	if !OperationAllowed(super, "listRoles") {
 		t.Fatal("super denied")
 	}

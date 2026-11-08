@@ -1,19 +1,20 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Shared notes handlers fix identity from the route and pass a server-owned scope to the use case.
+// Description: Notes routes fix identity from the route and pass a server-owned scope to the module use case.
 package httpadapter
 
 import (
 	"context"
-	"github.com/go-chi/chi/v5"
-	"github.com/yunnuo/unicore/internal/adapter/storage/notessql"
-	"github.com/yunnuo/unicore/internal/contracts"
-	"github.com/yunnuo/unicore/internal/files"
-	"github.com/yunnuo/unicore/internal/platform"
-	"github.com/yunnuo/unicore/internal/runtime"
-	"github.com/yunnuo/unicore/internal/usecase"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/files"
+	notesnotessql "github.com/yunnuo/unicore/internal/modules/notes/storage/notessql"
+	notesusecase "github.com/yunnuo/unicore/internal/modules/notes/usecase"
+	"github.com/yunnuo/unicore/internal/platform"
+	"github.com/yunnuo/unicore/internal/runtime"
 )
 
 // noteActionCapabilities merges the storage-side ownership facts with the
@@ -33,7 +34,7 @@ func noteActionCapabilities(r *http.Request, entries ...contracts.NoteEntry) {
 }
 
 func mountNotes(api chi.Router, config Config) {
-	handler := func(fn func(http.ResponseWriter, *http.Request, *usecase.Notes, string, usecase.NoteVisibility)) http.HandlerFunc {
+	handler := func(fn func(http.ResponseWriter, *http.Request, *notesusecase.Notes, string, notesusecase.NoteVisibility)) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			store, _, _, profile := config.Install.Services()
 			if administratorRequest(r) && profile != runtime.WebPlatform {
@@ -48,7 +49,7 @@ func mountNotes(api chi.Router, config Config) {
 				return
 			}
 			scope := "local"
-			visibility := usecase.NoteVisibility{}
+			visibility := notesusecase.NoteVisibility{}
 			var actor files.Actor
 			if profile == runtime.WebPlatform {
 				identity := config.Install.Identity(administratorRequest(r))
@@ -76,7 +77,7 @@ func mountNotes(api chi.Router, config Config) {
 					}
 				}
 			}
-			service := &usecase.Notes{Repo: &notessql.Repository{Store: store}}
+			service := &notesusecase.Notes{Repo: &notesnotessql.Repository{Store: store}}
 			if fs := config.Install.Files(); fs != nil {
 				service.Attachments = func(ctx context.Context, _ string, id string) error { return fs.ValidateAttachment(ctx, actor, id) }
 			}
@@ -84,7 +85,7 @@ func mountNotes(api chi.Router, config Config) {
 		}
 	}
 	for _, prefix := range []string{"", "/admin"} {
-		api.Get(prefix+"/notes", handler(func(w http.ResponseWriter, r *http.Request, n *usecase.Notes, scope string, visibility usecase.NoteVisibility) {
+		api.Get(prefix+"/notes", handler(func(w http.ResponseWriter, r *http.Request, n *notesusecase.Notes, scope string, visibility notesusecase.NoteVisibility) {
 			q := contracts.NoteQuery{Search: r.URL.Query().Get("search"), Status: r.URL.Query().Get("status"), Sort: "updated_at", Direction: "desc", Page: 1}
 			if v := r.URL.Query().Get("page"); v != "" {
 				q.Page, _ = strconv.Atoi(v)
@@ -103,7 +104,7 @@ func mountNotes(api chi.Router, config Config) {
 			noteActionCapabilities(r, data.Items...)
 			success(w, data)
 		}))
-		api.Post(prefix+"/notes", handler(func(w http.ResponseWriter, r *http.Request, n *usecase.Notes, scope string, _ usecase.NoteVisibility) {
+		api.Post(prefix+"/notes", handler(func(w http.ResponseWriter, r *http.Request, n *notesusecase.Notes, scope string, _ notesusecase.NoteVisibility) {
 			var in contracts.NoteInput
 			if !decode(w, r, &in) {
 				return
@@ -116,7 +117,7 @@ func mountNotes(api chi.Router, config Config) {
 			noteActionCapabilities(r, data)
 			success(w, data)
 		}))
-		api.Put(prefix+"/notes/{id}", handler(func(w http.ResponseWriter, r *http.Request, n *usecase.Notes, scope string, _ usecase.NoteVisibility) {
+		api.Put(prefix+"/notes/{id}", handler(func(w http.ResponseWriter, r *http.Request, n *notesusecase.Notes, scope string, _ notesusecase.NoteVisibility) {
 			var in contracts.NoteUpdate
 			if !decode(w, r, &in) {
 				return
@@ -129,7 +130,7 @@ func mountNotes(api chi.Router, config Config) {
 			noteActionCapabilities(r, data)
 			success(w, data)
 		}))
-		api.Delete(prefix+"/notes/{id}", handler(func(w http.ResponseWriter, r *http.Request, n *usecase.Notes, scope string, _ usecase.NoteVisibility) {
+		api.Delete(prefix+"/notes/{id}", handler(func(w http.ResponseWriter, r *http.Request, n *notesusecase.Notes, scope string, _ notesusecase.NoteVisibility) {
 			var in contracts.NoteVersion
 			if !decode(w, r, &in) {
 				return

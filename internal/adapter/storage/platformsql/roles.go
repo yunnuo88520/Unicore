@@ -31,7 +31,7 @@ func (r *Repository) role(ctx context.Context, q sqlstore.Runner, id string) (co
 		result.DataScope = platform.ScopeSelf
 		result.AuthorizationInitialized = true
 		result.MenuIds, result.ActionIds, result.OperationIds = []string{}, []string{}, []string{}
-		result.Permissions = append(result.Permissions, platform.Permissions...)
+		result.Permissions = append(result.Permissions, platform.Permissions()...)
 		if err := r.Store.Row(ctx, q, "SELECT COUNT(*) FROM unicore_user_roles WHERE role_id='super_admin'").Scan(&result.UserCount); err != nil {
 			return contracts.Role{}, err
 		}
@@ -192,7 +192,7 @@ func (r *Repository) roleDepartments(ctx context.Context, q sqlstore.Runner, rol
 }
 
 func (r *Repository) ListRoles(ctx context.Context) (contracts.RoleList, error) {
-	result := contracts.RoleList{Items: []contracts.Role{}, Permissions: platform.PermissionCatalog}
+	result := contracts.RoleList{Items: []contracts.Role{}, Permissions: platform.PermissionCatalog()}
 	rows, err := r.Store.Rows(ctx, r.Store.DB, "SELECT id FROM unicore_roles ORDER BY CASE WHEN id IN ('super_admin','user') THEN 0 ELSE 1 END, name, id")
 	if err != nil {
 		return result, err
@@ -660,7 +660,7 @@ func (r *Repository) writeRoleDepartments(ctx context.Context, tx *sql.Tx, id st
 // instances, and role authorization materialization runs exactly once at the
 // navigation upgrade, so upgrades never silently widen any role.
 func (r *Repository) EnsurePermissions(ctx context.Context) error {
-	for _, permission := range platform.Permissions {
+	for _, permission := range platform.Permissions() {
 		if _, err := r.Store.Exec(ctx, r.Store.DB, "INSERT INTO unicore_permissions(id) SELECT ? WHERE NOT EXISTS (SELECT 1 FROM unicore_permissions WHERE id=?)", permission, permission); err != nil {
 			return err
 		}

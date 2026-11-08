@@ -65,4 +65,9 @@ var ErrorCatalog = map[string]ErrorDefinition{
 	"MFA_ENROLLMENT_REQUIRED":    {Status: 403, Message: "请先在安全设置中启用双重验证"},
 	"POST_CONFLICT":              {Status: 409, Message: "岗位编码已被使用，请改用其他编码"},
 	"POST_IN_USE":                {Status: 409, Message: "岗位仍有成员引用，请先调整成员归属"},
+	"TASK_BUILTIN_IMMUTABLE":     {Status: 409, Message: "内置任务只能启停和手动触发，不能编辑或删除"},
+	"TASK_EXECUTOR_UNKNOWN":      {Status: 400, Message: "执行器不存在，请从已注册的执行器中选择"},
+	"TASK_NAME_EXISTS":           {Status: 409, Message: "任务名已存在"},
+	"TASK_NOT_FOUND":             {Status: 404, Message: "任务不存在或已被删除"},
+	"TASK_SCHEDULE_INVALID":      {Status: 400, Message: "执行计划无效，请使用 5/6 位 cron 或 @every/@daily 描述符"},
 }

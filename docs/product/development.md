@@ -30,7 +30,7 @@ make build-web build-cli build-ops
 
 internal/domain 放业务规则，不依赖 HTTP、Wails、SQL 或认证；internal/usecase 通过 ports 编排领域能力。adapter 实现传输/数据库/外部系统，bootstrap/runtime 按 Profile 装配。CLI 直接调用共享核心，不引入 HTTP、数据库驱动、迁移或平台身份。Web 平台模块不得被单机/桌面强制引入。
 
-现有 Notes 是持久业务样板：domain/note.go、usecase/notes.go、adapter/storage/notessql 以及共享前端 notes-page。跨端相同输入应有相同行为。可变实体使用 BaseEntity，值对象/凭据/账本按各自生命周期，不盲目套软删除。
+业务模块是自包含树：`internal/modules/<slug>/`（module.go 描述符 + domain/usecase/storage 子层），经 `internal/module` 注册后菜单、权限、迁移、任务执行器与前端路由自动聚合；参考实现 Notes。权限点/导航来自模块描述符，HTTP handler 集中在 internal/adapter/http 并在 mountWeb 加一行，桌面能力经 RegisterBridgeContribution 注入。跨端相同输入应有相同行为。可变实体嵌入 coredomain.BaseEntity，值对象/凭据/账本按各自生命周期，不盲目套软删除。完整步骤见 add-go-module skill。
 
 ## API、权限与前端
 

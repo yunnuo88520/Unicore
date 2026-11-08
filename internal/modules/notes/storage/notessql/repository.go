@@ -10,8 +10,9 @@ import (
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/audit"
 	"github.com/yunnuo/unicore/internal/contracts"
-	"github.com/yunnuo/unicore/internal/domain"
-	"github.com/yunnuo/unicore/internal/usecase"
+	coredomain "github.com/yunnuo/unicore/internal/domain"
+	"github.com/yunnuo/unicore/internal/modules/notes/domain"
+	"github.com/yunnuo/unicore/internal/modules/notes/usecase"
 	"sort"
 	"strconv"
 	"strings"
@@ -90,7 +91,7 @@ func (r *Repository) List(ctx context.Context, scope string, q contracts.NoteQue
 	if q.Direction == "asc" {
 		direction = "ASC"
 	}
-	offset := domain.PageOffset(q.Page, result.PageSize)
+	offset := coredomain.PageOffset(q.Page, result.PageSize)
 	limit := offset + result.PageSize
 	for _, batch := range batches {
 		where := "deleted_at=0"
@@ -204,7 +205,7 @@ func (r *Repository) Create(ctx context.Context, scope string, in contracts.Note
 	if in.AttachmentIds != nil {
 		attachments = *in.AttachmentIds
 	}
-	entity := domain.NewEntity(time.Now())
+	entity := coredomain.NewEntity(time.Now())
 	n := contracts.NoteEntry{ID: entity.ID, Title: in.Title, Body: in.Body, Status: in.Status, AttachmentIds: attachments, Version: entity.Version, CreatedAt: entity.CreatedAt, UpdatedAt: entity.UpdatedAt}
 	ids, _ := json.Marshal(n.AttachmentIds)
 	tx, e := r.Store.DB.BeginTx(ctx, nil)

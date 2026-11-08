@@ -11787,6 +11787,62 @@
         },
         "summary": "listTasks",
         "parameters": []
+      },
+      "post": {
+        "operationId": "createTask",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskEntryResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "tasks:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator",
+          "uiPage": "tasks"
+        },
+        "summary": "createTask",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskCreateInput"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/admin/tasks/{name}": {
@@ -11856,6 +11912,108 @@
             }
           }
         }
+      },
+      "patch": {
+        "operationId": "editTask",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskEntryResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "tasks:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator",
+          "uiPage": "tasks"
+        },
+        "summary": "editTask",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskEditInput"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteTask",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "tasks:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator",
+          "uiPage": "tasks"
+        },
+        "summary": "deleteTask",
+        "parameters": []
       }
     },
     "/api/v1/admin/tasks/{name}/run": {
@@ -11914,6 +12072,65 @@
           "uiPage": "tasks"
         },
         "summary": "triggerTask",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/tasks/{name}/runs": {
+      "parameters": [
+        {
+          "name": "name",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      ],
+      "get": {
+        "operationId": "listTaskRuns",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskRunListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "tasks:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator",
+          "uiPage": "tasks"
+        },
+        "summary": "listTaskRuns",
         "parameters": []
       }
     },
@@ -12105,6 +12322,53 @@
           "identityRealm": "user"
         },
         "summary": "events",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/logs/stream": {
+      "get": {
+        "operationId": "logStream",
+        "responses": {
+          "200": {
+            "description": "Server-sent events stream of log lines",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "logs:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "logStream",
         "parameters": []
       }
     },
@@ -12790,7 +13054,8 @@
           "authentication",
           "license",
           "updater",
-          "settings"
+          "settings",
+          "features"
         ],
         "properties": {
           "execute": {
@@ -12813,6 +13078,13 @@
           },
           "settings": {
             "type": "boolean"
+          },
+          "features": {
+            "type": "object",
+            "description": "Module assembly state keyed by module slug; a missing or false entry means the edition is trimmed from this build.",
+            "additionalProperties": {
+              "type": "boolean"
+            }
           }
         }
       },
@@ -18438,7 +18710,10 @@
           "last_status",
           "last_error",
           "run_count",
-          "next_run_at"
+          "next_run_at",
+          "description",
+          "executor",
+          "custom"
         ],
         "properties": {
           "name": {
@@ -18448,6 +18723,17 @@
           "schedule": {
             "type": "string",
             "maxLength": 64
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "executor": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "custom": {
+            "type": "boolean"
           },
           "enabled": {
             "type": "boolean"
@@ -18475,13 +18761,20 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "items"
+          "items",
+          "executors"
         ],
         "properties": {
           "items": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TaskEntry"
+            }
+          },
+          "executors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskExecutor"
             }
           }
         }
@@ -18495,6 +18788,145 @@
         "properties": {
           "enabled": {
             "type": "boolean"
+          }
+        }
+      },
+      "TaskExecutor": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "description"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 200
+          }
+        }
+      },
+      "TaskCreateInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "description",
+          "schedule",
+          "executor"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9._-]{1,63}$"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "schedule": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "executor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        }
+      },
+      "TaskEditInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "description",
+          "schedule",
+          "executor"
+        ],
+        "properties": {
+          "description": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "schedule": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "executor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        }
+      },
+      "TaskRunEntry": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "started_at",
+          "duration_ms",
+          "status",
+          "error"
+        ],
+        "properties": {
+          "started_at": {
+            "type": "integer"
+          },
+          "duration_ms": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "error": {
+            "type": "string",
+            "maxLength": 200
+          }
+        }
+      },
+      "TaskRunList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskRunEntry"
+            }
+          }
+        }
+      },
+      "TaskRunListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TaskRunList"
+          },
+          "request_id": {
+            "type": "string"
           }
         }
       },
@@ -19516,6 +19948,26 @@
     "POST_IN_USE": {
       "status": 409,
       "message": "岗位仍有成员引用，请先调整成员归属"
+    },
+    "TASK_BUILTIN_IMMUTABLE": {
+      "status": 409,
+      "message": "内置任务只能启停和手动触发，不能编辑或删除"
+    },
+    "TASK_EXECUTOR_UNKNOWN": {
+      "status": 400,
+      "message": "执行器不存在，请从已注册的执行器中选择"
+    },
+    "TASK_NAME_EXISTS": {
+      "status": 409,
+      "message": "任务名已存在"
+    },
+    "TASK_NOT_FOUND": {
+      "status": 404,
+      "message": "任务不存在或已被删除"
+    },
+    "TASK_SCHEDULE_INVALID": {
+      "status": 400,
+      "message": "执行计划无效，请使用 5/6 位 cron 或 @every/@daily 描述符"
     }
   }
 }

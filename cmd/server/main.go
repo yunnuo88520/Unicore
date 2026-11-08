@@ -8,11 +8,14 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -26,13 +29,24 @@ import (
 	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/lifecycle"
 	"github.com/yunnuo/unicore/internal/logging"
+	"github.com/yunnuo/unicore/internal/module"
+	notesmodule "github.com/yunnuo/unicore/internal/modules/notes"
 	"github.com/yunnuo/unicore/internal/observability"
 	"github.com/yunnuo/unicore/internal/realtime"
 	"github.com/yunnuo/unicore/internal/runtime"
 	"github.com/yunnuo/unicore/internal/scheduler"
 )
 
+// logSink outlives run so the final stop_failed record still reaches the log
+// file before the process exits.
+var logSink *logging.FileSink
+
 func main() {
+	defer func() {
+		if logSink != nil {
+			_ = logSink.Close()
+		}
+	}()
 	if handled, err := managementMain(); handled {
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -68,7 +82,25 @@ func run(args []string) (result error) {
 	if err = updateGuard(options.DataDir); err != nil {
 		return err
 	}
-	logger, err := logging.New(os.Stdout, options.Log, "web")
+	// File logging is opt-in for web deployments; stdout keeps flowing either
+	// way, and a broken sink degrades to stdout instead of failing startup.
+	var sink *logging.FileSink
+	if options.Log.File {
+		opened, err := logging.OpenFileSink(logging.FileOptions{Dir: filepath.Join(options.DataDir, "logs"), MaxAgeDays: options.Log.MaxAgeDays, MaxSizeMB: options.Log.MaxSizeMB, MaxTotalMB: options.Log.MaxTotalMB})
+		if err != nil {
+			slog.Warn("log file unavailable", "event", "log.file_unavailable", "error", err.Error())
+		} else {
+			sink = opened
+		}
+	}
+	// Live log streaming taps the same writer chain; stdout and the file sink
+	// stay the durable destinations and the broadcast only keeps recent lines.
+	broadcast := logging.NewBroadcastWriter()
+	logWriter := io.Writer(io.MultiWriter(os.Stdout, broadcast))
+	if sink != nil {
+		logWriter = io.MultiWriter(os.Stdout, sink, broadcast)
+	}
+	logger, err := logging.New(logWriter, options.Log, "web")
 	if err != nil {
 		return err
 	}
@@ -77,6 +109,10 @@ func run(args []string) (result error) {
 	defer stop()
 	var resources lifecycle.Stack
 	defer func() { result = errors.Join(result, resources.Close()) }()
+	if sink != nil {
+		// Closed by main after the final error log, not by the resource stack.
+		logSink = sink
+	}
 	manager, err := install.Open(ctx, install.Options{DataDir: options.DataDir, Profile: options.Profile, SecretKey: os.Getenv("APP_SECRET_KEY"), BootstrapToken: os.Getenv("APP_BOOTSTRAP_TOKEN"), AdminPath: os.Getenv("APP_ADMIN_PATH")})
 	if err != nil {
 		return fmt.Errorf("initialization failed: %w", err)
@@ -84,12 +120,15 @@ func run(args []string) (result error) {
 	resources.Defer("storage", manager.Close)
 	_, _, _, profile := manager.Services()
 	metadata := runtime.Metadata(profile, options.Deployment)
-	logger, err = logging.New(os.Stdout, options.Log, string(profile))
+	logger, err = logging.New(logWriter, options.Log, string(profile))
 	if err != nil {
 		return err
 	}
 	logger = logger.With("version", metadata.Version)
 	slog.SetDefault(logger)
+	if sink != nil {
+		sink.SetRetention(logRetention(manager, options.Log.MaxAgeDays))
+	}
 	updater, err := updateService(ctx, options.DataDir, options.Deployment, func() string { _, _, _, p := manager.Services(); return string(p) }, stop)
 	if err != nil {
 		return err
@@ -98,7 +137,7 @@ func run(args []string) (result error) {
 	metrics := observability.New()
 	workerCtx, cancelWorkers := context.WithCancel(context.Background())
 	defer cancelWorkers()
-	server := &http.Server{Addr: options.Listen, Handler: httpadapter.New(httpadapter.Config{Updates: updater, Metadata: metadata, Core: bootstrap.Core(), Assets: webassets.FS(), Logger: logger, Install: manager, APIDocs: options.APIDocs, ReadinessTimeout: options.ReadinessTimeout, Metrics: metrics, Hub: hub}), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
+	server := &http.Server{Addr: options.Listen, Handler: httpadapter.New(httpadapter.Config{Updates: updater, Metadata: metadata, Core: bootstrap.Core(), Assets: webassets.FS(), Logger: logger, Install: manager, APIDocs: options.APIDocs, ReadinessTimeout: options.ReadinessTimeout, Metrics: metrics, Hub: hub, LogBroadcast: broadcast}), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
 	listener, err := net.Listen("tcp", server.Addr)
 	if err != nil {
 		return fmt.Errorf("listen failed: %w", err)
@@ -118,7 +157,15 @@ func run(args []string) (result error) {
 	// enablement, bookkeeping and manual triggers via /api/v1/admin/tasks.
 	store, _, _, _ := manager.Services()
 	tasks := scheduler.New(store)
-	tasks.Register("mail.queue", "@every 1s", func(ctx context.Context) error {
+	// Registered business modules contribute their task executors here; the
+	// admin surface can only schedule these whitelisted functions.
+	module.Register(notesmodule.Module)
+	for _, item := range module.All() {
+		for _, executor := range item.Executors {
+			tasks.RegisterExecutor(executor.Key, executor.Description, executor.Fn)
+		}
+	}
+	queueMail := func(ctx context.Context) error {
 		service := manager.Mail()
 		if service == nil {
 			return nil
@@ -127,7 +174,8 @@ func run(args []string) (result error) {
 			return fmt.Errorf("mail worker unavailable")
 		}
 		return nil
-	})
+	}
+	tasks.Register("mail.queue", "@every 1s", queueMail)
 	cleanupFiles := func(ctx context.Context) error {
 		fs := manager.Files()
 		if fs == nil {
@@ -154,11 +202,32 @@ func run(args []string) (result error) {
 	if err != nil {
 		return err
 	}
+	if sink != nil {
+		// Retention changes from the platform settings apply within the hour
+		// even without a save-triggered sweep.
+		if _, err = localCron.AddFunc("@every 1h", sink.Sweep); err != nil {
+			return err
+		}
+	}
 	localCron.Start()
 	tasks.Register("announcements.refresh", "@every 1m", scheduler.AnnouncementRefresh(func() *sqlstore.Store {
 		store, _, _, _ := manager.Services()
 		return store
 	}, func() { hub.Broadcast("inbox.new") }))
+	// The executor whitelist is what custom tasks may schedule; the admin
+	// surface can never run anything outside these registered functions.
+	tasks.RegisterExecutor("mail.queue", "推进邮件投递队列", queueMail)
+	tasks.RegisterExecutor("files.cleanup", "清理过期的上传文件与孤元数据", cleanupFiles)
+	tasks.RegisterExecutor("announcements.refresh", "刷新公告推送并通知在线客户端", scheduler.AnnouncementRefresh(func() *sqlstore.Store {
+		store, _, _, _ := manager.Services()
+		return store
+	}, func() { hub.Broadcast("inbox.new") }))
+	if sink != nil {
+		tasks.RegisterExecutor("logging.sweep", "按保留策略清理数据目录内的轮转日志", func(ctx context.Context) error {
+			sink.Sweep()
+			return nil
+		})
+	}
 	// A supervised lazy start supports installation through the wizard, without
 	// ever registering platform tasks against a standalone schema.
 	workerDone := make(chan struct{})
@@ -169,8 +238,12 @@ func run(args []string) (result error) {
 		for {
 			_, _, _, currentProfile := manager.Services()
 			if manager.Installed() && currentProfile == runtime.WebPlatform {
-				installedStore, _, _, _ := manager.Services()
+				installedStore, installedSettings, _, _ := manager.Services()
 				tasks.SetStore(installedStore)
+				if sink != nil && installedSettings != nil && installedSettings.LoggingSweep == nil {
+					// The install wizard created the service after startup wiring.
+					installedSettings.LoggingSweep = sink
+				}
 				if err := tasks.Start(workerCtx); err == nil {
 					manager.SetTasks(tasks)
 					return
@@ -199,17 +272,20 @@ func run(args []string) (result error) {
 		return tasks.Shutdown(shutdownCtx)
 	})
 	// Long-lived SSE streams must close when draining begins; otherwise an
-	// otherwise graceful HTTP shutdown would always exhaust its deadline.
+	// otherwise graceful HTTP shutdown would always exhaust its deadline. The
+	// log broadcast joins the hub so live log streams terminate the same way.
 	streamDone := make(chan struct{})
 	go func() {
 		select {
 		case <-ctx.Done():
 			hub.Close()
+			broadcast.Close()
 		case <-streamDone:
 		}
 	}()
 	defer close(streamDone)
 	defer hub.Close()
+	defer broadcast.Close()
 	if monitorListener != nil {
 		mux := http.NewServeMux()
 		mux.Handle("/metrics", metrics.Handler(func() *sql.DB {
@@ -246,4 +322,24 @@ func closeListener(listener net.Listener) error {
 		return nil
 	}
 	return err
+}
+
+// logRetention resolves the effective age limit per sweep: the platform
+// profile reads the runtime logging.retention_days setting (0 keeps logs
+// forever), other profiles keep their boot-time value.
+func logRetention(manager *install.Manager, fallback int) logging.Retention {
+	return func() int {
+		_, service, _, profile := manager.Services()
+		if profile != runtime.WebPlatform || service == nil {
+			return fallback
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		if value, err := service.Value(ctx, "logging.retention_days"); err == nil {
+			if days, err := strconv.Atoi(value); err == nil && days >= 0 {
+				return days
+			}
+		}
+		return fallback
+	}
 }

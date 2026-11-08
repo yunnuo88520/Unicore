@@ -82,7 +82,7 @@ func (r *Repository) user(ctx context.Context, q sqlstore.Runner, id string) (co
 		return user, err
 	}
 	if platform.IsSuper(user) {
-		user.Permissions = append([]string{}, platform.Permissions...)
+		user.Permissions = append([]string{}, platform.Permissions()...)
 	}
 	posts, err := r.userPostIDs(ctx, q, id)
 	if err != nil {
@@ -148,7 +148,7 @@ func (r *Repository) Seed(ctx context.Context, tx *sql.Tx, input contracts.UserC
 			return contracts.User{}, err
 		}
 	}
-	for _, permission := range platform.Permissions {
+	for _, permission := range platform.Permissions() {
 		if _, err := r.exec(ctx, tx, "INSERT INTO unicore_permissions(id) SELECT ? WHERE NOT EXISTS (SELECT 1 FROM unicore_permissions WHERE id=?)", permission, permission); err != nil {
 			return contracts.User{}, err
 		}
@@ -158,7 +158,7 @@ func (r *Repository) Seed(ctx context.Context, tx *sql.Tx, input contracts.UserC
 	}
 	// The builtin user role starts with every assignable permission point, so
 	// existing deployments keep their behaviour after the switch to grants.
-	for _, permission := range platform.PermissionCatalog {
+	for _, permission := range platform.PermissionCatalog() {
 		if !permission.Assignable {
 			continue
 		}

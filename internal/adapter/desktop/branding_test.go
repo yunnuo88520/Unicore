@@ -22,7 +22,7 @@ func TestNativeLocalSettingsBoundary(t *testing.T) {
 	if _, err = store.Exec(ctx, store.DB, "INSERT INTO unicore_system_settings(setting_key,setting_value) VALUES('site.name','Legacy local name'),('branding.logo','legacy-reference')"); err != nil {
 		t.Fatal(err)
 	}
-	bridge := NewLocal(bootstrap.Core(), service)
+	bridge := NewLocal(bootstrap.Core(), service, store)
 	for _, key := range []string{"site.name", "branding.logo", "mail.host"} {
 		if got := bridge.PatchSettings(contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: key, Value: "legacy"}}}); got.Code != "INVALID_INPUT" {
 			t.Fatal(key, got)
@@ -39,7 +39,7 @@ func TestNativeLocalSettingsBoundary(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer store.Close()
-	bridge = NewLocal(bootstrap.Core(), service)
+	bridge = NewLocal(bootstrap.Core(), service, store)
 	got := bridge.Bootstrap().Data
 	if got.SiteName != runtime.Metadata(runtime.Desktop, "native").SiteName || got.Theme == nil || *got.Theme != "dark" {
 		t.Fatal(got)

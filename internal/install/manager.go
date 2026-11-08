@@ -619,8 +619,12 @@ func (m *Manager) Mail() *mailer.Service { m.mu.RLock(); defer m.mu.RUnlock(); r
 // TaskRunner is the scheduled-job surface handed to the admin handlers.
 type TaskRunner interface {
 	ListTasks(context.Context) (contracts.TaskList, error)
+	CreateTask(ctx context.Context, input contracts.TaskCreateInput, actor string) (contracts.TaskEntry, error)
+	UpdateTask(ctx context.Context, name string, input contracts.TaskEditInput, actor string) (contracts.TaskEntry, error)
+	DeleteTask(ctx context.Context, name, actor string) error
 	SetTaskEnabled(ctx context.Context, name string, enabled bool, actor string) error
 	TriggerTask(ctx context.Context, name, actor string) error
+	TaskRuns(ctx context.Context, name string) (contracts.TaskRunList, error)
 }
 
 func (m *Manager) SetTasks(runner TaskRunner) { m.mu.Lock(); m.tasks = runner; m.mu.Unlock() }

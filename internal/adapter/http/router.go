@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/yunnuo/unicore/internal/logging"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/yunnuo/unicore/internal/adapter/presenter"
@@ -39,6 +41,7 @@ type Config struct {
 	ReadinessTimeout time.Duration
 	Metrics          *observability.Metrics
 	Hub              *realtime.Hub
+	LogBroadcast     *logging.BroadcastWriter
 }
 
 func New(config Config) http.Handler {

@@ -21,7 +21,8 @@ import { setCustomAccent, useTheme, type Theme } from '@unicore/theme';
 import { DashboardWidgetRegistry } from './registry';
 import { PasswordDialog } from './password-dialog';
 import { SessionBoundary, useSession } from './session';
-import { routes, canAccess, isAdminRealm, type Page } from './routes';
+import { routes, canAccess, isAdminRealm, isAdministrator, type Page } from './routes';
+import { LiveLogsButton } from './live-logs';
 import { Modal, Button, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, Tooltip } from '@unicore/ui';
 import { setPreferences, usePreferences } from '@unicore/theme/preferences';
 import {
@@ -285,6 +286,7 @@ function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onO
       </span>
       <span className="mx-1 h-[18px] w-px bg-line max-sm:hidden" aria-hidden="true" />
       {data.profile === 'web-platform' && data.identity_realm === 'user' && user && client.web && !data.mfa_enrollment_required && <AnnouncementCenter web={client.web} />}
+      {isAdministrator(data) && user && client.web && !data.mfa_enrollment_required && <LiveLogsButton web={client.web} />}
       <ClientControls />
       {data.profile === 'web-platform' && user && (
         <DropdownMenu>

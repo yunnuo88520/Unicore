@@ -6,12 +6,13 @@
 | 层 | 入口 |
 | --- | --- |
 | 契约 | packages/contracts/openapi.json 的 Note* 与八个用户/admin operation |
-| 业务规则 | internal/domain/note.go、internal/usecase/notes.go |
-| SQL port 实现 | internal/adapter/storage/notessql/repository.go |
-| 分方言迁移 | migrations/{sqlite,postgres,mysql}/business/0001_notes.sql |
-| HTTP / Wails | internal/adapter/http/notes.go、internal/adapter/desktop/notes.go |
-| SDK / 页面 | packages/sdk/src/index.ts、packages/web-ui/src/notes-page.tsx |
-| 数据库 / 页面验收 | internal/adapter/storage/platformsql/notes_test.go、tests/e2e/notes.spec.ts |
+| 模块描述符 | internal/modules/notes/module.go（权限/导航聚合，manifest.json 登记） |
+| 业务规则 | internal/modules/notes/domain/note.go、internal/modules/notes/usecase/notes.go |
+| SQL port 实现 | internal/modules/notes/storage/notessql/repository.go |
+| 分方言迁移 | migrations/modules/notes/{sqlite,postgres,mysql}/0001_initial.sql（module.notes 命名空间） |
+| HTTP / Wails | internal/adapter/http/notes.go（内置 mount）、internal/modules/notes/desktop/notes.go（贡献注入） |
+| SDK / 页面 | packages/sdk/src/index.ts、packages/web-ui/src/modules/notes/ |
+| 数据库 / 页面验收 | internal/modules/notes/storage/notes_test.go、tests/e2e/notes.spec.ts |
 
 服务器固定 scope：user/id、administrator/id 或 local。请求不能提交 owner，猜中另一账号的 id 仍返回不存在。标题最多120字符，正文5000字符，最多5个同身份域本人 ready 附件。列表每页20条。更新与删除须发送读取时 version；过期版本返回 NOTE_CONFLICT，关闭编辑后刷新再处理，防止静默覆盖他人或另一窗口的更新。
 

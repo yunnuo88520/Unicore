@@ -1,6 +1,6 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: The business example exercises isolation, literal search, pagination and optimistic locking on each SQL dialect.
-package platformsql
+package storage
 
 import (
 	"context"
@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/yunnuo/unicore/internal/adapter/storage/notessql"
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/contracts"
-	"github.com/yunnuo/unicore/internal/domain"
-	"github.com/yunnuo/unicore/internal/usecase"
+	"github.com/yunnuo/unicore/internal/modules/notes/domain"
+	"github.com/yunnuo/unicore/internal/modules/notes/storage/notessql"
+	"github.com/yunnuo/unicore/internal/modules/notes/usecase"
 	"github.com/yunnuo/unicore/migrations/runner"
 )
 

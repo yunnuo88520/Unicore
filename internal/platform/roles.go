@@ -2,12 +2,15 @@
 // Description: Unified role permission catalogue and privileged-account classification.
 package platform
 
-import "github.com/yunnuo/unicore/internal/contracts"
+import (
+	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/module"
+)
 
 // Assignable classifies baseline business permissions granted to new members.
 // All roles can hold catalogue points; reserved operations still require super_admin.
 // Accounts with management permissions use the stricter session and MFA policies.
-var PermissionCatalog = []contracts.PermissionDefinition{
+var basePermissionCatalog = []contracts.PermissionDefinition{
 	{ID: "posts:read", Name: "查看岗位", Description: "查看岗位与成员分配", Group: "用户管理"},
 	{ID: "posts:write", Name: "管理岗位", Description: "创建、编辑与删除岗位", Group: "用户管理"},
 	{ID: "announcements:read", Name: "查看平台公告", Description: "查看公告列表、草稿与配置", Group: "系统管理"},
@@ -33,34 +36,38 @@ var PermissionCatalog = []contracts.PermissionDefinition{
 	{ID: "menus:write", Name: "管理菜单", Description: "调整工作空间菜单的顺序、分组与可见性", Group: "角色权限"},
 	{ID: "dictionaries:read", Name: "查看数据字典", Description: "查看字典类型与字典项", Group: "角色权限"},
 	{ID: "tasks:read", Name: "查看定时任务", Description: "查看定时任务的计划与运行状态", Group: "系统管理"},
-	{ID: "tasks:write", Name: "管理定时任务", Description: "启停定时任务并手动触发执行", Group: "系统管理"},
+	{ID: "tasks:write", Name: "管理定时任务", Description: "创建、编辑与删除自建任务，启停任务并手动触发执行", Group: "系统管理"},
 	{ID: "dictionaries:write", Name: "管理数据字典", Description: "维护字典类型与字典项", Group: "角色权限"},
 	{ID: "files:access", Name: "使用文件管理", Description: "访问文件管理页面并查看、下载文件", Group: "业务权限", Assignable: true},
 	{ID: "files:upload", Name: "上传文件", Description: "发起分片或普通上传并写入文件内容", Group: "业务权限", Assignable: true},
 	{ID: "files:delete", Name: "删除文件", Description: "删除本人上传的文件", Group: "业务权限", Assignable: true},
-	{ID: "notes:access", Name: "使用我的笔记", Description: "访问笔记页面并查看个人笔记", Group: "业务权限", Assignable: true},
-	{ID: "notes:create", Name: "创建笔记", Description: "新建个人笔记", Group: "业务权限", Assignable: true},
-	{ID: "notes:update", Name: "编辑笔记", Description: "修改个人笔记内容与状态", Group: "业务权限", Assignable: true},
-	{ID: "notes:delete", Name: "删除笔记", Description: "删除个人笔记", Group: "业务权限", Assignable: true},
 }
 
-var Permissions = func() []string {
-	result := make([]string, 0, len(PermissionCatalog))
-	for _, permission := range PermissionCatalog {
+// PermissionCatalog aggregates the built-in catalogue with the registered
+// business modules; module registration happens before any consumer runs.
+func PermissionCatalog() []contracts.PermissionDefinition {
+	return append(append([]contracts.PermissionDefinition{}, basePermissionCatalog...), module.Permissions()...)
+}
+
+// Permissions lists every catalogue point including module contributions.
+func Permissions() []string {
+	result := make([]string, 0, len(basePermissionCatalog)+8)
+	for _, permission := range PermissionCatalog() {
 		result = append(result, permission.ID)
 	}
 	return result
-}()
+}
 
-var assignablePermissions = func() map[string]bool {
-	result := map[string]bool{}
-	for _, permission := range PermissionCatalog {
-		if permission.Assignable {
-			result[permission.ID] = true
+// AssignablePermission reports whether a permission point exists and may be
+// granted to the default registration role. Unknown points are refused.
+func AssignablePermission(permission string) bool {
+	for _, definition := range PermissionCatalog() {
+		if definition.ID == permission {
+			return definition.Assignable
 		}
 	}
-	return result
-}()
+	return false
+}
 
 // super_admin is retained as the existing administrator ID for data compatibility.
 func IsSuper(user contracts.User) bool {
@@ -73,12 +80,9 @@ func IsSuper(user contracts.User) bool {
 }
 func BuiltinRole(id string) bool { return id == "super_admin" || id == "user" }
 
-// AssignablePermission identifies baseline business grants allowed on the registration role.
-func AssignablePermission(permission string) bool { return assignablePermissions[permission] }
-
 // CatalogPermission bounds custom role grants to registered permission points.
 func CatalogPermission(permission string) bool {
-	for _, definition := range PermissionCatalog {
+	for _, definition := range PermissionCatalog() {
 		if definition.ID == permission {
 			return true
 		}
@@ -101,7 +105,7 @@ func HasManagementAccess(user contracts.User) bool {
 		return true
 	}
 	for _, p := range user.Permissions {
-		for _, def := range PermissionCatalog {
+		for _, def := range PermissionCatalog() {
 			if p == def.ID && !def.Assignable {
 				return true
 			}

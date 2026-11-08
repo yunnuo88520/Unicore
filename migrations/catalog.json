@@ -171,6 +171,14 @@
             "postgres": "platform/postgres/0008_posts.sql",
             "mysql": "platform/mysql/0008_posts.sql"
           }
+        },
+        {
+          "version": 9,
+          "files": {
+            "sqlite": "platform/sqlite/0009_task_customization.sql",
+            "postgres": "platform/postgres/0009_task_customization.sql",
+            "mysql": "platform/mysql/0009_task_customization.sql"
+          }
         }
       ]
     },

@@ -9,12 +9,12 @@ import (
 	"time"
 
 	"github.com/yunnuo/unicore/internal/adapter/storage/filesql"
-	"github.com/yunnuo/unicore/internal/adapter/storage/notessql"
+	"github.com/yunnuo/unicore/internal/modules/notes/storage/notessql"
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/files"
 	"github.com/yunnuo/unicore/internal/platform"
-	"github.com/yunnuo/unicore/internal/usecase"
+	notesusecase "github.com/yunnuo/unicore/internal/modules/notes/usecase"
 )
 
 func ptrString(v string) *string   { return &v }
@@ -139,7 +139,7 @@ func exerciseDataScopes(t *testing.T, ctx context.Context, store *sqlstore.Store
 	memberA1 := newUser("scopea1", &deptA1.ID)
 	memberB := newUser("scopeb", &deptB.ID)
 
-	notes := &usecase.Notes{Repo: &notessql.Repository{Store: store}}
+	notes := &notesusecase.Notes{Repo: &notessql.Repository{Store: store}}
 	filesRepo := &filesql.Repository{Store: store}
 	now := int(time.Now().Unix())
 	newNote := func(user contracts.User) {
@@ -199,8 +199,8 @@ func exerciseDataScopes(t *testing.T, ctx context.Context, store *sqlstore.Store
 			}
 		}
 	}
-	noteVisibility := func(filter platform.ScopeFilter) usecase.NoteVisibility {
-		visibility := usecase.NoteVisibility{}
+	noteVisibility := func(filter platform.ScopeFilter) notesusecase.NoteVisibility {
+		visibility := notesusecase.NoteVisibility{}
 		if filter.All {
 			visibility.All = true
 			return visibility

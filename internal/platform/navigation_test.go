@@ -19,13 +19,20 @@ func frontendPageOrder(t *testing.T) []string {
 	if err != nil {
 		t.Skipf("frontend navigation model unavailable: %v", err)
 	}
-	match := regexp.MustCompile(`defaultPageOrder: string\[\] = \[([\s\S]*?)\];`).FindSubmatch(raw)
+	// The frontend splits the order into the builtin table plus per-module
+	// `order: [...]` contributions; both sides must agree on both parts.
+	match := regexp.MustCompile(`builtinPageOrder: string\[\] = \[([\s\S]*?)\];`).FindSubmatch(raw)
 	if match == nil {
-		t.Fatal("defaultPageOrder not found in the frontend model")
+		t.Fatal("builtinPageOrder not found in the frontend model")
 	}
 	var pages []string
 	for _, quoted := range regexp.MustCompile(`'([^']+)'`).FindAllSubmatch(match[1], -1) {
 		pages = append(pages, string(quoted[1]))
+	}
+	for _, orderMatch := range regexp.MustCompile(`order: \[([^\]]*)\]`).FindAllSubmatch(raw, -1) {
+		for _, quoted := range regexp.MustCompile(`'([^']+)'`).FindAllSubmatch(orderMatch[1], -1) {
+			pages = append(pages, string(quoted[1]))
+		}
 	}
 	if len(pages) == 0 {
 		t.Fatal("frontend defaultPageOrder is empty")
@@ -118,16 +125,17 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 	// Registry parity with the exported frontend page order: same set, and the
 	// shared order array matches the frontend byte for byte.
 	registry := map[string]bool{}
-	for _, page := range NavigationPages {
+	for _, page := range NavigationPages() {
 		registry[page.ID] = true
 	}
-	for _, id := range frontendPageOrder(t) {
+	frontendOrder := frontendPageOrder(t)
+	for _, id := range frontendOrder {
 		if !registry[id] {
 			t.Fatal("frontend page missing from the Go registry", id)
 		}
 	}
 	for id := range registry {
-		if !contains(defaultPageOrder, id) {
+		if !contains(defaultPageOrder, id) && !contains(frontendOrder, id) {
 			t.Fatal("Go registry page missing from the frontend order", id)
 		}
 	}
@@ -146,7 +154,7 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 			adminNodes++
 		}
 	}
-	if userNodes == 0 || adminNodes <= len(NavigationPages) {
+	if userNodes == 0 || adminNodes <= len(NavigationPages()) {
 		t.Fatal("surface projection sizes", userNodes, adminNodes)
 	}
 
@@ -159,7 +167,7 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 			parentOf[node.ID+"\x00"+surfaceOf[node.SectionID]] = *node.ParentID
 		}
 	}
-	for _, page := range NavigationPages {
+	for _, page := range NavigationPages() {
 		if page.Group == "administration" {
 			if parentOf["administrator:"+page.ID+"\x00administrator"] != "administrator:administration" {
 				t.Fatal("administration page parent", page.ID, parentOf["administrator:"+page.ID+"\x00administrator"])

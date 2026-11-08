@@ -2,14 +2,14 @@
  * Description: Shared UI client; pages know neither fetch nor Wails globals.
  */
 import {fileFingerprint,retryDelay} from './upload';
-import type { NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, ProfileInput, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, RoleSaveInput, MenuEntry, MenuList, MenuSaveInput, NavigationSection, NavigationNode, NavigationPage, NavigationRoleAssignment, Navigation, APIOperation, APIOperationList, Post, PostList, PostSaveInput, NoteCapabilities, FileCapabilities, DictionarySummary, DictionaryList, DictionaryItemEntry, DictionaryDetail, DictionaryCreateInput, DictionaryUpdateInput, DictionaryItemsInput, Department, DepartmentList, DepartmentSaveInput, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput, TaskList, TaskEntry, TaskUpdateInput, TaskTrigger, InboxList, FileUploadInput, FileUploadGrant } from '@unicore/contracts';
+import type { NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, ProfileInput, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, RoleSaveInput, MenuEntry, MenuList, MenuSaveInput, NavigationSection, NavigationNode, NavigationPage, NavigationRoleAssignment, Navigation, APIOperation, APIOperationList, Post, PostList, PostSaveInput, NoteCapabilities, FileCapabilities, DictionarySummary, DictionaryList, DictionaryItemEntry, DictionaryDetail, DictionaryCreateInput, DictionaryUpdateInput, DictionaryItemsInput, Department, DepartmentList, DepartmentSaveInput, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput, TaskList, TaskEntry, TaskUpdateInput, TaskTrigger, TaskCreateInput, TaskEditInput, TaskRunList, ActionResult, InboxList, FileUploadInput, FileUploadGrant } from '@unicore/contracts';
 import { operations, type OperationId, type OperationInputs, type OperationData } from '@unicore/contracts/operations';
 import { validate, type SchemaName } from '@unicore/contracts/validate';
 export { validate, constraints, type SchemaName } from '@unicore/contracts/validate';
 export { constraintsToZod, zodFieldErrors } from '@unicore/contracts/zod';
 export { operations, type OperationId } from '@unicore/contracts/operations';
 
-export type { NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateRelease, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, DictionaryItemsInput, DictionaryUpdateInput, DictionaryCreateInput, DictionaryDetail, DictionaryItemEntry, DictionaryList, DictionarySummary, MenuSaveInput, MenuList, RoleSaveInput, MenuEntry, NavigationSection, NavigationNode, NavigationPage, NavigationRoleAssignment, Navigation, APIOperation, APIOperationList, Post, PostList, PostSaveInput, NoteCapabilities, FileCapabilities, Department, DepartmentList, DepartmentSaveInput, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput, TaskList, TaskEntry, TaskUpdateInput, TaskTrigger, InboxList, InboxEntry, FileUploadInput, FileUploadGrant } from '@unicore/contracts';
+export type { NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateRelease, NoteEntry, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, DictionaryItemsInput, DictionaryUpdateInput, DictionaryCreateInput, DictionaryDetail, DictionaryItemEntry, DictionaryList, DictionarySummary, MenuSaveInput, MenuList, RoleSaveInput, MenuEntry, NavigationSection, NavigationNode, NavigationPage, NavigationRoleAssignment, Navigation, APIOperation, APIOperationList, Post, PostList, PostSaveInput, NoteCapabilities, FileCapabilities, Department, DepartmentList, DepartmentSaveInput, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput, TaskList, TaskEntry, TaskUpdateInput, TaskTrigger, TaskCreateInput, TaskEditInput, TaskRunList, ActionResult, InboxList, InboxEntry, FileUploadInput, FileUploadGrant } from '@unicore/contracts';
 
 export class AppError extends Error {
   constructor(public readonly code: string, message: string, public readonly requestId = '', public readonly fields: Record<string, string> = {}) { super(message); this.name = 'AppError'; }
@@ -75,6 +75,7 @@ export interface StorageClient {
 
 export interface WebClient {
  subscribeEvents(listener:(type:string)=>void):()=>void;
+ subscribeLogEvents(onLine:(line:string)=>void,onStatus?:(status:'connected'|'disconnected')=>void):()=>void;
  exportUsers(search?:string):Promise<Blob>;
  usersImportTemplate():Promise<Blob>;
  importUsers(file:File):Promise<{created:number;errors:string[]}>;
@@ -181,6 +182,10 @@ export interface WebClient {
   readInbox(id: string): Promise<InboxList>;
   readAllInbox(): Promise<InboxList>;
   listTasks(): Promise<TaskList>;
+  createTask(input: TaskCreateInput): Promise<TaskEntry>;
+  editTask(name: string, input: TaskEditInput): Promise<TaskEntry>;
+  deleteTask(name: string): Promise<ActionResult>;
+  listTaskRuns(name: string): Promise<TaskRunList>;
   updateTask(name: string, input: TaskUpdateInput): Promise<TaskEntry>;
   triggerTask(name: string): Promise<TaskTrigger>;
   createFileUpload(input: FileUploadInput): Promise<FileUploadGrant>;
@@ -363,6 +368,18 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
     const unsubscribe=this.subscribeSession(()=>source.close());
     return ()=>{source.close();unsubscribe();};
   }
+  // Live log lines for the administrator console; closing the returned thunk
+  // closes the EventSource and disconnects the server-side stream. EventSource
+  // reconnects on its own, so status only reports what the browser observes.
+  subscribeLogEvents(onLine:(line:string)=>void,onStatus?:(status:'connected'|'disconnected')=>void):()=>void {
+    if(!this.administrator||typeof EventSource==='undefined')return ()=>{};
+    const source=new EventSource(`${this.baseURL}${operations.logStream.path}`,{withCredentials:true});
+    source.onopen=()=>onStatus?.('connected');
+    source.onerror=()=>onStatus?.('disconnected');
+    source.addEventListener('message',(event:MessageEvent)=>{if(typeof event.data==='string')onLine(event.data);});
+    const unsubscribe=this.subscribeSession(()=>source.close());
+    return ()=>{source.close();unsubscribe();};
+  }
   async bootstrap(options?: RequestOptions) {
     let data = await this.call('bootstrap', undefined, options);
     const nextIdentity = data.current_user?.id ?? '';
@@ -476,6 +493,10 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   readInbox(id: string) { return this.call('readInbox', undefined, { params: { id } }); }
   readAllInbox() { return this.call('readAllInbox'); }
   listTasks() { return this.call('listTasks'); }
+  createTask(input: TaskCreateInput) { return this.call('createTask', input); }
+  editTask(name: string, input: TaskEditInput) { return this.call('editTask', input, { params: { name } }); }
+  deleteTask(name: string) { return this.call('deleteTask', undefined, { params: { name } }); }
+  listTaskRuns(name: string) { return this.call('listTaskRuns', undefined, { params: { name } }); }
   updateTask(name: string, input: TaskUpdateInput) { return this.call('updateTask', input, { params: { name } }); }
   triggerTask(name: string) { return this.call('triggerTask', undefined, { params: { name } }); }
   createFileUpload(input: FileUploadInput) { return this.call('createFileUpload', input); }

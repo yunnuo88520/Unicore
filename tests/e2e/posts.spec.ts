@@ -23,7 +23,7 @@ test('posts manage the directory and guard membership boundaries', async ({ page
   await installPlatform(instance, { username: 'admin', email: 'admin@example.test', password: adminPassword });
   await adminLogin(page, instance.url, 'admin', adminPassword);
   await page.goto(`${instance.url}/admin/posts`);
-  await expect(page.getByRole('heading', { name: '岗位管理', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '岗位管理', exact: true, level: 1 })).toBeVisible();
   await expect(page.getByText('暂无岗位', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '新建岗位', exact: true })).toBeEnabled();
   await evidence(page, info, '岗位空态');

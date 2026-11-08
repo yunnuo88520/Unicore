@@ -72,14 +72,14 @@ func TestApplyCreatesBaselineAndIsIdempotent(t *testing.T) {
 		t.Fatal(err)
 	}
 	rows := ledgerRows(t, db)
-	if len(rows) != 10 {
-		t.Fatalf("want 10 ledger rows, got %v", rows)
+	if len(rows) != 11 {
+		t.Fatalf("want 11 ledger rows, got %v", rows)
 	}
 	for _, expected := range []struct {
 		namespace string
 		version   int
 	}{
-		{"core", 1}, {"module.notes", 1}, {"platform", 1}, {"platform", 2}, {"platform", 3}, {"platform", 4}, {"platform", 5}, {"platform", 6}, {"platform", 7}, {"platform", 8},
+		{"core", 1}, {"module.notes", 1}, {"platform", 1}, {"platform", 2}, {"platform", 3}, {"platform", 4}, {"platform", 5}, {"platform", 6}, {"platform", 7}, {"platform", 8}, {"platform", 9},
 	} {
 		entry, ok := rows[fmt.Sprintf("%s@%d", expected.namespace, expected.version)]
 		if !ok {

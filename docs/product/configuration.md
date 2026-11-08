@@ -29,6 +29,10 @@ Web 部署先按 [从零部署指南](deployment.md) 启动并完成安装。本
 | `--deployment KIND` | `APP_DEPLOYMENT_KIND` | `deployment` | `development` | `development`/`tar`/`docker`；表示交付介质和更新能力，不决定用户身份形态 |
 | `--log-level LEVEL` | `APP_LOG_LEVEL` | `log_level` | `info` | `debug`/`info`/`warn`/`error` |
 | `--log-format FORMAT` | `APP_LOG_FORMAT` | `log_format` | `json` | `json`/`text`，输出到进程 stdout，由 journal/容器日志接收 |
+| `--log-file=true` | `APP_LOG_FILE` | `log_file` | `false` | `true` 时同时写 `data/logs/`；桌面始终落盘，目录不可用时降级 stdout/stderr |
+| `--log-max-age-days DAYS` | `APP_LOG_MAX_AGE_DAYS` | `log_max_age_days` | `0` | 轮转日志保留天数，`0` 永久；平台可在设置页运行时覆盖 |
+| `--log-max-size-mb MB` | `APP_LOG_MAX_SIZE_MB` | `log_max_size_mb` | `10` | 单文件轮转阈值，`1`–`512` |
+| `--log-max-total-mb MB` | `APP_LOG_MAX_TOTAL_MB` | `log_max_total_mb` | `500` | 轮转日志总量上限，`0` 不限，超限先删最早文件 |
 | `--api-docs=true` | `APP_API_DOCS` | `api_docs` | `false` | 配置使用布尔值；开启 `/docs/api` 与 `/openapi.json`，关闭为 404 |
 | `--monitor-listen ADDRESS` | `APP_MONITOR_LISTEN` | `monitor_listen` | 空，关闭 | 独立 `/metrics`；只能填字面回环 IP，例如 `127.0.0.1:9090`，不能用 `0.0.0.0`/`localhost` |
 | `--shutdown-timeout DURATION` | `APP_SHUTDOWN_TIMEOUT` | `shutdown_timeout` | `5s` | `100ms`–`2m`；SIGTERM 后在途请求排空期限；supervisor 停止等待需相应留余量 |

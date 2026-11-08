@@ -15,7 +15,7 @@ test('fixed roles enforce menus, all management APIs and client-only appearance'
   await installPlatform(instance);
   await adminLogin(page, instance.url, 'admin', adminPassword);
   await page.goto(`${instance.url}/admin/roles`);
-  await expect(page.getByRole('heading', { name: '角色权限', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '角色权限', exact: true, level: 1 })).toBeVisible();
   await expect(page.getByRole('button', { name: /新建角色/ })).toBeVisible();
   const bootData = await pageBoot(page, instance.url);
   const headers = { 'X-CSRF-Token': bootData.csrf_token };
@@ -54,7 +54,11 @@ test('fixed roles enforce menus, all management APIs and client-only appearance'
       const method = operation.method as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
       // A bare fetch carries no cookie jar, so this is the real anonymous probe.
       expect((await fetch(`${instance.url}${path}`, { method, ...(method === 'GET' ? {} : { body: '{}' }) })).status, `anonymous ${method} ${path}`).toBe(401);
-      expect((await memberPage.request.fetch(`${instance.url}${path}`, { method, ...(method === 'GET' ? {} : { data: {} }), headers: memberHeaders })).status(), `member ${method} ${path}`).toBe(403);
+      const held = (point: string) => metadata.current_user.permissions.includes(point);
+      const allowedByPoints = operation.permissionMode === 'any' ? operation.permissions.some(held) : operation.permissions.every(held);
+      if (operation.superAdmin || !allowedByPoints) {
+        expect((await memberPage.request.fetch(`${instance.url}${path}`, { method, ...(method === 'GET' ? {} : { data: {} }), headers: memberHeaders })).status(), `member ${method} ${path}`).toBe(403);
+      }
     }
     const managementReads: string[] = [];
     memberPage.on('request', request => { if (request.url().includes('/api/v1/admin/')) managementReads.push(request.url()); });
@@ -98,10 +102,10 @@ test('fixed roles enforce menus, all management APIs and client-only appearance'
     await memberPage.reload();
     await expect(memberPage).toHaveTitle('管理员统一品牌 · 工作空间');
     await expect(memberPage.locator('html')).toHaveAttribute('data-theme', 'dark');
-    // Realm conversion is rejected; administrators are created in their own table.
-    expect((await page.request.patch(`${instance.url}/api/v1/admin/users/${memberID}`, { headers, data: { role: 'super_admin', status: 'active' } })).status()).toBe(403);
-    expect((await memberPage.request.get(`${instance.url}/api/v1/auth/session`)).status()).toBe(200);
-    expect((await page.request.post(`${instance.url}/api/v1/admin/administrators`, { headers, data: { username: 'member', email: 'member@example.test', password: 'administrator-password-strong', role: 'super_admin' } })).status()).toBe(200);
+    // A super administrator can promote the existing account. There is no second identity table.
+    expect((await page.request.patch(`${instance.url}/api/v1/admin/users/${memberID}`, { headers, data: { role_ids: ['user', 'super_admin'], status: 'active' } })).status()).toBe(200);
+    expect((await memberPage.request.get(`${instance.url}/api/v1/auth/session`)).status()).toBe(401);
+    expect((await page.request.post(`${instance.url}/api/v1/admin/administrators`, { headers, data: { username: 'member', email: 'member@example.test', password: 'administrator-password-strong', role: 'super_admin' } })).status()).toBe(409);
     expect((await page.request.get(`${instance.url}/api/v1/admin/administrators`, { headers })).status()).toBe(200);
   } finally {
     for (const context of contexts) await context.close();
@@ -114,11 +118,11 @@ test('custom roles assign through the console, echo the three grant sets and sur
   await adminLogin(page, instance.url, 'admin', adminPassword);
   // Create the custom role through the real administrator console with the notes grant.
   await page.goto(`${instance.url}/admin/roles`);
-  await expect(page.getByRole('heading', { name: '角色权限', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '角色权限', exact: true, level: 1 })).toBeVisible();
   await page.getByRole('button', { name: '新建角色', exact: true }).click();
   const editor = page.getByRole('dialog', { name: '新建角色', exact: true });
   await editor.getByLabel('角色名称', { exact: true }).fill('记录员');
-  await editor.getByLabel('使用我的笔记', { exact: true }).check();
+  await editor.getByText('权限点', { exact: true }).locator('..').getByRole('checkbox', { name: '使用我的笔记', exact: true }).check();
   await editor.getByRole('button', { name: '保存', exact: true }).click();
   await expect(editor).toHaveCount(0);
   const admin = sdkClient(instance.url, 'administrator');
@@ -141,14 +145,16 @@ test('custom roles assign through the console, echo the three grant sets and sur
     return page.getByRole('dialog', { name: '编辑member', exact: true });
   };
   let dialog = await openDialog();
-  await dialog.getByLabel('角色', { exact: true }).selectOption({ label: '记录员' });
+  await dialog.getByRole('checkbox', { name: '普通用户', exact: true }).uncheck();
+  await dialog.getByRole('checkbox', { name: '记录员', exact: true }).check();
   await dialog.getByRole('button', { name: '保存', exact: true }).click();
   await expect(dialog).toHaveCount(0);
   await loginClient(admin, 'admin', adminPassword);
   const assigned = await admin.web!.users('', 1);
   expect(assigned.items.find(item => item.id === memberID)?.roles).toEqual([recorder!.id]);
   dialog = await openDialog();
-  await expect(dialog.getByLabel('角色', { exact: true }).locator('option:checked')).toHaveText('记录员');
+  await expect(dialog.getByRole('checkbox', { name: '记录员', exact: true })).toBeChecked();
+  await expect(dialog.getByRole('checkbox', { name: '普通用户', exact: true })).not.toBeChecked();
   await dialog.getByRole('button', { name: '取消', exact: true }).click();
   await expect(dialog).toHaveCount(0);
   // Omitted grant sets keep their values; explicit arrays replace them.
@@ -174,7 +180,8 @@ test('custom roles assign through the console, echo the three grant sets and sur
   const restored = await admin.web!.users('', 1);
   expect(restored.items.find(item => item.id === memberID)?.roles).toEqual([recorder!.id]);
   dialog = await openDialog();
-  await expect(dialog.getByLabel('角色', { exact: true }).locator('option:checked')).toHaveText('记录员');
+  await expect(dialog.getByRole('checkbox', { name: '记录员', exact: true })).toBeChecked();
+  await expect(dialog.getByRole('checkbox', { name: '普通用户', exact: true })).not.toBeChecked();
   await dialog.getByRole('button', { name: '取消', exact: true }).click();
   await expect(dialog).toHaveCount(0);
 });
@@ -188,18 +195,17 @@ test('restricted administrators keep user administration without role management
   const config = await admin.web!.menuConfig();
   const labelOf = (routeId: string) => nodeDisplayLabel(pageNode(config, routeId) ?? { label: '', id: routeId, route_id: routeId });
   // Menu authorization needs the full ancestor chain of each visible page.
-  const menuIds = [...new Set([...menuChain(config, 'users'), ...menuChain(config, 'announcements')])];
+  const menuIds = [...new Set([...menuChain(config, 'users'), ...menuChain(config, 'announcements', 'administrator')])];
   // The super administrator builds the restricted role in the administrator tab of the real console.
   await page.goto(`${instance.url}/admin/roles`);
-  await expect(page.getByRole('heading', { name: '角色权限', exact: true })).toBeVisible();
-  await page.getByRole('tab', { name: '管理员角色' }).click();
+  await expect(page.getByRole('heading', { name: '角色权限', exact: true, level: 1 })).toBeVisible();
   await page.getByRole('button', { name: '新建角色', exact: true }).click();
   const roleEditor = page.getByRole('dialog', { name: '新建角色', exact: true });
-  await expect(roleEditor.getByLabel('角色域')).toBeDisabled();
-  await expect(roleEditor.getByLabel('角色域')).toHaveValue('administrator');
+  await expect(roleEditor.getByLabel('角色域')).toHaveCount(0);
+  await roleEditor.getByLabel('数据范围', { exact: true }).selectOption('all');
   await roleEditor.getByLabel('角色名称', { exact: true }).fill('内容运营');
   await expect(roleEditor.getByText('仅超级管理员', { exact: true }).first()).toBeVisible();
-  for (const name of ['查看用户', '创建用户', '管理用户身份', '查看平台公告']) await roleEditor.getByLabel(name, { exact: true }).check();
+  for (const name of ['查看用户', '创建用户', '管理用户身份', '查看平台公告']) await roleEditor.getByText('权限点', { exact: true }).locator('..').getByRole('checkbox', { name, exact: true }).check();
   for (const operation of ['listUsers', 'updateUser', 'roleOptions']) {
     await roleEditor.getByLabel(operation, { exact: true }).check();
   }
@@ -210,7 +216,7 @@ test('restricted administrators keep user administration without role management
   // (empty under the registered defaults), so the menu chain is granted via the
   // same console API until the editor falls back to route labels.
   const createdRole = (await admin.web!.roles()).items.find(item => item.name === '内容运营')!;
-  await admin.web!.updateRole(createdRole.id, { name: '内容运营', permissions: createdRole.permissions, menu_ids: menuIds, operation_ids: createdRole.operation_ids });
+  await admin.web!.updateRole(createdRole.id, { name: '内容运营', permissions: createdRole.permissions, menu_ids: menuIds, action_ids: config.nodes.filter(node => node.type === 'action' && node.operation_ids.includes('updateUser')).map(node => node.id), operation_ids: createdRole.operation_ids });
   // Create the restricted administrator account through the console; the role
   // select serves super_admin plus self-built administrator roles.
   await page.goto(`${instance.url}/admin/administrators`);
@@ -219,8 +225,8 @@ test('restricted administrators keep user administration without role management
   await adminDialog.getByLabel('账号', { exact: true }).fill('ops');
   await adminDialog.getByLabel('邮箱', { exact: true }).fill('ops@example.test');
   await adminDialog.getByLabel('初始密码', { exact: true }).fill('ops-password-strong');
-  await expect(adminDialog.getByLabel('角色', { exact: true })).toBeEnabled();
-  await adminDialog.getByLabel('角色', { exact: true }).selectOption({ label: '内容运营' });
+  await adminDialog.getByRole('checkbox', { name: '超级管理员', exact: true }).uncheck();
+  await adminDialog.getByRole('checkbox', { name: '内容运营', exact: true }).check();
   await adminDialog.getByRole('button', { name: '创建管理员', exact: true }).click();
   await expect(adminDialog).toHaveCount(0);
   // A normal member exists for the restricted administrator to toggle.
@@ -422,7 +428,7 @@ test('departments back custom data scopes and refuse cyclic parents', async ({ p
   await page.getByRole('button', { name: '新建角色', exact: true }).click();
   const editor = page.getByRole('dialog', { name: '新建角色', exact: true });
   await editor.getByLabel('角色名称', { exact: true }).fill('区域记录员');
-  await editor.getByLabel('使用我的笔记', { exact: true }).check();
+  await editor.getByText('权限点', { exact: true }).locator('..').getByRole('checkbox', { name: '使用我的笔记', exact: true }).check();
   await editor.getByLabel('数据范围', { exact: true }).selectOption('custom');
   await editor.getByRole('checkbox', { name: '前端组' }).check();
   await editor.getByRole('button', { name: '保存', exact: true }).click();

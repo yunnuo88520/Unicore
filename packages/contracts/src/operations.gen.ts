@@ -3701,11 +3701,74 @@ export const operations = {
     "identityRealm": "administrator",
     "uiPage": "tasks"
   },
+  "createTask": {
+    "method": "POST",
+    "path": "/api/v1/admin/tasks",
+    "requestSchema": "TaskCreateInput",
+    "responseSchema": "TaskEntryResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "tasks:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator",
+    "uiPage": "tasks"
+  },
   "updateTask": {
     "method": "PUT",
     "path": "/api/v1/admin/tasks/{name}",
     "requestSchema": "TaskUpdateInput",
     "responseSchema": "TaskEntryResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "tasks:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator",
+    "uiPage": "tasks"
+  },
+  "editTask": {
+    "method": "PATCH",
+    "path": "/api/v1/admin/tasks/{name}",
+    "requestSchema": "TaskEditInput",
+    "responseSchema": "TaskEntryResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "tasks:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator",
+    "uiPage": "tasks"
+  },
+  "deleteTask": {
+    "method": "DELETE",
+    "path": "/api/v1/admin/tasks/{name}",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
     "multipartRequest": false,
@@ -3740,6 +3803,27 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
+    "identityRealm": "administrator",
+    "uiPage": "tasks"
+  },
+  "listTaskRuns": {
+    "method": "GET",
+    "path": "/api/v1/admin/tasks/{name}/runs",
+    "requestSchema": null,
+    "responseSchema": "TaskRunListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "tasks:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
     "identityRealm": "administrator",
     "uiPage": "tasks"
   },
@@ -3814,6 +3898,26 @@ export const operations = {
     "superAdmin": false,
     "csrf": false,
     "identityRealm": "user"
+  },
+  "logStream": {
+    "method": "GET",
+    "path": "/api/v1/admin/logs/stream",
+    "requestSchema": null,
+    "responseSchema": null,
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "logs:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
   },
   "exportUsers": {
     "method": "GET",
@@ -4239,12 +4343,17 @@ export interface OperationInputs {
   replaceDictionaryItems: Models.DictionaryItemsInput;
   dictionary: undefined;
   listTasks: undefined;
+  createTask: Models.TaskCreateInput;
   updateTask: Models.TaskUpdateInput;
+  editTask: Models.TaskEditInput;
+  deleteTask: undefined;
   triggerTask: undefined;
+  listTaskRuns: undefined;
   inbox: undefined;
   readAllInbox: undefined;
   readInbox: undefined;
   events: undefined;
+  logStream: undefined;
   exportUsers: undefined;
   userImportTemplate: undefined;
   importUsers: undefined;
@@ -4449,12 +4558,17 @@ export interface OperationData {
   replaceDictionaryItems: Models.DictionaryDetailResponse['data'];
   dictionary: Models.DictionaryDetailResponse['data'];
   listTasks: Models.TaskListResponse['data'];
+  createTask: Models.TaskEntryResponse['data'];
   updateTask: Models.TaskEntryResponse['data'];
+  editTask: Models.TaskEntryResponse['data'];
+  deleteTask: Models.ActionResultResponse['data'];
   triggerTask: Models.TaskTriggerResponse['data'];
+  listTaskRuns: Models.TaskRunListResponse['data'];
   inbox: Models.InboxListResponse['data'];
   readAllInbox: Models.InboxListResponse['data'];
   readInbox: Models.InboxListResponse['data'];
   events: void;
+  logStream: void;
   exportUsers: void;
   userImportTemplate: void;
   importUsers: Models.UserImportResultResponse['data'];

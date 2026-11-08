@@ -168,14 +168,15 @@ export function nodeDisplayLabel(node: { label: string; route_id?: string; id: s
   return node.label.trim() || (node.route_id ? routeLabels[node.route_id] ?? node.route_id : directoryLabels[node.id.replace(/^(user|administrator):/, '')] ?? node.id);
 }
 
-export function pageNode(config: MenuList, routeId: string): NavigationNode | undefined {
-  return config.nodes.find(node => node.type === 'page' && node.route_id === routeId);
+export function pageNode(config: MenuList, routeId: string, surface?: 'user' | 'administrator'): NavigationNode | undefined {
+  const sections = new Set(config.sections.filter(section => !surface || section.surface === surface).map(section => section.id));
+  return config.nodes.find(node => node.type === 'page' && node.route_id === routeId && sections.has(node.section_id));
 }
 
 // Role menu authorization needs the full ancestor chain: the server suppresses
 // nodes whose ancestors are not granted as well.
-export function menuChain(config: MenuList, routeId: string): string[] {
-  const node = pageNode(config, routeId);
+export function menuChain(config: MenuList, routeId: string, surface?: 'user' | 'administrator'): string[] {
+  const node = pageNode(config, routeId, surface);
   if (!node) return [];
   const byId = new Map(config.nodes.map(item => [item.id, item]));
   const chain = [node.id];

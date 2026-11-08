@@ -246,8 +246,8 @@
           "files": {
             "mysql": {
               "path": "platform/mysql/0007_navigation_authorization.sql",
-              "bytes": 1500,
-              "checksum": "31abd0fd4636d701a250cc1981ef06667ceb72a5666b5d53d36f191d7b975dcb"
+              "bytes": 2175,
+              "checksum": "ec2e4f9a6ceae2154eb4670cc04d83dc057adf8e310e0f93f68827238d906616"
             },
             "postgres": {
               "path": "platform/postgres/0007_navigation_authorization.sql",

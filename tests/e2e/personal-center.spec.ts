@@ -66,7 +66,7 @@ test('personal center supports profile, TOTP recovery login and device revocatio
  await page.getByRole('button',{name:'使用恢复码',exact:true}).click();await page.getByLabel('恢复码',{exact:true}).fill(recovery[0]);await page.getByRole('button',{name:'验证并登录',exact:true}).click();await expect(page.getByRole('heading',{name:'双重验证',exact:true})).toBeVisible();
  await page.getByLabel('恢复码',{exact:true}).fill(recovery[1]);await page.getByRole('button',{name:'验证并登录',exact:true}).click();await expect(page.getByRole('heading',{name:'工作台概览'})).toBeVisible();
  await page.evaluate(()=>{const key='unicore.preferences.v1';const v=JSON.parse(localStorage.getItem(key)||'{}');v.locale='en';v.theme='dark';localStorage.setItem(key,JSON.stringify(v));});
- await page.goto(`${instance.url}/admin/account-security`);await expect(page.getByRole('heading',{name:'Security.',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Disable two-factor authentication',exact:true})).toBeVisible();
+ await page.goto(`${instance.url}/admin/account-security`);await expect(page.getByRole('heading',{name:'Security',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Disable two-factor authentication',exact:true})).toBeVisible();
  await page.screenshot({path:`${directory}/security-en-dark.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  if(info.project.name==='mobile')await page.getByRole('button',{name:'Open navigation',exact:true}).click();
  // Administrator personal pages live in the system section's Personal center
@@ -104,8 +104,9 @@ test('forced enrollment applies to ordinary users and preserves recovery codes a
  await expect(page.getByRole('button',{name:'关闭双重验证',exact:true})).toBeDisabled();
  await page.getByRole('button',{name:'已保存，关闭',exact:true}).click();await expect(page.locator('code')).toHaveCount(0);
  expect((await page.request.get(`${instance.url}/api/v1/notes`)).status()).toBe(200);
- const users=(await(await page.request.get(`${instance.url}/api/v1/admin/users`)).json()).data;
- expect(users.items.find((user:{username:string})=>user.username==='member').totp_enabled).toBe(true);
+ const current=(await(await page.request.get(`${instance.url}/api/v1/bootstrap`)).json()).data.current_user;
+ expect(current.username).toBe('member');expect(current.totp_enabled).toBe(true);
+ expect((await page.request.get(`${instance.url}/api/v1/admin/users`)).status()).toBe(403);
  if(info.project.name==='mobile')await page.getByRole('button',{name:'打开导航',exact:true}).click();
  await expect(page.locator('.sidebar section[data-nav-section$=":personal"]')).toBeVisible();
  await expect(page.locator('.sidebar').getByRole('button',{name:'系统设置',exact:true})).toHaveCount(0);

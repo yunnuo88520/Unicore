@@ -12,7 +12,7 @@ test('administrator audit filters, sort, pagination, export and member denial',a
  await page.goto(`${instance.url}/admin/logs`);await expect(page.getByRole('tab',{name:'操作日志',exact:true})).toBeVisible();
  const pickAction=async()=>{await page.getByRole('combobox',{name:'操作类型',exact:true}).click();await page.getByRole('option',{name:'新增用户',exact:true}).click();};
  await pickAction();
- await expect(page.locator('.audit-table tbody tr')).toHaveCount(20);await expect(page.locator('.audit-table tbody tr').first()).toContainText('admin');await expect(page.locator('.audit-table tbody tr').first()).toContainText('127.0.0.1');await expect(page.locator('.audit-table tbody tr').first().locator('td').nth(4)).toContainText('role=user; status=active');
+ await expect(page.locator('.audit-table tbody tr')).toHaveCount(20);await expect(page.locator('.audit-table tbody tr').first()).toContainText('admin');await expect(page.locator('.audit-table tbody tr').first()).toContainText('127.0.0.1');await expect(page.locator('.audit-table tbody tr').first().locator('td').nth(4)).toContainText('roles=user; status=active');
  await page.getByRole('button',{name:'下一页',exact:true}).click();await expect(page.locator('.audit-table tbody tr')).toHaveCount(3);
  await page.getByRole('button',{name:'上一页',exact:true}).click();await expect(page.locator('.audit-table tbody tr')).toHaveCount(20);
  await page.getByRole('button',{name:'时间',exact:true}).click();await expect(page.locator('th[aria-sort=ascending]')).toBeVisible();
@@ -25,8 +25,8 @@ test('administrator audit filters, sort, pagination, export and member denial',a
  const context=await browser.newContext();try{
  const user=context.request;
  const input={username:'member0',password:'test-password-strong',captcha_id:'',captcha_answer:''};
- expect((await user.post(`${instance.url}/api/v1/admin/auth/login`,{data:input})).status()).toBe(401);
- expect((await user.get(`${instance.url}/api/v1/admin/logs`)).status()).toBe(401);
+ expect((await user.post(`${instance.url}/api/v1/admin/auth/login`,{data:input})).status()).toBe(200);
+ expect((await user.get(`${instance.url}/api/v1/admin/logs`)).status()).toBe(403);
  expect((await user.post(`${instance.url}/api/v1/auth/login`,{data:input})).status()).toBe(200);
  for(const path of ['logs','logs/export','settings/mail/templates'])expect((await user.get(`${instance.url}/api/v1/admin/${path}`)).status()).toBe(403);
  const member=await context.newPage();await member.goto(`${instance.url}/mail-templates`);await expect(member.getByRole('button',{name:'邮件模板',exact:true})).toHaveCount(0);await expect(member.getByRole('tab',{name:'注册验证',exact:true})).toHaveCount(0);

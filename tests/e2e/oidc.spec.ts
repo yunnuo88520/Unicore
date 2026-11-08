@@ -46,7 +46,7 @@ test('enterprise settings, real JIT, explicit binding and password fallback', as
   await expect(page.getByText(`${idp.url}/userinfo`)).toBeVisible(); await capture(page,info,'oidc-endpoints');
   await expect(page.locator('.oidc-callback')).toHaveText(`${instance.url}/api/v1/admin/auth/oidc/callback`); await capture(page,info,'oidc-settings-ready');
   const adminBootstrap = (await (await page.request.get(`${instance.url}/api/v1/admin/bootstrap`,{headers:{}})).json()).data;
-  const originalAdminCookie = (await page.context().cookies()).find(cookie => cookie.name === 'unicore_administrator_session')!.value;
+  const originalAdminCookie = (await page.context().cookies()).find(cookie => cookie.name === 'unicore_session')!.value;
   const employeeContext = await browser.newContext({viewport:page.viewportSize()!,isMobile:info.project.name==='mobile',hasTouch:info.project.name==='mobile'});
   const employee = await employeeContext.newPage();
   try {
@@ -68,8 +68,8 @@ test('enterprise settings, real JIT, explicit binding and password fallback', as
     await employee.goto(instance.url); await employee.getByRole('button',{name:'使用企业账号登录',exact:true}).click();
     await employee.getByLabel('企业身份编号',{exact:true}).fill('enterprise-admin'); await employee.getByLabel('企业邮箱',{exact:true}).fill('admin@example.test');
     await employee.getByRole('button',{name:'确认企业身份',exact:true}).click();
-    await expect(employee.getByRole('heading',{name:'工作台概览'})).toBeVisible();
-    expect((await(await employee.request.get(`${instance.url}/api/v1/bootstrap`)).json()).data.current_user.roles).toEqual(['user']);
+    await expect(employee.getByRole('button', { name: '绑定并登录', exact: true })).toBeVisible();
+    expect((await(await employee.request.get(`${instance.url}/api/v1/bootstrap`)).json()).data.current_user).toBeFalsy();
     await employee.goto(`${instance.url}/admin`);
     await employee.getByRole('button',{name:'使用企业账号登录',exact:true}).click();
     await employee.getByLabel('企业身份编号',{exact:true}).fill('enterprise-admin');await employee.getByLabel('企业邮箱',{exact:true}).fill('admin@example.test');
@@ -93,16 +93,16 @@ test('enterprise settings, real JIT, explicit binding and password fallback', as
     await expect(page).toHaveURL(/prompt=login/); expect(new URL(page.url()).searchParams.get('max_age')).toBe('0');
     await page.getByLabel('企业身份编号',{exact:true}).fill('enterprise-admin'); await page.getByLabel('企业邮箱',{exact:true}).fill('admin@example.test'); await page.getByRole('button',{name:'确认企业身份',exact:true}).click();
     await expect(page.getByText('企业账号已绑定，其他设备的旧会话已退出。')).toBeVisible(); await capture(page,info,'oidc-binding-success');
-    const revoked = await instance.request.get('/api/v1/admin/auth/session',{headers:{Cookie:`unicore_administrator_session=${originalAdminCookie}`}}); expect(revoked.status()).toBe(401);
+    const revoked = await instance.request.get('/api/v1/admin/auth/session',{headers:{Cookie:`unicore_session=${originalAdminCookie}`}}); expect(revoked.status()).toBe(401);
     // Same iss/sub signs into the linked local account; IdP email changes cannot redirect it.
     await employee.goto(`${instance.url}/admin`); await employee.getByRole('button',{name:'使用企业账号登录',exact:true}).click();
     await employee.getByLabel('企业身份编号',{exact:true}).fill('enterprise-admin'); await employee.getByLabel('企业邮箱',{exact:true}).fill('different@example.test'); await employee.getByRole('button',{name:'确认企业身份',exact:true}).click();
     await expect(employee.getByRole('heading',{name:'工作台概览'})).toBeVisible();
     expect((await (await employee.request.get(`${instance.url}/api/v1/admin/bootstrap`,{headers:{}})).json()).data.current_user.id).toBe(adminBootstrap.current_user.id);
-    const ssoCookie = (await employee.context().cookies()).find(cookie=>cookie.name==='unicore_administrator_session')!.value;
+    const ssoCookie = (await employee.context().cookies()).find(cookie=>cookie.name==='unicore_session')!.value;
     await page.getByLabel('确认本地密码',{exact:true}).fill('test-password-strong'); await capture(page,info,'oidc-unlink-confirm');
     await page.getByRole('button',{name:'确认解除绑定',exact:true}).click(); await expect(page.getByText('企业绑定已解除，本地密码登录可用。')).toBeVisible(); await capture(page,info,'oidc-unlink-success');
-    expect((await instance.request.get('/api/v1/admin/auth/session',{headers:{Cookie:`unicore_administrator_session=${ssoCookie}`}})).status()).toBe(401);
+    expect((await instance.request.get('/api/v1/admin/auth/session',{headers:{Cookie:`unicore_session=${ssoCookie}`}})).status()).toBe(401);
     const current = (await (await page.request.get(`${instance.url}/api/v1/admin/bootstrap`,{headers:{}})).json()).data;
     expect((await page.request.patch(`${instance.url}/api/v1/admin/settings`,{headers:{'X-CSRF-Token':current.csrf_token},data:{changes:[{key:'oidc.enabled',value:'false'}]}})).status()).toBe(200);
     await employee.goto(`${instance.url}/admin`); await expect(employee.getByLabel('账号或邮箱')).toBeVisible(); await expect(employee.getByRole('button',{name:'使用企业账号登录',exact:true})).toHaveCount(0);
@@ -177,7 +177,7 @@ test('userinfo enrichment, relaxed verification and password bind-login', async 
     // Without userinfo, an unverified enterprise email is refused until the requirement is lifted.
     expect((await patch({'oidc.userinfo_enabled':'false'})).status()).toBe(200);
     await enterpriseSignIn(employee,instance.url,'strict-employee','','unverified');
-    await expect(employee.getByRole('alert')).toContainText('请先使用本地账号登录'); await capture(employee,info,'oidc-unverified-blocked');
+    await expect(employee.getByRole('button', { name: '绑定并登录', exact: true })).toBeVisible(); await capture(employee,info,'oidc-unverified-blocked');
     expect((await patch({'oidc.require_email_verified':'false'})).status()).toBe(200);
     await enterpriseSignIn(employee,instance.url,'strict-employee','','unverified');
     await expect(employee.getByRole('heading',{name:'工作台概览'})).toBeVisible();
@@ -228,6 +228,7 @@ test('SSO-only users enroll mandatory TOTP without SMTP and still need MFA on ne
  expect((await page.request.patch(`${instance.url}/api/v1/admin/settings`,{headers:{'X-CSRF-Token':admin.csrf_token},data:{changes:Object.entries({'oidc.enabled':'true','oidc.issuer':idp.url,'oidc.client_id':'unicore-test-client','oidc.client_secret':'isolated-test-secret','oidc.jit_enabled':'true','security.force_user_2fa':'true','security.login_captcha':'false'}).map(([key,value])=>({key,value}))}})).status()).toBe(200);
  const policy=(await(await page.request.get(`${instance.url}/api/v1/auth/policy`)).json()).data;
  expect(policy.mail_ready).toBe(false); expect(policy.reset_enabled).toBe(false);
+ await page.context().clearCookies();
  await page.goto(instance.url); await page.getByRole('button',{name:'使用企业账号登录',exact:true}).click(); await page.getByRole('button',{name:'确认企业身份',exact:true}).click();
  await expect(page).toHaveURL(`${instance.url}/account-security`);
  const user=(await(await page.request.get(`${instance.url}/api/v1/bootstrap`)).json()).data;

@@ -146,9 +146,9 @@ it('authorizes menu trees per realm surface where directories aggregate their de
   await screen.findByText('记录员');
   await userEvent.click(screen.getByRole('button', { name: '新建角色' }));
   const dialog = screen.getByRole('dialog', { name: '新建角色' });
-  // Only the current realm surface is offered; the administrator page stays out.
-  expect(within(dialog).getByText('业务')).toBeVisible();
-  expect(within(dialog).getByText('后台')).toBeVisible();
+  // Both workspaces are available and named independently.
+  expect(within(dialog).getByRole('region', { name: '用户端 · 业务' })).toBeVisible();
+  expect(within(dialog).getByRole('region', { name: '管理端 · 后台' })).toBeVisible();
   expect(within(dialog).getByRole('checkbox', { name: '我的笔记' })).not.toBeChecked();
   await userEvent.click(within(dialog).getByRole('checkbox', { name: '组织目录' }));
   // Checking a directory selects the whole branch: the child page comes along.

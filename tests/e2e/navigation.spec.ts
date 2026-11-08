@@ -21,7 +21,7 @@ async function evidence(page: Page, info: TestInfo, feature: string, fullPage = 
 // The editor target cell echoes the stable route id, so rows are located by
 // target instead of operator labels.
 function rowByTarget(page: Page, target: string) {
-  return page.locator('tr[data-node]').filter({ has: page.locator('td').nth(3).filter({ hasText: target }) });
+  return page.locator('tr[data-node-type="page"]').filter({ has: page.locator('td').nth(3).filter({ hasText: target }) });
 }
 
 async function pageTargets(page: Page) {
@@ -50,7 +50,7 @@ test('menu console edits the persisted tree and one save re-anchors every sessio
   // Directories start collapsed; expand both seeded directories so every
   // registered page of the surface renders as an editable row keyed by target.
   for (const directory of ['administration', 'settings']) {
-    await page.locator(`tr[data-node="${directory}"]`).getByRole('button', { name: /展开或收起/ }).click();
+    await page.locator(`tr[data-node="administrator:${directory}"]`).getByRole('button', { name: /展开或收起/ }).click();
   }
   const targets = await pageTargets(page);
   for (const route of ['users', 'roles', 'menus', 'tasks', 'edition', 'dictionaries', 'posts', 'api-operations']) {
@@ -208,7 +208,12 @@ test('menu visibility follows role assignments while API capability stays indepe
   const memberBootstrap = await memberApi.bootstrap();
   // The projected navigation carries exactly the granted chains.
   for (const node of memberBootstrap.navigation?.nodes ?? []) {
-    expect(notesChain).toContain(node.id);
+    if (node.type === 'action') {
+      expect(memberBootstrap.current_user?.action_ids).toContain(node.id);
+      expect(node.operation_ids).toEqual(['listNotes']);
+    } else {
+      expect(notesChain).toContain(node.id);
+    }
   }
   const contexts: BrowserContext[] = [];
   try {
@@ -225,8 +230,8 @@ test('menu visibility follows role assignments while API capability stays indepe
     // Direct URL still serves the page (permission bound), but the API layer
     // refuses: the role holds files:access without the listFiles grant.
     await member.goto(`${instance.url}/files`);
-    await expect(member.getByRole('heading', { name: '我的文件', exact: true })).toBeVisible();
-    await expect(member.getByText('你没有执行此操作的权限', { exact: true })).toBeVisible();
+    await expect(member.getByText('没有访问权限', { exact: true })).toBeVisible();
+    await expect(memberApi.files!.listFiles('', 1)).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
     await evidence(member, info, '菜单过滤且API拒绝');
 
     // Granting a menu through the role editor changes visibility only; the
@@ -235,7 +240,7 @@ test('menu visibility follows role assignments while API capability stays indepe
     await page.goto(`${instance.url}/admin/roles`);
     await page.getByRole('row').filter({ hasText: '记录员' }).getByRole('button', { name: '编辑角色 记录员', exact: true }).click();
     const roleEditor = page.getByRole('dialog', { name: '编辑角色', exact: true });
-    await roleEditor.getByLabel(labelOf('files'), { exact: true }).check();
+    await roleEditor.getByRole('region', { name: '用户端 · 业务', exact: true }).getByLabel(labelOf('files'), { exact: true }).check();
     await roleEditor.getByRole('button', { name: '保存', exact: true }).click();
     await expect(roleEditor).toHaveCount(0);
     await loginClient(admin, 'admin', adminPassword);
@@ -321,7 +326,7 @@ test('visibility toggles persist through save', async ({ page, instance }) => {
   await adminLogin(page, instance.url, 'admin', adminPassword);
   await page.goto(`${instance.url}/admin/menus`);
   await expect(page.getByRole('heading', { name: '菜单配置', exact: true })).toBeVisible();
-  await page.locator('tr[data-node="administration"]').getByRole('button', { name: /展开或收起/ }).click();
+  await page.locator('tr[data-node="administrator:administration"]').getByRole('button', { name: /展开或收起/ }).click();
   const tasksRow = rowByTarget(page, 'tasks');
   await expect(tasksRow).toBeVisible();
   const tasksSwitch = tasksRow.getByRole('switch');

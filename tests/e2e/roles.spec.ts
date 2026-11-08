@@ -145,7 +145,7 @@ test('custom roles assign through the console, echo the three grant sets and sur
     return page.getByRole('dialog', { name: '编辑member', exact: true });
   };
   let dialog = await openDialog();
-  await dialog.getByRole('checkbox', { name: '普通用户', exact: true }).uncheck();
+  await dialog.getByRole('checkbox', { name: 'user', exact: true }).uncheck();
   await dialog.getByRole('checkbox', { name: '记录员', exact: true }).check();
   await dialog.getByRole('button', { name: '保存', exact: true }).click();
   await expect(dialog).toHaveCount(0);
@@ -154,7 +154,7 @@ test('custom roles assign through the console, echo the three grant sets and sur
   expect(assigned.items.find(item => item.id === memberID)?.roles).toEqual([recorder!.id]);
   dialog = await openDialog();
   await expect(dialog.getByRole('checkbox', { name: '记录员', exact: true })).toBeChecked();
-  await expect(dialog.getByRole('checkbox', { name: '普通用户', exact: true })).not.toBeChecked();
+  await expect(dialog.getByRole('checkbox', { name: 'user', exact: true })).not.toBeChecked();
   await dialog.getByRole('button', { name: '取消', exact: true }).click();
   await expect(dialog).toHaveCount(0);
   // Omitted grant sets keep their values; explicit arrays replace them.
@@ -181,7 +181,7 @@ test('custom roles assign through the console, echo the three grant sets and sur
   expect(restored.items.find(item => item.id === memberID)?.roles).toEqual([recorder!.id]);
   dialog = await openDialog();
   await expect(dialog.getByRole('checkbox', { name: '记录员', exact: true })).toBeChecked();
-  await expect(dialog.getByRole('checkbox', { name: '普通用户', exact: true })).not.toBeChecked();
+  await expect(dialog.getByRole('checkbox', { name: 'user', exact: true })).not.toBeChecked();
   await dialog.getByRole('button', { name: '取消', exact: true }).click();
   await expect(dialog).toHaveCount(0);
 });
@@ -225,7 +225,7 @@ test('restricted administrators keep user administration without role management
   await adminDialog.getByLabel('账号', { exact: true }).fill('ops');
   await adminDialog.getByLabel('邮箱', { exact: true }).fill('ops@example.test');
   await adminDialog.getByLabel('初始密码', { exact: true }).fill('ops-password-strong');
-  await adminDialog.getByRole('checkbox', { name: '超级管理员', exact: true }).uncheck();
+  await adminDialog.getByRole('checkbox', { name: 'super_admin', exact: true }).uncheck();
   await adminDialog.getByRole('checkbox', { name: '内容运营', exact: true }).check();
   await adminDialog.getByRole('button', { name: '创建管理员', exact: true }).click();
   await expect(adminDialog).toHaveCount(0);
@@ -371,7 +371,7 @@ test('departments back custom data scopes and refuse cyclic parents', async ({ p
   await adminLogin(page, instance.url, 'admin', adminPassword);
   // Build the two-level tree through the real departments console.
   await page.goto(`${instance.url}/admin/departments`);
-  await expect(page.getByRole('heading', { name: '部门管理.', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '部门管理', level: 1, exact: true })).toBeVisible();
   // The empty state repeats the toolbar button; the toolbar instance is the canonical target.
   await page.getByRole('button', { name: '新建根部门', exact: true }).first().click();
   const rootDialog = page.getByRole('dialog', { name: '新建根部门', exact: true });

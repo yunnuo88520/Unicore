@@ -11,7 +11,7 @@ async function login(page:Page, username:string, password:string){
  await page.getByLabel('图形验证码',{exact:true}).fill(answer);await page.getByRole('button',{name:'登录工作空间',exact:true}).click();
 }
 
-test('management groups, modal creation, independent logins and avatar password change',async({page,context,instance},info)=>{
+test('management groups, modal creation, independent logins and avatar password change',async({page,browser,instance},info)=>{
  test.setTimeout(60000);
  expect((await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}})).status()).toBe(200);
  await page.goto(`${instance.url}/admin`);
@@ -54,9 +54,8 @@ test('management groups, modal creation, independent logins and avatar password 
  await dialog.getByLabel('账号',{exact:true}).fill('sharedname');await dialog.getByLabel('邮箱',{exact:true}).fill('shared@example.test');await dialog.getByLabel('初始密码',{exact:true}).fill('member-password-strong');
  await page.screenshot({path:`${directory}/new-user-dialog.png`});
  await dialog.getByRole('button',{name:'创建用户',exact:true}).click();await expect(dialog).toHaveCount(0);await expect(page.getByRole('cell',{name:'sharedname',exact:true})).toBeVisible();
- await nav(labelOf('administrators'));await page.getByRole('button',{name:'新增管理员',exact:true}).click();
- const adminDialog=page.getByRole('dialog',{name:'新增管理员',exact:true});await adminDialog.getByLabel('账号',{exact:true}).fill('sharedname');await adminDialog.getByLabel('邮箱',{exact:true}).fill('shared@example.test');await adminDialog.getByLabel('初始密码',{exact:true}).fill('administrator-password-strong');await adminDialog.getByRole('button',{name:'创建管理员',exact:true}).click();
- await expect(page.getByRole('cell',{name:'sharedname',exact:true})).toBeVisible();
+ // The management alias shares global account uniqueness with the user API.
+ await expect(admin.web!.createAdministrator({username:'sharedname',email:'shared@example.test',password:'administrator-password-strong',role:'super_admin'})).rejects.toMatchObject({code:'ACCOUNT_EXISTS'});
  await nav(labelOf('mail'));await expect(page.getByRole('tab')).toHaveCount(0);await expect(page.getByRole('button',{name:'发送测试',exact:true})).toBeVisible();await expect(page.getByText('投递记录',{exact:true})).toHaveCount(0);
  await nav(labelOf('logs'));await expect(page.getByRole('tab',{name:'操作日志',exact:true})).toBeVisible();await expect(page.getByRole('cell',{name:'新增用户',exact:true}).first()).toBeVisible();
  if(process.env.FEATURE_UPDATER!=='false' || process.env.FEATURE_LICENSE==='true') {
@@ -64,7 +63,7 @@ test('management groups, modal creation, independent logins and avatar password 
   if(process.env.FEATURE_UPDATER!=='false')await expect(page.getByRole('heading',{name:'更新日志',exact:true})).toBeVisible();
   if(process.env.FEATURE_LICENSE==='true')await expect(page.getByText('待对接',{exact:true})).toBeVisible();
  }
- const member=await context.newPage();await member.goto(instance.url);await login(member,'sharedname','administrator-password-strong');await expect(member.locator('main').getByRole('alert')).toContainText('账号或密码不正确');
+ const memberContext=await browser.newContext({viewport:page.viewportSize()!,isMobile:info.project.name==='mobile',hasTouch:info.project.name==='mobile'});const member=await memberContext.newPage();await member.goto(instance.url);await login(member,'sharedname','administrator-password-strong');await expect(member.locator('main').getByRole('alert')).toContainText('账号或密码不正确');
  await login(member,'sharedname','member-password-strong');
  // Login completes asynchronously and navigates home; wait before opening the lab.
  await expect(member.getByRole('heading',{name:'工作台概览'})).toBeVisible();
@@ -82,7 +81,7 @@ test('management groups, modal creation, independent logins and avatar password 
  await login(member,'sharedname','changed-member-password');
  await expect(member.getByRole('heading',{name:'工作台概览'})).toBeVisible();
  await member.goto(`${instance.url}/lab`);await expect(member.getByRole('button',{name:'运行用例',exact:true})).toBeVisible();
- await member.getByRole('button',{name:'账号菜单',exact:true}).click();await member.getByRole('menuitem',{name:'退出登录',exact:true}).click();await expect(member.getByRole('heading',{name:'登录 Unicore',exact:true})).toBeVisible();await member.close();
+ await member.getByRole('button',{name:'账号菜单',exact:true}).click();await member.getByRole('menuitem',{name:'退出登录',exact:true}).click();await expect(member.getByRole('heading',{name:'登录 Unicore',exact:true})).toBeVisible();await memberContext.close();
  await page.reload();await expect(page.getByRole('button',{name:'账号菜单',exact:true})).toBeVisible();
  await nav(labelOf('users'));
  for(const scheme of ['light','dark'] as const){await page.evaluate(value=>localStorage.setItem('unicore.preferences.v1',JSON.stringify({...JSON.parse(localStorage.getItem('unicore.preferences.v1')??'{}'),theme:value})),scheme);await page.reload();await page.screenshot({path:`${directory}/management-${scheme}.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}

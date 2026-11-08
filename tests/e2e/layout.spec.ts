@@ -3,7 +3,9 @@
 import {mkdir} from 'node:fs/promises';
 import {test,expect,installStandalone,sdkClient,loginClient,nodeDisplayLabel,pageNode} from './fixtures';
 
-test('layout matrix preserves shell geometry and stable appearance controls',async({page,instance},info)=>{
+for (const viewportWidth of [375, 767, 768, 850, 900, 1280]) {
+test(`layout matrix preserves shell geometry and stable appearance controls at ${viewportWidth}px`,async({page,instance},info)=>{
+  test.skip(info.project.name === 'mobile' ? viewportWidth > 767 : viewportWidth <= 767, 'Each viewport runs in its matching device project');
   test.setTimeout(60000);
   await page.addInitScript(()=>localStorage.setItem('unicore.preferences.v1',JSON.stringify({direction:'rtl',locale:'zh-CN'})));
   await page.emulateMedia({reducedMotion:'reduce'});await installStandalone(instance);await page.goto(instance.url);
@@ -11,7 +13,7 @@ test('layout matrix preserves shell geometry and stable appearance controls',asy
   const drawer=page.getByRole('dialog',{name:'主题设置',exact:true});
   const choose=async(group:string,value:string)=>{await drawer.locator(`.preference-${group}`).getByRole('button',{name:value,exact:true}).click();};
   await choose('density','大字号');
-  for(const width of info.project.name==='mobile'?[375,767]:[1280,900,850,768]){
+  for(const width of [viewportWidth]){
     await page.setViewportSize({width,height:900});
     for(const layout of ['默认','紧凑','全宽布局'])for(const sidebar of ['标准','内嵌','悬浮'])for(const content of ['全宽','居中']){
       await choose('layout',layout);await choose('sidebar',sidebar);await choose('content',content);
@@ -48,13 +50,13 @@ test('layout matrix preserves shell geometry and stable appearance controls',asy
       }
     }
   }
-  await page.setViewportSize({width:info.project.name==='mobile'?375:1280,height:900});
+  await page.setViewportSize({width:viewportWidth,height:900});
   await drawer.getByRole('button',{name:'重置外观',exact:true}).click();
   await expect(drawer.locator('.preference-direction')).toHaveCount(0);
   await expect(page.locator('html')).toHaveAttribute('dir','ltr');
   await page.keyboard.press('Escape');
   await mkdir('build/acceptance/layout',{recursive:true});
-  await page.screenshot({path:`build/acceptance/layout/${info.project.name}-workspace.png`});
+  await page.screenshot({path:`build/acceptance/layout/${info.project.name}-${viewportWidth}-workspace.png`});
   await page.getByRole('button',{name:'主题设置',exact:true}).click();await choose('layout','全宽布局');await page.keyboard.press('Escape');
   expect(await page.evaluate(()=>innerWidth)).toBe(page.viewportSize()!.width);
   await page.getByRole('button',{name:'打开导航',exact:true}).click();
@@ -64,6 +66,7 @@ test('layout matrix preserves shell geometry and stable appearance controls',asy
   await expect(page.getByRole('heading',{name:'我的笔记'})).toBeVisible();
   await expect(page.locator('.nav-scrim')).toHaveCount(0);
 });
+}
 
 test('navigation renders the persisted section tree with collapsed directories and the rail keeps children in keyboard-accessible menus',async({page,instance},info)=>{
   // Installing through the browser request context signs the administrator in.

@@ -330,7 +330,7 @@ test('scheduled execution, persisted enablement, real admin charts and Scalar co
   const document = await (await contract).json();
   expect(document.openapi).toBe('3.1.0');
   expect(document.paths[operations.listTasks.path]).toBeDefined();
-  await expect(page.getByRole('heading', { name: 'API 文档', exact: true, level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'API 文档', exact: true, level: 2 })).toBeVisible();
   const reference = page.locator('.api-reference');
   await expect(reference).toBeVisible({ timeout: 30_000 });
   const swagger = reference.locator('.swagger-ui');

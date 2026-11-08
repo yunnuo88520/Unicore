@@ -28,7 +28,7 @@ test('announcement bell: management, popup retry, pagination, receipts, audience
   await expect(editor.getByRole('combobox', { name: '发布状态', exact: true })).toHaveValue('draft');
   await editor.getByRole('combobox', { name: '接收范围', exact: true }).selectOption('selected');
   await expect(editor.getByText('member · member@example.test', { exact: true })).toBeVisible();
-  await editor.getByRole('checkbox').check();
+  await editor.getByRole('checkbox', { name: 'member · member@example.test', exact: true }).check();
   await editor.getByRole('button', { name: '预览', exact: true }).click();
   await expect(editor.locator('.announcement-preview h2')).toHaveText('测试预览');
   await editor.getByRole('button', { name: '保存', exact: true }).click();

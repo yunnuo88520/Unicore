@@ -18,6 +18,8 @@ test('product homepage follows site.home_enabled for guests and members', async 
     expect((await page.request.post(`${instance.url}/api/v1/install/complete`, { headers: { 'X-Bootstrap-Token': instance.token }, data: { profile: 'web-platform', database: { driver: 'sqlite', dsn: '' }, site_name: 'Unicore', base_url: instance.url, admin_username: 'admin', admin_email: 'admin@example.test', admin_password: 'test-password-strong' } })).status()).toBe(200);
   });
 
+  // Installation authenticates the owner in the shared account session.
+  await page.context().clearCookies();
   await test.step('default off: guests see the login flow', async () => {
     await page.goto(`${instance.url}/`);
     await expect(page.getByRole('button', { name: '登录工作空间' })).toBeVisible();

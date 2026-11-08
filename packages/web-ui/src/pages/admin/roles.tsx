@@ -249,7 +249,10 @@ function RoleEditor({ web, realm, role, permissions, onClose, onSaved }: {
       <fieldset disabled={pending} className="flex min-w-0 flex-col gap-2 rounded-lg border border-line p-3">
         <legend className="px-1 font-medium">{t('菜单授权')}</legend>
         {navigation.isError && <p role="alert" className="text-sm text-danger">{t(navigation.error.message)} <Button variant="secondary" onClick={() => void navigation.refetch()}>{t('重试')}</Button></p>}
-        {sections.map(section => <section key={section.id} className="flex flex-col gap-2"><h3 className="text-sm font-medium">{t(sectionTitle(section))}</h3>{renderMenuTree(section.id)}</section>)}
+        {sections.map(section => {
+          const label = `${t(section.surface === 'administrator' ? '管理端' : '用户端')} · ${t(sectionTitle(section))}`;
+          return <section key={section.id} aria-label={label} className="flex flex-col gap-2"><h3 className="text-sm font-medium">{label}</h3>{renderMenuTree(section.id)}</section>;
+        })}
         {!sections.length && <p className="text-xs text-muted">{navigation.isPending ? t('正在加载…') : t('没有可授权的菜单')}</p>}
       </fieldset>
       <fieldset disabled={pending} className="flex min-w-0 flex-col gap-2 rounded-lg border border-line p-3">

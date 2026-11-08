@@ -74,7 +74,7 @@ test.setTimeout(120_000);test('cross-tab logout/account switch, field focus and 
     const freshAnswer=[...Buffer.from(challenge.image.split(',')[1],'base64').toString().matchAll(/>([0-9])<\/text>/g)].map(match=>match[1]).join('');
     expect((await page.request.post(`${instance.url}/api/v1/auth/login`,{data:{username:'member',password:'test-password-strong',captcha_id:challenge.id,captcha_answer:freshAnswer}})).status()).toBe(200);
     await page.bringToFront();await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
-    await expect(page.getByRole('heading',{name:'探索核心的每一种可能.'})).toBeVisible();
+    await expect(page.getByRole('heading',{name:'核心实验室',level:1})).toBeVisible();
 
   }finally{await admin.close();await second.close();}
 });
@@ -89,7 +89,7 @@ test.setTimeout(90_000);test('unknown routes and generated API reference follow 
   await expect(page.getByRole('button',{name:'运行用例'})).toBeVisible();
   const contract=page.waitForResponse(response=>new URL(response.url()).pathname==='/openapi.json'&&response.status()===200);
   await page.goto(`${instance.url}/docs/api`);
-  await expect(page.getByRole('heading', { name: 'API 文档', exact: true, level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'API 文档', exact: true, level: 2 })).toBeVisible();
   const document=await(await contract).json();expect(document.openapi).toBe('3.1.0');
   const reference=page.locator('.api-reference');
   await expect(reference).toBeVisible({timeout:30000});

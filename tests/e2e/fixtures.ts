@@ -170,7 +170,8 @@ export function nodeDisplayLabel(node: { label: string; route_id?: string; id: s
 
 export function pageNode(config: MenuList, routeId: string, surface?: 'user' | 'administrator'): NavigationNode | undefined {
   const sections = new Set(config.sections.filter(section => !surface || section.surface === surface).map(section => section.id));
-  return config.nodes.find(node => node.type === 'page' && node.route_id === routeId && sections.has(node.section_id));
+  const candidates = config.nodes.filter(node => node.type === 'page' && node.route_id === routeId && sections.has(node.section_id));
+  return (!surface ? candidates.find(node => config.sections.some(section => section.id === node.section_id && section.surface === 'user')) : undefined) ?? candidates[0];
 }
 
 // Role menu authorization needs the full ancestor chain: the server suppresses

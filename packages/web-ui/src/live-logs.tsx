@@ -1,10 +1,10 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Super-administrator live log viewer; an SSE-backed console that connects on open and disconnects on close.
+// Description: Super-administrator live log viewer; an SSE-backed terminal console that connects on open and disconnects on close.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowDown, Eraser, ScrollText } from 'lucide-react';
+import { ArrowDown, Eraser, Terminal } from 'lucide-react';
 import type { WebClient } from '@unicore/sdk';
 import { t, useI18n } from './i18n';
-import { Badge, Button, Dialog, DialogContent, DialogHeader, DialogTitle, SimpleSelect, Switch } from '@unicore/ui';
+import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, SimpleSelect, Switch } from '@unicore/ui';
 
 const MAX_LINES = 500;
 
@@ -16,7 +16,13 @@ interface LogLine {
   system: boolean;
 }
 
-const levelVariants: Record<string, 'danger' | 'warning' | 'subtle'> = { ERROR: 'danger', WARN: 'warning', INFO: 'subtle', DEBUG: 'subtle' };
+// Terminal palette: the level token carries the color, like a real console.
+const levelTextClass: Record<string, string> = {
+  ERROR: 'text-terminal-error',
+  WARN: 'text-terminal-warn',
+  INFO: 'text-terminal-info',
+  DEBUG: 'text-terminal-debug',
+};
 
 // Log frames arrive as single-line slog JSON records; anything else (broadcaster
 // drop notices, plain stderr output) degrades to a plain system row.
@@ -46,7 +52,7 @@ export function LiveLogsButton({ web }: { web: WebClient }) {
   const [open, setOpen] = useState(false);
   return <>
     <Button variant="ghost" size="icon" className="size-8" aria-label={t('实时日志')} title={t('实时日志')} onClick={() => setOpen(true)}>
-      <ScrollText size={19} aria-hidden="true" />
+      <Terminal size={19} aria-hidden="true" />
     </Button>
     {open && <LiveLogsDialog web={web} onClose={() => setOpen(false)} />}
   </>;
@@ -104,7 +110,7 @@ function LiveLogsDialog({ web, onClose }: { web: WebClient; onClose: () => void 
     <DialogContent className="max-w-[860px]">
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2.5">
-          <ScrollText size={16} aria-hidden="true" />
+          <Terminal size={16} aria-hidden="true" />
           {t('实时日志')}
           {statusView}
         </DialogTitle>
@@ -120,19 +126,27 @@ function LiveLogsDialog({ web, onClose }: { web: WebClient; onClose: () => void 
         <Button variant="ghost" size="sm" onClick={() => { setLines([]); setPending(0); }}><Eraser size={14} />{t('清屏')}</Button>
         <span className="ms-auto text-2xs text-muted tabular-nums">{t('显示 {{count}} 行 · 缓冲 {{total}} 行', { count: shown.length, total: lines.length })}</span>
       </div>
-      <div className="relative">
+      <div className="relative overflow-hidden rounded-xl border border-terminal-line">
+        {/* Terminal chrome: the traffic dots are decorative, the title carries the translation. */}
+        <div className="flex items-center gap-1.5 bg-terminal-bar px-3.5 py-2">
+          <span className="size-2.5 rounded-full bg-danger" aria-hidden="true" />
+          <span className="size-2.5 rounded-full bg-warning" aria-hidden="true" />
+          <span className="size-2.5 rounded-full bg-success" aria-hidden="true" />
+          <span className="ms-2 min-w-0 truncate font-mono text-2xs text-terminal-dim">unicore — {t('实时日志')}</span>
+        </div>
+        {/* pe-4 keeps line ends clear of the macOS overlay scrollbar band. */}
         <div ref={scroller} onScroll={onScroll} role="log" aria-label={t('实时日志行')}
-          className="flex max-h-[58dvh] min-h-56 flex-col overflow-y-auto rounded-lg border border-line bg-surface py-2">
+          className="flex max-h-[58dvh] min-h-56 flex-col overflow-y-auto bg-terminal-bg py-2 pe-4 font-mono text-xs leading-relaxed">
           {!shown.length
-            ? <p role="status" className="my-auto py-12 text-center text-sm text-muted">{status === 'connected' ? t('已连接，等待新的日志输出…') : t('正在建立日志连接…')}</p>
+            ? <p role="status" className="my-auto py-12 text-center text-sm text-terminal-dim">{status === 'connected' ? t('已连接，等待新的日志输出…') : t('正在建立日志连接…')}</p>
             : shown.map((line, index) => line.system
-              ? <div key={index} className="px-4 py-0.5 text-center font-mono text-2xs text-muted">{line.text}</div>
-              : <div key={index} className="flex items-baseline gap-2.5 px-4 py-px font-mono text-xs leading-relaxed hover:bg-surface-alt">
-                  <time className="shrink-0 text-subtle tabular-nums">{line.time || '--:--:--'}</time>
-                  {line.level && <Badge variant={levelVariants[line.level] ?? 'subtle'} className="shrink-0 rounded px-1.5 py-0">{line.level}</Badge>}
-                  <span className="min-w-0 flex-1 break-all text-ink">
+              ? <div key={index} className="px-4 py-0.5 text-center text-2xs text-terminal-dim">{line.text}</div>
+              : <div key={index} className="flex items-baseline gap-2.5 px-4 py-px hover:bg-terminal-bar">
+                  <time className="shrink-0 text-terminal-dim tabular-nums">{line.time || '--:--:--'}</time>
+                  {line.level && <span className={`w-12 shrink-0 text-end font-semibold ${levelTextClass[line.level] ?? 'text-terminal-dim'}`}>{line.level}</span>}
+                  <span className="min-w-0 flex-1 break-all text-terminal-text">
                     {line.text}
-                    {line.extras.length > 0 && <span className="text-subtle"> {line.extras.join(' ')}</span>}
+                    {line.extras.length > 0 && <span className="text-terminal-dim"> {line.extras.join(' ')}</span>}
                   </span>
                 </div>)}
         </div>

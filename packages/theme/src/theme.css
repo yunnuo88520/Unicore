@@ -49,6 +49,17 @@
   --color-glass: var(--glass);
   --color-scrim: var(--scrim);
 
+  /* The live-log terminal keeps a fixed dark surface in both themes. */
+  --color-terminal-bg: var(--terminal-bg);
+  --color-terminal-bar: var(--terminal-bar);
+  --color-terminal-line: var(--terminal-line);
+  --color-terminal-text: var(--terminal-text);
+  --color-terminal-dim: var(--terminal-dim);
+  --color-terminal-info: var(--terminal-info);
+  --color-terminal-warn: var(--terminal-warn);
+  --color-terminal-error: var(--terminal-error);
+  --color-terminal-debug: var(--terminal-debug);
+
   /* Radii follow --ui-radius-scale. */
   --radius-xs: var(--radius-4);
   --radius-sm: var(--radius-6);

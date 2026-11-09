@@ -189,8 +189,10 @@ async function exercise(mode,profile) {
         const answer=[...Buffer.from(src.split(',')[1],'base64').toString().matchAll(/>([0-9])<\/text>/g)].map(match=>match[1]).join('');
         await personal.getByLabel('图形验证码',{exact:true}).fill(answer);await personal.getByRole('button',{name:'登录工作空间'}).click();
         await expect(personal.getByRole('heading',{name:'工作台概览',level:1,exact:true})).toBeVisible();
+        // The management site page is administrator-only now: members hit the
+        // standalone 403 on direct URLs.
         await personal.goto(`${url}/site`);
-        await expect(personal.getByText('仅当前客户端',{exact:true})).toBeVisible();
+        await expect(personal.getByRole('heading',{name:'没有访问权限',exact:true})).toBeVisible();
         const metadata=(await(await member.request.get('/api/v1/bootstrap')).json()).data;
         expect(metadata.current_user.roles).toEqual(['user']);expect([...metadata.current_user.permissions].sort()).toEqual(['files:access','files:delete','files:upload','notes:access','notes:create','notes:delete','notes:update']);
         // Workspace entry points share one identity. Denial follows each API's
@@ -206,7 +208,13 @@ async function exercise(mode,profile) {
         expect((await member.request.get('/manage')).status()).toBe(200);
         await expect(personal.getByLabel('站点名称',{exact:true})).toHaveCount(0);
         const writes=[];personal.on('request',request=>{if(request.method()!=='GET')writes.push(request.url());});
-        await personal.getByRole('button',{name:/深色.*柔和低光/}).click();await personal.getByRole('button',{name:'保存设置',exact:true}).click();
+        // Personal theming rides the client-local appearance drawer: choices
+        // apply instantly and never write to the instance.
+        await personal.goto(`${url}/`);
+        await personal.getByRole('button',{name:'主题设置',exact:true}).click();
+        await expect(personal.getByText('仅保存在当前客户端')).toBeVisible();
+        const drawer=personal.getByRole('dialog',{name:'主题设置',exact:true});
+        await drawer.locator('.preference-theme').getByRole('button',{name:'深色',exact:true}).click();
         await expect(personal.locator('html')).toHaveAttribute('data-theme','dark');expect(writes).toEqual([]);
         await personal.screenshot({path:join(evidence,`${mode}-member-local-375.png`),fullPage:true});
         // Cancelling MFA also closes a fully authenticated session. Both

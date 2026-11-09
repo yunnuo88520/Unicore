@@ -5,6 +5,7 @@ package platformsql
 import (
 	"context"
 	"errors"
+	"fmt"
 	"path/filepath"
 	"testing"
 	"time"
@@ -63,23 +64,25 @@ func TestNavigationBootstrapAndSave(t *testing.T) {
 	if err != nil || listed.Version != 1 || len(listed.Sections) == 0 || len(listed.Nodes) == 0 {
 		t.Fatal("bootstrap navigation", listed.Version, len(listed.Sections), len(listed.Nodes), err)
 	}
-	// Both surfaces are present and every registered page route resolves.
-	surfaceOf := map[string]string{}
+	// Both workspaces are present and every registered page route resolves.
+	surfaceOf := map[string][]string{}
 	for _, section := range listed.Sections {
-		surfaceOf[section.ID] = section.Surface
+		surfaceOf[section.ID] = section.Surfaces
 	}
 	ids := map[string]bool{}
 	for _, node := range listed.Nodes {
-		if surfaceOf[node.SectionID] == "" || (node.Type != "action" && node.Label != "") {
+		if len(surfaceOf[node.SectionID]) == 0 || (node.Type != "action" && node.Label != "") {
 			t.Fatal("seed violates the frontend model", node)
 		}
-		if ids["\x00"+node.ID+"\x00"+surfaceOf[node.SectionID]] {
-			t.Fatal("duplicate node id within surface", node.ID)
+		if ids[node.ID] {
+			t.Fatal("duplicate node id", node.ID)
 		}
-		ids["\x00"+node.ID+"\x00"+surfaceOf[node.SectionID]] = true
+		ids[node.ID] = true
 		if node.Type == "page" && node.RouteID != nil {
-			if _, ok := platform.NavigationPage(*node.RouteID, surfaceOf[node.SectionID]); !ok {
-				t.Fatal("unregistered default route", node.ID, *node.RouteID)
+			for _, surface := range node.Surfaces {
+				if _, ok := platform.NavigationPage(*node.RouteID, surface); !ok {
+					t.Fatal("unregistered default route", node.ID, *node.RouteID, surface)
+				}
 			}
 		}
 	}
@@ -95,9 +98,9 @@ func TestNavigationBootstrapAndSave(t *testing.T) {
 	// Validation bounds: actions need a page parent, a catalogue permission and
 	// real delegable operations; non-action nodes never carry grants.
 	page := func(id string) contracts.NavigationNode {
-		return contracts.NavigationNode{ID: id, SectionID: "user:business", Type: "page", RouteID: &id, Visible: true, OpenMode: "same_tab", OperationIds: []string{}}
+		return contracts.NavigationNode{ID: id, SectionID: "business", Surfaces: []string{"user", "administrator"}, Type: "page", RouteID: &id, Visible: true, OpenMode: "same_tab", OperationIds: []string{}}
 	}
-	action := contracts.NavigationNode{ID: "notes:rename", SectionID: "user:business", Type: "action", ParentID: strPtr("user:notes"), Label: "重命名", Visible: true, OpenMode: "same_tab", Permission: strPtr("notes:update"), OperationIds: []string{"updateNote"}}
+	action := contracts.NavigationNode{ID: "op:renameNote", SectionID: "business", Surfaces: []string{"user", "administrator"}, Type: "action", ParentID: strPtr("notes"), Label: "重命名", Visible: true, OpenMode: "same_tab", Permission: strPtr("notes:update"), OperationIds: []string{"updateNote"}}
 	if _, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: listed.Version, Sections: listed.Sections, Nodes: append(append([]contracts.NavigationNode{}, listed.Nodes...), action)}, admin.ID); err != nil {
 		t.Fatal("valid action refused", err)
 	}
@@ -114,7 +117,7 @@ func TestNavigationBootstrapAndSave(t *testing.T) {
 		}(),
 		// Unknown page route is refused unless explicitly disabled.
 		func() []contracts.NavigationNode { p := page("ghost"); return []contracts.NavigationNode{p} }(),
-		// Actions must bind to real delegable operations of their realm.
+		// Actions must bind to real delegable operations.
 		func() []contracts.NavigationNode {
 			a := action
 			a.OperationIds = []string{"createRole"}
@@ -123,9 +126,9 @@ func TestNavigationBootstrapAndSave(t *testing.T) {
 		// Actions must hang under a page.
 		func() []contracts.NavigationNode { a := action; a.ParentID = nil; return []contracts.NavigationNode{a} }(),
 	}
-	for _, nodes := range broken {
+	for index, nodes := range broken {
 		if _, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: after.Version, Sections: after.Sections, Nodes: nodes}, admin.ID); !errors.Is(err, platform.ErrInput) {
-			t.Fatal("broken tree accepted", err)
+			t.Fatal("broken tree accepted", index, err)
 		}
 	}
 
@@ -174,24 +177,24 @@ func TestRoleGrantMaterializationAndBoundaries(t *testing.T) {
 	// submitted menus and operations, empty when omitted. Equivalence
 	// materialization is a one-time upgrade fact, never a creation default.
 	realm := "user"
-	files, err := repo.CreateRole(ctx, contracts.RoleSaveInput{Name: "文件员", Realm: &realm, ActionIds: &[]string{}, Permissions: []string{"files:access"}, MenuIds: &[]string{"user:files"}, OperationIds: &[]string{"listFiles", "fileAccess"}}, admin.ID)
+	files, err := repo.CreateRole(ctx, contracts.RoleSaveInput{Name: "记录员", Realm: &realm, ActionIds: &[]string{}, Permissions: []string{"notes:access"}, MenuIds: &[]string{"notes"}, OperationIds: &[]string{"listNotes"}}, admin.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !contains(files.OperationIds, "listFiles") || contains(files.OperationIds, "listNotes") {
+	if !contains(files.OperationIds, "listNotes") || contains(files.OperationIds, "deleteNote") || contains(files.OperationIds, "createNote") {
 		t.Fatal("custom role grants", files.OperationIds)
 	}
-	if len(files.MenuIds) != 1 || files.MenuIds[0] != "user:files" {
+	if len(files.MenuIds) != 1 || files.MenuIds[0] != "notes" {
 		t.Fatal("custom role menus", files.MenuIds)
 	}
 
-	// Operation grants are bounded by permission points: a files-only role can
-	// never take a notes operation, and cross-realm or unknown ids are refused.
-	if _, err = repo.UpdateRole(ctx, files.ID, contracts.RoleSaveInput{Name: "文件员", Permissions: []string{"files:access"}, OperationIds: &[]string{"listNotes"}}, admin.ID); !errors.Is(err, platform.ErrForbidden) {
+	// Operation grants are bounded by permission points: a notes-reader role
+	// can never take a mutation or a management operation.
+	if _, err = repo.UpdateRole(ctx, files.ID, contracts.RoleSaveInput{Name: "记录员", Permissions: []string{"notes:access"}, OperationIds: &[]string{"deleteNote"}}, admin.ID); !errors.Is(err, platform.ErrForbidden) {
 		t.Fatal("operation beyond permission bound", err)
 	}
-	if _, err = repo.UpdateRole(ctx, files.ID, contracts.RoleSaveInput{Name: "文件员", Permissions: []string{"files:access"}, OperationIds: &[]string{"listRoles"}}, admin.ID); !errors.Is(err, platform.ErrForbidden) {
-		t.Fatal("cross-realm operation grant", err)
+	if _, err = repo.UpdateRole(ctx, files.ID, contracts.RoleSaveInput{Name: "记录员", Permissions: []string{"notes:access"}, OperationIds: &[]string{"listRoles"}}, admin.ID); !errors.Is(err, platform.ErrForbidden) {
+		t.Fatal("operation beyond permission bound", err)
 	}
 
 	// Menus never grant API capability: the projection filters visibility only.
@@ -204,17 +207,17 @@ func TestRoleGrantMaterializationAndBoundaries(t *testing.T) {
 		t.Fatal(listErr)
 	}
 	projected := platform.NavigationFor(contracts.Navigation{Version: listed.Version, Sections: listed.Sections, Nodes: listed.Nodes}, member, "user")
-	if len(projected.Nodes) != 1 || projected.Nodes[0].ID != "user:files" {
+	if len(projected.Nodes) != 1 || projected.Nodes[0].ID != "notes" {
 		t.Fatal("projection filter", projected.Nodes)
 	}
 
 	// Role assignment through the menu editor is super+roles:write only.
 	super := admin
-	if _, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: listed.Version, Sections: listed.Sections, Nodes: listed.Nodes, RoleAssignments: &[]contracts.NavigationRoleAssignment{{RoleID: files.ID, MenuIds: []string{"user:overview"}, ActionIds: []string{}}}}, super.ID); err != nil {
+	if _, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: listed.Version, Sections: listed.Sections, Nodes: listed.Nodes, RoleAssignments: &[]contracts.NavigationRoleAssignment{{RoleID: files.ID, MenuIds: []string{"overview"}, ActionIds: []string{}}}}, super.ID); err != nil {
 		t.Fatal("super assignment refused", err)
 	}
 	after, err := repo.role(ctx, repo.Store.DB, files.ID)
-	if err != nil || len(after.MenuIds) != 1 || after.MenuIds[0] != "user:overview" {
+	if err != nil || len(after.MenuIds) != 1 || after.MenuIds[0] != "overview" {
 		t.Fatal("assignment echo", after.MenuIds, err)
 	}
 
@@ -242,10 +245,10 @@ func TestRoleGrantMaterializationAndBoundaries(t *testing.T) {
 func strPtr(v string) *string { return &v }
 func boolPtr(v bool) *bool    { return &v }
 
-// TestLegacyOverrideSurfaceMerge pins the E2E finding: user-workspace legacy
-// overrides must land on the user-surface node only. Bare ids repeat across
-// surfaces, so an id-only merge would corrupt the administrator tree.
-func TestLegacyOverrideSurfaceMerge(t *testing.T) {
+// TestLegacyOverrideMergesOnce pins the unified-tree semantics: a legacy
+// user-workspace override merges onto the single shared notes node, which
+// carries both surfaces after the conversion (ADR-0039).
+func TestLegacyOverrideMergesOnce(t *testing.T) {
 	ctx := context.Background()
 	store, repo, admin := navigationFixture(t, ctx)
 
@@ -258,30 +261,142 @@ func TestLegacyOverrideSurfaceMerge(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	surfaceOf := map[string]string{}
-	for _, section := range listed.Sections {
-		surfaceOf[section.ID] = section.Surface
-	}
-	userNotes, adminNotes := -1, -1
-	for i, node := range listed.Nodes {
-		if node.RouteID == nil || *node.RouteID != "notes" {
-			continue
-		}
-		switch surfaceOf[node.SectionID] {
-		case "user":
-			userNotes = i
-		case "administrator":
-			adminNotes = i
+	notes := []contracts.NavigationNode{}
+	for _, node := range listed.Nodes {
+		if node.RouteID != nil && *node.RouteID == "notes" {
+			notes = append(notes, node)
 		}
 	}
-	if userNotes < 0 || adminNotes < 0 {
-		t.Fatal("notes nodes missing after conversion", len(listed.Nodes))
+	if len(notes) != 1 {
+		t.Fatal("the shared tree keeps exactly one notes node", len(notes))
 	}
-	if listed.Nodes[userNotes].Label != "随手记" || listed.Nodes[userNotes].Visible {
-		t.Fatal("user override not merged", listed.Nodes[userNotes])
+	if notes[0].Label != "随手记" || notes[0].Visible {
+		t.Fatal("legacy override not merged", notes[0])
 	}
-	if listed.Nodes[adminNotes].Label != "" || !listed.Nodes[adminNotes].Visible {
-		t.Fatal("administrator node corrupted by user override", listed.Nodes[adminNotes])
+	if !contains(notes[0].Surfaces, "user") || !contains(notes[0].Surfaces, "administrator") {
+		t.Fatal("shared node lost a surface", notes[0].Surfaces)
 	}
 	_ = admin
+}
+
+// TestSharedNavigationUpgrade pins the ADR-0039 one-time conversion: a stored
+// workspace-prefixed dual tree collapses into the shared single tree, both
+// variants of one page merge into a node carrying both surfaces, and the role
+// grant rows lose their prefixes with duplicates removed.
+func TestSharedNavigationUpgrade(t *testing.T) {
+	ctx := context.Background()
+	store, repo, admin := navigationFixture(t, ctx)
+	_ = admin
+
+	// A legacy tree serialized exactly the way the pre-ADR-0039 storage wrote
+	// it: prefixed ids and scalar surfaces, with duplicated grants on both
+	// workspace variants of the personal-center pages.
+	legacySections := []struct{ id, surface string }{
+		{"user:business", "user"}, {"user:personal", "user"},
+		{"admin:business", "administrator"}, {"admin:system", "administrator"},
+	}
+	legacyNodes := []string{"overview", "lab", "notes", "account", "account-security"}
+	if err := func() error {
+		tx, err := store.DB.BeginTx(ctx, nil)
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
+		for _, section := range legacySections {
+			payload := fmt.Sprintf(`{"id":%q,"surface":%q,"name":"","sort":10,"visible":true,"show_title":true}`, section.id, section.surface)
+			if _, err := store.Exec(ctx, tx, "INSERT INTO unicore_navigation_sections(id,surface,payload) VALUES(?,?,?)", section.id, section.surface, payload); err != nil {
+				return err
+			}
+		}
+		// The legacy layout kept the administrator account pages inside the
+		// admin:system region while members had their own personal region.
+		sectionOf := map[string]map[string]string{
+			"user":  {"overview": "business", "lab": "business", "notes": "business", "account": "personal", "account-security": "personal"},
+			"admin": {"overview": "business", "lab": "business", "notes": "business", "account": "system", "account-security": "system"},
+		}
+		for _, surface := range []string{"user", "admin"} {
+			for _, page := range legacyNodes {
+				id := surface + ":" + page
+				payload := fmt.Sprintf(`{"id":%q,"section_id":%q,"surfaces":[],"type":"page","route_id":%q,"label":"","icon":"Circle","sort":100,"visible":true,"open_mode":"same_tab","badge_text":"","badge_color":"","badge_dot":false,"operation_ids":[],"disabled":false}`, id, surface+":"+sectionOf[surface][page], page)
+				if _, err := store.Exec(ctx, tx, "INSERT INTO unicore_navigation_nodes(id,section_id,node_type,payload) VALUES(?,?,?,?)", id, surface+":"+sectionOf[surface][page], "page", payload); err != nil {
+					return err
+				}
+			}
+		}
+		if _, err := store.Exec(ctx, tx, "UPDATE unicore_navigation_state SET version=4, initialized=1 WHERE id=1"); err != nil {
+			return err
+		}
+		if _, err := store.Exec(ctx, tx, "INSERT INTO unicore_role_menus(role_id,menu_id) VALUES('user','user:notes'),('user','administrator:notes'),('user','user:account')"); err != nil {
+			return err
+		}
+		if _, err := store.Exec(ctx, tx, "INSERT INTO unicore_role_actions(role_id,action_id) VALUES('user','user:op:createNote'),('user','administrator:op:createNote')"); err != nil {
+			return err
+		}
+		return tx.Commit()
+	}(); err != nil {
+		t.Fatal(err)
+	}
+
+	// The startup conversion collapses the dual tree and rewrites the grants.
+	if err := repo.EnsureNavigation(ctx); err != nil {
+		t.Fatal(err)
+	}
+	listed, err := repo.ListMenuConfig(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := len(listed.Sections); got != 3 {
+		t.Fatal("sections collapsed", listed.Sections)
+	}
+	surfaces := map[string][]string{}
+	for _, section := range listed.Sections {
+		surfaces[section.ID] = section.Surfaces
+	}
+	for id, want := range map[string]int{"business": 2, "personal": 2, "system": 1} {
+		if len(surfaces[id]) != want {
+			t.Fatal("section surfaces", id, surfaces[id])
+		}
+	}
+	notes := []contracts.NavigationNode{}
+	for _, node := range listed.Nodes {
+		if node.RouteID != nil && *node.RouteID == "notes" {
+			notes = append(notes, node)
+		}
+	}
+	if len(notes) != 1 || !contains(notes[0].Surfaces, "user") || !contains(notes[0].Surfaces, "administrator") {
+		t.Fatal("notes variants merged", notes)
+	}
+	// Grant rows: deduplicated onto the shared ids.
+	menuIDs, err := store.Rows(ctx, store.DB, "SELECT menu_id FROM unicore_role_menus WHERE role_id='user' ORDER BY menu_id")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ids := []string{}
+	for menuIDs.Next() {
+		var id string
+		if err := menuIDs.Scan(&id); err != nil {
+			t.Fatal(err)
+		}
+		ids = append(ids, id)
+	}
+	menuIDs.Close()
+	if len(ids) != 2 || ids[0] != "account" || ids[1] != "notes" {
+		t.Fatal("menu grants rewritten", ids)
+	}
+	actionRows, err := store.Rows(ctx, store.DB, "SELECT action_id FROM unicore_role_actions WHERE role_id='user'")
+	if err != nil {
+		t.Fatal(err)
+	}
+	actionIDs := []string{}
+	for actionRows.Next() {
+		var id string
+		if err := actionRows.Scan(&id); err != nil {
+			t.Fatal(err)
+		}
+		actionIDs = append(actionIDs, id)
+	}
+	actionRows.Close()
+	if len(actionIDs) != 1 || actionIDs[0] != "op:createNote" {
+		t.Fatal("action grants rewritten", actionIDs)
+	}
 }

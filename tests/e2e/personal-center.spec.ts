@@ -69,13 +69,13 @@ test('personal center supports profile, TOTP recovery login and device revocatio
  await page.goto(`${instance.url}/admin/account-security`);await expect(page.getByRole('heading',{name:'Security',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Disable two-factor authentication',exact:true})).toBeVisible();
  await page.screenshot({path:`${directory}/security-en-dark.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  if(info.project.name==='mobile')await page.getByRole('button',{name:'Open navigation',exact:true}).click();
- // Administrator personal pages live in the system section's Personal center
- // directory; the active page keeps that directory auto-expanded.
- const systemSection=page.locator('.sidebar section[data-nav-section="admin:system"]');
- const personalGroup=systemSection.getByRole('button',{name:'Personal center',exact:true});
- await expect(personalGroup).toHaveAttribute('aria-expanded','true');
+ // Administrator personal pages are a first-class region of the shared tree;
+ // the active page keeps its entry highlighted inside that region.
+ const personalSection=page.locator('.sidebar section[data-nav-section="personal"]');
+ await expect(personalSection).toBeVisible();
+ await expect(personalSection.locator('h2')).toHaveText('Personal center');
  await expect(page.locator('.sidebar').getByRole('button',{name:'Security',exact:true})).toHaveClass(/bg-primary-soft/);
- await expect(systemSection.getByRole('button',{name:'Security',exact:true})).toBeVisible();
+ await expect(personalSection.getByRole('button',{name:'Security',exact:true})).toBeVisible();
 });
 
 test('forced enrollment applies to ordinary users and preserves recovery codes across policy refresh',async({page,instance},info)=>{
@@ -108,7 +108,7 @@ test('forced enrollment applies to ordinary users and preserves recovery codes a
  expect(current.username).toBe('member');expect(current.totp_enabled).toBe(true);
  expect((await page.request.get(`${instance.url}/api/v1/admin/users`)).status()).toBe(403);
  if(info.project.name==='mobile')await page.getByRole('button',{name:'打开导航',exact:true}).click();
- await expect(page.locator('.sidebar section[data-nav-section$=":personal"]')).toBeVisible();
+ await expect(page.locator('.sidebar section[data-nav-section="personal"]')).toBeVisible();
  await expect(page.locator('.sidebar').getByRole('button',{name:'系统设置',exact:true})).toHaveCount(0);
  // Management-flavoured pages never render on the user surface, even though a
  // persisted legacy menu tree still carries their nodes.

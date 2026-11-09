@@ -1517,12 +1517,12 @@ type UserImportFailure struct {
 }
 
 type NavigationSection struct {
-	ID        string `json:"id"`
-	Surface   string `json:"surface"`
-	Name      string `json:"name"`
-	Sort      int    `json:"sort"`
-	Visible   bool   `json:"visible"`
-	ShowTitle bool   `json:"show_title"`
+	ID        string   `json:"id"`
+	Name      string   `json:"name"`
+	Sort      int      `json:"sort"`
+	Visible   bool     `json:"visible"`
+	ShowTitle bool     `json:"show_title"`
+	Surfaces  []string `json:"surfaces"`
 }
 
 type NavigationNode struct {
@@ -1544,6 +1544,7 @@ type NavigationNode struct {
 	Permission   *string  `json:"permission,omitempty"`
 	OperationIds []string `json:"operation_ids"`
 	Disabled     bool     `json:"disabled"`
+	Surfaces     []string `json:"surfaces"`
 }
 
 type NavigationPage struct {

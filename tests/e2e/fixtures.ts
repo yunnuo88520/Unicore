@@ -166,13 +166,13 @@ const directoryLabels: Record<string, string> = { administration: '超级管理�
 // The label a node renders with: the operator override, the registered route
 // label or the seeded directory fallback.
 export function nodeDisplayLabel(node: { label: string; route_id?: string; id: string }): string {
-  return node.label.trim() || (node.route_id ? routeLabels[node.route_id] ?? node.route_id : directoryLabels[node.id.replace(/^(user|administrator):/, '')] ?? node.id);
+  return node.label.trim() || (node.route_id ? routeLabels[node.route_id] ?? node.route_id : directoryLabels[node.id] ?? node.id);
 }
 
 export function pageNode(config: MenuList, routeId: string, surface?: 'user' | 'administrator'): NavigationNode | undefined {
-  const sections = new Set(config.sections.filter(section => !surface || section.surface === surface).map(section => section.id));
+  const sections = new Set(config.sections.filter(section => !surface || section.surfaces.includes(surface)).map(section => section.id));
   const candidates = config.nodes.filter(node => node.type === 'page' && node.route_id === routeId && sections.has(node.section_id));
-  return (!surface ? candidates.find(node => config.sections.some(section => section.id === node.section_id && section.surface === 'user')) : undefined) ?? candidates[0];
+  return (!surface ? candidates.find(node => config.sections.some(section => section.id === node.section_id && section.surfaces.includes('user'))) : undefined) ?? candidates[0];
 }
 
 // Role menu authorization needs the full ancestor chain: the server suppresses

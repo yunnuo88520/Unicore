@@ -1,5 +1,5 @@
 /** Author: yunnuo <ymz@ebox.vip>
- * Description: The tabbed role editor saves four authorization faces (menus+buttons, operations, permission points+data scope) where empty means empty; the grant tree cascades ancestors, searches and shows three states, and copies prefill the create editor.
+ * Description: The single-tree role editor saves four authorization faces (menus, actions, operations, permission points+data scope) where empty means empty; checking a page cascades its subtree and selects its actions and API operations, the grant tree searches and shows three states, and copies prefill the create editor.
  */
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -36,27 +36,19 @@ const menuConfig = () => ({
   items: [],
   pages: [],
   sections: [
-    { id: 'sec-user', surface: 'user', name: '业务', sort: 0, visible: true, show_title: true },
-    { id: 'sec-admin', surface: 'administrator', name: '后台', sort: 0, visible: true, show_title: true },
+    { id: 'sec-user', surfaces: ['user'], name: '业务', sort: 0, visible: true, show_title: true },
+    { id: 'sec-admin', surfaces: ['administrator'], name: '后台', sort: 0, visible: true, show_title: true },
   ],
   nodes: [
-    { id: 'n-notes', section_id: 'sec-user', type: 'page', label: '我的笔记', icon: 'NotebookPen', sort: 0, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: [], disabled: false, permission: 'notes:access' },
-    { id: 'n-act-notes', section_id: 'sec-user', parent_id: 'n-notes', type: 'action', label: '导出笔记动作', icon: '', sort: 0, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: ['listNotes'], disabled: false, permission: 'notes:delete' },
-    { id: 'n-act-notes-2', section_id: 'sec-user', parent_id: 'n-notes', type: 'action', label: '导出笔记动作', icon: '', sort: 1, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: ['listNotes'], disabled: false, permission: 'notes:delete' },
-    { id: 'n-dir', section_id: 'sec-user', type: 'directory', label: '组织目录', icon: 'Network', sort: 1, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: [], disabled: false },
-    { id: 'n-child', section_id: 'sec-user', parent_id: 'n-dir', type: 'page', label: '子页面', icon: 'FileText', sort: 0, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: [], disabled: false, permission: 'files:access' },
-    { id: 'n-users', section_id: 'sec-admin', type: 'page', label: '用户列表', icon: 'UserRound', sort: 0, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: [], disabled: false, permission: 'users:read' },
-    { id: 'administration', section_id: 'sec-admin', type: 'directory', label: '', icon: 'Users', sort: 1, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: [], disabled: false },
-    { id: 'n-unnamed-files', section_id: 'sec-user', type: 'page', label: '', route_id: 'files', icon: 'FolderOpen', sort: 2, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: [], disabled: false, permission: 'files:access' },
-    { id: 'n-raw', section_id: 'sec-user', type: 'page', label: '', icon: 'Circle', sort: 3, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: [], disabled: false },
-  ],
-});
-
-const apiOperations = () => ({
-  items: [
-    { operation_id: 'listNotes', method: 'GET', path: '/api/v1/notes', summary: '列出笔记', tags: ['笔记'], realm: 'user', permissions: ['notes:access'], permission_mode: 'all', csrf: false, super_admin: false, grantable: true },
-    { operation_id: 'applyUpdate', method: 'POST', path: '/api/v1/admin/updates/apply', summary: '安装更新', tags: ['系统'], realm: 'administrator', permissions: ['updates:apply'], permission_mode: 'all', csrf: true, super_admin: true, grantable: true },
-    { operation_id: 'publicPolicy', method: 'GET', path: '/api/v1/auth/policy', summary: '登录策略', tags: ['认证'], realm: 'both', permissions: [], permission_mode: 'public', csrf: false, super_admin: false, grantable: false },
+    { id: 'n-notes', section_id: 'sec-user', type: 'page', label: '我的笔记', route_id: 'notes', icon: 'NotebookPen', sort: 0, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: [], disabled: false, permission: 'notes:access', surfaces: ['user', 'administrator'] },
+    { id: 'n-act-notes', section_id: 'sec-user', parent_id: 'n-notes', type: 'action', label: '导出笔记动作', icon: '', sort: 0, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: ['listNotes'], disabled: false, permission: 'notes:delete', surfaces: ['user'] },
+    { id: 'n-act-notes-2', section_id: 'sec-user', parent_id: 'n-notes', type: 'action', label: '导出笔记动作', icon: '', sort: 1, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: ['listNotes'], disabled: false, permission: 'notes:delete', surfaces: ['user'] },
+    { id: 'n-dir', section_id: 'sec-user', type: 'directory', label: '组织目录', icon: 'Network', sort: 1, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: [], disabled: false, surfaces: ['user'] },
+    { id: 'n-child', section_id: 'sec-user', parent_id: 'n-dir', type: 'page', label: '子页面', icon: 'FileText', sort: 0, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: [], disabled: false, permission: 'files:access', surfaces: ['user'] },
+    { id: 'n-users', section_id: 'sec-admin', type: 'page', label: '用户列表', icon: 'UserRound', sort: 0, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: [], disabled: false, permission: 'users:read', surfaces: ['administrator'] },
+    { id: 'administration', section_id: 'sec-admin', type: 'directory', label: '', icon: 'Users', sort: 1, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: [], disabled: false, surfaces: ['administrator'] },
+    { id: 'n-unnamed-files', section_id: 'sec-user', type: 'page', label: '', route_id: 'files', icon: 'FolderOpen', sort: 2, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: [], disabled: false, permission: 'files:access', surfaces: ['user'] },
+    { id: 'n-raw', section_id: 'sec-user', type: 'page', label: '', icon: 'Circle', sort: 3, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: [], disabled: false, surfaces: ['user'] },
   ],
 });
 
@@ -74,17 +66,18 @@ function mount(metadata: Bootstrap, web: Record<string, unknown>) {
   );
 }
 
-const baseWeb = (extra: Record<string, unknown> = {}) => ({ roles: vi.fn().mockResolvedValue(rolesPayload()), menuConfig: vi.fn().mockImplementation(menuConfig), apiOperations: vi.fn().mockImplementation(apiOperations), ...extra });
+const baseWeb = (extra: Record<string, unknown> = {}) => ({ roles: vi.fn().mockResolvedValue(rolesPayload()), menuConfig: vi.fn().mockImplementation(menuConfig), ...extra });
 
-const MENUS_TAB = '菜单与按钮';
-const API_TAB = 'API 授权';
-const POINTS_TAB = '权限点与数据范围';
+async function openEditor(action: string) {
+  await userEvent.click(await screen.findByRole('button', { name: action }));
+  // Copies open the create editor: only edits reuse the source role object.
+  return screen.getByRole('dialog', { name: action === '编辑角色 记录员' ? '编辑角色' : '新建角色' });
+}
 
-// Panels stay mounted but hidden, so interactions first activate their tab
-// exactly like a keyboard operator would.
-async function openTab(dialog: HTMLElement, name: string) {
-  await userEvent.click(within(dialog).getByRole('tab', { name }));
-  return within(dialog).getByRole('tabpanel', { name });
+// The advanced permission-point catalogue stays collapsed below the tree.
+async function openAdvanced(dialog: HTMLElement) {
+  await userEvent.click(within(dialog).getByRole('button', { name: /高级/ }));
+  return within(dialog).getByRole('group', { name: '权限点' });
 }
 
 it('lists all roles together and shows member counts per role', async () => {
@@ -97,15 +90,14 @@ it('lists all roles together and shows member counts per role', async () => {
   expect(screen.getByRole('row', { name: /内容运营/ })).toHaveTextContent('2');
 });
 
-it('keeps menu and dictionary grants selectable while super-only points stay locked in the administrator matrix', async () => {
+it('keeps menu and dictionary grants selectable while super-only points stay locked in the advanced catalogue', async () => {
   const createRole = vi.fn().mockResolvedValue({ id: 'ops-admin', name: '内容运营', builtin: false, permissions: ['menus:write'], user_count: 0, realm: 'administrator', menu_ids: [], action_ids: [], operation_ids: [], authorization_initialized: true });
   mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole }));
   await screen.findByText('记录员');
-  await userEvent.click(await screen.findByRole('button', { name: '新建角色' }));
-  const dialog = screen.getByRole('dialog', { name: '新建角色' });
+  const dialog = await openEditor('新建角色');
   expect(within(dialog).queryByLabelText('角色域')).toBeNull();
   await userEvent.type(within(dialog).getByLabelText('角色名称'), '内容运营');
-  const points = await openTab(dialog, POINTS_TAB);
+  const points = await openAdvanced(dialog);
   await userEvent.click(within(points).getByRole('checkbox', { name: '管理菜单' }));
   expect(within(points).getByRole('checkbox', { name: '查看用户' })).toBeEnabled();
   expect(within(points).queryByRole('checkbox', { name: '管理角色' })).toBeNull();
@@ -118,9 +110,8 @@ it('keeps menu and dictionary grants selectable while super-only points stay loc
 it('allows business and management permissions in the same role', async () => {
   mount(metadata(['roles:read', 'roles:write']), baseWeb());
   await screen.findByText('记录员');
-  await userEvent.click(screen.getByRole('button', { name: '新建角色' }));
-  const dialog = screen.getByRole('dialog', { name: '新建角色' });
-  const points = await openTab(dialog, POINTS_TAB);
+  const dialog = await openEditor('新建角色');
+  const points = await openAdvanced(dialog);
   expect(within(points).getByRole('checkbox', { name: '使用文件管理' })).toBeEnabled();
   expect(within(points).getByRole('checkbox', { name: '管理菜单' })).toBeEnabled();
   expect(within(points).getByRole('checkbox', { name: '查看用户' })).toBeEnabled();
@@ -130,9 +121,8 @@ it('allows business and management permissions in the same role', async () => {
 it('renders the matrix grouped by catalogue group with action-point descriptions', async () => {
   mount(metadata(['roles:read', 'roles:write']), baseWeb());
   await screen.findByText('记录员');
-  await userEvent.click(screen.getByRole('button', { name: '新建角色' }));
-  const dialog = screen.getByRole('dialog', { name: '新建角色' });
-  const points = await openTab(dialog, POINTS_TAB);
+  const dialog = await openEditor('新建角色');
+  const points = await openAdvanced(dialog);
   // Group headings come from the catalogue projection and translate both ways.
   expect(within(points).getByText('业务权限')).toBeVisible();
   expect(within(points).getByText('用户管理')).toBeVisible();
@@ -146,8 +136,7 @@ it('saves an untouched editor with empty authorization arrays instead of an all-
   const createRole = vi.fn().mockResolvedValue({ id: 'empty', name: '空授权', builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: [], action_ids: [], operation_ids: [], authorization_initialized: true });
   mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole }));
   await screen.findByText('记录员');
-  await userEvent.click(screen.getByRole('button', { name: '新建角色' }));
-  const dialog = screen.getByRole('dialog', { name: '新建角色' });
+  const dialog = await openEditor('新建角色');
   await userEvent.type(within(dialog).getByLabelText('角色名称'), '空授权');
   await userEvent.click(within(dialog).getByRole('button', { name: '保存' }));
   await vi.waitFor(() => expect(createRole).toHaveBeenCalledWith(expect.objectContaining({
@@ -159,11 +148,15 @@ it('authorizes menu trees per realm surface where directories aggregate their de
   const createRole = vi.fn().mockResolvedValue({ id: 'menu-role', name: '菜单角色', builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: ['n-dir', 'n-child'], action_ids: [], operation_ids: [], authorization_initialized: true });
   mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole }));
   await screen.findByText('记录员');
-  await userEvent.click(screen.getByRole('button', { name: '新建角色' }));
-  const dialog = screen.getByRole('dialog', { name: '新建角色' });
-  // Both workspaces are available and named independently.
-  expect(within(dialog).getByRole('region', { name: '用户端 · 业务' })).toBeVisible();
-  expect(within(dialog).getByRole('region', { name: '管理端 · 后台' })).toBeVisible();
+  const dialog = await openEditor('新建角色');
+  // Both workspaces are available and named independently; each header carries
+  // its surface badge and the selected menu count.
+  expect(within(dialog).getByRole('region', { name: '业务' })).toBeVisible();
+  expect(within(dialog).getByRole('region', { name: '后台' })).toBeVisible();
+  // Surface badges: shared nodes authorize once for both workspaces.
+  expect(within(dialog).getByText('两端')).toBeVisible();
+  expect(within(dialog).getAllByText('成员端').length).toBeGreaterThan(0);
+  expect(within(dialog).getAllByText('管理端').length).toBeGreaterThan(0);
   expect(within(dialog).getByRole('checkbox', { name: '我的笔记' })).not.toBeChecked();
   await userEvent.click(within(dialog).getByRole('checkbox', { name: '组织目录' }));
   // Checking a directory selects the whole branch: the child page comes along.
@@ -177,8 +170,7 @@ it('completes the ancestor chain and shows the indeterminate state on partially 
   const createRole = vi.fn().mockResolvedValue({ id: 'child-role', name: '子页角色', builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: ['n-dir', 'n-child'], action_ids: [], operation_ids: [], authorization_initialized: true });
   mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole }));
   await screen.findByText('记录员');
-  await userEvent.click(screen.getByRole('button', { name: '新建角色' }));
-  const dialog = screen.getByRole('dialog', { name: '新建角色' });
+  const dialog = await openEditor('新建角色');
   const directory = within(dialog).getByRole('checkbox', { name: '组织目录' });
   // The navigation projection only renders pages whose ancestors are granted,
   // so checking the child completes the chain upward.
@@ -197,8 +189,7 @@ it('completes the ancestor chain and shows the indeterminate state on partially 
 it('collapses branches and locates nodes through search', async () => {
   mount(metadata(['roles:read', 'roles:write']), baseWeb());
   await screen.findByText('记录员');
-  await userEvent.click(screen.getByRole('button', { name: '新建角色' }));
-  const dialog = screen.getByRole('dialog', { name: '新建角色' });
+  const dialog = await openEditor('新建角色');
   // Collapsing the directory hides its subtree until expanded again.
   await userEvent.click(within(dialog).getByRole('button', { name: '展开或收起 组织目录' }));
   expect(within(dialog).queryByRole('checkbox', { name: '子页面' })).toBeNull();
@@ -216,8 +207,7 @@ it('locates unnamed menu nodes through the navigation display fallback', async (
   const createRole = vi.fn().mockResolvedValue({ id: 'fallback', name: '回退角色', builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: ['n-unnamed-files', 'n-raw'], action_ids: [], operation_ids: [], authorization_initialized: true });
   mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole }));
   await screen.findByText('记录员');
-  await userEvent.click(screen.getByRole('button', { name: '新建角色' }));
-  const dialog = screen.getByRole('dialog', { name: '新建角色' });
+  const dialog = await openEditor('新建角色');
   // An unnamed page node resolves its label from the registered route...
   const unnamed = within(dialog).getByRole('checkbox', { name: '文件管理' });
   // ...a seeded directory resolves its localized title instead of leaking the raw id...
@@ -235,8 +225,7 @@ it('echoes saved menu authorization through the same tree when editing', async (
   const updateRole = vi.fn().mockResolvedValue({ id: 'recorder', name: '记录员', builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: ['n-dir', 'n-child'], action_ids: [], operation_ids: [], authorization_initialized: true });
   mount(metadata(['roles:read', 'roles:write']), baseWeb({ updateRole }));
   await screen.findByText('记录员');
-  await userEvent.click(screen.getByRole('button', { name: '编辑角色 记录员' }));
-  const editDialog = screen.getByRole('dialog', { name: '编辑角色' });
+  const editDialog = await openEditor('编辑角色 记录员');
   // The recorder fixture carries the notes page (not the directory branch).
   expect(within(editDialog).getByRole('checkbox', { name: '我的笔记' })).toBeChecked();
   expect(within(editDialog).getByRole('checkbox', { name: '组织目录' })).not.toBeChecked();
@@ -246,88 +235,98 @@ it('copies a role into a prefilled create editor with its grants', async () => {
   const createRole = vi.fn().mockResolvedValue({ id: 'copy', name: '记录员 副本', builtin: false, permissions: ['notes:access'], user_count: 0, realm: 'user', menu_ids: ['n-notes'], action_ids: [], operation_ids: ['listNotes'], authorization_initialized: true });
   mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole }));
   await screen.findByText('记录员');
-  await userEvent.click(screen.getByRole('button', { name: '复制角色 记录员' }));
-  const dialog = screen.getByRole('dialog', { name: '新建角色' });
+  const dialog = await openEditor('复制角色 记录员');
   expect(within(dialog).getByLabelText('角色名称')).toHaveValue('记录员 副本');
-  // The copied grants ride along: the notes menu echo and the API grant.
+  // The copied grants ride along: the notes menu echo and the API grant, which
+  // now lives in the page's expandable detail instead of a separate tab.
   expect(within(dialog).getByRole('checkbox', { name: '我的笔记' })).toBeChecked();
-  const api = await openTab(dialog, API_TAB);
-  expect(within(api).getByRole('checkbox', { name: 'listNotes' })).toBeChecked();
+  await userEvent.click(within(dialog).getByRole('button', { name: '展开或收起 我的笔记' }));
+  expect(within(dialog).getByRole('checkbox', { name: 'listNotes' })).toBeChecked();
   await userEvent.click(within(dialog).getByRole('button', { name: '保存' }));
-  // The action grant depends on notes:delete, which the source never held, so
-  // the strict upper-bound filter drops it on the copied save.
+  // The saved union legitimizes the copied action grant: its notes:delete
+  // requirement merges into the permission set instead of being dropped.
   await vi.waitFor(() => expect(createRole).toHaveBeenCalledWith(expect.objectContaining({
-    name: '记录员 副本', permissions: ['notes:access'], menu_ids: ['n-notes'], operation_ids: ['listNotes'], realm: 'user',
+    name: '记录员 副本', permissions: ['notes:access', 'notes:delete'], menu_ids: ['n-notes'], action_ids: ['n-act-notes'], operation_ids: ['listNotes'], realm: 'user',
   })));
 });
 
 it('authorizes page actions grouped by label with their permission point and linked operations', async () => {
-  const createRole = vi.fn().mockResolvedValue({ id: 'act-role', name: '动作角色', builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: [], action_ids: ['n-act-notes', 'n-act-notes-2'], operation_ids: [], authorization_initialized: true });
+  const createRole = vi.fn().mockResolvedValue({ id: 'act-role', name: '动作角色', builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: [], action_ids: ['n-act-notes', 'n-act-notes-2'], operation_ids: ['listNotes'], authorization_initialized: true });
   mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole }));
   await screen.findByText('记录员');
-  await userEvent.click(screen.getByRole('button', { name: '新建角色' }));
-  const dialog = screen.getByRole('dialog', { name: '新建角色' });
+  const dialog = await openEditor('新建角色');
   // Button groups stay behind their page's disclosure until asked for.
   expect(within(dialog).queryByRole('checkbox', { name: '导出笔记动作' })).toBeNull();
-  await userEvent.click(within(dialog).getByRole('button', { name: '我的笔记 的按钮' }));
+  await userEvent.click(within(dialog).getByRole('button', { name: '展开或收起 我的笔记' }));
   const action = within(dialog).getByRole('checkbox', { name: '导出笔记动作' });
   // Same-label derived buttons collapse into one grouped row; the owning
   // point and linked operations ride the tooltip instead of a second line.
   expect(within(dialog).getByTitle(/notes:delete · listNotes/)).toBeVisible();
   expect(within(dialog).getByText('×2')).toBeVisible();
   expect(action).toBeDisabled();
-  const points = await openTab(dialog, POINTS_TAB);
+  // Granting the bound point and the linked operation unlocks the action.
+  const points = await openAdvanced(dialog);
   await userEvent.click(within(points).getByRole('checkbox', { name: '删除笔记' }));
-  await userEvent.click(within(points).getByRole('checkbox', { name: '访问笔记' }));
-  const api = await openTab(dialog, API_TAB);
-  await userEvent.click(within(api).getByRole('checkbox', { name: 'listNotes' }));
-  await openTab(dialog, MENUS_TAB);
-  await userEvent.click(within(dialog).getByRole('checkbox', { name: '导出笔记动作' }));
+  expect(action).toBeDisabled();
+  await userEvent.click(within(dialog).getByRole('checkbox', { name: 'listNotes' }));
+  expect(action).toBeEnabled();
+  await userEvent.click(action);
+  // The implied points of the selection render as badges next to the page.
+  expect(within(dialog).getByTitle('notes:delete')).toBeVisible();
   await userEvent.type(within(dialog).getByLabelText('角色名称'), '动作角色');
   await userEvent.click(within(dialog).getByRole('button', { name: '保存' }));
-  await vi.waitFor(() => expect(createRole).toHaveBeenCalledWith(expect.objectContaining({ name: '动作角色', action_ids: ['n-act-notes', 'n-act-notes-2'] })));
+  await vi.waitFor(() => expect(createRole).toHaveBeenCalledWith(expect.objectContaining({
+    name: '动作角色', action_ids: ['n-act-notes', 'n-act-notes-2'], operation_ids: ['listNotes'],
+    permissions: expect.arrayContaining(['notes:access', 'notes:delete']),
+  })));
 });
 
-it('grants API operations per realm while super-admin and public operations stay locked', async () => {
-  const createRole = vi.fn().mockResolvedValue({ id: 'api-role', name: '接口角色', builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: [], action_ids: [], operation_ids: ['listNotes'], authorization_initialized: true });
+it('grants page-linked API operations while administrator-realm operations stay hidden', async () => {
+  const createRole = vi.fn().mockResolvedValue({ id: 'api-role', name: '接口角色', builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: [], action_ids: [], operation_ids: ['listFiles'], authorization_initialized: true });
   mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole }));
   await screen.findByText('记录员');
-  await userEvent.click(screen.getByRole('button', { name: '新建角色' }));
-  const dialog = screen.getByRole('dialog', { name: '新建角色' });
-  const points = await openTab(dialog, POINTS_TAB);
-  await userEvent.click(within(points).getByRole('checkbox', { name: '访问笔记' }));
-  const api = await openTab(dialog, API_TAB);
-  expect(within(api).getAllByText('GET')).toHaveLength(2);
-  expect(within(api).getByText('/api/v1/notes')).toBeVisible();
-  // Grantable user-realm operation stays selectable; super-admin, cross-realm
-  // and public operations render locked so the upper bound cannot be bypassed.
-  const listNotes = within(api).getByRole('checkbox', { name: 'listNotes' });
-  expect(listNotes).toBeEnabled();
-  expect(within(api).getByRole('checkbox', { name: 'applyUpdate' })).toBeDisabled();
-  expect(within(api).getByRole('checkbox', { name: 'publicPolicy' })).toBeDisabled();
-  await userEvent.click(listNotes);
+  const dialog = await openEditor('新建角色');
+  await userEvent.click(within(dialog).getByRole('button', { name: '展开或收起 文件管理' }));
+  // Administrator-realm operations never surface for a user-realm role, while
+  // the page's own operations stay selectable; super-admin catalogue entries
+  // are filtered out entirely.
+  expect(within(dialog).queryByRole('checkbox', { name: 'adminFileAccess' })).toBeNull();
+  const listFiles = within(dialog).getByRole('checkbox', { name: 'listFiles' });
+  expect(listFiles).toBeEnabled();
+  await userEvent.click(listFiles);
   await userEvent.type(within(dialog).getByLabelText('角色名称'), '接口角色');
   await userEvent.click(within(dialog).getByRole('button', { name: '保存' }));
-  await vi.waitFor(() => expect(createRole).toHaveBeenCalledWith(expect.objectContaining({ name: '接口角色', operation_ids: ['listNotes'] })));
+  // The operation's own permission point merges into the saved union.
+  await vi.waitFor(() => expect(createRole).toHaveBeenCalledWith(expect.objectContaining({ name: '接口角色', operation_ids: ['listFiles'], permissions: ['files:access'] })));
 });
 
-it('filters the operation catalogue by module, method, path, name and permission', async () => {
-  mount(metadata(['roles:read', 'roles:write']), baseWeb());
+it('selects a page\'s actions and operations by default and strips them when the page is unchecked', async () => {
+  const createRole = vi.fn().mockResolvedValue({ id: 'page-role', name: '页面角色', builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: ['n-notes'], action_ids: ['n-act-notes', 'n-act-notes-2'], operation_ids: ['listNotes', 'createNote'], authorization_initialized: true });
+  mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole }));
   await screen.findByText('记录员');
-  await userEvent.click(screen.getByRole('button', { name: '新建角色' }));
-  const dialog = screen.getByRole('dialog', { name: '新建角色' });
-  const api = await openTab(dialog, API_TAB);
-  expect(within(api).getByRole('checkbox', { name: 'listNotes' })).toBeVisible();
-  await userEvent.type(within(api).getByLabelText('按方法筛选'), 'POST');
-  expect(within(api).queryByRole('checkbox', { name: 'listNotes' })).toBeNull();
-  expect(within(api).getByRole('checkbox', { name: 'applyUpdate' })).toBeVisible();
-  await userEvent.clear(within(api).getByLabelText('按方法筛选'));
-  await userEvent.type(within(api).getByLabelText('按名称筛选'), '笔记');
-  expect(within(api).getByRole('checkbox', { name: 'listNotes' })).toBeVisible();
-  expect(within(api).queryByRole('checkbox', { name: 'applyUpdate' })).toBeNull();
+  const dialog = await openEditor('新建角色');
+  // The detail panel stays available while the page grant toggles.
+  await userEvent.click(within(dialog).getByRole('button', { name: '展开或收起 我的笔记' }));
+  // Checking the notes page grants its menu, its ancestor-free chain, and
+  // auto-selects every reachable action plus each linked API operation.
+  await userEvent.click(within(dialog).getByRole('checkbox', { name: '我的笔记' }));
+  expect(within(dialog).getByRole('checkbox', { name: '导出笔记动作' })).toBeChecked();
+  expect(within(dialog).getByRole('checkbox', { name: 'listNotes' })).toBeChecked();
+  expect(within(dialog).getByRole('checkbox', { name: 'createNote' })).toBeChecked();
+  // Individual operations can be unchecked without dropping the page grant.
+  await userEvent.click(within(dialog).getByRole('checkbox', { name: 'updateNote' }));
+  expect(within(dialog).getByRole('checkbox', { name: 'updateNote' })).not.toBeChecked();
+  expect(within(dialog).getByRole('checkbox', { name: '我的笔记' })).toBeChecked();
+  // Unchecking the page strips the whole grant set of that page.
+  await userEvent.click(within(dialog).getByRole('checkbox', { name: '我的笔记' }));
+  expect(within(dialog).getByRole('checkbox', { name: '导出笔记动作' })).not.toBeChecked();
+  expect(within(dialog).getByRole('checkbox', { name: 'listNotes' })).not.toBeChecked();
+  await userEvent.type(within(dialog).getByLabelText('角色名称'), '页面角色');
+  await userEvent.click(within(dialog).getByRole('button', { name: '保存' }));
+  await vi.waitFor(() => expect(createRole).toHaveBeenCalledWith(expect.objectContaining({ name: '页面角色', menu_ids: [], action_ids: [], operation_ids: [] })));
 });
 
-it('hides write actions from operators without roles:write while both tabs stay readable', async () => {
+it('hides write actions from operators without roles:write while the editor stays readable', async () => {
   mount(metadata(['roles:read']), baseWeb());
   expect(await screen.findByText('记录员')).toBeVisible();
   expect(screen.queryByRole('button', { name: '新建角色' })).toBeNull();
@@ -348,16 +347,14 @@ it('exposes the five user data scopes with a department tree for the custom scop
   const createRole = vi.fn().mockResolvedValue({ id: 'scoped', name: '区域角色', builtin: false, permissions: [], user_count: 0, realm: 'user', data_scope: 'custom', department_ids: ['d3'], menu_ids: [], action_ids: [], operation_ids: [], authorization_initialized: true });
   mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole, listDepartments: vi.fn().mockResolvedValue(departmentsPayload()) }));
   await screen.findByText('记录员');
-  await userEvent.click(screen.getByRole('button', { name: '新建角色' }));
-  const dialog = screen.getByRole('dialog', { name: '新建角色' });
-  const points = await openTab(dialog, POINTS_TAB);
-  const scope = within(points).getByLabelText('数据范围');
+  const dialog = await openEditor('新建角色');
+  const scope = within(dialog).getByLabelText('数据范围');
   expect(scope).toHaveValue('self');
   expect(within(scope).getAllByRole('option').map(option => option.textContent)).toEqual(['仅本人', '本部门', '本部门及以下', '自定义', '全部']);
   // The department tree only opens for the custom scope.
-  expect(within(points).queryByRole('group', { name: '自定义部门范围' })).toBeNull();
+  expect(within(dialog).queryByRole('group', { name: '自定义部门范围' })).toBeNull();
   await userEvent.selectOptions(scope, 'custom');
-  const tree = within(points).getByRole('group', { name: '自定义部门范围' });
+  const tree = within(dialog).getByRole('group', { name: '自定义部门范围' });
   await userEvent.click(within(tree).getByRole('checkbox', { name: '前端组' }));
   expect(within(tree).getByRole('checkbox', { name: '研发部' })).not.toBeChecked();
   await userEvent.type(within(dialog).getByLabelText('角色名称'), '区域角色');
@@ -369,12 +366,11 @@ it('allows management roles to configure their data scope', async () => {
   const createRole = vi.fn().mockResolvedValue({ id: 'ops2', name: '内容运营二', builtin: false, permissions: ['users:read'], user_count: 0, realm: 'administrator', data_scope: 'self', department_ids: [], menu_ids: [], action_ids: [], operation_ids: [], authorization_initialized: true });
   mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole, listDepartments: vi.fn() }));
   await screen.findByText('记录员');
-  await userEvent.click(await screen.findByRole('button', { name: '新建角色' }));
-  const dialog = screen.getByRole('dialog', { name: '新建角色' });
-  const points = await openTab(dialog, POINTS_TAB);
-  expect(within(points).getByLabelText('数据范围')).toHaveValue('self');
-  expect(within(points).queryByRole('group', { name: '自定义部门范围' })).toBeNull();
+  const dialog = await openEditor('新建角色');
+  expect(within(dialog).getByLabelText('数据范围')).toHaveValue('self');
+  expect(within(dialog).queryByRole('group', { name: '自定义部门范围' })).toBeNull();
   await userEvent.type(within(dialog).getByLabelText('角色名称'), '内容运营二');
+  const points = await openAdvanced(dialog);
   await userEvent.click(within(points).getByRole('checkbox', { name: '查看用户' }));
   await userEvent.click(within(dialog).getByRole('button', { name: '保存' }));
   await vi.waitFor(() => expect(createRole).toHaveBeenCalledWith(expect.objectContaining({ name: '内容运营二', permissions: ['users:read'], realm: 'user' })));
@@ -387,15 +383,13 @@ it('echoes a saved custom scope with its department selection when editing', asy
   (recorder as Record<string, unknown>).department_ids = ['d3'];
   const roles = vi.fn().mockResolvedValue(payload);
   const updateRole = vi.fn().mockResolvedValue({ ...recorder, data_scope: 'self', department_ids: [] });
-  mount(metadata(['roles:read', 'roles:write']), { roles, updateRole, listDepartments: vi.fn().mockResolvedValue(departmentsPayload()), menuConfig: vi.fn().mockImplementation(menuConfig), apiOperations: vi.fn().mockImplementation(apiOperations) });
+  mount(metadata(['roles:read', 'roles:write']), { roles, updateRole, listDepartments: vi.fn().mockResolvedValue(departmentsPayload()), menuConfig: vi.fn().mockImplementation(menuConfig) });
   await screen.findByText('记录员');
-  await userEvent.click(screen.getByRole('button', { name: '编辑角色 记录员' }));
-  const dialog = screen.getByRole('dialog', { name: '编辑角色' });
-  const points = await openTab(dialog, POINTS_TAB);
-  expect(within(points).getByLabelText('数据范围')).toHaveValue('custom');
-  expect(within(points).getByRole('checkbox', { name: '前端组' })).toBeChecked();
+  const dialog = await openEditor('编辑角色 记录员');
+  expect(within(dialog).getByLabelText('数据范围')).toHaveValue('custom');
+  expect(within(dialog).getByRole('checkbox', { name: '前端组' })).toBeChecked();
   // Switching away from custom empties the department selection in the payload.
-  await userEvent.selectOptions(within(points).getByLabelText('数据范围'), 'self');
+  await userEvent.selectOptions(within(dialog).getByLabelText('数据范围'), 'self');
   await userEvent.click(within(dialog).getByRole('button', { name: '保存' }));
   await vi.waitFor(() => expect(updateRole).toHaveBeenCalledWith('recorder', expect.objectContaining({ data_scope: 'self', department_ids: [] })));
 });

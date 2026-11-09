@@ -2096,5 +2096,13 @@
   "打开即定位到最新日志并自动跟随；向上滚动加载更早历史，关闭窗口即断开连接。": "The console opens on the newest logs and follows the tail; scroll up to load earlier history, and closing the window disconnects.",
   "已省略 {{count}} 条更早日志，向上滚动加载": "{{count}} earlier logs hidden; scroll up to load them",
   "已到缓冲区起点": "Start of the log buffer",
-  "正在加载更早日志…": "Loading earlier logs…"
+  "正在加载更早日志…": "Loading earlier logs…",
+  "两端": "Both surfaces",
+  "成员端": "Member surface",
+  "已选 {{count}}": "Selected {{count}}",
+  "高级": "Advanced",
+  "API 操作": "API operations",
+  "页面与操作勾选后自动并入所需权限点；此处可直接为纯 API 角色授权。": "Checking pages and operations merges their required permission points automatically; grant points directly here for pure-API roles.",
+  "显示工作台": "Visible workspaces",
+  "调整成员端与管理端共享的同一棵导航树：分组、顺序、名称、图标与可见性；角色可见性在角色权限编辑器中配置。": "Adjust the single navigation tree shared by the member and administrator workspaces: sections, order, names, icons and visibility; role visibility is configured in the role permission editor."
 }

@@ -6126,7 +6126,7 @@ export const constraints = {
     "additionalProperties": false,
     "required": [
       "id",
-      "surface",
+      "surfaces",
       "name",
       "sort",
       "visible",
@@ -6136,13 +6136,6 @@ export const constraints = {
       "id": {
         "type": "string",
         "maxLength": 64
-      },
-      "surface": {
-        "type": "string",
-        "enum": [
-          "user",
-          "administrator"
-        ]
       },
       "name": {
         "type": "string",
@@ -6157,6 +6150,18 @@ export const constraints = {
       },
       "show_title": {
         "type": "boolean"
+      },
+      "surfaces": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "user",
+            "administrator"
+          ]
+        },
+        "minItems": 1,
+        "uniqueItems": true
       }
     }
   },
@@ -6176,7 +6181,8 @@ export const constraints = {
       "badge_color",
       "badge_dot",
       "operation_ids",
-      "disabled"
+      "disabled",
+      "surfaces"
     ],
     "properties": {
       "id": {
@@ -6260,6 +6266,18 @@ export const constraints = {
       },
       "disabled": {
         "type": "boolean"
+      },
+      "surfaces": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "user",
+            "administrator"
+          ]
+        },
+        "minItems": 1,
+        "uniqueItems": true
       }
     }
   },

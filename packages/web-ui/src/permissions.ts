@@ -31,21 +31,29 @@ export function canAction(metadata: Bootstrap | undefined, operation: OperationI
   if (!metadata) return false;
   if (metadata.profile !== 'web-platform') return true;
   const user = metadata.current_user;
-  const id = resolveUIOperation(operation, metadata);
-  const op = catalogue[id];
-  if (!user || !op) return false;
+  // The grant binds the contract operation the button represents; the
+  // administrator realm may invoke a mirrored admin endpoint for it.
+  const resolved = resolveUIOperation(operation, metadata);
+  const op = catalogue[operation];
+  const runtime = catalogue[resolved];
+  if (!user || !op || !runtime) return false;
   const holds = (point: string) => user.permissions.includes(point);
   if (!(op.permissionMode === 'any' ? op.permissions.some(holds) : op.permissions.every(holds))) return false;
   if (user.roles.includes('super_admin')) return true;
-  if (op.superAdmin || !op.uiPage || !user.operation_ids?.includes(id)) return false;
+  // Management-console-only endpoints stay super-gated even for point holders.
+  if (runtime.superAdmin || !op.uiPage) return false;
+  if (!(user.operation_ids?.includes(resolved) || user.operation_ids?.includes(operation))) return false;
   const navigation = metadata.navigation;
+  const realm = metadata.identity_realm ?? 'user';
   const sections = new Set(navigation?.sections.filter(section => section.visible &&
-    section.surface === (metadata.identity_realm ?? 'user')).map(section => section.id));
-  const nodes = navigation?.nodes ?? [];
+    !!section.surfaces?.includes(realm as 'user' | 'administrator')).map(section => section.id));
+  const nodes = (navigation?.nodes ?? []).filter(node => sections.has(node.section_id) &&
+    !!node.surfaces?.includes(realm as 'user' | 'administrator'));
   return nodes.some(node => {
     if (node.type !== 'action' || !sections.has(node.section_id) || !node.permission ||
       !holds(node.permission) || !user.action_ids?.includes(node.id) ||
-      !node.operation_ids.includes(id) || !node.operation_ids.every(op => user.operation_ids?.includes(op))) return false;
+      (!node.operation_ids.includes(resolved) && !node.operation_ids.includes(operation)) ||
+      !node.operation_ids.every(op => user.operation_ids?.includes(op))) return false;
     const seen = new Set<string>();
     let current: typeof node | undefined = node;
     while (current) {

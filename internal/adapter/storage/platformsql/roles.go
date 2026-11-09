@@ -685,16 +685,11 @@ func deriveGrants(realm string, permissions []string, n contracts.Navigation) ([
 	for _, permission := range permissions {
 		permissionSet[permission] = true
 	}
-	// Workspace-qualified node ids remain independent across surfaces.
-	surfaceSections := map[string]bool{}
-	for _, section := range n.Sections {
-		if section.Surface == "user" || section.Surface == "administrator" {
-			surfaceSections[section.ID] = true
-		}
-	}
+	// The shared tree declares surfaces per node; a legacy role keeps the
+	// reach of its own realm only.
 	menus, actions := []string{}, []string{}
 	for _, node := range n.Nodes {
-		if !surfaceSections[node.SectionID] {
+		if !contains(node.Surfaces, realm) {
 			continue
 		}
 		if node.Type == "action" {

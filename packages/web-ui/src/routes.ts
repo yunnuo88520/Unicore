@@ -63,9 +63,11 @@ export function canAccess(page: Page, metadata?: Bootstrap): boolean {
     !metadata.current_user.roles.includes('super_admin') &&
     !['account', 'account-security', 'account-sessions'].includes(page)) {
     const navigation = metadata.navigation;
+    const realm = metadata.identity_realm ?? 'user';
     const sections = new Set(navigation?.sections.filter(section => section.visible &&
-      section.surface === (metadata.identity_realm ?? 'user')).map(section => section.id));
-    const nodes = navigation?.nodes.filter(node => sections.has(node.section_id)) ?? [];
+      !!section.surfaces?.includes(realm as 'user' | 'administrator')).map(section => section.id));
+    const nodes = navigation?.nodes.filter(node => sections.has(node.section_id) &&
+      !!node.surfaces?.includes(realm as 'user' | 'administrator')) ?? [];
     const visible = (node: typeof nodes[number]) => {
       const seen = new Set<string>();
       let current: typeof node | undefined = node;

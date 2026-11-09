@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/audit"
@@ -84,7 +85,7 @@ func (r *Repository) writeNavigation(ctx context.Context, tx *sql.Tx, n contract
 		if err != nil {
 			return err
 		}
-		if _, err = r.Store.Exec(ctx, tx, "INSERT INTO unicore_navigation_sections(id,surface,payload) VALUES(?,?,?)", s.ID, s.Surface, string(raw)); err != nil {
+		if _, err = r.Store.Exec(ctx, tx, "INSERT INTO unicore_navigation_sections(id,surface,payload) VALUES(?,?,?)", s.ID, strings.Join(s.Surfaces, ","), string(raw)); err != nil {
 			return err
 		}
 	}
@@ -109,13 +110,226 @@ func (r *Repository) navigationInitialized(ctx context.Context, q sqlstore.Runne
 	return initialized != 0, nil
 }
 
-// EnsureNavigation runs the one-time conversion at startup: legacy menu
-// overrides become normalized nodes and every role still lacking explicit
+// EnsureNavigation runs the one-time conversions at startup: legacy menu
+// overrides become normalized nodes, every role still lacking explicit
 // authorizations is materialized with exact equivalents of its current reach
-// (ADR-0036). Later starts see initialized=1 and change nothing, so revoked
-// grants stay revoked and new operations stay denied until granted.
+// (ADR-0036), and the workspace-prefixed dual tree collapses into the shared
+// single tree with surface declarations (ADR-0039). Conversions only ever run
+// once: revoked grants stay revoked and new operations stay denied until
+// granted.
 func (r *Repository) EnsureNavigation(ctx context.Context) error {
-	return r.initializeNavigation(ctx)
+	if err := r.initializeNavigation(ctx); err != nil {
+		return err
+	}
+	return r.upgradeSharedNavigation(ctx)
+}
+
+// legacyNavigation detects the pre-ADR-0039 payload format: sections stored a
+// single surface scalar, which parses into an empty surfaces list.
+func legacyNavigation(n contracts.Navigation) bool {
+	for _, s := range n.Sections {
+		if len(s.Surfaces) == 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// upgradeSharedNavigation collapses the workspace-prefixed dual tree into the
+// shared single tree once: node ids lose their `user:`/`administrator:`
+// prefix, both variants of the same page merge into one node with the union
+// of surfaces, sections merge the same way, and the role grant rows are
+// rewritten to the unprefixed ids with duplicates removed. Grant identities
+// change, so live sessions are revoked and users sign in again.
+func (r *Repository) upgradeSharedNavigation(ctx context.Context) error {
+	n, err := r.readNavigation(ctx, r.Store.DB)
+	if err != nil {
+		return err
+	}
+	if !legacyNavigation(n) {
+		return nil
+	}
+	stripID := func(id string) string {
+		for _, prefix := range []string{"user:", "administrator:", "admin:"} {
+			if strings.HasPrefix(id, prefix) {
+				return strings.TrimPrefix(id, prefix)
+			}
+		}
+		return id
+	}
+	sectionID := map[string]string{}
+	sections := map[string]contracts.NavigationSection{}
+	order := []string{}
+	for _, s := range n.Sections {
+		target := stripID(s.ID)
+		sectionID[s.ID] = target
+		if len(s.Surfaces) == 0 {
+			// Legacy payloads carry the scalar `surface` field; recover it
+			// from the raw id prefix before any merge touches surfaces.
+			if strings.HasPrefix(s.ID, "administrator:") || strings.HasPrefix(s.ID, "admin:") {
+				s.Surfaces = []string{"administrator"}
+			} else {
+				s.Surfaces = []string{"user"}
+			}
+		}
+		if existing, ok := sections[target]; ok {
+			for _, surface := range s.Surfaces {
+				if !contains(existing.Surfaces, surface) {
+					existing.Surfaces = append(existing.Surfaces, surface)
+				}
+			}
+			sections[target] = existing
+			continue
+		}
+		s.ID = target
+		sections[target] = s
+		order = append(order, target)
+	}
+	merged := contracts.Navigation{Version: n.Version, Sections: []contracts.NavigationSection{}, Nodes: []contracts.NavigationNode{}}
+	for _, id := range order {
+		merged.Sections = append(merged.Sections, sections[id])
+	}
+	nodes := map[string]contracts.NavigationNode{}
+	for _, node := range n.Nodes {
+		target := stripID(node.ID)
+		if node.SectionID == "" {
+			continue
+		}
+		node.ID = target
+		node.SectionID = sectionID[node.SectionID]
+		if len(node.Surfaces) == 0 {
+			if section, ok := sections[node.SectionID]; ok {
+				node.Surfaces = append([]string{}, section.Surfaces...)
+			}
+		}
+		if node.ParentID != nil && *node.ParentID != "" {
+			parent := stripID(*node.ParentID)
+			node.ParentID = &parent
+		}
+		if node.ActiveMenu != nil && *node.ActiveMenu != "" {
+			active := stripID(*node.ActiveMenu)
+			node.ActiveMenu = &active
+		}
+		existing, ok := nodes[target]
+		if !ok {
+			nodes[target] = node
+			merged.Nodes = append(merged.Nodes, node)
+			continue
+		}
+		// Two workspace variants of one page: keep one node, union the
+		// surfaces and prefer the shared personal region when the variants
+		// disagree about placement.
+		for _, surface := range node.Surfaces {
+			if !contains(existing.Surfaces, surface) {
+				existing.Surfaces = append(existing.Surfaces, surface)
+			}
+		}
+		if existing.SectionID != node.SectionID {
+			if node.SectionID == "personal" || existing.SectionID == "personal" {
+				existing.SectionID = "personal"
+			}
+		}
+		for i := range merged.Nodes {
+			if merged.Nodes[i].ID == target {
+				merged.Nodes[i] = existing
+			}
+		}
+	}
+	// A merged node may outlive its single-surface section: widen every
+	// section to cover the nodes it hosts after the collapse.
+	for i := range merged.Sections {
+		for _, node := range merged.Nodes {
+			if node.SectionID != merged.Sections[i].ID {
+				continue
+			}
+			for _, surface := range node.Surfaces {
+				if !contains(merged.Sections[i].Surfaces, surface) {
+					merged.Sections[i].Surfaces = append(merged.Sections[i].Surfaces, surface)
+				}
+			}
+		}
+	}
+	// Action ids lose their realm prefix exactly like every other node.
+	actions := map[string]bool{}
+	for i := range merged.Nodes {
+		if merged.Nodes[i].Type != "action" {
+			continue
+		}
+		id := stripID(merged.Nodes[i].ID)
+		if actions[id] {
+			merged.Nodes = append(merged.Nodes[:i], merged.Nodes[i+1:]...)
+			i--
+			continue
+		}
+		actions[id] = true
+		merged.Nodes[i].ID = id
+	}
+	tx, err := r.Store.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err = r.Store.LockInstallation(ctx, tx); err != nil {
+		return err
+	}
+	if current, err := r.readNavigation(ctx, tx); err != nil || !legacyNavigation(current) {
+		return err
+	}
+
+	if err = r.writeNavigation(ctx, tx, merged); err != nil {
+		return err
+	}
+	// Rewrite the grant rows onto the unprefixed identities, deduplicated.
+	remap := func(table, column string) error {
+		rows, err := r.Store.Rows(ctx, tx, "SELECT role_id,"+column+" FROM "+table)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		type grant struct{ role, id string }
+		seen := map[grant]bool{}
+		rows2 := []grant{}
+		for rows.Next() {
+			var item grant
+			if err := rows.Scan(&item.role, &item.id); err != nil {
+				return err
+			}
+			item.id = stripID(item.id)
+			if seen[item] {
+				continue
+			}
+			seen[item] = true
+			rows2 = append(rows2, item)
+		}
+		if err := rows.Err(); err != nil {
+			return err
+		}
+		rows.Close()
+		if _, err = r.Store.Exec(ctx, tx, "DELETE FROM "+table); err != nil {
+			return err
+		}
+		for _, item := range rows2 {
+			if _, err = r.Store.Exec(ctx, tx, "INSERT INTO "+table+"(role_id,"+column+") VALUES(?,?)", item.role, item.id); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	if err = remap("unicore_role_menus", "menu_id"); err != nil {
+		return err
+	}
+	if err = remap("unicore_role_actions", "action_id"); err != nil {
+		return err
+	}
+	// Sessions stay valid: the user envelope derives from the role tables on
+	// every request, so the rewritten grants apply to live sessions as-is.
+	if _, err = r.Store.Exec(ctx, tx, "UPDATE unicore_navigation_state SET version=version+1 WHERE id=1"); err != nil {
+		return err
+	}
+	if err = r.audit(audit.Target(ctx, "menus/upgrade", "unified grant namespace"), tx, "system", "menus.updated"); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // initializeNavigation performs the one-time upgrade conversion: legacy
@@ -137,7 +351,7 @@ func (r *Repository) initializeNavigation(ctx context.Context) error {
 	// administrator surface keeps its registered defaults.
 	sectionOf := map[string]string{}
 	for _, s := range n.Sections {
-		if s.Surface == "user" {
+		if contains(s.Surfaces, "user") {
 			sectionOf[s.ID] = s.ID
 		}
 	}
@@ -176,9 +390,9 @@ func (r *Repository) initializeNavigation(ctx context.Context) error {
 				if group == "" {
 					group = "workspace"
 				}
-				section := "user:business"
+				section := "business"
 				if _, ok := sectionOf[section]; !ok {
-					n.Sections = append(n.Sections, contracts.NavigationSection{ID: section, Surface: "user", Name: group, Visible: true, ShowTitle: true})
+					n.Sections = append(n.Sections, contracts.NavigationSection{ID: section, Surfaces: []string{"user"}, Name: group, Visible: true, ShowTitle: true})
 					sectionOf[section] = section
 				}
 				disabled := true
@@ -197,9 +411,9 @@ func (r *Repository) initializeNavigation(ctx context.Context) error {
 			if group == "" {
 				group = "workspace"
 			}
-			section := "user:business"
+			section := "business"
 			if _, ok := sectionOf[section]; !ok {
-				n.Sections = append(n.Sections, contracts.NavigationSection{ID: section, Surface: "user", Name: group, Visible: true, ShowTitle: true})
+				n.Sections = append(n.Sections, contracts.NavigationSection{ID: section, Surfaces: []string{"user"}, Name: group, Visible: true, ShowTitle: true})
 				sectionOf[section] = section
 			}
 			url := ""
@@ -268,10 +482,7 @@ func (r *Repository) initializeNavigation(ctx context.Context) error {
 // and the API operations its current permission points already unlocked. Empty
 // stays empty from now on; nothing here widens a role.
 func (r *Repository) materializeRoleAuthorizations(ctx context.Context, tx *sql.Tx, n contracts.Navigation) error {
-	surfaceOfNode := map[string]string{}
-	for _, s := range n.Sections {
-		surfaceOfNode[s.ID] = s.Surface
-	}
+
 	rows, err := r.Store.Rows(ctx, tx, "SELECT id,realm FROM unicore_roles WHERE id<>'super_admin'")
 	if err != nil {
 		return err
@@ -308,7 +519,7 @@ func (r *Repository) materializeRoleAuthorizations(ctx context.Context, tx *sql.
 		menuIds = []string{}
 		actionIds = []string{}
 		for _, node := range n.Nodes {
-			if surfaceOfNode[node.SectionID] != role.realm {
+			if !contains(node.Surfaces, role.realm) {
 				continue
 			}
 			if node.Type == "action" {
@@ -378,40 +589,45 @@ func (r *Repository) ListMenuConfig(ctx context.Context) (contracts.MenuList, er
 	return contracts.MenuList{Items: legacy.Items, Version: n.Version, Sections: n.Sections, Nodes: n.Nodes, Pages: platform.NavigationPages()}, nil
 }
 
-// validateNavigation checks a complete replacement tree: unique ids, sections
-// of a known surface, registered page routes per surface, link targets, action
-// grants bound to catalogue permissions and real operations, acyclic nesting
-// and the depth limit.
+// validateNavigation checks a complete replacement tree: unique global ids,
+// surfaces declared on sections and nodes, registered page routes for every
+// declared surface, link targets, action grants bound to catalogue
+// permissions and real operations, acyclic nesting and the depth limit.
 func validateNavigation(n contracts.Navigation) error {
-	sections := map[string]string{}
+	sections := map[string]bool{}
 	for _, s := range n.Sections {
-		if s.ID == "" || len(s.ID) > 64 || len(s.Name) > 240 || s.Sort < 0 || (s.Surface != "user" && s.Surface != "administrator") {
+		if s.ID == "" || len(s.ID) > 64 || len(s.Name) > 240 || s.Sort < 0 || len(s.Surfaces) == 0 {
 			return platform.ErrInput
+		}
+		for _, surface := range s.Surfaces {
+			if surface != "user" && surface != "administrator" {
+				return platform.ErrInput
+			}
 		}
 		if _, taken := sections[s.ID]; taken {
 			return platform.ErrInput
 		}
-		sections[s.ID] = s.Surface
+		sections[s.ID] = true
 	}
-	// Node ids are bare route ids shared across surfaces (frontend model), so
-	// uniqueness and parent resolution are scoped per surface.
-	type nodeKey struct{ surface, id string }
-	nodes := map[nodeKey]contracts.NavigationNode{}
-	globalIDs := map[string]bool{}
+	// Node ids are globally unique in the shared tree; parents resolve within
+	// the same section.
+	nodes := map[string]contracts.NavigationNode{}
 	for _, node := range n.Nodes {
-		surface, ok := sections[node.SectionID]
-		if !ok || node.ID == "" || len(node.ID) > 64 || node.Sort < 0 || len(node.Label) > 240 || len(node.Icon) > 64 || len(node.BadgeText) > 160 || len(node.BadgeColor) > 32 {
+		if !sections[node.SectionID] || node.ID == "" || len(node.ID) > 64 || node.Sort < 0 || len(node.Label) > 240 || len(node.Icon) > 64 || len(node.BadgeText) > 160 || len(node.BadgeColor) > 32 {
 			return platform.ErrInput
 		}
-		if globalIDs[node.ID] {
+		if _, taken := nodes[node.ID]; taken {
 			return platform.ErrInput
 		}
-		globalIDs[node.ID] = true
-		key := nodeKey{surface, node.ID}
-		if _, taken := nodes[key]; taken {
+		if len(node.Surfaces) == 0 {
 			return platform.ErrInput
 		}
-		nodes[key] = node
+		for _, surface := range node.Surfaces {
+			if surface != "user" && surface != "administrator" {
+				return platform.ErrInput
+			}
+		}
+		nodes[node.ID] = node
 		if node.OpenMode != "same_tab" && node.OpenMode != "new_tab" {
 			return platform.ErrInput
 		}
@@ -421,7 +637,15 @@ func validateNavigation(n contracts.Navigation) error {
 				return platform.ErrInput
 			}
 		case "page":
-			if _, registered := platform.NavigationPage(text(node.RouteID), surface); !registered && !node.Disabled {
+			registered := false
+			for _, surface := range node.Surfaces {
+				if _, ok := platform.NavigationPage(text(node.RouteID), surface); ok {
+					registered = true
+				}
+			}
+			// An explicitly disabled node may reference an unregistered page so
+			// operators can repair or drop it instead of losing configuration.
+			if !registered && !node.Disabled {
 				return platform.ErrInput
 			}
 			if text(node.Url) != "" {
@@ -438,7 +662,7 @@ func validateNavigation(n contracts.Navigation) error {
 			}
 			for _, id := range node.OperationIds {
 				op, ok := platform.Operation(id)
-				if !ok || !op.Grantable || op.Realm != surface || !contains(op.Permissions, permission) {
+				if !ok || !op.Grantable || !contains(op.Permissions, permission) {
 					return platform.ErrInput
 				}
 			}
@@ -450,11 +674,10 @@ func validateNavigation(n contracts.Navigation) error {
 		}
 	}
 	for _, node := range n.Nodes {
-		surface := sections[node.SectionID]
 		current := node
 		seen := map[string]bool{node.ID: true}
 		for depth := 1; current.ParentID != nil && *current.ParentID != ""; depth++ {
-			parent, ok := nodes[nodeKey{surface, *current.ParentID}]
+			parent, ok := nodes[*current.ParentID]
 			if !ok || parent.SectionID != node.SectionID || seen[parent.ID] || depth >= maxMenuDepth {
 				return platform.ErrInput
 			}
@@ -469,8 +692,8 @@ func validateNavigation(n contracts.Navigation) error {
 			current = parent
 		}
 		if node.ActiveMenu != nil && *node.ActiveMenu != "" {
-			target, ok := nodes[nodeKey{surface, *node.ActiveMenu}]
-			if !ok || sections[target.SectionID] != surface || target.Type == "action" {
+			target, ok := nodes[*node.ActiveMenu]
+			if !ok || target.SectionID != node.SectionID || target.Type == "action" {
 				return platform.ErrInput
 			}
 		}

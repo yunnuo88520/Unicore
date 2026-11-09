@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # ADR-0036：真实导航区域与细粒度授权
 
-日期：2026-11-07。状态：已批准；三方言七组合基线验证已完成（见决策 10），其余构建与端到端验证结果以主线最终报告为准。本决策修订 [ADR-0034](ADR-0034-administrator-restricted-roles.md) 与 [ADR-0035](ADR-0035-action-permissions-departments.md)：取代「六个固定分组根」的菜单呈现模型，并把角色授权扩展为菜单/动作/operation 三类独立授予。
+日期：2026-11-07。状态：已批准；三方言七组合基线验证已完成（见决策 10），其余构建与端到端验证结果以主线最终报告为准。2026-11-09：本决策的「双工作台两棵树 + 工作台前缀节点 id」部分被 [ADR-0039](ADR-0039-unified-grant-namespace.md) 修订为单棵共享树；三类授权独立与权限点上界语义保持。本决策修订 [ADR-0034](ADR-0034-administrator-restricted-roles.md) 与 [ADR-0035](ADR-0035-action-permissions-departments.md)：取代「六个固定分组根」的菜单呈现模型，并把角色授权扩展为菜单/动作/operation 三类独立授予。
 
 ## 背景
 

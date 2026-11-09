@@ -1,5 +1,5 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Registered page facts and the frontend-isomorphic default navigation seed.
+// Description: Registered page facts and the frontend-isomorphic default navigation tree.
 package platform
 
 import (
@@ -13,8 +13,8 @@ import (
 var baseNavigationPages = []contracts.NavigationPage{
 	{ID: "overview", Surfaces: []string{"user", "administrator"}},
 	{ID: "lab", Surfaces: []string{"user", "administrator"}},
-	{ID: "files", Surfaces: []string{"user", "administrator"}, Permission: "files:access"},
-	{ID: "announcements", Surfaces: []string{"user", "administrator"}, Permission: "announcements:read"},
+	{ID: "files", Surfaces: []string{"administrator"}, Permission: "files:access"},
+	{ID: "announcements", Surfaces: []string{"administrator"}, Permission: "announcements:read"},
 	{ID: "api-docs", Surfaces: []string{"user", "administrator"}},
 	{ID: "site", Surfaces: []string{"user", "administrator"}, Permission: "settings:read", Group: "system"},
 	{ID: "storage", Surfaces: []string{"administrator"}, Permission: "storage:read", Group: "system"},
@@ -96,7 +96,7 @@ var navigationIcons = map[string]string{
 	"roles": "ShieldCheck", "departments": "Network", "tasks": "ListChecks", "menus": "LayoutDashboard", "dictionaries": "FileText", "posts": "UserCog",
 	"api-operations": "BookOpen", "account": "UserRound", "account-security": "ShieldCheck", "account-sessions": "Monitor", "api-docs": "BookOpen",
 	// Seeded directories carry the same icons as the frontend defaultNavigation.
-	"administration": "Users", "settings": "Settings2", "personal": "UserRound",
+	"administration": "Users", "personal": "UserRound",
 }
 
 func NavigationPage(id, surface string) (contracts.NavigationPage, bool) {
@@ -113,89 +113,53 @@ func NavigationPage(id, surface string) (contracts.NavigationPage, bool) {
 }
 
 // DefaultNavigation seeds exactly the frontend defaultNavigation model
-// (packages/web-ui/src/navigation.ts): the same sections, directories, workspace-qualified
-// node ids, parents, icons and rank-based sorts. Page labels stay empty
-// strings on purpose — display names fall back to the frontend route registry,
-// and only operator overrides are ever persisted.
+// (packages/web-ui/src/navigation.ts): one shared tree — sections and nodes
+// declare which workspaces they render in, node ids are global, and the
+// three grant namespaces (menus, actions, operations) stay independent.
+// Page labels stay empty strings on purpose — display names fall back to the
+// frontend route registry, and only operator overrides are ever persisted.
 func DefaultNavigation() contracts.Navigation {
 	result := contracts.Navigation{
 		Version: 0,
 		Sections: []contracts.NavigationSection{
-			{ID: "user:business", Surface: "user", Sort: 10, Visible: true, ShowTitle: true},
-			{ID: "user:personal", Surface: "user", Sort: 20, Visible: true, ShowTitle: true},
-			{ID: "admin:business", Surface: "administrator", Sort: 10, Visible: true, ShowTitle: true},
-			{ID: "admin:system", Surface: "administrator", Sort: 20, Visible: true, ShowTitle: true},
+			{ID: "business", Surfaces: []string{"user", "administrator"}, Sort: 10, Visible: true, ShowTitle: true},
+			{ID: "personal", Surfaces: []string{"user", "administrator"}, Sort: 20, Visible: true, ShowTitle: true},
+			{ID: "system", Surfaces: []string{"administrator"}, Sort: 30, Visible: true, ShowTitle: true},
 		},
 		Nodes: []contracts.NavigationNode{},
 	}
-	directory := func(id, section string, sort int) {
-		result.Nodes = append(result.Nodes, contracts.NavigationNode{ID: id, SectionID: section, Type: "directory", Icon: navigationIcon(id),
+	// The 超级管理员 directory lives in the shared business region; the
+	// 系统管理 region keeps the console pages and 个人中心 is its own shared
+	// region so the same account pages are granted exactly once.
+	directory := func(id string, sort int) {
+		result.Nodes = append(result.Nodes, contracts.NavigationNode{ID: id, SectionID: "business", Surfaces: []string{"administrator"}, Type: "directory", Icon: navigationIcon(id),
 			Sort: sort, Visible: true, OpenMode: "same_tab", OperationIds: []string{}})
 	}
-	// The 超级管理员 directory lives in the business region, right after the
-	// lab entry; the system region keeps 系统设置 and the 个人中心 directory.
-	directory("administration", "admin:business", 20)
-	directory("settings", "admin:system", 20)
-	directory("personal", "admin:system", 30)
+	directory("administration", 20)
 	for _, page := range NavigationPages() {
-		for _, surface := range page.Surfaces {
-			if surface == "user" && page.Group == "administration" {
-				continue
-			}
-			// The frontend prefixes user sections with "user:" and administrator
-			// sections with "admin:".
-			prefix := "admin"
-			if surface == "user" {
-				prefix = "user"
-			}
-			section := prefix + ":business"
-			var parent string
-			switch page.Group {
-			case "personal":
-				if surface == "administrator" {
-					section = "admin:system"
-					parent = "personal"
-				} else {
-					section = prefix + ":personal"
-				}
-			case "system", "administration":
-				if surface == "administrator" {
-					if page.Group == "administration" {
-						parent = "administration"
-					} else {
-						section = "admin:system"
-						parent = "settings"
-					}
-				}
-			}
-			node := contracts.NavigationNode{
-				ID: page.ID, SectionID: section, Type: "page", RouteID: &page.ID,
-				Sort: navigationRank(page.ID) * 10, Visible: true, OpenMode: "same_tab", OperationIds: []string{},
-			}
-			if icon, ok := navigationIcons[page.ID]; ok {
-				node.Icon = icon
-			} else {
-				node.Icon = "Circle"
-			}
-			if parent != "" {
-				node.ParentID = &parent
-			}
-			result.Nodes = append(result.Nodes, node)
+		section := "business"
+		var parent string
+		switch page.Group {
+		case "personal":
+			section = "personal"
+		case "system":
+			section = "system"
+		case "administration":
+			parent = "administration"
 		}
-	}
-	// Node identity includes the workspace; route ids remain presentation facts.
-	surfaces := map[string]string{}
-	for _, section := range result.Sections {
-		surfaces[section.ID] = section.Surface
-	}
-	for i := range result.Nodes {
-		node := &result.Nodes[i]
-		prefix := surfaces[node.SectionID] + ":"
-		node.ID = prefix + node.ID
-		if node.ParentID != nil {
-			parent := prefix + *node.ParentID
+		node := contracts.NavigationNode{
+			ID: page.ID, SectionID: section, Surfaces: append([]string{}, page.Surfaces...), Type: "page", RouteID: &page.ID,
+			Sort: navigationRank(page.ID) * 10, Visible: true, OpenMode: "same_tab", OperationIds: []string{},
+		}
+		if icon, ok := navigationIcons[page.ID]; ok {
+			node.Icon = icon
+		} else {
+			node.Icon = "Circle"
+		}
+		if parent != "" {
 			node.ParentID = &parent
 		}
+		result.Nodes = append(result.Nodes, node)
 	}
 	result.Nodes = append(result.Nodes, DefaultActions(result)...)
 	return result
@@ -210,22 +174,30 @@ func contains(ids []string, id string) bool {
 	return false
 }
 
-// NavigationFor projects one surface for one user. Hidden or disabled
-// ancestors suppress their descendants; a super administrator always keeps a
-// recovery entry to the menu editor so a broken tree stays repairable.
+func text(p *string) string {
+	if p == nil {
+		return ""
+	}
+	return *p
+}
+
+// NavigationFor projects one workspace from the shared tree for one user:
+// sections and nodes must declare the requested surface, hidden or disabled
+// ancestors suppress their descendants, and a super administrator always keeps
+// a recovery entry to the menu editor so a broken tree stays repairable.
 func NavigationFor(n contracts.Navigation, user contracts.User, surface string) contracts.Navigation {
 	result := contracts.Navigation{Version: n.Version, Sections: []contracts.NavigationSection{}, Nodes: []contracts.NavigationNode{}}
 	sections := map[string]bool{}
 	for _, s := range n.Sections {
-		if s.Surface == surface && s.Visible {
+		if s.Visible && contains(s.Surfaces, surface) {
 			sections[s.ID] = true
 			result.Sections = append(result.Sections, s)
 		}
 	}
-	// Resolve parents strictly inside the requested workspace.
+	// Resolve parents strictly inside the projected workspace.
 	nodes := map[string]contracts.NavigationNode{}
 	for _, node := range n.Nodes {
-		if sections[node.SectionID] {
+		if sections[node.SectionID] && contains(node.Surfaces, surface) {
 			nodes[node.ID] = node
 		}
 	}
@@ -251,7 +223,7 @@ func NavigationFor(n contracts.Navigation, user contracts.User, surface string) 
 	}
 	projected := map[string]bool{}
 	for _, node := range n.Nodes {
-		if !sections[node.SectionID] || !allowed(node) {
+		if !sections[node.SectionID] || !contains(node.Surfaces, surface) || !allowed(node) {
 			continue
 		}
 		valid := true
@@ -292,18 +264,10 @@ func NavigationFor(n contracts.Navigation, user contracts.User, surface string) 
 			}
 		}
 		if !found {
-			section := "admin:recovery"
+			result.Sections = append(result.Sections, contracts.NavigationSection{ID: "recovery", Surfaces: []string{"administrator"}, Sort: 40, Visible: true, ShowTitle: true})
 			route := "menus"
-			result.Sections = append(result.Sections, contracts.NavigationSection{ID: section, Surface: surface, Sort: 40, Visible: true, ShowTitle: true})
-			result.Nodes = append(result.Nodes, contracts.NavigationNode{ID: "administrator:menus", SectionID: section, Type: "page", RouteID: &route, Visible: true, OpenMode: "same_tab", OperationIds: []string{}})
+			result.Nodes = append(result.Nodes, contracts.NavigationNode{ID: "menus", SectionID: "recovery", Surfaces: []string{"administrator"}, Type: "page", RouteID: &route, Visible: true, OpenMode: "same_tab", OperationIds: []string{}})
 		}
 	}
 	return result
-}
-
-func text(p *string) string {
-	if p == nil {
-		return ""
-	}
-	return *p
 }

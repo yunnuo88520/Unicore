@@ -42,19 +42,19 @@ func frontendPageOrder(t *testing.T) []string {
 
 func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 	seed := DefaultNavigation()
-	surfaceOf := map[string]string{}
+	surfacesOf := map[string][]string{}
 	sortOf := map[string]int{}
 	for _, section := range seed.Sections {
-		surfaceOf[section.ID] = section.Surface
+		surfacesOf[section.ID] = section.Surfaces
 		sortOf[section.ID] = section.Sort
 	}
-	// The exact frontend sections: two user areas, two administrator areas.
-	wantSections := map[string]int{"user:business": 10, "user:personal": 20, "admin:business": 10, "admin:system": 20}
+	// The exact frontend sections: one shared tree with three regions.
+	wantSections := map[string]int{"business": 10, "personal": 20, "system": 30}
 	if len(seed.Sections) != len(wantSections) {
 		t.Fatal("section set drifted from the frontend model", seed.Sections)
 	}
 	for id, sort := range wantSections {
-		if surfaceOf[id] == "" || sortOf[id] != sort {
+		if len(surfacesOf[id]) == 0 || sortOf[id] != sort {
 			t.Fatal("missing or changed section", id, sortOf[id])
 		}
 	}
@@ -74,10 +74,9 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 		switch node.Type {
 		case "directory":
 			directories++
-			// 超级管理员 seeds into the business region; 系统设置 and 个人中心
-			// keep the system region.
-			if node.SectionID != "admin:business" && node.SectionID != "admin:system" {
-				t.Fatal("directory outside the business/system areas", node)
+			// 超级管理员 seeds into the shared business region.
+			if node.SectionID != "business" {
+				t.Fatal("directory outside the business area", node)
 			}
 		case "action":
 			if node.ParentID == nil || node.Permission == nil || len(node.OperationIds) == 0 {
@@ -85,10 +84,10 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 			}
 		case "page":
 			if pages[node.ID] {
-				t.Fatal("unexpected surface duplication is fine only across surfaces; check the section", node)
+				t.Fatal("duplicate page node", node.ID)
 			}
-			pages[node.ID+"\x00"+surfaceOf[node.SectionID]] = true
-			if node.RouteID == nil || surfaceOf[node.SectionID]+":"+*node.RouteID != node.ID {
+			pages[node.ID] = true
+			if node.RouteID == nil || *node.RouteID != node.ID {
 				t.Fatal("page route mismatch", node)
 			}
 			if node.Sort != sortRank[*node.RouteID] {
@@ -97,29 +96,40 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 			if icon := navigationIcons[*node.RouteID]; icon != "" && node.Icon != icon || icon == "" && node.Icon != "Circle" {
 				t.Fatal("icon drifted from the frontend table", node.ID, node.Icon)
 			}
-			if node.ID == "notes" || node.ID == "files" {
-				if surfaceOf[node.SectionID] != "user" && surfaceOf[node.SectionID] != "administrator" {
-					t.Fatal("workspace page missing a surface", node)
-				}
+			if page, ok := NavigationPage(*node.RouteID, "user"); ok && len(node.Surfaces) != len(page.Surfaces) {
+				t.Fatal("node surfaces drifted from the registry", node.ID, node.Surfaces)
 			}
 		default:
 			t.Fatal("unexpected default node type", node)
 		}
 	}
-	// The administrator directories (super administrator, system settings,
-	// personal center) exist.
-	if directories != 3 {
-		t.Fatal("expected the three administrator directories", directories)
-	}
-
-	// Per-surface id uniqueness with the bare frontend ids.
-	seen := map[string]bool{}
+	// The 超级管理员 directory hosts every administration page; personal and
+	// system pages sit directly in their shared regions.
+	parentOf := map[string]string{}
 	for _, node := range seed.Nodes {
-		key := surfaceOf[node.SectionID] + "\x00" + node.ID
-		if seen[key] {
-			t.Fatal("duplicate node within one surface", node.ID)
+		if node.ParentID != nil {
+			parentOf[node.ID] = *node.ParentID
 		}
-		seen[key] = true
+	}
+	for _, page := range NavigationPages() {
+		switch page.Group {
+		case "administration":
+			if parentOf[page.ID] != "administration" {
+				t.Fatal("administration page parent", page.ID, parentOf[page.ID])
+			}
+		case "system":
+			if parentOf[page.ID] != "" {
+				t.Fatal("system page parent", page.ID, parentOf[page.ID])
+			}
+		case "personal":
+			if parentOf[page.ID] != "" {
+				t.Fatal("personal page parent", page.ID, parentOf[page.ID])
+			}
+		}
+	}
+	// The single namespace: one node per page, actions prefixed op:.
+	if directories != 1 {
+		t.Fatal("expected the single administrator directory", directories)
 	}
 
 	// Registry parity with the exported frontend page order: same set, and the
@@ -140,57 +150,35 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 		}
 	}
 
-	// The user surface skips administrator-only pages; the administrator
-	// surface carries both directories and the management pages under them.
-	userNodes, adminNodes := 0, 0
-	for _, node := range seed.Nodes {
-		switch surfaceOf[node.SectionID] {
-		case "user":
-			userNodes++
-			if page, ok := NavigationPage(node.ID, "user"); ok && page.Group == "administration" {
-				t.Fatal("administration page seeded on the user surface", node.ID)
-			}
-		case "administrator":
-			adminNodes++
-		}
+	// NavigationFor keeps the projection inside one workspace: the member view
+	// shows the shared regions without the administrator-only entries, the
+	// administrator view carries both directories and console pages.
+	member := NavigationFor(seed, contracts.User{Roles: []string{"super_admin"}}, "user")
+	if len(member.Sections) != 2 {
+		t.Fatal("user projection sections", member.Sections)
 	}
-	if userNodes == 0 || adminNodes <= len(NavigationPages()) {
-		t.Fatal("surface projection sizes", userNodes, adminNodes)
-	}
-
-	// The super-administrator directory hosts every administration page,
-	// system settings hosts every system page and the personal directory
-	// hosts the administrator personal pages (administrator surface).
-	parentOf := map[string]string{}
-	for _, node := range seed.Nodes {
-		if node.ParentID != nil {
-			parentOf[node.ID+"\x00"+surfaceOf[node.SectionID]] = *node.ParentID
+	for _, node := range member.Nodes {
+		if !contains(node.Surfaces, "user") {
+			t.Fatal("user projection leaked an administrator-only node", node.ID)
 		}
-	}
-	for _, page := range NavigationPages() {
-		if page.Group == "administration" {
-			if parentOf["administrator:"+page.ID+"\x00administrator"] != "administrator:administration" {
-				t.Fatal("administration page parent", page.ID, parentOf["administrator:"+page.ID+"\x00administrator"])
-			}
-		}
-		if page.Group == "system" {
-			if parentOf["administrator:"+page.ID+"\x00administrator"] != "administrator:settings" {
-				t.Fatal("system page parent", page.ID, parentOf["administrator:"+page.ID+"\x00administrator"])
-			}
-		}
-		if page.Group == "personal" && parentOf["administrator:"+page.ID+"\x00administrator"] != "administrator:personal" {
-			t.Fatal("administrator personal page parent", page.ID, parentOf["administrator:"+page.ID+"\x00administrator"])
-		}
-	}
-
-	// NavigationFor keeps the projection inside one surface and preserves the
-	// shared structure for a super administrator.
-	projected := NavigationFor(seed, contracts.User{Roles: []string{"super_admin"}}, "user")
-	if len(projected.Sections) != 2 {
-		t.Fatal("user projection sections", projected.Sections)
 	}
 	admin := NavigationFor(seed, contracts.User{Roles: []string{"super_admin"}}, "administrator")
-	if len(admin.Sections) != 2 {
+	if len(admin.Sections) != 3 {
 		t.Fatal("administrator projection sections", admin.Sections)
+	}
+	// A page registered on both surfaces is granted once and appears in both
+	// projections under the same id.
+	if _, ok := pages["account"]; ok {
+		memberIDs := map[string]bool{}
+		for _, node := range member.Nodes {
+			memberIDs[node.ID] = true
+		}
+		adminIDs := map[string]bool{}
+		for _, node := range admin.Nodes {
+			adminIDs[node.ID] = true
+		}
+		if !memberIDs["account"] || !adminIDs["account"] {
+			t.Fatal("dual-surface page missing from a projection")
+		}
 	}
 }

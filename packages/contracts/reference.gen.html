@@ -5986,7 +5986,7 @@
   &quot;additionalProperties&quot;: false,
   &quot;required&quot;: [
     &quot;id&quot;,
-    &quot;surface&quot;,
+    &quot;surfaces&quot;,
     &quot;name&quot;,
     &quot;sort&quot;,
     &quot;visible&quot;,
@@ -5996,13 +5996,6 @@
     &quot;id&quot;: {
       &quot;type&quot;: &quot;string&quot;,
       &quot;maxLength&quot;: 64
-    },
-    &quot;surface&quot;: {
-      &quot;type&quot;: &quot;string&quot;,
-      &quot;enum&quot;: [
-        &quot;user&quot;,
-        &quot;administrator&quot;
-      ]
     },
     &quot;name&quot;: {
       &quot;type&quot;: &quot;string&quot;,
@@ -6017,6 +6010,18 @@
     },
     &quot;show_title&quot;: {
       &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;surfaces&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;,
+        &quot;enum&quot;: [
+          &quot;user&quot;,
+          &quot;administrator&quot;
+        ]
+      },
+      &quot;minItems&quot;: 1,
+      &quot;uniqueItems&quot;: true
     }
   }
 }</pre></details><details id="schema-NavigationNode"><summary>NavigationNode</summary><pre>{
@@ -6035,7 +6040,8 @@
     &quot;badge_color&quot;,
     &quot;badge_dot&quot;,
     &quot;operation_ids&quot;,
-    &quot;disabled&quot;
+    &quot;disabled&quot;,
+    &quot;surfaces&quot;
   ],
   &quot;properties&quot;: {
     &quot;id&quot;: {
@@ -6119,6 +6125,18 @@
     },
     &quot;disabled&quot;: {
       &quot;type&quot;: &quot;boolean&quot;
+    },
+    &quot;surfaces&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;string&quot;,
+        &quot;enum&quot;: [
+          &quot;user&quot;,
+          &quot;administrator&quot;
+        ]
+      },
+      &quot;minItems&quot;: 1,
+      &quot;uniqueItems&quot;: true
     }
   }
 }</pre></details><details id="schema-NavigationPage"><summary>NavigationPage</summary><pre>{

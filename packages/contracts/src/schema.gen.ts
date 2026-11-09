@@ -1516,11 +1516,11 @@ export interface UserImportFailure {
 
 export interface NavigationSection {
   id: string;
-  surface: "user" | "administrator";
   name: string;
   sort: number;
   visible: boolean;
   show_title: boolean;
+  surfaces: Array<"user" | "administrator">;
 }
 
 export interface NavigationNode {
@@ -1542,6 +1542,7 @@ export interface NavigationNode {
   permission?: string;
   operation_ids: Array<string>;
   disabled: boolean;
+  surfaces: Array<"user" | "administrator">;
 }
 
 export interface NavigationPage {

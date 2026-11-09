@@ -35,6 +35,7 @@ export function FilesPage({ client, metadata }: PageProps) {
   // server-projected per-row capabilities, so readable scope rows (other
   // people's files) stay downloadable but never deletable.
   const canUpload = (['createMultipartUpload','completeMultipartUpload','signUploadPart','uploadLocalPart'] as const).every(op => canAction(metadata,op));
+  console.log('PAGE_DEBUG2', JSON.stringify({ roles: metadata.current_user?.roles, per: canAction(metadata, 'createMultipartUpload'), nav: !!metadata.navigation, nodes: metadata.navigation?.nodes.length, actionIds: metadata.current_user?.action_ids?.length }));
   const isOwn = (file: FileEntry) => file.creator_id === metadata.current_user?.id && file.creator_realm === 'user';
   const cache = useQueryClient();
   const message = useMessage();

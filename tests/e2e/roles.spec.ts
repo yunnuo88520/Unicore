@@ -119,6 +119,9 @@ test('custom roles assign through the console, echo the three grant sets and sur
   await expect(page.getByRole('heading', { name: '角色权限', exact: true, level: 1 })).toBeVisible();
   await page.getByRole('button', { name: '新建角色', exact: true }).click();
   const editor = page.getByRole('dialog', { name: '新建角色', exact: true });
+  // The console has no realm picker: creates are user-realm roles and edits
+  // keep the role's own realm.
+  await expect(editor.getByLabel('角色域')).toHaveCount(0);
   await editor.getByLabel('角色名称', { exact: true }).fill('记录员');
   // Overlay scrollbars float above content on macOS instead of reserving a
   // gutter, so interactive elements must stay clear of the rightmost band.
@@ -129,9 +132,9 @@ test('custom roles assign through the console, echo the three grant sets and sur
     return [...scroller.querySelectorAll('button, [role="checkbox"], input')].every(el => el.getBoundingClientRect().right <= limit + 1);
   });
   expect(clearOfGutter).toBe(true);
-  // The permission matrix lives in its own editor tab.
-  await editor.getByRole('tab', { name: '权限点与数据范围', exact: true }).click();
-  await editor.getByRole('tabpanel', { name: '权限点与数据范围' }).getByRole('checkbox', { name: '使用我的笔记', exact: true }).check();
+  // Raw permission points live in the collapsed advanced catalogue.
+  await editor.getByRole('button', { name: /高级/ }).click();
+  await editor.getByRole('group', { name: '权限点' }).getByRole('checkbox', { name: '使用我的笔记', exact: true }).check();
   await editor.getByRole('button', { name: '保存', exact: true }).click();
   await expect(editor).toHaveCount(0);
   const admin = sdkClient(instance.url, 'administrator');
@@ -205,26 +208,32 @@ test('restricted administrators keep user administration without role management
   const labelOf = (routeId: string) => nodeDisplayLabel(pageNode(config, routeId) ?? { label: '', id: routeId, route_id: routeId });
   // Menu authorization needs the full ancestor chain of each visible page.
   const menuIds = [...new Set([...menuChain(config, 'users'), ...menuChain(config, 'announcements', 'administrator')])];
-  // The super administrator builds the restricted role in the administrator tab of the real console.
+  // The console creates user-realm roles only, so the super administrator
+  // seeds the restricted administrator-realm role through the SDK and the
+  // console echoes it back.
+  await admin.web!.createRole({
+    name: '内容运营', permissions: ['users:read', 'users:create', 'users:update', 'announcements:read'],
+    realm: 'administrator', data_scope: 'all',
+    operation_ids: ['listUsers', 'updateUser', 'roleOptions'],
+  });
   await page.goto(`${instance.url}/admin/roles`);
   await expect(page.getByRole('heading', { name: '角色权限', exact: true, level: 1 })).toBeVisible();
-  await page.getByRole('button', { name: '新建角色', exact: true }).click();
-  const roleEditor = page.getByRole('dialog', { name: '新建角色', exact: true });
-  await expect(roleEditor.getByLabel('角色域')).toHaveCount(0);
-  await roleEditor.getByRole('tab', { name: '权限点与数据范围', exact: true }).click();
-  const pointsPanel = roleEditor.getByRole('tabpanel', { name: '权限点与数据范围' });
-  await pointsPanel.getByLabel('数据范围', { exact: true }).selectOption('all');
-  await roleEditor.getByLabel('角色名称', { exact: true }).fill('内容运营');
-  await expect(pointsPanel.getByText('仅超级管理员', { exact: true }).first()).toBeVisible();
-  for (const name of ['查看用户', '创建用户', '管理用户身份', '查看平台公告']) await pointsPanel.getByRole('checkbox', { name, exact: true }).check();
-  await roleEditor.getByRole('tab', { name: 'API 授权', exact: true }).click();
-  const apiPanel = roleEditor.getByRole('tabpanel', { name: 'API 授权' });
-  for (const operation of ['listUsers', 'updateUser', 'roleOptions']) {
-    await apiPanel.getByLabel(operation, { exact: true }).check();
-  }
-  await roleEditor.getByRole('button', { name: '保存', exact: true }).click();
-  await expect(roleEditor).toHaveCount(0);
   await expect(page.getByRole('row').filter({ hasText: '内容运营' })).toBeVisible();
+  await page.getByRole('row').filter({ hasText: '内容运营' }).getByRole('button', { name: '编辑角色 内容运营', exact: true }).click();
+  const roleEditor = page.getByRole('dialog', { name: '编辑角色', exact: true });
+  await expect(roleEditor.getByLabel('数据范围', { exact: true })).toHaveValue('all');
+  // The advanced catalogue carries the raw points and the super-only locks.
+  await roleEditor.getByRole('button', { name: /高级/ }).click();
+  const pointsPanel = roleEditor.getByRole('group', { name: '权限点' });
+  await expect(pointsPanel.getByText('仅超级管理员', { exact: true }).first()).toBeVisible();
+  for (const name of ['查看用户', '创建用户', '管理用户身份', '查看平台公告']) await expect(pointsPanel.getByRole('checkbox', { name, exact: true })).toBeChecked();
+  // The page-bound API operations echo inside the users page detail.
+  await roleEditor.getByRole('button', { name: '展开或收起 用户列表', exact: true }).click();
+  for (const operation of ['listUsers', 'updateUser', 'roleOptions']) {
+    await expect(roleEditor.getByLabel(operation, { exact: true })).toBeChecked();
+  }
+  await roleEditor.getByRole('button', { name: '取消', exact: true }).click();
+  await expect(roleEditor).toHaveCount(0);
   // The menu chain rides the console API for an explicit ancestor chain; the
   // editor itself now resolves route labels and cascades ancestors (unit
   // covered), so this grant stays focused on enforcement, not tree clicks.
@@ -294,6 +303,7 @@ test('button-level grants hide note actions while the notes page stays reachable
   const admin = sdkClient(instance.url, 'administrator');
   await loginClient(admin, 'admin', adminPassword);
   const config = await admin.web!.menuConfig();
+  const labelOf = (routeId: string) => nodeDisplayLabel(pageNode(config, routeId) ?? { label: '', id: routeId, route_id: routeId });
   // Page and entry grants plus create/update/upload, deliberately without the
   // delete points; menu chains and the derived API grants complete the matrix.
   // The files page itself no longer renders on the user surface — its points
@@ -333,12 +343,33 @@ test('button-level grants hide note actions while the notes page stays reachable
     await memberPage.goto(`${instance.url}/files`);
     await expect(memberPage.getByRole('heading', { name: '没有访问权限', exact: true })).toBeVisible();
     // Narrowing the permission upper bound prunes dependent API and action
-    // grants in the same save; unrelated grants stay intact.
+    // grants in the same save; unrelated grants stay intact. The saved union
+    // is derived inside the editor, so the buttons, their API operations and
+    // the raw points leave together before the save.
     await page.goto(`${instance.url}/admin/roles`);
     await page.getByRole('row').filter({ hasText: '记录员' }).getByRole('button', { name: '编辑角色 记录员', exact: true }).click();
     const editDialog = page.getByRole('dialog', { name: '编辑角色', exact: true });
-    await editDialog.getByRole('tab', { name: '权限点与数据范围', exact: true }).click();
-    const points = editDialog.getByRole('tabpanel', { name: '权限点与数据范围' });
+    await editDialog.getByRole('button', { name: `展开或收起 ${labelOf('notes')}`, exact: true }).click();
+    // Button groups merge same-label derived nodes, so a partially granted
+    // group renders aria-checked="mixed" where Radix cycles a click back to
+    // checked: click until the group reads unchecked instead of blind
+    // check()/uncheck() gestures.
+    const groupOff = async (name: string) => {
+      const box = editDialog.getByRole('checkbox', { name, exact: true });
+      for (let guard = 0; guard < 3 && await box.getAttribute('aria-checked') !== 'false'; guard++) await box.click();
+    };
+    await groupOff('创建笔记');
+    await editDialog.getByRole('checkbox', { name: 'createNote', exact: true }).uncheck();
+    await editDialog.getByRole('button', { name: `展开或收起 ${labelOf('files')}`, exact: true }).click();
+    // The files:upload point rides the upload operation family; its derived
+    // buttons collapse into one 上传文件 group (already ungranted here — the
+    // files page is administrator-surface, so its actions never auto-derived).
+    await groupOff('上传文件');
+    for (const operation of ['createFileUpload', 'uploadLocalFile', 'completeFileUpload', 'createMultipartUpload', 'multipartUpload', 'signUploadPart', 'uploadLocalPart', 'completeMultipartUpload']) {
+      await editDialog.getByLabel(operation, { exact: true }).uncheck();
+    }
+    await editDialog.getByRole('button', { name: /高级/ }).click();
+    const points = editDialog.getByRole('group', { name: '权限点' });
     await points.getByRole('checkbox', { name: '创建笔记', exact: true }).uncheck();
     await points.getByRole('checkbox', { name: '上传文件', exact: true }).uncheck();
     const keep = materializedOperations('user', ['notes:access', 'notes:update', 'files:access']);
@@ -457,11 +488,11 @@ test('custom department scopes echo in the role editor and guard attached depart
   await page.getByRole('button', { name: '新建角色', exact: true }).click();
   const editor = page.getByRole('dialog', { name: '新建角色', exact: true });
   await editor.getByLabel('角色名称', { exact: true }).fill('区域记录员');
-  await editor.getByRole('tab', { name: '权限点与数据范围', exact: true }).click();
-  const pointsPanel = editor.getByRole('tabpanel', { name: '权限点与数据范围' });
+  await editor.getByRole('button', { name: /高级/ }).click();
+  const pointsPanel = editor.getByRole('group', { name: '权限点' });
   await pointsPanel.getByRole('checkbox', { name: '使用我的笔记', exact: true }).check();
-  await pointsPanel.getByLabel('数据范围', { exact: true }).selectOption('custom');
-  await pointsPanel.getByRole('checkbox', { name: '前端组' }).check();
+  await editor.getByLabel('数据范围', { exact: true }).selectOption('custom');
+  await editor.getByRole('group', { name: '自定义部门范围' }).getByRole('checkbox', { name: '前端组' }).check();
   await editor.getByRole('button', { name: '保存', exact: true }).click();
   await expect(editor).toHaveCount(0);
   await loginClient(admin, 'admin', adminPassword);
@@ -469,13 +500,14 @@ test('custom department scopes echo in the role editor and guard attached depart
   const scoped = roles.items.find(item => item.name === '区域记录员');
   expect(scoped?.data_scope).toBe('custom');
   expect(scoped?.department_ids).toEqual([child!.id]);
-  // Reopening the editor echoes the scope and the department selection.
+  // Reopening the editor echoes the granted point, the scope and the department selection.
   await page.getByRole('row').filter({ hasText: '区域记录员' }).getByRole('button', { name: '编辑角色 区域记录员', exact: true }).click();
   const editDialog = page.getByRole('dialog', { name: '编辑角色', exact: true });
-  await editDialog.getByRole('tab', { name: '权限点与数据范围', exact: true }).click();
-  const echoPanel = editDialog.getByRole('tabpanel', { name: '权限点与数据范围' });
-  await expect(echoPanel.getByLabel('数据范围')).toHaveValue('custom');
-  await expect(echoPanel.getByRole('checkbox', { name: '前端组' })).toBeChecked();
+  await expect(editDialog.getByLabel('数据范围')).toHaveValue('custom');
+  await editDialog.getByRole('button', { name: /高级/ }).click();
+  const echoPanel = editDialog.getByRole('group', { name: '权限点' });
+  await expect(echoPanel.getByRole('checkbox', { name: '使用我的笔记', exact: true })).toBeChecked();
+  await expect(editDialog.getByRole('group', { name: '自定义部门范围' }).getByRole('checkbox', { name: '前端组' })).toBeChecked();
   await editDialog.getByRole('button', { name: '取消', exact: true }).click();
   // The user console attaches the child department and resolves its name in the list.
   await page.goto(`${instance.url}/admin/users`);

@@ -1,5 +1,5 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Navigation editor over the persisted section/node tree: both surfaces, directory/page/link/action rows, badges and role assignment; one save submits the whole tree with a version CAS.
+// Description: Navigation editor over one persisted shared tree: sections, directory/page/link/action rows, per-node surfaces badges and role assignment; one save submits the whole tree with a version CAS.
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -20,7 +20,7 @@ import type { PageProps } from '../../router';
 
 const MAX_DEPTH = 5;
 const MAX_NODES = 256;
-const SURFACES = defineMessages({ user: '用户端', administrator: '管理端' });
+const SURFACE_LABELS = defineMessages({ user: '成员端', administrator: '管理端' });
 const TYPE_LABELS = defineMessages({ directory: '目录', page: '页面', link: '链接', action: '按钮' });
 const TYPE_ICONS: Record<NavigationNode['type'], LucideIcon> = { directory: ListTree, page: SquarePen, link: Link2, action: MousePointerClick };
 const BADGE_COLORS = defineMessages({ primary: '主色', success: '成功', warning: '警告', danger: '危险', muted: '中性' });
@@ -29,6 +29,12 @@ type Draft = { version: number; sections: NavigationSection[]; nodes: Navigation
 type RoleMenus = Record<string, string[]>;
 
 const nodeIndex = (nodes: NavigationNode[]): Map<string, NavigationNode> => new Map(nodes.map(node => [node.id, node]));
+// A node renders in every workspace listed in its surfaces array; the badge
+// compresses that pair to 两端/成员端/管理端.
+function surfacesLabel(surfaces: NavigationNode['surfaces']): string {
+  if (surfaces.includes('user') && surfaces.includes('administrator')) return t('两端');
+  return t(SURFACE_LABELS[surfaces.includes('user') ? 'user' : 'administrator']);
+}
 // The editor shows the same display names as the workspace: operator labels
 // first, then the registered route label or the seeded directory fallback.
 // The editor shows the same display names as the workspace: operator labels
@@ -67,15 +73,15 @@ function normalize(nodes: NavigationNode[], sections: NavigationSection[]): Navi
     parent_id: node.parent_id && node.parent_id !== node.id && ids.has(node.parent_id) ? node.parent_id : undefined,
   }));
 }
-function renumber(draft: Draft, surface: NavigationSection['surface']): NavigationNode[] {
-  const tree = buildMenuTree({ sections: draft.sections.filter(section => section.surface === surface), nodes: draft.nodes.filter(node => draft.sections.find(section => section.id === node.section_id)?.surface === surface) });
+function renumber(draft: Draft): NavigationNode[] {
+  const tree = buildMenuTree(draft);
   const sorts = new Map<string, number>();
   const walk = (list: MenuTreeNode[]) => list.forEach((item, index) => { sorts.set(item.node.id, (index + 1) * 10); walk(item.children); });
   tree.forEach(({ children }) => walk(children));
   return draft.nodes.map(node => sorts.has(node.id) ? { ...node, sort: sorts.get(node.id)! } : node);
 }
-function shiftNode(draft: Draft, surface: NavigationSection['surface'], key: string, direction: -1 | 1): Draft {
-  const tree = buildMenuTree({ sections: draft.sections.filter(section => section.surface === surface), nodes: draft.nodes.filter(node => draft.sections.find(section => section.id === node.section_id)?.surface === surface) });
+function shiftNode(draft: Draft, key: string, direction: -1 | 1): Draft {
+  const tree = buildMenuTree(draft);
   const flat = tree.flatMap(({ children }) => {
     const walk = (list: MenuTreeNode[]): MenuTreeNode[] => list.flatMap(item => [item, ...walk(item.children)]);
     return walk(children);
@@ -100,15 +106,13 @@ function removeNode(draft: Draft, key: string): Draft {
   if (!node) return draft;
   return { ...draft, nodes: draft.nodes.filter(item => item.id !== key).map(item => item.parent_id === key ? { ...item, parent_id: undefined } : item) };
 }
-function loadDraft(data: MenuList): Draft {
+function loadDraft(data: MenuList, profile: Bootstrap['profile']): Draft {
   const sections = [...data.sections];
   const nodes = [...data.nodes];
   if (!sections.length && !nodes.length) {
-    for (const surface of ['user', 'administrator'] as const) {
-      const fallback = defaultNavigation(surface);
-      sections.push(...fallback.sections);
-      nodes.push(...fallback.nodes);
-    }
+    const fallback = defaultNavigation(['user', 'administrator'], profile);
+    sections.push(...fallback.sections);
+    nodes.push(...fallback.nodes);
   }
   return { version: data.version, sections, nodes: normalize(nodes, sections) };
 }
@@ -129,7 +133,6 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
   const { has } = usePermissions(metadata);
   // Role assignment is a roles-management capability: super administrator plus roles:write, never menus:write alone.
   const canManageRoles = isAdministrator(metadata) && has('roles:write');
-  const [surface, setSurface] = useState<NavigationSection['surface']>(metadata.identity_realm === 'administrator' ? 'administrator' : 'user');
   const [draft, setDraft] = useState<Draft | null>(null);
   const [nodeDialog, setNodeDialog] = useState<NodeDialogState | null>(null);
   const [moveDialog, setMoveDialog] = useState<string | null>(null);
@@ -141,8 +144,8 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
   const config = useQuery<MenuList>({ queryKey: ['menu-config'], queryFn: () => web.menuConfig() });
   const roles = useQuery<RoleListRealm>({ queryKey: ['roles'], queryFn: () => web.roles() });
   const operations = useQuery({ queryKey: ['api-operations'], queryFn: () => web.apiOperations() });
-  const baseline = useMemo(() => (config.data ? loadDraft(config.data) : null), [config.data]);
-  useEffect(() => { if (config.data && !draft) setDraft(loadDraft(config.data)); }, [config.data, draft]);
+  const baseline = useMemo(() => (config.data ? loadDraft(config.data, metadata.profile) : null), [config.data, metadata.profile]);
+  useEffect(() => { if (config.data && !draft) setDraft(loadDraft(config.data, metadata.profile)); }, [config.data, draft, metadata.profile]);
   const dirty = !!draft && !!baseline && (JSON.stringify([draft.sections, draft.nodes]) !== JSON.stringify([baseline.sections, baseline.nodes]) || Object.keys(roleMenus).length > 0);
   const pending = !draft;
 
@@ -156,7 +159,7 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
     onSuccess: data => {
       message.success(t('菜单配置已保存'));
       // Adopt the server's table (new version) so the editor never resubmits a stale CAS.
-      setDraft(loadDraft(data));
+      setDraft(loadDraft(data, metadata.profile));
       invalidate();
     },
     onError: error => {
@@ -175,9 +178,7 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
     {config.isPending && <p role="status" className="py-6 text-center text-sm text-muted">{t('正在读取菜单配置…')}</p>}
   </CardContent></Card>;
 
-  const surfaceSections = draft.sections.filter(section => section.surface === surface).sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id));
-  const surfaceNodes = draft.nodes.filter(node => surfaceSections.some(section => section.id === node.section_id));
-  const tree = buildMenuTree({ sections: surfaceSections, nodes: surfaceNodes });
+  const tree = buildMenuTree(draft);
   const realmRoles = (roles.data?.items ?? []).filter(role => role.id !== 'super_admin');
 
   const patchSection = (id: string, patch: Partial<NavigationSection>) =>
@@ -192,7 +193,7 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
     const source = index.get(sourceId); const target = index.get(targetId);
     if (!source || !target) return current;
     if (source.section_id !== target.section_id || (source.parent_id ?? '') !== (target.parent_id ?? '')) return current;
-    const tree = buildMenuTree({ sections: current.sections.filter(section => section.surface === surface), nodes: current.nodes.filter(node => current.sections.find(section => section.id === node.section_id)?.surface === surface) });
+    const tree = buildMenuTree(current);
     const flat = tree.flatMap(({ children }) => { const walk = (list: MenuTreeNode[]): MenuTreeNode[] => list.flatMap(item => [item, ...walk(item.children)]); return walk(children); });
     const siblings = (list: MenuTreeNode[], id: string): MenuTreeNode[] => {
       for (const item of list) { if (item.node.id === id) return list; const found = siblings(item.children, id); if (found.length) return found; }
@@ -217,15 +218,15 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
     setDraft(current => {
       if (!current) return current;
       const next: Draft = { ...current, nodes: current.nodes.map(node => node.id === key ? { ...node, section_id: sectionId, parent_id: parentId } : node) };
-      return { ...next, nodes: renumber({ ...next, nodes: normalize(next.nodes, next.sections) }, surface) };
+      return { ...next, nodes: renumber({ ...next, nodes: normalize(next.nodes, next.sections) }) };
     });
   };
-  const confirmDeleteNode = (key: string) => { setDraft(current => current && { ...current, nodes: renumber(removeNode(current, key), surface) }); setDeleteNode(null); };
+  const confirmDeleteNode = (key: string) => { setDraft(current => current && { ...current, nodes: renumber(removeNode(current, key)) }); setDeleteNode(null); };
   const confirmDeleteSection = (sectionId: string) => { saveSection(sectionId); setDeleteSection(null); };
   const submitReset = () => {
     if (!draft) return;
-    // reset is both-surface: the server restores the registered defaults for the
-    // user and administrator surfaces together, not only the visible tab.
+    // reset is whole-tree: the server restores the registered default tree for
+    // every workspace together, not only the section being viewed.
     save.mutate({ version: draft.version, sections: [], nodes: [], reset: true });
     setConfirmReset(false);
   };
@@ -239,25 +240,16 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
   };
 
   return <Card><CardContent className="flex min-w-0 flex-col gap-4">
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <h2 className="text-md font-semibold text-ink">{t('菜单配置')}</h2>
-        <p className="mt-0.5 text-xs text-muted">{surface === 'user'
-          ? t('调整普通用户的产品导航：分组、顺序、名称、图标与可见性；角色可见性在角色权限编辑器中配置。')
-          : t('维护管理控制台结构：受限管理员只看到被授权的页面；角色可见性在角色权限编辑器中配置。')}</p>
-      </div>
-      <div role="tablist" aria-label={t('配置区域')} className="flex gap-1 rounded-lg border border-line bg-surface-alt p-1">
-        {(['user', 'administrator'] as const).map(key => <button key={key} role="tab" aria-selected={surface === key}
-          className={`rounded-md px-3 py-1 text-sm font-medium ${surface === key ? 'bg-surface text-ink shadow-tint' : 'text-muted hover:text-ink'}`}
-          onClick={() => setSurface(key)}>{t(SURFACES[key])}</button>)}
-      </div>
+    <div>
+      <h2 className="text-md font-semibold text-ink">{t('菜单配置')}</h2>
+      <p className="mt-0.5 text-xs text-muted">{t('调整成员端与管理端共享的同一棵导航树：分组、顺序、名称、图标与可见性；角色可见性在角色权限编辑器中配置。')}</p>
     </div>
     {config.isFetching && <p role="status" className="text-2xs text-subtle">{t('正在刷新菜单配置…')}</p>}
     <div className="flex flex-col gap-4">
-      {tree.map(({ section, children }) => <SectionEditor key={section.id} section={section} nodes={children} draft={draft} surface={surface}
+      {tree.map(({ section, children }) => <SectionEditor key={section.id} section={section} nodes={children} draft={draft}
         dirtyFlag={dirty}
         onPatch={patchSection} onAddNode={addNode} onEditNode={key => setNodeDialog({ mode: 'edit', key })}
-        onMoveNode={key => setMoveDialog(key)} onShiftNode={(key, direction) => setDraft(current => current && shiftNode(current, surface, key, direction))}
+        onMoveNode={key => setMoveDialog(key)} onShiftNode={(key, direction) => setDraft(current => current && shiftNode(current, key, direction))}
         onReorderNode={reorderNode}
         onVisibleNode={(key, visible) => patchNode(key, { visible })}
         onDeleteNode={key => setDeleteNode(key)} onDeleteSection={id => setDeleteSection(id)} />)}
@@ -265,7 +257,7 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
     <div className="flex flex-wrap items-center justify-between gap-3">
       <Button variant="secondary" size="sm" disabled={pending} onClick={() => {
         const id = randomId(draft?.nodes ?? [], 'section');
-        setDraft(current => current && { ...current, sections: [...current.sections, { id, surface, name: '', sort: (current.sections.filter(item => item.surface === surface).length + 1) * 10, visible: true, show_title: true }] });
+        setDraft(current => current && { ...current, sections: [...current.sections, { id, surfaces: ['user', 'administrator'], name: '', sort: (current.sections.length + 1) * 10, visible: true, show_title: true }] });
       }}><Plus size={14} />{t('添加区域')}</Button>
       <div className="flex flex-wrap items-center gap-2">
         {dirty && <span role="status" className="text-2xs font-medium text-warning">{t('有未保存的更改')}</span>}
@@ -273,10 +265,10 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
         <Button pending={save.isPending} disabled={pending} onClick={saveTree}><Save size={14} />{t('保存菜单配置')}</Button>
       </div>
     </div>
-    {nodeDialog && <NodeDialog state={nodeDialog} draft={draft} surface={surface} pages={config.data?.pages ?? []}
+    {nodeDialog && <NodeDialog state={nodeDialog} draft={draft} pages={config.data?.pages ?? []}
       permissions={(roles.data?.permissions ?? []).map(permission => permission.id)}
       operations={operations.data?.items ?? []} onClose={() => setNodeDialog(null)} onSubmit={submitNode} />}
-    {moveDialog && <MoveDialog draft={draft} surface={surface} node={nodeIndex(draft.nodes).get(moveDialog)!} onClose={() => setMoveDialog(null)} onConfirm={submitMove} />}
+    {moveDialog && <MoveDialog draft={draft} node={nodeIndex(draft.nodes).get(moveDialog)!} onClose={() => setMoveDialog(null)} onConfirm={submitMove} />}
     {deleteNode && <ConfirmDialog title={t('删除菜单节点')} danger confirmLabel={t('删除')} cancelLabel={t('取消')}
       description={t('该节点将从导航移除，其子节点回到所在区域顶层；保存菜单配置后生效。')}
       onConfirm={() => confirmDeleteNode(deleteNode)} onCancel={() => setDeleteNode(null)} />}
@@ -309,7 +301,7 @@ function LabeledSwitch({ label, checked, onChange, disabled }: { label: string; 
 }
 
 type SectionHandlers = {
-  draft: Draft; surface: NavigationSection['surface'];
+  draft: Draft;
   dirtyFlag: boolean;
   onPatch: (id: string, patch: Partial<NavigationSection>) => void;
   onAddNode: (type: NavigationNode['type'], sectionId: string, parentId?: string) => void;
@@ -334,6 +326,16 @@ function SectionEditor({ section, nodes, ...handlers }: { section: NavigationSec
         onChange={event => handlers.onPatch(section.id, { sort: Number(event.target.value) || 0 })} />
       <LabeledSwitch label={t('显示')} checked={section.visible} onChange={value => handlers.onPatch(section.id, { visible: value })} />
       <LabeledSwitch label={t('标题')} checked={section.show_title} onChange={value => handlers.onPatch(section.id, { show_title: value })} />
+      <div role="group" aria-label={t('显示工作台')} className="flex items-center gap-2">
+        {(['user', 'administrator'] as const).map(value => <label key={value} className="flex items-center gap-1 text-xs text-muted">
+          <Checkbox aria-label={t(SURFACE_LABELS[value])} checked={section.surfaces.includes(value)}
+            onChange={checked => {
+              const next = checked ? [...new Set([...section.surfaces, value])] : section.surfaces.filter(item => item !== value);
+              // A section must stay reachable from at least one workspace.
+              if (next.length) handlers.onPatch(section.id, { surfaces: next });
+            }} />{t(SURFACE_LABELS[value])}
+        </label>)}
+      </div>
       <span className="rounded-full bg-surface-alt px-1.5 py-0.5 text-2xs tabular-nums text-muted" data-count={section.id}>{count}</span>
       <div className="ms-auto flex flex-wrap items-center gap-1">
         <Button variant="ghost" size="sm" onClick={() => handlers.onAddNode('directory', section.id)}><FolderPlus size={14} />{t('目录')}</Button>
@@ -372,7 +374,7 @@ function NodeTable({ nodes, ...handlers }: { nodes: MenuTreeNode[] } & SectionHa
   return <div className="min-w-0">
     <Table className="max-sm:[&_td]:px-2 max-sm:[&_th]:px-2">
       <TableHeader><TableRow>
-        <TableHead>{t('名称')}</TableHead><TableHead className="max-sm:hidden">{t('类型')}</TableHead><TableHead className="max-sm:hidden">{t('图标')}</TableHead><TableHead className="max-sm:hidden">{t('目标')}</TableHead>
+        <TableHead>{t('名称')}</TableHead><TableHead className="max-sm:hidden">{t('类型')}</TableHead><TableHead className="max-sm:hidden">{t('工作台')}</TableHead><TableHead className="max-sm:hidden">{t('图标')}</TableHead><TableHead className="max-sm:hidden">{t('目标')}</TableHead>
         <TableHead>{t('排序')}</TableHead><TableHead>{t('显示')}</TableHead><TableHead className="text-end">{t('操作')}</TableHead>
       </TableRow></TableHeader>
       <TableBody>
@@ -426,6 +428,7 @@ function NodeRow({ item, depth, hasChildren, collapsed, onToggle, dragging, drop
         </div>
       </TableCell>
       <TableCell className="max-sm:hidden"><span className="inline-flex items-center gap-1 text-xs text-muted"><TypeIcon size={13} aria-hidden="true" />{t(TYPE_LABELS[node.type])}</span></TableCell>
+      <TableCell className="max-sm:hidden"><span className="rounded-full bg-surface-alt px-1.5 py-0.5 text-2xs text-muted">{surfacesLabel(node.surfaces)}</span></TableCell>
       <TableCell className="max-sm:hidden"><span className="text-xs text-muted">{node.icon || '—'}</span></TableCell>
       <TableCell className="max-sm:hidden"><span className="text-xs text-muted">{target || '—'}</span></TableCell>
       <TableCell><span className="inline-flex items-center gap-1 text-xs tabular-nums text-muted">
@@ -452,30 +455,30 @@ function NodeRow({ item, depth, hasChildren, collapsed, onToggle, dragging, drop
 }
 
 type NodeForm = {
-  parentId: string; name: string; icon: string; sort: string; visible: boolean;
+  parentId: string; name: string; icon: string; sort: string; visible: boolean; surfaces: NavigationNode['surfaces'];
   routeId: string; activeMenu: string; url: string; openMode: NavigationNode['open_mode'];
   permission: string; operationIds: string[]; badgeText: string; badgeColor: string; badgeDot: boolean;
 };
 
-function NodeDialog({ state, draft, surface, pages, permissions, operations, onClose, onSubmit }: {
-  state: NodeDialogState; draft: Draft; surface: NavigationSection['surface']; pages: MenuList['pages']; permissions: string[]; operations: APIOperation[];
+function NodeDialog({ state, draft, pages, permissions, operations, onClose, onSubmit }: {
+  state: NodeDialogState; draft: Draft; pages: MenuList['pages']; permissions: string[]; operations: APIOperation[];
   onClose: () => void; onSubmit: (node: NavigationNode, isNew: boolean) => void;
 }) {
   useLocale();
   const editing = state.mode === 'edit' ? nodeIndex(draft.nodes).get(state.key) : undefined;
   const type: NavigationNode['type'] = editing ? editing.type : state.mode === 'create' ? state.type : 'page';
-  const sections = draft.sections.filter(section => section.surface === surface);
+  const sections = [...draft.sections].sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id));
   const directories = draft.nodes.filter(node => node.type === 'directory' && sections.some(section => section.id === node.section_id)
     && (!editing || (!isDescendant(draft.nodes, node.id, editing.id) && node.id !== editing.id)));
   const usedRoutes = new Set(draft.nodes.filter(node => node.type === 'page' && node.id !== editing?.id && sections.some(section => section.id === node.section_id)).map(node => node.route_id));
-  const routeOptions = (pages.length ? pages.filter(page => page.surfaces.includes(surface)).map(page => page.id) : Object.keys(routes).filter(isRegisteredPage))
+  const routeOptions = (pages.length ? pages.map(page => page.id) : Object.keys(routes).filter(isRegisteredPage))
     .filter(isRegisteredPage).filter(id => !usedRoutes.has(id));
   const [operationSearch, setOperationSearch] = useState('');
   const parentRefOf = (node: NavigationNode): string => {
     if (!node.parent_id) return `top:${node.section_id}`;
     return `${nodeIndex(draft.nodes).get(node.parent_id)?.type === 'page' ? 'page' : 'dir'}:${node.parent_id}`;
   };
-  const surfacePages = draft.nodes.filter(item => item.type === 'page' && sections.some(section => section.id === item.section_id));
+  const pageParents = draft.nodes.filter(item => item.type === 'page' && sections.some(section => section.id === item.section_id));
   const parentRef = editing ? parentRefOf(editing) : state.mode === 'create' && state.parentId ? `${state.type === 'action' ? 'page' : 'dir'}:${state.parentId}` : state.mode === 'create' ? `top:${state.sectionId}` : 'top:';
   const [form, setForm] = useState<NodeForm>({
     parentId: parentRef,
@@ -483,6 +486,7 @@ function NodeDialog({ state, draft, surface, pages, permissions, operations, onC
     icon: editing?.icon ?? (type === 'directory' ? 'Folder' : type === 'link' ? 'Link' : type === 'action' ? 'MousePointerClick' : 'Circle'),
     sort: String(editing?.sort ?? 100),
     visible: editing?.visible ?? true,
+    surfaces: editing ? [...editing.surfaces] : ['user', 'administrator'],
     routeId: editing?.route_id ?? '',
     activeMenu: editing?.active_menu ?? '',
     url: editing?.url ?? '',
@@ -499,7 +503,7 @@ function NodeDialog({ state, draft, surface, pages, permissions, operations, onC
   // The server attaches actions to pages, so the parent picker is type-aware:
   // pages pick a section top or a directory, actions pick a page row.
   const parentOptions = type === 'action'
-    ? surfacePages.filter(item => depthOf(draft.nodes, item.id) < MAX_DEPTH && (!editing || item.id !== editing.id))
+    ? pageParents.filter(item => depthOf(draft.nodes, item.id) < MAX_DEPTH && (!editing || item.id !== editing.id))
         .map(item => ({ value: `page:${item.id}`, label: displayName(item) }))
     : sections.map(section => ({ value: `top:${section.id}`, label: t('顶层 · {{name}}', { name: sectionTitle(section) }) }))
         .concat(directories.map(node => ({ value: `dir:${node.id}`, label: `${'　'.repeat(Math.max(0, depthOf(draft.nodes, node.id) - 1))}${displayName(node)}` })));
@@ -513,18 +517,18 @@ function NodeDialog({ state, draft, surface, pages, permissions, operations, onC
     const parentKind = form.parentId.split(':')[0];
     const parentIdValue = form.parentId.slice(parentKind.length + 1);
     const parentRow = parentKind === 'dir' ? directories.find(node => node.id === parentIdValue)
-      : parentKind === 'page' ? surfacePages.find(node => node.id === parentIdValue) : undefined;
+      : parentKind === 'page' ? pageParents.find(node => node.id === parentIdValue) : undefined;
     const sectionId = parentRow?.section_id ?? (parentKind === 'top' ? parentIdValue : sections[0].id);
     const parentId = parentKind === 'top' ? undefined : parentIdValue;
     const node: NavigationNode = editing
       ? { ...editing, section_id: sectionId, parent_id: parentId,
-          label: form.name.trim(), icon: form.icon, sort: Number(form.sort) || 0, visible: form.visible,
+          label: form.name.trim(), icon: form.icon, sort: Number(form.sort) || 0, visible: form.visible, surfaces: form.surfaces,
           url: type === 'link' ? form.url.trim() : editing.url, open_mode: form.openMode,
           active_menu: form.activeMenu || undefined, permission: type === 'action' ? form.permission || undefined : editing.permission,
           operation_ids: type === 'action' ? form.operationIds : editing.operation_ids,
           badge_text: form.badgeText.trim(), badge_color: form.badgeDot || form.badgeText.trim() ? form.badgeColor : '', badge_dot: form.badgeDot,
           route_id: type === 'page' ? form.routeId : editing.route_id }
-      : { ...newNavigationNode(randomId(draft.nodes, type), sectionId, type),
+      : { ...newNavigationNode(randomId(draft.nodes, type), sectionId, type, form.surfaces),
           parent_id: parentId,
           label: form.name.trim(), icon: form.icon, sort: Number(form.sort) || 0, visible: form.visible,
           route_id: type === 'page' ? form.routeId : undefined, url: type === 'link' ? form.url.trim() : undefined,
@@ -594,6 +598,18 @@ function NodeDialog({ state, draft, surface, pages, permissions, operations, onC
       <label className="flex flex-col gap-1 text-xs text-muted">{t('在导航中显示')}
         <Switch checked={form.visible} onChange={value => patch({ visible: value })} />
       </label>
+      <div role="group" aria-label={t('显示工作台')} className="flex flex-col gap-1 text-xs text-muted">
+        <span>{t('显示工作台')}</span>
+        <div className="flex items-center gap-3">
+          {(['user', 'administrator'] as const).map(value => <label key={value} className="flex items-center gap-1 text-xs text-muted">
+            <Checkbox aria-label={t(SURFACE_LABELS[value])} checked={form.surfaces.includes(value)}
+              onChange={checked => {
+                const next = checked ? [...new Set([...form.surfaces, value])] : form.surfaces.filter(item => item !== value);
+                if (next.length) patch({ surfaces: next });
+              }} />{t(SURFACE_LABELS[value])}
+          </label>)}
+        </div>
+      </div>
       <label className="flex flex-col gap-1 text-xs text-muted">{t('角标文字')}
         <Input value={form.badgeText} maxLength={12} aria-label={t('角标文字')} onChange={event => patch({ badgeText: event.target.value })} />
       </label>
@@ -617,12 +633,12 @@ function NodeDialog({ state, draft, surface, pages, permissions, operations, onC
   </Modal>;
 }
 
-function MoveDialog({ draft, surface, node, onClose, onConfirm }: {
-  draft: Draft; surface: NavigationSection['surface']; node: NavigationNode; onClose: () => void;
+function MoveDialog({ draft, node, onClose, onConfirm }: {
+  draft: Draft; node: NavigationNode; onClose: () => void;
   onConfirm: (key: string, sectionId: string, parentId?: string) => void;
 }) {
   useLocale();
-  const sections = draft.sections.filter(section => section.surface === surface);
+  const sections = [...draft.sections].sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id));
   const directories = draft.nodes.filter(item => item.type === 'directory' && item.id !== node.id && !isDescendant(draft.nodes, item.id, node.id)
     && sections.some(section => section.id === item.section_id)
     && depthOf(draft.nodes, item.id) + heightOf(draft.nodes, node.id) <= MAX_DEPTH);

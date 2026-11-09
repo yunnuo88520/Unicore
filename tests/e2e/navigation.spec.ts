@@ -19,13 +19,13 @@ async function evidence(page: Page, info: TestInfo, feature: string, fullPage = 
 }
 
 // The editor target cell echoes the stable route id, so rows are located by
-// target instead of operator labels.
+// target instead of operator labels. Columns: 名称/类型/工作台/图标/目标.
 function rowByTarget(page: Page, target: string) {
-  return page.locator('tr[data-node-type="page"]').filter({ has: page.locator('td').nth(3).filter({ hasText: target }) });
+  return page.locator('tr[data-node-type="page"]').filter({ has: page.locator('td').nth(4).filter({ hasText: target }) });
 }
 
 async function pageTargets(page: Page) {
-  return page.locator('tr[data-node-type="page"]').evaluateAll(rows => rows.map(row => row.querySelector('td:nth-child(4)')?.textContent?.trim() ?? ''));
+  return page.locator('tr[data-node-type="page"]').evaluateAll(rows => rows.map(row => row.querySelector('td:nth-child(5)')?.textContent?.trim() ?? ''));
 }
 
 // Every grant-affecting save revokes every session, so operators and SDK
@@ -44,14 +44,18 @@ test('menu console edits the persisted tree and one save re-anchors every sessio
   await adminLogin(page, instance.url, 'admin', adminPassword);
   await page.goto(`${instance.url}/admin/menus`);
   await expect(page.getByRole('heading', { name: '菜单配置', exact: true })).toBeVisible();
-  // Both surfaces are editable; the administrator surface opens for admin sessions.
-  await expect(page.getByRole('tab', { name: '管理端', exact: true })).toHaveAttribute('aria-selected', 'true');
-  await expect(page.getByRole('tab', { name: '用户端', exact: true })).toBeVisible();
-  // Directories start collapsed; expand both seeded directories so every
-  // registered page of the surface renders as an editable row keyed by target.
-  for (const directory of ['administration', 'settings']) {
-    await page.locator(`tr[data-node="administrator:${directory}"]`).getByRole('button', { name: /展开或收起/ }).click();
+  // One shared tree: every seeded region renders once and its surfaces
+  // checkboxes decide which workspaces the region reaches.
+  for (const section of ['business', 'personal', 'system']) {
+    const editor = page.locator(`section[data-section="${section}"]`);
+    await expect(editor).toBeVisible();
+    await expect(editor.getByRole('checkbox', { name: '成员端', exact: true })).toBeVisible();
+    await expect(editor.getByRole('checkbox', { name: '管理端', exact: true })).toBeVisible();
   }
+  // Directories start collapsed; the seeded 超级管理员 directory is the only
+  // one, so expanding it exposes every administration page as an editable row
+  // keyed by target (system and personal pages sit at their section top).
+  await page.locator('tr[data-node="administration"]').getByRole('button', { name: /展开或收起/ }).click();
   const targets = await pageTargets(page);
   for (const route of ['users', 'roles', 'menus', 'tasks', 'edition', 'dictionaries', 'posts', 'api-operations']) {
     expect(targets, `editor row for ${route}`).toContain(route);
@@ -242,7 +246,14 @@ test('menu visibility follows role assignments while API capability stays indepe
     await page.goto(`${instance.url}/admin/roles`);
     await page.getByRole('row').filter({ hasText: '记录员' }).getByRole('button', { name: '编辑角色 记录员', exact: true }).click();
     const roleEditor = page.getByRole('dialog', { name: '编辑角色', exact: true });
-    await roleEditor.getByRole('region', { name: '用户端 · 业务', exact: true }).getByLabel(labelOf('files'), { exact: true }).check();
+    // Checking the page carries its menu grant plus auto-selected API
+    // operations; stripping every file operation again keeps this a menu-only
+    // grant, so the assignment changes visibility and nothing else.
+    await roleEditor.getByRole('region', { name: '业务', exact: true }).getByLabel(labelOf('files'), { exact: true }).check();
+    await roleEditor.getByRole('button', { name: `展开或收起 ${labelOf('files')}`, exact: true }).click();
+    for (const operation of ['listFiles', 'fileAccess', 'deleteFile', 'createFileUpload', 'uploadLocalFile', 'completeFileUpload', 'createMultipartUpload', 'multipartUpload', 'signUploadPart', 'uploadLocalPart', 'completeMultipartUpload']) {
+      await roleEditor.getByLabel(operation, { exact: true }).uncheck();
+    }
     await roleEditor.getByRole('button', { name: '保存', exact: true }).click();
     await expect(roleEditor).toHaveCount(0);
     await loginClient(admin, 'admin', adminPassword);
@@ -264,11 +275,10 @@ test('menu visibility follows role assignments while API capability stays indepe
     await page.goto(`${instance.url}/admin/roles`);
     await page.getByRole('row').filter({ hasText: '记录员' }).getByRole('button', { name: '编辑角色 记录员', exact: true }).click();
     const editor = page.getByRole('dialog', { name: '编辑角色', exact: true });
-    // API grants live in their own editor tab.
-    await editor.getByRole('tab', { name: 'API 授权', exact: true }).click();
-    const apiPanel = editor.getByRole('tabpanel', { name: 'API 授权' });
+    // API grants live in the page's expandable detail instead of a separate tab.
+    await editor.getByRole('button', { name: `展开或收起 ${labelOf('files')}`, exact: true }).click();
     for (const operation of ['listFiles', 'fileAccess']) {
-      await apiPanel.getByLabel(operation, { exact: true }).check();
+      await editor.getByLabel(operation, { exact: true }).check();
     }
     await editor.getByRole('button', { name: '保存', exact: true }).click();
     await expect(editor).toHaveCount(0);
@@ -326,7 +336,7 @@ test('visibility toggles persist through save', async ({ page, instance }) => {
   await adminLogin(page, instance.url, 'admin', adminPassword);
   await page.goto(`${instance.url}/admin/menus`);
   await expect(page.getByRole('heading', { name: '菜单配置', exact: true })).toBeVisible();
-  await page.locator('tr[data-node="administrator:administration"]').getByRole('button', { name: /展开或收起/ }).click();
+  await page.locator('tr[data-node="administration"]').getByRole('button', { name: /展开或收起/ }).click();
   const tasksRow = rowByTarget(page, 'tasks');
   await expect(tasksRow).toBeVisible();
   const tasksSwitch = tasksRow.getByRole('switch');

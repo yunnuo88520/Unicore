@@ -1,13 +1,16 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Existing users receive multiple roles and share identity across real workspace surfaces.
-import { test, expect, installPlatform, sdkClient, loginClient, workspaceLogin, navigate, memberPassword } from './fixtures';
+import { test, expect, installPlatform, sdkClient, loginClient, workspaceLogin, navigate, menuChain, memberPassword } from './fixtures';
 
 test('one account uses business and management workspaces with multiple roles', async ({ page, instance }) => {
   test.setTimeout(90000);
   await installPlatform(instance);
   const owner = sdkClient(instance.url);
   await loginClient(owner, 'admin', 'administrator-password-strong');
-  const role = await owner.createRole({ name: 'User reader', permissions: ['users:read', 'admin:access', 'notes:access'] });
+  // Menu visibility is grant-based on the shared tree: the administrator-surface
+  // users page needs its explicit ancestor chain for the management workspace.
+  const config = await owner.web!.menuConfig();
+  const role = await owner.createRole({ name: 'User reader', permissions: ['users:read', 'admin:access', 'notes:access'], menu_ids: menuChain(config, 'users', 'administrator') });
   const member = await owner.createUser({ username: 'multirole', email: 'multi@example.test', password: memberPassword, role_ids: ['user', role.id] });
   expect(member.roles.slice().sort()).toEqual(['user', role.id].sort());
   await workspaceLogin(page, instance.url, member.username);

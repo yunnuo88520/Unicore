@@ -109,7 +109,9 @@ test('navigation renders the persisted section tree with collapsed directories a
   await page.getByRole('button',{name:'收起导航',exact:true}).click();
   expect((await sidebar.boundingBox())!.width).toBe(48);
   await expect(sidebar.getByRole('button',{name:labelOf('users'),exact:true})).toHaveCount(0);
-  await expect(sidebar.getByRole('button',{name:labelOf('site'),exact:true})).toHaveCount(0);
+  // The unified tree keeps system pages flat in their region: the collapsed
+  // rail renders 基础设置 as a direct icon entry.
+  await expect(sidebar.getByRole('button',{name:labelOf('site'),exact:true})).toBeVisible();
   const menuName=parentLabel??labelOf('users');
   const group=sidebar.getByRole('button',{name:menuName,exact:true});
   await group.focus();await page.keyboard.press('Enter');

@@ -19249,7 +19249,7 @@
         "additionalProperties": false,
         "required": [
           "id",
-          "surface",
+          "surfaces",
           "name",
           "sort",
           "visible",
@@ -19259,13 +19259,6 @@
           "id": {
             "type": "string",
             "maxLength": 64
-          },
-          "surface": {
-            "type": "string",
-            "enum": [
-              "user",
-              "administrator"
-            ]
           },
           "name": {
             "type": "string",
@@ -19280,6 +19273,18 @@
           },
           "show_title": {
             "type": "boolean"
+          },
+          "surfaces": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "user",
+                "administrator"
+              ]
+            },
+            "minItems": 1,
+            "uniqueItems": true
           }
         }
       },
@@ -19299,7 +19304,8 @@
           "badge_color",
           "badge_dot",
           "operation_ids",
-          "disabled"
+          "disabled",
+          "surfaces"
         ],
         "properties": {
           "id": {
@@ -19383,6 +19389,18 @@
           },
           "disabled": {
             "type": "boolean"
+          },
+          "surfaces": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "user",
+                "administrator"
+              ]
+            },
+            "minItems": 1,
+            "uniqueItems": true
           }
         }
       },

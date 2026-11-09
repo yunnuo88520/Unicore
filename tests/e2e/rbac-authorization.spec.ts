@@ -7,7 +7,7 @@ test('menu, action and API revocations remain independent across role edits', as
  await installPlatform(instance);
  const owner=sdkClient(instance.url);await loginClient(owner,'admin','administrator-password-strong');
  const points=['notes:access','notes:create'];
- const role=await owner.createRole({name:'RBAC consumer',permissions:points,menu_ids:['user:overview','user:notes'],action_ids:[],operation_ids:['listNotes','createNote']});
+ const role=await owner.createRole({name:'RBAC consumer',permissions:points,menu_ids:['overview','notes'],action_ids:[],operation_ids:['listNotes','createNote']});
  const member=await owner.createUser({username:'rbac-consumer',email:'rbac@example.test',password:memberPassword,role_ids:[role.id]});
  await workspaceLogin(page,instance.url,member.username);
  await page.goto(`${instance.url}/notes`);
@@ -18,7 +18,7 @@ test('menu, action and API revocations remain independent across role edits', as
  expect((await page.request.post(`${instance.url}/api/v1/notes`,{headers:{'X-CSRF-Token':boot.csrf_token},data:input})).status()).toBe(200);
  expect((await page.request.post(`${instance.url}/api/v1/notes`,{data:input})).status()).toBe(403);
  // Menu removal blocks direct navigation. An omitted action set stays empty.
- let saved=await owner.updateRole(role.id,{name:'RBAC consumer',permissions:points,menu_ids:['user:overview'],operation_ids:['listNotes']});
+ let saved=await owner.updateRole(role.id,{name:'RBAC consumer',permissions:points,menu_ids:['overview'],operation_ids:['listNotes']});
  expect(saved.action_ids).toEqual([]);
  // A subsequent rename/widening must not resurrect createNote.
  saved=await owner.updateRole(role.id,{name:'RBAC consumer renamed',permissions:[...points,'notes:delete']});

@@ -41,7 +41,9 @@ test('workspace consoles render and create users', async ({ page, instance }, in
     await nav(name); await capture(page, info, slug);
   }
   if(info.project.name==='mobile') await page.getByRole('button',{name:'打开导航',exact:true}).click();
-  await page.getByRole('button', { name: '关于 Unicore', exact: true }).click();
+  // The about entry lives in the sidebar footer account menu (the topbar avatar is a second entry).
+  await page.locator('.sidebar').getByRole('button', { name: '侧栏账号菜单', exact: true }).click();
+  await page.getByRole('menuitem', { name: '关于 Unicore', exact: true }).click();
   await expect(page.getByRole('dialog')).toBeVisible(); await capture(page, info, 'about');
   await page.getByRole('dialog').getByRole('button', { name: /关闭/ }).click();
   await nav('用户列表'); await capture(page, info, 'users');

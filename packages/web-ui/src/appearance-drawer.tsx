@@ -33,7 +33,7 @@ function PreferencePreview({ name, value }: { name: keyof Preferences; value: st
   if (name === 'locale') return <Languages size={19} aria-hidden="true" />;
   if (name === 'density') return <b className="text-md font-medium">{({ default: 'Aa', compact: 'A', comfortable: 'A+', large: 'A++' } as Record<string, string>)[value]}</b>;
   if (name === 'radius') return <i aria-hidden="true" className="size-6 border-2 border-ink bg-line" style={{ borderRadius: ({ none: 0, small: 3, medium: 6, large: 9, round: 999 } as Record<string, number>)[value] ?? 6 }} />;
-  if (name === 'accent') return <i aria-hidden="true" className={`palette-sample palette-${value} h-full w-full rounded-sm`} style={{ background: `var(--preset-${value})` }} />;
+  if (name === 'accent') return <i aria-hidden="true" className={`palette-sample palette-${value} size-6 rounded-full`} style={{ background: `var(--preset-${value})` }} />;
   if (name === 'theme') {
     const background = value === 'light'
       ? 'var(--light-surface)'
@@ -78,14 +78,14 @@ function PreferencePreview({ name, value }: { name: keyof Preferences; value: st
 
 function Choices<K extends PreferenceKey>({ name, title, current }: { name: K; title: string; current: Preferences[K] }) {
   const { t } = useI18n();
-  return <fieldset className={`preference-${name} flex flex-col gap-2.5`}>
-    <legend className="text-sm font-semibold text-ink">{t(title)}</legend>
-    <div className={cn('preference-options grid gap-2.5', columns[name])}>
+  return <fieldset className={`preference-${name} flex flex-col gap-2`}>
+    <legend className="text-xs font-medium text-muted">{t(title)}</legend>
+    <div className={cn('preference-options grid gap-2', columns[name])}>
       {preferenceOptions[name].map(value => {
         const selected = current === value;
         return <button type="button" key={value} aria-pressed={selected} onClick={() => setPreferences({ [name]: value })}
           className="preference-choice group flex min-w-0 flex-col items-stretch gap-1.5 rounded-md text-center text-xs text-muted outline-none focus-visible:ring-2 focus-visible:ring-focus">
-          <span aria-hidden="true" className={cn('preference-preview relative flex h-16 items-center justify-center gap-1 rounded-md border bg-surface p-1.5 transition-colors',
+          <span aria-hidden="true" className={cn('preference-preview relative flex h-14 items-center justify-center gap-1 rounded-md border bg-surface p-1.5 transition-colors',
             selected ? 'border-primary shadow-[0_0_0_1px_var(--primary)]' : 'border-line group-hover:border-primary')}>
             <PreferencePreview name={name} value={value} />
             {selected && <span className="absolute -end-1 -top-1.5 flex size-4 items-center justify-center rounded-full border-2 border-surface bg-primary text-on-primary"><Check size={10} /></span>}
@@ -100,7 +100,7 @@ function Choices<K extends PreferenceKey>({ name, title, current }: { name: K; t
 export function AppearanceControls() {
   const current = usePreferences();
   // The workspace and its controls keep a stable left-to-right order.
-  return <div className="flex flex-col gap-6" dir="ltr">
+  return <div className="flex flex-col gap-5" dir="ltr">
     {groups.map(({ name, title }) => <Choices key={name} name={name} title={title} current={current[name]} />)}
   </div>;
 }
@@ -109,21 +109,21 @@ export function AppearanceDrawer({ onClose }: { onClose: () => void }) {
   const { t } = useI18n();
   return <Dialog open onOpenChange={open => { if (!open) onClose(); }}>
     <DialogContent showClose={false} dir="ltr" aria-labelledby="appearance-drawer-title" aria-describedby="appearance-drawer-description"
-      className="inset-y-0 end-0 start-auto top-0 h-dvh max-h-none w-[min(420px,100%)] max-w-none translate-x-0 translate-y-0 rounded-none rounded-s-xl border-0 border-s p-0">
+      className="inset-y-0 end-0 start-auto top-0 h-dvh max-h-none w-[min(384px,100%)] max-w-none translate-x-0 translate-y-0 rounded-none rounded-s-xl border-0 border-s p-0">
       <div className="flex h-full flex-col">
-        <header className="flex shrink-0 items-start justify-between gap-3.5 border-b border-line px-5 pb-4 pt-5">
+        <header className="flex shrink-0 items-start justify-between gap-3.5 border-b border-line px-4 py-4">
           <div>
-            <DialogTitle id="appearance-drawer-title" className="text-lg font-semibold text-ink">{t('主题设置')}</DialogTitle>
+            <DialogTitle id="appearance-drawer-title" className="text-base font-semibold text-ink">{t('主题设置')}</DialogTitle>
             <DialogDescription id="appearance-drawer-description" className="mt-1 text-xs text-muted">{t('按你的偏好调整外观与布局。')}</DialogDescription>
           </div>
           <DialogClose asChild>
-            <button className="inline-flex size-8 items-center justify-center rounded-md text-muted transition-colors outline-none hover:bg-primary-soft hover:text-accent focus-visible:ring-2 focus-visible:ring-focus" aria-label={t('关闭主题设置')}><X size={19} /></button>
+            <button className="inline-flex size-7 items-center justify-center rounded-md text-muted transition-colors outline-none hover:bg-primary-soft hover:text-accent focus-visible:ring-2 focus-visible:ring-focus" aria-label={t('关闭主题设置')}><X size={16} /></button>
           </DialogClose>
         </header>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
           <AppearanceControls />
         </div>
-        <footer className="flex shrink-0 flex-col gap-3 border-t border-line px-5 py-4">
+        <footer className="flex shrink-0 flex-col gap-3 border-t border-line px-4 py-3">
           <small className="text-xs text-muted">{t('即时生效，仅保存在当前客户端。')}</small>
           <Button variant="secondary" onClick={resetAppearance}><RotateCcw size={15} aria-hidden="true" />{t('重置外观')}</Button>
         </footer>

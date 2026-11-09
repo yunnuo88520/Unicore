@@ -53,9 +53,9 @@ function TreeNode({ node, page, onNavigate, depth = 0 }: { node: NavEntry; page:
 }
 function RailNode({ node, page, onNavigate }: { node: NavEntry; page: Page; onNavigate: (node: NavEntry) => void }) {
   const { t } = useI18n(); const Icon = node.icon;
-  const className = `flex size-10 shrink-0 items-center justify-center rounded-lg ${subtreeContains(node, page) ? 'bg-primary-soft text-accent' : 'text-muted hover:bg-surface-alt hover:text-ink'}`;
-  if (node.type !== 'directory' && !node.children.length) return <Tooltip label={t(node.label)}><button type="button" data-nav-node={node.id} data-nav-target={node.routeId ?? node.url} className={className} aria-label={t(node.label)} aria-current={navEntryActive(node, page) ? 'page' : undefined} disabled={node.disabled} onClick={() => onNavigate(node)}><Icon size={19} aria-hidden="true" /></button></Tooltip>;
-  return <DropdownMenu><DropdownMenuTrigger asChild><button type="button" data-nav-node={node.id} className={className} aria-label={t(node.label)} disabled={node.disabled}><Icon size={19} aria-hidden="true" /></button></DropdownMenuTrigger>
+  const className = `flex size-8 shrink-0 items-center justify-center rounded-md ${subtreeContains(node, page) ? 'bg-primary-soft text-accent' : 'text-muted hover:bg-surface-alt hover:text-ink'}`;
+  if (node.type !== 'directory' && !node.children.length) return <Tooltip label={t(node.label)} side="right"><button type="button" data-nav-node={node.id} data-nav-target={node.routeId ?? node.url} className={className} aria-label={t(node.label)} aria-current={navEntryActive(node, page) ? 'page' : undefined} disabled={node.disabled} onClick={() => onNavigate(node)}><Icon size={16} aria-hidden="true" /></button></Tooltip>;
+  return <DropdownMenu><DropdownMenuTrigger asChild><button type="button" data-nav-node={node.id} className={className} aria-label={t(node.label)} disabled={node.disabled}><Icon size={16} aria-hidden="true" /></button></DropdownMenuTrigger>
     <DropdownMenuContent side="right" align="start" aria-label={t(node.label)} className="max-h-[75dvh] min-w-48 overflow-y-auto">
       {flattenNavigation([node]).map(({ node: item, depth }) => item.type === 'directory'
         ? <DropdownMenuLabel key={item.id} data-nav-node={item.id} style={{ paddingInlineStart: 8 + depth * 12 }}><IconLabel node={item} size={16} /></DropdownMenuLabel>

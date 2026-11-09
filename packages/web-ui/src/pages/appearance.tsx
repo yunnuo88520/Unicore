@@ -80,7 +80,7 @@ export function ThemeChoices({ theme, onChange, disabled = false }: { theme: The
     {themeChoices.map(({ id, title, detail, icon: Icon }) => {
       const selected = theme === id;
       return <button key={id} type="button" disabled={disabled} aria-pressed={selected} onClick={() => onChange(id)}
-        className={cn('flex flex-col items-start gap-2 rounded-xl border p-2.5 text-start transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-55',
+        className={cn('flex flex-col items-start gap-2 rounded-lg border p-2 text-start transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-55',
           selected ? 'border-primary-line bg-primary-soft' : 'border-line bg-surface hover:border-primary-line')}>
         <ThemePreview variant={id} />
         <strong className="flex items-center gap-1.5 text-sm font-medium text-ink"><Icon size={15} aria-hidden="true" />{t(title)}{selected && <CheckCircle2 size={15} className="text-success" aria-hidden="true" />}</strong>
@@ -99,7 +99,7 @@ function ThemePreview({ variant }: { variant: Theme }) {
   const track = variant === 'dark' ? 'var(--dark-border)' : 'var(--light-border)';
   const line = variant === 'dark' ? 'var(--dark-muted)' : 'var(--light-muted)';
   const surface = variant === 'dark' ? 'var(--dark-surface-alt, var(--dark-border))' : 'var(--light-surface-alt, var(--light-border))';
-  return <span aria-hidden="true" className="flex h-28 w-full flex-col gap-1 rounded-lg border border-line p-1.5" style={{ background: track }}>
+  return <span aria-hidden="true" className="flex h-24 w-full flex-col gap-1 rounded-md border border-line p-1.5" style={{ background: track }}>
     <span className="flex items-center gap-1 rounded-xs px-1 py-0.5" style={{ background }}>
       <i className="h-1.5 w-1.5 rounded-full" style={{ background: line }} />
       <i className="h-1 w-8 rounded-full" style={{ background: line }} />

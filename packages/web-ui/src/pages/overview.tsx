@@ -16,7 +16,7 @@ import { cn } from '@unicore/ui/cn';
 import { SAMPLE } from '../../fixtures/analyze-sample';
 import type { PageProps } from '../router';
 
-const PROFILE_LABELS: Record<Profile, string> = defineMessages({ 'web-platform': 'Web 平台', 'web-standalone': 'Web 单机', desktop: '桌面应用', cli: '命令行' });
+export const PROFILE_LABELS: Record<Profile, string> = defineMessages({ 'web-platform': 'Web 平台', 'web-standalone': 'Web 单机', desktop: '桌面应用', cli: '命令行' });
 
 export function OverviewPage(props: PageProps) {
   return <CoreDashboard {...props} />;

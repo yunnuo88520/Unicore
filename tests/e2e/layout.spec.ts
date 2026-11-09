@@ -37,8 +37,8 @@ test(`layout matrix preserves shell geometry and stable appearance controls at $
         expect(state.navigationHidden,context).toBe(false);
         expect(state.navigation.top,context).toBeGreaterThanOrEqual(0);expect(state.navigation.bottom,context).toBeLessThanOrEqual(901);
         if(sidebar!=='标准'){
-          expect(state.main.top,context).toBeGreaterThanOrEqual(12);
-          expect(state.main.right,context).toBeLessThanOrEqual(width-12);
+          expect(state.main.top,context).toBeGreaterThanOrEqual(8);
+          expect(state.main.right,context).toBeLessThanOrEqual(width-8);
           expect(state.headerRadius,context).toBeGreaterThan(0);
           expect(state.headerRadius,context).toBe(state.sheetRadius);
           expect(state.headerBackground,context).toBe(state.sheetBackground);
@@ -107,7 +107,7 @@ test('navigation renders the persisted section tree with collapsed directories a
     return;
   }
   await page.getByRole('button',{name:'收起导航',exact:true}).click();
-  expect((await sidebar.boundingBox())!.width).toBe(68);
+  expect((await sidebar.boundingBox())!.width).toBe(48);
   await expect(sidebar.getByRole('button',{name:labelOf('users'),exact:true})).toHaveCount(0);
   await expect(sidebar.getByRole('button',{name:labelOf('site'),exact:true})).toHaveCount(0);
   const menuName=parentLabel??labelOf('users');

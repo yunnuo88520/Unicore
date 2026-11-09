@@ -15,7 +15,7 @@ test('one account uses business and management workspaces with multiple roles', 
   expect(before.current_user.id).toBe(member.id);
   const note = await page.request.post(`${instance.url}/api/v1/notes`, { headers: { 'X-CSRF-Token': before.csrf_token }, data: { title: 'Shared personal note', body: 'Same owner', status: 'open', attachment_ids: [] } });
   expect(note.status()).toBe(200);
-  await page.getByRole('button', { name: '账号菜单' }).click();
+  await page.getByRole('button', { name: '账号菜单', exact: true }).click();
   await page.getByRole('menuitem', { name: '管理工作台', exact: true }).click();
   await expect(page).toHaveURL(/\/admin/);
   await navigate(page, '用户列表');

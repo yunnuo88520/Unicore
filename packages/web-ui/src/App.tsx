@@ -4,7 +4,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { AnnouncementCenter } from './announcement-center';
 import { ClientControls } from './client-controls';
-import { SidebarTools, VersionBadge, workspaceLinks } from './shell-tools';
+import { VersionBadge, workspaceLinks } from './shell-tools';
 import { useLocale, t } from './i18n';
 import { productName } from './product.gen';
 import { WorkspaceLayout } from './workspace-layout';
@@ -12,7 +12,7 @@ import { MessageProvider } from '@unicore/ui';
 import { SiteFooter } from './site-footer';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { RouterProvider, Outlet, Navigate, createBrowserHistory, useRouter, useRouterState, type RouterHistory } from '@tanstack/react-router';
-import { Braces, ChevronRight, ExternalLink, FlaskConical, Info, Menu, PanelLeftClose, PanelLeftOpen, Radio, RotateCcw, Settings2, ShieldCheck, UserRound } from 'lucide-react';
+import { ChevronRight, ChevronsUpDown, ExternalLink, FlaskConical, Menu, PanelLeftClose, PanelLeftOpen, Radio, RotateCcw, Settings2, ShieldCheck, UserRound } from 'lucide-react';
 import { buildNavigation, isLinkEntry, routePath, type NavEntry } from './navigation';
 import { NavigationTree } from './navigation-view';
 import { BrandProvider, BrandMark, BrandLockup } from './brand';
@@ -31,6 +31,7 @@ import {
 } from './router';
 import { InstallPage } from './pages/install';
 import { HomePage } from './pages/home';
+import { PROFILE_LABELS } from './pages/overview';
 import { LoginPage, VerifyEmailPage, ResetPasswordPage } from './pages/auth';
 import { NotFoundPage } from './pages/not-found';
 import { ForbiddenPage } from './pages/forbidden';
@@ -181,7 +182,7 @@ function WorkspaceShell() {
       onNavigationClose={() => setMobileOpen(false)}
       contentClassName={page === 'site' ? 'settings-content' : ''}
       navigationCollapsed={navCollapsed}
-      navigation={<SideNavigation page={page} data={data} client={client} onNavigate={() => setMobileOpen(false)} onAbout={() => { setMobileOpen(false); setAbout(true); }} />}
+      navigation={<SideNavigation page={page} data={data} client={client} onNavigate={() => setMobileOpen(false)} onAbout={() => { setMobileOpen(false); setAbout(true); }} administration={administration} onOpenPassword={() => setPasswordOpen(true)} refresh={refresh} />}
       header={<TopBar page={page} data={data} client={client} settingsLabel={settingsLabel} connection={metadata.isSuccess ? 'connected' : metadata.isPending ? 'pending' : 'error'} mobileOpen={mobileOpen} onOpenMobile={() => setMobileOpen(true)} onOpenPassword={() => setPasswordOpen(true)} refresh={refresh} navCollapsed={navCollapsed} navToggleVisible={layout !== 'full'} />}
       overlays={<>
         {passwordOpen && client.web && <PasswordDialog web={client.web} onClose={() => setPasswordOpen(false)} />}
@@ -203,8 +204,9 @@ function WorkspaceShell() {
   </PagePropsProvider>;
 }
 
-function SideNavigation({ page, data, client, onNavigate, onAbout }: {
+function SideNavigation({ page, data, client, onNavigate, onAbout, administration, onOpenPassword, refresh }: {
   page: Page; data: Bootstrap; client: AppClient; onNavigate: () => void; onAbout: () => void;
+  administration: boolean; onOpenPassword: () => void; refresh: () => void;
 }) {
   useLocale();
   const router = useRouter();
@@ -225,20 +227,83 @@ function SideNavigation({ page, data, client, onNavigate, onAbout }: {
     }
   }
   return <>
-    <div className={rail ? 'flex flex-col items-center pb-2' : 'px-[7px]'}>
-      <a href="/" aria-label={data.site_name} className={rail ? 'flex size-10 items-center justify-center' : 'flex items-center gap-2 text-2xl font-extrabold text-ink'} onClick={event => { event.preventDefault(); goPage('overview'); }}>
-        {rail ? <BrandMark size={30} /> : <BrandLockup name={data.site_name} />}
+    {rail ? <div className="flex flex-col items-center pb-2">
+      <a href="/" aria-label={data.site_name} className="flex size-8 items-center justify-center" onClick={event => { event.preventDefault(); goPage('overview'); }}>
+        <BrandMark size={24} />
       </a>
-      {!rail && data.version && <div className="mt-1.5"><VersionBadge client={client} metadata={data} onOpen={() => goPage('edition')} /></div>}
-    </div>
-    {!rail && <button className="mt-4 mb-5 flex w-full items-center gap-3 rounded-lg border border-line bg-surface p-3 text-start shadow-card" onClick={onAbout}>
-      <Braces size={19} aria-hidden="true" className="text-accent" /><span className="min-w-0"><strong className="block truncate text-xs">{data.site_name ?? productName}</strong><small className="text-muted">{t('应用工作空间')}</small></span>
-    </button>}
+    </div> : <div className="pb-2">
+      {/* Brand header: mark on the left, site name and version capsule stacked on the right. */}
+      <div className="flex items-center gap-2.5 pt-1">
+        <span className="brand contents"><BrandMark size={36} /></span>
+        <div className="min-w-0 flex-1">
+          <a href="/" aria-label={data.site_name} className="block truncate text-xl font-bold text-ink" onClick={event => { event.preventDefault(); goPage('overview'); }}>{data.site_name}<span className="brand-dot">.</span></a>
+          {data.version && <div className="mt-0.5"><VersionBadge client={client} metadata={data} onOpen={() => goPage('edition')} /></div>}
+        </div>
+      </div>
+    </div>}
     <NavigationTree navigation={buildNavigation(data)} page={page} rail={rail} onNavigate={activate} />
-    <div className="shrink-0 border-t border-line pt-2">{rail
-      ? <Tooltip label={t('关于 {{name}}', { name: productName })}><button className="mx-auto flex size-10 items-center justify-center rounded-lg text-muted" aria-label={t('关于 {{name}}', { name: productName })} onClick={onAbout}><Info size={17} aria-hidden="true" /></button></Tooltip>
-      : <SidebarTools onAbout={onAbout} />}</div>
+    <div className="sidebar-utilities shrink-0 px-1 pb-3 pt-2">
+      <SidebarFooter data={data} client={client} administration={administration} rail={rail} onOpenPassword={onOpenPassword} refresh={refresh} onAbout={onAbout} />
+    </div>
   </>;
+}
+
+function AccountAvatar({ user, url, className = 'size-8' }: { user: NonNullable<Bootstrap['current_user']>; url?: string; className?: string }) {
+  return <span aria-hidden="true" className={`flex shrink-0 items-center justify-center overflow-hidden rounded-lg bg-avatar text-[length:var(--font-11)] font-semibold text-avatar-ink ${className}`}>
+    {url ? <img src={url} className="size-full object-cover" alt="" /> : (user.username ?? 'Y').slice(0, 1).toUpperCase()}
+  </span>;
+}
+
+/** Sidebar footer: a shadcn-admin style account switcher when a user exists, otherwise the instance form capsule. */
+function SidebarFooter({ data, client, administration, rail, onOpenPassword, refresh, onAbout }: {
+  data: Bootstrap; client: AppClient; administration: boolean; rail: boolean; onOpenPassword: () => void; refresh: () => void; onAbout: () => void;
+}) {
+  useLocale();
+  const router = useRouter();
+  const user = data.current_user;
+  const profile = useQuery({ queryKey: ['account-profile'], queryFn: () => client.web!.accountProfile(), enabled: data.profile === 'web-platform' && !!user && !!client.web && !data.mfa_enrollment_required, staleTime: 60_000 });
+  if (!user) {
+    // Standalone and desktop forms have no account; the capsule opens the about dialog instead.
+    const label = t('关于 {{name}}', { name: productName });
+    return rail
+      ? <Tooltip label={label}><button type="button" className="mx-auto flex size-8 items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus" aria-label={label} onClick={onAbout}><BrandMark size={22} /></button></Tooltip>
+      : <button type="button" className="flex w-full items-center gap-2.5 rounded-lg p-2 text-start outline-none hover:bg-surface-alt focus-visible:ring-2 focus-visible:ring-focus" aria-label={label} onClick={onAbout}>
+          <BrandMark size={32} />
+          <span className="min-w-0 flex-1">
+            <strong className="block truncate text-sm font-semibold text-ink">{data.site_name ?? productName}</strong>
+            <small className="block truncate text-xs text-muted">{t(PROFILE_LABELS[data.profile])}</small>
+          </span>
+        </button>;
+  }
+  const trigger = rail
+    ? <button type="button" className="mx-auto flex size-8 items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus" aria-label={t('侧栏账号菜单')}>
+        <AccountAvatar user={user} url={profile.data?.avatar_url} />
+      </button>
+    : <button type="button" className="flex w-full items-center gap-2.5 rounded-lg p-2 text-start outline-none hover:bg-surface-alt focus-visible:ring-2 focus-visible:ring-focus" aria-label={t('侧栏账号菜单')}>
+        <AccountAvatar user={user} url={profile.data?.avatar_url} />
+        <span className="min-w-0 flex-1">
+          <strong className="block truncate text-sm font-semibold leading-tight text-ink">{user.username ?? data.site_name}</strong>
+          <small className="block truncate text-xs leading-tight text-muted">{user.email || user.roles.join(', ')}</small>
+        </span>
+        <ChevronsUpDown size={16} className="ms-auto shrink-0 text-subtle" aria-hidden="true" />
+      </button>;
+  return <DropdownMenu>
+    <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
+    <DropdownMenuContent side="right" align={rail ? 'start' : 'end'} aria-label={t('侧栏账号菜单')} className="min-w-56">
+      <DropdownMenuLabel>
+        <strong className="block text-sm text-ink">{user.username ?? data.site_name}</strong>
+        <small className="block truncate text-xs text-muted">{user.email || user.roles.join(', ')}</small>
+      </DropdownMenuLabel>
+      {client.web && <>
+        {data.admin_path && !administration && <DropdownMenuItem onSelect={() => window.location.assign(data.admin_path!)}>{t('管理工作台')}</DropdownMenuItem>}
+        {administration && <DropdownMenuItem onSelect={() => window.location.assign('/')}>{t('工作空间')}</DropdownMenuItem>}
+        <DropdownMenuItem onSelect={onOpenPassword}>{t('修改密码')}</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => void router.navigate({ to: '/account' })}>{t('个人中心')}</DropdownMenuItem>
+        <DropdownMenuItem onSelect={onAbout}>{t('关于 {{name}}', { name: productName })}</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => { void client.web!.logout().then(() => { void router.navigate({ to: '/' }); refresh(); }, refresh); }}>{t('退出登录')}</DropdownMenuItem>
+      </>}
+    </DropdownMenuContent>
+  </DropdownMenu>;
 }
 
 function useMinWidth(px: number) {
@@ -264,34 +329,34 @@ function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onO
   const user = data.current_user;
   const profile = useQuery({ queryKey: ['account-profile'], queryFn: () => client.web!.accountProfile(), enabled: data.profile === 'web-platform' && !!user && !!client.web && !data.mfa_enrollment_required, staleTime: 60_000 });
   return <>
-    <div className="flex min-w-0 items-center gap-4 text-[length:var(--font-11)] text-muted max-md:gap-1.5">
+    <div className="flex min-w-0 items-center gap-2 text-[length:var(--font-11)] text-muted max-md:gap-1.5">
       {desktop && navToggleVisible
         ? <>
             <Tooltip label={navCollapsed ? t('展开导航') : t('收起导航')}>
-              <button className="flex size-8 items-center justify-center rounded-md text-muted transition-colors hover:bg-primary-soft hover:text-accent" aria-label={navCollapsed ? t('展开导航') : t('收起导航')} aria-expanded={!navCollapsed} aria-controls="workspace-navigation" onClick={() => setPreferences({ navCollapsed: !navCollapsed })}>
-                {navCollapsed ? <PanelLeftOpen size={19} aria-hidden="true" /> : <PanelLeftClose size={19} aria-hidden="true" />}
+              <button className="flex size-7 items-center justify-center rounded-md border border-line bg-surface text-muted transition-colors hover:bg-primary-soft hover:text-accent" aria-label={navCollapsed ? t('展开导航') : t('收起导航')} aria-expanded={!navCollapsed} aria-controls="workspace-navigation" onClick={() => setPreferences({ navCollapsed: !navCollapsed })}>
+                {navCollapsed ? <PanelLeftOpen size={16} aria-hidden="true" /> : <PanelLeftClose size={16} aria-hidden="true" />}
               </button>
             </Tooltip>
-            <span className="hidden h-[18px] w-px bg-line sm:block" aria-hidden="true" />
+            <span className="hidden h-6 w-px bg-line sm:block" aria-hidden="true" />
           </>
-        : <button className="mobile-menu size-8 items-center justify-center rounded-md text-muted hover:bg-primary-soft hover:text-accent max-md:-ms-1" aria-label={t('打开导航')} aria-expanded={mobileOpen} aria-controls="workspace-navigation" onClick={onOpenMobile}><Menu size={20} /></button>}
+        : <button className="mobile-menu size-7 items-center justify-center rounded-md text-muted hover:bg-primary-soft hover:text-accent max-md:-ms-1" aria-label={t('打开导航')} aria-expanded={mobileOpen} aria-controls="workspace-navigation" onClick={onOpenMobile}><Menu size={18} /></button>}
       <span className="hidden max-lg:inline">{t('工作空间')}</span>
       <ChevronRight size={14} className="hidden max-md:block max-lg:hidden text-subtle" aria-hidden="true" />
       <h1 className="m-0 truncate font-medium text-ink">{page === 'site' ? settingsLabel : t(routes[page].label)}</h1>
     </div>
-    <div className="flex shrink-0 items-center gap-[15px] max-md:gap-[9px]">
+    <div className="flex shrink-0 items-center gap-2 max-md:gap-1.5">
       <span className="flex items-center gap-1.5 text-[length:var(--font-10)] text-muted max-sm:hidden">
         <span className={`size-[5px] rounded-full ${connection === 'connected' ? 'bg-success shadow-[0_0_0_3px_var(--success-soft)]' : connection === 'pending' ? 'animate-pulse bg-muted' : 'bg-danger'}`} />
         {connection === 'connected' ? t('核心已连接') : connection === 'pending' ? t('连接中') : t('连接失败')}
       </span>
-      <span className="mx-1 h-[18px] w-px bg-line max-sm:hidden" aria-hidden="true" />
+      <span className="mx-1 h-4 w-px bg-line max-sm:hidden" aria-hidden="true" />
       {data.profile === 'web-platform' && data.identity_realm === 'user' && user && client.web && !data.mfa_enrollment_required && <AnnouncementCenter web={client.web} />}
       {isAdministrator(data) && user && client.web && !data.mfa_enrollment_required && <LiveLogsButton web={client.web} />}
       <ClientControls />
       {data.profile === 'web-platform' && user && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex size-[29px] items-center justify-center overflow-hidden rounded-full bg-avatar text-[length:var(--font-11)] font-semibold text-avatar-ink" aria-label={t('账号菜单')}>{profile.data?.avatar_url ? <img src={profile.data.avatar_url} className="size-full object-cover" alt={t('当前头像')} /> : (user.username ?? 'Y').slice(0, 1).toUpperCase()}</button>
+            <button className="flex size-7 items-center justify-center overflow-hidden rounded-full bg-avatar text-[length:var(--font-11)] font-semibold text-avatar-ink" aria-label={t('账号菜单')}>{profile.data?.avatar_url ? <img src={profile.data.avatar_url} className="size-full object-cover" alt={t('当前头像')} /> : (user.username ?? 'Y').slice(0, 1).toUpperCase()}</button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>

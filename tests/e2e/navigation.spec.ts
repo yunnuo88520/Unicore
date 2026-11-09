@@ -160,7 +160,7 @@ test('menu console edits the persisted tree and one save re-anchors every sessio
     await page.getByRole('button', { name: '收起导航', exact: true }).click();
     const railNav = sidebar.locator('nav[data-navigation-mode="rail"]');
     await expect(railNav).toBeVisible();
-    expect((await sidebar.boundingBox())!.width).toBe(68);
+    expect((await sidebar.boundingBox())!.width).toBe(48);
     await expect(sidebar.getByRole('button', { name: dictButtonName })).toHaveCount(0);
     await sidebar.getByRole('button', { name: '报表中心', exact: true }).click();
     const railMenu = page.getByRole('menu', { name: '报表中心', exact: true });

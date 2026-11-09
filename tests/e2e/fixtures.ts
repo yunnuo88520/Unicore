@@ -155,7 +155,7 @@ const routeLabels: Record<string, string> = {
   overview: '工作台概览', lab: '核心实验室', notes: '我的笔记', files: '文件管理', site: '基础设置', storage: '对象存储',
   users: '用户列表', administrators: '管理员列表', announcements: '平台公告', 'account-policy': '账户安全', mail: '邮件设置',
   'mail-templates': '邮件模板', 'notification-channels': '通知渠道', 'notification-templates': '通知模板',
-  'system-notifications': '系统通知', logs: '系统日志', edition: '系统更新', roles: '角色权限', posts: '岗位管理',
+  'system-notifications': '系统通知', logs: '操作日志', edition: '系统更新', roles: '角色权限', posts: '岗位管理',
   'api-operations': 'API 操作目录', departments: '部门管理', tasks: '定时任务', menus: '菜单管理', dictionaries: '数据字典',
   account: '个人资料', 'account-security': '安全设置', 'account-sessions': '登录会话', 'api-docs': 'API 文档',
 };

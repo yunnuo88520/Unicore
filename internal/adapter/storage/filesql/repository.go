@@ -233,6 +233,16 @@ func (r *Repository) Create(ctx context.Context, f files.Record, jobs []files.Jo
 	return tx.Commit()
 }
 func (r *Repository) Change(ctx context.Context, f files.Record, jobs []files.Job, actor string) error {
+	return r.change(ctx, f, jobs, actor, "file.updated")
+}
+
+// Remove records the deleted state transition; the separate action keeps
+// deletions distinguishable from ordinary metadata updates in the audit log.
+func (r *Repository) Remove(ctx context.Context, f files.Record, jobs []files.Job, actor string) error {
+	return r.change(ctx, f, jobs, actor, "file.deleted")
+}
+
+func (r *Repository) change(ctx context.Context, f files.Record, jobs []files.Job, actor, action string) error {
 	tx, e := r.Store.DB.BeginTx(ctx, nil)
 	if e != nil {
 		return e
@@ -246,7 +256,7 @@ func (r *Repository) Change(ctx context.Context, f files.Record, jobs []files.Jo
 	if e = r.jobs(ctx, tx, jobs); e != nil {
 		return e
 	}
-	if e = r.Store.Audit(ctx, tx, actor, "file.updated"); e != nil {
+	if e = r.Store.Audit(ctx, tx, actor, action); e != nil {
 		return e
 	}
 	return tx.Commit()

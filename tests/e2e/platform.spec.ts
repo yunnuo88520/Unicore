@@ -37,7 +37,7 @@ test('workspace consoles render and create users', async ({ page, instance }, in
   await page.context().addCookies((await instance.request.storageState()).cookies);
   await page.goto(`${instance.url}/admin`);
   async function nav(name: string) { await navigate(page,name); }
-  for (const [name, slug] of [['工作台概览', 'overview'], ['核心实验室', 'lab'], ['基础设置', 'site'], ['系统日志', 'logs']] as const) {
+  for (const [name, slug] of [['工作台概览', 'overview'], ['核心实验室', 'lab'], ['基础设置', 'site'], ['操作日志', 'logs']] as const) {
     await nav(name); await capture(page, info, slug);
   }
   if(info.project.name==='mobile') await page.getByRole('button',{name:'打开导航',exact:true}).click();

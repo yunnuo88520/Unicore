@@ -22,7 +22,7 @@ export const routes = defineMessages({
   'notification-channels':{label:'通知渠道',title:'通知渠道',description:'配置企业微信或 Webhook，连接外部通知服务。',permission:'settings:read',icon:Webhook,group:'system'},
   'notification-templates':{label:'通知模板',title:'通知模板',description:'管理事件通知的纯文本标题、内容和变量。',permission:'settings:read',icon:FileText,group:'system'},
   'system-notifications':{label:'系统通知',title:'系统通知',description:'按事件和接收对象配置自动通知策略。',permission:'settings:read',icon:Bell,group:'system'},
-  logs: { label:'系统日志',title:'系统日志',description:'查看真实操作与邮件投递记录。',permission:'logs:read',icon:ScrollText,group:'system' },
+  logs: { label:'操作日志',title:'操作日志',description:'查看真实操作与邮件投递记录。',permission:'logs:read',icon:ScrollText,group:'system' },
   edition: { label:'系统更新',title:'系统更新',description:'查看版本记录，检查并安装可信的新版本。',permission:'updates:read',icon:PackageCheck,group:'system' },
   roles: { label: '角色权限', title: '角色权限', description: '维护用户角色的权限点与成员分配。', permission: 'roles:read', icon: ShieldCheck, group: 'administration' },
   posts: { label: '岗位管理', title: '岗位管理', description: '维护岗位目录和成员关系，岗位不隐式授予角色。', permission: 'posts:read', icon: UserCog, group: 'administration' },

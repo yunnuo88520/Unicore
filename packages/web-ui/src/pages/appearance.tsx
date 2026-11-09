@@ -211,7 +211,7 @@ function AdminSettings({ section = 'base', client, metadata, theme, onThemeSaved
           {group === 'protection' && <p className="text-xs text-muted">{t('人机验证与找回密码面向整个站点；开启邮件找回密码前，请先在邮件设置完成 SMTP 测试。')}</p>}
           {group === 'mail' && <p className="text-xs text-muted">{t('STARTTLS 使用端口 587，SSL/TLS（隐式 TLS）使用端口 465，明文仅允许本机（25）；切换加密方式会自动填入常用端口，可再手动修改。保存后点击下方“发送测试”验证连接。')}</p>}
           {group === 'oidc' && <p className="text-xs text-muted">{t('支持授权码 + PKCE；保存后在本页检查连接，再完成一次实际登录。')}</p>}
-          {group === 'logging' && <p className="text-xs text-muted">{t('作用于数据目录 logs 内的本程序日志；桌面与单机版通过部署配置调整，站点日志在系统日志页查看。')}</p>}
+          {group === 'logging' && <p className="text-xs text-muted">{t('作用于数据目录 logs 内的本程序日志；桌面与单机版通过部署配置调整，站点日志在操作日志页查看。')}</p>}
           <div className="grid gap-x-5 gap-y-4 md:grid-cols-2">
             {query.data.items.filter(item => item.group === group && !HUMAN_CHECK_KEYS.includes(item.key)).map(entry => <SettingField key={entry.key} entry={entry} draft={draft} cleared={cleared}
               onValue={(key, value) => {

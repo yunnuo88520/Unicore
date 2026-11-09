@@ -628,7 +628,7 @@ func (s *Service) remove(ctx context.Context, f Record, actor string) error {
 		jobs = append(jobs, s.job(f.LocationID, f.Staging, max(due, f.UploadExpires)))
 	}
 	f.State = "deleted"
-	return s.Repo.Change(ctx, f, jobs, actor)
+	return s.Repo.Remove(ctx, f, jobs, actor)
 }
 func (s *Service) Delete(ctx context.Context, a Actor, fileID string) error {
 	s.mu.Lock()

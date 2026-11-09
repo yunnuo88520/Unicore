@@ -83,6 +83,7 @@ type Repository interface {
 	List(context.Context, Actor, string, int, ScopeFilter) (contracts.FileList, error)
 	Create(context.Context, Record, []Job) error
 	Change(context.Context, Record, []Job, string) error
+	Remove(context.Context, Record, []Job, string) error
 	Queue(context.Context, []Job) error
 	Jobs(context.Context, int64) ([]Job, error)
 	JobDone(context.Context, Job, bool) error

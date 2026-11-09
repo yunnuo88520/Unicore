@@ -23,14 +23,24 @@ const MAIL_COLUMNS = 5;
 const PAGE_SIZES = [20, 50, 100] as const;
 const actions = defineMessages({
  'account.profile.updated':'修改个人资料','account.email.code.requested':'申请邮箱换绑验证码','account.email.changed':'更换账号邮箱',
- 'account.totp.enabled':'开启双重验证','account.totp.disabled':'关闭双重验证','auth.mfa.verified':'完成双重验证','account.sessions.revoked':'下线登录设备',
+ 'account.totp.enabled':'开启双重验证','account.totp.disabled':'关闭双重验证','account.totp.enterprise_verified':'完成企业身份验证','auth.mfa.verified':'完成双重验证','account.sessions.revoked':'下线登录设备',
+ 'account.sessions.recovered':'使用恢复码找回会话','administrator.password.recovered':'管理员离线恢复密码',
   'announcements.created': '新增平台公告', 'announcements.updated': '更新平台公告', 'announcements.deleted': '删除平台公告', 'announcements.configured': '配置平台公告',
+  'departments.created': '新增部门', 'departments.updated': '更新部门', 'departments.deleted': '删除部门',
+  'dictionaries.created': '新增数据字典', 'dictionaries.updated': '更新数据字典', 'dictionaries.deleted': '删除数据字典', 'dictionaries.items_replaced': '替换字典项',
   'install.completed': '完成安装', 'users.created': '新增用户', 'users.updated': '更新用户状态', 'administrators.created': '新增管理员', 'administrators.updated': '更新管理员状态',
-  'settings.updated': '更新系统设置', 'auth.login': '账号登录', 'account.password.changed': '修改密码', 'mail.notification.queued': '系统通知入队',
+  'menus.updated': '更新菜单树', 'posts.created': '新增岗位', 'posts.updated': '更新岗位', 'posts.deleted': '删除岗位',
+  'roles.created': '新增角色', 'roles.updated': '更新角色', 'roles.deleted': '删除角色',
+  'settings.updated': '更新系统设置', 'auth.login': '账号登录', 'auth.login.failed': '登录失败', 'auth.logout': '退出登录',
+  'account.password.changed': '修改密码', 'mail.notification.queued': '系统通知入队', 'notifications.updated': '更新通知配置',
   'mail.template.tested': '测试邮件模板', 'mail.template.updated': '更新邮件模板', 'auth.verify.requested': '申请邮箱验证', 'auth.verify.completed': '完成邮箱验证',
   'auth.reset.requested': '申请密码重置', 'auth.reset.completed': '完成密码重置', 'auth.login.requested': '申请邮箱登录', 'auth.login.completed': '邮箱登录成功',
-  'oidc.login': '企业账号登录', 'oidc.link': '绑定企业身份', 'oidc.unlink': '解除企业绑定', 'storage.location.updated': '更新存储位置', 'storage.location.deleted': '删除存储位置',
-  'file.created': '上传文件', 'file.updated': '更新文件', 'notes.created': '新增笔记', 'notes.updated': '更新笔记', 'notes.deleted': '删除笔记',
+  'auth.oidc.login': '企业账号登录', 'auth.oidc.linked': '绑定企业身份', 'auth.oidc.unlinked': '解除企业绑定',
+  'storage.location.updated': '更新存储位置', 'storage.location.deleted': '删除存储位置',
+  'file.created': '上传文件', 'file.updated': '更新文件', 'file.deleted': '删除文件',
+  'logs.viewed': '打开实时日志', 'logs.exported': '导出操作日志', 'updates.apply_requested': '申请安装系统更新',
+  'notes.created': '新增笔记', 'notes.updated': '更新笔记', 'notes.deleted': '删除笔记',
+  'tasks.created': '新增定时任务', 'tasks.updated': '更新定时任务', 'tasks.deleted': '删除定时任务', 'tasks.triggered': '触发定时任务',
 });
 const jobStates = defineMessages({ pending: '待发送', sending: '发送中', sent: '已发送', dead: '已终止', cancelled: '已取消' });
 const actionLabel = (action: string) => t(actions[action as keyof typeof actions] ?? action);

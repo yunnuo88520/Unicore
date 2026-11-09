@@ -3,7 +3,9 @@
 package httpadapter
 
 import (
+	"errors"
 	"github.com/go-chi/chi/v5"
+	"github.com/yunnuo/unicore/internal/audit"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/settings"
@@ -56,6 +58,24 @@ func mountAuthentication(api chi.Router, config Config) {
 			}
 			session, token, err := identity.Login(r.Context(), input, ip(r), policy.LoginCaptcha, policy.HumanCheckEnabled && identity.HumanCheck != nil, policy.SessionHours)
 			if err != nil {
+				// Failed attempts are security-relevant: record the tried
+				// identity and the rejection reason without leaking whether
+				// the account exists.
+				if errors.Is(err, platform.ErrCredentials) || errors.Is(err, platform.ErrCaptcha) {
+					reason := "credentials"
+					if errors.Is(err, platform.ErrCaptcha) {
+						reason = "captcha"
+					}
+					if store, _, _, _ := manager.Services(); store != nil {
+						meta, _ := audit.From(r.Context())
+						meta.ActorName = strings.TrimSpace(input.Username)
+						meta.Detail = "reason=" + reason
+						if e := store.Audit(audit.With(r.Context(), meta), store.DB, "", "auth.login.failed"); e != nil {
+							webError(w, e)
+							return
+						}
+					}
+				}
 				webError(w, err)
 				return
 			}
@@ -68,10 +88,19 @@ func mountAuthentication(api chi.Router, config Config) {
 			}
 		})
 		api.Post(prefix+"/auth/logout", func(w http.ResponseWriter, r *http.Request) {
-			if _, ok := require(manager, w, r, ""); !ok {
+			session, ok := require(manager, w, r, "")
+			if !ok {
 				return
 			}
 			identity := manager.Identity(administratorRequest(r))
+			// Record the explicit sign-out while the session is still valid;
+			// other revocation paths audit through their own actions.
+			if store, _, _, _ := manager.Services(); store != nil {
+				if e := store.Audit(r.Context(), store.DB, session.User.ID, "auth.logout"); e != nil {
+					webError(w, e)
+					return
+				}
+			}
 			if err := identity.Store.DeleteSession(r.Context(), platform.Hash(rawSession(r))); err != nil {
 				webError(w, err)
 				return

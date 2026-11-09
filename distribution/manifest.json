@@ -908,6 +908,7 @@
     "packages/web-ui/src/pages/admin/posts.tsx",
     "packages/web-ui/src/pages/admin/roles.test.tsx",
     "packages/web-ui/src/pages/admin/roles.tsx",
+    "packages/web-ui/src/pages/admin/role-editor.tsx",
     "packages/web-ui/src/pages/admin/storage.tsx",
     "packages/web-ui/src/pages/admin/tasks.tsx",
     "packages/web-ui/src/pages/admin/users.test.tsx",

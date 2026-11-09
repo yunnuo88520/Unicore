@@ -265,8 +265,11 @@ test('menu visibility follows role assignments while API capability stays indepe
     await page.goto(`${instance.url}/admin/roles`);
     await page.getByRole('row').filter({ hasText: '记录员' }).getByRole('button', { name: '编辑角色 记录员', exact: true }).click();
     const editor = page.getByRole('dialog', { name: '编辑角色', exact: true });
+    // API grants live in their own editor tab.
+    await editor.getByRole('tab', { name: 'API 授权', exact: true }).click();
+    const apiPanel = editor.getByRole('tabpanel', { name: 'API 授权' });
     for (const operation of ['listFiles', 'fileAccess']) {
-      await editor.getByLabel(operation, { exact: true }).check();
+      await apiPanel.getByLabel(operation, { exact: true }).check();
     }
     await editor.getByRole('button', { name: '保存', exact: true }).click();
     await expect(editor).toHaveCount(0);

@@ -15,8 +15,9 @@ import { RouterProvider, Outlet, Navigate, createBrowserHistory, useRouter, useR
 import { ChevronRight, ChevronsUpDown, ExternalLink, FlaskConical, Menu, PanelLeftClose, PanelLeftOpen, Radio, RotateCcw, Settings2, ShieldCheck, UserRound } from 'lucide-react';
 import { buildNavigation, isLinkEntry, routePath, type NavEntry } from './navigation';
 import { NavigationTree } from './navigation-view';
-import { BrandProvider, BrandMark, BrandLockup } from './brand';
+import { BrandProvider, BrandMark } from './brand';
 import type { AppClient, Bootstrap } from '@unicore/sdk';
+import { AppError } from '@unicore/sdk';
 import { setCustomAccent, useTheme, type Theme } from '@unicore/theme';
 import { DashboardWidgetRegistry } from './registry';
 import { PasswordDialog } from './password-dialog';
@@ -29,6 +30,7 @@ import {
   createWorkspaceRouter, pageFromPath, PagePropsProvider, ShellOptionsProvider, NoticeProvider,
   useShellOptions, useSessionNotice, usePageProps, type PageProps, type PageComponent,
 } from './router';
+import { ErrorPage } from './pages/error';
 import { InstallPage } from './pages/install';
 import { HomePage } from './pages/home';
 import { PROFILE_LABELS } from './pages/overview';
@@ -99,15 +101,17 @@ function WorkspaceShell() {
   useEffect(()=>{if(data?.mfa_enrollment_required && page!=='account-security') void router.navigate({to:'/account-security',replace:true});},[data?.mfa_enrollment_required,page,router]);
 
   if (!data) {
+    // Boot failures share the status-page family; the code mirrors the real HTTP status whenever the transport captured one.
+    if (metadata.isError) {
+      const status = metadata.error instanceof AppError && metadata.error.code === 'HTTP_ERROR'
+        ? metadata.error.message.match(/\((\d{3})\)/)?.[1] ?? '503'
+        : '503';
+      return <ErrorPage standalone code={status} title={t('暂时无法连接核心')} detail={t(metadata.error.message)}>
+        <Button onClick={() => void metadata.refetch()}><RotateCcw size={15} aria-hidden="true" />{t('重新连接')}</Button>
+      </ErrorPage>;
+    }
     return <div className="flex min-h-dvh items-center justify-center bg-background p-6">
-      {metadata.isError
-        ? <div role="alert" className="flex max-w-md flex-col items-center gap-2 rounded-xl border border-line bg-surface px-6 py-10 text-center shadow-card">
-            <Radio size={26} className="text-danger" aria-hidden="true" />
-            <strong className="text-md font-semibold text-ink">{t('暂时无法连接核心')}</strong>
-            <p className="text-sm text-muted">{t(metadata.error.message)}</p>
-            <Button className="mt-2" onClick={() => void metadata.refetch()}><RotateCcw size={15} />{t('重新连接')}</Button>
-          </div>
-        : <div className="flex items-center gap-2 text-sm text-muted" role="status">{t('正在连接 Go 核心')}</div>}
+      <div className="flex items-center gap-2 text-sm text-muted" role="status">{t('正在连接 Go 核心')}</div>
     </div>;
   }
 
@@ -122,14 +126,20 @@ function WorkspaceShell() {
     </PagePropsProvider>;
   }
   if (data.maintenance_enabled && data.identity_realm !== 'administrator') {
-    return <main className="flex min-h-dvh flex-col items-center justify-center gap-5 bg-background px-6 text-center">
+    return <main className="min-h-dvh bg-background">
       <div className="fixed top-[15px] end-[20px] z-[45] rounded-lg border border-line bg-surface px-2 py-[5px] shadow-tint"><ClientControls /></div>
-      <BrandLockup name={data.site_name} />
-      <h1 className="text-2xl font-semibold text-ink">{t('站点维护中')}</h1>
-      <p className="max-w-xl whitespace-pre-wrap break-words text-sm text-muted">{data.maintenance_message || t('站点维护中，请稍后再试')}</p>
-      <Button onClick={() => void metadata.refetch()}>{t('重新检查')}</Button>
-      <SiteFooter metadata={data} compact />
+      <ErrorPage standalone code="503" title={t('站点维护中')} detail={<>{t('站点暂时不可用，我们会尽快恢复。')}{data.maintenance_message ? <span className="block whitespace-pre-wrap break-words">{data.maintenance_message}</span> : null}</>}>
+        <Button variant="secondary" onClick={() => void metadata.refetch()}><RotateCcw size={15} aria-hidden="true" />{t('重新检查')}</Button>
+      </ErrorPage>
     </main>;
+  }
+  // Unknown paths render as a standalone 404 for every visitor, before any auth gating.
+  // Unknown paths render as a standalone 404 for every visitor, before any auth gating.
+  // /home and the auth flows are not registered page keys either, so only truly unknown paths qualify.
+  const knownPath = !basename || basename === 'home' || Object.hasOwn(routes, basename)
+    || ['login', 'register', 'forgot-password', 'email-login', 'resend-verification', 'registration-success'].includes(basename);
+  if (page === 'not-found' && !knownPath) {
+    return <main className="min-h-dvh bg-background"><NotFoundPage /></main>;
   }
   if (page === 'api-docs') {
     const props: PageProps = { page, client, metadata: data, registry, theme, setTheme, refresh: () => void metadata.refetch() };
@@ -152,9 +162,7 @@ function WorkspaceShell() {
       </PagePropsProvider>;
     }
     // Guests get the real 404 page for unregistered paths instead of a misleading login form;
-    // registered pages (workspace and auth ones) keep the login wall.
-    const knownPath = !basename || basename === 'home' || Object.hasOwn(routes, basename)
-      || ['login', 'register', 'forgot-password', 'email-login', 'resend-verification', 'registration-success'].includes(basename);
+    // registered pages (workspace and auth ones) keep the login wall. knownPath is shared with the standalone 404 gate above.
     const Flow = basename === 'verify-email' ? VerifyEmailPage : basename === 'reset-password' ? ResetPasswordPage : !data.current_user && !knownPath ? NotFoundPage : LoginPage;
     return <PagePropsProvider value={props}>
       <div className="flex min-h-dvh flex-col bg-background">
@@ -175,6 +183,10 @@ function WorkspaceShell() {
   const enrollment = !!data.mfa_enrollment_required;
   const permitted = canAccess(page, data);
   const refresh = () => { void metadata.refetch(); void router.invalidate(); };
+  // Permission denials render as a standalone status page without shell chrome, like the shadcn-admin error routes.
+  if (!permitted) {
+    return <main className="min-h-dvh bg-background"><ForbiddenPage /></main>;
+  }
   const props: PageProps = { page, client, metadata: data, registry, theme, setTheme, refresh };
   return <PagePropsProvider value={props}>
     <WorkspaceLayout
@@ -196,9 +208,7 @@ function WorkspaceShell() {
           ? <StateCard tone="error" icon={<Radio size={26} className="text-danger" />} title={t('暂时无法连接核心')} detail={t(metadata.error.message)}
               action={<Button onClick={() => void metadata.refetch()}><RotateCcw size={15} />{t('重新连接')}</Button>} />
           : enrollment && page!=='account-security' ? <StateCard tone="pending" icon={<ShieldCheck size={24}/>} title={t('正在打开安全设置')} detail={t('实例要求启用双重验证，请先完成安全设置。')}/>
-          : !permitted
-            ? <ForbiddenPage />
-            : page === 'not-found' ? <NotFoundPage /> : <Outlet />}
+          : <Outlet />}
       <SiteFooter metadata={data} />
     </WorkspaceLayout>
   </PagePropsProvider>;

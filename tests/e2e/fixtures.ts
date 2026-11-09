@@ -77,16 +77,17 @@ async function submitLogin(page: Page, username: string, password: string) {
 }
 
 // Administrator sessions start at /admin; members land on the workspace home.
+// Accounts whose landing page is not granted see the standalone 403 page instead.
 export async function adminLogin(page: Page, url: string, username: string, password: string) {
   await page.goto(`${url}/admin`);
   await submitLogin(page, username, password);
-  await expect(page.getByRole('heading', { name: '工作台概览' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '工作台概览' }).or(page.getByRole('heading', { name: '没有访问权限' }))).toBeVisible();
 }
 
 export async function workspaceLogin(page: Page, url: string, username: string, password = memberPassword) {
   await page.goto(url);
   await submitLogin(page, username, password);
-  await expect(page.getByRole('heading', { name: '工作台概览' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '工作台概览' }).or(page.getByRole('heading', { name: '没有访问权限' }))).toBeVisible();
 }
 
 // The SDK runs in Node without a cookie jar: capture the session cookie between

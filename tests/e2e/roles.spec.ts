@@ -255,6 +255,8 @@ test('restricted administrators keep user administration without role management
     const ops = await opsContext.newPage();
     await adminLogin(ops, instance.url, 'ops', 'ops-password-strong');
     // User administration and announcements stay reachable; role management does not.
+    // Overview is not granted, so the login lands on the standalone 403: enter through the granted page.
+    await ops.goto(`${instance.url}/admin/users`);
     await navigate(ops, labelOf('users'));
     await expect(ops.getByRole('heading', { name: '用户列表', level: 1 })).toBeVisible();
     // Keep the mobile drawer open so the entry counts describe the real sidebar.
@@ -270,7 +272,7 @@ test('restricted administrators keep user administration without role management
     await loginClient(opsApi, 'ops', 'ops-password-strong');
     await expect(opsApi.web!.createRole({ name: '越权角色', permissions: [], realm: 'administrator' })).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
     // The restricted administrator toggles ordinary users both ways.
-    await navigate(ops, labelOf('users'));
+    await ops.goto(`${instance.url}/admin/users`);
     const memberRow = ops.getByRole('row').filter({ hasText: 'member' });
     await memberRow.getByRole('button', { name: '禁用', exact: true }).click();
     await expect(memberRow.getByRole('button', { name: '启用', exact: true })).toBeVisible();
@@ -651,6 +653,8 @@ test('menus-only operators edit the tree but can never widen authorizations', as
     contexts.push(navContext);
     const navigatorPage = await navContext.newPage();
     await adminLogin(navigatorPage, instance.url, 'navigator', 'navigator-password-strong');
+    // Overview is not granted for the menus-only operator: enter through the granted page.
+    await navigatorPage.goto(`${instance.url}/admin/menus`);
     await navigate(navigatorPage, labelOf('menus'));
     await expect(navigatorPage.getByRole('heading', { name: '菜单配置', exact: true })).toBeVisible();
     // The editor is a pure layout tool: no per-row assignment affordance at

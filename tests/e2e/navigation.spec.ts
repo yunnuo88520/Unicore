@@ -221,6 +221,8 @@ test('menu visibility follows role assignments while API capability stays indepe
     contexts.push(memberContext);
     const member = await memberContext.newPage();
     await workspaceLogin(member, instance.url, 'scoped');
+    // Overview is not granted for this role: enter through the granted page to get the sidebar.
+    await member.goto(`${instance.url}/notes`);
     if (info.project.name === 'mobile') await member.getByRole('button', { name: '打开导航', exact: true }).click();
     const memberSidebar = member.locator('.sidebar');
     await expect(memberSidebar.getByRole('button', { name: labelOf('notes'), exact: true })).toBeVisible();
@@ -253,6 +255,7 @@ test('menu visibility follows role assignments while API capability stays indepe
     // immediately), so the member returns through a clean login.
     await member.context().clearCookies();
     await workspaceLogin(member, instance.url, 'scoped');
+    await member.goto(`${instance.url}/notes`);
     if (info.project.name === 'mobile') await member.getByRole('button', { name: '打开导航', exact: true }).click();
     await expect(memberSidebar.getByRole('button', { name: labelOf('files'), exact: true })).toBeVisible();
     if (info.project.name === 'mobile') await member.keyboard.press('Escape');

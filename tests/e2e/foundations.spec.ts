@@ -82,7 +82,7 @@ test.setTimeout(120_000);test('cross-tab logout/account switch, field focus and 
 test.setTimeout(90_000);test('unknown routes and generated API reference follow system theme',async({page,instance},info)=>{
   await installStandalone(instance);
   await page.goto(`${instance.url}/missing-page`);
-  await expect(page.getByText('找不到这个页面',{exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'页面不存在',exact:true})).toBeVisible();
   await capture(page,info,'foundation-not-found');
   await page.getByRole('button',{name:'返回工作台'}).click();
   await page.goto(`${instance.url}/lab`);

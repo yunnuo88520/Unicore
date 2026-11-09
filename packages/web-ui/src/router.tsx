@@ -1,13 +1,14 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Code-based TanStack Router tree shared by the user and administrator entries.
 // Access gating stays in the shell (bootstrap-driven); the router owns URL semantics and history.
-import { Suspense, createContext, lazy, useContext, useMemo, type ReactNode } from 'react';
+import { Suspense, Component, createContext, lazy, useContext, useMemo, type ReactNode } from 'react';
 import { createRootRoute, createRoute, createRouter, redirect, useRouterState, useSearch, Outlet, createBrowserHistory, createHashHistory, type AnyRoute, type RouterHistory } from '@tanstack/react-router';
 import type { AppClient, Bootstrap } from '@unicore/sdk';
 import { routes, type Page } from './routes';
 import type { DashboardWidgetRegistry } from './registry';
 import type { Theme } from '@unicore/theme';
 import { NotFoundPage } from './pages/not-found';
+import { ServerErrorPage } from './pages/error';
 
 export type PageProps = { page: Page; client: AppClient; metadata: Bootstrap; registry: DashboardWidgetRegistry; theme: Theme; setTheme: (theme: Theme) => void; refresh: () => void };
 export type PageComponent = (props: PageProps) => ReactNode;
@@ -58,15 +59,22 @@ function PageFallback() {
   return <div className="flex items-center justify-center py-16 text-sm text-muted" role="status">Loading…</div>;
 }
 
+/** Page render failures surface the standalone 500 status page instead of a broken route. */
+class PageErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  render() { return this.state.error ? <ServerErrorPage /> : this.props.children; }
+}
+
 /** A route body that swaps in the administrator implementation for matching realms. */
 function frame(userLoader: () => Promise<{ default: PageComponent }>, adminEligible = false) {
   function Frame() {
     const props = usePageProps();
     const { administratorPage } = useShellOptions();
     const administration = props.metadata.identity_realm === 'administrator';
-    if (administration && adminEligible && administratorPage) return <>{administratorPage(props)}</>;
+    if (administration && adminEligible && administratorPage) return <PageErrorBoundary>{administratorPage(props)}</PageErrorBoundary>;
     const Component = pageComponent(userLoader);
-    return <Suspense fallback={<PageFallback />}><Component {...props} /></Suspense>;
+    return <Suspense fallback={<PageFallback />}><PageErrorBoundary><Component {...props} /></PageErrorBoundary></Suspense>;
   }
   return Frame;
 }
@@ -123,7 +131,7 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
     pageRoute('/edition', () => import('./pages/edition').then(module => ({ default: module.UserEditionPage })), { adminEligible: true }),
     createRoute({ getParentRoute: () => rootRoute, path: '/settings', beforeLoad: () => { throw redirect({ to: '/site', replace: true }); } }) as unknown as AnyRoute,
   ] as [AnyRoute, ...AnyRoute[]]);
-  return createRouter({ routeTree: tree, history: options.history(), basepath: options.basepath || '/', defaultPreload: false });
+  return createRouter({ routeTree: tree, history: options.history(), basepath: options.basepath || '/', defaultPreload: false, defaultErrorComponent: ServerErrorPage });
 }
 
 type RouterLike = ReturnType<typeof createRouter>;

@@ -5,15 +5,41 @@ package httpadapter
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/yunnuo/unicore/internal/audit"
+	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/platform"
 )
 
 func mountLogStream(api chi.Router, config Config) {
+	// Paged history for the live console: the client renders the newest page
+	// immediately and pulls older pages while scrolling up.
+	api.Get("/admin/logs/tail", func(w http.ResponseWriter, r *http.Request) {
+		if config.LogBroadcast == nil {
+			failure(w, 404, "NOT_FOUND", "接口不存在")
+			return
+		}
+		if _, ok := require(config.Install, w, r, ""); !ok {
+			return
+		}
+		// SuperAdmin is enforced by the contract policy; a restricted
+		// administrator never reaches the handler.
+		before, _ := strconv.ParseInt(r.URL.Query().Get("before_seq"), 10, 64)
+		limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+		if limit <= 0 || limit > 1000 {
+			limit = 200
+		}
+		items, latest, older := config.LogBroadcast.Tail(before, limit)
+		entries := make([]contracts.LogTailEntry, len(items))
+		for i, item := range items {
+			entries[i] = contracts.LogTailEntry{Seq: int(item.Seq), Line: item.Line}
+		}
+		success(w, contracts.LogTailList{Items: entries, LatestSeq: int(latest), OlderCount: older})
+	})
 	api.Get("/admin/logs/stream", func(w http.ResponseWriter, r *http.Request) {
 		if config.LogBroadcast == nil {
 			failure(w, 404, "NOT_FOUND", "接口不存在")
@@ -49,7 +75,10 @@ func mountLogStream(api chi.Router, config Config) {
 			}
 			return true
 		}
-		lines, cancel := config.LogBroadcast.Subscribe()
+		// The client pages history through the tail endpoint and opens the
+		// stream at its cursor; replay after a reconnect stays bounded too.
+		after, _ := strconv.ParseInt(r.URL.Query().Get("after_seq"), 10, 64)
+		lines, cancel := config.LogBroadcast.SubscribeFrom(after)
 		defer cancel()
 		controller := http.NewResponseController(w)
 		// Also works through middleware wrappers exposing Unwrap. Unsupported
@@ -77,14 +106,20 @@ func mountLogStream(api chi.Router, config Config) {
 				if !valid() || !write(": heartbeat\n\n") {
 					return
 				}
-			case line, open := <-lines:
+			case entry, open := <-lines:
 				if !open || !valid() {
 					return
 				}
 				// The broadcaster splits on newlines, but keep the framing
 				// defense-in-depth clean of control characters.
-				line = strings.ReplaceAll(strings.ReplaceAll(line, "\r", ""), "\n", "")
-				if !write("data: " + line + "\n\n") {
+				line := strings.ReplaceAll(strings.ReplaceAll(entry.Line, "\r", ""), "\n", "")
+				// The SSE id carries the sequence so clients can dedupe a
+				// replay after reconnect and resume their cursor.
+				frame := "data: " + line + "\n\n"
+				if entry.Seq > 0 {
+					frame = "id: " + strconv.FormatInt(entry.Seq, 10) + "\n" + frame
+				}
+				if !write(frame) {
 					return
 				}
 			}

@@ -193,7 +193,9 @@ func TestLogStreamAccessAndFrames(t *testing.T) {
 	if got, e := frame(reader); e != nil || got != "retry: 5000\n\n" {
 		t.Fatal(got, e)
 	}
-	for _, want := range []string{"data: boot-a\n\n", "data: boot-b\n\n"} {
+	// Replay frames carry the line sequence in the SSE id so clients can
+	// resume their cursor after a reconnect.
+	for _, want := range []string{"id: 1\ndata: boot-a\n\n", "id: 2\ndata: boot-b\n\n"} {
 		if got, e := frame(reader); e != nil || got != want {
 			t.Fatalf("replay %q, want %q: %v", got, want, e)
 		}
@@ -201,7 +203,7 @@ func TestLogStreamAccessAndFrames(t *testing.T) {
 	if _, e := broadcast.Write([]byte("live\n")); e != nil {
 		t.Fatal(e)
 	}
-	if got, e := frame(reader); e != nil || got != "data: live\n\n" {
+	if got, e := frame(reader); e != nil || got != "id: 3\ndata: live\n\n" {
 		t.Fatal(got, e)
 	}
 	if e := broadcast.Close(); e != nil {

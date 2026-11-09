@@ -27,8 +27,8 @@ func TestBroadcastWriterReplayAndLive(t *testing.T) {
 	for _, want := range []string{"{\"level\":\"INFO\",\"msg\":\"first\"}", "{\"level\":\"INFO\",\"msg\":\"second\"}"} {
 		select {
 		case got := <-lines:
-			if got != want {
-				t.Fatalf("replay %q, want %q", got, want)
+			if got.Line != want {
+				t.Fatalf("replay %q, want %q", got.Line, want)
 			}
 		case <-time.After(time.Second):
 			t.Fatal("replay timeout")
@@ -39,8 +39,8 @@ func TestBroadcastWriterReplayAndLive(t *testing.T) {
 	}
 	select {
 	case got := <-lines:
-		if got != "live" {
-			t.Fatalf("live %q", got)
+		if got.Line != "live" {
+			t.Fatalf("live %q", got.Line)
 		}
 	case <-time.After(time.Second):
 		t.Fatal("live timeout")
@@ -62,11 +62,11 @@ func TestBroadcastWriterSlowSubscriberDrops(t *testing.T) {
 	for i := 0; i < broadcastBuffer; i++ {
 		select {
 		case got := <-lines:
-			if strings.Contains(got, "已丢弃") {
+			if strings.Contains(got.Line, "已丢弃") {
 				t.Fatal("drop notice must not preempt buffered lines")
 			}
-			if got != fmt.Sprintf("line-%d", i) {
-				t.Fatalf("backlog %q, want line-%d", got, i)
+			if got.Line != fmt.Sprintf("line-%d", i) {
+				t.Fatalf("backlog %q, want line-%d", got.Line, i)
 			}
 		case <-time.After(time.Second):
 			t.Fatal("backlog timeout")
@@ -74,7 +74,7 @@ func TestBroadcastWriterSlowSubscriberDrops(t *testing.T) {
 	}
 	select {
 	case got := <-lines:
-		t.Fatalf("unexpected extra line %q", got)
+		t.Fatalf("unexpected extra line %q", got.Line)
 	case <-time.After(100 * time.Millisecond):
 	}
 	// The next write delivers the notice ahead of its own line.
@@ -85,8 +85,8 @@ func TestBroadcastWriterSlowSubscriberDrops(t *testing.T) {
 	for _, want := range []string{notice, "after-drop"} {
 		select {
 		case got := <-lines:
-			if got != want {
-				t.Fatalf("got %q, want %q", got, want)
+			if got.Line != want {
+				t.Fatalf("got %q, want %q", got.Line, want)
 			}
 		case <-time.After(time.Second):
 			t.Fatal("never received the post-drop notice")
@@ -117,7 +117,7 @@ func TestBroadcastWriterConcurrentWrites(t *testing.T) {
 	for i := 0; i < workers*each; i++ {
 		select {
 		case got := <-lines:
-			seen[got] = true
+			seen[got.Line] = true
 		case <-time.After(time.Second):
 			t.Fatalf("missing lines after %d", i)
 		}
@@ -137,8 +137,8 @@ func TestBroadcastWriterClose(t *testing.T) {
 	defer cancel()
 	select {
 	case got := <-lines:
-		if got != "before" {
-			t.Fatalf("replay %q", got)
+		if got.Line != "before" {
+			t.Fatalf("replay %q", got.Line)
 		}
 	case <-time.After(time.Second):
 		t.Fatal("replay timeout")
@@ -162,4 +162,49 @@ func TestBroadcastWriterClose(t *testing.T) {
 		t.Fatal("subscribe after close must not deliver")
 	}
 	noop()
+}
+
+func TestBroadcastWriterSequenceAndTail(t *testing.T) {
+	broadcast := NewBroadcastWriter()
+	for i := 1; i <= 250; i++ {
+		if _, err := broadcast.Write([]byte(fmt.Sprintf("line-%d\n", i))); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// The newest page comes back ascending with the live cursor and the
+	// count of still-buffered older entries.
+	items, latest, older := broadcast.Tail(0, 200)
+	if latest != 250 || older != 50 || len(items) != 200 {
+		t.Fatal("tail stats", latest, older, len(items))
+	}
+	if items[0].Line != "line-51" || items[0].Seq != 51 || items[199].Line != "line-250" {
+		t.Fatal("tail page bounds", items[0])
+	}
+	// A cursor page stops strictly below the sequence.
+	items, latest, older = broadcast.Tail(51, 200)
+	if latest != 250 || older != 0 || len(items) != 50 || items[0].Line != "line-1" || items[49].Seq != 50 {
+		t.Fatal("cursor page", latest, older, len(items))
+	}
+	// Subscribing from a cursor skips every replayed entry.
+	lines, cancel := broadcast.SubscribeFrom(250)
+	defer cancel()
+	if _, err := broadcast.Write([]byte("live-251\n")); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case got := <-lines:
+		if got.Seq != 251 || got.Line != "live-251" {
+			t.Fatal("cursor live", got)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("cursor live timeout")
+	}
+	if _, err := broadcast.Write([]byte("{\"level\":\"INFO\",\"msg\":\"truncated\"}")); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-lines:
+		t.Fatal("incomplete fragment must not stream")
+	case <-time.After(100 * time.Millisecond):
+	}
 }

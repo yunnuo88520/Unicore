@@ -1638,3 +1638,21 @@ type FileCapabilities struct {
 	Download bool `json:"download"`
 	Delete   bool `json:"delete"`
 }
+
+type LogTailEntry struct {
+	Seq  int    `json:"seq"`
+	Line string `json:"line"`
+}
+
+type LogTailList struct {
+	Items      []LogTailEntry `json:"items"`
+	LatestSeq  int            `json:"latest_seq"`
+	OlderCount int            `json:"older_count"`
+}
+
+type LogTailResponse struct {
+	Code      string      `json:"code"`
+	Message   string      `json:"message"`
+	Data      LogTailList `json:"data"`
+	RequestID string      `json:"request_id"`
+}

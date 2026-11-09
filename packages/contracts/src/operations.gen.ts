@@ -4148,6 +4148,26 @@ export const operations = {
     "csrf": true,
     "identityRealm": "administrator",
     "uiPage": "posts"
+  },
+  "logTail": {
+    "method": "GET",
+    "path": "/api/v1/admin/logs/tail",
+    "requestSchema": null,
+    "responseSchema": "LogTailResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "logs:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
   }
 } as const;
 export type OperationId = keyof typeof operations;
@@ -4365,6 +4385,7 @@ export interface OperationInputs {
   createPost: Models.PostSaveInput;
   updatePost: Models.PostSaveInput;
   deletePost: undefined;
+  logTail: undefined;
 }
 export interface OperationData {
   bootstrap: Models.BootstrapResponse['data'];
@@ -4580,4 +4601,5 @@ export interface OperationData {
   createPost: Models.PostResponse['data'];
   updatePost: Models.PostResponse['data'];
   deletePost: Models.PostResponse['data'];
+  logTail: Models.LogTailResponse['data'];
 }

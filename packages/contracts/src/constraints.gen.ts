@@ -6642,5 +6642,68 @@ export const constraints = {
         "type": "boolean"
       }
     }
+  },
+  "LogTailEntry": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "seq",
+      "line"
+    ],
+    "properties": {
+      "seq": {
+        "type": "integer"
+      },
+      "line": {
+        "type": "string"
+      }
+    }
+  },
+  "LogTailList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items",
+      "latest_seq",
+      "older_count"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/LogTailEntry"
+        }
+      },
+      "latest_seq": {
+        "type": "integer"
+      },
+      "older_count": {
+        "type": "integer"
+      }
+    }
+  },
+  "LogTailResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/LogTailList"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
   }
 };

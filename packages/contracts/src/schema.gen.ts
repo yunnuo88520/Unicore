@@ -1636,3 +1636,21 @@ export interface FileCapabilities {
   download: boolean;
   delete: boolean;
 }
+
+export interface LogTailEntry {
+  seq: number;
+  line: string;
+}
+
+export interface LogTailList {
+  items: Array<LogTailEntry>;
+  latest_seq: number;
+  older_count: number;
+}
+
+export interface LogTailResponse {
+  code: string;
+  message: string;
+  data: LogTailList;
+  request_id: string;
+}

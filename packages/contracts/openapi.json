@@ -12986,6 +12986,75 @@
           }
         ]
       }
+    },
+    "/api/v1/admin/logs/tail": {
+      "get": {
+        "operationId": "logTail",
+        "responses": {
+          "200": {
+            "description": "Bounded page of buffered log lines ascending with the live cursor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogTailResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "logs:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "logTail",
+        "parameters": [
+          {
+            "name": "before_seq",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "description": "Return entries strictly below this sequence; omit for the newest page"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            },
+            "description": "Page size, default 200"
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -19695,6 +19764,69 @@
           },
           "delete": {
             "type": "boolean"
+          }
+        }
+      },
+      "LogTailEntry": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "seq",
+          "line"
+        ],
+        "properties": {
+          "seq": {
+            "type": "integer"
+          },
+          "line": {
+            "type": "string"
+          }
+        }
+      },
+      "LogTailList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "latest_seq",
+          "older_count"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogTailEntry"
+            }
+          },
+          "latest_seq": {
+            "type": "integer"
+          },
+          "older_count": {
+            "type": "integer"
+          }
+        }
+      },
+      "LogTailResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/LogTailList"
+          },
+          "request_id": {
+            "type": "string"
           }
         }
       }

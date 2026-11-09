@@ -86,3 +86,32 @@ test('management groups, modal creation, independent logins and avatar password 
  await nav(labelOf('users'));
  for(const scheme of ['light','dark'] as const){await page.evaluate(value=>localStorage.setItem('unicore.preferences.v1',JSON.stringify({...JSON.parse(localStorage.getItem('unicore.preferences.v1')??'{}'),theme:value})),scheme);await page.reload();await page.screenshot({path:`${directory}/management-${scheme}.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}
 });
+
+test('the live log console opens at the tail and pages history on scroll-up',async({page,instance})=>{
+ test.setTimeout(60000);
+ expect((await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}})).status()).toBe(200);
+ // Every request logs a completion line: enough volume pushes the ring past
+ // one page so the console has older history to page through.
+ for(let i=0;i<220;i++)await page.request.get(`${instance.url}/api/v1/auth/policy`);
+ await page.goto(`${instance.url}/admin`);
+ await page.getByRole('button',{name:'实时日志'}).click();
+ const log=page.getByRole('log',{name:'实时日志行'});
+ await expect(log).toBeVisible();
+ // The console opens on the newest page already stuck to the tail instead of
+ // waiting for a manual jump.
+ const indicator=log.getByText(/已省略 \d+ 条更早日志/);
+ await expect(indicator).toBeVisible();
+ await page.waitForTimeout(3000);
+ const diag=await log.evaluate(node=>({arm:node.dataset.arm,fired:node.dataset.fired,cleared:node.dataset.cleared,stick:node.dataset.stick,scrolls:node.dataset.scrolls,d:node.scrollHeight-node.scrollTop-node.clientHeight,sh:node.scrollHeight,st:node.scrollTop}));
+ console.log('STATE',JSON.stringify(diag));
+ await expect.poll(async()=>log.evaluate(node=>node.scrollHeight-node.scrollTop-node.clientHeight),{timeout:10000}).toBeLessThan(48);
+ // Scrolling to the top pulls the next history page and keeps the viewport
+ // anchored instead of jumping.
+ await log.evaluate(node=>{node.scrollTop=0;});
+ // The ring of a fresh instance fits one page: scrolling up exhausts the
+ // history and lands on the buffer-start notice with the earliest row shown.
+ await expect(log.getByText('已到缓冲区起点',{exact:true})).toBeVisible({timeout:10000});
+ await expect(log.getByText(/server started/)).toBeVisible();
+ await page.getByRole('button',{name:'关闭对话框'}).click();
+ await expect(page.getByRole('log')).toHaveCount(0);
+});

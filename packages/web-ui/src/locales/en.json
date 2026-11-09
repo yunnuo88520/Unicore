@@ -2060,7 +2060,6 @@
   "记录个人笔记，支持附件、搜索与分页。": "Capture personal notes with attachments, search and pagination.",
   "实时日志": "Live logs",
   "实时日志行": "Live log lines",
-  "服务端日志实时推送，关闭窗口即断开连接；断开或重连后自动回放最近缓冲。": "Server logs stream in real time; closing this window disconnects. Recent buffered lines replay after a reconnect.",
   "连接已断开，自动重连中": "Disconnected, reconnecting",
   "级别": "Level",
   "全部级别": "All levels",
@@ -2093,5 +2092,9 @@
   "新增定时任务": "Created a scheduled task",
   "更新定时任务": "Updated a scheduled task",
   "删除定时任务": "Deleted a scheduled task",
-  "触发定时任务": "Triggered a scheduled task"
+  "触发定时任务": "Triggered a scheduled task",
+  "打开即定位到最新日志并自动跟随；向上滚动加载更早历史，关闭窗口即断开连接。": "The console opens on the newest logs and follows the tail; scroll up to load earlier history, and closing the window disconnects.",
+  "已省略 {{count}} 条更早日志，向上滚动加载": "{{count}} earlier logs hidden; scroll up to load them",
+  "已到缓冲区起点": "Start of the log buffer",
+  "正在加载更早日志…": "Loading earlier logs…"
 }

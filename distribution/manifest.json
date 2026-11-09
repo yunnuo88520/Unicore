@@ -403,7 +403,6 @@
     ".github/workflows/release.yml",
     ".github/workflows/security.yml",
     ".gitignore",
-    ".zcode/config.json",
     "CHANGELOG.md",
     "CODE_OF_CONDUCT.md",
     "LICENSE",

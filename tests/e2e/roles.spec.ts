@@ -67,22 +67,20 @@ test('fixed roles enforce menus, all management APIs and client-only appearance'
       await expect(memberPage.getByText('没有访问权限', { exact: true })).toBeVisible();
     }
     expect((await memberPage.request.get(`${instance.url}/admin`)).status()).toBe(200);
-    await memberPage.goto(`${instance.url}/site?tab=mail`);
-    if (info.project.name === 'mobile') await memberPage.getByRole('button', { name: '打开导航' }).click();
-    // 基础设置 now legitimately appears for members (client-scoped site entry).
-    for (const name of ['用户列表', '角色权限', '管理工具']) await expect(memberPage.getByRole('button', { name, exact: true })).toHaveCount(0);
-    await expect(memberPage.getByLabel('站点名称', { exact: true })).toHaveCount(0);
-    await expect(memberPage.getByRole('tab')).toHaveCount(0);
-    await expect(memberPage.getByText('仅当前客户端', { exact: true })).toBeVisible();
-    // Close the navigation drawer on mobile so the scrim no longer covers the
-    // appearance controls; Escape rides the layout's own close handler (the
-    // scrim's geometric center sits under the drawer itself).
+    await memberPage.goto(`${instance.url}/site`);
+    await expect(memberPage.getByRole('heading', { name: '没有访问权限', exact: true })).toBeVisible();
+    await memberPage.goto(`${instance.url}/`);
+    // The management-flavoured site page is administrator-only now: the member
+    // sidebar carries no 基础设置/API 文档/公告/文件管理 entries at all, and
+    // personal theming rides the topbar drawer.
+    if (info.project.name === 'mobile') await memberPage.getByRole('button', { name: '打开导航', exact: true }).click();
+    for (const name of ['基础设置', 'API 文档', '公告', '文件管理', '用户列表', '角色权限', '管理工具']) await expect(memberPage.getByRole('button', { name, exact: true })).toHaveCount(0);
     if (info.project.name === 'mobile') await memberPage.keyboard.press('Escape');
     const writes: string[] = [];
     memberPage.on('request', request => { if (request.method() !== 'GET') writes.push(request.url()); });
-    await memberPage.getByRole('button', { name: /深色.*柔和低光/ }).click();
-    await memberPage.getByRole('button', { name: '保存设置', exact: true }).click();
-    await expect(memberPage.getByText('外观已保存到当前客户端', { exact: true })).toBeVisible();
+    await memberPage.getByRole('button', { name: '主题设置', exact: true }).click();
+    const drawer = memberPage.getByRole('dialog', { name: '主题设置', exact: true });
+    await drawer.locator('.preference-theme').getByRole('button', { name: '深色', exact: true }).click();
     await expect(memberPage.locator('html')).toHaveAttribute('data-theme', 'dark');
     await memberPage.reload();
     await expect(memberPage.locator('html')).toHaveAttribute('data-theme', 'dark');
@@ -289,7 +287,7 @@ test('restricted administrators keep user administration without role management
   }
 });
 
-test('button-level grants hide note and file actions while both pages stay reachable', async ({ page, browser, instance }, info) => {
+test('button-level grants hide note actions while the notes page stays reachable', async ({ page, browser, instance }, info) => {
   test.setTimeout(120000);
   await installPlatform(instance);
   await adminLogin(page, instance.url, 'admin', adminPassword);
@@ -298,10 +296,12 @@ test('button-level grants hide note and file actions while both pages stay reach
   const config = await admin.web!.menuConfig();
   // Page and entry grants plus create/update/upload, deliberately without the
   // delete points; menu chains and the derived API grants complete the matrix.
+  // The files page itself no longer renders on the user surface — its points
+  // remain grantable because the notes attachment flow rides on them.
   const permissions = ['notes:access', 'notes:create', 'notes:update', 'files:access', 'files:upload'];
   const recorder = await admin.web!.createRole({
     name: '记录员', permissions, realm: 'user',
-    menu_ids: [...new Set([...menuChain(config, 'notes'), ...menuChain(config, 'files')])],
+    menu_ids: [...new Set([...menuChain(config, 'notes')])],
     operation_ids: materializedOperations('user', permissions),
   });
   expect(recorder.permissions.length).toBe(5);
@@ -324,16 +324,14 @@ test('button-level grants hide note and file actions while both pages stay reach
     await expect(noteDialog).toHaveCount(0);
     await expect(memberPage.getByRole('button', { name: '编辑 权限点笔记', exact: true })).toBeVisible();
     await expect(memberPage.getByRole('button', { name: '删除 权限点笔记', exact: true })).toHaveCount(0);
-    // Files: uploads work while the delete action never renders.
+    // Files: the management page never renders on the user surface; the same
+    // permission points power the API upload the note attachment picker uses.
+    const memberApi = sdkClient(instance.url, 'user');
+    await loginClient(memberApi, 'member', member);
+    const uploaded = await memberApi.uploadFile(new File([Buffer.from('member file content')], 'member-file.txt', { type: 'text/plain' }));
+    await expect(memberApi.files!.deleteFile(uploaded.file_id)).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
     await memberPage.goto(`${instance.url}/files`);
-    await expect(memberPage.getByRole('heading', { name: '我的文件', exact: true })).toBeVisible();
-    await memberPage.getByRole('button', { name: '上传文件', exact: true }).click();
-    const uploadDialog = memberPage.getByRole('dialog', { name: '上传文件', exact: true });
-    await uploadDialog.getByLabel('选择文件').setInputFiles({ name: 'member-file.txt', mimeType: 'text/plain', buffer: Buffer.from('member file content') });
-    await uploadDialog.getByRole('button', { name: '开始上传', exact: true }).click();
-    await expect(uploadDialog).toHaveCount(0);
-    await expect(memberPage.getByRole('button', { name: '下载 member-file.txt', exact: true })).toBeVisible();
-    await expect(memberPage.getByRole('button', { name: '删除 member-file.txt', exact: true })).toHaveCount(0);
+    await expect(memberPage.getByRole('heading', { name: '没有访问权限', exact: true })).toBeVisible();
     // Narrowing the permission upper bound prunes dependent API and action
     // grants in the same save; unrelated grants stay intact.
     await page.goto(`${instance.url}/admin/roles`);
@@ -356,10 +354,10 @@ test('button-level grants hide note and file actions while both pages stay reach
     await expect(memberPage.getByRole('button', { name: '新建笔记', exact: true })).toHaveCount(0);
     await expect(memberPage.getByText('权限点笔记', { exact: true })).toBeVisible();
     await expect(memberPage.getByRole('button', { name: '编辑 权限点笔记', exact: true })).toBeVisible();
-    await memberPage.goto(`${instance.url}/files`);
-    await expect(memberPage.getByRole('heading', { name: '我的文件', exact: true })).toBeVisible();
-    await expect(memberPage.getByRole('button', { name: '上传文件', exact: true })).toHaveCount(0);
-    await expect(memberPage.getByRole('button', { name: '下载 member-file.txt', exact: true })).toBeVisible();
+    await loginClient(memberApi, 'member', member);
+    await memberApi.uploadFile(new File([Buffer.from('blocked content')], 'blocked.txt', { type: 'text/plain' })).catch(error => {
+      expect(error).toMatchObject({ code: 'PERMISSION_DENIED' });
+    });
     await memberPage.screenshot({ path: `${directory}/member-button-grants.png`, fullPage: true });
     expect(await memberPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     // The builtin user role auto-holds every assignable point: all actions render.
@@ -371,8 +369,6 @@ test('button-level grants hide note and file actions while both pages stay reach
     await full.goto(`${instance.url}/notes`);
     await expect(full.getByRole('heading', { name: '个人笔记', exact: true })).toBeVisible();
     await expect(full.getByRole('button', { name: '新建笔记', exact: true })).toBeVisible();
-    await full.goto(`${instance.url}/files`);
-    await expect(full.getByRole('button', { name: '上传文件', exact: true })).toBeVisible();
   } finally {
     for (const context of contexts) await context.close();
   }

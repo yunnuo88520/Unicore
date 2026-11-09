@@ -186,5 +186,13 @@ export function buildNavigation(data: Bootstrap): Navigation {
     const recovery = render({ node: { ...newNavigationNode('menus:recovery', 'recovery', 'page'), route_id: 'menus', label: routes.menus.label, icon: 'ListTree' }, children: [] });
     if (recovery) sections.push({ id: 'recovery', title: t('菜单恢复'), showTitle: true, entries: [recovery] });
   }
+  // The user workspace folds its personal pages into one collapsible first-level
+  // entry, mirroring the administrator surface's 个人中心 directory presentation.
+  // Purely presentational: the menu editor and the persisted model stay flat.
+  for (const [index, section] of sections.entries()) {
+    if (section.id !== 'user:personal' || !section.entries.some(entry => entry.type !== 'directory')) continue;
+    const group: NavEntry = { id: `${section.id}:group`, type: 'directory', label: section.title || t('个人中心'), icon: resolveNavigationIcon('UserRound'), openMode: 'same_tab', badgeText: '', badgeColor: '', badgeDot: false, disabled: false, children: section.entries };
+    sections[index] = { ...section, showTitle: false, entries: [group] };
+  }
   return { sections };
 }

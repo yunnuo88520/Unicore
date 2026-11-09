@@ -55,6 +55,10 @@ export function isAdministrator(metadata?: Bootstrap): boolean {
   return isAdminRealm(metadata) && !!metadata?.current_user?.roles.includes('super_admin');
 }
 export function canAccess(page: Page, metadata?: Bootstrap): boolean {
+  // Management-flavoured pages never render on the user surface — even when a
+  // persisted menu tree or a custom role still carries them (existing installs).
+  if (metadata?.profile === 'web-platform' && metadata.identity_realm !== 'administrator' &&
+    ['site', 'api-docs', 'announcements', 'files'].includes(page)) return false;
   if (metadata?.profile === 'web-platform' && metadata.current_user &&
     !metadata.current_user.roles.includes('super_admin') &&
     !['account', 'account-security', 'account-sessions'].includes(page)) {

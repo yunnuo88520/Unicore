@@ -110,4 +110,7 @@ test('forced enrollment applies to ordinary users and preserves recovery codes a
  if(info.project.name==='mobile')await page.getByRole('button',{name:'打开导航',exact:true}).click();
  await expect(page.locator('.sidebar section[data-nav-section$=":personal"]')).toBeVisible();
  await expect(page.locator('.sidebar').getByRole('button',{name:'系统设置',exact:true})).toHaveCount(0);
+ // Management-flavoured pages never render on the user surface, even though a
+ // persisted legacy menu tree still carries their nodes.
+ for(const name of ['基础设置','API 文档','公告','文件管理'])await expect(page.locator('.sidebar').getByRole('button',{name,exact:true})).toHaveCount(0);
 });

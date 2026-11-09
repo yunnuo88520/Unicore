@@ -255,14 +255,10 @@ test('menu visibility follows role assignments while API capability stays indepe
     // immediately), so the member returns through a clean login.
     await member.context().clearCookies();
     await workspaceLogin(member, instance.url, 'scoped');
-    await member.goto(`${instance.url}/notes`);
-    if (info.project.name === 'mobile') await member.getByRole('button', { name: '打开导航', exact: true }).click();
-    await expect(memberSidebar.getByRole('button', { name: labelOf('files'), exact: true })).toBeVisible();
-    if (info.project.name === 'mobile') await member.keyboard.press('Escape');
-    await member.goto(`${instance.url}/files`);
-    // The menu grant alone still grants no API capability.
-    await expect(member.getByText('你没有执行此操作的权限', { exact: true })).toBeVisible();
-    await evidence(member, info, '菜单不授予API能力');
+    // The files page never renders on the user surface, and the menu grant
+    // alone still grants no API capability.
+    await expect(memberSidebar.getByRole('button', { name: labelOf('files'), exact: true })).toHaveCount(0);
+    await expect((await member.request.get(`${instance.url}/api/v1/files`)).status()).toBe(403);
 
     // The role console closes the gap: explicit API grants unlock the list.
     await page.goto(`${instance.url}/admin/roles`);
@@ -278,9 +274,7 @@ test('menu visibility follows role assignments while API capability stays indepe
     await expect(editor).toHaveCount(0);
     await member.context().clearCookies();
     await workspaceLogin(member, instance.url, 'scoped');
-    await member.goto(`${instance.url}/files`);
-    await expect(member.getByRole('heading', { name: '我的文件', exact: true })).toBeVisible();
-    await expect(member.getByText('你没有执行此操作的权限', { exact: true })).toHaveCount(0);
+    await expect((await member.request.get(`${instance.url}/api/v1/files`)).status()).toBe(200);
     await evidence(member, info, 'API授权后文件列表可用');
   } finally {
     for (const context of contexts) await context.close();

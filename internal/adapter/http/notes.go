@@ -50,6 +50,7 @@ func mountNotes(api chi.Router, config Config) {
 			}
 			scope := "local"
 			visibility := notesusecase.NoteVisibility{}
+			manageAll := false
 			var actor files.Actor
 			if profile == runtime.WebPlatform {
 				identity := config.Install.Identity(administratorRequest(r))
@@ -60,6 +61,9 @@ func mountNotes(api chi.Router, config Config) {
 				}
 				actor = fileActor(r, session)
 				scope = "user/" + actor.ID
+				// Super administrators manage every user-realm note from the
+				// management surface, mirroring the files module Admin rule.
+				manageAll = administratorRequest(r) && platform.IsSuper(session.User)
 				// Row-level data scopes widen the user-realm list only; the
 				// administrator list and local profiles keep their behaviour.
 				{
@@ -77,7 +81,7 @@ func mountNotes(api chi.Router, config Config) {
 					}
 				}
 			}
-			service := &notesusecase.Notes{Repo: &notesnotessql.Repository{Store: store}}
+			service := &notesusecase.Notes{Repo: &notesnotessql.Repository{Store: store, ManageAll: manageAll}}
 			if fs := config.Install.Files(); fs != nil {
 				service.Attachments = func(ctx context.Context, _ string, id string) error { return fs.ValidateAttachment(ctx, actor, id) }
 			}

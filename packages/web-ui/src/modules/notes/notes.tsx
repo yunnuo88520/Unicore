@@ -15,6 +15,7 @@ const initialQuery: NoteQuery = { search: '', status: '', sort: 'updated_at', di
 export function NotesPage({ client, metadata }: PageProps) {
   useLocale();
   const api = client.notes!;
+  const administrator = metadata.identity_realm === 'administrator';
   // The page stays gated by notes:access for the create entry; row edit/delete
   // follow the server-projected per-row capabilities, so readable rows from a
   // shared scope stay read-only while own rows with the action grant keep buttons.
@@ -39,14 +40,14 @@ export function NotesPage({ client, metadata }: PageProps) {
       document.body.append(a); a.click(); a.remove();
     },
   });
-  return <section className="flex flex-col gap-4" aria-label={t('个人笔记')}>
+  return <section className="flex flex-col gap-4" aria-label={administrator ? t('笔记管理') : t('个人笔记')}>
     <Card>
       <CardContent className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-accent"><NotebookPen size={19} aria-hidden="true" /></span>
           <div>
-            <h2 className="text-md font-semibold text-ink">{t('个人笔记')}</h2>
-            <p className="text-xs text-muted">{t('把想法写下来，按自己的节奏推进。')}</p>
+            <h2 className="text-md font-semibold text-ink">{administrator ? t('笔记管理') : t('个人笔记')}</h2>
+            <p className="text-xs text-muted">{administrator ? t('管理实例内全部用户笔记，可按需编辑或删除。') : t('把想法写下来，按自己的节奏推进。')}</p>
           </div>
         </div>
         {canCreate && <Button onClick={() => setEditing('new')}><Plus size={16} />{t('新建笔记')}</Button>}

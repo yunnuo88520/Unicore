@@ -19,7 +19,14 @@ import (
 	"time"
 )
 
-type Repository struct{ Store *sqlstore.Store }
+// Repository persists notes under scope keys. ManageAll — set per request for
+// super administrators on the management surface — widens mutations to any
+// user-realm note, mirroring the files module Admin rule; reads stay
+// visibility-scoped.
+type Repository struct {
+	Store     *sqlstore.Store
+	ManageAll bool
+}
 type scanner interface{ Scan(...any) error }
 
 func scan(row scanner) (n contracts.NoteEntry, err error) {
@@ -129,7 +136,7 @@ func (r *Repository) List(ctx context.Context, scope string, q contracts.NoteQue
 				rows.Close()
 				return result, e
 			}
-			n.Capabilities = contracts.NoteCapabilities{Update: owner == scope, Delete: owner == scope}
+			n.Capabilities = contracts.NoteCapabilities{Update: owner == scope || r.ManageAll, Delete: owner == scope || r.ManageAll}
 			result.Items = append(result.Items, n)
 		}
 		e = rows.Err()
@@ -221,6 +228,22 @@ func (r *Repository) Create(ctx context.Context, scope string, in contracts.Note
 	}
 	return n, tx.Commit()
 }
+// manageTarget resolves the scope key a mutation applies to: the session's own
+// key, or — for ManageAll sessions — the owner key of any user-realm note.
+func (r *Repository) manageTarget(ctx context.Context, tx *sql.Tx, scope, id string) (string, error) {
+	if !r.ManageAll {
+		return scope, nil
+	}
+	var owner string
+	if e := r.Store.Row(ctx, tx, "SELECT scope_key FROM unicore_example_notes WHERE id=? AND deleted_at=0 AND scope_key LIKE 'user/%'", id).Scan(&owner); e != nil {
+		if errors.Is(e, sql.ErrNoRows) {
+			return "", usecase.ErrNoteNotFound
+		}
+		return "", e
+	}
+	return owner, nil
+}
+
 func (r *Repository) Update(ctx context.Context, scope, id string, in contracts.NoteUpdate) (contracts.NoteEntry, error) {
 	if in.AttachmentIds == nil {
 		in.AttachmentIds = []string{}
@@ -231,7 +254,11 @@ func (r *Repository) Update(ctx context.Context, scope, id string, in contracts.
 		return contracts.NoteEntry{}, e
 	}
 	defer tx.Rollback()
-	before, e := scan(r.Store.Row(ctx, tx, "SELECT "+columns+" FROM unicore_example_notes WHERE scope_key=? AND id=? AND deleted_at=0", scope, id))
+	target, e := r.manageTarget(ctx, tx, scope, id)
+	if e != nil {
+		return contracts.NoteEntry{}, e
+	}
+	before, e := scan(r.Store.Row(ctx, tx, "SELECT "+columns+" FROM unicore_example_notes WHERE scope_key=? AND id=? AND deleted_at=0", target, id))
 	if e != nil {
 		return contracts.NoteEntry{}, e
 	}
@@ -249,7 +276,7 @@ func (r *Repository) Update(ctx context.Context, scope, id string, in contracts.
 	if string(oldIDs) != string(ids) {
 		changed = append(changed, "attachment_ids")
 	}
-	result, e := r.Store.Exec(ctx, tx, "UPDATE unicore_example_notes SET title=?,body=?,status=?,attachment_ids=?,version=version+1,updated_at=? WHERE scope_key=? AND id=? AND version=? AND deleted_at=0", in.Title, in.Body, in.Status, string(ids), time.Now().Unix(), scope, id, in.Version)
+	result, e := r.Store.Exec(ctx, tx, "UPDATE unicore_example_notes SET title=?,body=?,status=?,attachment_ids=?,version=version+1,updated_at=? WHERE scope_key=? AND id=? AND version=? AND deleted_at=0", in.Title, in.Body, in.Status, string(ids), time.Now().Unix(), target, id, in.Version)
 	if e != nil {
 		return contracts.NoteEntry{}, e
 	}
@@ -258,13 +285,13 @@ func (r *Repository) Update(ctx context.Context, scope, id string, in contracts.
 		return contracts.NoteEntry{}, e
 	}
 	if count == 0 {
-		return contracts.NoteEntry{}, r.missing(ctx, tx, scope, id)
+		return contracts.NoteEntry{}, r.missing(ctx, tx, target, id)
 	}
-	n, e := scan(r.Store.Row(ctx, tx, "SELECT "+columns+" FROM unicore_example_notes WHERE scope_key=? AND id=? AND deleted_at=0", scope, id))
+	n, e := scan(r.Store.Row(ctx, tx, "SELECT "+columns+" FROM unicore_example_notes WHERE scope_key=? AND id=? AND deleted_at=0", target, id))
 	if e != nil {
 		return n, e
 	}
-	if e = r.Store.Audit(noteAudit(ctx, scope, id, "fields="+strings.Join(changed, ",")+"; version="+strconv.Itoa(in.Version)+"->"+strconv.Itoa(n.Version)), tx, scope, "notes.updated"); e != nil {
+	if e = r.Store.Audit(noteAudit(ctx, target, id, "fields="+strings.Join(changed, ",")+"; version="+strconv.Itoa(in.Version)+"->"+strconv.Itoa(n.Version)), tx, target, "notes.updated"); e != nil {
 		return n, e
 	}
 	return n, tx.Commit()
@@ -275,7 +302,11 @@ func (r *Repository) Delete(ctx context.Context, scope, id string, version int) 
 		return e
 	}
 	defer tx.Rollback()
-	result, e := r.Store.Exec(ctx, tx, "UPDATE unicore_example_notes SET deleted_at=?,updated_at=?,version=version+1 WHERE scope_key=? AND id=? AND version=? AND deleted_at=0", time.Now().Unix(), time.Now().Unix(), scope, id, version)
+	target, e := r.manageTarget(ctx, tx, scope, id)
+	if e != nil {
+		return e
+	}
+	result, e := r.Store.Exec(ctx, tx, "UPDATE unicore_example_notes SET deleted_at=?,updated_at=?,version=version+1 WHERE scope_key=? AND id=? AND version=? AND deleted_at=0", time.Now().Unix(), time.Now().Unix(), target, id, version)
 	if e != nil {
 		return e
 	}
@@ -284,9 +315,9 @@ func (r *Repository) Delete(ctx context.Context, scope, id string, version int) 
 		return e
 	}
 	if count == 0 {
-		return r.missing(ctx, tx, scope, id)
+		return r.missing(ctx, tx, target, id)
 	}
-	if e = r.Store.Audit(noteAudit(ctx, scope, id, "soft_deleted; version="+strconv.Itoa(version)+"->"+strconv.Itoa(version+1)), tx, scope, "notes.deleted"); e != nil {
+	if e = r.Store.Audit(noteAudit(ctx, target, id, "soft_deleted; version="+strconv.Itoa(version)+"->"+strconv.Itoa(version+1)), tx, target, "notes.deleted"); e != nil {
 		return e
 	}
 	return tx.Commit()

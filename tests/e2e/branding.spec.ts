@@ -114,8 +114,11 @@ test('platform login and all mail previews use public instance branding', async 
   await expect(page.getByRole('button',{name:'运行用例'})).toBeVisible();
   await expectNavigationBrand(page,'light');
   await page.goto(`${instance.url}/site`);
-  await expect(page.getByText('仅当前客户端',{exact:true})).toBeVisible();
-  await expect(page.getByRole('tab', { name: '品牌图片', exact: true })).toHaveCount(0);
+  // The management-flavoured site page no longer renders for members.
+  await expect(page.getByRole('heading',{name:'没有访问权限',exact:true})).toBeVisible();
   expect((await page.request.get(`${instance.url}/api/v1/admin/branding`)).status()).toBe(403);
+  // Personal theming rides the client-local appearance drawer instead.
+  await page.getByRole('button',{name:'主题设置',exact:true}).click();
+  await expect(page.getByText('仅保存在当前客户端')).toBeVisible();
   await capture(page,info,'brand-member-local-appearance');
 });

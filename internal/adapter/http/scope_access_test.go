@@ -214,3 +214,92 @@ func TestUserRealmScopeReadsAndSigns(t *testing.T) {
 		t.Fatal("narrowed scope still signs peer file", w.Code, w.Body.String())
 	}
 }
+
+// TestSuperAdminManagesUserNotes pins the 2026-11 ADR-0036 §8 revision: the
+// super administrator lists every user-realm note on the management surface
+// with matching row capabilities, and updates and deletes a member's note —
+// the mutation lands on the note owner's scope key with an audit record.
+func TestSuperAdminManagesUserNotes(t *testing.T) {
+	ctx := t.Context()
+	manager, err := install.Open(ctx, install.Options{DataDir: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer manager.Close()
+	tokenBytes, _ := os.ReadFile(manager.TokenPath())
+	_, admin, err := manager.Complete(ctx, strings.TrimSpace(string(tokenBytes)), contracts.InstallInput{Profile: "web-platform", Database: contracts.DatabaseInput{Driver: "sqlite"}, SiteName: "Scope", BaseUrl: "http://localhost", AdminUsername: "admin", AdminEmail: "admin@example.test", AdminPassword: "test-password-strong"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	member, err := manager.Identity(false).Create(ctx, contracts.UserCreate{Username: "member", Email: "member@example.test", Password: "test-password-strong", Role: "user"}, admin.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	router := New(Config{Core: bootstrap.Core(), Install: manager, Metadata: runtime.Metadata(runtime.WebPlatform, "development"), Assets: fstest.MapFS{"index.html": {Data: []byte("app")}}, Logger: slog.New(slog.NewTextHandler(io.Discard, nil))})
+	session := func(administrator bool, user contracts.User) (*http.Cookie, string) {
+		s, raw, err := manager.Identity(administrator).Issue(ctx, user, 1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		name := sessionCookie
+		if administrator {
+			name = administratorSessionCookie
+		}
+		return &http.Cookie{Name: name, Value: raw}, s.CsrfToken
+	}
+	request := func(method, path string, input any, cookie *http.Cookie, csrf string) *httptest.ResponseRecorder {
+		t.Helper()
+		raw, _ := json.Marshal(input)
+		r := httptest.NewRequest(method, "http://localhost"+path, strings.NewReader(string(raw)))
+		r.Header.Set("Content-Type", "application/json")
+		if csrf != "" {
+			r.Header.Set("X-CSRF-Token", csrf)
+		}
+		if cookie != nil {
+			r.AddCookie(cookie)
+		}
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, r)
+		return w
+	}
+	memberCookie, memberCSRF := session(false, member)
+	if w := request("POST", "/api/v1/notes", contracts.NoteInput{Title: "member note", Body: "member body", Status: "open"}, memberCookie, memberCSRF); w.Code != 200 {
+		t.Fatal("member note", w.Code, w.Body.String())
+	}
+	adminCookie, adminCSRF := session(true, admin)
+	list := request("GET", "/api/v1/admin/notes", nil, adminCookie, adminCSRF)
+	if list.Code != 200 {
+		t.Fatal("admin list", list.Code, list.Body.String())
+	}
+	var envelope struct {
+		Data contracts.NoteList `json:"data"`
+	}
+	if err = json.Unmarshal(list.Body.Bytes(), &envelope); err != nil {
+		t.Fatal(err)
+	}
+	data := envelope.Data
+	if len(data.Items) != 1 || !data.Items[0].Capabilities.Update || !data.Items[0].Capabilities.Delete {
+		t.Fatal("admin capabilities missing on the member note", data.Items)
+	}
+	note := data.Items[0]
+	renamed := contracts.NoteUpdate{Title: "member note (managed)", Body: "managed body", Status: "done", AttachmentIds: note.AttachmentIds, Version: note.Version}
+	if w := request("PUT", "/api/v1/admin/notes/"+note.ID, renamed, adminCookie, adminCSRF); w.Code != 200 {
+		t.Fatal("admin update", w.Code, w.Body.String())
+	}
+	if w := request("DELETE", "/api/v1/admin/notes/"+note.ID, contracts.NoteVersion{Version: note.Version + 1}, adminCookie, adminCSRF); w.Code != 200 {
+		t.Fatal("admin delete", w.Code, w.Body.String())
+	}
+	after := request("GET", "/api/v1/notes", nil, memberCookie, memberCSRF)
+	var afterEnvelope struct {
+		Data contracts.NoteList `json:"data"`
+	}
+	if err = json.Unmarshal(after.Body.Bytes(), &afterEnvelope); err != nil {
+		t.Fatal(err)
+	}
+	remaining := afterEnvelope.Data
+	for _, item := range remaining.Items {
+		if item.ID == note.ID {
+			t.Fatal("deleted note still visible to the owner")
+		}
+	}
+}

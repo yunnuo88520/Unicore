@@ -56,13 +56,17 @@ it('keeps normal, rail and mobile presentations on one ordered model', () => {
 });
 
 it('shows the user tree without administration pages and renames appearance', () => {
-  const navigation = buildNavigation(member(['notes:access', 'files:access']));
+  const navigation = buildNavigation(member(["notes:access", "files:access"]));
   expect(navigation.sections.map(section => section.id)).toEqual(['user:business', 'user:personal']);
-  // 系统更新 stays super-only on web-platform; API 文档 needs no grant.
-  expect(walkAll(navigation)).toEqual(['overview', 'lab', 'files', 'api-docs', 'site', 'notes', 'account', 'account-security', 'account-sessions']);
-  const business = navigation.sections.find(section => section.id === 'user:business')!;
-  const site = business.entries.find(entry => entry.id === 'site');
-  expect(site?.label).toBe('外观设置');
+  // 基础设置/API 文档/公告/文件管理 stay off the user surface on web-platform.
+  expect(walkAll(navigation)).toEqual(['overview', 'lab', 'notes', 'personal:group', 'account', 'account-security', 'account-sessions']);
+  // The personal section folds into one collapsible first-level directory, mirroring the administrator surface.
+  const personal = navigation.sections.find(section => section.id === 'user:personal')!;
+  expect(personal.showTitle).toBe(false);
+  expect(personal.entries.map(entry => entry.id)).toEqual(['personal:group']);
+  expect(personal.entries[0].type).toBe('directory');
+  expect(personal.entries[0].label).toBe('个人中心');
+  expect(personal.entries[0].children.map(entry => entry.id)).toEqual(['account', 'account-security', 'account-sessions']);
 });
 
 it('hides entries the operator marked invisible and drops empty directories', () => {

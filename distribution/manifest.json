@@ -917,6 +917,7 @@
     "packages/web-ui/src/pages/appearance.tsx",
     "packages/web-ui/src/pages/auth.tsx",
     "packages/web-ui/src/pages/edition.tsx",
+    "packages/web-ui/src/pages/error.tsx",
     "packages/web-ui/src/pages/files.tsx",
     "packages/web-ui/src/pages/forbidden.tsx",
     "packages/web-ui/src/pages/home.tsx",

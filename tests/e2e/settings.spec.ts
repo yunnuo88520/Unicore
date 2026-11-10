@@ -99,7 +99,7 @@ test('settings audit: platform security defaults, alias, admin path and public f
   await page.goto(`${instance.url}/admin/site`);
   await page.getByLabel('页脚版权', { exact: true }).fill('平台版权示例');
   await page.getByLabel('备案号（ICP）', { exact: true }).fill('测试ICP备00000001号');
-  const __save1=await page.getByRole('button', { name: '保存设置', exact: true }).click();page.waitForResponse(r=>r.request().method()==='PATCH'&&r.url().includes('/admin/settings')&&r.status()===200);await __save1;
+  const __save1=page.waitForResponse(r=>r.request().method()==='PATCH'&&r.url().includes('/admin/settings')&&r.status()===200);await page.getByRole('button', { name: '保存设置', exact: true }).click();await __save1;
   await expect(page.getByRole('button', { name: '保存设置', exact: true })).toBeDisabled();
   await page.goto(`${instance.url}/admin/account-policy`);
   await expect(page.getByLabel('登录图形验证码', { exact: true })).toHaveCount(0);
@@ -122,7 +122,7 @@ test('settings audit: platform security defaults, alias, admin path and public f
   await page.waitForURL(/\/control($|\?|\/)/);
   await page.goto(`${instance.url}/control/mail`);
   await page.getByLabel('发件人别名', { exact: true }).fill('Unicore Notices');
-  const __save2=await page.getByRole('button', { name: '保存设置', exact: true }).click();page.waitForResponse(r=>r.request().method()==='PATCH'&&r.url().includes('/admin/settings')&&r.status()===200);await __save2;
+  const __save2=page.waitForResponse(r=>r.request().method()==='PATCH'&&r.url().includes('/admin/settings')&&r.status()===200);await page.getByRole('button', { name: '保存设置', exact: true }).click();await __save2;
   await expect(page.getByRole('button', { name: '保存设置', exact: true })).toBeDisabled();
   await page.reload();
   await expect(page.getByLabel('发件人别名', { exact: true })).toHaveValue('Unicore Notices');
@@ -170,7 +170,7 @@ test('site links, safe footer, registration controls and maintenance recovery', 
   await expect(page.getByLabel('开启维护模式',{exact:true})).not.toBeChecked();
   await page.getByLabel('维护提示信息',{exact:true}).fill('Planned work: back soon');
   await page.getByLabel('开启维护模式',{exact:true}).click();
-  const __save3=await page.getByRole('button', { name: '保存设置', exact: true }).click();page.waitForResponse(r=>r.request().method()==='PATCH'&&r.url().includes('/admin/settings')&&r.status()===200);await __save3;
+  const __save3=page.waitForResponse(r=>r.request().method()==='PATCH'&&r.url().includes('/admin/settings')&&r.status()===200);await page.getByRole('button', { name: '保存设置', exact: true }).click();await __save3;
   await expect(page.getByRole('button',{name:'保存设置',exact:true})).toBeDisabled();
   await capture(page,info,'maintenance-admin');
   const publicPage=await page.context().newPage();
@@ -183,7 +183,7 @@ test('site links, safe footer, registration controls and maintenance recovery', 
   await expect(publicPage.getByRole('heading',{name:'站点维护中',exact:true})).toBeVisible();
   await page.reload();await expect(page.getByLabel('开启维护模式',{exact:true})).toBeChecked();
   await page.getByLabel('开启维护模式',{exact:true}).click();
-  const __save4=await page.getByRole('button', { name: '保存设置', exact: true }).click();page.waitForResponse(r=>r.request().method()==='PATCH'&&r.url().includes('/admin/settings')&&r.status()===200);await __save4;
+  const __save4=page.waitForResponse(r=>r.request().method()==='PATCH'&&r.url().includes('/admin/settings')&&r.status()===200);await page.getByRole('button', { name: '保存设置', exact: true }).click();await __save4;
   await expect(page.getByRole('button',{name:'保存设置',exact:true})).toBeDisabled();
   await publicPage.getByRole('button',{name:'重新检查',exact:true}).click();
   await expect(publicPage.getByRole('heading',{name:'站点维护中',exact:true})).toHaveCount(0);

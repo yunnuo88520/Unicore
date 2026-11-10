@@ -9,7 +9,7 @@ metadata:
 
 ## trigger
 
-新增服务器持久设置；本机主题偏好不需要服务器注册。
+新增服务器持久设置；本机主题偏好不需要服务器注册。分组与 profile 范围先查 docs/00-product/product-forms.md 能力矩阵：非平台形态仅 appearance 组可见。
 
 ## inputs
 

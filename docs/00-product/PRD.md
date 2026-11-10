@@ -34,7 +34,7 @@ Unicore 是 MIT 开源的 Go + React 跨形态应用开发框架，当前为开�
 
 平台是多用户应用基座，不自动引入完整 SaaS 多租户。管理员与普通用户物理拆表，登录入口、Cookie、API 分开，服务端执行权限及数据归属校验。管理员域在固定 `super_admin` 之外支持受限管理员角色（[ADR-0034](../adr/ADR-0034-administrator-restricted-roles.md)）；用户域支持自定义角色，按 assignable 权限点组合业务权限，并独立授予菜单入口、页面动作与可委派 API operation（[ADR-0033](../adr/ADR-0033-dynamic-user-roles.md)、[ADR-0036](../adr/ADR-0036-navigation-regions-granular-authorization.md)）。导航由真实区域（目录/页面/链接/动作节点树，按身份域隔离）运营，提供部门数据范围与岗位管理（[ADR-0035](../adr/ADR-0035-action-permissions-departments.md)、[ADR-0036](../adr/ADR-0036-navigation-regions-granular-authorization.md)），不提供跨域角色转换或完整 SaaS 多租户。最后 super_admin 管理员和账号凭据撤销受保护。详见 [角色需求](feature-roles.md)、[ADR-0014](../adr/ADR-0014-separate-identities-management.md)、[ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md)。
 
-单机与桌面没有账号、管理端、邮件、公告或对象存储设置，品牌在构建时配置，仅提供本地外观与适用业务。CLI 直接复用无状态 Core，不装配数据库、HTTP/Wails 或平台身份。三个有数据库的形态提供 Notes 纵向样板；平台演示本人 file_id 附件。
+单机与桌面没有账号、管理端、邮件、公告或对象存储设置，品牌在构建时配置，仅提供本地外观与适用业务。CLI 直接复用无状态 Core，不装配数据库、HTTP/Wails 或平台身份。三个有数据库的形态提供 Notes 纵向样板；平台演示本人 file_id 附件。产品形态定义、能力矩阵与硬边界的权威细则见 [产品形态与能力边界规范](product-forms.md)。
 
 首次 Web 安装默认推荐 MySQL/PostgreSQL，SQLite 显式可选。使用结构化连接字段、三方言连接测试及非空库精确确认；安装信息、数据库和密钥持久化，已安装实例缺少数据库或标记时拒绝接管。详见 [安装规范](feature-installation.md)。
 

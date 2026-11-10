@@ -17,7 +17,7 @@ metadata:
 
 ## steps
 
-1. 阅读 PRD、架构、ADR-0002 和 docs/02-standards/frontend.md；页面放 packages/web-ui，shell 只创建 transport。
+1. 阅读 PRD、架构、ADR-0002 和 docs/02-standards/frontend.md；页面放 packages/web-ui，shell 只创建 transport。页面归属先查 docs/00-product/product-forms.md（产品形态为 Platform / Standalone（web 与桌面两载体等效）/ CLI），呈现与访问规则见 docs/00-product/feature-presentation.md。
    路径/权限登记 routes.ts，在 router.tsx 的 createWorkspaceRouter 挂载 page 模块（TanStack Router 代码式路由树）；管理菜单/直达页按管理员域会话 + routes.ts 权限点判定（保留集操作另按 superAdmin 语义，见 ADR-0034/0036），普通用户的设置页仅本地外观，不请求全局设置/品牌管理接口；未知路由由 NotFoundPage 明确展示，无权已登记页面为独立 403。新页面进入导航时同步默认区域定义与菜单节点，编辑器/侧栏/图标栏/移动抽屉消费同一导航模型，不添加 KeepAlive、CloseTab 等无运行效果的假开关。
 2. 通过 AppClient 请求，用 TanStack Query 管理服务端状态；新 DTO 先改 OpenAPI 并生成。沿用 SessionBoundary，不能另存用户令牌或绕过统一失效处理。表单复用公共 Form 的契约校验、字段错误和聚焦。
 3. 首页扩展走 DashboardWidgetRegistry，以唯一 id 注册真实数据卡片。
@@ -26,7 +26,7 @@ metadata:
 
 ## output
 
-共享页面、必要 SDK、行为测试、作者头及运行说明。
+共享页面、必要 SDK、行为测试、作者头及运行说明；同步 docs/00-product/feature-inventory.md 与 docs/00-product/feature-presentation.md 的对应行。
 
 ## forbidden
 

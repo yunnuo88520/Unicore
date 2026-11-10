@@ -36,6 +36,11 @@
 | release | [docs/03-runbooks/release.md](../../docs/03-runbooks/release.md) |
 | platformPermissions | [internal/platform/roles.go](../../internal/platform/roles.go) |
 | authorization | [docs/00-product/feature-roles.md](../../docs/00-product/feature-roles.md) |
+| productForms | [docs/00-product/product-forms.md](../../docs/00-product/product-forms.md) |
+| featureInventory | [docs/00-product/feature-inventory.md](../../docs/00-product/feature-inventory.md) |
+| featurePresentation | [docs/00-product/feature-presentation.md](../../docs/00-product/feature-presentation.md) |
+| featureProposalTemplate | [docs/00-product/feature-proposal-template.md](../../docs/00-product/feature-proposal-template.md) |
+| pendingDecisions | [docs/00-product/pending-decisions.md](../../docs/00-product/pending-decisions.md) |
 | installation | [docs/00-product/feature-installation.md](../../docs/00-product/feature-installation.md) |
 | files | [internal/files/service.go](../../internal/files/service.go) |
 | blob | [internal/blob/store.go](../../internal/blob/store.go) |

@@ -13,7 +13,7 @@ metadata:
 
 ## inputs
 
-业务输入输出、边界条件、影响 profile、持久化要求、是否需要编译期裁剪（edition）。
+业务输入输出、边界条件、影响 profile、持久化要求、是否需要编译期裁剪（edition）。动手前先读 docs/00-product/product-forms.md 与 docs/00-product/feature-proposal-template.md，判定模块在 Platform / Standalone / CLI 三形态的适用性、权限与呈现（模块特性对 CLI 默认关闭）。
 
 ## 模块形态（标准）
 
@@ -42,7 +42,7 @@ HTTP handler 位于 internal/adapter/http 下的 <slug>.go（传输层集中，�
 
 ## output
 
-模块树、描述符、契约与生成物、迁移、页面、作者头、行为测试、影响矩阵及必要 ADR。
+模块树、描述符、契约与生成物、迁移、页面、作者头、行为测试、影响矩阵及必要 ADR。交付时同步 docs/00-product/feature-inventory.md，有界面、菜单或仪表盘变化时同步 docs/00-product/feature-presentation.md。
 
 ## forbidden
 

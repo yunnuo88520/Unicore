@@ -7,7 +7,7 @@ metadata:
 
 # add-platform-permission
 
-当前规则以 docs/adr/ADR-0037-unified-user-identity.md、docs/00-product/feature-roles.md 和 docs/api/permissions.md 为准。所有账号使用 unicore_users/unicore_user_roles 及统一会话与安全表。用户和管理 surface 只描述工作台，不是独立身份。不得新建管理员账号表或通过路径改变个人资源归属。
+当前规则以 docs/adr/ADR-0037-unified-user-identity.md、docs/00-product/feature-roles.md 和 docs/api/permissions.md 为准；产品形态边界（非平台形态不装配治理面）以 docs/00-product/product-forms.md 为准。所有账号使用 unicore_users/unicore_user_roles 及统一会话与安全表。用户和管理 surface 只描述工作台，不是独立身份。不得新建管理员账号表或通过路径改变个人资源归属。
 
 权限点登记 internal/platform/roles.go；契约声明权限、superAdmin 与 CSRF，修改后生成。角色可以组合业务与管理权限，菜单/动作/API grant 独立，菜单不授权 API。账号编辑 role_ids 为完整非空集合，变更需超管；普通编辑者不能提升角色或修改超管。事务内重查当前操作者，保护最后启用及最后本地密码超管。注册/JIT 固定 user，企业声明不授权。角色、密码或状态变化撤销共享会话。
 

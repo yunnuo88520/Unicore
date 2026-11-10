@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # AI 开发工作流
 
-先核对分支、HEAD 和未提交修改，明确用户可观察的目标与受影响 Profile。按下面的任务索引读取对应 Skill、规范和必要代码，不默认读取完整 PRD、全部 ADR 或历史过程材料。
+先核对分支、HEAD 和未提交修改，明确用户可观察的目标与受影响 Profile。功能归属先查 [产品形态边界规范](../00-product/product-forms.md)：产品形态为 Platform / Standalone（web-standalone 与 desktop 两载体等效）/ CLI 三种，profile 只是装配概念。按下面的任务索引读取对应 Skill、规范和必要代码，不默认读取完整 PRD、全部 ADR 或历史过程材料。
 
 | 任务 | Skill | 按需规范 |
 | --- | --- | --- |
@@ -19,7 +19,7 @@
 | 文档 | maintain-framework-docs | 本次受影响来源、导航、生成与链接检查 |
 | 安全审查 | security-review | 本次入口、权限/状态边界与相关测试 |
 
-跨任务硬约束以 [AGENTS](../../AGENTS.md) 为准。`framework.manifest.json` 和 [生成地图](context.gen.md) 是可选导航，不替代契约、代码或权威规范；Skill 正文只在对应任务加载。只有涉及重大选择时追加相关架构/ADR。
+跨任务硬约束以 [AGENTS](../../AGENTS.md) 为准。新增或修改功能时按 [功能分类模板](../00-product/feature-proposal-template.md) 声明形态适用性、权限与呈现，完成后同步 [功能适用性清单](../00-product/feature-inventory.md) 与 [功能呈现与访问规范](../00-product/feature-presentation.md)；源码无法确定的边界记录到 [待维护者决策清单](../00-product/pending-decisions.md)，不擅自定案。命中未决项或新边界冲突时，列出冲突与候选方案并暂停受影响范围的实现，交维护者决策；未决问题不阻塞其他无关功能。`framework.manifest.json` 和 [生成地图](context.gen.md) 是可选导航，不替代契约、代码或权威规范；Skill 正文只在对应任务加载。只有涉及重大选择时追加相关架构/ADR。
 
 开发先查已有能力，复用领域/用例、AppClient、表单、布局、反馈和双语入口；API/DTO 改 OpenAPI 后生成，设置登记 Definition，迁移遵守原字节 checksum 与 Profile 边界。文件通过 file_id 与统一存储 port，业务代码不拼本地路径。
 

@@ -17,7 +17,7 @@ metadata:
 
 ## steps
 
-1. 阅读架构，命令放 internal/adapter/cli，通过 usecase port 调用。
+1. 阅读架构，命令放 internal/adapter/cli，通过 usecase port 调用。CLI 是独立产品形态（无 UI、无自身持久化），与 Web 发行包内 unicore 可执行文件的实例运维子命令（backup/manage/service 等）是两个概念，边界见 docs/00-product/product-forms.md。
 2. 区分显式空参数和未传参数；限制 stdin/文件大小；结果 stdout、错误 stderr。
 3. 配置 Cobra Args/flags/help，沿用 completion，不启动服务或隐式建 DB。
 4. 测试管道、错误参数、超限、取消与结果，更新 README。

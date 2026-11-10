@@ -37,7 +37,10 @@ test('personal center supports profile, TOTP recovery login and device revocatio
  // A scanned enrollment key must survive the next code period without being replaced.
  await page.clock.install();await page.clock.fastForward(31000);await expect(setup.getByLabel('手动密钥',{exact:true})).toHaveValue(secret);
 
- await setup.getByLabel('身份验证器验证码',{exact:true}).fill(code(secret,Math.floor(Date.now()/30000)-1));await setup.getByRole('button',{name:'开启双重验证',exact:true}).click();
+ // The server reads its verification clock after the enrollment queries, so
+ // under load the accepted window drifts forward: submit the current window's
+ // code (a previous-window code falls out of range across a 30s boundary).
+ await setup.getByLabel('身份验证器验证码',{exact:true}).fill(code(secret,Math.floor(Date.now()/30000)));await setup.getByRole('button',{name:'开启双重验证',exact:true}).click();
  await expect(setup).toHaveCount(0);await expect(page.getByRole('button',{name:'下载恢复码',exact:true})).toBeVisible();
  const administrators=(await(await page.request.get(`${instance.url}/api/v1/admin/administrators`)).json()).data;
  expect(administrators.items.find((user:{username:string})=>user.username==='admin').totp_enabled).toBe(true);
@@ -55,13 +58,16 @@ test('personal center supports profile, TOTP recovery login and device revocatio
  await instance.restart();await page.reload();await expect(page.getByText('当前会话',{exact:true})).toBeVisible();
  const directory=`build/acceptance/personal-center/${info.project.name}`;await mkdir(directory,{recursive:true});await page.screenshot({path:`${directory}/sessions-zh.png`,fullPage:true});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
- await page.getByRole('button',{name:'账号菜单',exact:true}).click();await page.getByRole('menuitem',{name:'退出登录',exact:true}).click();
+ await page.getByRole('button',{name:'账号菜单',exact:true}).click();const __out=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().includes('/auth/logout'));const __item=page.getByRole('menuitem',{name:'退出登录',exact:true});await expect(__item).toBeVisible();await __item.click();await __out;
  await page.getByLabel('账号或邮箱',{exact:true}).fill('admin');await page.getByLabel('密码',{exact:true}).fill('test-password-strong');await page.getByRole('button',{name:'登录工作空间',exact:true}).click();
  await expect(page.getByRole('heading',{name:'双重验证',exact:true})).toBeVisible();await expect(page.getByLabel('身份验证器验证码',{exact:true})).toBeVisible();
  // Exercise a genuine six-digit authenticator login before recovery fallback.
  await page.getByLabel('身份验证器验证码',{exact:true}).fill('000000');await page.getByRole('button',{name:'验证并登录',exact:true}).click();await expect(page.getByRole('heading',{name:'双重验证',exact:true})).toBeVisible();
- await page.getByLabel('身份验证器验证码',{exact:true}).fill(code(secret,Math.floor(Date.now()/30000)));await page.getByRole('button',{name:'验证并登录',exact:true}).click();await expect(page.getByRole('heading',{name:'工作台概览'})).toBeVisible();
- await page.getByRole('button',{name:'账号菜单',exact:true}).click();await page.getByRole('menuitem',{name:'退出登录',exact:true}).click();
+ // The enrollment consumed this window's step, so submit the next window's
+ // code: it verifies under the server's ±1 window skew whatever the current
+ // phase is and always beats the replay guard (step > last consumed step).
+ await page.getByLabel('身份验证器验证码',{exact:true}).fill(code(secret,Math.floor(Date.now()/30000)+1));await page.getByRole('button',{name:'验证并登录',exact:true}).click();await expect(page.getByRole('heading',{name:'工作台概览'})).toBeVisible();
+ await page.getByRole('button',{name:'账号菜单',exact:true}).click();const __out2=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().includes('/auth/logout'));const __item2=page.getByRole('menuitem',{name:'退出登录',exact:true});await expect(__item2).toBeVisible();await __item2.click();await __out2;
  await page.getByLabel('账号或邮箱',{exact:true}).fill('admin');await page.getByLabel('密码',{exact:true}).fill('test-password-strong');await page.getByRole('button',{name:'登录工作空间',exact:true}).click();await expect(page.getByRole('heading',{name:'双重验证',exact:true})).toBeVisible();
  await page.getByRole('button',{name:'使用恢复码',exact:true}).click();await page.getByLabel('恢复码',{exact:true}).fill(recovery[0]);await page.getByRole('button',{name:'验证并登录',exact:true}).click();await expect(page.getByRole('heading',{name:'双重验证',exact:true})).toBeVisible();
  await page.getByLabel('恢复码',{exact:true}).fill(recovery[1]);await page.getByRole('button',{name:'验证并登录',exact:true}).click();await expect(page.getByRole('heading',{name:'工作台概览'})).toBeVisible();
@@ -69,13 +75,16 @@ test('personal center supports profile, TOTP recovery login and device revocatio
  await page.goto(`${instance.url}/admin/account-security`);await expect(page.getByRole('heading',{name:'Security',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Disable two-factor authentication',exact:true})).toBeVisible();
  await page.screenshot({path:`${directory}/security-en-dark.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  if(info.project.name==='mobile')await page.getByRole('button',{name:'Open navigation',exact:true}).click();
- // Administrator personal pages are a first-class region of the shared tree;
- // the active page keeps its entry highlighted inside that region.
- const personalSection=page.locator('.sidebar section[data-nav-section="personal"]');
- await expect(personalSection).toBeVisible();
- await expect(personalSection.locator('h2')).toHaveText('Personal center');
+ // Administrator personal pages fold into the shared 个人中心 directory at the
+ // tail of the one business region; the active page auto-expands it and keeps
+ // its entry highlighted inside that region.
+ const businessSection=page.locator('.sidebar section[data-nav-section="business"]');
+ await expect(businessSection.locator('h2')).toHaveText('Business');
+ const personalDirectory=businessSection.getByRole('button',{name:'Personal center',exact:true});
+ await expect(personalDirectory).toBeVisible();
+ await expect(personalDirectory).toHaveAttribute('aria-expanded','true');
  await expect(page.locator('.sidebar').getByRole('button',{name:'Security',exact:true})).toHaveClass(/bg-primary-soft/);
- await expect(personalSection.getByRole('button',{name:'Security',exact:true})).toBeVisible();
+ await expect(businessSection.getByRole('button',{name:'Security',exact:true})).toBeVisible();
 });
 
 test('forced enrollment applies to ordinary users and preserves recovery codes across policy refresh',async({page,instance},info)=>{
@@ -94,8 +103,17 @@ test('forced enrollment applies to ordinary users and preserves recovery codes a
  expect((await page.request.get(`${instance.url}/api/v1/notes`)).status()).toBe(403);
  await page.getByRole('button',{name:'设置身份验证器',exact:true}).click();const dialog=page.getByRole('dialog',{name:'设置身份验证器',exact:true});
  await dialog.getByLabel('当前密码',{exact:true}).fill('member-password-strong');await dialog.getByRole('button',{name:'验证并开始设置',exact:true}).click();
- const secret=await dialog.getByLabel('手动密钥',{exact:true}).inputValue();await dialog.getByLabel('身份验证器验证码',{exact:true}).fill(code(secret,Math.floor(Date.now()/30000)-1));await dialog.getByRole('button',{name:'开启双重验证',exact:true}).click();
+ const secret=await dialog.getByLabel('手动密钥',{exact:true}).inputValue();
+ // The server reads its verification clock after the enrollment queries, so
+ // under load the accepted window drifts forward: submit the current window's
+ // code (a previous-window code falls out of range across a 30s boundary).
+ // Enabling refetches the profile; the fastForward below advances the mocked
+ // clock past this request's 20s AbortSignal.timeout, so let the reload land
+ // first or the cancelled profile query unmounts the one-time recovery codes.
+ const profileRefresh=page.waitForResponse(response=>response.request().method()==='GET'&&response.url().includes('/api/v1/account/profile'));
+ await dialog.getByLabel('身份验证器验证码',{exact:true}).fill(code(secret,Math.floor(Date.now()/30000)));await dialog.getByRole('button',{name:'开启双重验证',exact:true}).click();
  await expect(page.locator('code')).toHaveCount(10);
+ await profileRefresh;
  const policyRefresh=page.waitForResponse(response=>response.url()===`${instance.url}/api/v1/bootstrap` && response.request().method()==='GET');
  await page.clock.fastForward(31000);
  expect((await policyRefresh).status()).toBe(200);
@@ -108,7 +126,11 @@ test('forced enrollment applies to ordinary users and preserves recovery codes a
  expect(current.username).toBe('member');expect(current.totp_enabled).toBe(true);
  expect((await page.request.get(`${instance.url}/api/v1/admin/users`)).status()).toBe(403);
  if(info.project.name==='mobile')await page.getByRole('button',{name:'打开导航',exact:true}).click();
- await expect(page.locator('.sidebar section[data-nav-section="personal"]')).toBeVisible();
+ // The member workspace folds its personal pages into the same seeded
+ // 个人中心 directory of the single 业务 region.
+ const memberBusiness=page.locator('.sidebar section[data-nav-section="business"]');
+ await expect(memberBusiness.locator('h2')).toHaveText('业务');
+ await expect(memberBusiness.getByRole('button',{name:'个人中心',exact:true})).toBeVisible();
  await expect(page.locator('.sidebar').getByRole('button',{name:'系统设置',exact:true})).toHaveCount(0);
  // Management-flavoured pages never render on the user surface, even though a
  // persisted legacy menu tree still carries their nodes.

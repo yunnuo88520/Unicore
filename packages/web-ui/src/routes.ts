@@ -84,7 +84,9 @@ export function canAccess(page: Page, metadata?: Bootstrap): boolean {
   }
 
   if (!metadata) return false;
-  if (page === 'api-docs') return metadata.profile === 'web-platform' || metadata.profile === 'web-standalone';
+  // The instance publishes /openapi.json only with the api_docs capability; the
+  // desktop build has no contract endpoint, so it never gains the page.
+  if (page === 'api-docs') return !!metadata.capabilities.api_docs && (metadata.profile === 'web-platform' || metadata.profile === 'web-standalone');
   // Updates stay super-only: restricted operators never reach the update panel.
   if (page === 'edition') return metadata.profile==='web-platform' ? isAdministrator(metadata) && ((__FEATURE_UPDATER__ && metadata.capabilities.updater) || (__FEATURE_LICENSE__ && metadata.capabilities.license)) : __FEATURE_UPDATER__ && metadata.capabilities.updater;
   if (page === 'site') return metadata.capabilities.settings && (metadata.profile !== 'web-platform' || !!metadata.current_user);

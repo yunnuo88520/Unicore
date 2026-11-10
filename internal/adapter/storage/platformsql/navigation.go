@@ -39,6 +39,17 @@ func (r *Repository) readNavigation(ctx context.Context, q sqlstore.Runner) (con
 	if err := r.Store.Row(ctx, q, "SELECT version FROM unicore_navigation_state WHERE id=1").Scan(&result.Version); err != nil {
 		return result, err
 	}
+	// Session resolution re-reads the tree on every authenticated request; the
+	// version row is the invalidation source, so a matching cached copy skips
+	// the full table scan and JSON decode. Callers treat the result as
+	// read-only (projection builds fresh slices).
+	r.navMu.Lock()
+	if r.navHas && r.navVersion == result.Version {
+		cached := r.navCache
+		r.navMu.Unlock()
+		return cached, nil
+	}
+	r.navMu.Unlock()
 	for _, table := range []string{"sections", "nodes"} {
 		rows, err := r.Store.Rows(ctx, q, "SELECT payload FROM unicore_navigation_"+table+" ORDER BY id")
 		if err != nil {
@@ -71,6 +82,11 @@ func (r *Repository) readNavigation(ctx context.Context, q sqlstore.Runner) (con
 			return result, err
 		}
 	}
+	r.navMu.Lock()
+	r.navCache = result
+	r.navVersion = result.Version
+	r.navHas = true
+	r.navMu.Unlock()
 	return result, nil
 }
 
@@ -113,34 +129,75 @@ func (r *Repository) navigationInitialized(ctx context.Context, q sqlstore.Runne
 // EnsureNavigation runs the one-time conversions at startup: legacy menu
 // overrides become normalized nodes, every role still lacking explicit
 // authorizations is materialized with exact equivalents of its current reach
-// (ADR-0036), and the workspace-prefixed dual tree collapses into the shared
-// single tree with surface declarations (ADR-0039). Conversions only ever run
-// once: revoked grants stay revoked and new operations stay denied until
-// granted.
+// (ADR-0036), the workspace-prefixed dual tree collapses into the shared
+// single tree with surface declarations (ADR-0039), and the converted
+// three-region shape folds into the current two-region tree while actions the
+// catalogue no longer accepts are pruned. Conversions only ever run once:
+// revoked grants stay revoked and new operations stay denied until granted.
+// Afterwards the tree is topped up with action nodes the current contract
+// catalogue derives but the persisted tree lacks, so buttons registered by a
+// newer build become grantable on an instance seeded by an older one.
 func (r *Repository) EnsureNavigation(ctx context.Context) error {
 	if err := r.initializeNavigation(ctx); err != nil {
 		return err
 	}
-	return r.upgradeSharedNavigation(ctx)
+	if err := r.upgradeSharedNavigation(ctx); err != nil {
+		return err
+	}
+	return r.backfillRegisteredActions(ctx)
 }
 
-// legacyNavigation detects the pre-ADR-0039 payload format: sections stored a
-// single surface scalar, which parses into an empty surfaces list.
+// legacyNavigation detects payloads the one-time upgrade still has to repair:
+// the pre-ADR-0039 format stored a single surface scalar (parsed into an empty
+// surfaces list), the collapsed dual tree kept the pre-collapse `personal`
+// region as a third section, and an action payload may reference grants the
+// current catalogue no longer accepts.
 func legacyNavigation(n contracts.Navigation) bool {
 	for _, s := range n.Sections {
-		if len(s.Surfaces) == 0 {
+		if len(s.Surfaces) == 0 || s.ID == "personal" {
+			return true
+		}
+	}
+	for _, node := range n.Nodes {
+		if node.Type == "action" && staleActionNode(node, nil) {
 			return true
 		}
 	}
 	return false
 }
 
-// upgradeSharedNavigation collapses the workspace-prefixed dual tree into the
-// shared single tree once: node ids lose their `user:`/`administrator:`
-// prefix, both variants of the same page merge into one node with the union
-// of surfaces, sections merge the same way, and the role grant rows are
-// rewritten to the unprefixed ids with duplicates removed. Grant identities
-// change, so live sessions are revoked and users sign in again.
+// staleActionNode reports an action payload the current catalogue refuses:
+// the permission left the catalogue, an operation disappeared or lost its
+// grantable flag, the permission no longer matches the operation policy, or
+// the action lost its page parent. The optional node index resolves parents;
+// nil skips the parent check (detection runs before the tree is indexed).
+func staleActionNode(node contracts.NavigationNode, nodes map[string]contracts.NavigationNode) bool {
+	permission := text(node.Permission)
+	if !platform.CatalogPermission(permission) || node.ParentID == nil || *node.ParentID == "" || len(node.OperationIds) == 0 {
+		return true
+	}
+	for _, id := range node.OperationIds {
+		op, ok := platform.Operation(id)
+		if !ok || !op.Grantable || !contains(op.Permissions, permission) {
+			return true
+		}
+	}
+	if nodes == nil {
+		return false
+	}
+	parent, ok := nodes[*node.ParentID]
+	return !ok || parent.Type != "page" || parent.SectionID != node.SectionID
+}
+
+// upgradeSharedNavigation repairs persisted trees once per payload shape: the
+// workspace-prefixed dual tree collapses into the shared single tree (node
+// ids lose their `user:`/`administrator:` prefix, both variants of the same
+// page merge into one node with the union of surfaces, sections merge the
+// same way, and the role grant rows are rewritten to the unprefixed ids with
+// duplicates removed), the pre-collapse `personal` region folds into the
+// business region, and actions the catalogue no longer accepts are pruned
+// together with their grant rows. Grant identities only change for pruned
+// actions and the folded container, so live sessions stay valid.
 func (r *Repository) upgradeSharedNavigation(ctx context.Context) error {
 	n, err := r.readNavigation(ctx, r.Store.DB)
 	if err != nil {
@@ -235,6 +292,11 @@ func (r *Repository) upgradeSharedNavigation(ctx context.Context) error {
 			}
 		}
 	}
+	// The pre-collapse `personal` region and stale action grants are healed in
+	// the same pass: the fold runs before the section widening so the widened
+	// surfaces cover the folded nodes too.
+	container, foldedChildren := healLegacyPersonalRegion(&merged)
+	prunedActions := pruneStaleActionNodes(&merged)
 	// A merged node may outlive its single-surface section: widen every
 	// section to cover the nodes it hosts after the collapse.
 	for i := range merged.Sections {
@@ -321,6 +383,52 @@ func (r *Repository) upgradeSharedNavigation(ctx context.Context) error {
 	if err = remap("unicore_role_actions", "action_id"); err != nil {
 		return err
 	}
+	// Pruned actions lose their grant rows: no role keeps a dangling button
+	// grant for a node the tree no longer carries.
+	for _, id := range prunedActions {
+		if _, err = r.Store.Exec(ctx, tx, "DELETE FROM unicore_role_actions WHERE action_id=?", id); err != nil {
+			return err
+		}
+	}
+	// The folded container is a structural row, not a wider grant: roles that
+	// hold a moved child must keep seeing it, and NavigationFor projects a
+	// child only when its parent row is granted too. Only the container id is
+	// added; pages, actions and operations stay exactly as they were.
+	if container != "" {
+		rows, err := r.Store.Rows(ctx, tx, "SELECT role_id,menu_id FROM unicore_role_menus")
+		if err != nil {
+			return err
+		}
+		holders := map[string]bool{}
+		granted := map[string]bool{}
+		for rows.Next() {
+			var role, menu string
+			if err = rows.Scan(&role, &menu); err != nil {
+				rows.Close()
+				return err
+			}
+			if menu == container {
+				granted[role] = true
+				continue
+			}
+			if foldedChildren[menu] {
+				holders[role] = true
+			}
+		}
+		if err = rows.Err(); err != nil {
+			rows.Close()
+			return err
+		}
+		rows.Close()
+		for role := range holders {
+			if granted[role] {
+				continue
+			}
+			if _, err = r.Store.Exec(ctx, tx, "INSERT INTO unicore_role_menus(role_id,menu_id) VALUES(?,?)", role, container); err != nil {
+				return err
+			}
+		}
+	}
 	// Sessions stay valid: the user envelope derives from the role tables on
 	// every request, so the rewritten grants apply to live sessions as-is.
 	if _, err = r.Store.Exec(ctx, tx, "UPDATE unicore_navigation_state SET version=version+1 WHERE id=1"); err != nil {
@@ -330,6 +438,190 @@ func (r *Repository) upgradeSharedNavigation(ctx context.Context) error {
 		return err
 	}
 	return tx.Commit()
+}
+
+// backfillRegisteredActions tops the persisted tree up with action nodes the
+// current contract catalogue derives but the tree lacks. The default seed and
+// the one-time conversions only ever ran with the operations of their own
+// build, so an instance upgraded across releases keeps a tree without the
+// buttons newer operations registered — the role editor cannot offer them,
+// sessions cannot carry their ids and canAction hides the button forever even
+// when the operation grant itself is present. Every start recomputes the
+// catalogue-derived actions against the persisted pages and inserts only the
+// missing ids: existing nodes keep their operator labels, placement and
+// visibility untouched, actions whose page node the tree lost stay absent (a
+// button cannot outlive its page), and catalogue-invalid actions are never
+// added because the derivation is the same DefaultActions the seed uses. The
+// write bumps the tree version so editors holding a stale snapshot conflict
+// instead of silently dropping the new nodes.
+func (r *Repository) backfillRegisteredActions(ctx context.Context) error {
+	tx, err := r.Store.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err = r.Store.LockInstallation(ctx, tx); err != nil {
+		return err
+	}
+	n, err := r.readNavigation(ctx, tx)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return tx.Rollback()
+		}
+		return err
+	}
+	existing := map[string]bool{}
+	for _, node := range n.Nodes {
+		existing[node.ID] = true
+	}
+	missing := []contracts.NavigationNode{}
+	ids := []string{}
+	for _, action := range platform.DefaultActions(n) {
+		if existing[action.ID] {
+			continue
+		}
+		missing = append(missing, action)
+		ids = append(ids, action.ID)
+	}
+	if len(missing) == 0 {
+		return tx.Rollback()
+	}
+	n.Nodes = append(n.Nodes, missing...)
+	if err = r.writeNavigation(ctx, tx, n); err != nil {
+		return err
+	}
+	if _, err = r.Store.Exec(ctx, tx, "UPDATE unicore_navigation_state SET version=version+1 WHERE id=1"); err != nil {
+		return err
+	}
+	if err = r.audit(audit.Target(ctx, "menus/backfill", "actions="+strings.Join(ids, ",")), tx, "system", "menus.updated"); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// healLegacyPersonalRegion folds the pre-collapse `personal` region into the
+// business region. The dual-tree conversion leaves the account pages in the
+// personal section while their `personal` parent directory lands in the
+// system section, which no save can recover from: the parent chain crosses
+// sections and validateNavigation refuses the whole tree forever. The fold
+// moves the directory into business at the seeded tail sort, moves every
+// personal-section node into business and drops the section. Node ids never
+// change, so existing menu grants keep addressing the same rows; the returned
+// container id and its direct non-action children let the caller repair the
+// role rows that must keep seeing the folded pages.
+func healLegacyPersonalRegion(merged *contracts.Navigation) (string, map[string]bool) {
+	personal, business := -1, -1
+	for i := range merged.Sections {
+		switch merged.Sections[i].ID {
+		case "personal":
+			personal = i
+		case "business":
+			business = i
+		}
+	}
+	if personal < 0 || business < 0 {
+		return "", nil
+	}
+	// The personal directory may sit in any section after the workspace merge;
+	// wherever it is, it becomes the business-region container at the seeded
+	// tail sort.
+	container := ""
+	containerIndex := -1
+	for i := range merged.Nodes {
+		if merged.Nodes[i].ID == "personal" && merged.Nodes[i].Type == "directory" {
+			merged.Nodes[i].SectionID = "business"
+			merged.Nodes[i].Sort = 2700
+			merged.Nodes[i].ParentID = nil
+			container = merged.Nodes[i].ID
+			containerIndex = i
+		}
+	}
+	foldedChildren := map[string]bool{}
+	if container != "" {
+		for _, node := range merged.Nodes {
+			if node.ParentID != nil && *node.ParentID == container && node.Type != "action" {
+				foldedChildren[node.ID] = true
+			}
+		}
+	}
+	for i := range merged.Nodes {
+		if merged.Nodes[i].SectionID == "personal" {
+			merged.Nodes[i].SectionID = "business"
+		}
+	}
+	// The container declares the union of its subtree surfaces: the dual-tree
+	// conversion recovers it administrator-only while the folded pages carry
+	// both workspaces, and a user-side child only renders when its parent row
+	// does.
+	if containerIndex >= 0 {
+		childrenOf := map[string][]string{}
+		byID := map[string]contracts.NavigationNode{}
+		for _, node := range merged.Nodes {
+			byID[node.ID] = node
+			if node.ParentID != nil && *node.ParentID != "" {
+				childrenOf[*node.ParentID] = append(childrenOf[*node.ParentID], node.ID)
+			}
+		}
+		surfaces := map[string]bool{}
+		var visit func(ids []string)
+		visit = func(ids []string) {
+			for _, id := range ids {
+				if !surfaces[id] {
+					surfaces[id] = true
+					if node, ok := byID[id]; ok {
+						for _, surface := range node.Surfaces {
+							surfaces[surface] = true
+						}
+					}
+					visit(childrenOf[id])
+				}
+			}
+		}
+		for _, surface := range merged.Nodes[containerIndex].Surfaces {
+			surfaces[surface] = true
+		}
+		visit(childrenOf[container])
+		widened := []string{}
+		for _, surface := range []string{"user", "administrator"} {
+			if surfaces[surface] {
+				widened = append(widened, surface)
+			}
+		}
+		if len(widened) > 0 {
+			merged.Nodes[containerIndex].Surfaces = widened
+		}
+	}
+	// The folded nodes must stay reachable: business declares the union of the
+	// surfaces the personal region carried.
+	for _, surface := range merged.Sections[personal].Surfaces {
+		if !contains(merged.Sections[business].Surfaces, surface) {
+			merged.Sections[business].Surfaces = append(merged.Sections[business].Surfaces, surface)
+		}
+	}
+	merged.Sections = append(merged.Sections[:personal], merged.Sections[personal+1:]...)
+	return container, foldedChildren
+}
+
+// pruneStaleActionNodes drops action nodes the current catalogue refuses
+// (unknown permission, unknown or non-grantable operations, a
+// permission/operation mismatch, a lost page parent). Layout nodes are never
+// touched. The caller deletes the grant rows of the returned ids.
+func pruneStaleActionNodes(merged *contracts.Navigation) []string {
+	nodes := map[string]contracts.NavigationNode{}
+	for _, node := range merged.Nodes {
+		nodes[node.ID] = node
+	}
+	pruned := []string{}
+	kept := merged.Nodes[:0]
+	for _, node := range merged.Nodes {
+		if node.Type == "action" && staleActionNode(node, nodes) {
+			pruned = append(pruned, node.ID)
+			continue
+		}
+		kept = append(kept, node)
+	}
+	merged.Nodes = kept
+	return pruned
 }
 
 // initializeNavigation performs the one-time upgrade conversion: legacy
@@ -593,6 +885,8 @@ func (r *Repository) ListMenuConfig(ctx context.Context) (contracts.MenuList, er
 // surfaces declared on sections and nodes, registered page routes for every
 // declared surface, link targets, action grants bound to catalogue
 // permissions and real operations, acyclic nesting and the depth limit.
+// Parents are type-aware: actions hang under pages only and every other
+// node nests under any non-action node.
 func validateNavigation(n contracts.Navigation) error {
 	sections := map[string]bool{}
 	for _, s := range n.Sections {
@@ -681,11 +975,13 @@ func validateNavigation(n contracts.Navigation) error {
 			if !ok || parent.SectionID != node.SectionID || seen[parent.ID] || depth >= maxMenuDepth {
 				return platform.ErrInput
 			}
+			// Actions always attach to a page row; every other node may nest
+			// under any non-action node (directory, page or link).
 			if current.Type == "action" {
 				if parent.Type != "page" {
 					return platform.ErrInput
 				}
-			} else if parent.Type != "directory" {
+			} else if parent.Type == "action" {
 				return platform.ErrInput
 			}
 			seen[parent.ID] = true

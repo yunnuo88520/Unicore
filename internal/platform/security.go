@@ -50,6 +50,17 @@ func Token() string {
 	}
 	return base64.RawURLEncoding.EncodeToString(data[:])
 }
+
+// TempPassword generates a copy-paste friendly temporary password: 16 random
+// bytes over the URL-safe base64 alphabet, 22 characters of ~128-bit entropy
+// that satisfies the 12-character contract minimum.
+func TempPassword() string {
+	var data [16]byte
+	if _, err := rand.Read(data[:]); err != nil {
+		panic(err)
+	}
+	return base64.RawURLEncoding.EncodeToString(data[:])
+}
 func Hash(value string) string {
 	digest := sha256.Sum256([]byte(value))
 	return hex.EncodeToString(digest[:])

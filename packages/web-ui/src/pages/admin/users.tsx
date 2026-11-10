@@ -8,6 +8,8 @@ import type { Bootstrap, User, UserCreate, WebClient } from '@unicore/sdk';
 import { defineMessages, t, useLocale } from '../../i18n';
 import { buildDepartmentTree, flattenDepartmentTree, invalidateAfter, useDepartmentsQuery, usePostsQuery } from '../../queries';
 import { usePermissions } from '../../permissions';
+import { roleDisplayLabels } from '../../role-display';
+import { UserAvatar, displayLabel } from '../../user-avatar';
 import { useColumnVisibility } from '../../column-visibility';
 import { AppField, AppForm, useAppForm } from '@unicore/form';
 import { Badge, Button, Card, CardContent, Checkbox, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, Input, Modal, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage , NativeSelect} from '@unicore/ui';
@@ -19,22 +21,61 @@ const EMPTY_USERS: User[] = [];
 const columnLabels = defineMessages({ username: '账号', email: '邮箱', phone: '手机号', role: '身份', department: '部门', post: '岗位', totp_enabled: '双因素认证', status: '状态' });
 const COLUMN_KEYS = Object.keys(columnLabels) as (keyof typeof columnLabels)[];
 
-type UsersTableMeta = { kind: string; pending: boolean; administrators?: boolean; currentUserId?: string; departmentNames: Map<string, string>; postNames: Map<string, string>; canToggle: boolean; onToggle?: (user: User) => void; onRole?: (user: User) => void };
+type UsersTableMeta = { kind: string; pending: boolean; administrators?: boolean; currentUserId?: string; departmentNames: Map<string, string>; postNames: Map<string, string>; canToggle: boolean; onToggle?: (user: User) => void; onRole?: (user: User) => void; onResetPassword?: (user: User) => void };
+
+type RoleOption = { id: string; name: string; assignable: boolean };
+
+// RoleChipGroup renders the role selection as wrap-friendly bordered chips
+// instead of a bare checkbox row: without spacing the checkboxes glued into
+// one unreadable line inside the dialog. Each chip is a label wrapping the
+// checkbox (the same pattern as the posts list below), the selection
+// highlights with the shared badge tokens, and flex-wrap gap-2 keeps the
+// group legible at any dialog width.
+function RoleChipGroup({ options, selected, onToggle }: {
+  options: RoleOption[]; selected: string[]; onToggle: (id: string, checked: boolean) => void;
+}) {
+  useLocale();
+  return <div className="flex flex-wrap gap-2">
+    {options.map(option => {
+      const active = selected.includes(option.id);
+      return <label key={option.id} data-role-chip={option.id}
+        className={`flex w-max cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-colors ${active ? 'border-button bg-primary-soft' : 'border-line bg-surface hover:bg-surface-alt'} ${option.assignable ? '' : 'cursor-not-allowed opacity-55'}`}>
+        <Checkbox aria-label={option.name} checked={active} disabled={!option.assignable} onChange={checked => onToggle(option.id, checked)} />
+        <span className={active ? 'font-medium text-accent' : 'text-ink'}>{option.name}</span>
+      </label>;
+    })}
+    {!options.length && <p className="py-1 text-center text-xs text-muted">{t('正在加载…')}</p>}
+  </div>;
+}
 
 const columns = helper.columns([
   helper.accessor('username', {
     header: () => t('账号'),
     cell: info => {
       const meta = info.table.options.meta as UsersTableMeta;
-      return <span className="flex items-center gap-2">
-        <strong className="font-medium text-ink">{info.getValue()}</strong>
-        {info.row.original.id === meta.currentUserId && <Badge>{t('当前账号')}</Badge>}
+      const user = info.row.original;
+      // Nickname first with the raw account beneath it; the shared avatar
+      // keeps an initial-letter circle for accounts without a profile image.
+      const label = displayLabel(user.display_name, user.username) || user.username;
+      return <span className="flex min-w-0 items-center gap-2">
+        <UserAvatar name={label} className="size-7 text-2xs" />
+        <span className="flex min-w-0 flex-col">
+          <strong className="truncate font-medium text-ink">{label}</strong>
+          {label !== user.username && <small className="truncate text-2xs text-subtle">{user.username}</small>}
+        </span>
+        {user.id === meta.currentUserId && <Badge>{t('当前账号')}</Badge>}
       </span>;
     },
   }),
   helper.accessor('email', { header: () => t('邮箱'), cell: info => <span className="text-muted">{info.getValue()}</span> }),
   helper.accessor('phone', { header: () => t('手机号'), cell: info => <span className="text-muted">{info.getValue() || '—'}</span> }),
-  helper.display({ id: 'role', header: () => t('身份'), cell: info => info.row.original.roles.join(', ') }),
+  helper.display({
+    id: 'role',
+    header: () => t('身份'),
+    // Catalogue names ride parallel to the role ids (role_names); the helper
+    // localizes builtin ids and keeps super_admin's raw marker.
+    cell: info => <span className="text-muted">{roleDisplayLabels(info.row.original.roles, info.row.original.role_names).join(', ')}</span>,
+  }),
   helper.display({
     id: 'department',
     header: () => t('部门'),
@@ -74,6 +115,7 @@ const columns = helper.columns([
           {user.status === 'active' ? t('禁用') : t('启用')}
         </Button>}
         {meta.onRole && <Button variant="link" size="sm" className="h-auto p-0" disabled={meta.pending} onClick={() => meta.onRole?.(user)}>{t('编辑')}</Button>}
+        {meta.onResetPassword && <Button variant="link" size="sm" className="h-auto p-0" disabled={meta.pending} onClick={() => meta.onResetPassword?.(user)}>{t('重置密码')}</Button>}
       </div>;
     },
   }),
@@ -106,6 +148,7 @@ function UserListPanel({ web, metadata, administrators }: { web: WebClient; meta
   const [creating, setCreating] = useState(false);
   const [importing, setImporting] = useState(false);
   const [roleTargetID, setRoleTargetID] = useState<string | null>(null);
+  const [resetTargetID, setResetTargetID] = useState<string | null>(null);
   const roleChange = useMutation({
     mutationFn: ({ id, role }: { id: string; role: string }) => (administrators ? web.updateAdministrator(id, { status: 'active', role }) : web.updateUser(id, { status: 'active', role })),
     onSuccess: () => {
@@ -131,6 +174,7 @@ function UserListPanel({ web, metadata, administrators }: { web: WebClient; meta
   // Derive the dialog target from the freshest list data so a reopened dialog
   // reflects the persisted assignment instead of the row snapshot at click time.
   const roleTarget = roleTargetID ? list.data?.items.find(user => user.id === roleTargetID) ?? null : null;
+  const resetTarget = resetTargetID ? list.data?.items.find(user => user.id === resetTargetID) ?? null : null;
   const { columnVisibility, menu, toggle } = useColumnVisibility(administrators ? 'administrators' : 'users',
     COLUMN_KEYS.map(id => ({ id, label: t(columnLabels[id]) })));
   const refresh = () => {
@@ -156,6 +200,9 @@ function UserListPanel({ web, metadata, administrators }: { web: WebClient; meta
       canToggle: canUpdate,
       onToggle: canUpdate ? (user: User) => update.mutate({ id: user.id, status: user.status === 'active' ? 'disabled' : 'active' }) : undefined,
       onRole: canUpdate ? (user: User) => setRoleTargetID(user.id) : undefined,
+      // The reset endpoint is contract-bound to /admin/users; the administrator
+      // list keeps its existing actions.
+      onResetPassword: !administrators && canUpdate ? (user: User) => setResetTargetID(user.id) : undefined,
     } satisfies UsersTableMeta,
     state: { pagination, columnVisibility },
     onPaginationChange: setPagination,
@@ -226,6 +273,7 @@ function UserListPanel({ web, metadata, administrators }: { web: WebClient; meta
     {importing && <UserImportDialog web={web} onClose={() => setImporting(false)} onImported={refresh} />}
     {creating && <UserCreateDialog web={web} kind={kind} role={role} administrators={administrators} postsEnabled={canPosts} onClose={() => setCreating(false)} onCreated={refresh} />}
     {roleTarget && <UserRoleDialog web={web} administrators={administrators} user={roleTarget} postsEnabled={canPosts} onClose={() => setRoleTargetID(null)} onSaved={refresh} />}
+    {resetTarget && <PasswordResetDialog web={web} user={resetTarget} onClose={() => setResetTargetID(null)} onSaved={refresh} />}
   </Card>;
 }
 
@@ -248,7 +296,7 @@ function UserCreateDialog({ web, kind, role, administrators, postsEnabled, onClo
   const form = useAppForm<UserCreate>({
     // The relaxed contract lets the administrator realm carry a non-super role id.
     schema: 'UserCreate',
-    defaultValues: { username: '', email: '', password: '', role, department_id: '' },
+    defaultValues: { username: '', email: '', password: '', display_name: '', role, department_id: '' },
     onSubmit: async values => {
       try {
         if (administrators) await web.createAdministrator({ username: values.username, email: values.email, password: values.password, role: '', role_ids: roleIds });
@@ -264,9 +312,13 @@ function UserCreateDialog({ web, kind, role, administrators, postsEnabled, onClo
   return <Modal title={t('新增{{v0}}', { v0: kind })} onClose={onClose} pending={form.formState.isSubmitting}>
     <AppForm form={form} className="flex flex-col gap-3">
       <AppField name="username" label={t('账号')}><Input required minLength={3} maxLength={64} autoComplete="off" /></AppField>
+      <AppField name="display_name" label={t('昵称')} hint={t('选填；留空时各处显示直接使用账号。')}>
+        <Input maxLength={80} autoComplete="nickname" />
+      </AppField>
       <AppField name="email" label={t('邮箱')}><Input required type="email" maxLength={254} /></AppField>
       <AppField name="password" label={t('初始密码')}><Input required type="password" minLength={12} maxLength={128} autoComplete="new-password" /></AppField>
-      <fieldset><legend>{t('角色')}</legend>{(options.data?.items ?? []).map(option => <Checkbox key={option.id} checked={roleIds.includes(option.id)} disabled={!option.assignable} onChange={checked => setRoleIds(ids => checked ? [...ids, option.id] : ids.filter(id => id !== option.id))}>{option.name}</Checkbox>)}</fieldset>
+      <fieldset><legend>{t('角色')}</legend><RoleChipGroup options={options.data?.items ?? []} selected={roleIds}
+        onToggle={(id, checked) => setRoleIds(ids => checked ? [...ids, id] : ids.filter(value => value !== id))} /></fieldset>
       {!administrators && <AppField name="department_id" label={t('部门')} hint={t('留空表示暂不分配部门。')}>
         <NativeSelect aria-label={t('部门')} disabled={departmentOptions.isLoading}>
           <option value="">{t('未分配')}</option>
@@ -315,13 +367,42 @@ function UserRoleDialog({ web, administrators, user, postsEnabled, onClose, onSa
   const [roleIds, setRoleIds] = useState<string[]>(user.roles);
   const [departmentId, setDepartmentId] = useState<string>(currentDepartment);
   const [postIds, setPostIds] = useState<string[]>(currentPostIds);
+  const [displayName, setDisplayName] = useState<string>(user.display_name ?? '');
+  const [email, setEmail] = useState<string>(user.email);
   const [touched, setTouched] = useState(false);
   // Follow refreshed list data until the operator edits the selection, so a
   // refetch landing after the dialog opens corrects a stale initial role.
-  useEffect(() => { if (!touched) { setRoleIds(user.roles); setDepartmentId(user.department_id ?? ''); setPostIds(user.post_ids ?? []); } }, [touched, current, currentDepartment, user.post_ids]);
-  return <Modal title={t('编辑{{v0}}', { v0: user.username })} onClose={onClose} pending={false}>
+  useEffect(() => {
+    if (!touched) {
+      setRoleIds(user.roles);
+      setDepartmentId(user.department_id ?? '');
+      setPostIds(user.post_ids ?? []);
+      setDisplayName(user.display_name ?? '');
+      setEmail(user.email);
+    }
+  }, [touched, current, currentDepartment, user.post_ids, user.display_name, user.email]);
+  // The username is the login identity: created accounts keep it fixed, so
+  // the dialog shows it read-only instead of pretending it is editable.
+  const [saving, setSaving] = useState(false);
+  return <Modal title={t('编辑{{v0}}', { v0: displayLabel(user.display_name, user.username) || user.username })} onClose={onClose} pending={saving}>
     <div className="flex flex-col gap-3">
-      <fieldset><legend>{t('角色')}</legend>{(options.data?.items ?? []).map(option => <Checkbox key={option.id} checked={roleIds.includes(option.id)} disabled={!option.assignable} onChange={checked => { setTouched(true); setRoleIds(ids => checked ? [...ids, option.id] : ids.filter(id => id !== option.id)); }}>{option.name}</Checkbox>)}</fieldset>
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="text-muted">{t('账号')}</span>
+        <Input value={user.username} readOnly aria-readonly="true" aria-label={t('账号')} className="opacity-70" />
+        <small className="text-xs text-muted">{t('账号创建后不可修改，用于登录。')}</small>
+      </label>
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="text-muted">{t('昵称')}</span>
+        <Input value={displayName} maxLength={80} autoComplete="nickname" aria-label={t('昵称')} onChange={event => setDisplayName(event.target.value)} placeholder={user.username} />
+        <small className="text-xs text-muted">{t('显示昵称，留空时各处显示使用账号。')}</small>
+      </label>
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="text-muted">{t('邮箱')}</span>
+        <Input type="email" maxLength={254} value={email} aria-label={t('邮箱')} onChange={event => setEmail(event.target.value)} />
+        <small className="text-xs text-muted">{t('登录凭证之一，保存后立即生效。')}</small>
+      </label>
+      <fieldset><legend>{t('角色')}</legend><RoleChipGroup options={options.data?.items ?? []} selected={roleIds}
+        onToggle={(id, checked) => { setTouched(true); setRoleIds(ids => checked ? [...ids, id] : ids.filter(value => value !== id)); }} /></fieldset>
       {!administrators && <label className="flex flex-col gap-1 text-sm">
         <span className="text-muted">{t('部门')}</span>
         <NativeSelect aria-label={t('部门')} value={departmentId} onChange={event => { setTouched(true); setDepartmentId(event.target.value); }} disabled={departmentOptions.isLoading}>
@@ -349,18 +430,62 @@ function UserRoleDialog({ web, administrators, user, postsEnabled, onClose, onSa
       </fieldset>}
       <div className="flex justify-end gap-2">
         <Button variant="secondary" onClick={onClose}>{t('取消')}</Button>
-        <Button pending={false} disabled={!roleIds.length || options.isLoading} onClick={() => {
-          // Update semantics: omitting department_id keeps the assignment, an
-          // empty string clears it, so the select maps 未分配 to ''.
+        <Button disabled={!roleIds.length || options.isLoading || saving} onClick={() => {
+          // Update semantics: omitted fields keep the stored value, an empty
+          // string clears it, so the department select maps 未分配 to ''.
+          const trimmed = displayName.trim();
           const submit = administrators
-            ? web.updateAdministrator(user.id, { status: user.status, role_ids: roleIds })
-            : web.updateUser(user.id, { status: user.status, role_ids: roleIds, department_id: departmentId, ...(postsEnabled ? { post_ids: postIds } : {}) });
+            ? web.updateAdministrator(user.id, { status: user.status, role_ids: roleIds, email, display_name: trimmed })
+            : web.updateUser(user.id, { status: user.status, role_ids: roleIds, email, display_name: trimmed, department_id: departmentId, ...(postsEnabled ? { post_ids: postIds } : {}) });
+          setSaving(true);
           void submit.then(() => {
             message.success(t('已保存'));
             onSaved();
             onClose();
-          }).catch(error => message.error(t(error.message)));
+          }).catch(error => message.error(t(error.message))).finally(() => setSaving(false));
         }}>{t('保存')}</Button>
+      </div>
+    </div>
+  </Modal>;
+}
+
+// PasswordResetDialog offers the two reset shapes the contract supports: the
+// operator types the replacement or asks the server to generate a temporary
+// one. The generated password echoes once in the success view and the toast.
+function PasswordResetDialog({ web, user, onClose, onSaved }: { web: WebClient; user: User; onClose: () => void; onSaved: () => void }) {
+  useLocale();
+  const message = useMessage();
+  const [mode, setMode] = useState<'input' | 'generate'>('input');
+  const [password, setPassword] = useState('');
+  const reset = useMutation({
+    mutationFn: () => web.resetUserPassword(user.id, mode === 'generate' ? {} : { password }),
+    onSuccess: data => {
+      message.success(t('新密码：{{password}}', { password: data.password }));
+      onSaved();
+      onClose();
+    },
+    onError: error => message.error(t(error.message)),
+  });
+  return <Modal title={t('重置密码')} onClose={onClose} pending={reset.isPending}>
+    <div className="flex flex-col gap-3">
+      <p className="text-sm text-muted">{t('为 {{name}} 设置新密码；保存后该账号的全部登录会话立即失效。', { name: displayLabel(user.display_name, user.username) || user.username })}</p>
+      <fieldset className="flex flex-col gap-2">
+        <legend className="sr-only">{t('密码方式')}</legend>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="radio" name="reset-mode" checked={mode === 'input'} onChange={() => setMode('input')} aria-label={t('手动输入新密码')} />
+          <span>{t('手动输入新密码')}</span>
+        </label>
+        {mode === 'input' && <Input type="password" minLength={12} maxLength={128} autoComplete="new-password" value={password}
+          aria-label={t('新密码')} placeholder={t('至少 12 位')} onChange={event => setPassword(event.target.value)} />}
+        <label className="flex items-center gap-2 text-sm">
+          <input type="radio" name="reset-mode" checked={mode === 'generate'} onChange={() => setMode('generate')} aria-label={t('生成临时密码')} />
+          <span>{t('生成临时密码')}</span>
+        </label>
+        {mode === 'generate' && <small className="text-xs text-muted">{t('系统生成一次性临时密码，仅在成功提示中显示一次。')}</small>}
+      </fieldset>
+      <div className="flex justify-end gap-2">
+        <Button variant="secondary" disabled={reset.isPending} onClick={onClose}>{t('取消')}</Button>
+        <Button pending={reset.isPending} disabled={mode === 'input' && password.length < 12} onClick={() => reset.mutate()}>{t('重置密码')}</Button>
       </div>
     </div>
   </Modal>;

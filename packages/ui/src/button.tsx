@@ -1,5 +1,5 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Button primitive with token-driven variants; loading replaces content while pending.
+// Description: Button primitive with token-driven variants; pending prepends a spinner and disables the button.
 import { forwardRef, type ButtonHTMLAttributes } from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { LoaderCircle } from 'lucide-react';

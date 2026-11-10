@@ -3,6 +3,8 @@
 package platformsql
 
 import (
+	"sync"
+
 	"context"
 	"database/sql"
 	"errors"
@@ -22,6 +24,13 @@ type Repository struct {
 	// Administrators selects the legacy management API alias, never a different account store.
 	Administrators      bool
 	NotificationSecrets mailer.Secrets
+	// navCache memoizes the persisted navigation tree between the session
+	// resolutions that re-read it on every authenticated request; the version
+	// row stays the single invalidation source (every write bumps it).
+	navMu       sync.Mutex
+	navVersion  int
+	navHas      bool
+	navCache    contracts.Navigation
 }
 
 func accountError(err error) error {
@@ -39,6 +48,14 @@ func (r *Repository) user(ctx context.Context, q sqlstore.Runner, id string) (co
 		return user, err
 	}
 	user.DepartmentID = department
+	// The account nickname lives on the personal profile row (the same field
+	// the account settings page edits); accounts without a profile row fall
+	// back to the username at every display point.
+	var displayName string
+	if err := r.row(ctx, q, "SELECT display_name FROM unicore_personal_accounts WHERE user_id=?", id).Scan(&displayName); err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return user, err
+	}
+	user.DisplayName = &displayName
 	state, err := r.personalState(ctx, q, id)
 	if err != nil {
 		return user, err
@@ -61,6 +78,43 @@ func (r *Repository) user(ctx context.Context, q sqlstore.Runner, id string) (co
 	if err = roleRows.Err(); err != nil {
 		return user, err
 	}
+	// Display names ride parallel to the role ids so listings and the account
+	// menu render catalogue names without a roles:read grant; a missing row
+	// falls back to the raw id instead of hiding the assignment.
+	if len(user.Roles) > 0 {
+		placeholders := strings.Repeat(",?", len(user.Roles)-1)
+		args := make([]any, len(user.Roles))
+		for index, role := range user.Roles {
+			args[index] = role
+		}
+		names, err := r.rows(ctx, q, "SELECT id,name FROM unicore_roles WHERE id IN (?"+placeholders+")", args...)
+		if err != nil {
+			return user, err
+		}
+		catalogue := map[string]string{}
+		err = func() error {
+			defer names.Close()
+			for names.Next() {
+				var id, name string
+				if err := names.Scan(&id, &name); err != nil {
+					return err
+				}
+				catalogue[id] = name
+			}
+			return names.Err()
+		}()
+		if err != nil {
+			return user, err
+		}
+		roleNames := make([]string, len(user.Roles))
+		for index, role := range user.Roles {
+			roleNames[index] = catalogue[role]
+			if roleNames[index] == "" {
+				roleNames[index] = role
+			}
+		}
+		user.RoleNames = &roleNames
+	}
 	rows, err := r.rows(ctx, q, "SELECT DISTINCT rp.permission_id FROM unicore_user_roles ur JOIN unicore_role_permissions rp ON rp.role_id=ur.role_id WHERE ur.user_id=? ORDER BY rp.permission_id", id)
 	if err != nil {
 		return user, err
@@ -79,6 +133,9 @@ func (r *Repository) user(ctx context.Context, q sqlstore.Runner, id string) (co
 		return user, err
 	}
 	if err = r.loadAuthorizations(ctx, q, &user); err != nil {
+		return user, err
+	}
+	if err = r.deriveGrantedPermissions(ctx, q, &user); err != nil {
 		return user, err
 	}
 	if platform.IsSuper(user) {
@@ -130,6 +187,137 @@ func (r *Repository) loadAuthorizations(ctx context.Context, q sqlstore.Runner, 
 		*grant.target = ids
 	}
 	return nil
+}
+
+// deriveGrantedPermissions widens the effective authorization to cover what
+// the member's roles demonstrably already hold. Two derivations run at session
+// resolution, both resolving node ids in the persisted tree:
+//
+//  1. Button grants: an action node whose every registered, grantable
+//     operation the role already holds is a button the role demonstrably
+//     needs, so its id joins the effective action_ids. The node's own
+//     permission must be covered by the stored or operation-derived points —
+//     the same bound saveRoleAuthorization applies to explicit rows — so a
+//     mode-any operation grant never leaks its sibling point through an
+//     :altN variant. The legacy tab editor
+//     dropped action rows whenever the stored permission points did not cover
+//     them, leaving granted APIs with invisible buttons; the derived ids make
+//     NavigationFor project the node and canAction accept it without a
+//     re-save. Trees from older builds may not carry the action node at all —
+//     EnsureNavigation backfills those, and derivation simply skips ids the
+//     tree does not have.
+//  2. Permission points: every granted operation contributes its catalogue
+//     permissions and every effective action node its button point plus the
+//     permissions of its registered operations, so rows saved by the legacy
+//     tab editor with empty or stale permission-point rows stop sitting below
+//     the authorization they already carry.
+//
+// Menu rows are deliberately NOT a source for either: role materialization
+// writes every realm-surface page onto custom roles as layout facts, so
+// deriving route points from them would hand restricted administrators the
+// settings/logs/storage points their role never held. Mode-any operation
+// grants are skipped for the mirror reason — the grant is satisfied by any one
+// held point, so it implies none of its siblings. Every derived reference is
+// checked against the platform catalogue and ignored when unknown, so nothing
+// grows past registered facts: operation grants stay the runtime authority,
+// the super_admin reservation and the fail-closed policy middleware are
+// untouched, and a derived id can only make an already granted API or button
+// consistent with its own authorization. Grant rows are validated on write, so
+// only legacy data reaches the ignore branches.
+func (r *Repository) deriveGrantedPermissions(ctx context.Context, q sqlstore.Runner, user *contracts.User) error {
+	held := map[string]bool{}
+	for _, permission := range user.Permissions {
+		held[permission] = true
+	}
+	add := func(permission string) {
+		if permission != "" && !held[permission] && platform.CatalogPermission(permission) {
+			held[permission] = true
+			user.Permissions = append(user.Permissions, permission)
+		}
+	}
+	// Operation-derived points are computed first so button derivation can
+	// demand the button's own point the same way saveRoleAuthorization does:
+	// an action row may only exist when its permission is covered, and a
+	// derived row must not leak a mode-any sibling point through an :altN
+	// variant (fileAccess carries files:access and notes:access; granting the
+	// operation with files:access held must not mint notes:access).
+	operationPoints := map[string]bool{}
+	for _, id := range deref(user.OperationIds) {
+		if op, ok := platform.Operation(id); ok && op.Grantable && op.PermissionMode != "any" {
+			for _, permission := range op.Permissions {
+				operationPoints[permission] = true
+			}
+		}
+	}
+	// Menu and action derivation resolves node ids in the persisted tree; a
+	// missing state row (fresh install before the navigation seed) simply
+	// skips both, and install-time accounts hold no grants anyway.
+	n, err := r.readNavigation(ctx, q)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+	if err == nil {
+		nodes := map[string]contracts.NavigationNode{}
+		for _, node := range n.Nodes {
+			nodes[node.ID] = node
+		}
+		// Button derivation first: the point derivation below reads the
+		// effective action set, so a derived button contributes its point in
+		// the same resolution.
+		for _, node := range n.Nodes {
+			if node.Type != "action" || len(node.OperationIds) == 0 || user.ActionIds == nil || contains(*user.ActionIds, node.ID) {
+				continue
+			}
+			covered := true
+			for _, id := range node.OperationIds {
+				op, ok := platform.Operation(id)
+				if !ok || !op.Grantable || !contains(deref(user.OperationIds), id) {
+					covered = false
+					break
+				}
+			}
+			if !covered || node.Permission == nil || (!held[*node.Permission] && !operationPoints[*node.Permission]) {
+				continue
+			}
+			*user.ActionIds = append(*user.ActionIds, node.ID)
+		}
+		for _, id := range deref(user.ActionIds) {
+			node, ok := nodes[id]
+			if !ok || node.Type != "action" {
+				continue
+			}
+			if node.Permission != nil {
+				add(*node.Permission)
+			}
+			for _, operationID := range node.OperationIds {
+				if op, ok := platform.Operation(operationID); ok && op.Grantable && op.PermissionMode != "any" {
+					for _, permission := range op.Permissions {
+						add(permission)
+					}
+				}
+			}
+		}
+	}
+	// Granted operations speak for themselves: their policy permissions are
+	// exactly the points the role demonstrably needs. Mode any is the
+	// exception — the grant is satisfied by any one held point, so it implies
+	// none of its sibling points and derives nothing.
+	for _, id := range deref(user.OperationIds) {
+		if op, ok := platform.Operation(id); ok && op.Grantable && op.PermissionMode != "any" {
+			for _, permission := range op.Permissions {
+				add(permission)
+			}
+		}
+	}
+	sort.Strings(user.Permissions)
+	return nil
+}
+
+func deref(ids *[]string) []string {
+	if ids == nil {
+		return nil
+	}
+	return *ids
 }
 func (r *Repository) FindAccount(ctx context.Context, login string) (platform.Account, error) {
 	var id, hash string
@@ -220,6 +408,13 @@ func (r *Repository) insert(ctx context.Context, tx *sql.Tx, input contracts.Use
 			return contracts.User{}, err
 		}
 		if err = r.writeUserPosts(ctx, tx, id, ids); err != nil {
+			return contracts.User{}, err
+		}
+	}
+	// An initial nickname seeds the same personal profile row the account
+	// settings page edits later; the row otherwise appears on first profile save.
+	if input.DisplayName != nil && strings.TrimSpace(*input.DisplayName) != "" {
+		if _, err := r.exec(ctx, tx, "INSERT INTO unicore_personal_accounts(user_id,display_name,totp_secret,recovery_digests,last_step,setup_secret,setup_session,setup_expires,setup_attempts) SELECT ?,?,'','',-1,'','',0,0 WHERE NOT EXISTS (SELECT 1 FROM unicore_personal_accounts WHERE user_id=?)", id, strings.TrimSpace(*input.DisplayName), id); err != nil {
 			return contracts.User{}, err
 		}
 	}
@@ -366,8 +561,43 @@ func (r *Repository) UpdateUser(ctx context.Context, id string, input contracts.
 			}
 		}
 	}
-	if _, err = r.exec(ctx, tx, "UPDATE unicore_users SET status=?,updated_at=? WHERE id=?", input.Status, time.Now().Unix(), id); err != nil {
-		return contracts.User{}, err
+	// The email is a login credential: omitted keeps the address, a
+	// replacement must parse and stay unique across every account.
+	email := before.Email
+	emailChanged := false
+	if input.Email != nil {
+		candidate := strings.ToLower(strings.TrimSpace(*input.Email))
+		if candidate == "" || !platform.ValidEmail(candidate) {
+			return contracts.User{}, platform.ErrInput
+		}
+		if candidate != before.Email {
+			var count int
+			if err = r.row(ctx, tx, "SELECT COUNT(*) FROM unicore_users WHERE email=? AND id<>?", candidate, id).Scan(&count); err != nil {
+				return contracts.User{}, err
+			}
+			if count != 0 {
+				return contracts.User{}, &platform.AccountConflict{Field: "email"}
+			}
+			email = candidate
+			emailChanged = true
+		}
+	}
+	if _, err = r.exec(ctx, tx, "UPDATE unicore_users SET status=?,email=?,updated_at=? WHERE id=?", input.Status, email, time.Now().Unix(), id); err != nil {
+		return contracts.User{}, accountError(err)
+	}
+	// The nickname rides the personal profile row: omitted retains it, an
+	// empty string clears it back to the username fallback.
+	if input.DisplayName != nil {
+		name := strings.TrimSpace(*input.DisplayName)
+		updated, err := r.exec(ctx, tx, "UPDATE unicore_personal_accounts SET display_name=? WHERE user_id=?", name, id)
+		if err != nil {
+			return contracts.User{}, err
+		}
+		if affected, err := updated.RowsAffected(); err == nil && affected == 0 && name != "" {
+			if _, err = r.exec(ctx, tx, "INSERT INTO unicore_personal_accounts(user_id,display_name,totp_secret,recovery_digests,last_step,setup_secret,setup_session,setup_expires,setup_attempts) SELECT ?,?,'','',-1,'','',0,0 WHERE NOT EXISTS (SELECT 1 FROM unicore_personal_accounts WHERE user_id=?)", id, name, id); err != nil {
+				return contracts.User{}, err
+			}
+		}
 	}
 	if _, err = r.exec(ctx, tx, "DELETE FROM unicore_user_roles WHERE user_id=?", id); err != nil {
 		return contracts.User{}, err
@@ -411,12 +641,87 @@ func (r *Repository) UpdateUser(ctx context.Context, id string, input contracts.
 	if r.Administrators {
 		action = "administrators.updated"
 	}
-	if err = r.audit(audit.Target(ctx, r.roleID()+"/"+id, "status="+before.Status+"->"+input.Status+"; roles="+strings.Join(before.Roles, ",")+"->"+strings.Join(roles, ",")+"; sessions=revoked"), tx, actor, action); err != nil {
+	detail := "status=" + before.Status + "->" + input.Status + "; roles=" + strings.Join(before.Roles, ",") + "->" + strings.Join(roles, ",") + "; sessions=revoked"
+	if emailChanged {
+		detail += "; email=updated"
+	}
+	if input.DisplayName != nil {
+		detail += "; display_name=updated"
+	}
+	if err = r.audit(audit.Target(ctx, r.roleID()+"/"+id, detail), tx, actor, action); err != nil {
 		return contracts.User{}, err
 	}
 	user, err := r.user(ctx, tx, id)
 	if err != nil {
 		return user, err
+	}
+	return user, tx.Commit()
+}
+
+// ResetUserPassword replaces one member's password hash from the management
+// surface: the caller hashes the replacement (administrator-set or generated),
+// the store verifies the actor still holds users:update, refuses to let a
+// restricted administrator touch a super administrator, revokes every live
+// session and token with the old credential and writes the dedicated audit
+// action, all in one transaction.
+func (r *Repository) ResetUserPassword(ctx context.Context, id, hash, actor string) (contracts.User, error) {
+	tx, err := r.Store.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return contracts.User{}, err
+	}
+	defer tx.Rollback()
+	if err = r.Store.LockInstallation(ctx, tx); err != nil {
+		return contracts.User{}, err
+	}
+	permission := "users:update"
+	if r.Administrators {
+		permission = "administrators:update"
+	}
+	if _, err = r.actor(ctx, tx, actor, permission); err != nil {
+		return contracts.User{}, err
+	}
+	before, err := r.user(ctx, tx, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return contracts.User{}, platform.ErrInput
+	}
+	if err != nil {
+		return contracts.User{}, err
+	}
+	current, err := r.user(ctx, tx, actor)
+	if err != nil {
+		return contracts.User{}, err
+	}
+	if platform.IsSuper(before) && !platform.IsSuper(current) {
+		return contracts.User{}, platform.ErrForbidden
+	}
+	// The management data scope bounds which members a restricted operator
+	// may touch, exactly like every other users:update path.
+	scope, err := r.dataScope(ctx, tx, current, permission)
+	if err != nil {
+		return contracts.User{}, err
+	}
+	if !scope.Contains(id) {
+		return contracts.User{}, platform.ErrForbidden
+	}
+	if _, err = r.exec(ctx, tx, "UPDATE unicore_users SET password_hash=?,updated_at=? WHERE id=?", hash, time.Now().Unix(), id); err != nil {
+		return contracts.User{}, err
+	}
+	if _, err = r.exec(ctx, tx, "DELETE FROM unicore_sessions WHERE user_id=?", id); err != nil {
+		return contracts.User{}, err
+	}
+	if err = r.cancelTokens(ctx, tx, id, ""); err != nil {
+		return contracts.User{}, err
+	}
+	action := "users.password.reset"
+	if r.Administrators {
+		action = "administrators.password.reset"
+	}
+	if err = r.audit(audit.Target(ctx, r.roleID()+"/"+id, "sessions=revoked"), tx, actor, action); err != nil {
+		return contracts.User{}, err
+	}
+	user, err := r.user(ctx, tx, id)
+	if err != nil {
+		return contracts.User{}, err
 	}
 	return user, tx.Commit()
 }
@@ -516,7 +821,10 @@ func (r *Repository) Session(ctx context.Context, hash string) (contracts.User, 
 		return contracts.User{}, 0, err
 	}
 	if !platform.DeviceFrom(ctx).Passive {
-		if _, err = r.exec(ctx, r.Store.DB, "UPDATE unicore_session_details SET last_seen_at=? WHERE token_hash=? AND last_seen_at<?", time.Now().Unix(), hash, time.Now().Unix()); err != nil {
+		// Throttle the sliding-expiry touch to one write per minute: an exact
+		// last_seen costs a committed write (fsync) on every authenticated
+		// request, while idle timeouts count in minutes.
+		if _, err = r.exec(ctx, r.Store.DB, "UPDATE unicore_session_details SET last_seen_at=? WHERE token_hash=? AND last_seen_at<?", time.Now().Unix(), hash, time.Now().Add(-time.Minute).Unix()); err != nil {
 			return contracts.User{}, 0, err
 		}
 	}

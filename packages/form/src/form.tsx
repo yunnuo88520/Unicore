@@ -59,7 +59,14 @@ export function AppForm<T extends FieldValues>({ form, className, children, ...p
   const nonField = form.serverError != null && Object.keys(form.serverError.fields ?? {}).length === 0;
   const serverMessage = rootMessage ?? (nonField ? form.serverError?.message ?? null : null);
   return <FormProvider {...form}>
-    <form {...props} ref={element => { form.focusScope.current = element; }} className={className} noValidate aria-busy={form.formState.isSubmitting} onSubmit={event => { event.preventDefault(); void form.submit(event); }}>
+    <form {...props} ref={element => { form.focusScope.current = element; }} className={className} noValidate aria-busy={form.formState.isSubmitting} onSubmit={event => {
+      event.preventDefault();
+      // Nested editors render their own <form>s (link dialogs and similar);
+      // their submit events bubble through the React tree — only submit when
+      // this form is the event's own target.
+      if (event.target !== event.currentTarget) return;
+      void form.submit(event);
+    }}>
       <FormSummary />
       {/* Non-field server errors arrive through the `form` prop (re-attached every render);
           RHF's FormProvider context does not carry custom properties, so read it here. */}

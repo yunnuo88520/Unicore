@@ -19,8 +19,10 @@ test('registration works without SMTP and exposes independent restrictions',asyn
  await page.getByRole('tab',{name:'安全与控制',exact:true}).click();
  await expect(page.getByLabel('登录图形验证码',{exact:true})).toBeChecked();await expect(page.getByLabel('注册图形验证码',{exact:true})).toBeChecked();await expect(page.getByLabel('邮件找回密码',{exact:true})).not.toBeChecked();
  await page.getByLabel('注册图形验证码',{exact:true}).uncheck();
- await page.getByRole('button',{name:'保存设置',exact:true}).click();await expect(page.getByRole('button',{name:'保存设置',exact:true})).toBeDisabled();
- await page.getByRole('button',{name:'账号菜单',exact:true}).click();await page.getByRole('menuitem',{name:'退出登录',exact:true}).click();await page.goto(instance.url);
+ // The save button disables while the PATCH is still in flight; wait for it to land
+ // so the later logout cannot abort the security settings change.
+ const __save=page.waitForResponse(r=>r.request().method()==='PATCH'&&r.url().includes('/settings'));await page.getByRole('button',{name:'保存设置',exact:true}).click();await __save;await expect(page.getByRole('button',{name:'保存设置',exact:true})).toBeDisabled();
+ await page.getByRole('button',{name:'账号菜单',exact:true}).click();const __out=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().includes('/auth/logout'));const __item=page.getByRole('menuitem',{name:'退出登录',exact:true});await expect(__item).toBeVisible();await __item.click();await __out;await page.goto(instance.url);
  const directory=`build/acceptance/auth-layout/${info.project.name}`;await mkdir(directory,{recursive:true});
  await expect(page.getByRole('heading',{name:'登录 Unicore',exact:true})).toBeVisible();await expect(page.locator('.flow-brand')).toBeVisible();
  await page.screenshot({path:`${directory}/login-zh-light.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
@@ -30,7 +32,7 @@ test('registration works without SMTP and exposes independent restrictions',asyn
  await page.evaluate(()=>{const key='unicore.preferences.v1';localStorage.setItem(key,JSON.stringify({...JSON.parse(localStorage.getItem(key)||'{}'),locale:'en',theme:'dark'}));window.dispatchEvent(new StorageEvent('storage',{key}));});
  await expect(page.getByRole('heading',{name:'Create account',exact:true})).toBeVisible();await expect(page.getByLabel('Email',{exact:true})).toHaveValue('newmember@other.test');await page.screenshot({path:`${directory}/register-en-dark.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.evaluate(()=>{const key='unicore.preferences.v1';localStorage.setItem(key,JSON.stringify({...JSON.parse(localStorage.getItem(key)||'{}'),locale:'zh-CN',theme:'light'}));window.dispatchEvent(new StorageEvent('storage',{key}));});
- const rejected=page.waitForResponse(r=>r.url().endsWith('/auth/email/register'));await page.getByRole('button',{name:'注册',exact:true}).click();expect((await rejected).status()).toBe(400);
+ const rejected=page.waitForResponse(r=>r.url().endsWith('/auth/email/register'),{timeout:5000}).catch(e=>{console.log('REG-WAIT-FAIL',String(e).slice(0,80));return null;});await page.getByRole('button',{name:'注册',exact:true}).click();const __resp=await rejected;if(__resp)expect(__resp.status()).toBe(400);else{console.log('REG-ERROR',JSON.stringify(await page.evaluate(()=>(window as { __regError?: unknown }).__regError)).slice(0,400));throw new Error('no register transport call');}
  await page.getByLabel('邮箱',{exact:true}).fill('newmember@example.test');await page.getByRole('button',{name:'注册',exact:true}).click();await expect(page.getByText('账号已创建，现在可以登录。',{exact:true})).toBeVisible();
  // Registration rate limiting: one UI registration already used the per-IP window, so four more pass and the sixth fails.
  const bulk=async(i:number)=>page.request.post(`${instance.url}/api/v1/auth/email/register`,{data:{username:`bulk${i}`,email:`bulk${i}@example.test`,password:'bulk-password-strong',phone:`1390013900${i}`,captcha_id:'',captcha_answer:''}});

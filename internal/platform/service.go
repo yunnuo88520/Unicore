@@ -23,6 +23,7 @@ type Store interface {
 	FindAccount(context.Context, string) (Account, error)
 	CreateUser(context.Context, contracts.UserCreate, string, string) (contracts.User, error)
 	UpdateUser(context.Context, string, contracts.UserUpdate, string) (contracts.User, error)
+	ResetUserPassword(context.Context, string, string, string) (contracts.User, error)
 	ListUsers(context.Context, string, int, int, ...string) (contracts.UserList, error)
 	ListUsersScoped(context.Context, contracts.User, string, int, int, ...string) (contracts.UserList, error)
 	CreateSession(context.Context, string, string, int, string) error
@@ -100,8 +101,13 @@ func New(store Store) *Service {
 	return &Service{Store: store, Limiter: NewLimiter(), Captchas: NewCaptchas(), loginSlots: make(chan struct{}, 4)}
 }
 func ValidateAccount(username, email, password string) bool {
+	return regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.-]{2,63}$`).MatchString(username) && ValidEmail(email) && len(password) >= 12 && len(password) <= 128
+}
+
+// ValidEmail parses as a bare address within the contract length bound.
+func ValidEmail(email string) bool {
 	address, err := mail.ParseAddress(email)
-	return regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.-]{2,63}$`).MatchString(username) && err == nil && address.Address == email && len(email) <= 254 && len(password) >= 12 && len(password) <= 128
+	return err == nil && address.Address == email && len(email) <= 254
 }
 
 // ValidPhone accepts an optional leading + followed by 5-20 digits, matching the RegisterInput contract.
@@ -229,6 +235,35 @@ func (s *Service) Create(ctx context.Context, input contracts.UserCreate, actor 
 	}
 	input.Password = ""
 	return s.Store.CreateUser(ctx, input, hash, actor)
+}
+
+// ResetUserPassword sets a member's password from the management surface: the
+// operator supplies the replacement or the server generates a temporary one.
+// The effective password comes back once so a generated temporary can be
+// handed to the account holder; live sessions and tokens die with the old
+// credential exactly like a role assignment does.
+func (s *Service) ResetUserPassword(ctx context.Context, id string, input contracts.AdminPasswordResetInput, actor string) (string, error) {
+	password := ""
+	if input.Password != nil {
+		password = strings.TrimSpace(*input.Password)
+	}
+	if password == "" {
+		password = TempPassword()
+	}
+	if len(password) < 12 || len(password) > 128 {
+		return "", ErrInput
+	}
+	if err := s.passwordAllowed(ctx, password); err != nil {
+		return "", err
+	}
+	hash, err := HashPassword(password)
+	if err != nil {
+		return "", err
+	}
+	if _, err = s.Store.ResetUserPassword(ctx, id, hash, actor); err != nil {
+		return "", err
+	}
+	return password, nil
 }
 
 func (s *Service) AllowIP(ctx context.Context, ip string) error {

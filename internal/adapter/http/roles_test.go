@@ -130,6 +130,8 @@ func exerciseRoleHTTP(t *testing.T, manager *install.Manager, request func(strin
 	if w = request("PATCH", "/api/v1/admin/users/"+memberID, contracts.UserUpdate{Role: rolePtr(roleID), Status: "active"}, admin, adminCSRF); w.Code != 200 {
 		t.Fatal("role assignment", w.Code, w.Body.String())
 	}
+	// The derived union repairs legacy rows; a healthy role keeps its exact
+	// stored set because operation and action grants only mirror held points.
 	if perms := memberPerms(); len(perms) != 1 || perms[0] != "files:access" {
 		t.Fatal("custom role grants missing", perms)
 	}

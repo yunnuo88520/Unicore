@@ -752,6 +752,77 @@
         }
       ]
     },
+    "/api/v1/admin/users/{id}/password": {
+      "post": {
+        "operationId": "resetUserPassword",
+        "description": "Resets a member account password from the management surface: the operator supplies the replacement or the server generates a temporary one. The effective password is returned once; live sessions and tokens die with the old credential.",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPasswordResetResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminPasswordResetInput"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "users:update; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "users:update"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator",
+          "uiPage": "users"
+        },
+        "summary": "resetUserPassword",
+        "parameters": []
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
+    },
     "/api/v1/admin/settings": {
       "get": {
         "operationId": "adminSettings",
@@ -13118,6 +13189,7 @@
         "additionalProperties": false,
         "required": [
           "execute",
+          "api_docs",
           "database",
           "installation",
           "authentication",
@@ -13129,6 +13201,10 @@
         "properties": {
           "execute": {
             "type": "boolean"
+          },
+          "api_docs": {
+            "type": "boolean",
+            "description": "Whether this instance publishes /openapi.json for the built-in API reference."
           },
           "database": {
             "type": "boolean"
@@ -13575,6 +13651,17 @@
             "type": "string",
             "description": "Phone number bound at registration; empty when not collected."
           },
+          "display_name": {
+            "type": "string",
+            "description": "Profile nickname echo; empty when the account never set one and displays fall back to the username."
+          },
+          "role_names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Catalogue names parallel to the roles array so listings render names without a roles:read grant; deleted rows fall back to the raw id."
+          },
           "status": {
             "type": "string"
           },
@@ -13702,6 +13789,11 @@
             "maxLength": 21,
             "pattern": "^(?:\\+?[0-9]{5,20})?$"
           },
+          "display_name": {
+            "type": "string",
+            "maxLength": 80,
+            "description": "Optional profile nickname set at creation time."
+          },
           "role": {
             "type": "string",
             "maxLength": 64,
@@ -13751,6 +13843,17 @@
           "status": {
             "type": "string"
           },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "description": "Login credential: omit to keep the address, a replacement must parse and stay unique across every account."
+          },
+          "display_name": {
+            "type": "string",
+            "maxLength": 80,
+            "description": "Profile nickname: omit to retain it, empty string clears it back to the username fallback."
+          },
           "department_id": {
             "type": "string",
             "maxLength": 64,
@@ -13776,6 +13879,56 @@
             "maxItems": 64,
             "uniqueItems": true,
             "description": "Complete role assignment. Omit on update to retain existing roles. Role assignment requires roles:write."
+          }
+        }
+      },
+      "AdminPasswordResetInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "password": {
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 128,
+            "x-max-utf8-bytes": 128,
+            "description": "Replacement password. Omit or leave empty to let the server generate a temporary one."
+          }
+        }
+      },
+      "AdminPasswordReset": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "password"
+        ],
+        "properties": {
+          "password": {
+            "type": "string",
+            "description": "The effective new password, echoed exactly once."
+          }
+        }
+      },
+      "AdminPasswordResetResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdminPasswordReset"
+          },
+          "request_id": {
+            "type": "string"
           }
         }
       },

@@ -1,6 +1,6 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Every browser test owns a fresh process, data directory and bootstrap credential.
-import { test as base, expect, type APIRequestContext, type Page } from '@playwright/test';
+import { test as base, expect, type APIRequestContext, type Page, type PlaywrightWorkerArgs } from '@playwright/test';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { openSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -12,36 +12,40 @@ import { operations } from '../../packages/contracts/src/operations.gen';
 
 export type { MenuList };
 
-export type Instance = { url: string; token: string; request: APIRequestContext; restart: () => Promise<void>; unlockForReinstall: () => Promise<string> };
-export const test = base.extend<{ instance: Instance }>({
-  instance: async ({ playwright }, use) => {
-    const directory = await mkdtemp(join(tmpdir(), 'unicore-e2e-'));
-    const allocator = createServer(); await new Promise<void>(resolve => allocator.listen(0, '127.0.0.1', resolve));
-    const port = (allocator.address() as { port: number }).port; await new Promise<void>(resolve => allocator.close(() => resolve()));
-    const url = `http://127.0.0.1:${port}`;
-    const start = () => spawn('build/bin/server', ['--listen', `127.0.0.1:${port}`, '--data-dir', directory, '--api-docs=true'], { stdio: ['ignore', 'ignore', openSync('/tmp/e2e-server-stderr.log', 'a')], env: Object.fromEntries(Object.entries(globalThis.process.env).filter(([key]) => !key.startsWith('APP_'))) });
-    let process = start();
-    const stop = async () => { if (process.exitCode !== null) return; process.kill('SIGTERM'); await new Promise<void>(resolve => process.once('exit', () => resolve())); };
-    const request = await playwright.request.newContext({ baseURL: url });
-    try {
-      await expect.poll(async () => { try { return (await request.get('/api/v1/health/live')).status(); } catch { return 0; } }, { timeout: 15000 }).toBe(200);
-      const token = (await readFile(join(directory, 'bootstrap.token'), 'utf8')).trim();
-      await use({ url, token, request,
-        restart: async () => { await stop(); process = start(); await expect.poll(async () => { try { return (await request.get('/api/v1/health/ready')).status(); } catch { return 0; } }, { timeout: 15000 }).toBe(200); },
-        unlockForReinstall: async () => {
-          await stop();
-          await rm(join(directory, 'install.lock'));
-          process = start();
-          await expect.poll(async () => { try { return (await request.get('/api/v1/health/live')).status(); } catch { return 0; } }, { timeout: 15000 }).toBe(200);
-          expect((await request.get('/api/v1/health/ready')).status()).toBe(503);
-          return (await readFile(join(directory, 'bootstrap.token'), 'utf8')).trim();
-        },
-      });
-    } finally {
-      await stop();
-      await request.dispose(); await rm(directory, { recursive: true, force: true });
-    }
-  },
+export type Instance = { url: string; token: string; request: APIRequestContext; directory: string; restart: () => Promise<void>; unlockForReinstall: () => Promise<string> };
+type InstanceFixtures = { instance: Instance; instanceNoDocs: Instance };
+async function spawnInstance({ playwright }: Pick<PlaywrightWorkerArgs, 'playwright'>, apiDocs: boolean, use: (instance: Instance) => Promise<void>) {
+  const directory = await mkdtemp(join(tmpdir(), 'unicore-e2e-'));
+  const allocator = createServer(); await new Promise<void>(resolve => allocator.listen(0, '127.0.0.1', resolve));
+  const port = (allocator.address() as { port: number }).port; await new Promise<void>(resolve => allocator.close(() => resolve()));
+  const url = `http://127.0.0.1:${port}`;
+  const start = () => spawn('build/bin/server', ['--listen', `127.0.0.1:${port}`, '--data-dir', directory, `--api-docs=${apiDocs}`], { stdio: ['ignore', openSync('/tmp/e2e-server-stdout.log', 'a'), openSync('/tmp/e2e-server-stderr.log', 'a')], env: Object.fromEntries(Object.entries(globalThis.process.env).filter(([key]) => !key.startsWith('APP_'))) });
+  let process = start();
+  const stop = async () => { if (process.exitCode !== null) return; process.kill('SIGTERM'); await new Promise<void>(resolve => process.once('exit', () => resolve())); };
+  const request = await playwright.request.newContext({ baseURL: url });
+  try {
+    await expect.poll(async () => { try { return (await request.get('/api/v1/health/live')).status(); } catch { return 0; } }, { timeout: 15000 }).toBe(200);
+    const token = (await readFile(join(directory, 'bootstrap.token'), 'utf8')).trim();
+    await use({ url, token, request, directory,
+      restart: async () => { await stop(); process = start(); await expect.poll(async () => { try { return (await request.get('/api/v1/health/ready')).status(); } catch { return 0; } }, { timeout: 15000 }).toBe(200); },
+      unlockForReinstall: async () => {
+        await stop();
+        await rm(join(directory, 'install.lock'));
+        process = start();
+        await expect.poll(async () => { try { return (await request.get('/api/v1/health/live')).status(); } catch { return 0; } }, { timeout: 15000 }).toBe(200);
+        expect((await request.get('/api/v1/health/ready')).status()).toBe(503);
+        return (await readFile(join(directory, 'bootstrap.token'), 'utf8')).trim();
+      },
+    });
+  } finally {
+    await stop();
+    await request.dispose(); await rm(directory, { recursive: true, force: true });
+  }
+}
+export const test = base.extend<InstanceFixtures>({
+  instance: ({ playwright }, use) => spawnInstance({ playwright }, true, use),
+  // A default instance with the contract reference unpublished, for gating tests.
+  instanceNoDocs: ({ playwright }, use) => spawnInstance({ playwright }, false, use),
 });
 export { expect };
 

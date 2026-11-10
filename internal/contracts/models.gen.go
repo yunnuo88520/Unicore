@@ -19,6 +19,7 @@ type ExecuteOutput struct {
 
 type Capabilities struct {
 	Execute        bool            `json:"execute"`
+	ApiDocs        bool            `json:"api_docs"`
 	Database       bool            `json:"database"`
 	Installation   bool            `json:"installation"`
 	Authentication bool            `json:"authentication"`
@@ -139,6 +140,8 @@ type User struct {
 	Username     string    `json:"username"`
 	Email        string    `json:"email"`
 	Phone        *string   `json:"phone,omitempty"`
+	DisplayName  *string   `json:"display_name,omitempty"`
+	RoleNames    *[]string `json:"role_names,omitempty"`
 	Status       string    `json:"status"`
 	Roles        []string  `json:"roles"`
 	Permissions  []string  `json:"permissions"`
@@ -164,6 +167,7 @@ type UserCreate struct {
 	Email        string    `json:"email"`
 	Password     string    `json:"password"`
 	Phone        *string   `json:"phone,omitempty"`
+	DisplayName  *string   `json:"display_name,omitempty"`
 	Role         string    `json:"role,omitempty"`
 	DepartmentID *string   `json:"department_id,omitempty"`
 	PostIds      *[]string `json:"post_ids,omitempty"`
@@ -173,9 +177,26 @@ type UserCreate struct {
 type UserUpdate struct {
 	Role         *string   `json:"role,omitempty"`
 	Status       string    `json:"status"`
+	Email        *string   `json:"email,omitempty"`
+	DisplayName  *string   `json:"display_name,omitempty"`
 	DepartmentID *string   `json:"department_id,omitempty"`
 	PostIds      *[]string `json:"post_ids,omitempty"`
 	RoleIds      *[]string `json:"role_ids,omitempty"`
+}
+
+type AdminPasswordResetInput struct {
+	Password *string `json:"password,omitempty"`
+}
+
+type AdminPasswordReset struct {
+	Password string `json:"password"`
+}
+
+type AdminPasswordResetResponse struct {
+	Code      string             `json:"code"`
+	Message   string             `json:"message"`
+	Data      AdminPasswordReset `json:"data"`
+	RequestID string             `json:"request_id"`
 }
 
 type LoginInput struct {

@@ -8,11 +8,18 @@ import { Resvg } from '@resvg/resvg-js';
 const variant = (dark: boolean) => new Resvg(`<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><rect width="128" height="128" rx="32" fill="${dark ? '#e4d3ff' : '#623ad6'}"/><path d="M35 32v40a29 29 0 0058 0V32H76v40a12 12 0 01-24 0V32z" fill="${dark ? '#2b1853' : 'white'}"/></svg>`).render().asPng();
 
 async function expectNavigationBrand(page:Page,mode:string){
+  const brand=page.locator(`.brand .instance-brand-${mode} img`);
+  if((page.viewportSize()?.width ?? 0)>=768){
+    await expect(brand).toBeVisible();
+    return;
+  }
+  // 打开导航 mounts with the shell: right after a reload the boot splash may
+  // still own the page, so let the click auto-wait for the trigger instead of
+  // probing once and skipping the drawer click.
   const trigger=page.getByRole('button',{name:'打开导航',exact:true});
-  const overlay=await trigger.isVisible();
-  if(overlay)await trigger.click();
-  await expect(page.locator(`.brand .instance-brand-${mode} img`)).toBeVisible();
-  if(overlay)await page.keyboard.press('Escape');
+  await trigger.click();
+  await expect(brand).toBeVisible();
+  await page.keyboard.press('Escape');
 }
 
 test('instance brand preview, save, system theme and restore defaults', async ({ page, instance }, info) => {
@@ -101,7 +108,9 @@ test('platform login and all mail previews use public instance branding', async 
   const headers={'X-CSRF-Token':bootstrap.csrf_token};
   expect((await page.request.post(`${instance.url}/api/v1/admin/users`,{headers,data:{username:'reader',email:'reader@example.test',password:'test-password-strong',role:'user'}})).status()).toBe(200);
   await page.getByRole('button',{name:'账号菜单',exact:true}).click();
+  const logout=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().includes('/auth/logout'));
   await page.getByRole('menuitem',{name:'退出登录',exact:true}).click();
+  await logout;
   await page.goto(instance.url);
   await expect(page.getByRole('heading',{name:'登录 品牌平台',exact:true})).toBeVisible();
   await expect(page.locator('.flow-brand .instance-brand-light img')).toBeVisible();

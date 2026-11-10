@@ -49,7 +49,7 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 		sortOf[section.ID] = section.Sort
 	}
 	// The exact frontend sections: one shared tree with three regions.
-	wantSections := map[string]int{"business": 10, "personal": 20, "system": 30}
+	wantSections := map[string]int{"business": 10, "system": 30}
 	if len(seed.Sections) != len(wantSections) {
 		t.Fatal("section set drifted from the frontend model", seed.Sections)
 	}
@@ -74,9 +74,12 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 		switch node.Type {
 		case "directory":
 			directories++
-			// 超级管理员 seeds into the shared business region.
-			if node.SectionID != "business" {
-				t.Fatal("directory outside the business area", node)
+			// 系统设置 and 超级管理员 both seed into the administrator-only
+			// system region (settings first) and 个人中心 is shared across
+			// workspaces at the tail of business.
+			want := map[string]string{"administration": "system", "settings": "system", "personal": "business"}
+			if want[node.ID] != node.SectionID {
+				t.Fatal("directory region drifted", node)
 			}
 		case "action":
 			if node.ParentID == nil || node.Permission == nil || len(node.OperationIds) == 0 {
@@ -90,7 +93,13 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 			if node.RouteID == nil || *node.RouteID != node.ID {
 				t.Fatal("page route mismatch", node)
 			}
-			if node.Sort != sortRank[*node.RouteID] {
+			// api-docs is the top-level tail of the system region instead of a
+			// directory child, so it carries its own fixed sort.
+			wantSort := sortRank[*node.RouteID]
+			if *node.RouteID == "api-docs" {
+				wantSort = 30
+			}
+			if node.Sort != wantSort {
 				t.Fatal("page sort drifted from defaultRank", node.ID, node.Sort)
 			}
 			if icon := navigationIcons[*node.RouteID]; icon != "" && node.Icon != icon || icon == "" && node.Icon != "Circle" {
@@ -101,6 +110,17 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 			}
 		default:
 			t.Fatal("unexpected default node type", node)
+		}
+	}
+	// The API reference stays an administrator-only top-level system entry:
+	// members never see it and no directory owns it.
+	for _, node := range seed.Nodes {
+		if node.ID != "api-docs" {
+			continue
+		}
+		if node.SectionID != "system" || node.ParentID != nil || node.Sort != 30 ||
+			!contains(node.Surfaces, "administrator") || contains(node.Surfaces, "user") {
+			t.Fatal("api-docs drifted from the administrator-only system top level", node)
 		}
 	}
 	// The 超级管理员 directory hosts every administration page; personal and
@@ -118,18 +138,18 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 				t.Fatal("administration page parent", page.ID, parentOf[page.ID])
 			}
 		case "system":
-			if parentOf[page.ID] != "" {
+			if parentOf[page.ID] != "settings" {
 				t.Fatal("system page parent", page.ID, parentOf[page.ID])
 			}
 		case "personal":
-			if parentOf[page.ID] != "" {
+			if parentOf[page.ID] != "personal" {
 				t.Fatal("personal page parent", page.ID, parentOf[page.ID])
 			}
 		}
 	}
-	// The single namespace: one node per page, actions prefixed op:.
-	if directories != 1 {
-		t.Fatal("expected the single administrator directory", directories)
+	// The three directories and the single action namespace.
+	if directories != 3 {
+		t.Fatal("expected the three directories", directories)
 	}
 
 	// Registry parity with the exported frontend page order: same set, and the
@@ -154,7 +174,7 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 	// shows the shared regions without the administrator-only entries, the
 	// administrator view carries both directories and console pages.
 	member := NavigationFor(seed, contracts.User{Roles: []string{"super_admin"}}, "user")
-	if len(member.Sections) != 2 {
+	if len(member.Sections) != 1 {
 		t.Fatal("user projection sections", member.Sections)
 	}
 	for _, node := range member.Nodes {
@@ -163,8 +183,24 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 		}
 	}
 	admin := NavigationFor(seed, contracts.User{Roles: []string{"super_admin"}}, "administrator")
-	if len(admin.Sections) != 3 {
+	if len(admin.Sections) != 2 {
 		t.Fatal("administrator projection sections", admin.Sections)
+	}
+	// The 超级管理员 directory rides the system region: the business top level
+	// keeps only shared/business entries, and system hosts both admin directories.
+	for _, node := range member.Nodes {
+		if node.ID == "administration" {
+			t.Fatal("administration directory leaked into the member projection", node)
+		}
+	}
+	adminTopLevel := map[string]string{}
+	for _, node := range admin.Nodes {
+		if node.ParentID == nil || *node.ParentID == "" {
+			adminTopLevel[node.ID] = node.SectionID
+		}
+	}
+	if adminTopLevel["administration"] != "system" || adminTopLevel["settings"] != "system" || adminTopLevel["personal"] != "business" {
+		t.Fatal("administrator top-level regions drifted", adminTopLevel)
 	}
 	// A page registered on both surfaces is granted once and appears in both
 	// projections under the same id.

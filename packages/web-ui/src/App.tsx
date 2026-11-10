@@ -21,6 +21,8 @@ import { AppError } from '@unicore/sdk';
 import { setCustomAccent, useTheme, type Theme } from '@unicore/theme';
 import { DashboardWidgetRegistry } from './registry';
 import { PasswordDialog } from './password-dialog';
+import { roleDisplayLabels } from './role-display';
+import { UserAvatar, displayLabel } from './user-avatar';
 import { SessionBoundary, useSession } from './session';
 import { routes, canAccess, isAdminRealm, isAdministrator, type Page } from './routes';
 import { LiveLogsButton } from './live-logs';
@@ -258,12 +260,6 @@ function SideNavigation({ page, data, client, onNavigate, onAbout, administratio
   </>;
 }
 
-function AccountAvatar({ user, url, className = 'size-8' }: { user: NonNullable<Bootstrap['current_user']>; url?: string; className?: string }) {
-  return <span aria-hidden="true" className={`flex shrink-0 items-center justify-center overflow-hidden rounded-lg bg-avatar text-[length:var(--font-11)] font-semibold text-avatar-ink ${className}`}>
-    {url ? <img src={url} className="size-full object-cover" alt="" /> : (user.username ?? 'Y').slice(0, 1).toUpperCase()}
-  </span>;
-}
-
 /** Sidebar footer: a shadcn-admin style account switcher when a user exists, otherwise the instance form capsule. */
 function SidebarFooter({ data, client, administration, rail, onOpenPassword, refresh, onAbout }: {
   data: Bootstrap; client: AppClient; administration: boolean; rail: boolean; onOpenPassword: () => void; refresh: () => void; onAbout: () => void;
@@ -287,13 +283,13 @@ function SidebarFooter({ data, client, administration, rail, onOpenPassword, ref
   }
   const trigger = rail
     ? <button type="button" className="mx-auto flex size-8 items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus" aria-label={t('侧栏账号菜单')}>
-        <AccountAvatar user={user} url={profile.data?.avatar_url} />
+        <UserAvatar name={displayLabel(user.display_name, user.username)} url={profile.data?.avatar_url} />
       </button>
     : <button type="button" className="flex w-full items-center gap-2.5 rounded-lg p-2 text-start outline-none hover:bg-surface-alt focus-visible:ring-2 focus-visible:ring-focus" aria-label={t('侧栏账号菜单')}>
-        <AccountAvatar user={user} url={profile.data?.avatar_url} />
+        <UserAvatar name={displayLabel(user.display_name, user.username)} url={profile.data?.avatar_url} />
         <span className="min-w-0 flex-1">
-          <strong className="block truncate text-sm font-semibold leading-tight text-ink">{user.username ?? data.site_name}</strong>
-          <small className="block truncate text-xs leading-tight text-muted">{user.email || user.roles.join(', ')}</small>
+          <strong className="block truncate text-sm font-semibold leading-tight text-ink">{displayLabel(user.display_name, user.username) || data.site_name}</strong>
+          <small className="block truncate text-xs leading-tight text-muted">{user.email || roleDisplayLabels(user.roles, user.role_names).join(', ')}</small>
         </span>
         <ChevronsUpDown size={16} className="ms-auto shrink-0 text-subtle" aria-hidden="true" />
       </button>;
@@ -301,8 +297,8 @@ function SidebarFooter({ data, client, administration, rail, onOpenPassword, ref
     <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
     <DropdownMenuContent side="right" align={rail ? 'start' : 'end'} aria-label={t('侧栏账号菜单')} className="min-w-56">
       <DropdownMenuLabel>
-        <strong className="block text-sm text-ink">{user.username ?? data.site_name}</strong>
-        <small className="block truncate text-xs text-muted">{user.email || user.roles.join(', ')}</small>
+        <strong className="block text-sm text-ink">{displayLabel(user.display_name, user.username) || data.site_name}</strong>
+        <small className="block truncate text-xs text-muted">{user.email || roleDisplayLabels(user.roles, user.role_names).join(', ')}</small>
       </DropdownMenuLabel>
       {client.web && <>
         {data.admin_path && !administration && <DropdownMenuItem onSelect={() => window.location.assign(data.admin_path!)}>{t('管理工作台')}</DropdownMenuItem>}
@@ -366,12 +362,14 @@ function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onO
       {data.profile === 'web-platform' && user && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex size-7 items-center justify-center overflow-hidden rounded-full bg-avatar text-[length:var(--font-11)] font-semibold text-avatar-ink" aria-label={t('账号菜单')}>{profile.data?.avatar_url ? <img src={profile.data.avatar_url} className="size-full object-cover" alt={t('当前头像')} /> : (user.username ?? 'Y').slice(0, 1).toUpperCase()}</button>
+            <button className="flex size-7 items-center justify-center overflow-hidden rounded-full" aria-label={t('账号菜单')}>
+              <UserAvatar name={displayLabel(user.display_name, user.username)} url={profile.data?.avatar_url} className="size-7 text-[length:var(--font-11)]" />
+            </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>
-              <strong className="block text-sm text-ink">{user.username ?? data.site_name}</strong>
-              <small className="text-2xs">{user.roles.join(', ')}</small>
+              <strong className="block text-sm text-ink">{displayLabel(user.display_name, user.username) || data.site_name}</strong>
+              <small className="text-2xs">{roleDisplayLabels(user.roles, user.role_names).join(', ')}</small>
             </DropdownMenuLabel>
             {client.web && <>
               {data.admin_path && !administration && <DropdownMenuItem onSelect={() => window.location.assign(data.admin_path)}>{t('管理工作台')}</DropdownMenuItem>}

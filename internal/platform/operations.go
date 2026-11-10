@@ -3,6 +3,8 @@
 package platform
 
 import (
+	"sync"
+
 	"github.com/yunnuo/unicore/internal/contracts"
 	apispec "github.com/yunnuo/unicore/packages/contracts"
 	"sort"
@@ -40,9 +42,11 @@ func PermissionsAllow(grants []string, required []string, mode string) bool {
 	return true
 }
 
-// APIOperations reads the authoritative embedded OpenAPI; identity and account
-// recovery operations remain mandatory and cannot be delegated away.
-func APIOperations() []contracts.APIOperation {
+// apiCatalogue builds the sorted operation snapshot once: the embedded
+// OpenAPI is fixed at compile time, so rebuilding and re-sorting the whole
+// catalogue per lookup is pure waste — session resolution resolves dozens of
+// operation ids per request through Operation and deriveGrantedPermissions.
+var apiCatalogue = sync.OnceValue(func() []contracts.APIOperation {
 	result := []contracts.APIOperation{}
 	for key, op := range apispec.Operations() {
 		parts := strings.SplitN(key, " ", 2)
@@ -67,9 +71,16 @@ func APIOperations() []contracts.APIOperation {
 	}
 	sort.Slice(result, func(i, j int) bool { return result[i].OperationID < result[j].OperationID })
 	return result
+})
+
+// APIOperations reads the authoritative embedded OpenAPI; identity and account
+// recovery operations remain mandatory and cannot be delegated away. The
+// returned slice is a shared immutable snapshot and must not be modified.
+func APIOperations() []contracts.APIOperation {
+	return apiCatalogue()
 }
 func Operation(id string) (contracts.APIOperation, bool) {
-	for _, op := range APIOperations() {
+	for _, op := range apiCatalogue() {
 		if op.OperationID == id {
 			return op, true
 		}

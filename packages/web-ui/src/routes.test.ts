@@ -37,18 +37,41 @@ it('keeps notes visible on standalone and desktop while gating by the role grant
 });
 
 it('lands unconfigured administrator pages in the super-administrator group without changing realm access', () => {
-  const metadata = { profile: 'web-platform', identity_realm: 'administrator', capabilities: {}, current_user: { roles: ['super_admin'], permissions: ['users:read', 'administrators:read', 'roles:read', 'tasks:read', 'menus:write', 'dictionaries:read'] } } as unknown as Bootstrap;
+  const metadata = { profile: 'web-platform', identity_realm: 'administrator', capabilities: { api_docs: true }, current_user: { roles: ['super_admin'], permissions: ['users:read', 'administrators:read', 'roles:read', 'tasks:read', 'menus:write', 'dictionaries:read', 'settings:read'] } } as unknown as Bootstrap;
   const navigation = buildNavigation(metadata);
-  // The unconfigured administrator pages default into the 超级管理员 directory of the 业务 section.
-  const administration = navigation.sections.find(section => section.id === 'business')?.entries.find(entry => entry.id === 'administration');
+  // The unconfigured administrator pages default into the 超级管理员 directory of the 系统管理 section.
+  const administration = navigation.sections.find(section => section.id === 'system')?.entries.find(entry => entry.id === 'administration');
   expect(administration?.children.map(entry => entry.id).filter(id => ['users', 'administrators', 'menus', 'dictionaries', 'tasks'].includes(id)).sort()).toEqual(['dictionaries', 'menus', 'tasks', 'users']);
-  // API 文档 needs no permission point and always joins the flat business sequence.
-  expect(navigation.sections.find(section => section.id === 'business')?.entries.map(entry => entry.id)).toContain('api-docs');
+  // API 文档 needs no permission point but the api_docs capability: with it
+  // published the page renders as the top-level tail of the system region.
+  const system = navigation.sections.find(section => section.id === 'system')!;
+  expect(system.entries.map(entry => entry.id)).toEqual(['settings', 'administration', 'api-docs']);
+  expect(system.entries[2].type).toBe('page');
   const member = { ...metadata, identity_realm: 'user' } as Bootstrap;
   for (const page of ['tasks', 'menus', 'dictionaries'] as const) {
     expect(canAccess(page, member)).toBe(false);
     expect(canAccess(page, { ...metadata, profile: 'web-standalone' } as Bootstrap)).toBe(false);
   }
+});
+
+it('hides the API reference wherever the instance does not publish the contract', () => {
+  // Members never reach api-docs regardless of the capability (realm deny).
+  const member = { profile: 'web-platform', identity_realm: 'user', capabilities: { api_docs: true }, current_user: { roles: ['super_admin'], permissions: [] } } as unknown as Bootstrap;
+  expect(canAccess('api-docs', member)).toBe(false);
+  // Administrators need the published contract: without the capability the
+  // seeded entry drops out of the system region entirely.
+  const adminWithout = { profile: 'web-platform', identity_realm: 'administrator', capabilities: {}, current_user: { roles: ['super_admin'], permissions: [] } } as unknown as Bootstrap;
+  expect(canAccess('api-docs', adminWithout)).toBe(false);
+  expect(buildNavigation(adminWithout).sections.find(section => section.id === 'system')?.entries.some(entry => entry.id === 'api-docs') ?? false).toBe(false);
+  const adminWith = { ...adminWithout, capabilities: { api_docs: true } } as unknown as Bootstrap;
+  expect(canAccess('api-docs', adminWith)).toBe(true);
+  expect(buildNavigation(adminWith).sections.find(section => section.id === 'system')?.entries.some(entry => entry.id === 'api-docs')).toBe(true);
+  // Standalone keeps the same capability gate; desktop never gains the page.
+  const standalone = { profile: 'web-standalone', capabilities: { api_docs: true }, current_user: null } as unknown as Bootstrap;
+  expect(canAccess('api-docs', standalone)).toBe(true);
+  expect(canAccess('api-docs', { ...standalone, capabilities: {} } as unknown as Bootstrap)).toBe(false);
+  const desktop = { profile: 'desktop', capabilities: { api_docs: true }, current_user: null } as unknown as Bootstrap;
+  expect(canAccess('api-docs', desktop)).toBe(false);
 });
 
 it('recognizes OIDC callback status without treating unknown hashes as overview',()=>{expect(pageFromHash('#oidc=success')).toBe('overview');expect(pageFromHash('#account?oidc=success')).toBe('account');expect(pageFromHash('#oidc=unknown')).toBe('not-found');});
@@ -57,12 +80,12 @@ it('gates the departments page on the departments:read grant inside the administ
   const superAdmin = { profile: 'web-platform', identity_realm: 'administrator', capabilities: {}, current_user: { roles: ['super_admin'], permissions: ['users:read', 'administrators:read', 'roles:read', 'departments:read', 'menus:write', 'dictionaries:read'] } } as unknown as Bootstrap;
   expect(canAccess('departments', superAdmin)).toBe(true);
   const navigation = buildNavigation(superAdmin);
-  const administration = navigation.sections.find(section => section.id === 'business')?.entries.find(entry => entry.id === 'administration');
+  const administration = navigation.sections.find(section => section.id === 'system')?.entries.find(entry => entry.id === 'administration');
   expect(administration?.children.map(entry => entry.id).filter(id => ['users', 'administrators', 'roles', 'departments', 'menus', 'dictionaries'].includes(id)).sort()).toEqual(['departments', 'dictionaries', 'menus', 'roles', 'users']);
   // A restricted operator without the grant loses both the route and the entry.
   const restricted = { ...superAdmin, current_user: { roles: ['ops'], permissions: ['users:read'] } } as unknown as Bootstrap;
   expect(canAccess('departments', restricted)).toBe(false);
-  const restrictedTree = buildNavigation(restricted).sections.find(section => section.id === 'business')?.entries.find(entry => entry.id === 'administration');
+  const restrictedTree = buildNavigation(restricted).sections.find(section => section.id === 'system')?.entries.find(entry => entry.id === 'administration');
   expect(restrictedTree?.children.map(entry => entry.id)).toEqual(['users']);
   // User realms and non-platform profiles never reach the administration group.
   const member = { ...superAdmin, identity_realm: 'user' } as Bootstrap;
@@ -89,13 +112,17 @@ it('admits every administrator-realm operator while keeping super_admin semantic
 it('keeps restricted administrators in the administration layout while filtering entries by grant', () => {
   const restricted = { profile: 'web-platform', identity_realm: 'administrator', capabilities: {}, current_user: { roles: ['content-ops'], permissions: ['users:read', 'announcements:read'] } } as unknown as Bootstrap;
   const navigation = buildNavigation(restricted);
-  const administration = navigation.sections.find(section => section.id === 'business')?.entries.find(entry => entry.id === 'administration');
+  // The granted 用户列表 keeps the 超级管理员 directory alive inside the
+  // system region.
+  const administration = navigation.sections.find(section => section.id === 'system')?.entries.find(entry => entry.id === 'administration');
   expect(administration?.children.map(entry => entry.id)).toEqual(['users']);
-  expect(navigation.sections.find(section => section.id === 'business')?.entries.filter(entry => entry.type !== 'directory').map(entry => entry.id)).toEqual(['overview', 'lab', 'announcements', 'api-docs']);
-  // 系统设置 pages need settings:read, so the system region disappears here
-  // while the shared personal region keeps the operator's own account pages.
-  expect(navigation.sections.find(section => section.id === 'system')).toBeUndefined();
-  expect(navigation.sections.find(section => section.id === 'personal')?.entries.map(entry => entry.id)).toEqual(['account', 'account-security', 'account-sessions']);
+  expect(navigation.sections.find(section => section.id === 'business')?.entries.filter(entry => entry.type !== 'directory').map(entry => entry.id)).toEqual(['overview', 'lab', 'announcements']);
+  // 系统设置 pages need settings:read, so the settings directory drops out of
+  // the system region while the single business region keeps the operator's
+  // own account pages under the shared 个人中心 directory.
+  expect(navigation.sections.find(section => section.id === 'system')?.entries.map(entry => entry.id)).toEqual(['administration']);
+  const personal = navigation.sections.find(section => section.id === 'business')?.entries.find(entry => entry.id === 'personal');
+  expect(personal?.children.map(entry => entry.id)).toEqual(['account', 'account-security', 'account-sessions']);
 });
 
 it('gates the new posts and api-operations pages inside the administration group', () => {

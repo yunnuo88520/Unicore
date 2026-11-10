@@ -277,3 +277,44 @@ func exerciseAdministratorRoles(t *testing.T, ctx context.Context, store *sqlsto
 		t.Fatal("restricted disable", err)
 	}
 }
+
+// TestUserRoleNamesEchoCatalogue pins the parallel display-name payload: user
+// listings and the account menus render catalogue names (custom role labels
+// like 运营) without a roles:read grant, falling back to the raw id when a
+// catalogue row is gone.
+func TestUserRoleNamesEchoCatalogue(t *testing.T) {
+	ctx := t.Context()
+	_, repo, super := navigationFixture(t, ctx)
+	role, err := repo.CreateRole(ctx, contracts.RoleSaveInput{Name: "运营", Permissions: []string{"notes:access"}}, super.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	member, err := repo.CreateUser(ctx, contracts.UserCreate{Username: "named", Email: "named@example.test", RoleIds: &[]string{role.ID, "user"}}, "hash", super.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if member.RoleNames == nil || len(*member.RoleNames) != 2 || (*member.RoleNames)[0] != "运营" || (*member.RoleNames)[1] != "user" {
+		t.Fatalf("role names not parallel to roles: %v", member.RoleNames)
+	}
+	if !platform.Has(member, "notes:access") {
+		t.Fatal("missing notes grant")
+	}
+	// A dangling membership (catalogue row deleted underneath) degrades to the
+	// raw id instead of hiding the assignment.
+	if _, err = repo.Store.Exec(ctx, repo.Store.DB, "DELETE FROM unicore_roles WHERE id=?", role.ID); err != nil {
+		t.Fatal(err)
+	}
+	orphan, err := repo.user(ctx, repo.Store.DB, member.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for index, id := range orphan.Roles {
+		if id == role.ID {
+			found = (*orphan.RoleNames)[index] == role.ID
+		}
+	}
+	if !found {
+		t.Fatalf("orphan role name did not fall back to the id: %v %v", orphan.Roles, orphan.RoleNames)
+	}
+}

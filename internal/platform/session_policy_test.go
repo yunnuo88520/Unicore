@@ -119,12 +119,18 @@ func TestSessionSecurityPolicy(t *testing.T) {
 	if err = db.DB.QueryRowContext(ctx, "SELECT last_seen_at FROM unicore_session_details WHERE token_hash=?", platform.Hash(memberToken)).Scan(&last); err != nil || last != now-30 {
 		t.Fatal("passive polling extended idle", last, err)
 	}
+	// The sliding-expiry touch is throttled to one write per minute; age the
+	// row past the throttle window and widen the idle limit for this step, so
+	// the active request lands inside "renewal fires, idle still allows".
+	patch(contracts.SettingChange{Key: "security.user_idle_minutes", Value: "2"})
+	exec("UPDATE unicore_session_details SET last_seen_at=? WHERE token_hash=?", now-61, platform.Hash(memberToken))
 	if _, err = memberIdentity.Session(ctx, memberToken); err != nil {
 		t.Fatal(err)
 	}
 	if err = db.DB.QueryRowContext(ctx, "SELECT last_seen_at FROM unicore_session_details WHERE token_hash=?", platform.Hash(memberToken)).Scan(&last); err != nil || last < now {
 		t.Fatal("active request failed to renew idle", last, err)
 	}
+	patch(contracts.SettingChange{Key: "security.user_idle_minutes", Value: "1"})
 	exec("UPDATE unicore_session_details SET last_seen_at=? WHERE token_hash=?", now-61, platform.Hash(memberToken))
 	if _, err = memberIdentity.Session(ctx, memberToken); !errors.Is(err, platform.ErrCredentials) {
 		t.Fatal("user idle bypass", err)

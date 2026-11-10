@@ -3,6 +3,7 @@
 package httpadapter
 
 import (
+	"log/slog"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -41,6 +42,11 @@ func failure(w http.ResponseWriter, status int, code, message string) {
 	writeJSON(w, status, contracts.ErrorResponse{Code: code, Message: message, RequestID: w.Header().Get("X-Request-ID")})
 }
 func webError(w http.ResponseWriter, err error) {
+	// Unexpected handler failures must surface in the server log: response
+	// bodies alone vanish when clients abort mid-flight.
+	if err != nil && !errors.Is(err, platform.ErrInput) && !errors.Is(err, platform.ErrConflict) && !errors.Is(err, context.Canceled) {
+		slog.Warn("handler error", "event", "http.handler_error", "error", err.Error())
+	}
 	var conflict *platform.AccountConflict
 	if errors.As(err, &conflict) {
 		message := "账号已存在，请使用其他用户名"
@@ -319,6 +325,9 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 	data.Capabilities.Database = data.Installed
 	data.Capabilities.Settings = data.Installed
 	data.Capabilities.Authentication = data.Installed && identity != nil
+	// Every profile reports the contract-reference flag truthfully: the built-in
+	// API docs page and its navigation entry gate on this capability.
+	data.Capabilities.ApiDocs = config.APIDocs
 	if service != nil && profile == runtime.WebPlatform {
 		if service.Branding != nil {
 			if value, err := service.Branding.Snapshot(r.Context(), false); err == nil {
@@ -396,7 +405,12 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 		}
 	}
 	if profile == runtime.WebPlatform && (!administratorRequest(r) || data.CurrentUser == nil) {
-		data.Version = ""
+		// Signed-in members keep the version string so the shared sidebar badge
+		// renders on the member workspace too; build coordinates and the update
+		// capability stay administrator-only, and anonymous visitors learn nothing.
+		if data.CurrentUser == nil {
+			data.Version = ""
+		}
 		data.Commit = ""
 		data.BuildTime = ""
 		data.Capabilities.Updater = false
@@ -564,6 +578,28 @@ func mountWeb(api chi.Router, config Config) {
 			}
 			success(w, data)
 		})
+		// The management password reset is a member-account capability: the
+		// contract declares it for /admin/users only, so the administrator
+		// alias never mounts it and an undeclared route would fail closed.
+		if !administrators {
+			api.Post(path+"/{id}/password", func(w http.ResponseWriter, r *http.Request) {
+				actor, ok := require(manager, w, r, "users:update")
+				if !ok {
+					return
+				}
+				var input contracts.AdminPasswordResetInput
+				if !decode(w, r, &input) {
+					return
+				}
+				identity := manager.Identity(false)
+				password, err := identity.ResetUserPassword(r.Context(), chi.URLParam(r, "id"), input, actor.User.ID)
+				if err != nil {
+					webError(w, err)
+					return
+				}
+				success(w, contracts.AdminPasswordReset{Password: password})
+			})
+		}
 	}
 
 	for _, admin := range []bool{false, true} {

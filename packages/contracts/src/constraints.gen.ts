@@ -58,6 +58,7 @@ export const constraints = {
     "additionalProperties": false,
     "required": [
       "execute",
+      "api_docs",
       "database",
       "installation",
       "authentication",
@@ -68,6 +69,9 @@ export const constraints = {
     ],
     "properties": {
       "execute": {
+        "type": "boolean"
+      },
+      "api_docs": {
         "type": "boolean"
       },
       "database": {
@@ -505,6 +509,15 @@ export const constraints = {
       "phone": {
         "type": "string"
       },
+      "display_name": {
+        "type": "string"
+      },
+      "role_names": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
       "status": {
         "type": "string"
       },
@@ -628,6 +641,10 @@ export const constraints = {
         "maxLength": 21,
         "pattern": "^(?:\\+?[0-9]{5,20})?$"
       },
+      "display_name": {
+        "type": "string",
+        "maxLength": 80
+      },
       "role": {
         "type": "string",
         "maxLength": 64
@@ -672,6 +689,15 @@ export const constraints = {
       "status": {
         "type": "string"
       },
+      "email": {
+        "type": "string",
+        "format": "email",
+        "maxLength": 254
+      },
+      "display_name": {
+        "type": "string",
+        "maxLength": 80
+      },
       "department_id": {
         "type": "string",
         "maxLength": 64
@@ -695,6 +721,54 @@ export const constraints = {
         "minItems": 1,
         "maxItems": 64,
         "uniqueItems": true
+      }
+    }
+  },
+  "AdminPasswordResetInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "password": {
+        "type": "string",
+        "minLength": 12,
+        "maxLength": 128,
+        "x-max-utf8-bytes": 128
+      }
+    }
+  },
+  "AdminPasswordReset": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "password"
+    ],
+    "properties": {
+      "password": {
+        "type": "string"
+      }
+    }
+  },
+  "AdminPasswordResetResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/AdminPasswordReset"
+      },
+      "request_id": {
+        "type": "string"
       }
     }
   },

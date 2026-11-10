@@ -24,7 +24,11 @@ test('enterprise settings, real JIT, explicit binding and password fallback', as
   await expect(page.getByText('实例尚未启用',{exact:true})).toBeVisible(); await capture(page, info, 'oidc-account-disabled');
   await page.goto(`${instance.url}/admin/site?tab=security`);
   await page.getByRole('switch',{name:'登录图形验证码',exact:true}).uncheck();
+  // The next goto would abort a still-in-flight save and silently keep the
+  // login captcha enabled, so let the PATCH land before leaving the page.
+  const captchaSave=page.waitForResponse(r=>r.request().method()==='PATCH'&&r.url().includes('/admin/settings')&&r.status()===200);
   await page.getByRole('button',{name:'保存设置',exact:true}).click();
+  await captchaSave;
   await expect(page.getByRole('button',{name:'保存设置',exact:true})).toBeDisabled();
   await page.goto(`${instance.url}/admin/site`);
   await page.getByRole('tab', { name: '企业登录', exact: true }).click();
@@ -267,7 +271,10 @@ test('SSO-only users enroll mandatory TOTP without SMTP and still need MFA on ne
  await reauthenticate(); await page.getByRole('button',{name:'确认企业身份',exact:true}).click();
  dialog=page.getByRole('dialog',{name:'设置身份验证器',exact:true}); await expect(dialog.getByLabel('手动密钥',{exact:true})).toBeVisible();
  const finalSecret=await dialog.getByLabel('手动密钥',{exact:true}).inputValue();
- await dialog.getByLabel('身份验证器验证码',{exact:true}).fill(totpCode(finalSecret,Math.floor(Date.now()/30000)-1));
+ // The server reads its verification clock after the enrollment queries, so
+ // under load the accepted window drifts forward: submit the current window's
+ // code (a previous-window code falls out of range across a 30s boundary).
+ await dialog.getByLabel('身份验证器验证码',{exact:true}).fill(totpCode(finalSecret,Math.floor(Date.now()/30000)));
  await dialog.getByRole('button',{name:'开启双重验证',exact:true}).click();
  await expect(page.locator('code')).toHaveCount(10);
  const recovery=(await page.locator('code').first().textContent())!;

@@ -93,7 +93,9 @@ func TestSeparateSurfacesAndCreatedUserLogin(t *testing.T) {
 	check(w, 200)
 	var boot contracts.BootstrapResponse
 	_ = json.Unmarshal(w.Body.Bytes(), &boot)
-	if boot.Data.CurrentUser == nil || boot.Data.CurrentUser.Username != "createdmember" || boot.Data.AdminPath != "" || boot.Data.Version != "" || boot.Data.Capabilities.Updater {
+	// Members keep the version string for the shared sidebar badge; the build
+	// coordinates and update capability stay administrator-only.
+	if boot.Data.CurrentUser == nil || boot.Data.CurrentUser.Username != "createdmember" || boot.Data.AdminPath != "" || boot.Data.Version == "" || boot.Data.Commit != "" || boot.Data.BuildTime != "" || boot.Data.Capabilities.Updater {
 		t.Fatal(w.Body.String())
 	}
 	for path, entry := range map[string]string{"/": "USER_ENTRY", "/login": "USER_ENTRY", "/register": "USER_ENTRY", "/admin": "ADMIN_ENTRY"} {

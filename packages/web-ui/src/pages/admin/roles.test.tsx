@@ -12,13 +12,14 @@ import type { PageProps } from '../../router';
 
 const permissions = [
  { id: 'notes:access', name: '访问笔记', description: '读取笔记', group: '业务权限', assignable: true },
+ { id: 'notes:create', name: '创建笔记', description: '新建个人笔记', group: '业务权限', assignable: true },
+ { id: 'notes:update', name: '编辑笔记', description: '修改个人笔记内容与状态', group: '业务权限', assignable: true },
  { id: 'notes:delete', name: '删除笔记', description: '删除笔记', group: '业务权限', assignable: true },
   { id: 'users:read', name: '查看用户', description: '搜索和查看用户账号、角色与状态', group: '用户管理', assignable: false },
   { id: 'roles:write', name: '管理角色', description: '创建、编辑与删除角色并分配权限', group: '角色权限', assignable: false },
   { id: 'settings:write', name: '修改基础设置', description: '修改品牌、安全与账号策略', group: '系统管理', assignable: false },
   { id: 'menus:write', name: '管理菜单', description: '调整工作空间菜单的顺序、分组与可见性', group: '角色权限', assignable: false },
   { id: 'files:access', name: '使用文件管理', description: '访问文件管理页面并上传、下载文件', group: '业务权限', assignable: true },
-  { id: 'notes:create', name: '创建笔记', description: '新建个人笔记', group: '业务权限', assignable: true },
 ];
 
 const rolesPayload = () => ({
@@ -41,6 +42,13 @@ const menuConfig = () => ({
   ],
   nodes: [
     { id: 'n-notes', section_id: 'sec-user', type: 'page', label: '我的笔记', route_id: 'notes', icon: 'NotebookPen', sort: 0, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: [], disabled: false, permission: 'notes:access', surfaces: ['user', 'administrator'] },
+    // The real tree carries one action per grantable operation of the page,
+    // including the administrator-realm variants of the shared notes page.
+    { id: 'op:listNotes', section_id: 'sec-user', parent_id: 'n-notes', type: 'action', label: '浏览笔记', icon: '', sort: 0, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: ['listNotes'], disabled: false, permission: 'notes:access', surfaces: ['user', 'administrator'] },
+    { id: 'op:createNote', section_id: 'sec-user', parent_id: 'n-notes', type: 'action', label: '创建笔记', icon: '', sort: 1, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: ['createNote'], disabled: false, permission: 'notes:create', surfaces: ['user', 'administrator'] },
+    { id: 'op:adminCreateNote', section_id: 'sec-user', parent_id: 'n-notes', type: 'action', label: '创建笔记', icon: '', sort: 2, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: ['adminCreateNote'], disabled: false, permission: 'notes:create', surfaces: ['user', 'administrator'] },
+    { id: 'op:updateNote', section_id: 'sec-user', parent_id: 'n-notes', type: 'action', label: '编辑笔记', icon: '', sort: 3, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: ['updateNote'], disabled: false, permission: 'notes:update', surfaces: ['user', 'administrator'] },
+    { id: 'op:deleteNote', section_id: 'sec-user', parent_id: 'n-notes', type: 'action', label: '删除笔记', icon: '', sort: 4, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: ['deleteNote'], disabled: false, permission: 'notes:delete', surfaces: ['user', 'administrator'] },
     { id: 'n-act-notes', section_id: 'sec-user', parent_id: 'n-notes', type: 'action', label: '导出笔记动作', icon: '', sort: 0, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: ['listNotes'], disabled: false, permission: 'notes:delete', surfaces: ['user'] },
     { id: 'n-act-notes-2', section_id: 'sec-user', parent_id: 'n-notes', type: 'action', label: '导出笔记动作', icon: '', sort: 1, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: ['listNotes'], disabled: false, permission: 'notes:delete', surfaces: ['user'] },
     { id: 'n-dir', section_id: 'sec-user', type: 'directory', label: '组织目录', icon: 'Network', sort: 1, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: [], disabled: false, surfaces: ['user'] },
@@ -149,14 +157,11 @@ it('authorizes menu trees per realm surface where directories aggregate their de
   mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole }));
   await screen.findByText('记录员');
   const dialog = await openEditor('新建角色');
-  // Both workspaces are available and named independently; each header carries
-  // its surface badge and the selected menu count.
+  // Each region keeps its title and the selected menu count; rows carry no
+  // surface badges — the tree is plain, like the menu editor.
   expect(within(dialog).getByRole('region', { name: '业务' })).toBeVisible();
   expect(within(dialog).getByRole('region', { name: '后台' })).toBeVisible();
-  // Surface badges: shared nodes authorize once for both workspaces.
-  expect(within(dialog).getByText('两端')).toBeVisible();
-  expect(within(dialog).getAllByText('成员端').length).toBeGreaterThan(0);
-  expect(within(dialog).getAllByText('管理端').length).toBeGreaterThan(0);
+  expect(within(dialog).queryByText('两端')).toBeNull();
   expect(within(dialog).getByRole('checkbox', { name: '我的笔记' })).not.toBeChecked();
   await userEvent.click(within(dialog).getByRole('checkbox', { name: '组织目录' }));
   // Checking a directory selects the whole branch: the child page comes along.
@@ -262,7 +267,9 @@ it('authorizes page actions grouped by label with their permission point and lin
   // Same-label derived buttons collapse into one grouped row; the owning
   // point and linked operations ride the tooltip instead of a second line.
   expect(within(dialog).getByTitle(/notes:delete · listNotes/)).toBeVisible();
-  expect(within(dialog).getByText('×2')).toBeVisible();
+  // Same-label derived buttons collapse into one grouped row; the ×2 badge
+  // lives inside the group's own label, which also carries the hint tooltip.
+  expect(within(within(dialog).getByTitle(/notes:delete · listNotes/)).getByText('×2')).toBeVisible();
   expect(action).toBeDisabled();
   // Granting the bound point and the linked operation unlocks the action.
   const points = await openAdvanced(dialog);
@@ -392,4 +399,55 @@ it('echoes a saved custom scope with its department selection when editing', asy
   await userEvent.selectOptions(within(dialog).getByLabelText('数据范围'), 'self');
   await userEvent.click(within(dialog).getByRole('button', { name: '保存' }));
   await vi.waitFor(() => expect(updateRole).toHaveBeenCalledWith('recorder', expect.objectContaining({ data_scope: 'self', department_ids: [] })));
+});
+
+it('submits the full implied payload for a checked notes page', async () => {
+  // Regression: the tabbed editor era submitted only the manually checked
+  // points, so a page checked with its buttons and API operations lost the
+  // implied notes:* bound and members could open the page without the create
+  // entry. The single-tree editor derives the union instead (ADR-0039 §4).
+  const createRole = vi.fn().mockResolvedValue({ id: 'x', name: '运营', builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: [], action_ids: [], operation_ids: [], authorization_initialized: true });
+  mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole }));
+  await screen.findByText('记录员');
+  const dialog = await openEditor('新建角色');
+  await userEvent.type(within(dialog).getByLabelText('角色名称'), '运营');
+  await userEvent.click(within(dialog).getByRole('checkbox', { name: '我的笔记' }));
+  await userEvent.click(within(dialog).getByRole('button', { name: '保存' }));
+  await vi.waitFor(() => expect(createRole).toHaveBeenCalled());
+  const input = createRole.mock.calls[0][0] as Record<string, string[]>;
+  // The derived point bound carries the whole notes set, not just the route point.
+  for (const point of ['notes:access', 'notes:create', 'notes:update', 'notes:delete']) {
+    expect(input.permissions).toContain(point);
+  }
+  // The auto-followed buttons and API operations ride along; the
+  // administrator-realm variants stay out of a user-realm role's payload.
+  expect(input.operation_ids).toEqual(expect.arrayContaining(['listNotes', 'createNote', 'updateNote', 'deleteNote']));
+  expect(input.operation_ids).not.toContain('adminCreateNote');
+  expect(input.action_ids).toEqual(expect.arrayContaining(['op:listNotes', 'op:createNote', 'op:updateNote', 'op:deleteNote']));
+  expect(input.action_ids).not.toContain('op:adminCreateNote');
+});
+
+it('drops dependent buttons when an API operation is unchecked instead of failing silently at save', async () => {
+  // Unchecking createNote used to leave the 新建 button checked in the tree
+  // while the submit filters dropped it (and its implied point) silently.
+  const createRole = vi.fn().mockResolvedValue({ id: 'x', name: '运营', builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: [], action_ids: [], operation_ids: [], authorization_initialized: true });
+  mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole }));
+  await screen.findByText('记录员');
+  const dialog = await openEditor('新建角色');
+  await userEvent.type(within(dialog).getByLabelText('角色名称'), '运营');
+  await userEvent.click(within(dialog).getByRole('checkbox', { name: '我的笔记' }));
+  await userEvent.click(within(dialog).getByRole('button', { name: '展开或收起 我的笔记' }));
+  await userEvent.click(within(dialog).getByRole('checkbox', { name: 'createNote' }));
+  // The dependent button group unchecks itself in the tree with the operation.
+  expect(within(dialog).getByRole('checkbox', { name: '创建笔记' })).not.toBeChecked();
+  await userEvent.click(within(dialog).getByRole('button', { name: '保存' }));
+  await vi.waitFor(() => expect(createRole).toHaveBeenCalled());
+  const input = createRole.mock.calls[0][0] as Record<string, string[]>;
+  expect(input.operation_ids).not.toContain('createNote');
+  expect(input.action_ids).not.toContain('op:createNote');
+  expect(input.action_ids).not.toContain('op:adminCreateNote');
+  expect(input.permissions).not.toContain('notes:create');
+  // The untouched grants survive the prune.
+  expect(input.operation_ids).toContain('listNotes');
+  expect(input.permissions).toContain('notes:access');
 });

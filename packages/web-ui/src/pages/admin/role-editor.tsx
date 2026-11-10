@@ -72,13 +72,29 @@ function derivePermissions(nodes: NavigationNode[], menus: readonly string[], ac
   return [...points];
 }
 
+// The payload the current selection saves: the derived point union plus the
+// operations and actions it actually legitimizes. Shared by the submit handler
+// and the change handlers so the tree never shows a grant the save would
+// silently drop — an unchecked operation or revoked point takes its dependent
+// buttons with it instead of failing only at submit time.
+function effectiveSelection(nodes: NavigationNode[], menus: readonly string[], actions: readonly string[], operationIds: readonly string[], manual: readonly string[]): { permissions: string[]; operations: string[]; actions: string[] } {
+  const permissions = derivePermissions(nodes, menus, actions, operationIds, manual);
+  const operations = operationIds.filter(id => operationPermissionsAllow(permissions, id));
+  const byId = new Map(nodes.map(node => [node.id, node]));
+  const granted = new Set(operations);
+  return {
+    permissions,
+    operations,
+    actions: actions.filter(id => {
+      const node = byId.get(id);
+      return !!node?.permission && permissions.includes(node.permission) && node.operation_ids.every(op => granted.has(op));
+    }),
+  };
+}
+
 type ActionGroup = { key: string; label: string; hint: string; ids: string[]; nodes: NavigationNode[] };
 
 // Surface badges: shared nodes authorize once for both workspaces.
-function surfacesText(surfaces: NavigationNode['surfaces'] | undefined): string | null {
-  if (!surfaces?.length) return null;
-  return t(surfaces.includes('user') && surfaces.includes('administrator') ? '两端' : surfaces.includes('user') ? '成员端' : '管理端');
-}
 
 export function RoleEditor({ web, realm, role, source, permissions, onClose, onSaved }: {
   web: WebClient; realm: Role['realm']; role?: Role; source?: Role; permissions: PermissionDefinition[]; onClose: () => void; onSaved: () => void;
@@ -180,7 +196,16 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
     onError: error => message.error(t(error.message)),
   });
   const pending = save.isPending;
-  const toggle = (id: string, checked: boolean) => setGrants(current => checked ? [...current, id] : current.filter(value => value !== id));
+  const toggle = (id: string, checked: boolean) => {
+    setGrants(current => checked ? [...current, id] : current.filter(value => value !== id));
+    if (checked) return;
+    // Revoking a point drops the operations it alone authorized and the buttons
+    // that depended on them, so the tree never shows a grant the save drops.
+    const next = grants.filter(value => value !== id);
+    const selection = effectiveSelection(nodes, menuIds, actionIds, operationIds, next);
+    setOperationIds(selection.operations);
+    setActionIds(selection.actions);
+  };
   const toggleDepartment = (id: string, checked: boolean) => setDepartmentIds(current => checked ? [...current, id] : current.filter(value => value !== id));
   const submit = () => {
     const trimmed = name.trim();
@@ -188,10 +213,9 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
     if (trimmed.length > 80) { setNameError(t('最多 {{count}} 个字符', { count: 80 })); return; }
     setNameError('');
     // Creates carry the editor-fixed realm; updates cannot move a role between realms.
-    const validOperations = operationIds.filter(id => operationPermissionsAllow(effectivePermissions, id));
-    const validActions = actionIds.filter(id => nodes.some(node => node.id === id && node.permission && effectivePermissions.includes(node.permission) && node.operation_ids.every(op => validOperations.includes(op))));
+    const { permissions: derived, operations: validOperations, actions: validActions } = effectiveSelection(nodes, menuIds, actionIds, operationIds, grants);
     const authorization = { menu_ids: menuIds, action_ids: validActions, operation_ids: validOperations };
-    const input: RoleSaveInput = role ? { name: trimmed, permissions: effectivePermissions, ...authorization } : { name: trimmed, permissions: effectivePermissions, realm, ...authorization };
+    const input: RoleSaveInput = role ? { name: trimmed, permissions: derived, ...authorization } : { name: trimmed, permissions: derived, realm, ...authorization };
     {
       // Administrator roles stay self-scoped server-side; user roles carry the
       // chosen scope, and only the custom scope keeps a department selection.
@@ -253,7 +277,6 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
     if (menuIds.includes(node.id)) imply(routePermission(node.route_id));
     for (const group of groups) for (const action of group.nodes) if (actionIds.includes(action.id)) imply(action.permission);
     for (const op of pageOps) if (operationIds.includes(op.id)) for (const point of op.permissions) imply(point);
-    const surface = surfacesText(node.surfaces);
     return <div key={node.id} className="flex flex-col">
       <div className="flex h-8 items-center gap-1.5 rounded-md px-1 hover:bg-surface-alt" style={{ paddingInlineStart: `${depth * 16}px` }}>
         {hasChildren || hasDetail
@@ -269,7 +292,6 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
           checked={(() => { const ids = descendants(node.id); const selected = ids.filter(id => menuIds.includes(id)).length; return selected === ids.length ? true : selected ? 'indeterminate' : false; })()}
           onChange={checked => toggleMenu(node, checked)} />
         <span className="min-w-0 truncate text-sm text-ink">{nodeLabel(node)}</span>
-        {surface && <Badge variant="subtle">{surface}</Badge>}
       </div>
       {hasDetail && detailOpen && <div className="flex flex-col gap-1 pb-1" style={{ paddingInlineStart: `${(depth + 1) * 16 + 20}px` }}>
         {groups.map(group => {
@@ -286,7 +308,14 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
           <small className="px-1 text-2xs font-medium text-subtle">{t('API 操作')}</small>
           {pageOps.map(op => <label key={op.id} className="flex h-7 items-center gap-2 rounded-md px-1 hover:bg-surface-alt" title={`${op.method} ${op.path} · ${op.permissions.join(', ')}`}>
             <Checkbox aria-label={op.id} disabled={pending} checked={operationIds.includes(op.id)}
-              onChange={checked => setOperationIds(current => checked ? [...new Set([...current, op.id])] : current.filter(id => id !== op.id))} />
+              onChange={checked => {
+                // Unchecking an operation stops its buttons from riding along:
+                // the visible tree keeps matching what the save will keep.
+                const nextOperations = checked ? [...new Set([...operationIds, op.id])] : operationIds.filter(id => id !== op.id);
+                const selection = effectiveSelection(nodes, menuIds, actionIds, nextOperations, grants);
+                setOperationIds(nextOperations);
+                setActionIds(selection.actions);
+              }} />
             <code className="min-w-0 truncate text-xs text-muted">{op.id}</code>
           </label>)}
         </div>}
@@ -354,11 +383,9 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
             const visible = needle ? filterTree(children) : children;
             const menuable = nodes.filter(node => node.section_id === section.id && node.type !== 'action');
             const selected = menuable.filter(node => menuIds.includes(node.id)).length;
-            const surface = surfacesText(section.surfaces);
             return <section key={section.id} aria-label={label} className="flex flex-col gap-1">
               <div className="flex items-center gap-2 border-b border-line pb-1.5">
                 <h3 className="text-sm font-medium text-ink">{label}</h3>
-                {surface && <Badge variant="subtle">{surface}</Badge>}
                 <small className="ms-auto text-xs text-subtle">{t('已选 {{count}}', { count: selected })}</small>
               </div>
               {visible

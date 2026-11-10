@@ -15,7 +15,7 @@ var baseNavigationPages = []contracts.NavigationPage{
 	{ID: "lab", Surfaces: []string{"user", "administrator"}},
 	{ID: "files", Surfaces: []string{"administrator"}, Permission: "files:access"},
 	{ID: "announcements", Surfaces: []string{"administrator"}, Permission: "announcements:read"},
-	{ID: "api-docs", Surfaces: []string{"user", "administrator"}},
+	{ID: "api-docs", Surfaces: []string{"administrator"}},
 	{ID: "site", Surfaces: []string{"user", "administrator"}, Permission: "settings:read", Group: "system"},
 	{ID: "storage", Surfaces: []string{"administrator"}, Permission: "storage:read", Group: "system"},
 	{ID: "account-policy", Surfaces: []string{"administrator"}, Permission: "settings:read", Group: "system"},
@@ -123,33 +123,45 @@ func DefaultNavigation() contracts.Navigation {
 		Version: 0,
 		Sections: []contracts.NavigationSection{
 			{ID: "business", Surfaces: []string{"user", "administrator"}, Sort: 10, Visible: true, ShowTitle: true},
-			{ID: "personal", Surfaces: []string{"user", "administrator"}, Sort: 20, Visible: true, ShowTitle: true},
 			{ID: "system", Surfaces: []string{"administrator"}, Sort: 30, Visible: true, ShowTitle: true},
 		},
 		Nodes: []contracts.NavigationNode{},
 	}
-	// The 超级管理员 directory lives in the shared business region; the
-	// 系统管理 region keeps the console pages and 个人中心 is its own shared
-	// region so the same account pages are granted exactly once.
-	directory := func(id string, sort int) {
-		result.Nodes = append(result.Nodes, contracts.NavigationNode{ID: id, SectionID: "business", Surfaces: []string{"administrator"}, Type: "directory", Icon: navigationIcon(id),
+	// The three directories mirror the console layout: the system region keeps
+	// 系统设置 with the console pages followed by 超级管理员 hosting the
+	// administration pages, and 个人中心 is one shared business directory so
+	// the same account pages are granted exactly once for both workspaces.
+	directory := func(id, section string, sort int, surfaces []string) {
+		result.Nodes = append(result.Nodes, contracts.NavigationNode{ID: id, SectionID: section, Surfaces: surfaces, Type: "directory", Icon: navigationIcon(id),
 			Sort: sort, Visible: true, OpenMode: "same_tab", OperationIds: []string{}})
 	}
-	directory("administration", 20)
+	directory("administration", "system", 20, []string{"administrator"})
+	directory("settings", "system", 10, []string{"administrator"})
+	directory("personal", "business", 2700, []string{"user", "administrator"})
 	for _, page := range NavigationPages() {
 		section := "business"
 		var parent string
 		switch page.Group {
 		case "personal":
-			section = "personal"
+			parent = "personal"
 		case "system":
 			section = "system"
+			parent = "settings"
 		case "administration":
+			section = "system"
 			parent = "administration"
+		}
+		sort := navigationRank(page.ID) * 10
+		if page.ID == "api-docs" {
+			// API 文档 stays a top-level node at the tail of the system region,
+			// after the settings and administration directories; mirrors the
+			// frontend defaultNavigation special case.
+			section = "system"
+			sort = 30
 		}
 		node := contracts.NavigationNode{
 			ID: page.ID, SectionID: section, Surfaces: append([]string{}, page.Surfaces...), Type: "page", RouteID: &page.ID,
-			Sort: navigationRank(page.ID) * 10, Visible: true, OpenMode: "same_tab", OperationIds: []string{},
+			Sort: sort, Visible: true, OpenMode: "same_tab", OperationIds: []string{},
 		}
 		if icon, ok := navigationIcons[page.ID]; ok {
 			node.Icon = icon

@@ -6,7 +6,7 @@ import { uiModules } from './module-registry';
 import type { Bootstrap, MenuList, NavigationNode, NavigationSection } from '@unicore/sdk';
 import { Circle, type LucideIcon } from 'lucide-react';
 import { defineMessages, t } from './i18n';
-import { resolveNavigationIcon } from './navigation-icons';
+import { navigationIcons, resolveNavigationIcon } from './navigation-icons';
 import { canAccess, isAdminRealm, isAdministrator, routes, type Page } from './routes';
 
 export type MenuTreeNode = { node: NavigationNode; children: MenuTreeNode[] };
@@ -61,33 +61,58 @@ const bothSurfaces: NavigationSection['surfaces'] = ['user', 'administrator'];
 const adminOnly: NavigationSection['surfaces'] = ['administrator'];
 // Pages whose availability narrows on the platform profile mirror the Go seed;
 // standalone and desktop keep their single-surface console entries.
-const platformAdminOnly = new Set(['files', 'announcements', 'site']);
+const platformAdminOnly = new Set(['files', 'announcements', 'site', 'api-docs']);
+
+/** Route registration alone decides which workspaces a page reaches, mirroring the Go seed: console and management groups plus the platform admin-only pages stay administrator-only. */
+export function routeSurfaces(id: string): NavigationSection['surfaces'] {
+  const group = isRegisteredPage(id) && 'group' in routes[id] ? String(routes[id].group) : '';
+  return group === 'system' || group === 'administration' || platformAdminOnly.has(id) ? ['administrator'] : ['user', 'administrator'];
+}
+
+/** Seeded directory surfaces aggregate their subtree: the union of the route-derived page surfaces keeps a directory reachable wherever its pages are. */
+function groupSurfaces(group: string): NavigationSection['surfaces'] {
+  const merged = new Set<'user' | 'administrator'>();
+  for (const id of Object.keys(routes).filter(isRegisteredPage)) {
+    const route = routes[id];
+    if ('group' in route && String(route.group) === group) for (const surface of routeSurfaces(id)) merged.add(surface);
+  }
+  return merged.size ? [...merged] : bothSurfaces;
+}
 
 /** Static local defaults use exactly the persisted model. Route membership comes only from the route registry. */
 export function defaultNavigation(_surface: NavigationSection['surfaces'], profile: Bootstrap['profile'] = 'web-platform'): NavigationConfig {
   const platform = profile === 'web-platform';
   const sections: NavigationSection[] = [
     { id: 'business', surfaces: bothSurfaces, name: titles.business, sort: 10, visible: true, show_title: true },
-    ...(platform ? [{ id: 'personal', surfaces: bothSurfaces, name: titles.personal, sort: 20, visible: true, show_title: true } as NavigationSection] : []),
     ...(platform ? [{ id: 'system', surfaces: adminOnly, name: titles.system, sort: 30, visible: true, show_title: true } as NavigationSection] : []),
   ];
   const nodes: NavigationNode[] = [];
   if (platform) {
-    // The shared business region hosts the 超级管理员 directory right after
-    // the lab entry.
-    nodes.push({ ...newNavigationNode('administration', 'business', 'directory', adminOnly), label: titles.administration, icon: 'Users', sort: 20 });
+    // The console directories mirror the sidebar: the system region keeps
+    // 系统设置 with the console pages followed by 超级管理员 hosting the
+    // administration pages, and 个人中心 is one shared directory at the tail
+    // of the business region so the same account pages are granted once for
+    // both workspaces. Their surfaces aggregate the same route-derived page
+    // surfaces their subtree carries.
+    nodes.push({ ...newNavigationNode('administration', 'system', 'directory', groupSurfaces('administration')), label: titles.administration, icon: 'Users', sort: 20 });
+    nodes.push({ ...newNavigationNode('settings', 'system', 'directory', groupSurfaces('system')), label: titles.settings, icon: 'Settings2', sort: 10 });
+    nodes.push({ ...newNavigationNode('personal', 'business', 'directory', groupSurfaces('personal')), label: titles.personal, icon: 'UserRound', sort: 2700 });
   }
   for (const id of Object.keys(routes).filter(isRegisteredPage)) {
     if (id === 'administrators') continue;
     const route = routes[id];
     const group = 'group' in route ? String(route.group) : '';
     if (!platform && (group === 'personal' || group === 'administration' || (group === 'system' && id !== 'site' && id !== 'edition'))) continue;
-    const surfaces: NavigationSection['surfaces'] = platform && (group === 'system' || group === 'administration' || platformAdminOnly.has(id)) ? adminOnly : bothSurfaces;
-    const sectionId = platform ? group === 'system' ? 'system' : group === 'personal' ? 'personal' : 'business' : 'business';
-    nodes.push({ ...newNavigationNode(id, sectionId, 'page', surfaces), parent_id: platform && group === 'administration' ? 'administration' : undefined, route_id: id,
+    // API 文档 is a top-level page at the tail of the system region on the
+    // platform profile, after the settings and administration directories.
+    const systemTopLevel = platform && id === 'api-docs';
+    const surfaces: NavigationSection['surfaces'] = platform ? routeSurfaces(id) : bothSurfaces;
+    const sectionId = platform && (systemTopLevel || group === 'system' || group === 'administration') ? 'system' : 'business';
+    const parent = platform ? systemTopLevel ? undefined : group === 'administration' ? 'administration' : group === 'system' ? 'settings' : group === 'personal' ? 'personal' : undefined : undefined;
+    nodes.push({ ...newNavigationNode(id, sectionId, 'page', surfaces), parent_id: parent, route_id: id,
       // Standalone and desktop expose the site console as the appearance page.
       label: !platform && id === 'site' ? titles.appearance : '',
-      icon: defaultIcons[id] ?? 'Circle', sort: defaultRank(id) * 10 });
+      icon: defaultIcons[id] ?? 'Circle', sort: systemTopLevel ? 30 : defaultRank(id) * 10 });
   }
   if (platform) {
     for (const [id, raw] of Object.entries(operations)) {
@@ -152,6 +177,86 @@ function surfacesInclude(surfaces: NavigationSection['surfaces'] | undefined, su
   return !!surfaces?.includes(surface as 'user' | 'administrator');
 }
 
+// ---- Menu editor helpers ----
+// Pure editor-only utilities behind the menu console's tree table: display
+// names, row targets, the registered icon palette, search filtering and
+// subtree copying. They never widen what the persisted model may express.
+
+/** The editor shows the same display names as the workspace: operator labels first, then the registered route label or the seeded directory fallback. */
+export function menuNodeLabel(node: Pick<NavigationNode, 'label' | 'route_id' | 'type' | 'id'>): string {
+  return node.label.trim() || (isRegisteredPage(node.route_id) ? t(routes[node.route_id].label) : node.type === 'directory' ? t(directoryTitle(node.id)) : node.id);
+}
+
+/** The stable definition a row points at: route id, link URL or referenced permission. */
+export function menuNodeTarget(node: NavigationNode): string {
+  return node.type === 'page' ? node.route_id ?? '' : node.type === 'link' ? node.url ?? '' : node.type === 'action' ? node.permission ?? '' : '';
+}
+
+const editorIconNames = ['Circle', 'Folder', 'Link', 'ListTree', 'SquarePen', 'Link2', 'MousePointerClick'];
+let iconNamesByComponent: Map<LucideIcon, string> | null = null;
+function iconNameOf(icon: LucideIcon): string | undefined {
+  if (!iconNamesByComponent) iconNamesByComponent = new Map(Object.entries(navigationIcons).map(([name, candidate]) => [candidate, name]));
+  return iconNamesByComponent.get(icon);
+}
+/** The icon palette the product itself registers: seeded page and directory defaults, module icons, route-declared icons plus the editor's type icons, with Circle as the neutral fallback. */
+export function registeredNavigationIconNames(): string[] {
+  const names = new Set<string>(editorIconNames);
+  for (const name of Object.values(builtinIcons)) names.add(name);
+  for (const name of Object.values(directoryIcons)) names.add(name);
+  for (const name of uiModules().flatMap(item => Object.values(item.icons ?? []))) if (navigationIcons[name]) names.add(name);
+  for (const id of Object.keys(routes).filter(isRegisteredPage)) { const name = iconNameOf(routes[id].icon); if (name) names.add(name); }
+  return [...names].sort();
+}
+
+/** Search filter for the editor tree: a row survives when it matches or one of its descendants does, a matching row keeps its whole subtree, ancestors of matches keep their filtered children, and sections follow the same rule on their title. */
+export function filterMenuTree(sections: MenuTreeSection[], nodeMatches: (node: NavigationNode) => boolean, sectionMatches?: (section: NavigationSection) => boolean): MenuTreeSection[] {
+  const keep = (items: MenuTreeNode[]): MenuTreeNode[] => items.flatMap(item => {
+    if (nodeMatches(item.node)) return [item];
+    const children = keep(item.children);
+    return children.length ? [{ ...item, children }] : [];
+  });
+  return sections.flatMap(({ section, children }) => {
+    const whole = sectionMatches?.(section) ?? false;
+    const kept = whole ? children : keep(children);
+    return whole || kept.length ? [{ section, children: kept }] : [];
+  });
+}
+
+/** Deep-copy one node and its subtree in place: every copied id gains a unique `-copy` suffix, the copy sorts right after its source among siblings, and the copied root stays hidden until the operator reveals it. */
+export function copyMenuNode(nodes: NavigationNode[], id: string): NavigationNode[] {
+  const source = nodes.find(node => node.id === id);
+  if (!source) return nodes;
+  const taken = new Set(nodes.map(node => node.id));
+  const copyId = (original: string): string => {
+    for (let round = 1; ; round += 1) {
+      const suffix = round === 1 ? '-copy' : `-copy${round}`;
+      const candidate = `${original.slice(0, Math.max(1, 64 - suffix.length))}${suffix}`;
+      if (!taken.has(candidate)) { taken.add(candidate); return candidate; }
+    }
+  };
+  const copies: NavigationNode[] = [];
+  const visited = new Set<string>();
+  const walk = (node: NavigationNode, parentId?: string): void => {
+    if (visited.has(node.id)) return;
+    visited.add(node.id);
+    const copy: NavigationNode = { ...node, id: copyId(node.id), parent_id: parentId, visible: node.id === id ? false : node.visible };
+    copies.push(copy);
+    for (const child of nodes.filter(item => item.parent_id === node.id)) walk(child, copy.id);
+  };
+  walk(source, source.parent_id);
+  if (!copies.length) return nodes;
+  // Renumber the source's sibling list with the copy directly after it; the
+  // relative order of every other sibling stays untouched.
+  const siblingIds = nodes
+    .filter(node => node.section_id === source.section_id && (node.parent_id ?? '') === (source.parent_id ?? ''))
+    .sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id))
+    .map(node => node.id);
+  siblingIds.splice(siblingIds.indexOf(source.id) + 1, 0, copies[0].id);
+  const sorts = new Map(siblingIds.map((siblingId, slot) => [siblingId, (slot + 1) * 10]));
+  const applySort = (node: NavigationNode): NavigationNode => sorts.has(node.id) ? { ...node, sort: sorts.get(node.id)! } : node;
+  return [...nodes.map(applySort), ...copies.map(applySort)];
+}
+
 export function buildNavigation(data: Bootstrap): Navigation {
   const surface = isAdminRealm(data) ? 'administrator' : 'user';
   const config = data.profile === 'web-platform' && data.navigation ? data.navigation : defaultNavigation([surface], data.profile);
@@ -178,14 +283,6 @@ export function buildNavigation(data: Bootstrap): Navigation {
   if (isAdministrator(data) && !sections.some(section => flattenNavigation(section.entries).some(({ node }) => node.routeId === 'menus' && !node.disabled))) {
     const recovery = render({ node: { ...newNavigationNode('menus:recovery', 'recovery', 'page', adminOnly), route_id: 'menus', label: routes.menus.label, icon: 'ListTree' }, children: [] });
     if (recovery) sections.push({ id: 'recovery', title: t('菜单恢复'), showTitle: true, entries: [recovery] });
-  }
-  // The member workspace folds its personal pages into one collapsible
-  // first-level entry, mirroring how the administrator sees the same region.
-  // Purely presentational: the menu editor and the persisted model stay flat.
-  for (const [index, section] of sections.entries()) {
-    if (surface !== 'user' || section.id !== 'personal' || !section.entries.some(entry => entry.type !== 'directory')) continue;
-    const group: NavEntry = { id: `${section.id}:group`, type: 'directory', label: section.title || t('个人中心'), icon: resolveNavigationIcon('UserRound'), openMode: 'same_tab', badgeText: '', badgeColor: '', badgeDot: false, disabled: false, children: section.entries };
-    sections[index] = { ...section, showTitle: false, entries: [group] };
   }
   return { sections };
 }

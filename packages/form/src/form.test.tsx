@@ -1,6 +1,8 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Contract validation stops transport calls, announces fields and focuses the first invalid control.
 import { render, screen } from '@testing-library/react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import userEvent from '@testing-library/user-event';
 import { expect, it, vi } from 'vitest';
 import { AppError } from '@unicore/sdk';
@@ -64,3 +66,30 @@ it('scopes server error focus to the form that submitted, not the first match on
   expect(screen.getByLabelText('乙字段')).toHaveFocus();
   expect(screen.getByLabelText('甲字段')).not.toHaveFocus();
 });
+
+function NestedHarness({ onSubmit }: { onSubmit: (values: { recipient: string }) => void }) {
+  const form = useAppForm({ schema: 'MailTestInput', defaultValues: { recipient: '' }, onSubmit });
+  // Mirror the real editor dialogs: Radix portals their <form> to document.body
+  // while the React tree still nests it under the page form.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+  return <AppForm form={form}>
+    <AppField name="recipient" label="测试邮箱"><input /></AppField>
+    <button type="submit">外层提交</button>
+    {mounted && createPortal(<form onSubmit={event => event.preventDefault()}>
+      <button type="submit">内层提交</button>
+    </form>, document.body)}
+  </AppForm>;
+}
+
+it('ignores submit events bubbling from nested forms (editor dialogs)', async () => {
+  const onSubmit = vi.fn().mockResolvedValue(undefined);
+  const user = userEvent.setup();
+  render(<NestedHarness onSubmit={onSubmit} />);
+  await user.click(screen.getByRole('button', { name: '内层提交' }));
+  expect(onSubmit).not.toHaveBeenCalled();
+  await user.type(screen.getByLabelText('测试邮箱'), 'recipient@example.test');
+  await user.click(screen.getByRole('button', { name: '外层提交' }));
+  expect(onSubmit).toHaveBeenCalledTimes(1);
+});
+

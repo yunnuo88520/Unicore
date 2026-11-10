@@ -17,6 +17,7 @@ export interface ExecuteOutput {
 
 export interface Capabilities {
   execute: boolean;
+  api_docs: boolean;
   database: boolean;
   installation: boolean;
   authentication: boolean;
@@ -137,6 +138,8 @@ export interface User {
   username: string;
   email: string;
   phone?: string;
+  display_name?: string;
+  role_names?: Array<string>;
   status: string;
   roles: Array<string>;
   permissions: Array<string>;
@@ -162,6 +165,7 @@ export interface UserCreate {
   email: string;
   password: string;
   phone?: string;
+  display_name?: string;
   role?: string;
   department_id?: string;
   post_ids?: Array<string>;
@@ -171,9 +175,26 @@ export interface UserCreate {
 export interface UserUpdate {
   role?: string;
   status: string;
+  email?: string;
+  display_name?: string;
   department_id?: string;
   post_ids?: Array<string>;
   role_ids?: Array<string>;
+}
+
+export interface AdminPasswordResetInput {
+  password?: string;
+}
+
+export interface AdminPasswordReset {
+  password: string;
+}
+
+export interface AdminPasswordResetResponse {
+  code: string;
+  message: string;
+  data: AdminPasswordReset;
+  request_id: string;
 }
 
 export interface LoginInput {

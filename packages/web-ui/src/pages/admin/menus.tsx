@@ -1,45 +1,43 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Navigation editor over one persisted shared tree: sections, directory/page/link/action rows, per-node surfaces badges and role assignment; one save submits the whole tree with a version CAS.
-import { useEffect, useMemo, useState } from 'react';
+// Description: GVA-style single tree-table editor over the one persisted shared navigation tree: region root rows with nested directory/page/link/action rows, one per-row more-actions dropdown (every directory, page and link can add sub-menus), parent picking, full tree drag & drop (same-list reorder, re-parent and cross-region moves through one subtree-rewriting primitive shared with the move dialog), search, bulk expand/collapse and subtree copy; one save derives surfaces from the route registry and submits the whole tree with a version CAS.
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowDown, ArrowUp, ChevronRight, EllipsisVertical, FolderPlus, Link2, ListTree, Lock,
-  MousePointerClick, Pencil, Plus, RotateCcw, Save, SquarePen, Trash2, UserRound, type LucideIcon,
+  ArrowDown, ArrowUp, ChevronsDown, ChevronsUp, ChevronDown, ChevronRight, Copy, FolderTree, Link2, ListTree,
+  MoreHorizontal, MousePointerClick, Pencil, Plus, RotateCcw, Save, Search, SquarePen, Trash2, type LucideIcon,
 } from 'lucide-react';
 import {
-  Button, Card, CardContent, Checkbox, ConfirmDialog, DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuTrigger, Input, Modal, SimpleSelect, Switch, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, useMessage,
+  Badge, Button, Card, CardContent, ConfirmDialog, DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuTrigger, Input, Modal, SimpleSelect, Switch,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow, useMessage,
 } from '@unicore/ui';
-import { AppError, type APIOperation, type AppClient, type Bootstrap, type MenuList, type MenuSaveInput, type NavigationNode, type NavigationSection, type Role, type WebClient } from '@unicore/sdk';
-import { buildMenuTree, defaultNavigation, directoryTitle, isRegisteredPage, newNavigationNode, sectionTitle, validNavigationUrl, type MenuTreeNode } from '../../navigation';
+import { AppError, type AppClient, type Bootstrap, type MenuList, type MenuSaveInput, type NavigationNode, type NavigationSection, type WebClient } from '@unicore/sdk';
+import {
+  buildMenuTree, copyMenuNode, defaultNavigation, filterMenuTree, isRegisteredPage, menuNodeLabel, menuNodeTarget,
+  newNavigationNode, routeSurfaces, sectionTitle, validNavigationUrl, type MenuTreeNode,
+} from '../../navigation';
 import { NavigationIconPicker, resolveNavigationIcon } from '../../navigation-icons';
-import { isAdministrator, routes } from '../../routes';
+import { routes } from '../../routes';
 import { defineMessages, t, useLocale } from '../../i18n';
-import { usePermissions } from '../../permissions';
 import type { PageProps } from '../../router';
 
 const MAX_DEPTH = 5;
-const MAX_NODES = 256;
-const SURFACE_LABELS = defineMessages({ user: '成员端', administrator: '管理端' });
 const TYPE_LABELS = defineMessages({ directory: '目录', page: '页面', link: '链接', action: '按钮' });
 const TYPE_ICONS: Record<NavigationNode['type'], LucideIcon> = { directory: ListTree, page: SquarePen, link: Link2, action: MousePointerClick };
 const BADGE_COLORS = defineMessages({ primary: '主色', success: '成功', warning: '警告', danger: '危险', muted: '中性' });
+// Actions attach to pages server-side, so the editor never creates them from scratch.
+const CREATABLE_TYPES: NavigationNode['type'][] = ['directory', 'page', 'link'];
+const typeDefaultIcon = (type: NavigationNode['type']): string =>
+  type === 'directory' ? 'Folder' : type === 'link' ? 'Link' : type === 'action' ? 'MousePointerClick' : 'Circle';
 
 type Draft = { version: number; sections: NavigationSection[]; nodes: NavigationNode[] };
-type RoleMenus = Record<string, string[]>;
 
 const nodeIndex = (nodes: NavigationNode[]): Map<string, NavigationNode> => new Map(nodes.map(node => [node.id, node]));
-// A node renders in every workspace listed in its surfaces array; the badge
-// compresses that pair to 两端/成员端/管理端.
-function surfacesLabel(surfaces: NavigationNode['surfaces']): string {
-  if (surfaces.includes('user') && surfaces.includes('administrator')) return t('两端');
-  return t(SURFACE_LABELS[surfaces.includes('user') ? 'user' : 'administrator']);
+// Action nodes are authorization units managed in the role editor; the menu
+// layout tree arranges directories, pages and links only.
+function stripActionNodes(items: MenuTreeNode[]): MenuTreeNode[] {
+  return items.filter(item => item.node.type !== 'action').map(item => ({ ...item, children: stripActionNodes(item.children) }));
 }
-// The editor shows the same display names as the workspace: operator labels
-// first, then the registered route label or the seeded directory fallback.
-// The editor shows the same display names as the workspace: operator labels
-// first, then the registered route label or the seeded directory fallback.
-const displayName = (node: NavigationNode): string => node.label.trim() || (isRegisteredPage(node.route_id) ? t(routes[node.route_id].label) : node.type === 'directory' ? t(directoryTitle(node.id)) : node.id);
 function depthOf(nodes: NavigationNode[], id: string): number {
   let depth = 1; let current = nodeIndex(nodes).get(id); const seen = new Set([id]);
   while (current?.parent_id && !seen.has(current.parent_id)) { seen.add(current.parent_id); current = nodeIndex(nodes).get(current.parent_id); depth++; }
@@ -55,8 +53,8 @@ function isDescendant(nodes: NavigationNode[], id: string, ancestor: string): bo
   while (current?.parent_id && !seen.has(current.parent_id)) { if (current.parent_id === ancestor) return true; seen.add(current.parent_id); current = nodeIndex(nodes).get(current.parent_id); }
   return false;
 }
-function randomId(nodes: NavigationNode[], prefix: string): string {
-  const taken = new Set(nodes.map(node => node.id));
+function randomId(takenIds: string[], prefix: string): string {
+  const taken = new Set(takenIds);
   for (;;) {
     const bytes = crypto.getRandomValues(new Uint8Array(6));
     const id = `${prefix}:${Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('')}`;
@@ -106,6 +104,103 @@ function removeNode(draft: Draft, key: string): Draft {
   if (!node) return draft;
   return { ...draft, nodes: draft.nodes.filter(item => item.id !== key).map(item => item.parent_id === key ? { ...item, parent_id: undefined } : item) };
 }
+
+type DropMode = 'before' | 'after' | 'inside';
+type DropTarget = { kind: 'node'; id: string } | { kind: 'section'; id: string };
+type DropPlacement = { kind: 'before' | 'after'; siblingId: string } | { kind: 'append' };
+
+// One relocation primitive shared by drag & drop and the move dialog: the node
+// re-parents, its whole subtree — invisible action descendants included —
+// rewrites to the target section so every parent chain stays inside one section
+// (the server refuses cross-section chains wholesale), active_menu references
+// stranded across the boundary drop, and the sibling lists renumber. Guards
+// fail closed: self or descendant landings, action parent rules and depth
+// overflow leave the draft untouched.
+function moveSubtree(draft: Draft, key: string, sectionId: string, parentId: string | undefined, placement: DropPlacement): Draft {
+  const index = nodeIndex(draft.nodes);
+  const source = index.get(key);
+  if (!source || !draft.sections.some(section => section.id === sectionId) || placement.kind !== 'append' && placement.siblingId === key) return draft;
+  if (source.type === 'action' && (!parentId || index.get(parentId)?.type !== 'page')) return draft;
+  if (parentId) {
+    const parent = index.get(parentId);
+    if (!parent || parent.id === key || parent.type === 'action' || isDescendant(draft.nodes, parentId, key)) return draft;
+    if (depthOf(draft.nodes, parentId) + heightOf(draft.nodes, key) > MAX_DEPTH) return draft;
+  } else if (heightOf(draft.nodes, key) > MAX_DEPTH) return draft;
+  const subtree = new Set<string>([key]);
+  const collect = (id: string) => { for (const node of draft.nodes) if (node.parent_id === id) { subtree.add(node.id); collect(node.id); } };
+  collect(key);
+  let nodes = draft.nodes.map(node => subtree.has(node.id)
+    ? { ...node, section_id: sectionId, ...(node.id === key ? { parent_id: parentId } : {}) }
+    : node);
+  // active_menu must reference a same-section non-action node; a cross-section
+  // move may strand a reference on either side of the boundary, so drop those.
+  const moved = nodeIndex(nodes);
+  nodes = nodes.map(node => {
+    if (!node.active_menu) return node;
+    const target = moved.get(node.active_menu);
+    return !target || target.type === 'action' || target.section_id !== node.section_id ? { ...node, active_menu: undefined } : node;
+  });
+  // Pin the drop position inside the target sibling list before the whole-tree
+  // renumber, so a cross-list arrival lands exactly where it was released.
+  const siblings = nodes
+    .filter(node => parentId ? node.parent_id === parentId : !node.parent_id && node.section_id === sectionId)
+    .sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id));
+  const ids = siblings.map(item => item.id).filter(id => id !== key);
+  let at = ids.length;
+  if (placement.kind !== 'append') {
+    const anchor = ids.indexOf(placement.siblingId);
+    if (anchor < 0) return draft;
+    at = placement.kind === 'before' ? anchor : anchor + 1;
+  }
+  ids.splice(at, 0, key);
+  const sorts = new Map(ids.map((id, slot) => [id, (slot + 1) * 10]));
+  nodes = nodes.map(node => sorts.has(node.id) ? { ...node, sort: sorts.get(node.id)! } : node);
+  return { ...draft, nodes: renumber({ ...draft, nodes }) };
+}
+
+// A landing is legal when the target is neither the source nor its descendant,
+// the moved subtree still fits MAX_DEPTH at its new depth and actions stay
+// page-bound; cross-region landings are legal — the whole subtree rewrites.
+function resolveDrop(draft: Draft, sourceId: string, target: DropTarget, mode: DropMode): { sectionId: string; parentId?: string; placement: DropPlacement } | null {
+  const index = nodeIndex(draft.nodes);
+  const source = index.get(sourceId);
+  if (!source || source.type === 'action') return null;
+  if (target.kind === 'section') {
+    if (!draft.sections.some(section => section.id === target.id) || heightOf(draft.nodes, sourceId) > MAX_DEPTH) return null;
+    return { sectionId: target.id, parentId: undefined, placement: { kind: 'append' } };
+  }
+  if (target.id === sourceId) return null;
+  const row = index.get(target.id);
+  if (!row || row.type === 'action' || isDescendant(draft.nodes, target.id, sourceId)) return null;
+  const height = heightOf(draft.nodes, sourceId);
+  if (mode === 'inside') {
+    if (depthOf(draft.nodes, target.id) + height > MAX_DEPTH) return null;
+    return { sectionId: row.section_id, parentId: target.id, placement: { kind: 'append' } };
+  }
+  const parentDepth = row.parent_id ? depthOf(draft.nodes, row.parent_id) : 0;
+  if (parentDepth + height > MAX_DEPTH) return null;
+  return { sectionId: row.section_id, parentId: row.parent_id, placement: { kind: mode, siblingId: target.id } };
+}
+// Surfaces are never operator-editable: the route registry decides page reach,
+// directories aggregate their subtree, links stay shared and actions keep the
+// persisted arrays. Deriving on save mirrors the seeded tree without exposing
+// any workspace concept in the editor.
+function deriveSurfaces(nodes: NavigationNode[]): NavigationNode[] {
+  const childrenOf = new Map<string, NavigationNode[]>();
+  for (const node of nodes) if (node.parent_id) childrenOf.set(node.parent_id, [...childrenOf.get(node.parent_id) ?? [], node]);
+  const surfacesOf = (node: NavigationNode): NavigationNode['surfaces'] => {
+    if (node.type === 'page') return routeSurfaces(node.route_id ?? '');
+    if (node.type === 'link') return ['user', 'administrator'];
+    if (node.type === 'directory') {
+      const merged = new Set<'user' | 'administrator'>();
+      for (const child of childrenOf.get(node.id) ?? []) if (child.type === 'page' || child.type === 'directory') for (const surface of surfacesOf(child)) merged.add(surface);
+      // A childless directory stays reachable in both workspaces until pages land.
+      return merged.size ? [...merged] : ['user', 'administrator'];
+    }
+    return [...node.surfaces];
+  };
+  return nodes.map(node => ({ ...node, surfaces: surfacesOf(node) }));
+}
 function loadDraft(data: MenuList, profile: Bootstrap['profile']): Draft {
   const sections = [...data.sections];
   const nodes = [...data.nodes];
@@ -130,23 +225,22 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
   useLocale();
   const message = useMessage();
   const cache = useQueryClient();
-  const { has } = usePermissions(metadata);
-  // Role assignment is a roles-management capability: super administrator plus roles:write, never menus:write alone.
-  const canManageRoles = isAdministrator(metadata) && has('roles:write');
   const [draft, setDraft] = useState<Draft | null>(null);
   const [nodeDialog, setNodeDialog] = useState<NodeDialogState | null>(null);
   const [moveDialog, setMoveDialog] = useState<string | null>(null);
   const [deleteNode, setDeleteNode] = useState<string | null>(null);
   const [deleteSection, setDeleteSection] = useState<string | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
-  const [roleMenus, setRoleMenus] = useState<RoleMenus>({});
+  const [search, setSearch] = useState('');
+  // null keeps the defaults: regions open, directories with children collapsed.
+  const [collapsed, setCollapsed] = useState<Set<string> | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dropHint, setDropHint] = useState<{ id: string; mode: DropMode } | null>(null);
 
   const config = useQuery<MenuList>({ queryKey: ['menu-config'], queryFn: () => web.menuConfig() });
-  const roles = useQuery<RoleListRealm>({ queryKey: ['roles'], queryFn: () => web.roles() });
-  const operations = useQuery({ queryKey: ['api-operations'], queryFn: () => web.apiOperations() });
   const baseline = useMemo(() => (config.data ? loadDraft(config.data, metadata.profile) : null), [config.data, metadata.profile]);
   useEffect(() => { if (config.data && !draft) setDraft(loadDraft(config.data, metadata.profile)); }, [config.data, draft, metadata.profile]);
-  const dirty = !!draft && !!baseline && (JSON.stringify([draft.sections, draft.nodes]) !== JSON.stringify([baseline.sections, baseline.nodes]) || Object.keys(roleMenus).length > 0);
+  const dirty = !!draft && !!baseline && JSON.stringify([draft.sections, draft.nodes]) !== JSON.stringify([baseline.sections, baseline.nodes]);
   const pending = !draft;
 
   const invalidate = () => {
@@ -173,56 +267,126 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
     },
   });
 
+  const tree = useMemo(() => (draft ? buildMenuTree(draft) : []), [draft]);
+  const defaultCollapsed = useMemo(() => draft
+    ? new Set(draft.nodes.filter(node => node.type === 'directory' && draft.nodes.some(child => child.parent_id === node.id)).map(node => node.id))
+    : new Set<string>(), [draft]);
+  const collapsedSet = collapsed ?? defaultCollapsed;
+  const toggleCollapse = (id: string) => setCollapsed(current => {
+    const next = new Set(current ?? defaultCollapsed);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+  const expandAll = () => setCollapsed(new Set<string>());
+  const collapseAll = () => {
+    if (!draft) return;
+    const ids = new Set<string>(draft.sections.map(section => section.id));
+    for (const node of draft.nodes) if (node.type === 'directory' && draft.nodes.some(child => child.parent_id === node.id)) ids.add(node.id);
+    setCollapsed(ids);
+  };
+  const query = search.trim().toLowerCase();
+  const searching = query.length > 0;
+  // Action nodes are authorization units managed in the role editor; the
+  // layout tree only arranges directories, pages and links. They stay in the
+  // draft and ride along in the saved payload.
+  const layoutTree = useMemo(() => tree.map(({ section, children }) => ({ section, children: stripActionNodes(children) })), [tree]);
+  const visibleTree = useMemo(() => searching
+    ? filterMenuTree(layoutTree,
+        node => menuNodeLabel(node).toLowerCase().includes(query) || menuNodeTarget(node).toLowerCase().includes(query),
+        section => sectionTitle(section).toLowerCase().includes(query))
+    : layoutTree, [layoutTree, searching, query]);
+
   if (!draft) return <Card><CardContent className="flex min-w-0 flex-col gap-4">
     {config.isError && <LoadError onRetry={() => void config.refetch()} error={config.error} />}
     {config.isPending && <p role="status" className="py-6 text-center text-sm text-muted">{t('正在读取菜单配置…')}</p>}
   </CardContent></Card>;
 
-  const tree = buildMenuTree(draft);
-  const realmRoles = (roles.data?.items ?? []).filter(role => role.id !== 'super_admin');
+  const counts = new Map(layoutTree.map(({ section, children }) => [section.id, countAll(children)]));
+  const rows: TreeRow[] = [];
+  for (const { section, children } of visibleTree) {
+    const open = searching || !collapsedSet.has(section.id);
+    rows.push({ kind: 'section', section, count: counts.get(section.id) ?? 0, open });
+    if (!open) continue;
+    const walk = (items: MenuTreeNode[], depth: number) => items.forEach(item => {
+      const expanded = searching || !collapsedSet.has(item.node.id);
+      rows.push({ kind: 'node', item, depth, collapsed: !expanded });
+      if (expanded) walk(item.children, depth + 1);
+    });
+    walk(children, 1);
+  }
 
   const patchSection = (id: string, patch: Partial<NavigationSection>) =>
     setDraft(current => current && { ...current, sections: current.sections.map(section => section.id === id ? { ...section, ...patch } : section) });
   const patchNode = (id: string, patch: Partial<NavigationNode>) =>
     setDraft(current => current && { ...current, nodes: current.nodes.map(node => node.id === id ? { ...node, ...patch } : node) });
-  // Drag & drop reorders within one sibling list; cross-parent moves stay on
-  // the explicit move dialog so a drop never silently re-parents a node.
-  const reorderNode = (sourceId: string, targetId: string, before: boolean) => setDraft(current => {
-    if (!current || sourceId === targetId) return current;
-    const index = nodeIndex(current.nodes);
-    const source = index.get(sourceId); const target = index.get(targetId);
-    if (!source || !target) return current;
-    if (source.section_id !== target.section_id || (source.parent_id ?? '') !== (target.parent_id ?? '')) return current;
-    const tree = buildMenuTree(current);
-    const flat = tree.flatMap(({ children }) => { const walk = (list: MenuTreeNode[]): MenuTreeNode[] => list.flatMap(item => [item, ...walk(item.children)]); return walk(children); });
-    const siblings = (list: MenuTreeNode[], id: string): MenuTreeNode[] => {
-      for (const item of list) { if (item.node.id === id) return list; const found = siblings(item.children, id); if (found.length) return found; }
-      return [];
-    };
-    const ids = siblings(flat, sourceId).map(item => item.node.id).filter(id => id !== sourceId);
-    const at = ids.indexOf(targetId);
-    if (at < 0) return current;
-    ids.splice(before ? at : at + 1, 0, sourceId);
-    const sorts = new Map(ids.map((id, slot) => [id, (slot + 1) * 10]));
-    return { ...current, nodes: current.nodes.map(node => sorts.has(node.id) ? { ...node, sort: sorts.get(node.id)! } : node) };
-  });
-  const addNode = (type: NavigationNode['type'], sectionId: string, parentId?: string) => setNodeDialog({ mode: 'create', type, sectionId, parentId });
-  const saveSection = (sectionId: string) => setDraft(current => current && { ...current, sections: current.sections.filter(section => section.id !== sectionId) });
-  const submitNode = (node: NavigationNode, isNew: boolean) => setDraft(current => {
-    if (!current) return current;
-    if (!isNew) return { ...current, nodes: current.nodes.map(item => item.id === node.id ? node : item) };
-    return { ...current, nodes: [...current.nodes, node] };
-  });
-  const submitMove = (key: string, sectionId: string, parentId?: string) => {
-    setMoveDialog(null);
+  // Full tree drag & drop over the shared primitive: the row's upper/lower
+  // third inserts beside it (a pure reorder within one parent, a re-parent
+  // across lists otherwise), the middle nests it as that row's last child and
+  // a region root row takes the whole subtree to that region's top. Illegal
+  // landings keep the browser's forbidden cursor because dragover never
+  // preventDefaults, so the drop never fires.
+  const dropZone = (event: React.DragEvent<HTMLTableRowElement>): DropMode => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (event.clientY < rect.top + rect.height / 3) return 'before';
+    if (event.clientY > rect.bottom - rect.height / 3) return 'after';
+    return 'inside';
+  };
+  const endDrag = () => { setDragId(null); setDropHint(null); };
+  const handleDragStart = (id: string) => setDragId(id);
+  const handleDragOver = (event: React.DragEvent<HTMLTableRowElement>, target: DropTarget) => {
+    if (!dragId || !draft) return;
+    const mode = target.kind === 'section' ? 'inside' as const : dropZone(event);
+    if (!resolveDrop(draft, dragId, target, mode)) return;
+    event.preventDefault();
+    setDropHint(current => current?.id === target.id && current.mode === mode ? current : { id: target.id, mode });
+  };
+  const handleDrop = (event: React.DragEvent<HTMLTableRowElement>, target: DropTarget) => {
+    // preventDefault also keeps the browser from pouring the dragged row's
+    // text into the region name or sort inputs under the pointer.
+    event.preventDefault();
+    if (dragId && draft && dropHint?.id === target.id) {
+      const plan = resolveDrop(draft, dragId, target, dropHint.mode);
+      if (plan) {
+        setDraft(current => current && moveSubtree(current, dragId, plan.sectionId, plan.parentId, plan.placement));
+        // A subtree dropped inside a collapsed directory must show up at once.
+        if (plan.parentId) setCollapsed(current => {
+          const base = current ?? defaultCollapsed;
+          if (!base.has(plan.parentId!)) return current;
+          const next = new Set(base); next.delete(plan.parentId!); return next;
+        });
+      }
+    }
+    endDrag();
+  };
+  const addSection = () => setDraft(current => current && { ...current, sections: [...current.sections, {
+    id: randomId([...current.sections.map(section => section.id), ...current.nodes.map(node => node.id)], 'section'),
+    surfaces: ['user', 'administrator'], name: '', sort: (current.sections.length + 1) * 10, visible: true, show_title: true }] });
+  const addChild = (sectionId: string, parentId?: string) => setNodeDialog({ mode: 'create', type: 'directory', sectionId, parentId });
+  const submitNode = (node: NavigationNode, isNew: boolean) => {
     setDraft(current => {
       if (!current) return current;
-      const next: Draft = { ...current, nodes: current.nodes.map(node => node.id === key ? { ...node, section_id: sectionId, parent_id: parentId } : node) };
-      return { ...next, nodes: renumber({ ...next, nodes: normalize(next.nodes, next.sections) }) };
+      if (!isNew) return { ...current, nodes: current.nodes.map(item => item.id === node.id ? node : item) };
+      return { ...current, nodes: [...current.nodes, node] };
+    });
+    // A node added under a collapsed directory must become visible right away.
+    if (isNew && node.parent_id) setCollapsed(current => {
+      const base = current ?? defaultCollapsed;
+      if (!base.has(node.parent_id!)) return current;
+      const next = new Set(base); next.delete(node.parent_id!); return next;
     });
   };
+  const submitMove = (key: string, sectionId: string, parentId?: string) => {
+    setMoveDialog(null);
+    // The dialog is the fallback for the same relocation the drag path performs:
+    // one primitive, one subtree section rewrite, one ordering semantic.
+    setDraft(current => current && moveSubtree(current, key, sectionId, parentId, { kind: 'append' }));
+  };
+  const copyNode = (key: string) => setDraft(current => current && { ...current, nodes: copyMenuNode(current.nodes, key) });
   const confirmDeleteNode = (key: string) => { setDraft(current => current && { ...current, nodes: renumber(removeNode(current, key)) }); setDeleteNode(null); };
-  const confirmDeleteSection = (sectionId: string) => { saveSection(sectionId); setDeleteSection(null); };
+  const confirmDeleteSection = (sectionId: string) => {
+    setDraft(current => current && { ...current, sections: current.sections.filter(section => section.id !== sectionId) });
+    setDeleteSection(null);
+  };
   const submitReset = () => {
     if (!draft) return;
     // reset is whole-tree: the server restores the registered default tree for
@@ -232,42 +396,51 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
   };
   const saveTree = () => {
     if (!draft) return;
-    const assignments = canManageRoles ? Object.entries(roleMenus)
-      .filter(([roleId, menuIds]) => { const role = roles.data?.items.find(item => item.id === roleId); return role && JSON.stringify([...menuIds].sort()) !== JSON.stringify([...role.menu_ids].sort()); })
-      .map(([roleId, menuIds]) => ({ role_id: roleId, menu_ids: menuIds, action_ids: roles.data?.items.find(item => item.id === roleId)?.action_ids ?? [] }))
-    : undefined;
-    save.mutate({ version: draft.version, sections: draft.sections, nodes: draft.nodes, ...(assignments?.length ? { role_assignments: assignments } : {}) });
+    save.mutate({ version: draft.version, sections: draft.sections, nodes: deriveSurfaces(draft.nodes) });
+  };
+
+  const handlers: RowHandlers = {
+    draft,
+    onToggleCollapse: toggleCollapse,
+    onPatchSection: patchSection,
+    onAddChild: addChild,
+    onEditNode: key => setNodeDialog({ mode: 'edit', key }),
+    onMoveNode: key => setMoveDialog(key),
+    onCopyNode: copyNode,
+    onShiftNode: (key, direction) => setDraft(current => current && shiftNode(current, key, direction)),
+    onVisibleNode: (key, visible) => patchNode(key, { visible }),
+    onDeleteNode: key => setDeleteNode(key),
+    onDeleteSection: id => setDeleteSection(id),
   };
 
   return <Card><CardContent className="flex min-w-0 flex-col gap-4">
     <div>
       <h2 className="text-md font-semibold text-ink">{t('菜单配置')}</h2>
-      <p className="mt-0.5 text-xs text-muted">{t('调整成员端与管理端共享的同一棵导航树：分组、顺序、名称、图标与可见性；角色可见性在角色权限编辑器中配置。')}</p>
+      <p className="mt-0.5 text-xs text-muted">{t('调整共享导航树的分组、顺序、名称、图标与可见性；页面所属工作空间由路由注册决定，角色可见性在角色权限编辑器中配置。')}</p>
     </div>
     {config.isFetching && <p role="status" className="text-2xs text-subtle">{t('正在刷新菜单配置…')}</p>}
-    <div className="flex flex-col gap-4">
-      {tree.map(({ section, children }) => <SectionEditor key={section.id} section={section} nodes={children} draft={draft}
-        dirtyFlag={dirty}
-        onPatch={patchSection} onAddNode={addNode} onEditNode={key => setNodeDialog({ mode: 'edit', key })}
-        onMoveNode={key => setMoveDialog(key)} onShiftNode={(key, direction) => setDraft(current => current && shiftNode(current, key, direction))}
-        onReorderNode={reorderNode}
-        onVisibleNode={(key, visible) => patchNode(key, { visible })}
-        onDeleteNode={key => setDeleteNode(key)} onDeleteSection={id => setDeleteSection(id)} />)}
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="relative min-w-52 flex-1 sm:max-w-80">
+        <Search size={14} aria-hidden="true" className="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-subtle" />
+        <Input className="ps-8" value={search} aria-label={t('搜索名称、路由或链接')} placeholder={t('搜索名称、路由或链接')} autoComplete="off"
+          onChange={event => setSearch(event.target.value)} />
+      </div>
+      <Button variant="secondary" size="sm" disabled={pending} onClick={expandAll}><ChevronsDown size={14} />{t('展开全部')}</Button>
+      <Button variant="secondary" size="sm" disabled={pending} onClick={collapseAll}><ChevronsUp size={14} />{t('收起全部')}</Button>
+      <Button variant="secondary" size="sm" disabled={pending} onClick={addSection}><Plus size={14} />{t('添加区域')}</Button>
     </div>
+    <MenuTreeTable rows={rows} searching={searching} handlers={handlers}
+      drag={{ dragId, dropHint, onDragStart: handleDragStart, onDragOver: handleDragOver, onDrop: handleDrop, onDragEnd: endDrag }} />
+    <p className="text-2xs text-subtle">{t('拖拽行到目标行的上三分之一或下三分之一插入为其前后兄弟，居中释放嵌套为其子菜单，拖到区域行移入该区域顶层。')}</p>
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <Button variant="secondary" size="sm" disabled={pending} onClick={() => {
-        const id = randomId(draft?.nodes ?? [], 'section');
-        setDraft(current => current && { ...current, sections: [...current.sections, { id, surfaces: ['user', 'administrator'], name: '', sort: (current.sections.length + 1) * 10, visible: true, show_title: true }] });
-      }}><Plus size={14} />{t('添加区域')}</Button>
-      <div className="flex flex-wrap items-center gap-2">
-        {dirty && <span role="status" className="text-2xs font-medium text-warning">{t('有未保存的更改')}</span>}
+      {dirty && <span role="status" className="text-2xs font-medium text-warning">{t('有未保存的更改')}</span>}
+      <div className="flex flex-wrap items-center gap-2 ms-auto">
         <Button variant="secondary" pending={save.isPending} disabled={pending} onClick={() => setConfirmReset(true)}><RotateCcw size={14} />{t('恢复默认')}</Button>
         <Button pending={save.isPending} disabled={pending} onClick={saveTree}><Save size={14} />{t('保存菜单配置')}</Button>
       </div>
     </div>
     {nodeDialog && <NodeDialog state={nodeDialog} draft={draft} pages={config.data?.pages ?? []}
-      permissions={(roles.data?.permissions ?? []).map(permission => permission.id)}
-      operations={operations.data?.items ?? []} onClose={() => setNodeDialog(null)} onSubmit={submitNode} />}
+      onClose={() => setNodeDialog(null)} onSubmit={submitNode} />}
     {moveDialog && <MoveDialog draft={draft} node={nodeIndex(draft.nodes).get(moveDialog)!} onClose={() => setMoveDialog(null)} onConfirm={submitMove} />}
     {deleteNode && <ConfirmDialog title={t('删除菜单节点')} danger confirmLabel={t('删除')} cancelLabel={t('取消')}
       description={t('该节点将从导航移除，其子节点回到所在区域顶层；保存菜单配置后生效。')}
@@ -277,12 +450,10 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
       onConfirm={() => confirmDeleteSection(deleteSection)} onCancel={() => setDeleteSection(null)} />}
     {confirmReset && <ConfirmDialog title={t('恢复默认菜单配置')} danger confirmLabel={t('恢复默认')} cancelLabel={t('取消')}
       pending={save.isPending}
-      description={t('将清空用户端与管理端的全部自定义区域与节点，立即恢复两端的注册默认树。')}
+      description={t('将清空全部自定义区域与节点，立即恢复注册默认导航树。')}
       onConfirm={submitReset} onCancel={() => setConfirmReset(false)} />}
   </CardContent></Card>;
 }
-
-type RoleListRealm = Awaited<ReturnType<WebClient['roles']>>;
 
 function LoadError({ error, onRetry }: { error: { message: string }; onRetry: () => void }) {
   return <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
@@ -300,213 +471,239 @@ function LabeledSwitch({ label, checked, onChange, disabled }: { label: string; 
   </label>;
 }
 
-type SectionHandlers = {
+function countAll(items: MenuTreeNode[]): number { return items.reduce((sum, item) => sum + 1 + countAll(item.children), 0); }
+
+type TreeRow =
+  | { kind: 'section'; section: NavigationSection; count: number; open: boolean }
+  | { kind: 'node'; item: MenuTreeNode; depth: number; collapsed: boolean };
+
+type RowHandlers = {
   draft: Draft;
-  dirtyFlag: boolean;
-  onPatch: (id: string, patch: Partial<NavigationSection>) => void;
-  onAddNode: (type: NavigationNode['type'], sectionId: string, parentId?: string) => void;
-  onEditNode: (key: string) => void; onMoveNode: (key: string) => void;
-  onShiftNode: (key: string, direction: -1 | 1) => void; onReorderNode: (sourceId: string, targetId: string, before: boolean) => void;
+  onToggleCollapse: (id: string) => void;
+  onPatchSection: (id: string, patch: Partial<NavigationSection>) => void;
+  onAddChild: (sectionId: string, parentId?: string) => void;
+  onEditNode: (key: string) => void; onMoveNode: (key: string) => void; onCopyNode: (key: string) => void;
+  onShiftNode: (key: string, direction: -1 | 1) => void;
   onVisibleNode: (key: string, visible: boolean) => void;
   onDeleteNode: (key: string) => void; onDeleteSection: (id: string) => void;
 };
 
-function SectionEditor({ section, nodes, ...handlers }: { section: NavigationSection; nodes: MenuTreeNode[] } & SectionHandlers) {
-  const [open, setOpen] = useState(true);
-  const count = nodes.reduce((sum, item) => sum + 1 + countChildren(item), 0);
-  return <section data-section={section.id} aria-label={t(sectionTitle(section))} className="rounded-xl border border-line bg-surface p-3">
-    <div className="flex flex-wrap items-center gap-2">
-      <button type="button" aria-expanded={open} aria-label={t('展开或收起 {{name}}', { name: sectionTitle(section) })}
-        onClick={() => setOpen(value => !value)} className="rounded p-1 text-subtle hover:bg-surface-alt hover:text-ink">
-        <ChevronRight size={15} className={open ? 'rotate-90' : ''} />
-      </button>
-      <Input className="h-8 w-40" maxLength={40} aria-label={t('区域名称')} placeholder={t('区域名称')} value={section.name}
-        onChange={event => handlers.onPatch(section.id, { name: event.target.value })} />
-      <Input className="h-8 w-20" type="number" aria-label={t('区域排序')} value={section.sort}
-        onChange={event => handlers.onPatch(section.id, { sort: Number(event.target.value) || 0 })} />
-      <LabeledSwitch label={t('显示')} checked={section.visible} onChange={value => handlers.onPatch(section.id, { visible: value })} />
-      <LabeledSwitch label={t('标题')} checked={section.show_title} onChange={value => handlers.onPatch(section.id, { show_title: value })} />
-      <div role="group" aria-label={t('显示工作台')} className="flex items-center gap-2">
-        {(['user', 'administrator'] as const).map(value => <label key={value} className="flex items-center gap-1 text-xs text-muted">
-          <Checkbox aria-label={t(SURFACE_LABELS[value])} checked={section.surfaces.includes(value)}
-            onChange={checked => {
-              const next = checked ? [...new Set([...section.surfaces, value])] : section.surfaces.filter(item => item !== value);
-              // A section must stay reachable from at least one workspace.
-              if (next.length) handlers.onPatch(section.id, { surfaces: next });
-            }} />{t(SURFACE_LABELS[value])}
-        </label>)}
-      </div>
-      <span className="rounded-full bg-surface-alt px-1.5 py-0.5 text-2xs tabular-nums text-muted" data-count={section.id}>{count}</span>
-      <div className="ms-auto flex flex-wrap items-center gap-1">
-        <Button variant="ghost" size="sm" onClick={() => handlers.onAddNode('directory', section.id)}><FolderPlus size={14} />{t('目录')}</Button>
-        <Button variant="ghost" size="sm" onClick={() => handlers.onAddNode('page', section.id)}><SquarePen size={14} />{t('页面')}</Button>
-        <Button variant="ghost" size="sm" onClick={() => handlers.onAddNode('link', section.id)}><Link2 size={14} />{t('链接')}</Button>
-        <Button variant="ghost" size="sm" disabled={count > 0} onClick={() => handlers.onDeleteSection(section.id)}><Trash2 size={14} />{t('删除')}</Button>
-      </div>
-    </div>
-    {open && <div className="mt-2">
-      <NodeTable nodes={nodes} {...handlers} />
-      {!nodes.length && <p className="rounded-lg border border-dashed border-line px-3 py-2 text-center text-2xs text-subtle">{t('此区域暂无节点')}</p>}
-    </div>}
-  </section>;
-}
+type DragProps = {
+  dragId: string | null;
+  dropHint: { id: string; mode: DropMode } | null;
+  onDragStart: (id: string) => void;
+  onDragOver: (event: React.DragEvent<HTMLTableRowElement>, target: DropTarget) => void;
+  onDrop: (event: React.DragEvent<HTMLTableRowElement>, target: DropTarget) => void;
+  onDragEnd: () => void;
+};
 
-function countChildren(item: MenuTreeNode): number { return item.children.reduce((sum, child) => sum + 1 + countChildren(child), 0); }
-
-// One flat tbody per section: children render as sibling rows indented by
-// depth, so the table nesting stays valid while the tree collapses locally.
-function NodeTable({ nodes, ...handlers }: { nodes: MenuTreeNode[] } & SectionHandlers) {
-  // Directories start collapsed, matching the workspace sidebar; the operator's
-  // toggles and drags take over from there.
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(nodes.filter(item => item.children.length > 0).map(item => item.node.id)));
-  const rows: { item: MenuTreeNode; depth: number }[] = [];
-  const walk = (list: MenuTreeNode[], depth: number, hidden: boolean) => list.forEach(item => {
-    const isHidden = hidden || collapsed.has(item.node.id);
-    if (!hidden) rows.push({ item, depth });
-    walk(item.children, depth + 1, isHidden);
-  });
-  walk(nodes, 0, false);
-  const [dragId, setDragId] = useState<string | null>(null);
-  const [dropHint, setDropHint] = useState<{ id: string; before: boolean } | null>(null);
-  const endDrag = () => { setDragId(null); setDropHint(null); };
+// The whole page is one tree table: region root rows expand into nested
+// directory/page/link/action rows, and every row carries one more-actions
+// dropdown in the trailing column. Region rows are drop targets too: a
+// subtree released anywhere on one joins that region's top level.
+function MenuTreeTable({ rows, searching, handlers, drag }: { rows: TreeRow[]; searching: boolean; handlers: RowHandlers; drag: DragProps }) {
   // The ui Table owns the horizontal scroll; min-w-0 keeps this block shrinkable
   // inside the flex column so the table never widens the document itself.
   return <div className="min-w-0">
     <Table className="max-sm:[&_td]:px-2 max-sm:[&_th]:px-2">
       <TableHeader><TableRow>
-        <TableHead>{t('名称')}</TableHead><TableHead className="max-sm:hidden">{t('类型')}</TableHead><TableHead className="max-sm:hidden">{t('工作台')}</TableHead><TableHead className="max-sm:hidden">{t('图标')}</TableHead><TableHead className="max-sm:hidden">{t('目标')}</TableHead>
-        <TableHead>{t('排序')}</TableHead><TableHead>{t('显示')}</TableHead><TableHead className="text-end">{t('操作')}</TableHead>
+        <TableHead>{t('名称')}</TableHead>
+        <TableHead className="max-sm:hidden">{t('类型')}</TableHead>
+        <TableHead className="max-sm:hidden">{t('目标')}</TableHead>
+        <TableHead>{t('排序')}</TableHead>
+        <TableHead>{t('显示')}</TableHead>
+        <TableHead className="text-end">{t('操作')}</TableHead>
       </TableRow></TableHeader>
       <TableBody>
-        {rows.map(({ item, depth }) => <NodeRow key={item.node.id} item={item} depth={depth} hasChildren={item.children.length > 0}
-          collapsed={collapsed.has(item.node.id)} onToggle={key => setCollapsed(current => {
-            const next = new Set(current);
-            if (next.has(key)) next.delete(key); else next.add(key);
-            return next;
-          })}
-          dragging={dragId === item.node.id}
-          dropHint={dragId && dragId !== item.node.id ? dropHint?.id === item.node.id ? dropHint.before ? 'before' : 'after' : null : null}
-          onDragStart={() => setDragId(item.node.id)}
-          onDragOver={event => {
-            if (!dragId || dragId === item.node.id) return;
-            event.preventDefault();
-            const rect = event.currentTarget.getBoundingClientRect();
-            const before = event.clientY < rect.top + rect.height / 2;
-            setDropHint(current => current?.id === item.node.id && current.before === before ? current : { id: item.node.id, before });
-          }}
-          onDrop={() => { if (dragId && dropHint?.id === item.node.id) handlers.onReorderNode(dragId, dropHint.id, dropHint.before); endDrag(); }}
-          onDragEnd={endDrag}
-          {...handlers} />)}
+        {rows.map(row => row.kind === 'section'
+          ? <RegionRow key={row.section.id} row={row} handlers={handlers} drag={drag} />
+          : <NodeRow key={row.item.node.id} row={row} handlers={handlers} drag={drag} />)}
       </TableBody>
     </Table>
+    {!rows.length && <p className="rounded-lg border border-dashed border-line px-3 py-6 text-center text-2xs text-subtle">{t('没有匹配的菜单')}</p>}
+    {searching && !!rows.length && <p className="mt-1 text-2xs text-subtle">{t('搜索时自动展开匹配路径')}</p>}
   </div>;
 }
 
-function NodeRow({ item, depth, hasChildren, collapsed, onToggle, dragging, dropHint, onDragStart, onDragOver, onDrop, onDragEnd, ...handlers }: {
-  item: MenuTreeNode; depth: number; hasChildren: boolean; collapsed: boolean; onToggle: (key: string) => void;
-  dragging: boolean; dropHint: 'before' | 'after' | null;
-  onDragStart: () => void; onDragOver: (event: React.DragEvent<HTMLTableRowElement>) => void; onDrop: () => void; onDragEnd: () => void;
-} & Omit<SectionHandlers, 'draft'> & { draft: Draft }) {
-  const { node, children } = item;
+function RegionRow({ row, handlers, drag }: { row: Extract<TreeRow, { kind: 'section' }>; handlers: RowHandlers; drag: DragProps }) {
+  const { section, count, open } = row;
+  // Region rows only receive: a subtree released anywhere on the row joins the
+  // region's top level, so the whole row lights up instead of an edge line.
+  const dropHint = drag.dragId && drag.dropHint?.id === section.id ? drag.dropHint.mode : null;
+  return <TableRow data-region={section.id} aria-label={t(sectionTitle(section))}
+    onDragOver={event => drag.onDragOver(event, { kind: 'section', id: section.id })}
+    onDrop={event => drag.onDrop(event, { kind: 'section', id: section.id })}
+    onDragEnd={drag.onDragEnd}
+    className={dropHint ? 'bg-accent/10' : ''}>
+    <TableCell>
+      <div className="flex items-center gap-2">
+        <button type="button" aria-expanded={open} aria-label={t('展开或收起 {{name}}', { name: sectionTitle(section) })}
+          onClick={() => handlers.onToggleCollapse(section.id)} className="rounded p-0.5 text-subtle hover:bg-surface-alt hover:text-ink">
+          <ChevronRight size={15} className={open ? 'rotate-90' : ''} />
+        </button>
+        <FolderTree size={15} aria-hidden="true" className="shrink-0 text-muted" />
+        <Input className="h-8 w-36" maxLength={40} aria-label={t('区域名称')} placeholder={t(sectionTitle(section))} value={section.name}
+          onChange={event => handlers.onPatchSection(section.id, { name: event.target.value })} />
+        <span className="rounded-full bg-surface-alt px-1.5 py-0.5 text-2xs tabular-nums text-muted" data-count={section.id}>{count}</span>
+      </div>
+    </TableCell>
+    <TableCell className="max-sm:hidden"><Badge><FolderTree size={11} aria-hidden="true" />{t('区域')}</Badge></TableCell>
+    <TableCell className="max-sm:hidden"><span className="text-xs text-subtle">—</span></TableCell>
+    <TableCell><Input className="h-8 w-16" type="number" aria-label={t('区域排序')} value={section.sort}
+      onChange={event => handlers.onPatchSection(section.id, { sort: Number(event.target.value) || 0 })} /></TableCell>
+    <TableCell><div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <LabeledSwitch label={t('显示')} checked={section.visible} onChange={value => handlers.onPatchSection(section.id, { visible: value })} />
+      <LabeledSwitch label={t('标题')} checked={section.show_title} onChange={value => handlers.onPatchSection(section.id, { show_title: value })} />
+    </div></TableCell>
+    <TableCell className="text-end">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" aria-label={t('更多操作：{{name}}', { name: sectionTitle(section) })}>
+            <MoreHorizontal size={15} aria-hidden="true" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-40">
+          <DropdownMenuItem onSelect={() => handlers.onAddChild(section.id)}>
+            <Plus size={13} aria-hidden="true" />{t('添加子菜单')}
+          </DropdownMenuItem>
+          <DropdownMenuItem disabled={count > 0} onSelect={() => handlers.onDeleteSection(section.id)}>
+            <Trash2 size={13} aria-hidden="true" />{t('删除区域')}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </TableCell>
+  </TableRow>;
+}
+
+function NodeRow({ row, handlers, drag }: { row: Extract<TreeRow, { kind: 'node' }>; handlers: RowHandlers; drag: DragProps }) {
+  const { item, depth, collapsed } = row;
+  const { node } = item;
   const open = !collapsed;
+  const hasChildren = item.children.length > 0;
   const Icon = resolveNavigationIcon(node.icon);
   const TypeIcon = TYPE_ICONS[node.type];
-  const target = node.type === 'page' ? node.route_id ?? '' : node.type === 'link' ? node.url ?? '' : node.type === 'action' ? node.permission ?? '' : '';
-  const menuLabel = t('{{name}}的操作', { name: displayName(node) });
-  return <>
-    <TableRow data-node={node.id} data-node-type={node.type}
-      draggable onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} onDragEnd={onDragEnd}
-      className={`${dragging ? 'opacity-40' : ''} ${dropHint === 'before' ? 'border-t-2 border-t-accent' : dropHint === 'after' ? 'border-b-2 border-b-accent' : ''}`}>
-      <TableCell>
-        <div className="flex items-center gap-2" style={{ paddingInlineStart: depth * 16 }}>
-          {hasChildren && <button type="button" aria-expanded={open} aria-label={t('展开或收起 {{name}}', { name: displayName(node) })}
-            onClick={() => onToggle(node.id)} className="rounded p-0.5 text-subtle hover:text-ink"><ChevronRight size={14} className={open ? 'rotate-90' : ''} /></button>}
-          <Icon size={15} aria-hidden="true" className="shrink-0 text-muted" />
-          <span className="break-all font-medium">{displayName(node)}</span>
-          {node.badge_dot && <span className={`size-2 rounded-full bg-accent`} aria-label={t('圆点标记')} />}
-          {!node.badge_dot && node.badge_text && <span className="rounded-full bg-surface-alt px-1.5 text-2xs text-muted">{node.badge_text}</span>}
-        </div>
-      </TableCell>
-      <TableCell className="max-sm:hidden"><span className="inline-flex items-center gap-1 text-xs text-muted"><TypeIcon size={13} aria-hidden="true" />{t(TYPE_LABELS[node.type])}</span></TableCell>
-      <TableCell className="max-sm:hidden"><span className="rounded-full bg-surface-alt px-1.5 py-0.5 text-2xs text-muted">{surfacesLabel(node.surfaces)}</span></TableCell>
-      <TableCell className="max-sm:hidden"><span className="text-xs text-muted">{node.icon || '—'}</span></TableCell>
-      <TableCell className="max-sm:hidden"><span className="text-xs text-muted">{target || '—'}</span></TableCell>
-      <TableCell><span className="inline-flex items-center gap-1 text-xs tabular-nums text-muted">
-        <button type="button" aria-label={t('上移 {{name}}', { name: displayName(node) })} className="rounded p-0.5 hover:text-ink" onClick={() => handlers.onShiftNode(node.id, -1)}><ArrowUp size={13} /></button>
-        {node.sort}
-        <button type="button" aria-label={t('下移 {{name}}', { name: displayName(node) })} className="rounded p-0.5 hover:text-ink" onClick={() => handlers.onShiftNode(node.id, 1)}><ArrowDown size={13} /></button>
-      </span></TableCell>
-      <TableCell><Switch aria-label={t('显示或隐藏 {{name}}', { name: displayName(node) })} checked={node.visible} onChange={value => handlers.onVisibleNode(node.id, value)} /></TableCell>
-      <TableCell className="text-end">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild><button type="button" aria-label={menuLabel} className="rounded p-1 text-subtle hover:bg-surface-alt hover:text-ink"><EllipsisVertical size={15} /></button></DropdownMenuTrigger>
-          <DropdownMenuContent align="end" aria-label={menuLabel} className="min-w-44">
-            <DropdownMenuItem onSelect={() => handlers.onEditNode(node.id)}><Pencil size={14} />{t('编辑')}</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => handlers.onMoveNode(node.id)}><ListTree size={14} />{t('移动…')}</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => handlers.onAddNode('directory', node.section_id, node.id)} disabled={node.type !== 'directory' || depthOf(handlers.draft.nodes, node.id) >= MAX_DEPTH}><FolderPlus size={14} />{t('添加子目录…')}</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => handlers.onAddNode('page', node.section_id, node.id)} disabled={node.type !== 'directory' || depthOf(handlers.draft.nodes, node.id) >= MAX_DEPTH}><SquarePen size={14} />{t('添加子页面…')}</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => handlers.onAddNode('link', node.section_id, node.id)} disabled={node.type !== 'directory' || depthOf(handlers.draft.nodes, node.id) >= MAX_DEPTH}><Link2 size={14} />{t('添加子链接…')}</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => handlers.onDeleteNode(node.id)}><Trash2 size={14} />{t('删除')}</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </TableCell>
-    </TableRow>
-  </>;
+  const target = menuNodeTarget(node);
+  const dropHint = drag.dragId && drag.dragId !== node.id && drag.dropHint?.id === node.id ? drag.dropHint.mode : null;
+  return <TableRow data-node={node.id} data-node-type={node.type} data-section={node.section_id}
+    draggable onDragStart={() => drag.onDragStart(node.id)} onDragOver={event => drag.onDragOver(event, { kind: 'node', id: node.id })}
+    onDrop={event => drag.onDrop(event, { kind: 'node', id: node.id })} onDragEnd={drag.onDragEnd}
+    className={`${drag.dragId === node.id ? 'opacity-40' : ''} ${dropHint === 'before' ? 'border-t-2 border-t-accent' : dropHint === 'after' ? 'border-b-2 border-b-accent' : dropHint === 'inside' ? 'bg-accent/10' : ''}`}>
+    <TableCell>
+      <div className="flex items-center gap-2" style={{ paddingInlineStart: depth * 16 }}>
+        {hasChildren
+          ? <button type="button" aria-expanded={open} aria-label={t('展开或收起 {{name}}', { name: menuNodeLabel(node) })}
+              onClick={() => handlers.onToggleCollapse(node.id)} className="rounded p-0.5 text-subtle hover:text-ink">
+              <ChevronRight size={14} className={open ? 'rotate-90' : ''} />
+            </button>
+          : <span aria-hidden="true" className="w-[18px] shrink-0" />}
+        <Icon size={15} aria-hidden="true" className="shrink-0 text-muted" />
+        <span className="break-all font-medium">{menuNodeLabel(node)}</span>
+        {node.badge_dot && <span className="size-2 rounded-full bg-accent" aria-label={t('圆点标记')} />}
+        {!node.badge_dot && node.badge_text && <span className="rounded-full bg-surface-alt px-1.5 text-2xs text-muted">{node.badge_text}</span>}
+      </div>
+    </TableCell>
+    <TableCell className="max-sm:hidden"><Badge><TypeIcon size={11} aria-hidden="true" />{t(TYPE_LABELS[node.type])}</Badge></TableCell>
+    <TableCell className="max-sm:hidden"><span className="break-all text-xs text-muted">{target || '—'}</span></TableCell>
+    <TableCell><span className="inline-flex items-center gap-1 text-xs tabular-nums text-muted">
+      <button type="button" aria-label={t('上移 {{name}}', { name: menuNodeLabel(node) })} className="rounded p-0.5 hover:text-ink" onClick={() => handlers.onShiftNode(node.id, -1)}><ArrowUp size={13} /></button>
+      {node.sort}
+      <button type="button" aria-label={t('下移 {{name}}', { name: menuNodeLabel(node) })} className="rounded p-0.5 hover:text-ink" onClick={() => handlers.onShiftNode(node.id, 1)}><ArrowDown size={13} /></button>
+    </span></TableCell>
+    <TableCell><label>
+      {/* The shared Switch drops extra props, so the row name comes from a visually hidden label. */}
+      <span className="sr-only">{t('显示或隐藏 {{name}}', { name: menuNodeLabel(node) })}</span>
+      <Switch checked={node.visible} onChange={value => handlers.onVisibleNode(node.id, value)} />
+    </label></TableCell>
+    <TableCell className="text-end">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" aria-label={t('更多操作：{{name}}', { name: menuNodeLabel(node) })}>
+            <MoreHorizontal size={15} aria-hidden="true" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-40">
+          {/* Every directory, page and link can take sub-menus; the depth cap
+              only disables the entry once the row already sits at MAX_DEPTH. */}
+          <DropdownMenuItem disabled={depthOf(handlers.draft.nodes, node.id) >= MAX_DEPTH}
+            title={depthOf(handlers.draft.nodes, node.id) >= MAX_DEPTH ? t('已达最大层级，无法再嵌套子菜单') : undefined}
+            onSelect={() => handlers.onAddChild(node.section_id, node.id)}>
+            <Plus size={13} aria-hidden="true" />{t('添加子菜单')}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => handlers.onEditNode(node.id)}><Pencil size={13} aria-hidden="true" />{t('编辑')}</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => handlers.onMoveNode(node.id)}><ListTree size={13} aria-hidden="true" />{t('移动…')}</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => handlers.onCopyNode(node.id)}><Copy size={13} aria-hidden="true" />{t('复制')}</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => handlers.onDeleteNode(node.id)}><Trash2 size={13} aria-hidden="true" />{t('删除')}</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </TableCell>
+  </TableRow>;
 }
 
 type NodeForm = {
-  parentId: string; name: string; icon: string; sort: string; visible: boolean; surfaces: NavigationNode['surfaces'];
+  parentId: string; name: string; icon: string; sort: string; visible: boolean;
   routeId: string; activeMenu: string; url: string; openMode: NavigationNode['open_mode'];
-  permission: string; operationIds: string[]; badgeText: string; badgeColor: string; badgeDot: boolean;
+  badgeText: string; badgeColor: string; badgeDot: boolean;
 };
 
-function NodeDialog({ state, draft, pages, permissions, operations, onClose, onSubmit }: {
-  state: NodeDialogState; draft: Draft; pages: MenuList['pages']; permissions: string[]; operations: APIOperation[];
+// The dialog is the only editor for one layout node: directory, page or link.
+// Action nodes are authorization units managed in the role editor, so they
+// never open here; their persisted permission and operation grants ride along
+// untouched in the draft.
+function NodeDialog({ state, draft, pages, onClose, onSubmit }: {
+  state: NodeDialogState; draft: Draft; pages: MenuList['pages'];
   onClose: () => void; onSubmit: (node: NavigationNode, isNew: boolean) => void;
 }) {
   useLocale();
   const editing = state.mode === 'edit' ? nodeIndex(draft.nodes).get(state.key) : undefined;
-  const type: NavigationNode['type'] = editing ? editing.type : state.mode === 'create' ? state.type : 'page';
+  // Create mode picks the type in the dialog itself; edit mode keeps the persisted one.
+  const [type, setType] = useState<NavigationNode['type']>(editing ? editing.type : state.mode === 'create' ? state.type : 'page');
   const sections = [...draft.sections].sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id));
-  const directories = draft.nodes.filter(node => node.type === 'directory' && sections.some(section => section.id === node.section_id)
-    && (!editing || (!isDescendant(draft.nodes, node.id, editing.id) && node.id !== editing.id)));
+  const height = editing ? heightOf(draft.nodes, editing.id) : 1;
+  // Any non-action node (directory, page or link) may parent another
+  // non-action node; the subtree's own height keeps the choice inside
+  // MAX_DEPTH and a node can never move under its own descendant.
+  const parents = draft.nodes.filter(node => node.type !== 'action' && sections.some(section => section.id === node.section_id)
+    && (!editing || (!isDescendant(draft.nodes, node.id, editing.id) && node.id !== editing.id))
+    && depthOf(draft.nodes, node.id) + height <= MAX_DEPTH);
   const usedRoutes = new Set(draft.nodes.filter(node => node.type === 'page' && node.id !== editing?.id && sections.some(section => section.id === node.section_id)).map(node => node.route_id));
   const routeOptions = (pages.length ? pages.map(page => page.id) : Object.keys(routes).filter(isRegisteredPage))
     .filter(isRegisteredPage).filter(id => !usedRoutes.has(id));
-  const [operationSearch, setOperationSearch] = useState('');
   const parentRefOf = (node: NavigationNode): string => {
     if (!node.parent_id) return `top:${node.section_id}`;
-    return `${nodeIndex(draft.nodes).get(node.parent_id)?.type === 'page' ? 'page' : 'dir'}:${node.parent_id}`;
+    const parent = nodeIndex(draft.nodes).get(node.parent_id);
+    return `${parent?.type ?? 'directory'}:${node.parent_id}`;
   };
-  const pageParents = draft.nodes.filter(item => item.type === 'page' && sections.some(section => section.id === item.section_id));
-  const parentRef = editing ? parentRefOf(editing) : state.mode === 'create' && state.parentId ? `${state.type === 'action' ? 'page' : 'dir'}:${state.parentId}` : state.mode === 'create' ? `top:${state.sectionId}` : 'top:';
+  const parentRef = editing ? parentRefOf(editing) : state.mode === 'create' && state.parentId ? `${nodeIndex(draft.nodes).get(state.parentId)?.type ?? 'directory'}:${state.parentId}` : state.mode === 'create' ? `top:${state.sectionId}` : 'top:';
   const [form, setForm] = useState<NodeForm>({
     parentId: parentRef,
     name: editing?.label ?? '',
-    icon: editing?.icon ?? (type === 'directory' ? 'Folder' : type === 'link' ? 'Link' : type === 'action' ? 'MousePointerClick' : 'Circle'),
+    icon: editing?.icon ?? typeDefaultIcon(state.mode === 'create' ? state.type : 'page'),
     sort: String(editing?.sort ?? 100),
     visible: editing?.visible ?? true,
-    surfaces: editing ? [...editing.surfaces] : ['user', 'administrator'],
     routeId: editing?.route_id ?? '',
     activeMenu: editing?.active_menu ?? '',
     url: editing?.url ?? '',
     openMode: editing?.open_mode ?? 'same_tab',
-    permission: editing?.permission ?? '',
-    operationIds: editing?.operation_ids ?? [],
     badgeText: editing?.badge_text ?? '',
     badgeColor: editing?.badge_color || 'primary',
     badgeDot: editing?.badge_dot ?? false,
   });
   const [errors, setErrors] = useState<{ name?: string; url?: string; route?: string }>({});
-  const operationMatches = operations.filter(operation => `${operation.method} ${operation.path} ${operation.summary}`.toLowerCase().includes(operationSearch.toLowerCase())).slice(0, 50);
   const patch = (value: Partial<NodeForm>) => setForm(current => ({ ...current, ...value }));
-  // The server attaches actions to pages, so the parent picker is type-aware:
-  // pages pick a section top or a directory, actions pick a page row.
-  const parentOptions = type === 'action'
-    ? pageParents.filter(item => depthOf(draft.nodes, item.id) < MAX_DEPTH && (!editing || item.id !== editing.id))
-        .map(item => ({ value: `page:${item.id}`, label: displayName(item) }))
-    : sections.map(section => ({ value: `top:${section.id}`, label: t('顶层 · {{name}}', { name: sectionTitle(section) }) }))
-        .concat(directories.map(node => ({ value: `dir:${node.id}`, label: `${'　'.repeat(Math.max(0, depthOf(draft.nodes, node.id) - 1))}${displayName(node)}` })));
+  // Parent options: a section top ("作为顶级菜单") or any non-action node,
+  // depth-filtered so the moved subtree stays inside MAX_DEPTH.
+  const parentOptions = sections.map(section => ({ value: `top:${section.id}`, label: t('顶层 · {{name}}', { name: sectionTitle(section) }) }))
+    .concat(parents.map(node => ({ value: `${node.type}:${node.id}`, label: `${'　'.repeat(Math.max(0, depthOf(draft.nodes, node.id) - 1))}${menuNodeLabel(node)}` })));
+  if (editing) {
+    const current = parentRefOf(editing);
+    if (!parentOptions.some(option => option.value === current)) {
+      const separator = current.indexOf(':');
+      const kind = current.slice(0, separator); const id = current.slice(separator + 1);
+      const section = kind === 'top' ? sections.find(item => item.id === id) : undefined;
+      const parent = kind !== 'top' ? nodeIndex(draft.nodes).get(id) : undefined;
+      parentOptions.unshift({ value: current, label: section ? t('顶层 · {{name}}', { name: sectionTitle(section) }) : parent ? menuNodeLabel(parent) : id });
+    }
+  }
   const submit = () => {
     const next: typeof errors = {};
     if (!form.name.trim() && type !== 'page') next.name = t('请输入名称');
@@ -516,100 +713,73 @@ function NodeDialog({ state, draft, pages, permissions, operations, onClose, onS
     if (Object.keys(next).length) return;
     const parentKind = form.parentId.split(':')[0];
     const parentIdValue = form.parentId.slice(parentKind.length + 1);
-    const parentRow = parentKind === 'dir' ? directories.find(node => node.id === parentIdValue)
-      : parentKind === 'page' ? pageParents.find(node => node.id === parentIdValue) : undefined;
+    // The chosen parent comes from the picker options, so resolve it against the
+    // whole node table; the depth-filtered option list may legitimately omit a
+    // node's current parent while it stays the selected value.
+    const parentRow = parentKind === 'top' ? undefined : nodeIndex(draft.nodes).get(parentIdValue);
     const sectionId = parentRow?.section_id ?? (parentKind === 'top' ? parentIdValue : sections[0].id);
     const parentId = parentKind === 'top' ? undefined : parentIdValue;
     const node: NavigationNode = editing
       ? { ...editing, section_id: sectionId, parent_id: parentId,
-          label: form.name.trim(), icon: form.icon, sort: Number(form.sort) || 0, visible: form.visible, surfaces: form.surfaces,
+          label: form.name.trim(), icon: form.icon, sort: Number(form.sort) || 0, visible: form.visible,
           url: type === 'link' ? form.url.trim() : editing.url, open_mode: form.openMode,
-          active_menu: form.activeMenu || undefined, permission: type === 'action' ? form.permission || undefined : editing.permission,
-          operation_ids: type === 'action' ? form.operationIds : editing.operation_ids,
+          active_menu: form.activeMenu || undefined,
           badge_text: form.badgeText.trim(), badge_color: form.badgeDot || form.badgeText.trim() ? form.badgeColor : '', badge_dot: form.badgeDot,
           route_id: type === 'page' ? form.routeId : editing.route_id }
-      : { ...newNavigationNode(randomId(draft.nodes, type), sectionId, type, form.surfaces),
+      : { ...newNavigationNode(randomId(draft.nodes.map(item => item.id), type), sectionId, type),
           parent_id: parentId,
           label: form.name.trim(), icon: form.icon, sort: Number(form.sort) || 0, visible: form.visible,
           route_id: type === 'page' ? form.routeId : undefined, url: type === 'link' ? form.url.trim() : undefined,
           open_mode: form.openMode, active_menu: form.activeMenu || undefined,
-          permission: type === 'action' ? form.permission || undefined : undefined,
-          operation_ids: type === 'action' ? form.operationIds : [],
           badge_text: form.badgeText.trim(), badge_color: form.badgeDot || form.badgeText.trim() ? form.badgeColor : '', badge_dot: form.badgeDot };
     onSubmit(node, !editing);
     onClose();
   };
-  return <Modal title={editing ? t('编辑节点') : t('添加{{type}}', { type: t(TYPE_LABELS[type]) })} onClose={onClose} className="flex min-h-0 flex-1 flex-col">
-    {/* Body scrolls, the action row stays pinned so 添加/取消 never sit below the fold. */}
-    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pe-1">
-    <label className="flex flex-col gap-1 text-xs text-muted">{t('父区域/目录')}
-      <SimpleSelect label={t('父区域/目录')} value={form.parentId} onChange={value => patch({ parentId: value })} options={parentOptions} />
-    </label>
-    {type === 'page' && <label className="flex flex-col gap-1 text-xs text-muted">{t('目标页面（仅已注册路由）')}
-      <SimpleSelect label={t('目标页面（仅已注册路由）')} value={form.routeId} placeholder={t('选择页面')}
-        onChange={value => patch({ routeId: value })}
-        options={routeOptions.map(id => ({ value: id, label: t(routes[id].label) }))} />
-      {errors.route && <small role="alert" className="text-danger">{errors.route}</small>}
-    </label>}
-    {type === 'link' && <>
-      <label className="flex flex-col gap-1 text-xs text-muted">{t('链接地址')}
-        <Input value={form.url} maxLength={2048} inputMode="url" aria-label={t('链接地址')} placeholder="https://example.com/help"
-          aria-invalid={!!errors.url || undefined} onChange={event => patch({ url: event.target.value })} />
-        {errors.url && <small role="alert" className="text-danger">{errors.url}</small>}
-        <small>{t('站内地址需指向已注册页面，不能指向任意文件路径。')}</small>
-      </label>
-      <label className="flex flex-col gap-1 text-xs text-muted">{t('打开方式')}
-        <SimpleSelect label={t('打开方式')} value={form.openMode} onChange={value => patch({ openMode: value as NavigationNode['open_mode'] })}
-          options={[{ value: 'same_tab', label: t('当前窗口') }, { value: 'new_tab', label: t('新窗口') }]} />
-      </label>
-    </>}
-    {type === 'action' && <>
-      <label className="flex flex-col gap-1 text-xs text-muted">{t('引用权限点')}
-        <SimpleSelect label={t('引用权限点')} value={form.permission} placeholder={t('选择权限点')} onChange={value => patch({ permission: value })}
-          options={permissions.map(id => ({ value: id, label: id }))} />
-        <small>{t('按钮仅在侧栏定义入口，引用已登记的权限点，不代表业务代码本身。')}</small>
-      </label>
-      <div className="flex flex-col gap-1 text-xs text-muted">
-        <span>{t('引用操作（API 目录）')}</span>
-        <Input value={operationSearch} aria-label={t('筛选 API 操作')} placeholder={t('筛选 API 操作')} autoComplete="off"
-          onChange={event => setOperationSearch(event.target.value)} />
-        <div role="group" aria-label={t('引用操作（API 目录）')} className="flex max-h-40 flex-col gap-1 overflow-y-auto rounded-md border border-line p-2">
-          {operationMatches.map(operation => <Checkbox key={operation.operation_id}
-            aria-label={`${operation.method} ${operation.path}`}
-            checked={form.operationIds.includes(operation.operation_id)}
-            onChange={checked => patch({ operationIds: checked ? [...form.operationIds, operation.operation_id] : form.operationIds.filter(id => id !== operation.operation_id) })}>
-            <span className="font-mono text-2xs text-muted">{operation.method}</span>{` ${operation.path}`}
-          </Checkbox>)}
-          {!operationMatches.length && <span className="text-2xs text-subtle">{t('没有匹配的操作')}</span>}
-        </div>
-        <small>{t('仅登记 API 操作标识，不执行任何请求。')}</small>
+  return <Modal title={editing ? t('编辑节点') : t('添加{{type}}', { type: t(TYPE_LABELS[type]) })} onClose={onClose} contentClassName="sm:max-w-2xl" className="flex min-h-0 flex-col gap-4">
+    {/* Two columns: layout facts on the left, presentation on the right; the
+        body scrolls while the action row stays pinned. */}
+    <div className="grid min-h-0 gap-x-6 gap-y-3 overflow-y-auto pe-1 md:grid-cols-2">
+      <div className="flex min-w-0 flex-col gap-3">
+        {!editing && <label className="flex flex-col gap-1 text-xs text-muted">{t('菜单类型')}
+          <SimpleSelect label={t('菜单类型')} value={type} onChange={value => { setType(value as NavigationNode['type']); setErrors({}); }}
+            options={CREATABLE_TYPES.map(candidate => ({ value: candidate, label: t(TYPE_LABELS[candidate]) }))} />
+        </label>}
+        <label className="flex flex-col gap-1 text-xs text-muted">{t('显示名称')}
+          <Input value={form.name} maxLength={64} autoComplete="off" aria-label={t('显示名称')} placeholder={type === 'page' ? t('留空使用页面默认名称') : t('请输入名称')}
+            aria-invalid={!!errors.name || undefined} onChange={event => patch({ name: event.target.value })} />
+          {errors.name && <small role="alert" className="text-danger">{errors.name}</small>}
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-muted">{t('上级菜单')}
+          <SimpleSelect label={t('上级菜单')} value={form.parentId} onChange={value => patch({ parentId: value })} options={parentOptions} />
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-muted">{t('排序')}
+          <Input type="number" aria-label={t('排序')} value={form.sort} onChange={event => patch({ sort: event.target.value })} />
+        </label>
+        <label className="flex items-center gap-2 text-xs text-muted">{t('在导航中显示')}
+          <Switch checked={form.visible} onChange={value => patch({ visible: value })} />
+        </label>
+        {type !== 'directory' && <label className="flex flex-col gap-1 text-xs text-muted">{t('打开方式')}
+          <SimpleSelect label={t('打开方式')} value={form.openMode} onChange={value => patch({ openMode: value as NavigationNode['open_mode'] })}
+            options={[{ value: 'same_tab', label: t('当前页') }, { value: 'new_tab', label: t('新标签') }]} />
+        </label>}
       </div>
-    </>}
-    <label className="flex flex-col gap-1 text-xs text-muted">{t('显示名称')}
-      <Input value={form.name} maxLength={64} autoComplete="off" aria-label={t('显示名称')} placeholder={type === 'page' ? t('留空使用页面默认名称') : t('请输入名称')}
-        aria-invalid={!!errors.name || undefined} onChange={event => patch({ name: event.target.value })} />
-      {errors.name && <small role="alert" className="text-danger">{errors.name}</small>}
-    </label>
-    <NavigationIconPicker value={form.icon} onChange={icon => patch({ icon })} />
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      <label className="flex flex-col gap-1 text-xs text-muted">{t('排序')}
-        <Input type="number" aria-label={t('排序')} value={form.sort} onChange={event => patch({ sort: event.target.value })} />
-      </label>
-      <label className="flex flex-col gap-1 text-xs text-muted">{t('在导航中显示')}
-        <Switch checked={form.visible} onChange={value => patch({ visible: value })} />
-      </label>
-      <div role="group" aria-label={t('显示工作台')} className="flex flex-col gap-1 text-xs text-muted">
-        <span>{t('显示工作台')}</span>
-        <div className="flex items-center gap-3">
-          {(['user', 'administrator'] as const).map(value => <label key={value} className="flex items-center gap-1 text-xs text-muted">
-            <Checkbox aria-label={t(SURFACE_LABELS[value])} checked={form.surfaces.includes(value)}
-              onChange={checked => {
-                const next = checked ? [...new Set([...form.surfaces, value])] : form.surfaces.filter(item => item !== value);
-                if (next.length) patch({ surfaces: next });
-              }} />{t(SURFACE_LABELS[value])}
-          </label>)}
-        </div>
+      <div className="flex min-w-0 flex-col gap-3">
+        <NavigationIconPicker value={form.icon} onChange={icon => patch({ icon })} />
+        {type === 'page' && <label className="flex flex-col gap-1 text-xs text-muted">{t('目标页面（仅已注册路由）')}
+          <SimpleSelect label={t('目标页面（仅已注册路由）')} value={form.routeId} placeholder={t('选择页面')}
+            onChange={value => patch({ routeId: value })}
+            options={routeOptions.map(id => ({ value: id, label: t(routes[id].label) }))} />
+          {errors.route && <small role="alert" className="text-danger">{errors.route}</small>}
+        </label>}
+        {type === 'link' && <label className="flex flex-col gap-1 text-xs text-muted">{t('链接地址')}
+          <Input value={form.url} maxLength={2048} inputMode="url" aria-label={t('链接地址')} placeholder="https://example.com/help"
+            aria-invalid={!!errors.url || undefined} onChange={event => patch({ url: event.target.value })} />
+          {errors.url && <small role="alert" className="text-danger">{errors.url}</small>}
+          <small>{t('站内地址需指向已注册页面，不能指向任意文件路径。')}</small>
+        </label>}
       </div>
+    </div>
+    <div className="grid shrink-0 gap-x-6 gap-y-3 border-t border-line pt-3 md:grid-cols-2">
       <label className="flex flex-col gap-1 text-xs text-muted">{t('角标文字')}
         <Input value={form.badgeText} maxLength={12} aria-label={t('角标文字')} onChange={event => patch({ badgeText: event.target.value })} />
       </label>
@@ -625,10 +795,9 @@ function NodeDialog({ state, draft, pages, permissions, operations, onClose, onS
           options={routeOptions.map(id => ({ value: id, label: t(routes[id].label) }))} />
       </label>}
     </div>
-    </div>
     <div className="flex shrink-0 justify-end gap-2 border-t border-line pt-3">
       <Button variant="secondary" onClick={onClose}>{t('取消')}</Button>
-      <Button onClick={submit}>{editing ? t('保存') : t('添加')}</Button>
+      <Button onClick={submit}>{t('确定')}</Button>
     </div>
   </Modal>;
 }
@@ -647,9 +816,9 @@ function MoveDialog({ draft, node, onClose, onConfirm }: {
   const options = node.type === 'action'
     ? draft.nodes.filter(item => item.type === 'page' && item.id !== node.id && sections.some(section => section.id === item.section_id)
         && depthOf(draft.nodes, item.id) + 1 <= MAX_DEPTH)
-        .map(item => ({ value: `page:${item.id}`, label: displayName(item) }))
+        .map(item => ({ value: `page:${item.id}`, label: menuNodeLabel(item) }))
     : sections.map(section => ({ value: `top:${section.id}`, label: t('顶层 · {{name}}', { name: sectionTitle(section) }) }))
-        .concat(directories.map(item => ({ value: `dir:${item.id}`, label: `${'　'.repeat(Math.max(0, depthOf(draft.nodes, item.id) - 1))}${displayName(item)}` })));
+        .concat(directories.map(item => ({ value: `dir:${item.id}`, label: `${'　'.repeat(Math.max(0, depthOf(draft.nodes, item.id) - 1))}${menuNodeLabel(item)}` })));
   return <Modal title={t('移动节点')} onClose={onClose} className="flex flex-col gap-3">
     <p className="text-xs text-muted">{t('选择目标区域顶层，或嵌套到其他目录之下；深度最多 {{count}} 层。', { count: MAX_DEPTH })}</p>
     <label className="flex flex-col gap-1 text-xs text-muted">{t('目标位置')}
@@ -666,4 +835,3 @@ function MoveDialog({ draft, node, onClose, onConfirm }: {
     </div>
   </Modal>;
 }
-

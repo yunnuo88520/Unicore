@@ -264,6 +264,27 @@ export const operations = {
     "identityRealm": "administrator",
     "uiPage": "users"
   },
+  "resetUserPassword": {
+    "method": "POST",
+    "path": "/api/v1/admin/users/{id}/password",
+    "requestSchema": "AdminPasswordResetInput",
+    "responseSchema": "AdminPasswordResetResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "users:update"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator",
+    "uiPage": "users"
+  },
   "adminSettings": {
     "method": "GET",
     "path": "/api/v1/admin/settings",
@@ -4186,6 +4207,7 @@ export interface OperationInputs {
   listUsers: undefined;
   createUser: Models.UserCreate;
   updateUser: Models.UserUpdate;
+  resetUserPassword: Models.AdminPasswordResetInput;
   adminSettings: undefined;
   adminPatchSettings: Models.SettingPatch;
   localSettings: undefined;
@@ -4402,6 +4424,7 @@ export interface OperationData {
   listUsers: Models.UserListResponse['data'];
   createUser: Models.UserResponse['data'];
   updateUser: Models.UserResponse['data'];
+  resetUserPassword: Models.AdminPasswordResetResponse['data'];
   adminSettings: Models.SettingsResponse['data'];
   adminPatchSettings: Models.SettingsResponse['data'];
   localSettings: Models.SettingsResponse['data'];

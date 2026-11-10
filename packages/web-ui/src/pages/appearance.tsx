@@ -242,7 +242,10 @@ function AdminSettings({ section = 'base', client, metadata, theme, onThemeSaved
       </CardContent>
     </Card>}
     {client.web && section === 'mail' && <MailTest web={client.web} canWrite dirty={dirty('mail')} revision={query.dataUpdatedAt} />}
-    {client.web && active.id === 'oidc' && <OidcConnection key={query.dataUpdatedAt} web={client.web} dirty={dirty('oidc')} revision={query.dataUpdatedAt} />}
+    {/* No remount key: a background settings refetch after saving must not
+        orphan an in-flight connection check and drop its endpoint result. The
+        info query below already refetches through its revision-scoped key. */}
+    {client.web && active.id === 'oidc' && <OidcConnection web={client.web} dirty={dirty('oidc')} revision={query.dataUpdatedAt} />}
   </div>;
 }
 

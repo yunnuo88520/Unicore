@@ -171,6 +171,22 @@ func policyHandler(config Config) func(http.Handler) http.Handler {
 			}
 			switch operation.Policy.Access {
 			case "public", "install-token", "local":
+				if operation.Policy.Access == "public" && strings.HasSuffix(r.URL.Path, "/bootstrap") && r.Header.Get("Authorization") != "" {
+					if config.Install == nil {
+						failure(w, 404, "NOT_FOUND", "接口不存在")
+						return
+					}
+					session, valid := resolveSession(config.Install, w, r)
+					if !valid {
+						return
+					}
+					if b, ok := bearerFrom(r); ok && !b.Allows(operation.ID, r.URL.Path) {
+						webError(w, platform.ErrForbidden)
+						return
+					}
+					*r = *r.WithContext(context.WithValue(r.Context(), policySessionKey{}, session))
+				}
+
 				next.ServeHTTP(w, r)
 				return
 			case "session", "authenticated", "platform-session":
@@ -198,6 +214,10 @@ func policyHandler(config Config) func(http.Handler) http.Handler {
 			}
 			session, ok := resolveSession(config.Install, w, r)
 			if !ok {
+				return
+			}
+			if bearer, present := bearerFrom(r); present && !bearer.Allows(operation.ID, r.URL.Path) {
+				webError(w, platform.ErrForbidden)
 				return
 			}
 			_, _, _, profile := config.Install.Services()
@@ -240,6 +260,9 @@ func resolveSession(manager *install.Manager, w http.ResponseWriter, r *http.Req
 	if profile != runtime.WebPlatform || identity == nil {
 		failure(w, 404, "NOT_FOUND", "此运行形态不提供平台接口")
 		return contracts.Session{}, false
+	}
+	if _, present := r.Header["Authorization"]; present {
+		return resolveBearer(w, r, identity)
 	}
 	session, err := identity.Session(r.Context(), rawSession(r))
 	if err != nil {

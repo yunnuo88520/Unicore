@@ -54,7 +54,7 @@ func mountNotes(api chi.Router, config Config) {
 			var actor files.Actor
 			if profile == runtime.WebPlatform {
 				identity := config.Install.Identity(administratorRequest(r))
-				session, e := identity.Session(r.Context(), rawSession(r))
+				session, e := requestIdentitySession(r, identity)
 				if e != nil {
 					webError(w, e)
 					return

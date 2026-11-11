@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v7
+      - uses: ./.github/actions/ubuntu-mirrors
       - name: Install quality tooling
         run: sudo apt-get update && sudo apt-get install -y ripgrep
       - run: test "$(cat VERSION)" = "$EXPECTED_VERSION"

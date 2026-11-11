@@ -179,6 +179,14 @@
             "postgres": "platform/postgres/0009_task_customization.sql",
             "mysql": "platform/mysql/0009_task_customization.sql"
           }
+        },
+        {
+          "version": 10,
+          "files": {
+            "sqlite": "platform/sqlite/0010_api_credentials.sql",
+            "postgres": "platform/postgres/0010_api_credentials.sql",
+            "mysql": "platform/mysql/0010_api_credentials.sql"
+          }
         }
       ]
     },

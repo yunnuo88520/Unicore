@@ -2,14 +2,14 @@
  * Description: Shared UI client; pages know neither fetch nor Wails globals.
  */
 import {fileFingerprint,retryDelay} from './upload';
-import type { NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, ProfileInput, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, LogTailList, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, AdminPasswordResetInput, AdminPasswordReset, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, RoleSaveInput, MenuEntry, MenuList, MenuSaveInput, MenuRoleAssignmentInput, NavigationSection, NavigationNode, NavigationPage, NavigationRoleAssignment, Navigation, APIOperation, APIOperationList, Post, PostList, PostSaveInput, NoteCapabilities, FileCapabilities, DictionarySummary, DictionaryList, DictionaryItemEntry, DictionaryDetail, DictionaryCreateInput, DictionaryUpdateInput, DictionaryItemsInput, Department, DepartmentList, DepartmentSaveInput, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput, TaskList, TaskEntry, TaskUpdateInput, TaskTrigger, TaskCreateInput, TaskEditInput, TaskRunList, ActionResult, InboxList, FileUploadInput, FileUploadGrant, MonitorSnapshot, MonitorSnapshotResponse, MonitorEventList, MonitorEvent, MonitorEventListResponse, MonitorAlertRules, MonitorAlertRule, MonitorAlertRulesResponse } from '@unicore/contracts';
+import type { PersonalTokenInput, PersonalToken, PersonalTokenList, PersonalTokenCreated, TokenScopeList, ClientTokenPair, ClientTokenLogin, NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, ProfileInput, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, LogTailList, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, AdminPasswordResetInput, AdminPasswordReset, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, RoleSaveInput, MenuEntry, MenuList, MenuSaveInput, MenuRoleAssignmentInput, NavigationSection, NavigationNode, NavigationPage, NavigationRoleAssignment, Navigation, APIOperation, APIOperationList, Post, PostList, PostSaveInput, NoteCapabilities, FileCapabilities, DictionarySummary, DictionaryList, DictionaryItemEntry, DictionaryDetail, DictionaryCreateInput, DictionaryUpdateInput, DictionaryItemsInput, Department, DepartmentList, DepartmentSaveInput, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput, TaskList, TaskEntry, TaskUpdateInput, TaskTrigger, TaskCreateInput, TaskEditInput, TaskRunList, ActionResult, InboxList, FileUploadInput, FileUploadGrant, MonitorSnapshot, MonitorSnapshotResponse, MonitorEventList, MonitorEvent, MonitorEventListResponse, MonitorAlertRules, MonitorAlertRule, MonitorAlertRulesResponse } from '@unicore/contracts';
 import { operations, type OperationId, type OperationInputs, type OperationData } from '@unicore/contracts/operations';
 import { validate, type SchemaName } from '@unicore/contracts/validate';
 export { validate, constraints, type SchemaName } from '@unicore/contracts/validate';
 export { constraintsToZod, zodFieldErrors } from '@unicore/contracts/zod';
 export { operations, type OperationId } from '@unicore/contracts/operations';
 
-export type { NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateRelease, NoteEntry, LogTailList, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, AdminPasswordResetInput, AdminPasswordReset, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, DictionaryItemsInput, DictionaryUpdateInput, DictionaryCreateInput, DictionaryDetail, DictionaryItemEntry, DictionaryList, DictionarySummary, MenuSaveInput, MenuRoleAssignmentInput, MenuList, RoleSaveInput, MenuEntry, NavigationSection, NavigationNode, NavigationPage, NavigationRoleAssignment, Navigation, APIOperation, APIOperationList, Post, PostList, PostSaveInput, NoteCapabilities, FileCapabilities, Department, DepartmentList, DepartmentSaveInput, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput, TaskList, TaskEntry, TaskUpdateInput, TaskTrigger, TaskCreateInput, TaskEditInput, TaskRunList, ActionResult, InboxList, InboxEntry, FileUploadInput, FileUploadGrant, MonitorSnapshot, MonitorHttpService, MonitorDatabase, MonitorStorageService, MonitorTasksSummary, MonitorTaskHealth, MonitorEventList, MonitorEvent, MonitorAlertRules, MonitorAlertRule } from '@unicore/contracts';
+export type { PersonalTokenInput, PersonalToken, PersonalTokenList, PersonalTokenCreated, TokenScopeList, ClientTokenPair, ClientTokenLogin, NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateRelease, NoteEntry, LogTailList, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, AdminPasswordResetInput, AdminPasswordReset, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, DictionaryItemsInput, DictionaryUpdateInput, DictionaryCreateInput, DictionaryDetail, DictionaryItemEntry, DictionaryList, DictionarySummary, MenuSaveInput, MenuRoleAssignmentInput, MenuList, RoleSaveInput, MenuEntry, NavigationSection, NavigationNode, NavigationPage, NavigationRoleAssignment, Navigation, APIOperation, APIOperationList, Post, PostList, PostSaveInput, NoteCapabilities, FileCapabilities, Department, DepartmentList, DepartmentSaveInput, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput, TaskList, TaskEntry, TaskUpdateInput, TaskTrigger, TaskCreateInput, TaskEditInput, TaskRunList, ActionResult, InboxList, InboxEntry, FileUploadInput, FileUploadGrant, MonitorSnapshot, MonitorHttpService, MonitorDatabase, MonitorStorageService, MonitorTasksSummary, MonitorTaskHealth, MonitorEventList, MonitorEvent, MonitorAlertRules, MonitorAlertRule } from '@unicore/contracts';
 
 export class AppError extends Error {
   constructor(public readonly code: string, message: string, public readonly requestId = '', public readonly fields: Record<string, string> = {}) { super(message); this.name = 'AppError'; }
@@ -79,6 +79,11 @@ export interface StorageClient {
 }
 
 export interface WebClient {
+ personalTokens():Promise<PersonalTokenList>;
+ createPersonalToken(input:PersonalTokenInput):Promise<PersonalTokenCreated>;
+ revokePersonalToken(id:string):Promise<ActionResult>;
+ personalTokenScopes():Promise<TokenScopeList>;
+
  subscribeEvents(listener:(type:string)=>void):()=>void;
  subscribeLogEvents(afterSeq:number,onLine:(line:string,seq:number)=>void,onStatus?:(status:'connected'|'disconnected')=>void):()=>void;
  exportUsers(search?:string):Promise<Blob>;
@@ -282,15 +287,17 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   subscribeSession(listener: (event: SessionEvent) => void) { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; }
   private sessionChanged(event: SessionEvent) { this.epoch++; for (const listener of this.listeners) listener(event); }
   resetSession() { this.csrf = ''; this.identity = ''; this.authenticated = false; this.bootstrapped = false; this.sessionChanged('external'); }
-  constructor(private readonly baseURL = '', private readonly fetcher: typeof fetch = globalThis.fetch.bind(globalThis), realm: 'user'|'administrator' = 'user') { this.administrator = realm === 'administrator'; }
+  constructor(private readonly baseURL = '', private readonly fetcher: typeof fetch = globalThis.fetch.bind(globalThis), realm: 'user'|'administrator' = 'user', private readonly bearerToken?:string) { this.administrator = realm === 'administrator'; }
   private async request<T>(path: string, init?: RequestInit,timeoutMS=20000,binary=false): Promise<T> {
     const epoch = this.epoch;
     let response: Response;
     const headers = new Headers(init?.headers);
-    if (this.csrf) headers.set('X-CSRF-Token', this.csrf);
+    if (this.bearerToken !== undefined) {
+      if(this.bearerToken) headers.set('Authorization', `Bearer ${this.bearerToken}`);
+    } else if (this.csrf) headers.set('X-CSRF-Token', this.csrf);
     const timeout = AbortSignal.timeout(timeoutMS);
     const signal = init?.signal ? AbortSignal.any([init.signal, timeout]) : timeout;
-    try { response = await this.fetcher(`${this.baseURL}/api/v1${path}`, { credentials: 'same-origin', ...init, headers, signal }); }
+    try { response = await this.fetcher(`${this.baseURL}/api/v1${path}`, { credentials: this.bearerToken === undefined ? 'same-origin' : 'omit', ...init, headers, signal }); }
     catch { throw new AppError(signal.aborted ? (timeout.aborted ? 'REQUEST_TIMEOUT' : 'REQUEST_CANCELLED') : 'NETWORK_ERROR', signal.aborted ? '请求已取消或超时' : '连接服务失败，请确认 Go 服务正在运行'); }
     if (binary && response.ok) {
       const result = await response.blob();
@@ -594,6 +601,10 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   updateNote(id:string,input:NoteUpdate) { return this.call('updateNote',input,{params:{id}}); }
   deleteNote(id:string,version:number) { return this.call('deleteNote',{version},{params:{id}}); }
   settings() { return this.call(this.platform ? 'adminSettings' : 'localSettings'); }
+  personalTokens(){return this.call('personalTokens');}
+  createPersonalToken(input:PersonalTokenInput){return this.call('createPersonalToken',input);}
+  revokePersonalToken(id:string){return this.call('revokePersonalToken',undefined,{params:{id}});}
+  personalTokenScopes(){return this.call('personalTokenScopes');}
   patchSettings(input: SettingPatch) { return this.call(this.platform ? 'adminPatchSettings' : 'localPatchSettings', input); }
   monitorSnapshot() { return this.call(this.platform ? 'adminMonitorSnapshot' : 'monitorSnapshot'); }
   monitorEvents() { return this.call(this.platform ? 'adminMonitorEvents' : 'monitorEvents'); }
@@ -637,4 +648,77 @@ export class WailsTransport implements AppClient {
   async patchSettings(input: SettingPatch) { const method = this.bridge().PatchSettings; if (!method) throw new AppError('NOT_AVAILABLE', '此版本不支持持久化设置'); return unwrap(await method(input)); }
   async monitorSnapshot() { const method = this.bridge().MonitorSnapshot; if (!method) throw new AppError('NOT_AVAILABLE', '此版本未提供运行监控'); return unwrap(await method()); }
   async monitorEvents() { const method = this.bridge().MonitorEvents; if (!method) throw new AppError('NOT_AVAILABLE', '此版本未提供运行监控'); return unwrap(await method()); }
+}
+
+// An immutable bearer credential belongs to one client identity. Construct a new
+// transport after rotation; no credentials are persisted in browser storage.
+export class BearerTransport extends HttpTransport {
+ constructor(baseURL:string,token='',fetcher:typeof fetch=globalThis.fetch.bind(globalThis)){
+  super(baseURL,fetcher,'user',token);
+ }
+}
+
+// Client-owned credentials remain in memory. Applications may persist pairs in
+// their platform's secure storage; this SDK never writes localStorage/cookies.
+export class ClientTokenSession {
+  private pair?: ClientTokenPair;
+  private client?: BearerTransport;
+  private refreshing?: Promise<ClientTokenPair>;
+  private readonly auth: BearerTransport;
+  private generation = 0;
+  constructor(private readonly baseURL:string,private readonly fetcher:typeof fetch=globalThis.fetch.bind(globalThis),private readonly onTokens?:(pair:ClientTokenPair|undefined)=>void){
+    this.auth=new BearerTransport(baseURL,'',fetcher);
+  }
+  accept(pair:ClientTokenPair){
+    this.generation++;
+    this.pair=pair;this.client=new BearerTransport(this.baseURL,pair.access_token,this.fetcher);this.onTokens?.(pair);
+  }
+  captcha():Promise<Captcha>{return this.auth.captcha();}
+  async login(input:LoginInput):Promise<ClientTokenLogin>{
+    const epoch=++this.generation;this.pair=undefined;this.client=undefined;this.onTokens?.(undefined);
+    const result=await this.auth.call('clientTokenLogin',input);
+    if(epoch!==this.generation)throw new AppError('SESSION_CHANGED','会话已变化，请重新获取数据');
+    if(result.tokens)this.accept(result.tokens);
+    return result;
+  }
+  async completeMFA(challenge_token:string,code:string){
+    const epoch=this.generation;
+    const pair=await this.auth.call('clientTokenMFA',{challenge_token,code});
+    if(epoch!==this.generation)throw new AppError('SESSION_CHANGED','会话已变化，请重新获取数据');
+    this.accept(pair);return pair;
+  }
+  refresh():Promise<ClientTokenPair>{
+    if(this.refreshing)return this.refreshing;
+    if(!this.pair)return Promise.reject(new AppError('AUTH_REQUIRED','请重新登录'));
+    const refresh_token=this.pair.refresh_token, epoch=this.generation;
+    const pending=this.auth.call('refreshClientToken',{refresh_token}).then(pair=>{
+      if(epoch!==this.generation)throw new AppError('SESSION_CHANGED','会话已变化，请重新获取数据');
+      this.accept(pair);return pair;
+    }).catch(error=>{
+      if(epoch===this.generation){this.generation++;this.pair=undefined;this.client=undefined;this.onTokens?.(undefined);}
+      throw error;
+    }).finally(()=>{if(this.refreshing===pending)this.refreshing=undefined;});
+    this.refreshing=pending;return pending;
+  }
+  async call<K extends OperationId>(id:K,...args:OperationInputs[K] extends undefined?[input?:undefined,options?:OperationOptions]:[input:OperationInputs[K],options?:OperationOptions]):Promise<OperationData[K]>{
+    if(!this.client)throw new AppError('AUTH_REQUIRED','请重新登录');
+    const before=this.client, owner=this.pair?.user.id;
+    try{
+      const result=await before.call(id,...args);
+      if(this.pair?.user.id!==owner)throw new AppError('SESSION_CHANGED','会话已变化，请重新获取数据');
+      return result;
+    }catch(error){
+      if(this.pair?.user.id!==owner)throw new AppError('SESSION_CHANGED','会话已变化，请重新获取数据');
+      if(!(error instanceof AppError)||!['AUTH_REQUIRED','INVALID_CREDENTIALS'].includes(error.code))throw error;
+      // An older in-flight request must not rotate an already replaced pair.
+      if(this.client===before)await this.refresh();
+      if(!this.client)throw error;
+      return this.client.call(id,...args);
+    }
+  }
+  async logout(){
+    const refresh_token=this.pair?.refresh_token;
+    this.generation++;this.pair=undefined;this.client=undefined;this.onTokens?.(undefined);
+    if(refresh_token)await this.auth.call('revokeClientToken',{refresh_token});
+  }
 }

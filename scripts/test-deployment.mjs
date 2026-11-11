@@ -78,7 +78,11 @@ async function exercise(mode,profile) {
   }
   await waitLive(url);
   const context=await browser.newContext({baseURL:url,viewport:{width:1440,height:1000}});
+  await context.tracing.start({screenshots:true,snapshots:true});
   const page=await context.newPage();const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  const networkFailures=[];
+  page.on('requestfailed',request=>networkFailures.push({method:request.method(),path:new URL(request.url()).pathname,error:request.failure()?.errorText}));
+  let passed=false;
   const realm={};
   const bootstrapPath=profile==='web-platform'?'/api/v1/admin/bootstrap':'/api/v1/bootstrap';
   const get=path=>context.request.get(`${url}${path}`,{headers:realm});
@@ -139,8 +143,18 @@ async function exercise(mode,profile) {
       }
     }
     if(admin) {const noCSRF=await context.request.patch(`${url}${base}/settings`,{headers:realm,data:{changes:[{key:'site.name',value:'denied'}]}});expect(noCSRF.status()).toBe(403);}
-    const changes=admin?[{key:'site.name',value:`持久部署 ${mode}`},{key:'admin.path',value:'/manage'}]:[{key:'appearance.theme',value:'dark'}];
-    expect((await context.request.patch(`${url}${base}/settings`,{headers,data:{changes}})).status()).toBe(200);
+    if(admin) {
+      const changes=[{key:'site.name',value:`持久部署 ${mode}`},{key:'admin.path',value:'/manage'}];
+      expect((await context.request.patch(`${url}${base}/settings`,{headers,data:{changes}})).status()).toBe(200);
+    } else {
+      // Appearance belongs to this browser; it is never an instance setting.
+      expect((await context.request.patch(`${url}${base}/settings`,{headers,data:{changes:[{key:'appearance.theme',value:'dark'}]}})).status()).toBe(400);
+      await page.getByRole('button',{name:'主题设置',exact:true}).click();
+      const drawer=page.getByRole('dialog',{name:'主题设置',exact:true});
+      await drawer.locator('.preference-theme').getByRole('button',{name:'深色',exact:true}).click();
+      await page.keyboard.press('Escape');
+      await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
+    }
     if(admin)expect((await context.request.put(`${url}${base}/branding`,{headers,data:{slot:'favicon',content:readFileSync('assets/brand/icon-192.png').toString('base64')}})).status()).toBe(200);
     else expect((await context.request.put(`${url}${base}/branding`,{headers,data:{slot:'favicon',content:''}})).status()).toBe(404);
     const manifest=await(await get('/site.webmanifest')).json();expect(manifest.name).toBe(admin?`持久部署 ${mode}`:identity.product.name);
@@ -174,7 +188,10 @@ async function exercise(mode,profile) {
       await page.getByLabel('图形验证码',{exact:true}).fill(answer);await page.getByRole('button',{name:'登录工作空间'}).click();
       // The shell heading confirms the workspace mounted after navigation.
     await expect(page.getByRole('heading',{name:'工作台概览',level:1,exact:true})).toBeVisible();
-    } else {expect((await get('/api/v1/admin/users')).status()).toBe(404);await page.goto(url);}
+    } else {
+      expect((await get('/api/v1/admin/users')).status()).toBe(404);await page.goto(url);
+      await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
+    }
     const session=await json(bootstrapPath);
     const executed=await context.request.post(`${url}/api/v1${admin?'/admin':''}/core/execute`,{headers:{...realm,Origin:url,...(admin?{'X-CSRF-Token':session.csrf_token}:{})},data:{text:'hello world'}});
     expect(executed.status()).toBe(200);expect((await executed.json()).data.sha256).toBe('b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9');
@@ -227,14 +244,18 @@ async function exercise(mode,profile) {
     }
     expect(errors).toEqual([]);results.push({mode,profile,version,status:'passed',checks:['install wizard PC/375',...(admin?['demo account and six-digit captcha login','CSRF and custom admin path','anonymous denial and member permission boundaries','member local appearance only']:['platform APIs absent']),...(mode.startsWith('tar')?['Nginx proxies embedded fingerprinted assets']:[]),'API/brand/manifest/docs routing','restart and container replacement','persisted settings/key/database/brand','Core']});
     console.log(`PASS ${mode}`);
+    passed=true;
   } catch(error) {
     // Preserve the real failed page without logging form values or credentials.
-    const state={mode,profile,url:page.url(),body:await page.locator('body').innerText().catch(()=>''),errors};
+    const state={mode,profile,url:page.url(),body:await page.locator('body').innerText().catch(()=>''),errors,networkFailures};
     writeFileSync(join(evidence,`${mode}-failure.json`),JSON.stringify(state,null,2)+'\n');
     await page.screenshot({path:join(evidence,`${mode}-failure.png`),fullPage:true}).catch(()=>{});
     console.error(`Failed ${mode} at ${new URL(page.url()).pathname}: ${state.body.slice(0,1200)}`);
     throw error;
-  } finally {await context.close();}
+  } finally {
+    await context.tracing.stop(passed?{}:{path:join(evidence,`${mode}-failure-trace.zip`)});
+    await context.close();
+  }
 }
 try {
   expect(docker(['image','inspect','--format','{{index .Config.Labels "org.opencontainers.image.version"}}',image])).toBe(version);

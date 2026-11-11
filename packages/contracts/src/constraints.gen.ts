@@ -5021,6 +5021,21 @@ export const constraints = {
           "$ref": "#/components/schemas/NotifyTemplate"
         },
         "maxItems": 32
+      },
+      "section": {
+        "type": "string",
+        "enum": [
+          "channels",
+          "templates",
+          "system"
+        ]
+      },
+      "catalog": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NotifyEvent"
+        },
+        "maxItems": 32
       }
     }
   },
@@ -7482,6 +7497,74 @@ export const constraints = {
       },
       "request_id": {
         "type": "string"
+      }
+    }
+  },
+  "NotifyVariable": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "key",
+      "label",
+      "label_en"
+    ],
+    "properties": {
+      "key": {
+        "type": "string",
+        "maxLength": 40
+      },
+      "label": {
+        "type": "string",
+        "maxLength": 160
+      },
+      "label_en": {
+        "type": "string",
+        "maxLength": 160
+      }
+    }
+  },
+  "NotifyEvent": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "label",
+      "label_en",
+      "description",
+      "description_en",
+      "user_email_allowed",
+      "variables"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 40
+      },
+      "label": {
+        "type": "string",
+        "maxLength": 160
+      },
+      "label_en": {
+        "type": "string",
+        "maxLength": 160
+      },
+      "description": {
+        "type": "string",
+        "maxLength": 512
+      },
+      "description_en": {
+        "type": "string",
+        "maxLength": 512
+      },
+      "user_email_allowed": {
+        "type": "boolean"
+      },
+      "variables": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NotifyVariable"
+        },
+        "maxItems": 32
       }
     }
   }

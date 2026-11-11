@@ -4,6 +4,7 @@ package platformsql
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/audit"
@@ -16,14 +17,30 @@ import (
 )
 
 func (r *Repository) EnqueueNotification(ctx context.Context, encrypted, actor string, now, expires int) error {
+	return r.EnqueueNotifications(ctx, []mailer.QueuedNotification{{Payload: encrypted}}, actor, now, expires)
+}
+
+// EnqueueNotifications commits all event deliveries and their audit together.
+func (r *Repository) EnqueueNotifications(ctx context.Context, messages []mailer.QueuedNotification, actor string, now, expires int) error {
+	if len(messages) == 0 {
+		return nil
+	}
 	tx, err := r.accountTransaction(ctx)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
-	// Empty token_hash is not an account token and is excluded from account challenge cancellation.
-	if _, err = r.exec(ctx, tx, "INSERT INTO unicore_mail_jobs(id,token_hash,payload,state,attempts,created_at,available_at,expires_at,lease_id,lease_until,last_error) VALUES(?,?,?,'pending',0,?,?,?,'',0,'')", sqlstore.ID(), "", encrypted, now, now, expires); err != nil {
-		return err
+	for _, message := range messages {
+		channel := message.Channel
+		if channel == "" {
+			channel = "email"
+		}
+		if channel != "email" && channel != "wecom" && channel != "webhook" {
+			return settings.ErrInvalid
+		}
+		if _, err = r.exec(ctx, tx, "INSERT INTO unicore_mail_jobs(id,token_hash,payload,state,attempts,created_at,available_at,expires_at,lease_id,lease_until,last_error) VALUES(?,?,?,'pending',0,?,?,?,'',0,'')", "notify-"+channel+"-"+sqlstore.ID(), "", message.Payload, now, now, expires); err != nil {
+			return err
+		}
 	}
 	if err = r.audit(ctx, tx, actor, "mail.notification.queued"); err != nil {
 		return err
@@ -85,37 +102,12 @@ func (r *Repository) queueEvent(ctx context.Context, tx sqlstore.Runner, kind, s
 	if r.NotificationSecrets == nil {
 		return nil
 	}
-	values := settings.Defaults("web-platform")
-	rows, err := r.Store.Rows(ctx, tx, "SELECT setting_key,setting_value FROM unicore_system_settings")
-	if err != nil {
-		return err
-	}
-	for rows.Next() {
-		var k, v string
-		if err = rows.Scan(&k, &v); err != nil {
-			rows.Close()
-			return err
-		}
-		values[k] = v
-	}
-	err = rows.Err()
-	rows.Close()
+	values, err := r.notificationValues(ctx, tx)
 	if err != nil {
 		return err
 	}
 	if !settings.NotificationConfig(values).Enabled {
 		return nil
-	}
-	for _, d := range settings.Definitions {
-		if d.Sensitive && (d.Key == "mail.password" || settings.ManagedNotification(d.Key)) && values[d.Key] != "" {
-			if d.Key == "mail.password" {
-				values["_mail_credential_revision"] = values[d.Key]
-			}
-			values[d.Key], err = r.NotificationSecrets.Open(values[d.Key])
-			if err != nil {
-				return err
-			}
-		}
 	}
 	user := contracts.User{Username: "unknown"}
 	if subject != "" {
@@ -139,10 +131,64 @@ func (r *Repository) queueEvent(ctx context.Context, tx sqlstore.Runner, kind, s
 	}
 	m, _ := audit.From(ctx)
 	now := int(time.Now().Unix())
-	messages, err := mailer.Plan(values, mailer.Event{Kind: kind, Username: user.Username, Email: user.Email, IP: m.IP, Detail: detail, Administrator: platform.HasManagementAccess(user), At: now})
+	return r.persistNotificationEvent(ctx, tx, values, mailer.Event{Kind: kind, Username: user.Username, Email: user.Email, IP: m.IP, Detail: detail, Administrator: platform.HasManagementAccess(user), At: now})
+}
+
+// QueueNotificationEvent uses the caller's business transaction. It never commits
+// or opens another connection; the caller must roll back on any returned error.
+func (r *Repository) QueueNotificationEvent(ctx context.Context, tx *sql.Tx, event mailer.Event) error {
+	if tx == nil || r.NotificationSecrets == nil {
+		return settings.ErrInvalid
+	}
+	values, err := r.notificationValues(ctx, tx)
 	if err != nil {
 		return err
 	}
+	return r.persistNotificationEvent(ctx, tx, values, event)
+}
+func (r *Repository) notificationValues(ctx context.Context, tx sqlstore.Runner) (map[string]string, error) {
+	values := settings.Defaults("web-platform")
+	rows, err := r.Store.Rows(ctx, tx, "SELECT setting_key,setting_value FROM unicore_system_settings")
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		var k, v string
+		if err = rows.Scan(&k, &v); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		values[k] = v
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	if !settings.NotificationConfig(values).Enabled {
+		return values, nil
+	}
+	for _, d := range settings.Definitions {
+		if d.Sensitive && (d.Key == "mail.password" || settings.ManagedNotification(d.Key)) && values[d.Key] != "" {
+			if d.Key == "mail.password" {
+				values["_mail_credential_revision"] = values[d.Key]
+			}
+			values[d.Key], err = r.NotificationSecrets.Open(values[d.Key])
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return values, nil
+}
+func (r *Repository) persistNotificationEvent(ctx context.Context, tx sqlstore.Runner, values map[string]string, event mailer.Event) error {
+	messages, err := mailer.Plan(values, event)
+	if err != nil {
+		return err
+	}
+	now := int(time.Now().Unix())
+
 	for _, message := range messages {
 		payload, _ := json.Marshal(message)
 		encrypted := r.NotificationSecrets.Seal(string(payload))

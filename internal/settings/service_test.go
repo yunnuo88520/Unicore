@@ -240,7 +240,7 @@ func TestNotificationConfigBackfillsNewEvents(t *testing.T) {
 	legacy := contracts.NotifyConfiguration{Enabled: true, Rules: base.Rules[:12], Templates: base.Templates[:12]}
 	raw, _ := json.Marshal(legacy)
 	c := NotificationConfig(map[string]string{"notifications.config": string(raw)})
-	if len(c.Rules) != len(notifycontent.Events) || len(c.Templates) != len(notifycontent.Events) {
+	if len(c.Rules) != len(notifycontent.EventIDs()) || len(c.Templates) != len(notifycontent.EventIDs()) {
 		t.Fatalf("stored configuration must gain the new events: %d rules %d templates", len(c.Rules), len(c.Templates))
 	}
 	if !c.Enabled {
@@ -278,7 +278,7 @@ func TestNotificationSaveBackfillsLegacyCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatalf("legacy catalog save must be completed, not rejected: %v", err)
 	}
-	if len(saved.Rules) != len(notifycontent.Events) || len(saved.Templates) != len(notifycontent.Events) {
+	if len(saved.Rules) != len(notifycontent.EventIDs()) || len(saved.Templates) != len(notifycontent.EventIDs()) {
 		t.Fatalf("saved configuration must gain the new events: %d rules %d templates", len(saved.Rules), len(saved.Templates))
 	}
 	if saved.Rules[0].UserEmail == base.Rules[0].UserEmail {
@@ -286,7 +286,7 @@ func TestNotificationSaveBackfillsLegacyCatalog(t *testing.T) {
 	}
 	// The persisted JSON is complete: a fresh read sees the full catalog.
 	read, err := service.Notifications(context.Background())
-	if err != nil || len(read.Rules) != len(notifycontent.Events) {
+	if err != nil || len(read.Rules) != len(notifycontent.EventIDs()) {
 		t.Fatalf("read-modify-save-read must stay consistent: %v %d", err, len(read.Rules))
 	}
 	// Modify one switch and save again: everything else persists untouched.
@@ -302,5 +302,49 @@ func TestNotificationSaveBackfillsLegacyCatalog(t *testing.T) {
 	poisoned := contracts.NotifyConfiguration{Provider: "wecom", Rules: append(append([]contracts.NotifyRule{}, base.Rules...), contracts.NotifyRule{Event: "mystery_event"}), Templates: base.Templates}
 	if _, err = service.SaveNotifications(context.Background(), poisoned, "admin"); err != ErrInvalid {
 		t.Fatalf("unknown events must be rejected: %v", err)
+	}
+}
+
+func TestNotificationSectionsPreserveOtherSavedValues(t *testing.T) {
+	store := &memoryStore{values: map[string]string{}}
+	writer := &recordingNotificationWriter{store: store}
+	key, err := secret.Open(t.TempDir(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := &Service{Store: store, Profile: "web-platform", NotificationWriter: writer, Secrets: key}
+	stale, _ := service.Notifications(context.Background())
+	channels := stale
+	section := "channels"
+	channels.Section = &section
+	channels.ChannelEnabled = true
+	channels.WecomKey = "synthetic"
+	if _, err = service.SaveNotifications(context.Background(), channels, "admin"); err != nil {
+		t.Fatal(err)
+	}
+	section = "system"
+	stale.Section = &section
+	stale.Enabled = true
+	saved, err := service.SaveNotifications(context.Background(), stale, "admin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !saved.ChannelEnabled || !saved.WecomConfigured || !saved.Enabled || saved.Catalog == nil {
+		t.Fatal("stale system page overwrote channel configuration or lost catalog")
+	}
+	section = "templates"
+	stale.Section = &section
+	stale.Enabled = false
+	stale.Templates[0].Title = "Updated template"
+	stale.ClearWecomKey = true
+	saved, err = service.SaveNotifications(context.Background(), stale, "admin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !saved.Enabled || !saved.WecomConfigured || saved.Templates[0].Title != "Updated template" {
+		t.Fatal("template save overwrote routing or credentials")
+	}
+	if strings.Contains(store.values["notifications.config"], "catalog") || strings.Contains(store.values["notifications.config"], "section") {
+		t.Fatal("write scope or server metadata persisted")
 	}
 }

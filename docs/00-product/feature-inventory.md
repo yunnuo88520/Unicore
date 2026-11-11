@@ -31,7 +31,7 @@
 | --- | --- | --- | --- | --- | --- |
 | SMTP 邮件投递（持久队列/重试） | 已实现 | 不装配（mail.queue 任务注册但 Mailer 为 nil 空转） | 不装配 | unicore_mail_jobs | `internal/mailer/mailer.go`、`cmd/server/main.go` |
 | 邮件模板（5 用途富文本） | 已实现 | 不装配 | 不装配 | settings mail.template.* | `internal/mailcontent/template.go` |
-| 事件通知（14 事件 × 邮件/企业微信/Webhook 渠道，含运行告警触发/恢复；全部事件通知统一受系统通知总开关控制） | 已实现 | 不装配 | 不装配 | settings notify.* | `internal/notifycontent/content.go`、[通知细节](../03-runbooks/notifications.md) |
+| 事件通知（14 个内置事件，可登记业务事件；邮件/企业微信/Webhook 独立路由；全部事件通知统一受系统通知总开关控制；原子 outbox 与分区设置保存） | 已实现 | 不装配 | 不装配 | settings notifications.* | `internal/notifycontent/catalog.go`、`internal/adapter/storage/platformsql/notifications.go`、[通知细节](../03-runbooks/notifications.md) |
 | 站内信收件箱 | 已实现（由公告事务产生，无独立发送 API） | 不装配 | 不装配 | unicore_inbox_messages | `internal/adapter/http/inbox.go` |
 | 实时推送（SSE） | 已实现（进程内单实例语义） | 不装配（契约仅声明 web-platform） | 不适用 | 无 | `internal/realtime/hub.go`、`internal/adapter/http/events.go` |
 

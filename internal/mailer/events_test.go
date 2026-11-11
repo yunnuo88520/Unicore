@@ -78,6 +78,17 @@ func (s *queueStore) EnqueueNotification(_ context.Context, encrypted, actor str
 	return nil
 }
 
+func (s *queueStore) EnqueueNotifications(_ context.Context, messages []QueuedNotification, actor string, _, _ int) error {
+	if s.failAfter > 0 && len(messages) > s.failAfter {
+		return errors.New("batch enqueue failed")
+	}
+	for _, message := range messages {
+		s.actors = append(s.actors, actor)
+		s.payloads = append(s.payloads, message.Payload)
+	}
+	return nil
+}
+
 type mapSettingsStore struct{ values map[string]string }
 
 func (m *mapSettingsStore) ReadSettings(context.Context) (map[string]string, error) {
@@ -177,8 +188,8 @@ func TestEnqueueEventSurfaces(t *testing.T) {
 	if err := svc.EnqueueEvent(context.Background(), Event{Kind: "alert_recovered", At: 1, Detail: "rule=cpu_high", Vars: alertVars()}); err != nil {
 		t.Fatalf("ready mail must enqueue: %v", err)
 	}
-	if len(store.payloads) != 1 || store.actors[0] != "monitor" {
-		t.Fatalf("one admin email expected with monitor attribution: %d %v", len(store.payloads), store.actors)
+	if len(store.payloads) != 1 || store.actors[0] != "notification" {
+		t.Fatalf("one admin email expected with notification attribution: %d %v", len(store.payloads), store.actors)
 	}
 	payload, _ := svc.Secrets.Open(store.payloads[0])
 	var message Message
@@ -245,8 +256,8 @@ func TestEnqueueEventPartialFailure(t *testing.T) {
 	store := &queueStore{failAfter: 1}
 	svc := &Service{Store: store, Settings: newTestSettings(v), Secrets: sealSecrets{}}
 	err := svc.EnqueueEvent(context.Background(), Event{Kind: "alert_triggered", At: 1, Vars: alertVars()})
-	if err == nil || len(store.payloads) != 1 {
-		t.Fatalf("one channel enqueued before the failure, error reported: %d %v", len(store.payloads), err)
+	if err == nil || len(store.payloads) != 0 {
+		t.Fatalf("failed batch must leave no partial deliveries: %d %v", len(store.payloads), err)
 	}
 }
 
@@ -366,5 +377,91 @@ func TestAlertEmailEscapesTemplateValues(t *testing.T) {
 	}
 	if !strings.Contains(got[0].Body, "CPU <b>高</b> & 负载") {
 		t.Fatal("the plain-text body keeps the raw characters")
+	}
+}
+
+// Each explicit test destination owns its sender, error classification and payload.
+type destinationCapture struct {
+	emails, channels []Message
+	fail             bool
+}
+
+func (c *destinationCapture) Send(_ context.Context, _ Config, m Message) error {
+	c.emails = append(c.emails, m)
+	if c.fail {
+		return errors.New("synthetic SMTP failure")
+	}
+	return nil
+}
+func (c *destinationCapture) SendChannel(_ context.Context, _ map[string]string, m Message) error {
+	c.channels = append(c.channels, m)
+	if c.fail {
+		return errors.New("synthetic channel failure")
+	}
+	return nil
+}
+func TestNotificationTestDestinationIsolation(t *testing.T) {
+	v := platformValues()
+	v["notifications.wecom_key"] = "synthetic"
+	c := notifycontent.Defaults()
+	c.ChannelEnabled = true
+	raw, _ := json.Marshal(c)
+	v["notifications.config"] = string(raw)
+	capture := &destinationCapture{fail: true}
+	svc := &Service{Settings: newTestSettings(v), Sender: capture, Channels: capture}
+	input := contracts.NotifyTest{Template: c.Templates[0], Destination: "channel", Recipient: "ignored@example.test"}
+	if err := svc.TestNotification(context.Background(), input, "admin"); !errors.Is(err, ErrChannelUnavailable) {
+		t.Fatalf("channel failure misclassified: %v", err)
+	}
+	if len(capture.emails) != 0 || len(capture.channels) != 1 || capture.channels[0].To != "" || capture.channels[0].Event != "login" {
+		t.Fatal("channel must never call SMTP or use an email recipient")
+	}
+	input.Destination = "email"
+	input.Recipient = "test@example.test"
+	if err := svc.TestNotification(context.Background(), input, "admin"); !errors.Is(err, ErrUnavailable) {
+		t.Fatalf("mail failure misclassified: %v", err)
+	}
+	if len(capture.emails) != 1 || len(capture.channels) != 1 || capture.emails[0].HTML == "" || capture.emails[0].To != input.Recipient {
+		t.Fatal("email must use its rendered mail shell and only SMTP")
+	}
+	capture.fail = false
+	input.Destination = "channel"
+	delete(v, "mail.verified_fingerprint")
+	svc.Settings = newTestSettings(v)
+	if err := svc.TestNotification(context.Background(), input, "admin"); err != nil {
+		t.Fatalf("channel must work without SMTP: %v", err)
+	}
+	delete(v, "notifications.wecom_key")
+	svc.Settings = newTestSettings(v)
+	if err := svc.TestNotification(context.Background(), input, "admin"); !errors.Is(err, ErrChannelNotReady) {
+		t.Fatalf("missing channel credential: %v", err)
+	}
+}
+func TestEventVariablesCannotOverrideCommonValues(t *testing.T) {
+	v := platformValues()
+	c := notifycontent.Defaults()
+	c.Enabled = true
+	raw, _ := json.Marshal(c)
+	v["notifications.config"] = string(raw)
+	if _, err := Plan(v, Event{Kind: "password_changed", Vars: map[string]string{"site_url": "https://spoof.example.test"}}); err == nil {
+		t.Fatal("common variables may not be replaced")
+	}
+}
+
+func TestOptedOutEventDoesNotRequireDeliveryConfiguration(t *testing.T) {
+	v := settings.Defaults("web-platform")
+	c := notifycontent.Defaults()
+	c.Enabled = true
+	for i := range c.Rules {
+		if c.Rules[i].Event == "password_changed" {
+			c.Rules[i] = contracts.NotifyRule{Event: "password_changed"}
+		}
+	}
+	raw, _ := json.Marshal(c)
+	v["notifications.config"] = string(raw)
+	store := &queueStore{}
+	svc := &Service{Store: store, Settings: newTestSettings(v), Secrets: sealSecrets{}}
+	if err := svc.EnqueueEvent(context.Background(), Event{Kind: "password_changed"}); err != nil || len(store.payloads) != 0 {
+		t.Fatalf("explicit opt-out should remain silent: %v", err)
 	}
 }

@@ -33,25 +33,44 @@ func NotificationConfig(values map[string]string) contracts.NotifyConfiguration 
 	c.WecomConfigured = values["notifications.wecom_key"] != ""
 	c.WebhookConfigured = values["notifications.webhook_url"] != ""
 	c.SigningConfigured = values["notifications.signing_secret"] != ""
+	c.Section = nil
+	c.Catalog = nil
 	return c
 }
 func (s *Service) Notifications(ctx context.Context) (contracts.NotifyConfiguration, error) {
 	v, e := s.Raw(ctx)
-	return NotificationConfig(v), e
+	c := NotificationConfig(v)
+	catalog := notifycontent.Catalog()
+	c.Catalog = &catalog
+	return c, e
 }
 func (s *Service) SaveNotifications(ctx context.Context, c contracts.NotifyConfiguration, actor string) (contracts.NotifyConfiguration, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	// Configurations submitted by pages that predate an event catalog
-	// extension are completed with the defaults for missing known events;
-	// stored customizations stay untouched and unknown events stay invalid.
-	c = notifycontent.MergeDefaults(c)
-	if s.Profile != "web-platform" || !notifycontent.ValidConfiguration(c) {
-		return c, ErrInvalid
-	}
 	current, err := s.Raw(ctx)
 	if err != nil {
 		return c, err
+	}
+	if c.Section != nil {
+		saved := NotificationConfig(current)
+		switch *c.Section {
+		case "channels":
+			saved.Provider, saved.ChannelEnabled = c.Provider, c.ChannelEnabled
+			saved.WecomKey, saved.WebhookUrl, saved.SigningSecret = c.WecomKey, c.WebhookUrl, c.SigningSecret
+			saved.ClearWecomKey, saved.ClearWebhookUrl, saved.ClearSigningSecret = c.ClearWecomKey, c.ClearWebhookUrl, c.ClearSigningSecret
+		case "templates":
+			saved.Templates = c.Templates
+		case "system":
+			saved.Enabled, saved.Rules = c.Enabled, c.Rules
+		default:
+			return c, ErrInvalid
+		}
+		c = saved
+	}
+	c.Section, c.Catalog = nil, nil
+	c = notifycontent.MergeDefaults(c)
+	if s.Profile != "web-platform" || !notifycontent.ValidConfiguration(c) {
+		return c, ErrInvalid
 	}
 	changes := map[string]string{}
 	inputs := []struct {

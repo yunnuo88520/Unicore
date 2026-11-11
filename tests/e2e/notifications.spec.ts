@@ -18,6 +18,19 @@ test('notification channels, drafts, routing and restart', async ({page,instance
  await expect(page.getByText('通知设置已保存',{exact:true})).toBeVisible();
  await expect(page.getByLabel('回调地址',{exact:true})).toHaveValue('');
  await page.screenshot({path:`${directory}/channels.png`,fullPage:true});
+ await page.getByRole('button',{name:'测试发送',exact:true}).click();
+ const testDialog=page.getByRole('dialog',{name:'测试发送',exact:true});
+ await expect(testDialog).toContainText('自定义 Webhook');
+ await expect(testDialog.getByRole('radio')).toHaveCount(0);
+ await expect(testDialog.getByText('邮件通知',{exact:true})).toHaveCount(0);
+ await expect(testDialog.getByLabel('测试收件邮箱',{exact:true})).toHaveCount(0);
+ // This synthetic .test address has no receiver. Exercise the real backend
+ // failure path and ensure the error refers to the selected channel.
+ await testDialog.getByRole('button',{name:'发送测试通知',exact:true}).click();
+ await expect(page.getByText('通知渠道发送失败，请检查渠道凭据、机器人状态与网络连接',{exact:true})).toBeVisible({timeout:15000});
+ await expect(testDialog).toBeVisible();
+ await testDialog.getByRole('button',{name:'取消',exact:true}).click();
+
  const response=await page.request.get(`${instance.url}/api/v1/admin/settings/notifications`);const config=(await response.json()).data;
  expect(config.webhook_configured).toBe(true);expect(config.webhook_url).toBe('');expect(config.signing_secret).toBe('');
  await page.goto(`${instance.url}/admin/notification-templates`);

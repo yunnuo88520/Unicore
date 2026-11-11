@@ -2354,5 +2354,8 @@
   "你的工作，从这里开始。": "Your work starts here.",
   "整理想法，记录进展，专注于手头的事。": "Organize ideas, track progress, and focus on your work.",
   "记录应用启动、数据库健康变化，以及本机告警的触发、恢复与归因变化。数据库健康变化仅在查看监控时检测。": "Records application startup, database health changes, and local alert triggers, recoveries, and cause changes. Database health changes are detected while monitoring is open.",
-  "此处展示应用自身的运行事件，不保证覆盖所有异常。": "Shows events from this application; it may not capture every issue."
+  "此处展示应用自身的运行事件，不保证覆盖所有异常。": "Shows events from this application; it may not capture every issue.",
+  "使用当前模板草稿和示例数据，发送到已保存的通知渠道。": "Send the current template draft with sample data to the saved notification channel.",
+  "通知渠道发送失败，请检查渠道凭据、机器人状态与网络连接": "Notification channel delivery failed. Check the channel credentials, robot status and network connection.",
+  "请先配置、启用并保存通知渠道": "Configure, enable and save a notification channel first."
 }

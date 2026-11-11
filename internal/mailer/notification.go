@@ -13,6 +13,14 @@ import (
 
 type Notification struct{ To, Title, Detail string }
 
+// QueuedNotification keeps channel attribution outside the encrypted payload for delivery logs.
+type QueuedNotification struct{ Payload, Channel string }
+
+// NotificationBatchStore must persist the complete batch atomically.
+type NotificationBatchStore interface {
+	EnqueueNotifications(ctx context.Context, messages []QueuedNotification, actor string, now, expires int) error
+}
+
 type NotificationStore interface {
 	EnqueueNotification(ctx context.Context, encrypted, actor string, now, expires int) error
 }

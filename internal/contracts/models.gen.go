@@ -1236,6 +1236,8 @@ type NotifyConfiguration struct {
 	SigningConfigured  bool             `json:"signing_configured"`
 	Rules              []NotifyRule     `json:"rules"`
 	Templates          []NotifyTemplate `json:"templates"`
+	Section            *string          `json:"section,omitempty"`
+	Catalog            *[]NotifyEvent   `json:"catalog,omitempty"`
 }
 
 type NotifyPreview struct {
@@ -1879,4 +1881,20 @@ type MonitorAlertRulesResponse struct {
 	Message   string            `json:"message"`
 	Data      MonitorAlertRules `json:"data"`
 	RequestID string            `json:"request_id"`
+}
+
+type NotifyVariable struct {
+	Key     string `json:"key"`
+	Label   string `json:"label"`
+	LabelEn string `json:"label_en"`
+}
+
+type NotifyEvent struct {
+	ID               string           `json:"id"`
+	Label            string           `json:"label"`
+	LabelEn          string           `json:"label_en"`
+	Description      string           `json:"description"`
+	DescriptionEn    string           `json:"description_en"`
+	UserEmailAllowed bool             `json:"user_email_allowed"`
+	Variables        []NotifyVariable `json:"variables"`
 }

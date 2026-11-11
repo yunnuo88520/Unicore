@@ -98,6 +98,10 @@ func webError(w http.ResponseWriter, err error) {
 		code = "LOCAL_PASSWORD_REQUIRED"
 	case errors.Is(err, settings.ErrMailNotReady):
 		code = "MAIL_NOT_READY"
+	case errors.Is(err, mailer.ErrChannelUnavailable):
+		code = "NOTIFICATION_CHANNEL_DELIVERY_FAILED"
+	case errors.Is(err, mailer.ErrChannelNotReady):
+		code = "NOTIFICATION_CHANNEL_NOT_READY"
 	case errors.Is(err, mailer.ErrUnavailable):
 		code = "MAIL_DELIVERY_FAILED"
 	case errors.Is(err, platform.ErrFlowDisabled):

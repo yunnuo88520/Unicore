@@ -1234,6 +1234,8 @@ export interface NotifyConfiguration {
   signing_configured: boolean;
   rules: Array<NotifyRule>;
   templates: Array<NotifyTemplate>;
+  section?: "channels" | "templates" | "system";
+  catalog?: Array<NotifyEvent>;
 }
 
 export interface NotifyPreview {
@@ -1877,4 +1879,20 @@ export interface MonitorAlertRulesResponse {
   message: string;
   data: MonitorAlertRules;
   request_id: string;
+}
+
+export interface NotifyVariable {
+  key: string;
+  label: string;
+  label_en: string;
+}
+
+export interface NotifyEvent {
+  id: string;
+  label: string;
+  label_en: string;
+  description: string;
+  description_en: string;
+  user_email_allowed: boolean;
+  variables: Array<NotifyVariable>;
 }

@@ -34,7 +34,10 @@ try:
     command(['go','build','-o',str(scratch/'verifier'),'./scripts/verify-baselines'])
     for name,image,mount,values,port,ready in [
         (pg_name,'postgres:15','/var/lib/postgresql/data',{'POSTGRES_PASSWORD':secrets.token_hex(24)},5432,['pg_isready','-U','postgres','-q']),
-        (mysql_name,'mysql:8.0','/var/lib/mysql',{'MYSQL_ROOT_PASSWORD':secrets.token_hex(24),'MYSQL_ROOT_HOST':'%'},3306,['bash','-c','MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysqladmin ping --protocol=socket -uroot --silent'])
+        # Probe over TCP inside the container: the official image's temporary
+        # init server answers on the socket only, so a socket ping reports
+        # READY before real TCP service (and the harness connects too early).
+        (mysql_name,'mysql:8.0','/var/lib/mysql',{'MYSQL_ROOT_PASSWORD':secrets.token_hex(24),'MYSQL_ROOT_HOST':'%'},3306,['bash','-c','MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysqladmin ping --protocol=tcp -h 127.0.0.1 -uroot --silent'])
     ]:
         file=envfile(name+'.env',values)
         size='512m' if port==5432 else '1024m'

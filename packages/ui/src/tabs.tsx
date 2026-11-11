@@ -1,18 +1,28 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Radix tab bar with the legacy controlled items API; panels stay owned by the page.
+// Description: Shared segmented tabs with Radix keyboard navigation; panels stay owned by the page.
+import type { ComponentProps } from 'react';
 import { useLocale } from './i18n';
-import * as TabsPrimitive from '@radix-ui/react-tabs';
+import * as RadixTabs from '@radix-ui/react-tabs';
 import { cn } from './cn';
+
+function TabList({ className, ...props }: ComponentProps<typeof RadixTabs.List>) {
+  return <RadixTabs.List {...props} className={cn('flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-line bg-surface p-1 [scrollbar-width:thin]', className)} />;
+}
+
+function TabTrigger({ className, ...props }: ComponentProps<typeof RadixTabs.Trigger>) {
+  return <RadixTabs.Trigger {...props} className={cn('inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-muted outline-none transition-colors hover:bg-surface-alt hover:text-ink focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus data-[state=active]:bg-primary-soft data-[state=active]:text-accent disabled:pointer-events-none disabled:opacity-50', className)} />;
+}
+
+export const TabsPrimitive = { ...RadixTabs, List: TabList, Trigger: TabTrigger };
 
 export function Tabs({ id, label, items, value, onChange, className }: {
   id: string; label: string; items: readonly { id: string; label: string; dirty?: boolean }[]; value: string; onChange: (id: string) => void; className?: string;
 }) {
   useLocale();
-  return <TabsPrimitive.Root value={value} onValueChange={onChange} className={className}>
-    <TabsPrimitive.List aria-label={label} className="flex flex-wrap items-center gap-1 rounded-lg bg-surface-alt p-1">
+  return <TabsPrimitive.Root value={value} onValueChange={onChange} className={cn('min-w-0 max-w-full', className)}>
+    <TabsPrimitive.List aria-label={label}>
       {items.map(item => (
-        <TabsPrimitive.Trigger key={item.id} value={item.id} id={`${id}-tab-${item.id}`} aria-controls={`${id}-panel-${item.id}`}
-          className={cn('inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-muted transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus aria-selected:bg-surface aria-selected:text-ink aria-selected:shadow-tint', className)}>
+        <TabsPrimitive.Trigger key={item.id} value={item.id} id={`${id}-tab-${item.id}`} aria-controls={`${id}-panel-${item.id}`}>
           {item.label}
           {item.dirty && <span aria-hidden="true" className="text-accent">•</span>}
         </TabsPrimitive.Trigger>
@@ -20,5 +30,3 @@ export function Tabs({ id, label, items, value, onChange, className }: {
     </TabsPrimitive.List>
   </TabsPrimitive.Root>;
 }
-
-export { TabsPrimitive };

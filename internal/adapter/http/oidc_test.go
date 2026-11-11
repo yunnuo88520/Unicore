@@ -62,7 +62,7 @@ func TestOIDCHTTP(t *testing.T) {
 		if session != "" {
 			name := sessionCookie
 			if session == raw {
-				name = "unicore_administrator_session"
+				name = "unicore_session"
 
 			}
 			req.AddCookie(&http.Cookie{Name: name, Value: session})
@@ -154,7 +154,7 @@ func TestOIDCHTTP(t *testing.T) {
 		}
 	}
 	session, err := identity.Session(ctx, sessionCookieValue)
-	if err != nil || session.User.Roles[0] != "user" || len(session.User.Permissions) != 0 {
+	if err != nil || session.User.Roles[0] != "user" || len(session.User.Permissions) != 4 {
 		t.Fatal("JIT claims elevated privileges", session, err)
 	}
 	assert(request("GET", "/admin/users", nil, sessionCookieValue, "", "", ""), 403)
@@ -294,7 +294,7 @@ func TestOIDCHTTP(t *testing.T) {
 		t.Fatal("disabled provider accepted")
 	}
 	// Existing password login always remains available when the IdP is disabled.
-	if _, _, err = m.Identity(true).Login(ctx, contracts.LoginInput{Username: "admin", Password: "test-password-strong"}, "test", false, 1); err != nil {
+	if _, _, err = m.Identity(true).Login(ctx, contracts.LoginInput{Username: "admin", Password: "test-password-strong"}, "test", false, false, 1); err != nil {
 		t.Fatal("local fallback lost", err)
 	}
 }

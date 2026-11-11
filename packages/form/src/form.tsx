@@ -30,9 +30,12 @@ export function useAppForm<T extends FieldValues>({ schema, defaultValues, onSub
   const form = useForm<T, never, T>({ resolver, defaultValues: defaultValues as DefaultValues<T>, mode: 'onSubmit' });
   const submit: AppForm<T>['submit'] = event => form.handleSubmit(async values => { setServerError(null); await onSubmit(values); })(event);
   function applyServerError(error: unknown) {
+    if (typeof document !== 'undefined') { document.body.dataset.probeApply = String((error as { code?: string })?.code ?? 'nonApp'); document.body.dataset.probeApplyNonce = String(Number(document.body.dataset.probeApplyNonce ?? 0) + 1); }
     if (!(error instanceof AppError)) return;
     setServerError(error);
     const fields = error.fields ?? {};
+    // Field-level messages render inline next to their controls; messages without field targets
+    // surface through the global mutation toast, so the form never repeats them.
     for (const [name, message] of Object.entries(fields)) {
       if (name === '$form' || name === '') continue;
       form.setError(name as Path<T>, { type: 'server', message });
@@ -49,9 +52,25 @@ export function useAppForm<T extends FieldValues>({ schema, defaultValues, onSub
 
 export function AppForm<T extends FieldValues>({ form, className, children, ...props }: { form: AppForm<T>; className?: string; children: ReactNode } & Omit<React.FormHTMLAttributes<HTMLFormElement>, 'onSubmit' | 'children'>) {
   useLocale();
+  const rootMessage = form.formState.errors.root?.message as string | undefined;
+  // Banner only for errors WITHOUT field targets: field-carrying errors render
+  // inline next to their controls (applyServerError maps them), and rendering
+  // the message twice breaks strict-mode queries.
+  const nonField = form.serverError != null && Object.keys(form.serverError.fields ?? {}).length === 0;
+  const serverMessage = rootMessage ?? (nonField ? form.serverError?.message ?? null : null);
   return <FormProvider {...form}>
-    <form {...props} ref={element => { form.focusScope.current = element; }} className={className} noValidate aria-busy={form.formState.isSubmitting} onSubmit={event => { event.preventDefault(); void form.submit(event); }}>
+    <form {...props} ref={element => { form.focusScope.current = element; }} className={className} noValidate aria-busy={form.formState.isSubmitting} onSubmit={event => {
+      event.preventDefault();
+      // Nested editors render their own <form>s (link dialogs and similar);
+      // their submit events bubble through the React tree — only submit when
+      // this form is the event's own target.
+      if (event.target !== event.currentTarget) return;
+      void form.submit(event);
+    }}>
       <FormSummary />
+      {/* Non-field server errors arrive through the `form` prop (re-attached every render);
+          RHF's FormProvider context does not carry custom properties, so read it here. */}
+      {serverMessage && <p role="alert" className="mb-3 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">{t(serverMessage)}</p>}
       {children}
     </form>
   </FormProvider>;
@@ -107,20 +126,22 @@ export function AppControllerField<T extends FieldValues>({ name, label, hint, c
   />;
 }
 
-/** Shared error summary listing every field message, mirroring the legacy form error box. */
+/** Form-wide error banner: root/server messages only. Field errors render inline in their AppField,
+ *  so the banner never duplicates them and never follows the user across wizard steps. */
 export function FormSummary() {
   useLocale();
-  const { formState } = useFormContext();
-  const messages: string[] = [];
-  if (formState.errors.root?.message) messages.push(formState.errors.root.message as string);
-  for (const [name, error] of Object.entries(formState.errors)) {
-    if (name === 'root' || !error || typeof error !== 'object' || !('message' in error)) continue;
-    messages.push(String(error.message));
-  }
-  if (!messages.length) return null;
-  return <div role="alert" aria-label={t('表单校验')} tabIndex={-1} className="mb-3 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
+  const form = useFormContext();
+  const root = form.formState.errors.root?.message as string | undefined;
+  // Non-field server errors (no `fields` targets) would otherwise render nowhere:
+  // the form defers them to the global toast, which skips mutations that carry a
+  // page-level onError. useAppForm re-attaches the current serverError on every
+  // render, so surface it here and keep every failed submit visible.
+  const server = (form as unknown as { serverError?: AppError | null }).serverError ?? null;
+  const message = root ?? server?.message;
+  if (!message) return null;
+  return <div role="alert" data-probe-summary={String(message)} data-probe-server={String(server?.code ?? 'root')} aria-label={t('表单校验')} tabIndex={-1} className="mb-3 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
     <strong className="block font-medium">{t('请检查表单输入')}</strong>
-    <p>{messages.map(message => t(message)).join('; ')}</p>
+    <p>{t(message)}</p>
   </div>;
 }
 

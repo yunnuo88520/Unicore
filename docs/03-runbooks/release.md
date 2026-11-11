@@ -5,7 +5,7 @@
 
 ## 拿到仓库开发
 
-需要 Go 1.26.10+、Node 22.22.2+（22 系列为 CI 基线；其他系列见 package.json 的 engines）、pnpm 11.25.0、Git 和 ripgrep（rg）。文档/作者检查依赖 rg，macOS 用 brew install ripgrep，Ubuntu/Debian 用 sudo apt-get install ripgrep，make doctor 会检查是否可用。质量和候选发布工作流显式安装该依赖，不依赖 runner 预装。Docker 验收另需 Docker Engine + Compose v2，桌面另需 Wails 原生依赖。
+需要 Go 1.26.11+、Node 22.22.2+（22 系列为 CI 基线；其他系列见 package.json 的 engines）、pnpm 11.25.0、Git 和 ripgrep（rg）。文档/作者检查依赖 rg，macOS 用 brew install ripgrep，Ubuntu/Debian 用 sudo apt-get install ripgrep，make doctor 会检查是否可用。质量和候选发布工作流显式安装该依赖，不依赖 runner 预装。Docker 验收另需 Docker Engine + Compose v2，桌面另需 Wails 原生依赖。
 
 ```sh
 make install
@@ -49,7 +49,7 @@ CI 在原生 runner 打包后运行 `node scripts/check-release-entrypoints.mjs 
 镜像不能下载官方源时，可显式替换同版本基础镜像来源，例如：
 
 ```sh
-GO_IMAGE=mirror.gcr.io/library/golang:1.26.10-bookworm \
+GO_IMAGE=mirror.gcr.io/library/golang:1.26.11-bookworm \
 NODE_IMAGE=mirror.gcr.io/library/node:22-bookworm-slim make docker-build
 ```
 

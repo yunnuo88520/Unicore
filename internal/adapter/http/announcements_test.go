@@ -75,8 +75,8 @@ func TestAnnouncementEndpointPolicy(t *testing.T) {
 		}
 	}
 	check(request("GET", "/announcements", nil, "", "", ""), 401)
-	check(request("GET", "/announcements", nil, administratorSessionCookie, araw, a.CsrfToken), 401)
-	check(request("GET", "/admin/announcements", nil, administratorSessionCookie, uraw, u.CsrfToken), 401)
+	check(request("GET", "/announcements", nil, administratorSessionCookie, araw, a.CsrfToken), 200)
+	check(request("GET", "/admin/announcements", nil, administratorSessionCookie, uraw, u.CsrfToken), 403)
 	created := request("POST", "/admin/announcements", input, administratorSessionCookie, araw, a.CsrfToken)
 	check(created, 200)
 	var envelope contracts.AnnouncementEntryResponse
@@ -90,7 +90,7 @@ func TestAnnouncementEndpointPolicy(t *testing.T) {
 	check(request("GET", "/admin/announcements?page_size=999", nil, administratorSessionCookie, araw, ""), 400)
 
 	check(request("POST", "/announcements/"+envelope.Data.ID+"/read", nil, sessionCookie, uraw, ""), 403)
-	check(request("POST", "/announcements/"+envelope.Data.ID+"/read", nil, administratorSessionCookie, araw, a.CsrfToken), 401)
+	check(request("POST", "/announcements/"+envelope.Data.ID+"/read", nil, administratorSessionCookie, araw, a.CsrfToken), 200)
 	check(request("POST", "/announcements/"+envelope.Data.ID+"/read", nil, sessionCookie, uraw, u.CsrfToken), 200)
 	check(request("POST", "/announcements/read-all", nil, sessionCookie, uraw, u.CsrfToken), 200)
 	check(request("GET", "/admin/announcements/"+envelope.Data.ID+"/read-status", nil, administratorSessionCookie, araw, a.CsrfToken), 200)

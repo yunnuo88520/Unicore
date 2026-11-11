@@ -4,17 +4,12 @@ package sqlstore
 
 import (
 	"context"
-	"crypto/sha256"
 	"database/sql"
-	"encoding/hex"
-	"errors"
-	"fmt"
-	"github.com/yunnuo/unicore/internal/audit"
 	"sort"
 	"strconv"
 	"strings"
 
-	"github.com/yunnuo/unicore/migrations"
+	"github.com/yunnuo/unicore/internal/audit"
 )
 
 type Store struct {
@@ -64,85 +59,6 @@ func (s *Store) Close() error {
 		s.OnClose()
 	}
 	return err
-}
-
-// Migrate records each checksum only after all statements succeed. MySQL DDL is
-// intentionally retryable; installation is not committed until separate seed DML succeeds.
-func (s *Store) Migrate(ctx context.Context, platform bool) error {
-	ledger, prefixed, err := s.frameworkLedger(ctx)
-	if err != nil {
-		return err
-	}
-	if _, err := s.DB.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS `+ledger+` (version INTEGER PRIMARY KEY, checksum VARCHAR(64) NOT NULL)`); err != nil {
-		return err
-	}
-	files := []string{"0001_framework.sql"}
-	if platform {
-		files = append(files, "0002_platform.sql", "0003_platform_mail.sql", "0004_email_challenges.sql", "0005_role_management.sql", "0006_oidc.sql", "0007_fixed_roles.sql", "0008_separate_administrators.sql", "0009_file_storage.sql", "0010_audit_metadata.sql", "0011_announcements.sql", "0012_multipart_uploads.sql")
-	}
-	for index, file := range files {
-		data, err := migrations.Files.ReadFile(s.Dialect + "/" + file)
-		if err != nil {
-			return err
-		}
-		digest := sha256.Sum256(data)
-		checksum := hex.EncodeToString(digest[:])
-		var previous string
-		err = s.Row(ctx, s.DB, "SELECT checksum FROM "+ledger+" WHERE version=?", index+1).Scan(&previous)
-		if err == nil {
-			if previous != checksum {
-				return fmt.Errorf("migration %d checksum mismatch", index+1)
-			}
-			continue
-		}
-		if !errors.Is(err, sql.ErrNoRows) {
-			return err
-		}
-		tx, err := s.DB.BeginTx(ctx, nil)
-		if err != nil {
-			return err
-		}
-		body := []string{}
-		for _, line := range strings.Split(string(data), "\n") {
-			if !strings.HasPrefix(strings.TrimSpace(line), "--") {
-				body = append(body, line)
-			}
-		}
-		for _, statement := range strings.Split(strings.Join(body, "\n"), ";") {
-			if strings.TrimSpace(statement) == "" {
-				continue
-			}
-			if prefixed {
-				statement = prefixedLegacySQL(statement)
-			}
-			if _, err = s.Exec(ctx, tx, statement); err != nil {
-				break
-			}
-		}
-		if err == nil {
-			_, err = s.Exec(ctx, tx, "INSERT INTO "+ledger+"(version,checksum) VALUES(?,?)", index+1, checksum)
-		}
-		if err != nil {
-			_ = tx.Rollback()
-			return err
-		}
-		if err = tx.Commit(); err != nil {
-			return err
-		}
-	}
-	if err := s.migrateBusiness(ctx, prefixed); err != nil {
-		return err
-	}
-	if err := s.prefixSchema(ctx, platform); err != nil {
-		return err
-	}
-	if platform {
-		if err := s.personalSchema(ctx); err != nil {
-			return err
-		}
-		return s.additivePlatformSchema(ctx, 15, "0015_announcement_notifications.sql")
-	}
-	return nil
 }
 
 func (s *Store) Installation(ctx context.Context) (profile, instance string, err error) {

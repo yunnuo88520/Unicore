@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Unicore platform foundation API",
-    "version": "0.1.3",
+    "version": "0.1.4",
     "description": "Fixed administrator/member roles. Global management APIs require an administrator and mutating authenticated requests require X-CSRF-Token. Platform appearance is client-local and never saved through instance settings.",
     "contact": {
       "name": "yunnuo",
@@ -603,13 +603,25 @@
             "users:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "users"
         },
         "summary": "listUsers",
         "x-permission": "users:read; administrator only",
-        "parameters": []
+        "parameters": [
+          {
+            "name": "post_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "description": "Filter users assigned to this post."
+          }
+        ]
       },
       "post": {
         "operationId": "createUser",
@@ -660,9 +672,10 @@
             "users:create"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "users"
         },
         "summary": "createUser",
         "x-permission": "users:create; administrator only",
@@ -720,11 +733,83 @@
             "users:update"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "users"
         },
         "summary": "updateUser",
+        "parameters": []
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "/api/v1/admin/users/{id}/password": {
+      "post": {
+        "operationId": "resetUserPassword",
+        "description": "Resets a member account password from the management surface: the operator supplies the replacement or the server generates a temporary one. The effective password is returned once; live sessions and tokens die with the old credential.",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPasswordResetResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminPasswordResetInput"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "users:update; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "users:update"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator",
+          "uiPage": "users"
+        },
+        "summary": "resetUserPassword",
         "parameters": []
       },
       "parameters": [
@@ -777,9 +862,10 @@
             "settings:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "site"
         },
         "summary": "adminSettings",
         "x-permission": "settings:read; administrator only",
@@ -1707,9 +1793,10 @@
             "settings:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "mail-templates"
         },
         "security": [
           {
@@ -1817,12 +1904,69 @@
             "roles:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "roles"
         },
         "summary": "listRoles",
         "parameters": []
+      },
+      "post": {
+        "operationId": "createRole",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "roles:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "roles:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "createRole",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleSaveInput"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/admin/users/role-options": {
@@ -1867,9 +2011,10 @@
             "users:update"
           ],
           "permissionMode": "any",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "users"
         },
         "summary": "roleOptions",
         "parameters": []
@@ -2429,7 +2574,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ActionResultResponse"
+                  "$ref": "#/components/schemas/OIDCCheckInfoResponse"
                 }
               }
             }
@@ -2630,7 +2775,7 @@
             "settings:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
           "identityRealm": "administrator"
         },
@@ -2912,9 +3057,10 @@
             "logs:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "logs"
         },
         "summary": "Read system audit log",
         "x-permission": "logs:read; administrator only",
@@ -3042,9 +3188,10 @@
             "logs:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "mail"
         },
         "summary": "mailJobs",
         "parameters": []
@@ -3145,9 +3292,10 @@
             "storage:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "storage"
         },
         "summary": "storageLocations",
         "x-permission": "storage:read; administrator only",
@@ -3621,7 +3769,9 @@
             "web-platform"
           ],
           "access": "authenticated",
-          "permissions": [],
+          "permissions": [
+            "files:access"
+          ],
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
@@ -3687,7 +3837,9 @@
             "web-platform"
           ],
           "access": "authenticated",
-          "permissions": [],
+          "permissions": [
+            "files:upload"
+          ],
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
@@ -3745,7 +3897,9 @@
             "web-platform"
           ],
           "access": "authenticated",
-          "permissions": [],
+          "permissions": [
+            "files:upload"
+          ],
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
@@ -3816,7 +3970,9 @@
             "web-platform"
           ],
           "access": "authenticated",
-          "permissions": [],
+          "permissions": [
+            "files:upload"
+          ],
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
@@ -3875,8 +4031,11 @@
             "web-platform"
           ],
           "access": "authenticated",
-          "permissions": [],
-          "permissionMode": "all",
+          "permissions": [
+            "files:access",
+            "notes:access"
+          ],
+          "permissionMode": "any",
           "superAdmin": false,
           "csrf": true,
           "identityRealm": "user"
@@ -3892,6 +4051,15 @@
               "type": "string",
               "maxLength": 80,
               "minLength": 1
+            }
+          },
+          {
+            "name": "note_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
             }
           }
         ],
@@ -3934,7 +4102,9 @@
             "web-platform"
           ],
           "access": "authenticated",
-          "permissions": [],
+          "permissions": [
+            "files:delete"
+          ],
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
@@ -4291,9 +4461,10 @@
             "admin:access"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "lab"
         },
         "security": [
           {},
@@ -5490,7 +5661,7 @@
             "storage:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
           "identityRealm": "administrator"
         },
@@ -5749,10 +5920,11 @@
           ],
           "access": "authenticated",
           "permissions": [
-            "storage:read"
+            "files:access",
+            "notes:access"
           ],
-          "permissionMode": "all",
-          "superAdmin": true,
+          "permissionMode": "any",
+          "superAdmin": false,
           "csrf": true,
           "identityRealm": "administrator"
         },
@@ -5767,6 +5939,15 @@
               "type": "string",
               "maxLength": 80,
               "minLength": 1
+            }
+          },
+          {
+            "name": "note_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
             }
           }
         ],
@@ -5865,11 +6046,14 @@
             "web-standalone"
           ],
           "access": "platform-session",
-          "permissions": [],
+          "permissions": [
+            "notes:access"
+          ],
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "user"
+          "identityRealm": "user",
+          "uiPage": "notes"
         },
         "security": [
           {},
@@ -5973,11 +6157,14 @@
             "web-standalone"
           ],
           "access": "platform-session",
-          "permissions": [],
+          "permissions": [
+            "notes:create"
+          ],
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "user"
+          "identityRealm": "user",
+          "uiPage": "notes"
         },
         "security": [
           {},
@@ -6032,11 +6219,14 @@
             "web-standalone"
           ],
           "access": "platform-session",
-          "permissions": [],
+          "permissions": [
+            "notes:update"
+          ],
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "user"
+          "identityRealm": "user",
+          "uiPage": "notes"
         },
         "security": [
           {},
@@ -6100,11 +6290,14 @@
             "web-standalone"
           ],
           "access": "platform-session",
-          "permissions": [],
+          "permissions": [
+            "notes:delete"
+          ],
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "user"
+          "identityRealm": "user",
+          "uiPage": "notes"
         },
         "security": [
           {},
@@ -6160,12 +6353,14 @@
           ],
           "access": "authenticated",
           "permissions": [
-            "admin:access"
+            "admin:access",
+            "notes:access"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "notes"
         },
         "security": [
           {
@@ -6268,12 +6463,14 @@
           ],
           "access": "authenticated",
           "permissions": [
-            "admin:access"
+            "admin:access",
+            "notes:create"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "notes"
         },
         "security": [
           {
@@ -6327,12 +6524,14 @@
           ],
           "access": "authenticated",
           "permissions": [
-            "admin:access"
+            "admin:access",
+            "notes:update"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "notes"
         },
         "security": [
           {
@@ -6395,12 +6594,14 @@
           ],
           "access": "authenticated",
           "permissions": [
-            "admin:access"
+            "admin:access",
+            "notes:delete"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "notes"
         },
         "security": [
           {
@@ -6505,9 +6706,10 @@
             "updates:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "edition"
         }
       }
     },
@@ -6593,9 +6795,10 @@
             "updates:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "edition"
         }
       }
     },
@@ -6746,9 +6949,10 @@
             "logs:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "logs"
         },
         "summary": "Export filtered audit metadata as spreadsheet-safe CSV (maximum 10000 records)",
         "x-permission": "logs:read; administrator only",
@@ -7092,9 +7296,10 @@
             "announcements:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "announcements"
         },
         "security": [
           {
@@ -7137,9 +7342,10 @@
             "announcements:write"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "announcements"
         },
         "security": [
           {
@@ -7206,9 +7412,10 @@
             "announcements:write"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "announcements"
         },
         "security": [
           {
@@ -7264,9 +7471,10 @@
             "announcements:write"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "announcements"
         },
         "security": [
           {
@@ -7322,9 +7530,10 @@
             "announcements:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "announcements"
         },
         "security": [
           {
@@ -7367,9 +7576,10 @@
             "announcements:write"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "announcements"
         },
         "security": [
           {
@@ -7425,9 +7635,10 @@
             "announcements:write"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "announcements"
         },
         "security": [
           {
@@ -7660,7 +7871,7 @@
             "storage:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
           "identityRealm": "administrator"
         },
@@ -7706,7 +7917,9 @@
             "web-platform"
           ],
           "access": "authenticated",
-          "permissions": [],
+          "permissions": [
+            "files:upload"
+          ],
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
@@ -7823,7 +8036,9 @@
             "web-platform"
           ],
           "access": "authenticated",
-          "permissions": [],
+          "permissions": [
+            "files:upload"
+          ],
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
@@ -7885,7 +8100,7 @@
             "storage:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
           "identityRealm": "administrator"
         },
@@ -7942,7 +8157,9 @@
             "web-platform"
           ],
           "access": "authenticated",
-          "permissions": [],
+          "permissions": [
+            "files:upload"
+          ],
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
@@ -8082,7 +8299,9 @@
             "web-platform"
           ],
           "access": "authenticated",
-          "permissions": [],
+          "permissions": [
+            "files:upload"
+          ],
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
@@ -8246,7 +8465,9 @@
             "web-platform"
           ],
           "access": "authenticated",
-          "permissions": [],
+          "permissions": [
+            "files:upload"
+          ],
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
@@ -10163,9 +10384,10 @@
             "announcements:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "announcements"
         },
         "security": [
           {
@@ -10209,16 +10431,17 @@
             "settings:read"
           ],
           "permissionMode": "all",
-          "superAdmin": true,
+          "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator"
+          "identityRealm": "administrator",
+          "uiPage": "site"
         },
         "security": [
           {
             "AdministratorSession": []
           }
         ],
-        "summary": "mailTemplates",
+        "summary": "Read notification configuration and event catalog",
         "parameters": []
       },
       "put": {
@@ -10265,7 +10488,7 @@
           "csrf": true,
           "identityRealm": "administrator"
         },
-        "summary": "saveMailTemplate",
+        "summary": "Save notification configuration with optional section scope",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -10324,7 +10547,7 @@
           "csrf": true,
           "identityRealm": "administrator"
         },
-        "summary": "saveMailTemplate",
+        "summary": "Preview an event notification template",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -10383,7 +10606,7 @@
           "csrf": true,
           "identityRealm": "administrator"
         },
-        "summary": "saveMailTemplate",
+        "summary": "Test exactly one explicit notification destination",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -10610,6 +10833,2691 @@
         "summary": "Reauthenticate the linked enterprise identity for initial TOTP enrollment",
         "parameters": []
       }
+    },
+    "/api/v1/auth/oidc/bind-login": {
+      "post": {
+        "operationId": "oidcBindLogin",
+        "description": "public; same-origin; rate limited; one-shot state + browser proof + local password proof",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Flow unavailable or conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Identity provider unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error envelope; error codes are listed in x-error-codes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "user"
+        },
+        "security": [],
+        "summary": "oidcStart",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OIDCBindLoginInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/roles/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      ],
+      "put": {
+        "operationId": "updateRole",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "roles:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "roles:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "updateRole",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleSaveInput"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteRole",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "roles:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "roles:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "deleteRole",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/menus": {
+      "get": {
+        "operationId": "listMenus",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MenuListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "menus:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "menus:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator",
+          "uiPage": "menus"
+        },
+        "summary": "listMenus",
+        "parameters": []
+      },
+      "put": {
+        "operationId": "saveMenus",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MenuListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "menus:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "menus:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator",
+          "uiPage": "menus"
+        },
+        "summary": "saveMenus",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MenuSaveInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/dictionaries": {
+      "get": {
+        "operationId": "listDictionaries",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "dictionaries:read; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "dictionaries:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator",
+          "uiPage": "dictionaries"
+        },
+        "summary": "listDictionaries",
+        "parameters": []
+      },
+      "post": {
+        "operationId": "createDictionary",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionarySummaryResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "dictionaries:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "dictionaries:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator",
+          "uiPage": "dictionaries"
+        },
+        "summary": "createDictionary",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DictionaryCreateInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/dictionaries/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getDictionary",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryDetailResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "dictionaries:read; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "dictionaries:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator",
+          "uiPage": "dictionaries"
+        },
+        "summary": "getDictionary",
+        "parameters": []
+      },
+      "put": {
+        "operationId": "updateDictionary",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryDetailResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "dictionaries:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "dictionaries:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator",
+          "uiPage": "dictionaries"
+        },
+        "summary": "updateDictionary",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DictionaryUpdateInput"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteDictionary",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryDetailResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "dictionaries:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "dictionaries:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator",
+          "uiPage": "dictionaries"
+        },
+        "summary": "deleteDictionary",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/departments": {
+      "get": {
+        "operationId": "listDepartments",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "departments:read; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "departments:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator",
+          "uiPage": "departments"
+        },
+        "summary": "listDepartments",
+        "parameters": []
+      },
+      "post": {
+        "operationId": "createDepartment",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "departments:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "departments:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator",
+          "uiPage": "departments"
+        },
+        "summary": "createDepartment",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DepartmentSaveInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/departments/{id}": {
+      "put": {
+        "operationId": "updateDepartment",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "departments:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "departments:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator",
+          "uiPage": "departments"
+        },
+        "summary": "updateDepartment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DepartmentSaveInput"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteDepartment",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "departments:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "departments:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator",
+          "uiPage": "departments"
+        },
+        "summary": "deleteDepartment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/dictionaries/{id}/items": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      ],
+      "put": {
+        "operationId": "replaceDictionaryItems",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryDetailResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "dictionaries:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "dictionaries:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator",
+          "uiPage": "dictionaries"
+        },
+        "summary": "replaceDictionaryItems",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DictionaryItemsInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/dictionaries/{code}": {
+      "parameters": [
+        {
+          "name": "code",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9_]*$"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "dictionary",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryDetailResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "x-permission": "active session",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "user"
+        },
+        "summary": "dictionary",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/tasks": {
+      "get": {
+        "operationId": "listTasks",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "tasks:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator",
+          "uiPage": "tasks"
+        },
+        "summary": "listTasks",
+        "parameters": []
+      },
+      "post": {
+        "operationId": "createTask",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskEntryResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "tasks:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator",
+          "uiPage": "tasks"
+        },
+        "summary": "createTask",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskCreateInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/tasks/{name}": {
+      "parameters": [
+        {
+          "name": "name",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      ],
+      "put": {
+        "operationId": "updateTask",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskEntryResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "tasks:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator",
+          "uiPage": "tasks"
+        },
+        "summary": "updateTask",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskUpdateInput"
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "editTask",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskEntryResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "tasks:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator",
+          "uiPage": "tasks"
+        },
+        "summary": "editTask",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskEditInput"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteTask",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "tasks:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator",
+          "uiPage": "tasks"
+        },
+        "summary": "deleteTask",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/tasks/{name}/run": {
+      "parameters": [
+        {
+          "name": "name",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      ],
+      "post": {
+        "operationId": "triggerTask",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskTriggerResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "tasks:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator",
+          "uiPage": "tasks"
+        },
+        "summary": "triggerTask",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/tasks/{name}/runs": {
+      "parameters": [
+        {
+          "name": "name",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      ],
+      "get": {
+        "operationId": "listTaskRuns",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskRunListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "tasks:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator",
+          "uiPage": "tasks"
+        },
+        "summary": "listTaskRuns",
+        "parameters": []
+      }
+    },
+    "/api/v1/inbox": {
+      "get": {
+        "operationId": "inbox",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboxListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "user"
+        },
+        "summary": "inbox",
+        "parameters": []
+      }
+    },
+    "/api/v1/inbox/read-all": {
+      "post": {
+        "operationId": "readAllInbox",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboxListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "user"
+        },
+        "summary": "readAllInbox",
+        "parameters": []
+      }
+    },
+    "/api/v1/inbox/{id}/read": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      ],
+      "post": {
+        "operationId": "readInbox",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboxListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "user"
+        },
+        "summary": "readInbox",
+        "parameters": []
+      }
+    },
+    "/api/v1/events": {
+      "get": {
+        "operationId": "events",
+        "responses": {
+          "200": {
+            "description": "Server-sent events stream",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "user"
+        },
+        "summary": "events",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/logs/stream": {
+      "get": {
+        "operationId": "logStream",
+        "responses": {
+          "200": {
+            "description": "Server-sent events stream of log lines",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "logs:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "logStream",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/users/export.xlsx": {
+      "get": {
+        "operationId": "exportUsers",
+        "responses": {
+          "200": {
+            "description": "xlsx export",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "users:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator",
+          "uiPage": "users"
+        },
+        "summary": "exportUsers",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            }
+          }
+        ],
+        "description": "Export matching records (maximum 10000). Exceeding the limit returns INVALID_INPUT; no partial workbook is returned."
+      }
+    },
+    "/api/v1/admin/users/import-template.xlsx": {
+      "get": {
+        "operationId": "userImportTemplate",
+        "responses": {
+          "200": {
+            "description": "xlsx template",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "users:create"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator",
+          "uiPage": "users"
+        },
+        "summary": "userImportTemplate",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/users/import.xlsx": {
+      "post": {
+        "operationId": "importUsers",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserImportResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "users:create"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator",
+          "uiPage": "users"
+        },
+        "summary": "importUsers",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "XLSX file, total multipart body at most 5 MiB, first sheet at most 1000 data rows and four columns: username,email,password,role. Blank rows are skipped. Malformed workbooks fail before writes. Each valid row commits independently with administrator reauthorization and audit; failed rows are returned without raw input or database details. Successful rows remain committed on cancellation or later failure."
+      }
+    },
+    "/api/v1/admin/files/export.xlsx": {
+      "get": {
+        "operationId": "exportFiles",
+        "responses": {
+          "200": {
+            "description": "xlsx export",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "storage:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "exportFiles",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            }
+          }
+        ],
+        "description": "Export matching records (maximum 10000). Exceeding the limit returns INVALID_INPUT; no partial workbook is returned."
+      }
+    },
+    "/api/v1/admin/dashboard": {
+      "get": {
+        "operationId": "adminDashboard",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "admin:access"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator",
+          "uiPage": "overview"
+        },
+        "summary": "adminDashboard",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/roles/admin-options": {
+      "get": {
+        "operationId": "adminRoleOptions",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleOptionsResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "roles:read; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "roles:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "adminRoleOptions",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/api-operations": {
+      "get": {
+        "operationId": "listAPIOperations",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIOperationListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "roles:read; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "roles:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator",
+          "uiPage": "roles"
+        },
+        "summary": "List API operation authorization catalogue",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/posts": {
+      "get": {
+        "operationId": "listPosts",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "posts:read; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "posts:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "administrator",
+          "uiPage": "posts"
+        },
+        "summary": "listPosts",
+        "parameters": []
+      },
+      "post": {
+        "operationId": "createPost",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "posts:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "posts:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator",
+          "uiPage": "posts"
+        },
+        "summary": "createPost",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostSaveInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/posts/{id}": {
+      "put": {
+        "operationId": "updatePost",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "posts:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "posts:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator",
+          "uiPage": "posts"
+        },
+        "summary": "updatePost",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostSaveInput"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deletePost",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "posts:write; administrator only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "posts:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "administrator",
+          "uiPage": "posts"
+        },
+        "summary": "deletePost",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/logs/tail": {
+      "get": {
+        "operationId": "logTail",
+        "responses": {
+          "200": {
+            "description": "Bounded page of buffered log lines ascending with the live cursor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogTailResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "logs:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "logTail",
+        "parameters": [
+          {
+            "name": "before_seq",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "description": "Return entries strictly below this sequence; omit for the newest page"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            },
+            "description": "Page size, default 200"
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/monitor": {
+      "get": {
+        "operationId": "adminMonitorSnapshot",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonitorSnapshotResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "monitor:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "adminMonitorSnapshot",
+        "parameters": [],
+        "description": "运行监控快照：仅超级管理员可读的实例运行状态、资源与服务健康。"
+      }
+    },
+    "/api/v1/monitor": {
+      "get": {
+        "operationId": "monitorSnapshot",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonitorSnapshotResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [],
+        "x-unicore": {
+          "profiles": [
+            "web-standalone"
+          ],
+          "access": "local",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "summary": "monitorSnapshot",
+        "parameters": [],
+        "description": "单机本机只读运行快照；数据已脱敏，平台形态不可用。"
+      }
+    },
+    "/api/v1/monitor/events": {
+      "get": {
+        "operationId": "monitorEvents",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonitorEventListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [],
+        "x-unicore": {
+          "profiles": [
+            "web-standalone"
+          ],
+          "access": "local",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false
+        },
+        "summary": "monitorEvents",
+        "parameters": [],
+        "description": "单机本机只读运行事件流（进程内环形缓冲，重启即清）；数据已脱敏，平台形态不可用。"
+      }
+    },
+    "/api/v1/admin/monitor/events": {
+      "get": {
+        "operationId": "adminMonitorEvents",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonitorEventListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "monitor:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "adminMonitorEvents",
+        "parameters": [],
+        "description": "运行事件流：仅超级管理员可读的系统事件环形缓冲（生命周期、健康翻转、任务与存储错误）。"
+      }
+    },
+    "/api/v1/admin/monitor/storage-probe": {
+      "get": {
+        "operationId": "adminMonitorStorageProbe",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonitorStorageLocationResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "monitor:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "adminMonitorStorageProbe",
+        "parameters": [
+          {
+            "name": "location",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "description": "对单个对象存储位置执行一次轻量探活并缓存结果：仅超级管理员。"
+      }
+    },
+    "/api/v1/admin/monitor/alert-rules": {
+      "get": {
+        "operationId": "adminMonitorAlertRules",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonitorAlertRulesResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "monitor:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "adminMonitorAlertRules",
+        "parameters": [],
+        "description": "告警规则集：仅超级管理员可读。"
+      },
+      "put": {
+        "operationId": "adminUpdateMonitorAlertRules",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonitorAlertRulesResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "monitor:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "adminUpdateMonitorAlertRules",
+        "parameters": [],
+        "description": "更新告警规则（启停/阈值/冷却）：仅超级管理员；保存后下一检测拍生效。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MonitorAlertRules"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/menus/{id}/roles": {
+      "put": {
+        "operationId": "assignMenuRoles",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "menus:write and roles:write; super_admin only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "menus:write",
+            "roles:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "Assign roles to one navigation item without replacing unrelated grants",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MenuRoleAssignmentInput"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -10673,16 +13581,22 @@
         "additionalProperties": false,
         "required": [
           "execute",
+          "api_docs",
           "database",
           "installation",
           "authentication",
           "license",
           "updater",
-          "settings"
+          "settings",
+          "features"
         ],
         "properties": {
           "execute": {
             "type": "boolean"
+          },
+          "api_docs": {
+            "type": "boolean",
+            "description": "Whether this instance publishes /openapi.json for the built-in API reference."
           },
           "database": {
             "type": "boolean"
@@ -10701,6 +13615,13 @@
           },
           "settings": {
             "type": "boolean"
+          },
+          "features": {
+            "type": "object",
+            "description": "Module assembly state keyed by module slug; a missing or false entry means the edition is trimmed from this build.",
+            "additionalProperties": {
+              "type": "boolean"
+            }
           }
         }
       },
@@ -10773,9 +13694,6 @@
           "site_icp_url": {
             "type": "string"
           },
-          "theme": {
-            "type": "string"
-          },
           "branding": {
             "$ref": "#/components/schemas/Branding"
           },
@@ -10803,6 +13721,16 @@
           },
           "mfa_enrollment_required": {
             "type": "boolean"
+          },
+          "menus": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MenuEntry"
+            },
+            "description": "Operator-edited menu overrides; absent entries fall back to route defaults."
+          },
+          "navigation": {
+            "$ref": "#/components/schemas/Navigation"
           }
         }
       },
@@ -11108,6 +14036,21 @@
           "email": {
             "type": "string"
           },
+          "phone": {
+            "type": "string",
+            "description": "Phone number bound at registration; empty when not collected."
+          },
+          "display_name": {
+            "type": "string",
+            "description": "Profile nickname echo; empty when the account never set one and displays fall back to the username."
+          },
+          "role_names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Catalogue names parallel to the roles array so listings render names without a roles:read grant; deleted rows fall back to the raw id."
+          },
           "status": {
             "type": "string"
           },
@@ -11115,10 +14058,7 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": [
-                "super_admin",
-                "user"
-              ]
+              "description": "Assigned role ids: the administrator realm is fixed to super_admin; user accounts hold the builtin user role and/or custom roles."
             }
           },
           "permissions": {
@@ -11136,6 +14076,47 @@
           "totp_enabled": {
             "type": "boolean",
             "description": "Read-only authenticator enrollment status; no keys or recovery codes are exposed."
+          },
+          "department_id": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Department the user belongs to; empty when unassigned. Administrator accounts never carry one."
+          },
+          "menu_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "action_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "operation_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "post_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
           }
         }
       },
@@ -11172,8 +14153,7 @@
         "required": [
           "username",
           "email",
-          "password",
-          "role"
+          "password"
         ],
         "properties": {
           "username": {
@@ -11192,13 +14172,48 @@
             "minLength": 12,
             "maxLength": 128
           },
+          "phone": {
+            "type": "string",
+            "description": "Optional phone number bound to the account.",
+            "maxLength": 21,
+            "pattern": "^(?:\\+?[0-9]{5,20})?$"
+          },
+          "display_name": {
+            "type": "string",
+            "maxLength": 80,
+            "description": "Optional profile nickname set at creation time."
+          },
           "role": {
             "type": "string",
-            "enum": [
-              "super_admin",
-              "user"
-            ],
-            "description": "Fixed roles: administrator or ordinary user."
+            "maxLength": 64,
+            "description": "Optional single-role shorthand. Do not combine with role_ids.",
+            "x-go-value": true
+          },
+          "department_id": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Shared account department: omit on update to retain it, empty string clears it; a non-empty id must reference an existing department."
+          },
+          "post_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "role_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "minItems": 1,
+            "maxItems": 64,
+            "uniqueItems": true,
+            "description": "Complete role assignment. Omit on update to retain existing roles. Role assignment requires roles:write."
           }
         }
       },
@@ -11206,19 +14221,102 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "role",
           "status"
         ],
         "properties": {
           "role": {
             "type": "string",
-            "enum": [
-              "super_admin",
-              "user"
-            ],
-            "description": "Fixed roles: administrator or ordinary user."
+            "maxLength": 64,
+            "description": "Optional single-role shorthand. Do not combine with role_ids."
           },
           "status": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "description": "Login credential: omit to keep the address, a replacement must parse and stay unique across every account."
+          },
+          "display_name": {
+            "type": "string",
+            "maxLength": 80,
+            "description": "Profile nickname: omit to retain it, empty string clears it back to the username fallback."
+          },
+          "department_id": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Shared account department: omit on update to retain it, empty string clears it; a non-empty id must reference an existing department."
+          },
+          "post_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "role_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "minItems": 1,
+            "maxItems": 64,
+            "uniqueItems": true,
+            "description": "Complete role assignment. Omit on update to retain existing roles. Role assignment requires roles:write."
+          }
+        }
+      },
+      "AdminPasswordResetInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "password": {
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 128,
+            "x-max-utf8-bytes": 128,
+            "description": "Replacement password. Omit or leave empty to let the server generate a temporary one."
+          }
+        }
+      },
+      "AdminPasswordReset": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "password"
+        ],
+        "properties": {
+          "password": {
+            "type": "string",
+            "description": "The effective new password, echoed exactly once."
+          }
+        }
+      },
+      "AdminPasswordResetResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdminPasswordReset"
+          },
+          "request_id": {
             "type": "string"
           }
         }
@@ -11248,6 +14346,16 @@
           },
           "captcha_answer": {
             "type": "string"
+          },
+          "human_check_token": {
+            "type": "string",
+            "description": "Click-through human verification token; required when login human verification is enabled.",
+            "maxLength": 4096
+          },
+          "human_check_randstr": {
+            "type": "string",
+            "description": "Random string returned by Tencent captcha next to the ticket.",
+            "maxLength": 128
           }
         }
       },
@@ -11342,7 +14450,8 @@
           "total_users",
           "today_new_users",
           "active_users_7d",
-          "audit"
+          "audit",
+          "activity_7d"
         ],
         "properties": {
           "total_users": {
@@ -11358,6 +14467,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/AuditEntry"
+            }
+          },
+          "activity_7d": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityDay"
             }
           }
         }
@@ -11686,7 +14801,10 @@
           "register_captcha",
           "mail_ready",
           "email_login_enabled",
-          "email_verification_required"
+          "email_verification_required",
+          "phone_required",
+          "human_check_enabled",
+          "human_check_provider"
         ],
         "properties": {
           "registration_enabled": {
@@ -11709,6 +14827,35 @@
           },
           "email_verification_required": {
             "type": "boolean"
+          },
+          "phone_required": {
+            "type": "boolean",
+            "description": "Registration requires a phone number when enabled."
+          },
+          "human_check_enabled": {
+            "type": "boolean",
+            "description": "Login and registration require a click-through human verification token when enabled."
+          },
+          "human_check_provider": {
+            "type": "string",
+            "enum": [
+              "turnstile",
+              "tencent",
+              "alibaba"
+            ],
+            "description": "Human verification provider backing the enabled switches."
+          },
+          "human_check_site_key": {
+            "type": "string",
+            "description": "Public widget identifier: Turnstile site key, Tencent CaptchaAppId or Aliyun SceneId."
+          },
+          "human_check_region": {
+            "type": "string",
+            "description": "Provider region for Tencent (cn/intl) or Aliyun (cn-shanghai/ap-southeast-1); empty for Turnstile."
+          },
+          "human_check_prefix": {
+            "type": "string",
+            "description": "Aliyun captcha frontend element prefix; empty for other providers."
           }
         }
       },
@@ -11739,6 +14886,22 @@
             "minLength": 12,
             "maxLength": 128
           },
+          "phone": {
+            "type": "string",
+            "description": "Optional phone number bound at registration; required when the instance enables registration phone binding.",
+            "maxLength": 21,
+            "pattern": "^(?:\\+?[0-9]{5,20})?$"
+          },
+          "human_check_token": {
+            "type": "string",
+            "description": "Click-through human verification token; required when registration human verification is enabled.",
+            "maxLength": 4096
+          },
+          "human_check_randstr": {
+            "type": "string",
+            "description": "Random string returned by Tencent captcha next to the ticket.",
+            "maxLength": 128
+          },
           "captcha_id": {
             "type": "string"
           },
@@ -11767,6 +14930,15 @@
           },
           "captcha_answer": {
             "type": "string"
+          },
+          "human_check_token": {
+            "type": "string",
+            "description": "Click-through human verification token for email-code login requests.",
+            "maxLength": 4096
+          },
+          "human_check_randstr": {
+            "type": "string",
+            "maxLength": 128
           }
         }
       },
@@ -12073,7 +15245,8 @@
           "name",
           "description",
           "group",
-          "assignable"
+          "assignable",
+          "super_admin"
         ],
         "properties": {
           "id": {
@@ -12090,6 +15263,10 @@
           },
           "assignable": {
             "type": "boolean"
+          },
+          "super_admin": {
+            "type": "boolean",
+            "description": "Reserved for super_admin; cannot be delegated to custom roles."
           }
         }
       },
@@ -12101,15 +15278,20 @@
           "name",
           "builtin",
           "permissions",
-          "user_count"
+          "user_count",
+          "realm",
+          "data_scope",
+          "department_ids",
+          "menu_ids",
+          "action_ids",
+          "operation_ids",
+          "authorization_initialized"
         ],
         "properties": {
           "id": {
             "type": "string",
-            "enum": [
-              "super_admin",
-              "user"
-            ]
+            "maxLength": 64,
+            "description": "Builtin super_admin/user or a custom role id."
           },
           "name": {
             "type": "string"
@@ -12125,6 +15307,63 @@
           },
           "user_count": {
             "type": "integer"
+          },
+          "realm": {
+            "type": "string",
+            "enum": [
+              "user",
+              "administrator"
+            ],
+            "description": "Identity realm the role belongs to; administrator-realm roles may carry any permission point."
+          },
+          "data_scope": {
+            "type": "string",
+            "enum": [
+              "all",
+              "dept",
+              "dept_and_below",
+              "custom",
+              "self"
+            ],
+            "description": "Row-level data scope of user-realm roles: all disables owner filtering, dept keeps the member's own department, dept_and_below adds its subtree, custom uses department_ids, self keeps personal visibility. Administrator-realm roles are fixed to self."
+          },
+          "department_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "description": "Departments of the custom data scope; only persisted for data_scope=custom, cleared otherwise."
+          },
+          "menu_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "action_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "operation_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "authorization_initialized": {
+            "type": "boolean"
           }
         }
       },
@@ -12161,10 +15400,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "enum": [
-              "super_admin",
-              "user"
-            ]
+            "description": "Builtin super_admin/user or a custom role id from either realm."
           },
           "name": {
             "type": "string"
@@ -12358,6 +15594,107 @@
           },
           "request_id": {
             "type": "string"
+          }
+        }
+      },
+      "OIDCBindLoginInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "state",
+          "email",
+          "password"
+        ],
+        "properties": {
+          "state": {
+            "type": "string",
+            "minLength": 43,
+            "maxLength": 43,
+            "description": "One-shot bind offer state from the callback redirect."
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "description": "Local account email; it must match the enterprise identity offer."
+          },
+          "password": {
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 128
+          }
+        }
+      },
+      "OIDCBindLoginResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "request_id",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Session"
+          }
+        }
+      },
+      "OIDCCheckInfo": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "authorization_url",
+          "token_url",
+          "jwks_url",
+          "userinfo_url"
+        ],
+        "properties": {
+          "authorization_url": {
+            "type": "string"
+          },
+          "token_url": {
+            "type": "string"
+          },
+          "userinfo_url": {
+            "type": "string",
+            "description": "Empty when the provider does not publish one."
+          },
+          "jwks_url": {
+            "type": "string"
+          }
+        }
+      },
+      "OIDCCheckInfoResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "request_id",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/OIDCCheckInfo"
           }
         }
       },
@@ -12767,7 +16104,8 @@
           "creator_realm",
           "created_at",
           "expires_at",
-          "state"
+          "state",
+          "capabilities"
         ],
         "properties": {
           "file_id": {
@@ -12827,6 +16165,9 @@
               "ready",
               "deleted"
             ]
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/FileCapabilities"
           }
         }
       },
@@ -13101,8 +16442,7 @@
         "required": [
           "title",
           "body",
-          "status",
-          "attachment_ids"
+          "status"
         ],
         "properties": {
           "title": {
@@ -13129,7 +16469,8 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 80
-            }
+            },
+            "description": "Attachment file ids bound at creation; omit for a plain note. Maximum five, order preserved."
           }
         }
       },
@@ -13202,7 +16543,8 @@
           "attachment_ids",
           "version",
           "created_at",
-          "updated_at"
+          "updated_at",
+          "capabilities"
         ],
         "properties": {
           "id": {
@@ -13249,6 +16591,9 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 9007199254740991
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/NoteCapabilities"
           }
         }
       },
@@ -14751,6 +18096,10 @@
           },
           "can_disable_2fa": {
             "type": "boolean"
+          },
+          "avatar_url": {
+            "type": "string",
+            "maxLength": 2000
           }
         }
       },
@@ -14765,6 +18114,11 @@
             "type": "string",
             "maxLength": 80,
             "minLength": 0
+          },
+          "avatar_file_id": {
+            "type": "string",
+            "maxLength": 80,
+            "description": "Omit to preserve; empty string clears. Otherwise an owned ready PNG/JPEG/GIF upload, at most 2 MiB and 4096 x 4096 pixels, in the same identity realm. Reference keeps the existing private-file expiry and deletion lifecycle."
           }
         }
       },
@@ -15253,6 +18607,23 @@
               "$ref": "#/components/schemas/NotifyTemplate"
             },
             "maxItems": 32
+          },
+          "section": {
+            "type": "string",
+            "enum": [
+              "channels",
+              "templates",
+              "system"
+            ],
+            "description": "Optional write scope. Omit for legacy full replacement; scoped writes preserve other sections."
+          },
+          "catalog": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotifyEvent"
+            },
+            "maxItems": 32,
+            "description": "Server-owned event catalog. Supplied values are ignored on write."
           }
         }
       },
@@ -15338,6 +18709,2499 @@
             "$ref": "#/components/schemas/NotifyPreview"
           }
         }
+      },
+      "RoleSaveInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "permissions"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 64
+          },
+          "realm": {
+            "type": "string",
+            "enum": [
+              "user",
+              "administrator"
+            ],
+            "description": "Realm the role belongs to; omitted means user for backward compatibility. Update requests cannot move a role between realms."
+          },
+          "data_scope": {
+            "type": "string",
+            "enum": [
+              "all",
+              "dept",
+              "dept_and_below",
+              "custom",
+              "self"
+            ],
+            "description": "User-realm roles only: omitted means self. Administrator-realm roles are fixed to self and reject any other value."
+          },
+          "department_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 100,
+            "description": "Departments for the custom data scope; every id must reference an existing department. Only persisted when data_scope=custom."
+          },
+          "menu_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "action_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "operation_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          }
+        }
+      },
+      "MenuEntry": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "menu_key",
+          "label",
+          "group_key",
+          "sort",
+          "visible",
+          "type"
+        ],
+        "properties": {
+          "menu_key": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "group_key": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "sort": {
+            "type": "integer"
+          },
+          "visible": {
+            "type": "boolean"
+          },
+          "parent_key": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Key of the configured page or link row this entry nests under; omitted or empty places the entry at its top-level group. The tree depth is limited to 5 and cycles are rejected on save."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "page",
+              "link"
+            ],
+            "description": "page rows override a registered route page and never carry url; link rows are operator-created external links with a link: prefixed key and a required url."
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 2048,
+            "description": "Link target; only link rows carry it. Accepts http(s) URLs or in-site relative paths starting with /."
+          }
+        }
+      },
+      "MenuList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "version",
+          "sections",
+          "nodes",
+          "pages"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MenuEntry"
+            }
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationSection"
+            }
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationNode"
+            }
+          },
+          "pages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationPage"
+            }
+          }
+        }
+      },
+      "MenuSaveInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "version",
+          "sections",
+          "nodes"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MenuEntry"
+            },
+            "maxItems": 256
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationSection"
+            }
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationNode"
+            }
+          },
+          "role_assignments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationRoleAssignment"
+            },
+            "maxItems": 256
+          },
+          "reset": {
+            "type": "boolean",
+            "description": "Restore registered defaults for both surfaces; requires super_admin. Empty sections/nodes alone saves an empty tree."
+          }
+        }
+      },
+      "MenuListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MenuList"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "DictionarySummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "code",
+          "name",
+          "description",
+          "item_count",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "item_count": {
+            "type": "integer"
+          },
+          "created_at": {
+            "type": "integer"
+          },
+          "updated_at": {
+            "type": "integer"
+          }
+        }
+      },
+      "DictionaryList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DictionarySummary"
+            }
+          }
+        }
+      },
+      "DictionaryItemEntry": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "value",
+          "label",
+          "remark",
+          "sort",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "remark": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "sort": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "maxLength": 16
+          }
+        }
+      },
+      "DictionaryDetail": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "code",
+          "name",
+          "description",
+          "items"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DictionaryItemEntry"
+            }
+          }
+        }
+      },
+      "DictionaryCreateInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "name",
+          "description"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 200
+          }
+        }
+      },
+      "DictionaryUpdateInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "description"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 200
+          }
+        }
+      },
+      "DictionaryItemsInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DictionaryItemEntry"
+            },
+            "maxItems": 512
+          }
+        }
+      },
+      "Department": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "sort",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Department display name; unique among sibling departments."
+          },
+          "parent_id": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Parent department id; empty for a root department. Cycles are rejected."
+          },
+          "sort": {
+            "type": "integer",
+            "description": "Stable display order within the sibling group."
+          },
+          "created_at": {
+            "type": "integer"
+          },
+          "updated_at": {
+            "type": "integer"
+          }
+        }
+      },
+      "DepartmentList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "total"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Department"
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "DepartmentSaveInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "description": "Department display name; must stay unique among siblings under the same parent."
+          },
+          "parent_id": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Parent department id; omit or send empty for a root department. Updates reject moving a department under itself or one of its descendants."
+          },
+          "sort": {
+            "type": "integer",
+            "description": "Display order within the sibling group; defaults to 0."
+          }
+        }
+      },
+      "DepartmentResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Department"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "DepartmentListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DepartmentList"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "DictionaryListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DictionaryList"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "DictionaryDetailResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DictionaryDetail"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "DictionarySummaryResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DictionarySummary"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "TaskEntry": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "schedule",
+          "enabled",
+          "last_run_at",
+          "last_status",
+          "last_error",
+          "run_count",
+          "next_run_at",
+          "description",
+          "executor",
+          "custom"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "schedule": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "executor": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "custom": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "last_run_at": {
+            "type": "integer"
+          },
+          "last_status": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "last_error": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "run_count": {
+            "type": "integer"
+          },
+          "next_run_at": {
+            "type": "integer"
+          }
+        }
+      },
+      "TaskList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "executors"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskEntry"
+            }
+          },
+          "executors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskExecutor"
+            }
+          }
+        }
+      },
+      "TaskUpdateInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TaskExecutor": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "description"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 200
+          }
+        }
+      },
+      "TaskCreateInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "description",
+          "schedule",
+          "executor"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9._-]{1,63}$"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "schedule": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "executor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        }
+      },
+      "TaskEditInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "description",
+          "schedule",
+          "executor"
+        ],
+        "properties": {
+          "description": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "schedule": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "executor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        }
+      },
+      "TaskRunEntry": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "started_at",
+          "duration_ms",
+          "status",
+          "error"
+        ],
+        "properties": {
+          "started_at": {
+            "type": "integer"
+          },
+          "duration_ms": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "error": {
+            "type": "string",
+            "maxLength": 200
+          }
+        }
+      },
+      "TaskRunList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskRunEntry"
+            }
+          }
+        }
+      },
+      "TaskRunListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TaskRunList"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "TaskListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TaskList"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "TaskEntryResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TaskEntry"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "TaskTrigger": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "triggered"
+        ],
+        "properties": {
+          "triggered": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TaskTriggerResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TaskTrigger"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "InboxEntry": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "type",
+          "source_id",
+          "title",
+          "body",
+          "created_at",
+          "read_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "type": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "source_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "created_at": {
+            "type": "integer"
+          },
+          "read_at": {
+            "type": "integer"
+          }
+        }
+      },
+      "InboxList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "unread"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InboxEntry"
+            }
+          },
+          "unread": {
+            "type": "integer"
+          }
+        }
+      },
+      "InboxListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/InboxList"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "UserImportResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "created",
+          "failed"
+        ],
+        "properties": {
+          "created": {
+            "type": "integer"
+          },
+          "failed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserImportFailure"
+            }
+          }
+        }
+      },
+      "UserImportResultResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UserImportResult"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "ActivityDay": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "date",
+          "count"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "maxLength": 10
+          },
+          "count": {
+            "type": "integer"
+          }
+        }
+      },
+      "UserImportFailure": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "row",
+          "error"
+        ],
+        "properties": {
+          "row": {
+            "type": "integer"
+          },
+          "error": {
+            "type": "string",
+            "maxLength": 200
+          }
+        }
+      },
+      "NavigationSection": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "surfaces",
+          "name",
+          "sort",
+          "visible",
+          "show_title"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "sort": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "visible": {
+            "type": "boolean"
+          },
+          "show_title": {
+            "type": "boolean"
+          },
+          "surfaces": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "user",
+                "administrator"
+              ]
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          }
+        }
+      },
+      "NavigationNode": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "section_id",
+          "type",
+          "label",
+          "icon",
+          "sort",
+          "visible",
+          "open_mode",
+          "badge_text",
+          "badge_color",
+          "badge_dot",
+          "operation_ids",
+          "disabled",
+          "surfaces"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "section_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "parent_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "directory",
+              "page",
+              "link",
+              "action"
+            ]
+          },
+          "route_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "icon": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "sort": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "visible": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "open_mode": {
+            "type": "string",
+            "enum": [
+              "same_tab",
+              "new_tab"
+            ]
+          },
+          "badge_text": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "badge_color": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "badge_dot": {
+            "type": "boolean"
+          },
+          "active_menu": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "permission": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "operation_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "disabled": {
+            "type": "boolean"
+          },
+          "surfaces": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "user",
+                "administrator"
+              ]
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          }
+        }
+      },
+      "NavigationPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "surfaces",
+          "permission",
+          "group"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "surfaces": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "permission": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "group": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      },
+      "Navigation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "version",
+          "sections",
+          "nodes"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationSection"
+            }
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationNode"
+            }
+          }
+        }
+      },
+      "NavigationRoleAssignment": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "role_id",
+          "menu_ids",
+          "action_ids"
+        ],
+        "properties": {
+          "role_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "menu_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "action_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          }
+        }
+      },
+      "APIOperation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "operation_id",
+          "method",
+          "path",
+          "summary",
+          "tags",
+          "realm",
+          "permissions",
+          "permission_mode",
+          "csrf",
+          "super_admin",
+          "grantable"
+        ],
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "method": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "path": {
+            "type": "string",
+            "maxLength": 256
+          },
+          "summary": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "realm": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "permission_mode": {
+            "type": "string"
+          },
+          "csrf": {
+            "type": "boolean"
+          },
+          "super_admin": {
+            "type": "boolean"
+          },
+          "grantable": {
+            "type": "boolean"
+          }
+        }
+      },
+      "APIOperationList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/APIOperation"
+            }
+          }
+        }
+      },
+      "APIOperationListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/APIOperationList"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "Post": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "code",
+          "name",
+          "sort",
+          "enabled",
+          "description",
+          "created_at",
+          "updated_at",
+          "member_count"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "sort": {
+            "type": "integer"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "created_at": {
+            "type": "integer"
+          },
+          "updated_at": {
+            "type": "integer"
+          },
+          "member_count": {
+            "type": "integer",
+            "description": "Number of users holding this post; computed from user_posts."
+          }
+        }
+      },
+      "PostList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "total"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Post"
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "PostSaveInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "name"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^\\s*[A-Za-z0-9][A-Za-z0-9_.-]*\\s*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "sort": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
+      "PostResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Post"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "PostListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PostList"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "NoteCapabilities": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "update",
+          "delete"
+        ],
+        "properties": {
+          "update": {
+            "type": "boolean"
+          },
+          "delete": {
+            "type": "boolean"
+          }
+        }
+      },
+      "FileCapabilities": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "download",
+          "delete"
+        ],
+        "properties": {
+          "download": {
+            "type": "boolean"
+          },
+          "delete": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LogTailEntry": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "seq",
+          "line"
+        ],
+        "properties": {
+          "seq": {
+            "type": "integer"
+          },
+          "line": {
+            "type": "string"
+          }
+        }
+      },
+      "LogTailList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "latest_seq",
+          "older_count"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogTailEntry"
+            }
+          },
+          "latest_seq": {
+            "type": "integer"
+          },
+          "older_count": {
+            "type": "integer"
+          }
+        }
+      },
+      "LogTailResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/LogTailList"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "MonitorHttpService": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "applicable"
+        ],
+        "properties": {
+          "applicable": {
+            "type": "boolean"
+          },
+          "active_requests": {
+            "type": "integer"
+          },
+          "requests_total": {
+            "type": "integer"
+          },
+          "errors_total": {
+            "type": "integer"
+          },
+          "avg_duration_ms": {
+            "type": "integer"
+          },
+          "p95_duration_ms": {
+            "type": "integer"
+          }
+        }
+      },
+      "MonitorDatabase": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status",
+          "latency_ms"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "healthy",
+              "unavailable"
+            ]
+          },
+          "latency_ms": {
+            "type": "integer"
+          },
+          "open_connections": {
+            "type": "integer"
+          },
+          "in_use_connections": {
+            "type": "integer"
+          },
+          "idle_connections": {
+            "type": "integer"
+          },
+          "wait_total": {
+            "type": "integer"
+          },
+          "max_open_connections": {
+            "type": "integer"
+          },
+          "wait_duration_ms": {
+            "type": "integer"
+          }
+        }
+      },
+      "MonitorStorageService": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "applicable"
+        ],
+        "properties": {
+          "applicable": {
+            "type": "boolean"
+          },
+          "active_location": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "locations": {
+            "type": "integer"
+          },
+          "probe": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MonitorStorageLocation"
+            }
+          }
+        }
+      },
+      "MonitorTaskHealth": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "enabled"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "last_status": {
+            "type": "string"
+          },
+          "last_error": {
+            "type": "string"
+          },
+          "last_run_at": {
+            "type": "integer"
+          },
+          "next_run_at": {
+            "type": "integer"
+          },
+          "runs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MonitorTaskRun"
+            }
+          }
+        }
+      },
+      "MonitorTasksSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "applicable"
+        ],
+        "properties": {
+          "applicable": {
+            "type": "boolean"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "enabled": {
+            "type": "integer"
+          },
+          "failing": {
+            "type": "integer"
+          },
+          "recent": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MonitorTaskHealth"
+            }
+          }
+        }
+      },
+      "MonitorSnapshot": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "profile",
+          "version",
+          "commit",
+          "build_time",
+          "go_version",
+          "started_at",
+          "uptime_seconds",
+          "status",
+          "http_service",
+          "database",
+          "storage",
+          "tasks",
+          "runtime",
+          "host"
+        ],
+        "properties": {
+          "profile": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "commit": {
+            "type": "string"
+          },
+          "build_time": {
+            "type": "string"
+          },
+          "go_version": {
+            "type": "string"
+          },
+          "started_at": {
+            "type": "integer"
+          },
+          "uptime_seconds": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "healthy",
+              "degraded",
+              "unavailable"
+            ]
+          },
+          "http_service": {
+            "$ref": "#/components/schemas/MonitorHttpService"
+          },
+          "database": {
+            "$ref": "#/components/schemas/MonitorDatabase"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/MonitorStorageService"
+          },
+          "tasks": {
+            "$ref": "#/components/schemas/MonitorTasksSummary"
+          },
+          "runtime": {
+            "$ref": "#/components/schemas/MonitorRuntimeStats"
+          },
+          "host": {
+            "$ref": "#/components/schemas/MonitorHostStats"
+          }
+        }
+      },
+      "MonitorSnapshotResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MonitorSnapshot"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "MonitorRuntimeStats": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "goroutines",
+          "heap_alloc_bytes",
+          "heap_sys_bytes",
+          "gc_cycles"
+        ],
+        "properties": {
+          "goroutines": {
+            "type": "integer"
+          },
+          "heap_alloc_bytes": {
+            "type": "integer"
+          },
+          "heap_sys_bytes": {
+            "type": "integer"
+          },
+          "gc_cycles": {
+            "type": "integer"
+          },
+          "pause_total_ms": {
+            "type": "integer"
+          },
+          "rss_bytes": {
+            "type": "integer"
+          },
+          "cpu_time_ms": {
+            "type": "integer"
+          }
+        }
+      },
+      "MonitorHostStats": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "available"
+        ],
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "hostname": {
+            "type": "string"
+          },
+          "os": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "platform_version": {
+            "type": "string"
+          },
+          "kernel_version": {
+            "type": "string"
+          },
+          "kernel_arch": {
+            "type": "string"
+          },
+          "host_uptime_seconds": {
+            "type": "integer"
+          },
+          "cpu_model": {
+            "type": "string"
+          },
+          "cpu_cores_logical": {
+            "type": "integer"
+          },
+          "cpu_cores_physical": {
+            "type": "integer"
+          },
+          "cpu_percent": {
+            "type": "number"
+          },
+          "cpu_per_core": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "load_1": {
+            "type": "number"
+          },
+          "load_5": {
+            "type": "number"
+          },
+          "load_15": {
+            "type": "number"
+          },
+          "mem_total_bytes": {
+            "type": "integer"
+          },
+          "mem_used_bytes": {
+            "type": "integer"
+          },
+          "mem_available_bytes": {
+            "type": "integer"
+          },
+          "mem_used_percent": {
+            "type": "number"
+          },
+          "swap_total_bytes": {
+            "type": "integer"
+          },
+          "swap_used_bytes": {
+            "type": "integer"
+          },
+          "net_sent_bytes": {
+            "type": "integer"
+          },
+          "net_recv_bytes": {
+            "type": "integer"
+          },
+          "sampled_at": {
+            "type": "integer"
+          },
+          "disks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MonitorDiskUsage"
+            }
+          },
+          "net_sent_per_sec": {
+            "type": "number"
+          },
+          "net_recv_per_sec": {
+            "type": "number"
+          },
+          "container": {
+            "$ref": "#/components/schemas/MonitorContainerView"
+          },
+          "sensors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MonitorSensor"
+            }
+          }
+        }
+      },
+      "MonitorDiskUsage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "total_bytes",
+          "used_bytes",
+          "free_bytes",
+          "used_percent"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "is_data_dir": {
+            "type": "boolean"
+          },
+          "total_bytes": {
+            "type": "integer"
+          },
+          "used_bytes": {
+            "type": "integer"
+          },
+          "free_bytes": {
+            "type": "integer"
+          },
+          "used_percent": {
+            "type": "number"
+          }
+        }
+      },
+      "MonitorEvent": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "type",
+          "severity",
+          "message",
+          "at"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "type": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "at": {
+            "type": "integer"
+          }
+        }
+      },
+      "MonitorEventList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "total"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MonitorEvent"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "capacity": {
+            "type": "integer"
+          }
+        }
+      },
+      "MonitorEventListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MonitorEventList"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "MonitorTaskRun": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "started_at",
+          "duration_ms",
+          "status"
+        ],
+        "properties": {
+          "started_at": {
+            "type": "integer"
+          },
+          "duration_ms": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "MonitorStorageLocation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "provider",
+          "active",
+          "configured",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "configured": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "latency_ms": {
+            "type": "integer"
+          },
+          "checked_at": {
+            "type": "integer"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "MonitorContainerView": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "detected"
+        ],
+        "properties": {
+          "detected": {
+            "type": "boolean"
+          },
+          "memory_limit_bytes": {
+            "type": "integer"
+          },
+          "memory_usage_bytes": {
+            "type": "integer"
+          },
+          "cpu_quota_cores": {
+            "type": "number"
+          },
+          "cpu_percent": {
+            "type": "number"
+          }
+        }
+      },
+      "MonitorSensor": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "label",
+          "celsius"
+        ],
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "celsius": {
+            "type": "number"
+          }
+        }
+      },
+      "MonitorStorageLocationResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MonitorStorageLocation"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "MonitorAlertRule": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "enabled"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "trigger_value": {
+            "type": "number"
+          },
+          "recover_value": {
+            "type": "number"
+          },
+          "consecutive": {
+            "type": "integer"
+          },
+          "cooldown_minutes": {
+            "type": "integer"
+          }
+        }
+      },
+      "MonitorAlertRules": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "version",
+          "rules"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer"
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MonitorAlertRule"
+            }
+          }
+        }
+      },
+      "MonitorAlertRulesResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MonitorAlertRules"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "NotifyVariable": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "label",
+          "label_en"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "label_en": {
+            "type": "string",
+            "maxLength": 160
+          }
+        }
+      },
+      "NotifyEvent": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "label",
+          "label_en",
+          "description",
+          "description_en",
+          "user_email_allowed",
+          "variables"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "label_en": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 512
+          },
+          "description_en": {
+            "type": "string",
+            "maxLength": 512
+          },
+          "user_email_allowed": {
+            "type": "boolean"
+          },
+          "variables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotifyVariable"
+            },
+            "maxItems": 32
+          }
+        }
+      },
+      "MenuRoleAssignmentInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "version",
+          "role_ids",
+          "expected_role_ids"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "role_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "expected_role_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          }
+        }
       }
     },
     "securitySchemes": {
@@ -15406,6 +21270,10 @@
       "status": 400,
       "message": "无法连接或初始化数据库，请检查配置与权限后重试"
     },
+    "DEPARTMENT_IN_USE": {
+      "status": 409,
+      "message": "部门下仍有子部门或挂靠用户，请先迁移后再删除"
+    },
     "INSTALL_COMMITTED": {
       "status": 500,
       "message": "安装已完成，请前往登录页面"
@@ -15441,6 +21309,14 @@
     "MAIL_NOT_READY": {
       "status": 409,
       "message": "请先保存 SMTP 配置并成功发送测试邮件，再启用邮件账号流程"
+    },
+    "HUMAN_CHECK_FAILED": {
+      "status": 400,
+      "message": "人机验证未通过，请完成验证后重试"
+    },
+    "HUMAN_CHECK_NOT_CONFIGURED": {
+      "status": 503,
+      "message": "人机验证服务尚未配置完整，请先在后台完成服务商凭据"
     },
     "METHOD_NOT_ALLOWED": {
       "status": 405,
@@ -15569,6 +21445,42 @@
     "MFA_ENROLLMENT_REQUIRED": {
       "status": 403,
       "message": "请先在安全设置中启用双重验证"
+    },
+    "POST_CONFLICT": {
+      "status": 409,
+      "message": "岗位编码已被使用，请改用其他编码"
+    },
+    "POST_IN_USE": {
+      "status": 409,
+      "message": "岗位仍有成员引用，请先调整成员归属"
+    },
+    "TASK_BUILTIN_IMMUTABLE": {
+      "status": 409,
+      "message": "内置任务只能启停和手动触发，不能编辑或删除"
+    },
+    "TASK_EXECUTOR_UNKNOWN": {
+      "status": 400,
+      "message": "执行器不存在，请从已注册的执行器中选择"
+    },
+    "TASK_NAME_EXISTS": {
+      "status": 409,
+      "message": "任务名已存在"
+    },
+    "TASK_NOT_FOUND": {
+      "status": 404,
+      "message": "任务不存在或已被删除"
+    },
+    "TASK_SCHEDULE_INVALID": {
+      "status": 400,
+      "message": "执行计划无效，请使用 5/6 位 cron 或 @every/@daily 描述符"
+    },
+    "NOTIFICATION_CHANNEL_DELIVERY_FAILED": {
+      "status": 502,
+      "message": "通知渠道发送失败，请检查渠道凭据、机器人状态与网络连接"
+    },
+    "NOTIFICATION_CHANNEL_NOT_READY": {
+      "status": 400,
+      "message": "请先配置、启用并保存通知渠道"
     }
   }
 }

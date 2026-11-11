@@ -56,6 +56,37 @@ var OIDCDefinitions = []SettingDefinition{
 		return found
 	}},
 	{"oidc.jit_enabled", "boolean", "oidc", "首次登录创建普通账号", "false", true, false, oneOf("true", "false")},
+	{"oidc.require_email_verified", "boolean", "oidc", "企业邮箱必须已验证", "true", true, false, oneOf("true", "false")},
+	{"oidc.userinfo_enabled", "boolean", "oidc", "拉取 userinfo 补全身份", "false", true, false, oneOf("true", "false")},
+	{"oidc.userinfo_email_path", "string", "oidc", "userinfo 邮箱字段路径", "email", true, false, validClaimPath},
+	{"oidc.userinfo_username_path", "string", "oidc", "userinfo 显示名字段路径", "preferred_username", true, false, validClaimPath},
+	{"oidc.authorize_url", "string", "oidc", "授权端点（覆盖发现）", "", true, false, func(v string) bool { return v == "" || ValidOIDCEndpoint(v) }},
+	{"oidc.token_url", "string", "oidc", "令牌端点（覆盖发现）", "", true, false, func(v string) bool { return v == "" || ValidOIDCEndpoint(v) }},
+	{"oidc.userinfo_url", "string", "oidc", "userinfo 端点（覆盖发现）", "", true, false, func(v string) bool { return v == "" || ValidOIDCEndpoint(v) }},
+	{"oidc.jwks_url", "string", "oidc", "JWKS 端点（覆盖发现）", "", true, false, func(v string) bool { return v == "" || ValidOIDCEndpoint(v) }},
+}
+
+// validClaimPath accepts dotted claim paths such as data.email for non-standard userinfo payloads.
+func validClaimPath(value string) bool {
+	if value == "" || len(value) > 128 {
+		return false
+	}
+	for _, part := range strings.Split(value, ".") {
+		if part == "" || len(part) > 64 || strings.ContainsAny(part, " \t\r\n\"\\/") {
+			return false
+		}
+	}
+	return true
+}
+
+// OIDCManualEndpoints reports the discovered-endpoint overrides in priority order.
+func OIDCManualEndpoints(values map[string]string) map[string]string {
+	return map[string]string{
+		"authorize": values["oidc.authorize_url"],
+		"token":     values["oidc.token_url"],
+		"userinfo":  values["oidc.userinfo_url"],
+		"jwks":      values["oidc.jwks_url"],
+	}
 }
 
 func OIDCConfigured(values map[string]string) bool {

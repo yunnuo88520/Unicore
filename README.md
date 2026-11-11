@@ -23,7 +23,7 @@ Unicore 是面向 AI 辅助开发的 Go + React 应用框架。共享领域与�
 
 | Profile | 适用场景 | 身份与管理 | 数据库 |
 | --- | --- | --- | --- |
-| `web-platform` | 在线多用户应用 | 管理端/用户端独立入口与 API，管理员/普通用户物理拆表 | 推荐 MySQL / PostgreSQL，SQLite 可选 |
+| `web-platform` | 在线多用户应用 | 业务/管理工作台独立入口与 API，统一账号支持多个角色 | 推荐 MySQL / PostgreSQL，SQLite 可选 |
 | `web-standalone` | 自托管的单用户工具 | 无账号、管理端或全局设置页面，仅本地外观 | MySQL / PostgreSQL / SQLite |
 | `desktop` | Wails v2 原生桌面 | 无安装页、账号或平台管理模块 | 自动初始化本地 SQLite |
 | `cli` | 命令行与脚本集成 | 直接调用共享 Core | 不引入 HTTP、Wails 或数据库 |
@@ -45,7 +45,7 @@ macOS 下载 DMG 并拖到 Applications；Windows 下载 EXE 直接运行；Linu
 
 ## 快速开始
 
-开发需要 Go 1.26.10+、Node 22.22.2+（22 系列为 CI 基线）、pnpm 11.25.0、Git、Make 和 ripgrep（`rg`）。其他 Node 系列的兼容范围见 `package.json` 的 `engines`，pnpm 版本见 `packageManager`；`make doctor` 检查环境。macOS 可用 `brew install ripgrep`，Ubuntu/Debian 可用 `sudo apt-get install ripgrep`。Windows 建议使用 WSL2 开发 Web/CLI；构建 Windows 原生桌面请在 Windows 上安装 Make、Wails 和 WebView2，详见 [Wails 原生依赖](https://wails.io/docs/gettingstarted/installation)。
+开发需要 Go 1.26.11+、Node 22.22.2+（22 系列为 CI 基线）、pnpm 11.25.0、Git、Make 和 ripgrep（`rg`）。其他 Node 系列的兼容范围见 `package.json` 的 `engines`，pnpm 版本见 `packageManager`；`make doctor` 检查环境。macOS 可用 `brew install ripgrep`，Ubuntu/Debian 可用 `sudo apt-get install ripgrep`。Windows 建议使用 WSL2 开发 Web/CLI；构建 Windows 原生桌面请在 Windows 上安装 Make、Wails 和 WebView2，详见 [Wails 原生依赖](https://wails.io/docs/gettingstarted/installation)。
 
 ```sh
 git clone https://github.com/yunnuo88520/Unicore.git

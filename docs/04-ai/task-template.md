@@ -3,7 +3,7 @@
 
 任务：描述用户可观察的问题、目标和不包含范围。
 
-影响矩阵：web-platform / web-standalone / desktop / cli 分别说明变更、依赖、权限、存储。按任务索引选择对应 Skill、规范和必要源码；产品/架构变更再读相关 PRD/ADR，不全量加载文档。
+影响矩阵：web-platform / web-standalone / desktop / cli 分别说明变更、依赖、权限、存储。形态判定以 [产品形态边界规范](../00-product/product-forms.md) 为准：web-standalone 与 desktop 同属 Standalone 形态，须同时说明两载体并保持产品等效；CLI 独立且无自身持久化。按任务索引选择对应 Skill、规范和必要源码；产品/架构变更再读相关 PRD/ADR，不全量加载文档。
 
 设计与验收：列出输入、输出、错误码、正常/失败/重试行为、UI 状态；明确哪些 API/权限/设置/迁移需增加，及可验证完成条件。
 

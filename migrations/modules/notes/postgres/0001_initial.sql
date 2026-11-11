@@ -4,7 +4,7 @@
 -- Recovery: discard only an explicitly owned test target, or restore matching full snapshots to a new target.
 -- Runtime activation is deferred to R1.0c; the legacy executor does not embed this file.
 
-CREATE TABLE public."example_notes" (
+CREATE TABLE IF NOT EXISTS public."unicore_example_notes" (
   "scope_key" character varying(96) NOT NULL,
   "id" character varying(64) NOT NULL,
   "title" character varying(120) NOT NULL,
@@ -18,6 +18,6 @@ CREATE TABLE public."example_notes" (
   CONSTRAINT "example_notes_pkey" PRIMARY KEY (scope_key, id)
 );
 
-CREATE INDEX example_notes_owner_updated ON public.example_notes USING btree (scope_key, updated_at, id);
+CREATE INDEX IF NOT EXISTS example_notes_owner_updated ON public.unicore_example_notes USING btree (scope_key, updated_at, id);
 
-CREATE INDEX idx_notes_active ON public.example_notes USING btree (scope_key, deleted_at, updated_at);
+CREATE INDEX IF NOT EXISTS idx_notes_active ON public.unicore_example_notes USING btree (scope_key, deleted_at, updated_at);

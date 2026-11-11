@@ -58,15 +58,20 @@ export const constraints = {
     "additionalProperties": false,
     "required": [
       "execute",
+      "api_docs",
       "database",
       "installation",
       "authentication",
       "license",
       "updater",
-      "settings"
+      "settings",
+      "features"
     ],
     "properties": {
       "execute": {
+        "type": "boolean"
+      },
+      "api_docs": {
         "type": "boolean"
       },
       "database": {
@@ -86,6 +91,12 @@ export const constraints = {
       },
       "settings": {
         "type": "boolean"
+      },
+      "features": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "boolean"
+        }
       }
     }
   },
@@ -156,9 +167,6 @@ export const constraints = {
       "site_icp_url": {
         "type": "string"
       },
-      "theme": {
-        "type": "string"
-      },
       "branding": {
         "$ref": "#/components/schemas/Branding"
       },
@@ -186,6 +194,15 @@ export const constraints = {
       },
       "mfa_enrollment_required": {
         "type": "boolean"
+      },
+      "menus": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/MenuEntry"
+        }
+      },
+      "navigation": {
+        "$ref": "#/components/schemas/Navigation"
       }
     }
   },
@@ -486,17 +503,25 @@ export const constraints = {
       "email": {
         "type": "string"
       },
+      "phone": {
+        "type": "string"
+      },
+      "display_name": {
+        "type": "string"
+      },
+      "role_names": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
       "status": {
         "type": "string"
       },
       "roles": {
         "type": "array",
         "items": {
-          "type": "string",
-          "enum": [
-            "super_admin",
-            "user"
-          ]
+          "type": "string"
         }
       },
       "permissions": {
@@ -513,6 +538,46 @@ export const constraints = {
       },
       "totp_enabled": {
         "type": "boolean"
+      },
+      "department_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "menu_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "action_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "operation_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "post_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
       }
     }
   },
@@ -549,8 +614,7 @@ export const constraints = {
     "required": [
       "username",
       "email",
-      "password",
-      "role"
+      "password"
     ],
     "properties": {
       "username": {
@@ -569,12 +633,42 @@ export const constraints = {
         "minLength": 12,
         "maxLength": 128
       },
+      "phone": {
+        "type": "string",
+        "maxLength": 21,
+        "pattern": "^(?:\\+?[0-9]{5,20})?$"
+      },
+      "display_name": {
+        "type": "string",
+        "maxLength": 80
+      },
       "role": {
         "type": "string",
-        "enum": [
-          "super_admin",
-          "user"
-        ]
+        "maxLength": 64
+      },
+      "department_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "post_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "role_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "minItems": 1,
+        "maxItems": 64,
+        "uniqueItems": true
       }
     }
   },
@@ -582,18 +676,95 @@ export const constraints = {
     "type": "object",
     "additionalProperties": false,
     "required": [
-      "role",
       "status"
     ],
     "properties": {
       "role": {
         "type": "string",
-        "enum": [
-          "super_admin",
-          "user"
-        ]
+        "maxLength": 64
       },
       "status": {
+        "type": "string"
+      },
+      "email": {
+        "type": "string",
+        "format": "email",
+        "maxLength": 254
+      },
+      "display_name": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "department_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "post_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "role_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "minItems": 1,
+        "maxItems": 64,
+        "uniqueItems": true
+      }
+    }
+  },
+  "AdminPasswordResetInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "password": {
+        "type": "string",
+        "minLength": 12,
+        "maxLength": 128,
+        "x-max-utf8-bytes": 128
+      }
+    }
+  },
+  "AdminPasswordReset": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "password"
+    ],
+    "properties": {
+      "password": {
+        "type": "string"
+      }
+    }
+  },
+  "AdminPasswordResetResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/AdminPasswordReset"
+      },
+      "request_id": {
         "type": "string"
       }
     }
@@ -623,6 +794,14 @@ export const constraints = {
       },
       "captcha_answer": {
         "type": "string"
+      },
+      "human_check_token": {
+        "type": "string",
+        "maxLength": 4096
+      },
+      "human_check_randstr": {
+        "type": "string",
+        "maxLength": 128
       }
     }
   },
@@ -716,7 +895,8 @@ export const constraints = {
       "total_users",
       "today_new_users",
       "active_users_7d",
-      "audit"
+      "audit",
+      "activity_7d"
     ],
     "properties": {
       "total_users": {
@@ -732,6 +912,12 @@ export const constraints = {
         "type": "array",
         "items": {
           "$ref": "#/components/schemas/AuditEntry"
+        }
+      },
+      "activity_7d": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/ActivityDay"
         }
       }
     }
@@ -1060,7 +1246,10 @@ export const constraints = {
       "register_captcha",
       "mail_ready",
       "email_login_enabled",
-      "email_verification_required"
+      "email_verification_required",
+      "phone_required",
+      "human_check_enabled",
+      "human_check_provider"
     ],
     "properties": {
       "registration_enabled": {
@@ -1083,6 +1272,29 @@ export const constraints = {
       },
       "email_verification_required": {
         "type": "boolean"
+      },
+      "phone_required": {
+        "type": "boolean"
+      },
+      "human_check_enabled": {
+        "type": "boolean"
+      },
+      "human_check_provider": {
+        "type": "string",
+        "enum": [
+          "turnstile",
+          "tencent",
+          "alibaba"
+        ]
+      },
+      "human_check_site_key": {
+        "type": "string"
+      },
+      "human_check_region": {
+        "type": "string"
+      },
+      "human_check_prefix": {
+        "type": "string"
       }
     }
   },
@@ -1113,6 +1325,19 @@ export const constraints = {
         "minLength": 12,
         "maxLength": 128
       },
+      "phone": {
+        "type": "string",
+        "maxLength": 21,
+        "pattern": "^(?:\\+?[0-9]{5,20})?$"
+      },
+      "human_check_token": {
+        "type": "string",
+        "maxLength": 4096
+      },
+      "human_check_randstr": {
+        "type": "string",
+        "maxLength": 128
+      },
       "captcha_id": {
         "type": "string"
       },
@@ -1141,6 +1366,14 @@ export const constraints = {
       },
       "captcha_answer": {
         "type": "string"
+      },
+      "human_check_token": {
+        "type": "string",
+        "maxLength": 4096
+      },
+      "human_check_randstr": {
+        "type": "string",
+        "maxLength": 128
       }
     }
   },
@@ -1446,7 +1679,8 @@ export const constraints = {
       "name",
       "description",
       "group",
-      "assignable"
+      "assignable",
+      "super_admin"
     ],
     "properties": {
       "id": {
@@ -1463,6 +1697,9 @@ export const constraints = {
       },
       "assignable": {
         "type": "boolean"
+      },
+      "super_admin": {
+        "type": "boolean"
       }
     }
   },
@@ -1474,15 +1711,19 @@ export const constraints = {
       "name",
       "builtin",
       "permissions",
-      "user_count"
+      "user_count",
+      "realm",
+      "data_scope",
+      "department_ids",
+      "menu_ids",
+      "action_ids",
+      "operation_ids",
+      "authorization_initialized"
     ],
     "properties": {
       "id": {
         "type": "string",
-        "enum": [
-          "super_admin",
-          "user"
-        ]
+        "maxLength": 64
       },
       "name": {
         "type": "string"
@@ -1498,6 +1739,60 @@ export const constraints = {
       },
       "user_count": {
         "type": "integer"
+      },
+      "realm": {
+        "type": "string",
+        "enum": [
+          "user",
+          "administrator"
+        ]
+      },
+      "data_scope": {
+        "type": "string",
+        "enum": [
+          "all",
+          "dept",
+          "dept_and_below",
+          "custom",
+          "self"
+        ]
+      },
+      "department_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        }
+      },
+      "menu_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "action_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "operation_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "authorization_initialized": {
+        "type": "boolean"
       }
     }
   },
@@ -1533,11 +1828,7 @@ export const constraints = {
     ],
     "properties": {
       "id": {
-        "type": "string",
-        "enum": [
-          "super_admin",
-          "user"
-        ]
+        "type": "string"
       },
       "name": {
         "type": "string"
@@ -1731,6 +2022,104 @@ export const constraints = {
       },
       "request_id": {
         "type": "string"
+      }
+    }
+  },
+  "OIDCBindLoginInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "state",
+      "email",
+      "password"
+    ],
+    "properties": {
+      "state": {
+        "type": "string",
+        "minLength": 43,
+        "maxLength": 43
+      },
+      "email": {
+        "type": "string",
+        "format": "email",
+        "maxLength": 254
+      },
+      "password": {
+        "type": "string",
+        "minLength": 12,
+        "maxLength": 128
+      }
+    }
+  },
+  "OIDCBindLoginResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "request_id",
+      "data"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "request_id": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/Session"
+      }
+    }
+  },
+  "OIDCCheckInfo": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "authorization_url",
+      "token_url",
+      "jwks_url",
+      "userinfo_url"
+    ],
+    "properties": {
+      "authorization_url": {
+        "type": "string"
+      },
+      "token_url": {
+        "type": "string"
+      },
+      "userinfo_url": {
+        "type": "string"
+      },
+      "jwks_url": {
+        "type": "string"
+      }
+    }
+  },
+  "OIDCCheckInfoResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "request_id",
+      "data"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "request_id": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/OIDCCheckInfo"
       }
     }
   },
@@ -2137,7 +2526,8 @@ export const constraints = {
       "creator_realm",
       "created_at",
       "expires_at",
-      "state"
+      "state",
+      "capabilities"
     ],
     "properties": {
       "file_id": {
@@ -2197,6 +2587,9 @@ export const constraints = {
           "ready",
           "deleted"
         ]
+      },
+      "capabilities": {
+        "$ref": "#/components/schemas/FileCapabilities"
       }
     }
   },
@@ -2470,8 +2863,7 @@ export const constraints = {
     "required": [
       "title",
       "body",
-      "status",
-      "attachment_ids"
+      "status"
     ],
     "properties": {
       "title": {
@@ -2571,7 +2963,8 @@ export const constraints = {
       "attachment_ids",
       "version",
       "created_at",
-      "updated_at"
+      "updated_at",
+      "capabilities"
     ],
     "properties": {
       "id": {
@@ -2618,6 +3011,9 @@ export const constraints = {
         "type": "integer",
         "minimum": 0,
         "maximum": 9007199254740991
+      },
+      "capabilities": {
+        "$ref": "#/components/schemas/NoteCapabilities"
       }
     }
   },
@@ -4119,6 +4515,10 @@ export const constraints = {
       },
       "can_disable_2fa": {
         "type": "boolean"
+      },
+      "avatar_url": {
+        "type": "string",
+        "maxLength": 2000
       }
     }
   },
@@ -4133,6 +4533,10 @@ export const constraints = {
         "type": "string",
         "maxLength": 80,
         "minLength": 0
+      },
+      "avatar_file_id": {
+        "type": "string",
+        "maxLength": 80
       }
     }
   },
@@ -4621,6 +5025,21 @@ export const constraints = {
           "$ref": "#/components/schemas/NotifyTemplate"
         },
         "maxItems": 32
+      },
+      "section": {
+        "type": "string",
+        "enum": [
+          "channels",
+          "templates",
+          "system"
+        ]
+      },
+      "catalog": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NotifyEvent"
+        },
+        "maxItems": 32
       }
     }
   },
@@ -4704,6 +5123,2485 @@ export const constraints = {
       },
       "data": {
         "$ref": "#/components/schemas/NotifyPreview"
+      }
+    }
+  },
+  "RoleSaveInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "name",
+      "permissions"
+    ],
+    "properties": {
+      "name": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "permissions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "maxItems": 64
+      },
+      "realm": {
+        "type": "string",
+        "enum": [
+          "user",
+          "administrator"
+        ]
+      },
+      "data_scope": {
+        "type": "string",
+        "enum": [
+          "all",
+          "dept",
+          "dept_and_below",
+          "custom",
+          "self"
+        ]
+      },
+      "department_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 100
+      },
+      "menu_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "action_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "operation_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      }
+    }
+  },
+  "MenuEntry": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "menu_key",
+      "label",
+      "group_key",
+      "sort",
+      "visible",
+      "type"
+    ],
+    "properties": {
+      "menu_key": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "label": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "group_key": {
+        "type": "string",
+        "maxLength": 32
+      },
+      "sort": {
+        "type": "integer"
+      },
+      "visible": {
+        "type": "boolean"
+      },
+      "parent_key": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "type": {
+        "type": "string",
+        "enum": [
+          "page",
+          "link"
+        ]
+      },
+      "url": {
+        "type": "string",
+        "maxLength": 2048
+      }
+    }
+  },
+  "MenuList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items",
+      "version",
+      "sections",
+      "nodes",
+      "pages"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/MenuEntry"
+        }
+      },
+      "version": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "sections": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NavigationSection"
+        }
+      },
+      "nodes": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NavigationNode"
+        }
+      },
+      "pages": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NavigationPage"
+        }
+      }
+    }
+  },
+  "MenuSaveInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "version",
+      "sections",
+      "nodes"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/MenuEntry"
+        },
+        "maxItems": 256
+      },
+      "version": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "sections": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NavigationSection"
+        }
+      },
+      "nodes": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NavigationNode"
+        }
+      },
+      "role_assignments": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NavigationRoleAssignment"
+        },
+        "maxItems": 256
+      },
+      "reset": {
+        "type": "boolean"
+      }
+    }
+  },
+  "MenuListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/MenuList"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "DictionarySummary": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "code",
+      "name",
+      "description",
+      "item_count",
+      "created_at",
+      "updated_at"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "code": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "name": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "description": {
+        "type": "string",
+        "maxLength": 200
+      },
+      "item_count": {
+        "type": "integer"
+      },
+      "created_at": {
+        "type": "integer"
+      },
+      "updated_at": {
+        "type": "integer"
+      }
+    }
+  },
+  "DictionaryList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/DictionarySummary"
+        }
+      }
+    }
+  },
+  "DictionaryItemEntry": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "value",
+      "label",
+      "remark",
+      "sort",
+      "status"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "value": {
+        "type": "string",
+        "maxLength": 128
+      },
+      "label": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "remark": {
+        "type": "string",
+        "maxLength": 200
+      },
+      "sort": {
+        "type": "integer"
+      },
+      "status": {
+        "type": "string",
+        "maxLength": 16
+      }
+    }
+  },
+  "DictionaryDetail": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "code",
+      "name",
+      "description",
+      "items"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "code": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "name": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "description": {
+        "type": "string",
+        "maxLength": 200
+      },
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/DictionaryItemEntry"
+        }
+      }
+    }
+  },
+  "DictionaryCreateInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "name",
+      "description"
+    ],
+    "properties": {
+      "code": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 64,
+        "pattern": "^[a-z][a-z0-9_]*$"
+      },
+      "name": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "description": {
+        "type": "string",
+        "maxLength": 200
+      }
+    }
+  },
+  "DictionaryUpdateInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "name",
+      "description"
+    ],
+    "properties": {
+      "name": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "description": {
+        "type": "string",
+        "maxLength": 200
+      }
+    }
+  },
+  "DictionaryItemsInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/DictionaryItemEntry"
+        },
+        "maxItems": 512
+      }
+    }
+  },
+  "Department": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "name",
+      "sort",
+      "created_at",
+      "updated_at"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "name": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "parent_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "sort": {
+        "type": "integer"
+      },
+      "created_at": {
+        "type": "integer"
+      },
+      "updated_at": {
+        "type": "integer"
+      }
+    }
+  },
+  "DepartmentList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items",
+      "total"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Department"
+        }
+      },
+      "total": {
+        "type": "integer"
+      }
+    }
+  },
+  "DepartmentSaveInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "name"
+    ],
+    "properties": {
+      "name": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      },
+      "parent_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "sort": {
+        "type": "integer"
+      }
+    }
+  },
+  "DepartmentResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/Department"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "DepartmentListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/DepartmentList"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "DictionaryListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/DictionaryList"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "DictionaryDetailResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/DictionaryDetail"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "DictionarySummaryResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/DictionarySummary"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "TaskEntry": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "name",
+      "schedule",
+      "enabled",
+      "last_run_at",
+      "last_status",
+      "last_error",
+      "run_count",
+      "next_run_at",
+      "description",
+      "executor",
+      "custom"
+    ],
+    "properties": {
+      "name": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "schedule": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "description": {
+        "type": "string",
+        "maxLength": 200
+      },
+      "executor": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "custom": {
+        "type": "boolean"
+      },
+      "enabled": {
+        "type": "boolean"
+      },
+      "last_run_at": {
+        "type": "integer"
+      },
+      "last_status": {
+        "type": "string",
+        "maxLength": 16
+      },
+      "last_error": {
+        "type": "string",
+        "maxLength": 200
+      },
+      "run_count": {
+        "type": "integer"
+      },
+      "next_run_at": {
+        "type": "integer"
+      }
+    }
+  },
+  "TaskList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items",
+      "executors"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/TaskEntry"
+        }
+      },
+      "executors": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/TaskExecutor"
+        }
+      }
+    }
+  },
+  "TaskUpdateInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "enabled"
+    ],
+    "properties": {
+      "enabled": {
+        "type": "boolean"
+      }
+    }
+  },
+  "TaskExecutor": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "key",
+      "description"
+    ],
+    "properties": {
+      "key": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "description": {
+        "type": "string",
+        "maxLength": 200
+      }
+    }
+  },
+  "TaskCreateInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "name",
+      "description",
+      "schedule",
+      "executor"
+    ],
+    "properties": {
+      "name": {
+        "type": "string",
+        "maxLength": 64,
+        "pattern": "^[a-z][a-z0-9._-]{1,63}$"
+      },
+      "description": {
+        "type": "string",
+        "maxLength": 200
+      },
+      "schedule": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      },
+      "executor": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      }
+    }
+  },
+  "TaskEditInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "description",
+      "schedule",
+      "executor"
+    ],
+    "properties": {
+      "description": {
+        "type": "string",
+        "maxLength": 200
+      },
+      "schedule": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      },
+      "executor": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      }
+    }
+  },
+  "TaskRunEntry": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "started_at",
+      "duration_ms",
+      "status",
+      "error"
+    ],
+    "properties": {
+      "started_at": {
+        "type": "integer"
+      },
+      "duration_ms": {
+        "type": "integer"
+      },
+      "status": {
+        "type": "string",
+        "maxLength": 16
+      },
+      "error": {
+        "type": "string",
+        "maxLength": 200
+      }
+    }
+  },
+  "TaskRunList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/TaskRunEntry"
+        }
+      }
+    }
+  },
+  "TaskRunListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/TaskRunList"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "TaskListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/TaskList"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "TaskEntryResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/TaskEntry"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "TaskTrigger": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "triggered"
+    ],
+    "properties": {
+      "triggered": {
+        "type": "boolean"
+      }
+    }
+  },
+  "TaskTriggerResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/TaskTrigger"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "InboxEntry": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "type",
+      "source_id",
+      "title",
+      "body",
+      "created_at",
+      "read_at"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "type": {
+        "type": "string",
+        "maxLength": 32
+      },
+      "source_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "title": {
+        "type": "string",
+        "maxLength": 200
+      },
+      "body": {
+        "type": "string",
+        "maxLength": 2000
+      },
+      "created_at": {
+        "type": "integer"
+      },
+      "read_at": {
+        "type": "integer"
+      }
+    }
+  },
+  "InboxList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items",
+      "unread"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/InboxEntry"
+        }
+      },
+      "unread": {
+        "type": "integer"
+      }
+    }
+  },
+  "InboxListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/InboxList"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "UserImportResult": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "created",
+      "failed"
+    ],
+    "properties": {
+      "created": {
+        "type": "integer"
+      },
+      "failed": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/UserImportFailure"
+        }
+      }
+    }
+  },
+  "UserImportResultResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/UserImportResult"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "ActivityDay": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "date",
+      "count"
+    ],
+    "properties": {
+      "date": {
+        "type": "string",
+        "maxLength": 10
+      },
+      "count": {
+        "type": "integer"
+      }
+    }
+  },
+  "UserImportFailure": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "row",
+      "error"
+    ],
+    "properties": {
+      "row": {
+        "type": "integer"
+      },
+      "error": {
+        "type": "string",
+        "maxLength": 200
+      }
+    }
+  },
+  "NavigationSection": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "surfaces",
+      "name",
+      "sort",
+      "visible",
+      "show_title"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "name": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "sort": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "visible": {
+        "type": "boolean"
+      },
+      "show_title": {
+        "type": "boolean"
+      },
+      "surfaces": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "user",
+            "administrator"
+          ]
+        },
+        "minItems": 1,
+        "uniqueItems": true
+      }
+    }
+  },
+  "NavigationNode": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "section_id",
+      "type",
+      "label",
+      "icon",
+      "sort",
+      "visible",
+      "open_mode",
+      "badge_text",
+      "badge_color",
+      "badge_dot",
+      "operation_ids",
+      "disabled",
+      "surfaces"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "section_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "parent_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "type": {
+        "type": "string",
+        "enum": [
+          "directory",
+          "page",
+          "link",
+          "action"
+        ]
+      },
+      "route_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "label": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "icon": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "sort": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "visible": {
+        "type": "boolean"
+      },
+      "url": {
+        "type": "string",
+        "maxLength": 2048
+      },
+      "open_mode": {
+        "type": "string",
+        "enum": [
+          "same_tab",
+          "new_tab"
+        ]
+      },
+      "badge_text": {
+        "type": "string",
+        "maxLength": 40
+      },
+      "badge_color": {
+        "type": "string",
+        "maxLength": 32
+      },
+      "badge_dot": {
+        "type": "boolean"
+      },
+      "active_menu": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "permission": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "operation_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "disabled": {
+        "type": "boolean"
+      },
+      "surfaces": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "user",
+            "administrator"
+          ]
+        },
+        "minItems": 1,
+        "uniqueItems": true
+      }
+    }
+  },
+  "NavigationPage": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "surfaces",
+      "permission",
+      "group"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "surfaces": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "permission": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "group": {
+        "type": "string",
+        "maxLength": 64
+      }
+    }
+  },
+  "Navigation": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "version",
+      "sections",
+      "nodes"
+    ],
+    "properties": {
+      "version": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "sections": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NavigationSection"
+        }
+      },
+      "nodes": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NavigationNode"
+        }
+      }
+    }
+  },
+  "NavigationRoleAssignment": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "role_id",
+      "menu_ids",
+      "action_ids"
+    ],
+    "properties": {
+      "role_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "menu_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "action_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      }
+    }
+  },
+  "APIOperation": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "operation_id",
+      "method",
+      "path",
+      "summary",
+      "tags",
+      "realm",
+      "permissions",
+      "permission_mode",
+      "csrf",
+      "super_admin",
+      "grantable"
+    ],
+    "properties": {
+      "operation_id": {
+        "type": "string",
+        "maxLength": 128
+      },
+      "method": {
+        "type": "string",
+        "maxLength": 16
+      },
+      "path": {
+        "type": "string",
+        "maxLength": 256
+      },
+      "summary": {
+        "type": "string",
+        "maxLength": 500
+      },
+      "tags": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "realm": {
+        "type": "string"
+      },
+      "permissions": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "permission_mode": {
+        "type": "string"
+      },
+      "csrf": {
+        "type": "boolean"
+      },
+      "super_admin": {
+        "type": "boolean"
+      },
+      "grantable": {
+        "type": "boolean"
+      }
+    }
+  },
+  "APIOperationList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/APIOperation"
+        }
+      }
+    }
+  },
+  "APIOperationListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/APIOperationList"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "Post": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "code",
+      "name",
+      "sort",
+      "enabled",
+      "description",
+      "created_at",
+      "updated_at",
+      "member_count"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "code": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "name": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "sort": {
+        "type": "integer"
+      },
+      "enabled": {
+        "type": "boolean"
+      },
+      "description": {
+        "type": "string",
+        "maxLength": 500
+      },
+      "created_at": {
+        "type": "integer"
+      },
+      "updated_at": {
+        "type": "integer"
+      },
+      "member_count": {
+        "type": "integer"
+      }
+    }
+  },
+  "PostList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items",
+      "total"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Post"
+        }
+      },
+      "total": {
+        "type": "integer"
+      }
+    }
+  },
+  "PostSaveInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "name"
+    ],
+    "properties": {
+      "code": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64,
+        "pattern": "^\\s*[A-Za-z0-9][A-Za-z0-9_.-]*\\s*$"
+      },
+      "name": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      },
+      "sort": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 2147483647
+      },
+      "enabled": {
+        "type": "boolean"
+      },
+      "description": {
+        "type": "string",
+        "maxLength": 500
+      }
+    }
+  },
+  "PostResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/Post"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "PostListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/PostList"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "NoteCapabilities": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "update",
+      "delete"
+    ],
+    "properties": {
+      "update": {
+        "type": "boolean"
+      },
+      "delete": {
+        "type": "boolean"
+      }
+    }
+  },
+  "FileCapabilities": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "download",
+      "delete"
+    ],
+    "properties": {
+      "download": {
+        "type": "boolean"
+      },
+      "delete": {
+        "type": "boolean"
+      }
+    }
+  },
+  "LogTailEntry": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "seq",
+      "line"
+    ],
+    "properties": {
+      "seq": {
+        "type": "integer"
+      },
+      "line": {
+        "type": "string"
+      }
+    }
+  },
+  "LogTailList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items",
+      "latest_seq",
+      "older_count"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/LogTailEntry"
+        }
+      },
+      "latest_seq": {
+        "type": "integer"
+      },
+      "older_count": {
+        "type": "integer"
+      }
+    }
+  },
+  "LogTailResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/LogTailList"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "MonitorHttpService": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "applicable"
+    ],
+    "properties": {
+      "applicable": {
+        "type": "boolean"
+      },
+      "active_requests": {
+        "type": "integer"
+      },
+      "requests_total": {
+        "type": "integer"
+      },
+      "errors_total": {
+        "type": "integer"
+      },
+      "avg_duration_ms": {
+        "type": "integer"
+      },
+      "p95_duration_ms": {
+        "type": "integer"
+      }
+    }
+  },
+  "MonitorDatabase": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "status",
+      "latency_ms"
+    ],
+    "properties": {
+      "status": {
+        "type": "string",
+        "enum": [
+          "healthy",
+          "unavailable"
+        ]
+      },
+      "latency_ms": {
+        "type": "integer"
+      },
+      "open_connections": {
+        "type": "integer"
+      },
+      "in_use_connections": {
+        "type": "integer"
+      },
+      "idle_connections": {
+        "type": "integer"
+      },
+      "wait_total": {
+        "type": "integer"
+      },
+      "max_open_connections": {
+        "type": "integer"
+      },
+      "wait_duration_ms": {
+        "type": "integer"
+      }
+    }
+  },
+  "MonitorStorageService": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "applicable"
+    ],
+    "properties": {
+      "applicable": {
+        "type": "boolean"
+      },
+      "active_location": {
+        "type": "string"
+      },
+      "provider": {
+        "type": "string"
+      },
+      "locations": {
+        "type": "integer"
+      },
+      "probe": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/MonitorStorageLocation"
+        }
+      }
+    }
+  },
+  "MonitorTaskHealth": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "name",
+      "enabled"
+    ],
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "enabled": {
+        "type": "boolean"
+      },
+      "last_status": {
+        "type": "string"
+      },
+      "last_error": {
+        "type": "string"
+      },
+      "last_run_at": {
+        "type": "integer"
+      },
+      "next_run_at": {
+        "type": "integer"
+      },
+      "runs": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/MonitorTaskRun"
+        }
+      }
+    }
+  },
+  "MonitorTasksSummary": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "applicable"
+    ],
+    "properties": {
+      "applicable": {
+        "type": "boolean"
+      },
+      "total": {
+        "type": "integer"
+      },
+      "enabled": {
+        "type": "integer"
+      },
+      "failing": {
+        "type": "integer"
+      },
+      "recent": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/MonitorTaskHealth"
+        }
+      }
+    }
+  },
+  "MonitorSnapshot": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "profile",
+      "version",
+      "commit",
+      "build_time",
+      "go_version",
+      "started_at",
+      "uptime_seconds",
+      "status",
+      "http_service",
+      "database",
+      "storage",
+      "tasks",
+      "runtime",
+      "host"
+    ],
+    "properties": {
+      "profile": {
+        "type": "string"
+      },
+      "version": {
+        "type": "string"
+      },
+      "commit": {
+        "type": "string"
+      },
+      "build_time": {
+        "type": "string"
+      },
+      "go_version": {
+        "type": "string"
+      },
+      "started_at": {
+        "type": "integer"
+      },
+      "uptime_seconds": {
+        "type": "integer"
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "healthy",
+          "degraded",
+          "unavailable"
+        ]
+      },
+      "http_service": {
+        "$ref": "#/components/schemas/MonitorHttpService"
+      },
+      "database": {
+        "$ref": "#/components/schemas/MonitorDatabase"
+      },
+      "storage": {
+        "$ref": "#/components/schemas/MonitorStorageService"
+      },
+      "tasks": {
+        "$ref": "#/components/schemas/MonitorTasksSummary"
+      },
+      "runtime": {
+        "$ref": "#/components/schemas/MonitorRuntimeStats"
+      },
+      "host": {
+        "$ref": "#/components/schemas/MonitorHostStats"
+      }
+    }
+  },
+  "MonitorSnapshotResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/MonitorSnapshot"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "MonitorRuntimeStats": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "goroutines",
+      "heap_alloc_bytes",
+      "heap_sys_bytes",
+      "gc_cycles"
+    ],
+    "properties": {
+      "goroutines": {
+        "type": "integer"
+      },
+      "heap_alloc_bytes": {
+        "type": "integer"
+      },
+      "heap_sys_bytes": {
+        "type": "integer"
+      },
+      "gc_cycles": {
+        "type": "integer"
+      },
+      "pause_total_ms": {
+        "type": "integer"
+      },
+      "rss_bytes": {
+        "type": "integer"
+      },
+      "cpu_time_ms": {
+        "type": "integer"
+      }
+    }
+  },
+  "MonitorHostStats": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "available"
+    ],
+    "properties": {
+      "available": {
+        "type": "boolean"
+      },
+      "hostname": {
+        "type": "string"
+      },
+      "os": {
+        "type": "string"
+      },
+      "platform": {
+        "type": "string"
+      },
+      "platform_version": {
+        "type": "string"
+      },
+      "kernel_version": {
+        "type": "string"
+      },
+      "kernel_arch": {
+        "type": "string"
+      },
+      "host_uptime_seconds": {
+        "type": "integer"
+      },
+      "cpu_model": {
+        "type": "string"
+      },
+      "cpu_cores_logical": {
+        "type": "integer"
+      },
+      "cpu_cores_physical": {
+        "type": "integer"
+      },
+      "cpu_percent": {
+        "type": "number"
+      },
+      "cpu_per_core": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        }
+      },
+      "load_1": {
+        "type": "number"
+      },
+      "load_5": {
+        "type": "number"
+      },
+      "load_15": {
+        "type": "number"
+      },
+      "mem_total_bytes": {
+        "type": "integer"
+      },
+      "mem_used_bytes": {
+        "type": "integer"
+      },
+      "mem_available_bytes": {
+        "type": "integer"
+      },
+      "mem_used_percent": {
+        "type": "number"
+      },
+      "swap_total_bytes": {
+        "type": "integer"
+      },
+      "swap_used_bytes": {
+        "type": "integer"
+      },
+      "net_sent_bytes": {
+        "type": "integer"
+      },
+      "net_recv_bytes": {
+        "type": "integer"
+      },
+      "sampled_at": {
+        "type": "integer"
+      },
+      "disks": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/MonitorDiskUsage"
+        }
+      },
+      "net_sent_per_sec": {
+        "type": "number"
+      },
+      "net_recv_per_sec": {
+        "type": "number"
+      },
+      "container": {
+        "$ref": "#/components/schemas/MonitorContainerView"
+      },
+      "sensors": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/MonitorSensor"
+        }
+      }
+    }
+  },
+  "MonitorDiskUsage": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "path",
+      "total_bytes",
+      "used_bytes",
+      "free_bytes",
+      "used_percent"
+    ],
+    "properties": {
+      "path": {
+        "type": "string"
+      },
+      "is_data_dir": {
+        "type": "boolean"
+      },
+      "total_bytes": {
+        "type": "integer"
+      },
+      "used_bytes": {
+        "type": "integer"
+      },
+      "free_bytes": {
+        "type": "integer"
+      },
+      "used_percent": {
+        "type": "number"
+      }
+    }
+  },
+  "MonitorEvent": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "type",
+      "severity",
+      "message",
+      "at"
+    ],
+    "properties": {
+      "id": {
+        "type": "integer"
+      },
+      "type": {
+        "type": "string"
+      },
+      "severity": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "detail": {
+        "type": "string"
+      },
+      "at": {
+        "type": "integer"
+      }
+    }
+  },
+  "MonitorEventList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items",
+      "total"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/MonitorEvent"
+        }
+      },
+      "total": {
+        "type": "integer"
+      },
+      "capacity": {
+        "type": "integer"
+      }
+    }
+  },
+  "MonitorEventListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/MonitorEventList"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "MonitorTaskRun": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "started_at",
+      "duration_ms",
+      "status"
+    ],
+    "properties": {
+      "started_at": {
+        "type": "integer"
+      },
+      "duration_ms": {
+        "type": "integer"
+      },
+      "status": {
+        "type": "string"
+      },
+      "error": {
+        "type": "string"
+      }
+    }
+  },
+  "MonitorStorageLocation": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "provider",
+      "active",
+      "configured",
+      "status"
+    ],
+    "properties": {
+      "id": {
+        "type": "string"
+      },
+      "provider": {
+        "type": "string"
+      },
+      "active": {
+        "type": "boolean"
+      },
+      "configured": {
+        "type": "boolean"
+      },
+      "status": {
+        "type": "string"
+      },
+      "latency_ms": {
+        "type": "integer"
+      },
+      "checked_at": {
+        "type": "integer"
+      },
+      "error": {
+        "type": "string"
+      }
+    }
+  },
+  "MonitorContainerView": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "detected"
+    ],
+    "properties": {
+      "detected": {
+        "type": "boolean"
+      },
+      "memory_limit_bytes": {
+        "type": "integer"
+      },
+      "memory_usage_bytes": {
+        "type": "integer"
+      },
+      "cpu_quota_cores": {
+        "type": "number"
+      },
+      "cpu_percent": {
+        "type": "number"
+      }
+    }
+  },
+  "MonitorSensor": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "label",
+      "celsius"
+    ],
+    "properties": {
+      "label": {
+        "type": "string"
+      },
+      "celsius": {
+        "type": "number"
+      }
+    }
+  },
+  "MonitorStorageLocationResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/MonitorStorageLocation"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "MonitorAlertRule": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "enabled"
+    ],
+    "properties": {
+      "id": {
+        "type": "string"
+      },
+      "enabled": {
+        "type": "boolean"
+      },
+      "trigger_value": {
+        "type": "number"
+      },
+      "recover_value": {
+        "type": "number"
+      },
+      "consecutive": {
+        "type": "integer"
+      },
+      "cooldown_minutes": {
+        "type": "integer"
+      }
+    }
+  },
+  "MonitorAlertRules": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "version",
+      "rules"
+    ],
+    "properties": {
+      "version": {
+        "type": "integer"
+      },
+      "rules": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/MonitorAlertRule"
+        }
+      }
+    }
+  },
+  "MonitorAlertRulesResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/MonitorAlertRules"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "NotifyVariable": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "key",
+      "label",
+      "label_en"
+    ],
+    "properties": {
+      "key": {
+        "type": "string",
+        "maxLength": 40
+      },
+      "label": {
+        "type": "string",
+        "maxLength": 160
+      },
+      "label_en": {
+        "type": "string",
+        "maxLength": 160
+      }
+    }
+  },
+  "NotifyEvent": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "label",
+      "label_en",
+      "description",
+      "description_en",
+      "user_email_allowed",
+      "variables"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 40
+      },
+      "label": {
+        "type": "string",
+        "maxLength": 160
+      },
+      "label_en": {
+        "type": "string",
+        "maxLength": 160
+      },
+      "description": {
+        "type": "string",
+        "maxLength": 512
+      },
+      "description_en": {
+        "type": "string",
+        "maxLength": 512
+      },
+      "user_email_allowed": {
+        "type": "boolean"
+      },
+      "variables": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NotifyVariable"
+        },
+        "maxItems": 32
+      }
+    }
+  },
+  "MenuRoleAssignmentInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "version",
+      "role_ids",
+      "expected_role_ids"
+    ],
+    "properties": {
+      "version": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "role_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "expected_role_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
       }
     }
   }

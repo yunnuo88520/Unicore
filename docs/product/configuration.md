@@ -29,6 +29,10 @@ Web 部署先按 [从零部署指南](deployment.md) 启动并完成安装。本
 | `--deployment KIND` | `APP_DEPLOYMENT_KIND` | `deployment` | `development` | `development`/`tar`/`docker`；表示交付介质和更新能力，不决定用户身份形态 |
 | `--log-level LEVEL` | `APP_LOG_LEVEL` | `log_level` | `info` | `debug`/`info`/`warn`/`error` |
 | `--log-format FORMAT` | `APP_LOG_FORMAT` | `log_format` | `json` | `json`/`text`，输出到进程 stdout，由 journal/容器日志接收 |
+| `--log-file=true` | `APP_LOG_FILE` | `log_file` | `false` | `true` 时同时写 `data/logs/`；桌面始终落盘，目录不可用时降级 stdout/stderr |
+| `--log-max-age-days DAYS` | `APP_LOG_MAX_AGE_DAYS` | `log_max_age_days` | `0` | 轮转日志保留天数，`0` 永久；平台可在设置页运行时覆盖 |
+| `--log-max-size-mb MB` | `APP_LOG_MAX_SIZE_MB` | `log_max_size_mb` | `10` | 单文件轮转阈值，`1`–`512` |
+| `--log-max-total-mb MB` | `APP_LOG_MAX_TOTAL_MB` | `log_max_total_mb` | `500` | 轮转日志总量上限，`0` 不限，超限先删最早文件 |
 | `--api-docs=true` | `APP_API_DOCS` | `api_docs` | `false` | 配置使用布尔值；开启 `/docs/api` 与 `/openapi.json`，关闭为 404 |
 | `--monitor-listen ADDRESS` | `APP_MONITOR_LISTEN` | `monitor_listen` | 空，关闭 | 独立 `/metrics`；只能填字面回环 IP，例如 `127.0.0.1:9090`，不能用 `0.0.0.0`/`localhost` |
 | `--shutdown-timeout DURATION` | `APP_SHUTDOWN_TIMEOUT` | `shutdown_timeout` | `5s` | `100ms`–`2m`；SIGTERM 后在途请求排空期限；supervisor 停止等待需相应留余量 |
@@ -150,6 +154,7 @@ SQLite 不填写上述外部连接字段/DSN，固定使用 data 目录中的 `u
 | --- | --- | --- |
 | `site.name` | 站点名称，默认产品名称 | 1–64 字符，不为空；标题/邮件等使用 |
 | `site.description` | 默认“一份核心，无限可能” | 站点介绍，最多 240 字符 |
+| `site.home_enabled` | 启用产品首页，`false` | 开启后未登录访问站点根路径跳转到 `/home` 产品首页，已登录用户直接进入工作空间；关闭时 `/home` 回落到登录页 |
 | `site.base_url` | 站点地址，默认空时回退安装地址 | http(s) origin，最多 2048 字符；不带凭据、query、fragment 或子路径；用于邮件链接，不修改 Cookie/OIDC origin |
 | `site.admin_email` | 管理员邮箱，默认空 | 系统告警/通知接收地址配置；不等于本人登录邮箱，不自动创建外部监控告警集成 |
 | `site.copyright` | 默认 `Crafted by Yunnuo` | 页脚版权，最多 160 字符 |
@@ -166,19 +171,27 @@ SQLite 不填写上述外部连接字段/DSN，固定使用 data 目录中的 `u
 | 设置 key | 默认值 | 说明 |
 | --- | --- | --- |
 | `admin.path` | `/admin` | 后台入口；改后记住新路径，旧入口 404；误配可用 APP_ADMIN_PATH 恢复 |
-| `security.login_captcha` | `true` | 登录图形验证码 |
-| `security.register_captcha` | `true` | 注册图形验证码 |
+| `security.login_captcha` | `true` | 登录人机验证（图形验证码），位于 基础设置 → 安全与控制 |
+| `security.register_captcha` | `true` | 注册人机验证（图形验证码），位于 基础设置 → 安全与控制 |
 | `security.session_hours` | `24` | 会话有效期，1–168 小时 |
 | `account.registration_enabled` | `false` | 是否开放普通用户注册，与邮箱验证独立；不开放管理员自助注册 |
 | `account.email_verification_required` | `false` | 注册是否必须验证邮箱；开启需 SMTP 测试，关闭无需 SMTP |
+| `account.phone_required` | `false` | 注册绑定手机号：开启后注册必须填写手机号；仅做格式（可选 + 号加 5–20 位数字）与唯一性校验，不发送短信验证码 |
+| `account.register_rate_minutes` | `1` | 注册频率窗口（分钟），1–1440；与下一项配合限制同一 IP 注册 |
+| `account.register_rate_max` | `5` | 窗口内同一 IP 最多注册次数，1–1000；超出返回“尝试过于频繁”，计数存内存，重启清空 |
+| `security.human_check_enabled` | `false` | 人机验证总开关：开启后登录与注册需先通过服务商的点击式验证（Cloudflare Turnstile、腾讯云验证码、阿里云验证码 2.0 三选一）；凭据不完整时接口直接拒绝（fail-closed）；验证组件由服务商提供、需外网访问；管理员后台登录不受影响 |
+| `security.human_check_provider` | `turnstile` | 人机验证服务商：`turnstile` / `tencent` / `alibaba`，同一时间只用一家 |
+| `security.turnstile_site_key` / `security.turnstile_secret_key` | 空 | Turnstile 公开站点密钥与加密保存的服务端密钥 |
+| `security.tencent_captcha_app_id` 等 | 空 | 腾讯验证码：CaptchaAppId、AppSecretKey（加密保存）、云 API SecretId/SecretKey（SecretKey 加密保存）与站点 `cn`/`intl` |
+| `security.aliyun_captcha_access_key_id` 等 | 空 | 阿里验证码 2.0：AccessKeyId、AccessKeySecret（加密保存）、SceneId 与服务区域 `cn-shanghai`/`ap-southeast-1` |
 | `account.email_domain_mode` | `unrestricted` | 邮箱后缀不限制 / `allowlist` 白名单 / `blocklist` 黑名单 |
 | `account.email_domains` | 空 | 每行一个精确域名，如 example.com，限制注册和注册验证发信 |
 | `account.nickname_blacklist` | 空 | 每行一条，不区分大小写，包含匹配；禁止注册/资料修改 |
 | `account.username_blacklist` | 空 | 同上；既有用户名命中也拒绝资料修改，用户名不可修改 |
 | `account.password_blacklist` | 空 | 不区分大小写，完整匹配；禁止注册/改密/重置中的密码 |
 | `account.ip_blacklist` | 空 | 单 IP、CIDR、末尾通配符；拒绝注册/登录。使用 socket IP，不信任转发头，代理入口另配客户端过滤 |
-| `account.email_login_enabled` | `false` | 邮箱验证码登录，需邮件配置验证 |
-| `account.password_reset_enabled` | `false` | 邮件找回密码，需邮件配置验证 |
+| `account.email_login_enabled` | `false` | 邮箱验证码登录，位于 账户安全 页；需邮件配置验证 |
+| `account.password_reset_enabled` | `false` | 邮件找回密码，位于 基础设置 → 安全与控制；需邮件配置验证 |
 | `security.login_failure_limit` | `5` | 同一身份域/IP 连续登录失败封禁次数，1–20；成功登录清除计数 |
 | `security.ip_ban_minutes` | `15` | 临时封禁时长，1–1440 分钟；不冻结账号 |
 | `security.user_idle_minutes` | `1440` | 普通用户空闲超时，1–10080 分钟 |
@@ -193,11 +206,11 @@ SQLite 不填写上述外部连接字段/DSN，固定使用 data 目录中的 `u
 
 用户登录 /login、注册 /register、忘记密码 /forgot-password 使用相互链接的独立页面，支持浏览器前进/后退。注册和重置密码均需确认密码；完成注册后进入 /registration-success，仅提供一个返回登录主入口。找回密码入口始终可见，实例未开放邮件恢复时提示联系管理员；真正发送和重置仍由服务端策略决定。
 
-用户名、邮箱在各身份域内唯一，大小写或提交前后的空格不能绕过。重复注册返回 409 与对应字段提示；不创建新账号、不覆盖原密码，也不显示注册成功。用户和管理员仍是独立身份域，可各自使用相同邮箱而不合并身份。密码找回等邮件恢复流程不透露账号是否存在。
+用户名、邮箱在统一账号集合内唯一，大小写或提交前后的空格不能绕过。重复注册返回 409 与对应字段提示；不创建新账号、不覆盖原密码，也不显示注册成功。同一账号可分配多个业务或管理角色，无需创建第二个管理员账号。密码找回等邮件恢复流程不透露账号是否存在。
 
-全局账号策略在「系统管理 → 系统设置 → 账户安全」，本人验证器设置仍在「个人中心 → 安全设置」。后台 bootstrap/会话轮询不续期，主动业务请求刷新空闲时间；最长登录时间不续期。IP 临时封禁按进程内、身份域及 socket IP 记录，重启会清空；持久 IP 黑名单不随重启清空。反代入口需另行过滤实际客户端 IP，应用不信任任意转发头。管理员/普通用户列表的双因素字段只读，不提供清除他人验证器的后门。
+全局账号策略在「系统管理 → 系统设置 → 账户安全」，本人验证器设置仍在「个人中心 → 安全设置」。后台 bootstrap/会话轮询不续期，主动业务请求刷新空闲时间；最长登录时间不续期。IP 临时封禁按进程内共享登录服务及 socket IP 记录，重启会清空；持久 IP 黑名单不随重启清空。反代入口需另行过滤实际客户端 IP，应用不信任任意转发头。管理员/普通用户列表的双因素字段只读，不提供清除他人验证器的后门。
 
-昵称、账号邮箱、密码、验证器与恢复码属于本人账户安全设置；邮箱换绑须先验证旧邮箱再验证新邮箱。恢复码只显示一次，保存在安全位置，不能从后台重复读取。管理员与普通用户分域，配置相同邮箱不合并身份。
+昵称、账号邮箱、密码、验证器与恢复码属于本人账户安全设置；邮箱换绑须先验证旧邮箱再验证新邮箱。恢复码只显示一次，保存在安全位置，不能从后台重复读取。账号安全信息在两个工作台共用；同一邮箱不能重复创建另一种身份账号。
 
 ### SMTP、邮件与企业登录
 
@@ -206,8 +219,8 @@ SMTP 的完整配置步骤和业务调用示例见 [通知与邮件接入](notif
 | 设置 key | 默认值 | 说明 |
 | --- | --- | --- |
 | `mail.host` | 空 | SMTP 主机，不带协议/路径 |
-| `mail.port` | `587` | 1–65535，按服务商要求；隐式 TLS 常用 465 |
-| `mail.tls` | `starttls` | `starttls`/`tls`/`plain`；生产优先加密，明文不用于公网 |
+| `mail.port` | `587` | 1–65535；STARTTLS 常用 587，SSL/TLS（隐式 TLS）常用 465，明文仅限本机 25；切换加密方式时表单会自动填入常用端口，可手动修改 |
+| `mail.tls` | `starttls` | `starttls`（STARTTLS，587）`tls`（SSL/TLS 隐式 TLS，465）`plain`；生产优先加密，明文不用于公网 |
 | `mail.from` | 空 | 发件邮箱，需服务商允许 |
 | `mail.from_name` | 空 | 发件人别名，最多 64 字符 |
 | `mail.username` | 空 | SMTP 用户名，通常为邮箱 |
@@ -219,6 +232,14 @@ SMTP 的完整配置步骤和业务调用示例见 [通知与邮件接入](notif
 | `oidc.client_secret` | 空，敏感 | IdP 应用密钥，加密保存 |
 | `oidc.scopes` | `openid email profile` | 必须含 openid |
 | `oidc.jit_enabled` | `false` | 首次企业登录可建普通用户；永远不自动建管理员 |
+| `oidc.require_email_verified` | `true` | JIT 要求企业邮箱已验证；IdP 不提供该声明时可关闭 |
+| `oidc.userinfo_enabled` | `false` | 校验通过后拉取 userinfo，仅补空字段 |
+| `oidc.userinfo_email_path` | `email` | userinfo 中邮箱的点路径 |
+| `oidc.userinfo_username_path` | `preferred_username` | userinfo 中显示名的点路径；JIT 显示名来源 |
+| `oidc.authorize_url` | 空 | 手动授权端点，逐项覆盖发现结果 |
+| `oidc.token_url` | 空 | 手动令牌端点，逐项覆盖发现结果 |
+| `oidc.userinfo_url` | 空 | 手动 userinfo 端点，逐项覆盖发现结果 |
+| `oidc.jwks_url` | 空 | 手动 JWKS 端点，逐项覆盖发现结果；无发现文档的 IdP 四项齐备即可接入 |
 
 顺序为保存 SMTP → 发送并实际收到测试邮件 → 启用注册邮箱验证/验证码登录/找回密码。修改 SMTP 后重新测试。邮件模板由独立“邮件模板”页编辑，模板正文属于业务数据，不随 UI 语言翻译。
 

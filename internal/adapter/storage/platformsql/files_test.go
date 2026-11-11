@@ -13,6 +13,7 @@ import (
 	"github.com/yunnuo/unicore/internal/files"
 	"github.com/yunnuo/unicore/internal/secret"
 	"github.com/yunnuo/unicore/internal/settings"
+	"github.com/yunnuo/unicore/migrations/runner"
 	"io"
 	"path/filepath"
 	"testing"
@@ -43,7 +44,7 @@ func exerciseFiles(t *testing.T, ctx context.Context, store *sqlstore.Store, adm
 	if _, e = s.Complete(ctx, a, g.FileID); e != nil {
 		t.Fatal(e)
 	}
-	list, e := repo.List(ctx, a, "dialect", 1)
+	list, e := repo.List(ctx, a, "dialect", 1, files.ScopeFilter{})
 	if e != nil || list.Total != 1 {
 		t.Fatal("list", list.Total, e)
 	}
@@ -75,10 +76,10 @@ func exerciseFiles(t *testing.T, ctx context.Context, store *sqlstore.Store, adm
 	if _, e = reader.Stat(ctx, record.Key); e == nil {
 		t.Fatal("cleanup failed")
 	}
-	if _, e = store.Exec(ctx, store.DB, "DELETE FROM unicore_schema_migrations WHERE version=9"); e != nil {
+	if _, e = store.Exec(ctx, store.DB, "DELETE FROM schema_migrations WHERE namespace='platform' AND version=1"); e != nil {
 		t.Fatal(e)
 	}
-	if e = store.Migrate(ctx, true); e != nil {
+	if e = runner.Apply(ctx, store.DB, runner.Options{Dialect: store.Dialect, Profile: "web-platform"}); e != nil {
 		t.Fatal("0009 retry", e)
 	}
 	f, e := repo.Get(ctx, g.FileID)

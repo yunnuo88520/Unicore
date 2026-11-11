@@ -12,16 +12,47 @@ import (
 	"strings"
 )
 
+// forbiddenDomain lists the packages a domain layer may never depend on.
+func forbiddenDomain() []string {
+	return []string{"github.com/minio/minio-go/v7", "github.com/aliyun/aliyun-oss-go-sdk/oss", "github.com/tencentyun/cos-go-sdk-v5", "net/http", "database/sql", "github.com/wailsapp/", "github.com/yunnuo/unicore/internal/adapter", "github.com/yunnuo/unicore/internal/platform", "github.com/coreos/go-oidc", "golang.org/x/oauth2", "github.com/yunnuo/unicore/internal/adapter/oidc", "net/smtp", "github.com/yunnuo/unicore/internal/mailer", "github.com/yunnuo/unicore/internal/adapter/mail", "github.com/yunnuo/unicore/internal/usecase"}
+}
+
+// forbiddenUsecase lists the packages a usecase layer may never depend on.
+func forbiddenUsecase() []string {
+	return []string{"github.com/minio/minio-go/v7", "github.com/aliyun/aliyun-oss-go-sdk/oss", "github.com/tencentyun/cos-go-sdk-v5", "net/http", "database/sql", "github.com/wailsapp/", "github.com/yunnuo/unicore/internal/adapter", "github.com/yunnuo/unicore/internal/platform", "github.com/coreos/go-oidc", "golang.org/x/oauth2", "github.com/yunnuo/unicore/internal/adapter/oidc", "net/smtp", "github.com/yunnuo/unicore/internal/mailer"}
+}
+
 func main() {
 	checks := []struct {
 		target    string
 		forbidden []string
 	}{
 		{"./cmd/cli", []string{"github.com/yunnuo/unicore/migrations", "github.com/yunnuo/unicore/internal/updates", "github.com/yunnuo/unicore/internal/adapter/updatechannel", "github.com/yunnuo/unicore/internal/adapter/updateinstall", "github.com/minio/minio-go/v7", "github.com/aliyun/aliyun-oss-go-sdk/oss", "github.com/tencentyun/cos-go-sdk-v5", "net/http", "database/sql", "github.com/wailsapp/", "github.com/go-chi/", "github.com/yunnuo/unicore/internal/platform", "github.com/coreos/go-oidc", "golang.org/x/oauth2", "github.com/yunnuo/unicore/internal/adapter/oidc", "net/smtp", "github.com/yunnuo/unicore/internal/mailer", "github.com/yunnuo/unicore/internal/adapter/mail", "github.com/yunnuo/unicore/internal/adapter/storage", "modernc.org/sqlite", "github.com/mattn/go-sqlite3", "github.com/jackc/pgx", "github.com/go-sql-driver/"}},
-		{"./internal/domain", []string{"github.com/minio/minio-go/v7", "github.com/aliyun/aliyun-oss-go-sdk/oss", "github.com/tencentyun/cos-go-sdk-v5", "net/http", "database/sql", "github.com/wailsapp/", "github.com/yunnuo/unicore/internal/adapter", "github.com/yunnuo/unicore/internal/platform", "github.com/coreos/go-oidc", "golang.org/x/oauth2", "github.com/yunnuo/unicore/internal/adapter/oidc", "net/smtp", "github.com/yunnuo/unicore/internal/mailer", "github.com/yunnuo/unicore/internal/adapter/mail", "github.com/yunnuo/unicore/internal/usecase"}},
-		{"./internal/usecase", []string{"github.com/minio/minio-go/v7", "github.com/aliyun/aliyun-oss-go-sdk/oss", "github.com/tencentyun/cos-go-sdk-v5", "net/http", "database/sql", "github.com/wailsapp/", "github.com/yunnuo/unicore/internal/adapter", "github.com/yunnuo/unicore/internal/platform", "github.com/coreos/go-oidc", "golang.org/x/oauth2", "github.com/yunnuo/unicore/internal/adapter/oidc", "net/smtp", "github.com/yunnuo/unicore/internal/mailer"}},
+		{"./internal/domain", forbiddenDomain()},
+		{"./internal/usecase", forbiddenUsecase()},
 		{"./internal/bootstrap/local", []string{"github.com/minio/minio-go/v7", "github.com/aliyun/aliyun-oss-go-sdk/oss", "github.com/tencentyun/cos-go-sdk-v5", "github.com/yunnuo/unicore/internal/files", "github.com/yunnuo/unicore/internal/platform", "github.com/coreos/go-oidc", "golang.org/x/oauth2", "github.com/yunnuo/unicore/internal/adapter/oidc", "net/smtp", "github.com/yunnuo/unicore/internal/mailer", "github.com/yunnuo/unicore/internal/adapter/mail", "github.com/yunnuo/unicore/internal/install", "github.com/yunnuo/unicore/internal/adapter/storage/platformsql", "github.com/yunnuo/unicore/internal/adapter/storage/webdb", "github.com/jackc/pgx", "github.com/go-sql-driver/mysql"}},
 		{"./internal/adapter/desktop", []string{"github.com/minio/minio-go/v7", "github.com/aliyun/aliyun-oss-go-sdk/oss", "github.com/tencentyun/cos-go-sdk-v5", "github.com/yunnuo/unicore/internal/files", "github.com/yunnuo/unicore/internal/platform", "github.com/coreos/go-oidc", "golang.org/x/oauth2", "github.com/yunnuo/unicore/internal/adapter/oidc", "net/smtp", "github.com/yunnuo/unicore/internal/mailer", "github.com/yunnuo/unicore/internal/adapter/mail", "github.com/yunnuo/unicore/internal/install", "github.com/yunnuo/unicore/internal/adapter/storage/platformsql"}},
+	}
+	// Business modules keep the same onion rules inside their own trees:
+	// domain may only depend on the core domain, usecase on domain and contracts.
+	moduleDirs, err := os.ReadDir("internal/modules")
+	if err == nil {
+		for _, entry := range moduleDirs {
+			if !entry.IsDir() {
+				continue
+			}
+			slug := entry.Name()
+			checks = append(checks,
+				struct {
+					target    string
+					forbidden []string
+				}{"./internal/modules/" + slug + "/domain", forbiddenDomain()},
+				struct {
+					target    string
+					forbidden []string
+				}{"./internal/modules/" + slug + "/usecase", forbiddenUsecase()},
+			)
+		}
 	}
 	for _, check := range checks {
 		output, err := exec.Command("go", "list", "-deps", "-json", check.target).Output()

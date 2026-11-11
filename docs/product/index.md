@@ -18,7 +18,7 @@
 
 ## 源码开发
 
-准备 Go 1.26.10+、满足 package.json engines 的 Node、pnpm 11.25.0、Git 和 ripgrep。桌面还需要本系统 Wails 原生依赖。运行 make doctor 检查环境。
+准备 Go 1.26.11+、满足 package.json engines 的 Node、pnpm 11.25.0、Git 和 ripgrep。桌面还需要本系统 Wails 原生依赖。运行 make doctor 检查环境。
 
 ```sh
 make install

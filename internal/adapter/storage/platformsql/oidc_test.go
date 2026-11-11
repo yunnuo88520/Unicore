@@ -13,28 +13,29 @@ import (
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/settings"
+	"github.com/yunnuo/unicore/migrations/runner"
 )
 
 func exerciseOIDC(t *testing.T, ctx context.Context, store *sqlstore.Store, r *Repository, admin contracts.User) {
 	t.Helper()
-	for _, q := range []string{"DROP TABLE unicore_oidc_flows", "DROP TABLE unicore_external_identities", "DELETE FROM unicore_schema_migrations WHERE version=6"} {
+	for _, q := range []string{"DROP TABLE unicore_oidc_flows", "DROP TABLE unicore_external_identities", "DELETE FROM schema_migrations WHERE namespace='platform' AND version=1"} {
 		if _, err := store.Exec(ctx, store.DB, q); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if err := store.Migrate(ctx, true); err != nil {
-		t.Fatal("upgrade from M2d", err)
+	if err := runner.Apply(ctx, store.DB, runner.Options{Dialect: store.Dialect, Profile: "web-platform"}); err != nil {
+		t.Fatal("rebuild platform namespace", err)
 	}
 	// Retry after only the first DDL has persisted (as can happen with MySQL).
-	for _, q := range []string{"DROP TABLE unicore_oidc_flows", "DELETE FROM unicore_schema_migrations WHERE version=6"} {
+	for _, q := range []string{"DROP TABLE unicore_oidc_flows", "DELETE FROM schema_migrations WHERE namespace='platform' AND version=1"} {
 		if _, err := store.Exec(ctx, store.DB, q); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if err := store.Migrate(ctx, true); err != nil {
+	if err := runner.Apply(ctx, store.DB, runner.Options{Dialect: store.Dialect, Profile: "web-platform"}); err != nil {
 		t.Fatal("partial DDL recovery", err)
 	}
-	if err := store.Migrate(ctx, true); err != nil {
+	if err := runner.Apply(ctx, store.DB, runner.Options{Dialect: store.Dialect, Profile: "web-platform"}); err != nil {
 		t.Fatal("repeat migration", err)
 	}
 	v := settings.Defaults("web-platform")
@@ -65,12 +66,38 @@ func exerciseOIDC(t *testing.T, ctx context.Context, store *sqlstore.Store, r *R
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(member.Roles) != 1 || member.Roles[0] != "user" || len(member.Permissions) != 0 {
+	if len(member.Roles) != 1 || member.Roles[0] != "user" || len(member.Permissions) != 4 || platform.HasManagementAccess(member) {
 		t.Fatal("JIT exceeded least privilege", member)
+	}
+	var display string
+	if err = r.row(ctx, store.DB, "SELECT display_name FROM unicore_personal_accounts WHERE user_id=?", member.ID).Scan(&display); err != nil || display != "oidc" {
+		t.Fatal("JIT display name fallback", display, err)
 	}
 	info, err := r.OIDCAccount(ctx, member.ID)
 	if err != nil || !info.Linked || info.HasLocalPassword {
 		t.Fatal(info, err)
+	}
+	// With the verification requirement lifted, an unverified enterprise email may still JIT,
+	// and the display name comes from the configured claim instead of the email prefix.
+	relaxed := settings.Defaults("web-platform")
+	relaxed["oidc.enabled"] = "true"
+	relaxed["oidc.issuer"] = "https://idp.example.test"
+	relaxed["oidc.client_id"] = "test-client"
+	relaxed["oidc.jit_enabled"] = "true"
+	relaxed["oidc.require_email_verified"] = "false"
+	if err = store.SaveSettings(ctx, relaxed, admin.ID); err != nil {
+		t.Fatal(err)
+	}
+	relaxedClaims := platform.OIDCClaims{Issuer: v["oidc.issuer"], Subject: "relaxed-jit", Email: "relaxed@example.test", Username: "测试员工", EmailVerified: false}
+	named, err := complete(platform.OIDCFlow{Mode: "login", Fingerprint: settings.OIDCFingerprint(relaxed)}, relaxedClaims)
+	if err != nil {
+		t.Fatal("relaxed unverified JIT", err)
+	}
+	if err = r.row(ctx, store.DB, "SELECT display_name FROM unicore_personal_accounts WHERE user_id=?", named.ID).Scan(&display); err != nil || display != "测试员工" {
+		t.Fatal("claim display name", display, err)
+	}
+	if err = store.SaveSettings(ctx, v, admin.ID); err != nil {
+		t.Fatal(err)
 	}
 	// Existing identity, never email, controls subsequent login.
 	claims.Email = admin.Email
@@ -78,16 +105,16 @@ func exerciseOIDC(t *testing.T, ctx context.Context, store *sqlstore.Store, r *R
 	if err != nil || again.ID != member.ID {
 		t.Fatal("identity reidentified by email", again, err)
 	}
-	if _, err = r.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: "user", Status: "disabled"}, admin.ID); err != nil {
+	if _, err = r.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: rolePtr("user"), Status: "disabled"}, admin.ID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = complete(f, claims); !errors.Is(err, platform.ErrCredentials) {
 		t.Fatal("disabled identity signed in", err)
 	}
-	if _, err = r.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: "super_admin", Status: "active"}, admin.ID); !errors.Is(err, platform.ErrInput) {
-		t.Fatal("cross realm conversion", err)
+	if _, err = r.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: rolePtr("super_admin"), Status: "active"}, admin.ID); err != nil {
+		t.Fatal("explicit owner role assignment", err)
 	}
-	if _, err = r.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: "user", Status: "active"}, admin.ID); err != nil {
+	if _, err = r.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: rolePtr("user"), Status: "active"}, admin.ID); err != nil {
 		t.Fatal(err)
 	}
 	// A configuration change invalidates a flow even between token verification and commit.
@@ -142,6 +169,40 @@ func exerciseOIDC(t *testing.T, ctx context.Context, store *sqlstore.Store, r *R
 	if err != nil || info.Linked || !info.HasLocalPassword {
 		t.Fatal("local login lost", info, err)
 	}
+	// Bind-login links a colliding identity after the platform layer proved the local
+	// password: one transaction links, revokes other sessions and issues the new one.
+	_, staleSession, err := identity.Issue(ctx, local, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bind := platform.OIDCFlow{Mode: "bindlogin", UserID: local.ID, CredentialHash: account.PasswordHash, Fingerprint: f.Fingerprint}
+	bindClaims := platform.OIDCClaims{Issuer: v["oidc.issuer"], Subject: "enterprise-local", Email: local.Email, EmailVerified: true}
+	wrong := bind
+	wrong.CredentialHash = "stale"
+	if _, err = r.CompleteOIDC(ctx, wrong, bindClaims, platform.Hash(platform.Token()), expires); !errors.Is(err, platform.ErrCredentials) {
+		t.Fatal("bind-login without password proof", err)
+	}
+	if _, err = r.CompleteOIDC(ctx, bind, bindClaims, platform.Hash(platform.Token()), expires); err != nil {
+		t.Fatal("bind-login refused", err)
+	}
+	if _, err = identity.Session(ctx, staleSession); err == nil {
+		t.Fatal("old session survived bind-login")
+	}
+	if _, err = r.CompleteOIDC(ctx, bind, bindClaims, platform.Hash(platform.Token()), expires); !errors.Is(err, platform.ErrOIDCLinkRequired) {
+		t.Fatal("duplicate bind accepted", err)
+	}
+	other, err := identity.Create(ctx, contracts.UserCreate{Username: "oidclocal2", Email: "other@example.test", Password: "test-password-strong", Role: "user"}, admin.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	otherAccount, err := r.FindAccount(ctx, other.Username)
+	if err != nil {
+		t.Fatal(err)
+	}
+	steal := platform.OIDCFlow{Mode: "bindlogin", UserID: other.ID, CredentialHash: otherAccount.PasswordHash, Fingerprint: f.Fingerprint}
+	if _, err = r.CompleteOIDC(ctx, steal, bindClaims, platform.Hash(platform.Token()), expires); !errors.Is(err, platform.ErrOIDCLinkRequired) {
+		t.Fatal("identity theft via bind-login", err)
+	}
 	// Wrong browsers cannot consume the flow; correct callbacks consume it once, even concurrently.
 	state, browser := platform.Hash(platform.Token()), platform.Hash(platform.Token())
 	if err = r.CreateOIDCFlow(ctx, state, browser, "sealed-proof", time.Now().Add(time.Minute).Unix()); err != nil {
@@ -184,7 +245,10 @@ func exerciseOIDCTOTP(t *testing.T, ctx context.Context, store *sqlstore.Store, 
 	for _, administrators := range []bool{false, true} {
 		r := &Repository{Store: store, Administrators: administrators}
 		identity := platform.New(r)
-		name := "sso_totp_" + r.roleID()
+		name := "sso_totp_user"
+		if administrators {
+			name += "_management"
+		}
 		user, err := identity.Create(ctx, contracts.UserCreate{Username: name, Email: name + "@example.test", Password: "test-password-strong", Role: r.roleID()}, admin.ID)
 		if err != nil {
 			t.Fatal(err)

@@ -3,7 +3,7 @@
 
 共享业务依赖链：`entry → adapter → usecase → domain`。`internal/contracts` 从 OpenAPI 生成；domain 无传输/DB/身份依赖。CLI 只调用 bootstrap.Core；Web 装配 install、业务 Repository 与按安装 profile 初始化的平台身份；桌面装配 bootstrap/local 的 SQLite、appearance settings 与笔记 Repository，不引入平台模块。当前开发基座见 [ADR-0017](../adr/ADR-0017-developer-kit-business-backup.md)，下方保留历史增量的决策来由。
 
-数据库新世代采用 [ADR-0024](../adr/ADR-0024-pre1-migration-squash.md) 的 core/platform/module.notes 和统一 namespace 账本方向，0.x 开发库不保证兼容。九份SQL/Catalog/生成描述与旧资产隔离，产品运行时仍为旧执行器，不能据新资产存在声称启动保护已接入。顺序由依赖拓扑生成，世代锚点与语义见 [ADR-0025](../adr/ADR-0025-baseline-catalog-semantics.md)。
+数据库采用 [ADR-0024](../adr/ADR-0024-pre1-migration-squash.md) 的 core/platform/module.notes 与统一 namespace 账本，0.x 开发库不保证兼容。安装与启动已统一执行 `migrations/runner.Apply`（Catalog 单轨，基线直接定义 `unicore_` 前缀终态），旧 42+4 份 SQL 与旧执行器已删除；写前拒绝矩阵见 [ADR-0025](../adr/ADR-0025-baseline-catalog-semantics.md) 的 R1.0c 补记。顺序由依赖拓扑生成。
 
 ```text
 React web-ui → AppClient → HTTP adapter → install / platform / settings / notes
@@ -17,7 +17,7 @@ HTTP / Wails → usecase.Notes → domain.Note / NoteRepository port → SQL ada
 | --- | --- |
 | internal/domain / usecase | 文本分析、笔记规则、Repository port、context 与 DTO 映射 |
 | internal/install | 安装状态/凭据/恢复、DB 配置加密、按 profile 装配 |
-| internal/platform | Argon2id、会话、权限策略、限流/验证码与 identity ports |
+| internal/platform | Argon2id、会话、权限策略、限流/验证码、operation 目录与数据范围解析、identity ports |
 | internal/settings | Definition 注册、类型/范围校验与持久化 port |
 | internal/mailcontent / audit | 受限邮件内容、变量转义 / 服务端审计元数据 context |
 | internal/secret | AES-256-GCM 与受限密钥/原子配置文件 |
@@ -71,13 +71,11 @@ internal/platform/Accounts 编排独立注册/邮箱验证策略、后缀与黑�
 
 [ADR-0005](../adr/ADR-0005-design-email-codes.md) 定义统一设计编译链与挑战事务。tokens.json → CSS/嵌入 JSON → React/Go 邮件/图形验证码/原生窗口；identity.json → Resvg → 网站/原生/邮件同源图标。M2b 长链接保留兼容，新 UI 走 /auth/email/*；平台迁移增加 0004，framework-only 形态不引入 email_challenges。邮箱登录开启需测试 SMTP，session 与码消费同事务提交。
 
-## 平台固定两角色
+## 平台角色与权限目录
 
-[ADR-0012](../adr/ADR-0012-fixed-platform-roles.md) 取代 M2d 业务角色。platform/roles.go 定义管理员/普通用户和管理权限目录；platformsql 仅按固定管理员角色投影权限，忽略历史 grants。OpenAPI 约束用户角色枚举，只生成 Role/RoleList/RoleOptions 读接口；roles-page.tsx 展示两角色矩阵，没有编辑接口。
+当前身份与授权以 [ADR-0037](../adr/ADR-0037-unified-user-identity.md) 和 [角色需求](../00-product/feature-roles.md) 为准：统一 users/user_roles/session/account 安全存储，用户与管理工作台共用账号；角色可以跨工作台组合业务与管理权限，多角色各类授权分别取并集。前端隐藏不构成权限控制，服务端始终校验契约、权限点、operation grant、超级管理员保留策略和 CSRF。角色变更仅超管执行，事务重查身份与权限，保护最后启用及最后有本地密码超管。角色/状态/密码变化撤销共享会话。
 
-routes.ts 集中管理员菜单/直达页守卫，settings-page.tsx 将平台本地外观与管理员全局设置分离。所有 /api/v1/admin/*（包括只读）在 HTTP 上复核当前固定管理员与权限，写入仍校验 CSRF/Origin；用户写入在安装行锁内重新加载操作者，保护最后一个启用且有本地密码的管理员。角色/状态变更撤销会话与账号挑战。公共品牌与登录策略保留最小公开投影。
-
-平台迁移 0007 规范为单一固定角色、移除旧自定义角色与普通用户 grants、删除平台全局主题、撤销旧凭据和取消待发邮件。历史迁移 checksum 保持，其他形态只运行 framework 迁移。三方言迁移与恢复按 [部署手册](../03-runbooks/deployment.md) 在隔离实例验证。
+导航仍采用 ADR-0036 的 surface=user|administrator 区域树，两种 surface 描述工作台而非独立账号域；个人文件、头像与笔记归属固定为 user。部门、岗位与数据范围面向统一账号。公开注册与 JIT 只能创建 user，外部身份声明不自动授权。非平台形态不装配账号体系。旧双域 ADR 仅保留历史决策背景。
 
 ## M3a 企业身份
 
@@ -99,9 +97,9 @@ Web 启动参数、APP_* 环境与可选 YAML/JSON 配置由 internal/config.Loa
 
 原生 runner 将桌面结果归档后与同一 main 提交的 Web/CLI 包汇总；release-assets.mjs 检查版本、来源、矩阵和摘要，候选 workflow 为全部归档生成 GitHub 来源证明。CI 安全扫描包含桌面导入包和前端开发依赖。来源证明不替代平台代码签名或 OTA 签名，具体流程与限制见 [发版](../03-runbooks/release.md) 及 [安全政策](../../SECURITY.md)。
 
-## 管理员与用户身份域
+## 统一账号与多个工作台
 
-当前身份/导航以 [ADR-0014](../adr/ADR-0014-separate-identities-management.md) 为准。platformsql.Repository 以固定 Administrators 标志映射七张身份表，SQL 标识符只来自固定代码映射；共享设置、审计与队列不映射。安装创建独立管理员，普通用户与管理员服务不回退。HTTP 固定用户/admin 路径与独立 Cookie 选择服务，写事务从管理员仓库重查操作者。管理员与用户管理端点分别固定身份，禁止角色转换；JIT 仅普通域。升级 0008 保留账号/绑定并撤销旧凭据。
+[ADR-0037](../adr/ADR-0037-unified-user-identity.md) 定义统一 users/user_roles 及会话、安全存储。安装创建持 super_admin 角色的账号，角色可叠加，管理员资格由授权决定。HTTP 两种路径选择工作台接口，两端共用 Cookie、凭据和个人资源；无 SQL 表名映射。写事务从统一账号表重查操作者；角色分配与关键操作保留给超管，JIT 只创建默认 user。两工作台共享登录防护和会话失效通知，安全时限及强制 MFA 按实际管理权限选择。当前未发布分支直接调整新安装结构，不兼容旧双身份账本。
 
 React 的独立可折叠导航、Radix dialog 弹层、头像密码/退出、邮件单页与系统日志由 routes.ts/router.tsx 注册；基础设置保持单层业务 Tabs。后台改名同步地址，OIDC 解除不改变当前域路径。共享 shell 适用于 Web/Wails，身份组件仅平台装配。
 
@@ -113,7 +111,7 @@ React 的独立可折叠导航、Radix dialog 弹层、头像密码/退出、邮
 
 ## 双入口与本地业务界面
 
-当前范围见 [ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md)。用户 main.tsx 与管理员 admin.tsx 独立构建，管理页仅由 admin-app.tsx 导入，公共 Workspace 通过注入复用。Go 按 admin.path 返回 admin.html，非平台返回 404；用户 bootstrap 不公开后台路径。HttpTransport 构造时显式选域，使用契约中的固定 counterpart；所有页面仍通过 AppClient。旧身份请求头被忽略。管理员 auth/account 是管理员身份端点，管理业务继续逐权限校验。
+当前账号范围见 [ADR-0037](../adr/ADR-0037-unified-user-identity.md)，独立前端构建沿用 ADR-0016。用户 main.tsx 与管理员 admin.tsx 独立构建，管理页仅由 admin-app.tsx 导入，公共 Workspace 通过注入复用。Go 按 admin.path 返回 admin.html，非平台返回 404；用户 bootstrap 不公开后台路径。HttpTransport 构造时显式选域，使用契约中的固定 counterpart；所有页面仍通过 AppClient。旧身份请求头被忽略。管理员 auth/account 是管理员身份端点，管理业务继续逐权限校验。
 
 单机/桌面仅业务与本地外观，SettingDefinition 非平台只允许 appearance，旧站点/品牌记录不再使用。原生品牌由构建源生成；Wails 不再暴露 Branding/UpdateBranding。上传组件与两端 shell 共用，SDK 只提供真实阶段回调。
 
@@ -133,7 +131,9 @@ React 的独立可折叠导航、Radix dialog 弹层、头像密码/退出、邮
 
 ## 业务实体与公告
 
-[ADR-0021](../adr/ADR-0021-business-entities-announcements.md) 统一嵌入式 BaseEntity、软删除/版本及实体/DTO 映射，完整分层示例为公告模块；该增量迁移为 0011、business=2，当前平台 schema=15。公告通过 platform 0015 增加通知元数据、接收人和已读表，用户在顶部铃铛查看；未读统计、接收资格与有效期在 SQL 分页前校验。公告仅平台装配，admin/user 固定接口与最小用户投影，写事务重查管理员，安全 Markdown/HTML 通过渲染 port 接入。规范与例外见 [backend.md](../02-standards/backend.md)。
+[ADR-0021](../adr/ADR-0021-business-entities-announcements.md) 统一嵌入式 BaseEntity、软删除/版本及实体/DTO 映射，完整分层示例为公告模块。当前公告/接收人/首次阅读结构已在 Catalog `platform@1` 基线，站内信、任务登记与头像引用追加为 `platform@3`；旧轨 0011/0015 不是当前执行入口。用户在顶部铃铛查看；未读统计、接收资格与有效期在 SQL 分页前校验。公告仅平台装配，admin/user 固定接口与最小用户投影，写事务重查管理员，安全 Markdown/HTML 通过渲染 port 接入。规范与例外见 [backend.md](../02-standards/backend.md)。
+
+`internal/realtime` 为当前进程提供 SSE 用户通知；公告事务落库站内信后通知客户端重新查询。无持久事件重放或跨实例总线，站内信与公告阅读分别保存，查询按原公告当前可见性过滤。连接建立及推送/心跳前复核会话与强制两步验证，详情和写入仍单独鉴权。`internal/scheduler` 使用 robfig/cron 管理代码注册任务，数据库保存启停与运行摘要；默认 mail.queue、files.cleanup、announcements.refresh，管理接口只提供查询、启停和触发，不提供任意脚本或分布式调度。详见 [公告](../03-runbooks/announcements.md) 与 [管理工具](../03-runbooks/admin-tools.md)。
 
 持久上传会话采用 blob.Multipart / PartReceiver 扩展，files 编排服务端权威分片与安全发布，filesql 存储不可变分片几何；长流不持有全局锁，确认复核删除状态。平台 schema=12，客户端复用 SDK 与 FileUploadDialog，见 [ADR-0022](../adr/ADR-0022-resumable-uploads.md)。
 
@@ -141,7 +141,9 @@ Web 安装完成还写入私有 install.lock，配置中的 lock_version 区分�
 
 ## 个人中心与会话安全
 
-[ADR-0031](../adr/ADR-0031-personal-center-security.md) 在 platform.Personal 与 platformsql 增加本人资料、邮箱换绑、验证器与设备事务；共享 UI/SDK 只调用契约 operation。SQL Session 统一拦截尚未完成 TOTP 的登录，密码/邮件/OIDC 均不能绕过；bootstrap 只给受限挑战状态和 CSRF。安装锁事务原子消费计数器/恢复码，邮箱证明绑定原邮箱与同一会话，审计不含秘密。平台追加旧账本迁移 0014；独立/桌面仍为 0013，新 namespace baseline 不激活。
+[ADR-0031](../adr/ADR-0031-personal-center-security.md) 在 platform.Personal 与 platformsql 增加本人资料、邮箱换绑、验证器与设备事务；共享 UI/SDK 只调用契约 operation。SQL Session 统一拦截尚未完成 TOTP 的登录，密码/邮件/OIDC 均不能绕过；bootstrap 只给受限挑战状态和 CSRF。安装锁事务原子消费计数器/恢复码，邮箱证明绑定原邮箱与同一会话，审计不含秘密。当前结构在 `platform@1` 基线，`platform@3` 追加头像 file_id 引用；个人资料通过同身份域文件服务校验所有权并返回短期访问 URL，不能持久化外部 URL。单机/桌面不装配身份。
+
+管理员工作台 `GET /admin/dashboard` 由 admin:access 保护，返回真实用户概览、审计摘要与按 UTC 日分组的近七天活动；Recharts widget 经 AppClient/Query 读取。用户与文件 XLSX 由 HTTP adapter 用 excelize 处理有界工作簿，SDK 负责带会话/CSRF 的二进制下载或 multipart 导入。列可见性复用设备偏好；Platform 的独立 403 与 404 区分已登记页面权限和未知地址；Standalone 未提供的页面统一为 404，不显示管理员权限提示。在线 API 文档以本地打包的 Swagger UI 读取受配置开关控制的 `/openapi.json`，离线生成参考继续保留。
 
 ## 事件通知
 

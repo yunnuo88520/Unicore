@@ -21,6 +21,33 @@ type Actor struct {
 	ID, Realm string
 	Admin     bool
 }
+
+// ScopeFilter carries the optional row-level data scope for list queries: the
+// zero value keeps the personal-only behaviour, All lists every file of the
+// actor's own realm, CreatorIDs restricts the list to those platform users.
+type ScopeFilter struct {
+	All        bool
+	CreatorIDs []string
+}
+
+// RowCapabilities projects what this session may do with one listed file row:
+// downloads follow the freshly resolved read scope and never cross realms,
+// deletion stays with the owner (or the administrator instance surface).
+func (a Actor) RowCapabilities(f Record, scope ScopeFilter) contracts.FileCapabilities {
+	own := f.CreatorID == a.ID && f.CreatorRealm == a.Realm
+	sameRealm := f.CreatorRealm == a.Realm
+	download := a.Admin || own || (scope.All && sameRealm)
+	if !download {
+		for _, id := range scope.CreatorIDs {
+			if id == f.CreatorID && sameRealm {
+				download = true
+				break
+			}
+		}
+	}
+	return contracts.FileCapabilities{Download: download, Delete: a.Admin || own}
+}
+
 type Location struct {
 	contracts.StorageLocation
 	Credentials string
@@ -53,9 +80,10 @@ type Repository interface {
 	CountLocation(context.Context, string) (int, error)
 	BusyLocation(context.Context, string) (bool, error)
 	Get(context.Context, string) (Record, error)
-	List(context.Context, Actor, string, int) (contracts.FileList, error)
+	List(context.Context, Actor, string, int, ScopeFilter) (contracts.FileList, error)
 	Create(context.Context, Record, []Job) error
 	Change(context.Context, Record, []Job, string) error
+	Remove(context.Context, Record, []Job, string) error
 	Queue(context.Context, []Job) error
 	Jobs(context.Context, int64) ([]Job, error)
 	JobDone(context.Context, Job, bool) error

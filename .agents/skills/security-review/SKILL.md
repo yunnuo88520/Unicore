@@ -18,7 +18,7 @@ metadata:
 ## steps
 
 1. 阅读设计和实现，区分当前控制与路线图，列出可信边界。
-2. 安装边界先读 [ADR-0013](../../../docs/adr/ADR-0013-installation-experience.md)：token 换新需当前凭据；清空只在完成安装且精确库名确认后，其他实例标记始终拒绝；本站仅在 ADR-0028 的停服删锁、新凭据及原连接/实例匹配后允许确认清空重装；已安装且未明确解锁时 DB/标记缺失不能自动重装。按范围检查安装 token/锁/吊销，密码/session/CSRF/限流/RBAC，secret 加密/掩码，OIDC PKCE/state/nonce/绑定，上传路径和升级签名。品牌上传的实际格式/尺寸、原子提交、清理与邮件快照边界见 [ADR-0009](../../../docs/adr/ADR-0009-runtime-branding.md)。
+2. 安装边界先读 [ADR-0013](../../../docs/adr/ADR-0013-installation-experience.md)：token 换新需当前凭据；清空只在完成安装且精确库名确认后，其他实例标记始终拒绝；本站仅在 ADR-0028 的停服删锁、新凭据及原连接/实例匹配后允许确认清空重装；已安装且未明确解锁时 DB/标记缺失不能自动重装。按范围检查安装 token/锁/吊销，密码/session/CSRF/限流/RBAC，secret 加密/掩码，OIDC PKCE/state/nonce/绑定，上传路径和升级签名。权限边界另核 [ADR-0036](../../../docs/adr/ADR-0036-navigation-regions-granular-authorization.md)：运行时策略与 operation grant 为授权上界，菜单/按钮隐藏不构成防线；数据范围过滤必须保留身份域条件，数据库或范围解析失败应拒绝请求而非降级过滤；`EnsurePermissions` 不得复活已撤销授权。品牌上传的实际格式/尺寸、原子提交、清理与邮件快照边界见 [ADR-0009](../../../docs/adr/ADR-0009-runtime-branding.md)。
 3. 错误、日志、审计和契约不能泄露敏感信息；单机 loopback，桌面/CLI 不加载身份。
 4. 提供可复现风险和最小修复，增加相关测试，不把未来模块未实现误报为已上线的生产功能漏洞。
 

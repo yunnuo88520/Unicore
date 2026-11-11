@@ -142,7 +142,7 @@ func TestPersonalCenterHTTP(t *testing.T) {
 			check(request("PATCH", prefix+"/account/profile", contracts.ProfileInput{DisplayName: "New nickname"}, raw, adminRealm, ""), 403)
 			check(request("PATCH", prefix+"/account/profile", map[string]string{"display_name": "Name", "username": "elevated"}, raw, adminRealm, csrf), 400)
 			check(request("PATCH", prefix+"/account/profile", contracts.ProfileInput{DisplayName: "New nickname"}, raw, adminRealm, csrf), 200)
-			check(request("GET", prefix+"/account/profile", nil, raw, !adminRealm, ""), 401)
+			check(request("GET", prefix+"/account/profile", nil, raw, !adminRealm, ""), 200)
 			profile := request("GET", prefix+"/account/profile", nil, raw, adminRealm, "")
 			check(profile, 200)
 			if !strings.Contains(profile.Body.String(), `"display_name":"New nickname"`) {
@@ -164,7 +164,7 @@ func TestPersonalCenterHTTP(t *testing.T) {
 			must(json.Unmarshal(w.Body.Bytes(), &current))
 			table := "unicore_email_changes"
 			if adminRealm {
-				table = "unicore_administrator_email_changes"
+				table = "unicore_email_changes"
 			}
 			readCode := func(id string) string {
 				var payload string
@@ -225,7 +225,7 @@ func TestPersonalCenterHTTP(t *testing.T) {
 			}
 			secretTable := "unicore_personal_accounts"
 			if adminRealm {
-				secretTable = "unicore_administrator_personal_accounts"
+				secretTable = "unicore_personal_accounts"
 			}
 			var sealed, digests string
 			must(db.Row(ctx, db.DB, "SELECT totp_secret,recovery_digests FROM "+secretTable+" WHERE user_id=?", user.ID).Scan(&sealed, &digests))
@@ -266,7 +266,7 @@ func TestPersonalCenterHTTP(t *testing.T) {
 			expired := login()
 			details := "unicore_session_details"
 			if adminRealm {
-				details = "unicore_administrator_session_details"
+				details = "unicore_session_details"
 			}
 			_, e := db.Exec(ctx, db.DB, "UPDATE "+details+" SET created_at=? WHERE token_hash=?", time.Now().Unix()-301, platform.Hash(expired))
 			must(e)

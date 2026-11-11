@@ -14,6 +14,8 @@ import { RichTextEditor } from '@unicore/ui/editor';
 import { RichContent } from '../../rich-content';
 import { AnnouncementType, announcementTypes } from '../../announcement-center';
 import type { PageProps } from '../../router';
+import type { Bootstrap, OperationId } from '@unicore/sdk';
+import { usePermissions } from '../../permissions';
 
 const features = tableFeatures({ rowPaginationFeature, paginatedRowModel: createPaginatedRowModel() });
 const helper = createColumnHelper<typeof features, AnnouncementEntry>();
@@ -29,6 +31,7 @@ const localDate = (seconds: number) => {
 
 type AnnouncementTableMeta = {
   allChecked: boolean;
+ can:(operation:OperationId)=>boolean;
   isSelected: (id: string) => boolean;
   onSelectAll: (checked: boolean) => void;
   onToggle: (item: AnnouncementEntry, checked: boolean) => void;
@@ -54,7 +57,7 @@ const columns = helper.columns([
     id: 'content',
     header: () => t('公告标题'),
     cell: info => <button type="button" className="block max-w-72 min-w-44 truncate text-start text-ink hover:text-accent hover:underline"
-      onClick={() => (info.table.options.meta as AnnouncementTableMeta).onEdit(info.row.original)}>
+      disabled={!(info.table.options.meta as AnnouncementTableMeta).can('updateAnnouncement')} onClick={() => (info.table.options.meta as AnnouncementTableMeta).onEdit(info.row.original)}>
       {info.row.original.title}
     </button>,
   }),
@@ -88,20 +91,21 @@ const columns = helper.columns([
       const meta = info.table.options.meta as AnnouncementTableMeta;
       const item = info.row.original;
       return <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon" aria-label={t('阅读情况')} onClick={() => meta.onReaders(item)}><Eye size={14} /></Button>
-        <Button variant="ghost" size="icon" aria-label={t('编辑公告')} onClick={() => meta.onEdit(item)}><Pencil size={14} /></Button>
-        <Button variant="ghost" size="icon" aria-label={t('删除公告')} onClick={() => meta.onRemove(item)}><Trash2 size={14} /></Button>
+        {meta.can('announcementReadStatus') && <Button variant="ghost" size="icon" aria-label={t('阅读情况')} onClick={() => meta.onReaders(item)}><Eye size={14} /></Button>}
+        {meta.can('updateAnnouncement') && <Button variant="ghost" size="icon" aria-label={t('编辑公告')} onClick={() => meta.onEdit(item)}><Pencil size={14} /></Button>}
+        {meta.can('deleteAnnouncements') && <Button variant="ghost" size="icon" aria-label={t('删除公告')} onClick={() => meta.onRemove(item)}><Trash2 size={14} /></Button>}
       </div>;
     },
   }),
 ]);
 
-export function AdminAnnouncementsPage({ client }: PageProps) {
+export function AdminAnnouncementsPage({ client, metadata }: PageProps) {
   if (!client.web) return null;
-  return <AnnouncementPanel web={client.web} />;
+  return <AnnouncementPanel metadata={metadata} web={client.web} />;
 }
 
-function AnnouncementPanel({ web }: { web: WebClient }) {
+function AnnouncementPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
+ const {can} = usePermissions(metadata);
   const { t } = useI18n();
   const message = useMessage();
   const cache = useQueryClient();
@@ -149,7 +153,7 @@ function AnnouncementPanel({ web }: { web: WebClient }) {
   const selected = (id: string) => selection.some(item => item.id === id);
   const all = items.length > 0 && items.every(item => selected(item.id));
   const pages = Math.max(1, Math.ceil((list.data?.total ?? 0) / query.page_size));
-  const meta: AnnouncementTableMeta = {
+  const meta: AnnouncementTableMeta = { can,
     allChecked: all,
     isSelected: selected,
     onSelectAll: checked => setSelection(checked ? items.map(({ id, version }) => ({ id, version })) : []),
@@ -185,7 +189,7 @@ function AnnouncementPanel({ web }: { web: WebClient }) {
           <p className="mt-0.5 text-xs text-muted">{t('开启后，用户可通过顶部铃铛查看公告，并接收弹窗提醒。')}</p>
         </div>
         <div className="ms-auto">
-          <Switch id="announcements-enabled" checked={switchValue ?? list.data?.enabled ?? true} disabled={!list.data || toggle.isPending}
+          <Switch id="announcements-enabled" checked={switchValue ?? list.data?.enabled ?? true} disabled={!can('saveAnnouncementSettings') || !list.data || toggle.isPending}
             onChange={value => { setSwitchValue(value); toggle.mutate(value); }} />
         </div>
       </CardContent>
@@ -197,7 +201,7 @@ function AnnouncementPanel({ web }: { web: WebClient }) {
             <h2 className="text-md font-semibold text-ink">{t('公告列表')}</h2>
             <p className="mt-0.5 text-xs text-muted">{t('集中管理通知、发布计划与内部备注。')}</p>
           </div>
-          <Button onClick={() => setEditor('new')}><Plus size={15} />{t('新增公告')}</Button>
+          {can('createAnnouncement') && <Button onClick={() => setEditor('new')}><Plus size={15} />{t('新增公告')}</Button>}
         </div>
         <form className="flex flex-wrap items-center gap-2" onSubmit={event => { event.preventDefault(); setFilter({ search }); }}>
           <label className="flex h-9 min-w-44 flex-1 items-center gap-2 rounded-md border border-line bg-surface px-3 text-base text-muted shadow-tint focus-within:border-focus focus-within:ring-2 focus-within:ring-focus sm:max-w-xs">
@@ -211,9 +215,9 @@ function AnnouncementPanel({ web }: { web: WebClient }) {
             {Object.entries(statuses).map(([id, label]) => <option key={id} value={id}>{t(label)}</option>)}
           </NativeSelect>
           <Button variant="secondary" type="submit">{t('搜索')}</Button>
-          <Button variant="secondary" type="button" className="ms-auto" disabled={!selection.length} onClick={() => setRemoving(selection)}>
+          {can('deleteAnnouncements') && <Button variant="secondary" type="button" className="ms-auto" disabled={!selection.length} onClick={() => setRemoving(selection)}>
             <Trash2 size={14} />{t('批量删除')}{selection.length > 0 && <span className="rounded-full bg-danger-soft px-1.5 text-2xs text-danger">{selection.length}</span>}
-          </Button>
+          </Button>}
         </form>
         {list.isError && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
           <span>{t(list.error.message)}</span>

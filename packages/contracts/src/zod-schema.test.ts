@@ -59,9 +59,17 @@ describe('constraintsToZod parity with contract validate()', () => {
   });
 
   it('validates email format through the contract schema', () => {
-    const value = { username: 'someone', email: 'not-an-email', password: 'longenough1', captcha_id: '', captcha_answer: '' };
+    const value = { username: 'someone', email: 'not-an-email', password: 'longenough12', captcha_id: '', captcha_answer: '' };
     expectParity('RegisterInput', value);
     expect(zodErrors('RegisterInput', value).email).toBe('请输入有效邮箱');
+  });
+
+  it('allows optional fields to be absent but validates them when present', () => {
+    // UserCreate.phone is optional: absent passes, a present-but-invalid value still fails.
+    expect(zodErrors('UserCreate', { username: 'someone', email: 'someone@example.test', password: 'longenough12', role: 'user' })).toEqual({});
+    expectParity('UserCreate', { username: 'someone', email: 'someone@example.test', password: 'longenough12', role: 'user' });
+    expectParity('UserCreate', { username: 'someone', email: 'someone@example.test', password: 'longenough12', role: 'user', phone: 'not-a-phone' });
+    expect(zodErrors('UserCreate', { username: 'someone', email: 'someone@example.test', password: 'longenough12', role: 'user', phone: 'not-a-phone' }).phone).toBe('格式不正确');
   });
 
   it('caches schemas per name', () => {

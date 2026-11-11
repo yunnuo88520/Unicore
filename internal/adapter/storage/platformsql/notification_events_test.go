@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/mailer"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/secret"
 	"github.com/yunnuo/unicore/internal/settings"
@@ -56,7 +57,7 @@ func exerciseNotificationEvents(t *testing.T, ctx context.Context, store *sqlsto
 		t.Fatal(err)
 	}
 	before := len(jobs.Items)
-	if _, err = members.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: "user", Status: "disabled"}, admin.ID); err != nil {
+	if _, err = members.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: rolePtr("user"), Status: "disabled"}, admin.ID); err != nil {
 		t.Fatal(err)
 	}
 	jobs, err = members.MailJobs(ctx)
@@ -72,6 +73,48 @@ func exerciseNotificationEvents(t *testing.T, ctx context.Context, store *sqlsto
 		if err = members.FinishMail(ctx, job, false, now); err != nil {
 			t.Fatal(err)
 		}
+	}
+	// Failure after inserting the first batch item must roll back that item.
+	jobs, _ = members.MailJobs(ctx)
+	before = len(jobs.Items)
+	if err = members.EnqueueNotifications(ctx, []mailer.QueuedNotification{{Payload: "synthetic", Channel: "wecom"}, {Payload: "synthetic", Channel: "unknown"}}, "notification", now, now+86400); err == nil {
+		t.Fatal("invalid batch accepted")
+	}
+	jobs, _ = members.MailJobs(ctx)
+	if len(jobs.Items) != before {
+		t.Fatal("failed batch retained a partial delivery")
+	}
+	if err = members.EnqueueNotifications(ctx, []mailer.QueuedNotification{{Payload: "synthetic", Channel: "wecom"}}, "notification", now, now+86400); err != nil {
+		t.Fatal(err)
+	}
+	jobs, _ = members.MailJobs(ctx)
+	found := false
+	for _, job := range jobs.Items {
+		if job.Channel != nil && *job.Channel == "wecom" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("batch channel mislabeled as email")
+	}
+	// Business integrations reuse the same planning and encrypted outbox inside
+	// their existing transaction; rollback removes their queued notifications.
+	jobs, _ = members.MailJobs(ctx)
+	before = len(jobs.Items)
+	tx, err := store.DB.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = members.QueueNotificationEvent(ctx, tx, mailer.Event{Kind: "user_created", Username: "business", At: now}); err != nil {
+		tx.Rollback()
+		t.Fatal(err)
+	}
+	if err = tx.Rollback(); err != nil {
+		t.Fatal(err)
+	}
+	jobs, _ = members.MailJobs(ctx)
+	if len(jobs.Items) != before {
+		t.Fatal("business transaction rollback leaked notification")
 	}
 	c.Enabled = false
 	c.WecomKey = ""

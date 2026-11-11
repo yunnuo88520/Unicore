@@ -5,12 +5,13 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { Copy, Download, Link2, Monitor, ShieldCheck, Smartphone, Unlink, UserRound } from 'lucide-react';
 import QRCode from 'qrcode';
-import type { AccountProfile, TOTPSetup, WebClient } from '@unicore/sdk';
+import type { AccountProfile, AppClient, TOTPSetup, WebClient } from '@unicore/sdk';
 import { t, useLocale } from '../i18n';
 import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Modal, ConfirmDialog, useMessage } from '@unicore/ui';
 import { AppField, AppForm, StaticField, useAppForm } from '@unicore/form';
 import { useRouteSearch, type PageProps } from '../router';
 import { PasswordDialog } from '../password-dialog';
+import { FileUploadDialog } from '../file-upload-dialog';
 
 function ProfileBoundary({ web, children }: { web: WebClient; children: (profile: AccountProfile, reload: () => void) => ReactNode }) {
   useLocale();
@@ -22,18 +23,30 @@ function ProfileBoundary({ web, children }: { web: WebClient; children: (profile
 export function AccountPage({ client, metadata, refresh }: PageProps) {
   useLocale();
   if (!client.web || !metadata.current_user) return null;
-  return <ProfileBoundary web={client.web}>{(profile, reload) => <ProfileEditor web={client.web!} profile={profile} onChanged={() => { reload(); refresh(); }} administrator={metadata.identity_realm === 'administrator'} />}</ProfileBoundary>;
+  return <ProfileBoundary web={client.web}>{(profile, reload) => <ProfileEditor client={client} web={client.web!} profile={profile} onChanged={() => { reload(); refresh(); }} administrator={metadata.identity_realm === 'administrator'} />}</ProfileBoundary>;
 }
-function ProfileEditor({ web, profile, onChanged, administrator }: { web: WebClient; profile: AccountProfile; onChanged: () => void; administrator: boolean }) {
+function ProfileEditor({ client, web, profile, onChanged, administrator }: { client: AppClient; web: WebClient; profile: AccountProfile; onChanged: () => void; administrator: boolean }) {
   useLocale();
   const message = useMessage();
   const [emailOpen, setEmailOpen] = useState(false);
+  const [avatarFileID, setAvatarFileID] = useState<string | null>(null);
+  const [avatarOpen, setAvatarOpen] = useState(false);
+  const avatar = useQuery({ queryKey: ['avatar-preview', avatarFileID], queryFn: () => client.files!.fileAccess(avatarFileID!), enabled: !!avatarFileID && !!client.files, staleTime: 60_000 });
+  const avatarURL = avatar.data?.url;
   const form = useAppForm({ schema: 'ProfileInput', defaultValues: { display_name: profile.display_name }, onSubmit: values => { save.mutate(values); } });
-  const save = useMutation({ mutationFn: (values: { display_name: string }) => web.saveAccountProfile(values), onSuccess: () => { message.success(t('个人资料已保存')); onChanged(); }, onError: form.applyServerError });
+  const save = useMutation({ mutationFn: async (values: { display_name: string }) => {
+    const fileID = avatarFileID;
+    return web.saveAccountProfile({ display_name: values.display_name, ...(fileID ? { avatar_file_id: fileID } : {}) });
+  }, onSuccess: () => { setAvatarFileID(null); message.success(t('个人资料已保存')); onChanged(); }, onError: form.applyServerError });
   return <section aria-label={t('个人资料')} className="max-w-3xl">
     <Card><CardHeader><CardTitle><UserRound size={18} aria-hidden="true" />{t('个人资料')}</CardTitle><CardDescription>{t('昵称用于展示；用户名创建后不可修改。')}</CardDescription></CardHeader>
       <CardContent className="flex flex-col gap-5">
         <div className="flex flex-wrap gap-2"><Badge variant="subtle">{administrator ? t('管理员') : t('普通用户')}</Badge><Badge variant={profile.user.status === 'active' ? 'success' : 'subtle'}>{profile.user.status === 'active' ? t('正常') : t('已停用')}</Badge><Badge variant={profile.totp_enabled ? 'success' : 'subtle'}>{profile.totp_enabled ? t('双重验证已开启') : t('双重验证未开启')}</Badge></div>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="flex size-16 items-center justify-center overflow-hidden rounded-full bg-avatar text-avatar-ink">{avatarURL || profile.avatar_url ? <img src={avatarURL || profile.avatar_url} alt={t('当前头像')} className="size-full object-cover" /> : <UserRound size={28} aria-hidden="true" />}</span>
+          {client.files && <Button variant="secondary" disabled={save.isPending} onClick={() => setAvatarOpen(true)}>{t('上传头像')}</Button>}
+          {avatarFileID && <p role="status" className="text-xs text-muted">{t('头像已上传，保存后生效')}</p>}
+        </div>
         <AppForm form={form} className="flex max-w-lg flex-col gap-4">
           <AppField name="display_name" label={t('昵称')}><Input maxLength={80} autoComplete="nickname" /></AppField>
           <label className="flex flex-col gap-1.5 text-sm font-medium">{t('用户名')}<Input value={profile.user.username} readOnly disabled autoComplete="username" /></label>
@@ -42,6 +55,7 @@ function ProfileEditor({ web, profile, onChanged, administrator }: { web: WebCli
         </AppForm>
       </CardContent>
     </Card>
+    {avatarOpen && <FileUploadDialog client={client} title={t('上传头像')} maxSize={2 * 1024 * 1024} accept="image/png,image/jpeg,image/gif" onUploaded={file => { setAvatarFileID(file.file_id); message.success(t('头像已上传，保存后生效')); }} onClose={() => setAvatarOpen(false)} />}
     {emailOpen && <EmailChangeDialog web={web} email={profile.user.email} onClose={() => setEmailOpen(false)} onChanged={onChanged} />}
   </section>;
 }

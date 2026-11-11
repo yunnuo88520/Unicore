@@ -13,7 +13,7 @@ metadata:
 
 ## current-stage
 
-Pre-1.0 squash is approved. New SQL/catalog/data generation assets exist; see migrations/README.md and ADR-0025. The standalone catalog executor `migrations/runner` (advisory locks, ledger shape/anchor/checksum refusals, notx convention, read-only Verify) exists and is SQLite-tested, but is NOT wired into install/startup: the product still uses the original 42 SQL and legacy executor. Wiring the runner into runtime, startup guards and metadata consumers remains R1.0c and requires separate authorization. Do not remove legacy files or activate the new ledger early; reference runner.Apply/Verify instead of re-implementing locks in tasks.
+The catalog executor `migrations/runner` is wired into install and startup (single-track world; the original 42 SQL and legacy executor are removed). Baselines define `unicore_`-prefixed final states directly and must stay replay-idempotent (IF NOT EXISTS everywhere, guarded seed rows, MySQL indexes inline). Legacy two-column ledgers are refused (`ErrLegacyLedger`), as is any non-empty database without a catalog ledger (`ErrForeignDatabase`). Never hand-edit generated catalogdata/metadata files; register new migrations in catalog.json and run pnpm generate:migrations. Frozen SQL is append-only; replay idempotency is part of acceptance (see migrations/README.md and ADR-0025 including its R1.0c section).
 
 ## inputs
 

@@ -1,22 +1,23 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Linked authentication pages with shared forms, confirmed passwords and real email recovery.
 import { t, useLocale, defineMessages } from '../i18n';
-import { forwardRef, useEffect, useRef, useState, type InputHTMLAttributes, type ReactNode } from 'react';
+import { forwardRef, useCallback, useEffect, useRef, useState, type InputHTMLAttributes, type ReactNode } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link, Navigate, useRouter, useRouterState } from '@tanstack/react-router';
 import { ArrowRight, Building2, Check, CheckCircle2, Eye, EyeOff, LockKeyhole, ShieldCheck, UserRound } from 'lucide-react';
 import { AppError, validate, type EmailChallenge, type WebClient } from '@unicore/sdk';
 import { useRouteSearch, useSessionNotice, type PageProps } from '../router';
 import { BrandLockup } from '../brand';
+import { HumanCheck, type HumanCheckProvider } from '../human-check';
 import { Button, Input } from '@unicore/ui';
 import { buttonVariants } from '@unicore/ui';
 import { AppField, AppForm, useAppForm } from '@unicore/form';
 import { cn } from '@unicore/ui/cn';
 
 type Mode = 'login' | 'email' | 'register' | 'forgot' | 'resend';
-type AuthValues = { username: string; email: string; password: string; confirm_password: string; code: string; captcha_answer: string };
+type AuthValues = { username: string; email: string; phone: string; password: string; confirm_password: string; code: string; captcha_answer: string };
 const AUTH_PATHS: Record<Mode, string> = { login: '/login', register: '/register', forgot: '/forgot-password', email: '/email-login', resend: '/resend-verification' };
-const EMPTY_AUTH: AuthValues = { username: '', email: '', password: '', confirm_password: '', code: '', captcha_answer: '' };
+const EMPTY_AUTH: AuthValues = { username: '', email: '', phone: '', password: '', confirm_password: '', code: '', captcha_answer: '' };
 const AUTH_MESSAGES = defineMessages({
   invalid: '请检查表单输入',
   mismatch: '两次输入的密码不一致',
@@ -24,6 +25,7 @@ const AUTH_MESSAGES = defineMessages({
   password: '密码至少 12 个字符，且不超过 128 字节',
   captcha: '请输入 6 位图形验证码',
   code: '请先获取邮箱验证码',
+  phone: '请输入有效的手机号',
 });
 
 function modeForPath(pathname: string): Mode {
@@ -131,6 +133,8 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
   const router = useRouter();
   const location = useRouterState({ select: state => state.location });
   const mode = administrator && (location.pathname === '/register' || location.pathname === '/registration-success') ? 'login' : modeForPath(location.pathname);
+  const search = useRouteSearch<{ oidc: string; state: string }>();
+  const bindState = !administrator && mode === 'login' && search.oidc === 'bind' && search.state?.length === 43 ? search.state : '';
   const successKind = 'authSuccess' in location.state ? location.state.authSuccess : undefined;
   const registrationSuccess = location.pathname === '/registration-success' && (successKind === 'registered' || successKind === 'verified');
   const generation = useRef({ path: location.pathname, value: 0 });
@@ -141,6 +145,14 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
   const [done, setDone] = useState(false);
   const policy = useQuery({ queryKey: ['auth-policy'], queryFn: () => web.authPolicy() });
   const needsCaptcha = !challenge && (mode === 'register' || mode === 'resend' ? policy.data?.register_captcha : policy.data?.login_captcha);
+  // Click-through human verification guards user login, email-code login and registration.
+  const humanRequired = !challenge && !administrator && !!policy.data?.human_check_enabled;
+  const humanWidget = { provider: (policy.data?.human_check_provider ?? 'turnstile') as HumanCheckProvider, siteKey: policy.data?.human_check_site_key ?? '', region: policy.data?.human_check_region ?? '', prefix: policy.data?.human_check_prefix ?? '' };
+  const [humanToken, setHumanToken] = useState({ token: '', randstr: '' });
+  const [humanReset, setHumanReset] = useState(0);
+  const onHumanToken = useCallback((token: string, randstr: string) => setHumanToken({ token, randstr }), []);
+  useEffect(() => { setHumanToken({ token: '', randstr: '' }); }, [mode]);
+  const humanFields = () => humanToken.token ? { human_check_token: humanToken.token, human_check_randstr: humanToken.randstr } : {};
   const captcha = useQuery({ queryKey: ['account-captcha', mode, !!challenge], queryFn: () => web.captcha(), enabled: !!needsCaptcha && !registrationSuccess, staleTime: 0, gcTime: 0 });
   useEffect(() => { if (retryAt <= Date.now()) return; const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer); }, [retryAt]);
   useEffect(() => { if (location.pathname === '/registration-success' && !registrationSuccess) void router.navigate({ to: '/register', replace: true }); }, [location.pathname, registrationSuccess, router]);
@@ -152,9 +164,10 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
     let fields: Record<string, string>;
     if (challenge) fields = validate('EmailCodeInput', { challenge_id: challenge.challenge_id, code: values.code, password: purpose === 'reset' ? values.password : '' });
     else if (mode === 'login') fields = validate('LoginInput', { username: values.username, password: values.password, ...graphic });
-    else if (mode === 'register') fields = validate('RegisterInput', { username: values.username, email: values.email, password: values.password, ...graphic });
+    else if (mode === 'register') fields = validate('RegisterInput', { username: values.username, email: values.email, password: values.password, phone: values.phone.trim(), ...graphic });
     else fields = validate('EmailRequest', { email: values.email, ...graphic });
     if ((!challenge && mode === 'register') || (challenge && purpose === 'reset')) Object.assign(fields, passwordErrors(values.password, values.confirm_password));
+    if (mode === 'register' && policy.data?.phone_required && !/^\+?[0-9]{5,20}$/.test(values.phone.trim())) fields.phone = AUTH_MESSAGES.phone;
     if (needsCaptcha && !/^[0-9]{6}$/.test(values.captcha_answer)) fields.captcha_answer = AUTH_MESSAGES.captcha;
     if (mode === 'forgot' && !challenge) fields.code = AUTH_MESSAGES.code;
     form.clearErrors();
@@ -185,10 +198,10 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
       const current = { ...form.getValues(), username: form.getValues('username').trim(), email: form.getValues('email').trim().toLowerCase() };
       const graphic = { captcha_id: captcha.data?.id ?? '', captcha_answer: current.captcha_answer };
       let result: EmailChallenge | null = null;
-      if (mode === 'login') await web.login({ username: current.username, password: current.password, ...graphic });
+      if (mode === 'login') await web.login({ username: current.username, password: current.password, ...graphic, ...humanFields() });
       else if (challenge) await web.completeCode(purpose, { challenge_id: challenge.challenge_id, code: current.code, password: purpose === 'reset' ? current.password : '' });
-      else if (mode === 'register') { const response = await web.registerCode({ username: current.username, email: current.email, password: current.password, ...graphic }); result = response.registration_complete ? null : response; }
-      else result = await web.requestCode(purpose, { email: current.email, ...graphic });
+      else if (mode === 'register') { const response = await web.registerCode({ username: current.username, email: current.email, password: current.password, phone: current.phone.trim(), ...graphic, ...humanFields() }); result = response.registration_complete ? null : response; }
+      else result = await web.requestCode(purpose, { email: current.email, ...graphic, ...humanFields() });
       return { result, version };
     },
     onSuccess: ({ result, version }) => {
@@ -201,7 +214,11 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
         void router.navigate({ to: '/registration-success', replace: true, state: previous => ({ ...previous, authSuccess: challenge ? 'verified' : 'registered' }) });
       } else { setDone(true); setChallenge(undefined); form.setValue('code', ''); }
     },
-    onError: error => { form.applyServerError(error); if (needsCaptcha) { form.setValue('captcha_answer', ''); void captcha.refetch(); } },
+    onError: error => {
+      form.applyServerError(error);
+      if (needsCaptcha) { form.setValue('captcha_answer', ''); void captcha.refetch(); }
+      if (error instanceof AppError && error.code === 'HUMAN_CHECK_FAILED') setHumanReset(value => value + 1);
+    },
   });
   const sendReset = useMutation({
     mutationFn: async () => {
@@ -251,12 +268,14 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
       <p role={complete ? "status" : undefined} className="mt-3 text-sm leading-6 text-muted">{registrationSuccess ? successKind === 'verified' ? t('邮箱验证成功，现在可以登录。') : t('账号已创建，现在可以登录。') : done ? purpose === 'reset' ? t('密码已更新，旧会话已退出。') : t('邮箱验证成功，现在可以登录。') : mode === 'forgot' ? t('通过注册邮箱验证身份，重新设置登录密码。') : mode === 'register' ? t('填写账号信息，创建属于你的工作空间。') : challenge ? t('输入邮件中的 6 位验证码以继续。') : administrator ? t('使用独立的后台账号登录。') : t('使用账号或邮箱，继续你的工作。')}</p>
     </header>
     {notice && !complete && <p role="status" className="mb-5 rounded-xl bg-primary-soft px-4 py-3 text-sm text-ink">{t(notice)}</p>}
+    {bindState && !complete && <BindLoginCard web={web} state={bindState} onDone={onDone} />}
     {complete ? <div className="flex flex-col items-center gap-6">
       <Link to="/login" replace onClick={beforeNavigation} className={cn(buttonVariants(), 'h-12 w-full rounded-xl shadow-tint')}>{t('返回登录')}<ArrowRight size={17} aria-hidden="true" /></Link>
     </div> : <>
       {registrationClosed || resetClosed ? <p role="status" className="mb-6 rounded-xl border border-line bg-surface-alt p-5 text-sm leading-7 text-muted">{registrationClosed ? t('注册暂未开放，请联系管理员获取账号。') : t('本站暂未开放邮件找回密码，请联系管理员协助恢复账号。')}</p> :
         <AppForm form={form} className="flex flex-col gap-5" onBlur={passwordField} onChange={passwordField}>
-          {error && !(error instanceof AppError && Object.keys(error.fields).length) && <p role="alert" className="rounded-xl border border-danger-line bg-danger-soft px-4 py-3 text-sm text-danger">{t(error.message)}</p>}
+          {/* Non-field auth errors render through the AppForm summary banner; field-carrying
+              errors (duplicate account) surface inline next to their controls. */}
           <fieldset disabled={busy} className="contents">
             {!challenge && (mode === 'login' || mode === 'register') && <AppField<AuthValues> name="username" label={mode === 'login' ? t('账号或邮箱') : t('账号')} className="[&_label]:sr-only">
               <Input required autoComplete="username" maxLength={mode === 'register' ? 64 : 254} placeholder={mode === 'login' ? t('请输入用户名或邮箱') : t('请输入用户名')} />
@@ -266,6 +285,9 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
             </AppField>}
             {!challenge && mode === 'register' && <AppField<AuthValues> name="confirm_password" label={t('确认密码')} className="[&_label]:sr-only">
               <AuthPassword fieldLabel={t('确认密码')} required autoComplete="new-password" maxLength={128} placeholder={t('请再次输入密码')} />
+            </AppField>}
+            {!challenge && mode === 'register' && policy.data?.phone_required && <AppField<AuthValues> name="phone" label={t('手机号')} className="[&_label]:sr-only">
+              <Input type="tel" inputMode="tel" required autoComplete="tel" maxLength={21} placeholder={t('请输入手机号')} />
             </AppField>}
             {(!challenge && mode !== 'login' || mode === 'forgot') && <AppField<AuthValues> name="email" label={t('邮箱')} className={mode === 'forgot' ? undefined : '[&_label]:sr-only'}>
               <Input type="email" required autoComplete="email" maxLength={254} placeholder="name@example.com" readOnly={!!challenge} />
@@ -288,8 +310,9 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
               <AppField<AuthValues> name="captcha_answer" label={t('图形验证码')}><Input inputMode="numeric" required maxLength={6} placeholder={t('请输入图形验证码')} /></AppField>
               <button type="button" aria-label={t('刷新验证码')} onClick={() => { form.setValue('captcha_answer', ''); void captcha.refetch(); }} className="flex h-12 w-28 items-center justify-center overflow-hidden rounded-xl border border-line bg-surface-alt focus-visible:outline-2 focus-visible:outline-focus">{captcha.data && !captcha.isFetching && <img src={captcha.data.image} alt={t('六位数字验证码，点击刷新')} />}</button>
             </div>}
+            {humanRequired && <HumanCheck widget={humanWidget} required token={humanToken.token} onToken={onHumanToken} resetSignal={humanReset} />}
             {(policy.error || (needsCaptcha && captcha.error)) && <p role="alert" className="text-sm text-danger">{t((policy.error ?? captcha.error)?.message)}</p>}
-            <Button type="submit" className="mt-1 h-12 w-full rounded-xl text-sm shadow-tint" pending={submit.isPending} disabled={policy.isPending || mode === 'forgot' && !challenge || !!needsCaptcha && (captcha.isFetching || !captcha.data)}>
+            <Button type="submit" className="mt-1 h-12 w-full rounded-xl text-sm shadow-tint" pending={submit.isPending} disabled={policy.isPending || mode === 'forgot' && !challenge || humanRequired && !humanToken.token || !!needsCaptcha && (captcha.isFetching || !captcha.data)}>
               {challenge ? purpose === 'reset' ? t('保存新密码') : purpose === 'verify' ? t('确认验证邮箱') : t('验证并登录') : labels[mode]}
             </Button>
             {challenge && mode !== 'forgot' && <button type="button" className="text-center text-sm font-medium text-accent disabled:opacity-50" disabled={retry > 0} onClick={() => { setChallenge(undefined); form.setValue('code', ''); form.setValue('captcha_answer', ''); form.clearErrors(); submit.reset(); }}>{retry > 0 ? t('{{v0}} 秒后可重新获取', { v0: retry }) : t('重新获取验证码')}</button>}
@@ -308,6 +331,46 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
       {mode === 'login' && <EnterpriseLoginBlock web={web} />}
     </>}
   </AuthLayout>;
+}
+
+/** One-shot bind offer: the enterprise identity matches a local account, so a local
+ *  password proof links it and signs in; the offer expires with its 5-minute flow. */
+function BindLoginCard({ web, state, onDone }: { web: WebClient; state: string; onDone: () => void }) {
+  useLocale();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState('');
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    setPending(true);
+    setError('');
+    try {
+      await web.oidcBindLogin({ state, email: email.trim(), password });
+      onDone();
+    } catch (e) {
+      setError(t((e as AppError).message));
+    } finally {
+      setPending(false);
+    }
+  }
+  return <form onSubmit={submit} className="mb-6 flex flex-col gap-4 rounded-xl border border-primary-line bg-primary-soft p-5 text-start">
+    <div>
+      <strong className="text-sm font-semibold text-ink">{t('绑定企业账号并登录')}</strong>
+      <p className="mt-1 text-xs leading-5 text-muted">{t('检测到与你本地账号同邮箱的企业身份。验证该账号的本地密码后即可完成绑定并直接登录。')}</p>
+    </div>
+    {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+    <label className="flex flex-col gap-1.5">
+      <span className="text-sm font-medium text-ink">{t('邮箱')}</span>
+      <Input type="email" required autoComplete="email" maxLength={254} value={email} onChange={event => setEmail(event.target.value)} placeholder="name@example.com" />
+    </label>
+    <label className="flex flex-col gap-1.5">
+      <span className="text-sm font-medium text-ink">{t('密码')}</span>
+      <Input type="password" required autoComplete="current-password" maxLength={128} value={password} onChange={event => setPassword(event.target.value)} placeholder={t('请输入密码')} />
+    </label>
+    <Button type="submit" pending={pending} className="h-11 w-full rounded-xl shadow-tint">{t('绑定并登录')}</Button>
+    <p className="text-2xs leading-4 text-muted">{t('绑定邀请 5 分钟内有效。成功后该账号的其他会话将被退出。')}</p>
+  </form>;
 }
 
 /** Enterprise single sign-on entry, including the OIDC result notice carried by the route search. */

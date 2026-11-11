@@ -23,7 +23,7 @@ The README and new release notes are available in Chinese and English. Detailed 
 
 | Profile | Intended use | Identity and administration | Database |
 | --- | --- | --- | --- |
-| `web-platform` | Online applications with multiple users | Separate administrator/user pages, APIs, accounts, and sessions | MySQL / PostgreSQL recommended; SQLite optional |
+| `web-platform` | Online applications with multiple users | Separate business/management workspaces and APIs; unified accounts with multiple roles | MySQL / PostgreSQL recommended; SQLite optional |
 | `web-standalone` | Self-hosted tools for one user | No accounts, administration, or global settings pages; local appearance only | MySQL / PostgreSQL / SQLite |
 | `desktop` | Native Wails v2 applications | No installation wizard, accounts, or platform administration | Local SQLite initialized automatically |
 | `cli` | Commands and scripting | Calls the shared Core directly | No HTTP, Wails, or database dependencies |
@@ -44,7 +44,7 @@ Signed OTA channels and offline release history are implemented; inspect each re
 
 ## Quick start
 
-Requirements: Go 1.26.10+, Node 22.22.2+ (Node 22 is the CI baseline; see `package.json` engines for other supported series), pnpm 11.25.0, Git, Make, and ripgrep (`rg`). Run `make doctor` to check your environment. Install ripgrep with `brew install ripgrep` on macOS or `sudo apt-get install ripgrep` on Ubuntu/Debian. WSL2 is recommended for Web/CLI development on Windows. Build native Windows desktop applications on Windows with Make, Wails, and WebView2; see [Wails native dependencies](https://wails.io/docs/gettingstarted/installation).
+Requirements: Go 1.26.11+, Node 22.22.2+ (Node 22 is the CI baseline; see `package.json` engines for other supported series), pnpm 11.25.0, Git, Make, and ripgrep (`rg`). Run `make doctor` to check your environment. Install ripgrep with `brew install ripgrep` on macOS or `sudo apt-get install ripgrep` on Ubuntu/Debian. WSL2 is recommended for Web/CLI development on Windows. Build native Windows desktop applications on Windows with Make, Wails, and WebView2; see [Wails native dependencies](https://wails.io/docs/gettingstarted/installation).
 
 ```sh
 git clone https://github.com/yunnuo88520/Unicore.git

@@ -23,7 +23,9 @@ type Store interface {
 	FindAccount(context.Context, string) (Account, error)
 	CreateUser(context.Context, contracts.UserCreate, string, string) (contracts.User, error)
 	UpdateUser(context.Context, string, contracts.UserUpdate, string) (contracts.User, error)
-	ListUsers(context.Context, string, int, int) (contracts.UserList, error)
+	ResetUserPassword(context.Context, string, string, string) (contracts.User, error)
+	ListUsers(context.Context, string, int, int, ...string) (contracts.UserList, error)
+	ListUsersScoped(context.Context, contracts.User, string, int, int, ...string) (contracts.UserList, error)
 	CreateSession(context.Context, string, string, int, string) error
 	Session(context.Context, string) (contracts.User, int, error)
 	DeleteSession(context.Context, string) error
@@ -31,6 +33,31 @@ type Store interface {
 	Dashboard(context.Context) (contracts.Dashboard, error)
 	ListRoles(context.Context) (contracts.RoleList, error)
 	RoleOptions(context.Context, string) (contracts.RoleOptions, error)
+	CreateRole(context.Context, contracts.RoleSaveInput, string) (contracts.Role, error)
+	UpdateRole(context.Context, string, contracts.RoleSaveInput, string) (contracts.Role, error)
+	DeleteRole(context.Context, string, string) (contracts.Role, error)
+	ListDepartments(context.Context) (contracts.DepartmentList, error)
+	CreateDepartment(context.Context, contracts.DepartmentSaveInput, string) (contracts.Department, error)
+	UpdateDepartment(context.Context, string, contracts.DepartmentSaveInput, string) (contracts.Department, error)
+	DeleteDepartment(context.Context, string, string) (contracts.Department, error)
+	ListPosts(context.Context) (contracts.PostList, error)
+	CreatePost(context.Context, contracts.PostSaveInput, string) (contracts.Post, error)
+	UpdatePost(context.Context, string, contracts.PostSaveInput, string) (contracts.Post, error)
+	DeletePost(context.Context, string, string) (contracts.Post, error)
+	DataScope(context.Context, contracts.User, string) (ScopeFilter, error)
+	ListMenuConfig(context.Context) (contracts.MenuList, error)
+	SaveNavigation(context.Context, contracts.MenuSaveInput, string) (contracts.MenuList, error)
+	AssignMenuRoles(context.Context, string, contracts.MenuRoleAssignmentInput, string) (contracts.RoleList, error)
+	ListDictionaries(context.Context) (contracts.DictionaryList, error)
+	Dictionary(context.Context, string, bool) (contracts.DictionaryDetail, error)
+	DictionaryByCode(context.Context, string, bool) (contracts.DictionaryDetail, error)
+	CreateDictionary(context.Context, contracts.DictionaryCreateInput, string) (contracts.DictionarySummary, error)
+	UpdateDictionary(context.Context, string, contracts.DictionaryUpdateInput, string) (contracts.DictionaryDetail, error)
+	DeleteDictionary(context.Context, string, string) (contracts.DictionaryDetail, error)
+	ReplaceDictionaryItems(context.Context, string, []contracts.DictionaryItemEntry, string) (contracts.DictionaryDetail, error)
+	InboxFeed(context.Context, string, int, int) (contracts.InboxList, error)
+	InboxRead(context.Context, string, string) (contracts.InboxList, error)
+	InboxReadAll(context.Context, string) (contracts.InboxList, error)
 	ChangePassword(context.Context, string, string, string) error
 }
 
@@ -65,6 +92,7 @@ type Service struct {
 	Store      Store
 	Limiter    *Limiter
 	Captchas   *Captchas
+	HumanCheck HumanCheckPort
 	dummy      string
 	loginSlots chan struct{}
 	once       sync.Once
@@ -74,13 +102,27 @@ func New(store Store) *Service {
 	return &Service{Store: store, Limiter: NewLimiter(), Captchas: NewCaptchas(), loginSlots: make(chan struct{}, 4)}
 }
 func ValidateAccount(username, email, password string) bool {
-	address, err := mail.ParseAddress(email)
-	return regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.-]{2,63}$`).MatchString(username) && err == nil && address.Address == email && len(email) <= 254 && len(password) >= 12 && len(password) <= 128
+	return regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.-]{2,63}$`).MatchString(username) && ValidEmail(email) && len(password) >= 12 && len(password) <= 128
 }
+
+// ValidEmail parses as a bare address within the contract length bound.
+func ValidEmail(email string) bool {
+	address, err := mail.ParseAddress(email)
+	return err == nil && address.Address == email && len(email) <= 254
+}
+
+// ValidPhone accepts an optional leading + followed by 5-20 digits, matching the RegisterInput contract.
+var phonePattern = regexp.MustCompile(`^\+?[0-9]{5,20}$`)
+
+func ValidPhone(phone string) bool {
+	return phonePattern.MatchString(phone)
+}
+
+// Has reports whether the user holds a permission point. Grants are data: the
+// role_permissions union of the assigned roles (either realm) or the full
+// catalogue for super_admin. Operation-level superAdmin policy stays the only
+// super_admin gate, enforced at the session layer.
 func Has(user contracts.User, permission string) bool {
-	if !IsSuper(user) || !SuperOnly(permission) {
-		return false
-	}
 	for _, p := range user.Permissions {
 		if p == permission {
 			return true
@@ -89,7 +131,7 @@ func Has(user contracts.User, permission string) bool {
 	return false
 }
 
-func (s *Service) Login(ctx context.Context, input contracts.LoginInput, ip string, captcha bool, hours int) (contracts.Session, string, error) {
+func (s *Service) Login(ctx context.Context, input contracts.LoginInput, ip string, captcha, humanCheck bool, hours int) (contracts.Session, string, error) {
 	if err := s.LoginAllowed(ctx, ip); err != nil {
 		return contracts.Session{}, "", err
 	}
@@ -99,6 +141,11 @@ func (s *Service) Login(ctx context.Context, input contracts.LoginInput, ip stri
 	key := strings.ToLower(strings.TrimSpace(input.Username))
 	if !s.Limiter.Allow("ip:"+ip, 40, time.Minute) || !s.Limiter.Allow("account:"+key, 8, 15*time.Minute) {
 		return contracts.Session{}, "", ErrRateLimited
+	}
+	if humanCheck {
+		if err := s.verifyHumanCheck(ctx, derefString(input.HumanCheckToken), derefString(input.HumanCheckRandstr), ip); err != nil {
+			return contracts.Session{}, "", err
+		}
 	}
 	if captcha && !s.Captchas.Consume(input.CaptchaID, input.CaptchaAnswer) {
 		s.loginResult(ctx, ip, false)
@@ -161,8 +208,27 @@ func (s *Service) Session(ctx context.Context, token string) (contracts.Session,
 func (s *Service) Create(ctx context.Context, input contracts.UserCreate, actor string) (contracts.User, error) {
 	input.Username = strings.ToLower(strings.TrimSpace(input.Username))
 	input.Email = strings.ToLower(strings.TrimSpace(input.Email))
-	if !ValidateAccount(input.Username, input.Email, input.Password) || !BuiltinRole(input.Role) {
+	if !ValidateAccount(input.Username, input.Email, input.Password) || (input.Role != "" && !regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,63}$`).MatchString(input.Role)) {
 		return contracts.User{}, ErrInput
+	}
+	if input.Phone != nil {
+		phone := strings.TrimSpace(*input.Phone)
+		if phone == "" {
+			input.Phone = nil
+		} else if !ValidPhone(phone) {
+			return contracts.User{}, ErrInput
+		} else {
+			input.Phone = &phone
+		}
+	}
+	if err := s.passwordAllowed(ctx, input.Password); err != nil {
+		return contracts.User{}, err
+	}
+	select {
+	case s.loginSlots <- struct{}{}:
+		defer func() { <-s.loginSlots }()
+	case <-ctx.Done():
+		return contracts.User{}, ctx.Err()
 	}
 	hash, err := HashPassword(input.Password)
 	if err != nil {
@@ -170,6 +236,35 @@ func (s *Service) Create(ctx context.Context, input contracts.UserCreate, actor 
 	}
 	input.Password = ""
 	return s.Store.CreateUser(ctx, input, hash, actor)
+}
+
+// ResetUserPassword sets a member's password from the management surface: the
+// operator supplies the replacement or the server generates a temporary one.
+// The effective password comes back once so a generated temporary can be
+// handed to the account holder; live sessions and tokens die with the old
+// credential exactly like a role assignment does.
+func (s *Service) ResetUserPassword(ctx context.Context, id string, input contracts.AdminPasswordResetInput, actor string) (string, error) {
+	password := ""
+	if input.Password != nil {
+		password = strings.TrimSpace(*input.Password)
+	}
+	if password == "" {
+		password = TempPassword()
+	}
+	if len(password) < 12 || len(password) > 128 {
+		return "", ErrInput
+	}
+	if err := s.passwordAllowed(ctx, password); err != nil {
+		return "", err
+	}
+	hash, err := HashPassword(password)
+	if err != nil {
+		return "", err
+	}
+	if _, err = s.Store.ResetUserPassword(ctx, id, hash, actor); err != nil {
+		return "", err
+	}
+	return password, nil
 }
 
 func (s *Service) AllowIP(ctx context.Context, ip string) error {

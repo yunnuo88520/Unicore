@@ -139,26 +139,26 @@ func probe(s *sqlstore.Store, q string, args ...any) map[string]any {
 }
 func probes(s *sqlstore.Store, p bool) map[string]any {
 	out := map[string]any{}
-	out["null_text_primary_key"] = probe(s, "INSERT INTO audit_logs(id,actor_id,action,created_at) VALUES(NULL,'probe','probe',1)")
-	out["varchar_64_accepts_65_chars"] = probe(s, "INSERT INTO audit_logs(id,actor_id,action,created_at) VALUES('length-probe',?,'probe',1)", strings.Repeat("a", 65))
+	out["null_text_primary_key"] = probe(s, "INSERT INTO unicore_audit_logs(id,actor_id,action,created_at) VALUES(NULL,'probe','probe',1)")
+	out["varchar_64_accepts_65_chars"] = probe(s, "INSERT INTO unicore_audit_logs(id,actor_id,action,created_at) VALUES('length-probe',?,'probe',1)", strings.Repeat("a", 65))
 	out["notes_default_deleted_at"] = func() any {
 		tx, e := s.DB.BeginTx(ctx, nil)
 		must(e)
-		_, e = s.Exec(ctx, tx, "INSERT INTO example_notes(scope_key,id,title,body,status,attachment_ids,version,created_at,updated_at) VALUES('probe','probe','probe','','active','[]',1,1,1)")
+		_, e = s.Exec(ctx, tx, "INSERT INTO unicore_example_notes(scope_key,id,title,body,status,attachment_ids,version,created_at,updated_at) VALUES('probe','probe','probe','','active','[]',1,1,1)")
 		must(e)
 		var n int
-		must(s.Row(ctx, tx, "SELECT deleted_at FROM example_notes WHERE scope_key='probe' AND id='probe'").Scan(&n))
+		must(s.Row(ctx, tx, "SELECT deleted_at FROM unicore_example_notes WHERE scope_key='probe' AND id='probe'").Scan(&n))
 		must(tx.Rollback())
 		check(n == 0, "deleted_at default")
 		return n
 	}()
 	if p {
-		out["dangling_session_fk"] = probe(s, "INSERT INTO sessions(token_hash,user_id,expires_at) VALUES('probe','missing-user',1)")
+		out["dangling_session_fk"] = probe(s, "INSERT INTO unicore_sessions(token_hash,user_id,expires_at) VALUES('probe','missing-user',1)")
 		tx, e := s.DB.BeginTx(ctx, nil)
 		must(e)
-		_, e = s.Exec(ctx, tx, "INSERT INTO users(id,username,email,password_hash,status,created_at,updated_at,last_login_at) VALUES('case-a','CaseProbe','case-a@example.test','probe','active',1,1,0)")
+		_, e = s.Exec(ctx, tx, "INSERT INTO unicore_users(id,username,email,password_hash,status,created_at,updated_at,last_login_at) VALUES('case-a','CaseProbe','case-a@example.test','probe','active',1,1,0)")
 		must(e)
-		_, e = s.Exec(ctx, tx, "INSERT INTO users(id,username,email,password_hash,status,created_at,updated_at,last_login_at) VALUES('case-b','caseprobe','case-b@example.test','probe','active',1,1,0)")
+		_, e = s.Exec(ctx, tx, "INSERT INTO unicore_users(id,username,email,password_hash,status,created_at,updated_at,last_login_at) VALUES('case-b','caseprobe','case-b@example.test','probe','active',1,1,0)")
 		collision := map[string]any{"accepted": e == nil}
 		if e != nil {
 			collision["error"] = e.Error()
@@ -167,9 +167,9 @@ func probes(s *sqlstore.Store, p bool) map[string]any {
 		must(tx.Rollback())
 		tx, e = s.DB.BeginTx(ctx, nil)
 		must(e)
-		_, e = s.Exec(ctx, tx, "INSERT INTO users(id,username,email,password_hash,status,created_at,updated_at,last_login_at) VALUES('email-a','email_a','Case@Example.Test','probe','active',1,1,0)")
+		_, e = s.Exec(ctx, tx, "INSERT INTO unicore_users(id,username,email,password_hash,status,created_at,updated_at,last_login_at) VALUES('email-a','email_a','Case@Example.Test','probe','active',1,1,0)")
 		must(e)
-		_, e = s.Exec(ctx, tx, "INSERT INTO users(id,username,email,password_hash,status,created_at,updated_at,last_login_at) VALUES('email-b','email_b','case@example.test','probe','active',1,1,0)")
+		_, e = s.Exec(ctx, tx, "INSERT INTO unicore_users(id,username,email,password_hash,status,created_at,updated_at,last_login_at) VALUES('email-b','email_b','case@example.test','probe','active',1,1,0)")
 		collision = map[string]any{"accepted": e == nil}
 		if e != nil {
 			collision["error"] = e.Error()

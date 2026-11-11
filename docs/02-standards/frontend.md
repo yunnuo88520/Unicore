@@ -5,7 +5,7 @@ Web 与 Wails 共享 packages/web-ui。shell 只创建 AppClient transport；页
 
 SessionBoundary 为每一代会话拥有独立 QueryClient 和组件状态；登录、退出、401、换账号或跨标签页失效会卸载旧状态并取消/清空旧查询。HttpTransport 使用 epoch 拒绝跨会话返回的旧请求，不允许旧账号结果进入新账号缓存。只有已认证请求的 401/AUTH_REQUIRED 触发失效；INVALID_CREDENTIALS 表示登录或本地密码确认失败，保留当前会话和表单错误。标签页只广播随机失效标记，不把用户信息、CSRF 或令牌存入 localStorage；恢复可见时 bootstrap 复核会话。服务端仍是身份和权限的最终来源。
 
-useSession 从 bootstrap 推导 loading/error/unavailable/authenticated/anonymous；壳层门禁与渲染守卫使用 routes.ts 的 canAccess，拒绝不适用 profile 或不足权限。所有管理菜单与直达页同时要求 isAdministrator；仅两种固定角色，不能只检查任意权限字符串。普通用户设置页只挂载本地外观，禁止启动全局 settings/branding 管理查询；平台外观保存使用 localStorage，不调用服务器，单机/桌面保留本地默认主题。后端 RBAC/CSRF 不依赖前端隐藏。TanStack Query 管理服务端数据；React Hook Form 管理表单状态，主题偏好由统一主题模块持久化。当前无跨组件复杂本地业务状态，不强制引入额外 store。
+useSession 从 bootstrap 推导 loading/error/unavailable/authenticated/anonymous；壳层门禁与渲染守卫使用 routes.ts 的 canAccess，拒绝不适用 profile 或不足权限。管理菜单与直达页要求管理员域会话，页面与按钮按会话权限逐点判定；`roles:write` 等保留集操作另按 superAdmin 语义禁用（[ADR-0034](../adr/ADR-0034-administrator-restricted-roles.md)），不能只凭管理员身份放行。所有图形入口通过右上角主题抽屉调整本地外观，不提供外观设置页或菜单；普通用户、单机与桌面不启动全局 settings/branding 管理查询。主题偏好保存在本地，不调用服务器。后端 RBAC/CSRF 不依赖前端隐藏。TanStack Query 管理服务端数据；React Hook Form 管理表单状态，主题偏好由统一主题模块持久化。当前无跨组件复杂本地业务状态，不强制引入额外 store。
 
 查询 key 应标识资源与筛选条件。mutation 成功后使用 queries.ts 的 invalidateAfter 刷新受影响资源（例如账号状态变更同时失效 roles、role-options、users、administrators），不要刷新全部页面或将服务端结果复制成第二个全局 store。会话变化由 SessionBoundary 处理，不在每页重复实现退出清理。
 
@@ -15,7 +15,7 @@ useSession 从 bootstrap 推导 loading/error/unavailable/authenticated/anonymou
 
 新增实体表单使用 ui/dialog.tsx 的 Modal（Radix Dialog），不在列表内展开；使用契约校验，验证取消、Escape、焦点返回及 pending 防重。危险操作使用 ConfirmDialog 二次确认。登录/安装和设置编辑保留适合各自流程的页面。导航与邮件/日志页面分工见 ADR-0014；避免重新加入平台仪表盘或嵌套标签；邮件模板独立管理页按 ADR-0020 实现。头像操作调用统一 SDK；管理员/普通用户必须保留独立入口和身份域。
 
-二级导航在分组内部缩进，使用 Lucide 语义图标；图标与 UI 不使用 Emoji/表情字符（check:design 检查）。仅 web-platform 已登录账号显示头像与账号菜单；web-standalone/desktop 无用户概念，不渲染头像。
+二级导航在分组内部缩进，使用 Lucide 语义图标；图标与 UI 不使用 Emoji/表情字符（check:design 检查）。用户与管理员侧栏消费同一真实区域导航模型（[ADR-0036](../adr/ADR-0036-navigation-regions-granular-authorization.md)）：区域编辑器、侧栏、图标栏与移动抽屉由同一份数据派生，不在不同入口维护第二份结构；前端只呈现真实存在的控件，不提供 KeepAlive、CloseTab 等无运行效果的假开关。仅 web-platform 已登录账号显示头像与账号菜单；web-standalone/desktop 无用户概念，不渲染头像。
 
 短暂反馈统一使用 `useMessage()`，由 Workspace 外层 MessageProvider 装配；支持 primary/success/warning/info/error，默认顶部居中、3 秒移除，固定视口层级（z-[70]）保持在 Radix 弹层之上。需要跨模块使用时从 `@unicore/ui` 导入；`message.success('设置已保存')` 或 `message.open({type:'warning',content:'请先保存',duration:5000})`，同类型简写替换前一条，open 可指定 id 替换/重置计时，destroy 手动关闭；SDK 回调等 React 树外场景使用同名的静态 `message` 代理（Provider 未挂载时静默丢弃）。消息 content 渲染调用方传入的原文，组件不做目录查找——业务文本（文件名、错误详情）不会被误翻译，界面文案仍由调用方 t()。视觉 tone 走 danger 令牌系，`error` 保留为消息方法名。QueryScope 的 MutationCache 统一处理提交失败（忽略 SESSION_CHANGED）；成功由业务 mutation 提供具体文案，不能在保存按钮旁追加占位。字段校验/聚焦、需要重试的加载错误、安装确认和认证完成页保留上下文状态，不将其替换成会消失的唯一说明。
 

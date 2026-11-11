@@ -70,10 +70,10 @@ func TestOfflineOperations(t *testing.T) {
 	if _, e = m.Identity(true).Session(ctx, oldToken); e == nil {
 		t.Fatal("old session survived reset")
 	}
-	if _, _, e = m.Identity(true).Login(ctx, contracts.LoginInput{Username: "admin", Password: "test-password-strong"}, "old", false, 1); e != platform.ErrCredentials {
+	if _, _, e = m.Identity(true).Login(ctx, contracts.LoginInput{Username: "admin", Password: "test-password-strong"}, "old", false, false, 1); e != platform.ErrCredentials {
 		t.Fatal("old password accepted", e)
 	}
-	if _, _, e = m.Identity(true).Login(ctx, contracts.LoginInput{Username: "admin", Password: "next-password-strong"}, "new", false, 1); e != nil {
+	if _, _, e = m.Identity(true).Login(ctx, contracts.LoginInput{Username: "admin", Password: "next-password-strong"}, "new", false, false, 1); e != nil {
 		t.Fatal("new password rejected", e)
 	}
 	c, out := testConsole("")
@@ -199,14 +199,14 @@ func TestRenderedUnitAndMenu(t *testing.T) {
 	}
 }
 
-func TestRecoveryPreservesFactorAndOtherRealm(t *testing.T) {
+func TestRecoveryPreservesFactorAndOtherAccount(t *testing.T) {
 	directory, admin, token := fixture(t)
 	ctx := context.Background()
 	m, e := install.Open(ctx, install.Options{DataDir: directory})
 	if e != nil {
 		t.Fatal(e)
 	}
-	member, e := m.Identity(false).Create(ctx, contracts.UserCreate{Username: "admin", Email: admin.Email, Password: "member-password-strong", Role: "user"}, admin.ID)
+	member, e := m.Identity(false).Create(ctx, contracts.UserCreate{Username: "recovery_member", Email: "recovery-member@example.test", Password: "member-password-strong", Role: "user"}, admin.ID)
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -230,7 +230,7 @@ func TestRecoveryPreservesFactorAndOtherRealm(t *testing.T) {
 		t.Fatal(e)
 	}
 	c, _ := testConsole("recovered-password-strong\n")
-	if e = Run(ctx, []string{"admin", "reset-password", "--data-dir", directory, "--username", "admin", "--password-stdin"}, c); e != nil {
+	if e = Run(ctx, []string{"admin", "reset-password", "--data-dir", directory, "--password-stdin"}, c); e != nil {
 		t.Fatal(e)
 	}
 	m, e = install.Open(ctx, install.Options{DataDir: directory})
@@ -239,13 +239,13 @@ func TestRecoveryPreservesFactorAndOtherRealm(t *testing.T) {
 	}
 	defer m.Close()
 	if _, e = m.Identity(false).Session(ctx, memberToken); e != nil {
-		t.Fatal("administrator recovery revoked a user session", e)
+		t.Fatal("password recovery revoked another account session", e)
 	}
 	state, e := m.Identity(true).Store.FindAccount(ctx, "admin")
 	if e != nil || !state.User.TotpEnabled {
 		t.Fatal("existing factor was cleared", e)
 	}
-	login, _, e := m.Identity(true).Login(ctx, contracts.LoginInput{Username: "admin", Password: "recovered-password-strong"}, "recovery", false, 1)
+	login, _, e := m.Identity(true).Login(ctx, contracts.LoginInput{Username: "admin", Password: "recovered-password-strong"}, "recovery", false, false, 1)
 	if e != nil || login.MfaPending == nil || !*login.MfaPending {
 		t.Fatal("password recovery bypassed MFA", e)
 	}

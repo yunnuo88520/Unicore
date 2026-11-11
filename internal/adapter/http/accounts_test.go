@@ -55,7 +55,7 @@ func TestMailAccountHTTP(t *testing.T) {
 		if cookie != "" {
 			name := sessionCookie
 			if cookie == raw {
-				name = "unicore_administrator_session"
+				name = "unicore_session"
 
 			}
 			req.AddCookie(&http.Cookie{Name: name, Value: cookie})
@@ -223,4 +223,89 @@ func TestMailAccountHTTP(t *testing.T) {
 		t.Fatal("email login did not create cookie")
 	}
 
+}
+
+func TestLoginAuditTrail(t *testing.T) {
+	ctx := context.Background()
+	directory := t.TempDir()
+	manager, err := install.Open(ctx, install.Options{DataDir: directory})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = manager.Close() }()
+	token, _ := os.ReadFile(manager.TokenPath())
+	_, admin, err := manager.Complete(ctx, strings.TrimSpace(string(token)), contracts.InstallInput{Profile: "web-platform", Database: contracts.DatabaseInput{Driver: "sqlite"}, SiteName: "Audit test", BaseUrl: "http://localhost", AdminUsername: "admin", AdminEmail: "admin@example.test", AdminPassword: "test-password-strong"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _, identity, _ := manager.Services()
+	session, raw, err := identity.Issue(ctx, admin, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	router := New(Config{Core: bootstrap.Core(), Install: manager, Assets: fstest.MapFS{"index.html": {Data: []byte("app")}}, Logger: slog.New(slog.NewTextHandler(io.Discard, nil))})
+	request := func(method, path string, input any, cookie, csrf string) *httptest.ResponseRecorder {
+		data, _ := json.Marshal(input)
+		req := httptest.NewRequest(method, "http://localhost/api/v1"+path, bytes.NewReader(data))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-CSRF-Token", csrf)
+		if cookie != "" {
+			req.AddCookie(&http.Cookie{Name: "unicore_session", Value: cookie})
+		}
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, req)
+		return response
+	}
+	assertStatus := func(response *httptest.ResponseRecorder, status int) {
+		t.Helper()
+		if response.Code != status {
+			t.Fatalf("HTTP %d: %s", response.Code, response.Body.String())
+		}
+	}
+	challenge := func() (string, string) {
+		response := request("GET", "/auth/captcha", nil, "", "")
+		assertStatus(response, 200)
+		var challenge contracts.CaptchaResponse
+		_ = json.Unmarshal(response.Body.Bytes(), &challenge)
+		svg, _ := base64.StdEncoding.DecodeString(strings.Split(challenge.Data.Image, ",")[1])
+		answer := ""
+		for _, m := range regexp.MustCompile(`>([0-9])</text>`).FindAllStringSubmatch(string(svg), -1) {
+			answer += m[1]
+		}
+		return challenge.Data.ID, answer
+	}
+	logs := func(action string) contracts.AuditLogList {
+		list, err := identity.Store.SystemLogs(ctx, contracts.AuditLogQuery{Action: action, Page: 1, PageSize: 20, Sort: "created_at", Direction: "desc"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return list
+	}
+	// A wrong password with a valid captcha records the attempted identity
+	// without revealing whether the account exists.
+	id, answer := challenge()
+	assertStatus(request("POST", "/auth/login", contracts.LoginInput{Username: "ghost", Password: "wrong-password-strong", CaptchaID: id, CaptchaAnswer: answer}, "", ""), 401)
+	failed := logs("auth.login.failed")
+	if failed.Total != 1 {
+		t.Fatal("login failure not audited", failed.Total)
+	}
+	entry := failed.Items[0]
+	if entry.ActorName != "ghost" || entry.Realm != "user" || !strings.Contains(entry.Detail, "reason=credentials") || entry.IpAddress == "" {
+		t.Fatal("unexpected login failure audit", entry.ActorName, entry.Realm, entry.Detail, entry.IpAddress)
+	}
+	// A successful login keeps its existing success row; the installation
+	// itself already signed the administrator in once.
+	id, answer = challenge()
+	login := request("POST", "/auth/login", contracts.LoginInput{Username: "admin", Password: "test-password-strong", CaptchaID: id, CaptchaAnswer: answer}, "", "")
+	assertStatus(login, 200)
+	if signed := logs("auth.login"); signed.Total != 2 || signed.Items[0].ActorID != admin.ID {
+		t.Fatal("successful login not audited", signed.Total)
+	}
+	// The explicit sign-out records who left, in the administrator realm.
+	// The pre-issued session keeps its own bound CSRF token.
+	assertStatus(request("POST", "/admin/auth/logout", nil, raw, session.CsrfToken), 200)
+	out := logs("auth.logout")
+	if out.Total != 1 || out.Items[0].ActorID != admin.ID || out.Items[0].Realm != "administrator" {
+		t.Fatal("logout not audited", out.Total)
+	}
 }

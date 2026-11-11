@@ -31,8 +31,9 @@ export function HomePage({ metadata }: PageProps) {
     <header className={cn('sticky top-0 z-40 transition-all duration-500 ease-out', scrolled && 'pt-2.5')}>
       <div className={cn('mx-auto flex transition-all duration-500 ease-out', scrolled ? 'max-w-[52rem] px-3' : 'max-w-6xl px-4 md:px-6')}>
         <nav aria-label={t('站点导航')} className={cn('flex h-16 w-full items-center justify-between gap-2 transition-all duration-500 ease-out',
-          scrolled && 'h-12 rounded-2xl border-[0.5px] border-line bg-background/60 px-4 shadow-[0_2px_16px_-6px_var(--primary-shadow)] backdrop-blur-xl')}>
-          <BrandLockup name={metadata.site_name} />
+          scrolled && 'h-12 rounded-2xl bg-background/60 px-4 shadow-[0_2px_16px_-6px_var(--primary-shadow)] backdrop-blur-xl')}>
+          {/* display:contents on BrandLockup makes its children flex items; keep logo+title glued together. */}
+          <span className="flex items-center gap-2 text-lg font-semibold text-ink"><BrandLockup name={metadata.site_name} /></span>
           <div className="hidden min-w-0 items-center gap-0.5 lg:flex">
             <NavButton label={t('产品特性')} onClick={() => jump('home-features')} />
             <NavButton label={t('快速开始')} onClick={() => jump('home-how')} />
@@ -253,7 +254,7 @@ function Features() {
       <p className="mb-3 text-xs font-medium uppercase tracking-widest text-muted">{t('核心特性')}</p>
       <h2 className="text-2xl font-bold leading-tight tracking-tight md:text-3xl">{t('为团队而生，')}<br />{t('为规模而设计')}</h2>
       <div className="mt-12 grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-line bg-line md:grid-cols-3">
-        <BentoCell num="01" span title={t('文件管理')} desc={t('本地磁盘与 S3 / MinIO 对象存储，分片直传、签名下载与生命周期管理开箱即用。')}>
+        <BentoCell num="01" span title={t('文件存储')} desc={t('本地磁盘与 S3 / MinIO 对象存储，分片直传、签名下载与生命周期管理开箱即用。')}>
           <div className="mt-4 grid grid-cols-3 gap-2">
             {[t('本地磁盘'), 'S3', 'MinIO', t('分片直传'), t('签名下载'), t('生命周期')].map(name => (
               <span key={name} className="flex items-center justify-center rounded-lg border border-line px-2 py-2 text-xs text-muted transition-colors hover:border-[var(--primary-border)] hover:text-accent">{name}</span>

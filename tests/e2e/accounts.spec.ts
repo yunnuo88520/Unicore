@@ -2,7 +2,7 @@
 // Description: Real browser registration/recovery against the Go server and an isolated SMTP sink.
 import { createServer, type Socket } from 'node:net';
 import type { Page } from '@playwright/test';
-import { test, expect } from './fixtures';
+import { test, expect, installPlatform, sdkClient, loginClient, workspaceLogin, type Instance } from './fixtures';
 import { capture } from './visual';
 
 async function smtpSink() {
@@ -35,7 +35,29 @@ async function solveCaptcha(page: Page) {
   await page.getByLabel('图形验证码', { exact: true }).fill(answer);
 }
 
-test('SMTP settings, verified registration and password recovery revoke old sessions', async ({ page, instance }, info) => {
+async function prepareMailFlow(instance: Instance, smtp: Awaited<ReturnType<typeof smtpSink>>) {
+  await installPlatform(instance, { username: 'admin', email: 'admin@example.test', password: 'test-password-strong' });
+  const admin = sdkClient(instance.url, 'administrator');
+  await loginClient(admin, 'admin', 'test-password-strong');
+  await admin.bootstrap();
+  await admin.patchSettings({ changes: Object.entries({
+    'site.name': 'Mail Unicore', 'mail.host': '127.0.0.1', 'mail.port': String(smtp.port),
+    'mail.tls': 'plain', 'mail.from': 'sender@example.test',
+  }).map(([key, value]) => ({ key, value })) });
+  await admin.web!.testMail('recipient@example.test');
+  await admin.patchSettings({ changes: Object.entries({
+    'account.registration_enabled': 'true', 'account.email_verification_required': 'true',
+    'account.email_login_enabled': 'true', 'account.password_reset_enabled': 'true',
+  }).map(([key, value]) => ({ key, value })) });
+  return admin;
+}
+
+function latestMailCode(messages: string[]) {
+  const raw = messages.at(-1)!.replace(/=\n/g, '').replace(/=([0-9A-F]{2})/g, (_, hex: string) => String.fromCharCode(parseInt(hex, 16)));
+  return Buffer.from(raw, 'binary').toString('utf8').match(/验证码：([0-9]{6})/)![1];
+}
+
+test('SMTP settings validate saved secrets, delivery and mail-flow controls', async ({ page, instance }, info) => {
   const smtp = await smtpSink();
   try {
     const installed = await instance.request.post('/api/v1/install/complete', { headers: { 'X-Bootstrap-Token': instance.token }, data: { profile: 'web-platform', database: { driver: 'sqlite', dsn: '' }, site_name: 'Mail Unicore', base_url: instance.url, admin_username: 'admin', admin_email: 'admin@example.test', admin_password: 'test-password-strong' } });
@@ -58,20 +80,31 @@ test('SMTP settings, verified registration and password recovery revoke old sess
     await expect(page.getByText('测试邮件已发送，可开启邮件账号流程。')).toBeVisible();
     expect(smtp.messages[0]).toContain('From: "Unicore Notices" <sender@example.test>');
     await expect(page.getByRole('dialog',{name:'发送测试邮件',exact:true})).toHaveCount(0);
-    await page.getByRole('switch', { name: '邮件找回密码', exact: true }).check();
-    await page.getByRole('switch', { name: '邮箱验证码登录', exact: true }).check();
-    await page.getByRole('button', { name: '保存设置' }).click();
-    await expect(page.getByRole('button', { name: '保存设置' })).toBeDisabled();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await expect(page.getByRole('tab')).toHaveCount(0);
     await capture(page, info, 'mail-settings');
+    // The mail-flow toggles live outside the mail page: recovery under 安全与控制, email-code login under 账户安全.
+    await page.goto(`${instance.url}/admin/site?tab=security`);
+    await page.getByRole('switch', { name: '邮件找回密码', exact: true }).check();
+    await page.getByRole('button', { name: '保存设置' }).click();
+    await expect(page.getByRole('button', { name: '保存设置' })).toBeDisabled();
+    await page.goto(`${instance.url}/admin/account-policy`);
+    await page.getByRole('switch', { name: '邮箱验证码登录', exact: true }).check();
+    await page.getByRole('button', { name: '保存设置' }).click();
+    await expect(page.getByRole('button', { name: '保存设置' })).toBeDisabled();
     await page.goto(`${instance.url}/admin/site?tab=registration`);
     await page.getByRole('switch',{name:'开放注册',exact:true}).check();
     await page.getByRole('switch',{name:'注册邮箱验证',exact:true}).check();
     await page.getByRole('button',{name:'保存设置',exact:true}).click();
     await expect(page.getByRole('button',{name:'保存设置',exact:true})).toBeDisabled();
-    await page.getByRole('button',{name:'账号菜单',exact:true}).click();
-    await page.getByRole('menuitem',{name:'退出登录',exact:true}).click();
+  } finally { await smtp.close(); }
+});
+
+test('verified registration enforces email proof before password login', async ({ page, instance }, info) => {
+  const smtp = await smtpSink();
+  try {
+    await prepareMailFlow(instance, smtp);
+    const mailCode = () => latestMailCode(smtp.messages);
     await page.goto(instance.url);
     await page.getByRole('link', { name: '重发验证邮件', exact: true }).click();
     await expect(page.getByRole('heading', { name: '重新验证邮箱' })).toBeVisible();
@@ -87,11 +120,6 @@ test('SMTP settings, verified registration and password recovery revoke old sess
     await page.getByRole('button', { name: '注册并验证邮箱' }).click();
     await expect(page.getByRole('heading', { name: '验证邮箱', exact: true })).toBeVisible();
     await expect.poll(() => smtp.messages.length).toBe(2);
-    const mailCode = () => {
-      const raw = smtp.messages.at(-1)!.replace(/=\n/g, '').replace(/=([0-9A-F]{2})/g, (_, hex: string) => String.fromCharCode(parseInt(hex, 16)));
-      const decoded = Buffer.from(raw, 'binary').toString('utf8');
-      return decoded.match(/验证码：([0-9]{6})/)![1];
-    };
     await capture(page, info, 'register-code');
     await page.getByLabel('邮箱验证码', { exact: true }).fill(mailCode());
     await page.getByRole('button', { name: '确认验证邮箱' }).click();
@@ -102,7 +130,49 @@ test('SMTP settings, verified registration and password recovery revoke old sess
     await page.getByLabel('密码', { exact: true }).fill('original-password-strong');
     await solveCaptcha(page);
     await page.getByRole('button', { name: '登录工作空间' }).click();
-    await expect(page.getByRole('heading', { name: '一份核心，无限可能.' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '工作台概览' })).toBeVisible();
+    await page.getByRole('button', { name: '账号菜单', exact: true }).click();
+    await page.getByRole('menuitem', { name: '退出登录', exact: true }).click();
+    await expect(page.getByRole('heading', { name: '登录 Mail Unicore' })).toBeVisible();
+  } finally { await smtp.close(); }
+});
+
+test('email-code login rejects incorrect proof and preserves role boundaries', async ({ page, instance }, info) => {
+  const smtp = await smtpSink();
+  try {
+    const admin = await prepareMailFlow(instance, smtp);
+    await admin.web!.createUser({ username: 'browsermember', email: 'browsermember@example.test', password: 'original-password-strong', role: 'user' });
+    const mailCode = () => latestMailCode(smtp.messages);
+    await page.goto(instance.url);
+    await page.getByRole('link', { name: '邮箱验证码登录', exact: true }).click();
+    await page.getByLabel('邮箱', { exact: true }).fill('browsermember@example.test');
+    await solveCaptcha(page);
+    await capture(page, info, 'email-login-form');
+    await page.getByRole('button', { name: '发送登录验证码' }).click();
+    await expect(page.getByRole('heading', { name: '输入登录验证码' })).toBeVisible();
+    await expect.poll(() => smtp.messages.length).toBe(2);
+    await capture(page, info, 'email-login-code');
+    const actualCode = mailCode();
+    await page.getByLabel('邮箱验证码', { exact: true }).fill(actualCode === '000000' ? '000001' : '000000');
+    await page.getByRole('button', { name: '验证并登录' }).click();
+    await expect(page.locator('main').getByRole('alert')).toBeVisible();
+    await capture(page, info, 'email-code-error');
+    await page.getByLabel('邮箱验证码', { exact: true }).fill(actualCode);
+    await page.getByRole('button', { name: '验证并登录' }).click();
+    await expect(page.getByRole('heading', { name: '工作台概览' })).toBeVisible();
+    await page.goto(`${instance.url}/users`);
+    await expect(page.getByText('没有访问权限')).toBeVisible();
+    await capture(page, info, 'permission-denied');
+  } finally { await smtp.close(); }
+});
+
+test('password recovery rejects every old session and accepts the replacement password', async ({ page, instance }, info) => {
+  const smtp = await smtpSink();
+  try {
+    const admin = await prepareMailFlow(instance, smtp);
+    await admin.web!.createUser({ username: 'browsermember', email: 'browsermember@example.test', password: 'original-password-strong', role: 'user' });
+    await workspaceLogin(page, instance.url, 'browsermember', 'original-password-strong');
+    const mailCode = () => latestMailCode(smtp.messages);
     const oldCookies = await page.context().cookies();
     // A second browser context requests reset while the first remains authenticated.
     const recovery = await page.context().browser()!.newContext({ viewport: page.viewportSize()! });
@@ -114,7 +184,7 @@ test('SMTP settings, verified registration and password recovery revoke old sess
       await capture(resetPage, info, 'forgot-form');
       await resetPage.getByRole('button', { name: '发送重置验证码' }).click();
       await expect(resetPage.getByRole('heading', { name: '设置新密码', exact: true })).toBeVisible();
-      await expect.poll(() => smtp.messages.length).toBe(3);
+      await expect.poll(() => smtp.messages.length).toBe(2);
       await capture(resetPage, info, 'reset-code');
       await resetPage.getByLabel('邮箱验证码', { exact: true }).fill(mailCode());
       await resetPage.getByLabel('新密码', { exact: true }).fill('changed-password-strong');
@@ -133,25 +203,6 @@ test('SMTP settings, verified registration and password recovery revoke old sess
     await page.reload();
     await expect(page.getByRole('heading', { name: '登录 Mail Unicore' })).toBeVisible();
     await capture(page, info, 'password-login');
-    await page.getByRole('link', { name: '邮箱验证码登录', exact: true }).click();
-    await page.getByLabel('邮箱', { exact: true }).fill('browsermember@example.test');
-    await solveCaptcha(page);
-    await capture(page, info, 'email-login-form');
-    await page.getByRole('button', { name: '发送登录验证码' }).click();
-    await expect(page.getByRole('heading', { name: '输入登录验证码' })).toBeVisible();
-    await expect.poll(() => smtp.messages.length).toBe(4);
-    await capture(page, info, 'email-login-code');
-    const actualCode = mailCode();
-    await page.getByLabel('邮箱验证码', { exact: true }).fill(actualCode === '000000' ? '000001' : '000000');
-    await page.getByRole('button', { name: '验证并登录' }).click();
-    await expect(page.locator('main').getByRole('alert')).toBeVisible();
-    await capture(page, info, 'email-code-error');
-    await page.getByLabel('邮箱验证码', { exact: true }).fill(actualCode);
-    await page.getByRole('button', { name: '验证并登录' }).click();
-    await expect(page.getByRole('heading', { name: '一份核心，无限可能.' })).toBeVisible();
-    await page.goto(`${instance.url}/users`);
-    await expect(page.getByText('没有访问权限')).toBeVisible();
-    await capture(page, info, 'permission-denied');
   } finally { await smtp.close(); }
 });
 
@@ -273,7 +324,7 @@ test('linked auth pages, confirmation, duplicate feedback and recovery preview',
     await page.getByLabel('账号或邮箱', { exact: true }).fill('previewmember');
     await page.getByLabel('密码', { exact: true }).fill(newPassword);
     await page.getByRole('button', { name: '登录工作空间', exact: true }).click();
-    await expect(page.getByRole('heading', { name: '一份核心，无限可能.', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '工作台概览' })).toBeVisible();
     expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain(newPassword);
   } finally { await smtp.close(); }
 });

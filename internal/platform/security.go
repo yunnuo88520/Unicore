@@ -27,6 +27,13 @@ var (
 	ErrLastAdmin   = errors.New("cannot disable or demote the last super administrator")
 	ErrRateLimited = errors.New("too many attempts")
 	ErrCaptcha     = errors.New("invalid or expired captcha")
+	// ErrDepartmentInUse refuses deleting a department that still has child
+	// departments or attached users.
+	ErrDepartmentInUse = errors.New("department still has children or members")
+	// ErrPostInUse refuses deleting a post that still has user memberships.
+	ErrPostInUse = errors.New("post still has members")
+	// ErrPostConflict marks a duplicate post code distinct from account conflicts.
+	ErrPostConflict = errors.New("post code already exists")
 )
 
 // AccountConflict identifies the already-used field without exposing database
@@ -38,6 +45,17 @@ func (e *AccountConflict) Unwrap() error { return ErrConflict }
 
 func Token() string {
 	var data [32]byte
+	if _, err := rand.Read(data[:]); err != nil {
+		panic(err)
+	}
+	return base64.RawURLEncoding.EncodeToString(data[:])
+}
+
+// TempPassword generates a copy-paste friendly temporary password: 16 random
+// bytes over the URL-safe base64 alphabet, 22 characters of ~128-bit entropy
+// that satisfies the 12-character contract minimum.
+func TempPassword() string {
+	var data [16]byte
 	if _, err := rand.Read(data[:]); err != nil {
 		panic(err)
 	}

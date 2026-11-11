@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 	"mime"
 	"net"
 	"net/http"
@@ -24,20 +25,28 @@ import (
 	"github.com/yunnuo/unicore/internal/files"
 	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/mailer"
+	notesdomain "github.com/yunnuo/unicore/internal/modules/notes/domain"
+	notesusecase "github.com/yunnuo/unicore/internal/modules/notes/usecase"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/runtime"
+	"github.com/yunnuo/unicore/internal/scheduler"
 	"github.com/yunnuo/unicore/internal/settings"
 	"github.com/yunnuo/unicore/internal/usecase"
 	apispec "github.com/yunnuo/unicore/packages/contracts"
 )
 
 const sessionCookie = "unicore_session"
-const administratorSessionCookie = "unicore_administrator_session"
+const administratorSessionCookie = sessionCookie
 
 func failure(w http.ResponseWriter, status int, code, message string) {
 	writeJSON(w, status, contracts.ErrorResponse{Code: code, Message: message, RequestID: w.Header().Get("X-Request-ID")})
 }
 func webError(w http.ResponseWriter, err error) {
+	// Unexpected handler failures must surface in the server log: response
+	// bodies alone vanish when clients abort mid-flight.
+	if err != nil && !errors.Is(err, platform.ErrInput) && !errors.Is(err, platform.ErrConflict) && !errors.Is(err, context.Canceled) {
+		slog.Warn("handler error", "event", "http.handler_error", "error", err.Error())
+	}
 	var conflict *platform.AccountConflict
 	if errors.As(err, &conflict) {
 		message := "账号已存在，请使用其他用户名"
@@ -63,11 +72,11 @@ func webError(w http.ResponseWriter, err error) {
 		code = "ENTITY_NOT_FOUND"
 	case errors.Is(err, usecase.ErrEntityConflict):
 		code = "ENTITY_CONFLICT"
-	case errors.Is(err, domain.ErrNoteInvalid):
+	case errors.Is(err, notesdomain.ErrNoteInvalid):
 		code = "NOTE_INVALID"
-	case errors.Is(err, usecase.ErrNoteNotFound):
+	case errors.Is(err, notesusecase.ErrNoteNotFound):
 		code = "NOTE_NOT_FOUND"
-	case errors.Is(err, usecase.ErrNoteConflict):
+	case errors.Is(err, notesusecase.ErrNoteConflict):
 		code = "NOTE_CONFLICT"
 	case errors.Is(err, files.ErrInvalid):
 		code = "FILE_INVALID"
@@ -89,6 +98,10 @@ func webError(w http.ResponseWriter, err error) {
 		code = "LOCAL_PASSWORD_REQUIRED"
 	case errors.Is(err, settings.ErrMailNotReady):
 		code = "MAIL_NOT_READY"
+	case errors.Is(err, mailer.ErrChannelUnavailable):
+		code = "NOTIFICATION_CHANNEL_DELIVERY_FAILED"
+	case errors.Is(err, mailer.ErrChannelNotReady):
+		code = "NOTIFICATION_CHANNEL_NOT_READY"
 	case errors.Is(err, mailer.ErrUnavailable):
 		code = "MAIL_DELIVERY_FAILED"
 	case errors.Is(err, platform.ErrFlowDisabled):
@@ -111,14 +124,37 @@ func webError(w http.ResponseWriter, err error) {
 		code = "INVALID_CREDENTIALS"
 	case errors.Is(err, platform.ErrForbidden):
 		code = "PERMISSION_DENIED"
+	// Bare conflicts (menu version CAS, role name uniqueness races) read as
+	// generic record conflicts; account duplicates keep their dedicated
+	// AccountConflict branch above, and post conflicts map below.
 	case errors.Is(err, platform.ErrConflict):
-		code = "ACCOUNT_EXISTS"
+		code = "ENTITY_CONFLICT"
+	case errors.Is(err, platform.ErrPostConflict):
+		code = "POST_CONFLICT"
+	case errors.Is(err, platform.ErrDepartmentInUse):
+		code = "DEPARTMENT_IN_USE"
+	case errors.Is(err, platform.ErrPostInUse):
+		code = "POST_IN_USE"
 	case errors.Is(err, platform.ErrLastAdmin):
 		code = "LAST_SUPER_ADMIN"
 	case errors.Is(err, platform.ErrRateLimited):
 		code = "RATE_LIMITED"
 	case errors.Is(err, platform.ErrCaptcha):
 		code = "CAPTCHA_INVALID"
+	case errors.Is(err, platform.ErrHumanCheck):
+		code = "HUMAN_CHECK_FAILED"
+	case errors.Is(err, platform.ErrHumanCheckConfig):
+		code = "HUMAN_CHECK_NOT_CONFIGURED"
+	case errors.Is(err, scheduler.ErrScheduleInvalid):
+		code = "TASK_SCHEDULE_INVALID"
+	case errors.Is(err, scheduler.ErrExecutorUnknown):
+		code = "TASK_EXECUTOR_UNKNOWN"
+	case errors.Is(err, scheduler.ErrBuiltinImmutable):
+		code = "TASK_BUILTIN_IMMUTABLE"
+	case errors.Is(err, scheduler.ErrTaskNotFound):
+		code = "TASK_NOT_FOUND"
+	case errors.Is(err, scheduler.ErrTaskExists):
+		code = "TASK_NAME_EXISTS"
 	}
 	definition := contracts.ErrorCatalog[code]
 	failure(w, definition.Status, code, definition.Message)
@@ -161,7 +197,8 @@ func decode(w http.ResponseWriter, r *http.Request, value any) bool {
 	if ok {
 		schema := operation.RequestBody.Content["application/json"].Schema.Ref
 		if schema != "" {
-			return validationResult(w, apispec.ValidateJSON(strings.TrimPrefix(schema, "#/components/schemas/"), raw))
+			fields := apispec.ValidateJSON(strings.TrimPrefix(schema, "#/components/schemas/"), raw)
+			return validationResult(w, fields)
 		}
 	}
 	return true
@@ -216,9 +253,7 @@ func administratorRequest(r *http.Request) bool {
 	return strings.HasPrefix(r.URL.Path, "/api/v1/admin/")
 }
 func identityCookie(r *http.Request) string {
-	if administratorRequest(r) {
-		return administratorSessionCookie
-	}
+
 	return sessionCookie
 }
 func rawSession(r *http.Request) string {
@@ -237,7 +272,7 @@ func require(manager *install.Manager, w http.ResponseWriter, r *http.Request, p
 			return session, false
 		}
 	}
-	if permission != "" && (!platform.Has(session.User, permission) || (platform.SuperOnly(permission) && !platform.IsSuper(session.User))) {
+	if permission != "" && !platform.Has(session.User, permission) {
 		webError(w, platform.ErrForbidden)
 		return session, false
 	}
@@ -292,8 +327,11 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 	data.Capabilities.Updater = config.Updates != nil && data.Installed
 	data.Capabilities.Installation = true
 	data.Capabilities.Database = data.Installed
-	data.Capabilities.Settings = data.Installed
+	data.Capabilities.Settings = data.Installed && data.Profile == runtime.WebPlatform
 	data.Capabilities.Authentication = data.Installed && identity != nil
+	// Every profile reports the contract-reference flag truthfully: the built-in
+	// API docs page and its navigation entry gate on this capability.
+	data.Capabilities.ApiDocs = config.APIDocs
 	if service != nil && profile == runtime.WebPlatform {
 		if service.Branding != nil {
 			if value, err := service.Branding.Snapshot(r.Context(), false); err == nil {
@@ -332,14 +370,27 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 		if value, err := service.Value(r.Context(), "maintenance.message"); err == nil {
 			data.MaintenanceMessage = &value
 		}
-		if value, err := service.Value(r.Context(), "appearance.theme"); err == nil {
-			data.Theme = &value
-		}
 	}
 	if identity != nil {
 		if session, err := identity.Session(r.Context(), rawSession(r)); err == nil {
 			data.CurrentUser = &session.User
+			if platform.HasManagementAccess(session.User) {
+				data.AdminPath = config.Install.AdminPath(r.Context())
+			}
 			data.CsrfToken = &session.CsrfToken
+			if entries, err := identity.Store.ListMenuConfig(r.Context()); err == nil {
+				if len(entries.Items) != 0 {
+					data.Menus = &entries.Items
+				}
+				// The normalized navigation is projected per surface and per
+				// member grants; the legacy items above stay as a compat echo.
+				surface := "user"
+				if administratorRequest(r) {
+					surface = "administrator"
+				}
+				projected := platform.NavigationFor(contracts.Navigation{Version: entries.Version, Sections: entries.Sections, Nodes: entries.Nodes}, session.User, surface)
+				data.Navigation = &projected
+			}
 			if identity.Personal != nil {
 				if info, e := identity.Personal.Profile(r.Context(), rawSession(r)); e == nil {
 					required := info.Force2fa && !info.TotpEnabled
@@ -355,7 +406,12 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 		}
 	}
 	if profile == runtime.WebPlatform && (!administratorRequest(r) || data.CurrentUser == nil) {
-		data.Version = ""
+		// Signed-in members keep the version string so the shared sidebar badge
+		// renders on the member workspace too; build coordinates and the update
+		// capability stay administrator-only, and anonymous visitors learn nothing.
+		if data.CurrentUser == nil {
+			data.Version = ""
+		}
 		data.Commit = ""
 		data.BuildTime = ""
 		data.Capabilities.Updater = false
@@ -387,6 +443,18 @@ func mountWeb(api chi.Router, config Config) {
 	manager := config.Install
 	mountAccounts(api, config)
 	mountRoles(api, config)
+	mountDepartments(api, config)
+	mountPosts(api, config)
+	mountAPIOperations(api, config)
+	mountMenus(api, config)
+	mountTasks(api, config)
+	mountDashboard(api, config)
+	mountMonitor(api, config)
+	mountInbox(api, config)
+	mountEvents(api, config)
+	mountLogStream(api, config)
+	mountDictionaries(api, config)
+	mountXlsx(api, config)
 	mountOIDC(api, config)
 	limiter := platform.NewLimiter()
 	api.Get("/install/status", func(w http.ResponseWriter, r *http.Request) { success(w, manager.Status()) })
@@ -439,12 +507,13 @@ func mountWeb(api chi.Router, config Config) {
 	mountPersonal(api, config)
 	mountLogs(api, config)
 	for _, administrators := range []bool{false, true} {
-		path, permission, role := "/admin/users", "users", "user"
+		path, permission := "/admin/users", "users"
 		if administrators {
-			path, permission, role = "/admin/administrators", "administrators", "super_admin"
+			path, permission = "/admin/administrators", "administrators"
 		}
 		api.Get(path, func(w http.ResponseWriter, r *http.Request) {
-			if _, ok := require(manager, w, r, permission+":read"); !ok {
+			actor, ok := require(manager, w, r, permission+":read")
+			if !ok {
 				return
 			}
 			page, _ := strconv.Atoi(r.URL.Query().Get("page"))
@@ -464,7 +533,7 @@ func mountWeb(api chi.Router, config Config) {
 				return
 			}
 			identity := manager.Identity(administrators)
-			data, err := identity.Store.ListUsers(r.Context(), search, page, size)
+			data, err := identity.Store.ListUsersScoped(r.Context(), actor.User, search, page, size, r.URL.Query().Get("post_id"))
 			if err != nil {
 				webError(w, err)
 				return
@@ -480,10 +549,9 @@ func mountWeb(api chi.Router, config Config) {
 			if !decode(w, r, &input) {
 				return
 			}
-			if input.Role != role {
-				webError(w, platform.ErrInput)
-				return
-			}
+			// Roles never cross realms: the repository validates that
+			// administrator accounts take super_admin or an administrator-realm
+			// custom role, and user accounts a user-realm role.
 			identity := manager.Identity(administrators)
 			data, err := identity.Create(r.Context(), input, actor.User.ID)
 			if err != nil {
@@ -501,10 +569,9 @@ func mountWeb(api chi.Router, config Config) {
 			if !decode(w, r, &input) {
 				return
 			}
-			if input.Role != role {
-				webError(w, platform.ErrInput)
-				return
-			}
+			// An omitted or empty role keeps the current assignment; a non-empty
+			// role must belong to the identity realm (validated against the
+			// database) and the last active super_admin stays protected.
 			identity := manager.Identity(administrators)
 			data, err := identity.Store.UpdateUser(r.Context(), chi.URLParam(r, "id"), input, actor.User.ID)
 			if err != nil {
@@ -513,6 +580,28 @@ func mountWeb(api chi.Router, config Config) {
 			}
 			success(w, data)
 		})
+		// The management password reset is a member-account capability: the
+		// contract declares it for /admin/users only, so the administrator
+		// alias never mounts it and an undeclared route would fail closed.
+		if !administrators {
+			api.Post(path+"/{id}/password", func(w http.ResponseWriter, r *http.Request) {
+				actor, ok := require(manager, w, r, "users:update")
+				if !ok {
+					return
+				}
+				var input contracts.AdminPasswordResetInput
+				if !decode(w, r, &input) {
+					return
+				}
+				identity := manager.Identity(false)
+				password, err := identity.ResetUserPassword(r.Context(), chi.URLParam(r, "id"), input, actor.User.ID)
+				if err != nil {
+					webError(w, err)
+					return
+				}
+				success(w, contracts.AdminPasswordReset{Password: password})
+			})
+		}
 	}
 
 	for _, admin := range []bool{false, true} {

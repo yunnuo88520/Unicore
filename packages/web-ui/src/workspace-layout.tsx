@@ -1,7 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Single structural shell for Web and Wails; pages supply content without owning navigation offsets.
 // Geometry variants (data-layout/sidebar) live in shell.css; all visuals are Tailwind utilities.
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useI18n } from './i18n';
 import './shell.css';
 
@@ -11,6 +11,14 @@ type WorkspaceLayoutProps = {
 };
 export function WorkspaceLayout({ navigation, header, children, overlays, navigationOpen, onNavigationClose, contentClassName = '', navigationCollapsed = false }: WorkspaceLayoutProps) {
   const { t } = useI18n();
+  // The header carries no bottom border; like shadcn-admin it only casts a shadow once content scrolls beneath it.
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const update = () => setScrolled((document.body.scrollTop || document.documentElement.scrollTop) > 10);
+    update();
+    document.addEventListener('scroll', update, { passive: true });
+    return () => document.removeEventListener('scroll', update);
+  }, []);
   useEffect(() => {
     if (!navigationOpen) return;
     const close = (event: KeyboardEvent) => { if (event.key === 'Escape') onNavigationClose(); };
@@ -27,7 +35,7 @@ export function WorkspaceLayout({ navigation, header, children, overlays, naviga
       {navigation}
     </aside>
     <div className="main-shell min-w-0 w-full">
-      <header className="topbar sticky top-0 z-20 flex h-[76px] min-w-0 items-center justify-between border-b border-line bg-surface px-[38px] max-md:h-[65px] max-md:px-[22px]">{header}</header>
+      <header className={`topbar sticky top-0 z-20 flex h-[76px] min-w-0 items-center justify-between bg-background px-4 max-md:h-[65px] ${scrolled ? 'shadow-md' : 'shadow-none'}`}>{header}</header>
       <main id="main-content" tabIndex={-1} className={`main-content mx-auto w-full min-w-0 pt-9 px-[38px] pb-10 outline-none max-md:px-[22px] ${contentClassName}`}>{children}</main>
     </div>
     {overlays}

@@ -7,6 +7,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/files"
+	"github.com/yunnuo/unicore/internal/modules/notes/storage/notessql"
+	"github.com/yunnuo/unicore/internal/modules/notes/usecase"
 	"github.com/yunnuo/unicore/internal/platform"
 	"io"
 	"mime"
@@ -18,11 +20,27 @@ import (
 
 func fileActor(r *http.Request, s contracts.Session) files.Actor {
 	realm := "user"
-	if administratorRequest(r) {
-		realm = "administrator"
-	}
-	return files.Actor{ID: s.User.ID, Realm: realm, Admin: realm == "administrator" && platform.IsSuper(s.User)}
+	// Only a super administrator receives the service-wide bypass. Restricted
+	// operators use resource-specific scopes even in the management workspace.
+	return files.Actor{ID: s.User.ID, Realm: realm, Admin: administratorRequest(r) && platform.IsSuper(s.User)}
 }
+
+// fileActionCapabilities merges the storage-side ownership facts with the
+// session's explicit action grants: download needs files:access and deletion
+// needs files:delete, so restricted administrators and custom roles never see
+// an enabled control their grants would refuse. Local and desktop projections
+// have no stashed session and stay untouched.
+func fileActionCapabilities(r *http.Request, list *contracts.FileList) {
+	session, ok := r.Context().Value(policySessionKey{}).(contracts.Session)
+	if !ok {
+		return
+	}
+	for i := range list.Items {
+		list.Items[i].Capabilities.Download = list.Items[i].Capabilities.Download && platform.Has(session.User, "files:access")
+		list.Items[i].Capabilities.Delete = list.Items[i].Capabilities.Delete && platform.Has(session.User, "files:delete")
+	}
+}
+
 func mountStorage(api chi.Router, config Config) {
 	manager := config.Install
 	handler := func(permission string, fn func(http.ResponseWriter, *http.Request, *files.Service, files.Actor)) http.HandlerFunc {
@@ -198,11 +216,31 @@ func mountStorage(api chi.Router, config Config) {
 			if r.URL.Query().Get("page") != "" {
 				page, _ = strconv.Atoi(r.URL.Query().Get("page"))
 			}
-			v, e := s.List(r.Context(), a, r.URL.Query().Get("search"), page)
+			// Each workspace resolves the permission used by its file list.
+			scopePermission := "files:access"
+			if administratorRequest(r) {
+				scopePermission = "storage:read"
+			}
+			scope := files.ScopeFilter{}
+			if !a.Admin {
+				if policySession, ok := r.Context().Value(policySessionKey{}).(contracts.Session); ok {
+					identity := config.Install.Identity(false)
+					if identity != nil {
+						filter, err := identity.Store.DataScope(r.Context(), policySession.User, scopePermission)
+						if err != nil {
+							webError(w, err)
+							return
+						}
+						scope = files.ScopeFilter{All: filter.All, CreatorIDs: filter.UserIDs}
+					}
+				}
+			}
+			v, e := s.List(r.Context(), a, r.URL.Query().Get("search"), page, scope)
 			if e != nil {
 				webError(w, e)
 				return
 			}
+			fileActionCapabilities(r, &v)
 			success(w, v)
 		}).ServeHTTP)
 		api.Post(prefix+"/files/uploads", fileHandler(true, func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
@@ -244,8 +282,72 @@ func mountStorage(api chi.Router, config Config) {
 			}
 			success(w, v)
 		}).ServeHTTP)
-		api.Post(prefix+"/files/{id}/access", fileHandler(false, func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
-			v, e := s.Access(r.Context(), a, chi.URLParam(r, "id"))
+		api.Post(prefix+"/files/{id}/access", handler("", func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
+			// The contract allows files:access OR notes:access here. Plain
+			// signing needs the files grant; attachment signing rides on note
+			// reading and stays limited to files actually attached to a note
+			// inside the session's current read scope.
+			session, _ := r.Context().Value(policySessionKey{}).(contracts.Session)
+			noteID := strings.TrimSpace(r.URL.Query().Get("note_id"))
+			if !platform.Has(session.User, "files:access") && noteID == "" {
+				webError(w, platform.ErrForbidden)
+				return
+			}
+			// Every issuance re-resolves the session's current data scope: a
+			// grant never outlives the scope it was approved under.
+			scopes := []files.ScopeFilter{}
+			scopePermission := "files:access"
+			if noteID != "" {
+				scopePermission = "notes:access"
+			}
+			filter := platform.ScopeFilter{}
+			if !a.Admin && session.User.ID != "" {
+				if identity := config.Install.Identity(false); identity != nil {
+					resolved, err := identity.Store.DataScope(r.Context(), session.User, scopePermission)
+					if err != nil {
+						webError(w, err)
+						return
+					}
+					filter = resolved
+					scopes = append(scopes, files.ScopeFilter{All: filter.All, CreatorIDs: filter.UserIDs})
+				}
+			}
+			if noteID != "" {
+				if !platform.Has(session.User, "notes:access") {
+					webError(w, platform.ErrForbidden)
+					return
+				}
+				store, _, _, _ := config.Install.Services()
+				if store == nil {
+					failure(w, 404, "NOT_FOUND", "文件不存在")
+					return
+				}
+				visibility := usecase.NoteVisibility{}
+				if filter.All {
+					visibility.All = true
+				} else if !filter.Self() {
+					for _, id := range filter.UserIDs {
+						visibility.Scopes = append(visibility.Scopes, a.Realm+"/"+id)
+					}
+				}
+				notes := &usecase.Notes{Repo: &notessql.Repository{Store: store}}
+				entry, e := notes.Read(r.Context(), a.Realm+"/"+a.ID, noteID, visibility)
+				if e != nil {
+					webError(w, e)
+					return
+				}
+				attached := false
+				for _, id := range entry.AttachmentIds {
+					if id == chi.URLParam(r, "id") {
+						attached = true
+					}
+				}
+				if !attached {
+					failure(w, 404, "NOT_FOUND", "文件不存在")
+					return
+				}
+			}
+			v, e := s.AccessScoped(r.Context(), a, chi.URLParam(r, "id"), scopes...)
 			if e != nil {
 				webError(w, e)
 				return

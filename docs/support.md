@@ -12,11 +12,11 @@ Unicore 当前为 0.x 开发预览。下表说明代码提供的产品组合，�
 
 ## 能力与限制
 
-- 平台权限当前固定为管理员/普通用户，不提供任意角色编辑或完整 SaaS 多租户。业务仍须校验身份域与数据归属，不能只隐藏菜单。
+- 平台权限为「双域动态角色」：管理员域在固定 `super_admin` 之外支持受限管理员角色（保留集权限点仍仅 super_admin，其余管理权限可授权组合）；用户域角色按 assignable 权限点组合业务权限，并独立授予菜单入口、页面动作与可委派 API operation。导航为按身份域隔离的真实区域树，提供部门数据范围与岗位管理。业务仍须校验身份域与数据归属，不能只隐藏菜单。见 [ADR-0033](adr/ADR-0033-dynamic-user-roles.md)、[ADR-0034](adr/ADR-0034-administrator-restricted-roles.md)、[ADR-0035](adr/ADR-0035-action-permissions-departments.md)、[ADR-0036](adr/ADR-0036-navigation-regions-granular-authorization.md)。
 - 平台存储提供本地、MinIO/S3、阿里云 OSS、腾讯云 COS 适配器。开发环境已验证本地、MinIO 和 OSS；COS 的云端写入/分片权限仍待验证，其他 S3 服务也要独立验证。64 GiB 是策略上限，不是满额性能压测承诺。
 - 授权服务是可裁剪占位。OTA 有 GitHub/HTTPS 渠道、应用层签名和离线日志；Docker 更新由外部替换镜像。公开版本是否可作为 OTA 目标，以该 Release 的签名清单、可信公钥和验签结果为准；历史未签名版本不能补推定为已签名。GHCR 公开镜像（`ghcr.io/yunnuo88520/unicore`）随发行流程在 Release 发布时构建，历史已发布版本无镜像；以对应 Release 说明为准。
 - 免费桌面分发的目标不要求购买 OS 证书或官方公证，Ed25519 发布者签名、SHA-256、平台匹配、防降级与安全安装始终必需。当前创建器仍将 allow_unsigned_platform 设为 false，与免费分发目标存在差异；派生 Windows/macOS OTA 不能因此视为已可用。详见 [更新手册](03-runbooks/updates.md)。
-- 数据库新 Catalog/九份初始 SQL 已提供，应用安装和启动仍使用旧42份 SQL/旧执行器。新 namespace 账本及写前兼容保护尚未接入运行时；不能将新资产当成正式升级命令。见 [迁移开发规范](02-standards/database-migrations.md)。
+- 数据库安装与启动统一走 Catalog 单轨执行器（`migrations/runner`）：三个 namespace 各一份 `unicore_` 前缀终态基线，三方言齐备，重放幂等。历史 42+4 份 SQL 与旧执行器已删除；旧轨建立的 0.1.x 开发库不被接受（启动时明确拒绝，须重建）。PostgreSQL/MySQL 的真实实例执行路径仍以隔离 fixture 验收为准，不据此声明生产验证。见 [迁移开发规范](02-standards/database-migrations.md)。
 - 桌面支持 Windows、macOS、Linux 的原生构建入口。构建成功、helper 测试、原生窗口启动和完整更新/失败恢复是不同检查，发行候选应在各目标系统分别完成；OS 证书签名/公证尚无真实凭据验收。
 - 开发环境测试与构建不构成生产可靠性认证。部署前验证安装、重启、权限、备份恢复和目标版本升级；回退使用匹配程序与完整备份，不能只覆盖旧 binary。
 

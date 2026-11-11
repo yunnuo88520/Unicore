@@ -16,8 +16,10 @@
 | APP_SECRET_KEY | 32 字节的标准 base64 外部密钥；不注入则生成 0600 secret.key |
 | APP_ADMIN_PATH | 后台路径恢复覆盖，规则与设置一致，例如 /manage |
 | APP_DEPLOYMENT_KIND | development / tar / docker，仅表示交付介质 |
+| APP_LOG_FILE | true 时双写 APP_DATA_DIR/logs；桌面默认开启，其余见运行基座 |
+| APP_LOG_MAX_AGE_DAYS / _MAX_SIZE_MB / _MAX_TOTAL_MB | 轮转日志保留天数（0=永久）/单文件阈值/总量上限；平台可在设置页运行时调整保留天数 |
 
-数据目录包括 installation.json（DSN 密文与安装 intent）、secret.key（若未外置）、bootstrap.token（仅安装前）、instance.lock、安装完成生成的 install.lock、SQLite 时 unicore.db/WAL。不得删除安装状态来重新部署；缺少配置但存在 DB 时拒绝覆盖。profile 更换应新部署+独立迁移。其他已安装实例的 DB 始终拒绝接管；未安装非空库只有明确勾选清空并精确输入目标库名后才能初始化。
+数据目录包括 installation.json（DSN 密文与安装 intent）、secret.key（若未外置）、bootstrap.token（仅安装前）、instance.lock、安装完成生成的 install.lock、SQLite 时 unicore.db/WAL、开启文件日志时的 logs/。不得删除安装状态来重新部署；缺少配置但存在 DB 时拒绝覆盖。profile 更换应新部署+独立迁移。其他已安装实例的 DB 始终拒绝接管；未安装非空库只有明确勾选清空并精确输入目标库名后才能初始化。
 
 两个 Web 安装页默认 MySQL，PostgreSQL 同为在线推荐；SQLite 需显式选择。MySQL 分开填写地址（默认 127.0.0.1）、端口（3306）、数据库名（unicore）、用户名（root）、密码；PostgreSQL 默认端口 5432、用户名 postgres。先由运维创建当前实例独占数据库并授予表/索引/约束和必要清空权限，框架不创建数据库本身。Docker 里的 127.0.0.1 指当前容器；同网络数据库填服务名，宿主机数据库按 Docker 网络配置填写可达地址。
 
@@ -45,7 +47,7 @@ bootstrap.token 用于证明服务器所有权、防止别人抢先建管理员�
 
 ## Desktop / CLI
 
-`make dev-desktop` 使用 go.mod 锁定的 Wails（当前 v2.13.0），CLI 工具应安装匹配版本；默认系统 AppData/Unicore/desktop 自动 SQLite，APP_DATA_DIR 可隔离测试。没有安装/登录，用户表不会创建；进程锁防止同时使用同一目录。绑定生成不读写真实数据。macOS 需 Xcode tools，Linux Ubuntu22.04 需 WebKitGTK4.0，4.1 环境追加 webkit2_41；Windows 需 WebView2。
+`make dev-desktop` 使用 go.mod 锁定的 Wails（当前 v2.13.0），CLI 工具应安装匹配版本；默认系统 AppData/Unicore/desktop 自动 SQLite，APP_DATA_DIR 可隔离测试。没有安装/登录，用户表不会创建；进程锁防止同时使用同一目录。绑定生成不读写真实数据。桌面日志自动写入数据目录 logs/ 并保留 stderr 输出，保留策略用 APP_LOG_MAX_AGE_DAYS 等环境变量控制（重启生效）。macOS 需 Xcode tools，Linux Ubuntu22.04 需 WebKitGTK4.0，4.1 环境追加 webkit2_41；Windows 需 WebView2。
 
 CLI 直接运行 `build/bin/unicore execute --text "Hello Unicore"`，不打开 HTTP/Wails/DB。仅业务文本分析无持久化，输入不会写日志。
 
@@ -69,7 +71,7 @@ live 是进程存活；ready 要求已安装并 DB Ping 成功。测试通过独
 
 推荐 STARTTLS 587 或 TLS 465；证书由系统根证书验证，不提供跳过验证选项。plain 仅供 loopback SMTP sink/本机 relay，不能用于远程明文凭据传输。测试通过表示 SMTP 已接受邮件，不保证收件箱投递。监控 SMTP 服务商告警、退信与配额；M2c 已使用经用户授权的 QQ SMTP 做四种模板真实投递，收件人确认显示正常；个人凭据不进入仓库。
 
-账号邮件使用持久队列，由 server 进程运行。「系统管理 → 系统日志 → 邮件投递」展示最近 30 项的状态/尝试次数，失败自动重试最多 5 次，终止后由用户在登录页重新申请，避免把已过期验证码重新投入队列。错误仅显示 DELIVERY_FAILED/EXPIRED，不保留原始 SMTP 响应或凭据。进程重启可恢复过期租约，可能重复投递，邮件令牌仍只能使用一次。完成/终止/取消清空载荷，终态元数据在后台清理时保留最多 7 天。
+账号邮件使用持久队列，由 server 进程运行。「系统管理 → 操作日志 → 邮件投递」展示最近 30 项的状态/尝试次数，失败自动重试最多 5 次，终止后由用户在登录页重新申请，避免把已过期验证码重新投入队列。错误仅显示 DELIVERY_FAILED/EXPIRED，不保留原始 SMTP 响应或凭据。进程重启可恢复过期租约，可能重复投递，邮件令牌仍只能使用一次。完成/终止/取消清空载荷，终态元数据在后台清理时保留最多 7 天。
 
 M2a 升级前停服务并成套备份 DB、installation.json 与原密钥；新 server 验证实例归属后自动执行平台 0003/0004。迁移只增加表，重复启动校验 checksum，已有账号/设置保持。数据库权限不足时启动失败，修正后重试，不删版本记录。降级二进制前关闭注册/恢复/邮箱登录、停止 worker；旧版本无法处理邮件和新策略，完整恢复以原生一致性备份为准。
 
@@ -91,7 +93,7 @@ Web 收到 SIGINT/SIGTERM 后停止接收新请求，等待在途请求默认最
 
 管理员 super_admin 保留；所有旧自定义角色关联移除，无内置角色的账号归为 user；同时关联管理员和其他角色的账号仅保留管理员。账号、密码、邮箱及其他设置保留。自定义角色和普通用户 grants 删除，角色页改为只读两角色矩阵。全部存量会话、账号令牌、数字码和 OIDC 授权流程失效；pending/sending 邮件取消且清空载荷，已投递历史保留。升级后所有用户重新登录，未完成的验证/找回需重新申请。
 
-appearance.theme 从平台全局设置删除，平台主题只存当前浏览器；已有客户端的本地选择保留，没有本地选择时跟随系统。普通用户只显示外观入口，管理员管理所有全局配置。单机/桌面只运行 framework 迁移，不受平台数据收敛影响。
+appearance.theme 已从全部实例设置删除，主题只存当前浏览器或 WebView；已有客户端的本地选择保留，没有本地选择时跟随系统。所有图形入口统一使用右上角外观控件，不提供外观设置页，管理员管理所有全局配置。单机/桌面只运行 framework 迁移，不受平台数据收敛影响。
 
 验收：用原管理员登录管理端，检查用户数量/两角色、站点与 SMTP 配置状态；普通用户端检查无管理菜单，普通用户会话访问管理 API 被拒绝，外观保存只影响本客户端。0007 含删除旧角色/凭据，不能只换旧 binary 回退。恢复时停服，使用 [离线备份恢复工具](backup.md) 恢复同一时间点的数据库、data dir、installation.json、密钥和匹配版本程序，禁止用新配置配旧 DB。每个受支持数据库分别验证，不用单方言结果推断其他方言。
 

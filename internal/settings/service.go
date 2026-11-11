@@ -92,14 +92,26 @@ var Definitions = append([]SettingDefinition{
 	}},
 	{"maintenance.enabled", "boolean", "maintenance", "开启维护模式", "false", true, false, oneOf("true", "false")},
 	{"maintenance.message", "string", "maintenance", "维护提示信息", "", true, false, text(1000)},
-	{"appearance.theme", "string", "appearance", "默认主题", "system", false, false, oneOf("light", "dark", "system")},
 	{"admin.path", "string", "admin", "管理后台路径", "/admin", true, false, ValidAdminPath},
-	{"security.login_captcha", "boolean", "security", "登录图形验证码", "true", true, false, oneOf("true", "false")},
+	{"security.login_captcha", "boolean", "protection", "登录图形验证码", "true", true, false, oneOf("true", "false")},
 	{"security.force_2fa", "boolean", "security", "强制双重验证", "false", true, false, oneOf("true", "false")},
 	{"security.allow_disable_2fa", "boolean", "security", "允许关闭双重验证", "true", true, false, oneOf("true", "false")},
 	{"security.session_hours", "integer", "security", "会话有效期（小时）", "24", true, false, integer(1, 168)},
-	{"account.email_login_enabled", "boolean", "account", "邮箱验证码登录", "false", true, false, oneOf("true", "false")},
-	{"account.password_reset_enabled", "boolean", "account", "邮件找回密码", "false", true, false, oneOf("true", "false")},
+	{"account.email_login_enabled", "boolean", "security", "邮箱验证码登录", "false", true, false, oneOf("true", "false")},
+	{"account.password_reset_enabled", "boolean", "protection", "邮件找回密码", "false", true, false, oneOf("true", "false")},
+	{"security.human_check_enabled", "boolean", "protection", "启用人机验证", "false", true, false, oneOf("true", "false")},
+	{"security.human_check_provider", "string", "protection", "人机验证服务商", "turnstile", true, false, oneOf("turnstile", "tencent", "alibaba")},
+	{"security.turnstile_site_key", "string", "protection", "Turnstile 站点密钥", "", true, false, text(200)},
+	{"security.turnstile_secret_key", "string", "protection", "Turnstile 服务端密钥", "", true, true, text(200)},
+	{"security.tencent_captcha_app_id", "string", "protection", "腾讯验证码 CaptchaAppId", "", true, false, text(64)},
+	{"security.tencent_captcha_app_secret_key", "string", "protection", "腾讯验证码 AppSecretKey", "", true, true, text(128)},
+	{"security.tencent_captcha_secret_id", "string", "protection", "腾讯云 SecretId", "", true, false, text(128)},
+	{"security.tencent_captcha_secret_key", "string", "protection", "腾讯云 SecretKey", "", true, true, text(128)},
+	{"security.tencent_captcha_region", "string", "protection", "腾讯验证码站点", "cn", true, false, oneOf("cn", "intl")},
+	{"security.aliyun_captcha_access_key_id", "string", "protection", "阿里云 AccessKeyId", "", true, false, text(128)},
+	{"security.aliyun_captcha_access_key_secret", "string", "protection", "阿里云 AccessKeySecret", "", true, true, text(256)},
+	{"security.aliyun_captcha_scene_id", "string", "protection", "阿里验证码 SceneId", "", true, false, text(64)},
+	{"security.aliyun_captcha_region", "string", "protection", "阿里验证码服务区域", "cn-shanghai", true, false, oneOf("cn-shanghai", "ap-southeast-1")},
 	{"mail.host", "string", "mail", "SMTP 主机", "", true, false, func(v string) bool { return len(v) <= 253 && !strings.ContainsAny(v, "\r\n /@") }},
 	{"mail.port", "integer", "mail", "SMTP 端口", "587", true, false, integer(1, 65535)},
 	{"mail.tls", "string", "mail", "SMTP 加密方式", "starttls", true, false, oneOf("starttls", "tls", "plain")},
@@ -107,7 +119,8 @@ var Definitions = append([]SettingDefinition{
 	{"mail.from_name", "string", "mail", "发件人别名", "", true, false, func(v string) bool { return text(64)(v) && !strings.ContainsAny(v, "\r\n\x00") }},
 	{"mail.username", "string", "mail", "SMTP 用户名", "", true, false, func(v string) bool { return text(254)(v) && !strings.ContainsAny(v, "\r\n") }},
 	{"mail.password", "string", "mail", "SMTP 密钥", "", true, true, text(512)},
-}, append(append(append(OIDCDefinitions, StorageDefinitions...), RegistrationDefinitions...), append(append(SecurityDefinitions, MailTemplateDefinitions...), NotificationDefinitions...)...)...)
+}, append(append(append(OIDCDefinitions, StorageDefinitions...), RegistrationDefinitions...),
+	append(append(append(SecurityDefinitions, MailTemplateDefinitions...), NotificationDefinitions...), LoggingDefinitions...)...)...)
 
 // ValidPublicLink permits only explicit HTTPS links without credentials or header controls.
 func ValidPublicLink(value string) bool {
@@ -132,17 +145,17 @@ type Service struct {
 	NotificationWriter interface {
 		SaveNotificationSettings(context.Context, map[string]string, string) error
 	}
-	Store   Store
-	Secrets Secrets
-	mu      sync.Mutex
-	Profile contracts.Profile
+	// LoggingSweep applies log retention right after a logging.* save; it
+	// stays nil where durable file logs are disabled.
+	LoggingSweep interface{ Sweep() }
+	Store        Store
+	Secrets      Secrets
+	mu           sync.Mutex
+	Profile      contracts.Profile
 }
 
-func applies(d SettingDefinition, profile contracts.Profile) bool {
-	if profile != "web-platform" {
-		return d.Group == "appearance"
-	}
-	return d.Group != "appearance"
+func applies(_ SettingDefinition, profile contracts.Profile) bool {
+	return profile == "web-platform"
 }
 
 // Raw is internal-only: HTTP must use List so secrets never enter responses.
@@ -349,6 +362,14 @@ func (s *Service) Patch(ctx context.Context, input contracts.SettingPatch, actor
 	if err = s.Store.SaveSettings(ctx, values, actor); err != nil {
 		return contracts.Settings{}, err
 	}
+	if s.LoggingSweep != nil {
+		for key := range values {
+			if strings.HasPrefix(key, "logging.") {
+				s.LoggingSweep.Sweep()
+				break
+			}
+		}
+	}
 	return s.List(ctx)
 }
 func Defaults(profile contracts.Profile) map[string]string {
@@ -375,4 +396,22 @@ func MailBaseURL(values map[string]string, fallback string) string {
 		return strings.TrimRight(value, "/")
 	}
 	return strings.TrimRight(fallback, "/")
+}
+
+// AlertingRules reads the internal alert rule JSON; an empty value means the
+// rule set was never initialized and the defaults apply.
+func (s *Service) AlertingRules(ctx context.Context) (string, error) {
+	values, err := s.Raw(ctx)
+	if err != nil {
+		return "", err
+	}
+	return values["alerts.rules"], nil
+}
+
+// SaveAlertingRules persists the alert rule JSON under an internal key that
+// never appears in the generic settings API.
+func (s *Service) SaveAlertingRules(ctx context.Context, rulesJSON, actor string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.Store.SaveSettings(ctx, map[string]string{"alerts.rules": rulesJSON}, actor)
 }

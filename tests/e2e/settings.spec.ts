@@ -1,8 +1,37 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Real settings tabs, isolated drafts, persistence, branding and optional edition UI.
 import { readFile, mkdir } from 'node:fs/promises';
-import { test, expect, installStandalone } from './fixtures';
+import { test, expect, adminLogin, installPlatform, installStandalone } from './fixtures';
 import { capture } from './visual';
+
+test('shared tabs stay on one scrollable row with keyboard access in both languages', async ({ page, instance }, info) => {
+  await installPlatform(instance);
+  await adminLogin(page, instance.url, 'admin', 'administrator-password-strong');
+  for (const locale of ['zh-CN', 'en']) {
+    await page.goto(`${instance.url}/admin/site`);
+    if (locale === 'en') {
+      await page.getByRole('button', { name: '切换语言', exact: true }).click();
+      await page.getByRole('menuitemradio', { name: 'English', exact: true }).click();
+    }
+    const groups = locale === 'en'
+      ? [['site', 'Settings groups'], ['system-notifications', 'Recipients'], ['mail-templates', 'Email template type'], ['storage', 'Storage settings']]
+      : [['site', '设置分组'], ['system-notifications', '通知对象'], ['mail-templates', '邮件模板类型'], ['storage', '存储设置']];
+    for (const [path, name] of groups) {
+      await page.goto(`${instance.url}/admin/${path}`);
+      const list = page.getByRole('tablist', { name, exact: true });
+      const tabs = list.getByRole('tab');
+      await expect(tabs.first()).toBeVisible();
+      await tabs.first().focus();
+      await page.keyboard.press('End');
+      await expect(tabs.last()).toBeFocused();
+      await expect(tabs.last()).toHaveAttribute('aria-selected', 'true');
+      await expect(tabs.last()).toBeInViewport();
+      const rows = await tabs.evaluateAll(nodes => nodes.map(node => Math.round(node.getBoundingClientRect().top)));
+      expect(new Set(rows).size).toBe(1);
+      await capture(page, info, `shared-tabs-${path}-${locale}`);
+    }
+  }
+});
 
 test('settings audit: site identity, ICP, ICO and compile-time update capabilities', async ({ page, instance }, info) => {
   const installed=await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}});expect(installed.status()).toBe(200);
@@ -29,8 +58,7 @@ test('settings audit: site identity, ICP, ICO and compile-time update capabiliti
   await expect(mainTabs.getByRole('tab', { name: '基础信息', exact: true })).toHaveAttribute('aria-selected', 'true');
   await page.getByLabel('站点名称', { exact: true }).fill('配套设置工作空间');
   // A draft on another tab must survive switching and must not be included in this save.
-  await mainTabs.getByRole('tab', { name: '外观设置', exact: true }).click();
-  await page.getByRole('button', { name: /深色.*柔和低光/ }).click();
+  await expect(mainTabs.getByRole('tab', { name: '外观设置', exact: true })).toHaveCount(0);
   await mainTabs.getByRole('tab', { name: '基础信息', exact: true }).click();
   await expect(page.getByLabel('站点名称', { exact: true })).toHaveValue('配套设置工作空间');
   await page.getByLabel('页脚版权', { exact: true }).fill('Unicore 设置验收');
@@ -40,18 +68,16 @@ test('settings audit: site identity, ICP, ICO and compile-time update capabiliti
   await expect(page.getByRole('button', { name: '保存设置', exact: true })).toBeDisabled();
   const persisted = (await (await page.request.get(`${instance.url}/api/v1/admin/settings`)).json()).data;
   expect(persisted.items.some((item:{key:string})=>item.key==='appearance.theme')).toBe(false);
-  await mainTabs.getByRole('tab', { name: '外观设置', exact: true }).click();
-  await expect(page.getByRole('button', { name: /深色.*柔和低光/ })).toHaveAttribute('aria-pressed', 'true');
-  await page.getByRole('button', { name: '保存设置', exact: true }).click();
-  await expect(page.getByRole('button', { name: '保存设置', exact: true })).toBeDisabled();
-  await capture(page, info, 'settings-appearance-cards');
+  await expect(mainTabs.getByRole('tab', { name: '外观设置', exact: true })).toHaveCount(0);
   await mainTabs.getByRole('tab', { name: '基础信息', exact: true }).click();
   await expect(page.getByRole('link', { name: '测试ICP备00000000号', exact: true })).toHaveAttribute('href', 'https://beian.miit.gov.cn/');
   await expect(page.locator('footer')).toContainText('Unicore 设置验收');
   await expect(page).toHaveTitle('配套设置工作空间 · 工作空间');
   if (info.project.name === 'chromium') {
-    const name = (await page.locator('.brand .brand-name').boundingBox())!;
-    const tag = (await page.locator('.brand-version .version-badge').boundingBox())!;
+    // The version badge now lives under the sidebar brand lockup; keep the
+    // geometric guarantee that it sits below the site name.
+    const name = (await page.locator('.sidebar a[aria-label="配套设置工作空间"]').boundingBox())!;
+    const tag = (await page.locator('.sidebar .version-badge').boundingBox())!;
     expect(tag.y).toBeGreaterThanOrEqual(name.y + name.height);
     await expect(page.getByRole('button', { name: '保存设置', exact: true })).toBeInViewport();
   }
@@ -97,21 +123,30 @@ test('settings audit: platform security defaults, alias, admin path and public f
   await page.goto(`${instance.url}/admin/site`);
   await page.getByLabel('页脚版权', { exact: true }).fill('平台版权示例');
   await page.getByLabel('备案号（ICP）', { exact: true }).fill('测试ICP备00000001号');
-  await page.getByRole('button', { name: '保存设置', exact: true }).click();
+  const __save1=page.waitForResponse(r=>r.request().method()==='PATCH'&&r.url().includes('/admin/settings')&&r.status()===200);await page.getByRole('button', { name: '保存设置', exact: true }).click();await __save1;
   await expect(page.getByRole('button', { name: '保存设置', exact: true })).toBeDisabled();
   await page.goto(`${instance.url}/admin/account-policy`);
-  await expect(page.getByLabel('登录图形验证码', { exact: true })).toBeChecked();
+  await expect(page.getByLabel('登录图形验证码', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('邮箱验证码登录', { exact: true })).not.toBeChecked();
   await page.goto(`${instance.url}/admin/site?tab=registration`);
-  await expect(page.getByLabel('注册图形验证码', { exact: true })).toBeChecked();
+  await expect(page.getByLabel('注册图形验证码', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('注册绑定手机号', { exact: true })).not.toBeChecked();
+  await expect(page.getByLabel('注册频率窗口（分钟）', { exact: true })).toHaveValue('1');
+  await expect(page.getByLabel('窗口内注册上限', { exact: true })).toHaveValue('5');
   await page.getByRole('tab', { name: '安全与控制', exact: true }).click();
+  await expect(page.getByLabel('登录图形验证码', { exact: true })).toBeChecked();
+  await expect(page.getByLabel('注册图形验证码', { exact: true })).toBeChecked();
+  await expect(page.getByLabel('邮件找回密码', { exact: true })).not.toBeChecked();
   await expect(page.getByLabel('管理后台路径', { exact: true })).toHaveValue('/admin');
+  await capture(page, info, 'settings-security-tabs');
   await page.getByLabel('管理后台路径', { exact: true }).fill('/control');
   await page.getByRole('button', { name: '保存设置', exact: true }).click();
   await expect(page.getByRole('button', { name: '保存设置', exact: true })).toBeDisabled();
-  await capture(page, info, 'settings-security-tabs');
+  // Saving the admin entrance remounts the console; the browser is redirected automatically.
+  await page.waitForURL(/\/control($|\?|\/)/);
   await page.goto(`${instance.url}/control/mail`);
   await page.getByLabel('发件人别名', { exact: true }).fill('Unicore Notices');
-  await page.getByRole('button', { name: '保存设置', exact: true }).click();
+  const __save2=page.waitForResponse(r=>r.request().method()==='PATCH'&&r.url().includes('/admin/settings')&&r.status()===200);await page.getByRole('button', { name: '保存设置', exact: true }).click();await __save2;
   await expect(page.getByRole('button', { name: '保存设置', exact: true })).toBeDisabled();
   await page.reload();
   await expect(page.getByLabel('发件人别名', { exact: true })).toHaveValue('Unicore Notices');
@@ -159,7 +194,7 @@ test('site links, safe footer, registration controls and maintenance recovery', 
   await expect(page.getByLabel('开启维护模式',{exact:true})).not.toBeChecked();
   await page.getByLabel('维护提示信息',{exact:true}).fill('Planned work: back soon');
   await page.getByLabel('开启维护模式',{exact:true}).click();
-  await page.getByRole('button',{name:'保存设置',exact:true}).click();
+  const __save3=page.waitForResponse(r=>r.request().method()==='PATCH'&&r.url().includes('/admin/settings')&&r.status()===200);await page.getByRole('button', { name: '保存设置', exact: true }).click();await __save3;
   await expect(page.getByRole('button',{name:'保存设置',exact:true})).toBeDisabled();
   await capture(page,info,'maintenance-admin');
   const publicPage=await page.context().newPage();
@@ -172,7 +207,7 @@ test('site links, safe footer, registration controls and maintenance recovery', 
   await expect(publicPage.getByRole('heading',{name:'站点维护中',exact:true})).toBeVisible();
   await page.reload();await expect(page.getByLabel('开启维护模式',{exact:true})).toBeChecked();
   await page.getByLabel('开启维护模式',{exact:true}).click();
-  await page.getByRole('button',{name:'保存设置',exact:true}).click();
+  const __save4=page.waitForResponse(r=>r.request().method()==='PATCH'&&r.url().includes('/admin/settings')&&r.status()===200);await page.getByRole('button', { name: '保存设置', exact: true }).click();await __save4;
   await expect(page.getByRole('button',{name:'保存设置',exact:true})).toBeDisabled();
   await publicPage.getByRole('button',{name:'重新检查',exact:true}).click();
   await expect(publicPage.getByRole('heading',{name:'站点维护中',exact:true})).toHaveCount(0);

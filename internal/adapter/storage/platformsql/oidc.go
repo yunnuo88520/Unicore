@@ -8,6 +8,8 @@ import (
 	"errors"
 	"time"
 
+	"strings"
+
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/platform"
@@ -218,7 +220,7 @@ func (r *Repository) CompleteOIDC(ctx context.Context, f platform.OIDCFlow, clai
 		id = f.UserID
 	} else if f.Mode == "login" {
 		if id == "" {
-			if r.Administrators || v["oidc.jit_enabled"] != "true" || !claims.EmailVerified || !settings.ValidEmail(claims.Email) {
+			if r.Administrators || !settings.ValidEmail(claims.Email) {
 				return contracts.User{}, platform.ErrOIDCLinkRequired
 			}
 			var count int
@@ -226,14 +228,54 @@ func (r *Repository) CompleteOIDC(ctx context.Context, f platform.OIDCFlow, clai
 				return contracts.User{}, err
 			}
 			if count > 0 {
+				// A local account already owns this email: offer the one-shot password bind instead of a dead end.
+				if !r.Administrators {
+					return contracts.User{}, &platform.OIDCPendingBind{Issuer: claims.Issuer, Subject: claims.Subject, Email: claims.Email, Username: claims.Username}
+				}
+				return contracts.User{}, platform.ErrOIDCLinkRequired
+			}
+			if v["oidc.jit_enabled"] != "true" || (!claims.EmailVerified && v["oidc.require_email_verified"] != "false") {
 				return contracts.User{}, platform.ErrOIDCLinkRequired
 			}
 			u, err := r.insert(ctx, tx, contracts.UserCreate{Username: "sso_" + sqlstore.ID(), Email: claims.Email, Role: "user"}, "", "oidc")
 			if err != nil {
 				return contracts.User{}, err
 			}
+			if err = r.ensurePersonal(ctx, tx, u.ID); err != nil {
+				return contracts.User{}, err
+			}
+			display := strings.TrimSpace(claims.Username)
+			if display == "" {
+				display = strings.SplitN(claims.Email, "@", 2)[0]
+			}
+			if len(display) > 80 {
+				display = display[:80]
+			}
+			if _, err = r.exec(ctx, tx, "UPDATE unicore_personal_accounts SET display_name=? WHERE user_id=? AND display_name=''", display, u.ID); err != nil {
+				return contracts.User{}, err
+			}
 			id = u.ID
 		}
+	} else if f.Mode == "bindlogin" {
+		// The platform layer proved local account possession before consuming this flow.
+		var hash, status string
+		if err = r.row(ctx, tx, "SELECT password_hash,status FROM unicore_users WHERE id=?", f.UserID).Scan(&hash, &status); err != nil {
+			return contracts.User{}, platform.ErrCredentials
+		}
+		if status != "active" || hash == "" || !platform.Equal(hash, f.CredentialHash) {
+			return contracts.User{}, platform.ErrCredentials
+		}
+		if id != "" && id != f.UserID {
+			return contracts.User{}, platform.ErrOIDCLinkRequired
+		}
+		var count int
+		if err = r.row(ctx, tx, "SELECT COUNT(*) FROM unicore_external_identities WHERE user_id=?", f.UserID).Scan(&count); err != nil {
+			return contracts.User{}, err
+		}
+		if count > 0 {
+			return contracts.User{}, platform.ErrOIDCLinkRequired
+		}
+		id = f.UserID
 	} else {
 		return contracts.User{}, platform.ErrOIDC
 	}
@@ -247,8 +289,17 @@ func (r *Repository) CompleteOIDC(ctx context.Context, f platform.OIDCFlow, clai
 		}
 	}
 	action := "auth.oidc.login"
-	if f.Mode == "link" {
+	if f.Mode != "login" {
 		action = "auth.oidc.linked"
+	}
+	if f.Mode == "bindlogin" {
+		// Same rotation semantics as a link, minus the prior-session check: possession was proven by password.
+		if _, err = r.exec(ctx, tx, "DELETE FROM unicore_sessions WHERE user_id=? AND token_hash<>?", id, sessionHash); err != nil {
+			return contracts.User{}, err
+		}
+		if err = r.cancelTokens(ctx, tx, id, ""); err != nil {
+			return contracts.User{}, err
+		}
 	}
 	u, err := r.oidcSession(ctx, tx, id, sessionHash, expires, f.Mode == "link", f.SessionHash, action)
 	if err != nil {

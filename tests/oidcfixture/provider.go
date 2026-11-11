@@ -21,10 +21,11 @@ const ClientID = "unicore-test-client"
 const ClientSecret = "isolated-test-secret"
 
 type Provider struct {
-	URL   string
-	key   *rsa.PrivateKey
-	mu    sync.Mutex
-	codes map[string]url.Values
+	URL     string
+	key     *rsa.PrivateKey
+	mu      sync.Mutex
+	codes   map[string]url.Values
+	subject string
 }
 
 func New() *Provider {
@@ -38,9 +39,21 @@ func (p *Provider) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	switch r.URL.Path {
 	case "/.well-known/openid-configuration":
-		p.write(w, map[string]any{"issuer": p.URL, "authorization_endpoint": p.URL + "/authorize", "token_endpoint": p.URL + "/token", "jwks_uri": p.URL + "/jwks", "response_types_supported": []string{"code"}, "subject_types_supported": []string{"public"}, "id_token_signing_alg_values_supported": []string{"RS256"}, "code_challenge_methods_supported": []string{"S256"}, "token_endpoint_auth_methods_supported": []string{"client_secret_basic"}})
+		p.write(w, map[string]any{"issuer": p.URL, "authorization_endpoint": p.URL + "/authorize", "token_endpoint": p.URL + "/token", "jwks_uri": p.URL + "/jwks", "userinfo_endpoint": p.URL + "/userinfo", "response_types_supported": []string{"code"}, "subject_types_supported": []string{"public"}, "id_token_signing_alg_values_supported": []string{"RS256"}, "code_challenge_methods_supported": []string{"S256"}, "token_endpoint_auth_methods_supported": []string{"client_secret_basic"}})
 	case "/jwks":
 		p.write(w, jose.JSONWebKeySet{Keys: []jose.JSONWebKey{{Key: &p.key.PublicKey, KeyID: "fixture", Algorithm: "RS256", Use: "sig"}}})
+	case "/userinfo":
+		if r.Header.Get("Authorization") != "Bearer test-only-access-token" {
+			http.Error(w, "invalid bearer", 401)
+			return
+		}
+		p.mu.Lock()
+		subject := p.subject
+		p.mu.Unlock()
+		if subject == "" {
+			subject = "employee-001"
+		}
+		p.write(w, map[string]any{"sub": subject, "email": "userinfo@example.test", "email_verified": true, "name": "测试员工", "preferred_username": "userinfo-employee"})
 	case "/authorize":
 		if r.Method == "POST" {
 			_ = r.ParseForm()
@@ -123,6 +136,9 @@ func (p *Provider) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			claims["azp"] = "other-client"
 		case "missing-subject":
 			claims["sub"] = ""
+		case "userinfo":
+			delete(claims, "email")
+			delete(claims, "email_verified")
 		}
 		key := p.key
 		if q.Get("scenario") == "signature" {

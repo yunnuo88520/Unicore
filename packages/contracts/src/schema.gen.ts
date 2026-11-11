@@ -17,12 +17,14 @@ export interface ExecuteOutput {
 
 export interface Capabilities {
   execute: boolean;
+  api_docs: boolean;
   database: boolean;
   installation: boolean;
   authentication: boolean;
   license: boolean;
   updater: boolean;
   settings: boolean;
+  features: Record<string, boolean>;
 }
 
 export interface Bootstrap {
@@ -43,7 +45,6 @@ export interface Bootstrap {
   site_copyright?: string;
   site_icp_number?: string;
   site_icp_url?: string;
-  theme?: string;
   branding?: Branding;
   identity_realm?: "user" | "administrator";
   site_police_number?: string;
@@ -52,6 +53,8 @@ export interface Bootstrap {
   maintenance_message?: string;
   mfa_pending?: boolean;
   mfa_enrollment_required?: boolean;
+  menus?: Array<MenuEntry>;
+  navigation?: Navigation;
 }
 
 export interface BootstrapResponse {
@@ -133,12 +136,20 @@ export interface User {
   id: string;
   username: string;
   email: string;
+  phone?: string;
+  display_name?: string;
+  role_names?: Array<string>;
   status: string;
-  roles: Array<"super_admin" | "user">;
+  roles: Array<string>;
   permissions: Array<string>;
   created_at: number;
   last_login_at: number;
   totp_enabled: boolean;
+  department_id?: string;
+  menu_ids?: Array<string>;
+  action_ids?: Array<string>;
+  operation_ids?: Array<string>;
+  post_ids?: Array<string>;
 }
 
 export interface UserList {
@@ -152,12 +163,37 @@ export interface UserCreate {
   username: string;
   email: string;
   password: string;
-  role: "super_admin" | "user";
+  phone?: string;
+  display_name?: string;
+  role?: string;
+  department_id?: string;
+  post_ids?: Array<string>;
+  role_ids?: Array<string>;
 }
 
 export interface UserUpdate {
-  role: "super_admin" | "user";
+  role?: string;
   status: string;
+  email?: string;
+  display_name?: string;
+  department_id?: string;
+  post_ids?: Array<string>;
+  role_ids?: Array<string>;
+}
+
+export interface AdminPasswordResetInput {
+  password?: string;
+}
+
+export interface AdminPasswordReset {
+  password: string;
+}
+
+export interface AdminPasswordResetResponse {
+  code: string;
+  message: string;
+  data: AdminPasswordReset;
+  request_id: string;
 }
 
 export interface LoginInput {
@@ -165,6 +201,8 @@ export interface LoginInput {
   password: string;
   captcha_id: string;
   captcha_answer: string;
+  human_check_token?: string;
+  human_check_randstr?: string;
 }
 
 export interface Session {
@@ -196,6 +234,7 @@ export interface Dashboard {
   today_new_users: number;
   active_users_7d: number;
   audit: Array<AuditEntry>;
+  activity_7d: Array<ActivityDay>;
 }
 
 export interface SettingEntry {
@@ -297,12 +336,21 @@ export interface AuthPolicy {
   mail_ready: boolean;
   email_login_enabled: boolean;
   email_verification_required: boolean;
+  phone_required: boolean;
+  human_check_enabled: boolean;
+  human_check_provider: "turnstile" | "tencent" | "alibaba";
+  human_check_site_key?: string;
+  human_check_region?: string;
+  human_check_prefix?: string;
 }
 
 export interface RegisterInput {
   username: string;
   email: string;
   password: string;
+  phone?: string;
+  human_check_token?: string;
+  human_check_randstr?: string;
   captcha_id: string;
   captcha_answer: string;
 }
@@ -311,6 +359,8 @@ export interface EmailRequest {
   email: string;
   captcha_id: string;
   captcha_answer: string;
+  human_check_token?: string;
+  human_check_randstr?: string;
 }
 
 export interface TokenInput {
@@ -401,14 +451,22 @@ export interface PermissionDefinition {
   description: string;
   group: string;
   assignable: boolean;
+  super_admin: boolean;
 }
 
 export interface Role {
-  id: "super_admin" | "user";
+  id: string;
   name: string;
   builtin: boolean;
   permissions: Array<string>;
   user_count: number;
+  realm: "user" | "administrator";
+  data_scope: "all" | "dept" | "dept_and_below" | "custom" | "self";
+  department_ids: Array<string>;
+  menu_ids: Array<string>;
+  action_ids: Array<string>;
+  operation_ids: Array<string>;
+  authorization_initialized: boolean;
 }
 
 export interface RoleList {
@@ -417,7 +475,7 @@ export interface RoleList {
 }
 
 export interface RoleOption {
-  id: "super_admin" | "user";
+  id: string;
   name: string;
   assignable: boolean;
 }
@@ -476,6 +534,33 @@ export interface OIDCStartResponse {
   message: string;
   data: OIDCStart;
   request_id: string;
+}
+
+export interface OIDCBindLoginInput {
+  state: string;
+  email: string;
+  password: string;
+}
+
+export interface OIDCBindLoginResponse {
+  code: string;
+  message: string;
+  request_id: string;
+  data: Session;
+}
+
+export interface OIDCCheckInfo {
+  authorization_url: string;
+  token_url: string;
+  userinfo_url: string;
+  jwks_url: string;
+}
+
+export interface OIDCCheckInfoResponse {
+  code: string;
+  message: string;
+  request_id: string;
+  data: OIDCCheckInfo;
 }
 
 export interface Branding {
@@ -585,6 +670,7 @@ export interface FileEntry {
   created_at: number;
   expires_at: number;
   state: "pending" | "copying" | "ready" | "deleted";
+  capabilities: FileCapabilities;
 }
 
 export interface FileList {
@@ -656,7 +742,7 @@ export interface NoteInput {
   title: string;
   body: string;
   status: "open" | "done";
-  attachment_ids: Array<string>;
+  attachment_ids?: Array<string>;
 }
 
 export interface NoteUpdate {
@@ -680,6 +766,7 @@ export interface NoteEntry {
   version: number;
   created_at: number;
   updated_at: number;
+  capabilities: NoteCapabilities;
 }
 
 export interface NoteQuery {
@@ -1016,10 +1103,12 @@ export interface AccountProfile {
   totp_enabled: boolean;
   force_2fa: boolean;
   can_disable_2fa: boolean;
+  avatar_url?: string;
 }
 
 export interface ProfileInput {
   display_name: string;
+  avatar_file_id?: string;
 }
 
 export interface TOTPSetupInput {
@@ -1146,6 +1235,8 @@ export interface NotifyConfiguration {
   signing_configured: boolean;
   rules: Array<NotifyRule>;
   templates: Array<NotifyTemplate>;
+  section?: "channels" | "templates" | "system";
+  catalog?: Array<NotifyEvent>;
 }
 
 export interface NotifyPreview {
@@ -1169,4 +1260,646 @@ export interface NotifyPreviewResponse {
   code: string;
   message: string;
   data: NotifyPreview;
+}
+
+export interface RoleSaveInput {
+  name: string;
+  permissions: Array<string>;
+  realm?: "user" | "administrator";
+  data_scope?: "all" | "dept" | "dept_and_below" | "custom" | "self";
+  department_ids?: Array<string>;
+  menu_ids?: Array<string>;
+  action_ids?: Array<string>;
+  operation_ids?: Array<string>;
+}
+
+export interface MenuEntry {
+  menu_key: string;
+  label: string;
+  group_key: string;
+  sort: number;
+  visible: boolean;
+  parent_key?: string;
+  type: "page" | "link";
+  url?: string;
+}
+
+export interface MenuList {
+  items: Array<MenuEntry>;
+  version: number;
+  sections: Array<NavigationSection>;
+  nodes: Array<NavigationNode>;
+  pages: Array<NavigationPage>;
+}
+
+export interface MenuSaveInput {
+  items?: Array<MenuEntry>;
+  version: number;
+  sections: Array<NavigationSection>;
+  nodes: Array<NavigationNode>;
+  role_assignments?: Array<NavigationRoleAssignment>;
+  reset?: boolean;
+}
+
+export interface MenuListResponse {
+  code: string;
+  message: string;
+  data: MenuList;
+  request_id: string;
+}
+
+export interface DictionarySummary {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  item_count: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface DictionaryList {
+  items: Array<DictionarySummary>;
+}
+
+export interface DictionaryItemEntry {
+  id: string;
+  value: string;
+  label: string;
+  remark: string;
+  sort: number;
+  status: string;
+}
+
+export interface DictionaryDetail {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  items: Array<DictionaryItemEntry>;
+}
+
+export interface DictionaryCreateInput {
+  code: string;
+  name: string;
+  description: string;
+}
+
+export interface DictionaryUpdateInput {
+  name: string;
+  description: string;
+}
+
+export interface DictionaryItemsInput {
+  items: Array<DictionaryItemEntry>;
+}
+
+export interface Department {
+  id: string;
+  name: string;
+  parent_id?: string;
+  sort: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface DepartmentList {
+  items: Array<Department>;
+  total: number;
+}
+
+export interface DepartmentSaveInput {
+  name: string;
+  parent_id?: string;
+  sort?: number;
+}
+
+export interface DepartmentResponse {
+  code: string;
+  message: string;
+  data: Department;
+  request_id: string;
+}
+
+export interface DepartmentListResponse {
+  code: string;
+  message: string;
+  data: DepartmentList;
+  request_id: string;
+}
+
+export interface DictionaryListResponse {
+  code: string;
+  message: string;
+  data: DictionaryList;
+  request_id: string;
+}
+
+export interface DictionaryDetailResponse {
+  code: string;
+  message: string;
+  data: DictionaryDetail;
+  request_id: string;
+}
+
+export interface DictionarySummaryResponse {
+  code: string;
+  message: string;
+  data: DictionarySummary;
+  request_id: string;
+}
+
+export interface TaskEntry {
+  name: string;
+  schedule: string;
+  description: string;
+  executor: string;
+  custom: boolean;
+  enabled: boolean;
+  last_run_at: number;
+  last_status: string;
+  last_error: string;
+  run_count: number;
+  next_run_at: number;
+}
+
+export interface TaskList {
+  items: Array<TaskEntry>;
+  executors: Array<TaskExecutor>;
+}
+
+export interface TaskUpdateInput {
+  enabled: boolean;
+}
+
+export interface TaskExecutor {
+  key: string;
+  description: string;
+}
+
+export interface TaskCreateInput {
+  name: string;
+  description: string;
+  schedule: string;
+  executor: string;
+}
+
+export interface TaskEditInput {
+  description: string;
+  schedule: string;
+  executor: string;
+}
+
+export interface TaskRunEntry {
+  started_at: number;
+  duration_ms: number;
+  status: string;
+  error: string;
+}
+
+export interface TaskRunList {
+  items: Array<TaskRunEntry>;
+}
+
+export interface TaskRunListResponse {
+  code: string;
+  message: string;
+  data: TaskRunList;
+  request_id: string;
+}
+
+export interface TaskListResponse {
+  code: string;
+  message: string;
+  data: TaskList;
+  request_id: string;
+}
+
+export interface TaskEntryResponse {
+  code: string;
+  message: string;
+  data: TaskEntry;
+  request_id: string;
+}
+
+export interface TaskTrigger {
+  triggered: boolean;
+}
+
+export interface TaskTriggerResponse {
+  code: string;
+  message: string;
+  data: TaskTrigger;
+  request_id: string;
+}
+
+export interface InboxEntry {
+  id: string;
+  type: string;
+  source_id: string;
+  title: string;
+  body: string;
+  created_at: number;
+  read_at: number;
+}
+
+export interface InboxList {
+  items: Array<InboxEntry>;
+  unread: number;
+}
+
+export interface InboxListResponse {
+  code: string;
+  message: string;
+  data: InboxList;
+  request_id: string;
+}
+
+export interface UserImportResult {
+  created: number;
+  failed: Array<UserImportFailure>;
+}
+
+export interface UserImportResultResponse {
+  code: string;
+  message: string;
+  data: UserImportResult;
+  request_id: string;
+}
+
+export interface ActivityDay {
+  date: string;
+  count: number;
+}
+
+export interface UserImportFailure {
+  row: number;
+  error: string;
+}
+
+export interface NavigationSection {
+  id: string;
+  name: string;
+  sort: number;
+  visible: boolean;
+  show_title: boolean;
+  surfaces: Array<"user" | "administrator">;
+}
+
+export interface NavigationNode {
+  id: string;
+  section_id: string;
+  parent_id?: string;
+  type: "directory" | "page" | "link" | "action";
+  route_id?: string;
+  label: string;
+  icon: string;
+  sort: number;
+  visible: boolean;
+  url?: string;
+  open_mode: "same_tab" | "new_tab";
+  badge_text: string;
+  badge_color: string;
+  badge_dot: boolean;
+  active_menu?: string;
+  permission?: string;
+  operation_ids: Array<string>;
+  disabled: boolean;
+  surfaces: Array<"user" | "administrator">;
+}
+
+export interface NavigationPage {
+  id: string;
+  surfaces: Array<string>;
+  permission: string;
+  group: string;
+}
+
+export interface Navigation {
+  version: number;
+  sections: Array<NavigationSection>;
+  nodes: Array<NavigationNode>;
+}
+
+export interface NavigationRoleAssignment {
+  role_id: string;
+  menu_ids: Array<string>;
+  action_ids: Array<string>;
+}
+
+export interface APIOperation {
+  operation_id: string;
+  method: string;
+  path: string;
+  summary: string;
+  tags: Array<string>;
+  realm: string;
+  permissions: Array<string>;
+  permission_mode: string;
+  csrf: boolean;
+  super_admin: boolean;
+  grantable: boolean;
+}
+
+export interface APIOperationList {
+  items: Array<APIOperation>;
+}
+
+export interface APIOperationListResponse {
+  code: string;
+  message: string;
+  data: APIOperationList;
+  request_id: string;
+}
+
+export interface Post {
+  id: string;
+  code: string;
+  name: string;
+  sort: number;
+  enabled: boolean;
+  description: string;
+  created_at: number;
+  updated_at: number;
+  member_count: number;
+}
+
+export interface PostList {
+  items: Array<Post>;
+  total: number;
+}
+
+export interface PostSaveInput {
+  code: string;
+  name: string;
+  sort?: number;
+  enabled?: boolean;
+  description?: string;
+}
+
+export interface PostResponse {
+  code: string;
+  message: string;
+  data: Post;
+  request_id: string;
+}
+
+export interface PostListResponse {
+  code: string;
+  message: string;
+  data: PostList;
+  request_id: string;
+}
+
+export interface NoteCapabilities {
+  update: boolean;
+  delete: boolean;
+}
+
+export interface FileCapabilities {
+  download: boolean;
+  delete: boolean;
+}
+
+export interface LogTailEntry {
+  seq: number;
+  line: string;
+}
+
+export interface LogTailList {
+  items: Array<LogTailEntry>;
+  latest_seq: number;
+  older_count: number;
+}
+
+export interface LogTailResponse {
+  code: string;
+  message: string;
+  data: LogTailList;
+  request_id: string;
+}
+
+export interface MonitorHttpService {
+  applicable: boolean;
+  active_requests?: number;
+  requests_total?: number;
+  errors_total?: number;
+  avg_duration_ms?: number;
+  p95_duration_ms?: number;
+}
+
+export interface MonitorDatabase {
+  status: "healthy" | "unavailable";
+  latency_ms: number;
+  open_connections?: number;
+  in_use_connections?: number;
+  idle_connections?: number;
+  wait_total?: number;
+  max_open_connections?: number;
+  wait_duration_ms?: number;
+}
+
+export interface MonitorStorageService {
+  applicable: boolean;
+  active_location?: string;
+  provider?: string;
+  locations?: number;
+  probe?: Array<MonitorStorageLocation>;
+}
+
+export interface MonitorTaskHealth {
+  name: string;
+  enabled: boolean;
+  last_status?: string;
+  last_error?: string;
+  last_run_at?: number;
+  next_run_at?: number;
+  runs?: Array<MonitorTaskRun>;
+}
+
+export interface MonitorTasksSummary {
+  applicable: boolean;
+  total?: number;
+  enabled?: number;
+  failing?: number;
+  recent?: Array<MonitorTaskHealth>;
+}
+
+export interface MonitorSnapshot {
+  profile: string;
+  version: string;
+  commit: string;
+  build_time: string;
+  go_version: string;
+  started_at: number;
+  uptime_seconds: number;
+  status: "healthy" | "degraded" | "unavailable";
+  http_service: MonitorHttpService;
+  database: MonitorDatabase;
+  storage: MonitorStorageService;
+  tasks: MonitorTasksSummary;
+  runtime: MonitorRuntimeStats;
+  host: MonitorHostStats;
+}
+
+export interface MonitorSnapshotResponse {
+  code: string;
+  message: string;
+  data: MonitorSnapshot;
+  request_id: string;
+}
+
+export interface MonitorRuntimeStats {
+  goroutines: number;
+  heap_alloc_bytes: number;
+  heap_sys_bytes: number;
+  gc_cycles: number;
+  pause_total_ms?: number;
+  rss_bytes?: number;
+  cpu_time_ms?: number;
+}
+
+export interface MonitorHostStats {
+  available: boolean;
+  hostname?: string;
+  os?: string;
+  platform?: string;
+  platform_version?: string;
+  kernel_version?: string;
+  kernel_arch?: string;
+  host_uptime_seconds?: number;
+  cpu_model?: string;
+  cpu_cores_logical?: number;
+  cpu_cores_physical?: number;
+  cpu_percent?: number;
+  cpu_per_core?: Array<number>;
+  load_1?: number;
+  load_5?: number;
+  load_15?: number;
+  mem_total_bytes?: number;
+  mem_used_bytes?: number;
+  mem_available_bytes?: number;
+  mem_used_percent?: number;
+  swap_total_bytes?: number;
+  swap_used_bytes?: number;
+  net_sent_bytes?: number;
+  net_recv_bytes?: number;
+  sampled_at?: number;
+  disks?: Array<MonitorDiskUsage>;
+  net_sent_per_sec?: number;
+  net_recv_per_sec?: number;
+  container?: MonitorContainerView;
+  sensors?: Array<MonitorSensor>;
+}
+
+export interface MonitorDiskUsage {
+  path: string;
+  is_data_dir?: boolean;
+  total_bytes: number;
+  used_bytes: number;
+  free_bytes: number;
+  used_percent: number;
+}
+
+export interface MonitorEvent {
+  id: number;
+  type: string;
+  severity: string;
+  message: string;
+  detail?: string;
+  at: number;
+}
+
+export interface MonitorEventList {
+  items: Array<MonitorEvent>;
+  total: number;
+  capacity?: number;
+}
+
+export interface MonitorEventListResponse {
+  code: string;
+  message: string;
+  data: MonitorEventList;
+  request_id: string;
+}
+
+export interface MonitorTaskRun {
+  started_at: number;
+  duration_ms: number;
+  status: string;
+  error?: string;
+}
+
+export interface MonitorStorageLocation {
+  id: string;
+  provider: string;
+  active: boolean;
+  configured: boolean;
+  status: string;
+  latency_ms?: number;
+  checked_at?: number;
+  error?: string;
+}
+
+export interface MonitorContainerView {
+  detected: boolean;
+  memory_limit_bytes?: number;
+  memory_usage_bytes?: number;
+  cpu_quota_cores?: number;
+  cpu_percent?: number;
+}
+
+export interface MonitorSensor {
+  label: string;
+  celsius: number;
+}
+
+export interface MonitorStorageLocationResponse {
+  code: string;
+  message: string;
+  data: MonitorStorageLocation;
+  request_id: string;
+}
+
+export interface MonitorAlertRule {
+  id: string;
+  enabled: boolean;
+  trigger_value?: number;
+  recover_value?: number;
+  consecutive?: number;
+  cooldown_minutes?: number;
+}
+
+export interface MonitorAlertRules {
+  version: number;
+  rules: Array<MonitorAlertRule>;
+}
+
+export interface MonitorAlertRulesResponse {
+  code: string;
+  message: string;
+  data: MonitorAlertRules;
+  request_id: string;
+}
+
+export interface NotifyVariable {
+  key: string;
+  label: string;
+  label_en: string;
+}
+
+export interface NotifyEvent {
+  id: string;
+  label: string;
+  label_en: string;
+  description: string;
+  description_en: string;
+  user_email_allowed: boolean;
+  variables: Array<NotifyVariable>;
+}
+
+export interface MenuRoleAssignmentInput {
+  version: number;
+  role_ids: Array<string>;
+  expected_role_ids: Array<string>;
 }

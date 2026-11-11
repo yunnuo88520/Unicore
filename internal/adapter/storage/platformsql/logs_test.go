@@ -13,6 +13,7 @@ import (
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/mailcontent"
 	"github.com/yunnuo/unicore/internal/settings"
+	"github.com/yunnuo/unicore/migrations/runner"
 )
 
 func exerciseLogs(t *testing.T, ctx context.Context, store *sqlstore.Store) {
@@ -82,10 +83,10 @@ func exerciseLogs(t *testing.T, ctx context.Context, store *sqlstore.Store) {
 	}
 	exerciseLogTimeBoundaries(t, ctx, store)
 	// Retry after additive DDL succeeded but its ledger entry was not recorded.
-	if _, e = store.Exec(ctx, store.DB, "DELETE FROM unicore_schema_migrations WHERE version=10"); e != nil {
+	if _, e = store.Exec(ctx, store.DB, "DELETE FROM schema_migrations WHERE namespace='platform' AND version=1"); e != nil {
 		t.Fatal(e)
 	}
-	if e = store.Migrate(ctx, true); e != nil {
+	if e = runner.Apply(ctx, store.DB, runner.Options{Dialect: store.Dialect, Profile: "web-platform"}); e != nil {
 		t.Fatal("migration retry", e)
 	}
 }
@@ -97,7 +98,7 @@ func TestSystemLogTimeBoundariesSQLite(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = store.Close() })
-	if err = store.Migrate(ctx, true); err != nil {
+	if err = runner.Apply(ctx, store.DB, runner.Options{Dialect: store.Dialect, Profile: "web-platform"}); err != nil {
 		t.Fatal(err)
 	}
 	exerciseLogTimeBoundaries(t, ctx, store)

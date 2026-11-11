@@ -9,6 +9,7 @@ import (
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/files"
+	"sort"
 	"strings"
 	"time"
 )
@@ -93,36 +94,115 @@ func scan(row scanner) (f files.Record, e error) {
 func (r *Repository) Get(ctx context.Context, id string) (files.Record, error) {
 	return scan(r.Store.Row(ctx, r.Store.DB, "SELECT "+columns+" FROM unicore_file_metadata WHERE id=?", id))
 }
-func (r *Repository) List(ctx context.Context, a files.Actor, search string, page int) (contracts.FileList, error) {
+
+// scopeBatchSize bounds every IN(...) list so the translated data-scope
+// filters stay within each dialect's parameter limits regardless of the
+// resolved department member count.
+const scopeBatchSize = 100
+
+// fileScopeGroup is one SQL-visible slice of the resolved data scope: the
+// realm-wide or personal filter, or one bounded creator-id batch.
+type fileScopeGroup struct {
+	where string
+	args  []any
+}
+
+// fileScopeGroups translates the session scope. The session's own rows always
+// stay visible even when the scope list was resolved without them; All stays
+// inside the actor's identity realm, and administrators keep the instance view.
+func fileScopeGroups(a files.Actor, scope files.ScopeFilter) []fileScopeGroup {
+	if a.Admin {
+		return []fileScopeGroup{{}}
+	}
+	if scope.All {
+		return []fileScopeGroup{{where: " AND creator_realm=?", args: []any{a.Realm}}}
+	}
+	if len(scope.CreatorIDs) == 0 {
+		return []fileScopeGroup{{where: " AND creator_id=? AND creator_realm=?", args: []any{a.ID, a.Realm}}}
+	}
+	groups := []fileScopeGroup{}
+	for start := 0; start < len(scope.CreatorIDs); start += scopeBatchSize {
+		end := start + scopeBatchSize
+		if end > len(scope.CreatorIDs) {
+			end = len(scope.CreatorIDs)
+		}
+		batch := scope.CreatorIDs[start:end]
+		where := " AND creator_realm=? AND (creator_id=? OR creator_id IN (?" + strings.Repeat(",?", len(batch)-1) + "))"
+		args := []any{a.Realm, a.ID}
+		for _, id := range batch {
+			args = append(args, id)
+		}
+		groups = append(groups, fileScopeGroup{where: where, args: args})
+	}
+	return groups
+}
+
+func (r *Repository) List(ctx context.Context, a files.Actor, search string, page int, scope files.ScopeFilter) (contracts.FileList, error) {
 	v := contracts.FileList{Items: []contracts.FileEntry{}, Page: page, PageSize: 20}
-	where := "purpose='user' AND state<>'deleted'"
-	args := []any{}
-	if !a.Admin {
-		where += " AND creator_id=? AND creator_realm=?"
-		args = append(args, a.ID, a.Realm)
+	groups := fileScopeGroups(a, scope)
+	// Count and page must agree, so both run in one read snapshot; SQLite
+	// serializes writers, the server dialects get an explicit repeatable read.
+	var options *sql.TxOptions
+	if r.Store.Dialect != "sqlite" {
+		options = &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true}
 	}
-	if search != "" {
-		where += " AND LOWER(original_name) LIKE ?"
-		search = strings.ReplaceAll(strings.ReplaceAll(strings.ToLower(search), "%", ""), "_", "")
-		args = append(args, "%"+search+"%")
-	}
-	if e := r.Store.Row(ctx, r.Store.DB, "SELECT COUNT(*) FROM unicore_file_metadata WHERE "+where, args...).Scan(&v.Total); e != nil {
-		return v, e
-	}
-	args = append(args, 20, (page-1)*20)
-	rows, e := r.Store.Rows(ctx, r.Store.DB, "SELECT "+columns+" FROM unicore_file_metadata WHERE "+where+" ORDER BY created_at DESC,id LIMIT ? OFFSET ?", args...)
+	tx, e := r.Store.DB.BeginTx(ctx, options)
 	if e != nil {
 		return v, e
 	}
-	defer rows.Close()
-	for rows.Next() {
-		f, e := scan(rows)
+	defer tx.Rollback()
+	offset := (page - 1) * v.PageSize
+	limit := offset + v.PageSize
+	for _, group := range groups {
+		where := "purpose='user' AND state<>'deleted'" + group.where
+		args := append([]any{}, group.args...)
+		if search != "" {
+			where += " AND LOWER(original_name) LIKE ?"
+			args = append(args, "%"+strings.ReplaceAll(strings.ReplaceAll(strings.ToLower(search), "%", ""), "_", "")+"%")
+		}
+		var count int
+		if e = r.Store.Row(ctx, tx, "SELECT COUNT(*) FROM unicore_file_metadata WHERE "+where, args...).Scan(&count); e != nil {
+			return v, e
+		}
+		v.Total += count
+		// Batched scopes keep only the global page prefix in memory, never the
+		// whole scope's file table.
+		args = append(args, limit)
+		rows, e := r.Store.Rows(ctx, tx, "SELECT "+columns+" FROM unicore_file_metadata WHERE "+where+" ORDER BY created_at DESC,id LIMIT ?", args...)
 		if e != nil {
 			return v, e
 		}
-		v.Items = append(v.Items, f.FileEntry)
+		for rows.Next() {
+			f, e := scan(rows)
+			if e != nil {
+				rows.Close()
+				return v, e
+			}
+			f.Capabilities = a.RowCapabilities(f, scope)
+			v.Items = append(v.Items, f.FileEntry)
+		}
+		e = rows.Err()
+		rows.Close()
+		if e != nil {
+			return v, e
+		}
+		sort.Slice(v.Items, func(i, j int) bool {
+			x, y := v.Items[i], v.Items[j]
+			if x.CreatedAt != y.CreatedAt {
+				return x.CreatedAt > y.CreatedAt
+			}
+			return x.FileID < y.FileID
+		})
+		if len(v.Items) > limit {
+			v.Items = v.Items[:limit]
+		}
 	}
-	return v, rows.Err()
+	if offset >= len(v.Items) {
+		v.Items = []contracts.FileEntry{}
+	} else {
+		v.Items = v.Items[offset:]
+	}
+	return v, tx.Commit()
 }
 func args(f files.Record) []any {
 	return []any{f.FileID, f.OriginalName, f.StorageType, f.LocationID, f.MimeType, f.Size, f.CreatorID, f.CreatorRealm, f.CreatedAt, f.ExpiresAt, f.State, f.Key, f.Staging, f.ETag, f.Purpose, f.UploadExpires, f.CleanupAt}
@@ -153,6 +233,16 @@ func (r *Repository) Create(ctx context.Context, f files.Record, jobs []files.Jo
 	return tx.Commit()
 }
 func (r *Repository) Change(ctx context.Context, f files.Record, jobs []files.Job, actor string) error {
+	return r.change(ctx, f, jobs, actor, "file.updated")
+}
+
+// Remove records the deleted state transition; the separate action keeps
+// deletions distinguishable from ordinary metadata updates in the audit log.
+func (r *Repository) Remove(ctx context.Context, f files.Record, jobs []files.Job, actor string) error {
+	return r.change(ctx, f, jobs, actor, "file.deleted")
+}
+
+func (r *Repository) change(ctx context.Context, f files.Record, jobs []files.Job, actor, action string) error {
 	tx, e := r.Store.DB.BeginTx(ctx, nil)
 	if e != nil {
 		return e
@@ -166,7 +256,7 @@ func (r *Repository) Change(ctx context.Context, f files.Record, jobs []files.Jo
 	if e = r.jobs(ctx, tx, jobs); e != nil {
 		return e
 	}
-	if e = r.Store.Audit(ctx, tx, actor, "file.updated"); e != nil {
+	if e = r.Store.Audit(ctx, tx, actor, action); e != nil {
 		return e
 	}
 	return tx.Commit()

@@ -1,37 +1,215 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Read-only fixed role catalogue and transactional administrator authorization.
+// Description: Unified role catalogue, custom role management and transactional authorization.
 package platformsql
 
 import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
+	"github.com/yunnuo/unicore/internal/audit"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/platform"
 )
 
+// role reads one row of unicore_roles. super_admin keeps the catalogue-wide grant
+// set; every other role resolves permissions from unicore_role_permissions.
+// Every workspace uses the same membership relation.
 func (r *Repository) role(ctx context.Context, q sqlstore.Runner, id string) (contracts.Role, error) {
-	result := contracts.Role{ID: id, Builtin: true, Permissions: []string{}}
-	if !platform.BuiltinRole(id) {
-		return result, platform.ErrInput
+	var name, realm, scope string
+	err := r.Store.Row(ctx, q, "SELECT name, realm, data_scope FROM unicore_roles WHERE id=?", id).Scan(&name, &realm, &scope)
+	if errors.Is(err, sql.ErrNoRows) {
+		return contracts.Role{}, platform.ErrInput
 	}
-	result.Name = "普通用户"
+	if err != nil {
+		return contracts.Role{}, err
+	}
+	result := contracts.Role{ID: id, Name: name, Realm: realm, Builtin: platform.BuiltinRole(id), Permissions: []string{}, DataScope: scope, DepartmentIds: []string{}}
 	if id == "super_admin" {
-		result.Name = "管理员"
-		result.Permissions = append(result.Permissions, platform.Permissions...)
+		result.DataScope = platform.ScopeSelf
+		result.AuthorizationInitialized = true
+		result.MenuIds, result.ActionIds, result.OperationIds = []string{}, []string{}, []string{}
+		result.Permissions = append(result.Permissions, platform.Permissions()...)
+		if err := r.Store.Row(ctx, q, "SELECT COUNT(*) FROM unicore_user_roles WHERE role_id='super_admin'").Scan(&result.UserCount); err != nil {
+			return contracts.Role{}, err
+		}
+		return result, nil
 	}
-	table := "unicore_users"
-	if id == "super_admin" {
-		table = "unicore_administrators"
+	rows, err := r.Store.Rows(ctx, q, "SELECT permission_id FROM unicore_role_permissions WHERE role_id=? ORDER BY permission_id", id)
+	if err != nil {
+		return contracts.Role{}, err
 	}
-	err := r.Store.Row(ctx, q, "SELECT COUNT(*) FROM "+table).Scan(&result.UserCount)
-	return result, err
+	defer rows.Close()
+	for rows.Next() {
+		var permission string
+		if err = rows.Scan(&permission); err != nil {
+			return contracts.Role{}, err
+		}
+		result.Permissions = append(result.Permissions, permission)
+	}
+	if err = rows.Err(); err != nil {
+		return contracts.Role{}, err
+	}
+	if scope == platform.ScopeCustom {
+		departments, err := r.roleDepartments(ctx, q, id)
+		if err != nil {
+			return contracts.Role{}, err
+		}
+		result.DepartmentIds = departments
+	}
+	err = r.Store.Row(ctx, q, "SELECT COUNT(*) FROM unicore_user_roles WHERE role_id=?", id).Scan(&result.UserCount)
+	if err != nil {
+		return contracts.Role{}, err
+	}
+	// Independent authorization relations: navigation items, action buttons and
+	// API operations are separate grant sets, all empty unless assigned.
+	if result.AuthorizationInitialized, err = r.roleAuthorizationInitialized(ctx, q, id); err != nil {
+		return contracts.Role{}, err
+	}
+	if result.MenuIds, err = r.roleIDList(ctx, q, "unicore_role_menus", id); err != nil {
+		return contracts.Role{}, err
+	}
+	if result.ActionIds, err = r.roleIDList(ctx, q, "unicore_role_actions", id); err != nil {
+		return contracts.Role{}, err
+	}
+	if result.OperationIds, err = r.roleIDList(ctx, q, "unicore_role_operations", id); err != nil {
+		return contracts.Role{}, err
+	}
+	return result, nil
 }
+
+// roleIDList reads one ordered grant column set for a role.
+func (r *Repository) roleIDList(ctx context.Context, q sqlstore.Runner, table, roleID string) ([]string, error) {
+	rows, err := r.Store.Rows(ctx, q, "SELECT "+map[string]string{"unicore_role_menus": "menu_id", "unicore_role_actions": "action_id", "unicore_role_operations": "operation_id"}[table]+" FROM "+table+" WHERE role_id=? ORDER BY 1", roleID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	ids := []string{}
+	for rows.Next() {
+		var id string
+		if err = rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
+// saveRoleAuthorization replaces the independent grant sets of one role.
+// Validation keeps the fail-closed bound: navigation items and actions must
+// exist in the current tree of the role's own surface, actions stay bound to a
+// catalogue permission the role holds, and operation grants never exceed the
+// role's permission points (the points remain the upper bound).
+func (r *Repository) saveRoleAuthorization(ctx context.Context, tx *sql.Tx, roleID, realm string, permissions, menuIds, actionIds, operationIds []string, n contracts.Navigation) error {
+	// Grants can select navigation items from either workspace.
+	nodes := map[string]contracts.NavigationNode{}
+	for _, section := range n.Sections {
+
+		for _, node := range n.Nodes {
+			if node.SectionID == section.ID {
+				nodes[node.ID] = node
+			}
+		}
+	}
+	permissionSet := map[string]bool{}
+	for _, permission := range permissions {
+		permissionSet[permission] = true
+	}
+	operationSet := map[string]bool{}
+	for _, id := range operationIds {
+		if !platform.ValidOperationGrant(realm, permissions, id) {
+			return platform.ErrForbidden
+		}
+		if operationSet[id] {
+			return platform.ErrInput
+		}
+		operationSet[id] = true
+	}
+	for _, id := range menuIds {
+		node, ok := nodes[id]
+		if !ok || node.Type == "action" {
+			return platform.ErrForbidden
+		}
+	}
+	for _, id := range actionIds {
+		node, ok := nodes[id]
+		if !ok || node.Type != "action" {
+			return platform.ErrForbidden
+		}
+		if node.Permission == nil || !permissionSet[*node.Permission] {
+			return platform.ErrForbidden
+		}
+		for _, operation := range node.OperationIds {
+			if !operationSet[operation] {
+				return platform.ErrForbidden
+			}
+		}
+	}
+	for _, set := range []struct {
+		table, column string
+		ids           []string
+	}{
+		{"unicore_role_menus", "menu_id", menuIds},
+		{"unicore_role_actions", "action_id", actionIds},
+		{"unicore_role_operations", "operation_id", operationIds},
+	} {
+		if _, err := r.Store.Exec(ctx, tx, "DELETE FROM "+set.table+" WHERE role_id=?", roleID); err != nil {
+			return err
+		}
+		for _, id := range set.ids {
+			if _, err := r.Store.Exec(ctx, tx, "INSERT INTO "+set.table+"(role_id,"+set.column+") VALUES(?,?)", roleID, id); err != nil {
+				return err
+			}
+		}
+	}
+	if _, err := r.Store.Exec(ctx, tx, "DELETE FROM unicore_role_authorizations WHERE role_id=?", roleID); err != nil {
+		return err
+	}
+	if _, err := r.Store.Exec(ctx, tx, "INSERT INTO unicore_role_authorizations(role_id,initialized) VALUES(?,1)", roleID); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *Repository) roleDepartments(ctx context.Context, q sqlstore.Runner, roleID string) ([]string, error) {
+	rows, err := r.Store.Rows(ctx, q, "SELECT department_id FROM unicore_role_departments WHERE role_id=? ORDER BY department_id", roleID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	ids := []string{}
+	for rows.Next() {
+		var id string
+		if err = rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
 func (r *Repository) ListRoles(ctx context.Context) (contracts.RoleList, error) {
-	result := contracts.RoleList{Items: []contracts.Role{}, Permissions: platform.PermissionCatalog}
-	for _, id := range []string{"super_admin", "user"} {
+	result := contracts.RoleList{Items: []contracts.Role{}, Permissions: platform.PermissionCatalog()}
+	rows, err := r.Store.Rows(ctx, r.Store.DB, "SELECT id FROM unicore_roles ORDER BY CASE WHEN id IN ('super_admin','user') THEN 0 ELSE 1 END, name, id")
+	if err != nil {
+		return result, err
+	}
+	defer rows.Close()
+	ids := []string{}
+	for rows.Next() {
+		var id string
+		if err = rows.Scan(&id); err != nil {
+			return result, err
+		}
+		ids = append(ids, id)
+	}
+	if err = rows.Err(); err != nil {
+		return result, err
+	}
+	for _, id := range ids {
 		role, err := r.role(ctx, r.Store.DB, id)
 		if err != nil {
 			return result, err
@@ -40,6 +218,7 @@ func (r *Repository) ListRoles(ctx context.Context) (contracts.RoleList, error) 
 	}
 	return result, nil
 }
+
 func (r *Repository) actor(ctx context.Context, tx *sql.Tx, id, permission string) (contracts.User, error) {
 	admins := &Repository{Store: r.Store, Administrators: true}
 	user, err := admins.user(ctx, tx, id)
@@ -49,14 +228,22 @@ func (r *Repository) actor(ctx context.Context, tx *sql.Tx, id, permission strin
 	if err != nil {
 		return user, err
 	}
-	if user.Status != "active" || !platform.Has(user, permission) || !platform.IsSuper(user) {
+	// Active state and the permission point are rechecked against current data;
+	// super_admin exclusivity is the policy middleware's session-layer decision.
+	if user.Status != "active" || !platform.Has(user, permission) || (platform.SuperOnlyPermission(permission) && !platform.IsSuper(user)) {
 		return user, platform.ErrForbidden
 	}
 	return user, nil
 }
-func canAssign(actor contracts.User, role contracts.Role) bool {
-	return platform.IsSuper(actor) && platform.BuiltinRole(role.ID)
+
+// AuthorizeAdministrator must run after LockInstallation in the mutation transaction.
+// Fixed identity table, active state and permission are rechecked against current data.
+func (r *Repository) AuthorizeAdministrator(ctx context.Context, tx *sql.Tx, id, permission string) error {
+	_, err := r.actor(ctx, tx, id, permission)
+	return err
 }
+
+// RoleOptions is shared by both workspaces; assignment remains server-authorized.
 func (r *Repository) RoleOptions(ctx context.Context, actorID string) (contracts.RoleOptions, error) {
 	result := contracts.RoleOptions{Items: []contracts.RoleOption{}}
 	admins := &Repository{Store: r.Store, Administrators: true}
@@ -67,7 +254,7 @@ func (r *Repository) RoleOptions(ctx context.Context, actorID string) (contracts
 	if err != nil {
 		return result, err
 	}
-	if actor.Status != "active" || !platform.IsSuper(actor) {
+	if actor.Status != "active" {
 		return result, platform.ErrForbidden
 	}
 	roles, err := r.ListRoles(ctx)
@@ -75,14 +262,486 @@ func (r *Repository) RoleOptions(ctx context.Context, actorID string) (contracts
 		return result, err
 	}
 	for _, role := range roles.Items {
-		result.Items = append(result.Items, contracts.RoleOption{ID: role.ID, Name: role.Name, Assignable: true})
+
+		result.Items = append(result.Items, contracts.RoleOption{ID: role.ID, Name: role.Name, Assignable: platform.IsSuper(actor) || role.ID == "user"})
 	}
 	return result, nil
 }
 
-// AuthorizeAdministrator must run after LockInstallation in the mutation transaction.
-// Fixed identity table, active state and permission are rechecked against current data.
-func (r *Repository) AuthorizeAdministrator(ctx context.Context, tx *sql.Tx, id, permission string) error {
-	_, err := r.actor(ctx, tx, id, permission)
-	return err
+// Role grants must exist in the catalogue. Reserved operations still require super_admin.
+func validateGrants(realm string, permissions []string) error {
+	for _, permission := range permissions {
+		if !platform.CatalogPermission(permission) {
+			return platform.ErrForbidden
+		}
+	}
+	return nil
+}
+
+// Data scopes apply to all roles. Unknown values are rejected.
+func validateDataScope(realm string, scope *string) (string, error) {
+	requested := platform.ScopeSelf
+	if scope != nil && *scope != "" {
+		requested = *scope
+	}
+	switch requested {
+	case platform.ScopeAll, platform.ScopeDept, platform.ScopeDeptBelow, platform.ScopeCustom, platform.ScopeSelf:
+	default:
+		return "", platform.ErrInput
+	}
+
+	return requested, nil
+}
+
+// validateScopeDepartments checks every custom-scope department exists. Rows are
+// only persisted for the custom scope; other scopes return an empty set.
+func (r *Repository) validateScopeDepartments(ctx context.Context, q sqlstore.Runner, scope string, departments []string) ([]string, error) {
+	if scope != platform.ScopeCustom {
+		return []string{}, nil
+	}
+	seen := map[string]bool{}
+	for _, id := range departments {
+		if seen[id] {
+			continue
+		}
+		seen[id] = true
+		if _, err := r.department(ctx, q, id); err != nil {
+			return nil, err
+		}
+	}
+	result := []string{}
+	for _, id := range departments {
+		if seen[id] {
+			result = append(result, id)
+			delete(seen, id)
+		}
+	}
+	return result, nil
+}
+
+// CreateRole adds a custom role in the requested realm (empty means user for
+// backward compatibility). Grant checks run in the usecase layer and are
+// re-defended here. A new role starts with exactly the submitted grants: empty
+// stays empty, never "all".
+func (r *Repository) CreateRole(ctx context.Context, input contracts.RoleSaveInput, actor string) (contracts.Role, error) {
+	name := strings.TrimSpace(input.Name)
+	if name == "" {
+		return contracts.Role{}, platform.ErrInput
+	}
+	if err := r.initializeNavigation(ctx); err != nil {
+		return contracts.Role{}, err
+	}
+	realm := ""
+	if input.Realm != nil {
+		realm = *input.Realm
+	}
+	if realm == "" {
+		realm = "user"
+	}
+	if realm != "user" && realm != "administrator" {
+		return contracts.Role{}, platform.ErrInput
+	}
+	if err := validateGrants(realm, input.Permissions); err != nil {
+		return contracts.Role{}, err
+	}
+	scope, err := validateDataScope(realm, input.DataScope)
+	if err != nil {
+		return contracts.Role{}, err
+	}
+	tx, err := r.Store.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return contracts.Role{}, err
+	}
+	defer tx.Rollback()
+	if err = r.Store.LockInstallation(ctx, tx); err != nil {
+		return contracts.Role{}, err
+	}
+	if err = r.AuthorizeAdministrator(ctx, tx, actor, "roles:write"); err != nil {
+		return contracts.Role{}, err
+	}
+	departmentIDs := derefDepartmentIds(input.DepartmentIds)
+	departments, err := r.validateScopeDepartments(ctx, tx, scope, departmentIDs)
+	if err != nil {
+		return contracts.Role{}, err
+	}
+	id := sqlstore.ID()
+	if _, err = r.Store.Exec(ctx, tx, "INSERT INTO unicore_roles(id,name,realm,data_scope) VALUES(?,?,?,?)", id, name, realm, scope); err != nil {
+		return contracts.Role{}, accountError(err)
+	}
+	if err = r.writeRolePermissions(ctx, tx, id, input.Permissions); err != nil {
+		return contracts.Role{}, err
+	}
+	if err = r.writeRoleDepartments(ctx, tx, id, departments); err != nil {
+		return contracts.Role{}, err
+	}
+	nav, err := r.readNavigation(ctx, tx)
+	if err != nil {
+		return contracts.Role{}, err
+	}
+	// Omitted grant arrays derive the role's exact current equivalents: every
+	// surface item and operation its permission points already unlock, so a
+	// newly created role keeps working without enumerating the catalogue.
+	menuIds, actionIds, operationIds := deriveGrants(realm, input.Permissions, nav)
+	if input.MenuIds != nil {
+		menuIds = *input.MenuIds
+	}
+	if input.ActionIds != nil {
+		actionIds = *input.ActionIds
+	}
+	if input.OperationIds != nil {
+		operationIds = *input.OperationIds
+	}
+	if input.ActionIds == nil {
+		covered := map[string]bool{}
+		for _, id := range operationIds {
+			covered[id] = true
+		}
+		actions := map[string]contracts.NavigationNode{}
+		for _, node := range nav.Nodes {
+			actions[node.ID] = node
+		}
+		filtered := []string{}
+		for _, id := range actionIds {
+			valid := true
+			for _, op := range actions[id].OperationIds {
+				if !covered[op] {
+					valid = false
+				}
+			}
+			if valid {
+				filtered = append(filtered, id)
+			}
+		}
+		actionIds = filtered
+	}
+	if err = r.saveRoleAuthorization(ctx, tx, id, realm, input.Permissions, menuIds, actionIds, operationIds, nav); err != nil {
+		return contracts.Role{}, err
+	}
+	if err = r.audit(audit.Target(ctx, "role/"+id, "realm="+realm+"; name="+name+"; permissions="+strings.Join(input.Permissions, ",")+"; data_scope="+scope), tx, actor, "roles.created"); err != nil {
+		return contracts.Role{}, err
+	}
+	role, err := r.role(ctx, tx, id)
+	if err != nil {
+		return contracts.Role{}, err
+	}
+	return role, tx.Commit()
+}
+
+// UpdateRole edits name, grants and the data scope. The builtin user role keeps
+// its name and personal-only scope but may be re-granted; super_admin is
+// immutable; a role never moves between realms. Omitted grant arrays keep the
+// current authorization; an explicit empty array clears it, so an empty
+// authorization is a real state and never "all".
+func (r *Repository) UpdateRole(ctx context.Context, id string, input contracts.RoleSaveInput, actor string) (contracts.Role, error) {
+	name := strings.TrimSpace(input.Name)
+	if name == "" {
+		return contracts.Role{}, platform.ErrInput
+	}
+	if err := r.initializeNavigation(ctx); err != nil {
+		return contracts.Role{}, err
+	}
+	tx, err := r.Store.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return contracts.Role{}, err
+	}
+	defer tx.Rollback()
+	if err = r.Store.LockInstallation(ctx, tx); err != nil {
+		return contracts.Role{}, err
+	}
+	if err = r.AuthorizeAdministrator(ctx, tx, actor, "roles:write"); err != nil {
+		return contracts.Role{}, err
+	}
+	before, err := r.role(ctx, tx, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return contracts.Role{}, platform.ErrInput
+	}
+	if err != nil {
+		return contracts.Role{}, err
+	}
+	if id == "super_admin" {
+		return contracts.Role{}, platform.ErrForbidden
+	}
+	// Public registration always uses user; its grants must remain business-only.
+	if id == "user" {
+		for _, permission := range input.Permissions {
+			if !platform.AssignablePermission(permission) {
+				return contracts.Role{}, platform.ErrForbidden
+			}
+		}
+	}
+	if err = validateGrants(before.Realm, input.Permissions); err != nil {
+		return contracts.Role{}, err
+	}
+	scopeInput := input.DataScope
+	if scopeInput == nil {
+		scopeInput = &before.DataScope
+	}
+	scope, err := validateDataScope(before.Realm, scopeInput)
+	if err != nil {
+		return contracts.Role{}, err
+	}
+	// The builtin user role keeps its self-only behaviour; only custom roles may
+	// widen row visibility.
+	if before.Builtin && scope != platform.ScopeSelf {
+		return contracts.Role{}, platform.ErrForbidden
+	}
+	departmentIDs := before.DepartmentIds
+	if input.DepartmentIds != nil {
+		departmentIDs = *input.DepartmentIds
+	}
+	departments, err := r.validateScopeDepartments(ctx, tx, scope, departmentIDs)
+	if err != nil {
+		return contracts.Role{}, err
+	}
+	if !before.Builtin {
+		if _, err = r.Store.Exec(ctx, tx, "UPDATE unicore_roles SET name=?,data_scope=? WHERE id=?", name, scope, id); err != nil {
+			return contracts.Role{}, accountError(err)
+		}
+	}
+	if err = r.writeRolePermissions(ctx, tx, id, input.Permissions); err != nil {
+		return contracts.Role{}, err
+	}
+	if err = r.writeRoleDepartments(ctx, tx, id, departments); err != nil {
+		return contracts.Role{}, err
+	}
+	// Omitted grants preserve stored authorization, pruning only references
+	// invalidated by reduced permissions or removed navigation. Widening points
+	// never restores an explicitly revoked API or action.
+	nav, err := r.readNavigation(ctx, tx)
+	if err != nil {
+		return contracts.Role{}, err
+	}
+	menuIds := []string{}
+	if input.MenuIds != nil {
+		menuIds = *input.MenuIds
+	} else {
+		present := map[string]bool{}
+		for _, node := range nav.Nodes {
+			present[node.ID] = true
+		}
+		for _, id := range before.MenuIds {
+			if present[id] {
+				menuIds = append(menuIds, id)
+			}
+		}
+	}
+	operationIds := []string{}
+	for _, id := range before.OperationIds {
+		if platform.ValidOperationGrant(before.Realm, input.Permissions, id) {
+			operationIds = append(operationIds, id)
+		}
+	}
+	if input.OperationIds != nil {
+		operationIds = *input.OperationIds
+	}
+	selected := map[string]bool{}
+	for _, id := range operationIds {
+		selected[id] = true
+	}
+	actionIds := []string{}
+	nodes := map[string]contracts.NavigationNode{}
+	for _, node := range nav.Nodes {
+		nodes[node.ID] = node
+	}
+	for _, id := range before.ActionIds {
+		node, ok := nodes[id]
+		if !ok || node.Type != "action" || node.Permission == nil || !platform.PermissionsAllow(input.Permissions, []string{*node.Permission}, "all") {
+			continue
+		}
+		allowed := true
+		for _, op := range node.OperationIds {
+			if !selected[op] {
+				allowed = false
+			}
+		}
+		if allowed {
+			actionIds = append(actionIds, id)
+		}
+	}
+	if input.ActionIds != nil {
+		actionIds = *input.ActionIds
+	}
+	if err = r.saveRoleAuthorization(ctx, tx, id, before.Realm, input.Permissions, menuIds, actionIds, operationIds, nav); err != nil {
+		return contracts.Role{}, err
+	}
+	// Permission changes revoke every affected account's shared sessions.
+	if _, err = r.Store.Exec(ctx, tx, "DELETE FROM unicore_sessions WHERE user_id IN (SELECT user_id FROM unicore_user_roles WHERE role_id=?)", id); err != nil {
+		return contracts.Role{}, err
+	}
+	if err = r.audit(audit.Target(ctx, "role/"+id, "sessions=revoked; permissions="+strings.Join(input.Permissions, ",")+"; data_scope="+scope), tx, actor, "roles.updated"); err != nil {
+		return contracts.Role{}, err
+	}
+	role, err := r.role(ctx, tx, id)
+	if err != nil {
+		return contracts.Role{}, err
+	}
+	return role, tx.Commit()
+}
+
+// DeleteRole refuses builtin roles and roles that still have members.
+func (r *Repository) DeleteRole(ctx context.Context, id string, actor string) (contracts.Role, error) {
+	before, err := r.role(ctx, r.Store.DB, id)
+	if err != nil {
+		return contracts.Role{}, err
+	}
+	tx, err := r.Store.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return contracts.Role{}, err
+	}
+	defer tx.Rollback()
+	if err = r.Store.LockInstallation(ctx, tx); err != nil {
+		return contracts.Role{}, err
+	}
+	if err = r.AuthorizeAdministrator(ctx, tx, actor, "roles:write"); err != nil {
+		return contracts.Role{}, err
+	}
+	if platform.BuiltinRole(id) {
+		return contracts.Role{}, platform.ErrForbidden
+	}
+	for _, table := range []string{"unicore_user_roles"} {
+		var count int
+		if err = r.Store.Row(ctx, tx, "SELECT COUNT(*) FROM "+table+" WHERE role_id=?", id).Scan(&count); err != nil {
+			return contracts.Role{}, err
+		}
+		if count != 0 {
+			return contracts.Role{}, platform.ErrConflict
+		}
+	}
+	result, err := r.Store.Exec(ctx, tx, "DELETE FROM unicore_roles WHERE id=?", id)
+	if err != nil {
+		return contracts.Role{}, err
+	}
+	if affected, err := result.RowsAffected(); err == nil && affected == 0 {
+		return contracts.Role{}, platform.ErrInput
+	}
+	if _, err = r.Store.Exec(ctx, tx, "DELETE FROM unicore_role_permissions WHERE role_id=?", id); err != nil {
+		return contracts.Role{}, err
+	}
+	if _, err = r.Store.Exec(ctx, tx, "DELETE FROM unicore_role_departments WHERE role_id=?", id); err != nil {
+		return contracts.Role{}, err
+	}
+	if err = r.audit(audit.Target(ctx, "role/"+id, "deleted"), tx, actor, "roles.deleted"); err != nil {
+		return contracts.Role{}, err
+	}
+	return before, tx.Commit()
+}
+
+func (r *Repository) writeRolePermissions(ctx context.Context, tx *sql.Tx, id string, permissions []string) error {
+	if _, err := r.Store.Exec(ctx, tx, "DELETE FROM unicore_role_permissions WHERE role_id=?", id); err != nil {
+		return err
+	}
+	for _, permission := range permissions {
+		if _, err := r.Store.Exec(ctx, tx, "INSERT INTO unicore_role_permissions(role_id,permission_id) VALUES(?,?)", id, permission); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// writeRoleDepartments replaces the custom scope department set; non-custom
+// scopes persist an empty set.
+func (r *Repository) writeRoleDepartments(ctx context.Context, tx *sql.Tx, id string, departments []string) error {
+	if _, err := r.Store.Exec(ctx, tx, "DELETE FROM unicore_role_departments WHERE role_id=?", id); err != nil {
+		return err
+	}
+	for _, department := range departments {
+		if _, err := r.Store.Exec(ctx, tx, "INSERT INTO unicore_role_departments(role_id,department_id) VALUES(?,?)", id, department); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// EnsurePermissions re-applies the catalogue to an installed instance so new
+// permission points and the super_admin grant set survive version upgrades.
+// Apart from retired demo grants it never touches the builtin user role: revoked points stay
+// revoked and new points stay unassigned until an operator grants them. The
+// install-time Seed keeps the original full-assignable default for fresh
+// instances, and role authorization materialization runs exactly once at the
+// navigation upgrade, so upgrades never silently widen any role.
+func (r *Repository) EnsurePermissions(ctx context.Context) error {
+	// Retire the object-storage demo grants on the built-in user role only.
+	// Explicit custom-role API grants remain operator-owned.
+	if _, err := r.Store.Exec(ctx, r.Store.DB, "DELETE FROM unicore_role_permissions WHERE role_id=? AND permission_id IN (?,?,?)", "user", "files:access", "files:upload", "files:delete"); err != nil {
+		return err
+	}
+	for _, permission := range platform.Permissions() {
+		if _, err := r.Store.Exec(ctx, r.Store.DB, "INSERT INTO unicore_permissions(id) SELECT ? WHERE NOT EXISTS (SELECT 1 FROM unicore_permissions WHERE id=?)", permission, permission); err != nil {
+			return err
+		}
+		if _, err := r.Store.Exec(ctx, r.Store.DB, "INSERT INTO unicore_role_permissions(role_id,permission_id) SELECT ?,? WHERE NOT EXISTS (SELECT 1 FROM unicore_role_permissions WHERE role_id=? AND permission_id=?)", "super_admin", permission, "super_admin", permission); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// deriveGrants computes the equivalent authorization of a permission set
+// against the current navigation: surface items of the realm, action buttons
+// whose point is held and whose operations are all covered, and the API
+// operations the points already unlocked.
+func deriveGrants(realm string, permissions []string, n contracts.Navigation) ([]string, []string, []string) {
+	operations := platform.MaterializedOperations(realm, permissions)
+	operationSet := map[string]bool{}
+	for _, id := range operations {
+		operationSet[id] = true
+	}
+	permissionSet := map[string]bool{}
+	for _, permission := range permissions {
+		permissionSet[permission] = true
+	}
+	// The shared tree declares surfaces per node; a legacy role keeps the
+	// reach of its own realm only.
+	menus, actions := []string{}, []string{}
+	for _, node := range n.Nodes {
+		if !contains(node.Surfaces, realm) {
+			continue
+		}
+		if node.Type == "action" {
+			if node.Permission != nil && permissionSet[*node.Permission] {
+				covered := len(node.OperationIds) > 0
+				for _, id := range node.OperationIds {
+					if !operationSet[id] {
+						covered = false
+					}
+				}
+				if covered {
+					actions = append(actions, node.ID)
+				}
+			}
+			continue
+		}
+		menus = append(menus, node.ID)
+	}
+	return uniqueIDs(menus), uniqueIDs(actions), uniqueIDs(operations)
+}
+
+// derefIDs normalizes the optional contract arrays: nil means "keep" for
+// updates and "empty" for creation.
+func derefIDs(ids *[]string) []string {
+	if ids == nil {
+		return nil
+	}
+	return *ids
+}
+
+// derefDepartmentIds normalizes the optional contract array: nil or an empty
+// list mean no configured departments.
+func derefDepartmentIds(ids *[]string) []string {
+	if ids == nil {
+		return nil
+	}
+	return *ids
+}
+
+func uniqueIDs(ids []string) []string {
+	seen := map[string]bool{}
+	result := []string{}
+	for _, id := range ids {
+		if !seen[id] {
+			seen[id] = true
+			result = append(result, id)
+		}
+	}
+	return result
 }

@@ -366,11 +366,52 @@ func (s *Service) owned(ctx context.Context, fileID string, a Actor) (Record, er
 	}
 	return f, nil
 }
-func (s *Service) List(ctx context.Context, a Actor, search string, page int) (contracts.FileList, error) {
+
+// readable resolves a file the actor may download: its own file, any same-realm
+// file for administrators, or a same-realm file covered by one of the scopes
+// the caller resolved from the current session state. It never accepts
+// cross-realm rows, so a scope resolved in the user realm cannot reach
+// administrator uploads.
+func (s *Service) readable(ctx context.Context, fileID string, a Actor, scopes []ScopeFilter) (Record, error) {
+	f, e := s.Repo.Get(ctx, fileID)
+	if e != nil {
+		return f, e
+	}
+	if f.Purpose != "user" || f.State == "deleted" || f.ExpiresAt > 0 && f.ExpiresAt <= int(s.now().Unix()) {
+		return f, ErrNotFound
+	}
+	if !a.Admin && (f.CreatorID != a.ID || f.CreatorRealm != a.Realm) {
+		allowed := false
+		if f.CreatorRealm == a.Realm {
+			for _, scope := range scopes {
+				if scope.All {
+					allowed = true
+					break
+				}
+				for _, id := range scope.CreatorIDs {
+					if id == f.CreatorID {
+						allowed = true
+						break
+					}
+				}
+			}
+		}
+		if !allowed {
+			return f, ErrNotFound
+		}
+	}
+	return f, nil
+}
+func (s *Service) List(ctx context.Context, a Actor, search string, page int, scope ScopeFilter) (contracts.FileList, error) {
 	if page < 1 || page > 100000 || len(search) > 255 {
 		return contracts.FileList{}, ErrInvalid
 	}
-	return s.Repo.List(ctx, a, search, page)
+	// Administrators keep the instance-wide list; data scopes only narrow the
+	// user-realm view.
+	if a.Admin {
+		scope = ScopeFilter{}
+	}
+	return s.Repo.List(ctx, a, search, page, scope)
 }
 func (s *Service) Upload(ctx context.Context, a Actor, input contracts.FileUploadInput) (contracts.FileUploadGrant, error) {
 	s.mu.Lock()
@@ -500,10 +541,22 @@ func (s *Service) Complete(ctx context.Context, a Actor, fileID string) (contrac
 	}
 	return f.FileEntry, nil
 }
+
+// Access signs a short-lived download for a file inside the actor's own
+// ownership (or the administrator instance surface). It satisfies the
+// platform.AvatarFiles port, which has no scope parameter.
 func (s *Service) Access(ctx context.Context, a Actor, fileID string) (contracts.FileAccess, error) {
+	return s.AccessScoped(ctx, a, fileID)
+}
+
+// AccessScoped signs a short-lived download. Scopes must be re-resolved by the
+// caller on every issuance, so a grant never outlives the session's current
+// data scope; without a covering scope only the actor's own files (or all
+// files for administrators) are signable.
+func (s *Service) AccessScoped(ctx context.Context, a Actor, fileID string, scopes ...ScopeFilter) (contracts.FileAccess, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	f, e := s.owned(ctx, fileID, a)
+	f, e := s.readable(ctx, fileID, a, scopes)
 	if e != nil {
 		return contracts.FileAccess{}, e
 	}
@@ -575,7 +628,7 @@ func (s *Service) remove(ctx context.Context, f Record, actor string) error {
 		jobs = append(jobs, s.job(f.LocationID, f.Staging, max(due, f.UploadExpires)))
 	}
 	f.State = "deleted"
-	return s.Repo.Change(ctx, f, jobs, actor)
+	return s.Repo.Remove(ctx, f, jobs, actor)
 }
 func (s *Service) Delete(ctx context.Context, a Actor, fileID string) error {
 	s.mu.Lock()

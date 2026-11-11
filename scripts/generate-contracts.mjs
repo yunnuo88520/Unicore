@@ -14,7 +14,7 @@ const refName = (ref) => {
 function type(schema, language) {
   if (schema.$ref) return refName(schema.$ref);
   if (schema.enum) return language === 'go' ? 'string' : schema.enum.map(JSON.stringify).join(' | ');
-  const types = { string: ['string', 'string'], integer: ['int', 'number'], boolean: ['bool', 'boolean'] };
+  const types = { string: ['string', 'string'], integer: ['int', 'number'], number: ['float64', 'number'], boolean: ['bool', 'boolean'] };
   if (types[schema.type]) return types[schema.type][language === 'go' ? 0 : 1];
   if (schema.type === 'array') return language === 'go' ? `[]${type(schema.items, language)}` : `Array<${type(schema.items, language)}>`;
   if (schema.type === 'object' && typeof schema.additionalProperties === 'object') return language === 'go' ? `map[string]${type(schema.additionalProperties, language)}` : `Record<string, ${type(schema.additionalProperties, language)}>`;
@@ -34,7 +34,7 @@ for (const [name, schema] of Object.entries(schemas)) {
   for (const [key, value] of Object.entries(schema.properties)) {
     const required = schema.required?.includes(key);
     ts += `  ${key}${required ? '' : '?'}: ${type(value, 'ts')};\n`;
-    go += `  ${goName(key)} ${required ? '' : '*'}${type(value, 'go')} \`json:"${key}${required ? '' : ',omitempty'}"\`\n`;
+    go += `  ${goName(key)} ${required || value['x-go-value'] ? '' : '*'}${type(value, 'go')} \`json:"${key}${required ? '' : ',omitempty'}"\`\n`;
   }
   ts += '}\n\n';
   go += '}\n\n';

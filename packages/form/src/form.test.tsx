@@ -1,6 +1,8 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Contract validation stops transport calls, announces fields and focuses the first invalid control.
 import { render, screen } from '@testing-library/react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import userEvent from '@testing-library/user-event';
 import { expect, it, vi } from 'vitest';
 import { AppError } from '@unicore/sdk';
@@ -15,25 +17,35 @@ function Harness({ onSubmit, serverError }: { onSubmit: (values: { recipient: st
   </AppForm>;
 }
 
-it('blocks invalid contracts and focuses/announces the field', async () => {
+it('blocks invalid contracts and focuses/announces the field without a duplicate banner', async () => {
   const submit = vi.fn();
   render(<Harness onSubmit={submit} />);
   await userEvent.click(screen.getByRole('button', { name: '保存' }));
   expect(submit).not.toHaveBeenCalled();
   expect(screen.getByLabelText('测试邮箱')).toHaveFocus();
   expect(screen.getByLabelText('测试邮箱')).toHaveAttribute('aria-invalid', 'true');
-  expect(screen.getByRole('alert', { name: '表单校验' })).toHaveTextContent('至少 3 个字符');
+  // Field errors render inline only; the form-wide banner must not repeat them.
+  expect(screen.queryByRole('alert', { name: '表单校验' })).toBeNull();
+  expect(screen.getByRole('alert')).toHaveTextContent('至少 3 个字符');
 });
 
-it('shows server field errors and submits valid values once resolved', async () => {
+it('shows server field errors inline and submits valid values once resolved', async () => {
   const submit = vi.fn();
   render(<Harness onSubmit={submit} serverError={new AppError('INVALID_INPUT', '请检查输入', 'request', { recipient: '邮箱格式不正确' })} />);
   await userEvent.click(screen.getByRole('button', { name: '应用服务端错误' }));
   expect(screen.getByLabelText('测试邮箱')).toHaveFocus();
-  expect(screen.getByRole('alert', { name: '表单校验' })).toHaveTextContent('邮箱格式不正确');
+  expect(screen.queryByRole('alert', { name: '表单校验' })).toBeNull();
+  expect(screen.getByRole('alert')).toHaveTextContent('邮箱格式不正确');
   await userEvent.type(screen.getByLabelText('测试邮箱'), 'user@example.test');
   await userEvent.click(screen.getByRole('button', { name: '保存' }));
   expect(submit).toHaveBeenCalledWith({ recipient: 'user@example.test' });
+});
+
+it('keeps the form-wide banner only for $form-level server errors', async () => {
+  const submit = vi.fn();
+  render(<Harness onSubmit={submit} serverError={new AppError('INVALID_INPUT', '请求无效', 'request', { $form: '请先保存 SMTP 配置并成功发送测试邮件' })} />);
+  await userEvent.click(screen.getByRole('button', { name: '应用服务端错误' }));
+  expect(screen.getByRole('alert', { name: '表单校验' })).toHaveTextContent('请先保存 SMTP 配置并成功发送测试邮件');
 });
 
 function TwinForms({ serverError }: { serverError: AppError }) {
@@ -54,3 +66,30 @@ it('scopes server error focus to the form that submitted, not the first match on
   expect(screen.getByLabelText('乙字段')).toHaveFocus();
   expect(screen.getByLabelText('甲字段')).not.toHaveFocus();
 });
+
+function NestedHarness({ onSubmit }: { onSubmit: (values: { recipient: string }) => void }) {
+  const form = useAppForm({ schema: 'MailTestInput', defaultValues: { recipient: '' }, onSubmit });
+  // Mirror the real editor dialogs: Radix portals their <form> to document.body
+  // while the React tree still nests it under the page form.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+  return <AppForm form={form}>
+    <AppField name="recipient" label="测试邮箱"><input /></AppField>
+    <button type="submit">外层提交</button>
+    {mounted && createPortal(<form onSubmit={event => event.preventDefault()}>
+      <button type="submit">内层提交</button>
+    </form>, document.body)}
+  </AppForm>;
+}
+
+it('ignores submit events bubbling from nested forms (editor dialogs)', async () => {
+  const onSubmit = vi.fn().mockResolvedValue(undefined);
+  const user = userEvent.setup();
+  render(<NestedHarness onSubmit={onSubmit} />);
+  await user.click(screen.getByRole('button', { name: '内层提交' }));
+  expect(onSubmit).not.toHaveBeenCalled();
+  await user.type(screen.getByLabelText('测试邮箱'), 'recipient@example.test');
+  await user.click(screen.getByRole('button', { name: '外层提交' }));
+  expect(onSubmit).toHaveBeenCalledTimes(1);
+});
+

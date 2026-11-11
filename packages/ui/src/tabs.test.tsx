@@ -1,5 +1,6 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Tabs controlled items API with dirty markers and stable panel ids.
+import { useState } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { expect, it, vi } from 'vitest';
@@ -19,4 +20,20 @@ it('marks the active tab, exposes panel ids and reports changes', async () => {
   expect(screen.getByRole('tab', { name: /高级/ })).toHaveAttribute('aria-selected', 'false');
   await userEvent.click(screen.getByRole('tab', { name: /高级/ }));
   expect(onChange).toHaveBeenCalledWith('advanced');
+});
+
+it('supports keyboard traversal and selection with one focusable tab', async () => {
+  function SettingsTabs() {
+    const [value, setValue] = useState('general');
+    return <Tabs id="keyboard" label="设置" items={items} value={value} onChange={setValue} />;
+  }
+  render(<SettingsTabs />);
+  const user = userEvent.setup();
+  await user.tab();
+  expect(screen.getByRole('tab', { name: '通用' })).toHaveFocus();
+  await user.keyboard('{ArrowRight}');
+  expect(screen.getByRole('tab', { name: /高级/ })).toHaveFocus();
+  expect(screen.getByRole('tab', { name: /高级/ })).toHaveAttribute('aria-selected', 'true');
+  await user.keyboard('{Home}');
+  expect(screen.getByRole('tab', { name: '通用' })).toHaveAttribute('aria-selected', 'true');
 });

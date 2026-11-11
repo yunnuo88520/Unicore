@@ -22,6 +22,11 @@ var (
 	// ErrLegacyLedger reports the ADR-0024 two-column ledger: the database
 	// predates the catalog generation and cannot be upgraded in place.
 	ErrLegacyLedger = errors.New("legacy two-column schema_migrations requires reinstall")
+	// ErrForeignDatabase reports a database that already holds objects but no
+	// catalog ledger: a legacy-prefix world (whose schema_migrations was renamed
+	// away) or an unrelated database. Creating a fresh ledger on top would
+	// replay baselines into colliding names, so it is refused before writing.
+	ErrForeignDatabase = errors.New("database is not empty and has no catalog ledger; legacy installations require reinstall")
 	// ErrLedgerShape reports a schema_migrations table that matches neither
 	// the catalog ledger nor the legacy shape.
 	ErrLedgerShape = errors.New("schema_migrations does not match the catalog ledger")
@@ -85,6 +90,9 @@ func Apply(ctx context.Context, db *sql.DB, opts Options) error {
 // ApplyDescriptor is Apply against an explicit descriptor; tests inject
 // synthetic catalogs through it.
 func ApplyDescriptor(ctx context.Context, db *sql.DB, descriptor catalogdata.Descriptor, opts Options) error {
+	if opts.Now == nil {
+		opts.Now = time.Now
+	}
 	schema, err := plan(descriptor, opts)
 	if err != nil {
 		return err
@@ -241,6 +249,13 @@ func ensureLedger(ctx context.Context, conn session, ledger catalogdata.Ledger, 
 	if found {
 		return checkLedgerShape(ledger, columns)
 	}
+	objects, err := objectCount(ctx, conn, dialect)
+	if err != nil {
+		return err
+	}
+	if objects != 0 {
+		return ErrForeignDatabase
+	}
 	ddl, ok := ledger.Ddl[dialect]
 	if !ok {
 		return fmt.Errorf("catalog ledger has no %q DDL", dialect)
@@ -249,6 +264,36 @@ func ensureLedger(ctx context.Context, conn session, ledger catalogdata.Ledger, 
 	// shape check above already rejected foreign tables.
 	_, err = conn.ExecContext(ctx, strings.Replace(ddl, "CREATE TABLE ", "CREATE TABLE IF NOT EXISTS ", 1))
 	return err
+}
+
+// objectCount counts user-visible tables and views, excluding the dialect's
+// own internals. Views are counted because a replay into a view-named target
+// fails just the same.
+func objectCount(ctx context.Context, conn Querier, dialect string) (int, error) {
+	var query string
+	switch dialect {
+	case "sqlite":
+		query = "SELECT count(*) FROM sqlite_master WHERE type IN ('table','view') AND name NOT LIKE 'sqlite_%'"
+	case "postgres":
+		query = "SELECT count(*) FROM information_schema.tables WHERE table_schema=current_schema() AND table_type IN ('BASE TABLE','VIEW')"
+	case "mysql":
+		query = "SELECT count(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND TABLE_TYPE IN ('BASE TABLE','VIEW')"
+	default:
+		return 0, fmt.Errorf("unsupported dialect %q", dialect)
+	}
+	rows, err := conn.QueryContext(ctx, query)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+	if !rows.Next() {
+		return 0, rows.Err()
+	}
+	var count int
+	if err = rows.Scan(&count); err != nil {
+		return 0, err
+	}
+	return count, rows.Err()
 }
 
 func inspectLedger(ctx context.Context, conn session, ledger catalogdata.Ledger, dialect string) ([]string, bool, error) {
@@ -382,7 +427,7 @@ func execute(ctx context.Context, conn session, schema schemaPlan, applied ledge
 		if checksum(body) != migration.file.Checksum {
 			return fmt.Errorf("%w: %s", ErrChecksumMismatch, migration.file.Path)
 		}
-		if err = runMigration(ctx, conn, schema.ledger.Table, migration, body, stamp); err != nil {
+		if err = runMigration(ctx, conn, opts.Dialect, schema.ledger.Table, migration, body, stamp); err != nil {
 			return err
 		}
 		applied.rows[key] = true
@@ -390,7 +435,7 @@ func execute(ctx context.Context, conn session, schema schemaPlan, applied ledge
 	return nil
 }
 
-func runMigration(ctx context.Context, conn session, ledgerTable string, migration plannedMigration, body []byte, stamp int64) error {
+func runMigration(ctx context.Context, conn session, dialect, ledgerTable string, migration plannedMigration, body []byte, stamp int64) error {
 	run := func(exec Querier) error {
 		for _, statement := range splitStatements(body) {
 			if _, err := exec.ExecContext(ctx, statement); err != nil {
@@ -400,7 +445,14 @@ func runMigration(ctx context.Context, conn session, ledgerTable string, migrati
 		return nil
 	}
 	record := func(exec Querier) error {
-		_, err := exec.ExecContext(ctx, "INSERT INTO "+ledgerTable+"(namespace, version, checksum, applied_at) VALUES(?, ?, ?, ?)",
+		// PostgreSQL's extended protocol rejects ? placeholders; the baselines
+		// themselves are executed without parameters, so only this insert
+		// needs the dialect's placeholder form.
+		placeholders := "?, ?, ?, ?"
+		if dialect == "postgres" {
+			placeholders = "$1, $2, $3, $4"
+		}
+		_, err := exec.ExecContext(ctx, "INSERT INTO "+ledgerTable+"(namespace, version, checksum, applied_at) VALUES("+placeholders+")",
 			migration.namespace, migration.version, migration.file.Checksum, stamp)
 		if err != nil {
 			return fmt.Errorf("%s@%d: %w", migration.namespace, migration.version, err)

@@ -14,6 +14,7 @@ export function contractArtifacts(spec){
   const id=operation.operationId;const policy=operation['x-unicore'];
   if(!id||names.has(id))throw new Error(`Missing or duplicate operationId: ${method} ${path}`);names.add(id);
   if(!policy?.profiles?.length||!policy.access||!Array.isArray(policy.permissions)||typeof policy.csrf!=='boolean')throw new Error(`Missing access metadata: ${id}`);
+  if(policy.uiPage!==undefined && (typeof policy.uiPage!=='string'||!/^[-a-z]+$/.test(policy.uiPage)||!policy.permissions.length||policy.superAdmin||!['user','administrator'].includes(policy.identityRealm)))throw new Error(`Invalid UI action page: ${id}`);
   if(path.startsWith('/api/v1/admin/') && policy.identityRealm!=='administrator')throw new Error(`Admin operation must fix identityRealm: ${id}`);
   if(path.startsWith('/api/v1/admin/') && (operation.security??[]).some(item=>Object.hasOwn(item,'SessionCookie')))throw new Error(`Admin operation must use AdministratorSession: ${id}`);
   if(path.includes('/admin/')&&!policy.permissions.length&&!(policy.identityRealm==='administrator'&&/^\/api\/v1\/admin\/(bootstrap|auth(?:\/.*)?|account(?:\/.*)?)$/.test(path)))throw new Error(`Admin operation needs permissions: ${id}`);
@@ -21,12 +22,15 @@ export function contractArtifacts(spec){
   if(policy.maxBodyBytes!==undefined&&(!Number.isInteger(policy.maxBodyBytes)||policy.maxBodyBytes<1024||policy.maxBodyBytes>512*1024))throw new Error(`Invalid body limit: ${id}`);
   const requestSchema=refName(operation.requestBody?.content?.['application/json']?.schema);
   const responseSchema=refName(operation.responses?.['200']?.content?.['application/json']?.schema);
+  const multipartSchema=operation.requestBody?.content?.['multipart/form-data']?.schema;
+  const multipartRequest=!!multipartSchema;
+  if(multipartRequest && (Object.keys(operation.requestBody.content).length!==1 || multipartSchema.type!=='object' || multipartSchema.additionalProperties!==false || JSON.stringify(multipartSchema.required)!=='["file"]' || Object.keys(multipartSchema.properties??{}).join(',')!=='file' || multipartSchema.properties.file.type!=='string' || multipartSchema.properties.file.format!=='binary'))throw new Error(`Multipart upload must declare exactly one required binary file: ${id}`);
   const binaryRequest=operation.requestBody?.content?.['application/octet-stream']?.schema?.format==='binary';
-  const binaryResponse=operation.responses?.['200']?.content?.['application/octet-stream']?.schema?.format==='binary';
-  if(operation.requestBody&&!requestSchema&&!(binaryRequest&&policy.streamingUpload))throw new Error(`Request must use a named schema or declared streaming upload: ${id}`);
+  const binaryResponse=Object.values(operation.responses?.['200']?.content??{}).some(media=>media.schema?.format==='binary');
+  if(operation.requestBody&&!requestSchema&&!(binaryRequest&&policy.streamingUpload)&&!multipartRequest)throw new Error(`Request must use a named schema or declared streaming upload: ${id}`);
   const parameters=[...(item.parameters??[]),...(operation.parameters??[])];
   for(const name of [...path.matchAll(/\{([^}]+)\}/g)].map(match=>match[1]))if(!parameters.some(parameter=>parameter.in==='path'&&parameter.name===name&&parameter.required))throw new Error(`Missing required path parameter: ${id}/${name}`);
-  operations[id]={method:method.toUpperCase(),path,requestSchema:requestSchema??null,responseSchema:responseSchema??null,binaryRequest,binaryResponse,...policy};
+  operations[id]={method:method.toUpperCase(),path,requestSchema:requestSchema??null,responseSchema:responseSchema??null,binaryRequest,binaryResponse,multipartRequest,...policy};
  }
  let ts=header+"import type * as Models from './schema.gen';\n\n";
  ts+=`export const operations = ${JSON.stringify(operations,null,2)} as const;\nexport type OperationId = keyof typeof operations;\n`;
@@ -37,7 +41,7 @@ export function contractArtifacts(spec){
  errors=execFileSync('gofmt',[],{input:errors,encoding:'utf8'});
  // Strip annotations at schema nodes only; property names such as title/description are business data.
  function constraintsFor(schema){const result={};for(const [key,value] of Object.entries(schema)){
-  if(['description','title','example','examples'].includes(key))continue;
+  if(['description','title','example','examples','x-go-value'].includes(key))continue;
   if(key==='properties')result[key]=Object.fromEntries(Object.entries(value).map(([name,child])=>[name,constraintsFor(child)]));
   else if((key==='items'||key==='additionalProperties')&&typeof value==='object')result[key]=constraintsFor(value);
   else result[key]=value;

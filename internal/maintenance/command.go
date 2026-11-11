@@ -68,5 +68,5 @@ func Command(ctx context.Context, args []string, output io.Writer, getenv func(s
 	if err != nil {
 		return err
 	}
-	return json.NewEncoder(output).Encode(map[string]any{"status": "ok", "operation": args[0], "snapshot": m.Snapshot, "profile": m.Profile, "driver": m.Driver, "schema": m.Schema, "business_schema": m.BusinessSchema, "files": len(m.Files), "cloud_objects": len(m.Objects)})
+	return json.NewEncoder(output).Encode(map[string]any{"status": "ok", "operation": args[0], "snapshot": m.Snapshot, "profile": m.Profile, "driver": m.Driver, "schema": m.Schema, "files": len(m.Files), "cloud_objects": len(m.Objects)})
 }

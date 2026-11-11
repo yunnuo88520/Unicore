@@ -35,7 +35,7 @@ func (r *Repository) RegisterEmailChallenge(ctx context.Context, input contracts
 		return err
 	}
 	defer tx.Rollback()
-	user, err := r.insert(ctx, tx, contracts.UserCreate{Username: input.Username, Email: input.Email, Role: "user"}, hash, "registration")
+	user, err := r.insert(ctx, tx, contracts.UserCreate{Username: input.Username, Email: input.Email, Phone: input.Phone, Role: "user"}, hash, "registration")
 	if err != nil {
 		return err
 	}

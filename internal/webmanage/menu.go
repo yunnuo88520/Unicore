@@ -87,13 +87,7 @@ func menu(ctx context.Context, args []string, c Console) error {
 			if username != "" {
 				command = append(command, "--username", username)
 			}
-			if choice == "19" {
-				realm, e := line("身份域 administrator/user: ")
-				if e != nil {
-					return e
-				}
-				command = append(command, "--realm", realm)
-			}
+
 		case "14":
 			value, e := line("新后台路径 / New admin path (e.g. /manage): ")
 			if e != nil {

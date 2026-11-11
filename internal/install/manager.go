@@ -238,6 +238,7 @@ func (m *Manager) attach(store *sqlstore.Store) {
 		m.settingService.NotificationWriter = admins
 		m.identity = platform.New(repository)
 		m.administrator = m.identity
+		m.identity.Tokens = &platform.Tokens{Identity: m.identity, Store: repository, Secrets: m.secret}
 		m.identity.Settings = m.settingService
 		m.administrator.Settings = m.settingService
 		m.identity.HumanCheck = humancheck.Verifier{}

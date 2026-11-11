@@ -29,6 +29,7 @@ jobs:
         options: --health-cmd "mysqladmin ping --silent" --health-interval 5s --health-timeout 5s --health-retries 20
     steps:
       - uses: actions/checkout@v7
+      - uses: ./.github/actions/ubuntu-mirrors
       - name: Install quality tooling
         run: sudo apt-get update && sudo apt-get install -y ripgrep
       - uses: actions/setup-go@v7
@@ -40,8 +41,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Prepare dedicated backup, announcement and file databases
         run: |
-          docker exec ${{ job.services.postgres.id }} psql -U unicore -d unicore_test -c 'CREATE DATABASE backup_source' -c 'CREATE DATABASE backup_target' -c 'CREATE DATABASE announcement_test' -c 'CREATE DATABASE file_test' -c 'CREATE DATABASE prefix_core' -c 'CREATE DATABASE prefix_platform' -c 'CREATE DATABASE installer_test'
-          docker exec -e MYSQL_PWD=unicore_ci_root ${{ job.services.mysql.id }} mysql -u root -e "CREATE DATABASE backup_source; CREATE DATABASE backup_target; CREATE DATABASE announcement_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE DATABASE file_test; CREATE DATABASE prefix_core; CREATE DATABASE prefix_platform; CREATE DATABASE installer_test; GRANT ALL ON backup_source.* TO 'unicore'@'%'; GRANT ALL ON backup_target.* TO 'unicore'@'%'; GRANT ALL ON announcement_test.* TO 'unicore'@'%'; GRANT ALL ON file_test.* TO 'unicore'@'%'; GRANT ALL ON prefix_core.* TO 'unicore'@'%'; GRANT ALL ON prefix_platform.* TO 'unicore'@'%'; GRANT ALL ON installer_test.* TO 'unicore'@'%';"
+          docker exec ${{ job.services.postgres.id }} psql -U unicore -d unicore_test -c 'CREATE DATABASE backup_source' -c 'CREATE DATABASE backup_target' -c 'CREATE DATABASE announcement_test' -c 'CREATE DATABASE file_test' -c 'CREATE DATABASE prefix_core' -c 'CREATE DATABASE prefix_platform' -c 'CREATE DATABASE installer_test' -c 'CREATE DATABASE api_token_test'
+          docker exec -e MYSQL_PWD=unicore_ci_root ${{ job.services.mysql.id }} mysql -u root -e "CREATE DATABASE backup_source; CREATE DATABASE backup_target; CREATE DATABASE announcement_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE DATABASE file_test; CREATE DATABASE prefix_core; CREATE DATABASE prefix_platform; CREATE DATABASE installer_test; CREATE DATABASE api_token_test; GRANT ALL ON backup_source.* TO 'unicore'@'%'; GRANT ALL ON backup_target.* TO 'unicore'@'%'; GRANT ALL ON announcement_test.* TO 'unicore'@'%'; GRANT ALL ON file_test.* TO 'unicore'@'%'; GRANT ALL ON prefix_core.* TO 'unicore'@'%'; GRANT ALL ON prefix_platform.* TO 'unicore'@'%'; GRANT ALL ON installer_test.* TO 'unicore'@'%'; GRANT ALL ON api_token_test.* TO 'unicore'@'%';"
       - run: make test
         env:
           UNICORE_MAINTENANCE_POSTGRES_DSN: postgres://unicore:unicore_ci_test@127.0.0.1:5432/backup_source?sslmode=disable
@@ -58,6 +59,8 @@ jobs:
           UNICORE_PREFIX_TEST_MYSQL_PLATFORM_DSN: unicore:unicore_ci_test@tcp(127.0.0.1:3306)/prefix_platform
           UNICORE_INSTALL_TEST_POSTGRES_DSN: postgres://unicore:unicore_ci_test@127.0.0.1:5432/installer_test?sslmode=disable
           UNICORE_INSTALL_TEST_MYSQL_DSN: unicore:unicore_ci_test@tcp(127.0.0.1:3306)/installer_test
+          UNICORE_TOKEN_TEST_POSTGRES_DSN: postgres://unicore:unicore_ci_test@127.0.0.1:5432/api_token_test?sslmode=disable
+          UNICORE_TOKEN_TEST_MYSQL_DSN: unicore:unicore_ci_test@tcp(127.0.0.1:3306)/api_token_test
           UNICORE_TEST_POSTGRES_DSN: postgres://unicore:unicore_ci_test@127.0.0.1:5432/unicore_test?sslmode=disable
           UNICORE_TEST_MYSQL_DSN: unicore:unicore_ci_test@tcp(127.0.0.1:3306)/unicore_test
           UNICORE_ANNOUNCEMENT_POSTGRES_DSN: postgres://unicore:unicore_ci_test@127.0.0.1:5432/announcement_test?sslmode=disable
@@ -98,6 +101,8 @@ jobs:
       - uses: actions/setup-node@v7
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
+      - if: runner.os == 'Linux'
+        uses: ./.github/actions/ubuntu-mirrors
       - if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev build-essential pkg-config
       - name: Verify signed update helpers on the native OS
@@ -147,6 +152,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v7
+      - uses: ./.github/actions/ubuntu-mirrors
       - uses: actions/setup-go@v7
         with: { go-version-file: go.mod }
       - uses: pnpm/action-setup@v6

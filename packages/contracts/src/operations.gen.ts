@@ -4328,6 +4328,170 @@ export const operations = {
     "superAdmin": true,
     "csrf": true,
     "identityRealm": "administrator"
+  },
+  "clientTokenLogin": {
+    "method": "POST",
+    "path": "/api/v1/auth/token",
+    "requestSchema": "LoginInput",
+    "responseSchema": "ClientTokenLoginResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user"
+  },
+  "clientTokenMFA": {
+    "method": "POST",
+    "path": "/api/v1/auth/token/mfa",
+    "requestSchema": "ClientTokenMFAInput",
+    "responseSchema": "ClientTokenPairResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user"
+  },
+  "refreshClientToken": {
+    "method": "POST",
+    "path": "/api/v1/auth/token/refresh",
+    "requestSchema": "RefreshTokenInput",
+    "responseSchema": "ClientTokenPairResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user"
+  },
+  "revokeClientToken": {
+    "method": "POST",
+    "path": "/api/v1/auth/token/revoke",
+    "requestSchema": "RefreshTokenInput",
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user"
+  },
+  "personalTokens": {
+    "method": "GET",
+    "path": "/api/v1/account/tokens",
+    "requestSchema": null,
+    "responseSchema": "PersonalTokenListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user"
+  },
+  "createPersonalToken": {
+    "method": "POST",
+    "path": "/api/v1/account/tokens",
+    "requestSchema": "PersonalTokenInput",
+    "responseSchema": "PersonalTokenCreatedResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "revokePersonalToken": {
+    "method": "DELETE",
+    "path": "/api/v1/account/tokens/{id}",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "personalTokenScopes": {
+    "method": "GET",
+    "path": "/api/v1/account/token-scopes",
+    "requestSchema": null,
+    "responseSchema": "TokenScopeListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user"
+  },
+  "rotateTokenSigningKey": {
+    "method": "POST",
+    "path": "/api/v1/admin/auth/token-keys/rotate",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "settings:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
   }
 } as const;
 export type OperationId = keyof typeof operations;
@@ -4555,6 +4719,15 @@ export interface OperationInputs {
   adminMonitorAlertRules: undefined;
   adminUpdateMonitorAlertRules: Models.MonitorAlertRules;
   assignMenuRoles: Models.MenuRoleAssignmentInput;
+  clientTokenLogin: Models.LoginInput;
+  clientTokenMFA: Models.ClientTokenMFAInput;
+  refreshClientToken: Models.RefreshTokenInput;
+  revokeClientToken: Models.RefreshTokenInput;
+  personalTokens: undefined;
+  createPersonalToken: Models.PersonalTokenInput;
+  revokePersonalToken: undefined;
+  personalTokenScopes: undefined;
+  rotateTokenSigningKey: undefined;
 }
 export interface OperationData {
   bootstrap: Models.BootstrapResponse['data'];
@@ -4780,4 +4953,13 @@ export interface OperationData {
   adminMonitorAlertRules: Models.MonitorAlertRulesResponse['data'];
   adminUpdateMonitorAlertRules: Models.MonitorAlertRulesResponse['data'];
   assignMenuRoles: Models.RoleListResponse['data'];
+  clientTokenLogin: Models.ClientTokenLoginResponse['data'];
+  clientTokenMFA: Models.ClientTokenPairResponse['data'];
+  refreshClientToken: Models.ClientTokenPairResponse['data'];
+  revokeClientToken: Models.ActionResultResponse['data'];
+  personalTokens: Models.PersonalTokenListResponse['data'];
+  createPersonalToken: Models.PersonalTokenCreatedResponse['data'];
+  revokePersonalToken: Models.ActionResultResponse['data'];
+  personalTokenScopes: Models.TokenScopeListResponse['data'];
+  rotateTokenSigningKey: Models.ActionResultResponse['data'];
 }

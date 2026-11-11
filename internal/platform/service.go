@@ -86,6 +86,7 @@ func (s *Service) ChangePassword(ctx context.Context, user contracts.User, input
 }
 
 type Service struct {
+	Tokens     *Tokens
 	loginGuard loginGuard
 	Settings   *settings.Service
 	Personal   *Personal

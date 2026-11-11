@@ -1905,3 +1905,91 @@ type MenuRoleAssignmentInput struct {
 	RoleIds         []string `json:"role_ids"`
 	ExpectedRoleIds []string `json:"expected_role_ids"`
 }
+
+type ClientTokenPair struct {
+	AccessToken      string `json:"access_token"`
+	RefreshToken     string `json:"refresh_token"`
+	TokenType        string `json:"token_type"`
+	ExpiresIn        int    `json:"expires_in"`
+	RefreshExpiresAt int    `json:"refresh_expires_at"`
+	User             User   `json:"user"`
+}
+
+type ClientTokenLogin struct {
+	Tokens         *ClientTokenPair `json:"tokens,omitempty"`
+	MfaRequired    bool             `json:"mfa_required"`
+	ChallengeToken *string          `json:"challenge_token,omitempty"`
+}
+
+type ClientTokenMFAInput struct {
+	ChallengeToken string `json:"challenge_token"`
+	Code           string `json:"code"`
+}
+
+type RefreshTokenInput struct {
+	RefreshToken string `json:"refresh_token"`
+}
+
+type PersonalTokenInput struct {
+	Name          string   `json:"name"`
+	ExpiresInDays int      `json:"expires_in_days"`
+	OperationIds  []string `json:"operation_ids"`
+}
+
+type PersonalToken struct {
+	ID           string   `json:"id"`
+	Name         string   `json:"name"`
+	CreatedAt    int      `json:"created_at"`
+	ExpiresAt    int      `json:"expires_at"`
+	LastUsedAt   int      `json:"last_used_at"`
+	Revoked      bool     `json:"revoked"`
+	OperationIds []string `json:"operation_ids"`
+}
+
+type PersonalTokenCreated struct {
+	Token      string        `json:"token"`
+	Credential PersonalToken `json:"credential"`
+}
+
+type PersonalTokenList struct {
+	Items []PersonalToken `json:"items"`
+}
+
+type TokenScopeList struct {
+	Items []APIOperation `json:"items"`
+}
+
+type ClientTokenPairResponse struct {
+	Code      string          `json:"code"`
+	Message   string          `json:"message"`
+	Data      ClientTokenPair `json:"data"`
+	RequestID string          `json:"request_id"`
+}
+
+type ClientTokenLoginResponse struct {
+	Code      string           `json:"code"`
+	Message   string           `json:"message"`
+	Data      ClientTokenLogin `json:"data"`
+	RequestID string           `json:"request_id"`
+}
+
+type PersonalTokenCreatedResponse struct {
+	Code      string               `json:"code"`
+	Message   string               `json:"message"`
+	Data      PersonalTokenCreated `json:"data"`
+	RequestID string               `json:"request_id"`
+}
+
+type PersonalTokenListResponse struct {
+	Code      string            `json:"code"`
+	Message   string            `json:"message"`
+	Data      PersonalTokenList `json:"data"`
+	RequestID string            `json:"request_id"`
+}
+
+type TokenScopeListResponse struct {
+	Code      string         `json:"code"`
+	Message   string         `json:"message"`
+	Data      TokenScopeList `json:"data"`
+	RequestID string         `json:"request_id"`
+}

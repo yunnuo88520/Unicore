@@ -257,6 +257,9 @@ func identityCookie(r *http.Request) string {
 	return sessionCookie
 }
 func rawSession(r *http.Request) string {
+	if bearer, ok := bearerFrom(r); ok {
+		return bearer.RawSession
+	}
 	cookie, err := r.Cookie(identityCookie(r))
 	if err != nil {
 		return ""
@@ -372,7 +375,7 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 		}
 	}
 	if identity != nil {
-		if session, err := identity.Session(r.Context(), rawSession(r)); err == nil {
+		if session, err := requestIdentitySession(r, identity); err == nil {
 			data.CurrentUser = &session.User
 			if platform.HasManagementAccess(session.User) {
 				data.AdminPath = config.Install.AdminPath(r.Context())
@@ -504,6 +507,7 @@ func mountWeb(api chi.Router, config Config) {
 		success(w, result)
 	})
 	mountAuthentication(api, config)
+	mountTokens(api, config)
 	mountPersonal(api, config)
 	mountLogs(api, config)
 	for _, administrators := range []bool{false, true} {

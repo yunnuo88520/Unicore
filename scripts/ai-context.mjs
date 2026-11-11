@@ -40,7 +40,7 @@ return { target, content };
 export function writeAIContext(root = process.cwd(), check = false) {
   const {target, content} = renderAIContext(root);
   const path = join(root, target);
-  if (check) { if (readFileSync(path, 'utf8') !== content) throw Error('AI context is stale; run pnpm ai:context'); }
+  if (check) { if (!existsSync(path) || readFileSync(path, 'utf8') !== content) throw Error('AI context is stale; run pnpm ai:context'); }
   else { mkdirSync(dirname(path), {recursive: true}); writeFileSync(path, content); }
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) writeAIContext(process.cwd(), process.argv.includes('--check'));

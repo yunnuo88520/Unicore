@@ -6,16 +6,26 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"io"
+	"log/slog"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+
 	"github.com/wailsapp/wails/v2/pkg/options/linux"
 	"github.com/wailsapp/wails/v2/pkg/options/mac"
 	"github.com/yunnuo/unicore/assets/brand"
 	"github.com/yunnuo/unicore/assets/theme"
 	"github.com/yunnuo/unicore/internal/config"
 	"github.com/yunnuo/unicore/internal/logging"
-	"log/slog"
-	"os"
-	"strconv"
+	"github.com/yunnuo/unicore/internal/module"
+	notesmodule "github.com/yunnuo/unicore/internal/modules/notes"
+	_ "github.com/yunnuo/unicore/internal/modules/notes/desktop"
+	"github.com/yunnuo/unicore/internal/monitor"
+	"github.com/yunnuo/unicore/internal/runtime"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -23,14 +33,23 @@ import (
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	desktopassets "github.com/yunnuo/unicore/apps/desktop"
 	"github.com/yunnuo/unicore/internal/adapter/desktop"
-	"github.com/yunnuo/unicore/internal/adapter/storage/notessql"
+	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/bootstrap"
 	"github.com/yunnuo/unicore/internal/bootstrap/local"
 	"github.com/yunnuo/unicore/internal/buildinfo"
-	"github.com/yunnuo/unicore/internal/usecase"
+	"github.com/yunnuo/unicore/internal/contracts"
 )
 
+// desktopLogSink outlives runDesktop so the final stop_failed record still
+// reaches the log file before the process exits.
+var desktopLogSink *logging.FileSink
+
 func main() {
+	defer func() {
+		if desktopLogSink != nil {
+			_ = desktopLogSink.Close()
+		}
+	}()
 	if handled, err := updateHelper(os.Args[1:]); handled {
 		if err != nil {
 			os.Exit(1)
@@ -45,17 +64,43 @@ func main() {
 }
 
 func runDesktop() (result error) {
+	startedAt := time.Now()
 	optionsLog, err := config.Logging(os.Getenv)
 	if err != nil {
 		return err
 	}
-	logger, err := logging.New(os.Stderr, optionsLog, "desktop")
+	// Binding generation must not initialize or touch real user data.
+	bridge := desktop.New(bootstrap.Core())
+	// Desktop always keeps durable logs under the data directory; stderr
+	// remains attached so dev runs still stream to the console. A broken sink
+	// degrades to stderr instead of failing startup.
+	var sink *logging.FileSink
+	logWriter := io.Writer(os.Stderr)
+	if !generatingBindings {
+		if directory, err := local.ResolveDir(os.Getenv("APP_DATA_DIR")); err == nil {
+			opened, err := logging.OpenFileSink(logging.FileOptions{Dir: filepath.Join(directory, "logs"), MaxAgeDays: optionsLog.MaxAgeDays, MaxSizeMB: optionsLog.MaxSizeMB, MaxTotalMB: optionsLog.MaxTotalMB})
+			if err != nil {
+				slog.Warn("log file unavailable", "event", "log.file_unavailable", "error", err.Error())
+			} else {
+				sink = opened
+				logWriter = io.MultiWriter(os.Stderr, sink)
+			}
+		} else {
+			slog.Warn("log file unavailable", "event", "log.file_unavailable", "error", err.Error())
+		}
+	}
+	logger, err := logging.New(logWriter, optionsLog, "desktop")
 	if err != nil {
 		return err
 	}
 	slog.SetDefault(logger)
-	// Binding generation must not initialize or touch real user data.
-	bridge := desktop.New(bootstrap.Core())
+	if sink != nil {
+		desktopLogSink = sink
+		sweepCtx, stopSweep := context.WithCancel(context.Background())
+		defer stopSweep()
+		sink.Start(sweepCtx, time.Hour)
+		sink.SetRetention(func() int { return optionsLog.MaxAgeDays })
+	}
 	if !generatingBindings {
 		if err := updateGuard(); err != nil {
 			return err
@@ -65,7 +110,22 @@ func runDesktop() (result error) {
 			return err
 		}
 		defer func() { result = errors.Join(result, store.Close()) }()
-		bridge = desktop.NewLocal(bootstrap.Core(), service, &usecase.Notes{Repo: &notessql.Repository{Store: store}})
+		module.Register(notesmodule.Module)
+		bridge = desktop.NewLocal(bootstrap.Core(), service, store)
+		// No HTTP face on desktop: the snapshot's HTTP card stays not-applicable
+		// while process, Go runtime and SQLite views stay equivalent.
+		monitorEvents := monitor.NewEventSink(200)
+		monitorEvents.Append(monitor.EventLifecycle, monitor.SeverityInfo, "实例已启动", "v"+buildinfo.Version)
+		monitorService := monitor.New(monitor.Options{Profile: runtime.Desktop, StartedAt: startedAt, DB: func() *sql.DB { return store.DB }, Runtime: monitor.StdlibRuntime, Host: monitor.DefaultHost(func() string { return os.Getenv("APP_DATA_DIR") }), Events: monitorEvents})
+		// Local alerting: the built-in default rules run with no external
+		// notification exit, identical to the Web Standalone carrier.
+		alertEngine := monitor.NewAlertEngine(func(ctx context.Context) contracts.MonitorSnapshot { return monitorService.Snapshot(ctx) },
+			monitorEvents, monitor.NoopNotifier{}, false, monitor.AlertOptions{InstanceID: sqlstore.ID()})
+		alertEngine.SetRules(monitor.DefaultAlertRules(false))
+		alertEngine.Start()
+		defer alertEngine.Stop()
+		monitorService.SetAlertEngine(alertEngine)
+		bridge.SetMonitor(monitorService)
 	}
 	cancelUpdates := func() {}
 	defer func() { cancelUpdates() }()

@@ -50,7 +50,8 @@ for (const target of targets) {
       mkdirSync(`${dir}/deploy`);
       for (const entry of [`${identity.deployment.serviceName}.service`, 'nginx.conf.example']) cpSync(`deploy/tar/${entry}`, `${dir}/deploy/${entry}`);
     }
-    const manifest = { version, channel: 'development', profile, os, arch, commit, build_time: buildTime, features: { authentication: profile === 'web-platform', installation: profile !== 'cli', database: profile !== 'cli', email_accounts: profile === 'web-platform', oidc: profile === 'web-platform', license: profile !== 'cli' && edition.features.license, updater: profile !== 'cli' && edition.features.updater }, min_upgrade_version: null, business_migration_level: profile === 'cli' ? 0 : 2, offline_backup: profile !== 'cli', migration_level: profile === 'cli' ? 0 : profile === 'web-platform' ? 15 : 13, signature: null, platform_signature: 'unsigned', release_notes: releaseNotes };
+    const manifest = { version, channel: 'development', profile, os, arch, commit, build_time: buildTime, features: { authentication: profile === 'web-platform', installation: profile !== 'cli', database: profile !== 'cli', email_accounts: profile === 'web-platform', oidc: profile === 'web-platform', license: profile !== 'cli' && edition.features.license, updater: profile !== 'cli' && edition.features.updater }, min_upgrade_version: null, // Catalog world: one version per namespace, so both levels are 1 (cli has no database).
+    business_migration_level: profile === 'cli' ? 0 : 1, offline_backup: profile !== 'cli', migration_level: profile === 'cli' ? 0 : 1, signature: null, platform_signature: 'unsigned', release_notes: releaseNotes };
     writeFileSync(`${dir}/manifest.json`, JSON.stringify(manifest, null, 2)+'\n');
     checkReleaseLayout(dir, {profile, os, identity});
     const artifact = `${name}.tar.gz`;

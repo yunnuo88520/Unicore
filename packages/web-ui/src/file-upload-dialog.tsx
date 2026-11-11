@@ -10,7 +10,7 @@ import { cn } from '@unicore/ui/cn';
 
 const bytes = (n: number) => n >= 1073741824 ? `${(n / 1073741824).toFixed(1)} GiB` : n >= 1048576 ? `${(n / 1048576).toFixed(1)} MiB` : `${(n / 1024).toFixed(1)} KiB`;
 
-export function FileUploadDialog({ client, resume, onClose }: { client: AppClient; resume?: FileEntry; onClose: () => void }) {
+export function FileUploadDialog({ client, resume, onClose, onUploaded, title, accept, maxSize }: { client: AppClient; resume?: FileEntry; onClose: () => void; onUploaded?: (file: FileEntry) => void; title?: string; accept?: string; maxSize?: number }) {
   useLocale();
   const api = client.files!;
   const [uploadPath,setUploadPath]=useState('');
@@ -55,7 +55,7 @@ export function FileUploadDialog({ client, resume, onClose }: { client: AppClien
         throw error;
       }
     },
-    onSuccess: result => { if (result) { message.success(t('文件上传完成')); onClose(); } },
+    onSuccess: result => { if (result) { if (onUploaded) onUploaded(result); else message.success(t('文件上传完成')); onClose(); } },
   });
   const discard = useMutation({
     mutationFn: () => api.deleteFile(session!),
@@ -63,23 +63,25 @@ export function FileUploadDialog({ client, resume, onClose }: { client: AppClien
   });
   const pending = upload.isPending || discard.isPending;
   const pick = (value: globalThis.File | null) => { setFile(value); upload.reset(); };
+  const invalidType = !!file && !!accept && !accept.split(',').some(type => type.trim() === file.type);
   const invalidExtension = !!file && !session && !!policy.data?.allowed_extensions?.length && !policy.data.allowed_extensions.some(ext => file.name.toLowerCase().endsWith(`.${ext.toLowerCase().replace(/^\./, '')}`));
-  const tooLarge = !!file && !!policy.data && !session && file.size > policy.data.max_size;
+  const sizeLimit = Math.min(policy.data?.max_size ?? Infinity, maxSize ?? Infinity);
+  const tooLarge = !!file && !session && file.size > sizeLimit;
   const percent = stage === 'hashing' && upload.isPending
     ? Math.round(hashBytes / (file?.size || 1) * 100)
     : Math.round(progress.loaded / (progress.total || 1) * 100);
   const selected = file ?? resume;
   const closeDisabled = pending || (stage === 'confirming' && upload.isPending);
   return <Dialog open onOpenChange={open => { if (!open && !closeDisabled) onClose(); }}>
-    <DialogContent showClose={false} aria-label={resume ? t('继续上传') : t('上传文件')}>
+    <DialogContent showClose={false} aria-label={title ?? (resume ? t('继续上传') : t('上传文件'))}>
       <div className="mb-3 flex flex-col gap-1 pe-8">
-        <DialogTitle>{resume ? t('继续上传') : t('上传文件')}</DialogTitle>
+        <DialogTitle>{title ?? (resume ? t('继续上传') : t('上传文件'))}</DialogTitle>
         <DialogDescription>{session ? t('关闭或刷新后，可从文件列表继续；超期分片会自动清理。') : t('文件保持私有，仅本人和管理员可访问。')}</DialogDescription>
       </div>
       <button type="button" className="absolute end-3 top-3 inline-flex size-8 items-center justify-center rounded-md text-muted transition-colors outline-none hover:bg-primary-soft hover:text-accent focus-visible:ring-2 focus-visible:ring-focus disabled:pointer-events-none disabled:opacity-55" aria-label={t('关闭对话框')} disabled={closeDisabled} onClick={onClose}><X size={17} aria-hidden="true" /></button>
-      <form className="flex flex-col gap-3" aria-busy={pending} onSubmit={event => { event.preventDefault(); if (file && !tooLarge && !invalidExtension) upload.mutate(); }}>
+      <form className="flex flex-col gap-3" aria-busy={pending} onSubmit={event => { event.preventDefault(); if (file && !tooLarge && !invalidExtension && !invalidType) upload.mutate(); }}>
         {upload.error && <p role="alert" className="rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">{t(upload.error.message)}</p>}
-        <input ref={input} className="sr-only" type="file" accept={policy.data?.allowed_extensions?.map(ext => `.${ext.replace(/^\./, '')}`).join(',')} aria-label={t('选择文件')} disabled={pending} tabIndex={-1} onChange={event => pick(event.target.files?.[0] ?? null)} />
+        <input ref={input} className="sr-only" type="file" accept={accept ?? policy.data?.allowed_extensions?.map(ext => `.${ext.replace(/^\./, '')}`).join(',')} aria-label={t('选择文件')} disabled={pending} tabIndex={-1} onChange={event => pick(event.target.files?.[0] ?? null)} />
       <button ref={zone} type="button" data-autofocus
         className={cn('upload-zone flex flex-col items-center gap-1.5 rounded-lg border border-dashed px-4 py-7 text-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-55',
             dragging ? 'border-primary bg-primary-soft' : selected ? 'border-line bg-surface-alt' : 'border-line hover:border-primary hover:bg-primary-soft')}
@@ -98,7 +100,7 @@ export function FileUploadDialog({ client, resume, onClose }: { client: AppClien
           <strong className="text-sm font-medium text-ink">
             {dragging ? t('松开即可添加文件') : session ? t('重新选择原文件以继续') : file ? t('点击替换，或拖入其他文件') : t('将文件拖到这里')}
           </strong>
-          <span className="text-xs text-muted">{policy.data ? t('单文件最大 {{size}} · 支持分片续传', { size: bytes(policy.data.max_size) }) : t('正在读取策略…')}</span>
+          <span className="text-xs text-muted">{policy.data ? t('单文件最大 {{size}} · 支持分片续传', { size: bytes(sizeLimit) }) : t('正在读取策略…')}</span>
         </button>
         {selected && <div className="upload-file-card flex items-center gap-2.5 rounded-lg border border-line bg-surface-alt px-3 py-2">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-surface text-muted"><File size={23} aria-hidden="true" /></span>
@@ -111,6 +113,7 @@ export function FileUploadDialog({ client, resume, onClose }: { client: AppClien
         </div>}
         {!session && !!policy.data?.upload_paths?.length && <label className="flex flex-col gap-1.5 text-sm font-medium">{t('上传路径')}<NativeSelect aria-label={t('上传路径')} value={uploadPath || policy.data.upload_paths[0]} disabled={pending} onChange={event => setUploadPath(event.target.value)}>{policy.data.upload_paths.map(path => <option key={path} value={path}>{path}</option>)}</NativeSelect></label>}
         {!!policy.data?.allowed_extensions?.length && <p className="text-xs text-muted">{t('允许的扩展名：{{extensions}}', { extensions: policy.data.allowed_extensions.join(', ') })}</p>}
+        {invalidType && <p role="alert" className="text-sm text-danger">{t('请选择 PNG、JPEG 或 GIF 图片')}</p>}
         {invalidExtension && <p role="alert" className="text-sm text-danger">{t('文件扩展名不在允许列表中')}</p>}
         {tooLarge && <p role="alert" className="text-sm text-danger">{t('文件超过管理员设置的大小上限')}</p>}
         {(pending || session) && <div role="status" className="flex flex-col gap-1.5 rounded-lg border border-line px-3 py-2.5">
@@ -137,7 +140,7 @@ export function FileUploadDialog({ client, resume, onClose }: { client: AppClien
             {upload.isPending ? <><Pause size={15} aria-hidden="true" />{t('暂停上传')}</> : session ? t('稍后继续') : t('取消')}
           </Button>
           <Button type="submit" pending={pending}
-            disabled={!file || pending || tooLarge || invalidExtension || policy.isPending || policy.isError || (!!resume && (status.isPending || status.isError))}>
+            disabled={!file || pending || tooLarge || invalidExtension || invalidType || policy.isPending || policy.isError || (!!resume && (status.isPending || status.isError))}>
             {!pending && (paused ? <Play size={16} aria-hidden="true" /> : <Upload size={16} aria-hidden="true" />)}
             {pending ? t('处理中…') : session ? t('继续上传') : t('开始上传')}
           </Button>

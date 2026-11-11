@@ -47,7 +47,7 @@ function Exercise([string]$name, [bool]$expectFailure) {
                 } elseif ($root.Current.Name -eq $config.name) {
                     $texts = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)
                     $names = @($texts | ForEach-Object { $_.Current.Name }) -join "`n"
-                    if ($names.Contains('工作台概览') -and $names.Contains('核心实验室')) { $ready = $true; break }
+                    if ($names.Contains('工作台概览') -and $names.Contains('我的笔记')) { $ready = $true; break }
                 }
             }
             Start-Sleep -Milliseconds 250

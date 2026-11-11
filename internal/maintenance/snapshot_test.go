@@ -17,12 +17,12 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/yunnuo/unicore/internal/adapter/bloblocal"
-	"github.com/yunnuo/unicore/internal/adapter/storage/notessql"
 	"github.com/yunnuo/unicore/internal/bootstrap/local"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/files"
 	"github.com/yunnuo/unicore/internal/install"
-	"github.com/yunnuo/unicore/internal/usecase"
+	notesnotessql "github.com/yunnuo/unicore/internal/modules/notes/storage/notessql"
+	notesusecase "github.com/yunnuo/unicore/internal/modules/notes/usecase"
 )
 
 const testPassphrase = "isolated-backup-test-passphrase"
@@ -118,8 +118,8 @@ func TestInstalledBackupRestore(t *testing.T) {
 					}
 				})
 			}
-			n := &usecase.Notes{Repo: &notessql.Repository{Store: db}, Attachments: func(ctx context.Context, _ string, id string) error { return fs.ValidateAttachment(ctx, actor, id) }}
-			note, err := n.Create(ctx, "administrator/"+admin.ID, contracts.NoteInput{Title: "Persistent idea", Body: "backup body", Status: "open", AttachmentIds: ids})
+			n := &notesusecase.Notes{Repo: &notesnotessql.Repository{Store: db}, Attachments: func(ctx context.Context, _ string, id string) error { return fs.ValidateAttachment(ctx, actor, id) }}
+			note, err := n.Create(ctx, "administrator/"+admin.ID, contracts.NoteInput{Title: "Persistent idea", Body: "backup body", Status: "open", AttachmentIds: &ids})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -135,7 +135,7 @@ func TestInstalledBackupRestore(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if m.Schema != 15 || m.BusinessSchema != 2 {
+			if m.Schema != 1 {
 				t.Fatal(m)
 			}
 			if _, err = Verify(backup, testPassphrase, 1<<30); err != nil {
@@ -167,11 +167,11 @@ func TestInstalledBackupRestore(t *testing.T) {
 			}
 			defer restored.Close()
 			current, _, _, _ := restored.Services()
-			rows, err := (&notessql.Repository{Store: current}).List(ctx, "administrator/"+admin.ID, contracts.NoteQuery{Page: 1, Sort: "title", Direction: "asc"})
+			rows, err := (&notesnotessql.Repository{Store: current}).List(ctx, "administrator/"+admin.ID, contracts.NoteQuery{Page: 1, Sort: "title", Direction: "asc"}, notesusecase.NoteVisibility{})
 			if err != nil || len(rows.Items) != 1 || rows.Items[0].ID != note.ID || rows.Items[0].Body != "backup body" {
 				t.Fatal("business rows", rows, err)
 			}
-			if _, _, err = restored.Identity(true).Login(ctx, contracts.LoginInput{Username: "admin", Password: "restore-test-password-strong"}, "local", false, 1); err != nil {
+			if _, _, err = restored.Identity(true).Login(ctx, contracts.LoginInput{Username: "admin", Password: "restore-test-password-strong"}, "local", false, false, 1); err != nil {
 				t.Fatal("restored identity/key", err)
 			}
 			locations, err := restored.Files().Locations(ctx)
@@ -211,7 +211,7 @@ func TestDesktopBackupRestore(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	n := &usecase.Notes{Repo: &notessql.Repository{Store: db}}
+	n := &notesusecase.Notes{Repo: &notesnotessql.Repository{Store: db}}
 	_, err = n.Create(ctx, "local", contracts.NoteInput{Title: "Offline", Status: "done"})
 	if err != nil {
 		t.Fatal(err)
@@ -230,7 +230,7 @@ func TestDesktopBackupRestore(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer reopened.Close()
-	list, err := (&notessql.Repository{Store: reopened}).List(ctx, "local", contracts.NoteQuery{Page: 1, Sort: "title", Direction: "asc"})
+	list, err := (&notesnotessql.Repository{Store: reopened}).List(ctx, "local", contracts.NoteQuery{Page: 1, Sort: "title", Direction: "asc"}, notesusecase.NoteVisibility{})
 	if err != nil || list.Total != 1 {
 		t.Fatal(list, err)
 	}

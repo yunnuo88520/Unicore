@@ -1,5 +1,5 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Local profiles use build branding and expose only local appearance.
+// Description: Local profiles use build branding and expose no instance settings.
 package desktop
 
 import (
@@ -22,13 +22,13 @@ func TestNativeLocalSettingsBoundary(t *testing.T) {
 	if _, err = store.Exec(ctx, store.DB, "INSERT INTO unicore_system_settings(setting_key,setting_value) VALUES('site.name','Legacy local name'),('branding.logo','legacy-reference')"); err != nil {
 		t.Fatal(err)
 	}
-	bridge := NewLocal(bootstrap.Core(), service)
-	for _, key := range []string{"site.name", "branding.logo", "mail.host"} {
+	bridge := NewLocal(bootstrap.Core(), service, store)
+	for _, key := range []string{"site.name", "branding.logo", "mail.host", "appearance.theme"} {
 		if got := bridge.PatchSettings(contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: key, Value: "legacy"}}}); got.Code != "INVALID_INPUT" {
 			t.Fatal(key, got)
 		}
 	}
-	if got := bridge.PatchSettings(contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "appearance.theme", Value: "dark"}}}); got.Code != "OK" {
+	if got := bridge.PatchSettings(contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "appearance.theme", Value: "dark"}}}); got.Code != "INVALID_INPUT" {
 		t.Fatal(got)
 	}
 	if err = store.Close(); err != nil {
@@ -39,15 +39,13 @@ func TestNativeLocalSettingsBoundary(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer store.Close()
-	bridge = NewLocal(bootstrap.Core(), service)
+	bridge = NewLocal(bootstrap.Core(), service, store)
 	got := bridge.Bootstrap().Data
-	if got.SiteName != runtime.Metadata(runtime.Desktop, "native").SiteName || got.Theme == nil || *got.Theme != "dark" {
+	if got.SiteName != runtime.Metadata(runtime.Desktop, "native").SiteName || got.Capabilities.Settings {
 		t.Fatal(got)
 	}
 	list := bridge.Settings()
-	for _, item := range list.Data.Items {
-		if item.Group != "appearance" {
-			t.Fatal(item)
-		}
+	if len(list.Data.Items) != 0 {
+		t.Fatal(list)
 	}
 }

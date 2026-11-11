@@ -53,7 +53,9 @@ function objectSchema(schema: Schema, required: boolean): z.ZodType {
   const wrapped: Record<string, z.ZodType> = {};
   const requiredFields = new Set(schema.required ?? []);
   for (const [field, property] of Object.entries(schema.properties ?? {})) {
-    wrapped[field] = adapt(property, requiredFields.has(field));
+    const adapted = adapt(property, requiredFields.has(field));
+    // Fields outside `required` may be absent, mirroring validate(): only present keys are checked.
+    wrapped[field] = requiredFields.has(field) ? adapted : adapted.optional();
   }
   if (schema.additionalProperties === false) {
     return z.strictObject(wrapped, {

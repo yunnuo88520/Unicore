@@ -34,8 +34,17 @@ function QueryScope({ children }: { children: ReactNode }) {
   useLocale();
   const message = useMessage();
   const [queries] = useState(() => new QueryClient({ mutationCache: new MutationCache({
+    // The cache toast is only a fallback: mutations with their own onError
+    // surface the failure in context, and the page-level message must always
+    // render — so the cache yields whenever a page handles the error itself.
     onMutate: () => message.destroy('mutation-error'),
-    onError: error => { if (!(error instanceof AppError && error.code === 'SESSION_CHANGED')) message.open({ id: 'mutation-error', type: 'error', content: error.message }); },
+    onError: (error, _variables, _context, mutation) => {
+      if (error instanceof AppError && error.code === 'SESSION_CHANGED') return;
+      // Mutations with their own onError surface the failure in context; the
+      // cache toast only covers the ones that don't.
+      if (mutation?.options?.onError) return;
+      message.open({ id: 'mutation-error', type: 'error', content: error.message });
+    },
   }), defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false }, mutations: { retry: false } } }));
   useEffect(() => () => { void queries.cancelQueries(); queries.clear(); }, [queries]);
   return <QueryClientProvider client={queries}>{children}</QueryClientProvider>;

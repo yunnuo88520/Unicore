@@ -1,22 +1,40 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Shared notes handlers fix identity from the route and pass a server-owned scope to the use case.
+// Description: Notes routes fix identity from the route and pass a server-owned scope to the module use case.
 package httpadapter
 
 import (
 	"context"
-	"github.com/go-chi/chi/v5"
-	"github.com/yunnuo/unicore/internal/adapter/storage/notessql"
-	"github.com/yunnuo/unicore/internal/contracts"
-	"github.com/yunnuo/unicore/internal/files"
-	"github.com/yunnuo/unicore/internal/runtime"
-	"github.com/yunnuo/unicore/internal/usecase"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/files"
+	notesnotessql "github.com/yunnuo/unicore/internal/modules/notes/storage/notessql"
+	notesusecase "github.com/yunnuo/unicore/internal/modules/notes/usecase"
+	"github.com/yunnuo/unicore/internal/platform"
+	"github.com/yunnuo/unicore/internal/runtime"
 )
 
+// noteActionCapabilities merges the storage-side ownership facts with the
+// session's explicit action grants: the server stays authoritative, so a
+// member without notes:update or notes:delete never sees an enabled button.
+// Local and desktop projections have no stashed session and keep their
+// capabilities untouched.
+func noteActionCapabilities(r *http.Request, entries ...contracts.NoteEntry) {
+	session, ok := r.Context().Value(policySessionKey{}).(contracts.Session)
+	if !ok {
+		return
+	}
+	for i := range entries {
+		entries[i].Capabilities.Update = entries[i].Capabilities.Update && platform.Has(session.User, "notes:update")
+		entries[i].Capabilities.Delete = entries[i].Capabilities.Delete && platform.Has(session.User, "notes:delete")
+	}
+}
+
 func mountNotes(api chi.Router, config Config) {
-	handler := func(fn func(http.ResponseWriter, *http.Request, *usecase.Notes, string)) http.HandlerFunc {
+	handler := func(fn func(http.ResponseWriter, *http.Request, *notesusecase.Notes, string, notesusecase.NoteVisibility)) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			store, _, _, profile := config.Install.Services()
 			if administratorRequest(r) && profile != runtime.WebPlatform {
@@ -31,6 +49,8 @@ func mountNotes(api chi.Router, config Config) {
 				return
 			}
 			scope := "local"
+			visibility := notesusecase.NoteVisibility{}
+			manageAll := false
 			var actor files.Actor
 			if profile == runtime.WebPlatform {
 				identity := config.Install.Identity(administratorRequest(r))
@@ -40,17 +60,36 @@ func mountNotes(api chi.Router, config Config) {
 					return
 				}
 				actor = fileActor(r, session)
-				scope = actor.Realm + "/" + actor.ID
+				scope = "user/" + actor.ID
+				// Super administrators manage every user-realm note from the
+				// management surface, mirroring the files module Admin rule.
+				manageAll = administratorRequest(r) && platform.IsSuper(session.User)
+				// Row-level data scopes widen the user-realm list only; the
+				// administrator list and local profiles keep their behaviour.
+				{
+					filter, err := identity.Store.DataScope(r.Context(), session.User, "notes:access")
+					if err != nil {
+						webError(w, err)
+						return
+					}
+					if filter.All {
+						visibility.All = true
+					} else if !filter.Self() {
+						for _, id := range filter.UserIDs {
+							visibility.Scopes = append(visibility.Scopes, "user/"+id)
+						}
+					}
+				}
 			}
-			service := &usecase.Notes{Repo: &notessql.Repository{Store: store}}
+			service := &notesusecase.Notes{Repo: &notesnotessql.Repository{Store: store, ManageAll: manageAll}}
 			if fs := config.Install.Files(); fs != nil {
 				service.Attachments = func(ctx context.Context, _ string, id string) error { return fs.ValidateAttachment(ctx, actor, id) }
 			}
-			fn(w, r, service, scope)
+			fn(w, r, service, scope, visibility)
 		}
 	}
 	for _, prefix := range []string{"", "/admin"} {
-		api.Get(prefix+"/notes", handler(func(w http.ResponseWriter, r *http.Request, n *usecase.Notes, scope string) {
+		api.Get(prefix+"/notes", handler(func(w http.ResponseWriter, r *http.Request, n *notesusecase.Notes, scope string, visibility notesusecase.NoteVisibility) {
 			q := contracts.NoteQuery{Search: r.URL.Query().Get("search"), Status: r.URL.Query().Get("status"), Sort: "updated_at", Direction: "desc", Page: 1}
 			if v := r.URL.Query().Get("page"); v != "" {
 				q.Page, _ = strconv.Atoi(v)
@@ -61,14 +100,15 @@ func mountNotes(api chi.Router, config Config) {
 			if v := r.URL.Query().Get("direction"); v != "" {
 				q.Direction = v
 			}
-			data, e := n.List(r.Context(), scope, q)
+			data, e := n.List(r.Context(), scope, q, visibility)
 			if e != nil {
 				webError(w, e)
 				return
 			}
+			noteActionCapabilities(r, data.Items...)
 			success(w, data)
 		}))
-		api.Post(prefix+"/notes", handler(func(w http.ResponseWriter, r *http.Request, n *usecase.Notes, scope string) {
+		api.Post(prefix+"/notes", handler(func(w http.ResponseWriter, r *http.Request, n *notesusecase.Notes, scope string, _ notesusecase.NoteVisibility) {
 			var in contracts.NoteInput
 			if !decode(w, r, &in) {
 				return
@@ -78,9 +118,10 @@ func mountNotes(api chi.Router, config Config) {
 				webError(w, e)
 				return
 			}
+			noteActionCapabilities(r, data)
 			success(w, data)
 		}))
-		api.Put(prefix+"/notes/{id}", handler(func(w http.ResponseWriter, r *http.Request, n *usecase.Notes, scope string) {
+		api.Put(prefix+"/notes/{id}", handler(func(w http.ResponseWriter, r *http.Request, n *notesusecase.Notes, scope string, _ notesusecase.NoteVisibility) {
 			var in contracts.NoteUpdate
 			if !decode(w, r, &in) {
 				return
@@ -90,9 +131,10 @@ func mountNotes(api chi.Router, config Config) {
 				webError(w, e)
 				return
 			}
+			noteActionCapabilities(r, data)
 			success(w, data)
 		}))
-		api.Delete(prefix+"/notes/{id}", handler(func(w http.ResponseWriter, r *http.Request, n *usecase.Notes, scope string) {
+		api.Delete(prefix+"/notes/{id}", handler(func(w http.ResponseWriter, r *http.Request, n *notesusecase.Notes, scope string, _ notesusecase.NoteVisibility) {
 			var in contracts.NoteVersion
 			if !decode(w, r, &in) {
 				return

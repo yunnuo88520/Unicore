@@ -76,7 +76,7 @@ func (r *Repository) RegisterAccount(ctx context.Context, input contracts.Regist
 		return err
 	}
 	defer tx.Rollback()
-	user, err := r.insert(ctx, tx, contracts.UserCreate{Username: input.Username, Email: input.Email, Role: "user"}, passwordHash, "registration")
+	user, err := r.insert(ctx, tx, contracts.UserCreate{Username: input.Username, Email: input.Email, Phone: input.Phone, Role: "user"}, passwordHash, "registration")
 	if err != nil {
 		return err
 	}
@@ -157,27 +157,24 @@ func (r *Repository) ClaimMail(ctx context.Context, now int) (mailer.Job, error)
 		return mailer.Job{}, err
 	}
 	defer tx.Rollback()
-	// One shared worker cleans secrets in both identity realms before claiming the shared queue.
-	for _, administrators := range []bool{false, true} {
-		scope := &Repository{Store: r.Store, Administrators: administrators}
-		if _, err = scope.exec(ctx, tx, "UPDATE unicore_personal_accounts SET setup_secret='',setup_session='',setup_expires=0 WHERE setup_expires>0 AND setup_expires<=?", now); err != nil {
-			return mailer.Job{}, err
-		}
-		if _, err = scope.exec(ctx, tx, "UPDATE unicore_email_changes SET code_digest='' WHERE expires_at<=?", now); err != nil {
-			return mailer.Job{}, err
-		}
-		if _, err = scope.exec(ctx, tx, "DELETE FROM unicore_email_changes WHERE created_at<?", now-7*86400); err != nil {
-			return mailer.Job{}, err
-		}
-		if _, err = scope.exec(ctx, tx, "UPDATE unicore_email_challenges SET code_digest='' WHERE expires_at<=?", now); err != nil {
-			return mailer.Job{}, err
-		}
-		if _, err = scope.exec(ctx, tx, "DELETE FROM unicore_email_challenges WHERE created_at<?", now-7*86400); err != nil {
-			return mailer.Job{}, err
-		}
-		if _, err = scope.exec(ctx, tx, "DELETE FROM unicore_account_tokens WHERE expires_at<=?", now); err != nil {
-			return mailer.Job{}, err
-		}
+	// Expire shared account proofs before claiming the mail queue.
+	if _, err = r.exec(ctx, tx, "UPDATE unicore_personal_accounts SET setup_secret='',setup_session='',setup_expires=0 WHERE setup_expires>0 AND setup_expires<=?", now); err != nil {
+		return mailer.Job{}, err
+	}
+	if _, err = r.exec(ctx, tx, "UPDATE unicore_email_changes SET code_digest='' WHERE expires_at<=?", now); err != nil {
+		return mailer.Job{}, err
+	}
+	if _, err = r.exec(ctx, tx, "DELETE FROM unicore_email_changes WHERE created_at<?", now-7*86400); err != nil {
+		return mailer.Job{}, err
+	}
+	if _, err = r.exec(ctx, tx, "UPDATE unicore_email_challenges SET code_digest='' WHERE expires_at<=?", now); err != nil {
+		return mailer.Job{}, err
+	}
+	if _, err = r.exec(ctx, tx, "DELETE FROM unicore_email_challenges WHERE created_at<?", now-7*86400); err != nil {
+		return mailer.Job{}, err
+	}
+	if _, err = r.exec(ctx, tx, "DELETE FROM unicore_account_tokens WHERE expires_at<=?", now); err != nil {
+		return mailer.Job{}, err
 	}
 	if _, err = r.exec(ctx, tx, "UPDATE unicore_mail_jobs SET state='dead',payload='',last_error='EXPIRED' WHERE state IN ('pending','sending') AND expires_at<=?", now); err != nil {
 		return mailer.Job{}, err
@@ -250,7 +247,7 @@ func (r *Repository) RegisterActiveAccount(ctx context.Context, input contracts.
 		return err
 	}
 	defer tx.Rollback()
-	user, err := r.insert(ctx, tx, contracts.UserCreate{Username: input.Username, Email: input.Email, Role: "user"}, hash, "registration")
+	user, err := r.insert(ctx, tx, contracts.UserCreate{Username: input.Username, Email: input.Email, Phone: input.Phone, Role: "user"}, hash, "registration")
 	if err != nil {
 		return err
 	}

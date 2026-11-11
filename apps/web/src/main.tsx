@@ -5,4 +5,5 @@ import { Workspace } from '@unicore/web-ui';
 import { HttpTransport } from '@unicore/sdk';
 import '@unicore/theme/styles.css';
 
-createRoot(document.getElementById('root')!).render(<React.StrictMode><Workspace client={new HttpTransport()} /></React.StrictMode>);
+const client = new HttpTransport();
+createRoot(document.getElementById('root')!).render(<React.StrictMode><Workspace client={client} /></React.StrictMode>);

@@ -97,7 +97,7 @@ func TestPrivateLocalLifecycle(t *testing.T) {
 	if _, _, e = s.Download(ctx, g.FileID, signature+"bad", expires); e != files.ErrNotFound {
 		t.Fatal("bad signature accepted")
 	}
-	store, settings, _, _ := m.Services()
+	_, settings, _, _ := m.Services()
 	raw, _ := settings.Store.ReadSettings(ctx)
 	if raw["storage.active"] != "local" {
 		t.Fatal("not local default")
@@ -117,10 +117,14 @@ func TestPrivateLocalLifecycle(t *testing.T) {
 	if _, e = s.Access(ctx, a, g.FileID); e != nil {
 		t.Fatal("restart lost metadata", e)
 	}
-	store, _, _, _ = m.Services()
-	_ = store
+	_, _, identityStore, _ := m.Services()
 	if e = s.Delete(ctx, a, g.FileID); e != nil {
 		t.Fatal(e)
+	}
+	// The deletion is its own audit action, distinct from metadata updates.
+	deleted, e := identityStore.Store.SystemLogs(ctx, contracts.AuditLogQuery{Action: "file.deleted", Page: 1, PageSize: 20, Sort: "created_at", Direction: "desc"})
+	if e != nil || deleted.Total != 1 || deleted.Items[0].ActorID != a.ID {
+		t.Fatal("file deletion not audited", e, deleted.Total)
 	}
 	if _, _, e = s.Download(ctx, g.FileID, signature, expires); e != files.ErrNotFound {
 		t.Fatal("deleted local file accessible", e)

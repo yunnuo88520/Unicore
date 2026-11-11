@@ -8,11 +8,18 @@ import { Resvg } from '@resvg/resvg-js';
 const variant = (dark: boolean) => new Resvg(`<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><rect width="128" height="128" rx="32" fill="${dark ? '#e4d3ff' : '#623ad6'}"/><path d="M35 32v40a29 29 0 0058 0V32H76v40a12 12 0 01-24 0V32z" fill="${dark ? '#2b1853' : 'white'}"/></svg>`).render().asPng();
 
 async function expectNavigationBrand(page:Page,mode:string){
+  const brand=page.locator(`.brand .instance-brand-${mode} img`);
+  if((page.viewportSize()?.width ?? 0)>=768){
+    await expect(brand).toBeVisible();
+    return;
+  }
+  // 打开导航 mounts with the shell: right after a reload the boot splash may
+  // still own the page, so let the click auto-wait for the trigger instead of
+  // probing once and skipping the drawer click.
   const trigger=page.getByRole('button',{name:'打开导航',exact:true});
-  const overlay=await trigger.isVisible();
-  if(overlay)await trigger.click();
-  await expect(page.locator(`.brand .instance-brand-${mode} img`)).toBeVisible();
-  if(overlay)await page.keyboard.press('Escape');
+  await trigger.click();
+  await expect(brand).toBeVisible();
+  await page.keyboard.press('Escape');
 }
 
 test('instance brand preview, save, system theme and restore defaults', async ({ page, instance }, info) => {
@@ -101,7 +108,9 @@ test('platform login and all mail previews use public instance branding', async 
   const headers={'X-CSRF-Token':bootstrap.csrf_token};
   expect((await page.request.post(`${instance.url}/api/v1/admin/users`,{headers,data:{username:'reader',email:'reader@example.test',password:'test-password-strong',role:'user'}})).status()).toBe(200);
   await page.getByRole('button',{name:'账号菜单',exact:true}).click();
+  const logout=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().includes('/auth/logout'));
   await page.getByRole('menuitem',{name:'退出登录',exact:true}).click();
+  await logout;
   await page.goto(instance.url);
   await expect(page.getByRole('heading',{name:'登录 品牌平台',exact:true})).toBeVisible();
   await expect(page.locator('.flow-brand .instance-brand-light img')).toBeVisible();
@@ -109,13 +118,16 @@ test('platform login and all mail previews use public instance branding', async 
   await page.getByLabel('账号或邮箱').fill('reader');await page.getByLabel('密码',{exact:true}).fill('test-password-strong');
   const src=await page.getByAltText('六位数字验证码，点击刷新').getAttribute('src');const answer=[...Buffer.from(src!.split(',')[1],'base64').toString().matchAll(/>([0-9])<\/text>/g)].map(m=>m[1]).join('');await page.getByLabel('图形验证码',{exact:true}).fill(answer);await page.getByRole('button',{name:'登录工作空间'}).click();
   // Let login establish the session and finish its home navigation before leaving the page.
-  await expect(page.getByRole('heading',{name:'一份核心，无限可能.',exact:true})).toBeVisible();
-  await page.goto(`${instance.url}/lab`);
-  await expect(page.getByRole('button',{name:'运行用例'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'工作台概览'})).toBeVisible();
+  await page.goto(`${instance.url}/notes`);
+  await expect(page.getByRole('button',{name:'搜索',exact:true})).toBeVisible();
   await expectNavigationBrand(page,'light');
   await page.goto(`${instance.url}/site`);
-  await expect(page.getByText('仅当前客户端',{exact:true})).toBeVisible();
-  await expect(page.getByRole('tab', { name: '品牌图片', exact: true })).toHaveCount(0);
+  // The management-flavoured site page no longer renders for members.
+  await expect(page.getByRole('heading',{name:'没有访问权限',exact:true})).toBeVisible();
   expect((await page.request.get(`${instance.url}/api/v1/admin/branding`)).status()).toBe(403);
+  // Personal theming rides the client-local appearance drawer instead.
+  await page.getByRole('button',{name:'主题设置',exact:true}).click();
+  await expect(page.getByText('仅保存在当前客户端')).toBeVisible();
   await capture(page,info,'brand-member-local-appearance');
 });

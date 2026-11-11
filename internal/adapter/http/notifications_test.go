@@ -105,6 +105,24 @@ func TestNotificationPermissionsEventsAndQueue(t *testing.T) {
 	}
 	capture := &notificationCapture{fail: true}
 	m.Mail().Channels = capture
+	testInput := contracts.NotifyTest{Destination: "channel", Recipient: "ignored@example.test", Template: c.Templates[0]}
+	if w := request("POST", "/test", testInput, raw, session.CsrfToken); w.Code != 502 || !strings.Contains(w.Body.String(), "NOTIFICATION_CHANNEL_DELIVERY_FAILED") || strings.Contains(w.Body.String(), "SMTP") {
+		t.Fatalf("channel test error: %d %s", w.Code, w.Body.String())
+	}
+	capture.fail = false
+	if w := request("POST", "/test", testInput, raw, session.CsrfToken); w.Code != 200 {
+		t.Fatalf("channel test without SMTP: %d %s", w.Code, w.Body.String())
+	}
+	if len(capture.messages) != 1 || capture.messages[0].Channel != "webhook" || capture.messages[0].Event != "login" || capture.messages[0].To != "" {
+		t.Fatal("channel test used wrong destination or omitted event")
+	}
+	testInput.Destination = "email"
+	testInput.Recipient = "test@example.test"
+	if w := request("POST", "/test", testInput, raw, session.CsrfToken); w.Code != 409 || !strings.Contains(w.Body.String(), "MAIL_NOT_READY") {
+		t.Fatalf("email readiness: %d %s", w.Code, w.Body.String())
+	}
+	capture.fail = true
+	capture.messages = nil
 	_, e = identity.Create(ctx, contracts.UserCreate{Username: "second", Email: "second@example.test", Password: "test-password-strong", Role: "user"}, admin.ID)
 	if e != nil {
 		t.Fatal(e)
@@ -171,7 +189,7 @@ func TestNotificationPermissionsEventsAndQueue(t *testing.T) {
 		t.Fatal(e)
 	}
 	before, _ := m.Mail().Store.MailJobs(ctx)
-	pending, loginToken, e := identity.Login(ctx, contracts.LoginInput{Username: "member", Password: "new-password-strong"}, "203.0.113.10", false, 1)
+	pending, loginToken, e := identity.Login(ctx, contracts.LoginInput{Username: "member", Password: "new-password-strong"}, "203.0.113.10", false, false, 1)
 	if e != nil || pending.MfaPending == nil || !*pending.MfaPending {
 		t.Fatalf("MFA boundary: %v", e)
 	}

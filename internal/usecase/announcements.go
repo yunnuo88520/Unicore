@@ -4,11 +4,12 @@ package usecase
 
 import (
 	"context"
-	"github.com/yunnuo/unicore/internal/contracts"
-	"github.com/yunnuo/unicore/internal/domain"
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/domain"
 )
 
 type AnnouncementRepository interface {
@@ -23,10 +24,17 @@ type AnnouncementRepository interface {
 	Enabled(context.Context) (bool, error)
 	SetEnabled(context.Context, bool, string) error
 }
+
+// RealtimeBroadcaster invalidates connected clients after committed changes.
+type RealtimeBroadcaster interface {
+	Broadcast(event string)
+}
+
 type Announcements struct {
-	Repo   AnnouncementRepository
-	Render func(string, string) (string, error)
-	Now    func() time.Time
+	Repo     AnnouncementRepository
+	Render   func(string, string) (string, error)
+	Now      func() time.Time
+	Realtime RealtimeBroadcaster
 }
 
 func (s *Announcements) now() time.Time {
@@ -58,7 +66,11 @@ func (s *Announcements) Create(ctx context.Context, in contracts.AnnouncementInp
 	a.BaseEntity = domain.NewEntity(s.now())
 	a.CreatedBy = actor
 	a.UpdatedBy = actor
-	return s.Repo.Save(ctx, a, actor, true)
+	saved, err := s.Repo.Save(ctx, a, actor, true)
+	if err == nil && s.Realtime != nil {
+		s.Realtime.Broadcast("inbox.new")
+	}
+	return saved, err
 }
 func (s *Announcements) Update(ctx context.Context, id string, in contracts.AnnouncementUpdate, actor string) (domain.Announcement, error) {
 	a, err := s.Prepare(contracts.AnnouncementInput{Content: in.Content, Format: in.Format, Type: in.Type, Note: in.Note, Status: in.Status, PublishAt: in.PublishAt, Title: strings.TrimSpace(in.Title), NotifyMode: in.NotifyMode, EndsAt: in.EndsAt, Audience: in.Audience, RecipientIds: in.RecipientIds})
@@ -72,7 +84,11 @@ func (s *Announcements) Update(ctx context.Context, id string, in contracts.Anno
 	a.Version = in.Version
 	a.UpdatedAt = int(s.now().Unix())
 	a.UpdatedBy = actor
-	return s.Repo.Save(ctx, a, actor, false)
+	saved, err := s.Repo.Save(ctx, a, actor, false)
+	if err == nil && s.Realtime != nil {
+		s.Realtime.Broadcast("inbox.new")
+	}
+	return saved, err
 }
 func (s *Announcements) List(ctx context.Context, q contracts.AnnouncementQuery) (contracts.AnnouncementList, error) {
 	out := contracts.AnnouncementList{Items: []contracts.AnnouncementEntry{}, Page: q.Page, PageSize: q.PageSize}
@@ -119,7 +135,11 @@ func (s *Announcements) Delete(ctx context.Context, in contracts.AnnouncementDel
 		}
 		seen[a.ID] = true
 	}
-	return s.Repo.Delete(ctx, in.Items, actor)
+	err := s.Repo.Delete(ctx, in.Items, actor)
+	if err == nil && s.Realtime != nil {
+		s.Realtime.Broadcast("inbox.new")
+	}
+	return err
 }
 func AnnouncementDTO(a domain.Announcement) contracts.AnnouncementEntry {
 	return contracts.AnnouncementEntry{ID: a.ID, CreatedAt: a.CreatedAt, UpdatedAt: a.UpdatedAt, Version: a.Version, Content: a.Content, ContentHtml: a.ContentHTML, Format: a.Format, Type: a.Type, Note: a.Note, Status: a.Status, PublishAt: a.PublishAt, Title: a.Title, NotifyMode: a.NotifyMode, EndsAt: a.EndsAt, Audience: a.Audience, RecipientIds: append([]string{}, a.RecipientIDs...), CreatedBy: a.CreatedBy, UpdatedBy: a.UpdatedBy}
@@ -133,7 +153,11 @@ func (s *Announcements) Enabled(ctx context.Context) (contracts.AnnouncementSett
 	return contracts.AnnouncementSetting{Enabled: enabled}, err
 }
 func (s *Announcements) SetEnabled(ctx context.Context, in contracts.AnnouncementSetting, actor string) error {
-	return s.Repo.SetEnabled(ctx, in.Enabled, actor)
+	err := s.Repo.SetEnabled(ctx, in.Enabled, actor)
+	if err == nil && s.Realtime != nil {
+		s.Realtime.Broadcast("inbox.new")
+	}
+	return err
 }
 
 func (s *Announcements) MarkRead(ctx context.Context, id, user string) error {

@@ -8,7 +8,7 @@
 | 需求 | 应使用的能力 | 成功结果表示什么 |
 | --- | --- | --- |
 | 给指定邮箱或管理员邮箱发一封业务邮件 | 服务端 `mailer.Service.Notify` | 加密任务已持久入队，尚未保证送达 |
-| 根据管理员配置，把事件发给用户、管理员或通知渠道 | `mailer.Plan` + 业务事务内入队 | 业务和通知任务一起提交，worker 后续投递 |
+| 根据管理员配置，把事件发给用户、管理员或通知渠道 | `platformsql.Repository.QueueNotificationEvent` + 业务事务 | 业务和通知任务一起提交，worker 后续投递 |
 | 验证 SMTP 配置 | 邮件设置的测试发送 / `Mail().Test` | SMTP 接受测试邮件，随后保存配置指纹 |
 | 验证邮件模板草稿 | 邮件模板页的测试发送 | SMTP 接受当前草稿，不保存模板 |
 | 验证通知渠道 / 通知模板草稿 | 通知渠道 / 通知模板页的测试发送 | Webhook HTTP 2xx；企业微信另需 `errcode=0` |
@@ -31,7 +31,7 @@ SMTP 设置的完整参数表见 [配置说明](configuration.md)。注册开关
 
 1. 在企业微信群创建机器人并复制 Webhook 地址。
 2. 进入 **系统设置 → 通知渠道**，选择“企业微信群机器人”。从地址 `https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_BOT_KEY` 中只取 `YOUR_BOT_KEY`，填入“机器人 Key”，不要填整条地址。
-3. 开启通知渠道、保存，再点击“测试发送”。框架检查 HTTP 成功状态和企业微信 JSON 中的 `errcode=0`，不是只看请求有没有返回。
+3. 开启通知渠道、保存，再点击“测试发送”。弹窗只显示当前保存的渠道，没有邮箱选项；邮件测试位于邮件设置 / 邮件模板。框架检查 HTTP 成功状态和企业微信 JSON 中的 `errcode=0`，不是只看请求有没有返回。
 4. 在 **系统设置 → 系统通知 → 管理员通知** 勾选需要的事件渠道开关，并开启系统通知总开关、保存。测试发送独立于系统通知总开关；自动业务通知则需要两个总开关和对应事件开关同时满足。
 
 机器人 Key 加密存储且不回显；空白保存表示保持不变，明确勾选清除才删除。不要在仓库、文档或截图中填写真实 Key。机器人仅接收发送给其所在群的管理员渠道消息，不会给普通用户私聊发送。
@@ -43,7 +43,7 @@ SMTP 设置的完整参数表见 [配置说明](configuration.md)。注册开关
 | 字段 / 协议 | 约定 |
 | --- | --- |
 | 请求 | POST，`Content-Type: application/json` |
-| JSON | `title` 标题、`content` 纯文本正文、`event` 事件键；模板测试时事件可能为空 |
+| JSON | `title` 标题、`content` 纯文本正文、`event` 事件键；模板测试同样携带所选事件 |
 | 签名 | 可选 `X-Unicore-Signature`，值为原始请求体 HMAC-SHA256 的小写十六进制摘要，不带前缀 |
 | 接收成功 | HTTP 2xx；非 2xx 进入失败处理，不解析 Webhook 自定义业务状态 |
 | 网络边界 | 公网 HTTPS；禁止私网、回环、链路本地、保留网络和重定向；不使用代理环境变量 |
@@ -65,7 +65,7 @@ SMTP 设置的完整参数表见 [配置说明](configuration.md)。注册开关
 
 邮件事件先渲染通知模板，再将结果作为 `title` / `detail` 交给邮件系统通知模板；渠道消息直接使用纯文本。业务输入经过一次变量替换和必要转义，不执行任意模板逻辑。邮件模板内容不因界面切换语言而自动翻译。
 
-当前已有事件：`login`、`ip_banned`、`password_changed`、`totp_enabled`、`totp_disabled`、`account_disabled`、`account_enabled`、`registered`、`user_created`、`admin_created`、`sessions_revoked`、`email_changed`。2FA 登录在第二因素通过后通知；注册在账户激活后通知；状态重复保存不重复通知。IP 封禁无法确认目标账户，仅通知管理员。
+当前已有事件：`login`、`ip_banned`、`password_changed`、`totp_enabled`、`totp_disabled`、`account_disabled`、`account_enabled`、`registered`、`user_created`、`admin_created`、`sessions_revoked`、`email_changed`、`alert_triggered`、`alert_recovered`。2FA 登录在第二因素通过后通知；注册在账户激活后通知；状态重复保存不重复通知。IP 封禁无法确认目标账户，仅通知管理员。
 
 系统通知总开关默认关闭，避免升级意外发信。用户邮件仅发送给事件所属普通用户；管理员邮件发送到基础设置的管理员邮箱；渠道发送到当前机器人或 Webhook。同一事件重复邮件地址合并。未就绪 SMTP 或缺少收件邮箱时跳过相应邮件，不阻塞渠道消息。
 
@@ -102,54 +102,50 @@ func QueueReportReady(ctx context.Context, service *mailer.Service, recipient, a
 
 `Notify` 仅发送邮件，不走系统事件矩阵，也不受该矩阵总开关控制。它适用于业务明确要求的一封邮件。该调用自行开启队列事务，因此只能在**没有持有数据库事务时**调用。若业务提交成功后才调用，入队失败不会自动回滚业务；调用方需记录可重试状态。需要原子一致性时使用下一节的方法。
 
-## 开发者：复用事件策略并原子入队
+## 开发者：登记事件并复用策略
 
-`mailer.Plan` 只根据设置快照、事件和模板生成待投递消息，不做网络操作、数据库写入或凭据解密。`internal/adapter/storage/platformsql/notifications.go` 中的 `queueEvent` 是当前身份事件的完整示例：读取同一事务的设置及目标账户、解密敏感值、生成消息，再把加密载荷写入队列，与业务和审计一起提交。
-
-以下 helper 展示**已生成消息**如何加入调用方持有的 SQL 事务；业务 adapter 负责先修改业务状态和写审计，最后统一 `Commit`，任何一步失败都 `Rollback`：
+在 **Platform 组合根启动阶段**调用一次 `notifycontent.Register`，集中登记事件键、中英文名称 / 说明、默认纯文本模板及专属变量。三个通知设置页从后端目录读取这些信息，新增事件自动出现，不需要修改前端事件数组。相同键重复登记、非法模板或超过 32 个事件会启动失败，避免带着错误定义运行。
 
 ```go
 // Author: yunnuo <ymz@ebox.vip>
-package eventoutbox
-
-import (
-    "context"
-    "database/sql"
-    "encoding/json"
-    "errors"
-
-    "github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
-    "github.com/yunnuo/unicore/internal/mailer"
-)
-
-func Enqueue(ctx context.Context, store *sqlstore.Store, tx *sql.Tx,
-    secrets mailer.Secrets, messages []mailer.Message, now int) error {
-    for _, message := range messages {
-        body, err := json.Marshal(message)
-        if err != nil { return err }
-        payload := secrets.Seal(string(body))
-        if len(payload) > 65535 { return errors.New("notification payload too large") }
-        channel := message.Channel
-        if channel == "" { channel = "email" }
-        switch channel {
-        case "email", "wecom", "webhook":
-        default:
-            return errors.New("unknown notification channel")
-        }
-        _, err = store.Exec(ctx, tx,
-            "INSERT INTO unicore_mail_jobs(id,token_hash,payload,state,attempts,created_at,available_at,expires_at,lease_id,lease_until,last_error) VALUES(?,?,?,'pending',0,?,?,?,'',0,'')",
-            "notify-"+channel+"-"+sqlstore.ID(), "", payload, now, now, now+86400)
-        if err != nil { return err }
-    }
-    return nil
-}
+notifycontent.Register(notifycontent.Definition{
+    ID: "report_ready",
+    Label: "报表完成", LabelEN: "Report ready",
+    Description: "报表生成完成。", DescriptionEN: "A report is ready.",
+    UserEmailAllowed: true,
+    Template: contracts.NotifyTemplate{
+        Title: "{{site_name}} · 报表 {{report_id}} 已完成",
+        Body: "{{username}}，请登录站点查看报表 {{report_id}}。\n{{site_url}}",
+    },
+    Variables: []notifycontent.Variable{
+        {Key: "report_id", Label: "报表编号", LabelEN: "Report ID", Sample: "R-001"},
+    },
+})
 ```
 
-调用前由 adapter 执行 `messages, err := mailer.Plan(values, event)`，`values` 是**同一事务内**读取并解密的设置快照，`event` 是服务端构造的 `mailer.Event`。`Kind` 必须存在于事件目录；`Username` / `Email` 是目标用户最小快照，`Administrator` 标识目标账户身份域，`At` 是 Unix 秒，`IP` 来自可信连接上下文，`Detail` 只含允许外发的简短业务信息。不得将此数据结构直接接收为公开用户请求。
+省略 `Rule` 时三个事件投递开关均默认关闭，由管理员选择是否开启。`UserEmailAllowed` 指普通用户邮件对象是否适用；管理员邮件与渠道单独选择。已有保存配置会补入新事件，保留原有事件模板和开关。事件正文是业务内容，不随界面语言自动翻译。
 
-必须保留调用方的事务授权、锁顺序和审计。不要在持有 SQLite 事务时调用 `Settings.Raw`、`Mail().Notify` 或另开连接；这会与单连接策略冲突。helper 放在平台数据库 adapter 内；共享 usecase 依赖你自己的事件 port，不导入 `sqlstore`、HTTP 或平台身份实现。
+框架提供 `site_name`、`site_url`、`username`、`event_time`、`ip`、`message` 公共变量。`Event.Vars` 只能提供当前事件登记的专属变量，不能覆盖站点地址等公共变量。登记时的 `Sample` 用于预览和测试；运行时应提供真实业务值。事件变量不接收任意模板逻辑，也不递归替换。
 
-新增事件需要同时增加 `notifycontent.Events`、默认路由/模板、前端中英文场景，以及旧配置归一化策略；不能只在业务里写一个新 `Kind`。未知事件在启用通知时返回模板错误，未规划的消息不会自动获得默认发送权限。参照当前目录的输入验证、权限、事务回滚、2FA、重试和恢复测试扩展。
+## 开发者：业务事务中触发事件
+
+平台数据库 adapter 注入带 `Store` 和 `NotificationSecrets` 的 `*platformsql.Repository`，在**已有业务事务**中调用：
+
+```go
+// Author: yunnuo <ymz@ebox.vip>
+err := notifications.QueueNotificationEvent(ctx, tx, mailer.Event{
+    Kind: "report_ready", Username: member.Username, Email: member.Email,
+    Administrator: false, At: int(time.Now().Unix()),
+    Vars: map[string]string{"report_id": report.ID},
+})
+if err != nil { return err } // 调用方回滚整个事务
+```
+
+helper 使用传入的 `*sql.Tx` 读取同一事务的设置快照、解密配置、套用事件开关、渲染邮件 / 渠道内容、加密入队；不打开新连接，不提交调用方事务。业务修改、审计与通知任务最后一起提交，任何失败都回滚。访问主体和事件目标必须由业务服务端确定，不能把 `mailer.Event` 直接暴露为公开用户请求。普通 usecase 依赖自己的事件 port，SQL 和平台适配器只在持久化边界装配。
+
+没有业务事务的后台检测可调用 `mailer.Service.EnqueueEvent`：同一事件规划的全部投递在一个队列事务中提交，失败不保留部分任务。它的成功仅表示入队；审计来源为固定服务身份 `notification`。不要在持有 SQLite 事务时调用 `Settings.Raw`、`Notify` 或 `EnqueueEvent`，单连接策略下会死锁。必须保留业务 adapter 的授权、锁顺序与审计；登记事件不会自动检测业务成功，需要在成功边界调用一次触发接口。
+
+`mailer.Plan` 仍是无数据库 / 网络操作的纯函数，适合已有自定义 outbox 的 adapter：输入内部解密设置快照与事件，输出独立消息。不要在业务请求内直接调用发送器或 worker。
 
 ## SDK 与测试边界
 
@@ -157,10 +153,10 @@ func Enqueue(ctx context.Context, store *sqlstore.Store, tx *sql.Tx,
 
 | 方法 | 用途 |
 | --- | --- |
-| `notificationSettings()` | 读取通知配置，凭据只返回 configured 状态 |
-| `saveNotificationSettings(config)` | 原子保存通知配置、事件矩阵及模板 |
+| `notificationSettings()` | 读取通知配置与中英文事件目录，凭据只返回 configured 状态 |
+| `saveNotificationSettings(config)` | 原子保存；页面传 `section=channels/templates/system`，只修改所属部分，避免覆盖其他页面的新配置 |
 | `previewNotification(template)` | 用示例数据渲染纯文本草稿 |
-| `testNotification({template,destination,recipient})` | 测试 `channel` 或 `email` 目标；recipient 仅用于邮件 |
+| `testNotification({template,destination,recipient})` | 兼容接口支持显式 `channel` / `email`；渠道页仅传 `channel`，recipient 为空，邮件页使用邮件测试接口 |
 | `mailTemplates()` / `saveMailTemplate(input)` | 读取 / 保存邮件模板 |
 | `previewMailTemplate(input)` / `testMailTemplate(input)` | 预览 / 实发邮件模板草稿 |
 | `mailJobs()` | 读取最近投递任务，包含渠道类型与脱敏状态 |
@@ -169,10 +165,13 @@ func Enqueue(ctx context.Context, store *sqlstore.Store, tx *sql.Tx,
 
 ## 投递、排错与恢复
 
-系统日志 → **通知投递** 展示最近 30 个任务和邮件 / 企业微信 / Webhook 渠道，不返回载荷、收件人或凭据。进程每秒认领一个任务；最大 5 次尝试，失败延迟 10/20/40/80 秒，租约 60 秒，事件任务有效期 24 小时；终态清除载荷，元信息最多保留 7 天。至少一次投递不等于严格一次。
+操作日志 → **通知投递** 展示最近 30 个任务和邮件 / 企业微信 / Webhook 渠道，不返回载荷、收件人或凭据。进程每秒认领一个任务；最大 5 次尝试，失败延迟 10/20/40/80 秒，租约 60 秒，事件任务有效期 24 小时；终态清除载荷，元信息最多保留 7 天。至少一次投递不等于严格一次。
 
 | 状态 / 现象 | 排查方式 |
 | --- | --- |
+| `NOTIFICATION_CHANNEL_DELIVERY_FAILED` | 当前渠道发送失败，检查机器人 Key、机器人状态或 Webhook 网络；不会回退邮件 |
+| `NOTIFICATION_CHANNEL_NOT_READY` | 先配置、启用并保存当前通知渠道 |
+| `MAIL_DELIVERY_FAILED` | SMTP 发送失败，检查邮件配置、TLS 与凭据 |
 | 测试成功但无自动消息 | 检查系统总开关、渠道总开关和对应事件路由；测试本身不启用自动事件 |
 | 没有邮件任务 | 检查 SMTP 指纹是否有效、用户邮箱 / 管理员邮箱是否存在，以及邮件事件开关 |
 | `pending` / `sending` | 等待下一次调度；`sending` 进程异常退出后等待租约恢复 |

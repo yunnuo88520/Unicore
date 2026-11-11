@@ -27,7 +27,7 @@ func Open(ctx context.Context, path string) (*sqlstore.Store, error) {
 		return nil, err
 	}
 	_ = file.Close()
-	db, err := sql.Open("sqlite", fileURI(filepath.ToSlash(path))+"?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)")
+	db, err := sql.Open("sqlite", fileURI(filepath.ToSlash(path))+"?_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)")
 	if err != nil {
 		return nil, err
 	}

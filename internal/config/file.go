@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"go.yaml.in/yaml/v3"
@@ -25,6 +26,10 @@ type File struct {
 	Deployment       string `json:"deployment" yaml:"deployment"`
 	LogLevel         string `json:"log_level" yaml:"log_level"`
 	LogFormat        string `json:"log_format" yaml:"log_format"`
+	LogFile          *bool  `json:"log_file" yaml:"log_file"`
+	LogMaxAgeDays    *int   `json:"log_max_age_days" yaml:"log_max_age_days"`
+	LogMaxSizeMB     *int   `json:"log_max_size_mb" yaml:"log_max_size_mb"`
+	LogMaxTotalMB    *int   `json:"log_max_total_mb" yaml:"log_max_total_mb"`
 	MonitorListen    string `json:"monitor_listen" yaml:"monitor_listen"`
 	ShutdownTimeout  string `json:"shutdown_timeout" yaml:"shutdown_timeout"`
 	ReadinessTimeout string `json:"readiness_timeout" yaml:"readiness_timeout"`
@@ -51,6 +56,19 @@ func webFileLookup(path string, lookup Lookup) (Lookup, error) {
 		"APP_MONITOR_LISTEN": file.MonitorListen, "APP_SHUTDOWN_TIMEOUT": file.ShutdownTimeout,
 		"APP_READINESS_TIMEOUT": file.ReadinessTimeout, "APP_API_DOCS": fmt.Sprint(file.APIDocs),
 	}
+	// Pointer fields distinguish "absent" from an explicit false/0 so the file never overrides the environment unintentionally.
+	if file.LogFile != nil {
+		values["APP_LOG_FILE"] = fmt.Sprint(*file.LogFile)
+	}
+	if file.LogMaxAgeDays != nil {
+		values["APP_LOG_MAX_AGE_DAYS"] = strconv.Itoa(*file.LogMaxAgeDays)
+	}
+	if file.LogMaxSizeMB != nil {
+		values["APP_LOG_MAX_SIZE_MB"] = strconv.Itoa(*file.LogMaxSizeMB)
+	}
+	if file.LogMaxTotalMB != nil {
+		values["APP_LOG_MAX_TOTAL_MB"] = strconv.Itoa(*file.LogMaxTotalMB)
+	}
 	return func(key string) string {
 		if value := lookup(key); value != "" {
 			return value
@@ -65,7 +83,8 @@ func Generate(path string) error {
 	if err != nil {
 		return err
 	}
-	file := File{Listen: defaults.Listen, Profile: defaults.Profile, DataDir: defaults.DataDir, Deployment: "tar", LogLevel: defaults.Log.Level, LogFormat: defaults.Log.Format, MonitorListen: defaults.MonitorListen, ShutdownTimeout: defaults.ShutdownTimeout.String(), ReadinessTimeout: defaults.ReadinessTimeout.String(), APIDocs: defaults.APIDocs}
+	file := File{Listen: defaults.Listen, Profile: defaults.Profile, DataDir: defaults.DataDir, Deployment: "tar", LogLevel: defaults.Log.Level, LogFormat: defaults.Log.Format, MonitorListen: defaults.MonitorListen, ShutdownTimeout: defaults.ShutdownTimeout.String(), ReadinessTimeout: defaults.ReadinessTimeout.String(), APIDocs: defaults.APIDocs,
+		LogFile: &defaults.Log.File, LogMaxAgeDays: &defaults.Log.MaxAgeDays, LogMaxSizeMB: &defaults.Log.MaxSizeMB, LogMaxTotalMB: &defaults.Log.MaxTotalMB}
 	var data []byte
 	if strings.EqualFold(filepath.Ext(path), ".json") {
 		data, err = json.MarshalIndent(file, "", "  ")
@@ -124,7 +143,7 @@ func decodeYAML(data []byte) (File, error) {
 		return file, errors.New("startup configuration must be a YAML mapping")
 	}
 	root := document.Content[0]
-	allowed := map[string]bool{"listen": true, "profile": true, "data_dir": true, "deployment": true, "log_level": true, "log_format": true, "monitor_listen": true, "shutdown_timeout": true, "readiness_timeout": true, "api_docs": true}
+	allowed := map[string]bool{"listen": true, "profile": true, "data_dir": true, "deployment": true, "log_level": true, "log_format": true, "log_file": true, "log_max_age_days": true, "log_max_size_mb": true, "log_max_total_mb": true, "monitor_listen": true, "shutdown_timeout": true, "readiness_timeout": true, "api_docs": true}
 	seen := map[string]bool{}
 	for index := 0; index < len(root.Content); index += 2 {
 		key, value := root.Content[index], root.Content[index+1]
@@ -133,8 +152,11 @@ func decodeYAML(data []byte) (File, error) {
 		}
 		seen[key.Value] = true
 		tag := "!!str"
-		if key.Value == "api_docs" {
+		if key.Value == "api_docs" || key.Value == "log_file" {
 			tag = "!!bool"
+		}
+		if key.Value == "log_max_age_days" || key.Value == "log_max_size_mb" || key.Value == "log_max_total_mb" {
+			tag = "!!int"
 		}
 		if value.Kind != yaml.ScalarNode || value.Tag != tag {
 			return file, errors.New("invalid startup configuration field type")

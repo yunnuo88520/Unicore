@@ -6,7 +6,9 @@ import (
 	"bytes"
 	"encoding/csv"
 	"encoding/json"
+	"fmt"
 	"github.com/go-chi/chi/v5"
+	"github.com/yunnuo/unicore/internal/audit"
 	"github.com/yunnuo/unicore/internal/contracts"
 	apispec "github.com/yunnuo/unicore/packages/contracts"
 	"net/http"
@@ -49,7 +51,8 @@ func mountLogs(api chi.Router, config Config) {
 			path += "/export"
 		}
 		api.Get(path, func(w http.ResponseWriter, r *http.Request) {
-			if _, ok := require(config.Install, w, r, "logs:read"); !ok {
+			session, ok := require(config.Install, w, r, "logs:read")
+			if !ok {
 				return
 			}
 			q, ok := logQuery(r)
@@ -69,6 +72,15 @@ func mountLogs(api chi.Router, config Config) {
 			if !export {
 				success(w, data)
 				return
+			}
+			// A bulk export is a sensitive read: record it. Routine paginated
+			// browsing stays unaudited so the newest rows stay useful.
+			if store, _, _, _ := config.Install.Services(); store != nil {
+				detail := fmt.Sprintf("exported=%d total=%d", len(data.Items), data.Total)
+				if e := store.Audit(audit.Target(r.Context(), "admin/logs/export", detail), store.DB, session.User.ID, "logs.exported"); e != nil {
+					webError(w, e)
+					return
+				}
 			}
 			var body bytes.Buffer
 			body.WriteString("\xef\xbb\xbf")

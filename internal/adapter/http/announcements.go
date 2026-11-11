@@ -4,6 +4,7 @@ package httpadapter
 
 import (
 	"github.com/go-chi/chi/v5"
+
 	"github.com/yunnuo/unicore/internal/adapter/content"
 	"github.com/yunnuo/unicore/internal/adapter/storage/announcementsql"
 	"github.com/yunnuo/unicore/internal/contracts"
@@ -25,7 +26,11 @@ func mountAnnouncements(api chi.Router, config Config) {
 			if !ok {
 				return
 			}
-			service := &usecase.Announcements{Repo: &announcementsql.Repository{Store: store}, Render: content.Announcement}
+			var realtimeBus usecase.RealtimeBroadcaster
+			if config.Hub != nil {
+				realtimeBus = config.Hub
+			}
+			service := &usecase.Announcements{Repo: &announcementsql.Repository{Store: store}, Render: content.Announcement, Realtime: realtimeBus}
 			fn(w, r, service, session.User.ID)
 		}
 	}

@@ -129,15 +129,13 @@
     "fields": []
   },
   {
-    "name": "custom role rejected",
+    "name": "custom role accepted as string",
     "schema": "UserUpdate",
     "value": {
       "role": "custom",
       "status": "active"
     },
-    "fields": [
-      "role"
-    ]
+    "fields": []
   },
   {
     "name": "note title is a business property, not a schema annotation",

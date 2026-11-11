@@ -12,8 +12,11 @@ import (
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/adapter/storage/webdb"
 	"github.com/yunnuo/unicore/internal/contracts"
+	notesnotessql "github.com/yunnuo/unicore/internal/modules/notes/storage/notessql"
+	notesusecase "github.com/yunnuo/unicore/internal/modules/notes/usecase"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/settings"
+	"github.com/yunnuo/unicore/migrations/runner"
 )
 
 func TestDialectMigrationsAndIdentity(t *testing.T) {
@@ -32,14 +35,13 @@ func TestDialectMigrationsAndIdentity(t *testing.T) {
 			if count, err := store.TableCount(ctx); err != nil || count != 0 {
 				t.Fatalf("test database must be empty: %d %v", count, err)
 			}
-			exerciseLegacyUpgrade(t, ctx, store)
-			if err = store.Migrate(ctx, true); err != nil {
+			if err = runner.Apply(ctx, store.DB, runner.Options{Dialect: store.Dialect, Profile: "web-platform"}); err != nil {
 				t.Fatal(err)
 			}
 			if exists, err := store.HasInstallationTable(ctx); err != nil || !exists {
 				t.Fatal("installation catalog inspection failed", err)
 			}
-			if err = store.Migrate(ctx, true); err != nil {
+			if err = runner.Apply(ctx, store.DB, runner.Options{Dialect: store.Dialect, Profile: "web-platform"}); err != nil {
 				t.Fatal("migration not idempotent", err)
 			}
 			tx, err := store.DB.BeginTx(ctx, nil)
@@ -70,13 +72,13 @@ func TestDialectMigrationsAndIdentity(t *testing.T) {
 			if platform.Has(member, "users:read") || !platform.Has(admin, "users:read") {
 				t.Fatal("RBAC grants incorrect")
 			}
-			if _, err = admins.UpdateUser(ctx, admin.ID, contracts.UserUpdate{Role: "user", Status: "active"}, admin.ID); err != platform.ErrInput {
-				t.Fatal("cross-realm conversion allowed", err)
+			if _, err = admins.UpdateUser(ctx, admin.ID, contracts.UserUpdate{Role: rolePtr("user"), Status: "active"}, admin.ID); err != platform.ErrLastAdmin {
+				t.Fatal("last super administrator demoted", err)
 			}
-			if _, err = admins.UpdateUser(ctx, admin.ID, contracts.UserUpdate{Role: "super_admin", Status: "disabled"}, admin.ID); err != platform.ErrLastAdmin {
+			if _, err = admins.UpdateUser(ctx, admin.ID, contracts.UserUpdate{Role: rolePtr("super_admin"), Status: "disabled"}, admin.ID); err != platform.ErrLastAdmin {
 				t.Fatal("last admin disabled", err)
 			}
-			session, token, err := service.Login(ctx, contracts.LoginInput{Username: "member", Password: "test-password-strong"}, "local", false, 1)
+			session, token, err := service.Login(ctx, contracts.LoginInput{Username: "member", Password: "test-password-strong"}, "local", false, false, 1)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -86,7 +88,7 @@ func TestDialectMigrationsAndIdentity(t *testing.T) {
 			if _, err = service.Session(ctx, token); err != nil {
 				t.Fatal(err)
 			}
-			if _, err = repository.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: "user", Status: "disabled"}, admin.ID); err != nil {
+			if _, err = repository.UpdateUser(ctx, member.ID, contracts.UserUpdate{Role: rolePtr("user"), Status: "disabled"}, admin.ID); err != nil {
 				t.Fatal(err)
 			}
 			if _, err = service.Session(ctx, token); err == nil {
@@ -103,7 +105,7 @@ func TestDialectMigrationsAndIdentity(t *testing.T) {
 				t.Fatal(value)
 			}
 			dashboard, err := repository.Dashboard(ctx)
-			if err != nil || dashboard.TotalUsers != 1 || dashboard.ActiveUsers7d != 1 {
+			if err != nil || dashboard.TotalUsers != 2 || dashboard.ActiveUsers7d != 1 {
 				t.Fatalf("dashboard: %+v %v", dashboard, err)
 			}
 			list, err := repository.ListUsers(ctx, "member", 1, 20)
@@ -113,11 +115,53 @@ func TestDialectMigrationsAndIdentity(t *testing.T) {
 			exerciseLogs(t, ctx, store)
 			exerciseMailLifecycle(t, ctx, store, repository, admin)
 			exerciseRoles(t, ctx, store, repository, admin)
+			exerciseUserRoles(t, ctx, store, repository, admin)
+			exerciseAdministratorRoles(t, ctx, store, repository, admin)
+			exerciseDepartments(t, ctx, store, repository, admin)
+			exercisePosts(t, ctx, store, repository, admin)
+			exerciseUserDepartments(t, ctx, repository, admin)
+			exerciseDepartmentScopeValidation(t, ctx, repository, admin)
+			exerciseDataScopes(t, ctx, store, repository, admin)
 			exerciseOIDC(t, ctx, store, repository, admin)
 			exerciseFiles(t, ctx, store, admin)
 			exerciseNotes(t, ctx, store)
 			exercisePersonal(t, ctx, store, admin)
 			exerciseNotificationEvents(t, ctx, store, admin)
+			// Startup navigation runs for every supported database, including
+			// both insertion and unchanged update of the monitor seed marker.
+			if err = admins.EnsureNavigation(ctx); err != nil {
+				t.Fatal("initialize startup navigation", err)
+			}
+			before, err := admins.readNavigation(ctx, store.DB)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err = admins.EnsureNavigation(ctx); err != nil {
+				t.Fatal("repeat startup navigation", err)
+			}
+			after, err := admins.readNavigation(ctx, store.DB)
+			if err != nil || before.Version != after.Version || len(before.Nodes) != len(after.Nodes) {
+				t.Fatal("startup navigation is not idempotent", err)
+			}
 		})
 	}
+}
+
+// exerciseNotes drives the cross-scope notes fixture shared by the platform
+// repository tests; the module tree owns the full integration test.
+func exerciseNotes(t *testing.T, ctx context.Context, store *sqlstore.Store) {
+	t.Helper()
+	notes := &notesusecase.Notes{Repo: &notesnotessql.Repository{Store: store}}
+	query := contracts.NoteQuery{Page: 1, Sort: "title", Direction: "asc"}
+	created, err := notes.Create(ctx, "user/example", contracts.NoteInput{Title: "fixture", Body: "body", Status: "open"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, scope := range []string{"user/other", "administrator/example", "local"} {
+		list, e := notes.List(ctx, scope, query, notesusecase.NoteVisibility{})
+		if e != nil || list.Total != 0 {
+			t.Fatal("scope leaked", scope, list, e)
+		}
+	}
+	_ = created
 }

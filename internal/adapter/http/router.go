@@ -14,14 +14,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/yunnuo/unicore/internal/logging"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/yunnuo/unicore/internal/adapter/presenter"
 	"github.com/yunnuo/unicore/internal/audit"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/install"
+	"github.com/yunnuo/unicore/internal/monitor"
 	"github.com/yunnuo/unicore/internal/observability"
 	"github.com/yunnuo/unicore/internal/platform"
+	"github.com/yunnuo/unicore/internal/realtime"
 	"github.com/yunnuo/unicore/internal/updateport"
 	"github.com/yunnuo/unicore/internal/usecase"
 	apispec "github.com/yunnuo/unicore/packages/contracts"
@@ -37,6 +41,10 @@ type Config struct {
 	APIDocs          bool
 	ReadinessTimeout time.Duration
 	Metrics          *observability.Metrics
+	Hub              *realtime.Hub
+	LogBroadcast     *logging.BroadcastWriter
+	Monitor          *monitor.Service
+	AlertRulesStore  monitor.AlertRuleStore
 }
 
 func New(config Config) http.Handler {
@@ -64,12 +72,24 @@ func New(config Config) http.Handler {
 			w.Header().Set("X-Content-Type-Options", "nosniff")
 			w.Header().Set("Referrer-Policy", "same-origin")
 			connect := "'self'"
+			scripts := "'self'"
+			images := "'self' data:"
+			frames := ""
 			if config.Install != nil {
 				if fs := config.Install.Files(); fs != nil {
 					connect += " " + strings.Join(fs.Origins(r.Context()), " ")
 				}
+				// Click-through human verification loads the provider widget; widen
+				// script/frame/connect/img only while a switch is enabled.
+				if origins := config.Install.HumanCheckOrigins(r.Context()); len(origins) > 0 {
+					joined := strings.Join(origins, " ")
+					scripts += " " + joined
+					connect += " " + joined
+					images += " " + joined
+					frames = " frame-src " + joined + ";"
+				}
 			}
-			w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src "+connect+"; frame-ancestors 'none'; base-uri 'self'")
+			w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src "+scripts+"; style-src 'self' 'unsafe-inline'; img-src "+images+"; connect-src "+connect+";"+frames+" frame-ancestors 'none'; base-uri 'self'")
 			defer func() {
 				if recovered := recover(); recovered != nil {
 					if wrapped.Status() == 0 {
@@ -154,9 +174,7 @@ func New(config Config) http.Handler {
 			_, _ = w.Write(content)
 		})
 		router.Get("/docs/api", func(w http.ResponseWriter, r *http.Request) {
-			content, _ := apispec.Assets.ReadFile("reference.gen.html")
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			_, _ = w.Write(content)
+			http.Redirect(w, r, "/api-docs", http.StatusFound)
 		})
 	} else {
 		router.Get("/openapi.json", http.NotFound)

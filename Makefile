@@ -9,7 +9,11 @@ RELEASE_TARGETS ?= linux/amd64,linux/arm64,darwin/amd64,darwin/arm64,windows/amd
 RELEASE_PROFILES ?= web-platform,web-standalone,cli
 export FEATURE_LICENSE FEATURE_UPDATER
 export RELEASE_TARGETS RELEASE_PROFILES
-FEATURE_TAGS = $(strip $(if $(filter true,$(FEATURE_LICENSE)),license) $(if $(filter true,$(FEATURE_UPDATER)),updater))
+# Module editions come from internal/module/manifest.json; setting FEATURE_<TAG>
+# for a declared edition adds its Go build tag. Unknown FEATURE_* values fail in
+# scripts/build-features.mjs, which validates the full set.
+MODULE_EDITIONS := $(shell node -p "JSON.parse(require('fs').readFileSync('internal/module/manifest.json','utf8')).modules.filter(m => m.edition).map(m => m.edition).join(' ')")
+FEATURE_TAGS = $(strip $(if $(filter true,$(FEATURE_LICENSE)),license) $(if $(filter true,$(FEATURE_UPDATER)),updater) $(foreach tag,$(MODULE_EDITIONS),$(if $(filter true,$(FEATURE_$(tag))),$(tag))))
 GO_MODULE := $(shell node -p "JSON.parse(require('fs').readFileSync('product.identity.json','utf8')).go.module")
 CLI_COMMAND := $(shell node -p "JSON.parse(require('fs').readFileSync('product.identity.json','utf8')).cli.command")
 OPS_COMMAND := $(shell node -p "JSON.parse(require('fs').readFileSync('product.identity.json','utf8')).cli.opsCommand")

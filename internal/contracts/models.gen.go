@@ -18,13 +18,15 @@ type ExecuteOutput struct {
 }
 
 type Capabilities struct {
-	Execute        bool `json:"execute"`
-	Database       bool `json:"database"`
-	Installation   bool `json:"installation"`
-	Authentication bool `json:"authentication"`
-	License        bool `json:"license"`
-	Updater        bool `json:"updater"`
-	Settings       bool `json:"settings"`
+	Execute        bool            `json:"execute"`
+	ApiDocs        bool            `json:"api_docs"`
+	Database       bool            `json:"database"`
+	Installation   bool            `json:"installation"`
+	Authentication bool            `json:"authentication"`
+	License        bool            `json:"license"`
+	Updater        bool            `json:"updater"`
+	Settings       bool            `json:"settings"`
+	Features       map[string]bool `json:"features"`
 }
 
 type Bootstrap struct {
@@ -45,7 +47,6 @@ type Bootstrap struct {
 	SiteCopyright         *string      `json:"site_copyright,omitempty"`
 	SiteIcpNumber         *string      `json:"site_icp_number,omitempty"`
 	SiteIcpUrl            *string      `json:"site_icp_url,omitempty"`
-	Theme                 *string      `json:"theme,omitempty"`
 	Branding              *Branding    `json:"branding,omitempty"`
 	IdentityRealm         *string      `json:"identity_realm,omitempty"`
 	SitePoliceNumber      *string      `json:"site_police_number,omitempty"`
@@ -54,6 +55,8 @@ type Bootstrap struct {
 	MaintenanceMessage    *string      `json:"maintenance_message,omitempty"`
 	MfaPending            *bool        `json:"mfa_pending,omitempty"`
 	MfaEnrollmentRequired *bool        `json:"mfa_enrollment_required,omitempty"`
+	Menus                 *[]MenuEntry `json:"menus,omitempty"`
+	Navigation            *Navigation  `json:"navigation,omitempty"`
 }
 
 type BootstrapResponse struct {
@@ -132,15 +135,23 @@ type InstallResult struct {
 }
 
 type User struct {
-	ID          string   `json:"id"`
-	Username    string   `json:"username"`
-	Email       string   `json:"email"`
-	Status      string   `json:"status"`
-	Roles       []string `json:"roles"`
-	Permissions []string `json:"permissions"`
-	CreatedAt   int      `json:"created_at"`
-	LastLoginAt int      `json:"last_login_at"`
-	TotpEnabled bool     `json:"totp_enabled"`
+	ID           string    `json:"id"`
+	Username     string    `json:"username"`
+	Email        string    `json:"email"`
+	Phone        *string   `json:"phone,omitempty"`
+	DisplayName  *string   `json:"display_name,omitempty"`
+	RoleNames    *[]string `json:"role_names,omitempty"`
+	Status       string    `json:"status"`
+	Roles        []string  `json:"roles"`
+	Permissions  []string  `json:"permissions"`
+	CreatedAt    int       `json:"created_at"`
+	LastLoginAt  int       `json:"last_login_at"`
+	TotpEnabled  bool      `json:"totp_enabled"`
+	DepartmentID *string   `json:"department_id,omitempty"`
+	MenuIds      *[]string `json:"menu_ids,omitempty"`
+	ActionIds    *[]string `json:"action_ids,omitempty"`
+	OperationIds *[]string `json:"operation_ids,omitempty"`
+	PostIds      *[]string `json:"post_ids,omitempty"`
 }
 
 type UserList struct {
@@ -151,22 +162,49 @@ type UserList struct {
 }
 
 type UserCreate struct {
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	Role     string `json:"role"`
+	Username     string    `json:"username"`
+	Email        string    `json:"email"`
+	Password     string    `json:"password"`
+	Phone        *string   `json:"phone,omitempty"`
+	DisplayName  *string   `json:"display_name,omitempty"`
+	Role         string    `json:"role,omitempty"`
+	DepartmentID *string   `json:"department_id,omitempty"`
+	PostIds      *[]string `json:"post_ids,omitempty"`
+	RoleIds      *[]string `json:"role_ids,omitempty"`
 }
 
 type UserUpdate struct {
-	Role   string `json:"role"`
-	Status string `json:"status"`
+	Role         *string   `json:"role,omitempty"`
+	Status       string    `json:"status"`
+	Email        *string   `json:"email,omitempty"`
+	DisplayName  *string   `json:"display_name,omitempty"`
+	DepartmentID *string   `json:"department_id,omitempty"`
+	PostIds      *[]string `json:"post_ids,omitempty"`
+	RoleIds      *[]string `json:"role_ids,omitempty"`
+}
+
+type AdminPasswordResetInput struct {
+	Password *string `json:"password,omitempty"`
+}
+
+type AdminPasswordReset struct {
+	Password string `json:"password"`
+}
+
+type AdminPasswordResetResponse struct {
+	Code      string             `json:"code"`
+	Message   string             `json:"message"`
+	Data      AdminPasswordReset `json:"data"`
+	RequestID string             `json:"request_id"`
 }
 
 type LoginInput struct {
-	Username      string `json:"username"`
-	Password      string `json:"password"`
-	CaptchaID     string `json:"captcha_id"`
-	CaptchaAnswer string `json:"captcha_answer"`
+	Username          string  `json:"username"`
+	Password          string  `json:"password"`
+	CaptchaID         string  `json:"captcha_id"`
+	CaptchaAnswer     string  `json:"captcha_answer"`
+	HumanCheckToken   *string `json:"human_check_token,omitempty"`
+	HumanCheckRandstr *string `json:"human_check_randstr,omitempty"`
 }
 
 type Session struct {
@@ -194,10 +232,11 @@ type AuditEntry struct {
 }
 
 type Dashboard struct {
-	TotalUsers    int          `json:"total_users"`
-	TodayNewUsers int          `json:"today_new_users"`
-	ActiveUsers7d int          `json:"active_users_7d"`
-	Audit         []AuditEntry `json:"audit"`
+	TotalUsers    int           `json:"total_users"`
+	TodayNewUsers int           `json:"today_new_users"`
+	ActiveUsers7d int           `json:"active_users_7d"`
+	Audit         []AuditEntry  `json:"audit"`
+	Activity7d    []ActivityDay `json:"activity_7d"`
 }
 
 type SettingEntry struct {
@@ -292,27 +331,38 @@ type ActionResultResponse struct {
 }
 
 type AuthPolicy struct {
-	RegistrationEnabled       bool `json:"registration_enabled"`
-	ResetEnabled              bool `json:"reset_enabled"`
-	LoginCaptcha              bool `json:"login_captcha"`
-	RegisterCaptcha           bool `json:"register_captcha"`
-	MailReady                 bool `json:"mail_ready"`
-	EmailLoginEnabled         bool `json:"email_login_enabled"`
-	EmailVerificationRequired bool `json:"email_verification_required"`
+	RegistrationEnabled       bool    `json:"registration_enabled"`
+	ResetEnabled              bool    `json:"reset_enabled"`
+	LoginCaptcha              bool    `json:"login_captcha"`
+	RegisterCaptcha           bool    `json:"register_captcha"`
+	MailReady                 bool    `json:"mail_ready"`
+	EmailLoginEnabled         bool    `json:"email_login_enabled"`
+	EmailVerificationRequired bool    `json:"email_verification_required"`
+	PhoneRequired             bool    `json:"phone_required"`
+	HumanCheckEnabled         bool    `json:"human_check_enabled"`
+	HumanCheckProvider        string  `json:"human_check_provider"`
+	HumanCheckSiteKey         *string `json:"human_check_site_key,omitempty"`
+	HumanCheckRegion          *string `json:"human_check_region,omitempty"`
+	HumanCheckPrefix          *string `json:"human_check_prefix,omitempty"`
 }
 
 type RegisterInput struct {
-	Username      string `json:"username"`
-	Email         string `json:"email"`
-	Password      string `json:"password"`
-	CaptchaID     string `json:"captcha_id"`
-	CaptchaAnswer string `json:"captcha_answer"`
+	Username          string  `json:"username"`
+	Email             string  `json:"email"`
+	Password          string  `json:"password"`
+	Phone             *string `json:"phone,omitempty"`
+	HumanCheckToken   *string `json:"human_check_token,omitempty"`
+	HumanCheckRandstr *string `json:"human_check_randstr,omitempty"`
+	CaptchaID         string  `json:"captcha_id"`
+	CaptchaAnswer     string  `json:"captcha_answer"`
 }
 
 type EmailRequest struct {
-	Email         string `json:"email"`
-	CaptchaID     string `json:"captcha_id"`
-	CaptchaAnswer string `json:"captcha_answer"`
+	Email             string  `json:"email"`
+	CaptchaID         string  `json:"captcha_id"`
+	CaptchaAnswer     string  `json:"captcha_answer"`
+	HumanCheckToken   *string `json:"human_check_token,omitempty"`
+	HumanCheckRandstr *string `json:"human_check_randstr,omitempty"`
 }
 
 type TokenInput struct {
@@ -403,14 +453,22 @@ type PermissionDefinition struct {
 	Description string `json:"description"`
 	Group       string `json:"group"`
 	Assignable  bool   `json:"assignable"`
+	SuperAdmin  bool   `json:"super_admin"`
 }
 
 type Role struct {
-	ID          string   `json:"id"`
-	Name        string   `json:"name"`
-	Builtin     bool     `json:"builtin"`
-	Permissions []string `json:"permissions"`
-	UserCount   int      `json:"user_count"`
+	ID                       string   `json:"id"`
+	Name                     string   `json:"name"`
+	Builtin                  bool     `json:"builtin"`
+	Permissions              []string `json:"permissions"`
+	UserCount                int      `json:"user_count"`
+	Realm                    string   `json:"realm"`
+	DataScope                string   `json:"data_scope"`
+	DepartmentIds            []string `json:"department_ids"`
+	MenuIds                  []string `json:"menu_ids"`
+	ActionIds                []string `json:"action_ids"`
+	OperationIds             []string `json:"operation_ids"`
+	AuthorizationInitialized bool     `json:"authorization_initialized"`
 }
 
 type RoleList struct {
@@ -478,6 +536,33 @@ type OIDCStartResponse struct {
 	Message   string    `json:"message"`
 	Data      OIDCStart `json:"data"`
 	RequestID string    `json:"request_id"`
+}
+
+type OIDCBindLoginInput struct {
+	State    string `json:"state"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type OIDCBindLoginResponse struct {
+	Code      string  `json:"code"`
+	Message   string  `json:"message"`
+	RequestID string  `json:"request_id"`
+	Data      Session `json:"data"`
+}
+
+type OIDCCheckInfo struct {
+	AuthorizationUrl string `json:"authorization_url"`
+	TokenUrl         string `json:"token_url"`
+	UserinfoUrl      string `json:"userinfo_url"`
+	JwksUrl          string `json:"jwks_url"`
+}
+
+type OIDCCheckInfoResponse struct {
+	Code      string        `json:"code"`
+	Message   string        `json:"message"`
+	RequestID string        `json:"request_id"`
+	Data      OIDCCheckInfo `json:"data"`
 }
 
 type Branding struct {
@@ -576,17 +661,18 @@ type StorageMaintenanceInput struct {
 }
 
 type FileEntry struct {
-	FileID       string `json:"file_id"`
-	OriginalName string `json:"original_name"`
-	StorageType  string `json:"storage_type"`
-	LocationID   string `json:"location_id"`
-	MimeType     string `json:"mime_type"`
-	Size         int    `json:"size"`
-	CreatorID    string `json:"creator_id"`
-	CreatorRealm string `json:"creator_realm"`
-	CreatedAt    int    `json:"created_at"`
-	ExpiresAt    int    `json:"expires_at"`
-	State        string `json:"state"`
+	FileID       string           `json:"file_id"`
+	OriginalName string           `json:"original_name"`
+	StorageType  string           `json:"storage_type"`
+	LocationID   string           `json:"location_id"`
+	MimeType     string           `json:"mime_type"`
+	Size         int              `json:"size"`
+	CreatorID    string           `json:"creator_id"`
+	CreatorRealm string           `json:"creator_realm"`
+	CreatedAt    int              `json:"created_at"`
+	ExpiresAt    int              `json:"expires_at"`
+	State        string           `json:"state"`
+	Capabilities FileCapabilities `json:"capabilities"`
 }
 
 type FileList struct {
@@ -655,10 +741,10 @@ type FileAccessResponse struct {
 }
 
 type NoteInput struct {
-	Title         string   `json:"title"`
-	Body          string   `json:"body"`
-	Status        string   `json:"status"`
-	AttachmentIds []string `json:"attachment_ids"`
+	Title         string    `json:"title"`
+	Body          string    `json:"body"`
+	Status        string    `json:"status"`
+	AttachmentIds *[]string `json:"attachment_ids,omitempty"`
 }
 
 type NoteUpdate struct {
@@ -674,14 +760,15 @@ type NoteVersion struct {
 }
 
 type NoteEntry struct {
-	ID            string   `json:"id"`
-	Title         string   `json:"title"`
-	Body          string   `json:"body"`
-	Status        string   `json:"status"`
-	AttachmentIds []string `json:"attachment_ids"`
-	Version       int      `json:"version"`
-	CreatedAt     int      `json:"created_at"`
-	UpdatedAt     int      `json:"updated_at"`
+	ID            string           `json:"id"`
+	Title         string           `json:"title"`
+	Body          string           `json:"body"`
+	Status        string           `json:"status"`
+	AttachmentIds []string         `json:"attachment_ids"`
+	Version       int              `json:"version"`
+	CreatedAt     int              `json:"created_at"`
+	UpdatedAt     int              `json:"updated_at"`
+	Capabilities  NoteCapabilities `json:"capabilities"`
 }
 
 type NoteQuery struct {
@@ -1013,15 +1100,17 @@ type MultipartUploadResponse struct {
 }
 
 type AccountProfile struct {
-	User          User   `json:"user"`
-	DisplayName   string `json:"display_name"`
-	TotpEnabled   bool   `json:"totp_enabled"`
-	Force2fa      bool   `json:"force_2fa"`
-	CanDisable2fa bool   `json:"can_disable_2fa"`
+	User          User    `json:"user"`
+	DisplayName   string  `json:"display_name"`
+	TotpEnabled   bool    `json:"totp_enabled"`
+	Force2fa      bool    `json:"force_2fa"`
+	CanDisable2fa bool    `json:"can_disable_2fa"`
+	AvatarUrl     *string `json:"avatar_url,omitempty"`
 }
 
 type ProfileInput struct {
-	DisplayName string `json:"display_name"`
+	DisplayName  string  `json:"display_name"`
+	AvatarFileID *string `json:"avatar_file_id,omitempty"`
 }
 
 type TOTPSetupInput struct {
@@ -1148,6 +1237,8 @@ type NotifyConfiguration struct {
 	SigningConfigured  bool             `json:"signing_configured"`
 	Rules              []NotifyRule     `json:"rules"`
 	Templates          []NotifyTemplate `json:"templates"`
+	Section            *string          `json:"section,omitempty"`
+	Catalog            *[]NotifyEvent   `json:"catalog,omitempty"`
 }
 
 type NotifyPreview struct {
@@ -1171,4 +1262,646 @@ type NotifyPreviewResponse struct {
 	Code    string        `json:"code"`
 	Message string        `json:"message"`
 	Data    NotifyPreview `json:"data"`
+}
+
+type RoleSaveInput struct {
+	Name          string    `json:"name"`
+	Permissions   []string  `json:"permissions"`
+	Realm         *string   `json:"realm,omitempty"`
+	DataScope     *string   `json:"data_scope,omitempty"`
+	DepartmentIds *[]string `json:"department_ids,omitempty"`
+	MenuIds       *[]string `json:"menu_ids,omitempty"`
+	ActionIds     *[]string `json:"action_ids,omitempty"`
+	OperationIds  *[]string `json:"operation_ids,omitempty"`
+}
+
+type MenuEntry struct {
+	MenuKey   string  `json:"menu_key"`
+	Label     string  `json:"label"`
+	GroupKey  string  `json:"group_key"`
+	Sort      int     `json:"sort"`
+	Visible   bool    `json:"visible"`
+	ParentKey *string `json:"parent_key,omitempty"`
+	Type      string  `json:"type"`
+	Url       *string `json:"url,omitempty"`
+}
+
+type MenuList struct {
+	Items    []MenuEntry         `json:"items"`
+	Version  int                 `json:"version"`
+	Sections []NavigationSection `json:"sections"`
+	Nodes    []NavigationNode    `json:"nodes"`
+	Pages    []NavigationPage    `json:"pages"`
+}
+
+type MenuSaveInput struct {
+	Items           *[]MenuEntry                `json:"items,omitempty"`
+	Version         int                         `json:"version"`
+	Sections        []NavigationSection         `json:"sections"`
+	Nodes           []NavigationNode            `json:"nodes"`
+	RoleAssignments *[]NavigationRoleAssignment `json:"role_assignments,omitempty"`
+	Reset           *bool                       `json:"reset,omitempty"`
+}
+
+type MenuListResponse struct {
+	Code      string   `json:"code"`
+	Message   string   `json:"message"`
+	Data      MenuList `json:"data"`
+	RequestID string   `json:"request_id"`
+}
+
+type DictionarySummary struct {
+	ID          string `json:"id"`
+	Code        string `json:"code"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	ItemCount   int    `json:"item_count"`
+	CreatedAt   int    `json:"created_at"`
+	UpdatedAt   int    `json:"updated_at"`
+}
+
+type DictionaryList struct {
+	Items []DictionarySummary `json:"items"`
+}
+
+type DictionaryItemEntry struct {
+	ID     string `json:"id"`
+	Value  string `json:"value"`
+	Label  string `json:"label"`
+	Remark string `json:"remark"`
+	Sort   int    `json:"sort"`
+	Status string `json:"status"`
+}
+
+type DictionaryDetail struct {
+	ID          string                `json:"id"`
+	Code        string                `json:"code"`
+	Name        string                `json:"name"`
+	Description string                `json:"description"`
+	Items       []DictionaryItemEntry `json:"items"`
+}
+
+type DictionaryCreateInput struct {
+	Code        string `json:"code"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+type DictionaryUpdateInput struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+type DictionaryItemsInput struct {
+	Items []DictionaryItemEntry `json:"items"`
+}
+
+type Department struct {
+	ID        string  `json:"id"`
+	Name      string  `json:"name"`
+	ParentID  *string `json:"parent_id,omitempty"`
+	Sort      int     `json:"sort"`
+	CreatedAt int     `json:"created_at"`
+	UpdatedAt int     `json:"updated_at"`
+}
+
+type DepartmentList struct {
+	Items []Department `json:"items"`
+	Total int          `json:"total"`
+}
+
+type DepartmentSaveInput struct {
+	Name     string  `json:"name"`
+	ParentID *string `json:"parent_id,omitempty"`
+	Sort     *int    `json:"sort,omitempty"`
+}
+
+type DepartmentResponse struct {
+	Code      string     `json:"code"`
+	Message   string     `json:"message"`
+	Data      Department `json:"data"`
+	RequestID string     `json:"request_id"`
+}
+
+type DepartmentListResponse struct {
+	Code      string         `json:"code"`
+	Message   string         `json:"message"`
+	Data      DepartmentList `json:"data"`
+	RequestID string         `json:"request_id"`
+}
+
+type DictionaryListResponse struct {
+	Code      string         `json:"code"`
+	Message   string         `json:"message"`
+	Data      DictionaryList `json:"data"`
+	RequestID string         `json:"request_id"`
+}
+
+type DictionaryDetailResponse struct {
+	Code      string           `json:"code"`
+	Message   string           `json:"message"`
+	Data      DictionaryDetail `json:"data"`
+	RequestID string           `json:"request_id"`
+}
+
+type DictionarySummaryResponse struct {
+	Code      string            `json:"code"`
+	Message   string            `json:"message"`
+	Data      DictionarySummary `json:"data"`
+	RequestID string            `json:"request_id"`
+}
+
+type TaskEntry struct {
+	Name        string `json:"name"`
+	Schedule    string `json:"schedule"`
+	Description string `json:"description"`
+	Executor    string `json:"executor"`
+	Custom      bool   `json:"custom"`
+	Enabled     bool   `json:"enabled"`
+	LastRunAt   int    `json:"last_run_at"`
+	LastStatus  string `json:"last_status"`
+	LastError   string `json:"last_error"`
+	RunCount    int    `json:"run_count"`
+	NextRunAt   int    `json:"next_run_at"`
+}
+
+type TaskList struct {
+	Items     []TaskEntry    `json:"items"`
+	Executors []TaskExecutor `json:"executors"`
+}
+
+type TaskUpdateInput struct {
+	Enabled bool `json:"enabled"`
+}
+
+type TaskExecutor struct {
+	Key         string `json:"key"`
+	Description string `json:"description"`
+}
+
+type TaskCreateInput struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Schedule    string `json:"schedule"`
+	Executor    string `json:"executor"`
+}
+
+type TaskEditInput struct {
+	Description string `json:"description"`
+	Schedule    string `json:"schedule"`
+	Executor    string `json:"executor"`
+}
+
+type TaskRunEntry struct {
+	StartedAt  int    `json:"started_at"`
+	DurationMs int    `json:"duration_ms"`
+	Status     string `json:"status"`
+	Error      string `json:"error"`
+}
+
+type TaskRunList struct {
+	Items []TaskRunEntry `json:"items"`
+}
+
+type TaskRunListResponse struct {
+	Code      string      `json:"code"`
+	Message   string      `json:"message"`
+	Data      TaskRunList `json:"data"`
+	RequestID string      `json:"request_id"`
+}
+
+type TaskListResponse struct {
+	Code      string   `json:"code"`
+	Message   string   `json:"message"`
+	Data      TaskList `json:"data"`
+	RequestID string   `json:"request_id"`
+}
+
+type TaskEntryResponse struct {
+	Code      string    `json:"code"`
+	Message   string    `json:"message"`
+	Data      TaskEntry `json:"data"`
+	RequestID string    `json:"request_id"`
+}
+
+type TaskTrigger struct {
+	Triggered bool `json:"triggered"`
+}
+
+type TaskTriggerResponse struct {
+	Code      string      `json:"code"`
+	Message   string      `json:"message"`
+	Data      TaskTrigger `json:"data"`
+	RequestID string      `json:"request_id"`
+}
+
+type InboxEntry struct {
+	ID        string `json:"id"`
+	Type      string `json:"type"`
+	SourceID  string `json:"source_id"`
+	Title     string `json:"title"`
+	Body      string `json:"body"`
+	CreatedAt int    `json:"created_at"`
+	ReadAt    int    `json:"read_at"`
+}
+
+type InboxList struct {
+	Items  []InboxEntry `json:"items"`
+	Unread int          `json:"unread"`
+}
+
+type InboxListResponse struct {
+	Code      string    `json:"code"`
+	Message   string    `json:"message"`
+	Data      InboxList `json:"data"`
+	RequestID string    `json:"request_id"`
+}
+
+type UserImportResult struct {
+	Created int                 `json:"created"`
+	Failed  []UserImportFailure `json:"failed"`
+}
+
+type UserImportResultResponse struct {
+	Code      string           `json:"code"`
+	Message   string           `json:"message"`
+	Data      UserImportResult `json:"data"`
+	RequestID string           `json:"request_id"`
+}
+
+type ActivityDay struct {
+	Date  string `json:"date"`
+	Count int    `json:"count"`
+}
+
+type UserImportFailure struct {
+	Row   int    `json:"row"`
+	Error string `json:"error"`
+}
+
+type NavigationSection struct {
+	ID        string   `json:"id"`
+	Name      string   `json:"name"`
+	Sort      int      `json:"sort"`
+	Visible   bool     `json:"visible"`
+	ShowTitle bool     `json:"show_title"`
+	Surfaces  []string `json:"surfaces"`
+}
+
+type NavigationNode struct {
+	ID           string   `json:"id"`
+	SectionID    string   `json:"section_id"`
+	ParentID     *string  `json:"parent_id,omitempty"`
+	Type         string   `json:"type"`
+	RouteID      *string  `json:"route_id,omitempty"`
+	Label        string   `json:"label"`
+	Icon         string   `json:"icon"`
+	Sort         int      `json:"sort"`
+	Visible      bool     `json:"visible"`
+	Url          *string  `json:"url,omitempty"`
+	OpenMode     string   `json:"open_mode"`
+	BadgeText    string   `json:"badge_text"`
+	BadgeColor   string   `json:"badge_color"`
+	BadgeDot     bool     `json:"badge_dot"`
+	ActiveMenu   *string  `json:"active_menu,omitempty"`
+	Permission   *string  `json:"permission,omitempty"`
+	OperationIds []string `json:"operation_ids"`
+	Disabled     bool     `json:"disabled"`
+	Surfaces     []string `json:"surfaces"`
+}
+
+type NavigationPage struct {
+	ID         string   `json:"id"`
+	Surfaces   []string `json:"surfaces"`
+	Permission string   `json:"permission"`
+	Group      string   `json:"group"`
+}
+
+type Navigation struct {
+	Version  int                 `json:"version"`
+	Sections []NavigationSection `json:"sections"`
+	Nodes    []NavigationNode    `json:"nodes"`
+}
+
+type NavigationRoleAssignment struct {
+	RoleID    string   `json:"role_id"`
+	MenuIds   []string `json:"menu_ids"`
+	ActionIds []string `json:"action_ids"`
+}
+
+type APIOperation struct {
+	OperationID    string   `json:"operation_id"`
+	Method         string   `json:"method"`
+	Path           string   `json:"path"`
+	Summary        string   `json:"summary"`
+	Tags           []string `json:"tags"`
+	Realm          string   `json:"realm"`
+	Permissions    []string `json:"permissions"`
+	PermissionMode string   `json:"permission_mode"`
+	Csrf           bool     `json:"csrf"`
+	SuperAdmin     bool     `json:"super_admin"`
+	Grantable      bool     `json:"grantable"`
+}
+
+type APIOperationList struct {
+	Items []APIOperation `json:"items"`
+}
+
+type APIOperationListResponse struct {
+	Code      string           `json:"code"`
+	Message   string           `json:"message"`
+	Data      APIOperationList `json:"data"`
+	RequestID string           `json:"request_id"`
+}
+
+type Post struct {
+	ID          string `json:"id"`
+	Code        string `json:"code"`
+	Name        string `json:"name"`
+	Sort        int    `json:"sort"`
+	Enabled     bool   `json:"enabled"`
+	Description string `json:"description"`
+	CreatedAt   int    `json:"created_at"`
+	UpdatedAt   int    `json:"updated_at"`
+	MemberCount int    `json:"member_count"`
+}
+
+type PostList struct {
+	Items []Post `json:"items"`
+	Total int    `json:"total"`
+}
+
+type PostSaveInput struct {
+	Code        string  `json:"code"`
+	Name        string  `json:"name"`
+	Sort        *int    `json:"sort,omitempty"`
+	Enabled     *bool   `json:"enabled,omitempty"`
+	Description *string `json:"description,omitempty"`
+}
+
+type PostResponse struct {
+	Code      string `json:"code"`
+	Message   string `json:"message"`
+	Data      Post   `json:"data"`
+	RequestID string `json:"request_id"`
+}
+
+type PostListResponse struct {
+	Code      string   `json:"code"`
+	Message   string   `json:"message"`
+	Data      PostList `json:"data"`
+	RequestID string   `json:"request_id"`
+}
+
+type NoteCapabilities struct {
+	Update bool `json:"update"`
+	Delete bool `json:"delete"`
+}
+
+type FileCapabilities struct {
+	Download bool `json:"download"`
+	Delete   bool `json:"delete"`
+}
+
+type LogTailEntry struct {
+	Seq  int    `json:"seq"`
+	Line string `json:"line"`
+}
+
+type LogTailList struct {
+	Items      []LogTailEntry `json:"items"`
+	LatestSeq  int            `json:"latest_seq"`
+	OlderCount int            `json:"older_count"`
+}
+
+type LogTailResponse struct {
+	Code      string      `json:"code"`
+	Message   string      `json:"message"`
+	Data      LogTailList `json:"data"`
+	RequestID string      `json:"request_id"`
+}
+
+type MonitorHttpService struct {
+	Applicable     bool `json:"applicable"`
+	ActiveRequests *int `json:"active_requests,omitempty"`
+	RequestsTotal  *int `json:"requests_total,omitempty"`
+	ErrorsTotal    *int `json:"errors_total,omitempty"`
+	AvgDurationMs  *int `json:"avg_duration_ms,omitempty"`
+	P95DurationMs  *int `json:"p95_duration_ms,omitempty"`
+}
+
+type MonitorDatabase struct {
+	Status             string `json:"status"`
+	LatencyMs          int    `json:"latency_ms"`
+	OpenConnections    *int   `json:"open_connections,omitempty"`
+	InUseConnections   *int   `json:"in_use_connections,omitempty"`
+	IdleConnections    *int   `json:"idle_connections,omitempty"`
+	WaitTotal          *int   `json:"wait_total,omitempty"`
+	MaxOpenConnections *int   `json:"max_open_connections,omitempty"`
+	WaitDurationMs     *int   `json:"wait_duration_ms,omitempty"`
+}
+
+type MonitorStorageService struct {
+	Applicable     bool                      `json:"applicable"`
+	ActiveLocation *string                   `json:"active_location,omitempty"`
+	Provider       *string                   `json:"provider,omitempty"`
+	Locations      *int                      `json:"locations,omitempty"`
+	Probe          *[]MonitorStorageLocation `json:"probe,omitempty"`
+}
+
+type MonitorTaskHealth struct {
+	Name       string            `json:"name"`
+	Enabled    bool              `json:"enabled"`
+	LastStatus *string           `json:"last_status,omitempty"`
+	LastError  *string           `json:"last_error,omitempty"`
+	LastRunAt  *int              `json:"last_run_at,omitempty"`
+	NextRunAt  *int              `json:"next_run_at,omitempty"`
+	Runs       *[]MonitorTaskRun `json:"runs,omitempty"`
+}
+
+type MonitorTasksSummary struct {
+	Applicable bool                 `json:"applicable"`
+	Total      *int                 `json:"total,omitempty"`
+	Enabled    *int                 `json:"enabled,omitempty"`
+	Failing    *int                 `json:"failing,omitempty"`
+	Recent     *[]MonitorTaskHealth `json:"recent,omitempty"`
+}
+
+type MonitorSnapshot struct {
+	Profile       string                `json:"profile"`
+	Version       string                `json:"version"`
+	Commit        string                `json:"commit"`
+	BuildTime     string                `json:"build_time"`
+	GoVersion     string                `json:"go_version"`
+	StartedAt     int                   `json:"started_at"`
+	UptimeSeconds int                   `json:"uptime_seconds"`
+	Status        string                `json:"status"`
+	HttpService   MonitorHttpService    `json:"http_service"`
+	Database      MonitorDatabase       `json:"database"`
+	Storage       MonitorStorageService `json:"storage"`
+	Tasks         MonitorTasksSummary   `json:"tasks"`
+	Runtime       MonitorRuntimeStats   `json:"runtime"`
+	Host          MonitorHostStats      `json:"host"`
+}
+
+type MonitorSnapshotResponse struct {
+	Code      string          `json:"code"`
+	Message   string          `json:"message"`
+	Data      MonitorSnapshot `json:"data"`
+	RequestID string          `json:"request_id"`
+}
+
+type MonitorRuntimeStats struct {
+	Goroutines     int  `json:"goroutines"`
+	HeapAllocBytes int  `json:"heap_alloc_bytes"`
+	HeapSysBytes   int  `json:"heap_sys_bytes"`
+	GcCycles       int  `json:"gc_cycles"`
+	PauseTotalMs   *int `json:"pause_total_ms,omitempty"`
+	RssBytes       *int `json:"rss_bytes,omitempty"`
+	CpuTimeMs      *int `json:"cpu_time_ms,omitempty"`
+}
+
+type MonitorHostStats struct {
+	Available         bool                  `json:"available"`
+	Hostname          *string               `json:"hostname,omitempty"`
+	Os                *string               `json:"os,omitempty"`
+	Platform          *string               `json:"platform,omitempty"`
+	PlatformVersion   *string               `json:"platform_version,omitempty"`
+	KernelVersion     *string               `json:"kernel_version,omitempty"`
+	KernelArch        *string               `json:"kernel_arch,omitempty"`
+	HostUptimeSeconds *int                  `json:"host_uptime_seconds,omitempty"`
+	CpuModel          *string               `json:"cpu_model,omitempty"`
+	CpuCoresLogical   *int                  `json:"cpu_cores_logical,omitempty"`
+	CpuCoresPhysical  *int                  `json:"cpu_cores_physical,omitempty"`
+	CpuPercent        *float64              `json:"cpu_percent,omitempty"`
+	CpuPerCore        *[]float64            `json:"cpu_per_core,omitempty"`
+	Load1             *float64              `json:"load_1,omitempty"`
+	Load5             *float64              `json:"load_5,omitempty"`
+	Load15            *float64              `json:"load_15,omitempty"`
+	MemTotalBytes     *int                  `json:"mem_total_bytes,omitempty"`
+	MemUsedBytes      *int                  `json:"mem_used_bytes,omitempty"`
+	MemAvailableBytes *int                  `json:"mem_available_bytes,omitempty"`
+	MemUsedPercent    *float64              `json:"mem_used_percent,omitempty"`
+	SwapTotalBytes    *int                  `json:"swap_total_bytes,omitempty"`
+	SwapUsedBytes     *int                  `json:"swap_used_bytes,omitempty"`
+	NetSentBytes      *int                  `json:"net_sent_bytes,omitempty"`
+	NetRecvBytes      *int                  `json:"net_recv_bytes,omitempty"`
+	SampledAt         *int                  `json:"sampled_at,omitempty"`
+	Disks             *[]MonitorDiskUsage   `json:"disks,omitempty"`
+	NetSentPerSec     *float64              `json:"net_sent_per_sec,omitempty"`
+	NetRecvPerSec     *float64              `json:"net_recv_per_sec,omitempty"`
+	Container         *MonitorContainerView `json:"container,omitempty"`
+	Sensors           *[]MonitorSensor      `json:"sensors,omitempty"`
+}
+
+type MonitorDiskUsage struct {
+	Path        string  `json:"path"`
+	IsDataDir   *bool   `json:"is_data_dir,omitempty"`
+	TotalBytes  int     `json:"total_bytes"`
+	UsedBytes   int     `json:"used_bytes"`
+	FreeBytes   int     `json:"free_bytes"`
+	UsedPercent float64 `json:"used_percent"`
+}
+
+type MonitorEvent struct {
+	ID       int     `json:"id"`
+	Type     string  `json:"type"`
+	Severity string  `json:"severity"`
+	Message  string  `json:"message"`
+	Detail   *string `json:"detail,omitempty"`
+	At       int     `json:"at"`
+}
+
+type MonitorEventList struct {
+	Items    []MonitorEvent `json:"items"`
+	Total    int            `json:"total"`
+	Capacity *int           `json:"capacity,omitempty"`
+}
+
+type MonitorEventListResponse struct {
+	Code      string           `json:"code"`
+	Message   string           `json:"message"`
+	Data      MonitorEventList `json:"data"`
+	RequestID string           `json:"request_id"`
+}
+
+type MonitorTaskRun struct {
+	StartedAt  int     `json:"started_at"`
+	DurationMs int     `json:"duration_ms"`
+	Status     string  `json:"status"`
+	Error      *string `json:"error,omitempty"`
+}
+
+type MonitorStorageLocation struct {
+	ID         string  `json:"id"`
+	Provider   string  `json:"provider"`
+	Active     bool    `json:"active"`
+	Configured bool    `json:"configured"`
+	Status     string  `json:"status"`
+	LatencyMs  *int    `json:"latency_ms,omitempty"`
+	CheckedAt  *int    `json:"checked_at,omitempty"`
+	Error      *string `json:"error,omitempty"`
+}
+
+type MonitorContainerView struct {
+	Detected         bool     `json:"detected"`
+	MemoryLimitBytes *int     `json:"memory_limit_bytes,omitempty"`
+	MemoryUsageBytes *int     `json:"memory_usage_bytes,omitempty"`
+	CpuQuotaCores    *float64 `json:"cpu_quota_cores,omitempty"`
+	CpuPercent       *float64 `json:"cpu_percent,omitempty"`
+}
+
+type MonitorSensor struct {
+	Label   string  `json:"label"`
+	Celsius float64 `json:"celsius"`
+}
+
+type MonitorStorageLocationResponse struct {
+	Code      string                 `json:"code"`
+	Message   string                 `json:"message"`
+	Data      MonitorStorageLocation `json:"data"`
+	RequestID string                 `json:"request_id"`
+}
+
+type MonitorAlertRule struct {
+	ID              string   `json:"id"`
+	Enabled         bool     `json:"enabled"`
+	TriggerValue    *float64 `json:"trigger_value,omitempty"`
+	RecoverValue    *float64 `json:"recover_value,omitempty"`
+	Consecutive     *int     `json:"consecutive,omitempty"`
+	CooldownMinutes *int     `json:"cooldown_minutes,omitempty"`
+}
+
+type MonitorAlertRules struct {
+	Version int                `json:"version"`
+	Rules   []MonitorAlertRule `json:"rules"`
+}
+
+type MonitorAlertRulesResponse struct {
+	Code      string            `json:"code"`
+	Message   string            `json:"message"`
+	Data      MonitorAlertRules `json:"data"`
+	RequestID string            `json:"request_id"`
+}
+
+type NotifyVariable struct {
+	Key     string `json:"key"`
+	Label   string `json:"label"`
+	LabelEn string `json:"label_en"`
+}
+
+type NotifyEvent struct {
+	ID               string           `json:"id"`
+	Label            string           `json:"label"`
+	LabelEn          string           `json:"label_en"`
+	Description      string           `json:"description"`
+	DescriptionEn    string           `json:"description_en"`
+	UserEmailAllowed bool             `json:"user_email_allowed"`
+	Variables        []NotifyVariable `json:"variables"`
+}
+
+type MenuRoleAssignmentInput struct {
+	Version         int      `json:"version"`
+	RoleIds         []string `json:"role_ids"`
+	ExpectedRoleIds []string `json:"expected_role_ids"`
 }

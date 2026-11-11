@@ -62,7 +62,7 @@ export function DialogFooter({ className, ...props }: HTMLAttributes<HTMLDivElem
 }
 
 /** Legacy-compatible modal: mounted equals open; Escape and overlay closes are suppressed while pending. */
-export function Modal({ title, onClose, pending = false, children, className }: { title: string; onClose: () => void; pending?: boolean; children: ReactNode; className?: string }) {
+export function Modal({ title, onClose, pending = false, children, className, contentClassName }: { title: string; onClose: () => void; pending?: boolean; children: ReactNode; className?: string; contentClassName?: string }) {
   useLocale();
   useEffect(() => {
     if (pending) return;
@@ -70,7 +70,7 @@ export function Modal({ title, onClose, pending = false, children, className }: 
     return () => { previous?.focus(); };
   }, [pending]);
   return <Dialog open onOpenChange={open => { if (!open && !pending) onClose(); }}>
-    <DialogContent aria-label={t(title)} showClose={false}>
+    <DialogContent aria-label={t(title)} showClose={false} className={contentClassName}>
       <DialogHeader>
         <DialogTitle>{t(title)}</DialogTitle>
       </DialogHeader>

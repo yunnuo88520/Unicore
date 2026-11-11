@@ -3,6 +3,80 @@
 
 ## Unreleased
 
+## 0.1.4 — 2026-11-11
+
+### 中文
+
+- 告警通知接入 notifycontent 事件矩阵并统一总开关语义（替代 T4 初版的单收件人邮件路径）：新增 `alert_triggered`/`alert_recovered` 通知事件，独立默认模板与路由在通知设置页可编辑，模板变量完整覆盖规则名/级别/指标/当前值/阈值/资源视角/实例标识/主机/发生时间/故障持续时长/阶段；告警事件仅出现在管理员通知对象中。「启用系统通知」总开关统一控制全部事件通知（含告警，无隐式绕过），企业微信/Webhook 仍需单独开启；总开关关闭为有意静默，开启但邮件未就绪且渠道不可用时报 `notification_failed` 运行事件；每条投递为独立队列行（独立重试与 dead 终态），入队成功与实际发送成功明确区分，部分渠道入队失败不影响已入队渠道。旧版通知配置（12 事件）在保存时自动补全新增事件的默认规则与模板、不覆盖既有自定义，未知事件保持拒绝；告警模板变量在邮件 HTML 中正确转义。
+
+- 新增「运行监控中心」P0：Platform 超管专属运行概览/服务健康/资源监控三页（系统区域末位「运行监控」目录）与仪表盘运行摘要，Standalone 的 Web 与桌面载体获得等效的单页监控台与摘要组件；快照只读、同源复用现有指标，`monitor:read` 进入 superAdmin 保留集。资源监控含宿主机硬件只读视图（gopsutil v4：主机身份、CPU 总量与逐核、内存/Swap、数据目录与根卷磁盘、负载、网络累计）与环形仪表、趋势面积图、堆叠内存条等图表卡片，趋势为页面打开期间的快照序列且不落库；存量实例升级后自动并入「运行监控」导航节点，且不覆盖既有自定义（P1 起新增的「运行事件」页同样按 per-node 种子自动补入，删除过的不复活）。
+
+- 新增 Runtime Monitor 告警体系（T4 方案二实现）：Platform 完整告警（superAdmin 专用规则端点、30s 后台检测、notifycontent 通知）之外，Standalone（Web/GUI 等效）新增本地告警——内置默认规则自动启用、不可配置、后台检测、触发/恢复写入运行事件、不发送外部通知；CLI 不装配。检测引擎为 monitor 内单协程 ticker（不进任务表、无规则零协程、评估中跳过本拍、采集失败不归零），两形态共用同一状态机与事件结构；指标含数据库不可用、CPU/内存（容器限额优先的自适应视角，容器 CPU 用量列入实现清单）、数据目录磁盘与后台任务失败（仅 Platform 适用）；整体健康规则按成因归因抑制避免重复告警；冷却仅约束通知、恢复必通知、重启 2 分钟宽限期仅抑制通知（三场景语义定稿）；多实例按进程独立检测并携带安装实例/主机/PID 标识，重复通知为明确接受的行为；任务失败规则更名「任务最近执行失败」（Recent Task Failure，最近一次失败状态持续存在，告警评估排除禁用任务）；整体健康归因转移以独立 `alert_reclassified` 事件记录（恢复事件只代表真实恢复）；通知链路区分未配置/入队失败/等待/重试/dead 五态且 lease 为至少一次语义（极端重复通知为接受行为）；性能预算以 200 个有效样本重测（p50=19.9ms/p95=22.3ms/p99=25.5ms/max=26.7ms，墙钟口径，Linux 与远程数据库未测）。完整定稿见 design-runtime-monitor.md §9.3。
+
+- 运行监控专项评审修复：资源监控 HTTP 耗时直方图分位桶下探至 0.25ms 并按 Prometheus 语义重写分位插值（此前亚毫秒 API 的 P95 被首个 5ms 桶虚高约 70 倍，甚至可能显示负值）；快照 `profile` 改为惰性读取当前安装形态（修复平台实例安装后仍显示安装前默认形态）；磁盘按文件系统设备去重（macOS 根卷与数据卷 firmlink 不再重复成两行）；对象存储探活按位置串行化并在文档明确「只读快照零写入、探活为监控唯一写路径」边界；运行概览精简为健康摘要（移除与资源页重复的大趋势图，数据库/存储改精简卡）；最近异常文案如实限定为任务失败并链接系统事件页；资源监控各卡标注主机级/进程级口径；趋势图补单点累积、暂停与不可用空态；网络速率纵轴小数刻度修复。
+
+- 运行事件机制审计与更名：展示名由「系统事件」统一更名「运行事件」（Runtime Events，API 路径保留 events），避免与系统通知、操作日志混淆；专项审计明确三类事件来源并修复漏记——定时任务失败/恢复改为调度器完成钩子直接投递（新增 `Scheduler.OnResult` 与 `TaskEventTracker`，无人打开监控页也不再漏记，快照对比路径移除避免重复投递），生命周期与探活失败保持源头/手动投递，数据库健康翻转保留快照观察并在事件页如实声明「仅监控面被查看期间检测」；事件页固定呈现记录范围、200 条缓冲上限、重启清空与「非操作日志/系统通知/持久化审计」定位。
+
+- 运行监控 P1：新增运行事件环形缓冲与事件页（平台「运行事件」页 + 单机「运行事件」Tab，容量 200 仅内存、重启即清，记录启动生命周期、数据库/任务健康翻转与存储探活失败）；服务健康完整化（数据库连接池上限与等待耗时、对象存储逐位置手动探活并缓存、失败任务关联最近 3 条运行记录）；宿主机深度指标（cgroup 内存/CPU 限额视图、Linux hwmon 温度采样、网络速率服务端化）。
+
+- 新增产品形态与功能边界规范组（docs/00-product）：产品形态收敛为 Platform、Standalone（Web 与 GUI 桌面两个等效载体）与 CLI 三种，提供能力矩阵、功能适用性清单、呈现与访问规范、新功能分类模板与待维护者决策清单；AGENTS 新增第 11 条要求新功能先判定形态归属。本次为文档与规范变更，不改产品行为。
+
+- 企业登录（OIDC）对真实 IdP 的兼容与登录体验增强：可开启 userinfo 补全身份（仅补 id_token 缺失字段，支持点路径适配非标准载荷）；JIT 的"企业邮箱必须已验证"改为可关闭开关；授权/令牌/userinfo/JWKS 四个端点支持逐项手动覆盖发现结果，发现文档残缺的 IdP 四项齐备即可接入，连接检查展示实际生效端点；JIT 建号写入企业显示名（userinfo/name/email 前缀优先级）。邮箱与本地账号冲突时不再要求两段操作：回调发放一次性 5 分钟绑定邀请，登录页"绑定企业账号并登录"卡片验证本地密码（TOTP 账号随后走既有 MFA 步骤）后单事务完成绑定、旧会话吊销并直接登录；绑定邀请失败即消耗，需重新发起企业验证。仅用户域提供，管理员域保持先本地登录再绑定。
+
+- 系统设置导航将「基础设置」置于首位；设置分区边界重组：邮件设置只保留 SMTP 与发送测试，登录/注册人机验证与邮件找回密码移入「安全与控制」（新增站点防护分组），邮箱验证码登录移入「账户安全」页。
+
+- 安全与控制新增站点级人机验证开关（登录、注册）与邮件找回密码入口；注册设置新增「注册绑定手机号」（开启后注册必填手机号，仅格式与唯一性校验，不发送短信）与同 IP 注册频率限制（默认 1 分钟 5 次，可配置窗口与上限），追加三方言平台迁移 0016（users/administrators 可空 phone 列与唯一索引）。
+
+- 邮件设置加密方式选项更名澄清（STARTTLS 推荐、SSL/TLS 即隐式 TLS），切换加密方式自动填入常用端口（587/465/25），可手动覆盖；全局弱动效模式下加载指示器保持旋转（功能性反馈豁免）。
+
+- 外观设置界面主题卡片改为更高的站点缩略图预览，不再是细条。
+
+- 产品首页拥有独立路由 `/home`：开启 `site.home_enabled` 后未登录访问根路径跳转 `/home`，已登录用户访问 `/home` 回到工作台控制台；管理后台挂载点不受影响。
+
+- 修复共享表单校验对契约可选字段的处理：Zod 适配器此前把未提交的可选字符串判为“应为文本”，新增手机号字段后暴露；现在与 SDK 校验一致，仅校验提交中存在的键。
+
+- 表单错误提示去重：字段级错误只在对应控件下方内联展示，顶部横幅不再重复罗列也不再跨向导步骤残留；表单级错误仍横幅/提示呈现。安装向导输错邮箱不再出现双重错误与布局挤压。
+
+- 全站体验修缮：平台公告移入「用户管理」分组；外观主题卡片改为紧凑竖版并提高预览高度；访客访问未注册路径显示统一 404 页而非登录表单；修改管理后台路径保存后自动跳转新入口；邮件模板编辑改为左编辑右实时预览分栏（停顿自动渲染，可手动刷新）；产品首页导航 logo 与站名组合显示，滚动顶栏去掉描边。
+
+- 新增点击式人机验证（安全与控制中的单一总开关，同时管登录与注册）：支持 Cloudflare Turnstile、腾讯云验证码与阿里云验证码 2.0 三家服务商，凭据加密保存；开启后登录与注册必须携带服务商验证结果，凭据不完整时直接拒绝（fail-closed），动态放开对应服务商的 CSP 来源；与图形验证码相互独立、可叠加。登录/注册图形验证码名称保持不变。设置面板按三选一服务商重做：未启用时只显示卡片头，启用后先选服务商再只显示该家的凭据表单，附站点与密钥说明、控制台和接入文档直达链接。
+
+### English
+
+- Alert notifications now ride the notifycontent event matrix with a unified master-switch semantic (replacing the T4 single-recipient mail path): new `alert_triggered`/`alert_recovered` notification events ship their own default templates and routing, editable on the notification settings page, with template variables covering rule name, severity, metric, current value, threshold, scope, instance, host, occurrence time, firing duration and transition; alert events appear only under the administrator audience. The notification master switch uniformly governs every event notification including alerts (no implicit bypass), while WeCom/Webhook keep their own opt-in; an off switch is an intentional silence, and an on switch with mail not ready and no usable channel reports a `notification_failed` runtime event. Every delivery is an independent queue row (independent retry and dead states), enqueue success is distinct from delivery success, and one channel's enqueue failure never disturbs already-queued rows. Legacy 12-event notification configurations are completed with the new events' default rules and templates on save without touching stored customizations, unknown events stay rejected, and alert template values are HTML-escaped in mail bodies.
+
+- Added the runtime monitor P0: a super-admin-only overview/services/resources console (a "Runtime monitor" directory last in the system region) with a dashboard summary on Platform, and equivalent single-page monitors plus summary widgets on both Standalone carriers; snapshots are read-only, reuse existing metric sources, and `monitor:read` joins the superAdmin reserved set.
+
+- Added the Runtime Monitor alerting system (T4, plan two): beyond the full Platform alerting (superAdmin-only rule endpoint, 30s background detection, notifycontent delivery), Standalone (Web/GUI equivalent) gains local alerting — built-in default rules enabled automatically, not configurable, detected in the background, with trigger/recovery written to runtime events and no external notifications; CLI ships nothing. The detection engine is a monitor-owned ticker goroutine (never in the task table, zero goroutines without rules, skipped ticks while evaluating, failures never read as zeros) shared by both forms with one state machine and one event structure; metrics cover database unavailability, CPU/memory (adaptive container-quota-first view, container CPU usage listed for implementation), data-directory disk and background-task failures (Platform only); the overall-health rule is causally suppressed to avoid duplicate alerts; cooldown constrains only notifications, recovery notices always fire, and the 2-minute restart grace period suppresses notifications only (three-scenario semantics finalized); multi-instance detection is per-process with install-instance/host/pid identity and duplicate notifications explicitly accepted; the snapshot measures about 20ms (macOS local, host sampling dominates; remote databases untested), a 30s detection tick costs roughly 0.07% of one core. Full design in design-runtime-monitor.md §9.3.
+
+- Runtime events audit and rename: the display name is now "Runtime events" across the monitor (API paths keep `events`), avoiding confusion with system notifications and the operation log; the mechanism audit separates three event sources and fixes a real gap — scheduled-task failures and recoveries are now delivered straight from the scheduler completion hook (new `Scheduler.OnResult` and `TaskEventTracker`), so they are recorded even when no monitor page is open, while the snapshot-diff path was removed to avoid double reporting; lifecycle and probe-failure events keep their source/manual delivery, and database health transitions stay snapshot-observed with the page honestly stating that limitation; the events page permanently states its coverage, the 200-entry buffer cap, the restart-clears-everything semantics, and that it is not the operation log, system notifications or persistent audit.
+
+- Runtime monitor review fixes: the HTTP duration histogram buckets now reach 0.25ms and the quantile interpolation follows Prometheus semantics (previously a sub-millisecond API read a ~70x inflated P95 at the old 5ms first-bucket edge, occasionally negative); the snapshot `profile` is read lazily per snapshot so platform instances no longer report the pre-install default form; disks are deduplicated by filesystem device (macOS root/Data firmlink no longer shows two rows); object-storage probes serialize per location with the documented boundary that read-only snapshots never write and probing is the monitor's only write path; the overview is slimmed to a health summary (duplicate trend charts removed, compact database/storage cards); the recent-anomalies card states it covers task failures and links the events page; resource cards label host-level vs process-level scopes; trend charts gained single-point, paused and unavailable states; and the network rate axis formats decimal sub-kilobyte ticks.
+
+- Runtime monitor P1: a runtime-event ring buffer with an events page (the Platform "Runtime events" page and a Standalone "Runtime events" tab; 200 entries, memory only, cleared on restart; records the startup lifecycle, scheduler-delivered task failures and recoveries, database health transitions seen by pulls and storage probe failures); service health completion (database pool limit and wait time, per-location manual object-storage probes with caching, the latest three run records joined for failing tasks); and host depth metrics (cgroup memory/CPU limit view, Linux hwmon temperature sampling, server-side network rates).
+
+- Added the product-form boundary specification set (docs/00-product): product forms are consolidated into Platform, Standalone (web and GUI desktop as two equivalent carriers) and CLI, with a capability matrix, feature applicability inventory, presentation and access rules, a new-feature classification template and a pending-decision list; AGENTS gains rule 11 requiring form applicability checks before new features. Documentation and standards only; no product behavior changes.
+
+- Enterprise OIDC gains compatibility and sign-in UX for real identity providers: optional userinfo enrichment fills only fields missing from the verified ID token (dotted claim paths for non-standard payloads); the JIT "enterprise email must be verified" requirement became a switch; the authorization/token/userinfo/JWKS endpoints each accept a manual override on top of discovery, so an IdP with broken discovery works once all four are present, and the connection check now shows the effective endpoints; JIT provisioning writes the enterprise display name (userinfo/name/email-prefix priority). An email collision with a local account no longer needs two manual steps: the callback issues a one-shot 5-minute linking offer, and the login page's "link the enterprise account and sign in" card proves the local password (TOTP accounts continue through the existing MFA step) before one transaction links the identity, revokes old sessions and signs in; a failed proof consumes the offer and a fresh enterprise round trip is required. User realm only; the administrator realm keeps local login before binding.
+
+- The settings navigation puts "Basic settings" first; settings boundaries were regrouped: mail settings now only keep SMTP and the send-test panel, login/registration human verification and email password recovery moved into "Security & control" (new site protection group), and email code login moved to the "Account security" page.
+
+- Security & control gains site-wide human-verification switches (login, registration) and the email password recovery entry; registration settings gain "require phone at registration" (mandatory phone with format and uniqueness checks only, no SMS) and a per-IP registration rate limit (default 5 per minute, configurable window and cap), plus the three-dialect platform migration 0016 (nullable phone columns and unique indexes on users/administrators).
+
+- The mail encryption options were clarified (STARTTLS recommended, SSL/TLS means implicit TLS); switching the mode pre-fills the common port (587/465/25) and stays editable; loading spinners keep turning under reduced-motion as functional feedback.
+
+- Appearance theme cards use taller site-thumbnail previews instead of thin strips.
+
+- The product homepage owns the `/home` route: with `site.home_enabled` on, guests visiting the site root are redirected to `/home`, and signed-in users hitting `/home` return to the workspace console; the admin mount is unaffected.
+
+- Fixed shared form validation for contract-optional fields: the Zod adapter previously rejected absent optional strings as "应为文本" (exposed by the new phone field); it now mirrors the SDK validate() and only checks keys present in the submission.
+
+- De-duplicated form error display: field-level errors render inline under their controls only; the top banner no longer repeats them or lingers across wizard steps, while form-wide errors keep their banner/toast. A mistyped email in the install wizard no longer shows double errors or squeezes the layout.
+
+- Sitewide polish: platform announcements moved into the user-management group; appearance theme cards became compact portrait tiles with taller previews; guests hitting unregistered paths now see a unified 404 page instead of a login form; saving a new admin path jumps to the new entrance automatically; the mail template editor split into editor plus live preview (auto-render on typing pauses, manual refresh); the homepage nav keeps logo and site name together and drops the scrolled outline on the sticky header.
+
+- Added click-through human verification behind a single master switch under security and control, covering both login and registration: three providers are supported (Cloudflare Turnstile, Tencent captcha and Aliyun captcha 2.0) with sealed credentials; when enabled, login and registration must carry the provider proof, unconfigured providers fail closed, and the CSP widens only for the selected provider's origins. The existing image CAPTCHA switches keep their names and stack independently. The settings panel follows the three-way provider flow: collapsed to its card header until enabled, then a segmented provider choice reveals only that provider's credential form with helper text plus console and docs links.
+
 ## 0.1.3 — 2026-11-06
 
 ### 中文

@@ -4,11 +4,13 @@ package settings
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"testing"
 
 	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/notifycontent"
 	"github.com/yunnuo/unicore/internal/secret"
 )
 
@@ -178,5 +180,171 @@ func TestLegacyRegistrationAndPolicyValidation(t *testing.T) {
 		if _, err = s.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: key, Value: value}}}, "admin"); !errors.Is(err, ErrInvalid) {
 			t.Fatal(key, "invalid rule accepted", err)
 		}
+	}
+}
+
+func TestLoggingRetentionSetting(t *testing.T) {
+	ctx := context.Background()
+	store := &memoryStore{values: map[string]string{}}
+	service := &Service{Store: store, Profile: "web-platform"}
+	values, err := service.List(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, entry := range values.Items {
+		if entry.Key == "logging.retention_days" {
+			found = true
+			if entry.Value != "30" || entry.Group != "logging" {
+				t.Fatalf("unexpected default entry: %+v", entry)
+			}
+		}
+	}
+	if !found {
+		t.Fatal("platform settings must expose logging.retention_days")
+	}
+	swept := 0
+	service.LoggingSweep = sweeperFunc(func() { swept++ })
+	if _, err = service.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "logging.retention_days", Value: "0"}}}, "admin"); err != nil {
+		t.Fatal("permanent retention rejected", err)
+	}
+	if swept != 1 {
+		t.Fatalf("saving a logging setting must trigger one sweep, got %d", swept)
+	}
+	if stored, _ := store.ReadSettings(ctx); stored["logging.retention_days"] != "0" {
+		t.Fatalf("stored value missing: %v", stored)
+	}
+	for _, invalid := range []string{"-1", "36501", "soon"} {
+		if _, err = service.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "logging.retention_days", Value: invalid}}}, "admin"); !errors.Is(err, ErrInvalid) {
+			t.Fatalf("accepted invalid retention %q", invalid)
+		}
+	}
+	// Other profiles never see the group: standalone and desktop cannot patch it.
+	for _, profile := range []contracts.Profile{"web-standalone", "desktop"} {
+		service.Profile = profile
+		if _, err = service.Value(ctx, "logging.retention_days"); !errors.Is(err, ErrInvalid) {
+			t.Fatalf("%s must not read the logging group", profile)
+		}
+		if _, err = service.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "logging.retention_days", Value: "7"}}}, "admin"); !errors.Is(err, ErrInvalid) {
+			t.Fatalf("%s must not patch the logging group", profile)
+		}
+	}
+}
+
+type sweeperFunc func()
+
+func (f sweeperFunc) Sweep() { f() }
+
+func TestNotificationConfigBackfillsNewEvents(t *testing.T) {
+	base := notifycontent.Defaults()
+	legacy := contracts.NotifyConfiguration{Enabled: true, Rules: base.Rules[:12], Templates: base.Templates[:12]}
+	raw, _ := json.Marshal(legacy)
+	c := NotificationConfig(map[string]string{"notifications.config": string(raw)})
+	if len(c.Rules) != len(notifycontent.EventIDs()) || len(c.Templates) != len(notifycontent.EventIDs()) {
+		t.Fatalf("stored configuration must gain the new events: %d rules %d templates", len(c.Rules), len(c.Templates))
+	}
+	if !c.Enabled {
+		t.Fatal("stored switches must survive the backfill")
+	}
+}
+
+type recordingNotificationWriter struct {
+	store   *memoryStore
+	changes map[string]string
+}
+
+func (w *recordingNotificationWriter) SaveNotificationSettings(ctx context.Context, values map[string]string, actor string) error {
+	w.changes = values
+	return w.store.SaveSettings(ctx, values, actor)
+}
+
+func TestNotificationSaveBackfillsLegacyCatalog(t *testing.T) {
+	base := notifycontent.Defaults()
+	// Copy the slices so the stored customization does not alias the defaults.
+	legacy := contracts.NotifyConfiguration{
+		Provider:  "wecom",
+		Rules:     append([]contracts.NotifyRule(nil), base.Rules[:12]...),
+		Templates: append([]contracts.NotifyTemplate(nil), base.Templates[:12]...),
+	}
+	legacy.Rules[0].UserEmail = !legacy.Rules[0].UserEmail
+	store := &memoryStore{values: map[string]string{}}
+	writer := &recordingNotificationWriter{store: store}
+	key, err := secret.Open(t.TempDir(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := &Service{Store: store, Profile: "web-platform", NotificationWriter: writer, Secrets: key}
+	saved, err := service.SaveNotifications(context.Background(), legacy, "admin")
+	if err != nil {
+		t.Fatalf("legacy catalog save must be completed, not rejected: %v", err)
+	}
+	if len(saved.Rules) != len(notifycontent.EventIDs()) || len(saved.Templates) != len(notifycontent.EventIDs()) {
+		t.Fatalf("saved configuration must gain the new events: %d rules %d templates", len(saved.Rules), len(saved.Templates))
+	}
+	if saved.Rules[0].UserEmail == base.Rules[0].UserEmail {
+		t.Fatal("stored customization must survive the save")
+	}
+	// The persisted JSON is complete: a fresh read sees the full catalog.
+	read, err := service.Notifications(context.Background())
+	if err != nil || len(read.Rules) != len(notifycontent.EventIDs()) {
+		t.Fatalf("read-modify-save-read must stay consistent: %v %d", err, len(read.Rules))
+	}
+	// Modify one switch and save again: everything else persists untouched.
+	read.Rules[1].AdminEmail = !read.Rules[1].AdminEmail
+	resaved, err := service.SaveNotifications(context.Background(), read, "admin")
+	if err != nil {
+		t.Fatalf("round-trip save failed: %v", err)
+	}
+	if resaved.Rules[1].AdminEmail == base.Rules[1].AdminEmail || resaved.Rules[0].UserEmail == base.Rules[0].UserEmail {
+		t.Fatal("second save must keep both the original and the new customization")
+	}
+	// Unknown event IDs stay fail-closed.
+	poisoned := contracts.NotifyConfiguration{Provider: "wecom", Rules: append(append([]contracts.NotifyRule{}, base.Rules...), contracts.NotifyRule{Event: "mystery_event"}), Templates: base.Templates}
+	if _, err = service.SaveNotifications(context.Background(), poisoned, "admin"); err != ErrInvalid {
+		t.Fatalf("unknown events must be rejected: %v", err)
+	}
+}
+
+func TestNotificationSectionsPreserveOtherSavedValues(t *testing.T) {
+	store := &memoryStore{values: map[string]string{}}
+	writer := &recordingNotificationWriter{store: store}
+	key, err := secret.Open(t.TempDir(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := &Service{Store: store, Profile: "web-platform", NotificationWriter: writer, Secrets: key}
+	stale, _ := service.Notifications(context.Background())
+	channels := stale
+	section := "channels"
+	channels.Section = &section
+	channels.ChannelEnabled = true
+	channels.WecomKey = "synthetic"
+	if _, err = service.SaveNotifications(context.Background(), channels, "admin"); err != nil {
+		t.Fatal(err)
+	}
+	section = "system"
+	stale.Section = &section
+	stale.Enabled = true
+	saved, err := service.SaveNotifications(context.Background(), stale, "admin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !saved.ChannelEnabled || !saved.WecomConfigured || !saved.Enabled || saved.Catalog == nil {
+		t.Fatal("stale system page overwrote channel configuration or lost catalog")
+	}
+	section = "templates"
+	stale.Section = &section
+	stale.Enabled = false
+	stale.Templates[0].Title = "Updated template"
+	stale.ClearWecomKey = true
+	saved, err = service.SaveNotifications(context.Background(), stale, "admin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !saved.Enabled || !saved.WecomConfigured || saved.Templates[0].Title != "Updated template" {
+		t.Fatal("template save overwrote routing or credentials")
+	}
+	if strings.Contains(store.values["notifications.config"], "catalog") || strings.Contains(store.values["notifications.config"], "section") {
+		t.Fatal("write scope or server metadata persisted")
 	}
 }

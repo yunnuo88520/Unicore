@@ -12,7 +12,7 @@ const identity = loadIdentity(), prefix = ciSecretPrefix(identity.product.slug);
 const docker = args => execFileSync('docker', args, { encoding: 'utf8', stdio: ['ignore','pipe','pipe'] }).trim();
 const version = readFileSync('VERSION','utf8').trim();
 const contract = JSON.parse(readFileSync('packages/contracts/openapi.json','utf8'));
-const management = Object.entries(contract.paths).filter(([path])=>path.startsWith('/api/v1/admin/')).flatMap(([path,item])=>Object.entries(item).filter(([,operation])=>operation.operationId&&operation['x-unicore'].access!=='public').map(([method,operation])=>({path,method:method.toUpperCase(),pendingMFA:['adminVerifyMFA','adminCancelMFA'].includes(operation.operationId)})));
+const management = Object.entries(contract.paths).filter(([path])=>path.startsWith('/api/v1/admin/')).flatMap(([path,item])=>Object.entries(item).filter(([,operation])=>operation.operationId&&operation['x-unicore'].access!=='public').map(([method,operation])=>({path,method:method.toUpperCase(),policy:operation['x-unicore'],pendingMFA:operation.operationId==='adminVerifyMFA'})));
 const image = process.env[`${prefix}_IMAGE`] ?? `${identity.deployment.image}:${version}`;
 const daemonArch=docker(['info','--format','{{.Architecture}}']);
 const arch=({aarch64:'arm64',arm64:'arm64',x86_64:'amd64',amd64:'amd64'})[daemonArch];
@@ -55,8 +55,9 @@ async function exercise(mode,profile) {
       expect(manifest?.sha256).toBe(digest(readFileSync(file)));
       execFileSync('tar',['-xzf',file,'-C',release,'--strip-components=1']);
       expect(readFileSync(join(release,'VERSION'),'utf8').trim()).toBe(version);
-      expect(JSON.parse(readFileSync(join(release,'manifest.json'),'utf8')).migration_level).toBe(profile==='web-platform'?15:13);
-      expect(JSON.parse(readFileSync(join(release,'manifest.json'),'utf8')).business_migration_level).toBe(2);
+      // Catalog single track: one version per namespace, so both levels are 1.
+      expect(JSON.parse(readFileSync(join(release,'manifest.json'),'utf8')).migration_level).toBe(1);
+      expect(JSON.parse(readFileSync(join(release,'manifest.json'),'utf8')).business_migration_level).toBe(1);
       expect(readFileSync(join(release,'LICENSE'),'utf8')).toContain('MIT License');
       expect(readFileSync(join(release,identity.cli.command)).byteLength).toBeGreaterThan(1000);
       const network=`${name}-network`;networks.add(network);docker(['network','create',network]);
@@ -77,7 +78,11 @@ async function exercise(mode,profile) {
   }
   await waitLive(url);
   const context=await browser.newContext({baseURL:url,viewport:{width:1440,height:1000}});
+  await context.tracing.start({screenshots:true,snapshots:true});
   const page=await context.newPage();const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  const networkFailures=[];
+  page.on('requestfailed',request=>networkFailures.push({method:request.method(),path:new URL(request.url()).pathname,error:request.failure()?.errorText}));
+  let passed=false;
   const realm={};
   const bootstrapPath=profile==='web-platform'?'/api/v1/admin/bootstrap':'/api/v1/bootstrap';
   const get=path=>context.request.get(`${url}${path}`,{headers:realm});
@@ -108,7 +113,8 @@ async function exercise(mode,profile) {
     // The click starts a full document navigation for the administrator entry.
     // Wait for its URL and document load before asserting the mounted shell.
     await page.waitForURL(target=>target.origin===new URL(url).origin&&target.pathname.replace(/\/$/,'')===(profile==='web-platform'?'/admin':''));
-    await expect(page.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
+    // The shell heading confirms the workspace mounted after navigation.
+    await expect(page.getByRole('heading',{name:'工作台概览',level:1,exact:true})).toBeVisible();
     const boot=await json(bootstrapPath);expect(boot.version).toBe(version);expect(boot.profile).toBe(profile);expect(boot.deployment_kind).toBe(mode.startsWith('tar')?'tar':'docker');
     const admin=profile==='web-platform';const headers={...realm,'Origin':url,...(admin?{'X-CSRF-Token':boot.csrf_token}:{})};
     const base=admin?'/api/v1/admin':'/api/v1';
@@ -137,8 +143,18 @@ async function exercise(mode,profile) {
       }
     }
     if(admin) {const noCSRF=await context.request.patch(`${url}${base}/settings`,{headers:realm,data:{changes:[{key:'site.name',value:'denied'}]}});expect(noCSRF.status()).toBe(403);}
-    const changes=admin?[{key:'site.name',value:`持久部署 ${mode}`},{key:'admin.path',value:'/manage'}]:[{key:'appearance.theme',value:'dark'}];
-    expect((await context.request.patch(`${url}${base}/settings`,{headers,data:{changes}})).status()).toBe(200);
+    if(admin) {
+      const changes=[{key:'site.name',value:`持久部署 ${mode}`},{key:'admin.path',value:'/manage'}];
+      expect((await context.request.patch(`${url}${base}/settings`,{headers,data:{changes}})).status()).toBe(200);
+    } else {
+      // Appearance belongs to this browser; it is never an instance setting.
+      expect((await context.request.patch(`${url}${base}/settings`,{headers,data:{changes:[{key:'appearance.theme',value:'dark'}]}})).status()).toBe(400);
+      await page.getByRole('button',{name:'主题设置',exact:true}).click();
+      const drawer=page.getByRole('dialog',{name:'主题设置',exact:true});
+      await drawer.locator('.preference-theme').getByRole('button',{name:'深色',exact:true}).click();
+      await page.keyboard.press('Escape');
+      await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
+    }
     if(admin)expect((await context.request.put(`${url}${base}/branding`,{headers,data:{slot:'favicon',content:readFileSync('assets/brand/icon-192.png').toString('base64')}})).status()).toBe(200);
     else expect((await context.request.put(`${url}${base}/branding`,{headers,data:{slot:'favicon',content:''}})).status()).toBe(404);
     const manifest=await(await get('/site.webmanifest')).json();expect(manifest.name).toBe(admin?`持久部署 ${mode}`:identity.product.name);
@@ -170,8 +186,12 @@ async function exercise(mode,profile) {
       const src=await page.getByAltText('六位数字验证码，点击刷新').getAttribute('src');
       const answer=[...Buffer.from(src.split(',')[1],'base64').toString().matchAll(/>([0-9])<\/text>/g)].map(match=>match[1]).join('');
       await page.getByLabel('图形验证码',{exact:true}).fill(answer);await page.getByRole('button',{name:'登录工作空间'}).click();
-      await expect(page.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
-    } else {expect((await get('/api/v1/admin/users')).status()).toBe(404);await page.goto(url);}
+      // The shell heading confirms the workspace mounted after navigation.
+    await expect(page.getByRole('heading',{name:'工作台概览',level:1,exact:true})).toBeVisible();
+    } else {
+      expect((await get('/api/v1/admin/users')).status()).toBe(404);await page.goto(url);
+      await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
+    }
     const session=await json(bootstrapPath);
     const executed=await context.request.post(`${url}/api/v1${admin?'/admin':''}/core/execute`,{headers:{...realm,Origin:url,...(admin?{'X-CSRF-Token':session.csrf_token}:{})},data:{text:'hello world'}});
     expect(executed.status()).toBe(200);expect((await executed.json()).data.sha256).toBe('b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9');
@@ -185,31 +205,57 @@ async function exercise(mode,profile) {
         const src=await personal.getByAltText('六位数字验证码，点击刷新').getAttribute('src');
         const answer=[...Buffer.from(src.split(',')[1],'base64').toString().matchAll(/>([0-9])<\/text>/g)].map(match=>match[1]).join('');
         await personal.getByLabel('图形验证码',{exact:true}).fill(answer);await personal.getByRole('button',{name:'登录工作空间'}).click();
-        await expect(personal.getByRole('heading',{name:'一份核心，无限可能.'})).toBeVisible();
+        await expect(personal.getByRole('heading',{name:'工作台概览',level:1,exact:true})).toBeVisible();
+        // The management site page is administrator-only now: members hit the
+        // standalone 403 on direct URLs.
         await personal.goto(`${url}/site`);
-        await expect(personal.getByText('仅当前客户端',{exact:true})).toBeVisible();
+        await expect(personal.getByRole('heading',{name:'没有访问权限',exact:true})).toBeVisible();
         const metadata=(await(await member.request.get('/api/v1/bootstrap')).json()).data;
-        expect(metadata.current_user.roles).toEqual(['user']);expect(metadata.current_user.permissions).toEqual([]);
-        // MFA requires a pending session in this exact realm, rather than a fully signed-in user.
-        for(const operation of management)expect((await member.request.fetch(operation.path.replace('{id}','missing'),{method:operation.method,headers:{Origin:url,'X-CSRF-Token':metadata.csrf_token},...(operation.method==='GET'?{}:{data:{}})})).status(),`${operation.method} ${operation.path}`).toBe(operation.pendingMFA?401:403);
+        // Retired file demo grants are absent from the default business role.
+        expect(metadata.current_user.roles).toEqual(['user']);expect([...metadata.current_user.permissions].sort()).toEqual(['notes:access','notes:create','notes:delete','notes:update']);
+        // Workspace entry points share one identity. Denial follows each API's
+        // permission and super-admin policy; MFA still requires a pending session.
+        for(const operation of management) {
+          const points=operation.policy.permissions??[];
+          const held=point=>metadata.current_user.permissions.includes(point);
+          const allowed=operation.policy.permissionMode==='any'?points.some(held):points.every(held);
+          if(operation.pendingMFA||operation.policy.superAdmin||!allowed) {
+            expect((await member.request.fetch(operation.path.replace('{id}','missing'),{method:operation.method,headers:{Origin:url,'X-CSRF-Token':metadata.csrf_token},...(operation.method==='GET'?{}:{data:{}})})).status(),`${operation.method} ${operation.path}`).toBe(operation.pendingMFA?401:403);
+          }
+        }
         expect((await member.request.get('/manage')).status()).toBe(200);
         await expect(personal.getByLabel('站点名称',{exact:true})).toHaveCount(0);
         const writes=[];personal.on('request',request=>{if(request.method()!=='GET')writes.push(request.url());});
-        await personal.getByRole('button',{name:/深色.*柔和低光/}).click();await personal.getByRole('button',{name:'保存设置',exact:true}).click();
+        // Personal theming rides the client-local appearance drawer: choices
+        // apply instantly and never write to the instance.
+        await personal.goto(`${url}/`);
+        await personal.getByRole('button',{name:'主题设置',exact:true}).click();
+        await expect(personal.getByText('仅保存在当前客户端')).toBeVisible();
+        const drawer=personal.getByRole('dialog',{name:'主题设置',exact:true});
+        await drawer.locator('.preference-theme').getByRole('button',{name:'深色',exact:true}).click();
         await expect(personal.locator('html')).toHaveAttribute('data-theme','dark');expect(writes).toEqual([]);
         await personal.screenshot({path:join(evidence,`${mode}-member-local-375.png`),fullPage:true});
+        // Cancelling MFA also closes a fully authenticated session. Both
+        // workspace entries act on this user's cookie, without affecting peers.
+        expect((await member.request.post('/api/v1/admin/auth/mfa/cancel',{headers:{Origin:url,'X-CSRF-Token':metadata.csrf_token},data:{}})).status()).toBe(200);
+        expect((await (await member.request.get('/api/v1/bootstrap')).json()).data.current_user).toBeFalsy();
+        expect((await json(bootstrapPath)).current_user.roles).toContain('super_admin');
       } finally {await member.close();}
     }
-    expect(errors).toEqual([]);results.push({mode,profile,version,status:'passed',checks:['install wizard PC/375',...(admin?['demo account and six-digit captcha login','CSRF and custom admin path','all management APIs reject anonymous/member','member local appearance only']:['platform APIs absent']),...(mode.startsWith('tar')?['Nginx proxies embedded fingerprinted assets']:[]),'API/brand/manifest/docs routing','restart and container replacement','persisted settings/key/database/brand','Core']});
+    expect(errors).toEqual([]);results.push({mode,profile,version,status:'passed',checks:['install wizard PC/375',...(admin?['demo account and six-digit captcha login','CSRF and custom admin path','anonymous denial and member permission boundaries','member local appearance only']:['platform APIs absent']),...(mode.startsWith('tar')?['Nginx proxies embedded fingerprinted assets']:[]),'API/brand/manifest/docs routing','restart and container replacement','persisted settings/key/database/brand','Core']});
     console.log(`PASS ${mode}`);
+    passed=true;
   } catch(error) {
     // Preserve the real failed page without logging form values or credentials.
-    const state={mode,profile,url:page.url(),body:await page.locator('body').innerText().catch(()=>''),errors};
+    const state={mode,profile,url:page.url(),body:await page.locator('body').innerText().catch(()=>''),errors,networkFailures};
     writeFileSync(join(evidence,`${mode}-failure.json`),JSON.stringify(state,null,2)+'\n');
     await page.screenshot({path:join(evidence,`${mode}-failure.png`),fullPage:true}).catch(()=>{});
     console.error(`Failed ${mode} at ${new URL(page.url()).pathname}: ${state.body.slice(0,1200)}`);
     throw error;
-  } finally {await context.close();}
+  } finally {
+    await context.tracing.stop(passed?{}:{path:join(evidence,`${mode}-failure-trace.zip`)});
+    await context.close();
+  }
 }
 try {
   expect(docker(['image','inspect','--format','{{index .Config.Labels "org.opencontainers.image.version"}}',image])).toBe(version);

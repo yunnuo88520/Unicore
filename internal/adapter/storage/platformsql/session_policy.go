@@ -39,7 +39,7 @@ func (r *Repository) sessionPolicy(ctx context.Context, q sqlstore.Runner, s *pl
 		return n
 	}
 	idle := minutes("security.user_idle_minutes", 1440)
-	if r.Administrators {
+	if platform.HasManagementAccess(s.User) {
 		idle = minutes("security.admin_idle_minutes", 360)
 		if s.Created > 0 {
 			s.Expires = min(s.Expires, s.Created+minutes("security.admin_max_minutes", 1440)*60)

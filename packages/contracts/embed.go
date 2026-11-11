@@ -11,6 +11,7 @@ import (
 var Assets embed.FS
 
 type Policy struct {
+	UIPage          string   `json:"uiPage"`
 	IdentityRealm   string   `json:"identityRealm"`
 	StreamingUpload bool     `json:"streamingUpload"`
 	SignedDownload  bool     `json:"signedDownload"`
@@ -24,8 +25,10 @@ type Policy struct {
 }
 
 type Operation struct {
-	ID          string `json:"operationId"`
-	Policy      Policy `json:"x-unicore"`
+	Summary     string   `json:"summary"`
+	Tags        []string `json:"tags"`
+	ID          string   `json:"operationId"`
+	Policy      Policy   `json:"x-unicore"`
 	RequestBody struct {
 		Content map[string]struct{ Schema Schema } `json:"content"`
 	} `json:"requestBody"`

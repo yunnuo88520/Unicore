@@ -1,3 +1,4 @@
+import { canAction } from '../../permissions';
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Mail template drafts on the restricted Tiptap editor: named variables, preview, test delivery and restore.
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -15,9 +16,9 @@ const purposes = defineMessages({ test: '服务测试', verify: '注册验证', 
 const variableLabels = defineMessages({ site_name: '站点名称', site_url: '站点地址', code: '验证码', expires_minutes: '有效分钟数', title: '通知标题', detail: '通知详情' });
 const CODE_PURPOSES = ['verify', 'login', 'reset'];
 
-export function AdminMailTemplatesPage({ client }: PageProps) {
+export function AdminMailTemplatesPage({ client, metadata }: PageProps) {
   if (!client.web) return null;
-  return <MailTemplatePanel web={client.web} />;
+  return <fieldset className="contents" disabled={!canAction(metadata,'saveMailTemplate')}><MailTemplatePanel web={client.web} /></fieldset>;
 }
 
 function MailTemplatePanel({ web }: { web: WebClient }) {
@@ -90,6 +91,7 @@ function MailTemplatePanel({ web }: { web: WebClient }) {
         savePending={save.isPending} saveError={save.error} resetToken={resetToken}
         onDraftChange={onDraftChange} onSave={values => save.mutate(values)}
         onPreview={values => previewer.mutate(values)} onPreviewPending={previewer.isPending}
+        onRender={values => web.previewMailTemplate(values)}
         onTest={values => setTesting(values)} onRestore={() => setRestoring(true)} />}
     </CardContent>
     {preview && <Modal title={t('邮件预览')} onClose={() => setPreview(null)}>
@@ -132,10 +134,11 @@ function ConfirmRestore({ pending, onCancel, onConfirm }: { pending: boolean; on
   </Modal>;
 }
 
-function MailTemplateForm({ draft, selected, pending, savePending, saveError, resetToken, onDraftChange, onSave, onPreview, onPreviewPending, onTest, onRestore }: {
+function MailTemplateForm({ draft, selected, pending, savePending, saveError, resetToken, onDraftChange, onSave, onPreview, onPreviewPending, onRender, onTest, onRestore }: {
   draft: MailTemplateInput; selected?: MailTemplate; pending: boolean; savePending: boolean; saveError: unknown; resetToken: number;
   onDraftChange: (purpose: MailTemplateInput['purpose'], values: { subject?: string; body?: string }) => void;
   onSave: (values: MailTemplateInput) => void; onPreview: (values: MailTemplateInput) => void; onPreviewPending: boolean;
+  onRender: (values: MailTemplateInput) => Promise<MailTemplate>;
   onTest: (values: MailTemplateInput) => void; onRestore: () => void;
 }) {
   const { t } = useI18n();
@@ -149,6 +152,31 @@ function MailTemplateForm({ draft, selected, pending, savePending, saveError, re
   });
   const values = useWatch({ control: form.control }) as Partial<MailTemplateInput>;
   const dirty = !!selected && ((values.subject ?? '') !== selected.subject || (values.body ?? '') !== selected.body);
+  // Live preview pane: re-render the draft next to the editor, debounced while typing.
+  const [live, setLive] = useState<MailTemplate | null>(null);
+  const [rendering, setRendering] = useState(false);
+  const [renderError, setRenderError] = useState(false);
+  const renderedSignature = useRef('');
+  const renderTimer = useRef<number | undefined>(undefined);
+  const render = useCallback((subjectValue: string, bodyValue: string) => {
+    const signature = `${subjectValue}\u0000${bodyValue}`;
+    if (signature === renderedSignature.current) return;
+    renderedSignature.current = signature;
+    setRendering(true);
+    setRenderError(false);
+    onRender({ purpose: draft.purpose, subject: subjectValue, body: bodyValue })
+      .then(value => setLive(value))
+      .catch(() => { renderedSignature.current = ''; setRenderError(true); })
+      .finally(() => setRendering(false));
+  }, [draft.purpose, onRender]);
+  useEffect(() => {
+    const subjectValue = values.subject ?? draft.subject;
+    const bodyValue = values.body ?? draft.body;
+    window.clearTimeout(renderTimer.current);
+    renderTimer.current = window.setTimeout(() => render(subjectValue, bodyValue), 900);
+    return () => window.clearTimeout(renderTimer.current);
+  }, [values.subject, values.body, draft.subject, draft.body, render]);
+  useEffect(() => () => window.clearTimeout(renderTimer.current), []);
   // Keep the panel-level drafts record in sync so tab switches and the test dialog see the live draft.
   useEffect(() => {
     onDraftChange(draft.purpose, { subject: values.subject ?? draft.subject, body: values.body ?? draft.body });
@@ -178,51 +206,68 @@ function MailTemplateForm({ draft, selected, pending, savePending, saveError, re
   };
   const busy = pending || savePending;
   return <AppForm form={form} role="tabpanel" id={`mail-template-panel-${draft.purpose}`} aria-labelledby={`mail-template-tab-${draft.purpose}`} className="flex flex-col gap-4">
-    <Controller control={form.control} name="subject" render={({ field, fieldState }) => (
-      <div className="flex flex-col gap-1.5">
+    <div className="grid gap-5 lg:grid-cols-2">
+      <div className="flex min-w-0 flex-col gap-4 lg:border-e lg:border-line lg:pe-5">
+        <Controller control={form.control} name="subject" render={({ field, fieldState }) => (
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="template-subject">{t('邮件主题')}</Label>
+              <span className={`rounded-full border px-2 py-0.5 text-2xs font-medium ${dirty ? 'border-primary-line bg-primary-soft text-accent' : 'border-line bg-surface-alt text-muted'}`}>
+                {dirty ? t('未保存') : selected?.customized ? t('已自定义') : t('默认模板')}
+              </span>
+            </div>
+            <Input id="template-subject" required maxLength={160} disabled={busy} value={field.value}
+              ref={node => { field.ref(node); subject.current = node; }}
+              aria-invalid={!!fieldState.error} aria-describedby={fieldState.error ? 'template-subject-error' : undefined}
+              onFocus={() => { target.current = 'subject'; }}
+              onBlur={field.onBlur}
+              onChange={event => field.onChange(event)} />
+            {fieldState.error && <p id="template-subject-error" role="alert" className="text-xs text-danger">{t(fieldState.error.message)}</p>}
+          </div>
+        )} />
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <span className="flex items-center gap-1.5 text-xs text-muted"><Braces size={14} aria-hidden="true" />{t('插入变量')}</span>
+          <div className="template-variables flex flex-wrap gap-1.5">
+            {selected?.variables.map(variable => (
+              <button type="button" key={variable.key} disabled={busy} title={`{{${variable.key}}} · ${variable.sample}`}
+                onMouseDown={event => event.preventDefault()}
+                onClick={() => insert(variable.key)}
+                className="flex items-center gap-1.5 rounded-md border border-line bg-surface-alt px-2 py-1 text-2xs text-ink transition-colors hover:border-primary-line hover:bg-primary-soft hover:text-accent disabled:pointer-events-none disabled:opacity-55">
+                {t(variableLabels[variable.key as keyof typeof variableLabels] ?? variable.key)}
+                <code className="text-2xs text-muted">{`{{${variable.key}}}`}</code>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-baseline justify-between gap-3">
+            <strong className="text-sm font-medium text-ink">{t('邮件内容')}</strong>
+            <small className="text-2xs text-muted">{t('支持段落、加粗、斜体、列表与安全链接。')}</small>
+          </div>
+          <Controller control={form.control} name="body" render={({ field }) => (
+            <div onFocusCapture={event => { if (!(event.target as HTMLElement).closest('button')) target.current = 'body'; }}>
+              <RichTextEditor ref={editor} label={t('邮件内容')} value={field.value} disabled={busy} siteTemplate sourceLabel={t('邮件内容源代码')} onChange={value => field.onChange(value)} />
+            </div>
+          )} />
+        </div>
+        <p className="text-xs leading-relaxed text-muted">
+          {CODE_PURPOSES.includes(draft.purpose) ? t('验证码模板必须保留 {{code}}，测试与预览使用固定示例码。') : t('变量仅来自当前场景，邮件内容不会执行脚本或加载外部图片。')}
+        </p>
+      </div>
+      <div className="flex min-w-0 flex-col gap-1.5">
         <div className="flex items-center justify-between gap-3">
-          <Label htmlFor="template-subject">{t('邮件主题')}</Label>
-          <span className={`rounded-full border px-2 py-0.5 text-2xs font-medium ${dirty ? 'border-primary-line bg-primary-soft text-accent' : 'border-line bg-surface-alt text-muted'}`}>
-            {dirty ? t('未保存') : selected?.customized ? t('已自定义') : t('默认模板')}
-          </span>
+          <strong className="text-sm font-medium text-ink">{t('实时预览')}</strong>
+          <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-muted" disabled={rendering}
+            onClick={() => render(values.subject ?? draft.subject, values.body ?? draft.body)}>
+            <RotateCcw size={13} aria-hidden="true" />{rendering ? t('正在渲染…') : t('刷新预览')}
+          </Button>
         </div>
-        <Input id="template-subject" required maxLength={160} disabled={busy} value={field.value}
-          ref={node => { field.ref(node); subject.current = node; }}
-          aria-invalid={!!fieldState.error} aria-describedby={fieldState.error ? 'template-subject-error' : undefined}
-          onFocus={() => { target.current = 'subject'; }}
-          onBlur={field.onBlur}
-          onChange={event => field.onChange(event)} />
-        {fieldState.error && <p id="template-subject-error" role="alert" className="text-xs text-danger">{t(fieldState.error.message)}</p>}
-      </div>
-    )} />
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <span className="flex items-center gap-1.5 text-xs text-muted"><Braces size={14} aria-hidden="true" />{t('插入变量')}</span>
-      <div className="template-variables flex flex-wrap gap-1.5">
-        {selected?.variables.map(variable => (
-          <button type="button" key={variable.key} disabled={busy} title={`{{${variable.key}}} · ${variable.sample}`}
-            onMouseDown={event => event.preventDefault()}
-            onClick={() => insert(variable.key)}
-            className="flex items-center gap-1.5 rounded-md border border-line bg-surface-alt px-2 py-1 text-2xs text-ink transition-colors hover:border-primary-line hover:bg-primary-soft hover:text-accent disabled:pointer-events-none disabled:opacity-55">
-            {t(variableLabels[variable.key as keyof typeof variableLabels] ?? variable.key)}
-            <code className="text-2xs text-muted">{`{{${variable.key}}}`}</code>
-          </button>
-        ))}
+        {renderError && <p role="alert" className="text-xs text-danger">{t('预览生成失败，请点击刷新重试。')}</p>}
+        <iframe title={t('实时预览内容')} sandbox="" className="min-h-[360px] w-full flex-1 rounded-lg border border-line bg-surface"
+          srcDoc={live ? `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'">${live.html}` : undefined} />
+        <small className="text-2xs text-muted">{t('品牌页眉页脚与真实邮件一致；输入停顿后自动刷新，也可手动刷新。')}</small>
       </div>
     </div>
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-baseline justify-between gap-3">
-        <strong className="text-sm font-medium text-ink">{t('邮件内容')}</strong>
-        <small className="text-2xs text-muted">{t('支持段落、加粗、斜体、列表与安全链接。')}</small>
-      </div>
-      <Controller control={form.control} name="body" render={({ field }) => (
-        <div onFocusCapture={event => { if (!(event.target as HTMLElement).closest('button')) target.current = 'body'; }}>
-          <RichTextEditor ref={editor} label={t('邮件内容')} value={field.value} disabled={busy} siteTemplate sourceLabel={t('邮件内容源代码')} onChange={value => field.onChange(value)} />
-        </div>
-      )} />
-    </div>
-    <p className="text-xs leading-relaxed text-muted">
-      {CODE_PURPOSES.includes(draft.purpose) ? t('验证码模板必须保留 {{code}}，测试与预览使用固定示例码。') : t('变量仅来自当前场景，邮件内容不会执行脚本或加载外部图片。')}
-    </p>
     <div className="template-actions flex flex-wrap items-center gap-2 border-t border-line pt-3">
       <Button type="submit" pending={savePending} disabled={busy || !dirty}><Save size={15} />{savePending ? t('保存中…') : t('保存')}</Button>
       <Button variant="secondary" disabled={busy} onClick={() => onPreview({ purpose: draft.purpose, subject: values.subject ?? draft.subject, body: values.body ?? draft.body })}>

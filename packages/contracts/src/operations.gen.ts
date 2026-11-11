@@ -10,6 +10,7 @@ export const operations = {
     "responseSchema": "BootstrapResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform",
       "web-standalone"
@@ -27,6 +28,7 @@ export const operations = {
     "responseSchema": "ExecuteResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform",
       "web-standalone"
@@ -44,6 +46,7 @@ export const operations = {
     "responseSchema": "HealthResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform",
       "web-standalone"
@@ -61,6 +64,7 @@ export const operations = {
     "responseSchema": "HealthResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform",
       "web-standalone"
@@ -78,6 +82,7 @@ export const operations = {
     "responseSchema": "InstallStatusResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform",
       "web-standalone"
@@ -95,6 +100,7 @@ export const operations = {
     "responseSchema": "DatabaseCheckResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform",
       "web-standalone"
@@ -112,6 +118,7 @@ export const operations = {
     "responseSchema": "InstallResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform",
       "web-standalone"
@@ -129,6 +136,7 @@ export const operations = {
     "responseSchema": "CaptchaResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -146,6 +154,7 @@ export const operations = {
     "responseSchema": "SessionResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -163,6 +172,7 @@ export const operations = {
     "responseSchema": "SessionResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -180,6 +190,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -197,6 +208,7 @@ export const operations = {
     "responseSchema": "UserListResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -205,9 +217,10 @@ export const operations = {
       "users:read"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "users"
   },
   "createUser": {
     "method": "POST",
@@ -216,6 +229,7 @@ export const operations = {
     "responseSchema": "UserResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -224,9 +238,10 @@ export const operations = {
       "users:create"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "users"
   },
   "updateUser": {
     "method": "PATCH",
@@ -235,6 +250,7 @@ export const operations = {
     "responseSchema": "UserResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -243,9 +259,31 @@ export const operations = {
       "users:update"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "users"
+  },
+  "resetUserPassword": {
+    "method": "POST",
+    "path": "/api/v1/admin/users/{id}/password",
+    "requestSchema": "AdminPasswordResetInput",
+    "responseSchema": "AdminPasswordResetResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "users:update"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator",
+    "uiPage": "users"
   },
   "adminSettings": {
     "method": "GET",
@@ -254,6 +292,7 @@ export const operations = {
     "responseSchema": "SettingsResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -262,9 +301,10 @@ export const operations = {
       "settings:read"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "site"
   },
   "adminPatchSettings": {
     "method": "PATCH",
@@ -273,6 +313,7 @@ export const operations = {
     "responseSchema": "SettingsResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -292,6 +333,7 @@ export const operations = {
     "responseSchema": "SettingsResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-standalone"
     ],
@@ -308,6 +350,7 @@ export const operations = {
     "responseSchema": "SettingsResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-standalone"
     ],
@@ -324,6 +367,7 @@ export const operations = {
     "responseSchema": "AuthPolicyResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -341,6 +385,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -358,6 +403,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -375,6 +421,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -392,6 +439,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -409,6 +457,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -426,6 +475,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -445,6 +495,7 @@ export const operations = {
     "responseSchema": "EmailChallengeResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -462,6 +513,7 @@ export const operations = {
     "responseSchema": "EmailChallengeResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -479,6 +531,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -496,6 +549,7 @@ export const operations = {
     "responseSchema": "EmailChallengeResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -513,6 +567,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -530,6 +585,7 @@ export const operations = {
     "responseSchema": "EmailChallengeResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -547,6 +603,7 @@ export const operations = {
     "responseSchema": "SessionResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -564,6 +621,7 @@ export const operations = {
     "responseSchema": "MailTemplateListResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -572,9 +630,10 @@ export const operations = {
       "settings:read"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "mail-templates"
   },
   "saveMailTemplate": {
     "method": "PUT",
@@ -583,6 +642,7 @@ export const operations = {
     "responseSchema": "MailTemplateResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -602,6 +662,7 @@ export const operations = {
     "responseSchema": "RoleListResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -610,8 +671,29 @@ export const operations = {
       "roles:read"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": false,
+    "identityRealm": "administrator",
+    "uiPage": "roles"
+  },
+  "createRole": {
+    "method": "POST",
+    "path": "/api/v1/admin/roles",
+    "requestSchema": "RoleSaveInput",
+    "responseSchema": "RoleResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "roles:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
     "identityRealm": "administrator"
   },
   "roleOptions": {
@@ -621,6 +703,7 @@ export const operations = {
     "responseSchema": "RoleOptionsResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -631,9 +714,10 @@ export const operations = {
       "users:update"
     ],
     "permissionMode": "any",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "users"
   },
   "oidcInfo": {
     "method": "GET",
@@ -642,6 +726,7 @@ export const operations = {
     "responseSchema": "OIDCInfoResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -659,6 +744,7 @@ export const operations = {
     "responseSchema": "OIDCStartResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -676,6 +762,7 @@ export const operations = {
     "responseSchema": "OIDCInfoResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -693,6 +780,7 @@ export const operations = {
     "responseSchema": "OIDCStartResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -710,6 +798,7 @@ export const operations = {
     "responseSchema": "SessionResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -724,9 +813,10 @@ export const operations = {
     "method": "POST",
     "path": "/api/v1/admin/settings/oidc/check",
     "requestSchema": null,
-    "responseSchema": "ActionResultResponse",
+    "responseSchema": "OIDCCheckInfoResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -746,6 +836,7 @@ export const operations = {
     "responseSchema": null,
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -763,6 +854,7 @@ export const operations = {
     "responseSchema": "BrandingResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -771,7 +863,7 @@ export const operations = {
       "settings:read"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": false,
     "identityRealm": "administrator"
   },
@@ -782,6 +874,7 @@ export const operations = {
     "responseSchema": "BrandingResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -802,6 +895,7 @@ export const operations = {
     "responseSchema": "UserListResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -821,6 +915,7 @@ export const operations = {
     "responseSchema": "UserResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -840,6 +935,7 @@ export const operations = {
     "responseSchema": "UserResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -859,6 +955,7 @@ export const operations = {
     "responseSchema": "AuditLogResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -867,9 +964,10 @@ export const operations = {
       "logs:read"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "logs"
   },
   "mailJobs": {
     "method": "GET",
@@ -878,6 +976,7 @@ export const operations = {
     "responseSchema": "MailJobListResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -886,9 +985,10 @@ export const operations = {
       "logs:read"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "mail"
   },
   "changePassword": {
     "method": "POST",
@@ -897,6 +997,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -914,6 +1015,7 @@ export const operations = {
     "responseSchema": "StorageLocationListResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -922,9 +1024,10 @@ export const operations = {
       "storage:read"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "storage"
   },
   "createStorageLocation": {
     "method": "POST",
@@ -933,6 +1036,7 @@ export const operations = {
     "responseSchema": "StorageLocationResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -952,6 +1056,7 @@ export const operations = {
     "responseSchema": "StorageLocationResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -971,6 +1076,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -990,6 +1096,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1009,6 +1116,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1028,6 +1136,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1047,6 +1156,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1066,11 +1176,14 @@ export const operations = {
     "responseSchema": "FileListResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
     "access": "authenticated",
-    "permissions": [],
+    "permissions": [
+      "files:access"
+    ],
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
@@ -1083,11 +1196,14 @@ export const operations = {
     "responseSchema": "FileUploadGrantResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
     "access": "authenticated",
-    "permissions": [],
+    "permissions": [
+      "files:upload"
+    ],
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
@@ -1100,11 +1216,14 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": true,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
     "access": "authenticated",
-    "permissions": [],
+    "permissions": [
+      "files:upload"
+    ],
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
@@ -1118,11 +1237,14 @@ export const operations = {
     "responseSchema": "FileEntryResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
     "access": "authenticated",
-    "permissions": [],
+    "permissions": [
+      "files:upload"
+    ],
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
@@ -1135,12 +1257,16 @@ export const operations = {
     "responseSchema": "FileAccessResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
     "access": "authenticated",
-    "permissions": [],
-    "permissionMode": "all",
+    "permissions": [
+      "files:access",
+      "notes:access"
+    ],
+    "permissionMode": "any",
     "superAdmin": false,
     "csrf": true,
     "identityRealm": "user"
@@ -1152,11 +1278,14 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
     "access": "authenticated",
-    "permissions": [],
+    "permissions": [
+      "files:delete"
+    ],
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
@@ -1169,6 +1298,7 @@ export const operations = {
     "responseSchema": "FileEntryResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1188,6 +1318,7 @@ export const operations = {
     "responseSchema": null,
     "binaryRequest": false,
     "binaryResponse": true,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1206,6 +1337,7 @@ export const operations = {
     "responseSchema": null,
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1223,6 +1355,7 @@ export const operations = {
     "responseSchema": "BootstrapResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1240,6 +1373,7 @@ export const operations = {
     "responseSchema": "ExecuteResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1248,9 +1382,10 @@ export const operations = {
       "admin:access"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "lab"
   },
   "adminCaptcha": {
     "method": "GET",
@@ -1259,6 +1394,7 @@ export const operations = {
     "responseSchema": "CaptchaResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1276,6 +1412,7 @@ export const operations = {
     "responseSchema": "SessionResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1293,6 +1430,7 @@ export const operations = {
     "responseSchema": "SessionResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1310,6 +1448,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1327,6 +1466,7 @@ export const operations = {
     "responseSchema": "AuthPolicyResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1344,6 +1484,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1361,6 +1502,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1378,6 +1520,7 @@ export const operations = {
     "responseSchema": "EmailChallengeResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1395,6 +1538,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1412,6 +1556,7 @@ export const operations = {
     "responseSchema": "EmailChallengeResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1429,6 +1574,7 @@ export const operations = {
     "responseSchema": "SessionResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1446,6 +1592,7 @@ export const operations = {
     "responseSchema": "OIDCInfoResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1463,6 +1610,7 @@ export const operations = {
     "responseSchema": "OIDCStartResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1480,6 +1628,7 @@ export const operations = {
     "responseSchema": "OIDCInfoResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1497,6 +1646,7 @@ export const operations = {
     "responseSchema": "OIDCStartResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1514,6 +1664,7 @@ export const operations = {
     "responseSchema": "SessionResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1531,6 +1682,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1548,6 +1700,7 @@ export const operations = {
     "responseSchema": "FileListResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1556,7 +1709,7 @@ export const operations = {
       "storage:read"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": false,
     "identityRealm": "administrator"
   },
@@ -1567,6 +1720,7 @@ export const operations = {
     "responseSchema": "FileUploadGrantResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1586,6 +1740,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": true,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1606,6 +1761,7 @@ export const operations = {
     "responseSchema": "FileEntryResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1625,15 +1781,17 @@ export const operations = {
     "responseSchema": "FileAccessResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
     "access": "authenticated",
     "permissions": [
-      "storage:read"
+      "files:access",
+      "notes:access"
     ],
-    "permissionMode": "all",
-    "superAdmin": true,
+    "permissionMode": "any",
+    "superAdmin": false,
     "csrf": true,
     "identityRealm": "administrator"
   },
@@ -1644,6 +1802,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1663,16 +1822,20 @@ export const operations = {
     "responseSchema": "NoteListResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform",
       "web-standalone"
     ],
     "access": "platform-session",
-    "permissions": [],
+    "permissions": [
+      "notes:access"
+    ],
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "user"
+    "identityRealm": "user",
+    "uiPage": "notes"
   },
   "createNote": {
     "method": "POST",
@@ -1681,16 +1844,20 @@ export const operations = {
     "responseSchema": "NoteResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform",
       "web-standalone"
     ],
     "access": "platform-session",
-    "permissions": [],
+    "permissions": [
+      "notes:create"
+    ],
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "user"
+    "identityRealm": "user",
+    "uiPage": "notes"
   },
   "updateNote": {
     "method": "PUT",
@@ -1699,16 +1866,20 @@ export const operations = {
     "responseSchema": "NoteResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform",
       "web-standalone"
     ],
     "access": "platform-session",
-    "permissions": [],
+    "permissions": [
+      "notes:update"
+    ],
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "user"
+    "identityRealm": "user",
+    "uiPage": "notes"
   },
   "deleteNote": {
     "method": "DELETE",
@@ -1717,16 +1888,20 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform",
       "web-standalone"
     ],
     "access": "platform-session",
-    "permissions": [],
+    "permissions": [
+      "notes:delete"
+    ],
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "user"
+    "identityRealm": "user",
+    "uiPage": "notes"
   },
   "adminListNotes": {
     "method": "GET",
@@ -1735,17 +1910,20 @@ export const operations = {
     "responseSchema": "NoteListResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
     "access": "authenticated",
     "permissions": [
-      "admin:access"
+      "admin:access",
+      "notes:access"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "notes"
   },
   "adminCreateNote": {
     "method": "POST",
@@ -1754,17 +1932,20 @@ export const operations = {
     "responseSchema": "NoteResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
     "access": "authenticated",
     "permissions": [
-      "admin:access"
+      "admin:access",
+      "notes:create"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "notes"
   },
   "adminUpdateNote": {
     "method": "PUT",
@@ -1773,17 +1954,20 @@ export const operations = {
     "responseSchema": "NoteResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
     "access": "authenticated",
     "permissions": [
-      "admin:access"
+      "admin:access",
+      "notes:update"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "notes"
   },
   "adminDeleteNote": {
     "method": "DELETE",
@@ -1792,17 +1976,20 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
     "access": "authenticated",
     "permissions": [
-      "admin:access"
+      "admin:access",
+      "notes:delete"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "notes"
   },
   "updateOverview": {
     "method": "GET",
@@ -1811,6 +1998,7 @@ export const operations = {
     "responseSchema": "UpdateOverviewResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-standalone"
     ],
@@ -1827,6 +2015,7 @@ export const operations = {
     "responseSchema": "UpdateOverviewResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1835,9 +2024,10 @@ export const operations = {
       "updates:read"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "edition"
   },
   "checkUpdate": {
     "method": "POST",
@@ -1846,6 +2036,7 @@ export const operations = {
     "responseSchema": "UpdateOverviewResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-standalone"
     ],
@@ -1862,6 +2053,7 @@ export const operations = {
     "responseSchema": "UpdateOverviewResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1870,9 +2062,10 @@ export const operations = {
       "updates:read"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "edition"
   },
   "applyUpdate": {
     "method": "POST",
@@ -1881,6 +2074,7 @@ export const operations = {
     "responseSchema": "UpdateJobResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-standalone"
     ],
@@ -1897,6 +2091,7 @@ export const operations = {
     "responseSchema": "UpdateJobResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1916,6 +2111,7 @@ export const operations = {
     "responseSchema": "AuditLogExportResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1924,9 +2120,10 @@ export const operations = {
       "logs:read"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "logs"
   },
   "previewMailTemplate": {
     "method": "POST",
@@ -1935,6 +2132,7 @@ export const operations = {
     "responseSchema": "MailTemplateResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1954,6 +2152,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1973,6 +2172,7 @@ export const operations = {
     "responseSchema": "MailTemplateResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -1992,6 +2192,7 @@ export const operations = {
     "responseSchema": "AnnouncementListResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2000,9 +2201,10 @@ export const operations = {
       "announcements:read"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "announcements"
   },
   "createAnnouncement": {
     "method": "POST",
@@ -2011,6 +2213,7 @@ export const operations = {
     "responseSchema": "AnnouncementEntryResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2019,9 +2222,10 @@ export const operations = {
       "announcements:write"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "announcements"
   },
   "updateAnnouncement": {
     "method": "PUT",
@@ -2030,6 +2234,7 @@ export const operations = {
     "responseSchema": "AnnouncementEntryResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2038,9 +2243,10 @@ export const operations = {
       "announcements:write"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "announcements"
   },
   "deleteAnnouncements": {
     "method": "POST",
@@ -2049,6 +2255,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2057,9 +2264,10 @@ export const operations = {
       "announcements:write"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "announcements"
   },
   "announcementSettings": {
     "method": "GET",
@@ -2068,6 +2276,7 @@ export const operations = {
     "responseSchema": "AnnouncementSettingResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2076,9 +2285,10 @@ export const operations = {
       "announcements:read"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "announcements"
   },
   "saveAnnouncementSettings": {
     "method": "PUT",
@@ -2087,6 +2297,7 @@ export const operations = {
     "responseSchema": "AnnouncementSettingResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2095,9 +2306,10 @@ export const operations = {
       "announcements:write"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "announcements"
   },
   "previewAnnouncement": {
     "method": "POST",
@@ -2106,6 +2318,7 @@ export const operations = {
     "responseSchema": "AnnouncementPreviewResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2114,9 +2327,10 @@ export const operations = {
       "announcements:write"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "announcements"
   },
   "announcements": {
     "method": "GET",
@@ -2125,6 +2339,7 @@ export const operations = {
     "responseSchema": "AnnouncementFeedResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2142,6 +2357,7 @@ export const operations = {
     "responseSchema": "AnnouncementPublicResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2159,6 +2375,7 @@ export const operations = {
     "responseSchema": "UploadPolicyResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2176,6 +2393,7 @@ export const operations = {
     "responseSchema": "UploadPolicyResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2184,7 +2402,7 @@ export const operations = {
       "storage:read"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": false,
     "identityRealm": "administrator"
   },
@@ -2195,11 +2413,14 @@ export const operations = {
     "responseSchema": "MultipartUploadResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
     "access": "authenticated",
-    "permissions": [],
+    "permissions": [
+      "files:upload"
+    ],
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
@@ -2212,6 +2433,7 @@ export const operations = {
     "responseSchema": "MultipartUploadResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2231,11 +2453,14 @@ export const operations = {
     "responseSchema": "MultipartUploadResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
     "access": "authenticated",
-    "permissions": [],
+    "permissions": [
+      "files:upload"
+    ],
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
@@ -2248,6 +2473,7 @@ export const operations = {
     "responseSchema": "MultipartUploadResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2256,7 +2482,7 @@ export const operations = {
       "storage:read"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": false,
     "identityRealm": "administrator"
   },
@@ -2267,11 +2493,14 @@ export const operations = {
     "responseSchema": "FileUploadGrantResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
     "access": "authenticated",
-    "permissions": [],
+    "permissions": [
+      "files:upload"
+    ],
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
@@ -2284,6 +2513,7 @@ export const operations = {
     "responseSchema": "FileUploadGrantResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2303,11 +2533,14 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": true,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
     "access": "authenticated",
-    "permissions": [],
+    "permissions": [
+      "files:upload"
+    ],
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
@@ -2321,6 +2554,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": true,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2341,11 +2575,14 @@ export const operations = {
     "responseSchema": "FileEntryResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
     "access": "authenticated",
-    "permissions": [],
+    "permissions": [
+      "files:upload"
+    ],
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
@@ -2358,6 +2595,7 @@ export const operations = {
     "responseSchema": "FileEntryResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2377,6 +2615,7 @@ export const operations = {
     "responseSchema": "AccountProfileResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2394,6 +2633,7 @@ export const operations = {
     "responseSchema": "AccountProfileResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2411,6 +2651,7 @@ export const operations = {
     "responseSchema": "TOTPSetupResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2428,6 +2669,7 @@ export const operations = {
     "responseSchema": "TOTPSetupResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2445,6 +2687,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2462,6 +2705,7 @@ export const operations = {
     "responseSchema": "RecoveryCodesResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2479,6 +2723,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2496,6 +2741,7 @@ export const operations = {
     "responseSchema": "SessionResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2513,6 +2759,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2530,6 +2777,7 @@ export const operations = {
     "responseSchema": "LoginDevicesResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2547,6 +2795,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2564,6 +2813,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2581,6 +2831,7 @@ export const operations = {
     "responseSchema": "EmailChallengeResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2598,6 +2849,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2615,6 +2867,7 @@ export const operations = {
     "responseSchema": "EmailChallengeResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2632,6 +2885,7 @@ export const operations = {
     "responseSchema": "AccountProfileResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2649,6 +2903,7 @@ export const operations = {
     "responseSchema": "AccountProfileResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2666,6 +2921,7 @@ export const operations = {
     "responseSchema": "AccountProfileResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2683,6 +2939,7 @@ export const operations = {
     "responseSchema": "TOTPSetupResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2700,6 +2957,7 @@ export const operations = {
     "responseSchema": "TOTPSetupResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2717,6 +2975,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2734,6 +2993,7 @@ export const operations = {
     "responseSchema": "RecoveryCodesResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2751,6 +3011,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2768,6 +3029,7 @@ export const operations = {
     "responseSchema": "SessionResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2785,6 +3047,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2802,6 +3065,7 @@ export const operations = {
     "responseSchema": "LoginDevicesResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2819,6 +3083,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2836,6 +3101,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2853,6 +3119,7 @@ export const operations = {
     "responseSchema": "EmailChallengeResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2870,6 +3137,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2887,6 +3155,7 @@ export const operations = {
     "responseSchema": "EmailChallengeResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2904,6 +3173,7 @@ export const operations = {
     "responseSchema": "AccountProfileResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2921,6 +3191,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2938,6 +3209,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2955,6 +3227,7 @@ export const operations = {
     "responseSchema": "AnnouncementReadStatusResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2963,9 +3236,10 @@ export const operations = {
       "announcements:read"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "announcements"
   },
   "notificationSettings": {
     "method": "GET",
@@ -2974,6 +3248,7 @@ export const operations = {
     "responseSchema": "NotifyConfigurationResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -2982,9 +3257,10 @@ export const operations = {
       "settings:read"
     ],
     "permissionMode": "all",
-    "superAdmin": true,
+    "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator"
+    "identityRealm": "administrator",
+    "uiPage": "site"
   },
   "saveNotificationSettings": {
     "method": "PUT",
@@ -2993,6 +3269,7 @@ export const operations = {
     "responseSchema": "NotifyConfigurationResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -3012,6 +3289,7 @@ export const operations = {
     "responseSchema": "NotifyPreviewResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -3031,6 +3309,7 @@ export const operations = {
     "responseSchema": "ActionResultResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -3050,6 +3329,7 @@ export const operations = {
     "responseSchema": "OIDCStartResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -3067,6 +3347,7 @@ export const operations = {
     "responseSchema": "OIDCStartResponse",
     "binaryRequest": false,
     "binaryResponse": false,
+    "multipartRequest": false,
     "profiles": [
       "web-platform"
     ],
@@ -3074,6 +3355,977 @@ export const operations = {
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "oidcBindLogin": {
+    "method": "POST",
+    "path": "/api/v1/auth/oidc/bind-login",
+    "requestSchema": "OIDCBindLoginInput",
+    "responseSchema": "SessionResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "public",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user"
+  },
+  "updateRole": {
+    "method": "PUT",
+    "path": "/api/v1/admin/roles/{id}",
+    "requestSchema": "RoleSaveInput",
+    "responseSchema": "RoleResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "roles:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "deleteRole": {
+    "method": "DELETE",
+    "path": "/api/v1/admin/roles/{id}",
+    "requestSchema": null,
+    "responseSchema": "RoleResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "roles:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "listMenus": {
+    "method": "GET",
+    "path": "/api/v1/admin/menus",
+    "requestSchema": null,
+    "responseSchema": "MenuListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "menus:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator",
+    "uiPage": "menus"
+  },
+  "saveMenus": {
+    "method": "PUT",
+    "path": "/api/v1/admin/menus",
+    "requestSchema": "MenuSaveInput",
+    "responseSchema": "MenuListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "menus:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator",
+    "uiPage": "menus"
+  },
+  "listDictionaries": {
+    "method": "GET",
+    "path": "/api/v1/admin/dictionaries",
+    "requestSchema": null,
+    "responseSchema": "DictionaryListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "dictionaries:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator",
+    "uiPage": "dictionaries"
+  },
+  "createDictionary": {
+    "method": "POST",
+    "path": "/api/v1/admin/dictionaries",
+    "requestSchema": "DictionaryCreateInput",
+    "responseSchema": "DictionarySummaryResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "dictionaries:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator",
+    "uiPage": "dictionaries"
+  },
+  "getDictionary": {
+    "method": "GET",
+    "path": "/api/v1/admin/dictionaries/{id}",
+    "requestSchema": null,
+    "responseSchema": "DictionaryDetailResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "dictionaries:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator",
+    "uiPage": "dictionaries"
+  },
+  "updateDictionary": {
+    "method": "PUT",
+    "path": "/api/v1/admin/dictionaries/{id}",
+    "requestSchema": "DictionaryUpdateInput",
+    "responseSchema": "DictionaryDetailResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "dictionaries:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator",
+    "uiPage": "dictionaries"
+  },
+  "deleteDictionary": {
+    "method": "DELETE",
+    "path": "/api/v1/admin/dictionaries/{id}",
+    "requestSchema": null,
+    "responseSchema": "DictionaryDetailResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "dictionaries:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator",
+    "uiPage": "dictionaries"
+  },
+  "listDepartments": {
+    "method": "GET",
+    "path": "/api/v1/admin/departments",
+    "requestSchema": null,
+    "responseSchema": "DepartmentListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "departments:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator",
+    "uiPage": "departments"
+  },
+  "createDepartment": {
+    "method": "POST",
+    "path": "/api/v1/admin/departments",
+    "requestSchema": "DepartmentSaveInput",
+    "responseSchema": "DepartmentResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "departments:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator",
+    "uiPage": "departments"
+  },
+  "updateDepartment": {
+    "method": "PUT",
+    "path": "/api/v1/admin/departments/{id}",
+    "requestSchema": "DepartmentSaveInput",
+    "responseSchema": "DepartmentResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "departments:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator",
+    "uiPage": "departments"
+  },
+  "deleteDepartment": {
+    "method": "DELETE",
+    "path": "/api/v1/admin/departments/{id}",
+    "requestSchema": null,
+    "responseSchema": "DepartmentResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "departments:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator",
+    "uiPage": "departments"
+  },
+  "replaceDictionaryItems": {
+    "method": "PUT",
+    "path": "/api/v1/admin/dictionaries/{id}/items",
+    "requestSchema": "DictionaryItemsInput",
+    "responseSchema": "DictionaryDetailResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "dictionaries:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator",
+    "uiPage": "dictionaries"
+  },
+  "dictionary": {
+    "method": "GET",
+    "path": "/api/v1/dictionaries/{code}",
+    "requestSchema": null,
+    "responseSchema": "DictionaryDetailResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user"
+  },
+  "listTasks": {
+    "method": "GET",
+    "path": "/api/v1/admin/tasks",
+    "requestSchema": null,
+    "responseSchema": "TaskListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "tasks:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator",
+    "uiPage": "tasks"
+  },
+  "createTask": {
+    "method": "POST",
+    "path": "/api/v1/admin/tasks",
+    "requestSchema": "TaskCreateInput",
+    "responseSchema": "TaskEntryResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "tasks:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator",
+    "uiPage": "tasks"
+  },
+  "updateTask": {
+    "method": "PUT",
+    "path": "/api/v1/admin/tasks/{name}",
+    "requestSchema": "TaskUpdateInput",
+    "responseSchema": "TaskEntryResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "tasks:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator",
+    "uiPage": "tasks"
+  },
+  "editTask": {
+    "method": "PATCH",
+    "path": "/api/v1/admin/tasks/{name}",
+    "requestSchema": "TaskEditInput",
+    "responseSchema": "TaskEntryResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "tasks:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator",
+    "uiPage": "tasks"
+  },
+  "deleteTask": {
+    "method": "DELETE",
+    "path": "/api/v1/admin/tasks/{name}",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "tasks:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator",
+    "uiPage": "tasks"
+  },
+  "triggerTask": {
+    "method": "POST",
+    "path": "/api/v1/admin/tasks/{name}/run",
+    "requestSchema": null,
+    "responseSchema": "TaskTriggerResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "tasks:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator",
+    "uiPage": "tasks"
+  },
+  "listTaskRuns": {
+    "method": "GET",
+    "path": "/api/v1/admin/tasks/{name}/runs",
+    "requestSchema": null,
+    "responseSchema": "TaskRunListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "tasks:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator",
+    "uiPage": "tasks"
+  },
+  "inbox": {
+    "method": "GET",
+    "path": "/api/v1/inbox",
+    "requestSchema": null,
+    "responseSchema": "InboxListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user"
+  },
+  "readAllInbox": {
+    "method": "POST",
+    "path": "/api/v1/inbox/read-all",
+    "requestSchema": null,
+    "responseSchema": "InboxListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "readInbox": {
+    "method": "POST",
+    "path": "/api/v1/inbox/{id}/read",
+    "requestSchema": null,
+    "responseSchema": "InboxListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "events": {
+    "method": "GET",
+    "path": "/api/v1/events",
+    "requestSchema": null,
+    "responseSchema": null,
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user"
+  },
+  "logStream": {
+    "method": "GET",
+    "path": "/api/v1/admin/logs/stream",
+    "requestSchema": null,
+    "responseSchema": null,
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "logs:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "exportUsers": {
+    "method": "GET",
+    "path": "/api/v1/admin/users/export.xlsx",
+    "requestSchema": null,
+    "responseSchema": null,
+    "binaryRequest": false,
+    "binaryResponse": true,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "users:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator",
+    "uiPage": "users"
+  },
+  "userImportTemplate": {
+    "method": "GET",
+    "path": "/api/v1/admin/users/import-template.xlsx",
+    "requestSchema": null,
+    "responseSchema": null,
+    "binaryRequest": false,
+    "binaryResponse": true,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "users:create"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator",
+    "uiPage": "users"
+  },
+  "importUsers": {
+    "method": "POST",
+    "path": "/api/v1/admin/users/import.xlsx",
+    "requestSchema": null,
+    "responseSchema": "UserImportResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": true,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "users:create"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator",
+    "uiPage": "users"
+  },
+  "exportFiles": {
+    "method": "GET",
+    "path": "/api/v1/admin/files/export.xlsx",
+    "requestSchema": null,
+    "responseSchema": null,
+    "binaryRequest": false,
+    "binaryResponse": true,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "storage:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminDashboard": {
+    "method": "GET",
+    "path": "/api/v1/admin/dashboard",
+    "requestSchema": null,
+    "responseSchema": "DashboardResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "admin:access"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator",
+    "uiPage": "overview"
+  },
+  "adminRoleOptions": {
+    "method": "GET",
+    "path": "/api/v1/admin/roles/admin-options",
+    "requestSchema": null,
+    "responseSchema": "RoleOptionsResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "roles:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "listAPIOperations": {
+    "method": "GET",
+    "path": "/api/v1/admin/api-operations",
+    "requestSchema": null,
+    "responseSchema": "APIOperationListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "roles:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator",
+    "uiPage": "roles"
+  },
+  "listPosts": {
+    "method": "GET",
+    "path": "/api/v1/admin/posts",
+    "requestSchema": null,
+    "responseSchema": "PostListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "posts:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator",
+    "uiPage": "posts"
+  },
+  "createPost": {
+    "method": "POST",
+    "path": "/api/v1/admin/posts",
+    "requestSchema": "PostSaveInput",
+    "responseSchema": "PostResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "posts:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator",
+    "uiPage": "posts"
+  },
+  "updatePost": {
+    "method": "PUT",
+    "path": "/api/v1/admin/posts/{id}",
+    "requestSchema": "PostSaveInput",
+    "responseSchema": "PostResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "posts:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator",
+    "uiPage": "posts"
+  },
+  "deletePost": {
+    "method": "DELETE",
+    "path": "/api/v1/admin/posts/{id}",
+    "requestSchema": null,
+    "responseSchema": "PostResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "posts:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "administrator",
+    "uiPage": "posts"
+  },
+  "logTail": {
+    "method": "GET",
+    "path": "/api/v1/admin/logs/tail",
+    "requestSchema": null,
+    "responseSchema": "LogTailResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "logs:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminMonitorSnapshot": {
+    "method": "GET",
+    "path": "/api/v1/admin/monitor",
+    "requestSchema": null,
+    "responseSchema": "MonitorSnapshotResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "monitor:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "monitorSnapshot": {
+    "method": "GET",
+    "path": "/api/v1/monitor",
+    "requestSchema": null,
+    "responseSchema": "MonitorSnapshotResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-standalone"
+    ],
+    "access": "local",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "monitorEvents": {
+    "method": "GET",
+    "path": "/api/v1/monitor/events",
+    "requestSchema": null,
+    "responseSchema": "MonitorEventListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-standalone"
+    ],
+    "access": "local",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "adminMonitorEvents": {
+    "method": "GET",
+    "path": "/api/v1/admin/monitor/events",
+    "requestSchema": null,
+    "responseSchema": "MonitorEventListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "monitor:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminMonitorStorageProbe": {
+    "method": "GET",
+    "path": "/api/v1/admin/monitor/storage-probe",
+    "requestSchema": null,
+    "responseSchema": "MonitorStorageLocationResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "monitor:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminMonitorAlertRules": {
+    "method": "GET",
+    "path": "/api/v1/admin/monitor/alert-rules",
+    "requestSchema": null,
+    "responseSchema": "MonitorAlertRulesResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "monitor:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminUpdateMonitorAlertRules": {
+    "method": "PUT",
+    "path": "/api/v1/admin/monitor/alert-rules",
+    "requestSchema": "MonitorAlertRules",
+    "responseSchema": "MonitorAlertRulesResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "monitor:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "assignMenuRoles": {
+    "method": "PUT",
+    "path": "/api/v1/admin/menus/{id}/roles",
+    "requestSchema": "MenuRoleAssignmentInput",
+    "responseSchema": "RoleListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "menus:write",
+      "roles:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
     "csrf": true,
     "identityRealm": "administrator"
   }
@@ -3094,6 +4346,7 @@ export interface OperationInputs {
   listUsers: undefined;
   createUser: Models.UserCreate;
   updateUser: Models.UserUpdate;
+  resetUserPassword: Models.AdminPasswordResetInput;
   adminSettings: undefined;
   adminPatchSettings: Models.SettingPatch;
   localSettings: undefined;
@@ -3115,6 +4368,7 @@ export interface OperationInputs {
   mailTemplates: undefined;
   saveMailTemplate: Models.MailTemplateInput;
   listRoles: undefined;
+  createRole: Models.RoleSaveInput;
   roleOptions: undefined;
   oidcInfo: undefined;
   oidcStart: undefined;
@@ -3253,6 +4507,54 @@ export interface OperationInputs {
   testNotification: Models.NotifyTest;
   oidcTOTP: undefined;
   adminOidcTOTP: undefined;
+  oidcBindLogin: Models.OIDCBindLoginInput;
+  updateRole: Models.RoleSaveInput;
+  deleteRole: undefined;
+  listMenus: undefined;
+  saveMenus: Models.MenuSaveInput;
+  listDictionaries: undefined;
+  createDictionary: Models.DictionaryCreateInput;
+  getDictionary: undefined;
+  updateDictionary: Models.DictionaryUpdateInput;
+  deleteDictionary: undefined;
+  listDepartments: undefined;
+  createDepartment: Models.DepartmentSaveInput;
+  updateDepartment: Models.DepartmentSaveInput;
+  deleteDepartment: undefined;
+  replaceDictionaryItems: Models.DictionaryItemsInput;
+  dictionary: undefined;
+  listTasks: undefined;
+  createTask: Models.TaskCreateInput;
+  updateTask: Models.TaskUpdateInput;
+  editTask: Models.TaskEditInput;
+  deleteTask: undefined;
+  triggerTask: undefined;
+  listTaskRuns: undefined;
+  inbox: undefined;
+  readAllInbox: undefined;
+  readInbox: undefined;
+  events: undefined;
+  logStream: undefined;
+  exportUsers: undefined;
+  userImportTemplate: undefined;
+  importUsers: undefined;
+  exportFiles: undefined;
+  adminDashboard: undefined;
+  adminRoleOptions: undefined;
+  listAPIOperations: undefined;
+  listPosts: undefined;
+  createPost: Models.PostSaveInput;
+  updatePost: Models.PostSaveInput;
+  deletePost: undefined;
+  logTail: undefined;
+  adminMonitorSnapshot: undefined;
+  monitorSnapshot: undefined;
+  monitorEvents: undefined;
+  adminMonitorEvents: undefined;
+  adminMonitorStorageProbe: undefined;
+  adminMonitorAlertRules: undefined;
+  adminUpdateMonitorAlertRules: Models.MonitorAlertRules;
+  assignMenuRoles: Models.MenuRoleAssignmentInput;
 }
 export interface OperationData {
   bootstrap: Models.BootstrapResponse['data'];
@@ -3269,6 +4571,7 @@ export interface OperationData {
   listUsers: Models.UserListResponse['data'];
   createUser: Models.UserResponse['data'];
   updateUser: Models.UserResponse['data'];
+  resetUserPassword: Models.AdminPasswordResetResponse['data'];
   adminSettings: Models.SettingsResponse['data'];
   adminPatchSettings: Models.SettingsResponse['data'];
   localSettings: Models.SettingsResponse['data'];
@@ -3290,13 +4593,14 @@ export interface OperationData {
   mailTemplates: Models.MailTemplateListResponse['data'];
   saveMailTemplate: Models.MailTemplateResponse['data'];
   listRoles: Models.RoleListResponse['data'];
+  createRole: Models.RoleResponse['data'];
   roleOptions: Models.RoleOptionsResponse['data'];
   oidcInfo: Models.OIDCInfoResponse['data'];
   oidcStart: Models.OIDCStartResponse['data'];
   oidcAccount: Models.OIDCInfoResponse['data'];
   oidcLink: Models.OIDCStartResponse['data'];
   oidcUnlink: Models.SessionResponse['data'];
-  oidcCheck: Models.ActionResultResponse['data'];
+  oidcCheck: Models.OIDCCheckInfoResponse['data'];
   oidcCallback: void;
   adminBranding: Models.BrandingResponse['data'];
   adminUpdateBranding: Models.BrandingResponse['data'];
@@ -3428,4 +4732,52 @@ export interface OperationData {
   testNotification: Models.ActionResultResponse['data'];
   oidcTOTP: Models.OIDCStartResponse['data'];
   adminOidcTOTP: Models.OIDCStartResponse['data'];
+  oidcBindLogin: Models.SessionResponse['data'];
+  updateRole: Models.RoleResponse['data'];
+  deleteRole: Models.RoleResponse['data'];
+  listMenus: Models.MenuListResponse['data'];
+  saveMenus: Models.MenuListResponse['data'];
+  listDictionaries: Models.DictionaryListResponse['data'];
+  createDictionary: Models.DictionarySummaryResponse['data'];
+  getDictionary: Models.DictionaryDetailResponse['data'];
+  updateDictionary: Models.DictionaryDetailResponse['data'];
+  deleteDictionary: Models.DictionaryDetailResponse['data'];
+  listDepartments: Models.DepartmentListResponse['data'];
+  createDepartment: Models.DepartmentResponse['data'];
+  updateDepartment: Models.DepartmentResponse['data'];
+  deleteDepartment: Models.DepartmentResponse['data'];
+  replaceDictionaryItems: Models.DictionaryDetailResponse['data'];
+  dictionary: Models.DictionaryDetailResponse['data'];
+  listTasks: Models.TaskListResponse['data'];
+  createTask: Models.TaskEntryResponse['data'];
+  updateTask: Models.TaskEntryResponse['data'];
+  editTask: Models.TaskEntryResponse['data'];
+  deleteTask: Models.ActionResultResponse['data'];
+  triggerTask: Models.TaskTriggerResponse['data'];
+  listTaskRuns: Models.TaskRunListResponse['data'];
+  inbox: Models.InboxListResponse['data'];
+  readAllInbox: Models.InboxListResponse['data'];
+  readInbox: Models.InboxListResponse['data'];
+  events: void;
+  logStream: void;
+  exportUsers: void;
+  userImportTemplate: void;
+  importUsers: Models.UserImportResultResponse['data'];
+  exportFiles: void;
+  adminDashboard: Models.DashboardResponse['data'];
+  adminRoleOptions: Models.RoleOptionsResponse['data'];
+  listAPIOperations: Models.APIOperationListResponse['data'];
+  listPosts: Models.PostListResponse['data'];
+  createPost: Models.PostResponse['data'];
+  updatePost: Models.PostResponse['data'];
+  deletePost: Models.PostResponse['data'];
+  logTail: Models.LogTailResponse['data'];
+  adminMonitorSnapshot: Models.MonitorSnapshotResponse['data'];
+  monitorSnapshot: Models.MonitorSnapshotResponse['data'];
+  monitorEvents: Models.MonitorEventListResponse['data'];
+  adminMonitorEvents: Models.MonitorEventListResponse['data'];
+  adminMonitorStorageProbe: Models.MonitorStorageLocationResponse['data'];
+  adminMonitorAlertRules: Models.MonitorAlertRulesResponse['data'];
+  adminUpdateMonitorAlertRules: Models.MonitorAlertRulesResponse['data'];
+  assignMenuRoles: Models.RoleListResponse['data'];
 }

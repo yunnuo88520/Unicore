@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+
 	"github.com/yunnuo/unicore/internal/adapter/storage/platformsql"
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/audit"
@@ -327,6 +328,14 @@ func (r *Repository) Save(ctx context.Context, a domain.Announcement, actor stri
 			return a, domain.ErrAnnouncementInvalid
 		}
 		if _, err = r.Store.Exec(ctx, tx, "INSERT INTO unicore_announcement_recipients(announcement_id,user_id) VALUES(?,?)", a.ID, id); err != nil {
+			return a, err
+		}
+	}
+	// Published announcements land in the personal inbox of their selected
+	// audience so the bell and the SSE stream carry them (audience=all stays a
+	// broadcast on the announcements feed itself).
+	if a.Status == "published" && a.Audience == "selected" {
+		if err = (&platformsql.Repository{Store: r.Store}).DeliverInbox(ctx, tx, a.RecipientIDs, "announcement", a.ID, a.Title, a.Content); err != nil {
 			return a, err
 		}
 	}

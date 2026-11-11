@@ -1,6 +1,6 @@
 {
   "name": "unicore",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "private": true,
   "author": "yunnuo <ymz@ebox.vip>",
   "packageManager": "pnpm@11.25.0",

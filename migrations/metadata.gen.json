@@ -300,6 +300,26 @@
               "checksum": "aa6e9fffa8df34f55586a358437dc7eb96be8b1f60b60ae432addb2bf07afb15"
             }
           }
+        },
+        {
+          "version": 10,
+          "files": {
+            "mysql": {
+              "path": "platform/mysql/0010_api_credentials.sql",
+              "bytes": 1942,
+              "checksum": "5f1487313eb6dc18a53aadfed8f4d9fa452b9cf350fb1e020eb4d658d9926044"
+            },
+            "postgres": {
+              "path": "platform/postgres/0010_api_credentials.sql",
+              "bytes": 1468,
+              "checksum": "fb944ced238de387099f2a81e38c12913e8aaae6dbaebd51b52f38b9bacefe7e"
+            },
+            "sqlite": {
+              "path": "platform/sqlite/0010_api_credentials.sql",
+              "bytes": 1468,
+              "checksum": "fb944ced238de387099f2a81e38c12913e8aaae6dbaebd51b52f38b9bacefe7e"
+            }
+          }
         }
       ]
     }
@@ -347,7 +367,7 @@
       "levels": {
         "core": 1,
         "module.notes": 1,
-        "platform": 9
+        "platform": 10
       }
     },
     "web-standalone": {

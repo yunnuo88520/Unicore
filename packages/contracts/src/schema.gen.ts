@@ -1903,3 +1903,91 @@ export interface MenuRoleAssignmentInput {
   role_ids: Array<string>;
   expected_role_ids: Array<string>;
 }
+
+export interface ClientTokenPair {
+  access_token: string;
+  refresh_token: string;
+  token_type: "Bearer";
+  expires_in: number;
+  refresh_expires_at: number;
+  user: User;
+}
+
+export interface ClientTokenLogin {
+  tokens?: ClientTokenPair;
+  mfa_required: boolean;
+  challenge_token?: string;
+}
+
+export interface ClientTokenMFAInput {
+  challenge_token: string;
+  code: string;
+}
+
+export interface RefreshTokenInput {
+  refresh_token: string;
+}
+
+export interface PersonalTokenInput {
+  name: string;
+  expires_in_days: number;
+  operation_ids: Array<string>;
+}
+
+export interface PersonalToken {
+  id: string;
+  name: string;
+  created_at: number;
+  expires_at: number;
+  last_used_at: number;
+  revoked: boolean;
+  operation_ids: Array<string>;
+}
+
+export interface PersonalTokenCreated {
+  token: string;
+  credential: PersonalToken;
+}
+
+export interface PersonalTokenList {
+  items: Array<PersonalToken>;
+}
+
+export interface TokenScopeList {
+  items: Array<APIOperation>;
+}
+
+export interface ClientTokenPairResponse {
+  code: string;
+  message: string;
+  data: ClientTokenPair;
+  request_id: string;
+}
+
+export interface ClientTokenLoginResponse {
+  code: string;
+  message: string;
+  data: ClientTokenLogin;
+  request_id: string;
+}
+
+export interface PersonalTokenCreatedResponse {
+  code: string;
+  message: string;
+  data: PersonalTokenCreated;
+  request_id: string;
+}
+
+export interface PersonalTokenListResponse {
+  code: string;
+  message: string;
+  data: PersonalTokenList;
+  request_id: string;
+}
+
+export interface TokenScopeListResponse {
+  code: string;
+  message: string;
+  data: TokenScopeList;
+  request_id: string;
+}

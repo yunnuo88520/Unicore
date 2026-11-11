@@ -20,6 +20,7 @@
 | 管理日志、邮件模板、定时任务与 XLSX | [管理工具](03-runbooks/admin-tools.md) |
 | 公告、SSE 与本人站内信 | [公告与内容管理](03-runbooks/announcements.md) |
 | 通知渠道、通知模板与事件接入 | [通知与邮件接入](product/notifications.md)、[事件通知细节](03-runbooks/notifications.md) |
+| 小程序/App 的 Token 基础与用户 API 调用 | [客户端与 API 认证](product/api-authentication.md) |
 | 个人资料、双重验证与登录设备 | [个人中心](03-runbooks/personal-center.md) |
 | 语言、主题与本地外观 | [客户端偏好](03-runbooks/client-preferences.md) |
 

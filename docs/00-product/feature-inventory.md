@@ -11,7 +11,7 @@
 
 | 功能单元 | Platform | Standalone | CLI | 持久化 | 证据 |
 | --- | --- | --- | --- | --- | --- |
-| 登录认证（密码/邮箱验证码/MFA/验证码） | 已实现（双身份域独立会话） | 不装配 | 不装配 | unicore_sessions 等 | `internal/platform/service.go`、`internal/platform/security.go` |
+| 登录认证（密码/邮箱验证码/MFA/验证码） | 已实现（统一账号与共享会话） | 不装配 | 不装配 | unicore_sessions 等 | `internal/platform/service.go`、`internal/platform/security.go` |
 | 注册 / 找回密码 / 邮箱验证 | 已实现，默认关闭，依赖 SMTP 测试通过 | 不装配 | 不装配 | unicore_account_tokens | `internal/platform/accounts.go` |
 | OIDC 企业登录与账号绑定 | 已实现，默认关闭 | 不装配 | 不装配 | unicore_oidc_flows | `internal/platform/oidc.go`、[OIDC 需求](feature-oidc.md) |
 | 用户管理（含 XLSX 导入导出） | 已实现，users:* | 不装配 | 不装配 | unicore_users | `internal/adapter/http/users.go`、`internal/adapter/http/xlsx.go` |
@@ -24,6 +24,8 @@
 | 个人中心（资料/换邮箱/TOTP/会话设备） | 已实现，双域各自 19 operation | 不装配 | 不装配 | unicore_personal_accounts | `internal/platform/personal.go`、[个人中心](../03-runbooks/personal-center.md) |
 | 人机验证（Turnstile/腾讯/阿里） | 已实现，设置门控 | 不装配 | 不装配 | security.human_check_* | `internal/platform/humancheck.go` |
 | 登录防护（IP 封禁/会话策略/强制 2FA） | 已实现 | 不装配 | 不装配 | settings security.* | `internal/platform/login_guard.go` |
+
+客户端 JWT / Refresh Token 与个人 API 令牌：Platform 已实现；Standalone / CLI 不装配。持久化为 platform@10 的 unicore_api_credentials、unicore_api_refresh_tokens、unicore_api_token_keys；本人安全页管理 PAT，客户端认证与刷新走独立 API，见 [API 认证](../product/api-authentication.md) 与 [ADR-0041](../adr/ADR-0041-api-token-authentication.md)。
 
 ## B. 通知与消息（Platform 专属）
 

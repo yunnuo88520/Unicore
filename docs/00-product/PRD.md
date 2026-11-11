@@ -32,7 +32,7 @@ Unicore 是 MIT 开源的 Go + React 跨形态应用开发框架，当前为开�
 
 ## 平台与本地形态
 
-平台是多用户应用基座，不自动引入完整 SaaS 多租户。管理员与普通用户物理拆表，登录入口、Cookie、API 分开，服务端执行权限及数据归属校验。管理员域在固定 `super_admin` 之外支持受限管理员角色（[ADR-0034](../adr/ADR-0034-administrator-restricted-roles.md)）；用户域支持自定义角色，按 assignable 权限点组合业务权限，并独立授予菜单入口、页面动作与可委派 API operation（[ADR-0033](../adr/ADR-0033-dynamic-user-roles.md)、[ADR-0036](../adr/ADR-0036-navigation-regions-granular-authorization.md)）。导航由真实区域（目录/页面/链接/动作节点树，按身份域隔离）运营，提供部门数据范围与岗位管理（[ADR-0035](../adr/ADR-0035-action-permissions-departments.md)、[ADR-0036](../adr/ADR-0036-navigation-regions-granular-authorization.md)），不提供跨域角色转换或完整 SaaS 多租户。最后 super_admin 管理员和账号凭据撤销受保护。详见 [角色需求](feature-roles.md)、[ADR-0014](../adr/ADR-0014-separate-identities-management.md)、[ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md)。
+平台是多用户应用基座，不自动引入完整 SaaS 多租户。按 ADR-0037 使用统一用户表与多角色，用户工作区和管理工作台共用浏览器会话；角色 realm 仅分类。Cookie、客户端 JWT 和个人 API 令牌共用后端权限点、显式菜单/动作/API 授权与资源数据范围。客户端短期 JWT 配套可轮换且检测重放的 Refresh Token；PAT 只授予当前账号可委派 API 的子集。超级管理员保留能力及最后本地密码超管受保护。具体身份提供商和机器身份管理不由 Token 格式自动提供。见 [角色需求](feature-roles.md)、[API 认证](../product/api-authentication.md) 与 [ADR-0041](../adr/ADR-0041-api-token-authentication.md)。
 
 单机与桌面没有账号、管理端、邮件、公告或对象存储设置，品牌在构建时配置，仅提供本地外观与适用业务。CLI 直接复用无状态 Core，不装配数据库、HTTP/Wails 或平台身份。三个有数据库的形态提供 Notes 纵向样板；平台演示本人 file_id 附件。产品形态定义、能力矩阵与硬边界的权威细则见 [产品形态与能力边界规范](product-forms.md)。
 

@@ -55,7 +55,7 @@ Unicore 的产品形态只有三种。`framework.manifest.json` 中的四个 pro
 
 | 能力维度 | Platform | Standalone | CLI |
 | --- | --- | --- | --- |
-| 身份认证与用户体系 | 已实现：统一账号、共享会话、MFA、OIDC、人机验证 | 不装配：无账号主体，`capabilities.authentication=false` | 不装配 |
+| 身份认证与用户体系 | 已实现：统一账号、共享会话、MFA、OIDC、人机验证、客户端 JWT/刷新与个人 API 令牌 | 不装配：无账号主体，`capabilities.authentication=false` | 不装配 |
 | 权限控制 | 已实现：权限点 + 菜单/动作 + operation 三层授权，super_admin 保留集，部门数据范围 | 不装配角色模型；服务端仍 fail-closed，本地可达即边界 | 不适用 |
 | 数据持久化 | 已实现：SQLite/PostgreSQL/MySQL，core+platform+module.notes 命名空间 | 已实现：web 三方言、desktop 仅 SQLite；core+module.notes | 不装配：无数据库 |
 | 配置 | 已实现：全局设置（仅管理端）+ 设备偏好 | 设备偏好；无实例级设置页面或可写设置项 | 不适用（仅进程日志环境变量） |

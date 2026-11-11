@@ -3,7 +3,7 @@
   "info": {
     "title": "Unicore platform foundation API",
     "version": "0.1.4",
-    "description": "Fixed administrator/member roles. Global management APIs require an administrator and mutating authenticated requests require X-CSRF-Token. Platform appearance is client-local and never saved through instance settings.",
+    "description": "Unified accounts with multiple roles and independent API grants. Browser clients use a shared session Cookie plus CSRF; native/API clients may use JWT access tokens or scoped personal Bearer tokens. Credential-management endpoints require a browser session.",
     "contact": {
       "name": "yunnuo",
       "email": "ymz@ebox.vip"
@@ -142,6 +142,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "summary": "execute",
@@ -592,6 +595,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -661,6 +667,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -721,6 +730,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "users:update; administrator only",
@@ -792,6 +804,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "users:update; administrator only",
@@ -851,6 +866,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -909,6 +927,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "settings:write; administrator only",
@@ -1370,6 +1391,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "settings:write; administrator only",
@@ -1801,6 +1825,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "summary": "mailTemplates",
@@ -1844,6 +1871,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "settings:write; administrator only",
@@ -1892,6 +1922,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "roles:read; administrator only",
@@ -1939,6 +1972,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "roles:write; administrator only",
@@ -1997,6 +2033,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "users:read, users:create, users:update; administrator only",
@@ -2324,6 +2363,9 @@
         "security": [
           {
             "SessionCookie": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "summary": "oidcAccount",
@@ -2441,6 +2483,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "summary": "oidcLink",
@@ -2558,6 +2603,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "summary": "oidcUnlink",
@@ -2667,6 +2715,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "summary": "oidcCheck",
@@ -2764,6 +2815,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -2822,6 +2876,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "settings:write; administrator only",
@@ -2872,6 +2929,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -2929,6 +2989,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -2988,6 +3051,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "users:update; administrator only",
@@ -3046,6 +3112,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -3176,6 +3245,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "settings:read; administrator only",
@@ -3226,6 +3298,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -3281,6 +3356,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -3330,6 +3408,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -3390,6 +3471,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -3459,6 +3543,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -3520,6 +3607,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -3581,6 +3671,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -3642,6 +3735,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -3713,6 +3809,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -3762,6 +3861,9 @@
         "security": [
           {
             "SessionCookie": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -3830,6 +3932,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -3890,6 +3995,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -3963,6 +4071,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -4024,6 +4135,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -4095,6 +4209,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -4156,6 +4273,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -4471,6 +4591,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "summary": "管理员端：execute",
@@ -5325,6 +5448,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "summary": "管理员端：oidcAccount",
@@ -5442,6 +5568,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "summary": "管理员端：oidcLink",
@@ -5559,6 +5688,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "summary": "管理员端：oidcUnlink",
@@ -5594,6 +5726,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -5650,6 +5785,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -5718,6 +5856,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -5778,6 +5919,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -5851,6 +5995,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -5912,6 +6059,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -5983,6 +6133,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -6059,6 +6212,9 @@
           {},
           {
             "SessionCookie": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "summary": "个人笔记：listNotes",
@@ -6171,6 +6327,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "summary": "个人笔记：createNote",
@@ -6233,6 +6392,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "summary": "个人笔记：updateNote",
@@ -6304,6 +6466,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "summary": "个人笔记：deleteNote",
@@ -6365,6 +6530,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "summary": "个人笔记：listNotes",
@@ -6476,6 +6644,9 @@
           {
             "AdministratorSession": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "summary": "个人笔记：createNote",
@@ -6537,6 +6708,9 @@
           {
             "AdministratorSession": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "summary": "个人笔记：updateNote",
@@ -6607,6 +6781,9 @@
           {
             "AdministratorSession": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "summary": "个人笔记：deleteNote",
@@ -6695,6 +6872,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -6784,6 +6964,9 @@
           {
             "AdministratorSession": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -6883,6 +7066,9 @@
           {
             "AdministratorSession": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -6938,6 +7124,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -7079,6 +7268,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "settings:write; administrator only",
@@ -7138,6 +7330,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "settings:write; administrator only",
@@ -7197,6 +7392,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "settings:write; administrator only",
@@ -7304,6 +7502,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ]
       },
@@ -7351,6 +7552,9 @@
           {
             "AdministratorSession": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "requestBody": {
@@ -7421,6 +7625,9 @@
           {
             "AdministratorSession": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "requestBody": {
@@ -7480,6 +7687,9 @@
           {
             "AdministratorSession": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "requestBody": {
@@ -7538,6 +7748,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ]
       },
@@ -7585,6 +7798,9 @@
           {
             "AdministratorSession": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "requestBody": {
@@ -7644,6 +7860,9 @@
           {
             "AdministratorSession": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "requestBody": {
@@ -7725,6 +7944,9 @@
         "security": [
           {
             "SessionCookie": []
+          },
+          {
+            "BearerToken": []
           }
         ]
       }
@@ -7781,6 +8003,9 @@
         "security": [
           {
             "SessionCookie": []
+          },
+          {
+            "BearerToken": []
           }
         ]
       }
@@ -7813,6 +8038,9 @@
         "security": [
           {
             "SessionCookie": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -7860,6 +8088,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -7910,6 +8141,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -7970,6 +8204,9 @@
           {
             "AdministratorSession": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -8029,6 +8266,9 @@
         "security": [
           {
             "SessionCookie": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -8089,6 +8329,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -8150,6 +8393,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -8221,6 +8467,9 @@
           {
             "AdministratorSession": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -8292,6 +8541,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -8375,6 +8627,9 @@
           {
             "AdministratorSession": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -8458,6 +8713,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -8519,6 +8777,9 @@
           {
             "AdministratorSession": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -8579,6 +8840,9 @@
         "security": [
           {
             "SessionCookie": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -8623,6 +8887,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -8679,6 +8946,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -8732,6 +9002,9 @@
         "security": [
           {
             "SessionCookie": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -8779,6 +9052,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -8825,6 +9101,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -8881,6 +9160,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -9040,6 +9322,9 @@
         "security": [
           {
             "SessionCookie": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -9086,6 +9371,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -9142,6 +9430,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -9188,6 +9479,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -9234,6 +9528,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -9290,6 +9587,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -9346,6 +9646,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -9401,6 +9704,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -9446,6 +9752,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -9503,6 +9812,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -9557,6 +9869,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -9604,6 +9919,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -9651,6 +9969,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -9708,6 +10029,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -9868,6 +10192,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -9915,6 +10242,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -9972,6 +10302,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -10019,6 +10352,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -10066,6 +10402,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -10123,6 +10462,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -10180,6 +10522,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -10261,6 +10606,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ]
       }
@@ -10307,6 +10655,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ]
       }
@@ -10392,6 +10743,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ]
       }
@@ -10439,6 +10793,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "summary": "Read notification configuration and event catalog",
@@ -10472,6 +10829,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "settings:write; administrator only",
@@ -10531,6 +10891,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "settings:write; administrator only",
@@ -10590,6 +10953,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "settings:write; administrator only",
@@ -10721,6 +11087,9 @@
           {
             "SessionCookie": [],
             "CSRFToken": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "summary": "Reauthenticate the linked enterprise identity for initial TOTP enrollment",
@@ -10828,6 +11197,9 @@
           {
             "CSRFToken": [],
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "summary": "Reauthenticate the linked enterprise identity for initial TOTP enrollment",
@@ -10985,6 +11357,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "roles:write; administrator only",
@@ -11041,6 +11416,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "roles:write; administrator only",
@@ -11089,6 +11467,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "menus:write; administrator only",
@@ -11136,6 +11517,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "menus:write; administrator only",
@@ -11195,6 +11579,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "dictionaries:read; administrator only",
@@ -11242,6 +11629,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "dictionaries:write; administrator only",
@@ -11312,6 +11702,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "dictionaries:read; administrator only",
@@ -11359,6 +11752,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "dictionaries:write; administrator only",
@@ -11416,6 +11812,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "dictionaries:write; administrator only",
@@ -11465,6 +11864,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "departments:read; administrator only",
@@ -11512,6 +11914,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "departments:write; administrator only",
@@ -11571,6 +11976,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "departments:write; administrator only",
@@ -11638,6 +12046,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "departments:write; administrator only",
@@ -11708,6 +12119,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "dictionaries:write; administrator only",
@@ -11779,6 +12193,9 @@
         "security": [
           {
             "SessionCookie": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "active session",
@@ -11825,6 +12242,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -11871,6 +12291,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -11940,6 +12363,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -11996,6 +12422,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -12052,6 +12481,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -12111,6 +12543,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -12170,6 +12605,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -12218,6 +12656,9 @@
         "security": [
           {
             "SessionCookie": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -12263,6 +12704,9 @@
         "security": [
           {
             "SessionCookie": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -12319,6 +12763,9 @@
         "security": [
           {
             "SessionCookie": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -12364,6 +12811,9 @@
         "security": [
           {
             "SessionCookie": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -12409,6 +12859,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -12457,6 +12910,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -12517,6 +12973,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -12565,6 +13024,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -12635,6 +13097,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -12693,6 +13158,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -12741,6 +13209,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "roles:read; administrator only",
@@ -12789,6 +13260,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "roles:read; administrator only",
@@ -12838,6 +13312,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "posts:read; administrator only",
@@ -12885,6 +13362,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "posts:write; administrator only",
@@ -12944,6 +13424,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "posts:write; administrator only",
@@ -13011,6 +13494,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "posts:write; administrator only",
@@ -13070,6 +13556,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -13139,6 +13628,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -13269,6 +13761,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -13317,6 +13812,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -13374,6 +13872,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -13420,6 +13921,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-unicore": {
@@ -13478,6 +13982,9 @@
         "security": [
           {
             "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
           }
         ],
         "x-permission": "menus:write and roles:write; super_admin only",
@@ -13517,6 +14024,451 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/auth/token": {
+      "post": {
+        "operationId": "clientTokenLogin",
+        "summary": "Authenticate a native/API client; preserves captcha and MFA",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientTokenLoginResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "user"
+        },
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/token/mfa": {
+      "post": {
+        "operationId": "clientTokenMFA",
+        "summary": "clientTokenMFA",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientTokenPairResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "user"
+        },
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientTokenMFAInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/token/refresh": {
+      "post": {
+        "operationId": "refreshClientToken",
+        "summary": "refreshClientToken",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientTokenPairResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "user"
+        },
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/token/revoke": {
+      "post": {
+        "operationId": "revokeClientToken",
+        "summary": "revokeClientToken",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "public",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "user"
+        },
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/tokens": {
+      "get": {
+        "operationId": "personalTokens",
+        "summary": "List own personal API credentials; Cookie only",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonalTokenListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "user"
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "createPersonalToken",
+        "summary": "Create a scoped personal token; Cookie only, shown once",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonalTokenCreatedResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "user"
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonalTokenInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/tokens/{id}": {
+      "delete": {
+        "operationId": "revokePersonalToken",
+        "summary": "Revoke own personal API credential; Cookie only",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "user"
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/account/token-scopes": {
+      "get": {
+        "operationId": "personalTokenScopes",
+        "summary": "List currently available personal API scopes; Cookie only",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenScopeListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "user"
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/auth/token-keys/rotate": {
+      "post": {
+        "operationId": "rotateTokenSigningKey",
+        "summary": "Rotate JWT signing key; Cookie and super administrator only",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "settings:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": [],
+            "CSRFToken": []
+          }
+        ]
       }
     }
   },
@@ -15325,7 +16277,7 @@
               "custom",
               "self"
             ],
-            "description": "Row-level data scope of user-realm roles: all disables owner filtering, dept keeps the member's own department, dept_and_below adds its subtree, custom uses department_ids, self keeps personal visibility. Administrator-realm roles are fixed to self."
+            "description": "Resource data range: all, dept, dept_and_below, custom (department_ids), or self. Only roles granting the resource permission contribute."
           },
           "department_ids": {
             "type": "array",
@@ -18746,7 +19698,7 @@
               "custom",
               "self"
             ],
-            "description": "User-realm roles only: omitted means self. Administrator-realm roles are fixed to self and reject any other value."
+            "description": "Resource data range: all, dept, dept_and_below, custom (department_ids), or self. Only roles granting the resource permission contribute."
           },
           "department_ids": {
             "type": "array",
@@ -21202,6 +22154,338 @@
             "uniqueItems": true
           }
         }
+      },
+      "ClientTokenPair": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "maxLength": 4096
+          },
+          "refresh_token": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "token_type": {
+            "type": "string",
+            "enum": [
+              "Bearer"
+            ]
+          },
+          "expires_in": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "refresh_expires_at": {
+            "type": "integer"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        },
+        "required": [
+          "access_token",
+          "refresh_token",
+          "token_type",
+          "expires_in",
+          "refresh_expires_at",
+          "user"
+        ]
+      },
+      "ClientTokenLogin": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tokens": {
+            "$ref": "#/components/schemas/ClientTokenPair"
+          },
+          "mfa_required": {
+            "type": "boolean"
+          },
+          "challenge_token": {
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "mfa_required"
+        ]
+      },
+      "ClientTokenMFAInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "challenge_token": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 43
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1
+          }
+        },
+        "required": [
+          "challenge_token",
+          "code"
+        ]
+      },
+      "RefreshTokenInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "refresh_token": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 43
+          }
+        },
+        "required": [
+          "refresh_token"
+        ]
+      },
+      "PersonalTokenInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1
+          },
+          "expires_in_days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 365
+          },
+          "operation_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 128,
+              "minLength": 1
+            },
+            "minItems": 1,
+            "maxItems": 128,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "name",
+          "expires_in_days",
+          "operation_ids"
+        ]
+      },
+      "PersonalToken": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "created_at": {
+            "type": "integer"
+          },
+          "expires_at": {
+            "type": "integer"
+          },
+          "last_used_at": {
+            "type": "integer"
+          },
+          "revoked": {
+            "type": "boolean"
+          },
+          "operation_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 128
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "created_at",
+          "expires_at",
+          "last_used_at",
+          "revoked",
+          "operation_ids"
+        ]
+      },
+      "PersonalTokenCreated": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "token": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "credential": {
+            "$ref": "#/components/schemas/PersonalToken"
+          }
+        },
+        "required": [
+          "token",
+          "credential"
+        ]
+      },
+      "PersonalTokenList": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonalToken"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "TokenScopeList": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/APIOperation"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "ClientTokenPairResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ClientTokenPair"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "ClientTokenLoginResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ClientTokenLogin"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "PersonalTokenCreatedResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PersonalTokenCreated"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "PersonalTokenListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PersonalTokenList"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "TokenScopeListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TokenScopeList"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
       }
     },
     "securitySchemes": {
@@ -21224,8 +22508,13 @@
       "AdministratorSession": {
         "type": "apiKey",
         "in": "cookie",
-        "name": "unicore_administrator_session",
-        "description": "Independent administrator session. User cookies never authorize administrator routes."
+        "name": "unicore_session",
+        "description": "Management surface uses the same unicore_session Cookie and server-side RBAC as the user workspace."
+      },
+      "BearerToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "JWT client access token or scoped personal access token. Refresh tokens are accepted only by the dedicated refresh/revoke endpoints."
       }
     }
   },

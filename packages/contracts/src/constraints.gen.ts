@@ -7604,5 +7604,337 @@ export const constraints = {
         "uniqueItems": true
       }
     }
+  },
+  "ClientTokenPair": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "access_token": {
+        "type": "string",
+        "maxLength": 4096
+      },
+      "refresh_token": {
+        "type": "string",
+        "maxLength": 128
+      },
+      "token_type": {
+        "type": "string",
+        "enum": [
+          "Bearer"
+        ]
+      },
+      "expires_in": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "refresh_expires_at": {
+        "type": "integer"
+      },
+      "user": {
+        "$ref": "#/components/schemas/User"
+      }
+    },
+    "required": [
+      "access_token",
+      "refresh_token",
+      "token_type",
+      "expires_in",
+      "refresh_expires_at",
+      "user"
+    ]
+  },
+  "ClientTokenLogin": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "tokens": {
+        "$ref": "#/components/schemas/ClientTokenPair"
+      },
+      "mfa_required": {
+        "type": "boolean"
+      },
+      "challenge_token": {
+        "type": "string",
+        "maxLength": 128
+      }
+    },
+    "required": [
+      "mfa_required"
+    ]
+  },
+  "ClientTokenMFAInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "challenge_token": {
+        "type": "string",
+        "maxLength": 128,
+        "minLength": 43
+      },
+      "code": {
+        "type": "string",
+        "maxLength": 128,
+        "minLength": 1
+      }
+    },
+    "required": [
+      "challenge_token",
+      "code"
+    ]
+  },
+  "RefreshTokenInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "refresh_token": {
+        "type": "string",
+        "maxLength": 128,
+        "minLength": 43
+      }
+    },
+    "required": [
+      "refresh_token"
+    ]
+  },
+  "PersonalTokenInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "name": {
+        "type": "string",
+        "maxLength": 80,
+        "minLength": 1
+      },
+      "expires_in_days": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 365
+      },
+      "operation_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "minItems": 1,
+        "maxItems": 128,
+        "uniqueItems": true
+      }
+    },
+    "required": [
+      "name",
+      "expires_in_days",
+      "operation_ids"
+    ]
+  },
+  "PersonalToken": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "name": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "created_at": {
+        "type": "integer"
+      },
+      "expires_at": {
+        "type": "integer"
+      },
+      "last_used_at": {
+        "type": "integer"
+      },
+      "revoked": {
+        "type": "boolean"
+      },
+      "operation_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 128
+        }
+      }
+    },
+    "required": [
+      "id",
+      "name",
+      "created_at",
+      "expires_at",
+      "last_used_at",
+      "revoked",
+      "operation_ids"
+    ]
+  },
+  "PersonalTokenCreated": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "token": {
+        "type": "string",
+        "maxLength": 128
+      },
+      "credential": {
+        "$ref": "#/components/schemas/PersonalToken"
+      }
+    },
+    "required": [
+      "token",
+      "credential"
+    ]
+  },
+  "PersonalTokenList": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/PersonalToken"
+        }
+      }
+    },
+    "required": [
+      "items"
+    ]
+  },
+  "TokenScopeList": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/APIOperation"
+        }
+      }
+    },
+    "required": [
+      "items"
+    ]
+  },
+  "ClientTokenPairResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/ClientTokenPair"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "ClientTokenLoginResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/ClientTokenLogin"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "PersonalTokenCreatedResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/PersonalTokenCreated"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "PersonalTokenListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/PersonalTokenList"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "TokenScopeListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/TokenScopeList"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
   }
 };

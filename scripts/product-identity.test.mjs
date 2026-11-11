@@ -31,7 +31,7 @@ const files={
  'deploy/docker/Dockerfile':'FROM scratch\nLABEL org.opencontainers.image.title="Unicore"\n',
  'docs/product/guide.md':'# Guide\n\nRun unicore-ops backup or deploy/tar/unicore; service unicore.service; volume unicore_data.\n',
  'distribution/manifest.json':'{"documents":[{"source":"docs/product/guide.md","target":"docs/product/guide.md","audiences":["project-template"]}]}',
- 'go.mod':'module example.test/team/product\n\ngo 1.26.10\n',
+ 'go.mod':'module example.test/team/product\n\ngo 1.26.11\n',
  'Makefile':'LDFLAGS := -X $(GO_MODULE)/internal/buildinfo.Version=1\n',
 };
 

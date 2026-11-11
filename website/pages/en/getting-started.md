@@ -14,7 +14,7 @@ Unicore shares Go domain logic and use cases across HTTP, Wails, and Cobra entry
 
 ## Run from source
 
-Install Go 1.26.10+, a Node version satisfying the root `package.json` engines, pnpm 11.25.0, Git, and ripgrep. Native desktop builds also require Wails and the target OS dependencies.
+Install Go 1.26.11+, a Node version satisfying the root `package.json` engines, pnpm 11.25.0, Git, and ripgrep. Native desktop builds also require Wails and the target OS dependencies.
 
 ```sh
 git clone https://github.com/yunnuo88520/Unicore.git

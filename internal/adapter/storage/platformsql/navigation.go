@@ -261,6 +261,7 @@ func (r *Repository) ensureMonitorNavigation(ctx context.Context) error {
 	if err = r.Store.Row(ctx, tx, "SELECT setting_value FROM unicore_system_settings WHERE setting_key=?", monitorSeedMarker).Scan(&seeded); err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return err
 	}
+	markerExists := err == nil
 	received := map[string]bool{}
 	if seeded == "1" {
 		// Legacy marker: the P0 merge already ran for every pre-P1 entry.
@@ -315,7 +316,15 @@ func (r *Repository) ensureMonitorNavigation(ctx context.Context) error {
 			receivedList = append(receivedList, id)
 		}
 	}
-	if _, err = r.Store.Exec(ctx, tx, "INSERT INTO unicore_system_settings(setting_key,setting_value) VALUES(?,?) ON CONFLICT(setting_key) DO UPDATE SET setting_value=excluded.setting_value", monitorSeedMarker, strings.Join(receivedList, ",")); err != nil {
+	// The installation lock serializes the earlier existence check and this
+	// write. Use portable SQL, including when an unchanged MySQL UPDATE reports
+	// zero affected rows on a repeated startup.
+	if markerExists {
+		_, err = r.Store.Exec(ctx, tx, "UPDATE unicore_system_settings SET setting_value=? WHERE setting_key=?", strings.Join(receivedList, ","), monitorSeedMarker)
+	} else {
+		_, err = r.Store.Exec(ctx, tx, "INSERT INTO unicore_system_settings(setting_key,setting_value) VALUES(?,?)", monitorSeedMarker, strings.Join(receivedList, ","))
+	}
+	if err != nil {
 		return err
 	}
 	return tx.Commit()

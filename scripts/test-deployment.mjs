@@ -194,7 +194,8 @@ async function exercise(mode,profile) {
         await personal.goto(`${url}/site`);
         await expect(personal.getByRole('heading',{name:'没有访问权限',exact:true})).toBeVisible();
         const metadata=(await(await member.request.get('/api/v1/bootstrap')).json()).data;
-        expect(metadata.current_user.roles).toEqual(['user']);expect([...metadata.current_user.permissions].sort()).toEqual(['files:access','files:delete','files:upload','notes:access','notes:create','notes:delete','notes:update']);
+        // Retired file demo grants are absent from the default business role.
+        expect(metadata.current_user.roles).toEqual(['user']);expect([...metadata.current_user.permissions].sort()).toEqual(['notes:access','notes:create','notes:delete','notes:update']);
         // Workspace entry points share one identity. Denial follows each API's
         // permission and super-admin policy; MFA still requires a pending session.
         for(const operation of management) {

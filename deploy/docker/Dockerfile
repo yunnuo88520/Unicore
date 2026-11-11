@@ -1,5 +1,5 @@
 # Author: yunnuo <ymz@ebox.vip>
-ARG GO_IMAGE=golang:1.26.10-bookworm
+ARG GO_IMAGE=golang:1.26.11-bookworm
 ARG NODE_IMAGE=node:22-bookworm-slim
 ARG RUNTIME_IMAGE=gcr.io/distroless/static-debian12:nonroot
 FROM ${GO_IMAGE} AS go-toolchain

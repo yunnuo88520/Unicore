@@ -44,7 +44,7 @@ Signed OTA channels and offline release history are implemented; inspect each re
 
 ## Quick start
 
-Requirements: Go 1.26.10+, Node 22.22.2+ (Node 22 is the CI baseline; see `package.json` engines for other supported series), pnpm 11.25.0, Git, Make, and ripgrep (`rg`). Run `make doctor` to check your environment. Install ripgrep with `brew install ripgrep` on macOS or `sudo apt-get install ripgrep` on Ubuntu/Debian. WSL2 is recommended for Web/CLI development on Windows. Build native Windows desktop applications on Windows with Make, Wails, and WebView2; see [Wails native dependencies](https://wails.io/docs/gettingstarted/installation).
+Requirements: Go 1.26.11+, Node 22.22.2+ (Node 22 is the CI baseline; see `package.json` engines for other supported series), pnpm 11.25.0, Git, Make, and ripgrep (`rg`). Run `make doctor` to check your environment. Install ripgrep with `brew install ripgrep` on macOS or `sudo apt-get install ripgrep` on Ubuntu/Debian. WSL2 is recommended for Web/CLI development on Windows. Build native Windows desktop applications on Windows with Make, Wails, and WebView2; see [Wails native dependencies](https://wails.io/docs/gettingstarted/installation).
 
 ```sh
 git clone https://github.com/yunnuo88520/Unicore.git

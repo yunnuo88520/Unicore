@@ -33,7 +33,7 @@
 | 权限 | sudo/root 用于创建服务用户、目录、systemd/Nginx；程序本身以非 root 身份运行 |
 | Docker 路径 | 已安装并启动 Docker Engine，`docker version` 可用；Compose 使用 V2 插件，`docker compose version` 可用 |
 | tar 路径 | 安装 `curl`、`tar`、CA 证书；运行预构建包不需要 Go、Node、pnpm，也不需要单独安装 SQLite 服务 |
-| 源码构建 | 另需 Git、Go 1.26.10+、Node（满足 package.json engines）、pnpm 11.25.0、make/ripgrep；Docker 构建所需 Go/Node 已在构建镜像中 |
+| 源码构建 | 另需 Git、Go 1.26.11+、Node（满足 package.json engines）、pnpm 11.25.0、make/ripgrep；Docker 构建所需 Go/Node 已在构建镜像中 |
 | 数据库 | 准备专用空库和账号，推荐 PostgreSQL 15 或 Oracle MySQL 8.0；SQLite 适合本机/小型试用，不应从示例推断高并发能力 |
 | 域名与 TLS | 平台公网部署先准备域名、DNS A/AAAA 和证书，示例使用 `app.example.com`，均需换成自己的值 |
 | 端口 | 公网只放行 HTTPS 443；HTTP 80 用于跳转/证书签发；SSH 按运维策略开放。应用 3000 和数据库 5432/3306 只给本机/私网 |

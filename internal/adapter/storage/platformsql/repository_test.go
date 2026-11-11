@@ -127,6 +127,22 @@ func TestDialectMigrationsAndIdentity(t *testing.T) {
 			exerciseNotes(t, ctx, store)
 			exercisePersonal(t, ctx, store, admin)
 			exerciseNotificationEvents(t, ctx, store, admin)
+			// Startup navigation runs for every supported database, including
+			// both insertion and unchanged update of the monitor seed marker.
+			if err = admins.EnsureNavigation(ctx); err != nil {
+				t.Fatal("initialize startup navigation", err)
+			}
+			before, err := admins.readNavigation(ctx, store.DB)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err = admins.EnsureNavigation(ctx); err != nil {
+				t.Fatal("repeat startup navigation", err)
+			}
+			after, err := admins.readNavigation(ctx, store.DB)
+			if err != nil || before.Version != after.Version || len(before.Nodes) != len(after.Nodes) {
+				t.Fatal("startup navigation is not idempotent", err)
+			}
 		})
 	}
 }

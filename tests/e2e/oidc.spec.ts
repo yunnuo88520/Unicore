@@ -61,9 +61,9 @@ test('enterprise settings, real JIT, explicit binding and password fallback', as
     await expect(employee.getByRole('heading',{name:'工作台概览'})).toBeVisible();
     const newUser = (await (await employee.request.get(`${instance.url}/api/v1/bootstrap`)).json()).data;
     expect(newUser.current_user.roles).toEqual(['user']);
-    // The builtin user role automatically holds every assignable business grant;
-    // the departments points stay administrator-realm management points.
-    expect(newUser.current_user.permissions).toEqual(['files:access','files:delete','files:upload','notes:access','notes:create','notes:delete','notes:update']);
+    // New accounts receive the notes business grants only; retired file demo
+    // grants and management permissions require explicit role assignment.
+    expect(newUser.current_user.permissions).toEqual(['notes:access','notes:create','notes:delete','notes:update']);
     expect((await employee.request.get(`${instance.url}/api/v1/admin/users`)).status()).toBe(403);
     await employee.goto(`${instance.url}/account-security`); await expect(employee.getByText('已绑定',{exact:true})).toBeVisible();
     await expect(employee.getByText('尚未设置',{exact:true})).toBeVisible(); await expect(employee.getByRole('button',{name:'确认解除绑定',exact:true})).toHaveCount(0); await capture(employee,info,'oidc-jit-account');

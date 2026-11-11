@@ -1,7 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Maintain the framework-template branch: an independent whitelist-only history whose commits chain per template update.
 import { execFileSync } from 'node:child_process';
-import { cpSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { copyDistribution } from './distribution.mjs';
 
@@ -17,6 +17,17 @@ export function updateTemplateBranch(root = process.cwd()) {
   mkdirSync(staging, { recursive: true });
   copyDistribution(root, staging, 'project-template');
   cpSync(join(root, 'product.identity.json'), join(staging, 'product.identity.json'));
+  // The framework README links maintainer-facing documents that stay outside the
+  // template whitelist; the template tree carries a self-contained pair instead.
+  const readme = `<!-- Author: yunnuo <ymz@ebox.vip> -->\n# Unicore 应用模板\n\n**简体中文** · [English](README.en.md)\n\n本仓库由 [Unicore](https://github.com/yunnuo88520/Unicore) 框架模板生成：一份核心，运行于 Web、桌面与 CLI。产品身份唯一入口为 \`product.identity.json\`，上游同步见 docs/product/updates.md。\n\n开发：\n\n\`\`\`sh\nmake install\nmake docs\nmake test\nmake dev-server\n# 第二个终端\nmake dev-web\n\`\`\`\n\n首次启动访问 /install（桌面自动初始化本地数据库，CLI 不连接数据库）。功能边界与部署指南见 [docs/product](docs/product/index.md)。\n`;
+  const readmeEn = `<!-- Author: yunnuo <ymz@ebox.vip> -->\n# Unicore application template\n\n[简体中文](README.md) · **English**\n\nThis repository is generated from the [Unicore](https://github.com/yunnuo88520/Unicore) framework template: one core serving Web, desktop and CLI. \`product.identity.json\` is the single product-identity entry; see docs/product/updates.md for upstream sync.\n\nDevelopment:\n\n\`\`\`sh\nmake install\nmake docs\nmake test\nmake dev-server\n# In a second terminal:\nmake dev-web\n\`\`\`\n\nOpen /install on first Web launch (desktop initializes its local database; CLI has no database). Boundaries and deployment guides live in [docs/product](docs/product/index.md).\n`;
+  writeFileSync(join(staging, 'README.md'), readme);
+  writeFileSync(join(staging, 'README.en.md'), readmeEn);
+  // The template tree ships its generated AI context so a fresh checkout passes
+  // make test without a prior make docs run. Fixtures without the generator skip it.
+  if (existsSync(join(root, 'scripts', 'ai-context.mjs'))) {
+    execFileSync(process.execPath, [join(root, 'scripts', 'ai-context.mjs')], { cwd: staging, stdio: ['ignore', 'pipe', 'inherit'] });
+  }
   git(root, '-C', staging, 'init', '-q');
   git(root, '-C', staging, 'add', '-A');
   // CI runners carry no git identity; the mechanical template export falls back to the project author.

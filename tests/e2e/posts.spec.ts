@@ -178,7 +178,6 @@ test('new consoles read in English and keep data states inside a 375px viewport'
 
   for (const [path, heading] of [
     ['/admin/posts', 'Posts'],
-    ['/admin/api-operations', 'API operations'],
     ['/admin/departments', 'Departments'],
     ['/admin/menus', 'Menu configuration'],
     ['/admin/roles', 'Roles & permissions'],

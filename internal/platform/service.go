@@ -47,6 +47,7 @@ type Store interface {
 	DataScope(context.Context, contracts.User, string) (ScopeFilter, error)
 	ListMenuConfig(context.Context) (contracts.MenuList, error)
 	SaveNavigation(context.Context, contracts.MenuSaveInput, string) (contracts.MenuList, error)
+	AssignMenuRoles(context.Context, string, contracts.MenuRoleAssignmentInput, string) (contracts.RoleList, error)
 	ListDictionaries(context.Context) (contracts.DictionaryList, error)
 	Dictionary(context.Context, string, bool) (contracts.DictionaryDetail, error)
 	DictionaryByCode(context.Context, string, bool) (contracts.DictionaryDetail, error)

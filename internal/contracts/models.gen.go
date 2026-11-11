@@ -453,6 +453,7 @@ type PermissionDefinition struct {
 	Description string `json:"description"`
 	Group       string `json:"group"`
 	Assignable  bool   `json:"assignable"`
+	SuperAdmin  bool   `json:"super_admin"`
 }
 
 type Role struct {
@@ -1897,4 +1898,10 @@ type NotifyEvent struct {
 	DescriptionEn    string           `json:"description_en"`
 	UserEmailAllowed bool             `json:"user_email_allowed"`
 	Variables        []NotifyVariable `json:"variables"`
+}
+
+type MenuRoleAssignmentInput struct {
+	Version         int      `json:"version"`
+	RoleIds         []string `json:"role_ids"`
+	ExpectedRoleIds []string `json:"expected_role_ids"`
 }

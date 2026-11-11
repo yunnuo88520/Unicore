@@ -622,9 +622,8 @@ it('never offers action entries: edit keeps the persisted type and create stops 
   expect(actionIds).toEqual(['action:demo']);
 });
 
-it('leaves role assignment to the role editor and never sends role_assignments', async () => {
-  // Authorization lives in the role editor's four surfaces; the menu editor is
-  // a pure layout tool, so saves never carry a role payload.
+it('keeps layout-only operators from assigning roles or sending role_assignments', async () => {
+  // Ordinary menu operators only edit layout; reverse assignment is super-only.
   let current = menuList();
   const saveMenuConfig = vi.fn(async (input: MenuSaveInput) => {
     current = { ...current, version: input.version + 1 };
@@ -640,7 +639,7 @@ it('leaves role assignment to the role editor and never sends role_assignments',
   await userEvent.click(screen.getByRole('button', { name: '保存菜单配置' }));
   await vi.waitFor(() => expect(saveMenuConfig).toHaveBeenCalledTimes(1));
   expect((saveMenuConfig.mock.calls[0][0] as MenuSaveInput).role_assignments).toBeUndefined();
-  expect(screen.queryByRole('button', { name: /分配 工作台概览 的角色/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: /分配角色/ })).toBeNull();
 });
 
 it('restores the whole shared tree through the reset payload', async () => {
@@ -670,4 +669,16 @@ it('keeps the editor open and shows the server conflict when the version CAS rej
   // The draft stays editable for a retry after refreshing the table.
   expect(screen.getByRole('button', { name: '保存菜单配置' })).toBeEnabled();
   expect(screen.getByRole('row', { name: '业务' })).toBeVisible();
+});
+
+it('patches one menu role membership using its observed role set and navigation version', async () => {
+  const assignMenuRoles = vi.fn().mockResolvedValue({ items: [role({ menu_ids: ['users', 'overview'] })], permissions: [] });
+  const saveMenuConfig = vi.fn();
+  mountWeb({ menuConfig: vi.fn().mockResolvedValue(menuList()), roles: vi.fn().mockResolvedValue({ items: [role()], permissions: [] }), assignMenuRoles, saveMenuConfig }, meta(['menus:write', 'roles:write']));
+  await userEvent.click(await screen.findByRole('button', { name: '分配角色：工作台概览' }));
+  const dialog = screen.getByRole('dialog', { name: '分配角色：工作台概览' });
+  await userEvent.click(within(dialog).getByRole('checkbox', { name: '运营' }));
+  await userEvent.click(within(dialog).getByRole('button', { name: '保存' }));
+  await vi.waitFor(() => expect(assignMenuRoles).toHaveBeenCalledWith('overview', { version: 7, expected_role_ids: [], role_ids: ['r1'] }));
+  expect(saveMenuConfig).not.toHaveBeenCalled();
 });

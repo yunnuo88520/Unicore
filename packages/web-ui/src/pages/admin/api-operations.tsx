@@ -1,11 +1,9 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Read-only OpenAPI operation catalogue and a route to the shared role authorization editor.
+// Description: Complete contract-derived API selector inside advanced role authorization.
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Badge, Button, Card, CardContent, Checkbox, Input, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow } from '@unicore/ui';
+import { Badge, Button, Checkbox, Input, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow } from '@unicore/ui';
 import { t, useLocale } from '../../i18n';
-import { usePermissions } from '../../permissions';
-import type { PageProps } from '../../router';
 import type { WebClient } from '@unicore/sdk';
 
 type Operation = Awaited<ReturnType<WebClient['apiOperations']>>['items'][number];
@@ -16,13 +14,13 @@ export function filterOperations(items: readonly Operation[], filters: Record<st
   }));
 }
 
-export function OperationCatalogue({ web, selected, onChange, realm, permissions, disabled = false }: {
-  web: WebClient; selected?: string[]; onChange?: (ids: string[]) => void; realm?: string; permissions?: string[]; disabled?: boolean;
+export function OperationCatalogue({ web, selected, onChange, permissions, disabled = false, businessOnly = false, assignablePermissions = [] }: {
+  web: WebClient; selected?: string[]; onChange?: (ids: string[]) => void; permissions?: string[]; disabled?: boolean; businessOnly?: boolean; assignablePermissions?: string[];
 }) {
   useLocale();
   const [filters, setFilters] = useState({ module: '', method: '', path: '', name: '', permission: '' });
   const list = useQuery({ queryKey: ['api-operations'], queryFn: () => web.apiOperations() });
-  const items = filterOperations(list.data?.items ?? [], filters);
+  const items = filterOperations((list.data?.items ?? []).filter(item => !onChange || (item.grantable && !item.super_admin)), filters);
   return <div className="flex min-w-0 flex-col gap-3">
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       <Input aria-label={t('按模块筛选')} placeholder={t('按模块筛选')} value={filters.module} onChange={e => setFilters(f => ({ ...f, module: e.target.value }))} />
@@ -40,7 +38,7 @@ export function OperationCatalogue({ web, selected, onChange, realm, permissions
         </TableRow></TableHeader>
         <TableBody>{items.map(item => {
           const permitted = permissions === undefined || (item.permission_mode === 'any' ? item.permissions.some(p => permissions.includes(p)) : item.permissions.every(p => permissions.includes(p)));
-          const grantable = permitted && item.grantable && (!realm || item.realm === realm || item.realm === 'both') && !item.super_admin;
+          const grantable = item.grantable && !item.super_admin && (item.permission_mode !== 'any' || permitted) && (!businessOnly || item.permissions.some(point => assignablePermissions.includes(point)) && (item.permission_mode === 'any' || item.permissions.every(point => assignablePermissions.includes(point))));
           return <TableRow key={item.operation_id}>
             {onChange && <TableCell><Checkbox aria-label={item.operation_id} checked={selected?.includes(item.operation_id) ?? false} disabled={disabled || (!grantable && !selected?.includes(item.operation_id))}
               onChange={checked => onChange(checked ? [...(selected ?? []), item.operation_id] : (selected ?? []).filter(id => id !== item.operation_id))} /></TableCell>}
@@ -53,15 +51,4 @@ export function OperationCatalogue({ web, selected, onChange, realm, permissions
       </Table>
     </div>
   </div>;
-}
-
-export function AdminApiOperationsPage({ client, metadata }: PageProps) {
-  useLocale();
-  const { has } = usePermissions(metadata);
-  if (!client.web) return null;
-  return <Card><CardContent className="flex min-w-0 flex-col gap-4">
-    <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-md font-semibold">{t('API 操作目录')}</h2>{has('roles:write') && <a className="text-sm text-accent underline" href="roles">{t('前往角色授权')}</a>}</div>
-    <p className="text-sm text-muted">{t('目录来自 OpenAPI；角色的业务权限是上界，API 授权独立收紧访问范围。')}</p>
-    <OperationCatalogue web={client.web} />
-  </CardContent></Card>;
 }

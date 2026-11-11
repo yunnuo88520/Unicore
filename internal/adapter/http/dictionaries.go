@@ -24,6 +24,23 @@ func mountMenus(api chi.Router, config Config) {
 		}
 		success(w, data)
 	})
+	api.Put("/admin/menus/{id}/roles", func(w http.ResponseWriter, r *http.Request) {
+		actor, ok := require(manager, w, r, "roles:write")
+		if !ok {
+			return
+		}
+		var input contracts.MenuRoleAssignmentInput
+		if !decode(w, r, &input) {
+			return
+		}
+		_, _, identity, _ := manager.Services()
+		data, err := identity.Store.AssignMenuRoles(r.Context(), chi.URLParam(r, "id"), input, actor.User.ID)
+		if err != nil {
+			webError(w, err)
+			return
+		}
+		success(w, data)
+	})
 	api.Put("/admin/menus", func(w http.ResponseWriter, r *http.Request) {
 		actor, ok := require(manager, w, r, "menus:write")
 		if !ok {

@@ -126,17 +126,15 @@ it('keeps restricted administrators in the administration layout while filtering
   expect(personal?.children.map(entry => entry.id)).toEqual(['account', 'account-security', 'account-sessions']);
 });
 
-it('gates the new posts and api-operations pages inside the administration group', () => {
+it('gates posts and retires the separate API operation page', () => {
   const superAdmin = { profile: 'web-platform', identity_realm: 'administrator', capabilities: {}, current_user: { roles: ['super_admin'], permissions: ['posts:read', 'roles:read'] } } as unknown as Bootstrap;
   expect(canAccess('posts', superAdmin)).toBe(true);
-  expect(canAccess('api-operations', superAdmin)).toBe(true);
+  expect(pageFromHash('api-operations')).toBe('not-found');
   // Each page keeps its own point: posts readers do not reach the catalogue.
   const postsReader = { ...superAdmin, current_user: { roles: ['ops'], permissions: ['posts:read'] } } as unknown as Bootstrap;
   expect(canAccess('posts', postsReader)).toBe(true);
-  expect(canAccess('api-operations', postsReader)).toBe(false);
   const member = { ...superAdmin, identity_realm: 'user' } as Bootstrap;
   expect(canAccess('posts', member)).toBe(false);
-  expect(canAccess('api-operations', member)).toBe(false);
   expect(canAccess('posts', { ...superAdmin, profile: 'web-standalone' } as unknown as Bootstrap)).toBe(false);
 });
 

@@ -61,24 +61,6 @@ it('dispatches the post console with its empty state and create entry', async ()
   expect(web.listPosts).toHaveBeenCalledTimes(1);
 });
 
-it('dispatches the API operation catalogue from the OpenAPI projection', async () => {
-  const web = {
-    apiOperations: vi.fn().mockResolvedValue({
-      items: [
-        { operation_id: 'listNotes', method: 'GET', path: '/api/v1/notes', summary: '列出笔记', tags: ['笔记'], realm: 'user', permissions: ['notes:access'], permission_mode: 'all', csrf: false, super_admin: false, grantable: true },
-        { operation_id: 'applyUpdate', method: 'POST', path: '/api/v1/admin/updates/apply', summary: '安装更新', tags: ['系统'], realm: 'administrator', permissions: ['updates:apply'], permission_mode: 'all', csrf: true, super_admin: true, grantable: true },
-      ],
-    }),
-  };
-  mount(<AdministrationPage {...adminProps('api-operations', web)} />);
-  expect(await screen.findByRole('heading', { name: 'API 操作目录' })).toBeVisible();
-  expect(await screen.findByText('/api/v1/notes')).toBeVisible();
-  // The boundary columns render for every operation; no fake create handler exists.
-  expect(screen.getByText('applyUpdate')).toBeVisible();
-  expect(screen.getByText('/api/v1/admin/updates/apply')).toBeVisible();
-  expect(screen.queryByRole('button', { name: '新增 API' })).toBeNull();
-});
-
 // Generic registration guard: every administration/system console (plus the
 // flat announcements page) must dispatch to real content. A missing switch
 // case would render an empty page; notes/files render through the shared
@@ -94,7 +76,7 @@ it('renders a non-blank console for every permission-gated page', async () => {
     // compiles in; that state is covered by feature builds, not this guard.
     .filter(page => 'permission' in routes[page] && page !== 'edition' && ('group' in routes[page] || page === 'announcements'));
   expect(gatedPages).toContain('posts');
-  expect(gatedPages).toContain('api-operations');
+  expect(gatedPages).not.toContain('api-operations');
   for (const page of gatedPages) {
     // Settings/storage pages read route search params, so the console mounts as
     // the component of a minimal memory-history root route.

@@ -12804,7 +12804,7 @@
           "superAdmin": false,
           "csrf": false,
           "identityRealm": "administrator",
-          "uiPage": "api-operations"
+          "uiPage": "roles"
         },
         "summary": "List API operation authorization catalogue",
         "parameters": []
@@ -13444,6 +13444,75 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/MonitorAlertRules"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/menus/{id}/roles": {
+      "put": {
+        "operationId": "assignMenuRoles",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "x-permission": "menus:write and roles:write; super_admin only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "menus:write",
+            "roles:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "Assign roles to one navigation item without replacing unrelated grants",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MenuRoleAssignmentInput"
               }
             }
           }
@@ -15176,7 +15245,8 @@
           "name",
           "description",
           "group",
-          "assignable"
+          "assignable",
+          "super_admin"
         ],
         "properties": {
           "id": {
@@ -15193,6 +15263,10 @@
           },
           "assignable": {
             "type": "boolean"
+          },
+          "super_admin": {
+            "type": "boolean",
+            "description": "Reserved for super_admin; cannot be delegated to custom roles."
           }
         }
       },
@@ -21093,6 +21167,39 @@
               "$ref": "#/components/schemas/NotifyVariable"
             },
             "maxItems": 32
+          }
+        }
+      },
+      "MenuRoleAssignmentInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "version",
+          "role_ids",
+          "expected_role_ids"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "role_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
+          },
+          "expected_role_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 2048,
+            "uniqueItems": true
           }
         }
       }

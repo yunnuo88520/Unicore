@@ -12,10 +12,8 @@ test('menu, action and API revocations remain independent across role edits', as
  await workspaceLogin(page,instance.url,member.username);
  await page.goto(`${instance.url}/notes`);
  await expect(page.getByRole('heading',{name:/^我的笔记/})).toBeVisible();
- // The create button rides the session action derivation (ADR-0039): the
- // operation grant plus its permission points materialize op:createNote into
- // action_ids even though the stored role row keeps action_ids empty.
- await expect(page.getByRole('button',{name:'新建笔记'})).toBeVisible();
+ // Explicit empty buttons remain empty even when the API is callable.
+ await expect(page.getByRole('button',{name:'新建笔记'})).toHaveCount(0);
  const boot=(await (await page.request.get(`${instance.url}/api/v1/bootstrap`)).json()).data;
  const input={title:'Independent API grant',body:'Demo consumer',status:'open',attachment_ids:[]};
  expect((await page.request.post(`${instance.url}/api/v1/notes`,{headers:{'X-CSRF-Token':boot.csrf_token},data:input})).status()).toBe(200);
@@ -71,6 +69,8 @@ test('an administrator grants the notes page through the role editor UI and the 
   const editor = page.getByRole('dialog', { name: '新建角色', exact: true });
   await editor.getByLabel('角色名称', { exact: true }).fill('笔记运营');
   await editor.getByRole('checkbox', { name: '我的笔记', exact: true }).check();
+  await editor.getByRole('button', { name: '展开或收起 我的笔记', exact: true }).click();
+  await editor.getByRole('checkbox', { name: '创建笔记', exact: true }).check();
   await editor.getByRole('button', { name: '保存', exact: true }).click();
   await expect(editor).toHaveCount(0);
   // The member account is created in the user console; the role chip group

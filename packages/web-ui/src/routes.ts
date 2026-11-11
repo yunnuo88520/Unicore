@@ -24,7 +24,6 @@ export const routes = defineMessages({
   edition: { label:'系统更新',title:'系统更新',description:'查看版本记录，检查并安装可信的新版本。',permission:'updates:read',icon:PackageCheck,group:'system' },
   roles: { label: '角色权限', title: '角色权限', description: '维护用户角色的权限点与成员分配。', permission: 'roles:read', icon: ShieldCheck, group: 'administration' },
   posts: { label: '岗位管理', title: '岗位管理', description: '维护岗位目录和成员关系，岗位不隐式授予角色。', permission: 'posts:read', icon: UserCog, group: 'administration' },
-  'api-operations': { label: 'API 操作目录', title: 'API 操作目录', description: '查看接口安全策略并通过角色独立授权。', permission: 'roles:read', icon: BookOpen, group: 'administration' },
   departments: { label: '部门管理', title: '部门管理', description: '维护部门层级，为数据权限提供组织范围。', permission: 'departments:read', icon: Network, group: 'administration' },
   tasks: { label: '定时任务', title: '定时任务', description: '管理后台定时任务：内置任务启停与手动触发，自建任务在已注册执行器上创建、编辑与删除。', permission: 'tasks:read', icon: ListChecks, group: 'administration' },
   menus: { label: '菜单管理', title: '菜单管理', description: '调整用户端导航的顺序、分组与可见性。', permission: 'menus:write', icon: LayoutDashboard, group: 'administration' },

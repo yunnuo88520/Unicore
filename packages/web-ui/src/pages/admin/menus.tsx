@@ -8,16 +8,17 @@ import {
 } from 'lucide-react';
 import {
   Badge, Button, Card, CardContent, ConfirmDialog, DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuTrigger, Input, Modal, SimpleSelect, Switch,
+  DropdownMenuTrigger, Checkbox, Input, Modal, SimpleSelect, Switch,
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow, useMessage,
 } from '@unicore/ui';
-import { AppError, type AppClient, type Bootstrap, type MenuList, type MenuSaveInput, type NavigationNode, type NavigationSection, type WebClient } from '@unicore/sdk';
+import { AppError, type AppClient, type Bootstrap, type MenuList, type MenuSaveInput, type NavigationNode, type NavigationSection, type RoleList, type WebClient } from '@unicore/sdk';
 import {
   buildMenuTree, copyMenuNode, defaultNavigation, filterMenuTree, isRegisteredPage, menuNodeLabel, menuNodeTarget,
   newNavigationNode, routeSurfaces, sectionTitle, validNavigationUrl, type MenuTreeNode,
 } from '../../navigation';
 import { NavigationIconPicker, resolveNavigationIcon } from '../../navigation-icons';
 import { routes } from '../../routes';
+import { invalidateAfter } from '../../queries';
 import { defineMessages, t, useLocale } from '../../i18n';
 import type { PageProps } from '../../router';
 
@@ -232,6 +233,9 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
   const [deleteSection, setDeleteSection] = useState<string | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [search, setSearch] = useState('');
+  const [assigning, setAssigning] = useState<{ node: NavigationNode; version: number } | null>(null);
+  const canAssign = !!metadata.current_user?.roles.includes('super_admin');
+  const roleList = useQuery({ queryKey: ['roles'], queryFn: () => web.roles(), enabled: canAssign });
   // null keeps the defaults: regions open, directories with children collapsed.
   const [collapsed, setCollapsed] = useState<Set<string> | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
@@ -401,6 +405,8 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
 
   const handlers: RowHandlers = {
     draft,
+    assignedRoles: roleList.data,
+    onAssign: canAssign ? key => { if (dirty) { message.error(t('请先保存菜单配置再分配角色')); return; } const node = nodeIndex(draft!.nodes).get(key); if (node) setAssigning({ node, version: draft!.version }); } : undefined,
     onToggleCollapse: toggleCollapse,
     onPatchSection: patchSection,
     onAddChild: addChild,
@@ -416,7 +422,7 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
   return <Card><CardContent className="flex min-w-0 flex-col gap-4">
     <div>
       <h2 className="text-md font-semibold text-ink">{t('菜单配置')}</h2>
-      <p className="mt-0.5 text-xs text-muted">{t('调整共享导航树的分组、顺序、名称、图标与可见性；页面所属工作空间由路由注册决定，角色可见性在角色权限编辑器中配置。')}</p>
+      <p className="mt-0.5 text-xs text-muted">{t('调整共享导航树的分组、顺序、名称、图标与可见性；页面所属工作空间由路由注册决定，可在菜单行分配角色，或在角色权限中细化按钮与 API。')}</p>
     </div>
     {config.isFetching && <p role="status" className="text-2xs text-subtle">{t('正在刷新菜单配置…')}</p>}
     <div className="flex flex-wrap items-center gap-2">
@@ -439,6 +445,8 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
         <Button pending={save.isPending} disabled={pending} onClick={saveTree}><Save size={14} />{t('保存菜单配置')}</Button>
       </div>
     </div>
+    {assigning && config.data && roleList.data && <MenuRolesDialog web={web} node={assigning.node}
+      config={{ ...config.data, version: assigning.version }} roles={roleList.data} onClose={() => setAssigning(null)} onSaved={() => { message.success(t('角色已更新')); setAssigning(null); void invalidateAfter(cache, 'roles'); }} />}
     {nodeDialog && <NodeDialog state={nodeDialog} draft={draft} pages={config.data?.pages ?? []}
       onClose={() => setNodeDialog(null)} onSubmit={submitNode} />}
     {moveDialog && <MoveDialog draft={draft} node={nodeIndex(draft.nodes).get(moveDialog)!} onClose={() => setMoveDialog(null)} onConfirm={submitMove} />}
@@ -479,6 +487,8 @@ type TreeRow =
 
 type RowHandlers = {
   draft: Draft;
+  assignedRoles?: RoleList;
+  onAssign?: (id: string) => void;
   onToggleCollapse: (id: string) => void;
   onPatchSection: (id: string, patch: Partial<NavigationSection>) => void;
   onAddChild: (sectionId: string, parentId?: string) => void;
@@ -597,7 +607,10 @@ function NodeRow({ row, handlers, drag }: { row: Extract<TreeRow, { kind: 'node'
             </button>
           : <span aria-hidden="true" className="w-[18px] shrink-0" />}
         <Icon size={15} aria-hidden="true" className="shrink-0 text-muted" />
-        <span className="break-all font-medium">{menuNodeLabel(node)}</span>
+        <span className="min-w-0">
+          <span className="break-all font-medium">{menuNodeLabel(node)}</span>
+          {handlers.onAssign && <span className="block text-2xs text-muted">{handlers.assignedRoles?.items.filter(role => role.id !== 'super_admin' && role.menu_ids.includes(node.id)).map(role => role.name).join(' · ') || t('未分配角色')}</span>}
+        </span>
         {node.badge_dot && <span className="size-2 rounded-full bg-accent" aria-label={t('圆点标记')} />}
         {!node.badge_dot && node.badge_text && <span className="rounded-full bg-surface-alt px-1.5 text-2xs text-muted">{node.badge_text}</span>}
       </div>
@@ -615,6 +628,7 @@ function NodeRow({ row, handlers, drag }: { row: Extract<TreeRow, { kind: 'node'
       <Switch checked={node.visible} onChange={value => handlers.onVisibleNode(node.id, value)} />
     </label></TableCell>
     <TableCell className="text-end">
+      {handlers.onAssign && <Button variant="ghost" size="sm" aria-label={t('分配角色：{{name}}', { name: menuNodeLabel(node) })} onClick={() => handlers.onAssign?.(node.id)}>{t('分配角色')}</Button>}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" aria-label={t('更多操作：{{name}}', { name: menuNodeLabel(node) })}>
@@ -833,5 +847,32 @@ function MoveDialog({ draft, node, onClose, onConfirm }: {
         onConfirm(node.id, target?.section_id ?? (kind === 'top' ? id : node.section_id), kind === 'top' ? undefined : id);
       }}>{t('移动')}</Button>
     </div>
+  </Modal>;
+}
+
+// The server patches only this membership against the observed role IDs. Other
+// role grants/data scopes are read again inside the transaction and preserved.
+function MenuRolesDialog({ web, node, config, roles, onClose, onSaved }: {
+  web: WebClient; node: NavigationNode; config: MenuList; roles: RoleList; onClose: () => void; onSaved: () => void;
+}) {
+  const [expected] = useState(() => roles.items.filter(role => role.id !== 'super_admin' && role.menu_ids.includes(node.id)).map(role => role.id));
+  const [selected, setSelected] = useState(expected);
+  const point = config.pages.find(page => page.id === node.route_id)?.permission;
+  const definition = roles.permissions.find(item => item.id === point);
+  const reserved = !!definition?.super_admin;
+  const cache = useQueryClient();
+  const save = useMutation({ mutationFn: () => web.assignMenuRoles(node.id, { version: config.version, expected_role_ids: expected, role_ids: selected }), onSuccess: onSaved, onError: () => { void invalidateAfter(cache, 'roles'); } });
+  return <Modal title={t('分配角色：{{name}}', { name: menuNodeLabel(node) })} onClose={onClose} pending={save.isPending}>
+    <p className="text-sm text-muted">{t('仅修改当前菜单的角色分配。新增页面包含祖先菜单和浏览接口；取消菜单保留独立按钮与 API 授权。超级管理员始终可见。')}</p>
+    {reserved && <p className="text-sm text-muted">{t('仅超级管理员')}</p>}
+    {save.error && <p role="alert" className="text-sm text-danger">{t(save.error.message)}</p>}
+    <div className="my-4 flex max-h-80 flex-col gap-3 overflow-y-auto" role="group" aria-label={t('角色')}>
+      {roles.items.filter(role => role.id !== 'super_admin').map(role => <label key={role.id} className="flex items-center gap-2 text-sm">
+        <Checkbox aria-label={role.name} disabled={save.isPending || (!selected.includes(role.id) && (reserved || (role.id === 'user' && !!definition && !definition.assignable)))}
+          checked={selected.includes(role.id)} onChange={checked => setSelected(current => checked ? [...current, role.id] : current.filter(id => id !== role.id))} />
+        {role.name}
+      </label>)}
+    </div>
+    <div className="flex justify-end gap-2"><Button variant="secondary" disabled={save.isPending} onClick={onClose}>{t('取消')}</Button><Button pending={save.isPending} onClick={() => save.mutate()}>{t('保存')}</Button></div>
   </Modal>;
 }

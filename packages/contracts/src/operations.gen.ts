@@ -4068,7 +4068,7 @@ export const operations = {
     "superAdmin": false,
     "csrf": false,
     "identityRealm": "administrator",
-    "uiPage": "api-operations"
+    "uiPage": "roles"
   },
   "listPosts": {
     "method": "GET",
@@ -4307,6 +4307,27 @@ export const operations = {
     "superAdmin": true,
     "csrf": true,
     "identityRealm": "administrator"
+  },
+  "assignMenuRoles": {
+    "method": "PUT",
+    "path": "/api/v1/admin/menus/{id}/roles",
+    "requestSchema": "MenuRoleAssignmentInput",
+    "responseSchema": "RoleListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "menus:write",
+      "roles:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
   }
 } as const;
 export type OperationId = keyof typeof operations;
@@ -4533,6 +4554,7 @@ export interface OperationInputs {
   adminMonitorStorageProbe: undefined;
   adminMonitorAlertRules: undefined;
   adminUpdateMonitorAlertRules: Models.MonitorAlertRules;
+  assignMenuRoles: Models.MenuRoleAssignmentInput;
 }
 export interface OperationData {
   bootstrap: Models.BootstrapResponse['data'];
@@ -4757,4 +4779,5 @@ export interface OperationData {
   adminMonitorStorageProbe: Models.MonitorStorageLocationResponse['data'];
   adminMonitorAlertRules: Models.MonitorAlertRulesResponse['data'];
   adminUpdateMonitorAlertRules: Models.MonitorAlertRulesResponse['data'];
+  assignMenuRoles: Models.RoleListResponse['data'];
 }

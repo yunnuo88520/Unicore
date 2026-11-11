@@ -2021,7 +2021,7 @@
   "菜单与按钮": "Menus & buttons",
   "按钮 {{granted}}/{{total}}": "Buttons {{granted}}/{{total}}",
   "按钮授权": "Action authorization",
-  "API 授权": "API authorization",
+  "API 授权": "API grants",
   "未勾选表示不授权；菜单、按钮和 API 分别保存，业务权限始终作为访问上界。": "Unchecked means unauthorized; menus, actions and APIs save separately while business permissions stay the upper bound.",
   "没有可授权的菜单": "No menus to authorize",
   "上级部门": "Parent department",
@@ -2357,5 +2357,14 @@
   "此处展示应用自身的运行事件，不保证覆盖所有异常。": "Shows events from this application; it may not capture every issue.",
   "使用当前模板草稿和示例数据，发送到已保存的通知渠道。": "Send the current template draft with sample data to the saved notification channel.",
   "通知渠道发送失败，请检查渠道凭据、机器人状态与网络连接": "Notification channel delivery failed. Check the channel credentials, robot status and network connection.",
-  "请先配置、启用并保存通知渠道": "Configure, enable and save a notification channel first."
+  "请先配置、启用并保存通知渠道": "Configure, enable and save a notification channel first.",
+  "勾选页面默认授予浏览接口；写入操作需单独勾选按钮或 API。取消菜单或按钮不撤销独立 API 授权。": "Selecting a page grants read APIs by default. Select buttons or APIs separately for writes. Removing a menu or button keeps independent API grants.",
+  "选择 API 自动补齐全部匹配所需的权限点；任一匹配的 API 请先选择一个权限点。菜单、按钮与 API 可独立撤销。": "Selecting an API adds its required permissions. For APIs matching any permission, select one permission first. Menus, buttons and APIs can be revoked independently.",
+  "请先保存菜单配置再分配角色": "Save the menu configuration before assigning roles",
+  "调整共享导航树的分组、顺序、名称、图标与可见性；页面所属工作空间由路由注册决定，可在菜单行分配角色，或在角色权限中细化按钮与 API。": "Arrange shared navigation groups, order, names, icons and visibility. Routes determine workspaces. Assign roles on a menu row, or refine buttons and APIs in the role editor.",
+  "未分配角色": "No roles assigned",
+  "分配角色：{{name}}": "Assign roles: {{name}}",
+  "仅修改当前菜单的角色分配。新增页面包含祖先菜单和浏览接口；取消菜单保留独立按钮与 API 授权。超级管理员始终可见。": "Only this menu assignment changes. Adding a page includes ancestors and read APIs. Removing it keeps independent button and API grants. Super administrators always have access.",
+  "分配角色": "Assign roles",
+  "{{name}} · 管理工作台": "{{name}} · Management workspace"
 }

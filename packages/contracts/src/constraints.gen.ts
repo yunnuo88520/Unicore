@@ -1679,7 +1679,8 @@ export const constraints = {
       "name",
       "description",
       "group",
-      "assignable"
+      "assignable",
+      "super_admin"
     ],
     "properties": {
       "id": {
@@ -1695,6 +1696,9 @@ export const constraints = {
         "type": "string"
       },
       "assignable": {
+        "type": "boolean"
+      },
+      "super_admin": {
         "type": "boolean"
       }
     }
@@ -7565,6 +7569,39 @@ export const constraints = {
           "$ref": "#/components/schemas/NotifyVariable"
         },
         "maxItems": 32
+      }
+    }
+  },
+  "MenuRoleAssignmentInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "version",
+      "role_ids",
+      "expected_role_ids"
+    ],
+    "properties": {
+      "version": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "role_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
+      },
+      "expected_role_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxItems": 2048,
+        "uniqueItems": true
       }
     }
   }

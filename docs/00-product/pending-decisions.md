@@ -41,11 +41,10 @@
 - 候选：从 `migrations/metadata.gen.json` 生成等级常量，替代手写。
 - 推荐：按候选方向立项小任务（实现修改，超出本文档任务范围）。**待决策排期。**
 
-## D6. permissions.md 落后于 ADR-0039 共享导航树
+## D6. 权限文档与共享导航授权一致性
 
-- 现状（`docs/api/permissions.md`）：仍写「菜单 ID 全局唯一，默认带工作台前缀」「两域真实区域导航树」「reset 恢复两域默认」，未记录 `PUT /admin/menus` 的 `RoleAssignments` 角色授权工作流；代码与 ADR-0039 已是单棵共享树、无前缀 id、surfaces 投影（`internal/platform/navigation.go`、`internal/adapter/storage/platformsql/navigation.go`）。同类漂移还出现在 `.agents/skills/add-platform-permission/SKILL.md`（「按 ADR-0038：导航节点 ID 全局唯一并带工作台前缀」一段仍引用带前缀口径）。
-- 影响：权限契约文档误导新功能开发。
-- 推荐：按 ADR-0039 修订 permissions.md 对应段落并补 RoleAssignments 说明（文档修正，需单独任务核对全文）。**待决策排期。**
+- 裁决（2026-11-11）：维护者授权修复权限调查发现的全部问题。
+- 状态：**已完成。** permissions.md、角色需求及相关 Skills 对齐统一账号、无前缀共享导航、独立菜单/按钮/API、完整高级 API 授权与菜单行反向分配；显式空按钮授权不再运行期恢复。规则见 [ADR-0040](../adr/ADR-0040-explicit-role-grants.md)。
 
 ## D7. 入口文档计数漂移
 

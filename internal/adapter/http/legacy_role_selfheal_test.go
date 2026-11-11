@@ -96,17 +96,8 @@ func TestLegacyRoleRowSelfHealsAtSessionResolution(t *testing.T) {
 	}
 }
 
-// TestLegacyTreeBackfillRestoresButtons reproduces the deployed legacy shape
-// that outlived several editor generations: the persisted tree was seeded
-// before the notes buttons were registered, so it carries no op:*Note action
-// nodes at all, and the role rows hold the menu and operation grants with the
-// permission points but no action rows — the legacy tab editor dropped those
-// whenever the stored points did not cover them. The API grants pass the
-// policy middleware, yet canAction can never render the button: the tree has
-// no action node and the session has no action id. A restart-equivalent
-// EnsureNavigation backfills the registered action nodes, session resolution
-// derives the button ids from the operation grants, and the member publishes.
-func TestLegacyTreeBackfillRestoresButtons(t *testing.T) {
+// Backfilling registered nodes must not undo initialized empty action grants.
+func TestLegacyTreeBackfillPreservesExplicitButtonRevocation(t *testing.T) {
 	manager, request := actionRouter(t)
 	actionInstall(t, request)
 	store, _, identity, _ := manager.Services()
@@ -170,8 +161,8 @@ func TestLegacyTreeBackfillRestoresButtons(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if member.ActionIds == nil || !slices.Contains(*member.ActionIds, "op:createNote") {
-		t.Fatal("session action id not derived from the operation grant", member.ActionIds)
+	if member.ActionIds == nil || slices.Contains(*member.ActionIds, "op:createNote") {
+		t.Fatal("empty explicit action grants were restored", member.ActionIds)
 	}
 	if slices.Contains(*member.ActionIds, "op:updateNote") {
 		t.Fatal("derivation over-granted an ungranted operation button", *member.ActionIds)
@@ -190,12 +181,12 @@ func TestLegacyTreeBackfillRestoresButtons(t *testing.T) {
 	for _, node := range boot.Data.Navigation.Nodes {
 		nodeIDs[node.ID] = true
 	}
-	if !nodeIDs["notes"] || !nodeIDs["op:createNote"] {
-		t.Fatal("member navigation missing the notes page or its create button")
+	if !nodeIDs["notes"] || nodeIDs["op:createNote"] {
+		t.Fatal("revoked button leaked into member navigation")
 	}
 	user := boot.Data.CurrentUser
-	if user.ActionIds == nil || !slices.Contains(*user.ActionIds, "op:createNote") {
-		t.Fatal("bootstrap action id not derived", user.ActionIds)
+	if user.ActionIds == nil || slices.Contains(*user.ActionIds, "op:createNote") {
+		t.Fatal("bootstrap restored revoked action", user.ActionIds)
 	}
 
 	// The publish path the member UI drives end to end.

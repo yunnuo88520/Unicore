@@ -381,3 +381,45 @@ func TestRestrictedAdministrator(t *testing.T) {
 		t.Fatal("role change kept restricted session", w.Code, w.Body.String())
 	}
 }
+
+func TestMenuRoleAssignmentPolicy(t *testing.T) {
+	manager, request := actionRouter(t)
+	cookie, csrf := actionInstall(t, request)
+	var menu contracts.MenuListResponse
+	if err := json.Unmarshal(request("GET", "/api/v1/admin/menus", nil, cookie, "").Body.Bytes(), &menu); err != nil {
+		t.Fatal(err)
+	}
+	input := contracts.MenuRoleAssignmentInput{Version: menu.Data.Version, ExpectedRoleIds: []string{}, RoleIds: []string{}}
+	path := "/api/v1/admin/menus/users/roles"
+	if w := request("PUT", path, input, nil, ""); w.Code != http.StatusUnauthorized {
+		t.Fatal("anonymous assignment", w.Code, w.Body.String())
+	}
+	if w := request("PUT", path, input, cookie, ""); w.Code != http.StatusForbidden {
+		t.Fatal("assignment without CSRF", w.Code, w.Body.String())
+	}
+	_, _, identity, _ := manager.Services()
+	member, err := identity.Create(t.Context(), contracts.UserCreate{Username: "menu-member", Email: "menu-member@example.test", Password: "test-password-strong", Role: "user"}, adminUser(t, manager).ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	memberCookie, memberCSRF := issueSession(t, manager, false, member)
+	if w := request("PUT", path, input, memberCookie, memberCSRF); w.Code != http.StatusForbidden {
+		t.Fatal("member assignment", w.Code, w.Body.String())
+	}
+	if w := request("PUT", path, input, cookie, csrf); w.Code != http.StatusOK {
+		t.Fatal("super assignment", w.Code, w.Body.String())
+	}
+	input.Version++
+	if w := request("PUT", path, input, cookie, csrf); w.Code != http.StatusConflict {
+		t.Fatal("stale tree accepted", w.Code, w.Body.String())
+	}
+	roles, err := identity.Store.ListRoles(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, point := range roles.Permissions {
+		if point.ID == "monitor:read" && !point.SuperAdmin {
+			t.Fatal("monitor reservation missing from metadata")
+		}
+	}
+}

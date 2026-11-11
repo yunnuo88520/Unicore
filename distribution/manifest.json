@@ -1061,7 +1061,10 @@
     "packages/web-ui/src/pages/monitor.test.tsx",
     "packages/web-ui/src/widgets/monitor-charts.tsx",
     "packages/web-ui/fixtures/upload-harness.tsx",
-    "tests/e2e/upload-fixture.ts"
+    "tests/e2e/upload-fixture.ts",
+    "internal/adapter/storage/platformsql/menu_roles.go",
+    "internal/adapter/storage/platformsql/menu_roles_test.go",
+    "tests/e2e/permission-grants.spec.ts"
   ],
   "ownership": {
     "product-owned": [

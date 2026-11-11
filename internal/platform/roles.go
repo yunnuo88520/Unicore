@@ -47,7 +47,11 @@ var basePermissionCatalog = []contracts.PermissionDefinition{
 // PermissionCatalog aggregates the built-in catalogue with the registered
 // business modules; module registration happens before any consumer runs.
 func PermissionCatalog() []contracts.PermissionDefinition {
-	return append(append([]contracts.PermissionDefinition{}, basePermissionCatalog...), module.Permissions()...)
+	result := append(append([]contracts.PermissionDefinition{}, basePermissionCatalog...), module.Permissions()...)
+	for i := range result {
+		result[i].SuperAdmin = SuperOnlyPermission(result[i].ID)
+	}
+	return result
 }
 
 // Permissions lists every catalogue point including module contributions.

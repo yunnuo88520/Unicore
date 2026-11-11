@@ -1,9 +1,10 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Single-tree role editor: page-centric authorization where checking a page grants its menu, actions and API operations, implied permission points render inline, and an advanced catalogue grants raw points.
+// Description: Page-centric grants with safe read defaults, explicit buttons and a complete advanced API selector.
 import { useMemo, useState, type ReactNode } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { operations } from '@unicore/sdk';
+import { OperationCatalogue } from './api-operations';
 import type { NavigationNode, PermissionDefinition, Role, RoleSaveInput, WebClient } from '@unicore/sdk';
 import { defineMessages, t, useLocale } from '../../i18n';
 import { buildMenuTree, directoryTitle, isRegisteredPage, sectionTitle, type MenuTreeNode } from '../../navigation';
@@ -12,8 +13,7 @@ import { buildDepartmentTree, flattenDepartmentTree, useDepartmentsQuery } from 
 import { operationPermissionsAllow } from '../../permissions';
 import { Badge, Button, Checkbox, Input, Modal, NativeSelect, useMessage } from '@unicore/ui';
 
-// Data scopes gate the business lists (notes, files) per member; administrator
-// roles stay self-scoped server-side, so the editor only exposes user realms.
+// Data scopes apply to the resource permissions held by each role.
 const dataScopeLabels = defineMessages({ self: '仅本人', dept: '本部门', dept_and_below: '本部门及以下', custom: '自定义', all: '全部' });
 const DATA_SCOPES = Object.keys(dataScopeLabels) as (keyof typeof dataScopeLabels)[];
 
@@ -35,25 +35,17 @@ function nodeLabel(node: NavigationNode): string {
   return t(node.id);
 }
 
-// The server policy layer stays authoritative; this mirror only drives which
-// points the advanced catalogue keeps out of custom administrator-realm roles.
-// Menu and dictionary management are regular grants, not super_admin-exclusive.
-const SUPER_ONLY_PERMISSIONS: ReadonlySet<string> = new Set(['roles:write', 'administrators:read', 'administrators:create', 'administrators:update', 'settings:write', 'updates:apply', 'storage:write']);
-
+// Reserved metadata is supplied by the backend, including module contributions.
 function lockedReason(permission: PermissionDefinition): string | null {
-  return SUPER_ONLY_PERMISSIONS.has(permission.id) ? t('仅超级管理员') : null;
+  return permission.super_admin ? t('仅超级管理员') : null;
 }
 
-// The static SDK catalogue mirrors the navigation projection's grantable
-// filter: page-linked operations carry a UI page, real permission points and
-// no super-admin reservation; the identity realm keeps user and administrator
-// operations apart so a member role never reaches admin endpoints.
-type CatalogOperation = { id: string; uiPage: string; method: string; path: string; permissions: readonly string[]; identityRealm?: string };
-const catalogOperations: CatalogOperation[] = Object.entries(operations as unknown as Record<string, { uiPage?: string; method: string; path: string; permissions: readonly string[]; superAdmin: boolean; identityRealm?: string }>)
-  .filter(([, op]) => op.uiPage && !op.superAdmin && op.permissions.length > 0)
-  .map(([id, op]) => ({ id, uiPage: op.uiPage!, method: op.method, path: op.path, permissions: op.permissions, identityRealm: op.identityRealm }));
-const operationsByPage = new Map<string, CatalogOperation[]>();
-for (const op of catalogOperations) operationsByPage.set(op.uiPage, [...operationsByPage.get(op.uiPage) ?? [], op]);
+type CatalogOperation = { id: string; uiPage?: string; method: string; path: string; permissions: readonly string[]; permissionMode?: string; identityRealm?: string };
+const catalogOperations: CatalogOperation[] = Object.entries(operations)
+  .filter(([, op]) => !op.superAdmin && op.permissions.length > 0
+    && ['session', 'authenticated', 'platform-session'].includes(op.access)
+    && !/\/auth\/|\/account|\/bootstrap$/.test(op.path))
+  .map(([id, op]) => ({ id, ...op }));
 const operationMeta = (id: string) => catalogOperations.find(op => op.id === id);
 
 const routePermission = (routeId: string | undefined): string | undefined =>
@@ -68,7 +60,7 @@ function derivePermissions(nodes: NavigationNode[], menus: readonly string[], ac
   const points = new Set(manual);
   for (const id of menus) { const permission = routePermission(byId.get(id)?.route_id); if (permission) points.add(permission); }
   for (const id of actions) { const permission = byId.get(id)?.permission; if (permission) points.add(permission); }
-  for (const id of operationIds) for (const permission of operationMeta(id)?.permissions ?? []) points.add(permission);
+  for (const id of operationIds) { const op = operationMeta(id); if (op?.permissionMode !== 'any') for (const permission of op?.permissions ?? []) points.add(permission); }
   return [...points];
 }
 
@@ -153,30 +145,30 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
     }
     return chain;
   };
-  const realmScope = role?.realm ?? realm;
+  // Workspace surfaces describe the page, never the role's historical category.
   const pageOperations = (pageId: string): CatalogOperation[] => {
-    const routeId = byId.get(pageId)?.route_id;
-    return (routeId ? operationsByPage.get(routeId) ?? [] : []).filter(op => !op.identityRealm || op.identityRealm === realmScope);
+    const page = byId.get(pageId);
+    return catalogOperations.filter(op => op.uiPage === page?.route_id
+      && (!op.identityRealm || page?.surfaces.includes(op.identityRealm as 'user' | 'administrator')));
   };
-  // Checking a page selects its buttons and API operations by default (each
-  // individually undoable); unchecking strips the whole page: menu, buttons
-  // and operations. Auto-checked actions stay inside the permission bound.
+  const reservedNode = (node: NavigationNode) => permissions.some(point => point.id === routePermission(node.route_id) && (point.super_admin || (role?.id === 'user' && !point.assignable)));
+  const operationLocked = (op: CatalogOperation) => {
+    const permittedPoint = (point: string) => permissions.some(definition => definition.id === point && !definition.super_admin && (role?.id !== 'user' || definition.assignable));
+    return op.permissionMode === 'any' ? !op.permissions.some(permittedPoint) : !op.permissions.every(permittedPoint);
+  };
   const toggleMenu = (node: NavigationNode, checked: boolean) => {
-    const ids = [...descendants(node.id), ...(checked ? ancestorsOf(node.id) : [])];
+    const ids = [...descendants(node.id), ...(checked ? ancestorsOf(node.id) : [])].filter(id => !checked || !reservedNode(byId.get(id)!));
     setMenuIds(current => checked ? [...new Set([...current, ...ids])] : current.filter(id => !ids.includes(id)));
-    const pages = ids.filter(id => byId.get(id)?.type === 'page');
+    // Page selection is read-only by default; writes/buttons are explicit.
     if (checked) {
-      const nextOperations = [...new Set([...operationIds, ...pages.flatMap(pageId => pageOperations(pageId).map(op => op.id))])];
-      setOperationIds(nextOperations);
-      const reachable = new Set(derivePermissions(nodes, [...menuIds, ...ids], actionIds, nextOperations, grants));
-      const autoActions = pages.flatMap(pageId => (actionsByParent.get(pageId) ?? [])
-        .filter(action => action.permission && reachable.has(action.permission)).map(action => action.id));
-      setActionIds(current => [...new Set([...current, ...autoActions])]);
-    } else {
-      const dropped = new Set(pages.flatMap(pageId => [...(actionsByParent.get(pageId) ?? []).map(action => action.id), ...pageOperations(pageId).map(op => op.id)]));
-      setActionIds(current => current.filter(id => !dropped.has(id)));
-      setOperationIds(current => current.filter(id => !dropped.has(id)));
+      const points = derivePermissions(nodes, [...menuIds, ...ids], actionIds, operationIds, grants);
+      setOperationIds(current => [...new Set([...current, ...ids.flatMap(id => pageOperations(id).filter(op => op.method === 'GET' && operationPermissionsAllow(points, op.id) && (!op.identityRealm || op.identityRealm === (byId.get(id)?.surfaces.includes('user') ? 'user' : 'administrator'))).map(op => op.id))])]);
     }
+  };
+  const selectOperations = (next: string[]) => {
+    const selection = effectiveSelection(nodes, menuIds, actionIds, next, grants);
+    setOperationIds(selection.operations);
+    setActionIds(selection.actions);
   };
   const departments = useDepartmentsQuery(web, { enabled: dataScope === 'custom' });
   const departmentItems = flattenDepartmentTree(buildDepartmentTree(departments.data?.items ?? []));
@@ -199,10 +191,19 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
   const toggle = (id: string, checked: boolean) => {
     setGrants(current => checked ? [...current, id] : current.filter(value => value !== id));
     if (checked) return;
-    // Revoking a point drops the operations it alone authorized and the buttons
-    // that depended on them, so the tree never shows a grant the save drops.
-    const next = grants.filter(value => value !== id);
-    const selection = effectiveSelection(nodes, menuIds, actionIds, operationIds, next);
+    // Revoke dependants before deriving the remaining union, otherwise the
+    // selected API/action would immediately put the point back.
+    const nextMenus = menuIds.filter(menu => routePermission(byId.get(menu)?.route_id) !== id);
+    const nextActions = actionIds.filter(action => byId.get(action)?.permission !== id);
+    const nextOperations = operationIds.filter(operation => {
+      const op = operationMeta(operation);
+      return op?.permissionMode === 'any'
+        ? operationPermissionsAllow(effectivePermissions.filter(point => point !== id), operation)
+        : !op?.permissions.includes(id);
+    });
+    const nextPoints = derivePermissions(nodes, nextMenus, nextActions, nextOperations, grants.filter(value => value !== id)).filter(point => point !== id);
+    const selection = effectiveSelection(nodes, nextMenus, nextActions, nextOperations, nextPoints);
+    setMenuIds(nextMenus);
     setOperationIds(selection.operations);
     setActionIds(selection.actions);
   };
@@ -217,8 +218,7 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
     const authorization = { menu_ids: menuIds, action_ids: validActions, operation_ids: validOperations };
     const input: RoleSaveInput = role ? { name: trimmed, permissions: derived, ...authorization } : { name: trimmed, permissions: derived, realm, ...authorization };
     {
-      // Administrator roles stay self-scoped server-side; user roles carry the
-      // chosen scope, and only the custom scope keeps a department selection.
+      // Only custom scope keeps an explicit department selection.
       input.data_scope = dataScope;
       input.department_ids = dataScope === 'custom' ? departmentIds : [];
     }
@@ -247,7 +247,10 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
   const actionGroups = (parentId: string): ActionGroup[] => {
     const result: ActionGroup[] = [];
     for (const node of actionsByParent.get(parentId) ?? []) {
-      const label = nodeLabel(node);
+      const branch = node.operation_ids.some(id => operationMeta(id)?.permissionMode === 'any') ? permissions.find(point => point.id === node.permission) : undefined;
+      const title = branch ? `${nodeLabel(node)} · ${t(branch.name)}` : nodeLabel(node);
+      const managementVariant = byId.get(parentId)?.surfaces.includes('user') && node.operation_ids.length > 0 && node.operation_ids.every(id => operationMeta(id)?.identityRealm === 'administrator');
+      const label = managementVariant ? t('{{name}} · 管理工作台', { name: title }) : title;
       const bucket = result.find(item => item.label === label);
       if (bucket) {
         bucket.ids.push(node.id);
@@ -260,7 +263,7 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
     }
     return result;
   };
-  const actionLocked = (node: NavigationNode) => !actionIds.includes(node.id) && (!node.permission || !effectivePermissions.includes(node.permission) || !node.operation_ids.every(op => operationIds.includes(op)));
+  const actionLocked = (node: NavigationNode) => !node.permission || permissions.some(point => point.id === node.permission && (point.super_admin || (role?.id === 'user' && !point.assignable)));
   const renderRow = (item: MenuTreeNode, depth: number): ReactNode => {
     const { node } = item;
     const menuChildren = item.children.filter(child => child.node.type !== 'action');
@@ -288,7 +291,7 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
               {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
             </Button>
           : <span className="size-5 shrink-0" aria-hidden="true" />}
-        <Checkbox aria-label={nodeLabel(node)} disabled={pending || node.disabled}
+        <Checkbox aria-label={nodeLabel(node)} disabled={pending || node.disabled || (!menuIds.includes(node.id) && reservedNode(node))}
           checked={(() => { const ids = descendants(node.id); const selected = ids.filter(id => menuIds.includes(id)).length; return selected === ids.length ? true : selected ? 'indeterminate' : false; })()}
           onChange={checked => toggleMenu(node, checked)} />
         <span className="min-w-0 truncate text-sm text-ink">{nodeLabel(node)}</span>
@@ -299,7 +302,13 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
           return <label key={group.key} className="flex h-7 items-center gap-2 rounded-md px-1 hover:bg-surface-alt" title={group.hint}>
             <Checkbox aria-label={group.label} disabled={pending || group.nodes.some(node => node.disabled) || (!selected && group.nodes.some(node => actionLocked(node)))}
               checked={selected === group.ids.length ? true : selected ? 'indeterminate' : false}
-              onChange={checked => setActionIds(current => checked ? [...new Set([...current, ...group.ids])] : current.filter(id => !group.ids.includes(id)))} />
+              onChange={checked => {
+                setActionIds(current => checked ? [...new Set([...current, ...group.ids])] : current.filter(id => !group.ids.includes(id)));
+                if (checked) {
+                  setGrants(current => [...new Set([...current, ...group.nodes.flatMap(node => node.permission ? [node.permission] : [])])]);
+                  setOperationIds(current => [...new Set([...current, ...group.nodes.flatMap(node => node.operation_ids)])]);
+                }
+              }} />
             <span className="min-w-0 truncate text-sm text-ink">{group.label}</span>
             {group.ids.length > 1 && <span className="shrink-0 text-2xs text-subtle">×{group.ids.length}</span>}
           </label>;
@@ -307,7 +316,7 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
         {pageOps.length > 0 && <div className="flex flex-col gap-0.5">
           <small className="px-1 text-2xs font-medium text-subtle">{t('API 操作')}</small>
           {pageOps.map(op => <label key={op.id} className="flex h-7 items-center gap-2 rounded-md px-1 hover:bg-surface-alt" title={`${op.method} ${op.path} · ${op.permissions.join(', ')}`}>
-            <Checkbox aria-label={op.id} disabled={pending} checked={operationIds.includes(op.id)}
+            <Checkbox aria-label={op.id} disabled={pending || (!operationIds.includes(op.id) && (operationLocked(op) || (op.permissionMode === 'any' && !operationPermissionsAllow(effectivePermissions, op.id))))} checked={operationIds.includes(op.id)}
               onChange={checked => {
                 // Unchecking an operation stops its buttons from riding along:
                 // the visible tree keeps matching what the save will keep.
@@ -347,7 +356,7 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
         </div>
         <p className="text-xs text-muted">
           {role?.builtin && <>{t('内置角色名称固定，仅可调整权限范围。')} </>}
-          {t('未勾选表示不授权；菜单、按钮和 API 分别保存，业务权限始终作为访问上界。')}
+          {t('勾选页面默认授予浏览接口；写入操作需单独勾选按钮或 API。取消菜单或按钮不撤销独立 API 授权。')}
         </p>
       </div>
       <fieldset disabled={pending} className="flex min-w-0 flex-col gap-1.5">
@@ -405,7 +414,9 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
             <small className="text-xs font-normal text-subtle">{t('已选 {{count}}', { count: grants.length })}</small>
           </button>
           {advanced && <>
-            <small className="text-xs text-muted">{t('页面与操作勾选后自动并入所需权限点；此处可直接为纯 API 角色授权。')}</small>
+            <h3 className="text-sm font-medium text-ink">{t('API 授权')}</h3>
+            <OperationCatalogue web={web} selected={operationIds} onChange={selectOperations} permissions={effectivePermissions} disabled={pending} businessOnly={role?.id === 'user'} assignablePermissions={permissions.filter(point => point.assignable).map(point => point.id)} />
+            <small className="text-xs text-muted">{t('选择 API 自动补齐全部匹配所需的权限点；任一匹配的 API 请先选择一个权限点。菜单、按钮与 API 可独立撤销。')}</small>
             <div role="group" aria-label={t('权限点')} className="flex max-h-72 flex-col gap-4 overflow-y-auto rounded-lg border border-line p-3 pe-4">
               {groups.map(group => <section key={group.group} className="flex flex-col gap-2">
                 <h3 className="text-xs font-semibold text-muted">{t(group.group)}</h3>
@@ -420,7 +431,7 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
                         <Badge variant="subtle">{locked}</Badge>
                       </div>
                     : <label key={permission.id} className="flex items-start gap-2 text-sm">
-                        <Checkbox className="mt-0.5" aria-label={t(permission.name)} checked={grants.includes(permission.id)}
+                        <Checkbox className="mt-0.5" aria-label={t(permission.name)} checked={effectivePermissions.includes(permission.id)}
                           onChange={checked => toggle(permission.id, checked)} />
                         <span className="flex min-w-0 flex-col">
                           <span className="font-medium text-ink">{t(permission.name)}</span>
@@ -436,7 +447,7 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
       </div>
       <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-3">
         <Button variant="secondary" disabled={pending} onClick={onClose}>{t('取消')}</Button>
-        <Button type="submit" pending={pending}>{pending ? t('处理中…') : t('保存')}</Button>
+        <Button type="submit" pending={pending} disabled={navigation.isPending || navigation.isError}>{pending ? t('处理中…') : t('保存')}</Button>
       </div>
     </form>
   </Modal>;

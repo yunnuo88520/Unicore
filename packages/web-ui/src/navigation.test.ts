@@ -104,7 +104,7 @@ it('renders the shared administrator tree: three seeded directories over two reg
   const administration = system.entries[1];
   expect(administration.type).toBe('directory');
   expect(!!administration.label).toBe(true);
-  expect(administration.children.map(entry => entry.id)).toEqual(['users', 'roles', 'departments', 'posts', 'api-operations', 'menus', 'dictionaries', 'tasks']);
+  expect(administration.children.map(entry => entry.id)).toEqual(['users', 'roles', 'departments', 'posts', 'menus', 'dictionaries', 'tasks']);
   // With menus reachable there is no recovery section.
   expect(navigation.sections.some(section => section.id === 'recovery')).toBe(false);
 });
@@ -155,7 +155,7 @@ it('hides entries the operator marked invisible and drops empty directories', ()
   const navigation = render({ ...superAdmin, navigation: { version: 1, sections: config.sections, nodes } } as Bootstrap);
   const administration = navigation.sections.find(section => section.id === 'system')?.entries.find(entry => entry.id === 'administration');
   // Users is hidden; the remaining children keep the directory alive.
-  expect(administration?.children.map(entry => entry.id)).toEqual(['roles', 'departments', 'posts', 'api-operations', 'menus', 'dictionaries', 'tasks']);
+  expect(administration?.children.map(entry => entry.id)).toEqual(['roles', 'departments', 'posts', 'menus', 'dictionaries', 'tasks']);
   const collapsed = config.nodes.map(node => node.id === 'administration' || node.parent_id === 'administration' ? { ...node, visible: false } : node);
   const dropped = render({ ...superAdmin, navigation: { version: 1, sections: config.sections, nodes: collapsed } } as Bootstrap);
   // An administrator directory without visible children disappears entirely.

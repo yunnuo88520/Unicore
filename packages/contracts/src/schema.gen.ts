@@ -451,6 +451,7 @@ export interface PermissionDefinition {
   description: string;
   group: string;
   assignable: boolean;
+  super_admin: boolean;
 }
 
 export interface Role {
@@ -1895,4 +1896,10 @@ export interface NotifyEvent {
   description_en: string;
   user_email_allowed: boolean;
   variables: Array<NotifyVariable>;
+}
+
+export interface MenuRoleAssignmentInput {
+  version: number;
+  role_ids: Array<string>;
+  expected_role_ids: Array<string>;
 }

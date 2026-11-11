@@ -32,7 +32,6 @@ var baseNavigationPages = []contracts.NavigationPage{
 	{ID: "roles", Surfaces: []string{"administrator"}, Permission: "roles:read", Group: "administration"},
 	{ID: "departments", Surfaces: []string{"administrator"}, Permission: "departments:read", Group: "administration"},
 	{ID: "posts", Surfaces: []string{"administrator"}, Permission: "posts:read", Group: "administration"},
-	{ID: "api-operations", Surfaces: []string{"administrator"}, Permission: "roles:read", Group: "administration"},
 	{ID: "menus", Surfaces: []string{"administrator"}, Permission: "menus:write", Group: "administration"},
 	{ID: "dictionaries", Surfaces: []string{"administrator"}, Permission: "dictionaries:read", Group: "administration"},
 	{ID: "tasks", Surfaces: []string{"administrator"}, Permission: "tasks:read", Group: "administration"},
@@ -49,7 +48,7 @@ func NavigationPages() []contracts.NavigationPage {
 // defaultPageOrder mirrors packages/web-ui/src/navigation.ts defaultPageOrder:
 // the shared stable display order both seeds and editors rely on.
 var defaultPageOrder = []string{
-	"overview", "users", "roles", "departments", "posts", "api-operations", "menus", "dictionaries",
+	"overview", "users", "roles", "departments", "posts", "menus", "dictionaries",
 	"announcements", "tasks", "api-docs", "site", "storage", "account-policy", "mail", "mail-templates",
 	"notification-channels", "notification-templates", "system-notifications", "logs", "edition", "account", "account-security", "account-sessions",
 	"monitor", "monitor-services", "monitor-resources", "monitor-events",
@@ -97,7 +96,7 @@ var navigationIcons = map[string]string{
 	"users": "UserRound", "administrators": "UserCog", "announcements": "Megaphone", "account-policy": "ShieldCheck", "mail": "Mail", "mail-templates": "Mail",
 	"notification-channels": "Webhook", "notification-templates": "FileText", "system-notifications": "Bell", "logs": "ScrollText", "edition": "PackageCheck",
 	"roles": "ShieldCheck", "departments": "Network", "tasks": "ListChecks", "menus": "LayoutDashboard", "dictionaries": "FileText", "posts": "UserCog",
-	"api-operations": "BookOpen", "account": "UserRound", "account-security": "ShieldCheck", "account-sessions": "Monitor", "api-docs": "BookOpen",
+	"account": "UserRound", "account-security": "ShieldCheck", "account-sessions": "Monitor", "api-docs": "BookOpen",
 	"monitor": "Activity", "monitor-services": "Radar", "monitor-resources": "Cpu", "monitor-events": "ScrollText",
 	// Seeded directories carry the same icons as the frontend defaultNavigation.
 	"administration": "Users", "personal": "UserRound", "monitor-center": "Activity",

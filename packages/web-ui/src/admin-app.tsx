@@ -20,7 +20,6 @@ import { AdminDepartmentsPage } from './pages/admin/departments';
 import { AdminTasksPage } from './pages/admin/tasks';
 import { AdminMenusPage } from './pages/admin/menus';
 import { AdminPostsPage } from './pages/admin/posts';
-import { AdminApiOperationsPage } from './pages/admin/api-operations';
 import { AdminDictionariesPage } from './pages/admin/dictionaries';
 import { AdminMonitorEventsPage, AdminMonitorPage, AdminMonitorResourcesPage, AdminMonitorServicesPage } from './pages/monitor';
 
@@ -34,7 +33,6 @@ export function AdministrationPage(props: PageProps) {
     case 'roles': return <AdminRolesPage {...props} />;
     case 'departments': return <AdminDepartmentsPage {...props} />;
     case 'posts': return <AdminPostsPage {...props} />;
-    case 'api-operations': return <AdminApiOperationsPage {...props} />;
     case 'menus': return <AdminMenusPage {...props} />;
     case 'dictionaries': return <AdminDictionariesPage {...props} />;
     case 'notification-channels': case 'notification-templates': case 'system-notifications': return <AdminNotificationsPage {...props} />;

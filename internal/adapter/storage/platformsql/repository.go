@@ -27,10 +27,10 @@ type Repository struct {
 	// navCache memoizes the persisted navigation tree between the session
 	// resolutions that re-read it on every authenticated request; the version
 	// row stays the single invalidation source (every write bumps it).
-	navMu       sync.Mutex
-	navVersion  int
-	navHas      bool
-	navCache    contracts.Navigation
+	navMu      sync.Mutex
+	navVersion int
+	navHas     bool
+	navCache   contracts.Navigation
 }
 
 func accountError(err error) error {
@@ -189,41 +189,9 @@ func (r *Repository) loadAuthorizations(ctx context.Context, q sqlstore.Runner, 
 	return nil
 }
 
-// deriveGrantedPermissions widens the effective authorization to cover what
-// the member's roles demonstrably already hold. Two derivations run at session
-// resolution, both resolving node ids in the persisted tree:
-//
-//  1. Button grants: an action node whose every registered, grantable
-//     operation the role already holds is a button the role demonstrably
-//     needs, so its id joins the effective action_ids. The node's own
-//     permission must be covered by the stored or operation-derived points —
-//     the same bound saveRoleAuthorization applies to explicit rows — so a
-//     mode-any operation grant never leaks its sibling point through an
-//     :altN variant. The legacy tab editor
-//     dropped action rows whenever the stored permission points did not cover
-//     them, leaving granted APIs with invisible buttons; the derived ids make
-//     NavigationFor project the node and canAction accept it without a
-//     re-save. Trees from older builds may not carry the action node at all —
-//     EnsureNavigation backfills those, and derivation simply skips ids the
-//     tree does not have.
-//  2. Permission points: every granted operation contributes its catalogue
-//     permissions and every effective action node its button point plus the
-//     permissions of its registered operations, so rows saved by the legacy
-//     tab editor with empty or stale permission-point rows stop sitting below
-//     the authorization they already carry.
-//
-// Menu rows are deliberately NOT a source for either: role materialization
-// writes every realm-surface page onto custom roles as layout facts, so
-// deriving route points from them would hand restricted administrators the
-// settings/logs/storage points their role never held. Mode-any operation
-// grants are skipped for the mirror reason — the grant is satisfied by any one
-// held point, so it implies none of its siblings. Every derived reference is
-// checked against the platform catalogue and ignored when unknown, so nothing
-// grows past registered facts: operation grants stay the runtime authority,
-// the super_admin reservation and the fail-closed policy middleware are
-// untouched, and a derived id can only make an already granted API or button
-// consistent with its own authorization. Grant rows are validated on write, so
-// only legacy data reaches the ignore branches.
+// deriveGrantedPermissions repairs legacy permission-point upper bounds from
+// explicit operation/action grants. It never derives action or menu IDs: an
+// initialized empty grant set is an intentional revocation (ADR-0040).
 func (r *Repository) deriveGrantedPermissions(ctx context.Context, q sqlstore.Runner, user *contracts.User) error {
 	held := map[string]bool{}
 	for _, permission := range user.Permissions {
@@ -235,23 +203,6 @@ func (r *Repository) deriveGrantedPermissions(ctx context.Context, q sqlstore.Ru
 			user.Permissions = append(user.Permissions, permission)
 		}
 	}
-	// Operation-derived points are computed first so button derivation can
-	// demand the button's own point the same way saveRoleAuthorization does:
-	// an action row may only exist when its permission is covered, and a
-	// derived row must not leak a mode-any sibling point through an :altN
-	// variant (fileAccess carries files:access and notes:access; granting the
-	// operation with files:access held must not mint notes:access).
-	operationPoints := map[string]bool{}
-	for _, id := range deref(user.OperationIds) {
-		if op, ok := platform.Operation(id); ok && op.Grantable && op.PermissionMode != "any" {
-			for _, permission := range op.Permissions {
-				operationPoints[permission] = true
-			}
-		}
-	}
-	// Menu and action derivation resolves node ids in the persisted tree; a
-	// missing state row (fresh install before the navigation seed) simply
-	// skips both, and install-time accounts hold no grants anyway.
 	n, err := r.readNavigation(ctx, q)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return err
@@ -260,26 +211,6 @@ func (r *Repository) deriveGrantedPermissions(ctx context.Context, q sqlstore.Ru
 		nodes := map[string]contracts.NavigationNode{}
 		for _, node := range n.Nodes {
 			nodes[node.ID] = node
-		}
-		// Button derivation first: the point derivation below reads the
-		// effective action set, so a derived button contributes its point in
-		// the same resolution.
-		for _, node := range n.Nodes {
-			if node.Type != "action" || len(node.OperationIds) == 0 || user.ActionIds == nil || contains(*user.ActionIds, node.ID) {
-				continue
-			}
-			covered := true
-			for _, id := range node.OperationIds {
-				op, ok := platform.Operation(id)
-				if !ok || !op.Grantable || !contains(deref(user.OperationIds), id) {
-					covered = false
-					break
-				}
-			}
-			if !covered || node.Permission == nil || (!held[*node.Permission] && !operationPoints[*node.Permission]) {
-				continue
-			}
-			*user.ActionIds = append(*user.ActionIds, node.ID)
 		}
 		for _, id := range deref(user.ActionIds) {
 			node, ok := nodes[id]

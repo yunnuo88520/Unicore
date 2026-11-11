@@ -174,8 +174,8 @@ func (r *Repository) retireDemoNavigation(ctx context.Context) error {
 	for _, node := range n.Nodes {
 		path, _, _ := strings.Cut(text(node.Url), "?")
 		path, _, _ = strings.Cut(path, "#")
-		if node.Type == "page" && (text(node.RouteID) == "lab" || text(node.RouteID) == "files") ||
-			node.Type == "link" && (path == "/lab" || path == "/files") {
+		if node.Type == "page" && (text(node.RouteID) == "lab" || text(node.RouteID) == "files" || text(node.RouteID) == "api-operations") ||
+			node.Type == "link" && (path == "/lab" || path == "/files" || path == "/admin/api-operations" || path == "/api-operations") {
 			removed[node.ID] = node
 		}
 	}
@@ -1230,10 +1230,9 @@ func (r *Repository) SaveNavigation(ctx context.Context, input contracts.MenuSav
 				return contracts.MenuList{}, err
 			}
 		}
-		// Grant-affecting saves revoke live sessions so stale envelopes cannot
-		// keep exercising removed buttons or menus.
-		for _, table := range []string{"unicore_sessions"} {
-			if _, err = r.Store.Exec(ctx, tx, "DELETE FROM "+table); err != nil {
+		// Only members of changed roles lose their shared sessions.
+		for _, assignment := range *input.RoleAssignments {
+			if _, err = r.Store.Exec(ctx, tx, "DELETE FROM unicore_sessions WHERE user_id IN (SELECT user_id FROM unicore_user_roles WHERE role_id=?)", assignment.RoleID); err != nil {
 				return contracts.MenuList{}, err
 			}
 		}

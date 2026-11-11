@@ -116,7 +116,7 @@ test('menu console edits the persisted tree and one save re-anchors every sessio
   await page.locator('tr[data-node="administration"]').getByRole('button', { name: /展开或收起/ }).click();
   await page.locator('tr[data-node="settings"]').getByRole('button', { name: /展开或收起/ }).click();
   const targets = await pageTargets(page);
-  for (const route of ['users', 'roles', 'menus', 'tasks', 'edition', 'dictionaries', 'posts', 'api-operations', 'site', 'storage', 'logs']) {
+  for (const route of ['users', 'roles', 'menus', 'tasks', 'edition', 'dictionaries', 'posts', 'site', 'storage', 'logs']) {
     expect(targets, `editor row for ${route}`).toContain(route);
   }
   await expect(page.getByRole('button', { name: '保存菜单配置', exact: true })).toBeEnabled();

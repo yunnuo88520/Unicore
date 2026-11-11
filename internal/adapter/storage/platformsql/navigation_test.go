@@ -556,11 +556,8 @@ func TestRoleGrantMaterializationAndBoundaries(t *testing.T) {
 		t.Fatal(listErr)
 	}
 	projected := platform.NavigationFor(contracts.Navigation{Version: listed.Version, Sections: listed.Sections, Nodes: listed.Nodes}, member, "user")
-	// The menu row projects the page; the granted listNotes operation plus the
-	// held notes:access point derive the op:listNotes button at session
-	// resolution, so the action node projects with it. The ungranted sibling
-	// buttons stay invisible.
-	if len(projected.Nodes) != 2 || projected.Nodes[0].ID != "notes" || projected.Nodes[1].ID != "op:listNotes" {
+	// An API grant never restores an explicitly absent action grant.
+	if len(projected.Nodes) != 1 || projected.Nodes[0].ID != "notes" {
 		t.Fatal("projection filter", projected.Nodes)
 	}
 
@@ -942,6 +939,7 @@ func TestRetiredDemoNavigationPreservesBusinessChildren(t *testing.T) {
 	}
 	n := contracts.Navigation{Version: listed.Version, Sections: listed.Sections, Nodes: listed.Nodes}
 	n.Nodes = append(n.Nodes,
+		contracts.NavigationNode{ID: "old-api-catalogue", SectionID: "system", Type: "page", RouteID: strPtr("api-operations"), Visible: true, Surfaces: []string{"administrator"}},
 		contracts.NavigationNode{ID: "old-lab", SectionID: "business", Type: "page", RouteID: strPtr("lab"), Visible: true, Surfaces: []string{"user", "administrator"}},
 		contracts.NavigationNode{ID: "old-files", SectionID: "business", Type: "page", RouteID: strPtr("files"), ParentID: strPtr("old-lab"), Visible: true, Surfaces: []string{"administrator"}},
 		contracts.NavigationNode{ID: "custom-help", SectionID: "business", Type: "link", ParentID: strPtr("old-files"), ActiveMenu: strPtr("old-files"), Url: strPtr("https://example.test/help"), Label: "Business help", Visible: true, Surfaces: []string{"administrator"}, OpenMode: "same_tab"},
@@ -978,7 +976,7 @@ func TestRetiredDemoNavigationPreservesBusinessChildren(t *testing.T) {
 	}
 	found := false
 	for _, node := range after.Nodes {
-		if node.ID == "old-lab" || node.ID == "old-files" || node.ID == "old-upload" || node.ID == "old-link" {
+		if node.ID == "old-api-catalogue" || node.ID == "old-lab" || node.ID == "old-files" || node.ID == "old-upload" || node.ID == "old-link" {
 			t.Fatal("retired node survived", node)
 		}
 		if node.ID == "custom-help" {

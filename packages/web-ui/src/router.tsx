@@ -113,7 +113,6 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
     pageRoute('/administrators', () => import('./pages/admin/users').then(module => ({ default: module.AdminAdministratorsPage })), { adminEligible: true }),
     pageRoute('/roles', () => import('./pages/admin/roles').then(module => ({ default: module.AdminRolesPage })), { adminEligible: true }),
     pageRoute('/posts', () => import('./pages/admin/posts').then(module => ({ default: module.AdminPostsPage })), { adminEligible: true }),
-    pageRoute('/api-operations', () => import('./pages/admin/api-operations').then(module => ({ default: module.AdminApiOperationsPage })), { adminEligible: true }),
     pageRoute('/departments', () => import('./pages/admin/departments').then(module => ({ default: module.AdminDepartmentsPage })), { adminEligible: true }),
     pageRoute('/menus', () => import('./pages/admin/menus').then(module => ({ default: module.AdminMenusPage })), { adminEligible: true }),
     pageRoute('/dictionaries', () => import('./pages/admin/dictionaries').then(module => ({ default: module.AdminDictionariesPage })), { adminEligible: true }),

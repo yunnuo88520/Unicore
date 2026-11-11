@@ -30,7 +30,7 @@ Unicore 的产品形态只有三种。`framework.manifest.json` 中的四个 pro
 | 发行包 | release 产物（web-platform / web-standalone / cli 归档、桌面安装包）；Web 包以 ldflags 注入默认 profile，部署期可覆盖属有意设计（[D15 已裁决](pending-decisions.md)） |
 | 实例 | 一次安装形成的数据目录 + 数据库 + 配置整体；安装后 profile 固化（`installation.json`） |
 | 实例运维面 | Web 发行包内 `unicore` 子命令与 `unicore-ops` 工具的总称；操作实例但不属于任何产品形态 |
-| 身份域（surface / realm） | Platform 的两个前端工作台与 API 域：user（工作区）与 administrator（管理后台），由 `/api/v1/admin/` 路径前缀选择，无回退查找 |
+| 工作台（surface / realm） | Platform 的两个前端工作台与 API 面：user（工作区）与 administrator（管理后台），由路径选择，共用统一账号和会话；角色 realm 仅作分类 |
 | 本地作用域（local scope） | 非平台形态无账号主体时的数据归属方式（`scope="local"`、`actor="local"`） |
 
 ## 2. 能力状态语义
@@ -55,7 +55,7 @@ Unicore 的产品形态只有三种。`framework.manifest.json` 中的四个 pro
 
 | 能力维度 | Platform | Standalone | CLI |
 | --- | --- | --- | --- |
-| 身份认证与用户体系 | 已实现：统一账号、双域会话、MFA、OIDC、人机验证 | 不装配：无账号主体，`capabilities.authentication=false` | 不装配 |
+| 身份认证与用户体系 | 已实现：统一账号、共享会话、MFA、OIDC、人机验证 | 不装配：无账号主体，`capabilities.authentication=false` | 不装配 |
 | 权限控制 | 已实现：权限点 + 菜单/动作 + operation 三层授权，super_admin 保留集，部门数据范围 | 不装配角色模型；服务端仍 fail-closed，本地可达即边界 | 不适用 |
 | 数据持久化 | 已实现：SQLite/PostgreSQL/MySQL，core+platform+module.notes 命名空间 | 已实现：web 三方言、desktop 仅 SQLite；core+module.notes | 不装配：无数据库 |
 | 配置 | 已实现：全局设置（仅管理端）+ 设备偏好 | 设备偏好；无实例级设置页面或可写设置项 | 不适用（仅进程日志环境变量） |

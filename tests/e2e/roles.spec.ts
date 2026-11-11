@@ -227,7 +227,8 @@ test('restricted administrators keep user administration without role management
   const pointsPanel = roleEditor.getByRole('group', { name: '权限点' });
   await expect(pointsPanel.getByText('仅超级管理员', { exact: true }).first()).toBeVisible();
   for (const name of ['查看用户', '创建用户', '管理用户身份', '查看平台公告']) await expect(pointsPanel.getByRole('checkbox', { name, exact: true })).toBeChecked();
-  // The page-bound API operations echo inside the users page detail.
+  // Inspect the page-linked selector separately from the complete catalogue.
+  await roleEditor.getByRole('button', { name: /高级/ }).click();
   await roleEditor.getByRole('button', { name: '展开或收起 用户列表', exact: true }).click();
   for (const operation of ['listUsers', 'updateUser', 'roleOptions']) {
     await expect(roleEditor.getByLabel(operation, { exact: true })).toBeChecked();

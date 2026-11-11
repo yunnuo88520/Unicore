@@ -16,8 +16,8 @@
 | OIDC 企业登录与账号绑定 | 已实现，默认关闭 | 不装配 | 不装配 | unicore_oidc_flows | `internal/platform/oidc.go`、[OIDC 需求](feature-oidc.md) |
 | 用户管理（含 XLSX 导入导出） | 已实现，users:* | 不装配 | 不装配 | unicore_users | `internal/adapter/http/users.go`、`internal/adapter/http/xlsx.go` |
 | 管理员账号管理 | 已实现，super_admin 保护最后管理员 | 不装配 | 不装配 | unicore_personal_accounts | `internal/platform/roles.go` |
-| 角色与操作级授权（RBAC） | 已实现：权限点目录 + 可委派 operation + super_admin 保留集 | 不装配 | 不装配 | unicore_roles 等 | `internal/platform/roles.go`、`internal/platform/operations.go`、[角色需求](feature-roles.md)、[权限契约](../api/permissions.md) |
-| 菜单与导航授权 | 已实现：共享导航树持久化 + CAS + 角色授权 | 不装配（导航由客户端默认树生成） | 不适用 | unicore_navigation_state | `internal/platform/navigation.go`、`packages/web-ui/src/navigation.ts` |
+| 角色与操作级授权（RBAC） | 已实现：服务端保留元数据 + 完整高级 API 选择器 + 显式撤销 | 不装配 | 不装配 | unicore_roles 等 | `internal/platform/roles.go`、`internal/platform/operations.go`、[角色需求](feature-roles.md)、[权限契约](../api/permissions.md) |
+| 菜单与导航授权 | 已实现：共享导航树持久化 + CAS + 菜单行角色分配（仅受影响会话失效） | 不装配（导航由客户端默认树生成） | 不适用 | unicore_navigation_state | `internal/platform/navigation.go`、`packages/web-ui/src/navigation.ts` |
 | 部门与数据范围 | 已实现，五值数据范围 fail-closed | 不装配 | 不装配 | unicore_departments | `internal/platform/datascope.go` |
 | 岗位管理 | 已实现（组织人事岗位，非内容帖子） | 不装配 | 不装配 | unicore_posts | `internal/adapter/http/posts.go` |
 | 数据字典 | 已实现（管理端 CRUD + 用户端只读） | 不装配 | 不装配 | unicore_dict_types | `internal/adapter/http/dictionaries.go` |
@@ -63,7 +63,7 @@
 | 系统更新 | 已实现：管理端（updates:read/apply）；tar 可更新、Docker 仅检查 | 已实现：web `/updates` 仅 loopback¹；desktop 原生更新² | 不装配 | 更新缓存 + 任务状态 | `internal/updates/service.go`、`internal/adapter/http/updates.go`、[更新指南](../product/updates.md) |
 | 审计日志 | 已实现（写入 + 元数据 + 查询/导出/流式跟踪） | 受限：仅写 core 审计表，无查询面（D17 已裁决为设计现状） | 不装配 | unicore_audit_logs(+metadata) | `internal/adapter/storage/sqlstore/audit.go`、`internal/adapter/http/logs.go` |
 | 管理员仪表盘 | 已实现（成员计数/近期审计/7 日活跃） | 不装配 | 不适用 | 只读聚合 | `internal/adapter/http/dashboard.go` |
-| API 操作目录 | 已实现（roles:read） | 不装配 | 不适用 | 契约派生 | `internal/platform/operations.go` |
+| 角色高级 API 目录（无独立页面） | 已实现（roles:read；授权需超管） | 不装配 | 不适用 | 契约派生 | `internal/platform/operations.go` |
 | Prometheus 指标 | 条件支持（--monitor-listen） | 条件支持（同左）¹ | 不适用 | 内存 | `internal/observability/metrics.go` |
 | 日志保留策略 | 已实现（logging.retention_days 设置） | 受限：启动时限值¹；desktop 固定保留² | 不适用 | 日志文件 | `internal/settings/logging.go`、`cmd/server/main.go` |
 

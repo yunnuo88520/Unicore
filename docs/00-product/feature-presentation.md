@@ -8,7 +8,7 @@
 | 上下文 | 形态 | 主体语义 | 会话/凭据 |
 | --- | --- | --- | --- |
 | Platform 用户域 | Platform | 统一账号（`unicore_users`），业务 + 可叠加管理权限，多角色 | `unicore_session` Cookie，user realm |
-| Platform 管理员域 | Platform | 管理后台运营者（super_admin 或受限管理员角色） | 独立 Cookie，administrator realm（由 `/api/v1/admin/` 路径前缀选择，非回退查找） |
+| Platform 管理员域 | Platform | 管理后台运营者（super_admin 或受限管理员角色） | 共享 `unicore_session` Cookie，administrator 工作台（由 `/api/v1/admin/` 路径前缀选择，不改变账号） |
 | Standalone 本地使用者 | Standalone | 无账号主体：本机可达即可用的隐式使用者（`scope="local"`、`actor="local"`） | 无会话；web 受 sameOrigin 等中间件保护，desktop 无 HTTP 面 |
 | CLI 调用者 | CLI | 命令行调用共享 Core 的进程内执行者 | 无 |
 
@@ -92,3 +92,5 @@
 核心实验室与文件管理测试页面不注册路由、菜单或首页快捷入口；旧地址显示不存在。平台文件服务与统一上传组件作为基础设施保留，使用已启用的全局默认存储。
 
 Standalone 只呈现本形态已装配的功能：不显示平台管理占位、权限提示、跨形态技术图示或“不适用”卡片；直接访问未提供的页面显示 404，不引导联系管理员。监控事件说明仅介绍本机实际事件源。所有工作区页签复用共享 Tabs，采用边框分段栏、强调色选中态、单行溢出滚动和 Radix 键盘操作。
+
+Platform 的“角色权限”使用共享树，默认页面授权只补浏览 API，写按钮显式选择；高级区提供完整可委派 API 及权限点，支持无菜单的 API 角色。菜单行显示角色与“分配角色”，仅超管可见；普通菜单运营者只能布局，服务端独立拒绝角色分配。API 操作目录没有独立页面/菜单，旧持久化入口在启动时移除，后台目录接口保留。Standalone 两载体及 CLI 均不呈现/装配上述治理能力。见 [角色需求](feature-roles.md) 与 [ADR-0040](../adr/ADR-0040-explicit-role-grants.md)。

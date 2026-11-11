@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
 import { Activity, AlertTriangle, ArrowRight, BellRing, CheckCircle2, Cpu, Database, HardDrive, MemoryStick, Network, Pause, Play, Radar, RefreshCw, ScrollText, Server, XCircle } from 'lucide-react';
-import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from '@unicore/ui';
+import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Tabs } from '@unicore/ui';
 import { cn } from '@unicore/ui/cn';
 import { currentLocale, defineMessages, t, useI18n, useLocale } from '../i18n';
 import { MeterBar, RingGauge, Sparkline, TrendArea, type TrendPoint, type TrendSeries } from '../widgets/monitor-charts';
@@ -179,16 +179,6 @@ function StatTile({ label, value, hint }: { label: string; value: string; hint?:
   </div>;
 }
 
-function NotApplicableCard({ title, icon: Icon, reason }: { title: string; icon: typeof Activity; reason: string }) {
-  const { t } = useI18n();
-  return <Card><CardContent className="flex items-center gap-4 py-6">
-    <span className="flex size-10 items-center justify-center rounded-xl bg-surface-alt text-muted"><Icon size={18} aria-hidden="true" /></span>
-    <div><strong className="text-sm text-ink">{title}</strong>
-      <p className="text-xs text-muted">{reason}</p></div>
-    <Badge className="ms-auto">{t('不适用')}</Badge>
-  </CardContent></Card>;
-}
-
 function DatabaseCard({ snapshot, history, compact, paused }: { snapshot: MonitorSnapshot; history?: TrendPoint[]; compact?: boolean; paused?: boolean }) {
   const { t } = useI18n();
   const db = snapshot.database;
@@ -231,7 +221,7 @@ function StorageCard({ client, snapshot, compact }: { client: AppClient; snapsho
   const queryClient = useQueryClient();
   const [probing, setProbing] = useState('');
   const storage = snapshot.storage;
-  if (!storage.applicable) return <NotApplicableCard title={t('对象存储')} icon={Server} reason={t('单机与桌面不装配文件服务，业务附件按本地语义处理。')} />;
+  if (!storage.applicable) return null;
   const probe = async (location: string) => {
     if (!client.probeStorage) return;
     setProbing(location);
@@ -289,7 +279,7 @@ function StorageCard({ client, snapshot, compact }: { client: AppClient; snapsho
 function HttpCard({ snapshot }: { snapshot: MonitorSnapshot }) {
   const { t } = useI18n();
   const http = snapshot.http_service;
-  if (!http.applicable) return <NotApplicableCard title={t('HTTP 服务')} icon={Radar} reason={t('桌面载体没有 HTTP 服务，该视图不适用。')} />;
+  if (!http.applicable) return null;
   const errorRate = (http.requests_total ?? 0) > 0 ? `${(((http.errors_total ?? 0) / (http.requests_total ?? 1)) * 100).toFixed(2)}%` : '0.00%';
   return <Card>
     <CardHeader className="flex-row items-center justify-between">
@@ -311,7 +301,7 @@ function HttpCard({ snapshot }: { snapshot: MonitorSnapshot }) {
 function TasksCard({ snapshot }: { snapshot: MonitorSnapshot }) {
   const { t } = useI18n();
   const tasks = snapshot.tasks;
-  if (!tasks.applicable) return <NotApplicableCard title={t('后台任务')} icon={Activity} reason={t('本形态无常驻平台任务注册表，维护任务随进程运行。')} />;
+  if (!tasks.applicable) return null;
   return <Card>
     <CardHeader className="flex-row items-center justify-between">
       <CardTitle><Activity size={16} className="text-accent" aria-hidden="true" />{t('后台任务')}</CardTitle>
@@ -365,32 +355,31 @@ function TrendTile({ label, value, hint, points, series, ariaLabel }: { label: s
 }
 
 function OverviewSection({ client, snapshot, history }: { client: AppClient; snapshot: MonitorSnapshot; history: TrendPoint[] }) {
-  void history;
   const { t } = useI18n();
   const failing = (snapshot.tasks.recent ?? []).filter(item => item.last_status === 'error');
   const host = snapshot.host;
   const dataDisk = host?.disks?.find(disk => disk.is_data_dir);
   return <div className="flex flex-col gap-4">
     <StatusCard snapshot={snapshot} />
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <TrendTile label={t('CPU 使用率')} value={host?.available && host.cpu_percent != null ? formatPercent(host.cpu_percent) : '—'}
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,12rem),1fr))] gap-4">
+      {host?.available && host.cpu_percent != null && <TrendTile label={t('CPU 使用率')} value={host?.available && host.cpu_percent != null ? formatPercent(host.cpu_percent) : '—'}
         hint={host?.available && host.cpu_cores_logical ? t('{{count}} 逻辑核心', { count: host.cpu_cores_logical }) : undefined}
-        points={history} series={{ key: 'cpu', label: t('CPU 使用率'), color: 'var(--color-primary)' }} ariaLabel={t('CPU 使用率')} />
-      <TrendTile label={t('内存使用率')} value={host?.available && host.mem_used_percent != null ? formatPercent(host.mem_used_percent) : '—'}
+        points={history} series={{ key: 'cpu', label: t('CPU 使用率'), color: 'var(--color-primary)' }} ariaLabel={t('CPU 使用率')} />}
+      {host?.available && host.mem_used_percent != null && <TrendTile label={t('内存使用率')} value={host?.available && host.mem_used_percent != null ? formatPercent(host.mem_used_percent) : '—'}
         hint={host?.available && host.mem_used_bytes != null && host.mem_total_bytes ? `${formatBytes(host.mem_used_bytes)} / ${formatBytes(host.mem_total_bytes)}` : undefined}
-        points={history} series={{ key: 'mem', label: t('内存使用率'), color: 'var(--color-accent)' }} ariaLabel={t('内存使用率')} />
-      <TrendTile label={t('磁盘使用率')} value={host?.available && dataDisk ? formatPercent(dataDisk.used_percent) : '—'}
+        points={history} series={{ key: 'mem', label: t('内存使用率'), color: 'var(--color-accent)' }} ariaLabel={t('内存使用率')} />}
+      {host?.available && dataDisk && <TrendTile label={t('磁盘使用率')} value={host?.available && dataDisk ? formatPercent(dataDisk.used_percent) : '—'}
         hint={host?.available && dataDisk ? `${t('数据目录')} · ${formatBytes(dataDisk.free_bytes)} ${t('可用')}` : undefined}
-        points={history} series={{ key: 'disk', label: t('磁盘使用率'), color: 'var(--color-success)' }} ariaLabel={t('磁盘使用率')} />
+        points={history} series={{ key: 'disk', label: t('磁盘使用率'), color: 'var(--color-success)' }} ariaLabel={t('磁盘使用率')} />}
       <TrendTile label="Goroutines" value={snapshot.runtime.goroutines.toLocaleString()}
         hint={`${t('堆内存')} ${formatBytes(snapshot.runtime.heap_alloc_bytes)}`}
         points={history} series={{ key: 'goroutines', label: 'Goroutines', color: 'var(--color-warning)' }} ariaLabel="Goroutines" />
     </div>
-    <div className="grid gap-4 lg:grid-cols-2">
+    <div className={cn('grid gap-4', snapshot.storage.applicable && 'lg:grid-cols-2')}>
       <DatabaseCard snapshot={snapshot} compact />
       <StorageCard client={client} snapshot={snapshot} compact />
     </div>
-    <Card>
+    {snapshot.tasks.applicable && <Card>
       <CardHeader className="flex-row items-center justify-between">
         <CardTitle><AlertTriangle size={16} className="text-accent" aria-hidden="true" />{t('最近异常')}</CardTitle>
         <Badge>{snapshot.status === 'healthy' ? t('一切正常') : t(STATUS_LABELS[snapshot.status as keyof typeof STATUS_LABELS] ?? snapshot.status)}</Badge>
@@ -412,7 +401,7 @@ function OverviewSection({ client, snapshot, history }: { client: AppClient; sna
             : `「${t('运行事件')}」${t('标签页。')}`}
         </p>
       </CardContent>
-    </Card>
+    </Card>}
   </div>;
 }
 
@@ -432,7 +421,7 @@ function usageTone(percent: number): string {
 function HostCard({ snapshot }: { snapshot: MonitorSnapshot }) {
   const { t } = useI18n();
   const host = snapshot.host;
-  if (!host?.available) return <NotApplicableCard title={t('宿主机指标')} icon={Server} reason={t('当前环境无法读取主机硬件指标。')} />;
+  if (!host?.available) return null;
   return <Card className="lg:col-span-2">
     <CardHeader className="flex-row items-center justify-between">
       <CardTitle><Server size={16} className="text-accent" aria-hidden="true" />{t('主机信息')}</CardTitle>
@@ -547,7 +536,7 @@ function NetCard({ history, paused }: { history: TrendPoint[]; paused?: boolean 
   const { t } = useI18n();
   const host = history.at(-1);
   if (!host || host.sent == null) {
-    return <NotApplicableCard title={t('网络 I/O')} icon={Network} reason={t('当前环境未提供网络计数。')} />;
+    return null;
   }
   // Server rates come from the service's own counter gap; the client delta
   // stays as the fallback for the very first pulls after startup.
@@ -607,7 +596,7 @@ const ALERT_RULE_NAMES = defineMessages({ db_unavailable: '数据库不可用', 
 export function alertRuleName(id: string): string { return t(ALERT_RULE_NAMES[id as keyof typeof ALERT_RULE_NAMES] ?? id); }
 
 /** The system events view: the process-perspective ring buffer, shared by both forms. */
-export function EventsSection({ client }: { client: AppClient }) {
+export function EventsSection({ client, local = false }: { client: AppClient; local?: boolean }) {
   const { t } = useI18n();
   const query = useQuery({
     queryKey: ['monitor-events'],
@@ -651,9 +640,9 @@ export function EventsSection({ client }: { client: AppClient }) {
             <Card><CardContent className="py-4">
               <p className="text-2xs font-medium text-muted">{t('关于运行事件')}</p>
               <ul className="mt-1.5 flex flex-col gap-1 text-2xs text-subtle">
-                <li>{t('记录范围：实例启动生命周期、定时任务失败与恢复（调度器完成时直接投递）、对象存储探活失败（手动触发）、数据库健康翻转（仅在监控页面被查看期间检测）、告警触发/恢复/归因转移（后台检测引擎）。')}</li>
+                <li>{local ? t('记录应用启动、数据库健康变化，以及本机告警的触发、恢复与归因变化。数据库健康变化仅在查看监控时检测。') : t('记录范围：实例启动生命周期、定时任务失败与恢复（调度器完成时直接投递）、对象存储探活失败（手动触发）、数据库健康翻转（仅在监控页面被查看期间检测）、告警触发/恢复/归因转移（后台检测引擎）。')}</li>
                 <li>{t('环形缓冲仅保留最近 {{capacity}} 条，超出丢弃最旧记录；应用重启后全部清空。', { capacity: list?.capacity ?? 0 })}</li>
-                <li>{t('运行事件不等同于操作日志、系统通知或持久化审计，也不保证覆盖尚未接入事件源的所有异常。')}</li>
+                <li>{local ? t('此处展示应用自身的运行事件，不保证覆盖所有异常。') : t('运行事件不等同于操作日志、系统通知或持久化审计，也不保证覆盖尚未接入事件源的所有异常。')}</li>
               </ul>
             </CardContent></Card>
           </>}
@@ -733,7 +722,6 @@ function AlertRulesCard({ client }: { client: AppClient }) {
 
 function ResourcesSection({ client, snapshot, history, paused }: { client: AppClient; snapshot: MonitorSnapshot; history: TrendPoint[]; paused?: boolean }) {
   const { t } = useI18n();
-  const host = snapshot.host;
   return <div className="flex flex-col gap-4">
     <div className="grid gap-4 lg:grid-cols-2">
       <HostCard snapshot={snapshot} />
@@ -745,7 +733,6 @@ function ResourcesSection({ client, snapshot, history, paused }: { client: AppCl
       {snapshot.profile === 'web-platform' ? <AlertRulesCard client={client} /> : null}
     </div>
     <p className="text-2xs text-subtle">{t('宿主机指标来自只读采样且不落库；趋势为页面打开期间的快照序列；CPU 使用率取相邻两次快照的差值。容器部署时内存/负载为内核视角，容器限额单列。')}</p>
-    {host?.available ? null : <p className="sr-only">{t('当前环境无法读取主机硬件指标。')}</p>}
   </div>;
 }
 
@@ -770,24 +757,21 @@ const LOCAL_TABS = defineMessages({ overview: '运行概览', services: '服务�
 /** Standalone and desktop collapse the monitor group into one tabbed console page. */
 export function MonitorPage({ client }: PageProps) {
   useLocale();
-  const [tab, setTab] = useState<'overview' | 'services' | 'resources' | 'events'>('overview');
+  const [tab, setTab] = useState('overview');
   const { t } = useI18n();
   return <SectionShell client={client} icon={Activity} title={t('运行监控')} description={t('本机实例的运行状态、资源与服务健康。')}>
     {(innerClient, snapshot, history, paused) => <div className="flex flex-col gap-4">
-      <div role="tablist" aria-label={t('运行监控分区')} className="flex w-fit gap-1 rounded-xl border border-line bg-surface p-1">
-        {(Object.keys(LOCAL_TABS) as Array<keyof typeof LOCAL_TABS>).map(key =>
-          <button key={key} role="tab" aria-selected={tab === key} onClick={() => setTab(key)}
-            className={cn('rounded-lg px-3 py-1.5 text-xs font-medium transition-colors', tab === key ? 'bg-primary-soft text-accent' : 'text-muted hover:text-ink')}>
-            {t(LOCAL_TABS[key])}
-          </button>)}
-      </div>
+      <Tabs id="local-monitor" label={t('运行监控分区')} value={tab} onChange={setTab}
+        items={Object.entries(LOCAL_TABS).map(([id, label]) => ({ id, label: t(label) }))} />
+      <div role="tabpanel" id={`local-monitor-panel-${tab}`} aria-labelledby={`local-monitor-tab-${tab}`} tabIndex={0}>
       {tab === 'overview'
         ? <OverviewSection client={innerClient} snapshot={snapshot} history={history} />
         : tab === 'services'
           ? <ServicesSection client={innerClient} snapshot={snapshot} history={history} />
           : tab === 'resources'
             ? <ResourcesSection client={innerClient} snapshot={snapshot} history={history} paused={paused} />
-            : <EventsSection client={innerClient} />}
+            : <EventsSection client={innerClient} local />}
+      </div>
     </div>}
   </SectionShell>;
 }

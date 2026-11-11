@@ -861,7 +861,6 @@
     "packages/ui/src/tabs.tsx",
     "packages/ui/src/tooltip.tsx",
     "packages/web-ui/AGENTS.md",
-    "packages/web-ui/fixtures/analyze-sample.ts",
     "packages/web-ui/package.json",
     "packages/web-ui/src/App.test.tsx",
     "packages/web-ui/src/App.tsx",
@@ -921,7 +920,6 @@
     "packages/web-ui/src/pages/auth.tsx",
     "packages/web-ui/src/pages/edition.tsx",
     "packages/web-ui/src/pages/error.tsx",
-    "packages/web-ui/src/pages/files.tsx",
     "packages/web-ui/src/pages/forbidden.tsx",
     "packages/web-ui/src/pages/home.tsx",
     "packages/web-ui/src/pages/install.tsx",
@@ -1059,8 +1057,10 @@
     "internal/monitor/host_unix.go",
     "internal/monitor/host_windows.go",
     "packages/web-ui/src/pages/monitor.tsx",
+    "packages/web-ui/src/pages/monitor.test.tsx",
     "packages/web-ui/src/widgets/monitor-charts.tsx",
-    "packages/web-ui/src/widgets/monitor-summary.tsx"
+    "packages/web-ui/fixtures/upload-harness.tsx",
+    "tests/e2e/upload-fixture.ts"
   ],
   "ownership": {
     "product-owned": [

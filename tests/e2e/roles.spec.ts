@@ -43,7 +43,7 @@ test('fixed roles enforce menus, all management APIs and client-only appearance'
     expect(metadata.current_user.roles).toEqual(['user']);
     // The builtin user role auto-holds every assignable business grant; the
     // departments points stay administrator-realm management points now.
-    expect(metadata.current_user.permissions).toEqual(['files:access', 'files:delete', 'files:upload', 'notes:access', 'notes:create', 'notes:delete', 'notes:update']);
+    expect(metadata.current_user.permissions).toEqual(['notes:access', 'notes:create', 'notes:delete', 'notes:update']);
     const memberHeaders = { 'X-CSRF-Token': metadata.csrf_token };
     // The departments points stay assignable to user-realm roles and drive the
     // platform-side data scopes, but the department console itself remains an
@@ -341,7 +341,7 @@ test('button-level grants hide note actions while the notes page stays reachable
     const uploaded = await memberApi.uploadFile(new File([Buffer.from('member file content')], 'member-file.txt', { type: 'text/plain' }));
     await expect(memberApi.files!.deleteFile(uploaded.file_id)).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
     await memberPage.goto(`${instance.url}/files`);
-    await expect(memberPage.getByRole('heading', { name: '没有访问权限', exact: true })).toBeVisible();
+    await expect(memberPage.getByRole('heading', { name: '页面不存在', exact: true })).toBeVisible();
     // Narrowing the permission upper bound prunes dependent API and action
     // grants in the same save; unrelated grants stay intact. The saved union
     // is derived inside the editor, so the buttons, their API operations and
@@ -360,14 +360,7 @@ test('button-level grants hide note actions while the notes page stays reachable
     };
     await groupOff('创建笔记');
     await editDialog.getByRole('checkbox', { name: 'createNote', exact: true }).uncheck();
-    await editDialog.getByRole('button', { name: `展开或收起 ${labelOf('files')}`, exact: true }).click();
-    // The files:upload point rides the upload operation family; its derived
-    // buttons collapse into one 上传文件 group (already ungranted here — the
-    // files page is administrator-surface, so its actions never auto-derived).
-    await groupOff('上传文件');
-    for (const operation of ['createFileUpload', 'uploadLocalFile', 'completeFileUpload', 'createMultipartUpload', 'multipartUpload', 'signUploadPart', 'uploadLocalPart', 'completeMultipartUpload']) {
-      await editDialog.getByLabel(operation, { exact: true }).uncheck();
-    }
+    // File APIs have no demo page; narrowing their raw point prunes upload grants.
     await editDialog.getByRole('button', { name: /高级/ }).click();
     const points = editDialog.getByRole('group', { name: '权限点' });
     await points.getByRole('checkbox', { name: '创建笔记', exact: true }).uncheck();
@@ -555,8 +548,8 @@ test('note attachments ride any-mode file access while unrelated files stay refu
   });
   expect(notewriter.operation_ids).toContain('fileAccess');
   await admin.web!.createUser({ username: 'notewriter', email: 'notewriter@example.test', password: member, role: notewriter.id });
-  // A peer member keeps a builtin-role file that must never be reachable.
-  await admin.web!.createUser({ username: 'peer', email: 'peer@example.test', password: member, role: 'user' });
+  // A peer with explicit upload grants keeps a file that must never be reachable.
+  await admin.web!.createUser({ username: 'peer', email: 'peer@example.test', password: member, role: notewriter.id });
 
   const contexts: import('@playwright/test').BrowserContext[] = [];
   try {
@@ -569,7 +562,7 @@ test('note attachments ride any-mode file access while unrelated files stay refu
     // The attachment is uploaded through the files:upload path only.
     const attachment = await writerApi.uploadFile(new File([Buffer.from('attached bytes')], 'note-attachment.txt', { type: 'text/plain' }));
     const note = await writerApi.createNote({ title: '附件笔记', body: '正文', status: 'open', attachment_ids: [attachment.file_id] });
-    // The peer uploads through the full builtin grants.
+    // The peer uploads through explicitly assigned API grants.
     const peerContext = await browser.newContext({ viewport: page.viewportSize()!, isMobile: info.project.name === 'mobile', hasTouch: info.project.name === 'mobile' });
     contexts.push(peerContext);
     await peerContext.newPage();

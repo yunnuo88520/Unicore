@@ -55,7 +55,7 @@ const menuConfig = () => ({
     { id: 'n-child', section_id: 'sec-user', parent_id: 'n-dir', type: 'page', label: '子页面', icon: 'FileText', sort: 0, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: [], disabled: false, permission: 'files:access', surfaces: ['user'] },
     { id: 'n-users', section_id: 'sec-admin', type: 'page', label: '用户列表', icon: 'UserRound', sort: 0, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: [], disabled: false, permission: 'users:read', surfaces: ['administrator'] },
     { id: 'administration', section_id: 'sec-admin', type: 'directory', label: '', icon: 'Users', sort: 1, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: [], disabled: false, surfaces: ['administrator'] },
-    { id: 'n-unnamed-files', section_id: 'sec-user', type: 'page', label: '', route_id: 'files', icon: 'FolderOpen', sort: 2, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: [], disabled: false, permission: 'files:access', surfaces: ['user'] },
+    { id: 'n-unnamed-files', section_id: 'sec-user', type: 'page', label: '', route_id: 'overview', icon: 'FolderOpen', sort: 2, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: [], disabled: false, permission: 'files:access', surfaces: ['user'] },
     { id: 'n-raw', section_id: 'sec-user', type: 'page', label: '', icon: 'Circle', sort: 3, visible: true, open_mode: 'same_tab', badge_text: '', badge_color: '', badge_dot: false, operation_ids: [], disabled: false, surfaces: ['user'] },
   ],
 });
@@ -214,7 +214,7 @@ it('locates unnamed menu nodes through the navigation display fallback', async (
   await screen.findByText('记录员');
   const dialog = await openEditor('新建角色');
   // An unnamed page node resolves its label from the registered route...
-  const unnamed = within(dialog).getByRole('checkbox', { name: '文件管理' });
+  const unnamed = within(dialog).getByRole('checkbox', { name: '工作台概览' });
   // ...a seeded directory resolves its localized title instead of leaking the raw id...
   expect(within(dialog).getByRole('checkbox', { name: '超级管理员' })).toBeVisible();
   // ...and a page without any route falls back to its raw id.
@@ -289,22 +289,22 @@ it('authorizes page actions grouped by label with their permission point and lin
 });
 
 it('grants page-linked API operations while administrator-realm operations stay hidden', async () => {
-  const createRole = vi.fn().mockResolvedValue({ id: 'api-role', name: '接口角色', builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: [], action_ids: [], operation_ids: ['listFiles'], authorization_initialized: true });
+  const createRole = vi.fn().mockResolvedValue({ id: 'api-role', name: '接口角色', builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: [], action_ids: [], operation_ids: ['listNotes'], authorization_initialized: true });
   mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole }));
   await screen.findByText('记录员');
   const dialog = await openEditor('新建角色');
-  await userEvent.click(within(dialog).getByRole('button', { name: '展开或收起 文件管理' }));
+  await userEvent.click(within(dialog).getByRole('button', { name: '展开或收起 我的笔记' }));
   // Administrator-realm operations never surface for a user-realm role, while
   // the page's own operations stay selectable; super-admin catalogue entries
   // are filtered out entirely.
   expect(within(dialog).queryByRole('checkbox', { name: 'adminFileAccess' })).toBeNull();
-  const listFiles = within(dialog).getByRole('checkbox', { name: 'listFiles' });
+  const listFiles = within(dialog).getByRole('checkbox', { name: 'listNotes' });
   expect(listFiles).toBeEnabled();
   await userEvent.click(listFiles);
   await userEvent.type(within(dialog).getByLabelText('角色名称'), '接口角色');
   await userEvent.click(within(dialog).getByRole('button', { name: '保存' }));
   // The operation's own permission point merges into the saved union.
-  await vi.waitFor(() => expect(createRole).toHaveBeenCalledWith(expect.objectContaining({ name: '接口角色', operation_ids: ['listFiles'], permissions: ['files:access'] })));
+  await vi.waitFor(() => expect(createRole).toHaveBeenCalledWith(expect.objectContaining({ name: '接口角色', operation_ids: ['listNotes'], permissions: ['notes:access'] })));
 });
 
 it('selects a page\'s actions and operations by default and strips them when the page is unchecked', async () => {

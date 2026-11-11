@@ -232,12 +232,12 @@ it('creates a page from the region row: the type is picked in the dialog and the
   await userEvent.click(screen.getByRole('option', { name: '页面' }));
   await userEvent.click(within(dialog).getByRole('combobox', { name: '目标页面（仅已注册路由）' }));
   // Registered pages are offered; pages already placed anywhere in the tree are filtered out.
-  expect(screen.getByRole('option', { name: '核心实验室' })).toBeVisible();
+  expect(screen.getByRole('option', { name: '登录会话' })).toBeVisible();
   expect(screen.queryByRole('option', { name: '工作台概览' })).toBeNull();
-  await userEvent.click(screen.getByRole('option', { name: '核心实验室' }));
+  await userEvent.click(screen.getByRole('option', { name: '登录会话' }));
   await userEvent.click(within(dialog).getByRole('button', { name: '确定' }));
   // New nodes take a random id; the row is located by its display name.
-  const labRow = screen.getByText('核心实验室').closest('tr') as HTMLElement;
+  const labRow = screen.getByText('登录会话').closest('tr') as HTMLElement;
   expect(labRow.getAttribute('data-node-type')).toBe('page');
   expect(labRow.getAttribute('data-section')).toBe('business');
   await userEvent.click(screen.getByRole('button', { name: '保存菜单配置' }));
@@ -245,10 +245,10 @@ it('creates a page from the region row: the type is picked in the dialog and the
   const payload = saveMenuConfig.mock.calls[0][0] as MenuSaveInput;
   expect(payload.version).toBe(7);
   expect(payload.reset).toBeUndefined();
-  const created = payload.nodes.find(item => item.route_id === 'lab');
+  const created = payload.nodes.find(item => item.route_id === 'account-sessions');
   expect(created?.section_id).toBe('business');
   expect(created?.parent_id).toBeUndefined();
-  // Surfaces derive from the registered route: the lab page stays shared.
+  // Surfaces derive from the registered route: the overview page stays shared.
   expect(created?.surfaces).toEqual(['user', 'administrator']);
   expect(payload.role_assignments).toBeUndefined();
 });
@@ -305,14 +305,14 @@ it('adds a child page from a page row with the parent preset to that row', async
   await userEvent.click(within(dialog).getByRole('combobox', { name: '菜单类型' }));
   await userEvent.click(screen.getByRole('option', { name: '页面' }));
   await userEvent.click(within(dialog).getByRole('combobox', { name: '目标页面（仅已注册路由）' }));
-  await userEvent.click(screen.getByRole('option', { name: '核心实验室' }));
+  await userEvent.click(screen.getByRole('option', { name: '登录会话' }));
   await userEvent.click(within(dialog).getByRole('button', { name: '确定' }));
-  const labRow = screen.getByText('核心实验室').closest('tr') as HTMLElement;
+  const labRow = screen.getByText('登录会话').closest('tr') as HTMLElement;
   expect(labRow.getAttribute('data-node-type')).toBe('page');
   await userEvent.click(screen.getByRole('button', { name: '保存菜单配置' }));
   await vi.waitFor(() => expect(saveMenuConfig).toHaveBeenCalledTimes(1));
   const payload = saveMenuConfig.mock.calls[0][0] as MenuSaveInput;
-  const created = payload.nodes.find(item => item.route_id === 'lab');
+  const created = payload.nodes.find(item => item.route_id === 'account-sessions');
   expect(created?.parent_id).toBe('overview');
   expect(created?.section_id).toBe('business');
 });
@@ -327,12 +327,12 @@ it('adds a child page from a link row with the parent preset to that link', asyn
   await userEvent.click(within(dialog).getByRole('combobox', { name: '菜单类型' }));
   await userEvent.click(screen.getByRole('option', { name: '页面' }));
   await userEvent.click(within(dialog).getByRole('combobox', { name: '目标页面（仅已注册路由）' }));
-  await userEvent.click(screen.getByRole('option', { name: '核心实验室' }));
+  await userEvent.click(screen.getByRole('option', { name: '登录会话' }));
   await userEvent.click(within(dialog).getByRole('button', { name: '确定' }));
   await userEvent.click(screen.getByRole('button', { name: '保存菜单配置' }));
   await vi.waitFor(() => expect(saveMenuConfig).toHaveBeenCalledTimes(1));
   const payload = saveMenuConfig.mock.calls[0][0] as MenuSaveInput;
-  const created = payload.nodes.find(item => item.route_id === 'lab');
+  const created = payload.nodes.find(item => item.route_id === 'account-sessions');
   expect(created?.parent_id).toBe('link:help');
   expect(created?.section_id).toBe('business');
 });

@@ -12,10 +12,10 @@ it('resolves explicit unknown routes without silently executing the overview', (
   expect(pageFromHash('#__proto__')).toBe('not-found');
   expect(pageFromHash('#reset-password?token=private')).toBe('overview');
 });
-it('guards platform pages by profile and permission while allowing local settings', () => {
+it('guards platform pages by profile and permission while excluding local instance settings', () => {
   const metadata = { profile: 'web-standalone', capabilities: { settings: true }, current_user: { roles: ['user'], permissions: ['roles:read'] } } as Bootstrap;
   expect(canAccess('roles', metadata)).toBe(false);
-  expect(canAccess('site', metadata)).toBe(true);
+  expect(canAccess('site', metadata)).toBe(false);
   expect(canAccess('account', metadata)).toBe(false);
   metadata.profile = 'web-platform';
   expect(canAccess('roles', metadata)).toBe(false);
@@ -29,7 +29,8 @@ it('guards platform pages by profile and permission while allowing local setting
 it('keeps notes visible on standalone and desktop while gating by the role grant on web-platform',()=>{
   const standalone = { profile: 'web-standalone', capabilities: { database: true }, current_user: null } as unknown as Bootstrap;
   expect(canAccess('notes', standalone)).toBe(true);
-  expect(canAccess('files', standalone)).toBe(false);
+  expect(pageFromHash('#files')).toBe('not-found');
+  expect(pageFromHash('#lab')).toBe('not-found');
   const platform = { profile: 'web-platform', identity_realm: 'user', capabilities: { database: true }, current_user: { roles: ['user'], permissions: [] } } as unknown as Bootstrap;
   expect(canAccess('notes', platform)).toBe(false);
   platform.current_user!.permissions = ['notes:access'];
@@ -116,7 +117,7 @@ it('keeps restricted administrators in the administration layout while filtering
   // system region.
   const administration = navigation.sections.find(section => section.id === 'system')?.entries.find(entry => entry.id === 'administration');
   expect(administration?.children.map(entry => entry.id)).toEqual(['users']);
-  expect(navigation.sections.find(section => section.id === 'business')?.entries.filter(entry => entry.type !== 'directory').map(entry => entry.id)).toEqual(['overview', 'lab', 'announcements']);
+  expect(navigation.sections.find(section => section.id === 'business')?.entries.filter(entry => entry.type !== 'directory').map(entry => entry.id)).toEqual(['overview', 'announcements']);
   // 系统设置 pages need settings:read, so the settings directory drops out of
   // the system region while the single business region keeps the operator's
   // own account pages under the shared 个人中心 directory.

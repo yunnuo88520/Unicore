@@ -90,7 +90,7 @@ it('renders the shared administrator tree: three seeded directories over two reg
   // The business region keeps the shared workspace entries plus the real seeded
   // 个人中心 directory at its tail instead of a separate personal region; both
   // workspaces share it.
-  expect(entriesOf(navigation, 'business')).toEqual(['overview', 'lab', 'announcements', 'files', 'notes', 'personal']);
+  expect(entriesOf(navigation, 'business')).toEqual(['overview', 'announcements', 'notes', 'personal']);
   const personal = business.entries.find(entry => entry.id === 'personal')!;
   expect(personal.type).toBe('directory');
   expect(personal.label).toBe('个人中心');
@@ -117,7 +117,7 @@ it('keeps the user workspace on the same tree: the shared personal directory, ad
   // user workspace; canAccess also hard-denies api-docs there, even for a
   // super admin, while the personal pages live inside the real 个人中心
   // directory at the tail of the single business region.
-  expect(walkAll(navigation)).toEqual(['overview', 'lab', 'notes', 'personal', 'account', 'account-security', 'account-sessions']);
+  expect(walkAll(navigation)).toEqual(['overview', 'notes', 'personal', 'account', 'account-security', 'account-sessions']);
   const personal = navigation.sections.find(section => section.id === 'business')!.entries.find(entry => entry.id === 'personal')!;
   expect(personal.type).toBe('directory');
   expect(personal.label).toBe('个人中心');
@@ -185,7 +185,7 @@ it('renders operator links gated by visibility and registered in-site targets', 
   const nodes: NavigationNode[] = [...config.nodes,
     { ...baseNode('link:help', 'business', 'link'), label: '帮助中心', url: 'https://example.com/help', sort: 5 },
     { ...baseNode('link:hidden', 'business', 'link'), label: '隐藏', url: '/notes', sort: 6, visible: false },
-    { ...baseNode('link:inside', 'business', 'link'), label: '站内', url: '/lab', sort: 7 },
+    { ...baseNode('link:inside', 'business', 'link'), label: '站内', url: '/', sort: 7 },
     { ...baseNode('link:bad', 'business', 'link'), label: '任意路径', url: '/../../etc/passwd', sort: 8 },
   ];
   const navigation = render({ ...member(['notes:access', 'files:access']), navigation: { version: 2, sections: config.sections, nodes } } as Bootstrap);
@@ -203,13 +203,13 @@ it('keeps action nodes and disabled nodes out of the sidebar', () => {
   const config = defaultNavigation(['administrator']);
   const nodes: NavigationNode[] = [...config.nodes,
     { ...baseNode('action:invite', 'business', 'action'), label: '邀请用户', permission: 'users:create', visible: true },
-    { ...baseNode('page:lab-alias', 'business', 'page'), label: '实验室入口', route_id: 'lab', disabled: true },
+    { ...baseNode('page:overview-alias', 'business', 'page'), label: '概览入口', route_id: 'overview', disabled: true },
   ];
   const navigation = render({ ...superAdmin, navigation: { version: 3, sections: config.sections, nodes } } as Bootstrap);
   const all = walkAll(navigation);
   expect(all).not.toContain('action:invite');
-  expect(all).not.toContain('page:lab-alias');
-  expect(all).toContain('lab');
+  expect(all).not.toContain('page:overview-alias');
+  expect(all).toContain('overview');
 });
 
 it('always leaves the super administrator a reachable menu management entry', () => {
@@ -233,26 +233,26 @@ it('always leaves the super administrator a reachable menu management entry', ()
 it('falls back to static defaults for standalone profiles and unknown parents', () => {
   const standalone = {
     profile: 'web-standalone', identity_realm: 'user', capabilities: { database: true, settings: true, updater: true, features: { notes: true } }, current_user: null,
-    navigation: { version: 1, sections: [], nodes: [{ ...baseNode('lab', 'gone', 'page'), route_id: 'lab', parent_id: 'missing' }] },
+    navigation: { version: 1, sections: [], nodes: [{ ...baseNode('overview', 'gone', 'page'), route_id: 'overview', parent_id: 'missing' }] },
   } as unknown as Bootstrap;
   const navigation = render(standalone);
   // The stored tree references a missing section, so the local defaults take over;
   // standalone keeps one business region without a personal section.
   expect(navigation.sections.map(section => section.id)).toEqual(['business']);
   const all = walkAll(navigation);
-  expect(all).toContain('lab');
-  expect(all).toContain('site');
+  expect(all).toContain('overview');
+  expect(all).not.toContain('site');
   expect(all).not.toContain('account');
 });
 
 it('cuts cyclic parents instead of losing rows', () => {
   const config = defaultNavigation(['user']);
-  const nodes: NavigationNode[] = config.nodes.map(node => node.id === 'lab' ? { ...node, parent_id: 'notes' } : node)
-    .concat([{ ...baseNode('notes', 'business', 'page'), route_id: 'notes', parent_id: 'lab' }]);
+  const nodes: NavigationNode[] = config.nodes.map(node => node.id === 'overview' ? { ...node, parent_id: 'notes' } : node)
+    .concat([{ ...baseNode('notes', 'business', 'page'), route_id: 'notes', parent_id: 'overview' }]);
   const tree = buildMenuTree({ sections: config.sections, nodes });
   const flat = flattenMenuTree(tree.flatMap(section => section.children));
   // Both rows survive; the cycle is cut at one point.
-  expect(flat.map(({ node }) => node.id)).toEqual(expect.arrayContaining(['lab', 'notes']));
+  expect(flat.map(({ node }) => node.id)).toEqual(expect.arrayContaining(['overview', 'notes']));
 });
 
 it('validates link targets against the registered route table only', () => {

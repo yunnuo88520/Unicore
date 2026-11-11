@@ -254,7 +254,7 @@ function Features() {
       <p className="mb-3 text-xs font-medium uppercase tracking-widest text-muted">{t('核心特性')}</p>
       <h2 className="text-2xl font-bold leading-tight tracking-tight md:text-3xl">{t('为团队而生，')}<br />{t('为规模而设计')}</h2>
       <div className="mt-12 grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-line bg-line md:grid-cols-3">
-        <BentoCell num="01" span title={t('文件管理')} desc={t('本地磁盘与 S3 / MinIO 对象存储，分片直传、签名下载与生命周期管理开箱即用。')}>
+        <BentoCell num="01" span title={t('文件存储')} desc={t('本地磁盘与 S3 / MinIO 对象存储，分片直传、签名下载与生命周期管理开箱即用。')}>
           <div className="mt-4 grid grid-cols-3 gap-2">
             {[t('本地磁盘'), 'S3', 'MinIO', t('分片直传'), t('签名下载'), t('生命周期')].map(name => (
               <span key={name} className="flex items-center justify-center rounded-lg border border-line px-2 py-2 text-xs text-muted transition-colors hover:border-[var(--primary-border)] hover:text-accent">{name}</span>

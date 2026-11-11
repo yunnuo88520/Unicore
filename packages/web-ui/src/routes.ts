@@ -4,13 +4,11 @@
 import { notes } from './modules/notes';
 import {defineMessages} from './i18n';
 import type { Bootstrap } from '@unicore/sdk';
-import { Bell, BookOpen, Activity, Circle, Cloud, Cpu, FileText, FlaskConical, FolderOpen, LayoutDashboard, ListChecks, Mail, Megaphone, Monitor, Network, NotebookPen, PackageCheck, Radar, ScrollText, Settings2, ShieldCheck, UserCog, UserRound, Webhook, type LucideIcon } from 'lucide-react';
+import { Bell, BookOpen, Activity, Circle, Cloud, Cpu, FileText, LayoutDashboard, ListChecks, Mail, Megaphone, Monitor, Network, NotebookPen, PackageCheck, Radar, ScrollText, Settings2, ShieldCheck, UserCog, UserRound, Webhook, type LucideIcon } from 'lucide-react';
 
 export const routes = defineMessages({
   ...notes.routes,
   overview: { label: '工作台概览', title: '一份核心，无限可能', description: '从这里出发，让同一份业务逻辑运行于 Web、桌面与命令行。', icon: LayoutDashboard },
-  lab: { label: '核心实验室', title: '探索核心的每一种可能', description: '修改输入、运行用例，验证跨形态一致的执行结果。', icon: FlaskConical },
-  files:{label:'文件管理',title:'文件管理',description:'统一管理文件，按需获取临时访问链接。',permission:'files:access',icon:FolderOpen},
   site: { label: '基础设置', title: '基础设置', description: '集中管理站点、品牌与适用的实例配置。', permission: 'settings:read', icon: Settings2, group: 'system' },
   storage:{label:'对象存储',title:'对象存储',description:'按需切换本地与云存储，让业务只关心文件。',permission:'storage:read',icon:Cloud,group:'system'},
   users: { label: '用户列表', title: '用户管理', description: '管理账号、角色和状态，权限由服务端逐一校验。', permission: 'users:read', icon: UserRound, group: 'administration' },
@@ -37,9 +35,9 @@ export const routes = defineMessages({
   // No permission or authenticated marker: reachable whenever the instance publishes /openapi.json (config.APIDocs).
   'api-docs': { label: 'API 文档', title: 'API 文档', description: '浏览与下载 OpenAPI 接口契约。', icon: BookOpen },
   monitor: { label: '运行概览', title: '运行监控', description: '查看实例运行状态、版本与核心健康。', permission: 'monitor:read', local: true, database: true, group: 'monitor', icon: Activity },
-  'monitor-services': { label: '服务健康', title: '服务健康', description: '检查 HTTP、数据库、存储与后台任务状态。', permission: 'monitor:read', local: true, database: true, group: 'monitor', icon: Radar },
-  'monitor-resources': { label: '资源监控', title: '资源监控', description: '观察主机硬件、进程与 Go Runtime 资源。', permission: 'monitor:read', local: true, database: true, group: 'monitor', icon: Cpu },
-  'monitor-events': { label: '运行事件', title: '运行事件', description: '查看实例自身运行产生的生命周期、健康翻转与任务错误事件。', permission: 'monitor:read', local: true, database: true, group: 'monitor', icon: ScrollText },
+  'monitor-services': { label: '服务健康', title: '服务健康', description: '检查 HTTP、数据库、存储与后台任务状态。', permission: 'monitor:read', database: true, group: 'monitor', icon: Radar },
+  'monitor-resources': { label: '资源监控', title: '资源监控', description: '观察主机硬件、进程与 Go Runtime 资源。', permission: 'monitor:read', database: true, group: 'monitor', icon: Cpu },
+  'monitor-events': { label: '运行事件', title: '运行事件', description: '查看实例自身运行产生的生命周期、健康翻转与任务错误事件。', permission: 'monitor:read', database: true, group: 'monitor', icon: ScrollText },
   'not-found': { label: '页面不存在', title: '页面不存在', description: '这个地址尚未注册，请通过导航进入已有页面。', icon: Circle },
 } as const);
 export type Page = keyof typeof routes;
@@ -62,7 +60,7 @@ export function canAccess(page: Page, metadata?: Bootstrap): boolean {
   // Management-flavoured pages never render on the user surface — even when a
   // persisted menu tree or a custom role still carries them (existing installs).
   if (metadata?.profile === 'web-platform' && metadata.identity_realm !== 'administrator' &&
-    ['site', 'api-docs', 'announcements', 'files', 'monitor', 'monitor-services', 'monitor-resources', 'monitor-events'].includes(page)) return false;
+    ['site', 'api-docs', 'announcements', 'monitor', 'monitor-services', 'monitor-resources', 'monitor-events'].includes(page)) return false;
   if (metadata?.profile === 'web-platform' && metadata.current_user &&
     !metadata.current_user.roles.includes('super_admin') &&
     !['account', 'account-security', 'account-sessions'].includes(page)) {
@@ -93,7 +91,7 @@ export function canAccess(page: Page, metadata?: Bootstrap): boolean {
   if (page === 'api-docs') return !!metadata.capabilities.api_docs && (metadata.profile === 'web-platform' || metadata.profile === 'web-standalone');
   // Updates stay super-only: restricted operators never reach the update panel.
   if (page === 'edition') return metadata.profile==='web-platform' ? isAdministrator(metadata) && ((__FEATURE_UPDATER__ && metadata.capabilities.updater) || (__FEATURE_LICENSE__ && metadata.capabilities.license)) : __FEATURE_UPDATER__ && metadata.capabilities.updater;
-  if (page === 'site') return metadata.capabilities.settings && (metadata.profile !== 'web-platform' || !!metadata.current_user);
+  if (page === 'site') return metadata.capabilities.settings && isAdminRealm(metadata) && !!metadata.current_user;
   const route = routes[page];
   // Module pages flagged local exist in every database profile: standalone and
   // desktop keep the capability check, web-platform gates on the role grant.

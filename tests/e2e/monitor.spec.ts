@@ -1,8 +1,8 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Runtime monitor boundaries: super-admin console and summary, member exclusion at page and API level, and the standalone local view.
+// Description: Runtime monitor boundaries: super-admin console without dashboard monitoring, member exclusion at page and API level, and the standalone local view.
 import { test, expect, installPlatform, installStandalone, adminLogin, workspaceLogin, sdkClient, loginClient, memberPassword } from './fixtures';
 
-test('platform: super admin sees the monitor directory, pages and dashboard summary', async ({ instance, page }, testInfo) => {
+test('platform: super admin sees monitor pages while the dashboard stays free of monitoring', async ({ instance, page }, testInfo) => {
   await installPlatform(instance);
   const admin = sdkClient(instance.url);
   await loginClient(admin, 'admin', 'administrator-password-strong');
@@ -23,14 +23,20 @@ test('platform: super admin sees the monitor directory, pages and dashboard summ
   }
   // Monitor pages live on the administrator surface (the user surface 403s
   // them by design, covered in the member test below).
+  const renderedSnapshot = page.waitForResponse(response => response.url() === `${instance.url}/api/v1/admin/monitor` && response.request().method() === 'GET');
   await page.goto(`${instance.url}/admin/monitor`);
+  const currentSnapshot = (await (await renderedSnapshot).json()).data;
   await expect(page.locator('#main-content').getByRole('heading', { name: '运行概览' })).toBeVisible();
   await expect(page.getByText('连接正常')).toBeVisible();
   await expect(page.getByRole('button', { name: '刷新', exact: true })).toBeVisible();
   // The overview is a summary: usage tiles with sparklines plus compact
   // service cards; the full trend charts live on the resources page.
   await expect(page.getByText('CPU 使用率', { exact: true }).first()).toBeVisible();
-  await expect(page.getByText('当前没有失败的任务。').or(page.getByText('此处汇总定时任务失败')).first()).toBeVisible();
+  if (currentSnapshot.tasks.applicable) {
+    await expect(page.getByRole('heading', { name: '最近异常', exact: true })).toBeVisible();
+  } else {
+    await expect(page.getByRole('heading', { name: '最近异常', exact: true })).toHaveCount(0);
+  }
   await page.goto(`${instance.url}/admin/monitor-services`);
   await expect(page.locator('#main-content').getByRole('heading', { name: '服务健康' })).toBeVisible();
   await expect(page.getByText('HTTP 服务')).toBeVisible();
@@ -44,12 +50,10 @@ test('platform: super admin sees the monitor directory, pages and dashboard summ
   await expect(page.getByText('磁盘空间').first()).toBeVisible();
   await expect(page.getByText('网络 I/O').first()).toBeVisible();
   await expect(page.getByRole('heading', { name: '进程与 Go Runtime' })).toBeVisible();
-  // The admin console dashboard carries the runtime summary widget.
+  // Monitoring stays in its dedicated console, never on the dashboard.
   await page.goto(`${instance.url}/admin`);
-  const summary = page.getByRole('region', { name: '运行状态摘要' });
-  await expect(summary).toBeVisible();
-  await expect(summary.getByText(/运行正常|部分异常|不可用/)).toBeVisible();
-  await expect(summary.getByRole('link', { name: '进入运行监控' })).toBeVisible();
+  await expect(page.getByRole('region', { name: '运行状态摘要' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: '进入运行监控' })).toHaveCount(0);
   // The events page renders the in-process ring buffer (fresh install: empty
   // state with the capacity disclosure).
   await page.goto(`${instance.url}/admin/monitor-events`);
@@ -146,7 +150,7 @@ test('standalone: the local view serves the tabbed console with the same semanti
   // Tabs render the same sections without any platform identity dependency.
   await page.getByRole('tab', { name: '服务健康' }).click();
   await expect(page.getByText('HTTP 服务')).toBeVisible();
-  await expect(page.getByText('本形态无常驻平台任务注册表，维护任务随进程运行。')).toBeVisible();
+  for (const label of ['对象存储', '后台任务', '不适用', '平台任务']) await expect(page.getByText(label, { exact: true })).toHaveCount(0);
   // The resources tab carries the same host hardware cards as the platform.
   await page.getByRole('tab', { name: '资源监控' }).click();
   await expect(page.getByText('主机信息').first()).toBeVisible();
@@ -154,9 +158,12 @@ test('standalone: the local view serves the tabbed console with the same semanti
   // The events tab serves the same in-process ring buffer.
   await page.getByRole('tab', { name: '运行事件' }).click();
   await expect(page.getByText('实例已启动')).toBeVisible();
-  // The overview dashboard carries the local runtime summary.
+  await expect(page.getByText(/对象存储探活失败|定时任务失败|系统通知|平台/)).toHaveCount(0);
+  // The framework demo remains; only the live monitoring summary is removed.
   await page.goto(instance.url);
-  const summary = page.getByRole('region', { name: '运行状态摘要' });
-  await expect(summary).toBeVisible();
-  await expect(summary.getByText(/运行正常|部分异常|不可用/)).toBeVisible();
+  await expect(page.getByRole('region', { name: '运行状态摘要' })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: '运行状态', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '我的项目', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '最近动态', exact: true })).toBeVisible();
+  await expect(page.getByText(/Wails Bridge|Web 平台|CLI/)).toHaveCount(0);
 });

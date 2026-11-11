@@ -303,55 +303,20 @@ test('menu visibility follows role assignments while API capability stays indepe
     // Direct URL still serves the page (permission bound), but the API layer
     // refuses: the role holds files:access without the listFiles grant.
     await member.goto(`${instance.url}/files`);
-    await expect(member.getByText('没有访问权限', { exact: true })).toBeVisible();
+    await expect(member.getByText('页面不存在', { exact: true })).toBeVisible();
     await expect(memberApi.files!.listFiles('', 1)).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
     await evidence(member, info, '菜单过滤且API拒绝');
 
-    // Granting a menu through the role editor changes visibility only; the
-    // menu console stays a pure layout tool with no per-row assignments.
-    await adminLogin(page, instance.url, 'admin', adminPassword);
-    await page.goto(`${instance.url}/admin/roles`);
-    await page.getByRole('row').filter({ hasText: '记录员' }).getByRole('button', { name: '编辑角色 记录员', exact: true }).click();
-    const roleEditor = page.getByRole('dialog', { name: '编辑角色', exact: true });
-    // Checking the page carries its menu grant plus auto-selected API
-    // operations; stripping every file operation again keeps this a menu-only
-    // grant, so the assignment changes visibility and nothing else.
-    await roleEditor.getByRole('region', { name: '业务', exact: true }).getByLabel(labelOf('files'), { exact: true }).check();
-    await roleEditor.getByRole('button', { name: `展开或收起 ${labelOf('files')}`, exact: true }).click();
-    for (const operation of ['listFiles', 'fileAccess', 'deleteFile', 'createFileUpload', 'uploadLocalFile', 'completeFileUpload', 'createMultipartUpload', 'multipartUpload', 'signUploadPart', 'uploadLocalPart', 'completeMultipartUpload']) {
-      await roleEditor.getByLabel(operation, { exact: true }).uncheck();
-    }
-    await roleEditor.getByRole('button', { name: '保存', exact: true }).click();
-    await expect(roleEditor).toHaveCount(0);
-    await loginClient(admin, 'admin', adminPassword);
-    const updated = (await admin.web!.roles()).items.find(role => role.id === recorder.id)!;
-    expect(updated.menu_ids).toContain(pageNode(config, 'files')!.id);
-    // The assignment path never touches API grants.
-    expect(updated.operation_ids).toEqual(['listNotes']);
-
-    // Saving the role revokes its members' sessions (permissions take effect
-    // immediately), so the member returns through a clean login.
-    await member.context().clearCookies();
-    await workspaceLogin(member, instance.url, 'scoped');
-    // The files page never renders on the user surface, and the menu grant
-    // alone still grants no API capability.
-    await expect(memberSidebar.getByRole('button', { name: labelOf('files'), exact: true })).toHaveCount(0);
-    await expect((await member.request.get(`${instance.url}/api/v1/files`)).status()).toBe(403);
-
-    // The role console closes the gap: explicit API grants unlock the list.
-    await page.goto(`${instance.url}/admin/roles`);
-    await page.getByRole('row').filter({ hasText: '记录员' }).getByRole('button', { name: '编辑角色 记录员', exact: true }).click();
-    const editor = page.getByRole('dialog', { name: '编辑角色', exact: true });
-    // API grants live in the page's expandable detail instead of a separate tab.
-    await editor.getByRole('button', { name: `展开或收起 ${labelOf('files')}`, exact: true }).click();
-    for (const operation of ['listFiles', 'fileAccess']) {
-      await editor.getByLabel(operation, { exact: true }).check();
-    }
-    await editor.getByRole('button', { name: '保存', exact: true }).click();
-    await expect(editor).toHaveCount(0);
+    // File infrastructure has no page/menu. Explicit API grants remain
+    // independent and are configured through the role API.
+    await admin.web!.updateRole(recorder.id, {
+      name: recorder.name, permissions: ['notes:access', 'files:access'],
+      menu_ids: notesChain, operation_ids: ['listNotes', 'listFiles', 'fileAccess'],
+    });
     await member.context().clearCookies();
     await workspaceLogin(member, instance.url, 'scoped');
     await expect((await member.request.get(`${instance.url}/api/v1/files`)).status()).toBe(200);
+    await expect(memberSidebar.getByRole('button', { name: labelOf('files'), exact: true })).toHaveCount(0);
     await evidence(member, info, 'API授权后文件列表可用');
   } finally {
     for (const context of contexts) await context.close();
@@ -439,17 +404,17 @@ test('drag reordering and cross-region moves save the whole tree, survive a relo
   await page.goto(`${instance.url}/admin/menus`);
   await expect(page.getByRole('heading', { name: '菜单配置', exact: true })).toBeVisible();
 
-  // Seeded sibling order at the top of the business region: overview before lab.
+  // Seeded sibling order at the top of the business region: overview before notes.
   const nodeOrder = () => page.locator('tbody tr[data-node]').evaluateAll(rows => rows.map(row => row.getAttribute('data-node') ?? ''));
-  expect(await nodeOrder()).toEqual(expect.arrayContaining(['overview', 'lab']));
+  expect(await nodeOrder()).toEqual(expect.arrayContaining(['overview', 'notes']));
   const indexOf = async (id: string) => (await nodeOrder()).indexOf(id);
-  expect(await indexOf('overview')).toBeLessThan(await indexOf('lab'));
+  expect(await indexOf('overview')).toBeLessThan(await indexOf('notes'));
 
-  // Drag the overview row onto the lab row: the drop lands in the lower third
-  // of the target row, so overview moves after lab within the same sibling list.
-  await dragRow(page, 'tr[data-node="overview"]', 'tr[data-node="lab"]', 'bottom');
+  // Drag the overview row onto the notes row: the drop lands in the lower third
+  // of the target row, so overview moves after notes within the same sibling list.
+  await dragRow(page, 'tr[data-node="overview"]', 'tr[data-node="notes"]', 'bottom');
   await expect(page.locator('tr[data-node="overview"]')).toBeVisible();
-  expect(await indexOf('lab')).toBeLessThan(await indexOf('overview'));
+  expect(await indexOf('notes')).toBeLessThan(await indexOf('overview'));
   await expect(page.getByText('有未保存的更改', { exact: true })).toBeVisible();
 
   // One save submits the whole tree: the toast confirms and the version moves.
@@ -459,12 +424,12 @@ test('drag reordering and cross-region moves save the whole tree, survive a relo
   const after = await admin.web!.menuConfig();
   expect(after.version).toBe(before.version + 1);
   const sortOf = (nodes: typeof after.nodes, id: string) => nodes.find(node => node.id === id)?.sort ?? -1;
-  expect(sortOf(after.nodes, 'lab')).toBeLessThan(sortOf(after.nodes, 'overview'));
+  expect(sortOf(after.nodes, 'notes')).toBeLessThan(sortOf(after.nodes, 'overview'));
 
   // The order survives a reload: the server accepted the whole payload.
   await page.reload();
   await expect(page.getByRole('heading', { name: '菜单配置', exact: true })).toBeVisible();
-  expect(await indexOf('lab')).toBeLessThan(await indexOf('overview'));
+  expect(await indexOf('notes')).toBeLessThan(await indexOf('overview'));
 
   // Full tree drag & drop: releasing the seeded 超级管理员 directory on the
   // middle of the business region's root row means "into that region's top
@@ -506,14 +471,14 @@ test('drag reordering and cross-region moves save the whole tree, survive a relo
   const sortOfNode = (nodes: typeof restored.nodes, id: string) => nodes.find(node => node.id === id)?.sort ?? -1;
   expect(sortOfNode(restored.nodes, 'settings')).toBeLessThan(sortOfNode(restored.nodes, 'administration'));
 
-  // Restore the seeded order: drop the overview row on the upper third of lab,
-  // which inserts overview before lab again.
-  await dragRow(page, 'tr[data-node="overview"]', 'tr[data-node="lab"]', 'top');
-  expect(await indexOf('overview')).toBeLessThan(await indexOf('lab'));
+  // Restore the seeded order: drop the overview row on the upper third of notes,
+  // which inserts overview before notes again.
+  await dragRow(page, 'tr[data-node="overview"]', 'tr[data-node="notes"]', 'top');
+  expect(await indexOf('overview')).toBeLessThan(await indexOf('notes'));
   await page.getByRole('button', { name: '保存菜单配置', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: '菜单配置已保存' })).toBeVisible();
   await page.reload();
   await expect(page.getByRole('heading', { name: '菜单配置', exact: true })).toBeVisible();
-  expect(await indexOf('overview')).toBeLessThan(await indexOf('lab'));
+  expect(await indexOf('overview')).toBeLessThan(await indexOf('notes'));
   await evidence(page, info, '拖动排序保存', false);
 });

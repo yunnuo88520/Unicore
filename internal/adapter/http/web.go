@@ -323,7 +323,7 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 	data.Capabilities.Updater = config.Updates != nil && data.Installed
 	data.Capabilities.Installation = true
 	data.Capabilities.Database = data.Installed
-	data.Capabilities.Settings = data.Installed
+	data.Capabilities.Settings = data.Installed && data.Profile == runtime.WebPlatform
 	data.Capabilities.Authentication = data.Installed && identity != nil
 	// Every profile reports the contract-reference flag truthfully: the built-in
 	// API docs page and its navigation entry gate on this capability.
@@ -365,9 +365,6 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 		}
 		if value, err := service.Value(r.Context(), "maintenance.message"); err == nil {
 			data.MaintenanceMessage = &value
-		}
-		if value, err := service.Value(r.Context(), "appearance.theme"); err == nil {
-			data.Theme = &value
 		}
 	}
 	if identity != nil {

@@ -37,7 +37,7 @@ test('workspace consoles render and create users', async ({ page, instance }, in
   await page.context().addCookies((await instance.request.storageState()).cookies);
   await page.goto(`${instance.url}/admin`);
   async function nav(name: string) { await navigate(page,name); }
-  for (const [name, slug] of [['工作台概览', 'overview'], ['核心实验室', 'lab'], ['基础设置', 'site'], ['操作日志', 'logs']] as const) {
+  for (const [name, slug] of [['工作台概览', 'overview'], ['基础设置', 'site'], ['操作日志', 'logs']] as const) {
     await nav(name); await capture(page, info, slug);
   }
   if(info.project.name==='mobile') await page.getByRole('button',{name:'打开导航',exact:true}).click();
@@ -77,14 +77,16 @@ test('site settings survive logout and captcha login', async ({ page, instance }
   await expect(page.getByRole('heading', { name: '工作台概览' })).toBeVisible();
 });
 
-test('standalone has no administrator and settings persist after reload', async ({ page, instance }, info) => {
+test('standalone has no administrator or settings menu and local theme persists after reload', async ({ page, instance }, info) => {
   await installStandalone(instance);
   await page.goto(instance.url);
   if (info.project.name === 'mobile') await page.getByRole('button', { name: '打开导航' }).click();
   await expect(page.getByRole('button', { name: '用户管理', exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: '外观设置', exact: true }).click();
-  await page.getByRole('button',{name:/深色.*柔和低光/}).click();
-  await page.getByRole('button',{name:'保存设置',exact:true}).click();
+  await expect(page.getByRole('button', { name: '外观设置', exact: true })).toHaveCount(0);
+  if (info.project.name === 'mobile') await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: '主题设置', exact: true }).click();
+  await page.getByRole('dialog').locator('.preference-theme').getByRole('button', { name: '深色', exact: true }).click();
+  await page.keyboard.press('Escape');
   await page.reload();await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
   await expect(page.getByLabel('站点名称')).toHaveCount(0);
   expect((await page.request.get(`${instance.url}/admin`)).status()).toBe(404);

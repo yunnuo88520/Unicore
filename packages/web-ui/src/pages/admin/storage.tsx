@@ -87,8 +87,8 @@ function StoragePanel({ client, storage }: { client: AppClient; storage: Storage
       </CardContent>
     </Card>
     <TabsPrimitive.Root value={section} onValueChange={tab => { if (!saving && !action.isPending) change({ tab }); }}>
-      <TabsPrimitive.List aria-label={t('存储设置')} className="mb-5 flex gap-6 border-b border-line">
-        {sections.map(tab => <TabsPrimitive.Trigger key={tab.id} value={tab.id} disabled={saving || action.isPending} className="border-b-2 border-transparent pb-3 text-sm text-muted outline-none focus-visible:ring-2 focus-visible:ring-focus data-[state=active]:border-accent data-[state=active]:text-accent">{t(tab.label)}</TabsPrimitive.Trigger>)}
+      <TabsPrimitive.List aria-label={t('存储设置')} className="mb-5">
+        {sections.map(tab => <TabsPrimitive.Trigger key={tab.id} value={tab.id} disabled={saving || action.isPending}>{t(tab.label)}</TabsPrimitive.Trigger>)}
       </TabsPrimitive.List>
       <TabsPrimitive.Content value="config" forceMount hidden={section !== 'config'} className="flex min-w-0 flex-col gap-5 data-[state=inactive]:hidden">
         <div role="group" aria-label={t('存储方式')} className="grid grid-cols-3 gap-2 sm:grid-cols-5">

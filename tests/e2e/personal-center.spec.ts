@@ -98,7 +98,7 @@ test('forced enrollment applies to ordinary users and preserves recovery codes a
  expect((await page.request.post(`${instance.url}/api/v1/auth/login`,{data:{username:'member',password:'member-password-strong',captcha_id:'',captcha_answer:''}})).status()).toBe(200);
  // Install the clock before mounting the shell so its polling interval is controlled.
  await page.clock.install();
- await page.goto(`${instance.url}/lab`);await expect(page).toHaveURL(`${instance.url}/account-security`);
+ await page.goto(`${instance.url}/notes`);await expect(page).toHaveURL(`${instance.url}/account-security`);
  await expect(page.getByText('实例要求启用双重验证，请先完成安全设置。',{exact:true})).toBeVisible();
  expect((await page.request.get(`${instance.url}/api/v1/notes`)).status()).toBe(403);
  await page.getByRole('button',{name:'设置身份验证器',exact:true}).click();const dialog=page.getByRole('dialog',{name:'设置身份验证器',exact:true});

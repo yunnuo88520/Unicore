@@ -45,3 +45,5 @@ return <button aria-label={t('保存')}>{t('保存')}</button>;
 移动端（375px）验收必须覆盖**带数据的状态**：所有宽表格（输入行、多列矩阵）必须收在 `overflow-x-auto` 容器内滚动，双列栅格窄屏需显式 `grid-cols-1` 约束轨道，防止 min-content 撑开文档；E2E 对整页断言无横向溢出时必须让页面处于含数据的真实状态，仅验空态视为未覆盖。侧栏默认区域、成员与顺序由代码显式定义（业务区固定序列，系统设置组仅放全局设置类页面），不存在字母序兜底；调整默认结构必须随实现显式变更，操作员经菜单管理编辑区域树并持久化（[ADR-0036](../adr/ADR-0036-navigation-regions-granular-authorization.md)）。
 
 持久分片上传统一使用 file-upload-dialog.tsx / AppClient.files.uploadFile；支持暂停/刷新续传、指纹核对和确认字节进度。平台专用安全投影 uploadPolicy，配置页不得向用户端暴露。详见 [存储手册](storage.md)。
+
+工作区页签使用共享 Tabs（受控 items API）或带同一默认样式的 TabsPrimitive；边框分段栏与强调色选中态统一，长标签在栏内单行滚动，不撑宽页面。className 只作用于容器，不复制到每个 Trigger。面板由调用方提供稳定 id、aria-labelledby，并保留 Radix 的方向键/Home/End 与焦点行为。Standalone 只渲染实际适用能力，不以“不适用”卡片或管理员权限说明暴露平台功能。

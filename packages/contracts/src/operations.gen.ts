@@ -1187,8 +1187,7 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "user",
-    "uiPage": "files"
+    "identityRealm": "user"
   },
   "createFileUpload": {
     "method": "POST",
@@ -1208,8 +1207,7 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "user",
-    "uiPage": "files"
+    "identityRealm": "user"
   },
   "uploadLocalFile": {
     "method": "PUT",
@@ -1230,8 +1228,7 @@ export const operations = {
     "superAdmin": false,
     "csrf": true,
     "streamingUpload": true,
-    "identityRealm": "user",
-    "uiPage": "files"
+    "identityRealm": "user"
   },
   "completeFileUpload": {
     "method": "POST",
@@ -1251,8 +1248,7 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "user",
-    "uiPage": "files"
+    "identityRealm": "user"
   },
   "fileAccess": {
     "method": "POST",
@@ -1273,8 +1269,7 @@ export const operations = {
     "permissionMode": "any",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "user",
-    "uiPage": "files"
+    "identityRealm": "user"
   },
   "deleteFile": {
     "method": "DELETE",
@@ -1294,8 +1289,7 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "user",
-    "uiPage": "files"
+    "identityRealm": "user"
   },
   "migrateFile": {
     "method": "POST",
@@ -1717,8 +1711,7 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator",
-    "uiPage": "files"
+    "identityRealm": "administrator"
   },
   "adminCreateFileUpload": {
     "method": "POST",
@@ -1800,8 +1793,7 @@ export const operations = {
     "permissionMode": "any",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "administrator",
-    "uiPage": "files"
+    "identityRealm": "administrator"
   },
   "adminDeleteFile": {
     "method": "DELETE",
@@ -2412,8 +2404,7 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator",
-    "uiPage": "files"
+    "identityRealm": "administrator"
   },
   "createMultipartUpload": {
     "method": "POST",
@@ -2433,8 +2424,7 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "user",
-    "uiPage": "files"
+    "identityRealm": "user"
   },
   "adminCreateMultipartUpload": {
     "method": "POST",
@@ -2474,8 +2464,7 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "user",
-    "uiPage": "files"
+    "identityRealm": "user"
   },
   "adminMultipartUpload": {
     "method": "GET",
@@ -2495,8 +2484,7 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator",
-    "uiPage": "files"
+    "identityRealm": "administrator"
   },
   "signUploadPart": {
     "method": "POST",
@@ -2516,8 +2504,7 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "user",
-    "uiPage": "files"
+    "identityRealm": "user"
   },
   "adminSignUploadPart": {
     "method": "POST",
@@ -2558,8 +2545,7 @@ export const operations = {
     "superAdmin": false,
     "csrf": true,
     "identityRealm": "user",
-    "streamingUpload": true,
-    "uiPage": "files"
+    "streamingUpload": true
   },
   "adminUploadLocalPart": {
     "method": "PUT",
@@ -2600,8 +2586,7 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": true,
-    "identityRealm": "user",
-    "uiPage": "files"
+    "identityRealm": "user"
   },
   "adminCompleteMultipartUpload": {
     "method": "POST",
@@ -4021,8 +4006,7 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": false,
     "csrf": false,
-    "identityRealm": "administrator",
-    "uiPage": "files"
+    "identityRealm": "administrator"
   },
   "adminDashboard": {
     "method": "GET",

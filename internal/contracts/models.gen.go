@@ -47,7 +47,6 @@ type Bootstrap struct {
 	SiteCopyright         *string      `json:"site_copyright,omitempty"`
 	SiteIcpNumber         *string      `json:"site_icp_number,omitempty"`
 	SiteIcpUrl            *string      `json:"site_icp_url,omitempty"`
-	Theme                 *string      `json:"theme,omitempty"`
 	Branding              *Branding    `json:"branding,omitempty"`
 	IdentityRealm         *string      `json:"identity_realm,omitempty"`
 	SitePoliceNumber      *string      `json:"site_police_number,omitempty"`

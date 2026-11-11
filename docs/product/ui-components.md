@@ -26,7 +26,7 @@ setTranslator(t);
 | Input / Textarea / NativeSelect | `@unicore/ui` | 共享控制面样式，`aria-invalid` 自动切换警示色 |
 | Switch / Checkbox | `@unicore/ui` | 受控布尔 API，内建 label 关联 |
 | SimpleSelect / Select* | `@unicore/ui` | 下拉选择；SimpleSelect 接字符串选项 |
-| Tabs | `@unicore/ui` | 受控标签栏；面板由页面持有 |
+| Tabs | `@unicore/ui` | 统一边框分段标签栏；长标签单行滚动，支持键盘；面板由页面持有 |
 | Modal / ConfirmDialog | `@unicore/ui` | 模态与确认框；`pending` 抑制 Esc 与遮罩关闭 |
 | DropdownMenu / Tooltip / Table | `@unicore/ui` | 弹出菜单、悬停提示、表格 |
 | MessageProvider / useMessage | `@unicore/ui` | 全局消息（五态、自动消失、树外静态代理） |
@@ -63,7 +63,7 @@ message.success(t('已保存'));
 
 `packages/web-ui/src/widgets/activity.tsx` 组合 Recharts 的 ResponsiveContainer、BarChart 和 Tooltip，并通过管理员统计接口读取数据。新图表仍由 `DashboardWidgetRegistry` 在适用身份下注册，查询使用统一 SDK/Query；颜色使用主题令牌，标题、提示和空/错误状态同时提供中英文。不要以随机样本冒充业务统计，日期与统计口径以服务端为准。
 
-列表复用 `packages/web-ui/src/column-visibility.ts` 的 `useColumnVisibility(tableKey, columns)`。每张表使用稳定且唯一的 key，列 ID 与表格定义一致；返回的可见性接入 TanStack Table，菜单标签在渲染时翻译。隐藏列存入 `@unicore/theme/preferences` 的设备偏好，当前用户、管理员和文件列表已接入。列隐藏只是展示选择，不构成字段权限，也不改变 XLSX 导出内容。
+列表复用 `packages/web-ui/src/column-visibility.ts` 的 `useColumnVisibility(tableKey, columns)`。每张表使用稳定且唯一的 key，列 ID 与表格定义一致；返回的可见性接入 TanStack Table，菜单标签在渲染时翻译。隐藏列存入 `@unicore/theme/preferences` 的设备偏好，当前用户与管理员列表已接入。列隐藏只是展示选择，不构成字段权限，也不改变 XLSX 导出内容。
 
 路由守卫将已登记但当前身份无权访问的页面呈现为独立 403，未知路径仍为 404。业务页复用对应状态页与返回入口；管理员 API 始终再次授权。Swagger API 参考页独立加载较重组件，从开启文档开关的实例 `/openapi.json` 读取契约，见 [应用开发的 API 说明](development.md#api权限与前端)。
 

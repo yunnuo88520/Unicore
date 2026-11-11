@@ -30,10 +30,10 @@ func TestValidateMenuTree(t *testing.T) {
 		items []contracts.MenuEntry
 		valid bool
 	}{
-		{"flat pages", []contracts.MenuEntry{menuPage("notes"), menuPage("files")}, true},
+		{"flat pages", []contracts.MenuEntry{menuPage("notes"), menuPage("overview")}, true},
 		{"link row", []contracts.MenuEntry{menuLink("link:docs1", "https://docs.example.test")}, true},
 		{"relative link", []contracts.MenuEntry{menuLink("link:docs2", "/help/index")}, true},
-		{"nested under page", []contracts.MenuEntry{menuPage("files"), func() contracts.MenuEntry { e := menuLink("link:docs3", "https://docs.example.test"); e.ParentKey = menuPtr("files"); return e }()}, true},
+		{"nested under page", []contracts.MenuEntry{menuPage("overview"), func() contracts.MenuEntry { e := menuLink("link:docs3", "https://docs.example.test"); e.ParentKey = menuPtr("overview"); return e }()}, true},
 		{"nested under link", []contracts.MenuEntry{menuLink("link:docs4", "https://docs.example.test"), func() contracts.MenuEntry { e := menuLink("link:docs5", "/help"); e.ParentKey = menuPtr("link:docs4"); return e }()}, true},
 		{"page row with url", []contracts.MenuEntry{func() contracts.MenuEntry { e := menuPage("notes"); e.Url = menuPtr("https://evil.test"); return e }()}, false},
 		{"page takes link prefix", []contracts.MenuEntry{menuPage("link:pages")}, false},
@@ -46,7 +46,7 @@ func TestValidateMenuTree(t *testing.T) {
 		{"url with control character", []contracts.MenuEntry{menuLink("link:docs10", "https://docs.example.test/\x0b")}, false},
 		{"long link label", []contracts.MenuEntry{func() contracts.MenuEntry { e := menuLink("link:docs11", "https://docs.example.test"); e.Label = string(make([]rune, 65)); return e }()}, false},
 		{"unknown type", []contracts.MenuEntry{func() contracts.MenuEntry { e := menuPage("notes"); e.Type = "widget"; return e }()}, false},
-		{"missing parent", []contracts.MenuEntry{func() contracts.MenuEntry { e := menuPage("notes"); e.ParentKey = menuPtr("files"); return e }()}, false},
+		{"missing parent", []contracts.MenuEntry{func() contracts.MenuEntry { e := menuPage("notes"); e.ParentKey = menuPtr("overview"); return e }()}, false},
 		{"self parent", []contracts.MenuEntry{func() contracts.MenuEntry { e := menuPage("notes"); e.ParentKey = menuPtr("notes"); return e }()}, false},
 		{"duplicate keys", []contracts.MenuEntry{menuPage("notes"), menuPage("notes")}, false},
 		{"two node cycle", []contracts.MenuEntry{
@@ -153,7 +153,7 @@ func TestMenuConfigStorage(t *testing.T) {
 	}
 
 	// An invalid replacement is refused whole: the previous tree stays active.
-	broken := []contracts.MenuEntry{menuPage("notes"), func() contracts.MenuEntry { e := menuPage("files"); e.ParentKey = menuPtr("link:docs"); return e }()}
+	broken := []contracts.MenuEntry{menuPage("notes"), func() contracts.MenuEntry { e := menuPage("overview"); e.ParentKey = menuPtr("link:docs"); return e }()}
 	if _, err = repo.SaveMenuConfig(ctx, broken, admin.ID); err == nil {
 		t.Fatal("dangling parent accepted")
 	}

@@ -2,6 +2,7 @@
 // Description: Distinct client/admin surfaces and accessible drag-and-drop uploads against real local storage.
 import {mkdir} from 'node:fs/promises';
 import {test,expect,installStandalone} from './fixtures';
+import {openUploadFixture} from './upload-fixture';
 
 test('separate entries, registration policy and redesigned file selection',async({page,browser,instance},info)=>{
  const installed=await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}});expect(installed.status()).toBe(200);
@@ -26,7 +27,7 @@ test('separate entries, registration policy and redesigned file selection',async
   await expect(user.getByRole('link',{name:'注册账号',exact:true})).toHaveCount(0);
   await expect(user.locator('main a[href="/login"],main a[href="/register"]')).toHaveCount(0);
  }finally{await other.close();}
- await page.goto(`${instance.url}/admin/files`);await page.getByRole('button',{name:'上传文件',exact:true}).click();
+ await openUploadFixture(page,instance.url);await page.getByRole('button',{name:'上传文件',exact:true}).click();
  const dialog=page.getByRole('dialog',{name:'上传文件',exact:true});await expect(dialog.locator('.upload-zone')).toBeFocused();
  await expect(dialog.getByRole('button',{name:'开始上传',exact:true})).toBeDisabled();
  const transfer=await page.evaluateHandle(()=>{const data=new DataTransfer();data.items.add(new File(['private drag bytes'],'drag-example.txt',{type:'text/plain'}));return data;});
@@ -42,10 +43,10 @@ test('separate entries, registration policy and redesigned file selection',async
 test('standalone rejects all global configuration and keeps only local appearance',async({page,instance},info)=>{
  await installStandalone(instance);await page.goto(instance.url);
  if(info.project.name==='mobile')await page.getByRole('button',{name:'打开导航',exact:true}).click();
- for(const name of ['系统管理','用户管理','文件管理','账号菜单','基础设置'])await expect(page.getByRole('button',{name,exact:true})).toHaveCount(0);
- await page.getByRole('button',{name:'外观设置',exact:true}).click();await expect(page.getByRole('tab')).toHaveCount(0);
- for(const key of ['site.name','branding.logo','mail.host'])expect((await page.request.patch(`${instance.url}/api/v1/settings`,{data:{changes:[{key,value:'denied'}]}})).status()).toBe(400);
+ for(const name of ['系统管理','用户管理','文件管理','账号菜单','基础设置','外观设置','核心实验室'])await expect(page.getByRole('button',{name,exact:true})).toHaveCount(0);
+ await expect(page.locator('.sidebar-utilities')).toHaveCount(0);
+ for(const key of ['site.name','branding.logo','mail.host','appearance.theme'])expect((await page.request.patch(`${instance.url}/api/v1/settings`,{data:{changes:[{key,value:'denied'}]}})).status()).toBe(400);
  for(const path of ['/admin','/admin.html','/api/v1/admin/bootstrap','/api/v1/branding'])expect((await page.request.get(`${instance.url}${path}`)).status()).toBe(404);
  expect((await(await page.request.get(`${instance.url}/site.webmanifest`)).json()).name).toBe('Unicore');
- await instance.restart();await page.reload();await expect(page.getByText('仅当前客户端',{exact:true})).toBeVisible();
+ await instance.restart();await page.reload();await expect(page.getByRole('heading',{name:'工作台概览',exact:true})).toBeVisible();
 });

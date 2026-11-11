@@ -3775,8 +3775,7 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "user",
-          "uiPage": "files"
+          "identityRealm": "user"
         },
         "summary": "listFiles",
         "x-permission": "owner or administrator; identity realm isolated",
@@ -3844,8 +3843,7 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "user",
-          "uiPage": "files"
+          "identityRealm": "user"
         },
         "summary": "createFileUpload",
         "x-permission": "owner or administrator; identity realm isolated",
@@ -3906,8 +3904,7 @@
           "superAdmin": false,
           "csrf": true,
           "streamingUpload": true,
-          "identityRealm": "user",
-          "uiPage": "files"
+          "identityRealm": "user"
         },
         "summary": "uploadLocalFile",
         "x-permission": "owner or administrator; identity realm isolated",
@@ -3979,8 +3976,7 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "user",
-          "uiPage": "files"
+          "identityRealm": "user"
         },
         "summary": "completeFileUpload",
         "x-permission": "owner or administrator; identity realm isolated",
@@ -4042,8 +4038,7 @@
           "permissionMode": "any",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "user",
-          "uiPage": "files"
+          "identityRealm": "user"
         },
         "summary": "fileAccess",
         "x-permission": "owner or administrator; identity realm isolated",
@@ -4113,8 +4108,7 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "user",
-          "uiPage": "files"
+          "identityRealm": "user"
         },
         "summary": "deleteFile",
         "x-permission": "owner or administrator; identity realm isolated",
@@ -5669,8 +5663,7 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator",
-          "uiPage": "files"
+          "identityRealm": "administrator"
         },
         "summary": "管理员端：listFiles",
         "x-permission": "storage:read; administrator only",
@@ -5933,8 +5926,7 @@
           "permissionMode": "any",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "administrator",
-          "uiPage": "files"
+          "identityRealm": "administrator"
         },
         "summary": "管理员端：fileAccess",
         "x-permission": "storage:read; administrator only",
@@ -7881,8 +7873,7 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator",
-          "uiPage": "files"
+          "identityRealm": "administrator"
         },
         "summary": "管理员端：fileUploadPolicy",
         "x-permission": "storage:read/write; administrator only",
@@ -7932,8 +7923,7 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "user",
-          "uiPage": "files"
+          "identityRealm": "user"
         },
         "summary": "createMultipartUpload",
         "x-permission": "owner or administrator; identity realm isolated",
@@ -8052,8 +8042,7 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "user",
-          "uiPage": "files"
+          "identityRealm": "user"
         },
         "summary": "multipartUpload",
         "x-permission": "owner or administrator; identity realm isolated",
@@ -8113,8 +8102,7 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator",
-          "uiPage": "files"
+          "identityRealm": "administrator"
         },
         "summary": "管理员端：multipartUpload",
         "x-permission": "storage:read/write; administrator only",
@@ -8175,8 +8163,7 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "user",
-          "uiPage": "files"
+          "identityRealm": "user"
         },
         "summary": "signUploadPart",
         "x-permission": "owner or administrator; identity realm isolated",
@@ -8319,8 +8306,7 @@
           "superAdmin": false,
           "csrf": true,
           "identityRealm": "user",
-          "streamingUpload": true,
-          "uiPage": "files"
+          "streamingUpload": true
         },
         "summary": "uploadLocalPart",
         "x-permission": "owner or administrator; identity realm isolated",
@@ -8485,8 +8471,7 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": true,
-          "identityRealm": "user",
-          "uiPage": "files"
+          "identityRealm": "user"
         },
         "summary": "completeMultipartUpload",
         "x-permission": "owner or administrator; identity realm isolated",
@@ -12663,8 +12648,7 @@
           "permissionMode": "all",
           "superAdmin": false,
           "csrf": false,
-          "identityRealm": "administrator",
-          "uiPage": "files"
+          "identityRealm": "administrator"
         },
         "summary": "exportFiles",
         "parameters": [
@@ -13639,9 +13623,6 @@
             "type": "string"
           },
           "site_icp_url": {
-            "type": "string"
-          },
-          "theme": {
             "type": "string"
           },
           "branding": {

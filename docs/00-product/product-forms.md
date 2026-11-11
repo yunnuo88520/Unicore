@@ -58,7 +58,7 @@ Unicore 的产品形态只有三种。`framework.manifest.json` 中的四个 pro
 | 身份认证与用户体系 | 已实现：统一账号、双域会话、MFA、OIDC、人机验证 | 不装配：无账号主体，`capabilities.authentication=false` | 不装配 |
 | 权限控制 | 已实现：权限点 + 菜单/动作 + operation 三层授权，super_admin 保留集，部门数据范围 | 不装配角色模型；服务端仍 fail-closed，本地可达即边界 | 不适用 |
 | 数据持久化 | 已实现：SQLite/PostgreSQL/MySQL，core+platform+module.notes 命名空间 | 已实现：web 三方言、desktop 仅 SQLite；core+module.notes | 不装配：无数据库 |
-| 配置 | 已实现：全局设置组（appearance 除外，仅管理端）+ 设备偏好 | 受限：仅 appearance 组（实例级默认外观）+ 设备偏好；该组已裁决移除（D13） | 不适用（仅进程日志环境变量） |
+| 配置 | 已实现：全局设置（仅管理端）+ 设备偏好 | 设备偏好；无实例级设置页面或可写设置项 | 不适用（仅进程日志环境变量） |
 | UI / 菜单 / 页面 | 已实现：用户工作区 + 管理后台双 SPA，服务端投影导航 | 已实现：单工作区，客户端默认导航，两载体同一套页面 | 不适用 |
 | API 适配 | 已实现：HTTP `/api/v1` 全量 + admin 镜像 | 受限：HTTP 仅本地面（bootstrap/settings/updates/notes/core），admin API 一律 404；desktop 走 Wails 桥 | 已实现：进程内 Cobra 命令 |
 | 生命周期 | 已实现：lifecycle.Stack + 优雅排水 + 可选 loopback 指标 | 已实现：web 同左；desktop 用 Wails 回调，无指标面 | 不适用：无组件栈 |
@@ -70,7 +70,7 @@ Unicore 的产品形态只有三种。`framework.manifest.json` 中的四个 pro
 | 备份恢复 | 已实现：离线加密备份（含云对象） | 已实现：web/桌面快照分支 | 不装配（无数据可备份） |
 | 安装 | 已实现：安装向导 + 管理员种子 + profile 固化 | 已实现：web 向导（无账号步骤）；desktop 自动初始化 | 不装配 |
 | 模块装配 | 已实现：模块全能力（权限点/导航/迁移/调度/桥贡献） | 已实现：本地作用域 + desktop 桥贡献 | 不装配：模块特性结构性关闭（`internal/runtime/profile.go` 按 `profile != CLI` 装配，与模块 edition 无关） |
-| 运行监控 / 可观测性 | 已实现（P0/P1）：super_admin 专属「运行监控」目录四页（概览/服务/资源/运行事件）+ 仪表盘摘要 + 宿主机硬件视图；告警已实现（T4 方案二：完整告警——规则端点仅 super_admin、后台检测、notifycontent 通知）；外部 `/metrics` 保持 loopback 可选 | 已实现（P0/P1）：两载体等效的本机「运行监控」单页四 Tab + 摘要组件（web 经同源只读接口、desktop 经桥；桌面无 HTTP 指标卡呈现不适用）；告警已实现（T4 方案二：内置默认规则本地检测、写入运行事件、不发送外部通知，两载体等效） | 不装配（运行监控中心与告警为规划外；实例离线诊断属 Web 包运维面） |
+| 运行监控 / 可观测性 | 已实现（P0/P1）：super_admin 专属「运行监控」目录四页（概览/服务/资源/运行事件）+ 宿主机硬件视图；告警已实现（T4 方案二：完整告警——规则端点仅 super_admin、后台检测、notifycontent 通知）；外部 `/metrics` 保持 loopback 可选 | 已实现（P0/P1）：两载体等效的本机「运行监控」单页四 Tab（web 经同源只读接口、desktop 经桥；仅呈现实际适用指标，无工作台监控卡片）；告警已实现（T4 方案二：内置默认规则本地检测、写入运行事件、不发送外部通知，两载体等效） | 不装配（运行监控中心与告警为规划外；实例离线诊断属 Web 包运维面） |
 
 证据锚点：装配省略点 `internal/install/manager.go`（attach）；策略与形态隔离 `internal/adapter/http/policy.go`、`internal/adapter/http/router.go`；能力声明 `internal/runtime/profile.go`；设置分组过滤 `internal/settings/service.go`（`applies`）；迁移目录 `migrations/catalog.json`；桌面装配 `internal/bootstrap/local/local.go`；CLI 组合根 `internal/bootstrap/core.go`；前端能力判定 `packages/web-ui/src/routes.ts`、`packages/web-ui/src/permissions.ts`。
 
@@ -86,7 +86,7 @@ Unicore 的产品形态只有三种。`framework.manifest.json` 中的四个 pro
    - **策略中间件**（源码强制）：整体缺失 `x-unicore` 的已注册路由直接 500（ROUTE_POLICY_UNDECLARED）；access/permissions/superAdmin 由中间件执行，且权限点/operation/superAdmin 校验仅在 web-platform 生效（`internal/adapter/http/policy.go`）。
    - **装配省略**（源码强制）：identity/files/branding/mailer 仅在 web-platform 装配（`internal/install/manager.go` attach），非平台形态相应 API 404。
    - **handler 自查**（维护约定）：**`x-unicore.profiles` 声明不被中间件执行**——形态隔离的最后一环是各 handler 的 profile 自查（如 `notes.go`、`announcements.go`、`updates.go`）。新增非全形态接口必须写 handler 自查，不得只声明 profiles 字段。
-   前端隐藏菜单或按钮不构成权限控制。
+   前端隐藏菜单或按钮不构成权限控制。Standalone 页面只呈现已装配的本机能力；平台专属功能与载体不具备的能力不显示占位、标签或权限引导，直达地址按不存在处理。
 5. [源码强制] 菜单授权不授予 API：menu_ids、action_ids、operation_ids 三个命名空间相互独立，服务端授权是唯一执行点（权限派生明确排除菜单行，`internal/adapter/storage/platformsql/repository.go`）。
 6. [源码强制] profile 在安装后不可变（`internal/install/manager.go`）；不得提供运行期形态切换。发行包默认 profile 的部署期覆盖属有意设计（[D15 已裁决](pending-decisions.md)）。
 7. [源码强制] 业务模块不得在 desktop/CLI 装配路径引入平台模块；依赖向内规则见 [后端规范](../02-standards/backend.md)。

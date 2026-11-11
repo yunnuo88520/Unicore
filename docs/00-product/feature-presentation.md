@@ -27,30 +27,30 @@
 呈现规则：
 
 1. Platform：服务端投影。bootstrap 按 surface（user/administrator）经 `platform.NavigationFor` 投影导航树，非 super_admin 逐节点校验 `menu_ids`；动作节点按 `action_ids` + 权限点校验。前端 `buildNavigation` 仅在 web-platform 采用服务端树。
-2. Standalone：客户端本地构建。`defaultNavigation` 按 profile 过滤：剔除 personal/administration 组与 system 组（仅保留 `site`、`edition`），`site` 页面呈现为「外观设置」。两载体使用同一份本地默认树逻辑。
+2. Standalone：客户端本地构建。`defaultNavigation` 按 profile 过滤：剔除 personal/administration 组与 system 组（仅保留 `edition`），不提供外观设置页面。两载体使用同一份本地默认树逻辑。
 3. CLI：不适用图形导航规则；呈现即命令树（`unicore --help`）与结构化输出。
-4. 页面可见性（`packages/web-ui/src/routes.ts` `canAccess`）在权限点之外有形态硬规则：Platform 用户域永不呈现 `site/api-docs/announcements/files`（管理面拆分，[ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md)）；`api-docs` 需 `api_docs` 能力且仅 Web 形态（desktop 无契约端点）；`edition`（系统更新）在 Platform 仅 super_admin，其他形态看 updater 能力。
+4. 页面可见性（`packages/web-ui/src/routes.ts` `canAccess`）在权限点之外有形态硬规则：Platform 用户域永不呈现 `site/api-docs/announcements`（管理面拆分，[ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md)）；`api-docs` 需 `api_docs` 能力且仅 Web 形态（desktop 无契约端点）；`edition`（系统更新）在 Platform 仅 super_admin，其他形态看 updater 能力。
 5. 菜单、页面、功能不是同一概念：菜单授权（menu_ids）只决定入口，不授予 API；按钮动作（action）与接口授权（operation）独立命名空间。前端隐藏只是体验层，服务端才是执行点。
 
 ## 3. 页面与设置呈现
 
 | 页面组 | Platform 用户域 | Platform 管理员域 | Standalone（两载体） | CLI |
 | --- | --- | --- | --- | --- |
-| 工作台概览 / 核心实验室 / 笔记 | 已实现（按权限） | 已实现 | 已实现（本地作用域） | 不适用（业务等价物为 CLI 命令） |
-| 文件管理 / 平台公告 | 不呈现（管理面拆分） | 已实现（按权限点） | 不装配（导航剔除：canAccess 对带权限点页面在非平台形态返回 false） | 不适用 |
+| 工作台概览 / 笔记 | 已实现（按权限） | 已实现 | 已实现（本地作用域） | 不适用（业务等价物为 CLI 命令） |
+| 平台公告 | 不呈现（管理面拆分） | 已实现（按权限点） | 不装配（导航剔除：canAccess 对带权限点页面在非平台形态返回 false） | 不适用 |
 | 系统设置组（用户/角色/部门/岗位/字典/任务/菜单/日志/邮件/通知/存储/账户安全） | 不呈现 | 已实现（按权限点 + super 保留集） | 不呈现 | 不适用 |
-| 基础设置（site） | 不呈现（管理面拆分） | 已实现（settings:read） | 呈现为「外观设置」（实例级默认主题） | 不适用 |
+| 基础设置（site） | 不呈现（管理面拆分） | 已实现（settings:read） | 不呈现（无实例设置项） | 不适用 |
 | 系统更新（edition） | 不呈现 | 已实现（仅 super_admin + updater 能力） | 已实现（updater 能力；web 本机 loopback / desktop 桥） | 不装配 |
 | API 文档 | 不呈现 | 已实现（api_docs 能力） | 条件支持（web 开启 `api_docs` 时）；desktop 不适用 | 不适用 |
 | 个人中心三页 | 已实现 | 已实现（管理员域镜像） | 不呈现（无账号） | 不适用 |
-| 运行监控（概览/服务/资源/运行事件，含主机硬件图表卡片、会话趋势与事件流） | 不呈现（用户域硬排除） | 已实现（仅 super_admin；系统区域末位「运行监控」目录四页） | 已实现（业务区「运行监控」单页 + 单层 Tabs 四页签，两载体等效） | 不适用 |
+| 运行监控（概览/服务/资源/运行事件，含主机硬件图表卡片、会话趋势与事件流） | 不呈现（用户域硬排除） | 已实现（仅 super_admin；系统区域末位「运行监控」目录四页） | 已实现（业务区「运行监控」单页 + 单层 Tabs 四页签，两载体等效；不适用卡片不渲染） | 不适用 |
 | 告警规则管理与告警通知 | 不呈现（用户域硬排除） | 已实现（规则管理内嵌于资源监控页底部，仅 super_admin 渲染；端点 superAdmin+monitor:read；无独立菜单；通知走既有渠道；运行事件页展示告警触发/恢复/归因转移/通知失败） | 已实现（无配置入口，内置默认规则自动启用；告警事件直接呈现在「运行事件」Tab；Web/GUI 等效） | 不适用 |
 | 管理后台 SPA（admin.html） | — | 独立入口，需 identity 服务（standalone 请求 404；desktop 无此入口） | 不适用 | 不适用 |
 
-设置呈现（`internal/settings/service.go` `applies` + `packages/web-ui/src/pages/admin/appearance.tsx`）：
+设置呈现（`internal/settings/service.go` `applies` + `packages/web-ui/src/pages/appearance.tsx`）：
 
-- Platform：appearance 组由服务端排除，外观仅设备级（客户端偏好，localStorage）；其余组实例级，仅管理端可写，敏感值只写不回读（仅返回 `Configured` 布尔）。
-- Standalone：仅 appearance 组，实例级「默认外观」持久化表单（该实例级设置已裁决移除，见 [D13](pending-decisions.md)；移除任务执行前此为现状描述）；两载体语义一致（desktop 经桥 `Settings/PatchSettings`）。设备级偏好（右上角语言/主题/密度等）在全部图形形态一致且不受影响，见 [客户端偏好](../03-runbooks/client-preferences.md)。
+- Platform：无 appearance 定义或外观 Tab，外观仅设备级（客户端偏好，localStorage）；其余组实例级，仅管理端可写，敏感值只写不回读（仅返回 `Configured` 布尔）。
+- Standalone：无实例设置项、设置页面或侧栏底部身份/形态胶囊。Web 与 desktop 等效；兼容设置接口返回空列表并拒绝写入。设备级偏好在全部图形形态一致，见 [客户端偏好](../03-runbooks/client-preferences.md)。
 - 设置分组与描述是静态 UI 元数据，受双语门禁约束（`pnpm check:i18n`）。
 
 ## 4. 仪表盘与组件
@@ -59,7 +59,7 @@
 
 - 仪表盘不是全角色固定页：widget 经 `DashboardWidgetRegistry.register({id, render(metadata)})` 注册，注册集合由装配入口决定——当前仅管理后台入口注册了 `activity-7d`（近 7 日活动图，仅管理员域数据）。
 - widget 自身读取 bootstrap 元数据（identity_realm/roles/capabilities）决定是否渲染，返回 falsy 即不呈现；平台匿名用户不返回版本/构建信息。
-- 现有 widget：`activity-7d`（管理后台入口，仅管理员域真实统计）与 `monitor-summary`（运行状态摘要：管理后台入口仅 super_admin；web 用户入口与桌面入口仅非平台形态渲染——平台普通用户仪表盘零实例指标）。
+- 现有 widget：`activity-7d`（管理后台入口，仅管理员域真实统计）。工作台只移除实时监控摘要条及其轮询，保留原有实例信息卡、介绍横幅、业务示例占位、快捷入口与业务 widget；监控详情仍在独立页面呈现。
 - 概览页固定层（运行形态卡/连接方式卡/快捷入口）中，快捷入口按 `canAccess` 过滤；业务占位卡仅用户域显示。
 - 无个人自定义机制；新增 widget 必须声明其可见上下文（形态 + 身份域 + 能力/权限条件），并同步 [功能适用性清单](feature-inventory.md)。
 
@@ -88,3 +88,7 @@
 1. Standalone 两载体：同一功能的页面集合、菜单规则、设置语义、更新与备份语义必须一致；差异仅允许来自 [形态规范第 5 节](product-forms.md#5-载体层允许的差异) 清单。
 2. 新增页面/菜单/仪表盘组件时，先在 [功能分类模板](feature-proposal-template.md) 声明各上下文的呈现，再实现；完成后同步本文第 3、4 节表格。
 3. 任何「前端不显示但后端可达」的状态都必须能映射到第 6 节行为矩阵中的一行；映射不到的视为越权缺陷。
+
+核心实验室与文件管理测试页面不注册路由、菜单或首页快捷入口；旧地址显示不存在。平台文件服务与统一上传组件作为基础设施保留，使用已启用的全局默认存储。
+
+Standalone 只呈现本形态已装配的功能：不显示平台管理占位、权限提示、跨形态技术图示或“不适用”卡片；直接访问未提供的页面显示 404，不引导联系管理员。监控事件说明仅介绍本机实际事件源。所有工作区页签复用共享 Tabs，采用边框分段栏、强调色选中态、单行溢出滚动和 Radix 键盘操作。

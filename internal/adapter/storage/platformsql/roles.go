@@ -654,12 +654,17 @@ func (r *Repository) writeRoleDepartments(ctx context.Context, tx *sql.Tx, id st
 
 // EnsurePermissions re-applies the catalogue to an installed instance so new
 // permission points and the super_admin grant set survive version upgrades.
-// It deliberately never touches the builtin user role: revoked points stay
+// Apart from retired demo grants it never touches the builtin user role: revoked points stay
 // revoked and new points stay unassigned until an operator grants them. The
 // install-time Seed keeps the original full-assignable default for fresh
 // instances, and role authorization materialization runs exactly once at the
 // navigation upgrade, so upgrades never silently widen any role.
 func (r *Repository) EnsurePermissions(ctx context.Context) error {
+	// Retire the object-storage demo grants on the built-in user role only.
+	// Explicit custom-role API grants remain operator-owned.
+	if _, err := r.Store.Exec(ctx, r.Store.DB, "DELETE FROM unicore_role_permissions WHERE role_id=? AND permission_id IN (?,?,?)", "user", "files:access", "files:upload", "files:delete"); err != nil {
+		return err
+	}
 	for _, permission := range platform.Permissions() {
 		if _, err := r.Store.Exec(ctx, r.Store.DB, "INSERT INTO unicore_permissions(id) SELECT ? WHERE NOT EXISTS (SELECT 1 FROM unicore_permissions WHERE id=?)", permission, permission); err != nil {
 			return err

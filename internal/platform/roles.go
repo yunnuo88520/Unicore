@@ -39,9 +39,9 @@ var basePermissionCatalog = []contracts.PermissionDefinition{
 	{ID: "tasks:write", Name: "管理定时任务", Description: "创建、编辑与删除自建任务，启停任务并手动触发执行", Group: "系统管理"},
 	{ID: "monitor:read", Name: "查看运行监控", Description: "查看实例运行状态、资源与服务健康", Group: "系统管理"},
 	{ID: "dictionaries:write", Name: "管理数据字典", Description: "维护字典类型与字典项", Group: "角色权限"},
-	{ID: "files:access", Name: "使用文件管理", Description: "访问文件管理页面并查看、下载文件", Group: "业务权限", Assignable: true},
-	{ID: "files:upload", Name: "上传文件", Description: "发起分片或普通上传并写入文件内容", Group: "业务权限", Assignable: true},
-	{ID: "files:delete", Name: "删除文件", Description: "删除本人上传的文件", Group: "业务权限", Assignable: true},
+	{ID: "files:access", Name: "读取文件", Description: "通过文件接口查看与下载授权文件", Group: "业务权限"},
+	{ID: "files:upload", Name: "上传文件", Description: "发起分片或普通上传并写入文件内容", Group: "业务权限"},
+	{ID: "files:delete", Name: "删除文件", Description: "删除本人上传的文件", Group: "业务权限"},
 }
 
 // PermissionCatalog aggregates the built-in catalogue with the registered

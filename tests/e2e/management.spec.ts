@@ -65,9 +65,9 @@ test('management groups, modal creation, independent logins and avatar password 
  }
  const memberContext=await browser.newContext({viewport:page.viewportSize()!,isMobile:info.project.name==='mobile',hasTouch:info.project.name==='mobile'});const member=await memberContext.newPage();await member.goto(instance.url);await login(member,'sharedname','administrator-password-strong');await expect(member.locator('main').getByRole('alert')).toContainText('账号或密码不正确');
  await login(member,'sharedname','member-password-strong');
- // Login completes asynchronously and navigates home; wait before opening the lab.
+ // Login completes asynchronously and navigates home; wait before opening notes.
  await expect(member.getByRole('heading',{name:'工作台概览'})).toBeVisible();
- await member.goto(`${instance.url}/lab`);await expect(member.getByRole('button',{name:'运行用例',exact:true})).toBeVisible();
+ await member.goto(`${instance.url}/notes`);await expect(member.getByRole('heading',{name:'我的笔记',exact:true})).toBeVisible();
  const adminBoot=(await(await page.request.get(`${instance.url}/api/v1/admin/bootstrap`,{headers:{}})).json()).data;
  const memberBoot=(await(await member.request.get(`${instance.url}/api/v1/bootstrap`)).json()).data;
  expect(adminBoot.current_user.roles).toEqual(['super_admin']);expect(memberBoot.current_user.roles).toEqual(['user']);expect(adminBoot.current_user.id).not.toBe(memberBoot.current_user.id);
@@ -80,7 +80,7 @@ test('management groups, modal creation, independent logins and avatar password 
  expect((await page.request.get(`${instance.url}/api/v1/admin/auth/session`,{headers:{}})).status()).toBe(200);
  await login(member,'sharedname','changed-member-password');
  await expect(member.getByRole('heading',{name:'工作台概览'})).toBeVisible();
- await member.goto(`${instance.url}/lab`);await expect(member.getByRole('button',{name:'运行用例',exact:true})).toBeVisible();
+ await member.goto(`${instance.url}/notes`);await expect(member.getByRole('heading',{name:'我的笔记',exact:true})).toBeVisible();
  await member.getByRole('button',{name:'账号菜单',exact:true}).click();await member.getByRole('menuitem',{name:'退出登录',exact:true}).click();await expect(member.getByRole('heading',{name:'登录 Unicore',exact:true})).toBeVisible();await memberContext.close();
  await page.reload();await expect(page.getByRole('button',{name:'账号菜单',exact:true})).toBeVisible();
  await nav(labelOf('users'));

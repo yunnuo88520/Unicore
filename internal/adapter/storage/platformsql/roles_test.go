@@ -26,7 +26,7 @@ func exerciseRoles(t *testing.T, ctx context.Context, store *sqlstore.Store, r *
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(member.Permissions) != 7 {
+	if len(member.Permissions) != 4 {
 		t.Fatal("default grants", member.Permissions)
 	}
 	_, token, err := administration.Login(ctx, contracts.LoginInput{Username: member.Username, Password: "member-password-strong"}, "shared-login", false, false, 1)

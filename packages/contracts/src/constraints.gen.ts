@@ -167,9 +167,6 @@ export const constraints = {
       "site_icp_url": {
         "type": "string"
       },
-      "theme": {
-        "type": "string"
-      },
       "branding": {
         "$ref": "#/components/schemas/Branding"
       },

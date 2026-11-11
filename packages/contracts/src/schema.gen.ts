@@ -45,7 +45,6 @@ export interface Bootstrap {
   site_copyright?: string;
   site_icp_number?: string;
   site_icp_url?: string;
-  theme?: string;
   branding?: Branding;
   identity_realm?: "user" | "administrator";
   site_police_number?: string;

@@ -51,8 +51,8 @@ test.setTimeout(120_000);test('cross-tab logout/account switch, field focus and 
   await expect(second.getByLabel('初始密码')).toHaveCount(0);
   await capture(second,info,'foundation-account-guard');
   // Open the action before revocation: navigation itself may revalidate and expire the session.
-  await page.bringToFront();await nav(page,'核心实验室');
-  await expect(page.getByRole('button',{name:'运行用例'})).toBeVisible();
+  await page.bringToFront();await nav(page,'我的笔记');
+  await expect(page.getByRole('button',{name:'搜索',exact:true})).toBeVisible();
   // A separate admin session revokes the member; the next UI request must expire both tabs.
   const admin=await context.browser()!.newContext();
   try{
@@ -63,7 +63,8 @@ test.setTimeout(120_000);test('cross-tab logout/account switch, field focus and 
     const users=(await(await admin.request.get(`${instance.url}/api/v1/admin/users`,{headers:{}})).json()).data;
     const member=users.items.find((user:{username:string})=>user.username==='member');
     const update=await admin.request.patch(`${instance.url}/api/v1/admin/users/${member.id}`,{headers:{'X-CSRF-Token':session.csrf_token},data:{status:'disabled',role:'user'}});expect(update.status()).toBe(200);
-    await page.getByRole('button',{name:'运行用例'}).click();
+    await page.getByLabel('搜索笔记').fill('session-revocation-probe');
+    await page.getByRole('button',{name:'搜索',exact:true}).click();
     await expect(page.getByRole('heading',{name:'登录 Unicore',exact:true})).toBeVisible();
     await expect(page.getByText('会话已失效，请重新登录。',{exact:true})).toBeVisible();
     await expect(second.getByRole('heading',{name:'登录 Unicore',exact:true})).toBeVisible();
@@ -74,7 +75,7 @@ test.setTimeout(120_000);test('cross-tab logout/account switch, field focus and 
     const freshAnswer=[...Buffer.from(challenge.image.split(',')[1],'base64').toString().matchAll(/>([0-9])<\/text>/g)].map(match=>match[1]).join('');
     expect((await page.request.post(`${instance.url}/api/v1/auth/login`,{data:{username:'member',password:'test-password-strong',captcha_id:challenge.id,captcha_answer:freshAnswer}})).status()).toBe(200);
     await page.bringToFront();await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
-    await expect(page.getByRole('heading',{name:'核心实验室',level:1})).toBeVisible();
+    await expect(page.getByRole('heading',{name:'我的笔记',level:1})).toBeVisible();
 
   }finally{await admin.close();await second.close();}
 });
@@ -85,8 +86,8 @@ test.setTimeout(90_000);test('unknown routes and generated API reference follow 
   await expect(page.getByRole('heading',{name:'页面不存在',exact:true})).toBeVisible();
   await capture(page,info,'foundation-not-found');
   await page.getByRole('button',{name:'返回工作台'}).click();
-  await page.goto(`${instance.url}/lab`);
-  await expect(page.getByRole('button',{name:'运行用例'})).toBeVisible();
+  await page.goto(`${instance.url}/notes`);
+  await expect(page.getByRole('button',{name:'搜索',exact:true})).toBeVisible();
   const contract=page.waitForResponse(response=>new URL(response.url()).pathname==='/openapi.json'&&response.status()===200);
   await page.goto(`${instance.url}/docs/api`);
   await expect(page.getByRole('heading', { name: 'API 文档', exact: true, level: 2 })).toBeVisible();

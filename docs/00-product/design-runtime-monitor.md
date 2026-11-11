@@ -25,11 +25,11 @@
 | 实时推送通道（进程内 SSE hub） | A | `internal/realtime/hub.go`（platform 装配）；P2 告警推送可复用其广播，注意单实例语义 |
 | 通知渠道（邮件/企业微信/签名 Webhook，12 事件） | A | `internal/notifycontent`、`internal/mailer`；platform-only——P2 告警若接入必须遵守该边界 |
 | OpenTelemetry / tracing | C | runtime.md：「默认不启用 tracing，OpenTelemetry 与外部日志/告警平台后续按实际部署接入」——仅有文档方向，无实现 |
-| 应用内监控快照 API / 监控页面 / 仪表盘运行摘要 / 运行事件流 / 告警 | D | 设计时全仓库无对应实现（现已由本文落地，见状态行）；本文第 6–9 节为设计依据 |
+| 应用内监控快照 API / 监控页面 / 运行事件流 / 告警 | D | 设计时全仓库无对应实现（现已由本文落地，见状态行）；本文第 6–9 节为设计依据 |
 | 宿主机与容器指标口径 | E | P0 已含宿主机只读采样（gopsutil：CPU/内存/磁盘/负载/网络累计）；容器内为内核 `/proc` 视角并在页面披露，精确 cgroup 口径仍属 P1，见 [D20](pending-decisions.md) |
 | Standalone 本地监控 API 暴露强度 | E | updates 先例 loopback-only、settings 先例 sameOrigin，二选一见 [D19](pending-decisions.md) |
 
-**结论**：监控的「原料」几乎全部已存在（指标、健康、任务记录、审计、日志、版本），真正缺的是：①把原料聚合为**面向人的运行快照**；②**页面与仪表盘呈现**；③**非平台形态的本地暴露面**（HTTP local + Wails 桥）；④运行事件流与告警（设计时完全没有，现已分阶段落地）。
+**结论**：监控的「原料」几乎全部已存在（指标、健康、任务记录、审计、日志、版本），真正缺的是：①把原料聚合为**面向人的运行快照**；②**监控页面呈现**；③**非平台形态的本地暴露面**（HTTP local + Wails 桥）；④运行事件流与告警（设计时完全没有，现已分阶段落地）。
 
 ## 2. 产品定位
 
@@ -53,18 +53,18 @@ Runtime Monitor 是**面向单个 Unicore 实例**的运行状态查看、资源
 
 | 形态 | 边界 |
 | --- | --- |
-| Platform | 仅 super_admin 可访问（服务端 superAdmin 保留集硬校验，见 D18）；普通管理员与普通用户不可访问且不呈现；详细页面位于管理员域「运行监控」目录；超管仪表盘可展示摘要；普通用户仪表盘零实例指标 |
-| Standalone | Web 与 GUI 两载体**产品等效**：同一快照模型、同一页面结构（单页 + 单层 Tabs）、同一仪表盘摘要；本地使用者免登录查看；不引入任何平台身份/权限；载体不适用的指标显示「不适用」而非虚假数据（如桌面无 HTTP 服务指标）；底层采集允许不同（web 走 HTTP local API，desktop 走 Wails 桥） |
+| Platform | 仅 super_admin 可访问（服务端 superAdmin 保留集硬校验，见 D18）；普通管理员与普通用户不可访问且不呈现；详细页面位于管理员域「运行监控」目录；工作台不展示实时监控摘要条，原有 Demo 内容保留，运行监控使用独立入口 |
+| Standalone | Web 与 GUI 两载体**产品等效**：同一快照模型、同一页面结构（单页 + 单层 Tabs）、不在工作台放监控摘要；本地使用者免登录查看；不引入任何平台身份/权限；载体不适用的指标完全隐藏（如桌面无 HTTP 服务指标），不展示跨形态占位或说明；底层采集允许不同（web 走 HTTP local API，desktop 走 Wails 桥） |
 | CLI | 本期不建设：无菜单/仪表盘/常驻采集器/历史存储，不新增 HTTP/Wails/SQL 依赖。Web 包实例运维命令（`doctor`/`status`）已提供离线诊断，属实例运维面而非 CLI 形态，维持现状 |
 
 ### 3.1 与现有代码/规范的冲突与适配（明确列出，不默默改边界）
 
-1. **standalone 导航过滤规则**：`packages/web-ui/src/navigation.ts` 对非平台形态剔除 system 组页面（仅保留 site/edition）。运行监控页若挂 system 组将无法出现在单机导航。**适配**：监控路由采用 files 同款模式——无 group + `platformAdminOnly` 集合 + `local: true` + `permission: monitor:read`，不改过滤规则本身。
-2. **D13 裁决的导航耦合**：单机「外观设置」页（site）已裁决移除（D13，代码任务未执行）。运行监控页将进入单机业务区导航；建议 D13 移除任务先行或同批执行，避免导航两次变动。
+1. **standalone 导航过滤规则**：`packages/web-ui/src/navigation.ts` 对非平台形态剔除 system 组页面（仅保留 edition）。运行监控页若挂 system 组将无法出现在单机导航。**适配**：监控路由使用本地能力标记——无 group + `platformAdminOnly` 集合 + `local: true` + `permission: monitor:read`，不改过滤规则本身。
+2. **D13 裁决的导航耦合**：单机「外观设置」页（site）已移除（D13）。运行监控页将进入单机业务区导航；建议 D13 移除任务先行或同批执行，避免导航两次变动。
 3. **Prometheus 唯一语义源**：现有 `/metrics`（可选 loopback 监听）是唯一指标出口。Runtime Monitor 进程内快照**直接读取同一 Registry/同一数据源**（`observability.Metrics`、`sql.DBStats`），禁止第二套埋点或指标命名。快照不依赖 `--monitor-listen` 开启。
 4. **`x-unicore.profiles` 无中间件强制**（形态规范 §4.4 分层）：平台监控接口除契约声明外，handler 必须自查 profile（对非 web-platform 404），与 notes/announcements/updates 先例一致。
 5. **Worker 语义映射**：平台调度器仅 web-platform 启动（`cmd/server/main.go`，"never registering platform tasks against a standalone schema"）。单机的「后台任务状态」映射为 localCron 任务（logging.sweep 等，`cmd/server/main.go` localCron）；产品语义统一为「后台任务状态」，底层采集不同——符合形态规范第 5 节「允许底层采集方式不同」。
-6. **桌面无 HTTP 面**：桌面载体的 HTTP 服务指标一律「不适用」呈现；进程/Go Runtime/数据库指标经 Wails 桥同等提供。
+6. **桌面无 HTTP 面**：桌面载体不渲染 HTTP 服务指标卡；进程/Go Runtime/数据库指标经 Wails 桥同等提供。
 7. **敏感信息**：快照不包含环境变量、文件路径明文、DSN、密钥、用户数据；数据目录仅报使用量百分比不报绝对路径。
 
 ## 4. 导航与页面信息架构
@@ -93,10 +93,9 @@ Runtime Monitor 是**面向单个 Unicore 实例**的运行状态查看、资源
 ```
 业务
 ├── 工作台概览
-├── 核心实验室
 ├── 我的笔记
 ├── 运行监控  /monitor   （单页，P0；内部单层 Tabs：概览 / 资源 / 服务 / 事件(P1)）
-└── 系统更新（现有；D13 执行后外观设置页移除，运行监控占据其后位置）
+└── 系统更新（无外观设置菜单）
 ```
 
 单页 Tabs 与 Platform 分页**内容块一一对应**（同一组共享组件渲染），仅信息架构随载体习惯不同；产品能力语义等效由共享快照模型保证。
@@ -106,9 +105,9 @@ Runtime Monitor 是**面向单个 Unicore 实例**的运行状态查看、资源
 | 页面/Tab | 内容块（自上而下） |
 | --- | --- |
 | 运行概览（定位：整体健康与关键指标摘要，详情归服务/资源两页） | ① 状态头（健康点 + 版本/Go/启动时间/主机 chip）② 关键指标四 tile（CPU/内存/磁盘/Goroutines，带会话 sparkline）③ 数据库与对象存储**精简摘要卡**（状态点 + 延迟/连接数、当前位置/数量；完整指标与探活在服务健康页）④ 最近异常（任务失败摘要 + 运行事件页指引） |
-| 服务健康 | ① HTTP 服务（QPS/错误率/耗时分位；desktop 显「不适用（无 HTTP 服务）」）② 数据库（探活延迟 + 连接池五指标）③ 对象存储（各位置状态；standalone/desktop 无文件服务 → 整卡「不装配」）④ 后台任务（platform：调度任务 last_status/next_run + 最近失败；standalone：localCron 任务；桌面：无常驻任务 → 「不适用」） |
+| 服务健康 | ① HTTP 服务（QPS/错误率/耗时分位；desktop 隐藏）② 数据库（探活延迟 + 连接池五指标）③ 对象存储（各位置状态；standalone/desktop 隐藏）④ 后台任务（platform：调度任务 last_status/next_run + 最近失败；standalone/desktop 无任务注册表 → 不渲染） |
 | 资源监控 | ① 主机信息（主机名/OS/内核/型号/核数/主机时长/负载/网络累计，只读采样）② CPU 卡（环形仪表 + 逐核条 + 会话趋势）③ 内存卡（仪表 + 已用/可用堆叠条 + Swap）④ 磁盘空间（数据目录所在卷 + 根卷用量条）⑤ 网络 I/O（累计量 + 快照差值速率趋势）⑥ 进程与 Go Runtime（CPU 时间、RSS、HeapAlloc/Sys、goroutines、GC） |
-| 运行事件（P1） | 时间倒序事件流（类型/时间/摘要），仅进程内存缓冲；页面固定呈现记录范围、缓冲容量与「非审计/非通知」定位说明 |
+| 运行事件（P1） | 时间倒序事件流（类型/时间/摘要），仅进程内存缓冲；页面呈现当前形态实际记录的来源与缓冲容量，Standalone 不描述平台审计、任务或通知能力 |
 
 ### 4.5 异常与边界呈现规则
 
@@ -116,21 +115,14 @@ Runtime Monitor 是**面向单个 Unicore 实例**的运行状态查看、资源
 | --- | --- |
 | 采集失败（单源） | 该卡显示错误摘要 + 「重试」；其余卡片正常 |
 | 快照整体失败 | 页面级错误态 + 重试（复用共享加载错误模式） |
-| 能力不适用（载体/形态） | 卡片显示「不适用 + 一句话原因」，数值区不显示 0/空图表 |
+| 能力不适用（载体/形态） | 不渲染卡片、标签、占位说明或虚假数值 |
 | 未装配（如单机无文件服务） | 「不装配」标记，链接到形态规范对应说明 |
 | Platform 用户域访问 | 独立 403 页（现有 ForbiddenPage 机制） |
 | 无历史数据（P2 趋势） | 「数据积累中」，不画空图 |
 
-## 5. 仪表盘呈现（摘要与详情的关系）
+## 5. 工作台与监控入口
 
-| 使用者 | 仪表盘 | 摘要组件 |
-| --- | --- | --- |
-| Platform super_admin | 管理后台工作台 | 「运行状态」widget：健康点 + 版本 + 运行时长 + 数据库/存储状态点；点击进入 `/monitor`。注册于 admin entry（与 activity-7d 同机制），渲染条件：administrator realm + super_admin + 能力位 |
-| Platform 普通管理员 | 管理后台工作台 | 不渲染（widget 元数据自检 super_admin，与 activity-7d 先例一致） |
-| Platform 普通用户 | 用户工作台 | **零实例监控组件**（产品约束） |
-| Standalone 本地使用者 | 概览页（两载体） | 「运行状态」摘要卡：健康点 + 版本 + 运行时长 + 存储健康；点击进入 `/monitor` 概览 Tab。注册于 web 用户 entry 与 desktop entry（渲染条件：profile ≠ web-platform） |
-
-摘要与详情的关系：摘要 widget 只读快照头部字段，不自带刷新轮询之外的状态逻辑；点击按Tab 锚点直达详情页；监控详情页不重复仪表盘摘要。
+所有形态的工作台只移除实时监控摘要条，不触发监控快照轮询；原有实例信息卡、介绍横幅、业务示例占位、快捷入口与业务 widget 保留。Platform 的 super_admin 从运行监控目录进入；Standalone 从单页运行监控入口进入，以共享 Tabs 展示本机适用内容。
 
 ## 6. 候选监控领域、指标与优先级
 
@@ -186,7 +178,7 @@ internal/monitor（新包：快照模型 + 聚合服务，进程内、无状态 
   desktop   Bridge.MonitorSnapshot()（既有桥模式，错误码沿用 NOT_AVAILABLE 风格）
   external  /metrics（现状不变，loopback 可选监听）
 
-前端：packages/web-ui 共享页面与摘要组件；路由注册按 §3.1 适配模式；
+前端：packages/web-ui 共享监控页面；路由注册按 §3.1 适配模式；
   Platform 管理员域目录分页 / Standalone 单页 Tabs 渲染同一组组件。
 ```
 
@@ -198,24 +190,24 @@ internal/monitor（新包：快照模型 + 聚合服务，进程内、无状态 
 - **探活边界（P1 评审确认）**：只读快照从不触发探活；`adminMonitorStorageProbe` 是监控面**唯一写路径**——复用 files 服务轻量校验（写入并清理一个随机键临时校验对象 + 清理任务表两行到期占位记录，失败由 defer 清理、到期由既有清理任务兜底，残留对象键随机且内容无害）；同位置探活按位置串行化；快照期不执行任何探活。
 - **快照形态字段**：`profile` 每次快照惰性读取当前安装形态——server 装配先于安装，静态值会把「安装前的默认形态」永远报给平台实例（2026-11-11 评审修复，e2e 断言锚定）。
 - **权限纵深**：平台侧「契约 superAdmin + 中间件 + handler 自查」三层（形态规范 §4.4 分层）；单机侧 local access + 只读 + 脱敏（D19 定强度）；桌面桥天然无网络面。
-- **环境差异**：进程指标跨平台由 Go runtime 保证；宿主指标逐项 best-effort，采样失败即整体 `available=false` 显「不适用」；CPU 使用率为相邻快照差值（首次为开机均值）；容器内读数为内核 `/proc` 视角（可能高于 cgroup 限额）并在页面披露（D20）；桌面无 HTTP 卡但同享宿主机与 Runtime 卡。
+- **环境差异**：进程指标跨平台由 Go runtime 保证；宿主指标逐项 best-effort，采样失败即整体 `available=false` 时不渲染硬件卡片；CPU 使用率为相邻快照差值（首次为开机均值）；容器内读数为内核 `/proc` 视角（可能高于 cgroup 限额）并在页面披露（D20）；桌面无 HTTP 卡但同享宿主机与 Runtime 卡。
 - **测试锚点**：契约↔路由双向遍历（现有机制）自动覆盖新接口；形态越权测试沿用「普通管理员 403 / 普通用户 403 / 非平台 404」矩阵样板（announcements_test 先例）。
 
 ## 9. P0 / P1 / P2 建设范围
 
 | 阶段 | 范围 | 交付判据 |
 | --- | --- | --- |
-| **P0** | 快照服务（web 两 profile + desktop 桥装配）；`monitor:read` super-only 权限点；平台 `/admin/monitor` 概览+资源+服务骨架三页；standalone `/monitor` 本地接口 + 单页；desktop 桥；两颗仪表盘摘要 widget；异常呈现规则 | 三形态可用且等效；平台越权矩阵测试全绿；零迁移、零后台任务 |
+| **P0** | 快照服务（web 两 profile + desktop 桥装配）；`monitor:read` super-only 权限点；平台 `/admin/monitor` 概览+资源+服务骨架三页；standalone `/monitor` 本地接口 + 单页；desktop 桥；异常呈现规则 | 三形态可用且等效；平台越权矩阵测试全绿；零迁移、零后台任务 |
 | **P1** | ~~服务健康完整化；运行事件环形缓冲 + 事件页；宿主机深度指标~~ **已实现（2026-11-11）**：连接池 max_open/wait_duration；存储手动探活 + 缓存（探活写临时校验对象并清理）；失败任务关联最近 3 条运行记录；运行事件环形缓冲（200 条）+ 平台「运行事件」页 + 单机「运行事件」Tab；任务失败/恢复改由调度器完成钩子直接投递（无人打开监控页也不漏记），快照观察仅保留数据库健康翻转；cgroup 限额视图、hwmon 温度、网络速率服务端化；导航 per-node 种子升级 | 事件不落库重启即清（测试锚定）；快照性能预算达标 |
 | **P2** | 告警规则 + 恢复记录（平台复用通知渠道，范围按 D22）；进程内历史趋势（按 D21）；OTel/外部长期存储集成评估文档 | 不引入强制外部依赖；standalone 告警仅事件页呈现 |
 
 ## 10. 三张矩阵增量更新建议（获批后执行，现阶段全部为「规划」）
 
 1. **形态能力矩阵**（product-forms §3）新增行：
-   `| 运行监控 / 可观测性 | 已实现（T1 后）：超管专属页面与接口 | 已实现（T2 后）：两载体等效的本地监控页与摘要 | 不装配（本期规划外） |`
+   `| 运行监控 / 可观测性 | 已实现（T1 后）：超管专属页面与接口 | 已实现（T2 后）：两载体等效的本地监控页 | 不装配（本期规划外） |`
    ——在对应任务落地前该行**不得写入**，或以「规划（design-runtime-monitor.md）」临时标注。
 2. **功能适用性清单**（feature-inventory）新增领域 **I. 运行监控（规划中）**：功能单元 = 运行概览（P0）、资源监控（P0 进程/P1 宿主）、服务健康（P0 骨架/P1 完整）、运行事件（P1）、告警与通知联动（P2，platform-only）、外部指标出口（已有 `/metrics`，A 类）；每行证据列指向本设计文档，状态用「规划」，禁用「已实现」。
-3. **呈现与访问规范**（feature-presentation）：§3 页面组表新增「运行监控」行（Platform 用户域不呈现/管理员域 super-only/Standalone 单页/CLI 不适用）；§4 仪表盘新增摘要 widget 规则行（渲染条件如 §5）。
+3. **呈现与访问规范**（feature-presentation）：§3 页面组表新增「运行监控」行（Platform 用户域不呈现/管理员域 super-only/Standalone 单页/CLI 不适用）；§4 明确工作台无监控组件（见 §5）。
 
 ### 新功能分类模板填写（按 feature-proposal-template v2）
 
@@ -225,8 +217,8 @@ internal/monitor（新包：快照模型 + 聚合服务，进程内、无状态 
 - 功能领域：运维设置（可观测性）
 - 功能归属层：产品功能（Web 包 doctor/status 离线诊断属实例运维面，不在本功能内）
 - 功能定位与操作对象：实例使用者/超管对单个应用实例的运行状态、资源、服务健康与异常的只读查看
-- Platform 适用性：新增（P0）；仅 super_admin，超管仪表盘摘要；详细页入管理员域「运行监控」目录
-- Standalone 适用性：新增（P0）；两载体等效（快照模型/页面结构/摘要一致），底层采集不同（HTTP local vs Wails 桥）
+- Platform 适用性：新增（P0）；仅 super_admin；详细页入管理员域「运行监控」目录
+- Standalone 适用性：新增（P0）；两载体等效（快照模型/页面结构一致），底层采集不同（HTTP local vs Wails 桥）
 - CLI 适用性：本期不适用；不新增命令、采集器或持久化；不引入 HTTP/Wails/SQL 依赖
 - Platform 访问主体与权限：super_admin 专属；新权限点 monitor:read 登记为 SuperOnly 保留集（D18）；三层防护（契约/中间件/handler 自查）
 - Standalone 访问规则：本地使用者免登录只读；暴露强度 loopback vs sameOrigin = D19；快照脱敏
@@ -236,7 +228,7 @@ internal/monitor（新包：快照模型 + 聚合服务，进程内、无状态 
   SDK/Wails 生成物同步
 - 菜单与页面呈现：Platform 管理员域「运行监控」目录 4 页（P0 3 页）；Standalone 业务区单页 + 单层 Tabs；
   Platform 用户域不呈现且服务端拒绝；路由采用无 group + platformAdminOnly + local 适配模式（§3.1）
-- 仪表盘组件呈现：monitor-summary widget；admin entry（super_admin）+ web 用户 entry（非平台 profile）+ desktop entry
+- 仪表盘组件呈现：无；工作台移除实时监控摘要条及其轮询，保留其他 Demo 内容。
 - 运行环境与依赖条件：新增纯 Go 依赖 gopsutil v4（仅 internal/monitor 引用，CLI 不装配）；宿主机指标逐项 best-effort（D20）；/metrics 语义不变
 - 与现有功能的关联：observability/health/scheduler/task_runs/storage test/notifycontent(P2)/buildinfo 全部只读复用；
   与定时任务页、审计页、日志页职责互斥（第 7 节）
@@ -265,7 +257,7 @@ internal/monitor（新包：快照模型 + 聚合服务，进程内、无状态 
 | --- | --- | --- | --- |
 | 源头直接投递 | 生命周期（实例启动）；定时任务失败/恢复（平台） | 装配处 append；调度器完成钩子（`Scheduler.OnResult` → `TaskEventTracker`，含失败记忆，防重复投递） | 无——任务完成即记录，与监控页面是否打开无关 |
 | 主动探测产生 | 对象存储探活失败 | 仅 `adminMonitorStorageProbe` 手动触发 | 探测即记录，无漏记 |
-| 快照观察产生 | 数据库健康翻转 | `Service.Snapshot` 对比上次探活结果 | **仅监控面（页面/摘要组件）被拉取期间**；无人查看时的翻转不产生事件 |
+| 快照观察产生 | 数据库健康翻转 | `Service.Snapshot` 对比上次探活结果 | **仅监控页面被拉取期间**；无人查看时的翻转不产生事件 |
 
 数据库健康无既有周期检查源（`/health/ready` 为请求时按需探活），按维护者约束不引入全局轮询——快照观察的局限在事件页定位说明中如实声明。standalone/desktop 无任务注册表与文件服务，相应来源天然不适用；两载体的生命周期事件语义一致（装配后记录启动）。
 
@@ -474,8 +466,8 @@ stateDiagram-v2
 
 | 任务 | 内容 | 验收标准 |
 | --- | --- | --- |
-| T1（P0 平台侧） | internal/monitor 快照服务 + 契约 + handler + `monitor:read` 保留集 + 管理员域三页 + 菜单 + admin widget + 矩阵同步 | 普通管理员/普通用户 API 403 且页面 403；非平台 profile 404；super_admin 全功能；契约↔路由双向测试绿；make test 全绿 |
-| T2（P0 Standalone） | `/monitor` local API（按 D19）+ 单机单页 + desktop 桥方法 + 两颗摘要 widget + 矩阵同步 | 两载体快照模型一致性测试；desktop HTTP 卡「不适用」；web E2E + 原生桌面实测；CLI 二进制不引入新依赖（check-boundaries 绿） |
+| T1（P0 平台侧） | internal/monitor 快照服务 + 契约 + handler + `monitor:read` 保留集 + 管理员域三页 + 菜单 + 矩阵同步 | 普通管理员/普通用户 API 403 且页面 403；非平台 profile 404；super_admin 全功能；契约↔路由双向测试绿；make test 全绿 |
+| T2（P0 Standalone） | `/monitor` local API（按 D19）+ 单机单页 + desktop 桥方法 + 矩阵同步 | 两载体快照模型一致性测试；desktop HTTP 卡隐藏；web E2E + 原生桌面实测；CLI 二进制不引入新依赖（check-boundaries 绿） |
 | T3（P1） | 服务健康完整化 + 事件环形缓冲与事件页 + 宿主指标（按 D20）+ 矩阵同步 | 事件仅内存；快照 <50ms（不含远程探活）；任务页/日志页零改动 |
 | T4（P2） | 告警与恢复（按 D22）+ 趋势（按 D21）+ 集成评估文档 + 矩阵同步 | 不引入强制外部依赖；通知渠道复用无新凭据面 |
 

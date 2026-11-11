@@ -143,7 +143,7 @@ Web 安装完成还写入私有 install.lock，配置中的 lock_version 区分�
 
 [ADR-0031](../adr/ADR-0031-personal-center-security.md) 在 platform.Personal 与 platformsql 增加本人资料、邮箱换绑、验证器与设备事务；共享 UI/SDK 只调用契约 operation。SQL Session 统一拦截尚未完成 TOTP 的登录，密码/邮件/OIDC 均不能绕过；bootstrap 只给受限挑战状态和 CSRF。安装锁事务原子消费计数器/恢复码，邮箱证明绑定原邮箱与同一会话，审计不含秘密。当前结构在 `platform@1` 基线，`platform@3` 追加头像 file_id 引用；个人资料通过同身份域文件服务校验所有权并返回短期访问 URL，不能持久化外部 URL。单机/桌面不装配身份。
 
-管理员工作台 `GET /admin/dashboard` 由 admin:access 保护，返回真实用户概览、审计摘要与按 UTC 日分组的近七天活动；Recharts widget 经 AppClient/Query 读取。用户与文件 XLSX 由 HTTP adapter 用 excelize 处理有界工作簿，SDK 负责带会话/CSRF 的二进制下载或 multipart 导入。列可见性复用设备偏好；独立 403 与 404 区分已登记页面权限和未知地址。在线 API 文档以本地打包的 Swagger UI 读取受配置开关控制的 `/openapi.json`，离线生成参考继续保留。
+管理员工作台 `GET /admin/dashboard` 由 admin:access 保护，返回真实用户概览、审计摘要与按 UTC 日分组的近七天活动；Recharts widget 经 AppClient/Query 读取。用户与文件 XLSX 由 HTTP adapter 用 excelize 处理有界工作簿，SDK 负责带会话/CSRF 的二进制下载或 multipart 导入。列可见性复用设备偏好；Platform 的独立 403 与 404 区分已登记页面权限和未知地址；Standalone 未提供的页面统一为 404，不显示管理员权限提示。在线 API 文档以本地打包的 Swagger UI 读取受配置开关控制的 `/openapi.json`，离线生成参考继续保留。
 
 ## 事件通知
 

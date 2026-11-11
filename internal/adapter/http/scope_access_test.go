@@ -210,7 +210,7 @@ func TestUserRealmScopeReadsAndSigns(t *testing.T) {
 	if len(noteList.Data.Items) != 1 || noteList.Data.Items[0].Title != "member note" {
 		t.Fatal("narrowed scope still lists peer rows", noteList.Data)
 	}
-	if w := sign("/api/v1/files/file-peer/access"); w.Code != 404 {
+	if w := sign("/api/v1/files/file-peer/access"); w.Code != 403 {
 		t.Fatal("narrowed scope still signs peer file", w.Code, w.Body.String())
 	}
 }

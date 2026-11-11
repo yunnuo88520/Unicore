@@ -35,7 +35,6 @@ import {
 import { ErrorPage } from './pages/error';
 import { InstallPage } from './pages/install';
 import { HomePage } from './pages/home';
-import { PROFILE_LABELS } from './pages/overview';
 import { LoginPage, VerifyEmailPage, ResetPasswordPage } from './pages/auth';
 import { NotFoundPage } from './pages/not-found';
 import { ForbiddenPage } from './pages/forbidden';
@@ -136,13 +135,18 @@ function WorkspaceShell() {
     </main>;
   }
   // Unknown paths render as a standalone 404 for every visitor, before any auth gating.
-  // Unknown paths render as a standalone 404 for every visitor, before any auth gating.
   // /home and the auth flows are not registered page keys either, so only truly unknown paths qualify.
   const knownPath = !basename || basename === 'home' || Object.hasOwn(routes, basename)
     || ['login', 'register', 'forgot-password', 'email-login', 'resend-verification', 'registration-success'].includes(basename);
   if (page === 'not-found' && !knownPath) {
     return <main className="min-h-dvh bg-background"><NotFoundPage /></main>;
   }
+  // A local workspace exposes only its own pages, including direct URLs.
+  // Absent capabilities are unknown pages rather than platform permission prompts.
+  if (data.profile !== 'web-platform' && (
+    (Object.hasOwn(routes, basename) && !canAccess(page, data)) ||
+    ['home', 'login', 'register', 'forgot-password', 'email-login', 'resend-verification', 'registration-success', 'verify-email', 'reset-password'].includes(basename)
+  )) return <main className="min-h-dvh bg-background"><NotFoundPage /></main>;
   if (page === 'api-docs') {
     const props: PageProps = { page, client, metadata: data, registry, theme, setTheme, refresh: () => void metadata.refetch() };
     return <PagePropsProvider value={props}><main className="min-h-dvh bg-background p-4 sm:p-6"><div className="mb-4 flex justify-end"><ClientControls /></div><Outlet /></main></PagePropsProvider>;
@@ -180,14 +184,13 @@ function WorkspaceShell() {
   }
 
   const administration = data.identity_realm === 'administrator';
-  const personalSettings = !administration;
-  const settingsLabel = personalSettings ? t('外观设置') : t('基础设置');
+  const settingsLabel = t('基础设置');
   const enrollment = !!data.mfa_enrollment_required;
   const permitted = canAccess(page, data);
   const refresh = () => { void metadata.refetch(); void router.invalidate(); };
   // Permission denials render as a standalone status page without shell chrome, like the shadcn-admin error routes.
   if (!permitted) {
-    return <main className="min-h-dvh bg-background"><ForbiddenPage /></main>;
+    return <main className="min-h-dvh bg-background">{data.profile === 'web-platform' ? <ForbiddenPage /> : <NotFoundPage />}</main>;
   }
   const props: PageProps = { page, client, metadata: data, registry, theme, setTheme, refresh };
   return <PagePropsProvider value={props}>
@@ -254,13 +257,13 @@ function SideNavigation({ page, data, client, onNavigate, onAbout, administratio
       </div>
     </div>}
     <NavigationTree navigation={buildNavigation(data)} page={page} rail={rail} onNavigate={activate} />
-    <div className="sidebar-utilities shrink-0 px-1 pb-3 pt-2">
+    {data.current_user && <div className="sidebar-utilities shrink-0 px-1 pb-3 pt-2">
       <SidebarFooter data={data} client={client} administration={administration} rail={rail} onOpenPassword={onOpenPassword} refresh={refresh} onAbout={onAbout} />
-    </div>
+    </div>}
   </>;
 }
 
-/** Sidebar footer: a shadcn-admin style account switcher when a user exists, otherwise the instance form capsule. */
+/** Sidebar footer for signed-in platform accounts. */
 function SidebarFooter({ data, client, administration, rail, onOpenPassword, refresh, onAbout }: {
   data: Bootstrap; client: AppClient; administration: boolean; rail: boolean; onOpenPassword: () => void; refresh: () => void; onAbout: () => void;
 }) {
@@ -268,19 +271,7 @@ function SidebarFooter({ data, client, administration, rail, onOpenPassword, ref
   const router = useRouter();
   const user = data.current_user;
   const profile = useQuery({ queryKey: ['account-profile'], queryFn: () => client.web!.accountProfile(), enabled: data.profile === 'web-platform' && !!user && !!client.web && !data.mfa_enrollment_required, staleTime: 60_000 });
-  if (!user) {
-    // Standalone and desktop forms have no account; the capsule opens the about dialog instead.
-    const label = t('关于 {{name}}', { name: productName });
-    return rail
-      ? <Tooltip label={label}><button type="button" className="mx-auto flex size-8 items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus" aria-label={label} onClick={onAbout}><BrandMark size={22} /></button></Tooltip>
-      : <button type="button" className="flex w-full items-center gap-2.5 rounded-lg p-2 text-start outline-none hover:bg-surface-alt focus-visible:ring-2 focus-visible:ring-focus" aria-label={label} onClick={onAbout}>
-          <BrandMark size={32} />
-          <span className="min-w-0 flex-1">
-            <strong className="block truncate text-sm font-semibold text-ink">{data.site_name ?? productName}</strong>
-            <small className="block truncate text-xs text-muted">{t(PROFILE_LABELS[data.profile])}</small>
-          </span>
-        </button>;
-  }
+  if (!user) return null;
   const trigger = rail
     ? <button type="button" className="mx-auto flex size-8 items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus" aria-label={t('侧栏账号菜单')}>
         <UserAvatar name={displayLabel(user.display_name, user.username)} url={profile.data?.avatar_url} />

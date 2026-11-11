@@ -208,7 +208,7 @@ func TestNavigationParentTypesAndBounds(t *testing.T) {
 		pageNode("overview", "overview", ""),
 		pageNode("notes", "notes", "overview"),
 		linkNode("link:help", "https://docs.example.test", "overview"),
-		pageNode("lab", "lab", "link:help"),
+		pageNode("account-sessions", "account-sessions", "link:help"),
 		directoryNode("nested", "notes"),
 	}
 	if err = save(version, valid); err != nil {
@@ -244,7 +244,7 @@ func TestNavigationParentTypesAndBounds(t *testing.T) {
 
 	// The depth limit still caps a chain at maxMenuDepth levels.
 	chain := []contracts.NavigationNode{pageNode("n1", "overview", "")}
-	routes := []string{"notes", "lab", "api-docs", "account", "account-security"}
+	routes := []string{"notes", "account-sessions", "api-docs", "account", "account-security"}
 	for index, route := range routes {
 		chain = append(chain, pageNode(fmt.Sprintf("n%d", index+2), route, fmt.Sprintf("n%d", index+1)))
 	}
@@ -648,7 +648,7 @@ func TestSharedNavigationUpgrade(t *testing.T) {
 		{"user:business", "user"}, {"user:personal", "user"},
 		{"admin:business", "administrator"}, {"admin:system", "administrator"},
 	}
-	legacyNodes := []string{"overview", "lab", "notes", "account", "account-security"}
+	legacyNodes := []string{"overview", "account-sessions", "notes", "account", "account-security"}
 	if err := func() error {
 		tx, err := store.DB.BeginTx(ctx, nil)
 		if err != nil {
@@ -664,8 +664,8 @@ func TestSharedNavigationUpgrade(t *testing.T) {
 		// The legacy layout kept the administrator account pages inside the
 		// admin:system region while members had their own personal region.
 		sectionOf := map[string]map[string]string{
-			"user":  {"overview": "business", "lab": "business", "notes": "business", "account": "personal", "account-security": "personal"},
-			"admin": {"overview": "business", "lab": "business", "notes": "business", "account": "system", "account-security": "system"},
+			"user":  {"overview": "business", "account-sessions": "business", "notes": "business", "account": "personal", "account-security": "personal"},
+			"admin": {"overview": "business", "account-sessions": "business", "notes": "business", "account": "system", "account-security": "system"},
 		}
 		for _, surface := range []string{"user", "admin"} {
 			for _, page := range legacyNodes {
@@ -854,7 +854,7 @@ func TestEnsureMonitorNavigationUpgradeBoundaries(t *testing.T) {
 			node.Label = "站点配置"
 			node.Sort = 777
 		}
-		if node.ID == "lab" {
+		if node.ID == "account-sessions" {
 			node.Visible = false
 		}
 		kept = append(kept, node)
@@ -879,8 +879,8 @@ func TestEnsureMonitorNavigationUpgradeBoundaries(t *testing.T) {
 	if byID["site"].Label != "站点配置" || byID["site"].Sort != 777 {
 		t.Fatalf("operator rename/sort clobbered: %+v", byID["site"])
 	}
-	if byID["lab"].Visible {
-		t.Fatalf("operator visibility clobbered: %+v", byID["lab"])
+	if byID["account-sessions"].Visible {
+		t.Fatalf("operator visibility clobbered: %+v", byID["account-sessions"])
 	}
 	if byID["monitor-center"].Type != "directory" || byID["monitor"].ParentID == nil || *byID["monitor"].ParentID != "monitor-center" {
 		t.Fatalf("monitor seed shape drifted: %+v %+v", byID["monitor-center"], byID["monitor"])
@@ -930,5 +930,82 @@ func TestEnsureMonitorNavigationUpgradeBoundaries(t *testing.T) {
 	again, err := repo.ListMenuConfig(ctx)
 	if err != nil || count(again, monitorIDs) != 4 || again.Version != p1.Version {
 		t.Fatalf("post-upgrade ensure must stay idempotent: v%d -> v%d err=%v", p1.Version, again.Version, err)
+	}
+}
+
+func TestRetiredDemoNavigationPreservesBusinessChildren(t *testing.T) {
+	ctx := t.Context()
+	store, repo, _ := navigationFixture(t, ctx)
+	listed, err := repo.ListMenuConfig(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	n := contracts.Navigation{Version: listed.Version, Sections: listed.Sections, Nodes: listed.Nodes}
+	n.Nodes = append(n.Nodes,
+		contracts.NavigationNode{ID: "old-lab", SectionID: "business", Type: "page", RouteID: strPtr("lab"), Visible: true, Surfaces: []string{"user", "administrator"}},
+		contracts.NavigationNode{ID: "old-files", SectionID: "business", Type: "page", RouteID: strPtr("files"), ParentID: strPtr("old-lab"), Visible: true, Surfaces: []string{"administrator"}},
+		contracts.NavigationNode{ID: "custom-help", SectionID: "business", Type: "link", ParentID: strPtr("old-files"), ActiveMenu: strPtr("old-files"), Url: strPtr("https://example.test/help"), Label: "Business help", Visible: true, Surfaces: []string{"administrator"}, OpenMode: "same_tab"},
+		contracts.NavigationNode{ID: "old-link", SectionID: "business", Type: "link", Url: strPtr("/files?tab=ready#top"), Visible: true, Surfaces: []string{"administrator"}},
+		contracts.NavigationNode{ID: "old-upload", SectionID: "business", Type: "action", ParentID: strPtr("old-files"), Permission: strPtr("files:upload"), OperationIds: []string{"createFileUpload"}, Surfaces: []string{"administrator"}},
+	)
+	tx, err := store.DB.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = repo.writeNavigation(ctx, tx, n); err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []string{"old-lab", "old-files", "custom-help"} {
+		if _, err = store.Exec(ctx, tx, "INSERT INTO unicore_role_menus(role_id,menu_id) VALUES(?,?)", "user", id); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err = store.Exec(ctx, tx, "INSERT INTO unicore_role_actions(role_id,action_id) VALUES(?,?)", "user", "old-upload"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = store.Exec(ctx, tx, "UPDATE unicore_navigation_state SET version=version+1 WHERE id=1"); err != nil {
+		t.Fatal(err)
+	}
+	if err = tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	if err = repo.EnsureNavigation(ctx); err != nil {
+		t.Fatal(err)
+	}
+	after, err := repo.ListMenuConfig(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, node := range after.Nodes {
+		if node.ID == "old-lab" || node.ID == "old-files" || node.ID == "old-upload" || node.ID == "old-link" {
+			t.Fatal("retired node survived", node)
+		}
+		if node.ID == "custom-help" {
+			found = true
+			if node.ParentID != nil || node.ActiveMenu != nil || node.Label != "Business help" {
+				t.Fatal("custom child changed", node)
+			}
+		}
+	}
+	if !found {
+		t.Fatal("custom child was deleted")
+	}
+	if err = validateNavigation(contracts.Navigation{Sections: after.Sections, Nodes: after.Nodes}); err != nil {
+		t.Fatal("retired tree is not editable", err)
+	}
+	var count int
+	if err = store.Row(ctx, store.DB, "SELECT COUNT(*) FROM unicore_role_menus WHERE menu_id IN (?,?)", "old-lab", "old-files").Scan(&count); err != nil || count != 0 {
+		t.Fatal("dangling menu grant", count, err)
+	}
+	if err = store.Row(ctx, store.DB, "SELECT COUNT(*) FROM unicore_role_actions WHERE action_id=?", "old-upload").Scan(&count); err != nil || count != 0 {
+		t.Fatal("dangling action grant", count, err)
+	}
+	if err = repo.EnsureNavigation(ctx); err != nil {
+		t.Fatal(err)
+	}
+	again, err := repo.ListMenuConfig(ctx)
+	if err != nil || again.Version != after.Version {
+		t.Fatal("retirement is not idempotent", again.Version, after.Version, err)
 	}
 }

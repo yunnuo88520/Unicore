@@ -12,11 +12,9 @@ import (
 // surface availability. Backend authorization stays authoritative.
 var baseNavigationPages = []contracts.NavigationPage{
 	{ID: "overview", Surfaces: []string{"user", "administrator"}},
-	{ID: "lab", Surfaces: []string{"user", "administrator"}},
-	{ID: "files", Surfaces: []string{"administrator"}, Permission: "files:access"},
 	{ID: "announcements", Surfaces: []string{"administrator"}, Permission: "announcements:read"},
 	{ID: "api-docs", Surfaces: []string{"administrator"}},
-	{ID: "site", Surfaces: []string{"user", "administrator"}, Permission: "settings:read", Group: "system"},
+	{ID: "site", Surfaces: []string{"administrator"}, Permission: "settings:read", Group: "system"},
 	{ID: "storage", Surfaces: []string{"administrator"}, Permission: "storage:read", Group: "system"},
 	{ID: "account-policy", Surfaces: []string{"administrator"}, Permission: "settings:read", Group: "system"},
 	{ID: "mail", Surfaces: []string{"administrator"}, Permission: "settings:read", Group: "system"},
@@ -51,8 +49,8 @@ func NavigationPages() []contracts.NavigationPage {
 // defaultPageOrder mirrors packages/web-ui/src/navigation.ts defaultPageOrder:
 // the shared stable display order both seeds and editors rely on.
 var defaultPageOrder = []string{
-	"overview", "lab", "users", "roles", "departments", "posts", "api-operations", "menus", "dictionaries",
-	"announcements", "tasks", "files", "api-docs", "site", "storage", "account-policy", "mail", "mail-templates",
+	"overview", "users", "roles", "departments", "posts", "api-operations", "menus", "dictionaries",
+	"announcements", "tasks", "api-docs", "site", "storage", "account-policy", "mail", "mail-templates",
 	"notification-channels", "notification-templates", "system-notifications", "logs", "edition", "account", "account-security", "account-sessions",
 	"monitor", "monitor-services", "monitor-resources", "monitor-events",
 }
@@ -95,7 +93,7 @@ func navigationIcon(id string) string {
 // navigationIcons mirrors the frontend defaultIcons table so a seeded tree and
 // a client-computed default render identically.
 var navigationIcons = map[string]string{
-	"overview": "LayoutDashboard", "lab": "FlaskConical", "files": "FolderOpen", "site": "Settings2", "storage": "Cloud",
+	"overview": "LayoutDashboard", "site": "Settings2", "storage": "Cloud",
 	"users": "UserRound", "administrators": "UserCog", "announcements": "Megaphone", "account-policy": "ShieldCheck", "mail": "Mail", "mail-templates": "Mail",
 	"notification-channels": "Webhook", "notification-templates": "FileText", "system-notifications": "Bell", "logs": "ScrollText", "edition": "PackageCheck",
 	"roles": "ShieldCheck", "departments": "Network", "tasks": "ListChecks", "menus": "LayoutDashboard", "dictionaries": "FileText", "posts": "UserCog",

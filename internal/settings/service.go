@@ -92,7 +92,6 @@ var Definitions = append([]SettingDefinition{
 	}},
 	{"maintenance.enabled", "boolean", "maintenance", "开启维护模式", "false", true, false, oneOf("true", "false")},
 	{"maintenance.message", "string", "maintenance", "维护提示信息", "", true, false, text(1000)},
-	{"appearance.theme", "string", "appearance", "默认主题", "system", false, false, oneOf("light", "dark", "system")},
 	{"admin.path", "string", "admin", "管理后台路径", "/admin", true, false, ValidAdminPath},
 	{"security.login_captcha", "boolean", "protection", "登录图形验证码", "true", true, false, oneOf("true", "false")},
 	{"security.force_2fa", "boolean", "security", "强制双重验证", "false", true, false, oneOf("true", "false")},
@@ -155,11 +154,8 @@ type Service struct {
 	Profile      contracts.Profile
 }
 
-func applies(d SettingDefinition, profile contracts.Profile) bool {
-	if profile != "web-platform" {
-		return d.Group == "appearance"
-	}
-	return d.Group != "appearance"
+func applies(_ SettingDefinition, profile contracts.Profile) bool {
+	return profile == "web-platform"
 }
 
 // Raw is internal-only: HTTP must use List so secrets never enter responses.

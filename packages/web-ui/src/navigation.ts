@@ -35,15 +35,15 @@ export function validNavigationUrl(value: string): boolean {
   try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol) && !!url.hostname; } catch { return false; }
 }
 const builtinPageOrder: string[] = [
-  'overview', 'lab', 'users', 'roles', 'departments', 'posts', 'api-operations', 'menus', 'dictionaries',
-  'announcements', 'tasks', 'files', 'api-docs', 'site', 'storage', 'account-policy', 'mail', 'mail-templates',
+  'overview', 'users', 'roles', 'departments', 'posts', 'api-operations', 'menus', 'dictionaries',
+  'announcements', 'tasks', 'api-docs', 'site', 'storage', 'account-policy', 'mail', 'mail-templates',
   'notification-channels', 'notification-templates', 'system-notifications', 'logs', 'edition', 'account', 'account-security', 'account-sessions',
   'monitor', 'monitor-services', 'monitor-resources', 'monitor-events',
 ];
 // Module pages append after the builtins in each module's declared order.
 export const defaultPageOrder: string[] = [...builtinPageOrder, ...uiModules().flatMap(item => item.order ?? [])];
 export function defaultRank(id: string): number { const index = defaultPageOrder.indexOf(id); return index < 0 ? defaultPageOrder.length : index; }
-const titles = defineMessages({ business: '业务', system: '系统管理', administration: '超级管理员', settings: '系统设置', personal: '个人中心', appearance: '外观设置', monitor: '运行监控' });
+const titles = defineMessages({ business: '业务', system: '系统管理', administration: '超级管理员', settings: '系统设置', personal: '个人中心', monitor: '运行监控' });
 // Seeded directories persist empty labels (names are operator-overridable), so
 // the display fallback resolves their well-known ids to localized titles.
 const directoryNames = defineMessages({ administration: '超级管理员', settings: '系统设置', personal: '个人中心', 'monitor-center': '运行监控' });
@@ -64,7 +64,7 @@ const adminOnly: NavigationSection['surfaces'] = ['administrator'];
 // standalone and desktop keep their single-surface console entries. The
 // monitor group is administrator-only on the platform and collapses to one
 // tabbed page on the local profiles.
-const platformAdminOnly = new Set(['files', 'announcements', 'site', 'api-docs']);
+const platformAdminOnly = new Set(['announcements', 'site', 'api-docs']);
 
 /** Route registration alone decides which workspaces a page reaches, mirroring the Go seed: console and management groups plus the platform admin-only pages stay administrator-only. */
 export function routeSurfaces(id: string): NavigationSection['surfaces'] {
@@ -108,7 +108,7 @@ export function defaultNavigation(_surface: NavigationSection['surfaces'], profi
     const group = 'group' in route ? String(route.group) : '';
     // Standalone and desktop collapse the monitor group into the single
     // tabbed console page; every other platform-only group stays hidden.
-    if (!platform && (group === 'personal' || group === 'administration' || (group === 'monitor' && id !== 'monitor') || (group === 'system' && id !== 'site' && id !== 'edition'))) continue;
+    if (!platform && (group === 'personal' || group === 'administration' || (group === 'monitor' && id !== 'monitor') || (group === 'system' && id !== 'edition'))) continue;
     // API 文档 is a top-level page at the tail of the system region on the
     // platform profile, after the settings and administration directories.
     const systemTopLevel = platform && id === 'api-docs';
@@ -116,9 +116,8 @@ export function defaultNavigation(_surface: NavigationSection['surfaces'], profi
     const sectionId = platform && (systemTopLevel || group === 'system' || group === 'administration' || group === 'monitor') ? 'system' : 'business';
     const parent = platform ? systemTopLevel ? undefined : group === 'administration' ? 'administration' : group === 'system' ? 'settings' : group === 'monitor' ? 'monitor-center' : group === 'personal' ? 'personal' : undefined : undefined;
     nodes.push({ ...newNavigationNode(id, sectionId, 'page', surfaces), parent_id: parent, route_id: id,
-      // Standalone and desktop expose the site console as the appearance page
-      // and the monitor console under its own directory-style name.
-      label: !platform && id === 'site' ? titles.appearance : !platform && id === 'monitor' ? titles.monitor : '',
+      // Local profiles use the directory-style monitor name.
+      label: !platform && id === 'monitor' ? titles.monitor : '',
       icon: defaultIcons[id] ?? 'Circle', sort: systemTopLevel ? 30 : defaultRank(id) * 10 });
   }
   if (platform) {
@@ -140,7 +139,7 @@ export function defaultNavigation(_surface: NavigationSection['surfaces'], profi
   return { version: 0, sections, nodes };
 }
 const builtinIcons: Record<string, string> = {
-  overview: 'LayoutDashboard', lab: 'FlaskConical', notes: 'NotebookPen', files: 'FolderOpen', site: 'Settings2', storage: 'Cloud',
+  overview: 'LayoutDashboard', notes: 'NotebookPen', site: 'Settings2', storage: 'Cloud',
   users: 'UserRound', administrators: 'UserCog', announcements: 'Megaphone', 'account-policy': 'ShieldCheck', mail: 'Mail', 'mail-templates': 'Mail',
   'notification-channels': 'Webhook', 'notification-templates': 'FileText', 'system-notifications': 'Bell', logs: 'ScrollText', edition: 'PackageCheck',
   roles: 'ShieldCheck', departments: 'Network', tasks: 'ListChecks', menus: 'LayoutDashboard', dictionaries: 'FileText', posts: 'UserCog',

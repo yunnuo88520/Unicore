@@ -40,7 +40,7 @@ packages/contracts/openapi.json 是 DTO/operation 的唯一线契约。先改契
 
 前端复用 packages/web-ui 的 WorkspaceLayout、AppClient、会话/路由守卫、表单校验和消息组件；不要自行设置侧栏偏移或另建请求/通知体系。工作区固定 LTR。新增界面同时提供中文/英文：useI18n/useLocale + t，静态路由/选项使用 defineMessages，pnpm check:i18n 检查。用户输入、邮件模板内容和公告不自动翻译。已注册但无权访问的页面呈现独立 403，未注册地址使用 404；页面提示不替代服务端授权。
 
-在线接口参考使用本地打包的 Swagger UI，读取实例通过 `--api-docs=true` / `APP_API_DOCS=true` 开启后发布的 `/openapi.json`；兼容入口 `/docs/api` 跳转到 `/api-docs`。默认关闭，原始契约与参考页不携带实例凭据。启动配置见 [配置参数表](configuration.md#2-web-启动参数完整对照)。`packages/contracts/reference.gen.html` 保留为离线参考。XLSX 导入/导出通过 SDK 专用二进制方法处理，不能当作普通 JSON 响应；平台管理员可在用户管理页下载模板、按行导入或导出用户，在文件管理页导出文件元数据。
+在线接口参考使用本地打包的 Swagger UI，读取实例通过 `--api-docs=true` / `APP_API_DOCS=true` 开启后发布的 `/openapi.json`；兼容入口 `/docs/api` 跳转到 `/api-docs`。默认关闭，原始契约与参考页不携带实例凭据。启动配置见 [配置参数表](configuration.md#2-web-启动参数完整对照)。`packages/contracts/reference.gen.html` 保留为离线参考。XLSX 导入/导出通过 SDK 专用二进制方法处理，不能当作普通 JSON 响应；平台管理员可在用户管理页下载模板、按行导入或导出用户；文件元数据导出保留为授权 API，无独立管理页面。
 
 主题由 assets/theme/tokens.json、品牌由 assets/brand/identity.json 生成，pnpm design:generate 同步，不手改投影。页面要验证桌面/375px、权限状态、双语和实际 GUI，不能用 HTTP 代替 Wails 原生验收。
 

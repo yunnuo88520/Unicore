@@ -45,9 +45,6 @@ func exerciseRoleHTTP(t *testing.T, manager *install.Manager, request func(strin
 				t.Fatal("anonymous", route, w.Code, w.Body.String())
 			}
 			expected := http.StatusForbidden
-			if operation.ID == "adminFileAccess" {
-				expected = http.StatusNotFound
-			}
 			if w := request(method, path, map[string]any{}, member, memberCSRF); w.Code != expected {
 				t.Fatal("member", route, w.Code, w.Body.String())
 			}
@@ -66,8 +63,8 @@ func exerciseRoleHTTP(t *testing.T, manager *install.Manager, request func(strin
 		t.Fatal(err)
 	}
 	// Departments moved to administrator-only and posts never were assignable,
-	// so the assignable set is files:*/notes:* (seven in total).
-	if len(boot.Data.CurrentUser.Permissions) != 7 || boot.Data.CurrentUser.Permissions[0] != "files:access" {
+	// so only notes:* remains in the default business set.
+	if len(boot.Data.CurrentUser.Permissions) != 4 || boot.Data.CurrentUser.Permissions[0] != "notes:access" {
 		t.Fatal("member default grants wrong", w.Body.String())
 	}
 	memberID := boot.Data.CurrentUser.ID

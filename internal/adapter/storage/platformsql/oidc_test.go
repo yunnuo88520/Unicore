@@ -66,7 +66,7 @@ func exerciseOIDC(t *testing.T, ctx context.Context, store *sqlstore.Store, r *R
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(member.Roles) != 1 || member.Roles[0] != "user" || len(member.Permissions) != 7 || platform.HasManagementAccess(member) {
+	if len(member.Roles) != 1 || member.Roles[0] != "user" || len(member.Permissions) != 4 || platform.HasManagementAccess(member) {
 		t.Fatal("JIT exceeded least privilege", member)
 	}
 	var display string

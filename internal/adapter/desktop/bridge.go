@@ -101,10 +101,7 @@ func (b *Bridge) Bootstrap() contracts.BootstrapResponse {
 	if b.settings != nil {
 		data.Stage = "M3b"
 		data.Capabilities.Database = true
-		data.Capabilities.Settings = true
-		if value, err := b.settings.Value(context.Background(), "appearance.theme"); err == nil {
-			data.Theme = &value
-		}
+		data.Capabilities.Settings = false
 	}
 	return contracts.BootstrapResponse{Code: "OK", Data: data, RequestID: presenter.RequestID()}
 }

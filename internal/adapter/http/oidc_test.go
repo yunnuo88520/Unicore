@@ -154,7 +154,7 @@ func TestOIDCHTTP(t *testing.T) {
 		}
 	}
 	session, err := identity.Session(ctx, sessionCookieValue)
-	if err != nil || session.User.Roles[0] != "user" || len(session.User.Permissions) != 7 {
+	if err != nil || session.User.Roles[0] != "user" || len(session.User.Permissions) != 4 {
 		t.Fatal("JIT claims elevated privileges", session, err)
 	}
 	assert(request("GET", "/admin/users", nil, sessionCookieValue, "", "", ""), 403)

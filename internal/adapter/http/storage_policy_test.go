@@ -65,10 +65,9 @@ func TestFileAccessAndRoleOmittedUpdate(t *testing.T) {
 	}
 	adminCookie, adminCSRF := session(true, admin)
 	memberCookie, _ := session(false, member)
-	// The builtin user role holds the assignable files:access point, so the
-	// listing passes the contract policy gate.
-	if w := request("GET", "/api/v1/files", nil, memberCookie, ""); w.Code == 401 || w.Code == 403 {
-		t.Fatal("files:access member refused", w.Code, w.Body.String())
+	// The builtin user role no longer grants the retired file manager permissions.
+	if w := request("GET", "/api/v1/files", nil, memberCookie, ""); w.Code != 403 {
+		t.Fatal("default member unexpectedly accessed files", w.Code, w.Body.String())
 	}
 	// A custom role without files:access is created and assigned.
 	if w := request("POST", "/api/v1/admin/roles", map[string]any{"name": "viewer", "permissions": []string{}}, adminCookie, adminCSRF); w.Code != 200 {
@@ -135,7 +134,7 @@ func TestFileAccessAndRoleOmittedUpdate(t *testing.T) {
 		t.Fatal("role restore", w.Code, w.Body.String())
 	}
 	memberCookie, _ = session(false, member)
-	if w := request("GET", "/api/v1/files", nil, memberCookie, ""); w.Code == 401 || w.Code == 403 {
+	if w := request("GET", "/api/v1/files", nil, memberCookie, ""); w.Code != 403 {
 		t.Fatal("builtin member refused after restore", w.Code, w.Body.String())
 	}
 }

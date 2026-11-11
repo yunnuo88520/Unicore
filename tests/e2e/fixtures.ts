@@ -200,7 +200,7 @@ export async function navigate(page: Page, name: string) {
 // Registered route labels: the display fallback the shell applies when a node
 // carries no operator label.
 const routeLabels: Record<string, string> = {
-  overview: '工作台概览', lab: '核心实验室', notes: '我的笔记', files: '文件管理', site: '基础设置', storage: '对象存储',
+  overview: '工作台概览', notes: '我的笔记', site: '基础设置', storage: '对象存储',
   users: '用户列表', administrators: '管理员列表', announcements: '平台公告', 'account-policy': '账户安全', mail: '邮件设置',
   'mail-templates': '邮件模板', 'notification-channels': '通知渠道', 'notification-templates': '通知模板',
   'system-notifications': '系统通知', logs: '操作日志', edition: '系统更新', roles: '角色权限', posts: '岗位管理',

@@ -10,8 +10,8 @@
 | posts:read/write | GET /admin/posts；POST /admin/posts；PUT/DELETE /admin/posts/{id}（岗位目录，assignable；删除仍有用户关联的岗位返回冲突。用户创建/更新携带 post_ids 多岗位，用户列表支持 post_id 过滤） |
 | dictionaries:read/write | GET/POST /admin/dictionaries；GET/PUT/DELETE /admin/dictionaries/{id}；PUT /admin/dictionaries/{id}/items（可授权给管理员域角色）；用户域 GET /dictionaries/{code} 读取 active 条目 |
 | departments:read/write | GET/POST /admin/departments；PUT/DELETE /admin/departments/{id}（部门组织树，assignable 双域可授；删除被子部门或用户挂靠返回 409 DEPARTMENT_IN_USE） |
-| files:access / notes:access | 用户域页面与读取门槛（assignable，可授予自建角色；内置 user 角色默认持有）。files:access 覆盖 GET /files、/files/policy、/files/{id}/access；notes:access 覆盖 GET /notes；撤销后仅保留登录与数据归属校验 |
-| notes:create/update/delete<br>files:upload/delete | 用户域写操作的动作权限点（assignable，按钮级授权）：POST /notes、PUT/DELETE /notes/{id}；POST /files/uploads 与 multipart 全流程、DELETE /files/{id}。前端按钮联合校验权限点、动作授权及 API 授权，API 按契约权限点和 operation grant 校验（见 [ADR-0035](../adr/ADR-0035-action-permissions-departments.md)） |
+| files:access / notes:access | 业务读取门槛。notes:access 为默认用户业务权限；files:* 仅显式授权文件 API，不再默认授予 user，无文件管理页面。files:access 覆盖 GET /files、/files/policy、/files/{id}/access；notes:access 覆盖 GET /notes；撤销后仅保留登录与数据归属校验 |
+| notes:create/update/delete<br>files:upload/delete | 业务写操作权限点（notes:* 默认用户业务权限；files:* 仅显式 API 授权）：POST /notes、PUT/DELETE /notes/{id}；POST /files/uploads 与 multipart 全流程、DELETE /files/{id}。前端按钮联合校验权限点、动作授权及 API 授权，API 按契约权限点和 operation grant 校验（见 [ADR-0035](../adr/ADR-0035-action-permissions-departments.md)） |
 
 | 权限 | API（均在 /api/v1 下） |
 | --- | --- |
@@ -31,7 +31,7 @@
 
 用户与管理工作台共用账号与 unicore_session Cookie（HttpOnly/SameSite=Lax，HTTPS 时 Secure）。路径选择工作台接口，不选择账号仓库；身份请求头不参与认证。事务从统一账号表重查操作者，角色分配与保留操作重查超管资格。本人改密校验旧密码，锁内复核后撤销该账号的共享会话与挑战，两端同时失效。企业绑定共用账号；两种 OIDC callback 保留各自浏览器证明 Cookie，管理员入口不提供 JIT。详见 [ADR-0037](../adr/ADR-0037-unified-user-identity.md)。
 
-普通用户可以调用 Core、本人账号与本地外观，不能读取全局设置。平台 appearance.theme 不注册，PATCH 拒绝；外观只写当前客户端。单机/桌面没有平台表/认证接口，CLI 没有设置或 DB 强依赖。
+普通用户可以调用 Core、本人账号与本地外观，不能读取全局设置。所有 profile 均不注册 appearance.theme，PATCH 拒绝；外观只写当前客户端。单机/桌面没有平台表/认证接口，CLI 没有设置或 DB 强依赖。
 
 统一成功响应为 `{code:"OK",message:"",data,request_id}`，失败使用稳定 code、脱敏 message 与可选字段错误。错误目录由契约生成；包括安装凭据/状态、数据库连接/非空确认、认证权限/CSRF、验证码限流、最后管理员、账号冲突和输入错误。未知接口 JSON 404，不使用 SPA fallback。bootstrap/session 返回会话派生 csrf_token，SDK 自动附加；令牌只哈希持久化。
 

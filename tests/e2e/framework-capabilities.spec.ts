@@ -220,23 +220,9 @@ test('XLSX import results, file export, column preferences and saved avatar surv
   await expect(page.getByRole('checkbox', { name: '手机号', exact: true })).not.toBeChecked();
   await page.keyboard.press('Escape');
 
-  await navigate(page, '文件管理');
-  await page.getByRole('button', { name: '上传文件', exact: true }).click();
-  const upload = page.getByRole('dialog', { name: '上传文件', exact: true });
-  await upload.getByLabel('选择文件', { exact: true }).setInputFiles({ name: 'acceptance-export.txt', mimeType: 'text/plain', buffer: Buffer.from('real exported file metadata') });
-  await upload.getByRole('button', { name: '开始上传', exact: true }).click();
-  await expect(upload).toHaveCount(0, { timeout: 60_000 });
-  await expect(page.getByRole('cell').filter({ hasText: 'acceptance-export.txt' })).toBeVisible();
-  const exported = page.waitForEvent('download');
-  await page.getByRole('button', { name: '导出文件', exact: true }).click();
-  expect(workbookText(await downloaded(exported, 'files.xlsx'))).toContain('acceptance-export.txt');
-  await page.getByRole('button', { name: '列设置', exact: true }).click();
-  await page.getByRole('checkbox', { name: '上传时间', exact: true }).uncheck();
-  await page.keyboard.press('Escape');
-  await page.reload();
-  await expect(page.getByRole('cell').filter({ hasText: 'acceptance-export.txt' })).toBeVisible();
-  await expect(page.getByRole('columnheader', { name: '上传时间', exact: true })).toHaveCount(0);
-  await evidence(page, info, '文件导出与列设置');
+  // File metadata export remains an authorized SDK capability without a demo page.
+  await api.uploadFile(new File(['real exported file metadata'], 'acceptance-export.txt', { type: 'text/plain' }));
+  expect(workbookText(Buffer.from(await (await api.web!.exportFiles()).arrayBuffer()))).toContain('acceptance-export.txt');
 
   await page.goto(`${instance.url}/admin/account`);
   await page.getByRole('button', { name: '上传头像', exact: true }).click();

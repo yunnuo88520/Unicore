@@ -145,10 +145,90 @@ func (r *Repository) EnsureNavigation(ctx context.Context) error {
 	if err := r.upgradeSharedNavigation(ctx); err != nil {
 		return err
 	}
+	if err := r.retireDemoNavigation(ctx); err != nil {
+		return err
+	}
 	if err := r.backfillRegisteredActions(ctx); err != nil {
 		return err
 	}
 	return r.ensureMonitorNavigation(ctx)
+}
+
+// retireDemoNavigation removes retired routes on the instance startup boundary.
+// Operator-owned children survive under the nearest retained ancestor.
+func (r *Repository) retireDemoNavigation(ctx context.Context) error {
+	tx, err := r.Store.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err = r.Store.LockInstallation(ctx, tx); err != nil {
+		return err
+	}
+	n, err := r.readNavigation(ctx, tx)
+	if err != nil {
+		return err
+	}
+	removed := map[string]contracts.NavigationNode{}
+	changed := false
+	for _, node := range n.Nodes {
+		path, _, _ := strings.Cut(text(node.Url), "?")
+		path, _, _ = strings.Cut(path, "#")
+		if node.Type == "page" && (text(node.RouteID) == "lab" || text(node.RouteID) == "files") ||
+			node.Type == "link" && (path == "/lab" || path == "/files") {
+			removed[node.ID] = node
+		}
+	}
+	for _, node := range n.Nodes {
+		if node.Type == "action" {
+			if _, retired := removed[text(node.ParentID)]; retired {
+				removed[node.ID] = node
+			}
+		}
+	}
+	kept := []contracts.NavigationNode{}
+	for _, node := range n.Nodes {
+		if _, retired := removed[node.ID]; retired {
+			changed = true
+			continue
+		}
+		if _, retired := removed[text(node.ActiveMenu)]; retired {
+			node.ActiveMenu = nil
+		}
+		seen := map[string]bool{}
+		for parent, retired := removed[text(node.ParentID)]; retired; parent, retired = removed[text(node.ParentID)] {
+			if seen[parent.ID] {
+				node.ParentID = nil
+				break
+			}
+			seen[parent.ID] = true
+			node.ParentID = parent.ParentID
+		}
+		if text(node.RouteID) == "site" && contains(node.Surfaces, "user") {
+			node.Surfaces = []string{"administrator"}
+			changed = true
+		}
+		kept = append(kept, node)
+	}
+	if !changed {
+		return tx.Rollback()
+	}
+	n.Nodes = kept
+	if err = r.writeNavigation(ctx, tx, n); err != nil {
+		return err
+	}
+	for id := range removed {
+		if _, err = r.Store.Exec(ctx, tx, "DELETE FROM unicore_role_menus WHERE menu_id=?", id); err != nil {
+			return err
+		}
+		if _, err = r.Store.Exec(ctx, tx, "DELETE FROM unicore_role_actions WHERE action_id=?", id); err != nil {
+			return err
+		}
+	}
+	if _, err = r.Store.Exec(ctx, tx, "UPDATE unicore_navigation_state SET version=version+1 WHERE id=1"); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // monitorSeedOrder lists the runtime monitor entries in seed order; later

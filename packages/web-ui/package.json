@@ -11,7 +11,6 @@
     "./layout": "./src/workspace-layout.tsx",
     "./router": "./src/router.tsx",
     "./widgets/activity": "./src/widgets/activity.tsx",
-    "./widgets/monitor-summary": "./src/widgets/monitor-summary.tsx",
     "./pages/forbidden": "./src/pages/forbidden.tsx"
   },
   "dependencies": {

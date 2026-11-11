@@ -198,6 +198,7 @@
   "单机模式": "Standalone mode",
   "即将从 v": "Updating from v",
   "原生桥接 · 无 HTTP 服务": "Native bridge · No HTTP server",
+  "原生桥接": "Native bridge",
   "发现文档及端点检查通过，请继续验证实际登录。": "Discovery and endpoint checks passed. Complete a real sign-in to verify integration.",
   "发现新版本": "Update available",
   "发送中": "Sending",
@@ -2317,8 +2318,6 @@
   "环形缓冲仅保留最近 {{capacity}} 条，超出丢弃最旧记录；应用重启后全部清空。": "The ring buffer keeps only the latest {{capacity}} entries and drops the oldest beyond that; everything is cleared when the application restarts.",
   "运行事件不等同于操作日志、系统通知或持久化审计，也不保证覆盖尚未接入事件源的所有异常。": "Runtime events are not the operation log, system notifications or persistent audit, and they do not guarantee coverage of anomalies whose sources are not wired yet.",
   "事件": "Event",
-  "告警触发": "Alert triggered",
-  "告警恢复": "Alert recovered",
   "归因转移": "Attribution transfer",
   "通知失败": "Notification failed",
   "数据库不可用": "Database unreachable",
@@ -2348,5 +2347,12 @@
   "告警归因转移：": "Alert attribution transferred: ",
   "记录范围：实例启动生命周期、定时任务失败与恢复（调度器完成时直接投递）、对象存储探活失败（手动触发）、数据库健康翻转（仅在监控页面被查看期间检测）、告警触发/恢复/归因转移（后台检测引擎）。": "Coverage: instance startup lifecycle, scheduled-task failures and recoveries (delivered by the scheduler), object-storage probe failures (manual), database health transitions (detected only while a monitor page is viewed), and alert triggered/recovered/reclassified events (background detection engine).",
   "规则保存后下一检测拍（30 秒）生效；全部停用即停止后台检测。": "Saved rules take effect on the next detection tick (30 seconds); disabling every rule stops the background detector.",
-  "整体健康规则默认未启用：具体规则已覆盖数据库与任务异常的归因。": "The overall-health rule ships disabled: the specific rules already attribute database and task anomalies."
+  "整体健康规则默认未启用：具体规则已覆盖数据库与任务异常的归因。": "The overall-health rule ships disabled: the specific rules already attribute database and task anomalies.",
+  "读取文件": "Read files",
+  "通过文件接口查看与下载授权文件": "View and download authorized files through the file API",
+  "选择已授权的本人文件。最多 5 个。": "Select authorized files you own. Up to 5 files.",
+  "你的工作，从这里开始。": "Your work starts here.",
+  "整理想法，记录进展，专注于手头的事。": "Organize ideas, track progress, and focus on your work.",
+  "记录应用启动、数据库健康变化，以及本机告警的触发、恢复与归因变化。数据库健康变化仅在查看监控时检测。": "Records application startup, database health changes, and local alert triggers, recoveries, and cause changes. Database health changes are detected while monitoring is open.",
+  "此处展示应用自身的运行事件，不保证覆盖所有异常。": "Shows events from this application; it may not capture every issue."
 }

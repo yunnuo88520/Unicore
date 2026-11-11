@@ -151,7 +151,7 @@ function NoteEditor({ client, metadata, note, onClose, onSaved }: {
   const files = useQuery({
     queryKey: ['note-files', fileSearch],
     queryFn: () => client.files!.listFiles(fileSearch, 1),
-    enabled: metadata.profile === 'web-platform' && !!client.files,
+    enabled: metadata.profile === 'web-platform' && !!client.files && canAction(metadata, 'listFiles'),
   });
   const mine = files.data?.items.filter(f => f.state === 'ready' && f.creator_id === metadata.current_user?.id && f.creator_realm === 'user') ?? [];
   const value = form.watch();
@@ -171,9 +171,9 @@ function NoteEditor({ client, metadata, note, onClose, onSaved }: {
           <option value="done">{t('已完成')}</option>
         </NativeSelect>
       </AppField>
-      {metadata.profile === 'web-platform' && client.files && <fieldset className="flex flex-col gap-2 rounded-lg border border-line p-3">
+      {metadata.profile === 'web-platform' && client.files && (canAction(metadata, 'listFiles') || value.attachment_ids.length > 0) && <fieldset className="flex flex-col gap-2 rounded-lg border border-line p-3">
         <legend className="flex items-center gap-1.5 px-1 text-sm font-medium text-ink"><Paperclip size={14} aria-hidden="true" />{t('附件')}</legend>
-        <p className="text-xs text-muted">{t('先在“我的文件”上传，再选择本人文件。最多 5 个。')}</p>
+        <p className="text-xs text-muted">{t('选择已授权的本人文件。最多 5 个。')}</p>
         <Input aria-label={t('搜索可选附件')} placeholder={t('搜索本人文件')} maxLength={128} value={fileSearch} onChange={event => setFileSearch(event.target.value)} />
         <NativeSelect aria-label={t('添加已有附件')} disabled={value.attachment_ids.length >= 5} value="" onChange={event => { if (event.target.value) setAttachments([...value.attachment_ids, event.target.value]); }}>
           <option value="">{t('选择本人文件')}</option>

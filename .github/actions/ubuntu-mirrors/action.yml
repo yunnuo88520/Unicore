@@ -1,0 +1,16 @@
+# Author: yunnuo <ymz@ebox.vip>
+name: Configure Ubuntu package mirrors
+description: Use official Ubuntu mirrors instead of the Azure runner mirror.
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        set -euo pipefail
+        # Hosted Jammy runners use this mirror list for every Ubuntu suite.
+        # Avoid azure.archive.ubuntu.com DNS failures without relaxing APT checks.
+        if [[ -f /etc/apt/apt-mirrors.txt ]]; then
+          printf '%s\n' 'https://archive.ubuntu.com/ubuntu/' 'https://security.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt > /dev/null
+        fi
+        # Older runner images reference the Azure mirror directly.
+        sudo find /etc/apt -type f \( -name '*.list' -o -name '*.sources' \) -exec sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g; s|https://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' {} +

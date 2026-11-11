@@ -406,6 +406,7 @@
   "template_files": [
     ".dockerignore",
     ".gitattributes",
+    ".github/actions/ubuntu-mirrors/action.yml",
     ".github/ISSUE_TEMPLATE/bug_report.yml",
     ".github/ISSUE_TEMPLATE/config.yml",
     ".github/ISSUE_TEMPLATE/feature_request.yml",

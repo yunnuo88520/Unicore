@@ -22,6 +22,7 @@ import { AdminMenusPage } from './pages/admin/menus';
 import { AdminPostsPage } from './pages/admin/posts';
 import { AdminApiOperationsPage } from './pages/admin/api-operations';
 import { AdminDictionariesPage } from './pages/admin/dictionaries';
+import { AdminMonitorEventsPage, AdminMonitorPage, AdminMonitorResourcesPage, AdminMonitorServicesPage } from './pages/monitor';
 
 export function AdministrationPage(props: PageProps) {
   useLocale();
@@ -42,6 +43,10 @@ export function AdministrationPage(props: PageProps) {
     case 'logs': return <AdminLogsPage {...props} />;
     case 'tasks': return <AdminTasksPage {...props} />;
     case 'edition': return <AdminEditionPage {...props} />;
+    case 'monitor': return <AdminMonitorPage {...props} />;
+    case 'monitor-services': return <AdminMonitorServicesPage {...props} />;
+    case 'monitor-resources': return <AdminMonitorResourcesPage {...props} />;
+    case 'monitor-events': return <AdminMonitorEventsPage {...props} />;
     default: return null;
   }
 }

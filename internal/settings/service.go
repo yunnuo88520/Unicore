@@ -401,3 +401,21 @@ func MailBaseURL(values map[string]string, fallback string) string {
 	}
 	return strings.TrimRight(fallback, "/")
 }
+
+// AlertingRules reads the internal alert rule JSON; an empty value means the
+// rule set was never initialized and the defaults apply.
+func (s *Service) AlertingRules(ctx context.Context) (string, error) {
+	values, err := s.Raw(ctx)
+	if err != nil {
+		return "", err
+	}
+	return values["alerts.rules"], nil
+}
+
+// SaveAlertingRules persists the alert rule JSON under an internal key that
+// never appears in the generic settings API.
+func (s *Service) SaveAlertingRules(ctx context.Context, rulesJSON, actor string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.Store.SaveSettings(ctx, map[string]string{"alerts.rules": rulesJSON}, actor)
+}

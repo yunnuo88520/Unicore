@@ -22,6 +22,7 @@ import (
 	"github.com/yunnuo/unicore/internal/audit"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/install"
+	"github.com/yunnuo/unicore/internal/monitor"
 	"github.com/yunnuo/unicore/internal/observability"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/realtime"
@@ -42,6 +43,8 @@ type Config struct {
 	Metrics          *observability.Metrics
 	Hub              *realtime.Hub
 	LogBroadcast     *logging.BroadcastWriter
+	Monitor          *monitor.Service
+	AlertRulesStore  monitor.AlertRuleStore
 }
 
 func New(config Config) http.Handler {

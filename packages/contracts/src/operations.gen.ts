@@ -4189,6 +4189,140 @@ export const operations = {
     "superAdmin": true,
     "csrf": false,
     "identityRealm": "administrator"
+  },
+  "adminMonitorSnapshot": {
+    "method": "GET",
+    "path": "/api/v1/admin/monitor",
+    "requestSchema": null,
+    "responseSchema": "MonitorSnapshotResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "monitor:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "monitorSnapshot": {
+    "method": "GET",
+    "path": "/api/v1/monitor",
+    "requestSchema": null,
+    "responseSchema": "MonitorSnapshotResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-standalone"
+    ],
+    "access": "local",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "monitorEvents": {
+    "method": "GET",
+    "path": "/api/v1/monitor/events",
+    "requestSchema": null,
+    "responseSchema": "MonitorEventListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-standalone"
+    ],
+    "access": "local",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false
+  },
+  "adminMonitorEvents": {
+    "method": "GET",
+    "path": "/api/v1/admin/monitor/events",
+    "requestSchema": null,
+    "responseSchema": "MonitorEventListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "monitor:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminMonitorStorageProbe": {
+    "method": "GET",
+    "path": "/api/v1/admin/monitor/storage-probe",
+    "requestSchema": null,
+    "responseSchema": "MonitorStorageLocationResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "monitor:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminMonitorAlertRules": {
+    "method": "GET",
+    "path": "/api/v1/admin/monitor/alert-rules",
+    "requestSchema": null,
+    "responseSchema": "MonitorAlertRulesResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "monitor:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminUpdateMonitorAlertRules": {
+    "method": "PUT",
+    "path": "/api/v1/admin/monitor/alert-rules",
+    "requestSchema": "MonitorAlertRules",
+    "responseSchema": "MonitorAlertRulesResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "monitor:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
   }
 } as const;
 export type OperationId = keyof typeof operations;
@@ -4408,6 +4542,13 @@ export interface OperationInputs {
   updatePost: Models.PostSaveInput;
   deletePost: undefined;
   logTail: undefined;
+  adminMonitorSnapshot: undefined;
+  monitorSnapshot: undefined;
+  monitorEvents: undefined;
+  adminMonitorEvents: undefined;
+  adminMonitorStorageProbe: undefined;
+  adminMonitorAlertRules: undefined;
+  adminUpdateMonitorAlertRules: Models.MonitorAlertRules;
 }
 export interface OperationData {
   bootstrap: Models.BootstrapResponse['data'];
@@ -4625,4 +4766,11 @@ export interface OperationData {
   updatePost: Models.PostResponse['data'];
   deletePost: Models.PostResponse['data'];
   logTail: Models.LogTailResponse['data'];
+  adminMonitorSnapshot: Models.MonitorSnapshotResponse['data'];
+  monitorSnapshot: Models.MonitorSnapshotResponse['data'];
+  monitorEvents: Models.MonitorEventListResponse['data'];
+  adminMonitorEvents: Models.MonitorEventListResponse['data'];
+  adminMonitorStorageProbe: Models.MonitorStorageLocationResponse['data'];
+  adminMonitorAlertRules: Models.MonitorAlertRulesResponse['data'];
+  adminUpdateMonitorAlertRules: Models.MonitorAlertRulesResponse['data'];
 }

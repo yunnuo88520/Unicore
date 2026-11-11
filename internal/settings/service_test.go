@@ -4,11 +4,13 @@ package settings
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"testing"
 
 	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/notifycontent"
 	"github.com/yunnuo/unicore/internal/secret"
 )
 
@@ -232,3 +234,73 @@ func TestLoggingRetentionSetting(t *testing.T) {
 type sweeperFunc func()
 
 func (f sweeperFunc) Sweep() { f() }
+
+func TestNotificationConfigBackfillsNewEvents(t *testing.T) {
+	base := notifycontent.Defaults()
+	legacy := contracts.NotifyConfiguration{Enabled: true, Rules: base.Rules[:12], Templates: base.Templates[:12]}
+	raw, _ := json.Marshal(legacy)
+	c := NotificationConfig(map[string]string{"notifications.config": string(raw)})
+	if len(c.Rules) != len(notifycontent.Events) || len(c.Templates) != len(notifycontent.Events) {
+		t.Fatalf("stored configuration must gain the new events: %d rules %d templates", len(c.Rules), len(c.Templates))
+	}
+	if !c.Enabled {
+		t.Fatal("stored switches must survive the backfill")
+	}
+}
+
+type recordingNotificationWriter struct {
+	store   *memoryStore
+	changes map[string]string
+}
+
+func (w *recordingNotificationWriter) SaveNotificationSettings(ctx context.Context, values map[string]string, actor string) error {
+	w.changes = values
+	return w.store.SaveSettings(ctx, values, actor)
+}
+
+func TestNotificationSaveBackfillsLegacyCatalog(t *testing.T) {
+	base := notifycontent.Defaults()
+	// Copy the slices so the stored customization does not alias the defaults.
+	legacy := contracts.NotifyConfiguration{
+		Provider:  "wecom",
+		Rules:     append([]contracts.NotifyRule(nil), base.Rules[:12]...),
+		Templates: append([]contracts.NotifyTemplate(nil), base.Templates[:12]...),
+	}
+	legacy.Rules[0].UserEmail = !legacy.Rules[0].UserEmail
+	store := &memoryStore{values: map[string]string{}}
+	writer := &recordingNotificationWriter{store: store}
+	key, err := secret.Open(t.TempDir(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := &Service{Store: store, Profile: "web-platform", NotificationWriter: writer, Secrets: key}
+	saved, err := service.SaveNotifications(context.Background(), legacy, "admin")
+	if err != nil {
+		t.Fatalf("legacy catalog save must be completed, not rejected: %v", err)
+	}
+	if len(saved.Rules) != len(notifycontent.Events) || len(saved.Templates) != len(notifycontent.Events) {
+		t.Fatalf("saved configuration must gain the new events: %d rules %d templates", len(saved.Rules), len(saved.Templates))
+	}
+	if saved.Rules[0].UserEmail == base.Rules[0].UserEmail {
+		t.Fatal("stored customization must survive the save")
+	}
+	// The persisted JSON is complete: a fresh read sees the full catalog.
+	read, err := service.Notifications(context.Background())
+	if err != nil || len(read.Rules) != len(notifycontent.Events) {
+		t.Fatalf("read-modify-save-read must stay consistent: %v %d", err, len(read.Rules))
+	}
+	// Modify one switch and save again: everything else persists untouched.
+	read.Rules[1].AdminEmail = !read.Rules[1].AdminEmail
+	resaved, err := service.SaveNotifications(context.Background(), read, "admin")
+	if err != nil {
+		t.Fatalf("round-trip save failed: %v", err)
+	}
+	if resaved.Rules[1].AdminEmail == base.Rules[1].AdminEmail || resaved.Rules[0].UserEmail == base.Rules[0].UserEmail {
+		t.Fatal("second save must keep both the original and the new customization")
+	}
+	// Unknown event IDs stay fail-closed.
+	poisoned := contracts.NotifyConfiguration{Provider: "wecom", Rules: append(append([]contracts.NotifyRule{}, base.Rules...), contracts.NotifyRule{Event: "mystery_event"}), Templates: base.Templates}
+	if _, err = service.SaveNotifications(context.Background(), poisoned, "admin"); err != ErrInvalid {
+		t.Fatalf("unknown events must be rejected: %v", err)
+	}
+}

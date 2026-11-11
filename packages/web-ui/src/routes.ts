@@ -4,7 +4,7 @@
 import { notes } from './modules/notes';
 import {defineMessages} from './i18n';
 import type { Bootstrap } from '@unicore/sdk';
-import { Bell, BookOpen, Circle, Cloud, FileText, FlaskConical, FolderOpen, LayoutDashboard, ListChecks, Mail, Megaphone, Monitor, Network, NotebookPen, PackageCheck, ScrollText, Settings2, ShieldCheck, UserCog, UserRound, Webhook, type LucideIcon } from 'lucide-react';
+import { Bell, BookOpen, Activity, Circle, Cloud, Cpu, FileText, FlaskConical, FolderOpen, LayoutDashboard, ListChecks, Mail, Megaphone, Monitor, Network, NotebookPen, PackageCheck, Radar, ScrollText, Settings2, ShieldCheck, UserCog, UserRound, Webhook, type LucideIcon } from 'lucide-react';
 
 export const routes = defineMessages({
   ...notes.routes,
@@ -36,6 +36,10 @@ export const routes = defineMessages({
  'account-sessions': {label:'登录会话',title:'登录会话',description:'查看登录设备，及时下线不再使用的会话。',authenticated:true,icon:Monitor,group:'personal'},
   // No permission or authenticated marker: reachable whenever the instance publishes /openapi.json (config.APIDocs).
   'api-docs': { label: 'API 文档', title: 'API 文档', description: '浏览与下载 OpenAPI 接口契约。', icon: BookOpen },
+  monitor: { label: '运行概览', title: '运行监控', description: '查看实例运行状态、版本与核心健康。', permission: 'monitor:read', local: true, database: true, group: 'monitor', icon: Activity },
+  'monitor-services': { label: '服务健康', title: '服务健康', description: '检查 HTTP、数据库、存储与后台任务状态。', permission: 'monitor:read', local: true, database: true, group: 'monitor', icon: Radar },
+  'monitor-resources': { label: '资源监控', title: '资源监控', description: '观察主机硬件、进程与 Go Runtime 资源。', permission: 'monitor:read', local: true, database: true, group: 'monitor', icon: Cpu },
+  'monitor-events': { label: '运行事件', title: '运行事件', description: '查看实例自身运行产生的生命周期、健康翻转与任务错误事件。', permission: 'monitor:read', local: true, database: true, group: 'monitor', icon: ScrollText },
   'not-found': { label: '页面不存在', title: '页面不存在', description: '这个地址尚未注册，请通过导航进入已有页面。', icon: Circle },
 } as const);
 export type Page = keyof typeof routes;
@@ -58,7 +62,7 @@ export function canAccess(page: Page, metadata?: Bootstrap): boolean {
   // Management-flavoured pages never render on the user surface — even when a
   // persisted menu tree or a custom role still carries them (existing installs).
   if (metadata?.profile === 'web-platform' && metadata.identity_realm !== 'administrator' &&
-    ['site', 'api-docs', 'announcements', 'files'].includes(page)) return false;
+    ['site', 'api-docs', 'announcements', 'files', 'monitor', 'monitor-services', 'monitor-resources', 'monitor-events'].includes(page)) return false;
   if (metadata?.profile === 'web-platform' && metadata.current_user &&
     !metadata.current_user.roles.includes('super_admin') &&
     !['account', 'account-security', 'account-sessions'].includes(page)) {

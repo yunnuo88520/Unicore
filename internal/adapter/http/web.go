@@ -3,12 +3,12 @@
 package httpadapter
 
 import (
-	"log/slog"
 	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 	"mime"
 	"net"
 	"net/http"
@@ -448,6 +448,7 @@ func mountWeb(api chi.Router, config Config) {
 	mountMenus(api, config)
 	mountTasks(api, config)
 	mountDashboard(api, config)
+	mountMonitor(api, config)
 	mountInbox(api, config)
 	mountEvents(api, config)
 	mountLogStream(api, config)

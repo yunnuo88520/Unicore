@@ -26,6 +26,10 @@ var baseNavigationPages = []contracts.NavigationPage{
 	{ID: "system-notifications", Surfaces: []string{"administrator"}, Permission: "settings:read", Group: "system"},
 	{ID: "logs", Surfaces: []string{"administrator"}, Permission: "logs:read", Group: "system"},
 	{ID: "edition", Surfaces: []string{"administrator"}, Permission: "updates:read", Group: "system"},
+	{ID: "monitor", Surfaces: []string{"administrator"}, Permission: "monitor:read", Group: "monitor"},
+	{ID: "monitor-services", Surfaces: []string{"administrator"}, Permission: "monitor:read", Group: "monitor"},
+	{ID: "monitor-resources", Surfaces: []string{"administrator"}, Permission: "monitor:read", Group: "monitor"},
+	{ID: "monitor-events", Surfaces: []string{"administrator"}, Permission: "monitor:read", Group: "monitor"},
 	{ID: "users", Surfaces: []string{"administrator"}, Permission: "users:read", Group: "administration"},
 	{ID: "roles", Surfaces: []string{"administrator"}, Permission: "roles:read", Group: "administration"},
 	{ID: "departments", Surfaces: []string{"administrator"}, Permission: "departments:read", Group: "administration"},
@@ -50,6 +54,7 @@ var defaultPageOrder = []string{
 	"overview", "lab", "users", "roles", "departments", "posts", "api-operations", "menus", "dictionaries",
 	"announcements", "tasks", "files", "api-docs", "site", "storage", "account-policy", "mail", "mail-templates",
 	"notification-channels", "notification-templates", "system-notifications", "logs", "edition", "account", "account-security", "account-sessions",
+	"monitor", "monitor-services", "monitor-resources", "monitor-events",
 }
 
 // navigationRank is the shared defaultRank: builtins keep the stable table
@@ -95,8 +100,9 @@ var navigationIcons = map[string]string{
 	"notification-channels": "Webhook", "notification-templates": "FileText", "system-notifications": "Bell", "logs": "ScrollText", "edition": "PackageCheck",
 	"roles": "ShieldCheck", "departments": "Network", "tasks": "ListChecks", "menus": "LayoutDashboard", "dictionaries": "FileText", "posts": "UserCog",
 	"api-operations": "BookOpen", "account": "UserRound", "account-security": "ShieldCheck", "account-sessions": "Monitor", "api-docs": "BookOpen",
+	"monitor": "Activity", "monitor-services": "Radar", "monitor-resources": "Cpu", "monitor-events": "ScrollText",
 	// Seeded directories carry the same icons as the frontend defaultNavigation.
-	"administration": "Users", "personal": "UserRound",
+	"administration": "Users", "personal": "UserRound", "monitor-center": "Activity",
 }
 
 func NavigationPage(id, surface string) (contracts.NavigationPage, bool) {
@@ -127,16 +133,18 @@ func DefaultNavigation() contracts.Navigation {
 		},
 		Nodes: []contracts.NavigationNode{},
 	}
-	// The three directories mirror the console layout: the system region keeps
-	// 系统设置 with the console pages followed by 超级管理员 hosting the
-	// administration pages, and 个人中心 is one shared business directory so
-	// the same account pages are granted exactly once for both workspaces.
+	// The four directories mirror the console layout: the system region keeps
+	// 系统设置 with the console pages, 超级管理员 hosting the administration
+	// pages, and 运行监控 (super-only) last in the region; 个人中心 is one
+	// shared business directory so the same account pages are granted exactly
+	// once for both workspaces.
 	directory := func(id, section string, sort int, surfaces []string) {
 		result.Nodes = append(result.Nodes, contracts.NavigationNode{ID: id, SectionID: section, Surfaces: surfaces, Type: "directory", Icon: navigationIcon(id),
 			Sort: sort, Visible: true, OpenMode: "same_tab", OperationIds: []string{}})
 	}
 	directory("administration", "system", 20, []string{"administrator"})
 	directory("settings", "system", 10, []string{"administrator"})
+	directory("monitor-center", "system", 25, []string{"administrator"})
 	directory("personal", "business", 2700, []string{"user", "administrator"})
 	for _, page := range NavigationPages() {
 		section := "business"
@@ -150,6 +158,9 @@ func DefaultNavigation() contracts.Navigation {
 		case "administration":
 			section = "system"
 			parent = "administration"
+		case "monitor":
+			section = "system"
+			parent = "monitor-center"
 		}
 		sort := navigationRank(page.ID) * 10
 		if page.ID == "api-docs" {

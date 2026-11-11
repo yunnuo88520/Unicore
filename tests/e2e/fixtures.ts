@@ -14,24 +14,68 @@ export type { MenuList };
 
 export type Instance = { url: string; token: string; request: APIRequestContext; directory: string; restart: () => Promise<void>; unlockForReinstall: () => Promise<string> };
 type InstanceFixtures = { instance: Instance; instanceNoDocs: Instance };
-async function spawnInstance({ playwright }: Pick<PlaywrightWorkerArgs, 'playwright'>, apiDocs: boolean, use: (instance: Instance) => Promise<void>) {
+
+async function freePort(): Promise<number> {
+  const allocator = createServer();
+  await new Promise<void>(resolve => allocator.listen(0, '127.0.0.1', resolve));
+  const port = (allocator.address() as { port: number }).port;
+  await new Promise<void>(resolve => allocator.close(() => resolve()));
+  return port;
+}
+
+async function spawnInstance({ playwright }: Pick<PlaywrightWorkerArgs, 'playwright'>, project: string, apiDocs: boolean, workerIndex: number, use: (instance: Instance) => Promise<void>) {
+  // Fully-parallel workers can grab each other's just-freed port (TOCTOU
+  // between the allocator close and the child bind), so every project/worker
+  // pair owns a disjoint listen range (projects run concurrently and worker
+  // indexes repeat per project); the in-loop token probe below is the second
+  // line of defense: a fresh foreign instance answers 401 and an installed
+  // one 409, while our own uninitialized instance answers 400.
   const directory = await mkdtemp(join(tmpdir(), 'unicore-e2e-'));
-  const allocator = createServer(); await new Promise<void>(resolve => allocator.listen(0, '127.0.0.1', resolve));
-  const port = (allocator.address() as { port: number }).port; await new Promise<void>(resolve => allocator.close(() => resolve()));
-  const url = `http://127.0.0.1:${port}`;
-  const start = () => spawn('build/bin/server', ['--listen', `127.0.0.1:${port}`, '--data-dir', directory, `--api-docs=${apiDocs}`], { stdio: ['ignore', openSync('/tmp/e2e-server-stdout.log', 'a'), openSync('/tmp/e2e-server-stderr.log', 'a')], env: Object.fromEntries(Object.entries(globalThis.process.env).filter(([key]) => !key.startsWith('APP_'))) });
-  let process = start();
+  const start = (listenPort: number) => spawn('build/bin/server', ['--listen', `127.0.0.1:${listenPort}`, '--data-dir', directory, `--api-docs=${apiDocs}`], { stdio: ['ignore', openSync('/tmp/e2e-server-stdout.log', 'a'), openSync('/tmp/e2e-server-stderr.log', 'a')], env: Object.fromEntries(Object.entries(globalThis.process.env).filter(([key]) => !key.startsWith('APP_'))) });
+  // Fully-parallel workers can grab each other's just-freed port (TOCTOU
+  // between the allocator close and the child bind), so every spawned server
+  // must prove its identity with its own bootstrap token before the fixture
+  // hands the URL out; a collision retries on a fresh port.
+  const stop0 = (child: ReturnType<typeof spawn>) => { if (child.exitCode === null) child.kill('SIGTERM'); };
+  let process: ReturnType<typeof spawn>;
+  let url = '';
+  let listenPort = 0;
+  let request = await playwright.request.newContext({ baseURL: 'http://127.0.0.1:0' });
+  let fixtureToken = '';
+  const projectOffset = project.includes('mobile') ? 250 : 0;
+  for (let attempt = 0; ; attempt++) {
+    listenPort = 41000 + projectOffset + workerIndex * 25 + attempt % 25;
+    url = `http://127.0.0.1:${listenPort}`;
+    process = start(listenPort);
+    await request.dispose();
+    request = await playwright.request.newContext({ baseURL: url });
+    let live = false;
+    let token = '';
+    for (let i = 0; i < 30; i++) {
+      try {
+        if ((await request.get('/api/v1/health/live')).status() === 200) {
+          token = (await readFile(join(directory, 'bootstrap.token'), 'utf8')).trim();
+          if (token) { fixtureToken = token; live = true; break; }
+        }
+      } catch {}
+      await new Promise<void>(resolve => setTimeout(resolve, 500));
+    }
+    if (!live) { stop0(process); continue; }
+    const probe = await request.post('/api/v1/install/verify-db', { headers: { 'X-Bootstrap-Token': token }, data: { driver: 'sqlite', dsn: '' } });
+    // Identity proof: only our own token passes authorization (fresh foreign
+    // instance -> 401, installed foreign instance -> 409 before token check),
+    // so an accepted probe means the URL belongs to this fixture's server.
+    if (probe.status() === 200 || probe.status() === 400) break;
+    stop0(process);
+  }
   const stop = async () => { if (process.exitCode !== null) return; process.kill('SIGTERM'); await new Promise<void>(resolve => process.once('exit', () => resolve())); };
-  const request = await playwright.request.newContext({ baseURL: url });
   try {
-    await expect.poll(async () => { try { return (await request.get('/api/v1/health/live')).status(); } catch { return 0; } }, { timeout: 15000 }).toBe(200);
-    const token = (await readFile(join(directory, 'bootstrap.token'), 'utf8')).trim();
-    await use({ url, token, request, directory,
-      restart: async () => { await stop(); process = start(); await expect.poll(async () => { try { return (await request.get('/api/v1/health/ready')).status(); } catch { return 0; } }, { timeout: 15000 }).toBe(200); },
+    await use({ url, token: fixtureToken, request, directory,
+      restart: async () => { await stop(); process = start(listenPort); await expect.poll(async () => { try { return (await request.get('/api/v1/health/ready')).status(); } catch { return 0; } }, { timeout: 15000 }).toBe(200); },
       unlockForReinstall: async () => {
         await stop();
         await rm(join(directory, 'install.lock'));
-        process = start();
+        process = start(listenPort);
         await expect.poll(async () => { try { return (await request.get('/api/v1/health/live')).status(); } catch { return 0; } }, { timeout: 15000 }).toBe(200);
         expect((await request.get('/api/v1/health/ready')).status()).toBe(503);
         return (await readFile(join(directory, 'bootstrap.token'), 'utf8')).trim();
@@ -43,9 +87,9 @@ async function spawnInstance({ playwright }: Pick<PlaywrightWorkerArgs, 'playwri
   }
 }
 export const test = base.extend<InstanceFixtures>({
-  instance: ({ playwright }, use) => spawnInstance({ playwright }, true, use),
+  instance: [async ({ playwright }, use, testInfo) => { await spawnInstance({ playwright }, testInfo.project.name, true, testInfo.workerIndex, use); }, { auto: false }],
   // A default instance with the contract reference unpublished, for gating tests.
-  instanceNoDocs: ({ playwright }, use) => spawnInstance({ playwright }, false, use),
+  instanceNoDocs: [async ({ playwright }, use, testInfo) => { await spawnInstance({ playwright }, testInfo.project.name, false, testInfo.workerIndex, use); }, { auto: false }],
 });
 export { expect };
 

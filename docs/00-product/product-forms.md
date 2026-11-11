@@ -70,6 +70,7 @@ Unicore 的产品形态只有三种。`framework.manifest.json` 中的四个 pro
 | 备份恢复 | 已实现：离线加密备份（含云对象） | 已实现：web/桌面快照分支 | 不装配（无数据可备份） |
 | 安装 | 已实现：安装向导 + 管理员种子 + profile 固化 | 已实现：web 向导（无账号步骤）；desktop 自动初始化 | 不装配 |
 | 模块装配 | 已实现：模块全能力（权限点/导航/迁移/调度/桥贡献） | 已实现：本地作用域 + desktop 桥贡献 | 不装配：模块特性结构性关闭（`internal/runtime/profile.go` 按 `profile != CLI` 装配，与模块 edition 无关） |
+| 运行监控 / 可观测性 | 已实现（P0/P1）：super_admin 专属「运行监控」目录四页（概览/服务/资源/运行事件）+ 仪表盘摘要 + 宿主机硬件视图；告警已实现（T4 方案二：完整告警——规则端点仅 super_admin、后台检测、notifycontent 通知）；外部 `/metrics` 保持 loopback 可选 | 已实现（P0/P1）：两载体等效的本机「运行监控」单页四 Tab + 摘要组件（web 经同源只读接口、desktop 经桥；桌面无 HTTP 指标卡呈现不适用）；告警已实现（T4 方案二：内置默认规则本地检测、写入运行事件、不发送外部通知，两载体等效） | 不装配（运行监控中心与告警为规划外；实例离线诊断属 Web 包运维面） |
 
 证据锚点：装配省略点 `internal/install/manager.go`（attach）；策略与形态隔离 `internal/adapter/http/policy.go`、`internal/adapter/http/router.go`；能力声明 `internal/runtime/profile.go`；设置分组过滤 `internal/settings/service.go`（`applies`）；迁移目录 `migrations/catalog.json`；桌面装配 `internal/bootstrap/local/local.go`；CLI 组合根 `internal/bootstrap/core.go`；前端能力判定 `packages/web-ui/src/routes.ts`、`packages/web-ui/src/permissions.ts`。
 

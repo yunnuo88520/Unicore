@@ -31,7 +31,7 @@
 | --- | --- | --- | --- | --- | --- |
 | SMTP 邮件投递（持久队列/重试） | 已实现 | 不装配（mail.queue 任务注册但 Mailer 为 nil 空转） | 不装配 | unicore_mail_jobs | `internal/mailer/mailer.go`、`cmd/server/main.go` |
 | 邮件模板（5 用途富文本） | 已实现 | 不装配 | 不装配 | settings mail.template.* | `internal/mailcontent/template.go` |
-| 事件通知（12 事件 × 邮件/企业微信/Webhook 渠道） | 已实现 | 不装配 | 不装配 | settings notify.* | `internal/notifycontent/content.go`、[通知细节](../03-runbooks/notifications.md) |
+| 事件通知（14 事件 × 邮件/企业微信/Webhook 渠道，含运行告警触发/恢复；全部事件通知统一受系统通知总开关控制） | 已实现 | 不装配 | 不装配 | settings notify.* | `internal/notifycontent/content.go`、[通知细节](../03-runbooks/notifications.md) |
 | 站内信收件箱 | 已实现（由公告事务产生，无独立发送 API） | 不装配 | 不装配 | unicore_inbox_messages | `internal/adapter/http/inbox.go` |
 | 实时推送（SSE） | 已实现（进程内单实例语义） | 不装配（契约仅声明 web-platform） | 不适用 | 无 | `internal/realtime/hub.go`、`internal/adapter/http/events.go` |
 
@@ -94,6 +94,21 @@
 | Wails 桥设置读写（appearance） | Standalone(GUI) | `internal/adapter/desktop/bridge.go` |
 | 原生签名更新（native 部署） | Standalone(GUI)，需 `updater` 构建标签 | `internal/adapter/desktop/updates.go`、`cmd/desktop/updates_enabled.go` |
 | 单实例锁 | Standalone(GUI) | `internal/bootstrap/local/local.go` |
+
+## I. 运行监控（P0 已实现；P1/P2 规划见 [设计草案](design-runtime-monitor.md)）
+
+| 功能单元 | Platform | Standalone | CLI | 持久化 | 证据 |
+| --- | --- | --- | --- | --- | --- |
+| 运行概览（状态/版本/时长/核心健康/最近失败） | 已实现（super_admin，「运行监控」目录） | 已实现（两载体等效单页「概览」Tab） | 不适用 | 无（拉取式快照） | `internal/monitor/`、`internal/adapter/http/monitor.go` |
+| 服务健康（HTTP/数据库/存储/后台任务） | 已实现（HTTP/DB 全量；存储卡、任务卡按装配呈现；任务管理仍在定时任务页） | 已实现（HTTP/DB；存储与任务卡不适用） | 不适用 | 无 | 同上 + `internal/observability/metrics.go` |
+| 资源监控（进程/Go Runtime） | 已实现（Prometheus Go/Process collectors 同源；图表卡片） | 已实现（desktop 经 stdlib 等效；RSS/CPU 桌面不适用） | 不适用 | 无 | `internal/observability/metrics.go`、`monitor.StdlibRuntime` |
+| 仪表盘运行摘要 widget | 已实现（仅 super_admin） | 已实现（两载体） | 不适用 | 无 | `packages/web-ui/src/widgets/monitor-summary.tsx` |
+| 运行事件流（环形缓冲 + 事件页；任务事件由调度器源头投递） | 已实现（super_admin「运行事件」页，容量 200 仅内存） | 已实现（单机「运行事件」Tab 等效） | 不适用 | 无（重启即清） | `internal/monitor/events.go`、`GET /api/v1/admin/monitor/events` |
+| 服务健康完整化（连接池上限/等待耗时、存储逐位置手动探活、失败任务运行记录关联） | 已实现 | 已实现（无文件服务/任务注册表处如实「不适用」） | 不适用 | 无 | `internal/monitor/monitor.go`、`adminMonitorStorageProbe` |
+
+| 宿主机硬件视图（身份/CPU 逐核/内存/Swap/磁盘/负载/网络累计+服务端速率/温度/cgroup 限额，图表卡片 + 会话趋势） | 已实现（gopsutil 只读采样，D20 追记上提 P0；P1 补深度指标） | 已实现（两载体等效） | 不适用 | 无（拉取式，不落库） | `internal/monitor/host.go`、`packages/web-ui/src/widgets/monitor-charts.tsx` |
+| 告警（规则/检测/事件） | 已实现（T4 方案二：superAdmin 规则端点 + 后台检测 + notifycontent 通知，见 [设计 §9.3](design-runtime-monitor.md)） | 已实现（T4 方案二：内置默认规则本地告警，写入运行事件，不发外部通知；Web/GUI 等效） | 不适用（CLI 不装配） | 告警事件=运行事件缓冲（进程内，200 条）；Platform 规则=Settings 基建（`alerts.rules` 内部键）；Standalone 规则=内置常量 | `internal/monitor/alert.go`、`GET/PUT /api/v1/admin/monitor/alert-rules` |
+| 本地只读快照接口 | —（走超管接口） | 已实现（`GET /monitor`，access local + sameOrigin，只读脱敏，D19） | 不装配 | 无 | `packages/contracts/openapi.json`（monitorSnapshot） |
 
 ## 已知差距与待决策
 

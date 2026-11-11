@@ -50,6 +50,7 @@ Webhook 使用 POST、`Content-Type: application/json`，字段如下：
 | user_created / admin_created | 后台创建对应身份，不包含安装引导账号 |
 | sessions_revoked | 本人撤销设备会话 |
 | email_changed | 完成换绑邮箱验证并更新邮箱 |
+| alert_triggered / alert_recovered | 运行告警触发 / 真实恢复（见 [运行监控设计 §8](../00-product/design-runtime-monitor.md)）；默认仅管理员邮件，与其他事件一致受系统通知总开关统一控制；渠道投递仍需开启通知渠道并单独选择加入；通知设置页的用户对象不呈现这两个事件 |
 
 账号停用对应框架已有 `disabled` 状态；不提供没有业务模型的“账号封禁/解封”、余额、订单和授权事件空开关。
 
@@ -63,6 +64,8 @@ Webhook 使用 POST、`Content-Type: application/json`，字段如下：
 | `{{event_time}}` | 事件发生的 UTC RFC3339 时间 |
 | `{{ip}}` | 服务端连接上下文，不采信任意转发头 |
 | `{{message}}` | 服务端事件详情，不包含密码、验证码或恢复码 |
+| `{{rule_name}}` / `{{severity}}` / `{{metric}}` / `{{value}}` / `{{threshold}}` / `{{scope}}` / `{{instance}}` / `{{host}}` | 仅告警事件提供：规则名、级别、指标、当前值、阈值、资源视角、实例标识与主机名；其余事件渲染为空 |
+| `{{occurred_at}}` / `{{duration}}` / `{{transition}}` | 仅告警事件提供：触发发生时刻（恢复通知携带原始触发时刻）、故障持续时长（触发通知为空）与阶段（`triggered`/`recovered`） |
 
 ## 后续业务接入
 

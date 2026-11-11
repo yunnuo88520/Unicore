@@ -1676,3 +1676,206 @@ export interface LogTailResponse {
   data: LogTailList;
   request_id: string;
 }
+
+export interface MonitorHttpService {
+  applicable: boolean;
+  active_requests?: number;
+  requests_total?: number;
+  errors_total?: number;
+  avg_duration_ms?: number;
+  p95_duration_ms?: number;
+}
+
+export interface MonitorDatabase {
+  status: "healthy" | "unavailable";
+  latency_ms: number;
+  open_connections?: number;
+  in_use_connections?: number;
+  idle_connections?: number;
+  wait_total?: number;
+  max_open_connections?: number;
+  wait_duration_ms?: number;
+}
+
+export interface MonitorStorageService {
+  applicable: boolean;
+  active_location?: string;
+  provider?: string;
+  locations?: number;
+  probe?: Array<MonitorStorageLocation>;
+}
+
+export interface MonitorTaskHealth {
+  name: string;
+  enabled: boolean;
+  last_status?: string;
+  last_error?: string;
+  last_run_at?: number;
+  next_run_at?: number;
+  runs?: Array<MonitorTaskRun>;
+}
+
+export interface MonitorTasksSummary {
+  applicable: boolean;
+  total?: number;
+  enabled?: number;
+  failing?: number;
+  recent?: Array<MonitorTaskHealth>;
+}
+
+export interface MonitorSnapshot {
+  profile: string;
+  version: string;
+  commit: string;
+  build_time: string;
+  go_version: string;
+  started_at: number;
+  uptime_seconds: number;
+  status: "healthy" | "degraded" | "unavailable";
+  http_service: MonitorHttpService;
+  database: MonitorDatabase;
+  storage: MonitorStorageService;
+  tasks: MonitorTasksSummary;
+  runtime: MonitorRuntimeStats;
+  host: MonitorHostStats;
+}
+
+export interface MonitorSnapshotResponse {
+  code: string;
+  message: string;
+  data: MonitorSnapshot;
+  request_id: string;
+}
+
+export interface MonitorRuntimeStats {
+  goroutines: number;
+  heap_alloc_bytes: number;
+  heap_sys_bytes: number;
+  gc_cycles: number;
+  pause_total_ms?: number;
+  rss_bytes?: number;
+  cpu_time_ms?: number;
+}
+
+export interface MonitorHostStats {
+  available: boolean;
+  hostname?: string;
+  os?: string;
+  platform?: string;
+  platform_version?: string;
+  kernel_version?: string;
+  kernel_arch?: string;
+  host_uptime_seconds?: number;
+  cpu_model?: string;
+  cpu_cores_logical?: number;
+  cpu_cores_physical?: number;
+  cpu_percent?: number;
+  cpu_per_core?: Array<number>;
+  load_1?: number;
+  load_5?: number;
+  load_15?: number;
+  mem_total_bytes?: number;
+  mem_used_bytes?: number;
+  mem_available_bytes?: number;
+  mem_used_percent?: number;
+  swap_total_bytes?: number;
+  swap_used_bytes?: number;
+  net_sent_bytes?: number;
+  net_recv_bytes?: number;
+  sampled_at?: number;
+  disks?: Array<MonitorDiskUsage>;
+  net_sent_per_sec?: number;
+  net_recv_per_sec?: number;
+  container?: MonitorContainerView;
+  sensors?: Array<MonitorSensor>;
+}
+
+export interface MonitorDiskUsage {
+  path: string;
+  is_data_dir?: boolean;
+  total_bytes: number;
+  used_bytes: number;
+  free_bytes: number;
+  used_percent: number;
+}
+
+export interface MonitorEvent {
+  id: number;
+  type: string;
+  severity: string;
+  message: string;
+  detail?: string;
+  at: number;
+}
+
+export interface MonitorEventList {
+  items: Array<MonitorEvent>;
+  total: number;
+  capacity?: number;
+}
+
+export interface MonitorEventListResponse {
+  code: string;
+  message: string;
+  data: MonitorEventList;
+  request_id: string;
+}
+
+export interface MonitorTaskRun {
+  started_at: number;
+  duration_ms: number;
+  status: string;
+  error?: string;
+}
+
+export interface MonitorStorageLocation {
+  id: string;
+  provider: string;
+  active: boolean;
+  configured: boolean;
+  status: string;
+  latency_ms?: number;
+  checked_at?: number;
+  error?: string;
+}
+
+export interface MonitorContainerView {
+  detected: boolean;
+  memory_limit_bytes?: number;
+  memory_usage_bytes?: number;
+  cpu_quota_cores?: number;
+  cpu_percent?: number;
+}
+
+export interface MonitorSensor {
+  label: string;
+  celsius: number;
+}
+
+export interface MonitorStorageLocationResponse {
+  code: string;
+  message: string;
+  data: MonitorStorageLocation;
+  request_id: string;
+}
+
+export interface MonitorAlertRule {
+  id: string;
+  enabled: boolean;
+  trigger_value?: number;
+  recover_value?: number;
+  consecutive?: number;
+  cooldown_minutes?: number;
+}
+
+export interface MonitorAlertRules {
+  version: number;
+  rules: Array<MonitorAlertRule>;
+}
+
+export interface MonitorAlertRulesResponse {
+  code: string;
+  message: string;
+  data: MonitorAlertRules;
+  request_id: string;
+}

@@ -9,6 +9,7 @@ import (
 	"github.com/yunnuo/unicore/internal/adapter/presenter"
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/monitor"
 	"github.com/yunnuo/unicore/internal/runtime"
 	"github.com/yunnuo/unicore/internal/settings"
 	"github.com/yunnuo/unicore/internal/updateport"
@@ -29,6 +30,7 @@ type Bridge struct {
 	core     usecase.Executor
 	settings *settings.Service
 	notes    NotesAPI
+	monitor  *monitor.Service
 }
 
 func New(core usecase.Executor) *Bridge { return &Bridge{core: core} }
@@ -41,6 +43,30 @@ func NewLocal(core usecase.Executor, service *settings.Service, store *sqlstore.
 
 // AttachNotes installs a module-provided native notes capability.
 func (b *Bridge) AttachNotes(api NotesAPI) { b.notes = api }
+
+// SetMonitor installs the runtime monitor service assembled by the desktop
+// composition root; without it the snapshot method reports NOT_AVAILABLE.
+func (b *Bridge) SetMonitor(service *monitor.Service) { b.monitor = service }
+
+// MonitorSnapshot mirrors the standalone local HTTP view with the same DTO:
+// desktop has no HTTP service, so its HTTP card stays not-applicable.
+func (b *Bridge) MonitorSnapshot() contracts.MonitorSnapshotResponse {
+	requestID := presenter.RequestID()
+	if b.monitor == nil {
+		return contracts.MonitorSnapshotResponse{Code: "NOT_AVAILABLE", Message: "监控尚未就绪", RequestID: requestID}
+	}
+	return contracts.MonitorSnapshotResponse{Code: "OK", Data: b.monitor.Snapshot(context.Background()), RequestID: requestID}
+}
+
+// MonitorEvents mirrors the standalone local events view: the same in-process
+// ring buffer, memory only, reset on restart.
+func (b *Bridge) MonitorEvents() contracts.MonitorEventListResponse {
+	requestID := presenter.RequestID()
+	if b.monitor == nil {
+		return contracts.MonitorEventListResponse{Code: "NOT_AVAILABLE", Message: "监控尚未就绪", RequestID: requestID}
+	}
+	return contracts.MonitorEventListResponse{Code: "OK", Data: b.monitor.Events(100), RequestID: requestID}
+}
 
 func notAvailable() string { return contracts.ErrorCatalog["NOT_AVAILABLE"].Message }
 

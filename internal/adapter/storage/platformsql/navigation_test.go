@@ -20,6 +20,7 @@ import (
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/migrations/runner"
 	apispec "github.com/yunnuo/unicore/packages/contracts"
+	"strings"
 )
 
 // navigationFixture prepares an installed sqlite instance with the bootstrap
@@ -756,5 +757,178 @@ func TestSharedNavigationUpgrade(t *testing.T) {
 	actionRows.Close()
 	if len(actionIDs) != 1 || actionIDs[0] != "op:createNote" {
 		t.Fatal("action grants rewritten", actionIDs)
+	}
+}
+
+// TestEnsureMonitorNavigationUpgradeBoundaries covers the runtime-monitor
+// introduction on persisted trees: fresh seeds only record the marker,
+// repeated restarts stay idempotent, post-upgrade operator deletions are
+// never resurrected, and a legacy tree receives the monitor directory with
+// every other customization intact.
+func TestEnsureMonitorNavigationUpgradeBoundaries(t *testing.T) {
+	ctx := context.Background()
+	store, repo, admin := navigationFixture(t, ctx)
+
+	monitorIDs := map[string]bool{"monitor-center": true, "monitor": true, "monitor-services": true, "monitor-resources": true, "monitor-events": true}
+	legacyIDs := map[string]bool{"monitor-center": true, "monitor": true, "monitor-services": true, "monitor-resources": true}
+	count := func(list contracts.MenuList, ids map[string]bool) int {
+		total := 0
+		for _, node := range list.Nodes {
+			if ids[node.ID] {
+				total++
+			}
+		}
+		return total
+	}
+	marker := func() string {
+		var value string
+		if err := store.Row(ctx, store.DB, "SELECT setting_value FROM unicore_system_settings WHERE setting_key='_navigation_monitor_seeded'").Scan(&value); err != nil {
+			return ""
+		}
+		return value
+	}
+	markerCovers := func(ids ...string) bool {
+		value := marker()
+		for _, id := range ids {
+			if !strings.Contains(","+value+",", ","+id+",") {
+				return false
+			}
+		}
+		return true
+	}
+
+	// Fresh install: the default seed already carries the monitor directory
+	// with all five entries; the first ensure only records the per-node marker.
+	if err := repo.EnsureNavigation(ctx); err != nil {
+		t.Fatal(err)
+	}
+	listed, err := repo.ListMenuConfig(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count(listed, monitorIDs) != 5 || !markerCovers("monitor-center", "monitor", "monitor-services", "monitor-resources", "monitor-events") {
+		t.Fatalf("fresh seed missing monitor nodes or marker: nodes=%d marker=%q", count(listed, monitorIDs), marker())
+	}
+	version := listed.Version
+	if err = repo.EnsureNavigation(ctx); err != nil {
+		t.Fatal(err)
+	}
+	after, err := repo.ListMenuConfig(ctx)
+	if err != nil || after.Version != version {
+		t.Fatalf("repeated ensure must be idempotent: version %d -> %d err=%v", version, after.Version, err)
+	}
+
+	// Post-upgrade operator deletion: even a whole-directory deletion stays
+	// deleted, because the marker remembers every node the tree once had.
+	nodes := []contracts.NavigationNode{}
+	for _, node := range after.Nodes {
+		if !monitorIDs[node.ID] {
+			nodes = append(nodes, node)
+		}
+	}
+	if _, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: after.Version, Sections: after.Sections, Nodes: nodes}, admin.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err = repo.EnsureNavigation(ctx); err != nil {
+		t.Fatal(err)
+	}
+	deleted, err := repo.ListMenuConfig(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count(deleted, monitorIDs) != 0 {
+		t.Fatalf("operator deletion resurrected by ensure: nodes=%d", count(deleted, monitorIDs))
+	}
+
+	// Legacy upgrade simulation: an instance seeded before the monitor shipped
+	// has no marker; the ensure merges exactly the five nodes with seeded
+	// defaults and leaves every operator customization (renamed label, custom
+	// sort, hidden page) untouched.
+	if _, err = store.Exec(ctx, store.DB, "DELETE FROM unicore_system_settings WHERE setting_key='_navigation_monitor_seeded'"); err != nil {
+		t.Fatal(err)
+	}
+	legacy := deleted
+	kept := []contracts.NavigationNode{}
+	for _, node := range legacy.Nodes {
+		if node.ID == "site" {
+			node.Label = "站点配置"
+			node.Sort = 777
+		}
+		if node.ID == "lab" {
+			node.Visible = false
+		}
+		kept = append(kept, node)
+	}
+	if _, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: legacy.Version, Sections: legacy.Sections, Nodes: kept}, admin.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err = repo.EnsureNavigation(ctx); err != nil {
+		t.Fatal(err)
+	}
+	upgraded, err := repo.ListMenuConfig(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count(upgraded, monitorIDs) != 5 {
+		t.Fatalf("legacy tree missing monitor nodes after ensure: nodes=%d", count(upgraded, monitorIDs))
+	}
+	byID := map[string]contracts.NavigationNode{}
+	for _, node := range upgraded.Nodes {
+		byID[node.ID] = node
+	}
+	if byID["site"].Label != "站点配置" || byID["site"].Sort != 777 {
+		t.Fatalf("operator rename/sort clobbered: %+v", byID["site"])
+	}
+	if byID["lab"].Visible {
+		t.Fatalf("operator visibility clobbered: %+v", byID["lab"])
+	}
+	if byID["monitor-center"].Type != "directory" || byID["monitor"].ParentID == nil || *byID["monitor"].ParentID != "monitor-center" {
+		t.Fatalf("monitor seed shape drifted: %+v %+v", byID["monitor-center"], byID["monitor"])
+	}
+	if byID["monitor-events"].ParentID == nil || *byID["monitor-events"].ParentID != "monitor-center" {
+		t.Fatalf("events page must join the monitor directory: %+v", byID["monitor-events"])
+	}
+	// The merged nodes carry seeded defaults: empty labels fall back to the
+	// frontend registry instead of persisting display names.
+	if byID["monitor"].Label != "" {
+		t.Fatalf("merged page must keep the empty label, got %q", byID["monitor"].Label)
+	}
+
+	// Legacy "1" marker upgrade: a P0 instance (marker value "1") that had
+	// already deleted monitor-resources must not see it again, while the new
+	// monitor-events page still joins.
+	if _, err = store.Exec(ctx, store.DB, "UPDATE unicore_system_settings SET setting_value='1' WHERE setting_key='_navigation_monitor_seeded'"); err != nil {
+		t.Fatal(err)
+	}
+	p0 := upgraded
+	keptNodes := []contracts.NavigationNode{}
+	for _, node := range p0.Nodes {
+		if node.ID == "monitor-resources" {
+			continue
+		}
+		keptNodes = append(keptNodes, node)
+	}
+	if _, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: p0.Version, Sections: p0.Sections, Nodes: keptNodes}, admin.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err = repo.EnsureNavigation(ctx); err != nil {
+		t.Fatal(err)
+	}
+	p1, err := repo.ListMenuConfig(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count(p1, legacyIDs) != 3 {
+		t.Fatalf("legacy deletion resurrected by the per-node upgrade: nodes=%d", count(p1, legacyIDs))
+	}
+	if count(p1, monitorIDs) != 4 {
+		t.Fatalf("P0 instance must gain monitor-events exactly once: nodes=%d", count(p1, monitorIDs))
+	}
+	if err = repo.EnsureNavigation(ctx); err != nil {
+		t.Fatal(err)
+	}
+	again, err := repo.ListMenuConfig(ctx)
+	if err != nil || count(again, monitorIDs) != 4 || again.Version != p1.Version {
+		t.Fatalf("post-upgrade ensure must stay idempotent: v%d -> v%d err=%v", p1.Version, again.Version, err)
 	}
 }

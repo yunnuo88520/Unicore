@@ -42,6 +42,10 @@ export function validate(name: SchemaName, value: unknown): Record<string, strin
       if (typeof input !== 'number' || !Number.isSafeInteger(input)) { fail('应为整数'); return; }
       if (schema.minimum !== undefined && input < schema.minimum) fail('数值低于最小值');
       if (schema.maximum !== undefined && input > schema.maximum) fail('数值超过最大值');
+    } else if (schema.type === 'number') {
+      if (typeof input !== 'number' || !Number.isFinite(input)) { fail('应为数值'); return; }
+      if (schema.minimum !== undefined && input < schema.minimum) fail('数值低于最小值');
+      if (schema.maximum !== undefined && input > schema.maximum) fail('数值超过最大值');
     } else if (schema.type === 'array') {
       if (!Array.isArray(input)) { fail('应为列表'); return; }
       if (schema.minItems !== undefined && input.length < schema.minItems) fail('列表项目不足');

@@ -58,6 +58,7 @@ type Scheduler struct {
 	ctx       context.Context
 	cancel    context.CancelFunc
 	done      sync.WaitGroup
+	resultHook ResultHook
 }
 
 func New(store *sqlstore.Store) *Scheduler {
@@ -301,6 +302,14 @@ func (s *Scheduler) execute(name string, manual bool) {
 	}
 	s.run(ctx, job)
 }
+// ResultHook receives every task completion straight from the run site, so
+// observers see failures and recoveries even when no monitor page is open.
+// Set it once during assembly; runs read it without locking.
+type ResultHook func(name, status, code string)
+
+// OnResult installs the completion hook; pass nil to detach.
+func (s *Scheduler) OnResult(hook ResultHook) { s.resultHook = hook }
+
 func (s *Scheduler) run(ctx context.Context, job Job) {
 	startedAt := time.Now()
 	status, code := "ok", ""
@@ -313,6 +322,9 @@ func (s *Scheduler) run(ctx context.Context, job Job) {
 		recordCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
 		_ = s.record(recordCtx, job, startedAt, status, code)
+		if s.resultHook != nil {
+			s.resultHook(job.Name, status, code)
+		}
 	}()
 	runCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()

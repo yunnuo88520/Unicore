@@ -77,7 +77,7 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 			// 系统设置 and 超级管理员 both seed into the administrator-only
 			// system region (settings first) and 个人中心 is shared across
 			// workspaces at the tail of business.
-			want := map[string]string{"administration": "system", "settings": "system", "personal": "business"}
+			want := map[string]string{"administration": "system", "settings": "system", "personal": "business", "monitor-center": "system"}
 			if want[node.ID] != node.SectionID {
 				t.Fatal("directory region drifted", node)
 			}
@@ -145,11 +145,15 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 			if parentOf[page.ID] != "personal" {
 				t.Fatal("personal page parent", page.ID, parentOf[page.ID])
 			}
+		case "monitor":
+			if parentOf[page.ID] != "monitor-center" {
+				t.Fatal("monitor page parent", page.ID, parentOf[page.ID])
+			}
 		}
 	}
-	// The three directories and the single action namespace.
-	if directories != 3 {
-		t.Fatal("expected the three directories", directories)
+	// The four directories and the single action namespace.
+	if directories != 4 {
+		t.Fatal("expected the four directories", directories)
 	}
 
 	// Registry parity with the exported frontend page order: same set, and the

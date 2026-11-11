@@ -14,6 +14,7 @@ import (
 	"github.com/yunnuo/unicore/internal/audit"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/platform"
+	"slices"
 )
 
 func text(p *string) string {
@@ -144,7 +145,100 @@ func (r *Repository) EnsureNavigation(ctx context.Context) error {
 	if err := r.upgradeSharedNavigation(ctx); err != nil {
 		return err
 	}
-	return r.backfillRegisteredActions(ctx)
+	if err := r.backfillRegisteredActions(ctx); err != nil {
+		return err
+	}
+	return r.ensureMonitorNavigation(ctx)
+}
+
+// monitorSeedOrder lists the runtime monitor entries in seed order; later
+// releases append new ids (P1 added monitor-events), and the persisted marker
+// records which ids a tree has ever received so operator deletions survive
+// restarts while genuinely new entries still join.
+var monitorSeedOrder = []string{"monitor-center", "monitor", "monitor-services", "monitor-resources", "monitor-events"}
+
+const monitorSeedMarker = "_navigation_monitor_seeded"
+
+// ensureMonitorNavigation introduces the runtime monitor entries on instances
+// whose persisted tree predates them. Missing nodes join with their seeded
+// defaults (empty labels, default sorts), every operator customization stays
+// untouched, and the marker lists the node ids this tree has ever received —
+// so a monitor node an operator deleted is never resurrected on restart,
+// while ids added by later releases (absent from the marker) still join.
+// The legacy "1" marker means every pre-P1 entry was already handled.
+// Pre-monitor deletions of unrelated pages stay deleted because only these
+// ids are ever considered.
+func (r *Repository) ensureMonitorNavigation(ctx context.Context) error {
+	tx, err := r.Store.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err = r.Store.LockInstallation(ctx, tx); err != nil {
+		return err
+	}
+	var seeded string
+	if err = r.Store.Row(ctx, tx, "SELECT setting_value FROM unicore_system_settings WHERE setting_key=?", monitorSeedMarker).Scan(&seeded); err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+	received := map[string]bool{}
+	if seeded == "1" {
+		// Legacy marker: the P0 merge already ran for every pre-P1 entry.
+		for _, id := range monitorSeedOrder[:4] {
+			received[id] = true
+		}
+	} else if seeded != "" {
+		for _, id := range strings.Split(seeded, ",") {
+			received[id] = true
+		}
+	}
+	n, err := r.readNavigation(ctx, tx)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return tx.Rollback()
+		}
+		return err
+	}
+	existing := map[string]bool{}
+	for _, node := range n.Nodes {
+		existing[node.ID] = true
+	}
+	missing := []contracts.NavigationNode{}
+	added := []string{}
+	for _, node := range platform.DefaultNavigation().Nodes {
+		if !slices.Contains(monitorSeedOrder, node.ID) || existing[node.ID] || received[node.ID] {
+			continue
+		}
+		missing = append(missing, node)
+		added = append(added, node.ID)
+	}
+	for _, id := range monitorSeedOrder {
+		if existing[id] {
+			received[id] = true
+		}
+	}
+	if len(missing) > 0 {
+		n.Nodes = append(n.Nodes, missing...)
+		if err = r.writeNavigation(ctx, tx, n); err != nil {
+			return err
+		}
+		if _, err = r.Store.Exec(ctx, tx, "UPDATE unicore_navigation_state SET version=version+1 WHERE id=1"); err != nil {
+			return err
+		}
+		if err = r.audit(audit.Target(ctx, "menus/monitor-seed", "nodes="+strings.Join(added, ",")), tx, "system", "menus.updated"); err != nil {
+			return err
+		}
+	}
+	receivedList := make([]string, 0, len(received))
+	for _, id := range monitorSeedOrder {
+		if received[id] {
+			receivedList = append(receivedList, id)
+		}
+	}
+	if _, err = r.Store.Exec(ctx, tx, "INSERT INTO unicore_system_settings(setting_key,setting_value) VALUES(?,?) ON CONFLICT(setting_key) DO UPDATE SET setting_value=excluded.setting_value", monitorSeedMarker, strings.Join(receivedList, ",")); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // legacyNavigation detects payloads the one-time upgrade still has to repair:

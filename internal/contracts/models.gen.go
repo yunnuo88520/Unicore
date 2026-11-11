@@ -1678,3 +1678,206 @@ type LogTailResponse struct {
 	Data      LogTailList `json:"data"`
 	RequestID string      `json:"request_id"`
 }
+
+type MonitorHttpService struct {
+	Applicable     bool `json:"applicable"`
+	ActiveRequests *int `json:"active_requests,omitempty"`
+	RequestsTotal  *int `json:"requests_total,omitempty"`
+	ErrorsTotal    *int `json:"errors_total,omitempty"`
+	AvgDurationMs  *int `json:"avg_duration_ms,omitempty"`
+	P95DurationMs  *int `json:"p95_duration_ms,omitempty"`
+}
+
+type MonitorDatabase struct {
+	Status             string `json:"status"`
+	LatencyMs          int    `json:"latency_ms"`
+	OpenConnections    *int   `json:"open_connections,omitempty"`
+	InUseConnections   *int   `json:"in_use_connections,omitempty"`
+	IdleConnections    *int   `json:"idle_connections,omitempty"`
+	WaitTotal          *int   `json:"wait_total,omitempty"`
+	MaxOpenConnections *int   `json:"max_open_connections,omitempty"`
+	WaitDurationMs     *int   `json:"wait_duration_ms,omitempty"`
+}
+
+type MonitorStorageService struct {
+	Applicable     bool                      `json:"applicable"`
+	ActiveLocation *string                   `json:"active_location,omitempty"`
+	Provider       *string                   `json:"provider,omitempty"`
+	Locations      *int                      `json:"locations,omitempty"`
+	Probe          *[]MonitorStorageLocation `json:"probe,omitempty"`
+}
+
+type MonitorTaskHealth struct {
+	Name       string            `json:"name"`
+	Enabled    bool              `json:"enabled"`
+	LastStatus *string           `json:"last_status,omitempty"`
+	LastError  *string           `json:"last_error,omitempty"`
+	LastRunAt  *int              `json:"last_run_at,omitempty"`
+	NextRunAt  *int              `json:"next_run_at,omitempty"`
+	Runs       *[]MonitorTaskRun `json:"runs,omitempty"`
+}
+
+type MonitorTasksSummary struct {
+	Applicable bool                 `json:"applicable"`
+	Total      *int                 `json:"total,omitempty"`
+	Enabled    *int                 `json:"enabled,omitempty"`
+	Failing    *int                 `json:"failing,omitempty"`
+	Recent     *[]MonitorTaskHealth `json:"recent,omitempty"`
+}
+
+type MonitorSnapshot struct {
+	Profile       string                `json:"profile"`
+	Version       string                `json:"version"`
+	Commit        string                `json:"commit"`
+	BuildTime     string                `json:"build_time"`
+	GoVersion     string                `json:"go_version"`
+	StartedAt     int                   `json:"started_at"`
+	UptimeSeconds int                   `json:"uptime_seconds"`
+	Status        string                `json:"status"`
+	HttpService   MonitorHttpService    `json:"http_service"`
+	Database      MonitorDatabase       `json:"database"`
+	Storage       MonitorStorageService `json:"storage"`
+	Tasks         MonitorTasksSummary   `json:"tasks"`
+	Runtime       MonitorRuntimeStats   `json:"runtime"`
+	Host          MonitorHostStats      `json:"host"`
+}
+
+type MonitorSnapshotResponse struct {
+	Code      string          `json:"code"`
+	Message   string          `json:"message"`
+	Data      MonitorSnapshot `json:"data"`
+	RequestID string          `json:"request_id"`
+}
+
+type MonitorRuntimeStats struct {
+	Goroutines     int  `json:"goroutines"`
+	HeapAllocBytes int  `json:"heap_alloc_bytes"`
+	HeapSysBytes   int  `json:"heap_sys_bytes"`
+	GcCycles       int  `json:"gc_cycles"`
+	PauseTotalMs   *int `json:"pause_total_ms,omitempty"`
+	RssBytes       *int `json:"rss_bytes,omitempty"`
+	CpuTimeMs      *int `json:"cpu_time_ms,omitempty"`
+}
+
+type MonitorHostStats struct {
+	Available         bool                  `json:"available"`
+	Hostname          *string               `json:"hostname,omitempty"`
+	Os                *string               `json:"os,omitempty"`
+	Platform          *string               `json:"platform,omitempty"`
+	PlatformVersion   *string               `json:"platform_version,omitempty"`
+	KernelVersion     *string               `json:"kernel_version,omitempty"`
+	KernelArch        *string               `json:"kernel_arch,omitempty"`
+	HostUptimeSeconds *int                  `json:"host_uptime_seconds,omitempty"`
+	CpuModel          *string               `json:"cpu_model,omitempty"`
+	CpuCoresLogical   *int                  `json:"cpu_cores_logical,omitempty"`
+	CpuCoresPhysical  *int                  `json:"cpu_cores_physical,omitempty"`
+	CpuPercent        *float64              `json:"cpu_percent,omitempty"`
+	CpuPerCore        *[]float64            `json:"cpu_per_core,omitempty"`
+	Load1             *float64              `json:"load_1,omitempty"`
+	Load5             *float64              `json:"load_5,omitempty"`
+	Load15            *float64              `json:"load_15,omitempty"`
+	MemTotalBytes     *int                  `json:"mem_total_bytes,omitempty"`
+	MemUsedBytes      *int                  `json:"mem_used_bytes,omitempty"`
+	MemAvailableBytes *int                  `json:"mem_available_bytes,omitempty"`
+	MemUsedPercent    *float64              `json:"mem_used_percent,omitempty"`
+	SwapTotalBytes    *int                  `json:"swap_total_bytes,omitempty"`
+	SwapUsedBytes     *int                  `json:"swap_used_bytes,omitempty"`
+	NetSentBytes      *int                  `json:"net_sent_bytes,omitempty"`
+	NetRecvBytes      *int                  `json:"net_recv_bytes,omitempty"`
+	SampledAt         *int                  `json:"sampled_at,omitempty"`
+	Disks             *[]MonitorDiskUsage   `json:"disks,omitempty"`
+	NetSentPerSec     *float64              `json:"net_sent_per_sec,omitempty"`
+	NetRecvPerSec     *float64              `json:"net_recv_per_sec,omitempty"`
+	Container         *MonitorContainerView `json:"container,omitempty"`
+	Sensors           *[]MonitorSensor      `json:"sensors,omitempty"`
+}
+
+type MonitorDiskUsage struct {
+	Path        string  `json:"path"`
+	IsDataDir   *bool   `json:"is_data_dir,omitempty"`
+	TotalBytes  int     `json:"total_bytes"`
+	UsedBytes   int     `json:"used_bytes"`
+	FreeBytes   int     `json:"free_bytes"`
+	UsedPercent float64 `json:"used_percent"`
+}
+
+type MonitorEvent struct {
+	ID       int     `json:"id"`
+	Type     string  `json:"type"`
+	Severity string  `json:"severity"`
+	Message  string  `json:"message"`
+	Detail   *string `json:"detail,omitempty"`
+	At       int     `json:"at"`
+}
+
+type MonitorEventList struct {
+	Items    []MonitorEvent `json:"items"`
+	Total    int            `json:"total"`
+	Capacity *int           `json:"capacity,omitempty"`
+}
+
+type MonitorEventListResponse struct {
+	Code      string           `json:"code"`
+	Message   string           `json:"message"`
+	Data      MonitorEventList `json:"data"`
+	RequestID string           `json:"request_id"`
+}
+
+type MonitorTaskRun struct {
+	StartedAt  int     `json:"started_at"`
+	DurationMs int     `json:"duration_ms"`
+	Status     string  `json:"status"`
+	Error      *string `json:"error,omitempty"`
+}
+
+type MonitorStorageLocation struct {
+	ID         string  `json:"id"`
+	Provider   string  `json:"provider"`
+	Active     bool    `json:"active"`
+	Configured bool    `json:"configured"`
+	Status     string  `json:"status"`
+	LatencyMs  *int    `json:"latency_ms,omitempty"`
+	CheckedAt  *int    `json:"checked_at,omitempty"`
+	Error      *string `json:"error,omitempty"`
+}
+
+type MonitorContainerView struct {
+	Detected         bool     `json:"detected"`
+	MemoryLimitBytes *int     `json:"memory_limit_bytes,omitempty"`
+	MemoryUsageBytes *int     `json:"memory_usage_bytes,omitempty"`
+	CpuQuotaCores    *float64 `json:"cpu_quota_cores,omitempty"`
+	CpuPercent       *float64 `json:"cpu_percent,omitempty"`
+}
+
+type MonitorSensor struct {
+	Label   string  `json:"label"`
+	Celsius float64 `json:"celsius"`
+}
+
+type MonitorStorageLocationResponse struct {
+	Code      string                 `json:"code"`
+	Message   string                 `json:"message"`
+	Data      MonitorStorageLocation `json:"data"`
+	RequestID string                 `json:"request_id"`
+}
+
+type MonitorAlertRule struct {
+	ID              string   `json:"id"`
+	Enabled         bool     `json:"enabled"`
+	TriggerValue    *float64 `json:"trigger_value,omitempty"`
+	RecoverValue    *float64 `json:"recover_value,omitempty"`
+	Consecutive     *int     `json:"consecutive,omitempty"`
+	CooldownMinutes *int     `json:"cooldown_minutes,omitempty"`
+}
+
+type MonitorAlertRules struct {
+	Version int                `json:"version"`
+	Rules   []MonitorAlertRule `json:"rules"`
+}
+
+type MonitorAlertRulesResponse struct {
+	Code      string            `json:"code"`
+	Message   string            `json:"message"`
+	Data      MonitorAlertRules `json:"data"`
+	RequestID string            `json:"request_id"`
+}

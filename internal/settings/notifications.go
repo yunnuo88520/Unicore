@@ -26,6 +26,9 @@ func NotificationConfig(values map[string]string) contracts.NotifyConfiguration 
 	c := notifycontent.Defaults()
 	if values["notifications.config"] != "" {
 		_ = json.Unmarshal([]byte(values["notifications.config"]), &c)
+		// Configurations saved before an event catalog extension keep their
+		// stored rules; newly introduced events fall back to their defaults.
+		c = notifycontent.MergeDefaults(c)
 	}
 	c.WecomConfigured = values["notifications.wecom_key"] != ""
 	c.WebhookConfigured = values["notifications.webhook_url"] != ""
@@ -39,6 +42,10 @@ func (s *Service) Notifications(ctx context.Context) (contracts.NotifyConfigurat
 func (s *Service) SaveNotifications(ctx context.Context, c contracts.NotifyConfiguration, actor string) (contracts.NotifyConfiguration, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	// Configurations submitted by pages that predate an event catalog
+	// extension are completed with the defaults for missing known events;
+	// stored customizations stay untouched and unknown events stay invalid.
+	c = notifycontent.MergeDefaults(c)
 	if s.Profile != "web-platform" || !notifycontent.ValidConfiguration(c) {
 		return c, ErrInvalid
 	}

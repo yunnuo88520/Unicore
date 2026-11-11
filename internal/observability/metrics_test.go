@@ -72,3 +72,26 @@ func TestMetrics(t *testing.T) {
 		t.Fatal(w.Code, w.Header())
 	}
 }
+
+// TestSnapshotHTTPP95StaysNearAverage guards the histogram fidelity: forty
+// ~0.1ms answers must not read as a ~5ms P95 (the old first-bucket edge).
+func TestSnapshotHTTPP95StaysNearAverage(t *testing.T) {
+	m := New()
+	for i := 0; i < 40; i++ {
+		done := m.Begin()
+		done("GET", "/api/v1/health/live", 200, 100*time.Microsecond)
+	}
+	stats := m.SnapshotHTTP()
+	if stats.RequestsTotal != 40 || stats.ErrorsTotal != 0 {
+		t.Fatalf("request counters drifted: %+v", stats)
+	}
+	if stats.AvgDurationMs <= 0 || stats.AvgDurationMs > 1 {
+		t.Fatalf("average should sit near 0.1ms, got %v", stats.AvgDurationMs)
+	}
+	if stats.P95DurationMs <= 0 || stats.P95DurationMs > 2 {
+		t.Fatalf("P95 must resolve inside the fine buckets, got %v (avg %v)", stats.P95DurationMs, stats.AvgDurationMs)
+	}
+	if stats.P95DurationMs > stats.AvgDurationMs*30 {
+		t.Fatalf("P95 inflation against average looks like bucket distortion: p95=%v avg=%v", stats.P95DurationMs, stats.AvgDurationMs)
+	}
+}

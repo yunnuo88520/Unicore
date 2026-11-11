@@ -124,3 +124,51 @@
 - 推荐方向及理由：A——当前无单机审计查看需求信号，先固化语义避免误读为缺陷；需求出现时按 B 立项。
 - 裁决（2026-11-11）：**选 A**——单机/桌面审计维持「只记不看」，与「非平台形态不做管理面」的产品原则一致。
 - 状态：**已裁决（A），去向：现状即设计，无代码改动；功能适用性清单备注已同步。**
+
+## D18. `monitor:read` 权限点是否进入 superAdmin 保留集（Runtime Monitor 设计）
+
+- 当前源码事实：平台已有 SuperOnlyPermission 保留集机制（`internal/platform/roles.go`，不可分配、事务层硬校验）与契约 `superAdmin:true` 硬拦（`internal/adapter/http/policy.go`）；现有保留集覆盖 roles:write、administrators:*、settings:write、updates:apply、storage:write。
+- 产品影响：运行监控设计要求「仅 super_admin 可访问」；用保留集实现则普通管理员永远不可授，若用普通可分配权限点则会出现「能授但按产品不该授」的灰色地带。
+- 可选方案：A. `monitor:read` 登记 SuperOnlyPermission + 契约 `superAdmin:true`（与 updates:apply 同款）；B. 可分配权限点 + 菜单/角色运营约束。
+- 推荐方向及理由：A——与「仅超管」产品约束一一对应，杜绝误授；B 把产品约束交给运营纪律，违背 fail-closed 原则。设计详见 [design-runtime-monitor.md](design-runtime-monitor.md) §8/§11。
+- 裁决（2026-11-11）：**A**——`monitor:read` 登记 SuperOnlyPermission + 契约 `superAdmin:true`；「运行监控」为独立目录，置于系统区域「系统设置」「超级管理员」目录之后（维护者指定）。
+- 状态：**已裁决（A），去向：design-runtime-monitor.md T1 实施依据。**
+
+## D19. Standalone 本地监控 API 的暴露强度（Runtime Monitor 设计）
+
+- 当前源码事实：updates 本地接口强制 Host 与 RemoteAddr 均为 loopback（`internal/adapter/http/updates.go`）；settings 本地接口仅 sameOrigin 等中间件保护、不限 loopback（`internal/adapter/http/web.go`）；监控快照为只读、可脱敏（不含路径明文/环境变量/DSN）。
+- 产品影响：单机实例常部署在 NAS/家庭服务器，使用者从局域网另一台设备打开 Web——loopback-only 会让「单机用户查看自己实例运行状态」在远程场景直接不可用；sameOrigin 则暴露面略宽（只读快照）。
+- 可选方案：A. loopback-only（同 updates，最保守，远程不可用）；B. sameOrigin 只读 + 脱敏（同 settings，远程只读可用）。
+- 推荐方向及理由：B——监控是只读低敏数据且已脱敏，与 settings 同级；若维护者认为实例运行信息（版本/内存等）不宜跨机暴露则选 A。设计详见 [design-runtime-monitor.md](design-runtime-monitor.md) §8。
+- 裁决（2026-11-11）：**B**——sameOrigin 只读 + 脱敏（同 settings 先例）。
+- 状态：**已裁决（B），去向：design-runtime-monitor.md T2 实施依据。**
+
+## D20. 宿主机与容器资源指标的口径与纳入阶段（Runtime Monitor 设计）
+
+- 当前源码事实：现有指标仅应用进程与 Go Runtime（`internal/observability/metrics.go` 标准 collectors）；runtime.md 明确「process 指标是否可用取决于目标 OS 的采集能力，不声称所有系统指标一致」；无任何宿主机/容器采集。
+- 产品影响：资源监控若混报进程与宿主数值，用户会把进程内存当机器内存（或反之）；容器部署下宿主视角需读 cgroup，含义再次变化。
+- 可选方案：A. P0 仅进程内指标，宿主/容器 P1 best-effort 并明确标注视角；B. P0 即含宿主指标；C. 永不做宿主指标。
+- 推荐方向及理由：A——P0 保持零系统依赖与跨平台确定性；宿主指标能力探测失败即「不适用」，容器内标注 cgroup 视角。设计详见 [design-runtime-monitor.md](design-runtime-monitor.md) §6/§8。
+- 裁决（2026-11-11）：**A**——P0 仅进程内指标；宿主 P1 best-effort；容器内标注 cgroup 视角。
+- 裁决追记（2026-11-11，验收反馈）：维护者将**宿主机基础硬件只读视图上提至 P0**（gopsutil v4：身份/CPU/内存/磁盘/负载/网络累计，拉取式、无后台采集、不落库）。CPU 使用率为相邻快照差值；容器内为内核 `/proc` 视角并在页面披露。cgroup 精确口径、传感器等深度指标仍留 P1。方案 A 的其余约束（零迁移、探测失败即不适用）不变。
+- 状态：**已裁决（A + 2026-11-11 追记上提 P0），去向：design-runtime-monitor.md P0/P1 范围依据。**
+
+## D21. 监控历史趋势的存储方式（Runtime Monitor 设计）
+
+- 当前源码事实：无任何指标历史存储；外部长期存储现状即 Prometheus `/metrics`（可选 loopback 监听，`--monitor-listen`）。
+- 产品影响：进程内环形缓冲实现最简、零迁移、重启即清；数据库持久化提供重启后趋势但引入新表、采样后台任务与清理策略，违反 P0「零迁移、零后台采集」目标。
+- 可选方案：A. 进程内环形缓冲，长期趋势交外部 Prometheus；B. platform 命名空间新表持久化采样。
+- 推荐方向及理由：A——符合「不是 Prometheus 替代品」定位与性能预算；B 待真实需求信号再立项。设计详见 [design-runtime-monitor.md](design-runtime-monitor.md) §8/§9。
+- 裁决（2026-11-11）：**A**——进程内环形缓冲，不建表；长期趋势交外部 Prometheus。
+- 状态：**已裁决（A），去向：design-runtime-monitor.md P1/P2 范围依据。**
+
+## D22. P2 告警的范围与持久化（Runtime Monitor 设计）
+
+- 当前源码事实：通知渠道（邮件/企业微信/签名 Webhook）与 12 事件机制为 platform-only（`internal/notifycontent`、`internal/mailer`）；standalone 无任何推送渠道；告警历史无现有表。
+- 产品影响：告警若接通知仅平台可用；standalone 告警只能体现为事件页记录；告警历史落 platform 新表则引入 P2 迁移。
+- 可选方案：A. 平台复用 notifycontent 新增监控事件（告警/恢复），standalone 明确不推送仅事件页；告警历史进程内或平台新表在立项时定；B. 不做告警，只保留事件流。
+- 推荐方向及理由：A——渠道复用零新凭据面，且「异常有人知道」是监控闭环的价值点；standalone 边界如实声明。设计详见 [design-runtime-monitor.md](design-runtime-monitor.md) §7/§9。
+- 裁决（2026-11-11）：**A**——平台复用 notifycontent 新增监控事件；standalone 不推送、仅事件页；告警历史存储方式在 T4 立项时定。
+- 状态：**已裁决（A），去向：design-runtime-monitor.md T4 范围依据。**  
+  **终审追记（2026-11-11）**：方案 A 确认；规则经 Settings 基建存储但走专用 superAdmin+monitor:read 端点访问；检测用 monitor 内 ticker（不进任务表）。
+**二次终审（2026-11-11，方案二）**：Standalone（Web+GUI 等效）支持**本地告警**——内置默认规则（默认启用、不可配置、不开放管理界面）、后台检测、告警写入运行事件，**不发送任何外部通知**；CLI 不装配告警。任务失败规则仅 Platform 适用（standalone 无任务注册表，不伪造指标）；CPU/内存采用容器限额优先的自适应视角。完整定稿见 design-runtime-monitor.md §9.3，**已实现（2026-11-11）**。

@@ -38,14 +38,15 @@ const builtinPageOrder: string[] = [
   'overview', 'lab', 'users', 'roles', 'departments', 'posts', 'api-operations', 'menus', 'dictionaries',
   'announcements', 'tasks', 'files', 'api-docs', 'site', 'storage', 'account-policy', 'mail', 'mail-templates',
   'notification-channels', 'notification-templates', 'system-notifications', 'logs', 'edition', 'account', 'account-security', 'account-sessions',
+  'monitor', 'monitor-services', 'monitor-resources', 'monitor-events',
 ];
 // Module pages append after the builtins in each module's declared order.
 export const defaultPageOrder: string[] = [...builtinPageOrder, ...uiModules().flatMap(item => item.order ?? [])];
 export function defaultRank(id: string): number { const index = defaultPageOrder.indexOf(id); return index < 0 ? defaultPageOrder.length : index; }
-const titles = defineMessages({ business: '业务', system: '系统管理', administration: '超级管理员', settings: '系统设置', personal: '个人中心', appearance: '外观设置' });
+const titles = defineMessages({ business: '业务', system: '系统管理', administration: '超级管理员', settings: '系统设置', personal: '个人中心', appearance: '外观设置', monitor: '运行监控' });
 // Seeded directories persist empty labels (names are operator-overridable), so
 // the display fallback resolves their well-known ids to localized titles.
-const directoryNames = defineMessages({ administration: '超级管理员', settings: '系统设置', personal: '个人中心' });
+const directoryNames = defineMessages({ administration: '超级管理员', settings: '系统设置', personal: '个人中心', 'monitor-center': '运行监控' });
 const directoryIcons: Record<string, string> = { administration: 'Users', settings: 'Settings2', personal: 'UserRound' };
 // Seeded sections also persist empty names; the same fallback keeps 业务/系统管理/
 // 个人中心 visible until an operator renames them.
@@ -60,13 +61,15 @@ export function directoryTitle(id: string): string {
 const bothSurfaces: NavigationSection['surfaces'] = ['user', 'administrator'];
 const adminOnly: NavigationSection['surfaces'] = ['administrator'];
 // Pages whose availability narrows on the platform profile mirror the Go seed;
-// standalone and desktop keep their single-surface console entries.
+// standalone and desktop keep their single-surface console entries. The
+// monitor group is administrator-only on the platform and collapses to one
+// tabbed page on the local profiles.
 const platformAdminOnly = new Set(['files', 'announcements', 'site', 'api-docs']);
 
 /** Route registration alone decides which workspaces a page reaches, mirroring the Go seed: console and management groups plus the platform admin-only pages stay administrator-only. */
 export function routeSurfaces(id: string): NavigationSection['surfaces'] {
   const group = isRegisteredPage(id) && 'group' in routes[id] ? String(routes[id].group) : '';
-  return group === 'system' || group === 'administration' || platformAdminOnly.has(id) ? ['administrator'] : ['user', 'administrator'];
+  return group === 'system' || group === 'administration' || group === 'monitor' || platformAdminOnly.has(id) ? ['administrator'] : ['user', 'administrator'];
 }
 
 /** Seeded directory surfaces aggregate their subtree: the union of the route-derived page surfaces keeps a directory reachable wherever its pages are. */
@@ -96,22 +99,26 @@ export function defaultNavigation(_surface: NavigationSection['surfaces'], profi
     // surfaces their subtree carries.
     nodes.push({ ...newNavigationNode('administration', 'system', 'directory', groupSurfaces('administration')), label: titles.administration, icon: 'Users', sort: 20 });
     nodes.push({ ...newNavigationNode('settings', 'system', 'directory', groupSurfaces('system')), label: titles.settings, icon: 'Settings2', sort: 10 });
+    nodes.push({ ...newNavigationNode('monitor-center', 'system', 'directory', groupSurfaces('monitor')), label: titles.monitor, icon: 'Activity', sort: 25 });
     nodes.push({ ...newNavigationNode('personal', 'business', 'directory', groupSurfaces('personal')), label: titles.personal, icon: 'UserRound', sort: 2700 });
   }
   for (const id of Object.keys(routes).filter(isRegisteredPage)) {
     if (id === 'administrators') continue;
     const route = routes[id];
     const group = 'group' in route ? String(route.group) : '';
-    if (!platform && (group === 'personal' || group === 'administration' || (group === 'system' && id !== 'site' && id !== 'edition'))) continue;
+    // Standalone and desktop collapse the monitor group into the single
+    // tabbed console page; every other platform-only group stays hidden.
+    if (!platform && (group === 'personal' || group === 'administration' || (group === 'monitor' && id !== 'monitor') || (group === 'system' && id !== 'site' && id !== 'edition'))) continue;
     // API 文档 is a top-level page at the tail of the system region on the
     // platform profile, after the settings and administration directories.
     const systemTopLevel = platform && id === 'api-docs';
     const surfaces: NavigationSection['surfaces'] = platform ? routeSurfaces(id) : bothSurfaces;
-    const sectionId = platform && (systemTopLevel || group === 'system' || group === 'administration') ? 'system' : 'business';
-    const parent = platform ? systemTopLevel ? undefined : group === 'administration' ? 'administration' : group === 'system' ? 'settings' : group === 'personal' ? 'personal' : undefined : undefined;
+    const sectionId = platform && (systemTopLevel || group === 'system' || group === 'administration' || group === 'monitor') ? 'system' : 'business';
+    const parent = platform ? systemTopLevel ? undefined : group === 'administration' ? 'administration' : group === 'system' ? 'settings' : group === 'monitor' ? 'monitor-center' : group === 'personal' ? 'personal' : undefined : undefined;
     nodes.push({ ...newNavigationNode(id, sectionId, 'page', surfaces), parent_id: parent, route_id: id,
-      // Standalone and desktop expose the site console as the appearance page.
-      label: !platform && id === 'site' ? titles.appearance : '',
+      // Standalone and desktop expose the site console as the appearance page
+      // and the monitor console under its own directory-style name.
+      label: !platform && id === 'site' ? titles.appearance : !platform && id === 'monitor' ? titles.monitor : '',
       icon: defaultIcons[id] ?? 'Circle', sort: systemTopLevel ? 30 : defaultRank(id) * 10 });
   }
   if (platform) {
@@ -138,6 +145,7 @@ const builtinIcons: Record<string, string> = {
   'notification-channels': 'Webhook', 'notification-templates': 'FileText', 'system-notifications': 'Bell', logs: 'ScrollText', edition: 'PackageCheck',
   roles: 'ShieldCheck', departments: 'Network', tasks: 'ListChecks', menus: 'LayoutDashboard', dictionaries: 'FileText', posts: 'UserCog',
   'api-operations': 'BookOpen', account: 'UserRound', 'account-security': 'ShieldCheck', 'account-sessions': 'Monitor', 'api-docs': 'BookOpen',
+  monitor: 'Activity', 'monitor-services': 'Radar', 'monitor-resources': 'Cpu',
 };
 // Module icons merge after the builtins so a seeded tree and the client default match.
 const defaultIcons: Record<string, string> = { ...builtinIcons, ...Object.fromEntries(uiModules().flatMap(item => Object.entries(item.icons ?? []))) };

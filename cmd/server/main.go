@@ -26,11 +26,14 @@ import (
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/bootstrap"
 	"github.com/yunnuo/unicore/internal/config"
+	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/lifecycle"
 	"github.com/yunnuo/unicore/internal/logging"
+	"github.com/yunnuo/unicore/internal/mailer"
 	"github.com/yunnuo/unicore/internal/module"
 	notesmodule "github.com/yunnuo/unicore/internal/modules/notes"
+	"github.com/yunnuo/unicore/internal/monitor"
 	"github.com/yunnuo/unicore/internal/observability"
 	"github.com/yunnuo/unicore/internal/realtime"
 	"github.com/yunnuo/unicore/internal/runtime"
@@ -72,6 +75,7 @@ func main() {
 }
 
 func run(args []string) (result error) {
+	startedAt := time.Now()
 	if len(args) > 0 && args[0] == "serve" {
 		args = args[1:]
 	}
@@ -135,9 +139,134 @@ func run(args []string) (result error) {
 	}
 	hub := realtime.New()
 	metrics := observability.New()
+	monitorEvents := monitor.NewEventSink(200)
+	monitorEvents.Append(monitor.EventLifecycle, monitor.SeverityInfo, "实例已启动", "v"+metadata.Version)
+	taskTracker := monitor.NewTaskEventTracker(monitorEvents)
+	// Alert engine: Platform loads persisted rules with notifycontent delivery,
+	// Standalone runs the built-in defaults with no external exit; CLI never
+	// assembles an engine.
+	appMonitor := monitor.New(monitor.Options{
+		Profile:   profile,
+		ProfileOf: func() contracts.Profile { _, _, _, current := manager.Services(); return current },
+		StartedAt: startedAt,
+		DB: func() *sql.DB {
+			store, _, _, _ := manager.Services()
+			if store == nil {
+				return nil
+			}
+			return store.DB
+		},
+		HTTP: func() monitor.HTTPStats {
+			stats := metrics.SnapshotHTTP()
+			return monitor.HTTPStats{ActiveRequests: int(stats.ActiveRequests), RequestsTotal: int(stats.RequestsTotal), ErrorsTotal: int(stats.ErrorsTotal), AvgDurationMs: int(stats.AvgDurationMs), P95DurationMs: int(stats.P95DurationMs)}
+		},
+		Runtime: func() monitor.RuntimeStats {
+			stats := metrics.SnapshotRuntime()
+			return monitor.RuntimeStats{Goroutines: int(stats.Goroutines), HeapAlloc: int(stats.HeapAlloc), HeapSys: int(stats.HeapSys), GcCycles: int(stats.GcCycles), PauseTotalMs: int(stats.PauseTotalMs), RssBytes: int(stats.RssBytes), CpuTimeMs: int(stats.CpuSeconds * 1000)}
+		},
+		Host:   monitor.DefaultHost(func() string { return options.DataDir }),
+		Events: monitorEvents,
+		Runs: func(ctx context.Context, task string) (*contracts.TaskRunList, error) {
+			tasks := manager.Tasks()
+			if tasks == nil {
+				return nil, nil
+			}
+			list, err := tasks.TaskRuns(ctx, task)
+			if err != nil {
+				return nil, err
+			}
+			return &list, nil
+		},
+		StorageProbe: func(ctx context.Context, location string) error {
+			fs := manager.Files()
+			if fs == nil {
+				return errors.New("本形态不装配文件服务")
+			}
+			return fs.Test(ctx, location, "monitor")
+		},
+		Storage: func(ctx context.Context) ([]contracts.StorageLocation, error) {
+			fs := manager.Files()
+			if fs == nil {
+				return nil, nil
+			}
+			list, err := fs.Locations(ctx)
+			if err != nil {
+				return nil, err
+			}
+			return list.Items, nil
+		},
+		Tasks: func(ctx context.Context) (*contracts.TaskList, error) {
+			tasks := manager.Tasks()
+			if tasks == nil {
+				return nil, nil
+			}
+			list, err := tasks.ListTasks(ctx)
+			if err != nil {
+				return nil, err
+			}
+			return &list, nil
+		},
+	})
+	var alertNotifier monitor.AlertNotifier = monitor.NoopNotifier{}
+	alertPlatform := profile == runtime.WebPlatform
+	if alertPlatform {
+		// Alerts ride the notification event matrix under the same master
+		// switch as every other event: templates, channels and retries belong
+		// to the queue, and an off switch is an intentional silence.
+		alertNotifier = monitor.NotifierFunc(func(notice monitor.AlertNotice) error {
+			mail := manager.Mail()
+			if mail == nil {
+				return monitor.ErrNotifierNotConfigured
+			}
+			threshold := notice.Rule.Trigger
+			kind := "alert_triggered"
+			if notice.Action == "recovered" {
+				threshold = notice.Rule.Recover
+				kind = "alert_recovered"
+			}
+			notifyCtx, cancelNotify := context.WithTimeout(context.Background(), 15*time.Second)
+			defer cancelNotify()
+			occurred := notice.OccurredAt
+			if occurred.IsZero() {
+				occurred = time.Now()
+			}
+			return mail.EnqueueEvent(notifyCtx, mailer.Event{
+				Kind: kind, Detail: notice.Body, At: int(time.Now().Unix()),
+				Vars: map[string]string{
+					"rule_name": notice.Rule.Name, "severity": notice.Rule.Severity, "metric": string(notice.Rule.Kind), "value": notice.Value,
+					"threshold": fmt.Sprintf("%.4g", threshold), "scope": notice.Scope,
+					"instance": notice.Instance, "host": notice.Host,
+					"transition": notice.Action, "occurred_at": occurred.UTC().Format(time.RFC3339), "duration": notice.Duration,
+				},
+			})
+		})
+	}
+	alertEngine := monitor.NewAlertEngine(func(ctx context.Context) contracts.MonitorSnapshot { return appMonitor.Snapshot(ctx) },
+		monitorEvents, alertNotifier, alertPlatform, monitor.AlertOptions{InstanceID: sqlstore.ID()})
+	var alertStore monitor.AlertRuleStore
+	if alertPlatform {
+		alertStore = &settingsAlertRuleStore{manager: manager}
+		initialJSON, loadErr := alertStore.LoadRulesJSON(ctx)
+		var initialRules []monitor.AlertRule
+		if loadErr == nil && initialJSON != "" {
+			initialRules = monitor.DecodeRules(initialJSON, true)
+		} else {
+			initialRules = monitor.DefaultAlertRules(true)
+			if loadErr == nil {
+				_ = alertStore.SaveRulesJSON(ctx, monitor.EncodeRules(initialRules))
+			}
+		}
+		alertEngine.SetRules(initialRules)
+	} else {
+		alertEngine.SetRules(monitor.DefaultAlertRules(false))
+	}
+	alertEngine.Start()
+	resources.Defer("alert engine", func() error { alertEngine.Stop(); return nil })
+	appMonitor.SetAlertEngine(alertEngine)
+
 	workerCtx, cancelWorkers := context.WithCancel(context.Background())
 	defer cancelWorkers()
-	server := &http.Server{Addr: options.Listen, Handler: httpadapter.New(httpadapter.Config{Updates: updater, Metadata: metadata, Core: bootstrap.Core(), Assets: webassets.FS(), Logger: logger, Install: manager, APIDocs: options.APIDocs, ReadinessTimeout: options.ReadinessTimeout, Metrics: metrics, Hub: hub, LogBroadcast: broadcast}), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
+	server := &http.Server{Addr: options.Listen, Handler: httpadapter.New(httpadapter.Config{Updates: updater, Metadata: metadata, Core: bootstrap.Core(), Assets: webassets.FS(), Logger: logger, Install: manager, APIDocs: options.APIDocs, ReadinessTimeout: options.ReadinessTimeout, Metrics: metrics, Hub: hub, LogBroadcast: broadcast, Monitor: appMonitor}), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
 	listener, err := net.Listen("tcp", server.Addr)
 	if err != nil {
 		return fmt.Errorf("listen failed: %w", err)
@@ -157,6 +286,9 @@ func run(args []string) (result error) {
 	// enablement, bookkeeping and manual triggers via /api/v1/admin/tasks.
 	store, _, _, _ := manager.Services()
 	tasks := scheduler.New(store)
+	// Task failures and recoveries come straight from the scheduler's
+	// completion hook, so they are recorded even with no monitor page open.
+	tasks.OnResult(taskTracker.Observe)
 	// Registered business modules contribute their task executors here; the
 	// admin surface can only schedule these whitelisted functions.
 	module.Register(notesmodule.Module)
@@ -342,4 +474,24 @@ func logRetention(manager *install.Manager, fallback int) logging.Retention {
 		}
 		return fallback
 	}
+}
+
+// settingsAlertRuleStore persists the alert rule JSON through the settings
+// infrastructure under an internal key that never reaches the generic API.
+type settingsAlertRuleStore struct{ manager *install.Manager }
+
+func (s *settingsAlertRuleStore) LoadRulesJSON(ctx context.Context) (string, error) {
+	_, settingsService, _, _ := s.manager.Services()
+	if settingsService == nil {
+		return "", errors.New("settings unavailable")
+	}
+	return settingsService.AlertingRules(ctx)
+}
+
+func (s *settingsAlertRuleStore) SaveRulesJSON(ctx context.Context, payload string) error {
+	_, settingsService, _, _ := s.manager.Services()
+	if settingsService == nil {
+		return errors.New("settings unavailable")
+	}
+	return settingsService.SaveAlertingRules(ctx, payload, "monitor")
 }

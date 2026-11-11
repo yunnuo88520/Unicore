@@ -27,6 +27,7 @@
 | api-operations 目录 | GET /admin/api-operations（契约派生 operation 目录，供角色 operation_ids 授权勾选；要求 roles:read，管理员域可授） |
 | updates:read | GET /admin/updates；POST /admin/updates/check |
 | updates:apply | POST /admin/updates/apply，需确认已备份 |
+| monitor:read | GET /admin/monitor（运行监控快照）、GET/PUT /admin/monitor/alert-rules（告警规则，仅 super_admin 保留集，不可分配角色）、GET /admin/monitor/events（运行事件）、GET /admin/monitor/storage-probe；单机形态对应本机 `GET /monitor`、`GET /monitor/events`（access local，不走角色） |
 
 用户与管理工作台共用账号与 unicore_session Cookie（HttpOnly/SameSite=Lax，HTTPS 时 Secure）。路径选择工作台接口，不选择账号仓库；身份请求头不参与认证。事务从统一账号表重查操作者，角色分配与保留操作重查超管资格。本人改密校验旧密码，锁内复核后撤销该账号的共享会话与挑战，两端同时失效。企业绑定共用账号；两种 OIDC callback 保留各自浏览器证明 Cookie，管理员入口不提供 JIT。详见 [ADR-0037](../adr/ADR-0037-unified-user-identity.md)。
 

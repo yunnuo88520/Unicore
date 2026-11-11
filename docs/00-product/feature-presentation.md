@@ -43,6 +43,8 @@
 | 系统更新（edition） | 不呈现 | 已实现（仅 super_admin + updater 能力） | 已实现（updater 能力；web 本机 loopback / desktop 桥） | 不装配 |
 | API 文档 | 不呈现 | 已实现（api_docs 能力） | 条件支持（web 开启 `api_docs` 时）；desktop 不适用 | 不适用 |
 | 个人中心三页 | 已实现 | 已实现（管理员域镜像） | 不呈现（无账号） | 不适用 |
+| 运行监控（概览/服务/资源/运行事件，含主机硬件图表卡片、会话趋势与事件流） | 不呈现（用户域硬排除） | 已实现（仅 super_admin；系统区域末位「运行监控」目录四页） | 已实现（业务区「运行监控」单页 + 单层 Tabs 四页签，两载体等效） | 不适用 |
+| 告警规则管理与告警通知 | 不呈现（用户域硬排除） | 已实现（规则管理内嵌于资源监控页底部，仅 super_admin 渲染；端点 superAdmin+monitor:read；无独立菜单；通知走既有渠道；运行事件页展示告警触发/恢复/归因转移/通知失败） | 已实现（无配置入口，内置默认规则自动启用；告警事件直接呈现在「运行事件」Tab；Web/GUI 等效） | 不适用 |
 | 管理后台 SPA（admin.html） | — | 独立入口，需 identity 服务（standalone 请求 404；desktop 无此入口） | 不适用 | 不适用 |
 
 设置呈现（`internal/settings/service.go` `applies` + `packages/web-ui/src/pages/admin/appearance.tsx`）：
@@ -57,6 +59,7 @@
 
 - 仪表盘不是全角色固定页：widget 经 `DashboardWidgetRegistry.register({id, render(metadata)})` 注册，注册集合由装配入口决定——当前仅管理后台入口注册了 `activity-7d`（近 7 日活动图，仅管理员域数据）。
 - widget 自身读取 bootstrap 元数据（identity_realm/roles/capabilities）决定是否渲染，返回 falsy 即不呈现；平台匿名用户不返回版本/构建信息。
+- 现有 widget：`activity-7d`（管理后台入口，仅管理员域真实统计）与 `monitor-summary`（运行状态摘要：管理后台入口仅 super_admin；web 用户入口与桌面入口仅非平台形态渲染——平台普通用户仪表盘零实例指标）。
 - 概览页固定层（运行形态卡/连接方式卡/快捷入口）中，快捷入口按 `canAccess` 过滤；业务占位卡仅用户域显示。
 - 无个人自定义机制；新增 widget 必须声明其可见上下文（形态 + 身份域 + 能力/权限条件），并同步 [功能适用性清单](feature-inventory.md)。
 

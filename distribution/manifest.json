@@ -1052,7 +1052,15 @@
     "internal/adapter/desktop/module.go",
     "packages/web-ui/src/module-registry.ts",
     "packages/web-ui/src/modules/index.ts",
-    "packages/web-ui/src/modules/notes/index.ts"
+    "packages/web-ui/src/modules/notes/index.ts",
+    "internal/adapter/http/monitor.go",
+    "internal/monitor/monitor.go",
+    "internal/monitor/alert.go",
+    "internal/monitor/host_unix.go",
+    "internal/monitor/host_windows.go",
+    "packages/web-ui/src/pages/monitor.tsx",
+    "packages/web-ui/src/widgets/monitor-charts.tsx",
+    "packages/web-ui/src/widgets/monitor-summary.tsx"
   ],
   "ownership": {
     "product-owned": [

@@ -6797,5 +6797,695 @@ export const constraints = {
         "type": "string"
       }
     }
+  },
+  "MonitorHttpService": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "applicable"
+    ],
+    "properties": {
+      "applicable": {
+        "type": "boolean"
+      },
+      "active_requests": {
+        "type": "integer"
+      },
+      "requests_total": {
+        "type": "integer"
+      },
+      "errors_total": {
+        "type": "integer"
+      },
+      "avg_duration_ms": {
+        "type": "integer"
+      },
+      "p95_duration_ms": {
+        "type": "integer"
+      }
+    }
+  },
+  "MonitorDatabase": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "status",
+      "latency_ms"
+    ],
+    "properties": {
+      "status": {
+        "type": "string",
+        "enum": [
+          "healthy",
+          "unavailable"
+        ]
+      },
+      "latency_ms": {
+        "type": "integer"
+      },
+      "open_connections": {
+        "type": "integer"
+      },
+      "in_use_connections": {
+        "type": "integer"
+      },
+      "idle_connections": {
+        "type": "integer"
+      },
+      "wait_total": {
+        "type": "integer"
+      },
+      "max_open_connections": {
+        "type": "integer"
+      },
+      "wait_duration_ms": {
+        "type": "integer"
+      }
+    }
+  },
+  "MonitorStorageService": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "applicable"
+    ],
+    "properties": {
+      "applicable": {
+        "type": "boolean"
+      },
+      "active_location": {
+        "type": "string"
+      },
+      "provider": {
+        "type": "string"
+      },
+      "locations": {
+        "type": "integer"
+      },
+      "probe": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/MonitorStorageLocation"
+        }
+      }
+    }
+  },
+  "MonitorTaskHealth": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "name",
+      "enabled"
+    ],
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "enabled": {
+        "type": "boolean"
+      },
+      "last_status": {
+        "type": "string"
+      },
+      "last_error": {
+        "type": "string"
+      },
+      "last_run_at": {
+        "type": "integer"
+      },
+      "next_run_at": {
+        "type": "integer"
+      },
+      "runs": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/MonitorTaskRun"
+        }
+      }
+    }
+  },
+  "MonitorTasksSummary": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "applicable"
+    ],
+    "properties": {
+      "applicable": {
+        "type": "boolean"
+      },
+      "total": {
+        "type": "integer"
+      },
+      "enabled": {
+        "type": "integer"
+      },
+      "failing": {
+        "type": "integer"
+      },
+      "recent": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/MonitorTaskHealth"
+        }
+      }
+    }
+  },
+  "MonitorSnapshot": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "profile",
+      "version",
+      "commit",
+      "build_time",
+      "go_version",
+      "started_at",
+      "uptime_seconds",
+      "status",
+      "http_service",
+      "database",
+      "storage",
+      "tasks",
+      "runtime",
+      "host"
+    ],
+    "properties": {
+      "profile": {
+        "type": "string"
+      },
+      "version": {
+        "type": "string"
+      },
+      "commit": {
+        "type": "string"
+      },
+      "build_time": {
+        "type": "string"
+      },
+      "go_version": {
+        "type": "string"
+      },
+      "started_at": {
+        "type": "integer"
+      },
+      "uptime_seconds": {
+        "type": "integer"
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "healthy",
+          "degraded",
+          "unavailable"
+        ]
+      },
+      "http_service": {
+        "$ref": "#/components/schemas/MonitorHttpService"
+      },
+      "database": {
+        "$ref": "#/components/schemas/MonitorDatabase"
+      },
+      "storage": {
+        "$ref": "#/components/schemas/MonitorStorageService"
+      },
+      "tasks": {
+        "$ref": "#/components/schemas/MonitorTasksSummary"
+      },
+      "runtime": {
+        "$ref": "#/components/schemas/MonitorRuntimeStats"
+      },
+      "host": {
+        "$ref": "#/components/schemas/MonitorHostStats"
+      }
+    }
+  },
+  "MonitorSnapshotResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/MonitorSnapshot"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "MonitorRuntimeStats": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "goroutines",
+      "heap_alloc_bytes",
+      "heap_sys_bytes",
+      "gc_cycles"
+    ],
+    "properties": {
+      "goroutines": {
+        "type": "integer"
+      },
+      "heap_alloc_bytes": {
+        "type": "integer"
+      },
+      "heap_sys_bytes": {
+        "type": "integer"
+      },
+      "gc_cycles": {
+        "type": "integer"
+      },
+      "pause_total_ms": {
+        "type": "integer"
+      },
+      "rss_bytes": {
+        "type": "integer"
+      },
+      "cpu_time_ms": {
+        "type": "integer"
+      }
+    }
+  },
+  "MonitorHostStats": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "available"
+    ],
+    "properties": {
+      "available": {
+        "type": "boolean"
+      },
+      "hostname": {
+        "type": "string"
+      },
+      "os": {
+        "type": "string"
+      },
+      "platform": {
+        "type": "string"
+      },
+      "platform_version": {
+        "type": "string"
+      },
+      "kernel_version": {
+        "type": "string"
+      },
+      "kernel_arch": {
+        "type": "string"
+      },
+      "host_uptime_seconds": {
+        "type": "integer"
+      },
+      "cpu_model": {
+        "type": "string"
+      },
+      "cpu_cores_logical": {
+        "type": "integer"
+      },
+      "cpu_cores_physical": {
+        "type": "integer"
+      },
+      "cpu_percent": {
+        "type": "number"
+      },
+      "cpu_per_core": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        }
+      },
+      "load_1": {
+        "type": "number"
+      },
+      "load_5": {
+        "type": "number"
+      },
+      "load_15": {
+        "type": "number"
+      },
+      "mem_total_bytes": {
+        "type": "integer"
+      },
+      "mem_used_bytes": {
+        "type": "integer"
+      },
+      "mem_available_bytes": {
+        "type": "integer"
+      },
+      "mem_used_percent": {
+        "type": "number"
+      },
+      "swap_total_bytes": {
+        "type": "integer"
+      },
+      "swap_used_bytes": {
+        "type": "integer"
+      },
+      "net_sent_bytes": {
+        "type": "integer"
+      },
+      "net_recv_bytes": {
+        "type": "integer"
+      },
+      "sampled_at": {
+        "type": "integer"
+      },
+      "disks": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/MonitorDiskUsage"
+        }
+      },
+      "net_sent_per_sec": {
+        "type": "number"
+      },
+      "net_recv_per_sec": {
+        "type": "number"
+      },
+      "container": {
+        "$ref": "#/components/schemas/MonitorContainerView"
+      },
+      "sensors": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/MonitorSensor"
+        }
+      }
+    }
+  },
+  "MonitorDiskUsage": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "path",
+      "total_bytes",
+      "used_bytes",
+      "free_bytes",
+      "used_percent"
+    ],
+    "properties": {
+      "path": {
+        "type": "string"
+      },
+      "is_data_dir": {
+        "type": "boolean"
+      },
+      "total_bytes": {
+        "type": "integer"
+      },
+      "used_bytes": {
+        "type": "integer"
+      },
+      "free_bytes": {
+        "type": "integer"
+      },
+      "used_percent": {
+        "type": "number"
+      }
+    }
+  },
+  "MonitorEvent": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "type",
+      "severity",
+      "message",
+      "at"
+    ],
+    "properties": {
+      "id": {
+        "type": "integer"
+      },
+      "type": {
+        "type": "string"
+      },
+      "severity": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "detail": {
+        "type": "string"
+      },
+      "at": {
+        "type": "integer"
+      }
+    }
+  },
+  "MonitorEventList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items",
+      "total"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/MonitorEvent"
+        }
+      },
+      "total": {
+        "type": "integer"
+      },
+      "capacity": {
+        "type": "integer"
+      }
+    }
+  },
+  "MonitorEventListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/MonitorEventList"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "MonitorTaskRun": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "started_at",
+      "duration_ms",
+      "status"
+    ],
+    "properties": {
+      "started_at": {
+        "type": "integer"
+      },
+      "duration_ms": {
+        "type": "integer"
+      },
+      "status": {
+        "type": "string"
+      },
+      "error": {
+        "type": "string"
+      }
+    }
+  },
+  "MonitorStorageLocation": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "provider",
+      "active",
+      "configured",
+      "status"
+    ],
+    "properties": {
+      "id": {
+        "type": "string"
+      },
+      "provider": {
+        "type": "string"
+      },
+      "active": {
+        "type": "boolean"
+      },
+      "configured": {
+        "type": "boolean"
+      },
+      "status": {
+        "type": "string"
+      },
+      "latency_ms": {
+        "type": "integer"
+      },
+      "checked_at": {
+        "type": "integer"
+      },
+      "error": {
+        "type": "string"
+      }
+    }
+  },
+  "MonitorContainerView": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "detected"
+    ],
+    "properties": {
+      "detected": {
+        "type": "boolean"
+      },
+      "memory_limit_bytes": {
+        "type": "integer"
+      },
+      "memory_usage_bytes": {
+        "type": "integer"
+      },
+      "cpu_quota_cores": {
+        "type": "number"
+      },
+      "cpu_percent": {
+        "type": "number"
+      }
+    }
+  },
+  "MonitorSensor": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "label",
+      "celsius"
+    ],
+    "properties": {
+      "label": {
+        "type": "string"
+      },
+      "celsius": {
+        "type": "number"
+      }
+    }
+  },
+  "MonitorStorageLocationResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/MonitorStorageLocation"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "MonitorAlertRule": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "enabled"
+    ],
+    "properties": {
+      "id": {
+        "type": "string"
+      },
+      "enabled": {
+        "type": "boolean"
+      },
+      "trigger_value": {
+        "type": "number"
+      },
+      "recover_value": {
+        "type": "number"
+      },
+      "consecutive": {
+        "type": "integer"
+      },
+      "cooldown_minutes": {
+        "type": "integer"
+      }
+    }
+  },
+  "MonitorAlertRules": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "version",
+      "rules"
+    ],
+    "properties": {
+      "version": {
+        "type": "integer"
+      },
+      "rules": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/MonitorAlertRule"
+        }
+      }
+    }
+  },
+  "MonitorAlertRulesResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/MonitorAlertRules"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
   }
 };

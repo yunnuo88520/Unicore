@@ -2,14 +2,14 @@
  * Description: Shared UI client; pages know neither fetch nor Wails globals.
  */
 import {fileFingerprint,retryDelay} from './upload';
-import type { NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, ProfileInput, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, LogTailList, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, AdminPasswordResetInput, AdminPasswordReset, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, RoleSaveInput, MenuEntry, MenuList, MenuSaveInput, NavigationSection, NavigationNode, NavigationPage, NavigationRoleAssignment, Navigation, APIOperation, APIOperationList, Post, PostList, PostSaveInput, NoteCapabilities, FileCapabilities, DictionarySummary, DictionaryList, DictionaryItemEntry, DictionaryDetail, DictionaryCreateInput, DictionaryUpdateInput, DictionaryItemsInput, Department, DepartmentList, DepartmentSaveInput, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput, TaskList, TaskEntry, TaskUpdateInput, TaskTrigger, TaskCreateInput, TaskEditInput, TaskRunList, ActionResult, InboxList, FileUploadInput, FileUploadGrant } from '@unicore/contracts';
+import type { NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, ProfileInput, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, LogTailList, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, AdminPasswordResetInput, AdminPasswordReset, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, RoleSaveInput, MenuEntry, MenuList, MenuSaveInput, NavigationSection, NavigationNode, NavigationPage, NavigationRoleAssignment, Navigation, APIOperation, APIOperationList, Post, PostList, PostSaveInput, NoteCapabilities, FileCapabilities, DictionarySummary, DictionaryList, DictionaryItemEntry, DictionaryDetail, DictionaryCreateInput, DictionaryUpdateInput, DictionaryItemsInput, Department, DepartmentList, DepartmentSaveInput, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput, TaskList, TaskEntry, TaskUpdateInput, TaskTrigger, TaskCreateInput, TaskEditInput, TaskRunList, ActionResult, InboxList, FileUploadInput, FileUploadGrant, MonitorSnapshot, MonitorSnapshotResponse, MonitorEventList, MonitorEvent, MonitorEventListResponse, MonitorAlertRules, MonitorAlertRule, MonitorAlertRulesResponse } from '@unicore/contracts';
 import { operations, type OperationId, type OperationInputs, type OperationData } from '@unicore/contracts/operations';
 import { validate, type SchemaName } from '@unicore/contracts/validate';
 export { validate, constraints, type SchemaName } from '@unicore/contracts/validate';
 export { constraintsToZod, zodFieldErrors } from '@unicore/contracts/zod';
 export { operations, type OperationId } from '@unicore/contracts/operations';
 
-export type { NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateRelease, NoteEntry, LogTailList, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, AdminPasswordResetInput, AdminPasswordReset, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, DictionaryItemsInput, DictionaryUpdateInput, DictionaryCreateInput, DictionaryDetail, DictionaryItemEntry, DictionaryList, DictionarySummary, MenuSaveInput, MenuList, RoleSaveInput, MenuEntry, NavigationSection, NavigationNode, NavigationPage, NavigationRoleAssignment, Navigation, APIOperation, APIOperationList, Post, PostList, PostSaveInput, NoteCapabilities, FileCapabilities, Department, DepartmentList, DepartmentSaveInput, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput, TaskList, TaskEntry, TaskUpdateInput, TaskTrigger, TaskCreateInput, TaskEditInput, TaskRunList, ActionResult, InboxList, InboxEntry, FileUploadInput, FileUploadGrant } from '@unicore/contracts';
+export type { NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateRelease, NoteEntry, LogTailList, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, AdminPasswordResetInput, AdminPasswordReset, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, DictionaryItemsInput, DictionaryUpdateInput, DictionaryCreateInput, DictionaryDetail, DictionaryItemEntry, DictionaryList, DictionarySummary, MenuSaveInput, MenuList, RoleSaveInput, MenuEntry, NavigationSection, NavigationNode, NavigationPage, NavigationRoleAssignment, Navigation, APIOperation, APIOperationList, Post, PostList, PostSaveInput, NoteCapabilities, FileCapabilities, Department, DepartmentList, DepartmentSaveInput, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput, TaskList, TaskEntry, TaskUpdateInput, TaskTrigger, TaskCreateInput, TaskEditInput, TaskRunList, ActionResult, InboxList, InboxEntry, FileUploadInput, FileUploadGrant, MonitorSnapshot, MonitorHttpService, MonitorDatabase, MonitorStorageService, MonitorTasksSummary, MonitorTaskHealth, MonitorEventList, MonitorEvent, MonitorAlertRules, MonitorAlertRule } from '@unicore/contracts';
 
 export class AppError extends Error {
   constructor(public readonly code: string, message: string, public readonly requestId = '', public readonly fields: Record<string, string> = {}) { super(message); this.name = 'AppError'; }
@@ -36,6 +36,11 @@ export interface AppClient {
   execute(input: ExecuteInput, options?: RequestOptions): Promise<ExecuteOutput>;
   settings?(): Promise<Settings>;
   patchSettings?(input: SettingPatch): Promise<Settings>;
+  monitorSnapshot?(): Promise<MonitorSnapshot>;
+  monitorEvents?(): Promise<MonitorEventList>;
+  alertRules?(): Promise<MonitorAlertRules>;
+  updateAlertRules?(input: MonitorAlertRules): Promise<MonitorAlertRules>;
+  probeStorage?(location: string): Promise<unknown>;
  branding?(): Promise<Branding>;
  updateBranding?(input: BrandingInput): Promise<Branding>;
   apiDocument?():Promise<Record<string,unknown>>;
@@ -251,7 +256,9 @@ const administratorOperations: Partial<Record<OperationId, OperationId>> = {
   "uploadLocalFile": "adminUploadLocalFile",
   "completeFileUpload": "adminCompleteFileUpload",
   "fileAccess": "adminFileAccess",
-  "deleteFile": "adminDeleteFile"
+  "deleteFile": "adminDeleteFile",
+  "monitorSnapshot": "adminMonitorSnapshot",
+  "monitorEvents": "adminMonitorEvents"
 };
 
 export class HttpTransport implements AppClient, WebClient, FileClient, StorageClient {
@@ -586,6 +593,11 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   deleteNote(id:string,version:number) { return this.call('deleteNote',{version},{params:{id}}); }
   settings() { return this.call(this.platform ? 'adminSettings' : 'localSettings'); }
   patchSettings(input: SettingPatch) { return this.call(this.platform ? 'adminPatchSettings' : 'localPatchSettings', input); }
+  monitorSnapshot() { return this.call(this.platform ? 'adminMonitorSnapshot' : 'monitorSnapshot'); }
+  monitorEvents() { return this.call(this.platform ? 'adminMonitorEvents' : 'monitorEvents'); }
+  alertRules() { return this.call('adminMonitorAlertRules'); }
+  updateAlertRules(input: MonitorAlertRules) { return this.call('adminUpdateMonitorAlertRules', input); }
+  probeStorage(location: string) { return this.call('adminMonitorStorageProbe', undefined, { params: { location } }); }
 }
 
 export interface DesktopBridge {
@@ -600,6 +612,8 @@ export interface DesktopBridge {
   Execute(input: ExecuteInput): Promise<ExecuteResponse>;
   Settings?(): Promise<SettingsResponse>;
   PatchSettings?(input: SettingPatch): Promise<SettingsResponse>;
+  MonitorSnapshot?(): Promise<MonitorSnapshotResponse>;
+  MonitorEvents?(): Promise<MonitorEventListResponse>;
 }
 
 export class WailsTransport implements AppClient {
@@ -619,4 +633,6 @@ export class WailsTransport implements AppClient {
   async execute(input: ExecuteInput) { return unwrap(await this.bridge().Execute(input)); }
   async settings() { const method = this.bridge().Settings; if (!method) throw new AppError('NOT_AVAILABLE', '此版本不支持持久化设置'); return unwrap(await method()); }
   async patchSettings(input: SettingPatch) { const method = this.bridge().PatchSettings; if (!method) throw new AppError('NOT_AVAILABLE', '此版本不支持持久化设置'); return unwrap(await method(input)); }
+  async monitorSnapshot() { const method = this.bridge().MonitorSnapshot; if (!method) throw new AppError('NOT_AVAILABLE', '此版本未提供运行监控'); return unwrap(await method()); }
+  async monitorEvents() { const method = this.bridge().MonitorEvents; if (!method) throw new AppError('NOT_AVAILABLE', '此版本未提供运行监控'); return unwrap(await method()); }
 }

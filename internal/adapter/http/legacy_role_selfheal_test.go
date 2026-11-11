@@ -7,8 +7,8 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/adapter/storage/platformsql"
+	"github.com/yunnuo/unicore/internal/contracts"
 )
 
 // TestLegacyRoleRowSelfHealsAtSessionResolution reproduces role rows saved by

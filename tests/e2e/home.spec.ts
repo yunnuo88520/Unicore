@@ -40,7 +40,7 @@ test('product homepage follows site.home_enabled for guests and members', async 
     await test.step('guests land on the homepage at /home', async () => {
       await page.goto(`${instance.url}/`);
       await expect(page).toHaveURL(new RegExp(`${instance.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/home$`));
-      await expect(page.getByRole('heading', { name: '一份核心， 无限可能' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: '一份核心， 运行于每个终端' })).toBeVisible();
       await expect(page.getByRole('button', { name: '免费注册' }).first()).toBeVisible();
       await page.getByRole('tab', { name: '备份' }).click();
       await expect(page.getByText('每日凌晨自动备份')).toBeVisible();

@@ -152,7 +152,8 @@
     "framework-upstream",
     "maintain-framework-docs",
     "release-cross-platform",
-    "security-review"
+    "security-review",
+    "unslop"
   ],
   "surfaces": {
     "client": "apps/web/src/main.tsx",

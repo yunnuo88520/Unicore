@@ -114,6 +114,7 @@ OpenAPI 当前包含 250 个 operation、265 个 schema。Go/TS 模型、调用�
 | [maintain-framework-docs](../../.agents/skills/maintain-framework-docs/SKILL.md) | 维护 Unicore 使用与开发文档、框架 manifest、任务 Skills 和生成检查，避免引入研发流水。 |
 | [release-cross-platform](../../.agents/skills/release-cross-platform/SKILL.md) | 构建 Unicore profile/OS/Arch 发行包、checksum/manifest 和原生桌面产物。 |
 | [security-review](../../.agents/skills/security-review/SKILL.md) | 有范围地审查 Unicore 安装、身份、设置、传输、上传或升级的实际安全边界。 |
+| [unslop](../../.agents/skills/unslop/SKILL.md) | Turns vibecoded, AI-looking UI into a designed interface with its own character. Finds a direction from the product itself, then fixes spacing, color, icons, copy, type, layout, details, visuals and motion in that order, and can generate a real hero visual with an image tool when one is available. Use when the user asks to unslop, polish, clean up or redesign a screen so it stops looking AI-generated, or when a UI shows the usual tells like purple gradients, glows, gradient text, emoji labels, "New ✨" badges, glossy blobs, uppercase tracked labels, pulsing elements or uneven spacing. Works on React, Tailwind, HTML and CSS, for dashboards, apps and landing pages. |
 
 常用命令：
 

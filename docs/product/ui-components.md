@@ -23,6 +23,10 @@ setTranslator(t);
 | 组件 | 导入 | 用途 |
 | --- | --- | --- |
 | Button | `@unicore/ui` | 六种语义变体 × 四种尺寸；`pending` 自动禁用并显示 spinner |
+| Card | `@unicore/ui` | 面板表面与 Header/Title/Description/Content/Footer 组合；`asChild` 可渲染为链接瓦片 |
+| PageHeader | `@unicore/ui` | 节标题 + 可选描述 + 操作槽；无外壳，放 CardContent 或裸用 |
+| StatCard | `@unicore/ui` | 仪表盘指标卡；图标默认降噪，`tone="success"` 只用于承载语义的状态 |
+| EmptyState | `@unicore/ui` | 空/加载/错误三态；`icon/title/description/action`，原生 role 透传，外壳由调用方决定 |
 | Input / Textarea / NativeSelect | `@unicore/ui` | 共享控制面样式，`aria-invalid` 自动切换警示色 |
 | Switch / Checkbox | `@unicore/ui` | 受控布尔 API，内建 label 关联 |
 | SimpleSelect / Select* | `@unicore/ui` | 下拉选择；SimpleSelect 接字符串选项 |

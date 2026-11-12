@@ -2489,5 +2489,17 @@
   "浮层": "Overlays",
   "菜单": "Menu",
   "表格": "Table",
-  "设置": "Settings"
+  "设置": "Settings",
+  "警告横幅": "Banners",
+  "保存失败": "Save failed",
+  "网络超时，请重试。": "Network timed out. Try again.",
+  "抽屉": "Drawer",
+  "打开抽屉": "Open drawer",
+  "面板标题": "Panel title",
+  "关闭面板": "Close panel",
+  "气泡": "Popover",
+  "打开气泡": "Open popover",
+  "快捷键": "Shortcuts",
+  "面包屑": "Breadcrumb",
+  "单选组": "Radio group"
 }

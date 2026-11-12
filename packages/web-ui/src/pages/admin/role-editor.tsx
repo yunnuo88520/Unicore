@@ -11,7 +11,7 @@ import { buildMenuTree, directoryTitle, isRegisteredPage, sectionTitle, type Men
 import { routes } from '../../routes';
 import { buildDepartmentTree, flattenDepartmentTree, useDepartmentsQuery } from '../../queries';
 import { operationPermissionsAllow } from '../../permissions';
-import { Badge, Button, Checkbox, Input, Modal, NativeSelect, useMessage } from '@unicore/ui';
+import { Alert, Badge, Button, Checkbox, Input, Modal, NativeSelect, useMessage } from '@unicore/ui';
 
 // Data scopes apply to the resource permissions held by each role.
 const dataScopeLabels = defineMessages({ self: '仅本人', dept: '本部门', dept_and_below: '本部门及以下', custom: '自定义', all: '全部' });
@@ -345,7 +345,7 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
       {/* Guarded saves (403 PERMISSION_DENIED, version conflicts) render inside
         * the dialog: the modal marks outside toasts aria-hidden, so an inline
         * alert is the only reliably reachable feedback while editing. */}
-      {save.error && <p role="alert" className="rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">{t(save.error.message)}</p>}
+      {save.error && <Alert>{t(save.error.message)}</Alert>}
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center gap-3">
           <label htmlFor="role-editor-name" className="w-16 shrink-0 text-sm font-medium text-ink">{t('角色名称')}</label>

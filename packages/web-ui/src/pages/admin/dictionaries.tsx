@@ -2,12 +2,12 @@
 // Description: Dictionary console: selectable type list with create/rename/delete plus a full item replacement editor.
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { BookMarked, Pencil, Plus, RotateCcw, Save, Trash2 } from 'lucide-react';
+import { BookMarked, Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import type { DictionaryCreateInput, DictionaryItemEntry, DictionaryList, DictionarySummary, DictionaryUpdateInput, WebClient } from '@unicore/sdk';
 import { t, useLocale } from '../../i18n';
 import { AppField, AppForm, useAppForm } from '@unicore/form';
 import { cn } from '@unicore/ui/cn';
-import { Badge, Button, Card, CardContent, ConfirmDialog, Input, Modal, NativeSelect, PageHeader, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage } from '@unicore/ui';
+import { Alert, Badge, Button, Card, CardContent, ConfirmDialog, Input, Modal, NativeSelect, PageHeader, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage } from '@unicore/ui';
 import type { PageProps } from '../../router';
 import type { Bootstrap } from '@unicore/sdk';
 import { usePermissions } from '../../permissions';
@@ -60,10 +60,7 @@ function DictionaryPanel({ web, metadata }: { web: WebClient; metadata: Bootstra
           {can('createDictionary') && <Button size="sm" onClick={() => setCreating(true)}><Plus size={14} />{t('新建')}</Button>}
         </div>
         {list.isPending && <p role="status" className="py-4 text-center text-xs text-muted">{t('正在加载字典类型…')}</p>}
-        {list.isError && <div role="alert" className="flex flex-col items-start gap-2 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-xs text-danger">
-          <span>{t(list.error.message)}</span>
-          <Button variant="secondary" size="sm" onClick={() => void list.refetch()}><RotateCcw size={13} />{t('重试')}</Button>
-        </div>}
+        {list.isError && <Alert action={<Button variant="secondary" size="sm" onClick={() => void list.refetch()}>{t('重试')}</Button>}>{t(list.error.message)}</Alert>}
         {list.data && <div className="flex flex-col gap-1.5">
           {types.map(type => <button key={type.id} type="button" aria-pressed={type.id === activeId} onClick={() => setSelected(type.id)}
             className={cn('flex min-w-0 items-center justify-between gap-2 rounded-lg border px-3 py-2 text-start text-sm outline-none focus-visible:ring-2 focus-visible:ring-focus',

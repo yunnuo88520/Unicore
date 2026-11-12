@@ -7,7 +7,7 @@ import { Copy, Download, Link2, Monitor, ShieldCheck, Smartphone, Unlink, UserRo
 import QRCode from 'qrcode';
 import type { AccountProfile, AppClient, TOTPSetup, WebClient } from '@unicore/sdk';
 import { t, useLocale } from '../i18n';
-import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Modal, ConfirmDialog, useMessage } from '@unicore/ui';
+import { Alert, Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, ConfirmDialog, Input, Modal, useMessage } from '@unicore/ui';
 import { AppField, AppForm, StaticField, useAppForm } from '@unicore/form';
 import { useRouteSearch, type PageProps } from '../router';
 import { PasswordDialog } from '../password-dialog';
@@ -242,7 +242,7 @@ function EnterpriseAccountSecurity({ web, userID, onOidcConsumed, onChanged }: {
       <Badge variant={linked ? 'success' : 'subtle'}>{linked ? t('已绑定') : t('未绑定')}</Badge>
     </CardHeader>
     <CardContent className="flex flex-col gap-3">
-      {result && <p role="alert" className="rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">{result}</p>}
+      {result && <Alert>{result}</Alert>}
       <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-3">
         <StaticField label={t('企业登录')}>{info.enabled ? info.provider_name : t('实例尚未启用')}</StaticField>
         <StaticField label={t('本地密码')}>{info.has_local_password ? t('可用') : t('尚未设置')}</StaticField>

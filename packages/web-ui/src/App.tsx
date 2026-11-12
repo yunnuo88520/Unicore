@@ -8,7 +8,7 @@ import { VersionBadge, workspaceLinks } from './shell-tools';
 import { useLocale, t } from './i18n';
 import { productName } from './product.gen';
 import { WorkspaceLayout } from './workspace-layout';
-import { MessageProvider } from '@unicore/ui';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbSeparator, MessageProvider } from '@unicore/ui';
 import { SiteFooter } from './site-footer';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { RouterProvider, Outlet, Navigate, createBrowserHistory, useRouter, useRouterState, type RouterHistory } from '@tanstack/react-router';
@@ -337,9 +337,11 @@ function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onO
             <span className="hidden h-6 w-px bg-line sm:block" aria-hidden="true" />
           </>
         : <button className="mobile-menu size-7 items-center justify-center rounded-md text-muted hover:bg-primary-soft hover:text-accent max-md:-ms-1" aria-label={t('打开导航')} aria-expanded={mobileOpen} aria-controls="workspace-navigation" onClick={onOpenMobile}><Menu size={18} /></button>}
-      <span className="hidden max-lg:inline">{t('工作空间')}</span>
-      <ChevronRight size={14} className="hidden max-md:block max-lg:hidden text-subtle" aria-hidden="true" />
-      <h1 className="topbar-title m-0 truncate font-medium text-ink">{page === 'site' ? settingsLabel : t(routes[page].label)}</h1>
+      <Breadcrumb>
+        <BreadcrumbItem className="hidden max-lg:inline">{t('工作空间')}</BreadcrumbItem>
+        <BreadcrumbSeparator className="hidden max-md:block max-lg:hidden" />
+        <h1 aria-current="page" className="topbar-title m-0 min-w-0 truncate font-medium text-ink">{page === 'site' ? settingsLabel : t(routes[page].label)}</h1>
+      </Breadcrumb>
     </div>
     <div className="flex shrink-0 items-center gap-2 max-md:gap-1.5">
       <span className="flex items-center gap-1.5 text-[length:var(--font-10)] text-muted max-sm:hidden">

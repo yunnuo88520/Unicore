@@ -6,11 +6,7 @@ import {
   ArrowDown, ArrowUp, ChevronsDown, ChevronsUp, ChevronDown, ChevronRight, Copy, FolderTree, Link2, ListTree,
   MoreHorizontal, MousePointerClick, Pencil, Plus, RotateCcw, Save, Search, SquarePen, Trash2, type LucideIcon,
 } from 'lucide-react';
-import {
-  Badge, Button, Card, CardContent, ConfirmDialog, DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuTrigger, Checkbox, Input, Modal, SimpleSelect, Switch,
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow, useMessage,
-} from '@unicore/ui';
+import { Alert, Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Modal, SimpleSelect, Switch, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, useMessage } from '@unicore/ui';
 import { AppError, type AppClient, type Bootstrap, type MenuList, type MenuSaveInput, type NavigationNode, type NavigationSection, type RoleList, type WebClient } from '@unicore/sdk';
 import {
   buildMenuTree, copyMenuNode, defaultNavigation, filterMenuTree, isRegisteredPage, menuNodeLabel, menuNodeTarget,
@@ -464,10 +460,7 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
 }
 
 function LoadError({ error, onRetry }: { error: { message: string }; onRetry: () => void }) {
-  return <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
-    <span>{t(error.message)}</span>
-    <Button variant="secondary" size="sm" onClick={onRetry}><RotateCcw size={13} />{t('重试')}</Button>
-  </div>;
+  return <Alert action={<Button variant="secondary" size="sm" onClick={onRetry}>{t('重试')}</Button>}>{t(error.message)}</Alert>;
 }
 
 // The shared Switch renders no accessible name of its own; wrap it in a label

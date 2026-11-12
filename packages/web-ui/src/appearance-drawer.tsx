@@ -1,9 +1,9 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Device preference schema, direction-stable previews and an accessible side drawer.
-import { Check, Languages, RotateCcw, X } from 'lucide-react';
+import { Check, Languages, RotateCcw } from 'lucide-react';
 import { preferenceOptions, resetAppearance, setPreferences, usePreferences, type PreferenceKey, type Preferences } from '@unicore/theme/preferences';
 import { defineMessages, t, useI18n } from './i18n';
-import { Button, Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from '@unicore/ui';
+import { Button, DialogDescription, Drawer, DrawerContent } from '@unicore/ui';
 import { cn } from '@unicore/ui/cn';
 
 type PreferenceLabels = { [K in PreferenceKey]: Record<Preferences[K], string> };
@@ -107,27 +107,16 @@ export function AppearanceControls() {
 
 export function AppearanceDrawer({ onClose }: { onClose: () => void }) {
   const { t } = useI18n();
-  return <Dialog open onOpenChange={open => { if (!open) onClose(); }}>
-    <DialogContent showClose={false} dir="ltr" aria-labelledby="appearance-drawer-title" aria-describedby="appearance-drawer-description"
-      className="inset-y-0 end-0 start-auto top-0 h-dvh max-h-none w-[min(384px,100%)] max-w-none translate-x-0 translate-y-0 rounded-none rounded-s-xl border-0 border-s p-0">
-      <div className="flex h-full flex-col">
-        <header className="flex shrink-0 items-start justify-between gap-3.5 border-b border-line px-4 py-4">
-          <div>
-            <DialogTitle id="appearance-drawer-title" className="text-base font-semibold text-ink">{t('主题设置')}</DialogTitle>
-            <DialogDescription id="appearance-drawer-description" className="mt-1 text-xs text-muted">{t('按你的偏好调整外观与布局。')}</DialogDescription>
-          </div>
-          <DialogClose asChild>
-            <button className="inline-flex size-7 items-center justify-center rounded-md text-muted transition-colors outline-none hover:bg-primary-soft hover:text-accent focus-visible:ring-2 focus-visible:ring-focus" aria-label={t('关闭主题设置')}><X size={16} /></button>
-          </DialogClose>
-        </header>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
-          <AppearanceControls />
-        </div>
-        <footer className="flex shrink-0 flex-col gap-3 border-t border-line px-4 py-3">
-          <small className="text-xs text-muted">{t('即时生效，仅保存在当前客户端。')}</small>
-          <Button variant="secondary" onClick={resetAppearance}><RotateCcw size={15} aria-hidden="true" />{t('重置外观')}</Button>
-        </footer>
+  return <Drawer open onOpenChange={open => { if (!open) onClose(); }}>
+    <DrawerContent dir="ltr" title={t('主题设置')}>
+      <DialogDescription className="mt-0 text-xs text-muted">{t('按你的偏好调整外观与布局。')}</DialogDescription>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-2" dir="ltr">
+        <AppearanceControls />
       </div>
-    </DialogContent>
-  </Dialog>;
+      <footer className="flex shrink-0 flex-col gap-3 border-t border-line py-3">
+        <small className="text-xs text-muted">{t('即时生效，仅保存在当前客户端。')}</small>
+        <Button variant="secondary" onClick={resetAppearance}><RotateCcw size={15} aria-hidden="true" />{t('重置外观')}</Button>
+      </footer>
+    </DrawerContent>
+  </Drawer>;
 }

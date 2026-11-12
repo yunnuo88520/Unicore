@@ -4,10 +4,10 @@
 import { useState } from 'react';
 import { Activity, Braces, Download, Globe2, Layers3, Monitor, NotebookPen, Plus, Settings2, UserPlus } from 'lucide-react';
 import {
-  Avatar, Badge, Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle,
+  Alert, Avatar, Badge, Breadcrumb, BreadcrumbItem, BreadcrumbSeparator, Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle,
   Checkbox, ConfirmDialog, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
-  EmptyState, Input, Label, Modal, NativeSelect, PageHeader, Progress, Separator, SimpleSelect, Skeleton,
+  Drawer, DrawerContent, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+  EmptyState, Input, Kbd, Label, Modal, NativeSelect, PageHeader, Popover, PopoverContent, PopoverTrigger, Progress, RadioGroup, RadioGroupItem, Separator, SimpleSelect, Skeleton,
   StatCard, Switch, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Tabs, Textarea, Tooltip, useMessage,
 } from '@unicore/ui';
 import { defineMessages, t, useLocale } from '../i18n';
@@ -25,6 +25,8 @@ export function UiPreviewPage(_: PageProps) {
   const [dialog, setDialog] = useState(false);
   const [modal, setModal] = useState(false);
   const [confirm, setConfirm] = useState(false);
+  const [drawer, setDrawer] = useState(false);
+  const [radio, setRadio] = useState('one');
   const [tab, setTab] = useState('overview');
   const [select, setSelect] = useState('one');
   const [checked, setChecked] = useState(true);
@@ -218,6 +220,53 @@ export function UiPreviewPage(_: PageProps) {
     <section className="flex flex-col gap-3" aria-label={t('页头与操作')}>
       <PageHeader title={t('页头与操作')} description={t('对话框正文文案，用于检查排版与按钮顺序。')}
         actions={<><Button size="sm" variant="secondary"><Download size={14} />{t('下载导入模板')}</Button><Button size="sm"><UserPlus size={14} />{t('导入用户')}</Button></>} />
+    </section>
+
+    <section className="flex flex-col gap-3" aria-label={t('警告横幅')}>
+      <PageHeader title={t('警告横幅')} />
+      <div className="flex flex-col gap-2">
+        <Alert variant="danger" title={t('保存失败')}>{t('网络超时，请重试。')}</Alert>
+        <Alert variant="warning">{t('此操作不可撤销。')}</Alert>
+        <Alert variant="info">{t('对话框正文文案，用于检查排版与按钮顺序。')}</Alert>
+        <Alert variant="success" action={<Button size="sm" variant="secondary">{t('重试')}</Button>}>{t('操作成功')}</Alert>
+      </div>
+    </section>
+
+    <section className="flex flex-col gap-3" aria-label={t('抽屉')}>
+      <PageHeader title={t('抽屉')} />
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="secondary" onClick={() => setDrawer(true)}>{t('打开抽屉')}</Button>
+      </div>
+      {drawer && <Drawer open onOpenChange={setDrawer}>
+        <DrawerContent title={t('面板标题')}>
+          <p className="text-sm text-muted">{t('对话框正文文案，用于检查排版与按钮顺序。')}</p>
+        </DrawerContent>
+      </Drawer>}
+    </section>
+
+    <section className="flex flex-col gap-3" aria-label={t('气泡')}>
+      <PageHeader title={t('气泡')} />
+      <div className="flex flex-wrap items-center gap-2">
+        <Popover>
+          <PopoverTrigger asChild><Button variant="secondary">{t('打开气泡')}</Button></PopoverTrigger>
+          <PopoverContent>{t('对话框正文文案，用于检查排版与按钮顺序。')}</PopoverContent>
+        </Popover>
+        <span className="flex items-center gap-1.5 text-sm text-muted">{t('快捷键')}<Kbd>⌘</Kbd><Kbd>K</Kbd></span>
+        <Breadcrumb>
+          <BreadcrumbItem>{t('工作空间')}</BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem current>{t('面包屑')}</BreadcrumbItem>
+        </Breadcrumb>
+      </div>
+    </section>
+
+    <section className="flex flex-col gap-3" aria-label={t('单选组')}>
+      <PageHeader title={t('单选组')} />
+      <RadioGroup label={t('单选组')} value={radio} onValueChange={setRadio}>
+        <RadioGroupItem value="one" itemLabel={t('选项一')}>{t('选项一')}</RadioGroupItem>
+        <RadioGroupItem value="two" itemLabel={t('选项二')}>{t('选项二')}</RadioGroupItem>
+        <RadioGroupItem value="three" itemLabel={t('选项三')}>{t('选项三')}</RadioGroupItem>
+      </RadioGroup>
     </section>
   </div>;
 }

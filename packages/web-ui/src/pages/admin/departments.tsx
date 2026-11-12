@@ -2,13 +2,13 @@
 // Description: Department tree console: create, rename, reorder and delete nodes with hierarchy guides and guarded deletion.
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Network, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Network, Pencil, Plus, Trash2 } from 'lucide-react';
 import { AppError } from '@unicore/sdk';
 import type { Bootstrap, Department, DepartmentSaveInput, WebClient } from '@unicore/sdk';
 import { t, useLocale } from '../../i18n';
 import { buildDepartmentTree, departmentSiblings, flattenDepartmentTree, invalidateAfter, useDepartmentsQuery, type DepartmentNode } from '../../queries';
 import { usePermissions } from '../../permissions';
-import { Button, Card, CardContent, ConfirmDialog, Input, Modal, NativeSelect, PageHeader, useMessage } from '@unicore/ui';
+import { Alert, Button, Card, CardContent, ConfirmDialog, Input, Modal, NativeSelect, PageHeader, useMessage } from '@unicore/ui';
 import type { PageProps } from '../../router';
 
 export function AdminDepartmentsPage({ client, metadata }: PageProps) {
@@ -121,10 +121,7 @@ function DepartmentPanel({ web, metadata }: { web: WebClient; metadata: Bootstra
     <CardContent className="flex flex-col gap-4">
       <PageHeader title={t('部门管理')} description={t('维护部门层级，为角色的数据范围提供组织依据。')}
         actions={can('createDepartment') && <Button onClick={() => setCreating('root')}><Plus size={15} />{t('新建根部门')}</Button>} />
-      {list.isError && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
-        <span>{t(list.error.message)}</span>
-        <Button variant="secondary" size="sm" onClick={() => void list.refetch()}><RotateCcw size={13} />{t('重试')}</Button>
-      </div>}
+      {list.isError && <Alert action={<Button variant="secondary" size="sm" onClick={() => void list.refetch()}>{t('重试')}</Button>}>{t(list.error.message)}</Alert>}
       <div className="rounded-lg border border-line p-2" aria-busy={list.isFetching}>
         {list.isPending
           ? <p className="py-8 text-center text-sm text-muted" role="status">{t('正在加载部门…')}</p>

@@ -7,6 +7,12 @@ export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 export { StatCard, type StatCardProps } from './stat-card';
 export { EmptyState, type EmptyStateProps } from './empty-state';
 export { PageHeader, type PageHeaderProps } from './page-header';
+export { Alert, type AlertProps } from './alert';
+export { Drawer, DrawerTrigger, DrawerClose, DrawerContent } from './drawer';
+export { Popover, PopoverTrigger, PopoverAnchor, PopoverClose, PopoverContent } from './popover';
+export { RadioGroup, RadioGroupItem } from './radio-group';
+export { Breadcrumb, BreadcrumbItem, BreadcrumbSeparator } from './breadcrumb';
+export { Kbd } from './kbd';
 export { Separator, Skeleton, Avatar, Progress } from './misc';
 export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableEmpty } from './table';
 export { Dialog, DialogTrigger, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Modal, AlertDialog, AlertDialogTrigger, ConfirmDialog } from './dialog';

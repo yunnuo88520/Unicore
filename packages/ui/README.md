@@ -1,13 +1,13 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # @unicore/ui
 
-Unicore 共享 UI 原语层：基于 Radix UI + Tailwind v4 设计令牌的 20 个无业务组件，主题通过 CSS 变量（`@unicore/theme`）驱动，组件本身不含颜色字面量、不调用业务接口。
+Unicore 共享 UI 原语层：基于 Radix UI + Tailwind v4 设计令牌的 26 个无业务组件，主题通过 CSS 变量（`@unicore/theme`）驱动，组件本身不含颜色字面量、不调用业务接口。
 
 ## 组成
 
 | 模块 | 导入路径 | 说明 |
 | --- | --- | --- |
-| 组件 barrel | `@unicore/ui` | Button/Badge/Card/StatCard/EmptyState/PageHeader/Input/Checkbox/Switch/Select/Tabs/Dialog/Modal/ConfirmDialog/DropdownMenu/Table/Tooltip/Message 等 |
+| 组件 barrel | `@unicore/ui` | Alert/Breadcrumb/Button/Card/Drawer/EmptyState/Kbd/PageHeader/Popover/RadioGroup/StatCard/Input/Checkbox/Switch/Select/Tabs/Dialog/Modal/ConfirmDialog/DropdownMenu/Table/Tooltip/Message 等 |
 | `cn` | `@unicore/ui/cn` | clsx + tailwind-merge |
 | i18n 桩 | `@unicore/ui/i18n` | `t`/`useLocale`/`useI18n`/`defineMessages`/`setTranslator` |
 | 消息 | `@unicore/ui/message` | MessageProvider/useMessage（五态、自动消失） |

@@ -8,7 +8,7 @@ import { Braces, Eye, MailCheck, RotateCcw, Save, Send } from 'lucide-react';
 import type { MailTemplate, MailTemplateInput, MailTemplateTestInput, WebClient } from '@unicore/sdk';
 import { defineMessages, t, useI18n } from '../../i18n';
 import { AppForm, useAppForm } from '@unicore/form';
-import { Button, Card, CardContent, Input, Label, Modal, Tabs, useMessage } from '@unicore/ui';
+import { Alert, Button, Card, CardContent, Input, Label, Modal, Tabs, useMessage } from '@unicore/ui';
 import { RichTextEditor, type RichTextHandle } from '@unicore/ui/editor';
 import type { PageProps } from '../../router';
 
@@ -83,10 +83,7 @@ function MailTemplatePanel({ web }: { web: WebClient }) {
         onChange={id => { if (!pending) setPurpose(id as MailTemplateInput['purpose']); }}
         items={Object.entries(purposes).map(([id, label]) => ({ id, label: t(label), dirty: isDirty(id) }))} />
       {query.isPending && <p role="status" className="py-6 text-center text-sm text-muted">{t('正在读取邮件模板…')}</p>}
-      {query.isError && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
-        <span>{t(query.error.message)}</span>
-        <Button variant="secondary" size="sm" onClick={() => void query.refetch()}>{t('重试')}</Button>
-      </div>}
+      {query.isError && <Alert action={<Button variant="secondary" size="sm" onClick={() => void query.refetch()}>{t('重试')}</Button>}>{t(query.error.message)}</Alert>}
       {query.data && draft && <MailTemplateForm key={purpose} draft={draft} selected={selected} pending={pending}
         savePending={save.isPending} saveError={save.error} resetToken={resetToken}
         onDraftChange={onDraftChange} onSave={values => save.mutate(values)}

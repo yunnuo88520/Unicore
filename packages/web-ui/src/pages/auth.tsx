@@ -9,7 +9,7 @@ import { AppError, validate, type EmailChallenge, type WebClient } from '@unicor
 import { useRouteSearch, useSessionNotice, type PageProps } from '../router';
 import { BrandLockup } from '../brand';
 import { HumanCheck, type HumanCheckProvider } from '../human-check';
-import { Button, Input } from '@unicore/ui';
+import { Alert, Button, Input } from '@unicore/ui';
 import { buttonVariants } from '@unicore/ui';
 import { AppField, AppForm, useAppForm } from '@unicore/form';
 import { cn } from '@unicore/ui/cn';
@@ -382,7 +382,7 @@ function EnterpriseLoginBlock({ web }: { web: WebClient }) {
   const query = useQuery({ queryKey: ['oidc-public'], queryFn: () => web.oidcInfo() });
   const start = useMutation({ mutationFn: () => web.oidcStart(), onSuccess: data => window.location.assign(data.authorization_url) });
   return <div className="mt-5 flex flex-col gap-2">
-    {result && <p role="alert" className="rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">{result}</p>}
+    {result && <Alert>{result}</Alert>}
     {query.isPending && <p role="status" className="text-sm text-muted">{t('正在读取企业登录方式…')}</p>}
     {query.error && <p role="alert" className="flex flex-wrap items-center gap-2 text-sm text-danger">{t(query.error.message)}
       <button type="button" className="text-accent underline-offset-2 hover:underline" onClick={() => query.refetch()}>{t('重试')}</button>

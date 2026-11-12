@@ -12,7 +12,8 @@
 | 本地偏好 | `@unicore/theme/preferences` / ClientControls | 唯一设备状态入口；不得用业务设置 API 或独立 localStorage |
 | 主题与布局控件 | AppearanceDrawer / AppearanceControls | 选项来自 preferenceOptions，标签满足完整类型映射；控件固定 LTR，工作区统一 LTR |
 | 表单与校验 | `@unicore/form` / useAppForm、AppForm、AppField | 契约约束经 constraintsToZod 生成 Zod schema 驱动 RHF；label/hint 收已翻译 ReactNode；服务端 AppError.fields 用 applyServerError 合并（聚焦限本表单）、pending 防重；新实体用 Modal/ConfirmDialog |
-| 反馈与控件 | `@unicore/ui`（useMessage / Modal / Tabs / Switch / Tooltip / Table 等） | 使用统一消息、焦点/关闭和键盘行为，避免自写重复弹层；TanStack Table 渲染列表用 ui/table |
+| 反馈与控件 | `@unicore/ui`（useMessage / Modal / Tabs / Switch / Tooltip / Table 等） | 使用统一消息、焦点/关闭和键盘行为，避免自写重复弹层 |
+| 数据列表 | `packages/web-ui/src/components/data-table`（DataTable / DataTableToolbar / DataTablePagination / DataTableSortHeader / DataTableRowActions / DataTableEmpty） | 列表页统一使用共享数据表格套件呈现（工具栏、骨架加载、错误重试、空态、分页），禁止逐页手写 TanStack Table 装配循环；页面仍负责取数、权限与列定义 |
 | 富文本 | `@unicore/ui/editor` / RichTextEditor | Tiptap 受限标签、选择范围、变量插入、源码净化、纯文本粘贴；服务端再次校验，场景页复用组件 |
 | 图表与列设置 | widgets/activity.tsx / column-visibility.ts | Recharts 读取真实管理员统计；useColumnVisibility 按表 key 保存设备偏好，列隐藏不影响授权或导出 |
 | 视觉基础 | `@unicore/theme/styles.css` / tokens.json | Tailwind v4 经 `@theme inline` 映射生成令牌；颜色/尺度使用语义令牌类，不写页面专属主题常量 |

@@ -8,6 +8,7 @@ import type { TaskEntry, WebClient } from '@unicore/sdk';
 import { AppControllerField, AppField, AppForm, useAppForm } from '@unicore/form';
 import { Badge, Button, Card, CardContent, ConfirmDialog, Input, Modal, NativeSelect, PageHeader, Switch as Toggle, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage } from '@unicore/ui';
 import { currentLocale, t, useI18n, useLocale } from '../../i18n';
+import { DataTableEmpty } from '../../components/data-table';
 import { invalidateAfter } from '../../queries';
 import { usePermissions } from '../../permissions';
 import type { PageProps } from '../../router';
@@ -88,11 +89,7 @@ export function AdminTasksPage({ client, metadata }: PageProps) {
           </TableHeader>
           <TableBody>
             {!items.length && <TableEmpty colSpan={COLUMN_COUNT}>
-              <span className="flex flex-col items-center gap-1.5 py-6">
-                <ListChecks size={24} className="text-subtle" aria-hidden="true" />
-                <strong className="text-sm text-ink">{t('暂无定时任务')}</strong>
-                <span className="text-xs text-muted">{t('当前实例没有注册任何后台任务。')}</span>
-              </span>
+              <DataTableEmpty icon={ListChecks} title={t('暂无定时任务')} hint={t('当前实例没有注册任何后台任务。')} />
             </TableEmpty>}
             {items.map(entry => <TableRow key={entry.name}>
               <TableCell><strong className="font-medium text-ink">{entry.name}</strong></TableCell>

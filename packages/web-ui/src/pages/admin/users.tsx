@@ -2,8 +2,8 @@
 // Description: Separate administrator/member lists on TanStack Table with contract-validated creation and status toggling.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { columnVisibilityFeature, createColumnHelper, createPaginatedRowModel, flexRender, rowPaginationFeature, tableFeatures, useTable, type PaginationState } from '@tanstack/react-table';
-import { RotateCcw, Settings2, UserPlus } from 'lucide-react';
+import { columnVisibilityFeature, createColumnHelper, createPaginatedRowModel, rowPaginationFeature, tableFeatures, useTable, type PaginationState } from '@tanstack/react-table';
+import { UserPlus } from 'lucide-react';
 import type { Bootstrap, User, UserCreate, WebClient } from '@unicore/sdk';
 import { defineMessages, t, useLocale } from '../../i18n';
 import { buildDepartmentTree, flattenDepartmentTree, invalidateAfter, useDepartmentsQuery, usePostsQuery } from '../../queries';
@@ -12,7 +12,8 @@ import { roleDisplayLabels } from '../../role-display';
 import { UserAvatar, displayLabel } from '../../user-avatar';
 import { useColumnVisibility } from '../../column-visibility';
 import { AppField, AppForm, useAppForm } from '@unicore/form';
-import { Badge, Button, Card, CardContent, Checkbox, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, Input, Modal, PageHeader, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage , NativeSelect} from '@unicore/ui';
+import { Badge, Button, Card, CardContent, Checkbox, Input, Modal, NativeSelect, PageHeader, useMessage } from '@unicore/ui';
+import { DataTable, DataTablePagination, DataTableToolbar } from '../../components/data-table';
 import type { PageProps } from '../../router';
 
 const features = tableFeatures({ rowPaginationFeature, columnVisibilityFeature, paginatedRowModel: createPaginatedRowModel() });
@@ -220,51 +221,14 @@ function UserListPanel({ web, metadata, administrators }: { web: WebClient; meta
           </>}
           {canCreate && <Button onClick={() => setCreating(true)}><UserPlus size={15} />{t('新增{{kind}}', { kind })}</Button>}
         </>} />
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Input aria-label={t('搜索{{v0}}', { v0: kind })} placeholder={t('搜索')} maxLength={128} className="h-9 max-w-xs flex-1"
-          value={search} onChange={event => { setSearch(event.target.value); setPagination(current => ({ ...current, pageIndex: 0 })); }} />
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted">{t('{{count}} 位{{kind}}', { count: list.data?.total ?? 0, kind })}</span>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label={t('列设置')}><Settings2 size={15} /></Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-40">
-              <DropdownMenuLabel>{t('显示列')}</DropdownMenuLabel>
-              {menu.map(column => <DropdownMenuItem key={column.id} onSelect={event => event.preventDefault()}>
-                <Checkbox checked={column.visible} onChange={value => toggle(column.id, value)} aria-label={column.label}>{column.label}</Checkbox>
-              </DropdownMenuItem>)}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-      {list.isError && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
-        <span>{t(list.error.message)}</span>
-        <Button variant="secondary" size="sm" onClick={() => void list.refetch()}><RotateCcw size={13} />{t('重试')}</Button>
-      </div>}
-      <div className="rounded-lg border border-line" aria-busy={list.isFetching}>
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map(group => <TableRow key={group.id} className="hover:bg-transparent">
-              {group.headers.map(header => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}
-            </TableRow>)}
-          </TableHeader>
-          <TableBody>
-            {list.isPending
-              ? <TableEmpty colSpan={table.getVisibleLeafColumns().length}>{t('正在加载…')}</TableEmpty>
-              : table.getRowModel().rows.length
-                ? table.getRowModel().rows.map(row => <TableRow key={row.id}>
-                    {row.getVisibleCells().map(cell => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}
-                  </TableRow>)
-                : <TableEmpty colSpan={table.getVisibleLeafColumns().length}>{list.isError ? t(list.error.message) : t('没有匹配的{{kind}}', { kind })}</TableEmpty>}
-          </TableBody>
-        </Table>
-      </div>
-      <div className="flex items-center justify-between gap-3 text-xs text-muted">
-        <Button variant="secondary" size="sm" disabled={!table.getCanPreviousPage()} onClick={() => table.previousPage()}>{t('上一页')}</Button>
-        <span>{t('第 {{page}} 页', { page: pagination.pageIndex + 1 })}</span>
-        <Button variant="secondary" size="sm" disabled={!table.getCanNextPage() || list.isFetching} onClick={() => table.nextPage()}>{t('下一页')}</Button>
-      </div>
+      <DataTableToolbar
+        search={{ label: t('搜索{{v0}}', { v0: kind }), placeholder: t('搜索'), value: search, maxLength: 128,
+          onChange: value => { setSearch(value); setPagination(current => ({ ...current, pageIndex: 0 })); } }}
+        actions={<span className="text-xs text-muted">{t('{{count}} 位{{kind}}', { count: list.data?.total ?? 0, kind })}</span>}
+        columnMenu={{ entries: menu, onToggle: toggle }} />
+      <DataTable table={table} pending={list.isPending} busy={list.isFetching} error={list.error} onRetry={() => void list.refetch()}
+        empty={{ title: t('没有匹配的{{kind}}', { kind }) }} />
+      <DataTablePagination table={table} disabled={list.isFetching} />
     </CardContent>
     {importing && <UserImportDialog web={web} onClose={() => setImporting(false)} onImported={refresh} />}
     {creating && <UserCreateDialog web={web} kind={kind} role={role} administrators={administrators} postsEnabled={canPosts} onClose={() => setCreating(false)} onCreated={refresh} />}

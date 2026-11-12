@@ -2,15 +2,16 @@
 // Description: Announcement console on TanStack Table: visibility switch, batch deletion and modal editing with live preview.
 import { useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createColumnHelper, createPaginatedRowModel, flexRender, rowPaginationFeature, tableFeatures, useTable, type PaginationState, type TableOptions } from '@tanstack/react-table';
+import { createColumnHelper, createPaginatedRowModel, rowPaginationFeature, tableFeatures, useTable, type PaginationState, type TableOptions } from '@tanstack/react-table';
 import { Controller, useWatch } from 'react-hook-form';
 import { AppSelectField } from '@unicore/form/fields';
-import { ChevronLeft, ChevronRight, Eye, Megaphone, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { Eye, Megaphone, Pencil, Plus, Trash2 } from 'lucide-react';
 import type { AnnouncementEntry, AnnouncementInput, AnnouncementQuery, AnnouncementSelection, WebClient } from '@unicore/sdk';
 import { currentLocale, defineMessages, t, useI18n } from '../../i18n';
 import { AppField, AppForm, useAppForm } from '@unicore/form';
 import { Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, Input, Label, Modal, NativeSelect, PageHeader, Switch, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage } from '@unicore/ui';
 import { RichTextEditor } from '@unicore/ui/editor';
+import { DataTable, DataTablePagination, DataTableToolbar } from '../../components/data-table';
 import { RichContent } from '../../rich-content';
 import { AnnouncementType, announcementTypes } from '../../announcement-center';
 import type { PageProps } from '../../router';
@@ -20,7 +21,6 @@ import { usePermissions } from '../../permissions';
 const features = tableFeatures({ rowPaginationFeature, paginatedRowModel: createPaginatedRowModel() });
 const helper = createColumnHelper<typeof features, AnnouncementEntry>();
 const EMPTY_ITEMS: AnnouncementEntry[] = [];
-const COLUMN_COUNT = 9;
 const PAGE_SIZE = 10;
 const statuses = defineMessages({ draft: '草稿', published: '已发布', scheduled: '定时发布', archived: '已归档', expired: '已过期' });
 const notifyModes = defineMessages({ silent: '静默通知', popup: '弹窗提醒' });
@@ -198,59 +198,22 @@ function AnnouncementPanel({ web, metadata }: { web: WebClient; metadata: Bootst
       <CardContent className="flex flex-col gap-4">
         <PageHeader title={t('公告列表')} description={t('集中管理通知、发布计划与内部备注。')}
           actions={can('createAnnouncement') && <Button onClick={() => setEditor('new')}><Plus size={15} />{t('新增公告')}</Button>} />
-        <form className="flex flex-wrap items-center gap-2" onSubmit={event => { event.preventDefault(); setFilter({ search }); }}>
-          <label className="flex h-9 min-w-44 flex-1 items-center gap-2 rounded-md border border-line bg-surface px-3 text-base text-muted shadow-tint focus-within:border-focus focus-within:ring-2 focus-within:ring-focus sm:max-w-xs">
-            <Search size={15} aria-hidden="true" />
-            <input aria-label={t('搜索公告')} placeholder={t('搜索公告标题、内容或备注…')} maxLength={128} className="w-full min-w-0 bg-transparent text-ink outline-none placeholder:text-subtle"
-              value={search} onChange={event => setSearch(event.target.value)} />
-          </label>
+        <DataTableToolbar
+          search={{ label: t('搜索公告'), placeholder: t('搜索公告标题、内容或备注…'), value: search, maxLength: 128,
+            onChange: value => setSearch(value), onSubmit: () => setFilter({ search }) }}
+          actions={can('deleteAnnouncements') && <Button variant="secondary" disabled={!selection.length} onClick={() => setRemoving(selection)}>
+            <Trash2 size={14} />{t('批量删除')}{selection.length > 0 && <span className="rounded-full bg-danger-soft px-1.5 text-2xs text-danger">{selection.length}</span>}
+          </Button>}>
           <NativeSelect aria-label={t('公告状态')} className="h-9 w-auto" value={query.status} disabled={list.isFetching}
             onChange={event => setFilter({ status: event.target.value as AnnouncementQuery['status'] })}>
             <option value="">{t('全部状态')}</option>
             {Object.entries(statuses).map(([id, label]) => <option key={id} value={id}>{t(label)}</option>)}
           </NativeSelect>
-          <Button variant="secondary" type="submit">{t('搜索')}</Button>
-          {can('deleteAnnouncements') && <Button variant="secondary" type="button" className="ms-auto" disabled={!selection.length} onClick={() => setRemoving(selection)}>
-            <Trash2 size={14} />{t('批量删除')}{selection.length > 0 && <span className="rounded-full bg-danger-soft px-1.5 text-2xs text-danger">{selection.length}</span>}
-          </Button>}
-        </form>
-        {list.isError && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
-          <span>{t(list.error.message)}</span>
-          <Button variant="secondary" size="sm" onClick={() => void list.refetch()}>{t('重试')}</Button>
-        </div>}
-        <div className="announcement-table announcement-table-content rounded-lg border border-line" aria-busy={list.isFetching}>
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map(group => <TableRow key={group.id} className="hover:bg-transparent">
-                {group.headers.map(header => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}
-              </TableRow>)}
-            </TableHeader>
-            <TableBody>
-              {list.isPending
-                ? <TableEmpty colSpan={COLUMN_COUNT}>{t('正在读取公告…')}</TableEmpty>
-                : table.getRowModel().rows.map(row => <TableRow key={row.id}>
-                    {row.getAllCells().map(cell => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}
-                  </TableRow>)}
-              {!list.isPending && !items.length && <TableEmpty colSpan={COLUMN_COUNT}>
-                <span className="flex flex-col items-center gap-1.5 py-2">
-                  <Megaphone size={24} className="text-subtle" aria-hidden="true" />
-                  <strong className="text-sm text-ink">{t(query.search || query.status ? '没有匹配的公告' : '暂无公告')}</strong>
-                  <span className="text-xs text-muted">{t('新增公告，向用户传递平台消息。')}</span>
-                </span>
-              </TableEmpty>}
-            </TableBody>
-          </Table>
-        </div>
-        <div className="flex items-center justify-between gap-3 text-xs text-muted">
-          <span>{t('共 {{count}} 条公告', { count: list.data?.total ?? 0 })}</span>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" aria-label={t('上一页')} disabled={!table.getCanPreviousPage() || list.isFetching}
-              onClick={() => table.previousPage()}><ChevronLeft size={15} /></Button>
-            <span>{query.page} / {pages}</span>
-            <Button variant="ghost" size="icon" aria-label={t('下一页')} disabled={!table.getCanNextPage() || list.isFetching}
-              onClick={() => table.nextPage()}><ChevronRight size={15} /></Button>
-          </div>
-        </div>
+        </DataTableToolbar>
+        <DataTable table={table} pending={list.isPending} busy={list.isFetching} error={list.error} onRetry={() => void list.refetch()}
+          empty={{ icon: Megaphone, title: query.search || query.status ? t('没有匹配的公告') : t('暂无公告'), hint: t('新增公告，向用户传递平台消息。') }} />
+        <DataTablePagination page={query.page} pageSize={query.page_size} total={list.data?.total ?? 0}
+          onPageChange={page => { setQuery(current => ({ ...current, page })); setSelection([]); }} disabled={list.isFetching} />
       </CardContent>
     </Card>
     {readers && <AnnouncementReaders web={web} entry={readers} onClose={()=>setReaders(null)}/>}

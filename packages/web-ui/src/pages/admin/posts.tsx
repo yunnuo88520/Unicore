@@ -6,6 +6,7 @@ import { AppError } from '@unicore/sdk';
 import type { Post, PostSaveInput, WebClient } from '@unicore/sdk';
 import { AppControllerField, AppField, AppForm, useAppForm } from '@unicore/form';
 import { Button, Card, CardContent, ConfirmDialog, Input, Modal, Switch, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage } from '@unicore/ui';
+import { DataTableEmpty } from '../../components/data-table';
 import { t, useLocale } from '../../i18n';
 import { invalidateAfter, usePostsQuery } from '../../queries';
 import { usePermissions } from '../../permissions';
@@ -38,7 +39,7 @@ export function AdminPostsPage({ client, metadata }: PageProps) {
       {(list.data?.items ?? []).map(post => <TableRow key={post.id}><TableCell>{post.code}</TableCell><TableCell>{post.name}</TableCell><TableCell>{post.sort}</TableCell><TableCell>{post.enabled ? t('已启用') : t('已禁用')}</TableCell><TableCell className="max-w-64 break-words">{post.description || '—'}</TableCell><TableCell><div className="flex gap-2">
         {can('listUsers') && <Button variant="link" onClick={() => setMembers(post)}>{t('成员')}</Button>}{can('updatePost') && <Button variant="link" aria-label={t('编辑岗位 {{name}}', { name: post.name })} onClick={() => setEditor(post)}>{t('编辑')}</Button>}{can('deletePost') && <Button variant="link" aria-label={t('删除岗位 {{name}}', { name: post.name })} onClick={() => setRemoving(post)}>{t('删除')}</Button>}
       </div></TableCell></TableRow>)}
-      {!list.data?.items.length && <TableEmpty colSpan={6}>{list.isPending ? t('正在加载…') : t('暂无岗位')}</TableEmpty>}
+      {!list.data?.items.length && <TableEmpty colSpan={6}>{list.isPending ? t('正在加载…') : <DataTableEmpty title={t('暂无岗位')} hint={t('岗位用于组织成员，不会隐式授予角色或权限。')} />}</TableEmpty>}
     </TableBody></Table></div>
   </CardContent>
     {editor && <PostEditor web={web} post={editor === 'new' ? undefined : editor} onClose={() => setEditor(null)} onSaved={() => { setEditor(null); void invalidateAfter(cache, 'posts'); }} />}

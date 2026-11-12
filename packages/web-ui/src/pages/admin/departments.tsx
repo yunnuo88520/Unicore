@@ -8,7 +8,7 @@ import type { Bootstrap, Department, DepartmentSaveInput, WebClient } from '@uni
 import { t, useLocale } from '../../i18n';
 import { buildDepartmentTree, departmentSiblings, flattenDepartmentTree, invalidateAfter, useDepartmentsQuery, type DepartmentNode } from '../../queries';
 import { usePermissions } from '../../permissions';
-import { Button, Card, CardContent, ConfirmDialog, Input, Modal, NativeSelect, useMessage } from '@unicore/ui';
+import { Button, Card, CardContent, ConfirmDialog, Input, Modal, NativeSelect, PageHeader, useMessage } from '@unicore/ui';
 import type { PageProps } from '../../router';
 
 export function AdminDepartmentsPage({ client, metadata }: PageProps) {
@@ -119,13 +119,8 @@ function DepartmentPanel({ web, metadata }: { web: WebClient; metadata: Bootstra
 
   return <Card>
     <CardContent className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-md font-semibold text-ink">{t('部门管理')}</h2>
-          <p className="mt-0.5 text-xs text-muted">{t('维护部门层级，为角色的数据范围提供组织依据。')}</p>
-        </div>
-        {can('createDepartment') && <Button onClick={() => setCreating('root')}><Plus size={15} />{t('新建根部门')}</Button>}
-      </div>
+      <PageHeader title={t('部门管理')} description={t('维护部门层级，为角色的数据范围提供组织依据。')}
+        actions={can('createDepartment') && <Button onClick={() => setCreating('root')}><Plus size={15} />{t('新建根部门')}</Button>} />
       {list.isError && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
         <span>{t(list.error.message)}</span>
         <Button variant="secondary" size="sm" onClick={() => void list.refetch()}><RotateCcw size={13} />{t('重试')}</Button>

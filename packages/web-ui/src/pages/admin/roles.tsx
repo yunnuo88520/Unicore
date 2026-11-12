@@ -8,7 +8,7 @@ import type { Bootstrap, PermissionDefinition, Role, RoleList, WebClient } from 
 import { t, useLocale } from '../../i18n';
 import { invalidateAfter } from '../../queries';
 import { usePermissions } from '../../permissions';
-import { Badge, Button, Card, CardContent, ConfirmDialog, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage } from '@unicore/ui';
+import { Badge, Button, Card, CardContent, ConfirmDialog, PageHeader, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage } from '@unicore/ui';
 import { RoleEditor, dataScopeText } from './role-editor';
 import type { PageProps } from '../../router';
 
@@ -102,13 +102,8 @@ function RolePanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
   });
   return <Card>
     <CardContent className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-md font-semibold text-ink">{t('角色权限')}</h2>
-          <p className="mt-0.5 text-xs text-muted">{t('为用户组合业务与管理权限；super_admin 由系统维护。')}</p>
-        </div>
-        {canWrite && <Button onClick={() => setEditor({ mode: 'new' })}><Plus size={15} />{t('新建角色')}</Button>}
-      </div>
+      <PageHeader title={t('角色权限')} description={t('为用户组合业务与管理权限；super_admin 由系统维护。')}
+        actions={canWrite && <Button onClick={() => setEditor({ mode: 'new' })}><Plus size={15} />{t('新建角色')}</Button>} />
 
       {list.isError && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
         <span>{t(list.error.message)}</span>

@@ -9,7 +9,7 @@ import { ChevronLeft, ChevronRight, Eye, Megaphone, Pencil, Plus, Search, Trash2
 import type { AnnouncementEntry, AnnouncementInput, AnnouncementQuery, AnnouncementSelection, WebClient } from '@unicore/sdk';
 import { currentLocale, defineMessages, t, useI18n } from '../../i18n';
 import { AppField, AppForm, useAppForm } from '@unicore/form';
-import { Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, Input, Label, Modal, NativeSelect, Switch, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage } from '@unicore/ui';
+import { Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, Input, Label, Modal, NativeSelect, PageHeader, Switch, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage } from '@unicore/ui';
 import { RichTextEditor } from '@unicore/ui/editor';
 import { RichContent } from '../../rich-content';
 import { AnnouncementType, announcementTypes } from '../../announcement-center';
@@ -196,13 +196,8 @@ function AnnouncementPanel({ web, metadata }: { web: WebClient; metadata: Bootst
     </Card>
     <Card>
       <CardContent className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="text-md font-semibold text-ink">{t('公告列表')}</h2>
-            <p className="mt-0.5 text-xs text-muted">{t('集中管理通知、发布计划与内部备注。')}</p>
-          </div>
-          {can('createAnnouncement') && <Button onClick={() => setEditor('new')}><Plus size={15} />{t('新增公告')}</Button>}
-        </div>
+        <PageHeader title={t('公告列表')} description={t('集中管理通知、发布计划与内部备注。')}
+          actions={can('createAnnouncement') && <Button onClick={() => setEditor('new')}><Plus size={15} />{t('新增公告')}</Button>} />
         <form className="flex flex-wrap items-center gap-2" onSubmit={event => { event.preventDefault(); setFilter({ search }); }}>
           <label className="flex h-9 min-w-44 flex-1 items-center gap-2 rounded-md border border-line bg-surface px-3 text-base text-muted shadow-tint focus-within:border-focus focus-within:ring-2 focus-within:ring-focus sm:max-w-xs">
             <Search size={15} aria-hidden="true" />
@@ -386,7 +381,7 @@ function RecipientPicker({ web, selected, disabled, onChange }: { web: WebClient
   const users = useQuery({ queryKey: ['announcement-recipient-options', search, page], queryFn: () => web.users(search, page), placeholderData: keepPreviousData });
   return <div className="rounded-lg border border-line p-3">
     <p className="mb-2 text-xs text-muted">{t('已选择 {{count}} 位用户（最多 500 位）', { count: selected.length })}</p>
-    <Input aria-label={t('搜索接收用户')} placeholder={t('搜索账号或邮箱')} value={search} maxLength={128} disabled={disabled} onChange={event => { setSearch(event.target.value); setPage(1); }} />
+    <Input aria-label={t('搜索接收用户')} placeholder={t('搜索')} value={search} maxLength={128} disabled={disabled} onChange={event => { setSearch(event.target.value); setPage(1); }} />
     {users.isError ? <div role="alert" className="mt-2"><span className="text-xs text-danger">{t(users.error.message)}</span><Button variant="link" onClick={() => void users.refetch()}>{t('重试')}</Button></div>
       : users.isPending ? <p role="status" className="py-3 text-xs text-muted">{t('加载中…')}</p>
       : <div className="my-2 flex max-h-40 flex-col gap-2 overflow-y-auto">{users.data.items.map(user => <label key={user.id} className="flex items-center gap-2 text-sm"><Checkbox checked={selected.includes(user.id)} disabled={disabled || (!selected.includes(user.id) && selected.length >= 500)} onChange={checked => onChange(checked ? [...selected, user.id] : selected.filter(id => id !== user.id))} /><span className="min-w-0 truncate">{user.username} · {user.email}</span></label>)}{!users.data.items.length && <p className="text-xs text-muted">{t('没有匹配的用户')}</p>}</div>}
@@ -402,7 +397,7 @@ function AnnouncementReaders({ web, entry, onClose }: { web: WebClient; entry: A
   return <Modal title={t('阅读情况')} onClose={onClose}>
     <p className="mb-2 break-words text-sm font-semibold text-ink">{entry.title}</p>
     <p className="mb-3 text-xs text-muted">{t('接收范围按当前配置判断；已读时间记录首次打开或确认，不代表完整阅读。')}</p>
-    <Input aria-label={t('搜索阅读用户')} placeholder={t('搜索账号或邮箱')} maxLength={128} value={search} onChange={event => { setSearch(event.target.value); setPage(1); }} />
+    <Input aria-label={t('搜索阅读用户')} placeholder={t('搜索')} maxLength={128} value={search} onChange={event => { setSearch(event.target.value); setPage(1); }} />
     {query.isError ? <div role="alert" className="mt-3"><span className="text-sm text-danger">{t(query.error.message)}</span><Button variant="link" onClick={() => void query.refetch()}>{t('重试')}</Button></div>
       : <div className="mt-3 overflow-x-auto"><Table><TableHeader><TableRow><TableHead>{t('账号')}</TableHead><TableHead>{t('接收范围')}</TableHead><TableHead>{t('首次已读时间')}</TableHead></TableRow></TableHeader><TableBody>
           {query.isPending ? <TableEmpty colSpan={3}>{t('加载中…')}</TableEmpty> : query.data.items.map(user => <TableRow key={user.id}><TableCell><span className="block">{user.username}</span><small className="text-muted">{user.email}</small></TableCell><TableCell>{t(user.eligible ? '符合条件' : '不符合条件')}</TableCell><TableCell><span className="whitespace-nowrap">{user.read_at ? new Date(user.read_at * 1000).toLocaleString(currentLocale()) : t('未读')}</span></TableCell></TableRow>)}

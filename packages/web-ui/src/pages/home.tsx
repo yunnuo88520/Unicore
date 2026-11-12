@@ -11,28 +11,19 @@ import { SiteFooter } from '../site-footer';
 import { ClientControls } from '../client-controls';
 import { workspaceLinks } from '../shell-tools';
 import { cn } from '@unicore/ui/cn';
+import { Button } from '@unicore/ui';
 import type { PageProps } from '../router';
-
-const GRADIENT = 'bg-gradient-to-r from-[var(--color-primary)] via-[var(--color-accent-soft)] to-[var(--color-focus)] bg-clip-text text-transparent';
 
 /** Public landing page rendered by the shell for guests when site.home_enabled is on. */
 export function HomePage({ metadata }: PageProps) {
   useLocale();
   const router = useRouter();
-  const [scrolled, setScrolled] = useState(false);
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
   const jump = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   const version = metadata.version ? `v${metadata.version}` : '';
   return <div className="flex min-h-dvh flex-col bg-background text-ink">
-    <header className={cn('sticky top-0 z-40 transition-all duration-500 ease-out', scrolled && 'pt-2.5')}>
-      <div className={cn('mx-auto flex transition-all duration-500 ease-out', scrolled ? 'max-w-[52rem] px-3' : 'max-w-6xl px-4 md:px-6')}>
-        <nav aria-label={t('站点导航')} className={cn('flex h-16 w-full items-center justify-between gap-2 transition-all duration-500 ease-out',
-          scrolled && 'h-12 rounded-2xl bg-background/60 px-4 shadow-[0_2px_16px_-6px_var(--primary-shadow)] backdrop-blur-xl')}>
+    <header className="sticky top-0 z-40 border-b border-line bg-background">
+      <div className="mx-auto flex max-w-6xl px-4 md:px-6">
+        <nav aria-label={t('站点导航')} className="flex h-16 w-full items-center justify-between gap-2">
           {/* display:contents on BrandLockup makes its children flex items; keep logo+title glued together. */}
           <span className="flex items-center gap-2 text-lg font-semibold text-ink"><BrandLockup name={metadata.site_name} /></span>
           <div className="hidden min-w-0 items-center gap-0.5 lg:flex">
@@ -43,9 +34,9 @@ export function HomePage({ metadata }: PageProps) {
             <ClientControls />
             <span className="mx-2 h-4 w-px bg-line" aria-hidden="true" />
             <a className="rounded-lg px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:text-ink" href="/login" onClick={event => { event.preventDefault(); void router.navigate({ to: '/login' }); }}>{t('登录')}</a>
-            <button type="button" className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[var(--button-primary)] px-3.5 text-xs font-medium text-on-primary transition-colors hover:bg-[var(--button-hover)]" onClick={() => void router.navigate({ to: '/register' })}>
+            <Button size="sm" onClick={() => void router.navigate({ to: '/register' })}>
               {t('免费注册')}<ArrowRight size={13} aria-hidden="true" />
-            </button>
+            </Button>
           </div>
           <button type="button" className="grid size-9 place-items-center rounded-lg text-muted hover:bg-surface-alt hover:text-ink lg:hidden" aria-label={t('打开导航')}>
             <Menu size={18} aria-hidden="true" />
@@ -72,30 +63,28 @@ function NavButton({ label, onClick }: { label: string; onClick: () => void }) {
 function Hero({ metadata, version, onRegister }: { metadata: Bootstrap; version: string; onRegister: () => void }) {
   return <section className="relative overflow-hidden px-4 pb-16 pt-14 md:px-6 md:pb-24 md:pt-24 lg:pb-28 lg:pt-32">
     <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-      <span className="absolute -right-40 -top-40 size-96 rounded-full bg-[var(--color-primary)] opacity-20 blur-3xl" />
-      <span className="absolute -bottom-40 -left-40 size-96 rounded-full bg-[var(--color-accent-soft)] opacity-15 blur-3xl" />
       <span className="absolute inset-0 opacity-10 [mask-image:radial-gradient(ellipse_60%_52%_at_50%_28%,black_18%,transparent_100%)] [background-size:56px_56px] bg-[linear-gradient(to_right,var(--color-line)_1px,transparent_1px),linear-gradient(to_bottom,var(--color-line)_1px,transparent_1px)]" />
     </div>
     <div className="relative mx-auto grid max-w-6xl grid-cols-1 items-start gap-12 lg:grid-cols-12 lg:gap-8">
       <div className="flex flex-col items-start text-left lg:col-span-6">
         {version && <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--primary-border)] bg-[var(--primary-soft)] px-3 py-1.5 text-xs font-medium text-accent">
-          <span className="relative flex size-1.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" /><span className="relative inline-flex size-1.5 rounded-full bg-accent" /></span>
+          <span className="size-1.5 rounded-full bg-accent" aria-hidden="true" />
           {t('{{v0}} 现已发布', { v0: version })}
         </span>}
-        <h1 className="text-[clamp(2.1rem,4.5vw,3.1rem)] font-bold leading-[1.16] tracking-tight">
-          {t('一份核心，')}<br /><span className={GRADIENT}>{t('无限可能')}</span>
+        <h1 className="text-[clamp(2.1rem,4.5vw,3.1rem)] font-semibold leading-[1.16] tracking-tight">
+          {t('一份核心，')}<br />{t('运行于每个终端')}
         </h1>
         <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-muted [text-wrap:balance]">{metadata.site_description || t('自托管的一站式工作空间：文件、笔记、用户与通知开箱即用，几分钟完成部署。')}</p>
         <div className="mt-8 flex flex-wrap items-center gap-3">
-          <button type="button" className="group inline-flex h-11 items-center gap-1.5 rounded-lg bg-[var(--button-primary)] px-5 text-sm font-medium text-on-primary transition-colors hover:bg-[var(--button-hover)]" onClick={onRegister}>
+          <Button size="lg" className="group" onClick={onRegister}>
             {t('免费注册')}<ArrowRight size={15} aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-0.5" />
-          </button>
+          </Button>
           <a className="inline-flex h-11 items-center gap-2 rounded-lg border border-line bg-surface px-5 text-sm font-medium text-ink transition-colors hover:border-[var(--primary-border)] hover:text-accent" href={workspaceLinks.quickStart} target="_blank" rel="noopener noreferrer">
             <BookOpen size={15} aria-hidden="true" />{t('部署文档')}
           </a>
         </div>
         <div className="mt-10 w-full max-w-xl">
-          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-subtle">{t('兼容生态')}</p>
+          <p className="text-xs font-medium text-muted">{t('兼容生态')}</p>
           <p className="mt-1 text-xs text-muted">{t('从嵌入式 SQLite 到多节点 MySQL / PostgreSQL 集群，按规模自由选择。')}</p>
           <div className="mt-3.5 flex flex-wrap items-center gap-2.5">
             <EcoChip icon={<Database size={15} aria-hidden="true" />} label="MySQL" detail={t('· PostgreSQL · SQLite')} />
@@ -125,7 +114,7 @@ function TerminalDemo() {
   const accents = { install: { text: 'text-success', border: 'border-success', badge: 'bg-[var(--success-soft)] text-success', method: 'SH' }, api: { text: 'text-accent', border: 'border-accent', badge: 'bg-primary-soft text-accent', method: 'POST' }, backup: { text: 'text-info', border: 'border-info', badge: 'bg-[var(--info-soft)] text-info', method: 'GET' } } as const;
   const accent = accents[tab];
   const endpoint = tab === 'install' ? `./${productCommand} --listen 127.0.0.1:8080` : tab === 'api' ? '/api/v1/files — ' + t('上传与直传') : '/api/v1/admin/backups — ' + t('备份与恢复');
-  return <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-line bg-surface/95 shadow-[0_20px_50px_-25px_var(--primary-shadow)] backdrop-blur-sm">
+  return <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-line bg-surface/95 shadow-card backdrop-blur-sm">
     <div role="tablist" aria-label={t('示例')} className="flex items-center gap-0.5 border-b border-line px-2.5">
       {([['install', t('安装')], ['api', 'API'], ['backup', t('备份')]] as const).map(([id, label]) => (
         <button key={id} type="button" role="tab" aria-selected={tab === id}
@@ -133,7 +122,7 @@ function TerminalDemo() {
           onClick={() => setTab(id)}>{label}</button>
       ))}
       <span className="ml-auto flex items-center gap-2 pr-2">
-        <span className="size-1.5 rounded-full bg-success shadow-[0_0_8px_var(--success-soft)]" aria-hidden="true" />
+        <span className="size-1.5 rounded-full bg-success" aria-hidden="true" />
         <span className="font-mono text-[10px] uppercase tracking-wider text-subtle">200 OK</span>
       </span>
     </div>
@@ -143,7 +132,7 @@ function TerminalDemo() {
     </div>
     <div className="grid min-h-[264px] grid-rows-[150px_minmax(0,1fr)] font-mono text-[12.5px] leading-[1.6]">
       <div className="overflow-hidden px-5 py-3.5">
-        <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.18em] text-subtle">{tab === 'api' ? t('请求') : tab === 'backup' ? t('日志') : t('终端')}</p>
+        <p className="text-[10px] font-medium text-subtle">{tab === 'api' ? t('请求') : tab === 'backup' ? t('日志') : t('终端')}</p>
         <div className="mt-2 whitespace-pre-wrap break-words">
           {tab === 'install' && <TerminalInstall />}
           {tab === 'api' && <TerminalApi />}
@@ -151,7 +140,7 @@ function TerminalDemo() {
         </div>
       </div>
       <div className="overflow-hidden border-t border-dashed border-line px-5 py-3.5">
-        <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.18em] text-subtle">{tab === 'install' ? t('输出') : t('响应')}</p>
+        <p className="text-[10px] font-medium text-subtle">{tab === 'install' ? t('输出') : t('响应')}</p>
         <div className="mt-2 whitespace-pre-wrap break-words">
           {tab === 'install' && <TerminalInstallOutput />}
           {tab === 'api' && <TerminalApiResponse />}
@@ -243,7 +232,7 @@ function Stat({ end, suffix = '', label }: { end: number; suffix?: string; label
     return () => observer.disconnect();
   }, [end, suffix]);
   return <div className="flex flex-col items-center text-center">
-    <span ref={ref} className="text-2xl font-bold tracking-tight tabular-nums md:text-3xl">{`${end}${suffix}`}</span>
+    <span ref={ref} className="text-2xl font-semibold tracking-tight tabular-nums md:text-3xl">{`${end}${suffix}`}</span>
     <span className="mt-1.5 text-xs text-muted">{label}</span>
   </div>;
 }
@@ -252,8 +241,8 @@ function Stat({ end, suffix = '', label }: { end: number; suffix?: string; label
 function Features() {
   return <section id="home-features" aria-label={t('产品特性')} className="scroll-mt-24 px-4 py-20 md:px-6 md:py-28">
     <div className="mx-auto max-w-6xl">
-      <p className="mb-3 text-xs font-medium uppercase tracking-widest text-muted">{t('核心特性')}</p>
-      <h2 className="text-2xl font-bold leading-tight tracking-tight md:text-3xl">{t('为团队而生，')}<br />{t('为规模而设计')}</h2>
+      <p className="mb-3 text-xs font-medium text-muted">{t('核心特性')}</p>
+      <h2 className="text-2xl font-semibold leading-tight tracking-tight md:text-3xl">{t('为团队而生，')}<br />{t('为规模而设计')}</h2>
       <div className="mt-12 grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-line bg-line md:grid-cols-3">
         <BentoCell num="01" span title={t('文件存储')} desc={t('本地磁盘与 S3 / MinIO 对象存储，分片直传、签名下载与生命周期管理开箱即用。')}>
           <div className="mt-4 grid grid-cols-3 gap-2">
@@ -266,7 +255,7 @@ function Features() {
           <div className="mt-4 flex justify-center py-2">
             <span className="relative flex size-16 items-center justify-center rounded-2xl border border-[var(--success-soft)] bg-[var(--success-soft)]">
               <ShieldCheck size={26} aria-hidden="true" className="text-success" />
-              <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-success text-[9px] font-bold text-on-primary">✓</span>
+              <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-success text-[9px] font-semibold text-on-primary">✓</span>
             </span>
           </div>
         </BentoCell>
@@ -274,7 +263,7 @@ function Features() {
           <div className="mt-4 flex flex-col gap-2.5">
             {[t('角色隔离'), t('权限点控制'), t('审计追踪')].map((step, index) => (
               <div key={step} className="flex items-center gap-2.5">
-                <span className={cn('flex size-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold', index === 0 ? 'border-[var(--primary-border)] bg-primary-soft text-accent' : 'border-line bg-surface-alt text-muted')}>{index + 1}</span>
+                <span className={cn('flex size-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold', index === 0 ? 'border-[var(--primary-border)] bg-primary-soft text-accent' : 'border-line bg-surface-alt text-muted')}>{index + 1}</span>
                 <span className="h-px flex-1 bg-line" aria-hidden="true" />
                 <small className="text-xs text-muted">{step}</small>
               </div>
@@ -285,7 +274,7 @@ function Features() {
           <div className="mt-4 flex items-center gap-3">
             <span className="flex">
               {[<MessageCircle size={13} aria-hidden="true" key="w" />, <Webhook size={13} aria-hidden="true" key="h" />, <Mail size={13} aria-hidden="true" key="m" />, <TerminalIcon size={13} aria-hidden="true" key="t" />].map((icon, index) => (
-                <span key={index} className={cn('flex size-8 items-center justify-center rounded-full border-2 border-background bg-gradient-to-br from-surface-alt to-primary-soft text-muted', index > 0 && '-ms-2')}>{icon}</span>
+                <span key={index} className={cn('flex size-8 items-center justify-center rounded-full border-2 border-background bg-surface-alt text-muted', index > 0 && '-ms-2')}>{icon}</span>
               ))}
             </span>
             <small className="flex items-center gap-1.5 text-xs text-muted"><Webhook size={13} aria-hidden="true" className="text-info" />{t('多渠道事件路由')}</small>
@@ -331,14 +320,14 @@ function HowItWorks() {
   return <section id="home-how" aria-label={t('快速开始')} className="scroll-mt-24 border-t border-line px-4 py-20 md:px-6 md:py-28">
     <div className="mx-auto max-w-6xl">
       <div className="mb-14 text-center md:mb-20">
-        <p className="mb-3 text-xs font-medium uppercase tracking-widest text-muted">{t('快速开始')}</p>
-        <h2 className="text-2xl font-bold tracking-tight md:text-3xl">{t('三步，拥有你的工作空间')}</h2>
+        <p className="mb-3 text-xs font-medium text-muted">{t('快速开始')}</p>
+        <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">{t('三步，拥有你的工作空间')}</h2>
       </div>
       <div className="grid gap-11 md:grid-cols-3 md:gap-12">
         {steps.map((step, index) => <div key={step.title} className="relative flex flex-col items-center text-center">
           <div className="relative mb-5">
             <span className="flex size-[62px] items-center justify-center rounded-2xl border border-line bg-surface-alt/60 text-muted">{step.icon}</span>
-            <span className="absolute -right-2 -top-2 flex size-6 items-center justify-center rounded-full bg-[var(--color-ink)] text-xs font-bold text-[var(--color-background)]">{index + 1}</span>
+            <span className="absolute -right-2 -top-2 flex size-6 items-center justify-center rounded-full bg-[var(--color-ink)] text-xs font-semibold text-[var(--color-background)]">{index + 1}</span>
           </div>
           <h3 className="mb-2 text-base font-semibold">{step.title}</h3>
           <p className="max-w-[250px] text-sm leading-relaxed text-muted">{step.desc}</p>
@@ -348,20 +337,16 @@ function HowItWorks() {
   </section>;
 }
 
-/** Bare centered type over a soft radial mesh — no filled band, per the approved design. */
+/** Bare centered type over the plain background — no filled band, per the approved design. */
 function CallToAction({ onRegister }: { onRegister: () => void }) {
-  return <section aria-label={t('开始使用')} className="relative overflow-hidden px-4 py-24 md:px-6 md:py-32">
-    <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-20">
-      <span className="absolute left-[18%] top-[12%] h-[90%] w-[52%] rounded-full bg-[radial-gradient(ellipse,var(--color-primary)_0%,transparent_70%)] blur-2xl" />
-      <span className="absolute right-[12%] top-[4%] h-[76%] w-[40%] rounded-full bg-[radial-gradient(ellipse,var(--color-info)_0%,transparent_70%)] blur-2xl" />
-    </div>
-    <div className="relative mx-auto max-w-2xl text-center">
-      <h2 className="text-2xl font-bold leading-tight tracking-tight md:text-4xl">{t('准备好开始了吗？')}<br /><span className={GRADIENT}>{t('立即部署你的工作空间')}</span></h2>
+  return <section aria-label={t('开始使用')} className="px-4 py-24 md:px-6 md:py-32">
+    <div className="mx-auto max-w-2xl text-center">
+      <h2 className="text-2xl font-semibold leading-tight tracking-tight md:text-4xl">{t('准备好开始了吗？')}<br />{t('立即部署你的工作空间')}</h2>
       <p className="mx-auto mt-5 max-w-md text-sm leading-relaxed text-muted md:text-base">{t('在你的服务器上部署一套完整的自托管工作空间，从注册一个账号开始。')}</p>
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-        <button type="button" className="group inline-flex h-11 items-center gap-1.5 rounded-lg bg-[var(--button-primary)] px-5 text-sm font-medium text-on-primary transition-colors hover:bg-[var(--button-hover)]" onClick={onRegister}>
+        <Button size="lg" className="group" onClick={onRegister}>
           {t('免费注册')}<ArrowRight size={14} aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-0.5" />
-        </button>
+        </Button>
         <a className="inline-flex h-11 items-center rounded-lg border border-line bg-surface px-5 text-sm font-medium text-ink transition-colors hover:border-[var(--primary-border)] hover:text-accent" href={workspaceLinks.documentation} target="_blank" rel="noopener noreferrer">
           {t('查看部署文档')}
         </a>

@@ -6,7 +6,7 @@ import { ListChecks, Play } from 'lucide-react';
 import { AppError } from '@unicore/sdk';
 import type { TaskEntry, WebClient } from '@unicore/sdk';
 import { AppControllerField, AppField, AppForm, useAppForm } from '@unicore/form';
-import { Badge, Button, Card, CardContent, ConfirmDialog, Input, Modal, NativeSelect, Switch as Toggle, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage } from '@unicore/ui';
+import { Badge, Button, Card, CardContent, ConfirmDialog, Input, Modal, NativeSelect, PageHeader, Switch as Toggle, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage } from '@unicore/ui';
 import { currentLocale, t, useI18n, useLocale } from '../../i18n';
 import { invalidateAfter } from '../../queries';
 import { usePermissions } from '../../permissions';
@@ -67,16 +67,11 @@ export function AdminTasksPage({ client, metadata }: PageProps) {
   const executors = list.data?.executors ?? [];
   return <>
     <Card><CardContent className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-md font-semibold text-ink">{t('定时任务')}</h2>
-          <p className="mt-0.5 text-xs text-muted">{t('关闭的任务不再按计划执行，已保存的配置保持不变。自建任务只能调度已注册的执行器。')}</p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader title={t('定时任务')} description={t('关闭的任务不再按计划执行，已保存的配置保持不变。自建任务只能调度已注册的执行器。')}
+        actions={<>
           <span className="text-xs text-muted">{t('{{count}} 个任务', { count: items.length })}</span>
           {can('createTask') && <Button onClick={() => setEditor('new')}>{t('新增任务')}</Button>}
-        </div>
-      </div>
+        </>} />
       <div className="min-w-0 rounded-lg border border-line" aria-busy={list.isFetching || pending}>
         <Table className="min-w-[860px]">
           <TableHeader>

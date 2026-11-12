@@ -81,7 +81,7 @@ function AuthIllustration({ kind, step, verifyEmail }: { kind: 'login' | 'regist
           </span><span className="font-medium text-ink">{label}</span>
         </li>)}
       </ol>
-      <div aria-hidden="true" className="mx-auto mt-6 h-1.5 w-28 overflow-hidden rounded-full bg-primary-soft"><div className="h-full rounded-full bg-success transition-all" style={{ width: String(step / 3 * 100) + '%' }} /></div>
+      <div aria-hidden="true" className="mx-auto mt-6 h-1.5 w-28 overflow-hidden rounded-full bg-primary-soft"><div className="h-full rounded-full bg-success" style={{ width: String(step / 3 * 100) + '%' }} /></div>
     </div>;
   }
   const recovering = kind === 'forgot';
@@ -109,7 +109,7 @@ function AuthLayout({ siteName, administrator = false, mode, success = false, ch
       style={{ backgroundImage: 'radial-gradient(ellipse at top left, var(--color-primary-soft), transparent 70%), linear-gradient(145deg, var(--color-surface-alt), var(--color-primary-soft))' }}>
       <p className="text-xs font-semibold tracking-[0.22em] text-accent">{recovering ? t('账户恢复') : registering ? success ? t('准备就绪') : t('快速开始') : administrator ? t('管理控制台') : t('用户工作空间')}</p>
       <h2 className="mt-6 text-balance text-[clamp(2.1rem,3.3vw,3rem)] font-semibold leading-[1.3] tracking-tight text-ink">
-        {recovering ? t('安全地找回你的账户访问权限') : registering ? success ? t('账户已就绪，开启下一程') : t('创建账户，开启你的工作空间') : t('欢迎回来，继续你的每一种可能')}
+        {recovering ? t('安全地找回你的账户访问权限') : registering ? success ? t('账户已就绪') : t('创建你的账户') : t('登录你的工作空间')}
       </h2>
       <p className="mt-6 text-sm leading-7 text-muted">{recovering ? t('通过注册邮箱确认身份，重新设置密码，安心回到工作空间。') : registering ? success ? t('从一个账号出发，让项目、文件与想法有序连接。') : t('只需完成几步，即可开始管理项目、文件与账号。') : t('使用熟悉的账号，回到属于你的项目、文件与想法。')}</p>
       <AuthIllustration kind={recovering ? 'forgot' : registering ? 'register' : 'login'} step={success ? 3 : challenge ? 2 : 1} verifyEmail={verifyEmail} />

@@ -5,7 +5,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { AlertTriangle, Bell, CheckCheck, CheckCircle2, ChevronLeft, ChevronRight, Info, OctagonAlert } from 'lucide-react';
 import type { AnnouncementPublic, InboxEntry, WebClient } from '@unicore/sdk';
 import { currentLocale, defineMessages, t, useI18n } from './i18n';
-import { Badge, Button, Dialog, DialogContent, DialogHeader, DialogTitle, Tabs } from '@unicore/ui';
+import { Badge, Button, Dialog, DialogContent, DialogHeader, DialogTitle, EmptyState, Tabs } from '@unicore/ui';
 import { RichContent, contentSummary } from './rich-content';
 
 export const announcementTypes = defineMessages({ info: '通知', success: '好消息', warning: '注意事项', error: '重要提醒' });
@@ -71,7 +71,7 @@ export function AnnouncementCenter({ web }: { web: WebClient }) {
           </div>
           {feed.isPending ? <p role="status" className="py-10 text-center text-sm text-muted">{t('正在读取公告…')}</p>
             : feed.isError ? <div role="alert" className="py-8 text-center"><p className="mb-3 text-sm text-danger">{t('公告暂时无法加载')}</p><Button variant="secondary" onClick={() => void feed.refetch()}>{t('重试')}</Button></div>
-            : !feed.data?.items.length ? <div className="flex flex-col items-center gap-3 py-12 text-muted"><Bell size={32} /><p className="text-sm">{t('暂无公告')}</p></div>
+            : !feed.data?.items.length ? <EmptyState icon={Bell} description={t('暂无公告')} />
             : <div className="flex max-h-[55dvh] flex-col gap-1 overflow-y-auto" aria-busy={feed.isFetching}>
                 {feed.data.items.map(item => <button key={item.id} type="button" className="flex items-start gap-3 rounded-lg p-3 text-start hover:bg-surface-alt focus-visible:outline-focus" onClick={() => setSelected(item.id)}>
                   <span className={`mt-2 size-2 shrink-0 rounded-full ${item.read_at ? 'bg-line' : 'bg-accent'}`} aria-hidden="true" />
@@ -91,7 +91,7 @@ export function AnnouncementCenter({ web }: { web: WebClient }) {
           </div>
           {inbox.isPending ? <p role="status" className="py-10 text-center text-sm text-muted">{t('正在读取通知…')}</p>
             : inbox.isError ? <div role="alert" className="py-8 text-center"><p className="mb-3 text-sm text-danger">{t('通知暂时无法加载')}</p><Button variant="secondary" onClick={() => void inbox.refetch()}>{t('重试')}</Button></div>
-            : !inbox.data?.items.length ? <div className="flex flex-col items-center gap-3 py-12 text-muted"><Bell size={32} /><p className="text-sm">{t('暂无通知')}</p></div>
+            : !inbox.data?.items.length ? <EmptyState icon={Bell} description={t('暂无通知')} />
             : <div className="flex max-h-[55dvh] flex-col gap-1 overflow-y-auto" aria-busy={inbox.isFetching}>
                 {inbox.data.items.map(item => <InboxRow key={item.id} item={item} expanded={expanded === item.id}
                   onToggle={() => { setExpanded(current => current === item.id ? '' : item.id); if (!item.read_at) inboxRead.mutate(item.id); }} />)}

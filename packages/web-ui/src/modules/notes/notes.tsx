@@ -7,7 +7,7 @@ import type { AppClient, FileEntry, NoteEntry, NoteQuery } from '@unicore/sdk';
 import { currentLocale, t, useLocale } from '../../i18n';
 import { FileUploadDialog } from '../../file-upload-dialog';
 import { canAction } from '../../permissions';
-import { Badge, Button, Card, CardContent, Input, Modal, NativeSelect, Textarea, useMessage } from '@unicore/ui';
+import { Badge, Button, Card, CardContent, EmptyState, Input, Modal, NativeSelect, Textarea, useMessage } from '@unicore/ui';
 import { AppField, AppForm, useAppForm } from '@unicore/form';
 import type { PageProps } from '../../router';
 
@@ -80,18 +80,12 @@ export function NotesPage({ client, metadata }: PageProps) {
       </CardContent>
     </Card>
     {list.isPending
-      ? <Card><CardContent className="py-10 text-center text-sm text-muted" role="status">{t('正在读取笔记…')}</CardContent></Card>
+      ? <Card><EmptyState role="status" description={t('正在读取笔记…')} className="py-10" /></Card>
       : list.isError
-        ? <Card><CardContent className="flex flex-col items-center gap-2 py-10 text-center" role="alert">
-            <p className="text-sm text-muted">{t(list.error.message)}</p>
-            <Button variant="secondary" onClick={() => void list.refetch()}>{t('重试')}</Button>
-          </CardContent></Card>
+        ? <Card><EmptyState role="alert" description={t(list.error.message)} className="py-10"
+            action={<Button variant="secondary" onClick={() => void list.refetch()}>{t('重试')}</Button>} /></Card>
         : !list.data.items.length
-          ? <Card><CardContent className="flex flex-col items-center gap-1.5 py-12 text-center">
-              <NotebookPen size={36} className="text-subtle" aria-hidden="true" />
-              <strong className="text-md font-semibold text-ink">{query.search || query.status ? t('没有符合条件的笔记') : t('让第一条想法落在这里')}</strong>
-              <p className="text-sm text-muted">{t('新建一条笔记，记录值得跟进的事。')}</p>
-            </CardContent></Card>
+          ? <Card><EmptyState icon={NotebookPen} title={query.search || query.status ? t('没有符合条件的笔记') : t('让第一条想法落在这里')} description={t('新建一条笔记，记录值得跟进的事。')} /></Card>
           : <>
               <div className="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {list.data.items.map(note => <article key={note.id} className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-4 shadow-card">

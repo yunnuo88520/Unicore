@@ -12,7 +12,7 @@ import { roleDisplayLabels } from '../../role-display';
 import { UserAvatar, displayLabel } from '../../user-avatar';
 import { useColumnVisibility } from '../../column-visibility';
 import { AppField, AppForm, useAppForm } from '@unicore/form';
-import { Badge, Button, Card, CardContent, Checkbox, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, Input, Modal, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage , NativeSelect} from '@unicore/ui';
+import { Badge, Button, Card, CardContent, Checkbox, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, Input, Modal, PageHeader, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage , NativeSelect} from '@unicore/ui';
 import type { PageProps } from '../../router';
 
 const features = tableFeatures({ rowPaginationFeature, columnVisibilityFeature, paginatedRowModel: createPaginatedRowModel() });
@@ -211,21 +211,17 @@ function UserListPanel({ web, metadata, administrators }: { web: WebClient; meta
   });
   return <Card>
     <CardContent className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-md font-semibold text-ink">{t('{{kind}}列表', { kind })}</h2>
-          <p className="mt-0.5 text-xs text-muted">{administrators ? t('管理后台账号及其启用状态') : t('统一账号可分配多个角色，按权限使用业务与管理工作台。')}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+      <PageHeader title={t('{{kind}}列表', { kind })} description={administrators ? t('管理后台账号及其启用状态') : t('统一账号可分配多个角色，按权限使用业务与管理工作台。')}
+        actions={<>
           {!administrators && <>
             {can('exportUsers') && <SpreadsheetDownload label={t('导出用户')} filename="users.xlsx" load={() => web.exportUsers(search)} />}
             {can('userImportTemplate') && <SpreadsheetDownload label={t('下载导入模板')} filename="users-import-template.xlsx" load={() => web.usersImportTemplate()} />}
             {can('importUsers') && <Button variant="secondary" onClick={() => setImporting(true)}>{t('导入用户')}</Button>}
           </>}
-        {canCreate && <Button onClick={() => setCreating(true)}><UserPlus size={15} />{t('新增{{kind}}', { kind })}</Button>}</div>
-      </div>
+          {canCreate && <Button onClick={() => setCreating(true)}><UserPlus size={15} />{t('新增{{kind}}', { kind })}</Button>}
+        </>} />
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Input aria-label={t('搜索{{v0}}', { v0: kind })} placeholder={t('搜索账号或邮箱…')} maxLength={128} className="h-9 max-w-xs flex-1"
+        <Input aria-label={t('搜索{{v0}}', { v0: kind })} placeholder={t('搜索')} maxLength={128} className="h-9 max-w-xs flex-1"
           value={search} onChange={event => { setSearch(event.target.value); setPagination(current => ({ ...current, pageIndex: 0 })); }} />
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted">{t('{{count}} 位{{kind}}', { count: list.data?.total ?? 0, kind })}</span>

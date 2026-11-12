@@ -7,9 +7,9 @@ import { cn } from './cn';
 
 const VARIANTS = {
   danger: { surface: 'border-danger-line bg-danger-soft text-danger', icon: CircleX },
-  warning: { surface: 'border-[var(--warning-line)] bg-warning-soft text-warning', icon: CircleAlert },
-  info: { surface: 'border-[var(--info-line)] bg-info-soft text-info', icon: Info },
-  success: { surface: 'border-[var(--success-line)] bg-success-soft text-success', icon: CircleCheck },
+  warning: { surface: 'border-warning-line bg-warning-soft text-warning', icon: CircleAlert },
+  info: { surface: 'border-info-line bg-info-soft text-info', icon: Info },
+  success: { surface: 'border-success-line bg-success-soft text-success', icon: CircleCheck },
 } as const;
 
 export type AlertProps = HTMLAttributes<HTMLDivElement> & {

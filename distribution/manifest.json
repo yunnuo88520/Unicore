@@ -1201,7 +1201,17 @@
     "internal/adapter/desktop/files.go",
     "internal/adapter/desktop/files_test.go",
     "packages/web-ui/src/pages/admin/access-tokens.tsx",
-    "internal/adapter/storage/platformsql/token_role_test.go"
+    "internal/adapter/storage/platformsql/token_role_test.go",
+    "packages/ui/src/alert.tsx",
+    "packages/ui/src/breadcrumb.tsx",
+    "packages/ui/src/drawer.tsx",
+    "packages/ui/src/empty-state.tsx",
+    "packages/ui/src/kbd.tsx",
+    "packages/ui/src/page-header.tsx",
+    "packages/ui/src/popover.tsx",
+    "packages/ui/src/radio-group.tsx",
+    "packages/ui/src/stat-card.tsx",
+    "packages/web-ui/src/pages/ui-preview.tsx"
   ],
   "ownership": {
     "product-owned": [

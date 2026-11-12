@@ -31,13 +31,16 @@
   --color-accent-soft: var(--brand-highlight);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
+  --color-success-line: var(--success-border);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-danger-line: var(--danger-border);
   --color-info: var(--info);
   --color-info-soft: var(--info-soft);
+  --color-info-line: var(--info-border);
   --color-warning: var(--warning);
   --color-warning-soft: var(--warning-soft);
+  --color-warning-line: var(--warning-border);
   --color-focus: var(--focus);
   --color-subtle: var(--subtle);
   --color-avatar: var(--avatar-bg);

@@ -7,6 +7,13 @@ on:
         description: Exact VERSION already committed with CHANGELOG
         required: true
         type: string
+      release_kind:
+        description: Publication status for release notes; this workflow only prepares artifacts
+        type: choice
+        default: preview
+        options:
+          - preview
+          - stable
       ci_run_id:
         description: Successful main Quality and profile builds run for this exact commit
         required: true
@@ -81,6 +88,7 @@ jobs:
         run: node scripts/release-notes.mjs build/candidate
         env:
           CI_RUN_ID: ${{ inputs.ci_run_id }}
+          RELEASE_KIND: ${{ inputs.release_kind }}
       - uses: actions/attest-build-provenance@v4
         with:
           subject-path: build/candidate/*

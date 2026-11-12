@@ -1,20 +1,19 @@
 -- Author: yunnuo <ymz@ebox.vip>
--- Purpose: platform version 1 final-state baseline; sqlite; web-platform only.
--- No FOREIGN KEY clauses: the runtime keeps sqlite foreign_keys off, so cross-table
--- integrity and cascades are enforced in the usecase layer. PostgreSQL and MySQL keep
--- real constraints because their dialects support them.
--- Compatibility: new-generation empty databases only; never replay 0.x cleanup or identity moves.
--- Recovery: discard only an explicitly owned test target, or restore matching full snapshots to a new target.
--- Runtime activation is deferred to R1.0c; the legacy executor does not embed this file.
--- Text/composite primary keys reject NULL; INTEGER PRIMARY KEY retains rowid allocation.
+-- Purpose: platform final-state baseline; sqlite; web-platform only.
+-- Compatibility: pre-stable squash for fresh databases; previous development ledgers are rejected.
+-- Recovery: restore matching DB/data/config/key/binary snapshots to a new target. No down SQL.
+-- Baseline DDL and static seed rows are replay-idempotent; roles/accounts are initialized by Go Seed.
 
-CREATE TABLE IF NOT EXISTS unicore_roles (id VARCHAR(64) NOT NULL PRIMARY KEY, name VARCHAR(64) NOT NULL UNIQUE);
+CREATE TABLE IF NOT EXISTS unicore_roles (id VARCHAR(64) NOT NULL PRIMARY KEY, name VARCHAR(64) NOT NULL UNIQUE,
+ realm VARCHAR(16) NOT NULL DEFAULT 'user' CHECK (realm IN ('user','administrator')),
+ data_scope VARCHAR(16) NOT NULL DEFAULT 'self' CHECK (data_scope IN ('all','dept','dept_and_below','custom','self'))
+);
 
 CREATE TABLE IF NOT EXISTS unicore_permissions (id VARCHAR(128) NOT NULL PRIMARY KEY);
 
-CREATE TABLE IF NOT EXISTS unicore_users (id VARCHAR(64) NOT NULL PRIMARY KEY, username VARCHAR(64) NOT NULL UNIQUE, email VARCHAR(254) NOT NULL UNIQUE, password_hash TEXT NOT NULL, status VARCHAR(16) NOT NULL, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, last_login_at BIGINT NOT NULL, phone VARCHAR(21) NULL);
-
-
+CREATE TABLE IF NOT EXISTS unicore_users (id VARCHAR(64) NOT NULL PRIMARY KEY, username VARCHAR(64) NOT NULL UNIQUE, email VARCHAR(254) NOT NULL UNIQUE, password_hash TEXT NOT NULL, status VARCHAR(16) NOT NULL, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, last_login_at BIGINT NOT NULL, phone VARCHAR(21) NULL,
+ department_id VARCHAR(64) NULL
+);
 
 CREATE TABLE IF NOT EXISTS unicore_user_roles (user_id VARCHAR(64) NOT NULL, role_id VARCHAR(64) NOT NULL, PRIMARY KEY (user_id, role_id));
 
@@ -50,18 +49,6 @@ CREATE TABLE IF NOT EXISTS unicore_oidc_flows (
  sealed_payload TEXT NOT NULL,
  expires_at BIGINT NOT NULL
 );
-
-
-
-
-
-
-
-
-
-
-
-
 
 CREATE TABLE IF NOT EXISTS unicore_storage_locations (
  id VARCHAR(80) NOT NULL PRIMARY KEY, name VARCHAR(80) NOT NULL, provider VARCHAR(16) NOT NULL,
@@ -164,9 +151,138 @@ CREATE TABLE IF NOT EXISTS unicore_email_changes (
  created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL
 );
 
-
-
-
 INSERT INTO unicore_storage_locations(id,name,provider,endpoint,bucket,region,prefix,path_style,credentials,tested,created_at) SELECT 'legacy-brand','历史品牌文件','local','','','','',1,'',1,0 WHERE NOT EXISTS (SELECT 1 FROM unicore_storage_locations WHERE id='legacy-brand');
 
 INSERT INTO unicore_storage_locations(id,name,provider,endpoint,bucket,region,prefix,path_style,credentials,tested,created_at) SELECT 'local','本地存储','local','','','','',1,'',1,0 WHERE NOT EXISTS (SELECT 1 FROM unicore_storage_locations WHERE id='local');
+
+CREATE TABLE IF NOT EXISTS unicore_menus (
+ menu_key VARCHAR(64) NOT NULL PRIMARY KEY,
+ label VARCHAR(80) NOT NULL DEFAULT '',
+ group_key VARCHAR(32) NOT NULL DEFAULT '',
+ sort INTEGER NOT NULL DEFAULT 100,
+ visible INTEGER NOT NULL DEFAULT 1,
+ updated_at BIGINT NOT NULL DEFAULT 0,
+ parent_key VARCHAR(64) NULL,
+ type VARCHAR(16) NOT NULL DEFAULT 'page',
+ url VARCHAR(2048) NULL
+);
+CREATE TABLE IF NOT EXISTS unicore_dict_types (
+ id VARCHAR(64) NOT NULL PRIMARY KEY,
+ code VARCHAR(64) NOT NULL UNIQUE,
+ name VARCHAR(80) NOT NULL,
+ description VARCHAR(200) NOT NULL DEFAULT '',
+ created_at BIGINT NOT NULL,
+ updated_at BIGINT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS unicore_dict_items (
+ id VARCHAR(64) NOT NULL PRIMARY KEY,
+ type_code VARCHAR(64) NOT NULL,
+ value VARCHAR(128) NOT NULL,
+ label VARCHAR(80) NOT NULL,
+ remark VARCHAR(200) NOT NULL DEFAULT '',
+ sort INTEGER NOT NULL DEFAULT 0,
+ status VARCHAR(16) NOT NULL DEFAULT 'active',
+ created_at BIGINT NOT NULL,
+ updated_at BIGINT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS unicore_dict_items_type_value ON unicore_dict_items(type_code,value);
+CREATE INDEX IF NOT EXISTS unicore_dict_items_type_sort ON unicore_dict_items(type_code,sort);
+
+CREATE TABLE IF NOT EXISTS unicore_inbox_messages (
+ id VARCHAR(64) NOT NULL PRIMARY KEY,
+ recipient_id VARCHAR(64) NOT NULL,
+ type VARCHAR(32) NOT NULL,
+ source_id VARCHAR(64) NOT NULL DEFAULT '',
+ title VARCHAR(200) NOT NULL,
+ body TEXT NOT NULL,
+ created_at BIGINT NOT NULL,
+ read_at BIGINT NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS unicore_inbox_recipient ON unicore_inbox_messages(recipient_id,read_at,created_at);
+CREATE TABLE IF NOT EXISTS unicore_scheduled_jobs (
+ name VARCHAR(64) NOT NULL PRIMARY KEY,
+ schedule VARCHAR(64) NOT NULL,
+ enabled INTEGER NOT NULL DEFAULT 1,
+ last_run_at BIGINT NOT NULL DEFAULT 0,
+ last_status VARCHAR(16) NOT NULL DEFAULT '',
+ last_error VARCHAR(200) NOT NULL DEFAULT '',
+ run_count BIGINT NOT NULL DEFAULT 0,
+ next_run_at BIGINT NOT NULL DEFAULT 0,
+ description VARCHAR(200) NOT NULL DEFAULT '',
+ executor VARCHAR(64) NOT NULL DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS unicore_account_avatars (
+ user_id VARCHAR(64) NOT NULL,
+ creator_realm VARCHAR(16) NOT NULL,
+ file_id VARCHAR(80) NOT NULL DEFAULT '',
+ updated_at BIGINT NOT NULL DEFAULT 0,
+ PRIMARY KEY(user_id,creator_realm)
+);
+
+CREATE TABLE IF NOT EXISTS unicore_departments (id VARCHAR(64) NOT NULL PRIMARY KEY, name VARCHAR(64) NOT NULL, parent_id VARCHAR(64) NULL, sort INT NOT NULL DEFAULT 0, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL);
+
+CREATE INDEX IF NOT EXISTS unicore_departments_parent_id_idx ON unicore_departments(parent_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS unicore_departments_sibling_name ON unicore_departments(name, COALESCE(parent_id, ''));
+
+CREATE TABLE IF NOT EXISTS unicore_role_departments (role_id VARCHAR(64) NOT NULL, department_id VARCHAR(64) NOT NULL, PRIMARY KEY (role_id, department_id));
+
+CREATE TABLE IF NOT EXISTS unicore_navigation_state (id INTEGER PRIMARY KEY, version BIGINT NOT NULL, initialized INTEGER NOT NULL);
+INSERT INTO unicore_navigation_state(id,version,initialized) SELECT 1,0,0 WHERE NOT EXISTS (SELECT 1 FROM unicore_navigation_state WHERE id=1);
+CREATE TABLE IF NOT EXISTS unicore_navigation_sections (id VARCHAR(64) NOT NULL PRIMARY KEY, surface VARCHAR(32) NOT NULL, payload TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS unicore_navigation_nodes (id VARCHAR(64) NOT NULL, section_id VARCHAR(64) NOT NULL, node_type VARCHAR(16) NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(section_id, id));
+CREATE TABLE IF NOT EXISTS unicore_role_authorizations (role_id VARCHAR(64) NOT NULL PRIMARY KEY, initialized INTEGER NOT NULL);
+
+CREATE TABLE IF NOT EXISTS unicore_role_menus (role_id VARCHAR(64) NOT NULL, menu_id VARCHAR(64) NOT NULL, PRIMARY KEY(role_id,menu_id));
+CREATE TABLE IF NOT EXISTS unicore_role_actions (role_id VARCHAR(64) NOT NULL, action_id VARCHAR(64) NOT NULL, PRIMARY KEY(role_id,action_id));
+CREATE TABLE IF NOT EXISTS unicore_role_operations (role_id VARCHAR(64) NOT NULL, operation_id VARCHAR(128) NOT NULL, PRIMARY KEY(role_id,operation_id));
+
+CREATE TABLE IF NOT EXISTS unicore_posts (
+    id VARCHAR(64) NOT NULL PRIMARY KEY,
+    code VARCHAR(64) NOT NULL UNIQUE,
+    name VARCHAR(64) NOT NULL,
+    sort INTEGER NOT NULL DEFAULT 0,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    description VARCHAR(500) NOT NULL DEFAULT '',
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS unicore_posts_sort_idx ON unicore_posts(sort, code, id);
+CREATE TABLE IF NOT EXISTS unicore_user_posts (
+    user_id VARCHAR(64) NOT NULL,
+    post_id VARCHAR(64) NOT NULL,
+    PRIMARY KEY (user_id, post_id)
+);
+CREATE INDEX IF NOT EXISTS unicore_user_posts_post_idx ON unicore_user_posts(post_id, user_id);
+
+CREATE TABLE IF NOT EXISTS unicore_task_runs (
+ id VARCHAR(64) NOT NULL PRIMARY KEY,
+ job_name VARCHAR(64) NOT NULL,
+ started_at BIGINT NOT NULL,
+ duration_ms BIGINT NOT NULL DEFAULT 0,
+ status VARCHAR(16) NOT NULL,
+ error VARCHAR(200) NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS unicore_task_runs_job ON unicore_task_runs(job_name,started_at);
+
+CREATE TABLE IF NOT EXISTS unicore_api_credentials (
+ id VARCHAR(64) NOT NULL PRIMARY KEY, user_id VARCHAR(64) NOT NULL,
+ kind VARCHAR(16) NOT NULL, name VARCHAR(80) NOT NULL,
+ session_hash VARCHAR(64) NOT NULL UNIQUE, session_secret TEXT NOT NULL,
+ operations TEXT NOT NULL, created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL,
+ last_used_at BIGINT NOT NULL, revoked INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS unicore_api_refresh_tokens (
+ token_hash VARCHAR(64) NOT NULL PRIMARY KEY, credential_id VARCHAR(64) NOT NULL,
+ expires_at BIGINT NOT NULL, used INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS unicore_api_token_keys (
+ id VARCHAR(64) NOT NULL PRIMARY KEY, secret TEXT NOT NULL,
+ created_at BIGINT NOT NULL, valid_until BIGINT NOT NULL, active INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS unicore_api_credentials_owner_idx ON unicore_api_credentials (user_id,kind,created_at);
+
+CREATE INDEX IF NOT EXISTS unicore_api_credentials_expiry_idx ON unicore_api_credentials (expires_at);
+
+CREATE INDEX IF NOT EXISTS unicore_api_refresh_expiry_idx ON unicore_api_refresh_tokens (expires_at);

@@ -32,4 +32,4 @@ bootstrap.token
 *.pfx
 *.p8
 .zcode/
-verify-baselines
+/verify-baselines

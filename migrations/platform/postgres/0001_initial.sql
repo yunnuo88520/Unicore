@@ -1,14 +1,16 @@
 -- Author: yunnuo <ymz@ebox.vip>
--- Purpose: platform version 1 final-state baseline; postgres; web-platform only.
--- Compatibility: new-generation empty databases only; never replay 0.x cleanup or identity moves.
--- Recovery: discard only an explicitly owned test target, or restore matching full snapshots to a new target.
--- Runtime activation is deferred to R1.0c; the legacy executor does not embed this file.
+-- Purpose: platform final-state baseline; postgres; web-platform only.
+-- Compatibility: pre-stable squash for fresh databases; previous development ledgers are rejected.
+-- Recovery: restore matching DB/data/config/key/binary snapshots to a new target. No down SQL.
+-- Baseline DDL and static seed rows are replay-idempotent; roles/accounts are initialized by Go Seed.
 
 CREATE TABLE IF NOT EXISTS public."unicore_roles" (
   "id" character varying(64) NOT NULL,
   "name" character varying(64) NOT NULL,
   CONSTRAINT "roles_pkey" PRIMARY KEY (id),
-  CONSTRAINT "roles_name_key" UNIQUE (name)
+  CONSTRAINT "roles_name_key" UNIQUE (name),
+ realm VARCHAR(16) NOT NULL DEFAULT 'user',
+ data_scope VARCHAR(16) NOT NULL DEFAULT 'self'
 );
 
 CREATE TABLE IF NOT EXISTS public."unicore_permissions" (
@@ -28,10 +30,9 @@ CREATE TABLE IF NOT EXISTS public."unicore_users" (
   "phone" character varying(21),
   CONSTRAINT "users_pkey" PRIMARY KEY (id),
   CONSTRAINT "users_email_key" UNIQUE (email),
-  CONSTRAINT "users_username_key" UNIQUE (username)
+  CONSTRAINT "users_username_key" UNIQUE (username),
+ department_id VARCHAR(64) NULL
 );
-
-
 
 CREATE TABLE IF NOT EXISTS public."unicore_user_roles" (
   "user_id" character varying(64) NOT NULL,
@@ -111,18 +112,6 @@ CREATE TABLE IF NOT EXISTS public."unicore_oidc_flows" (
   "expires_at" bigint NOT NULL,
   CONSTRAINT "oidc_flows_pkey" PRIMARY KEY (state_hash)
 );
-
-
-
-
-
-
-
-
-
-
-
-
 
 CREATE TABLE IF NOT EXISTS public."unicore_storage_locations" (
   "id" character varying(80) NOT NULL,
@@ -262,9 +251,147 @@ CREATE TABLE IF NOT EXISTS unicore_email_changes (
  created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL
 );
 
-
-
-
 INSERT INTO unicore_storage_locations(id,name,provider,endpoint,bucket,region,prefix,path_style,credentials,tested,created_at) SELECT 'legacy-brand','历史品牌文件','local','','','','',1,'',1,0 WHERE NOT EXISTS (SELECT 1 FROM unicore_storage_locations WHERE id='legacy-brand');
 
 INSERT INTO unicore_storage_locations(id,name,provider,endpoint,bucket,region,prefix,path_style,credentials,tested,created_at) SELECT 'local','本地存储','local','','','','',1,'',1,0 WHERE NOT EXISTS (SELECT 1 FROM unicore_storage_locations WHERE id='local');
+
+CREATE TABLE IF NOT EXISTS public."unicore_menus" (
+  "menu_key" character varying(64) NOT NULL,
+  "label" character varying(80) NOT NULL DEFAULT '',
+  "group_key" character varying(32) NOT NULL DEFAULT '',
+  "sort" integer NOT NULL DEFAULT 100,
+  "visible" bigint NOT NULL DEFAULT 1,
+  "updated_at" bigint NOT NULL DEFAULT 0,
+  CONSTRAINT "unicore_menus_pkey" PRIMARY KEY (menu_key),
+ parent_key VARCHAR(64) NULL,
+ type VARCHAR(16) NOT NULL DEFAULT 'page',
+ url VARCHAR(2048) NULL
+);
+CREATE TABLE IF NOT EXISTS public."unicore_dict_types" (
+  "id" character varying(64) NOT NULL,
+  "code" character varying(64) NOT NULL,
+  "name" character varying(80) NOT NULL,
+  "description" character varying(200) NOT NULL DEFAULT '',
+  "created_at" bigint NOT NULL,
+  "updated_at" bigint NOT NULL,
+  CONSTRAINT "unicore_dict_types_pkey" PRIMARY KEY (id),
+  CONSTRAINT "unicore_dict_types_code_key" UNIQUE (code)
+);
+CREATE TABLE IF NOT EXISTS public."unicore_dict_items" (
+  "id" character varying(64) NOT NULL,
+  "type_code" character varying(64) NOT NULL REFERENCES public."unicore_dict_types"(code) ON DELETE CASCADE,
+  "value" character varying(128) NOT NULL,
+  "label" character varying(80) NOT NULL,
+  "remark" character varying(200) NOT NULL DEFAULT '',
+  "sort" integer NOT NULL DEFAULT 0,
+  "status" character varying(16) NOT NULL DEFAULT 'active',
+  "created_at" bigint NOT NULL,
+  "updated_at" bigint NOT NULL,
+  CONSTRAINT "unicore_dict_items_pkey" PRIMARY KEY (id),
+  CONSTRAINT "unicore_dict_items_type_value_key" UNIQUE (type_code, value)
+);
+CREATE INDEX IF NOT EXISTS unicore_dict_items_type_sort ON public.unicore_dict_items USING btree (type_code, sort);
+
+CREATE TABLE IF NOT EXISTS public."unicore_inbox_messages" (
+  "id" character varying(64) NOT NULL,
+  "recipient_id" character varying(64) NOT NULL,
+  "type" character varying(32) NOT NULL,
+  "source_id" character varying(64) NOT NULL DEFAULT '',
+  "title" character varying(200) NOT NULL,
+  "body" text NOT NULL,
+  "created_at" bigint NOT NULL,
+  "read_at" bigint NOT NULL DEFAULT 0,
+  CONSTRAINT "unicore_inbox_messages_pkey" PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS unicore_inbox_recipient ON public.unicore_inbox_messages USING btree (recipient_id, read_at, created_at);
+CREATE TABLE IF NOT EXISTS public."unicore_scheduled_jobs" (
+  "name" character varying(64) NOT NULL,
+  "schedule" varchar(64) NOT NULL,
+  "enabled" bigint NOT NULL DEFAULT 1,
+  "last_run_at" bigint NOT NULL DEFAULT 0,
+  "last_status" character varying(16) NOT NULL DEFAULT '',
+  "last_error" character varying(200) NOT NULL DEFAULT '',
+  "run_count" bigint NOT NULL DEFAULT 0,
+  "next_run_at" bigint NOT NULL DEFAULT 0,
+  CONSTRAINT "unicore_scheduled_jobs_pkey" PRIMARY KEY (name),
+ description VARCHAR(200) NOT NULL DEFAULT '',
+ executor VARCHAR(64) NOT NULL DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS public."unicore_account_avatars" (
+  "user_id" character varying(64) NOT NULL,
+  "creator_realm" character varying(16) NOT NULL,
+  "file_id" character varying(80) NOT NULL DEFAULT '',
+  "updated_at" bigint NOT NULL DEFAULT 0,
+  CONSTRAINT "unicore_account_avatars_pkey" PRIMARY KEY (user_id,creator_realm)
+);
+
+CREATE TABLE IF NOT EXISTS public."unicore_departments" (id VARCHAR(64) NOT NULL PRIMARY KEY, name VARCHAR(64) NOT NULL, parent_id VARCHAR(64) NULL, sort INT NOT NULL DEFAULT 0, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL);
+
+CREATE INDEX IF NOT EXISTS unicore_departments_parent_id_idx ON public."unicore_departments"(parent_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS unicore_departments_sibling_name ON public."unicore_departments"(name, COALESCE(parent_id, ''));
+
+CREATE TABLE IF NOT EXISTS public."unicore_role_departments" (role_id VARCHAR(64) NOT NULL, department_id VARCHAR(64) NOT NULL, PRIMARY KEY (role_id, department_id));
+
+CREATE TABLE IF NOT EXISTS unicore_navigation_state (id INTEGER PRIMARY KEY, version BIGINT NOT NULL, initialized INTEGER NOT NULL);
+INSERT INTO unicore_navigation_state(id,version,initialized) SELECT 1,0,0 WHERE NOT EXISTS (SELECT 1 FROM unicore_navigation_state WHERE id=1);
+CREATE TABLE IF NOT EXISTS unicore_navigation_sections (id VARCHAR(64) PRIMARY KEY, surface VARCHAR(32) NOT NULL, payload TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS unicore_navigation_nodes (id VARCHAR(64) NOT NULL, section_id VARCHAR(64) NOT NULL, node_type VARCHAR(16) NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(section_id, id));
+CREATE TABLE IF NOT EXISTS unicore_role_authorizations (role_id VARCHAR(64) PRIMARY KEY, initialized INTEGER NOT NULL);
+
+CREATE TABLE IF NOT EXISTS unicore_role_menus (role_id VARCHAR(64) NOT NULL, menu_id VARCHAR(64) NOT NULL, PRIMARY KEY(role_id,menu_id));
+CREATE TABLE IF NOT EXISTS unicore_role_actions (role_id VARCHAR(64) NOT NULL, action_id VARCHAR(64) NOT NULL, PRIMARY KEY(role_id,action_id));
+CREATE TABLE IF NOT EXISTS unicore_role_operations (role_id VARCHAR(64) NOT NULL, operation_id VARCHAR(128) NOT NULL, PRIMARY KEY(role_id,operation_id));
+
+CREATE TABLE IF NOT EXISTS public.unicore_posts (
+    id VARCHAR(64) NOT NULL PRIMARY KEY,
+    code VARCHAR(64) NOT NULL UNIQUE,
+    name VARCHAR(64) NOT NULL,
+    sort INTEGER NOT NULL DEFAULT 0,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    description VARCHAR(500) NOT NULL DEFAULT '',
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS unicore_posts_sort_idx ON public.unicore_posts(sort, code, id);
+CREATE TABLE IF NOT EXISTS public.unicore_user_posts (
+    user_id VARCHAR(64) NOT NULL,
+    post_id VARCHAR(64) NOT NULL,
+    PRIMARY KEY (user_id, post_id),
+    CONSTRAINT unicore_user_posts_user_fk FOREIGN KEY (user_id) REFERENCES public.unicore_users(id) ON DELETE CASCADE,
+    CONSTRAINT unicore_user_posts_post_fk FOREIGN KEY (post_id) REFERENCES public.unicore_posts(id) ON DELETE RESTRICT
+);
+CREATE INDEX IF NOT EXISTS unicore_user_posts_post_idx ON public.unicore_user_posts(post_id, user_id);
+
+CREATE TABLE IF NOT EXISTS public."unicore_task_runs" (
+  "id" character varying(64) NOT NULL,
+  "job_name" character varying(64) NOT NULL,
+  "started_at" bigint NOT NULL,
+  "duration_ms" bigint NOT NULL DEFAULT 0,
+  "status" character varying(16) NOT NULL,
+  "error" character varying(200) NOT NULL DEFAULT '',
+  CONSTRAINT "unicore_task_runs_pkey" PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS unicore_task_runs_job ON public.unicore_task_runs USING btree (job_name, started_at);
+
+CREATE TABLE IF NOT EXISTS unicore_api_credentials (
+ id VARCHAR(64) NOT NULL PRIMARY KEY, user_id VARCHAR(64) NOT NULL,
+ kind VARCHAR(16) NOT NULL, name VARCHAR(80) NOT NULL,
+ session_hash VARCHAR(64) NOT NULL UNIQUE, session_secret TEXT NOT NULL,
+ operations TEXT NOT NULL, created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL,
+ last_used_at BIGINT NOT NULL, revoked INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS unicore_api_refresh_tokens (
+ token_hash VARCHAR(64) NOT NULL PRIMARY KEY, credential_id VARCHAR(64) NOT NULL,
+ expires_at BIGINT NOT NULL, used INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS unicore_api_token_keys (
+ id VARCHAR(64) NOT NULL PRIMARY KEY, secret TEXT NOT NULL,
+ created_at BIGINT NOT NULL, valid_until BIGINT NOT NULL, active INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS unicore_api_credentials_owner_idx ON unicore_api_credentials (user_id,kind,created_at);
+
+CREATE INDEX IF NOT EXISTS unicore_api_credentials_expiry_idx ON unicore_api_credentials (expires_at);
+
+CREATE INDEX IF NOT EXISTS unicore_api_refresh_expiry_idx ON unicore_api_refresh_tokens (expires_at);

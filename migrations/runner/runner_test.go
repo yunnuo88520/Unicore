@@ -72,23 +72,22 @@ func TestApplyCreatesBaselineAndIsIdempotent(t *testing.T) {
 		t.Fatal(err)
 	}
 	rows := ledgerRows(t, db)
-	if len(rows) != 12 {
-		t.Fatalf("want 12 ledger rows, got %v", rows)
+	expectedRows := 0
+	for _, namespace := range catalogdata.Catalog.Namespaces {
+		if _, selected := catalogdata.Catalog.Profiles["web-platform"].Levels[namespace.Id]; !selected {
+			continue
+		}
+		for _, migration := range namespace.Migrations {
+			expectedRows++
+			entry, ok := rows[fmt.Sprintf("%s@%d", namespace.Id, migration.Version)]
+			file := migration.Files["sqlite"]
+			if !ok || entry != file.Checksum+"@"+fmt.Sprint(fixedStamp) {
+				t.Fatalf("bad ledger entry for %s@%d: %q", namespace.Id, migration.Version, entry)
+			}
+		}
 	}
-	for _, expected := range []struct {
-		namespace string
-		version   int
-	}{
-		{"core", 1}, {"module.notes", 1}, {"platform", 1}, {"platform", 2}, {"platform", 3}, {"platform", 4}, {"platform", 5}, {"platform", 6}, {"platform", 7}, {"platform", 8}, {"platform", 9}, {"platform", 10},
-	} {
-		entry, ok := rows[fmt.Sprintf("%s@%d", expected.namespace, expected.version)]
-		if !ok {
-			t.Fatalf("missing %s@%d in %v", expected.namespace, expected.version, rows)
-		}
-		file, ok := lookupFile(catalogdata.Catalog, expected.namespace, expected.version, "sqlite")
-		if !ok || entry != file.Checksum+"@"+fmt.Sprint(fixedStamp) {
-			t.Fatalf("bad ledger entry for %s@%d: %q (want %s@%d)", expected.namespace, expected.version, entry, file.Checksum, fixedStamp)
-		}
+	if len(rows) != expectedRows {
+		t.Fatalf("want %d successful Catalog entries, got %v", expectedRows, rows)
 	}
 	for _, table := range []string{"unicore_install_state", "unicore_system_settings", "unicore_audit_logs", "unicore_users", "unicore_example_notes", "unicore_announcement_recipients", "unicore_personal_accounts", "unicore_dict_types", "unicore_menus", "unicore_account_avatars", "unicore_inbox_messages", "unicore_scheduled_jobs", "unicore_departments", "unicore_role_departments", "unicore_posts", "unicore_user_posts"} {
 		if !tableExists(t, db, table) {
@@ -114,7 +113,8 @@ func TestApplyRespectsProfileScope(t *testing.T) {
 		t.Fatal(err)
 	}
 	rows := ledgerRows(t, db)
-	if len(rows) != 2 {
+	expectedRows := catalogdata.Catalog.Profiles["desktop"].Levels["core"] + catalogdata.Catalog.Profiles["desktop"].Levels["module.notes"]
+	if len(rows) != expectedRows {
 		t.Fatalf("desktop applies core and module.notes only, got %v", rows)
 	}
 	if _, ok := rows["platform@1"]; ok {

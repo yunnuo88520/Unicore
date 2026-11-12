@@ -1,6 +1,8 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # ADR-0024：Pre-1.0 数据库基线重建
 
+> 历史决策：下文阶段状态、旧表结构和“preview 分发即冻结”描述保留为当时背景，不是当前开发指令。当前运行时已切换 Catalog；首发前整合与正式版后冻结以 [ADR-0042](ADR-0042-release-baseline-update-compatibility.md) 和 [迁移规范](../02-standards/database-migrations.md) 为准。
+
 状态：**维护者已接受架构方向与 0.x 数据政策；R1.0a 还原及 R1.0b 新基线/Catalog 验收已完成，R1.0c 执行器和启动保护尚未实施、未获本轮授权。** 日期：2026-10-30。取代 [ADR-0023](ADR-0023-migration-catalog-startup-guard.md) 的历史迁移永久保留、双命名空间及旧账本兼容方案；保留其写前检查、只读边界、互斥和安全失败原则。当前资产与运行时关系见 [迁移目录](../../migrations/README.md)。
 
 ## 背景与决定

@@ -55,9 +55,10 @@ async function exercise(mode,profile) {
       expect(manifest?.sha256).toBe(digest(readFileSync(file)));
       execFileSync('tar',['-xzf',file,'-C',release,'--strip-components=1']);
       expect(readFileSync(join(release,'VERSION'),'utf8').trim()).toBe(version);
-      // Catalog single track: one version per namespace, so both levels are 1.
-      expect(JSON.parse(readFileSync(join(release,'manifest.json'),'utf8')).migration_level).toBe(1);
-      expect(JSON.parse(readFileSync(join(release,'manifest.json'),'utf8')).business_migration_level).toBe(1);
+      const metadata=JSON.parse(readFileSync(join(release,'manifest.json'),'utf8'));
+      expect(metadata.schema_generation).toBe('unicore-1');
+      expect(metadata.schema_fingerprint).toMatch(/^[a-f0-9]{64}$/);
+      expect(metadata.namespace_versions).toEqual({core:1,'module.notes':1,platform:1});
       expect(readFileSync(join(release,'LICENSE'),'utf8')).toContain('MIT License');
       expect(readFileSync(join(release,identity.cli.command)).byteLength).toBeGreaterThan(1000);
       const network=`${name}-network`;networks.add(network);docker(['network','create',network]);

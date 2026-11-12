@@ -11,7 +11,7 @@
 [![Dependency security](https://github.com/yunnuo88520/Unicore/actions/workflows/security.yml/badge.svg?branch=main)](https://github.com/yunnuo88520/Unicore/actions/workflows/security.yml)
 [![MIT](https://img.shields.io/badge/license-MIT-6662ec)](LICENSE)
 
-Unicore is an open-source Go + React application framework for AI-assisted development. Domain logic and use cases are shared, with separate HTTP, Wails, and Cobra composition roots. Installation, identity, settings, file storage, a sample business module, and development documentation provide a runnable and testable starting point.
+Unicore is an open-source application foundation for Go + React developers building and customizing their own products. Domain logic and use cases are shared, with separate HTTP, Wails, and Cobra composition roots. Installation, identity, settings, file storage, a sample business module, and development documentation provide a runnable and testable starting point.
 
 Author: yunnuo · ymz@ebox.vip · Current version: [VERSION](VERSION) · **Development preview**
 
@@ -30,7 +30,7 @@ The README and new release notes are available in Chinese and English. Detailed 
 
 The platform includes one-time installation, server-enforced permissions, six-digit email verification, SMTP, OIDC, global settings, file metadata, and private signed downloads. Local storage is the default; MinIO / S3 / OSS / COS adapters support configurable limits, multipart uploads, pause, and resume across refreshes or restarts. Local, MinIO, and Alibaba Cloud OSS have been exercised in development; Tencent COS still needs account permissions and real cloud validation. See the [storage guide](docs/03-runbooks/storage.md). Standalone and desktop profiles expose business features and local appearance; branding is configured at build time.
 
-The three database profiles share a personal-notes sample covering domain logic, repositories, migrations, API/native transport, concurrency, and modal forms. The platform also demonstrates attachments by `file_id`; CLI stays database-free. Other foundations include a single OpenAPI contract, shared themes/icons/messages, lifecycle and health checks, offline encrypted backup and restore, AI documentation, and 14 task Skills.
+Platform and both Standalone carriers share a personal-notes sample covering domain logic, repositories, migrations, API/native transport, concurrency, and modal forms. The platform also demonstrates attachments by `file_id`; CLI stays database-free. Other foundations include a single OpenAPI contract, shared themes/icons/messages, lifecycle and health checks, offline encrypted backup and restore, AI documentation, and 14 task Skills.
 
 ![Platform notes and attachments](docs/images/notes-platform.png)
 
@@ -40,7 +40,11 @@ Graphical profiles share Chinese/English UI switching and a local theme drawer f
 
 Download development previews and checksums from [GitHub Releases](https://github.com/yunnuo88520/Unicore/releases). On macOS, use the DMG and drag the app into Applications. On Windows, run the EXE directly. Linux desktop uses a tar archive. Web archives include `./unicore help`, `./unicore config generate`, and `./unicore --config config.yaml`; first-time setup stays in `/install`. OTA continues to use complete tar release directories. A standalone Windows EXE only checks for updates without the full release directory.
 
-Signed OTA channels and offline release history are implemented; inspect each release's actual signature assets and verification results. Publisher signatures are mandatory for OTA; OS signing/notarization is optional for free distribution. Derived projects currently default to requiring signed OS binaries, so their trust policy needs explicit review. Licensing remains a placeholder, and there is no public container-registry image. See [updates](docs/03-runbooks/updates.md) and [support boundaries](docs/support.md).
+Signed OTA channels and offline release history are implemented; inspect each release's actual signature assets and verification results. Publisher signatures are mandatory for OTA; OS signing/notarization is optional for free distribution. Derived projects currently default to requiring signed OS binaries, so their trust policy needs explicit review. Licensing remains a placeholder. The release workflow builds GHCR images when a GitHub Release is published; check the image workflow result for the exact version. See [updates](docs/03-runbooks/updates.md) and [support boundaries](docs/support.md).
+
+## Recommended path
+
+Start by [creating your application](docs/product/development.md), try it with [SQLite](docs/product/index.md), then follow the [first feature tutorial (中文)](docs/product/first-feature.md). CLI currently demonstrates stateless text analysis, without notes or persistence. Framework upgrades use source merges; there is no stable plugin interface isolating every customization.
 
 ## Quick start
 

@@ -11,7 +11,7 @@
 [![依赖安全](https://github.com/yunnuo88520/Unicore/actions/workflows/security.yml/badge.svg?branch=main)](https://github.com/yunnuo88520/Unicore/actions/workflows/security.yml)
 [![MIT](https://img.shields.io/badge/license-MIT-6662ec)](LICENSE)
 
-Unicore 是面向 AI 辅助开发的 Go + React 应用框架。共享领域与用例，通过 HTTP、Wails 和 Cobra 分别装配；自带安装、身份、设置、文件存储、业务样板及开发文档，让新项目从可运行、可验证的基座开始。
+Unicore 是供 Go + React 开发者创建和改造自己产品的应用基座。共享领域与用例，通过 HTTP、Wails 和 Cobra 分别装配；自带安装、身份、设置、文件存储、业务样板及开发文档，让新项目从可运行、可验证的基座开始。
 
 作者：yunnuo · ymz@ebox.vip · 当前版本：[VERSION](VERSION) · **开发预览**
 
@@ -30,7 +30,7 @@ Unicore 是面向 AI 辅助开发的 Go + React 应用框架。共享领域与�
 
 平台具备一次性安装、服务端权限、SMTP 六位验证码、OIDC、全局设置、文件元数据与私有签名访问。文件存储默认本地，支持配置 MinIO / S3 / OSS / COS；支持管理员统一文件大小/分片策略、暂停与刷新/重启续传；真实云端验证范围目前为 MinIO 和阿里云 OSS（腾讯云因账号权限保留待验证），详见 [存储手册](docs/03-runbooks/storage.md)。单机与桌面只提供业务和本地外观，品牌在构建时统一配置。
 
-三个有数据库的形态共享个人笔记业务样板，覆盖领域、Repository、迁移、API/原生桥接、并发控制和弹窗表单；平台另外演示本人 file_id 附件，CLI 保持无数据库。其他基座包括 OpenAPI 单一契约、统一主题/图标/消息、生命周期/健康检查、离线加密备份恢复，以及随仓库分发的 AI 文档和 14 个任务 Skills。
+Platform 与 Standalone 的两个载体共享个人笔记业务样板，覆盖领域、Repository、迁移、API/原生桥接、并发控制和弹窗表单；平台另外演示本人 file_id 附件，CLI 保持无数据库。其他基座包括 OpenAPI 单一契约、统一主题/图标/消息、生命周期/健康检查、离线加密备份恢复，以及随仓库分发的 AI 文档和 14 个任务 Skills。
 
 ![平台笔记与附件](docs/images/notes-platform.png)
 
@@ -42,6 +42,10 @@ macOS 下载 DMG 并拖到 Applications；Windows 下载 EXE 直接运行；Linu
 平台管理端提供可筛选、排序、分页和导出的操作日志，以及独立邮件模板编辑、预览与测试发送；权限、迁移和开发约定见 [管理工具](docs/03-runbooks/admin-tools.md)。
 
 图形入口共用中英文切换与本地主题抽屉，可调整配色、圆角、密度和布局，刷新后保留；与服务器全局配置隔离。扩展入口见 [客户端语言与外观](docs/03-runbooks/client-preferences.md)。
+
+## 推荐阅读路线
+
+先 [创建自己的应用](docs/product/development.md)，用 SQLite 完成 [第一次体验](docs/product/index.md#第一次体验推荐-sqlite)，再跟随 [第一个功能教程](docs/product/first-feature.md)。CLI 目前只演示无状态文本分析，不含笔记或持久化。框架更新通过源码三方合并完成，没有隔离全部定制的稳定插件接口。
 
 ## 快速开始
 

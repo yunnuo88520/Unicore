@@ -21,7 +21,7 @@ hero:
       text: GitHub
       link: https://github.com/yunnuo88520/Unicore
 features:
-  - title: One core, four profiles
+  - title: One core, three product forms and four profiles
     details: Compose a Web platform, standalone Web app, Wails desktop app, or Cobra CLI around shared domain logic and use cases.
     link: /en/getting-started#choose-a-profile
     linkText: Choose a profile

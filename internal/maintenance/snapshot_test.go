@@ -10,13 +10,16 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	mysqldriver "github.com/go-sql-driver/mysql"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/yunnuo/unicore/internal/adapter/bloblocal"
+	"github.com/yunnuo/unicore/internal/adapter/storage/webdb"
 	"github.com/yunnuo/unicore/internal/bootstrap/local"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/files"
@@ -37,6 +40,42 @@ func TestInstalledBackupRestore(t *testing.T) {
 			if driver != "sqlite" && (dsn == "" || targetDSN == "") {
 				t.Skip("dedicated source/target maintenance databases not supplied")
 			}
+			// Exercise the same structured input as the installation wizard,
+			// rather than hand-maintained connection strings bypassing Resolve.
+			input := contracts.DatabaseInput{Driver: driver}
+			if driver != "sqlite" {
+				var host, name, username, password string
+				var port int
+				tls := false
+				if driver == "postgres" {
+					u, e := url.Parse(dsn)
+					if e != nil {
+						t.Fatal(e)
+					}
+					host, name, username = u.Hostname(), strings.TrimPrefix(u.Path, "/"), u.User.Username()
+					password, _ = u.User.Password()
+					port, _ = strconv.Atoi(u.Port())
+					tls = u.Query().Get("sslmode") == "require"
+				} else {
+					c, e := mysqldriver.ParseDSN(dsn)
+					if e != nil {
+						t.Fatal(e)
+					}
+					u, e := url.Parse("http://" + c.Addr)
+					if e != nil {
+						t.Fatal(e)
+					}
+					host, name, username, password = u.Hostname(), c.DBName, c.User, c.Passwd
+					port, _ = strconv.Atoi(u.Port())
+					tls = c.TLSConfig == "skip-verify"
+				}
+				input.Host, input.Name, input.Username, input.Password, input.Port, input.Tls = &host, &name, &username, &password, &port, &tls
+				var e error
+				dsn, _, e = webdb.Resolve(input)
+				if e != nil {
+					t.Fatal(e)
+				}
+			}
 			ctx := context.Background()
 			root := t.TempDir()
 			source := filepath.Join(root, "source")
@@ -48,7 +87,7 @@ func TestInstalledBackupRestore(t *testing.T) {
 			}
 			defer manager.Close()
 			token, _ := os.ReadFile(manager.TokenPath())
-			_, admin, err := manager.Complete(ctx, strings.TrimSpace(string(token)), contracts.InstallInput{Profile: "web-platform", Database: contracts.DatabaseInput{Driver: driver, Dsn: dsn}, SiteName: "Restore fixture", BaseUrl: "http://localhost", AdminUsername: "admin", AdminEmail: "admin@example.test", AdminPassword: "restore-test-password-strong"})
+			_, admin, err := manager.Complete(ctx, strings.TrimSpace(string(token)), contracts.InstallInput{Profile: "web-platform", Database: input, SiteName: "Restore fixture", BaseUrl: "http://localhost", AdminUsername: "admin", AdminEmail: "admin@example.test", AdminPassword: "restore-test-password-strong"})
 			if err != nil {
 				t.Fatal(err)
 			}

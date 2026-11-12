@@ -16,6 +16,7 @@ import (
 )
 
 var versionPattern = regexp.MustCompile(`^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$`)
+var generationPattern = regexp.MustCompile(`^[a-z][a-z0-9-]{0,63}$`)
 var artifactPattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*\.tar\.gz$`)
 
 func Compare(a, b string) int {
@@ -52,6 +53,12 @@ func decodeStrict(raw []byte, destination any) error {
 }
 func Verify(raw, signature []byte, trust Trust, currentVersion, expectedVersion string, target Target, now time.Time) (Manifest, Artifact, error) {
 	reject := func() (Manifest, Artifact, error) { return Manifest{}, Artifact{}, ErrRejected }
+	if !generationPattern.MatchString(target.SchemaGeneration) || len(target.SchemaFingerprint) != 64 {
+		return reject()
+	}
+	if _, err := hex.DecodeString(target.SchemaFingerprint); err != nil {
+		return reject()
+	}
 	if !ValidVersion(currentVersion) || len(raw) == 0 || len(raw) > 256*1024 || len(signature) > 4096 || !versionPattern.MatchString(expectedVersion) || Compare(expectedVersion, currentVersion) <= 0 {
 		return reject()
 	}

@@ -28,7 +28,7 @@
 
 ## 应用开发
 
-从 [应用开发指南](product/development.md) 和 [笔记业务样板](03-runbooks/business-example.md) 开始。
+按 [创建自己的应用](product/development.md) → [第一次体验](product/index.md) → [第一个功能](product/first-feature.md) 阅读；[笔记业务样板](03-runbooks/business-example.md) 用于定位源码。
 
 | 任务 | 权威入口 |
 | --- | --- |

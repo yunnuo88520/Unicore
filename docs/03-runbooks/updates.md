@@ -80,3 +80,11 @@ gh secret set UNICORE_UPDATE_SIGNING_KEY --repo owner/repository < /secure/offli
 macOS 使用临时 keychain，codesign hardened runtime + timestamp，notarytool submit --wait，stapler staple/validate，Gatekeeper 与 app ID 复验，最后删除临时 keychain/证书。Windows 使用 SDK signtool SHA256/RFC3161 时间戳与 verify /pa，临时 PFX 完成后删除；HSM/云签名需替换此适配脚本。Linux 没有这两类平台签名，仍必须通过 OTA 发行签名。打包脚本独立检查实际系统签名后记录 platform_signature，运行时如包声明系统签名也再次校验；不把环境变量直接当成功证明。
 
 按当前提交、目标OS与部署方式分别记录检查结果；自动化与原生构建不替代完整更新和失败恢复。支持限制见 [支持范围](../support.md)。
+
+## 数据库兼容与正式版边界
+
+包内 manifest、发行索引与 Ed25519 签名清单携带 `schema_generation` / `schema_fingerprint`，来自唯一 Catalog 的生成投影；包内另列 `namespace_versions` 便于检查。运行时读取同一生成 descriptor。指纹绑定所有适用命名空间、依赖、各支持方言 SQL 原字节 checksum 与账本契约，不能手填或用最大迁移版本替代。
+
+自动安装仅接受相同世代和指纹。追加迁移、重写开发基线或增减模块均会拒绝自动安装，即使应用版本更高、签名有效。此时停服、完整备份，在隔离副本验证后人工更换 tar 或 Docker 镜像；新程序启动时由 runner 执行缺失尾部。失败使用升级前快照与匹配旧程序恢复，不能仅回退 binary。详见 [迁移规范](../02-standards/database-migrations.md)。
+
+当前开发基线已整合，旧开发库不原地转换；正式版后各 namespace 从现有基线追加 version=2、3，不再改写原 SQL。旧签名清单的两个整数迁移等级不被新验签格式接受；保留历史发行物，不重新签写旧 tag。

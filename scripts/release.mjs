@@ -7,6 +7,9 @@ import { readFeatures } from './build-features.mjs';
 import { copyDistribution } from './distribution.mjs';
 import { installationReadme, checkReleaseLayout } from './release-layout.mjs';
 import { loadIdentity } from './product-identity.mjs';
+import { migrationTarget } from './migration-target.mjs';
+const channel = JSON.parse(readFileSync('assets/updates/config.json', 'utf8')).channel;
+if (!['preview','stable'].includes(channel)) throw Error('Invalid release channel');
 const edition = readFeatures();
 const identity = loadIdentity();
 
@@ -50,8 +53,7 @@ for (const target of targets) {
       mkdirSync(`${dir}/deploy`);
       for (const entry of [`${identity.deployment.serviceName}.service`, 'nginx.conf.example']) cpSync(`deploy/tar/${entry}`, `${dir}/deploy/${entry}`);
     }
-    const manifest = { version, channel: 'development', profile, os, arch, commit, build_time: buildTime, features: { authentication: profile === 'web-platform', installation: profile !== 'cli', database: profile !== 'cli', email_accounts: profile === 'web-platform', oidc: profile === 'web-platform', license: profile !== 'cli' && edition.features.license, updater: profile !== 'cli' && edition.features.updater }, min_upgrade_version: null, // Catalog world: one version per namespace, so both levels are 1 (cli has no database).
-    business_migration_level: profile === 'cli' ? 0 : 1, offline_backup: profile !== 'cli', migration_level: profile === 'cli' ? 0 : 1, signature: null, platform_signature: 'unsigned', release_notes: releaseNotes };
+    const manifest = { version, channel, profile, os, arch, commit, build_time: buildTime, features: { authentication: profile === 'web-platform', installation: profile !== 'cli', database: profile !== 'cli', email_accounts: profile === 'web-platform', oidc: profile === 'web-platform', license: profile !== 'cli' && edition.features.license, updater: profile !== 'cli' && edition.features.updater }, min_upgrade_version: null, ...migrationTarget(profile), offline_backup: profile !== 'cli', signature: null, platform_signature: 'unsigned', release_notes: releaseNotes };
     writeFileSync(`${dir}/manifest.json`, JSON.stringify(manifest, null, 2)+'\n');
     checkReleaseLayout(dir, {profile, os, identity});
     const artifact = `${name}.tar.gz`;
@@ -62,4 +64,4 @@ for (const target of targets) {
   }
 }
 writeFileSync('build/releases/checksums.txt', artifacts.map(a => `${a.sha256}  ${a.artifact}`).join('\n')+'\n');
-writeFileSync('build/releases/manifest.json', JSON.stringify({ version, artifacts }, null, 2)+'\n');
+writeFileSync('build/releases/manifest.json', JSON.stringify({ version, channel, artifacts }, null, 2)+'\n');

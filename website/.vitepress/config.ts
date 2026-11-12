@@ -12,8 +12,8 @@ const require = createRequire(import.meta.url);
 const editPattern = (page: PageData) => page.frontmatter.editURL;
 const groups = [
   ['guide', '快速开始', 'Get started', false],
-  ['deploy', '部署与运维', 'Deploy & operate', false],
   ['develop', '应用开发', 'Develop', false],
+  ['deploy', '部署与运维', 'Deploy & operate', false],
   ['features', '功能与边界', 'Features & boundaries', true],
   ['reference', '框架规范（维护者）', 'Framework internals', true],
 ] as const;

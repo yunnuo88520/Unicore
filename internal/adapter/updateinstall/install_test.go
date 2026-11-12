@@ -67,7 +67,7 @@ func TestMain(m *testing.M) {
 		if runtime.GOOS == "windows" {
 			profile = "desktop"
 		}
-		MarkHealthy(data, v, updates.Target{Profile: profile, OS: runtime.GOOS, Arch: runtime.GOARCH, Migration: 1, BusinessMigration: 1, Updater: true})
+		MarkHealthy(data, v, updates.Target{Profile: profile, OS: runtime.GOOS, Arch: runtime.GOARCH, SchemaGeneration: "unicore-1", SchemaFingerprint: strings.Repeat("c", 64), Updater: true})
 		_ = os.WriteFile(filepath.Join(data, "running"), []byte(v), 0600)
 		cwd, _ := os.Getwd()
 		_ = os.WriteFile(filepath.Join(data, "working-directory"), []byte(cwd), 0600)
@@ -146,10 +146,10 @@ func installFixture(t *testing.T, layout ...string) (*Installer, updates.Payload
 	}
 	_ = os.WriteFile(filepath.Join(root, "VERSION"), []byte("1.0.0"), 0644)
 	_ = os.WriteFile(filepath.Join(data, "sentinel"), []byte("preserve data"), 0600)
-	target := updates.Target{Profile: profile, OS: runtime.GOOS, Arch: runtime.GOARCH, Migration: 1, BusinessMigration: 1, Updater: true}
+	target := updates.Target{Profile: profile, OS: runtime.GOOS, Arch: runtime.GOARCH, SchemaGeneration: "unicore-1", SchemaFingerprint: strings.Repeat("c", 64), Updater: true}
 	pub, key, _ := ed25519.GenerateKey(rand.Reader)
 	trust := updates.Trust{AllowUnsignedPlatform: true, Application: "test.unicore.app", Keys: map[string]string{"test": base64.StdEncoding.EncodeToString(pub)}}
-	meta, _ := json.Marshal(map[string]any{"version": "1.0.1", "profile": target.Profile, "os": target.OS, "arch": target.Arch, "commit": strings.Repeat("a", 40), "migration_level": 1, "business_migration_level": 1, "features": map[string]bool{"license": false, "updater": true}})
+	meta, _ := json.Marshal(map[string]any{"version": "1.0.1", "profile": target.Profile, "os": target.OS, "arch": target.Arch, "commit": strings.Repeat("a", 40), "schema_generation": target.SchemaGeneration, "schema_fingerprint": target.SchemaFingerprint, "features": map[string]bool{"license": false, "updater": true}})
 	oldMeta := bytes.Replace(meta, []byte(`"version":"1.0.1"`), []byte(`"version":"1.0.0"`), 1)
 	_ = os.WriteFile(filepath.Join(root, "manifest.json"), oldMeta, 0644)
 	binary, e := os.ReadFile(executable)

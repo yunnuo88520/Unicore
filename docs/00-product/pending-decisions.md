@@ -36,10 +36,8 @@
 
 ## D5. 更新目标迁移等级常量与迁移目录不同步
 
-- 现状：`internal/bootstrap/updating/runtime.go` `currentTarget` 写死 web-platform `migration=12`、`BusinessMigration=2`；迁移目录实际为 core@1、platform@9、module.notes@1，且无 business 命名空间（`migrations/catalog.json`，ADR-0024 squash 后口径）。
-- 影响：更新签名 target 的迁移等级语义与 Catalog 单轨事实脱节； artifact 与包内 manifest 是相等比较所以当前自洽，但新发行物制作时易错。
-- 候选：从 `migrations/metadata.gen.json` 生成等级常量，替代手写。
-- 推荐：按候选方向立项小任务（实现修改，超出本文档任务范围）。**待决策排期。**
+- 状态：**已解决。** 运行时、Web/桌面包与签名清单共用 Catalog 生成的 `schema_generation` / `schema_fingerprint`，不再手写两个迁移等级。
+- 自动安装要求全部适用 namespace、依赖、方言 SQL checksum 与账本契约相同；有迁移的升级通过人工停服备份和 runner 追加执行。开发基线整合与正式版后冻结政策见 [发行基线与更新兼容](../adr/ADR-0042-release-baseline-update-compatibility.md)。
 
 ## D6. 权限文档与共享导航授权一致性
 

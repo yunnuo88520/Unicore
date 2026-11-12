@@ -24,7 +24,7 @@ function violationsFor(path, text, framework, module) {
     // still reported. UI strings do not receive this documentation exemption.
     const technical = module ? line.replaceAll(module, '') : line;
     const visible = path.startsWith('docs/')
-      ? technical.replace(/\bunicore_(?:[a-z][a-z0-9_]*)?\b/g, '')
+      ? technical.replace(/\bunicore_(?:[a-z][a-z0-9_]*)?\b/g, '').replace(/\bunicore-1\b/g, '')
       : technical;
     if (!new RegExp(framework, 'i').test(visible)) return;
     if (ALLOWED.some(pattern => pattern.test(line))) return;

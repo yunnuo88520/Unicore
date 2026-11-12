@@ -110,14 +110,22 @@ Linux amd64 daemon 将上例改为 linux/amd64。验收只创建随机命名容�
 
 ## 发布候选与恢复门禁
 
-源码采用 MIT，各 tar 包包含 LICENSE；Web 的备份/恢复共用 unicore 入口，manifest 保留 business_migration_level。归档及默认镜像名读取根 package.name，VERSION 仍唯一版本源。派生项目构建前按 [上游约定](framework-upgrade.md) 保留 provenance 与作者。
+源码采用 MIT，各 tar 包包含 LICENSE；Web 的备份/恢复共用 unicore 入口，manifest 从 Catalog 生成 schema_generation、schema_fingerprint 与 namespace_versions。归档及默认镜像名读取根 package.name，VERSION 仍唯一版本源。派生项目构建前按 [上游约定](framework-upgrade.md) 保留 provenance 与作者。
 
 提交 VERSION/CHANGELOG 并合入 main，等待 Quality and profile builds 与 Dependency security 全部成功，再手动运行 Prepare release candidate workflow，输入完全匹配的 version 和该 main 质量 workflow 的 ci_run_id。候选构建全 Web/CLI tar，合并同一提交的三系统原生桌面归档，校验 13 个 tar 包以及 macOS DMG、Windows 便携 EXE 的版本、来源提交、目标矩阵和 SHA-256；后两者记录在对应桌面 artifact 的 downloads 字段，统一进入 checksums.txt 与来源证明，OTA 清单仍只选择 tar；同时核对该 main 提交的 Dependency security 成功后，要求 GitHub Secret UNICORE_UPDATE_SIGNING_KEY 匹配已提交公钥，签发两份 OTA 清单，再生成 GitHub 构建来源证明，输出 release-bundle artifact。旧运行、PR 构建、不同提交、缺包或校验和不符均拒绝；不创建 tag/Release 或推送镜像。
 
-用户已授权公开发布时，下载该 artifact，验证 checksums/manifest 和 `gh attestation verify <文件> --repo <owner/repo>`，在完全相同的 main 提交创建 `v<VERSION>` tag，将 13 个 tar.gz、macOS DMG、Windows EXE、manifest.json、checksums.txt、update-manifest.json、update-manifest.sig 上传 GitHub prerelease。发布说明列出实际 OS/Arch、安装入口、备份/恢复、未签名及未测范围；核对 Release 页面和下载后的 checksum 后才能宣告完成。首次预览沿用正常递增版本流程，不重写已归档 Changelog。必须验证独立 Ed25519 OTA 清单，而非依据保留字段 signature:null 判断签名。macOS/Windows 凭据配置、密钥轮换与缺凭据行为见 [更新手册](updates.md)；镜像注册表策略与 SBOM 另行对接。
+用户已授权公开发布时，下载该 artifact，验证 checksums/manifest 和 `gh attestation verify <文件> --repo <owner/repo>`，在完全相同的 main 提交创建 `v<VERSION>` tag，将 13 个 tar.gz、macOS DMG、Windows EXE、manifest.json、checksums.txt、update-manifest.json、update-manifest.sig 上传 GitHub Release（preview 勾选 prerelease，stable 不勾选）。发布说明列出实际 OS/Arch、安装入口、备份/恢复、未签名及未测范围；核对 Release 页面和下载后的 checksum 后才能宣告完成。首次预览沿用正常递增版本流程，不重写已归档 Changelog。必须验证独立 Ed25519 OTA 清单，而非依据保留字段 signature:null 判断签名。macOS/Windows 凭据配置、密钥轮换与缺凭据行为见 [更新手册](updates.md)；GHCR 镜像由 image workflow 在 Release 发布后单独构建，需核对其成功与对应 tag；SBOM 另行对接。
 
 Dependency security workflow 运行固定版 govulncheck：Web/CLI/ops 符号检查、全部业务导入包和桌面 bindings 导入包检查；前端审计包含开发依赖，low 及以上阻断。没有导入的废弃子包单独记录，不以排除开发依赖掩盖测试工具漏洞。安装新依赖需跟踪误报与升级影响，不静默忽略失败。发布前在目标环境恢复副本验证，参见 [备份恢复](backup.md)。跨版本升级/回退验收与同版本容器替换分开记录。
 
 `make test-upgrade FROM_REF=<可信本地旧提交或tag>` 的流程是构建临时旧实例、保存设置/账号、备份、向前迁移、重启，再将升级前快照恢复到新目录供旧 binary 验证。仅允许当前脚本明确支持的旧业务等级，先核对旧包的迁移等级与备份元数据；SQLite 的结果不能泛化到 PostgreSQL/MySQL 或任意历史 ref，外部 DB 需对应跨版本夹具。失败时保留日志并阻断发布，不能把同版本重建当作升级/恢复通过。
 
 构建网络受限时，可显式 `GOPROXY=https://goproxy.cn,direct make docker-build`（选用团队信任的 Go 模块代理，sumdb 校验保持启用），Compose 读取相同变量；GO_IMAGE/NODE_IMAGE/RUNTIME_IMAGE 同样可指定可信镜像源。不要使用跳过 TLS 或关闭 checksum 的方式解决下载问题。
+
+## 正式版准备与兼容承诺
+
+当前版本仍为开发预览，不因本流程存在而自动成为稳定版。候选 workflow 的 release_kind 默认 preview；正式发行选择 stable，控制双语发行说明。该 workflow 只准备 artifact，不创建 tag、不发布 Release、不部署；正式候选须先把 assets/updates/config.json 的 channel 改为 stable，重跑同提交的质量与原生构建；打包从该配置读取渠道，混合渠道拒绝装配，发行说明与包渠道不符也拒绝生成。发布时核对 GitHub prerelease 标记与文档版本入口一致。
+
+首个正式版后冻结已交付迁移，后续在 namespace 追加连续版本；API/配置变更须给出兼容与迁移说明，不将 framework 源码结构或三方合并定制视为稳定插件 API。发布前明确该版本开始承诺的 API、配置与运行组合，写入对应 tag 的支持范围和 Release 说明；不要仅凭开发机结果承诺所有数据库、云厂商或原生系统。安全支持按仓库 SECURITY 政策。
+
+正式版文档使用对应 tag 的固定来源；在线站点随 main 更新的内容属于开发文档，需明确标记。历史开发预览的 tag/资产保持，不为基线整合改写历史。旧开发库不要求原地升级；正常升级流程仍必须由带数据的追加迁移、重启和匹配快照恢复演练证明。当前三方言验证工具提供独立追加版本夹具；首个正式版本发布后还须用真实上一 tag 执行 make test-upgrade。

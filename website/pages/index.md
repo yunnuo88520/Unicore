@@ -12,20 +12,20 @@ hero:
     alt: Unicore
   actions:
     - theme: brand
-      text: 开始使用 →
-      link: /product/index
-    - theme: brand
-      text: 部署到服务器
-      link: /product/deployment
-    - theme: alt
-      text: 创建自己的应用
+      text: 创建自己的应用 →
       link: /product/development
+    - theme: alt
+      text: 第一次体验
+      link: /product/index
+    - theme: alt
+      text: 开发第一个功能
+      link: /product/first-feature
     - theme: alt
       text: GitHub
       link: https://github.com/yunnuo88520/Unicore
 features:
-  - title: 一个核心，四种形态
-    details: Web 平台、Web 单机、Wails 桌面与 Cobra CLI 分别装配，共享领域与用例，保持各自的依赖边界。
+  - title: 三种形态，四个装配 profile
+    details: Platform 多用户平台、Standalone 单机（Web/桌面两载体）、CLI 无状态命令行分别装配；CLI 当前不含笔记或数据库。
     link: /product/build
     linkText: 选择与构建
   - title: 从完整样板开始
@@ -43,6 +43,7 @@ features:
 
 | 你的目标 | 推荐入口 |
 | --- | --- |
+| 先创建自己的产品 | [创建项目](../../docs/product/development.md) → [第一个功能](../../docs/product/first-feature.md) |
 | 跑起来，了解支持边界 | [使用指南](../../docs/product/index.md) · [支持范围](../../docs/support.md) |
 | 部署到服务器 | [从零部署](../../docs/product/deployment.md)（Docker / Compose / tar+systemd） · [常见问题](../../docs/product/faq.md) |
 | 安装桌面与命令行 | [桌面与 CLI 安装](../../docs/product/install-desktop.md) · [备份恢复](../../docs/product/backup.md) |

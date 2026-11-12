@@ -1,5 +1,5 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Standalone executor for the catalog baselines: advisory locks, checksum verification and the four-column ledger; deliberately not wired into install or startup.
+// Description: Catalog executor used by installation and startup: advisory locks, checksum verification and the four-column ledger.
 package runner
 
 import (

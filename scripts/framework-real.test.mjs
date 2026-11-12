@@ -40,8 +40,8 @@ test('real exported product renames, retains business/theme and merges two frame
   assert.match(deployment,/HARBOR_DESK_IMAGE/);
   applyIdentity(app,loadIdentity(app),true);
   assert.deepEqual(scanResiduals(app),[]);
-  const sql=readFileSync(join(app,'migrations/platform/sqlite/0010_api_credentials.sql'));
-  assert.deepEqual(sql,readFileSync(join(repository,'migrations/platform/sqlite/0010_api_credentials.sql')));
+  const sql=readFileSync(join(app,'migrations/platform/sqlite/0001_initial.sql'));
+  assert.deepEqual(sql,readFileSync(join(repository,'migrations/platform/sqlite/0001_initial.sql')));
   mkdirSync(join(app,'internal/business'),{recursive:true});
   const ownership=loadIdentity(app);ownership.author='Application Team <team@example.test>';
   writeFileSync(join(app,'product.identity.json'),JSON.stringify(ownership,null,2)+'\n');
@@ -71,7 +71,7 @@ test('real exported product renames, retains business/theme and merges two frame
    assert.equal(JSON.parse(readFileSync(join(app,'assets/theme/tokens.json'))).brand.accent,'#1177ee');
    assert.equal(readFileSync(join(app,'internal/business/ticket.go'),'utf8'),business);
    assert.match(readFileSync(join(app,'internal/adapter/cli/command.go'),'utf8'),new RegExp(`patch ${number}: example.test/team/harbor-desk/internal/domain`));
-   assert.deepEqual(readFileSync(join(app,'migrations/platform/sqlite/0010_api_credentials.sql')),sql);
+   assert.deepEqual(readFileSync(join(app,'migrations/platform/sqlite/0001_initial.sql')),sql);
    assert.ok(existsSync(join(app,'deploy/tar/harbor-desk.service')));
    assert.equal(existsSync(join(app,'deploy/tar/unicore.service')),false);
    assert.match(readFileSync(join(app,'docs/product/deployment.md'),'utf8'),/https:\/\/github.com\/example\/harbor-desk/);

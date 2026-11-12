@@ -4,10 +4,18 @@
 import { notes } from './modules/notes';
 import {defineMessages} from './i18n';
 import type { Bootstrap } from '@unicore/sdk';
-import { Bell, BookOpen, Activity, Circle, Cloud, Cpu, FileText, LayoutDashboard, ListChecks, Mail, Megaphone, Monitor, Network, NotebookPen, PackageCheck, Radar, ScrollText, Settings2, ShieldCheck, UserCog, UserRound, Webhook, type LucideIcon } from 'lucide-react';
+import { Bell, BookOpen, Activity, Circle, Cloud, Cpu, FileText, LayoutDashboard, ListChecks, Mail, Megaphone, Monitor, Network, NotebookPen, PackageCheck, Palette, Radar, ScrollText, Settings2, ShieldCheck, UserCog, UserRound, Webhook, type LucideIcon } from 'lucide-react';
+
+// Dev-only component catalog: define-replaced to false in production builds, so the
+// page facts, route and module are tree-shaken out of shipped bundles. Tests assert
+// the product route set, so the preview stays out of vitest too.
+const devRoutes = import.meta.env.DEV && !import.meta.env.VITEST ? defineMessages({
+  'ui-preview': { label: '组件预览', title: '组件预览', description: '开发环境专用的组件一览，自检双主题与双语。', icon: Palette },
+}) : {};
 
 export const routes = defineMessages({
   ...notes.routes,
+  ...devRoutes,
   overview: { label: '工作台概览', title: '一份核心，无限可能', description: '从这里出发，让同一份业务逻辑运行于 Web、桌面与命令行。', icon: LayoutDashboard },
   site: { label: '基础设置', title: '基础设置', description: '集中管理站点、品牌与适用的实例配置。', permission: 'settings:read', icon: Settings2, group: 'system' },
   storage:{label:'对象存储',title:'对象存储',description:'按需切换本地与云存储，让业务只关心文件。',permission:'storage:read',icon:Cloud,group:'system'},

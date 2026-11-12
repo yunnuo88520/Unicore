@@ -129,6 +129,7 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
     pageRoute('/monitor-resources', () => import('./pages/monitor').then(module => ({ default: module.AdminMonitorResourcesPage })), { adminEligible: true }),
     pageRoute('/monitor-events', () => import('./pages/monitor').then(module => ({ default: module.AdminMonitorEventsPage })), { adminEligible: true }),
     pageRoute('/api-docs', () => import('./pages/api-docs').then(module => ({ default: module.ApiDocsPage }))),
+    ...(import.meta.env.DEV && !import.meta.env.VITEST ? [pageRoute('/ui-preview', () => import('./pages/ui-preview').then(module => ({ default: module.UiPreviewPage })))] : []),
     pageRoute('/edition', () => import('./pages/edition').then(module => ({ default: module.UserEditionPage })), { adminEligible: true }),
     createRoute({ getParentRoute: () => rootRoute, path: '/settings', beforeLoad: () => { throw redirect({ to: '/site', replace: true }); } }) as unknown as AnyRoute,
   ] as [AnyRoute, ...AnyRoute[]]);

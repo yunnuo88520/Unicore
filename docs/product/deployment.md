@@ -74,11 +74,11 @@ sudo -u postgres psql
 ```
 
 ```sql
-CREATE ROLE unicore LOGIN;
+CREATE ROLE "unicore" LOGIN;
 \password unicore
-CREATE DATABASE unicore OWNER unicore;
+CREATE DATABASE "unicore" OWNER "unicore";
 \connect unicore
-GRANT USAGE, CREATE ON SCHEMA public TO unicore;
+GRANT USAGE, CREATE ON SCHEMA public TO "unicore";
 \quit
 ```
 
@@ -89,9 +89,9 @@ GRANT USAGE, CREATE ON SCHEMA public TO unicore;
 在 MySQL 管理客户端中执行下列语句。**先把占位密码和账号来源地址改为实际值**；下例 `10.0.0.20` 代表应用在数据库侧看到的来源地址，Docker 可能是桥接网段，不能机械照抄，也不建议默认授予任意 `%` 来源。
 
 ```sql
-CREATE DATABASE unicore CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE `unicore` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER 'unicore'@'10.0.0.20' IDENTIFIED BY 'REPLACE_WITH_A_LONG_RANDOM_PASSWORD';
-GRANT ALL PRIVILEGES ON unicore.* TO 'unicore'@'10.0.0.20';
+GRANT ALL PRIVILEGES ON `unicore`.* TO 'unicore'@'10.0.0.20';
 ```
 
 权限限于这一专用库，不需要全局 root 权限。数据库端口仅向应用网络开放。MySQL 的 DDL 可能部分提交，安装或升级中断后不能认为所有改动都已回滚。
@@ -116,11 +116,11 @@ GRANT ALL PRIVILEGES ON unicore.* TO 'unicore'@'10.0.0.20';
 
 ### 3.1 获取镜像
 
-公开镜像随后续发行版本在 `ghcr.io/yunnuo88520/unicore` 提供，是否可用以对应 Release 说明为准；**已发布的旧版本没有镜像**，不要直接假设 `docker pull unicore` 可用。下面从源码构建本地镜像；若你的产品维护者提供可信镜像，改用其明确版本/digest，并跳过构建。
+镜像是否公开、镜像名及 tag/digest，以产品维护者的 Release 说明为准；历史版本可能没有镜像。下面从产品仓库源码构建本地镜像，已有可信镜像时可跳过构建。
 
 ```sh
-git clone https://github.com/yunnuo88520/Unicore.git
-cd Unicore
+git clone https://github.com/yunnuo88520/Unicore.git unicore-source
+cd unicore-source
 # 部署发行版本时先切换到对应实际存在的 tag；构建开发提交则核对 git rev-parse HEAD。
 export UNICORE_VERSION="$(cat VERSION)"
 export UNICORE_IMAGE="unicore:${UNICORE_VERSION}"

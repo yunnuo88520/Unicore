@@ -1320,7 +1320,8 @@ export const operations = {
     "binaryResponse": true,
     "multipartRequest": false,
     "profiles": [
-      "web-platform"
+      "web-platform",
+      "web-standalone"
     ],
     "access": "public",
     "permissions": [],
@@ -4492,6 +4493,373 @@ export const operations = {
     "superAdmin": true,
     "csrf": true,
     "identityRealm": "administrator"
+  },
+  "notesListFiles": {
+    "method": "GET",
+    "path": "/api/v1/notes/files",
+    "requestSchema": null,
+    "responseSchema": "FileListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform",
+      "web-standalone"
+    ],
+    "access": "platform-session",
+    "permissions": [
+      "notes:access"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user",
+    "uiPage": "notes"
+  },
+  "notesFileAccess": {
+    "method": "POST",
+    "path": "/api/v1/notes/files/{id}/access",
+    "requestSchema": null,
+    "responseSchema": "FileAccessResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform",
+      "web-standalone"
+    ],
+    "access": "platform-session",
+    "permissions": [
+      "notes:access"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user",
+    "uiPage": "notes"
+  },
+  "notesDeleteFile": {
+    "method": "DELETE",
+    "path": "/api/v1/notes/files/{id}",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform",
+      "web-standalone"
+    ],
+    "access": "platform-session",
+    "permissions": [
+      "notes:create",
+      "notes:update"
+    ],
+    "permissionMode": "any",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user",
+    "uiPage": "notes"
+  },
+  "notesFileUploadPolicy": {
+    "method": "GET",
+    "path": "/api/v1/notes/files/policy",
+    "requestSchema": null,
+    "responseSchema": "UploadPolicyResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform",
+      "web-standalone"
+    ],
+    "access": "platform-session",
+    "permissions": [
+      "notes:access"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user",
+    "uiPage": "notes"
+  },
+  "notesCreateMultipartUpload": {
+    "method": "POST",
+    "path": "/api/v1/notes/files/multipart",
+    "requestSchema": "MultipartUploadInput",
+    "responseSchema": "MultipartUploadResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform",
+      "web-standalone"
+    ],
+    "access": "platform-session",
+    "permissions": [
+      "notes:create",
+      "notes:update"
+    ],
+    "permissionMode": "any",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user",
+    "uiPage": "notes"
+  },
+  "notesMultipartUpload": {
+    "method": "GET",
+    "path": "/api/v1/notes/files/multipart/{id}",
+    "requestSchema": null,
+    "responseSchema": "MultipartUploadResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform",
+      "web-standalone"
+    ],
+    "access": "platform-session",
+    "permissions": [
+      "notes:access"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user",
+    "uiPage": "notes"
+  },
+  "notesSignUploadPart": {
+    "method": "POST",
+    "path": "/api/v1/notes/files/multipart/{id}/parts",
+    "requestSchema": "UploadPartInput",
+    "responseSchema": "FileUploadGrantResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform",
+      "web-standalone"
+    ],
+    "access": "platform-session",
+    "permissions": [
+      "notes:create",
+      "notes:update"
+    ],
+    "permissionMode": "any",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user",
+    "uiPage": "notes"
+  },
+  "notesUploadLocalPart": {
+    "method": "PUT",
+    "path": "/api/v1/notes/files/multipart/{id}/parts/{part}",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": true,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform",
+      "web-standalone"
+    ],
+    "access": "platform-session",
+    "permissions": [
+      "notes:create",
+      "notes:update"
+    ],
+    "permissionMode": "any",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user",
+    "streamingUpload": true,
+    "uiPage": "notes"
+  },
+  "notesCompleteMultipartUpload": {
+    "method": "POST",
+    "path": "/api/v1/notes/files/multipart/{id}/complete",
+    "requestSchema": null,
+    "responseSchema": "FileEntryResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform",
+      "web-standalone"
+    ],
+    "access": "platform-session",
+    "permissions": [
+      "notes:create",
+      "notes:update"
+    ],
+    "permissionMode": "any",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user",
+    "uiPage": "notes"
+  },
+  "avatarListFiles": {
+    "method": "GET",
+    "path": "/api/v1/account/avatar/files",
+    "requestSchema": null,
+    "responseSchema": "FileListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user"
+  },
+  "avatarFileAccess": {
+    "method": "POST",
+    "path": "/api/v1/account/avatar/files/{id}/access",
+    "requestSchema": null,
+    "responseSchema": "FileAccessResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "avatarDeleteFile": {
+    "method": "DELETE",
+    "path": "/api/v1/account/avatar/files/{id}",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "avatarFileUploadPolicy": {
+    "method": "GET",
+    "path": "/api/v1/account/avatar/files/policy",
+    "requestSchema": null,
+    "responseSchema": "UploadPolicyResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user"
+  },
+  "avatarCreateMultipartUpload": {
+    "method": "POST",
+    "path": "/api/v1/account/avatar/files/multipart",
+    "requestSchema": "MultipartUploadInput",
+    "responseSchema": "MultipartUploadResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "avatarMultipartUpload": {
+    "method": "GET",
+    "path": "/api/v1/account/avatar/files/multipart/{id}",
+    "requestSchema": null,
+    "responseSchema": "MultipartUploadResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user"
+  },
+  "avatarSignUploadPart": {
+    "method": "POST",
+    "path": "/api/v1/account/avatar/files/multipart/{id}/parts",
+    "requestSchema": "UploadPartInput",
+    "responseSchema": "FileUploadGrantResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "avatarUploadLocalPart": {
+    "method": "PUT",
+    "path": "/api/v1/account/avatar/files/multipart/{id}/parts/{part}",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": true,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user",
+    "streamingUpload": true
+  },
+  "avatarCompleteMultipartUpload": {
+    "method": "POST",
+    "path": "/api/v1/account/avatar/files/multipart/{id}/complete",
+    "requestSchema": null,
+    "responseSchema": "FileEntryResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
   }
 } as const;
 export type OperationId = keyof typeof operations;
@@ -4728,6 +5096,24 @@ export interface OperationInputs {
   revokePersonalToken: undefined;
   personalTokenScopes: undefined;
   rotateTokenSigningKey: undefined;
+  notesListFiles: undefined;
+  notesFileAccess: undefined;
+  notesDeleteFile: undefined;
+  notesFileUploadPolicy: undefined;
+  notesCreateMultipartUpload: Models.MultipartUploadInput;
+  notesMultipartUpload: undefined;
+  notesSignUploadPart: Models.UploadPartInput;
+  notesUploadLocalPart: undefined;
+  notesCompleteMultipartUpload: undefined;
+  avatarListFiles: undefined;
+  avatarFileAccess: undefined;
+  avatarDeleteFile: undefined;
+  avatarFileUploadPolicy: undefined;
+  avatarCreateMultipartUpload: Models.MultipartUploadInput;
+  avatarMultipartUpload: undefined;
+  avatarSignUploadPart: Models.UploadPartInput;
+  avatarUploadLocalPart: undefined;
+  avatarCompleteMultipartUpload: undefined;
 }
 export interface OperationData {
   bootstrap: Models.BootstrapResponse['data'];
@@ -4962,4 +5348,22 @@ export interface OperationData {
   revokePersonalToken: Models.ActionResultResponse['data'];
   personalTokenScopes: Models.TokenScopeListResponse['data'];
   rotateTokenSigningKey: Models.ActionResultResponse['data'];
+  notesListFiles: Models.FileListResponse['data'];
+  notesFileAccess: Models.FileAccessResponse['data'];
+  notesDeleteFile: Models.ActionResultResponse['data'];
+  notesFileUploadPolicy: Models.UploadPolicyResponse['data'];
+  notesCreateMultipartUpload: Models.MultipartUploadResponse['data'];
+  notesMultipartUpload: Models.MultipartUploadResponse['data'];
+  notesSignUploadPart: Models.FileUploadGrantResponse['data'];
+  notesUploadLocalPart: Models.ActionResultResponse['data'];
+  notesCompleteMultipartUpload: Models.FileEntryResponse['data'];
+  avatarListFiles: Models.FileListResponse['data'];
+  avatarFileAccess: Models.FileAccessResponse['data'];
+  avatarDeleteFile: Models.ActionResultResponse['data'];
+  avatarFileUploadPolicy: Models.UploadPolicyResponse['data'];
+  avatarCreateMultipartUpload: Models.MultipartUploadResponse['data'];
+  avatarMultipartUpload: Models.MultipartUploadResponse['data'];
+  avatarSignUploadPart: Models.FileUploadGrantResponse['data'];
+  avatarUploadLocalPart: Models.ActionResultResponse['data'];
+  avatarCompleteMultipartUpload: Models.FileEntryResponse['data'];
 }

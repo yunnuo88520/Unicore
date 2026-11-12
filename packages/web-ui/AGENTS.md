@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # web-ui 域内约定
 
-业务壳层包。完整规范见 [前端基础](../../docs/03-runbooks/frontend-foundations.md)，根 [AGENTS](../../AGENTS.md) 优先。
+业务壳层包。完整规范见 [前端基础](../../docs/product/development.md)，根 [AGENTS](../../AGENTS.md) 优先。
 
 - 布局只复用 WorkspaceLayout，业务页不设置侧栏偏移；几何变化走 shell.css。
 - `routes.ts` 是页面唯一事实来源（label/permission/icon/group）；服务端权限才是边界，前端隐藏仅是呈现。

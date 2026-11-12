@@ -207,13 +207,17 @@ func TestPersonalCenterHTTP(t *testing.T) {
 				t.Fatal("email proofs survived completion")
 			}
 			// Set up an encrypted authenticator, bound to the initiating session.
+			// Freeze only TOTP validation at a window's final second. Session and
+			// setup expiry retain real time, including after composition restart.
+			totpNow := func() time.Time { return time.Unix(1700000009, 0) }
+			manager.Identity(adminRealm).Personal.TOTPNow = totpNow
 			check(request("POST", prefix+"/account/totp/setup", contracts.TOTPSetupInput{Password: "wrong"}, raw, adminRealm, csrf), 401)
 			var setup contracts.TOTPSetupResponse
 			w = request("POST", prefix+"/account/totp/setup", contracts.TOTPSetupInput{Password: "test-password-strong"}, raw, adminRealm, csrf)
 			check(w, 200)
 			must(json.Unmarshal(w.Body.Bytes(), &setup))
 			second = login()
-			step := time.Now().Unix() / 30
+			step := totpNow().Unix() / 30
 			enableCode := personalCode(setup.Data.Secret, step-1)
 			check(request("POST", prefix+"/account/totp/enable", contracts.SecurityCodeInput{Code: enableCode}, second, adminRealm, platform.CSRF(second)), 400)
 			var recovery contracts.RecoveryCodesResponse
@@ -239,6 +243,7 @@ func TestPersonalCenterHTTP(t *testing.T) {
 			manager, err = install.Open(ctx, install.Options{DataDir: dir})
 			must(err)
 			db, config, identity, _ = manager.Services()
+			manager.Identity(adminRealm).Personal.TOTPNow = totpNow
 			router = New(Config{Core: bootstrap.Core(), Install: manager, Assets: fstest.MapFS{"index.html": {Data: []byte("app")}}, Logger: slog.New(slog.NewTextHandler(io.Discard, nil))})
 			check(request("GET", prefix+"/account/profile", nil, raw, adminRealm, ""), 200)
 			pending := login()

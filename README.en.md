@@ -3,7 +3,7 @@
 
 [简体中文](README.md) · **English**
 
-This repository is generated from the [Unicore](https://github.com/yunnuo88520/Unicore) framework template: one core serving Web, desktop and CLI. `product.identity.json` is the single product-identity entry; see docs/product/updates.md for upstream sync.
+This repository is generated from the [Unicore](https://github.com/yunnuo88520/Unicore) framework template: one core serving Web, desktop and CLI. `product.identity.json` is the single product-identity entry; see docs/product/framework-upgrade.md for upstream source sync.
 
 Development:
 

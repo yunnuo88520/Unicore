@@ -1049,7 +1049,7 @@
   "发布": "Publish",
   "上传已取消，临时分片将自动清理": "Upload abandoned. Temporary parts will be cleaned up automatically.",
   "继续上传": "Resume upload",
-  "继续上传 {{name}}": "Resume {{name}}",
+  "继续上传 {{name}}": "Resume upload of {{name}}",
   "重新选择原文件以继续": "Choose the original file to resume",
   "单文件最大 {{size}} · 支持分片续传": "Up to {{size}} per file · Resumable uploads",
   "等待选择原文件": "Choose the original file",
@@ -2391,5 +2391,11 @@
   "当前账号没有可授权的 API": "No API scopes are available for this account",
   "请至少选择一个 API": "Select at least one API",
   "生成令牌": "Generate token",
-  "完成": "Done"
+  "完成": "Done",
+  "开启 · 校验证书与主机名": "On · Verify certificate and hostname",
+  "请先创建当前实例独占的数据库并授权。安装会初始化目标库；已有数据清空前须明确确认。连接信息加密保存。远程数据库推荐校验证书与主机名；私有 CA 须先加入服务器和备份工具的信任库。不校验证书的加密模式仅适用于可信网络。": "Create and authorize a dedicated database first. Installation initializes the target; clearing existing data requires explicit confirmation. Connection details are encrypted. Verify certificates and hostnames for remote databases. Add private CAs to the server and backup tool trust stores first. Unverified encryption is for trusted networks only.",
+  "上传或选择已授权的本人文件。最多 5 个；移除引用不删除原文件。": "Upload or select your authorized files. Up to 5 attachments; removing a reference keeps the original file.",
+  "附件已上传，保存笔记后关联": "Attachment uploaded; save the note to attach it.",
+  "文件服务尚未就绪": "File service is not ready",
+  "文件保持私有，访问需要业务授权。": "Files stay private. Access requires business authorization."
 }

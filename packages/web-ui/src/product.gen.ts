@@ -3,4 +3,5 @@
 
 export const productName = "Unicore";
 export const productSlug = "unicore";
+export const productCommand = "unicore";
 export const productDescription = "一份核心，运行于每个终端";

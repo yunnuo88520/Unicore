@@ -1,5 +1,5 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Platform file/storage API with independent identity, CSRF and owner authorization boundaries.
+// Description: Business uploads and platform storage administration share durable files with independent authorization.
 package httpadapter
 
 import (
@@ -126,16 +126,41 @@ func mountStorage(api chi.Router, config Config) {
 		}
 		success(w, contracts.ActionResult{Success: true})
 	}).ServeHTTP)
-	for _, prefix := range []string{"", "/admin"} {
+	for _, prefix := range []string{"", "/admin", "/notes", "/account/avatar"} {
+		routeHandler := handler
+		business := prefix == "/notes" || prefix == "/account/avatar"
+		if business {
+			routeHandler = func(_ string, fn func(http.ResponseWriter, *http.Request, *files.Service, files.Actor)) http.HandlerFunc {
+				return func(w http.ResponseWriter, r *http.Request) {
+					if !coreAccess(manager, w, r) {
+						return
+					}
+					service := manager.Files()
+					if service == nil {
+						failure(w, 503, "NOT_AVAILABLE", "文件服务尚未就绪")
+						return
+					}
+					actor := files.Actor{ID: "local", Realm: "local"}
+					if session, ok := r.Context().Value(policySessionKey{}).(contracts.Session); ok {
+						actor = fileActor(r, session)
+						actor.Admin = false
+					}
+					if prefix == "/account/avatar" {
+						actor.Realm = "avatar"
+					}
+					fn(w, r, service, actor)
+				}
+			}
+		}
 		fileHandler := func(write bool, fn func(http.ResponseWriter, *http.Request, *files.Service, files.Actor)) http.HandlerFunc {
 			permission := ""
-			if prefix != "" {
+			if prefix == "/admin" {
 				permission = "storage:read"
 				if write {
 					permission = "storage:write"
 				}
 			}
-			return handler(permission, fn)
+			return routeHandler(permission, fn)
 		}
 
 		api.Get(prefix+"/files/policy", fileHandler(false, func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
@@ -144,6 +169,10 @@ func mountStorage(api chi.Router, config Config) {
 		api.Post(prefix+"/files/multipart", fileHandler(true, func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
 			var input contracts.MultipartUploadInput
 			if !decode(w, r, &input) {
+				return
+			}
+			if prefix == "/account/avatar" && (input.Size > 2<<20 || (input.MimeType != "image/png" && input.MimeType != "image/jpeg" && input.MimeType != "image/gif")) {
+				webError(w, files.ErrInvalid)
 				return
 			}
 			ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
@@ -178,7 +207,7 @@ func mountStorage(api chi.Router, config Config) {
 				return
 			}
 			if !v.Direct && prefix != "" {
-				v.Url = "/api/v1/admin" + strings.TrimPrefix(v.Url, "/api/v1")
+				v.Url = "/api/v1" + prefix + strings.TrimPrefix(v.Url, "/api/v1")
 			}
 			success(w, v)
 		}).ServeHTTP)
@@ -205,6 +234,12 @@ func mountStorage(api chi.Router, config Config) {
 			defer cancel()
 			http.NewResponseController(w).SetWriteDeadline(time.Now().Add(2 * time.Hour))
 			v, e := s.FinishUpload(ctx, a, chi.URLParam(r, "id"))
+			if e == nil && prefix == "/account/avatar" {
+				e = s.ValidateAvatar(ctx, a, v.FileID)
+				if e != nil {
+					_ = s.Delete(ctx, a, v.FileID)
+				}
+			}
 			if e != nil {
 				webError(w, e)
 				return
@@ -222,7 +257,7 @@ func mountStorage(api chi.Router, config Config) {
 				scopePermission = "storage:read"
 			}
 			scope := files.ScopeFilter{}
-			if !a.Admin {
+			if !business && !a.Admin {
 				if policySession, ok := r.Context().Value(policySessionKey{}).(contracts.Session); ok {
 					identity := config.Install.Identity(false)
 					if identity != nil {
@@ -240,56 +275,62 @@ func mountStorage(api chi.Router, config Config) {
 				webError(w, e)
 				return
 			}
-			fileActionCapabilities(r, &v)
-			success(w, v)
-		}).ServeHTTP)
-		api.Post(prefix+"/files/uploads", fileHandler(true, func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
-			var input contracts.FileUploadInput
-			if !decode(w, r, &input) {
-				return
-			}
-			v, e := s.Upload(r.Context(), a, input)
-			if e != nil {
-				webError(w, e)
-				return
-			}
-			if !v.Direct && prefix != "" {
-				v.Url = "/api/v1/admin" + strings.TrimPrefix(v.Url, "/api/v1")
+			if !business {
+				fileActionCapabilities(r, &v)
 			}
 			success(w, v)
 		}).ServeHTTP)
-		api.Put(prefix+"/files/uploads/{id}/content", fileHandler(true, func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
-			if r.Header.Get("Content-Type") != "application/octet-stream" {
-				failure(w, 415, "UNSUPPORTED_MEDIA_TYPE", "请使用 application/octet-stream")
-				return
-			}
-			controller := http.NewResponseController(w)
-			controller.SetReadDeadline(time.Now().Add(10 * time.Minute))
-			controller.SetWriteDeadline(time.Now().Add(10 * time.Minute))
-			r.Body = http.MaxBytesReader(w, r.Body, 1<<30)
-			if e := s.Receive(r.Context(), a, chi.URLParam(r, "id"), r.Body, r.ContentLength); e != nil {
-				webError(w, e)
-				return
-			}
-			success(w, contracts.ActionResult{Success: true})
-		}).ServeHTTP)
-		api.Post(prefix+"/files/uploads/{id}/complete", fileHandler(true, func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
-			http.NewResponseController(w).SetWriteDeadline(time.Now().Add(10 * time.Minute))
-			v, e := s.Complete(r.Context(), a, chi.URLParam(r, "id"))
-			if e != nil {
-				webError(w, e)
-				return
-			}
-			success(w, v)
-		}).ServeHTTP)
-		api.Post(prefix+"/files/{id}/access", handler("", func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
+		if !business {
+
+			api.Post(prefix+"/files/uploads", fileHandler(true, func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
+				var input contracts.FileUploadInput
+				if !decode(w, r, &input) {
+					return
+				}
+				v, e := s.Upload(r.Context(), a, input)
+				if e != nil {
+					webError(w, e)
+					return
+				}
+				if !v.Direct && prefix != "" {
+					v.Url = "/api/v1" + prefix + strings.TrimPrefix(v.Url, "/api/v1")
+				}
+				success(w, v)
+			}).ServeHTTP)
+			api.Put(prefix+"/files/uploads/{id}/content", fileHandler(true, func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
+				if r.Header.Get("Content-Type") != "application/octet-stream" {
+					failure(w, 415, "UNSUPPORTED_MEDIA_TYPE", "请使用 application/octet-stream")
+					return
+				}
+				controller := http.NewResponseController(w)
+				controller.SetReadDeadline(time.Now().Add(10 * time.Minute))
+				controller.SetWriteDeadline(time.Now().Add(10 * time.Minute))
+				r.Body = http.MaxBytesReader(w, r.Body, 1<<30)
+				if e := s.Receive(r.Context(), a, chi.URLParam(r, "id"), r.Body, r.ContentLength); e != nil {
+					webError(w, e)
+					return
+				}
+				success(w, contracts.ActionResult{Success: true})
+			}).ServeHTTP)
+			api.Post(prefix+"/files/uploads/{id}/complete", fileHandler(true, func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
+				http.NewResponseController(w).SetWriteDeadline(time.Now().Add(10 * time.Minute))
+				v, e := s.Complete(r.Context(), a, chi.URLParam(r, "id"))
+				if e != nil {
+					webError(w, e)
+					return
+				}
+				success(w, v)
+			}).ServeHTTP)
+		}
+
+		api.Post(prefix+"/files/{id}/access", routeHandler("", func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
 			// The contract allows files:access OR notes:access here. Plain
 			// signing needs the files grant; attachment signing rides on note
 			// reading and stays limited to files actually attached to a note
 			// inside the session's current read scope.
 			session, _ := r.Context().Value(policySessionKey{}).(contracts.Session)
 			noteID := strings.TrimSpace(r.URL.Query().Get("note_id"))
-			if !platform.Has(session.User, "files:access") && noteID == "" {
+			if !business && !platform.Has(session.User, "files:access") && noteID == "" {
 				webError(w, platform.ErrForbidden)
 				return
 			}
@@ -301,7 +342,7 @@ func mountStorage(api chi.Router, config Config) {
 				scopePermission = "notes:access"
 			}
 			filter := platform.ScopeFilter{}
-			if !a.Admin && session.User.ID != "" {
+			if !a.Admin && session.User.ID != "" && (!business || noteID != "" && prefix == "/notes") {
 				if identity := config.Install.Identity(false); identity != nil {
 					resolved, err := identity.Store.DataScope(r.Context(), session.User, scopePermission)
 					if err != nil {
@@ -312,8 +353,8 @@ func mountStorage(api chi.Router, config Config) {
 					scopes = append(scopes, files.ScopeFilter{All: filter.All, CreatorIDs: filter.UserIDs})
 				}
 			}
-			if noteID != "" {
-				if !platform.Has(session.User, "notes:access") {
+			if noteID != "" && prefix != "/account/avatar" {
+				if session.User.ID != "" && !platform.Has(session.User, "notes:access") {
 					webError(w, platform.ErrForbidden)
 					return
 				}
@@ -331,7 +372,11 @@ func mountStorage(api chi.Router, config Config) {
 					}
 				}
 				notes := &usecase.Notes{Repo: &notessql.Repository{Store: store}}
-				entry, e := notes.Read(r.Context(), a.Realm+"/"+a.ID, noteID, visibility)
+				scope := a.Realm + "/" + a.ID
+				if a.Realm == "local" {
+					scope = "local"
+				}
+				entry, e := notes.Read(r.Context(), scope, noteID, visibility)
 				if e != nil {
 					webError(w, e)
 					return

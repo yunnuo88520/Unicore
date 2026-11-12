@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # sdk 域内约定
 
-传输无关客户端。契约与错误目录见 [接口契约](../../docs/02-standards/api-contract.md)，根 [AGENTS](../../AGENTS.md) 优先。
+传输无关客户端。契约与错误目录见 [接口契约](../../docs/product/development.md)，根 [AGENTS](../../AGENTS.md) 优先。
 
 - HttpTransport 与 WailsTransport 语义一致：改动须两侧测试同时通过（相同结果与相同错误码）。
 - 错误一律 `AppError(code, message, requestId, fields)`，code 与契约错误目录对齐，不新增与契约脱节的错误码。

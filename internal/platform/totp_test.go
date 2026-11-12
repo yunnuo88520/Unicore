@@ -25,6 +25,9 @@ func TestTOTPRFCVectors(t *testing.T) {
 	if TOTPStep(secret, "287082", 120) != -1 {
 		t.Fatal("expired code accepted")
 	}
+	if TOTPStep(secret, "287082", 89) != 1 || TOTPStep(secret, "287082", 90) != -1 {
+		t.Fatal("previous-window code did not expire at the next boundary")
+	}
 	for _, code := range []string{"", "28708", "x87082", "２８７０８２", "2870820"} {
 		if TOTPStep(secret, code, 59) != -1 {
 			t.Fatal("invalid code accepted")

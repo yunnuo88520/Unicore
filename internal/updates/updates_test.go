@@ -21,7 +21,7 @@ func fixture(t *testing.T) (Manifest, []byte, Trust, ed25519.PrivateKey, Target)
 	if e != nil {
 		t.Fatal(e)
 	}
-	target := Target{Profile: "web-platform", OS: "linux", Arch: "amd64", Migration: 9, BusinessMigration: 1, Updater: true}
+	target := Target{Profile: "web-platform", OS: "linux", Arch: "amd64", SchemaGeneration: "unicore-1", SchemaFingerprint: strings.Repeat("c", 64), Updater: true}
 	m := Manifest{Schema: 1, Application: "vip.ebox.unicore", Version: "1.1.0", Commit: strings.Repeat("a", 40), IssuedAt: time.Now().Add(-time.Minute), ExpiresAt: time.Now().Add(time.Hour), Artifacts: []Artifact{{Target: target, Name: "release.tar.gz", SHA256: strings.Repeat("b", 64), Size: 100, PlatformSignature: "unsigned"}}}
 	raw, _ := json.Marshal(m)
 	return m, raw, Trust{Application: m.Application, Keys: map[string]string{"test": base64.StdEncoding.EncodeToString(pub)}}, key, target
@@ -30,12 +30,37 @@ func signature(raw []byte, key ed25519.PrivateKey) []byte {
 	b, _ := json.Marshal(Signature{KeyID: "test", Algorithm: "ed25519", Value: base64.StdEncoding.EncodeToString(ed25519.Sign(key, raw))})
 	return b
 }
+func TestUnsignedNativeStillRequiresPublisherSignature(t *testing.T) {
+	for _, os := range []string{"darwin", "windows"} {
+		t.Run(os, func(t *testing.T) {
+			m, _, trust, key, target := fixture(t)
+			target.Profile, target.OS = "desktop", os
+			m.Artifacts[0].Target = target
+			raw, _ := json.Marshal(m)
+			sig := signature(raw, key)
+			trust.AllowUnsignedPlatform = true
+			if _, _, err := Verify(raw, sig, trust, "1.0.0", m.Version, target, time.Now()); err != nil {
+				t.Fatal("publisher-signed native artifact rejected", err)
+			}
+			_, other, _ := ed25519.GenerateKey(rand.Reader)
+			for name, invalid := range map[string][]byte{"missing": nil, "wrong publisher": signature(raw, other)} {
+				if _, _, err := Verify(raw, invalid, trust, "1.0.0", m.Version, target, time.Now()); !errors.Is(err, ErrRejected) {
+					t.Fatalf("accepted %s signature: %v", name, err)
+				}
+			}
+			trust.AllowUnsignedPlatform = false
+			if _, _, err := Verify(raw, sig, trust, "1.0.0", m.Version, target, time.Now()); !errors.Is(err, ErrRejected) {
+				t.Fatalf("strict OS policy accepted unsigned artifact: %v", err)
+			}
+		})
+	}
+}
 func TestSignedTargetRejectsTamperingAndIncompatibility(t *testing.T) {
 	m, raw, trust, key, target := fixture(t)
 	if _, _, e := Verify(raw, signature(raw, key), trust, "1.0.0", m.Version, target, time.Now()); e != nil {
 		t.Fatal(e)
 	}
-	cases := map[string]func(*Manifest){"application": func(m *Manifest) { m.Application = "other" }, "expired": func(m *Manifest) { m.ExpiresAt = time.Now().Add(-time.Second) }, "future": func(m *Manifest) { m.IssuedAt = time.Now().Add(time.Hour) }, "commit": func(m *Manifest) { m.Commit = "main" }, "migration": func(m *Manifest) { m.Artifacts[0].Migration++ }, "business migration": func(m *Manifest) { m.Artifacts[0].BusinessMigration++ }, "features": func(m *Manifest) { m.Artifacts[0].License = true }, "duplicate target": func(m *Manifest) { m.Artifacts = append(m.Artifacts, m.Artifacts[0]) }, "duplicate name": func(m *Manifest) { a := m.Artifacts[0]; a.Arch = "arm64"; m.Artifacts = append(m.Artifacts, a) }, "platform claim": func(m *Manifest) { m.Artifacts[0].PlatformSignature = "trusted" }}
+	cases := map[string]func(*Manifest){"application": func(m *Manifest) { m.Application = "other" }, "expired": func(m *Manifest) { m.ExpiresAt = time.Now().Add(-time.Second) }, "future": func(m *Manifest) { m.IssuedAt = time.Now().Add(time.Hour) }, "commit": func(m *Manifest) { m.Commit = "main" }, "migration": func(m *Manifest) { m.Artifacts[0].SchemaGeneration = "unicore-2" }, "business migration": func(m *Manifest) { m.Artifacts[0].SchemaFingerprint = strings.Repeat("d", 64) }, "features": func(m *Manifest) { m.Artifacts[0].License = true }, "duplicate target": func(m *Manifest) { m.Artifacts = append(m.Artifacts, m.Artifacts[0]) }, "duplicate name": func(m *Manifest) { a := m.Artifacts[0]; a.Arch = "arm64"; m.Artifacts = append(m.Artifacts, a) }, "platform claim": func(m *Manifest) { m.Artifacts[0].PlatformSignature = "trusted" }}
 	for name, change := range cases {
 		t.Run(name, func(t *testing.T) {
 			var altered Manifest

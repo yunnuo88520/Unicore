@@ -3,7 +3,7 @@
 
 **简体中文** · [English](README.en.md)
 
-本仓库由 [Unicore](https://github.com/yunnuo88520/Unicore) 框架模板生成：一份核心，运行于 Web、桌面与 CLI。产品身份唯一入口为 `product.identity.json`，上游同步见 docs/product/updates.md。
+本仓库由 [Unicore](https://github.com/yunnuo88520/Unicore) 框架模板生成：一份核心，运行于 Web、桌面与 CLI。产品身份唯一入口为 `product.identity.json`，上游源码同步见 docs/product/framework-upgrade.md。
 
 开发：
 

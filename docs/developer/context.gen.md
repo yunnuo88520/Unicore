@@ -30,12 +30,14 @@
 | backup | [docs/product/backup.md](../product/backup.md) |
 | notifications | [docs/03-runbooks/notifications.md](../03-runbooks/notifications.md) |
 | notificationIntegration | [docs/product/notifications.md](../product/notifications.md) |
+| frameworkUpgrade | [docs/product/framework-upgrade.md](../product/framework-upgrade.md) |
 
-OpenAPI 当前包含 232 个 operation、265 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
+OpenAPI 当前包含 250 个 operation、265 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
 
 | 任务 Skill | 用途 |
 | --- | --- |
 | [develop-application](../../.agents/skills/develop-application/SKILL.md) | 修改派生应用的 Go 用例、API、React 页面或数据库设计时，按任务读取规范和验证跨 Profile 边界。 |
+| [framework-upstream](../../.agents/skills/framework-upstream/SKILL.md) | 派生项目发现疑似框架通用缺陷、准备上游修复，或同步框架源码更新时使用；业务专属功能留在应用内。 |
 
 常用命令：
 
@@ -51,5 +53,7 @@ OpenAPI 当前包含 232 个 operation、265 个 schema。Go/TS 模型、调用�
 - wiki：`make wiki`
 - i18n：`pnpm check:i18n`
 - releaseNotes：`pnpm check:release-notes`
+- frameworkCheck：`pnpm framework:check`
+- frameworkSync：`pnpm framework:sync`
 
 不保存凭据到上下文或验收记录。任务记录使用 [任务模板](task-template.md)，交付记录须区分实测、未测与未来目标。

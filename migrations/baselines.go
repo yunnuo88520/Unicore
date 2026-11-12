@@ -1,5 +1,5 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Embed the new-generation baseline trees alongside the legacy assets; consumed by the catalog runner, not by the legacy Store.Migrate.
+// Description: Embed the Catalog SQL trees used by installation and startup; never imported by CLI.
 package migrations
 
 import "embed"

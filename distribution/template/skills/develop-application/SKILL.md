@@ -8,6 +8,7 @@ metadata:
 # develop-application
 
 先读 docs/product/development.md 的相关小节和当次授权，检查工作区及已有功能。
+开发中遇到疑似框架缺陷时转用 framework-upstream 的归属判断、复现、临时补丁与上游回流流程；无需等上游响应才完成已授权的本地修复。
 只加载受影响代码、契约与必要测试；CLI 保持无数据库/传输依赖。
 UI 同时中英文，复用统一请求、会话、布局、表单和消息。
 API 权限在后端执行；文件通过 file_id/存储接口访问。

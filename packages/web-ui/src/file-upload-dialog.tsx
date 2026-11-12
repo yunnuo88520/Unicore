@@ -76,7 +76,7 @@ export function FileUploadDialog({ client, resume, onClose, onUploaded, title, a
     <DialogContent showClose={false} aria-label={title ?? (resume ? t('继续上传') : t('上传文件'))}>
       <div className="mb-3 flex flex-col gap-1 pe-8">
         <DialogTitle>{title ?? (resume ? t('继续上传') : t('上传文件'))}</DialogTitle>
-        <DialogDescription>{session ? t('关闭或刷新后，可从文件列表继续；超期分片会自动清理。') : t('文件保持私有，仅本人和管理员可访问。')}</DialogDescription>
+        <DialogDescription>{session ? t('关闭或刷新后，可从文件列表继续；超期分片会自动清理。') : t('文件保持私有，访问需要业务授权。')}</DialogDescription>
       </div>
       <button type="button" className="absolute end-3 top-3 inline-flex size-8 items-center justify-center rounded-md text-muted transition-colors outline-none hover:bg-primary-soft hover:text-accent focus-visible:ring-2 focus-visible:ring-focus disabled:pointer-events-none disabled:opacity-55" aria-label={t('关闭对话框')} disabled={closeDisabled} onClick={onClose}><X size={17} aria-hidden="true" /></button>
       <form className="flex flex-col gap-3" aria-busy={pending} onSubmit={event => { event.preventDefault(); if (file && !tooLarge && !invalidExtension && !invalidType) upload.mutate(); }}>

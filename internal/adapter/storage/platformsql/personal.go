@@ -384,8 +384,7 @@ func (r *Repository) RevokeDevice(ctx context.Context, hash, target string, othe
 }
 
 func (r *Repository) avatarRealm() string {
-
-	return "user"
+	return "avatar"
 }
 
 // UserAvatar uses the fixed repository realm, including when both realms share an ID.

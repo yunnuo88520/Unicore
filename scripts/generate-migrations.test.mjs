@@ -109,3 +109,24 @@ test('dangling generated-output links are rejected before any file is written', 
   assert.throws(() => readFileSync(join(outside, 'new.json')), /ENOENT/);
   assert.throws(() => readFileSync(join(root, 'migrations/catalogdata/catalog.gen.go')), /ENOENT/);
 }));
+
+test('OTA identity changes for SQL bytes, appended versions, generations and module sets', () => fixture((root, c, save) => {
+  const before = buildMetadata(root);
+  const path = join(root, 'migrations', c.namespaces.find(n => n.id === 'platform').migrations[0].files.mysql);
+  writeFileSync(path, readFileSync(path, 'utf8') + '\n-- changed raw bytes\n');
+  const changed = buildMetadata(root);
+  assert.notEqual(changed.profiles['web-platform'].schema_fingerprint, before.profiles['web-platform'].schema_fingerprint);
+  assert.equal(changed.profiles.desktop.schema_fingerprint, before.profiles.desktop.schema_fingerprint);
+  const notes = c.namespaces.find(n => n.id === 'module.notes'), files = {}, version = notes.migrations.at(-1).version + 1;
+  for (const dialect of c.dialects) {
+    const path = `modules/notes/${dialect}/${String(version).padStart(4,'0')}_fixture.sql`;
+    writeFileSync(join(root, 'migrations', path), '-- Author: yunnuo <ymz@ebox.vip>\nCREATE TABLE upgrade_fixture (id INTEGER PRIMARY KEY);\n');
+    files[dialect] = path;
+  }
+  notes.migrations.push({version,files}); save();
+  const appended = buildMetadata(root);
+  for (const id of ['web-platform','web-standalone','desktop']) assert.notEqual(appended.profiles[id].schema_fingerprint, changed.profiles[id].schema_fingerprint);
+  assert.equal(appended.profiles.cli.schema_fingerprint, '');
+  c.schema_generation = 'unicore-2'; save();
+  assert.notEqual(buildMetadata(root).profiles.desktop.schema_fingerprint, appended.profiles.desktop.schema_fingerprint);
+}));

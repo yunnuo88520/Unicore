@@ -68,3 +68,26 @@ func (s *Service) ValidateAttachment(ctx context.Context, a Actor, id string) er
 	}
 	return nil
 }
+
+// OpenOwned streams a ready owned file for native Save dialogs without exposing a filesystem path.
+func (s *Service) OpenOwned(ctx context.Context, a Actor, id string) (io.ReadCloser, Record, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	f, err := s.owned(ctx, id, a)
+	if err != nil {
+		return nil, f, err
+	}
+	if f.State != "ready" {
+		return nil, f, ErrNotReady
+	}
+	l, err := s.location(ctx, f.LocationID)
+	if err != nil {
+		return nil, f, err
+	}
+	store, err := s.store(l)
+	if err != nil {
+		return nil, f, err
+	}
+	source, _, err := store.Open(ctx, f.Key)
+	return source, f, err
+}

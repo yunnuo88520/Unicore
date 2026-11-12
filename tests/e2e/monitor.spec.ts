@@ -129,6 +129,7 @@ test('standalone: the local view serves the tabbed console with the same semanti
   expect(payload.data.profile).toBe('web-standalone');
   expect(payload.data.database.status).toBe('healthy');
   expect(payload.data.http_service.applicable).toBe(true);
+  expect(payload.data.storage.applicable).toBe(false);
   const adminSurface = await fetch(`${instance.url}/api/v1/admin/monitor`);
   expect(adminSurface.status).toBe(404);
   // The workspace navigation carries the single monitor console entry (the

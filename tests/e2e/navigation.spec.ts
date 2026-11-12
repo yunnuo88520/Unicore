@@ -455,7 +455,11 @@ test('drag reordering and cross-region moves save the whole tree, survive a relo
   await evidence(page, info, '拖动跨区移动', false);
 
   // Drag it back: dropping the directory on the middle of the system region's
-  // root row returns the whole subtree to its seeded region.
+  // root row returns the whole subtree to its seeded region. Collapse the
+  // directory first — on the 375px viewport the expanded subtree pushes the
+  // two drag endpoints further apart than one screen, and the pointer release
+  // would land outside the viewport where no dragover ever fires.
+  await page.locator('tr[data-node="administration"]').getByRole('button', { name: /展开或收起/ }).click();
   await revealSpan(page, 'tr[data-node="administration"]', 'tr[data-region="system"]');
   await dragRow(page, 'tr[data-node="administration"]', 'tr[data-region="system"]', 'middle');
   await expect(page.locator('tr[data-node="administration"]')).toHaveAttribute('data-section', 'system');

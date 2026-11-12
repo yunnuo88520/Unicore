@@ -77,7 +77,7 @@ PR 和 dev 分支的文档变更只构建并上传 documentation-site artifact�
 
 ### 后续更新与发布
 
-框架更新时在同一 PR 维护对应文档，合入 main 后再手动运行同一 workflow 发布；仅合并代码不会更新线上站点。失败时保留上一个成功站点。若以后需要合并后自动部署，单独审阅发布策略并调整 workflow 的事件条件与 environment 保护。
+框架更新时在同一 PR 维护对应文档；main push 自动构建并部署，dev/PR 只生成 artifact。手动 main workflow 可重发，失败保留上一个成功站点。发布稳定版时，Release 必须链接同一 v<VERSION> tag 的使用、配置、支持与安全文档；tag 不重写。在线站点与 Wiki 仍为 main 滚动版，不能标成某稳定版的永久文档。版本菜单按 assets/updates/config.json 的实际 channel 显示预览/稳定状态，并提供发行记录入口。
 
 ### 自有 Nginx 静态托管
 

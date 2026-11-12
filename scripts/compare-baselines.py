@@ -26,7 +26,7 @@ for combo in ['sqlite-web-platform', 'sqlite-web-standalone', 'sqlite-desktop', 
     new = json.loads((output / (combo + '.json')).read_text())
     assert new['passed']
     after = new['schema']['tables']
-    expected_tables = 48 if profile == 'web-platform' else 5
+    expected_tables = 48 if profile == 'web-platform' else 9
     assert len(after) == expected_tables, (combo, 'table count', len(after))
     apps = set(after) - {'schema_migrations'}
     unprefixed = sorted(name for name in apps if not name.startswith('unicore_'))
@@ -46,7 +46,7 @@ for combo in ['sqlite-web-platform', 'sqlite-web-standalone', 'sqlite-desktop', 
     if dialect == 'sqlite':
         intentional.append(dict(kind='sqlite_no_foreign_keys', reason='runtime keeps foreign_keys off; cascades live in the usecase layer'))
     sql_data = new['sql_only_data']
-    sql_seed_rows = {'unicore_storage_locations': 2, 'unicore_navigation_state': 1}
+    sql_seed_rows = {'unicore_storage_locations': 2 if profile == 'web-platform' else 1, 'unicore_navigation_state': 1}
     for name in apps:
         assert sql_data['row_counts'][name] == sql_seed_rows.get(name, 0), (combo, 'unexpected SQL data', name)
     seeded = new['post_seed_data']

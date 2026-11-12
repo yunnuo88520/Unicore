@@ -1188,7 +1188,10 @@
     "scripts/migration-target.mjs",
     "examples/notes-tag/apply.mjs",
     "internal/maintenance/database_test.go",
-    "internal/bootstrap/updating/runtime_test.go"
+    "internal/bootstrap/updating/runtime_test.go",
+    "internal/bootstrap/filelocal/service.go",
+    "internal/adapter/desktop/files.go",
+    "internal/adapter/desktop/files_test.go"
   ],
   "ownership": {
     "product-owned": [

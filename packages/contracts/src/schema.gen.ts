@@ -98,6 +98,7 @@ export interface DatabaseInput {
   username?: string;
   password?: string;
   tls?: boolean;
+  tls_verify?: boolean;
 }
 
 export interface EnvironmentCheck {
@@ -718,6 +719,7 @@ export interface FileListResponse {
   code: string;
   data: FileList;
   request_id: string;
+  message?: string;
 }
 
 export interface FileUploadGrantResponse {
@@ -730,6 +732,7 @@ export interface FileEntryResponse {
   code: string;
   data: FileEntry;
   request_id: string;
+  message?: string;
 }
 
 export interface FileAccessResponse {
@@ -1089,12 +1092,14 @@ export interface UploadPolicyResponse {
   code: string;
   data: UploadPolicy;
   request_id: string;
+  message?: string;
 }
 
 export interface MultipartUploadResponse {
   code: string;
   data: MultipartUpload;
   request_id: string;
+  message?: string;
 }
 
 export interface AccountProfile {

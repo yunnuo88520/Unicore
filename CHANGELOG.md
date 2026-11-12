@@ -5,11 +5,19 @@
 
 ### 中文
 
+- 完成首发基线整理：开发期 SQL 合并为三命名空间 version=1，更新兼容绑定生成的完整 schema 指纹，修复数据库备份参数冲突并增加证书身份校验选项；补齐真实派生项目标签教程、角色排障、稳定支持与恢复政策。
+- 分离业务上传与存储治理：头像使用本人账号权限，笔记复用业务权限；Standalone Web/桌面支持本地附件、原生分片与系统保存对话框，保留归属校验、续传、清理及完整备份。
+
+
 - 修复真实派生项目重命名后的产品文案与部署说明残留，以及模板映射对象导致源码同步异常的问题。同步改为隔离 worktree 合并、校验后再推进业务分支，支持冲突继续/中止并保护并发业务改动；模板发布延续已有历史，补齐随项目分发的源码升级与上游反馈指南和真实模板回归。
 
 - 清理无关后台框架名称及测试、截图命名，使源码和文档直接描述自身能力。
 
 ### English
+
+- Prepare the first stable baseline: consolidate development SQL into version 1 of three namespaces, bind update compatibility to generated schema fingerprints, fix database backup argument conflicts and add certificate identity verification; provide a runnable derived-project tutorial, role troubleshooting, stable support and recovery policies.
+- Separate business uploads from storage administration: authorize avatars through own-account sessions and note attachments through business grants; support local attachments in Standalone Web and desktop, including native chunks, system Save dialogs, ownership, resume, cleanup and full backups.
+
 
 - Fix product identity residues in real derived applications and mapped template entries that broke source upgrades. Merge and validate in an isolated worktree before advancing the application branch, support conflict continuation/abort, preserve concurrent application work and published template ancestry, and ship source-upgrade/contribution guidance with real-template regression coverage.
 

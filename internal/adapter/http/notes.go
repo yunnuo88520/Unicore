@@ -51,7 +51,7 @@ func mountNotes(api chi.Router, config Config) {
 			scope := "local"
 			visibility := notesusecase.NoteVisibility{}
 			manageAll := false
-			var actor files.Actor
+			actor := files.Actor{ID: "local", Realm: "local"}
 			if profile == runtime.WebPlatform {
 				identity := config.Install.Identity(administratorRequest(r))
 				session, e := requestIdentitySession(r, identity)

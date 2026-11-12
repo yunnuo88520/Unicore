@@ -57,7 +57,9 @@
 
 XLSX：`GET /admin/users/export.xlsx` 要求 users:read；`GET /admin/users/import-template.xlsx` 与 `POST /admin/users/import.xlsx` 要求 users:create；`GET /admin/files/export.xlsx` 要求 storage:read。全部固定管理员域，导入要求 CSRF/Origin并复用用户创建和角色规则；没有管理员账号导入或普通用户导出全站文件的权限。下载为二进制工作簿，不套 JSON 成功信封；导入反馈和错误仍为标准 JSON。
 
-头像通过本人 `PATCH /account/profile` 或 `/admin/account/profile` 保存 avatar_file_id，服务端验证对应身份域和文件归属，并投影短期 avatar_url；不接受外部 URL 作为持久引用。文件访问继续受原有元数据、状态、时效及签名规则控制。
+业务上传通过专属 FileClient 接入：`/notes/files*` 复用 notes:access/create/update 与独立 operation/action 授权，未关联列表和上传限本人；跨用户下载须提交可读笔记的 note_id 并验证实际引用。`/account/avatar/files*` 属于本人账号会话，不依赖 files:*，只接受有界图片并隔离 avatar 归属域。通用 files:* API 与存储治理仍独立授权，业务账号不因此获得管理能力。
+
+头像通过本人 `PATCH /account/profile` 或 `/admin/account/profile` 保存 avatar_file_id，服务端验证独立 avatar 文件域和本人归属，并投影短期 avatar_url；不接受外部 URL 作为持久引用。文件访问继续受原有元数据、状态、时效及签名规则控制。
 
 无本地密码的已绑定账号可 POST `/account/oidc/totp`（管理员 `/admin/account/oidc/totp`）发起企业重新认证，需本人会话、CSRF/Origin，不授予管理权限。固定 OIDC callback 验证原浏览器与会话及原绑定身份，成功只准备 TOTP 设置；GET `/account/totp/setup`（管理员同前缀）以 no-store 返回当前会话尚未启用、未过期的待设置密钥，不返回已启用密钥。取消、过期、错误耗尽或成功启用后不能读取。此流程不绕过已有 TOTP，也不替代本地密码账号的密码确认；其他本人 TOTP 接口与业务门禁保持一致。
 
@@ -67,7 +69,7 @@ XLSX：`GET /admin/users/export.xlsx` 要求 users:read；`GET /admin/users/impo
 
 PUT 角色省略 menu_ids/action_ids/operation_ids/data_scope/department_ids 表示保留，权限收紧时仅裁剪失效引用。增加权限点不会自动重授已撤销 API 或动作。创建时省略授权数组派生初始授权，显式空数组保持空。
 
-数据范围按当前权限点解析：users:read 约束用户列表与导出，users:create/update 在事务内约束目标及目的部门；files:access 约束业务文件，storage:read 约束管理文件列表/导出，notes:access 约束示例及其附件。同权限多角色范围取并集；其他权限角色的 all 不参与。部门/岗位目录、公告、字典、任务及实例设置属于全局对象，不套用用户行范围。
+数据范围按当前权限点解析：users:read 约束用户列表与导出，users:create/update 在事务内约束目标及目的部门；files:access 约束通用文件 API，storage:read 约束管理文件列表/导出，notes:access 约束示例及其附件。同权限多角色范围取并集；其他权限角色的 all 不参与。部门/岗位目录、公告、字典、任务及实例设置属于全局对象，不套用用户行范围。
 
 ## 角色编辑与菜单反向分配
 

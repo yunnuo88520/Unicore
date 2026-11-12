@@ -102,3 +102,21 @@ it('selects immutable API realms independently of the browser location',async()=
  expect(new Headers(fetcher.mock.calls[0][1].headers).has('X-Unicore-Identity')).toBe(false);
  fetcher.mockClear();await new HttpTransport('',fetcher).bootstrap();expect(fetcher.mock.calls[0][0]).toBe('/api/v1/bootstrap');
 });
+
+it('native uploads resume bounded chunks and save through the system bridge',async()=>{
+ const file=uploadFile('a'.repeat(policy.part_size)+'tail');
+ const session=await sessionFor(file,[{number:1,size:policy.part_size}]);
+ const ok=<T>(data:T)=>({code:'OK',request_id:'native-files',data});
+ const finished={...session.file,state:'ready'};
+ const bridge={Bootstrap:vi.fn(),Execute:vi.fn(),FileUploadPolicy:vi.fn(async()=>ok(policy)),BeginFileUpload:vi.fn(),FileUploadStatus:vi.fn(async()=>ok(session)),ReceiveFilePart:vi.fn(async()=>ok({success:true})),CompleteFileUpload:vi.fn(async()=>ok(finished)),ListFiles:vi.fn(),DeleteFile:vi.fn(),SaveFile:vi.fn(async()=>ok({success:true}))};
+ const client=new WailsTransport(()=>bridge as unknown as import('./index').DesktopBridge);
+ const progress:number[]=[];
+ expect(await client.businessFiles('notes').uploadFile(file,{resumeId:'f1',onProgress:v=>progress.push(v.loaded)})).toEqual(finished);
+ expect(bridge.ReceiveFilePart).toHaveBeenCalledExactlyOnceWith('f1',2,btoa('tail'));
+ expect(progress).toEqual([policy.part_size,file.size]);
+ await client.businessFiles('notes').downloadFile!('f1');expect(bridge.SaveFile).toHaveBeenCalledExactlyOnceWith('f1');
+ await expect(client.files.uploadFile(uploadFile('different'),{resumeId:'f1'})).rejects.toMatchObject({code:'UPLOAD_FILE_MISMATCH'});
+ expect(bridge.CompleteFileUpload).toHaveBeenCalledTimes(1);
+ const stop=new AbortController();stop.abort();await expect(client.files.uploadFile(file,{signal:stop.signal})).rejects.toMatchObject({code:'REQUEST_CANCELLED'});
+ expect(bridge.ReceiveFilePart).toHaveBeenCalledTimes(1);
+});

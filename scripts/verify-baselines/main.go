@@ -396,9 +396,9 @@ func main() {
 			check(reflect.DeepEqual(afterSeed, summary(s)), "constraint probes leaked data")
 			install := installSemantics(s)
 			businessResult := business(s, profile, dir, admin)
-			expected := 5
+			expected := 9
 			if profile == "web-platform" {
-				// Unified accounts: 3 core + 43 platform + 1 notes + 1 ledger.
+				// Unified accounts: 7 core + 39 platform + 1 notes + 1 ledger.
 				expected = 48
 			}
 			check(len(tables(s)) == expected, "table count changed: got %d want %d", len(tables(s)), expected)

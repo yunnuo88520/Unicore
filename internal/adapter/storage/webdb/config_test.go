@@ -68,3 +68,29 @@ func TestInvalidTargetsAndMixedInputs(t *testing.T) {
 		}
 	}
 }
+
+func TestVerifiedTLSNeverFallsBackToUnverifiedConnections(t *testing.T) {
+	for _, driver := range []string{"mysql", "postgres"} {
+		host := "database.example.test"
+		input := contracts.DatabaseInput{Driver: driver, Host: &host, Tls: pointer(true), TlsVerify: pointer(true)}
+		dsn, _, err := Resolve(input)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if driver == "mysql" {
+			c, err := mysql.ParseDSN(dsn)
+			if err != nil || c.TLSConfig != "true" {
+				t.Fatal("verified MySQL mode lost", err)
+			}
+		} else {
+			c, err := pgx.ParseConfig(dsn)
+			if err != nil || c.TLSConfig == nil || c.TLSConfig.InsecureSkipVerify || c.TLSConfig.ServerName != host || len(c.Fallbacks) != 0 {
+				t.Fatal("verified PostgreSQL mode lost", err)
+			}
+		}
+		input.Tls = pointer(false)
+		if _, _, err = Resolve(input); err == nil {
+			t.Fatal("verification without TLS accepted")
+		}
+	}
+}

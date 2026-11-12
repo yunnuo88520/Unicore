@@ -36,7 +36,7 @@ func DatabaseName(name string) bool {
 
 func Resolve(input contracts.DatabaseInput) (dsn, name string, err error) {
 	invalid := errors.New("invalid database fields")
-	structured := input.Host != nil || input.Port != nil || input.Name != nil || input.Username != nil || input.Password != nil || input.Tls != nil
+	structured := input.Host != nil || input.Port != nil || input.Name != nil || input.Username != nil || input.Password != nil || input.Tls != nil || input.TlsVerify != nil
 	if input.Driver == "sqlite" {
 		if structured || input.Dsn != "" {
 			return "", "", invalid
@@ -87,6 +87,10 @@ func Resolve(input contracts.DatabaseInput) (dsn, name string, err error) {
 	}
 	// TLS is a plain switch; off keeps local and intranet databases reachable by default.
 	encrypted := input.Tls != nil && *input.Tls
+	verified := input.TlsVerify != nil && *input.TlsVerify
+	if verified && !encrypted {
+		return "", "", invalid
+	}
 	address := net.JoinHostPort(host, strconv.Itoa(port))
 	if input.Driver == "mysql" {
 		config := mysql.NewConfig()
@@ -95,6 +99,9 @@ func Resolve(input contracts.DatabaseInput) (dsn, name string, err error) {
 		config.Params = map[string]string{"charset": "utf8mb4"}
 		if encrypted {
 			config.TLSConfig = "skip-verify"
+			if verified {
+				config.TLSConfig = "true"
+			}
 		} else {
 			config.TLSConfig = "false"
 		}
@@ -105,6 +112,9 @@ func Resolve(input contracts.DatabaseInput) (dsn, name string, err error) {
 	if encrypted {
 		// "require" encrypts traffic without certificate checks so self-signed intranet certificates stay usable.
 		query.Set("sslmode", "require")
+		if verified {
+			query.Set("sslmode", "verify-full")
+		}
 	}
 	connection.RawQuery = query.Encode()
 	return connection.String(), name, nil

@@ -7,6 +7,8 @@ import { pageLink, prepareSite, repository, root, siteDocuments, siteURL } from 
 
 const version = readFileSync(resolve(root, 'VERSION'), 'utf8').trim();
 const documents = siteDocuments();
+const channel = JSON.parse(readFileSync(resolve(root, 'assets/updates/config.json'), 'utf8')).channel;
+if (!['preview', 'stable'].includes(channel)) throw new Error('Invalid documentation channel');
 const require = createRequire(import.meta.url);
 // VitePress serializes this function for the browser: it must have no captured variables.
 const editPattern = (page: PageData) => page.frontmatter.editURL;
@@ -51,8 +53,8 @@ export default defineConfig({
           { text: '部署', link: '/product/deployment' },
           { text: '应用开发', link: '/product/development' },
           { text: '支持范围', link: '/support' },
-          { text: `v${version} · 开发预览`, items: [
-            { text: '当前开发文档 · 随 main 更新', link: '/03-runbooks/documentation-site' },
+          { text: `v${version} · ${channel === 'stable' ? '稳定版源码' : '开发预览'}`, items: [
+            { text: '当前滚动文档 · 随 main 更新', link: '/03-runbooks/documentation-site' },
             { text: '发行与版本记录', link: `${repository}/releases` },
             { text: '安全策略', link: '/product/security' },
           ] },
@@ -74,7 +76,7 @@ export default defineConfig({
           { text: 'Get started', link: '/en/getting-started' },
           { text: 'Development (中文)', link: '/product/development' },
           { text: 'Support (中文)', link: '/support' },
-          { text: `v${version} · Preview`, items: [
+          { text: `v${version} · ${channel === 'stable' ? 'Stable source' : 'Preview'}`, items: [
             { text: 'Releases & version notes', link: `${repository}/releases` },
             { text: 'Security policy (中文)', link: '/product/security' },
           ] },

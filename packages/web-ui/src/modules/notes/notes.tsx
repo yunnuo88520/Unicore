@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, Circle, Download, NotebookPen, Paperclip, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
-import type { AppClient, NoteEntry, NoteQuery } from '@unicore/sdk';
+import type { AppClient, FileEntry, NoteEntry, NoteQuery } from '@unicore/sdk';
 import { currentLocale, t, useLocale } from '../../i18n';
+import { FileUploadDialog } from '../../file-upload-dialog';
 import { canAction } from '../../permissions';
 import { Badge, Button, Card, CardContent, Input, Modal, NativeSelect, Textarea, useMessage } from '@unicore/ui';
 import { AppField, AppForm, useAppForm } from '@unicore/form';
@@ -15,6 +16,7 @@ const initialQuery: NoteQuery = { search: '', status: '', sort: 'updated_at', di
 export function NotesPage({ client, metadata }: PageProps) {
   useLocale();
   const api = client.notes!;
+  const fileClient = client.businessFiles?.('notes') ?? client.files;
   const administrator = metadata.identity_realm === 'administrator';
   // The page stays gated by notes:access for the create entry; row edit/delete
   // follow the server-projected per-row capabilities, so readable rows from a
@@ -33,8 +35,9 @@ export function NotesPage({ client, metadata }: PageProps) {
     onSuccess: () => { message.success(t('笔记已删除')); setRemoving(null); refresh(); },
   });
   const download = useMutation({
-    mutationFn: async (id: string) => {
-      const access = await client.files!.fileAccess(id);
+    mutationFn: async ({id,noteID}: {id:string;noteID:string}) => {
+      if (fileClient?.downloadFile) return fileClient.downloadFile(id);
+      const access = await fileClient!.fileAccess(id,noteID);
       const a = document.createElement('a');
       a.href = access.url; a.rel = 'noreferrer'; a.download = '';
       document.body.append(a); a.click(); a.remove();
@@ -104,8 +107,8 @@ export function NotesPage({ client, metadata }: PageProps) {
                   </div>
                   <h3 className="text-md font-semibold text-ink">{note.title}</h3>
                   <p className="whitespace-pre-wrap text-sm text-muted">{note.body || t('还没有正文，随时补充你的想法。')}</p>
-                  {note.attachment_ids.length > 0 && client.files && <div className="flex flex-wrap gap-1.5">
-                    {note.attachment_ids.map((id, index) => <Button key={id} variant="link" size="sm" className="h-auto px-0" disabled={download.isPending} onClick={() => download.mutate(id)}>
+                  {note.attachment_ids.length > 0 && fileClient && <div className="flex flex-wrap gap-1.5">
+                    {note.attachment_ids.map((id, index) => <Button key={id} variant="link" size="sm" className="h-auto px-0" disabled={download.isPending} onClick={() => download.mutate({id,noteID:note.id})}>
                       <Paperclip size={13} />{t('附件 {{count}}', { count: index + 1 })}<Download size={12} />
                     </Button>)}
                   </div>}
@@ -138,7 +141,11 @@ function NoteEditor({ client, metadata, note, onClose, onSaved }: {
 }) {
   useLocale();
   const message = useMessage();
+  const fileClient = client.businessFiles?.('notes') ?? client.files;
+  const uploadClient = { ...client, files: fileClient };
   const [fileSearch, setFileSearch] = useState('');
+  const [uploading, setUploading] = useState<FileEntry | boolean>(false);
+  const canUpload = !!fileClient && canAction(metadata, 'notesCreateMultipartUpload');
   const save = useMutation({
     mutationFn: (values: NoteValues) => note ? client.notes!.updateNote(note.id, { ...values, version: values.version ?? note.version }) : client.notes!.createNote(values),
     onSuccess: () => { message.success(note ? t('笔记已保存') : t('笔记已创建')); onSaved(); },
@@ -150,13 +157,15 @@ function NoteEditor({ client, metadata, note, onClose, onSaved }: {
   });
   const files = useQuery({
     queryKey: ['note-files', fileSearch],
-    queryFn: () => client.files!.listFiles(fileSearch, 1),
-    enabled: metadata.profile === 'web-platform' && !!client.files && canAction(metadata, 'listFiles'),
+    queryFn: () => fileClient!.listFiles(fileSearch, 1),
+    enabled: !!fileClient && canAction(metadata, 'notesListFiles'),
   });
-  const mine = files.data?.items.filter(f => f.state === 'ready' && f.creator_id === metadata.current_user?.id && f.creator_realm === 'user') ?? [];
+  const owned = files.data?.items.filter(f => metadata.profile !== 'web-platform' || (f.creator_id === metadata.current_user?.id && f.creator_realm === 'user')) ?? [];
+  const mine = owned.filter(f => f.state === 'ready');
+  const unfinished = owned.filter(f => f.state === 'pending' || f.state === 'copying');
   const value = form.watch();
   function setAttachments(next: string[]) { form.setValue('attachment_ids', next, { shouldDirty: true }); }
-  return <Modal title={note ? t('编辑笔记') : t('新建笔记')} pending={save.isPending} onClose={onClose}>
+  return <><Modal title={note ? t('编辑笔记') : t('新建笔记')} pending={save.isPending} onClose={onClose}>
     <AppForm form={form} className="note-form flex flex-col gap-3">
       {note && <input type="hidden" {...form.register('version')} />}
       <AppField name="title" label={t('标题')}>
@@ -171,14 +180,19 @@ function NoteEditor({ client, metadata, note, onClose, onSaved }: {
           <option value="done">{t('已完成')}</option>
         </NativeSelect>
       </AppField>
-      {metadata.profile === 'web-platform' && client.files && (canAction(metadata, 'listFiles') || value.attachment_ids.length > 0) && <fieldset className="flex flex-col gap-2 rounded-lg border border-line p-3">
+      {fileClient && (canAction(metadata, 'notesListFiles') || canUpload || value.attachment_ids.length > 0) && <fieldset className="flex flex-col gap-2 rounded-lg border border-line p-3">
         <legend className="flex items-center gap-1.5 px-1 text-sm font-medium text-ink"><Paperclip size={14} aria-hidden="true" />{t('附件')}</legend>
-        <p className="text-xs text-muted">{t('选择已授权的本人文件。最多 5 个。')}</p>
+        <p className="text-xs text-muted">{t('上传或选择已授权的本人文件。最多 5 个；移除引用不删除原文件。')}</p>
+        {canUpload && <Button variant="secondary" disabled={value.attachment_ids.length >= 5 || save.isPending} onClick={() => setUploading(true)}>{t('上传文件')}</Button>}
         <Input aria-label={t('搜索可选附件')} placeholder={t('搜索本人文件')} maxLength={128} value={fileSearch} onChange={event => setFileSearch(event.target.value)} />
         <NativeSelect aria-label={t('添加已有附件')} disabled={value.attachment_ids.length >= 5} value="" onChange={event => { if (event.target.value) setAttachments([...value.attachment_ids, event.target.value]); }}>
           <option value="">{t('选择本人文件')}</option>
           {mine.filter(f => !value.attachment_ids.includes(f.file_id)).map(f => <option key={f.file_id} value={f.file_id}>{f.original_name}</option>)}
         </NativeSelect>
+        {canUpload && unfinished.map(file => <div key={file.file_id} className="flex min-w-0 items-center gap-2">
+          <span className="min-w-0 flex-1 truncate text-sm">{file.original_name}</span>
+          <Button variant="secondary" disabled={value.attachment_ids.length >= 5 || save.isPending} aria-label={t('继续上传 {{name}}', { name: file.original_name })} onClick={() => setUploading(file)}>{t('继续上传')}</Button>
+        </div>)}
         {files.isError && <p role="alert" className="text-xs text-danger">{t(files.error.message)}</p>}
         {value.attachment_ids.map((id, index) => <div key={id} className="flex items-center gap-2 rounded-md bg-surface-alt px-2.5 py-1.5">
           <Paperclip size={14} className="shrink-0 text-muted" aria-hidden="true" />
@@ -191,5 +205,12 @@ function NoteEditor({ client, metadata, note, onClose, onSaved }: {
         <Button type="submit" pending={save.isPending}>{save.isPending ? t('保存中…') : t('保存笔记')}</Button>
       </div>
     </AppForm>
-  </Modal>;
+  </Modal>
+    {uploading && <FileUploadDialog client={uploadClient} resume={typeof uploading === 'object' ? uploading : undefined} onClose={() => { setUploading(false); void files.refetch(); }} onUploaded={file => {
+      const selected = form.getValues('attachment_ids');
+      if (selected.length < 5 && !selected.includes(file.file_id)) setAttachments([...selected, file.file_id]);
+      void files.refetch();
+      message.success(t('附件已上传，保存笔记后关联'));
+    }} />}
+  </>;
 }

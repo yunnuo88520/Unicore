@@ -13,7 +13,7 @@ useSession 从 bootstrap 推导 loading/error/unavailable/authenticated/anonymou
 
 样式使用 Tailwind v4 工具类 + 语义令牌色（详见 [设计系统](design-system.md)）：`@unicore/theme/styles.css` 通过 `@theme inline` 把 tokens.gen.css 的 CSS 变量映射为 Tailwind 令牌，暗色、强调色、密度、圆角缩放继续由生成链与 data 属性驱动；组件样式不写死十六进制色（check:design 检查）。运行时属性驱动的壳层几何集中在 shell.css。每个页面检查 loading/empty/error/success、权限拒绝、键盘、PC/375px 和 light/dark/system。UI 验收须使用真实 Go 服务；桌面复用的改动还需实际 Wails 原生运行。新增流程使用项目内 [add-react-page](../../.agents/skills/add-react-page/SKILL.md)。
 
-新增实体表单使用 ui/dialog.tsx 的 Modal（Radix Dialog），不在列表内展开；使用契约校验，验证取消、Escape、焦点返回及 pending 防重。危险操作使用 ConfirmDialog 二次确认。登录/安装和设置编辑保留适合各自流程的页面。导航与邮件/日志页面分工见 ADR-0014；避免重新加入平台仪表盘或嵌套标签；邮件模板独立管理页按 ADR-0020 实现。头像操作调用统一 SDK；管理员/普通用户必须保留独立入口和身份域。
+新增实体表单使用 ui/dialog.tsx 的 Modal（Radix Dialog），不在列表内展开；使用契约校验，验证取消、Escape、焦点返回及 pending 防重。危险操作使用 ConfirmDialog 二次确认。登录/安装和设置编辑保留适合各自流程的页面。导航与邮件/日志页面分工见 ADR-0014；避免重新加入平台仪表盘或嵌套标签；邮件模板独立管理页按 ADR-0020 实现。头像操作调用统一 SDK；用户与管理工作台保留独立入口，共用统一账号与会话，身份以 ADR-0037 为准。
 
 二级导航在分组内部缩进，使用 Lucide 语义图标；图标与 UI 不使用 Emoji/表情字符（check:design 检查）。用户与管理员侧栏消费同一真实区域导航模型（[ADR-0036](../adr/ADR-0036-navigation-regions-granular-authorization.md)）：区域编辑器、侧栏、图标栏与移动抽屉由同一份数据派生，不在不同入口维护第二份结构；前端只呈现真实存在的控件，不提供 KeepAlive、CloseTab 等无运行效果的假开关。仅 web-platform 已登录账号显示头像与账号菜单；web-standalone/desktop 无用户概念，不渲染头像。
 
@@ -27,7 +27,7 @@ Web 用户与管理员分别从 main.tsx/admin.tsx 装配；全局管理页仅�
 
 公告管理和用户卡片复用 ui 原语、DashboardWidgetRegistry 与安全 RichContent；公告/邮件主题正文是原始业务数据，不经过 t()。默认邮件模板固定中文，UI 的双语约束不能用于翻译用户内容。富文本编辑使用 `@unicore/ui/editor` 的 RichTextEditor（Tiptap，标签白名单与安全链接校验）：链接契约默认仅接受绝对 URL，邮件场景传 `siteTemplate` 额外允许 {{site_url}} 模板变量，`sourceLabel` 与 `maxLength`（默认 12000）由调用方给定；服务端仍对入站 HTML 做白名单再校验；渲染侧统一走 rich-content.tsx 的 safeContentHTML。图表能力暂未随包提供（此前封装无消费者已移除），接入真实统计 API 时再重新设计，不得展示无真实数据支撑的图形。
 
-私有文件上传复用 FileUploadDialog 与 AppClient.files.uploadFile 的持久分片流程：字节进度以确认分片为准，signal 为暂停，deleteFile 为放弃；恢复需重新选择原文件并核对指纹，不在 localStorage 存签名 URL、File 或身份。仅平台装配，见 [存储手册](../03-runbooks/storage.md)。
+私有文件上传复用 FileUploadDialog 与 AppClient.files.uploadFile 的持久分片流程：字节进度以确认分片为准，signal 为暂停，deleteFile 为放弃；恢复需重新选择原文件并核对指纹，不在 localStorage 存签名 URL、File 或身份。业务使用 AppClient.businessFiles('notes'|'avatar')，复用业务授权；Standalone 本地文件走 HTTP/原生桥，不引入云管理。见 [存储手册](../03-runbooks/storage.md)。
 
 认证入口沿用共享表单和 SDK 生成校验：登录 /login、注册 /register、忘记密码 /forgot-password、注册完成 /registration-success 以真实 Link 导航，不用局部 mode 按钮冒充页面。注册/重置同时校验确认密码，确认值只留表单内存，不发送到 API。成功页只显示完成标题和一个主要返回入口；成功结果仅由实际 API 成功后写入非敏感 history state，不持久化账号、密码或凭据。普通用户的注册入口按策略呈现不可用状态，不能让管理员通过路径获得自助注册能力。
 

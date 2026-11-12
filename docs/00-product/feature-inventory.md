@@ -44,21 +44,21 @@
 | 公告管理（草稿/定时/受众/预览/启停） | 已实现 | 不装配 | 不装配 | unicore_platform_announcements | `internal/usecase/announcements.go`、[公告手册](../03-runbooks/announcements.md) |
 | 公告安全渲染（受限 Markdown/HTML） | 已实现 | 不装配 | 不装配 | 无 | `internal/adapter/content/announcement.go` |
 
-## D. 文件与存储（Platform 专属）
+## D. 业务文件与平台存储治理
 
 | 功能单元 | Platform | Standalone | CLI | 持久化 | 证据 |
 | --- | --- | --- | --- | --- | --- |
-| 文件服务（上传/下载/签名访问/清理/迁移，无管理页面） | 已实现，本地默认位置 | 不装配（HTTP 存储路由 404）¹ | 不装配（无桥方法）² | unicore_file_metadata + blob | `internal/files/service.go`、`internal/adapter/http/storage.go` |
-| 分片断点续传 | 已实现 | 不装配 | 不装配 | unicore_file_upload_sessions | `internal/files/multipart.go`、[ADR-0022](../adr/ADR-0022-resumable-uploads.md) |
+| 文件服务（上传/下载/签名访问/清理，无管理页面） | 已实现，支持本地及云位置、授权迁移 | 已实现：固定本地位置，Web/原生桥等效 | 不装配 | core 的文件四表 + blob | `internal/files/service.go`、`internal/bootstrap/filelocal/service.go`、[ADR-0043](../adr/ADR-0043-business-file-boundaries.md) |
+| 分片断点续传 | 已实现 | 已实现：本地分片与重启续传 | 不装配 | unicore_file_upload_sessions | `internal/files/multipart.go`、`internal/adapter/desktop/files.go` |
 | 对象存储位置管理（local/minio/s3/oss/cos） | 已实现 | 不装配 | 不装配 | unicore_storage_locations | `internal/blob/store.go`、`internal/adapter/blobcloud/` |
 | 品牌图片资源（logo/favicon/accent） | 已实现（运行时上传） | 不装配：使用构建期品牌 | 不适用 | branding.* + 对象命名空间 | `internal/branding/service.go` |
-| 业务附件（如笔记附件 file_id 校验） | 已实现（经文件服务校验归属） | 待决策：附件 ID 以未校验 JSON 存储（见 [决策 D12](pending-decisions.md)）¹² | 不装配 | 随业务表 | `internal/files/attachment.go`、`internal/adapter/http/notes.go` |
+| 业务附件（如笔记附件 file_id 校验） | 已实现：笔记内直接上传/选择，按 notes 权限，服务端校验归属 | 已实现：两载体上传、下载、ready/归属校验 | 不装配 | file_id 随业务表，元数据在 core | `internal/files/attachment.go`、`internal/adapter/http/notes.go`、`internal/modules/notes/desktop/notes.go` |
 
 ## E. 安装、设置与运维
 
 | 功能单元 | Platform | Standalone | CLI | 持久化 | 证据 |
 | --- | --- | --- | --- | --- | --- |
-| 安装向导 | 已实现（含管理员种子、profile 固化） | 已实现：web 向导无账号步骤¹；desktop 自动初始化² | 不装配 | installation.json + unicore_install_state | `internal/install/manager.go`、`internal/bootstrap/local/local.go`、[安装规范](feature-installation.md) |
+| 安装向导 | 已实现（含管理员种子、profile 固化、可选证书与主机名校验） | 已实现：web 向导无账号步骤¹；desktop 自动初始化² | 不装配 | installation.json + unicore_install_state | `internal/install/manager.go`、`internal/bootstrap/local/local.go`、[安装规范](feature-installation.md) |
 | 基础设置 | 已实现：实例设置，仅管理端 | 不提供实例设置，外观仅设备偏好 | 不装配 | unicore_system_settings | `internal/settings/service.go`、[设置需求](feature-settings.md) |
 | 维护模式 | 已实现（应用内 + 离线开关） | 不装配（设置组不可见） | 不适用（运维命令面向平台实例） | maintenance.* | `internal/settings/service.go`、`internal/webmanage/instance.go` |
 | 定时任务管理 | 已实现（内置任务 + 白名单执行器） | 不装配（web 仅 localCron 日志保留¹；desktop 无²） | 不装配 | unicore_scheduled_jobs | `internal/scheduler/scheduler.go`、`cmd/server/main.go` |
@@ -105,7 +105,7 @@
 | 服务健康（HTTP/数据库/存储/后台任务） | 已实现（HTTP/DB 全量；存储卡、任务卡按装配呈现；任务管理仍在定时任务页） | 已实现（HTTP/DB；仅渲染已装配能力；Web 显示 HTTP，桌面隐藏 HTTP；两载体均隐藏存储与任务卡） | 不适用 | 无 | 同上 + `internal/observability/metrics.go` |
 | 资源监控（进程/Go Runtime） | 已实现（Prometheus Go/Process collectors 同源；图表卡片） | 已实现（desktop 经 stdlib 等效；RSS/CPU 桌面不适用） | 不适用 | 无 | `internal/observability/metrics.go`、`monitor.StdlibRuntime` |
 | 运行事件流（环形缓冲 + 事件页；任务事件由调度器源头投递） | 已实现（super_admin「运行事件」页，容量 200 仅内存） | 已实现（单机「运行事件」Tab 等效） | 不适用 | 无（重启即清） | `internal/monitor/events.go`、`GET /api/v1/admin/monitor/events` |
-| 服务健康完整化（连接池上限/等待耗时、存储逐位置手动探活、失败任务运行记录关联） | 已实现 | 已实现（未装配的文件服务/任务卡完全隐藏） | 不适用 | 无 | `internal/monitor/monitor.go`、`adminMonitorStorageProbe` |
+| 服务健康完整化（连接池上限/等待耗时、存储逐位置手动探活、失败任务运行记录关联） | 已实现 | 已实现（平台存储管理/任务卡完全隐藏） | 不适用 | 无 | `internal/monitor/monitor.go`、`adminMonitorStorageProbe` |
 
 | 宿主机硬件视图（身份/CPU 逐核/内存/Swap/磁盘/负载/网络累计+服务端速率/温度/cgroup 限额，图表卡片 + 会话趋势） | 已实现（gopsutil 只读采样，D20 追记上提 P0；P1 补深度指标） | 已实现（两载体等效） | 不适用 | 无（拉取式，不落库） | `internal/monitor/host.go`、`packages/web-ui/src/widgets/monitor-charts.tsx` |
 | 告警（规则/检测/事件） | 已实现（T4 方案二：superAdmin 规则端点 + 后台检测 + notifycontent 通知，见 [设计 §9.3](design-runtime-monitor.md)） | 已实现（T4 方案二：内置默认规则本地告警，写入运行事件，不发外部通知；Web/GUI 等效） | 不适用（CLI 不装配） | 告警事件=运行事件缓冲（进程内，200 条）；Platform 规则=Settings 基建（`alerts.rules` 内部键）；Standalone 规则=内置常量 | `internal/monitor/alert.go`、`GET/PUT /api/v1/admin/monitor/alert-rules` |
@@ -115,8 +115,8 @@
 
 以下条目为「当前实现与设计目标可能存在差距」的功能级记录，详情与候选方案见 [待维护者决策清单](pending-decisions.md)：
 
-- Standalone 无文件服务：笔记附件 ID 无归属校验（D1/D12）。
+- D1/D12 已解决：本地业务附件与平台存储治理分离，见 ADR-0043。
 - files:* 不再作为默认用户业务权限（Assignable=false），保留文件 API 的显式授权；无文件管理页面。头像使用本人账号接口，业务附件使用对应业务授权。
-- Standalone(GUI) 设置装配无 Secrets（无法持久化敏感值）（D4）。
+- Standalone(GUI) 文件服务已使用实例 secret.Store；设置仍无敏感值，新增敏感设置前须按 D4 接线。
 - 更新兼容性使用 Catalog 世代与完整 SQL 指纹（D5 已解决）；包含迁移的版本需停服备份后人工升级。
 - 实例默认外观（appearance.theme）、bootstrap theme 和外观页面已移除（D13）：单机/桌面外观只走设备级偏好，右上角切换不受影响。

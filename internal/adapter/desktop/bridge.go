@@ -5,6 +5,8 @@ package desktop
 import (
 	"context"
 	"errors"
+	"github.com/yunnuo/unicore/internal/files"
+	"io"
 
 	"github.com/yunnuo/unicore/internal/adapter/presenter"
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
@@ -29,15 +31,20 @@ type Bridge struct {
 	updates  updateport.API
 	core     usecase.Executor
 	settings *settings.Service
+	files    *files.Service
+	saveFile func(string, io.Reader) error
 	notes    NotesAPI
 	monitor  *monitor.Service
 }
 
 func New(core usecase.Executor) *Bridge { return &Bridge{core: core} }
 
-func NewLocal(core usecase.Executor, service *settings.Service, store *sqlstore.Store) *Bridge {
+func NewLocal(core usecase.Executor, service *settings.Service, store *sqlstore.Store, fileServices ...*files.Service) *Bridge {
 	b := &Bridge{core: core, settings: service}
-	applyBridgeContributions(b, BridgeDeps{Core: core, Settings: service, Store: store})
+	if len(fileServices) > 0 {
+		b.files = fileServices[0]
+	}
+	applyBridgeContributions(b, BridgeDeps{Core: core, Settings: service, Store: store, Files: b.files})
 	return b
 }
 

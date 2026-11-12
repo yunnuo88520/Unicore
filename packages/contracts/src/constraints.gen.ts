@@ -359,6 +359,9 @@ export const constraints = {
       },
       "tls": {
         "type": "boolean"
+      },
+      "tls_verify": {
+        "type": "boolean"
       }
     }
   },
@@ -2788,6 +2791,9 @@ export const constraints = {
       "request_id": {
         "type": "string",
         "maxLength": 64
+      },
+      "message": {
+        "type": "string"
       }
     }
   },
@@ -2832,6 +2838,9 @@ export const constraints = {
       "request_id": {
         "type": "string",
         "maxLength": 64
+      },
+      "message": {
+        "type": "string"
       }
     }
   },
@@ -4463,6 +4472,9 @@ export const constraints = {
       "request_id": {
         "type": "string",
         "maxLength": 64
+      },
+      "message": {
+        "type": "string"
       }
     }
   },
@@ -4485,6 +4497,9 @@ export const constraints = {
       "request_id": {
         "type": "string",
         "maxLength": 64
+      },
+      "message": {
+        "type": "string"
       }
     }
   },

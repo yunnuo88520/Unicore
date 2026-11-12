@@ -2,7 +2,7 @@
  * Description: Shared UI client; pages know neither fetch nor Wails globals.
  */
 import {fileFingerprint,retryDelay} from './upload';
-import type { PersonalTokenInput, PersonalToken, PersonalTokenList, PersonalTokenCreated, TokenScopeList, ClientTokenPair, ClientTokenLogin, NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, ProfileInput, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, LogTailList, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, AdminPasswordResetInput, AdminPasswordReset, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, RoleSaveInput, MenuEntry, MenuList, MenuSaveInput, MenuRoleAssignmentInput, NavigationSection, NavigationNode, NavigationPage, NavigationRoleAssignment, Navigation, APIOperation, APIOperationList, Post, PostList, PostSaveInput, NoteCapabilities, FileCapabilities, DictionarySummary, DictionaryList, DictionaryItemEntry, DictionaryDetail, DictionaryCreateInput, DictionaryUpdateInput, DictionaryItemsInput, Department, DepartmentList, DepartmentSaveInput, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput, TaskList, TaskEntry, TaskUpdateInput, TaskTrigger, TaskCreateInput, TaskEditInput, TaskRunList, ActionResult, InboxList, FileUploadInput, FileUploadGrant, MonitorSnapshot, MonitorSnapshotResponse, MonitorEventList, MonitorEvent, MonitorEventListResponse, MonitorAlertRules, MonitorAlertRule, MonitorAlertRulesResponse } from '@unicore/contracts';
+import type { MultipartUploadInput, PersonalTokenInput, PersonalToken, PersonalTokenList, PersonalTokenCreated, TokenScopeList, ClientTokenPair, ClientTokenLogin, NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, ProfileInput, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, LogTailList, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, FileListResponse, FileEntryResponse, UploadPolicyResponse, MultipartUploadResponse, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, AdminPasswordResetInput, AdminPasswordReset, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, RoleSaveInput, MenuEntry, MenuList, MenuSaveInput, MenuRoleAssignmentInput, NavigationSection, NavigationNode, NavigationPage, NavigationRoleAssignment, Navigation, APIOperation, APIOperationList, Post, PostList, PostSaveInput, NoteCapabilities, FileCapabilities, DictionarySummary, DictionaryList, DictionaryItemEntry, DictionaryDetail, DictionaryCreateInput, DictionaryUpdateInput, DictionaryItemsInput, Department, DepartmentList, DepartmentSaveInput, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput, TaskList, TaskEntry, TaskUpdateInput, TaskTrigger, TaskCreateInput, TaskEditInput, TaskRunList, ActionResult, InboxList, FileUploadInput, FileUploadGrant, MonitorSnapshot, MonitorSnapshotResponse, MonitorEventList, MonitorEvent, MonitorEventListResponse, MonitorAlertRules, MonitorAlertRule, MonitorAlertRulesResponse } from '@unicore/contracts';
 import { operations, type OperationId, type OperationInputs, type OperationData } from '@unicore/contracts/operations';
 import { validate, type SchemaName } from '@unicore/contracts/validate';
 export { validate, constraints, type SchemaName } from '@unicore/contracts/validate';
@@ -47,6 +47,7 @@ export interface AppClient {
   web?: WebClient;
  notes?: NoteClient;
  files?: FileClient;
+ businessFiles?(scope:'notes'|'avatar'):FileClient;
  storage?: StorageClient;
   subscribeSession?(listener: (event: SessionEvent) => void): () => void;
   resetSession?(): void;
@@ -60,11 +61,12 @@ export interface NoteClient {
 }
 
 export interface FileClient {
+ downloadFile?(id:string):Promise<void>;
  uploadPolicy():Promise<UploadPolicy>;
  uploadStatus(id:string):Promise<MultipartUpload>;
  listFiles(search:string,page:number):Promise<FileList>;
  uploadFile(file:File,options?:UploadOptions):Promise<FileEntry>;
- fileAccess(id:string):Promise<FileAccess>;
+ fileAccess(id:string,noteID?:string):Promise<FileAccess>;
  deleteFile(id:string):Promise<{success:boolean}>;
  migrateFile(id:string,locationID:string):Promise<FileEntry>;
 }
@@ -206,8 +208,8 @@ export interface WebClient {
   completeFileUpload(id: string): Promise<FileEntry>;
 }
 
-function unwrap<T>(response: { code: string; message: string; data: T; request_id: string; fields?: Record<string, string> }): T {
-  if (response.code !== 'OK') throw new AppError(response.code, response.message, response.request_id, response.fields);
+function unwrap<T>(response: { code: string; message?: string; data: T; request_id: string; fields?: Record<string, string> }): T {
+  if (response.code !== 'OK') throw new AppError(response.code, response.message ?? response.code, response.request_id, response.fields);
   return response.data;
 }
 
@@ -288,6 +290,25 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   private sessionChanged(event: SessionEvent) { this.epoch++; for (const listener of this.listeners) listener(event); }
   resetSession() { this.csrf = ''; this.identity = ''; this.authenticated = false; this.bootstrapped = false; this.sessionChanged('external'); }
   constructor(private readonly baseURL = '', private readonly fetcher: typeof fetch = globalThis.fetch.bind(globalThis), realm: 'user'|'administrator' = 'user', private readonly bearerToken?:string) { this.administrator = realm === 'administrator'; }
+  businessFiles(scope:'notes'|'avatar'):FileClient {
+    const call=this.fileCalls(scope);
+    return {
+      uploadPolicy:()=>call('fileUploadPolicy'),
+      uploadStatus:id=>call('multipartUpload',undefined,{params:{id}}),
+      listFiles:(search,page)=>call('listFiles',undefined,{query:{search,page}}),
+      uploadFile:(file,options)=>this.uploadFile(file,options,scope),
+      fileAccess:(id:string,noteID?:string)=>call('fileAccess',undefined,{params:{id},...(noteID?{query:{note_id:noteID}}:{})}),
+      deleteFile:id=>call('deleteFile',undefined,{params:{id}}),
+      migrateFile:async()=>{throw new AppError('NOT_AVAILABLE','此运行形态不提供文件管理');},
+    };
+  }
+  private fileCalls(scope?:'notes'|'avatar'):HttpTransport['call'] {
+    // Business endpoints have the same generated DTOs as their generic peers.
+    return ((id:OperationId,...args:unknown[])=> {
+      const mapped=scope ? `${scope}${id[0].toUpperCase()}${id.slice(1)}` : id;
+      return (this.call as (...args:unknown[])=>Promise<unknown>)(mapped,...args);
+    }) as HttpTransport['call'];
+  }
   private async request<T>(path: string, init?: RequestInit,timeoutMS=20000,binary=false): Promise<T> {
     const epoch = this.epoch;
     let response: Response;
@@ -546,16 +567,17 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
  migrateFile(id:string,locationID:string){return this.call('migrateFile',{location_id:locationID},{params:{id},timeoutMs:600000});}
  uploadPolicy(){return this.call('fileUploadPolicy');}
  uploadStatus(id:string){return this.call('multipartUpload',undefined,{params:{id}});}
- async uploadFile(file:File,options?:UploadOptions):Promise<FileEntry>{
+ async uploadFile(file:File,options?:UploadOptions,scope?:'notes'|'avatar'):Promise<FileEntry>{
+  const call=this.fileCalls(scope);
   const epoch=this.epoch;const stop=new AbortController();
   const signal=options?.signal?AbortSignal.any([options.signal,stop.signal]):stop.signal;
   const unsubscribe=this.subscribeSession(()=>stop.abort());
   try{
-   const policy=await this.call('fileUploadPolicy',undefined,{signal});
+   const policy=await call('fileUploadPolicy',undefined,{signal});
    if(!options?.resumeId&&file.size>policy.max_size)throw new AppError('INVALID_INPUT','文件超过管理员设置的大小上限');
    options?.onStage?.('hashing');
    const fingerprint=await fileFingerprint(file,signal,options?.onHashProgress);
-   const session=options?.resumeId?await this.call('multipartUpload',undefined,{params:{id:options.resumeId},signal}):await this.call('createMultipartUpload',{original_name:file.name,mime_type:file.type||'application/octet-stream',size:file.size,fingerprint,...(options?.uploadPath ? {upload_path:options.uploadPath} : {})},{signal,timeoutMs:35000});
+   const session=options?.resumeId?await call('multipartUpload',undefined,{params:{id:options.resumeId},signal}):await call('createMultipartUpload',{original_name:file.name,mime_type:file.type||'application/octet-stream',size:file.size,fingerprint,...(options?.uploadPath ? {upload_path:options.uploadPath} : {})},{signal,timeoutMs:35000});
    if(session.fingerprint!==fingerprint||session.file.size!==file.size||session.file.original_name!==file.name||session.file.mime_type!==(file.type||'application/octet-stream'))throw new AppError('UPLOAD_FILE_MISMATCH','请选择原来上传的同一个文件，文件内容不一致');
    options?.onSession?.(session);
    if(session.file.state==='ready')return session.file;
@@ -570,7 +592,7 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
       signal.throwIfAborted();if(epoch!==this.epoch)throw new AppError('SESSION_CHANGED','会话已变化，请重新登录');
       try{
        // A fresh grant on every retry also renews expired cloud signatures without discarding good parts.
-       const grant=await this.call('signUploadPart',{number},{params:{id:session.file.file_id},signal,timeoutMs:35000});
+       const grant=await call('signUploadPart',{number},{params:{id:session.file.file_id},signal,timeoutMs:35000});
        if(grant.direct){
         const response=await this.fetcher(grant.url,{method:'PUT',body:part,headers:grant.headers,credentials:'omit',redirect:'error',signal:AbortSignal.any([signal,AbortSignal.timeout(600000)])});
         if(!response.ok)throw new AppError('STORAGE_UPLOAD_FAILED','分片上传失败，已完成的分片会保留，可继续重试');
@@ -588,7 +610,7 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
    }
    signal.throwIfAborted();if(epoch!==this.epoch)throw new AppError('SESSION_CHANGED','会话已变化，请重新登录');
    options?.onStage?.('confirming');
-   return await this.call('completeMultipartUpload',undefined,{params:{id:session.file.file_id},signal,timeoutMs:7200000});
+   return await call('completeMultipartUpload',undefined,{params:{id:session.file.file_id},signal,timeoutMs:7200000});
   }catch(error){
    if(epoch!==this.epoch)throw new AppError('SESSION_CHANGED','会话已变化，请重新登录');
    if(options?.signal?.aborted)throw new AppError('REQUEST_CANCELLED','上传已暂停，已完成的分片会保留');
@@ -614,6 +636,15 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
 }
 
 export interface DesktopBridge {
+ FileUploadPolicy?():Promise<UploadPolicyResponse>;
+ ListFiles?(search:string,page:number):Promise<FileListResponse>;
+ BeginFileUpload?(input:MultipartUploadInput):Promise<MultipartUploadResponse>;
+ FileUploadStatus?(id:string):Promise<MultipartUploadResponse>;
+ ReceiveFilePart?(id:string,number:number,data:string):Promise<ActionResultResponse>;
+ CompleteFileUpload?(id:string):Promise<FileEntryResponse>;
+ DeleteFile?(id:string):Promise<ActionResultResponse>;
+ SaveFile?(id:string):Promise<ActionResultResponse>;
+
  Updates?():Promise<UpdateOverviewResponse>;
  CheckUpdate?():Promise<UpdateOverviewResponse>;
  ApplyUpdate?(input:UpdateApplyInput):Promise<UpdateJobResponse>;
@@ -631,6 +662,48 @@ export interface DesktopBridge {
 
 export class WailsTransport implements AppClient {
   readonly transport = 'wails' as const;
+ readonly files:FileClient={
+  uploadPolicy:async()=>unwrap(await this.fileBridge().FileUploadPolicy!()),
+  uploadStatus:async id=>unwrap(await this.fileBridge().FileUploadStatus!(id)),
+  listFiles:async(search,page)=>unwrap(await this.fileBridge().ListFiles!(search,page)),
+  uploadFile:(file,options)=>this.uploadNative(file,options),
+  fileAccess:async()=>{throw new AppError('NOT_AVAILABLE','此运行形态不提供文件管理');},
+  deleteFile:async id=>unwrap(await this.fileBridge().DeleteFile!(id)),
+  migrateFile:async()=>{throw new AppError('NOT_AVAILABLE','此运行形态不提供文件管理');},
+  downloadFile:async id=>{unwrap(await this.fileBridge().SaveFile!(id));},
+ };
+ businessFiles(scope:'notes'|'avatar'):FileClient {
+  if(scope!=='notes')throw new AppError('NOT_AVAILABLE','此运行形态不提供平台接口');
+  return this.files;
+ }
+ private fileBridge():DesktopBridge {
+  const bridge=this.bridge();
+  if(!bridge.FileUploadPolicy||!bridge.BeginFileUpload||!bridge.FileUploadStatus||!bridge.ReceiveFilePart||!bridge.CompleteFileUpload||!bridge.ListFiles||!bridge.DeleteFile||!bridge.SaveFile)throw new AppError('NOT_AVAILABLE','文件服务尚未就绪');
+  return bridge;
+ }
+ private async uploadNative(file:File,options?:UploadOptions):Promise<FileEntry>{
+  const bridge=this.fileBridge(),signal=options?.signal??new AbortController().signal;
+  const check=()=>{if(signal.aborted)throw new AppError('REQUEST_CANCELLED','上传已暂停，已完成的分片会保留');};
+  try {
+   check();const policy=unwrap(await bridge.FileUploadPolicy!());
+   if(!options?.resumeId&&file.size>policy.max_size)throw new AppError('INVALID_INPUT','文件超过管理员设置的大小上限');
+   options?.onStage?.('hashing');const fingerprint=await fileFingerprint(file,signal,options?.onHashProgress);check();
+   const session=unwrap(options?.resumeId?await bridge.FileUploadStatus!(options.resumeId):await bridge.BeginFileUpload!({original_name:file.name,mime_type:file.type||'application/octet-stream',size:file.size,fingerprint}));
+   if(session.fingerprint!==fingerprint||session.file.size!==file.size||session.file.original_name!==file.name||session.file.mime_type!==(file.type||'application/octet-stream'))throw new AppError('UPLOAD_FILE_MISMATCH','请选择原来上传的同一个文件，文件内容不一致');
+   options?.onSession?.(session);if(session.file.state==='ready')return session.file;
+   options?.onStage?.('uploading');let loaded=session.parts.reduce((sum,part)=>sum+part.size,0),completed=session.parts.length;
+   const progress=()=>options?.onProgress?.({loaded,total:file.size,completedParts:completed,totalParts:session.part_count});progress();
+   const present=new Set(session.parts.map(part=>part.number));
+   for(let number=1;number<=session.part_count;number++){
+    if(present.has(number))continue;check();const part=file.slice((number-1)*session.part_size,number*session.part_size);
+    const bytes=new Uint8Array(await part.arrayBuffer());let binary='';
+    for(let i=0;i<bytes.length;i+=32768)binary+=String.fromCharCode(...bytes.subarray(i,i+32768));
+    check();unwrap(await bridge.ReceiveFilePart!(session.file.file_id,number,btoa(binary)));loaded+=part.size;completed++;progress();
+   }
+   check();options?.onStage?.('confirming');return unwrap(await bridge.CompleteFileUpload!(session.file.file_id));
+  }catch(error){check();throw error;}
+ }
+
  readonly updates:UpdateClient={
  overview:async()=>{const m=this.bridge().Updates;if(!m)throw new AppError('NOT_AVAILABLE','此版本未启用系统更新');return unwrap(await m());},
  check:async()=>{const m=this.bridge().CheckUpdate;if(!m)throw new AppError('NOT_AVAILABLE','此版本未启用系统更新');return unwrap(await m());},

@@ -6,7 +6,7 @@ Unicore 面向需要二次开发的 Go + React + TypeScript 项目。产品分�
 | 形态 | 适用场景 | 数据库与身份 |
 | --- | --- | --- |
 | web-platform | 在线多用户应用 | SQLite / PostgreSQL / MySQL；统一账号、多角色、共享会话，两个工作台入口 |
-| web-standalone | 本机 Web 应用 | 三种数据库；无平台账号，不对公网开放 |
+| web-standalone | 本机 Web 应用 | 三种数据库；无平台账号，默认本机，远程使用需外层访问控制 |
 | desktop | 原生本地应用 | SQLite；无平台账号 |
 | cli | 命令行调用共享核心 | 无数据库、HTTP 或平台身份依赖 |
 

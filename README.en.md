@@ -30,7 +30,7 @@ The README and new release notes are available in Chinese and English. Detailed 
 
 The platform includes one-time installation, server-enforced permissions, six-digit email verification, SMTP, OIDC, global settings, file metadata, and private signed downloads. Local storage is the default; MinIO / S3 / OSS / COS adapters support configurable limits, multipart uploads, pause, and resume across refreshes or restarts. Local, MinIO, and Alibaba Cloud OSS have been exercised in development; Tencent COS still needs account permissions and real cloud validation. See the [storage guide](docs/03-runbooks/storage.md). Standalone and desktop profiles expose business features and local appearance; branding is configured at build time.
 
-Platform and both Standalone carriers share a personal-notes sample covering domain logic, repositories, migrations, API/native transport, concurrency, and modal forms. The platform also demonstrates attachments by `file_id`; CLI stays database-free. Other foundations include a single OpenAPI contract, shared themes/icons/messages, lifecycle and health checks, offline encrypted backup and restore, AI documentation, and 14 task Skills.
+Platform and both Standalone carriers share a personal-notes sample covering domain logic, repositories, migrations, API/native transport, concurrency, and modal forms. All UI carriers support owner-checked attachment uploads and downloads by `file_id`; CLI stays database-free. Other foundations include a single OpenAPI contract, shared themes/icons/messages, lifecycle and health checks, offline encrypted backup and restore, AI documentation, and 14 task Skills.
 
 ![Platform notes and attachments](docs/images/notes-platform.png)
 

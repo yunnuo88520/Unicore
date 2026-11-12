@@ -47,7 +47,7 @@ Unicore 的产品形态只有三种。`framework.manifest.json` 中的四个 pro
 | 不呈现 | 页面、菜单或入口存在于该形态的代码路径中，但对当前访问主体被隐藏（前端体验层）；服务端授权与形态裁决独立生效，规则见 [功能呈现与访问规范](feature-presentation.md) |
 | 待决策 | 目标归属未定，记录在 [待维护者决策清单](pending-decisions.md) |
 
-「不装配」必须能指出装配省略点（如 `internal/install/manager.go` 的 `attach` 仅在 web-platform 创建 identity/files/branding/mailer）；「不适用」不需要实现动作。两者都不得被新的实现悄悄改写——改变形态归属属于产品决策，须先更新本文并获得维护者确认。
+「不装配」必须能指出装配省略点（如 `internal/install/manager.go` 的 `attach` 仅在 web-platform 创建 identity/branding/mailer；files 在 Standalone 只装配本地实现）；「不适用」不需要实现动作。改变形态归属须有维护者裁决及相应 ADR，不能只修改文档标记。
 
 相邻标记的区别：**不装配** = 功能在该形态整体不存在，服务端同样拒绝（装配省略 + 404）；**不适用** = 概念对该形态无意义，无需实现动作；**不呈现** = 功能在该形态存在、服务端可用或已裁决，仅前端对某主体隐藏；**无权限** = 形态与功能都可用，当前主体缺少授权点（服务端 401/403）。呈现层标记只描述前端可见性，永远不构成权限边界。
 
@@ -60,10 +60,10 @@ Unicore 的产品形态只有三种。`framework.manifest.json` 中的四个 pro
 | 数据持久化 | 已实现：SQLite/PostgreSQL/MySQL，core+platform+module.notes 命名空间 | 已实现：web 三方言、desktop 仅 SQLite；core+module.notes | 不装配：无数据库 |
 | 配置 | 已实现：全局设置（仅管理端）+ 设备偏好 | 设备偏好；无实例级设置页面或可写设置项 | 不适用（仅进程日志环境变量） |
 | UI / 菜单 / 页面 | 已实现：用户工作区 + 管理后台双 SPA，服务端投影导航 | 已实现：单工作区，客户端默认导航，两载体同一套页面 | 不适用 |
-| API 适配 | 已实现：HTTP `/api/v1` 全量 + admin 镜像 | 受限：HTTP 仅本地面（bootstrap/settings/updates/notes/core），admin API 一律 404；desktop 走 Wails 桥 | 已实现：进程内 Cobra 命令 |
+| API 适配 | 已实现：HTTP `/api/v1` 全量 + admin 镜像 | 受限：HTTP 仅本地面（bootstrap/settings/updates/notes/core 与本地业务附件），admin API 一律 404；desktop 走 Wails 桥 | 已实现：进程内 Cobra 命令 |
 | 生命周期 | 已实现：lifecycle.Stack + 优雅排水 + 可选 loopback 指标 | 已实现：web 同左；desktop 用 Wails 回调，无指标面 | 不适用：无组件栈 |
-| 后台任务与调度 | 已实现：平台调度器 + 任务管理 API | 受限：web 用 localCron（日志保留等），desktop 无 | 不装配 |
-| 文件与对象存储 | 已实现：local/minio/s3/oss/cos、直传、分片续传、签名访问 | 不装配（见 [决策 D1](pending-decisions.md)） | 不装配 |
+| 后台任务与调度 | 已实现：平台调度器 + 任务管理 API | 受限：两载体均有文件清理与本地告警；web 另有日志保留定时器，无平台任务管理 | 不装配 |
+| 文件与对象存储 | 已实现：业务上传 + local/minio/s3/oss/cos、直传、续传、签名访问；存储管理仅后台 | 已实现：本地业务附件、续传、下载与清理；不装配云存储管理（[ADR-0043](../adr/ADR-0043-business-file-boundaries.md)） | 不装配 |
 | 更新与分发 | 已实现：管理端签名更新；tar 可更新，Docker 仅检查 | 已实现：web 本机 loopback 更新；desktop 原生更新 | 不装配 |
 | 审计 | 已实现：写入 + 元数据 + 查询/导出 | 受限：仅写入 core 审计表，无查询面 | 不装配 |
 | 邮件 / 通知 / 公告 / 站内信 | 已实现 | 不装配 | 不装配 |
@@ -84,7 +84,7 @@ Unicore 的产品形态只有三种。`framework.manifest.json` 中的四个 pro
 4. [源码强制 + 维护约定] 契约与形态隔离分四层执行，新增接口时各层都要落实：
    - **契约声明**（维护约定）：operation 必须带 `x-unicore`（access/permissions/superAdmin 等）。
    - **策略中间件**（源码强制）：整体缺失 `x-unicore` 的已注册路由直接 500（ROUTE_POLICY_UNDECLARED）；access/permissions/superAdmin 由中间件执行，且权限点/operation/superAdmin 校验仅在 web-platform 生效（`internal/adapter/http/policy.go`）。
-   - **装配省略**（源码强制）：identity/files/branding/mailer 仅在 web-platform 装配（`internal/install/manager.go` attach），非平台形态相应 API 404。
+   - **装配省略**（源码强制）：identity/branding/mailer 与云存储仅在 web-platform 装配；Standalone 的 files 仅为本地业务附件，不暴露平台存储管理接口。
    - **handler 自查**（维护约定）：**`x-unicore.profiles` 声明不被中间件执行**——形态隔离的最后一环是各 handler 的 profile 自查（如 `notes.go`、`announcements.go`、`updates.go`）。新增非全形态接口必须写 handler 自查，不得只声明 profiles 字段。
    前端隐藏菜单或按钮不构成权限控制。Standalone 页面只呈现已装配的本机能力；平台专属功能与载体不具备的能力不显示占位、标签或权限引导，直达地址按不存在处理。
 5. [源码强制] 菜单授权不授予 API：menu_ids、action_ids、operation_ids 三个命名空间相互独立，服务端授权是唯一执行点（权限派生明确排除菜单行，`internal/adapter/storage/platformsql/repository.go`）。
@@ -98,7 +98,7 @@ Unicore 的产品形态只有三种。`framework.manifest.json` 中的四个 pro
 
 | 维度 | Standalone(Web) | Standalone(GUI) |
 | --- | --- | --- |
-| 传输通道 | HTTP `/api/v1`（本机/局域网） | Wails 原生桥，无 HTTP 服务 |
+| 传输通道 | HTTP `/api/v1`（本机/局域网）；附件使用授权短链接下载 | Wails 原生桥，无 HTTP 服务；附件使用系统保存对话框 |
 | 前端路由历史 | Browser history | Hash history |
 | 首次初始化 | 安装向导（无账号步骤），可选数据库方言 | 自动初始化 SQLite + flock 单实例锁 |
 | 进程配置面 | `config.LoadWeb`（listen/profile/data-dir 等） | 仅日志配置 |

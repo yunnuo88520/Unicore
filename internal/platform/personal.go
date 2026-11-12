@@ -97,7 +97,7 @@ func (p *Personal) profile(ctx context.Context, s PersonalSession) (contracts.Ac
 	profile := contracts.AccountProfile{User: s.User, DisplayName: s.State.DisplayName, TotpEnabled: s.State.Secret != "", Force2fa: force2fa, CanDisable2fa: !force2fa && values["security.allow_disable_2fa"] != "false"}
 	if p.AvatarFiles != nil {
 		if fileID, avatarErr := p.Store.UserAvatar(ctx, s.User.ID); avatarErr == nil && fileID != "" {
-			access, accessErr := p.AvatarFiles.Access(ctx, files.Actor{ID: s.User.ID, Realm: p.Realm}, fileID)
+			access, accessErr := p.AvatarFiles.Access(ctx, files.Actor{ID: s.User.ID, Realm: "avatar"}, fileID)
 			if accessErr == nil {
 				profile.AvatarUrl = &access.Url
 			}
@@ -141,7 +141,7 @@ func (p *Personal) SaveProfile(ctx context.Context, token string, input contract
 			if p.AvatarFiles == nil {
 				return contracts.AccountProfile{}, ErrForbidden
 			}
-			if err := p.AvatarFiles.ValidateAvatar(ctx, files.Actor{ID: state.User.ID, Realm: p.Realm}, fileID); err != nil {
+			if err := p.AvatarFiles.ValidateAvatar(ctx, files.Actor{ID: state.User.ID, Realm: "avatar"}, fileID); err != nil {
 				return contracts.AccountProfile{}, ErrInput
 			}
 		}

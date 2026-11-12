@@ -50,43 +50,6 @@ CREATE TABLE IF NOT EXISTS unicore_oidc_flows (
  expires_at BIGINT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS unicore_storage_locations (
- id VARCHAR(80) NOT NULL PRIMARY KEY, name VARCHAR(80) NOT NULL, provider VARCHAR(16) NOT NULL,
- endpoint VARCHAR(2048) NOT NULL, bucket VARCHAR(128) NOT NULL, region VARCHAR(128) NOT NULL,
- prefix VARCHAR(200) NOT NULL, path_style INTEGER NOT NULL, credentials TEXT NOT NULL,
- tested INTEGER NOT NULL, created_at BIGINT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS unicore_file_metadata (
- id VARCHAR(80) NOT NULL PRIMARY KEY, original_name VARCHAR(255) NOT NULL,
- storage_type VARCHAR(16) NOT NULL, location_id VARCHAR(80) NOT NULL,
- file_key VARCHAR(1024) NOT NULL, staging_key VARCHAR(1024) NOT NULL,
- mime_type VARCHAR(160) NOT NULL, size BIGINT NOT NULL, etag VARCHAR(200) NOT NULL,
- state VARCHAR(16) NOT NULL, purpose VARCHAR(16) NOT NULL,
- creator_id VARCHAR(80) NOT NULL, creator_realm VARCHAR(24) NOT NULL,
- created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL, upload_expires_at BIGINT NOT NULL, cleanup_at BIGINT NOT NULL
-);
-
-CREATE INDEX IF NOT EXISTS file_expiry ON unicore_file_metadata(expires_at);
-
-CREATE INDEX IF NOT EXISTS file_pending_cleanup ON unicore_file_metadata(state,cleanup_at);
-
-CREATE INDEX IF NOT EXISTS file_location_state ON unicore_file_metadata(location_id,state);
-
-CREATE INDEX IF NOT EXISTS file_created ON unicore_file_metadata(purpose,created_at,id);
-
-CREATE INDEX IF NOT EXISTS file_owner_created ON unicore_file_metadata(purpose,creator_realm,creator_id,created_at,id);
-
-CREATE TABLE IF NOT EXISTS unicore_file_cleanup_jobs (
- id VARCHAR(80) NOT NULL PRIMARY KEY, location_id VARCHAR(80) NOT NULL,
- file_key VARCHAR(1024) NOT NULL, due_at BIGINT NOT NULL,
- attempts INTEGER NOT NULL, last_error VARCHAR(64) NOT NULL
-);
-
-CREATE INDEX IF NOT EXISTS file_cleanup_location ON unicore_file_cleanup_jobs(location_id);
-
-CREATE INDEX IF NOT EXISTS file_cleanup_due ON unicore_file_cleanup_jobs(due_at);
-
 CREATE TABLE IF NOT EXISTS unicore_audit_metadata (audit_id VARCHAR(64) NOT NULL PRIMARY KEY, actor_name VARCHAR(64) NOT NULL, realm VARCHAR(32) NOT NULL, target VARCHAR(256) NOT NULL, detail VARCHAR(512) NOT NULL, ip_address VARCHAR(64) NOT NULL);
 
 CREATE TABLE IF NOT EXISTS unicore_platform_announcements (
@@ -111,13 +74,6 @@ CREATE TABLE IF NOT EXISTS unicore_platform_announcements (
 );
 
 CREATE INDEX IF NOT EXISTS idx_announcements_feed ON unicore_platform_announcements(deleted_at,status,publish_at,id);
-
-CREATE TABLE IF NOT EXISTS unicore_file_upload_sessions (
- file_id VARCHAR(80) NOT NULL PRIMARY KEY,
- upload_id TEXT NOT NULL,
- fingerprint VARCHAR(64) NOT NULL,
- part_size BIGINT NOT NULL
-);
 
 CREATE TABLE IF NOT EXISTS unicore_announcement_recipients (
  announcement_id VARCHAR(64) NOT NULL,
@@ -152,8 +108,6 @@ CREATE TABLE IF NOT EXISTS unicore_email_changes (
 );
 
 INSERT INTO unicore_storage_locations(id,name,provider,endpoint,bucket,region,prefix,path_style,credentials,tested,created_at) SELECT 'legacy-brand','历史品牌文件','local','','','','',1,'',1,0 WHERE NOT EXISTS (SELECT 1 FROM unicore_storage_locations WHERE id='legacy-brand');
-
-INSERT INTO unicore_storage_locations(id,name,provider,endpoint,bucket,region,prefix,path_style,credentials,tested,created_at) SELECT 'local','本地存储','local','','','','',1,'',1,0 WHERE NOT EXISTS (SELECT 1 FROM unicore_storage_locations WHERE id='local');
 
 CREATE TABLE IF NOT EXISTS unicore_menus (
  menu_key VARCHAR(64) NOT NULL PRIMARY KEY,

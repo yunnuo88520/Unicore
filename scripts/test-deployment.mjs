@@ -7,6 +7,7 @@ import { join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { chromium, expect } from '@playwright/test';
 import { loadIdentity, ciSecretPrefix } from './product-identity.mjs';
+import { migrationTarget } from './migration-target.mjs';
 
 const identity = loadIdentity(), prefix = ciSecretPrefix(identity.product.slug);
 const docker = args => execFileSync('docker', args, { encoding: 'utf8', stdio: ['ignore','pipe','pipe'] }).trim();
@@ -58,7 +59,8 @@ async function exercise(mode,profile) {
       const metadata=JSON.parse(readFileSync(join(release,'manifest.json'),'utf8'));
       expect(metadata.schema_generation).toBe('unicore-1');
       expect(metadata.schema_fingerprint).toMatch(/^[a-f0-9]{64}$/);
-      expect(metadata.namespace_versions).toEqual({core:1,'module.notes':1,platform:1});
+      expect(metadata.namespace_versions).toEqual(migrationTarget(profile).namespace_versions);
+      expect(metadata.schema_fingerprint).toBe(migrationTarget(profile).schema_fingerprint);
       expect(readFileSync(join(release,'LICENSE'),'utf8')).toContain('MIT License');
       expect(readFileSync(join(release,identity.cli.command)).byteLength).toBeGreaterThan(1000);
       const network=`${name}-network`;networks.add(network);docker(['network','create',network]);

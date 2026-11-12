@@ -8,9 +8,9 @@
     "namespace": "core",
     "version": 1,
     "checksums": {
-      "mysql": "45dcb724865c9a686078d85972d6e02a740b2188fe2ad7b9283f110220586a2a",
-      "postgres": "18ab3941363c0b8302a0208ebc6704661cc8bbf3b5185479dde345a09f8ab537",
-      "sqlite": "bc54b3841b235da327cf29702a9c1a2350b30f2a61d284a734d3f115b240db44"
+      "mysql": "e2dfad2f603abe8d87e16be3c0c2894cb10af2d92c492c0e21296e9960b62c77",
+      "postgres": "a22a6f10e5d80d24272fc39d2fd6550a8509345e1a80a2070773e1960b92b904",
+      "sqlite": "1560184ba4a1c6669057c8d8db366d50b2cbc021fb9a2739834de7d958e6bc09"
     }
   },
   "dialects": [
@@ -70,18 +70,18 @@
           "files": {
             "mysql": {
               "path": "core/mysql/0001_initial.sql",
-              "bytes": 1095,
-              "checksum": "45dcb724865c9a686078d85972d6e02a740b2188fe2ad7b9283f110220586a2a"
+              "bytes": 3928,
+              "checksum": "e2dfad2f603abe8d87e16be3c0c2894cb10af2d92c492c0e21296e9960b62c77"
             },
             "postgres": {
               "path": "core/postgres/0001_initial.sql",
-              "bytes": 1077,
-              "checksum": "18ab3941363c0b8302a0208ebc6704661cc8bbf3b5185479dde345a09f8ab537"
+              "bytes": 4514,
+              "checksum": "a22a6f10e5d80d24272fc39d2fd6550a8509345e1a80a2070773e1960b92b904"
             },
             "sqlite": {
               "path": "core/sqlite/0001_initial.sql",
-              "bytes": 904,
-              "checksum": "bc54b3841b235da327cf29702a9c1a2350b30f2a61d284a734d3f115b240db44"
+              "bytes": 3252,
+              "checksum": "1560184ba4a1c6669057c8d8db366d50b2cbc021fb9a2739834de7d958e6bc09"
             }
           }
         }
@@ -126,18 +126,18 @@
           "files": {
             "mysql": {
               "path": "platform/mysql/0001_initial.sql",
-              "bytes": 19661,
-              "checksum": "738075c42de7a6a35a767b00e256728fade2916b6203fd1d32ac637459ec49a1"
+              "bytes": 16828,
+              "checksum": "fb133cfbd3be5e4d346db3f0feedd785342ee80b68621bd0eda81b0f946489f1"
             },
             "postgres": {
               "path": "platform/postgres/0001_initial.sql",
-              "bytes": 19646,
-              "checksum": "f2857b6a38dc760145286b9e4660efd1e3fc769e4a1b2cc3c45eb07323939512"
+              "bytes": 16209,
+              "checksum": "d6bd60b9ba5c9ef559b5f83b456a6e07ee029b4237e8b46c8444028b994d7080"
             },
             "sqlite": {
               "path": "platform/sqlite/0001_initial.sql",
-              "bytes": 14360,
-              "checksum": "a6139590e3c4c381b9c191fe677585113485005a42c7671c000576b0c45de394"
+              "bytes": 12012,
+              "checksum": "319bbc6a9f7d0408c72bcdb4e911359b85ae8e6640787a4dea80ad928b9bcd5b"
             }
           }
         }
@@ -168,7 +168,7 @@
         "core": 1,
         "module.notes": 1
       },
-      "schema_fingerprint": "39d7ca8ee454f6ac16f520257c731c23277f5aaac75ba6444a7126db454b451e"
+      "schema_fingerprint": "0e57a2d80df2feed35da1c04acb20d518653af05f0b4f4580b06af7e5c4a7133"
     },
     "web-platform": {
       "dialects": [
@@ -191,7 +191,7 @@
         "module.notes": 1,
         "platform": 1
       },
-      "schema_fingerprint": "317b04d34a904942c4f622212d9f40f3f8c5dd55a56dacfef8a10f2ebf04faee"
+      "schema_fingerprint": "d5a03018c1a0095eecefc0658336d827addd5f040ff3b3f504995362ee1a29dc"
     },
     "web-standalone": {
       "dialects": [
@@ -211,7 +211,7 @@
         "core": 1,
         "module.notes": 1
       },
-      "schema_fingerprint": "47e5985c3e80dad5c968bd4beff63eff5f966dcebf3c042d2205f22b0487747d"
+      "schema_fingerprint": "3836cfc8f3642e4410c12b8b6d4f3d809d0385a067741fd45a91aa697c4c1cf5"
     }
   }
 }

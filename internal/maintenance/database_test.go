@@ -30,8 +30,9 @@ func TestInstallerConnectionsReachBackupAndRestoreTools(t *testing.T) {
 	t.Setenv("UNICORE_TOOL_CAPTURE", capture)
 	host, name, user, password := "127.0.0.1", "fixture", "fixture", "synthetic-only"
 	for _, driver := range []string{"postgres", "mysql"} {
-		for _, tls := range []bool{false, true} {
-			input := contracts.DatabaseInput{Driver: driver, Host: &host, Name: &name, Username: &user, Password: &password, Tls: &tls}
+		for _, mode := range []string{"off", "encrypted", "verified"} {
+			tls, verify := mode != "off", mode == "verified"
+			input := contracts.DatabaseInput{Driver: driver, Host: &host, Name: &name, Username: &user, Password: &password, Tls: &tls, TlsVerify: &verify}
 			dsn, _, err := webdb.Resolve(input)
 			if err != nil {
 				t.Fatal(err)
@@ -47,11 +48,17 @@ func TestInstallerConnectionsReachBackupAndRestoreTools(t *testing.T) {
 				expected := "disable\nfixture\n"
 				if tls {
 					expected = "require\nfixture\n"
+					if verify {
+						expected = "verify-full\nfixture\n"
+					}
 				}
 				if driver == "mysql" {
 					expected = "--ssl-mode=DISABLED"
 					if tls {
 						expected = "--ssl-mode=REQUIRED"
+						if verify {
+							expected = "--ssl-mode=VERIFY_IDENTITY"
+						}
 					}
 				}
 				if !strings.Contains(string(raw), expected) {

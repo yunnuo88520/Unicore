@@ -15,7 +15,7 @@ import { Button, Input, SimpleSelect } from '@unicore/ui';
 import { cn } from '@unicore/ui/cn';
 
 type Profile = Bootstrap['profile'];
-type WizardDatabase = { driver: DatabaseInput['driver']; dsn: string; host: string; port: number; name: string; username: string; password: string; tls: boolean };
+type WizardDatabase = { driver: DatabaseInput['driver']; dsn: string; host: string; port: number; name: string; username: string; password: string; tls: boolean; tls_verify: boolean };
 type WizardValues = {
   profile: Profile;
   database: WizardDatabase;
@@ -45,15 +45,15 @@ const TOKEN_MAX = 256;
 
 function defaults(driver: WizardDatabase['driver']): WizardDatabase {
   return driver === 'sqlite'
-    ? { driver, dsn: '', host: '', port: 3306, name: '', username: '', password: '', tls: false }
-    : { driver, dsn: '', host: '127.0.0.1', port: driver === 'mysql' ? 3306 : 5432, name: productSlug, username: driver === 'mysql' ? 'root' : 'postgres', password: '', tls: false };
+    ? { driver, dsn: '', host: '', port: 3306, name: '', username: '', password: '', tls: false, tls_verify: false }
+    : { driver, dsn: '', host: '127.0.0.1', port: driver === 'mysql' ? 3306 : 5432, name: productSlug, username: driver === 'mysql' ? 'root' : 'postgres', password: '', tls: false, tls_verify: false };
 }
 
 /** The wizard keeps every field defined for the form layer; SQLite payloads stay minimal like the contract expects. */
 function payloadDatabase(database: WizardDatabase): DatabaseInput {
   return database.driver === 'sqlite'
     ? { driver: 'sqlite', dsn: '' }
-    : { driver: database.driver, dsn: '', host: database.host, port: database.port, name: database.name, username: database.username, password: database.password, tls: database.tls };
+    : { driver: database.driver, dsn: '', host: database.host, port: database.port, name: database.name, username: database.username, password: database.password, tls: database.tls, tls_verify: database.tls_verify };
 }
 
 function stepListFor(profile: Profile): StepKey[] {
@@ -261,11 +261,11 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
                 <AppField name="database.username" label={t('数据库用户名')} onFieldChange={touchDatabase}><Input maxLength={128} autoComplete="off" /></AppField>
                 <AppField name="database.password" label={t('数据库密码')} onFieldChange={touchDatabase}><Input type="password" maxLength={1024} autoComplete="new-password" /></AppField>
                 <AppControllerField<WizardValues> name="database.tls" label={t('数据库 TLS')}>
-                  {field => <SimpleSelect label={t('数据库 TLS')} value={field.value ? 'on' : 'off'} onChange={value => { field.onChange(value === 'on'); updateDatabase({ tls: value === 'on' }); }}
-                    options={[{ value: 'off', label: t('关闭 · 本机或内网直连') }, { value: 'on', label: t('开启 · 加密连接，不校验证书') }]} />}
+                  {field => <SimpleSelect label={t('数据库 TLS')} value={field.value ? input.database.tls_verify ? 'verify' : 'on' : 'off'} onChange={value => { field.onChange(value !== 'off'); updateDatabase({ tls: value !== 'off', tls_verify: value === 'verify' }); }}
+                    options={[{ value: 'off', label: t('关闭 · 本机或内网直连') }, { value: 'on', label: t('开启 · 加密连接，不校验证书') }, { value: 'verify', label: t('开启 · 校验证书与主机名') }]} />}
                 </AppControllerField>
               </div>
-              <p className="text-sm leading-relaxed text-muted">{t('请先创建当前实例独占的数据库并授权。安装会初始化目标库；已有表和视图的数据会在明确确认后清空，请提前备份。连接信息加密保存。目标库未启用 TLS 时保持默认关闭；开启后仅加密传输，不校验服务器证书，内网自签名证书可直接使用。')}{input.database.driver === 'postgres' && t(' PostgreSQL 使用独占的 public schema。')}</p>
+              <p className="text-sm leading-relaxed text-muted">{t('请先创建当前实例独占的数据库并授权。安装会初始化目标库；已有数据清空前须明确确认。连接信息加密保存。远程数据库推荐校验证书与主机名；私有 CA 须先加入服务器和备份工具的信任库。不校验证书的加密模式仅适用于可信网络。')}{input.database.driver === 'postgres' && t(' PostgreSQL 使用独占的 public schema。')}</p>
             </>}
             <div>
               <Button type="button" variant="secondary" pending={verify.isPending} onClick={() => void testConnection()}>{t('测试连接')}</Button>

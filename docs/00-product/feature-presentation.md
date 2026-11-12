@@ -78,7 +78,7 @@
 | 已注册路由未声明契约策略 | 500 ROUTE_POLICY_UNDECLARED（fail-closed） | `internal/adapter/http/policy.go` |
 | Platform 匿名访问受保护 API | 401；已登录无权限 403 | `internal/platform/security.go`、`policy.go` |
 | 非 Platform 形态访问平台/管理 API（含全部 /admin/*、/auth/*） | 404「此运行形态不提供平台接口」 | `policy.go` resolveSession、`router.go` admin 前缀 |
-| Standalone 访问文件/存储 API | 404（服务未装配） | `internal/adapter/http/storage.go` |
+| Standalone 访问业务文件/存储管理 API | `/notes/files*` 本地业务可用；`/files` 通用管理与 `/admin/storage*` 404 | `internal/adapter/http/storage.go` |
 | Standalone 本地设置/更新 | settings：sameOrigin 内放行（actor=local）；updates：仅 loopback（见 [决策 D3](pending-decisions.md)） | `internal/adapter/http/web.go`、`updates.go` |
 | 维护模式（非管理员域） | 503 维护页/维护响应 | `internal/adapter/http/router.go`、前端 App.tsx |
 | 前端页面无权/不适用 | 独立 403 页或 404，不泄露存在性 | `packages/web-ui/src/App.tsx`、`routes.ts` |
@@ -89,7 +89,7 @@
 2. 新增页面/菜单/仪表盘组件时，先在 [功能分类模板](feature-proposal-template.md) 声明各上下文的呈现，再实现；完成后同步本文第 3、4 节表格。
 3. 任何「前端不显示但后端可达」的状态都必须能映射到第 6 节行为矩阵中的一行；映射不到的视为越权缺陷。
 
-核心实验室与文件管理测试页面不注册路由、菜单或首页快捷入口；旧地址显示不存在。平台文件服务与统一上传组件作为基础设施保留，使用已启用的全局默认存储。
+核心实验室与文件管理测试页面不注册路由、菜单或首页快捷入口；旧地址显示不存在。业务文件服务与统一上传组件作为基础设施保留，使用已启用的全局默认存储。
 
 Standalone 只呈现本形态已装配的功能：不显示平台管理占位、权限提示、跨形态技术图示或“不适用”卡片；直接访问未提供的页面显示 404，不引导联系管理员。监控事件说明仅介绍本机实际事件源。所有工作区页签复用共享 Tabs，采用边框分段栏、强调色选中态、单行溢出滚动和 Radix 键盘操作。
 
@@ -98,3 +98,9 @@ Platform 的“角色权限”使用共享树，默认页面授权只补浏览 A
 ## 客户端与个人 API 凭证
 
 Platform 两工作台的个人安全页提供 PAT 的创建、API 范围选择、一次性显示、元数据和撤销；不新增导航目录。原生客户端使用客户端 Token API，不在浏览器保存 JWT。Standalone 两载体与 CLI 不装配令牌 UI 或接口。详见 [API 认证](../product/api-authentication.md)。
+
+## 笔记附件与安装连接
+
+Platform 和 Standalone 的笔记编辑弹窗复用 FileUploadDialog；上传先加入草稿，保存后关联，最多五个。Platform 上传复用 notes:create/update 及 notes* helper API 显式授权，不要求 files:*；头像使用本人会话的 avatar* API。Standalone Web 使用本地业务 API，桌面经原生桥传片及系统保存对话框下载；均校验本地 ready 归属，无云管理页面。
+
+安装连接属于 Web 实例安装面，Platform/Standalone Web 都提供 TLS 关闭、仅加密、证书及主机名校验三种模式；桌面自动 SQLite，CLI 不装配。tls_verify 只改变连接校验，不新增实例设置、业务权限或数据库表。

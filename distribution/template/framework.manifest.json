@@ -45,7 +45,8 @@
     "updates": "docs/product/updates.md",
     "backup": "docs/product/backup.md",
     "notifications": "docs/03-runbooks/notifications.md",
-    "notificationIntegration": "docs/product/notifications.md"
+    "notificationIntegration": "docs/product/notifications.md",
+    "frameworkUpgrade": "docs/product/framework-upgrade.md"
   },
   "commands": {
     "generate": "pnpm generate",

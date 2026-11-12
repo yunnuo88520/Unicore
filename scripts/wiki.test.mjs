@@ -35,7 +35,8 @@ test('Wiki configuration renders all pages and validates target identity', () =>
   assert.match(pages.get('_Sidebar.md'), /wiki\/Notifications/);
   assert.match(pages.get('Notifications.md'), /mailer\.Service/);
   assert.match(pages.get('UI-Components.md'), /UI/);
-  assert.equal(pages.size, 16);
+  assert.equal(pages.size, 17);
+  assert.ok(pages.has('Framework-Upgrades.md'));
   assert.match(pages.get('API-Authentication.md'), /ClientTokenSession/);
   assert.match(pages.get('_Sidebar.md'), /wiki\/API-Authentication/);
   assert.match(pages.get('FAQ.md'), /部署/);

@@ -12,6 +12,7 @@ if(existsSync('website/prepare.mjs')) {
  execFileSync(process.execPath,['website/prepare.mjs','--check'],{stdio:'inherit'});
 }
 const files=execFileSync('rg',['--files','--no-require-git','--hidden','README.md',...(existsSync('README.en.md') ? ['README.en.md'] : []),'AGENTS.md','CONTRIBUTING.md','CODE_OF_CONDUCT.md','SUPPORT.md','SECURITY.md','CHANGELOG.md','docs','.agents/skills','.github'],{encoding:'utf8'}).trim().split('\n').filter(path=>path.endsWith('.md'));
+files.push(...execFileSync('rg',['--files','--no-require-git','--hidden','-g','AGENTS.md','internal','packages'],{encoding:'utf8'}).trim().split('\n').filter(Boolean));
 const failures=[];
 for(const file of files){
  const text=readFileSync(file,'utf8');

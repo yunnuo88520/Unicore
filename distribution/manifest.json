@@ -401,6 +401,18 @@
       "slug": "API-Authentication",
       "title": "客户端与 API 认证",
       "site_group": "guide"
+    },
+    {
+      "source": "docs/product/framework-upgrade.md",
+      "target": "docs/product/framework-upgrade.md",
+      "audiences": [
+        "project-template",
+        "public-wiki",
+        "public-site"
+      ],
+      "slug": "Framework-Upgrades",
+      "title": "派生开发与框架升级",
+      "site_group": "develop"
     }
   ],
   "template_files": [
@@ -499,7 +511,7 @@
     "product.identity.json",
     "scripts/audit-dependencies.test.mjs",
     "tests/e2e/error-pages.spec.ts",
-    "tests/e2e/gva-capture.spec.ts",
+    "tests/e2e/navigation-editor.spec.ts",
     "tests/e2e/home.spec.ts",
     "tests/e2e/human-check.spec.ts",
     "tests/e2e/monitor.spec.ts",
@@ -637,7 +649,10 @@
     "internal/adapter/desktop/bridge_test.go",
     "internal/adapter/desktop/module.go",
     "internal/adapter/desktop/updates.go",
-    "internal/adapter/http/AGENTS.md",
+    {
+      "source": "distribution/template/agents/http.md",
+      "target": "internal/adapter/http/AGENTS.md"
+    },
     "internal/adapter/http/accounts.go",
     "internal/adapter/http/accounts_test.go",
     "internal/adapter/http/action_permissions_test.go",
@@ -943,7 +958,10 @@
     "packages/form/src/fields.tsx",
     "packages/form/src/form.test.tsx",
     "packages/form/src/form.tsx",
-    "packages/sdk/AGENTS.md",
+    {
+      "source": "distribution/template/agents/sdk.md",
+      "target": "packages/sdk/AGENTS.md"
+    },
     "packages/sdk/package.json",
     "packages/sdk/src/index.test.ts",
     "packages/sdk/src/index.ts",
@@ -979,7 +997,10 @@
     "packages/ui/src/table.tsx",
     "packages/ui/src/tabs.tsx",
     "packages/ui/src/tooltip.tsx",
-    "packages/web-ui/AGENTS.md",
+    {
+      "source": "distribution/template/agents/web-ui.md",
+      "target": "packages/web-ui/AGENTS.md"
+    },
     "packages/web-ui/fixtures/upload-harness.tsx",
     "packages/web-ui/package.json",
     "packages/web-ui/src/App.test.tsx",
@@ -1172,7 +1193,13 @@
     "tests/storagefixture/cloud.go",
     "tests/storagefixture/main.go",
     "tsconfig.json",
-    "vitest.config.ts"
+    "vitest.config.ts",
+    "scripts/framework-real.test.mjs",
+    "distribution/template/agents/http.md",
+    "distribution/template/agents/sdk.md",
+    "distribution/template/agents/web-ui.md",
+    "scripts/verify-derived-project.mjs",
+    "tests/tooling/framework-source.mjs"
   ],
   "ownership": {
     "product-owned": [

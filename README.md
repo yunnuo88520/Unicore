@@ -30,7 +30,7 @@ Unicore 是面向 AI 辅助开发的 Go + React 应用框架。共享领域与�
 
 平台具备一次性安装、服务端权限、SMTP 六位验证码、OIDC、全局设置、文件元数据与私有签名访问。文件存储默认本地，支持配置 MinIO / S3 / OSS / COS；支持管理员统一文件大小/分片策略、暂停与刷新/重启续传；真实云端验证范围目前为 MinIO 和阿里云 OSS（腾讯云因账号权限保留待验证），详见 [存储手册](docs/03-runbooks/storage.md)。单机与桌面只提供业务和本地外观，品牌在构建时统一配置。
 
-三个有数据库的形态共享个人笔记业务样板，覆盖领域、Repository、迁移、API/原生桥接、并发控制和弹窗表单；平台另外演示本人 file_id 附件，CLI 保持无数据库。其他基座包括 OpenAPI 单一契约、统一主题/图标/消息、生命周期/健康检查、离线加密备份恢复，以及随仓库分发的 AI 文档和 12 个任务 Skills。
+三个有数据库的形态共享个人笔记业务样板，覆盖领域、Repository、迁移、API/原生桥接、并发控制和弹窗表单；平台另外演示本人 file_id 附件，CLI 保持无数据库。其他基座包括 OpenAPI 单一契约、统一主题/图标/消息、生命周期/健康检查、离线加密备份恢复，以及随仓库分发的 AI 文档和 14 个任务 Skills。
 
 ![平台笔记与附件](docs/images/notes-platform.png)
 
@@ -92,7 +92,7 @@ make dev-server
 # 第二个终端：make dev-web
 ```
 
-源码采用 MIT，可商用、修改和再分发，保留许可证、版权声明与原作者信息。创建器完成独立仓库的 main 初始提交，更换名称、Go module、CLI/运维命令和桌面标识；可选 --repository 同时配置自己的 origin、界面文档与社区反馈链接，只读 framework 远端保留上游来源，不创建远程仓库或自动推送。产品身份入口为 product.identity.json，主题入口为 [tokens.json](assets/theme/tokens.json)，图形入口为 [identity.json](assets/brand/identity.json)。域名/TLS 属自己的运行部署配置；安装页使用实际访问地址。仍需审阅支持联系人、安全策略与更新签名，见 [派生与上游更新](docs/03-runbooks/framework-upgrade.md)。
+源码采用 MIT，可商用、修改和再分发，保留许可证、版权声明与原作者信息。创建器完成独立仓库的 main 初始提交，更换名称、Go module、CLI/运维命令和桌面标识；可选 --repository 同时配置自己的 origin、界面文档与社区反馈链接，只读 framework 远端保留上游来源，不创建远程仓库或自动推送。产品身份入口为 product.identity.json，主题入口为 [tokens.json](assets/theme/tokens.json)，图形入口为 [identity.json](assets/brand/identity.json)。域名/TLS 属自己的运行部署配置；安装页使用实际访问地址。仍需审阅支持联系人、安全策略与更新签名，见 [派生与上游更新](docs/product/framework-upgrade.md)。
 
 需要隔离开发依赖时，按 [开发依赖配置](deploy/docker/compose.dev.yaml) 设置临时凭据，再执行 `make dev-deps-up SERVICES='postgres mysql mail'`；MinIO 可另启或连接已有服务。`make dev-deps-down` 停止并默认保留卷。不要使用生产库或真实 SMTP 做自动化测试。
 

@@ -62,7 +62,7 @@ export function HumanCheck({ widget, required, token, onToken, resetSignal }: {
   const instance = useRef<{ reload?: () => void } | null>(null);
   const widgetId = useRef<string>('');
 
-  const resolvedPrefix = widget.prefix || 'unicore';
+  const resolvedPrefix = widget.prefix || 'human-check';
   const elementId = `${resolvedPrefix}-human-check`;
 
   // Turnstile renders an inline checkbox; the token arrives through its callback.
@@ -70,7 +70,7 @@ export function HumanCheck({ widget, required, token, onToken, resetSignal }: {
     if (!required || widget.provider !== 'turnstile' || !widget.siteKey || !container.current) return;
     let cancelled = false;
     setFailed(false);
-    loadScript('https://challenges.cloudflare.com/turnstile/v0/api.js', 'unicore-turnstile')
+    loadScript('https://challenges.cloudflare.com/turnstile/v0/api.js', 'human-check-turnstile-sdk')
       .then(() => {
         if (cancelled || !window.turnstile || !container.current) return;
         setReady(true);
@@ -93,7 +93,7 @@ export function HumanCheck({ widget, required, token, onToken, resetSignal }: {
     let cancelled = false;
     setFailed(false);
     window.AliyunCaptchaConfig = { region: widget.region === 'ap-southeast-1' ? 'sgp' : 'cn', prefix: resolvedPrefix };
-    loadScript('https://o.alicdn.com/captcha-frontend/aliyunCaptcha/AliyunCaptcha.js', 'unicore-aliyun-captcha')
+    loadScript('https://o.alicdn.com/captcha-frontend/aliyunCaptcha/AliyunCaptcha.js', 'human-check-aliyun-sdk')
       .then(() => {
         if (cancelled || !window.initAliyunCaptcha) return;
         setReady(true);
@@ -125,7 +125,7 @@ export function HumanCheck({ widget, required, token, onToken, resetSignal }: {
     setFailed(false);
     const region = widget.region === 'intl' ? 'intl' : 'cn';
     try {
-      await loadScript(region === 'intl' ? 'https://ca.turing.captcha.qcloud.com/TJNCaptcha-global.js' : 'https://turing.captcha.qcloud.com/TJCaptcha.js', 'unicore-tencent-captcha');
+      await loadScript(region === 'intl' ? 'https://ca.turing.captcha.qcloud.com/TJNCaptcha-global.js' : 'https://turing.captcha.qcloud.com/TJCaptcha.js', 'human-check-tencent-sdk');
     } catch {
       setFailed(true);
       return;

@@ -19,16 +19,25 @@ make build-web build-cli build-ops
 
 可选 `--repository https://github.com/OWNER/REPO` 配置自己的 origin（也接受以 .git 结尾的 HTTPS GitHub 地址），同时更新界面文档入口、.github/ISSUE_TEMPLATE/config.yml 及 SUPPORT/SECURITY/CONTRIBUTING/CODE_OF_CONDUCT 中的仓库链接；未提供时仍需自行添加 origin。创建器只配置本地仓库，不创建 GitHub 仓库或推送。main 为初始开发分支；framework 远端的 push URL 禁用，仍可 fetch 上游模板。project.provenance.json 的上游 URL、MIT 版权和原作者头保持不变。支持邮箱、维护者策略、工作流和 UNICORE_WIKI_REPOSITORY 仍须按应用实际情况审阅，勿把框架 CI 徽章当作派生应用验证。导出后运行 pnpm check:residuals 确认产品可见面无框架身份残留；面向用户文案与模板文档的改动不得重新引入框架名。
 
-框架可共享部分主要在 packages/*、internal/platform/settings/files/install/adapter 与 scripts；样板业务在 domain/usecase/notes、notessql 与 notes-page。当前没有能隔离全部改动的插件 ABI，团队应尽量让自己的业务进入独立目录，少修改框架基座。
+框架可共享部分主要在 packages/*、internal/platform/settings/files/install/adapter 与 scripts；样板业务在 internal/modules/notes 及其前端模块。当前没有能隔离全部改动的插件 ABI，团队应尽量让自己的业务进入独立目录，少修改框架基座。
 
-升级采用 framework-template 模板分支的三方合并，同步工具不提供“覆盖式更新”：
+应用侧完整操作以会随模板分发的[创建、源码同步、冲突处理与上游反馈](../product/framework-upgrade.md)为准。源码 ZIP 没有共同祖先，不承诺自动合并；这与应用二进制 OTA 是两条独立路径。
 
-1. 确认工作区干净。创建器已写入只读 framework 远端，`provenance.template_revision` 即导出时的模板提交（共同祖先）；维护者在框架侧用 `pnpm framework:template` 生成并推送该分支（孤儿根提交，仅含分发白名单与框架身份文件，不携带主仓库历史）。
-2. `pnpm framework:check`：比对本地与上游模板版本、待合并提交与文件清单、冲突预览；工作区不干净先提交或暂存。
-3. `pnpm framework:sync`：自动创建 `backup/pre-sync-*` 备份分支，先把产品身份归一化为框架命名，再与 framework-template 三方合并，然后重新应用产品身份、部署重命名与模块路径，重跑 `product:check` 与残留扫描，报告写入 `build/sync-report-*.md`。
-4. 真实冲突时同步中止且工作区零改动，按报告手工解决后重跑；工具不静默覆盖产品修改，不自动执行生产数据库迁移。
-5. 同步后执行 make docs、make test 与受影响构建，在独立恢复副本验证后推送；回滚用 `git reset --hard backup/pre-sync-*`。
+## 维护者发布模板
 
-模块路径说明：同步前自动把框架管理文件中的产品 module 归一化为模板 module，合并后再恢复为产品 module；product-owned 业务代码不参与转换。完整示例：首次创建（创建器完成基线提交）→ 提交业务代码与身份调整 → 框架发布新版本并更新 framework-template → `pnpm framework:check` → `pnpm framework:sync` → make docs/test → 第二次同步重复同样步骤；所有权分类见 [distribution/manifest.json](../../distribution/manifest.json) 的 ownership 与 [产品身份规范](../02-standards/product-identity.md)。
+`main` 的完整质量与构建工作流通过后，模板发布工作流从同一提交生成、推送线性延续的 `framework-template`。它核对该提交仍为当前 main；过期的 CI 不发布旧模板。质量检查包含 `pnpm verify:derived`：从真实分发清单创建改名应用并执行其 make docs、make test 与 Web/CLI/运维构建。模板分支不包含维护者治理资料，也不携带 main 历史。失败时检查真实导出和派生回归，不能强推新孤儿历史。
+
+手工补发仅在已审阅的干净提交中执行：
+
+```sh
+git fetch origin main framework-template
+git switch main
+git merge --ff-only origin/main
+pnpm framework:template
+# 审阅生成树与真实派生项目检查后：
+git push origin framework-template
+```
+
+生成器会获取已发布模板并从现有本地或远端模板提交延续历史；本地与已发布历史分叉时拒绝生成。不能用 force push 绕过分叉，否则已有应用将失去可用的共同祖先。模板提交即使版本号相同，也应通过提交和差异识别更新。
 
 回退不是把旧 binary 覆盖到新数据库。使用升级前的加密快照恢复到新目录/空数据库，部署匹配的旧二进制、配置与静态资源，验证后再切流。旧实例及备份保留到恢复窗口结束。参考 [备份手册](backup.md) 和 [发版手册](release.md)。

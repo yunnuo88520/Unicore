@@ -106,7 +106,8 @@
     "operationCatalog": "internal/platform/operations.go",
     "dataScope": "internal/platform/datascope.go",
     "moduleRegistry": "internal/module/manifest.json",
-    "modules": "internal/modules"
+    "modules": "internal/modules",
+    "applicationFrameworkUpgrade": "docs/product/framework-upgrade.md"
   },
   "commands": {
     "generate": "pnpm generate",
@@ -131,7 +132,8 @@
     "packageDesktop": "make package-desktop",
     "signDesktop": "make sign-desktop",
     "i18n": "pnpm check:i18n",
-    "releaseNotes": "pnpm check:release-notes"
+    "releaseNotes": "pnpm check:release-notes",
+    "verifyDerived": "pnpm verify:derived"
   },
   "skills": [
     "add-api-operation",

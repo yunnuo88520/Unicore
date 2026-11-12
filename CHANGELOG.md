@@ -3,6 +3,18 @@
 
 ## Unreleased
 
+### 中文
+
+- 修复真实派生项目重命名后的产品文案与部署说明残留，以及模板映射对象导致源码同步异常的问题。同步改为隔离 worktree 合并、校验后再推进业务分支，支持冲突继续/中止并保护并发业务改动；模板发布延续已有历史，补齐随项目分发的源码升级与上游反馈指南和真实模板回归。
+
+- 清理无关后台框架名称及测试、截图命名，使源码和文档直接描述自身能力。
+
+### English
+
+- Fix product identity residues in real derived applications and mapped template entries that broke source upgrades. Merge and validate in an isolated worktree before advancing the application branch, support conflict continuation/abort, preserve concurrent application work and published template ancestry, and ship source-upgrade/contribution guidance with real-template regression coverage.
+
+- Remove unrelated admin-framework references from current source, design notes, test names and screenshot paths.
+
 ## 0.1.4 — 2026-11-11
 
 ### 中文

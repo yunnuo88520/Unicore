@@ -93,6 +93,7 @@
 | dataScope | [internal/platform/datascope.go](../../internal/platform/datascope.go) |
 | moduleRegistry | [internal/module/manifest.json](../../internal/module/manifest.json) |
 | modules | [internal/modules](../../internal/modules) |
+| applicationFrameworkUpgrade | [docs/product/framework-upgrade.md](../../docs/product/framework-upgrade.md) |
 
 OpenAPI 当前包含 232 个 operation、265 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
 
@@ -138,5 +139,6 @@ OpenAPI 当前包含 232 个 operation、265 个 schema。Go/TS 模型、调用�
 - signDesktop：`make sign-desktop`
 - i18n：`pnpm check:i18n`
 - releaseNotes：`pnpm check:release-notes`
+- verifyDerived：`pnpm verify:derived`
 
 不保存凭据到上下文或验收记录。任务记录使用 [任务模板](task-template.md)，交付记录须区分实测、未测与未来目标。

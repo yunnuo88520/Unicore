@@ -87,6 +87,15 @@ type Personal struct {
 	Mail        *mailer.Service
 	AvatarFiles AvatarFiles
 	Realm       string
+	// TOTPNow optionally supplies the TOTP verification clock; nil uses real time.
+	TOTPNow func() time.Time
+}
+
+func (p *Personal) totpNow() int64 {
+	if p.TOTPNow != nil {
+		return p.TOTPNow().Unix()
+	}
+	return time.Now().Unix()
 }
 
 func (p *Personal) profile(ctx context.Context, s PersonalSession) (contracts.AccountProfile, error) {
@@ -265,7 +274,7 @@ func (p *Personal) Enable(ctx context.Context, token, code string) (contracts.Re
 	if err != nil {
 		return contracts.RecoveryCodes{}, ErrMFAInvalid
 	}
-	step := TOTPStep(secret, code, time.Now().Unix())
+	step := TOTPStep(secret, code, p.totpNow())
 
 	codes, digests := []string{}, []string{}
 	for i := 0; i < 10; i++ {
@@ -305,7 +314,7 @@ func (p *Personal) Factor(ctx context.Context, token, code, ip string, disable b
 	if err != nil {
 		return ErrMFAInvalid
 	}
-	step := TOTPStep(secret, code, time.Now().Unix())
+	step := TOTPStep(secret, code, p.totpNow())
 	recovery := ""
 	if !disable && step < 0 && len(code) == 20 {
 		recovery = Hash(s.User.ID + ":" + code)

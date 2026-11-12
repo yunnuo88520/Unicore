@@ -13,7 +13,6 @@ runs:
         printf '%s\n' \
           'https://archive.ubuntu.com/ubuntu/' \
           'https://mirrors.mit.edu/ubuntu/' \
-          'https://mirrors.edge.kernel.org/ubuntu/' \
           | sudo tee /etc/apt/apt-mirrors.txt > /dev/null
         # Hosted runners have no usable IPv6 route to some archive mirrors.
         printf '%s\n' 'Acquire::ForceIPv4 "true";' \

@@ -428,6 +428,7 @@
     }
   ],
   "template_files": [
+    ".agents/skills/framework-upstream/SKILL.md",
     ".dockerignore",
     ".gitattributes",
     ".github/actions/ubuntu-mirrors/action.yml",

@@ -12,6 +12,7 @@ import {updateTemplateBranch} from './framework-template.mjs';
 import {checkTemplate,syncTemplate} from './framework-sync.mjs';
 import {applyIdentity,loadIdentity} from './product-identity.mjs';
 import {scanResiduals} from './check-product-residuals.mjs';
+import {renderAIContext} from './ai-context.mjs';
 
 const repository=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const derived=existsSync(join(repository,'project.provenance.json'));
@@ -32,6 +33,19 @@ test('real exported product renames, retains business/theme and merges two frame
   assert.equal(git(app,'remote','get-url','--push','framework'),'disabled://framework');
   assert.equal(git(app,'remote','get-url','origin'),'https://github.com/example/harbor-desk.git');
   assert.ok(existsSync(join(app,'docs/product/framework-upgrade.md')));
+  // Inspect the materialized application's instruction routes, not just the publisher whitelist.
+  const skillPath='.agents/skills/framework-upstream/SKILL.md';
+  const appManifest=JSON.parse(readFileSync(join(app,'framework.manifest.json')));
+  assert.ok(appManifest.skills.includes('framework-upstream'));
+  assert.equal(readFileSync(join(app,skillPath),'utf8'),readFileSync(join(repository,skillPath),'utf8'));
+  const guide='docs/product/framework-upgrade.md';
+  assert.ok(readFileSync(join(app,'AGENTS.md'),'utf8').includes(skillPath));
+  assert.ok(readFileSync(join(app,'AGENTS.md'),'utf8').includes(guide));
+  const context=renderAIContext(app);
+  assert.ok(context.content.includes('../../'+skillPath));
+  assert.equal(appManifest.sources.frameworkUpgrade,guide);
+  assert.equal(appManifest.commands.frameworkCheck,'pnpm framework:check');
+  assert.equal(appManifest.commands.frameworkSync,'pnpm framework:sync');
   assert.match(readFileSync(join(app,'SUPPORT.md'),'utf8'),/https:\/\/github.com\/example\/harbor-desk\/issues/);
   const deployment=readFileSync(join(app,'docs/product/deployment.md'),'utf8');
   assert.match(deployment,/git clone https:\/\/github.com\/example\/harbor-desk.git harbor-desk-source/);

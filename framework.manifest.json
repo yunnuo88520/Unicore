@@ -133,7 +133,9 @@
     "signDesktop": "make sign-desktop",
     "i18n": "pnpm check:i18n",
     "releaseNotes": "pnpm check:release-notes",
-    "verifyDerived": "pnpm verify:derived"
+    "verifyDerived": "pnpm verify:derived",
+    "frameworkCheck": "pnpm framework:check",
+    "frameworkSync": "pnpm framework:sync"
   },
   "skills": [
     "add-api-operation",
@@ -147,6 +149,7 @@
     "app-lifecycle",
     "db-migration",
     "debug-failure",
+    "framework-upstream",
     "maintain-framework-docs",
     "release-cross-platform",
     "security-review"

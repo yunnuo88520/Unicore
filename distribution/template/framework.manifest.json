@@ -60,9 +60,12 @@
     "doctor": "make doctor",
     "wiki": "make wiki",
     "i18n": "pnpm check:i18n",
-    "releaseNotes": "pnpm check:release-notes"
+    "releaseNotes": "pnpm check:release-notes",
+    "frameworkCheck": "pnpm framework:check",
+    "frameworkSync": "pnpm framework:sync"
   },
   "skills": [
-    "develop-application"
+    "develop-application",
+    "framework-upstream"
   ]
 }

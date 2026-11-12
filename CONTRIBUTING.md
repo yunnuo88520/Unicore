@@ -10,6 +10,8 @@
 3. 按 [README](README.md) 安装依赖并运行 `make doctor`。使用独立数据目录、测试数据库和模拟服务；不要复用生产数据、真实邮件收件人或云文件。
 4. 一个 PR 解决一个明确问题，写清触发条件、修改后的行为及兼容影响。AI 生成的改动同样需要贡献者阅读、验证和解释。
 
+派生项目发现通用缺陷时，按[框架升级与反馈](docs/product/framework-upgrade.md)的归属判断、最小复现和反馈模板处理；使用 framework-upstream Skill，避免将完整业务仓库或产品重命名带入框架 PR。维护者修复后补回归测试，通过 main 质量检查并发布 framework-template，下游再同步和验收；仅合入 dev 或 main 不表示模板已发布。
+
 ## 框架边界
 
 共享依赖向内：entry → adapter → usecase → domain。平台身份、邮件、云存储和管理端不进入单机、桌面或 CLI；不要为了共享代码而装配不适用模块。CLI 不引入 SQL、HTTP 或 Wails。

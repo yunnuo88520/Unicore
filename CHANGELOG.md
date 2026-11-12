@@ -5,6 +5,8 @@
 
 ### 中文
 
+- 将通用框架缺陷的归属判断、最小复现、临时补丁、上游反馈及修复同步纳入 AI 工作流；派生项目随附 framework-upstream Skill、协作入口和反馈模板。
+
 - 完成首发基线整理：开发期 SQL 合并为三命名空间 version=1，更新兼容绑定生成的完整 schema 指纹，修复数据库备份参数冲突并增加证书身份校验选项；补齐真实派生项目标签教程、角色排障、稳定支持与恢复政策。
 - 分离业务上传与存储治理：头像使用本人账号权限，笔记复用业务权限；Standalone Web/桌面支持本地附件、原生分片与系统保存对话框，保留归属校验、续传、清理及完整备份。
 
@@ -14,6 +16,8 @@
 - 清理无关后台框架名称及测试、截图命名，使源码和文档直接描述自身能力。
 
 ### English
+
+- Standardize framework bug triage, minimal reproduction, local patches, upstream feedback and fix integration in the AI workflow; ship the framework-upstream Skill, entry points and feedback template with derived projects.
 
 - Prepare the first stable baseline: consolidate development SQL into version 1 of three namespaces, bind update compatibility to generated schema fingerprints, fix database backup argument conflicts and add certificate identity verification; provide a runnable derived-project tutorial, role troubleshooting, stable support and recovery policies.
 - Separate business uploads from storage administration: authorize avatars through own-account sessions and note attachments through business grants; support local attachments in Standalone Web and desktop, including native chunks, system Save dialogs, ownership, resume, cleanup and full backups.

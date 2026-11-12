@@ -188,7 +188,7 @@ function WorkspaceShell() {
   const enrollment = !!data.mfa_enrollment_required;
   const permitted = canAccess(page, data);
   const refresh = () => { void metadata.refetch(); void router.invalidate(); };
-  // Permission denials render as a standalone status page without shell chrome, like the shadcn-admin error routes.
+  // Permission denials render as a standalone status page without shell chrome, like the shared error routes.
   if (!permitted) {
     return <main className="min-h-dvh bg-background">{data.profile === 'web-platform' ? <ForbiddenPage /> : <NotFoundPage />}</main>;
   }

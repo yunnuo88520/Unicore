@@ -11,7 +11,7 @@ type WorkspaceLayoutProps = {
 };
 export function WorkspaceLayout({ navigation, header, children, overlays, navigationOpen, onNavigationClose, contentClassName = '', navigationCollapsed = false }: WorkspaceLayoutProps) {
   const { t } = useI18n();
-  // The header carries no bottom border; like shadcn-admin it only casts a shadow once content scrolls beneath it.
+  // The header carries no bottom border; it only casts a shadow once content scrolls beneath it.
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const update = () => setScrolled((document.body.scrollTop || document.documentElement.scrollTop) > 10);

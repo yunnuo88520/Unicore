@@ -67,6 +67,33 @@ message.success(t('已保存'));
 
 路由守卫将已登记但当前身份无权访问的页面呈现为独立 403，未知路径仍为 404。业务页复用对应状态页与返回入口；管理员 API 始终再次授权。Swagger API 参考页独立加载较重组件，从开启文档开关的实例 `/openapi.json` 读取契约，见 [应用开发的 API 说明](development.md#api权限与前端)。
 
+## 数据表格套件
+
+列表页统一使用 `packages/web-ui/src/components/data-table` 的共享套件（DataTable / DataTableToolbar / DataTablePagination / DataTableSortHeader / DataTableRowActions / DataTableEmpty），渲染面仍由 `@unicore/ui` 的 Table 原语承担；页面负责取数、权限与列定义，不再手写表头循环、加载、错误与分页脚手架。
+
+```tsx
+import { DataTable, DataTablePagination, DataTableToolbar } from '../../components/data-table';
+import { createColumnHelper, tableFeatures, useTable } from '@tanstack/react-table';
+
+const features = tableFeatures({ rowPaginationFeature, columnVisibilityFeature, paginatedRowModel: createPaginatedRowModel() });
+
+const table = useTable({ features, columns, data: list.data?.items ?? [], meta, manualPagination: true, pageCount, state: { pagination, columnVisibility } });
+
+<DataTableToolbar search={{ label: t('搜索'), placeholder: t('搜索名称或备注…'), value: search, onChange: setSearch }}
+  columnMenu={{ entries: menu, onToggle: toggle }} />
+<DataTable table={table} pending={list.isPending} busy={list.isFetching} error={list.error} onRetry={() => void list.refetch()}
+  empty={{ icon: KeyRound, title: t('暂无数据'), hint: t('创建后开始使用。') }} />
+<DataTablePagination table={table} />
+```
+
+约定：
+
+- 服务端分页传 `page/pageSize/total/onPageChange`，客户端分页直接传 `table` 实例；两种模式共享同一分页外观。
+- 列设置菜单接 `useColumnVisibility(tableKey, columns)`（见上文），列隐藏只影响呈现。
+- 骨架加载、错误重试（role=alert）、图标空态由 `DataTable` 内建；`empty` 的图标/标题/提示由调用方提供中英文。
+- 业务数据（名称、备注、时间）不过翻译；套件自带的按钮与提示文案已含中英文词条。
+- 特殊表格（树形编辑、行内编辑矩阵、选择器）可继续直接组合 `@unicore/ui` Table 原语，不必强行套用套件。
+
 ## 已知边界
 
 - `RichTextEditor` 的链接契约默认仅接受绝对 URL；需要 `{{site_url}}` 模板变量的场景传 `siteTemplate`（与后端邮件校验镜像一致，仅支持裸变量）。

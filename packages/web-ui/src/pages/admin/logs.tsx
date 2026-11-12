@@ -2,14 +2,15 @@
 // Description: Filtered audit records with server sorting and bounded CSV export, plus the mail delivery history table.
 import { useRef, useState } from 'react';
 import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
-import { createColumnHelper, createSortedRowModel, flexRender, rowSortingFeature, tableFeatures, useTable, type SortingState } from '@tanstack/react-table';
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Download, RotateCcw, ScrollText, Search } from 'lucide-react';
+import { createColumnHelper, createSortedRowModel, rowSortingFeature, tableFeatures, useTable, type SortingState } from '@tanstack/react-table';
+import { Download, RotateCcw, ScrollText } from 'lucide-react';
 import type { AuditLogQuery, AuditLogList, MailJobList, WebClient } from '@unicore/sdk';
 
 type AuditEntry = AuditLogList['items'][number];
 type MailJob = MailJobList['items'][number];
 import { currentLocale, defineMessages, t, useI18n } from '../../i18n';
-import { Badge, Button, Card, CardContent, Input, SimpleSelect, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Tabs, useMessage } from '@unicore/ui';
+import { Badge, Button, Card, CardContent, Input, SimpleSelect, Tabs, useMessage } from '@unicore/ui';
+import { DataTable, DataTablePagination, DataTableSortHeader, DataTableToolbar } from '../../components/data-table';
 import type { PageProps } from '../../router';
 
 const auditFeatures = tableFeatures({ rowSortingFeature, sortedRowModel: createSortedRowModel() });
@@ -18,8 +19,6 @@ const auditHelper = createColumnHelper<typeof auditFeatures, AuditEntry>();
 const mailHelper = createColumnHelper<typeof mailFeatures, MailJob>();
 const EMPTY_AUDIT: AuditEntry[] = [];
 const EMPTY_JOBS: MailJob[] = [];
-const AUDIT_COLUMNS = 7;
-const MAIL_COLUMNS = 5;
 const PAGE_SIZES = [20, 50, 100] as const;
 const actions = defineMessages({
  'account.profile.updated':'修改个人资料','account.email.code.requested':'申请邮箱换绑验证码','account.email.changed':'更换账号邮箱',
@@ -46,19 +45,10 @@ const jobStates = defineMessages({ pending: '待发送', sending: '发送中', s
 const actionLabel = (action: string) => t(actions[action as keyof typeof actions] ?? action);
 const timeText = (seconds: number) => new Date(seconds * 1000).toLocaleString(currentLocale(), { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 
-type SortHeaderProps = { label: string; sorted: false | 'asc' | 'desc'; onToggle: () => void };
-
-function SortHeader({ label, sorted, onToggle }: SortHeaderProps) {
-  const icon = sorted === 'asc' ? <ArrowUp size={13} aria-hidden="true" /> : sorted === 'desc' ? <ArrowDown size={13} aria-hidden="true" /> : <ArrowUpDown size={13} aria-hidden="true" />;
-  return <button type="button" onClick={onToggle} className="inline-flex items-center gap-1 hover:text-ink">
-    {label}{icon}
-  </button>;
-}
-
 const auditColumns = auditHelper.columns([
   auditHelper.display({
     id: 'id',
-    header: ({ column }) => <SortHeader label="ID" sorted={column.getIsSorted()} onToggle={() => column.toggleSorting(column.getIsSorted() !== 'desc')} />,
+    header: ({ column }) => <DataTableSortHeader label="ID" sorted={column.getIsSorted()} onToggle={() => column.toggleSorting(column.getIsSorted() !== 'desc')} />,
     cell: info => <code title={info.row.original.id} className="font-mono text-2xs text-muted">{info.row.original.id.slice(0, 8)}</code>,
   }),
   auditHelper.display({
@@ -94,7 +84,7 @@ const auditColumns = auditHelper.columns([
   }),
   auditHelper.display({
     id: 'created_at',
-    header: ({ column }) => <SortHeader label={t('时间')} sorted={column.getIsSorted()} onToggle={() => column.toggleSorting(column.getIsSorted() !== 'desc')} />,
+    header: ({ column }) => <DataTableSortHeader label={t('时间')} sorted={column.getIsSorted()} onToggle={() => column.toggleSorting(column.getIsSorted() !== 'desc')} />,
     cell: info => <time className="whitespace-nowrap text-muted">{timeText(info.row.original.created_at)}</time>,
   }),
 ]);
@@ -188,7 +178,6 @@ function LogsPanel({ web }: { web: WebClient }) {
     setStartInput('');
     setEndInput('');
   };
-  const pages = Math.max(1, Math.ceil((audit.data?.total ?? 0) / query.page_size));
   const auditTable = useTable({
     features: auditFeatures,
     columns: auditColumns,
@@ -212,16 +201,15 @@ function LogsPanel({ web }: { web: WebClient }) {
     <section role="tabpanel" id={`system-logs-panel-${tab}`} aria-labelledby={`system-logs-tab-${tab}`}>
       {tab === 'audit' ? <Card>
         <CardContent className="flex flex-col gap-4">
-          <form className="flex flex-wrap items-center gap-2" onSubmit={event => { event.preventDefault(); filter({ search: searchRef.current }); }}>
+          <DataTableToolbar
+            search={{ label: t('搜索操作日志'), placeholder: t('搜索操作者、目标、详情或 IP…'), value: searchInput, maxLength: 128,
+              onChange: value => setSearchInput(value), onSubmit: () => filter({ search: searchRef.current }) }}
+            actions={<Button pending={exported.isPending} disabled={audit.isPending || !audit.data?.total} onClick={() => exported.mutate()}>
+              <Download size={15} />{exported.isPending ? t('导出中…') : t('导出')}
+            </Button>}>
             <SimpleSelect label={t('操作类型')} className="h-9 w-44" value={query.action}
               onChange={value => filter({ action: value })}
               options={[{ value: '', label: t('全部类型') }, ...(audit.data?.actions ?? []).map(action => ({ value: action, label: actionLabel(action) }))]} />
-            <label className="flex h-9 min-w-44 flex-1 items-center gap-2 rounded-md border border-line bg-surface px-3 text-base text-muted shadow-tint focus-within:border-focus focus-within:ring-2 focus-within:ring-focus sm:max-w-sm">
-              <Search size={15} aria-hidden="true" />
-              <input aria-label={t('搜索操作日志')} placeholder={t('搜索操作者、目标、详情或 IP…')} maxLength={128} className="w-full min-w-0 bg-transparent text-ink outline-none placeholder:text-subtle"
-                value={searchInput} onChange={event => setSearchInput(event.target.value)} />
-              <button type="submit" aria-label={t('搜索')} className="text-muted transition-colors hover:text-ink"><ChevronRight size={15} /></button>
-            </label>
             <div className="flex items-center gap-2">
               <Input type="date" aria-label={t('开始日期')} className="h-9 w-auto" value={startInput} max={endInput || undefined}
                 onChange={event => { setStartInput(event.target.value); setDates(event.target.value, endInput); }} />
@@ -230,55 +218,12 @@ function LogsPanel({ web }: { web: WebClient }) {
                 onChange={event => { setEndInput(event.target.value); setDates(startInput, event.target.value); }} />
             </div>
             <Button variant="ghost" size="icon" aria-label={t('清除筛选')} onClick={resetFilters}><RotateCcw size={14} /></Button>
-            <Button pending={exported.isPending} disabled={audit.isPending || !audit.data?.total} onClick={() => exported.mutate()}>
-              <Download size={15} />{exported.isPending ? t('导出中…') : t('导出')}
-            </Button>
-          </form>
-          {audit.isError && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
-            <span>{t(audit.error.message)}</span>
-            <Button variant="secondary" size="sm" onClick={() => void audit.refetch()}>{t('重试')}</Button>
-          </div>}
-          <div className="audit-table audit-table-wrap rounded-lg border border-line" aria-busy={audit.isFetching}>
-            <Table>
-              <TableHeader>
-                {auditTable.getHeaderGroups().map(group => <TableRow key={group.id} className="hover:bg-transparent">
-                  {group.headers.map(header => (
-                    <TableHead key={header.id}
-                      aria-sort={header.column.getIsSorted() ? (header.column.getIsSorted() === 'asc' ? 'ascending' : 'descending') : undefined}>
-                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  ))}
-                </TableRow>)}
-              </TableHeader>
-              <TableBody>
-                {audit.isPending
-                  ? <TableEmpty colSpan={AUDIT_COLUMNS}>{t('正在读取日志…')}</TableEmpty>
-                  : auditTable.getRowModel().rows.map(row => <TableRow key={row.id}>
-                      {row.getAllCells().map(cell => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}
-                    </TableRow>)}
-                {!audit.isPending && !audit.data?.items.length && <TableEmpty colSpan={AUDIT_COLUMNS}>
-                  <span className="flex flex-col items-center gap-1.5 py-2">
-                    <ScrollText size={24} className="text-subtle" aria-hidden="true" />
-                    <strong className="text-sm text-ink">{t('没有匹配的操作记录')}</strong>
-                    <span className="text-xs text-muted">{t('试试其他类型、关键词或日期范围。')}</span>
-                  </span>
-                </TableEmpty>}
-              </TableBody>
-            </Table>
-          </div>
-          <div className="audit-pagination flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
-            <span>{t('共 {{v0}} 条操作记录', { v0: audit.data?.total ?? 0 })}</span>
-            <div className="flex flex-wrap items-center gap-2">
-              <SimpleSelect label={t('每页条数')} className="h-8 w-28" value={String(query.page_size)}
-                onChange={value => filter({ page_size: Number(value) })}
-                options={PAGE_SIZES.map(size => ({ value: String(size), label: t('每页 {{v0}} 条', { v0: size }) }))} />
-              <Button variant="ghost" size="icon" aria-label={t('上一页')} disabled={query.page === 1 || audit.isFetching}
-                onClick={() => setQuery(current => ({ ...current, page: current.page - 1 }))}><ChevronLeft size={15} aria-hidden="true" /></Button>
-              <span>{query.page} / {pages}</span>
-              <Button variant="ghost" size="icon" aria-label={t('下一页')} disabled={query.page >= pages || audit.isFetching}
-                onClick={() => setQuery(current => ({ ...current, page: current.page + 1 }))}><ChevronRight size={15} aria-hidden="true" /></Button>
-            </div>
-          </div>
+          </DataTableToolbar>
+          <DataTable wrapperClassName="audit-table audit-table-wrap" table={auditTable} pending={audit.isPending} busy={audit.isFetching}
+            error={audit.error} onRetry={() => void audit.refetch()}
+            empty={{ icon: ScrollText, title: t('没有匹配的操作记录'), hint: t('试试其他类型、关键词或日期范围。') }} />
+          <DataTablePagination className="audit-pagination" page={query.page} pageSize={query.page_size} total={audit.data?.total ?? 0}
+            onPageChange={page => setQuery(current => ({ ...current, page }))} onPageSizeChange={size => filter({ page_size: size })} disabled={audit.isFetching} />
         </CardContent>
       </Card>
         : <Card>
@@ -287,27 +232,8 @@ function LogsPanel({ web }: { web: WebClient }) {
               <h2 className="text-md font-semibold text-ink">{t('通知投递记录')}</h2>
               <p className="mt-0.5 text-xs text-muted">{t('最近 30 个任务；失败自动重试，最多 5 次')}</p>
             </div>
-            {mail.isError && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
-              <span>{t(mail.error.message)}</span>
-              <Button variant="secondary" size="sm" onClick={() => void mail.refetch()}>{t('重试')}</Button>
-            </div>}
-            <div className="rounded-lg border border-line">
-              <Table>
-                <TableHeader>
-                  {mailTable.getHeaderGroups().map(group => <TableRow key={group.id} className="hover:bg-transparent">
-                    {group.headers.map(header => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}
-                  </TableRow>)}
-                </TableHeader>
-                <TableBody>
-                  {mail.isPending
-                    ? <TableEmpty colSpan={MAIL_COLUMNS}>{t('正在读取日志…')}</TableEmpty>
-                    : mailTable.getRowModel().rows.map(row => <TableRow key={row.id}>
-                        {row.getAllCells().map(cell => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}
-                      </TableRow>)}
-                  {!mail.isPending && !mail.data?.items.length && <TableEmpty colSpan={MAIL_COLUMNS}>{t('暂无投递任务')}</TableEmpty>}
-                </TableBody>
-              </Table>
-            </div>
+            <DataTable table={mailTable} pending={mail.isPending} busy={mail.isFetching} error={mail.error}
+              onRetry={() => void mail.refetch()} empty={{ title: t('暂无投递任务') }} />
           </CardContent>
         </Card>}
     </section>

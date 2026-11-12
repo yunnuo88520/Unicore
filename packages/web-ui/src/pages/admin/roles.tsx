@@ -2,13 +2,14 @@
 // Description: Editable role console: member counts, data-scope column, guarded deletion and the tabbed grant editor.
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createColumnHelper, flexRender, tableFeatures, useTable } from '@tanstack/react-table';
-import { Copy, Pencil, Plus, RotateCcw, ShieldCheck, Trash2 } from 'lucide-react';
+import { createColumnHelper, tableFeatures, useTable } from '@tanstack/react-table';
+import { Copy, Pencil, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import type { Bootstrap, PermissionDefinition, Role, RoleList, WebClient } from '@unicore/sdk';
 import { t, useLocale } from '../../i18n';
 import { invalidateAfter } from '../../queries';
 import { usePermissions } from '../../permissions';
-import { Badge, Button, Card, CardContent, ConfirmDialog, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage } from '@unicore/ui';
+import { Badge, Button, Card, CardContent, ConfirmDialog, useMessage } from '@unicore/ui';
+import { DataTable } from '../../components/data-table';
 import { RoleEditor, dataScopeText } from './role-editor';
 import type { PageProps } from '../../router';
 
@@ -16,7 +17,6 @@ const features = tableFeatures({});
 const helper = createColumnHelper<typeof features, Role>();
 const EMPTY_ROLES: Role[] = [];
 const EMPTY_PERMISSIONS: PermissionDefinition[] = [];
-const COLUMN_COUNT = 6;
 
 type EditorTarget = { mode: 'new' | 'edit' | 'copy'; role?: Role };
 
@@ -110,34 +110,8 @@ function RolePanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
         {canWrite && <Button onClick={() => setEditor({ mode: 'new' })}><Plus size={15} />{t('新建角色')}</Button>}
       </div>
 
-      {list.isError && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
-        <span>{t(list.error.message)}</span>
-        <Button variant="secondary" size="sm" onClick={() => void list.refetch()}><RotateCcw size={13} />{t('重试')}</Button>
-      </div>}
-      <div className="rounded-lg border border-line" aria-busy={list.isFetching}>
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map(group => <TableRow key={group.id} className="hover:bg-transparent">
-              {group.headers.map(header => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}
-            </TableRow>)}
-          </TableHeader>
-          <TableBody>
-            {list.isPending
-              ? <TableEmpty colSpan={COLUMN_COUNT}>{t('正在加载角色…')}</TableEmpty>
-              : table.getRowModel().rows.length
-                ? table.getRowModel().rows.map(row => <TableRow key={row.id}>
-                    {row.getAllCells().map(cell => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}
-                  </TableRow>)
-                : <TableEmpty colSpan={COLUMN_COUNT}>
-                    <span className="flex flex-col items-center gap-1.5 py-2">
-                      <ShieldCheck size={24} className="text-subtle" aria-hidden="true" />
-                      <strong className="text-sm text-ink">{t(list.isError ? list.error.message : '还没有自定义角色')}</strong>
-                      <span className="text-xs text-muted">{t('新建角色，为不同用户组合业务权限。')}</span>
-                    </span>
-                  </TableEmpty>}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable table={table} pending={list.isPending} busy={list.isFetching} error={list.error} onRetry={() => void list.refetch()}
+        empty={{ icon: ShieldCheck, title: t('还没有自定义角色'), hint: t('新建角色，为不同用户组合业务权限。') }} />
       <p className="text-xs leading-relaxed text-muted">{t('角色可组合业务与管理权限；仅超级管理员权限保持保留。')}</p>
     </CardContent>
     {editor && <RoleEditor key={`${editor.mode}:${editor.role?.id ?? 'new'}`} web={web} realm={realm}

@@ -7,7 +7,7 @@ import type { DictionaryCreateInput, DictionaryItemEntry, DictionaryList, Dictio
 import { t, useLocale } from '../../i18n';
 import { AppField, AppForm, useAppForm } from '@unicore/form';
 import { cn } from '@unicore/ui/cn';
-import { Badge, Button, Card, CardContent, ConfirmDialog, Input, Modal, NativeSelect, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage } from '@unicore/ui';
+import { Badge, Button, Card, CardContent, ConfirmDialog, Input, Modal, NativeSelect, PageHeader, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage } from '@unicore/ui';
 import type { PageProps } from '../../router';
 import type { Bootstrap } from '@unicore/sdk';
 import { usePermissions } from '../../permissions';
@@ -91,20 +91,15 @@ function DictionaryPanel({ web, metadata }: { web: WebClient; metadata: Bootstra
             <Button variant="secondary" onClick={() => void detail.refetch()}>{t('重试')}</Button>
           </div>
         : detail.data && <>
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h2 className="text-md font-semibold text-ink">{t(detail.data.name)}</h2>
-                <p className="mt-0.5 text-xs text-muted">{detail.data.code}{detail.data.description ? ` · ${detail.data.description}` : ''}</p>
-              </div>
-              <div className="flex gap-2">
-                {can('updateDictionary') && <Button variant="secondary" size="sm" onClick={() => setRenaming({ id: detail.data.id, code: detail.data.code, name: detail.data.name, description: detail.data.description })}>
-                  <Pencil size={13} />{t('编辑类型')}
-                </Button>}
-                {can('deleteDictionary') && <Button variant="secondary" size="sm" onClick={() => setRemoving(types.find(type => type.id === activeId) ?? null)}>
-                  <Trash2 size={13} />{t('删除类型')}
-                </Button>}
-              </div>
-            </div>
+              <PageHeader title={t(detail.data.name)} description={`${detail.data.code}${detail.data.description ? ` · ${detail.data.description}` : ''}`}
+                actions={<>
+                  {can('updateDictionary') && <Button variant="secondary" size="sm" onClick={() => setRenaming({ id: detail.data.id, code: detail.data.code, name: detail.data.name, description: detail.data.description })}>
+                    <Pencil size={13} />{t('编辑类型')}
+                  </Button>}
+                  {can('deleteDictionary') && <Button variant="secondary" size="sm" onClick={() => setRemoving(types.find(type => type.id === activeId) ?? null)}>
+                    <Trash2 size={13} />{t('删除类型')}
+                  </Button>}
+                </>} />
             <ItemsEditor writable={can('replaceDictionaryItems')} key={activeId} web={web} id={activeId} items={detail.data.items} onSaved={invalidate} />
           </>}
       </CardContent>

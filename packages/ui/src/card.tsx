@@ -1,10 +1,14 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Panel/card composition surface matching the shared workspace look.
-import type { HTMLAttributes } from 'react';
+import type { ComponentProps, HTMLAttributes } from 'react';
+import { Slot } from '@radix-ui/react-slot';
 import { cn } from './cn';
 
-export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('rounded-xl border border-line bg-surface shadow-card', className)} {...props} />;
+export type CardProps = ComponentProps<'div'> & { asChild?: boolean };
+
+export function Card({ asChild = false, className, ...props }: CardProps) {
+  const Component = asChild ? Slot : 'div';
+  return <Component className={cn('rounded-xl border border-line bg-surface shadow-card', className)} {...props} />;
 }
 
 export function CardHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {

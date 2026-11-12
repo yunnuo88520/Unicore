@@ -30,12 +30,14 @@ function CoreDashboard({ client, metadata, registry }: PageProps) {
       <div className="grid gap-3 sm:grid-cols-3">
         {quickLinks.map(({ id, icon: Icon }) => {
           const route = routes[id];
-          return <Link key={id} to={ROUTE_PATHS[id as Page] ?? `/${id}`} className="group flex flex-col items-start gap-1 rounded-xl border border-line bg-surface p-4 shadow-card transition-colors hover:border-primary-line hover:bg-surface-alt">
-            <span className="flex size-9 items-center justify-center rounded-lg bg-primary-soft text-accent"><Icon size={18} aria-hidden="true" /></span>
-            <strong className="mt-1 text-sm font-medium text-ink">{t(route.label)}</strong>
-            <small className="text-2xs text-muted">{t(route.description)}</small>
-            <span className="mt-1 inline-flex items-center gap-1 text-2xs text-accent opacity-0 transition-opacity group-hover:opacity-100">{t('前往')}<ArrowRight size={11} aria-hidden="true" /></span>
-          </Link>;
+          return <Card asChild key={id} className="group flex flex-col items-start gap-1 p-4 transition-colors hover:border-primary-line hover:bg-surface-alt">
+            <Link to={ROUTE_PATHS[id as Page] ?? `/${id}`}>
+              <span className="flex size-9 items-center justify-center rounded-lg bg-primary-soft text-accent"><Icon size={18} aria-hidden="true" /></span>
+              <strong className="mt-1 text-sm font-medium text-ink">{t(route.label)}</strong>
+              <small className="text-2xs text-muted">{t(route.description)}</small>
+              <span className="mt-1 inline-flex items-center gap-1 text-2xs text-accent opacity-0 transition-opacity group-hover:opacity-100">{t('前往')}<ArrowRight size={11} aria-hidden="true" /></span>
+            </Link>
+          </Card>;
         })}
       </div>
     </section>}

@@ -88,7 +88,7 @@ export function NotesPage({ client, metadata }: PageProps) {
           ? <Card><EmptyState icon={NotebookPen} title={query.search || query.status ? t('没有符合条件的笔记') : t('让第一条想法落在这里')} description={t('新建一条笔记，记录值得跟进的事。')} /></Card>
           : <>
               <div className="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {list.data.items.map(note => <article key={note.id} className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-4 shadow-card">
+                {list.data.items.map(note => <Card key={note.id} className="flex flex-col gap-2 p-4">
                   <div className="flex items-start justify-between gap-2">
                     <Badge variant={note.status === 'done' ? 'success' : 'subtle'} className="gap-1">
                       {note.status === 'done' ? <CheckCircle2 size={13} aria-hidden="true" /> : <Circle size={13} aria-hidden="true" />}
@@ -107,7 +107,7 @@ export function NotesPage({ client, metadata }: PageProps) {
                     </Button>)}
                   </div>}
                   <small className="mt-auto text-2xs text-subtle">{t('更新于 {{date}}', { date: new Date(note.updated_at * 1000).toLocaleString(currentLocale()) })}</small>
-                </article>)}
+                </Card>)}
               </div>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <small className="text-xs text-muted">{t('共 {{total}} 条笔记 · 第 {{page}} 页', { total: list.data.total, page: query.page })}</small>

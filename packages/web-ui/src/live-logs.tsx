@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowDown, Eraser, Terminal } from 'lucide-react';
 import type { WebClient } from '@unicore/sdk';
+import { productName } from './product.gen';
 import { t, useI18n } from './i18n';
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, SimpleSelect, Switch } from '@unicore/ui';
 
@@ -224,7 +225,7 @@ function LiveLogsDialog({ web, onClose }: { web: WebClient; onClose: () => void 
           <span className="size-2.5 rounded-full bg-danger" aria-hidden="true" />
           <span className="size-2.5 rounded-full bg-warning" aria-hidden="true" />
           <span className="size-2.5 rounded-full bg-success" aria-hidden="true" />
-          <span className="ms-2 min-w-0 truncate font-mono text-2xs text-terminal-dim">unicore — {t('实时日志')}</span>
+          <span className="ms-2 min-w-0 truncate font-mono text-2xs text-terminal-dim">{productName} — {t('实时日志')}</span>
         </div>
         {/* pe-4 keeps line ends clear of the macOS overlay scrollbar band. */}
         <div ref={setScrollNode} onScroll={onScroll} role="log" aria-label={t('实时日志行')}

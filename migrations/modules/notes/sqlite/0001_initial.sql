@@ -2,7 +2,6 @@
 -- Purpose: module.notes version 1 final-state baseline; sqlite; web-platform, web-standalone, desktop.
 -- Compatibility: new-generation empty databases only; never replay 0.x cleanup or identity moves.
 -- Recovery: discard only an explicitly owned test target, or restore matching full snapshots to a new target.
--- Runtime activation is deferred to R1.0c; the legacy executor does not embed this file.
 -- Text/composite primary keys reject NULL; INTEGER PRIMARY KEY retains rowid allocation.
 
 CREATE TABLE IF NOT EXISTS unicore_example_notes (

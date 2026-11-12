@@ -13,6 +13,7 @@ import (
 	"github.com/yunnuo/unicore/internal/buildinfo"
 	"github.com/yunnuo/unicore/internal/edition"
 	"github.com/yunnuo/unicore/internal/updates"
+	"github.com/yunnuo/unicore/migrations/catalogdata"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -66,11 +67,9 @@ func Guard(dataDir string) error {
 	return updateinstall.Guard(directory, buildinfo.Version)
 }
 func currentTarget(profile string) updates.Target {
-	migration := 1
-	if profile == "web-platform" {
-		migration = 12
-	}
-	return updates.Target{Profile: profile, OS: runtime.GOOS, Arch: runtime.GOARCH, Migration: migration, BusinessMigration: 2, License: edition.License, Updater: true}
+	metadata := catalogdata.Catalog
+	selected := metadata.Profiles[profile]
+	return updates.Target{Profile: profile, OS: runtime.GOOS, Arch: runtime.GOARCH, SchemaGeneration: metadata.SchemaGeneration, SchemaFingerprint: selected.SchemaFingerprint, License: edition.License, Updater: true}
 }
 func Healthy(dataDir, profile string) {
 	directory, err := filepath.Abs(dataDir)

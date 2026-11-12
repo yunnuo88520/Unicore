@@ -4347,7 +4347,8 @@
         "security": [],
         "x-unicore": {
           "profiles": [
-            "web-platform"
+            "web-platform",
+            "web-standalone"
           ],
           "access": "public",
           "permissions": [],
@@ -14470,6 +14471,1229 @@
           }
         ]
       }
+    },
+    "/api/v1/notes/files": {
+      "get": {
+        "operationId": "notesListFiles",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform",
+            "web-standalone"
+          ],
+          "access": "platform-session",
+          "permissions": [
+            "notes:access"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "user",
+          "uiPage": "notes"
+        },
+        "summary": "笔记附件：listFiles",
+        "x-permission": "owner or administrator; identity realm isolated",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          }
+        ],
+        "description": "普通用户只读取本人所属身份域的文件；管理员可查看实例文件。"
+      }
+    },
+    "/api/v1/notes/files/{id}/access": {
+      "post": {
+        "operationId": "notesFileAccess",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileAccessResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform",
+            "web-standalone"
+          ],
+          "access": "platform-session",
+          "permissions": [
+            "notes:access"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "user",
+          "uiPage": "notes"
+        },
+        "summary": "笔记附件：fileAccess",
+        "x-permission": "owner or administrator; identity realm isolated",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            }
+          },
+          {
+            "name": "note_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          }
+        ],
+        "description": "验证本人或管理员后发放短期下载地址，默认 300 秒。"
+      }
+    },
+    "/api/v1/notes/files/{id}": {
+      "delete": {
+        "operationId": "notesDeleteFile",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform",
+            "web-standalone"
+          ],
+          "access": "platform-session",
+          "permissions": [
+            "notes:create",
+            "notes:update"
+          ],
+          "permissionMode": "any",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "user",
+          "uiPage": "notes"
+        },
+        "summary": "笔记附件：deleteFile",
+        "x-permission": "owner or administrator; identity realm isolated",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            }
+          }
+        ],
+        "description": "关闭文件访问，待既有签名到期后清理；匿名或他人文件统一返回 404。"
+      }
+    },
+    "/api/v1/notes/files/policy": {
+      "get": {
+        "operationId": "notesFileUploadPolicy",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadPolicyResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform",
+            "web-standalone"
+          ],
+          "access": "platform-session",
+          "permissions": [
+            "notes:access"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "user",
+          "uiPage": "notes"
+        },
+        "summary": "笔记附件：fileUploadPolicy",
+        "x-permission": "owner or administrator; identity realm isolated",
+        "parameters": [],
+        "description": "持久分片会话；仅所属用户身份域或固定管理员可用。签名只针对临时对象，云请求不带平台凭据。"
+      }
+    },
+    "/api/v1/notes/files/multipart": {
+      "post": {
+        "operationId": "notesCreateMultipartUpload",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MultipartUploadResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform",
+            "web-standalone"
+          ],
+          "access": "platform-session",
+          "permissions": [
+            "notes:create",
+            "notes:update"
+          ],
+          "permissionMode": "any",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "user",
+          "uiPage": "notes"
+        },
+        "summary": "笔记附件：createMultipartUpload",
+        "x-permission": "owner or administrator; identity realm isolated",
+        "parameters": [],
+        "description": "持久分片会话；仅所属用户身份域或固定管理员可用。签名只针对临时对象，云请求不带平台凭据。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MultipartUploadInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/notes/files/multipart/{id}": {
+      "get": {
+        "operationId": "notesMultipartUpload",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MultipartUploadResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform",
+            "web-standalone"
+          ],
+          "access": "platform-session",
+          "permissions": [
+            "notes:access"
+          ],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "user",
+          "uiPage": "notes"
+        },
+        "summary": "笔记附件：multipartUpload",
+        "x-permission": "owner or administrator; identity realm isolated",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            }
+          }
+        ],
+        "description": "持久分片会话；仅所属用户身份域或固定管理员可用。签名只针对临时对象，云请求不带平台凭据。"
+      }
+    },
+    "/api/v1/notes/files/multipart/{id}/parts": {
+      "post": {
+        "operationId": "notesSignUploadPart",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileUploadGrantResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform",
+            "web-standalone"
+          ],
+          "access": "platform-session",
+          "permissions": [
+            "notes:create",
+            "notes:update"
+          ],
+          "permissionMode": "any",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "user",
+          "uiPage": "notes"
+        },
+        "summary": "笔记附件：signUploadPart",
+        "x-permission": "owner or administrator; identity realm isolated",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            }
+          }
+        ],
+        "description": "持久分片会话；仅所属用户身份域或固定管理员可用。签名只针对临时对象，云请求不带平台凭据。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadPartInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/notes/files/multipart/{id}/parts/{part}": {
+      "put": {
+        "operationId": "notesUploadLocalPart",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform",
+            "web-standalone"
+          ],
+          "access": "platform-session",
+          "permissions": [
+            "notes:create",
+            "notes:update"
+          ],
+          "permissionMode": "any",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "user",
+          "streamingUpload": true,
+          "uiPage": "notes"
+        },
+        "summary": "笔记附件：uploadLocalPart",
+        "x-permission": "owner or administrator; identity realm isolated",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            }
+          },
+          {
+            "name": "part",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            }
+          }
+        ],
+        "description": "持久分片会话；仅所属用户身份域或固定管理员可用。签名只针对临时对象，云请求不带平台凭据。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/notes/files/multipart/{id}/complete": {
+      "post": {
+        "operationId": "notesCompleteMultipartUpload",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileEntryResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform",
+            "web-standalone"
+          ],
+          "access": "platform-session",
+          "permissions": [
+            "notes:create",
+            "notes:update"
+          ],
+          "permissionMode": "any",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "user",
+          "uiPage": "notes"
+        },
+        "summary": "笔记附件：completeMultipartUpload",
+        "x-permission": "owner or administrator; identity realm isolated",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            }
+          }
+        ],
+        "description": "持久分片会话；仅所属用户身份域或固定管理员可用。签名只针对临时对象，云请求不带平台凭据。"
+      }
+    },
+    "/api/v1/account/avatar/files": {
+      "get": {
+        "operationId": "avatarListFiles",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "user"
+        },
+        "summary": "本人头像：listFiles",
+        "x-permission": "owner or administrator; identity realm isolated",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          }
+        ],
+        "description": "普通用户只读取本人所属身份域的文件；管理员可查看实例文件。"
+      }
+    },
+    "/api/v1/account/avatar/files/{id}/access": {
+      "post": {
+        "operationId": "avatarFileAccess",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileAccessResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "user"
+        },
+        "summary": "本人头像：fileAccess",
+        "x-permission": "owner or administrator; identity realm isolated",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            }
+          },
+          {
+            "name": "note_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          }
+        ],
+        "description": "验证本人或管理员后发放短期下载地址，默认 300 秒。"
+      }
+    },
+    "/api/v1/account/avatar/files/{id}": {
+      "delete": {
+        "operationId": "avatarDeleteFile",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "user"
+        },
+        "summary": "本人头像：deleteFile",
+        "x-permission": "owner or administrator; identity realm isolated",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            }
+          }
+        ],
+        "description": "关闭文件访问，待既有签名到期后清理；匿名或他人文件统一返回 404。"
+      }
+    },
+    "/api/v1/account/avatar/files/policy": {
+      "get": {
+        "operationId": "avatarFileUploadPolicy",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadPolicyResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "user"
+        },
+        "summary": "本人头像：fileUploadPolicy",
+        "x-permission": "owner or administrator; identity realm isolated",
+        "parameters": [],
+        "description": "持久分片会话；仅所属用户身份域或固定管理员可用。签名只针对临时对象，云请求不带平台凭据。"
+      }
+    },
+    "/api/v1/account/avatar/files/multipart": {
+      "post": {
+        "operationId": "avatarCreateMultipartUpload",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MultipartUploadResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "user"
+        },
+        "summary": "本人头像：createMultipartUpload",
+        "x-permission": "owner or administrator; identity realm isolated",
+        "parameters": [],
+        "description": "持久分片会话；仅所属用户身份域或固定管理员可用。签名只针对临时对象，云请求不带平台凭据。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MultipartUploadInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/avatar/files/multipart/{id}": {
+      "get": {
+        "operationId": "avatarMultipartUpload",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MultipartUploadResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "user"
+        },
+        "summary": "本人头像：multipartUpload",
+        "x-permission": "owner or administrator; identity realm isolated",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            }
+          }
+        ],
+        "description": "持久分片会话；仅所属用户身份域或固定管理员可用。签名只针对临时对象，云请求不带平台凭据。"
+      }
+    },
+    "/api/v1/account/avatar/files/multipart/{id}/parts": {
+      "post": {
+        "operationId": "avatarSignUploadPart",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileUploadGrantResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "user"
+        },
+        "summary": "本人头像：signUploadPart",
+        "x-permission": "owner or administrator; identity realm isolated",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            }
+          }
+        ],
+        "description": "持久分片会话；仅所属用户身份域或固定管理员可用。签名只针对临时对象，云请求不带平台凭据。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadPartInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/avatar/files/multipart/{id}/parts/{part}": {
+      "put": {
+        "operationId": "avatarUploadLocalPart",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "user",
+          "streamingUpload": true
+        },
+        "summary": "本人头像：uploadLocalPart",
+        "x-permission": "owner or administrator; identity realm isolated",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            }
+          },
+          {
+            "name": "part",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            }
+          }
+        ],
+        "description": "持久分片会话；仅所属用户身份域或固定管理员可用。签名只针对临时对象，云请求不带平台凭据。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/avatar/files/multipart/{id}/complete": {
+      "post": {
+        "operationId": "avatarCompleteMultipartUpload",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileEntryResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "user"
+        },
+        "summary": "本人头像：completeMultipartUpload",
+        "x-permission": "owner or administrator; identity realm isolated",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            }
+          }
+        ],
+        "description": "持久分片会话；仅所属用户身份域或固定管理员可用。签名只针对临时对象，云请求不带平台凭据。"
+      }
     }
   },
   "components": {
@@ -14842,6 +16066,10 @@
           "tls": {
             "type": "boolean",
             "description": "加密连接开关；关闭为本机与内网直连的默认值，开启后加密传输但不校验服务器证书（自签名可用）。"
+          },
+          "tls_verify": {
+            "type": "boolean",
+            "description": "With tls enabled, verify the server certificate against system trusted CAs and verify the connection hostname. Defaults to false for existing callers."
           }
         }
       },
@@ -17319,6 +18547,11 @@
           "request_id": {
             "type": "string",
             "maxLength": 64
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message; clients translate known catalog messages.",
+            "x-go-value": true
           }
         }
       },
@@ -17363,6 +18596,11 @@
           "request_id": {
             "type": "string",
             "maxLength": 64
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message; clients translate known catalog messages.",
+            "x-go-value": true
           }
         }
       },
@@ -18996,6 +20234,11 @@
           "request_id": {
             "type": "string",
             "maxLength": 64
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message; clients translate known catalog messages.",
+            "x-go-value": true
           }
         }
       },
@@ -19018,6 +20261,11 @@
           "request_id": {
             "type": "string",
             "maxLength": 64
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message; clients translate known catalog messages.",
+            "x-go-value": true
           }
         }
       },
@@ -19070,7 +20318,7 @@
           "avatar_file_id": {
             "type": "string",
             "maxLength": 80,
-            "description": "Omit to preserve; empty string clears. Otherwise an owned ready PNG/JPEG/GIF upload, at most 2 MiB and 4096 x 4096 pixels, in the same identity realm. Reference keeps the existing private-file expiry and deletion lifecycle."
+            "description": "Omit to preserve; empty clears. Otherwise an owned ready PNG/JPEG/GIF upload in the avatar scope, at most 2 MiB and 4096 x 4096 pixels. Reference retains private-file expiry and deletion rules."
           }
         }
       },

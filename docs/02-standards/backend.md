@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 后端基础规范
 
-数据库迁移按 [新世代规范](database-migrations.md) 和 [ADR-0024](../adr/ADR-0024-pre1-migration-squash.md)：R1.0b 新 core/platform/module.notes 基线与 Catalog 已隔离验收，正式运行时与启动保护尚未切换。下方 schema/business_migrations 是当前产品的历史结构，不应继续作为新模块账本设计模板。
+数据库安装与启动统一执行 `migrations/runner.Apply`，只从 `migrations/catalog.json` 选择命名空间和连续版本。core、platform、module.notes 分离；当前各为 version=1 基线。账本为 `schema_migrations(namespace,version,checksum,applied_at)`，没有独立 business_migrations。正式版后只能追加版本；世代、checksum、写前守卫与恢复规则见 [迁移规范](database-migrations.md)。
 
 Go 采用组合：可变业务实体嵌入 `internal/domain/entity.go` 的 BaseEntity。ID 由服务端安全随机生成；created_at/updated_at/deleted_at 均为 UTC Unix 秒，0 表示未删除；version 从 1 开始。更新和软删除必须按 `id + version + deleted_at=0` 条件写入，原子递增版本及更新时间。未找到与版本冲突分别映射统一 404/409，不能覆盖别人的更新或复活已删除数据。domain/entity_test.go 会发现新领域结构体并检查基座；纯值对象要登记例外及理由。
 
@@ -16,7 +16,7 @@ Go 采用组合：可变业务实体嵌入 `internal/domain/entity.go` 的 BaseE
 
 分页复用 domain.ValidPage/PageOffset；页码 1–100000，单页不超过 50，列表响应统一 items/total/page/page_size。每个接口定义稳定排序及 tie-break ID；页码排序验证、LIKE 字面量转义、SQL 参数绑定各自不可省略。公告和笔记各自保留窄的业务 query，避免设计任意 SQL 查询器。
 
-管理员与普通用户使用不同数据库身份表、会话 Cookie 和固定 API 路径。所有管理资源（包含只读）位于 `/api/v1/admin/*`，其 x-unicore 契约策略由策略中间件 fail-closed 强制（未声明路由 500），handler 内仍实际调用 require 补充 2FA/审计；写请求还需 CSRF/Origin。在安装锁内重查操作者以防请求鉴权后的停用竞争，参考 platformsql.AuthorizeAdministrator 和 announcementsql.transaction。用户路径只返回本人或业务明确开放的最小投影，不提供管理 DTO；公告用户读取不包含内部备注、草稿、版本及管理员 ID。真实 Chi 路由与契约的双向遍历比对、身份域/CSRF 矩阵、响应信封形状与错误码/状态一致性测试纳入 make test。
+平台采用统一账号、多角色与共享会话；user/administrator 是工作台与 API 面，角色 realm 仅作分类，不是账号或会话隔离边界。所有管理资源（包含只读）位于 `/api/v1/admin/*`，其 x-unicore 契约策略由策略中间件 fail-closed 强制（未声明路由 500），handler 内仍实际调用 require 补充 2FA/审计；写请求还需 CSRF/Origin。在安装锁内重查操作者以防请求鉴权后的停用竞争，参考 platformsql.AuthorizeAdministrator 和 announcementsql.transaction。用户路径只返回本人或业务明确开放的最小投影，不提供管理 DTO；公告用户读取不包含内部备注、草稿、版本及管理员 ID。真实 Chi 路由与契约的双向遍历比对、身份域/CSRF 矩阵、响应信封形状与错误码/状态一致性测试纳入 make test。
 
 数据库实体与 DTO 分离：手写领域实体嵌入公共字段；SQL adapter 映射生成 DTO，客户端不得提交 id/created_at/updated_at/deleted_at/actor。更新请求只接收必要 version。当前 Note 的既有 Repository DTO port 为兼容 Wails 保留，实体在 adapter 映射；Announcement 则完整展示 domain port → DTO 的新模块推荐结构。事务内行锁统一用 `sqlstore.LockForUpdate`（SQLite 自动省略 FOR UPDATE），不要再手写方言分支；设置的结构化读取用 `settings.Bind`（tag 绑定，解析失败显式报错），不要回到散落的 strconv。
 
@@ -24,10 +24,10 @@ Go 采用组合：可变业务实体嵌入 `internal/domain/entity.go` 的 BaseE
 
 | 类别 | 当前策略 |
 | --- | --- |
-| users / administrators | 各自 identity repository；停用撤销本域凭据，保护最后管理员；不提供删除接口 |
+| users | 统一 identity repository；停用撤销共享会话与凭据，保护最后超管；不提供删除接口 |
 | sessions / tokens / challenges / oidc_flows | 过期、一次性消耗、撤销及清理；不能软删除后仍参与验证 |
-| roles / permissions / join tables | 双域动态角色与菜单/动作/operation 授权、岗位、部门关联；主外键与联合唯一键，删除前校验成员引用；不存在通用业务聚合 ID |
-| schema/business_migrations、audit_logs/audit_metadata | 追加账本或快照，保留历史，不提供业务编辑/软删 |
+| roles / permissions / join tables | 统一账号多角色与独立菜单/动作/operation 授权、岗位、部门关联；主外键与联合唯一键，删除前校验成员引用；不存在通用业务聚合 ID |
+| schema_migrations、audit_logs/audit_metadata | 追加账本或快照，保留历史，不提供业务编辑/软删 |
 | install_state / system_settings | 单例/自然键配置，安装锁、SettingDefinition 和专用校验 |
 | 文件元数据/位置/清理任务、邮件队列、企业绑定 | 沿用已发布的专门状态机、引用完整性、清理/重试语义；不可绕过生命周期改成普通 CRUD |
 | Analysis 等纯值对象 | 不持久化，无实体身份和删除状态 |

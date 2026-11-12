@@ -11,7 +11,7 @@
 [![Dependency security](https://github.com/yunnuo88520/Unicore/actions/workflows/security.yml/badge.svg?branch=main)](https://github.com/yunnuo88520/Unicore/actions/workflows/security.yml)
 [![MIT](https://img.shields.io/badge/license-MIT-6662ec)](LICENSE)
 
-Unicore is an open-source Go + React application framework for AI-assisted development. Domain logic and use cases are shared, with separate HTTP, Wails, and Cobra composition roots. Installation, identity, settings, file storage, a sample business module, and development documentation provide a runnable and testable starting point.
+Unicore is an open-source application foundation for Go + React developers building and customizing their own products. Domain logic and use cases are shared, with separate HTTP, Wails, and Cobra composition roots. Installation, identity, settings, file storage, a sample business module, and development documentation provide a runnable and testable starting point.
 
 Author: yunnuo · ymz@ebox.vip · Current version: [VERSION](VERSION) · **Development preview**
 
@@ -30,7 +30,7 @@ The README and new release notes are available in Chinese and English. Detailed 
 
 The platform includes one-time installation, server-enforced permissions, six-digit email verification, SMTP, OIDC, global settings, file metadata, and private signed downloads. Local storage is the default; MinIO / S3 / OSS / COS adapters support configurable limits, multipart uploads, pause, and resume across refreshes or restarts. Local, MinIO, and Alibaba Cloud OSS have been exercised in development; Tencent COS still needs account permissions and real cloud validation. See the [storage guide](docs/03-runbooks/storage.md). Standalone and desktop profiles expose business features and local appearance; branding is configured at build time.
 
-The three database profiles share a personal-notes sample covering domain logic, repositories, migrations, API/native transport, concurrency, and modal forms. The platform also demonstrates attachments by `file_id`; CLI stays database-free. Other foundations include a single OpenAPI contract, shared themes/icons/messages, lifecycle and health checks, offline encrypted backup and restore, AI documentation, and 12 task Skills.
+Platform and both Standalone carriers share a personal-notes sample covering domain logic, repositories, migrations, API/native transport, concurrency, and modal forms. All UI carriers support owner-checked attachment uploads and downloads by `file_id`; CLI stays database-free. Other foundations include a single OpenAPI contract, shared themes/icons/messages, lifecycle and health checks, offline encrypted backup and restore, AI documentation, and 15 task Skills.
 
 ![Platform notes and attachments](docs/images/notes-platform.png)
 
@@ -40,7 +40,11 @@ Graphical profiles share Chinese/English UI switching and a local theme drawer f
 
 Download development previews and checksums from [GitHub Releases](https://github.com/yunnuo88520/Unicore/releases). On macOS, use the DMG and drag the app into Applications. On Windows, run the EXE directly. Linux desktop uses a tar archive. Web archives include `./unicore help`, `./unicore config generate`, and `./unicore --config config.yaml`; first-time setup stays in `/install`. OTA continues to use complete tar release directories. A standalone Windows EXE only checks for updates without the full release directory.
 
-Signed OTA channels and offline release history are implemented; inspect each release's actual signature assets and verification results. Publisher signatures are mandatory for OTA; OS signing/notarization is optional for free distribution. Derived projects currently default to requiring signed OS binaries, so their trust policy needs explicit review. Licensing remains a placeholder, and there is no public container-registry image. See [updates](docs/03-runbooks/updates.md) and [support boundaries](docs/support.md).
+Signed OTA channels and offline release history are implemented; inspect each release's actual signature assets and verification results. Publisher signatures are mandatory for OTA; Direct distribution is the default; official stores, paid OS certificates and notarization are not release requirements. Framework and derived projects allow OS-unsigned packages by default while retaining mandatory OTA publisher verification. Licensing remains a placeholder. The release workflow builds GHCR images when a GitHub Release is published; check the image workflow result for the exact version. See [updates](docs/03-runbooks/updates.md) and [support boundaries](docs/support.md).
+
+## Recommended path
+
+Start by [creating your application](docs/product/development.md), try it with [SQLite](docs/product/index.md), then follow the [first feature tutorial (中文)](docs/product/first-feature.md). CLI currently demonstrates stateless text analysis, without notes or persistence. Framework upgrades use source merges; there is no stable plugin interface isolating every customization.
 
 ## Quick start
 
@@ -91,7 +95,7 @@ make dev-server
 # In a second terminal: make dev-web
 ```
 
-The MIT license permits commercial use, modification and redistribution while preserving the license, copyright notice and original authorship. The creator commits an independent main baseline and replaces the product name, Go module, CLI/ops commands and desktop identity. Optional --repository configures your origin, UI documentation links and community feedback links; the read-only framework remote preserves upstream provenance. It does not create a hosted repository or push code. Product identity lives in product.identity.json, the theme in [tokens.json](assets/theme/tokens.json), and graphics in [identity.json](assets/brand/identity.json). Your domain and TLS remain deployment configuration; installation uses the actual browser origin. Review support contacts, security policy and update signing. See [upstream integration](docs/03-runbooks/framework-upgrade.md).
+The MIT license permits commercial use, modification and redistribution while preserving the license, copyright notice and original authorship. The creator commits an independent main baseline and replaces the product name, Go module, CLI/ops commands and desktop identity. Optional --repository configures your origin, UI documentation links and community feedback links; the read-only framework remote preserves upstream provenance. It does not create a hosted repository or push code. Product identity lives in product.identity.json, the theme in [tokens.json](assets/theme/tokens.json), and graphics in [identity.json](assets/brand/identity.json). Your domain and TLS remain deployment configuration; installation uses the actual browser origin. Review support contacts, security policy and update signing. See [upstream integration](docs/product/framework-upgrade.md). Derived projects include the framework-upstream Skill for AI-assisted reproduction, feedback drafts, local patches and integration of upstream fixes.
 
 For isolated development services, configure temporary credentials in [development Compose](deploy/docker/compose.dev.yaml), then run `make dev-deps-up SERVICES='postgres mysql mail'`. Start MinIO separately if needed. `make dev-deps-down` stops services and preserves volumes by default. Never use production databases or real SMTP for automated tests.
 

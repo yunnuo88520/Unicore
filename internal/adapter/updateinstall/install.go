@@ -458,12 +458,12 @@ func Extract(archivePath, destination string, payload updates.Payload) (string, 
 	}
 	var metadata struct {
 		Version, Profile, OS, Arch, Commit string
-		Migration                          int                             `json:"migration_level"`
-		BusinessMigration                  int                             `json:"business_migration_level"`
+		SchemaGeneration                   string                          `json:"schema_generation"`
+		SchemaFingerprint                  string                          `json:"schema_fingerprint"`
 		Features                           struct{ License, Updater bool } `json:"features"`
 	}
 	raw, e := os.ReadFile(filepath.Join(directory, "manifest.json"))
-	if e != nil || json.Unmarshal(raw, &metadata) != nil || metadata.Version != payload.Version || metadata.Profile != payload.Artifact.Profile || metadata.OS != payload.Artifact.OS || metadata.Arch != payload.Artifact.Arch || !strings.HasPrefix(payload.Commit, metadata.Commit) || len(metadata.Commit) < 7 || metadata.Migration != payload.Artifact.Migration || metadata.BusinessMigration != payload.Artifact.BusinessMigration || metadata.Features.License != payload.Artifact.License || metadata.Features.Updater != payload.Artifact.Updater {
+	if e != nil || json.Unmarshal(raw, &metadata) != nil || metadata.Version != payload.Version || metadata.Profile != payload.Artifact.Profile || metadata.OS != payload.Artifact.OS || metadata.Arch != payload.Artifact.Arch || !strings.HasPrefix(payload.Commit, metadata.Commit) || len(metadata.Commit) < 7 || metadata.SchemaGeneration != payload.Artifact.SchemaGeneration || metadata.SchemaFingerprint != payload.Artifact.SchemaFingerprint || metadata.Features.License != payload.Artifact.License || metadata.Features.Updater != payload.Artifact.Updater {
 		return "", updates.ErrRejected
 	}
 	return directory, nil

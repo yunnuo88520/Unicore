@@ -74,6 +74,10 @@ test('fixed SQL prefix documentation is allowed without hiding visible framework
   const path='docs/product/guide.md';
   writeFileSync(join(root,path),'Framework tables keep unicore_ and unicore_users across product names.\n');
   assert.deepEqual(scanResiduals(root),[]);
+  writeFileSync(join(root,path),'Schema generation stays unicore-1.\n');
+  assert.deepEqual(scanResiduals(root),[]);
+  writeFileSync(join(root,path),'Unicore workspace uses generation unicore-1.\n');
+  assert.ok(scanResiduals(root).some(line=>line.startsWith(`${path}:1:`)));
   writeFileSync(join(root,path),'Unicore workspace uses unicore_users.\n');
   assert.ok(scanResiduals(root).some(line=>line.startsWith(`${path}:1:`)));
   writeFileSync(join(root,path),'Framework tables keep unicore_users.\n');

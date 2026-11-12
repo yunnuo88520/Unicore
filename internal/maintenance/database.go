@@ -56,6 +56,11 @@ func runDatabaseTool(ctx context.Context, driver, dsn, container string, restore
 		}
 		supported := map[string]string{"sslmode": "PGSSLMODE", "sslrootcert": "PGSSLROOTCERT", "sslcert": "PGSSLCERT", "sslkey": "PGSSLKEY", "sslpassword": "PGSSLPASSWORD", "target_session_attrs": "PGTARGETSESSIONATTRS", "application_name": "PGAPPNAME", "connect_timeout": "PGCONNECT_TIMEOUT"}
 		for key, items := range u.Query() {
+			// Installer connections are pinned to public, as are the dump arguments.
+			// Never accept arbitrary search paths or pass them through PGOPTIONS.
+			if key == "search_path" && len(items) == 1 && items[0] == "public" {
+				continue
+			}
 			name, ok := supported[key]
 			if !ok || len(items) != 1 {
 				return errors.New("unsupported PostgreSQL maintenance URL option")
@@ -93,6 +98,9 @@ func runDatabaseTool(ctx context.Context, driver, dsn, container string, restore
 			args = append(args, "--ssl-mode=DISABLED")
 		case "true":
 			args = append(args, "--ssl-mode=VERIFY_IDENTITY")
+		case "skip-verify":
+			// Preserve the installer's explicit encrypted, unverified TLS mode.
+			args = append(args, "--ssl-mode=REQUIRED")
 		default:
 			return errors.New("maintenance does not accept custom or insecure MySQL TLS profiles")
 		}

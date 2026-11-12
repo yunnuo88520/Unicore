@@ -13,11 +13,11 @@
 | [SUPPORT](../../SUPPORT.md) / [SECURITY](../../SECURITY.md) / [行为准则](../../CODE_OF_CONDUCT.md) | 使用咨询、私密安全报告与社区规范 |
 | [Issue 表单](../../.github/ISSUE_TEMPLATE) / [PR 模板](../../.github/PULL_REQUEST_TEMPLATE.md) | 最小复现、profile、验证和兼容影响 |
 | [CI](../../.github/workflows/ci.yml) / [安全扫描](../../.github/workflows/security.yml) | 质量、数据库、页面、原生构建、部署与依赖检查 |
-| [Dependabot](../../.github/dependabot.yml) | 每周检查 Go、pnpm 工作区和 Actions；每类最多 3 个版本更新 PR，minor/patch 分组，不自动合并 |
+| [Dependabot](../../.github/dependabot.yml) | 每周检查 Go、pnpm 工作区和 Actions，版本更新 PR 指向 dev；每类最多 3 个，minor/patch 分组，不自动合并 |
 | [发布候选](../../.github/workflows/release.yml) | 手动构建候选包、checksum 与 GitHub 来源证明，不自动公开发行 |
 | [Wiki 生成与同步](../wiki/README.md) | 主题清单以 distribution/manifest.json 为准，页面及侧栏/页脚从仓库 Markdown 生成；本地生成不等于远端已同步 |
 
-Dependabot 的版本更新配置不等于 GitHub 已开启安全更新。pnpm 使用 npm ecosystem，后续更新后核对锁文件与实际 CI；工具链、Wails、Go 和原生依赖升级需要对应目标验证。
+Dependabot 的版本更新配置不等于 GitHub 已开启安全更新。常规依赖升级先在 dev 验证，再随 dev → main 的发版 PR 进入主分支；target-branch 配置要合入默认分支后才生效。安全更新仍由 GitHub 面向默认分支处理，紧急修复按受影响范围单独验收。pnpm 使用 npm ecosystem，后续更新后核对锁文件与实际 CI；工具链、Wails、Go 和原生依赖升级需要对应目标验证。
 
 Node 开发/CI 基线保留 22 系列，@types/node 随基线维护；TypeScript 5 的 AST API 和 Vite 7/React 插件 5 是当前验证过的开发基座。这四个包只忽略 major 更新，patch/minor 与安全扫描继续开放；升级基线时重新评估对应 ignore，并同步工具、脚本及验证。Dependabot 每类 PR 上限只限制并发数，关闭旧 PR 后会补开队列候选，需要核对实际依赖，而不能把暂时没有 PR 当作没有后续升级。依赖升级需记录实际检查结果，不把历史组合通过作为当前证明。
 

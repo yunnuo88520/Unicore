@@ -1,5 +1,5 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: GVA-style single tree-table editor over the one persisted shared navigation tree: region root rows with nested directory/page/link/action rows, one per-row more-actions dropdown (every directory, page and link can add sub-menus), parent picking, full tree drag & drop (same-list reorder, re-parent and cross-region moves through one subtree-rewriting primitive shared with the move dialog), search, bulk expand/collapse and subtree copy; one save derives surfaces from the route registry and submits the whole tree with a version CAS.
+// Description: Single tree-table navigation editor over the one persisted shared navigation tree: region root rows with nested directory/page/link/action rows, one per-row more-actions dropdown (every directory, page and link can add sub-menus), parent picking, full tree drag & drop (same-list reorder, re-parent and cross-region moves through one subtree-rewriting primitive shared with the move dialog), search, bulk expand/collapse and subtree copy; one save derives surfaces from the route registry and submits the whole tree with a version CAS.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {

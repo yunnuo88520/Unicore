@@ -15,9 +15,9 @@ HTTPS 站点必须使用浏览器可达的 HTTPS Endpoint；不要在公网页�
 
 ## 业务接入
 
-业务保存 file_id，调用 files.Service，不拼接 uploads 路径或保存下载 URL。字节操作通过 internal/blob.Store；本地路径只在组合根和 bloblocal adapter 出现。HTTP DTO/operation 从 OpenAPI 生成，React 调用 AppClient.files.uploadFile / fileAccess；SDK 发云请求时 credentials=omit，不转发平台 Cookie、CSRF 或身份头。
+业务保存 file_id，调用 files.Service，不拼路径或保存下载 URL。React 通过 AppClient.businessFiles('notes'|'avatar') 获得 FileClient，复用 uploadFile/fileAccess；服务端按笔记或本人账号授权，不依赖 files:*。Platform 管理 API 仍需独立管理授权。Standalone 的本地服务由 filelocal 装配，桌面通过原生桥传输分片及系统保存对话框下载，不启动 HTTP。云请求 credentials=omit，不携带平台 Cookie/CSRF。
 
-文件元数据包含 file_id、original_name、storage_type、location_id、file_key、mime_type、size、creator_id、creator_realm、创建/到期时间和状态。普通用户只能操作本人身份域文件，管理员可操作所有用户文件。云 URL 是短期 bearer，过期前持有者可下载；不能当作可撤回的永久权限。文件强制附件下载，上传 HTML/SVG 不在应用源执行。品牌为管理员公开发布的规范化 PNG，由既有 /brand-assets 路由提供当前引用，是私有文件机制的明确例外。
+文件元数据包含 file_id、original_name、storage_type、location_id、file_key、mime_type、size、creator_id、creator_realm、创建/到期时间和状态。业务上传只操作本人归属域文件；头像使用 avatar 域，笔记使用 user 域（Standalone 为 local）。平台管理权限与业务权限分开，受限管理员不自动获得全局文件权限。云 URL 是短期 bearer，过期前持有者可下载；不能当作可撤回的永久权限。文件强制附件下载，上传 HTML/SVG 不在应用源执行。品牌为管理员公开发布的规范化 PNG，由既有 /brand-assets 路由提供当前引用，是私有文件机制的明确例外。
 
 ## 迁移、清理与恢复
 
@@ -25,7 +25,7 @@ HTTPS 站点必须使用浏览器可达的 HTTPS Endpoint；不要在公网页�
 
 后台使用独立分钟定时器处理有限批次的到期元数据/清理任务，可在对象存储设置的上传规则中立即执行。删除失败会保留任务并延迟重试。应用只清理 DB 登记的键，不扫描整桶；桶内其他业务数据不接管。未完成直传对象等凭证到期/保留期后清理，防止晚到请求再次产生孤儿。建议为独立 pending / multipart 前缀增加桶生命周期后备规则，并启用桶版本/备份；规则由桶运维维护，不替换无关规则。
 
-升级前备份 DB、完整私有数据目录、实例密钥与对象桶；0009 仅在线平台新增三表及文件归属、分页、到期与清理任务索引。SQLite/PostgreSQL 事务 DDL，MySQL IF NOT EXISTS 可重试；回退需恢复匹配快照，数据库恢复不能复原已经清理的对象。旧品牌本地文件惰性登记为 legacy-brand 位置，保留旧目录直到另行完成迁移/备份。
+升级前备份 DB、完整私有目录、实例密钥与对象桶。当前 Catalog 的 core@1 包含文件元数据、存储位置、清理任务与上传会话四表；Platform/Standalone 共用本地基座，云配置仅平台。SQLite/PostgreSQL 事务 DDL，MySQL 可重试但不承诺事务 DDL；失败恢复完整匹配快照。legacy-brand 仅平台，保留旧目录至完成迁移/备份。
 
 ## 验证
 
@@ -33,13 +33,13 @@ HTTPS 站点必须使用浏览器可达的 HTTPS Endpoint；不要在公网页�
 
 ## 分片与断点续传
 
-平台用户和管理员共用 FileUploadDialog 与 AppClient.files.uploadFile。新文件统一分片，小文件为一片；页面显示已确认字节进度、暂停、继续、放弃。刷新、关闭或服务重启后，由业务页面传入未完成文件的 resumeId，重新选择原文件即可；文件指纹不符会拒绝继续，不会创建另一份覆盖原文件。超过续传窗口后需删除记录并重新上传。网络失败自动重试两次，签名过期时重新申请；需要保持原位置和凭据可用。
+Platform 用户、管理员及 Standalone 本地使用者共用 FileUploadDialog 和业务 FileClient。小文件也用一片，支持按确认字节显示进度、暂停和放弃；重启续传需传 resumeId 并重选同一文件核对指纹。Standalone 固定本地，默认大小 100 MiB、分片 8 MiB；无策略配置页面，文件永久保留、未完成会话默认 24 小时。
 
 调用 `uploadFile(file,{resumeId,onSession,onProgress,onStage,signal})` 可在业务组件复用；onStage 为 hashing/uploading/confirming，onProgress 仅统计已被存储确认的字节，按片推进。AbortSignal 表示暂停，不删除服务端会话；放弃用 deleteFile。不要自行拼对象键、缓存上传凭证或在 UI 保存身份令牌。普通用户 policy 只含大小/分片/并发/续传期及允许的上传路径/扩展名，不泄露全局设置、位置或密钥。
 
 云账号新增所需权限：原生 multipart initiate、upload part、list parts、complete、abort，以及对专用前缀列举未完成 multipart（清理崩溃时丢失的 upload ID）、条件复制/分片复制、读写删除。S3/MinIO 对应 ListBucketMultipartUploads、ListMultipartUploadParts、AbortMultipartUpload、PutObject/GetObject/DeleteObject；OSS/COS 配置等效权限。测试连接同时探测 initiate/list/abort，真实上传与厂商测试仍需环境验收。云跨域必须允许 PUT 和 Content-Type；不要设置公共读。
 
-迁移 0012 追加 file_upload_sessions，平台 schema=12；完整 DB 备份必须包含它。本地分片在私有数据目录下的 multipart 命名空间，跟随完整 data 备份，不能只备份已完成文件。云端未完成分片不属于普通对象备份：恢复时以原 upload ID 是否仍可用为准，不可用会话需放弃后重传。清理按登记的精确键 abort 再 delete，失败持久重试，不清空 Bucket。大对象服务端复制也受相同孤儿清理保护。
+当前 core@1 已包含 file_upload_sessions，完整 DB 备份必须包含。本地 multipart 分片跟随完整 data 备份，不能只备份已完成文件。云未完成分片不能由普通对象备份恢复；原 upload ID 不可用时放弃重传。清理按已登记精确键 abort/delete 并持久重试，不清空 Bucket。
 
 设计见 [ADR-0022](../adr/ADR-0022-resumable-uploads.md)，提供商范围和未验证事项见 [支持范围](../support.md)。旧单请求上传 API 保留且最高 1 GiB，不提供断点续传。
 

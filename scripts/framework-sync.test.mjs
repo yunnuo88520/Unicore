@@ -3,12 +3,12 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {existsSync,mkdtempSync,mkdirSync,writeFileSync,readFileSync,rmSync} from 'node:fs';
+import {existsSync,symlinkSync,mkdtempSync,mkdirSync,writeFileSync,readFileSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join,dirname} from 'node:path';
 import {updateTemplateBranch} from './framework-template.mjs';
 import {createProject} from './create-project.mjs';
-import {checkTemplate,syncTemplate} from './framework-sync.mjs';
+import {checkTemplate,syncTemplate,continueTemplateSync,abortTemplateSync} from './framework-sync.mjs';
 import {applyIdentity,loadIdentity} from './product-identity.mjs';
 
 process.env.GIT_AUTHOR_NAME='Fixture';process.env.GIT_AUTHOR_EMAIL='fixture@example.test';
@@ -26,7 +26,7 @@ function makeSource(){
  const root=join(fixtureRoot,'source');mkdirSync(root);
  const files={'go.mod':'module github.com/yunnuo/unicore\n','VERSION':'0.1.0\n','Makefile':'LDFLAGS := -X $(GO_MODULE)/internal/buildinfo.Version=$(VERSION)\n','framework.manifest.json':'{}','assets/updates/config.json':'{"repository":"upstream/repo","keys":{"upstream":"test"}}','package.json':'{\n  "name": "unicore",\n  "version": "0.1.0"\n}\n','assets/theme/tokens.json':'{\n  "author": "yunnuo <ymz@ebox.vip>",\n  "brand": {\n    "name": "Unicore",\n    "accent": "#6662ec"\n  }\n}\n','assets/theme/resolved.gen.json':'{\n  "brand": {\n    "name": "Unicore",\n    "accent": "#6662ec"\n  }\n}\n','assets/brand/identity.json':'{\n  "author": "yunnuo <ymz@ebox.vip>",\n  "bundleId": "vip.ebox.unicore"\n}\n','assets/brand/wordmark.svg':'<svg><text x="82" y="54">Unicore<tspan fill="#6662ec">.</tspan></text></svg>\n','cmd/desktop/wails.json':'{\n  "name": "Unicore",\n  "outputfilename": "unicore-desktop",\n  "info": {\n    "productName": "Unicore",\n    "productVersion": "0.1.0",\n    "comments": "Unicore · Go + React"\n  }\n}\n','packages/contracts/openapi.json':'{\n  "info": {\n    "title": "Unicore platform foundation API"\n  },\n  "paths": {}\n}\n','apps/web/index.html':'<!doctype html><html><head><meta name="description" content="Unicore · 一份核心" /><title>Unicore · 工作空间</title></head><body></body></html>\n','apps/web/admin.html':'<!doctype html><html><head><meta name="description" content="Unicore · 一份核心" /><title>Unicore · 管理后台</title></head><body></body></html>\n','apps/desktop/index.html':'<!doctype html><html><head><title>Unicore · 桌面工作空间</title></head><body></body></html>\n','apps/web/public/site.webmanifest':'{"name":"Unicore","short_name":"Unicore"}','apps/desktop/public/site.webmanifest':'{"name":"Unicore","short_name":"Unicore"}','internal/adapter/cli/command.go':'// github.com/yunnuo/unicore/internal/buildinfo\npackage cli\n','product.identity.json':'{\n  "author": "yunnuo <ymz@ebox.vip>",\n  "schemaVersion": 1,\n  "product": {"name": "Unicore", "slug": "unicore", "vendor": "yunnuo", "description": "一份核心，运行于每个终端"},\n  "go": {"module": "github.com/yunnuo/unicore"},\n  "cli": {"command": "unicore", "opsCommand": "unicore-ops", "description": "Unicore — one core, every interface"},\n  "desktop": {"bundleId": "vip.ebox.unicore", "outputName": "unicore-desktop"},\n  "deployment": {"serviceName": "unicore", "serviceUser": "unicore", "installDirectory": "/opt/unicore", "dataDirectory": "/var/lib/unicore", "image": "unicore", "volume": "unicore_data"},\n  "release": {"artifactPrefix": "unicore"}\n}\n','deploy/tar/unicore.service':SERVICE,'deploy/tar/nginx.conf.example':'server {\n    root /opt/unicore/current/web;\n}\n','deploy/docker/compose.yaml':'services:\n  app:\n    image: ${UNICORE_IMAGE:-unicore:local}\n    volumes:\n      - unicore_data:/data\nvolumes:\n  unicore_data:\n','deploy/docker/compose.dev.yaml':'services:\n  db:\n    environment:\n      POSTGRES_USER: unicore\n','deploy/docker/Dockerfile':'FROM scratch\nLABEL org.opencontainers.image.title="Unicore"\n','docs/product/guide.md':GUIDE,'main.go':'package main // github.com/yunnuo/unicore/internal/domain\n','.gitignore':'build/\nnode_modules/\n','LICENSE':'MIT license fixture','.agents/skills/sample/SKILL.md':'---\nname: sample\ndescription: Fixture task\n---\n','private.txt':'framework-only, never exported'};
  const manifest={format_version:1,documents:[{source:'docs/product/guide.md',target:'docs/product/guide.md',audiences:['user-release','project-template','public-wiki'],slug:'Home',title:'Guide'}],template_files:Object.keys(files).filter(p=>!['private.txt','docs/product/guide.md'].includes(p))};
- manifest.template_files.push('distribution/manifest.json','AGENTS.md');
+ manifest.template_files.push('distribution/manifest.json','AGENTS.md',{source:'main.go',target:'internal/mapped-example.go'});
  files['distribution/manifest.json']=JSON.stringify(manifest,null,2)+'\n';
  files['framework.manifest.json']=JSON.stringify({contract:'packages/contracts/openapi.json',readFirst:['AGENTS.md'],profiles:{},sources:{},skills:['sample'],commands:{},contextOutput:'docs/developer/context.gen.md'});
  files['AGENTS.md']='application instructions';
@@ -140,12 +140,149 @@ test('sync refuses and leaves the tree untouched on real conflicts',()=>{
   assert.equal(sh(derived,'rev-parse','HEAD'),head);
   assert.equal(sh(derived,'status','--porcelain'),'');
   assert.match(readFileSync(join(derived,'docs/product/guide.md'),'utf8'),/Local runbook overrides/);
-  // After adopting the upstream version, the sync goes through and product files stay intact.
-  writeFileSync(join(derived,'docs/product/guide.md'),'# Guide\n\nUpstream rewrites the guide.\n');
-  sh(derived,'add','-A');sh(derived,'commit','-qm','adopt upstream runbook');
-  const result=syncTemplate(derived);
+  // Resolve in the isolated worktree, preserving both local and upstream prose.
+  const pending=JSON.parse(readFileSync(join(derived,'build/framework-sync-state.json')));
+  writeFileSync(join(pending.worktree,'docs/product/guide.md'),'# Guide\n\nUpstream rewrites the guide.\nLocal runbook overrides.\n');
+  sh(pending.worktree,'add','docs/product/guide.md');
+  const result=continueTemplateSync(derived);
   assert.ok(result.merged_commit);
   assert.match(readFileSync(join(derived,'docs/product/guide.md'),'utf8'),/Upstream rewrites the guide/);
+  assert.match(readFileSync(join(derived,'docs/product/guide.md'),'utf8'),/Local runbook overrides/);
   assert.match(readFileSync(join(derived,'assets/theme/tokens.json'),'utf8'),/#6662ec/);
+  assert.equal(sh(derived,'status','--porcelain'),'');
+ }finally{rmSync(fixtureRoot,{recursive:true,force:true});}
+});
+
+
+test('validation failure never advances or dirties the application branch',()=>{
+ const {source,fixtureRoot}=makeSource();
+ try{
+  updateTemplateBranch(source); const derived=derive(source);
+  const head=sh(derived,'rev-parse','HEAD');
+  upstreamStep(source,'0.2.0',()=>{
+   writeFileSync(join(source,'VERSION'),'0.2.0\n');
+   writeFileSync(join(source,'docs/product/guide.md'),GUIDE+'UNICORE BRAND LEAK\n');
+  });
+  assert.throws(()=>syncTemplate(derived),/Residue scan/);
+  assert.equal(sh(derived,'rev-parse','HEAD'),head);
+  assert.equal(sh(derived,'status','--porcelain'),'');
+  assert.equal(existsSync(join(derived,'build/framework-sync-state.json')),false);
+ }finally{rmSync(fixtureRoot,{recursive:true,force:true});}
+});
+
+test('preparation errors leave product names and staged files untouched',()=>{
+ const {source,fixtureRoot}=makeSource();
+ try{
+  updateTemplateBranch(source); const derived=derive(source);
+  const manifest=JSON.parse(readFileSync(join(derived,'distribution/manifest.json')));
+  manifest.template_files.push({source:'main.go',target:'../outside.go'});
+  writeFileSync(join(derived,'distribution/manifest.json'),JSON.stringify(manifest));
+  sh(derived,'add','-A');sh(derived,'commit','-qm','Exercise malformed template path');
+  const head=sh(derived,'rev-parse','HEAD');
+  upstreamStep(source,'0.2.0',()=>writeFileSync(join(source,'VERSION'),'0.2.0\n'));
+  assert.throws(()=>syncTemplate(derived),/Unsafe distribution path/);
+  assert.equal(sh(derived,'rev-parse','HEAD'),head);
+  assert.equal(sh(derived,'status','--porcelain'),'');
+  assert.ok(existsSync(join(derived,'deploy/tar/my-product.service')));
+  assert.equal(existsSync(join(derived,'deploy/tar/unicore.service')),false);
+ }finally{rmSync(fixtureRoot,{recursive:true,force:true});}
+});
+
+test('a merge command error cannot masquerade as a successful sync',()=>{
+ const {source,fixtureRoot}=makeSource();
+ try{
+  updateTemplateBranch(source);const derived=derive(source); const head=sh(derived,'rev-parse','HEAD');
+  upstreamStep(source,'0.2.0',()=>writeFileSync(join(source,'VERSION'),'0.2.0\n'));
+  sh(derived,'config','merge.verifySignatures','true');
+  assert.throws(()=>syncTemplate(derived),/signature|Command failed/);
+  assert.equal(sh(derived,'rev-parse','HEAD'),head);assert.equal(sh(derived,'status','--porcelain'),'');
+ }finally{rmSync(fixtureRoot,{recursive:true,force:true});}
+});
+
+test('abort discards only the isolated conflict, and continue refuses concurrent application edits',()=>{
+ const {source,fixtureRoot}=makeSource();let derived;
+ try{
+  updateTemplateBranch(source);derived=derive(source);
+  writeFileSync(join(derived,'docs/product/guide.md'),'Local rewrite\n');
+  sh(derived,'add','-A');sh(derived,'commit','-qm','Customize guide');
+  const head=sh(derived,'rev-parse','HEAD');
+  upstreamStep(source,'0.2.0',()=>writeFileSync(join(source,'docs/product/guide.md'),'Upstream rewrite\n'));
+  assert.throws(()=>syncTemplate(derived),/Upstream merge conflicts/);
+  writeFileSync(join(derived,'README.md'),'New application work\n');
+  assert.throws(()=>continueTemplateSync(derived),/changed during sync/);
+  abortTemplateSync(derived);
+  assert.equal(sh(derived,'rev-parse','HEAD'),head);
+  assert.equal(readFileSync(join(derived,'README.md'),'utf8'),'New application work\n');
+  assert.equal(existsSync(join(derived,'build/framework-sync-state.json')),false);
+ }finally{if(derived&&existsSync(join(derived,'build/framework-sync-state.json')))abortTemplateSync(derived);rmSync(fixtureRoot,{recursive:true,force:true});}
+});
+
+test('template publication continues a remote-only template history',()=>{
+ const {source,fixtureRoot}=makeSource();
+ try{
+  const first=updateTemplateBranch(source);
+  sh(source,'update-ref','refs/remotes/origin/framework-template',first.commit);
+  sh(source,'branch','-D','framework-template');
+  writeFileSync(join(source,'VERSION'),'0.2.0\n');sh(source,'add','-A');sh(source,'commit','-qm','Next framework version');
+  const next=updateTemplateBranch(source);
+  assert.equal(next.parent,first.commit);
+  assert.equal(sh(source,'merge-base',next.commit,first.commit),first.commit);
+ }finally{rmSync(fixtureRoot,{recursive:true,force:true});}
+});
+
+
+test('a fresh clone fetches existing template history even without a tracking ref',()=>{
+ const {source,fixtureRoot}=makeSource();
+ try{
+  const first=updateTemplateBranch(source);const fresh=join(fixtureRoot,'fresh');
+  sh(fixtureRoot,'clone','--quiet',source,fresh);
+  sh(fresh,'update-ref','-d','refs/remotes/origin/framework-template');
+  const result=updateTemplateBranch(fresh);
+  assert.equal(result.commit,first.commit);assert.equal(result.parent,first.commit);
+  assert.equal(sh(fresh,'rev-parse','framework-template'),first.commit);
+ }finally{rmSync(fixtureRoot,{recursive:true,force:true});}
+});
+
+test('divergent published history is rejected without replacing the local template',()=>{
+ const {source,fixtureRoot}=makeSource();
+ try{
+  const first=updateTemplateBranch(source);
+  const other=sh(source,'commit-tree',first.tree,'-m','Exercise a divergent orphan');
+  sh(source,'update-ref','refs/remotes/origin/framework-template',other);
+  assert.throws(()=>updateTemplateBranch(source),/histories diverged/);
+  assert.equal(sh(source,'rev-parse','framework-template'),first.commit);
+ }finally{rmSync(fixtureRoot,{recursive:true,force:true});}
+});
+
+test('sync never follows a product projection symlink outside the isolated worktree',t=>{
+ if(process.platform==='win32'){t.skip('Symlinks need explicit Windows privileges');return;}
+ const {source,fixtureRoot}=makeSource();
+ try{
+  updateTemplateBranch(source);const derived=derive(source);
+  const external=join(fixtureRoot,'shared-theme.json');const original=readFileSync(join(derived,'assets/theme/tokens.json'),'utf8');
+  writeFileSync(external,original);rmSync(join(derived,'assets/theme/tokens.json'));symlinkSync(external,join(derived,'assets/theme/tokens.json'));
+  sh(derived,'add','-A');sh(derived,'commit','-qm','Use an external theme link');const head=sh(derived,'rev-parse','HEAD');
+  upstreamStep(source,'0.2.0',()=>writeFileSync(join(source,'VERSION'),'0.2.0\n'));
+  assert.throws(()=>syncTemplate(derived),/links are forbidden/);
+  assert.equal(readFileSync(external,'utf8'),original);assert.equal(sh(derived,'rev-parse','HEAD'),head);assert.equal(sh(derived,'status','--porcelain'),'');
+ }finally{rmSync(fixtureRoot,{recursive:true,force:true});}
+});
+
+
+test('an ignored application file cannot be overwritten by a new upstream file',()=>{
+ const {source,fixtureRoot}=makeSource();
+ try{
+  updateTemplateBranch(source);const derived=derive(source);
+  writeFileSync(join(derived,'.gitignore'),readFileSync(join(derived,'.gitignore'),'utf8')+'local-cache.txt\n');
+  sh(derived,'add','.gitignore');sh(derived,'commit','-qm','Keep application-local cache private');
+  writeFileSync(join(derived,'local-cache.txt'),'Application data must survive\n');const head=sh(derived,'rev-parse','HEAD');
+  upstreamStep(source,'0.2.0',()=>{
+   writeFileSync(join(source,'local-cache.txt'),'Upstream example\n');
+   const manifest=JSON.parse(readFileSync(join(source,'distribution/manifest.json')));manifest.template_files.push('local-cache.txt');
+   writeFileSync(join(source,'distribution/manifest.json'),JSON.stringify(manifest));
+  });
+  assert.throws(()=>syncTemplate(derived),/overwritten|Command failed/);
+  assert.equal(readFileSync(join(derived,'local-cache.txt'),'utf8'),'Application data must survive\n');
+  assert.equal(sh(derived,'rev-parse','HEAD'),head);assert.equal(sh(derived,'status','--porcelain'),'');
  }finally{rmSync(fixtureRoot,{recursive:true,force:true});}
 });

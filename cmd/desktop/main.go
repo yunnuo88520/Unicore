@@ -35,6 +35,7 @@ import (
 	"github.com/yunnuo/unicore/internal/adapter/desktop"
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/bootstrap"
+	"github.com/yunnuo/unicore/internal/bootstrap/filelocal"
 	"github.com/yunnuo/unicore/internal/bootstrap/local"
 	"github.com/yunnuo/unicore/internal/buildinfo"
 	"github.com/yunnuo/unicore/internal/contracts"
@@ -111,7 +112,17 @@ func runDesktop() (result error) {
 		}
 		defer func() { result = errors.Join(result, store.Close()) }()
 		module.Register(notesmodule.Module)
-		bridge = desktop.NewLocal(bootstrap.Core(), service, store)
+		directory, err := local.ResolveDir(os.Getenv("APP_DATA_DIR"))
+		if err != nil {
+			return err
+		}
+		fileService, err := filelocal.New(store, directory)
+		if err != nil {
+			return err
+		}
+		stopFileCleanup := filelocal.StartCleanup(fileService)
+		defer stopFileCleanup()
+		bridge = desktop.NewLocal(bootstrap.Core(), service, store, fileService)
 		// No HTTP face on desktop: the snapshot's HTTP card stays not-applicable
 		// while process, Go runtime and SQLite views stay equivalent.
 		monitorEvents := monitor.NewEventSink(200)
@@ -131,6 +142,26 @@ func runDesktop() (result error) {
 	defer func() { cancelUpdates() }()
 	if err := wails.Run(&options.App{
 		OnStartup: func(ctx context.Context) {
+			bridge.SetFileSaver(func(name string, source io.Reader) error {
+				destination, err := wailsruntime.SaveFileDialog(ctx, wailsruntime.SaveDialogOptions{DefaultFilename: name, CanCreateDirectories: true})
+				if err != nil {
+					return err
+				}
+				if destination == "" {
+					return nil
+				}
+				target, err := os.CreateTemp(filepath.Dir(destination), ".unicore-download-*")
+				if err != nil {
+					return err
+				}
+				defer os.Remove(target.Name())
+				_, err = io.Copy(target, source)
+				err = errors.Join(err, target.Close())
+				if err != nil {
+					return err
+				}
+				return os.Rename(target.Name(), destination)
+			})
 			if !generatingBindings {
 				var updateCtx context.Context
 				updateCtx, cancelUpdates = context.WithCancel(ctx)

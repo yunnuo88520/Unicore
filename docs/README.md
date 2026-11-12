@@ -28,7 +28,7 @@
 
 ## 应用开发
 
-从 [应用开发指南](product/development.md) 和 [笔记业务样板](03-runbooks/business-example.md) 开始。
+按 [创建自己的应用](product/development.md) → [第一次体验](product/index.md) → [第一个功能](product/first-feature.md) 阅读；[笔记业务样板](03-runbooks/business-example.md) 用于定位源码。
 
 | 任务 | 权威入口 |
 | --- | --- |
@@ -46,3 +46,5 @@
 贡献者阅读 [CONTRIBUTING](../CONTRIBUTING.md) 和 [代码规范](02-standards/coding.md)，按任务选择相关规范与 Skill。重大选择记录在 [ADR](adr)，产品目标见 [PRD](00-product/PRD.md)；这些不是每次开发的必读全集。新增或修改功能前先读 [产品形态与能力边界规范](00-product/product-forms.md)（三形态定义、能力矩阵与硬边界），功能盘点与呈现规则见 [功能适用性清单](00-product/feature-inventory.md) 与 [功能呈现与访问规范](00-product/feature-presentation.md)。
 
 维护者按需查 [发行流程](03-runbooks/release.md)、[开源维护](03-runbooks/open-source.md) 和 [Wiki 同步](wiki/README.md)。真实支持状态看当前 CI 与目标环境检查；过程报告、实验快照和工作区记录不进入源码文档。
+
+派生应用的创建、框架源码升级、冲突处理和通用问题反馈见[框架升级指南](product/framework-upgrade.md)。

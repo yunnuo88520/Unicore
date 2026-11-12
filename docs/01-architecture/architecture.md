@@ -1,13 +1,13 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 当前架构
 
-共享业务依赖链：`entry → adapter → usecase → domain`。`internal/contracts` 从 OpenAPI 生成；domain 无传输/DB/身份依赖。CLI 只调用 bootstrap.Core；Web 装配 install、业务 Repository 与按安装 profile 初始化的平台身份；桌面装配 bootstrap/local 的 SQLite、appearance settings 与笔记 Repository，不引入平台模块。当前开发基座见 [ADR-0017](../adr/ADR-0017-developer-kit-business-backup.md)，下方保留历史增量的决策来由。
+共享业务依赖链：`entry → adapter → usecase → domain`。`internal/contracts` 从 OpenAPI 生成；domain 无传输/DB/身份依赖。CLI 只调用 bootstrap.Core；Web 装配 install、业务 Repository 与按安装 profile 初始化的平台身份；桌面装配 bootstrap/local 的 SQLite、笔记 Repository 与 filelocal 本地附件，不引入平台模块。当前开发基座见 [ADR-0017](../adr/ADR-0017-developer-kit-business-backup.md)，下方保留历史增量的决策来由。
 
 数据库采用 [ADR-0024](../adr/ADR-0024-pre1-migration-squash.md) 的 core/platform/module.notes 与统一 namespace 账本，0.x 开发库不保证兼容。安装与启动已统一执行 `migrations/runner.Apply`（Catalog 单轨，基线直接定义 `unicore_` 前缀终态），旧 42+4 份 SQL 与旧执行器已删除；写前拒绝矩阵见 [ADR-0025](../adr/ADR-0025-baseline-catalog-semantics.md) 的 R1.0c 补记。顺序由依赖拓扑生成。
 
 ```text
 React web-ui → AppClient → HTTP adapter → install / platform / settings / notes
-                      └→ Wails bridge → local appearance / notes
+                      └→ Wails bridge → local notes / files
 CLI / HTTP / Wails → usecase.Executor → domain.Analyze
 HTTP / Wails → usecase.Notes → domain.Note / NoteRepository port → SQL adapter
 离线 unicore-ops → maintenance → 加密快照 / 新目标恢复（不进入业务 CLI）
@@ -47,7 +47,7 @@ SQLite adapter 统一将文件路径绝对化并生成空 authority、正确转�
 
 ## 界面与扩展
 
-HttpTransport 管理 cookie/CSRF 与 WebClient；页面不直接 fetch。WailsTransport 提供 bootstrap/execute/appearance settings/notes，没有 Web 身份/安装接口。SessionBoundary 按会话代际隔离 Query cache/组件状态，SDK epoch 拒绝旧响应，多标签页同步失效；routes.ts 登记元数据、router.tsx 以 TanStack Router 代码式路由树挂载页面（Web history 导航、桌面 hash、管理端动态 basepath），canAccess 在壳层门禁裁剪；lib/form.tsx 的 RHF 表单经 constraintsToZod 契约校验处理提交错误。TanStack Query 管理状态；DashboardWidgetRegistry 以唯一 id 扩展业务首页。工作台概览为默认首页，不再提供重复平台仪表盘；操作与投递记录通过独立系统日志页读取真实数据。
+HttpTransport 管理 cookie/CSRF 与 WebClient；页面不直接 fetch。WailsTransport 提供 bootstrap/execute/设备级外观/notes，没有 Web 身份/安装接口。SessionBoundary 按会话代际隔离 Query cache/组件状态，SDK epoch 拒绝旧响应，多标签页同步失效；routes.ts 登记元数据、router.tsx 以 TanStack Router 代码式路由树挂载页面（Web history 导航、桌面 hash、管理端动态 basepath），canAccess 在壳层门禁裁剪；lib/form.tsx 的 RHF 表单经 constraintsToZod 契约校验处理提交错误。TanStack Query 管理状态；DashboardWidgetRegistry 以唯一 id 扩展业务首页。工作台概览为默认首页，不再提供重复平台仪表盘；操作与投递记录通过独立系统日志页读取真实数据。
 
 平台主题只存在当前客户端 localStorage，不读取/保存全局默认主题；普通用户只渲染本地外观卡片。单机/桌面的本地默认主题仍在设置注册表，设备偏好优先。设置使用共享可键盘操作的单层 Tabs，品牌图片使用三张并列卡片，外观卡片合并到设置、兼容旧 #settings 地址；主标签由 #site?tab=… 保留；按当前分组构造 PATCH，跨标签保留表单/图片预览草稿。UI 路由在桌面端以 hash history 复用，Web 使用 history 导航；/install、可配置后台入口由服务器处理，深链依赖既有 SPA fallback。light/dark/system 与 375px 浏览器测试，表格可横向滚动但页面不溢出。
 
@@ -75,7 +75,7 @@ internal/platform/Accounts 编排独立注册/邮箱验证策略、后缀与黑�
 
 当前身份与授权以 [ADR-0037](../adr/ADR-0037-unified-user-identity.md) 和 [角色需求](../00-product/feature-roles.md) 为准：统一 users/user_roles/session/account 安全存储，用户与管理工作台共用账号；角色可以跨工作台组合业务与管理权限，多角色各类授权分别取并集。前端隐藏不构成权限控制，服务端始终校验契约、权限点、operation grant、超级管理员保留策略和 CSRF。角色变更仅超管执行，事务重查身份与权限，保护最后启用及最后有本地密码超管。角色/状态/密码变化撤销共享会话。
 
-导航仍采用 ADR-0036 的 surface=user|administrator 区域树，两种 surface 描述工作台而非独立账号域；个人文件、头像与笔记归属固定为 user。部门、岗位与数据范围面向统一账号。公开注册与 JIT 只能创建 user，外部身份声明不自动授权。非平台形态不装配账号体系。旧双域 ADR 仅保留历史决策背景。
+导航仍采用 ADR-0036 的 surface=user|administrator 区域树，两种 surface 描述工作台而非独立账号域；笔记与业务文件归属为 user，头像使用独立 avatar 文件域。部门、岗位与数据范围面向统一账号。公开注册与 JIT 只能创建 user，外部身份声明不自动授权。非平台形态不装配账号体系。旧双域 ADR 仅保留历史决策背景。
 
 ## M3a 企业身份
 
@@ -107,7 +107,7 @@ React 的独立可折叠导航、Radix dialog 弹层、头像密码/退出、邮
 
 ## 文件存储
 
-[ADR-0015](../adr/ADR-0015-file-storage.md)：internal/blob.Store 隔离字节存储，internal/files 通过 Repository/Factory ports 管理元数据、本人身份域权限、临时签名和持久清理；filesql 与 bloblocal/blobcloud 分别适配 SQL 与存储。install 只在平台装配 files/云 adapter，桌面不装配运行时品牌或文件服务；CLI 无文件/SQL/云依赖。0009 新增位置、文件、清理三表。文件保留 location_id，默认切换不改变旧位置；staging 条件复制完成后才能访问，文件迁移校验成功才切换引用。公开规范化品牌例外保留当前引用路由，并通过平台元数据适配访问。
+[ADR-0015](../adr/ADR-0015-file-storage.md) 与 [ADR-0043](../adr/ADR-0043-business-file-boundaries.md)：blob.Store 隔离字节存储，files 通过 Repository/Factory 管理归属、会话、签名与持久清理。Platform 装配本地/云及治理面；Standalone 两载体由 filelocal 装配本地文件，桌面通过原生桥分片和系统保存对话框。文件四表归 core@1；本地 bytes、分片、元数据和实例密钥整体备份。
 
 ## 双入口与本地业务界面
 
@@ -131,17 +131,17 @@ React 的独立可折叠导航、Radix dialog 弹层、头像密码/退出、邮
 
 ## 业务实体与公告
 
-[ADR-0021](../adr/ADR-0021-business-entities-announcements.md) 统一嵌入式 BaseEntity、软删除/版本及实体/DTO 映射，完整分层示例为公告模块。当前公告/接收人/首次阅读结构已在 Catalog `platform@1` 基线，站内信、任务登记与头像引用追加为 `platform@3`；旧轨 0011/0015 不是当前执行入口。用户在顶部铃铛查看；未读统计、接收资格与有效期在 SQL 分页前校验。公告仅平台装配，admin/user 固定接口与最小用户投影，写事务重查管理员，安全 Markdown/HTML 通过渲染 port 接入。规范与例外见 [backend.md](../02-standards/backend.md)。
+[ADR-0021](../adr/ADR-0021-business-entities-announcements.md) 统一嵌入式 BaseEntity、软删除/版本及实体/DTO 映射，完整分层示例为公告模块。当前公告/接收人/首次阅读结构已在 Catalog `platform@1` 基线，站内信、任务登记与头像引用均在 `platform@1`；旧轨 0011/0015 不是当前执行入口。用户在顶部铃铛查看；未读统计、接收资格与有效期在 SQL 分页前校验。公告仅平台装配，admin/user 固定接口与最小用户投影，写事务重查管理员，安全 Markdown/HTML 通过渲染 port 接入。规范与例外见 [backend.md](../02-standards/backend.md)。
 
 `internal/realtime` 为当前进程提供 SSE 用户通知；公告事务落库站内信后通知客户端重新查询。无持久事件重放或跨实例总线，站内信与公告阅读分别保存，查询按原公告当前可见性过滤。连接建立及推送/心跳前复核会话与强制两步验证，详情和写入仍单独鉴权。`internal/scheduler` 使用 robfig/cron 管理代码注册任务，数据库保存启停与运行摘要；默认 mail.queue、files.cleanup、announcements.refresh，管理接口只提供查询、启停和触发，不提供任意脚本或分布式调度。详见 [公告](../03-runbooks/announcements.md) 与 [管理工具](../03-runbooks/admin-tools.md)。
 
-持久上传会话采用 blob.Multipart / PartReceiver 扩展，files 编排服务端权威分片与安全发布，filesql 存储不可变分片几何；长流不持有全局锁，确认复核删除状态。平台 schema=12，客户端复用 SDK 与 FileUploadDialog，见 [ADR-0022](../adr/ADR-0022-resumable-uploads.md)。
+持久上传会话采用 blob.Multipart / PartReceiver，files 编排权威分片与安全发布，filesql 持久化不可变几何；长流不持有全局锁，确认复核删除状态。上传会话在 core@1，共享 SDK/FileUploadDialog，见 ADR-0022 与 ADR-0043。
 
 Web 安装完成还写入私有 install.lock，配置中的 lock_version 区分历史无锁版本与明确删锁。只有启动边界检测到已启用锁的已安装实例缺锁，才转为带私有原库归属证明的重装 intent；新凭据、原库显式清空确认及别站/未知库拒绝均由后端执行，见 [ADR-0028](../adr/ADR-0028-explicit-installation-unlock.md)。框架表固定 unicore_，派生身份不参与数据库命名，兼容重命名见 [ADR-0029](../adr/ADR-0029-fixed-framework-table-prefix.md)。
 
 ## 个人中心与会话安全
 
-[ADR-0031](../adr/ADR-0031-personal-center-security.md) 在 platform.Personal 与 platformsql 增加本人资料、邮箱换绑、验证器与设备事务；共享 UI/SDK 只调用契约 operation。SQL Session 统一拦截尚未完成 TOTP 的登录，密码/邮件/OIDC 均不能绕过；bootstrap 只给受限挑战状态和 CSRF。安装锁事务原子消费计数器/恢复码，邮箱证明绑定原邮箱与同一会话，审计不含秘密。当前结构在 `platform@1` 基线，`platform@3` 追加头像 file_id 引用；个人资料通过同身份域文件服务校验所有权并返回短期访问 URL，不能持久化外部 URL。单机/桌面不装配身份。
+[ADR-0031](../adr/ADR-0031-personal-center-security.md) 在 platform.Personal 与 platformsql 增加本人资料、邮箱换绑、验证器与设备事务；共享 UI/SDK 只调用契约 operation。SQL Session 统一拦截尚未完成 TOTP 的登录，密码/邮件/OIDC 均不能绕过；bootstrap 只给受限挑战状态和 CSRF。安装锁事务原子消费计数器/恢复码，邮箱证明绑定原邮箱与同一会话，审计不含秘密。当前结构在 `platform@1` 基线，`platform@1` 包含头像 file_id 引用；个人资料通过同身份域文件服务校验所有权并返回短期访问 URL，不能持久化外部 URL。单机/桌面不装配身份。
 
 管理员工作台 `GET /admin/dashboard` 由 admin:access 保护，返回真实用户概览、审计摘要与按 UTC 日分组的近七天活动；Recharts widget 经 AppClient/Query 读取。用户与文件 XLSX 由 HTTP adapter 用 excelize 处理有界工作簿，SDK 负责带会话/CSRF 的二进制下载或 multipart 导入。列可见性复用设备偏好；Platform 的独立 403 与 404 区分已登记页面权限和未知地址；Standalone 未提供的页面统一为 404，不显示管理员权限提示。在线 API 文档以本地打包的 Swagger UI 读取受配置开关控制的 `/openapi.json`，离线生成参考继续保留。
 

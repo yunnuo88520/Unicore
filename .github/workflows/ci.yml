@@ -65,6 +65,9 @@ jobs:
           UNICORE_TEST_MYSQL_DSN: unicore:unicore_ci_test@tcp(127.0.0.1:3306)/unicore_test
           UNICORE_ANNOUNCEMENT_POSTGRES_DSN: postgres://unicore:unicore_ci_test@127.0.0.1:5432/announcement_test?sslmode=disable
           UNICORE_ANNOUNCEMENT_MYSQL_DSN: unicore:unicore_ci_test@tcp(127.0.0.1:3306)/announcement_test
+      - name: Verify a genuinely renamed downstream application
+        if: hashFiles('project.provenance.json') == ''
+        run: pnpm verify:derived
       - run: pnpm build && make build-web build-cli build-ops
       - run: pnpm exec playwright install --with-deps chromium
       - run: make test-e2e

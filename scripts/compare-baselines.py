@@ -26,17 +26,18 @@ for combo in ['sqlite-web-platform', 'sqlite-web-standalone', 'sqlite-desktop', 
     new = json.loads((output / (combo + '.json')).read_text())
     assert new['passed']
     after = new['schema']['tables']
-    expected_tables = 54 if profile == 'web-platform' else 5
+    expected_tables = 48 if profile == 'web-platform' else 9
     assert len(after) == expected_tables, (combo, 'table count', len(after))
     apps = set(after) - {'schema_migrations'}
     unprefixed = sorted(name for name in apps if not name.startswith('unicore_'))
     assert not unprefixed, (combo, 'framework tables without the fixed prefix', unprefixed)
     if profile == 'web-platform':
-        for name in ['unicore_personal_accounts', 'unicore_administrator_session_details',
+        for name in ['unicore_personal_accounts', 'unicore_session_details',
                      'unicore_announcement_reads', 'unicore_announcement_recipients',
                      'unicore_file_upload_sessions']:
             assert name in apps, (combo, 'merged terminal table missing', name)
-        for table in ('unicore_users', 'unicore_administrators'):
+        assert 'unicore_administrators' not in apps, (combo, 'obsolete split identity table')
+        for table in ('unicore_users',):
             columns = {c['name'] for c in after[table]['columns']}
             assert 'phone' in columns, (combo, 'phone column missing', table)
         columns = {c['name'] for c in after['unicore_platform_announcements']['columns']}
@@ -45,7 +46,7 @@ for combo in ['sqlite-web-platform', 'sqlite-web-standalone', 'sqlite-desktop', 
     if dialect == 'sqlite':
         intentional.append(dict(kind='sqlite_no_foreign_keys', reason='runtime keeps foreign_keys off; cascades live in the usecase layer'))
     sql_data = new['sql_only_data']
-    sql_seed_rows = {'unicore_storage_locations': 2, 'unicore_navigation_state': 1}
+    sql_seed_rows = {'unicore_storage_locations': 2 if profile == 'web-platform' else 1, 'unicore_navigation_state': 1}
     for name in apps:
         assert sql_data['row_counts'][name] == sql_seed_rows.get(name, 0), (combo, 'unexpected SQL data', name)
     seeded = new['post_seed_data']
@@ -54,7 +55,7 @@ for combo in ['sqlite-web-platform', 'sqlite-web-standalone', 'sqlite-desktop', 
         assert counts['unicore_roles'] >= 2 and counts['unicore_permissions'] >= 2, (combo, 'Seed grants missing')
         assert counts['unicore_role_permissions'] >= 2, (combo, 'Seed grant bindings missing')
         assert counts['unicore_storage_locations'] == 2, (combo, 'seed locations missing')
-    assert new['go_seed'].get('setting_count', 0) > 0, (combo, 'settings were not seeded')
+    assert (new['go_seed'].get('setting_count', 0) > 0) == (profile == 'web-platform'), (combo, 'instance setting scope')
     ledger = seeded['ledger']
     namespace_rows = {}
     for r in ledger:

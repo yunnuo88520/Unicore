@@ -4,7 +4,10 @@ package httpadapter
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -418,5 +421,125 @@ func TestRowCapabilitiesRespectActionGrants(t *testing.T) {
 	w = request("GET", "/api/v1/files", nil, fileCookie, "")
 	if err := json.Unmarshal(w.Body.Bytes(), &files); err != nil || !files.Data.Items[0].Capabilities.Delete {
 		t.Fatal("files:delete grant not honoured", w.Body.String(), err)
+	}
+}
+
+func TestBusinessUploadsUseBusinessGrantsAndExactOwnership(t *testing.T) {
+	manager, request := actionRouter(t)
+	adminCookie, adminCSRF := actionInstall(t, request)
+	_, _, identity, _ := manager.Services()
+	create := func(name string) (contracts.User, *http.Cookie, string) {
+		t.Helper()
+		user, err := identity.Create(t.Context(), contracts.UserCreate{Username: name, Email: name + "@example.test", Password: "test-password-strong", Role: "user"}, adminUser(t, manager).ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cookie, csrf := issueSession(t, manager, false, user)
+		return user, cookie, csrf
+	}
+	first, cookie, csrf := create("first")
+	_, otherCookie, otherCSRF := create("second")
+	for _, path := range []string{"/notes/files/policy", "/account/avatar/files/policy"} {
+		if w := request("GET", "/api/v1"+path, nil, cookie, ""); w.Code != 200 {
+			t.Fatal(path, w.Code, w.Body.String())
+		}
+	}
+	if w := request("GET", "/api/v1/files", nil, cookie, ""); w.Code != 403 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	input := contracts.MultipartUploadInput{OriginalName: "a.txt", MimeType: "text/plain", Size: 3, Fingerprint: fmt.Sprintf("%x", sha256.Sum256([]byte("abc")))}
+	for _, bad := range []contracts.MultipartUploadInput{input, {OriginalName: "large.png", MimeType: "image/png", Size: (2 << 20) + 1, Fingerprint: input.Fingerprint}} {
+		if w := request("POST", "/api/v1/account/avatar/files/multipart", bad, cookie, csrf); w.Code != 400 {
+			t.Fatal(w.Code, w.Body.String())
+		}
+	}
+	w := request("POST", "/api/v1/notes/files/multipart", input, cookie, csrf)
+	if w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	var upload contracts.MultipartUploadResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &upload); err != nil {
+		t.Fatal(err)
+	}
+	id := upload.Data.File.FileID
+	if err := manager.Files().ReceiveUploadPart(t.Context(), files.Actor{ID: first.ID, Realm: "user"}, id, 1, strings.NewReader("abc"), 3); err != nil {
+		t.Fatal(err)
+	}
+	if w = request("POST", "/api/v1/notes/files/multipart/"+id+"/complete", nil, cookie, csrf); w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	for _, attempt := range []struct{ method, path string }{
+		{"GET", "/notes/files/multipart/" + id}, {"POST", "/notes/files/" + id + "/access"}, {"DELETE", "/notes/files/" + id}, {"POST", "/account/avatar/files/" + id + "/access"},
+	} {
+		if w = request(attempt.method, "/api/v1"+attempt.path, nil, otherCookie, otherCSRF); w.Code != 404 {
+			t.Fatal(attempt, w.Code, w.Body.String())
+		}
+	}
+	if w = request("GET", "/api/v1/notes/files", nil, otherCookie, ""); w.Code != 200 || strings.Contains(w.Body.String(), id) {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	// An unassociated file cannot be signed by supplying somebody else's note id.
+	if w = request("POST", "/api/v1/notes/files/"+id+"/access?note_id=missing", nil, cookie, csrf); w.Code != 404 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	// Avatar bytes must decode as an image even when their metadata says PNG.
+	input.OriginalName = "fake.png"
+	input.MimeType = "image/png"
+	w = request("POST", "/api/v1/account/avatar/files/multipart", input, cookie, csrf)
+	if w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &upload); err != nil {
+		t.Fatal(err)
+	}
+	id = upload.Data.File.FileID
+	if err := manager.Files().ReceiveUploadPart(t.Context(), files.Actor{ID: first.ID, Realm: "avatar"}, id, 1, strings.NewReader("abc"), 3); err != nil {
+		t.Fatal(err)
+	}
+	if w = request("POST", "/api/v1/account/avatar/files/multipart/"+id+"/complete", nil, cookie, csrf); w.Code != 400 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+
+	raw, err := base64.StdEncoding.DecodeString("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")
+	if err != nil {
+		t.Fatal(err)
+	}
+	input.Size = len(raw)
+	input.Fingerprint = fmt.Sprintf("%x", sha256.Sum256(raw))
+	w = request("POST", "/api/v1/account/avatar/files/multipart", input, cookie, csrf)
+	if w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &upload); err != nil {
+		t.Fatal(err)
+	}
+	id = upload.Data.File.FileID
+	if err := manager.Files().ReceiveUploadPart(t.Context(), files.Actor{ID: first.ID, Realm: "avatar"}, id, 1, bytes.NewReader(raw), int64(len(raw))); err != nil {
+		t.Fatal(err)
+	}
+	if w = request("POST", "/api/v1/account/avatar/files/multipart/"+id+"/complete", nil, cookie, csrf); w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	if w = request("PATCH", "/api/v1/account/profile", contracts.ProfileInput{DisplayName: "", AvatarFileID: &id}, cookie, csrf); w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	// Revoking note creation and update must revoke the upload helper endpoints too.
+	role := request("POST", "/api/v1/admin/roles", map[string]any{"name": "business-reader", "permissions": []string{"notes:access"}}, adminCookie, adminCSRF)
+	var created contracts.RoleResponse
+	if role.Code != 200 {
+		t.Fatal(role.Code, role.Body.String())
+	}
+	if err := json.Unmarshal(role.Body.Bytes(), &created); err != nil {
+		t.Fatal(err)
+	}
+	if w = request("PATCH", "/api/v1/admin/users/"+first.ID, contracts.UserUpdate{Role: rolePtr(created.Data.ID), Status: "active"}, adminCookie, adminCSRF); w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	cookie, csrf = issueSession(t, manager, false, first)
+	if w = request("POST", "/api/v1/notes/files/multipart", input, cookie, csrf); w.Code != 403 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	if w = request("GET", "/api/v1/account/avatar/files/policy", nil, cookie, ""); w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
 	}
 }

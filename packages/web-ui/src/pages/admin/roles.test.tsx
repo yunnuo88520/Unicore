@@ -316,7 +316,7 @@ it('selects read APIs for a page and preserves independent API grants when its m
   await userEvent.click(within(dialog).getByRole('checkbox', { name: '我的笔记' }));
   await userEvent.type(within(dialog).getByLabelText('角色名称'), '页面角色');
   await userEvent.click(within(dialog).getByRole('button', { name: '保存' }));
-  await vi.waitFor(() => expect(createRole).toHaveBeenCalledWith(expect.objectContaining({ menu_ids: [], action_ids: [], operation_ids: ['listNotes'] })));
+  await vi.waitFor(() => expect(createRole).toHaveBeenCalledWith(expect.objectContaining({ menu_ids: [], action_ids: [], operation_ids: ['listNotes', 'notesListFiles', 'notesFileUploadPolicy', 'notesMultipartUpload'] })));
 });
 
 it('grants management read APIs when a user-category role selects the users page', async () => {

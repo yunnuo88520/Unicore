@@ -69,7 +69,7 @@
 
 ## 升级与恢复
 
-当前使用 Catalog namespace 账本：日志与邮件结构在 `core@1` / `platform@1` 基线，模板值仍保存为系统设置；`platform@2` 数据字典、`platform@3` 站内信/任务登记/头像、`platform@4` 管理员域受限角色、`platform@5` 菜单树列、`platform@6` 部门与数据范围、`platform@7` 真实区域导航与菜单/动作/operation 授权（含旧菜单配置转换）、`platform@8` 岗位与用户多岗位关联。旧 schema 9/10/11 编号不再表示当前运行迁移等级，详见 [迁移规范](../02-standards/database-migrations.md)。
+当前使用 Catalog namespace 账本：日志与公共文件四表在 core@1，平台身份、治理、通知、菜单授权与个人中心均在 platform@1，笔记在 module.notes@1。三个 namespace 分方言基线各一份；首个 stable 后只能追加迁移，兼容与恢复见 [迁移规范](../02-standards/database-migrations.md)。
 
 先停服，按 [备份手册](backup.md) 保存 DB、完整私有目录/密钥及对象文件，再部署新程序并在实例启动边界迁移，检查日志、模板保存及任务状态。Tar 人工替换完整程序目录；Docker 由外部替换镜像并保留数据卷。恢复时停服，将匹配的升级前快照恢复到新目录/空专用库，再启动对应旧程序；不要仅覆盖旧 binary，也不要删除迁移记录或模板值来模拟恢复。MySQL DDL 可能部分提交，失败须核对结构或恢复匹配快照，不能承诺数据库自动回滚。
 

@@ -246,7 +246,7 @@ func business(s *sqlstore.Store, profile, temp, admin string) map[string]any {
 	result := map[string]any{}
 	scope := "local"
 	if profile == "web-platform" {
-		scope = "user:" + admin
+		scope = "user/" + admin
 	}
 	notes := notesusecase.Notes{Repo: &notessql.Repository{Store: s}}
 	input := contracts.NoteInput{Title: strings.Repeat("测", 120), Body: "baseline fixture", Status: "open", AttachmentIds: &[]string{}}
@@ -396,13 +396,13 @@ func main() {
 			check(reflect.DeepEqual(afterSeed, summary(s)), "constraint probes leaked data")
 			install := installSemantics(s)
 			businessResult := business(s, profile, dir, admin)
-			expected := 5
+			expected := 9
 			if profile == "web-platform" {
-				// 3 core + 49 platform (through platform@8) + 1 notes + 1 ledger.
-				expected = 54
+				// Unified accounts: 7 core + 39 platform + 1 notes + 1 ledger.
+				expected = 48
 			}
 			check(len(tables(s)) == expected, "table count changed: got %d want %d", len(tables(s)), expected)
-			write(filepath.Join(c.Output, id+".json"), map[string]any{"author": "yunnuo <ymz@ebox.vip>", "generated_evidence": true, "source_commit": c.Commit, "combination": id, "passed": true, "scope": "new SQL empty-fixture/real Seed/business validation on the catalog single track", "schema": schema, "sql_only_data": sqlOnly, "go_seed": seed, "post_seed_data": afterSeed, "all_text_and_composite_pk_null_checks": nulls, "behavior_probes": behavior, "install_state_semantics": install, "business": businessResult})
+			write(filepath.Join(c.Output, id+".json"), map[string]any{"author": "yunnuo <ymz@ebox.vip>", "generated_evidence": true, "source_commit": c.Commit, "combination": id, "passed": true, "scope": "new SQL empty-fixture/real Seed/business validation on the catalog single track", "schema": schema, "sql_only_data": sqlOnly, "go_seed": seed, "post_seed_data": afterSeed, "all_text_and_composite_pk_null_checks": nulls, "behavior_probes": behavior, "install_state_semantics": install, "business": businessResult, "upgrade": upgradeFixture(s, profile)})
 			combinations = append(combinations, map[string]any{"combination": id, "passed": true, "tables": expected, "null_key_probes": len(nulls)})
 			must(s.Close())
 			fmt.Println("PASS", id, expected, "tables; all text/composite NULL keys, real Seed and business behavior")

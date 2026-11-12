@@ -11,6 +11,8 @@ import { desktopDownloads } from './desktop-downloads.mjs';
 import { checkReleaseLayout } from './release-layout.mjs';
 import { loadIdentity } from './product-identity.mjs';
 
+import { migrationTarget } from './migration-target.mjs';
+
 const json = path => JSON.parse(readFileSync(path, 'utf8'));
 const hash = path => createHash('sha256').update(readFileSync(path)).digest('hex');
 function source(root) {
@@ -41,9 +43,9 @@ export function packageDesktop(root = process.cwd()) {
   for(const [feature,value] of Object.entries(readFeatures().features))if(compiledFeatures[feature]!==value)throw Error('Native feature flags differ from packaging flags');
   const platformSignature=verifyPlatform(built,json(join(root,'assets/brand/identity.json')).bundleId);
   if(process.env.UNICORE_PLATFORM_SIGNING==='required'&&targetOS!=='linux'&&platformSignature==='unsigned')throw Error('Required native signature is missing');
-  const metadata = {platform_signature:platformSignature,version,channel:'development',profile:'desktop',os:targetOS,arch,commit,build_time:new Date().toISOString(),features:readFeatures().features,migration_level:1,business_migration_level:1,offline_backup:false,signature:null};
+  const metadata = {platform_signature:platformSignature,version,channel:json(join(root,'assets/updates/config.json')).channel,profile:'desktop',os:targetOS,arch,commit,build_time:new Date().toISOString(),features:readFeatures().features,...migrationTarget('desktop', root),offline_backup:true,signature:null};
   writeFileSync(join(staging,'manifest.json'),JSON.stringify(metadata,null,2)+'\n');
-  writeFileSync(join(staging,'README.md'),`<!-- Author: yunnuo <ymz@ebox.vip> -->\n# ${loadIdentity(root).product.name} ${version}\n\n原生 ${targetOS}/${arch} 开发预览。macOS 推荐下载 DMG，将 app 拖到 Applications；Windows 推荐直接下载运行 exe；本归档解压后运行 ${binary}，同时供 OTA 使用。没有平台登录或管理功能。Linux 需要 GTK3/WebKitGTK 4.0，Windows 需要 WebView2。系统签名状态：${platformSignature}。unsigned 为未完成操作系统签名的开发预览；OTA 另须发行者签名清单。不承诺各系统窗口均已实测。\n\n## English\n\nNative ${targetOS}/${arch} development preview. On macOS, use the DMG and drag the app into Applications; on Windows, run the EXE directly. Extract this archive and run ${binary}; it also serves as the OTA transport. No platform login or administration is included. Linux needs GTK3/WebKitGTK 4.0; Windows needs WebView2. OS signature: ${platformSignature}. Unsigned previews have no OS signing/notarization; OTA separately requires the publisher-signed manifest. Not every native window has been manually exercised.\n\nhttps://github.com/yunnuo88520/Unicore/wiki\n`);
+  writeFileSync(join(staging,'README.md'),`<!-- Author: yunnuo <ymz@ebox.vip> -->\n# ${loadIdentity(root).product.name} ${version}\n\n原生 ${targetOS}/${arch} 发行归档。macOS 推荐下载 DMG，将 app 拖到 Applications；Windows 推荐直接下载运行 exe；本归档解压后运行 ${binary}，同时供 OTA 使用。没有平台登录或管理功能。Linux 需要 GTK3/WebKitGTK 4.0，Windows 需要 WebView2。系统签名状态：${platformSignature}。unsigned 表示未完成操作系统签名或公证；OTA 另须发行者签名清单。不承诺各系统窗口均已实测。\n\n## English\n\nNative ${targetOS}/${arch} release archive. On macOS, use the DMG and drag the app into Applications; on Windows, run the EXE directly. Extract this archive and run ${binary}; it also serves as the OTA transport. No platform login or administration is included. Linux needs GTK3/WebKitGTK 4.0; Windows needs WebView2. OS signature: ${platformSignature}. Unsigned artifacts have no OS signing/notarization; OTA separately requires the publisher-signed manifest. Not every native window has been manually exercised.\n\nhttps://github.com/yunnuo88520/Unicore/wiki\n`);
   checkReleaseLayout(staging, {profile:'desktop', os:targetOS, identity:loadIdentity(root), binary});
   const artifact = name+'.tar.gz';
   execFileSync('tar',['--no-xattrs','--no-acls','-czf',join(output,artifact),'-C',join(root,'build/native-staging'),name],{env:{...process.env,COPYFILE_DISABLE:'1'}});
@@ -55,11 +57,14 @@ export function packageDesktop(root = process.cwd()) {
 export function assembleRelease(directory, {version,commit}) {
   const manifest = json(join(directory,'manifest.json'));
   if (manifest.version !== version || !/^[a-f0-9]{40}$/.test(commit)) throw Error('Release version/source mismatch');
+  const channel = manifest.channel ?? 'preview';
+  if (!['preview','stable'].includes(channel)) throw Error('Invalid release channel');
   const artifacts = [...manifest.artifacts];
   for (const file of readdirSync(directory).filter(file=>file.endsWith('.manifest.json'))) artifacts.push(json(join(directory,file)));
   const seen = new Set(), targets = new Set(), downloads = [];
   for (const item of artifacts) {
     const target = `${item.profile}/${item.os}/${item.arch}`;
+    if ((item.channel ?? channel) !== channel) throw Error('Mixed release channels');
     if (item.version !== version || !/^[a-f0-9]{7,40}$/.test(item.commit) || !commit.startsWith(item.commit)) throw Error('Mixed version/source artifacts');
     if (!/^[a-zA-Z0-9._-]+\.tar\.gz$/.test(item.artifact) || seen.has(item.artifact) || targets.has(target)) throw Error('Invalid/duplicate release artifact');
     if (hash(join(directory,item.artifact)) !== item.sha256) throw Error(`Checksum mismatch: ${item.artifact}`);
@@ -82,7 +87,7 @@ export function assembleRelease(directory, {version,commit}) {
   if (archives.length !== seen.size || archives.some(file=>!seen.has(file))) throw Error('Unexpected archive in release bundle');
   artifacts.sort((a,b)=>a.artifact.localeCompare(b.artifact));
   writeFileSync(join(directory,'checksums.txt'),[...artifacts,...downloads].sort((a,b)=>a.artifact.localeCompare(b.artifact)).map(item=>`${item.sha256}  ${item.artifact}`).join('\n')+'\n');
-  writeFileSync(join(directory,'manifest.json'),JSON.stringify({version,source_commit:commit,channel:'development',artifacts},null,2)+'\n');
+  writeFileSync(join(directory,'manifest.json'),JSON.stringify({version,source_commit:commit,channel,artifacts},null,2)+'\n');
   for (const file of readdirSync(directory).filter(file=>file.endsWith('.manifest.json'))) rmSync(join(directory,file));
   for (const file of readdirSync(directory).filter(file=>file.endsWith('.checksums.txt'))) rmSync(join(directory,file));
   console.log(`Verified ${artifacts.length} release archives from ${commit}`);

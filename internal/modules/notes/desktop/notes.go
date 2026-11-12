@@ -5,12 +5,13 @@ package desktop
 import (
 	"context"
 	"errors"
+	"github.com/yunnuo/unicore/internal/files"
 
 	bridge "github.com/yunnuo/unicore/internal/adapter/desktop"
 	"github.com/yunnuo/unicore/internal/adapter/presenter"
-	"github.com/yunnuo/unicore/internal/modules/notes/storage/notessql"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/modules/notes/domain"
+	"github.com/yunnuo/unicore/internal/modules/notes/storage/notessql"
 	"github.com/yunnuo/unicore/internal/modules/notes/usecase"
 )
 
@@ -19,7 +20,13 @@ func init() {
 		if deps.Store == nil {
 			return
 		}
-		b.AttachNotes(&Responses{notes: &usecase.Notes{Repo: &notessql.Repository{Store: deps.Store}}})
+		notes := &usecase.Notes{Repo: &notessql.Repository{Store: deps.Store}}
+		if deps.Files != nil {
+			notes.Attachments = func(ctx context.Context, _ string, id string) error {
+				return deps.Files.ValidateAttachment(ctx, files.Actor{ID: "local", Realm: "local"}, id)
+			}
+		}
+		b.AttachNotes(&Responses{notes: notes})
 	})
 }
 

@@ -84,6 +84,30 @@ func TestSnapshotNotApplicableViews(t *testing.T) {
 	}
 }
 
+func TestStorageManagementViewFollowsInstalledForm(t *testing.T) {
+	for _, profile := range []contracts.Profile{"web-platform", "web-standalone", "desktop"} {
+		t.Run(string(profile), func(t *testing.T) {
+			calls := 0
+			service := New(Options{
+				Profile:   "web-platform",
+				ProfileOf: func() contracts.Profile { return profile },
+				Storage: func(context.Context) ([]contracts.StorageLocation, error) {
+					calls++
+					return []contracts.StorageLocation{{ID: "local", Provider: "local", Active: true}}, nil
+				},
+			})
+			view := service.Snapshot(context.Background()).Storage
+			if profile == "web-platform" {
+				if !view.Applicable || calls != 1 {
+					t.Fatalf("platform must expose its storage management view: %+v, calls=%d", view, calls)
+				}
+			} else if view.Applicable || view.Provider != nil || view.Probe != nil || calls != 0 {
+				t.Fatalf("local business files must not enable platform storage management: %+v, calls=%d", view, calls)
+			}
+		})
+	}
+}
+
 func deref(value *string) string {
 	if value == nil {
 		return ""

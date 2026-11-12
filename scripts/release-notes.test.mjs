@@ -23,6 +23,14 @@ test('notes use actual bundle targets and native downloads, with exact provenanc
   assert(!result.includes('desktop-windows'));
   assert(!result.includes('yunnuo88520'));
   assert(!result.includes('Old monolingual history'));
+  const stable = renderRelease({...options,releaseKind:'stable'});
+  assert.match(stable,/Stable release/);
+  assert.match(stable,/正式发行版/);
+  assert(!stable.includes('not a stable release'));
+  assert(!stable.includes('没有公开注册表镜像'));
+  assert.throws(() => renderRelease({...options,releaseKind:'stable',manifest:{...options.manifest,channel:'preview'}}), /channel/i);
+  assert.throws(() => renderRelease({...options,manifest:{...options.manifest,channel:'stable'}}), /channel/i);
+  assert.throws(() => renderRelease({...options,releaseKind:'unknown'}));
   assert.throws(() => renderRelease({...options, version:'1.2.4'}));
   assert.throws(() => renderRelease({...options, ciRun:'wrong'}));
   assert.throws(() => renderRelease({...options, repository:'https://example.test'}));

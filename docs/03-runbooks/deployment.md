@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 运行、安装与恢复边界
 
-当前为开发预览，已有安装、身份、持久数据、邮件账号、OIDC 与离线加密备份恢复。真实授权仍为占位；签名 OTA 与系统签名/公证流程见 [更新手册](updates.md)，正式开发者凭据与生产部署需对应验收。
+当前为开发预览，已有安装、身份、持久数据、邮件账号、OIDC 与离线加密备份恢复。真实授权仍为占位；签名 OTA 与可选系统签名流程见 [更新手册](updates.md)，直接分发不要求 OS 开发者凭据；生产部署需对应验收。
 
 ## Web
 
@@ -25,7 +25,7 @@
 
 三种数据库都必须点击“测试连接”成功才能继续，任何连接字段改变使结果失效。测试只连接和检查已有对象/安装标记，不清空、不迁移。空库直接创建；非空专用库显示数量和不可逆警告，必须先备份，再勾选并输入完全一致的库名。MySQL 清空选定库的表和视图，PG 限独占 public schema 并拒绝其他用户 schema，SQLite 固定私有 unicore.db。正常安装不能清空已有实例标记；管理员重开向导后的本站原库例外见下方。MySQL 清空可部分完成，修正权限后重新测试、确认；不能靠重启自动继续删除。
 
-结构化字段经驱动安全构造 DSN，密码特殊字符无需自行转义；旧 API dsn 仅兼容保留。持久配置是 AES-GCM 密文，错误不回传连接串。TLS 为显式开关且默认关闭，适配本机与内网直连；开启后加密传输但不校验证书（自签名可用），需要严格证书校验的目标库通过旧版 dsn 配置 sslmode。详细规则见 [安装规范](../00-product/feature-installation.md)。
+结构化字段经驱动安全构造 DSN，密码特殊字符无需自行转义；旧 API dsn 仅兼容保留。持久配置是 AES-GCM 密文，错误不回传连接串。TLS 提供关闭、仅加密、校验证书与主机名三种模式；远程数据库推荐第三种，结构化 tls_verify=true 生成 MySQL tls=true / PostgreSQL verify-full。私有 CA 与备份工具的配置见 [数据库连接配置](../product/configuration.md#数据库-tls-与证书)。详细规则见 [安装规范](../00-product/feature-installation.md)。
 
 ## 管理员重装
 
@@ -63,7 +63,7 @@ Web 程序内置 `manage` 交互菜单与 Linux/systemd 的 `service install`、
 
 live 是进程存活；ready 要求已安装并 DB Ping 成功。测试通过独立临时目录/DB，不能使用生产数据库。提供 PostgreSQL/MySQL 测试 DSN 后 make test 会真实建表，仅用于空测试库。
 
-当前提供独立的 `unicore-ops` 离线加密备份/校验/恢复命令，Web tar 随包提供。先停止全部实例/worker 或退出桌面，成套保存 DB、私有文件、配置、原密钥及云文件；恢复到新的目录和空专用库，详见 [备份恢复](backup.md)。在线备份、定时调度和 PITR 尚未实现，不承诺不可逆 DDL 后只回滚二进制可恢复数据。
+Web 发行包通过 `unicore backup|verify|restore` 离线加密备份/校验/恢复；源码与桌面运维可构建独立 `unicore-ops`。先停止全部实例/worker 或退出桌面，成套保存 DB、私有文件、配置、原密钥及云文件；恢复到新的目录和空专用库，详见 [备份恢复](backup.md)。在线备份、定时调度和 PITR 尚未实现，不承诺不可逆 DDL 后只回滚二进制可恢复数据。
 
 ## SMTP、注册与密码恢复
 
@@ -73,7 +73,7 @@ live 是进程存活；ready 要求已安装并 DB Ping 成功。测试通过独
 
 账号邮件使用持久队列，由 server 进程运行。「系统管理 → 操作日志 → 邮件投递」展示最近 30 项的状态/尝试次数，失败自动重试最多 5 次，终止后由用户在登录页重新申请，避免把已过期验证码重新投入队列。错误仅显示 DELIVERY_FAILED/EXPIRED，不保留原始 SMTP 响应或凭据。进程重启可恢复过期租约，可能重复投递，邮件令牌仍只能使用一次。完成/终止/取消清空载荷，终态元数据在后台清理时保留最多 7 天。
 
-M2a 升级前停服务并成套备份 DB、installation.json 与原密钥；新 server 验证实例归属后自动执行平台 0003/0004。迁移只增加表，重复启动校验 checksum，已有账号/设置保持。数据库权限不足时启动失败，修正后重试，不删版本记录。降级二进制前关闭注册/恢复/邮箱登录、停止 worker；旧版本无法处理邮件和新策略，完整恢复以原生一致性备份为准。
+数据库初始化与后续迁移由 Catalog 单轨执行；当前基线已含账号、通知与邮件所需表。正式版后升级只追加命名空间版本，停服并保存完整快照，正常启动应用缺失尾部；失败不得删账本或重走安装。
 
 验证链接有效 30 分钟、重置链接 15 分钟。重发使旧链接失效，密码重置使所有设备会话失效。用户状态/角色被管理员改变也会撤销待用令牌。邮箱验证不会自动登录或授予管理权限。管理员通过受保护的用户管理手动启用待验证用户属于显式管理操作。
 
@@ -87,16 +87,6 @@ Web 收到 SIGINT/SIGTERM 后停止接收新请求，等待在途请求默认最
 
 桌面生产/开发 bundle ID 分别为 vip.ebox.unicore 和 vip.ebox.unicore.dev，不再使用框架默认标识；本地数据目录不因该标识改变。旧目录中复制出的应用包需要重新构建/替换才能更新图标；本次只验证仓库生成的包，不自动删除系统内其他副本或清理全局图标缓存。
 
-## 固定两角色升级（平台迁移 0007）
-
-本节记录历史迁移 0007 的行为，当前程序还会继续执行后续平台迁移和独立业务账本，不能把 0007 当作当前最终等级。升级前停止 server 与 worker，确认没有其他实例连接同一数据库；成套备份 DB、私有 data dir、installation.json 与原实例密钥。SQLite/PostgreSQL 使用迁移事务，MySQL 采用幂等 DML，失败修正后可重启继续，不能删除迁移记录绕过检查，历史 checksum 不变。
-
-管理员 super_admin 保留；所有旧自定义角色关联移除，无内置角色的账号归为 user；同时关联管理员和其他角色的账号仅保留管理员。账号、密码、邮箱及其他设置保留。自定义角色和普通用户 grants 删除，角色页改为只读两角色矩阵。全部存量会话、账号令牌、数字码和 OIDC 授权流程失效；pending/sending 邮件取消且清空载荷，已投递历史保留。升级后所有用户重新登录，未完成的验证/找回需重新申请。
-
-appearance.theme 已从全部实例设置删除，主题只存当前浏览器或 WebView；已有客户端的本地选择保留，没有本地选择时跟随系统。所有图形入口统一使用右上角外观控件，不提供外观设置页，管理员管理所有全局配置。单机/桌面只运行 framework 迁移，不受平台数据收敛影响。
-
-验收：用原管理员登录管理端，检查用户数量/两角色、站点与 SMTP 配置状态；普通用户端检查无管理菜单，普通用户会话访问管理 API 被拒绝，外观保存只影响本客户端。0007 含删除旧角色/凭据，不能只换旧 binary 回退。恢复时停服，使用 [离线备份恢复工具](backup.md) 恢复同一时间点的数据库、data dir、installation.json、密钥和匹配版本程序，禁止用新配置配旧 DB。每个受支持数据库分别验证，不用单方言结果推断其他方言。
-
 ## M3a OIDC 接入与恢复
 
 仅平台启用。先确认安装登记的 BaseURL 为对外 HTTPS origin，再在企业 IdP 创建 OIDC 应用，登记「系统管理 → 系统设置 → 基础设置 → 企业登录」中服务检查显示的精确 callback（包括 scheme/host/port/path）。用户与管理员回调分别为 `/api/v1/auth/oidc/callback`、`/api/v1/admin/auth/oidc/callback`，需要的地址均须登记到 IdP 白名单。默认使用 openid email profile；授权码、PKCE S256、签名 ID token 是必需条件。若使用机密客户端，支持 client_secret_basic/client_secret_post；public client 可不填密钥。绑定要求 IdP 支持 prompt=login/max_age=0 并返回新鲜 auth_time。
@@ -109,7 +99,7 @@ appearance.theme 已从全部实例设置删除，主题只存当前浏览器或
 
 始终保留一个已验证能密码登录的本地超管。IdP 故障时使用登录页的本地账号入口，关闭 oidc.enabled 或修复配置；不删除绑定表。Client Secret 轮换先在 IdP 配置，再在本地保存新值，旧授权会因配置指纹变化失败，需要重新发起。修改 OIDC 配置不撤销已建立 session，如需立即撤销，应禁用对应本地账号。
 
-历史平台迁移 0006 新增企业身份与加密 flow 表，后续 0008 拆分管理员身份表；当前启动按顺序校验并执行后续迁移，单机/桌面不装配 OIDC。该阶段已验证空库、0005 升级、重复执行、部分 DDL 后重试与原有账号保持。升级前停服并保存一致的 DB/installation.json/密钥；降级须恢复完整成套快照，SSO-only 用户无法直接使用旧版密码登录。当前可手动使用 [unicore-ops](backup.md)，没有自动在线回滚。
+当前统一账号的 OIDC 表包含在 platform@1 基线中，单机/桌面不装配 OIDC。开发期旧分表库不提供原地升级；恢复使用匹配程序与完整快照。
 
 本机验收使用 tests/oidcprovider，只编入测试工具，不进入发布物。`make build-web && pnpm test:e2e` 自动构建该隔离服务，不需要真实企业凭据或外部邮件。
 
@@ -138,20 +128,12 @@ make release FEATURE_LICENSE=true FEATURE_UPDATER=false
 
 前端产物 features.json 记录编译能力；后端 bootstrap.capabilities 返回实际装配能力，CLI 始终 false。页面同时检查两端能力，任一端关闭都不显示；普通用户不能读取平台版本/更新能力。打开更新页先读本机历史，仅主动检查才联网；手动安装必须通过发行签名与兼容性校验。授权开启后仍显示待对接卡片。测试构建和 E2E 同样传入相同变量，部署和恢复要求见 [更新手册](updates.md)。
 
-## 管理员身份拆分升级（0008）
-
-仅 web-platform 执行。先停全部实例，使用对应数据库的原生一致性备份，并备份完整私有数据目录（installation.json、secret.key/外部密钥引用、品牌文件等）；在隔离副本先恢复并验证。新程序启动时自动运行连续迁移并校验 checksum，完成前不接流量。0008 保留原管理员 ID、密码和企业绑定，迁到 administrators 及配套表，再从普通 users 移除；普通用户数据保留。旧会话、验证码和待发邮件失效，所有账号需重新登录/申请验证码。
-
-MySQL DDL 可能已提交，失败后保持停服，解决错误并用同版本程序重试，不删除迁移表、不手改 checksum、不重走 /install。数据转移使用防重复复制与幂等删除。需要回退时停服，恢复整套备份与对应旧程序，不能只回退二进制。没有在真实用户库上执行迁移。
-
-普通用户从 / 或 /login 登录；管理员从配置 admin.path（默认 /admin）登录。后台 API 客户端使用固定 /api/v1/admin/auth/*、account/*、files/* 与 admin/bootstrap；用户使用无 admin 前缀的对应路径，身份请求头不再生效；Cookie 分别为 unicore_administrator_session/unicore_session。后台 HTML 可匿名读取登录界面，所有管理 API 仍校验真实管理员。IdP 须同时登记 /api/v1/auth/oidc/callback 与 /api/v1/admin/auth/oidc/callback；后台地址改名不影响固定回调。管理员禁止 JIT。
-
-## 对象存储与 0009 升级
+## 对象存储与恢复
 
 在线平台启动新增存储位置、文件元数据和持久清理表；保留旧品牌目录，旧引用惰性登记，不自动挪动已有文件。默认本地，管理员测试后才激活云位置；配置、签名访问、跨域、Nginx 上传限制、迁移/清理和恢复边界见 [存储手册](storage.md)。tar/Docker 都把元数据 DB、私有数据目录和实例密钥独立持久化，切换容器或二进制不能丢弃这些数据；云桶需独立备份。
 
 当前双入口、单机边界和升级兼容说明见 [ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md)。
 
-当前已有 [私有对象存储](storage.md) 和 [离线加密备份恢复](backup.md)；旧阶段中“后续备份/对象存储”的描述仅代表当时边界。新业务样板迁移在实例启动时创建独立 business_migrations，框架历史迁移 checksum 不变。
+当前已有 [私有对象存储](storage.md) 和 [离线加密备份恢复](backup.md)；旧阶段中“后续备份/对象存储”的描述仅代表当时边界。业务模块迁移登记 module.<slug>，与框架共用四列 schema_migrations 账本；不另建 business_migrations。
 
 系统更新以 [ADR-0018](../adr/ADR-0018-signed-updates.md) 取代升级占位：FEATURE_UPDATER 默认 true，FEATURE_LICENSE 默认 false。平台仅管理员，单机/桌面可看内置离线日志，Docker 不执行应用内安装。Tar 默认 systemd 模板未开放安装目录写权限，启用 OTA 前必须按 [更新手册](updates.md) 配置安装根、supervisor 与目录权限。

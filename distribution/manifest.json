@@ -99,6 +99,18 @@
       "site_group": "develop"
     },
     {
+      "source": "docs/product/first-feature.md",
+      "target": "docs/product/first-feature.md",
+      "audiences": [
+        "project-template",
+        "public-wiki",
+        "public-site"
+      ],
+      "slug": "First-Feature",
+      "title": "第一个功能：笔记标签",
+      "site_group": "develop"
+    },
+    {
       "source": "docs/product/ui-components.md",
       "target": "docs/product/ui-components.md",
       "audiences": [
@@ -401,9 +413,22 @@
       "slug": "API-Authentication",
       "title": "客户端与 API 认证",
       "site_group": "guide"
+    },
+    {
+      "source": "docs/product/framework-upgrade.md",
+      "target": "docs/product/framework-upgrade.md",
+      "audiences": [
+        "project-template",
+        "public-wiki",
+        "public-site"
+      ],
+      "slug": "Framework-Upgrades",
+      "title": "派生开发与框架升级",
+      "site_group": "develop"
     }
   ],
   "template_files": [
+    ".agents/skills/framework-upstream/SKILL.md",
     ".dockerignore",
     ".gitattributes",
     ".github/actions/ubuntu-mirrors/action.yml",
@@ -467,9 +492,6 @@
     "internal/webmanage/menu.go",
     "internal/webmanage/service.go",
     "migrations/README.md",
-    "migrations/platform/mysql/0009_task_customization.sql",
-    "migrations/platform/postgres/0009_task_customization.sql",
-    "migrations/platform/sqlite/0009_task_customization.sql",
     "migrations/runner/runner_test.go",
     "packages/form/README.md",
     "packages/form/src/fields.test.tsx",
@@ -499,7 +521,7 @@
     "product.identity.json",
     "scripts/audit-dependencies.test.mjs",
     "tests/e2e/error-pages.spec.ts",
-    "tests/e2e/gva-capture.spec.ts",
+    "tests/e2e/navigation-editor.spec.ts",
     "tests/e2e/home.spec.ts",
     "tests/e2e/human-check.spec.ts",
     "tests/e2e/monitor.spec.ts",
@@ -637,7 +659,10 @@
     "internal/adapter/desktop/bridge_test.go",
     "internal/adapter/desktop/module.go",
     "internal/adapter/desktop/updates.go",
-    "internal/adapter/http/AGENTS.md",
+    {
+      "source": "distribution/template/agents/http.md",
+      "target": "internal/adapter/http/AGENTS.md"
+    },
     "internal/adapter/http/accounts.go",
     "internal/adapter/http/accounts_test.go",
     "internal/adapter/http/action_permissions_test.go",
@@ -897,32 +922,8 @@
     "migrations/modules/notes/postgres/0001_initial.sql",
     "migrations/modules/notes/sqlite/0001_initial.sql",
     "migrations/platform/mysql/0001_initial.sql",
-    "migrations/platform/mysql/0002_rbac_menus_dictionaries.sql",
-    "migrations/platform/mysql/0003_inbox_scheduler_avatars.sql",
-    "migrations/platform/mysql/0004_administrator_realm_roles.sql",
-    "migrations/platform/mysql/0005_menu_tree_links.sql",
-    "migrations/platform/mysql/0006_departments_data_scope.sql",
-    "migrations/platform/mysql/0007_navigation_authorization.sql",
-    "migrations/platform/mysql/0008_posts.sql",
-    "migrations/platform/mysql/0010_api_credentials.sql",
     "migrations/platform/postgres/0001_initial.sql",
-    "migrations/platform/postgres/0002_rbac_menus_dictionaries.sql",
-    "migrations/platform/postgres/0003_inbox_scheduler_avatars.sql",
-    "migrations/platform/postgres/0004_administrator_realm_roles.sql",
-    "migrations/platform/postgres/0005_menu_tree_links.sql",
-    "migrations/platform/postgres/0006_departments_data_scope.sql",
-    "migrations/platform/postgres/0007_navigation_authorization.sql",
-    "migrations/platform/postgres/0008_posts.sql",
-    "migrations/platform/postgres/0010_api_credentials.sql",
     "migrations/platform/sqlite/0001_initial.sql",
-    "migrations/platform/sqlite/0002_rbac_menus_dictionaries.sql",
-    "migrations/platform/sqlite/0003_inbox_scheduler_avatars.sql",
-    "migrations/platform/sqlite/0004_administrator_realm_roles.sql",
-    "migrations/platform/sqlite/0005_menu_tree_links.sql",
-    "migrations/platform/sqlite/0006_departments_data_scope.sql",
-    "migrations/platform/sqlite/0007_navigation_authorization.sql",
-    "migrations/platform/sqlite/0008_posts.sql",
-    "migrations/platform/sqlite/0010_api_credentials.sql",
     "migrations/runner/runner.go",
     "package.json",
     "packages/contracts/embed.go",
@@ -943,7 +944,10 @@
     "packages/form/src/fields.tsx",
     "packages/form/src/form.test.tsx",
     "packages/form/src/form.tsx",
-    "packages/sdk/AGENTS.md",
+    {
+      "source": "distribution/template/agents/sdk.md",
+      "target": "packages/sdk/AGENTS.md"
+    },
     "packages/sdk/package.json",
     "packages/sdk/src/index.test.ts",
     "packages/sdk/src/index.ts",
@@ -979,7 +983,10 @@
     "packages/ui/src/table.tsx",
     "packages/ui/src/tabs.tsx",
     "packages/ui/src/tooltip.tsx",
-    "packages/web-ui/AGENTS.md",
+    {
+      "source": "distribution/template/agents/web-ui.md",
+      "target": "packages/web-ui/AGENTS.md"
+    },
     "packages/web-ui/fixtures/upload-harness.tsx",
     "packages/web-ui/package.json",
     "packages/web-ui/src/App.test.tsx",
@@ -1172,7 +1179,20 @@
     "tests/storagefixture/cloud.go",
     "tests/storagefixture/main.go",
     "tsconfig.json",
-    "vitest.config.ts"
+    "vitest.config.ts",
+    "scripts/framework-real.test.mjs",
+    "distribution/template/agents/http.md",
+    "distribution/template/agents/sdk.md",
+    "distribution/template/agents/web-ui.md",
+    "scripts/verify-derived-project.mjs",
+    "tests/tooling/framework-source.mjs",
+    "scripts/migration-target.mjs",
+    "examples/notes-tag/apply.mjs",
+    "internal/maintenance/database_test.go",
+    "internal/bootstrap/updating/runtime_test.go",
+    "internal/bootstrap/filelocal/service.go",
+    "internal/adapter/desktop/files.go",
+    "internal/adapter/desktop/files_test.go"
   ],
   "ownership": {
     "product-owned": [

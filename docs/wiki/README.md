@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # Wiki 生成与同步
 
-公开用户 Wiki 的唯一页面清单是 distribution/manifest.json 中带 public-wiki audience 的 documents，与用户发行文档和项目模板共用来源。当前只使用 docs/product 的八篇指南。旧主题清单与旧首页已退役，不再维护另一份页面定义。
+公开用户 Wiki 的唯一页面清单是 distribution/manifest.json 中带 public-wiki audience 的 documents，与用户发行文档和项目模板共用来源。页面数量以白名单为准，不在正文维护固定计数。旧主题清单与旧首页已退役，不再维护另一份页面定义。
 
 生成前校验正文链接闭包：本地链接只能指向白名单页面；拒绝 ADR/研发证据和仓库 blob/tree 跨链，包括裸 URL、编码路径及不支持的 HTML/reference 链接。不能只隐藏侧栏。侧栏与页脚由当前公开清单生成。
 

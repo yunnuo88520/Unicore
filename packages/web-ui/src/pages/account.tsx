@@ -30,9 +30,11 @@ function ProfileEditor({ client, web, profile, onChanged, administrator }: { cli
   useLocale();
   const message = useMessage();
   const [emailOpen, setEmailOpen] = useState(false);
+  const avatarFiles = client.businessFiles?.('avatar') ?? client.files;
+  const avatarClient = { ...client, files: avatarFiles };
   const [avatarFileID, setAvatarFileID] = useState<string | null>(null);
   const [avatarOpen, setAvatarOpen] = useState(false);
-  const avatar = useQuery({ queryKey: ['avatar-preview', avatarFileID], queryFn: () => client.files!.fileAccess(avatarFileID!), enabled: !!avatarFileID && !!client.files, staleTime: 60_000 });
+  const avatar = useQuery({ queryKey: ['avatar-preview', avatarFileID], queryFn: () => avatarFiles!.fileAccess(avatarFileID!), enabled: !!avatarFileID && !!avatarFiles, staleTime: 60_000 });
   const avatarURL = avatar.data?.url;
   const form = useAppForm({ schema: 'ProfileInput', defaultValues: { display_name: profile.display_name }, onSubmit: values => { save.mutate(values); } });
   const save = useMutation({ mutationFn: async (values: { display_name: string }) => {
@@ -45,7 +47,7 @@ function ProfileEditor({ client, web, profile, onChanged, administrator }: { cli
         <div className="flex flex-wrap gap-2"><Badge variant="subtle">{administrator ? t('管理员') : t('普通用户')}</Badge><Badge variant={profile.user.status === 'active' ? 'success' : 'subtle'}>{profile.user.status === 'active' ? t('正常') : t('已停用')}</Badge><Badge variant={profile.totp_enabled ? 'success' : 'subtle'}>{profile.totp_enabled ? t('双重验证已开启') : t('双重验证未开启')}</Badge></div>
         <div className="flex flex-wrap items-center gap-3">
           <span className="flex size-16 items-center justify-center overflow-hidden rounded-full bg-avatar text-avatar-ink">{avatarURL || profile.avatar_url ? <img src={avatarURL || profile.avatar_url} alt={t('当前头像')} className="size-full object-cover" /> : <UserRound size={28} aria-hidden="true" />}</span>
-          {client.files && <Button variant="secondary" disabled={save.isPending} onClick={() => setAvatarOpen(true)}>{t('上传头像')}</Button>}
+          {avatarFiles && <Button variant="secondary" disabled={save.isPending} onClick={() => setAvatarOpen(true)}>{t('上传头像')}</Button>}
           {avatarFileID && <p role="status" className="text-xs text-muted">{t('头像已上传，保存后生效')}</p>}
         </div>
         <AppForm form={form} className="flex max-w-lg flex-col gap-4">
@@ -56,7 +58,7 @@ function ProfileEditor({ client, web, profile, onChanged, administrator }: { cli
         </AppForm>
       </CardContent>
     </Card>
-    {avatarOpen && <FileUploadDialog client={client} title={t('上传头像')} maxSize={2 * 1024 * 1024} accept="image/png,image/jpeg,image/gif" onUploaded={file => { setAvatarFileID(file.file_id); message.success(t('头像已上传，保存后生效')); }} onClose={() => setAvatarOpen(false)} />}
+    {avatarOpen && <FileUploadDialog client={avatarClient} title={t('上传头像')} maxSize={2 * 1024 * 1024} accept="image/png,image/jpeg,image/gif" onUploaded={file => { setAvatarFileID(file.file_id); message.success(t('头像已上传，保存后生效')); }} onClose={() => setAvatarOpen(false)} />}
     {emailOpen && <EmailChangeDialog web={web} email={profile.user.email} onClose={() => setEmailOpen(false)} onChanged={onChanged} />}
   </section>;
 }

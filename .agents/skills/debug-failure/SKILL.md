@@ -27,6 +27,7 @@ make test / make test-go / make test-web / make test-gen / pnpm test:e2e 失败�
    - e2e 失败 → 先确认 `pnpm test:e2e` 已编译 Go 夹具（oidcprovider/storagefixture），trace 在 test-results/；见 add-e2e-test。
 3. 数据库相关失败区分方言：单 SQLite 通过不代表 PG/MySQL，行锁、事务 DDL、collation 语义见 docs/02-standards/backend.md。mock 与真实实现的差异同理：本地 mock 通过不代表真机会同样表现，关键行为（signal、超时、流式）要让 mock 按真实契约响应。
 4. 修复后按受影响面回归对应粒度目标，交付前 make test 全量；根因一句话写进交付说明。
+5. 确认为或疑似框架通用缺陷时，按 [framework-upstream](../framework-upstream/SKILL.md) 处理最小复现、本地临时补丁和反馈草稿；上游反馈与应用专属修复分开，外发不由本 Skill 自动授权。
 
 ## forbidden
 

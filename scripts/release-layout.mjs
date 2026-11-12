@@ -25,7 +25,7 @@ export function checkReleaseLayout(directory, options) {
 export function installationReadme({identity, profile, os, arch, version}) {
   const command = `./${identity.cli.command}${os === 'windows' ? '.exe' : ''}`;
   const heading = `<!-- Author: yunnuo <ymz@ebox.vip> -->\n# ${identity.product.name} ${version}\n\n${profile} · ${os}/${arch}\n`;
-  const links = '\n完整说明 / Full documentation: https://unicore.ebox.vip\n\n开发预览。系统二进制未签名；SHA-256 不替代发行者签名。升级前成套备份数据库、私有数据与密钥。\nDevelopment preview. OS binaries are unsigned; checksums do not replace publisher signatures. Back up the database, private data and keys together before upgrading.\n';
+  const links = '\n完整说明 / Full documentation: https://unicore.ebox.vip\n\n发行状态与系统签名以对应 Release 和 manifest 为准；SHA-256 不替代发行者签名。升级前成套备份数据库、私有数据与密钥。\nSee the matching Release and manifest for release status and OS signatures; checksums do not replace publisher signatures. Back up the database, private data and keys together before upgrading.\n';
   if (profile === 'cli') return heading + `
 ## 使用 / Usage
 

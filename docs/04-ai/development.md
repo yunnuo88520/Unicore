@@ -15,6 +15,7 @@
 | 生命周期/日志 | app-lifecycle | [运行规范](../02-standards/runtime.md) |
 | 构建/发行 | release-cross-platform | [发行](../03-runbooks/release.md)、[升级](../03-runbooks/updates.md) |
 | 失败排查 | debug-failure | [后端规范](../02-standards/backend.md)、对应生成检查 |
+| 疑似框架通用 Bug、上游修复与源码同步 | framework-upstream | [框架升级、复现与反馈流程](../product/framework-upgrade.md) |
 | E2E 扩展 | add-e2e-test | playwright.config.ts 与 tests/e2e 同域样板 |
 | 文档 | maintain-framework-docs | 本次受影响来源、导航、生成与链接检查 |
 | 安全审查 | security-review | 本次入口、权限/状态边界与相关测试 |

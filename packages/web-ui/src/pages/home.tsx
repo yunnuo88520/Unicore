@@ -5,6 +5,7 @@ import { useRouter } from '@tanstack/react-router';
 import { ArrowRight, BookOpen, Check, Database, Download, Gauge, HardDrive, HeartHandshake, KeyRound, Menu, MessageCircle, Mail, BellRing, Building2, Settings2, ShieldCheck, Terminal as TerminalIcon, UserPlus, Webhook } from 'lucide-react';
 import type { Bootstrap } from '@unicore/sdk';
 import { t, useLocale } from '../i18n';
+import { productCommand } from '../product.gen';
 import { BrandLockup } from '../brand';
 import { SiteFooter } from '../site-footer';
 import { ClientControls } from '../client-controls';
@@ -123,7 +124,7 @@ function TerminalDemo() {
   const [tab, setTab] = useState<(typeof TERMINAL_TABS)[number]>('install');
   const accents = { install: { text: 'text-success', border: 'border-success', badge: 'bg-[var(--success-soft)] text-success', method: 'SH' }, api: { text: 'text-accent', border: 'border-accent', badge: 'bg-primary-soft text-accent', method: 'POST' }, backup: { text: 'text-info', border: 'border-info', badge: 'bg-[var(--info-soft)] text-info', method: 'GET' } } as const;
   const accent = accents[tab];
-  const endpoint = tab === 'install' ? 'unicore start --listen 0.0.0.0:443' : tab === 'api' ? '/api/v1/files — ' + t('上传与直传') : '/api/v1/admin/backups — ' + t('备份与恢复');
+  const endpoint = tab === 'install' ? `./${productCommand} --listen 127.0.0.1:8080` : tab === 'api' ? '/api/v1/files — ' + t('上传与直传') : '/api/v1/admin/backups — ' + t('备份与恢复');
   return <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-line bg-surface/95 shadow-[0_20px_50px_-25px_var(--primary-shadow)] backdrop-blur-sm">
     <div role="tablist" aria-label={t('示例')} className="flex items-center gap-0.5 border-b border-line px-2.5">
       {([['install', t('安装')], ['api', 'API'], ['backup', t('备份')]] as const).map(([id, label]) => (
@@ -172,8 +173,8 @@ function TerminalDemo() {
 function TerminalInstall() {
   return <>
     <span className="text-muted"># {t('下载并启动，单二进制无依赖')}</span>{'\n'}
-    <span className="text-success">$</span> curl -fsSL get.unicore.dev | sh{'\n'}
-    <span className="text-success">$</span> unicore start
+    <span className="text-success">$</span> ./{productCommand} --help{'\n'}
+    <span className="text-success">$</span> ./{productCommand} --listen 127.0.0.1:8080
   </>;
 }
 function TerminalInstallOutput() {

@@ -5,13 +5,10 @@
 
 状态：待决策 / 已裁决（注明去向）。编号规则：`D<n>` 为稳定标识，一经分配不重排、不复用，废止项保留编号只改状态与去向；其他文档引用编号即可，含义以本清单标题为准。推荐方向只是建议，未经维护者确认不得写入任何规范或实现。
 
-## D1. Standalone 文件能力是设计还是缺失
+## D1. Standalone 文件能力
 
-- 现状：files/blob 服务仅在 web-platform 装配（`internal/install/manager.go` attach）；Standalone 的 HTTP 存储路由 404（`internal/adapter/http/storage.go`），桌面桥无文件方法；笔记附件字段在 Standalone/桌面以未校验 JSON 存储（`internal/modules/notes` 仓储，附件校验仅在 `Files()!=nil` 时接线，`internal/adapter/http/notes.go`）。
-- 证据：PRD「单机与桌面没有……对象存储设置」（[PRD](PRD.md)）；[存储指南](../product/storage.md)「单机/桌面不装配平台存储管理端」。
-- 影响：Standalone 的业务附件语义目前弱于 Platform（无归属校验、无生命周期）。
-- 候选：A. 维持「Standalone 无文件服务」为设计，明确附件字段在 Standalone 为普通 JSON（文档写清）；B. 为 Standalone 增加本地文件 port（新能力，需 ADR）。
-- 推荐：先按 A 固化文档语义；若产品需要单机附件，再走 B 立项。**待决策。**
+- 状态：**已裁决并实现。** 维护者明确存储测试/管理与真实业务上传是两件事；Standalone Web/桌面均支持本地笔记附件，不装配云管理。规则、持久化与载体差异见 [ADR-0043](../adr/ADR-0043-business-file-boundaries.md)。
+- 原审计“附件以未校验 JSON 存储”的说法不准确：用例会拒绝没有校验器的非空附件，原缺失是本地上传和校验装配，现已补齐。
 
 ## D2. API 文档页在桌面载体的缺位
 
@@ -32,14 +29,12 @@
 - 现状：`internal/bootstrap/local/local.go` 构造 settings.Service 时 Secrets 为 nil（无加密能力）；当前 Standalone 无实例设置项，无敏感值，无实际问题。
 - 影响：未来给 Standalone 增加任何含敏感值的设置前，必须先补桌面侧加密装配，否则违反「敏感值只写不回读」约定。
 - 候选：在 bootstrap/local 引入与安装管理器同源的 secret 机制。
-- 推荐：作为 D1/B 类能力扩展的前置项记录，暂不实施。**待决策（触发式）。**
+- 文件服务已通过 filelocal 装配同源实例签名密钥（ADR-0043），不向前端暴露。settings.Service 仍无敏感设置；未来增加敏感设置前须补设置侧 Secrets。**待决策（触发式，仅设置扩展）。**
 
 ## D5. 更新目标迁移等级常量与迁移目录不同步
 
-- 现状：`internal/bootstrap/updating/runtime.go` `currentTarget` 写死 web-platform `migration=12`、`BusinessMigration=2`；迁移目录实际为 core@1、platform@9、module.notes@1，且无 business 命名空间（`migrations/catalog.json`，ADR-0024 squash 后口径）。
-- 影响：更新签名 target 的迁移等级语义与 Catalog 单轨事实脱节； artifact 与包内 manifest 是相等比较所以当前自洽，但新发行物制作时易错。
-- 候选：从 `migrations/metadata.gen.json` 生成等级常量，替代手写。
-- 推荐：按候选方向立项小任务（实现修改，超出本文档任务范围）。**待决策排期。**
+- 状态：**已解决。** 运行时、Web/桌面包与签名清单共用 Catalog 生成的 `schema_generation` / `schema_fingerprint`，不再手写两个迁移等级。
+- 自动安装要求全部适用 namespace、依赖、方言 SQL checksum 与账本契约相同；有迁移的升级通过人工停服备份和 runner 追加执行。开发基线整合与正式版后冻结政策见 [发行基线与更新兼容](../adr/ADR-0042-release-baseline-update-compatibility.md)。
 
 ## D6. 权限文档与共享导航授权一致性
 
@@ -52,11 +47,15 @@
 - 影响：轻度事实错误，不影响行为。
 - 推荐：随下一次文档维护顺手修正计数。**待决策排期。**
 
+- 状态：**已解决：README 计数已对齐，Wiki 改为直接以白名单为准。**
+
 ## D8. feature-oidc 与 add-api-operation 仍以 ADR-0014 为「当前」身份域权威
 
 - 现状：[OIDC 需求](feature-oidc.md)「当前两身份域见 ADR-0014」、`.agents/skills/add-api-operation/SKILL.md` 同类表述；[ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md) 已声明账号分域被 [ADR-0037](../adr/ADR-0037-unified-user-identity.md) 统一账号取代，[架构](../01-architecture/architecture.md) 称旧双域 ADR 仅保留历史背景。OIDC 按域分离的绑定/回调实现仍真实存在。
 - 影响：AI/开发者可能按已取代的模型设计权限。
 - 推荐：把两处回链改为「现状实现见 ADR-0037/共享导航树，ADR-0014 为历史背景」。**待决策排期。**
+
+- 状态：**已解决：OIDC 需求、前端规范与任务 Skills 已对齐 ADR-0037；工作台入口不等于独立账号域。**
 
 ## D9. 「单用户」措辞与「无账号」语义
 
@@ -70,6 +69,8 @@
 - 影响：用户对部署边界的理解不一致。
 - 推荐：统一为「默认面向本机；远程暴露必须由外层访问控制承担认证与防护」（条件式），修 index.md 一处。**待决策排期。**
 
+- 状态：**已解决：使用指南统一为默认本机，远程使用须外层访问控制。**
+
 ## D11. 生产代码遗留调试输出
 
 - 现状：`packages/web-ui/src/pages/files.tsx` 存在 `console.log('PAGE_DEBUG2', ...)`，把权限与导航内部数据打印到生产控制台。
@@ -78,9 +79,7 @@
 
 ## D12. 业务附件跨载体语义
 
-- 现状：Platform 经文件服务校验附件归属（`internal/files/attachment.go`）；Standalone/桌面附件 ID 无校验（见 D1）。
-- 影响：同一业务字段在两形态语义强度不同，派生项目易踩坑。
-- 推荐：并入 D1 裁决。**待决策。**
+- 状态：**已解决。** 按 D1/ADR-0043，两载体共用 local 文件归属、ready 校验、持久会话及清理，不能保存任意附件 ID。
 
 ## D13. 实例默认外观（appearance.theme）在 Web 形态的链路断裂
 
@@ -96,6 +95,8 @@
 - 现状：`scripts/test-native-update.mjs` 使用 `-tags 'desktop,production,updater'`，仓库内不存在 `go:build production` 约束文件。
 - 影响：无害但误导。
 - 推荐：清理该标签或在文档注明预留。**待决策排期。**
+
+- 状态：**已解决：原生更新脚本移除无效 production 构建标签。**
 
 ## D15. 发行包与形态的绑定强度（验收评审 N1）
 

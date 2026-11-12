@@ -92,14 +92,15 @@ type HealthResponse struct {
 }
 
 type DatabaseInput struct {
-	Driver   string  `json:"driver"`
-	Dsn      string  `json:"dsn"`
-	Host     *string `json:"host,omitempty"`
-	Port     *int    `json:"port,omitempty"`
-	Name     *string `json:"name,omitempty"`
-	Username *string `json:"username,omitempty"`
-	Password *string `json:"password,omitempty"`
-	Tls      *bool   `json:"tls,omitempty"`
+	Driver    string  `json:"driver"`
+	Dsn       string  `json:"dsn"`
+	Host      *string `json:"host,omitempty"`
+	Port      *int    `json:"port,omitempty"`
+	Name      *string `json:"name,omitempty"`
+	Username  *string `json:"username,omitempty"`
+	Password  *string `json:"password,omitempty"`
+	Tls       *bool   `json:"tls,omitempty"`
+	TlsVerify *bool   `json:"tls_verify,omitempty"`
 }
 
 type EnvironmentCheck struct {
@@ -720,6 +721,7 @@ type FileListResponse struct {
 	Code      string   `json:"code"`
 	Data      FileList `json:"data"`
 	RequestID string   `json:"request_id"`
+	Message   string   `json:"message,omitempty"`
 }
 
 type FileUploadGrantResponse struct {
@@ -732,6 +734,7 @@ type FileEntryResponse struct {
 	Code      string    `json:"code"`
 	Data      FileEntry `json:"data"`
 	RequestID string    `json:"request_id"`
+	Message   string    `json:"message,omitempty"`
 }
 
 type FileAccessResponse struct {
@@ -1091,12 +1094,14 @@ type UploadPolicyResponse struct {
 	Code      string       `json:"code"`
 	Data      UploadPolicy `json:"data"`
 	RequestID string       `json:"request_id"`
+	Message   string       `json:"message,omitempty"`
 }
 
 type MultipartUploadResponse struct {
 	Code      string          `json:"code"`
 	Data      MultipartUpload `json:"data"`
 	RequestID string          `json:"request_id"`
+	Message   string          `json:"message,omitempty"`
 }
 
 type AccountProfile struct {

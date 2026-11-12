@@ -1,5 +1,5 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: One-off acceptance evidence for the unified menu tree: admin/member drawers and the GVA-style editors on both viewports.
+// Description: Unified navigation acceptance: administrator/member drawers and menu/role editors on both viewports.
 import { mkdir } from 'node:fs/promises';
 import { test, expect, adminLogin, workspaceLogin, pageBoot } from './fixtures';
 
@@ -12,7 +12,7 @@ test('admin navigation tree with the three directories, both viewports', async (
   expect((await page.request.post(`${instance.url}/api/v1/install/complete`, { headers: { 'X-Bootstrap-Token': instance.token }, data: { profile: 'web-platform', database: { driver: 'sqlite', dsn: '' }, site_name: 'Unicore', base_url: instance.url, admin_username: 'admin', admin_email: 'admin@example.test', admin_password: password } })).status()).toBe(200);
   await page.goto(`${instance.url}/admin`);
   await expect(page.getByRole('heading', { name: '工作台概览' })).toBeVisible();
-  const directory = `build/acceptance/gva-tree/${info.project.name}`;
+  const directory = `build/acceptance/navigation-tree/${info.project.name}`;
   await mkdir(directory, { recursive: true });
   // Desktop: the sidebar renders the two regions inline — the system region
   // keeps 系统设置 and 超级管理员, 个人中心 stays at the tail of business.
@@ -30,7 +30,7 @@ test('admin navigation tree with the three directories, both viewports', async (
     await administration.click();
     await expect(page.locator('.sidebar').getByRole('button', { name: '用户列表', exact: true })).toBeVisible();
     await page.screenshot({ path: `${directory}/admin-sidebar-directories.png`, fullPage: true });
-    // The GVA-style menu editor.
+    // The shared navigation tree editor.
     await page.goto(`${instance.url}/admin/menus`);
     await expect(page.getByRole('heading', { name: '菜单配置', exact: true })).toBeVisible();
     await page.screenshot({ path: `${directory}/menu-editor.png`, fullPage: true });
@@ -78,7 +78,7 @@ test('member drawer keeps the collapsed surface with the personal directory, bot
   await logout;
   await workspaceLogin(page, instance.url, 'member');
   for (const name of ['基础设置', 'API 文档', '公告', '文件管理']) await expect(page.locator('.sidebar').getByRole('button', { name, exact: true })).toHaveCount(0);
-  const directory = `build/acceptance/gva-tree/${info.project.name}`;
+  const directory = `build/acceptance/navigation-tree/${info.project.name}`;
   if (info.project.name === 'chromium') {
     const personal = page.locator('.sidebar').getByRole('button', { name: '个人中心', exact: true });
     await expect(personal).toBeVisible();

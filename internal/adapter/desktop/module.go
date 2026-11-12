@@ -3,6 +3,7 @@
 package desktop
 
 import (
+	"github.com/yunnuo/unicore/internal/files"
 	"sort"
 
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
@@ -12,6 +13,7 @@ import (
 
 // BridgeDeps carries what a module's desktop contribution may rely on.
 type BridgeDeps struct {
+	Files    *files.Service
 	Core     usecase.Executor
 	Settings *settings.Service
 	Store    *sqlstore.Store

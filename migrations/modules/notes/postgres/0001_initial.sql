@@ -2,7 +2,6 @@
 -- Purpose: module.notes version 1 final-state baseline; postgres; web-platform, web-standalone.
 -- Compatibility: new-generation empty databases only; never replay 0.x cleanup or identity moves.
 -- Recovery: discard only an explicitly owned test target, or restore matching full snapshots to a new target.
--- Runtime activation is deferred to R1.0c; the legacy executor does not embed this file.
 
 CREATE TABLE IF NOT EXISTS public."unicore_example_notes" (
   "scope_key" character varying(96) NOT NULL,

@@ -62,6 +62,23 @@ try:
     (output/'execution.log.txt').write_text(result.stdout+result.stderr)
     print(result.stdout,flush=True)
     assert result.returncode==0,'audit harness failed; see execution.log.txt'
+    # These disposable databases are owned by this run; native dump/restore
+    # uses the matching tools inside the same temporary containers.
+    command(['docker','exec',pg_name,'psql','-U','postgres','-c','CREATE DATABASE backup_source'])
+    command(['docker','exec',pg_name,'psql','-U','postgres','-c','CREATE DATABASE backup_target'])
+    command(['docker','exec',mysql_name,'bash','-c','MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot -e "CREATE DATABASE backup_source; CREATE DATABASE backup_target;"'])
+    environment.update({
+        'UNICORE_MAINTENANCE_POSTGRES_DSN':pg_dsn.replace('/postgres?','/backup_source?'),
+        'UNICORE_MAINTENANCE_POSTGRES_TARGET_DSN':pg_dsn.replace('/postgres?','/backup_target?'),
+        'UNICORE_MAINTENANCE_POSTGRES_CONTAINER':pg_name,
+        'UNICORE_MAINTENANCE_MYSQL_DSN':mysql_dsn.replace('/mysql?','/backup_source?')+'&tls=skip-verify',
+        'UNICORE_MAINTENANCE_MYSQL_TARGET_DSN':mysql_dsn.replace('/mysql?','/backup_target?')+'&tls=skip-verify',
+        'UNICORE_MAINTENANCE_MYSQL_CONTAINER':mysql_name,
+    })
+    backup=command(['go','test','-count=1','-v','./internal/maintenance','-run','^TestInstalledBackupRestore$'],False)
+    (output/'backup-restore.log.txt').write_text(backup.stdout+backup.stderr)
+    print(backup.stdout,flush=True)
+    assert backup.returncode==0,'installer/backup/restore integration failed; see backup-restore.log.txt'
     for profile,database in [('web-platform','r10b_platform'),('web-standalone','r10b_standalone')]:
         pg=command(['docker','exec',pg_name,'pg_dump','-U','postgres','--schema-only','--no-owner','--no-privileges','--schema=public','--dbname',database]).stdout
         (output/('postgres-'+profile+'.schema.sql')).write_text('-- Author: yunnuo <ymz@ebox.vip>\n-- Generated new-baseline observed schema evidence; not a migration definition.\n'+pg)

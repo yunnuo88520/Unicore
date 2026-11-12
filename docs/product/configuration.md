@@ -359,3 +359,20 @@ unicore start
 服务安装可用 `--env-file /path/instance.env` 提供外置 `APP_SECRET_KEY` 等变量，不从当前 shell 自动复制秘密。文件采用单行字面 `KEY=value`，可用成对单/双引号；不执行 shell、不支持反斜杠续行或复杂转义。首次生成服务时，监听、数据目录、profile、日志等启动项放 `--config` 或安装参数，不放该 env 文件。服务绑定发现会读取此 env 文件以复用外置密钥；文件读取权限仍由 OS 控制。显式选择其他数据目录/配置时，要另外提供它自己的原 `APP_SECRET_KEY`。`APP_ADMIN_PATH` 如覆盖了保存值，需先同步或移除覆盖再改后台路径。
 
 `site set-url` 不配置 DNS、TLS 或反向代理；更改后同步代理域名和企业 IdP 回调白名单。命令先更改邮件地址，再原子替换安装记录；若进程/主机在两次持久化间崩溃，停服后核对安装 origin 与 `site.base_url`，用同一命令重试。备份仍使用现有 `backup/verify/restore` 参数规则，恢复目标目录须明确指定且不存在。
+
+## 数据库 TLS 与证书
+
+安装向导的数据库 TLS 有三种选择：关闭、加密但不校验证书、校验证书与主机名。远程数据库推荐第三种；已有调用者省略 tls_verify 时保留原语义。证书校验失败会阻止连接与安装，不会自动切回弱模式。
+
+1. 使用证书 SAN 中的数据库 DNS 名称填写“数据库地址”，不要用不在 SAN 中的 IP；服务端应发送完整证书链。
+2. 公共 CA 通常使用系统默认信任库。私有 CA 在运行应用和备份工具的主机/容器内分别安装。例如 Ubuntu/Debian 将管理员从可信渠道取得的 CA 放到 /usr/local/share/ca-certificates/database.crt，再执行 sudo update-ca-certificates；macOS 用系统钥匙串部署根 CA。不要上传数据库私钥或把凭据写入 Git。
+3. Docker 默认运行时镜像为 distroless，无包管理器；先在自定义构建阶段安装 CA，将完整 CA bundle 复制到最终镜像的 /etc/ssl/certs/ca-certificates.crt，并按构建指南保留 nonroot 用户。重新构建和替换容器；不能在运行中的容器里临时安装证书。备份使用宿主机工具或指定工具容器时，该环境也须安装同一 CA。
+4. 选择“开启 · 校验证书与主机名”并测试连接；TLS=false 和 tls_verify=true 的 API 组合会拒绝。安装后连接串加密保存，重启与备份沿用严格模式。
+
+| 模式 | PostgreSQL | MySQL | 内置备份原生工具 |
+| --- | --- | --- | --- |
+| 关闭 | sslmode=disable | tls=false | disable / DISABLED |
+| 仅加密 | sslmode=require | tls=skip-verify | require / REQUIRED |
+| 证书及主机名 | sslmode=verify-full | tls=true | verify-full / VERIFY_IDENTITY |
+
+在私有隔离环境分别验证：正确主机名与 CA 能连接；不受信任 CA、错误主机名均失败；同模式备份可恢复。应用和原生工具可能使用不同 TLS 库，应用测试成功不能替代备份演练。旧 DSN 通道继续接受 PostgreSQL sslrootcert 等既有参数；MySQL 自定义注册 TLS 配置名不受内置备份支持，使用系统信任库与 tls=true。

@@ -93,8 +93,9 @@
 | dataScope | [internal/platform/datascope.go](../../internal/platform/datascope.go) |
 | moduleRegistry | [internal/module/manifest.json](../../internal/module/manifest.json) |
 | modules | [internal/modules](../../internal/modules) |
+| applicationFrameworkUpgrade | [docs/product/framework-upgrade.md](../../docs/product/framework-upgrade.md) |
 
-OpenAPI 当前包含 232 个 operation、265 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
+OpenAPI 当前包含 250 个 operation、265 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
 
 | 任务 Skill | 用途 |
 | --- | --- |
@@ -109,6 +110,7 @@ OpenAPI 当前包含 232 个 operation、265 个 schema。Go/TS 模型、调用�
 | [app-lifecycle](../../.agents/skills/app-lifecycle/SKILL.md) | 修改 Unicore 配置加载、组件生命周期、日志或监控入口，并验证各 profile 的启动与退出。 |
 | [db-migration](../../.agents/skills/db-migration/SKILL.md) | 创建 Unicore 分方言数据库迁移、兼容评估与数据恢复说明。 |
 | [debug-failure](../../.agents/skills/debug-failure/SKILL.md) | 分流 Unicore 自动化失败：按受影响面选择粒度目标、对照常见失败签名、定位日志与 trace。 |
+| [framework-upstream](../../.agents/skills/framework-upstream/SKILL.md) | 派生项目发现疑似框架通用缺陷、准备上游修复，或同步框架源码更新时使用；业务专属功能留在应用内。 |
 | [maintain-framework-docs](../../.agents/skills/maintain-framework-docs/SKILL.md) | 维护 Unicore 使用与开发文档、框架 manifest、任务 Skills 和生成检查，避免引入研发流水。 |
 | [release-cross-platform](../../.agents/skills/release-cross-platform/SKILL.md) | 构建 Unicore profile/OS/Arch 发行包、checksum/manifest 和原生桌面产物。 |
 | [security-review](../../.agents/skills/security-review/SKILL.md) | 有范围地审查 Unicore 安装、身份、设置、传输、上传或升级的实际安全边界。 |
@@ -138,5 +140,8 @@ OpenAPI 当前包含 232 个 operation、265 个 schema。Go/TS 模型、调用�
 - signDesktop：`make sign-desktop`
 - i18n：`pnpm check:i18n`
 - releaseNotes：`pnpm check:release-notes`
+- verifyDerived：`pnpm verify:derived`
+- frameworkCheck：`pnpm framework:check`
+- frameworkSync：`pnpm framework:sync`
 
 不保存凭据到上下文或验收记录。任务记录使用 [任务模板](task-template.md)，交付记录须区分实测、未测与未来目标。

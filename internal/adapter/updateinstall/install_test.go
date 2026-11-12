@@ -28,6 +28,13 @@ import (
 
 func TestMain(m *testing.M) {
 	if len(os.Args) > 1 && (os.Args[1] == "--internal-apply-update" || os.Args[1] == "--internal-recover-update") && os.Getenv("UNICORE_UPDATE_FIXTURE") == "1" {
+		// Hold this until process exit, including writes after terminal job status.
+		lifetime := flock.New(filepath.Join(os.Getenv("UNICORE_UPDATE_FIXTURE_DATA"), "fixture-helper.lock"))
+		if e := lifetime.Lock(); e != nil {
+			fmt.Fprintln(os.Stderr, e)
+			os.Exit(2)
+		}
+		defer lifetime.Unlock()
 		var trust updates.Trust
 		_ = json.Unmarshal([]byte(os.Getenv("UNICORE_UPDATE_FIXTURE_TRUST")), &trust)
 		if e := RunHelper(os.Args[2], trust, "1.0.0", os.Args[1] == "--internal-recover-update"); e != nil {
@@ -55,11 +62,12 @@ func TestMain(m *testing.M) {
 		if ok, _ := lock.TryLock(); !ok {
 			os.Exit(5)
 		}
+		defer lock.Unlock()
 		profile := "web-standalone"
 		if runtime.GOOS == "windows" {
 			profile = "desktop"
 		}
-		MarkHealthy(data, v, updates.Target{Profile: profile, OS: runtime.GOOS, Arch: runtime.GOARCH, Migration: 1, BusinessMigration: 1, Updater: true})
+		MarkHealthy(data, v, updates.Target{Profile: profile, OS: runtime.GOOS, Arch: runtime.GOARCH, SchemaGeneration: "unicore-1", SchemaFingerprint: strings.Repeat("c", 64), Updater: true})
 		_ = os.WriteFile(filepath.Join(data, "running"), []byte(v), 0600)
 		cwd, _ := os.Getwd()
 		_ = os.WriteFile(filepath.Join(data, "working-directory"), []byte(cwd), 0600)
@@ -69,7 +77,7 @@ func TestMain(m *testing.M) {
 			}
 			time.Sleep(50 * time.Millisecond)
 		}
-		_ = lock.Unlock()
+		// Let process exit release the instance lock; cleanup waits for that release.
 		os.Exit(0)
 	}
 	os.Exit(m.Run())
@@ -138,10 +146,10 @@ func installFixture(t *testing.T, layout ...string) (*Installer, updates.Payload
 	}
 	_ = os.WriteFile(filepath.Join(root, "VERSION"), []byte("1.0.0"), 0644)
 	_ = os.WriteFile(filepath.Join(data, "sentinel"), []byte("preserve data"), 0600)
-	target := updates.Target{Profile: profile, OS: runtime.GOOS, Arch: runtime.GOARCH, Migration: 1, BusinessMigration: 1, Updater: true}
+	target := updates.Target{Profile: profile, OS: runtime.GOOS, Arch: runtime.GOARCH, SchemaGeneration: "unicore-1", SchemaFingerprint: strings.Repeat("c", 64), Updater: true}
 	pub, key, _ := ed25519.GenerateKey(rand.Reader)
 	trust := updates.Trust{AllowUnsignedPlatform: true, Application: "test.unicore.app", Keys: map[string]string{"test": base64.StdEncoding.EncodeToString(pub)}}
-	meta, _ := json.Marshal(map[string]any{"version": "1.0.1", "profile": target.Profile, "os": target.OS, "arch": target.Arch, "commit": strings.Repeat("a", 40), "migration_level": 1, "business_migration_level": 1, "features": map[string]bool{"license": false, "updater": true}})
+	meta, _ := json.Marshal(map[string]any{"version": "1.0.1", "profile": target.Profile, "os": target.OS, "arch": target.Arch, "commit": strings.Repeat("a", 40), "schema_generation": target.SchemaGeneration, "schema_fingerprint": target.SchemaFingerprint, "features": map[string]bool{"license": false, "updater": true}})
 	oldMeta := bytes.Replace(meta, []byte(`"version":"1.0.1"`), []byte(`"version":"1.0.0"`), 1)
 	_ = os.WriteFile(filepath.Join(root, "manifest.json"), oldMeta, 0644)
 	binary, e := os.ReadFile(executable)
@@ -169,11 +177,47 @@ func installFixture(t *testing.T, layout ...string) (*Installer, updates.Payload
 	installer := New(Options{DataDir: data, InstallDir: root, Deployment: "tar", Version: "1.0.0", Executable: filepath.Join(root, executableName), Args: []string{"--fixture-app"}, Target: func() updates.Target { return target }, Trust: trust, Provider: diskProvider{file}, Shutdown: func() { _ = lock.Unlock() }})
 	t.Cleanup(func() {
 		_ = lock.Unlock()
-		_ = os.WriteFile(filepath.Join(data, "stop"), nil, 0600)
-		time.Sleep(100 * time.Millisecond)
+		if e := os.WriteFile(filepath.Join(data, "stop"), nil, 0600); e != nil {
+			t.Error(e)
+		}
+		// A terminal job can precede the helper's final write and child startup.
+		// Join each writer in launch order before TempDir removes their files.
+		for _, path := range []string{filepath.Join(installer.StateDir, "prepare.lock"), filepath.Join(data, "fixture-helper.lock"), filepath.Join(data, "instance.lock")} {
+			waitFixtureUnlocked(t, path)
+		}
 	})
 	return installer, payload, file
 }
+
+func waitFixtureUnlocked(t *testing.T, path string) {
+	t.Helper()
+	if _, e := os.Stat(path); os.IsNotExist(e) {
+		return
+	} else if e != nil {
+		t.Fatal(e)
+	}
+	lock := flock.New(path)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	locked, e := lock.TryLockContext(ctx, 10*time.Millisecond)
+	if e != nil || !locked {
+		t.Fatalf("fixture writer did not exit for %s: %v", path, e)
+	}
+	if e = lock.Unlock(); e != nil {
+		t.Fatal(e)
+	}
+}
+
+func waitFixtureRunning(t *testing.T, data, version string) {
+	t.Helper()
+	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(10 * time.Millisecond) {
+		if raw, e := os.ReadFile(filepath.Join(data, "running")); e == nil && string(raw) == version {
+			return
+		}
+	}
+	t.Fatalf("fixture application %s did not start", version)
+}
+
 func TestRealHelperUpgradeAndRollback(t *testing.T) {
 
 	for _, layout := range []string{"bin/server", "unicore"} {
@@ -211,6 +255,7 @@ func TestRealHelperUpgradeAndRollback(t *testing.T) {
 					if job := i.Job(); job.Status != expected {
 						t.Fatal(job)
 					}
+					waitFixtureRunning(t, i.DataDir, version)
 					b, _ := os.ReadFile(filepath.Join(i.Root, "VERSION"))
 					if strings.TrimSpace(string(b)) != version {
 						t.Fatal("wrong program", string(b))
@@ -338,6 +383,7 @@ func TestInterruptedSignedSwapRestoresPreviousProgram(t *testing.T) {
 	if i.Job().Status != "rolled_back" {
 		t.Fatal(i.Job())
 	}
+	waitFixtureRunning(t, i.DataDir, "1.0.0")
 	b, _ := os.ReadFile(filepath.Join(i.Root, "VERSION"))
 	if string(b) != "1.0.0" {
 		t.Fatal(string(b))

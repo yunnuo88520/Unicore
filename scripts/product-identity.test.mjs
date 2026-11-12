@@ -118,3 +118,19 @@ test('applyIdentity applies every projection idempotently and check mode never w
   assert.throws(()=>applyIdentity(root,identity,false),/go\.mod module/);
  }finally{rmSync(root,{recursive:true,force:true});}
 });
+
+// Import-path boundaries also make conflict continuation idempotent for forks.
+test('module rewrites preserve other modules with a shared name prefix', async()=>{
+ const {replaceModuleReferences}=await import('./product-identity.mjs');
+ const from='github.com/team/base', to='github.com/team/base-custom';
+ const input='module '+from+'\nimport \"'+from+'/internal/domain\"\nimport \"'+to+'/api\"\n';
+ const once=replaceModuleReferences(input,from,to);
+ assert.equal(replaceModuleReferences(once,from,to),once);
+ assert.match(once,/base-custom\/internal\/domain/);
+ assert.doesNotMatch(once,/base-custom-custom/);
+});
+
+test('module rewrites include escaped source-string line endings', async()=>{
+ const {replaceModuleReferences}=await import('./product-identity.mjs');
+ assert.equal(replaceModuleReferences(String.raw`module github.com/team/base\n`, 'github.com/team/base', 'example.test/product'), String.raw`module example.test/product\n`);
+});

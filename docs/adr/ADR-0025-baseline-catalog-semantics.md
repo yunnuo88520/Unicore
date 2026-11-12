@@ -1,6 +1,8 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # ADR-0025：新基线 Catalog 与跨方言语义
 
+> 历史决策：下文阶段状态、旧表结构和“preview 分发即冻结”描述保留为当时背景，不是当前开发指令。当前运行时已切换 Catalog；首发前整合与正式版后冻结以 [ADR-0042](ADR-0042-release-baseline-update-compatibility.md) 和 [迁移规范](../02-standards/database-migrations.md) 为准。
+
 日期：2026-10-30。范围：维护者授权的 R1.0b，承接维护者已批准的 Pre-1.0 Migration Squash 方向（历史决策编号 ADR-0024，本候选不收录该历史文件）。本 ADR 明确 Catalog、生成物和基线行为；R1.0c 执行器、写前检查、锁、WAL/SHM、OTA/备份消费者均未实施。用户名/邮箱新比较策略和安装标记 CHECK 只提出建议，**不擅自改变现有登录或安装规则**。
 
 ## 本阶段目标、前置事实与取舍

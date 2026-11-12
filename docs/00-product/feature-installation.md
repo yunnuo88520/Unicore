@@ -15,7 +15,7 @@
 
 数据库须提前创建并属于当前实例。MySQL 初始化当前库中的表/视图，PostgreSQL 限独占 public schema 并拒绝其他用户 schema，SQLite 固定为私有目录 unicore.db。系统/维护数据库不可作为安装目标。连接测试不清空、不迁移；SQLite 测试会创建空文件。新表只由完成安装创建。
 
-TLS 是显式开关且默认关闭，覆盖本机与内网直连；开启后 MySQL 使用 skip-verify、PostgreSQL 使用 sslmode=require，仅加密传输不校验证书，自签名内网证书可直接使用。需要严格证书校验的目标库通过旧版 dsn 兼容通道配置 sslmode。MySQL 用驱动配置、PostgreSQL 用 URL 编码处理特殊字符密码。旧 API 的 dsn 保留兼容，不能与结构化字段混传；页面不暴露 DSN。
+TLS 可选关闭、仅加密、校验证书与主机名。关闭仍为本机/内网兼容默认；仅加密使用 MySQL skip-verify / PostgreSQL require。结构化 tls=true 且 tls_verify=true 使用 MySQL tls=true / PostgreSQL verify-full，无明文或不验证回退。严格模式依赖应用服务器系统信任库与正确 DNS 主机名，私有 CA 按部署指南导入；备份工具须信任同一 CA。tls_verify=true 与 tls=false 的组合拒绝。MySQL 用驱动配置、PostgreSQL 用 URL 编码处理特殊字符密码。旧 API 的 dsn 保留兼容，不能与结构化字段混传；页面不暴露 DSN。
 
 bootstrap.token 是首次配置的所有权证明；secret.key/APP_SECRET_KEY 才是 AES-GCM 加密密钥。安装 API 在安装后返回 409，生成 0600 install.lock，bootstrap.token 删除且哈希吊销；按钮与状态接口不泄露凭据给匿名访问者。页面只在内存保留输入，不写浏览器持久存储或日志。
 

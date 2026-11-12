@@ -18,6 +18,8 @@
 
 任务流程位于 `.agents/skills/`；阅读与你的任务直接相关的 Skill，用户当前指令优先。
 
+派生项目遇到疑似框架通用缺陷或同步上游源码时，使用 [framework-upstream](.agents/skills/framework-upstream/SKILL.md)，按[框架升级与反馈](docs/product/framework-upgrade.md)完成归属判断、最小复现、本地补丁及上游回流。问题记录放 build/ 或仓库外；反馈草稿不等于已提交，外发沿用用户授权。
+
 9. 共享前端新增或修改界面必须同时提供中英文：组件用 useI18n/useLocale 与 t，静态路由/选项用 defineMessages 并在渲染时翻译；禁止中文直写后再补翻译。运行 pnpm check:i18n（构建与 make test 均执行），新增设置/权限描述也须补词条。布局只复用 WorkspaceLayout，不在业务页设置侧栏偏移；工作区固定 LTR，忽略旧 RTL 偏好。见 docs/03-runbooks/frontend-foundations.md。
 10. 所有新 Git 提交的标题与正文必须使用英文，包括 squash/merge 的最终提交消息；提交前检查完整消息。此规则不改变界面双语、中文文档或用户自定义内容的语言约定，不重写历史提交。
 11. 产品形态只有三种：Platform（web-platform）、Standalone（web-standalone 与 desktop 两个载体，产品等效）、CLI（独立，无 UI 无自身持久化）；profile 是装配概念不等于形态。新增或修改功能前先读 docs/00-product/product-forms.md 判定适用形态、访问主体、持久化与呈现，按 docs/00-product/feature-proposal-template.md 声明，完成后同步 feature-inventory.md 与 feature-presentation.md；Standalone 载体差异仅限形态规范第 5 节清单，Web 包运维子命令与 ops 工具不属于 CLI 形态。命中 docs/00-product/pending-decisions.md 未决项或新边界冲突时，列出冲突与候选方案并暂停受影响范围的实现，交维护者决策；未决问题不阻塞无关功能。

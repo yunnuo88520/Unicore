@@ -29,6 +29,11 @@ body:
     validations:
       required: true
   - type: textarea
+    id: framework_source
+    attributes:
+      label: 派生项目的框架来源（适用时填写）
+      description: 从 project.provenance.json 摘取 upstream、revision、template_revision；另附当前已合入的模板提交（framework:check 或 Git 共同祖先）和临时补丁。仅应用 VERSION 不能确定框架来源；无需上传整个来源文件或私有仓库。
+  - type: textarea
     id: environment
     attributes:
       label: 环境

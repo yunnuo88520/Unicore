@@ -7,6 +7,8 @@ import {mkdtempSync,mkdirSync,writeFileSync,readFileSync,existsSync,rmSync,symli
 import {tmpdir} from 'node:os';
 import {join,dirname} from 'node:path';
 import {createProject} from './create-project.mjs';
+import {createHash,generateKeyPairSync,verify} from 'node:crypto';
+import {signUpdates} from './update-sign.mjs';
 
 process.env.GIT_AUTHOR_NAME='Fixture';process.env.GIT_AUTHOR_EMAIL='fixture@example.test';
 process.env.GIT_COMMITTER_NAME='Fixture';process.env.GIT_COMMITTER_EMAIL='fixture@example.test';
@@ -38,7 +40,7 @@ test('project export and destination boundaries',()=>{
   createProject(options);
   assert.equal(JSON.parse(readFileSync(join(options.directory,'package.json'))).name,'my-product');
   assert.equal(readFileSync(join(options.directory,'migrations/sqlite/0013_prefix_core.sql'),'utf8'),files['migrations/sqlite/0013_prefix_core.sql']);
-  const trust=JSON.parse(readFileSync(join(options.directory,'assets/updates/config.json')));assert.equal(trust.repository,'');assert.deepEqual(trust.keys,{});assert.equal(trust.allow_unsigned_platform,false);
+  const trust=JSON.parse(readFileSync(join(options.directory,'assets/updates/config.json')));assert.equal(trust.repository,'');assert.deepEqual(trust.keys,{});assert.equal(trust.allow_unsigned_platform,true);
   assert.equal(JSON.parse(readFileSync(join(options.directory,'assets/theme/tokens.json'))).brand.name,'My Product');
   const identity=JSON.parse(readFileSync(join(options.directory,'product.identity.json')));
   assert.equal(identity.product.name,'My Product');assert.equal(identity.go.module,'example.test/team/product');
@@ -71,6 +73,21 @@ test('project export and destination boundaries',()=>{
   assert.equal(targetGit('remote','get-url','--push','framework'),'disabled://framework');
   assert.equal(targetGit('branch','--show-current'),'main');
   assert.ok(targetGit('ls-files').split('\n').includes('product.identity.json'));
+  // A derived publisher can authorize native packages without purchasing OS certificates.
+  const pair=generateKeyPairSync('ed25519'),privateKey=pair.privateKey.export({format:'pem',type:'pkcs8'});
+  const bundle=join(root,'native-bundle');mkdirSync(bundle);
+  const bytes=Buffer.from('derived native package');for(const os of ['darwin','windows'])writeFileSync(join(bundle,`native-${os}.tar.gz`),bytes);
+  const native={version:'0.1.1',source_commit:'a'.repeat(40),artifacts:['darwin','windows'].map(os=>({artifact:`native-${os}.tar.gz`,sha256:createHash('sha256').update(bytes).digest('hex'),profile:'desktop',os,arch:'arm64',schema_generation:'unicore-1',schema_fingerprint:'c'.repeat(64),features:{updater:true,license:false},platform_signature:'unsigned'}))};
+  writeFileSync(join(bundle,'manifest.json'),JSON.stringify(native));
+  assert.throws(()=>signUpdates(bundle,{root:options.directory,privateKey}),/trusted/);
+  const ownTrust={...trust,keys:{publisher:Buffer.from(pair.publicKey.export({format:'jwk'}).x,'base64url').toString('base64')}};
+  writeFileSync(join(options.directory,'assets/updates/config.json'),JSON.stringify(ownTrust));
+  const signed=signUpdates(bundle,{root:options.directory,privateKey});assert.equal(signed.application_id,options.bundle);assert.equal(signed.artifacts.length,2);
+  const signature=JSON.parse(readFileSync(join(bundle,'update-manifest.sig')));
+  assert.equal(verify(null,readFileSync(join(bundle,'update-manifest.json')),pair.publicKey,Buffer.from(signature.signature,'base64')),true);
+  ownTrust.allow_unsigned_platform=false;writeFileSync(join(options.directory,'assets/updates/config.json'),JSON.stringify(ownTrust));
+  assert.throws(()=>signUpdates(bundle,{root:options.directory,privateKey}),/Native signed artifacts required/);
+  writeFileSync(join(options.directory,'assets/updates/config.json'),JSON.stringify(trust,null,2)+'\n');
   assert.equal(readFileSync(join(options.directory,'LICENSE'),'utf8'),'MIT license fixture');
   assert.match(readFileSync(join(options.directory,'README.md'),'utf8'),/\]\(README\.en\.md\)/);
   assert.match(readFileSync(join(options.directory,'README.en.md'),'utf8'),/My Product[\s\S]*example\.test\/team\/product[\s\S]*test\.example\.product/);

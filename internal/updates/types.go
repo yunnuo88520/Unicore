@@ -30,8 +30,8 @@ type Target struct {
 	Profile           string `json:"profile"`
 	OS                string `json:"os"`
 	Arch              string `json:"arch"`
-	Migration         int    `json:"migration_level"`
-	BusinessMigration int    `json:"business_migration_level"`
+	SchemaGeneration  string `json:"schema_generation"`
+	SchemaFingerprint string `json:"schema_fingerprint"`
 	License           bool   `json:"license"`
 	Updater           bool   `json:"updater"`
 }

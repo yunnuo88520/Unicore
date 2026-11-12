@@ -208,7 +208,11 @@ func (s *Service) Snapshot(ctx context.Context) contracts.MonitorSnapshot {
 	if snapshot.Database.Status == "unavailable" {
 		snapshot.Status = "unavailable"
 	}
-	snapshot.Storage = s.storageView(ctx)
+	// This view describes platform storage management, not the presence of
+	// a business-file service. Standalone carriers also store local files.
+	if profile == "web-platform" {
+		snapshot.Storage = s.storageView(ctx)
+	}
 	snapshot.Tasks = s.tasksView(ctx)
 	snapshot.Runtime = s.runtimeView()
 	snapshot.Host = s.hostView(ctx)

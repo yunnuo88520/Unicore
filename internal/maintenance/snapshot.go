@@ -146,6 +146,9 @@ func Backup(ctx context.Context, o BackupOptions) (Manifest, error) {
 	if err != nil {
 		return m, err
 	}
+	if err = verifyLocalFiles(ctx, store, directory); err != nil {
+		return m, err
+	}
 	sources := []objectSource{}
 	locations := map[string]files.Location{}
 	if profile == "web-platform" {
@@ -155,9 +158,6 @@ func Backup(ctx context.Context, o BackupOptions) (Manifest, error) {
 		}
 		for _, l := range ls {
 			locations[l.ID] = l
-		}
-		if e := verifyLocalFiles(ctx, store, directory); e != nil {
-			return m, e
 		}
 		rows, e := store.DB.QueryContext(ctx, "SELECT id,file_key,mime_type,size,location_id FROM unicore_file_metadata WHERE state='ready' AND storage_type<>'local' ORDER BY id")
 		if e != nil {
@@ -368,10 +368,8 @@ func Restore(ctx context.Context, o RestoreOptions) (Manifest, error) {
 			return m, err
 		}
 	}
-	if m.Profile == "web-platform" {
-		if err = verifyLocalFiles(ctx, db, directory); err != nil {
-			return m, err
-		}
+	if err = verifyLocalFiles(ctx, db, directory); err != nil {
+		return m, err
 	}
 	if m.Profile != "desktop" {
 		path := filepath.Join(directory, "installation.json")

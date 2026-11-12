@@ -3,7 +3,7 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { copyDistribution, distributionPlan, regularFile, validateDocuments } from './distribution.mjs';
-import { applyIdentity, validateIdentity } from './product-identity.mjs';
+import { applyIdentity, applyRepositoryLinks, validateIdentity, replaceModuleReferences } from './product-identity.mjs';
 import { writeAIContext } from './ai-context.mjs';
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync, realpathSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
@@ -24,7 +24,7 @@ export function createProject({ source = frameworkRoot, directory, name, module,
   const selected = [...new Set(plan.map(file => file.source))];
   const git = (...args) => execFileSync('git', ['--no-optional-locks', '-C', source, ...args], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']}).trim();
   let upstream = null, dirty = false, worktreeModified = false, templateRevision = null;
-  try { upstream = git('rev-parse', '--verify', 'HEAD'); } catch { /* Source archives have no Git identity. */ }
+  try { if (realpathSync(git('rev-parse', '--show-toplevel')) === source) upstream = git('rev-parse', '--verify', 'HEAD'); } catch { /* Source archives have no Git identity. */ }
   if (upstream) {
     for (const ref of ['refs/heads/framework-template', 'refs/remotes/origin/framework-template']) {
       try { templateRevision = git('rev-parse', '--verify', ref); break; } catch { /* Template branch not generated in this checkout. */ }
@@ -52,28 +52,35 @@ export function createProject({ source = frameworkRoot, directory, name, module,
     for (const {target: path} of plan) {
       const to = join(staging, path);
       if (/\.(?:go|mjs|mts|ts|tsx|json|md|ya?ml|html)$/.test(path) || ['Makefile','go.mod','Dockerfile'].includes(path.split('/').at(-1))) {
-        writeFileSync(to, readFileSync(to, 'utf8').replaceAll(oldModule, module));
+        writeFileSync(to, replaceModuleReferences(readFileSync(to, 'utf8'), oldModule, module));
       }
     }
     const edit = (path, fn) => { const full = join(staging,path); const value = JSON.parse(readFileSync(full,'utf8')); fn(value); writeFileSync(full,JSON.stringify(value,null,2)+'\n'); };
-    edit('assets/updates/config.json', p => { p.repository=''; p.keys={}; p.channel='stable'; p.allow_unsigned_platform=false; });
+    edit('assets/updates/config.json', p => { p.repository=''; p.keys={}; p.channel='stable'; p.allow_unsigned_platform=true; });
     const identity = validateIdentity({author: 'yunnuo <ymz@ebox.vip>', schemaVersion: 1, product: {name, slug, description: `${name} workspace`}, go: {module}, cli: {command: slug, opsCommand: `${slug}-ops`, description: `${name} CLI`}, desktop: {bundleId: bundle, outputName: `${slug}-desktop`}, deployment: {serviceName: slug, serviceUser: slug, installDirectory: `/opt/${slug}`, dataDirectory: `/var/lib/${slug}`, image: slug, volume: `${slug}_data`}, release: {artifactPrefix: slug}});
     mkdirSync(join(staging, 'internal/buildinfo'), {recursive: true});
     writeFileSync(join(staging, 'product.identity.json'), JSON.stringify(identity, null, 2)+'\n');
     // One identity pass applies every projection: mixed-file fields, generated sources, deployment renames and doc tokens.
     applyIdentity(staging, identity, false);
     // Project-facing help and feedback follow its own repository; provenance and author metadata stay upstream.
-    if (repositoryUrl) for (const path of ['packages/web-ui/src/shell-tools.tsx', '.github/ISSUE_TEMPLATE/config.yml', 'SUPPORT.md', 'SECURITY.md', 'CONTRIBUTING.md', 'CODE_OF_CONDUCT.md']) {
-      const full = join(staging, path);
-      if (existsSync(full)) writeFileSync(full, readFileSync(full, 'utf8').replaceAll(upstreamUrl, repositoryUrl));
-    }
+    applyRepositoryLinks(staging, repositoryUrl);
     edit('package.json', p => { p.license='MIT'; });
-    writeFileSync(join(staging, 'project.provenance.json'), JSON.stringify({author: 'yunnuo <ymz@ebox.vip>', framework: 'Unicore', upstream: upstreamUrl, framework_version: frameworkVersion, generator_version: 1, identity_sha256: createHash('sha256').update(readFileSync(join(staging, 'product.identity.json'))).digest('hex'), template_revision: templateRevision, revision: upstream, source_mode: upstream ? (dirty ? 'reviewed-working-tree' : 'clean-git-inputs') : 'unversioned', worktree_modified: worktreeModified, selected_inputs_modified: dirty, input_files: inputFiles, created_at: new Date().toISOString()}, null, 2)+'\n');
+    writeFileSync(join(staging, 'project.provenance.json'), JSON.stringify({author: 'yunnuo <ymz@ebox.vip>', framework: 'Unicore', upstream: upstreamUrl, framework_version: frameworkVersion, generator_version: 1, repository: repositoryUrl ?? null, identity_sha256: createHash('sha256').update(readFileSync(join(staging, 'product.identity.json'))).digest('hex'), template_revision: templateRevision, revision: upstream, source_mode: upstream ? (dirty ? 'reviewed-working-tree' : 'clean-git-inputs') : 'unversioned', worktree_modified: worktreeModified, selected_inputs_modified: dirty, input_files: inputFiles, created_at: new Date().toISOString()}, null, 2)+'\n');
     const repositoryInstructions = repositoryUrl
-      ? { zh: `创建器已配置自己的 origin：${repositoryUrl}，只读 framework 远端仍指向上游；没有创建远程仓库或推送代码。升级流程见 docs/product/development.md。`, en: `Your origin is configured as ${repositoryUrl}; the read-only framework remote still points upstream. No remote repository was created and no code was pushed. See docs/product/development.md for upgrades.` }
-      : { zh: '创建器已完成 git init 与初始基线提交，并添加只读 framework 远端指向上游；推送前先添加自己的 origin，升级流程见 docs/product/development.md。', en: 'The creator has already run git init, committed the initial baseline, and added the read-only framework remote pointing upstream; add your own origin before pushing. See docs/product/development.md for the upgrade flow.' };
-    writeFileSync(join(staging,'README.md'),`<!-- Author: yunnuo <ymz@ebox.vip> -->\n# ${name}\n\n**简体中文** · [English](README.en.md)\n\n基于 Unicore 的应用。上游版本见 project.provenance.json，保留 LICENSE 与框架作者头。\n\nGo module：${module}；桌面标识：${bundle}。产品身份唯一入口为 product.identity.json（名称、CLI 命令与部署标识），变更后运行 pnpm product:generate 并用 pnpm product:check 对账；主题色板 assets/theme/tokens.json，图标矢量 assets/brand/identity.json。\n\n开发：\n\n\`\`\`sh\nmake install\nmake docs\nmake doctor\nmake dev-server\n# 第二个终端\nmake dev-web\n\`\`\`\n\nWeb 首次启动访问 /install，选择平台或单机；桌面自动初始化本地数据库，CLI 不连接数据库。业务样板见 docs/product/development.md，扩展与上游更新见 docs/product/development.md。\n\n更新渠道默认清空，避免安装上游框架发行包。按 docs/product/updates.md 配置自己的仓库、公钥和发布私钥。\n\n${repositoryInstructions.zh}\n\n提交前执行 make docs、make test 和受影响构建；两份 README 和新增 Changelog 条目须同步中英文。\n`);
-    writeFileSync(join(staging,'README.en.md'),`<!-- Author: yunnuo <ymz@ebox.vip> -->\n# ${name}\n\n[简体中文](README.md) · **English**\n\nAn application built with Unicore. See project.provenance.json for the upstream revision. Preserve LICENSE and framework author headers.\n\nGo module: ${module}; desktop bundle: ${bundle}. product.identity.json is the single identity entry (name, CLI commands, deployment names); run pnpm product:generate after changes and reconcile with pnpm product:check. Theme palette lives in assets/theme/tokens.json and icon vectors in assets/brand/identity.json.\n\nDevelopment:\n\n\`\`\`sh\nmake install\nmake docs\nmake doctor\nmake dev-server\n# In a second terminal:\nmake dev-web\n\`\`\`\n\nOpen /install on first Web launch and choose the platform or standalone profile. Desktop initializes its local database automatically; CLI has no database. See docs/product/development.md for the business sample and upstream integration. Detailed guides currently remain primarily in Chinese.\n\nUpdate channels default to empty to prevent installation of upstream framework packages. Configure your own repository, public key, and release private key as described in docs/product/updates.md.\n\n${repositoryInstructions.en}\n\nRun make docs, make test, and affected builds before committing. Maintain both READMEs and paired Chinese/English Changelog entries together.\n`);
+      ? { zh: `创建器已配置自己的 origin：${repositoryUrl}，只读 framework 远端仍指向上游；没有创建远程仓库或推送代码。源码升级流程见 docs/product/framework-upgrade.md。`, en: `Your origin is configured as ${repositoryUrl}; the read-only framework remote still points upstream. No remote repository was created and no code was pushed. See docs/product/framework-upgrade.md for source upgrades.` }
+      : { zh: '创建器已完成 git init 与初始基线提交，并添加只读 framework 远端指向上游；推送前先添加自己的 origin，源码升级流程见 docs/product/framework-upgrade.md。', en: 'The creator has already run git init, committed the initial baseline, and added the read-only framework remote pointing upstream; add your own origin before pushing. See docs/product/framework-upgrade.md for source upgrades.' };
+    writeFileSync(join(staging,'README.md'),`<!-- Author: yunnuo <ymz@ebox.vip> -->\n# ${name}\n\n**简体中文** · [English](README.en.md)\n\n基于 Unicore 的应用。上游版本见 project.provenance.json，保留 LICENSE 与框架作者头。\n\nGo module：${module}；桌面标识：${bundle}。产品身份唯一入口为 product.identity.json（名称、CLI 命令与部署标识），变更后运行 pnpm product:generate 并用 pnpm product:check 对账；主题色板 assets/theme/tokens.json，图标矢量 assets/brand/identity.json。\n\n开发：\n\n\`\`\`sh\nmake install\nmake docs\nmake doctor\nmake dev-server\n# 第二个终端\nmake dev-web\n\`\`\`\n\nWeb 首次启动访问 /install，选择平台或单机；桌面自动初始化本地数据库，CLI 不连接数据库。业务样板见 docs/product/development.md；框架源码升级、冲突处理与上游反馈见 [框架升级](docs/product/framework-upgrade.md)。\n\n更新渠道默认清空，避免安装上游框架发行包。按 docs/product/updates.md 配置自己的仓库、公钥和发布私钥。\n\n${repositoryInstructions.zh}\n\n提交前执行 make docs、make test 和受影响构建；两份 README 和新增 Changelog 条目须同步中英文。\n`);
+    writeFileSync(join(staging,'README.en.md'),`<!-- Author: yunnuo <ymz@ebox.vip> -->\n# ${name}\n\n[简体中文](README.md) · **English**\n\nAn application built with Unicore. See project.provenance.json for the upstream revision. Preserve LICENSE and framework author headers.\n\nGo module: ${module}; desktop bundle: ${bundle}. product.identity.json is the single identity entry (name, CLI commands, deployment names); run pnpm product:generate after changes and reconcile with pnpm product:check. Theme palette lives in assets/theme/tokens.json and icon vectors in assets/brand/identity.json.\n\nDevelopment:\n\n\`\`\`sh\nmake install\nmake docs\nmake doctor\nmake dev-server\n# In a second terminal:\nmake dev-web\n\`\`\`\n\nOpen /install on first Web launch and choose the platform or standalone profile. Desktop initializes its local database automatically; CLI has no database. See docs/product/development.md for business development and [framework source upgrades](docs/product/framework-upgrade.md) for upstream integration and feedback. Detailed guides currently remain primarily in Chinese.\n\nUpdate channels default to empty to prevent installation of upstream framework packages. Configure your own repository, public key, and release private key as described in docs/product/updates.md.\n\n${repositoryInstructions.en}\n\nRun make docs, make test, and affected builds before committing. Maintain both READMEs and paired Chinese/English Changelog entries together.\n`);
+    if (!existsSync(join(staging, 'docs/product/framework-upgrade.md'))) {
+      for (const path of ['README.md', 'README.en.md']) writeFileSync(join(staging,path), readFileSync(join(staging,path),'utf8').replaceAll('[框架升级](docs/product/framework-upgrade.md)', 'docs/product/development.md').replaceAll('[framework source upgrades](docs/product/framework-upgrade.md)', 'docs/product/development.md'));
+    }
+    if (!templateRevision) {
+      const notices = {
+        'README.md': '\n\n此导出没有模板共同祖先，不能自动合并框架源码更新。需要持续升级时，请从包含 framework-template 历史的正常 Git clone 创建项目。\n',
+        'README.en.md': '\n\nSource upgrades are unavailable: this export has no template ancestor. Create upgradeable projects from a normal Git clone that includes framework-template.\n',
+      };
+      for (const [path,notice] of Object.entries(notices)) writeFileSync(join(staging,path),readFileSync(join(staging,path),'utf8')+notice);
+    }
     writeAIContext(staging);
     // Initialize the independent Git workspace: one baseline commit from the whitelisted export, plus the read-only framework remote.
     const targetGit = (...args) => execFileSync('git', ['-C', staging, ...args], {encoding: 'utf8', stdio: ['ignore','pipe','pipe']}).trim();

@@ -25,6 +25,7 @@ import (
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/adapter/storage/webdb"
 	"github.com/yunnuo/unicore/internal/blob"
+	"github.com/yunnuo/unicore/internal/bootstrap/filelocal"
 	"github.com/yunnuo/unicore/internal/branding"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/files"
@@ -218,9 +219,16 @@ func (m *Manager) connect(ctx context.Context) (*sqlstore.Store, error) {
 	}
 	return webdb.Open(ctx, m.config.Driver, dsn, filepath.Join(m.directory, "unicore.db"))
 }
-func (m *Manager) attach(store *sqlstore.Store) {
+func (m *Manager) attach(store *sqlstore.Store) error {
 	m.store = store
 	m.settingService = &settings.Service{Store: store, Profile: m.config.Profile, Secrets: m.secret, Branding: nil}
+	if m.config.Profile != runtime.WebPlatform {
+		var err error
+		m.files, err = filelocal.WithSecrets(store, m.directory, m.secret)
+		if err != nil {
+			return err
+		}
+	}
 	if m.config.Profile == runtime.WebPlatform {
 		m.files = &files.Service{Repo: &filesql.Repository{Store: store}, Settings: m.settingService, Secrets: m.secret, Activate: m.settingService.SetStorageActive, Factory: func(l files.Location, c files.Credentials) (blob.Store, error) {
 			if l.Provider == "local" {
@@ -250,6 +258,7 @@ func (m *Manager) attach(store *sqlstore.Store) {
 		m.oidc = &platform.OIDC{Identity: m.identity, Store: repository, Settings: m.settingService, Secrets: m.secret, Provider: oidcadapter.Provider{}, BaseURL: m.config.BaseURL}
 		m.adminOIDC = &platform.OIDC{Identity: m.administrator, Store: admins, Settings: m.settingService, Secrets: m.secret, Provider: oidcadapter.Provider{}, BaseURL: m.config.BaseURL, CallbackPath: "/api/v1/admin/auth/oidc/callback"}
 	}
+	return nil
 }
 func (m *Manager) recover(ctx context.Context) error {
 	if !m.config.OwnsSchema {
@@ -303,7 +312,10 @@ func (m *Manager) recover(ctx context.Context) error {
 		}
 		m.config.State = "INSTALLED"
 		m.config.TokenHash = ""
-		m.attach(store)
+		if err = m.attach(store); err != nil {
+			_ = store.Close()
+			return ErrDatabase
+		}
 		// Catalogue upgrades add permission points; re-apply the catalogue rows
 		// and the super_admin grant set. Role authorizations are NOT touched
 		// here: the one-time navigation materialization below seeds explicit
@@ -587,7 +599,9 @@ func (m *Manager) Complete(ctx context.Context, token string, input contracts.In
 	success = true
 	m.config.State = "INSTALLED"
 	m.config.TokenHash = ""
-	m.attach(store)
+	if err = m.attach(store); err != nil {
+		return result, user, ErrDatabase
+	}
 	// Fresh installs seed the catalogue grants; the one-time navigation
 	// materialization still runs here so every role starts with explicit
 	// operation equivalents before the first request (ADR-0036).

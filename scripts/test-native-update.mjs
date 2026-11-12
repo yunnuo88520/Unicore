@@ -16,7 +16,7 @@ const app=config.name+'.app',source=resolve('build/desktop/bin',app);if(!existsS
 cpSync(source,join(root,app),{recursive:true});cpSync(source,join(staging,app),{recursive:true});
 const run=(command,args,options={})=>execFileSync(command,args,{stdio:'pipe',...options});
 const executable=join(staging,app,'Contents/MacOS',config.outputfilename);
-run('go',['build','-tags','desktop,updater','-ldflags',`-X github.com/yunnuo/unicore/internal/buildinfo.Version=${next}`,'-o',executable,'./cmd/desktop'],{env:{...process.env,CGO_LDFLAGS:(process.env.CGO_LDFLAGS??'')+' -framework UniformTypeIdentifiers'}});
+run('go',['build','-tags','desktop,updater,production','-ldflags',`-X github.com/yunnuo/unicore/internal/buildinfo.Version=${next}`,'-o',executable,'./cmd/desktop'],{env:{...process.env,CGO_LDFLAGS:(process.env.CGO_LDFLAGS??'')+' -framework UniformTypeIdentifiers'}});
 run('/usr/libexec/PlistBuddy',['-c',`Set :CFBundleShortVersionString ${next}`,join(staging,app,'Contents/Info.plist')]);
 run('/usr/libexec/PlistBuddy',['-c',`Set :CFBundleVersion ${next}`,join(staging,app,'Contents/Info.plist')]);
 run('/usr/bin/codesign',['--force','--deep','--sign','-',join(staging,app)]);

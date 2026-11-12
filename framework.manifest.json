@@ -153,6 +153,7 @@
     "maintain-framework-docs",
     "release-cross-platform",
     "security-review",
+    "shadcn",
     "unslop"
   ],
   "surfaces": {

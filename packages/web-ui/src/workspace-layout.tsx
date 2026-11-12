@@ -36,7 +36,7 @@ export function WorkspaceLayout({ navigation, header, children, overlays, naviga
     </aside>
     <div className="main-shell min-w-0 w-full">
       <header className={`topbar sticky top-0 z-20 flex h-[76px] min-w-0 items-center justify-between bg-background px-4 max-md:h-[65px] ${scrolled ? 'shadow-md' : 'shadow-none'}`}>{header}</header>
-      <main id="main-content" tabIndex={-1} className={`main-content mx-auto w-full min-w-0 pt-9 px-[38px] pb-10 outline-none max-md:px-[22px] ${contentClassName}`}>{children}</main>
+      <main id="main-content" tabIndex={-1} className={`main-content mx-auto w-full min-w-0 pt-9 px-10 pb-12 outline-none max-md:px-6 ${contentClassName}`}>{children}</main>
     </div>
     {overlays}
   </div>;

@@ -13,8 +13,8 @@ export type PageHeaderProps = HTMLAttributes<HTMLDivElement> & {
 export function PageHeader({ title, description, actions, className, ...props }: PageHeaderProps) {
   return <div className={cn('flex flex-wrap items-start justify-between gap-3', className)} {...props}>
     <div className="min-w-0">
-      <h2 className="text-md font-semibold text-ink">{title}</h2>
-      {description && <p className="mt-0.5 text-xs text-muted">{description}</p>}
+      <h2 className="text-lg font-semibold text-ink">{title}</h2>
+      {description && <p className="mt-1 text-sm text-muted">{description}</p>}
     </div>
     {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
   </div>;

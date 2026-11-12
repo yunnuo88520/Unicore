@@ -17,7 +17,7 @@ function CoreDashboard({ client, metadata, registry }: PageProps) {
   useLocale();
   const quickLinks = ([{ id: 'notes', icon: NotebookPen }] as const)
     .filter(({ id }) => canAccess(id, metadata));
-  return <div className="flex flex-col gap-5">
+  return <div className="flex flex-col gap-6">
     <RuntimeCards metadata={metadata} transport={client.transport} />
     {registry.entries().map(widget => {
       const content = widget.render(metadata);
@@ -27,10 +27,10 @@ function CoreDashboard({ client, metadata, registry }: PageProps) {
     {metadata.identity_realm !== 'administrator' && <BusinessPlaceholders />}
     {quickLinks.length > 0 && <section aria-label={t('快捷入口')}>
       <h2 className="mb-2 text-sm font-semibold text-ink">{t('快捷入口')}</h2>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-3">
         {quickLinks.map(({ id, icon: Icon }) => {
           const route = routes[id];
-          return <Card asChild key={id} className="group flex flex-col items-start gap-1 p-4 transition-colors hover:border-primary-line hover:bg-surface-alt">
+          return <Card asChild key={id} className="group flex flex-col items-start gap-1 p-5 transition-colors hover:border-primary-line hover:bg-surface-alt">
             <Link to={ROUTE_PATHS[id as Page] ?? `/${id}`}>
               <span className="flex size-9 items-center justify-center rounded-lg bg-primary-soft text-accent"><Icon size={18} aria-hidden="true" /></span>
               <strong className="mt-1 text-sm font-medium text-ink">{t(route.label)}</strong>
@@ -58,14 +58,14 @@ function RuntimeCards({ metadata, transport }: { metadata: Bootstrap; transport:
       ? { label: t('框架版本'), value: `v${metadata.version}`, detail: metadata.deployment_kind, icon: Layers3 }
       : { label: t('工作空间'), value: t('个人空间'), detail: t('专注于你的业务'), icon: Layers3 },
   ];
-  return <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label={t('运行状态')}>
+  return <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label={t('运行状态')}>
     {cards.map(({ tone, ...card }) => <StatCard key={card.label} {...card} tone={tone} />)}
   </section>;
 }
 
 function IntroBanner({ platform }: { platform: boolean }) {
   useLocale();
-  return <div className="rounded-2xl border border-line bg-surface p-5 text-ink md:p-7">
+  return <div className="rounded-2xl border border-line bg-surface p-6 text-ink md:p-8">
     <div className="flex flex-wrap items-center justify-between gap-6">
       <div className="max-w-xl">
         <p className="text-2xs font-medium text-muted">{platform ? t('为下一款产品而生') : t('工作空间')}</p>
@@ -90,7 +90,7 @@ function IntroBanner({ platform }: { platform: boolean }) {
 
 function BusinessPlaceholders() {
   useLocale();
-  return <section className="grid gap-3 sm:grid-cols-2" aria-label={t('业务空间')}>
+  return <section className="grid gap-4 sm:grid-cols-2" aria-label={t('业务空间')}>
     <Card><CardContent className="flex flex-col items-start gap-1.5 py-5">
       <FolderOpen size={20} className="text-accent" aria-hidden="true" />
       <h2 className="text-md font-semibold text-ink">{t('我的项目')}</h2>

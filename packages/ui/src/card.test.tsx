@@ -31,5 +31,5 @@ it('forwards refs to the surface element', () => {
 it('composes header, title and content parts', () => {
   render(<Card><CardTitle>标题</CardTitle><CardContent>正文</CardContent></Card>);
   expect(screen.getByRole('heading', { name: '标题' }).tagName).toBe('H2');
-  expect(screen.getByText('正文').className).toContain('px-4');
+  expect(screen.getByText('正文').className).toContain('p-5');
 });

@@ -92,7 +92,7 @@ make docker-build
 make test-deploy
 ```
 
-`make version` 是本地准备，不提交、不建 tag、不上传。不能降版本、重复准备版本、用空 Changelog 发版。发布前审阅源码与 Changelog、迁移兼容和停服备份方案，再本地提交；已有用户明确授权时才创建 `v<VERSION>` tag、推送源码/镜像或上传归档。CI 当前负责构建和上传任务内部 artifact，不创建公开 Release。需要自动发布时由维护者配置 registry/GitHub secrets、受保护 environment、外部签名和发布审批。
+`make version` 是本地准备，不提交、不建 tag、不上传。不能降版本、重复准备版本、用空 Changelog 发版。发布前审阅源码与 Changelog、迁移兼容和停服备份方案，再本地提交；已有用户明确授权时才创建 `v<VERSION>` tag、推送源码/镜像或上传归档。CI 当前负责构建和上传任务内部 artifact，不创建公开 Release。需要自动发布时由维护者配置 registry/GitHub secrets、受保护 environment、Ed25519 发布者签名和发布审批。
 
 ## 发布验证与限制
 
@@ -106,7 +106,7 @@ make test-deploy
 
 Linux amd64 daemon 将上例改为 linux/amd64。验收只创建随机命名容器/网络/卷，结束删除这些一次性资源；不会操作已有实例。包括 Tar 真二进制解包 + Nginx，Docker、Compose 的 `/install`、PC/375px 向导、演示账号、验证码、CSRF、动态品牌、安装锁、重启与替换容器后持久化，报告/截图位于 build/acceptance/deployment。CI 在 Ubuntu amd64 跑同一命令；以该次隔离运行的实际结果为准，输出不提交主仓库。
 
-当前产物仍是开发预览：单包 manifest 的 `signature:null` 为保留字段，完整候选的 OTA 发行授权由 update-manifest.json/.sig 表示；platform_signature 独立记录系统签名。已有 checksum 不能替代 Ed25519 签名。真实授权服务仍未接入；公开版本的签名状态以实际 Release 资产和验签结果为准，OS 开发者凭据只用于可选严格策略，并非免费发行前提。配置/创建器的当前策略差异见 [更新手册](updates.md)。`make test-deploy` 的同版本替换证明挂载和配置保留，不等于跨版本迁移回滚或生产恢复演练。跨版本 DDL 兼容仍按对应 ADR/迁移文档验收，不承诺替换旧 binary 就能回滚。报告该候选实际执行的检查与未测范围，输出存CI artifact或仓库外。
+当前产物仍是开发预览：单包 manifest 的 `signature:null` 为保留字段，完整候选的 OTA 发行授权由 update-manifest.json/.sig 表示；platform_signature 独立记录系统签名。已有 checksum 不能替代 Ed25519 签名。真实授权服务仍未接入；公开版本的签名状态以实际 Release 资产和验签结果为准，OS 开发者凭据只用于可选严格策略，并非免费发行前提。仓库和创建器默认允许无 OS 证书的包，首次安装拦截消除及官方商店上架不属于发行验收；派生维护者可自行开启严格策略，见 [更新手册](updates.md)。`make test-deploy` 的同版本替换证明挂载和配置保留，不等于跨版本迁移回滚或生产恢复演练。跨版本 DDL 兼容仍按对应 ADR/迁移文档验收，不承诺替换旧 binary 就能回滚。报告该候选实际执行的检查与未测范围，输出存CI artifact或仓库外。
 
 ## 发布候选与恢复门禁
 

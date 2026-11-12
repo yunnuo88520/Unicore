@@ -20,7 +20,9 @@
 
 应用自身的 Ed25519 发布者签名、SHA-256、目标 app/Profile/OS/arch/flags/迁移级别匹配、版本防降级、期限与安全安装校验始终必需。操作系统 Authenticode / Apple Developer ID / 公证是可选严格策略，不能用摘要代替发布者签名。
 
-当前创建器将 allow_unsigned_platform 设为 false；没有 OS 证书而希望免费分发时，明确改为 true 并验证自己的无 OS 签名发行流程。此设置仅影响系统签名要求，不允许应用层无效签名。默认策略的统一仍未完成，不声称该问题已修复。
+仓库和创建器默认 allow_unsigned_platform=true，支持无付费 OS 证书的直接分发；首次安装或打开时的系统拦截不作为发版阻断项。此设置仅影响系统签名要求，OTA 仍拒绝缺失或无效的发布者签名。派生项目可自行开启严格 OS 签名策略，官方商店上架由其维护者决定。
+
+安装包可以通过 GitHub、自建站或内网 FTP/文件服务器人工下载。内置 OTA 支持 GitHub/HTTPS feed，FTP 分发不等于支持 FTP 自动更新；自建授权站的授权接口需要另行接入。
 
 发布者私钥在仓库外安全生成和保管；代码/应用仅持有公钥。可使用 scripts/update-keygen.mjs 和 update-sign.mjs 准备自己的签名清单，先核对脚本参数和目标构建信息。缺 key/未知 key/签名无效时失败关闭，不能降级为 unsigned OTA。轮换公钥应先发布同时信任旧/新公钥的过渡版，再切换签名方；无法验证新 key 的旧版需人工可信安装。
 

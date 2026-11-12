@@ -21,7 +21,7 @@ metadata:
 2. make release 生成完整 Web/CLI 矩阵；make package RELEASE_TARGETS=linux/amd64 RELEASE_PROFILES=web-platform 可只出目标包。输出 build/releases 每次重建，先保存需保留的旧产物。核对 checksum、包内版本、manifest 和 Changelog。
 3. GUI 各 OS 原生 runner 构建，记录实测 OS/Arch。
 4. make docker-build / make compose-up 自动注入统一版本/metadata/flags；有本机架构两个 Web 包和同版本镜像后 make test-deploy 跑真实 Tar+Nginx、Docker/Compose 安装、验证码登录、重启及替换容器的持久化，保存 PC/375px 证据。只删除该脚本自己创建的随机测试资源，不复用真实数据。
-5. GUI 各 OS 的原生运行与跨版本迁移/恢复另按任务验证；同版本重建不等于升级回滚。正式发布需外部签名及供应链校验，核对独立 Ed25519 update-manifest.json/.sig 与 platform_signature；签名/离线历史和 helper 已接入，具体边界见 ADR-0018。Docker 更新仅外部替换镜像，不覆盖自身 binary。
+5. GUI 各 OS 的原生运行与跨版本迁移/恢复另按任务验证；同版本重建不等于升级回滚。正式发布需 Ed25519 发布者签名及供应链校验；默认直接分发，无需付费 OS 证书、公证或官方商店验收。核对独立 Ed25519 update-manifest.json/.sig 与 platform_signature；签名/离线历史和 helper 已接入，具体边界见 ADR-0018。Docker 更新仅外部替换镜像，不覆盖自身 binary。
 
 ## output
 
@@ -33,7 +33,7 @@ metadata:
 
 ## validation
 
-真实 profile/version、checksum、原生运行及共享用例、CLI 依赖边界；正式发布需签名和恢复证据；读取 [更新手册](../../../docs/03-runbooks/updates.md)。OTA 私钥只通过已获授权的加密 Secret 配置，不能写入源码或产物；缺 key 的候选失败关闭。系统签名 required 缺开发者凭据须阻断，未真实公证不能声称已验收。
+真实 profile/version、checksum、原生运行及共享用例、CLI 依赖边界；正式发布需签名和恢复证据；读取 [更新手册](../../../docs/03-runbooks/updates.md)。OTA 私钥只通过已获授权的加密 Secret 配置，不能写入源码或产物；缺 key 的候选失败关闭。仅当派生维护者主动选择系统签名 required 时，缺开发者凭据才阻断；不要把 OS 签名、公证或首次安装拦截消除列为默认发版条件，未真实公证不能声称已公证。
 
 ## 可裁剪授权与签名更新
 

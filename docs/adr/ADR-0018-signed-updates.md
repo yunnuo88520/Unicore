@@ -15,6 +15,6 @@ Tar 与 GUI 在包目录外准备任务和复制更新 helper，下载与安全�
 
 systemd 使用明确的 supervisor 重启模式、受限可写安装目录和更新 helper 生命周期配置；手动启动与桌面由 helper 拉起新程序。Docker 不挂 socket、不覆盖容器 binary，只显示当前/最新版本、日志和外部更新说明；未来可实现外部部署 adapter。
 
-Apple Developer ID + hardened runtime、公证/staple、Windows Authenticode 为独立可选发布步骤，有配置才执行且失败阻断；请求正式系统签名但凭据缺失时拒绝构建。开发预览明确记录 unsigned，不能将接入脚本等同完成 Apple/Windows 的真实签名验收。
+Apple Developer ID + hardened runtime、公证/staple、Windows Authenticode 为独立可选发布步骤，有配置才执行且失败阻断；请求正式系统签名但凭据缺失时拒绝构建。默认通过 GitHub、自建站或内网文件服务器直接分发，仓库与创建器均允许无 OS 证书的包；preview/stable 均如实记录 unsigned。官方商店上架、购买 OS 证书、公证及消除首次打开拦截不作为本项目发版条件，派生维护者可自行选择。内置 OTA 仍仅支持 GitHub/HTTPS，FTP 仅用于人工下载。不能将接入脚本等同完成 Apple/Windows 的真实签名验收。
 
 验收：签名/目标/降级/网络/解包攻击测试；管理员、普通用户与匿名允许/拒绝；离线日志与 PC/375px 浅深主题；隔离目录真实升级、失败恢复和配置持久化；原生 GUI 重启；三系统构建。未提供平台开发者凭据时仅验收流程和拒绝分支，不声称完成真实公证。

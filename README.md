@@ -36,7 +36,7 @@ Platform 与 Standalone 的两个载体共享个人笔记业务样板，覆盖�
 
 macOS 下载 DMG 并拖到 Applications；Windows 下载 EXE 直接运行；Linux 桌面使用 tar。Web tar 解压后支持 `./unicore help`、`./unicore config generate` 和 `./unicore --config config.yaml`，首次安装继续访问 `/install`。Linux 可用 `./unicore service install` 安装守护服务，再用 `unicore manage` 打开管理菜单；启停、密码恢复及后台路径等见 [管理命令](docs/product/configuration.md#web-管理命令)。OTA 仍使用完整 tar 发行目录。
 
-预览安装包与校验和见 [GitHub Releases](https://github.com/yunnuo88520/Unicore/releases)，也可从源码构建；尚无公开注册表镜像。已接入可替换渠道的签名 OTA 与离线版本日志；公开版本是否包含签名更新清单，以对应 Release 资产与验证结果为准。应用层发布者签名必须保留，OS 签名/公证可选，无需购买证书即可采用免费分发策略；创建器默认 OS 签名策略仍有已知差异，见支持范围。授权服务保持占位。详见 [系统更新](docs/03-runbooks/updates.md)与 [支持范围](docs/support.md)。
+预览安装包与校验和见 [GitHub Releases](https://github.com/yunnuo88520/Unicore/releases)，也可从源码构建；尚无公开注册表镜像。已接入可替换渠道的签名 OTA 与离线版本日志；公开版本是否包含签名更新清单，以对应 Release 资产与验证结果为准。应用层发布者签名必须保留，默认直接分发，不要求官方商店上架、付费 OS 签名或公证；仓库和派生项目均默认允许无 OS 证书的包，OTA 仍须发布者验签。授权服务保持占位。详见 [系统更新](docs/03-runbooks/updates.md)与 [支持范围](docs/support.md)。
 
 
 平台管理端提供可筛选、排序、分页和导出的操作日志，以及独立邮件模板编辑、预览与测试发送；权限、迁移和开发约定见 [管理工具](docs/03-runbooks/admin-tools.md)。

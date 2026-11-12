@@ -30,6 +30,31 @@ func signature(raw []byte, key ed25519.PrivateKey) []byte {
 	b, _ := json.Marshal(Signature{KeyID: "test", Algorithm: "ed25519", Value: base64.StdEncoding.EncodeToString(ed25519.Sign(key, raw))})
 	return b
 }
+func TestUnsignedNativeStillRequiresPublisherSignature(t *testing.T) {
+	for _, os := range []string{"darwin", "windows"} {
+		t.Run(os, func(t *testing.T) {
+			m, _, trust, key, target := fixture(t)
+			target.Profile, target.OS = "desktop", os
+			m.Artifacts[0].Target = target
+			raw, _ := json.Marshal(m)
+			sig := signature(raw, key)
+			trust.AllowUnsignedPlatform = true
+			if _, _, err := Verify(raw, sig, trust, "1.0.0", m.Version, target, time.Now()); err != nil {
+				t.Fatal("publisher-signed native artifact rejected", err)
+			}
+			_, other, _ := ed25519.GenerateKey(rand.Reader)
+			for name, invalid := range map[string][]byte{"missing": nil, "wrong publisher": signature(raw, other)} {
+				if _, _, err := Verify(raw, invalid, trust, "1.0.0", m.Version, target, time.Now()); !errors.Is(err, ErrRejected) {
+					t.Fatalf("accepted %s signature: %v", name, err)
+				}
+			}
+			trust.AllowUnsignedPlatform = false
+			if _, _, err := Verify(raw, sig, trust, "1.0.0", m.Version, target, time.Now()); !errors.Is(err, ErrRejected) {
+				t.Fatalf("strict OS policy accepted unsigned artifact: %v", err)
+			}
+		})
+	}
+}
 func TestSignedTargetRejectsTamperingAndIncompatibility(t *testing.T) {
 	m, raw, trust, key, target := fixture(t)
 	if _, _, e := Verify(raw, signature(raw, key), trust, "1.0.0", m.Version, target, time.Now()); e != nil {

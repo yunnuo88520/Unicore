@@ -94,7 +94,7 @@
 | 功能单元 | 载体 | 证据 |
 | --- | --- | --- |
 | Wails 桥设置兼容方法（空列表、拒绝写入） | Standalone(GUI) | `internal/adapter/desktop/bridge.go` |
-| 原生签名更新（native 部署） | Standalone(GUI)，需 `updater` 构建标签 | `internal/adapter/desktop/updates.go`、`cmd/desktop/updates_enabled.go` |
+| 原生签名更新（native 部署） | Standalone(GUI)，需 `updater`；默认不要求 OS 证书，发布者验签必需 | `internal/adapter/desktop/updates.go`、`cmd/desktop/updates_enabled.go` |
 | 单实例锁 | Standalone(GUI) | `internal/bootstrap/local/local.go` |
 
 ## I. 运行监控（P0 已实现；P1/P2 规划见 [设计草案](design-runtime-monitor.md)）

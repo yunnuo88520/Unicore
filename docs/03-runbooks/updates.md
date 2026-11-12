@@ -1,5 +1,5 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
-# 系统更新、发行签名与原生公证
+# 系统更新与发行签名
 
 当前实现见 [ADR-0018](../adr/ADR-0018-signed-updates.md)。在线更新必须有发行者 Ed25519 签名；文件摘要、GitHub 构建来源证明与操作系统签名分别承担不同的校验。现有 v0.1.1 资产未包含签名更新清单，不能作为 OTA 安装目标；本次接入不覆盖历史 Release。
 
@@ -14,11 +14,13 @@
 
 ## 配置更新渠道
 
-唯一构建入口为 assets/updates/config.json：repository、channel（stable/preview）、keys（key ID → Base64 原始 Ed25519 公钥）、allow_unsigned_platform。应用 ID 来自 assets/brand/identity.json。批准的默认策略是 GitHub Releases/自建 HTTPS 免费分发 Windows、macOS、Linux，不要求 Authenticode、Apple Developer ID 或公证；Ed25519、SHA-256、目标匹配、防降级和安全安装始终必需。OS 签名严格策略仅按需开启，不应自动随正式发行开启。
+唯一构建入口为 assets/updates/config.json：repository、channel（stable/preview）、keys（key ID → Base64 原始 Ed25519 公钥）、allow_unsigned_platform。应用 ID 来自 assets/brand/identity.json。默认通过 GitHub Releases、自建站或内网文件服务器直接分发 Windows、macOS、Linux 发行物，不以 Apple/Microsoft 官方商店上架为目标，不要求 Authenticode、Apple Developer ID 或公证，也不将首次安装拦截消除作为验收条件；Ed25519、SHA-256、目标匹配、防降级和安全安装始终必需。OS 签名严格策略仅按需开启，不应自动随正式发行开启。
 
-**当前已知限制：**仓库配置允许未做 OS 签名的包，`scripts/create-project.mjs` 却设为 false，其测试也断言 false；verify 与 installer/helper 使用该值，因此派生 Windows/macOS 更新可能被拒绝。修复需覆盖真实派生项目默认信任、OS未签名但发布者签名有效的包安装，以及无效应用签名拒绝。当前不能将免费分发目标描述为派生默认策略已通过；见 [支持范围](../support.md)。
+仓库及创建器默认 `allow_unsigned_platform=true`，允许没有 OS 证书的发行包通过应用层验签；派生项目仍清空上游仓库和公钥，必须登记自己的发布者公钥并签署更新清单。派生维护者可自行设为 false 并启用 OS 签名严格策略。
 
 运行环境可用 APP_UPDATE_REPOSITORY 替换公开 GitHub 仓库，APP_UPDATE_FEED_URL 指向自己的 HTTPS feed，APP_UPDATE_TRUST_FILE 指向同结构的受控公共配置文件；后者是部署操作者的信任设置，不由远端响应修改。私有 CA 渠道可通过 APP_UPDATE_CA_FILE 提供受控 PEM 根证书，追加系统信任且保持 TLS 校验；不提供跳过验证的选项。不要在 URL 填凭据。公开 GitHub 不需要 token；私有渠道可实现 internal/updates.Provider 并在 bootstrap/updating 装配。首次派生应用的创建器清空上游仓库和公钥，未配置时仍能显示内置日志，避免安装 Unicore 上游程序。
+
+人工下载安装包可以使用 GitHub、自建授权站或内网 FTP/文件服务器；这不表示更新器支持 FTP 协议。内置 OTA 使用 GitHub 或 HTTPS feed，自建授权服务仍需接入现有 Provider 边界，不能仅凭分发站点存在就宣称已实现。
 
 HTTPS feed 示例（资产必须同一 HTTPS host；GitHub adapter 另允许其下载 CDN）：
 
@@ -68,9 +70,9 @@ gh secret set UNICORE_UPDATE_SIGNING_KEY --repo owner/repository < /secure/offli
 
 公钥轮换先发布同时信任旧/新公钥的一版，再切换签名 Secret；最后在后续版本移除旧 key。已失效旧版如不能验证新 key，需要人工安装可信包，不能远端替换信任根。
 
-## Apple 与 Windows 凭据
+## 可选：派生项目的 Apple 与 Windows 凭据
 
-本项目当前没有 OS 开发者凭据，不能声称完成真实 Apple 公证或 Windows 签名；OS unsigned 不表示应用层 OTA 未签名，也不应被限制为只能预览分发。按需设置 GitHub repository variable UNICORE_PLATFORM_SIGNING=required 后，main 原生 CI 在打包前执行 scripts/platform-sign.mjs，签名失败或缺凭据会阻断。PR 不接触签名 Secret。无 OS 证书场景的当前创建器缺口见上节。
+本项目不将付费 OS 证书、Apple 公证或官方商店上架列为发行前提；OS unsigned 不表示应用层 OTA 未签名，也不限制 stable 渠道。以下流程仅供自行选择系统签名的派生维护者使用。按需设置 GitHub repository variable UNICORE_PLATFORM_SIGNING=required 后，main 原生 CI 在打包前执行 scripts/platform-sign.mjs，签名失败或缺凭据会阻断。PR 不接触签名 Secret。默认不需要配置这些凭据。
 
 | 平台 | GitHub Secrets |
 | --- | --- |

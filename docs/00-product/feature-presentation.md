@@ -99,7 +99,7 @@ Platform 的“角色权限”使用共享树，默认页面授权只补浏览 A
 
 ## 客户端与个人 API 凭证
 
-Platform 两工作台的个人安全页提供 PAT 的创建、API 范围选择、一次性显示、元数据和撤销；不新增导航目录。原生客户端使用客户端 Token API，不在浏览器保存 JWT。Standalone 两载体与 CLI 不装配令牌 UI 或接口。详见 [API 认证](../product/api-authentication.md)。
+Platform 两工作台在“个人中心 → 访问令牌”提供单角色 PAT 的创建、固定期限/永久、备注、一次性秘密、元数据、续期和作废；“超级管理员 → 访问令牌管理”仅超级管理员可见，可搜索全部用户的令牌并代用户签发、续期和作废。原生客户端使用客户端 Token API，不在浏览器保存 JWT。Standalone 两载体与 CLI 不装配令牌 UI 或接口。详见 [API 认证](../product/api-authentication.md)。
 
 ## 笔记附件与安装连接
 

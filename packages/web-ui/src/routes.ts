@@ -36,6 +36,8 @@ export const routes = defineMessages({
   tasks: { label: '定时任务', title: '定时任务', description: '管理后台定时任务：内置任务启停与手动触发，自建任务在已注册执行器上创建、编辑与删除。', permission: 'tasks:read', icon: ListChecks, group: 'administration' },
   menus: { label: '菜单管理', title: '菜单管理', description: '调整用户端导航的顺序、分组与可见性。', permission: 'menus:write', icon: LayoutDashboard, group: 'administration' },
   dictionaries: { label: '数据字典', title: '数据字典', description: '维护业务表单可复用的枚举字典。', permission: 'dictionaries:read', icon: FileText, group: 'administration' },
+  'access-tokens': { label: '访问令牌管理', title: '访问令牌管理', description: '管理所有用户的令牌、绑定角色与有效期。', permission: 'tokens:read', icon: ShieldCheck, group: 'administration' },
+  'account-tokens': { label: '访问令牌', title: '个人访问令牌', description: '为脚本和外部程序签发绑定单个角色的访问令牌。', authenticated: true, icon: ShieldCheck, group: 'personal' },
   account: { label: '个人资料', title: '个人资料', description: '管理昵称、邮箱与账号信息。', authenticated: true, icon: UserRound, group: 'personal' },
  'account-security': {label:'安全设置',title:'安全设置',description:'管理密码、双重验证与企业账号绑定。',authenticated:true,icon:ShieldCheck,group:'personal'},
  'account-sessions': {label:'登录会话',title:'登录会话',description:'查看登录设备，及时下线不再使用的会话。',authenticated:true,icon:Monitor,group:'personal'},
@@ -64,13 +66,14 @@ export function isAdministrator(metadata?: Bootstrap): boolean {
   return isAdminRealm(metadata) && !!metadata?.current_user?.roles.includes('super_admin');
 }
 export function canAccess(page: Page, metadata?: Bootstrap): boolean {
+  if (page === 'access-tokens') return isAdministrator(metadata);
   // Management-flavoured pages never render on the user surface — even when a
   // persisted menu tree or a custom role still carries them (existing installs).
   if (metadata?.profile === 'web-platform' && metadata.identity_realm !== 'administrator' &&
     ['site', 'api-docs', 'announcements', 'monitor', 'monitor-services', 'monitor-resources', 'monitor-events'].includes(page)) return false;
   if (metadata?.profile === 'web-platform' && metadata.current_user &&
     !metadata.current_user.roles.includes('super_admin') &&
-    !['account', 'account-security', 'account-sessions'].includes(page)) {
+    !['account', 'account-security', 'account-sessions', 'account-tokens'].includes(page)) {
     const navigation = metadata.navigation;
     const realm = metadata.identity_realm ?? 'user';
     const sections = new Set(navigation?.sections.filter(section => section.visible &&

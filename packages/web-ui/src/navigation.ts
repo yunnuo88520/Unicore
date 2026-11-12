@@ -37,7 +37,7 @@ export function validNavigationUrl(value: string): boolean {
 const builtinPageOrder: string[] = [
   'overview', 'users', 'roles', 'departments', 'posts', 'menus', 'dictionaries',
   'announcements', 'tasks', 'api-docs', 'site', 'storage', 'account-policy', 'mail', 'mail-templates',
-  'notification-channels', 'notification-templates', 'system-notifications', 'logs', 'edition', 'account', 'account-security', 'account-sessions',
+  'notification-channels', 'notification-templates', 'system-notifications', 'logs', 'edition', 'account', 'account-security', 'account-sessions', 'account-tokens', 'access-tokens',
   'monitor', 'monitor-services', 'monitor-resources', 'monitor-events',
 ];
 // Module pages append after the builtins in each module's declared order.
@@ -143,7 +143,7 @@ const builtinIcons: Record<string, string> = {
   users: 'UserRound', administrators: 'UserCog', announcements: 'Megaphone', 'account-policy': 'ShieldCheck', mail: 'Mail', 'mail-templates': 'Mail',
   'notification-channels': 'Webhook', 'notification-templates': 'FileText', 'system-notifications': 'Bell', logs: 'ScrollText', edition: 'PackageCheck',
   roles: 'ShieldCheck', departments: 'Network', tasks: 'ListChecks', menus: 'LayoutDashboard', dictionaries: 'FileText', posts: 'UserCog',
-  account: 'UserRound', 'account-security': 'ShieldCheck', 'account-sessions': 'Monitor', 'api-docs': 'BookOpen',
+  'account-tokens': 'ShieldCheck', 'access-tokens': 'ShieldCheck', account: 'UserRound', 'account-security': 'ShieldCheck', 'account-sessions': 'Monitor', 'api-docs': 'BookOpen',
   monitor: 'Activity', 'monitor-services': 'Radar', 'monitor-resources': 'Cpu',
 };
 // Module icons merge after the builtins so a seeded tree and the client default match.

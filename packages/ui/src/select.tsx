@@ -25,8 +25,8 @@ export const SelectTrigger = forwardRef<HTMLButtonElement, React.ComponentPropsW
 export const SelectContent = forwardRef<HTMLDivElement, React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>>(function SelectContent({ className, children, position = 'popper', ...props }, ref) {
   return <SelectPrimitive.Portal>
     <SelectPrimitive.Content ref={ref} position={position} sideOffset={4}
-      className={cn('z-50 max-h-72 min-w-[var(--radix-select-trigger-width)] overflow-y-auto rounded-lg border border-line bg-surface p-1 text-base shadow-modal', className)} {...props}>
-      <SelectPrimitive.Viewport>{children}</SelectPrimitive.Viewport>
+      className={cn('z-50 max-h-[min(18rem,var(--radix-select-content-available-height))] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-lg border border-line bg-surface p-1 text-base shadow-modal', className)} {...props}>
+      <SelectPrimitive.Viewport className="max-h-[min(18rem,var(--radix-select-content-available-height))] overscroll-contain">{children}</SelectPrimitive.Viewport>
     </SelectPrimitive.Content>
   </SelectPrimitive.Portal>;
 });

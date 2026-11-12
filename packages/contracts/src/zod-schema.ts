@@ -36,6 +36,7 @@ function adapt(schema: Schema, required: boolean): z.ZodType {
     return adapt(target, required);
   }
   if (schema.enum) {
+    if (schema.type === 'integer' && schema.enum.every(value => typeof value === 'number' && Number.isSafeInteger(value))) return z.custom<number>(value => schema.enum!.includes(value), { error: requiredError(required, '请选择有效选项') });
     if (!schema.enum.every(value => typeof value === 'string')) throw new Error(`不支持的输入类型: 枚举含非字符串`);
     return z.enum(schema.enum as [string, ...string[]], { error: requiredError(required, '请选择有效选项') });
   }

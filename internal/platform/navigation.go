@@ -11,6 +11,8 @@ import (
 // registers (routes.ts minus not-found) with its presentation group and
 // surface availability. Backend authorization stays authoritative.
 var baseNavigationPages = []contracts.NavigationPage{
+	{ID: "account-tokens", Surfaces: []string{"user", "administrator"}, Group: "personal"},
+	{ID: "access-tokens", Surfaces: []string{"administrator"}, Permission: "tokens:read", Group: "administration"},
 	{ID: "overview", Surfaces: []string{"user", "administrator"}},
 	{ID: "announcements", Surfaces: []string{"administrator"}, Permission: "announcements:read"},
 	{ID: "api-docs", Surfaces: []string{"administrator"}},
@@ -50,7 +52,7 @@ func NavigationPages() []contracts.NavigationPage {
 var defaultPageOrder = []string{
 	"overview", "users", "roles", "departments", "posts", "menus", "dictionaries",
 	"announcements", "tasks", "api-docs", "site", "storage", "account-policy", "mail", "mail-templates",
-	"notification-channels", "notification-templates", "system-notifications", "logs", "edition", "account", "account-security", "account-sessions",
+	"notification-channels", "notification-templates", "system-notifications", "logs", "edition", "account", "account-security", "account-sessions", "account-tokens", "access-tokens",
 	"monitor", "monitor-services", "monitor-resources", "monitor-events",
 }
 
@@ -96,7 +98,7 @@ var navigationIcons = map[string]string{
 	"users": "UserRound", "administrators": "UserCog", "announcements": "Megaphone", "account-policy": "ShieldCheck", "mail": "Mail", "mail-templates": "Mail",
 	"notification-channels": "Webhook", "notification-templates": "FileText", "system-notifications": "Bell", "logs": "ScrollText", "edition": "PackageCheck",
 	"roles": "ShieldCheck", "departments": "Network", "tasks": "ListChecks", "menus": "LayoutDashboard", "dictionaries": "FileText", "posts": "UserCog",
-	"account": "UserRound", "account-security": "ShieldCheck", "account-sessions": "Monitor", "api-docs": "BookOpen",
+	"account-tokens": "ShieldCheck", "access-tokens": "ShieldCheck", "account": "UserRound", "account-security": "ShieldCheck", "account-sessions": "Monitor", "api-docs": "BookOpen",
 	"monitor": "Activity", "monitor-services": "Radar", "monitor-resources": "Cpu", "monitor-events": "ScrollText",
 	// Seeded directories carry the same icons as the frontend defaultNavigation.
 	"administration": "Users", "personal": "UserRound", "monitor-center": "Activity",

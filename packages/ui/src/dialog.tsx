@@ -1,6 +1,6 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Radix dialog surface plus a legacy-compatible Modal with title, pending lock and first-field focus.
-import { forwardRef, useEffect, useRef, type ComponentPropsWithoutRef, type HTMLAttributes, type ReactNode } from 'react';
+import { forwardRef, useRef, type ComponentPropsWithoutRef, type HTMLAttributes, type ReactNode } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog';
 import { X } from 'lucide-react';
@@ -30,7 +30,7 @@ export const DialogContent = forwardRef<HTMLDivElement, ComponentPropsWithoutRef
         event.preventDefault();
         const root = event.currentTarget as HTMLElement;
         const target = root.querySelector<HTMLElement>('[data-autofocus]') ?? root.querySelector<HTMLElement>(FOCUSABLE);
-        target?.focus();
+        target?.focus({ preventScroll: true });
       }}
       onCloseAutoFocus={event => {
         onCloseAutoFocus?.(event);
@@ -46,7 +46,7 @@ export const DialogContent = forwardRef<HTMLDivElement, ComponentPropsWithoutRef
 });
 
 export function DialogHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('mb-3 flex flex-col gap-1 pe-8', className)} {...props} />;
+  return <div className={cn('mb-3 flex shrink-0 flex-col gap-1 pe-8', className)} {...props} />;
 }
 
 export function DialogTitle({ className, ...props }: ComponentPropsWithoutRef<typeof DialogPrimitive.Title>) {
@@ -64,17 +64,12 @@ export function DialogFooter({ className, ...props }: HTMLAttributes<HTMLDivElem
 /** Legacy-compatible modal: mounted equals open; Escape and overlay closes are suppressed while pending. */
 export function Modal({ title, onClose, pending = false, children, className, contentClassName }: { title: string; onClose: () => void; pending?: boolean; children: ReactNode; className?: string; contentClassName?: string }) {
   useLocale();
-  useEffect(() => {
-    if (pending) return;
-    const previous = document.activeElement as HTMLElement | null;
-    return () => { previous?.focus(); };
-  }, [pending]);
   return <Dialog open onOpenChange={open => { if (!open && !pending) onClose(); }}>
-    <DialogContent aria-label={t(title)} showClose={false} className={contentClassName}>
+    <DialogContent aria-label={t(title)} showClose={false} className={cn('overflow-hidden', contentClassName)}>
       <DialogHeader>
         <DialogTitle>{t(title)}</DialogTitle>
       </DialogHeader>
-      <div className={className} data-autofocus-scope>
+      <div className={cn('min-h-0 min-w-0 overflow-y-auto overscroll-contain pe-4', className)} data-autofocus-scope>
         {children}
       </div>
       <DialogPrimitive.Close asChild><Button variant="ghost" size="icon" className="absolute end-3 top-3" aria-label={t('关闭{{v0}}', { v0: title })} disabled={pending}><X size={17} /></Button></DialogPrimitive.Close>

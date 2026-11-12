@@ -1936,19 +1936,24 @@ type RefreshTokenInput struct {
 }
 
 type PersonalTokenInput struct {
-	Name          string   `json:"name"`
-	ExpiresInDays int      `json:"expires_in_days"`
-	OperationIds  []string `json:"operation_ids"`
+	Name          string `json:"name"`
+	RoleID        string `json:"role_id"`
+	ExpiresInDays int    `json:"expires_in_days"`
+	Remark        string `json:"remark"`
 }
 
 type PersonalToken struct {
-	ID           string   `json:"id"`
-	Name         string   `json:"name"`
-	CreatedAt    int      `json:"created_at"`
-	ExpiresAt    int      `json:"expires_at"`
-	LastUsedAt   int      `json:"last_used_at"`
-	Revoked      bool     `json:"revoked"`
-	OperationIds []string `json:"operation_ids"`
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	CreatedAt  int    `json:"created_at"`
+	ExpiresAt  int    `json:"expires_at"`
+	LastUsedAt int    `json:"last_used_at"`
+	Revoked    bool   `json:"revoked"`
+	UserID     string `json:"user_id"`
+	Username   string `json:"username"`
+	RoleID     string `json:"role_id"`
+	RoleName   string `json:"role_name"`
+	Remark     string `json:"remark"`
 }
 
 type PersonalTokenCreated struct {
@@ -1957,11 +1962,10 @@ type PersonalTokenCreated struct {
 }
 
 type PersonalTokenList struct {
-	Items []PersonalToken `json:"items"`
-}
-
-type TokenScopeList struct {
-	Items []APIOperation `json:"items"`
+	Items    []PersonalToken `json:"items"`
+	Total    int             `json:"total"`
+	Page     int             `json:"page"`
+	PageSize int             `json:"page_size"`
 }
 
 type ClientTokenPairResponse struct {
@@ -1992,9 +1996,14 @@ type PersonalTokenListResponse struct {
 	RequestID string            `json:"request_id"`
 }
 
-type TokenScopeListResponse struct {
-	Code      string         `json:"code"`
-	Message   string         `json:"message"`
-	Data      TokenScopeList `json:"data"`
-	RequestID string         `json:"request_id"`
+type PersonalTokenRenewInput struct {
+	ExpiresInDays int `json:"expires_in_days"`
+}
+
+type AdminPersonalTokenInput struct {
+	Name          string `json:"name"`
+	RoleID        string `json:"role_id"`
+	ExpiresInDays int    `json:"expires_in_days"`
+	Remark        string `json:"remark"`
+	UserID        string `json:"user_id"`
 }

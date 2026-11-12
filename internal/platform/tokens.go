@@ -21,7 +21,8 @@ const tokenAudience = "unicore-api"
 // secrets are encrypted with the installation key; PAT secrets are never stored.
 type APICredential struct {
 	ID, UserID, Kind, Name, SessionHash, SessionSecret string
-	Operations                                         []string
+	RoleID, RoleName, Remark, Username                 string
+	Manage                                             bool
 	CreatedAt, ExpiresAt, LastUsedAt                   int
 	Revoked                                            bool
 }
@@ -35,9 +36,12 @@ type TokenStore interface {
 	RotateRefresh(context.Context, string, string) (APICredential, error)
 	RevokeRefresh(context.Context, string) error
 	ResolveCredential(context.Context, string, string) (APICredential, contracts.User, error)
-	CreatePersonalToken(context.Context, string, APICredential) error
-	PersonalTokens(context.Context, string) ([]APICredential, error)
-	RevokePersonalToken(context.Context, string, string) error
+	CreatePersonalToken(context.Context, string, APICredential) (APICredential, error)
+	PersonalTokens(context.Context, string, bool, string, int, int) ([]APICredential, int, error)
+	PersonalTokenRoles(context.Context, string, string, bool) (contracts.RoleOptions, error)
+	PersonalTokenUsers(context.Context, string, string, int, int) (contracts.UserList, error)
+	RevokePersonalToken(context.Context, string, string, bool) error
+	RenewPersonalToken(context.Context, string, string, int, bool) error
 	TokenKey(context.Context, string, TokenSigningKey, bool) (TokenSigningKey, error)
 }
 
@@ -87,7 +91,7 @@ func (t *Tokens) Exchange(ctx context.Context, sessionToken, name string) (contr
 		return contracts.ClientTokenPair{}, ErrMFAEnrollment
 	}
 	privateSession := Token()
-	record := APICredential{ID: Token(), UserID: session.User.ID, Kind: "client", Name: name, SessionHash: Hash(privateSession), SessionSecret: t.Secrets.Seal(privateSession), Operations: []string{}, CreatedAt: int(time.Now().Unix()), ExpiresAt: session.ExpiresAt}
+	record := APICredential{ID: Token(), UserID: session.User.ID, Kind: "client", Name: name, SessionHash: Hash(privateSession), SessionSecret: t.Secrets.Seal(privateSession), CreatedAt: int(time.Now().Unix()), ExpiresAt: session.ExpiresAt}
 	refresh := Token()
 	if err = t.Store.BindClient(ctx, Hash(sessionToken), record, Hash(refresh)); err != nil {
 		return contracts.ClientTokenPair{}, err
@@ -204,7 +208,7 @@ func (t *Tokens) Resolve(ctx context.Context, bearer string) (BearerIdentity, er
 func (b BearerIdentity) Allows(operationID, path string) bool {
 	// Auth and credential issuance stay on dedicated proof endpoints. A PAT
 	// cannot mint more credentials or perform privileged account recovery.
-	if strings.Contains(path, "/auth/") || strings.Contains(path, "/account/tokens") || strings.Contains(path, "/account/token-scopes") {
+	if strings.Contains(path, "/auth/") || strings.Contains(path, "/account/tokens") || strings.Contains(path, "/account/token-roles") {
 		return false
 	}
 	if b.Credential.Kind == "client" {
@@ -214,62 +218,61 @@ func (b BearerIdentity) Allows(operationID, path string) bool {
 	if !ok || !op.Grantable || op.SuperAdmin {
 		return false
 	}
-	for _, id := range b.Credential.Operations {
-		if id == operationID {
-			return true
-		}
-	}
-	return false
+	return OperationAllowed(b.Session.User, operationID) && PermissionsAllow(b.Session.User.Permissions, op.Permissions, op.PermissionMode)
 }
-func (t *Tokens) Scopes(user contracts.User) []contracts.APIOperation {
-	result := []contracts.APIOperation{}
-	for _, op := range APIOperations() {
-		if op.Grantable && !op.SuperAdmin && OperationAllowed(user, op.OperationID) && PermissionsAllow(user.Permissions, op.Permissions, op.PermissionMode) {
-			result = append(result, op)
-		}
+
+// TokenExpiry uses zero for permanent credentials and computes a deadline from now.
+func TokenExpiry(days int) (int, error) {
+	switch days {
+	case 0:
+		return 0, nil
+	case 1, 7, 30, 90:
+		return int(time.Now().Unix()) + days*86400, nil
 	}
-	return result
+	return 0, ErrInput
 }
-func (t *Tokens) CreatePAT(ctx context.Context, source string, input contracts.PersonalTokenInput) (contracts.PersonalTokenCreated, error) {
+func (t *Tokens) CreatePAT(ctx context.Context, source string, input contracts.PersonalTokenInput, target ...string) (contracts.PersonalTokenCreated, error) {
 	session, err := t.Identity.Session(ctx, source)
 	if err != nil {
 		return contracts.PersonalTokenCreated{}, err
 	}
-	profile, err := t.Identity.Personal.Profile(ctx, source)
-	if err != nil {
-		return contracts.PersonalTokenCreated{}, err
-	}
-	if profile.Force2fa && !profile.TotpEnabled {
-		return contracts.PersonalTokenCreated{}, ErrMFAEnrollment
-	}
-	if !t.Identity.Limiter.Allow("pat-create:"+session.User.ID, 10, time.Hour) {
+	if !t.Identity.Limiter.Allow("pat-create:"+session.User.ID, 30, time.Hour) {
 		return contracts.PersonalTokenCreated{}, ErrRateLimited
 	}
-	name := strings.TrimSpace(input.Name)
-	if name == "" || len([]rune(name)) > 80 || strings.ContainsAny(name, "\x00\r\n") || input.ExpiresInDays < 1 || input.ExpiresInDays > 365 || len(input.OperationIds) == 0 || len(input.OperationIds) > 128 {
+	name, remark := strings.TrimSpace(input.Name), strings.TrimSpace(input.Remark)
+	expires, err := TokenExpiry(input.ExpiresInDays)
+	if err != nil || name == "" || len([]rune(name)) > 80 || len([]rune(remark)) > 500 || strings.ContainsAny(name, "\x00\r\n") || strings.ContainsRune(remark, '\x00') {
 		return contracts.PersonalTokenCreated{}, ErrInput
 	}
-	allowed := map[string]bool{}
-	for _, op := range t.Scopes(session.User) {
-		allowed[op.OperationID] = true
-	}
-	seen := map[string]bool{}
-	for _, id := range input.OperationIds {
-		if !allowed[id] || seen[id] {
-			return contracts.PersonalTokenCreated{}, ErrForbidden
-		}
-		seen[id] = true
+	owner := session.User.ID
+	if len(target) > 0 {
+		owner = target[0]
 	}
 	raw := "ucp_" + Token()
-	now := int(time.Now().Unix())
-	record := APICredential{ID: Token(), UserID: session.User.ID, Kind: "pat", Name: name, SessionHash: Hash(raw), Operations: input.OperationIds, CreatedAt: now, ExpiresAt: now + input.ExpiresInDays*86400}
-	if err = t.Store.CreatePersonalToken(ctx, Hash(source), record); err != nil {
+	record := APICredential{ID: Token(), UserID: owner, Kind: "pat", Name: name, RoleID: input.RoleID, Remark: remark, Manage: len(target) > 0, SessionHash: Hash(raw), CreatedAt: int(time.Now().Unix()), ExpiresAt: expires}
+	if record, err = t.Store.CreatePersonalToken(ctx, Hash(source), record); err != nil {
 		return contracts.PersonalTokenCreated{}, err
 	}
 	return contracts.PersonalTokenCreated{Token: raw, Credential: PersonalTokenView(record)}, nil
 }
 func PersonalTokenView(r APICredential) contracts.PersonalToken {
-	return contracts.PersonalToken{ID: r.ID, Name: r.Name, CreatedAt: r.CreatedAt, ExpiresAt: r.ExpiresAt, LastUsedAt: r.LastUsedAt, Revoked: r.Revoked, OperationIds: r.Operations}
+	return contracts.PersonalToken{ID: r.ID, UserID: r.UserID, Username: r.Username, Name: r.Name, RoleID: r.RoleID, RoleName: r.RoleName, Remark: r.Remark, CreatedAt: r.CreatedAt, ExpiresAt: r.ExpiresAt, LastUsedAt: r.LastUsedAt, Revoked: r.Revoked}
+}
+
+// A bearer restriction follows the authenticated actor into transactional reloads.
+// Other users read as resources keep their complete account projection.
+type tokenRoleKey struct{}
+type tokenRole struct{ UserID, RoleID string }
+
+func WithTokenRole(ctx context.Context, user, role string) context.Context {
+	return context.WithValue(ctx, tokenRoleKey{}, tokenRole{user, role})
+}
+func TokenRole(ctx context.Context, user string) string {
+	v, _ := ctx.Value(tokenRoleKey{}).(tokenRole)
+	if v.UserID == user {
+		return v.RoleID
+	}
+	return ""
 }
 func (t *Tokens) RotateSigningKey(ctx context.Context, actor string) error {
 	_, _, err := t.key(ctx, "", true, actor)
@@ -285,7 +288,7 @@ func (t *Tokens) Challenge(ctx context.Context, source string) (string, error) {
 	}
 	proof := "ucc_" + Token()
 	now := int(time.Now().Unix())
-	record := APICredential{ID: Hash(proof), UserID: session.User.ID, Kind: "challenge", Name: "client-mfa", SessionHash: Hash(source), SessionSecret: t.Secrets.Seal(source), Operations: []string{}, CreatedAt: now, ExpiresAt: min(now+300, session.ExpiresAt)}
+	record := APICredential{ID: Hash(proof), UserID: session.User.ID, Kind: "challenge", Name: "client-mfa", SessionHash: Hash(source), SessionSecret: t.Secrets.Seal(source), CreatedAt: now, ExpiresAt: min(now+300, session.ExpiresAt)}
 	if err = t.Store.BindClientChallenge(ctx, record); err != nil {
 		return "", err
 	}

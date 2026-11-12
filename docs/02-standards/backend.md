@@ -37,3 +37,7 @@ Go 采用组合：可变业务实体嵌入 `internal/domain/entity.go` 的 BaseE
 操作日志分为操作类型、操作目标和变更摘要；详情只写字段名、安全状态变化、版本变化等，禁止密码、授权码、SMTP 密钥和完整正文。没有详情的历史记录展示 `—`，不以操作名称假充详情，也不回填无法证实的历史。
 
 公告的完整扩展示例见 [运行说明](../03-runbooks/announcements.md) 和 [ADR-0021](../adr/ADR-0021-business-entities-announcements.md)。新功能需同步契约、权限、分方言迁移、双语 UI、docs/Skills；依次运行 make docs、make test、相关 profile 构建与真实页面验证。
+
+### 访问令牌的单角色主体
+
+Platform PAT 按 [ADR-0044](../adr/ADR-0044-role-bound-personal-tokens.md) 仅绑定一个已分配角色。HTTP 主体与事务中的 actor 复核保持同一角色约束，platformsql 使用 principalUser 重新加载操作者；user 是完整账号资源投影，不能替代 actor 复核，也不能被令牌角色裁剪，否则本人编辑和超管目标保护会遗漏其他角色。读写数据范围均只从当前主体的角色集合计算；Cookie 会话继续使用多角色并集。

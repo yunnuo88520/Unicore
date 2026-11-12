@@ -5,8 +5,8 @@ package platformsql
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
@@ -34,11 +34,7 @@ func (r *Repository) verifiedTokenOwner(ctx context.Context, q sqlstore.Runner, 
 	return s, nil
 }
 func (r *Repository) insertCredential(ctx context.Context, tx *sql.Tx, c platform.APICredential) error {
-	ops, err := json.Marshal(c.Operations)
-	if err != nil {
-		return err
-	}
-	_, err = r.exec(ctx, tx, "INSERT INTO unicore_api_credentials(id,user_id,kind,name,session_hash,session_secret,operations,created_at,expires_at,last_used_at,revoked) VALUES(?,?,?,?,?,?,?,?,?,0,0)", c.ID, c.UserID, c.Kind, c.Name, c.SessionHash, c.SessionSecret, string(ops), c.CreatedAt, c.ExpiresAt)
+	_, err := r.exec(ctx, tx, "INSERT INTO unicore_api_credentials(id,user_id,kind,name,session_hash,session_secret,role_id,remark,created_at,expires_at,last_used_at,revoked) VALUES(?,?,?,?,?,?,?,?,?,?,0,0)", c.ID, c.UserID, c.Kind, c.Name, c.SessionHash, c.SessionSecret, c.RoleID, c.Remark, c.CreatedAt, c.ExpiresAt)
 	return err
 }
 func (r *Repository) BindClient(ctx context.Context, source string, c platform.APICredential, refreshHash string) error {
@@ -101,13 +97,12 @@ func (r *Repository) BindClient(ctx context.Context, source string, c platform.A
 }
 func (r *Repository) credential(ctx context.Context, q sqlstore.Runner, kind, key string) (platform.APICredential, error) {
 	var c platform.APICredential
-	var operations string
 	var revoked int
 	field := "c.id"
 	if kind == "pat" {
 		field = "c.session_hash"
 	}
-	err := r.row(ctx, q, "SELECT c.id,c.user_id,c.kind,c.name,c.session_hash,c.session_secret,c.operations,c.created_at,c.expires_at,c.last_used_at,c.revoked FROM unicore_api_credentials c JOIN unicore_sessions s ON s.token_hash=c.session_hash AND s.user_id=c.user_id WHERE "+field+"=? AND c.kind=? AND s.expires_at>? AND c.expires_at>? AND c.revoked=0", key, kind, time.Now().Unix(), time.Now().Unix()).Scan(&c.ID, &c.UserID, &c.Kind, &c.Name, &c.SessionHash, &c.SessionSecret, &operations, &c.CreatedAt, &c.ExpiresAt, &c.LastUsedAt, &revoked)
+	err := r.row(ctx, q, "SELECT c.id,c.user_id,c.kind,c.name,c.session_hash,c.session_secret,c.role_id,c.remark,c.created_at,c.expires_at,c.last_used_at,c.revoked FROM unicore_api_credentials c JOIN unicore_sessions s ON s.token_hash=c.session_hash AND s.user_id=c.user_id WHERE "+field+"=? AND c.kind=? AND s.expires_at>? AND (c.expires_at=0 OR c.expires_at>?) AND c.revoked=0", key, kind, time.Now().Unix(), time.Now().Unix()).Scan(&c.ID, &c.UserID, &c.Kind, &c.Name, &c.SessionHash, &c.SessionSecret, &c.RoleID, &c.Remark, &c.CreatedAt, &c.ExpiresAt, &c.LastUsedAt, &revoked)
 	if errors.Is(err, sql.ErrNoRows) {
 		return c, platform.ErrCredentials
 	}
@@ -115,9 +110,6 @@ func (r *Repository) credential(ctx context.Context, q sqlstore.Runner, kind, ke
 		return c, err
 	}
 	c.Revoked = revoked != 0
-	if err = json.Unmarshal([]byte(operations), &c.Operations); err != nil {
-		return c, err
-	}
 	return c, nil
 }
 func (r *Repository) ResolveCredential(ctx context.Context, kind, key string) (platform.APICredential, contracts.User, error) {
@@ -125,7 +117,13 @@ func (r *Repository) ResolveCredential(ctx context.Context, kind, key string) (p
 	if err != nil {
 		return c, contracts.User{}, err
 	}
-	user, err := r.user(ctx, r.Store.DB, c.UserID)
+	if kind == "pat" {
+		if c.RoleID == "" {
+			return c, contracts.User{}, platform.ErrCredentials
+		}
+		ctx = platform.WithTokenRole(ctx, c.UserID, c.RoleID)
+	}
+	user, err := r.principalUser(ctx, r.Store.DB, c.UserID)
 	if err != nil {
 		return c, user, err
 	}
@@ -133,8 +131,8 @@ func (r *Repository) ResolveCredential(ctx context.Context, kind, key string) (p
 		return c, user, platform.ErrCredentials
 	}
 	// Do not inherit the browser's idle timeout for a named PAT. Its opaque
-	// anchor has no device row, cannot be used as a browser session and expires
-	// at the explicitly chosen credential deadline.
+	// anchor has no device row and cannot be used as a browser session. The
+	// credential deadline is checked separately so expired PATs can be renewed.
 	if _, err = r.exec(ctx, r.Store.DB, "UPDATE unicore_api_credentials SET last_used_at=? WHERE id=? AND last_used_at<?", time.Now().Unix(), c.ID, time.Now().Add(-time.Minute).Unix()); err != nil {
 		return c, user, err
 	}
@@ -213,84 +211,211 @@ func (r *Repository) RevokeRefresh(ctx context.Context, hash string) error {
 	}
 	return tx.Commit()
 }
-func (r *Repository) CreatePersonalToken(ctx context.Context, source string, c platform.APICredential) error {
+
+// PAT anchors outlive credential expiry so an expired token can be renewed.
+// Password, membership, account and explicit revocation still delete the anchor.
+const personalTokenAnchorExpiry = 253402300799
+
+func (r *Repository) tokenActor(ctx context.Context, q sqlstore.Runner, source string, manage bool) (platform.PersonalSession, error) {
+	s, err := r.verifiedTokenOwner(ctx, q, source)
+	if err == nil && manage && !platform.IsSuper(s.User) {
+		err = platform.ErrForbidden
+	}
+	return s, err
+}
+func (r *Repository) tokenOwner(ctx context.Context, q sqlstore.Runner, source, target string, manage bool) (platform.PersonalSession, contracts.User, error) {
+	s, err := r.tokenActor(ctx, q, source, manage)
+	if err != nil {
+		return s, contracts.User{}, err
+	}
+	if target == "" {
+		target = s.User.ID
+	}
+	if !manage && target != s.User.ID {
+		return s, contracts.User{}, platform.ErrForbidden
+	}
+	user, err := r.user(ctx, q, target)
+	if errors.Is(err, sql.ErrNoRows) {
+		err = platform.ErrForbidden
+	}
+	if err == nil && user.Status != "active" {
+		err = platform.ErrForbidden
+	}
+	return s, user, err
+}
+func (r *Repository) CreatePersonalToken(ctx context.Context, source string, c platform.APICredential) (platform.APICredential, error) {
 	tx, err := r.accountTransaction(ctx)
 	if err != nil {
-		return err
+		return c, err
 	}
 	defer tx.Rollback()
-	s, err := r.verifiedTokenOwner(ctx, tx, source)
+	actor, owner, err := r.tokenOwner(ctx, tx, source, c.UserID, c.Manage)
 	if err != nil {
-		return err
+		return c, err
 	}
-	if s.User.ID != c.UserID {
-		return platform.ErrForbidden
-	}
-	var count int
-	if err = r.row(ctx, tx, "SELECT COUNT(*) FROM unicore_api_credentials c JOIN unicore_sessions s ON s.token_hash=c.session_hash WHERE c.user_id=? AND c.kind='pat' AND c.revoked=0 AND c.expires_at>?", c.UserID, time.Now().Unix()).Scan(&count); err != nil {
-		return err
-	}
-	if count >= 50 {
-		return platform.ErrInput
-	}
-	for _, id := range c.Operations {
-		op, ok := platform.Operation(id)
-		if !ok || !op.Grantable || op.SuperAdmin || !platform.OperationAllowed(s.User, id) || !platform.PermissionsAllow(s.User.Permissions, op.Permissions, op.PermissionMode) {
-			return platform.ErrForbidden
+	found := false
+	c.Username = owner.Username
+	for index, id := range owner.Roles {
+		if id == c.RoleID {
+			found = true
+			c.RoleName = id
+			if owner.RoleNames != nil && index < len(*owner.RoleNames) {
+				c.RoleName = (*owner.RoleNames)[index]
+			}
 		}
 	}
-	if _, err = r.exec(ctx, tx, "INSERT INTO unicore_sessions(token_hash,user_id,expires_at) VALUES(?,?,?)", c.SessionHash, c.UserID, c.ExpiresAt); err != nil {
-		return err
+	if !found {
+		return c, platform.ErrForbidden
+	}
+	var count int
+	if err = r.row(ctx, tx, "SELECT COUNT(*) FROM unicore_api_credentials c JOIN unicore_sessions s ON s.token_hash=c.session_hash WHERE c.user_id=? AND c.kind='pat' AND c.revoked=0 AND (c.expires_at=0 OR c.expires_at>?)", c.UserID, time.Now().Unix()).Scan(&count); err != nil {
+		return c, err
+	}
+	if count >= 50 {
+		return c, platform.ErrInput
+	}
+	if _, err = r.exec(ctx, tx, "INSERT INTO unicore_sessions(token_hash,user_id,expires_at) VALUES(?,?,?)", c.SessionHash, c.UserID, personalTokenAnchorExpiry); err != nil {
+		return c, err
 	}
 	if err = r.insertCredential(ctx, tx, c); err != nil {
-		return err
+		return c, err
 	}
-	if err = r.audit(audit.Target(ctx, "credential/"+c.ID, "kind=pat"), tx, c.UserID, "auth.personal_token.created"); err != nil {
-		return err
+	if err = r.audit(audit.Target(ctx, "credential/"+c.ID, "kind=pat; owner="+c.UserID+"; role="+c.RoleID), tx, actor.User.ID, "auth.personal_token.created"); err != nil {
+		return c, err
 	}
-	return tx.Commit()
+	return c, tx.Commit()
 }
-func (r *Repository) PersonalTokens(ctx context.Context, user string) ([]platform.APICredential, error) {
-	rows, err := r.rows(ctx, r.Store.DB, "SELECT c.id,c.name,c.operations,c.created_at,c.expires_at,c.last_used_at,c.revoked,CASE WHEN EXISTS(SELECT 1 FROM unicore_sessions s WHERE s.token_hash=c.session_hash AND s.user_id=c.user_id AND s.expires_at>?) THEN 1 ELSE 0 END AS live FROM unicore_api_credentials c WHERE c.user_id=? AND c.kind='pat' ORDER BY c.revoked ASC,live DESC,c.created_at DESC,c.id LIMIT 200", time.Now().Unix(), user)
+func (r *Repository) PersonalTokenRoles(ctx context.Context, source, target string, manage bool) (contracts.RoleOptions, error) {
+	result := contracts.RoleOptions{Items: []contracts.RoleOption{}}
+	_, owner, err := r.tokenOwner(ctx, r.Store.DB, source, target, manage)
 	if err != nil {
-		return nil, err
+		return result, err
+	}
+	for i, id := range owner.Roles {
+		name := id
+		if owner.RoleNames != nil && i < len(*owner.RoleNames) {
+			name = (*owner.RoleNames)[i]
+		}
+		result.Items = append(result.Items, contracts.RoleOption{ID: id, Name: name, Assignable: true})
+	}
+	return result, nil
+}
+func (r *Repository) PersonalTokenUsers(ctx context.Context, source, search string, page, size int) (contracts.UserList, error) {
+	s, err := r.tokenActor(ctx, r.Store.DB, source, true)
+	if err != nil {
+		return contracts.UserList{}, err
+	}
+	return r.ListUsersScoped(ctx, s.User, search, page, size)
+}
+func (r *Repository) PersonalTokens(ctx context.Context, source string, manage bool, search string, page, size int) ([]platform.APICredential, int, error) {
+	s, err := r.tokenActor(ctx, r.Store.DB, source, manage)
+	if err != nil {
+		return nil, 0, err
+	}
+	where := "c.kind='pat'"
+	args := []any{}
+	if !manage {
+		where += " AND c.user_id=?"
+		args = append(args, s.User.ID)
+	}
+	if search != "" {
+		where += " AND (LOWER(c.name) LIKE ? OR LOWER(u.username) LIKE ? OR LOWER(c.remark) LIKE ?)"
+		for range 3 {
+			args = append(args, "%"+strings.ToLower(search)+"%")
+		}
+	}
+	from := " FROM unicore_api_credentials c JOIN unicore_users u ON u.id=c.user_id LEFT JOIN unicore_roles r ON r.id=c.role_id WHERE " + where
+	var total int
+	if err = r.row(ctx, r.Store.DB, "SELECT COUNT(*)"+from, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	args = append(args, size, (page-1)*size)
+	rows, err := r.rows(ctx, r.Store.DB, "SELECT c.id,c.user_id,u.username,c.name,c.role_id,COALESCE(r.name,c.role_id),c.remark,c.created_at,c.expires_at,c.last_used_at,c.revoked,CASE WHEN EXISTS(SELECT 1 FROM unicore_sessions s WHERE s.token_hash=c.session_hash AND s.user_id=c.user_id) AND EXISTS(SELECT 1 FROM unicore_user_roles ur WHERE ur.user_id=c.user_id AND ur.role_id=c.role_id) AND u.status='active' THEN 1 ELSE 0 END"+from+" ORDER BY c.created_at DESC,c.id LIMIT ? OFFSET ?", args...)
+	if err != nil {
+		return nil, 0, err
 	}
 	defer rows.Close()
 	result := []platform.APICredential{}
 	for rows.Next() {
 		var c platform.APICredential
-		var ops string
 		var revoked, live int
-		if err = rows.Scan(&c.ID, &c.Name, &ops, &c.CreatedAt, &c.ExpiresAt, &c.LastUsedAt, &revoked, &live); err != nil {
-			return nil, err
+		if err = rows.Scan(&c.ID, &c.UserID, &c.Username, &c.Name, &c.RoleID, &c.RoleName, &c.Remark, &c.CreatedAt, &c.ExpiresAt, &c.LastUsedAt, &revoked, &live); err != nil {
+			return nil, 0, err
 		}
-		c.Revoked = revoked != 0 || live == 0
-		c.UserID = user
 		c.Kind = "pat"
-		if err = json.Unmarshal([]byte(ops), &c.Operations); err != nil {
-			return nil, err
-		}
+		c.Revoked = revoked != 0 || live == 0
 		result = append(result, c)
 	}
-	return result, rows.Err()
+	return result, total, rows.Err()
 }
-func (r *Repository) RevokePersonalToken(ctx context.Context, user, id string) error {
+func (r *Repository) changePersonalToken(ctx context.Context, source, id string, expires *int, manage bool) error {
 	tx, err := r.accountTransaction(ctx)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
-	var owner string
-	if err = r.row(ctx, tx, "SELECT user_id FROM unicore_api_credentials WHERE id=? AND kind='pat'", id).Scan(&owner); err != nil {
-		return platform.ErrForbidden
-	}
-	if owner != user {
-		return platform.ErrForbidden
-	}
-	if err = r.revokeCredential(ctx, tx, id, user, "auth.personal_token.revoked"); err != nil {
+	var owner, role, anchor string
+	var revoked, previousExpiry int
+	if err = r.row(ctx, tx, "SELECT user_id,role_id,session_hash,revoked,expires_at FROM unicore_api_credentials WHERE id=? AND kind='pat'", id).Scan(&owner, &role, &anchor, &revoked, &previousExpiry); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return platform.ErrForbidden
+		}
 		return err
 	}
+	actor, err := r.tokenActor(ctx, tx, source, manage)
+	if err != nil {
+		return err
+	}
+	if !manage && actor.User.ID != owner {
+		return platform.ErrForbidden
+	}
+	if expires == nil {
+		if err = r.revokeCredential(ctx, tx, id, actor.User.ID, "auth.personal_token.revoked"); err != nil {
+			return err
+		}
+	} else {
+		if _, _, err = r.tokenOwner(ctx, tx, source, owner, manage); err != nil {
+			return err
+		}
+		var live int
+		if err = r.row(ctx, tx, "SELECT COUNT(*) FROM unicore_sessions s WHERE s.token_hash=? AND s.user_id=? AND EXISTS(SELECT 1 FROM unicore_user_roles ur WHERE ur.user_id=s.user_id AND ur.role_id=?)", anchor, owner, role).Scan(&live); err != nil {
+			return err
+		}
+		if revoked != 0 || live != 1 {
+			return platform.ErrForbidden
+		}
+		// Renewal of an expired token must respect the same live-token limit
+		// as issuance; extending an already active credential adds no slot.
+		if previousExpiry > 0 && previousExpiry <= int(time.Now().Unix()) {
+			var count int
+			if err = r.row(ctx, tx, "SELECT COUNT(*) FROM unicore_api_credentials c JOIN unicore_sessions s ON s.token_hash=c.session_hash WHERE c.user_id=? AND c.kind='pat' AND c.revoked=0 AND (c.expires_at=0 OR c.expires_at>?)", owner, time.Now().Unix()).Scan(&count); err != nil {
+				return err
+			}
+			if count >= 50 {
+				return platform.ErrInput
+			}
+		}
+		if *expires != 0 && previousExpiry > int(time.Now().Unix()) {
+			*expires += previousExpiry - int(time.Now().Unix())
+		}
+		if _, err = r.exec(ctx, tx, "UPDATE unicore_api_credentials SET expires_at=? WHERE id=?", *expires, id); err != nil {
+			return err
+		}
+		if err = r.audit(audit.Target(ctx, "credential/"+id, "owner="+owner), tx, actor.User.ID, "auth.personal_token.renewed"); err != nil {
+			return err
+		}
+	}
 	return tx.Commit()
+}
+func (r *Repository) RevokePersonalToken(ctx context.Context, source, id string, manage bool) error {
+	return r.changePersonalToken(ctx, source, id, nil, manage)
+}
+func (r *Repository) RenewPersonalToken(ctx context.Context, source, id string, days int, manage bool) error {
+	expires, err := platform.TokenExpiry(days)
+	if err != nil {
+		return err
+	}
+	return r.changePersonalToken(ctx, source, id, &expires, manage)
 }
 func (r *Repository) TokenKey(ctx context.Context, id string, candidate platform.TokenSigningKey, rotate bool) (platform.TokenSigningKey, error) {
 	read := func(q sqlstore.Runner) (platform.TokenSigningKey, error) {
@@ -365,7 +490,7 @@ func (r *Repository) pruneAPICredentials(ctx context.Context, tx *sql.Tx) error 
 	if _, err := r.exec(ctx, tx, "DELETE FROM unicore_api_refresh_tokens WHERE expires_at<=?", now); err != nil {
 		return err
 	}
-	if _, err := r.exec(ctx, tx, "DELETE FROM unicore_api_credentials WHERE expires_at<=?", now-30*86400); err != nil {
+	if _, err := r.exec(ctx, tx, "DELETE FROM unicore_api_credentials WHERE kind!='pat' AND expires_at<=?", now-30*86400); err != nil {
 		return err
 	}
 	_, err := r.exec(ctx, tx, "DELETE FROM unicore_api_token_keys WHERE active=0 AND valid_until<=?", now)

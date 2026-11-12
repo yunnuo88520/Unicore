@@ -19,6 +19,7 @@ import { AdminRolesPage } from './pages/admin/roles';
 import { AdminDepartmentsPage } from './pages/admin/departments';
 import { AdminTasksPage } from './pages/admin/tasks';
 import { AdminMenusPage } from './pages/admin/menus';
+import { AdminAccessTokensPage } from './pages/admin/access-tokens';
 import { AdminPostsPage } from './pages/admin/posts';
 import { AdminDictionariesPage } from './pages/admin/dictionaries';
 import { AdminMonitorEventsPage, AdminMonitorPage, AdminMonitorResourcesPage, AdminMonitorServicesPage } from './pages/monitor';
@@ -32,6 +33,7 @@ export function AdministrationPage(props: PageProps) {
     case 'users': case 'administrators': return props.page === 'administrators' ? <AdminAdministratorsPage {...props} /> : <AdminUsersPage {...props} />;
     case 'roles': return <AdminRolesPage {...props} />;
     case 'departments': return <AdminDepartmentsPage {...props} />;
+    case 'access-tokens': return <AdminAccessTokensPage {...props} />;
     case 'posts': return <AdminPostsPage {...props} />;
     case 'menus': return <AdminMenusPage {...props} />;
     case 'dictionaries': return <AdminDictionariesPage {...props} />;

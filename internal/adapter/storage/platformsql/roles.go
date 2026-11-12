@@ -221,7 +221,7 @@ func (r *Repository) ListRoles(ctx context.Context) (contracts.RoleList, error) 
 
 func (r *Repository) actor(ctx context.Context, tx *sql.Tx, id, permission string) (contracts.User, error) {
 	admins := &Repository{Store: r.Store, Administrators: true}
-	user, err := admins.user(ctx, tx, id)
+	user, err := admins.principalUser(ctx, tx, id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return user, platform.ErrForbidden
 	}
@@ -247,7 +247,7 @@ func (r *Repository) AuthorizeAdministrator(ctx context.Context, tx *sql.Tx, id,
 func (r *Repository) RoleOptions(ctx context.Context, actorID string) (contracts.RoleOptions, error) {
 	result := contracts.RoleOptions{Items: []contracts.RoleOption{}}
 	admins := &Repository{Store: r.Store, Administrators: true}
-	actor, err := admins.user(ctx, r.Store.DB, actorID)
+	actor, err := admins.principalUser(ctx, r.Store.DB, actorID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return result, platform.ErrForbidden
 	}

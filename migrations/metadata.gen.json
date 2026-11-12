@@ -126,18 +126,18 @@
           "files": {
             "mysql": {
               "path": "platform/mysql/0001_initial.sql",
-              "bytes": 16828,
-              "checksum": "fb133cfbd3be5e4d346db3f0feedd785342ee80b68621bd0eda81b0f946489f1"
+              "bytes": 16885,
+              "checksum": "da6b991aef2b27f48874fcd52da2fff445664f12ba985801c7f51b3eb62799d8"
             },
             "postgres": {
               "path": "platform/postgres/0001_initial.sql",
-              "bytes": 16209,
-              "checksum": "d6bd60b9ba5c9ef559b5f83b456a6e07ee029b4237e8b46c8444028b994d7080"
+              "bytes": 16266,
+              "checksum": "8dd2f56555f4ae65bce03b91f960ce6b2813a0f88984cc4a5c2bd34c4abf0a54"
             },
             "sqlite": {
               "path": "platform/sqlite/0001_initial.sql",
-              "bytes": 12012,
-              "checksum": "319bbc6a9f7d0408c72bcdb4e911359b85ae8e6640787a4dea80ad928b9bcd5b"
+              "bytes": 12069,
+              "checksum": "64dd0466e04649b135802580e77e629f084ef9acfd24f6790c38f35a254d9d1b"
             }
           }
         }
@@ -191,7 +191,7 @@
         "module.notes": 1,
         "platform": 1
       },
-      "schema_fingerprint": "d5a03018c1a0095eecefc0658336d827addd5f040ff3b3f504995362ee1a29dc"
+      "schema_fingerprint": "68a20a4726553c67cf381da29d502f3a1bc9965da8428b070fc3b51bb5be54e1"
     },
     "web-standalone": {
       "dialects": [

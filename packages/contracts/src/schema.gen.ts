@@ -1935,8 +1935,9 @@ export interface RefreshTokenInput {
 
 export interface PersonalTokenInput {
   name: string;
-  expires_in_days: number;
-  operation_ids: Array<string>;
+  role_id: string;
+  expires_in_days: 0 | 1 | 7 | 30 | 90;
+  remark: string;
 }
 
 export interface PersonalToken {
@@ -1946,7 +1947,11 @@ export interface PersonalToken {
   expires_at: number;
   last_used_at: number;
   revoked: boolean;
-  operation_ids: Array<string>;
+  user_id: string;
+  username: string;
+  role_id: string;
+  role_name: string;
+  remark: string;
 }
 
 export interface PersonalTokenCreated {
@@ -1956,10 +1961,9 @@ export interface PersonalTokenCreated {
 
 export interface PersonalTokenList {
   items: Array<PersonalToken>;
-}
-
-export interface TokenScopeList {
-  items: Array<APIOperation>;
+  total: number;
+  page: number;
+  page_size: number;
 }
 
 export interface ClientTokenPairResponse {
@@ -1990,9 +1994,14 @@ export interface PersonalTokenListResponse {
   request_id: string;
 }
 
-export interface TokenScopeListResponse {
-  code: string;
-  message: string;
-  data: TokenScopeList;
-  request_id: string;
+export interface PersonalTokenRenewInput {
+  expires_in_days: 0 | 1 | 7 | 30 | 90;
+}
+
+export interface AdminPersonalTokenInput {
+  name: string;
+  role_id: string;
+  expires_in_days: 0 | 1 | 7 | 30 | 90;
+  remark: string;
+  user_id: string;
 }

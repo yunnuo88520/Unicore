@@ -11,7 +11,6 @@ import { Alert, Badge, Button, Card, CardContent, CardDescription, CardHeader, C
 import { AppField, AppForm, StaticField, useAppForm } from '@unicore/form';
 import { useRouteSearch, type PageProps } from '../router';
 import { PasswordDialog } from '../password-dialog';
-import { PersonalTokens } from './personal-tokens';
 import { FileUploadDialog } from '../file-upload-dialog';
 
 function ProfileBoundary({ web, children }: { web: WebClient; children: (profile: AccountProfile, reload: () => void) => ReactNode }) {
@@ -105,7 +104,6 @@ export function AccountSecurityPage({ client, metadata, refresh }: PageProps) {
     <Card><CardHeader><CardTitle><ShieldCheck size={18} aria-hidden="true" />{t('登录密码')}</CardTitle><CardDescription>{t('验证当前密码后设置新密码。成功后该账号的所有设备需重新登录。')}</CardDescription></CardHeader><CardContent><Button variant="secondary" onClick={() => setPasswordOpen(true)}>{t('修改密码')}</Button></CardContent></Card>
     <ProfileBoundary web={client.web}>{(profile, reload) => <Authenticator web={client.web!} profile={profile} onChanged={reload} onPolicyChanged={refresh} />}</ProfileBoundary>
     <EnterpriseAccountSecurity web={client.web} userID={metadata.current_user.id} onOidcConsumed={() => { void navigate({ to: '/account-security', search: {}, replace: true }); }} onChanged={refresh} />
-    <PersonalTokens key={metadata.current_user.id} web={client.web} userID={metadata.current_user.id} />
     {passwordOpen && <PasswordDialog web={client.web} onClose={() => setPasswordOpen(false)} />}
   </section>;
 }

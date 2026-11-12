@@ -123,7 +123,7 @@ it('keeps restricted administrators in the administration layout while filtering
   // own account pages under the shared 个人中心 directory.
   expect(navigation.sections.find(section => section.id === 'system')?.entries.map(entry => entry.id)).toEqual(['administration']);
   const personal = navigation.sections.find(section => section.id === 'business')?.entries.find(entry => entry.id === 'personal');
-  expect(personal?.children.map(entry => entry.id)).toEqual(['account', 'account-security', 'account-sessions']);
+  expect(personal?.children.map(entry => entry.id)).toEqual(['account', 'account-security', 'account-sessions', 'account-tokens']);
 });
 
 it('gates posts and retires the separate API operation page', () => {
@@ -144,3 +144,12 @@ function buildNavigation(metadata: Bootstrap) {
  const strip=(entries: typeof result.sections[number]['entries']): typeof entries=>entries.map(entry=>({...entry,id:entry.id.replace(/^(user|administrator):/,''),children:strip(entry.children)}));
  return {...result,sections:result.sections.map(section=>({...section,entries:strip(section.entries)}))};
 }
+
+it('restricts global tokens to super administrators and keeps personal tokens Platform-only', () => {
+ const base={profile:'web-platform',identity_realm:'administrator',capabilities:{},current_user:{roles:['super_admin'],permissions:['tokens:read']}} as unknown as Bootstrap;
+ expect(canAccess('access-tokens',base)).toBe(true);
+ expect(canAccess('access-tokens',{...base,current_user:{...base.current_user!,roles:['operator']}})).toBe(false);
+ expect(canAccess('access-tokens',{...base,identity_realm:'user'})).toBe(false);
+ expect(canAccess('account-tokens',{...base,identity_realm:'user'})).toBe(true);
+ for(const profile of ['web-standalone','desktop','cli']) expect(canAccess('account-tokens',{...base,profile} as Bootstrap)).toBe(false);
+});

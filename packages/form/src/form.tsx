@@ -1,7 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: React Hook Form layer bound to contract schemas: pending, server field errors, first-error focus.
 import { t, useLocale } from '@unicore/ui/i18n';
-import { cloneElement, isValidElement, useId, useMemo, useState, type ReactElement, type ReactNode, type InputHTMLAttributes } from 'react';
+import { cloneElement, isValidElement, useId, useMemo, useRef, useState, type ReactElement, type ReactNode, type InputHTMLAttributes } from 'react';
 import { useForm, FormProvider, useFormContext, Controller, type DefaultValues, type FieldValues, type RegisterOptions, type Resolver, type UseFormReturn, type Path } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AppError, constraintsToZod, type SchemaName } from '@unicore/sdk';
@@ -25,12 +25,11 @@ export type AppForm<T extends FieldValues> = UseFormReturn<T> & {
 export function useAppForm<T extends FieldValues>({ schema, defaultValues, onSubmit }: AppFormOptions<T>): AppForm<T> {
   const [serverError, setServerError] = useState<AppError | null>(null);
   // Error focus stays inside this form; a document-wide query would hit sibling forms.
-  const scope = { current: null as HTMLFormElement | null };
+  const scope = useRef<HTMLFormElement | null>(null);
   const resolver = useMemo(() => (schema ? (zodResolver(constraintsToZod(schema) as never) as Resolver<T>) : undefined), [schema]);
   const form = useForm<T, never, T>({ resolver, defaultValues: defaultValues as DefaultValues<T>, mode: 'onSubmit' });
   const submit: AppForm<T>['submit'] = event => form.handleSubmit(async values => { setServerError(null); await onSubmit(values); })(event);
   function applyServerError(error: unknown) {
-    if (typeof document !== 'undefined') { document.body.dataset.probeApply = String((error as { code?: string })?.code ?? 'nonApp'); document.body.dataset.probeApplyNonce = String(Number(document.body.dataset.probeApplyNonce ?? 0) + 1); }
     if (!(error instanceof AppError)) return;
     setServerError(error);
     const fields = error.fields ?? {};
@@ -42,7 +41,7 @@ export function useAppForm<T extends FieldValues>({ schema, defaultValues, onSub
     }
     if (fields.$form || fields['']) form.setError('root', { type: 'server', message: fields.$form ?? fields[''] });
     queueMicrotask(() => {
-      const controls = Array.from((scope.current ?? document).querySelectorAll<HTMLElement>('[name]'));
+      const controls = Array.from(scope.current?.querySelectorAll<HTMLElement>('[name]') ?? []);
       const target = controls.find(element => Object.hasOwn(fields, element.getAttribute('name') ?? ''));
       target?.focus();
     });
@@ -139,7 +138,7 @@ export function FormSummary() {
   const server = (form as unknown as { serverError?: AppError | null }).serverError ?? null;
   const message = root ?? server?.message;
   if (!message) return null;
-  return <div role="alert" data-probe-summary={String(message)} data-probe-server={String(server?.code ?? 'root')} aria-label={t('表单校验')} tabIndex={-1} className="mb-3 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
+  return <div role="alert" aria-label={t('表单校验')} tabIndex={-1} className="mb-3 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
     <strong className="block font-medium">{t('请检查表单输入')}</strong>
     <p>{t(message)}</p>
   </div>;

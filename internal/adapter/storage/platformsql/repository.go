@@ -40,7 +40,15 @@ func accountError(err error) error {
 	return err
 }
 
+// user is an account resource projection; role restrictions belong to actors,
+// never the target account (including when the actor edits their own account).
 func (r *Repository) user(ctx context.Context, q sqlstore.Runner, id string) (contracts.User, error) {
+	return r.readUser(ctx, q, id, "")
+}
+func (r *Repository) principalUser(ctx context.Context, q sqlstore.Runner, id string) (contracts.User, error) {
+	return r.readUser(ctx, q, id, platform.TokenRole(ctx, id))
+}
+func (r *Repository) readUser(ctx context.Context, q sqlstore.Runner, id, roleFilter string) (contracts.User, error) {
 	user := contracts.User{Roles: []string{}, Permissions: []string{}, MenuIds: &[]string{}, ActionIds: &[]string{}, OperationIds: &[]string{}, PostIds: &[]string{}}
 	query := "SELECT id,username,email,phone,status,created_at,last_login_at,department_id FROM unicore_users WHERE id=?"
 	var department *string
@@ -63,7 +71,7 @@ func (r *Repository) user(ctx context.Context, q sqlstore.Runner, id string) (co
 	user.TotpEnabled = state.Secret != ""
 	// User-realm roles are data: echo the assigned user_roles rows so custom
 	// roles surface in listings and sessions instead of the hardcoded builtin.
-	roleRows, err := r.rows(ctx, q, "SELECT role_id FROM unicore_user_roles WHERE user_id=? ORDER BY role_id", id)
+	roleRows, err := r.rows(ctx, q, "SELECT role_id FROM unicore_user_roles WHERE user_id=? AND (?='' OR role_id=?) ORDER BY role_id", id, roleFilter, roleFilter)
 	if err != nil {
 		return user, err
 	}
@@ -77,6 +85,9 @@ func (r *Repository) user(ctx context.Context, q sqlstore.Runner, id string) (co
 	}
 	if err = roleRows.Err(); err != nil {
 		return user, err
+	}
+	if roleFilter != "" && len(user.Roles) != 1 {
+		return user, platform.ErrCredentials
 	}
 	// Display names ride parallel to the role ids so listings and the account
 	// menu render catalogue names without a roles:read grant; a missing row
@@ -115,7 +126,7 @@ func (r *Repository) user(ctx context.Context, q sqlstore.Runner, id string) (co
 		}
 		user.RoleNames = &roleNames
 	}
-	rows, err := r.rows(ctx, q, "SELECT DISTINCT rp.permission_id FROM unicore_user_roles ur JOIN unicore_role_permissions rp ON rp.role_id=ur.role_id WHERE ur.user_id=? ORDER BY rp.permission_id", id)
+	rows, err := r.rows(ctx, q, "SELECT DISTINCT rp.permission_id FROM unicore_user_roles ur JOIN unicore_role_permissions rp ON rp.role_id=ur.role_id WHERE ur.user_id=? AND (?='' OR ur.role_id=?) ORDER BY rp.permission_id", id, roleFilter, roleFilter)
 	if err != nil {
 		return user, err
 	}
@@ -132,7 +143,7 @@ func (r *Repository) user(ctx context.Context, q sqlstore.Runner, id string) (co
 	if err = rows.Err(); err != nil {
 		return user, err
 	}
-	if err = r.loadAuthorizations(ctx, q, &user); err != nil {
+	if err = r.loadAuthorizations(ctx, q, &user, roleFilter); err != nil {
 		return user, err
 	}
 	if err = r.deriveGrantedPermissions(ctx, q, &user); err != nil {
@@ -153,7 +164,7 @@ func (r *Repository) user(ctx context.Context, q sqlstore.Runner, id string) (co
 // roles: navigation items, action buttons and API operations. Rows only
 // exist for materialized or explicitly granted roles, so an empty union is a
 // real empty authorization, never "all".
-func (r *Repository) loadAuthorizations(ctx context.Context, q sqlstore.Runner, user *contracts.User) error {
+func (r *Repository) loadAuthorizations(ctx context.Context, q sqlstore.Runner, user *contracts.User, roleFilter string) error {
 	grants := []struct {
 		table  string
 		column string
@@ -163,9 +174,9 @@ func (r *Repository) loadAuthorizations(ctx context.Context, q sqlstore.Runner, 
 		{"unicore_role_actions ra", "ra.action_id", user.ActionIds},
 		{"unicore_role_operations ro", "ro.operation_id", user.OperationIds},
 	}
-	memberships := "SELECT role_id FROM unicore_user_roles WHERE user_id=?"
+	memberships := "SELECT role_id FROM unicore_user_roles WHERE user_id=? AND (?='' OR role_id=?)"
 	for _, grant := range grants {
-		rows, err := r.rows(ctx, q, "SELECT DISTINCT "+grant.column+" FROM "+grant.table+" WHERE role_id IN ("+memberships+") ORDER BY 1", user.ID)
+		rows, err := r.rows(ctx, q, "SELECT DISTINCT "+grant.column+" FROM "+grant.table+" WHERE role_id IN ("+memberships+") ORDER BY 1", user.ID, roleFilter, roleFilter)
 		if err != nil {
 			return err
 		}
@@ -436,7 +447,7 @@ func (r *Repository) UpdateUser(ctx context.Context, id string, input contracts.
 			isAdmin = true
 		}
 	}
-	current, err := r.user(ctx, tx, actor)
+	current, err := r.principalUser(ctx, tx, actor)
 	if err != nil {
 		return contracts.User{}, err
 	}
@@ -618,7 +629,7 @@ func (r *Repository) ResetUserPassword(ctx context.Context, id, hash, actor stri
 	if err != nil {
 		return contracts.User{}, err
 	}
-	current, err := r.user(ctx, tx, actor)
+	current, err := r.principalUser(ctx, tx, actor)
 	if err != nil {
 		return contracts.User{}, err
 	}

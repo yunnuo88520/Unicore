@@ -78,3 +78,5 @@ PUT 角色省略 menu_ids/action_ids/operation_ids/data_scope/department_ids 表
 `PUT /admin/menus/{id}/roles` 输入 `{version, expected_role_ids, role_ids}`。不包括 super_admin（始终可见且不可修改）。服务端在安装锁事务内复核超管、roles:write、menus:write，检查导航版本及当前菜单角色集合，冲突返回 409。新增页面合并祖先菜单、路由点与已满足上界的 GET 操作，目录/链接只改当前节点；取消只移除当前菜单，不删除独立 API/动作。内置 user 不能借此取得管理权限。其他角色属性及授权按事务中的最新值保留，只撤销发生变动角色成员的会话。旧整树 `role_assignments` 仍保留兼容，只替换所列角色菜单/动作并保留点/API，新界面不再使用它；它同样仅撤销所列角色成员会话。
 
 会话不从 operation_ids 推导 action_ids，已初始化空数组始终为空。启动可回填当前注册动作节点供编辑器选择，但不向已初始化角色授予按钮；未初始化旧角色的一次性物化保留。已有显式 operation/action 所需的 all 权限点兼容派生继续保留，菜单与 any 操作从不产生兄弟权限点。
+
+个人访问令牌按 [ADR-0044](../adr/ADR-0044-role-bound-personal-tokens.md) 绑定一个已分配角色，每次请求及管理写事务均只使用该角色的权限、operation 与数据范围。本人管理走浏览器 account/tokens、token-roles；全局 `/admin/access-tokens*` 只允许 super_admin，读取要求 tokens:read，签发/续期/作废要求 tokens:write，写请求还要求 CSRF。PAT 不能调用这些凭证管理入口，超级管理员角色令牌也不能调用 superAdmin 保留接口。

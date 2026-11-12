@@ -11,6 +11,8 @@ import (
 // All roles can hold catalogue points; reserved operations still require super_admin.
 // Accounts with management permissions use the stricter session and MFA policies.
 var basePermissionCatalog = []contracts.PermissionDefinition{
+	{ID: "tokens:read", Name: "查看访问令牌", Description: "查看所有用户的访问令牌", Group: "用户管理"},
+	{ID: "tokens:write", Name: "管理访问令牌", Description: "为用户签发、续期和作废访问令牌", Group: "用户管理"},
 	{ID: "posts:read", Name: "查看岗位", Description: "查看岗位与成员分配", Group: "用户管理"},
 	{ID: "posts:write", Name: "管理岗位", Description: "创建、编辑与删除岗位", Group: "用户管理"},
 	{ID: "announcements:read", Name: "查看平台公告", Description: "查看公告列表、草稿与配置", Group: "系统管理"},
@@ -98,7 +100,7 @@ func CatalogPermission(permission string) bool {
 // SuperOnlyPermission protects credential and authorization administration inside transactions too.
 func SuperOnlyPermission(id string) bool {
 	switch id {
-	case "roles:write", "administrators:read", "administrators:create", "administrators:update", "settings:write", "updates:apply", "storage:write", "monitor:read":
+	case "tokens:read", "tokens:write", "roles:write", "administrators:read", "administrators:create", "administrators:update", "settings:write", "updates:apply", "storage:write", "monitor:read":
 		return true
 	}
 	return false

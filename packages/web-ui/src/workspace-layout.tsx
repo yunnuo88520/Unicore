@@ -31,11 +31,11 @@ export function WorkspaceLayout({ navigation, header, children, overlays, naviga
       {t('跳至主要内容')}
     </a>
     {navigationOpen && <button className="nav-scrim fixed inset-0 z-[29] bg-scrim/80 backdrop-blur-[2px]" aria-label={t('关闭导航')} onClick={onNavigationClose} />}
-    <aside id="workspace-navigation" className={`sidebar z-30 flex flex-col overflow-hidden border-e border-line bg-surface px-[19px] pt-[24px] ${navigationOpen ? 'is-open' : ''}`} aria-label={t('主导航')}>
+    <aside id="workspace-navigation" className={`sidebar z-30 flex flex-col overflow-hidden border-e border-line bg-surface px-5 pt-[24px] ${navigationOpen ? 'is-open' : ''}`} aria-label={t('主导航')}>
       {navigation}
     </aside>
     <div className="main-shell min-w-0 w-full">
-      <header className={`topbar sticky top-0 z-20 flex h-[76px] min-w-0 items-center justify-between bg-background px-4 max-md:h-[65px] ${scrolled ? 'shadow-md' : 'shadow-none'}`}>{header}</header>
+      <header className={`topbar sticky top-0 z-20 flex h-[76px] min-w-0 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-md max-md:h-[65px] ${scrolled ? 'border-line is-scrolled' : 'border-transparent'}`}>{header}</header>
       <main id="main-content" tabIndex={-1} className={`main-content mx-auto w-full min-w-0 pt-9 px-10 pb-12 outline-none max-md:px-6 ${contentClassName}`}>{children}</main>
     </div>
     {overlays}

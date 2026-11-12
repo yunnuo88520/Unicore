@@ -40,7 +40,7 @@ function TreeNode({ node, page, onNavigate, depth = 0 }: { node: NavEntry; page:
   const open = expanded;
   const toggle = () => setExpanded(current => { expansion.set(node.id, !current); return !current; });
   const active = navEntryActive(node, page);
-  const rowClass = `flex min-h-10 w-full min-w-0 items-center gap-2 rounded-lg px-3 text-start text-sm font-medium ${active ? 'bg-primary-soft text-accent' : 'text-muted hover:bg-surface-alt hover:text-ink'} disabled:opacity-50`;
+  const rowClass = `flex min-h-10 w-full min-w-0 items-center gap-2 rounded-lg px-3 text-start text-sm font-medium ${active ? 'bg-primary-soft text-accent ring-1 ring-inset ring-primary-line' : 'text-muted hover:bg-surface-alt hover:text-ink'} disabled:opacity-50`;
   return <div data-nav-node={node.id} data-nav-target={node.routeId ?? node.url}>
     <div className="flex items-center">
       {node.type === 'directory'

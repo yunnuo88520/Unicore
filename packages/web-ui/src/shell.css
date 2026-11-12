@@ -98,3 +98,8 @@ html, body { overflow-x: clip; }
 .instance-brand-dark { display: none; }
 :root[data-theme=dark] .instance-brand-light { display: none; }
 :root[data-theme=dark] .instance-brand-dark { display: inline-flex; }
+
+/* Apple-style large title: pages that render an in-content page header hide the
+   duplicated topbar title until content scrolls beneath the frosted topbar. */
+.topbar-title { transition: opacity 0.2s ease; }
+.main-shell:has(#main-content [data-page-header]) .topbar:not(.is-scrolled) .topbar-title { opacity: 0; }

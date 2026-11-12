@@ -339,7 +339,7 @@ function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onO
         : <button className="mobile-menu size-7 items-center justify-center rounded-md text-muted hover:bg-primary-soft hover:text-accent max-md:-ms-1" aria-label={t('打开导航')} aria-expanded={mobileOpen} aria-controls="workspace-navigation" onClick={onOpenMobile}><Menu size={18} /></button>}
       <span className="hidden max-lg:inline">{t('工作空间')}</span>
       <ChevronRight size={14} className="hidden max-md:block max-lg:hidden text-subtle" aria-hidden="true" />
-      <h1 className="m-0 truncate font-medium text-ink">{page === 'site' ? settingsLabel : t(routes[page].label)}</h1>
+      <h1 className="topbar-title m-0 truncate font-medium text-ink">{page === 'site' ? settingsLabel : t(routes[page].label)}</h1>
     </div>
     <div className="flex shrink-0 items-center gap-2 max-md:gap-1.5">
       <span className="flex items-center gap-1.5 text-[length:var(--font-10)] text-muted max-sm:hidden">

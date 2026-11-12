@@ -4456,24 +4456,6 @@ export const operations = {
     "csrf": true,
     "identityRealm": "user"
   },
-  "personalTokenScopes": {
-    "method": "GET",
-    "path": "/api/v1/account/token-scopes",
-    "requestSchema": null,
-    "responseSchema": "TokenScopeListResponse",
-    "binaryRequest": false,
-    "binaryResponse": false,
-    "multipartRequest": false,
-    "profiles": [
-      "web-platform"
-    ],
-    "access": "session",
-    "permissions": [],
-    "permissionMode": "all",
-    "superAdmin": false,
-    "csrf": false,
-    "identityRealm": "user"
-  },
   "rotateTokenSigningKey": {
     "method": "POST",
     "path": "/api/v1/admin/auth/token-keys/rotate",
@@ -4860,6 +4842,162 @@ export const operations = {
     "superAdmin": false,
     "csrf": true,
     "identityRealm": "user"
+  },
+  "personalTokenRoles": {
+    "method": "GET",
+    "path": "/api/v1/account/token-roles",
+    "requestSchema": null,
+    "responseSchema": "RoleOptionsResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user"
+  },
+  "renewPersonalToken": {
+    "method": "POST",
+    "path": "/api/v1/account/tokens/{id}/renew",
+    "requestSchema": "PersonalTokenRenewInput",
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": true,
+    "identityRealm": "user"
+  },
+  "adminPersonalTokens": {
+    "method": "GET",
+    "path": "/api/v1/admin/access-tokens",
+    "requestSchema": null,
+    "responseSchema": "PersonalTokenListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "tokens:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminCreatePersonalToken": {
+    "method": "POST",
+    "path": "/api/v1/admin/access-tokens",
+    "requestSchema": "AdminPersonalTokenInput",
+    "responseSchema": "PersonalTokenCreatedResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "tokens:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "adminRevokePersonalToken": {
+    "method": "DELETE",
+    "path": "/api/v1/admin/access-tokens/{id}",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "tokens:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "adminRenewPersonalToken": {
+    "method": "POST",
+    "path": "/api/v1/admin/access-tokens/{id}/renew",
+    "requestSchema": "PersonalTokenRenewInput",
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "tokens:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "personalTokenUsers": {
+    "method": "GET",
+    "path": "/api/v1/admin/access-tokens/users",
+    "requestSchema": null,
+    "responseSchema": "UserListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "tokens:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "adminPersonalTokenRoles": {
+    "method": "GET",
+    "path": "/api/v1/admin/access-tokens/users/{id}/roles",
+    "requestSchema": null,
+    "responseSchema": "RoleOptionsResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "tokens:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
   }
 } as const;
 export type OperationId = keyof typeof operations;
@@ -5094,7 +5232,6 @@ export interface OperationInputs {
   personalTokens: undefined;
   createPersonalToken: Models.PersonalTokenInput;
   revokePersonalToken: undefined;
-  personalTokenScopes: undefined;
   rotateTokenSigningKey: undefined;
   notesListFiles: undefined;
   notesFileAccess: undefined;
@@ -5114,6 +5251,14 @@ export interface OperationInputs {
   avatarSignUploadPart: Models.UploadPartInput;
   avatarUploadLocalPart: undefined;
   avatarCompleteMultipartUpload: undefined;
+  personalTokenRoles: undefined;
+  renewPersonalToken: Models.PersonalTokenRenewInput;
+  adminPersonalTokens: undefined;
+  adminCreatePersonalToken: Models.AdminPersonalTokenInput;
+  adminRevokePersonalToken: undefined;
+  adminRenewPersonalToken: Models.PersonalTokenRenewInput;
+  personalTokenUsers: undefined;
+  adminPersonalTokenRoles: undefined;
 }
 export interface OperationData {
   bootstrap: Models.BootstrapResponse['data'];
@@ -5346,7 +5491,6 @@ export interface OperationData {
   personalTokens: Models.PersonalTokenListResponse['data'];
   createPersonalToken: Models.PersonalTokenCreatedResponse['data'];
   revokePersonalToken: Models.ActionResultResponse['data'];
-  personalTokenScopes: Models.TokenScopeListResponse['data'];
   rotateTokenSigningKey: Models.ActionResultResponse['data'];
   notesListFiles: Models.FileListResponse['data'];
   notesFileAccess: Models.FileAccessResponse['data'];
@@ -5366,4 +5510,12 @@ export interface OperationData {
   avatarSignUploadPart: Models.FileUploadGrantResponse['data'];
   avatarUploadLocalPart: Models.ActionResultResponse['data'];
   avatarCompleteMultipartUpload: Models.FileEntryResponse['data'];
+  personalTokenRoles: Models.RoleOptionsResponse['data'];
+  renewPersonalToken: Models.ActionResultResponse['data'];
+  adminPersonalTokens: Models.PersonalTokenListResponse['data'];
+  adminCreatePersonalToken: Models.PersonalTokenCreatedResponse['data'];
+  adminRevokePersonalToken: Models.ActionResultResponse['data'];
+  adminRenewPersonalToken: Models.ActionResultResponse['data'];
+  personalTokenUsers: Models.UserListResponse['data'];
+  adminPersonalTokenRoles: Models.RoleOptionsResponse['data'];
 }

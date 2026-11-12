@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # ADR-0041：统一账号的客户端与 API 凭证
 
-状态：采纳。延续 ADR-0037 的统一账号，以及 ADR-0040 的显式 operation 授权。
+状态：部分被 [ADR-0044](ADR-0044-role-bound-personal-tokens.md) 取代（PAT 单角色模型、期限、管理入口与历史保留）；初始数据库已按 ADR-0042 收敛为 platform@1。客户端 JWT / Refresh Token 决策继续有效。延续 ADR-0037 的统一账号，以及 ADR-0040 的显式 operation 授权。
 
 ## 功能声明
 

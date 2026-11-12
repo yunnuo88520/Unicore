@@ -7717,30 +7717,34 @@ export const constraints = {
     "properties": {
       "name": {
         "type": "string",
-        "maxLength": 80,
-        "minLength": 1
+        "minLength": 1,
+        "maxLength": 80
+      },
+      "role_id": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
       },
       "expires_in_days": {
         "type": "integer",
-        "minimum": 1,
-        "maximum": 365
+        "enum": [
+          0,
+          1,
+          7,
+          30,
+          90
+        ]
       },
-      "operation_ids": {
-        "type": "array",
-        "items": {
-          "type": "string",
-          "maxLength": 128,
-          "minLength": 1
-        },
-        "minItems": 1,
-        "maxItems": 128,
-        "uniqueItems": true
+      "remark": {
+        "type": "string",
+        "maxLength": 500
       }
     },
     "required": [
       "name",
+      "role_id",
       "expires_in_days",
-      "operation_ids"
+      "remark"
     ]
   },
   "PersonalToken": {
@@ -7767,12 +7771,25 @@ export const constraints = {
       "revoked": {
         "type": "boolean"
       },
-      "operation_ids": {
-        "type": "array",
-        "items": {
-          "type": "string",
-          "maxLength": 128
-        }
+      "user_id": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "username": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "role_id": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "role_name": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "remark": {
+        "type": "string",
+        "maxLength": 500
       }
     },
     "required": [
@@ -7782,7 +7799,11 @@ export const constraints = {
       "expires_at",
       "last_used_at",
       "revoked",
-      "operation_ids"
+      "user_id",
+      "username",
+      "role_id",
+      "role_name",
+      "remark"
     ]
   },
   "PersonalTokenCreated": {
@@ -7811,25 +7832,22 @@ export const constraints = {
         "items": {
           "$ref": "#/components/schemas/PersonalToken"
         }
+      },
+      "total": {
+        "type": "integer"
+      },
+      "page": {
+        "type": "integer"
+      },
+      "page_size": {
+        "type": "integer"
       }
     },
     "required": [
-      "items"
-    ]
-  },
-  "TokenScopeList": {
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {
-      "items": {
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/APIOperation"
-        }
-      }
-    },
-    "required": [
-      "items"
+      "items",
+      "total",
+      "page",
+      "page_size"
     ]
   },
   "ClientTokenPairResponse": {
@@ -7928,28 +7946,65 @@ export const constraints = {
       }
     }
   },
-  "TokenScopeListResponse": {
+  "PersonalTokenRenewInput": {
     "type": "object",
     "additionalProperties": false,
-    "required": [
-      "code",
-      "message",
-      "data",
-      "request_id"
-    ],
     "properties": {
-      "code": {
-        "type": "string"
-      },
-      "message": {
-        "type": "string"
-      },
-      "data": {
-        "$ref": "#/components/schemas/TokenScopeList"
-      },
-      "request_id": {
-        "type": "string"
+      "expires_in_days": {
+        "type": "integer",
+        "enum": [
+          0,
+          1,
+          7,
+          30,
+          90
+        ]
       }
-    }
+    },
+    "required": [
+      "expires_in_days"
+    ]
+  },
+  "AdminPersonalTokenInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "name": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 80
+      },
+      "role_id": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      },
+      "expires_in_days": {
+        "type": "integer",
+        "enum": [
+          0,
+          1,
+          7,
+          30,
+          90
+        ]
+      },
+      "remark": {
+        "type": "string",
+        "maxLength": 500
+      },
+      "user_id": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      }
+    },
+    "required": [
+      "name",
+      "role_id",
+      "expires_in_days",
+      "remark",
+      "user_id"
+    ]
   }
 };

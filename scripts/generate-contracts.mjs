@@ -13,7 +13,7 @@ const refName = (ref) => {
 };
 function type(schema, language) {
   if (schema.$ref) return refName(schema.$ref);
-  if (schema.enum) return language === 'go' ? 'string' : schema.enum.map(JSON.stringify).join(' | ');
+  if (schema.enum && language !== 'go') return schema.enum.map(JSON.stringify).join(' | ');
   const types = { string: ['string', 'string'], integer: ['int', 'number'], number: ['float64', 'number'], boolean: ['bool', 'boolean'] };
   if (types[schema.type]) return types[schema.type][language === 'go' ? 0 : 1];
   if (schema.type === 'array') return language === 'go' ? `[]${type(schema.items, language)}` : `Array<${type(schema.items, language)}>`;

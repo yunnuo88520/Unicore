@@ -305,7 +305,8 @@ CREATE TABLE IF NOT EXISTS unicore_api_credentials (
  id VARCHAR(64) NOT NULL PRIMARY KEY, user_id VARCHAR(64) NOT NULL,
  kind VARCHAR(16) NOT NULL, name VARCHAR(80) NOT NULL,
  session_hash VARCHAR(64) NOT NULL UNIQUE, session_secret TEXT NOT NULL,
- operations TEXT NOT NULL, created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL,
+ role_id VARCHAR(64) NOT NULL DEFAULT '', remark VARCHAR(500) NOT NULL DEFAULT '',
+ created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL,
  last_used_at BIGINT NOT NULL, revoked INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS unicore_api_refresh_tokens (

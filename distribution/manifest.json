@@ -1199,7 +1199,9 @@
     "internal/bootstrap/updating/runtime_test.go",
     "internal/bootstrap/filelocal/service.go",
     "internal/adapter/desktop/files.go",
-    "internal/adapter/desktop/files_test.go"
+    "internal/adapter/desktop/files_test.go",
+    "packages/web-ui/src/pages/admin/access-tokens.tsx",
+    "internal/adapter/storage/platformsql/token_role_test.go"
   ],
   "ownership": {
     "product-owned": [

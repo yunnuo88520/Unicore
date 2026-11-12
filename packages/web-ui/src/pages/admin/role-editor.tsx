@@ -340,7 +340,7 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
     </div>;
   };
   return <Modal title={t(role ? '编辑角色' : '新建角色')} onClose={onClose} pending={pending}
-    className="flex min-h-0 flex-1 flex-col gap-3" contentClassName="h-[85dvh] max-w-6xl overflow-hidden">
+    className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden pe-0" contentClassName="h-[85dvh] max-w-6xl overflow-hidden">
     <form className="flex min-h-0 flex-1 flex-col gap-3" onSubmit={event => { event.preventDefault(); submit(); }}>
       {/* Guarded saves (403 PERMISSION_DENIED, version conflicts) render inside
         * the dialog: the modal marks outside toasts aria-hidden, so an inline

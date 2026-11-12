@@ -14230,7 +14230,7 @@
     "/api/v1/account/tokens": {
       "get": {
         "operationId": "personalTokens",
-        "summary": "List own personal API credentials; Cookie only",
+        "summary": "personalTokens; browser session only",
         "responses": {
           "200": {
             "description": "Success",
@@ -14268,11 +14268,39 @@
           {
             "SessionCookie": []
           }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
         ]
       },
       "post": {
         "operationId": "createPersonalToken",
-        "summary": "Create a scoped personal token; Cookie only, shown once",
+        "summary": "createPersonalToken; browser session only",
         "responses": {
           "200": {
             "description": "Success",
@@ -14377,50 +14405,6 @@
               "maxLength": 64,
               "minLength": 1
             }
-          }
-        ]
-      }
-    },
-    "/api/v1/account/token-scopes": {
-      "get": {
-        "operationId": "personalTokenScopes",
-        "summary": "List currently available personal API scopes; Cookie only",
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TokenScopeListResponse"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "Stable error code",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "x-unicore": {
-          "profiles": [
-            "web-platform"
-          ],
-          "access": "session",
-          "permissions": [],
-          "permissionMode": "all",
-          "superAdmin": false,
-          "csrf": false,
-          "identityRealm": "user"
-        },
-        "security": [
-          {
-            "SessionCookie": []
           }
         ]
       }
@@ -15693,6 +15677,506 @@
           }
         ],
         "description": "持久分片会话；仅所属用户身份域或固定管理员可用。签名只针对临时对象，云请求不带平台凭据。"
+      }
+    },
+    "/api/v1/account/token-roles": {
+      "get": {
+        "operationId": "personalTokenRoles",
+        "summary": "personalTokenRoles; browser session only",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleOptionsResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "user"
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/account/tokens/{id}/renew": {
+      "post": {
+        "operationId": "renewPersonalToken",
+        "summary": "renewPersonalToken; browser session only",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "user"
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonalTokenRenewInput"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/access-tokens": {
+      "get": {
+        "operationId": "adminPersonalTokens",
+        "summary": "adminPersonalTokens; browser session only",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonalTokenListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "tokens:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ]
+      },
+      "post": {
+        "operationId": "adminCreatePersonalToken",
+        "summary": "adminCreatePersonalToken; browser session only",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonalTokenCreatedResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "tokens:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": [],
+            "CSRFToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminPersonalTokenInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/access-tokens/{id}": {
+      "delete": {
+        "operationId": "adminRevokePersonalToken",
+        "summary": "adminRevokePersonalToken; browser session only",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "tokens:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": [],
+            "CSRFToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/access-tokens/{id}/renew": {
+      "post": {
+        "operationId": "adminRenewPersonalToken",
+        "summary": "adminRenewPersonalToken; browser session only",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "tokens:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": [],
+            "CSRFToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonalTokenRenewInput"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/access-tokens/users": {
+      "get": {
+        "operationId": "personalTokenUsers",
+        "summary": "personalTokenUsers; browser session only",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "tokens:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/access-tokens/users/{id}/roles": {
+      "get": {
+        "operationId": "adminPersonalTokenRoles",
+        "summary": "adminPersonalTokenRoles; browser session only",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleOptionsResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "tokens:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            }
+          }
+        ]
       }
     }
   },
@@ -23500,30 +23984,34 @@
         "properties": {
           "name": {
             "type": "string",
-            "maxLength": 80,
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "role_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
           },
           "expires_in_days": {
             "type": "integer",
-            "minimum": 1,
-            "maximum": 365
+            "enum": [
+              0,
+              1,
+              7,
+              30,
+              90
+            ]
           },
-          "operation_ids": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "maxLength": 128,
-              "minLength": 1
-            },
-            "minItems": 1,
-            "maxItems": 128,
-            "uniqueItems": true
+          "remark": {
+            "type": "string",
+            "maxLength": 500
           }
         },
         "required": [
           "name",
+          "role_id",
           "expires_in_days",
-          "operation_ids"
+          "remark"
         ]
       },
       "PersonalToken": {
@@ -23550,12 +24038,25 @@
           "revoked": {
             "type": "boolean"
           },
-          "operation_ids": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "maxLength": 128
-            }
+          "user_id": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "username": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "role_id": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "role_name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "remark": {
+            "type": "string",
+            "maxLength": 500
           }
         },
         "required": [
@@ -23565,7 +24066,11 @@
           "expires_at",
           "last_used_at",
           "revoked",
-          "operation_ids"
+          "user_id",
+          "username",
+          "role_id",
+          "role_name",
+          "remark"
         ]
       },
       "PersonalTokenCreated": {
@@ -23594,25 +24099,22 @@
             "items": {
               "$ref": "#/components/schemas/PersonalToken"
             }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
           }
         },
         "required": [
-          "items"
-        ]
-      },
-      "TokenScopeList": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/APIOperation"
-            }
-          }
-        },
-        "required": [
-          "items"
+          "items",
+          "total",
+          "page",
+          "page_size"
         ]
       },
       "ClientTokenPairResponse": {
@@ -23711,29 +24213,66 @@
           }
         }
       },
-      "TokenScopeListResponse": {
+      "PersonalTokenRenewInput": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "code",
-          "message",
-          "data",
-          "request_id"
-        ],
         "properties": {
-          "code": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "data": {
-            "$ref": "#/components/schemas/TokenScopeList"
-          },
-          "request_id": {
-            "type": "string"
+          "expires_in_days": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              7,
+              30,
+              90
+            ]
           }
-        }
+        },
+        "required": [
+          "expires_in_days"
+        ]
+      },
+      "AdminPersonalTokenInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "role_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "expires_in_days": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              7,
+              30,
+              90
+            ]
+          },
+          "remark": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "user_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "name",
+          "role_id",
+          "expires_in_days",
+          "remark",
+          "user_id"
+        ]
       }
     },
     "securitySchemes": {

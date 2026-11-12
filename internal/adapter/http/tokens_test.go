@@ -23,7 +23,6 @@ import (
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/platform"
-	"github.com/yunnuo/unicore/migrations/catalogdata"
 	"github.com/yunnuo/unicore/migrations/runner"
 )
 
@@ -116,7 +115,7 @@ func (f *tokenHTTPFixture) login() contracts.ClientTokenPair {
 }
 func (f *tokenHTTPFixture) pat() contracts.PersonalTokenCreated {
 	f.t.Helper()
-	return tokenData[contracts.PersonalTokenCreated](f.t, f.request("POST", "/account/tokens", contracts.PersonalTokenInput{Name: "reader", ExpiresInDays: 30, OperationIds: []string{"listNotes"}}, "", f.userRaw, true), 200)
+	return tokenData[contracts.PersonalTokenCreated](f.t, f.request("POST", "/account/tokens", contracts.PersonalTokenInput{Name: "reader", ExpiresInDays: 30, RoleID: "user"}, "", f.userRaw, true), 200)
 }
 func TestTokenHTTPIdentityAndPersonalScope(t *testing.T) {
 	f := newTokenHTTP(t)
@@ -129,7 +128,7 @@ func TestTokenHTTPIdentityAndPersonalScope(t *testing.T) {
 	tokenData[any](t, f.request("GET", "/notes", nil, pair.AccessToken, f.userRaw, true), 401)
 	tokenData[any](t, f.request("POST", "/notes", contracts.NoteInput{Title: "missing csrf", Status: "open"}, "", f.userRaw, false), 403)
 	tokenData[any](t, f.request("GET", "/notes", nil, pat.Token, "", false), 200)
-	tokenData[any](t, f.request("POST", "/notes", contracts.NoteInput{Title: "denied", Status: "open"}, pat.Token, "", false), 403)
+	tokenData[any](t, f.request("POST", "/notes", contracts.NoteInput{Title: "role allowed", Status: "open"}, pat.Token, "", false), 200)
 	tokenData[any](t, f.request("GET", "/admin/notes", nil, pat.Token, "", false), 403)
 	tokenData[any](t, f.request("GET", "/account/tokens", nil, pat.Token, "", false), 403)
 	tokenData[any](t, f.request("GET", "/account/tokens", nil, pair.AccessToken, "", false), 403)
@@ -137,8 +136,8 @@ func TestTokenHTTPIdentityAndPersonalScope(t *testing.T) {
 	tokenData[any](t, f.request("GET", "/notes", nil, "", pat.Token, true), 401)
 	tokenData[any](t, f.request("GET", "/notes", nil, "", strings.TrimPrefix(pat.Token, "ucp_"), true), 401)
 	tokenData[any](t, f.request("POST", "/auth/token/refresh", contracts.RefreshTokenInput{RefreshToken: pair.RefreshToken}, "", f.userRaw, true), 403)
-	tokenData[any](t, f.request("POST", "/account/tokens", contracts.PersonalTokenInput{Name: "bad", ExpiresInDays: 1, OperationIds: []string{"adminUsers"}}, "", f.userRaw, true), 403)
-	tokenData[any](t, f.request("POST", "/account/tokens", contracts.PersonalTokenInput{Name: "csrf", ExpiresInDays: 1, OperationIds: []string{"listNotes"}}, "", f.userRaw, false), 403)
+	tokenData[any](t, f.request("POST", "/account/tokens", contracts.PersonalTokenInput{Name: "bad", ExpiresInDays: 1, RoleID: "super_admin"}, "", f.userRaw, true), 403)
+	tokenData[any](t, f.request("POST", "/account/tokens", contracts.PersonalTokenInput{Name: "csrf", ExpiresInDays: 1, RoleID: "user"}, "", f.userRaw, false), 403)
 	list := f.request("GET", "/account/tokens", nil, "", f.userRaw, false)
 	tokenData[contracts.PersonalTokenList](t, list, 200)
 	if strings.Contains(list.Body.String(), pat.Token) {
@@ -352,61 +351,216 @@ func TestTokenHTTPExternalDatabases(t *testing.T) {
 			tokenData[any](t, f.request("GET", "/notes", nil, pat.Token, "", false), 200)
 			tokenData[any](t, f.request("DELETE", "/account/tokens/"+pat.Credential.ID, nil, "", f.userRaw, true), 200)
 			tokenData[any](t, f.request("GET", "/notes", nil, pat.Token, "", false), 401)
-			// Upgrade an owned platform@9 snapshot with existing security data.
-			if err := store.Reset(context.Background()); err != nil {
-				t.Fatal(err)
-			}
-			snapshot, _ := json.Marshal(catalogdata.Catalog)
-			var prefix catalogdata.Descriptor
-			if err := json.Unmarshal(snapshot, &prefix); err != nil {
-				t.Fatal(err)
-			}
-			for i := range prefix.Namespaces {
-				if prefix.Namespaces[i].Id == "platform" {
-					ms := prefix.Namespaces[i].Migrations
-					older := ms[:0]
-					for _, m := range ms {
-						if m.Version < 10 {
-							older = append(older, m)
-						}
-					}
-					prefix.Namespaces[i].Migrations = older
-				}
-			}
-			opts := runner.Options{Dialect: driver, Profile: "web-platform"}
-			ctx := context.Background()
-			if err := runner.ApplyDescriptor(ctx, store.DB, prefix, opts); err != nil {
-				t.Fatal(err)
-			}
-			if _, err := store.Exec(ctx, store.DB, "INSERT INTO unicore_users(id,username,email,password_hash,status,created_at,updated_at,last_login_at) VALUES(?,?,?,?,?,1,1,1)", "upgrade-user", "upgrade-user", "upgrade@example.test", "test-hash", "active"); err != nil {
-				t.Fatal(err)
-			}
-			if _, err := store.Exec(ctx, store.DB, "INSERT INTO unicore_personal_accounts(user_id,display_name,totp_secret,recovery_digests,last_step,setup_secret,setup_session,setup_expires,setup_attempts) VALUES(?,?,?,?,123,'','',0,0)", "upgrade-user", "保留昵称", "test-encrypted-proof", "[]"); err != nil {
-				t.Fatal(err)
-			}
-			if _, err := store.Exec(ctx, store.DB, "INSERT INTO unicore_sessions(token_hash,user_id,expires_at) VALUES(?,?,?)", platform.Hash("upgrade-session"), "upgrade-user", 2000000000); err != nil {
-				t.Fatal(err)
-			}
-			if _, err := store.Exec(ctx, store.DB, "INSERT INTO unicore_session_details(token_hash,user_id,ip_address,user_agent,created_at,last_seen_at,mfa_verified,mfa_attempts) VALUES(?,?,'127.0.0.1','test-device',1,1,1,0)", platform.Hash("upgrade-session"), "upgrade-user"); err != nil {
-				t.Fatal(err)
-			}
+			// Replaying the current unpublished baseline must preserve issued
+			// credentials, their selected role and revocation state.
 			for range 2 {
-				if err := runner.Apply(ctx, store.DB, opts); err != nil {
+				if err := runner.Apply(context.Background(), store.DB, runner.Options{Dialect: driver, Profile: "web-platform"}); err != nil {
 					t.Fatal(err)
 				}
 			}
-			var name, proof string
-			var step int
-			if err := store.Row(ctx, store.DB, "SELECT display_name,totp_secret,last_step FROM unicore_personal_accounts WHERE user_id=?", "upgrade-user").Scan(&name, &proof, &step); err != nil {
-				t.Fatal(err)
+			tokenData[any](t, f.request("GET", "/notes", nil, pat.Token, "", false), 401)
+			adminInput := contracts.AdminPersonalTokenInput{Name: "Permanent database credential", RoleID: "user", UserID: f.user.ID, Remark: "External dialect", ExpiresInDays: 0}
+			permanent := tokenData[contracts.PersonalTokenCreated](t, f.request("POST", "/admin/access-tokens", adminInput, "", f.adminRaw, true), 200)
+			tokenData[any](t, f.request("GET", "/notes", nil, permanent.Token, "", false), 200)
+			tokenData[any](t, f.request("POST", "/admin/access-tokens/"+permanent.Credential.ID+"/renew", contracts.PersonalTokenRenewInput{ExpiresInDays: 90}, "", f.adminRaw, true), 200)
+			records := tokenData[contracts.PersonalTokenList](t, f.request("GET", "/admin/access-tokens?search=Permanent", nil, "", f.adminRaw, false), 200)
+			if records.Total != 1 || records.Items[0].RoleID != "user" || records.Items[0].ExpiresAt == 0 {
+				t.Fatal(records)
 			}
-			if name != "保留昵称" || proof != "test-encrypted-proof" || step != 123 {
-				t.Fatal("personal security data changed during upgrade")
-			}
-			var count int
-			if err := store.Row(ctx, store.DB, "SELECT COUNT(*) FROM unicore_session_details d JOIN unicore_sessions s ON s.token_hash=d.token_hash").Scan(&count); err != nil || count != 1 {
-				t.Fatalf("upgraded session join: count=%d error=%v", count, err)
-			}
+			tokenData[any](t, f.request("DELETE", "/admin/access-tokens/"+permanent.Credential.ID, nil, "", f.adminRaw, true), 200)
+			tokenData[any](t, f.request("POST", "/admin/access-tokens/"+permanent.Credential.ID+"/renew", contracts.PersonalTokenRenewInput{ExpiresInDays: 1}, "", f.adminRaw, true), 403)
+
 		})
 	}
+}
+
+func TestPersonalTokenManagementAndLifetimes(t *testing.T) {
+	f := newTokenHTTP(t)
+	input := contracts.PersonalTokenInput{Name: "automation", RoleID: "user", Remark: "Nightly job", ExpiresInDays: 0}
+	for _, days := range []int{0, 1, 7, 30, 90} {
+		input.ExpiresInDays = days
+		pat := tokenData[contracts.PersonalTokenCreated](t, f.request("POST", "/account/tokens", input, "", f.userRaw, true), 200)
+		if (days == 0) != (pat.Credential.ExpiresAt == 0) {
+			t.Fatalf("invalid expiry: %+v", pat.Credential)
+		}
+		tokenData[any](t, f.request("GET", "/notes", nil, pat.Token, "", false), 200)
+	}
+	for _, days := range []int{-1, 2, 365} {
+		input.ExpiresInDays = days
+		tokenData[any](t, f.request("POST", "/account/tokens", input, "", f.userRaw, true), 400)
+	}
+	input.ExpiresInDays = 1
+	tokenData[any](t, f.request("GET", "/account/token-roles", nil, "", "", false), 401)
+	roles := tokenData[contracts.RoleOptions](t, f.request("GET", "/account/token-roles", nil, "", f.userRaw, false), 200)
+	if len(roles.Items) != 1 || roles.Items[0].ID != "user" {
+		t.Fatal(roles)
+	}
+	for _, path := range []string{"/admin/access-tokens", "/admin/access-tokens/users", "/admin/access-tokens/users/" + f.user.ID + "/roles"} {
+		tokenData[any](t, f.request("GET", path, nil, "", "", false), 401)
+		tokenData[any](t, f.request("GET", path, nil, "", f.userRaw, false), 403)
+		tokenData[any](t, f.request("GET", path, nil, "", f.adminRaw, false), 200)
+	}
+	adminInput := contracts.AdminPersonalTokenInput{Name: input.Name, RoleID: input.RoleID, Remark: input.Remark, ExpiresInDays: 1, UserID: f.user.ID}
+	tokenData[any](t, f.request("POST", "/admin/access-tokens", adminInput, "", f.adminRaw, false), 403)
+	tokenData[any](t, f.request("POST", "/admin/access-tokens", adminInput, "", f.userRaw, true), 403)
+	invalid := adminInput
+	invalid.RoleID = "super_admin"
+	tokenData[any](t, f.request("POST", "/admin/access-tokens", invalid, "", f.adminRaw, true), 403)
+	invalid = adminInput
+	invalid.UserID = "missing-user"
+	tokenData[any](t, f.request("POST", "/admin/access-tokens", invalid, "", f.adminRaw, true), 403)
+	pat := tokenData[contracts.PersonalTokenCreated](t, f.request("POST", "/admin/access-tokens", adminInput, "", f.adminRaw, true), 200)
+	list := tokenData[contracts.PersonalTokenList](t, f.request("GET", "/admin/access-tokens?search=Nightly&page_size=2", nil, "", f.adminRaw, false), 200)
+	if len(list.Items) != 2 || list.Total != 6 || list.Items[0].UserID != f.user.ID || list.Items[0].RoleID != "user" || list.Items[0].Remark != "Nightly job" {
+		t.Fatalf("invalid management list: %+v", list)
+	}
+	if strings.Contains(f.request("GET", "/admin/access-tokens", nil, "", f.adminRaw, false).Body.String(), pat.Token) {
+		t.Fatal("admin list leaked secret")
+	}
+	renew := contracts.PersonalTokenRenewInput{ExpiresInDays: 7}
+	path := "/account/tokens/" + pat.Credential.ID + "/renew"
+	tokenData[any](t, f.request("POST", path, renew, "", f.userRaw, false), 403)
+	tokenData[any](t, f.request("POST", path, renew, "", f.adminRaw, true), 403)
+	tokenData[any](t, f.request("POST", path, renew, "", f.userRaw, true), 200)
+	own := tokenData[contracts.PersonalTokenList](t, f.request("GET", "/account/tokens?search=automation", nil, "", f.userRaw, false), 200)
+	found := false
+	for _, c := range own.Items {
+		if c.ID == pat.Credential.ID {
+			found = true
+			if c.ExpiresAt < pat.Credential.ExpiresAt+7*86400-1 {
+				t.Fatal("renewal shortened token")
+			}
+		}
+	}
+	if !found {
+		t.Fatal("admin-created token missing from owner list")
+	}
+	adminPath := "/admin/access-tokens/" + pat.Credential.ID
+	tokenData[any](t, f.request("POST", adminPath+"/renew", contracts.PersonalTokenRenewInput{ExpiresInDays: 0}, "", f.adminRaw, true), 200)
+	tokenData[any](t, f.request("GET", "/notes", nil, pat.Token, "", false), 200)
+	tokenData[any](t, f.request("DELETE", adminPath, nil, "", f.adminRaw, true), 200)
+	tokenData[any](t, f.request("GET", "/notes", nil, pat.Token, "", false), 401)
+	tokenData[any](t, f.request("POST", adminPath+"/renew", renew, "", f.adminRaw, true), 403)
+	tokenData[any](t, f.request("POST", path, renew, "", f.userRaw, true), 403)
+}
+
+func TestPersonalTokenSingleRoleAndBrowserOnlyAdministration(t *testing.T) {
+	f := newTokenHTTP(t)
+	ctx := t.Context()
+	read, err := f.identity.Store.CreateRole(ctx, contracts.RoleSaveInput{Name: "PAT reader", Permissions: []string{"notes:access"}, OperationIds: &[]string{"listNotes"}}, f.admin.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	roles := []string{"user", read.ID}
+	user, err := f.identity.Store.UpdateUser(ctx, f.user.ID, contracts.UserUpdate{Status: "active", RoleIds: &roles}, f.admin.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, f.userRaw, err = f.identity.Issue(ctx, user, 24)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pat := tokenData[contracts.PersonalTokenCreated](t, f.request("POST", "/account/tokens", contracts.PersonalTokenInput{Name: "reader", RoleID: read.ID, ExpiresInDays: 30}, "", f.userRaw, true), 200)
+	tokenData[any](t, f.request("GET", "/notes", nil, pat.Token, "", false), 200)
+	tokenData[any](t, f.request("POST", "/notes", contracts.NoteInput{Title: "no writer union", Status: "open"}, pat.Token, "", false), 403)
+	tokenData[any](t, f.request("POST", "/notes", contracts.NoteInput{Title: "browser union", Status: "open"}, "", f.userRaw, true), 200)
+	tokenData[any](t, f.request("GET", "/account/token-roles", nil, pat.Token, "", false), 403)
+	// Even a super role token cannot issue credentials or invoke reserved governance.
+	adminPAT := tokenData[contracts.PersonalTokenCreated](t, f.request("POST", "/account/tokens", contracts.PersonalTokenInput{Name: "admin script", RoleID: "super_admin", ExpiresInDays: 7}, "", f.adminRaw, true), 200)
+	for _, path := range []string{"/admin/access-tokens", "/admin/access-tokens/users", "/account/tokens"} {
+		tokenData[any](t, f.request("GET", path, nil, adminPAT.Token, "", false), 403)
+	}
+	// A role edit revokes the security anchor. A fresh browser cannot renew it back to life.
+	if _, err = f.identity.Store.UpdateRole(ctx, read.ID, contracts.RoleSaveInput{Name: "Renamed reader", Permissions: []string{"notes:access"}}, f.admin.ID); err != nil {
+		t.Fatal(err)
+	}
+	tokenData[any](t, f.request("GET", "/notes", nil, pat.Token, "", false), 401)
+	_, f.userRaw, err = f.identity.Issue(ctx, user, 24)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tokenData[any](t, f.request("POST", "/account/tokens/"+pat.Credential.ID+"/renew", contracts.PersonalTokenRenewInput{ExpiresInDays: 30}, "", f.userRaw, true), 403)
+}
+
+func TestExpiredPersonalTokenRenewalKeepsSecurityAnchor(t *testing.T) {
+	f := newTokenHTTP(t)
+	pat := f.pat()
+	ctx := t.Context()
+	store, _, _, _ := f.manager.Services()
+	if _, err := store.Exec(ctx, store.DB, "UPDATE unicore_api_credentials SET expires_at=? WHERE id=?", time.Now().Unix()-60, pat.Credential.ID); err != nil {
+		t.Fatal(err)
+	}
+	tokenData[any](t, f.request("GET", "/notes", nil, pat.Token, "", false), 401)
+	// Ordinary session cleanup must not erase the security anchor of an expired PAT.
+	if _, _, err := f.identity.Issue(ctx, f.user, 24); err != nil {
+		t.Fatal(err)
+	}
+	tokenData[any](t, f.request("POST", "/account/tokens/"+pat.Credential.ID+"/renew", contracts.PersonalTokenRenewInput{ExpiresInDays: 1}, "", f.userRaw, true), 200)
+	tokenData[any](t, f.request("GET", "/notes", nil, pat.Token, "", false), 200)
+	status := "disabled"
+	if _, err := f.identity.Store.UpdateUser(ctx, f.user.ID, contracts.UserUpdate{Status: status}, f.admin.ID); err != nil {
+		t.Fatal(err)
+	}
+	// A super administrator can still revoke retained records of a disabled owner.
+	tokenData[any](t, f.request("POST", "/admin/access-tokens/"+pat.Credential.ID+"/renew", contracts.PersonalTokenRenewInput{ExpiresInDays: 1}, "", f.adminRaw, true), 403)
+	tokenData[any](t, f.request("DELETE", "/admin/access-tokens/"+pat.Credential.ID, nil, "", f.adminRaw, true), 200)
+}
+
+func TestPersonalTokenAdministrativeDataScope(t *testing.T) {
+	f := newTokenHTTP(t)
+	ctx := t.Context()
+	self, all := platform.ScopeSelf, platform.ScopeAll
+	narrow, err := f.identity.Store.CreateRole(ctx, contracts.RoleSaveInput{Name: "Self account editor", Permissions: []string{"users:read", "users:update"}, DataScope: &self}, f.admin.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wide, err := f.identity.Store.CreateRole(ctx, contracts.RoleSaveInput{Name: "Global account editor", Permissions: []string{"users:read", "users:update", "users:create"}, DataScope: &all}, f.admin.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	roles := []string{narrow.ID, wide.ID}
+	actor, err := f.identity.Create(ctx, contracts.UserCreate{Username: "dualmanager", Email: "dualmanager@example.test", Password: "test-password-strong", RoleIds: &roles}, f.admin.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, raw, err := f.identity.Issue(ctx, actor, 24)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pat := tokenData[contracts.PersonalTokenCreated](t, f.request("POST", "/account/tokens", contracts.PersonalTokenInput{Name: "self editor", RoleID: narrow.ID, ExpiresInDays: 30}, "", raw, true), 200)
+	list := tokenData[contracts.UserList](t, f.request("GET", "/admin/users", nil, pat.Token, "", false), 200)
+	if list.Total != 1 || list.Items[0].ID != actor.ID {
+		t.Fatalf("PAT data scope included another role: %+v", list)
+	}
+	full := tokenData[contracts.UserList](t, f.request("GET", "/admin/users", nil, "", raw, false), 200)
+	if full.Total < 3 {
+		t.Fatal("cookie lost multi-role scope", full)
+	}
+	tokenData[any](t, f.request("PATCH", "/admin/users/"+f.user.ID, contracts.UserUpdate{Status: "active"}, pat.Token, "", false), 403)
+	tokenData[any](t, f.request("PATCH", "/admin/users/"+f.user.ID, contracts.UserUpdate{Status: "active"}, "", raw, true), 200)
+	tokenData[any](t, f.request("POST", "/admin/users", contracts.UserCreate{Username: "forbidden", Email: "forbidden@example.test", Password: "test-password-strong", Role: "user"}, pat.Token, "", false), 403)
+}
+
+func TestExpiredPersonalTokenRenewalRespectsActiveLimit(t *testing.T) {
+	f := newTokenHTTP(t)
+	ctx := t.Context()
+	expired := f.pat()
+	store, _, _, _ := f.manager.Services()
+	if _, err := store.Exec(ctx, store.DB, "UPDATE unicore_api_credentials SET expires_at=? WHERE id=?", time.Now().Unix()-1, expired.Credential.ID); err != nil {
+		t.Fatal(err)
+	}
+	var active platform.APICredential
+	for range 50 {
+		candidate := platform.APICredential{ID: platform.Token(), UserID: f.user.ID, Kind: "pat", Name: "quota fixture", RoleID: "user", SessionHash: platform.Hash("ucp_" + platform.Token()), CreatedAt: int(time.Now().Unix()), ExpiresAt: 0}
+		var err error
+		active, err = f.identity.Tokens.Store.CreatePersonalToken(ctx, platform.Hash(f.userRaw), candidate)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	path := "/account/tokens/" + expired.Credential.ID + "/renew"
+	input := contracts.PersonalTokenRenewInput{ExpiresInDays: 7}
+	tokenData[any](t, f.request("POST", path, input, "", f.userRaw, true), 400)
+	tokenData[any](t, f.request("DELETE", "/account/tokens/"+active.ID, nil, "", f.userRaw, true), 200)
+	tokenData[any](t, f.request("POST", path, input, "", f.userRaw, true), 200)
 }

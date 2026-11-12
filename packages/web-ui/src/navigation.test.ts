@@ -94,7 +94,7 @@ it('renders the shared administrator tree: three seeded directories over two reg
   const personal = business.entries.find(entry => entry.id === 'personal')!;
   expect(personal.type).toBe('directory');
   expect(personal.label).toBe('个人中心');
-  expect(personal.children.map(entry => entry.id)).toEqual(['account', 'account-security', 'account-sessions']);
+  expect(personal.children.map(entry => entry.id)).toEqual(['account', 'account-security', 'account-sessions', 'account-tokens']);
   // The administrator-only system region keeps 系统设置 first, the 超级管理员
   // directory behind it and the API reference as the top-level tail.
   const system = navigation.sections.find(section => section.id === 'system')!;
@@ -104,7 +104,7 @@ it('renders the shared administrator tree: three seeded directories over two reg
   const administration = system.entries[1];
   expect(administration.type).toBe('directory');
   expect(!!administration.label).toBe(true);
-  expect(administration.children.map(entry => entry.id)).toEqual(['users', 'roles', 'departments', 'posts', 'menus', 'dictionaries', 'tasks']);
+  expect(administration.children.map(entry => entry.id)).toEqual(['users', 'roles', 'departments', 'posts', 'menus', 'dictionaries', 'tasks', 'access-tokens']);
   // With menus reachable there is no recovery section.
   expect(navigation.sections.some(section => section.id === 'recovery')).toBe(false);
 });
@@ -117,11 +117,11 @@ it('keeps the user workspace on the same tree: the shared personal directory, ad
   // user workspace; canAccess also hard-denies api-docs there, even for a
   // super admin, while the personal pages live inside the real 个人中心
   // directory at the tail of the single business region.
-  expect(walkAll(navigation)).toEqual(['overview', 'notes', 'personal', 'account', 'account-security', 'account-sessions']);
+  expect(walkAll(navigation)).toEqual(['overview', 'notes', 'personal', 'account', 'account-security', 'account-sessions', 'account-tokens']);
   const personal = navigation.sections.find(section => section.id === 'business')!.entries.find(entry => entry.id === 'personal')!;
   expect(personal.type).toBe('directory');
   expect(personal.label).toBe('个人中心');
-  expect(personal.children.map(entry => entry.id)).toEqual(['account', 'account-security', 'account-sessions']);
+  expect(personal.children.map(entry => entry.id)).toEqual(['account', 'account-security', 'account-sessions', 'account-tokens']);
 });
 
 it('renders only menu-granted pages for a member while canAccess still caps direct URLs', () => {
@@ -155,7 +155,7 @@ it('hides entries the operator marked invisible and drops empty directories', ()
   const navigation = render({ ...superAdmin, navigation: { version: 1, sections: config.sections, nodes } } as Bootstrap);
   const administration = navigation.sections.find(section => section.id === 'system')?.entries.find(entry => entry.id === 'administration');
   // Users is hidden; the remaining children keep the directory alive.
-  expect(administration?.children.map(entry => entry.id)).toEqual(['roles', 'departments', 'posts', 'menus', 'dictionaries', 'tasks']);
+  expect(administration?.children.map(entry => entry.id)).toEqual(['roles', 'departments', 'posts', 'menus', 'dictionaries', 'tasks', 'access-tokens']);
   const collapsed = config.nodes.map(node => node.id === 'administration' || node.parent_id === 'administration' ? { ...node, visible: false } : node);
   const dropped = render({ ...superAdmin, navigation: { version: 1, sections: config.sections, nodes: collapsed } } as Bootstrap);
   // An administrator directory without visible children disappears entirely.

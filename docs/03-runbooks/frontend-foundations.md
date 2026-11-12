@@ -41,7 +41,7 @@ return <button aria-label={t('保存')}>{t('保存')}</button>;
 
 可配置公告与邮件正文不调用 t()；共用安全富内容展示 rich-content.tsx，编辑与服务端预览分离。用户公告与站内信通过全局顶部铃铛查看，仅平台用户身份启用；SSE 通知后重新查询服务端，管理页独立入口。见 [公告手册](announcements.md)。
 
-已登记但身份无权访问的页面使用独立 ForbiddenPage（403），未知地址使用 NotFoundPage（404）；不要把无权访问静默重定向到另一个业务页面。Swagger API 参考页采用延迟加载，并遵循实例 API 文档开关；头像复用文件上传和本人 profile API。行为及扩展方式见 [UI 组件参考](../product/ui-components.md) 与 [个人中心](personal-center.md)。
+已登记但身份无权访问的页面使用独立 ForbiddenPage（403），未知地址使用 NotFoundPage（404）；不要把无权访问静默重定向到另一个业务页面。Swagger API 参考页采用延迟加载，并遵循实例 API 文档开关；头像复用文件上传和本人 profile API。行为及扩展方式见 [UI 组件参考](../product/ui-components.md) 与 [个人中心](personal-center.md)。 生成任何界面之前先读 [UI 组件约定](../product/ui-conventions.md)：场景对应组件、间距刻度、动效与文案规则是 review 硬性条件。
 
 移动端（375px）验收必须覆盖**带数据的状态**：所有宽表格（输入行、多列矩阵）必须收在 `overflow-x-auto` 容器内滚动，双列栅格窄屏需显式 `grid-cols-1` 约束轨道，防止 min-content 撑开文档；E2E 对整页断言无横向溢出时必须让页面处于含数据的真实状态，仅验空态视为未覆盖。侧栏默认区域、成员与顺序由代码显式定义（业务区固定序列，系统设置组仅放全局设置类页面），不存在字母序兜底；调整默认结构必须随实现显式变更，操作员经菜单管理编辑区域树并持久化（[ADR-0036](../adr/ADR-0036-navigation-regions-granular-authorization.md)）。
 

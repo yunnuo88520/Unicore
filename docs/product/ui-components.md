@@ -23,6 +23,12 @@ setTranslator(t);
 | 组件 | 导入 | 用途 |
 | --- | --- | --- |
 | Button | `@unicore/ui` | 六种语义变体 × 四种尺寸；`pending` 自动禁用并显示 spinner |
+| Alert | `@unicore/ui` | 语义横幅（danger/warning/info/success），带可选操作；danger 为 alert 角色 |
+| Drawer | `@unicore/ui` | 侧滑面板（start/end），替代 Dialog 手改侧栏 |
+| Popover | `@unicore/ui` | 锚定浮层，宽度 288px 起步可覆盖 |
+| RadioGroup | `@unicore/ui` | 胶囊单选组（少量互斥项） |
+| Breadcrumb | `@unicore/ui` | 顶栏面包屑（current 项强调） |
+| Kbd | `@unicore/ui` | 快捷键键帽 |
 | Card | `@unicore/ui` | 面板表面与 Header/Title/Description/Content/Footer 组合；`asChild` 可渲染为链接瓦片 |
 | PageHeader | `@unicore/ui` | 节标题 + 可选描述 + 操作槽；无外壳，放 CardContent 或裸用 |
 | StatCard | `@unicore/ui` | 仪表盘指标卡；图标默认降噪，`tone="success"` 只用于承载语义的状态 |

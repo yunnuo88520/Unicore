@@ -5,6 +5,8 @@
 
 ### 中文
 
+- 修复 Standalone 监控将本地业务文件服务误当作平台对象存储管理的问题；两载体保留本地附件上传，不显示存储位置与探活卡片。
+
 - 将通用框架缺陷的归属判断、最小复现、临时补丁、上游反馈及修复同步纳入 AI 工作流；派生项目随附 framework-upstream Skill、协作入口和反馈模板。
 
 - 完成首发基线整理：开发期 SQL 合并为三命名空间 version=1，更新兼容绑定生成的完整 schema 指纹，修复数据库备份参数冲突并增加证书身份校验选项；补齐真实派生项目标签教程、角色排障、稳定支持与恢复政策。
@@ -16,6 +18,8 @@
 - 清理无关后台框架名称及测试、截图命名，使源码和文档直接描述自身能力。
 
 ### English
+
+- Fix Standalone monitoring treating local business files as platform object-storage management; both carriers retain local attachments while hiding storage-location and probe cards.
 
 - Standardize framework bug triage, minimal reproduction, local patches, upstream feedback and fix integration in the AI workflow; ship the framework-upstream Skill, entry points and feedback template with derived projects.
 

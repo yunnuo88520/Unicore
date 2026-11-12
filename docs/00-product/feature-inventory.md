@@ -102,7 +102,7 @@
 | 功能单元 | Platform | Standalone | CLI | 持久化 | 证据 |
 | --- | --- | --- | --- | --- | --- |
 | 运行概览（状态/版本/时长/核心健康/最近失败） | 已实现（super_admin，「运行监控」目录） | 已实现（两载体等效单页「概览」Tab） | 不适用 | 无（拉取式快照） | `internal/monitor/`、`internal/adapter/http/monitor.go` |
-| 服务健康（HTTP/数据库/存储/后台任务） | 已实现（HTTP/DB 全量；存储卡、任务卡按装配呈现；任务管理仍在定时任务页） | 已实现（HTTP/DB；仅渲染已装配能力；Web 显示 HTTP，桌面隐藏 HTTP；两载体均隐藏存储与任务卡） | 不适用 | 无 | 同上 + `internal/observability/metrics.go` |
+| 服务健康（HTTP/数据库/存储/后台任务） | 已实现（HTTP/DB 全量；存储卡、任务卡按装配呈现；任务管理仍在定时任务页） | 已实现（HTTP/DB；Web 显示 HTTP，桌面隐藏 HTTP；两载体均隐藏平台存储与任务卡，本地业务附件服务不启用存储位置管理监控） | 不适用 | 无 | 同上 + `internal/observability/metrics.go` |
 | 资源监控（进程/Go Runtime） | 已实现（Prometheus Go/Process collectors 同源；图表卡片） | 已实现（desktop 经 stdlib 等效；RSS/CPU 桌面不适用） | 不适用 | 无 | `internal/observability/metrics.go`、`monitor.StdlibRuntime` |
 | 运行事件流（环形缓冲 + 事件页；任务事件由调度器源头投递） | 已实现（super_admin「运行事件」页，容量 200 仅内存） | 已实现（单机「运行事件」Tab 等效） | 不适用 | 无（重启即清） | `internal/monitor/events.go`、`GET /api/v1/admin/monitor/events` |
 | 服务健康完整化（连接池上限/等待耗时、存储逐位置手动探活、失败任务运行记录关联） | 已实现 | 已实现（平台存储管理/任务卡完全隐藏） | 不适用 | 无 | `internal/monitor/monitor.go`、`adminMonitorStorageProbe` |

@@ -1,17 +1,24 @@
 # Author: yunnuo <ymz@ebox.vip>
 name: Configure Ubuntu package mirrors
-description: Use the signed Ubuntu archive through the kernel.org mirror.
+description: Keep Ubuntu signature checks with multiple archive mirrors and IPv4 transport.
 runs:
   using: composite
   steps:
     - shell: bash
       run: |
         set -euo pipefail
-        # Hosted Jammy runners use this mirror list for every Ubuntu suite.
-        # The Ubuntu DNS zone can be unavailable on hosted runners.
-        # This public archive mirror retains Ubuntu Release signature checks.
-        if [[ -f /etc/apt/apt-mirrors.txt ]]; then
-          printf '%s\n' 'https://mirrors.edge.kernel.org/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt > /dev/null
-        fi
-        # Older runner images reference Ubuntu hosts directly.
-        sudo find /etc/apt -type f \( -name '*.list' -o -name '*.sources' \) -exec sed -i 's#https\?://\(azure\.archive\|archive\|security\)\.ubuntu\.com/ubuntu#https://mirrors.edge.kernel.org/ubuntu#g' {} +
+        # A single mirror previously blocked unrelated quality/security jobs.
+        # APT's mirror transport can fall back between independent hosts for
+        # indexes and packages, retaining Ubuntu's Release signature checks.
+        printf '%s\n' \
+          'https://archive.ubuntu.com/ubuntu/' \
+          'https://mirrors.mit.edu/ubuntu/' \
+          'https://mirrors.edge.kernel.org/ubuntu/' \
+          | sudo tee /etc/apt/apt-mirrors.txt > /dev/null
+        # Hosted runners have no usable IPv6 route to some archive mirrors.
+        printf '%s\n' 'Acquire::ForceIPv4 "true";' \
+          | sudo tee /etc/apt/apt.conf.d/99-unicore-ipv4 > /dev/null
+        # Route older .list and newer deb822 .sources through the same list.
+        sudo find /etc/apt -type f \( -name '*.list' -o -name '*.sources' \) -exec sed -i \
+          -e 's#https\?://\(azure\.archive\|archive\|security\)\.ubuntu\.com/ubuntu/*#mirror+file:/etc/apt/apt-mirrors.txt#g' \
+          -e 's#https\?://mirrors\.edge\.kernel\.org/ubuntu/*#mirror+file:/etc/apt/apt-mirrors.txt#g' {} +

@@ -108,7 +108,7 @@ export function AppearanceControls() {
 export function AppearanceDrawer({ onClose }: { onClose: () => void }) {
   const { t } = useI18n();
   return <Drawer open onOpenChange={open => { if (!open) onClose(); }}>
-    <DrawerContent dir="ltr" title={t('主题设置')}>
+    <DrawerContent dir="ltr" title={t('主题设置')} closeLabel={t('关闭主题设置')}>
       <DialogDescription className="mt-0 text-xs text-muted">{t('按你的偏好调整外观与布局。')}</DialogDescription>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-2" dir="ltr">
         <AppearanceControls />

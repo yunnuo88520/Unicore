@@ -345,7 +345,7 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
       {/* Guarded saves (403 PERMISSION_DENIED, version conflicts) render inside
         * the dialog: the modal marks outside toasts aria-hidden, so an inline
         * alert is the only reliably reachable feedback while editing. */}
-      {save.error && <Alert>{t(save.error.message)}</Alert>}
+      {save.error && <Alert variant="danger">{t(save.error.message)}</Alert>}
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center gap-3">
           <label htmlFor="role-editor-name" className="w-16 shrink-0 text-sm font-medium text-ink">{t('角色名称')}</label>

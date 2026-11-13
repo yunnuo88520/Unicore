@@ -80,7 +80,7 @@ export function FileUploadDialog({ client, resume, onClose, onUploaded, title, a
       </div>
       <button type="button" className="absolute end-3 top-3 inline-flex size-8 items-center justify-center rounded-md text-muted transition-colors outline-none hover:bg-primary-soft hover:text-accent focus-visible:ring-2 focus-visible:ring-focus disabled:pointer-events-none disabled:opacity-55" aria-label={t('关闭对话框')} disabled={closeDisabled} onClick={onClose}><X size={17} aria-hidden="true" /></button>
       <form className="flex flex-col gap-3" aria-busy={pending} onSubmit={event => { event.preventDefault(); if (file && !tooLarge && !invalidExtension && !invalidType) upload.mutate(); }}>
-        {upload.error && <Alert>{t(upload.error.message)}</Alert>}
+        {upload.error && <Alert variant="danger">{t(upload.error.message)}</Alert>}
         <input ref={input} className="sr-only" type="file" accept={accept ?? policy.data?.allowed_extensions?.map(ext => `.${ext.replace(/^\./, '')}`).join(',')} aria-label={t('选择文件')} disabled={pending} tabIndex={-1} onChange={event => pick(event.target.files?.[0] ?? null)} />
       <button ref={zone} type="button" data-autofocus
         className={cn('upload-zone flex flex-col items-center gap-1.5 rounded-lg border border-dashed px-4 py-7 text-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-55',

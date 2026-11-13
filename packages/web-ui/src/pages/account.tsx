@@ -240,7 +240,7 @@ function EnterpriseAccountSecurity({ web, userID, onOidcConsumed, onChanged }: {
       <Badge variant={linked ? 'success' : 'subtle'}>{linked ? t('已绑定') : t('未绑定')}</Badge>
     </CardHeader>
     <CardContent className="flex flex-col gap-3">
-      {result && <Alert>{result}</Alert>}
+      {result && <Alert variant="danger">{result}</Alert>}
       <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-3">
         <StaticField label={t('企业登录')}>{info.enabled ? info.provider_name : t('实例尚未启用')}</StaticField>
         <StaticField label={t('本地密码')}>{info.has_local_password ? t('可用') : t('尚未设置')}</StaticField>

@@ -23,5 +23,5 @@ export { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 export { Tabs, TabsPrimitive } from './tabs';
 export { Tooltip } from './tooltip';
 export { MessageProvider, useMessage, type MessageAPI, type MessageOptions, type MessageType } from './message';
-// RichTextEditor (Tiptap) and the Recharts layer stay out of this barrel: import from './editor' and './charts'
-// directly so heavy dependencies load only in the routes that use them.
+// RichTextEditor (Tiptap) stays out of this barrel: import from '@unicore/ui/editor'
+// so heavy dependencies load only in the routes that use them.

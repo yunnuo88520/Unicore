@@ -5,11 +5,13 @@ import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
 import { Check } from 'lucide-react';
 import { cn } from './cn';
 
-export const Checkbox = forwardRef<HTMLButtonElement, { id?: string; checked: boolean | 'indeterminate'; onChange: (value: boolean) => void; disabled?: boolean; children?: ReactNode; className?: string; 'aria-label'?: string }>(function Checkbox({ id, checked, onChange, disabled, children, className, 'aria-label': ariaLabel }, ref) {
+type CheckboxProps = Omit<React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>, 'checked' | 'onChange' | 'onCheckedChange' | 'children'> & { checked: boolean | 'indeterminate'; onChange: (value: boolean) => void; children?: ReactNode };
+
+export const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(function Checkbox({ id, checked, onChange, disabled, children, className, ...props }, ref) {
   const generated = useId();
   const boxId = id ?? generated;
   return <span className={cn('inline-flex items-center gap-2', className)}>
-    <CheckboxPrimitive.Root ref={ref} id={boxId} checked={checked} disabled={disabled} onCheckedChange={value => onChange(value === true)} aria-label={ariaLabel}
+    <CheckboxPrimitive.Root {...props} ref={ref} id={boxId} checked={checked} disabled={disabled} onCheckedChange={value => onChange(value === true)}
       className="peer flex size-4 shrink-0 items-center justify-center rounded-xs border border-line bg-surface outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-55 data-[state=checked]:border-button data-[state=checked]:bg-button data-[state=indeterminate]:border-button data-[state=indeterminate]:bg-button">
       <CheckboxPrimitive.Indicator className="text-on-primary">
         {checked === 'indeterminate'

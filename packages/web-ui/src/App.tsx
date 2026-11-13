@@ -8,7 +8,7 @@ import { VersionBadge, workspaceLinks } from './shell-tools';
 import { useLocale, t } from './i18n';
 import { productName } from './product.gen';
 import { WorkspaceLayout } from './workspace-layout';
-import { Breadcrumb, BreadcrumbItem, BreadcrumbSeparator, MessageProvider } from '@unicore/ui';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbSeparator, MessageProvider, PageHeader } from '@unicore/ui';
 import { SiteFooter } from './site-footer';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { RouterProvider, Outlet, Navigate, createBrowserHistory, useRouter, useRouterState, type RouterHistory } from '@tanstack/react-router';
@@ -78,6 +78,15 @@ function BrandedApp({ client, registry, notice, administratorPage, history, base
     </NoticeProvider>
   </ShellOptionsProvider>;
 }
+
+// These routes compose their own PageHeader with primary actions. All others
+// receive the route label here, including module pages and loading/error states.
+// Explicit ownership avoids querying rendered DOM and keeps navigation stable.
+const pageHeadingOwners = new Set<string>([
+  'users', 'administrators', 'roles', 'departments', 'announcements', 'posts',
+  'tasks', 'menus', 'account-tokens', 'access-tokens', 'account', 'account-sessions',
+  'monitor', 'monitor-services', 'monitor-resources', 'monitor-events', 'ui-preview', 'not-found',
+]);
 
 /** The root route component: gates, chrome and the page outlet. Server authorization remains authoritative. */
 function WorkspaceShell() {
@@ -213,7 +222,10 @@ function WorkspaceShell() {
           ? <StateCard tone="error" icon={<Radio size={26} className="text-danger" />} title={t('暂时无法连接核心')} detail={t(metadata.error.message)}
               action={<Button onClick={() => void metadata.refetch()}><RotateCcw size={15} />{t('重新连接')}</Button>} />
           : enrollment && page!=='account-security' ? <StateCard tone="pending" icon={<ShieldCheck size={24}/>} title={t('正在打开安全设置')} detail={t('实例要求启用双重验证，请先完成安全设置。')}/>
-          : <Outlet />}
+          : <div className="flex min-w-0 flex-col gap-6">
+              {!pageHeadingOwners.has(page) && <PageHeader title={t(routes[page].label)} />}
+              <Outlet />
+            </div>}
       <SiteFooter metadata={data} />
     </WorkspaceLayout>
   </PagePropsProvider>;
@@ -340,7 +352,7 @@ function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onO
       <Breadcrumb>
         <BreadcrumbItem className="hidden max-lg:inline">{t('工作空间')}</BreadcrumbItem>
         <BreadcrumbSeparator className="hidden max-md:block max-lg:hidden" />
-        <h1 aria-current="page" className="topbar-title m-0 min-w-0 truncate font-medium text-ink">{page === 'site' ? settingsLabel : t(routes[page].label)}</h1>
+        <BreadcrumbItem aria-current="page" className="min-w-0 truncate font-medium text-ink">{page === 'site' ? settingsLabel : t(routes[page].label)}</BreadcrumbItem>
       </Breadcrumb>
     </div>
     <div className="flex shrink-0 items-center gap-2 max-md:gap-1.5">
@@ -382,7 +394,7 @@ function StateCard({ tone, icon, title, detail, action }: { tone: 'pending' | 'e
   useLocale();
   return <div role={tone === 'error' ? 'alert' : 'status'} className={`state-card flex flex-col items-center gap-2 rounded-xl border bg-surface px-6 py-10 text-center shadow-card ${tone === 'error' ? 'border-danger-line' : 'border-line'}`}>
     {icon}
-    <strong className="text-md font-semibold text-ink">{t(title)}</strong>
+    <h1 className="text-xl font-semibold tracking-tight text-ink">{t(title)}</h1>
     <p className="max-w-md text-sm text-muted">{t(detail)}</p>
     {action}
   </div>;

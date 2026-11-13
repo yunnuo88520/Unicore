@@ -6,7 +6,7 @@ import { createColumnHelper, tableFeatures, useTable } from '@tanstack/react-tab
 import { KeyRound } from 'lucide-react';
 import type { AdminPersonalTokenInput, PersonalToken, PersonalTokenCreated, PersonalTokenInput, PersonalTokenRenewInput, WebClient } from '@unicore/sdk';
 import { AppControllerField, AppField, AppForm, useAppForm } from '@unicore/form';
-import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, ConfirmDialog, Input, Modal, SimpleSelect, Textarea, useMessage } from '@unicore/ui';
+import { Badge, Button, Card, CardContent, ConfirmDialog, Input, Modal, PageHeader, SimpleSelect, Textarea, useMessage } from '@unicore/ui';
 import { DataTable, DataTableToolbar, DataTablePagination } from '../components/data-table';
 import { defineMessages, t, useLocale } from '../i18n';
 import { useColumnVisibility } from '../column-visibility';
@@ -104,8 +104,10 @@ export function TokenManager({ web, userID, manage = false }: { web: WebClient; 
     meta: { date, busy: revoke.isPending, onRenew: setRenewing, onRevoke: setRevoking } satisfies TokensTableMeta,
     state: { columnVisibility },
   });
-  return <Card><CardHeader className="flex-row flex-wrap items-start justify-between gap-3"><div className="min-w-0"><CardTitle>{t(manage ? '访问令牌管理' : '个人访问令牌')}</CardTitle><CardDescription>{t(manage ? '管理所有用户的访问令牌，或选择用户为其签发。' : '每个令牌绑定一个角色，仅使用该角色的当前权限和数据范围。')}</CardDescription></div><Button onClick={() => setCreating(true)}>{t('创建访问令牌')}</Button></CardHeader>
-    <CardContent className="flex min-w-0 flex-col gap-4">
+  return <div className="flex min-w-0 flex-col gap-6">
+    <PageHeader title={t(manage ? '访问令牌管理' : '个人访问令牌')} description={t(manage ? '管理所有用户的访问令牌，或选择用户为其签发。' : '每个令牌绑定一个角色，仅使用该角色的当前权限和数据范围。')}
+      actions={<Button onClick={() => setCreating(true)}>{t('创建访问令牌')}</Button>} />
+    <Card><CardContent className="flex min-w-0 flex-col gap-4">
       <DataTableToolbar
         search={{ label: t('搜索访问令牌'), placeholder: t(manage ? '搜索名称、用户或备注' : '搜索名称或备注'), value: search, onChange: value => { setSearch(value); setPage(1); } }}
         columnMenu={{ entries: menu, onToggle: toggle }} />
@@ -117,7 +119,8 @@ export function TokenManager({ web, userID, manage = false }: { web: WebClient; 
     {creating && <CreateToken web={web} userID={userID} manage={manage} onClose={() => setCreating(false)} onCreated={() => void query.refetch()} />}
     {renewing && <RenewToken web={web} token={renewing} manage={manage} onClose={() => setRenewing(undefined)} onSaved={() => { setRenewing(undefined); void query.refetch(); }} />}
     {revoking && <ConfirmDialog title={t('作废访问令牌')} description={t('作废后立即失效，且无法通过续期恢复。')} confirmLabel={t('确认作废')} cancelLabel={t('取消')} danger pending={revoke.isPending} onConfirm={() => revoke.mutate(revoking.id)} onCancel={() => setRevoking(undefined)} />}
-  </Card>;
+    </Card>
+  </div>;
 }
 function LifetimeField() {
   return <AppControllerField name="expires_in_days" label={t('有效期')}>{field => <SimpleSelect label={t('有效期')} value={String(field.value)} onChange={value => field.onChange(Number(value))} options={lifetimes.map(option => ({ ...option, label: t(option.label) }))} />}</AppControllerField>;

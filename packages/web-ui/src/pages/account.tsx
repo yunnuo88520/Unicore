@@ -7,7 +7,7 @@ import { Copy, Download, Link2, Monitor, ShieldCheck, Smartphone, Unlink, UserRo
 import QRCode from 'qrcode';
 import type { AccountProfile, AppClient, TOTPSetup, WebClient } from '@unicore/sdk';
 import { t, useLocale } from '../i18n';
-import { Alert, Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, ConfirmDialog, Input, Modal, useMessage } from '@unicore/ui';
+import { Alert, Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, ConfirmDialog, Input, Modal, PageHeader, useMessage } from '@unicore/ui';
 import { AppField, AppForm, StaticField, useAppForm } from '@unicore/form';
 import { useRouteSearch, type PageProps } from '../router';
 import { PasswordDialog } from '../password-dialog';
@@ -23,7 +23,10 @@ function ProfileBoundary({ web, children }: { web: WebClient; children: (profile
 export function AccountPage({ client, metadata, refresh }: PageProps) {
   useLocale();
   if (!client.web || !metadata.current_user) return null;
-  return <ProfileBoundary web={client.web}>{(profile, reload) => <ProfileEditor client={client} web={client.web!} profile={profile} onChanged={() => { reload(); refresh(); }} administrator={metadata.identity_realm === 'administrator'} />}</ProfileBoundary>;
+  return <div className="flex min-w-0 flex-col gap-6">
+    <PageHeader title={t('个人资料')} description={t('昵称用于展示；用户名创建后不可修改。')} />
+    <ProfileBoundary web={client.web}>{(profile, reload) => <ProfileEditor client={client} web={client.web!} profile={profile} onChanged={() => { reload(); refresh(); }} administrator={metadata.identity_realm === 'administrator'} />}</ProfileBoundary>
+  </div>;
 }
 function ProfileEditor({ client, web, profile, onChanged, administrator }: { client: AppClient; web: WebClient; profile: AccountProfile; onChanged: () => void; administrator: boolean }) {
   useLocale();
@@ -41,7 +44,7 @@ function ProfileEditor({ client, web, profile, onChanged, administrator }: { cli
     return web.saveAccountProfile({ display_name: values.display_name, ...(fileID ? { avatar_file_id: fileID } : {}) });
   }, onSuccess: () => { setAvatarFileID(null); message.success(t('个人资料已保存')); onChanged(); }, onError: form.applyServerError });
   return <section aria-label={t('个人资料')} className="max-w-3xl">
-    <Card><CardHeader><CardTitle><UserRound size={18} aria-hidden="true" />{t('个人资料')}</CardTitle><CardDescription>{t('昵称用于展示；用户名创建后不可修改。')}</CardDescription></CardHeader>
+    <Card>
       <CardContent className="flex flex-col gap-5">
         <div className="flex flex-wrap gap-2"><Badge variant="subtle">{administrator ? t('管理员') : t('普通用户')}</Badge><Badge variant={profile.user.status === 'active' ? 'success' : 'subtle'}>{profile.user.status === 'active' ? t('正常') : t('已停用')}</Badge><Badge variant={profile.totp_enabled ? 'success' : 'subtle'}>{profile.totp_enabled ? t('双重验证已开启') : t('双重验证未开启')}</Badge></div>
         <div className="flex flex-wrap items-center gap-3">
@@ -179,12 +182,14 @@ function LoginDevices({ web, onSignedOut }: { web: WebClient; onSignedOut: () =>
   const query = useQuery({ queryKey: ['account-sessions'], queryFn: () => web.accountSessions(), refetchInterval: 30000 });
   const revoke = useMutation({ mutationFn: async (selected: {id:string;current:boolean}|'others') => selected === 'others' ? web.revokeOtherSessions() : web.revokeAccountSession(selected.id), onSuccess: (_, selected) => { const current = selected !== 'others' && selected.current; setTarget(undefined); message.success(t('设备会话已下线')); if (current) onSignedOut(); else void query.refetch(); } });
   const date = (value: number) => value ? new Date(value * 1000).toLocaleString(locale) : t('未知');
-  return <Card className="max-w-4xl"><CardHeader className="flex-row flex-wrap items-start justify-between gap-3"><div><CardTitle><Monitor size={18} aria-hidden="true" />{t('登录会话')}</CardTitle><CardDescription>{t('查看当前有效的登录设备。发现异常时，请立即下线设备并修改密码。')}</CardDescription></div><div className="flex flex-wrap gap-2"><Button variant="ghost" onClick={() => void query.refetch()} disabled={query.isFetching}>{t('刷新')}</Button><Button variant="secondary" disabled={!query.data || query.data.items.length <= 1} onClick={() => setTarget('others')}>{t('下线其他设备')}</Button></div></CardHeader>
-    <CardContent className="flex flex-col gap-3">
+  return <div className="flex min-w-0 flex-col gap-6">
+    <PageHeader title={t('登录会话')} description={t('查看当前有效的登录设备。发现异常时，请立即下线设备并修改密码。')}
+      actions={<><Button variant="ghost" onClick={() => void query.refetch()} disabled={query.isFetching}>{t('刷新')}</Button><Button variant="secondary" disabled={!query.data || query.data.items.length <= 1} onClick={() => setTarget('others')}>{t('下线其他设备')}</Button></>} />
+    <Card className="max-w-4xl"><CardContent className="flex flex-col gap-3">
       {query.isPending ? <p role="status" className="py-8 text-sm text-muted">{t('正在读取登录会话…')}</p> : query.error ? <div role="alert" className="flex flex-col items-start gap-2"><p>{t(query.error.message)}</p><Button onClick={() => void query.refetch()}>{t('重试')}</Button></div> : query.data.items.length === 0 ? <p className="py-8 text-sm text-muted">{t('没有有效的登录会话')}</p> : query.data.items.map(device => <div key={device.id} className="flex flex-col gap-4 rounded-lg border border-line p-4 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0 flex-1"><div className="mb-2 flex flex-wrap items-center gap-2"><Monitor size={17} className="text-muted" aria-hidden="true" /><strong className="text-sm">{device.user_agent ? /Mobile|Android|iPhone/.test(device.user_agent) ? t('移动设备') : t('电脑或浏览器') : t('未知设备')}{device.current && <Badge className="ms-2" variant="success">{t('当前会话')}</Badge>}</strong></div><p className="break-all text-xs text-muted">{device.user_agent || t('未记录设备信息')}</p><dl className="mt-3 grid gap-3 text-xs sm:grid-cols-2"><StaticField label={t('IP 地址')}>{device.ip_address || t('未知')}</StaticField><StaticField label={t('最近活动')}>{date(device.last_seen_at)}</StaticField><StaticField label={t('登录时间')}>{date(device.created_at)}</StaticField><StaticField label={t('到期时间')}>{date(device.expires_at)}</StaticField></dl></div><Button variant="secondary" disabled={revoke.isPending} onClick={() => setTarget({ id: device.id, current: device.current })}>{t('下线设备')}</Button></div>)}
       {target && <ConfirmDialog title={target === 'others' ? t('下线其他设备') : t('下线设备')} description={target !== 'others' && target.current ? t('这将退出当前设备，需要重新登录。') : t('选定设备的服务端会话将立即失效。')} confirmLabel={t('确认下线')} cancelLabel={t('取消')} danger pending={revoke.isPending} onConfirm={() => revoke.mutate(target)} onCancel={() => setTarget(undefined)} />}
-    </CardContent>
-  </Card>;
+    </CardContent></Card>
+  </div>;
 }
 /** Enterprise login binding ported from the legacy account security panel; the shell owns password changes. */
 function EnterpriseAccountSecurity({ web, userID, onOidcConsumed, onChanged }: {

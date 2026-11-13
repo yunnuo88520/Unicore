@@ -180,7 +180,9 @@ function AnnouncementPanel({ web, metadata }: { web: WebClient; metadata: Bootst
       setSelection([]);
     },
   } as TableOptions<typeof features, AnnouncementEntry>);
-  return <div className="flex flex-col gap-4">
+  return <div className="flex min-w-0 flex-col gap-6">
+    <PageHeader title={t('平台公告')} description={t('集中管理通知、发布计划与内部备注。')}
+      actions={can('createAnnouncement') && <Button onClick={() => setEditor('new')}><Plus size={16} />{t('新增公告')}</Button>} />
     <Card>
       <CardContent className="flex items-center gap-4">
         <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-accent"><Megaphone size={22} aria-hidden="true" /></span>
@@ -196,8 +198,6 @@ function AnnouncementPanel({ web, metadata }: { web: WebClient; metadata: Bootst
     </Card>
     <Card>
       <CardContent className="flex flex-col gap-4">
-        <PageHeader title={t('公告列表')} description={t('集中管理通知、发布计划与内部备注。')}
-          actions={can('createAnnouncement') && <Button onClick={() => setEditor('new')}><Plus size={15} />{t('新增公告')}</Button>} />
         <DataTableToolbar
           search={{ label: t('搜索公告'), placeholder: t('搜索公告标题、内容或备注…'), value: search, maxLength: 128,
             onChange: value => setSearch(value), onSubmit: () => setFilter({ search }) }}

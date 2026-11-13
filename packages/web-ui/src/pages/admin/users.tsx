@@ -210,8 +210,7 @@ function UserListPanel({ web, metadata, administrators }: { web: WebClient; meta
     manualPagination: true,
     pageCount: list.data ? Math.max(1, Math.ceil(list.data.total / list.data.page_size)) : 1,
   });
-  return <Card>
-    <CardContent className="flex flex-col gap-4">
+  return <div className="flex min-w-0 flex-col gap-6">
       <PageHeader title={t('{{kind}}列表', { kind })} description={administrators ? t('管理后台账号及其启用状态') : t('统一账号可分配多个角色，按权限使用业务与管理工作台。')}
         actions={<>
           {!administrators && <>
@@ -221,6 +220,8 @@ function UserListPanel({ web, metadata, administrators }: { web: WebClient; meta
           </>}
           {canCreate && <Button onClick={() => setCreating(true)}><UserPlus size={15} />{t('新增{{kind}}', { kind })}</Button>}
         </>} />
+    <Card>
+    <CardContent className="flex flex-col gap-4">
       <DataTableToolbar
         search={{ label: t('搜索{{v0}}', { v0: kind }), placeholder: t('搜索'), value: search, maxLength: 128,
           onChange: value => { setSearch(value); setPagination(current => ({ ...current, pageIndex: 0 })); } }}
@@ -234,7 +235,8 @@ function UserListPanel({ web, metadata, administrators }: { web: WebClient; meta
     {creating && <UserCreateDialog web={web} kind={kind} role={role} administrators={administrators} postsEnabled={canPosts} onClose={() => setCreating(false)} onCreated={refresh} />}
     {roleTarget && <UserRoleDialog web={web} administrators={administrators} user={roleTarget} postsEnabled={canPosts} onClose={() => setRoleTargetID(null)} onSaved={refresh} />}
     {resetTarget && <PasswordResetDialog web={web} user={resetTarget} onClose={() => setResetTargetID(null)} onSaved={refresh} />}
-  </Card>;
+    </Card>
+  </div>;
 }
 
 function UserCreateDialog({ web, kind, role, administrators, postsEnabled, onClose, onCreated }: {

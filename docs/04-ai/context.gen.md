@@ -26,6 +26,11 @@
 | routes | [packages/web-ui/src/routes.ts](../../packages/web-ui/src/routes.ts) |
 | router | [packages/web-ui/src/router.tsx](../../packages/web-ui/src/router.tsx) |
 | uiPrimitives | [packages/ui/src/index.ts](../../packages/ui/src/index.ts) |
+| uiControls | [packages/ui/src/controls/index.ts](../../packages/ui/src/controls/index.ts) |
+| uiCharts | [packages/ui/src/charts/index.ts](../../packages/ui/src/charts/index.ts) |
+| uiCalendar | [packages/ui/src/calendar/index.ts](../../packages/ui/src/calendar/index.ts) |
+| uiComposites | [packages/ui/src/composites/index.ts](../../packages/ui/src/composites/index.ts) |
+| uiDataGrid | [packages/ui/src/data-grid/index.ts](../../packages/ui/src/data-grid/index.ts) |
 | formLayer | [packages/form/src/form.tsx](../../packages/form/src/form.tsx) |
 | session | [packages/web-ui/src/session.tsx](../../packages/web-ui/src/session.tsx) |
 | migrations | [migrations](../../migrations) |

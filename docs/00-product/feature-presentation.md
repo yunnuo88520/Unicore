@@ -63,6 +63,12 @@
 - 概览页固定层（运行形态卡/连接方式卡/快捷入口）中，快捷入口按 `canAccess` 过滤；业务占位卡仅用户域显示。
 - 无个人自定义机制；新增 widget 必须声明其可见上下文（形态 + 身份域 + 能力/权限条件），并同步 [功能适用性清单](feature-inventory.md)。
 
+### 共享设计系统的呈现边界
+
+Platform 用户域、管理员域与 Standalone 两载体共享 `@unicore/ui` 原语及 controls/charts/calendar/composites/data-grid 子入口；CLI 无 UI，不适用。它们是页面内部可组合能力，不新增业务菜单、页面权限、实例设置或 widget。实际操作继续受既有主体、形态、能力及服务端授权约束：认证卡片不向 Standalone 引入账号，通知中心不装配投递服务，Agent/Composer/检索与会议时段组件不代表模型、搜索或预约后端可用。
+
+业务页继续只由 WorkspaceLayout 提供导航与内容占位，固定 LTR 并忽略旧方向偏好；Sidebar 组合件不得创建第二套工作区壳层。顶栏面包屑/标题表示导航上下文，正文仍以 PageHeader 开始（默认 h1，分节 h2/h3），标题与操作按双语和权限规则提供。开发 `/ui-preview` 的 family 登记用于组件浏览，不作为业务入口或权限豁免；登记范围不等于视觉验收。组件数据协议与已知限制见 [UI 组件参考](../product/ui-components.md)。
+
 ## 5. CLI 呈现
 
 - 命令树即信息架构：`unicore version`、`unicore execute`（`internal/adapter/cli/command.go`）。新增命令遵循 [add-cli-command](../../.agents/skills/add-cli-command/SKILL.md)：stdin/文件输入、结构化输出、退出码表达失败，不引入 UI/HTTP/持久化依赖。

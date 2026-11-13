@@ -4,13 +4,18 @@
   "private": true,
   "author": "yunnuo <ymz@ebox.vip>",
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": ["**/*.css"],
   "exports": {
     ".": "./src/index.ts",
     "./cn": "./src/cn.ts",
     "./i18n": "./src/i18n.ts",
     "./message": "./src/message.tsx",
-    "./editor": "./src/editor.tsx"
+    "./editor": "./src/editor.tsx",
+    "./controls": "./src/controls/index.ts",
+    "./charts": "./src/charts/index.ts",
+    "./calendar": "./src/calendar/index.ts",
+    "./composites": "./src/composites/index.ts",
+    "./data-grid": "./src/data-grid/index.ts"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.2.1",

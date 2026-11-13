@@ -58,7 +58,7 @@ export function AdminTasksPage({ client, metadata }: PageProps) {
     onError: error => message.error(t(error.message)),
   });
   const pending = toggle.isPending || trigger.isPending;
-  const render = (children: ReactNode) => <Card><CardContent className="flex flex-col gap-4">{children}</CardContent></Card>;
+  const render = (children: ReactNode) => <div className="flex min-w-0 flex-col gap-6"><PageHeader title={t('定时任务')} /><Card><CardContent className="flex flex-col gap-4">{children}</CardContent></Card></div>;
   if (list.isPending) return render(<p role="status" className="py-10 text-center text-sm text-muted">{t('正在读取定时任务…')}</p>);
   if (list.isError) return render(<div role="alert" className="flex flex-col items-start gap-3 py-8">
     <p className="text-sm text-danger">{t(list.error.message)}</p>
@@ -66,14 +66,14 @@ export function AdminTasksPage({ client, metadata }: PageProps) {
   </div>);
   const items = list.data?.items ?? [];
   const executors = list.data?.executors ?? [];
-  return <>
-    <Card><CardContent className="flex flex-col gap-4">
+  return <div className="flex min-w-0 flex-col gap-6">
       <PageHeader title={t('定时任务')} description={t('关闭的任务不再按计划执行，已保存的配置保持不变。自建任务只能调度已注册的执行器。')}
         actions={<>
           <span className="text-xs text-muted">{t('{{count}} 个任务', { count: items.length })}</span>
           {can('createTask') && <Button onClick={() => setEditor('new')}>{t('新增任务')}</Button>}
         </>} />
-      <div className="min-w-0 rounded-lg border border-line" aria-busy={list.isFetching || pending}>
+    <Card><CardContent className="flex flex-col gap-4">
+      <div className="min-w-0 overflow-x-auto rounded-lg border border-line" aria-busy={list.isFetching || pending}>
         <Table className="min-w-[860px]">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
@@ -115,7 +115,7 @@ export function AdminTasksPage({ client, metadata }: PageProps) {
     {editor && <TaskEditor web={web} executors={executors} entry={editor === 'new' ? undefined : editor} onClose={() => setEditor(null)} onSaved={() => { setEditor(null); refresh(); }} />}
     {history && <TaskRuns web={web} entry={history} onClose={() => setHistory(null)} />}
     {removing && <ConfirmDialog danger title={t('删除任务')} description={t('确定删除任务「{{name}}」？它的运行历史会一并删除。', { name: removing.name })} confirmLabel={t('确认删除')} cancelLabel={t('取消')} pending={remove.isPending} onConfirm={() => remove.mutate(removing)} onCancel={() => setRemoving(null)} />}
-  </>;
+  </div>;
 }
 
 function TaskEditor({ web, executors, entry, onClose, onSaved }: {

@@ -1,7 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Single structural shell for Web and Wails; pages supply content without owning navigation offsets.
 // Geometry variants (data-layout/sidebar) live in shell.css; all visuals are Tailwind utilities.
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { useI18n } from './i18n';
 import './shell.css';
 
@@ -11,14 +11,6 @@ type WorkspaceLayoutProps = {
 };
 export function WorkspaceLayout({ navigation, header, children, overlays, navigationOpen, onNavigationClose, contentClassName = '', navigationCollapsed = false }: WorkspaceLayoutProps) {
   const { t } = useI18n();
-  // The header carries no bottom border; it only casts a shadow once content scrolls beneath it.
-  const [scrolled, setScrolled] = useState(false);
-  useEffect(() => {
-    const update = () => setScrolled((document.body.scrollTop || document.documentElement.scrollTop) > 10);
-    update();
-    document.addEventListener('scroll', update, { passive: true });
-    return () => document.removeEventListener('scroll', update);
-  }, []);
   useEffect(() => {
     if (!navigationOpen) return;
     const close = (event: KeyboardEvent) => { if (event.key === 'Escape') onNavigationClose(); };
@@ -35,8 +27,8 @@ export function WorkspaceLayout({ navigation, header, children, overlays, naviga
       {navigation}
     </aside>
     <div className="main-shell min-w-0 w-full">
-      <header className={`topbar sticky top-0 z-20 flex h-[76px] min-w-0 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-md max-md:h-[65px] ${scrolled ? 'border-line is-scrolled' : 'border-transparent'}`}>{header}</header>
-      <main id="main-content" tabIndex={-1} className={`main-content mx-auto w-full min-w-0 pt-9 px-10 pb-12 outline-none max-md:px-6 ${contentClassName}`}>{children}</main>
+      <header className="topbar sticky top-0 z-20 flex h-16 min-w-0 items-center justify-between gap-4 border-b border-line bg-surface/95 px-6 backdrop-blur-md max-md:px-4">{header}</header>
+      <main id="main-content" tabIndex={-1} className={`main-content mx-auto w-full min-w-0 px-8 pb-12 pt-8 outline-none max-md:px-4 max-md:pt-6 ${contentClassName}`}>{children}</main>
     </div>
     {overlays}
   </div>;

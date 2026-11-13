@@ -18,6 +18,18 @@
   --color-background: var(--bg);
   --color-surface: var(--surface);
   --color-surface-alt: var(--surface-alt);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-inset: var(--surface-inset);
+  --color-surface-hover: var(--surface-hover);
+  --color-line-strong: var(--border-strong);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+  --color-chart-7: var(--chart-7);
+  --color-chart-8: var(--chart-8);
   --color-ink: var(--text);
   --color-muted: var(--muted);
   --color-line: var(--border);
@@ -98,7 +110,12 @@
   --spacing: calc(var(--space-unit) * 4);
 
   /* Motion tokens. */
-  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-soft: var(--motion-ease-enter);
+  --ease-standard: var(--motion-ease-standard);
+  --ease-enter: var(--motion-ease-enter);
+  --ease-exit: var(--motion-ease-exit);
+  --default-transition-duration: var(--motion-fast);
+  --default-transition-timing-function: var(--motion-ease-standard);
 
   /* Structural widths from tokens. */
   --container-sidebar: var(--sidebar);
@@ -115,11 +132,49 @@
   --breakpoint-2xl: 1500px;
 
   /* Shadows from tokens. */
-  --shadow-card: var(--shadow);
-  --shadow-tint: var(--shadow-tint);
-  --shadow-modal: var(--shadow-modal);
+  --shadow-control: var(--elevation-control);
+  --shadow-card: var(--elevation-card);
+  --shadow-floating: var(--elevation-floating);
+  --shadow-overlay: var(--elevation-overlay);
+  /* Tailwind shadow utilities require full shadows, not the legacy color-only tokens. */
+  --shadow-tint: var(--elevation-control);
+  --shadow-modal: var(--elevation-overlay);
 
   --icon-stroke: var(--icon-stroke);
+}
+
+/* Opt-in editorial roles preserve the existing 13px text-base and device font scale. */
+@utility type-display {
+  font-size: var(--type-display-size);
+  line-height: var(--type-display-line-height);
+  font-weight: var(--type-display-weight);
+  letter-spacing: var(--type-display-tracking);
+  text-wrap: balance;
+}
+@utility type-title {
+  font-size: var(--type-title-size);
+  line-height: var(--type-title-line-height);
+  font-weight: var(--type-title-weight);
+  letter-spacing: var(--type-title-tracking);
+  text-wrap: balance;
+}
+@utility type-headline {
+  font-size: var(--type-headline-size);
+  line-height: var(--type-headline-line-height);
+  font-weight: var(--type-headline-weight);
+  letter-spacing: var(--type-headline-tracking);
+}
+@utility type-body {
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line-height);
+  font-weight: var(--type-body-weight);
+  letter-spacing: var(--type-body-tracking);
+}
+@utility type-caption {
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-line-height);
+  font-weight: var(--type-caption-weight);
+  letter-spacing: var(--type-caption-tracking);
 }
 
 @layer base {
@@ -129,9 +184,10 @@
   ::selection { background: var(--primary-soft); }
   :focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
   @media (prefers-reduced-motion: reduce) {
-    *, ::before, ::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
-    /* Loading spinners are functional feedback, not decoration; keep them turning (slower). */
-    .animate-spin { animation-duration: 1.4s !important; }
+    *, ::before, ::after { animation-delay: 0ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+    /* Loading spinners are functional feedback; decorative pulses are not. */
+    .animate-spin { animation-duration: 1.4s !important; animation-iteration-count: infinite !important; }
+    .animate-pulse { animation: none !important; }
   }
 }
 

@@ -11,9 +11,15 @@ it('renders title, optional description and the actions slot', () => {
   expect(screen.getByRole('button', { name: '新增用户' }).parentElement?.className).toContain('gap-2');
 });
 
+it('supports section headings without introducing a second page heading', () => {
+  render(<PageHeader as="h2" title="Details" />);
+  expect(screen.getByRole('heading', { name: 'Details', level: 2 })).toBeInTheDocument();
+  expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
+});
+
 it('omits the description and actions container when not provided', () => {
   render(<PageHeader title="角色权限" data-testid="header" />);
   expect(screen.getByTestId('header').querySelector('p')).toBeNull();
   expect(screen.getByTestId('header').querySelector('.gap-2')).toBeNull();
-  expect(screen.getByRole('heading', { name: '角色权限' }).tagName).toBe('H2');
+  expect(screen.getByRole('heading', { name: '角色权限', level: 1 })).toBeInTheDocument();
 });

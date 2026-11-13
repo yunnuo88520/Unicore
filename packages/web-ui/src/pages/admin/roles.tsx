@@ -100,11 +100,12 @@ function RolePanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
     } satisfies RolesTableMeta,
     getRowId: role => role.id,
   });
-  return <Card>
-    <CardContent className="flex flex-col gap-4">
+  return <div className="flex min-w-0 flex-col gap-6">
       <PageHeader title={t('角色权限')} description={t('为用户组合业务与管理权限；super_admin 由系统维护。')}
         actions={canWrite && <Button onClick={() => setEditor({ mode: 'new' })}><Plus size={15} />{t('新建角色')}</Button>} />
 
+    <Card>
+    <CardContent className="flex flex-col gap-4">
       <DataTable table={table} pending={list.isPending} busy={list.isFetching} error={list.error} onRetry={() => void list.refetch()}
         empty={{ icon: ShieldCheck, title: t('还没有自定义角色'), hint: t('新建角色，为不同用户组合业务权限。') }} />
       <p className="text-xs leading-relaxed text-muted">{t('角色可组合业务与管理权限；仅超级管理员权限保持保留。')}</p>
@@ -116,5 +117,6 @@ function RolePanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
     {removing && <ConfirmDialog danger title={t('删除角色')} description={t('确定删除角色「{{name}}」？该角色的 {{count}} 位成员将失去对应权限。', { name: removing.name, count: removing.user_count })}
       confirmLabel={t('确认删除')} cancelLabel={t('取消')} pending={remove.isPending}
       onConfirm={() => remove.mutate(removing)} onCancel={() => setRemoving(null)} />}
-  </Card>;
+    </Card>
+  </div>;
 }

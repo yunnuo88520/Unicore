@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # @unicore/ui
 
-Unicore 共享 UI 原语层：基于 Radix UI + Tailwind v4 设计令牌的 26 个无业务组件，主题通过 CSS 变量（`@unicore/theme`）驱动，组件本身不含颜色字面量、不调用业务接口。
+Unicore 共享 UI 层：基于 Radix UI、原生控件与 Tailwind v4 设计令牌，包含原语、独立控件、图表、日历、组合组件与可编辑网格。主题通过 CSS 变量（`@unicore/theme`）驱动，组件不调用业务接口。组件 family 的显式登记见 `packages/web-ui/src/pages/ui-preview/catalog.ts`；变体、辅助原语与导出数量不等同于独立 family，也不代表视觉验收结论。
 
 ## 组成
 
@@ -12,6 +12,11 @@ Unicore 共享 UI 原语层：基于 Radix UI + Tailwind v4 设计令牌的 26 �
 | i18n 桩 | `@unicore/ui/i18n` | `t`/`useLocale`/`useI18n`/`defineMessages`/`setTranslator` |
 | 消息 | `@unicore/ui/message` | MessageProvider/useMessage（五态、自动消失） |
 | 富文本 | `@unicore/ui/editor` | Tiptap 封装（较重，刻意不入 barrel 以保持代码分割） |
+| 独立控件 | `@unicore/ui/controls` | Accordion、Combobox、CommandPalette、ContextMenu、Carousel、TreeView、InputOTP、Pagination、FileUploadDropzone，以及操作、输入、选择与反馈组件 |
+| 图表卡片 | `@unicore/ui/charts` | Area/Line/Combo、比较、条形、径向、雷达、矩阵、散点与 Sankey；数据与交互回调由宿主持有 |
+| 日期与日历 | `@unicore/ui/calendar` | DateCalendar、DatePicker、EventCalendar、MeetingScheduler 与日期工具 |
+| UI 组合件 | `@unicore/ui/composites` | AgentCreator、Composer、AuthCard、SettingsDialog、Sidebar、NotificationCenter、TaskList、Questionnaire 等；无对应后端服务 |
+| 可编辑网格 | `@unicore/ui/data-grid` | DataGrid、列契约、纯数据变换与本地编辑历史；不同于业务列表 DataTable |
 
 ## 主题接线
 
@@ -24,7 +29,9 @@ Unicore 共享 UI 原语层：基于 Radix UI + Tailwind v4 设计令牌的 26 �
 
 ## 组件预览
 
-开发环境（`pnpm dev-web`）访问 `/ui-preview`：一页枚举全部组件的常用状态，用于双主题与双语自检。生产构建与测试环境不注册该路由。
+开发环境（`pnpm dev-web`）访问 `/ui-preview`，按显式 family 登记浏览组件与状态，用于主题、双语、键盘及窄屏自检。预览是开发工具，不是业务菜单或接口授权，也不表示所有状态均已视觉验收；生产构建与测试环境不注册该路由。公开 API 与当前限制见 [UI 组件参考](../../docs/product/ui-components.md)。
+
+构建当前 Web/Go 产物后运行 `pnpm test:ui-system`，会启动隔离的真实 Standalone 后端及 Vite 开发前端，覆盖桌面/375px、中英文与亮暗主题。设置 `UNICORE_UI_SYSTEM_PRODUCTION=1` 同时检查生产产物不暴露目录。截图与 trace 是测试证据，不是已经批准的视觉基准；输出保存在 `build/ui-system` 与 `test-results`。
 
 ## i18n 接线
 
@@ -74,5 +81,8 @@ message.success(t('已保存')); // success/info/warning/error/loading
 ## 已知边界
 
 - `editor.tsx` 仍带少量业务残留（`{{site_url}}` 链接模板、邮件场景默认 aria 文案）；
-- 图表封装已从包中移除（此前无消费者）；待真实统计 API 落地时再按需求重新设计引入（历史实现可从 git 找回）；
-- 组件不负责权限与数据获取，页面层（`@unicore/web-ui`）负责。
+- 图表为独立 SVG/HTML 卡片，支持可关闭的入场/径向弧线动效及减少动态效果；没有通用数值插值能力。不自动请求统计、聚合数据或生成业务样本。现有业务 Recharts widget 不会因新增入口而自动迁移。
+- DataGrid 是客户端固定行高窗口化网格，不提供服务端分页/查询或持久化；删除只发出 `onDeleteRows` 请求，不进入编辑撤销栈。宿主替换数据会使旧编辑历史失效。
+- 日历不提供重复事件引擎或预约服务；Agent/Composer/Search 等组合件不提供模型调用、检索、认证、配额或上传服务。
+- 工作区固定 LTR，只由 WorkspaceLayout 负责壳层占位；Sidebar 组合件不能成为第二套工作区布局。正文页首使用 PageHeader（默认 h1），顶栏标题/面包屑不能替代正文标题。
+- 组件不负责权限与数据获取，页面层（`@unicore/web-ui`）负责；Platform 与 Standalone 两载体共享 UI，不向 CLI 引入图形依赖。

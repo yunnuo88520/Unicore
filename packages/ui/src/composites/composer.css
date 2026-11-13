@@ -1,0 +1,42 @@
+/* Author: yunnuo <ymz@ebox.vip> */
+/* Description: Scoped composer geometry and semantic-token border motion. */
+@property --ui-composer-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+.ui-composer-input {
+  line-height: 1.5rem;
+  max-height: calc(15rem + 0.5rem);
+  scrollbar-width: thin;
+}
+.ui-composer-loader[data-busy='true'][data-effect='border']::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border: 2px solid transparent;
+  border-radius: inherit;
+  background: conic-gradient(from var(--ui-composer-angle), transparent 0deg, var(--color-accent) 65deg, var(--color-focus) 105deg, transparent 155deg) border-box;
+  mask: linear-gradient(white 0 0) padding-box, linear-gradient(white 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  animation: ui-composer-orbit 2.4s linear infinite;
+}
+.ui-composer-loader[data-busy='true'][data-effect='pulse'] {
+  animation: ui-composer-glow 1.8s ease-in-out infinite;
+}
+@keyframes ui-composer-orbit {
+  to { --ui-composer-angle: 360deg; }
+}
+@keyframes ui-composer-glow {
+  0%, 100% { border-color: var(--color-line); }
+  50% { border-color: var(--color-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 12%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-composer-loader[data-busy='true'][data-effect] { animation: none; }
+  .ui-composer-loader[data-busy='true'][data-effect='border']::before {
+    animation: none;
+    --ui-composer-angle: 45deg;
+  }
+}

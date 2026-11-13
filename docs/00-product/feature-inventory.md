@@ -89,6 +89,14 @@
 | 健康检查 | 已实现 | 已实现¹ | 不适用 | 无 | `internal/adapter/http/policy.go` |
 | Notes 业务模块 | 已实现（用户+管理端，按账号隔离） | 已实现（local scope）¹² | 不装配（模块特性关闭） | unicore_example_notes | `internal/modules/notes/`、[业务样板](../03-runbooks/business-example.md) |
 
+### 共享设计系统（UI 基础能力，非新增业务）
+
+| 功能单元 | Platform | Standalone | CLI | 持久化 | 证据 |
+| --- | --- | --- | --- | --- | --- |
+| 共享原语、独立控件、图表、日历、组合件与可编辑网格 | 已实现 UI 层（用户/管理员域按既有业务授权接入） | 已实现 UI 层（Web/GUI 共享；不增加平台身份与治理能力） | 不适用（无 UI） | 无新增业务持久化；组件本地状态与现有设备偏好分离 | `packages/ui/src/controls/`、`packages/ui/src/charts/`、`packages/ui/src/calendar/`、`packages/ui/src/composites/`、`packages/ui/src/data-grid/`、[UI 参考](../product/ui-components.md) |
+
+这是共享呈现基础能力，不新增 operation、权限点、设置键、数据库表、业务菜单或仪表盘 widget。Agent/Composer/认证/通知/预约等组件名称不代表相应服务已装配；由业务页提供真实数据、SDK 调用与授权。family 范围以 `packages/web-ui/src/pages/ui-preview/catalog.ts` 显式登记为准，不把变体计为新业务功能或把登记视为视觉验收。
+
 ## H. 桌面载体专属（Standalone GUI 实现层）
 
 | 功能单元 | 载体 | 证据 |

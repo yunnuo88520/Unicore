@@ -117,10 +117,11 @@ function DepartmentPanel({ web, metadata }: { web: WebClient; metadata: Bootstra
     })}
   </ul>;
 
-  return <Card>
-    <CardContent className="flex flex-col gap-4">
+  return <div className="flex min-w-0 flex-col gap-6">
       <PageHeader title={t('部门管理')} description={t('维护部门层级，为角色的数据范围提供组织依据。')}
         actions={can('createDepartment') && <Button onClick={() => setCreating('root')}><Plus size={15} />{t('新建根部门')}</Button>} />
+    <Card>
+    <CardContent className="flex flex-col gap-4">
       {list.isError && <Alert action={<Button variant="secondary" size="sm" onClick={() => void list.refetch()}>{t('重试')}</Button>}>{t(list.error.message)}</Alert>}
       <div className="rounded-lg border border-line p-2" aria-busy={list.isFetching}>
         {list.isPending
@@ -150,7 +151,8 @@ function DepartmentPanel({ web, metadata }: { web: WebClient; metadata: Bootstra
       description={t('确定删除部门「{{name}}」？删除后不可恢复。', { name: removing.name })}
       confirmLabel={t('确认删除')} cancelLabel={t('取消')} pending={remove.isPending}
       onConfirm={() => remove.mutate(removing)} onCancel={() => setRemoving(null)} />}
-  </Card>;
+    </Card>
+  </div>;
 }
 
 /** Rename plus parent move in one dialog; self and descendants are excluded so

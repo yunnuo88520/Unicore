@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 前端基础封装与新增功能
 
-共享层按包拆分：组件原语 `@unicore/ui`（packages/ui）、表单层 `@unicore/form`（packages/form）、令牌与偏好 `@unicore/theme`（packages/theme），业务 Workspace 仍在 packages/web-ui，Web 用户/管理员和 Wails 只负责装配 transport、允许的页面与全局样式。新增业务先组合下面的公共入口，不复制布局、请求、主题、翻译或表单实现。工作区由顶栏显示当前页面名称并承载一级标题；正文直接呈现业务内容，不再重复品牌、页面大标题、说明与核心就绪状态横幅。
+共享层按包拆分：组件原语 `@unicore/ui`（packages/ui）、表单层 `@unicore/form`（packages/form）、令牌与偏好 `@unicore/theme`（packages/theme），业务 Workspace 仍在 packages/web-ui，Web 用户/管理员和 Wails 只负责装配 transport、允许的页面与全局样式。新增业务先组合下面的公共入口，不复制布局、请求、主题、翻译或表单实现。工作区顶栏仅显示导航面包屑与全局工具，不承载 h1。正文以唯一 PageHeader h1 开始，必要描述与页面主操作随标题呈现；正文不再重复品牌、页面标题或核心就绪状态横幅。页面已有 PageHeader 时由页面拥有，否则 Workspace 根据路由 label 提供共享标题，归属在 App.tsx 显式登记，不以 DOM 查询或滚动状态决定语义层级。
 
 | 职责 | 入口 | 新功能约定 |
 | --- | --- | --- |
@@ -35,7 +35,7 @@ return <button aria-label={t('保存')}>{t('保存')}</button>;
 
 静态检查不能证明动态数据与任意新流程的全部状态。新增界面仍必须实际切换中英文，验证 loading/empty/error/success、表单错误、消息、弹窗与英文长标签；在 preferences.spec.ts 的英文巡检加入新的管理页/标签。布局改动运行 layout.spec.ts，覆盖 375/767/768/850/900/1280px、三种布局/侧栏、两种内容宽度，含旧 RTL 数据恢复 LTR，并断言正文未被导航覆盖，而非只检查 scrollWidth。桌面共享改动还需真实 Wails 窗口，不能用 HTTP 替代。
 
-基础组织参考 [New API 的布局组件](https://github.com/QuantumNous/new-api/tree/main/web/src/components/layout) 与 [语言资源同步](https://github.com/QuantumNous/new-api/blob/main/web/scripts/sync-i18n.mjs) 的职责分离与资源检查思路；这里沿用 Unicore 的 tokens、AppClient 和 profile 边界独立实现，不引入其业务组件或源码。
+列表页将 PageHeader（唯一 h1、必要描述、主操作）放在列表 Card 外，卡片内保留工具栏、表格与分页。独立业务分区使用 CardTitle 或 `PageHeader as="h2"`，不再重复页面标题；加载/空态/错误态不移除页面标题。边框与语义表面构成默认层次，不按页面硬编码颜色、主题或阴影。功能性加载、进度和展开动效沿用共享原语并尊重减少动态偏好；具体限制见 [UI 组件约定](../product/ui-conventions.md)。
 
 管理端操作日志与邮件模板复用这些入口，详见 [管理工具](admin-tools.md)。模板正文/主题属于业务内容，语言巡检仅排除输入及 `.rich-content`/`.tiptap` 排版层，不跳过整个页面。
 

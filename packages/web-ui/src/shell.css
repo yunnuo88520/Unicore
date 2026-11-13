@@ -67,7 +67,6 @@ html, body { overflow-x: clip; }
     margin-inline-end: 8px;
     border: 1px solid var(--border);
     border-radius: var(--radius-16);
-    box-shadow: 0 8px 30px var(--shadow-modal);
     background: var(--surface);
   }
   :root:not([data-layout=full]):is([data-sidebar=inset], [data-sidebar=floating]) .topbar {
@@ -99,7 +98,8 @@ html, body { overflow-x: clip; }
 :root[data-theme=dark] .instance-brand-light { display: none; }
 :root[data-theme=dark] .instance-brand-dark { display: inline-flex; }
 
-/* Apple-style large title: pages that render an in-content page header hide the
-   duplicated topbar title until content scrolls beneath the frosted topbar. */
-.topbar-title { transition: opacity 0.2s ease; }
-.main-shell:has(#main-content [data-page-header]) .topbar:not(.is-scrolled) .topbar-title { opacity: 0; }
+/* Page headings live in the content flow. Breadcrumbs remain visible regardless
+ * of scroll position; shell styling never infers page structure from the DOM. */
+@media (prefers-reduced-motion: reduce) {
+  .app-shell > .sidebar { transition: none; }
+}

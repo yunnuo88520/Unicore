@@ -1,0 +1,31 @@
+/* Author: yunnuo <ymz@ebox.vip>
+ * Description: Chart-scoped motion only; no global selectors or injected style elements.
+ */
+.ui-chart {
+  --chart-motion-duration: var(--motion-slow);
+  --chart-motion-ease: var(--motion-ease-enter);
+  --chart-hover-duration: var(--motion-fast);
+  --chart-muted-opacity: 0.24;
+}
+@keyframes ui-chart-entrance {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes ui-chart-arc-entrance {
+  from { stroke-dasharray: 0 100; }
+}
+.ui-chart[data-motion="on"] .ui-chart-entrance {
+  animation: ui-chart-entrance var(--chart-motion-duration, 480ms) var(--chart-motion-ease, ease-out) both;
+}
+.ui-chart[data-motion="on"] .ui-chart-arc {
+  animation: ui-chart-arc-entrance var(--chart-motion-duration, 480ms) var(--chart-motion-ease, ease-out) backwards;
+}
+.ui-chart .ui-chart-ring {
+  transition: opacity var(--chart-hover-duration, 160ms) var(--chart-motion-ease, ease-out);
+}
+.ui-chart .ui-chart-ring[data-dimmed="true"] { opacity: var(--chart-muted-opacity, 0.24); }
+@media (prefers-reduced-motion: reduce) {
+  .ui-chart[data-motion="on"] .ui-chart-entrance,
+  .ui-chart[data-motion="on"] .ui-chart-arc { animation: none; }
+  .ui-chart .ui-chart-ring { transition: none; }
+}

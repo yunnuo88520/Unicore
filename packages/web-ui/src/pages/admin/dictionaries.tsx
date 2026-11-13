@@ -88,7 +88,7 @@ function DictionaryPanel({ web, metadata }: { web: WebClient; metadata: Bootstra
             <Button variant="secondary" onClick={() => void detail.refetch()}>{t('重试')}</Button>
           </div>
         : detail.data && <>
-              <PageHeader title={t(detail.data.name)} description={`${detail.data.code}${detail.data.description ? ` · ${detail.data.description}` : ''}`}
+              <PageHeader as="h2" title={detail.data.name} description={`${detail.data.code}${detail.data.description ? ` · ${detail.data.description}` : ''}`}
                 actions={<>
                   {can('updateDictionary') && <Button variant="secondary" size="sm" onClick={() => setRenaming({ id: detail.data.id, code: detail.data.code, name: detail.data.name, description: detail.data.description })}>
                     <Pencil size={13} />{t('编辑类型')}

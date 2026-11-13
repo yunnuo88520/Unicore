@@ -21,20 +21,20 @@ export function AppSelectField<T extends FieldValues>({ name, label, hint, optio
   placeholder?: string;
 }) {
   return <AppControllerField name={name} label={label} hint={hint} className={className}>
-    {field => <SimpleSelect label={typeof label === 'string' ? label : undefined} value={String(field.value ?? '')} onChange={value => field.onChange(value)} disabled={field.disabled || disabled} options={options} placeholder={placeholder} />}
+    {field => <SimpleSelect {...field} value={String(field.value ?? '')} disabled={field.disabled || disabled} options={options} placeholder={placeholder} />}
   </AppControllerField>;
 }
 
 /** Boolean field over Switch. */
 export function AppSwitchField<T extends FieldValues>({ name, label, hint, disabled, className }: FieldShell<T>) {
   return <AppControllerField name={name} label={label} hint={hint} className={className}>
-    {field => <Switch checked={field.value === true} disabled={field.disabled || disabled} onChange={value => field.onChange(value)} />}
+    {({ value, ...field }) => <Switch {...field} checked={value === true} disabled={field.disabled || disabled} />}
   </AppControllerField>;
 }
 
 /** Boolean field over Checkbox; the label becomes the Checkbox child so the control is label-associated. */
 export function AppCheckboxField<T extends FieldValues>({ name, label, hint, disabled, className }: FieldShell<T>) {
   return <AppControllerField name={name} hint={hint} className={className}>
-    {field => <Checkbox checked={field.value === true} disabled={field.disabled || disabled} onChange={value => field.onChange(value)}>{label}</Checkbox>}
+    {({ value, ...field }) => <Checkbox {...field} checked={value === true} disabled={field.disabled || disabled}>{label}</Checkbox>}
   </AppControllerField>;
 }

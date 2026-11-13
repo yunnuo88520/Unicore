@@ -38,16 +38,18 @@ export const SelectItem = forwardRef<HTMLDivElement, React.ComponentPropsWithout
   </SelectPrimitive.Item>;
 });
 
-export function SimpleSelect({ label, value, onChange, options, placeholder, disabled, className, id }: {
-  label?: string; value: string; onChange: (value: string) => void; options: readonly { value: string; label: string }[]; placeholder?: string; disabled?: boolean; className?: string; id?: string;
-}) {
+type SimpleSelectProps = Omit<React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>, 'value' | 'onChange'> & {
+  label?: string; value: string; onChange: (value: string) => void; options: readonly { value: string; label: string }[]; placeholder?: string; name?: string;
+};
+
+export const SimpleSelect = forwardRef<HTMLButtonElement, SimpleSelectProps>(function SimpleSelect({ label, value, onChange, options, placeholder, disabled, className, id, name, ...props }, ref) {
   useLocale();
-  return <Select value={value} onValueChange={onChange} disabled={disabled}>
-    <SelectTrigger id={id} aria-label={label ? t(label) : undefined} className={className}>
+  return <Select value={value} onValueChange={onChange} disabled={disabled} name={name}>
+    <SelectTrigger {...props} ref={ref} name={name} id={id} aria-label={props['aria-label'] ?? (label ? t(label) : undefined)} className={className}>
       <SelectValue placeholder={placeholder ? t(placeholder) : undefined} />
     </SelectTrigger>
     <SelectContent>
       {options.map(option => <SelectItem key={option.value} value={option.value}>{t(option.label)}</SelectItem>)}
     </SelectContent>
   </Select>;
-}
+});

@@ -34,4 +34,13 @@ M3b 运行时图片使用 [实例品牌规范](../00-product/feature-branding.md
 
 导航与反馈使用统一 Lucide/SVG 图标，禁止用 Emoji/表情符号替代；`check:design` 扫描共享 UI 源码并校验 message.css 的颜色均来自 tokens。全局消息样式在 `packages/web-ui/src/message.css`，语义颜色、字体、圆角与动效随全局主题；接入与反馈生命周期见 [前端规范](frontend.md)。
 
-客户端通过同一 tokens 源的 `presets` 选择配色，圆角/字号/间距以 CSS 运行时系数叠加构建尺度；`preferences.ts` 为唯一设备状态入口。右侧 AppearanceDrawer 与右上 ClientControls 全入口共享，不能复制一套主题控件或页面颜色。布局、RTL 与系统外观处理见 [客户端偏好](../03-runbooks/client-preferences.md)；原生标题栏不随网页主题强行修改。
+客户端通过同一 tokens 源的 `presets` 选择配色，圆角/字号/间距以 CSS 运行时系数叠加构建尺度；`preferences.ts` 为唯一设备状态入口。右侧 AppearanceDrawer 与右上 ClientControls 全入口共享，不能复制一套主题控件或页面颜色。工作区与主题面板固定 LTR，忽略旧 RTL 偏好，不提供阅读方向选项；逻辑方向工具类不表示支持 RTL 产品布局。偏好与系统外观处理见 [客户端偏好](../03-runbooks/client-preferences.md)；原生标题栏不随网页主题强行修改。
+
+## 共享组件与正文结构
+
+`@unicore/ui` 的原语与 `controls/charts/calendar/composites/data-grid` 子入口共享设计令牌。family 登记以 `packages/web-ui/src/pages/ui-preview/catalog.ts` 为准，不以导出数量、变体或预览卡片数声称组件覆盖率。公开 API、数据协议与限制见 [UI 组件参考](../product/ui-components.md)；可导入不代表业务后端已提供，也不代表视觉验收通过。
+
+- 正文页首统一使用 PageHeader，默认 h1；标题、description 与 actions 由页面提供并翻译。顶栏面包屑/标题承担导航上下文，不能因此省去正文标题。分节可用 `as="h2"/"h3"`，组件无表面外壳，放置到容器或 Card 内由调用方决定。
+- WorkspaceLayout 是工作区壳层与占位的唯一所有者；业务页和 Sidebar 组合件不添加第二套固定侧栏、内容偏移或方向开关。
+- 图表默认使用 chart 语义配色及文字/数据表补充信息，不只用颜色表达数据。当前图表无入场、数值或路径动画，不能把全局 motion 令牌写成图表动画能力；有动效的其他控件须尊重 reduced-motion。
+- 组合件的 Agent、Composer、通知、认证和检索名称描述 UI 语义，不授予业务能力；数据、可用操作与真实进度由宿主传入。表单错误、只读/pending、空态、焦点与窄屏状态是设计契约的一部分，不用演示样本替代真实业务结果。

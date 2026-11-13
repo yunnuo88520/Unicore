@@ -6,7 +6,7 @@ import {
   ArrowDown, ArrowUp, ChevronsDown, ChevronsUp, ChevronDown, ChevronRight, Copy, FolderTree, Link2, ListTree,
   MoreHorizontal, MousePointerClick, Pencil, Plus, RotateCcw, Save, Search, SquarePen, Trash2, type LucideIcon,
 } from 'lucide-react';
-import { Alert, Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Modal, SimpleSelect, Switch, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, useMessage } from '@unicore/ui';
+import { Alert, Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Modal, PageHeader, SimpleSelect, Switch, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, useMessage } from '@unicore/ui';
 import { AppError, type AppClient, type Bootstrap, type MenuList, type MenuSaveInput, type NavigationNode, type NavigationSection, type RoleList, type WebClient } from '@unicore/sdk';
 import {
   buildMenuTree, copyMenuNode, defaultNavigation, filterMenuTree, isRegisteredPage, menuNodeLabel, menuNodeTarget,
@@ -210,8 +210,12 @@ function loadDraft(data: MenuList, profile: Bootstrap['profile']): Draft {
 }
 
 export function AdminMenusPage({ client, metadata }: PageProps) {
+  useLocale();
   if (!client.web) return null;
-  return <MenuPanel web={client.web} metadata={metadata} />;
+  return <div className="flex min-w-0 flex-col gap-6">
+    <PageHeader title={t('菜单配置')} description={t('调整共享导航树的分组、顺序、名称、图标与可见性；页面所属工作空间由路由注册决定，可在菜单行分配角色，或在角色权限中细化按钮与 API。')} />
+    <MenuPanel web={client.web} metadata={metadata} />
+  </div>;
 }
 
 type NodeDialogState =
@@ -416,10 +420,6 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
   };
 
   return <Card><CardContent className="flex min-w-0 flex-col gap-4">
-    <div>
-      <h2 className="text-md font-semibold text-ink">{t('菜单配置')}</h2>
-      <p className="mt-0.5 text-xs text-muted">{t('调整共享导航树的分组、顺序、名称、图标与可见性；页面所属工作空间由路由注册决定，可在菜单行分配角色，或在角色权限中细化按钮与 API。')}</p>
-    </div>
     {config.isFetching && <p role="status" className="text-2xs text-subtle">{t('正在刷新菜单配置…')}</p>}
     <div className="flex flex-wrap items-center gap-2">
       <div className="relative min-w-52 flex-1 sm:max-w-80">

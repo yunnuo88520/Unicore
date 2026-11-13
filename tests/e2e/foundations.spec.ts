@@ -90,7 +90,7 @@ test.setTimeout(90_000);test('unknown routes and generated API reference follow 
   await expect(page.getByRole('button',{name:'搜索',exact:true})).toBeVisible();
   const contract=page.waitForResponse(response=>new URL(response.url()).pathname==='/openapi.json'&&response.status()===200);
   await page.goto(`${instance.url}/docs/api`);
-  await expect(page.getByRole('heading', { name: 'API 文档', exact: true, level: 2 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'API 文档', exact: true, level: 1 })).toBeVisible();
   const document=await(await contract).json();expect(document.openapi).toBe('3.1.0');
   const reference=page.locator('.api-reference');
   await expect(reference).toBeVisible({timeout:30000});

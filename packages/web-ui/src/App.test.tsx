@@ -12,7 +12,10 @@ it('keeps local preferences in the top bar and removes demo navigation', async (
   const api = client();
   api.settings = vi.fn(); api.patchSettings = vi.fn(); api.monitorSnapshot = vi.fn();
   render(<Workspace client={api} />);
-  await screen.findByRole('heading', { name: '工作台概览' });
+  const heading = await screen.findByRole('heading', { name: '工作台概览', level: 1 });
+  expect(document.getElementById('main-content')).toContainElement(heading);
+  expect(document.querySelector('.topbar h1')).toBeNull();
+  expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   for (const name of ['核心实验室', '文件管理', '外观设置']) expect(screen.queryByRole('button', { name })).not.toBeInTheDocument();
   expect(document.querySelector('.sidebar-utilities')).toBeNull();
   expect(await screen.findByRole('region', { name: '运行状态' })).toBeVisible();

@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { createColumnHelper, tableFeatures, useTable } from '@tanstack/react-table';
+import { Combobox } from '@unicore/ui/controls';
 import { KeyRound } from 'lucide-react';
 import type { AdminPersonalTokenInput, PersonalToken, PersonalTokenCreated, PersonalTokenInput, PersonalTokenRenewInput, WebClient } from '@unicore/sdk';
-import { AppControllerField, AppField, AppForm, useAppForm } from '@unicore/form';
+import { AppControllerField, AppField, AppForm, useAppForm, type ControlledField } from '@unicore/form';
 import { Badge, Button, Card, CardContent, ConfirmDialog, Input, Modal, PageHeader, SimpleSelect, Textarea, useMessage } from '@unicore/ui';
 import { DataTable, DataTableToolbar, DataTablePagination } from '../components/data-table';
 import { defineMessages, t, useLocale } from '../i18n';
@@ -138,39 +139,45 @@ function CreateToken({ web, userID, manage, onClose, onCreated }: { web: WebClie
     return web.createPersonalToken(personal as PersonalTokenInput);
   }, onSuccess: result => { setCreated(result); onCreated(); }, onError: form.applyServerError });
   return <Modal title={t('创建访问令牌')} onClose={onClose} pending={save.isPending}>
-    {created ? <div className="flex min-w-0 flex-col gap-4"><p role="status">{t('令牌仅显示这一次。请立即复制并妥善保存，关闭后无法再次查看。')}</p><label className="flex min-w-0 flex-col gap-2 text-sm">{t('新访问令牌')}<Input autoComplete="off" readOnly value={created.token} onFocus={event => event.currentTarget.select()} /></label><Button onClick={onClose}>{t('完成')}</Button></div> : <AppForm form={form} className="flex min-w-0 flex-col gap-4">
-      {manage && <AppControllerField name="user_id" label={t('所属用户')}>{field => <UserPicker web={web} value={String(field.value)} onChange={id => { field.onChange(id); form.setValue('role_id', ''); }} />}</AppControllerField>}
+    {created ? <div className="flex min-w-0 flex-col gap-4"><p role="status">{t('令牌仅显示这一次。请立即复制并妥善保存，关闭后无法再次查看。')}</p><div className="flex min-w-0 flex-col gap-2 text-sm"><Input label={t('新访问令牌')} autoComplete="off" readOnly value={created.token} onFocus={event => event.currentTarget.select()} /></div><Button onClick={onClose}>{t('完成')}</Button></div> : <AppForm form={form} className="flex min-w-0 flex-col gap-4">
+      {manage && <AppControllerField name="user_id" label={t('所属用户')} floating hint={t('输入用户名或邮箱搜索，再选择令牌所属用户')}>{field => <UserPicker web={web} field={field} onChange={id => { field.onChange(id); form.setValue('role_id', ''); }} />}</AppControllerField>}
       <AppField name="name" label={t('令牌名称')} rules={{ required: t('此项为必填') }}><Input maxLength={80} autoComplete="off" /></AppField>
       <AppControllerField name="role_id" label={t('绑定角色')} hint={t('只能选择该用户已拥有的一个角色。')}>
-        {field => <SimpleSelect label={t('绑定角色')} value={String(field.value)} onChange={field.onChange} disabled={!target || roles.isPending || !!roles.error || save.isPending} placeholder={t('请选择角色')} options={(roles.data?.items ?? []).map(role => ({ value: role.id, label: role.name }))} />}
+        {field => <SimpleSelect {...field} label={t('绑定角色')} value={String(field.value)} onChange={field.onChange} disabled={!target || roles.isPending || !!roles.error || save.isPending} placeholder={t('请选择角色')} options={(roles.data?.items ?? []).map(role => ({ value: role.id, label: role.name }))} />}
       </AppControllerField>
       {roles.error && <div role="alert">{t('无法读取用户角色')} <Button type="button" variant="secondary" onClick={() => void roles.refetch()}>{t('重试')}</Button></div>}
       {!!target && roles.isSuccess && !roles.data.items.length && <p role="status">{t('当前用户没有可绑定的角色')}</p>}
       <LifetimeField />
       <AppField name="remark" label={t('备注')}><Textarea maxLength={500} rows={3} /></AppField>
-      <div className="flex justify-end gap-2"><Button type="button" variant="secondary" disabled={save.isPending} onClick={onClose}>{t('取消')}</Button><Button type="submit" pending={save.isPending} disabled={!form.watch('role_id') || !target}>{t('生成令牌')}</Button></div>
+      <div className="sticky bottom-0 z-10 flex justify-end gap-2 border-t border-line bg-surface pt-3"><Button type="button" variant="secondary" disabled={save.isPending} onClick={onClose}>{t('取消')}</Button><Button type="submit" pending={save.isPending} disabled={!form.watch('role_id') || !target}>{t('生成令牌')}</Button></div>
     </AppForm>}
   </Modal>;
 }
-function UserPicker({ web, value, onChange }: { web: WebClient; value: string; onChange: (id: string) => void }) {
+function UserPicker({ web, field, onChange }: { web: WebClient; field: ControlledField; onChange: (id: string) => void }) {
+  useLocale();
+  const value = String(field.value ?? '');
   const [search, setSearch] = useState('');
+  const [keyword, setKeyword] = useState('');
   const [page, setPage] = useState(1);
-  const [selected, setSelected] = useState('');
-  const users = useQuery({ queryKey: ['personal-token-users', search, page], queryFn: () => web.personalTokenUsers(search, page) });
-  return <div className="flex min-w-0 flex-col gap-2">
-    {value && <p className="break-all text-sm" role="status">{t('已选择：{{name}}', { name: selected })}</p>}
-    <Input aria-label={t('搜索用户')} placeholder={t('搜索用户名或邮箱')} maxLength={100} value={search} onChange={event => { setSearch(event.target.value); setPage(1); }} />
-    <div className="max-h-36 min-h-0 overflow-y-auto overscroll-contain rounded-md border border-line p-1" role="group" aria-label={t('选择用户')}>
-      {users.isPending ? <p role="status">{t('正在加载…')}</p> : users.error ? <div role="alert">{t('无法读取用户列表')}<Button type="button" variant="secondary" onClick={() => void users.refetch()}>{t('重试')}</Button></div> : users.data.items.filter(user => user.status === 'active').map(user => <Button key={user.id} type="button" variant={value === user.id ? 'secondary' : 'ghost'} className="h-auto w-full justify-start whitespace-normal break-all text-start" aria-pressed={value === user.id} onClick={() => { setSelected(user.username); onChange(user.id); }}>{user.username} · {user.email}</Button>)}
-      {users.isSuccess && !users.data.items.some(user => user.status === 'active') && <p className="p-2 text-sm text-muted">{t('暂无可选用户')}</p>}
-    </div>
-    {users.data && users.data.total > users.data.page_size && <div className="flex justify-between gap-2"><Button type="button" variant="ghost" disabled={page <= 1 || users.isFetching} onClick={() => setPage(v => v - 1)}>{t('上一页')}</Button><Button type="button" variant="ghost" disabled={page * users.data.page_size >= users.data.total || users.isFetching} onClick={() => setPage(v => v + 1)}>{t('下一页')}</Button></div>}
-  </div>;
+  const [selected, setSelected] = useState<{ value: string; label: string; description: string }>();
+  useEffect(() => {
+    const timer = setTimeout(() => setKeyword(search.trim()), 250);
+    return () => clearTimeout(timer);
+  }, [search]);
+  const ready = !!keyword && keyword === search.trim() && !value;
+  const users = useQuery({ queryKey: ['personal-token-users', keyword, page], queryFn: () => web.personalTokenUsers(keyword, page), enabled: ready });
+  const options = value && selected ? [selected] : ready ? (users.data?.items ?? []).filter(user => user.status === 'active').map(user => ({ value: user.id, label: user.username, description: user.email })) : [];
+  return <Combobox ref={field.ref} id={field.id} name={field.name} onBlur={field.onBlur} aria-invalid={field['aria-invalid']} aria-describedby={field['aria-describedby']}
+    label={t('所属用户')} value={value} onValueChange={id => { setSelected(options.find(option => option.value === id)); onChange(id); }} options={options}
+    query={search} onQueryChange={query => { setSearch(query); setPage(1); }} minQueryLength={1} translateOptions={false} maxLength={100}
+    loading={!ready && !value || users.isFetching} error={ready && users.error ? t('无法读取用户列表') : undefined} onRetry={() => void users.refetch()} emptyLabel={t('暂无可选用户')}
+    footer={ready && users.data && users.data.total > users.data.page_size ? <div className="flex justify-between gap-2 border-t border-line p-1"><Button type="button" variant="ghost" disabled={page <= 1 || users.isFetching} onClick={() => setPage(v => v - 1)}>{t('上一页')}</Button><Button type="button" variant="ghost" disabled={page * users.data.page_size >= users.data.total || users.isFetching} onClick={() => setPage(v => v + 1)}>{t('下一页')}</Button></div> : undefined} />;
 }
+
 function RenewToken({ web, token, manage, onClose, onSaved }: { web: WebClient; token: PersonalToken; manage: boolean; onClose: () => void; onSaved: () => void }) {
   useLocale();
   const message = useMessage();
   const form = useAppForm<PersonalTokenRenewInput>({ schema: 'PersonalTokenRenewInput', defaultValues: { expires_in_days: 30 }, onSubmit: input => { save.mutate(input); } });
   const save = useMutation({ mutationFn: (input: PersonalTokenRenewInput) => manage ? web.adminRenewPersonalToken(token.id, input) : web.renewPersonalToken(token.id, input), onSuccess: () => { message.success(t('访问令牌已续期')); onSaved(); }, onError: form.applyServerError });
-  return <Modal title={t('续期访问令牌')} onClose={onClose} pending={save.isPending}><AppForm form={form} className="flex flex-col gap-4"><p className="break-all text-sm">{token.name}</p><p className="text-sm text-muted">{t('有效令牌从原到期时间延长，已过期或永久令牌从现在计算；原令牌保持不变。')}</p><LifetimeField /><div className="flex justify-end gap-2"><Button type="button" variant="secondary" disabled={save.isPending} onClick={onClose}>{t('取消')}</Button><Button type="submit" pending={save.isPending}>{t('确认续期')}</Button></div></AppForm></Modal>;
+  return <Modal title={t('续期访问令牌')} onClose={onClose} pending={save.isPending}><AppForm form={form} className="flex flex-col gap-4"><p className="break-all text-sm">{token.name}</p><p className="text-sm text-muted">{t('有效令牌从原到期时间延长，已过期或永久令牌从现在计算；原令牌保持不变。')}</p><LifetimeField /><div className="sticky bottom-0 z-10 flex justify-end gap-2 border-t border-line bg-surface pt-3"><Button type="button" variant="secondary" disabled={save.isPending} onClick={onClose}>{t('取消')}</Button><Button type="submit" pending={save.isPending}>{t('确认续期')}</Button></div></AppForm></Modal>;
 }

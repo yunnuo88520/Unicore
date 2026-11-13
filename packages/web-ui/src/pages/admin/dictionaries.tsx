@@ -7,7 +7,7 @@ import type { DictionaryCreateInput, DictionaryItemEntry, DictionaryList, Dictio
 import { t, useLocale } from '../../i18n';
 import { AppField, AppForm, useAppForm } from '@unicore/form';
 import { cn } from '@unicore/ui/cn';
-import { Alert, Badge, Button, Card, CardContent, ConfirmDialog, Input, Modal, NativeSelect, PageHeader, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage } from '@unicore/ui';
+import { Alert, Badge, Button, Card, CardContent, ConfirmDialog, Input, Modal, SimpleSelect, PageHeader, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage, selectOptions } from '@unicore/ui';
 import type { PageProps } from '../../router';
 import type { Bootstrap } from '@unicore/sdk';
 import { usePermissions } from '../../permissions';
@@ -157,11 +157,11 @@ function ItemsEditor({ web, id, items, onSaved, writable }: { writable:boolean; 
               value={row.remark} onChange={event => update(index, { remark: event.target.value })} /></TableCell>
             <TableCell><Input className="h-8 w-16" type="number" aria-label={t('排序')} disabled={pending}
               value={row.sort} onChange={event => update(index, { sort: Number(event.target.value) || 0 })} /></TableCell>
-            <TableCell><NativeSelect className="h-8 w-24" aria-label={t('状态')} disabled={pending}
-              value={row.status} onChange={event => update(index, { status: event.target.value })}>
+            <TableCell><SimpleSelect className="h-8 w-24" aria-label={t('状态')} disabled={pending}
+              value={row.status} onChange={event => update(index, { status: event })} options={selectOptions(<>
               <option value="active">{t('启用')}</option>
               <option value="disabled">{t('停用')}</option>
-            </NativeSelect></TableCell>
+            </>)} /></TableCell>
             <TableCell><Button variant="ghost" size="icon" className="size-7" disabled={pending} aria-label={t('移除该字典项')}
               onClick={() => removeRow(index)}><Trash2 size={13} /></Button></TableCell>
           </TableRow>)}

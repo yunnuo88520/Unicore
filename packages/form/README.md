@@ -55,3 +55,7 @@ import { AppSelectField, AppSwitchField, AppCheckboxField } from '@unicore/form/
 ## 构建
 
 `pnpm --filter @unicore/form build` 产出 `dist/`（ESM + d.ts）。`react-hook-form`/`zod` 为 peerDependencies。
+
+## 交互基线
+
+`useAppForm` 默认 `mode/reValidateMode=onBlur`；提交仍验证全部字段。`AppField` 为 Input/Textarea 注入浮动标签，常驻 hint 和当前错误共同关联 `aria-describedby`；没有显式 hint 时可从契约和原生长度要求生成填写提示。`AppForm requiredMode="optional"` 适合大部分字段必填的流程，否则标记必填星号。`AppOTPField` 提供六格验证码与原生粘贴/系统自动填充。非原生选择使用 `AppSelectField`，少于 5 项平铺单选。完整语义与限制见[表单交互规范](../../docs/product/form-interaction.md)。

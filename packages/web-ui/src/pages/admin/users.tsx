@@ -11,8 +11,8 @@ import { usePermissions } from '../../permissions';
 import { roleDisplayLabels } from '../../role-display';
 import { UserAvatar, displayLabel } from '../../user-avatar';
 import { useColumnVisibility } from '../../column-visibility';
-import { AppField, AppForm, useAppForm } from '@unicore/form';
-import { Badge, Button, Card, CardContent, Checkbox, Input, Modal, NativeSelect, PageHeader, useMessage } from '@unicore/ui';
+import { AppControllerField, AppField, AppForm, useAppForm } from '@unicore/form';
+import { Badge, Button, Card, CardContent, Checkbox, Input, Modal, SimpleSelect, PageHeader, useMessage, selectOptions } from '@unicore/ui';
 import { DataTable, DataTablePagination, DataTableToolbar } from '../../components/data-table';
 import type { PageProps } from '../../router';
 
@@ -281,12 +281,10 @@ function UserCreateDialog({ web, kind, role, administrators, postsEnabled, onClo
       <AppField name="password" label={t('初始密码')}><Input required type="password" minLength={12} maxLength={128} autoComplete="new-password" /></AppField>
       <fieldset><legend>{t('角色')}</legend><RoleChipGroup options={options.data?.items ?? []} selected={roleIds}
         onToggle={(id, checked) => setRoleIds(ids => checked ? [...ids, id] : ids.filter(value => value !== id))} /></fieldset>
-      {!administrators && <AppField name="department_id" label={t('部门')} hint={t('留空表示暂不分配部门。')}>
-        <NativeSelect aria-label={t('部门')} disabled={departmentOptions.isLoading}>
+      {!administrators && <AppControllerField name="department_id" label={t('部门')} hint={t('留空表示暂不分配部门。')}>{field => <SimpleSelect {...field} aria-label={t('部门')} disabled={departmentOptions.isLoading} value={String(field.value ?? '')} onChange={field.onChange} options={selectOptions(<>
           <option value="">{t('未分配')}</option>
           {departmentOptions.items.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
-        </NativeSelect>
-      </AppField>}
+        </>)} />}</AppControllerField>}
       {!administrators && postsEnabled && <fieldset className="flex min-w-0 flex-col gap-1.5">
         <span className="text-sm font-medium text-ink">{t('岗位')}</span>
         <div role="group" aria-label={t('岗位')} className="flex max-h-40 flex-col gap-1 overflow-y-auto rounded-lg border border-line p-3">
@@ -348,29 +346,29 @@ function UserRoleDialog({ web, administrators, user, postsEnabled, onClose, onSa
   const [saving, setSaving] = useState(false);
   return <Modal title={t('编辑{{v0}}', { v0: displayLabel(user.display_name, user.username) || user.username })} onClose={onClose} pending={saving}>
     <div className="flex flex-col gap-3">
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="text-muted">{t('账号')}</span>
-        <Input value={user.username} readOnly aria-readonly="true" aria-label={t('账号')} className="opacity-70" />
+      <div className="flex flex-col gap-1 text-sm">
+
+        <Input label={t('账号')} value={user.username} readOnly aria-readonly="true" aria-label={t('账号')} className="opacity-70" />
         <small className="text-xs text-muted">{t('账号创建后不可修改，用于登录。')}</small>
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="text-muted">{t('昵称')}</span>
-        <Input value={displayName} maxLength={80} autoComplete="nickname" aria-label={t('昵称')} onChange={event => setDisplayName(event.target.value)} placeholder={user.username} />
+      </div>
+      <div className="flex flex-col gap-1 text-sm">
+
+        <Input label={t('昵称')} value={displayName} maxLength={80} autoComplete="nickname" aria-label={t('昵称')} onChange={event => setDisplayName(event.target.value)} placeholder={user.username} />
         <small className="text-xs text-muted">{t('显示昵称，留空时各处显示使用账号。')}</small>
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="text-muted">{t('邮箱')}</span>
-        <Input type="email" maxLength={254} value={email} aria-label={t('邮箱')} onChange={event => setEmail(event.target.value)} />
+      </div>
+      <div className="flex flex-col gap-1 text-sm">
+
+        <Input label={t('邮箱')} type="email" maxLength={254} value={email} aria-label={t('邮箱')} onChange={event => setEmail(event.target.value)} />
         <small className="text-xs text-muted">{t('登录凭证之一，保存后立即生效。')}</small>
-      </label>
+      </div>
       <fieldset><legend>{t('角色')}</legend><RoleChipGroup options={options.data?.items ?? []} selected={roleIds}
         onToggle={(id, checked) => { setTouched(true); setRoleIds(ids => checked ? [...ids, id] : ids.filter(value => value !== id)); }} /></fieldset>
       {!administrators && <label className="flex flex-col gap-1 text-sm">
         <span className="text-muted">{t('部门')}</span>
-        <NativeSelect aria-label={t('部门')} value={departmentId} onChange={event => { setTouched(true); setDepartmentId(event.target.value); }} disabled={departmentOptions.isLoading}>
+        <SimpleSelect aria-label={t('部门')} value={departmentId} onChange={event => { setTouched(true); setDepartmentId(event); }} disabled={departmentOptions.isLoading} options={selectOptions(<>
           <option value="">{t('未分配')}</option>
           {departmentOptions.items.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
-        </NativeSelect>
+        </>)} />
         <small className="text-xs text-muted">{t('选择「未分配」会清空该用户的部门归属。')}</small>
       </label>}
       {!administrators && postsEnabled && <fieldset className="flex min-w-0 flex-col gap-1.5">

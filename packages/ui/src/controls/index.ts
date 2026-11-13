@@ -13,3 +13,4 @@ export * from './context-menu';
 export * from './carousel';
 export * from './tree-view';
 export * from './pagination';
+export * from './advanced-fields';

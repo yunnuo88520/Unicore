@@ -35,7 +35,9 @@ test('Wiki configuration renders all pages and validates target identity', () =>
   assert.match(pages.get('_Sidebar.md'), /wiki\/Notifications/);
   assert.match(pages.get('Notifications.md'), /mailer\.Service/);
   assert.match(pages.get('UI-Components.md'), /UI/);
-  assert.equal(pages.size, 18);
+  assert.equal(pages.size, 19);
+  assert.match(pages.get('Form-Interaction.md'), /InputOTP/);
+  assert.match(pages.get('UI-Components.md'), /wiki\/Form-Interaction/);
   assert.ok(pages.has('First-Feature.md'));
   assert.match(pages.get('First-Feature.md'), /module.notes/);
   assert.ok(pages.has('Framework-Upgrades.md'));

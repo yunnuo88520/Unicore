@@ -15,7 +15,7 @@ Unicore 的产品形态只有三种。`framework.manifest.json` 中的四个 pro
 
 关键结论（源码事实）：
 
-- Platform 与 Standalone(Web) 共用同一 `cmd/server` 源码，发行时以 ldflags 注入默认 profile（`scripts/release.mjs`），安装后 profile 持久化于 `installation.json` 且不可变（`internal/install/manager.go`）。
+- Platform 与 Standalone(Web) 共用同一 `cmd/server` 源码，源码构建默认 Platform，发行时以 ldflags 注入各发行包默认 profile（`scripts/release.mjs`），安装后 profile 持久化于 `installation.json` 且不可变（`internal/install/manager.go`）。
 - Standalone 的两个载体必须保持产品等效：同一套页面（`packages/web-ui`）、同一套业务语义、同一份数据 schema（`migrations/catalog.json` 中 web-standalone 与 desktop 均为 core + module.notes）。允许的差异仅限 [第 5 节](#5-载体层允许的差异) 清单。
 - CLI 直接调用 `internal/bootstrap.Core()`（纯内存，无 HTTP/Wails/SQL），见 `internal/adapter/cli/command.go`。
 - Web 发行包内 `unicore` 可执行文件附带的服务运维子命令（backup/manage/service/admin 等，`cmd/server/commands.go` → `internal/webmanage`、`internal/maintenance`）属于 **Web 形态的实例运维面**，不是 CLI 产品形态的能力；独立维护工具 `unicore-ops`（`cmd/ops`）是源码构建用的等价离线备份工具，随 project-template 分发，不进用户发行包。CLI 形态与这些运维命令是两个概念。

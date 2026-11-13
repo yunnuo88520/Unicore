@@ -1,11 +1,14 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Radix select primitives plus a compact SimpleSelect for plain string options.
-import { forwardRef } from 'react';
+import { Children, forwardRef, isValidElement, useId, type ReactNode } from 'react';
 import * as SelectPrimitive from '@radix-ui/react-select';
 import { Check, ChevronDown } from 'lucide-react';
 import { cva } from 'class-variance-authority';
 import { t, useLocale } from './i18n';
 import { cn } from './cn';
+import { RadioGroup, RadioGroupItem } from './radio-group';
+import { Combobox } from './controls/combobox';
+import { assignRef } from './controls/utils';
 
 export const Select = SelectPrimitive.Root;
 export const SelectValue = SelectPrimitive.Value;
@@ -38,18 +41,41 @@ export const SelectItem = forwardRef<HTMLDivElement, React.ComponentPropsWithout
   </SelectPrimitive.Item>;
 });
 
-type SimpleSelectProps = Omit<React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>, 'value' | 'onChange'> & {
-  label?: string; value: string; onChange: (value: string) => void; options: readonly { value: string; label: string }[]; placeholder?: string; name?: string;
+type SimpleSelectProps = Omit<React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>, 'value' | 'onChange' | 'onBlur'> & {
+  label?: string; value: string; onChange: (value: string) => void; options: readonly { value: string; label: string; disabled?: boolean }[]; placeholder?: string; name?: string;
+  /** Compact filters may explicitly retain a dropdown; form choices default to count-based presentation. */
+  presentation?: 'auto' | 'dropdown' | 'combobox';
+  onBlur?: React.FocusEventHandler<HTMLElement>;
 };
 
-export const SimpleSelect = forwardRef<HTMLButtonElement, SimpleSelectProps>(function SimpleSelect({ label, value, onChange, options, placeholder, disabled, className, id, name, ...props }, ref) {
+/** Converts existing declarative option data while the rendered control follows the choice-count rule. */
+export function selectOptions(children: ReactNode): { value: string; label: string; disabled?: boolean }[] {
+  const result: { value: string; label: string; disabled?: boolean }[] = [];
+  const text = (node: ReactNode): string => Children.toArray(node).map(child => isValidElement<{ children?: ReactNode }>(child) ? text(child.props.children) : String(child)).join('');
+  Children.forEach(children, child => {
+    if (!isValidElement<{ value?: unknown; disabled?: boolean; children?: ReactNode }>(child)) return;
+    if (child.type === 'option') result.push({ value: String(child.props.value ?? text(child.props.children)), label: text(child.props.children), disabled: child.props.disabled });
+    else result.push(...selectOptions(child.props.children));
+  });
+  return result;
+}
+
+export const SimpleSelect = forwardRef<HTMLElement, SimpleSelectProps>(function SimpleSelect({ label, value, onChange, options, placeholder, disabled, className, id, name, presentation = 'auto', ...props }, ref) {
   useLocale();
-  return <Select value={value} onValueChange={onChange} disabled={disabled} name={name}>
-    <SelectTrigger {...props} ref={ref} name={name} id={id} aria-label={props['aria-label'] ?? (label ? t(label) : undefined)} className={className}>
+  const emptyValue = useId();
+  const dropdownValue = value === '' && options.some(option => option.value === '') ? emptyValue : value;
+  const accessibleLabel = props['aria-label'] ?? (label ? t(label) : undefined);
+  if (presentation === 'auto' && options.length > 0 && options.length < 5) return <RadioGroup name={name} value={value} onValueChange={onChange} disabled={disabled} aria-label={accessibleLabel} aria-labelledby={props['aria-labelledby']} aria-invalid={props['aria-invalid']} aria-describedby={props['aria-describedby']} className={className}
+    onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) props.onBlur?.(event); }}>
+    {options.map((option, index) => <RadioGroupItem key={option.value} name={name} id={index === 0 ? id : undefined} ref={index === 0 ? node => assignRef(ref, node) : undefined} value={option.value} aria-invalid={props['aria-invalid']} aria-describedby={props['aria-describedby']} disabled={disabled || option.disabled} itemLabel={t(option.label)}>{t(option.label)}</RadioGroupItem>)}
+  </RadioGroup>;
+  if (presentation === 'combobox' || presentation === 'auto' && options.length > 20) return <Combobox ref={node => assignRef(ref, node)} id={id} name={name} label={accessibleLabel ?? ''} value={value} onValueChange={onChange} options={options} disabled={disabled} className={className} aria-invalid={props['aria-invalid']} aria-describedby={props['aria-describedby']} onBlur={props.onBlur} />;
+  return <Select value={dropdownValue} onValueChange={next => onChange(next === emptyValue ? '' : next)} disabled={disabled} name={name}>
+    <SelectTrigger {...props} ref={node => assignRef(ref, node)} name={name} id={id} aria-label={accessibleLabel} className={className}>
       <SelectValue placeholder={placeholder ? t(placeholder) : undefined} />
     </SelectTrigger>
     <SelectContent>
-      {options.map(option => <SelectItem key={option.value} value={option.value}>{t(option.label)}</SelectItem>)}
+      {options.map(option => <SelectItem key={option.value} value={option.value === '' ? emptyValue : option.value} disabled={option.disabled}>{t(option.label)}</SelectItem>)}
     </SelectContent>
   </Select>;
 });

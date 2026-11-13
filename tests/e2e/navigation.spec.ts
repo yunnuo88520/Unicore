@@ -5,7 +5,7 @@
 import type { BrowserContext, Page, TestInfo } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import type { MenuList } from '../../packages/sdk/src';
-import { test, expect, installPlatform, adminLogin, workspaceLogin, sdkClient, loginClient, nodeDisplayLabel, pageNode, menuChain, memberPassword } from './fixtures';
+import { chooseOption, test, expect, installPlatform, adminLogin, workspaceLogin, sdkClient, loginClient, nodeDisplayLabel, pageNode, menuChain, memberPassword } from './fixtures';
 
 const adminPassword = 'administrator-password-strong';
 
@@ -157,8 +157,7 @@ test('menu console edits the persisted tree and one save re-anchors every sessio
   await openRowMenu(page, reportDirectory, '报表中心');
   await page.getByRole('menuitem', { name: '添加子菜单', exact: true }).click();
   const linkTypeDialog = page.getByRole('dialog', { name: '添加目录', exact: true });
-  await linkTypeDialog.getByRole('combobox', { name: '菜单类型', exact: true }).click();
-  await page.getByRole('option', { name: '链接', exact: true }).click();
+  await chooseOption(page, '菜单类型', '链接', linkTypeDialog);
   const linkDialog = page.getByRole('dialog', { name: '添加链接', exact: true });
   await linkDialog.getByLabel('显示名称', { exact: true }).fill('帮助中心');
   await linkDialog.getByLabel('链接地址', { exact: true }).fill('javascript:alert(1)');
@@ -166,8 +165,7 @@ test('menu console edits the persisted tree and one save re-anchors every sessio
   await expect(linkDialog.getByText('链接地址需为站内已注册路径或 http(s) 地址', { exact: true })).toBeVisible();
   // A registered in-site path keeps the new-tab assertion free of external DNS.
   await linkDialog.getByLabel('链接地址', { exact: true }).fill('/notes');
-  await linkDialog.getByRole('combobox', { name: '打开方式', exact: true }).click();
-  await page.getByRole('option', { name: '新标签', exact: true }).click();
+  await chooseOption(page, '打开方式', '新标签', linkDialog);
   await linkDialog.getByRole('button', { name: '确定', exact: true }).click();
   await expect(linkDialog).toHaveCount(0);
 

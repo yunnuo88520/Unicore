@@ -8,7 +8,7 @@ import type { Bootstrap, Department, DepartmentSaveInput, WebClient } from '@uni
 import { t, useLocale } from '../../i18n';
 import { buildDepartmentTree, departmentSiblings, flattenDepartmentTree, invalidateAfter, useDepartmentsQuery, type DepartmentNode } from '../../queries';
 import { usePermissions } from '../../permissions';
-import { Alert, Button, Card, CardContent, ConfirmDialog, Input, Modal, NativeSelect, PageHeader, useMessage } from '@unicore/ui';
+import { Alert, Button, Card, CardContent, ConfirmDialog, Input, Modal, SimpleSelect, PageHeader, useMessage, selectOptions } from '@unicore/ui';
 import type { PageProps } from '../../router';
 
 export function AdminDepartmentsPage({ client, metadata }: PageProps) {
@@ -185,19 +185,19 @@ function RenameDialog({ department, items, pending, onSubmit, onClose }: {
   return <Modal title={t('重命名部门')} onClose={onClose} pending={pending}>
     <form className="flex flex-col gap-3" onSubmit={event => { event.preventDefault(); submit(); }}>
       <p className="text-xs text-muted">{t('调整「{{name}}」的名称与上级部门；同层排序保持不变。', { name: department.name })}</p>
-      <label className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium text-ink">{t('部门名称')}</span>
-        <Input required maxLength={64} autoComplete="off" value={name} aria-invalid={!!error}
+      <div className="flex flex-col gap-1.5">
+
+        <Input label={t('部门名称')} required maxLength={64} autoComplete="off" value={name} aria-invalid={!!error}
           placeholder={t('例如 研发部')} autoFocus
           onChange={event => { setName(event.target.value); setError(''); }} />
         {error && <p role="alert" className="text-xs text-danger">{error}</p>}
-      </label>
+      </div>
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-medium text-ink">{t('上级部门')}</span>
-        <NativeSelect aria-label={t('上级部门')} value={parentId} onChange={event => setParentId(event.target.value)}>
+        <SimpleSelect aria-label={t('上级部门')} value={parentId} onChange={event => setParentId(event)} options={selectOptions(<>
           <option value="">{t('作为根部门')}</option>
           {options.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
-        </NativeSelect>
+        </>)} />
         <small className="text-xs text-muted">{t('不能选择本部门或其下级部门作为上级；调整后沿用原排序。')}</small>
       </label>
       <div className="flex justify-end gap-2">
@@ -225,13 +225,13 @@ function DepartmentNameDialog({ title, description, initialName = '', submitLabe
   return <Modal title={title} onClose={onClose} pending={pending}>
     <form className="flex flex-col gap-3" onSubmit={event => { event.preventDefault(); submit(); }}>
       <p className="text-xs text-muted">{description}</p>
-      <label className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium text-ink">{t('部门名称')}</span>
-        <Input required maxLength={64} autoComplete="off" value={name} aria-invalid={!!error}
+      <div className="flex flex-col gap-1.5">
+
+        <Input label={t('部门名称')} required maxLength={64} autoComplete="off" value={name} aria-invalid={!!error}
           placeholder={t('例如 研发部')} autoFocus
           onChange={event => { setName(event.target.value); setError(''); }} />
         {error && <p role="alert" className="text-xs text-danger">{error}</p>}
-      </label>
+      </div>
       <div className="flex justify-end gap-2">
         <Button variant="secondary" disabled={pending} onClick={onClose}>{t('取消')}</Button>
         <Button type="submit" pending={pending}>{submitLabel}</Button>

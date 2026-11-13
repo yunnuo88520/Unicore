@@ -175,3 +175,11 @@ const table = useTable({ features, columns, data: list.data?.items ?? [], meta, 
 
 - `RichTextEditor` 的链接契约默认仅接受绝对 URL；需要 `{{site_url}}` 模板变量的场景传 `siteTemplate`（与后端邮件校验镜像一致，仅支持裸变量）。
 - 主题偏好（明暗、accent 预设、密度、圆角）由 `@unicore/theme` 持久化；实例级主色覆盖属于部署配置，不在组件层。
+
+## 表单交互
+
+共享表单按[表单交互规范](form-interaction.md)组合。Input/Textarea 支持 `label` 浮动标签，密码 Input 在 new-password 场景默认显示强度条并提供显隐；秘密配置传 `strength={false}`。SimpleSelect 默认少于 5 项平铺单选、5–20 项下拉、超过 20 项可搜索，`presentation` 可指定搜索或紧凑下拉；ref 指向当前真实可聚焦控件。
+
+`@unicore/ui/controls` 新增 RangeSlider（双端+数值同步）、TagInput（回车/IME/删除）和 Cascader（相邻层级列）。Combobox 支持 `query/onQueryChange` 交由宿主异步检索，`loading/error/onRetry/footer` 保持在锚定浮层；`translateOptions={false}` 保留业务姓名，匹配内容高亮。FileUploadDropzone 的受控 `files/onRemove` 展示真实进度；未接上传服务时仅显示等待状态，不制造进度。
+
+`@unicore/ui/calendar` 的 BirthDatePicker 提供年/月/日三列滚动选择、闰日校正与日期范围限制，仍不附带业务资料存储。DatePicker 手输和快捷日期同步日历月份。以上组件可在开发目录的 slider、tag-group、tree-view、date-picker family 中交互检查。

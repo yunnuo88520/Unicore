@@ -17,6 +17,8 @@
 - 单用户 ≠ 超级管理员：Standalone 不继承 Platform 超管能力集；它的能力边界是「本机单机业务 + 本地外观 + 本机更新」，不是「平台全部管理功能去掉了登录」。
 - Platform 前端凭 `profile` 与 `identity_realm`（bootstrap 元数据）区分上下文；`capabilities.authentication=false` 时登录/注册流整体不出现（`packages/web-ui/src/session.tsx`、`packages/web-ui/src/App.tsx`）。
 
+公开产品首页 `/home` 仅 Platform 装配，`site.home_enabled` 默认开启。访客访问根路径进入首页，已登录账号的根路径保持工作空间，但仍可访问 `/home`；两工作台账号菜单提供“产品首页”入口。首页按实际会话和公开注册策略显示登录、进入工作空间或注册链接，不展示模拟运行数据。关闭后访客回到登录流、已登录访问 `/home` 返回工作空间。
+
 ## 2. 导航与菜单
 
 导航事实源是一棵共享导航树，双端同构镜像：
@@ -89,6 +91,8 @@ Platform 用户域、管理员域与 Standalone 两载体共享 `@unicore/ui` �
 | 维护模式（非管理员域） | 503 维护页/维护响应 | `internal/adapter/http/router.go`、前端 App.tsx |
 | 前端页面无权/不适用 | 独立 403 页或 404，不泄露存在性 | `packages/web-ui/src/App.tsx`、`routes.ts` |
 
+令牌管理创建表单仅在输入用户名或邮箱后查询候选用户；空搜索在前后端均为空，选择用户后再读取其角色，切换用户清空角色选择。
+
 ## 7. 形态间一致性原则
 
 1. Standalone 两载体：同一功能的页面集合、菜单规则、设置语义、更新与备份语义必须一致；差异仅允许来自 [形态规范第 5 节](product-forms.md#5-载体层允许的差异) 清单。
@@ -112,3 +116,5 @@ Platform 两工作台在“个人中心 → 访问令牌”提供单角色 PAT �
 Platform 和 Standalone 的笔记编辑弹窗复用 FileUploadDialog；上传先加入草稿，保存后关联，最多五个。Platform 上传复用 notes:create/update 及 notes* helper API 显式授权，不要求 files:*；头像使用本人会话的 avatar* API。Standalone Web 使用本地业务 API，桌面经原生桥传片及系统保存对话框下载；均校验本地 ready 归属，无云管理页面。
 
 安装连接属于 Web 实例安装面，Platform/Standalone Web 都提供 TLS 关闭、仅加密、证书及主机名校验三种模式；桌面自动 SQLite，CLI 不装配。tls_verify 只改变连接校验，不新增实例设置、业务权限或数据库表。
+
+共享表单遵循[表单交互规范](../product/form-interaction.md)。Platform 用户/管理员与 Standalone Web/Desktop 使用同一套原语；候选搜索为锚定浮层，打开后不改变后续字段位置；新密码提供可见性切换与强度提示，验证码使用六格输入。地区、出生日期等示例控件不自动注册产品字段、菜单或持久化。

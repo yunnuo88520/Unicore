@@ -2,7 +2,7 @@
 // Description: Real browser registration/recovery against the Go server and an isolated SMTP sink.
 import { createServer, type Socket } from 'node:net';
 import type { Page } from '@playwright/test';
-import { test, expect, installPlatform, sdkClient, loginClient, workspaceLogin, type Instance } from './fixtures';
+import { chooseOption, test, expect, installPlatform, sdkClient, loginClient, workspaceLogin, type Instance } from './fixtures';
 import { capture } from './visual';
 
 async function smtpSink() {
@@ -66,14 +66,14 @@ test('SMTP settings validate saved secrets, delivery and mail-flow controls', as
     await page.goto(`${instance.url}/admin/mail`);
     await page.getByLabel('SMTP 主机').fill('127.0.0.1');
     await page.getByLabel('SMTP 端口').fill(String(smtp.port));
-    await page.getByLabel('SMTP 加密方式').selectOption('plain');
+    await chooseOption(page, 'SMTP 加密方式', '明文（仅本机）');
     await page.getByLabel('发件邮箱').fill('sender@example.test');
     await page.getByLabel('发件人别名', { exact: true }).fill('Unicore Notices');
     await page.getByLabel('SMTP 密钥', { exact: true }).fill('synthetic-smtp-secret');
     await page.getByRole('button', { name: '保存设置' }).click();
     await expect(page.getByText('设置已保存', { exact: true })).toBeVisible();
     await expect(page.getByLabel('SMTP 密钥', { exact: true })).toHaveValue('');
-    await expect(page.getByLabel('SMTP 密钥', { exact: true })).toHaveAttribute('placeholder', '已配置 · 留空保留');
+    await expect(page.getByLabel('SMTP 密钥', { exact: true })).toHaveAccessibleDescription('已配置 · 留空保留');
     await page.getByRole('button', { name: '发送测试', exact: true }).click();
     await page.getByLabel('测试收件邮箱').fill('recipient@example.test');
     await page.getByRole('button', { name: '发送测试邮件', exact: true }).click();
@@ -105,7 +105,7 @@ test('verified registration enforces email proof before password login', async (
   try {
     await prepareMailFlow(instance, smtp);
     const mailCode = () => latestMailCode(smtp.messages);
-    await page.goto(instance.url);
+    await page.goto(`${instance.url}/login`);
     await page.getByRole('link', { name: '重发验证邮件', exact: true }).click();
     await expect(page.getByRole('heading', { name: '重新验证邮箱' })).toBeVisible();
     await capture(page, info, 'resend-form');
@@ -133,6 +133,8 @@ test('verified registration enforces email proof before password login', async (
     await expect(page.getByRole('heading', { name: '工作台概览' })).toBeVisible();
     await page.getByRole('button', { name: '账号菜单', exact: true }).click();
     await page.getByRole('menuitem', { name: '退出登录', exact: true }).click();
+    await expect(page).toHaveURL(/\/home$/);
+    await page.getByRole('link', { name: '登录工作空间', exact: true }).first().click();
     await expect(page.getByRole('heading', { name: '登录 Mail Unicore' })).toBeVisible();
   } finally { await smtp.close(); }
 });
@@ -143,7 +145,7 @@ test('email-code login rejects incorrect proof and preserves role boundaries', a
     const admin = await prepareMailFlow(instance, smtp);
     await admin.web!.createUser({ username: 'browsermember', email: 'browsermember@example.test', password: 'original-password-strong', role: 'user' });
     const mailCode = () => latestMailCode(smtp.messages);
-    await page.goto(instance.url);
+    await page.goto(`${instance.url}/login`);
     await page.getByRole('link', { name: '邮箱验证码登录', exact: true }).click();
     await page.getByLabel('邮箱', { exact: true }).fill('browsermember@example.test');
     await solveCaptcha(page);
@@ -177,7 +179,7 @@ test('password recovery rejects every old session and accepts the replacement pa
     // A second browser context requests reset while the first remains authenticated.
     const recovery = await page.context().browser()!.newContext({ viewport: page.viewportSize()! });
     try {
-      const resetPage = await recovery.newPage(); await resetPage.goto(instance.url);
+      const resetPage = await recovery.newPage(); await resetPage.goto(`${instance.url}/login`);
       await resetPage.getByRole('link', { name: '找回密码', exact: true }).click();
       await resetPage.getByLabel('邮箱', { exact: true }).fill('browsermember@example.test');
       await solveCaptcha(resetPage);
@@ -201,6 +203,8 @@ test('password recovery rejects every old session and accepts the replacement pa
     } finally { await recovery.close(); }
     expect(oldCookies.some(cookie => cookie.name === 'unicore_session')).toBe(true);
     await page.reload();
+    await expect(page).toHaveURL(/\/home$/);
+    await page.getByRole('link', { name: '登录工作空间', exact: true }).first().click();
     await expect(page.getByRole('heading', { name: '登录 Mail Unicore' })).toBeVisible();
     await capture(page, info, 'password-login');
   } finally { await smtp.close(); }
@@ -253,8 +257,9 @@ test('linked auth pages, confirmation, duplicate feedback and recovery preview',
     await expect(registrationPassword).toHaveAttribute('aria-invalid', 'false');
     await page.getByLabel('确认密码', { exact: true }).focus();
     await expect(registrationPassword).toHaveAttribute('aria-invalid', 'true');
-    await expect(registrationPassword).toHaveAccessibleDescription('密码至少 12 个字符，且不超过 128 字节');
+    await expect(registrationPassword).toHaveAccessibleDescription(/密码至少 12 个字符，且不超过 128 字节/);
     await registrationPassword.fill(password);
+    await page.getByLabel('确认密码', { exact: true }).focus();
     await expect(registrationPassword).toHaveAttribute('aria-invalid', 'false');
     await screenshot('register');
     let registrations = 0;

@@ -45,7 +45,7 @@ test('enterprise settings, real JIT, explicit binding and password fallback', as
   await page.getByRole('switch',{name:'首次登录创建普通账号',exact:true}).check();
   await page.getByRole('button',{name:'保存设置',exact:true}).click(); await expect(page.getByText('设置已保存',{exact:true})).toBeVisible();
   await expect(page.getByLabel('Client Secret',{exact:true})).toHaveValue('');
-  await expect(page.getByLabel('Client Secret',{exact:true})).toHaveAttribute('placeholder','已配置 · 留空保留');
+  await expect(page.getByLabel('Client Secret',{exact:true})).toHaveAccessibleDescription('已配置 · 留空保留');
   await page.getByRole('button',{name:'检查已保存的连接',exact:true}).click(); await expect(page.getByText('发现文档及端点检查通过，请继续验证实际登录。')).toBeVisible();
   await expect(page.getByText(`${idp.url}/userinfo`)).toBeVisible(); await capture(page,info,'oidc-endpoints');
   await expect(page.locator('.oidc-callback')).toHaveText(`${instance.url}/api/v1/admin/auth/oidc/callback`); await capture(page,info,'oidc-settings-ready');
@@ -54,7 +54,7 @@ test('enterprise settings, real JIT, explicit binding and password fallback', as
   const employeeContext = await browser.newContext({viewport:page.viewportSize()!,isMobile:info.project.name==='mobile',hasTouch:info.project.name==='mobile'});
   const employee = await employeeContext.newPage();
   try {
-    await employee.goto(instance.url); await expect(employee.getByRole('button',{name:'使用企业账号登录',exact:true})).toBeVisible(); await capture(employee,info,'oidc-login-choice');
+    await employee.goto(`${instance.url}/login`); await expect(employee.getByRole('button',{name:'使用企业账号登录',exact:true})).toBeVisible(); await capture(employee,info,'oidc-login-choice');
     await employee.getByRole('button',{name:'使用企业账号登录',exact:true}).focus(); await employee.keyboard.press('Enter');
     await expect(employee.getByRole('heading',{name:'测试企业登录'})).toBeVisible();
     await employee.getByRole('button',{name:'确认企业身份',exact:true}).click();
@@ -69,7 +69,7 @@ test('enterprise settings, real JIT, explicit binding and password fallback', as
     await expect(employee.getByText('尚未设置',{exact:true})).toBeVisible(); await expect(employee.getByRole('button',{name:'确认解除绑定',exact:true})).toHaveCount(0); await capture(employee,info,'oidc-jit-account');
     // User email collisions never elevate into the administrator realm.
     await employee.request.post(`${instance.url}/api/v1/auth/logout`,{headers:{'X-CSRF-Token':newUser.csrf_token},data:{}});
-    await employee.goto(instance.url); await employee.getByRole('button',{name:'使用企业账号登录',exact:true}).click();
+    await employee.goto(`${instance.url}/login`); await employee.getByRole('button',{name:'使用企业账号登录',exact:true}).click();
     await employee.getByLabel('企业身份编号',{exact:true}).fill('enterprise-admin'); await employee.getByLabel('企业邮箱',{exact:true}).fill('admin@example.test');
     await employee.getByRole('button',{name:'确认企业身份',exact:true}).click();
     await expect(employee.getByRole('button', { name: '绑定并登录', exact: true })).toBeVisible();
@@ -127,7 +127,7 @@ test('browser proof, replay, callback errors and unavailable provider', async ({
   expect((await page.request.patch(`${instance.url}/api/v1/admin/settings`,{headers:{'X-CSRF-Token':boot.csrf_token},data:{changes:[{key:'oidc.issuer',value:idp.url},{key:'oidc.client_id',value:'unicore-test-client'},{key:'oidc.client_secret',value:'isolated-test-secret'},{key:'oidc.enabled',value:'true'},{key:'oidc.jit_enabled',value:'true'}]}})).status()).toBe(200);
   const context=await browser.newContext({viewport:page.viewportSize()!,isMobile:info.project.name==='mobile',hasTouch:info.project.name==='mobile'});
   try {
-    const guest=await context.newPage();await guest.goto(instance.url);
+    const guest=await context.newPage();await guest.goto(`${instance.url}/login`);
     let release:()=>void=()=>{};const waiting=new Promise<void>(resolve=>{release=resolve;});
     await guest.route('**/api/v1/auth/oidc/start',async route=>{await waiting;await route.continue();});
     await guest.getByRole('button',{name:'使用企业账号登录',exact:true}).click();await expect(guest.getByRole('button',{name:'使用企业账号登录',exact:true})).toBeDisabled();await capture(guest,info,'oidc-start-loading');release();
@@ -143,14 +143,14 @@ test('browser proof, replay, callback errors and unavailable provider', async ({
     await guest.getByRole('button',{name:'使用企业账号登录',exact:true}).click();await expect(guest.getByRole('heading',{name:'测试企业登录'})).toBeVisible();
     const invalid=new URL(guest.url());invalid.searchParams.set('approve','yes');invalid.searchParams.set('scenario','nonce');const rejected=await guest.request.get(invalid.toString(),{maxRedirects:0});await guest.goto(rejected.headers().location);await expect(guest.getByRole('alert')).toContainText('企业身份验证未完成或已过期');await capture(guest,info,'oidc-invalid-token');
     expect((await page.request.patch(`${instance.url}/api/v1/admin/settings`,{headers:{'X-CSRF-Token':boot.csrf_token},data:{changes:[{key:'oidc.issuer',value:'http://127.0.0.1:1'}]}})).status()).toBe(200);
-    await guest.goto(instance.url);await guest.getByRole('button',{name:'使用企业账号登录',exact:true}).click();await expect(guest.getByRole('alert')).toContainText('暂时无法连接企业身份服务');await capture(guest,info,'oidc-provider-unavailable');
+    await guest.goto(`${instance.url}/login`);await guest.getByRole('button',{name:'使用企业账号登录',exact:true}).click();await expect(guest.getByRole('alert')).toContainText('暂时无法连接企业身份服务');await capture(guest,info,'oidc-provider-unavailable');
   }finally{await context.close();}
 });
 
 
 /** Drives the isolated IdP end to end: SSO start, approve with scenario and follow the callback. */
 async function enterpriseSignIn(visitor: Page, origin: string, subject: string, email: string, scenario?: string) {
-  await visitor.goto(origin);
+  await visitor.goto(`${origin}/login`);
   await visitor.getByRole('button',{name:'使用企业账号登录',exact:true}).click();
   await expect(visitor.getByRole('heading',{name:'测试企业登录'})).toBeVisible();
   const auth=new URL(visitor.url());
@@ -235,7 +235,7 @@ test('SSO-only users enroll mandatory TOTP without SMTP and still need MFA on ne
  const policy=(await(await page.request.get(`${instance.url}/api/v1/auth/policy`)).json()).data;
  expect(policy.mail_ready).toBe(false); expect(policy.reset_enabled).toBe(false);
  await page.context().clearCookies();
- await page.goto(instance.url); await page.getByRole('button',{name:'使用企业账号登录',exact:true}).click(); await page.getByRole('button',{name:'确认企业身份',exact:true}).click();
+ await page.goto(`${instance.url}/login`); await page.getByRole('button',{name:'使用企业账号登录',exact:true}).click(); await page.getByRole('button',{name:'确认企业身份',exact:true}).click();
  await expect(page).toHaveURL(`${instance.url}/account-security`);
  const user=(await(await page.request.get(`${instance.url}/api/v1/bootstrap`)).json()).data;
  expect(user.mfa_enrollment_required).toBe(true);
@@ -283,7 +283,7 @@ test('SSO-only users enroll mandatory TOTP without SMTP and still need MFA on ne
  expect((await page.context().cookies()).find(cookie=>cookie.name==='unicore_session')!.value).toBe(originalCookie);
  expect((await page.request.get(`${instance.url}/api/v1/account/totp/setup`)).status()).toBe(400);
  expect((await page.request.post(`${instance.url}/api/v1/auth/logout`,{headers:{'X-CSRF-Token':user.csrf_token},data:{}})).status()).toBe(200);
- await page.goto(instance.url); await page.getByRole('button',{name:'使用企业账号登录',exact:true}).click(); await page.getByRole('button',{name:'确认企业身份',exact:true}).click();
+ await page.goto(`${instance.url}/login`); await page.getByRole('button',{name:'使用企业账号登录',exact:true}).click(); await page.getByRole('button',{name:'确认企业身份',exact:true}).click();
  await expect(page.getByRole('heading',{name:'双重验证',exact:true})).toBeVisible();
  expect((await page.request.get(`${instance.url}/api/v1/notes`)).status()).toBe(401);
  await page.getByRole('button',{name:'使用恢复码',exact:true}).click(); await page.getByLabel('恢复码',{exact:true}).fill(recovery);

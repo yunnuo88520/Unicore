@@ -1,6 +1,6 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Real platform pages exercise local/private uploads and opt-in MinIO browser direct uploads.
-import {test,expect,navigate} from './fixtures';
+import {chooseOption,test,expect,navigate} from './fixtures';
 import {openUploadFixture} from './upload-fixture';
 import {execFileSync} from 'node:child_process';
 import {mkdir,readFile} from 'node:fs/promises';
@@ -26,7 +26,7 @@ test('shared uploads, policies, private download, permissions and restart',async
  const dir=`build/acceptance/storage/${info.project.name}`;await mkdir(dir,{recursive:true});await page.screenshot({path:`${dir}/upload-rules.png`,fullPage:true,animations:'disabled'});
  for(const theme of ['light','dark']){await page.evaluate(t=>localStorage.setItem('unicore.preferences.v1',JSON.stringify({...JSON.parse(localStorage.getItem('unicore.preferences.v1')??'{}'),theme:t})),theme);await page.reload();await page.getByRole('tab',{name:'存储配置',exact:true}).click();await expect(choices.getByRole('button',{name:'本地存储',exact:true})).toHaveAttribute('aria-pressed','true');await page.screenshot({path:`${dir}/storage-${theme}.png`,fullPage:true,animations:'disabled'});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}
  await openUploadFixture(page,instance.url);
- await page.getByRole('button',{name:'上传文件',exact:true}).click();let restricted=page.getByRole('dialog',{name:'上传文件',exact:true});await expect(restricted.getByLabel('上传路径',{exact:true})).toHaveValue('documents');await restricted.getByLabel('上传路径',{exact:true}).selectOption('archives/2026');await restricted.getByLabel('选择文件').setInputFiles({name:'blocked.exe',mimeType:'application/octet-stream',buffer:Buffer.from('blocked')});await expect(restricted.getByRole('button',{name:'开始上传',exact:true})).toBeDisabled();await expect(restricted.getByText('文件扩展名不在允许列表中')).toBeVisible();await page.keyboard.press('Escape');
+ await page.getByRole('button',{name:'上传文件',exact:true}).click();let restricted=page.getByRole('dialog',{name:'上传文件',exact:true});await expect(restricted.getByRole('radiogroup',{name:'上传路径',exact:true}).getByRole('radio',{name:'documents',exact:true})).toBeChecked();await chooseOption(page,'上传路径','archives/2026',restricted);await restricted.getByLabel('选择文件').setInputFiles({name:'blocked.exe',mimeType:'application/octet-stream',buffer:Buffer.from('blocked')});await expect(restricted.getByRole('button',{name:'开始上传',exact:true})).toBeDisabled();await expect(restricted.getByText('文件扩展名不在允许列表中')).toBeVisible();await page.keyboard.press('Escape');
  await upload(page,'local-private.txt','private local bytes');
  await page.screenshot({path:`${dir}/files.png`,fullPage:true,animations:'disabled'});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  const download=page.waitForEvent('download');await page.getByRole('button',{name:'下载 local-private.txt',exact:true}).click();expect((await download).suggestedFilename()).toBe('local-private.txt');
@@ -71,7 +71,7 @@ test('MinIO configuration, CORS, browser direct upload and migration',async({pag
  let direct=false;let proxied=false;page.on('request',request=>{if(request.method()==='PUT'&&request.url().startsWith(process.env.UNICORE_TEST_MINIO_ENDPOINT!))direct=true;if(request.method()==='PUT'&&/\/api\/v1\/(admin\/)?files\/multipart\//.test(request.url()))proxied=true;});
  await openUploadFixture(page,instance.url);await upload(page,'cloud-private.txt',Buffer.alloc(8*1024*1024,97));await expect(page.getByRole('cell').filter({hasText:'8.0 MiB'})).toBeVisible();expect(direct).toBe(true);expect(proxied).toBe(false);
  const download=page.waitForEvent('download');await page.getByRole('button',{name:'下载 cloud-private.txt',exact:true}).click();expect((await download).suggestedFilename()).toBe('cloud-private.txt');
- await page.getByRole('button',{name:'迁移 cloud-private.txt',exact:true}).click();await page.getByRole('dialog').getByLabel('目标存储位置').selectOption('local');await page.getByRole('dialog').getByRole('button',{name:'开始迁移',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0,{timeout:60000});await expect(page.getByRole('cell',{name:/local/})).toBeVisible();
+ await page.getByRole('button',{name:'迁移 cloud-private.txt',exact:true}).click();await chooseOption(page,'目标存储位置','local',page.getByRole('dialog'));await page.getByRole('dialog').getByRole('button',{name:'开始迁移',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0,{timeout:60000});await expect(page.getByRole('cell',{name:/local/})).toBeVisible();
  await page.screenshot({path:`${dir}/minio-migrated.png`,fullPage:true,animations:'disabled'});
  } finally {execFileSync('build/bin/storagefixture',['cleanup',prefix]);}
 });

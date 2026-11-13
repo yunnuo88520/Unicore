@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { File, LoaderCircle, Pause, Play, ShieldCheck, Trash2, Upload, X } from 'lucide-react';
 import { AppError, type AppClient, type FileEntry, type UploadProgress, type UploadStage } from '@unicore/sdk';
 import { t, useLocale } from './i18n';
-import { Alert, Button, Dialog, DialogContent, DialogDescription, DialogTitle, NativeSelect, Progress, useMessage } from '@unicore/ui';
+import { Alert, Button, Dialog, DialogContent, DialogDescription, DialogTitle, SimpleSelect, Progress, useMessage, selectOptions } from '@unicore/ui';
 import { cn } from '@unicore/ui/cn';
 
 const bytes = (n: number) => n >= 1073741824 ? `${(n / 1073741824).toFixed(1)} GiB` : n >= 1048576 ? `${(n / 1048576).toFixed(1)} MiB` : `${(n / 1024).toFixed(1)} KiB`;
@@ -100,6 +100,7 @@ export function FileUploadDialog({ client, resume, onClose, onUploaded, title, a
           <strong className="text-sm font-medium text-ink">
             {dragging ? t('松开即可添加文件') : session ? t('重新选择原文件以继续') : file ? t('点击替换，或拖入其他文件') : t('将文件拖到这里')}
           </strong>
+          {accept ? <span className="text-xs text-muted">{accept}</span> : <span className="text-xs text-muted">{policy.data?.allowed_extensions?.length ? t('允许的扩展名：{{extensions}}', { extensions: policy.data.allowed_extensions.join(', ') }) : t('不限文件类型')}</span>}
           <span className="text-xs text-muted">{policy.data ? t('单文件最大 {{size}} · 支持分片续传', { size: bytes(sizeLimit) }) : t('正在读取策略…')}</span>
         </button>
         {selected && <div className="upload-file-card flex items-center gap-2.5 rounded-lg border border-line bg-surface-alt px-3 py-2">
@@ -111,8 +112,7 @@ export function FileUploadDialog({ client, resume, onClose, onUploaded, title, a
           {file && <span className="rounded-full bg-primary-soft px-2 py-0.5 text-2xs font-medium text-accent">{t('已选择')}</span>}
           {file && !pending && <button type="button" className="ms-auto inline-flex size-7 items-center justify-center rounded-md text-muted transition-colors outline-none hover:bg-primary-soft hover:text-accent focus-visible:ring-2 focus-visible:ring-focus" aria-label={t('移除已选文件')} onClick={() => { pick(null); if (input.current) input.current.value = ''; zone.current?.focus(); }}><X size={17} /></button>}
         </div>}
-        {!session && !!policy.data?.upload_paths?.length && <label className="flex flex-col gap-1.5 text-sm font-medium">{t('上传路径')}<NativeSelect aria-label={t('上传路径')} value={uploadPath || policy.data.upload_paths[0]} disabled={pending} onChange={event => setUploadPath(event.target.value)}>{policy.data.upload_paths.map(path => <option key={path} value={path}>{path}</option>)}</NativeSelect></label>}
-        {!!policy.data?.allowed_extensions?.length && <p className="text-xs text-muted">{t('允许的扩展名：{{extensions}}', { extensions: policy.data.allowed_extensions.join(', ') })}</p>}
+        {!session && !!policy.data?.upload_paths?.length && <label className="flex flex-col gap-1.5 text-sm font-medium">{t('上传路径')}<SimpleSelect aria-label={t('上传路径')} value={uploadPath || policy.data.upload_paths[0]} disabled={pending} onChange={event => setUploadPath(event)} options={selectOptions(<>{policy.data.upload_paths.map(path => <option key={path} value={path}>{path}</option>)}</>)} /></label>}
         {invalidType && <p role="alert" className="text-sm text-danger">{t('请选择 PNG、JPEG 或 GIF 图片')}</p>}
         {invalidExtension && <p role="alert" className="text-sm text-danger">{t('文件扩展名不在允许列表中')}</p>}
         {tooLarge && <p role="alert" className="text-sm text-danger">{t('文件超过管理员设置的大小上限')}</p>}

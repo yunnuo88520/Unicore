@@ -63,7 +63,7 @@ test('management groups, modal creation, independent logins and avatar password 
   if(process.env.FEATURE_UPDATER!=='false')await expect(page.getByRole('heading',{name:'更新日志',exact:true})).toBeVisible();
   if(process.env.FEATURE_LICENSE==='true')await expect(page.getByText('待对接',{exact:true})).toBeVisible();
  }
- const memberContext=await browser.newContext({viewport:page.viewportSize()!,isMobile:info.project.name==='mobile',hasTouch:info.project.name==='mobile'});const member=await memberContext.newPage();await member.goto(instance.url);await login(member,'sharedname','administrator-password-strong');await expect(member.locator('main').getByRole('alert')).toContainText('账号或密码不正确');
+ const memberContext=await browser.newContext({viewport:page.viewportSize()!,isMobile:info.project.name==='mobile',hasTouch:info.project.name==='mobile'});const member=await memberContext.newPage();await member.goto(`${instance.url}/login`);await login(member,'sharedname','administrator-password-strong');await expect(member.locator('main').getByRole('alert')).toContainText('账号或密码不正确');
  await login(member,'sharedname','member-password-strong');
  // Login completes asynchronously and navigates home; wait before opening notes.
  await expect(member.getByRole('heading',{name:'工作台概览'})).toBeVisible();
@@ -81,7 +81,7 @@ test('management groups, modal creation, independent logins and avatar password 
  await login(member,'sharedname','changed-member-password');
  await expect(member.getByRole('heading',{name:'工作台概览'})).toBeVisible();
  await member.goto(`${instance.url}/notes`);await expect(member.getByRole('heading',{name:'我的笔记',exact:true})).toBeVisible();
- await member.getByRole('button',{name:'账号菜单',exact:true}).click();await member.getByRole('menuitem',{name:'退出登录',exact:true}).click();await expect(member.getByRole('heading',{name:'登录 Unicore',exact:true})).toBeVisible();await memberContext.close();
+ await member.getByRole('button',{name:'账号菜单',exact:true}).click();await member.getByRole('menuitem',{name:'退出登录',exact:true}).click();await expect(member).toHaveURL(/\/home$/);await memberContext.close();
  await page.reload();await expect(page.getByRole('button',{name:'账号菜单',exact:true})).toBeVisible();
  await nav(labelOf('users'));
  for(const scheme of ['light','dark'] as const){await page.evaluate(value=>localStorage.setItem('unicore.preferences.v1',JSON.stringify({...JSON.parse(localStorage.getItem('unicore.preferences.v1')??'{}'),theme:value})),scheme);await page.reload();await page.screenshot({path:`${directory}/management-${scheme}.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}

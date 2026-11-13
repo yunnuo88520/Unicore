@@ -74,7 +74,7 @@ func TestMonitorEndpointPolicy(t *testing.T) {
 	// Standalone instance: the local view is anonymous by design (loopback and
 	// same-origin guards stay upstream), defers to the wizard before install,
 	// and the platform surface is 404.
-	standalone, e := install.Open(ctx, install.Options{DataDir: t.TempDir()})
+	standalone, e := install.Open(ctx, install.Options{DataDir: t.TempDir(), Profile: "web-standalone"})
 	if e != nil {
 		t.Fatal(e)
 	}

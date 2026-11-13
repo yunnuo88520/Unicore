@@ -18,15 +18,15 @@ test('announcement bell: management, popup retry, pagination, receipts, audience
   const directory = `build/acceptance/announcements/${info.project.name}`;
   await mkdir(directory, { recursive: true });
   await page.goto(`${instance.url}/admin/announcements`);
-  await expect(page.getByRole('heading', { name: '公告列表', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '平台公告', exact: true, level: 1 })).toBeVisible();
   await expect(page.getByRole('button', { name: '平台公告', exact: true }).filter({ has: page.locator('svg.lucide-bell') })).toHaveCount(0);
   // New notices default to draft, and the editor previews unsaved content.
   await page.getByRole('button', { name: '新增公告', exact: true }).click();
   const editor = page.getByRole('dialog', { name: '新增公告', exact: true });
   await editor.getByLabel('公告标题', { exact: true }).fill('编辑器草稿');
   await editor.getByLabel('公告内容', { exact: true }).fill('## 测试预览');
-  await expect(editor.getByRole('combobox', { name: '发布状态', exact: true })).toHaveValue('draft');
-  await editor.getByRole('combobox', { name: '接收范围', exact: true }).selectOption('selected');
+  await expect(editor.getByRole('radiogroup', { name: '发布状态', exact: true }).getByRole('radio', { name: '草稿', exact: true })).toBeChecked();
+  await editor.getByRole('radiogroup', { name: '接收范围', exact: true }).getByRole('radio', { name: '指定用户', exact: true }).check();
   await expect(editor.getByText('member · member@example.test', { exact: true })).toBeVisible();
   await editor.getByRole('checkbox', { name: 'member · member@example.test', exact: true }).check();
   await editor.getByRole('button', { name: '预览', exact: true }).click();

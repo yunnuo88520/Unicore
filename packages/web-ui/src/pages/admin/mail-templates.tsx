@@ -105,10 +105,10 @@ function MailTemplatePanel({ web }: { web: WebClient }) {
         test.mutate({ template, recipient });
       }}>
         <p className="text-xs leading-relaxed text-muted">{t('将当前草稿发送到指定邮箱，不会保存或修改账号流程。')}</p>
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-ink">{t('测试收件邮箱')}</span>
-          <Input type="email" required maxLength={254} value={recipient} disabled={test.isPending} onChange={event => setRecipient(event.target.value)} />
-        </label>
+        <div className="flex flex-col gap-1.5">
+
+          <Input label={t('测试收件邮箱')} type="email" required maxLength={254} value={recipient} disabled={test.isPending} onChange={event => setRecipient(event.target.value)} />
+        </div>
         <div className="flex justify-end gap-2">
           <Button variant="secondary" type="button" disabled={test.isPending} onClick={() => setTesting(null)}>{t('取消')}</Button>
           <Button type="submit" pending={test.isPending}><Send size={14} />{test.isPending ? t('发送中…') : t('发送测试邮件')}</Button>

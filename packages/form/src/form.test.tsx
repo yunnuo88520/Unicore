@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom';
 import userEvent from '@testing-library/user-event';
 import { expect, it, vi } from 'vitest';
 import { AppError } from '@unicore/sdk';
-import { AppForm, AppField, useAppForm } from './form';
+import { AppForm, AppField, AppControllerField, useAppForm } from './form';
 
 function Harness({ onSubmit, serverError }: { onSubmit: (values: { recipient: string }) => void; serverError?: AppError | null }) {
   const form = useAppForm({ schema: 'MailTestInput', defaultValues: { recipient: '' }, onSubmit });
@@ -39,6 +39,26 @@ it('shows server field errors inline and submits valid values once resolved', as
   await userEvent.type(screen.getByLabelText('测试邮箱'), 'user@example.test');
   await userEvent.click(screen.getByRole('button', { name: '保存' }));
   expect(submit).toHaveBeenCalledWith({ recipient: 'user@example.test' });
+});
+
+it.each(['registered', 'controlled'])('keeps %s server errors on blur until the value is edited', async kind => {
+  function ServerForm() {
+    const form = useAppForm({ defaultValues: { recipient: 'existing@example.test' }, onSubmit: () => {} });
+    return <AppForm form={form}>
+      {kind === 'registered' ? <AppField name="recipient" label="邮箱"><input /></AppField>
+        : <AppControllerField name="recipient" label="邮箱">{field => <input {...field} value={String(field.value)} onChange={event => field.onChange(event.target.value)} />}</AppControllerField>}
+      <button type="button" onClick={() => form.applyServerError(new AppError('CONFLICT', '重复邮箱', '', { recipient: '邮箱已注册' }))}>应用错误</button>
+      <a href="/login">返回登录</a>
+    </AppForm>;
+  }
+  render(<ServerForm />);
+  const user = userEvent.setup();
+  await user.click(screen.getByRole('button', { name: '应用错误' }));
+  expect(screen.getByLabelText('邮箱')).toHaveFocus();
+  await user.tab();
+  expect(screen.getByRole('alert')).toHaveTextContent('邮箱已注册');
+  await user.type(screen.getByLabelText('邮箱'), '2');
+  expect(screen.queryByRole('alert')).toBeNull();
 });
 
 it('keeps the form-wide banner only for $form-level server errors', async () => {
@@ -93,3 +113,25 @@ it('ignores submit events bubbling from nested forms (editor dialogs)', async ()
   expect(onSubmit).toHaveBeenCalledTimes(1);
 });
 
+
+it('validates on blur and keeps field help associated before and after correction', async () => {
+  const { Input } = await import('@unicore/ui');
+  function BlurForm() {
+    const form = useAppForm({ schema: 'MailTestInput', defaultValues: { recipient: '' }, onSubmit: () => {} });
+    return <AppForm form={form}><AppField name="recipient" label="收件邮箱" hint="请填写完整邮箱"><Input type="email" /></AppField><button type="button">离开</button></AppForm>;
+  }
+  render(<BlurForm />);
+  const user = userEvent.setup();
+  const input = screen.getByLabelText('收件邮箱');
+  await user.type(input, 'bad');
+  expect(screen.queryByRole('alert')).toBeNull();
+  await user.tab();
+  expect(await screen.findByRole('alert')).toBeVisible();
+  expect(input).toHaveAccessibleDescription(/请填写完整邮箱/);
+  await user.clear(input);
+  await user.type(input, 'good@example.test');
+  expect(screen.getByRole('alert')).toBeVisible();
+  await user.tab();
+  expect(screen.queryByRole('alert')).toBeNull();
+  expect(input).toHaveAccessibleDescription('请填写完整邮箱');
+});

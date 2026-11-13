@@ -49,3 +49,5 @@ pnpm typecheck、pnpm test、pnpm build；交互变更运行 make build-web test
 邮件默认主题正文固定中文，公告/邮件编辑内容和预览均是原始业务数据，不调用 t()；UI 标签/提示仍同步双语。公告管理与顶部铃铛参考 pages/admin/announcements 和 announcement-center，安全内容渲染复用 rich-content；禁用后铃铛列表为空且不弹窗，本地形态不请求公告。
 
 文件上传复用 FileUploadDialog 和 AppClient.files.uploadFile（hashing/uploading/confirming、确认字节进度、signal 暂停、resumeId 恢复），不要在业务页重复上传或自行拼云 URL。恢复重选原文件，身份/签名/File 不写 localStorage；放弃调用 deleteFile。覆盖 PC/375px、中英文、明暗、刷新/服务重启、错误文件及只补传缺片，见 ADR-0022。
+
+表单与搜索控件按[表单交互规范](../../../docs/product/form-interaction.md)选择：浮动标签、六格验证码、常驻帮助、失焦校验、按数量选择单选/下拉/自动补全，以及范围、级联、标签和真实上传进度。先修改共享层再迁移页面；异步候选必须是锚定浮层，打开前后验证后续字段位置不变。

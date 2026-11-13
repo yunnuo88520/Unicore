@@ -9,6 +9,7 @@ import type { AccountProfile, AppClient, TOTPSetup, WebClient } from '@unicore/s
 import { t, useLocale } from '../i18n';
 import { Alert, Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, ConfirmDialog, Input, Modal, PageHeader, useMessage } from '@unicore/ui';
 import { AppField, AppForm, StaticField, useAppForm } from '@unicore/form';
+import { AppOTPField } from '@unicore/form/fields';
 import { useRouteSearch, type PageProps } from '../router';
 import { PasswordDialog } from '../password-dialog';
 import { FileUploadDialog } from '../file-upload-dialog';
@@ -54,8 +55,8 @@ function ProfileEditor({ client, web, profile, onChanged, administrator }: { cli
         </div>
         <AppForm form={form} className="flex max-w-lg flex-col gap-4">
           <AppField name="display_name" label={t('昵称')}><Input maxLength={80} autoComplete="nickname" /></AppField>
-          <label className="flex flex-col gap-1.5 text-sm font-medium">{t('用户名')}<Input value={profile.user.username} readOnly disabled autoComplete="username" /></label>
-          <div className="flex flex-col gap-1.5"><label htmlFor="profile-email" className="text-sm font-medium">{t('邮箱')}</label><div className="flex gap-2"><Input id="profile-email" value={profile.user.email} readOnly disabled className="min-w-0 flex-1" /><Button type="button" variant="secondary" onClick={() => setEmailOpen(true)}>{t('更换邮箱')}</Button></div><p className="text-xs text-muted">{t('需先验证当前邮箱，再验证新邮箱。')}</p></div>
+          <div className="flex flex-col gap-1.5 text-sm font-medium"><Input label={t('用户名')} value={profile.user.username} readOnly disabled autoComplete="username" /></div>
+          <div className="flex flex-col gap-1.5"><div className="flex gap-2"><Input label={t('邮箱')} id="profile-email" value={profile.user.email} readOnly disabled className="min-w-0 flex-1" /><Button type="button" variant="secondary" onClick={() => setEmailOpen(true)}>{t('更换邮箱')}</Button></div><p className="text-xs text-muted">{t('需先验证当前邮箱，再验证新邮箱。')}</p></div>
           <Button type="submit" pending={save.isPending} className="self-start">{t('保存个人资料')}</Button>
         </AppForm>
       </CardContent>
@@ -92,7 +93,7 @@ function EmailChangeDialog({ web, email, onClose, onChanged }: { web: WebClient;
     <ol className="mb-4 grid grid-cols-2 gap-2 border-y border-line py-3 text-sm" aria-label={t('换绑步骤')}><li aria-current={step === 1 ? 'step' : undefined} className={step === 1 ? 'font-semibold text-accent' : 'text-muted'}>{t('1. 验证当前邮箱')}</li><li aria-current={step === 2 ? 'step' : undefined} className={step === 2 ? 'font-semibold text-accent' : 'text-muted'}>{t('2. 绑定新邮箱')}</li></ol>
     <AppForm form={form} className="flex flex-col gap-4">
       {step === 1 ? <StaticField label={t('当前邮箱')}>{email}</StaticField> : <AppField name="email" label={t('新邮箱')}><Input type="email" required maxLength={254} autoComplete="email" disabled={pending} /></AppField>}
-      <div className="flex items-end gap-2"><AppField name="code" label={t('邮箱验证码')} className="min-w-0 flex-1"><Input inputMode="numeric" autoComplete="one-time-code" required pattern="[0-9]{6}" maxLength={6} disabled={pending} /></AppField><Button type="button" variant="secondary" disabled={pending || retry > 0 || (step === 2 && (!newEmail || newEmail.toLowerCase() === email.toLowerCase()))} onClick={() => { if (step === 2 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) { form.setError('email', { message: t('请输入有效邮箱') }); return; } send.mutate(); }}>{retry > 0 ? t('{{seconds}} 秒后重发', { seconds: retry }) : t('发送验证码')}</Button></div>
+      <div className="flex flex-wrap items-end gap-3"><AppOTPField name="code" label={t('邮箱验证码')} className="min-w-0 flex-1" disabled={pending} /><Button type="button" variant="secondary" disabled={pending || retry > 0 || (step === 2 && (!newEmail || newEmail.toLowerCase() === email.toLowerCase()))} onClick={() => { if (step === 2 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) { form.setError('email', { message: t('请输入有效邮箱') }); return; } send.mutate(); }}>{retry > 0 ? t('{{seconds}} 秒后重发', { seconds: retry }) : t('发送验证码')}</Button></div>
       <p className="text-xs text-muted">{t('验证码 10 分钟内有效。完成换绑后，其他设备的会话与待用验证码失效。')}</p>
       <div className="flex justify-end gap-2"><Button type="button" variant="secondary" disabled={pending} onClick={onClose}>{t('取消')}</Button><Button type="submit" pending={verify.isPending} disabled={pending || !(step === 1 ? current : next)}>{step === 1 ? t('验证并继续') : t('确认绑定邮箱')}</Button></div>
     </AppForm>
@@ -134,7 +135,7 @@ function Authenticator({ web, profile, onChanged, onPolicyChanged }: { web: WebC
       {profile.totp_enabled ? <><Button variant="secondary" disabled={!profile.can_disable_2fa} onClick={() => setDisableOpen(true)}>{t('关闭双重验证')}</Button>{!profile.can_disable_2fa && <p className="text-xs text-muted">{t('实例策略不允许关闭双重验证。')}</p>}</> : <Button disabled={!enterprise.data} onClick={() => { setEnterpriseResume(false); setSetupOpen(true); }}>{t('设置身份验证器')}</Button>}
       {recovery.length > 0 && <div className="w-full rounded-lg border border-line bg-surface-alt p-4"><h3 className="font-semibold">{t('恢复码')}</h3><p className="mt-1 text-sm text-muted">{t('仅显示一次。每个恢复码只能使用一次，请保存在安全位置。丢失验证器时可用恢复码登录。')}</p><div className="my-4 grid gap-2 font-mono text-xs sm:grid-cols-2">{recovery.map(code => <code key={code} className="select-all break-all rounded border border-line bg-surface px-2 py-1">{code}</code>)}</div><div className="flex flex-wrap gap-2"><Button variant="secondary" onClick={() => void copy(recovery.join('\n'))}><Copy size={15} />{t('复制恢复码')}</Button><Button variant="secondary" onClick={download}><Download size={15} />{t('下载恢复码')}</Button><Button variant="ghost" onClick={() => {setRecovery([]);onPolicyChanged();}}>{t('已保存，关闭')}</Button></div></div>}
       {setupOpen && <TOTPSetupDialog web={web} enterprise={!!enterprise.data?.linked && !enterprise.data.has_local_password} resume={enterpriseResume} onClose={() => setSetupOpen(false)} onEnabled={codes => { setRecovery(codes); setSetupOpen(false); message.success(t('双重验证已开启，其他设备已退出')); onChanged(); }} />}
-      {disableOpen && <Modal title={t('关闭双重验证')} onClose={() => setDisableOpen(false)} pending={disable.isPending}><p className="mb-4 text-sm text-muted">{t('输入身份验证器的新验证码。恢复码不能用于关闭双重验证。')}</p><AppForm form={form} className="flex flex-col gap-4"><AppField name="code" label={t('身份验证器验证码')}><Input inputMode="numeric" autoComplete="one-time-code" required pattern="[0-9]{6}" maxLength={6} /></AppField><Button type="submit" variant="danger" pending={disable.isPending}>{t('确认关闭')}</Button></AppForm></Modal>}
+      {disableOpen && <Modal title={t('关闭双重验证')} onClose={() => setDisableOpen(false)} pending={disable.isPending}><p className="mb-4 text-sm text-muted">{t('输入身份验证器的新验证码。恢复码不能用于关闭双重验证。')}</p><AppForm form={form} className="flex flex-col gap-4"><AppOTPField name="code" label={t('身份验证器验证码')} /><Button type="submit" variant="danger" pending={disable.isPending}>{t('确认关闭')}</Button></AppForm></Modal>}
     </CardContent>
   </Card>;
 }
@@ -162,9 +163,9 @@ function TOTPSetupDialog({ web, enterprise, resume, onClose, onEnabled }: { web:
       {!setup && enterprise ? <><p className="text-sm text-muted">{t('此账号使用企业登录。重新验证已绑定的企业身份后，即可设置身份验证器，无需本地密码或邮件。')}</p>{resumed.isFetching && <p role="status">{t('正在读取身份验证器设置…')}</p>}{resumed.error && <p role="alert">{t(resumed.error.message)}</p>}<Button type="button" pending={begin.isPending} disabled={pending} onClick={() => begin.mutate()}>{t('验证企业身份并继续')}</Button></> : !setup ? <><p className="text-sm text-muted">{t('先验证当前密码，再使用身份验证器扫描二维码。')}</p><AppField name="password" label={t('当前密码')}><Input type="password" required maxLength={128} autoComplete="current-password" /></AppField><Button type="submit" pending={begin.isPending}>{t('验证并开始设置')}</Button></> : <>
         <p className="text-sm text-muted">{t('使用 Google Authenticator、Microsoft Authenticator 或其他兼容应用扫描二维码，也可手动输入密钥，再填写 6 位验证码。')}</p>
         <div className="flex flex-wrap items-center gap-4">{qr ? <img src={qr} width={256} height={256} alt={t('身份验证器设置二维码')} className="max-w-full shrink-0 rounded-lg border border-line" /> : <p role="status">{t('正在生成二维码…')}</p>}<div className="flex flex-col items-start gap-2 text-sm text-muted"><span>{t('验证码每 30 秒更新，{{seconds}} 秒后进入下一周期', { seconds })}</span><span>{t('绑定密钥 10 分钟内有效；刷新会使旧二维码失效。')}</span><Button type="button" variant="secondary" disabled={pending} onClick={() => begin.mutate()}>{t('立即刷新')}</Button></div></div>
-        <label className="flex flex-col gap-1.5 text-sm font-medium">{t('手动密钥')}<Input value={setup.secret} readOnly className="font-mono text-xs" /></label>
+        <div className="flex flex-col gap-1.5 text-sm font-medium"><Input label={t('手动密钥')} value={setup.secret} readOnly className="font-mono text-xs" /></div>
         <Button type="button" variant="ghost" className="self-start" onClick={() => { void navigator.clipboard.writeText(setup.secret).then(() => message.success(t('已复制')), () => message.error(t('复制失败，请手动选择并保存'))); }}><Copy size={15} />{t('复制密钥')}</Button>
-        <AppField name="code" label={t('身份验证器验证码')}><Input inputMode="numeric" autoComplete="one-time-code" required pattern="[0-9]{6}" maxLength={6} disabled={pending} /></AppField>
+        <AppOTPField name="code" label={t('身份验证器验证码')} disabled={pending} />
         <div className="flex justify-end gap-2"><Button type="button" variant="secondary" disabled={pending} onClick={() => cancel.mutate()}>{t('取消设置')}</Button><Button type="submit" pending={enable.isPending} disabled={pending || seconds === 0}>{t('开启双重验证')}</Button></div>
       </>}
     </AppForm>

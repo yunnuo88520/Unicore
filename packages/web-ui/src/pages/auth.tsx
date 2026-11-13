@@ -1,10 +1,10 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Linked authentication pages with shared forms, confirmed passwords and real email recovery.
 import { t, useLocale, defineMessages } from '../i18n';
-import { forwardRef, useCallback, useEffect, useRef, useState, type InputHTMLAttributes, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link, Navigate, useRouter, useRouterState } from '@tanstack/react-router';
-import { ArrowRight, Building2, Check, CheckCircle2, Eye, EyeOff, LockKeyhole, ShieldCheck, UserRound } from 'lucide-react';
+import { ArrowRight, Building2, Check, CheckCircle2, LockKeyhole, ShieldCheck, UserRound } from 'lucide-react';
 import { AppError, validate, type EmailChallenge, type WebClient } from '@unicore/sdk';
 import { useRouteSearch, useSessionNotice, type PageProps } from '../router';
 import { BrandLockup } from '../brand';
@@ -12,6 +12,7 @@ import { HumanCheck, type HumanCheckProvider } from '../human-check';
 import { Alert, Button, Input } from '@unicore/ui';
 import { buttonVariants } from '@unicore/ui';
 import { AppField, AppForm, useAppForm } from '@unicore/form';
+import { AppOTPField } from '@unicore/form/fields';
 import { cn } from '@unicore/ui/cn';
 
 type Mode = 'login' | 'email' | 'register' | 'forgot' | 'resend';
@@ -56,17 +57,6 @@ function AuthLink({ children, to, onNavigate, disabled = false }: { children: Re
   return <Link to={to} className={className} onClick={event => { if (!event.metaKey && !event.ctrlKey && !event.shiftKey && event.button === 0) onNavigate?.(); }}>{children}</Link>;
 }
 
-const AuthPassword = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement> & { fieldLabel: string }>(function AuthPassword({ fieldLabel, className, ...props }, ref) {
-  const [visible, setVisible] = useState(false);
-  useLocale();
-  return <span className="relative block">
-    <Input {...props} ref={ref} type={visible ? 'text' : 'password'} className={cn('pe-12', className)} />
-    <button type="button" className="absolute end-2 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted hover:bg-surface-alt hover:text-ink focus-visible:outline-2 focus-visible:outline-focus"
-      aria-label={visible ? t('隐藏{{field}}', { field: fieldLabel }) : t('显示{{field}}', { field: fieldLabel })} aria-pressed={visible} disabled={props.disabled} onClick={() => setVisible(value => !value)}>
-      {visible ? <Eye size={18} aria-hidden="true" /> : <EyeOff size={18} aria-hidden="true" />}
-    </button>
-  </span>;
-});
 
 function AuthIllustration({ kind, step, verifyEmail }: { kind: 'login' | 'register' | 'forgot'; step: number; verifyEmail: boolean }) {
   useLocale();
@@ -185,7 +175,8 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
     if (mode !== 'register' || challenge || !(event.target instanceof HTMLInputElement)) return;
     const name = event.target.name;
     if (name !== 'password' && name !== 'confirm_password') return;
-    if (event.type === 'blur' || form.formState.touchedFields[name] || form.getFieldState(name).error) validateRegistrationPassword(name);
+    if (event.type !== 'blur') return;
+    validateRegistrationPassword(name);
     if (name === 'password' && (form.formState.touchedFields.confirm_password || form.getFieldState('confirm_password').error)) validateRegistrationPassword('confirm_password');
   }
   function clearSecrets() { form.setValue('password', ''); form.setValue('confirm_password', ''); form.setValue('captcha_answer', ''); }
@@ -273,41 +264,39 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
       <Link to="/login" replace onClick={beforeNavigation} className={cn(buttonVariants(), 'h-12 w-full rounded-xl shadow-tint')}>{t('返回登录')}<ArrowRight size={17} aria-hidden="true" /></Link>
     </div> : <>
       {registrationClosed || resetClosed ? <p role="status" className="mb-6 rounded-xl border border-line bg-surface-alt p-5 text-sm leading-7 text-muted">{registrationClosed ? t('注册暂未开放，请联系管理员获取账号。') : t('本站暂未开放邮件找回密码，请联系管理员协助恢复账号。')}</p> :
-        <AppForm form={form} className="flex flex-col gap-5" onBlur={passwordField} onChange={passwordField}>
+        <AppForm form={form} requiredMode="optional" className="flex flex-col gap-5" onBlur={passwordField}>
           {/* Non-field auth errors render through the AppForm summary banner; field-carrying
               errors (duplicate account) surface inline next to their controls. */}
           <fieldset disabled={busy} className="contents">
-            {!challenge && (mode === 'login' || mode === 'register') && <AppField<AuthValues> name="username" label={mode === 'login' ? t('账号或邮箱') : t('账号')} className="[&_label]:sr-only">
+            {!challenge && (mode === 'login' || mode === 'register') && <AppField<AuthValues> name="username" label={mode === 'login' ? t('账号或邮箱') : t('账号')}>
               <Input required autoComplete="username" maxLength={mode === 'register' ? 64 : 254} placeholder={mode === 'login' ? t('请输入用户名或邮箱') : t('请输入用户名')} />
             </AppField>}
-            {!challenge && (mode === 'login' || mode === 'register') && <AppField<AuthValues> name="password" label={t('密码')} className="[&_label]:sr-only">
-              <AuthPassword key={mode} fieldLabel={t('密码')} required autoComplete={mode === 'login' ? 'current-password' : 'new-password'} maxLength={128} placeholder={t('请输入密码')} />
+            {!challenge && (mode === 'login' || mode === 'register') && <AppField<AuthValues> name="password" label={t('密码')} hint={mode === 'register' ? t(AUTH_MESSAGES.password) : undefined}>
+              <Input type="password" key={mode} label={t('密码')} required autoComplete={mode === 'login' ? 'current-password' : 'new-password'} maxLength={128} placeholder={t('请输入密码')} />
             </AppField>}
-            {!challenge && mode === 'register' && <AppField<AuthValues> name="confirm_password" label={t('确认密码')} className="[&_label]:sr-only">
-              <AuthPassword fieldLabel={t('确认密码')} required autoComplete="new-password" maxLength={128} placeholder={t('请再次输入密码')} />
+            {!challenge && mode === 'register' && <AppField<AuthValues> name="confirm_password" label={t('确认密码')}>
+              <Input type="password" label={t('确认密码')} required autoComplete="new-password" maxLength={128} placeholder={t('请再次输入密码')} />
             </AppField>}
-            {!challenge && mode === 'register' && policy.data?.phone_required && <AppField<AuthValues> name="phone" label={t('手机号')} className="[&_label]:sr-only">
+            {!challenge && mode === 'register' && policy.data?.phone_required && <AppField<AuthValues> name="phone" label={t('手机号')}>
               <Input type="tel" inputMode="tel" required autoComplete="tel" maxLength={21} placeholder={t('请输入手机号')} />
             </AppField>}
-            {(!challenge && mode !== 'login' || mode === 'forgot') && <AppField<AuthValues> name="email" label={t('邮箱')} className={mode === 'forgot' ? undefined : '[&_label]:sr-only'}>
+            {(!challenge && mode !== 'login' || mode === 'forgot') && <AppField<AuthValues> name="email" label={t('邮箱')}>
               <Input type="email" required autoComplete="email" maxLength={254} placeholder="name@example.com" readOnly={!!challenge} />
             </AppField>}
             {(challenge || mode === 'forgot') && <div>
-              <div className={cn('gap-2', mode === 'forgot' && 'grid grid-cols-[minmax(0,1fr)_auto] items-start')}>
-                <AppField<AuthValues> name="code" label={t('邮箱验证码')}>
-                  <Input inputMode="numeric" autoComplete="one-time-code" required minLength={6} maxLength={6} disabled={!challenge} placeholder={challenge ? t('请输入 6 位邮箱验证码') : t('请先发送验证码')} />
-                </AppField>
-                {mode === 'forgot' && <Button type="button" variant="secondary" aria-label={t('发送重置验证码')} className="mt-[26px] h-12 rounded-xl px-4 text-accent" pending={sendReset.isPending} disabled={retry > 0 || policy.isPending} onClick={requestReset}>{retry > 0 ? t('{{v0}} 秒后重发', { v0: retry }) : t('发送验证码')}</Button>}
+              <div className={cn('gap-2', mode === 'forgot' && 'flex flex-wrap items-end')}>
+                <AppOTPField<AuthValues> name="code" label={t('邮箱验证码')} disabled={!challenge} hint={challenge ? t('请输入 6 位邮箱验证码') : t('请先发送验证码')} />
+                {mode === 'forgot' && <Button type="button" variant="secondary" aria-label={t('发送重置验证码')} className="mb-7 h-12 px-4" pending={sendReset.isPending} disabled={retry > 0 || policy.isPending} onClick={requestReset}>{retry > 0 ? t('{{v0}} 秒后重发', { v0: retry }) : t('发送验证码')}</Button>}
               </div>
               {challenge && <p className="mt-3 text-xs leading-5 text-muted">{t('若账号符合条件，验证码将发送至该邮箱。请检查收件箱或垃圾邮件。')}</p>}
             </div>}
             {challenge && purpose === 'reset' && <>
-              <AppField<AuthValues> name="password" label={t('新密码')}><AuthPassword fieldLabel={t('新密码')} required autoComplete="new-password" maxLength={128} placeholder={t('设置新密码，至少 12 个字符')} /></AppField>
-              <AppField<AuthValues> name="confirm_password" label={t('确认新密码')}><AuthPassword fieldLabel={t('确认新密码')} required autoComplete="new-password" maxLength={128} placeholder={t('再次输入新密码')} /></AppField>
+              <AppField<AuthValues> name="password" label={t('新密码')} hint={t(AUTH_MESSAGES.password)}><Input type="password" label={t('新密码')} required autoComplete="new-password" maxLength={128} placeholder={t('设置新密码，至少 12 个字符')} /></AppField>
+              <AppField<AuthValues> name="confirm_password" label={t('确认新密码')}><Input type="password" label={t('确认新密码')} required autoComplete="new-password" maxLength={128} placeholder={t('再次输入新密码')} /></AppField>
               <p className="text-xs leading-5 text-muted">{t('修改后所有设备上的旧会话都会退出。密码至少 12 位。')}</p>
             </>}
-            {needsCaptcha && <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
-              <AppField<AuthValues> name="captcha_answer" label={t('图形验证码')}><Input inputMode="numeric" required maxLength={6} placeholder={t('请输入图形验证码')} /></AppField>
+            {needsCaptcha && <div className="flex flex-wrap items-start gap-3">
+              <AppOTPField<AuthValues> name="captcha_answer" label={t('图形验证码')} autoComplete="off" hint={t('请输入 6 位图形验证码')} />
               <button type="button" aria-label={t('刷新验证码')} onClick={() => { form.setValue('captcha_answer', ''); void captcha.refetch(); }} className="flex h-12 w-28 items-center justify-center overflow-hidden rounded-xl border border-line bg-surface-alt focus-visible:outline-2 focus-visible:outline-focus">{captcha.data && !captcha.isFetching && <img src={captcha.data.image} alt={t('六位数字验证码，点击刷新')} />}</button>
             </div>}
             {humanRequired && <HumanCheck widget={humanWidget} required token={humanToken.token} onToken={onHumanToken} resetSignal={humanReset} />}
@@ -360,14 +349,14 @@ function BindLoginCard({ web, state, onDone }: { web: WebClient; state: string; 
       <p className="mt-1 text-xs leading-5 text-muted">{t('检测到与你本地账号同邮箱的企业身份。验证该账号的本地密码后即可完成绑定并直接登录。')}</p>
     </div>
     {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-    <label className="flex flex-col gap-1.5">
-      <span className="text-sm font-medium text-ink">{t('邮箱')}</span>
-      <Input type="email" required autoComplete="email" maxLength={254} value={email} onChange={event => setEmail(event.target.value)} placeholder="name@example.com" />
-    </label>
-    <label className="flex flex-col gap-1.5">
-      <span className="text-sm font-medium text-ink">{t('密码')}</span>
-      <Input type="password" required autoComplete="current-password" maxLength={128} value={password} onChange={event => setPassword(event.target.value)} placeholder={t('请输入密码')} />
-    </label>
+    <div className="flex flex-col gap-1.5">
+
+      <Input label={t('邮箱')} type="email" required autoComplete="email" maxLength={254} value={email} onChange={event => setEmail(event.target.value)} placeholder="name@example.com" />
+    </div>
+    <div className="flex flex-col gap-1.5">
+
+      <Input label={t('密码')} type="password" required autoComplete="current-password" maxLength={128} value={password} onChange={event => setPassword(event.target.value)} placeholder={t('请输入密码')} />
+    </div>
     <Button type="submit" pending={pending} className="h-11 w-full rounded-xl shadow-tint">{t('绑定并登录')}</Button>
     <p className="text-2xs leading-4 text-muted">{t('绑定邀请 5 分钟内有效。成功后该账号的其他会话将被退出。')}</p>
   </form>;
@@ -425,10 +414,10 @@ function TokenFlow({ kind, web, siteName, onDone }: { kind: 'verify' | 'reset'; 
     {done ? <div className="flex flex-col items-center gap-6">
       <p role="status" className="text-center text-sm text-muted">{kind === 'verify' ? t('邮箱验证成功，现在可以登录。') : t('密码已更新，旧会话已退出。')}</p>
       <Link to="/login" className={cn(buttonVariants(), 'h-12 w-full rounded-xl')} onClick={onDone}>{t('返回登录')}</Link>
-    </div> : <AppForm form={form} className="flex flex-col gap-5">
+    </div> : <AppForm form={form} requiredMode="optional" className="flex flex-col gap-5">
       {kind === 'reset' && <>
-        <AppField name="password" label={t('新密码')}><AuthPassword fieldLabel={t('新密码')} required autoComplete="new-password" maxLength={128} placeholder={t('设置新密码，至少 12 个字符')} /></AppField>
-        <AppField name="confirm_password" label={t('确认新密码')}><AuthPassword fieldLabel={t('确认新密码')} required autoComplete="new-password" maxLength={128} placeholder={t('再次输入新密码')} /></AppField>
+        <AppField name="password" label={t('新密码')} hint={t(AUTH_MESSAGES.password)}><Input type="password" label={t('新密码')} required autoComplete="new-password" maxLength={128} placeholder={t('设置新密码，至少 12 个字符')} /></AppField>
+        <AppField name="confirm_password" label={t('确认新密码')}><Input type="password" label={t('确认新密码')} required autoComplete="new-password" maxLength={128} placeholder={t('再次输入新密码')} /></AppField>
       </>}
       {!token && <p role="alert" className="text-sm text-danger">{t('链接缺少凭据，请从最新邮件重新打开。')}</p>}
       {(submit.error || policy.error) && <p role="alert" className="text-sm text-danger">{t((submit.error ?? policy.error)?.message)}</p>}
@@ -444,5 +433,5 @@ function MFAFlow({web,onDone}:{web:WebClient;onDone:()=>void}) {
  const form=useAppForm({schema:'SecurityCodeInput',defaultValues:{code:''},onSubmit:values=>{verify.mutate(values.code);}});
  const verify=useMutation({mutationFn:(code:string)=>web.verifyMFA(code),onSuccess:()=>{form.reset();onDone();},onError:form.applyServerError});
  const cancel=useMutation({mutationFn:()=>web.cancelMFA(),onSuccess:onDone});
- return <main className="flex min-h-[600px] items-center justify-center p-4"><section className="w-full max-w-sm rounded-xl border border-line bg-surface p-6 shadow-card"><ShieldCheck size={28} className="mb-4 text-accent"/><h1 className="text-xl font-semibold">{t('双重验证')}</h1><p className="mt-2 mb-5 text-sm text-muted">{t('登录凭据已验证，请在 5 分钟内完成双重验证。')}</p><AppForm form={form} className="flex flex-col gap-4"><AppField name="code" label={recovery?t('恢复码'):t('身份验证器验证码')}><Input required minLength={recovery?20:6} maxLength={recovery?20:6} pattern={recovery?undefined:'[0-9]{6}'} inputMode={recovery?'text':'numeric'} autoComplete="one-time-code"/></AppField><Button type="submit" pending={verify.isPending}>{t('验证并登录')}</Button><Button type="button" variant="ghost" disabled={verify.isPending||cancel.isPending} onClick={()=>{setRecovery(value=>!value);form.reset();}}>{recovery?t('使用身份验证器'):t('使用恢复码')}</Button><Button type="button" variant="secondary" pending={cancel.isPending} disabled={verify.isPending} onClick={()=>cancel.mutate()}>{t('返回登录')}</Button></AppForm></section></main>;
+ return <main className="flex min-h-[600px] items-center justify-center p-4"><section className="w-full max-w-sm rounded-xl border border-line bg-surface p-6 shadow-card"><ShieldCheck size={28} className="mb-4 text-accent"/><h1 className="text-xl font-semibold">{t('双重验证')}</h1><p className="mt-2 mb-5 text-sm text-muted">{t('登录凭据已验证，请在 5 分钟内完成双重验证。')}</p><AppForm form={form} className="flex flex-col gap-4">{recovery ? <AppField name="code" label={t('恢复码')}><Input required minLength={20} maxLength={20} autoComplete="off" /></AppField> : <AppOTPField name="code" label={t('身份验证器验证码')} />}<Button type="submit" pending={verify.isPending}>{t('验证并登录')}</Button><Button type="button" variant="ghost" disabled={verify.isPending||cancel.isPending} onClick={()=>{setRecovery(value=>!value);form.reset();}}>{recovery?t('使用身份验证器'):t('使用恢复码')}</Button><Button type="button" variant="secondary" pending={cancel.isPending} disabled={verify.isPending} onClick={()=>cancel.mutate()}>{t('返回登录')}</Button></AppForm></section></main>;
 }

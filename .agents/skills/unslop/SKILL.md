@@ -233,3 +233,7 @@ It adds a few minutes, so make it only when the user wants it.
 - [ ] The first screen is composed as a whole with no dead empty band
 - [ ] No looping or bouncy motion, one easing curve, no animated layout properties
 - [ ] Template check. If you swapped the product name for another product's, would the screen still fit? If yes, push the direction harder in the copy, the visual and the signature detail
+
+## Unicore form integration
+
+For forms and search controls in this repository, apply the [form interaction standard](../../../docs/product/form-interaction.md). Preserve floating labels and persistent help, blur validation, six-slot codes and the semantic choice of range, searchable, cascading and tag controls. Search suggestions belong in an anchored overlay; they must not push later fields down. Reuse the shared primitives and real upload state rather than styling a separate nested results card.

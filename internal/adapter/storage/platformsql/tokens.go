@@ -305,6 +305,10 @@ func (r *Repository) PersonalTokenUsers(ctx context.Context, source, search stri
 	if err != nil {
 		return contracts.UserList{}, err
 	}
+	search = strings.TrimSpace(search)
+	if search == "" {
+		return contracts.UserList{Items: []contracts.User{}, Page: page, PageSize: size}, nil
+	}
 	return r.ListUsersScoped(ctx, s.User, search, page, size)
 }
 func (r *Repository) PersonalTokens(ctx context.Context, source string, manage bool, search string, page, size int) ([]platform.APICredential, int, error) {

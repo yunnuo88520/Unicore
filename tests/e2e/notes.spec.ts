@@ -2,7 +2,7 @@
 // Description: Shared note dialogs run against real Go/SQLite on desktop-sized and 375px browser pages.
 import {mkdir,readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
-import {test,expect,installStandalone,sdkClient} from './fixtures';
+import {chooseOption,test,expect,installStandalone,sdkClient} from './fixtures';
 
 test('persistent standalone notes, modal CRUD, filtering and concurrency',async({page,instance},info)=>{
  await installStandalone(instance);await page.goto(`${instance.url}/notes`);
@@ -21,7 +21,7 @@ test('persistent standalone notes, modal CRUD, filtering and concurrency',async(
  const note=rows.items[0];expect((await instance.request.put(`/api/v1/notes/${note.id}`,{data:{title:note.title,body:'另一窗口的更新',status:'done',attachment_ids:[],version:note.version}})).status()).toBe(200);
  await dialog.getByRole('textbox',{name:'正文',exact:true}).fill('旧窗口不应覆盖');await dialog.getByRole('button',{name:'保存笔记',exact:true}).click();await expect(dialog.locator('.note-form').getByText('笔记已被修改，请重新打开后再保存',{exact:true})).toBeVisible();
  await dialog.getByRole('button',{name:'取消',exact:true}).click();await page.reload();await expect(page.getByText('另一窗口的更新',{exact:true})).toBeVisible();
- await page.getByLabel('笔记状态',{exact:true}).selectOption('open');await expect(page.getByText('没有符合条件的笔记',{exact:true})).toBeVisible();await page.getByLabel('笔记状态',{exact:true}).selectOption('done');
+ await chooseOption(page,'笔记状态','进行中');await expect(page.getByText('没有符合条件的笔记',{exact:true})).toBeVisible();await chooseOption(page,'笔记状态','已完成');
  await page.getByRole('button',{name:'编辑 跨形态业务样板',exact:true}).click();dialog=page.getByRole('dialog',{name:'编辑笔记',exact:true});await dialog.getByRole('textbox',{name:'标题',exact:true}).fill('完整业务链路');await dialog.getByRole('button',{name:'保存笔记',exact:true}).click();await expect(dialog).toHaveCount(0);
  await page.getByRole('button',{name:'删除 完整业务链路',exact:true}).click();dialog=page.getByRole('dialog',{name:'删除笔记',exact:true});await dialog.getByRole('button',{name:'确认删除',exact:true}).click();await expect(dialog).toHaveCount(0);await expect(page.getByText('没有符合条件的笔记',{exact:true})).toBeVisible();
 });

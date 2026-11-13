@@ -10,7 +10,7 @@ import { Tooltip } from '@unicore/ui';
 
 const iconButton = 'inline-flex size-8 items-center justify-center rounded-md text-muted transition-colors outline-none hover:bg-primary-soft hover:text-accent focus-visible:ring-2 focus-visible:ring-focus';
 
-export function ClientControls() {
+export function ClientControls({ showAppearanceSettings = true }: { showAppearanceSettings?: boolean }) {
   const locale = useLocale();
   const [language, setLanguage] = useState(false);
   const [appearance, setAppearance] = useState(false);
@@ -53,9 +53,9 @@ export function ClientControls() {
     <Tooltip label={t('切换主题')}>
       <button className={iconButton} aria-label={t('切换主题')} onClick={() => setPreferences({ theme: dark ? 'light' : 'dark' })}>{dark ? <Moon size={18} /> : <Sun size={18} />}</button>
     </Tooltip>
-    <Tooltip label={t('主题设置')}>
+    {showAppearanceSettings && <Tooltip label={t('主题设置')}>
       <button className={iconButton} aria-label={t('主题设置')} onClick={event => { event.currentTarget.focus(); setAppearance(true); }}><Settings2 size={18} /></button>
-    </Tooltip>
-    {appearance && <AppearanceDrawer onClose={() => setAppearance(false)} />}
+    </Tooltip>}
+    {showAppearanceSettings && appearance && <AppearanceDrawer onClose={() => setAppearance(false)} />}
   </div>;
 }

@@ -40,10 +40,9 @@ export function PasswordDialog({ web, onClose }: { web: WebClient; onClose: () =
       <AppField name="current_password" label={t('当前密码')}><Input type="password" required maxLength={128} autoComplete="current-password" /></AppField>
       <AppField name="password" label={t('新密码')}><Input type="password" required minLength={12} maxLength={128} autoComplete="new-password" /></AppField>
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="confirm-password" className="text-sm font-medium text-ink">{t('确认新密码')}</label>
-        <Input id="confirm-password" name="confirm" type="password" required minLength={12} maxLength={128} autoComplete="new-password"
+        <Input label={t('确认新密码')} id="confirm-password" name="confirm" type="password" required minLength={12} maxLength={128} autoComplete="new-password"
           aria-invalid={!!confirmError || undefined} aria-describedby={confirmError ? 'confirm-password-error' : undefined}
-          value={confirm} onChange={event => { setConfirm(event.target.value); if (confirmError) setConfirmError(''); }} />
+          value={confirm} onChange={event => setConfirm(event.target.value)} onBlur={() => setConfirmError(confirm && confirm !== form.getValues('password') ? t('两次新密码不一致') : '')} />
         {confirmError && <p id="confirm-password-error" role="alert" className="text-xs text-danger">{confirmError}</p>}
       </div>
       <div className="flex flex-wrap items-center justify-end gap-2">

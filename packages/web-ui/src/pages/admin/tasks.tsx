@@ -6,7 +6,7 @@ import { ListChecks, Play } from 'lucide-react';
 import { AppError } from '@unicore/sdk';
 import type { TaskEntry, WebClient } from '@unicore/sdk';
 import { AppControllerField, AppField, AppForm, useAppForm } from '@unicore/form';
-import { Badge, Button, Card, CardContent, ConfirmDialog, Input, Modal, NativeSelect, PageHeader, Switch as Toggle, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage } from '@unicore/ui';
+import { Badge, Button, Card, CardContent, ConfirmDialog, Input, Modal, SimpleSelect, PageHeader, Switch as Toggle, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage, selectOptions } from '@unicore/ui';
 import { currentLocale, t, useI18n, useLocale } from '../../i18n';
 import { DataTableEmpty } from '../../components/data-table';
 import { invalidateAfter } from '../../queries';
@@ -150,9 +150,9 @@ function TaskEditor({ web, executors, entry, onClose, onSaved }: {
     <AppForm form={form} className="flex flex-col gap-3">
       {!editing && <AppField name="name" label={t('任务名')}><Input autoComplete="off" maxLength={64} placeholder="cleanup.stale" /></AppField>}
       <AppField name="description" label={t('说明')}><Textarea maxLength={200} rows={2} /></AppField>
-      <AppControllerField name="executor" label={t('执行器')}>{field => <NativeSelect value={String(field.value ?? '')} onChange={event => field.onChange(event.target.value)} className="max-w-full">
+      <AppControllerField name="executor" label={t('执行器')}>{field => <SimpleSelect {...field} value={String(field.value ?? '')} onChange={event => field.onChange(event)} className="max-w-full" options={selectOptions(<>
         {executors.map(item => <option key={item.key} value={item.key}>{t(item.key)} · {t(item.description)}</option>)}
-      </NativeSelect>}</AppControllerField>
+      </>)} />}</AppControllerField>
       <AppField name="schedule" label={t('执行计划')} rules={{ required: true }}>
         <Input autoComplete="off" maxLength={64} placeholder="0 3 * * * / @daily" />
       </AppField>

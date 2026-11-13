@@ -400,6 +400,16 @@ func TestPersonalTokenManagementAndLifetimes(t *testing.T) {
 		tokenData[any](t, f.request("GET", path, nil, "", f.userRaw, false), 403)
 		tokenData[any](t, f.request("GET", path, nil, "", f.adminRaw, false), 200)
 	}
+	for _, search := range []string{"", "%20%20"} {
+		users := tokenData[contracts.UserList](t, f.request("GET", "/admin/access-tokens/users?search="+search, nil, "", f.adminRaw, false), 200)
+		if len(users.Items) != 0 || users.Total != 0 || users.Items == nil {
+			t.Fatalf("empty owner search enumerated users: %+v", users)
+		}
+	}
+	users := tokenData[contracts.UserList](t, f.request("GET", "/admin/access-tokens/users?search="+f.user.Username, nil, "", f.adminRaw, false), 200)
+	if len(users.Items) != 1 || users.Items[0].ID != f.user.ID {
+		t.Fatalf("owner search did not find the requested user: %+v", users)
+	}
 	adminInput := contracts.AdminPersonalTokenInput{Name: input.Name, RoleID: input.RoleID, Remark: input.Remark, ExpiresInDays: 1, UserID: f.user.ID}
 	tokenData[any](t, f.request("POST", "/admin/access-tokens", adminInput, "", f.adminRaw, false), 403)
 	tokenData[any](t, f.request("POST", "/admin/access-tokens", adminInput, "", f.userRaw, true), 403)

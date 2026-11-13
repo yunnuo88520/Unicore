@@ -135,3 +135,23 @@ it('context menu preserves browser escape hatch and empty/disabled native behavi
   view.rerender(<ContextMenu label="Actions" actions={[]}><span>Row</span></ContextMenu>); expect(fireEvent.contextMenu(root)).toBe(true);
   view.rerender(<ContextMenu label="Actions" disabled actions={[{ id: 'a', label: 'Rename', onSelect: action }]}><span>Row</span></ContextMenu>); expect(fireEvent.contextMenu(root)).toBe(true);
 });
+
+it('remote autocomplete waits for a query, hides stale results while loading and highlights matches', () => {
+  const queryChange = vi.fn(); const change = vi.fn();
+  const result = [{ value: 'owner', label: 'automation-user', description: 'automation@example.test' }];
+  const view = render(<Combobox label="Owner" query="" minQueryLength={1} onQueryChange={queryChange} options={result} onValueChange={change} />);
+  const input = screen.getByRole('combobox'); act(() => input.focus());
+  expect(screen.queryByRole('listbox')).toBeNull();
+  fireEvent.change(input, { target: { value: 'auto' } });
+  expect(queryChange).toHaveBeenCalledWith('auto');
+  view.rerender(<Combobox label="Owner" query="auto" minQueryLength={1} loading onQueryChange={queryChange} options={result} onValueChange={change} />);
+  expect(screen.queryByRole('option')).toBeNull();
+  expect(screen.getByRole('status')).toHaveTextContent('Searching');
+  view.rerender(<Combobox label="Owner" query="auto" minQueryLength={1} onQueryChange={queryChange} options={result} onValueChange={change} />);
+  const option = screen.getByRole('option');
+  expect(option.querySelector('mark')).toHaveTextContent('auto');
+  expect(view.container.contains(screen.getByRole('listbox'))).toBe(false);
+  fireEvent.keyDown(input, { key: 'ArrowDown' }); fireEvent.keyDown(input, { key: 'Enter' });
+  expect(change).toHaveBeenCalledWith('owner');
+  expect(input).toHaveFocus();
+});

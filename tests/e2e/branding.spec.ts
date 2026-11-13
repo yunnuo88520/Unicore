@@ -111,7 +111,7 @@ test('platform login and all mail previews use public instance branding', async 
   const logout=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().includes('/auth/logout'));
   await page.getByRole('menuitem',{name:'退出登录',exact:true}).click();
   await logout;
-  await page.goto(instance.url);
+  await page.goto(`${instance.url}/login`);
   await expect(page.getByRole('heading',{name:'登录 品牌平台',exact:true})).toBeVisible();
   await expect(page.locator('.flow-brand .instance-brand-light img')).toBeVisible();
   await capture(page,info,'brand-login');

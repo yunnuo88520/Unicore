@@ -1,7 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: First-run installation wizard on the shared form layer: environment, profile, database and administrator.
 import { t, useLocale, defineMessages } from '../i18n';
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useRouter } from '@tanstack/react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { ArrowRight, CheckCircle2, LoaderCircle } from 'lucide-react';
@@ -13,6 +13,7 @@ import { AppField, AppForm, useAppForm } from '@unicore/form';
 import { AppCheckboxField, AppControllerField } from '@unicore/form/fields';
 import { Button, Input, SimpleSelect } from '@unicore/ui';
 import { cn } from '@unicore/ui/cn';
+import { InstallationSteps } from '../components/installation-steps';
 
 type Profile = Bootstrap['profile'];
 type WizardDatabase = { driver: DatabaseInput['driver']; dsn: string; host: string; port: number; name: string; username: string; password: string; tls: boolean; tls_verify: boolean };
@@ -77,6 +78,8 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
   const [step, setStep] = useState(0);
   const [token, setToken] = useState('');
   const [tokenError, setTokenError] = useState('');
+  const tokenID = useId();
+  const stepHeading = useRef<HTMLHeadingElement>(null);
   const [result, setResult] = useState<InstallResult>();
   const complete = useMutation({ mutationFn: (input: InstallInput) => web.completeInstall(token, input) });
   const verify = useMutation({ mutationFn: (value: { token: string; database: DatabaseInput }) => web.verifyDatabase(value.token, value.database) });
@@ -86,7 +89,7 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
   const form = useAppForm<WizardValues>({
     schema: 'InstallInput',
     defaultValues: {
-      profile: initialProfile === 'web-platform' ? 'web-platform' : 'web-standalone',
+      profile: initialProfile === 'web-standalone' ? 'web-standalone' : 'web-platform',
       database: defaults('mysql'),
       site_name: productName,
       base_url: window.location.origin,
@@ -125,6 +128,7 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
   const input = form.watch();
   const stepList = stepListFor(input.profile);
   const current = stepList[step];
+  useEffect(() => { if (step > 0) stepHeading.current?.focus(); }, [step]);
   const titles: Record<StepKey, string> = { credentials: t('环境与凭据'), profile: t('运行形态'), database: t('数据库'), admin: t('管理员'), confirm: t('确认安装') };
   const last = step === stepList.length - 1;
   const check: DatabaseCheck | undefined = verify.isSuccess && verify.variables.token === token
@@ -184,13 +188,13 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
     // The connection probe must stay runnable before any check exists; consent only gates the next step.
     verify.mutate({ token, database: payloadDatabase(form.getValues('database')) });
   }
-  return <main className="flex min-h-dvh w-full flex-1 flex-col items-center px-4 py-10 sm:px-6">
-    <div className="flex items-center gap-2.5 text-xl font-bold tracking-tight text-ink [&_.brand-dot]:text-primary max-sm:me-20"><BrandLockup /></div>
-    <div className="mt-7 w-full max-w-4xl rounded-xl border border-line bg-surface p-5 shadow-card sm:p-10">
-      <header className="flex flex-col gap-1.5">
-        <p className="text-2xs font-medium tracking-[2px] text-muted">WELCOME TO {productName.toUpperCase()}</p>
-        <h1 className="text-2xl font-semibold text-ink">{result ? t('一切就绪，开始构建') : t('为你的产品，准备一个起点')}</h1>
-        <p className="text-sm text-muted">{result ? t('安装信息已持久化并生成 install.lock；一次性安装凭据已失效。') : t('只需几步，完成这个实例的安装配置。')}</p>
+  return <main className="flex w-full flex-1 flex-col items-center px-4 pb-10 pt-24 sm:px-6 sm:pt-12">
+    <div className="flex items-center gap-2 text-xl font-medium text-ink"><BrandLockup /></div>
+    <div className="mt-6 w-full max-w-4xl rounded-2xl border border-line bg-surface p-5 shadow-card sm:p-10">
+      <header className="flex flex-col items-center gap-3 text-center">
+        <p className="text-sm text-muted">{t('首次安装')}</p>
+        <h1 className="text-2xl font-medium text-ink">{result ? t('一切就绪，开始构建') : t('为你的产品，准备一个起点')}</h1>
+        <p className="text-sm text-muted">{result ? t('配置已保存。现在可以进入工作空间，重启服务后会自动恢复。') : t('只需几步，完成这个实例的安装配置。')}</p>
       </header>
       {result ? <div className="mt-6 flex flex-col items-start gap-3">
         <CheckCircle2 size={44} className="text-success" aria-hidden="true" />
@@ -203,17 +207,9 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
         </dl>
         <Button onClick={() => onDone(result)}>{t('进入工作空间')}<ArrowRight size={15} aria-hidden="true" /></Button>
       </div> : <>
-        <ol className="mt-7 grid grid-cols-1 gap-3 border-b border-line pb-6 sm:grid-cols-5">
-          {stepList.map((key, index) => <li key={key} aria-current={index === step ? 'step' : undefined} className={cn('flex min-w-0 items-center gap-2.5 text-sm', index <= step ? 'text-ink' : 'text-muted')}>
-            <span className={cn('flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold',
-              index < step ? 'bg-primary text-on-primary' : index === step ? 'border border-primary text-primary' : 'bg-surface-alt text-muted')}>
-              {index < step ? <CheckCircle2 size={18} aria-hidden="true" /> : index + 1}
-            </span>
-            <span className="font-medium">{titles[key]}</span>
-          </li>)}
-        </ol>
-        <AppForm form={form} className="mt-5 flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-ink">{titles[current]}</h2>
+        <InstallationSteps steps={stepList.map(key => ({ id: key, label: titles[key] }))} current={step} />
+        <AppForm form={form} requiredMode="optional" className="mx-auto mt-6 flex w-full max-w-2xl flex-col gap-5">
+          <h2 ref={stepHeading} tabIndex={-1} className="text-lg font-medium text-ink outline-none">{titles[current]}</h2>
           {current === 'credentials' && <>
             <div className="flex flex-col gap-2.5 rounded-lg bg-surface-alt px-3.5 py-3">
               {status.isPending ? <p role="status" className="text-sm text-muted">{t('正在检查环境…')}</p>
@@ -227,12 +223,12 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
                   </div>)}
             </div>
             {status.data?.status === 'INSTALL_FAILED' && <p className="text-sm text-muted">{t('上次安装未完成。修正配置后可持原凭据重试；已完成的实例不会再次安装。')}</p>}
-            <label className="flex flex-col gap-1.5 text-sm font-medium text-ink">
-              {t('一次性安装凭据')}
-              <Input name="bootstrap_token" type="password" autoComplete="off" maxLength={TOKEN_MAX} aria-invalid={tokenError ? true : undefined} value={token} onChange={event => { setToken(event.target.value); setTokenError(''); verify.reset(); }} />
-            </label>
-            {tokenError && <p role="alert" className="text-xs text-danger">{tokenError}</p>}
-            <p className="text-sm leading-relaxed text-muted">{t('用于确认你拥有服务器，防止他人抢先创建管理员。服务器首次启动已自动生成，请从私有数据目录的 bootstrap.token 文件读取；它与加密密钥不同，也不会存入浏览器。凭据失效时，删除数据目录中的 bootstrap.token 并重启服务即可重新生成。')}</p>
+            <div className="flex flex-col gap-1.5 text-sm font-medium text-ink">
+
+              <Input label={t('一次性安装凭据')} id={tokenID} name="bootstrap_token" type="password" autoComplete="off" maxLength={TOKEN_MAX} aria-describedby={tokenError ? `${tokenID}-error` : `${tokenID}-hint`} aria-invalid={tokenError ? true : undefined} value={token} onChange={event => { setToken(event.target.value); setTokenError(''); verify.reset(); }} />
+            </div>
+            {tokenError && <p id={`${tokenID}-error`} role="alert" className="text-xs text-danger">{tokenError}</p>}
+            <details className="rounded-lg border border-line p-4 text-sm"><summary className="cursor-pointer font-medium">{t('安装凭据在哪里？')}</summary><p id={`${tokenID}-hint`} className="mt-3 leading-relaxed text-muted">{t('用于确认你拥有服务器，防止他人抢先创建管理员。服务器首次启动已自动生成，请从私有数据目录的 bootstrap.token 文件读取；它与加密密钥不同，也不会存入浏览器。凭据失效时，删除数据目录中的 bootstrap.token 并重启服务即可重新生成。')}</p></details>
           </>}
           {current === 'profile' && <>
             <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label={t('运行形态')}>
@@ -249,17 +245,17 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
             <p className="text-sm text-muted">{t('安装完成后固定运行形态，更改模式需要独立部署与数据迁移。')}</p>
           </>}
           {current === 'database' && <>
-            <AppControllerField<WizardValues> name="database.driver" label={t('数据库类型')}>
+            <AppControllerField<WizardValues> name="database.driver" label={t('数据库类型')} className="w-full max-w-sm">
               {field => <SimpleSelect label={t('数据库类型')} value={String(field.value)} onChange={value => { field.onChange(value); updateDatabase(defaults(value as WizardDatabase['driver'])); }}
                 options={[{ value: 'mysql', label: t('MySQL · 在线部署推荐') }, { value: 'postgres', label: t('PostgreSQL · 在线部署推荐') }, { value: 'sqlite', label: t('SQLite · 本机或小型测试') }]} />}
             </AppControllerField>
             {input.database.driver === 'sqlite' ? <p className="text-sm text-muted">{t('文件固定保存在服务器私有数据目录 unicore.db，支持测试连接。在线多用户部署推荐 MySQL 或 PostgreSQL。')}</p> : <>
               <div className="grid gap-4 sm:grid-cols-2">
-                <AppField name="database.host" label={t('数据库地址')} onFieldChange={touchDatabase}><Input maxLength={253} /></AppField>
-                <AppField name="database.port" label={t('数据库端口')} rules={{ valueAsNumber: true }} onFieldChange={touchDatabase}><Input type="number" min={1} max={65535} /></AppField>
-                <AppField name="database.name" label={t('数据库名')} onFieldChange={touchDatabase}><Input maxLength={63} /></AppField>
-                <AppField name="database.username" label={t('数据库用户名')} onFieldChange={touchDatabase}><Input maxLength={128} autoComplete="off" /></AppField>
-                <AppField name="database.password" label={t('数据库密码')} onFieldChange={touchDatabase}><Input type="password" maxLength={1024} autoComplete="new-password" /></AppField>
+                <AppField required name="database.host" label={t('数据库地址')} onFieldChange={touchDatabase}><Input maxLength={253} /></AppField>
+                <AppField required name="database.port" label={t('数据库端口')} className="w-full max-w-40" rules={{ valueAsNumber: true }} onFieldChange={touchDatabase}><Input type="number" min={1} max={65535} /></AppField>
+                <AppField required name="database.name" label={t('数据库名')} onFieldChange={touchDatabase}><Input maxLength={63} /></AppField>
+                <AppField required name="database.username" label={t('数据库用户名')} onFieldChange={touchDatabase}><Input maxLength={128} autoComplete="off" /></AppField>
+                <AppField name="database.password" label={t('数据库密码')} onFieldChange={touchDatabase}><Input strength={false} type="password" maxLength={1024} autoComplete="new-password" /></AppField>
                 <AppControllerField<WizardValues> name="database.tls" label={t('数据库 TLS')}>
                   {field => <SimpleSelect label={t('数据库 TLS')} value={field.value ? input.database.tls_verify ? 'verify' : 'on' : 'off'} onChange={value => { field.onChange(value !== 'off'); updateDatabase({ tls: value !== 'off', tls_verify: value === 'verify' }); }}
                     options={[{ value: 'off', label: t('关闭 · 本机或内网直连') }, { value: 'on', label: t('开启 · 加密连接，不校验证书') }, { value: 'verify', label: t('开启 · 校验证书与主机名') }]} />}
@@ -285,11 +281,10 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
             </>}
           </>}
           {current === 'admin' && <>
-            <AppField name="site_name" label={t('站点名称')}><Input maxLength={64} /></AppField>
-            <AppField name="admin_username" label={t('管理员账号')}><Input maxLength={64} autoComplete="username" /></AppField>
-            <AppField name="admin_email" label={t('管理员邮箱')}><Input type="email" autoComplete="email" /></AppField>
-            <AppField name="admin_password" label={t('管理员密码')}><Input type="password" maxLength={128} autoComplete="new-password" /></AppField>
-            <p className="text-sm text-muted">{t('至少 12 字节，最多 128 字节，使用 Argon2id，不保存明文。')}</p>
+            <AppField name="site_name" label={t('站点名称')} className="w-full max-w-lg"><Input maxLength={64} /></AppField>
+            <AppField required name="admin_username" label={t('管理员账号')} className="w-full max-w-lg"><Input maxLength={64} autoComplete="username" /></AppField>
+            <AppField required name="admin_email" label={t('管理员邮箱')} className="w-full max-w-lg"><Input type="email" autoComplete="email" /></AppField>
+            <AppField required name="admin_password" label={t('管理员密码')} className="w-full max-w-lg" hint={t('至少 12 字节，最多 128 字节；请使用独立且足够长的密码。')}><Input type="password" maxLength={128} autoComplete="new-password" /></AppField>
           </>}
           {current === 'confirm' && <>
             <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-5 gap-y-1.5 rounded-lg bg-surface-alt px-3.5 py-3 text-sm">
@@ -301,7 +296,7 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
             {input.reset_database && <p role="alert" className="text-sm text-danger">{t('你已确认清空 {{name}} 中的现有表、视图及数据，再初始化安装。', { name: input.database_confirmation })}</p>}
             <p className="text-sm leading-relaxed text-muted">{t('安装记录、连接配置和密钥保存在服务器私有数据目录。重启、更新或替换容器时保留此目录，即可自动恢复。仅服务器管理员停服删除 install.lock 并重启后，才能重新进入安装向导。')}</p>
           </>}
-          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-5">
             {step > 0 ? <Button type="button" variant="secondary" disabled={complete.isPending} onClick={() => { setStep(value => value - 1); complete.reset(); }}>{t('上一步')}</Button> : <span />}
             {last
               ? <Button key="install-finish" type="submit" disabled={complete.isPending}>
@@ -314,7 +309,7 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
         </AppForm>
       </>}
     </div>
-    <p className="mt-6 text-xs text-muted">{productName}{t('· yunnuo · 首次安装后自动恢复实例')}</p>
+    <p className="mt-6 text-xs text-muted">{t('首次安装后，重启服务将自动恢复实例')}</p>
   </main>;
 }
 

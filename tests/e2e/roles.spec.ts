@@ -3,7 +3,7 @@
 // and isolated client appearance; the three-way authorization model (menus,
 // buttons, API operations) stays independent of the permission upper bound.
 import { mkdir } from 'node:fs/promises';
-import { test, expect, installPlatform, adminLogin, workspaceLogin, sdkClient, loginClient, navigate, nodeDisplayLabel, pageNode, menuChain, materializedOperations, pageBoot, memberPassword, type Instance } from './fixtures';
+import { chooseOption, test, expect, installPlatform, adminLogin, workspaceLogin, sdkClient, loginClient, navigate, nodeDisplayLabel, pageNode, menuChain, materializedOperations, pageBoot, memberPassword, type Instance } from './fixtures';
 import { operations } from '../../packages/contracts/src/operations.gen';
 
 const adminPassword = 'administrator-password-strong';
@@ -221,7 +221,7 @@ test('restricted administrators keep user administration without role management
   await expect(page.getByRole('row').filter({ hasText: '内容运营' })).toBeVisible();
   await page.getByRole('row').filter({ hasText: '内容运营' }).getByRole('button', { name: '编辑角色 内容运营', exact: true }).click();
   const roleEditor = page.getByRole('dialog', { name: '编辑角色', exact: true });
-  await expect(roleEditor.getByLabel('数据范围', { exact: true })).toHaveValue('all');
+  await expect(roleEditor.getByRole('combobox', { name: '数据范围', exact: true })).toContainText('全部');
   // The advanced catalogue carries the raw points and the super-only locks.
   await roleEditor.getByRole('button', { name: /高级/ }).click();
   const pointsPanel = roleEditor.getByRole('group', { name: '权限点' });
@@ -428,7 +428,7 @@ test('department moves refuse cycles and revoke stale scope sessions', async ({ 
   await expect(admin.web!.updateDepartment(parent!.id, { name: '研发部', parent_id: child!.id })).rejects.toMatchObject({ code: 'INVALID_INPUT' });
   await page.getByRole('button', { name: '重命名 研发部', exact: true }).click();
   const renameDialog = page.getByRole('dialog', { name: '重命名部门', exact: true });
-  const parentOptions = await renameDialog.getByLabel('上级部门', { exact: true }).locator('option').allTextContents();
+  const parentOptions = await renameDialog.getByRole('radiogroup', { name: '上级部门', exact: true }).getByRole('radio').allTextContents();
   expect(parentOptions).not.toContain('研发部');
   expect(parentOptions).not.toContain('前端组');
   await renameDialog.getByRole('button', { name: '取消', exact: true }).click();
@@ -441,7 +441,7 @@ test('department moves refuse cycles and revoke stale scope sessions', async ({ 
   await expect(secondDialog).toHaveCount(0);
   await page.getByRole('button', { name: '重命名 研发二部', exact: true }).click();
   const moveDialog = page.getByRole('dialog', { name: '重命名部门', exact: true });
-  await moveDialog.getByLabel('上级部门', { exact: true }).selectOption(child!.id);
+  await chooseOption(page, '上级部门', /前端组/, moveDialog);
   await moveDialog.getByRole('button', { name: '保存', exact: true }).click();
   await expect(moveDialog).toHaveCount(0);
   // Tree changes revoke existing sessions because department scopes may change.
@@ -452,7 +452,7 @@ test('department moves refuse cycles and revoke stale scope sessions', async ({ 
   expect(moved.parent_id).toBe(child!.id);
   await page.getByRole('button', { name: '重命名 研发二部', exact: true }).click();
   const restoreDialog = page.getByRole('dialog', { name: '重命名部门', exact: true });
-  await restoreDialog.getByLabel('上级部门', { exact: true }).selectOption('');
+  await chooseOption(page, '上级部门', '作为根部门', restoreDialog);
   await restoreDialog.getByRole('button', { name: '保存', exact: true }).click();
   await expect(restoreDialog).toHaveCount(0);
   await adminLogin(page, instance.url, 'admin', adminPassword);
@@ -485,7 +485,7 @@ test('custom department scopes echo in the role editor and guard attached depart
   await editor.getByRole('button', { name: /高级/ }).click();
   const pointsPanel = editor.getByRole('group', { name: '权限点' });
   await pointsPanel.getByRole('checkbox', { name: '使用我的笔记', exact: true }).check();
-  await editor.getByLabel('数据范围', { exact: true }).selectOption('custom');
+  await chooseOption(page, '数据范围', '自定义', editor);
   await editor.getByRole('group', { name: '自定义部门范围' }).getByRole('checkbox', { name: '前端组' }).check();
   await editor.getByRole('button', { name: '保存', exact: true }).click();
   await expect(editor).toHaveCount(0);
@@ -497,7 +497,7 @@ test('custom department scopes echo in the role editor and guard attached depart
   // Reopening the editor echoes the granted point, the scope and the department selection.
   await page.getByRole('row').filter({ hasText: '区域记录员' }).getByRole('button', { name: '编辑角色 区域记录员', exact: true }).click();
   const editDialog = page.getByRole('dialog', { name: '编辑角色', exact: true });
-  await expect(editDialog.getByLabel('数据范围')).toHaveValue('custom');
+  await expect(editDialog.getByRole('combobox', { name: '数据范围', exact: true })).toContainText('自定义');
   await editDialog.getByRole('button', { name: /高级/ }).click();
   const echoPanel = editDialog.getByRole('group', { name: '权限点' });
   await expect(echoPanel.getByRole('checkbox', { name: '使用我的笔记', exact: true })).toBeChecked();
@@ -510,7 +510,7 @@ test('custom department scopes echo in the role editor and guard attached depart
   await userDialog.getByLabel('账号', { exact: true }).fill('deptmember');
   await userDialog.getByLabel('邮箱', { exact: true }).fill('deptmember@example.test');
   await userDialog.getByLabel('初始密码', { exact: true }).fill(member);
-  await userDialog.getByLabel('部门', { exact: true }).selectOption(child!.id);
+  await chooseOption(page, '部门', /前端组/, userDialog);
   await userDialog.getByRole('button', { name: '创建用户', exact: true }).click();
   await expect(userDialog).toHaveCount(0);
   const row = page.getByRole('row').filter({ hasText: 'deptmember' });

@@ -25,7 +25,7 @@
 | 人机验证（Turnstile/腾讯/阿里） | 已实现，设置门控 | 不装配 | 不装配 | security.human_check_* | `internal/platform/humancheck.go` |
 | 登录防护（IP 封禁/会话策略/强制 2FA） | 已实现 | 不装配 | 不装配 | settings security.* | `internal/platform/login_guard.go` |
 
-客户端 JWT / Refresh Token 与个人 API 令牌：Platform 已实现；Standalone / CLI 不装配。持久化为 platform@1 的 unicore_api_credentials、unicore_api_refresh_tokens、unicore_api_token_keys；个人中心独立令牌菜单管理单角色令牌，支持固定有效期、永久、备注、续期和作废；超级管理员管理全部令牌并可代用户签发。客户端认证与刷新走独立 API，见 [API 认证](../product/api-authentication.md) 与 [ADR-0044](../adr/ADR-0044-role-bound-personal-tokens.md)。
+客户端 JWT / Refresh Token 与个人 API 令牌：Platform 已实现；Standalone / CLI 不装配。持久化为 platform@1 的 unicore_api_credentials、unicore_api_refresh_tokens、unicore_api_token_keys；个人中心独立令牌菜单管理单角色令牌，支持固定有效期、永久、备注、续期和作废；超级管理员管理全部令牌并可代用户签发；创建时先输入用户名或邮箱搜索，空搜索不枚举用户，选择后才加载绑定角色。客户端认证与刷新走独立 API，见 [API 认证](../product/api-authentication.md) 与 [ADR-0044](../adr/ADR-0044-role-bound-personal-tokens.md)。
 
 ## B. 通知与消息（Platform 专属）
 
@@ -41,6 +41,7 @@
 
 | 功能单元 | Platform | Standalone | CLI | 持久化 | 证据 |
 | --- | --- | --- | --- | --- | --- |
+| 产品首页（`/home`） | 已实现，默认开启；访客与已登录账号均可访问，根路径按登录状态分流 | 不装配 | 不适用 | settings site.home_enabled | `packages/web-ui/src/pages/home.tsx`、`App.tsx` |
 | 公告管理（草稿/定时/受众/预览/启停） | 已实现 | 不装配 | 不装配 | unicore_platform_announcements | `internal/usecase/announcements.go`、[公告手册](../03-runbooks/announcements.md) |
 | 公告安全渲染（受限 Markdown/HTML） | 已实现 | 不装配 | 不装配 | 无 | `internal/adapter/content/announcement.go` |
 
@@ -128,3 +129,5 @@
 - Standalone(GUI) 文件服务已使用实例 secret.Store；设置仍无敏感值，新增敏感设置前须按 D4 接线。
 - 更新兼容性使用 Catalog 世代与完整 SQL 指纹（D5 已解决）；包含迁移的版本需停服备份后人工升级。
 - 实例默认外观（appearance.theme）、bootstrap theme 和外观页面已移除（D13）：单机/桌面外观只走设备级偏好，右上角切换不受影响。
+
+共享表单交互在 Platform 与 Standalone 两载体统一提供浮动标签、六格验证码、常驻帮助、失焦校验、按候选数量选控件、范围/出生日期、双端滑块、自动补全、级联、标签与真实文件进度。仅为 UI 能力，无新增身份、短信服务或业务资料持久化；CLI 不适用。见 [表单交互规范](../product/form-interaction.md)。

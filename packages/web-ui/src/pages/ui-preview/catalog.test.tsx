@@ -54,7 +54,7 @@ describe('explicit catalog coverage', () => {
   it('bounds profile forms and compact controls independently of the showcase width', () => {
     const { container } = render(<MessageProvider><CompositeDemo id="agent-creator" /><BaseDemo id="select" /></MessageProvider>);
     expect(container.querySelector('form')).toHaveClass('max-w-xl');
-    expect(container.querySelector('[data-catalog-id="select"] [data-sample-surface]')).toHaveClass('max-w-sm');
+    expect(container.querySelector('[data-catalog-id="select"] [data-sample-surface]')).toHaveClass('max-w-xs');
   });
   it('opens the command modal, chooses a real command and reports the selection', async () => {
     render(<MessageProvider><BaseDemo id="command-palette" /></MessageProvider>);

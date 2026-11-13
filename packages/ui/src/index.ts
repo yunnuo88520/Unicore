@@ -16,7 +16,7 @@ export { Kbd } from './kbd';
 export { Separator, Skeleton, Avatar, Progress } from './misc';
 export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableEmpty } from './table';
 export { Dialog, DialogTrigger, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Modal, AlertDialog, AlertDialogTrigger, ConfirmDialog } from './dialog';
-export { Select, SelectValue, SelectTrigger, SelectContent, SelectItem, SimpleSelect, selectTriggerVariants } from './select';
+export { Select, SelectValue, SelectTrigger, SelectContent, SelectItem, SimpleSelect, selectOptions, selectTriggerVariants } from './select';
 export { Switch, SwitchPrimitive } from './switch';
 export { Checkbox } from './checkbox';
 export { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from './dropdown-menu';

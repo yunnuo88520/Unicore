@@ -48,3 +48,5 @@ return <button aria-label={t('保存')}>{t('保存')}</button>;
 持久分片上传统一使用 file-upload-dialog.tsx / AppClient.files.uploadFile；支持暂停/刷新续传、指纹核对和确认字节进度。平台专用安全投影 uploadPolicy，配置页不得向用户端暴露。详见 [存储手册](storage.md)。
 
 工作区页签使用共享 Tabs（受控 items API）或带同一默认样式的 TabsPrimitive；边框分段栏与强调色选中态统一，长标签在栏内单行滚动，不撑宽页面。className 只作用于容器，不复制到每个 Trigger。面板由调用方提供稳定 id、aria-labelledby，并保留 Radix 的方向键/Home/End 与焦点行为。Standalone 只渲染实际适用能力，不以“不适用”卡片或管理员权限说明暴露平台功能。
+
+表单实现按[表单交互规范](../product/form-interaction.md)：使用共享浮动标签与字段下方帮助，默认失焦校验；候选搜索使用浮层，不改变后续字段位置。新建页面前阅读该规范。

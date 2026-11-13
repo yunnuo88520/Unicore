@@ -425,6 +425,18 @@
       "slug": "Framework-Upgrades",
       "title": "派生开发与框架升级",
       "site_group": "develop"
+    },
+    {
+      "source": "docs/product/form-interaction.md",
+      "target": "docs/product/form-interaction.md",
+      "audiences": [
+        "project-template",
+        "public-wiki",
+        "public-site"
+      ],
+      "slug": "Form-Interaction",
+      "title": "表单交互规范",
+      "site_group": "reference"
     }
   ],
   "template_files": [
@@ -1286,7 +1298,14 @@
     "packages/ui/src/composites/agents.test.tsx",
     "packages/ui/src/composites/questionnaire.test.tsx",
     "packages/ui/src/composites/surfaces.test.tsx",
-    "packages/ui/src/controls/regressions.test.tsx"
+    "packages/ui/src/controls/regressions.test.tsx",
+    "packages/ui/src/calendar/birth-date-picker.test.tsx",
+    "packages/ui/src/calendar/birth-date-picker.tsx",
+    "packages/ui/src/controls/advanced-fields.test.tsx",
+    "packages/ui/src/controls/advanced-fields.tsx",
+    "packages/web-ui/src/components/installation-steps.test.tsx",
+    "packages/web-ui/src/components/installation-steps.tsx",
+    "packages/web-ui/src/pages/home.css"
   ],
   "ownership": {
     "product-owned": [

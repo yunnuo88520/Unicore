@@ -5,7 +5,7 @@
 
 ## Web
 
-`make install` 后运行 `make dev-server` 与 `make dev-web`，访问 5173；或 `make build-web` 后运行 build/bin/server，访问 3000。默认监听 loopback。首次请求进入 /install，从私有数据目录的 bootstrap.token 读取一次性凭据，选择 Web 平台/单机；平台必须填写管理员，单机不出现账号步骤。
+`make install` 后运行 `make dev-server` 与 `make dev-web`，访问 5173；或 `make build-web` 后运行 build/bin/server，访问 3000。默认监听 loopback。首次请求进入 /install，从私有数据目录的 bootstrap.token 读取一次性凭据，源码构建默认选择 Web 平台，发行包与显式部署 profile 沿用各自默认值；可选择单机，平台必须填写管理员，单机不出现账号步骤。
 
 | 环境变量 / flag | 用途 |
 | --- | --- |

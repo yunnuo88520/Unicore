@@ -56,7 +56,7 @@ const notes = await api.call('listNotes');
 
 本人管理 API：GET/POST `/api/v1/account/tokens`、DELETE `/api/v1/account/tokens/{id}`、POST `/api/v1/account/tokens/{id}/renew`、GET `/api/v1/account/token-roles`。管理员工作台通过对应 `/admin/account/*` 别名管理本人令牌。这些入口仅接受浏览器 Cookie，写请求必须 CSRF，Bearer 凭证不能继续签发凭证。
 
-超级管理员在“超级管理员 → 访问令牌管理”查看、搜索、分页管理所有人的令牌，选择目标用户后只能从该用户的现有角色中签发，支持备注、续期和作废。接口为 `/api/v1/admin/access-tokens`、`/{id}`、`/{id}/renew`、`/users` 和 `/users/{id}/roles`，分别要求 tokens:read/write、super_admin 和浏览器会话，写请求要求 CSRF。被禁用的用户不能新建或续期，但其历史记录仍可被超级管理员作废。
+超级管理员在“超级管理员 → 访问令牌管理”查看、搜索、分页管理所有人的令牌，创建表单先输入用户名或邮箱搜索，空关键词不查询或枚举用户；选定后可以更换用户，并清空原角色选择。选择目标用户后只能从该用户的现有角色中签发，支持备注、续期和作废。接口为 `/api/v1/admin/access-tokens`、`/{id}`、`/{id}/renew`、`/users` 和 `/users/{id}/roles`，分别要求 tokens:read/write、super_admin 和浏览器会话，写请求要求 CSRF。被禁用的用户不能新建或续期，但其历史记录仍可被超级管理员作废。
 
 在个人页作废立即生效。修改密码、调整角色、禁用账号或“下线其他设备”也会使关联 PAT 失效；普通浏览器退出不影响独立 PAT。列表只显示元数据，不返回秘密，PAT 元数据不会被客户端刷新凭证的到期清理删除。签发、刷新、撤销、刷新重放与密钥轮换记录审计；业务操作沿用既有业务审计。
 

@@ -6,15 +6,15 @@ test('first-install platform wizard connects the database and enters the workspa
   await page.goto(instance.url);
   await expect(page).toHaveURL(/\/install$/);
   await capture(page, info, 'install-credential');
-  await page.getByLabel('一次性安装凭据').fill(instance.token);
+  await page.getByLabel('一次性安装凭据', { exact: true }).fill(instance.token);
   await page.getByRole('button', { name: '下一步' }).click();
   await page.getByRole('radio', { name: /多用户平台/ }).check();
   await capture(page, info, 'install-profile');
   await page.getByRole('button', { name: '下一步' }).click();
-  await page.getByRole('combobox', { name: '数据库类型' }).click();
-  await expect(page.getByRole('option')).toHaveCount(3);
-  await page.getByRole('option', { name: /SQLite/ }).click();
-  await expect(page.getByRole('combobox', { name: '数据库类型' })).toContainText('SQLite');
+  const databaseType = page.getByRole('radiogroup', { name: '数据库类型', exact: true });
+  await expect(databaseType.getByRole('radio')).toHaveCount(3);
+  await databaseType.getByRole('radio', { name: /SQLite/ }).check();
+  await expect(databaseType.getByRole('radio', { name: /SQLite/ })).toBeChecked();
   await capture(page, info, 'install-database');
   await page.getByRole('button', { name: '测试连接' }).click();
   await expect(page.getByText('连接测试成功')).toBeVisible();
@@ -22,7 +22,7 @@ test('first-install platform wizard connects the database and enters the workspa
   await capture(page, info, 'install-admin');
   await page.getByLabel('管理员账号').fill('admin');
   await page.getByLabel('管理员邮箱').fill('admin@example.test');
-  await page.getByLabel('管理员密码').fill('test-password-strong');
+  await page.getByLabel('管理员密码', { exact: true }).fill('test-password-strong');
   await page.getByRole('button', { name: '下一步' }).click();
   await capture(page, info, 'install-confirm');
   await page.getByRole('button', { name: '完成安装' }).click();
@@ -51,7 +51,7 @@ test('workspace consoles render and create users', async ({ page, instance }, in
   await capture(page, info, 'user-create');
   await page.getByLabel('账号', { exact: true }).fill('member');
   await page.getByLabel('邮箱', { exact: true }).fill('member@example.test');
-  await page.getByLabel('初始密码').fill('test-password-strong');
+  await page.getByLabel('初始密码', { exact: true }).fill('test-password-strong');
   await page.getByRole('button', { name: '创建用户', exact: true }).click();
   await expect(page.getByRole('cell', { name: 'member', exact: true })).toBeVisible();
 });

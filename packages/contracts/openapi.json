@@ -16118,7 +16118,8 @@
               "maxLength": 100
             }
           }
-        ]
+        ],
+        "description": "Search eligible token owners by username or email. Empty or whitespace-only search returns an empty page; it never enumerates users. Requires the existing administrator session, tokens:read permission and super-admin access."
       }
     },
     "/api/v1/admin/access-tokens/users/{id}/roles": {
@@ -16330,7 +16331,7 @@
           },
           "home_enabled": {
             "type": "boolean",
-            "description": "Whether the public product homepage is enabled for unauthenticated visitors."
+            "description": "Whether the public product homepage is enabled for guests and signed-in users. Enabled by default; signed-in users keep the workspace at /."
           },
           "admin_path": {
             "type": "string",

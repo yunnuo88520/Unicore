@@ -112,7 +112,7 @@ it('search submits through the toolbar and column menus report toggles', async (
   const onToggle = vi.fn();
   render(<DataTableToolbar search={{ label: '搜索访问令牌', placeholder: '搜索名称或备注', value: 'api', onChange: () => {}, onSubmit }}
     columnMenu={{ entries: [{ id: 'name', label: '名称', visible: true }, { id: 'count', label: '数量', visible: false }], onToggle }} />);
-  const input = screen.getByRole('textbox', { name: '搜索访问令牌' });
+  const input = screen.getByRole('searchbox', { name: '搜索访问令牌' });
   await userEvent.type(input, '{Enter}');
   expect(onSubmit).toHaveBeenCalledOnce();
   await userEvent.click(screen.getByRole('button', { name: '列设置' }));

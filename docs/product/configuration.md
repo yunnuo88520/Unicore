@@ -24,7 +24,7 @@ Web 部署先按 [从零部署指南](deployment.md) 启动并完成安装。本
 | --- | --- | --- | --- | --- |
 | `--config PATH` | `APP_CONFIG` | 不适用 | 不读取文件 | 显式 YAML/JSON 路径；文件可读且必须合法，传空路径报错 |
 | `--listen ADDRESS` | `APP_LISTEN` | `listen` | `127.0.0.1:3000` | `IP:端口`；容器默认另设 `0.0.0.0:3000`，宿主机限制映射地址 |
-| `--profile PROFILE` | `APP_PROFILE` | `profile` | 未显式指定时使用程序默认 Web 形态 | `web-platform`/`web-standalone`；Web 发行包各自编译默认值，已安装时不能与持久化形态冲突 |
+| `--profile PROFILE` | `APP_PROFILE` | `profile` | 源码构建默认 `web-platform`；发行包使用各自默认形态 | `web-platform`/`web-standalone`；Web 发行包各自编译默认值，已安装时不能与持久化形态冲突 |
 | `--data-dir PATH` | `APP_DATA_DIR` | `data_dir` | `data` | 完整私有数据目录；生产使用绝对路径，Docker 默认 `/data` |
 | `--deployment KIND` | `APP_DEPLOYMENT_KIND` | `deployment` | `development` | `development`/`tar`/`docker`；表示交付介质和更新能力，不决定用户身份形态 |
 | `--log-level LEVEL` | `APP_LOG_LEVEL` | `log_level` | `info` | `debug`/`info`/`warn`/`error` |
@@ -154,7 +154,7 @@ SQLite 不填写上述外部连接字段/DSN，固定使用 data 目录中的 `u
 | --- | --- | --- |
 | `site.name` | 站点名称，默认产品名称 | 1–64 字符，不为空；标题/邮件等使用 |
 | `site.description` | 默认“一份核心，无限可能” | 站点介绍，最多 240 字符 |
-| `site.home_enabled` | 启用产品首页，`false` | 开启后未登录访问站点根路径跳转到 `/home` 产品首页，已登录用户直接进入工作空间；关闭时 `/home` 回落到登录页 |
+| `site.home_enabled` | 启用产品首页，`true` | 访客访问根路径进入 `/home`，登录后根路径仍为工作空间；所有账号均可直接访问 `/home`，账号菜单提供返回入口；关闭后访客进入登录页、已登录访问 `/home` 返回工作空间 |
 | `site.base_url` | 站点地址，默认空时回退安装地址 | http(s) origin，最多 2048 字符；不带凭据、query、fragment 或子路径；用于邮件链接，不修改 Cookie/OIDC origin |
 | `site.admin_email` | 管理员邮箱，默认空 | 系统告警/通知接收地址配置；不等于本人登录邮箱，不自动创建外部监控告警集成 |
 | `site.copyright` | 默认 `Crafted by Yunnuo` | 页脚版权，最多 160 字符 |

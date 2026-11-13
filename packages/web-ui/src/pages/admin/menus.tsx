@@ -4,8 +4,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowDown, ArrowUp, ChevronsDown, ChevronsUp, ChevronDown, ChevronRight, Copy, FolderTree, Link2, ListTree,
-  MoreHorizontal, MousePointerClick, Pencil, Plus, RotateCcw, Save, Search, SquarePen, Trash2, type LucideIcon,
+  MoreHorizontal, MousePointerClick, Pencil, Plus, RotateCcw, Save, SquarePen, Trash2, type LucideIcon,
 } from 'lucide-react';
+import { SearchField } from '@unicore/ui/controls';
 import { Alert, Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Modal, PageHeader, SimpleSelect, Switch, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, useMessage } from '@unicore/ui';
 import { AppError, type AppClient, type Bootstrap, type MenuList, type MenuSaveInput, type NavigationNode, type NavigationSection, type RoleList, type WebClient } from '@unicore/sdk';
 import {
@@ -422,11 +423,7 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
   return <Card><CardContent className="flex min-w-0 flex-col gap-4">
     {config.isFetching && <p role="status" className="text-2xs text-subtle">{t('正在刷新菜单配置…')}</p>}
     <div className="flex flex-wrap items-center gap-2">
-      <div className="relative min-w-52 flex-1 sm:max-w-80">
-        <Search size={14} aria-hidden="true" className="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-subtle" />
-        <Input className="ps-8" value={search} aria-label={t('搜索名称、路由或链接')} placeholder={t('搜索名称、路由或链接')} autoComplete="off"
-          onChange={event => setSearch(event.target.value)} />
-      </div>
+      <SearchField label={t('搜索名称、路由或链接')} value={search} onValueChange={setSearch} autoComplete="off" className="min-w-52 flex-1 sm:max-w-80" />
       <Button variant="secondary" size="sm" disabled={pending} onClick={expandAll}><ChevronsDown size={14} />{t('展开全部')}</Button>
       <Button variant="secondary" size="sm" disabled={pending} onClick={collapseAll}><ChevronsUp size={14} />{t('收起全部')}</Button>
       <Button variant="secondary" size="sm" disabled={pending} onClick={addSection}><Plus size={14} />{t('添加区域')}</Button>
@@ -751,17 +748,17 @@ function NodeDialog({ state, draft, pages, onClose, onSubmit }: {
           <SimpleSelect label={t('菜单类型')} value={type} onChange={value => { setType(value as NavigationNode['type']); setErrors({}); }}
             options={CREATABLE_TYPES.map(candidate => ({ value: candidate, label: t(TYPE_LABELS[candidate]) }))} />
         </label>}
-        <label className="flex flex-col gap-1 text-xs text-muted">{t('显示名称')}
-          <Input value={form.name} maxLength={64} autoComplete="off" aria-label={t('显示名称')} placeholder={type === 'page' ? t('留空使用页面默认名称') : t('请输入名称')}
+        <div className="flex flex-col gap-1 text-xs text-muted">
+          <Input label={t('显示名称')} value={form.name} maxLength={64} autoComplete="off" aria-label={t('显示名称')} placeholder={type === 'page' ? t('留空使用页面默认名称') : t('请输入名称')}
             aria-invalid={!!errors.name || undefined} onChange={event => patch({ name: event.target.value })} />
           {errors.name && <small role="alert" className="text-danger">{errors.name}</small>}
-        </label>
+        </div>
         <label className="flex flex-col gap-1 text-xs text-muted">{t('上级菜单')}
           <SimpleSelect label={t('上级菜单')} value={form.parentId} onChange={value => patch({ parentId: value })} options={parentOptions} />
         </label>
-        <label className="flex flex-col gap-1 text-xs text-muted">{t('排序')}
-          <Input type="number" aria-label={t('排序')} value={form.sort} onChange={event => patch({ sort: event.target.value })} />
-        </label>
+        <div className="flex flex-col gap-1 text-xs text-muted">
+          <Input label={t('排序')} type="number" aria-label={t('排序')} value={form.sort} onChange={event => patch({ sort: event.target.value })} />
+        </div>
         <label className="flex items-center gap-2 text-xs text-muted">{t('在导航中显示')}
           <Switch checked={form.visible} onChange={value => patch({ visible: value })} />
         </label>
@@ -778,18 +775,18 @@ function NodeDialog({ state, draft, pages, onClose, onSubmit }: {
             options={routeOptions.map(id => ({ value: id, label: t(routes[id].label) }))} />
           {errors.route && <small role="alert" className="text-danger">{errors.route}</small>}
         </label>}
-        {type === 'link' && <label className="flex flex-col gap-1 text-xs text-muted">{t('链接地址')}
-          <Input value={form.url} maxLength={2048} inputMode="url" aria-label={t('链接地址')} placeholder="https://example.com/help"
+        {type === 'link' && <div className="flex flex-col gap-1 text-xs text-muted">
+          <Input label={t('链接地址')} value={form.url} maxLength={2048} inputMode="url" aria-label={t('链接地址')} placeholder="https://example.com/help"
             aria-invalid={!!errors.url || undefined} onChange={event => patch({ url: event.target.value })} />
           {errors.url && <small role="alert" className="text-danger">{errors.url}</small>}
           <small>{t('站内地址需指向已注册页面，不能指向任意文件路径。')}</small>
-        </label>}
+        </div>}
       </div>
     </div>
     <div className="grid shrink-0 gap-x-6 gap-y-3 border-t border-line pt-3 md:grid-cols-2">
-      <label className="flex flex-col gap-1 text-xs text-muted">{t('角标文字')}
-        <Input value={form.badgeText} maxLength={12} aria-label={t('角标文字')} onChange={event => patch({ badgeText: event.target.value })} />
-      </label>
+      <div className="flex flex-col gap-1 text-xs text-muted">
+        <Input label={t('角标文字')} value={form.badgeText} maxLength={12} aria-label={t('角标文字')} onChange={event => patch({ badgeText: event.target.value })} />
+      </div>
       <label className="flex flex-col gap-1 text-xs text-muted">{t('角标样式')}
         <div className="flex items-center gap-2">
           <SimpleSelect label={t('角标样式')} value={form.badgeColor} onChange={value => patch({ badgeColor: value })}

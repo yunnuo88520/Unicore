@@ -101,6 +101,7 @@ function WorkspaceShell() {
   const [passwordOpen, setPasswordOpen] = useState(false);
   const { navCollapsed, layout } = usePreferences();
   const pathname = useRouterState({ select: state => state.location.pathname });
+  const authCallback = useRouterState({ select: state => new URLSearchParams(state.location.searchStr).has('oidc') });
   // location.pathname is already basepath-stripped by the router.
   const page = pageFromPath(pathname);
   const data = metadata.data;
@@ -160,22 +161,17 @@ function WorkspaceShell() {
     const props: PageProps = { page, client, metadata: data, registry, theme, setTheme, refresh: () => void metadata.refetch() };
     return <PagePropsProvider value={props}><main className="min-h-dvh bg-background p-4 sm:p-6"><div className="mb-4 flex justify-end"><ClientControls /></div><Outlet /></main></PagePropsProvider>;
   }
-  // The public homepage owns /home; the console stays at /. Members skip the homepage, admin realm keeps its own login.
+  // /home is public for guests and members; / remains the signed-in workspace.
   const publicHome = data.identity_realm !== 'administrator';
-  if (data.capabilities.authentication && data.current_user && basename === 'home') {
-    return <Navigate to="/" replace />;
+  const rootAuthFlow = !basename && (data.mfa_pending || authCallback || !!notice);
+  if (data.capabilities.authentication && publicHome && data.home_enabled && !rootAuthFlow && (basename === 'home' || (!basename && !data.current_user))) {
+    if (!basename) return <Navigate to="/home" replace />;
+    const props: PageProps = { page: 'overview', client, metadata: data, registry, theme, setTheme, refresh: () => void metadata.refetch() };
+    return <PagePropsProvider value={props}><HomePage {...props} /></PagePropsProvider>;
   }
+  if (basename === 'home' && data.current_user) return <Navigate to="/" replace />;
   if (data.capabilities.authentication && (!data.current_user || /^(verify-email|reset-password)$/.test(basename)) && client.web) {
     const props: PageProps = { page: 'overview', client, metadata: data, registry, theme, setTheme, refresh: () => void metadata.refetch() };
-    // Optional public homepage: guests land on it at /home instead of the login flow when site.home_enabled is on.
-    if (!data.current_user && publicHome && data.home_enabled && (basename === 'home' || !basename)) {
-      if (!basename) return <Navigate to="/home" replace />;
-      return <PagePropsProvider value={props}>
-        <div className="flex min-h-dvh flex-col bg-background">
-          <HomePage {...props} />
-        </div>
-      </PagePropsProvider>;
-    }
     // Guests get the real 404 page for unregistered paths instead of a misleading login form;
     // registered pages (workspace and auth ones) keep the login wall. knownPath is shared with the standalone 404 gate above.
     const Flow = basename === 'verify-email' ? VerifyEmailPage : basename === 'reset-password' ? ResetPasswordPage : !data.current_user && !knownPath ? NotFoundPage : LoginPage;
@@ -306,6 +302,7 @@ function SidebarFooter({ data, client, administration, rail, onOpenPassword, ref
       {client.web && <>
         {data.admin_path && !administration && <DropdownMenuItem onSelect={() => window.location.assign(data.admin_path!)}>{t('管理工作台')}</DropdownMenuItem>}
         {administration && <DropdownMenuItem onSelect={() => window.location.assign('/')}>{t('工作空间')}</DropdownMenuItem>}
+        {data.home_enabled && <DropdownMenuItem onSelect={() => window.location.assign('/home')}>{t('产品首页')}</DropdownMenuItem>}
         <DropdownMenuItem onSelect={onOpenPassword}>{t('修改密码')}</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => void router.navigate({ to: '/account' })}>{t('个人中心')}</DropdownMenuItem>
         <DropdownMenuItem onSelect={onAbout}>{t('关于 {{name}}', { name: productName })}</DropdownMenuItem>
@@ -379,6 +376,7 @@ function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onO
             {client.web && <>
               {data.admin_path && !administration && <DropdownMenuItem onSelect={() => window.location.assign(data.admin_path)}>{t('管理工作台')}</DropdownMenuItem>}
               {administration && <DropdownMenuItem onSelect={() => window.location.assign('/')}>{t('工作空间')}</DropdownMenuItem>}
+              {data.home_enabled && <DropdownMenuItem onSelect={() => window.location.assign('/home')}>{t('产品首页')}</DropdownMenuItem>}
               <DropdownMenuItem onSelect={() => onOpenPassword()}>{t('修改密码')}</DropdownMenuItem>
               <DropdownMenuItem onSelect={() => void router.navigate({ to: '/account' })}>{t('个人中心')}</DropdownMenuItem>
               <DropdownMenuItem onSelect={() => { void client.web!.logout().then(() => { void router.navigate({ to: '/' }); refresh(); }, refresh); }}>{t('退出登录')}</DropdownMenuItem>

@@ -2,13 +2,14 @@
 // Description: Notes workspace: card grid, modal editing, ownership attachments and pagination over AppClient.
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, Circle, Download, NotebookPen, Paperclip, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
+import { CheckCircle2, Circle, Download, NotebookPen, Paperclip, Pencil, Plus, Trash2, X } from 'lucide-react';
 import type { AppClient, FileEntry, NoteEntry, NoteQuery } from '@unicore/sdk';
 import { currentLocale, t, useLocale } from '../../i18n';
 import { FileUploadDialog } from '../../file-upload-dialog';
 import { canAction } from '../../permissions';
-import { Badge, Button, Card, CardContent, EmptyState, Input, Modal, NativeSelect, Textarea, useMessage } from '@unicore/ui';
-import { AppField, AppForm, useAppForm } from '@unicore/form';
+import { Badge, Button, Card, CardContent, EmptyState, Input, Modal, SimpleSelect, Textarea, useMessage, selectOptions } from '@unicore/ui';
+import { AppControllerField, AppField, AppForm, useAppForm } from '@unicore/form';
+import { SearchField } from '@unicore/ui/controls';
 import type { PageProps } from '../../router';
 
 const initialQuery: NoteQuery = { search: '', status: '', sort: 'updated_at', direction: 'desc', page: 1 };
@@ -59,20 +60,17 @@ export function NotesPage({ client, metadata }: PageProps) {
     <Card>
       <CardContent>
         <form className="flex flex-wrap items-center gap-2" onSubmit={event => { event.preventDefault(); setQuery(q => ({ ...q, search, page: 1 })); }}>
-          <div className="relative min-w-0 flex-1 sm:max-w-64">
-            <Search size={15} className="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-subtle" aria-hidden="true" />
-            <Input aria-label={t('搜索笔记')} placeholder={t('搜索笔记标题')} maxLength={128} value={search} onChange={event => setSearch(event.target.value)} className="ps-8" />
-          </div>
+          <SearchField label={t('搜索笔记')} maxLength={128} value={search} onValueChange={setSearch} className="flex-1 sm:max-w-64" />
           <Button type="submit" variant="secondary">{t('搜索')}</Button>
-          <NativeSelect aria-label={t('笔记状态')} value={query.status} onChange={event => setQuery(q => ({ ...q, status: event.target.value as NoteQuery['status'], page: 1 }))} className="w-28">
+          <SimpleSelect presentation="dropdown" aria-label={t('笔记状态')} value={query.status} onChange={event => setQuery(q => ({ ...q, status: event as NoteQuery['status'], page: 1 }))} className="w-28" options={selectOptions(<>
             <option value="">{t('全部状态')}</option>
             <option value="open">{t('进行中')}</option>
             <option value="done">{t('已完成')}</option>
-          </NativeSelect>
-          <NativeSelect aria-label={t('笔记排序')} value={query.sort} onChange={event => setQuery(q => ({ ...q, sort: event.target.value as NoteQuery['sort'], page: 1 }))} className="w-28">
+          </>)} />
+          <SimpleSelect presentation="dropdown" aria-label={t('笔记排序')} value={query.sort} onChange={event => setQuery(q => ({ ...q, sort: event as NoteQuery['sort'], page: 1 }))} className="w-28" options={selectOptions(<>
             <option value="updated_at">{t('最近更新')}</option>
             <option value="title">{t('按标题')}</option>
-          </NativeSelect>
+          </>)} />
           <Button type="button" variant="secondary" onClick={() => setQuery(q => ({ ...q, direction: q.direction === 'desc' ? 'asc' : 'desc', page: 1 }))}>
             {query.direction === 'desc' ? t('降序') : t('升序')}
           </Button>
@@ -168,21 +166,19 @@ function NoteEditor({ client, metadata, note, onClose, onSaved }: {
       <AppField name="body" label={t('正文')}>
         <Textarea name="body" maxLength={5000} rows={6} placeholder={t('写下细节、计划或下一步…')} />
       </AppField>
-      <AppField name="status" label={t('状态')}>
-        <NativeSelect className="w-40">
+      <AppControllerField name="status" label={t('状态')}>{field => <SimpleSelect {...field} className="w-40" value={String(field.value ?? '')} onChange={field.onChange} options={selectOptions(<>
           <option value="open">{t('进行中')}</option>
           <option value="done">{t('已完成')}</option>
-        </NativeSelect>
-      </AppField>
+        </>)} />}</AppControllerField>
       {fileClient && (canAction(metadata, 'notesListFiles') || canUpload || value.attachment_ids.length > 0) && <fieldset className="flex flex-col gap-2 rounded-lg border border-line p-3">
         <legend className="flex items-center gap-1.5 px-1 text-sm font-medium text-ink"><Paperclip size={14} aria-hidden="true" />{t('附件')}</legend>
         <p className="text-xs text-muted">{t('上传或选择已授权的本人文件。最多 5 个；移除引用不删除原文件。')}</p>
         {canUpload && <Button variant="secondary" disabled={value.attachment_ids.length >= 5 || save.isPending} onClick={() => setUploading(true)}>{t('上传文件')}</Button>}
         <Input aria-label={t('搜索可选附件')} placeholder={t('搜索本人文件')} maxLength={128} value={fileSearch} onChange={event => setFileSearch(event.target.value)} />
-        <NativeSelect aria-label={t('添加已有附件')} disabled={value.attachment_ids.length >= 5} value="" onChange={event => { if (event.target.value) setAttachments([...value.attachment_ids, event.target.value]); }}>
+        <SimpleSelect presentation="combobox" aria-label={t('添加已有附件')} disabled={value.attachment_ids.length >= 5} value="" onChange={event => { if (event) setAttachments([...value.attachment_ids, event]); }} options={selectOptions(<>
           <option value="">{t('选择本人文件')}</option>
           {mine.filter(f => !value.attachment_ids.includes(f.file_id)).map(f => <option key={f.file_id} value={f.file_id}>{f.original_name}</option>)}
-        </NativeSelect>
+        </>)} />
         {canUpload && unfinished.map(file => <div key={file.file_id} className="flex min-w-0 items-center gap-2">
           <span className="min-w-0 flex-1 truncate text-sm">{file.original_name}</span>
           <Button variant="secondary" disabled={value.attachment_ids.length >= 5 || save.isPending} aria-label={t('继续上传 {{name}}', { name: file.original_name })} onClick={() => setUploading(file)}>{t('继续上传')}</Button>

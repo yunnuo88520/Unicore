@@ -1,10 +1,11 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Real role-bound tokens, owner/admin workflows and bounded dialogs at desktop and 375px.
+import { mkdir } from 'node:fs/promises';
 import { test, expect, installPlatform, adminLogin, sdkClient, loginClient, workspaceLogin, memberPassword, navigate } from './fixtures';
 import { BearerTransport } from '../../packages/sdk/src';
 
 test.use({ trace: 'off' }); // One-time credentials must not enter persisted browser traces.
-test('role-bound personal tokens support issuance, renewal and global revocation', async ({ page, instance }) => {
+test('role-bound personal tokens support issuance, renewal and global revocation', async ({ page, instance }, info) => {
   test.setTimeout(90000);
   await installPlatform(instance);
   const admin = sdkClient(instance.url);
@@ -19,8 +20,7 @@ test('role-bound personal tokens support issuance, renewal and global revocation
   await expect(dialog.getByLabel('令牌名称', { exact: true })).toBeFocused();
   await expect(dialog.getByRole('checkbox')).toHaveCount(0);
   await dialog.getByLabel('令牌名称', { exact: true }).fill('Browser API reader');
-  await dialog.getByRole('combobox', { name: '绑定角色', exact: true }).click();
-  await page.getByRole('option', { name: reader.name, exact: true }).click();
+  await dialog.getByRole('radio', { name: reader.name, exact: true }).check();
   await dialog.getByRole('combobox', { name: '有效期', exact: true }).click();
   await expect(page.getByRole('option')).toHaveCount(5);
   await page.getByRole('option', { name: '永久', exact: true }).click();
@@ -59,14 +59,41 @@ test('role-bound personal tokens support issuance, renewal and global revocation
   await adminLogin(page, instance.url, 'admin', 'administrator-password-strong');
   await navigate(page, '访问令牌管理');
   await expect(page.getByRole('row', { name: /Browser API reader/ })).toContainText(member.username);
+  const ownerSearches: string[] = [];
+  page.on('request', request => { if (request.url().includes('/admin/access-tokens/users?')) ownerSearches.push(new URL(request.url()).searchParams.get('search') ?? ''); });
   await page.getByRole('button', { name: '创建访问令牌', exact: true }).click();
   dialog = page.getByRole('dialog', { name: '创建访问令牌', exact: true });
-  await dialog.getByRole('textbox', { name: '搜索用户', exact: true }).fill(member.username);
-  await dialog.getByRole('button', { name: `${member.username} · ${member.email}`, exact: true }).click();
+  const ownerSearch = dialog.getByRole('combobox', { name: '所属用户', exact: true });
+  await expect(ownerSearch).toBeFocused();
+  await expect(page.getByRole('listbox', { name: '所属用户', exact: true })).toHaveCount(0);
+  expect(ownerSearches).toEqual([]);
+  await ownerSearch.fill('   ');
+  await expect(page.getByRole('listbox', { name: '所属用户', exact: true })).toHaveCount(0);
+  const nameBeforeSearch = (await dialog.getByLabel('令牌名称', { exact: true }).boundingBox())!;
+  await ownerSearch.fill(member.username);
+  const result = page.getByRole('option').filter({ hasText: member.email });
+  await expect(result).toBeVisible();
+  await expect(result.locator('mark')).toHaveText(member.username);
+  const nameAfterSearch = (await dialog.getByLabel('令牌名称', { exact: true }).boundingBox())!;
+  expect(Math.abs(nameBeforeSearch.y - nameAfterSearch.y)).toBeLessThan(1);
+  expect(Math.abs(nameBeforeSearch.height - nameAfterSearch.height)).toBeLessThan(1);
+  const directory = `build/acceptance/public-entry/${info.project.name}`;
+  await mkdir(directory, { recursive: true });
+  await page.screenshot({ path: `${directory}/token-owner-search.png`, fullPage: true });
+  await ownerSearch.clear();
+  await expect(page.getByRole('listbox', { name: '所属用户', exact: true })).toHaveCount(0);
+  expect(ownerSearches.every(search => search.trim().length > 0)).toBe(true);
+  await ownerSearch.fill(member.email);
+  await page.getByRole('option').filter({ hasText: member.email }).click();
+  await expect(ownerSearch).toHaveValue(member.username);
+  await dialog.getByRole('button', { name: '清除选择', exact: true }).click();
+  await expect(page.getByRole('listbox', { name: '所属用户', exact: true })).toHaveCount(0);
+  await expect(dialog.getByRole('button', { name: '生成令牌', exact: true })).toBeDisabled();
+  await dialog.getByRole('combobox', { name: '所属用户', exact: true }).fill(member.username);
+  await page.getByRole('option').filter({ hasText: member.email }).click();
   await dialog.getByLabel('令牌名称', { exact: true }).fill('Issued by administrator');
-  await dialog.getByRole('combobox', { name: '绑定角色', exact: true }).click();
-  await expect(page.getByRole('option')).toHaveCount(2);
-  await page.getByRole('option', { name: reader.name, exact: true }).click();
+  await expect(dialog.getByRole('radiogroup', { name: '绑定角色', exact: true }).getByRole('radio')).toHaveCount(2);
+  await dialog.getByRole('radio', { name: reader.name, exact: true }).check();
   await dialog.getByLabel('备注', { exact: true }).fill('Delegated export');
   // Long editor content scrolls inside the modal without making the page taller.
   const scroll = await dialog.evaluate(element => {
@@ -101,7 +128,7 @@ test('role-bound personal tokens support issuance, renewal and global revocation
   await page.reload();
   await page.getByRole('button', { name: 'Create access token', exact: true }).click();
   const english = page.getByRole('dialog', { name: 'Create access token', exact: true });
-  await expect(english.getByRole('textbox', { name: 'Search users', exact: true })).toBeVisible();
+  await expect(english.getByRole('combobox', { name: 'Owner', exact: true })).toBeVisible();
   expect(await english.innerText()).not.toMatch(/[\u4e00-\u9fff]/);
   await page.keyboard.press('Escape');
   await expect(english).toHaveCount(0);

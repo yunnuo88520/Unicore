@@ -102,7 +102,7 @@ function StoragePanel({ client, storage }: { client: AppClient; storage: Storage
           {provider === 'local' ? <>
             <CardContent className="flex flex-col gap-5 py-5">
               <div className="flex items-center gap-3 border-b border-line pb-5"><HardDrive size={26} className="shrink-0 text-accent" aria-hidden="true" /><div><p className="text-sm font-medium">{t('由应用统一管理文件')}</p><p className="mt-1 text-xs text-muted">{t('文件保持私有，通过授权链接访问。')}</p></div></div>
-              <label className="flex flex-col gap-2 text-sm font-medium">{t('存储目录')}<Input value="APP_DATA_DIR / files" readOnly /><span className="text-xs font-normal text-muted">{t('由服务器启动配置决定')}</span></label>
+              <div className="flex flex-col gap-2 text-sm font-medium"><Input label={t('存储目录')} value="APP_DATA_DIR / files" readOnly /><span className="text-xs font-normal text-muted">{t('由服务器启动配置决定')}</span></div>
               <p className="flex items-start gap-2 rounded-lg bg-surface-alt p-3 text-xs leading-relaxed text-muted"><Info size={16} className="shrink-0" aria-hidden="true" />{t('上传路径和文件类型限制在“上传规则”中统一设置。')}</p>
             </CardContent>
             <CardFooter className="flex-wrap justify-between gap-2">{testControl(item)}{activateControl}</CardFooter>
@@ -161,7 +161,7 @@ function LocationEditor({ storage, provider, item, busy, onBusy, onSaved, testCo
         <AppField name="bucket" label="Bucket"><Input required readOnly={locked} /></AppField>
         <AppField name="region" label="Region"><Input required={provider === 'oss'} readOnly={locked} placeholder={t('例如 cn-hangzhou')} /></AppField>
         <AppField name="access_key" label="Access Key"><Input autoComplete="off" type="password" required={!item} placeholder={item ? t('留空保留原值') : ''} /></AppField>
-        <AppField name="secret_key" label="Secret Key"><Input autoComplete="new-password" type="password" required={!item} placeholder={item ? t('留空保留原值') : ''} /></AppField>
+        <AppField name="secret_key" label="Secret Key" hint={item ? t('留空保留原值') : undefined}><Input strength={false} autoComplete="new-password" type="password" required={!item} placeholder={item ? t('留空保留原值') : ''} /></AppField>
         <AppField name="prefix" label={t('对象前缀')} className="sm:col-span-2"><Input maxLength={200} readOnly={locked} /></AppField>
       </div>
       {['minio', 's3'].includes(provider) && <AppSwitchField name="path_style" label={t('S3 路径式寻址')} disabled={locked || provider === 'minio' || pending} />}
@@ -200,11 +200,11 @@ function StoragePolicy({ client, cleanup }: { client: AppClient; cleanup: React.
     if (!paths.includes(next)) setDraft(current => ({ ...current, 'storage.upload_paths': [...paths, next].join('\n') }));
     setPath(''); setPathError('');
   }
-  const fields = (keys: string[]) => query.data?.items.filter(item => keys.includes(item.key)).map(item => <label key={item.key} className="flex min-w-0 flex-col gap-2 text-sm font-medium">
-    {t(item.label)}<Input type="number" required min={item.key === 'storage.retention_days' ? 0 : item.key.endsWith('_ttl') ? 60 : item.key === 'storage.part_size_mb' ? 5 : 1}
+  const fields = (keys: string[]) => query.data?.items.filter(item => keys.includes(item.key)).map(item => <div key={item.key} className="flex min-w-0 flex-col gap-2 text-sm font-medium">
+    <Input label={t(item.label)} type="number" required min={item.key === 'storage.retention_days' ? 0 : item.key.endsWith('_ttl') ? 60 : item.key === 'storage.part_size_mb' ? 5 : 1}
       max={item.key.endsWith('_ttl') ? 3600 : item.key === 'storage.max_size_mb' ? 65536 : item.key === 'storage.part_size_mb' ? 64 : item.key === 'storage.parallelism' ? 6 : item.key === 'storage.pending_hours' ? 168 : 3650}
       value={value(item.key)} onChange={event => setDraft(current => ({ ...current, [item.key]: event.target.value }))} />
-  </label>);
+  </div>);
   return <Card>
     <CardHeader><h2 className="text-md font-semibold">{t('统一上传规则')}</h2><p className="text-xs leading-relaxed text-muted">{t('适用于所有存储方式，保存后对新上传生效。')}</p></CardHeader>
     {query.isError ? <CardContent role="alert"><p className="text-sm text-danger">{t(query.error.message)}</p><Button variant="secondary" onClick={() => void query.refetch()}>{t('重试')}</Button></CardContent>
@@ -212,13 +212,13 @@ function StoragePolicy({ client, cleanup }: { client: AppClient; cleanup: React.
         : <form onSubmit={event => { event.preventDefault(); save.mutate(); }}>
           <fieldset disabled={save.isPending} className="min-w-0">
             <div className="flex flex-col gap-3 border-b border-line px-4 py-5">
-              <label htmlFor="storage-upload-path" className="text-sm font-medium">{t('自定义上传路径')}</label>
+
               <p className="text-xs leading-relaxed text-muted">{t('第一个路径为默认，上传时可选择其他路径；留空使用托管根目录。')}</p>
               <div className="flex flex-wrap gap-2">{paths.map(item => <span key={item} className="flex min-w-0 items-center gap-2 rounded-md border border-line bg-surface-alt py-1 ps-2.5 text-xs"><span className="break-all">{item}</span><Button type="button" variant="ghost" size="icon" className="size-7 shrink-0" aria-label={t('移除路径 {{path}}', { path: item })} onClick={() => setDraft(current => ({ ...current, 'storage.upload_paths': paths.filter(candidate => candidate !== item).join('\n') }))}><X size={13} aria-hidden="true" /></Button></span>)}</div>
-              <div className="flex gap-2"><Input id="storage-upload-path" className="min-w-0 sm:max-w-sm" value={path} maxLength={200} placeholder={t('例如 reports/2026')} aria-invalid={!!pathError} aria-describedby={pathError ? 'storage-path-error' : undefined} onChange={event => { setPath(event.target.value); setPathError(''); }} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); addPath(); } }} /><Button type="button" variant="secondary" onClick={addPath}><Plus size={14} />{t('添加')}</Button></div>
+              <div className="flex gap-2"><Input label={t('自定义上传路径')} id="storage-upload-path" className="min-w-0 sm:max-w-sm" value={path} maxLength={200} placeholder={t('例如 reports/2026')} aria-invalid={!!pathError} aria-describedby={pathError ? 'storage-path-error' : undefined} onChange={event => { setPath(event.target.value); setPathError(''); }} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); addPath(); } }} /><Button type="button" variant="secondary" onClick={addPath}><Plus size={14} />{t('添加')}</Button></div>
               {pathError && <p id="storage-path-error" role="alert" className="text-xs text-danger">{pathError}</p>}
             </div>
-            <div className="flex flex-col gap-3 border-b border-line px-4 py-5"><label htmlFor="storage-extensions" className="text-sm font-medium">{t('允许的文件扩展名')}</label><Textarea id="storage-extensions" rows={3} maxLength={16000} value={value('storage.allowed_extensions')} onChange={event => setDraft(current => ({ ...current, 'storage.allowed_extensions': event.target.value }))} /><p className="text-xs text-muted">{t('每行一个扩展名，如 jpg、png、tar.gz，不区分大小写；留空允许所有类型。')}</p></div>
+            <div className="flex flex-col gap-3 border-b border-line px-4 py-5"><Textarea label={t('允许的文件扩展名')} id="storage-extensions" rows={3} maxLength={16000} value={value('storage.allowed_extensions')} onChange={event => setDraft(current => ({ ...current, 'storage.allowed_extensions': event.target.value }))} /><p className="text-xs text-muted">{t('每行一个扩展名，如 jpg、png、tar.gz，不区分大小写；留空允许所有类型。')}</p></div>
             <div className="grid gap-4 border-b border-line px-4 py-5 sm:grid-cols-2">{fields(['storage.max_size_mb', 'storage.url_ttl', 'storage.retention_days'])}<p className="self-end text-xs leading-relaxed text-muted">{t('保留天数只作用于新上传的文件。0 表示永久保留；临时访问链接默认 5 分钟失效。')}</p></div>
             <details className="px-4 py-5"><summary className="cursor-pointer text-sm font-medium">{t('分片上传与自动清理')}</summary><div className="mt-4 grid gap-4 sm:grid-cols-2">{fields(['storage.part_size_mb', 'storage.parallelism', 'storage.upload_ttl', 'storage.pending_hours'])}</div><div className="mt-4 flex flex-wrap items-center justify-between gap-3"><p className="text-xs leading-relaxed text-muted">{t('未完成上传与到期文件由后台定时清理。已签发的云下载链接会在有效期内继续可用。')}</p>{cleanup}</div></details>
             <CardFooter className="flex-wrap justify-end gap-2"><Button type="button" variant="ghost" disabled={!Object.keys(draft).length} onClick={() => { setDraft({}); setPath(''); setPathError(''); }}><RotateCcw size={14} />{t('重置')}</Button><Button type="submit" pending={save.isPending} disabled={!Object.keys(draft).length}><Save size={14} />{t('保存上传规则')}</Button></CardFooter>

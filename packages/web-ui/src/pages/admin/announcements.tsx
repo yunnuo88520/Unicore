@@ -9,7 +9,7 @@ import { Eye, Megaphone, Pencil, Plus, Trash2 } from 'lucide-react';
 import type { AnnouncementEntry, AnnouncementInput, AnnouncementQuery, AnnouncementSelection, WebClient } from '@unicore/sdk';
 import { currentLocale, defineMessages, t, useI18n } from '../../i18n';
 import { AppField, AppForm, useAppForm } from '@unicore/form';
-import { Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, Input, Label, Modal, NativeSelect, PageHeader, Switch, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage } from '@unicore/ui';
+import { Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, Input, Label, Modal, SimpleSelect, PageHeader, Switch, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage, selectOptions } from '@unicore/ui';
 import { RichTextEditor } from '@unicore/ui/editor';
 import { DataTable, DataTablePagination, DataTableToolbar } from '../../components/data-table';
 import { RichContent } from '../../rich-content';
@@ -204,11 +204,11 @@ function AnnouncementPanel({ web, metadata }: { web: WebClient; metadata: Bootst
           actions={can('deleteAnnouncements') && <Button variant="secondary" disabled={!selection.length} onClick={() => setRemoving(selection)}>
             <Trash2 size={14} />{t('批量删除')}{selection.length > 0 && <span className="rounded-full bg-danger-soft px-1.5 text-2xs text-danger">{selection.length}</span>}
           </Button>}>
-          <NativeSelect aria-label={t('公告状态')} className="h-9 w-auto" value={query.status} disabled={list.isFetching}
-            onChange={event => setFilter({ status: event.target.value as AnnouncementQuery['status'] })}>
+          <SimpleSelect aria-label={t('公告状态')} className="h-9 w-auto" value={query.status} disabled={list.isFetching}
+            onChange={event => setFilter({ status: event as AnnouncementQuery['status'] })} options={selectOptions(<>
             <option value="">{t('全部状态')}</option>
             {Object.entries(statuses).map(([id, label]) => <option key={id} value={id}>{t(label)}</option>)}
-          </NativeSelect>
+          </>)} />
         </DataTableToolbar>
         <DataTable table={table} pending={list.isPending} busy={list.isFetching} error={list.error} onRetry={() => void list.refetch()}
           empty={{ icon: Megaphone, title: query.search || query.status ? t('没有匹配的公告') : t('暂无公告'), hint: t('新增公告，向用户传递平台消息。') }} />
@@ -271,11 +271,11 @@ function AnnouncementEditor({ web, entry, onClose, onSaved }: { web: WebClient; 
           <Label htmlFor="announcement-content">{t('公告内容')}</Label>
           <div className="flex items-center gap-3">
             <small className="text-2xs text-muted">{[...content].length} / 10000</small>
-            <NativeSelect aria-label={t('内容格式')} className="h-7 w-auto py-0 text-xs" disabled={pending} value={format}
-              onChange={event => { setPreview(false); form.setValue('format', event.target.value as AnnouncementInput['format'], { shouldDirty: true }); }}>
+            <SimpleSelect aria-label={t('内容格式')} className="h-7 w-auto py-0 text-xs" disabled={pending} value={format}
+              onChange={event => { setPreview(false); form.setValue('format', event as AnnouncementInput['format'], { shouldDirty: true }); }} options={selectOptions(<>
               <option value="markdown">Markdown</option>
               <option value="html">HTML</option>
-            </NativeSelect>
+            </>)} />
           </div>
         </div>
         {format === 'markdown'
@@ -287,41 +287,41 @@ function AnnouncementEditor({ web, entry, onClose, onSaved }: { web: WebClient; 
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <Controller control={form.control} name="publish_at" render={({ field }) => (
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-ink">{t('发布时间')}</span>
-            <Input type="datetime-local" required disabled={pending} value={localDate(field.value ?? Math.floor(Date.now() / 1000))}
+          <div className="flex flex-col gap-1.5">
+
+            <Input label={t('发布时间')} type="datetime-local" required disabled={pending} value={localDate(field.value ?? Math.floor(Date.now() / 1000))}
               onChange={event => { if (event.target.value) { setPreview(false); field.onChange(Math.floor(new Date(event.target.value).getTime() / 1000)); } }} />
-          </label>
+          </div>
         )} />
-        <Controller control={form.control} name="ends_at" render={({field})=><label className="flex flex-col gap-1.5"><span className="text-sm font-medium text-ink">{t('结束时间（可选）')}</span><Input type="datetime-local" disabled={pending} value={field.value?localDate(field.value):''} min={localDate(values.publish_at ?? Math.floor(Date.now()/1000))} onChange={event=>field.onChange(event.target.value?Math.floor(new Date(event.target.value).getTime()/1000):0)}/></label>}/>
+        <Controller control={form.control} name="ends_at" render={({field})=><div className="flex flex-col gap-1.5"><Input label={t('结束时间（可选）')} type="datetime-local" disabled={pending} value={field.value?localDate(field.value):''} min={localDate(values.publish_at ?? Math.floor(Date.now()/1000))} onChange={event=>field.onChange(event.target.value?Math.floor(new Date(event.target.value).getTime()/1000):0)}/></div>}/>
         <AppSelectField name="notify_mode" label={t('通知方式')} disabled={pending} options={[{ value: 'silent', label: notifyModes.silent }, { value: 'popup', label: notifyModes.popup }]} />
         <Controller control={form.control} name="type" render={({ field }) => (
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-ink">{t('公告类型')}</span>
-            <NativeSelect disabled={pending} value={field.value ?? 'info'} onChange={event => { setPreview(false); field.onChange(event.target.value); }}>
+            <SimpleSelect aria-label={t('公告类型')} disabled={pending} value={field.value ?? 'info'} onChange={event => { setPreview(false); field.onChange(event); }} options={selectOptions(<>
               {Object.entries(announcementTypes).map(([id, label]) => <option key={id} value={id}>{t(label)}</option>)}
-            </NativeSelect>
+            </>)} />
           </label>
         )} />
         <Controller control={form.control} name="status" render={({ field }) => (
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-ink">{t('发布状态')}</span>
-            <NativeSelect disabled={pending} value={field.value ?? 'draft'} onChange={event => { setPreview(false); field.onChange(event.target.value); }}>
+            <SimpleSelect aria-label={t('发布状态')} disabled={pending} value={field.value ?? 'draft'} onChange={event => { setPreview(false); field.onChange(event); }} options={selectOptions(<>
               <option value="published">{t((values.publish_at ?? 0) > Date.now() / 1000 ? '定时发布' : '发布')}</option>
               <option value="draft">{t('草稿')}</option>
  <option value="archived">{t('已归档')}</option>
-            </NativeSelect>
+            </>)} />
           </label>
         )} />
         <Controller control={form.control} name="note" render={({ field }) => (
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-ink">{t('内部备注')}</span>
-            <Input maxLength={100} disabled={pending} placeholder={t('仅管理员可见，最多 100 字')} value={field.value ?? ''}
+          <div className="flex flex-col gap-1.5">
+
+            <Input label={t('内部备注')} maxLength={100} disabled={pending} placeholder={t('仅管理员可见，最多 100 字')} value={field.value ?? ''}
               onChange={event => { setPreview(false); field.onChange(event.target.value); }} />
-          </label>
+          </div>
         )} />
       </div>
-      <Controller control={form.control} name="audience" render={({field})=><label className="flex flex-col gap-1.5"><span className="text-sm font-medium text-ink">{t('接收范围')}</span><NativeSelect value={field.value} disabled={pending} onChange={event=>{field.onChange(event.target.value);if(event.target.value==='all')form.setValue('recipient_ids',[]);}}><option value="all">{t('全部用户')}</option><option value="selected">{t('指定用户')}</option></NativeSelect></label>}/>
+      <Controller control={form.control} name="audience" render={({field})=><label className="flex flex-col gap-1.5"><span className="text-sm font-medium text-ink">{t('接收范围')}</span><SimpleSelect aria-label={t('接收范围')} value={field.value} disabled={pending} onChange={event=>{field.onChange(event);if(event==='all')form.setValue('recipient_ids',[]);}} options={selectOptions(<><option value="all">{t('全部用户')}</option><option value="selected">{t('指定用户')}</option></>)} /></label>}/>
       {values.audience==='selected' && <RecipientPicker web={web} selected={values.recipient_ids ?? []} disabled={pending} onChange={ids=>form.setValue('recipient_ids',ids,{shouldDirty:true})}/>}
       <p className="text-xs text-muted">{t('修改公告不会重置已读记录；需要重新提醒时，请新建公告。')}</p>
       {preview && render.data && <div className="announcement-preview max-h-44 overflow-auto rounded-lg border border-line bg-surface-alt p-3"><RichContent html={render.data.content_html} /></div>}

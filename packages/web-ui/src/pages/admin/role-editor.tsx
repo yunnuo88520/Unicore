@@ -11,7 +11,7 @@ import { buildMenuTree, directoryTitle, isRegisteredPage, sectionTitle, type Men
 import { routes } from '../../routes';
 import { buildDepartmentTree, flattenDepartmentTree, useDepartmentsQuery } from '../../queries';
 import { operationPermissionsAllow } from '../../permissions';
-import { Alert, Badge, Button, Checkbox, Input, Modal, NativeSelect, useMessage } from '@unicore/ui';
+import { Alert, Badge, Button, Checkbox, Input, Modal, SimpleSelect, useMessage, selectOptions } from '@unicore/ui';
 
 // Data scopes apply to the resource permissions held by each role.
 const dataScopeLabels = defineMessages({ self: '仅本人', dept: '本部门', dept_and_below: '本部门及以下', custom: '自定义', all: '全部' });
@@ -348,8 +348,7 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
       {save.error && <Alert variant="danger">{t(save.error.message)}</Alert>}
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center gap-3">
-          <label htmlFor="role-editor-name" className="w-16 shrink-0 text-sm font-medium text-ink">{t('角色名称')}</label>
-          <Input id="role-editor-name" required maxLength={80} autoComplete="off" value={name} aria-invalid={!!nameError} className="max-w-sm"
+          <Input label={t('角色名称')} id="role-editor-name" required maxLength={80} autoComplete="off" value={name} aria-invalid={!!nameError} className="max-w-sm"
             disabled={pending || !!role?.builtin} placeholder={t('例如 运营')}
             onChange={event => { setName(event.target.value); setNameError(''); }} />
           {nameError && <p role="alert" className="text-xs text-danger">{nameError}</p>}
@@ -362,9 +361,9 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
       <fieldset disabled={pending} className="flex min-w-0 flex-col gap-1.5">
         <div className="flex items-center gap-3">
           <span className="w-16 shrink-0 text-sm font-medium text-ink">{t('数据范围')}</span>
-          <NativeSelect aria-label={t('数据范围')} className="max-w-44" value={dataScope} onChange={event => setDataScope(event.target.value as Role['data_scope'])}>
+          <SimpleSelect aria-label={t('数据范围')} className="max-w-44" value={dataScope} onChange={event => setDataScope(event as Role['data_scope'])} options={selectOptions(<>
             {DATA_SCOPES.map(scope => <option key={scope} value={scope}>{t(dataScopeLabels[scope])}</option>)}
-          </NativeSelect>
+          </>)} />
           <small className="min-w-0 text-xs text-muted">{t('数据范围决定角色成员在笔记、文件等业务列表中能看到的数据。')}</small>
         </div>
         {dataScope === 'custom' && <div className="flex flex-col gap-1.5">

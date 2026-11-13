@@ -16,8 +16,7 @@ test('owner unlock: protected reinstallation, explicit consent and automatic rel
   await page.getByLabel('一次性安装凭据', { exact: true }).fill(token);
   await page.getByRole('button', { name: '下一步' }).click();
   await page.getByRole('button', { name: '下一步' }).click();
-  await page.getByRole('combobox', { name: '数据库类型' }).click();
-  await page.getByRole('option', { name: DATABASE_LABELS.sqlite, exact: true }).click();
+  await page.getByRole('radio', { name: DATABASE_LABELS.sqlite, exact: true }).check();
   await page.getByRole('button', { name: '测试连接' }).click();
   await expect(page.getByText('已识别为本站原数据库。重新安装会删除原账号、设置和业务数据，不会保留原站内容。')).toBeVisible();
   await expect(page.getByRole('button', { name: '下一步' })).toBeDisabled();
@@ -30,7 +29,7 @@ test('owner unlock: protected reinstallation, explicit consent and automatic rel
   await page.getByLabel('站点名称', { exact: true }).fill('Replacement site');
   await page.getByLabel('管理员账号').fill('newadmin');
   await page.getByLabel('管理员邮箱').fill('new@example.test');
-  await page.getByLabel('管理员密码').fill('Admin@123456');
+  await page.getByLabel('管理员密码', { exact: true }).fill('Admin@123456');
   await page.getByRole('button', { name: '下一步' }).click();
   await page.getByRole('button', { name: '完成安装' }).click();
   await expect(page.getByRole('heading', { name: '安装完成', exact: true })).toBeVisible();
@@ -39,6 +38,51 @@ test('owner unlock: protected reinstallation, explicit consent and automatic rel
   expect((await page.request.post(`${instance.url}/api/v1/install/complete`, { headers: { 'X-Bootstrap-Token': token }, data: initial })).status()).toBe(409);
   const serialized = await page.evaluate(() => JSON.stringify(localStorage));
   expect(serialized).not.toContain(token);
+});
+
+test('installer centers variable steps and keeps standalone an explicit choice', async ({ page, instance }, info) => {
+  const directory = `build/acceptance/public-entry/${info.project.name}`;
+  await mkdir(directory, { recursive: true });
+  await page.goto(instance.url);
+  const progress = page.getByRole('navigation', { name: '安装步骤', exact: true });
+  await expect(progress.getByRole('listitem')).toHaveCount(5);
+  const assertCentered = async () => {
+    const box = await progress.getByRole('list').boundingBox();
+    const items = progress.getByRole('listitem');
+    const first = (await items.first().boundingBox())!;
+    const last = (await items.last().boundingBox())!;
+    expect(Math.abs((first.x + first.width / 2 - box!.x) - (box!.x + box!.width - last.x - last.width / 2))).toBeLessThan(2);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  };
+  await assertCentered();
+  await page.getByLabel('一次性安装凭据', { exact: true }).fill(instance.token);
+  await page.getByRole('button', { name: '下一步', exact: true }).click();
+  await expect(page.getByRole('radio', { name: /多用户平台/ })).toBeChecked();
+  await page.screenshot({ path: `${directory}/install-platform.png`, fullPage: true });
+  await page.getByRole('radio', { name: /单机模式/ }).check();
+  await expect(progress.getByRole('listitem')).toHaveCount(4);
+  await assertCentered();
+  await page.screenshot({ path: `${directory}/install-standalone.png`, fullPage: true });
+  await page.getByRole('button', { name: '切换语言', exact: true }).click();
+  await page.getByRole('menuitemradio', { name: 'English', exact: true }).click();
+  await page.getByRole('button', { name: 'Toggle theme', exact: true }).click();
+  await page.screenshot({ path: `${directory}/install-en-dark.png`, fullPage: true });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole('button', { name: 'Change language', exact: true }).click();
+  await page.getByRole('menuitemradio', { name: '中文', exact: true }).click();
+  await page.getByRole('button', { name: '下一步', exact: true }).click();
+  const port = (await page.getByLabel('数据库端口', { exact: true }).boundingBox())!;
+  expect(port.width).toBeLessThanOrEqual(160);
+  await page.getByRole('radio', { name: DATABASE_LABELS.sqlite, exact: true }).check();
+  await page.getByRole('button', { name: '测试连接', exact: true }).click();
+  await expect(page.getByText('连接测试成功', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '下一步', exact: true }).click();
+  await expect(page.getByRole('heading', { name: '确认安装', exact: true })).toBeVisible();
+  await expect(page.getByLabel('管理员账号', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: '完成安装', exact: true }).click();
+  await expect(page.getByRole('heading', { name: '安装完成', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '进入工作空间', exact: true }).click();
+  await expect(page.getByRole('heading', { name: '工作台概览', exact: true })).toBeVisible();
 });
 
 for (const driver of ['sqlite','mysql','postgres'] as const) test(`installer ${driver}: fields, test, consent and repeated restart`,async({page,instance},info)=>{
@@ -55,10 +99,10 @@ for (const driver of ['sqlite','mysql','postgres'] as const) test(`installer ${d
   const wrong='x'.repeat(40);
   expect((await page.request.post(`${instance.url}/api/v1/install/verify-db`,{headers:{'X-Bootstrap-Token':wrong},data:{driver:'sqlite',dsn:''}})).status()).toBe(403);
   await page.getByRole('button',{name:'下一步'}).click();await page.getByRole('radio',{name:/多用户平台/}).check();await page.getByRole('button',{name:'下一步'}).click();
-  const databaseType=page.getByRole('combobox',{name:'数据库类型'});
-  await expect(databaseType).toContainText(DATABASE_LABELS.mysql);await expect(page.getByLabel('数据库地址',{exact:true})).toHaveValue('127.0.0.1');await expect(page.getByLabel('数据库端口',{exact:true})).toHaveValue('3306');await expect(page.getByLabel('数据库名',{exact:true})).toHaveValue('unicore');await expect(page.getByLabel('数据库用户名',{exact:true})).toHaveValue('root');
+  const databaseType=page.getByRole('radiogroup',{name:'数据库类型'});
+  await expect(databaseType.getByRole('radio',{name:DATABASE_LABELS.mysql,exact:true})).toBeChecked();await expect(page.getByLabel('数据库地址',{exact:true})).toHaveValue('127.0.0.1');await expect(page.getByLabel('数据库端口',{exact:true})).toHaveValue('3306');await expect(page.getByLabel('数据库名',{exact:true})).toHaveValue('unicore');await expect(page.getByLabel('数据库用户名',{exact:true})).toHaveValue('root');
   await expect(page.getByRole('button',{name:'下一步'})).toBeDisabled();
-  await databaseType.click();await page.getByRole('option',{name:DATABASE_LABELS[driver],exact:true}).click();
+  await databaseType.getByRole('radio',{name:DATABASE_LABELS[driver],exact:true}).check();
   if(driver!=='sqlite'){
     if(driver==='postgres'){await expect(page.getByLabel('数据库端口',{exact:true})).toHaveValue('5432');await expect(page.getByLabel('数据库用户名',{exact:true})).toHaveValue('postgres');}
     await page.getByLabel('数据库端口',{exact:true}).fill(port!);await page.getByLabel('数据库名',{exact:true}).fill(databaseName);await page.getByLabel('数据库密码',{exact:true}).fill('wrong-password');
@@ -73,7 +117,7 @@ for (const driver of ['sqlite','mysql','postgres'] as const) test(`installer ${d
     await page.getByLabel('输入数据库名确认').fill(databaseName);
   }
   await page.screenshot({path:`${directory}/${driver}-database.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
-  await page.getByRole('button',{name:'下一步'}).click();await page.getByLabel('站点名称',{exact:true}).fill(`安装验收 ${driver}`);await page.getByLabel('管理员账号').fill('admin');await page.getByLabel('管理员邮箱').fill('admin@example.test');await page.getByLabel('管理员密码').fill('Admin@123456');await page.getByRole('button',{name:'下一步'}).click();
+  await page.getByRole('button',{name:'下一步'}).click();await page.getByLabel('站点名称',{exact:true}).fill(`安装验收 ${driver}`);await page.getByLabel('管理员账号').fill('admin');await page.getByLabel('管理员邮箱').fill('admin@example.test');await page.getByLabel('管理员密码',{exact:true}).fill('Admin@123456');await page.getByRole('button',{name:'下一步'}).click();
   await page.getByRole('button',{name:'完成安装'}).click();await expect(page.getByRole('heading',{name:'安装完成',exact:true})).toBeVisible();await expect(page.getByRole('link',{name:`${instance.url}/`,exact:true})).toHaveAttribute('href',`${instance.url}/`);await expect(page.getByRole('link',{name:`${instance.url}/admin`,exact:true})).toHaveAttribute('href',`${instance.url}/admin`);
   await page.getByRole('button',{name:'进入工作空间'}).click();await expect(page.getByRole('heading',{name:'工作台概览'})).toBeVisible();
   const before=(await(await page.request.get(`${instance.url}/api/v1/admin/bootstrap`,{headers:{}})).json()).data;

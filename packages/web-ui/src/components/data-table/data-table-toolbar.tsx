@@ -1,7 +1,8 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Standard list toolbar: search field, filter slot, primary actions and the persisted column-visibility menu.
+import { SearchField } from '@unicore/ui/controls';
 import type { ReactNode } from 'react';
-import { ChevronRight, Search, Settings2 } from 'lucide-react';
+import { ChevronRight, Settings2 } from 'lucide-react';
 import { Button, Checkbox, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, Input } from '@unicore/ui';
 import { cn } from '@unicore/ui/cn';
 import { t } from '../../i18n';
@@ -41,13 +42,10 @@ export function DataTableToolbar({ search, children, actions, columnMenu, classN
   columnMenu?: { entries: readonly ColumnMenuEntry[]; onToggle: (id: string, visible: boolean) => void };
   className?: string;
 }) {
-  const field = search && <label className="flex h-9 min-w-44 flex-1 items-center gap-2 rounded-md border border-line bg-surface px-3 text-base text-muted shadow-tint focus-within:border-focus focus-within:ring-2 focus-within:ring-focus sm:max-w-xs">
-    <Search size={15} aria-hidden="true" />
-    <input aria-label={search.label} placeholder={search.placeholder} maxLength={search.maxLength ?? 128} autoComplete="off"
-      className="w-full min-w-0 bg-transparent text-ink outline-none placeholder:text-subtle"
-      value={search.value} onChange={event => search.onChange(event.target.value)} />
-    {search.onSubmit && <button type="submit" aria-label={t('搜索')} className="text-muted transition-colors hover:text-ink"><ChevronRight size={15} /></button>}
-  </label>;
+  const field = search && <div className="flex min-w-44 flex-1 items-center gap-2 sm:max-w-xs">
+    <SearchField label={search.label} maxLength={search.maxLength ?? 128} autoComplete="off" value={search.value} onValueChange={search.onChange} className="min-w-0 flex-1" />
+    {search.onSubmit && <button type="submit" aria-label={t('搜索')} className="mt-2 flex size-9 shrink-0 items-center justify-center rounded-md text-muted outline-none transition-colors hover:bg-surface-alt hover:text-ink focus-visible:ring-2 focus-visible:ring-focus"><ChevronRight size={16} aria-hidden="true" /></button>}
+  </div>;
   return <div className={cn('flex min-w-0 flex-wrap items-center gap-2', className)}>
     {search?.onSubmit ? <form className="contents" onSubmit={event => { event.preventDefault(); search.onSubmit?.(); }}>{field}</form> : field}
     {children}

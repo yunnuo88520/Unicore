@@ -353,11 +353,12 @@ it('exposes the five user data scopes with a department tree for the custom scop
   await screen.findByText('记录员');
   const dialog = await openEditor('新建角色');
   const scope = within(dialog).getByLabelText('数据范围');
-  expect(scope).toHaveValue('self');
-  expect(within(scope).getAllByRole('option').map(option => option.textContent)).toEqual(['仅本人', '本部门', '本部门及以下', '自定义', '全部']);
+  expect(scope).toHaveTextContent('仅本人');
+  await userEvent.click(scope);
+  expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual(['仅本人', '本部门', '本部门及以下', '自定义', '全部']);
   // The department tree only opens for the custom scope.
   expect(within(dialog).queryByRole('group', { name: '自定义部门范围' })).toBeNull();
-  await userEvent.selectOptions(scope, 'custom');
+  await userEvent.click(screen.getByRole('option', { name: '自定义' }));
   const tree = within(dialog).getByRole('group', { name: '自定义部门范围' });
   await userEvent.click(within(tree).getByRole('checkbox', { name: '前端组' }));
   expect(within(tree).getByRole('checkbox', { name: '研发部' })).not.toBeChecked();
@@ -371,7 +372,7 @@ it('allows management roles to configure their data scope', async () => {
   mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole, listDepartments: vi.fn() }));
   await screen.findByText('记录员');
   const dialog = await openEditor('新建角色');
-  expect(within(dialog).getByLabelText('数据范围')).toHaveValue('self');
+  expect(within(dialog).getByLabelText('数据范围')).toHaveTextContent('仅本人');
   expect(within(dialog).queryByRole('group', { name: '自定义部门范围' })).toBeNull();
   await userEvent.type(within(dialog).getByLabelText('角色名称'), '内容运营二');
   const points = await openAdvanced(dialog);
@@ -390,10 +391,11 @@ it('echoes a saved custom scope with its department selection when editing', asy
   mount(metadata(['roles:read', 'roles:write']), { roles, updateRole, listDepartments: vi.fn().mockResolvedValue(departmentsPayload()), menuConfig: vi.fn().mockImplementation(menuConfig) });
   await screen.findByText('记录员');
   const dialog = await openEditor('编辑角色 记录员');
-  expect(within(dialog).getByLabelText('数据范围')).toHaveValue('custom');
+  expect(within(dialog).getByLabelText('数据范围')).toHaveTextContent('自定义');
   expect(within(dialog).getByRole('checkbox', { name: '前端组' })).toBeChecked();
   // Switching away from custom empties the department selection in the payload.
-  await userEvent.selectOptions(within(dialog).getByLabelText('数据范围'), 'self');
+  await userEvent.click(within(dialog).getByLabelText('数据范围'));
+  await userEvent.click(screen.getByRole('option', { name: '仅本人' }));
   await userEvent.click(within(dialog).getByRole('button', { name: '保存' }));
   await vi.waitFor(() => expect(updateRole).toHaveBeenCalledWith('recorder', expect.objectContaining({ data_scope: 'self', department_ids: [] })));
 });

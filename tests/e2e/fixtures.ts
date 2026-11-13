@@ -1,6 +1,6 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Every browser test owns a fresh process, data directory and bootstrap credential.
-import { test as base, expect, type APIRequestContext, type Page, type PlaywrightWorkerArgs } from '@playwright/test';
+import { test as base, expect, type APIRequestContext, type Page, type Locator, type PlaywrightWorkerArgs } from '@playwright/test';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { openSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -133,7 +133,7 @@ export async function adminLogin(page: Page, url: string, username: string, pass
 }
 
 export async function workspaceLogin(page: Page, url: string, username: string, password = memberPassword) {
-  await page.goto(url);
+  await page.goto(`${url}/login`);
   await submitLogin(page, username, password);
   await expect(page.getByRole('heading', { name: '工作台概览' }).or(page.getByRole('heading', { name: '没有访问权限' }))).toBeVisible();
 }
@@ -233,4 +233,14 @@ export function menuChain(config: MenuList, routeId: string, surface?: 'user' | 
   let parent = node.parent_id ? byId.get(node.parent_id) : undefined;
   while (parent) { chain.unshift(parent.id); parent = parent.parent_id ? byId.get(parent.id) : undefined; }
   return chain;
+}
+
+// Follow the shared control's semantic presentation, keeping option names visible in tests.
+export async function chooseOption(page: Page, label: string, option: string | RegExp, scope: Page | Locator = page) {
+  const group = scope.getByRole('radiogroup', { name: label, exact: true });
+  if (await group.count()) { await group.getByRole('radio', { name: option, exact: typeof option === 'string' }).check(); return; }
+  const control = scope.getByRole('combobox', { name: label, exact: true });
+  if (await control.evaluate(element => element.tagName === 'INPUT')) await control.fill(typeof option === 'string' ? option : '');
+  else await control.click();
+  await page.getByRole('option', { name: option, exact: typeof option === 'string' }).click();
 }

@@ -76,7 +76,7 @@ test('settings audit: site identity, ICP, ICO and compile-time update capabiliti
   if (info.project.name === 'chromium') {
     // The version badge now lives under the sidebar brand lockup; keep the
     // geometric guarantee that it sits below the site name.
-    const name = (await page.locator('.sidebar a[aria-label="配套设置工作空间"]').boundingBox())!;
+    const name = (await page.locator('.sidebar').getByRole('link', { name: '配套设置工作空间', exact: true }).filter({ hasText: '配套设置工作空间' }).boundingBox())!;
     const tag = (await page.locator('.sidebar .version-badge').boundingBox())!;
     expect(tag.y).toBeGreaterThanOrEqual(name.y + name.height);
     await expect(page.getByRole('button', { name: '保存设置', exact: true })).toBeInViewport();

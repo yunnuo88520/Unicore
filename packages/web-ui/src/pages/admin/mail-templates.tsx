@@ -226,13 +226,13 @@ function MailTemplateForm({ draft, selected, pending, savePending, saveError, re
           <span className="flex items-center gap-1.5 text-xs text-muted"><Braces size={14} aria-hidden="true" />{t('插入变量')}</span>
           <div className="template-variables flex flex-wrap gap-1.5">
             {selected?.variables.map(variable => (
-              <button type="button" key={variable.key} disabled={busy} title={`{{${variable.key}}} · ${variable.sample}`}
+              <Button variant="secondary" size="sm" key={variable.key} disabled={busy} title={`{{${variable.key}}} · ${variable.sample}`}
                 onMouseDown={event => event.preventDefault()}
                 onClick={() => insert(variable.key)}
-                className="flex items-center gap-1.5 rounded-md border border-line bg-surface-alt px-2 py-1 text-2xs text-ink transition-colors hover:border-primary-line hover:bg-primary-soft hover:text-accent disabled:pointer-events-none disabled:opacity-55">
+                className="gap-1.5">
                 {t(variableLabels[variable.key as keyof typeof variableLabels] ?? variable.key)}
                 <code className="text-2xs text-muted">{`{{${variable.key}}}`}</code>
-              </button>
+              </Button>
             ))}
           </div>
         </div>

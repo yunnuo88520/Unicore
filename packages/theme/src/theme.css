@@ -16,7 +16,10 @@
 @theme inline {
   /* Palette mapped onto runtime tokens that switch with [data-theme]/[data-accent]. */
   --color-background: var(--bg);
+  --color-workspace: var(--workspace-background);
   --color-surface: var(--surface);
+  --color-surface-soft: var(--surface-soft);
+  --color-field: var(--surface-alt);
   --color-surface-alt: var(--surface-alt);
   --color-surface-raised: var(--surface-raised);
   --color-surface-inset: var(--surface-inset);
@@ -141,6 +144,16 @@
   --shadow-modal: var(--elevation-overlay);
 
   --icon-stroke: var(--icon-stroke);
+}
+
+/* Workspace chrome and content share a canvas; quiet panels provide the depth. */
+:root {
+  --workspace-background: var(--surface);
+  --surface-soft: var(--bg);
+}
+:root[data-theme=dark] {
+  --workspace-background: var(--bg);
+  --surface-soft: var(--surface);
 }
 
 /* Opt-in editorial roles preserve the existing 13px text-base and device font scale. */

@@ -12,7 +12,7 @@ import { roleDisplayLabels } from '../../role-display';
 import { UserAvatar, displayLabel } from '../../user-avatar';
 import { useColumnVisibility } from '../../column-visibility';
 import { AppControllerField, AppField, AppForm, useAppForm } from '@unicore/form';
-import { Badge, Button, Card, CardContent, Checkbox, Input, Modal, SimpleSelect, PageHeader, useMessage, selectOptions } from '@unicore/ui';
+import { Badge, Button, Card, CardContent, Checkbox, Input, Modal, RadioGroup, RadioGroupItem, SimpleSelect, PageHeader, useMessage, selectOptions } from '@unicore/ui';
 import { DataTable, DataTablePagination, DataTableToolbar } from '../../components/data-table';
 import type { PageProps } from '../../router';
 
@@ -431,16 +431,12 @@ function PasswordResetDialog({ web, user, onClose, onSaved }: { web: WebClient; 
       <p className="text-sm text-muted">{t('为 {{name}} 设置新密码；保存后该账号的全部登录会话立即失效。', { name: displayLabel(user.display_name, user.username) || user.username })}</p>
       <fieldset className="flex flex-col gap-2">
         <legend className="sr-only">{t('密码方式')}</legend>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="radio" name="reset-mode" checked={mode === 'input'} onChange={() => setMode('input')} aria-label={t('手动输入新密码')} />
-          <span>{t('手动输入新密码')}</span>
-        </label>
+        <RadioGroup label={t('密码方式')} name="reset-mode" value={mode} disabled={reset.isPending} onValueChange={value => setMode(value as 'input' | 'generate')}>
+          <RadioGroupItem value="input" itemLabel={t('手动输入新密码')}>{t('手动输入新密码')}</RadioGroupItem>
+          <RadioGroupItem value="generate" itemLabel={t('生成临时密码')}>{t('生成临时密码')}</RadioGroupItem>
+        </RadioGroup>
         {mode === 'input' && <Input type="password" minLength={12} maxLength={128} autoComplete="new-password" value={password}
           aria-label={t('新密码')} placeholder={t('至少 12 位')} onChange={event => setPassword(event.target.value)} />}
-        <label className="flex items-center gap-2 text-sm">
-          <input type="radio" name="reset-mode" checked={mode === 'generate'} onChange={() => setMode('generate')} aria-label={t('生成临时密码')} />
-          <span>{t('生成临时密码')}</span>
-        </label>
         {mode === 'generate' && <small className="text-xs text-muted">{t('系统生成一次性临时密码，仅在成功提示中显示一次。')}</small>}
       </fieldset>
       <div className="flex justify-end gap-2">

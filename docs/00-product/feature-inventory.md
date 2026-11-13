@@ -98,6 +98,8 @@
 
 这是共享呈现基础能力，不新增 operation、权限点、设置键、数据库表、业务菜单或仪表盘 widget。Agent/Composer/认证/通知/预约等组件名称不代表相应服务已装配；由业务页提供真实数据、SDK 调用与授权。family 范围以 `packages/web-ui/src/pages/ui-preview/catalog.ts` 显式登记为准，不把变体计为新业务功能或把登记视为视觉验收。
 
+Platform 两工作台与 Standalone 两载体共用连续的顶栏/正文背景、圆角侧栏与本地菜单筛选，以及工作台 Card/StatCard 的柔和表面变体；不新增外观设置或持久化，CLI 不适用。几何与表面规范见 [设计系统](../02-standards/design-system.md)。
+
 ## H. 桌面载体专属（Standalone GUI 实现层）
 
 | 功能单元 | 载体 | 证据 |

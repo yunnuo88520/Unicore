@@ -44,7 +44,7 @@ export const FileUploadDropzone = forwardRef<HTMLDivElement, FileUploadDropzoneP
     if (accepted.length) { setQueued(accepted.map((file, index) => ({ id: `${file.name}-${file.lastModified}-${index}`, name: file.name, progress: 0, status: 'Queued' }))); onFiles(accepted); }
     if (rejected.length) onReject?.(rejected);
   };
-  return <div ref={ref} role="group" aria-label={t(label)} aria-disabled={disabled || undefined} className={cn('flex cursor-pointer flex-col items-center gap-3 rounded-lg border border-dashed border-line bg-surface p-6 text-center text-sm text-muted', dragging && !disabled && 'border-focus bg-surface-alt', disabled && 'cursor-not-allowed opacity-55', className)}
+  return <div ref={ref} role="group" aria-label={t(label)} aria-disabled={disabled || undefined} className={cn('flex cursor-pointer flex-col items-center gap-3 rounded-2xl border border-dashed border-line bg-surface-soft p-6 text-center text-sm text-muted', dragging && !disabled && 'border-focus bg-surface-alt', disabled && 'cursor-not-allowed opacity-55', className)}
     onClick={event => { if (!disabled && !(event.target as HTMLElement).closest('button,input,li')) input.current?.click(); }}
     onDragEnter={event => { event.preventDefault(); depth.current++; if (!disabled) setDragging(true); }}
     onDragOver={event => { event.preventDefault(); event.dataTransfer.dropEffect = disabled ? 'none' : 'copy'; }}

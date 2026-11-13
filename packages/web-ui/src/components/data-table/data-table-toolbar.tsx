@@ -44,7 +44,7 @@ export function DataTableToolbar({ search, children, actions, columnMenu, classN
 }) {
   const field = search && <div className="flex min-w-44 flex-1 items-center gap-2 sm:max-w-xs">
     <SearchField label={search.label} maxLength={search.maxLength ?? 128} autoComplete="off" value={search.value} onValueChange={search.onChange} className="min-w-0 flex-1" />
-    {search.onSubmit && <button type="submit" aria-label={t('搜索')} className="mt-2 flex size-9 shrink-0 items-center justify-center rounded-md text-muted outline-none transition-colors hover:bg-surface-alt hover:text-ink focus-visible:ring-2 focus-visible:ring-focus"><ChevronRight size={16} aria-hidden="true" /></button>}
+    {search.onSubmit && <Button type="submit" variant="ghost" size="icon" aria-label={t('搜索')} className="mt-2 size-9 shrink-0"><ChevronRight size={16} aria-hidden="true" /></Button>}
   </div>;
   return <div className={cn('flex min-w-0 flex-wrap items-center gap-2', className)}>
     {search?.onSubmit ? <form className="contents" onSubmit={event => { event.preventDefault(); search.onSubmit?.(); }}>{field}</form> : field}

@@ -1,6 +1,6 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Single structural shell for Web and Wails; pages supply content without owning navigation offsets.
-// Geometry variants (data-layout/sidebar) live in shell.css; all visuals are Tailwind utilities.
+// Geometry variants (data-layout/sidebar) live in shell.css; surfaces share semantic theme utilities.
 import { useEffect, type ReactNode } from 'react';
 import { useI18n } from './i18n';
 import './shell.css';
@@ -17,18 +17,18 @@ export function WorkspaceLayout({ navigation, header, children, overlays, naviga
     window.addEventListener('keydown', close);
     return () => window.removeEventListener('keydown', close);
   }, [navigationOpen, onNavigationClose]);
-  return <div className={`app-shell ${navigationCollapsed ? 'nav-collapsed' : ''}`} dir="ltr">
+  return <div className={`app-shell bg-workspace ${navigationCollapsed ? 'nav-collapsed' : ''}`} dir="ltr">
     <a className="fixed top-[-100px] start-5 z-50 rounded-sm border-2 border-primary bg-surface px-2.5 py-2.5 text-sm focus:top-3" href="#main-content"
       onClick={event => { event.preventDefault(); document.getElementById('main-content')?.focus(); }}>
       {t('跳至主要内容')}
     </a>
     {navigationOpen && <button className="nav-scrim fixed inset-0 z-[29] bg-scrim/80 backdrop-blur-[2px]" aria-label={t('关闭导航')} onClick={onNavigationClose} />}
-    <aside id="workspace-navigation" className={`sidebar z-30 flex flex-col overflow-hidden border-e border-line bg-surface px-5 pt-[24px] ${navigationOpen ? 'is-open' : ''}`} aria-label={t('主导航')}>
+    <aside id="workspace-navigation" className={`sidebar z-30 flex flex-col gap-4 overflow-hidden bg-surface-soft p-3 ${navigationOpen ? 'is-open' : ''}`} aria-label={t('主导航')}>
       {navigation}
     </aside>
-    <div className="main-shell min-w-0 w-full">
-      <header className="topbar sticky top-0 z-20 flex h-16 min-w-0 items-center justify-between gap-4 border-b border-line bg-surface/95 px-6 backdrop-blur-md max-md:px-4">{header}</header>
-      <main id="main-content" tabIndex={-1} className={`main-content mx-auto w-full min-w-0 px-8 pb-12 pt-8 outline-none max-md:px-4 max-md:pt-6 ${contentClassName}`}>{children}</main>
+    <div className="main-shell min-w-0 w-full bg-workspace">
+      <header className="topbar sticky top-0 z-20 flex h-16 min-w-0 items-center justify-between gap-4 bg-workspace px-3 max-md:px-4">{header}</header>
+      <main id="main-content" tabIndex={-1} className={`main-content mx-auto w-full min-w-0 px-3 pb-8 outline-none max-md:px-4 max-md:pt-2 ${contentClassName}`}>{children}</main>
     </div>
     {overlays}
   </div>;

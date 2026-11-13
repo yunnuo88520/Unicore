@@ -19,7 +19,7 @@ export { Dialog, DialogTrigger, DialogClose, DialogContent, DialogHeader, Dialog
 export { Select, SelectValue, SelectTrigger, SelectContent, SelectItem, SimpleSelect, selectOptions, selectTriggerVariants } from './select';
 export { Switch, SwitchPrimitive } from './switch';
 export { Checkbox } from './checkbox';
-export { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from './dropdown-menu';
+export { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from './dropdown-menu';
 export { Tabs, TabsPrimitive } from './tabs';
 export { Tooltip } from './tooltip';
 export { MessageProvider, useMessage, type MessageAPI, type MessageOptions, type MessageType } from './message';

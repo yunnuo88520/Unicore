@@ -24,7 +24,7 @@ export function CommandPalette({ open, onOpenChange, items, title = 'Commands', 
   }, [open, current?.id, id]);
   const choose = (item: CommandItem) => { if (!item.disabled) { onOpenChange(false); item.onSelect(); } };
   return <Dialog.Root open={open} onOpenChange={onOpenChange}><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-50 bg-scrim/70" />
-    <Dialog.Content className={cn('fixed start-1/2 top-1/4 z-50 flex max-h-[65dvh] w-[calc(100%-32px)] max-w-dialog -translate-x-1/2 flex-col gap-3 rounded-xl border border-line bg-surface p-4 shadow-modal', className)} aria-describedby={undefined}
+    <Dialog.Content className={cn('fixed start-1/2 top-1/4 z-50 flex max-h-[65dvh] w-[calc(100%-32px)] max-w-dialog -translate-x-1/2 flex-col gap-3 rounded-3xl border border-line bg-workspace p-6 shadow-floating', className)} aria-describedby={undefined}
       onOpenAutoFocus={event => { event.preventDefault(); opener.current = document.activeElement as HTMLElement; setQuery(''); setActive(undefined); input.current?.focus(); }}
       onCloseAutoFocus={event => { event.preventDefault(); if (opener.current?.isConnected) opener.current.focus(); }}>
       <div className="flex items-center justify-between gap-2"><Dialog.Title className="text-base font-semibold text-ink">{t(title)}</Dialog.Title><Dialog.Close asChild><CloseButton /></Dialog.Close></div>

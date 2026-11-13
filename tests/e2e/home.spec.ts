@@ -44,7 +44,9 @@ test('public homepage remains accessible before and after login', async ({ page,
   await page.getByRole('link', { name: '进入工作空间' }).last().click();
   await expect(page.getByRole('heading', { name: '工作台概览', exact: true })).toBeVisible();
   await page.getByRole('button', { name: '账号菜单', exact: true }).click();
-  await page.getByRole('menuitem', { name: '产品首页', exact: true }).click();
+  await expect(page.getByRole('menuitem', { name: '产品首页', exact: true })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await page.goto(`${instance.url}/home`);
   await expect(page).toHaveURL(`${instance.url}/home`);
   await page.getByRole('button', { name: '切换语言', exact: true }).click();
   await page.getByRole('menuitemradio', { name: 'English', exact: true }).click();

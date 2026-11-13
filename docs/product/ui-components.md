@@ -29,9 +29,10 @@ setTranslator(t);
 | RadioGroup | `@unicore/ui` | 胶囊单选组（少量互斥项） |
 | Breadcrumb | `@unicore/ui` | 顶栏面包屑（current 项强调） |
 | Kbd | `@unicore/ui` | 快捷键键帽 |
-| Card | `@unicore/ui` | 面板表面与 Header/Title/Description/Content/Footer 组合；`asChild` 可渲染为链接瓦片 |
+| Card | `@unicore/ui` | 面板表面与 Header/Title/Description/Content/Footer 组合；`asChild` 可渲染为链接瓦片；默认及 `variant="soft"` 提供无可见边框/阴影的柔和表面，`outlined` 提供边框表面 |
+| Input | `@unicore/ui` | 默认浮动标签；`appearance="search"` 提供导航快速筛选的圆角柔和表面，外部 label 必须关联 |
 | PageHeader | `@unicore/ui` | 节标题 + 可选描述 + 操作槽；无外壳，放 CardContent 或裸用 |
-| StatCard | `@unicore/ui` | 仪表盘指标卡；图标默认降噪，`tone="success"` 只用于承载语义的状态 |
+| StatCard | `@unicore/ui` | 仪表盘指标卡；支持 Card 的 `variant="soft"`；图标默认降噪，`tone="success"` 只用于承载语义的状态 |
 | EmptyState | `@unicore/ui` | 空/加载/错误三态；`icon/title/description/action`，原生 role 透传，外壳由调用方决定 |
 | Input / Textarea / NativeSelect | `@unicore/ui` | 共享控制面样式，`aria-invalid` 自动切换警示色 |
 | Switch / Checkbox | `@unicore/ui` | 受控布尔 API，内建 label 关联 |

@@ -14,7 +14,7 @@ html, body { overflow-x: clip; }
 
 .app-shell {
   --shell-sidebar-width: var(--sidebar);
-  --shell-sidebar-gap: 0px;
+  --shell-sidebar-gap: 24px;
   --shell-navigation-space: calc(var(--shell-sidebar-width) + var(--shell-sidebar-gap));
   --shell-navigation-visibility: visible;
   --shell-navigation-transform: none;
@@ -27,10 +27,13 @@ html, body { overflow-x: clip; }
 .app-shell > .main-shell { grid-column: 2; min-inline-size: 0; inline-size: 100%; }
 .app-shell > .sidebar {
   position: fixed;
-  inset-block: 0;
-  inset-inline-start: 0;
+  inset-block: 12px;
+  inset-inline-start: 12px;
   inline-size: var(--shell-sidebar-width);
-  block-size: 100dvh;
+  block-size: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-20);
+  box-shadow: var(--elevation-control);
   transition: transform var(--motion-normal);
   visibility: var(--shell-navigation-visibility);
   transform: var(--shell-navigation-transform);
@@ -41,50 +44,37 @@ html, body { overflow-x: clip; }
 :root[data-layout=compact] .app-shell { --shell-sidebar-width: var(--sidebar-compact); }
 /* Collapsed navigation rail (desktop only; the mobile drawer keeps its full width). */
 @media (min-width: 768px) {
-  :root:not([data-layout=full]) .app-shell.nav-collapsed { --shell-sidebar-width: 48px; }
-  :root:not([data-layout=full]) .app-shell.nav-collapsed > .sidebar { padding-inline: 8px; padding-block-start: 8px; }
+  :root:not([data-layout=full]) .app-shell.nav-collapsed { --shell-sidebar-width: 60px; }
+  :root:not([data-layout=full]) .app-shell.nav-collapsed > .sidebar { padding-inline: 11px; }
 }
 :root[data-layout=compact] .topbar { height: 60px; }
-:root[data-layout=compact] .main-content { padding-top: 24px; }
 :root[data-content=full] .main-content { max-inline-size: none; }
 :root[data-content=centered] .main-content { max-inline-size: var(--content-max); }
-:root[data-sidebar=inset] .app-shell > .sidebar { background: var(--bg); border-color: transparent; }
-:root[data-sidebar=floating] .app-shell { --shell-sidebar-gap: 8px; }
+:root[data-sidebar=inset] .app-shell > .sidebar { background: var(--workspace-background); border-color: transparent; box-shadow: none; }
+:root[data-sidebar=floating] .app-shell { --shell-sidebar-gap: 28px; }
 :root[data-sidebar=floating] .app-shell > .sidebar {
-  inset-block: 8px;
-  inset-inline-start: 8px;
-  block-size: auto;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-16);
-  box-shadow: 0 8px 30px var(--shadow-modal);
+  inset-block: 12px;
+  inset-inline-start: 12px;
 }
-/* Inset and floating layouts share one rounded content sheet, including its sticky header. */
+/* Keep the inset geometry without framing the header and content as separate panels. */
 @media (min-width: 768px) {
   :root:not([data-layout=full]):is([data-sidebar=inset], [data-sidebar=floating]) .main-shell {
     inline-size: auto;
     min-block-size: calc(100dvh - 16px);
     margin-block: 8px;
     margin-inline-end: 8px;
-    border: 1px solid var(--border);
     border-radius: var(--radius-16);
-    background: var(--surface);
   }
   :root:not([data-layout=full]):is([data-sidebar=inset], [data-sidebar=floating]) .topbar {
     top: 8px;
-    background: var(--surface);
     border-start-start-radius: var(--radius-16);
     border-start-end-radius: var(--radius-16);
   }
-  :root:not([data-layout=full]):is([data-sidebar=inset], [data-sidebar=floating]) .main-content { padding-block-start: 24px; }
 }
 :root[data-layout=full] .app-shell { --shell-navigation-space: 0px; --shell-navigation-visibility: hidden; --shell-navigation-transform: translateX(-110%); }
-/* The sidebarless (full) layout has no sidebar edge to divide header from content, so the header keeps its line. */
-:root[data-layout=full] .topbar { border-bottom: 1px solid var(--border); }
-:root[data-layout=full]:is([data-sidebar=inset], [data-sidebar=floating]) .topbar { background: var(--bg); }
 
 @media (max-width: 767px) {
   .app-shell { --shell-navigation-space: 0px; --shell-sidebar-width: 256px; --shell-navigation-visibility: hidden; --shell-navigation-transform: translateX(-110%); }
-  :root:is([data-sidebar=inset], [data-sidebar=floating]) .topbar { background: var(--bg); }
 }
 
 /* The mobile menu button appears off-canvas-widths and the full (sidebarless) layout. */

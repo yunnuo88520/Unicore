@@ -11,7 +11,7 @@ import { BrandLockup } from '../brand';
 import { productName, productSlug } from '../product.gen';
 import { AppField, AppForm, useAppForm } from '@unicore/form';
 import { AppCheckboxField, AppControllerField } from '@unicore/form/fields';
-import { Button, Input, SimpleSelect } from '@unicore/ui';
+import { Button, Input, RadioGroup, RadioGroupItem, SimpleSelect } from '@unicore/ui';
 import { cn } from '@unicore/ui/cn';
 import { InstallationSteps } from '../components/installation-steps';
 
@@ -231,17 +231,15 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
             <details className="rounded-lg border border-line p-4 text-sm"><summary className="cursor-pointer font-medium">{t('安装凭据在哪里？')}</summary><p id={`${tokenID}-hint`} className="mt-3 leading-relaxed text-muted">{t('用于确认你拥有服务器，防止他人抢先创建管理员。服务器首次启动已自动生成，请从私有数据目录的 bootstrap.token 文件读取；它与加密密钥不同，也不会存入浏览器。凭据失效时，删除数据目录中的 bootstrap.token 并重启服务即可重新生成。')}</p></details>
           </>}
           {current === 'profile' && <>
-            <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label={t('运行形态')}>
-              {(['web-platform', 'web-standalone'] as const).map(profile => <label key={profile}
-                className={cn('flex cursor-pointer flex-col gap-1 rounded-lg border p-4 transition-colors', input.profile === profile ? 'border-primary bg-primary-soft' : 'border-line bg-surface hover:bg-surface-alt')}>
-                <span className="flex items-center gap-2">
-                  <input type="radio" name="profile" className="size-4 accent-primary" checked={input.profile === profile}
-                    onChange={() => { form.setValue('profile', profile); form.setValue('site_name', productName); }} />
-                  <strong className="text-sm text-ink">{profile === 'web-platform' ? t('多用户平台') : t('单机模式')}</strong>
+            <RadioGroup label={t('运行形态')} name="profile" value={input.profile} onValueChange={profile => { form.setValue('profile', profile as Profile); form.setValue('site_name', productName); }} className="grid gap-3 sm:grid-cols-2">
+              {(['web-platform', 'web-standalone'] as const).map(profile => <RadioGroupItem key={profile} value={profile}
+                itemLabel={profile === 'web-platform' ? t('多用户平台') : t('单机模式')} className="h-full gap-3 p-4 text-start">
+                <span className="flex min-w-0 flex-col gap-1">
+                  <strong className="text-sm font-medium">{profile === 'web-platform' ? t('多用户平台') : t('单机模式')}</strong>
+                  <small className="text-xs text-muted">{profile === 'web-platform' ? t('独立账号、角色权限与管理后台') : t('个人工作空间，无用户和登录流程')}</small>
                 </span>
-                <small className="text-xs text-muted">{profile === 'web-platform' ? t('独立账号、角色权限与管理后台') : t('个人工作空间，无用户和登录流程')}</small>
-              </label>)}
-            </div>
+              </RadioGroupItem>)}
+            </RadioGroup>
             <p className="text-sm text-muted">{t('安装完成后固定运行形态，更改模式需要独立部署与数据迁移。')}</p>
           </>}
           {current === 'database' && <>

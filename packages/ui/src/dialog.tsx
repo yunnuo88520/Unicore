@@ -21,7 +21,7 @@ export const DialogContent = forwardRef<HTMLDivElement, ComponentPropsWithoutRef
   const opener = useRef<HTMLElement | null>(null);
   return <DialogPrimitive.Portal>
     <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-scrim/70 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out" />
-    <DialogPrimitive.Content ref={ref} className={cn('fixed start-1/2 top-1/2 z-50 flex max-h-[85dvh] w-[calc(100%-16px)] max-w-dialog -translate-x-1/2 -translate-y-1/2 flex-col overflow-y-auto rounded-xl border border-line bg-surface p-4 shadow-modal data-[state=open]:animate-in data-[state=closed]:animate-out', className)}
+    <DialogPrimitive.Content ref={ref} className={cn('fixed start-1/2 top-1/2 z-50 flex max-h-[85dvh] w-[calc(100%-32px)] max-w-dialog -translate-x-1/2 -translate-y-1/2 flex-col overflow-y-auto rounded-3xl border border-line bg-workspace p-6 shadow-floating outline-none data-[state=open]:animate-in data-[state=closed]:animate-out', className)}
       onOpenAutoFocus={event => {
         opener.current = (event.currentTarget as HTMLElement).ownerDocument.activeElement as HTMLElement | null;
         // Keep the legacy first-field focus: an explicit data-autofocus target wins, else the first focusable control.
@@ -40,25 +40,25 @@ export const DialogContent = forwardRef<HTMLDivElement, ComponentPropsWithoutRef
       }}
       {...props}>
       {children}
-      {showClose && <DialogPrimitive.Close asChild><Button variant="ghost" size="icon" className="absolute end-3 top-3" aria-label={t('关闭对话框')}><X size={17} /></Button></DialogPrimitive.Close>}
+      {showClose && <DialogPrimitive.Close asChild><Button variant="ghost" size="icon" className="absolute end-4 top-4" aria-label={t('关闭对话框')}><X size={17} /></Button></DialogPrimitive.Close>}
     </DialogPrimitive.Content>
   </DialogPrimitive.Portal>;
 });
 
 export function DialogHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('mb-3 flex shrink-0 flex-col gap-1 pe-8', className)} {...props} />;
+  return <div className={cn('mb-4 flex shrink-0 flex-col gap-1.5 pe-8', className)} {...props} />;
 }
 
 export function DialogTitle({ className, ...props }: ComponentPropsWithoutRef<typeof DialogPrimitive.Title>) {
-  return <DialogPrimitive.Title className={cn('text-lg font-semibold text-ink', className)} {...props} />;
+  return <DialogPrimitive.Title className={cn('text-xl font-medium text-ink', className)} {...props} />;
 }
 
 export function DialogDescription({ className, ...props }: ComponentPropsWithoutRef<typeof DialogPrimitive.Description>) {
-  return <DialogPrimitive.Description className={cn('text-xs text-muted', className)} {...props} />;
+  return <DialogPrimitive.Description className={cn('text-sm text-muted', className)} {...props} />;
 }
 
 export function DialogFooter({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('mt-4 flex flex-wrap items-center justify-end gap-2', className)} {...props} />;
+  return <div className={cn('mt-6 flex flex-wrap items-center justify-end gap-2', className)} {...props} />;
 }
 
 /** Legacy-compatible modal: mounted equals open; Escape and overlay closes are suppressed while pending. */
@@ -69,10 +69,10 @@ export function Modal({ title, onClose, pending = false, children, className, co
       <DialogHeader>
         <DialogTitle>{t(title)}</DialogTitle>
       </DialogHeader>
-      <div className={cn('min-h-0 min-w-0 overflow-y-auto overscroll-contain pe-4', className)} data-autofocus-scope>
+      <div className={cn('min-h-0 min-w-0 overflow-y-auto overscroll-contain', className)} data-autofocus-scope>
         {children}
       </div>
-      <DialogPrimitive.Close asChild><Button variant="ghost" size="icon" className="absolute end-3 top-3" aria-label={t('关闭{{v0}}', { v0: title })} disabled={pending}><X size={17} /></Button></DialogPrimitive.Close>
+      <DialogPrimitive.Close asChild><Button variant="ghost" size="icon" className="absolute end-4 top-4" aria-label={t('关闭{{v0}}', { v0: title })} disabled={pending}><X size={17} /></Button></DialogPrimitive.Close>
     </DialogContent>
   </Dialog>;
 }
@@ -87,8 +87,8 @@ export function ConfirmDialog({ title, description, confirmLabel, cancelLabel, d
   return <AlertDialogPrimitive.Root open={open} onOpenChange={open => { if (!open && !pending) onCancel(); }}>
     <AlertDialogPrimitive.Portal>
       <AlertDialogPrimitive.Overlay className="fixed inset-0 z-50 bg-scrim/70" />
-      <AlertDialogPrimitive.Content className="fixed start-1/2 top-1/2 z-50 w-[calc(100%-16px)] max-w-dialog -translate-x-1/2 -translate-y-1/2 rounded-xl border border-line bg-surface p-4 shadow-modal">
-        <AlertDialogPrimitive.Title className="text-md font-semibold text-ink">{t(title)}</AlertDialogPrimitive.Title>
+      <AlertDialogPrimitive.Content className="fixed start-1/2 top-1/2 z-50 w-[calc(100%-32px)] max-w-dialog -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-line bg-workspace p-6 shadow-floating outline-none">
+        <AlertDialogPrimitive.Title className="text-xl font-medium text-ink">{t(title)}</AlertDialogPrimitive.Title>
         {description && <AlertDialogPrimitive.Description className="mt-1 text-sm text-muted">{t(description)}</AlertDialogPrimitive.Description>}
         <AlertDialogPrimitive.Action asChild>
           <Button variant={danger ? 'danger' : 'primary'} className="mt-4" pending={pending} onClick={event => { event.preventDefault(); onConfirm(); }}>{t(confirmLabel)}</Button>

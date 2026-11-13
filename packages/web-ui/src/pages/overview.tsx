@@ -17,11 +17,11 @@ function CoreDashboard({ client, metadata, registry }: PageProps) {
   useLocale();
   const quickLinks = ([{ id: 'notes', icon: NotebookPen }] as const)
     .filter(({ id }) => canAccess(id, metadata));
-  return <div className="flex flex-col gap-6">
+  return <div className="flex flex-col gap-4">
     <RuntimeCards metadata={metadata} transport={client.transport} />
     {registry.entries().map(widget => {
       const content = widget.render(metadata);
-      return content ? <Card key={widget.id} className="dashboard-widget">{content}</Card> : null;
+      return content ? <Card key={widget.id} variant="soft" className="dashboard-widget">{content}</Card> : null;
     })}
     <IntroBanner platform={metadata.profile === 'web-platform'} />
     {metadata.identity_realm !== 'administrator' && <BusinessPlaceholders />}
@@ -30,7 +30,7 @@ function CoreDashboard({ client, metadata, registry }: PageProps) {
       <div className="grid gap-4 sm:grid-cols-3">
         {quickLinks.map(({ id, icon: Icon }) => {
           const route = routes[id];
-          return <Card asChild key={id} className="group flex flex-col items-start gap-1 p-5 transition-colors hover:border-primary-line hover:bg-surface-alt">
+          return <Card asChild key={id} variant="soft" className="group flex flex-col items-start gap-1 p-5 transition-colors hover:bg-surface-hover">
             <Link to={ROUTE_PATHS[id as Page] ?? `/${id}`}>
               <span className="flex size-9 items-center justify-center rounded-lg bg-primary-soft text-accent"><Icon size={18} aria-hidden="true" /></span>
               <strong className="mt-1 text-sm font-medium text-ink">{t(route.label)}</strong>
@@ -59,17 +59,17 @@ function RuntimeCards({ metadata, transport }: { metadata: Bootstrap; transport:
       : { label: t('工作空间'), value: t('个人空间'), detail: t('专注于你的业务'), icon: Layers3 },
   ];
   return <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label={t('运行状态')}>
-    {cards.map(({ tone, ...card }) => <StatCard key={card.label} {...card} tone={tone} />)}
+    {cards.map(({ tone, ...card }) => <StatCard key={card.label} {...card} tone={tone} variant="soft" />)}
   </section>;
 }
 
 function IntroBanner({ platform }: { platform: boolean }) {
   useLocale();
-  return <div className="rounded-2xl border border-line bg-surface p-6 text-ink md:p-8">
+  return <Card variant="soft" className="p-6 text-ink md:p-8">
     <div className="flex flex-wrap items-center justify-between gap-6">
       <div className="max-w-xl">
         <p className="text-2xs font-medium text-muted">{platform ? t('为下一款产品而生') : t('工作空间')}</p>
-        <h2 className="mt-2 text-2xl font-semibold">{platform ? t('构建一次，连接每个终端') : t('你的工作，从这里开始')}</h2>
+        <h2 className="mt-2 text-xl font-medium">{platform ? t('构建一次，连接每个终端') : t('你的工作，从这里开始')}</h2>
         <p className="mt-1 text-sm text-muted">{platform ? t('领域逻辑保持纯粹，交互体验始终一致') : t('整理想法，记录进展，专注于手头的事')}</p>
       </div>
       <div className="flex items-center gap-3 rounded-xl bg-surface-alt px-4 py-3" aria-hidden="true">
@@ -85,21 +85,21 @@ function IntroBanner({ platform }: { platform: boolean }) {
         </>}
       </div>
     </div>
-  </div>;
+  </Card>;
 }
 
 function BusinessPlaceholders() {
   useLocale();
   return <section className="grid gap-4 sm:grid-cols-2" aria-label={t('业务空间')}>
-    <Card><CardContent className="flex flex-col items-start gap-1.5 py-5">
+    <Card variant="soft"><CardContent className="flex flex-col items-start gap-1.5 py-5">
       <FolderOpen size={20} className="text-accent" aria-hidden="true" />
-      <h2 className="text-md font-semibold text-ink">{t('我的项目')}</h2>
+      <h2 className="text-md font-medium text-ink">{t('我的项目')}</h2>
       <p className="text-xs text-muted">{t('为你的业务预留空间，项目功能待接入。')}</p>
       <span className="mt-1 text-2xs text-subtle">{t('待接入')}</span>
     </CardContent></Card>
-    <Card><CardContent className="flex flex-col items-start gap-1.5 py-5">
+    <Card variant="soft"><CardContent className="flex flex-col items-start gap-1.5 py-5">
       <Activity size={20} className="text-accent" aria-hidden="true" />
-      <h2 className="text-md font-semibold text-ink">{t('最近动态')}</h2>
+      <h2 className="text-md font-medium text-ink">{t('最近动态')}</h2>
       <p className="text-xs text-muted">{t('业务接入后，在这里汇集与你有关的更新。')}</p>
       <span className="mt-1 text-2xs text-subtle">{t('待接入')}</span>
     </CardContent></Card>

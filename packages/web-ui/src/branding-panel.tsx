@@ -6,7 +6,7 @@ import { useState, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AppClient, Branding, BrandingInput } from '@unicore/sdk';
 import { DefaultBrandMark } from './brand';
-import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, useMessage } from '@unicore/ui';
+import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, useMessage } from '@unicore/ui';
 import { invalidateAfter } from './queries';
 
 const slots = defineMessages([
@@ -29,7 +29,7 @@ export function BrandingPanel({ client, canWrite, onSaved }: { client: AppClient
     <CardContent className="flex flex-col gap-3">
       <p className="text-xs text-muted">{t('图片保存后用于网站、登录页和新建邮件。应用安装包图标由项目品牌源生成。')}{!canWrite && t(' 当前账号仅可查看。')}</p>
       {query.isPending ? <p role="status" className="text-sm text-muted">{t('正在读取品牌…')}</p>
-        : query.error ? <p role="alert" className="text-sm text-danger">{t(query.error.message)}<button className="ms-2 text-xs text-accent hover:underline" onClick={() => query.refetch()}>{t('重试')}</button></p>
+        : query.error ? <p role="alert" className="text-sm text-danger">{t(query.error.message)}<Button variant="link" size="sm" className="ms-2 h-auto p-0" onClick={() => query.refetch()}>{t('重试')}</Button></p>
           : <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {slots.map(slot => <BrandSlot key={slot.id} {...slot} branding={query.data!} client={client} canWrite={canWrite} onSaved={onSaved} />)}
               <BrandAccent branding={query.data!} client={client} canWrite={canWrite} onSaved={onSaved} />
@@ -64,8 +64,9 @@ function BrandAccent({ branding, client, canWrite, onSaved }: { branding: Brandi
     </div>
     <p className="text-2xs text-muted">{t('覆盖编译期品牌主色；用户选择的主题预设仍然优先。')}</p>
     <div className="flex items-center gap-2">
-      <input aria-label={t('选择颜色')} type="color" className="size-8 shrink-0 cursor-pointer rounded-xs border border-line bg-surface p-0.5 disabled:opacity-55" disabled={!canWrite || save.isPending} value={colorValue} onChange={event => setDraft(event.target.value)} />
-      <input className="h-8 w-full min-w-0 rounded-md border border-line bg-surface px-2 text-xs text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-55" aria-label={t('品牌主色')} aria-invalid={!!draft && !valid} disabled={!canWrite || save.isPending} value={draft} placeholder={t('跟随编译期品牌')} onChange={event => setDraft(event.target.value)} />
+      <label htmlFor="brand-accent-color" className="sr-only">{t('选择颜色')}</label>
+      <Input id="brand-accent-color" type="color" className="size-11 shrink-0 cursor-pointer p-1" disabled={!canWrite || save.isPending} value={colorValue} onChange={event => setDraft(event.target.value)} />
+      <Input label={t('品牌主色')} aria-invalid={!!draft && !valid} disabled={!canWrite || save.isPending} value={draft} placeholder={t('跟随编译期品牌')} onChange={event => setDraft(event.target.value)} />
     </div>
     {draft && !valid && <p role="alert" className="text-2xs text-danger">{t('主色格式为 #RRGGBB')}</p>}
     {save.error && <p role="alert" className="text-2xs text-danger">{t(save.error.message)}</p>}

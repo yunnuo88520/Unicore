@@ -12,7 +12,7 @@ export const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(function Ch
   const boxId = id ?? generated;
   return <span className={cn('inline-flex items-center gap-2', className)}>
     <CheckboxPrimitive.Root {...props} ref={ref} id={boxId} checked={checked} disabled={disabled} onCheckedChange={value => onChange(value === true)}
-      className="peer flex size-4 shrink-0 items-center justify-center rounded-xs border border-line bg-surface outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-55 data-[state=checked]:border-button data-[state=checked]:bg-button data-[state=indeterminate]:border-button data-[state=indeterminate]:bg-button">
+      className="peer flex size-4 shrink-0 items-center justify-center rounded-sm border border-line-strong bg-field outline-none transition-colors hover:border-muted focus-visible:ring-2 focus-visible:ring-focus aria-invalid:border-danger disabled:cursor-not-allowed disabled:opacity-55 data-[state=checked]:border-button data-[state=checked]:bg-button data-[state=indeterminate]:border-button data-[state=indeterminate]:bg-button">
       <CheckboxPrimitive.Indicator className="text-on-primary">
         {checked === 'indeterminate'
           ? <span aria-hidden="true" className="block h-0.5 w-2 rounded-full bg-on-primary" />

@@ -26,12 +26,15 @@ test(`layout matrix preserves shell geometry and stable appearance controls at $
       const state=await page.evaluate(()=>{
         const rect=(selector:string)=>{const r=document.querySelector(selector)!.getBoundingClientRect();return {left:r.left,right:r.right,width:r.width,top:r.top,bottom:r.bottom};};
         const header=document.querySelector('.topbar')!,sheet=document.querySelector('.main-shell')!;
-        return {viewport:innerWidth,overflow:document.documentElement.scrollWidth>innerWidth+1,main:rect('.main-shell'),content:rect('.main-content'),navigation:rect('.sidebar'),header:rect('.topbar'),headerRadius:parseFloat(getComputedStyle(header).borderTopLeftRadius),sheetRadius:parseFloat(getComputedStyle(sheet).borderTopLeftRadius),headerBackground:getComputedStyle(header).backgroundColor,sheetBackground:getComputedStyle(sheet).backgroundColor,pageBackground:getComputedStyle(document.body).backgroundColor,dir:document.documentElement.dir,
+        return {viewport:innerWidth,overflow:document.documentElement.scrollWidth>innerWidth+1,main:rect('.main-shell'),content:rect('.main-content'),navigation:rect('.sidebar'),header:rect('.topbar'),headerRadius:parseFloat(getComputedStyle(header).borderTopLeftRadius),sheetRadius:parseFloat(getComputedStyle(sheet).borderTopLeftRadius),headerBackground:getComputedStyle(header).backgroundColor,sheetBackground:getComputedStyle(sheet).backgroundColor,canvasBackground:getComputedStyle(document.querySelector('.app-shell')!).backgroundColor,headerDivider:parseFloat(getComputedStyle(header).borderBottomWidth),dir:document.documentElement.dir,
           controls:[...document.querySelectorAll('.preference-content .preference-choice')].map(node=>node.getBoundingClientRect().left),
           navigationHidden:getComputedStyle(document.querySelector('.sidebar')!).transform!=='none'};
       });
       const context=JSON.stringify({width,layout,sidebar,content,state});
       expect(state.overflow,context).toBe(false);expect(state.dir,context).toBe('ltr');
+      expect(state.headerDivider,context).toBe(0);
+      expect(state.headerBackground,context).toBe(state.sheetBackground);
+      expect(state.headerBackground,context).toBe(state.canvasBackground);
       expect(state.main.left,context).toBeGreaterThanOrEqual(-1);expect(state.main.right,context).toBeLessThanOrEqual(width+1);
       expect(state.content.left,context).toBeGreaterThanOrEqual(state.main.left-1);expect(state.content.right,context).toBeLessThanOrEqual(state.main.right+1);
       expect(state.controls[0],context).toBeLessThan(state.controls[1]);
@@ -49,7 +52,6 @@ test(`layout matrix preserves shell geometry and stable appearance controls at $
         }
       }else{
         expect(state.main.width,context).toBeCloseTo(width,0);
-        if(sidebar!=='标准')expect(state.headerBackground,context).toBe(state.pageBackground);
       }
     }
   }
@@ -89,6 +91,13 @@ test('navigation renders the persisted section tree with collapsed directories a
   if(info.project.name==='mobile')await page.getByRole('button',{name:'打开导航',exact:true}).click();
   const sidebar=page.locator('.sidebar');
   expect((await sidebar.boundingBox())!.width).toBeGreaterThan(200);
+  const search=sidebar.getByRole('searchbox',{name:'搜索菜单或按钮'});
+  await search.fill(labelOf('users'));
+  await expect(sidebar.getByRole('button',{name:labelOf('users'),exact:true})).toBeVisible();
+  await search.fill('no-such-navigation-entry');
+  await expect(sidebar.getByRole('status')).toHaveText('没有匹配的菜单');
+  await search.press('Escape');
+  await expect(search).toHaveValue('');
   // Sections render their entries; directories start collapsed and the
   // operator's toggle stays authoritative in both directions.
   if(parentLabel){
@@ -110,7 +119,7 @@ test('navigation renders the persisted section tree with collapsed directories a
     return;
   }
   await page.getByRole('button',{name:'收起导航',exact:true}).click();
-  expect((await sidebar.boundingBox())!.width).toBe(48);
+  expect((await sidebar.boundingBox())!.width).toBe(60);
   await expect(sidebar.getByRole('button',{name:labelOf('users'),exact:true})).toHaveCount(0);
   // 基础设置 nests inside the collapsed 系统设置 directory: neither the rail nor
   // a collapsed directory exposes child entries.
@@ -127,9 +136,9 @@ test('navigation renders the persisted section tree with collapsed directories a
   await page.getByRole('button',{name:'展开导航',exact:true}).click();
   if(parentLabel){
     await expect(sidebar.getByRole('button',{name:parentLabel,exact:true})).toHaveAttribute('aria-expanded','true');
-    await expect(sidebar.getByRole('button',{name:parentLabel,exact:true})).not.toHaveClass(/bg-primary-soft/);
+    await expect(sidebar.getByRole('button',{name:parentLabel,exact:true})).not.toHaveClass(/bg-button/);
   }
-  await expect(sidebar.getByRole('button',{name:labelOf('users'),exact:true})).toHaveClass(/bg-primary-soft/);
+  await expect(sidebar.getByRole('button',{name:labelOf('users'),exact:true})).toHaveClass(/bg-button/);
   // Expanding the 系统设置 directory reveals 基础设置 again in the wide tree.
   const settingsGroup=sidebar.getByRole('button',{name:'系统设置',exact:true});
   await expect(settingsGroup).toHaveAttribute('aria-expanded','false');
@@ -137,18 +146,59 @@ test('navigation renders the persisted section tree with collapsed directories a
   await expect(sidebar.getByRole('button',{name:labelOf('site'),exact:true})).toBeVisible();
 });
 
-test('inset and floating headers match their content sheet in both themes',async({page,instance},info)=>{
+test('workspace headers share an uninterrupted canvas in both themes',async({page,instance},info)=>{
   await installStandalone(instance);await page.goto(instance.url);
   await expect(page.getByRole('heading',{name:'工作台概览'})).toBeVisible();
   await mkdir('build/acceptance/layout',{recursive:true});
-  for(const theme of ['light','dark'])for(const sidebar of ['inset','floating']){
+  for(const theme of ['light','dark'])for(const sidebar of ['plain','inset','floating']){
     await page.evaluate(value=>{localStorage.setItem('unicore.preferences.v1',JSON.stringify({...value,navCollapsed:false}));window.dispatchEvent(new StorageEvent('storage',{key:'unicore.preferences.v1'}));},{theme,sidebar});
     await expect(page.locator('html')).toHaveAttribute('data-theme',theme);
     await expect(page.locator('html')).toHaveAttribute('data-sidebar',sidebar);
+    const canvas=await page.locator('.app-shell').evaluate(node=>getComputedStyle(node).backgroundColor);
+    await expect(page.locator('.topbar')).toHaveCSS('background-color',canvas);
+    await expect(page.locator('.main-shell')).toHaveCSS('background-color',canvas);
+    await expect(page.locator('.topbar')).toHaveCSS('border-bottom-width','0px');
+    await expect(page.locator('.topbar')).toHaveCSS('backdrop-filter','none');
     await page.screenshot({path:`build/acceptance/layout/${info.project.name}-${sidebar}-${theme}.png`,fullPage:true});
     if(info.project.name==='chromium'){
       await page.getByRole('button',{name:'收起导航',exact:true}).click();
       await page.screenshot({path:`build/acceptance/layout/${info.project.name}-${sidebar}-${theme}-rail.png`,fullPage:true});
+    }
+  }
+});
+
+test('platform account menus share the workspace style and keep homepage links out',async({page,instance},info)=>{
+  await installPlatform(instance);
+  await adminLogin(page,instance.url,'admin','administrator-password-strong');
+  await mkdir('build/acceptance/layout',{recursive:true});
+  for(const realm of ['administrator','user']){
+    await page.goto(`${instance.url}${realm==='administrator'?'/admin':'/'}`);
+    await expect(page.getByRole('heading',{name:'工作台概览'})).toBeVisible();
+    for(const name of ['切换语言','切换主题','主题设置'])await expect(page.locator('.topbar').getByRole('button',{name,exact:true})).toBeVisible();
+    await expect(page.locator('.sidebar').getByRole('link',{name:'文档与帮助'})).toHaveCount(0);
+    for(const theme of ['light','dark']){
+      await page.evaluate(theme=>{localStorage.setItem('unicore.preferences.v1',JSON.stringify({theme}));window.dispatchEvent(new StorageEvent('storage',{key:'unicore.preferences.v1'}));},theme);
+      await expect(page.locator('html')).toHaveAttribute('data-theme',theme);
+      if(info.project.name==='mobile')await page.getByRole('button',{name:'打开导航',exact:true}).click();
+      await page.getByRole('button',{name:'侧栏账号菜单',exact:true}).click();
+      const sidebarMenu=page.getByRole('menu',{name:'侧栏账号菜单',exact:true});
+      await expect(sidebarMenu.getByRole('menuitem',{name:'个人中心',exact:true})).toBeVisible();
+      await expect(sidebarMenu.getByRole('menuitem',{name:'产品首页',exact:true})).toHaveCount(0);
+      const box=await sidebarMenu.boundingBox();
+      expect(box!.x).toBeGreaterThanOrEqual(0);expect(box!.y).toBeGreaterThanOrEqual(0);
+      expect(box!.x+box!.width).toBeLessThanOrEqual(page.viewportSize()!.width+1);
+      expect(box!.y+box!.height).toBeLessThanOrEqual(page.viewportSize()!.height+1);
+      expect(await sidebarMenu.evaluate(node=>parseFloat(getComputedStyle(node).borderRadius))).toBeGreaterThan(0);
+      expect((await sidebarMenu.getByRole('menuitem',{name:'个人中心',exact:true}).boundingBox())!.height).toBeGreaterThanOrEqual(36);
+      await page.screenshot({path:`build/acceptance/layout/${info.project.name}-${realm}-account-${theme}.png`});
+      await page.keyboard.press('Escape');
+      if(info.project.name==='mobile')await page.keyboard.press('Escape');
+      await page.getByRole('button',{name:'账号菜单',exact:true}).click();
+      const topMenu=page.getByRole('menu',{name:'账号菜单',exact:true});
+      await expect(topMenu.getByRole('menuitem',{name:'产品首页',exact:true})).toHaveCount(0);
+      await expect(topMenu.getByRole('menuitem',{name:'个人中心',exact:true})).toBeVisible();
+      await page.screenshot({path:`build/acceptance/layout/${info.project.name}-${realm}-avatar-${theme}.png`});
+      await page.keyboard.press('Escape');
     }
   }
 });

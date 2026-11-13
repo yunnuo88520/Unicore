@@ -197,7 +197,7 @@ export function DataGrid<T>({ label, data, columns, getRowId, onDataChange, pend
       <Input aria-label={t(dataGridMessages.search)} value={search} disabled={pending} className="max-w-xs" onChange={event => setSearch(event.target.value)} />
       <details className="relative">
         <summary className="cursor-pointer rounded-md border border-line px-3 py-2 focus-visible:ring-2 focus-visible:ring-focus">{t(dataGridMessages.columns)}</summary>
-        <div className="absolute z-20 mt-1 flex min-w-48 flex-col gap-2 rounded-md border border-line bg-surface p-3 shadow-tint">
+        <div className="absolute z-20 mt-1 flex min-w-48 flex-col gap-2 rounded-2xl border border-line bg-surface p-3 shadow-floating">
           {columns.map(column => <Checkbox key={column.id} checked={!hidden.has(column.id)} disabled={!hidden.has(column.id) && visibleColumns.length === 1} onChange={checked => {
             const next = new Set(hidden); if (checked) next.delete(column.id); else next.add(column.id); setHidden(next);
           }}>{column.header}</Checkbox>)}

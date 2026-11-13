@@ -12,7 +12,18 @@ test('persistent standalone notes, modal CRUD, filtering and concurrency',async(
  await expect(dialog.getByRole('textbox',{name:'标题',exact:true})).toBeFocused();
  await dialog.getByRole('textbox',{name:'标题',exact:true}).fill('跨形态业务样板');await dialog.getByRole('textbox',{name:'正文',exact:true}).fill('重启后仍然保留的数据。');
  const directory=`build/acceptance/developer-kit/${info.project.name}`;await mkdir(directory,{recursive:true});
- for(const theme of ['light','dark']){await page.evaluate(t=>document.documentElement.dataset.theme=t,theme);await page.screenshot({path:`${directory}/note-dialog-${theme}.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}
+ for(const theme of ['light','dark']){
+  if(await page.locator('html').getAttribute('data-theme')!==theme){
+   await dialog.getByRole('button',{name:'取消',exact:true}).click();
+   await page.getByRole('button',{name:'切换主题',exact:true}).click();
+   await page.getByRole('button',{name:'新建笔记',exact:true}).click();
+   dialog=page.getByRole('dialog',{name:'新建笔记',exact:true});
+   await dialog.getByRole('textbox',{name:'标题',exact:true}).fill('跨形态业务样板');await dialog.getByRole('textbox',{name:'正文',exact:true}).fill('重启后仍然保留的数据。');
+  }
+  await expect(page.locator('html')).toHaveAttribute('data-theme',theme);
+  await page.screenshot({path:`${directory}/note-dialog-${theme}.png`,fullPage:true,animations:'disabled'});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ }
  await dialog.getByRole('button',{name:'保存笔记',exact:true}).click();await expect(dialog).toHaveCount(0);
  await expect(page.getByRole('heading',{name:'跨形态业务样板',exact:true})).toBeVisible();
  await instance.restart();await page.reload();await expect(page.getByText('重启后仍然保留的数据。',{exact:true})).toBeVisible();

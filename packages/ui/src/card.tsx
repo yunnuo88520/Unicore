@@ -2,13 +2,25 @@
 // Description: Panel/card composition surface matching the shared workspace look.
 import type { ComponentProps, HTMLAttributes } from 'react';
 import { Slot } from '@radix-ui/react-slot';
+import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from './cn';
 
-export type CardProps = ComponentProps<'div'> & { asChild?: boolean };
+export const cardVariants = cva('', {
+  variants: {
+    variant: {
+      default: 'rounded-2xl border border-transparent bg-surface-soft',
+      soft: 'rounded-2xl border border-transparent bg-surface-soft',
+      outlined: 'rounded-2xl border border-line bg-surface',
+    },
+  },
+  defaultVariants: { variant: 'default' },
+});
 
-export function Card({ asChild = false, className, ...props }: CardProps) {
+export type CardProps = ComponentProps<'div'> & VariantProps<typeof cardVariants> & { asChild?: boolean };
+
+export function Card({ asChild = false, variant, className, ...props }: CardProps) {
   const Component = asChild ? Slot : 'div';
-  return <Component className={cn('rounded-xl border border-line bg-surface shadow-card', className)} {...props} />;
+  return <Component className={cn(cardVariants({ variant }), className)} {...props} />;
 }
 
 export function CardHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {

@@ -12,7 +12,7 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbSeparator, MessageProvider, PageH
 import { SiteFooter } from './site-footer';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { RouterProvider, Outlet, Navigate, createBrowserHistory, useRouter, useRouterState, type RouterHistory } from '@tanstack/react-router';
-import { ChevronRight, ChevronsUpDown, ExternalLink, FlaskConical, Menu, PanelLeftClose, PanelLeftOpen, Radio, RotateCcw, Settings2, ShieldCheck, UserRound } from 'lucide-react';
+import { ChevronRight, ChevronsUpDown, ExternalLink, FlaskConical, Info, KeyRound, LayoutDashboard, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Radio, RotateCcw, Settings2, ShieldCheck, UserRound } from 'lucide-react';
 import { buildNavigation, isLinkEntry, routePath, type NavEntry } from './navigation';
 import { NavigationTree } from './navigation-view';
 import { BrandProvider, BrandMark } from './brand';
@@ -26,7 +26,7 @@ import { UserAvatar, displayLabel } from './user-avatar';
 import { SessionBoundary, useSession } from './session';
 import { routes, canAccess, isAdminRealm, isAdministrator, type Page } from './routes';
 import { LiveLogsButton } from './live-logs';
-import { Modal, Button, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, Tooltip } from '@unicore/ui';
+import { Modal, Button, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, Tooltip } from '@unicore/ui';
 import { setPreferences, usePreferences } from '@unicore/theme/preferences';
 import {
   createWorkspaceRouter, pageFromPath, PagePropsProvider, ShellOptionsProvider, NoticeProvider,
@@ -205,7 +205,7 @@ function WorkspaceShell() {
       contentClassName={page === 'site' ? 'settings-content' : ''}
       navigationCollapsed={navCollapsed}
       navigation={<SideNavigation page={page} data={data} client={client} onNavigate={() => setMobileOpen(false)} onAbout={() => { setMobileOpen(false); setAbout(true); }} administration={administration} onOpenPassword={() => setPasswordOpen(true)} refresh={refresh} />}
-      header={<TopBar page={page} data={data} client={client} settingsLabel={settingsLabel} connection={metadata.isSuccess ? 'connected' : metadata.isPending ? 'pending' : 'error'} mobileOpen={mobileOpen} onOpenMobile={() => setMobileOpen(true)} onOpenPassword={() => setPasswordOpen(true)} refresh={refresh} navCollapsed={navCollapsed} navToggleVisible={layout !== 'full'} />}
+      header={<TopBar page={page} data={data} client={client} settingsLabel={settingsLabel} connection={metadata.isSuccess ? 'connected' : metadata.isPending ? 'pending' : 'error'} mobileOpen={mobileOpen} onOpenMobile={() => setMobileOpen(true)} onOpenPassword={() => setPasswordOpen(true)} refresh={refresh} navToggleVisible={layout !== 'full'} />}
       overlays={<>
         {passwordOpen && client.web && <PasswordDialog web={client.web} onClose={() => setPasswordOpen(false)} />}
         {about && <About onClose={() => setAbout(false)} />}
@@ -218,7 +218,7 @@ function WorkspaceShell() {
           ? <StateCard tone="error" icon={<Radio size={26} className="text-danger" />} title={t('暂时无法连接核心')} detail={t(metadata.error.message)}
               action={<Button onClick={() => void metadata.refetch()}><RotateCcw size={15} />{t('重新连接')}</Button>} />
           : enrollment && page!=='account-security' ? <StateCard tone="pending" icon={<ShieldCheck size={24}/>} title={t('正在打开安全设置')} detail={t('实例要求启用双重验证，请先完成安全设置。')}/>
-          : <div className="flex min-w-0 flex-col gap-6">
+          : <div className="flex min-w-0 flex-col gap-3">
               {!pageHeadingOwners.has(page) && <PageHeader title={t(routes[page].label)} />}
               <Outlet />
             </div>}
@@ -249,23 +249,25 @@ function SideNavigation({ page, data, client, onNavigate, onAbout, administratio
       else goPage(node.routeId);
     }
   }
+  const toggle = <Tooltip label={rail ? t('展开导航') : t('收起导航')}>
+    <button type="button" className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted transition-colors outline-none hover:bg-surface-inset hover:text-ink focus-visible:ring-2 focus-visible:ring-focus"
+      aria-label={rail ? t('展开导航') : t('收起导航')} aria-expanded={!rail} aria-controls="workspace-navigation" onClick={() => setPreferences({ navCollapsed: !rail })}>
+      {rail ? <PanelLeftOpen size={18} aria-hidden="true" /> : <PanelLeftClose size={18} aria-hidden="true" />}
+    </button>
+  </Tooltip>;
   return <>
-    {rail ? <div className="flex flex-col items-center pb-2">
-      <a href="/" aria-label={data.site_name} className="flex size-8 items-center justify-center" onClick={event => { event.preventDefault(); goPage('overview'); }}>
-        <BrandMark size={24} />
+    <div className={`flex shrink-0 gap-2 ${rail ? 'flex-col-reverse items-center' : 'items-center px-1'}`}>
+      <a href="/" aria-label={data.site_name} className="flex size-8 shrink-0 items-center justify-center" onClick={event => { event.preventDefault(); goPage('overview'); }}>
+        <BrandMark size={28} />
       </a>
-    </div> : <div className="pb-2">
-      {/* Brand header: mark on the left, site name and version capsule stacked on the right. */}
-      <div className="flex items-center gap-2.5 pt-1">
-        <span className="brand contents"><BrandMark size={36} /></span>
-        <div className="min-w-0 flex-1">
-          <a href="/" aria-label={data.site_name} className="block truncate text-xl font-bold text-ink" onClick={event => { event.preventDefault(); goPage('overview'); }}>{data.site_name}<span className="brand-dot">.</span></a>
-          {data.version && <div className="mt-0.5"><VersionBadge client={client} metadata={data} onOpen={() => goPage('edition')} /></div>}
-        </div>
-      </div>
-    </div>}
-    <NavigationTree navigation={buildNavigation(data)} page={page} rail={rail} onNavigate={activate} />
-    {data.current_user && <div className="sidebar-utilities shrink-0 px-1 pb-3 pt-2">
+      {!rail && <div className="min-w-0 flex-1">
+        <a href="/" aria-label={data.site_name} className="block truncate text-md font-medium text-ink" onClick={event => { event.preventDefault(); goPage('overview'); }}>{data.site_name}</a>
+        {data.version && <VersionBadge client={client} metadata={data} onOpen={() => goPage('edition')} />}
+      </div>}
+      {desktop && layout !== 'full' && toggle}
+    </div>
+    <NavigationTree navigation={buildNavigation(data)} page={page} rail={rail} onNavigate={activate} onExpand={() => setPreferences({ navCollapsed: false })} />
+    {data.current_user && <div className="sidebar-utilities shrink-0">
       <SidebarFooter data={data} client={client} administration={administration} rail={rail} onOpenPassword={onOpenPassword} refresh={refresh} onAbout={onAbout} />
     </div>}
   </>;
@@ -276,7 +278,6 @@ function SidebarFooter({ data, client, administration, rail, onOpenPassword, ref
   data: Bootstrap; client: AppClient; administration: boolean; rail: boolean; onOpenPassword: () => void; refresh: () => void; onAbout: () => void;
 }) {
   useLocale();
-  const router = useRouter();
   const user = data.current_user;
   const profile = useQuery({ queryKey: ['account-profile'], queryFn: () => client.web!.accountProfile(), enabled: data.profile === 'web-platform' && !!user && !!client.web && !data.mfa_enrollment_required, staleTime: 60_000 });
   if (!user) return null;
@@ -284,7 +285,7 @@ function SidebarFooter({ data, client, administration, rail, onOpenPassword, ref
     ? <button type="button" className="mx-auto flex size-8 items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus" aria-label={t('侧栏账号菜单')}>
         <UserAvatar name={displayLabel(user.display_name, user.username)} url={profile.data?.avatar_url} />
       </button>
-    : <button type="button" className="flex w-full items-center gap-2.5 rounded-lg p-2 text-start outline-none hover:bg-surface-alt focus-visible:ring-2 focus-visible:ring-focus" aria-label={t('侧栏账号菜单')}>
+    : <button type="button" className="flex w-full items-center gap-2.5 rounded-xl bg-surface-inset p-2 text-start outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-focus" aria-label={t('侧栏账号菜单')}>
         <UserAvatar name={displayLabel(user.display_name, user.username)} url={profile.data?.avatar_url} />
         <span className="min-w-0 flex-1">
           <strong className="block truncate text-sm font-semibold leading-tight text-ink">{displayLabel(user.display_name, user.username) || data.site_name}</strong>
@@ -294,22 +295,42 @@ function SidebarFooter({ data, client, administration, rail, onOpenPassword, ref
       </button>;
   return <DropdownMenu>
     <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-    <DropdownMenuContent side="right" align={rail ? 'start' : 'end'} aria-label={t('侧栏账号菜单')} className="min-w-56">
-      <DropdownMenuLabel>
-        <strong className="block text-sm text-ink">{displayLabel(user.display_name, user.username) || data.site_name}</strong>
-        <small className="block truncate text-xs text-muted">{user.email || roleDisplayLabels(user.roles, user.role_names).join(', ')}</small>
-      </DropdownMenuLabel>
-      {client.web && <>
-        {data.admin_path && !administration && <DropdownMenuItem onSelect={() => window.location.assign(data.admin_path!)}>{t('管理工作台')}</DropdownMenuItem>}
-        {administration && <DropdownMenuItem onSelect={() => window.location.assign('/')}>{t('工作空间')}</DropdownMenuItem>}
-        {data.home_enabled && <DropdownMenuItem onSelect={() => window.location.assign('/home')}>{t('产品首页')}</DropdownMenuItem>}
-        <DropdownMenuItem onSelect={onOpenPassword}>{t('修改密码')}</DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => void router.navigate({ to: '/account' })}>{t('个人中心')}</DropdownMenuItem>
-        <DropdownMenuItem onSelect={onAbout}>{t('关于 {{name}}', { name: productName })}</DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => { void client.web!.logout().then(() => { void router.navigate({ to: '/' }); refresh(); }, refresh); }}>{t('退出登录')}</DropdownMenuItem>
-      </>}
+    <DropdownMenuContent side={rail ? 'right' : 'top'} align="end" aria-label={t('侧栏账号菜单')} className="min-w-60">
+      <AccountMenuItems data={data} client={client} avatarURL={profile.data?.avatar_url} administration={administration} onOpenPassword={onOpenPassword} refresh={refresh} onAbout={onAbout} />
     </DropdownMenuContent>
   </DropdownMenu>;
+}
+
+/** Both account triggers use the same identity summary and action spacing. */
+function AccountMenuItems({ data, client, avatarURL, administration, onOpenPassword, refresh, onAbout }: {
+  data: Bootstrap; client: AppClient; avatarURL?: string; administration: boolean; onOpenPassword: () => void; refresh: () => void; onAbout?: () => void;
+}) {
+  useLocale();
+  const router = useRouter();
+  const user = data.current_user;
+  if (!user) return null;
+  const name = displayLabel(user.display_name, user.username) || data.site_name;
+  return <>
+    <DropdownMenuLabel className="flex items-center gap-3 px-2 py-3">
+      <UserAvatar name={name} url={avatarURL} />
+      <span className="min-w-0">
+        <strong className="block truncate text-base font-medium text-ink">{name}</strong>
+        <small className="block max-w-52 truncate text-xs font-normal text-muted">{user.email || roleDisplayLabels(user.roles, user.role_names).join(', ')}</small>
+      </span>
+    </DropdownMenuLabel>
+    {client.web && <>
+      <DropdownMenuSeparator />
+      <DropdownMenuGroup>
+      {data.admin_path && !administration && <DropdownMenuItem onSelect={() => window.location.assign(data.admin_path!)}><LayoutDashboard size={18} aria-hidden="true" />{t('管理工作台')}</DropdownMenuItem>}
+      {administration && <DropdownMenuItem onSelect={() => window.location.assign('/')}><LayoutDashboard size={18} aria-hidden="true" />{t('工作空间')}</DropdownMenuItem>}
+      <DropdownMenuItem onSelect={() => void router.navigate({ to: '/account' })}><UserRound size={18} aria-hidden="true" />{t('个人中心')}</DropdownMenuItem>
+      <DropdownMenuItem onSelect={onOpenPassword}><KeyRound size={18} aria-hidden="true" />{t('修改密码')}</DropdownMenuItem>
+      {onAbout && <DropdownMenuItem onSelect={onAbout}><Info size={18} aria-hidden="true" />{t('关于 {{name}}', { name: productName })}</DropdownMenuItem>}
+      </DropdownMenuGroup>
+      <DropdownMenuSeparator />
+      <DropdownMenuGroup><DropdownMenuItem tone="danger" onSelect={() => { void client.web!.logout().then(() => { void router.navigate({ to: '/' }); refresh(); }, refresh); }}><LogOut size={18} aria-hidden="true" />{t('退出登录')}</DropdownMenuItem></DropdownMenuGroup>
+    </>}
+  </>;
 }
 
 function useMinWidth(px: number) {
@@ -323,12 +344,11 @@ function useMinWidth(px: number) {
   return match;
 }
 
-function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onOpenMobile, onOpenPassword, refresh, navCollapsed, navToggleVisible }: {
+function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onOpenMobile, onOpenPassword, refresh, navToggleVisible }: {
   page: Page; data: Bootstrap; client: AppClient; settingsLabel: string; connection: 'connected' | 'pending' | 'error';
-  mobileOpen: boolean; onOpenMobile: () => void; onOpenPassword: () => void; refresh: () => void; navCollapsed: boolean; navToggleVisible: boolean;
+  mobileOpen: boolean; onOpenMobile: () => void; onOpenPassword: () => void; refresh: () => void; navToggleVisible: boolean;
 }) {
   useLocale();
-  const router = useRouter();
   const desktop = useMinWidth(768);
   // The account menu labels the identity realm, not the super_admin grant.
   const administration = isAdminRealm(data);
@@ -336,19 +356,10 @@ function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onO
   const profile = useQuery({ queryKey: ['account-profile'], queryFn: () => client.web!.accountProfile(), enabled: data.profile === 'web-platform' && !!user && !!client.web && !data.mfa_enrollment_required, staleTime: 60_000 });
   return <>
     <div className="flex min-w-0 items-center gap-2 text-[length:var(--font-11)] text-muted max-md:gap-1.5">
-      {desktop && navToggleVisible
-        ? <>
-            <Tooltip label={navCollapsed ? t('展开导航') : t('收起导航')}>
-              <button className="flex size-7 items-center justify-center rounded-md border border-line bg-surface text-muted transition-colors hover:bg-primary-soft hover:text-accent" aria-label={navCollapsed ? t('展开导航') : t('收起导航')} aria-expanded={!navCollapsed} aria-controls="workspace-navigation" onClick={() => setPreferences({ navCollapsed: !navCollapsed })}>
-                {navCollapsed ? <PanelLeftOpen size={16} aria-hidden="true" /> : <PanelLeftClose size={16} aria-hidden="true" />}
-              </button>
-            </Tooltip>
-            <span className="hidden h-6 w-px bg-line sm:block" aria-hidden="true" />
-          </>
-        : <button className="mobile-menu size-7 items-center justify-center rounded-md text-muted hover:bg-primary-soft hover:text-accent max-md:-ms-1" aria-label={t('打开导航')} aria-expanded={mobileOpen} aria-controls="workspace-navigation" onClick={onOpenMobile}><Menu size={18} /></button>}
+      {(!desktop || !navToggleVisible) && <button className="mobile-menu size-8 items-center justify-center rounded-md text-muted hover:bg-surface-alt hover:text-ink max-md:-ms-1" aria-label={t('打开导航')} aria-expanded={mobileOpen} aria-controls="workspace-navigation" onClick={onOpenMobile}><Menu size={18} /></button>}
       <Breadcrumb>
-        <BreadcrumbItem className="hidden max-lg:inline">{t('工作空间')}</BreadcrumbItem>
-        <BreadcrumbSeparator className="hidden max-md:block max-lg:hidden" />
+        <BreadcrumbItem className="max-w-32 truncate">{data.site_name}</BreadcrumbItem>
+        <BreadcrumbSeparator />
         <BreadcrumbItem aria-current="page" className="min-w-0 truncate font-medium text-ink">{page === 'site' ? settingsLabel : t(routes[page].label)}</BreadcrumbItem>
       </Breadcrumb>
     </div>
@@ -368,19 +379,8 @@ function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onO
               <UserAvatar name={displayLabel(user.display_name, user.username)} url={profile.data?.avatar_url} className="size-7 text-[length:var(--font-11)]" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>
-              <strong className="block text-sm text-ink">{displayLabel(user.display_name, user.username) || data.site_name}</strong>
-              <small className="text-2xs">{roleDisplayLabels(user.roles, user.role_names).join(', ')}</small>
-            </DropdownMenuLabel>
-            {client.web && <>
-              {data.admin_path && !administration && <DropdownMenuItem onSelect={() => window.location.assign(data.admin_path)}>{t('管理工作台')}</DropdownMenuItem>}
-              {administration && <DropdownMenuItem onSelect={() => window.location.assign('/')}>{t('工作空间')}</DropdownMenuItem>}
-              {data.home_enabled && <DropdownMenuItem onSelect={() => window.location.assign('/home')}>{t('产品首页')}</DropdownMenuItem>}
-              <DropdownMenuItem onSelect={() => onOpenPassword()}>{t('修改密码')}</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => void router.navigate({ to: '/account' })}>{t('个人中心')}</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => { void client.web!.logout().then(() => { void router.navigate({ to: '/' }); refresh(); }, refresh); }}>{t('退出登录')}</DropdownMenuItem>
-            </>}
+          <DropdownMenuContent align="end" aria-label={t('账号菜单')} className="min-w-60">
+            <AccountMenuItems data={data} client={client} avatarURL={profile.data?.avatar_url} administration={administration} onOpenPassword={onOpenPassword} refresh={refresh} />
           </DropdownMenuContent>
         </DropdownMenu>
       )}

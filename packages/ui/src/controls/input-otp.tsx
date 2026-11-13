@@ -57,6 +57,6 @@ export const InputOTP = forwardRef<HTMLInputElement, InputOTPProps>(function Inp
         requestAnimationFrame(() => input.current?.setSelectionRange(caret, caret));
       }}
       onChange={event => { if (composing.current) setComposition(event.target.value); else commit(event.target.value); }} />
-    <div aria-hidden="true" className="pointer-events-none flex gap-2">{Array.from({ length: count }, (_, index) => <span key={index} className={cn('inline-flex h-12 w-10 items-center justify-center rounded-md border border-line bg-surface text-lg tabular-nums text-ink transition-colors', focused && caret === index && 'border-focus ring-2 ring-focus', props['aria-invalid'] && 'border-danger')}>{code[index] ?? ''}</span>)}</div>
+    <div aria-hidden="true" className="pointer-events-none flex gap-2">{Array.from({ length: count }, (_, index) => <span key={index} className={cn('inline-flex h-12 w-10 items-center justify-center rounded-lg border border-transparent bg-field text-lg tabular-nums text-ink transition-colors', focused && caret === index && 'border-focus ring-2 ring-focus', props['aria-invalid'] && 'border-danger')}>{code[index] ?? ''}</span>)}</div>
   </div>;
 });

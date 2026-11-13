@@ -17,7 +17,7 @@
 - 单用户 ≠ 超级管理员：Standalone 不继承 Platform 超管能力集；它的能力边界是「本机单机业务 + 本地外观 + 本机更新」，不是「平台全部管理功能去掉了登录」。
 - Platform 前端凭 `profile` 与 `identity_realm`（bootstrap 元数据）区分上下文；`capabilities.authentication=false` 时登录/注册流整体不出现（`packages/web-ui/src/session.tsx`、`packages/web-ui/src/App.tsx`）。
 
-公开产品首页 `/home` 仅 Platform 装配，`site.home_enabled` 默认开启。访客访问根路径进入首页，已登录账号的根路径保持工作空间，但仍可访问 `/home`；两工作台账号菜单提供“产品首页”入口。首页按实际会话和公开注册策略显示登录、进入工作空间或注册链接，不展示模拟运行数据。关闭后访客回到登录流、已登录访问 `/home` 返回工作空间。
+公开产品首页 `/home` 仅 Platform 装配，`site.home_enabled` 默认开启。访客访问根路径进入首页，已登录账号的根路径保持工作空间，但仍可访问 `/home`；两工作台的侧栏及顶栏账号菜单均不提供“产品首页”入口。首页按实际会话和公开注册策略显示登录、进入工作空间或注册链接，不展示模拟运行数据。关闭后访客回到登录流、已登录访问 `/home` 返回工作空间。
 
 ## 2. 导航与菜单
 
@@ -62,6 +62,7 @@
 - 仪表盘不是全角色固定页：widget 经 `DashboardWidgetRegistry.register({id, render(metadata)})` 注册，注册集合由装配入口决定——当前仅管理后台入口注册了 `activity-7d`（近 7 日活动图，仅管理员域数据）。
 - widget 自身读取 bootstrap 元数据（identity_realm/roles/capabilities）决定是否渲染，返回 falsy 即不呈现；平台匿名用户不返回版本/构建信息。
 - 现有 widget：`activity-7d`（管理后台入口，仅管理员域真实统计）。工作台只移除实时监控摘要条及其轮询，保留原有实例信息卡、介绍横幅、业务示例占位、快捷入口与业务 widget；监控详情仍在独立页面呈现。
+- Platform 两域与 Standalone 两载体的顶栏和正文共用连续背景，所有布局均不设顶栏底部分界线。工作台卡片用柔和表面和留白区分，侧栏统一使用圆角面板、实色选中项和可筛选授权菜单的搜索框；语言、明暗切换和主题设置仍在顶栏。内容与可见性仍按上述规则，不增加背景或材质设置。
 - 概览页固定层（运行形态卡/连接方式卡/快捷入口）中，快捷入口按 `canAccess` 过滤；业务占位卡仅用户域显示。
 - 无个人自定义机制；新增 widget 必须声明其可见上下文（形态 + 身份域 + 能力/权限条件），并同步 [功能适用性清单](feature-inventory.md)。
 

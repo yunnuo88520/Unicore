@@ -101,7 +101,7 @@ export const RichTextEditor = forwardRef<RichTextHandle, { value: string; onChan
     [Redo2, tools.redo, () => editor.chain().focus().redo().run(), () => !editor.can().redo()],
   ] : [];
 
-  return <div className={cn('overflow-hidden rounded-lg border border-line bg-surface', className)}>
+  return <div className={cn('overflow-hidden rounded-xl border border-transparent bg-field transition-colors hover:border-line-strong focus-within:border-focus focus-within:ring-2 focus-within:ring-focus', className)}>
     <div className="flex items-center justify-between gap-2 border-b border-line bg-surface-alt px-2 py-1.5">
       <div className="flex items-center gap-0.5">
         {toolButtons.map(([Icon, active, command, title]) => (

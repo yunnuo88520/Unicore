@@ -78,13 +78,13 @@ export function FileUploadDialog({ client, resume, onClose, onUploaded, title, a
         <DialogTitle>{title ?? (resume ? t('继续上传') : t('上传文件'))}</DialogTitle>
         <DialogDescription>{session ? t('关闭或刷新后，可从文件列表继续；超期分片会自动清理。') : t('文件保持私有，访问需要业务授权。')}</DialogDescription>
       </div>
-      <button type="button" className="absolute end-3 top-3 inline-flex size-8 items-center justify-center rounded-md text-muted transition-colors outline-none hover:bg-primary-soft hover:text-accent focus-visible:ring-2 focus-visible:ring-focus disabled:pointer-events-none disabled:opacity-55" aria-label={t('关闭对话框')} disabled={closeDisabled} onClick={onClose}><X size={17} aria-hidden="true" /></button>
+      <Button variant="ghost" size="icon" className="absolute end-4 top-4" aria-label={t('关闭对话框')} disabled={closeDisabled} onClick={onClose}><X size={17} aria-hidden="true" /></Button>
       <form className="flex flex-col gap-3" aria-busy={pending} onSubmit={event => { event.preventDefault(); if (file && !tooLarge && !invalidExtension && !invalidType) upload.mutate(); }}>
         {upload.error && <Alert variant="danger">{t(upload.error.message)}</Alert>}
         <input ref={input} className="sr-only" type="file" accept={accept ?? policy.data?.allowed_extensions?.map(ext => `.${ext.replace(/^\./, '')}`).join(',')} aria-label={t('选择文件')} disabled={pending} tabIndex={-1} onChange={event => pick(event.target.files?.[0] ?? null)} />
       <button ref={zone} type="button" data-autofocus
-        className={cn('upload-zone flex flex-col items-center gap-1.5 rounded-lg border border-dashed px-4 py-7 text-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-55',
-            dragging ? 'border-primary bg-primary-soft' : selected ? 'border-line bg-surface-alt' : 'border-line hover:border-primary hover:bg-primary-soft')}
+        className={cn('upload-zone flex flex-col items-center gap-2 rounded-2xl border border-dashed bg-field px-4 py-8 text-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-55',
+            dragging ? 'border-primary bg-primary-soft' : 'border-line-strong hover:border-primary hover:bg-primary-soft')}
           disabled={pending}
           onClick={() => input.current?.click()}
           onDragOver={event => { event.preventDefault(); if (!pending) setDragging(true); }}
@@ -110,7 +110,7 @@ export function FileUploadDialog({ client, resume, onClose, onUploaded, title, a
             <small className="block text-2xs text-muted">{bytes(selected.size)}{resume && !file ? ` · ${t('等待选择原文件')}` : ''}</small>
           </div>
           {file && <span className="rounded-full bg-primary-soft px-2 py-0.5 text-2xs font-medium text-accent">{t('已选择')}</span>}
-          {file && !pending && <button type="button" className="ms-auto inline-flex size-7 items-center justify-center rounded-md text-muted transition-colors outline-none hover:bg-primary-soft hover:text-accent focus-visible:ring-2 focus-visible:ring-focus" aria-label={t('移除已选文件')} onClick={() => { pick(null); if (input.current) input.current.value = ''; zone.current?.focus(); }}><X size={17} /></button>}
+          {file && !pending && <Button variant="ghost" size="icon" className="ms-auto size-7" aria-label={t('移除已选文件')} onClick={() => { pick(null); if (input.current) input.current.value = ''; zone.current?.focus(); }}><X size={17} /></Button>}
         </div>}
         {!session && !!policy.data?.upload_paths?.length && <label className="flex flex-col gap-1.5 text-sm font-medium">{t('上传路径')}<SimpleSelect aria-label={t('上传路径')} value={uploadPath || policy.data.upload_paths[0]} disabled={pending} onChange={event => setUploadPath(event)} options={selectOptions(<>{policy.data.upload_paths.map(path => <option key={path} value={path}>{path}</option>)}</>)} /></label>}
         {invalidType && <p role="alert" className="text-sm text-danger">{t('请选择 PNG、JPEG 或 GIF 图片')}</p>}

@@ -83,7 +83,7 @@ test('personal center supports profile, TOTP recovery login and device revocatio
  const personalDirectory=businessSection.getByRole('button',{name:'Personal center',exact:true});
  await expect(personalDirectory).toBeVisible();
  await expect(personalDirectory).toHaveAttribute('aria-expanded','true');
- await expect(page.locator('.sidebar').getByRole('button',{name:'Security',exact:true})).toHaveClass(/bg-primary-soft/);
+ await expect(page.locator('.sidebar').getByRole('button',{name:'Security',exact:true})).toHaveClass(/bg-button text-on-primary shadow-control/);
  await expect(businessSection.getByRole('button',{name:'Security',exact:true})).toBeVisible();
 });
 

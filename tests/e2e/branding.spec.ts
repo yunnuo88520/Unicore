@@ -8,7 +8,8 @@ import { Resvg } from '@resvg/resvg-js';
 const variant = (dark: boolean) => new Resvg(`<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><rect width="128" height="128" rx="32" fill="${dark ? '#e4d3ff' : '#623ad6'}"/><path d="M35 32v40a29 29 0 0058 0V32H76v40a12 12 0 01-24 0V32z" fill="${dark ? '#2b1853' : 'white'}"/></svg>`).render().asPng();
 
 async function expectNavigationBrand(page:Page,mode:string){
-  const brand=page.locator(`.brand .instance-brand-${mode} img`);
+  // The workspace sidebar hosts the brand mark directly; the old `.brand` wrapper is gone.
+  const brand=page.locator(`.sidebar .instance-brand-${mode} img`);
   if((page.viewportSize()?.width ?? 0)>=768){
     await expect(brand).toBeVisible();
     return;
@@ -31,14 +32,14 @@ test('instance brand preview, save, system theme and restore defaults', async ({
   await expect(page.getByRole('alert')).toContainText('PNG 或 JPEG');
   await light.locator('input[type="file"]').setInputFiles({ name: 'brand.png', mimeType: 'image/png', buffer: variant(false) });
   await expect(light.getByText('待保存预览，点击保存后生效。')).toBeVisible();
-  await expect(page.locator('.brand .brand-image')).toHaveCount(0);
+  await expect(page.locator('.sidebar .brand-image')).toHaveCount(0);
   await page.getByRole('tab', { name: '基础信息', exact: true }).click();
   await page.getByRole('tab', { name: '品牌图片', exact: true }).click();
   await expect(light.getByText('待保存预览，点击保存后生效。')).toBeVisible();
   await capture(page, info, 'brand-preview');
   await light.getByRole('button',{name:'取消预览'}).click();
   await expect(light.getByRole('button',{name:'保存浅色 Logo'})).toBeDisabled();
-  await expect(page.locator('.brand .brand-image')).toHaveCount(0);
+  await expect(page.locator('.sidebar .brand-image')).toHaveCount(0);
   await light.locator('input[type="file"]').setInputFiles({ name: 'brand.png', mimeType: 'image/png', buffer: variant(false) });
   await light.getByRole('button', { name: '保存浅色 Logo' }).click();
   await expect(page.getByText('图片已保存', { exact: true })).toBeVisible();
@@ -74,7 +75,7 @@ test('instance brand preview, save, system theme and restore defaults', async ({
   await icon.getByRole('button', { name: '确认恢复' }).click();
   await expect(page.locator('link[rel="icon"]').first()).toHaveAttribute('href', '/favicon.svg');
   for (const [slot, name] of [[light, '浅色 Logo'], [dark, '深色 Logo']] as const) {await slot.getByRole('button', { name: '恢复默认', exact: true }).click();await slot.getByRole('button', { name: '确认恢复' }).click();}
-  await expect(page.locator('.brand .brand-image')).toHaveCount(0);
+  await expect(page.locator('.sidebar .brand-image')).toHaveCount(0);
   await capture(page, info, 'brand-restored');
 });
 

@@ -102,8 +102,9 @@ async function exercise(mode,profile) {
     await page.getByRole('textbox', { name: '一次性安装凭据' }).fill(token);
 
     await page.getByRole('button',{name:'下一步'}).click();
-    // Archives carry a profile default; the generic Docker image starts standalone and allows choosing either mode.
-    const initialProfile=mode.startsWith('tar')?profile:'web-standalone';
+    // Archives embed their own profile default; source-built images (docker/compose)
+    // follow the source default, which is the platform profile since 18f6dd1.
+    const initialProfile=mode.startsWith('tar')?profile:'web-platform';
     expect((await json('/api/v1/install/status')).profile).toBe(initialProfile);
     await expect(page.getByRole('radio',{name:initialProfile==='web-platform'?/多用户平台/:/单机模式/})).toBeChecked();
     await page.getByRole('radio',{name:profile==='web-platform'?/多用户平台/:/单机模式/}).check();

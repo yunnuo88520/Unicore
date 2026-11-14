@@ -31,6 +31,9 @@ var baseNavigationPages = []contracts.NavigationPage{
 	{ID: "monitor-services", Surfaces: []string{"administrator"}, Permission: "monitor:read", Group: "monitor"},
 	{ID: "monitor-resources", Surfaces: []string{"administrator"}, Permission: "monitor:read", Group: "monitor"},
 	{ID: "monitor-events", Surfaces: []string{"administrator"}, Permission: "monitor:read", Group: "monitor"},
+	{ID: "ai-access", Surfaces: []string{"administrator"}, Permission: "mcp:read", Group: "ai"},
+	{ID: "ai-tools", Surfaces: []string{"administrator"}, Permission: "mcp:read", Group: "ai"},
+	{ID: "ai-calls", Surfaces: []string{"administrator"}, Permission: "mcp:logs:read", Group: "ai"},
 	{ID: "users", Surfaces: []string{"administrator"}, Permission: "users:read", Group: "administration"},
 	{ID: "roles", Surfaces: []string{"administrator"}, Permission: "roles:read", Group: "administration"},
 	{ID: "departments", Surfaces: []string{"administrator"}, Permission: "departments:read", Group: "administration"},
@@ -52,6 +55,7 @@ var defaultPageOrder = []string{
 	"announcements", "tasks", "api-docs", "site", "storage", "account-policy", "mail", "mail-templates",
 	"notification-channels", "notification-templates", "system-notifications", "logs", "edition", "access-tokens",
 	"monitor", "monitor-services", "monitor-resources", "monitor-events",
+	"ai-access", "ai-tools", "ai-calls",
 }
 
 // navigationRank is the shared defaultRank: builtins keep the stable table
@@ -98,8 +102,9 @@ var navigationIcons = map[string]string{
 	"roles": "ShieldCheck", "departments": "Network", "tasks": "ListChecks", "menus": "LayoutDashboard", "dictionaries": "FileText", "posts": "UserCog",
 	"access-tokens": "ShieldCheck", "api-docs": "BookOpen",
 	"monitor": "Activity", "monitor-services": "Radar", "monitor-resources": "Cpu", "monitor-events": "ScrollText",
+	"ai-access": "Bot", "ai-tools": "Wrench", "ai-calls": "ScrollText",
 	// Seeded directories carry the same icons as the frontend defaultNavigation.
-	"administration": "Users", "monitor-center": "Activity",
+	"administration": "Users", "monitor-center": "Activity", "ai-management": "Bot",
 }
 
 func NavigationPage(id, surface string) (contracts.NavigationPage, bool) {
@@ -141,6 +146,7 @@ func DefaultNavigation() contracts.Navigation {
 	directory("administration", "system", 20, []string{"administrator"})
 	directory("settings", "system", 10, []string{"administrator"})
 	directory("monitor-center", "system", 25, []string{"administrator"})
+	directory("ai-management", "system", 30, []string{"administrator"})
 	for _, page := range NavigationPages() {
 		section := "business"
 		var parent string
@@ -154,6 +160,9 @@ func DefaultNavigation() contracts.Navigation {
 		case "monitor":
 			section = "system"
 			parent = "monitor-center"
+		case "ai":
+			section = "system"
+			parent = "ai-management"
 		}
 		sort := navigationRank(page.ID) * 10
 		if page.ID == "api-docs" {

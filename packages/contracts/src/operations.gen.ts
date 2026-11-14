@@ -5002,6 +5002,164 @@ export const operations = {
     "superAdmin": true,
     "csrf": false,
     "identityRealm": "administrator"
+  },
+  "getMcpConfig": {
+    "method": "GET",
+    "path": "/api/v1/admin/mcp/config",
+    "requestSchema": null,
+    "responseSchema": "McpConfigResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "mcp:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "patchMcpConfig": {
+    "method": "PATCH",
+    "path": "/api/v1/admin/mcp/config",
+    "requestSchema": "McpConfigPatch",
+    "responseSchema": "McpConfigResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "mcp:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "listMcpTools": {
+    "method": "GET",
+    "path": "/api/v1/admin/mcp/tools",
+    "requestSchema": null,
+    "responseSchema": "McpToolListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "mcp:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "getMcpTool": {
+    "method": "GET",
+    "path": "/api/v1/admin/mcp/tools/{name}",
+    "requestSchema": null,
+    "responseSchema": "McpToolResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "mcp:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "patchMcpToolPolicy": {
+    "method": "PATCH",
+    "path": "/api/v1/admin/mcp/tools/{name}/policy",
+    "requestSchema": "McpPolicyPatch",
+    "responseSchema": "McpToolResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "mcp:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "listMcpCalls": {
+    "method": "GET",
+    "path": "/api/v1/admin/mcp/calls",
+    "requestSchema": null,
+    "responseSchema": "McpCallListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "mcp:logs:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "getMcpCall": {
+    "method": "GET",
+    "path": "/api/v1/admin/mcp/calls/{id}",
+    "requestSchema": null,
+    "responseSchema": "McpCallResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [
+      "mcp:logs:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "getMyMcpAccessInfo": {
+    "method": "GET",
+    "path": "/api/v1/account/mcp/access-info",
+    "requestSchema": null,
+    "responseSchema": "McpAccessInfoResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "session",
+    "permissions": [],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "user"
   }
 } as const;
 export type OperationId = keyof typeof operations;
@@ -5263,6 +5421,14 @@ export interface OperationInputs {
   adminRenewPersonalToken: Models.PersonalTokenRenewInput;
   personalTokenUsers: undefined;
   adminPersonalTokenRoles: undefined;
+  getMcpConfig: undefined;
+  patchMcpConfig: Models.McpConfigPatch;
+  listMcpTools: undefined;
+  getMcpTool: undefined;
+  patchMcpToolPolicy: Models.McpPolicyPatch;
+  listMcpCalls: undefined;
+  getMcpCall: undefined;
+  getMyMcpAccessInfo: undefined;
 }
 export interface OperationData {
   bootstrap: Models.BootstrapResponse['data'];
@@ -5522,4 +5688,12 @@ export interface OperationData {
   adminRenewPersonalToken: Models.ActionResultResponse['data'];
   personalTokenUsers: Models.UserListResponse['data'];
   adminPersonalTokenRoles: Models.RoleOptionsResponse['data'];
+  getMcpConfig: Models.McpConfigResponse['data'];
+  patchMcpConfig: Models.McpConfigResponse['data'];
+  listMcpTools: Models.McpToolListResponse['data'];
+  getMcpTool: Models.McpToolResponse['data'];
+  patchMcpToolPolicy: Models.McpToolResponse['data'];
+  listMcpCalls: Models.McpCallListResponse['data'];
+  getMcpCall: Models.McpCallResponse['data'];
+  getMyMcpAccessInfo: Models.McpAccessInfoResponse['data'];
 }

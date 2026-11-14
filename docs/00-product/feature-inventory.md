@@ -122,6 +122,14 @@ Platform 两工作台与 Standalone 两载体共用连续的顶栏/正文背景�
 | 告警（规则/检测/事件） | 已实现（T4 方案二：superAdmin 规则端点 + 后台检测 + notifycontent 通知，见 [设计 §9.3](design-runtime-monitor.md)） | 已实现（T4 方案二：内置默认规则本地告警，写入运行事件，不发外部通知；Web/GUI 等效） | 不适用（CLI 不装配） | 告警事件=运行事件缓冲（进程内，200 条）；Platform 规则=Settings 基建（`alerts.rules` 内部键）；Standalone 规则=内置常量 | `internal/monitor/alert.go`、`GET/PUT /api/v1/admin/monitor/alert-rules` |
 | 本地只读快照接口 | —（走超管接口） | 已实现（`GET /monitor`，access local + sameOrigin，只读脱敏，D19） | 不装配 | 无 | `packages/contracts/openapi.json`（monitorSnapshot） |
 
+## J. 平台集成（Platform 专属）
+
+| 功能单元 | Platform | Standalone | CLI | 持久化 | 证据 |
+| --- | --- | --- | --- | --- | --- |
+| MCP Server（PAT 只读底座，P1） | 已实现：`/mcp` 固定入口（2026-07-28 基准档，go-sdk v1.8.0），默认关闭；PAT-only 认证、`mcp:access` + operation 显式授权、数据范围沿用、只读阶段门、限流/并发/体积/超时、调用元数据与 CAS 治理 | 不装配（`/mcp` 404，无 AI 管理菜单） | 不装配 | unicore_mcp_control / capability_policies / calls（platform@3）+ settings mcp.* | `internal/mcp/`、`internal/adapter/mcp/`、`internal/platform/mcpauth/`、`internal/adapter/storage/platformsql/mcp.go`、[ADR-0046](../adr/ADR-0046-mcp-server.md) |
+| AI 管理三页（接入配置/工具目录/调用记录） | 已实现（super_admin；AI 管理目录三页，中英双语） | 不呈现 | 不适用 | 无 | `packages/web-ui/src/pages/admin/ai/`、`internal/adapter/http/mcp.go` |
+| 能力注册（代码显式注册 + 指纹审查） | 已实现：notes.search/get 只读样例，`FEATURE_NOTES` 裁剪联动 | 不装配 | 不装配 | unicore_mcp_capability_policies | `internal/adapter/mcp/notes.go`、`internal/mcp/registry.go` |
+
 ## 已知差距与待决策
 
 以下条目为「当前实现与设计目标可能存在差距」的功能级记录，详情与候选方案见 [待维护者决策清单](pending-decisions.md)：

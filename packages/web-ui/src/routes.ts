@@ -4,7 +4,7 @@
 import { notes } from './modules/notes';
 import {defineMessages} from './i18n';
 import type { Bootstrap } from '@unicore/sdk';
-import { Bell, BookOpen, Activity, Circle, Cloud, Cpu, FileText, LayoutDashboard, ListChecks, Mail, Megaphone, Network, NotebookPen, PackageCheck, Palette, Radar, ScrollText, Settings2, ShieldCheck, UserCog, UserRound, Webhook, type LucideIcon } from 'lucide-react';
+import { Bell, BookOpen, Activity, Bot, Circle, Cloud, Cpu, FileText, LayoutDashboard, ListChecks, Mail, Megaphone, Network, NotebookPen, PackageCheck, Palette, Radar, ScrollText, Settings2, ShieldCheck, UserCog, UserRound, Webhook, Wrench, type LucideIcon } from 'lucide-react';
 
 // Dev-only component catalog: define-replaced to false in production builds, so the
 // page facts, route and module are tree-shaken out of shipped bundles. Tests assert
@@ -43,6 +43,9 @@ export const routes = defineMessages({
   'monitor-services': { label: '服务健康', title: '服务健康', description: '检查 HTTP、数据库、存储与后台任务状态。', permission: 'monitor:read', database: true, group: 'monitor', icon: Radar },
   'monitor-resources': { label: '资源监控', title: '资源监控', description: '观察主机硬件、进程与 Go Runtime 资源。', permission: 'monitor:read', database: true, group: 'monitor', icon: Cpu },
   'monitor-events': { label: '运行事件', title: '运行事件', description: '查看实例自身运行产生的生命周期、健康翻转与任务错误事件。', permission: 'monitor:read', database: true, group: 'monitor', icon: ScrollText },
+  'ai-access': { label: '接入配置', title: 'AI 管理 · 接入配置', description: '启用 MCP 服务、设置调用限制与浏览器来源白名单。', permission: 'mcp:read', icon: Bot, group: 'ai' },
+  'ai-tools': { label: '工具目录', title: 'AI 管理 · 工具目录', description: '审查并开放经代码注册的 MCP 业务工具。', permission: 'mcp:read', icon: Wrench, group: 'ai' },
+  'ai-calls': { label: '调用记录', title: 'AI 管理 · 调用记录', description: '查询 MCP 调用的元数据、结果与耗时。', permission: 'mcp:logs:read', icon: ScrollText, group: 'ai' },
   'not-found': { label: '页面不存在', title: '页面不存在', description: '这个地址尚未注册，请通过导航进入已有页面。', icon: Circle },
 } as const);
 export type Page = keyof typeof routes;

@@ -70,20 +70,12 @@ func mountNotes(api chi.Router, config Config) {
 				manageAll = administratorRequest(r) && platform.IsSuper(session.User)
 				// Row-level data scopes widen the user-realm list only; the
 				// administrator list and local profiles keep their behaviour.
-				{
-					filter, err := identity.Store.DataScope(r.Context(), session.User, "notes:access")
-					if err != nil {
-						webError(w, err)
-						return
-					}
-					if filter.All {
-						visibility.All = true
-					} else if !filter.Self() {
-						for _, id := range filter.UserIDs {
-							visibility.Scopes = append(visibility.Scopes, "user/"+id)
-						}
-					}
+				filter, err := identity.Store.DataScope(r.Context(), session.User, "notes:access")
+				if err != nil {
+					webError(w, err)
+					return
 				}
+				visibility = notesusecase.VisibilityFor("user", filter.All, filter.UserIDs)
 			}
 			service := &notesusecase.Notes{Repo: &notesnotessql.Repository{Store: store, ManageAll: manageAll}}
 			if fs := config.Install.Files(); fs != nil {
@@ -168,14 +160,7 @@ func noteErrorCode(err error) string {
 // allowNoteAttachment grants access only through an actual visible note reference.
 func allowNoteAttachment(w http.ResponseWriter, r *http.Request, config Config, actor files.Actor, noteID string, filter platform.ScopeFilter) bool {
 	store, _, _, _ := config.Install.Services()
-	visibility := notesusecase.NoteVisibility{}
-	if filter.All {
-		visibility.All = true
-	} else if !filter.Self() {
-		for _, id := range filter.UserIDs {
-			visibility.Scopes = append(visibility.Scopes, actor.Realm+"/"+id)
-		}
-	}
+	visibility := notesusecase.VisibilityFor(actor.Realm, filter.All, filter.UserIDs)
 	notes := &notesusecase.Notes{Repo: &notesnotessql.Repository{Store: store}}
 	scope := actor.Realm + "/" + actor.ID
 	if actor.Realm == "local" {

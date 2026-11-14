@@ -77,7 +77,7 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 			// 系统设置 and 超级管理员 both seed into the administrator-only
 			// system region (settings first); the personal center keeps no
 			// directory — it opens from the account menus' settings modal.
-			want := map[string]string{"administration": "system", "settings": "system", "monitor-center": "system"}
+			want := map[string]string{"administration": "system", "settings": "system", "monitor-center": "system", "ai-management": "system"}
 			if want[node.ID] != node.SectionID {
 				t.Fatal("directory region drifted", node)
 			}
@@ -147,9 +147,9 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 			}
 		}
 	}
-	// The three directories and the single action namespace.
-	if directories != 3 {
-		t.Fatal("expected the three directories", directories)
+	// The four directories and the single action namespace.
+	if directories != 4 {
+		t.Fatal("expected the four directories", directories)
 	}
 
 	// Registry parity with the exported frontend page order: same set, and the

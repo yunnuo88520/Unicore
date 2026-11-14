@@ -156,7 +156,10 @@ func (r *Repository) EnsureNavigation(ctx context.Context) error {
 	if err := r.backfillRegisteredActions(ctx); err != nil {
 		return err
 	}
-	return r.ensureMonitorNavigation(ctx)
+	if err := r.ensureMonitorNavigation(ctx); err != nil {
+		return err
+	}
+	return r.ensureAINavigation(ctx)
 }
 
 // retirePersonalNavigation removes the seeded 个人中心 directory and its four
@@ -352,6 +355,12 @@ var monitorSeedOrder = []string{"monitor-center", "monitor", "monitor-services",
 
 const monitorSeedMarker = "_navigation_monitor_seeded"
 
+// aiSeedOrder lists the AI-management entries in seed order; the top-up adds
+// nodes a tree seeded before the MCP capability lacks, mirroring the monitor
+// seed contract.
+var aiSeedOrder = []string{"ai-management", "ai-access", "ai-tools", "ai-calls"}
+const aiSeedMarker = "_navigation_ai_seeded"
+
 // ensureMonitorNavigation introduces the runtime monitor entries on instances
 // whose persisted tree predates them. Missing nodes join with their seeded
 // defaults (empty labels, default sorts), every operator customization stays
@@ -436,6 +445,83 @@ func (r *Repository) ensureMonitorNavigation(ctx context.Context) error {
 		_, err = r.Store.Exec(ctx, tx, "UPDATE unicore_system_settings SET setting_value=? WHERE setting_key=?", strings.Join(receivedList, ","), monitorSeedMarker)
 	} else {
 		_, err = r.Store.Exec(ctx, tx, "INSERT INTO unicore_system_settings(setting_key,setting_value) VALUES(?,?)", monitorSeedMarker, strings.Join(receivedList, ","))
+	}
+	if err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// ensureAINavigation tops persisted trees up with the AI-management directory
+// and pages: idempotent by marker plus existence, audited, and version-bumped
+// so editors holding stale snapshots refresh.
+func (r *Repository) ensureAINavigation(ctx context.Context) error {
+	tx, err := r.Store.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err = r.Store.LockInstallation(ctx, tx); err != nil {
+		return err
+	}
+	var seeded string
+	if err = r.Store.Row(ctx, tx, "SELECT setting_value FROM unicore_system_settings WHERE setting_key=?", aiSeedMarker).Scan(&seeded); err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+	markerExists := err == nil
+	received := map[string]bool{}
+	for _, id := range strings.Split(seeded, ",") {
+		if id != "" {
+			received[id] = true
+		}
+	}
+	n, err := r.readNavigation(ctx, tx)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return tx.Rollback()
+		}
+		return err
+	}
+	existing := map[string]bool{}
+	for _, node := range n.Nodes {
+		existing[node.ID] = true
+	}
+	missing := []contracts.NavigationNode{}
+	added := []string{}
+	for _, node := range platform.DefaultNavigation().Nodes {
+		if !slices.Contains(aiSeedOrder, node.ID) || existing[node.ID] || received[node.ID] {
+			continue
+		}
+		missing = append(missing, node)
+		added = append(added, node.ID)
+	}
+	for _, id := range aiSeedOrder {
+		if existing[id] {
+			received[id] = true
+		}
+	}
+	if len(missing) > 0 {
+		n.Nodes = append(n.Nodes, missing...)
+		if err = r.writeNavigation(ctx, tx, n); err != nil {
+			return err
+		}
+		if _, err = r.Store.Exec(ctx, tx, "UPDATE unicore_navigation_state SET version=version+1 WHERE id=1"); err != nil {
+			return err
+		}
+		if err = r.audit(audit.Target(ctx, "menus/ai-seed", "nodes="+strings.Join(added, ",")), tx, "system", "menus.updated"); err != nil {
+			return err
+		}
+	}
+	receivedList := make([]string, 0, len(received))
+	for _, id := range aiSeedOrder {
+		if received[id] {
+			receivedList = append(receivedList, id)
+		}
+	}
+	if markerExists {
+		_, err = r.Store.Exec(ctx, tx, "UPDATE unicore_system_settings SET setting_value=? WHERE setting_key=?", strings.Join(receivedList, ","), aiSeedMarker)
+	} else {
+		_, err = r.Store.Exec(ctx, tx, "INSERT INTO unicore_system_settings(setting_key,setting_value) VALUES(?,?)", aiSeedMarker, strings.Join(receivedList, ","))
 	}
 	if err != nil {
 		return err

@@ -8035,5 +8035,658 @@ export const constraints = {
         "maxLength": 512
       }
     }
+  },
+  "McpLimits": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "default_timeout_seconds",
+      "max_request_bytes",
+      "max_result_bytes",
+      "global_concurrency",
+      "user_concurrency",
+      "credential_concurrency",
+      "user_calls_per_minute",
+      "credential_calls_per_minute",
+      "log_retention_days"
+    ],
+    "properties": {
+      "default_timeout_seconds": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 120
+      },
+      "max_request_bytes": {
+        "type": "integer",
+        "minimum": 1024,
+        "maximum": 4194304
+      },
+      "max_result_bytes": {
+        "type": "integer",
+        "minimum": 1024,
+        "maximum": 1048576
+      },
+      "global_concurrency": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 256
+      },
+      "user_concurrency": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 32
+      },
+      "credential_concurrency": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 16
+      },
+      "user_calls_per_minute": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10000
+      },
+      "credential_calls_per_minute": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10000
+      },
+      "log_retention_days": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 180
+      }
+    }
+  },
+  "McpConfig": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "revision",
+      "enabled",
+      "pat_enabled",
+      "endpoint",
+      "supported_protocols",
+      "implemented_capabilities",
+      "limits",
+      "allowed_origins"
+    ],
+    "properties": {
+      "revision": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "enabled": {
+        "type": "boolean"
+      },
+      "pat_enabled": {
+        "type": "boolean"
+      },
+      "endpoint": {
+        "type": "string",
+        "maxLength": 2048
+      },
+      "supported_protocols": {
+        "type": "array",
+        "maxItems": 8,
+        "items": {
+          "type": "string",
+          "maxLength": 16
+        }
+      },
+      "implemented_capabilities": {
+        "type": "array",
+        "maxItems": 8,
+        "items": {
+          "type": "string",
+          "maxLength": 32
+        }
+      },
+      "limits": {
+        "$ref": "#/components/schemas/McpLimits"
+      },
+      "allowed_origins": {
+        "type": "string",
+        "maxLength": 2048
+      }
+    }
+  },
+  "McpConfigResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/McpConfig"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "McpConfigPatch": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "expected_revision"
+    ],
+    "properties": {
+      "expected_revision": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "enabled": {
+        "type": "boolean"
+      },
+      "pat_enabled": {
+        "type": "boolean"
+      },
+      "default_timeout_seconds": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 120
+      },
+      "max_request_bytes": {
+        "type": "integer",
+        "minimum": 1024,
+        "maximum": 4194304
+      },
+      "max_result_bytes": {
+        "type": "integer",
+        "minimum": 1024,
+        "maximum": 1048576
+      },
+      "global_concurrency": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 256
+      },
+      "user_concurrency": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 32
+      },
+      "credential_concurrency": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 16
+      },
+      "user_calls_per_minute": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10000
+      },
+      "credential_calls_per_minute": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10000
+      },
+      "log_retention_days": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 180
+      },
+      "allowed_origins": {
+        "type": "string",
+        "maxLength": 2048
+      }
+    }
+  },
+  "McpPolicy": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "enabled",
+      "accepted_fingerprint",
+      "accepted_version",
+      "version"
+    ],
+    "properties": {
+      "enabled": {
+        "type": "boolean"
+      },
+      "accepted_fingerprint": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "accepted_version": {
+        "type": "string",
+        "maxLength": 32
+      },
+      "version": {
+        "type": "integer",
+        "minimum": 0
+      }
+    }
+  },
+  "McpTool": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "name",
+      "module",
+      "version",
+      "impl_version",
+      "title_zh",
+      "title_en",
+      "description_zh",
+      "description_en",
+      "operation_ids",
+      "effect",
+      "confirmation",
+      "fingerprint",
+      "policy",
+      "state"
+    ],
+    "properties": {
+      "name": {
+        "type": "string",
+        "maxLength": 96
+      },
+      "module": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "version": {
+        "type": "string",
+        "maxLength": 32
+      },
+      "impl_version": {
+        "type": "string",
+        "maxLength": 32
+      },
+      "title_zh": {
+        "type": "string",
+        "maxLength": 120
+      },
+      "title_en": {
+        "type": "string",
+        "maxLength": 120
+      },
+      "description_zh": {
+        "type": "string",
+        "maxLength": 2000
+      },
+      "description_en": {
+        "type": "string",
+        "maxLength": 2000
+      },
+      "operation_ids": {
+        "type": "array",
+        "maxItems": 16,
+        "items": {
+          "type": "string",
+          "maxLength": 128
+        }
+      },
+      "effect": {
+        "type": "string",
+        "enum": [
+          "read",
+          "write",
+          "destructive"
+        ]
+      },
+      "confirmation": {
+        "type": "string",
+        "enum": [
+          "none",
+          "required"
+        ]
+      },
+      "fingerprint": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "policy": {
+        "$ref": "#/components/schemas/McpPolicy"
+      },
+      "state": {
+        "type": "string",
+        "enum": [
+          "unreviewed",
+          "disabled",
+          "open",
+          "needs_review",
+          "module_missing"
+        ]
+      }
+    }
+  },
+  "McpToolResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/McpTool"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "McpToolList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items",
+      "total"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "maxItems": 100,
+        "items": {
+          "$ref": "#/components/schemas/McpTool"
+        }
+      },
+      "total": {
+        "type": "integer",
+        "minimum": 0
+      }
+    }
+  },
+  "McpToolListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/McpToolList"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "McpPolicyPatch": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "expected_version",
+      "expected_fingerprint",
+      "enabled"
+    ],
+    "properties": {
+      "expected_version": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "expected_fingerprint": {
+        "type": "string",
+        "minLength": 64,
+        "maxLength": 64
+      },
+      "enabled": {
+        "type": "boolean"
+      }
+    }
+  },
+  "McpCall": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "request_id",
+      "started_at",
+      "finished_at",
+      "duration_ms",
+      "status",
+      "error_code",
+      "actor_id",
+      "actor_name",
+      "credential_name",
+      "credential_deleted",
+      "role_id",
+      "auth_method",
+      "kind",
+      "name",
+      "capability_version",
+      "policy_revision",
+      "protocol_version",
+      "client_name",
+      "client_version"
+    ],
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "started_at": {
+        "type": "integer"
+      },
+      "finished_at": {
+        "type": "integer"
+      },
+      "duration_ms": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "status": {
+        "type": "string",
+        "maxLength": 16
+      },
+      "error_code": {
+        "type": "string",
+        "maxLength": 128
+      },
+      "actor_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "actor_name": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "credential_name": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "credential_deleted": {
+        "type": "boolean"
+      },
+      "role_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "auth_method": {
+        "type": "string",
+        "maxLength": 16
+      },
+      "kind": {
+        "type": "string",
+        "maxLength": 16
+      },
+      "name": {
+        "type": "string",
+        "maxLength": 128
+      },
+      "capability_version": {
+        "type": "string",
+        "maxLength": 32
+      },
+      "policy_revision": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "protocol_version": {
+        "type": "string",
+        "maxLength": 16
+      },
+      "client_name": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "client_version": {
+        "type": "string",
+        "maxLength": 40
+      }
+    }
+  },
+  "McpCallList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items",
+      "total",
+      "page",
+      "page_size"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "maxItems": 100,
+        "items": {
+          "$ref": "#/components/schemas/McpCall"
+        }
+      },
+      "total": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "page": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "page_size": {
+        "type": "integer",
+        "minimum": 1
+      }
+    }
+  },
+  "McpCallListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/McpCallList"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "McpCallResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/McpCall"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "McpAccessInfo": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "enabled",
+      "endpoint",
+      "supported_protocols",
+      "access_granted"
+    ],
+    "properties": {
+      "enabled": {
+        "type": "boolean"
+      },
+      "endpoint": {
+        "type": "string",
+        "maxLength": 2048
+      },
+      "supported_protocols": {
+        "type": "array",
+        "maxItems": 8,
+        "items": {
+          "type": "string",
+          "maxLength": 16
+        }
+      },
+      "access_granted": {
+        "type": "boolean"
+      }
+    }
+  },
+  "McpAccessInfoResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/McpAccessInfo"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
   }
 };

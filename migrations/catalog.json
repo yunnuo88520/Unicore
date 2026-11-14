@@ -125,6 +125,14 @@
             "postgres": "platform/postgres/0002_inbox_actions.sql",
             "mysql": "platform/mysql/0002_inbox_actions.sql"
           }
+        },
+        {
+          "version": 3,
+          "files": {
+            "sqlite": "platform/sqlite/0003_mcp_governance.sql",
+            "postgres": "platform/postgres/0003_mcp_governance.sql",
+            "mysql": "platform/mysql/0003_mcp_governance.sql"
+          }
         }
       ]
     },

@@ -2012,3 +2012,155 @@ export interface InboxAction {
   label: string;
   href?: string;
 }
+
+export interface McpLimits {
+  default_timeout_seconds: number;
+  max_request_bytes: number;
+  max_result_bytes: number;
+  global_concurrency: number;
+  user_concurrency: number;
+  credential_concurrency: number;
+  user_calls_per_minute: number;
+  credential_calls_per_minute: number;
+  log_retention_days: number;
+}
+
+export interface McpConfig {
+  revision: number;
+  enabled: boolean;
+  pat_enabled: boolean;
+  endpoint: string;
+  supported_protocols: Array<string>;
+  implemented_capabilities: Array<string>;
+  limits: McpLimits;
+  allowed_origins: string;
+}
+
+export interface McpConfigResponse {
+  code: string;
+  message: string;
+  data: McpConfig;
+  request_id: string;
+}
+
+export interface McpConfigPatch {
+  expected_revision: number;
+  enabled?: boolean;
+  pat_enabled?: boolean;
+  default_timeout_seconds?: number;
+  max_request_bytes?: number;
+  max_result_bytes?: number;
+  global_concurrency?: number;
+  user_concurrency?: number;
+  credential_concurrency?: number;
+  user_calls_per_minute?: number;
+  credential_calls_per_minute?: number;
+  log_retention_days?: number;
+  allowed_origins?: string;
+}
+
+export interface McpPolicy {
+  enabled: boolean;
+  accepted_fingerprint: string;
+  accepted_version: string;
+  version: number;
+}
+
+export interface McpTool {
+  name: string;
+  module: string;
+  version: string;
+  impl_version: string;
+  title_zh: string;
+  title_en: string;
+  description_zh: string;
+  description_en: string;
+  operation_ids: Array<string>;
+  effect: "read" | "write" | "destructive";
+  confirmation: "none" | "required";
+  fingerprint: string;
+  policy: McpPolicy;
+  state: "unreviewed" | "disabled" | "open" | "needs_review" | "module_missing";
+}
+
+export interface McpToolResponse {
+  code: string;
+  message: string;
+  data: McpTool;
+  request_id: string;
+}
+
+export interface McpToolList {
+  items: Array<McpTool>;
+  total: number;
+}
+
+export interface McpToolListResponse {
+  code: string;
+  message: string;
+  data: McpToolList;
+  request_id: string;
+}
+
+export interface McpPolicyPatch {
+  expected_version: number;
+  expected_fingerprint: string;
+  enabled: boolean;
+}
+
+export interface McpCall {
+  request_id: string;
+  started_at: number;
+  finished_at: number;
+  duration_ms: number;
+  status: string;
+  error_code: string;
+  actor_id: string;
+  actor_name: string;
+  credential_name: string;
+  credential_deleted: boolean;
+  role_id: string;
+  auth_method: string;
+  kind: string;
+  name: string;
+  capability_version: string;
+  policy_revision: number;
+  protocol_version: string;
+  client_name: string;
+  client_version: string;
+}
+
+export interface McpCallList {
+  items: Array<McpCall>;
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface McpCallListResponse {
+  code: string;
+  message: string;
+  data: McpCallList;
+  request_id: string;
+}
+
+export interface McpCallResponse {
+  code: string;
+  message: string;
+  data: McpCall;
+  request_id: string;
+}
+
+export interface McpAccessInfo {
+  enabled: boolean;
+  endpoint: string;
+  supported_protocols: Array<string>;
+  access_granted: boolean;
+}
+
+export interface McpAccessInfoResponse {
+  code: string;
+  message: string;
+  data: McpAccessInfo;
+  request_id: string;
+}

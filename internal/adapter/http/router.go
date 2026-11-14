@@ -18,6 +18,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/yunnuo/unicore/internal/adapter/mcp"
 	"github.com/yunnuo/unicore/internal/adapter/presenter"
 	"github.com/yunnuo/unicore/internal/audit"
 	"github.com/yunnuo/unicore/internal/contracts"
@@ -47,6 +48,8 @@ type Config struct {
 	Monitor          *monitor.Service
 	AlertRulesStore  monitor.AlertRuleStore
 	Notify           *notify.Notifier
+	// MCP mounts the platform-only protocol surface; nil keeps /mcp a plain 404.
+	MCP              *mcp.Surface
 }
 
 func New(config Config) http.Handler {
@@ -129,7 +132,10 @@ func New(config Config) http.Handler {
 	if config.Install != nil {
 		router.Use(func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if sameOrigin(r) {
+				// The MCP surface enforces its own browser-origin policy:
+				// protocol clients carry no Origin, browser clients must hit
+				// the trusted list, so the global same-origin rule does not apply.
+				if sameOrigin(r) || strings.HasPrefix(r.URL.Path, "/mcp") {
 					next.ServeHTTP(w, r)
 					return
 				}
@@ -185,6 +191,7 @@ func New(config Config) http.Handler {
 	router.Get("/site.webmanifest", func(w http.ResponseWriter, r *http.Request) { serveBrandManifest(config, w, r) })
 	router.Get("/brand-assets/{name}", func(w http.ResponseWriter, r *http.Request) { serveBrandAsset(config, w, r) })
 	router.Head("/brand-assets/{name}", func(w http.ResponseWriter, r *http.Request) { serveBrandAsset(config, w, r) })
+	mcp.Mount(router, config.MCP)
 	router.Route("/api/v1", func(api chi.Router) {
 		mountAPI(api, config)
 	})
@@ -193,6 +200,12 @@ func New(config Config) http.Handler {
 	}
 	router.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, "/brand-assets/") {
+			http.NotFound(w, r)
+			return
+		}
+		// The MCP endpoint never falls into the install redirect or the SPA:
+		// unmounted or non-platform profiles answer a plain 404.
+		if r.URL.Path == "/mcp" {
 			http.NotFound(w, r)
 			return
 		}

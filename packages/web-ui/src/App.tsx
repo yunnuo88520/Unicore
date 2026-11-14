@@ -87,6 +87,7 @@ const pageHeadingOwners = new Set<string>([
   'users', 'administrators', 'roles', 'departments', 'announcements', 'posts',
   'tasks', 'menus', 'access-tokens',
   'monitor', 'monitor-services', 'monitor-resources', 'monitor-events', 'ui-preview', 'not-found',
+  'ai-access', 'ai-tools', 'ai-calls',
 ]);
 
 /** The root route component: gates, chrome and the page outlet. Server authorization remains authoritative. */

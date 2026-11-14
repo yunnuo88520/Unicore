@@ -17,7 +17,7 @@ CLI_COMMAND := $(shell node -p "JSON.parse(require('fs').readFileSync('product.i
 OPS_COMMAND := $(shell node -p "JSON.parse(require('fs').readFileSync('product.identity.json','utf8')).cli.opsCommand")
 LDFLAGS := -X $(GO_MODULE)/internal/buildinfo.Version=$(VERSION) -X $(GO_MODULE)/internal/buildinfo.Commit=$(COMMIT) -X $(GO_MODULE)/internal/buildinfo.BuildTime=$(BUILD_TIME)
 
-.PHONY: install dev-web dev-server dev-desktop dev-cli generate docs wiki wiki-publish test test-gen test-go test-web test-e2e test-features test-notes build-web build-cli build-desktop build-all build-ops doctor dev-deps-up dev-deps-down release package package-desktop version docker-build compose-up compose-down test-deploy test-upgrade check-features audit
+.PHONY: install dev-web dev-server dev-desktop dev-cli generate docs wiki wiki-publish test test-gen test-go test-web test-e2e test-features test-notes test-mcp build-web build-cli build-desktop build-all build-ops doctor dev-deps-up dev-deps-down release package package-desktop version docker-build compose-up compose-down test-deploy test-upgrade check-features audit
 install:
 	pnpm install --frozen-lockfile
 	go mod download
@@ -75,6 +75,9 @@ test-e2e:
 	pnpm test:e2e
 test-notes:
 	pnpm test:notes
+test-mcp:
+	go test -race ./internal/mcp ./internal/platform/mcpauth ./internal/adapter/mcp ./internal/adapter/storage/platformsql -run 'TestMCP|TestBaseline|TestRegistry|TestFingerprint|TestPrincipal|TestAuthorize|TestSuperAdmin|TestAuthorization|TestScope|TestOrigin|TestLimits|TestLanguage|TestProtocol|TestClientIdentity'
+	go test -race ./internal/adapter/http -run TestMCPProtocolInteropOverHTTP
 test-features:
 	pnpm test:features
 check-features:

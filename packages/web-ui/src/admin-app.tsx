@@ -23,6 +23,9 @@ import { AdminAccessTokensPage } from './pages/admin/access-tokens';
 import { AdminPostsPage } from './pages/admin/posts';
 import { AdminDictionariesPage } from './pages/admin/dictionaries';
 import { AdminMonitorEventsPage, AdminMonitorPage, AdminMonitorResourcesPage, AdminMonitorServicesPage } from './pages/monitor';
+import { AdminAiAccessPage } from './pages/admin/ai/access';
+import { AdminAiCallsPage } from './pages/admin/ai/calls';
+import { AdminAiToolsPage } from './pages/admin/ai/tools';
 
 export function AdministrationPage(props: PageProps) {
   useLocale();
@@ -47,6 +50,9 @@ export function AdministrationPage(props: PageProps) {
     case 'monitor-services': return <AdminMonitorServicesPage {...props} />;
     case 'monitor-resources': return <AdminMonitorResourcesPage {...props} />;
     case 'monitor-events': return <AdminMonitorEventsPage {...props} />;
+    case 'ai-access': return <AdminAiAccessPage {...props} />;
+    case 'ai-tools': return <AdminAiToolsPage {...props} />;
+    case 'ai-calls': return <AdminAiCallsPage {...props} />;
     default: return null;
   }
 }

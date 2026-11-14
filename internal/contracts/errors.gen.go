@@ -72,4 +72,6 @@ var ErrorCatalog = map[string]ErrorDefinition{
 	"TASK_SCHEDULE_INVALID":                {Status: 400, Message: "执行计划无效，请使用 5/6 位 cron 或 @every/@daily 描述符"},
 	"NOTIFICATION_CHANNEL_DELIVERY_FAILED": {Status: 502, Message: "通知渠道发送失败，请检查渠道凭据、机器人状态与网络连接"},
 	"NOTIFICATION_CHANNEL_NOT_READY":       {Status: 400, Message: "请先配置、启用并保存通知渠道"},
+	"MCP_CONFLICT":                         {Status: 409, Message: "配置或策略已被其他管理员修改，请刷新后重试"},
+	"MCP_UNAVAILABLE":                      {Status: 503, Message: "MCP 服务当前不可用"},
 }

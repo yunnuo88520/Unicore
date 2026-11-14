@@ -56,20 +56,20 @@ it('seeds one shared default tree with ordered sections, registry-mirrored surfa
   const registry = routes as unknown as Record<string, { group?: string }>;
   for (const node of pages) {
     const group = registry[node.route_id!]?.group;
-    expect([...node.surfaces]).toEqual(group === 'system' || group === 'administration' || group === 'monitor' || platformAdminOnly.has(node.route_id!) ? adminOnly : bothSurfaces);
+    expect([...node.surfaces]).toEqual(group === 'system' || group === 'administration' || group === 'monitor' || group === 'ai' || platformAdminOnly.has(node.route_id!) ? adminOnly : bothSurfaces);
     // Two regions: system, administration and monitor pages ride their
     // directories in the system region — API 文档 stays a top-level tail
     // there — everything else stays in business. The personal center keeps
     // no navigation presence: it opens from the account menus' settings modal.
     const systemTopLevel = node.route_id === 'api-docs';
-    expect(node.section_id).toBe(systemTopLevel || group === 'system' || group === 'administration' || group === 'monitor' ? 'system' : 'business');
-    expect(node.parent_id).toBe(systemTopLevel ? undefined : group === 'system' ? 'settings' : group === 'administration' ? 'administration' : group === 'monitor' ? 'monitor-center' : undefined);
+    expect(node.section_id).toBe(systemTopLevel || group === 'system' || group === 'administration' || group === 'monitor' || group === 'ai' ? 'system' : 'business');
+    expect(node.parent_id).toBe(systemTopLevel ? undefined : group === 'system' ? 'settings' : group === 'administration' ? 'administration' : group === 'monitor' ? 'monitor-center' : group === 'ai' ? 'ai-management' : undefined);
   }
   // Directory surfaces aggregate the same route-derived page surfaces.
   for (const directory of config.nodes.filter(node => node.type === 'directory')) {
     expect([...directory.surfaces]).toEqual(adminOnly);
     expect(directory.section_id).toBe('system');
-    expect(directory.sort).toBe(directory.id === 'administration' ? 20 : directory.id === 'monitor-center' ? 25 : 10);
+    expect(directory.sort).toBe(directory.id === 'administration' ? 20 : directory.id === 'monitor-center' ? 25 : directory.id === 'ai-management' ? 30 : 10);
   }
   // Actions hang off page nodes with op:* identities and inherit their surfaces.
   const actions = config.nodes.filter(node => node.type === 'action');

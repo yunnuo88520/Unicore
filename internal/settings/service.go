@@ -119,6 +119,18 @@ var Definitions = append([]SettingDefinition{
 	{"mail.from_name", "string", "mail", "发件人别名", "", true, false, func(v string) bool { return text(64)(v) && !strings.ContainsAny(v, "\r\n\x00") }},
 	{"mail.username", "string", "mail", "SMTP 用户名", "", true, false, func(v string) bool { return text(254)(v) && !strings.ContainsAny(v, "\r\n") }},
 	{"mail.password", "string", "mail", "SMTP 密钥", "", true, true, text(512)},
+	{"mcp.enabled", "boolean", "mcp", "启用 MCP 服务", "false", true, false, oneOf("true", "false")},
+	{"mcp.pat_enabled", "boolean", "mcp", "允许个人令牌接入", "true", true, false, oneOf("true", "false")},
+	{"mcp.default_timeout_seconds", "integer", "mcp", "默认调用超时（秒）", "30", true, false, integer(1, 120)},
+	{"mcp.max_request_bytes", "integer", "mcp", "请求体积上限（字节）", "1048576", true, false, integer(1024, 4194304)},
+	{"mcp.max_result_bytes", "integer", "mcp", "结果体积上限（字节）", "262144", true, false, integer(1024, 1048576)},
+	{"mcp.global_concurrency", "integer", "mcp", "全局并发上限", "64", true, false, integer(1, 256)},
+	{"mcp.user_concurrency", "integer", "mcp", "单用户并发上限", "4", true, false, integer(1, 32)},
+	{"mcp.credential_concurrency", "integer", "mcp", "单凭证并发上限", "2", true, false, integer(1, 16)},
+	{"mcp.user_calls_per_minute", "integer", "mcp", "用户每分钟调用上限", "120", true, false, integer(1, 10000)},
+	{"mcp.credential_calls_per_minute", "integer", "mcp", "凭证每分钟调用上限", "60", true, false, integer(1, 10000)},
+	{"mcp.log_retention_days", "integer", "mcp", "调用记录保留天数", "30", true, false, integer(1, 180)},
+	{"mcp.allowed_origins", "string", "mcp", "允许的浏览器 Origin", "", true, false, ValidMCPOrigins},
 }, append(append(append(OIDCDefinitions, StorageDefinitions...), RegistrationDefinitions...),
 	append(append(append(SecurityDefinitions, MailTemplateDefinitions...), NotificationDefinitions...), LoggingDefinitions...)...)...)
 
@@ -129,6 +141,49 @@ func ValidPublicLink(value string) bool {
 	}
 	u, err := url.Parse(value)
 	return err == nil && text(2048)(value) && !strings.ContainsAny(value, "\r\n\x00") && u.Scheme == "https" && u.Hostname() != "" && u.User == nil && u.Fragment == ""
+}
+
+// ValidMCPOrigins accepts a whitespace or comma separated list of exact
+// browser origins: HTTPS anywhere, plain HTTP only for loopback development
+// targets. Empty keeps the implicit same-origin trust. The same origin rules
+// are enforced again at request time; this guard only bounds configuration.
+func ValidMCPOrigins(value string) bool {
+	if value == "" {
+		return true
+	}
+	if len(value) > 2048 || strings.ContainsAny(value, "\r\n\x00") {
+		return false
+	}
+	for _, origin := range strings.FieldsFunc(value, func(r rune) bool { return r == ' ' || r == ',' || r == '\t' }) {
+		u, err := url.Parse(origin)
+		if err != nil || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Path != "" && u.Path != "/") {
+			return false
+		}
+		switch u.Scheme {
+		case "https":
+			if u.Hostname() == "" {
+				return false
+			}
+		case "http":
+			host := u.Hostname()
+			loopback := host == "localhost" || strings.HasSuffix(host, ".localhost")
+			if !loopback {
+				if address := net.ParseIP(host); address == nil || !address.IsLoopback() {
+					return false
+				}
+			}
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// ManagedGroup marks setting groups that never surface through the generic
+// settings API: they have dedicated admin surfaces with their own
+// permissions, CAS anchors and audit trails.
+func ManagedGroup(group string) bool {
+	return group == "mcp"
 }
 
 func ValidEmail(value string) bool {
@@ -211,7 +266,7 @@ func (s *Service) List(ctx context.Context) (contracts.Settings, error) {
 		if !applies(d, s.Profile) {
 			continue
 		}
-		if d.Key == "security.force_2fa" || branding.Managed(d.Key) || ManagedMailTemplate(d.Key) || ManagedNotification(d.Key) || d.Key == "announcements.enabled" {
+		if d.Key == "security.force_2fa" || branding.Managed(d.Key) || ManagedMailTemplate(d.Key) || ManagedNotification(d.Key) || d.Key == "announcements.enabled" || ManagedGroup(d.Group) {
 			continue
 		}
 		value := values[d.Key]
@@ -300,7 +355,7 @@ func (s *Service) Patch(ctx context.Context, input contracts.SettingPatch, actor
 		found := false
 		for _, d := range Definitions {
 			if d.Key == change.Key {
-				if !applies(d, s.Profile) {
+				if !applies(d, s.Profile) || ManagedGroup(d.Group) {
 					return contracts.Settings{}, ErrInvalid
 				}
 				clear := change.Clear != nil && *change.Clear

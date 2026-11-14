@@ -22,7 +22,9 @@ import (
 	"github.com/robfig/cron/v3"
 
 	webassets "github.com/yunnuo/unicore/apps/web"
+	mcpadapter "github.com/yunnuo/unicore/internal/adapter/mcp"
 	httpadapter "github.com/yunnuo/unicore/internal/adapter/http"
+	"github.com/yunnuo/unicore/internal/adapter/presenter"
 	"github.com/yunnuo/unicore/internal/adapter/storage/platformsql"
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/bootstrap"
@@ -32,11 +34,14 @@ import (
 	"github.com/yunnuo/unicore/internal/lifecycle"
 	"github.com/yunnuo/unicore/internal/logging"
 	"github.com/yunnuo/unicore/internal/mailer"
+	"github.com/yunnuo/unicore/internal/mcp"
 	"github.com/yunnuo/unicore/internal/module"
 	notesmodule "github.com/yunnuo/unicore/internal/modules/notes"
 	"github.com/yunnuo/unicore/internal/monitor"
 	"github.com/yunnuo/unicore/internal/notify"
 	"github.com/yunnuo/unicore/internal/observability"
+	"github.com/yunnuo/unicore/internal/platform"
+	"github.com/yunnuo/unicore/internal/platform/mcpauth"
 	"github.com/yunnuo/unicore/internal/realtime"
 	"github.com/yunnuo/unicore/internal/runtime"
 	"github.com/yunnuo/unicore/internal/scheduler"
@@ -285,7 +290,34 @@ func run(args []string) (result error) {
 
 	workerCtx, cancelWorkers := context.WithCancel(context.Background())
 	defer cancelWorkers()
-	server := &http.Server{Addr: options.Listen, Handler: httpadapter.New(httpadapter.Config{Updates: updater, Metadata: metadata, Core: bootstrap.Core(), Assets: webassets.FS(), Logger: logger, Install: manager, APIDocs: options.APIDocs, ReadinessTimeout: options.ReadinessTimeout, Metrics: metrics, Hub: hub, LogBroadcast: broadcast, Monitor: appMonitor, Notify: notifyService}), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
+	// MCP capability base: the registry stays empty until business adapters
+	// contribute; the surface answers a plain 404 outside web-platform and
+	// 503 while mcp.enabled is false, so assembly here is profile-safe.
+	mcpRegistry := mcp.NewRegistry()
+	mcpOperations := mcp.OperationResolverFunc(func(id string) (mcp.OperationInfo, bool) {
+		operation, ok := platform.Operation(id)
+		if !ok {
+			return mcp.OperationInfo{}, false
+		}
+		return mcp.OperationInfo{Grantable: operation.Grantable, SuperAdmin: operation.SuperAdmin, Permissions: operation.Permissions, PermissionMode: operation.PermissionMode}, true
+	})
+	mcpPorts := mcpadapter.GovernanceStore{Manager: manager}
+	mcpService := mcp.NewService(mcp.ServiceConfig{
+		Registry:      mcpRegistry,
+		Authorizer:    mcpauth.Authorizer{Operations: mcpOperations},
+		Policies:      mcpPorts,
+		Calls:         mcpPorts,
+		Clock:         mcp.ClockFunc(func() int64 { return time.Now().Unix() }),
+		NewIdentifier: presenter.RequestID,
+	})
+	if err := mcpadapter.RegisterNotes(mcpRegistry, manager, mcpOperations); err != nil {
+		return fmt.Errorf("mcp capability registration failed: %w", err)
+	}
+	if err := mcpRegistry.Freeze(); err != nil {
+		return fmt.Errorf("mcp registry freeze failed: %w", err)
+	}
+	mcpSurface := &mcpadapter.Surface{Install: manager, Logger: logger, Version: metadata.Version, Service: mcpService, Registry: mcpRegistry}
+	server := &http.Server{Addr: options.Listen, Handler: httpadapter.New(httpadapter.Config{Updates: updater, Metadata: metadata, Core: bootstrap.Core(), Assets: webassets.FS(), Logger: logger, Install: manager, APIDocs: options.APIDocs, ReadinessTimeout: options.ReadinessTimeout, Metrics: metrics, Hub: hub, LogBroadcast: broadcast, Monitor: appMonitor, Notify: notifyService, MCP: mcpSurface}), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
 	listener, err := net.Listen("tcp", server.Addr)
 	if err != nil {
 		return fmt.Errorf("listen failed: %w", err)

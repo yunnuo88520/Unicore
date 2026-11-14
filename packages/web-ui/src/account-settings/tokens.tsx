@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { createColumnHelper, tableFeatures, useTable } from '@tanstack/react-table';
 import { Combobox } from '@unicore/ui/controls';
-import { KeyRound } from 'lucide-react';
+import { Bot, Copy, KeyRound } from 'lucide-react';
 import type { AdminPersonalTokenInput, AppClient, PersonalToken, PersonalTokenCreated, PersonalTokenInput, PersonalTokenRenewInput, WebClient } from '@unicore/sdk';
 import { AppControllerField, AppField, AppForm, useAppForm, type ControlledField } from '@unicore/form';
 import { Badge, Button, Card, CardContent, ConfirmDialog, Input, Modal, SimpleSelect, Textarea, useMessage } from '@unicore/ui';
@@ -108,6 +108,7 @@ export function TokenManager({ web, userID, manage = false }: { web: WebClient; 
     state: { columnVisibility },
   });
   return <div className="flex min-w-0 flex-col gap-4">
+    {!manage && <McpHint web={web} />}
     <div className="flex flex-wrap items-center justify-between gap-2 px-3">
       <p className="text-xs text-muted">{t(manage ? '管理所有用户的访问令牌，或选择用户为其签发。' : '每个令牌绑定一个角色，仅使用该角色的当前权限和数据范围。')}</p>
       <Button size="sm" onClick={() => setCreating(true)}>{t('创建访问令牌')}</Button>
@@ -184,4 +185,33 @@ function RenewToken({ web, token, manage, onClose, onSaved }: { web: WebClient; 
   const form = useAppForm<PersonalTokenRenewInput>({ schema: 'PersonalTokenRenewInput', defaultValues: { expires_in_days: 30 }, onSubmit: input => { save.mutate(input); } });
   const save = useMutation({ mutationFn: (input: PersonalTokenRenewInput) => manage ? web.adminRenewPersonalToken(token.id, input) : web.renewPersonalToken(token.id, input), onSuccess: () => { message.success(t('访问令牌已续期')); onSaved(); }, onError: form.applyServerError });
   return <Modal title={t('续期访问令牌')} onClose={onClose} pending={save.isPending}><AppForm form={form} className="flex flex-col gap-4"><p className="break-all text-sm">{token.name}</p><p className="text-sm text-muted">{t('有效令牌从原到期时间延长，已过期或永久令牌从现在计算；原令牌保持不变。')}</p><LifetimeField /><div className="sticky bottom-0 z-10 flex justify-end gap-2 border-t border-line bg-surface pt-3"><Button type="button" variant="secondary" disabled={save.isPending} onClick={onClose}>{t('取消')}</Button><Button type="submit" pending={save.isPending}>{t('确认续期')}</Button></div></AppForm></Modal>;
+}
+
+// McpHint shows the personal MCP connection hint beside token issuance: the
+// service endpoint with a copy action and the least-privilege role guidance.
+// It queries the platform contract only; the admin manage view stays untouched.
+function McpHint({ web }: { web: WebClient }) {
+  useLocale();
+  const message = useMessage();
+  const info = useQuery({ queryKey: ['mcp-access-info'], queryFn: () => web.getMyMcpAccessInfo!(), enabled: !!web.getMyMcpAccessInfo, staleTime: 60000 });
+  if (!web.getMyMcpAccessInfo || !info.data?.enabled) return null;
+  const data = info.data;
+  return <Card><CardContent className="flex flex-wrap items-center gap-3 p-4 text-sm">
+    <Bot size={18} className="shrink-0 text-accent" aria-hidden="true" />
+    <div className="min-w-0 flex-1">
+      <p className="font-medium">{t('用于 MCP 接入')}</p>
+      <p className="mt-0.5 text-xs leading-relaxed text-muted">
+        {data.access_granted
+          ? t('创建令牌时选择最小权限角色，将接入地址填入支持 MCP 的客户端即可调用开放给你的工具。')
+          : t('你的角色尚未获得 MCP 接入授权；请联系管理员为角色分配“使用 MCP 接入”权限。')}
+      </p>
+    </div>
+    <span className="flex min-w-0 items-center gap-2">
+      <code className="min-w-0 truncate font-mono text-xs text-muted" title={data.endpoint}>{data.endpoint}</code>
+      <Button type="button" variant="ghost" size="icon" className="size-7 shrink-0" aria-label={t('复制接入地址')}
+        onClick={() => { void navigator.clipboard.writeText(data.endpoint); message.success(t('接入地址已复制')); }}>
+        <Copy size={13} aria-hidden="true" />
+      </Button>
+    </span>
+  </CardContent></Card>;
 }

@@ -146,8 +146,8 @@
           "files": {
             "mysql": {
               "path": "platform/mysql/0002_inbox_actions.sql",
-              "bytes": 347,
-              "checksum": "a100105a7937a5797833423feed48468d848368ce86dd32db18866f60ab72863"
+              "bytes": 394,
+              "checksum": "1d4df1269d0c5f15edf78ea0f3c2aecc0231d35433869cd61c8189be68f05380"
             },
             "postgres": {
               "path": "platform/postgres/0002_inbox_actions.sql",
@@ -214,7 +214,7 @@
         "module.notes": 1,
         "platform": 2
       },
-      "schema_fingerprint": "f82be5c564a254236b943f7912be811132f0a257c9f2cdfcdfcd88dba79ba44b"
+      "schema_fingerprint": "ecd33f70133ea827a4d264488837c0b82b3ba75645572ffbb5d1a7ffbedbe74f"
     },
     "web-standalone": {
       "dialects": [
@@ -237,7 +237,7 @@
         "module.notes": 1,
         "platform": 2
       },
-      "schema_fingerprint": "f82be5c564a254236b943f7912be811132f0a257c9f2cdfcdfcd88dba79ba44b"
+      "schema_fingerprint": "ecd33f70133ea827a4d264488837c0b82b3ba75645572ffbb5d1a7ffbedbe74f"
     }
   }
 }

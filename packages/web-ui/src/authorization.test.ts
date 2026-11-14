@@ -21,14 +21,13 @@ it('requires the point, action and operation independently for a button',()=>{
  }
  expect(canAction({...data,current_user:{...user,operation_ids:['createNote']}},'deleteNote')).toBe(false);
 });
-it('denies direct page URLs without menu grants while preserving personal security access',()=>{
+it('denies direct page URLs without menu grants',()=>{
  const data=authorized();
  // menu_ids store unprefixed shared-tree node ids.
  expect(data.current_user!.menu_ids).toContain('notes');
  expect(canAccess('notes',data)).toBe(true);
  const denied={...data,current_user:{...data.current_user!,menu_ids:[]}};
  expect(canAccess('notes',denied)).toBe(false);
- expect(canAccess('account-security',denied)).toBe(true);
  // API/action grants and menu grants have independent meanings.
  expect(canAction(denied,'createNote')).toBe(true);
 });

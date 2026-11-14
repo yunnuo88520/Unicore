@@ -10,7 +10,7 @@ export const Table = forwardRef<HTMLTableElement, HTMLAttributes<HTMLTableElemen
 });
 
 export const TableHeader = forwardRef<HTMLTableSectionElement, HTMLAttributes<HTMLTableSectionElement>>(function TableHeader({ className, ...props }, ref) {
-  return <thead ref={ref} className={cn('[&_tr]:border-b [&_tr]:border-line', className)} {...props} />;
+  return <thead ref={ref} className={cn('bg-surface-hover [&_tr]:border-y [&_tr]:border-line', className)} {...props} />;
 });
 
 export const TableBody = forwardRef<HTMLTableSectionElement, HTMLAttributes<HTMLTableSectionElement>>(function TableBody({ className, ...props }, ref) {

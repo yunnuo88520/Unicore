@@ -24,6 +24,7 @@ import (
 	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/monitor"
 	"github.com/yunnuo/unicore/internal/observability"
+	"github.com/yunnuo/unicore/internal/notify"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/realtime"
 	"github.com/yunnuo/unicore/internal/updateport"
@@ -45,6 +46,7 @@ type Config struct {
 	LogBroadcast     *logging.BroadcastWriter
 	Monitor          *monitor.Service
 	AlertRulesStore  monitor.AlertRuleStore
+	Notify           *notify.Notifier
 }
 
 func New(config Config) http.Handler {

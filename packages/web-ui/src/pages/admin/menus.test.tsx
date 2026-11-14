@@ -224,19 +224,20 @@ it('creates a page from the region row: the type is picked in the dialog and the
   await userEvent.click(within(businessMenu).getByRole('menuitem', { name: '添加子菜单' }));
   const dialog = screen.getByRole('dialog', { name: '添加目录' });
   // The dialog picks the type; actions are never offered (they attach to pages server-side).
-  expect(screen.getByRole('radio', { name: '目录' })).toBeVisible();
-  expect(screen.getByRole('radio', { name: '页面' })).toBeVisible();
-  expect(screen.getByRole('radio', { name: '链接' })).toBeVisible();
+  await userEvent.click(screen.getByRole('combobox', { name: '菜单类型' }));
+  expect(screen.getByRole('option', { name: '目录' })).toBeVisible();
+  expect(screen.getByRole('option', { name: '页面' })).toBeVisible();
+  expect(screen.getByRole('option', { name: '链接' })).toBeVisible();
   expect(screen.queryByRole('option', { name: '按钮' })).toBeNull();
-  await userEvent.click(screen.getByRole('radio', { name: '页面' }));
+  await userEvent.click(screen.getByRole('option', { name: '页面' }));
   await userEvent.click(within(dialog).getByRole('combobox', { name: '目标页面（仅已注册路由）' }));
   // Registered pages are offered; pages already placed anywhere in the tree are filtered out.
-  expect(screen.getByRole('option', { name: '登录会话' })).toBeVisible();
+  expect(screen.getByRole('option', { name: '平台公告' })).toBeVisible();
   expect(screen.queryByRole('option', { name: '工作台概览' })).toBeNull();
-  await userEvent.click(screen.getByRole('option', { name: '登录会话' }));
+  await userEvent.click(screen.getByRole('option', { name: '平台公告' }));
   await userEvent.click(within(dialog).getByRole('button', { name: '确定' }));
   // New nodes take a random id; the row is located by its display name.
-  const labRow = screen.getByText('登录会话').closest('tr') as HTMLElement;
+  const labRow = screen.getByText('平台公告').closest('tr') as HTMLElement;
   expect(labRow.getAttribute('data-node-type')).toBe('page');
   expect(labRow.getAttribute('data-section')).toBe('business');
   await userEvent.click(screen.getByRole('button', { name: '保存菜单配置' }));
@@ -244,11 +245,11 @@ it('creates a page from the region row: the type is picked in the dialog and the
   const payload = saveMenuConfig.mock.calls[0][0] as MenuSaveInput;
   expect(payload.version).toBe(7);
   expect(payload.reset).toBeUndefined();
-  const created = payload.nodes.find(item => item.route_id === 'account-sessions');
+  const created = payload.nodes.find(item => item.route_id === 'announcements');
   expect(created?.section_id).toBe('business');
   expect(created?.parent_id).toBeUndefined();
-  // Surfaces derive from the registered route: the overview page stays shared.
-  expect(created?.surfaces).toEqual(['user', 'administrator']);
+  // Surfaces derive from the registered route: 平台公告 stays administrator-only.
+  expect(created?.surfaces).toEqual(['administrator']);
   expect(payload.role_assignments).toBeUndefined();
 });
 
@@ -301,16 +302,17 @@ it('adds a child page from a page row with the parent preset to that row', async
   const dialog = screen.getByRole('dialog', { name: '添加目录' });
   // The parent presets to the page row itself; the trigger echoes its label.
   expect(within(dialog).getByRole('combobox', { name: '上级菜单' })).toHaveTextContent('工作台概览');
-  await userEvent.click(screen.getByRole('radio', { name: '页面' }));
+  await userEvent.click(screen.getByRole('combobox', { name: '菜单类型' }));
+  await userEvent.click(screen.getByRole('option', { name: '页面' }));
   await userEvent.click(within(dialog).getByRole('combobox', { name: '目标页面（仅已注册路由）' }));
-  await userEvent.click(screen.getByRole('option', { name: '登录会话' }));
+  await userEvent.click(screen.getByRole('option', { name: '平台公告' }));
   await userEvent.click(within(dialog).getByRole('button', { name: '确定' }));
-  const labRow = screen.getByText('登录会话').closest('tr') as HTMLElement;
+  const labRow = screen.getByText('平台公告').closest('tr') as HTMLElement;
   expect(labRow.getAttribute('data-node-type')).toBe('page');
   await userEvent.click(screen.getByRole('button', { name: '保存菜单配置' }));
   await vi.waitFor(() => expect(saveMenuConfig).toHaveBeenCalledTimes(1));
   const payload = saveMenuConfig.mock.calls[0][0] as MenuSaveInput;
-  const created = payload.nodes.find(item => item.route_id === 'account-sessions');
+  const created = payload.nodes.find(item => item.route_id === 'announcements');
   expect(created?.parent_id).toBe('overview');
   expect(created?.section_id).toBe('business');
 });
@@ -322,14 +324,15 @@ it('adds a child page from a link row with the parent preset to that link', asyn
   await userEvent.click(within(helpMenu).getByRole('menuitem', { name: '添加子菜单' }));
   const dialog = screen.getByRole('dialog', { name: '添加目录' });
   expect(within(dialog).getByRole('combobox', { name: '上级菜单' })).toHaveTextContent('帮助中心');
-  await userEvent.click(screen.getByRole('radio', { name: '页面' }));
+  await userEvent.click(screen.getByRole('combobox', { name: '菜单类型' }));
+  await userEvent.click(screen.getByRole('option', { name: '页面' }));
   await userEvent.click(within(dialog).getByRole('combobox', { name: '目标页面（仅已注册路由）' }));
-  await userEvent.click(screen.getByRole('option', { name: '登录会话' }));
+  await userEvent.click(screen.getByRole('option', { name: '平台公告' }));
   await userEvent.click(within(dialog).getByRole('button', { name: '确定' }));
   await userEvent.click(screen.getByRole('button', { name: '保存菜单配置' }));
   await vi.waitFor(() => expect(saveMenuConfig).toHaveBeenCalledTimes(1));
   const payload = saveMenuConfig.mock.calls[0][0] as MenuSaveInput;
-  const created = payload.nodes.find(item => item.route_id === 'account-sessions');
+  const created = payload.nodes.find(item => item.route_id === 'announcements');
   expect(created?.parent_id).toBe('link:help');
   expect(created?.section_id).toBe('business');
 });
@@ -419,7 +422,8 @@ it('derives surfaces from the route registry on save: pages follow their group, 
   const businessMenu = await openRowMenu(business, '业务');
   await userEvent.click(within(businessMenu).getByRole('menuitem', { name: '添加子菜单' }));
   const dialog = screen.getByRole('dialog', { name: '添加目录' });
-  await userEvent.click(screen.getByRole('radio', { name: '页面' }));
+  await userEvent.click(screen.getByRole('combobox', { name: '菜单类型' }));
+  await userEvent.click(screen.getByRole('option', { name: '页面' }));
   await userEvent.click(within(dialog).getByRole('combobox', { name: '目标页面（仅已注册路由）' }));
   await userEvent.click(screen.getByRole('option', { name: '基础设置' }));
   await userEvent.click(within(dialog).getByRole('button', { name: '确定' }));
@@ -441,7 +445,8 @@ it('moves a node across regions and reorders siblings with the sort arrows', asy
   const overviewMenu = await openRowMenu(rowOf('overview')!, '工作台概览');
   await userEvent.click(within(overviewMenu).getByRole('menuitem', { name: '移动…' }));
   const dialog = screen.getByRole('dialog', { name: '移动节点' });
-  await userEvent.click(within(dialog).getByRole('radio', { name: '顶层 · 系统管理' }));
+  await userEvent.click(within(dialog).getByRole('combobox', { name: '目标位置' }));
+  await userEvent.click(screen.getByRole('option', { name: '顶层 · 系统管理' }));
   await userEvent.click(within(dialog).getByRole('button', { name: '移动' }));
   expect(screen.queryByRole('dialog', { name: '移动节点' })).toBeNull();
   expect(rowOf('overview')?.getAttribute('data-section')).toBe('system');
@@ -605,7 +610,7 @@ it('never offers action entries: edit keeps the persisted type and create stops 
   const businessMenu = await openRowMenu(regionRow('business')!, '业务');
   await userEvent.click(within(businessMenu).getByRole('menuitem', { name: '添加子菜单' }));
   const create = screen.getByRole('dialog', { name: '添加目录' });
-  expect(within(create).getByRole('radiogroup', { name: '菜单类型' })).toBeVisible();
+  expect(within(create).getByRole('combobox', { name: '菜单类型' })).toBeVisible();
   expect(screen.queryByRole('option', { name: '按钮' })).toBeNull();
   await userEvent.keyboard('{Escape}');
   await userEvent.click(within(create).getByRole('button', { name: '取消' }));

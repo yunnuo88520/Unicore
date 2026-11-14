@@ -208,7 +208,7 @@ func TestNavigationParentTypesAndBounds(t *testing.T) {
 		pageNode("overview", "overview", ""),
 		pageNode("notes", "notes", "overview"),
 		linkNode("link:help", "https://docs.example.test", "overview"),
-		pageNode("account-sessions", "account-sessions", "link:help"),
+		pageNode("tasks", "tasks", "link:help"),
 		directoryNode("nested", "notes"),
 	}
 	if err = save(version, valid); err != nil {
@@ -244,7 +244,7 @@ func TestNavigationParentTypesAndBounds(t *testing.T) {
 
 	// The depth limit still caps a chain at maxMenuDepth levels.
 	chain := []contracts.NavigationNode{pageNode("n1", "overview", "")}
-	routes := []string{"notes", "account-sessions", "api-docs", "account", "account-security"}
+	routes := []string{"tasks", "api-docs", "edition", "site", "dictionaries"}
 	for index, route := range routes {
 		chain = append(chain, pageNode(fmt.Sprintf("n%d", index+2), route, fmt.Sprintf("n%d", index+1)))
 	}
@@ -448,15 +448,13 @@ func TestLegacyRegionFoldAndActionPrune(t *testing.T) {
 		}
 		nodes[node.ID] = node
 	}
-	container, ok := nodes["personal"]
-	if !ok || container.Type != "directory" || container.SectionID != "business" || container.Sort != 2700 ||
-		!contains(container.Surfaces, "user") || !contains(container.Surfaces, "administrator") {
-		t.Fatal("folded container", container)
-	}
-	for _, id := range []string{"account", "account-security", "account-sessions"} {
-		page, ok := nodes[id]
-		if !ok || page.SectionID != "business" || page.ParentID == nil || *page.ParentID != "personal" {
-			t.Fatal("folded page", id, page)
+	// The fold lands the legacy personal region in business, and the startup
+	// retirement heal then removes the region entirely: the pages live in the
+	// account menus' settings modal now, so neither the directory nor the
+	// account pages survive the same EnsureNavigation pass.
+	for _, id := range []string{"personal", "account", "account-security", "account-sessions"} {
+		if node, ok := nodes[id]; ok {
+			t.Fatal("retired personal region survived", id, node)
 		}
 	}
 	if _, ok := nodes["op:ghost"]; ok {
@@ -480,17 +478,14 @@ func TestLegacyRegionFoldAndActionPrune(t *testing.T) {
 	}
 
 	// Grants: the stale action row is gone, the live rows survive, and the
-	// only addition is the folded container row that keeps the moved pages
-	// reachable for the member role.
+	// folded personal rows are deleted together with their nodes — the modal
+	// needs no menu grants.
 	role, err := repo.role(ctx, store.DB, "member")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !contains(role.MenuIds, "account") || !contains(role.MenuIds, "account-security") || !contains(role.MenuIds, "personal") {
-		t.Fatal("member menu grants", role.MenuIds)
-	}
-	if len(role.MenuIds) != 3 {
-		t.Fatal("widened member menus", role.MenuIds)
+	if len(role.MenuIds) != 0 {
+		t.Fatal("retired member menus", role.MenuIds)
 	}
 	if len(role.ActionIds) != 1 || role.ActionIds[0] != "op:listNotes" {
 		t.Fatal("member action grants", role.ActionIds)
@@ -709,8 +704,8 @@ func TestSharedNavigationUpgrade(t *testing.T) {
 		}
 	}
 	for _, node := range listed.Nodes {
-		if node.ID == "account" && (node.SectionID != "business" || node.ParentID != nil) {
-			t.Fatal("folded account page", node)
+		if node.ID == "account" {
+			t.Fatal("retired account page survived the upgrade", node)
 		}
 	}
 	notes := []contracts.NavigationNode{}
@@ -736,7 +731,9 @@ func TestSharedNavigationUpgrade(t *testing.T) {
 		ids = append(ids, id)
 	}
 	menuIDs.Close()
-	if len(ids) != 2 || ids[0] != "account" || ids[1] != "notes" {
+	// The retired personal-center rows are gone with their nodes; notes keeps
+	// the one deduplicated grant.
+	if len(ids) != 1 || ids[0] != "notes" {
 		t.Fatal("menu grants rewritten", ids)
 	}
 	actionRows, err := store.Rows(ctx, store.DB, "SELECT action_id FROM unicore_role_actions WHERE role_id='user'")
@@ -851,7 +848,7 @@ func TestEnsureMonitorNavigationUpgradeBoundaries(t *testing.T) {
 			node.Label = "站点配置"
 			node.Sort = 777
 		}
-		if node.ID == "account-sessions" {
+		if node.ID == "notes" {
 			node.Visible = false
 		}
 		kept = append(kept, node)
@@ -876,8 +873,8 @@ func TestEnsureMonitorNavigationUpgradeBoundaries(t *testing.T) {
 	if byID["site"].Label != "站点配置" || byID["site"].Sort != 777 {
 		t.Fatalf("operator rename/sort clobbered: %+v", byID["site"])
 	}
-	if byID["account-sessions"].Visible {
-		t.Fatalf("operator visibility clobbered: %+v", byID["account-sessions"])
+	if byID["notes"].Visible {
+		t.Fatalf("operator visibility clobbered: %+v", byID["notes"])
 	}
 	if byID["monitor-center"].Type != "directory" || byID["monitor"].ParentID == nil || *byID["monitor"].ParentID != "monitor-center" {
 		t.Fatalf("monitor seed shape drifted: %+v %+v", byID["monitor-center"], byID["monitor"])
@@ -998,6 +995,91 @@ func TestRetiredDemoNavigationPreservesBusinessChildren(t *testing.T) {
 	}
 	if err = store.Row(ctx, store.DB, "SELECT COUNT(*) FROM unicore_role_actions WHERE action_id=?", "old-upload").Scan(&count); err != nil || count != 0 {
 		t.Fatal("dangling action grant", count, err)
+	}
+	if err = repo.EnsureNavigation(ctx); err != nil {
+		t.Fatal(err)
+	}
+	again, err := repo.ListMenuConfig(ctx)
+	if err != nil || again.Version != after.Version {
+		t.Fatal("retirement is not idempotent", again.Version, after.Version, err)
+	}
+}
+
+// TestRetirePersonalNavigationHealsPersistedTrees pins the retirement of the
+// seeded 个人中心 directory: the directory, its four account pages and their
+// actions leave persisted trees with their grant rows, an operator-hung child
+// survives at the top level, and a second pass finds nothing left to heal.
+func TestRetirePersonalNavigationHealsPersistedTrees(t *testing.T) {
+	ctx := t.Context()
+	store, repo, _ := navigationFixture(t, ctx)
+	listed, err := repo.ListMenuConfig(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	n := contracts.Navigation{Version: listed.Version, Sections: listed.Sections, Nodes: append(append([]contracts.NavigationNode{}, listed.Nodes...),
+		contracts.NavigationNode{ID: "personal", SectionID: "business", Type: "directory", Icon: "UserRound", Sort: 2700, Visible: true, Surfaces: []string{"user", "administrator"}, OpenMode: "same_tab", OperationIds: []string{}},
+		contracts.NavigationNode{ID: "account", SectionID: "business", Type: "page", RouteID: strPtr("account"), ParentID: strPtr("personal"), Icon: "UserRound", Sort: 2100, Visible: true, Surfaces: []string{"user", "administrator"}, OpenMode: "same_tab", OperationIds: []string{}},
+		contracts.NavigationNode{ID: "account-security", SectionID: "business", Type: "page", RouteID: strPtr("account-security"), ParentID: strPtr("personal"), Icon: "ShieldCheck", Sort: 2120, Visible: true, Surfaces: []string{"user", "administrator"}, OpenMode: "same_tab", OperationIds: []string{}},
+		contracts.NavigationNode{ID: "account-sessions", SectionID: "business", Type: "page", RouteID: strPtr("account-sessions"), ParentID: strPtr("personal"), Icon: "Monitor", Sort: 2140, Visible: true, Surfaces: []string{"user", "administrator"}, OpenMode: "same_tab", OperationIds: []string{}},
+		contracts.NavigationNode{ID: "account-tokens", SectionID: "business", Type: "page", RouteID: strPtr("account-tokens"), ParentID: strPtr("personal"), Icon: "ShieldCheck", Sort: 2160, Visible: true, Surfaces: []string{"user", "administrator"}, OpenMode: "same_tab", OperationIds: []string{}},
+		contracts.NavigationNode{ID: "custom-help", SectionID: "business", Type: "link", ParentID: strPtr("account-sessions"), ActiveMenu: strPtr("account"), Url: strPtr("https://example.test/help"), Label: "Business help", Visible: true, Surfaces: []string{"user", "administrator"}, OpenMode: "same_tab", OperationIds: []string{}},
+		contracts.NavigationNode{ID: "op:ghostAccount", SectionID: "business", Type: "action", ParentID: strPtr("account"), Permission: strPtr("notes:update"), OperationIds: []string{"updateNote"}, Surfaces: []string{"user", "administrator"}, Visible: true, OpenMode: "same_tab"},
+	)}
+	tx, err := store.DB.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = repo.writeNavigation(ctx, tx, n); err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []string{"account", "account-sessions", "personal", "custom-help"} {
+		if _, err = store.Exec(ctx, tx, "INSERT INTO unicore_role_menus(role_id,menu_id) VALUES(?,?)", "user", id); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err = store.Exec(ctx, tx, "INSERT INTO unicore_role_actions(role_id,action_id) VALUES(?,?)", "user", "op:ghostAccount"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = store.Exec(ctx, tx, "UPDATE unicore_navigation_state SET version=version+1 WHERE id=1"); err != nil {
+		t.Fatal(err)
+	}
+	if err = tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	if err = repo.EnsureNavigation(ctx); err != nil {
+		t.Fatal(err)
+	}
+	after, err := repo.ListMenuConfig(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, node := range after.Nodes {
+		switch node.ID {
+		case "personal", "account", "account-security", "account-sessions", "account-tokens", "op:ghostAccount":
+			t.Fatal("retired personal node survived", node)
+		case "custom-help":
+			found = true
+			if node.ParentID != nil || node.ActiveMenu != nil || node.Label != "Business help" {
+				t.Fatal("custom child changed", node)
+			}
+		}
+	}
+	if !found {
+		t.Fatal("custom child was deleted")
+	}
+	if err = validateNavigation(contracts.Navigation{Sections: after.Sections, Nodes: after.Nodes}); err != nil {
+		t.Fatal("healed tree is not editable", err)
+	}
+	var count int
+	if err = store.Row(ctx, store.DB, "SELECT COUNT(*) FROM unicore_role_menus WHERE menu_id IN (?,?,?,?)", "personal", "account", "account-security", "account-sessions").Scan(&count); err != nil || count != 0 {
+		t.Fatal("dangling menu grant", count, err)
+	}
+	if err = store.Row(ctx, store.DB, "SELECT COUNT(*) FROM unicore_role_actions WHERE action_id=?", "op:ghostAccount").Scan(&count); err != nil || count != 0 {
+		t.Fatal("dangling action grant", count, err)
+	}
+	if err = store.Row(ctx, store.DB, "SELECT COUNT(*) FROM unicore_role_menus WHERE menu_id=?", "custom-help").Scan(&count); err != nil || count != 1 {
+		t.Fatal("surviving grant was removed", count, err)
 	}
 	if err = repo.EnsureNavigation(ctx); err != nil {
 		t.Fatal(err)

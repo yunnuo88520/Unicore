@@ -54,8 +54,10 @@ func TestStandaloneInstallOnceAndRestart(t *testing.T) {
 	if identity != nil {
 		t.Fatal("standalone loaded identity")
 	}
+	// ADR-0045 phase two: the platform namespace (inbox tables and the users
+	// table) assembles locally, but no account rows are ever seeded.
 	var count int
-	if err := store.Row(ctx, store.DB, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='unicore_users'").Scan(&count); err != nil || count != 0 {
+	if err := store.Row(ctx, store.DB, "SELECT COUNT(*) FROM unicore_users").Scan(&count); err != nil || count != 0 {
 		t.Fatal("standalone created users")
 	}
 	if _, err := service.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "appearance.theme", Value: "dark"}}}, "local"); err == nil {

@@ -198,7 +198,13 @@ test('platform account menus share the workspace style and keep homepage links o
       await expect(topMenu.getByRole('menuitem',{name:'产品首页',exact:true})).toHaveCount(0);
       await expect(topMenu.getByRole('menuitem',{name:'个人中心',exact:true})).toBeVisible();
       await page.screenshot({path:`build/acceptance/layout/${info.project.name}-${realm}-avatar-${theme}.png`});
+      // 个人中心 opens the settings modal instead of navigating.
+      await topMenu.getByRole('menuitem',{name:'个人中心',exact:true}).click();
+      const center=page.getByRole('dialog',{name:'个人中心',exact:true});
+      await expect(center).toBeVisible();
+      await expect(center.getByRole('heading',{name:'个人资料',exact:true})).toBeVisible();
       await page.keyboard.press('Escape');
+      await expect(center).toHaveCount(0);
     }
   }
 });

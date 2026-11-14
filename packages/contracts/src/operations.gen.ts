@@ -3843,9 +3843,10 @@ export const operations = {
     "binaryResponse": false,
     "multipartRequest": false,
     "profiles": [
-      "web-platform"
+      "web-platform",
+      "web-standalone"
     ],
-    "access": "session",
+    "access": "platform-session",
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
@@ -3861,9 +3862,10 @@ export const operations = {
     "binaryResponse": false,
     "multipartRequest": false,
     "profiles": [
-      "web-platform"
+      "web-platform",
+      "web-standalone"
     ],
-    "access": "session",
+    "access": "platform-session",
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
@@ -3879,9 +3881,10 @@ export const operations = {
     "binaryResponse": false,
     "multipartRequest": false,
     "profiles": [
-      "web-platform"
+      "web-platform",
+      "web-standalone"
     ],
-    "access": "session",
+    "access": "platform-session",
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,
@@ -3897,9 +3900,10 @@ export const operations = {
     "binaryResponse": false,
     "multipartRequest": false,
     "profiles": [
-      "web-platform"
+      "web-platform",
+      "web-standalone"
     ],
-    "access": "session",
+    "access": "platform-session",
     "permissions": [],
     "permissionMode": "all",
     "superAdmin": false,

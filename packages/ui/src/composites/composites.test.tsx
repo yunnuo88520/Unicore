@@ -137,12 +137,12 @@ it('shows real metric values, bounded progress and reduced-motion thinking varia
   for (const variant of ['wave', 'spin', 'stars', 'infinity'] as const) { rerender(<AgentThinking variant={variant} />); expect(screen.getByRole('status')).toHaveTextContent('Thinking'); expect(screen.getByRole('status').querySelector('.motion-reduce\\:animate-none')).not.toBeNull(); }
 });
 
-it('keeps notification tabs, reads and actions controlled until caller updates', async () => {
-  const user = userEvent.setup(); const read = vi.fn(); const action = vi.fn(); const tab = vi.fn();
-  render(<NotificationCenter tabs={[{ id: 'all', label: 'All' }, { id: 'unread', label: 'Only unread' }]} activeTabId="all" onTabChange={tab} items={[{ id: 'n', title: 'Notice', read: false, actions: [{ id: 'open', label: 'Open notice' }] }]} onReadChange={read} onAction={action} />);
-  await user.click(screen.getByRole('button', { name: 'Only unread' })); expect(tab).toHaveBeenCalledWith('unread');
-  await user.click(screen.getByRole('button', { name: 'Mark read' })); expect(read).toHaveBeenCalledWith('n', true); expect(screen.getByText('Unread')).toBeInTheDocument();
-  await user.click(screen.getByRole('button', { name: 'Open notice' })); expect(action).toHaveBeenCalledWith('n', 'open'); expect(screen.getByRole('button', { name: 'Mark all read' })).toBeDisabled();
+it('keeps notification tabs, activation and actions controlled until caller updates', async () => {
+  const user = userEvent.setup(); const activate = vi.fn(); const action = vi.fn(); const tab = vi.fn();
+  render(<NotificationCenter tabs={[{ id: 'all', label: 'All' }, { id: 'unread', label: 'Only unread' }]} activeTabId="all" onTabChange={tab} onItemActivate={activate} onAction={action} items={[{ id: 'n', title: 'Notice', unread: true, actions: [{ id: 'open', label: 'Open notice' }] }]} />);
+  await user.click(screen.getByRole('tab', { name: /Only unread/ })); expect(tab).toHaveBeenCalledWith('unread');
+  await user.click(screen.getByRole('button', { name: 'Notice' })); expect(activate).toHaveBeenCalledWith('n'); expect(screen.getByLabelText('Unread')).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Open notice' })); expect(action).toHaveBeenCalledWith('n', 'open');
 });
 
 it('reveals task details only after controlled update and searches without fake results', async () => {

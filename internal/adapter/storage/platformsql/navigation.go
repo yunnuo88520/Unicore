@@ -8,13 +8,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/audit"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/platform"
-	"slices"
 )
 
 func text(p *string) string {
@@ -137,12 +137,17 @@ func (r *Repository) navigationInitialized(ctx context.Context, q sqlstore.Runne
 // revoked grants stay revoked and new operations stay denied until granted.
 // Afterwards the tree is topped up with action nodes the current contract
 // catalogue derives but the persisted tree lacks, so buttons registered by a
-// newer build become grantable on an instance seeded by an older one.
+// newer build become grantable on an instance seeded by an older one, and the
+// retired personal-center region (its surfaces moved into the account menus'
+// settings modal) is removed from trees that still carry it.
 func (r *Repository) EnsureNavigation(ctx context.Context) error {
 	if err := r.initializeNavigation(ctx); err != nil {
 		return err
 	}
 	if err := r.upgradeSharedNavigation(ctx); err != nil {
+		return err
+	}
+	if err := r.retirePersonalNavigation(ctx); err != nil {
 		return err
 	}
 	if err := r.retireDemoNavigation(ctx); err != nil {
@@ -153,6 +158,114 @@ func (r *Repository) EnsureNavigation(ctx context.Context) error {
 	}
 	return r.ensureMonitorNavigation(ctx)
 }
+
+// retirePersonalNavigation removes the seeded 个人中心 directory and its four
+// account page nodes from persisted trees: the personal center now opens from
+// the account menus' settings modal and keeps no navigation presence. It runs
+// after the legacy fold so a tree converted this startup is cleaned in the
+// same pass, re-parents anything an operator hung below the directory, and
+// clears the matching role grants; a tree without the region rolls back
+// untouched, so the heal stays idempotent by re-detection instead of a marker.
+func (r *Repository) retirePersonalNavigation(ctx context.Context) error {
+	tx, err := r.Store.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err = r.Store.LockInstallation(ctx, tx); err != nil {
+		return err
+	}
+	n, err := r.readNavigation(ctx, tx)
+	if err != nil {
+		return err
+	}
+	removed := map[string]contracts.NavigationNode{}
+	for _, node := range n.Nodes {
+		if node.Type == "directory" && node.ID == "personal" ||
+			node.Type == "page" && slices.Contains(retiredPersonalPages, text(node.RouteID)) {
+			removed[node.ID] = node
+		}
+	}
+	for _, node := range n.Nodes {
+		if node.Type == "action" {
+			if _, retired := removed[text(node.ParentID)]; retired {
+				removed[node.ID] = node
+			}
+		}
+	}
+	kept := []contracts.NavigationNode{}
+	changed := false
+	for _, node := range n.Nodes {
+		if _, retired := removed[node.ID]; retired {
+			changed = true
+			continue
+		}
+		if _, retired := removed[text(node.ActiveMenu)]; retired {
+			node.ActiveMenu = nil
+		}
+		seen := map[string]bool{}
+		for parent, retired := removed[text(node.ParentID)]; retired; parent, retired = removed[text(node.ParentID)] {
+			if seen[parent.ID] {
+				node.ParentID = nil
+				break
+			}
+			seen[parent.ID] = true
+			node.ParentID = parent.ParentID
+		}
+		kept = append(kept, node)
+	}
+	// Grant rows: the removed node ids, plus the retired ids themselves — a
+	// tree that already lost the nodes can still carry dangling rows. A
+	// grant-only cleanup bumps the version once, then goes quiet forever.
+	targets := map[string]bool{"personal": true}
+	for _, id := range retiredPersonalPages {
+		targets[id] = true
+	}
+	for id := range removed {
+		targets[id] = true
+	}
+	if !changed {
+		for id := range targets {
+			result, err := r.Store.Exec(ctx, tx, "DELETE FROM unicore_role_menus WHERE menu_id=?", id)
+			if err != nil {
+				return err
+			}
+			if affected, err := result.RowsAffected(); err == nil && affected > 0 {
+				changed = true
+			}
+			result, err = r.Store.Exec(ctx, tx, "DELETE FROM unicore_role_actions WHERE action_id=?", id)
+			if err != nil {
+				return err
+			}
+			if affected, err := result.RowsAffected(); err == nil && affected > 0 {
+				changed = true
+			}
+		}
+	}
+	if !changed {
+		return tx.Rollback()
+	}
+	n.Nodes = kept
+	if err = r.writeNavigation(ctx, tx, n); err != nil {
+		return err
+	}
+	for id := range targets {
+		if _, err = r.Store.Exec(ctx, tx, "DELETE FROM unicore_role_menus WHERE menu_id=?", id); err != nil {
+			return err
+		}
+		if _, err = r.Store.Exec(ctx, tx, "DELETE FROM unicore_role_actions WHERE action_id=?", id); err != nil {
+			return err
+		}
+	}
+	if _, err = r.Store.Exec(ctx, tx, "UPDATE unicore_navigation_state SET version=version+1 WHERE id=1"); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// retiredPersonalPages lists the route ids whose pages left the navigation for
+// the account menus' settings modal.
+var retiredPersonalPages = []string{"account", "account-security", "account-sessions", "account-tokens"}
 
 // retireDemoNavigation removes retired routes on the instance startup boundary.
 // Operator-owned children survive under the nearest retained ancestor.

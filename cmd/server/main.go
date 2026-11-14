@@ -23,6 +23,7 @@ import (
 
 	webassets "github.com/yunnuo/unicore/apps/web"
 	httpadapter "github.com/yunnuo/unicore/internal/adapter/http"
+	"github.com/yunnuo/unicore/internal/adapter/storage/platformsql"
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/bootstrap"
 	"github.com/yunnuo/unicore/internal/config"
@@ -34,6 +35,7 @@ import (
 	"github.com/yunnuo/unicore/internal/module"
 	notesmodule "github.com/yunnuo/unicore/internal/modules/notes"
 	"github.com/yunnuo/unicore/internal/monitor"
+	"github.com/yunnuo/unicore/internal/notify"
 	"github.com/yunnuo/unicore/internal/observability"
 	"github.com/yunnuo/unicore/internal/realtime"
 	"github.com/yunnuo/unicore/internal/runtime"
@@ -264,9 +266,26 @@ func run(args []string) (result error) {
 	resources.Defer("alert engine", func() error { alertEngine.Stop(); return nil })
 	appMonitor.SetAlertEngine(alertEngine)
 
+	// Registered-type notification delivery: modules deliver user notifications
+	// through one facade instead of reaching into the inbox table directly.
+	notifyRegistry := notify.NewRegistry()
+	if err := notifyRegistry.Register(notify.Definition{Type: "announcement", TitleZh: "公告", TitleEn: "Announcement"}); err != nil {
+		return err
+	}
+	if err := notifyRegistry.Register(notify.Definition{Type: "system", TitleZh: "系统", TitleEn: "System"}); err != nil {
+		return err
+	}
+	notifyService := &notify.Notifier{Registry: notifyRegistry, Hub: hub, Inbox: notify.InboxFunc(func(ctx context.Context, runner sqlstore.Runner, recipients []string, messageType, sourceID, title, body, actions string) error {
+		store, _, _, _ := manager.Services()
+		if store == nil {
+			return errors.New("notify: instance is not installed")
+		}
+		return (&platformsql.Repository{Store: store}).DeliverInbox(ctx, runner, recipients, messageType, sourceID, title, body, actions)
+	})}
+
 	workerCtx, cancelWorkers := context.WithCancel(context.Background())
 	defer cancelWorkers()
-	server := &http.Server{Addr: options.Listen, Handler: httpadapter.New(httpadapter.Config{Updates: updater, Metadata: metadata, Core: bootstrap.Core(), Assets: webassets.FS(), Logger: logger, Install: manager, APIDocs: options.APIDocs, ReadinessTimeout: options.ReadinessTimeout, Metrics: metrics, Hub: hub, LogBroadcast: broadcast, Monitor: appMonitor}), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
+	server := &http.Server{Addr: options.Listen, Handler: httpadapter.New(httpadapter.Config{Updates: updater, Metadata: metadata, Core: bootstrap.Core(), Assets: webassets.FS(), Logger: logger, Install: manager, APIDocs: options.APIDocs, ReadinessTimeout: options.ReadinessTimeout, Metrics: metrics, Hub: hub, LogBroadcast: broadcast, Monitor: appMonitor, Notify: notifyService}), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
 	listener, err := net.Listen("tcp", server.Addr)
 	if err != nil {
 		return fmt.Errorf("listen failed: %w", err)

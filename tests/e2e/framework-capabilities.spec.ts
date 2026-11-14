@@ -5,7 +5,7 @@ import { mkdir, readFile } from 'node:fs/promises';
 import { inflateRawSync } from 'node:zlib';
 import { HttpTransport, type AppClient } from '../../packages/sdk/src';
 import { operations } from '../../packages/contracts/src/operations.gen';
-import { test, expect, navigate, nodeDisplayLabel, pageNode } from './fixtures';
+import { test, expect, navigate, nodeDisplayLabel, openPersonalCenter, pageNode } from './fixtures';
 
 const password = 'test-password-strong';
 const xlsxMime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -143,7 +143,7 @@ test('published announcements refresh the live bell, inbox reads persist and for
     const connected = user.waitForResponse(response => new URL(response.url()).pathname === operations.events.path && response.status() === 200);
     await user.goto(instance.url);
     expect((await connected).headers()['content-type']).toContain('text/event-stream');
-    const bell = user.getByRole('button', { name: '平台公告', exact: true });
+    const bell = user.getByRole('button', { name: '通知中心', exact: true });
     await expect(bell).toBeVisible();
     await expect(bell).not.toContainText('1');
     // No page reload, navigation or focus change occurs between publication and this assertion.
@@ -152,19 +152,19 @@ test('published announcements refresh the live bell, inbox reads persist and for
       ends_at: 0, notify_mode: 'silent', audience: 'selected', recipient_ids: [member.id] });
     await expect(bell).toContainText('2', { timeout: 10_000 });
     await bell.click();
-    const inbox = user.getByRole('dialog', { name: '平台公告', exact: true });
+    const inbox = user.getByRole('dialog', { name: '通知中心', exact: true });
     await expect(inbox.getByRole('button').filter({ hasText: '实时验收公告' })).toBeVisible();
-    await inbox.getByRole('tab', { name: '通知', exact: true }).click();
-    await expect(inbox.getByText('1 条未读通知', { exact: true })).toBeVisible();
+    await inbox.getByRole('tab', { name: /通知/ }).click();
+    await expect(inbox.getByText('1 条未读', { exact: true })).toBeVisible();
     await inbox.getByRole('button').filter({ hasText: '实时验收公告' }).click();
-    await expect(inbox.getByText('0 条未读通知', { exact: true })).toBeVisible();
-    await expect(inbox.getByRole('button').filter({ hasText: '实时验收公告' })).toContainText('已读');
+    await expect(inbox.getByText('没有未读通知', { exact: true })).toBeVisible();
+    await expect(inbox.getByLabel('未读')).toHaveCount(0);
     await evidence(user, info, '实时通知已读');
     await user.reload();
-    await user.getByRole('button', { name: '平台公告', exact: true }).click();
-    const reopened = user.getByRole('dialog', { name: '平台公告', exact: true });
-    await reopened.getByRole('tab', { name: '通知', exact: true }).click();
-    await expect(reopened.getByText('0 条未读通知', { exact: true })).toBeVisible();
+    await user.getByRole('button', { name: '通知中心', exact: true }).click();
+    const reopened = user.getByRole('dialog', { name: '通知中心', exact: true });
+    await reopened.getByRole('tab', { name: /通知/ }).click();
+    await expect(reopened.getByText('没有未读通知', { exact: true })).toBeVisible();
     const saved = await api.web.inbox();
     expect(saved.items.find(item => item.source_id === notice.id)?.read_at).toBeGreaterThan(0);
     await user.keyboard.press('Escape');
@@ -175,7 +175,7 @@ test('published announcements refresh the live bell, inbox reads persist and for
     await expect(user.getByRole('button', { name: '新增用户', exact: true })).toHaveCount(0);
     await evidence(user, info, '权限拒绝403');
     await user.getByRole('button', { name: '返回工作台', exact: true }).click();
-    await expect(user.getByRole('button', { name: '平台公告', exact: true })).toBeVisible();
+    await expect(user.getByRole('button', { name: '通知中心', exact: true })).toBeVisible();
   } finally { await memberContext.close(); }
 });
 
@@ -224,21 +224,24 @@ test('XLSX import results, file export, column preferences and saved avatar surv
   await api.uploadFile(new File(['real exported file metadata'], 'acceptance-export.txt', { type: 'text/plain' }));
   expect(workbookText(Buffer.from(await (await api.web!.exportFiles()).arrayBuffer()))).toContain('acceptance-export.txt');
 
-  await page.goto(`${instance.url}/admin/account`);
-  await page.getByRole('button', { name: '上传头像', exact: true }).click();
+  await page.goto(`${instance.url}/admin`);
+  const center = await openPersonalCenter(page);
+  await center.getByRole('button', { name: '上传头像', exact: true }).click();
   const avatar = page.getByRole('dialog', { name: '上传头像', exact: true });
   await avatar.getByLabel('选择文件', { exact: true }).setInputFiles({ name: 'avatar.png', mimeType: 'image/png', buffer: await readFile('assets/brand/icon-64.png') });
   await avatar.getByRole('button', { name: '开始上传', exact: true }).click();
   await expect(avatar).toHaveCount(0, { timeout: 60_000 });
-  await expect(page.getByRole('region', { name: '个人资料', exact: true }).getByRole('status')).toHaveText('头像已上传，保存后生效');
-  await page.getByLabel('昵称', { exact: true }).fill('验收管理员');
-  await page.getByRole('button', { name: '保存个人资料', exact: true }).click();
-  await expect(page.getByText('个人资料已保存', { exact: true })).toBeVisible();
+  // The upload applies immediately and floats the saved toast.
+  await expect(center.getByRole('status')).toHaveText('头像已上传，保存后生效');
+  await center.getByLabel('昵称', { exact: true }).fill('验收管理员');
+  await center.getByLabel('昵称', { exact: true }).blur();
+  await expect(page.getByText('已保存', { exact: true })).toBeVisible();
   const profile = await api.web.accountProfile();
   expect(profile.avatar_url).toBeTruthy();
   await page.reload();
-  await expect(page.getByLabel('昵称', { exact: true })).toHaveValue('验收管理员');
-  const image = page.getByRole('region', { name: '个人资料', exact: true }).getByRole('img', { name: '当前头像', exact: true });
+  const reopened = await openPersonalCenter(page);
+  await expect(reopened.getByLabel('昵称', { exact: true })).toHaveValue('验收管理员');
+  const image = reopened.getByRole('img', { name: '当前头像', exact: true });
   await expect(image).toBeVisible();
   await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0)).toBe(true);
   const saved = await api.web.accountProfile();

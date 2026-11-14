@@ -8,17 +8,19 @@ import { cn } from './cn';
 import { t, useLocale } from './i18n';
 
 // The aria-invalid:* selectors react to the DOM attribute; cva keeps the surface composable and exported.
-export const controlVariants = cva('w-full rounded-lg border border-transparent bg-field px-3 text-base text-ink transition-colors placeholder:text-subtle outline-none hover:border-line-strong focus-visible:border-focus focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-55 aria-invalid:border-danger aria-invalid:ring-danger', {
+export const controlVariants = cva('w-full rounded-lg border border-transparent bg-field px-3 text-base text-ink transition-colors placeholder:text-muted outline-none hover:border-line-strong focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-55 aria-invalid:border-danger aria-invalid:ring-danger', {
   variants: { appearance: { default: '', search: 'rounded-full border-transparent bg-surface-inset shadow-none' } },
   defaultVariants: { appearance: 'default' },
 });
 
-export type InputProps = InputHTMLAttributes<HTMLInputElement> & { label?: ReactNode; labelSuffix?: ReactNode; strength?: boolean; appearance?: 'default' | 'search' };
-export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ className, label, labelSuffix, strength, appearance, id, type, onChange, ...props }, ref) {
+export type InputProps = InputHTMLAttributes<HTMLInputElement> & { label?: ReactNode; labelSuffix?: ReactNode; strength?: boolean; appearance?: 'default' | 'search'; leadingIcon?: ReactNode };
+export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ className, label, labelSuffix, strength, appearance, leadingIcon, id, type, onChange, ...props }, ref) {
   useLocale();
   const generated = useId();
   const inputID = id ?? generated;
-  const caption = label ?? props['aria-label'];
+  // Floating captions come from the explicit label only; bare aria-label stays
+  // an accessible name for label-less controls (search fields, date pickers).
+  const caption = label;
   const password = type === 'password';
   const visibilityCaption = typeof caption === 'string' && caption !== t('密码') ? caption : undefined;
   const requiredMark = labelSuffix ?? (props.required ? <span aria-hidden="true" className="ms-1 text-danger">*</span> : null);
@@ -33,12 +35,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ c
     aria-labelledby={props['aria-labelledby'] ?? (caption ? `${generated}-caption` : undefined)}
     aria-describedby={[props['aria-describedby'], showStrength ? `${inputID}-strength` : ''].filter(Boolean).join(' ') || undefined}
     onChange={event => { setDraft(event.target.value); onChange?.(event); }}
-    className={cn(controlVariants({ appearance }), caption ? 'peer h-11' : 'h-9', password && 'pe-12', className)} />;
-  if (!caption && !password) return input;
+    className={cn(controlVariants({ appearance }), caption ? 'peer h-11' : 'h-9', password && 'pe-12', leadingIcon && 'ps-9', className)} />;
+  if (!caption && !password && !leadingIcon) return input;
   return <div className="flex w-full min-w-0 flex-col gap-2">
-    <div className="relative min-w-0">
+    <div className={cn('relative min-w-0', caption && 'pt-6')}>
+      {leadingIcon && <span className="pointer-events-none absolute start-3 top-1/2 flex -translate-y-1/2 text-muted [&_svg]:size-4" aria-hidden="true">{leadingIcon}</span>}
       {input}
-      {caption && <label htmlFor={inputID} className={cn('pointer-events-none absolute start-2 top-3 max-w-[calc(100%-1.5rem)] origin-left -translate-y-5 scale-[0.85] truncate bg-field px-1 text-sm leading-5 text-muted transition-[transform,color,background-color] duration-150 motion-reduce:transition-none peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100 peer-placeholder-shown:bg-transparent peer-focus:-translate-y-5 peer-focus:scale-[0.85] peer-focus:bg-field peer-focus:text-accent peer-autofill:-translate-y-5 peer-autofill:scale-[0.85] peer-autofill:bg-field peer-disabled:opacity-55', props['aria-invalid'] && 'text-danger', (type === 'date' || type === 'time' || type === 'datetime-local') && 'peer-placeholder-shown:-translate-y-5 peer-placeholder-shown:scale-[0.85] peer-placeholder-shown:bg-field')}>
+      {caption && <label htmlFor={inputID} className={cn('pointer-events-none absolute start-3 top-0 max-w-[calc(100%-1.5rem)] origin-left scale-[0.85] truncate text-sm leading-5 text-muted transition-[top,scale,color] duration-150 motion-reduce:transition-none peer-placeholder-shown:top-9 peer-placeholder-shown:scale-100 peer-focus:top-0 peer-focus:scale-[0.85] peer-focus:text-accent peer-autofill:top-0 peer-autofill:scale-[0.85] peer-autofill:text-accent peer-disabled:opacity-55', props['aria-invalid'] && 'text-danger', (type === 'date' || type === 'time' || type === 'datetime-local') && 'peer-placeholder-shown:top-0 peer-placeholder-shown:scale-[0.85]')}>
         <span id={`${generated}-caption`}>{caption}</span>{requiredMark}
       </label>}
       {password && <button type="button" aria-label={visibilityCaption ? t(visible ? '隐藏{{label}}' : '显示{{label}}', { label: visibilityCaption }) : visible ? t('隐藏密码') : t('显示密码')} aria-pressed={visible} disabled={props.disabled} className="absolute end-1 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-muted outline-none hover:bg-surface-hover hover:text-ink focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-55" onPointerDown={event => event.preventDefault()} onClick={() => setVisible(value => !value)}>
@@ -58,8 +61,8 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
   const generated = useId();
   const inputID = id ?? generated;
   const caption = label ?? props['aria-label'];
-  return <div className="relative min-w-0"><textarea ref={ref} id={inputID} className={cn(controlVariants(), 'peer min-h-24 py-3', className)} {...props} placeholder={caption ? ' ' : props.placeholder} aria-labelledby={props['aria-labelledby'] ?? (caption ? `${generated}-caption` : undefined)} />
-    {caption && <label htmlFor={inputID} className="pointer-events-none absolute start-2 top-3 origin-left -translate-y-5 scale-[0.85] bg-field px-1 text-sm leading-5 text-muted transition-[transform,color,background-color] duration-150 motion-reduce:transition-none peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100 peer-placeholder-shown:bg-transparent peer-focus:-translate-y-5 peer-focus:scale-[0.85] peer-focus:bg-field peer-focus:text-accent"><span id={`${generated}-caption`}>{caption}</span>{labelSuffix ?? (props.required ? <span aria-hidden="true" className="ms-1 text-danger">*</span> : null)}</label>}
+  return <div className={cn('relative min-w-0', caption && 'pt-6')}><textarea ref={ref} id={inputID} className={cn(controlVariants(), 'peer min-h-24 py-3', className)} {...props} placeholder={caption ? ' ' : props.placeholder} aria-labelledby={props['aria-labelledby'] ?? (caption ? `${generated}-caption` : undefined)} />
+    {caption && <label htmlFor={inputID} className="pointer-events-none absolute start-3 top-0 origin-left scale-[0.85] text-sm leading-5 text-muted transition-[top,scale,color] duration-150 motion-reduce:transition-none peer-placeholder-shown:top-9 peer-placeholder-shown:scale-100 peer-focus:top-0 peer-focus:scale-[0.85] peer-focus:text-accent"><span id={`${generated}-caption`}>{caption}</span>{labelSuffix ?? (props.required ? <span aria-hidden="true" className="ms-1 text-danger">*</span> : null)}</label>}
   </div>;
 });
 

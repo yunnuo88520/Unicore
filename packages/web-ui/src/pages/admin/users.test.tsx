@@ -93,16 +93,16 @@ it('creates users with an optional department left unassigned by default', async
   await screen.findByRole('row', { name: /member/ });
   await userEvent.click(screen.getByRole('button', { name: '新增用户' }));
   const dialog = screen.getByRole('dialog', { name: '新增用户' });
-  const department = within(dialog).getByRole('radiogroup', { name: '部门' });
-  expect(within(department).getByRole('radio', { name: '未分配' })).toBeChecked();
-  expect(within(department).getByText('未分配')).toBeVisible();
-  // The select mirrors the hierarchy: the child option stays indented under its root.
-  const options = within(department).getAllByRole('radio').map(option => option.textContent);
-  expect(options).toEqual(['未分配', '研发部', '\u3000前端组']);
+  const department = within(dialog).getByRole('combobox', { name: '部门' });
+  expect(department).toHaveTextContent('未分配');
   await userEvent.type(within(dialog).getByLabelText('账号'), 'newcomer');
   await userEvent.type(within(dialog).getByLabelText('邮箱'), 'n@example.test');
   await userEvent.type(within(dialog).getByLabelText('初始密码'), 'test-password-strong');
-  await userEvent.click(within(department).getByRole('radio', { name: '研发部' }));
+  // The select mirrors the hierarchy: the child option stays indented under its root.
+  await userEvent.click(department);
+  const options = screen.getAllByRole('option').map(option => option.textContent);
+  expect(options).toEqual(['未分配', '研发部', '\u3000前端组']);
+  await userEvent.click(screen.getByRole('option', { name: '研发部' }));
   await userEvent.click(within(dialog).getByRole('button', { name: '创建用户' }));
   await vi.waitFor(() => expect(createUser).toHaveBeenCalledWith(expect.objectContaining({ username: 'newcomer', department_id: 'd1' })));
 });
@@ -146,8 +146,9 @@ it('echoes the persisted department when editing and clears it via the unassigne
   await userEvent.click(within(row).getByRole('button', { name: '编辑' }));
   const dialog = screen.getByRole('dialog', { name: '编辑member' });
   // The select echoes the saved child department.
-  expect(within(dialog).getByRole('radio', { name: /前端组/ })).toBeChecked();
-  await userEvent.click(within(dialog).getByRole('radio', { name: '未分配' }));
+  expect(within(dialog).getByRole('combobox', { name: '部门' })).toHaveTextContent(/前端组/);
+  await userEvent.click(within(dialog).getByRole('combobox', { name: '部门' }));
+  await userEvent.click(screen.getByRole('option', { name: '未分配' }));
   await userEvent.click(within(dialog).getByRole('button', { name: '保存' }));
   // The empty string keeps the clear semantics of the update contract; the
   // full editor always submits the echoed email and the trimmed nickname.

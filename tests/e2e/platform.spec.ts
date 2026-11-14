@@ -11,10 +11,11 @@ test('first-install platform wizard connects the database and enters the workspa
   await page.getByRole('radio', { name: /多用户平台/ }).check();
   await capture(page, info, 'install-profile');
   await page.getByRole('button', { name: '下一步' }).click();
-  const databaseType = page.getByRole('radiogroup', { name: '数据库类型', exact: true });
-  await expect(databaseType.getByRole('radio')).toHaveCount(3);
-  await databaseType.getByRole('radio', { name: /SQLite/ }).check();
-  await expect(databaseType.getByRole('radio', { name: /SQLite/ })).toBeChecked();
+  const databaseType = page.getByRole('combobox', { name: '数据库类型', exact: true });
+  await databaseType.click();
+  await expect(page.getByRole('option')).toHaveCount(3);
+  await page.getByRole('option', { name: /SQLite/ }).click();
+  await expect(databaseType).toContainText(/SQLite/);
   await capture(page, info, 'install-database');
   await page.getByRole('button', { name: '测试连接' }).click();
   await expect(page.getByText('连接测试成功')).toBeVisible();

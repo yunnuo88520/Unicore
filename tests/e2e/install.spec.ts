@@ -16,7 +16,7 @@ test('owner unlock: protected reinstallation, explicit consent and automatic rel
   await page.getByLabel('一次性安装凭据', { exact: true }).fill(token);
   await page.getByRole('button', { name: '下一步' }).click();
   await page.getByRole('button', { name: '下一步' }).click();
-  await page.getByRole('radio', { name: DATABASE_LABELS.sqlite, exact: true }).check();
+  await page.getByRole('combobox', { name: '数据库类型' }).click();await page.getByRole('option', { name: DATABASE_LABELS.sqlite, exact: true }).click();
   await page.getByRole('button', { name: '测试连接' }).click();
   await expect(page.getByText('已识别为本站原数据库。重新安装会删除原账号、设置和业务数据，不会保留原站内容。')).toBeVisible();
   await expect(page.getByRole('button', { name: '下一步' })).toBeDisabled();
@@ -73,7 +73,7 @@ test('installer centers variable steps and keeps standalone an explicit choice',
   await page.getByRole('button', { name: '下一步', exact: true }).click();
   const port = (await page.getByLabel('数据库端口', { exact: true }).boundingBox())!;
   expect(port.width).toBeLessThanOrEqual(160);
-  await page.getByRole('radio', { name: DATABASE_LABELS.sqlite, exact: true }).check();
+  await page.getByRole('combobox', { name: '数据库类型' }).click();await page.getByRole('option', { name: DATABASE_LABELS.sqlite, exact: true }).click();
   await page.getByRole('button', { name: '测试连接', exact: true }).click();
   await expect(page.getByText('连接测试成功', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '下一步', exact: true }).click();
@@ -99,10 +99,10 @@ for (const driver of ['sqlite','mysql','postgres'] as const) test(`installer ${d
   const wrong='x'.repeat(40);
   expect((await page.request.post(`${instance.url}/api/v1/install/verify-db`,{headers:{'X-Bootstrap-Token':wrong},data:{driver:'sqlite',dsn:''}})).status()).toBe(403);
   await page.getByRole('button',{name:'下一步'}).click();await page.getByRole('radio',{name:/多用户平台/}).check();await page.getByRole('button',{name:'下一步'}).click();
-  const databaseType=page.getByRole('radiogroup',{name:'数据库类型'});
-  await expect(databaseType.getByRole('radio',{name:DATABASE_LABELS.mysql,exact:true})).toBeChecked();await expect(page.getByLabel('数据库地址',{exact:true})).toHaveValue('127.0.0.1');await expect(page.getByLabel('数据库端口',{exact:true})).toHaveValue('3306');await expect(page.getByLabel('数据库名',{exact:true})).toHaveValue('unicore');await expect(page.getByLabel('数据库用户名',{exact:true})).toHaveValue('root');
+  const databaseType=page.getByRole('combobox',{name:'数据库类型'});
+  await expect(databaseType).toContainText(DATABASE_LABELS.mysql);await expect(page.getByLabel('数据库地址',{exact:true})).toHaveValue('127.0.0.1');await expect(page.getByLabel('数据库端口',{exact:true})).toHaveValue('3306');await expect(page.getByLabel('数据库名',{exact:true})).toHaveValue('unicore');await expect(page.getByLabel('数据库用户名',{exact:true})).toHaveValue('root');
   await expect(page.getByRole('button',{name:'下一步'})).toBeDisabled();
-  await databaseType.getByRole('radio',{name:DATABASE_LABELS[driver],exact:true}).check();
+  await databaseType.click();await page.getByRole('option',{name:DATABASE_LABELS[driver],exact:true}).click();
   if(driver!=='sqlite'){
     if(driver==='postgres'){await expect(page.getByLabel('数据库端口',{exact:true})).toHaveValue('5432');await expect(page.getByLabel('数据库用户名',{exact:true})).toHaveValue('postgres');}
     await page.getByLabel('数据库端口',{exact:true}).fill(port!);await page.getByLabel('数据库名',{exact:true}).fill(databaseName);await page.getByLabel('数据库密码',{exact:true}).fill('wrong-password');

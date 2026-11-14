@@ -37,20 +37,20 @@ export function validNavigationUrl(value: string): boolean {
 const builtinPageOrder: string[] = [
   'overview', 'users', 'roles', 'departments', 'posts', 'menus', 'dictionaries',
   'announcements', 'tasks', 'api-docs', 'site', 'storage', 'account-policy', 'mail', 'mail-templates',
-  'notification-channels', 'notification-templates', 'system-notifications', 'logs', 'edition', 'account', 'account-security', 'account-sessions', 'account-tokens', 'access-tokens',
+  'notification-channels', 'notification-templates', 'system-notifications', 'logs', 'edition', 'access-tokens',
   'monitor', 'monitor-services', 'monitor-resources', 'monitor-events',
 ];
 // Module pages append after the builtins in each module's declared order.
 export const defaultPageOrder: string[] = [...builtinPageOrder, ...uiModules().flatMap(item => item.order ?? [])];
 export function defaultRank(id: string): number { const index = defaultPageOrder.indexOf(id); return index < 0 ? defaultPageOrder.length : index; }
-const titles = defineMessages({ business: '业务', system: '系统管理', administration: '超级管理员', settings: '系统设置', personal: '个人中心', monitor: '运行监控' });
+const titles = defineMessages({ business: '业务', system: '系统管理', administration: '超级管理员', settings: '系统设置', monitor: '运行监控' });
 // Seeded directories persist empty labels (names are operator-overridable), so
 // the display fallback resolves their well-known ids to localized titles.
-const directoryNames = defineMessages({ administration: '超级管理员', settings: '系统设置', personal: '个人中心', 'monitor-center': '运行监控' });
-const directoryIcons: Record<string, string> = { administration: 'Users', settings: 'Settings2', personal: 'UserRound' };
-// Seeded sections also persist empty names; the same fallback keeps 业务/系统管理/
-// 个人中心 visible until an operator renames them.
-const sectionNames: Record<string, string> = { business: titles.business, personal: titles.personal, system: titles.system };
+const directoryNames = defineMessages({ administration: '超级管理员', settings: '系统设置', 'monitor-center': '运行监控' });
+const directoryIcons: Record<string, string> = { administration: 'Users', settings: 'Settings2' };
+// Seeded sections also persist empty names; the same fallback keeps 业务/系统管理
+// visible until an operator renames them.
+const sectionNames: Record<string, string> = { business: titles.business, system: titles.system };
 export function sectionTitle(section: { id: string; name: string }): string {
   return section.name || sectionNames[section.id] || section.id;
 }
@@ -93,14 +93,11 @@ export function defaultNavigation(_surface: NavigationSection['surfaces'], profi
   if (platform) {
     // The console directories mirror the sidebar: the system region keeps
     // 系统设置 with the console pages followed by 超级管理员 hosting the
-    // administration pages, and 个人中心 is one shared directory at the tail
-    // of the business region so the same account pages are granted once for
-    // both workspaces. Their surfaces aggregate the same route-derived page
-    // surfaces their subtree carries.
+    // administration pages. The personal center has no navigation presence —
+    // it opens from the account menus' settings modal.
     nodes.push({ ...newNavigationNode('administration', 'system', 'directory', groupSurfaces('administration')), label: titles.administration, icon: 'Users', sort: 20 });
     nodes.push({ ...newNavigationNode('settings', 'system', 'directory', groupSurfaces('system')), label: titles.settings, icon: 'Settings2', sort: 10 });
     nodes.push({ ...newNavigationNode('monitor-center', 'system', 'directory', groupSurfaces('monitor')), label: titles.monitor, icon: 'Activity', sort: 25 });
-    nodes.push({ ...newNavigationNode('personal', 'business', 'directory', groupSurfaces('personal')), label: titles.personal, icon: 'UserRound', sort: 2700 });
   }
   for (const id of Object.keys(routes).filter(isRegisteredPage)) {
     if (id === 'administrators') continue;
@@ -108,13 +105,13 @@ export function defaultNavigation(_surface: NavigationSection['surfaces'], profi
     const group = 'group' in route ? String(route.group) : '';
     // Standalone and desktop collapse the monitor group into the single
     // tabbed console page; every other platform-only group stays hidden.
-    if (!platform && (group === 'personal' || group === 'administration' || (group === 'monitor' && id !== 'monitor') || (group === 'system' && id !== 'edition'))) continue;
+    if (!platform && (group === 'administration' || (group === 'monitor' && id !== 'monitor') || (group === 'system' && id !== 'edition'))) continue;
     // API 文档 is a top-level page at the tail of the system region on the
     // platform profile, after the settings and administration directories.
     const systemTopLevel = platform && id === 'api-docs';
     const surfaces: NavigationSection['surfaces'] = platform ? routeSurfaces(id) : bothSurfaces;
     const sectionId = platform && (systemTopLevel || group === 'system' || group === 'administration' || group === 'monitor') ? 'system' : 'business';
-    const parent = platform ? systemTopLevel ? undefined : group === 'administration' ? 'administration' : group === 'system' ? 'settings' : group === 'monitor' ? 'monitor-center' : group === 'personal' ? 'personal' : undefined : undefined;
+    const parent = platform ? systemTopLevel ? undefined : group === 'administration' ? 'administration' : group === 'system' ? 'settings' : group === 'monitor' ? 'monitor-center' : undefined : undefined;
     nodes.push({ ...newNavigationNode(id, sectionId, 'page', surfaces), parent_id: parent, route_id: id,
       // Local profiles use the directory-style monitor name.
       label: !platform && id === 'monitor' ? titles.monitor : '',
@@ -143,7 +140,7 @@ const builtinIcons: Record<string, string> = {
   users: 'UserRound', administrators: 'UserCog', announcements: 'Megaphone', 'account-policy': 'ShieldCheck', mail: 'Mail', 'mail-templates': 'Mail',
   'notification-channels': 'Webhook', 'notification-templates': 'FileText', 'system-notifications': 'Bell', logs: 'ScrollText', edition: 'PackageCheck',
   roles: 'ShieldCheck', departments: 'Network', tasks: 'ListChecks', menus: 'LayoutDashboard', dictionaries: 'FileText', posts: 'UserCog',
-  'account-tokens': 'ShieldCheck', 'access-tokens': 'ShieldCheck', account: 'UserRound', 'account-security': 'ShieldCheck', 'account-sessions': 'Monitor', 'api-docs': 'BookOpen',
+  'access-tokens': 'ShieldCheck', 'api-docs': 'BookOpen',
   monitor: 'Activity', 'monitor-services': 'Radar', 'monitor-resources': 'Cpu',
 };
 // Module icons merge after the builtins so a seeded tree and the client default match.

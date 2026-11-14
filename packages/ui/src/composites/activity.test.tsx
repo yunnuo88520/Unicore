@@ -14,21 +14,31 @@ beforeEach(() => {
 });
 afterEach(() => { setTranslator(value => value); setLocale('zh-CN'); });
 
-it('uses native keyboard filter buttons and keeps selection and reads controlled', async () => {
-  const user = userEvent.setup(); const filter = vi.fn(); const read = vi.fn(); const action = vi.fn();
-  const props = { tabs: [{ id: 'all', label: 'All' }, { id: 'unread', label: 'Only unread' }], activeTabId: 'all', onTabChange: filter, items: [{ id: 'n', title: 'Caller notice', read: false, actions: [{ id: 'open', label: 'Caller action' }] }], onReadChange: read, onAction: action };
+it('uses a segmented tablist and keeps unread, activation and actions caller-owned', async () => {
+  const user = userEvent.setup(); const tab = vi.fn(); const activate = vi.fn(); const action = vi.fn(); const markAll = vi.fn();
+  const props = { title: 'Notifications', tabs: [{ id: 'all', label: 'All', count: 2 }, { id: 'inbox', label: 'Inbox', count: 0 }], activeTabId: 'all', onTabChange: tab, onMarkAllRead: markAll, items: [{ id: 'n1', title: 'Caller notice', description: 'Body copy', timestamp: '2m', unread: true, status: 'information' as const, actions: [{ id: 'open', label: 'Caller action' }] }, { id: 'n2', title: 'Silent one', unread: false }], onItemActivate: activate, onAction: action };
   const { rerender } = render(<NotificationCenter {...props} />);
-  await user.tab(); await user.tab(); await user.keyboard(' '); expect(filter).toHaveBeenCalledWith('unread'); expect(screen.getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true');
-  await user.click(screen.getByRole('button', { name: 'Mark read' })); expect(read).toHaveBeenCalledWith('n', true); expect(screen.getByText('Unread')).toBeInTheDocument();
-  rerender(<NotificationCenter {...props} activeTabId="unread" items={[{ ...props.items[0], read: true }]} />);
-  expect(screen.getByRole('button', { name: 'Only unread' })).toHaveAttribute('aria-pressed', 'true'); expect(screen.getByRole('button', { name: 'Mark unread' })).toBeEnabled();
-  rerender(<NotificationCenter {...props} busy />); await user.click(screen.getByRole('button', { name: 'Caller action' })); expect(action).not.toHaveBeenCalled();
+  expect(screen.getByText('1 unread')).toBeInTheDocument();
+  expect(screen.getByRole('tab', { name: /All/ })).toHaveAttribute('aria-selected', 'true');
+  expect(screen.getByRole('tab', { name: /All/ })).toHaveTextContent('2');
+  await user.click(screen.getByRole('tab', { name: /Inbox/ })); expect(tab).toHaveBeenCalledWith('inbox');
+  await user.click(screen.getByRole('button', { name: 'Caller notice' })); expect(activate).toHaveBeenCalledWith('n1');
+  expect(screen.getByLabelText('Unread')).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Caller action' })); expect(action).toHaveBeenCalledWith('n1', 'open');
+  await user.click(screen.getByRole('button', { name: 'Mark all read' })); expect(markAll).toHaveBeenCalled();
+  rerender(<NotificationCenter {...props} busy />);
+  await user.click(screen.getByRole('button', { name: 'Caller action' })); expect(action).toHaveBeenCalledTimes(1);
 });
 
-it('disables every missing, per-item, per-filter and per-action callback boundary', async () => {
+it('locks every tab, item and header boundary from caller state without fabricating activation', async () => {
   const user = userEvent.setup(); const callback = vi.fn();
-  render(<NotificationCenter tabs={[{ id: 'off', label: 'Disabled filter', disabled: true }]} activeTabId="off" onTabChange={callback} items={[{ id: 'n', title: 'Notice', read: false, disabled: true, actions: [{ id: 'open', label: 'Disabled action' }] }]} onAction={callback} onReadChange={callback} onMarkAllRead={callback} />);
-  for (const name of ['Disabled filter', 'Disabled action', 'Mark read', 'Mark all read']) { expect(screen.getByRole('button', { name })).toBeDisabled(); await user.click(screen.getByRole('button', { name })); }
+  render(<NotificationCenter title="Notifications" tabs={[{ id: 'off', label: 'Disabled tab', disabled: true }]} activeTabId="off" onTabChange={callback} onMarkAllRead={callback} onItemActivate={callback} onAction={callback} items={[{ id: 'n', title: 'Disabled notice', unread: true, disabled: true, actions: [{ id: 'open', label: 'Disabled action' }] }]} busy />);
+  expect(screen.getByRole('tab', { name: /Disabled tab/ })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Disabled action' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Mark all read' })).toBeDisabled();
+  expect(screen.queryByRole('button', { name: 'Disabled notice' })).toBeNull();
+  for (const name of ['Disabled action', 'Mark all read']) await user.click(screen.getByRole('button', { name }));
+  await user.click(screen.getByRole('tab', { name: /Disabled tab/ }));
   expect(callback).not.toHaveBeenCalled();
 });
 

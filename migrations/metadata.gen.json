@@ -140,6 +140,26 @@
               "checksum": "64dd0466e04649b135802580e77e629f084ef9acfd24f6790c38f35a254d9d1b"
             }
           }
+        },
+        {
+          "version": 2,
+          "files": {
+            "mysql": {
+              "path": "platform/mysql/0002_inbox_actions.sql",
+              "bytes": 347,
+              "checksum": "a100105a7937a5797833423feed48468d848368ce86dd32db18866f60ab72863"
+            },
+            "postgres": {
+              "path": "platform/postgres/0002_inbox_actions.sql",
+              "bytes": 350,
+              "checksum": "236f89eabb30e79bce12b7fd48982b0a71d0fa87d853b54570b9381f4e735056"
+            },
+            "sqlite": {
+              "path": "platform/sqlite/0002_inbox_actions.sql",
+              "bytes": 348,
+              "checksum": "0ddfdc0b41382148b7ea687819de42ba39eda55e87b9a11882c4d8050f86916b"
+            }
+          }
         }
       ]
     }
@@ -158,17 +178,20 @@
       ],
       "namespaces": [
         "core",
-        "module.notes"
+        "module.notes",
+        "platform"
       ],
       "order": [
         "core",
-        "module.notes"
+        "module.notes",
+        "platform"
       ],
       "levels": {
         "core": 1,
-        "module.notes": 1
+        "module.notes": 1,
+        "platform": 2
       },
-      "schema_fingerprint": "0e57a2d80df2feed35da1c04acb20d518653af05f0b4f4580b06af7e5c4a7133"
+      "schema_fingerprint": "9b7434b5ad79816ab12de1184886fe349911680d11c2101564f351ddf6a13db9"
     },
     "web-platform": {
       "dialects": [
@@ -189,9 +212,9 @@
       "levels": {
         "core": 1,
         "module.notes": 1,
-        "platform": 1
+        "platform": 2
       },
-      "schema_fingerprint": "68a20a4726553c67cf381da29d502f3a1bc9965da8428b070fc3b51bb5be54e1"
+      "schema_fingerprint": "f82be5c564a254236b943f7912be811132f0a257c9f2cdfcdfcd88dba79ba44b"
     },
     "web-standalone": {
       "dialects": [
@@ -201,17 +224,20 @@
       ],
       "namespaces": [
         "core",
-        "module.notes"
+        "module.notes",
+        "platform"
       ],
       "order": [
         "core",
-        "module.notes"
+        "module.notes",
+        "platform"
       ],
       "levels": {
         "core": 1,
-        "module.notes": 1
+        "module.notes": 1,
+        "platform": 2
       },
-      "schema_fingerprint": "3836cfc8f3642e4410c12b8b6d4f3d809d0385a067741fd45a91aa697c4c1cf5"
+      "schema_fingerprint": "f82be5c564a254236b943f7912be811132f0a257c9f2cdfcdfcd88dba79ba44b"
     }
   }
 }

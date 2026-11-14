@@ -75,7 +75,7 @@ it('renames a department while preserving parent and sort', async () => {
   const name = within(dialog).getByLabelText('部门名称') as HTMLInputElement;
   expect(name.value).toBe('前端组');
   // The parent select echoes the persisted parent.
-  expect(within(dialog).getByRole('radio', { name: '研发部' })).toBeChecked();
+  expect(within(dialog).getByRole('combobox', { name: '上级部门' })).toHaveTextContent('研发部');
   await userEvent.clear(name);
   await userEvent.type(name, '客户端组');
   await userEvent.click(within(dialog).getByRole('button', { name: '保存' }));
@@ -89,10 +89,11 @@ it('moves a department under another parent from the rename dialog', async () =>
   await userEvent.click(screen.getByRole('button', { name: '重命名 前端组' }));
   const dialog = screen.getByRole('dialog', { name: '重命名部门' });
   const parent = within(dialog).getByLabelText('上级部门');
-  const options = within(parent).getAllByRole('radio').map(option => option.textContent);
+  await userEvent.click(parent);
   // The root escape hatch and every department outside the moved branch are offered.
+  const options = screen.getAllByRole('option').map(option => option.textContent);
   expect(options).toEqual(['作为根部门', '研发部', '产品部']);
-  await userEvent.click(within(parent).getByRole('radio', { name: '产品部' }));
+  await userEvent.click(screen.getByRole('option', { name: '产品部' }));
   await userEvent.click(within(dialog).getByRole('button', { name: '保存' }));
   await vi.waitFor(() => expect(updateDepartment).toHaveBeenCalledWith('d3', { name: '前端组', parent_id: 'd2', sort: 0 }));
 });
@@ -104,10 +105,11 @@ it('reparents back to a root department and never offers the moved branch itself
   await userEvent.click(screen.getByRole('button', { name: '重命名 研发部' }));
   const dialog = screen.getByRole('dialog', { name: '重命名部门' });
   const parent = within(dialog).getByLabelText('上级部门');
+  await userEvent.click(parent);
   // 研发部 itself and its descendant 前端组 stay out of the options.
-  const options = within(parent).getAllByRole('radio').map(option => option.textContent);
+  const options = screen.getAllByRole('option').map(option => option.textContent);
   expect(options).toEqual(['作为根部门', '产品部']);
-  await userEvent.click(within(parent).getByRole('radio', { name: '作为根部门' }));
+  await userEvent.click(screen.getByRole('option', { name: '作为根部门' }));
   await userEvent.click(within(dialog).getByRole('button', { name: '保存' }));
   await vi.waitFor(() => expect(updateDepartment).toHaveBeenCalledWith('d1', { name: '研发部', parent_id: undefined, sort: 0 }));
 });

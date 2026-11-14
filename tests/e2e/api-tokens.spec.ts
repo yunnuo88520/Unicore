@@ -20,7 +20,8 @@ test('role-bound personal tokens support issuance, renewal and global revocation
   await expect(dialog.getByLabel('令牌名称', { exact: true })).toBeFocused();
   await expect(dialog.getByRole('checkbox')).toHaveCount(0);
   await dialog.getByLabel('令牌名称', { exact: true }).fill('Browser API reader');
-  await dialog.getByRole('radio', { name: reader.name, exact: true }).check();
+  await dialog.getByRole('combobox', { name: '绑定角色', exact: true }).click();
+  await page.getByRole('option', { name: reader.name, exact: true }).click();
   await dialog.getByRole('combobox', { name: '有效期', exact: true }).click();
   await expect(page.getByRole('option')).toHaveCount(5);
   await page.getByRole('option', { name: '永久', exact: true }).click();
@@ -92,8 +93,9 @@ test('role-bound personal tokens support issuance, renewal and global revocation
   await dialog.getByRole('combobox', { name: '所属用户', exact: true }).fill(member.username);
   await page.getByRole('option').filter({ hasText: member.email }).click();
   await dialog.getByLabel('令牌名称', { exact: true }).fill('Issued by administrator');
-  await expect(dialog.getByRole('radiogroup', { name: '绑定角色', exact: true }).getByRole('radio')).toHaveCount(2);
-  await dialog.getByRole('radio', { name: reader.name, exact: true }).check();
+  await dialog.getByRole('combobox', { name: '绑定角色', exact: true }).click();
+  await expect(page.getByRole('option')).toHaveCount(2);
+  await page.getByRole('option', { name: reader.name, exact: true }).click();
   await dialog.getByLabel('备注', { exact: true }).fill('Delegated export');
   // Long editor content scrolls inside the modal without making the page taller.
   const scroll = await dialog.evaluate(element => {

@@ -4,6 +4,7 @@ package platformsql
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
@@ -25,15 +26,21 @@ func (r *Repository) InboxFeed(ctx context.Context, userID string, page, size in
 	if err := r.row(ctx, r.Store.DB, "SELECT COUNT(*) FROM unicore_inbox_messages WHERE "+inboxVisible+" AND read_at=0", userID, now, now).Scan(&result.Unread); err != nil {
 		return result, err
 	}
-	rows, err := r.rows(ctx, r.Store.DB, "SELECT id,type,source_id,CASE WHEN type='announcement' THEN (SELECT a.title FROM unicore_platform_announcements a WHERE a.id=source_id) ELSE title END,CASE WHEN type='announcement' THEN (SELECT a.content FROM unicore_platform_announcements a WHERE a.id=source_id) ELSE body END,created_at,read_at FROM unicore_inbox_messages WHERE "+inboxVisible+" ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?", userID, now, now, size, (page-1)*size)
+	rows, err := r.rows(ctx, r.Store.DB, "SELECT id,type,source_id,CASE WHEN type='announcement' THEN (SELECT a.title FROM unicore_platform_announcements a WHERE a.id=source_id) ELSE title END,CASE WHEN type='announcement' THEN (SELECT a.content FROM unicore_platform_announcements a WHERE a.id=source_id) ELSE body END,created_at,read_at,actions FROM unicore_inbox_messages WHERE "+inboxVisible+" ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?", userID, now, now, size, (page-1)*size)
 	if err != nil {
 		return result, err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var entry contracts.InboxEntry
-		if err = rows.Scan(&entry.ID, &entry.Type, &entry.SourceID, &entry.Title, &entry.Body, &entry.CreatedAt, &entry.ReadAt); err != nil {
+		var actions string
+		if err = rows.Scan(&entry.ID, &entry.Type, &entry.SourceID, &entry.Title, &entry.Body, &entry.CreatedAt, &entry.ReadAt, &actions); err != nil {
 			return result, err
+		}
+		if actions != "" {
+			if err := json.Unmarshal([]byte(actions), &entry.Actions); err != nil {
+				return result, err
+			}
 		}
 		result.Items = append(result.Items, entry)
 	}
@@ -56,9 +63,10 @@ func (r *Repository) InboxReadAll(ctx context.Context, userID string) (contracts
 }
 
 // DeliverInbox runs within the caller's transaction. Stable nonempty source IDs
-// update existing copies, preserving read state and avoiding duplicate alerts
-// when an announcement is edited; empty IDs represent independent messages.
-func (r *Repository) DeliverInbox(ctx context.Context, q sqlstore.Runner, recipients []string, messageType, sourceID, title, body string) error {
+// update existing copies in place, preserving read state and created_at; empty
+// IDs represent independent messages. actions carries the JSON payload of
+// module-delivered buttons ([]contracts.InboxAction); empty string means none.
+func (r *Repository) DeliverInbox(ctx context.Context, q sqlstore.Runner, recipients []string, messageType, sourceID, title, body, actions string) error {
 	now := time.Now().Unix()
 	seen := map[string]bool{}
 	for _, recipient := range recipients {
@@ -72,13 +80,13 @@ func (r *Repository) DeliverInbox(ctx context.Context, q sqlstore.Runner, recipi
 				return err
 			}
 			if count > 0 {
-				if _, err := r.exec(ctx, q, "UPDATE unicore_inbox_messages SET title=?,body=? WHERE recipient_id=? AND type=? AND source_id=?", title, body, recipient, messageType, sourceID); err != nil {
+				if _, err := r.exec(ctx, q, "UPDATE unicore_inbox_messages SET title=?,body=?,actions=? WHERE recipient_id=? AND type=? AND source_id=?", title, body, actions, recipient, messageType, sourceID); err != nil {
 					return err
 				}
 				continue
 			}
 		}
-		if _, err := r.exec(ctx, q, "INSERT INTO unicore_inbox_messages(id,recipient_id,type,source_id,title,body,created_at) VALUES(?,?,?,?,?,?,?)", sqlstore.ID(), recipient, messageType, sourceID, title, body, now); err != nil {
+		if _, err := r.exec(ctx, q, "INSERT INTO unicore_inbox_messages(id,recipient_id,type,source_id,title,body,actions,created_at) VALUES(?,?,?,?,?,?,?,?)", sqlstore.ID(), recipient, messageType, sourceID, title, body, actions, now); err != nil {
 			return err
 		}
 	}

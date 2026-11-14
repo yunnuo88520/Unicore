@@ -73,7 +73,7 @@ export function AnnouncementCenter({ web }: { web: WebClient }) {
             : feed.isError ? <div role="alert" className="py-8 text-center"><p className="mb-3 text-sm text-danger">{t('公告暂时无法加载')}</p><Button variant="secondary" onClick={() => void feed.refetch()}>{t('重试')}</Button></div>
             : !feed.data?.items.length ? <EmptyState icon={Bell} description={t('暂无公告')} />
             : <div className="flex max-h-[55dvh] flex-col gap-1 overflow-y-auto" aria-busy={feed.isFetching}>
-                {feed.data.items.map(item => <button key={item.id} type="button" className="flex items-start gap-3 rounded-lg p-3 text-start hover:bg-surface-alt focus-visible:outline-focus" onClick={() => setSelected(item.id)}>
+                {feed.data.items.map(item => <button key={item.id} type="button" className="flex items-start gap-3 rounded-lg p-3 text-start hover:bg-surface-hover focus-visible:outline-focus" onClick={() => setSelected(item.id)}>
                   <span className={`mt-2 size-2 shrink-0 rounded-full ${item.read_at ? 'bg-line' : 'bg-accent'}`} aria-hidden="true" />
                   <span className="min-w-0 flex-1"><span className={`block break-words text-sm ${item.read_at ? 'text-muted' : 'font-semibold text-ink'}`}>{item.title}</span><span className="mt-1 block truncate text-xs text-muted">{contentSummary(item.content_html)}</span><time className="mt-2 block text-2xs text-subtle">{date(item.publish_at)}</time></span>
                   <span className="shrink-0 text-2xs text-muted">{t(item.read_at ? '已读' : '未读')}</span>
@@ -107,7 +107,7 @@ export function AnnouncementCenter({ web }: { web: WebClient }) {
 
 function InboxRow({ item, expanded, onToggle }: { item: InboxEntry; expanded: boolean; onToggle: () => void }) {
   const { t } = useI18n();
-  return <button type="button" aria-expanded={expanded} className="flex items-start gap-3 rounded-lg p-3 text-start hover:bg-surface-alt focus-visible:outline-focus" onClick={onToggle}>
+  return <button type="button" aria-expanded={expanded} className="flex items-start gap-3 rounded-lg p-3 text-start hover:bg-surface-hover focus-visible:outline-focus" onClick={onToggle}>
     <span className={`mt-2 size-2 shrink-0 rounded-full ${item.read_at ? 'bg-line' : 'bg-accent'}`} aria-hidden="true" />
     <span className="min-w-0 flex-1">
       <span className={`block break-words text-sm ${item.read_at ? 'text-muted' : 'font-semibold text-ink'}`}>{item.title}</span>

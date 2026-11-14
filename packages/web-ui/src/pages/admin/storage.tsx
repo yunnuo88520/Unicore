@@ -93,7 +93,7 @@ function StoragePanel({ client, storage }: { client: AppClient; storage: Storage
       <TabsPrimitive.Content value="config" forceMount hidden={section !== 'config'} className="flex min-w-0 flex-col gap-5 data-[state=inactive]:hidden">
         <div role="group" aria-label={t('存储方式')} className="grid grid-cols-3 gap-2 sm:grid-cols-5">
           {providers.map(({ id, label, icon: Icon }) => <button key={id} type="button" aria-pressed={provider === id} disabled={action.isPending || saving} onClick={() => change({ provider: id })}
-            className={cn('flex min-h-20 min-w-0 flex-col items-center justify-center gap-2 rounded-xl border px-2 py-3 text-xs transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-55', provider === id ? 'border-accent bg-primary-soft text-accent ring-1 ring-accent' : 'border-line bg-surface text-muted hover:bg-surface-alt')}>
+            className={cn('flex min-h-20 min-w-0 flex-col items-center justify-center gap-2 rounded-xl border px-2 py-3 text-xs transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-55', provider === id ? 'border-accent bg-primary-soft text-accent ring-1 ring-accent' : 'border-line bg-surface text-muted hover:bg-surface-hover')}>
             <Icon size={21} aria-hidden="true" /><span className="text-center">{t(label)}</span>
           </button>)}
         </div>

@@ -225,7 +225,7 @@ export function DataGrid<T>({ label, data, columns, getRowId, onDataChange, pend
         const start = bounds ? { rowId: rowIds[bounds.top], columnId: visibleIds[bounds.left] } : active;
         commit(pasteGrid(data, visibleColumns, getRowId, rowIds, start, event.clipboardData.getData('text/plain')), 'paste');
       }}>
-      <div role="row" aria-rowindex={1} className="sticky top-0 z-10 flex border-b border-line bg-surface-alt" style={{ width: totalWidth, height: headerHeight }}>
+      <div role="row" aria-rowindex={1} className="sticky top-0 z-10 flex border-b border-line bg-surface" style={{ width: totalWidth, height: headerHeight }}>
         <div role="columnheader" aria-colindex={1} className="flex shrink-0 items-center justify-center" style={{ width: 44 }}>
           <Checkbox aria-label={t(dataGridMessages.selectAll)} checked={allSelected ? true : someSelected ? 'indeterminate' : false} disabled={pending || !rowIds.length} onChange={checked => { const next = new Set(selectedRows); rowIds.forEach(id => { if (checked) next.add(id); else next.delete(id); }); chooseRows(next); }} />
         </div>
@@ -238,7 +238,7 @@ export function DataGrid<T>({ label, data, columns, getRowId, onDataChange, pend
         {rows.slice(window.start, window.end).map((row, offset) => {
           const r = window.start + offset, rowId = getRowId(row);
           return <div key={rowId} role="row" aria-rowindex={r + 2} aria-selected={selectedRows.has(rowId)} className="absolute left-0 flex border-b border-line" style={{ top: r * rowHeight, height: rowHeight, width: totalWidth }}>
-            <div role="gridcell" aria-colindex={1} className="flex shrink-0 items-center justify-center bg-surface-alt" style={{ width: 44 }} onClickCapture={event => { rowShift.current = event.shiftKey; }}>
+            <div role="gridcell" aria-colindex={1} className="flex shrink-0 items-center justify-center bg-surface" style={{ width: 44 }} onClickCapture={event => { rowShift.current = event.shiftKey; }}>
               <Checkbox aria-label={t(dataGridMessages.selectRow, { row: r + 1 })} checked={selectedRows.has(rowId)} disabled={pending} onChange={checked => rowToggle(rowId, checked, rowShift.current)} id={cellId({ rowId, columnId: '__row-checkbox' })} />
             </div>
             {visibleColumns.map((column, c) => {

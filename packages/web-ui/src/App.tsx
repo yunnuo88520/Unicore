@@ -356,7 +356,7 @@ function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onO
   const profile = useQuery({ queryKey: ['account-profile'], queryFn: () => client.web!.accountProfile(), enabled: data.profile === 'web-platform' && !!user && !!client.web && !data.mfa_enrollment_required, staleTime: 60_000 });
   return <>
     <div className="flex min-w-0 items-center gap-2 text-[length:var(--font-11)] text-muted max-md:gap-1.5">
-      {(!desktop || !navToggleVisible) && <button className="mobile-menu size-8 items-center justify-center rounded-md text-muted hover:bg-surface-alt hover:text-ink max-md:-ms-1" aria-label={t('打开导航')} aria-expanded={mobileOpen} aria-controls="workspace-navigation" onClick={onOpenMobile}><Menu size={18} /></button>}
+      {(!desktop || !navToggleVisible) && <button className="mobile-menu size-8 items-center justify-center rounded-md text-muted hover:bg-surface-hover hover:text-ink max-md:-ms-1" aria-label={t('打开导航')} aria-expanded={mobileOpen} aria-controls="workspace-navigation" onClick={onOpenMobile}><Menu size={18} /></button>}
       <Breadcrumb>
         <BreadcrumbItem className="max-w-32 truncate">{data.site_name}</BreadcrumbItem>
         <BreadcrumbSeparator />

@@ -90,7 +90,7 @@ function DepartmentPanel({ web, metadata }: { web: WebClient; metadata: Bootstra
       const siblings = departmentSiblings(tree, node.id);
       const index = siblings.findIndex(item => item.id === node.id);
       return <li key={node.id} className="min-w-0">
-        <div className={`flex items-center gap-1 rounded-md px-1.5 py-1 ${selected ? 'bg-primary-soft' : 'hover:bg-surface-alt'}`}>
+        <div className={`flex items-center gap-1 rounded-md px-1.5 py-1 ${selected ? 'bg-primary-soft' : 'hover:bg-surface-hover'}`}>
           {node.children.length
             ? <Button variant="ghost" size="icon" className="size-5 shrink-0" aria-label={expanded ? t('收起 {{name}}', { name: node.name }) : t('展开 {{name}}', { name: node.name })}
                 aria-expanded={expanded} onClick={() => toggle(node.id, expanded)}>

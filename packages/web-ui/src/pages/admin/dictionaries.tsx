@@ -64,7 +64,7 @@ function DictionaryPanel({ web, metadata }: { web: WebClient; metadata: Bootstra
         {list.data && <div className="flex flex-col gap-1.5">
           {types.map(type => <button key={type.id} type="button" aria-pressed={type.id === activeId} onClick={() => setSelected(type.id)}
             className={cn('flex min-w-0 items-center justify-between gap-2 rounded-lg border px-3 py-2 text-start text-sm outline-none focus-visible:ring-2 focus-visible:ring-focus',
-              type.id === activeId ? 'border-accent bg-primary-soft text-accent' : 'border-line bg-surface text-ink hover:bg-surface-alt')}>
+              type.id === activeId ? 'border-accent bg-primary-soft text-accent' : 'border-line bg-surface text-ink hover:bg-surface-hover')}>
             <span className="min-w-0">
               <span className="block truncate font-medium">{t(type.name)}</span>
               <small className={cn('block truncate text-2xs', type.id === activeId ? 'text-accent/80' : 'text-subtle')}>{type.code}</small>

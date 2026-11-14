@@ -281,7 +281,7 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
     for (const group of groups) for (const action of group.nodes) if (actionIds.includes(action.id)) imply(action.permission);
     for (const op of pageOps) if (operationIds.includes(op.id)) for (const point of op.permissions) imply(point);
     return <div key={node.id} className="flex flex-col">
-      <div className="flex h-8 items-center gap-1.5 rounded-md px-1 hover:bg-surface-alt" style={{ paddingInlineStart: `${depth * 16}px` }}>
+      <div className="flex h-8 items-center gap-1.5 rounded-md px-1 hover:bg-surface-hover" style={{ paddingInlineStart: `${depth * 16}px` }}>
         {hasChildren || hasDetail
           ? <Button variant="ghost" size="icon" className="size-5 shrink-0" aria-label={t('展开或收起 {{name}}', { name: nodeLabel(node) })} aria-expanded={open} disabled={pending}
               onClick={() => {
@@ -299,7 +299,7 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
       {hasDetail && detailOpen && <div className="flex flex-col gap-1 pb-1" style={{ paddingInlineStart: `${(depth + 1) * 16 + 20}px` }}>
         {groups.map(group => {
           const selected = group.ids.filter(id => actionIds.includes(id)).length;
-          return <label key={group.key} className="flex h-7 items-center gap-2 rounded-md px-1 hover:bg-surface-alt" title={group.hint}>
+          return <label key={group.key} className="flex h-7 items-center gap-2 rounded-md px-1 hover:bg-surface-hover" title={group.hint}>
             <Checkbox aria-label={group.label} disabled={pending || group.nodes.some(node => node.disabled) || (!selected && group.nodes.some(node => actionLocked(node)))}
               checked={selected === group.ids.length ? true : selected ? 'indeterminate' : false}
               onChange={checked => {
@@ -315,7 +315,7 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
         })}
         {pageOps.length > 0 && <div className="flex flex-col gap-0.5">
           <small className="px-1 text-2xs font-medium text-subtle">{t('API 操作')}</small>
-          {pageOps.map(op => <label key={op.id} className="flex h-7 items-center gap-2 rounded-md px-1 hover:bg-surface-alt" title={`${op.method} ${op.path} · ${op.permissions.join(', ')}`}>
+          {pageOps.map(op => <label key={op.id} className="flex h-7 items-center gap-2 rounded-md px-1 hover:bg-surface-hover" title={`${op.method} ${op.path} · ${op.permissions.join(', ')}`}>
             <Checkbox aria-label={op.id} disabled={pending || (!operationIds.includes(op.id) && (operationLocked(op) || (op.permissionMode === 'any' && !operationPermissionsAllow(effectivePermissions, op.id))))} checked={operationIds.includes(op.id)}
               onChange={checked => {
                 // Unchecking an operation stops its buttons from riding along:
@@ -406,7 +406,7 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
         {/* The advanced catalogue stays collapsed: page-centric authorization
           * covers most roles, while pure-API roles still grant raw points. */}
         <fieldset disabled={pending} className="mt-4 flex flex-col gap-2 border-t border-line pt-3">
-          <button type="button" aria-expanded={advanced} className="flex items-center gap-1 self-start rounded-md px-1 py-0.5 text-sm font-medium text-ink hover:bg-surface-alt"
+          <button type="button" aria-expanded={advanced} className="flex items-center gap-1 self-start rounded-md px-1 py-0.5 text-sm font-medium text-ink hover:bg-surface-hover"
             onClick={() => setAdvanced(value => !value)}>
             {advanced ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
             {t('高级')}

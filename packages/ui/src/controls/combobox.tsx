@@ -63,7 +63,7 @@ export const Combobox = forwardRef<HTMLInputElement, ComboboxProps>(function Com
         else if (event.key === 'Enter' && expanded && activeOption) { event.preventDefault(); choose(activeOption); }
         else if (event.key === 'Escape' && expanded) { event.preventDefault(); event.stopPropagation(); dismiss(); }
         else if (event.key === 'Tab') dismiss();
-      }} />{clearable && !readOnly && (query || selected) && <button type="button" tabIndex={-1} disabled={disabled} aria-label={t('Clear selection')} className="absolute end-1 top-3 flex size-9 items-center justify-center rounded-md text-muted outline-none hover:bg-surface-alt focus-visible:ring-2 focus-visible:ring-focus" onPointerDown={event => event.preventDefault()} onClick={() => { setSelected(''); setQuery(''); setFiltering(true); setOpen(false); input.current?.focus(); }}><X size={16} aria-hidden="true" /></button>}</div></PopoverAnchor>
+      }} />{clearable && !readOnly && (query || selected) && <button type="button" tabIndex={-1} disabled={disabled} aria-label={t('Clear selection')} className="absolute end-1 top-3 flex size-9 items-center justify-center rounded-md text-muted outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-focus" onPointerDown={event => event.preventDefault()} onClick={() => { setSelected(''); setQuery(''); setFiltering(true); setOpen(false); input.current?.focus(); }}><X size={16} aria-hidden="true" /></button>}</div></PopoverAnchor>
     <PopoverContent className="w-[var(--radix-popover-trigger-width)] min-w-48 p-2"
       onPointerDown={event => { if ((event.target as HTMLElement).closest('button')) event.preventDefault(); }}
       onOpenAutoFocus={event => event.preventDefault()} onCloseAutoFocus={event => event.preventDefault()}

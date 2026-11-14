@@ -10,7 +10,7 @@ function TabList({ className, ...props }: ComponentProps<typeof RadixTabs.List>)
 }
 
 function TabTrigger({ className, ...props }: ComponentProps<typeof RadixTabs.Trigger>) {
-  return <RadixTabs.Trigger {...props} className={cn('inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-muted outline-none transition-colors hover:bg-surface-alt hover:text-ink focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus data-[state=active]:bg-primary-soft data-[state=active]:text-accent disabled:pointer-events-none disabled:opacity-50', className)} />;
+  return <RadixTabs.Trigger {...props} className={cn('inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-muted outline-none transition-colors hover:bg-surface-hover hover:text-ink focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus data-[state=active]:bg-primary-soft data-[state=active]:text-accent disabled:pointer-events-none disabled:opacity-50', className)} />;
 }
 
 export const TabsPrimitive: Omit<typeof RadixTabs, 'List' | 'Trigger'> & { List: typeof TabList; Trigger: typeof TabTrigger } = { ...RadixTabs, List: TabList, Trigger: TabTrigger };

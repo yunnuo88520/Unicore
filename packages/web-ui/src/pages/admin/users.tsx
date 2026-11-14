@@ -40,7 +40,7 @@ function RoleChipGroup({ options, selected, onToggle }: {
     {options.map(option => {
       const active = selected.includes(option.id);
       return <label key={option.id} data-role-chip={option.id}
-        className={`flex w-max cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-colors ${active ? 'border-button bg-primary-soft' : 'border-line bg-surface hover:bg-surface-alt'} ${option.assignable ? '' : 'cursor-not-allowed opacity-55'}`}>
+        className={`flex w-max cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-colors ${active ? 'border-button bg-primary-soft' : 'border-line bg-surface hover:bg-surface-hover'} ${option.assignable ? '' : 'cursor-not-allowed opacity-55'}`}>
         <Checkbox aria-label={option.name} checked={active} disabled={!option.assignable} onChange={checked => onToggle(option.id, checked)} />
         <span className={active ? 'font-medium text-accent' : 'text-ink'}>{option.name}</span>
       </label>;

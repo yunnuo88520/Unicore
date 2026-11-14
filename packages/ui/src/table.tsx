@@ -10,7 +10,7 @@ export const Table = forwardRef<HTMLTableElement, HTMLAttributes<HTMLTableElemen
 });
 
 export const TableHeader = forwardRef<HTMLTableSectionElement, HTMLAttributes<HTMLTableSectionElement>>(function TableHeader({ className, ...props }, ref) {
-  return <thead ref={ref} className={cn('bg-surface-alt [&_tr]:border-b [&_tr]:border-line', className)} {...props} />;
+  return <thead ref={ref} className={cn('[&_tr]:border-b [&_tr]:border-line', className)} {...props} />;
 });
 
 export const TableBody = forwardRef<HTMLTableSectionElement, HTMLAttributes<HTMLTableSectionElement>>(function TableBody({ className, ...props }, ref) {
@@ -18,7 +18,7 @@ export const TableBody = forwardRef<HTMLTableSectionElement, HTMLAttributes<HTML
 });
 
 export const TableRow = forwardRef<HTMLTableRowElement, HTMLAttributes<HTMLTableRowElement>>(function TableRow({ className, ...props }, ref) {
-  return <tr ref={ref} className={cn('border-b border-line transition-colors hover:bg-surface-alt data-[state=selected]:bg-primary-soft', className)} {...props} />;
+  return <tr ref={ref} className={cn('border-b border-line transition-colors hover:bg-surface-hover data-[state=selected]:bg-primary-soft', className)} {...props} />;
 });
 
 export const TableHead = forwardRef<HTMLTableCellElement, ThHTMLAttributes<HTMLTableCellElement>>(function TableHead({ className, ...props }, ref) {

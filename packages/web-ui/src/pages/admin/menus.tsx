@@ -538,7 +538,7 @@ function RegionRow({ row, handlers, drag }: { row: Extract<TreeRow, { kind: 'sec
     <TableCell>
       <div className="flex items-center gap-2">
         <button type="button" aria-expanded={open} aria-label={t('展开或收起 {{name}}', { name: sectionTitle(section) })}
-          onClick={() => handlers.onToggleCollapse(section.id)} className="rounded p-0.5 text-subtle hover:bg-surface-alt hover:text-ink">
+          onClick={() => handlers.onToggleCollapse(section.id)} className="rounded p-0.5 text-subtle hover:bg-surface-hover hover:text-ink">
           <ChevronRight size={15} className={open ? 'rotate-90' : ''} />
         </button>
         <FolderTree size={15} aria-hidden="true" className="shrink-0 text-muted" />

@@ -22,6 +22,7 @@ import (
 	"github.com/yunnuo/unicore/internal/mcp"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/platform/mcpauth"
+	"github.com/yunnuo/unicore/internal/platform/mcpoauth"
 	"github.com/yunnuo/unicore/internal/runtime"
 )
 
@@ -36,6 +37,9 @@ type Surface struct {
 	// Registry exposes the frozen capability set to the admin surface; the
 	// transport never mutates it after the composition root freezes it.
 	Registry *mcp.Registry
+	// OAuth serves the MCP authorization service; nil keeps every OAuth
+	// endpoint answering 404 regardless of the runtime switch.
+	OAuth *mcpoauth.Service
 
 	handler *sdk.StreamableHTTPHandler
 	mu      sync.Mutex
@@ -57,8 +61,14 @@ func Mount(router chi.Router, surface *Surface) {
 		// session, every POST re-authenticates and re-authorizes.
 		Stateless:           true,
 		MaxRequestBodyBytes: 4 << 20,
+		Logger:              surface.log(),
 	})
 	router.Handle("/mcp", surface)
+	router.HandleFunc("/.well-known/oauth-protected-resource/mcp", surface.handleProtectedResourceMetadata)
+	router.HandleFunc("/.well-known/oauth-authorization-server", surface.handleAuthorizationServerMetadata)
+	router.HandleFunc("/oauth/mcp/authorize", surface.handleAuthorize)
+	router.HandleFunc("/oauth/mcp/token", surface.handleToken)
+	router.HandleFunc("/oauth/mcp/revoke", surface.handleRevoke)
 }
 
 func (s *Surface) log() *slog.Logger {
@@ -97,10 +107,10 @@ func (s *Surface) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "origin not trusted", http.StatusForbidden)
 		return
 	}
-	principal, err := s.authenticate(r, identity)
+	principal, err := s.authenticate(r, identity, values)
 	if err != nil {
 		w.Header().Set("WWW-Authenticate", `Bearer realm="unicore-mcp"`)
-		http.Error(w, "valid personal token required", http.StatusUnauthorized)
+		http.Error(w, "valid access credential required", http.StatusUnauthorized)
 		return
 	}
 	if !principal.HasPermission(mcpauth.MCPAccessPermission) {
@@ -124,10 +134,11 @@ func (s *Surface) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.handler.ServeHTTP(w, r)
 }
 
-// authenticate resolves exactly one Bearer personal token. Client JWTs,
-// repeated headers, empty values and any cookie fallback are refused: MCP
-// accepts one credential family only.
-func (s *Surface) authenticate(r *http.Request, identity *platform.Service) (*mcpauth.Principal, error) {
+// authenticate resolves exactly one Bearer credential: PATs and OAuth access
+// tokens, told apart by their stable prefixes. Client JWTs, repeated headers,
+// empty values and any cookie fallback are refused: MCP accepts one
+// credential per request.
+func (s *Surface) authenticate(r *http.Request, identity *platform.Service, values map[string]string) (*mcpauth.Principal, error) {
 	headers, ok := r.Header["Authorization"]
 	if !ok || len(headers) != 1 {
 		return nil, mcp.ErrAuth("exactly one Authorization header is required")
@@ -139,6 +150,17 @@ func (s *Surface) authenticate(r *http.Request, identity *platform.Service) (*mc
 	if _, err := r.Cookie(sessionCookieName); err == nil {
 		// A cookie may ride along on a browser request; it never authenticates MCP.
 		return nil, mcp.ErrAuth("cookie credentials are not accepted for MCP access")
+	}
+	if strings.HasPrefix(bearer, "ucm_") {
+		// OAuth tokens answer to their own runtime switch.
+		if s.OAuth == nil || values["mcp.oauth_enabled"] != "true" {
+			return nil, mcp.ErrAuth("oauth access is unavailable")
+		}
+		grant, actor, err := s.OAuth.Resolve(r.Context(), bearer)
+		if err != nil {
+			return nil, mcp.ErrAuth("oauth credential rejected")
+		}
+		return mcpauth.NewOAuthPrincipal(actor.User, grant, grant.ID, identity.Store)
 	}
 	resolved, err := identity.Tokens.Resolve(r.Context(), bearer)
 	if err != nil {

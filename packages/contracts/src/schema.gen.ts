@@ -2025,10 +2025,160 @@ export interface McpLimits {
   log_retention_days: number;
 }
 
+export interface McpOauthAuthorizeView {
+  client_id: string;
+  client_name: string;
+  scopes: Array<string>;
+  roles: Array<RoleOption>;
+  resource: string;
+  state?: string;
+}
+
+export interface McpOauthAuthorizeViewResponse {
+  code: string;
+  message: string;
+  data: McpOauthAuthorizeView;
+  request_id: string;
+}
+
+export interface McpOauthConsentInput {
+  client_id: string;
+  redirect_uri: string;
+  scope?: string;
+  state?: string;
+  code_challenge?: string;
+  code_challenge_method?: string;
+  resource?: string;
+  role_id: string;
+}
+
+export interface McpOauthConsentResult {
+  redirect_uri: string;
+  expires_in: number;
+}
+
+export interface McpOauthConsentResponse {
+  code: string;
+  message: string;
+  data: McpOauthConsentResult;
+  request_id: string;
+}
+
+export interface McpOauthGrant {
+  id: string;
+  client_id: string;
+  client_name: string;
+  role_id: string;
+  role_name: string;
+  scopes: Array<string>;
+  created_at: number;
+  last_used_at: number;
+}
+
+export interface McpOauthGrantList {
+  items: Array<McpOauthGrant>;
+}
+
+export interface McpOauthGrantListResponse {
+  code: string;
+  message: string;
+  data: McpOauthGrantList;
+  request_id: string;
+}
+
+export interface McpOauthClient {
+  id: string;
+  name: string;
+  client_type: string;
+  redirect_uris: Array<string>;
+  enabled: boolean;
+  has_secret: boolean;
+  version: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface McpOauthClientList {
+  items: Array<McpOauthClient>;
+}
+
+export interface McpOauthClientListResponse {
+  code: string;
+  message: string;
+  data: McpOauthClientList;
+  request_id: string;
+}
+
+export interface McpOauthClientCreateInput {
+  name: string;
+  client_type: "public" | "confidential";
+  redirect_uris: Array<string>;
+}
+
+export interface McpOauthClientCreated {
+  client: McpOauthClient;
+  secret: string;
+}
+
+export interface McpOauthClientCreatedResponse {
+  code: string;
+  message: string;
+  data: McpOauthClientCreated;
+  request_id: string;
+}
+
+export interface McpOauthClientUpdateInput {
+  name: string;
+  redirect_uris: Array<string>;
+  enabled: boolean;
+  expected_version: number;
+}
+
+export interface McpOauthClientResponse {
+  code: string;
+  message: string;
+  data: McpOauthClient;
+  request_id: string;
+}
+
+export interface McpOauthClientSecret {
+  secret: string;
+}
+
+export interface McpOauthClientSecretResponse {
+  code: string;
+  message: string;
+  data: McpOauthClientSecret;
+  request_id: string;
+}
+
+export interface McpOauthAdminGrant {
+  id: string;
+  user_id: string;
+  username: string;
+  role_id: string;
+  role_name: string;
+  scopes: Array<string>;
+  created_at: number;
+  last_used_at: number;
+}
+
+export interface McpOauthAdminGrantList {
+  items: Array<McpOauthAdminGrant>;
+}
+
+export interface McpOauthAdminGrantListResponse {
+  code: string;
+  message: string;
+  data: McpOauthAdminGrantList;
+  request_id: string;
+}
+
 export interface McpConfig {
   revision: number;
   enabled: boolean;
   pat_enabled: boolean;
+  oauth_enabled: boolean;
   endpoint: string;
   supported_protocols: Array<string>;
   implemented_capabilities: Array<string>;
@@ -2047,6 +2197,7 @@ export interface McpConfigPatch {
   expected_revision: number;
   enabled?: boolean;
   pat_enabled?: boolean;
+  oauth_enabled?: boolean;
   default_timeout_seconds?: number;
   max_request_bytes?: number;
   max_result_bytes?: number;

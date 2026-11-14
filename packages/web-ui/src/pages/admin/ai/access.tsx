@@ -45,6 +45,7 @@ export function AdminAiAccessPage({ client }: PageProps) {
       const patch: McpConfigPatch = { expected_revision: data.revision };
       if (values.enabled !== undefined) patch.enabled = values.enabled === 'true';
       if (values.pat_enabled !== undefined) patch.pat_enabled = values.pat_enabled === 'true';
+      if (values.oauth_enabled !== undefined) patch.oauth_enabled = values.oauth_enabled === 'true';
       for (const field of limitFields) {
         const raw = values[limitKey[field.id]];
         if (raw !== undefined) patch[limitKey[field.id]] = Number(raw);
@@ -85,7 +86,7 @@ export function AdminAiAccessPage({ client }: PageProps) {
         </span>
       </CardContent>
     </Card>
-    <form onSubmit={event => { event.preventDefault(); save.mutate({ ...draft, enabled: String(enabled), pat_enabled: String(draft.pat_enabled !== undefined ? draft.pat_enabled === 'true' : data.pat_enabled) }); }}
+    <form onSubmit={event => { event.preventDefault(); save.mutate({ ...draft, enabled: String(enabled), pat_enabled: String(draft.pat_enabled !== undefined ? draft.pat_enabled === 'true' : data.pat_enabled), oauth_enabled: String(draft.oauth_enabled !== undefined ? draft.oauth_enabled === 'true' : data.oauth_enabled) }); }}
       aria-busy={save.isPending}>
       <Card>
         <CardContent className="flex flex-col gap-5 px-4 py-5">
@@ -97,6 +98,10 @@ export function AdminAiAccessPage({ client }: PageProps) {
             <label className="flex flex-1 min-w-52 items-center justify-between gap-3 text-sm font-medium">
               <span>{t('允许个人令牌接入')}<span className="ms-2 block text-xs font-normal text-muted">{t('仅在服务启用时生效')}</span></span>
               <Switch checked={draft.pat_enabled !== undefined ? draft.pat_enabled === 'true' : data.pat_enabled} disabled={save.isPending} aria-label={t('允许个人令牌接入')} onChange={value => change('pat_enabled', String(value))} />
+            </label>
+            <label className="flex flex-1 min-w-52 items-center justify-between gap-3 text-sm font-medium">
+              <span>{t('允许 OAuth 接入')}<span className="ms-2 block text-xs font-normal text-muted">{t('外部应用经授权码 + PKCE 获取令牌；需先在「OAuth 接入」页注册客户端')}</span></span>
+              <Switch checked={draft.oauth_enabled !== undefined ? draft.oauth_enabled === 'true' : data.oauth_enabled} disabled={save.isPending} aria-label={t('允许 OAuth 接入')} onChange={value => change('oauth_enabled', String(value))} />
             </label>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

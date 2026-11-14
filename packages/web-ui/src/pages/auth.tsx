@@ -198,7 +198,13 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
     onSuccess: ({ result, version }) => {
       if (version !== generation.current.value) return;
       clearSecrets();
-      if (mode === 'login' || (challenge && mode === 'email')) { onDone(); void router.navigate({ to: '/' }); return; }
+      if (mode === 'login' || (challenge && mode === 'email')) {
+        onDone();
+        // The OAuth consent wall renders at /authorize: refresh lifts it in
+        // place instead of navigating away and dropping the request parameters.
+        if (location.pathname !== '/authorize') void router.navigate({ to: '/' });
+        return;
+      }
       if (result) acceptChallenge(result);
       else if (mode === 'register') {
         setChallenge(undefined); form.setValue('code', '');

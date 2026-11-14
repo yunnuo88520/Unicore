@@ -37,6 +37,7 @@ import { ErrorPage } from './pages/error';
 import { InstallPage } from './pages/install';
 import { HomePage } from './pages/home';
 import { LoginPage, VerifyEmailPage, ResetPasswordPage } from './pages/auth';
+import { AuthorizePage } from './pages/authorize';
 import { NotFoundPage } from './pages/not-found';
 import { ForbiddenPage } from './pages/forbidden';
 
@@ -87,7 +88,7 @@ const pageHeadingOwners = new Set<string>([
   'users', 'administrators', 'roles', 'departments', 'announcements', 'posts',
   'tasks', 'menus', 'access-tokens',
   'monitor', 'monitor-services', 'monitor-resources', 'monitor-events', 'ui-preview', 'not-found',
-  'ai-access', 'ai-tools', 'ai-calls',
+  'ai-access', 'ai-tools', 'ai-calls', 'ai-oauth',
 ]);
 
 /** The root route component: gates, chrome and the page outlet. Server authorization remains authoritative. */
@@ -205,6 +206,13 @@ function WorkspaceShell() {
         <SiteFooter metadata={data} compact />
       </div>
     </PagePropsProvider>;
+  }
+
+  // The OAuth consent page renders without workspace chrome for signed-in
+  // platform accounts; guests stay on the login wall above until they sign in.
+  if (page === 'authorize' && data.current_user) {
+    const props: PageProps = { page, client, metadata: data, registry, theme, setTheme, refresh: () => void metadata.refetch() };
+    return <PagePropsProvider value={props}><main className="min-h-dvh bg-background"><AuthorizePage {...props} /></main></PagePropsProvider>;
   }
 
   const administration = data.identity_realm === 'administrator';

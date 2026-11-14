@@ -131,6 +131,7 @@ var Definitions = append([]SettingDefinition{
 	{"mcp.credential_calls_per_minute", "integer", "mcp", "凭证每分钟调用上限", "60", true, false, integer(1, 10000)},
 	{"mcp.log_retention_days", "integer", "mcp", "调用记录保留天数", "30", true, false, integer(1, 180)},
 	{"mcp.allowed_origins", "string", "mcp", "允许的浏览器 Origin", "", true, false, ValidMCPOrigins},
+	{"mcp.oauth_enabled", "boolean", "mcp", "允许 OAuth 接入", "false", true, false, oneOf("true", "false")},
 }, append(append(append(OIDCDefinitions, StorageDefinitions...), RegistrationDefinitions...),
 	append(append(append(SecurityDefinitions, MailTemplateDefinitions...), NotificationDefinitions...), LoggingDefinitions...)...)...)
 

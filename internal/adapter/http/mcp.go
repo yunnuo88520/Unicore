@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/yunnuo/unicore/internal/adapter/storage/platformsql"
 	"github.com/yunnuo/unicore/internal/contracts"
@@ -19,10 +20,13 @@ import (
 	"github.com/yunnuo/unicore/internal/settings"
 )
 
-// mcpProtocols mirrors the pinned baseline the transport adapter serves.
-var mcpProtocols = []string{"2026-07-28"}
+// mcpProtocols mirrors what the transport actually negotiates: the go-sdk's
+// supported revisions, newest first, so old clients see their own version.
+var mcpProtocols = sdk.SupportedProtocolVersions()
 
 func mountMCP(api chi.Router, config Config) {
+	mountMcpOauth(api, config)
+	mountMcpOauthAdmin(api, config)
 	// adminContext resolves the platform store and effective settings once;
 	// every MCP management route is web-platform-only by contract.
 	adminContext := func(permission string, fn func(http.ResponseWriter, *http.Request, *platformsql.Repository, map[string]string, contracts.Session)) http.HandlerFunc {
@@ -224,6 +228,7 @@ func mcpConfigView(ctx context.Context, repo *platformsql.Repository, values map
 		Revision:                int(revision),
 		Enabled:                 values["mcp.enabled"] == "true",
 		PatEnabled:              values["mcp.pat_enabled"] == "true",
+		OauthEnabled:            values["mcp.oauth_enabled"] == "true",
 		Endpoint:                strings.TrimRight(settings.MailBaseURL(values, ""), "/") + "/mcp",
 		SupportedProtocols:      mcpProtocols,
 		ImplementedCapabilities: []string{"tools"},
@@ -264,7 +269,7 @@ func applyMCPConfigChanges(input *contracts.McpConfigPatch, changes map[string]s
 		changes[key] = strconv.FormatBool(*value)
 		return true
 	}
-	if !assignBool("mcp.enabled", input.Enabled) || !assignBool("mcp.pat_enabled", input.PatEnabled) {
+	if !assignBool("mcp.enabled", input.Enabled) || !assignBool("mcp.pat_enabled", input.PatEnabled) || !assignBool("mcp.oauth_enabled", input.OauthEnabled) {
 		return false
 	}
 	if !assignInt("mcp.default_timeout_seconds", input.DefaultTimeoutSeconds) ||

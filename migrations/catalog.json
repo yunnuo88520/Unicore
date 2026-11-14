@@ -133,6 +133,14 @@
             "postgres": "platform/postgres/0003_mcp_governance.sql",
             "mysql": "platform/mysql/0003_mcp_governance.sql"
           }
+        },
+        {
+          "version": 4,
+          "files": {
+            "sqlite": "platform/sqlite/0004_mcp_oauth.sql",
+            "postgres": "platform/postgres/0004_mcp_oauth.sql",
+            "mysql": "platform/mysql/0004_mcp_oauth.sql"
+          }
         }
       ]
     },

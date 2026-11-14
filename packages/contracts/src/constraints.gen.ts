@@ -8098,6 +8098,598 @@ export const constraints = {
       }
     }
   },
+  "McpOauthAuthorizeView": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "client_id",
+      "client_name",
+      "scopes",
+      "roles",
+      "resource"
+    ],
+    "properties": {
+      "client_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "client_name": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "scopes": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 32
+        }
+      },
+      "roles": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/RoleOption"
+        }
+      },
+      "resource": {
+        "type": "string",
+        "maxLength": 2048
+      },
+      "state": {
+        "type": "string",
+        "maxLength": 256
+      }
+    }
+  },
+  "McpOauthAuthorizeViewResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/McpOauthAuthorizeView"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "McpOauthConsentInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "client_id",
+      "redirect_uri",
+      "role_id"
+    ],
+    "properties": {
+      "client_id": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      },
+      "redirect_uri": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2048
+      },
+      "scope": {
+        "type": "string",
+        "maxLength": 200
+      },
+      "state": {
+        "type": "string",
+        "maxLength": 256
+      },
+      "code_challenge": {
+        "type": "string",
+        "maxLength": 128
+      },
+      "code_challenge_method": {
+        "type": "string",
+        "maxLength": 16
+      },
+      "resource": {
+        "type": "string",
+        "maxLength": 2048
+      },
+      "role_id": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 80
+      }
+    }
+  },
+  "McpOauthConsentResult": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "redirect_uri",
+      "expires_in"
+    ],
+    "properties": {
+      "redirect_uri": {
+        "type": "string",
+        "maxLength": 2400
+      },
+      "expires_in": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 600
+      }
+    }
+  },
+  "McpOauthConsentResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/McpOauthConsentResult"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "McpOauthGrant": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "client_id",
+      "client_name",
+      "role_id",
+      "role_name",
+      "scopes",
+      "created_at",
+      "last_used_at"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "client_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "client_name": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "role_id": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "role_name": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "scopes": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 32
+        }
+      },
+      "created_at": {
+        "type": "integer"
+      },
+      "last_used_at": {
+        "type": "integer"
+      }
+    }
+  },
+  "McpOauthGrantList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/McpOauthGrant"
+        }
+      }
+    }
+  },
+  "McpOauthGrantListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/McpOauthGrantList"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "McpOauthClient": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "name",
+      "client_type",
+      "redirect_uris",
+      "enabled",
+      "has_secret",
+      "version",
+      "created_at",
+      "updated_at"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "name": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "client_type": {
+        "type": "string",
+        "maxLength": 16
+      },
+      "redirect_uris": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 2048
+        }
+      },
+      "enabled": {
+        "type": "boolean"
+      },
+      "has_secret": {
+        "type": "boolean"
+      },
+      "version": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "created_at": {
+        "type": "integer"
+      },
+      "updated_at": {
+        "type": "integer"
+      }
+    }
+  },
+  "McpOauthClientList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/McpOauthClient"
+        }
+      }
+    }
+  },
+  "McpOauthClientListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/McpOauthClientList"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "McpOauthClientCreateInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "name",
+      "client_type",
+      "redirect_uris"
+    ],
+    "properties": {
+      "name": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 80
+      },
+      "client_type": {
+        "type": "string",
+        "enum": [
+          "public",
+          "confidential"
+        ]
+      },
+      "redirect_uris": {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 10,
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        }
+      }
+    }
+  },
+  "McpOauthClientCreated": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "client",
+      "secret"
+    ],
+    "properties": {
+      "client": {
+        "$ref": "#/components/schemas/McpOauthClient"
+      },
+      "secret": {
+        "type": "string",
+        "maxLength": 128
+      }
+    }
+  },
+  "McpOauthClientCreatedResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/McpOauthClientCreated"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "McpOauthClientUpdateInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "name",
+      "redirect_uris",
+      "enabled",
+      "expected_version"
+    ],
+    "properties": {
+      "name": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 80
+      },
+      "redirect_uris": {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 10,
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        }
+      },
+      "enabled": {
+        "type": "boolean"
+      },
+      "expected_version": {
+        "type": "integer",
+        "minimum": 1
+      }
+    }
+  },
+  "McpOauthClientResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/McpOauthClient"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "McpOauthClientSecret": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "secret"
+    ],
+    "properties": {
+      "secret": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      }
+    }
+  },
+  "McpOauthClientSecretResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/McpOauthClientSecret"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
+  "McpOauthAdminGrant": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "user_id",
+      "username",
+      "role_id",
+      "role_name",
+      "scopes",
+      "created_at",
+      "last_used_at"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "user_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "username": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "role_id": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "role_name": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "scopes": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 32
+        }
+      },
+      "created_at": {
+        "type": "integer"
+      },
+      "last_used_at": {
+        "type": "integer"
+      }
+    }
+  },
+  "McpOauthAdminGrantList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/McpOauthAdminGrant"
+        }
+      }
+    }
+  },
+  "McpOauthAdminGrantListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/McpOauthAdminGrantList"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
   "McpConfig": {
     "type": "object",
     "additionalProperties": false,
@@ -8105,6 +8697,7 @@ export const constraints = {
       "revision",
       "enabled",
       "pat_enabled",
+      "oauth_enabled",
       "endpoint",
       "supported_protocols",
       "implemented_capabilities",
@@ -8120,6 +8713,9 @@ export const constraints = {
         "type": "boolean"
       },
       "pat_enabled": {
+        "type": "boolean"
+      },
+      "oauth_enabled": {
         "type": "boolean"
       },
       "endpoint": {
@@ -8190,6 +8786,9 @@ export const constraints = {
         "type": "boolean"
       },
       "pat_enabled": {
+        "type": "boolean"
+      },
+      "oauth_enabled": {
         "type": "boolean"
       },
       "default_timeout_seconds": {

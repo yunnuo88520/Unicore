@@ -22,8 +22,8 @@ import (
 	"github.com/robfig/cron/v3"
 
 	webassets "github.com/yunnuo/unicore/apps/web"
-	mcpadapter "github.com/yunnuo/unicore/internal/adapter/mcp"
 	httpadapter "github.com/yunnuo/unicore/internal/adapter/http"
+	mcpadapter "github.com/yunnuo/unicore/internal/adapter/mcp"
 	"github.com/yunnuo/unicore/internal/adapter/presenter"
 	"github.com/yunnuo/unicore/internal/adapter/storage/platformsql"
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
@@ -42,9 +42,11 @@ import (
 	"github.com/yunnuo/unicore/internal/observability"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/platform/mcpauth"
+	"github.com/yunnuo/unicore/internal/platform/mcpoauth"
 	"github.com/yunnuo/unicore/internal/realtime"
 	"github.com/yunnuo/unicore/internal/runtime"
 	"github.com/yunnuo/unicore/internal/scheduler"
+	"github.com/yunnuo/unicore/internal/settings"
 )
 
 // logSink outlives run so the final stop_failed record still reaches the log
@@ -316,7 +318,23 @@ func run(args []string) (result error) {
 	if err := mcpRegistry.Freeze(); err != nil {
 		return fmt.Errorf("mcp registry freeze failed: %w", err)
 	}
-	mcpSurface := &mcpadapter.Surface{Install: manager, Logger: logger, Version: metadata.Version, Service: mcpService, Registry: mcpRegistry}
+	// The OAuth authorization service shares the governance store's lazy
+	// resolution: uninstalled or non-platform instances keep failing closed
+	// while the surface answers a plain 404 on every OAuth route.
+	mcpOAuth := mcpoauth.New(mcpadapter.OAuthStore{Manager: manager}, func() string {
+		// One resource resolver for grants, discovery and consent: the live
+		// site.base_url setting wins, the install-time value falls back.
+		_, settingsService, _, profile := manager.Services()
+		if settingsService == nil || profile != runtime.WebPlatform {
+			return mcpoauth.CanonicalResource(manager.BaseURL())
+		}
+		values, err := settingsService.Raw(context.Background())
+		if err != nil {
+			return mcpoauth.CanonicalResource(manager.BaseURL())
+		}
+		return mcpoauth.CanonicalResource(settings.MailBaseURL(values, manager.BaseURL()))
+	})
+	mcpSurface := &mcpadapter.Surface{Install: manager, Logger: logger, Version: metadata.Version, Service: mcpService, Registry: mcpRegistry, OAuth: mcpOAuth}
 	server := &http.Server{Addr: options.Listen, Handler: httpadapter.New(httpadapter.Config{Updates: updater, Metadata: metadata, Core: bootstrap.Core(), Assets: webassets.FS(), Logger: logger, Install: manager, APIDocs: options.APIDocs, ReadinessTimeout: options.ReadinessTimeout, Metrics: metrics, Hub: hub, LogBroadcast: broadcast, Monitor: appMonitor, Notify: notifyService, MCP: mcpSurface}), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
 	listener, err := net.Listen("tcp", server.Addr)
 	if err != nil {
@@ -391,6 +409,18 @@ func run(args []string) (result error) {
 		if _, err = localCron.AddFunc("@every 1h", sink.Sweep); err != nil {
 			return err
 		}
+	}
+	// Expired OAuth codes and tokens leave the authorization tables on the
+	// same hourly rhythm; the sweep fails closed outside an installed platform.
+	if _, err = localCron.AddFunc("@every 1h", func() {
+		if _, _, _, currentProfile := manager.Services(); currentProfile != runtime.WebPlatform || !manager.Installed() {
+			return
+		}
+		if err := mcpOAuth.Sweep(workerCtx); err != nil && workerCtx.Err() == nil {
+			logger.Warn("mcp oauth sweep unavailable", "event", "mcp.oauth_sweep_unavailable")
+		}
+	}); err != nil {
+		return err
 	}
 	localCron.Start()
 	tasks.Register("announcements.refresh", "@every 1m", scheduler.AnnouncementRefresh(func() *sqlstore.Store {

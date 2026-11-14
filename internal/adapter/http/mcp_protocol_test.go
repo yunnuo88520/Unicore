@@ -6,26 +6,31 @@ package httpadapter
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
 	mcpadapter "github.com/yunnuo/unicore/internal/adapter/mcp"
 	"github.com/yunnuo/unicore/internal/adapter/storage/platformsql"
-	notesnotessql "github.com/yunnuo/unicore/internal/modules/notes/storage/notessql"
-	notesusecase "github.com/yunnuo/unicore/internal/modules/notes/usecase"
 	"github.com/yunnuo/unicore/internal/bootstrap"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/mcp"
+	notesnotessql "github.com/yunnuo/unicore/internal/modules/notes/storage/notessql"
+	notesusecase "github.com/yunnuo/unicore/internal/modules/notes/usecase"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/platform/mcpauth"
+	"github.com/yunnuo/unicore/internal/platform/mcpoauth"
 	"github.com/yunnuo/unicore/internal/runtime"
 )
 
@@ -42,13 +47,29 @@ func (t *bearerTransport) RoundTrip(request *http.Request) (*http.Response, erro
 	return t.inner.RoundTrip(clone)
 }
 
-func TestMCPProtocolInteropOverHTTP(t *testing.T) {
+// mcpInterop is the shared full-stack harness: a real platform install, the
+// frozen notes capability and the production surface wiring, OAuth included.
+type mcpInterop struct {
+	ctx        context.Context
+	manager    *install.Manager
+	repository *platformsql.Repository
+	identity   *platform.Service
+	admin      contracts.User
+	member     contracts.User
+	server     *httptest.Server
+	registry   *mcp.Registry
+	service    *mcp.Service
+	oauth      *mcpoauth.Service
+}
+
+func openMCPInterop(t *testing.T) *mcpInterop {
+	t.Helper()
 	ctx := context.Background()
 	manager, err := install.Open(ctx, install.Options{DataDir: t.TempDir()})
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer manager.Close()
+	t.Cleanup(func() { manager.Close() })
 	bootstrapToken, err := os.ReadFile(manager.TokenPath())
 	if err != nil {
 		t.Fatal(err)
@@ -64,7 +85,8 @@ func TestMCPProtocolInteropOverHTTP(t *testing.T) {
 	repository := &platformsql.Repository{Store: store}
 
 	// The MCP wiring mirrors the web composition root: module contributions
-	// register, the registry freezes, and the surface mounts behind /mcp.
+	// register, the registry freezes, and the surface mounts behind /mcp with
+	// the same lazy OAuth storage adapter.
 	registry := mcp.NewRegistry()
 	operations := mcp.OperationResolverFunc(func(id string) (mcp.OperationInfo, bool) {
 		operation, ok := platform.Operation(id)
@@ -74,10 +96,12 @@ func TestMCPProtocolInteropOverHTTP(t *testing.T) {
 		return mcp.OperationInfo{Grantable: operation.Grantable, SuperAdmin: operation.SuperAdmin, Permissions: operation.Permissions, PermissionMode: operation.PermissionMode}, true
 	})
 	governance := mcpadapter.GovernanceStore{Manager: manager}
+	var callSequence atomic.Int64
 	service := mcp.NewService(mcp.ServiceConfig{
 		Registry: registry, Authorizer: mcpauth.Authorizer{Operations: operations},
 		Policies: governance, Calls: governance,
-		Clock: mcp.ClockFunc(func() int64 { return 1000 }), NewIdentifier: func() string { return "e2e-req" },
+		Clock:         mcp.ClockFunc(func() int64 { return 1000 }),
+		NewIdentifier: func() string { return fmt.Sprintf("e2e-req-%d", callSequence.Add(1)) },
 	})
 	if err = mcpadapter.RegisterNotes(registry, manager, operations); err != nil {
 		t.Fatal(err)
@@ -85,10 +109,11 @@ func TestMCPProtocolInteropOverHTTP(t *testing.T) {
 	if err = registry.Freeze(); err != nil {
 		t.Fatal(err)
 	}
-	surface := &mcpadapter.Surface{Install: manager, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Version: "test", Service: service, Registry: registry}
+	oauth := mcpoauth.New(mcpadapter.OAuthStore{Manager: manager}, func() string { return "http://localhost/mcp" })
+	surface := &mcpadapter.Surface{Install: manager, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Version: "test", Service: service, Registry: registry, OAuth: oauth}
 	router := New(Config{Core: bootstrap.Core(), Install: manager, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), MCP: surface})
 	server := httptest.NewServer(router)
-	defer server.Close()
+	t.Cleanup(server.Close)
 
 	// Grant the default user role the access point and the notes read operation.
 	for _, permission := range []string{"mcp:access", "notes:access"} {
@@ -104,14 +129,6 @@ func TestMCPProtocolInteropOverHTTP(t *testing.T) {
 	}
 
 	member, err := identity.Create(ctx, contracts.UserCreate{Username: "member", Email: "member@example.test", Password: "test-password-strong", Role: "user"}, admin.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, adminSession, err := identity.Issue(ctx, admin, 1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	created, err := identity.Tokens.CreatePAT(ctx, adminSession, contracts.PersonalTokenInput{Name: "ai-client", RoleID: "user", ExpiresInDays: 1}, member.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,10 +157,25 @@ func TestMCPProtocolInteropOverHTTP(t *testing.T) {
 	if _, err = repository.UpdateMCPPolicy(ctx, mcp.Policy{Kind: mcp.KindTool, Name: "notes.search", Enabled: true, AcceptedFingerprint: fingerprint, AcceptedVersion: "1.0"}, fingerprint, admin.ID); err != nil {
 		t.Fatal(err)
 	}
+	return &mcpInterop{ctx: ctx, manager: manager, repository: repository, identity: identity, admin: admin, member: member, server: server, registry: registry, service: service, oauth: oauth}
+}
+
+func TestMCPProtocolInteropOverHTTP(t *testing.T) {
+	env := openMCPInterop(t)
+	ctx := env.ctx
+
+	_, adminSession, err := env.identity.Issue(ctx, env.admin, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	created, err := env.identity.Tokens.CreatePAT(ctx, adminSession, contracts.PersonalTokenInput{Name: "ai-client", RoleID: "user", ExpiresInDays: 1}, env.member.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// A real protocol client discovers and calls through the pinned baseline.
-	client := &http.Client{Transport: &bearerTransport{inner: server.Client().Transport, bearer: created.Token}}
-	transport := &sdk.StreamableClientTransport{Endpoint: server.URL + "/mcp", HTTPClient: client, DisableStandaloneSSE: true}
+	client := &http.Client{Transport: &bearerTransport{inner: env.server.Client().Transport, bearer: created.Token}}
+	transport := &sdk.StreamableClientTransport{Endpoint: env.server.URL + "/mcp", HTTPClient: client, DisableStandaloneSSE: true}
 	session, err := sdk.NewClient(&sdk.Implementation{Name: "unicore-e2e", Version: "0"}, nil).Connect(ctx, transport, nil)
 	if err != nil {
 		t.Fatalf("protocol connect failed: %v", err)
@@ -175,11 +207,131 @@ func TestMCPProtocolInteropOverHTTP(t *testing.T) {
 		t.Fatal("closed capability unexpectedly executed")
 	}
 	// The call record exists with its content-free metadata.
-	records, total, err := repository.ListMCPCalls(ctx, platformsql.MCPCallFilter{})
+	records, total, err := env.repository.ListMCPCalls(ctx, platformsql.MCPCallFilter{})
 	if err != nil || total != 1 || len(records) != 1 {
 		t.Fatalf("call records = %d/%d, %v; want exactly one", len(records), total, err)
 	}
-	if records[0].Start.Name != "notes.search" || records[0].Finish.Status != "succeeded" || records[0].Start.ActorID != member.ID {
+	if records[0].Start.Name != "notes.search" || records[0].Finish.Status != "succeeded" || records[0].Start.ActorID != env.member.ID {
 		t.Fatalf("record projection mismatch: %+v", records[0])
+	}
+
+	// Legacy clients negotiate down to 2025-11-25 and ride the same stateless
+	// authorization chain: no separate credential family, session store or
+	// directory for the old revision.
+	legacy, err := sdk.NewClient(&sdk.Implementation{Name: "unicore-legacy", Version: "0"}, nil).Connect(ctx, transport, &sdk.ClientSessionOptions{ProtocolVersion: "2025-11-25"})
+	if err != nil {
+		t.Fatalf("legacy protocol connect failed: %v", err)
+	}
+	defer legacy.Close()
+	if revision := legacy.InitializeResult().ProtocolVersion; revision != "2025-11-25" {
+		t.Fatalf("legacy negotiated revision %q, want 2025-11-25", revision)
+	}
+	legacyListing, err := legacy.ListTools(ctx, nil)
+	if err != nil || len(legacyListing.Tools) != 1 || legacyListing.Tools[0].Name != "notes.search" {
+		t.Fatalf("legacy tools/list = %+v, %v; want exactly notes.search", legacyListing, err)
+	}
+	legacyResult, err := legacy.CallTool(ctx, &sdk.CallToolParams{Name: "notes.search", Arguments: map[string]any{"search": "hello"}})
+	if err != nil || legacyResult.IsError {
+		t.Fatalf("legacy notes.search failed: %v %+v", err, legacyResult)
+	}
+	legacyStructured, _ := legacyResult.StructuredContent.(map[string]any)
+	if legacyStructured["total"] != float64(1) {
+		t.Fatalf("legacy search total = %v, want 1", legacyStructured["total"])
+	}
+}
+
+func TestMCPProtocolOAuthInteropOverHTTP(t *testing.T) {
+	env := openMCPInterop(t)
+	ctx := env.ctx
+
+	// The OAuth switch gates every ucm_ credential at the transport gate.
+	revision, err := env.repository.MCPControlRevision(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = env.repository.UpdateMCPConfig(ctx, revision, map[string]string{"mcp.oauth_enabled": "true"}, env.admin.ID); err != nil {
+		t.Fatal(err)
+	}
+
+	// Register and enable one public client the way the admin console would.
+	client, _, err := env.oauth.CreateClient(ctx, "E2E CLI", mcpoauth.ClientPublic, "", []string{"http://127.0.0.1:0/callback"}, env.admin.Username)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = env.oauth.UpdateClient(ctx, client.ID, client.Name, client.RedirectURIs, true, client.Version, env.admin.Username); err != nil {
+		t.Fatal(err)
+	}
+
+	// The consent step binds one held role; the service issues a one-time
+	// code that only exchanges once against the registered callback.
+	grant, err := env.oauth.CreateGrant(ctx, env.member.ID, client.ID, "user", []string{mcpoauth.ScopeRead, mcpoauth.ScopeOffline}, env.member.Roles)
+	if err != nil {
+		t.Fatal(err)
+	}
+	verifier := strings.Repeat("v", 48)
+	sum := sha256.Sum256([]byte(verifier))
+	challenge := base64.RawURLEncoding.EncodeToString(sum[:])
+	code, err := env.oauth.IssueCode(ctx, grant, client.RedirectURIs[0], challenge, "S256")
+	if err != nil {
+		t.Fatal(err)
+	}
+	issued, err := env.oauth.ExchangeCode(ctx, client.ID, "", code, client.RedirectURIs[0], verifier)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if issued.AccessToken == "" || issued.RefreshToken == "" {
+		t.Fatal("oauth exchange must yield both tokens")
+	}
+
+	// The OAuth access token reaches the same directory under the same rules.
+	transport := &sdk.StreamableClientTransport{
+		Endpoint: env.server.URL + "/mcp", DisableStandaloneSSE: true,
+		HTTPClient: &http.Client{Transport: &bearerTransport{inner: env.server.Client().Transport, bearer: issued.AccessToken}},
+	}
+	session, err := sdk.NewClient(&sdk.Implementation{Name: "unicore-oauth", Version: "0"}, nil).Connect(ctx, transport, nil)
+	if err != nil {
+		t.Fatalf("oauth protocol connect failed: %v", err)
+	}
+	listing, err := session.ListTools(ctx, nil)
+	if err != nil || len(listing.Tools) != 1 || listing.Tools[0].Name != "notes.search" {
+		t.Fatalf("oauth tools/list = %+v, %v; want exactly notes.search", listing, err)
+	}
+	result, err := session.CallTool(ctx, &sdk.CallToolParams{Name: "notes.search", Arguments: map[string]any{"search": "hello"}})
+	if err != nil || result.IsError {
+		t.Fatalf("oauth notes.search failed: %v %+v", err, result)
+	}
+	structured, _ := result.StructuredContent.(map[string]any)
+	if structured["total"] != float64(1) {
+		t.Fatalf("oauth search total = %v, want 1", structured["total"])
+	}
+	session.Close()
+
+	// Revoking the grant kills every token at once; the next request is
+	// rejected before any protocol handling.
+	records, err := env.oauth.Store.GrantsForUser(ctx, env.member.ID)
+	if err != nil || len(records) != 1 {
+		t.Fatalf("grants for user = %v/%d", records, err)
+	}
+	if err = env.oauth.RevokeGrant(ctx, records[0], env.admin.Username); err != nil {
+		t.Fatal(err)
+	}
+	rejected, err := http.Get(env.server.URL + "/mcp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rejected.Body.Close()
+	_ = rejected
+	request, err := http.NewRequest(http.MethodPost, env.server.URL+"/mcp", strings.NewReader(`{}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Authorization", "Bearer "+issued.AccessToken)
+	after, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	after.Body.Close()
+	if after.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("post-revocation status = %d, want 401", after.StatusCode)
 	}
 }

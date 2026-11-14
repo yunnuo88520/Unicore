@@ -12,6 +12,7 @@ import (
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/mcp"
 	"github.com/yunnuo/unicore/internal/platform"
+	"github.com/yunnuo/unicore/internal/platform/mcpoauth"
 )
 
 // MCPAccessPermission is the catalog point every MCP caller must hold.
@@ -30,6 +31,10 @@ type Principal struct {
 	version    string
 	user       contracts.User
 	scopes     scopeResolver
+	// budget carries the OAuth transport scopes of the backing grant; PAT
+	// principals leave it empty. The core pipeline consults it when the
+	// write phase lands, never before.
+	budget []string
 }
 
 // scopeResolver resolves the row-level data scope for one permission point.
@@ -86,6 +91,31 @@ func (p *Principal) AuthVersion() string  { return p.version }
 
 // User exposes the role-scoped account projection for tool adapters.
 func (p *Principal) User() contracts.User { return p.user }
+
+// Scopes returns the OAuth transport budget; PAT principals return nil.
+func (p *Principal) Scopes() []string { return p.budget }
+
+// NewOAuthPrincipal converts a resolved MCP grant into a principal for the
+// current request. The grant actor snapshot must already be role-filtered;
+// the grant identifier acts as the credential id in call records. The scope
+// resolver rides along so tool adapters resolve row-level data scopes exactly
+// like the PAT path.
+func NewOAuthPrincipal(user contracts.User, grant mcpoauth.Grant, credentialID string, store scopeResolver) (*Principal, error) {
+	if user.ID != grant.UserID {
+		return nil, mcp.ErrAuth("grant actor does not match the resolved account")
+	}
+	p := &Principal{
+		actor:      user.ID,
+		credential: credentialID,
+		role:       grant.RoleID,
+		method:     "oauth",
+		user:       user,
+		scopes:     store,
+		budget:     grant.Scopes,
+	}
+	p.version = authorizationVersion(p.role, p.user)
+	return p, nil
+}
 
 // HasPermission reports whether the bound role holds a permission point.
 func (p *Principal) HasPermission(point string) bool {

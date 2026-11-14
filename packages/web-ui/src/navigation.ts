@@ -19,7 +19,8 @@ export type NavEntry = {
 export type Navigation = { sections: { id: string; title: string; showTitle: boolean; entries: NavEntry[] }[] };
 export type NavigationConfig = Pick<MenuList, 'version' | 'sections' | 'nodes'>;
 export function isLinkEntry(entry: NavEntry): entry is NavEntry & { url: string } { return entry.type === 'link' && !!entry.url; }
-export function isRegisteredPage(id: string | undefined): id is Page { return !!id && id !== 'not-found' && Object.hasOwn(routes, id); }
+// The consent page is a standalone flow destination, never a menu entry.
+export function isRegisteredPage(id: string | undefined): id is Page { return !!id && id !== 'not-found' && id !== 'authorize' && Object.hasOwn(routes, id); }
 export function routePath(id: Page): string { return id === 'overview' ? '/' : `/${id}`; }
 export function registeredPath(url: string): Page | undefined {
   try {
@@ -39,7 +40,7 @@ const builtinPageOrder: string[] = [
   'announcements', 'tasks', 'api-docs', 'site', 'storage', 'account-policy', 'mail', 'mail-templates',
   'notification-channels', 'notification-templates', 'system-notifications', 'logs', 'edition', 'access-tokens',
   'monitor', 'monitor-services', 'monitor-resources', 'monitor-events',
-  'ai-access', 'ai-tools', 'ai-calls',
+  'ai-access', 'ai-tools', 'ai-calls', 'ai-oauth',
 ];
 // Module pages append after the builtins in each module's declared order.
 export const defaultPageOrder: string[] = [...builtinPageOrder, ...uiModules().flatMap(item => item.order ?? [])];

@@ -39,6 +39,8 @@ export const routes = defineMessages({
   'access-tokens': { label: '访问令牌管理', title: '访问令牌管理', description: '管理所有用户的令牌、绑定角色与有效期。', permission: 'tokens:read', icon: ShieldCheck, group: 'administration' },
   // No permission or authenticated marker: reachable whenever the instance publishes /openapi.json (config.APIDocs).
   'api-docs': { label: 'API 文档', title: 'API 文档', description: '浏览与下载 OpenAPI 接口契约。', icon: BookOpen },
+  // OAuth consent renders outside the workspace chrome; platform accounts only.
+  authorize: { label: '授权确认', title: '授权确认', description: '确认外部应用对 MCP 能力的访问授权。', icon: ShieldCheck },
   monitor: { label: '运行概览', title: '运行监控', description: '查看实例运行状态、版本与核心健康。', permission: 'monitor:read', local: true, database: true, group: 'monitor', icon: Activity },
   'monitor-services': { label: '服务健康', title: '服务健康', description: '检查 HTTP、数据库、存储与后台任务状态。', permission: 'monitor:read', database: true, group: 'monitor', icon: Radar },
   'monitor-resources': { label: '资源监控', title: '资源监控', description: '观察主机硬件、进程与 Go Runtime 资源。', permission: 'monitor:read', database: true, group: 'monitor', icon: Cpu },
@@ -46,6 +48,7 @@ export const routes = defineMessages({
   'ai-access': { label: '接入配置', title: 'AI 管理 · 接入配置', description: '启用 MCP 服务、设置调用限制与浏览器来源白名单。', permission: 'mcp:read', icon: Bot, group: 'ai' },
   'ai-tools': { label: '工具目录', title: 'AI 管理 · 工具目录', description: '审查并开放经代码注册的 MCP 业务工具。', permission: 'mcp:read', icon: Wrench, group: 'ai' },
   'ai-calls': { label: '调用记录', title: 'AI 管理 · 调用记录', description: '查询 MCP 调用的元数据、结果与耗时。', permission: 'mcp:logs:read', icon: ScrollText, group: 'ai' },
+  'ai-oauth': { label: 'OAuth 接入', title: 'AI 管理 · OAuth 接入', description: '预注册通过授权码 + PKCE 接入 MCP 的外部应用并管理其授权。', permission: 'mcp:clients:read', icon: Webhook, group: 'ai' },
   'not-found': { label: '页面不存在', title: '页面不存在', description: '这个地址尚未注册，请通过导航进入已有页面。', icon: Circle },
 } as const);
 export type Page = keyof typeof routes;
@@ -98,6 +101,8 @@ export function canAccess(page: Page, metadata?: Bootstrap): boolean {
   // The instance publishes /openapi.json only with the api_docs capability; the
   // desktop build has no contract endpoint, so it never gains the page.
   if (page === 'api-docs') return !!metadata.capabilities.api_docs && (metadata.profile === 'web-platform' || metadata.profile === 'web-standalone');
+  // OAuth consent is a personal platform flow, never a workspace menu page.
+  if (page === 'authorize') return metadata.profile === 'web-platform' && !!metadata.current_user;
   // Updates stay super-only: restricted operators never reach the update panel.
   if (page === 'edition') return metadata.profile==='web-platform' ? isAdministrator(metadata) && ((__FEATURE_UPDATER__ && metadata.capabilities.updater) || (__FEATURE_LICENSE__ && metadata.capabilities.license)) : __FEATURE_UPDATER__ && metadata.capabilities.updater;
   if (page === 'site') return metadata.capabilities.settings && isAdminRealm(metadata) && !!metadata.current_user;

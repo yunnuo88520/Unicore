@@ -74,4 +74,5 @@ var ErrorCatalog = map[string]ErrorDefinition{
 	"NOTIFICATION_CHANNEL_NOT_READY":       {Status: 400, Message: "请先配置、启用并保存通知渠道"},
 	"MCP_CONFLICT":                         {Status: 409, Message: "配置或策略已被其他管理员修改，请刷新后重试"},
 	"MCP_UNAVAILABLE":                      {Status: 503, Message: "MCP 服务当前不可用"},
+	"MCP_OAUTH_FORBIDDEN":                  {Status: 403, Message: "所选角色不属于当前账号"},
 }

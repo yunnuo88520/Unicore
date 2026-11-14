@@ -25,6 +25,7 @@ import { AdminDictionariesPage } from './pages/admin/dictionaries';
 import { AdminMonitorEventsPage, AdminMonitorPage, AdminMonitorResourcesPage, AdminMonitorServicesPage } from './pages/monitor';
 import { AdminAiAccessPage } from './pages/admin/ai/access';
 import { AdminAiCallsPage } from './pages/admin/ai/calls';
+import { AdminAiOauthPage } from './pages/admin/ai/oauth';
 import { AdminAiToolsPage } from './pages/admin/ai/tools';
 
 export function AdministrationPage(props: PageProps) {
@@ -53,6 +54,7 @@ export function AdministrationPage(props: PageProps) {
     case 'ai-access': return <AdminAiAccessPage {...props} />;
     case 'ai-tools': return <AdminAiToolsPage {...props} />;
     case 'ai-calls': return <AdminAiCallsPage {...props} />;
+    case 'ai-oauth': return <AdminAiOauthPage {...props} />;
     default: return null;
   }
 }

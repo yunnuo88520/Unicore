@@ -2027,10 +2027,160 @@ type McpLimits struct {
 	LogRetentionDays         int `json:"log_retention_days"`
 }
 
+type McpOauthAuthorizeView struct {
+	ClientID   string       `json:"client_id"`
+	ClientName string       `json:"client_name"`
+	Scopes     []string     `json:"scopes"`
+	Roles      []RoleOption `json:"roles"`
+	Resource   string       `json:"resource"`
+	State      *string      `json:"state,omitempty"`
+}
+
+type McpOauthAuthorizeViewResponse struct {
+	Code      string                `json:"code"`
+	Message   string                `json:"message"`
+	Data      McpOauthAuthorizeView `json:"data"`
+	RequestID string                `json:"request_id"`
+}
+
+type McpOauthConsentInput struct {
+	ClientID            string  `json:"client_id"`
+	RedirectUri         string  `json:"redirect_uri"`
+	Scope               *string `json:"scope,omitempty"`
+	State               *string `json:"state,omitempty"`
+	CodeChallenge       *string `json:"code_challenge,omitempty"`
+	CodeChallengeMethod *string `json:"code_challenge_method,omitempty"`
+	Resource            *string `json:"resource,omitempty"`
+	RoleID              string  `json:"role_id"`
+}
+
+type McpOauthConsentResult struct {
+	RedirectUri string `json:"redirect_uri"`
+	ExpiresIn   int    `json:"expires_in"`
+}
+
+type McpOauthConsentResponse struct {
+	Code      string                `json:"code"`
+	Message   string                `json:"message"`
+	Data      McpOauthConsentResult `json:"data"`
+	RequestID string                `json:"request_id"`
+}
+
+type McpOauthGrant struct {
+	ID         string   `json:"id"`
+	ClientID   string   `json:"client_id"`
+	ClientName string   `json:"client_name"`
+	RoleID     string   `json:"role_id"`
+	RoleName   string   `json:"role_name"`
+	Scopes     []string `json:"scopes"`
+	CreatedAt  int      `json:"created_at"`
+	LastUsedAt int      `json:"last_used_at"`
+}
+
+type McpOauthGrantList struct {
+	Items []McpOauthGrant `json:"items"`
+}
+
+type McpOauthGrantListResponse struct {
+	Code      string            `json:"code"`
+	Message   string            `json:"message"`
+	Data      McpOauthGrantList `json:"data"`
+	RequestID string            `json:"request_id"`
+}
+
+type McpOauthClient struct {
+	ID           string   `json:"id"`
+	Name         string   `json:"name"`
+	ClientType   string   `json:"client_type"`
+	RedirectUris []string `json:"redirect_uris"`
+	Enabled      bool     `json:"enabled"`
+	HasSecret    bool     `json:"has_secret"`
+	Version      int      `json:"version"`
+	CreatedAt    int      `json:"created_at"`
+	UpdatedAt    int      `json:"updated_at"`
+}
+
+type McpOauthClientList struct {
+	Items []McpOauthClient `json:"items"`
+}
+
+type McpOauthClientListResponse struct {
+	Code      string             `json:"code"`
+	Message   string             `json:"message"`
+	Data      McpOauthClientList `json:"data"`
+	RequestID string             `json:"request_id"`
+}
+
+type McpOauthClientCreateInput struct {
+	Name         string   `json:"name"`
+	ClientType   string   `json:"client_type"`
+	RedirectUris []string `json:"redirect_uris"`
+}
+
+type McpOauthClientCreated struct {
+	Client McpOauthClient `json:"client"`
+	Secret string         `json:"secret"`
+}
+
+type McpOauthClientCreatedResponse struct {
+	Code      string                `json:"code"`
+	Message   string                `json:"message"`
+	Data      McpOauthClientCreated `json:"data"`
+	RequestID string                `json:"request_id"`
+}
+
+type McpOauthClientUpdateInput struct {
+	Name            string   `json:"name"`
+	RedirectUris    []string `json:"redirect_uris"`
+	Enabled         bool     `json:"enabled"`
+	ExpectedVersion int      `json:"expected_version"`
+}
+
+type McpOauthClientResponse struct {
+	Code      string         `json:"code"`
+	Message   string         `json:"message"`
+	Data      McpOauthClient `json:"data"`
+	RequestID string         `json:"request_id"`
+}
+
+type McpOauthClientSecret struct {
+	Secret string `json:"secret"`
+}
+
+type McpOauthClientSecretResponse struct {
+	Code      string               `json:"code"`
+	Message   string               `json:"message"`
+	Data      McpOauthClientSecret `json:"data"`
+	RequestID string               `json:"request_id"`
+}
+
+type McpOauthAdminGrant struct {
+	ID         string   `json:"id"`
+	UserID     string   `json:"user_id"`
+	Username   string   `json:"username"`
+	RoleID     string   `json:"role_id"`
+	RoleName   string   `json:"role_name"`
+	Scopes     []string `json:"scopes"`
+	CreatedAt  int      `json:"created_at"`
+	LastUsedAt int      `json:"last_used_at"`
+}
+
+type McpOauthAdminGrantList struct {
+	Items []McpOauthAdminGrant `json:"items"`
+}
+
+type McpOauthAdminGrantListResponse struct {
+	Code      string                 `json:"code"`
+	Message   string                 `json:"message"`
+	Data      McpOauthAdminGrantList `json:"data"`
+	RequestID string                 `json:"request_id"`
+}
+
 type McpConfig struct {
 	Revision                int       `json:"revision"`
 	Enabled                 bool      `json:"enabled"`
 	PatEnabled              bool      `json:"pat_enabled"`
+	OauthEnabled            bool      `json:"oauth_enabled"`
 	Endpoint                string    `json:"endpoint"`
 	SupportedProtocols      []string  `json:"supported_protocols"`
 	ImplementedCapabilities []string  `json:"implemented_capabilities"`
@@ -2049,6 +2199,7 @@ type McpConfigPatch struct {
 	ExpectedRevision         int     `json:"expected_revision"`
 	Enabled                  *bool   `json:"enabled,omitempty"`
 	PatEnabled               *bool   `json:"pat_enabled,omitempty"`
+	OauthEnabled             *bool   `json:"oauth_enabled,omitempty"`
 	DefaultTimeoutSeconds    *int    `json:"default_timeout_seconds,omitempty"`
 	MaxRequestBytes          *int    `json:"max_request_bytes,omitempty"`
 	MaxResultBytes           *int    `json:"max_result_bytes,omitempty"`

@@ -28,6 +28,9 @@
 | updates:read | GET /admin/updates；POST /admin/updates/check |
 | updates:apply | POST /admin/updates/apply，需确认已备份 |
 | monitor:read | GET /admin/monitor（运行监控快照）、GET/PUT /admin/monitor/alert-rules（告警规则，仅 super_admin 保留集，不可分配角色）、GET /admin/monitor/events（运行事件）、GET /admin/monitor/storage-probe；单机形态对应本机 `GET /monitor`、`GET /monitor/events`（access local，不走角色） |
+| mcp:read / mcp:write / mcp:logs:read | GET/PATCH /admin/mcp/config（mcp:read/write）、GET /admin/mcp/tools、/admin/mcp/tools/{name} 与 PATCH /admin/mcp/tools/{name}/policy（mcp:read/write）、GET /admin/mcp/calls、/admin/mcp/calls/{id}（mcp:logs:read） |
+| mcp:clients:read / mcp:clients:write | GET /admin/mcp/oauth-clients、GET /admin/mcp/oauth-clients/{id}/grants（mcp:clients:read）；POST /admin/mcp/oauth-clients、PATCH /admin/mcp/oauth-clients/{id}、POST /admin/mcp/oauth-clients/{id}/secret、DELETE /admin/mcp/oauth/grants/{id}（mcp:clients:write，全局撤销）；客户端密钥仅哈希持久化，创建与轮换响应一次性返回 |
+| 本人 MCP（会话，无权限点） | GET /account/mcp/access-info；GET/POST /account/mcp/oauth/authorize（同意描述与签发 code，POST 要求 CSRF）；GET /account/mcp/oauth/grants、DELETE /account/mcp/oauth/grants/{id}（本人撤销，CSRF）；`/mcp` 协议端点不走业务契约（PAT 与 OAuth ucm_ 令牌同链鉴权） |
 
 用户与管理工作台共用账号与 unicore_session Cookie（HttpOnly/SameSite=Lax，HTTPS 时 Secure）。路径选择工作台接口，不选择账号仓库；身份请求头不参与认证。事务从统一账号表重查操作者，角色分配与保留操作重查超管资格。本人改密校验旧密码，锁内复核后撤销该账号的共享会话与挑战，两端同时失效。企业绑定共用账号；两种 OIDC callback 保留各自浏览器证明 Cookie，管理员入口不提供 JIT。详见 [ADR-0037](../adr/ADR-0037-unified-user-identity.md)。
 

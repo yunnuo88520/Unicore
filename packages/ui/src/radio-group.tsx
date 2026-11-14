@@ -11,9 +11,9 @@ export const RadioGroup = forwardRef<HTMLDivElement, ComponentPropsWithoutRef<ty
 
 export const RadioGroupItem = forwardRef<HTMLButtonElement, ComponentPropsWithoutRef<typeof RadioGroupPrimitive.Item> & { itemLabel: string; name?: string }>(function RadioGroupItem({ className, itemLabel, children, ...props }, ref) {
   return <RadioGroupPrimitive.Item ref={ref} aria-label={itemLabel}
-    className={cn('relative flex min-h-9 items-center gap-2 rounded-lg border border-transparent bg-field px-3 text-sm text-ink outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus hover:border-line-strong data-[state=checked]:border-primary-line data-[state=checked]:bg-primary-soft data-[state=checked]:text-accent disabled:cursor-not-allowed disabled:opacity-55', className)} {...props}>
+    className={cn('group relative flex min-h-9 items-center gap-2 rounded-lg border border-line bg-surface px-3 text-sm text-ink outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus hover:border-line-strong data-[state=checked]:border-primary-line data-[state=checked]:bg-primary-soft data-[state=checked]:text-accent disabled:cursor-not-allowed disabled:opacity-55', className)} {...props}>
     <span className="relative flex size-3.5 shrink-0 items-center justify-center" aria-hidden="true">
-      <span className="absolute size-3.5 rounded-full border border-line" />
+      <span className="absolute size-3.5 rounded-full border border-line group-data-[state=checked]:border-accent" />
       <RadioGroupPrimitive.Indicator className="size-2 rounded-full bg-accent" />
     </span>
     {children}

@@ -122,7 +122,7 @@ export function AppField<T extends FieldValues>({ name, label, hint, rules, onFi
   const min = children.props.minLength ?? constraint.minLength;
   const max = children.props.maxLength ?? constraint.maxLength;
   const help = hint ?? (children.props.type === 'email' || constraint.format === 'email' ? t('填写完整邮箱地址，例如 name@example.com') : min && max ? t('填写 {{min}} 至 {{max}} 个字符', { min, max }) : min ? t('至少填写 {{count}} 个字符', { count: min }) : max ? t('最多填写 {{count}} 个字符', { count: max }) : undefined);
-  return <div data-invalid={!!message || undefined} className={cn('flex min-w-0 flex-col gap-2', floating && 'pt-2', className)}>
+  return <div data-invalid={!!message || undefined} className={cn('flex min-w-0 flex-col gap-2', className)}>
     {!floating && <label htmlFor={id} className="text-sm font-medium text-ink">{label}{mark}</label>}
     {isValidElement(children) ? cloneElement(children, {
       id,

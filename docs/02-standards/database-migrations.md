@@ -5,7 +5,7 @@
 
 ## 命名空间与依赖
 
-core 面向所有有数据库的产品；platform 仅 web-platform；业务模块使用 `module.<slug>`，Notes 为 module.notes。各命名空间独立从 version=1 开始，SQL 分 SQLite/PostgreSQL/MySQL 三方言。Web 两 Profile 均保留三方言，desktop 仅 SQLite，CLI 不创建 DB、不 import migrations、不嵌入 SQL。
+core 面向所有有数据库的产品；业务模块使用 `module.<slug>`，Notes 为 module.notes。**迁移成员以 Catalog 为准，不按 namespace 名推断产品装配**：当前 web-platform、web-standalone、desktop 均包含 core、platform、module.notes（Notes 可按 edition 裁剪），platform 已有 @1 基线、@2 收件箱 actions，本次 @3 追加角色 version。Standalone 两载体同步执行 platform 迁移，但不装配账号、认证或身份治理服务/管理入口；数据库隔离另行决策，见 [ADR-0046](../adr/ADR-0046-credential-delegation-role-concurrency.md)。各命名空间独立从 version=1 开始，SQL 分 SQLite/PostgreSQL/MySQL 三方言。Web 两 Profile 均保留三方言，desktop 仅 SQLite，CLI 不创建 DB、不 import migrations、不嵌入 SQL。
 
 新模块必须在唯一 `migrations/catalog.json` 登记 namespace、depends_on、明确版本、三方言引用与 Profile 成员；成员数组没有顺序语义，顺序只由依赖图按确定性 Kahn 排序产生。禁止私自从目录扫描猜版本、使用文件下标重编号、另建模块私有账本或手写当前最大等级。module.notes 只依赖 core，不能为了附件/身份强制本地引入 platform。CLI 的空元数据由工具生成，CLI 程序不读取迁移包。
 
@@ -28,6 +28,14 @@ SQL 负责最终结构、索引/约束、固定字段默认值和必要静态基
 执行前完整检查全部 namespace、Profile/owner、合法前缀及每个 checksum。未来、未知、缺口、checksum/Profile 不符均拒绝，任何业务/Seed/日志落库不得先发生。不实现 force/skipValidation。迁移锁（PG `pg_advisory_lock`、MySQL `GET_LOCK`）覆盖检查、执行、登记与复检；外部 DB 的锁不能仅靠目录 flock。
 
 SQLite 只读开库要验证 DB/WAL/SHM 与文件创建边界，不能先 touch DB；PG 只读+限定 schema；MySQL 不承诺事务 DDL。失败不启动业务，不把 CREATE IF NOT EXISTS 或单列存在当完整成功证据。恢复使用匹配快照到新目标，不删除目标库或迁移账本。备份清单的 `schema` 字段记录 catalog 世代（unicore-1 = 1）。
+
+## 追加迁移与恢复
+
+当前 `platform@3` 是 `ALTER TABLE unicore_roles ADD COLUMN version BIGINT NOT NULL DEFAULT 1` 的三方言追加迁移，不改写 @1/@2 原字节；已有及新建角色从 1 起。具有匹配世代/checksum 与合法账本前缀的 UI profile 在正常启动边界应用缺失尾部；旧双身份或其他不匹配开发基线不提供原地转换。不得把“正式版前允许经授权整合”当成每次迁移都可无授权改写基线。
+
+基线重放幂等不能推导所有追加 ALTER 均可重复执行。尤其 MySQL DDL 可已提交而账本未登记；执行失败立即停止业务，保留诊断，不能盲重试 ADD COLUMN、根据单列存在判定成功、手工补账本或删除行。使用匹配版本工具将升级前完整快照恢复到新目录/空专用库，再核验并重新部署；恢复不执行迁移，正常实例启动才向前执行。旧 binary 不能直接打开 @3 库作为回退。
+
+所有受影响 UI profile 的 Catalog 指纹随追加迁移变化，拒绝跨指纹 OTA；tar 停服备份后人工替换完整包，Docker 外部替换镜像并保留数据卷（无 socket、无容器内覆盖），desktop 退出后使用完整原生包和匹配快照。schema=1 是世代而非 platform 版本，namespace_versions/指纹与账本须分别核验。详见 [更新](../03-runbooks/updates.md) 与 [备份恢复](../03-runbooks/backup.md)。
 
 ## 验收
 

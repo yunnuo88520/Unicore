@@ -7,7 +7,7 @@
 
 ## A. 身份与访问治理（Platform 专属）
 
-装配省略点：`internal/install/manager.go` attach 仅在 web-platform 创建 identity/Accounts/OIDC/mailer；策略层对非平台形态的会话请求一律 404（`internal/adapter/http/policy.go`）。
+装配省略点：`internal/install/manager.go` attach 仅在 web-platform 创建 identity/Accounts/OIDC/mailer；策略层对非平台形态的会话请求一律 404（`internal/adapter/http/policy.go`）。这里的“不装配”指治理服务和入口，不指物理表不存在：当前 Catalog 的三个 UI profile 均包含 platform，已有 @2 收件箱 actions、本次追加 @3 角色版本列；Standalone 同步迁移但不装配身份治理，CLI 无数据库。数据库隔离另行决策，见 [ADR-0046](../adr/ADR-0046-credential-delegation-role-concurrency.md)。
 
 | 功能单元 | Platform | Standalone | CLI | 持久化 | 证据 |
 | --- | --- | --- | --- | --- | --- |
@@ -16,8 +16,9 @@
 | OIDC 企业登录与账号绑定 | 已实现，默认关闭 | 不装配 | 不装配 | unicore_oidc_flows | `internal/platform/oidc.go`、[OIDC 需求](feature-oidc.md) |
 | 用户管理（含 XLSX 导入导出） | 已实现，users:* | 不装配 | 不装配 | unicore_users | `internal/adapter/http/users.go`、`internal/adapter/http/xlsx.go` |
 | 管理员账号管理 | 已实现，super_admin 保护最后管理员 | 不装配 | 不装配 | unicore_personal_accounts | `internal/platform/roles.go` |
-| 角色与操作级授权（RBAC） | 已实现：服务端保留元数据 + 完整高级 API 选择器 + 显式撤销 | 不装配 | 不装配 | unicore_roles 等 | `internal/platform/roles.go`、`internal/platform/operations.go`、[角色需求](feature-roles.md)、[权限契约](../api/permissions.md) |
-| 菜单与导航授权 | 已实现：共享导航树持久化 + CAS + 菜单行角色分配（仅受影响会话失效） | 不装配（导航由客户端默认树生成） | 不适用 | unicore_navigation_state | `internal/platform/navigation.go`、`packages/web-ui/src/navigation.ts` |
+| 管理端凭据委派 | 已实现：users:credentials:write 独立范围，邮箱另需 users:update 范围；完整管理目标仅超管，PAT 禁止，旧角色不自动授予 | 不装配 | 不装配 | 复用 unicore_users 与安全状态表 | `internal/adapter/storage/platformsql/repository.go`、[ADR-0046](../adr/ADR-0046-credential-delegation-role-concurrency.md) |
+| 角色与操作级授权（RBAC） | 已实现：服务端保留元数据 + 完整高级 API 选择器 + 显式撤销；更新强制 version CAS，内置 user 固定 self，复制后可调 | 不装配 | 不装配 | unicore_roles 等（platform@3 追加 version） | `internal/platform/roles.go`、`internal/platform/operations.go`、[角色需求](feature-roles.md)、[权限契约](../api/permissions.md) |
+| 菜单与导航授权 | 已实现：共享导航树 CAS + 菜单节点角色补丁（导航 version/expected_role_ids，实际改变角色也递增其版本）；标签仅显式分配，超管默认访问不绕过 surface/隐藏禁用祖先 | 不装配（导航由客户端默认树生成） | 不适用 | unicore_navigation_state | `internal/platform/navigation.go`、`packages/web-ui/src/navigation.ts` |
 | 部门与数据范围 | 已实现，五值数据范围 fail-closed | 不装配 | 不装配 | unicore_departments | `internal/platform/datascope.go` |
 | 岗位管理 | 已实现（组织人事岗位，非内容帖子） | 不装配 | 不装配 | unicore_posts | `internal/adapter/http/posts.go` |
 | 数据字典 | 已实现（管理端 CRUD + 用户端只读） | 不装配 | 不装配 | unicore_dict_types | `internal/adapter/http/dictionaries.go` |

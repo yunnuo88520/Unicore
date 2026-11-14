@@ -468,6 +468,7 @@ export interface Role {
   action_ids: Array<string>;
   operation_ids: Array<string>;
   authorization_initialized: boolean;
+  version: number;
 }
 
 export interface RoleList {
@@ -1271,6 +1272,7 @@ export interface RoleSaveInput {
   name: string;
   permissions: Array<string>;
   realm?: "user" | "administrator";
+  version?: number;
   data_scope?: "all" | "dept" | "dept_and_below" | "custom" | "self";
   department_ids?: Array<string>;
   menu_ids?: Array<string>;

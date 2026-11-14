@@ -308,7 +308,7 @@ test('menu visibility follows role assignments while API capability stays indepe
     // File infrastructure has no page/menu. Explicit API grants remain
     // independent and are configured through the role API.
     await admin.web!.updateRole(recorder.id, {
-      name: recorder.name, permissions: ['notes:access', 'files:access'],
+      version: recorder.version, name: recorder.name, permissions: ['notes:access', 'files:access'],
       menu_ids: notesChain, operation_ids: ['listNotes', 'listFiles', 'fileAccess'],
     });
     await member.context().clearCookies();

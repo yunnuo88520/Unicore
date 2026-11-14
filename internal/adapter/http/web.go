@@ -583,8 +583,12 @@ func mountWeb(api chi.Router, config Config) {
 		// alias never mounts it and an undeclared route would fail closed.
 		if !administrators {
 			api.Post(path+"/{id}/password", func(w http.ResponseWriter, r *http.Request) {
-				actor, ok := require(manager, w, r, "users:update")
+				actor, ok := require(manager, w, r, "users:credentials:write")
 				if !ok {
+					return
+				}
+				if bearer, ok := bearerFrom(r); ok && bearer.Credential.Kind == "pat" {
+					webError(w, platform.ErrForbidden)
 					return
 				}
 				var input contracts.AdminPasswordResetInput

@@ -30,12 +30,12 @@ build/bin/unicore-ops restore --input /srv/backups/snapshot.tar.gz.age --data-di
 
 云文件恢复为本地 files/restored/<snapshot>/<file_id>，元数据和品牌引用保持 file_id，清理队列及旧云凭据停用，默认 local，原桶不修改。管理页面重新配置/测试云位置后可按文件迁移。待上传、已删除/过期文件不承诺恢复内容，排队邮件或会话属于 DB 快照，恢复前应考虑同源旧实例的并行会话和通知任务；切流时只运行一个实例。
 
-manifest 的 tool_version 是备份工具构建版本，schema/business_schema 是源库等级。不要据此推断原实例 binary 版本；运维应同时保存原二进制版本、部署配置和发布 checksum。跨版本回退需旧二进制与旧快照成套恢复。未实现在线备份、增量备份、定时调度、PITR 或跨数据库引擎转换。
+manifest 的 tool_version 是备份工具构建版本；当前 schema=1 表示 Catalog 的 unicore-1 世代，不表示 platform 最新版本，也不是旧轨的最大迁移等级。不要据此推断原实例 binary 版本；运维应同时保存原二进制版本、部署配置、发行 namespace_versions/schema_fingerprint 与发布 checksum，库内 schema_migrations 保存实际执行版本及原 SQL checksum。跨版本回退需旧二进制与旧快照成套恢复。未实现在线备份、增量备份、定时调度、PITR 或跨数据库引擎转换。
 
-当前支持 schema 上限：平台 12、本地 1、独立 business 2。0011 公告与业务 0002 软删除均需纳入完整 DB 备份；回退恢复对应旧库，不仅回退二进制。公告及已软删笔记会随数据库备份完整保留。
+当前目录为 core@1、platform@3、module.notes@1，既有 @2 为收件箱 actions，@3 为角色 version 列。三个 UI profile 均含 platform，Standalone/desktop 同样备份这些物理表并执行适用尾迁移，不因此开放身份治理，见 [ADR-0046](../adr/ADR-0046-credential-delegation-role-concurrency.md)。公告、个人安全状态、角色版本、收件箱 actions 及已软删笔记随完整 DB 快照保存；Notes edition 关闭不删除历史数据。旧双身份或不匹配开发基线不自动转换，旧轨 schema=13/14 等快照使用匹配旧工具和旧程序，不把其数字当作当前 Catalog 版本。
 
 core@1 的上传会话包含在 DB 备份，本地未完成分片包含在完整 data 备份；云未完成 upload ID 无法由普通对象备份复原，不可用会话需放弃重传。回退须匹配旧快照并停止进行中的上传，见 ADR-0022。
 
-当前固定表名前缀版本的备份/恢复工具支持 schema=13 快照，包含 install.lock；旧 0.x（迁移 0013 之前）快照须使用对应旧版本工具。执行重命名升级前用旧工具备份，升级后用新工具备份；恢复不通过迁移改写快照，回退必须成套恢复旧快照与旧程序。
+追加 platform@3 改变三个 UI profile 的 Catalog 指纹，不走跨指纹自动 OTA。升级前停服/退出桌面，用匹配工具保存数据库、私有目录、配置/原密钥和程序；tar 人工更换完整包，Docker 外部更换镜像并保留卷，desktop 使用完整原生包。恢复工具不执行迁移，正常实例启动才应用缺失尾部。MySQL DDL 可已提交但账本未登记；失败不可盲重试 ADD COLUMN、以列存在为依据补账本或仅换旧程序，须将匹配升级前快照恢复到新目录/空专用库后再核验处理。
 
-平台个人中心快照等级为 schema=14（本地/桌面仍为13）；当前工具接受匹配 profile 的13/14快照。0014 含加密验证器密钥、恢复码摘要、消费计数器和设备会话，必须保护实例密钥并成套恢复；还原旧快照可能恢复旧凭据。详见 [个人中心](personal-center.md)。
+个人安全状态包含加密验证器密钥、恢复码摘要、消费计数器及设备会话，须保护实例密钥。还原旧快照可能恢复旧密码、邮箱、角色授权和会话；切流前按安全策略重新撤销不应继续有效的凭据，避免旧新实例同时运行。详见 [个人中心](personal-center.md)。

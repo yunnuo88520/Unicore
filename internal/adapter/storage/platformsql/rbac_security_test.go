@@ -21,11 +21,11 @@ func TestRoleEditPreservesRevokedGrantsAndScope(t *testing.T) {
 		t.Fatal(err)
 	}
 	// A rename/widening must not regrant createNote, actions, menus or scope.
-	role, err = repo.UpdateRole(ctx, role.ID, contracts.RoleSaveInput{Name: "Renamed", Permissions: []string{"notes:access", "notes:create", "notes:delete"}}, super.ID)
+	role, err = repo.UpdateRole(ctx, role.ID, contracts.RoleSaveInput{Version: currentRoleVersion(t, ctx, repo, role.ID), Name: "Renamed", Permissions: []string{"notes:access", "notes:create", "notes:delete"}}, super.ID)
 	if err != nil || len(role.OperationIds) != 1 || role.OperationIds[0] != "listNotes" || len(role.ActionIds) != 0 || len(role.MenuIds) != 0 || role.DataScope != platform.ScopeCustom || len(role.DepartmentIds) != 1 || role.DepartmentIds[0] != dep.ID {
 		t.Fatalf("revoked grants restored or scope lost: %+v %v", role, err)
 	}
-	role, err = repo.UpdateRole(ctx, role.ID, contracts.RoleSaveInput{Name: "Reduced", Permissions: []string{"notes:create"}}, super.ID)
+	role, err = repo.UpdateRole(ctx, role.ID, contracts.RoleSaveInput{Version: currentRoleVersion(t, ctx, repo, role.ID), Name: "Reduced", Permissions: []string{"notes:create"}}, super.ID)
 	if err != nil || len(role.OperationIds) != 0 {
 		t.Fatalf("reduced permission retained API: %+v %v", role, err)
 	}

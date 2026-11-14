@@ -30,7 +30,7 @@ test('fixed roles enforce menus, all management APIs and client-only appearance'
   await expect(page.getByRole('table').first()).toBeVisible();
   const rolesAfter = (await (await page.request.get(`${instance.url}/api/v1/admin/roles`, { headers })).json()).data;
   expect(rolesAfter.items.find((item: { id: string }) => item.id === 'user').user_count).toBe(1);
-  const directory = `build/acceptance/permissions/${info.project.name}`;
+  const directory = `build/test-results/permissions/${info.project.name}`;
   await mkdir(directory, { recursive: true });
   await page.screenshot({ path: `${directory}/admin-fixed-roles.png`, fullPage: true });
   const contexts = [];
@@ -157,7 +157,7 @@ test('custom roles assign through the console, echo the three grant sets and sur
     return page.getByRole('dialog', { name: '编辑member', exact: true });
   };
   let dialog = await openDialog();
-  await dialog.getByRole('checkbox', { name: 'user', exact: true }).uncheck();
+  await dialog.getByRole('checkbox', { name: '用户', exact: true }).uncheck();
   await dialog.getByRole('checkbox', { name: '记录员', exact: true }).check();
   await dialog.getByRole('button', { name: '保存', exact: true }).click();
   await expect(dialog).toHaveCount(0);
@@ -166,20 +166,20 @@ test('custom roles assign through the console, echo the three grant sets and sur
   expect(assigned.items.find(item => item.id === memberID)?.roles).toEqual([recorder!.id]);
   dialog = await openDialog();
   await expect(dialog.getByRole('checkbox', { name: '记录员', exact: true })).toBeChecked();
-  await expect(dialog.getByRole('checkbox', { name: 'user', exact: true })).not.toBeChecked();
+  await expect(dialog.getByRole('checkbox', { name: '用户', exact: true })).not.toBeChecked();
   await dialog.getByRole('button', { name: '取消', exact: true }).click();
   await expect(dialog).toHaveCount(0);
   // Omitted grant sets keep their values; explicit arrays replace them.
-  await admin.web!.updateRole(recorder!.id, { name: '记录员', permissions: ['notes:access'] });
+  await admin.web!.updateRole(recorder!.id, { version: recorder!.version, name: '记录员', permissions: ['notes:access'] });
   let echoed = (await admin.web!.roles()).items.find(item => item.id === recorder!.id)!;
   expect(echoed.menu_ids).toEqual([]);
   const notesNode = pageNode((await admin.web!.menuConfig()), 'notes')!;
-  await admin.web!.updateRole(recorder!.id, { name: '记录员', permissions: ['notes:access'], menu_ids: [notesNode.id], operation_ids: ['listNotes'] });
+  await admin.web!.updateRole(recorder!.id, { version: echoed.version, name: '记录员', permissions: ['notes:access'], menu_ids: [notesNode.id], operation_ids: ['listNotes'] });
   echoed = (await admin.web!.roles()).items.find(item => item.id === recorder!.id)!;
   expect(echoed.menu_ids).toEqual([notesNode.id]);
   expect(echoed.operation_ids).toEqual(['listNotes']);
   // An empty array clears one set without touching the others.
-  await admin.web!.updateRole(recorder!.id, { name: '记录员', permissions: ['notes:access'], operation_ids: [] });
+  await admin.web!.updateRole(recorder!.id, { version: echoed.version, name: '记录员', permissions: ['notes:access'], operation_ids: [] });
   echoed = (await admin.web!.roles()).items.find(item => item.id === recorder!.id)!;
   expect(echoed.menu_ids).toEqual([notesNode.id]);
   expect(echoed.operation_ids).toEqual([]);
@@ -193,7 +193,7 @@ test('custom roles assign through the console, echo the three grant sets and sur
   expect(restored.items.find(item => item.id === memberID)?.roles).toEqual([recorder!.id]);
   dialog = await openDialog();
   await expect(dialog.getByRole('checkbox', { name: '记录员', exact: true })).toBeChecked();
-  await expect(dialog.getByRole('checkbox', { name: 'user', exact: true })).not.toBeChecked();
+  await expect(dialog.getByRole('checkbox', { name: '用户', exact: true })).not.toBeChecked();
   await dialog.getByRole('button', { name: '取消', exact: true }).click();
   await expect(dialog).toHaveCount(0);
 });
@@ -239,7 +239,7 @@ test('restricted administrators keep user administration without role management
   // editor itself now resolves route labels and cascades ancestors (unit
   // covered), so this grant stays focused on enforcement, not tree clicks.
   const createdRole = (await admin.web!.roles()).items.find(item => item.name === '内容运营')!;
-  await admin.web!.updateRole(createdRole.id, { name: '内容运营', permissions: createdRole.permissions, menu_ids: menuIds, action_ids: config.nodes.filter(node => node.type === 'action' && node.operation_ids.includes('updateUser')).map(node => node.id), operation_ids: createdRole.operation_ids });
+  await admin.web!.updateRole(createdRole.id, { version: createdRole.version, name: '内容运营', permissions: createdRole.permissions, menu_ids: menuIds, action_ids: config.nodes.filter(node => node.type === 'action' && node.operation_ids.includes('updateUser')).map(node => node.id), operation_ids: createdRole.operation_ids });
   // Create the restricted administrator account through the console; the role
   // select serves super_admin plus self-built administrator roles.
   await page.goto(`${instance.url}/admin/administrators`);
@@ -317,7 +317,7 @@ test('button-level grants hide note actions while the notes page stays reachable
   });
   expect(recorder.permissions.length).toBe(5);
   expect((await page.request.post(`${instance.url}/api/v1/admin/users`, { headers: { 'X-CSRF-Token': (await pageBoot(page, instance.url)).csrf_token }, data: { username: 'member', email: 'member@example.test', password: member, role: recorder.id } })).status()).toBe(200);
-  const directory = `build/acceptance/permissions/${info.project.name}`;
+  const directory = `build/test-results/permissions/${info.project.name}`;
   await mkdir(directory, { recursive: true });
   const contexts = [];
   try {
@@ -614,14 +614,14 @@ test('api grants stay revocable, respect any/all bounds and survive restarts', a
   await loginClient(recorderApi, 'recorder', member);
   expect((await recorderApi.listNotes({ search: '', status: '', sort: 'updated_at', direction: 'desc', page: 1 })).items).toEqual([]);
   // The any mode needs one shared point; the all mode needs the full set.
-  await expect(admin.web!.updateRole(recorder.id, { name: '记录员', permissions: ['notes:access'], operation_ids: ['listUsers'] })).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
-  await expect(admin.web!.updateRole(recorder.id, { name: '记录员', permissions: ['notes:access'], operation_ids: ['createNote'] })).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  await expect(admin.web!.updateRole(recorder.id, { version: (await admin.web!.roles()).items.find(item => item.id === recorder.id)!.version, name: '记录员', permissions: ['notes:access'], operation_ids: ['listUsers'] })).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  await expect(admin.web!.updateRole(recorder.id, { version: (await admin.web!.roles()).items.find(item => item.id === recorder.id)!.version, name: '记录员', permissions: ['notes:access'], operation_ids: ['createNote'] })).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
   // Revoking the operation grant blocks the API even though the permission
   // upper bound (notes:access) is still held: the grant is independently required.
-  await admin.web!.updateRole(recorder.id, { name: '记录员', permissions: ['notes:access'], operation_ids: [] });
+  await admin.web!.updateRole(recorder.id, { version: (await admin.web!.roles()).items.find(item => item.id === recorder.id)!.version, name: '记录员', permissions: ['notes:access'], operation_ids: [] });
   await loginClient(recorderApi, 'recorder', member);
   await expect(recorderApi.listNotes({ search: '', status: '', sort: 'updated_at', direction: 'desc', page: 1 })).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
-  await admin.web!.updateRole(recorder.id, { name: '记录员', permissions: ['notes:access'], operation_ids: ['listNotes'] });
+  await admin.web!.updateRole(recorder.id, { version: (await admin.web!.roles()).items.find(item => item.id === recorder.id)!.version, name: '记录员', permissions: ['notes:access'], operation_ids: ['listNotes'] });
   await loginClient(recorderApi, 'recorder', member);
   expect((await recorderApi.listNotes({ search: '', status: '', sort: 'updated_at', direction: 'desc', page: 1 })).items).toEqual([]);
 
@@ -630,14 +630,14 @@ test('api grants stay revocable, respect any/all bounds and survive restarts', a
   const adminNotes = await operatorApi.listNotes({ search: '', status: '', sort: 'updated_at', direction: 'desc', page: 1 });
   expect(Array.isArray(adminNotes.items)).toBe(true);
   // Stripping the admin:access point invalidates the all-mode grant as well.
-  await admin.web!.updateRole(operator.id, { name: '运营', permissions: ['notes:access'], operation_ids: [] });
+  await admin.web!.updateRole(operator.id, { version: operator.version, name: '运营', permissions: ['notes:access'], operation_ids: [] });
   await loginClient(operatorApi, 'operator', 'operator-password-strong');
   await expect(operatorApi.listNotes({ search: '', status: '', sort: 'updated_at', direction: 'desc', page: 1 })).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
 
   // The builtin user role loses one point together with its dependent grant.
   const builtin = (await admin.web!.roles()).items.find(item => item.id === 'user')!;
   const revokedPermissions = builtin.permissions.filter(id => id !== 'notes:delete');
-  await admin.web!.updateRole('user', { name: builtin.name, permissions: revokedPermissions, operation_ids: materializedOperations('user', revokedPermissions) });
+  await admin.web!.updateRole('user', { version: builtin.version, name: builtin.name, permissions: revokedPermissions, operation_ids: materializedOperations('user', revokedPermissions) });
   await admin.web!.createUser({ username: 'fullmember', email: 'fullmember@example.test', password: member, role: 'user' });
   const fullApi = sdkClient(instance.url, 'user');
   await loginClient(fullApi, 'fullmember', member);

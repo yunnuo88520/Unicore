@@ -767,7 +767,7 @@
     "/api/v1/admin/users/{id}/password": {
       "post": {
         "operationId": "resetUserPassword",
-        "description": "Resets a member account password from the management surface: the operator supplies the replacement or the server generates a temporary one. The effective password is returned once; live sessions and tokens die with the old credential.",
+        "description": "Resets an account password using users:credentials:write within its data scope. Targets with management access require super_admin; PAT callers are denied. The operator supplies the replacement or the server generates a temporary one. The effective password is returned once; live sessions and tokens die with the old credential.",
         "responses": {
           "200": {
             "description": "Success",
@@ -809,14 +809,14 @@
             "BearerToken": []
           }
         ],
-        "x-permission": "users:update; administrator only",
+        "x-permission": "users:credentials:write; protected management targets require super_admin; PAT denied",
         "x-unicore": {
           "profiles": [
             "web-platform"
           ],
           "access": "session",
           "permissions": [
-            "users:update"
+            "users:credentials:write"
           ],
           "permissionMode": "all",
           "superAdmin": false,
@@ -16905,7 +16905,7 @@
             "type": "string",
             "format": "email",
             "maxLength": 254,
-            "description": "Login credential: omit to keep the address, a replacement must parse and stay unique across every account."
+            "description": "Login credential: omit to keep the address. An actual normalized change additionally requires users:credentials:write and both update and credential data scopes; management targets require super_admin. PAT changes are denied. A replacement must parse and stay unique across every account."
           },
           "display_name": {
             "type": "string",
@@ -17954,7 +17954,8 @@
           "menu_ids",
           "action_ids",
           "operation_ids",
-          "authorization_initialized"
+          "authorization_initialized",
+          "version"
         ],
         "properties": {
           "id": {
@@ -18033,6 +18034,11 @@
           },
           "authorization_initialized": {
             "type": "boolean"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Revision of editable role fields and grants; required on updates. Membership counts do not advance this revision."
           }
         }
       },
@@ -21400,6 +21406,7 @@
         }
       },
       "RoleSaveInput": {
+        "description": "Role creation or update. Updates require the version read with the role; omitted versions are rejected and stale versions return 409. Creation does not require a version.",
         "type": "object",
         "additionalProperties": false,
         "required": [
@@ -21425,6 +21432,11 @@
               "administrator"
             ],
             "description": "Realm the role belongs to; omitted means user for backward compatibility. Update requests cannot move a role between realms."
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Required for updates, ignored on creation. Must match the role revision originally read; stale requests return 409. Missing versions are rejected, not implicitly upgraded."
           },
           "data_scope": {
             "type": "string",

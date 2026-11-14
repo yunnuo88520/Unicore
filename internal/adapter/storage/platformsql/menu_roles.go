@@ -31,6 +31,10 @@ func (r *Repository) AssignMenuRoles(ctx context.Context, nodeID string, input c
 	if err = r.Store.LockInstallation(ctx, tx); err != nil {
 		return contracts.RoleList{}, err
 	}
+	roleSnapshots, err := r.roleEditSnapshots(ctx, tx)
+	if err != nil {
+		return contracts.RoleList{}, err
+	}
 	if err = r.AuthorizeAdministrator(ctx, tx, actor, "roles:write"); err != nil {
 		return contracts.RoleList{}, err
 	}
@@ -174,6 +178,9 @@ func (r *Repository) AssignMenuRoles(ctx context.Context, nodeID string, input c
 		}
 	}
 	if err = r.audit(audit.Target(ctx, "menu/"+nodeID, "role_ids="+strings.Join(input.RoleIds, ",")), tx, actor, "roles.updated"); err != nil {
+		return contracts.RoleList{}, err
+	}
+	if err = r.advanceChangedRoleVersions(ctx, tx, roleSnapshots); err != nil {
 		return contracts.RoleList{}, err
 	}
 	if err = tx.Commit(); err != nil {

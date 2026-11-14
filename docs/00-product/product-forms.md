@@ -18,7 +18,7 @@ Unicore 的产品形态只有三种。`framework.manifest.json` 中的四个 pro
 关键结论（源码事实）：
 
 - Platform 与 Standalone(Web) 共用同一 `cmd/server` 源码，源码构建默认 Platform，发行时以 ldflags 注入各发行包默认 profile（`scripts/release.mjs`），安装后 profile 持久化于 `installation.json` 且不可变（`internal/install/manager.go`）。
-- Standalone 的两个载体必须保持产品等效：同一套页面（`packages/web-ui`）、同一套业务语义、同一份数据 schema（`migrations/catalog.json` 中 web-standalone 与 desktop 均为 core + module.notes）。允许的差异仅限 [第 5 节](#5-载体层允许的差异) 清单。
+- Standalone 的两个载体必须保持产品等效：同一套页面（`packages/web-ui`）、同一套业务语义、同一份数据 schema（当前 `migrations/catalog.json` 中 web-standalone 与 desktop 均为 core + platform + module.notes；共享表不等于装配平台治理，见 ADR-0046）。允许的差异仅限 [第 5 节](#5-载体层允许的差异) 清单。
 - CLI 直接调用 `internal/bootstrap.Core()`（纯内存，无 HTTP/Wails/SQL），见 `internal/adapter/cli/command.go`。
 - Web 发行包内 `unicore` 可执行文件附带的服务运维子命令（backup/manage/service/admin 等，`cmd/server/commands.go` → `internal/webmanage`、`internal/maintenance`）属于 **Web 形态的实例运维面**，不是 CLI 产品形态的能力；独立维护工具 `unicore-ops`（`cmd/ops`）是源码构建用的等价离线备份工具，随 project-template 分发，不进用户发行包。CLI 形态与这些运维命令是两个概念。
 
@@ -59,7 +59,7 @@ Unicore 的产品形态只有三种。`framework.manifest.json` 中的四个 pro
 | --- | --- | --- | --- |
 | 身份认证与用户体系 | 已实现：统一账号、共享会话、MFA、OIDC、人机验证、客户端 JWT/刷新与个人 API 令牌 | 不装配：无账号主体，`capabilities.authentication=false` | 不装配 |
 | 权限控制 | 已实现：权限点 + 菜单/动作 + operation 三层授权，super_admin 保留集，部门数据范围 | 不装配角色模型；服务端仍 fail-closed，本地可达即边界 | 不适用 |
-| 数据持久化 | 已实现：SQLite/PostgreSQL/MySQL，core+platform+module.notes 命名空间 | 已实现：web 三方言、desktop 仅 SQLite；core+module.notes | 不装配：无数据库 |
+| 数据持久化 | 已实现：SQLite/PostgreSQL/MySQL，core+platform+module.notes 命名空间 | 已实现：web 三方言、desktop 仅 SQLite；当前 core+platform+module.notes，共享 schema 不开放身份治理 | 不装配：无数据库 |
 | 配置 | 已实现：全局设置（仅管理端）+ 设备偏好 | 设备偏好；无实例级设置页面或可写设置项 | 不适用（仅进程日志环境变量） |
 | UI / 菜单 / 页面 | 已实现：用户工作区 + 管理后台双 SPA，服务端投影导航 | 已实现：单工作区，客户端默认导航，两载体同一套页面 | 不适用 |
 | API 适配 | 已实现：HTTP `/api/v1` 全量 + admin 镜像 | 受限：HTTP 仅本地面（bootstrap/settings/updates/notes/core 与本地业务附件），admin API 一律 404；desktop 走 Wails 桥 | 已实现：进程内 Cobra 命令 |
@@ -81,7 +81,7 @@ Unicore 的产品形态只有三种。`framework.manifest.json` 中的四个 pro
 标注说明：**[源码强制]** 违反即编译失败或运行时拒绝（`scripts/check-boundaries`、策略中间件或装配缺失兜底）；**[产品约束]** 维护者确认的产品意图，当前实现与其一致，改变它属于产品决策，须先修订本文并获维护者确认；**[维护约定]** 文档与流程纪律，靠评审与检查维持。
 
 1. [源码强制] CLI 不引入 HTTP server、Wails、SQL 驱动和平台身份模块；CLI 不拥有持久化状态。Web 包运维子命令与 ops 工具不属于 CLI 形态（见第 1 节）。证据：`internal/adapter/cli/command.go`、`internal/bootstrap/core.go`、`scripts/check-boundaries`。
-2. [产品约束] Standalone 是单用户产品，但**不等于 Platform 超级管理员**：不得因没有身份体系就默认继承平台管理能力。平台治理面（internal/platform、RBAC 表、管理端 API 与管理后台 SPA）不得被 Standalone 装配或暴露。实现现状与之一致（装配省略 + 非 platform 一律 404），改变归属须先裁决。
+2. [产品约束] Standalone 是单用户产品，但**不等于 Platform 超级管理员**：不得因没有身份体系就默认继承平台管理能力。平台身份治理服务（internal/platform）、管理端 API 与管理后台 SPA 不得被 Standalone 装配或暴露；运行时边界仍为装配省略 + 非 platform 管理接口 404。**物理表存在是独立事实**：沿用现有 Catalog，三个 UI profile 都包含 platform（@2 收件箱 actions，@3 角色 version），Standalone 会创建 RBAC 等表但不开放对应治理能力。本次保留该成员归属，数据库隔离后续独立决策，见 [ADR-0046](../adr/ADR-0046-credential-delegation-role-concurrency.md)；不能以表存在推导功能已装配，也不能依据旧隔离表述擅自删除本地表或改 profile。
 3. [产品约束] Standalone 两个载体的功能集、业务语义、菜单与页面呈现规则必须一致；差异只允许来自第 5 节清单，且新增差异必须先在本文明示。
 4. [源码强制 + 维护约定] 契约与形态隔离分四层执行，新增接口时各层都要落实：
    - **契约声明**（维护约定）：operation 必须带 `x-unicore`（access/permissions/superAdmin 等）。

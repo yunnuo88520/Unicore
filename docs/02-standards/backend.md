@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 后端基础规范
 
-数据库安装与启动统一执行 `migrations/runner.Apply`，只从 `migrations/catalog.json` 选择命名空间和连续版本。core、platform、module.notes 分离；当前各为 version=1 基线。账本为 `schema_migrations(namespace,version,checksum,applied_at)`，没有独立 business_migrations。正式版后只能追加版本；世代、checksum、写前守卫与恢复规则见 [迁移规范](database-migrations.md)。
+数据库安装与启动统一执行 `migrations/runner.Apply`，只从 `migrations/catalog.json` 选择命名空间和连续版本。core、platform、module.notes 使用独立版本；当前 core@1、platform@3（@2 收件箱 actions、@3 角色 version）、module.notes@1。三个 UI profile 均按现有 Catalog 包含 platform，Standalone 创建共享表但不装配身份治理；CLI 无数据库，成员隔离后续独立决策，见 [ADR-0046](../adr/ADR-0046-credential-delegation-role-concurrency.md)。账本为 `schema_migrations(namespace,version,checksum,applied_at)`，没有独立 business_migrations。正式版后只能追加版本；世代、checksum、写前守卫与恢复规则见 [迁移规范](database-migrations.md)。
 
 Go 采用组合：可变业务实体嵌入 `internal/domain/entity.go` 的 BaseEntity。ID 由服务端安全随机生成；created_at/updated_at/deleted_at 均为 UTC Unix 秒，0 表示未删除；version 从 1 开始。更新和软删除必须按 `id + version + deleted_at=0` 条件写入，原子递增版本及更新时间。未找到与版本冲突分别映射统一 404/409，不能覆盖别人的更新或复活已删除数据。domain/entity_test.go 会发现新领域结构体并检查基座；纯值对象要登记例外及理由。
 
@@ -26,7 +26,7 @@ Go 采用组合：可变业务实体嵌入 `internal/domain/entity.go` 的 BaseE
 | --- | --- |
 | users | 统一 identity repository；停用撤销共享会话与凭据，保护最后超管；不提供删除接口 |
 | sessions / tokens / challenges / oidc_flows | 过期、一次性消耗、撤销及清理；不能软删除后仍参与验证 |
-| roles / permissions / join tables | 统一账号多角色与独立菜单/动作/operation 授权、岗位、部门关联；主外键与联合唯一键，删除前校验成员引用；不存在通用业务聚合 ID |
+| roles / permissions / join tables | 统一账号多角色与独立菜单/动作/operation 授权、岗位、部门关联；主外键与联合唯一键，删除前校验成员引用；角色使用专用聚合 version（platform@3），更新强制 CAS、缺失拒绝、过期 409；菜单/导航/部门等旁路实际改变角色也维护版本，不机械套通用软删除 |
 | schema_migrations、audit_logs/audit_metadata | 追加账本或快照，保留历史，不提供业务编辑/软删 |
 | install_state / system_settings | 单例/自然键配置，安装锁、SettingDefinition 和专用校验 |
 | 文件元数据/位置/清理任务、邮件队列、企业绑定 | 沿用已发布的专门状态机、引用完整性、清理/重试语义；不可绕过生命周期改成普通 CRUD |

@@ -4,11 +4,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { columnVisibilityFeature, createColumnHelper, createPaginatedRowModel, rowPaginationFeature, tableFeatures, useTable, type PaginationState } from '@tanstack/react-table';
 import { Ban, CircleCheck, KeyRound, Pencil, UserPlus } from 'lucide-react';
-import type { Bootstrap, User, UserCreate, WebClient } from '@unicore/sdk';
+import { operations, type Bootstrap, type User, type UserCreate, type WebClient } from '@unicore/sdk';
 import { defineMessages, t, useLocale } from '../../i18n';
 import { buildDepartmentTree, flattenDepartmentTree, invalidateAfter, useDepartmentsQuery, usePostsQuery } from '../../queries';
 import { usePermissions } from '../../permissions';
-import { roleDisplayLabels } from '../../role-display';
+import { roleDisplayLabels, roleDisplayLabel } from '../../role-display';
+import { routeSurfaces } from '../../navigation';
 import { UserAvatar, displayLabel } from '../../user-avatar';
 import { useColumnVisibility } from '../../column-visibility';
 import { AppControllerField, AppField, AppForm, useAppForm } from '@unicore/form';
@@ -16,13 +17,21 @@ import { Badge, Button, Card, CardContent, Checkbox, Input, Modal, RadioGroup, R
 import { DataTable, DataTablePagination, DataTableToolbar } from '../../components/data-table';
 import type { PageProps } from '../../router';
 
+// The contract's administrator-only points identify management targets without
+// guessing from custom role names. Shared business mirror points are excluded;
+// the server's full permission catalogue remains authoritative.
+const operationPolicies: { identityRealm?: string; uiPage?: string; permissions: readonly string[] }[] = Object.values(operations);
+const businessPoints = new Set<string>(operationPolicies.filter(op => op.identityRealm === 'user' && !!op.uiPage && routeSurfaces(op.uiPage).includes('user')).flatMap(op => [...op.permissions]));
+const managementPoints = new Set<string>(operationPolicies.filter(op => op.identityRealm === 'administrator').flatMap(op => [...op.permissions]).filter(point => !businessPoints.has(point)));
+const managementTarget = (user: User) => user.roles.includes('super_admin') || user.permissions.some(point => managementPoints.has(point));
+
 const features = tableFeatures({ rowPaginationFeature, columnVisibilityFeature, paginatedRowModel: createPaginatedRowModel() });
 const helper = createColumnHelper<typeof features, User>();
 const EMPTY_USERS: User[] = [];
 const columnLabels = defineMessages({ username: '账号', email: '邮箱', phone: '手机号', role: '身份', department: '部门', post: '岗位', totp_enabled: '双因素认证', status: '状态' });
 const COLUMN_KEYS = Object.keys(columnLabels) as (keyof typeof columnLabels)[];
 
-type UsersTableMeta = { kind: string; pending: boolean; administrators?: boolean; currentUserId?: string; departmentNames: Map<string, string>; postNames: Map<string, string>; canToggle: boolean; onToggle?: (user: User) => void; onRole?: (user: User) => void; onResetPassword?: (user: User) => void };
+type UsersTableMeta = { kind: string; pending: boolean; administrators?: boolean; currentUserId?: string; departmentNames: Map<string, string>; postNames: Map<string, string>; canToggle: boolean; canCredentials: (user: User) => boolean; onToggle?: (user: User) => void; onRole?: (user: User) => void; onResetPassword?: (user: User) => void };
 
 type RoleOption = { id: string; name: string; assignable: boolean };
 
@@ -41,8 +50,8 @@ function RoleChipGroup({ options, selected, onToggle }: {
       const active = selected.includes(option.id);
       return <label key={option.id} data-role-chip={option.id}
         className={`flex w-max cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-colors ${active ? 'border-button bg-primary-soft' : 'border-line bg-surface hover:bg-surface-hover'} ${option.assignable ? '' : 'cursor-not-allowed opacity-55'}`}>
-        <Checkbox aria-label={option.name} checked={active} disabled={!option.assignable} onChange={checked => onToggle(option.id, checked)} />
-        <span className={active ? 'font-medium text-accent' : 'text-ink'}>{option.name}</span>
+        <Checkbox aria-label={roleDisplayLabel(option)} checked={active} disabled={!option.assignable} onChange={checked => onToggle(option.id, checked)} />
+        <span className={active ? 'font-medium text-accent' : 'text-ink'}>{roleDisplayLabel(option)}</span>
       </label>;
     })}
     {!options.length && <p className="py-1 text-center text-xs text-muted">{t('正在加载…')}</p>}
@@ -117,7 +126,7 @@ const columns = helper.columns([
           {user.status === 'active' ? <Ban size={14} aria-hidden="true" /> : <CircleCheck size={14} aria-hidden="true" />}
         </Button>}
         {meta.onRole && <Button variant="secondary" size="icon" disabled={meta.pending} aria-label={t('编辑')} onClick={() => meta.onRole?.(user)}><Pencil size={14} aria-hidden="true" /></Button>}
-        {meta.onResetPassword && <Button variant="secondary" size="icon" disabled={meta.pending} aria-label={t('重置密码')} onClick={() => meta.onResetPassword?.(user)}><KeyRound size={14} aria-hidden="true" /></Button>}
+        {meta.onResetPassword && meta.canCredentials(user) && <Button variant="secondary" size="icon" disabled={meta.pending} aria-label={t('重置密码')} onClick={() => meta.onResetPassword?.(user)}><KeyRound size={14} aria-hidden="true" /></Button>}
       </div>;
     },
   }),
@@ -145,6 +154,13 @@ function UserListPanel({ web, metadata, administrators }: { web: WebClient; meta
   const canCreate = can(administrators ? 'createAdministrator' : 'createUser');
   const canUpdate = can(administrators ? 'updateAdministrator' : 'updateUser');
   const canPosts = !administrators && has('posts:read');
+  // Bootstrap does not expose the credential kind; PAT requests are still
+  // rejected by the backend. Do not infer a PAT from a missing CSRF token.
+  // Email changes use updateUser plus this additional point; they must not
+  // accidentally require the independent resetUserPassword operation grant.
+  const credentialGrant = !!metadata.current_user?.permissions.includes('users:credentials:write');
+  const isSuper = !!metadata.current_user?.roles.includes('super_admin');
+  const canCredentials = (user: User) => credentialGrant && (isSuper || !managementTarget(user));
   const [search, setSearch] = useState('');
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 20 });
   const [creating, setCreating] = useState(false);
@@ -200,11 +216,12 @@ function UserListPanel({ web, metadata, administrators }: { web: WebClient; meta
       departmentNames,
       postNames,
       canToggle: canUpdate,
+      canCredentials,
       onToggle: canUpdate ? (user: User) => update.mutate({ id: user.id, status: user.status === 'active' ? 'disabled' : 'active' }) : undefined,
       onRole: canUpdate ? (user: User) => setRoleTargetID(user.id) : undefined,
       // The reset endpoint is contract-bound to /admin/users; the administrator
       // list keeps its existing actions.
-      onResetPassword: !administrators && canUpdate ? (user: User) => setResetTargetID(user.id) : undefined,
+      onResetPassword: !administrators && credentialGrant && can('resetUserPassword') ? (user: User) => setResetTargetID(user.id) : undefined,
     } satisfies UsersTableMeta,
     state: { pagination, columnVisibility },
     onPaginationChange: setPagination,
@@ -234,7 +251,7 @@ function UserListPanel({ web, metadata, administrators }: { web: WebClient; meta
     </CardContent>
     {importing && <UserImportDialog web={web} onClose={() => setImporting(false)} onImported={refresh} />}
     {creating && <UserCreateDialog web={web} kind={kind} role={role} administrators={administrators} postsEnabled={canPosts} onClose={() => setCreating(false)} onCreated={refresh} />}
-    {roleTarget && <UserRoleDialog web={web} administrators={administrators} user={roleTarget} postsEnabled={canPosts} onClose={() => setRoleTargetID(null)} onSaved={refresh} />}
+    {roleTarget && <UserRoleDialog web={web} administrators={administrators} user={roleTarget} credentialsEnabled={canCredentials(roleTarget)} postsEnabled={canPosts} onClose={() => setRoleTargetID(null)} onSaved={refresh} />}
     {resetTarget && <PasswordResetDialog web={web} user={resetTarget} onClose={() => setResetTargetID(null)} onSaved={refresh} />}
     </Card>
   </div>;
@@ -308,8 +325,8 @@ function UserCreateDialog({ web, kind, role, administrators, postsEnabled, onClo
   </Modal>;
 }
 
-function UserRoleDialog({ web, administrators, user, postsEnabled, onClose, onSaved }: {
-  web: WebClient; administrators: boolean; user: User; postsEnabled: boolean; onClose: () => void; onSaved: () => void;
+function UserRoleDialog({ web, administrators, user, credentialsEnabled, postsEnabled, onClose, onSaved }: {
+  web: WebClient; administrators: boolean; user: User; credentialsEnabled: boolean; postsEnabled: boolean; onClose: () => void; onSaved: () => void;
 }) {
   useLocale();
   const message = useMessage();
@@ -354,13 +371,13 @@ function UserRoleDialog({ web, administrators, user, postsEnabled, onClose, onSa
       </div>
       <div className="flex flex-col gap-1 text-sm">
 
-        <Input label={t('昵称')} value={displayName} maxLength={80} autoComplete="nickname" aria-label={t('昵称')} onChange={event => setDisplayName(event.target.value)} placeholder={user.username} />
+        <Input label={t('昵称')} value={displayName} maxLength={80} autoComplete="nickname" aria-label={t('昵称')} onChange={event => { setTouched(true); setDisplayName(event.target.value); }} placeholder={user.username} />
         <small className="text-xs text-muted">{t('显示昵称，留空时各处显示使用账号。')}</small>
       </div>
       <div className="flex flex-col gap-1 text-sm">
 
-        <Input label={t('邮箱')} type="email" maxLength={254} value={email} aria-label={t('邮箱')} onChange={event => setEmail(event.target.value)} />
-        <small className="text-xs text-muted">{t('登录凭证之一，保存后立即生效。')}</small>
+        <Input label={t('邮箱')} type="email" maxLength={254} value={email} readOnly={!credentialsEnabled} aria-readonly={!credentialsEnabled} aria-label={t('邮箱')} onChange={event => { setTouched(true); setEmail(event.target.value); }} />
+        <small className="text-xs text-muted">{credentialsEnabled ? t('登录凭证之一，保存后立即生效。') : t('修改邮箱需要凭据管理权限；管理权限账号仅超级管理员可修改。')}</small>
       </div>
       <fieldset><legend>{t('角色')}</legend><RoleChipGroup options={options.data?.items ?? []} selected={roleIds}
         onToggle={(id, checked) => { setTouched(true); setRoleIds(ids => checked ? [...ids, id] : ids.filter(value => value !== id)); }} /></fieldset>
@@ -395,9 +412,12 @@ function UserRoleDialog({ web, administrators, user, postsEnabled, onClose, onSa
           // Update semantics: omitted fields keep the stored value, an empty
           // string clears it, so the department select maps 未分配 to ''.
           const trimmed = displayName.trim();
+          const changedEmail = email.trim().toLowerCase() !== user.email.trim().toLowerCase();
+          if (changedEmail && !credentialsEnabled) return;
+          const credential = changedEmail ? { email: email.trim().toLowerCase() } : {};
           const submit = administrators
-            ? web.updateAdministrator(user.id, { status: user.status, role_ids: roleIds, email, display_name: trimmed })
-            : web.updateUser(user.id, { status: user.status, role_ids: roleIds, email, display_name: trimmed, department_id: departmentId, ...(postsEnabled ? { post_ids: postIds } : {}) });
+            ? web.updateAdministrator(user.id, { status: user.status, role_ids: roleIds, ...credential, display_name: trimmed })
+            : web.updateUser(user.id, { status: user.status, role_ids: roleIds, ...credential, display_name: trimmed, department_id: departmentId, ...(postsEnabled ? { post_ids: postIds } : {}) });
           setSaving(true);
           void submit.then(() => {
             message.success(t('已保存'));

@@ -470,6 +470,7 @@ type Role struct {
 	ActionIds                []string `json:"action_ids"`
 	OperationIds             []string `json:"operation_ids"`
 	AuthorizationInitialized bool     `json:"authorization_initialized"`
+	Version                  int      `json:"version"`
 }
 
 type RoleList struct {
@@ -1273,6 +1274,7 @@ type RoleSaveInput struct {
 	Name          string    `json:"name"`
 	Permissions   []string  `json:"permissions"`
 	Realm         *string   `json:"realm,omitempty"`
+	Version       *int      `json:"version,omitempty"`
 	DataScope     *string   `json:"data_scope,omitempty"`
 	DepartmentIds *[]string `json:"department_ids,omitempty"`
 	MenuIds       *[]string `json:"menu_ids,omitempty"`

@@ -534,10 +534,10 @@ func TestRoleGrantMaterializationAndBoundaries(t *testing.T) {
 
 	// Operation grants are bounded by permission points: a notes-reader role
 	// can never take a mutation or a management operation.
-	if _, err = repo.UpdateRole(ctx, files.ID, contracts.RoleSaveInput{Name: "记录员", Permissions: []string{"notes:access"}, OperationIds: &[]string{"deleteNote"}}, admin.ID); !errors.Is(err, platform.ErrForbidden) {
+	if _, err = repo.UpdateRole(ctx, files.ID, contracts.RoleSaveInput{Version: currentRoleVersion(t, ctx, repo, files.ID), Name: "记录员", Permissions: []string{"notes:access"}, OperationIds: &[]string{"deleteNote"}}, admin.ID); !errors.Is(err, platform.ErrForbidden) {
 		t.Fatal("operation beyond permission bound", err)
 	}
-	if _, err = repo.UpdateRole(ctx, files.ID, contracts.RoleSaveInput{Name: "记录员", Permissions: []string{"notes:access"}, OperationIds: &[]string{"listRoles"}}, admin.ID); !errors.Is(err, platform.ErrForbidden) {
+	if _, err = repo.UpdateRole(ctx, files.ID, contracts.RoleSaveInput{Version: currentRoleVersion(t, ctx, repo, files.ID), Name: "记录员", Permissions: []string{"notes:access"}, OperationIds: &[]string{"listRoles"}}, admin.ID); !errors.Is(err, platform.ErrForbidden) {
 		t.Fatal("operation beyond permission bound", err)
 	}
 
@@ -568,7 +568,7 @@ func TestRoleGrantMaterializationAndBoundaries(t *testing.T) {
 
 	// An explicit empty authorization is a real state: the member loses every
 	// navigation item, and the operation gate denies them too.
-	if _, err = repo.UpdateRole(ctx, files.ID, contracts.RoleSaveInput{Name: "文件员", Permissions: []string{"files:access"}, MenuIds: &[]string{}, OperationIds: &[]string{}}, admin.ID); err != nil {
+	if _, err = repo.UpdateRole(ctx, files.ID, contracts.RoleSaveInput{Version: currentRoleVersion(t, ctx, repo, files.ID), Name: "文件员", Permissions: []string{"files:access"}, MenuIds: &[]string{}, OperationIds: &[]string{}}, admin.ID); err != nil {
 		t.Fatal("clear grants", err)
 	}
 	emptied, err := repo.role(ctx, repo.Store.DB, files.ID)
@@ -1087,5 +1087,66 @@ func TestRetirePersonalNavigationHealsPersistedTrees(t *testing.T) {
 	again, err := repo.ListMenuConfig(ctx)
 	if err != nil || again.Version != after.Version {
 		t.Fatal("retirement is not idempotent", again.Version, after.Version, err)
+	}
+}
+
+func TestNavigationRoleSnapshotVersions(t *testing.T) {
+	ctx := t.Context()
+	store, repo, owner := navigationFixture(t, ctx)
+	before, err := repo.role(ctx, store.DB, "user")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = repo.initializeNavigation(ctx); err != nil {
+		t.Fatal(err)
+	}
+	initialized, err := repo.role(ctx, store.DB, "user")
+	if err != nil || initialized.Version != before.Version+1 || !initialized.AuthorizationInitialized {
+		t.Fatalf("materialization version: %+v %v", initialized, err)
+	}
+	if err = repo.initializeNavigation(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if got := *currentRoleVersion(t, ctx, repo, "user"); got != initialized.Version {
+		t.Fatalf("materialization no-op advanced %d", got)
+	}
+	role, err := repo.CreateRole(ctx, contracts.RoleSaveInput{Name: "Retired grants", MenuIds: &[]string{}, ActionIds: &[]string{}, OperationIds: &[]string{}}, owner.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A grant-only cleanup must stale the editor even after nodes disappeared.
+	if _, err = store.Exec(ctx, store.DB, "INSERT INTO unicore_role_menus(role_id,menu_id) VALUES(?,?)", role.ID, "account-security"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = store.Exec(ctx, store.DB, "INSERT INTO unicore_role_actions(role_id,action_id) VALUES(?,?)", role.ID, "account-security"); err != nil {
+		t.Fatal(err)
+	}
+	if err = repo.retirePersonalNavigation(ctx); err != nil {
+		t.Fatal(err)
+	}
+	after, err := repo.role(ctx, store.DB, role.ID)
+	if err != nil || after.Version != role.Version+1 || len(after.MenuIds) != 0 || len(after.ActionIds) != 0 {
+		t.Fatalf("navigation cleanup version: %+v %v", after, err)
+	}
+	if err = repo.retirePersonalNavigation(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if got := *currentRoleVersion(t, ctx, repo, role.ID); got != after.Version {
+		t.Fatalf("cleanup no-op advanced %d", got)
+	}
+	if _, err = store.Exec(ctx, store.DB, "INSERT INTO unicore_role_menus(role_id,menu_id) VALUES(?,?)", role.ID, "files"); err != nil {
+		t.Fatal(err)
+	}
+	if err = repo.retireDemoNavigation(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if got := *currentRoleVersion(t, ctx, repo, role.ID); got != after.Version+1 {
+		t.Fatalf("demo cleanup did not advance %d", got)
+	}
+	if err = repo.retireDemoNavigation(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if got := *currentRoleVersion(t, ctx, repo, role.ID); got != after.Version+1 {
+		t.Fatalf("demo cleanup no-op advanced %d", got)
 	}
 }

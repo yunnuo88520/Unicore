@@ -13,7 +13,7 @@ import (
 func TestUnifiedIdentityMultipleRoles(t *testing.T) {
 	store, repo, owner := scopeSecurityStore(t)
 	ctx := t.Context()
-	if _, err := repo.UpdateRole(ctx, "user", contracts.RoleSaveInput{Name: "user", Permissions: []string{"users:read"}}, owner.ID); !errors.Is(err, platform.ErrForbidden) {
+	if _, err := repo.UpdateRole(ctx, "user", contracts.RoleSaveInput{Version: currentRoleVersion(t, ctx, repo, "user"), Name: "user", Permissions: []string{"users:read"}}, owner.ID); !errors.Is(err, platform.ErrForbidden) {
 		t.Fatalf("public registration role received management permissions: %v", err)
 	}
 	operator, err := repo.CreateRole(ctx, contracts.RoleSaveInput{Name: "operator", DataScope: strPtr(platform.ScopeAll), Permissions: []string{"users:read", "users:update", "users:create", "logs:read"}}, owner.ID)

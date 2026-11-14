@@ -277,7 +277,7 @@ export const operations = {
     ],
     "access": "session",
     "permissions": [
-      "users:update"
+      "users:credentials:write"
     ],
     "permissionMode": "all",
     "superAdmin": false,

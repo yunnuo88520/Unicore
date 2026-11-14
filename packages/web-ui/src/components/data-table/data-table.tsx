@@ -64,8 +64,19 @@ export function DataTable<TFeatures extends TableFeatures, TData extends RowData
 }: DataTableProps<TFeatures, TData>) {
   const columnCount = table.getHeaderGroups()[0]?.headers.length ?? 0;
   const rows = pending ? [] : table.getRowModel().rows;
+  const emptyState = !pending && !error && !rows.length;
+  // Empty and failed states render beside the horizontal scroller: narrow
+  // surfaces keep the message centered in view while wide tables scroll.
+  const emptyBlock = error
+    ? <div role="alert" className="flex flex-wrap items-center justify-center gap-3 px-3 py-6">
+        <span className="text-sm text-danger">{t(error.message)}</span>
+        {onRetry && <Button variant="secondary" size="sm" onClick={onRetry}><RotateCcw size={13} />{t('重试')}</Button>}
+      </div>
+    : emptyState
+      ? <div className="flex justify-center px-3 py-8"><DataTableEmpty icon={empty?.icon} title={empty?.title ?? t('暂无数据')} hint={empty?.hint} action={empty?.action} /></div>
+      : null;
   return <div className={cn('min-w-0 rounded-lg border border-line', wrapperClassName)} aria-busy={pending || busy || undefined}>
-    <Table className={className}>
+    {emptyBlock ?? <Table className={className}>
       <TableHeader>
         {table.getHeaderGroups().map(group => <TableRow key={group.id} className="hover:bg-transparent">
           {group.headers.map(header => <TableHead key={header.id} aria-sort={ariaSortOf(header.column)}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}
@@ -76,19 +87,10 @@ export function DataTable<TFeatures extends TableFeatures, TData extends RowData
           ? Array.from({ length: pendingRows }, (_, index) => <TableRow key={index}>
               <TableCell colSpan={columnCount}><Skeleton className={cn('h-5', SKELETON_WIDTHS[index % SKELETON_WIDTHS.length])} /></TableCell>
             </TableRow>)
-          : error
-            ? <TableRow><TableCell colSpan={columnCount}>
-                <div role="alert" className="flex flex-wrap items-center justify-center gap-3 py-1">
-                  <span className="text-sm text-danger">{t(error.message)}</span>
-                  {onRetry && <Button variant="secondary" size="sm" onClick={onRetry}><RotateCcw size={13} />{t('重试')}</Button>}
-                </div>
-              </TableCell></TableRow>
-            : rows.length
-              ? rows.map(row => <TableRow key={row.id}>
+          : rows.map(row => <TableRow key={row.id}>
                   {cellsOf(row).map(cell => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}
-                </TableRow>)
-              : <TableRow><TableCell colSpan={columnCount} className="h-24 text-center"><DataTableEmpty icon={empty?.icon} title={empty?.title ?? t('暂无数据')} hint={empty?.hint} action={empty?.action} /></TableCell></TableRow>}
+                </TableRow>)}
       </TableBody>
-    </Table>
+    </Table>}
   </div>;
 }

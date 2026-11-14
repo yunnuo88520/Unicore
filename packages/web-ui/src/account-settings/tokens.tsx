@@ -198,7 +198,7 @@ function McpHint({ web }: { web: WebClient }) {
   const data = info.data;
   return <Card><CardContent className="flex flex-wrap items-center gap-3 p-4 text-sm">
     <Bot size={18} className="shrink-0 text-accent" aria-hidden="true" />
-    <div className="min-w-0 flex-1">
+    <div className="min-w-[180px] flex-1">
       <p className="font-medium">{t('用于 MCP 接入')}</p>
       <p className="mt-0.5 text-xs leading-relaxed text-muted">
         {data.access_granted

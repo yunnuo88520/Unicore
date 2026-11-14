@@ -12664,9 +12664,10 @@
         ],
         "x-unicore": {
           "profiles": [
-            "web-platform"
+            "web-platform",
+            "web-standalone"
           ],
-          "access": "session",
+          "access": "platform-session",
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
@@ -12712,9 +12713,10 @@
         ],
         "x-unicore": {
           "profiles": [
-            "web-platform"
+            "web-platform",
+            "web-standalone"
           ],
-          "access": "session",
+          "access": "platform-session",
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
@@ -12771,9 +12773,10 @@
         ],
         "x-unicore": {
           "profiles": [
-            "web-platform"
+            "web-platform",
+            "web-standalone"
           ],
-          "access": "session",
+          "access": "platform-session",
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
@@ -12819,9 +12822,10 @@
         ],
         "x-unicore": {
           "profiles": [
-            "web-platform"
+            "web-platform",
+            "web-standalone"
           ],
-          "access": "session",
+          "access": "platform-session",
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,

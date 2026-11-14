@@ -25,11 +25,11 @@ const inboxDisc: Record<string, { status: NotificationStatus; icon?: typeof Mega
   system: { status: 'neutral', icon: Settings2 },
 };
 
-export function AnnouncementCenter({ web, administrator = false }: { web: WebClient; administrator?: boolean }) {
+export function AnnouncementCenter({ web, administrator = false, standalone = false }: { web: WebClient; administrator?: boolean; standalone?: boolean }) {
   const { t } = useI18n();
   const cache = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState(administrator ? 'inbox' : 'announcements');
+  const [tab, setTab] = useState(administrator || standalone ? 'inbox' : 'announcements');
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState('');
   const [expanded, setExpanded] = useState('');
@@ -40,9 +40,9 @@ export function AnnouncementCenter({ web, administrator = false }: { web: WebCli
   // Announcements stay a user-domain audience: administrators get the inbox tab
   // only, so their bell carries module/system notifications without the
   // announcement audience model.
-  const feed = useQuery({ queryKey: ['announcements', 'inbox', page], queryFn: () => web.announcements(page, 10), placeholderData: keepPreviousData, refetchOnWindowFocus: 'always', enabled: !administrator });
+  const feed = useQuery({ queryKey: ['announcements', 'inbox', page], queryFn: () => web.announcements(page, 10), placeholderData: keepPreviousData, refetchOnWindowFocus: 'always', enabled: !administrator && !standalone });
   // Fetch unread popup notices independently, so inbox pagination never drops notifications.
-  const popups = useQuery({ queryKey: ['announcements', 'popups'], queryFn: () => web.announcements(1, 1, true), refetchOnWindowFocus: 'always', enabled: !administrator });
+  const popups = useQuery({ queryKey: ['announcements', 'popups'], queryFn: () => web.announcements(1, 1, true), refetchOnWindowFocus: 'always', enabled: !administrator && !standalone });
   const inbox = useQuery({ queryKey: ['inbox'], queryFn: () => web.inbox(), refetchOnWindowFocus: 'always' });
   // Transport owns credentials, identity realm, reconnects and session cleanup.
   // Refetch authoritative counts after every push and reconnect; never count events locally.
@@ -51,14 +51,14 @@ export function AnnouncementCenter({ web, administrator = false }: { web: WebCli
     void cache.invalidateQueries({ queryKey: ['announcements'] });
     void cache.invalidateQueries({ queryKey: ['announcement'] });
   }), [web, cache]);
-  useEffect(() => { if (administrator) return; const timer = window.setTimeout(() => setReady(true), 3000); return () => window.clearTimeout(timer); }, [administrator]);
+  useEffect(() => { if (administrator || standalone) return; const timer = window.setTimeout(() => setReady(true), 3000); return () => window.clearTimeout(timer); }, [administrator, standalone]);
   useEffect(() => {
-    if (administrator) return;
+    if (administrator || standalone) return;
     const end = [...(feed.data?.items ?? []), ...(popups.data?.items ?? [])].map(item => item.ends_at).filter(value => value > Date.now() / 1000).sort((a, b) => a - b)[0];
     if (!end) return;
     const timer = window.setTimeout(() => { void refresh(); }, Math.min(2147483647, Math.max(0, end * 1000 - Date.now() + 50)));
     return () => window.clearTimeout(timer);
-  }, [administrator, feed.data, popups.data]);
+  }, [administrator, standalone, feed.data, popups.data]);
   useEffect(() => { if (feed.data && page > Math.max(1, Math.ceil(feed.data.total / 10))) setPage(1); }, [feed.data, page]);
   const allRead = useMutation({ mutationFn: () => web.markAllAnnouncementsRead(), onSuccess: async () => { setPage(1); await refresh(); } });
   const inboxRead = useMutation({ mutationFn: (id: string) => web.readInbox(id), onSuccess: data => { cache.setQueryData(['inbox'], data); } });
@@ -82,22 +82,22 @@ export function AnnouncementCenter({ web, administrator = false }: { web: WebCli
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative size-8" aria-label={t('通知中心')} title={t('通知中心')}>
           <Bell size={19} aria-hidden="true" />
-          {(administrator ? inboxUnread : unread + inboxUnread) > 0 && <span className="absolute -end-1 -top-1 flex min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] leading-4 text-on-primary" aria-label={t('{{count}} 条未读消息', { count: administrator ? inboxUnread : unread + inboxUnread })}>{(administrator ? inboxUnread : unread + inboxUnread) > 99 ? '99+' : administrator ? inboxUnread : unread + inboxUnread}</span>}
+          {(administrator || standalone ? inboxUnread : unread + inboxUnread) > 0 && <span className="absolute -end-1 -top-1 flex min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] leading-4 text-on-primary" aria-label={t('{{count}} 条未读消息', { count: administrator || standalone ? inboxUnread : unread + inboxUnread })}>{(administrator ? inboxUnread : unread + inboxUnread) > 99 ? '99+' : administrator ? inboxUnread : unread + inboxUnread}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" sideOffset={8} role="dialog" aria-label={t('通知中心')} className="w-[min(440px,calc(100vw-24px))] rounded-2xl border-0 p-0">
         <NotificationCenter
           title={t('通知中心')}
-          tabs={administrator
-            ? [{ id: 'inbox', label: t('通知'), count: inboxUnread }]
-            : [
+          tabs={!administrator && !standalone
+            ? [
               { id: 'announcements', label: t('公告'), count: unread },
               { id: 'inbox', label: t('通知'), count: inboxUnread },
-            ]}
+            ]
+            : [{ id: 'inbox', label: t('通知'), count: inboxUnread }]}
           activeTabId={tab}
           onTabChange={setTab}
           items={pending ? [] : items}
-          unreadCount={tab === 'announcements' ? unread : inboxUnread}
+          unreadCount={!administrator && !standalone && tab === 'announcements' ? unread : inboxUnread}
           empty={error ? <span className="flex flex-col items-center gap-2"><span className="text-sm text-danger">{t(tab === 'announcements' ? '公告暂时无法加载' : '通知暂时无法加载')}</span><Button variant="secondary" size="sm" onClick={() => { void (tab === 'announcements' ? feed.refetch() : inbox.refetch()); }}>{t('重试')}</Button></span>
             : pending ? <span role="status" className="text-sm text-muted">{t(tab === 'announcements' ? '正在读取公告…' : '正在读取通知…')}</span>
               : <span className="text-sm">{t(tab === 'announcements' ? '暂无公告' : '暂无通知')}</span>}

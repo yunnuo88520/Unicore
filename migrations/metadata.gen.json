@@ -178,17 +178,20 @@
       ],
       "namespaces": [
         "core",
-        "module.notes"
+        "module.notes",
+        "platform"
       ],
       "order": [
         "core",
-        "module.notes"
+        "module.notes",
+        "platform"
       ],
       "levels": {
         "core": 1,
-        "module.notes": 1
+        "module.notes": 1,
+        "platform": 2
       },
-      "schema_fingerprint": "0e57a2d80df2feed35da1c04acb20d518653af05f0b4f4580b06af7e5c4a7133"
+      "schema_fingerprint": "9b7434b5ad79816ab12de1184886fe349911680d11c2101564f351ddf6a13db9"
     },
     "web-platform": {
       "dialects": [
@@ -221,17 +224,20 @@
       ],
       "namespaces": [
         "core",
-        "module.notes"
+        "module.notes",
+        "platform"
       ],
       "order": [
         "core",
-        "module.notes"
+        "module.notes",
+        "platform"
       ],
       "levels": {
         "core": 1,
-        "module.notes": 1
+        "module.notes": 1,
+        "platform": 2
       },
-      "schema_fingerprint": "3836cfc8f3642e4410c12b8b6d4f3d809d0385a067741fd45a91aa697c4c1cf5"
+      "schema_fingerprint": "f82be5c564a254236b943f7912be811132f0a257c9f2cdfcdfcd88dba79ba44b"
     }
   }
 }

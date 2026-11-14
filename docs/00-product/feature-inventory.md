@@ -34,7 +34,7 @@
 | SMTP 邮件投递（持久队列/重试） | 已实现 | 不装配（mail.queue 任务注册但 Mailer 为 nil 空转） | 不装配 | unicore_mail_jobs | `internal/mailer/mailer.go`、`cmd/server/main.go` |
 | 邮件模板（5 用途富文本） | 已实现 | 不装配 | 不装配 | settings mail.template.* | `internal/mailcontent/template.go` |
 | 事件通知（14 个内置事件，可登记业务事件；邮件/企业微信/Webhook 独立路由；全部事件通知统一受系统通知总开关控制；原子 outbox 与分区设置保存） | 已实现 | 不装配 | 不装配 | settings notifications.* | `internal/notifycontent/catalog.go`、`internal/adapter/storage/platformsql/notifications.go`、[通知细节](../03-runbooks/notifications.md) |
-| 通用通知投递与收件箱 | 已实现（登记式类型门面 `internal/notify`；公告事务与后续模块共用 `unicore_inbox_messages`；无管理员群发 UI） | 不装配（第二期装配，ADR-0045） | 不装配 | unicore_inbox_messages | `internal/notify/notify.go`、`internal/adapter/http/inbox.go` |
+| 通用通知投递与收件箱 | 已实现（登记式类型门面 `internal/notify`；公告事务与后续模块共用 `unicore_inbox_messages`；无管理员群发 UI） | 已实现（本地收件人 `local` + coreAccess，ADR-0045；无公告） | 已实现（同 web 载体） | unicore_inbox_messages | `internal/notify/notify.go`、`internal/adapter/http/inbox.go` |
 | 实时推送（SSE） | 已实现（进程内单实例语义） | 不装配（契约仅声明 web-platform） | 不适用 | 无 | `internal/realtime/hub.go`、`internal/adapter/http/events.go` |
 
 ## C. 内容运营（Platform 专属）

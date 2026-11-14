@@ -70,6 +70,7 @@
       ],
       "namespaces": [
         "core",
+        "platform",
         "module.notes"
       ]
     },
@@ -79,6 +80,7 @@
       ],
       "namespaces": [
         "core",
+        "platform",
         "module.notes"
       ]
     },

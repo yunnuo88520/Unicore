@@ -108,13 +108,21 @@ test('announcement bell: management, popup retry, pagination, receipts, audience
   } finally { await context.close(); }
 });
 
-test('local workspace never requests announcement APIs', async ({ page, instance }) => {
+test('local workspace mounts the inbox bell without announcement APIs', async ({ page, instance }) => {
   await installStandalone(instance);
   const requests: string[] = [];
   page.on('request', request => { if (request.url().includes('/announcements')) requests.push(request.url()); });
   await page.goto(instance.url);
   await expect(page.getByRole('heading', { name: '工作台概览' })).toBeVisible();
-  // Standalone assembly stays phase two: the bell must not mount here yet.
-  await expect(page.getByRole('button', { name: '通知中心', exact: true })).toHaveCount(0);
+  // ADR-0045 phase two: the bell mounts on the local surface with the inbox tab only.
+  const bell = page.getByRole('button', { name: '通知中心', exact: true });
+  await expect(bell).toBeVisible();
+  await bell.click();
+  const panel = page.getByRole('dialog', { name: '通知中心', exact: true });
+  await expect(panel.getByText('没有未读通知', { exact: true })).toBeVisible();
+  await expect(panel.getByRole('tab', { name: /通知/ })).toBeVisible();
+  await expect(panel.getByText('暂无通知', { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => fetch('/api/v1/inbox').then(response => response.status))).toBe(200);
+  // The announcement audience model stays platform-only: no announcement API traffic.
   expect(requests).toEqual([]);
 });

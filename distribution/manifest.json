@@ -869,6 +869,8 @@
     "internal/monitor/host_unix.go",
     "internal/monitor/host_windows.go",
     "internal/monitor/monitor.go",
+    "internal/notify/notify.go",
+    "internal/notify/notify_test.go",
     "internal/notifycontent/catalog.go",
     "internal/notifycontent/content.go",
     "internal/notifycontent/content_test.go",

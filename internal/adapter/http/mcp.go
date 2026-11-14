@@ -229,6 +229,7 @@ func mcpConfigView(ctx context.Context, repo *platformsql.Repository, values map
 		Enabled:                 values["mcp.enabled"] == "true",
 		PatEnabled:              values["mcp.pat_enabled"] == "true",
 		OauthEnabled:            values["mcp.oauth_enabled"] == "true",
+		WriteEnabled:            values["mcp.write_enabled"] == "true",
 		Endpoint:                strings.TrimRight(settings.MailBaseURL(values, ""), "/") + "/mcp",
 		SupportedProtocols:      mcpProtocols,
 		ImplementedCapabilities: []string{"tools"},
@@ -269,7 +270,7 @@ func applyMCPConfigChanges(input *contracts.McpConfigPatch, changes map[string]s
 		changes[key] = strconv.FormatBool(*value)
 		return true
 	}
-	if !assignBool("mcp.enabled", input.Enabled) || !assignBool("mcp.pat_enabled", input.PatEnabled) || !assignBool("mcp.oauth_enabled", input.OauthEnabled) {
+	if !assignBool("mcp.enabled", input.Enabled) || !assignBool("mcp.pat_enabled", input.PatEnabled) || !assignBool("mcp.oauth_enabled", input.OauthEnabled) || !assignBool("mcp.write_enabled", input.WriteEnabled) {
 		return false
 	}
 	if !assignInt("mcp.default_timeout_seconds", input.DefaultTimeoutSeconds) ||

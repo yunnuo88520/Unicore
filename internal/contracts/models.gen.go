@@ -2181,6 +2181,7 @@ type McpConfig struct {
 	Enabled                 bool      `json:"enabled"`
 	PatEnabled              bool      `json:"pat_enabled"`
 	OauthEnabled            bool      `json:"oauth_enabled"`
+	WriteEnabled            bool      `json:"write_enabled"`
 	Endpoint                string    `json:"endpoint"`
 	SupportedProtocols      []string  `json:"supported_protocols"`
 	ImplementedCapabilities []string  `json:"implemented_capabilities"`
@@ -2200,6 +2201,7 @@ type McpConfigPatch struct {
 	Enabled                  *bool   `json:"enabled,omitempty"`
 	PatEnabled               *bool   `json:"pat_enabled,omitempty"`
 	OauthEnabled             *bool   `json:"oauth_enabled,omitempty"`
+	WriteEnabled             *bool   `json:"write_enabled,omitempty"`
 	DefaultTimeoutSeconds    *int    `json:"default_timeout_seconds,omitempty"`
 	MaxRequestBytes          *int    `json:"max_request_bytes,omitempty"`
 	MaxResultBytes           *int    `json:"max_result_bytes,omitempty"`

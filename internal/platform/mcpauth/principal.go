@@ -117,6 +117,13 @@ func NewOAuthPrincipal(user contracts.User, grant mcpoauth.Grant, credentialID s
 	return p, nil
 }
 
+// ScopesAllowWrite reports whether an OAuth principal's transport budget
+// covers write-effect capabilities. PAT principals carry no budget and are
+// governed by the phase switch and the regular authorization chain instead.
+func ScopesAllowWrite(scopes []string) bool {
+	return mcpoauth.ScopesContainWrite(scopes)
+}
+
 // HasPermission reports whether the bound role holds a permission point.
 func (p *Principal) HasPermission(point string) bool {
 	return platform.Has(p.user, point)

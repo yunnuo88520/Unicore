@@ -132,6 +132,7 @@ var Definitions = append([]SettingDefinition{
 	{"mcp.log_retention_days", "integer", "mcp", "调用记录保留天数", "30", true, false, integer(1, 180)},
 	{"mcp.allowed_origins", "string", "mcp", "允许的浏览器 Origin", "", true, false, ValidMCPOrigins},
 	{"mcp.oauth_enabled", "boolean", "mcp", "允许 OAuth 接入", "false", true, false, oneOf("true", "false")},
+	{"mcp.write_enabled", "boolean", "mcp", "允许写入调用", "false", true, false, oneOf("true", "false")},
 }, append(append(append(OIDCDefinitions, StorageDefinitions...), RegistrationDefinitions...),
 	append(append(append(SecurityDefinitions, MailTemplateDefinitions...), NotificationDefinitions...), LoggingDefinitions...)...)...)
 

@@ -243,7 +243,7 @@ func (s *Surface) server(r *http.Request) *sdk.Server {
 			revision = value
 		}
 	}
-	key := fmt.Sprintf("%s|%d|%s|%d-%d-%d-%d-%d-%d-%d-%d", principal.AuthVersion(), revision, language,
+	key := fmt.Sprintf("%s|%d|%t|%s|%d-%d-%d-%d-%d-%d-%d-%d", principal.AuthVersion(), revision, s.Service.WritePhaseOpen(), language,
 		limits.TimeoutSeconds, limits.MaxRequestBytes, limits.MaxResultBytes, limits.GlobalConcurrency,
 		limits.UserConcurrency, limits.CredentialConcurrency, limits.UserCallsPerMinute, limits.CredentialCallsPerMinute)
 	s.mu.Lock()
@@ -305,10 +305,32 @@ func (s *Surface) addTool(server *sdk.Server, principal *mcpauth.Principal, limi
 		if len(arguments) == 0 {
 			arguments = json.RawMessage("{}")
 		}
+		// Cached servers are shared by every caller with the same
+		// authorization version, so identity always comes from the request
+		// context — never from the principal the server was built with.
+		actor, ok := ctx.Value(principalKey{}).(*mcpauth.Principal)
+		if !ok || actor == nil {
+			return nil, s.protocolError(mcp.ErrInternal("principal unavailable"))
+		}
+		// OAuth tokens additionally need the mcp.write transport budget for
+		// write effects; PAT principals carry no budget and ride the phase
+		// switch plus the regular authorization chain.
+		if def.Effect != mcp.EffectRead {
+			if budgets := actor.Scopes(); budgets != nil && !mcpauth.ScopesAllowWrite(budgets) {
+				return nil, s.protocolError(mcp.ErrUnavailable("denied"))
+			}
+		}
 		name, version := clientIdentity(request)
-		result, err := s.Service.CallTool(ctx, principal, limits, def.Name, request.ProtocolVersion(),
+		result, err := s.Service.CallTool(ctx, actor, limits, def.Name, request.ProtocolVersion(),
 			name, version, arguments)
 		if err != nil {
+			// Business and input outcomes are tool results, not protocol
+			// failures: agents read the stable code and react (retry, re-read)
+			// the way the web surface does.
+			var mcpErr *mcp.Error
+			if errors.As(err, &mcpErr) && (mcpErr.Category == mcp.CatBusiness || mcpErr.Category == mcp.CatInput) {
+				return &sdk.CallToolResult{Content: []sdk.Content{&sdk.TextContent{Text: mcpErr.Code}}, IsError: true}, nil
+			}
 			return nil, s.protocolError(err)
 		}
 		payload, marshalErr := json.Marshal(result)

@@ -24,6 +24,10 @@ import (
 // row-level visibility as the HTTP surface.
 const notesReadOperation = "listNotes"
 
+// The write tool binds the delegable notes update operation; its permission
+// points and operation grant ride the same authorizer as the HTTP surface.
+const notesWriteOperation = "updateNote"
+
 type notesDeps struct {
 	manager *install.Manager
 }
@@ -56,6 +60,15 @@ type notesSearchInput struct {
 
 type notesGetInput struct {
 	ID string `json:"id"`
+}
+
+type notesUpdateInput struct {
+	ID            string   `json:"id"`
+	Title         string   `json:"title"`
+	Body          string   `json:"body"`
+	Status        string   `json:"status"`
+	AttachmentIds []string `json:"attachment_ids"`
+	Version       int      `json:"version"`
 }
 
 func notesError(err error) error {
@@ -118,7 +131,7 @@ func RegisterNotes(registry *mcp.Registry, manager *install.Manager, operations 
 	}, operations); err != nil {
 		return err
 	}
-	return registry.Register(mcp.ToolDefinition{
+	if err := registry.Register(mcp.ToolDefinition{
 		Name: "notes.get", Module: "notes", Version: "1.0", ImplVersion: "1",
 		TitleZh: "读取笔记", TitleEn: "Read note",
 		DescriptionZh: "按 ID 读取一条当前调用者可见的笔记全文",
@@ -153,6 +166,42 @@ func RegisterNotes(registry *mcp.Registry, manager *install.Manager, operations 
 				attachments = entry.AttachmentIds
 			}
 			return map[string]any{"id": entry.ID, "title": entry.Title, "body": entry.Body, "status": entry.Status, "version": entry.Version, "attachment_ids": attachments, "created_at": entry.CreatedAt, "updated_at": entry.UpdatedAt}, nil
+		}),
+	}, operations); err != nil {
+		return err
+	}
+	return registry.Register(mcp.ToolDefinition{
+		Name: "notes.update", Module: "notes", Version: "1.0", ImplVersion: "1",
+		TitleZh: "更新笔记", TitleEn: "Update note",
+		DescriptionZh: "按 ID 与版本号更新当前调用者自己的笔记；版本冲突时拒绝，写效果需要开放写阶段并携带 mcp.write 授权",
+		DescriptionEn: "Update one note owned by the caller by identifier and version; conflicts are refused, and write effects require the write phase plus the mcp.write grant",
+		InputSchema: json.RawMessage(`{"type":"object","additionalProperties":false,"properties":{
+			"id":{"type":"string","maxLength":64,"description":"笔记 ID"},
+			"title":{"type":"string","minLength":1,"maxLength":120},
+			"body":{"type":"string","maxLength":5000},
+			"status":{"type":"string","maxLength":8,"enum":["open","done"]},
+			"version":{"type":"integer","minimum":1,"maximum":2000000000,"description":"乐观锁版本号"}},"required":["id","title","body","status","version"]}`),
+		OutputSchema: json.RawMessage(`{"type":"object","additionalProperties":false,"properties":{
+			"id":{"type":"string","maxLength":64},
+			"title":{"type":"string","maxLength":120},
+			"status":{"type":"string","maxLength":8},
+			"version":{"type":"integer","maximum":2000000000},
+			"updated_at":{"type":"integer","maximum":20000000000000}},"required":["id","title","status","version","updated_at"]}`),
+		OperationIDs: []string{notesWriteOperation}, Effect: mcp.EffectWrite, Confirmation: mcp.ConfirmationRequired,
+		Handler: mcp.ToolHandlerFunc(func(ctx context.Context, principal mcp.Principal, arguments json.RawMessage) (any, error) {
+			service, scope, _, err := deps.session(ctx, principal)
+			if err != nil {
+				return nil, err
+			}
+			var input notesUpdateInput
+			if err := json.Unmarshal(arguments, &input); err != nil {
+				return nil, mcp.ErrInput("arguments are not valid")
+			}
+			entry, err := service.Update(ctx, scope, input.ID, contracts.NoteUpdate{Title: input.Title, Body: input.Body, Status: input.Status, AttachmentIds: input.AttachmentIds, Version: input.Version})
+			if err != nil {
+				return nil, notesError(err)
+			}
+			return map[string]any{"id": entry.ID, "title": entry.Title, "status": entry.Status, "version": entry.Version, "updated_at": entry.UpdatedAt}, nil
 		}),
 	}, operations)
 }

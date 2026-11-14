@@ -102,6 +102,14 @@ func openMCPInterop(t *testing.T) *mcpInterop {
 		Policies: governance, Calls: governance,
 		Clock:         mcp.ClockFunc(func() int64 { return 1000 }),
 		NewIdentifier: func() string { return fmt.Sprintf("e2e-req-%d", callSequence.Add(1)) },
+		WritePhase: func() bool {
+			_, settingsService, _, profile := manager.Services()
+			if settingsService == nil || profile != runtime.WebPlatform {
+				return false
+			}
+			values, err := settingsService.Raw(context.Background())
+			return err == nil && values["mcp.write_enabled"] == "true"
+		},
 	})
 	if err = mcpadapter.RegisterNotes(registry, manager, operations); err != nil {
 		t.Fatal(err)
@@ -333,5 +341,159 @@ func TestMCPProtocolOAuthInteropOverHTTP(t *testing.T) {
 	after.Body.Close()
 	if after.StatusCode != http.StatusUnauthorized {
 		t.Fatalf("post-revocation status = %d, want 401", after.StatusCode)
+	}
+}
+
+func TestMCPWritePhaseGate(t *testing.T) {
+	env := openMCPInterop(t)
+	ctx := env.ctx
+
+	// The write capability registers under its own fingerprint; open it.
+	fingerprint, _ := env.registry.Fingerprint("notes.update")
+	if _, err := env.repository.UpdateMCPPolicy(ctx, mcp.Policy{Kind: mcp.KindTool, Name: "notes.update", Enabled: true, AcceptedFingerprint: fingerprint, AcceptedVersion: "1.0"}, fingerprint, env.admin.ID); err != nil {
+		t.Fatal(err)
+	}
+	// The user role needs the delegable write operation and its permission point.
+	store, _, _, _ := env.manager.Services()
+	for _, statement := range []string{
+		"INSERT OR IGNORE INTO unicore_role_operations(role_id,operation_id) VALUES('user','updateNote')",
+	} {
+		if _, err := store.Exec(ctx, store.DB, statement); err != nil {
+			t.Fatal(err)
+		}
+	}
+	seedPermission := func(id string) {
+		if _, err := store.Exec(ctx, store.DB, "INSERT OR IGNORE INTO unicore_permissions(id) VALUES(?)", id); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := store.Exec(ctx, store.DB, "INSERT OR IGNORE INTO unicore_role_permissions(role_id,permission_id) VALUES('user',?)", id); err != nil {
+			t.Fatal(err)
+		}
+	}
+	seedPermission("notes:update")
+	seedPermission("notes:access")
+
+	// Seed one note owned by the member.
+	notes := &notesusecase.Notes{Repo: &notesnotessql.Repository{Store: store}}
+	entry, err := notes.Create(ctx, "user/"+env.member.ID, contracts.NoteInput{Title: "draft", Body: "v1", Status: "open"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	oauthSession := func(scopes []string) *sdk.ClientSession {
+		t.Helper()
+		client, _, err := env.oauth.CreateClient(ctx, "Writer", mcpoauth.ClientPublic, "", []string{"http://127.0.0.1:0/callback"}, env.admin.Username)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err = env.oauth.UpdateClient(ctx, client.ID, client.Name, client.RedirectURIs, true, client.Version, env.admin.Username); err != nil {
+			t.Fatal(err)
+		}
+		grant, err := env.oauth.CreateGrant(ctx, env.member.ID, client.ID, "user", scopes, env.member.Roles)
+		if err != nil {
+			t.Fatal(err)
+		}
+		verifier := strings.Repeat("v", 48)
+		sum := sha256.Sum256([]byte(verifier))
+		code, err := env.oauth.IssueCode(ctx, grant, client.RedirectURIs[0], base64.RawURLEncoding.EncodeToString(sum[:]), "S256")
+		if err != nil {
+			t.Fatal(err)
+		}
+		issued, err := env.oauth.ExchangeCode(ctx, client.ID, "", code, client.RedirectURIs[0], verifier)
+		if err != nil {
+			t.Fatal(err)
+		}
+		session, err := sdk.NewClient(&sdk.Implementation{Name: "writer", Version: "0"}, nil).Connect(ctx, &sdk.StreamableClientTransport{
+			Endpoint: env.server.URL + "/mcp", DisableStandaloneSSE: true,
+			HTTPClient: &http.Client{Transport: &bearerTransport{inner: env.server.Client().Transport, bearer: issued.AccessToken}},
+		}, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return session
+	}
+	currentVersion := entry.Version
+	call := func(session *sdk.ClientSession) error {
+		result, err := session.CallTool(ctx, &sdk.CallToolParams{Name: "notes.update", Arguments: map[string]any{
+			"id": entry.ID, "title": "draft", "body": "v2", "status": "open", "version": currentVersion,
+		}})
+		if err == nil && result != nil && !result.IsError {
+			if structured, ok := result.StructuredContent.(map[string]any); ok {
+				if version, ok := structured["version"].(float64); ok {
+					currentVersion = int(version)
+				}
+			}
+		}
+		return err
+	}
+
+	// The OAuth switch gates every ucm_ credential before the phase matters.
+	revision, err := env.repository.MCPControlRevision(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = env.repository.UpdateMCPConfig(ctx, revision, map[string]string{"mcp.oauth_enabled": "true"}, env.admin.ID); err != nil {
+		t.Fatal(err)
+	}
+
+	// Phase closed: even a mcp.write token cannot pass the phase gate.
+	writeScopes := []string{mcpoauth.ScopeRead, mcpoauth.ScopeWrite, mcpoauth.ScopeOffline}
+	session := oauthSession(writeScopes)
+	if err = call(session); err == nil {
+		t.Fatal("closed phase unexpectedly executed a write")
+	}
+	session.Close()
+
+	// Phase open without the write budget: unified denial at the transport.
+	revision, err = env.repository.MCPControlRevision(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = env.repository.UpdateMCPConfig(ctx, revision, map[string]string{"mcp.write_enabled": "true"}, env.admin.ID); err != nil {
+		t.Fatal(err)
+	}
+	session = oauthSession([]string{mcpoauth.ScopeRead, mcpoauth.ScopeOffline})
+	if err = call(session); err == nil {
+		t.Fatal("missing mcp.write budget unexpectedly executed a write")
+	}
+	session.Close()
+
+	// Phase open with the budget: the write executes and bumps the version.
+	session = oauthSession(writeScopes)
+	if err = call(session); err != nil {
+		t.Fatalf("authorized write failed: %v", err)
+	}
+	listing, err := session.ListTools(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	names := map[string]bool{}
+	for _, tool := range listing.Tools {
+		names[tool.Name] = true
+	}
+	if !names["notes.update"] {
+		t.Fatalf("tools/list = %v, want notes.update listed", names)
+	}
+	session.Close()
+
+	// PAT principals carry no scope budget: the phase switch alone governs them.
+	_, adminSession, err := env.identity.Issue(ctx, env.admin, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pat, err := env.identity.Tokens.CreatePAT(ctx, adminSession, contracts.PersonalTokenInput{Name: "writer-pat", RoleID: "user", ExpiresInDays: 1}, env.member.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	patSession, err := sdk.NewClient(&sdk.Implementation{Name: "pat-writer", Version: "0"}, nil).Connect(ctx, &sdk.StreamableClientTransport{
+		Endpoint: env.server.URL + "/mcp", DisableStandaloneSSE: true,
+		HTTPClient: &http.Client{Transport: &bearerTransport{inner: env.server.Client().Transport, bearer: pat.Token}},
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer patSession.Close()
+	if err = call(patSession); err != nil {
+		t.Fatalf("PAT write in the open phase failed: %v", err)
 	}
 }

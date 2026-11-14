@@ -311,6 +311,14 @@ func run(args []string) (result error) {
 		Calls:         mcpPorts,
 		Clock:         mcp.ClockFunc(func() int64 { return time.Now().Unix() }),
 		NewIdentifier: presenter.RequestID,
+		WritePhase: func() bool {
+			_, settingsService, _, profile := manager.Services()
+			if settingsService == nil || profile != runtime.WebPlatform {
+				return false
+			}
+			values, err := settingsService.Raw(context.Background())
+			return err == nil && values["mcp.write_enabled"] == "true"
+		},
 	})
 	if err := mcpadapter.RegisterNotes(mcpRegistry, manager, mcpOperations); err != nil {
 		return fmt.Errorf("mcp capability registration failed: %w", err)

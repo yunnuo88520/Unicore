@@ -300,8 +300,8 @@ func TestNormalizeScopesBoundsVocabulary(t *testing.T) {
 	if strings.Join(scopes, " ") != ScopeRead+" "+ScopeOffline {
 		t.Fatalf("scopes = %v", scopes)
 	}
-	if _, err = NormalizeScopes([]string{ScopeWrite}); err == nil {
-		t.Fatal("write scope must be rejected in this phase")
+	if scopes, err = NormalizeScopes([]string{ScopeWrite}); err != nil || len(scopes) != 1 || scopes[0] != ScopeWrite {
+		t.Fatalf("write scope must normalize to itself, got %v / %v", scopes, err)
 	}
 	if _, err = NormalizeScopes([]string{"email"}); err == nil {
 		t.Fatal("unknown scope must be rejected")

@@ -78,6 +78,12 @@ func mountMcpOauth(api chi.Router, config Config) {
 			failure(w, 400, "INVALID_INPUT", "请求的 scope 不在可授权范围内")
 			return client, nil, false
 		}
+		// The write scope rides its own runtime switch: a closed phase never
+		// consents to it regardless of the client registration.
+		if mcpoauth.ScopesContainWrite(scopes) && values["mcp.write_enabled"] != "true" {
+			failure(w, 400, "INVALID_INPUT", "请求的 scope 不在可授权范围内")
+			return client, nil, false
+		}
 		return client, scopes, true
 	}
 

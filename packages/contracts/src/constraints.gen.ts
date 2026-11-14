@@ -8698,6 +8698,7 @@ export const constraints = {
       "enabled",
       "pat_enabled",
       "oauth_enabled",
+      "write_enabled",
       "endpoint",
       "supported_protocols",
       "implemented_capabilities",
@@ -8716,6 +8717,9 @@ export const constraints = {
         "type": "boolean"
       },
       "oauth_enabled": {
+        "type": "boolean"
+      },
+      "write_enabled": {
         "type": "boolean"
       },
       "endpoint": {
@@ -8789,6 +8793,9 @@ export const constraints = {
         "type": "boolean"
       },
       "oauth_enabled": {
+        "type": "boolean"
+      },
+      "write_enabled": {
         "type": "boolean"
       },
       "default_timeout_seconds": {

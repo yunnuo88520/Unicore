@@ -2179,6 +2179,7 @@ export interface McpConfig {
   enabled: boolean;
   pat_enabled: boolean;
   oauth_enabled: boolean;
+  write_enabled: boolean;
   endpoint: string;
   supported_protocols: Array<string>;
   implemented_capabilities: Array<string>;
@@ -2198,6 +2199,7 @@ export interface McpConfigPatch {
   enabled?: boolean;
   pat_enabled?: boolean;
   oauth_enabled?: boolean;
+  write_enabled?: boolean;
   default_timeout_seconds?: number;
   max_request_bytes?: number;
   max_result_bytes?: number;

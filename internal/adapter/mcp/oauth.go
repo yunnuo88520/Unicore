@@ -11,12 +11,18 @@ import (
 	"github.com/yunnuo/unicore/internal/runtime"
 )
 
-// oauthScopesAdvertised is the P2 scope vocabulary; the write scope is only
-// advertised once the write phase is delivered and accepted.
-var oauthScopesAdvertised = []string{mcpoauth.ScopeRead, mcpoauth.ScopeOffline}
-
 func (s *Surface) oauthEnabled(values map[string]string) bool {
 	return values["mcp.enabled"] == "true" && values["mcp.oauth_enabled"] == "true"
+}
+
+// oauthScopesAdvertised mirrors what consents can actually carry: the write
+// scope joins only once the write phase switch is open.
+func oauthScopesAdvertised(values map[string]string) []string {
+	scopes := []string{mcpoauth.ScopeRead, mcpoauth.ScopeOffline}
+	if values["mcp.write_enabled"] == "true" {
+		scopes = append(scopes, mcpoauth.ScopeWrite)
+	}
+	return scopes
 }
 
 func (s *Surface) baseURL(values map[string]string) string {
@@ -62,7 +68,7 @@ func (s *Surface) handleProtectedResourceMetadata(w http.ResponseWriter, r *http
 	writeJSONValue(w, 200, map[string]any{
 		"resource":               mcpoauth.CanonicalResource(base),
 		"authorization_servers":  []string{base},
-		"scopes_supported":       oauthScopesAdvertised,
+		"scopes_supported":       oauthScopesAdvertised(values),
 		"bearer_methods_supported": []string{"header"},
 		"resource_documentation": base + "/api-docs",
 	})
@@ -83,7 +89,7 @@ func (s *Surface) handleAuthorizationServerMetadata(w http.ResponseWriter, r *ht
 		"response_types_supported":       []string{"code"},
 		"grant_types_supported":          []string{"authorization_code", "refresh_token"},
 		"code_challenge_methods_supported": []string{"S256"},
-		"scopes_supported":               oauthScopesAdvertised,
+		"scopes_supported":               oauthScopesAdvertised(values),
 		"token_endpoint_auth_methods_supported": []string{"client_secret_post", "none"},
 	})
 }

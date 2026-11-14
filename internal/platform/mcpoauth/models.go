@@ -92,9 +92,20 @@ type AdminGrantView struct {
 	RoleName string
 }
 
+// ScopesContainWrite reports whether the set carries the transport write
+// budget; the phase switch and the capability effect decide the rest.
+func ScopesContainWrite(scopes []string) bool {
+	for _, scope := range scopes {
+		if scope == ScopeWrite {
+			return true
+		}
+	}
+	return false
+}
+
 // NormalizeScopes trims, deduplicates and bounds the requested scope set to
-// the P2 vocabulary. The write scope is not granted in P2: the write phase
-// must be delivered and accepted before any consent can carry it.
+// the phase vocabulary. The write scope is only meaningful once the write
+// phase is open; the consent endpoints enforce that switch.
 func NormalizeScopes(requested []string) ([]string, error) {
 	seen := map[string]bool{}
 	scopes := []string{}
@@ -108,7 +119,7 @@ func NormalizeScopes(requested []string) ([]string, error) {
 		case ScopeRead:
 			scopes = append(scopes, scope)
 		case ScopeWrite:
-			return nil, fmt.Errorf("scope %q is not grantable in the current phase", ScopeWrite)
+			scopes = append(scopes, scope)
 		case ScopeOffline:
 			scopes = append(scopes, scope)
 		default:

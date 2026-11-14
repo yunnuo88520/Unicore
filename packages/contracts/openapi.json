@@ -26172,6 +26172,7 @@
           "enabled",
           "pat_enabled",
           "oauth_enabled",
+          "write_enabled",
           "endpoint",
           "supported_protocols",
           "implemented_capabilities",
@@ -26191,6 +26192,9 @@
             "type": "boolean"
           },
           "oauth_enabled": {
+            "type": "boolean"
+          },
+          "write_enabled": {
             "type": "boolean"
           },
           "endpoint": {
@@ -26265,6 +26269,9 @@
             "type": "boolean"
           },
           "oauth_enabled": {
+            "type": "boolean"
+          },
+          "write_enabled": {
             "type": "boolean"
           },
           "default_timeout_seconds": {

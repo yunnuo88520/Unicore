@@ -48,6 +48,10 @@ type ServiceConfig struct {
 	// NewIdentifier returns a unique server-side request identifier for call
 	// records; it is distinct from the client-provided JSON-RPC id.
 	NewIdentifier func() string
+	// WritePhase reports whether the write phase is open. Nil or false keeps
+	// every non-read capability behind the phase gate; the setting flips it
+	// without a restart.
+	WritePhase func() bool
 }
 
 // Service orchestrates discovery and read-only execution. Write effects are
@@ -99,11 +103,27 @@ type toolState struct {
 	reason     string
 }
 
+// WritePhaseOpen reports the current write-phase switch. The transport
+// includes it in the server-instance cache key so flipping the setting
+// swaps the directory immediately, like a policy revision does.
+func (s *Service) WritePhaseOpen() bool { return s.writePhase() }
+
+// writePhase fails closed: an unwired callback keeps destructive and write
+// effects unreachable regardless of policy state.
+func (s *Service) writePhase() bool {
+	if def := s.cfg.WritePhase; def != nil {
+		return def()
+	}
+	return false
+}
+
 // admit applies the open policy, review fingerprint and phase gate. The
 // authorizer runs separately so callers can decide between directory
 // filtering and unified call semantics.
 func (s *Service) admit(ctx context.Context, def ToolDefinition) (string, error) {
-	if def.Effect != EffectRead {
+	// Destructive effects stay behind the phase gate regardless of the write
+	// switch; opening them is a separate, explicit decision.
+	if def.Effect == EffectDestructive || (def.Effect == EffectWrite && !s.writePhase()) {
 		return "phase", ErrUnavailable("phase")
 	}
 	policy, err := s.cfg.Policies.Policy(ctx, KindTool, def.Name)

@@ -22,7 +22,7 @@ setTranslator(t);
 
 | 组件 | 导入 | 用途 |
 | --- | --- | --- |
-| Button | `@unicore/ui` | 六种语义变体 × 四种尺寸；`pending` 自动禁用并显示 spinner |
+| Button | `@unicore/ui` | 六种语义变体 × 四种尺寸；primary 为 accent 渐变面，`pending` 自动禁用并显示 spinner |
 | Alert | `@unicore/ui` | 语义横幅（danger/warning/info/success），带可选操作；danger 为 alert 角色 |
 | Drawer | `@unicore/ui` | 侧滑面板（start/end），替代 Dialog 手改侧栏 |
 | Popover | `@unicore/ui` | 锚定浮层，宽度 288px 起步可覆盖 |

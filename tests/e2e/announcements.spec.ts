@@ -19,15 +19,16 @@ test('announcement bell: management, popup retry, pagination, receipts, audience
   await mkdir(directory, { recursive: true });
   await page.goto(`${instance.url}/admin/announcements`);
   await expect(page.getByRole('heading', { name: '平台公告', exact: true, level: 1 })).toBeVisible();
-  await expect(page.getByRole('button', { name: '平台公告', exact: true }).filter({ has: page.locator('svg.lucide-bell') })).toHaveCount(0);
+  // Administrators get the notification bell too, but only the inbox tab.
+  await expect(page.getByRole('button', { name: '通知中心', exact: true }).filter({ has: page.locator('svg.lucide-bell') })).toBeVisible();
   // New notices default to draft, and the editor previews unsaved content.
   await page.getByRole('button', { name: '新增公告', exact: true }).click();
   const editor = page.getByRole('dialog', { name: '新增公告', exact: true });
   await editor.getByLabel('公告标题', { exact: true }).fill('编辑器草稿');
   await editor.getByLabel('公告内容', { exact: true }).fill('## 测试预览');
-  await expect(editor.getByRole('combobox', { name: '发布状态', exact: true })).toHaveTextContent('草稿');
+  await expect(editor.getByRole('combobox', { name: '发布状态', exact: true })).toContainText('草稿');
   await editor.getByRole('combobox', { name: '接收范围', exact: true }).click();
-  await editor.getByRole('option', { name: '指定用户', exact: true }).click();
+  await page.getByRole('option', { name: '指定用户', exact: true }).click();
   await expect(editor.getByText('member · member@example.test', { exact: true })).toBeVisible();
   await editor.getByRole('checkbox', { name: 'member · member@example.test', exact: true }).check();
   await editor.getByRole('button', { name: '预览', exact: true }).click();
@@ -62,17 +63,17 @@ test('announcement bell: management, popup retry, pagination, receipts, audience
     expect((await context.request.post(`${instance.url}/api/v1/announcements/${popup.id}/read`, { headers: userHeaders })).status()).toBe(200);
     expect((await (await context.request.get(`${instance.url}/api/v1/announcements/${popup.id}`)).json()).data.read_at).toBe(firstRead);
     expect((await context.request.get(`${instance.url}/api/v1/announcements/${hidden.id}`)).status()).toBe(404);
-    const bell = user.getByRole('button', { name: '平台公告', exact: true });
+    const bell = user.getByRole('button', { name: '通知中心', exact: true });
     await expect(bell).toBeVisible();
     // The bell combines 12 unread announcements and the independently unread personal delivery.
     await expect(bell).toContainText('13');
     await bell.click();
-    const inbox = user.getByRole('dialog', { name: '平台公告', exact: true });
-    await expect(inbox.getByText('12 条未读公告', { exact: true })).toBeVisible();
+    const inbox = user.getByRole('dialog', { name: '通知中心', exact: true });
+    await expect(inbox.getByText('12 条未读', { exact: true })).toBeVisible();
     await inbox.getByRole('button', { name: '下一页', exact: true }).click();
     await expect(inbox.getByText('2 / 2', { exact: true })).toBeVisible();
     await inbox.getByRole('button', { name: '全部标为已读', exact: true }).click();
-    await expect(inbox.getByText('0 条未读公告', { exact: true })).toBeVisible();
+    await expect(inbox.getByText('没有未读通知', { exact: true })).toBeVisible();
     expect((await (await context.request.get(`${instance.url}/api/v1/announcements?page=1&page_size=1`)).json()).data.unread_count).toBe(0);
     await user.keyboard.press('Escape');
     await expect(bell).toBeFocused();
@@ -81,9 +82,9 @@ test('announcement bell: management, popup retry, pagination, receipts, audience
     await user.getByRole('button', { name: 'Appearance', exact: true }).click();
     await user.getByRole('dialog', { name: 'Appearance', exact: true }).locator('.preference-theme').getByRole('button', { name: 'Dark', exact: true }).click();
     await user.keyboard.press('Escape');
-    await user.getByRole('button', { name: 'Announcements', exact: true }).click();
-    const english = user.getByRole('dialog', { name: 'Announcements', exact: true });
-    await expect(english.getByText('0 unread announcements', { exact: true })).toBeVisible();
+    await user.getByRole('button', { name: 'Notification centre', exact: true }).click();
+    const english = user.getByRole('dialog', { name: 'Notification centre', exact: true });
+    await expect(english.getByText('No unread notifications', { exact: true })).toBeVisible();
     await user.screenshot({ path: `${directory}/bell-inbox-en-dark.png`, animations: 'disabled' });
     await english.getByRole('button').filter({ hasText: '静默消息' }).first().click();
     await expect(user.getByRole('link', { name: '帮助', exact: true })).toHaveAttribute('href', 'https://example.test/help');
@@ -96,7 +97,7 @@ test('announcement bell: management, popup retry, pagination, receipts, audience
     await page.keyboard.press('Escape');
     await page.locator('#announcements-enabled').uncheck();
     await user.reload();
-    await user.getByRole('button', { name: 'Announcements', exact: true }).click();
+    await user.getByRole('button', { name: 'Notification centre', exact: true }).click();
     await expect(user.getByText('No announcements yet', { exact: true })).toBeVisible();
     expect((await context.request.post(`${instance.url}/api/v1/announcements/${popup.id}/read`, { headers: userHeaders })).status()).toBe(404);
     await instance.restart();
@@ -113,6 +114,7 @@ test('local workspace never requests announcement APIs', async ({ page, instance
   page.on('request', request => { if (request.url().includes('/announcements')) requests.push(request.url()); });
   await page.goto(instance.url);
   await expect(page.getByRole('heading', { name: '工作台概览' })).toBeVisible();
-  await expect(page.getByRole('button', { name: '平台公告', exact: true })).toHaveCount(0);
+  // Standalone assembly stays phase two: the bell must not mount here yet.
+  await expect(page.getByRole('button', { name: '通知中心', exact: true })).toHaveCount(0);
   expect(requests).toEqual([]);
 });

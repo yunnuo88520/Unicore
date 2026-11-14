@@ -406,7 +406,7 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
     return response.json();
   }
   subscribeEvents(listener:(type:string)=>void):()=>void {
-    if(this.administrator||typeof EventSource==='undefined')return ()=>{};
+    if(typeof EventSource==='undefined')return ()=>{};
     const source=new EventSource(`${this.baseURL}${operations.events.path}`,{withCredentials:true});
     const notify=(event:Event)=>listener(event.type==='open'?'reconnect':event.type);
     for(const type of ['open','message','inbox.new'])source.addEventListener(type,notify);

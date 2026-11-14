@@ -1501,13 +1501,14 @@ type TaskTriggerResponse struct {
 }
 
 type InboxEntry struct {
-	ID        string `json:"id"`
-	Type      string `json:"type"`
-	SourceID  string `json:"source_id"`
-	Title     string `json:"title"`
-	Body      string `json:"body"`
-	CreatedAt int    `json:"created_at"`
-	ReadAt    int    `json:"read_at"`
+	ID        string         `json:"id"`
+	Type      string         `json:"type"`
+	SourceID  string         `json:"source_id"`
+	Title     string         `json:"title"`
+	Actions   *[]InboxAction `json:"actions,omitempty"`
+	CreatedAt int            `json:"created_at"`
+	ReadAt    int            `json:"read_at"`
+	Body      string         `json:"body"`
 }
 
 type InboxList struct {
@@ -2006,4 +2007,10 @@ type AdminPersonalTokenInput struct {
 	ExpiresInDays int    `json:"expires_in_days"`
 	Remark        string `json:"remark"`
 	UserID        string `json:"user_id"`
+}
+
+type InboxAction struct {
+	ID    string  `json:"id"`
+	Label string  `json:"label"`
+	Href  *string `json:"href,omitempty"`
 }

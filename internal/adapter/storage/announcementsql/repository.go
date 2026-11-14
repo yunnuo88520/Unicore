@@ -12,13 +12,20 @@ import (
 	"github.com/yunnuo/unicore/internal/audit"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/domain"
+	"github.com/yunnuo/unicore/internal/notify"
 	"github.com/yunnuo/unicore/internal/usecase"
 	"strconv"
 	"strings"
 	"time"
 )
 
-type Repository struct{ Store *sqlstore.Store }
+// Repository persists announcements. Notify is optional: when set, the
+// published-selected-audience inbox delivery flows through the registered-type
+// facade; legacy constructions without it keep the direct platformsql path.
+type Repository struct {
+	Store *sqlstore.Store
+	Notify *notify.Notifier
+}
 
 const columns = "id,content,content_html,format,type,note,status,publish_at,created_by,updated_by,created_at,updated_at,deleted_at,version,title,notify_mode,ends_at,audience"
 
@@ -333,9 +340,15 @@ func (r *Repository) Save(ctx context.Context, a domain.Announcement, actor stri
 	}
 	// Published announcements land in the personal inbox of their selected
 	// audience so the bell and the SSE stream carry them (audience=all stays a
-	// broadcast on the announcements feed itself).
+	// broadcast on the announcements feed itself). The delivery type is
+	// registered at assembly, so it flows through the notify facade when one
+	// is wired; legacy constructions keep the direct path.
 	if a.Status == "published" && a.Audience == "selected" {
-		if err = (&platformsql.Repository{Store: r.Store}).DeliverInbox(ctx, tx, a.RecipientIDs, "announcement", a.ID, a.Title, a.Content); err != nil {
+		if r.Notify != nil {
+			if err = r.Notify.Deliver(ctx, tx, a.RecipientIDs, "announcement", a.ID, a.Title, a.Content, nil); err != nil {
+				return a, err
+			}
+		} else if err = (&platformsql.Repository{Store: r.Store}).DeliverInbox(ctx, tx, a.RecipientIDs, "announcement", a.ID, a.Title, a.Content, ""); err != nil {
 			return a, err
 		}
 	}

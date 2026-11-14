@@ -1,11 +1,13 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: User announcement bell, realtime inbox pushes, paginated announcements and acknowledged popup queue.
+// Description: User notification bell: anchored center popover over realtime inbox pushes, paginated announcements and acknowledged popup queue.
 import { useEffect, useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, Bell, CheckCheck, CheckCircle2, ChevronLeft, ChevronRight, Info, OctagonAlert } from 'lucide-react';
+import { useRouter } from '@tanstack/react-router';
+import { AlertTriangle, Bell, CheckCheck, CheckCircle2, ChevronLeft, ChevronRight, Info, Megaphone, OctagonAlert, Settings2 } from 'lucide-react';
 import type { AnnouncementPublic, InboxEntry, WebClient } from '@unicore/sdk';
 import { currentLocale, defineMessages, t, useI18n } from './i18n';
-import { Badge, Button, Dialog, DialogContent, DialogHeader, DialogTitle, EmptyState, Tabs } from '@unicore/ui';
+import { Badge, Button, Dialog, DialogContent, DialogHeader, DialogTitle, Popover, PopoverContent, PopoverTrigger } from '@unicore/ui';
+import { NotificationCenter, type NotificationItem, type NotificationStatus } from '@unicore/ui/composites';
 import { RichContent, contentSummary } from './rich-content';
 
 export const announcementTypes = defineMessages({ info: '通知', success: '好消息', warning: '注意事项', error: '重要提醒' });
@@ -17,21 +19,30 @@ export function AnnouncementType({ type }: { type: AnnouncementPublic['type'] })
   return <Badge variant={typeVariants[type]}><Icon size={12} aria-hidden="true" />{t(announcementTypes[type])}</Badge>;
 }
 const date = (value: number) => new Date(value * 1000).toLocaleString(currentLocale(), { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+// Registered inbox types map to the panel's status disc; unknown types fall back to neutral.
+const inboxDisc: Record<string, { status: NotificationStatus; icon?: typeof Megaphone }> = {
+  announcement: { status: 'information', icon: Megaphone },
+  system: { status: 'neutral', icon: Settings2 },
+};
 
-export function AnnouncementCenter({ web }: { web: WebClient }) {
+export function AnnouncementCenter({ web, administrator = false }: { web: WebClient; administrator?: boolean }) {
   const { t } = useI18n();
   const cache = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState('announcements');
+  const [tab, setTab] = useState(administrator ? 'inbox' : 'announcements');
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState('');
   const [expanded, setExpanded] = useState('');
   const [ready, setReady] = useState(false);
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set());
+  const router = useRouter();
   const refresh = () => cache.invalidateQueries({ queryKey: ['announcements'] });
-  const feed = useQuery({ queryKey: ['announcements', 'inbox', page], queryFn: () => web.announcements(page, 10), placeholderData: keepPreviousData, refetchOnWindowFocus: 'always' });
+  // Announcements stay a user-domain audience: administrators get the inbox tab
+  // only, so their bell carries module/system notifications without the
+  // announcement audience model.
+  const feed = useQuery({ queryKey: ['announcements', 'inbox', page], queryFn: () => web.announcements(page, 10), placeholderData: keepPreviousData, refetchOnWindowFocus: 'always', enabled: !administrator });
   // Fetch unread popup notices independently, so inbox pagination never drops notifications.
-  const popups = useQuery({ queryKey: ['announcements', 'popups'], queryFn: () => web.announcements(1, 1, true), refetchOnWindowFocus: 'always' });
+  const popups = useQuery({ queryKey: ['announcements', 'popups'], queryFn: () => web.announcements(1, 1, true), refetchOnWindowFocus: 'always', enabled: !administrator });
   const inbox = useQuery({ queryKey: ['inbox'], queryFn: () => web.inbox(), refetchOnWindowFocus: 'always' });
   // Transport owns credentials, identity realm, reconnects and session cleanup.
   // Refetch authoritative counts after every push and reconnect; never count events locally.
@@ -40,13 +51,14 @@ export function AnnouncementCenter({ web }: { web: WebClient }) {
     void cache.invalidateQueries({ queryKey: ['announcements'] });
     void cache.invalidateQueries({ queryKey: ['announcement'] });
   }), [web, cache]);
-  useEffect(() => { const timer = window.setTimeout(() => setReady(true), 3000); return () => window.clearTimeout(timer); }, []);
+  useEffect(() => { if (administrator) return; const timer = window.setTimeout(() => setReady(true), 3000); return () => window.clearTimeout(timer); }, [administrator]);
   useEffect(() => {
+    if (administrator) return;
     const end = [...(feed.data?.items ?? []), ...(popups.data?.items ?? [])].map(item => item.ends_at).filter(value => value > Date.now() / 1000).sort((a, b) => a - b)[0];
     if (!end) return;
     const timer = window.setTimeout(() => { void refresh(); }, Math.min(2147483647, Math.max(0, end * 1000 - Date.now() + 50)));
     return () => window.clearTimeout(timer);
-  }, [feed.data, popups.data]);
+  }, [administrator, feed.data, popups.data]);
   useEffect(() => { if (feed.data && page > Math.max(1, Math.ceil(feed.data.total / 10))) setPage(1); }, [feed.data, page]);
   const allRead = useMutation({ mutationFn: () => web.markAllAnnouncementsRead(), onSuccess: async () => { setPage(1); await refresh(); } });
   const inboxRead = useMutation({ mutationFn: (id: string) => web.readInbox(id), onSuccess: data => { cache.setQueryData(['inbox'], data); } });
@@ -55,69 +67,68 @@ export function AnnouncementCenter({ web }: { web: WebClient }) {
   const popup = ready && !open && !selected ? candidate : undefined;
   const inboxUnread = inbox.data?.unread ?? 0;
   const unread = feed.data?.unread_count ?? 0;
+  // Each tab renders its own source; the panel stays presentational.
+  const items: NotificationItem[] = tab === 'announcements'
+    ? (feed.data?.items ?? []).map(item => ({ id: item.id, title: item.title, description: contentSummary(item.content_html), timestamp: date(item.publish_at), unread: !item.read_at, status: 'information' as const }))
+    : (inbox.data?.items ?? []).map(item => {
+      const disc = inboxDisc[item.type];
+      return { id: item.id, title: item.title, description: expanded === item.id ? item.body : item.body.length > 120 ? `${item.body.slice(0, 120)}…` : item.body, timestamp: date(item.created_at), unread: !item.read_at, status: disc?.status ?? 'neutral', icon: disc?.icon, actions: (item.actions ?? []).map(action => ({ id: action.id, label: action.label, href: action.href })) };
+    });
+  const pending = tab === 'announcements' ? feed.isPending : inbox.isPending;
+  const error = tab === 'announcements' ? feed.error : inbox.error;
+  const emptyMessage = tab === 'announcements' ? t('暂无公告') : t('暂无通知');
   return <>
-    <Button variant="ghost" size="icon" className="relative size-8" aria-label={t('平台公告')} title={t('平台公告')} onClick={() => { setOpen(true); void refresh(); void cache.invalidateQueries({ queryKey: ['inbox'] }); }}>
-      <Bell size={19} aria-hidden="true" />
-      {unread + inboxUnread > 0 && <span className="absolute -end-1 -top-1 flex min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] leading-4 text-on-primary" aria-label={t('{{count}} 条未读消息', { count: unread + inboxUnread })}>{unread + inboxUnread > 99 ? '99+' : unread + inboxUnread}</span>}
-    </Button>
-    {open && <Dialog open onOpenChange={value => { if (!value) setOpen(false); }}>
-      <DialogContent className="max-w-[620px]">
-        <DialogHeader><DialogTitle>{t('平台公告')}</DialogTitle></DialogHeader>
-        <Tabs id="announcement-center" label={t('消息类型')} value={tab} onChange={setTab} items={[{ id: 'announcements', label: t('公告') }, { id: 'inbox', label: t('通知') }]} />
-        {tab === 'announcements' ? <>
-          <div className="mb-3 flex items-center justify-between gap-2 border-b border-line pb-3">
-            <span className="text-xs text-muted">{t('{{count}} 条未读公告', { count: feed.data?.unread_count ?? 0 })}</span>
-            <Button variant="secondary" size="sm" disabled={!feed.data?.unread_count || allRead.isPending} pending={allRead.isPending} onClick={() => allRead.mutate()}><CheckCheck size={14} />{t('全部标为已读')}</Button>
-          </div>
-          {feed.isPending ? <p role="status" className="py-10 text-center text-sm text-muted">{t('正在读取公告…')}</p>
-            : feed.isError ? <div role="alert" className="py-8 text-center"><p className="mb-3 text-sm text-danger">{t('公告暂时无法加载')}</p><Button variant="secondary" onClick={() => void feed.refetch()}>{t('重试')}</Button></div>
-            : !feed.data?.items.length ? <EmptyState icon={Bell} description={t('暂无公告')} />
-            : <div className="flex max-h-[55dvh] flex-col gap-1 overflow-y-auto" aria-busy={feed.isFetching}>
-                {feed.data.items.map(item => <button key={item.id} type="button" className="flex items-start gap-3 rounded-lg p-3 text-start hover:bg-surface-hover focus-visible:outline-focus" onClick={() => setSelected(item.id)}>
-                  <span className={`mt-2 size-2 shrink-0 rounded-full ${item.read_at ? 'bg-line' : 'bg-accent'}`} aria-hidden="true" />
-                  <span className="min-w-0 flex-1"><span className={`block break-words text-sm ${item.read_at ? 'text-muted' : 'font-semibold text-ink'}`}>{item.title}</span><span className="mt-1 block truncate text-xs text-muted">{contentSummary(item.content_html)}</span><time className="mt-2 block text-2xs text-subtle">{date(item.publish_at)}</time></span>
-                  <span className="shrink-0 text-2xs text-muted">{t(item.read_at ? '已读' : '未读')}</span>
-                </button>)}
-              </div>}
-          {feed.data && feed.data.total > 10 && <div className="mt-3 flex items-center justify-end gap-2 border-t border-line pt-3 text-xs text-muted">
-            <Button variant="ghost" size="icon" aria-label={t('上一页')} disabled={page === 1 || feed.isFetching} onClick={() => setPage(value => value - 1)}><ChevronLeft size={15} /></Button>
-            <span>{page} / {Math.max(1, Math.ceil(feed.data.total / 10))}</span>
-            <Button variant="ghost" size="icon" aria-label={t('下一页')} disabled={page * 10 >= feed.data.total || feed.isFetching} onClick={() => setPage(value => value + 1)}><ChevronRight size={15} /></Button>
-          </div>}
-        </> : <>
-          <div className="mb-3 flex items-center justify-between gap-2 border-b border-line pb-3">
-            <span className="text-xs text-muted">{t('{{count}} 条未读通知', { count: inboxUnread })}</span>
-            <Button variant="secondary" size="sm" disabled={!inboxUnread || inboxAllRead.isPending} pending={inboxAllRead.isPending} onClick={() => inboxAllRead.mutate()}><CheckCheck size={14} />{t('全部已读')}</Button>
-          </div>
-          {inbox.isPending ? <p role="status" className="py-10 text-center text-sm text-muted">{t('正在读取通知…')}</p>
-            : inbox.isError ? <div role="alert" className="py-8 text-center"><p className="mb-3 text-sm text-danger">{t('通知暂时无法加载')}</p><Button variant="secondary" onClick={() => void inbox.refetch()}>{t('重试')}</Button></div>
-            : !inbox.data?.items.length ? <EmptyState icon={Bell} description={t('暂无通知')} />
-            : <div className="flex max-h-[55dvh] flex-col gap-1 overflow-y-auto" aria-busy={inbox.isFetching}>
-                {inbox.data.items.map(item => <InboxRow key={item.id} item={item} expanded={expanded === item.id}
-                  onToggle={() => { setExpanded(current => current === item.id ? '' : item.id); if (!item.read_at) inboxRead.mutate(item.id); }} />)}
-              </div>}
-        </>}
-      </DialogContent>
-    </Dialog>}
+    <Popover open={open} onOpenChange={value => { setOpen(value); if (value) { void refresh(); void cache.invalidateQueries({ queryKey: ['inbox'] }); } }}>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" className="relative size-8" aria-label={t('通知中心')} title={t('通知中心')}>
+          <Bell size={19} aria-hidden="true" />
+          {(administrator ? inboxUnread : unread + inboxUnread) > 0 && <span className="absolute -end-1 -top-1 flex min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] leading-4 text-on-primary" aria-label={t('{{count}} 条未读消息', { count: administrator ? inboxUnread : unread + inboxUnread })}>{(administrator ? inboxUnread : unread + inboxUnread) > 99 ? '99+' : administrator ? inboxUnread : unread + inboxUnread}</span>}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" sideOffset={8} role="dialog" aria-label={t('通知中心')} className="w-[min(440px,calc(100vw-24px))] rounded-2xl border-0 p-0">
+        <NotificationCenter
+          title={t('通知中心')}
+          tabs={administrator
+            ? [{ id: 'inbox', label: t('通知'), count: inboxUnread }]
+            : [
+              { id: 'announcements', label: t('公告'), count: unread },
+              { id: 'inbox', label: t('通知'), count: inboxUnread },
+            ]}
+          activeTabId={tab}
+          onTabChange={setTab}
+          items={pending ? [] : items}
+          unreadCount={tab === 'announcements' ? unread : inboxUnread}
+          empty={error ? <span className="flex flex-col items-center gap-2"><span className="text-sm text-danger">{t(tab === 'announcements' ? '公告暂时无法加载' : '通知暂时无法加载')}</span><Button variant="secondary" size="sm" onClick={() => { void (tab === 'announcements' ? feed.refetch() : inbox.refetch()); }}>{t('重试')}</Button></span>
+            : pending ? <span role="status" className="text-sm text-muted">{t(tab === 'announcements' ? '正在读取公告…' : '正在读取通知…')}</span>
+              : <span className="text-sm">{t(tab === 'announcements' ? '暂无公告' : '暂无通知')}</span>}
+          busy={(tab === 'announcements' ? feed.isFetching : inbox.isFetching) || allRead.isPending || inboxAllRead.isPending}
+          onMarkAllRead={() => { if (tab === 'announcements') allRead.mutate(); else inboxAllRead.mutate(); }}
+          onAction={(itemId, actionId) => {
+            const entry = (inbox.data?.items ?? []).find(item => item.id === itemId);
+            const action = entry?.actions?.find(candidate => candidate.id === actionId);
+            if (!action?.href) return;
+            setOpen(false);
+            if (/^https?:\/\//i.test(action.href)) window.location.assign(action.href);
+            else void router.navigate({ href: action.href });
+          }}
+          onItemActivate={id => {
+            if (tab === 'announcements') { setSelected(id); setOpen(false); return; }
+            const entry = (inbox.data?.items ?? []).find(item => item.id === id);
+            setExpanded(current => current === id ? '' : id);
+            if (entry && !entry.read_at) inboxRead.mutate(id);
+          }}
+        />
+        {tab === 'announcements' && feed.data && feed.data.total > 10 && <div className="flex items-center justify-end gap-2 border-t border-line px-4 py-2.5 text-xs text-muted">
+          <Button variant="ghost" size="icon" className="size-7" aria-label={t('上一页')} disabled={page === 1 || feed.isFetching} onClick={() => setPage(value => value - 1)}><ChevronLeft size={15} /></Button>
+          <span>{page} / {Math.max(1, Math.ceil(feed.data.total / 10))}</span>
+          <Button variant="ghost" size="icon" className="size-7" aria-label={t('下一页')} disabled={page * 10 >= feed.data.total || feed.isFetching} onClick={() => setPage(value => value + 1)}><ChevronRight size={15} /></Button>
+        </div>}
+      </PopoverContent>
+    </Popover>
     {(selected || popup) && <AnnouncementDetail key={selected || popup!.id} web={web} id={selected || popup!.id} popup={!selected}
       onRead={() => { if (popup) setDismissed(values => new Set([...values, popup.id])); void refresh(); }}
       onClose={() => { setSelected(''); if (popup) setDismissed(values => new Set([...values, popup.id])); }} />}
   </>;
-}
-
-function InboxRow({ item, expanded, onToggle }: { item: InboxEntry; expanded: boolean; onToggle: () => void }) {
-  const { t } = useI18n();
-  return <button type="button" aria-expanded={expanded} className="flex items-start gap-3 rounded-lg p-3 text-start hover:bg-surface-hover focus-visible:outline-focus" onClick={onToggle}>
-    <span className={`mt-2 size-2 shrink-0 rounded-full ${item.read_at ? 'bg-line' : 'bg-accent'}`} aria-hidden="true" />
-    <span className="min-w-0 flex-1">
-      <span className={`block break-words text-sm ${item.read_at ? 'text-muted' : 'font-semibold text-ink'}`}>{item.title}</span>
-      {expanded
-        ? <span className="mt-1 block whitespace-pre-wrap break-words text-xs leading-relaxed text-muted">{item.body}</span>
-        : <span className="mt-1 block truncate text-xs text-muted">{item.body}</span>}
-      <time className="mt-2 block text-2xs text-subtle">{date(item.created_at)}</time>
-    </span>
-    <span className="shrink-0 text-2xs text-muted">{t(item.read_at ? '已读' : '未读')}</span>
-  </button>;
 }
 
 function AnnouncementDetail({ web, id, popup, onClose, onRead }: { web: WebClient; id: string; popup: boolean; onClose: () => void; onRead: () => void }) {

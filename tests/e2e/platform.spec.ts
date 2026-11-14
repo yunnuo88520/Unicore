@@ -15,7 +15,7 @@ test('first-install platform wizard connects the database and enters the workspa
   await databaseType.click();
   await expect(page.getByRole('option')).toHaveCount(3);
   await page.getByRole('option', { name: /SQLite/ }).click();
-  await expect(databaseType).toHaveTextContent(/SQLite/);
+  await expect(databaseType).toContainText(/SQLite/);
   await capture(page, info, 'install-database');
   await page.getByRole('button', { name: '测试连接' }).click();
   await expect(page.getByText('连接测试成功')).toBeVisible();

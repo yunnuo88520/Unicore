@@ -1,7 +1,11 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 事件通知
 
-仅 `web-platform` 提供。管理员进入 **系统设置 → 通知渠道 / 通知模板 / 系统通知**。普通用户不能读取配置、测试发送或修改开关；单机、桌面、CLI 不装配这些接口。平台公告的顶部铃铛仍独立管理公告，不是渠道消息收件箱。
+仅 `web-platform` 提供。管理员进入 **系统设置 → 通知渠道 / 通知模板 / 系统通知**。普通用户不能读取配置、测试发送或修改开关；单机、桌面、CLI 不装配这些接口。顶部铃铛是通用站内通知收件箱（公告与模块通知共用，ADR-0045）；本页的邮件与企业微信/Webhook 渠道投递独立于站内信，二者不互相替代。
+
+## 模块站内通知（登记式投递）
+
+功能模块向用户投递站内通知走 `internal/notify` 门面（ADR-0045）：装配期向 `notify.Registry` 登记类型（type + 中英文名称，未登记类型拒绝投递），业务事务内调用 `Notifier.Deliver(ctx, tx, recipients, type, sourceID, title, body, actions)`，提交成功后由门面便捷方法或调用方 `hub.PublishMany(recipients, inbox.new)` 通知客户端。非空 `source_id` 按（收件人、类型、来源）幂等更新且不重置已读；`actions` 是至多 4 个 `{id,label,href?}` 按钮（platform@2 JSON 列），href 为站内路径时铃铛面板点击路由跳转（下载/日志/审批入口）。公告投递复用同一门面（type=announcement，受众与可见性仍按公告手册过滤）。本页的邮件与企业微信/Webhook 外部渠道独立于此。
 
 ## 从配置到启用
 

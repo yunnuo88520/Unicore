@@ -369,7 +369,7 @@ function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onO
         {connection === 'connected' ? t('核心已连接') : connection === 'pending' ? t('连接中') : t('连接失败')}
       </span>
       <span className="mx-1 h-4 w-px bg-line max-sm:hidden" aria-hidden="true" />
-      {data.profile === 'web-platform' && data.identity_realm === 'user' && user && client.web && !data.mfa_enrollment_required && <AnnouncementCenter web={client.web} />}
+      {data.profile === 'web-platform' && user && client.web && !data.mfa_enrollment_required && <AnnouncementCenter web={client.web} administrator={data.identity_realm === 'administrator'} />}
       {isAdministrator(data) && user && client.web && !data.mfa_enrollment_required && <LiveLogsButton web={client.web} />}
       <ClientControls />
       {data.profile === 'web-platform' && user && (

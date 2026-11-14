@@ -6094,15 +6094,22 @@ export const constraints = {
         "type": "string",
         "maxLength": 200
       },
-      "body": {
-        "type": "string",
-        "maxLength": 2000
+      "actions": {
+        "type": "array",
+        "maxItems": 4,
+        "items": {
+          "$ref": "#/components/schemas/InboxAction"
+        }
       },
       "created_at": {
         "type": "integer"
       },
       "read_at": {
         "type": "integer"
+      },
+      "body": {
+        "type": "string",
+        "maxLength": 2000
       }
     }
   },
@@ -8006,5 +8013,27 @@ export const constraints = {
       "remark",
       "user_id"
     ]
+  },
+  "InboxAction": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "label"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "label": {
+        "type": "string",
+        "maxLength": 32
+      },
+      "href": {
+        "type": "string",
+        "maxLength": 512
+      }
+    }
   }
 };

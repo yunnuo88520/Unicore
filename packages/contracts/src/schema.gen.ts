@@ -1503,9 +1503,10 @@ export interface InboxEntry {
   type: string;
   source_id: string;
   title: string;
-  body: string;
+  actions?: Array<InboxAction>;
   created_at: number;
   read_at: number;
+  body: string;
 }
 
 export interface InboxList {
@@ -2004,4 +2005,10 @@ export interface AdminPersonalTokenInput {
   expires_in_days: 0 | 1 | 7 | 30 | 90;
   remark: string;
   user_id: string;
+}
+
+export interface InboxAction {
+  id: string;
+  label: string;
+  href?: string;
 }

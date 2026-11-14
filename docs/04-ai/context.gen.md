@@ -103,7 +103,7 @@
 | accessTokensPage | [packages/web-ui/src/pages/admin/access-tokens.tsx](../../packages/web-ui/src/pages/admin/access-tokens.tsx) |
 | apiAuthentication | [docs/product/api-authentication.md](../../docs/product/api-authentication.md) |
 
-OpenAPI 当前包含 257 个 operation、265 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
+OpenAPI 当前包含 257 个 operation、266 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
 
 | 任务 Skill | 用途 |
 | --- | --- |

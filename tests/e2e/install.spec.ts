@@ -100,7 +100,7 @@ for (const driver of ['sqlite','mysql','postgres'] as const) test(`installer ${d
   expect((await page.request.post(`${instance.url}/api/v1/install/verify-db`,{headers:{'X-Bootstrap-Token':wrong},data:{driver:'sqlite',dsn:''}})).status()).toBe(403);
   await page.getByRole('button',{name:'下一步'}).click();await page.getByRole('radio',{name:/多用户平台/}).check();await page.getByRole('button',{name:'下一步'}).click();
   const databaseType=page.getByRole('combobox',{name:'数据库类型'});
-  await expect(databaseType).toHaveTextContent(DATABASE_LABELS.mysql);await expect(page.getByLabel('数据库地址',{exact:true})).toHaveValue('127.0.0.1');await expect(page.getByLabel('数据库端口',{exact:true})).toHaveValue('3306');await expect(page.getByLabel('数据库名',{exact:true})).toHaveValue('unicore');await expect(page.getByLabel('数据库用户名',{exact:true})).toHaveValue('root');
+  await expect(databaseType).toContainText(DATABASE_LABELS.mysql);await expect(page.getByLabel('数据库地址',{exact:true})).toHaveValue('127.0.0.1');await expect(page.getByLabel('数据库端口',{exact:true})).toHaveValue('3306');await expect(page.getByLabel('数据库名',{exact:true})).toHaveValue('unicore');await expect(page.getByLabel('数据库用户名',{exact:true})).toHaveValue('root');
   await expect(page.getByRole('button',{name:'下一步'})).toBeDisabled();
   await databaseType.click();await page.getByRole('option',{name:DATABASE_LABELS[driver],exact:true}).click();
   if(driver!=='sqlite'){

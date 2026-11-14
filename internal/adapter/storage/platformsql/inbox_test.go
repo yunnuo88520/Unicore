@@ -35,7 +35,7 @@ func TestInboxOwnershipDeliveryAndVisibility(t *testing.T) {
 	if _, err = store.Exec(ctx, store.DB, "INSERT INTO unicore_announcement_recipients(announcement_id,user_id) VALUES('a','u')"); err != nil {
 		t.Fatal(err)
 	}
-	if err = r.DeliverInbox(ctx, store.DB, []string{"u", "u"}, "announcement", "a", "title", "body"); err != nil {
+	if err = r.DeliverInbox(ctx, store.DB, []string{"u", "u"}, "announcement", "a", "title", "body", ""); err != nil {
 		t.Fatal(err)
 	}
 	feed, err := r.InboxFeed(ctx, "u", 1, 20)
@@ -57,7 +57,7 @@ func TestInboxOwnershipDeliveryAndVisibility(t *testing.T) {
 	if _, err = store.Exec(ctx, store.DB, "UPDATE unicore_platform_announcements SET title='updated',content='updated body'"); err != nil {
 		t.Fatal(err)
 	}
-	if err = r.DeliverInbox(ctx, store.DB, []string{"u"}, "announcement", "a", "updated", "updated body"); err != nil {
+	if err = r.DeliverInbox(ctx, store.DB, []string{"u"}, "announcement", "a", "updated", "updated body", ""); err != nil {
 		t.Fatal(err)
 	}
 	feed, err = r.InboxFeed(ctx, "u", 1, 20)
@@ -99,7 +99,7 @@ func TestInboxOwnershipDeliveryAndVisibility(t *testing.T) {
 			}
 		})
 	}
-	if err = r.DeliverInbox(ctx, store.DB, []string{"u"}, "system", "", "system", "system body"); err != nil {
+	if err = r.DeliverInbox(ctx, store.DB, []string{"u"}, "system", "", "system", "system body", ""); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = store.Exec(ctx, store.DB, "UPDATE unicore_platform_announcements SET status='archived'"); err != nil {

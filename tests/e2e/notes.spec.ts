@@ -2,7 +2,7 @@
 // Description: Shared note dialogs run against real Go/SQLite on desktop-sized and 375px browser pages.
 import {mkdir,readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
-import {chooseOption,test,expect,installStandalone,sdkClient} from './fixtures';
+import {chooseOption,test,expect,installStandalone,openPersonalCenter,sdkClient} from './fixtures';
 
 test('persistent standalone notes, modal CRUD, filtering and concurrency',async({page,instance},info)=>{
  await installStandalone(instance);await page.goto(`${instance.url}/notes`);
@@ -55,9 +55,10 @@ test('ordinary member uploads an avatar and note attachment without file managem
  expect((await page.request.patch(`${instance.url}/api/v1/admin/settings`,{headers,data:{changes:[{key:'security.login_captcha',value:'false'}]}})).status()).toBe(200);
  expect((await page.request.post(`${instance.url}/api/v1/auth/login`,{data:{username:'member',password:'member-password-strong',captcha_id:'',captcha_answer:''}})).status()).toBe(200);
  const boot=(await(await page.request.get(`${instance.url}/api/v1/bootstrap`)).json()).data;expect(boot.current_user.permissions.some((point:string)=>point.startsWith('files:'))).toBe(false);
- await page.goto(`${instance.url}/account`);await page.getByRole('button',{name:'上传头像',exact:true}).click();let upload=page.getByRole('dialog',{name:'上传头像',exact:true});
+ await page.goto(`${instance.url}/`);
+ const memberCenter=await openPersonalCenter(page);await memberCenter.getByRole('button',{name:'上传头像',exact:true}).click();let upload=page.getByRole('dialog',{name:'上传头像',exact:true});
  await upload.getByLabel('选择文件').setInputFiles({name:'avatar.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=','base64')});
- await upload.getByRole('button',{name:'开始上传',exact:true}).click();await expect(upload).toHaveCount(0);await page.getByRole('button',{name:'保存个人资料',exact:true}).click();await expect(page.getByText('个人资料已保存',{exact:true})).toBeVisible();await page.reload();await expect(page.getByAltText('当前头像')).toBeVisible();
+ await upload.getByRole('button',{name:'开始上传',exact:true}).click();await expect(upload).toHaveCount(0);await expect(page.getByText('已保存',{exact:true})).toBeVisible();await page.reload();await openPersonalCenter(page);await expect(page.getByRole('img',{name:'当前头像'})).toBeVisible();
  await page.goto(`${instance.url}/notes`);await page.getByRole('button',{name:'新建笔记',exact:true}).click();const note=page.getByRole('dialog',{name:'新建笔记',exact:true});await note.getByRole('textbox',{name:'标题',exact:true}).fill('普通用户附件');
  await note.getByRole('button',{name:'上传文件',exact:true}).click();upload=page.getByRole('dialog',{name:'上传文件',exact:true});await upload.getByLabel('选择文件').setInputFiles({name:'member-note.txt',mimeType:'text/plain',buffer:Buffer.from('member-owned attachment')});await upload.getByRole('button',{name:'开始上传',exact:true}).click();await expect(upload).toHaveCount(0);await note.getByRole('button',{name:'保存笔记',exact:true}).click();await expect(note).toHaveCount(0);
  const download=page.waitForEvent('download');await page.getByRole('button',{name:/附件 1/}).click();expect((await download).suggestedFilename()).toBe('member-note.txt');

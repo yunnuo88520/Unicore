@@ -16,7 +16,6 @@ it('guards platform pages by profile and permission while excluding local instan
   const metadata = { profile: 'web-standalone', capabilities: { settings: true }, current_user: { roles: ['user'], permissions: ['roles:read'] } } as Bootstrap;
   expect(canAccess('roles', metadata)).toBe(false);
   expect(canAccess('site', metadata)).toBe(false);
-  expect(canAccess('account', metadata)).toBe(false);
   metadata.profile = 'web-platform';
   expect(canAccess('roles', metadata)).toBe(false);
   metadata.current_user!.roles=['super_admin'];
@@ -75,7 +74,7 @@ it('hides the API reference wherever the instance does not publish the contract'
   expect(canAccess('api-docs', desktop)).toBe(false);
 });
 
-it('recognizes OIDC callback status without treating unknown hashes as overview',()=>{expect(pageFromHash('#oidc=success')).toBe('overview');expect(pageFromHash('#account?oidc=success')).toBe('account');expect(pageFromHash('#oidc=unknown')).toBe('not-found');});
+it('recognizes OIDC callback status without treating unknown hashes as overview',()=>{expect(pageFromHash('#oidc=success')).toBe('overview');expect(pageFromHash('#account?oidc=success')).toBe('not-found');expect(pageFromHash('#oidc=unknown')).toBe('not-found');});
 
 it('gates the departments page on the departments:read grant inside the administration group', () => {
   const superAdmin = { profile: 'web-platform', identity_realm: 'administrator', capabilities: {}, current_user: { roles: ['super_admin'], permissions: ['users:read', 'administrators:read', 'roles:read', 'departments:read', 'menus:write', 'dictionaries:read'] } } as unknown as Bootstrap;
@@ -119,11 +118,10 @@ it('keeps restricted administrators in the administration layout while filtering
   expect(administration?.children.map(entry => entry.id)).toEqual(['users']);
   expect(navigation.sections.find(section => section.id === 'business')?.entries.filter(entry => entry.type !== 'directory').map(entry => entry.id)).toEqual(['overview', 'announcements']);
   // 系统设置 pages need settings:read, so the settings directory drops out of
-  // the system region while the single business region keeps the operator's
-  // own account pages under the shared 个人中心 directory.
+  // the system region; the personal center keeps no navigation presence — it
+  // opens from the account menus' settings modal.
   expect(navigation.sections.find(section => section.id === 'system')?.entries.map(entry => entry.id)).toEqual(['administration']);
-  const personal = navigation.sections.find(section => section.id === 'business')?.entries.find(entry => entry.id === 'personal');
-  expect(personal?.children.map(entry => entry.id)).toEqual(['account', 'account-security', 'account-sessions', 'account-tokens']);
+  expect(navigation.sections.find(section => section.id === 'business')?.entries.find(entry => entry.id === 'personal')).toBeUndefined();
 });
 
 it('gates posts and retires the separate API operation page', () => {
@@ -145,11 +143,9 @@ function buildNavigation(metadata: Bootstrap) {
  return {...result,sections:result.sections.map(section=>({...section,entries:strip(section.entries)}))};
 }
 
-it('restricts global tokens to super administrators and keeps personal tokens Platform-only', () => {
+it('restricts global tokens to super administrators', () => {
  const base={profile:'web-platform',identity_realm:'administrator',capabilities:{},current_user:{roles:['super_admin'],permissions:['tokens:read']}} as unknown as Bootstrap;
  expect(canAccess('access-tokens',base)).toBe(true);
  expect(canAccess('access-tokens',{...base,current_user:{...base.current_user!,roles:['operator']}})).toBe(false);
  expect(canAccess('access-tokens',{...base,identity_realm:'user'})).toBe(false);
- expect(canAccess('account-tokens',{...base,identity_realm:'user'})).toBe(true);
- for(const profile of ['web-standalone','desktop','cli']) expect(canAccess('account-tokens',{...base,profile} as Bootstrap)).toBe(false);
 });

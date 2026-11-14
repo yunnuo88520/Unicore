@@ -59,17 +59,17 @@ it('seeds one shared default tree with ordered sections, registry-mirrored surfa
     expect([...node.surfaces]).toEqual(group === 'system' || group === 'administration' || group === 'monitor' || platformAdminOnly.has(node.route_id!) ? adminOnly : bothSurfaces);
     // Two regions: system, administration and monitor pages ride their
     // directories in the system region — API 文档 stays a top-level tail
-    // there — everything else, including personal pages under 个人中心,
-    // stays in business.
+    // there — everything else stays in business. The personal center keeps
+    // no navigation presence: it opens from the account menus' settings modal.
     const systemTopLevel = node.route_id === 'api-docs';
     expect(node.section_id).toBe(systemTopLevel || group === 'system' || group === 'administration' || group === 'monitor' ? 'system' : 'business');
-    expect(node.parent_id).toBe(systemTopLevel ? undefined : group === 'system' ? 'settings' : group === 'personal' ? 'personal' : group === 'administration' ? 'administration' : group === 'monitor' ? 'monitor-center' : undefined);
+    expect(node.parent_id).toBe(systemTopLevel ? undefined : group === 'system' ? 'settings' : group === 'administration' ? 'administration' : group === 'monitor' ? 'monitor-center' : undefined);
   }
   // Directory surfaces aggregate the same route-derived page surfaces.
   for (const directory of config.nodes.filter(node => node.type === 'directory')) {
-    expect([...directory.surfaces]).toEqual(directory.id === 'personal' ? bothSurfaces : adminOnly);
-    expect(directory.section_id).toBe(directory.id === 'personal' ? 'business' : 'system');
-    expect(directory.sort).toBe(directory.id === 'personal' ? 2700 : directory.id === 'administration' ? 20 : directory.id === 'monitor-center' ? 25 : 10);
+    expect([...directory.surfaces]).toEqual(adminOnly);
+    expect(directory.section_id).toBe('system');
+    expect(directory.sort).toBe(directory.id === 'administration' ? 20 : directory.id === 'monitor-center' ? 25 : 10);
   }
   // Actions hang off page nodes with op:* identities and inherit their surfaces.
   const actions = config.nodes.filter(node => node.type === 'action');
@@ -86,15 +86,10 @@ it('seeds one shared default tree with ordered sections, registry-mirrored surfa
 it('renders the shared administrator tree: three seeded directories over two regions', () => {
   const navigation = render(superAdmin);
   expect(navigation.sections.map(section => section.id)).toEqual(['business', 'system']);
-  const business = navigation.sections.find(section => section.id === 'business')!;
-  // The business region keeps the shared workspace entries plus the real seeded
-  // 个人中心 directory at its tail instead of a separate personal region; both
-  // workspaces share it.
-  expect(entriesOf(navigation, 'business')).toEqual(['overview', 'announcements', 'notes', 'personal']);
-  const personal = business.entries.find(entry => entry.id === 'personal')!;
-  expect(personal.type).toBe('directory');
-  expect(personal.label).toBe('个人中心');
-  expect(personal.children.map(entry => entry.id)).toEqual(['account', 'account-security', 'account-sessions', 'account-tokens']);
+  // The business region keeps the shared workspace entries; the personal
+  // center has no navigation presence — it opens from the account menus'
+  // settings modal.
+  expect(entriesOf(navigation, 'business')).toEqual(['overview', 'announcements', 'notes']);
   // The administrator-only system region keeps 系统设置 first, the 超级管理员
   // directory behind it and the API reference as the top-level tail.
   const system = navigation.sections.find(section => section.id === 'system')!;
@@ -109,31 +104,30 @@ it('renders the shared administrator tree: three seeded directories over two reg
   expect(navigation.sections.some(section => section.id === 'recovery')).toBe(false);
 });
 
-it('keeps the user workspace on the same tree: the shared personal directory, administrator surfaces gone', () => {
+it('keeps the user workspace on the same tree: administrator surfaces gone, personal center modal-only', () => {
   const navigation = render({ ...superAdmin, identity_realm: 'user' });
   expect(navigation.sections.map(section => section.id)).toEqual(['business']);
   // The system region, the super-admin directory and the administrator-only
   // pages (files/announcements/site plus management pages) never reach the
   // user workspace; canAccess also hard-denies api-docs there, even for a
-  // super admin, while the personal pages live inside the real 个人中心
-  // directory at the tail of the single business region.
-  expect(walkAll(navigation)).toEqual(['overview', 'notes', 'personal', 'account', 'account-security', 'account-sessions', 'account-tokens']);
-  const personal = navigation.sections.find(section => section.id === 'business')!.entries.find(entry => entry.id === 'personal')!;
-  expect(personal.type).toBe('directory');
-  expect(personal.label).toBe('个人中心');
-  expect(personal.children.map(entry => entry.id)).toEqual(['account', 'account-security', 'account-sessions', 'account-tokens']);
+  // super admin. The personal center keeps no navigation presence.
+  expect(walkAll(navigation)).toEqual(['overview', 'notes']);
 });
 
-it('renders only menu-granted pages for a member while canAccess still caps direct URLs', () => {
-  const navigation = render(member(['notes:access'], ['notes', 'personal', 'account']));
-  expect(navigation.sections.map(section => section.id)).toEqual(['business']);
-  expect(walkAll(navigation)).toEqual(['notes', 'personal', 'account']);
-  // Directory grants never imply their subtree: without the child pages the
+it('renders only menu-granted pages for a restricted operator while canAccess still caps direct URLs', () => {
+  const operator = (permissions: string[], menuIds?: string[]) => ({
+    profile: 'web-platform', identity_realm: 'administrator', capabilities: { settings: true, database: true },
+    current_user: { id: 'op1', roles: ['content-ops'], permissions, ...(menuIds ? { menu_ids: menuIds } : {}) },
+  } as unknown as Bootstrap);
+  const navigation = render(operator(['storage:read'], ['settings', 'storage']));
+  expect(navigation.sections.map(section => section.id)).toEqual(['system']);
+  expect(walkAll(navigation)).toEqual(['settings', 'storage']);
+  // Directory grants never imply their subtree: without the child page the
   // directory stays empty and drops out of the sidebar entirely.
-  expect(walkAll(render(member(['notes:access'], ['notes', 'personal'])))).toEqual(['notes']);
-  // A menu grant cannot conjure a page canAccess denies on the user realm.
-  expect(walkAll(render(member(['notes:access'], ['notes', 'personal', 'account', 'api-docs'])))).toEqual(['notes', 'personal', 'account']);
-  expect(canAccess('api-docs', member(['notes:access'], ['api-docs']))).toBe(false);
+  expect(walkAll(render(operator(['storage:read'], ['settings'])))).toEqual([]);
+  // A menu grant cannot conjure a page canAccess denies on this realm.
+  expect(walkAll(render(operator(['storage:read'], ['settings', 'storage', 'api-docs'])))).toEqual(['settings', 'storage']);
+  expect(canAccess('api-docs', operator(['storage:read'], ['api-docs']))).toBe(false);
 });
 
 it('keeps normal, rail and mobile presentations on one ordered model', () => {

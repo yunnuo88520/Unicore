@@ -111,8 +111,8 @@ test('menu console edits the persisted tree and one save re-anchors every sessio
   await expect(page.getByRole('checkbox', { name: '成员端', exact: true })).toHaveCount(0);
   await expect(page.getByRole('checkbox', { name: '管理端', exact: true })).toHaveCount(0);
   // Directories start collapsed; expanding the seeded 超级管理员 and 系统设置
-  // directories exposes their pages as editable rows keyed by target (personal
-  // pages sit under 个人中心 at the tail of the business region).
+  // directories exposes their pages as editable rows keyed by target (the
+  // personal center keeps no directory — it opens from the account menus).
   await page.locator('tr[data-node="administration"]').getByRole('button', { name: /展开或收起/ }).click();
   await page.locator('tr[data-node="settings"]').getByRole('button', { name: /展开或收起/ }).click();
   const targets = await pageTargets(page);

@@ -1,17 +1,17 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Role-bound personal credentials on the shared data table kit, with bounded editors and one-time secret disclosure.
+// Lives inside the account settings modal; the admin access-token console reuses TokenManager with manage=true.
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { createColumnHelper, tableFeatures, useTable } from '@tanstack/react-table';
 import { Combobox } from '@unicore/ui/controls';
 import { KeyRound } from 'lucide-react';
-import type { AdminPersonalTokenInput, PersonalToken, PersonalTokenCreated, PersonalTokenInput, PersonalTokenRenewInput, WebClient } from '@unicore/sdk';
+import type { AdminPersonalTokenInput, AppClient, PersonalToken, PersonalTokenCreated, PersonalTokenInput, PersonalTokenRenewInput, WebClient } from '@unicore/sdk';
 import { AppControllerField, AppField, AppForm, useAppForm, type ControlledField } from '@unicore/form';
-import { Badge, Button, Card, CardContent, ConfirmDialog, Input, Modal, PageHeader, SimpleSelect, Textarea, useMessage } from '@unicore/ui';
+import { Badge, Button, Card, CardContent, ConfirmDialog, Input, Modal, SimpleSelect, Textarea, useMessage } from '@unicore/ui';
 import { DataTable, DataTableToolbar, DataTablePagination } from '../components/data-table';
 import { defineMessages, t, useLocale } from '../i18n';
 import { useColumnVisibility } from '../column-visibility';
-import type { PageProps } from '../router';
 
 const lifetimes = defineMessages([
   { value: '1', label: '1 天' }, { value: '7', label: '7 天' }, { value: '30', label: '30 天' }, { value: '90', label: '90 天' }, { value: '0', label: '永久' },
@@ -80,9 +80,11 @@ const buildColumns = (manage: boolean) => helper.columns([
   }),
 ]);
 
-export function PersonalTokensPage({ client, metadata }: PageProps) {
-  return <TokenManager web={client.web!} userID={metadata.current_user!.id} />;
+export function AccountTokensPanel({ client, metadata }: { client: AppClient; metadata: { current_user?: { id: string } | null } }) {
+  if (!client.web || !metadata.current_user) return null;
+  return <TokenManager web={client.web} userID={metadata.current_user.id} />;
 }
+
 export function TokenManager({ web, userID, manage = false }: { web: WebClient; userID: string; manage?: boolean }) {
   const locale = useLocale();
   const message = useMessage();
@@ -105,10 +107,12 @@ export function TokenManager({ web, userID, manage = false }: { web: WebClient; 
     meta: { date, busy: revoke.isPending, onRenew: setRenewing, onRevoke: setRevoking } satisfies TokensTableMeta,
     state: { columnVisibility },
   });
-  return <div className="flex min-w-0 flex-col gap-6">
-    <PageHeader title={t(manage ? '访问令牌管理' : '个人访问令牌')} description={t(manage ? '管理所有用户的访问令牌，或选择用户为其签发。' : '每个令牌绑定一个角色，仅使用该角色的当前权限和数据范围。')}
-      actions={<Button onClick={() => setCreating(true)}>{t('创建访问令牌')}</Button>} />
-    <Card><CardContent className="flex min-w-0 flex-col gap-4">
+  return <div className="flex min-w-0 flex-col gap-4">
+    <div className="flex flex-wrap items-center justify-between gap-2 px-3">
+      <p className="text-xs text-muted">{t(manage ? '管理所有用户的访问令牌，或选择用户为其签发。' : '每个令牌绑定一个角色，仅使用该角色的当前权限和数据范围。')}</p>
+      <Button size="sm" onClick={() => setCreating(true)}>{t('创建访问令牌')}</Button>
+    </div>
+    <Card><CardContent className="flex min-w-0 flex-col gap-4 p-4">
       <DataTableToolbar
         search={{ label: t('搜索访问令牌'), placeholder: t(manage ? '搜索名称、用户或备注' : '搜索名称或备注'), value: search, onChange: value => { setSearch(value); setPage(1); } }}
         columnMenu={{ entries: menu, onToggle: toggle }} />

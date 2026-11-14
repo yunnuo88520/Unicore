@@ -91,7 +91,7 @@ Web 收到 SIGINT/SIGTERM 后停止接收新请求，等待在途请求默认最
 
 仅平台启用。先确认安装登记的 BaseURL 为对外 HTTPS origin，再在企业 IdP 创建 OIDC 应用，登记「系统管理 → 系统设置 → 基础设置 → 企业登录」中服务检查显示的精确 callback（包括 scheme/host/port/path）。用户与管理员回调分别为 `/api/v1/auth/oidc/callback`、`/api/v1/admin/auth/oidc/callback`，需要的地址均须登记到 IdP 白名单。默认使用 openid email profile；授权码、PKCE S256、签名 ID token 是必需条件。若使用机密客户端，支持 client_secret_basic/client_secret_post；public client 可不填密钥。绑定要求 IdP 支持 prompt=login/max_age=0 并返回新鲜 auth_time。
 
-在同一「企业登录」标签保存 Issuer、Client ID、可选密钥，检查发现连接；通过只代表发现文档和端点可用，仍需用测试账号完成实际登录。确认后开启企业登录，按需要开启「首次登录创建普通账号」。JIT 用户必须有已验证邮箱，不存在于本地，且固定 user 权限；企业管理角色不导入，不开放管理员自注册。同邮箱已有本地用户应先在对应身份域密码登录，进入「个人中心 → 安全设置」，确认本地密码后绑定；不要通过修改邮箱绕过归属证明。
+在同一「企业登录」标签保存 Issuer、Client ID、可选密钥，检查发现连接；通过只代表发现文档和端点可用，仍需用测试账号完成实际登录。确认后开启企业登录，按需要开启「首次登录创建普通账号」。JIT 用户必须有已验证邮箱，不存在于本地，且固定 user 权限；企业管理角色不导入，不开放管理员自注册。同邮箱已有本地用户应先在对应身份域密码登录，经账号菜单打开「个人中心 → 安全设置」，确认本地密码后绑定；不要通过修改邮箱绕过归属证明。
 
 仅本机隔离测试允许 literal loopback IP 的 HTTP，例如 127.0.0.1；不能用远程 HTTP、跳过证书验证或跨端点重定向。新装应直接从实际 HTTPS 域名进入 /install，页面自动登记该 origin；已有开发实例若登记了错误 BaseURL，停服务并成套备份后仅修正 installation.json 的 base_url，再启动核对 callback，不能更改 profile/instance/DSN/密钥字段。生产反代需使用固定受信任的 host，身份服务必须可被后端访问。
 

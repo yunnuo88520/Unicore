@@ -205,16 +205,46 @@ const routeLabels: Record<string, string> = {
   'mail-templates': '邮件模板', 'notification-channels': '通知渠道', 'notification-templates': '通知模板',
   'system-notifications': '系统通知', logs: '操作日志', edition: '系统更新', roles: '角色权限', posts: '岗位管理',
   'api-operations': 'API 操作目录', departments: '部门管理', tasks: '定时任务', menus: '菜单管理', dictionaries: '数据字典',
-  account: '个人资料', 'account-security': '安全设置', 'account-sessions': '登录会话', 'api-docs': 'API 文档',
+  'api-docs': 'API 文档',
 };
 
 // Seeded directories carry localized display names like the workspace fallback.
-const directoryLabels: Record<string, string> = { administration: '超级管理员', settings: '系统设置', personal: '个人中心' };
+// The personal center keeps no directory: it opens from the account menus.
+const directoryLabels: Record<string, string> = { administration: '超级管理员', settings: '系统设置' };
 
 // The label a node renders with: the operator override, the registered route
 // label or the seeded directory fallback.
 export function nodeDisplayLabel(node: { label: string; route_id?: string; id: string }): string {
   return node.label.trim() || (node.route_id ? routeLabels[node.route_id] ?? node.route_id : directoryLabels[node.id] ?? node.id);
+}
+
+// The personal center opens from either account menu and lands on the modal's
+// profile page; the four panes are one rail click away. Works on desktop and
+// mobile because the topbar trigger renders on both. Pass locale='en' for
+// pages running under the English preference pack.
+const personalCenterLabels = {
+  zh: { topbar: '账号菜单', sidebar: '侧栏账号菜单', item: '个人中心', dialog: '个人中心' },
+  en: { topbar: 'Account menu', sidebar: 'Sidebar account menu', item: 'Personal center', dialog: 'Personal center' },
+} as const;
+export async function openPersonalCenter(page: Page, section?: string, entry: 'topbar' | 'sidebar' = 'topbar', locale: 'zh' | 'en' = 'zh') {
+  const labels = personalCenterLabels[locale];
+  // Tall pages can carry the topbar out of view; the menu anchors to the
+  // trigger, so bring the page back to the top before opening it.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const trigger = entry === 'sidebar'
+    ? page.getByRole('button', { name: labels.sidebar, exact: true })
+    : page.getByRole('button', { name: labels.topbar, exact: true });
+  await trigger.click();
+  try {
+    await page.getByRole('menuitem', { name: labels.item, exact: true }).click({ timeout: 8000 });
+  } catch (error) {
+    await page.screenshot({ path: 'build/acceptance/open-personal-center-hang.png' }).catch(() => {});
+    throw error;
+  }
+  const dialog = page.getByRole('dialog', { name: labels.dialog, exact: true });
+  await dialog.waitFor({ state: 'visible' });
+  if (section) await dialog.getByRole('button', { name: section, exact: true }).click();
+  return dialog;
 }
 
 export function pageNode(config: MenuList, routeId: string, surface?: 'user' | 'administrator'): NavigationNode | undefined {

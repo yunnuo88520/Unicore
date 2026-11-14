@@ -232,16 +232,24 @@ func mountOIDC(api chi.Router, config Config) {
 			} else if mode != "totp" {
 				setSession(m, w, token, session.ExpiresAt, r)
 			}
+			// The personal center is the account menus' settings modal now, so
+			// every binding callback lands on the workspace root; the shell
+			// consumes ?oidc= and opens the modal's security page.
+			// The personal center is the account menus' settings modal now, so
+			// binding and enrollment callbacks land on the workspace root; the
+			// shell consumes ?oidc= and opens the modal's security page. The
+			// bind_ prefix separates these results from a plain login's, which
+			// the login page owns instead.
 			destination := "/?oidc=" + result
 			if mode == "link" {
-				destination = "/account-security?oidc=" + result
+				destination = "/?oidc=bind_" + result
 			}
 			if mode == "totp" {
 				result = "totp_failed"
 				if err == nil {
 					result = "totp_ready"
 				}
-				destination = "/account-security?oidc=" + result
+				destination = "/?oidc=" + result
 			}
 			if admin {
 				destination = strings.TrimSuffix(m.AdminPath(r.Context()), "/") + destination

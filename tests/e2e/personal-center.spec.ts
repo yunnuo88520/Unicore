@@ -1,10 +1,10 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Real Go-backed personal-center, authenticator, recovery and device flows on PC and mobile.
+// Description: Real Go-backed personal-center modal, authenticator, recovery and device flows on PC and mobile.
 import {createHmac} from 'node:crypto';
 import jsQR from 'jsqr';
 import {PNG} from 'pngjs';
 import {mkdir} from 'node:fs/promises';
-import {test,expect,navigate} from './fixtures';
+import {test,expect,openPersonalCenter} from './fixtures';
 
 function code(secret:string,step:number){
  const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';let bits='';for(const c of secret)bits+=alphabet.indexOf(c).toString(2).padStart(5,'0');
@@ -12,22 +12,32 @@ function code(secret:string,step:number){
  return ((hash.readUInt32BE(offset)&0x7fffffff)%1000000).toString().padStart(6,'0');
 }
 
-test('personal center supports profile, TOTP recovery login and device revocation',async({page,instance},info)=>{
+test('personal center modal supports profile, TOTP recovery login and device revocation',async({page,instance},info)=>{
  test.setTimeout(90000);
  expect((await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}})).status()).toBe(200);
  await page.goto(`${instance.url}/admin`);
  let boot=(await(await page.request.get(`${instance.url}/api/v1/admin/bootstrap`)).json()).data;
  expect((await page.request.patch(`${instance.url}/api/v1/admin/settings`,{headers:{'X-CSRF-Token':boot.csrf_token},data:{changes:[{key:'security.login_captcha',value:'false'}]}})).status()).toBe(200);
- await navigate(page,'个人资料');
- await expect(page.getByLabel('用户名',{exact:true})).toBeDisabled();
- await page.getByLabel('昵称',{exact:true}).fill('My display name');await page.getByRole('button',{name:'保存个人资料',exact:true}).click();await expect(page.getByText('个人资料已保存',{exact:true})).toBeVisible();
- await page.reload();await expect(page.getByLabel('昵称',{exact:true})).toHaveValue('My display name');
- await page.getByRole('button',{name:'更换邮箱',exact:true}).click();const email=page.getByRole('dialog',{name:'更换邮箱',exact:true});
+ // The personal center lives in the settings modal opened from the account menu.
+ const center=await openPersonalCenter(page);
+ await expect(center.getByText('admin',{exact:true})).toBeVisible();
+ // The nickname row commits on blur and floats the saved toast.
+ const profileSave=page.waitForResponse(r=>r.request().method()!=='GET'&&r.url().includes('/account/profile'));
+ await center.getByLabel('昵称',{exact:true}).fill('My display name');
+ await center.getByLabel('昵称',{exact:true}).blur();
+ await profileSave;await expect(page.getByText('已保存',{exact:true})).toBeVisible();
+ await page.reload();
+ const reopened=await openPersonalCenter(page);
+ await expect(reopened.getByLabel('昵称',{exact:true})).toHaveValue('My display name');
+ await reopened.getByRole('button',{name:'更换邮箱',exact:true}).click();const email=page.getByRole('dialog',{name:'更换邮箱',exact:true});
  await expect(email.getByLabel('邮箱验证码',{exact:true})).toBeFocused();
  await expect(email.getByRole('button',{name:'验证并继续',exact:true})).toBeDisabled();
  await email.getByRole('button',{name:'发送验证码',exact:true}).click();await expect(page.getByText('请先保存 SMTP 配置并成功发送测试邮件，再启用邮件账号流程',{exact:true})).toBeVisible();
- await expect(email).toBeVisible();await page.keyboard.press('Escape');await expect(email).toHaveCount(0);await expect(page.getByRole('button',{name:'更换邮箱',exact:true})).toBeFocused();
- await navigate(page,'安全设置');await page.getByRole('button',{name:'设置身份验证器',exact:true}).click();const setup=page.getByRole('dialog',{name:'设置身份验证器',exact:true});
+ await expect(email).toBeVisible();await page.keyboard.press('Escape');await expect(email).toHaveCount(0);
+ // Escape belongs to the nested dialog first: the modal itself stays open.
+ await expect(reopened).toBeVisible();
+ await reopened.getByRole('button',{name:'安全设置',exact:true}).click();
+ await reopened.getByRole('button',{name:'设置身份验证器',exact:true}).click();const setup=page.getByRole('dialog',{name:'设置身份验证器',exact:true});
  await setup.getByLabel('当前密码',{exact:true}).fill('test-password-strong');await setup.getByRole('button',{name:'验证并开始设置',exact:true}).click();
  await expect(setup.getByAltText('身份验证器设置二维码')).toBeVisible();
  const secret=await setup.getByLabel('手动密钥',{exact:true}).inputValue();expect(secret).toMatch(/^[A-Z2-7]{32}$/);
@@ -41,23 +51,27 @@ test('personal center supports profile, TOTP recovery login and device revocatio
  // under load the accepted window drifts forward: submit the current window's
  // code (a previous-window code falls out of range across a 30s boundary).
  await setup.getByLabel('身份验证器验证码',{exact:true}).fill(code(secret,Math.floor(Date.now()/30000)));await setup.getByRole('button',{name:'开启双重验证',exact:true}).click();
- await expect(setup).toHaveCount(0);await expect(page.getByRole('button',{name:'下载恢复码',exact:true})).toBeVisible();
+ await expect(setup).toHaveCount(0);await expect(reopened.getByRole('button',{name:'下载恢复码',exact:true})).toBeVisible();
  const administrators=(await(await page.request.get(`${instance.url}/api/v1/admin/administrators`)).json()).data;
  expect(administrators.items.find((user:{username:string})=>user.username==='admin').totp_enabled).toBe(true);
- const recovery=await page.locator('code').allTextContents();expect(recovery).toHaveLength(10);
- const downloadPromise=page.waitForEvent('download');await page.getByRole('button',{name:'下载恢复码',exact:true}).click();expect((await downloadPromise).suggestedFilename()).toBe('recovery-codes.txt');
- await page.getByRole('button',{name:'已保存，关闭',exact:true}).click();await expect(page.locator('code')).toHaveCount(0);
+ const recovery=await reopened.locator('code').allTextContents();expect(recovery).toHaveLength(10);
+ const downloadPromise=page.waitForEvent('download');await reopened.getByRole('button',{name:'下载恢复码',exact:true}).click();expect((await downloadPromise).suggestedFilename()).toBe('recovery-codes.txt');
+ await reopened.getByRole('button',{name:'已保存，关闭',exact:true}).click();await expect(reopened.locator('code')).toHaveCount(0);
  // A second login is restricted until one unused recovery code is consumed.
  const extraLogin=await instance.request.post('/api/v1/admin/auth/login',{data:{username:'admin',password:'test-password-strong',captcha_id:'',captcha_answer:''}});expect(extraLogin.status()).toBe(200);
  const extra=(await extraLogin.json()).data;expect(extra.mfa_pending).toBe(true);
  expect((await instance.request.get('/api/v1/admin/account/profile')).status()).toBe(401);
  expect((await instance.request.post('/api/v1/admin/auth/mfa',{headers:{'X-CSRF-Token':extra.csrf_token},data:{code:recovery[0]}})).status()).toBe(200);
- await navigate(page,'登录会话');
- await expect(page.getByText('当前会话',{exact:true})).toBeVisible();await page.getByRole('button',{name:'下线其他设备',exact:true}).click();await page.getByRole('alertdialog').getByRole('button',{name:'确认下线',exact:true}).click();
+ await reopened.getByRole('button',{name:'登录会话',exact:true}).click();
+ await expect(reopened.getByText('当前会话',{exact:true})).toBeVisible();await reopened.getByRole('button',{name:'下线其他设备',exact:true}).click();await page.getByRole('alertdialog').getByRole('button',{name:'确认下线',exact:true}).click();
  await expect(page.getByRole('alertdialog')).toHaveCount(0);expect((await instance.request.get('/api/v1/admin/auth/session')).status()).toBe(401);
- await instance.restart();await page.reload();await expect(page.getByText('当前会话',{exact:true})).toBeVisible();
+ await instance.restart();await page.reload();
+ const sessions=await openPersonalCenter(page,'登录会话');
+ await expect(sessions.getByText('当前会话',{exact:true})).toBeVisible();
  const directory=`build/acceptance/personal-center/${info.project.name}`;await mkdir(directory,{recursive:true});await page.screenshot({path:`${directory}/sessions-zh.png`,fullPage:true});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ // Release the modal before driving the topbar: its backdrop covers the bar.
+ await page.keyboard.press('Escape');await expect(page.getByRole('dialog',{name:'个人中心',exact:true})).toHaveCount(0);
  await page.getByRole('button',{name:'账号菜单',exact:true}).click();const __out=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().includes('/auth/logout'));const __item=page.getByRole('menuitem',{name:'退出登录',exact:true});await expect(__item).toBeVisible();await __item.click();await __out;
  await page.getByLabel('账号或邮箱',{exact:true}).fill('admin');await page.getByLabel('密码',{exact:true}).fill('test-password-strong');await page.getByRole('button',{name:'登录工作空间',exact:true}).click();
  await expect(page.getByRole('heading',{name:'双重验证',exact:true})).toBeVisible();await expect(page.getByLabel('身份验证器验证码',{exact:true})).toBeVisible();
@@ -72,22 +86,20 @@ test('personal center supports profile, TOTP recovery login and device revocatio
  await page.getByRole('button',{name:'使用恢复码',exact:true}).click();await page.getByLabel('恢复码',{exact:true}).fill(recovery[0]);await page.getByRole('button',{name:'验证并登录',exact:true}).click();await expect(page.getByRole('heading',{name:'双重验证',exact:true})).toBeVisible();
  await page.getByLabel('恢复码',{exact:true}).fill(recovery[1]);await page.getByRole('button',{name:'验证并登录',exact:true}).click();await expect(page.getByRole('heading',{name:'工作台概览'})).toBeVisible();
  await page.evaluate(()=>{const key='unicore.preferences.v1';const v=JSON.parse(localStorage.getItem(key)||'{}');v.locale='en';v.theme='dark';localStorage.setItem(key,JSON.stringify(v));});
- await page.goto(`${instance.url}/admin/account-security`);await expect(page.getByRole('heading',{name:'Security',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Disable two-factor authentication',exact:true})).toBeVisible();
+ await page.reload();
+ const security=await openPersonalCenter(page,'Security','topbar','en');
+ await expect(security.getByRole('button',{name:'Disable two-factor authentication',exact:true})).toBeVisible();
  await page.screenshot({path:`${directory}/security-en-dark.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
- if(info.project.name==='mobile')await page.getByRole('button',{name:'Open navigation',exact:true}).click();
- // Administrator personal pages fold into the shared 个人中心 directory at the
- // tail of the one business region; the active page auto-expands it and keeps
- // its entry highlighted inside that region.
+ // The personal center keeps no sidebar presence on either workspace: the
+ // business region carries the shared entries only, and the modal is the
+ // single surface opened from the account menus.
  const businessSection=page.locator('.sidebar section[data-nav-section="business"]');
  await expect(businessSection.locator('h2')).toHaveText('Business');
- const personalDirectory=businessSection.getByRole('button',{name:'Personal center',exact:true});
- await expect(personalDirectory).toBeVisible();
- await expect(personalDirectory).toHaveAttribute('aria-expanded','true');
- await expect(page.locator('.sidebar').getByRole('button',{name:'Security',exact:true})).toHaveClass(/bg-button text-on-primary shadow-control/);
- await expect(businessSection.getByRole('button',{name:'Security',exact:true})).toBeVisible();
+ await expect(businessSection.getByRole('button',{name:'Personal center',exact:true})).toHaveCount(0);
+ await expect(page.locator('.sidebar').getByRole('button',{name:'Profile',exact:true})).toHaveCount(0);
 });
 
-test('forced enrollment applies to ordinary users and preserves recovery codes across policy refresh',async({page,instance},info)=>{
+test('forced enrollment opens the pinned modal for ordinary users and preserves recovery codes across policy refresh',async({page,instance},info)=>{
  test.setTimeout(60000);
  expect((await page.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}})).status()).toBe(200);
  const boot=(await(await page.request.get(`${instance.url}/api/v1/admin/bootstrap`)).json()).data;
@@ -98,10 +110,13 @@ test('forced enrollment applies to ordinary users and preserves recovery codes a
  expect((await page.request.post(`${instance.url}/api/v1/auth/login`,{data:{username:'member',password:'member-password-strong',captcha_id:'',captcha_answer:''}})).status()).toBe(200);
  // Install the clock before mounting the shell so its polling interval is controlled.
  await page.clock.install();
- await page.goto(`${instance.url}/notes`);await expect(page).toHaveURL(`${instance.url}/account-security`);
- await expect(page.getByText('实例要求启用双重验证，请先完成安全设置。',{exact:true})).toBeVisible();
+ // Enrollment pins the modal on its security page instead of redirecting.
+ await page.goto(`${instance.url}/notes`);await expect(page).toHaveURL(`${instance.url}/notes`);
+ const center=page.getByRole('dialog',{name:'个人中心',exact:true});
+ await expect(center).toBeVisible();
+ await expect(page.getByText('实例要求启用双重验证，请先完成安全设置。',{exact:true}).first()).toBeVisible();
  expect((await page.request.get(`${instance.url}/api/v1/notes`)).status()).toBe(403);
- await page.getByRole('button',{name:'设置身份验证器',exact:true}).click();const dialog=page.getByRole('dialog',{name:'设置身份验证器',exact:true});
+ await center.getByRole('button',{name:'设置身份验证器',exact:true}).click();const dialog=page.getByRole('dialog',{name:'设置身份验证器',exact:true});
  await dialog.getByLabel('当前密码',{exact:true}).fill('member-password-strong');await dialog.getByRole('button',{name:'验证并开始设置',exact:true}).click();
  const secret=await dialog.getByLabel('手动密钥',{exact:true}).inputValue();
  // The server reads its verification clock after the enrollment queries, so
@@ -119,18 +134,21 @@ test('forced enrollment applies to ordinary users and preserves recovery codes a
  expect((await policyRefresh).status()).toBe(200);
  await expect(page.getByText('实例要求启用双重验证，请先完成安全设置。',{exact:true})).toHaveCount(0);
  await expect(page.locator('code')).toHaveCount(10); // A bootstrap refresh must not unmount the one-time recovery-code display.
- await expect(page.getByRole('button',{name:'关闭双重验证',exact:true})).toBeDisabled();
- await page.getByRole('button',{name:'已保存，关闭',exact:true}).click();await expect(page.locator('code')).toHaveCount(0);
+ await expect(center.getByRole('button',{name:'关闭双重验证',exact:true})).toBeDisabled();
+ await center.getByRole('button',{name:'已保存，关闭',exact:true}).click();await expect(center.locator('code')).toHaveCount(0);
  expect((await page.request.get(`${instance.url}/api/v1/notes`)).status()).toBe(200);
  const current=(await(await page.request.get(`${instance.url}/api/v1/bootstrap`)).json()).data.current_user;
  expect(current.username).toBe('member');expect(current.totp_enabled).toBe(true);
  expect((await page.request.get(`${instance.url}/api/v1/admin/users`)).status()).toBe(403);
+ // Enrollment is satisfied: release the pinned modal before driving the shell.
+ await page.keyboard.press('Escape');await expect(center).toHaveCount(0);
  if(info.project.name==='mobile')await page.getByRole('button',{name:'打开导航',exact:true}).click();
- // The member workspace folds its personal pages into the same seeded
- // 个人中心 directory of the single 业务 region.
+ // The member workspace keeps a single 业务 region without the personal
+ // directory: the modal is the only personal-center surface.
  const memberBusiness=page.locator('.sidebar section[data-nav-section="business"]');
  await expect(memberBusiness.locator('h2')).toHaveText('业务');
- await expect(memberBusiness.getByRole('button',{name:'个人中心',exact:true})).toBeVisible();
+ await expect(memberBusiness.getByRole('button',{name:'个人中心',exact:true})).toHaveCount(0);
+ await expect(page.locator('.sidebar').getByRole('button',{name:'个人资料',exact:true})).toHaveCount(0);
  await expect(page.locator('.sidebar').getByRole('button',{name:'系统设置',exact:true})).toHaveCount(0);
  // Management-flavoured pages never render on the user surface, even though a
  // persisted legacy menu tree still carries their nodes.

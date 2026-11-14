@@ -21,11 +21,11 @@
 | 部门与数据范围 | 已实现，五值数据范围 fail-closed | 不装配 | 不装配 | unicore_departments | `internal/platform/datascope.go` |
 | 岗位管理 | 已实现（组织人事岗位，非内容帖子） | 不装配 | 不装配 | unicore_posts | `internal/adapter/http/posts.go` |
 | 数据字典 | 已实现（管理端 CRUD + 用户端只读） | 不装配 | 不装配 | unicore_dict_types | `internal/adapter/http/dictionaries.go` |
-| 个人中心（资料/换邮箱/TOTP/会话设备） | 已实现，双域各自 19 operation | 不装配 | 不装配 | unicore_personal_accounts | `internal/platform/personal.go`、[个人中心](../03-runbooks/personal-center.md) |
+| 个人中心（资料/换邮箱/TOTP/会话设备，账号菜单弹窗承载） | 已实现，双域各自 19 operation | 不装配 | 不装配 | unicore_personal_accounts | `internal/platform/personal.go`、[个人中心](../03-runbooks/personal-center.md) |
 | 人机验证（Turnstile/腾讯/阿里） | 已实现，设置门控 | 不装配 | 不装配 | security.human_check_* | `internal/platform/humancheck.go` |
 | 登录防护（IP 封禁/会话策略/强制 2FA） | 已实现 | 不装配 | 不装配 | settings security.* | `internal/platform/login_guard.go` |
 
-客户端 JWT / Refresh Token 与个人 API 令牌：Platform 已实现；Standalone / CLI 不装配。持久化为 platform@1 的 unicore_api_credentials、unicore_api_refresh_tokens、unicore_api_token_keys；个人中心独立令牌菜单管理单角色令牌，支持固定有效期、永久、备注、续期和作废；超级管理员管理全部令牌并可代用户签发；创建时先输入用户名或邮箱搜索，空搜索不枚举用户，选择后才加载绑定角色。客户端认证与刷新走独立 API，见 [API 认证](../product/api-authentication.md) 与 [ADR-0044](../adr/ADR-0044-role-bound-personal-tokens.md)。
+客户端 JWT / Refresh Token 与个人 API 令牌：Platform 已实现；Standalone / CLI 不装配。持久化为 platform@1 的 unicore_api_credentials、unicore_api_refresh_tokens、unicore_api_token_keys；个人中心弹窗的访问令牌分区管理单角色令牌，支持固定有效期、永久、备注、续期和作废；超级管理员管理全部令牌并可代用户签发；创建时先输入用户名或邮箱搜索，空搜索不枚举用户，选择后才加载绑定角色。客户端认证与刷新走独立 API，见 [API 认证](../product/api-authentication.md) 与 [ADR-0044](../adr/ADR-0044-role-bound-personal-tokens.md)。
 
 ## B. 通知与消息（Platform 专属）
 

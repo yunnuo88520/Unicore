@@ -75,9 +75,9 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 		case "directory":
 			directories++
 			// 系统设置 and 超级管理员 both seed into the administrator-only
-			// system region (settings first) and 个人中心 is shared across
-			// workspaces at the tail of business.
-			want := map[string]string{"administration": "system", "settings": "system", "personal": "business", "monitor-center": "system"}
+			// system region (settings first); the personal center keeps no
+			// directory — it opens from the account menus' settings modal.
+			want := map[string]string{"administration": "system", "settings": "system", "monitor-center": "system"}
 			if want[node.ID] != node.SectionID {
 				t.Fatal("directory region drifted", node)
 			}
@@ -141,19 +141,15 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 			if parentOf[page.ID] != "settings" {
 				t.Fatal("system page parent", page.ID, parentOf[page.ID])
 			}
-		case "personal":
-			if parentOf[page.ID] != "personal" {
-				t.Fatal("personal page parent", page.ID, parentOf[page.ID])
-			}
 		case "monitor":
 			if parentOf[page.ID] != "monitor-center" {
 				t.Fatal("monitor page parent", page.ID, parentOf[page.ID])
 			}
 		}
 	}
-	// The four directories and the single action namespace.
-	if directories != 4 {
-		t.Fatal("expected the four directories", directories)
+	// The three directories and the single action namespace.
+	if directories != 3 {
+		t.Fatal("expected the three directories", directories)
 	}
 
 	// Registry parity with the exported frontend page order: same set, and the
@@ -203,12 +199,12 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 			adminTopLevel[node.ID] = node.SectionID
 		}
 	}
-	if adminTopLevel["administration"] != "system" || adminTopLevel["settings"] != "system" || adminTopLevel["personal"] != "business" {
+	if adminTopLevel["administration"] != "system" || adminTopLevel["settings"] != "system" {
 		t.Fatal("administrator top-level regions drifted", adminTopLevel)
 	}
 	// A page registered on both surfaces is granted once and appears in both
 	// projections under the same id.
-	if _, ok := pages["account"]; ok {
+	if _, ok := pages["overview"]; ok {
 		memberIDs := map[string]bool{}
 		for _, node := range member.Nodes {
 			memberIDs[node.ID] = true
@@ -217,7 +213,7 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 		for _, node := range admin.Nodes {
 			adminIDs[node.ID] = true
 		}
-		if !memberIDs["account"] || !adminIDs["account"] {
+		if !memberIDs["overview"] || !adminIDs["overview"] {
 			t.Fatal("dual-surface page missing from a projection")
 		}
 	}

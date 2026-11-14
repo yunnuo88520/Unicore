@@ -23,7 +23,7 @@
 
 导航事实源是一棵共享导航树，双端同构镜像：
 
-- 后端种子与持久化：`internal/platform/navigation.go`（`DefaultNavigation`，业务/系统两区域 + 超级管理员/系统设置/个人中心目录）、`internal/adapter/storage/platformsql/navigation.go`（CAS 版本持久化，reset 仅 super_admin）。
+- 后端种子与持久化：`internal/platform/navigation.go`（`DefaultNavigation`，业务/系统两区域 + 超级管理员/系统设置/运行监控目录；个人中心不留导航，由账号菜单的设置弹窗承载，启动自愈清理存量树中的个人中心区域）、`internal/adapter/storage/platformsql/navigation.go`（CAS 版本持久化，reset 仅 super_admin）。
 - 前端镜像与默认树：`packages/web-ui/src/navigation.ts`（`defaultNavigation` 与后端种子逐条对应）。
 
 呈现规则：
@@ -44,7 +44,7 @@
 | 基础设置（site） | 不呈现（管理面拆分） | 已实现（settings:read） | 不呈现（无实例设置项） | 不适用 |
 | 系统更新（edition；仅相同 Catalog 指纹可自动安装，默认不要求 OS 证书） | 不呈现 | 已实现（仅 super_admin + updater 能力） | 已实现（updater 能力；web 本机 loopback / desktop 桥） | 不装配 |
 | API 文档 | 不呈现 | 已实现（api_docs 能力） | 条件支持（web 开启 `api_docs` 时）；desktop 不适用 | 不适用 |
-| 个人中心三页 | 已实现 | 已实现（管理员域镜像） | 不呈现（无账号） | 不适用 |
+| 个人中心（账号菜单弹窗：个人资料/安全设置/登录会话/访问令牌四分区） | 已实现（侧栏账号卡片与顶栏头像菜单打开；强制 2FA 时钉住安全分区） | 已实现（管理员域镜像） | 不呈现（无账号） | 不适用 |
 | 运行监控（概览/服务/资源/运行事件，含主机硬件图表卡片、会话趋势与事件流） | 不呈现（用户域硬排除） | 已实现（仅 super_admin；系统区域末位「运行监控」目录四页） | 已实现（业务区「运行监控」单页 + 单层 Tabs 四页签，两载体等效；不适用卡片不渲染） | 不适用 |
 | 告警规则管理与告警通知 | 不呈现（用户域硬排除） | 已实现（规则管理内嵌于资源监控页底部，仅 super_admin 渲染；端点 superAdmin+monitor:read；无独立菜单；通知走既有渠道；运行事件页展示告警触发/恢复/归因转移/通知失败） | 已实现（无配置入口，内置默认规则自动启用；告警事件直接呈现在「运行事件」Tab；Web/GUI 等效） | 不适用 |
 | 管理后台 SPA（admin.html） | — | 独立入口，需 identity 服务（standalone 请求 404；desktop 无此入口） | 不适用 | 不适用 |
@@ -110,7 +110,7 @@ Platform 的“角色权限”使用共享树，默认页面授权只补浏览 A
 
 ## 客户端与个人 API 凭证
 
-Platform 两工作台在“个人中心 → 访问令牌”提供单角色 PAT 的创建、固定期限/永久、备注、一次性秘密、元数据、续期和作废；“超级管理员 → 访问令牌管理”仅超级管理员可见，可搜索全部用户的令牌并代用户签发、续期和作废。原生客户端使用客户端 Token API，不在浏览器保存 JWT。Standalone 两载体与 CLI 不装配令牌 UI 或接口。详见 [API 认证](../product/api-authentication.md)。
+Platform 两工作台在“账号菜单 → 个人中心 → 访问令牌”提供单角色 PAT 的创建、固定期限/永久、备注、一次性秘密、元数据、续期和作废；“超级管理员 → 访问令牌管理”仅超级管理员可见，可搜索全部用户的令牌并代用户签发、续期和作废。原生客户端使用客户端 Token API，不在浏览器保存 JWT。Standalone 两载体与 CLI 不装配令牌 UI 或接口。详见 [API 认证](../product/api-authentication.md)。
 
 ## 笔记附件与安装连接
 

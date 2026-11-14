@@ -99,7 +99,8 @@
 | moduleRegistry | [internal/module/manifest.json](../../internal/module/manifest.json) |
 | modules | [internal/modules](../../internal/modules) |
 | applicationFrameworkUpgrade | [docs/product/framework-upgrade.md](../../docs/product/framework-upgrade.md) |
-| personalTokensPage | [packages/web-ui/src/pages/personal-tokens.tsx](../../packages/web-ui/src/pages/personal-tokens.tsx) |
+| accountSettingsModal | [packages/web-ui/src/account-settings/modal.tsx](../../packages/web-ui/src/account-settings/modal.tsx) |
+| accountTokensPanel | [packages/web-ui/src/account-settings/tokens.tsx](../../packages/web-ui/src/account-settings/tokens.tsx) |
 | accessTokensPage | [packages/web-ui/src/pages/admin/access-tokens.tsx](../../packages/web-ui/src/pages/admin/access-tokens.tsx) |
 | apiAuthentication | [docs/product/api-authentication.md](../../docs/product/api-authentication.md) |
 

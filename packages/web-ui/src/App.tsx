@@ -21,6 +21,7 @@ import { AppError } from '@unicore/sdk';
 import { setCustomAccent, useTheme, type Theme } from '@unicore/theme';
 import { DashboardWidgetRegistry } from './registry';
 import { PasswordDialog } from './password-dialog';
+import { AccountSettingsModal, type AccountSettingsPage } from './account-settings/modal';
 import { roleDisplayLabels } from './role-display';
 import { UserAvatar, displayLabel } from './user-avatar';
 import { SessionBoundary, useSession } from './session';
@@ -84,7 +85,7 @@ function BrandedApp({ client, registry, notice, administratorPage, history, base
 // Explicit ownership avoids querying rendered DOM and keeps navigation stable.
 const pageHeadingOwners = new Set<string>([
   'users', 'administrators', 'roles', 'departments', 'announcements', 'posts',
-  'tasks', 'menus', 'account-tokens', 'access-tokens', 'account', 'account-sessions',
+  'tasks', 'menus', 'access-tokens',
   'monitor', 'monitor-services', 'monitor-resources', 'monitor-events', 'ui-preview', 'not-found',
 ]);
 
@@ -99,8 +100,14 @@ function WorkspaceShell() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [about, setAbout] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
+  // The personal center lives in this modal: both account menus open it, the
+  // enrollment gate pins it on the security page, and OIDC binding callbacks
+  // land here with their one-shot result.
+  const [account, setAccount] = useState<{ open: boolean; page: AccountSettingsPage; oidc?: string }>({ open: false, page: 'profile' });
+  const openAccount = (page: AccountSettingsPage = 'profile', oidc?: string) => setAccount({ open: true, page, oidc });
   const { navCollapsed, layout } = usePreferences();
   const pathname = useRouterState({ select: state => state.location.pathname });
+  const searchStr = useRouterState({ select: state => state.location.searchStr });
   const authCallback = useRouterState({ select: state => new URLSearchParams(state.location.searchStr).has('oidc') });
   // location.pathname is already basepath-stripped by the router.
   const page = pageFromPath(pathname);
@@ -109,7 +116,18 @@ function WorkspaceShell() {
 
   const locale = useLocale();
   useEffect(() => { if (data) document.title = t('{{v0}} · 工作空间', { v0: data.site_name }); }, [data?.site_name, locale]);
-  useEffect(()=>{if(data?.mfa_enrollment_required && page!=='account-security') void router.navigate({to:'/account-security',replace:true});},[data?.mfa_enrollment_required,page,router]);
+  // Enrollment pins the personal center on its security page until 2FA is on.
+  useEffect(() => { if (data?.mfa_enrollment_required) openAccount('security'); }, [data?.mfa_enrollment_required]);
+  // OIDC binding and enrollment callbacks used to land on the removed
+  // account-security page; they now arrive at the workspace root with the
+  // bind_/totp_ results and open the modal once. A plain login's oidc values
+  // stay owned by the login page.
+  useEffect(() => {
+    const oidc = new URLSearchParams(searchStr).get('oidc');
+    if (!oidc || !data?.current_user || !/^(bind_|totp_)/.test(oidc)) return;
+    openAccount('security', oidc);
+    void router.navigate({ to: '/', search: {}, replace: true });
+  }, [searchStr, data?.current_user, router]);
 
   if (!data) {
     // Boot failures share the status-page family; the code mirrors the real HTTP status whenever the transport captured one.
@@ -204,11 +222,12 @@ function WorkspaceShell() {
       onNavigationClose={() => setMobileOpen(false)}
       contentClassName={page === 'site' ? 'settings-content' : ''}
       navigationCollapsed={navCollapsed}
-      navigation={<SideNavigation page={page} data={data} client={client} onNavigate={() => setMobileOpen(false)} onAbout={() => { setMobileOpen(false); setAbout(true); }} administration={administration} onOpenPassword={() => setPasswordOpen(true)} refresh={refresh} />}
-      header={<TopBar page={page} data={data} client={client} settingsLabel={settingsLabel} connection={metadata.isSuccess ? 'connected' : metadata.isPending ? 'pending' : 'error'} mobileOpen={mobileOpen} onOpenMobile={() => setMobileOpen(true)} onOpenPassword={() => setPasswordOpen(true)} refresh={refresh} navToggleVisible={layout !== 'full'} />}
+      navigation={<SideNavigation page={page} data={data} client={client} onNavigate={() => setMobileOpen(false)} onAbout={() => { setMobileOpen(false); setAbout(true); }} administration={administration} onOpenAccount={() => openAccount('profile')} onOpenPassword={() => setPasswordOpen(true)} refresh={refresh} />}
+      header={<TopBar page={page} data={data} client={client} settingsLabel={settingsLabel} connection={metadata.isSuccess ? 'connected' : metadata.isPending ? 'pending' : 'error'} mobileOpen={mobileOpen} onOpenMobile={() => setMobileOpen(true)} onOpenAccount={() => openAccount('profile')} onOpenPassword={() => setPasswordOpen(true)} refresh={refresh} navToggleVisible={layout !== 'full'} />}
       overlays={<>
         {passwordOpen && client.web && <PasswordDialog web={client.web} onClose={() => setPasswordOpen(false)} />}
         {about && <About onClose={() => setAbout(false)} />}
+        {client.web && data.current_user && <AccountSettingsModal open={account.open} onClose={() => setAccount(state => ({ ...state, open: false }))} defaultPage={account.page} pinned={enrollment} client={client} metadata={data} refresh={refresh} oidc={account.oidc} />}
       </>}
     >
       {enrollment && <p role="alert" className="mb-4 rounded-lg border border-line bg-primary-soft p-4 text-sm text-ink">{t('实例要求启用双重验证，请先完成安全设置。')}</p>}
@@ -217,7 +236,7 @@ function WorkspaceShell() {
         : metadata.isError
           ? <StateCard tone="error" icon={<Radio size={26} className="text-danger" />} title={t('暂时无法连接核心')} detail={t(metadata.error.message)}
               action={<Button onClick={() => void metadata.refetch()}><RotateCcw size={15} />{t('重新连接')}</Button>} />
-          : enrollment && page!=='account-security' ? <StateCard tone="pending" icon={<ShieldCheck size={24}/>} title={t('正在打开安全设置')} detail={t('实例要求启用双重验证，请先完成安全设置。')}/>
+          : enrollment ? <StateCard tone="pending" icon={<ShieldCheck size={24}/>} title={t('正在打开安全设置')} detail={t('实例要求启用双重验证，请先完成安全设置。')}/>
           : <div className="flex min-w-0 flex-col gap-3">
               {!pageHeadingOwners.has(page) && <PageHeader title={t(routes[page].label)} />}
               <Outlet />
@@ -227,9 +246,9 @@ function WorkspaceShell() {
   </PagePropsProvider>;
 }
 
-function SideNavigation({ page, data, client, onNavigate, onAbout, administration, onOpenPassword, refresh }: {
+function SideNavigation({ page, data, client, onNavigate, onAbout, administration, onOpenAccount, onOpenPassword, refresh }: {
   page: Page; data: Bootstrap; client: AppClient; onNavigate: () => void; onAbout: () => void;
-  administration: boolean; onOpenPassword: () => void; refresh: () => void;
+  administration: boolean; onOpenAccount: () => void; onOpenPassword: () => void; refresh: () => void;
 }) {
   useLocale();
   const router = useRouter();
@@ -268,14 +287,14 @@ function SideNavigation({ page, data, client, onNavigate, onAbout, administratio
     </div>
     <NavigationTree navigation={buildNavigation(data)} page={page} rail={rail} onNavigate={activate} onExpand={() => setPreferences({ navCollapsed: false })} />
     {data.current_user && <div className="sidebar-utilities shrink-0">
-      <SidebarFooter data={data} client={client} administration={administration} rail={rail} onOpenPassword={onOpenPassword} refresh={refresh} onAbout={onAbout} />
+      <SidebarFooter data={data} client={client} administration={administration} rail={rail} onOpenAccount={onOpenAccount} onOpenPassword={onOpenPassword} refresh={refresh} onAbout={onAbout} />
     </div>}
   </>;
 }
 
 /** Sidebar footer for signed-in platform accounts. */
-function SidebarFooter({ data, client, administration, rail, onOpenPassword, refresh, onAbout }: {
-  data: Bootstrap; client: AppClient; administration: boolean; rail: boolean; onOpenPassword: () => void; refresh: () => void; onAbout: () => void;
+function SidebarFooter({ data, client, administration, rail, onOpenAccount, onOpenPassword, refresh, onAbout }: {
+  data: Bootstrap; client: AppClient; administration: boolean; rail: boolean; onOpenAccount: () => void; onOpenPassword: () => void; refresh: () => void; onAbout: () => void;
 }) {
   useLocale();
   const user = data.current_user;
@@ -296,14 +315,14 @@ function SidebarFooter({ data, client, administration, rail, onOpenPassword, ref
   return <DropdownMenu>
     <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
     <DropdownMenuContent side={rail ? 'right' : 'top'} align="end" aria-label={t('侧栏账号菜单')} className="min-w-60">
-      <AccountMenuItems data={data} client={client} avatarURL={profile.data?.avatar_url} administration={administration} onOpenPassword={onOpenPassword} refresh={refresh} onAbout={onAbout} />
+      <AccountMenuItems data={data} client={client} avatarURL={profile.data?.avatar_url} administration={administration} onOpenAccount={onOpenAccount} onOpenPassword={onOpenPassword} refresh={refresh} onAbout={onAbout} />
     </DropdownMenuContent>
   </DropdownMenu>;
 }
 
 /** Both account triggers use the same identity summary and action spacing. */
-function AccountMenuItems({ data, client, avatarURL, administration, onOpenPassword, refresh, onAbout }: {
-  data: Bootstrap; client: AppClient; avatarURL?: string; administration: boolean; onOpenPassword: () => void; refresh: () => void; onAbout?: () => void;
+function AccountMenuItems({ data, client, avatarURL, administration, onOpenAccount, onOpenPassword, refresh, onAbout }: {
+  data: Bootstrap; client: AppClient; avatarURL?: string; administration: boolean; onOpenAccount: () => void; onOpenPassword: () => void; refresh: () => void; onAbout?: () => void;
 }) {
   useLocale();
   const router = useRouter();
@@ -323,7 +342,7 @@ function AccountMenuItems({ data, client, avatarURL, administration, onOpenPassw
       <DropdownMenuGroup>
       {data.admin_path && !administration && <DropdownMenuItem onSelect={() => window.location.assign(data.admin_path!)}><LayoutDashboard size={18} aria-hidden="true" />{t('管理工作台')}</DropdownMenuItem>}
       {administration && <DropdownMenuItem onSelect={() => window.location.assign('/')}><LayoutDashboard size={18} aria-hidden="true" />{t('工作空间')}</DropdownMenuItem>}
-      <DropdownMenuItem onSelect={() => void router.navigate({ to: '/account' })}><UserRound size={18} aria-hidden="true" />{t('个人中心')}</DropdownMenuItem>
+      <DropdownMenuItem onSelect={onOpenAccount}><UserRound size={18} aria-hidden="true" />{t('个人中心')}</DropdownMenuItem>
       <DropdownMenuItem onSelect={onOpenPassword}><KeyRound size={18} aria-hidden="true" />{t('修改密码')}</DropdownMenuItem>
       {onAbout && <DropdownMenuItem onSelect={onAbout}><Info size={18} aria-hidden="true" />{t('关于 {{name}}', { name: productName })}</DropdownMenuItem>}
       </DropdownMenuGroup>
@@ -344,9 +363,9 @@ function useMinWidth(px: number) {
   return match;
 }
 
-function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onOpenMobile, onOpenPassword, refresh, navToggleVisible }: {
+function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onOpenMobile, onOpenAccount, onOpenPassword, refresh, navToggleVisible }: {
   page: Page; data: Bootstrap; client: AppClient; settingsLabel: string; connection: 'connected' | 'pending' | 'error';
-  mobileOpen: boolean; onOpenMobile: () => void; onOpenPassword: () => void; refresh: () => void; navToggleVisible: boolean;
+  mobileOpen: boolean; onOpenMobile: () => void; onOpenAccount: () => void; onOpenPassword: () => void; refresh: () => void; navToggleVisible: boolean;
 }) {
   useLocale();
   const desktop = useMinWidth(768);
@@ -381,7 +400,7 @@ function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onO
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" aria-label={t('账号菜单')} className="min-w-60">
-            <AccountMenuItems data={data} client={client} avatarURL={profile.data?.avatar_url} administration={administration} onOpenPassword={onOpenPassword} refresh={refresh} />
+            <AccountMenuItems data={data} client={client} avatarURL={profile.data?.avatar_url} administration={administration} onOpenAccount={onOpenAccount} onOpenPassword={onOpenPassword} refresh={refresh} />
           </DropdownMenuContent>
         </DropdownMenu>
       )}

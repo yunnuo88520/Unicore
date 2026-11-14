@@ -3,7 +3,7 @@
 import { createHmac } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
-import { test as base, expect } from './fixtures';
+import { test as base, expect, openPersonalCenter } from './fixtures';
 import type { Page } from '@playwright/test';
 import { capture } from './visual';
 
@@ -19,8 +19,9 @@ const test = base.extend<{ idp: { url: string } }>({ idp: async ({ playwright },
 test('enterprise settings, real JIT, explicit binding and password fallback', async ({ page, browser, instance, idp }, info) => {
   test.setTimeout(90000);
   const install = await page.request.post(`${instance.url}/api/v1/install/complete`, { headers: {'X-Bootstrap-Token': instance.token}, data: {profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'} });
-  expect(install.status()).toBe(200); await page.goto(`${instance.url}/admin/account-security`);
-  await expect(page.getByRole('heading', {name:'企业账号绑定',exact:true})).toBeVisible();
+  expect(install.status()).toBe(200); await page.goto(`${instance.url}/admin`);
+  await openPersonalCenter(page, '安全设置');
+  await expect(page.getByText('企业账号绑定',{exact:true})).toBeVisible();
   await expect(page.getByText('实例尚未启用',{exact:true})).toBeVisible(); await capture(page, info, 'oidc-account-disabled');
   await page.goto(`${instance.url}/admin/site?tab=security`);
   await page.getByRole('switch',{name:'登录图形验证码',exact:true}).uncheck();
@@ -65,7 +66,8 @@ test('enterprise settings, real JIT, explicit binding and password fallback', as
     // grants and management permissions require explicit role assignment.
     expect(newUser.current_user.permissions).toEqual(['notes:access','notes:create','notes:delete','notes:update']);
     expect((await employee.request.get(`${instance.url}/api/v1/admin/users`)).status()).toBe(403);
-    await employee.goto(`${instance.url}/account-security`); await expect(employee.getByText('已绑定',{exact:true})).toBeVisible();
+    await employee.goto(`${instance.url}/`);
+    await openPersonalCenter(employee, '安全设置'); await expect(employee.getByText('已绑定',{exact:true})).toBeVisible();
     await expect(employee.getByText('尚未设置',{exact:true})).toBeVisible(); await expect(employee.getByRole('button',{name:'确认解除绑定',exact:true})).toHaveCount(0); await capture(employee,info,'oidc-jit-account');
     // User email collisions never elevate into the administrator realm.
     await employee.request.post(`${instance.url}/api/v1/auth/logout`,{headers:{'X-CSRF-Token':newUser.csrf_token},data:{}});
@@ -80,7 +82,7 @@ test('enterprise settings, real JIT, explicit binding and password fallback', as
     await employee.getByRole('button',{name:'确认企业身份',exact:true}).click();
     await expect(employee.getByRole('alert')).toContainText('请先使用本地账号登录');await capture(employee,info,'oidc-admin-jit-blocked');
     // Confirm local password, then reauthenticate with the IdP before binding.
-    await page.goto(`${instance.url}/admin/account-security`); await page.getByLabel('确认本地密码',{exact:true}).fill('wrong-password');
+    await openPersonalCenter(page, '安全设置'); await page.getByLabel('确认本地密码',{exact:true}).fill('wrong-password');
     const probe: string[] = [];
     page.on('response', async r => { if (r.url().includes('/oidc/link') || r.url().includes('/bootstrap')) probe.push(r.url().replace(instance.url, '') + '->' + r.status()); });
     page.on('console', m => { if (m.type() === 'error') probe.push('console:' + m.text().slice(0, 120)); });
@@ -112,8 +114,9 @@ test('enterprise settings, real JIT, explicit binding and password fallback', as
     await employee.goto(`${instance.url}/admin`); await expect(employee.getByLabel('账号或邮箱')).toBeVisible(); await expect(employee.getByRole('button',{name:'使用企业账号登录',exact:true})).toHaveCount(0);
     await employee.getByLabel('账号或邮箱').fill('admin'); await employee.getByLabel('密码',{exact:true}).fill('test-password-strong'); await employee.getByRole('button',{name:'登录工作空间',exact:true}).click(); await expect(employee.getByRole('heading',{name:'工作台概览'})).toBeVisible();
     // Follow-system mode on the new page, in addition to the explicit palette captures.
-    await employee.evaluate(()=>{localStorage.setItem('unicore.preferences.v1',JSON.stringify({...JSON.parse(localStorage.getItem('unicore.preferences.v1')??'{}'),theme:'system'}));}); await employee.emulateMedia({colorScheme:'dark'}); await employee.goto(`${instance.url}/admin/account-security`);
-    await expect(employee.getByRole('heading',{name:'企业账号绑定',exact:true})).toBeVisible();
+    await employee.evaluate(()=>{localStorage.setItem('unicore.preferences.v1',JSON.stringify({...JSON.parse(localStorage.getItem('unicore.preferences.v1')??'{}'),theme:'system'}));}); await employee.emulateMedia({colorScheme:'dark'}); await employee.goto(`${instance.url}/admin`);
+    await openPersonalCenter(employee, '安全设置');
+    await expect(employee.getByText('企业账号绑定',{exact:true})).toBeVisible();
     await expect(employee.locator('html')).toHaveAttribute('data-theme','dark');
     await employee.screenshot({path:`build/acceptance/m3a/${info.project.name}/system-account.png`,fullPage:true});
     await employee.emulateMedia({colorScheme:'light'}); await expect(employee.locator('html')).toHaveAttribute('data-theme','light');
@@ -236,7 +239,10 @@ test('SSO-only users enroll mandatory TOTP without SMTP and still need MFA on ne
  expect(policy.mail_ready).toBe(false); expect(policy.reset_enabled).toBe(false);
  await page.context().clearCookies();
  await page.goto(`${instance.url}/login`); await page.getByRole('button',{name:'使用企业账号登录',exact:true}).click(); await page.getByRole('button',{name:'确认企业身份',exact:true}).click();
- await expect(page).toHaveURL(`${instance.url}/account-security`);
+ // A plain enterprise login keeps its callback result in the URL; the pinned
+ // enrollment modal opens from the bootstrap flag, not the parameter.
+ await expect(page).toHaveURL(/\/?oidc=success$/);
+ await expect(page.getByRole('dialog',{name:'个人中心',exact:true})).toBeVisible();
  const user=(await(await page.request.get(`${instance.url}/api/v1/bootstrap`)).json()).data;
  expect(user.mfa_enrollment_required).toBe(true);
  expect((await page.request.get(`${instance.url}/api/v1/notes`)).status()).toBe(403);

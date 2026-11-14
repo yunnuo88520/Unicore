@@ -17,11 +17,13 @@ export function displayLabel(displayName: string | undefined | null, username: s
   return (username ?? '').trim();
 }
 
-export function UserAvatar({ name, url, className = 'size-8 text-[length:var(--font-11)]' }: {
+export function UserAvatar({ name, url, className = 'size-8 text-[length:var(--font-11)]', alt }: {
   name: string | undefined | null; url?: string; className?: string;
+  /** Accessible name for the rendered image or initial fallback; omit for decorative spots. */
+  alt?: string;
 }) {
-  if (url) return <span aria-hidden="true" className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-avatar ${className}`}>
-    <img src={url} className="size-full object-cover" alt="" />
+  if (url) return <span aria-hidden={alt ? undefined : true} className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-avatar ${className}`}>
+    <img src={url} className="size-full object-cover" alt={alt ?? ''} />
   </span>;
-  return <span aria-hidden="true" className={`flex shrink-0 items-center justify-center rounded-full bg-avatar font-semibold text-avatar-ink ${className}`}>{userInitial(name)}</span>;
+  return <span aria-hidden={alt ? undefined : true} aria-label={alt} role={alt ? 'img' : undefined} className={`flex shrink-0 items-center justify-center rounded-full bg-avatar font-semibold text-avatar-ink ${className}`}>{userInitial(name)}</span>;
 }

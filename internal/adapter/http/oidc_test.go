@@ -226,7 +226,7 @@ func TestOIDCHTTP(t *testing.T) {
 				}
 			}
 			w := request("GET", path, nil, token, "", proof, "")
-			if w.Header().Get("Location") != "/account-security?oidc=totp_failed" {
+			if w.Header().Get("Location") != "/?oidc=totp_failed" {
 				t.Fatal(scenario, w.Header())
 			}
 			assert(request("GET", "/account/totp/setup", nil, sessionCookieValue, "", "", ""), 400)
@@ -234,7 +234,7 @@ func TestOIDCHTTP(t *testing.T) {
 		auth, proof := begin(sessionCookieValue)
 		path := callback(auth)
 		w := request("GET", path, nil, sessionCookieValue, "", proof, "")
-		if w.Header().Get("Location") != "/account-security?oidc=totp_ready" {
+		if w.Header().Get("Location") != "/?oidc=totp_ready" {
 			t.Fatal("enrollment callback failed", w.Header())
 		}
 		for _, c := range w.Result().Cookies() {
@@ -243,7 +243,7 @@ func TestOIDCHTTP(t *testing.T) {
 			}
 		}
 		w = request("GET", path, nil, sessionCookieValue, "", proof, "")
-		if w.Header().Get("Location") == "/account-security?oidc=totp_ready" {
+		if w.Header().Get("Location") == "/?oidc=totp_ready" {
 			t.Fatal("enrollment callback replay")
 		}
 		_, other, e := identity.Issue(ctx, session.User, 1)

@@ -1,7 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Unified navigation acceptance: administrator/member drawers and menu/role editors on both viewports.
 import { mkdir } from 'node:fs/promises';
-import { test, expect, adminLogin, workspaceLogin, pageBoot } from './fixtures';
+import { test, expect, adminLogin, workspaceLogin, pageBoot, openPersonalCenter } from './fixtures';
 
 const password = 'test-password-strong';
 
@@ -15,7 +15,8 @@ test('admin navigation tree with the three directories, both viewports', async (
   const directory = `build/acceptance/navigation-tree/${info.project.name}`;
   await mkdir(directory, { recursive: true });
   // Desktop: the sidebar renders the two regions inline — the system region
-  // keeps 系统设置 and 超级管理员, 个人中心 stays at the tail of business.
+  // keeps 系统设置 and 超级管理员; the personal center has no directory, it
+  // opens from the account menus' settings modal.
   if (info.project.name === 'chromium') {
     const systemSection = page.locator('.sidebar section[data-nav-section="system"]');
     const businessSection = page.locator('.sidebar section[data-nav-section="business"]');
@@ -23,9 +24,7 @@ test('admin navigation tree with the three directories, both viewports', async (
     await expect(settings).toBeVisible();
     await settings.click();
     await expect(systemSection.getByRole('button', { name: '基础设置', exact: true })).toBeVisible();
-    const personal = businessSection.getByRole('button', { name: '个人中心', exact: true });
-    await personal.click();
-    await expect(businessSection.getByRole('button', { name: '个人资料', exact: true })).toBeVisible();
+    await expect(businessSection.getByRole('button', { name: '个人中心', exact: true })).toHaveCount(0);
     const administration = systemSection.getByRole('button', { name: '超级管理员', exact: true });
     await administration.click();
     await expect(page.locator('.sidebar').getByRole('button', { name: '用户列表', exact: true })).toBeVisible();
@@ -49,8 +48,7 @@ test('admin navigation tree with the three directories, both viewports', async (
   await expect(drawer).toHaveClass(/is-open/);
   await drawer.getByRole('button', { name: '系统设置', exact: true }).click();
   await expect(drawer.getByRole('button', { name: '基础设置', exact: true })).toBeVisible();
-  await drawer.getByRole('button', { name: '个人中心', exact: true }).click();
-  await expect(drawer.getByRole('button', { name: '个人资料', exact: true })).toBeVisible();
+  await expect(drawer.getByRole('button', { name: '个人中心', exact: true })).toHaveCount(0);
   await drawer.getByRole('button', { name: '超级管理员', exact: true }).click();
   await expect(drawer.getByRole('button', { name: '用户列表', exact: true })).toBeVisible();
   // Collapse the long administration directory and scroll the two lower
@@ -66,7 +64,7 @@ test('admin navigation tree with the three directories, both viewports', async (
   await page.screenshot({ path: `${directory}/menu-editor.png`, fullPage: true });
 });
 
-test('member drawer keeps the collapsed surface with the personal directory, both viewports', async ({ page, browser, instance }, info) => {
+test('member drawer keeps the collapsed surface without a personal directory, both viewports', async ({ page, browser, instance }, info) => {
   test.setTimeout(120000);
   expect((await page.request.post(`${instance.url}/api/v1/install/complete`, { headers: { 'X-Bootstrap-Token': instance.token }, data: { profile: 'web-platform', database: { driver: 'sqlite', dsn: '' }, site_name: 'Unicore', base_url: instance.url, admin_username: 'admin', admin_email: 'admin@example.test', admin_password: password } })).status()).toBe(200);
   const boot = (await (await page.request.get(`${instance.url}/api/v1/admin/bootstrap`)).json()).data;
@@ -79,11 +77,12 @@ test('member drawer keeps the collapsed surface with the personal directory, bot
   await workspaceLogin(page, instance.url, 'member');
   for (const name of ['基础设置', 'API 文档', '公告', '文件管理']) await expect(page.locator('.sidebar').getByRole('button', { name, exact: true })).toHaveCount(0);
   const directory = `build/acceptance/navigation-tree/${info.project.name}`;
+  // The personal center opens from the account menu into the settings modal.
   if (info.project.name === 'chromium') {
-    const personal = page.locator('.sidebar').getByRole('button', { name: '个人中心', exact: true });
-    await expect(personal).toBeVisible();
-    await personal.click();
-    await expect(page.locator('.sidebar').getByRole('button', { name: '个人资料', exact: true })).toBeVisible();
+    await expect(page.locator('.sidebar').getByRole('button', { name: '个人中心', exact: true })).toHaveCount(0);
+    const center = await openPersonalCenter(page);
+    await expect(center.getByRole('heading', { name: '个人资料', exact: true })).toBeVisible();
+    await page.keyboard.press('Escape');
     await page.screenshot({ path: `${directory}/member-sidebar.png`, fullPage: true });
     return;
   }
@@ -91,9 +90,9 @@ test('member drawer keeps the collapsed surface with the personal directory, bot
   await page.getByRole('button', { name: '打开导航', exact: true }).click();
   const drawer = page.locator('.sidebar');
   await expect(drawer).toHaveClass(/is-open/);
-  const personal = drawer.getByRole('button', { name: '个人中心', exact: true });
-  await expect(personal).toBeVisible();
-  await personal.click();
-  await expect(drawer.getByRole('button', { name: '个人资料', exact: true })).toBeVisible();
+  await expect(drawer.getByRole('button', { name: '个人中心', exact: true })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  const center = await openPersonalCenter(page);
+  await expect(center.getByRole('heading', { name: '个人资料', exact: true })).toBeVisible();
   await page.screenshot({ path: `${directory}/member-drawer.png`, fullPage: true });
 });

@@ -1,7 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Real role-bound tokens, owner/admin workflows and bounded dialogs at desktop and 375px.
 import { mkdir } from 'node:fs/promises';
-import { test, expect, installPlatform, adminLogin, sdkClient, loginClient, workspaceLogin, memberPassword, navigate } from './fixtures';
+import { test, expect, installPlatform, adminLogin, sdkClient, loginClient, workspaceLogin, memberPassword, navigate, openPersonalCenter } from './fixtures';
 import { BearerTransport } from '../../packages/sdk/src';
 
 test.use({ trace: 'off' }); // One-time credentials must not enter persisted browser traces.
@@ -13,7 +13,8 @@ test('role-bound personal tokens support issuance, renewal and global revocation
   const reader = await admin.createRole({ name: 'API reader', permissions: ['notes:access'], operation_ids: ['listNotes'], menu_ids: [], action_ids: [], data_scope: 'self' });
   const member = await admin.createUser({ username: 'automation-user', email: 'automation@example.test', password: memberPassword, role_ids: ['user', reader.id] });
   await workspaceLogin(page, instance.url, member.username);
-  await navigate(page, '访问令牌');
+  // The personal tokens live in the account-menu settings modal now.
+  await openPersonalCenter(page, '访问令牌');
   const opener = page.getByRole('button', { name: '创建访问令牌', exact: true });
   await opener.click();
   let dialog = page.getByRole('dialog', { name: '创建访问令牌', exact: true });

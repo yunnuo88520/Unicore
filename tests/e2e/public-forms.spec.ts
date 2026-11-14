@@ -90,12 +90,14 @@ for (const locale of ['zh-CN', 'en'] as const) for (const theme of ['light', 'da
     await checkSteps(5);
     await capture('install-profile');
     await button('下一步').click();
-    await expect(page.getByRole('radio', { name: t('MySQL · 在线部署推荐'), exact: true })).toBeChecked();
+    // The database driver renders as a dropdown select (form choices stay
+    // dropdowns regardless of the option count).
+    await expect(page.getByRole('combobox', { name: t('数据库类型') })).toContainText(t('MySQL · 在线部署推荐'));
     for (const label of ['数据库地址', '数据库端口', '数据库名', '数据库用户名', '数据库密码']) await expectVisibleField(field(label));
     for (const label of ['数据库地址', '数据库端口', '数据库名', '数据库用户名']) await expectRaisedLabel(field(label));
     expect((await field('数据库端口').boundingBox())!.width).toBeLessThanOrEqual(160);
     await capture('install-database');
-    await page.getByRole('radio', { name: t('SQLite · 本机或小型测试'), exact: true }).check();
+    await page.getByRole('combobox', { name: t('数据库类型') }).click();await page.getByRole('option', { name: t('SQLite · 本机或小型测试'), exact: true }).click();
     await button('测试连接').click();
     await expect(page.getByText(t('连接测试成功'), { exact: true })).toBeVisible();
     await button('下一步').click();

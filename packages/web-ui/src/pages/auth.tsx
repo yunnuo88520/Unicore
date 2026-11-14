@@ -299,7 +299,7 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
               <AppField<AuthValues> name="captcha_answer" label={t('图形验证码')} hint={t('请输入 6 位图形验证码')}>
                 <Input required inputMode="numeric" autoComplete="off" minLength={6} maxLength={6} />
               </AppField>
-              <button type="button" aria-label={t('刷新验证码')} disabled={captcha.isFetching} onClick={() => { form.setValue('captcha_answer', ''); void captcha.refetch(); }} className="mt-2 flex h-11 items-center justify-center overflow-hidden rounded-lg border border-line bg-surface-alt focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-50">{captcha.data && !captcha.isFetching && <img src={captcha.data.image} alt={t('六位数字验证码，点击刷新')} />}</button>
+              <button type="button" aria-label={t('刷新验证码')} disabled={captcha.isFetching} onClick={() => { form.setValue('captcha_answer', ''); void captcha.refetch(); }} className="mt-6 flex h-11 items-center justify-center overflow-hidden rounded-lg border border-line bg-surface-alt focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-50">{captcha.data && !captcha.isFetching && <img src={captcha.data.image} alt={t('六位数字验证码，点击刷新')} />}</button>
             </div>}
             {humanRequired && <HumanCheck widget={humanWidget} required token={humanToken.token} onToken={onHumanToken} resetSignal={humanReset} />}
             {(policy.error || (needsCaptcha && captcha.error)) && <p role="alert" className="text-sm text-danger">{t((policy.error ?? captcha.error)?.message)}</p>}

@@ -39,12 +39,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ c
   if (!caption && !password && !leadingIcon) return input;
   return <div className="flex w-full min-w-0 flex-col gap-2">
     <div className={cn('relative min-w-0', caption && 'pt-6')}>
-      {leadingIcon && <span className="pointer-events-none absolute start-3 top-1/2 flex -translate-y-1/2 text-muted [&_svg]:size-4" aria-hidden="true">{leadingIcon}</span>}
+      {/* The icon and the eye anchor to the wrapper's bottom edge — the input's
+          bottom — so the floated-up caption area never drags them off center. */}
+      {leadingIcon && <span className={cn('pointer-events-none absolute start-3 bottom-0 flex items-center text-muted [&_svg]:size-4', caption ? 'h-11' : 'h-9')} aria-hidden="true">{leadingIcon}</span>}
       {input}
       {caption && <label htmlFor={inputID} className={cn('pointer-events-none absolute start-3 top-0 max-w-[calc(100%-1.5rem)] origin-left scale-[0.85] truncate text-sm leading-5 text-muted transition-[top,scale,color] duration-150 motion-reduce:transition-none peer-placeholder-shown:top-9 peer-placeholder-shown:scale-100 peer-focus:top-0 peer-focus:scale-[0.85] peer-focus:text-accent peer-autofill:top-0 peer-autofill:scale-[0.85] peer-autofill:text-accent peer-disabled:opacity-55', props['aria-invalid'] && 'text-danger', (type === 'date' || type === 'time' || type === 'datetime-local') && 'peer-placeholder-shown:top-0 peer-placeholder-shown:scale-[0.85]')}>
         <span id={`${generated}-caption`}>{caption}</span>{requiredMark}
       </label>}
-      {password && <button type="button" aria-label={visibilityCaption ? t(visible ? '隐藏{{label}}' : '显示{{label}}', { label: visibilityCaption }) : visible ? t('隐藏密码') : t('显示密码')} aria-pressed={visible} disabled={props.disabled} className="absolute end-1 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-muted outline-none hover:bg-surface-hover hover:text-ink focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-55" onPointerDown={event => event.preventDefault()} onClick={() => setVisible(value => !value)}>
+      {password && <button type="button" aria-label={visibilityCaption ? t(visible ? '隐藏{{label}}' : '显示{{label}}', { label: visibilityCaption }) : visible ? t('隐藏密码') : t('显示密码')} aria-pressed={visible} disabled={props.disabled} className={cn('absolute end-1 bottom-0 flex items-center justify-center rounded-md text-muted outline-none hover:bg-surface-hover hover:text-ink focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-55', caption ? 'h-11 w-9' : 'h-9 w-8')} onPointerDown={event => event.preventDefault()} onClick={() => setVisible(value => !value)}>
         {visible ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
       </button>}
     </div>

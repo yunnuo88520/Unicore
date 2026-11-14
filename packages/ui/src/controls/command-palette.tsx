@@ -38,7 +38,7 @@ export function CommandPalette({ open, onOpenChange, items, title = 'Commands', 
           else if (event.key === 'Enter' && current) { event.preventDefault(); choose(current); }
         }} />
       <div id={`${id}-list`} role="listbox" aria-label={t(title)} className="min-h-0 overflow-y-auto">{filtered.length ? filtered.map(item => <div key={item.id} id={`${id}-${encodeURIComponent(item.id)}`} role="option" aria-selected={item.id === current?.id} aria-disabled={item.disabled || undefined}
-        className={cn('cursor-pointer rounded-md px-3 py-2 text-sm text-ink', item.id === current?.id && 'bg-surface-alt', item.disabled && 'opacity-55')}
+        className={cn('cursor-pointer rounded-md px-3 py-2 text-sm text-ink', item.id === current?.id && 'bg-surface-hover', item.disabled && 'opacity-55')}
         onPointerDown={event => event.preventDefault()} onPointerMove={() => { if (!item.disabled) setActive(item.id); }} onClick={() => choose(item)}>{t(item.label)}</div>) : <p className="p-3 text-sm text-muted">{t(emptyLabel)}</p>}</div>
     </Dialog.Content></Dialog.Portal></Dialog.Root>;
 }

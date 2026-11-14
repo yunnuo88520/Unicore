@@ -17,7 +17,7 @@ export const DropdownMenuContent = forwardRef<HTMLDivElement, React.ComponentPro
 });
 
 const menuItemVariants = cva('relative flex min-h-9 cursor-pointer select-none items-center gap-2 rounded-lg px-2.5 py-2 outline-none transition-colors data-[disabled]:pointer-events-none data-[disabled]:opacity-50', {
-  variants: { tone: { default: 'text-ink data-[highlighted]:bg-surface-alt', danger: 'text-danger data-[highlighted]:bg-danger-soft' } },
+  variants: { tone: { default: 'text-ink data-[highlighted]:bg-surface-hover', danger: 'text-danger data-[highlighted]:bg-danger-soft' } },
   defaultVariants: { tone: 'default' },
 });
 type MenuItemProps = React.ComponentPropsWithoutRef<typeof DropdownPrimitive.Item> & VariantProps<typeof menuItemVariants>;

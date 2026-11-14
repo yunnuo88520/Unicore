@@ -38,7 +38,7 @@ export const DrawerContent = forwardRef<HTMLDivElement, ComponentPropsWithoutRef
       <div className="mb-3 flex items-center justify-between gap-2">
         <DialogPrimitive.Title className="text-base font-semibold text-ink">{title}</DialogPrimitive.Title>
         <DialogPrimitive.Close asChild>
-          <button type="button" className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-alt hover:text-ink" aria-label={t(closeLabel ?? '关闭面板')}><X size={16} /></button>
+          <button type="button" className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-hover hover:text-ink" aria-label={t(closeLabel ?? '关闭面板')}><X size={16} /></button>
         </DialogPrimitive.Close>
       </div>
       {children}

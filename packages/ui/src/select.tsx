@@ -35,7 +35,7 @@ export const SelectContent = forwardRef<HTMLDivElement, React.ComponentPropsWith
 });
 
 export const SelectItem = forwardRef<HTMLDivElement, React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item>>(function SelectItem({ className, children, ...props }, ref) {
-  return <SelectPrimitive.Item ref={ref} className={cn('relative flex min-h-9 cursor-pointer select-none items-center rounded-lg py-2 ps-8 pe-3 text-ink outline-none data-[highlighted]:bg-surface-alt data-[disabled]:pointer-events-none data-[disabled]:opacity-50', className)} {...props}>
+  return <SelectPrimitive.Item ref={ref} className={cn('relative flex min-h-9 cursor-pointer select-none items-center rounded-lg py-2 ps-8 pe-3 text-ink outline-none data-[highlighted]:bg-surface-hover data-[disabled]:pointer-events-none data-[disabled]:opacity-50', className)} {...props}>
     <span className="absolute start-2 flex size-4 items-center justify-center"><SelectPrimitive.ItemIndicator><Check size={13} /></SelectPrimitive.ItemIndicator></span>
     <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
   </SelectPrimitive.Item>;

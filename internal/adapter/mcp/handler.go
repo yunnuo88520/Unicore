@@ -40,6 +40,9 @@ type Surface struct {
 	// OAuth serves the MCP authorization service; nil keeps every OAuth
 	// endpoint answering 404 regardless of the runtime switch.
 	OAuth *mcpoauth.Service
+	// registerLimiter bounds unauthenticated dynamic registrations per
+	// address; Mount initializes it once per process.
+	registerLimiter *platform.Limiter
 
 	handler *sdk.StreamableHTTPHandler
 	mu      sync.Mutex
@@ -55,6 +58,7 @@ func Mount(router chi.Router, surface *Surface) {
 	if surface == nil {
 		return
 	}
+	surface.registerLimiter = platform.NewLimiter()
 	surface.cache = map[string]*sdk.Server{}
 	surface.handler = sdk.NewStreamableHTTPHandler(surface.server, &sdk.StreamableHTTPOptions{
 		// The 2026-07-28 baseline runs per request: no long-lived protocol
@@ -69,6 +73,7 @@ func Mount(router chi.Router, surface *Surface) {
 	router.HandleFunc("/oauth/mcp/authorize", surface.handleAuthorize)
 	router.HandleFunc("/oauth/mcp/token", surface.handleToken)
 	router.HandleFunc("/oauth/mcp/revoke", surface.handleRevoke)
+	router.HandleFunc("/oauth/mcp/register", surface.handleRegister)
 }
 
 func (s *Surface) log() *slog.Logger {

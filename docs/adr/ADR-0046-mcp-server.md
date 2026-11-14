@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # ADR-0046：平台 MCP Server
 
-状态：采纳（P1–P3）；P4 为规划方向，实施前按当时事实修订，不构成已实现能力声明。
+状态：采纳（P1–P4）；后续阶段为规划方向，实施前按当时事实修订，不构成已实现能力声明。
 
 ## 功能声明
 
@@ -45,6 +45,15 @@
 16. 传输预算：OAuth 令牌调用 write 效果工具必须携带 `mcp.write` scope（同意端点在阶段关闭时拒绝该 scope，发现文档仅在阶段开放时公告）；PAT 无 scope 预算，由阶段开关与常规授权链治理。
 17. 业务结果：业务与输入类错误（如版本冲突）以 IsError 工具结果返回稳定代码，供智能体按业务语义重试；不可用类失败维持统一语义防探测。
 18. 样例写工具：`notes.update`（写效果、声明需客户端确认、乐观锁版本冲突拒绝），绑定可委派 operation `updateNote`，数据范围与网页端一致。
+
+## P4 决策（动态客户端注册）
+
+19. RFC 7591 子集：`POST /oauth/mcp/register` 仅注册公开 PKCE 客户端（`token_endpoint_auth_method` 仅接受 none），无 software statement、无 initial access token；注册即时启用，治理与预注册客户端一致（启停、授权记录、全局撤销均走管理台）。发现文档仅在 `mcp.dcr_enabled`（默认关闭）开放时公告 registration_endpoint。
+20. 滥用防线：端点无认证，按来源地址限流（10 次/小时）并在关闭时普通 404；重定向注册沿用精确匹配校验，错误码遵循 RFC 7591（invalid_client_metadata / invalid_redirect_uri）。
+
+## 验证边界（P4 追加）
+
+互操作测试覆盖关闭 404、发现公告、RFC 错误码、注册即用（注册→同意→code 兑换→协议发现与调用全链路）。
 
 ## 验证边界（P3 追加）
 

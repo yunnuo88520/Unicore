@@ -155,6 +155,24 @@ func (s *Service) CreateClient(ctx context.Context, name, clientType, authMethod
 	return created, secret, nil
 }
 
+// RegisterClient implements the RFC 7591 subset the platform exposes:
+// public PKCE clients only, enabled immediately and governed afterwards
+// through the admin console like any registered client.
+func (s *Service) RegisterClient(ctx context.Context, name string, redirectURIs []string) (Client, error) {
+	if strings.TrimSpace(name) == "" || len([]rune(name)) > 80 {
+		return Client{}, ErrInvalidRequest
+	}
+	if err := ValidateRedirectURIs(redirectURIs); err != nil {
+		return Client{}, ErrInvalidRedirect
+	}
+	now := int(time.Now().Unix())
+	client := Client{
+		ID: platform.Token(), Name: strings.TrimSpace(name), ClientType: ClientPublic, AuthMethod: "none",
+		RedirectURIs: redirectURIs, Enabled: true, Version: 1, CreatedAt: now, UpdatedAt: now,
+	}
+	return s.Store.CreateClient(ctx, client, "dynamic-registration")
+}
+
 // RotateClientSecret replaces a confidential client secret; the new value is
 // returned once.
 func (s *Service) RotateClientSecret(ctx context.Context, clientID, actor string) (Client, string, error) {

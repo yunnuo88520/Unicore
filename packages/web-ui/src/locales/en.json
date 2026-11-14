@@ -3007,5 +3007,6 @@
   "预注册通过授权码 + PKCE 接入 MCP 的外部应用并管理其授权。": "Pre-register external applications that reach MCP with authorization code + PKCE and manage their grants.",
   "外部应用经授权码 + PKCE 获取令牌；需先在「OAuth 接入」页注册客户端": "External applications obtain tokens through authorization code + PKCE; register the client on the OAuth access page first.",
   "允许写入调用": "Allow write calls",
-  "写阶段：开放 write 效果工具，OAuth 令牌还需携带 mcp.write 授权；破坏性操作始终关闭": "Write phase: opens write-effect tools; OAuth tokens additionally need the mcp.write grant. Destructive operations stay closed."
+  "写阶段：开放 write 效果工具，OAuth 令牌还需携带 mcp.write 授权；破坏性操作始终关闭": "Write phase: opens write-effect tools; OAuth tokens additionally need the mcp.write grant. Destructive operations stay closed.",
+  "允许动态客户端注册": "Allow dynamic client registration"
 }

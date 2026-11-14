@@ -4,8 +4,12 @@ package mcp
 
 import (
 	"encoding/json"
+	"errors"
+	"io"
+	"net"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/yunnuo/unicore/internal/platform/mcpoauth"
 	"github.com/yunnuo/unicore/internal/runtime"
@@ -66,11 +70,11 @@ func (s *Surface) handleProtectedResourceMetadata(w http.ResponseWriter, r *http
 	}
 	base := s.baseURL(values)
 	writeJSONValue(w, 200, map[string]any{
-		"resource":               mcpoauth.CanonicalResource(base),
-		"authorization_servers":  []string{base},
-		"scopes_supported":       oauthScopesAdvertised(values),
+		"resource":                 mcpoauth.CanonicalResource(base),
+		"authorization_servers":    []string{base},
+		"scopes_supported":         oauthScopesAdvertised(values),
 		"bearer_methods_supported": []string{"header"},
-		"resource_documentation": base + "/api-docs",
+		"resource_documentation":   base + "/api-docs",
 	})
 }
 
@@ -81,17 +85,21 @@ func (s *Surface) handleAuthorizationServerMetadata(w http.ResponseWriter, r *ht
 		return
 	}
 	base := s.baseURL(values)
-	writeJSONValue(w, 200, map[string]any{
-		"issuer":                         base,
-		"authorization_endpoint":         base + "/oauth/mcp/authorize",
-		"token_endpoint":                 base + "/oauth/mcp/token",
-		"revocation_endpoint":            base + "/oauth/mcp/revoke",
-		"response_types_supported":       []string{"code"},
-		"grant_types_supported":          []string{"authorization_code", "refresh_token"},
-		"code_challenge_methods_supported": []string{"S256"},
-		"scopes_supported":               oauthScopesAdvertised(values),
+	document := map[string]any{
+		"issuer":                                base,
+		"authorization_endpoint":                base + "/oauth/mcp/authorize",
+		"token_endpoint":                        base + "/oauth/mcp/token",
+		"revocation_endpoint":                   base + "/oauth/mcp/revoke",
+		"response_types_supported":              []string{"code"},
+		"grant_types_supported":                 []string{"authorization_code", "refresh_token"},
+		"code_challenge_methods_supported":      []string{"S256"},
+		"scopes_supported":                      oauthScopesAdvertised(values),
 		"token_endpoint_auth_methods_supported": []string{"client_secret_post", "none"},
-	})
+	}
+	if values["mcp.dcr_enabled"] == "true" {
+		document["registration_endpoint"] = base + "/oauth/mcp/register"
+	}
+	writeJSONValue(w, 200, document)
 }
 
 // handleAuthorize hands the browser request to the SPA consent page: guests
@@ -180,6 +188,72 @@ func oauthErrorCode(err error) string {
 	default:
 		return "invalid_request"
 	}
+}
+
+// handleRegister answers the RFC 7591 subset the platform exposes: public
+// PKCE clients only, no software statement, no initial access token. The
+// endpoint is unauthenticated, so it fails closed behind its own switch and
+// rate limit; registered clients stay governed by the admin console.
+func (s *Surface) handleRegister(w http.ResponseWriter, r *http.Request) {
+	values, ok := s.oauthGate(w, r)
+	if !ok {
+		return
+	}
+	if values["mcp.dcr_enabled"] != "true" || s.OAuth == nil || s.registerLimiter == nil {
+		http.NotFound(w, r)
+		return
+	}
+	if !s.registerLimiter.Allow("mcp-register:"+ipOf(r), 10, time.Hour) {
+		writeJSONValue(w, 429, map[string]any{"error": "access_denied"})
+		return
+	}
+	var input struct {
+		RedirectURIs            []string `json:"redirect_uris"`
+		ClientName              string   `json:"client_name"`
+		TokenEndpointAuthMethod string   `json:"token_endpoint_auth_method"`
+	}
+	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 16<<10))
+	if err != nil || json.Unmarshal(body, &input) != nil {
+		writeJSONValue(w, 400, map[string]any{"error": "invalid_client_metadata"})
+		return
+	}
+	if input.TokenEndpointAuthMethod != "" && input.TokenEndpointAuthMethod != "none" {
+		writeJSONValue(w, 400, map[string]any{"error": "invalid_client_metadata"})
+		return
+	}
+	name := input.ClientName
+	if name == "" {
+		name = "Registered MCP client"
+	}
+	client, err := s.OAuth.RegisterClient(r.Context(), name, input.RedirectURIs)
+	if err != nil {
+		if errors.Is(err, mcpoauth.ErrInvalidRedirect) {
+			writeJSONValue(w, 400, map[string]any{"error": "invalid_redirect_uri"})
+			return
+		}
+		writeJSONValue(w, 400, map[string]any{"error": "invalid_client_metadata"})
+		return
+	}
+	base := s.baseURL(values)
+	writeJSONValue(w, 201, map[string]any{
+		"client_id":                   client.ID,
+		"client_id_issued_at":         client.CreatedAt,
+		"client_name":                 client.Name,
+		"redirect_uris":               client.RedirectURIs,
+		"token_endpoint_auth_method":  "none",
+		"grant_types":                 []string{"authorization_code", "refresh_token"},
+		"response_types":              []string{"code"},
+		"scopes_supported":            oauthScopesAdvertised(values),
+		"authorization_server_issuer": base,
+	})
+}
+
+func ipOf(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
 }
 
 // handleRevoke answers RFC 7009; unknown tokens still return 200 so the

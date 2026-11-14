@@ -8,6 +8,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
@@ -495,5 +496,118 @@ func TestMCPWritePhaseGate(t *testing.T) {
 	defer patSession.Close()
 	if err = call(patSession); err != nil {
 		t.Fatalf("PAT write in the open phase failed: %v", err)
+	}
+}
+
+func TestMCPDynamicClientRegistration(t *testing.T) {
+	env := openMCPInterop(t)
+	ctx := env.ctx
+
+	register := func(body string) (int, map[string]any) {
+		request, err := http.NewRequest(http.MethodPost, env.server.URL+"/oauth/mcp/register", strings.NewReader(body))
+		if err != nil {
+			t.Fatal(err)
+		}
+		request.Header.Set("Content-Type", "application/json")
+		response, err := http.DefaultClient.Do(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer response.Body.Close()
+		raw, err := io.ReadAll(response.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		payload := map[string]any{}
+		// The closed-switch 404 is plain text; JSON bodies decode where asserted.
+		_ = json.Unmarshal(raw, &payload)
+		return response.StatusCode, payload
+	}
+
+	// Closed by default: the endpoint is a plain 404 like every OAuth route.
+	status, _ := register(`{"redirect_uris":["https://app.example/cb"]}`)
+	if status != http.StatusNotFound {
+		t.Fatalf("closed DCR status = %d, want 404", status)
+	}
+
+	revision, err := env.repository.MCPControlRevision(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = env.repository.UpdateMCPConfig(ctx, revision, map[string]string{"mcp.dcr_enabled": "true"}, env.admin.ID); err != nil {
+		t.Fatal(err)
+	}
+
+	// Discovery now advertises the registration endpoint. The OAuth switch is
+	// still closed here, so first open it the way the admin console would.
+	revision, err = env.repository.MCPControlRevision(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = env.repository.UpdateMCPConfig(ctx, revision, map[string]string{"mcp.oauth_enabled": "true"}, env.admin.ID); err != nil {
+		t.Fatal(err)
+	}
+	discovery, err := http.Get(env.server.URL + "/.well-known/oauth-authorization-server")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var document map[string]any
+	if err := json.NewDecoder(discovery.Body).Decode(&document); err != nil {
+		t.Fatalf("discovery document: %v", err)
+	}
+	discovery.Body.Close()
+	// The fixture installs with base_url http://localhost; the advertised
+	// endpoint derives from that trusted base, not the request authority.
+	if document["registration_endpoint"] != "http://localhost/oauth/mcp/register" {
+		t.Fatalf("discovery registration endpoint = %v", document["registration_endpoint"])
+	}
+
+	// Invalid metadata maps onto the RFC 7591 error codes.
+	status, payload := register(`{"redirect_uris":["http://app.example/cb"]}`)
+	if status != 400 || payload["error"] != "invalid_redirect_uri" {
+		t.Fatalf("plain http registration = %d %v", status, payload)
+	}
+	status, payload = register(`{"redirect_uris":["https://app.example/cb"],"token_endpoint_auth_method":"client_secret_basic"}`)
+	if status != 400 || payload["error"] != "invalid_client_metadata" {
+		t.Fatalf("confidential DCR = %d %v", status, payload)
+	}
+
+	// A valid registration yields an enabled public client immediately.
+	status, payload = register(`{"redirect_uris":["https://app.example/cb"],"client_name":"DCR Agent"}`)
+	if status != 201 {
+		t.Fatalf("registration status = %d %v", status, payload)
+	}
+	clientID, _ := payload["client_id"].(string)
+	if clientID == "" || payload["token_endpoint_auth_method"] != "none" || payload["client_name"] != "DCR Agent" {
+		t.Fatalf("registration payload = %v", payload)
+	}
+
+	// The registered client completes the whole consent loop like a
+	// pre-registered one.
+	grant, err := env.oauth.CreateGrant(ctx, env.member.ID, clientID, "user", []string{mcpoauth.ScopeRead}, env.member.Roles)
+	if err != nil {
+		t.Fatal(err)
+	}
+	verifier := strings.Repeat("v", 48)
+	sum := sha256.Sum256([]byte(verifier))
+	code, err := env.oauth.IssueCode(ctx, grant, "https://app.example/cb", base64.RawURLEncoding.EncodeToString(sum[:]), "S256")
+	if err != nil {
+		t.Fatal(err)
+	}
+	issued, err := env.oauth.ExchangeCode(ctx, clientID, "", code, "https://app.example/cb", verifier)
+	if err != nil {
+		t.Fatal(err)
+	}
+	session, err := sdk.NewClient(&sdk.Implementation{Name: "dcr-agent", Version: "0"}, nil).Connect(ctx, &sdk.StreamableClientTransport{
+		Endpoint: env.server.URL + "/mcp", DisableStandaloneSSE: true,
+		HTTPClient: &http.Client{Transport: &bearerTransport{inner: env.server.Client().Transport, bearer: issued.AccessToken}},
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer session.Close()
+	listing, err := session.ListTools(ctx, nil)
+	if err != nil || len(listing.Tools) != 1 || listing.Tools[0].Name != "notes.search" {
+		t.Fatalf("dcr tools/list = %+v, %v", listing, err)
 	}
 }

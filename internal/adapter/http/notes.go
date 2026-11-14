@@ -1,9 +1,13 @@
+//go:build !no_notes
+
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Notes routes fix identity from the route and pass a server-owned scope to the module use case.
 package httpadapter
 
 import (
 	"context"
+	"errors"
+	notesdomain "github.com/yunnuo/unicore/internal/modules/notes/domain"
 	"net/http"
 	"strconv"
 	"strings"
@@ -146,4 +150,47 @@ func mountNotes(api chi.Router, config Config) {
 			success(w, contracts.ActionResult{Success: true})
 		}))
 	}
+}
+
+func noteErrorCode(err error) string {
+	switch {
+	case errors.Is(err, notesdomain.ErrNoteInvalid):
+		return "NOTE_INVALID"
+	case errors.Is(err, notesusecase.ErrNoteNotFound):
+		return "NOTE_NOT_FOUND"
+	case errors.Is(err, notesusecase.ErrNoteConflict):
+		return "NOTE_CONFLICT"
+	default:
+		return ""
+	}
+}
+
+// allowNoteAttachment grants access only through an actual visible note reference.
+func allowNoteAttachment(w http.ResponseWriter, r *http.Request, config Config, actor files.Actor, noteID string, filter platform.ScopeFilter) bool {
+	store, _, _, _ := config.Install.Services()
+	visibility := notesusecase.NoteVisibility{}
+	if filter.All {
+		visibility.All = true
+	} else if !filter.Self() {
+		for _, id := range filter.UserIDs {
+			visibility.Scopes = append(visibility.Scopes, actor.Realm+"/"+id)
+		}
+	}
+	notes := &notesusecase.Notes{Repo: &notesnotessql.Repository{Store: store}}
+	scope := actor.Realm + "/" + actor.ID
+	if actor.Realm == "local" {
+		scope = "local"
+	}
+	entry, err := notes.Read(r.Context(), scope, noteID, visibility)
+	if err != nil {
+		webError(w, err)
+		return false
+	}
+	for _, id := range entry.AttachmentIds {
+		if id == chi.URLParam(r, "id") {
+			return true
+		}
+	}
+	failure(w, 404, "NOT_FOUND", "文件不存在")
+	return false
 }

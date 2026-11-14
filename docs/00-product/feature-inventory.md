@@ -88,7 +88,7 @@
 | 文本分析 Execute | 已实现（会话内） | 已实现（本地开放）¹² | 已实现（`unicore execute`） | 无 | `internal/usecase/execute.go`、`internal/adapter/cli/command.go` |
 | Bootstrap 元数据 | 已实现 | 已实现¹² | 不适用（无 HTTP/桥） | 无 | `internal/runtime/profile.go`、`internal/adapter/desktop/bridge.go` |
 | 健康检查 | 已实现 | 已实现¹ | 不适用 | 无 | `internal/adapter/http/policy.go` |
-| Notes 业务模块 | 已实现（用户+管理端，按账号隔离） | 已实现（local scope）¹² | 不装配（模块特性关闭） | unicore_example_notes | `internal/modules/notes/`、[业务样板](../03-runbooks/business-example.md) |
+| Notes 业务模块 | 已实现（用户+管理端，按账号隔离）；FEATURE_NOTES 可裁剪 | 已实现（local scope）；两载体同开关¹² | 不装配（模块特性关闭） | unicore_example_notes | `internal/modules/notes/`、[业务样板](../03-runbooks/business-example.md) |
 
 ### 共享设计系统（UI 基础能力，非新增业务）
 

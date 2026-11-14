@@ -3,6 +3,8 @@
 
 本文是产品形态与功能边界的权威规范：定义三种产品形态、形态与运行载体的关系、各形态基础能力矩阵、状态语义和不可违反的产品边界。新增或修改任何功能前先读本文，按 [功能分类模板](feature-proposal-template.md) 声明适用形态，再按 [功能适用性清单](feature-inventory.md) 与 [功能呈现与访问规范](feature-presentation.md) 对齐实现。产品目标仍以 [PRD](PRD.md) 为准，验证状态以 [支持范围](../support.md) 为准；本文与 PRD 冲突时以 PRD 与后续 ADR 为准。
 
+现有基础功能（包括系统设置）不提供通用裁剪开关；业务样板 Notes 可通过 `FEATURE_NOTES=false` 编译期裁剪，默认开启，Platform 与 Standalone 两载体一致。既有 license/updater 可选集成开关保持兼容，不扩展成基础模块卸载机制。裁剪只停止模块装配与新迁移执行，保留历史数据和账本；见 [业务样板](../03-runbooks/business-example.md)。
+
 ## 1. 三种产品形态
 
 Unicore 的产品形态只有三种。`framework.manifest.json` 中的四个 profile 是**装配 profile**，不是产品形态：

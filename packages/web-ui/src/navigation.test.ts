@@ -16,7 +16,7 @@ const superAdmin = {
 } as unknown as Bootstrap;
 
 const member = (permissions: string[], menuIds?: string[]) => ({
-  profile: 'web-platform', identity_realm: 'user', capabilities: { database: true, settings: true },
+  profile: 'web-platform', identity_realm: 'user', capabilities: { database: true, settings: true, features: { notes: true } },
   current_user: { id: 'u1', roles: ['user'], permissions, ...(menuIds ? { menu_ids: menuIds } : {}) },
 } as unknown as Bootstrap);
 

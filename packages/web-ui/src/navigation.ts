@@ -1,7 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: One ordered shared tree drives the menu editor and every workspace navigation presentation.
 import { operations } from '@unicore/sdk';
-import { notes } from './modules/notes';
+import './modules';
 import { uiModules } from './module-registry';
 import type { Bootstrap, MenuList, NavigationNode, NavigationSection } from '@unicore/sdk';
 import { Circle, type LucideIcon } from 'lucide-react';

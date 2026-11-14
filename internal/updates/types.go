@@ -34,6 +34,8 @@ type Target struct {
 	SchemaFingerprint string `json:"schema_fingerprint"`
 	License           bool   `json:"license"`
 	Updater           bool   `json:"updater"`
+	// Missing on historical artifacts means notes are enabled.
+	NotesDisabled bool `json:"notes_disabled,omitempty"`
 }
 type Artifact struct {
 	Target

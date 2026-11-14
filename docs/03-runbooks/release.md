@@ -18,6 +18,10 @@ make build-web && make test-e2e        # 独立实例 PC/375px 页面测试
 
 新接口从 OpenAPI 开始，新模块/页面/设置读取仓库 `.agents/skills/` 对应任务。开发清单与扩展入口见 [AI 工作流](../04-ai/development.md) 和 [生成上下文](../04-ai/context.gen.md)。测试环境不复用真实数据或 SMTP。
 
+## 裁剪笔记样板
+
+默认发行物包含 Notes。使用 `FEATURE_NOTES=false make build-web`、`FEATURE_NOTES=false make build-desktop`、`FEATURE_NOTES=false make package` 或 `FEATURE_NOTES=false make docker-build` 构建不含笔记入口和业务实现依赖的产物；Compose 构建沿用该变量。开关必须同时传给前后端，勿仅手动重编译后端。系统设置与其他基础功能不受影响。`pnpm test:notes` 验证两种构建；已有表和迁移历史保留，恢复开启后继续使用。OTA 签名目标绑定裁剪状态，拒绝自动切换到另一种笔记配置。
+
 ## 快速构建
 
 ```sh

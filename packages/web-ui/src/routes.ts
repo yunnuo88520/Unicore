@@ -14,7 +14,7 @@ const devRoutes = import.meta.env.DEV && !import.meta.env.VITEST ? defineMessage
 }) : {};
 
 export const routes = defineMessages({
-  ...notes.routes,
+  ...(__FEATURE_NOTES__ ? notes.routes : {} as typeof notes.routes),
   ...devRoutes,
   overview: { label: '工作台概览', title: '一份核心，无限可能', description: '从这里出发，让同一份业务逻辑运行于 Web、桌面与命令行。', icon: LayoutDashboard },
   site: { label: '基础设置', title: '基础设置', description: '集中管理站点、品牌与适用的实例配置。', permission: 'settings:read', icon: Settings2, group: 'system' },
@@ -66,6 +66,7 @@ export function isAdministrator(metadata?: Bootstrap): boolean {
   return isAdminRealm(metadata) && !!metadata?.current_user?.roles.includes('super_admin');
 }
 export function canAccess(page: Page, metadata?: Bootstrap): boolean {
+  if (page === 'notes' && (!__FEATURE_NOTES__ || !metadata?.capabilities.features?.notes)) return false;
   if (page === 'access-tokens') return isAdministrator(metadata);
   // Management-flavoured pages never render on the user surface — even when a
   // persisted menu tree or a custom role still carries them (existing installs).

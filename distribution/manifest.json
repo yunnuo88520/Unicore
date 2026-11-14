@@ -1305,7 +1305,19 @@
     "packages/ui/src/controls/advanced-fields.tsx",
     "packages/web-ui/src/components/installation-steps.test.tsx",
     "packages/web-ui/src/components/installation-steps.tsx",
-    "packages/web-ui/src/pages/home.css"
+    "packages/web-ui/src/pages/home.css",
+    "internal/adapter/http/notes_disabled.go",
+    "internal/adapter/http/notes_edition_test.go",
+    "internal/edition/notes_disabled.go",
+    "internal/edition/notes_enabled.go",
+    "internal/modules/notes/assemble_off.go",
+    "internal/modules/notes/desktop/disabled.go",
+    "internal/modules/notes/desktop/edition_test.go",
+    "internal/modules/notes/edition_test.go",
+    "migrations/runner/notes_edition_test.go",
+    "packages/web-ui/src/notes-edition.test.ts",
+    "scripts/build-features.test.mjs",
+    "scripts/test-notes.mjs"
   ],
   "ownership": {
     "product-owned": [

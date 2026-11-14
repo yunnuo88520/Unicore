@@ -77,8 +77,12 @@ const invalid = [
   ['duplicate version', c => { c.namespaces[0].migrations.push(c.namespaces[0].migrations[0]); }, /duplicate/],
   ['dependency cycle', c => { c.namespaces[0].depends_on = ['platform']; }, /cycle/],
   ['unknown dependency', c => { c.namespaces[1].depends_on.push('module.unknown'); }, /unknown/],
-  ['missing profile dependency', c => { c.namespaces[2].depends_on = ['platform']; }, /missing dependency/],
-  ['platform profile leak', c => { c.profiles.desktop.namespaces.push('platform'); }, /profile leak/],
+  // ADR-0045 phase two: the platform namespace assembles on web-platform and
+  // both standalone carriers, so the old "strip platform" dependency mutation
+  // can no longer exist (every profile keeps the namespace and the generator
+  // rejects unknown dependency ids as 'unknown or self dependency' first).
+  // The omission case still guards the new membership invariant.
+  ['platform profile omission', c => { c.profiles['web-standalone'].namespaces = c.profiles['web-standalone'].namespaces.filter(n => n !== 'platform'); }, /profile leak/],
   ['CLI database dependency', c => { c.profiles.cli.namespaces.push('core'); }, /membership/],
   ['desktop external driver', c => { c.profiles.desktop.dialects.push('mysql'); }, /support/],
   ['path traversal', c => { c.namespaces[0].migrations[0].files.sqlite = 'core/sqlite/../../0001_initial.sql'; }, /unsafe path/],

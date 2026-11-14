@@ -27,7 +27,9 @@ func TestNotesEditionMigration(t *testing.T) {
 			if !tableExists(t, db, "unicore_system_settings") {
 				t.Fatal("core settings were trimmed")
 			}
-			if tableExists(t, db, "unicore_users") != (profile == "web-platform") {
+			// ADR-0045 phase 2: the platform namespace assembles on every
+			// database profile, so its tables exist everywhere.
+			if !tableExists(t, db, "unicore_users") {
 				t.Fatal("platform assembly changed")
 			}
 			if err := Verify(context.Background(), db, opts); err != nil {

@@ -14,6 +14,7 @@ import (
 
 	_ "modernc.org/sqlite"
 
+	"github.com/yunnuo/unicore/internal/edition"
 	"github.com/yunnuo/unicore/migrations/catalogdata"
 )
 
@@ -77,6 +78,9 @@ func TestApplyCreatesBaselineAndIsIdempotent(t *testing.T) {
 		if _, selected := catalogdata.Catalog.Profiles["web-platform"].Levels[namespace.Id]; !selected {
 			continue
 		}
+		if namespace.Id == "module.notes" && !edition.Notes {
+			continue
+		}
 		for _, migration := range namespace.Migrations {
 			expectedRows++
 			entry, ok := rows[fmt.Sprintf("%s@%d", namespace.Id, migration.Version)]
@@ -89,7 +93,11 @@ func TestApplyCreatesBaselineAndIsIdempotent(t *testing.T) {
 	if len(rows) != expectedRows {
 		t.Fatalf("want %d successful Catalog entries, got %v", expectedRows, rows)
 	}
-	for _, table := range []string{"unicore_install_state", "unicore_system_settings", "unicore_audit_logs", "unicore_users", "unicore_example_notes", "unicore_announcement_recipients", "unicore_personal_accounts", "unicore_dict_types", "unicore_menus", "unicore_account_avatars", "unicore_inbox_messages", "unicore_scheduled_jobs", "unicore_departments", "unicore_role_departments", "unicore_posts", "unicore_user_posts"} {
+	tables := []string{"unicore_install_state", "unicore_system_settings", "unicore_audit_logs", "unicore_users", "unicore_announcement_recipients", "unicore_personal_accounts", "unicore_dict_types", "unicore_menus", "unicore_account_avatars", "unicore_inbox_messages", "unicore_scheduled_jobs", "unicore_departments", "unicore_role_departments", "unicore_posts", "unicore_user_posts"}
+	if edition.Notes {
+		tables = append(tables, "unicore_example_notes")
+	}
+	for _, table := range tables {
 		if !tableExists(t, db, table) {
 			t.Fatalf("table %s missing after baseline", table)
 		}
@@ -113,14 +121,21 @@ func TestApplyRespectsProfileScope(t *testing.T) {
 		t.Fatal(err)
 	}
 	rows := ledgerRows(t, db)
-	expectedRows := catalogdata.Catalog.Profiles["desktop"].Levels["core"] + catalogdata.Catalog.Profiles["desktop"].Levels["module.notes"]
+	// ADR-0045 phase 2: every assembled profile carries the platform namespace
+	// (the universal inbox lives there); only the CLI stays database-free. The
+	// notes module joins or leaves with its edition build tag.
+	levels := catalogdata.Catalog.Profiles["desktop"].Levels
+	expectedRows := levels["core"] + levels["platform"]
+	if edition.Notes {
+		expectedRows += levels["module.notes"]
+	}
 	if len(rows) != expectedRows {
-		t.Fatalf("desktop applies core and module.notes only, got %v", rows)
+		t.Fatalf("desktop applies core, platform and module.notes only, got %v", rows)
 	}
-	if _, ok := rows["platform@1"]; ok {
-		t.Fatal("desktop must not apply the platform namespace")
+	if _, ok := rows["platform@1"]; !ok {
+		t.Fatal("desktop must apply the platform namespace")
 	}
-	if !tableExists(t, db, "unicore_example_notes") || tableExists(t, db, "unicore_users") {
+	if tableExists(t, db, "unicore_example_notes") != edition.Notes || !tableExists(t, db, "unicore_users") {
 		t.Fatal("desktop table scope wrong")
 	}
 }

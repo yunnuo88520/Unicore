@@ -69,7 +69,7 @@ const columns = helper.columns([
       const item = info.row.original;
       const expired=item.status==='published' && item.ends_at>0 && item.ends_at<=Date.now()/1000;
  const scheduled = item.status === 'published' && item.publish_at > Date.now() / 1000;
-      return <Badge variant={scheduled || item.status === 'published' ? 'primary' : 'subtle'}>{t(statuses[expired ? 'expired' : scheduled ? 'scheduled' : item.status])}</Badge>;
+      return <Badge dot={scheduled || item.status === 'published'} variant={scheduled || item.status === 'published' ? 'primary' : 'subtle'}>{t(statuses[expired ? 'expired' : scheduled ? 'scheduled' : item.status])}</Badge>;
     },
   }),
   helper.display({
@@ -90,10 +90,10 @@ const columns = helper.columns([
     cell: info => {
       const meta = info.table.options.meta as AnnouncementTableMeta;
       const item = info.row.original;
-      return <div className="flex items-center gap-1">
-        {meta.can('announcementReadStatus') && <Button variant="ghost" size="icon" aria-label={t('阅读情况')} onClick={() => meta.onReaders(item)}><Eye size={14} /></Button>}
-        {meta.can('updateAnnouncement') && <Button variant="ghost" size="icon" aria-label={t('编辑公告')} onClick={() => meta.onEdit(item)}><Pencil size={14} /></Button>}
-        {meta.can('deleteAnnouncements') && <Button variant="ghost" size="icon" aria-label={t('删除公告')} onClick={() => meta.onRemove(item)}><Trash2 size={14} /></Button>}
+      return <div className="flex items-center justify-end gap-1.5">
+        {meta.can('announcementReadStatus') && <Button variant="secondary" size="icon" aria-label={t('阅读情况')} onClick={() => meta.onReaders(item)}><Eye size={14} /></Button>}
+        {meta.can('updateAnnouncement') && <Button variant="secondary" size="icon" aria-label={t('编辑公告')} onClick={() => meta.onEdit(item)}><Pencil size={14} /></Button>}
+        {meta.can('deleteAnnouncements') && <Button variant="secondary" size="icon" aria-label={t('删除公告')} onClick={() => meta.onRemove(item)}><Trash2 size={14} /></Button>}
       </div>;
     },
   }),
@@ -199,12 +199,13 @@ function AnnouncementPanel({ web, metadata }: { web: WebClient; metadata: Bootst
     <Card>
       <CardContent className="flex flex-col gap-4">
         <DataTableToolbar
+          summary={{ label: t('公告总数'), value: t('共 {{count}} 条', { count: list.data?.total ?? 0 }) }}
           search={{ label: t('搜索公告'), placeholder: t('搜索公告标题、内容或备注…'), value: search, maxLength: 128,
             onChange: value => setSearch(value), onSubmit: () => setFilter({ search }) }}
           actions={can('deleteAnnouncements') && <Button variant="secondary" disabled={!selection.length} onClick={() => setRemoving(selection)}>
             <Trash2 size={14} />{t('批量删除')}{selection.length > 0 && <span className="rounded-full bg-danger-soft px-1.5 text-2xs text-danger">{selection.length}</span>}
           </Button>}>
-          <SimpleSelect aria-label={t('公告状态')} className="h-9 w-auto" value={query.status} disabled={list.isFetching}
+          <SimpleSelect aria-label={t('公告状态')} className="h-9 w-auto border-line bg-surface" value={query.status} disabled={list.isFetching}
             onChange={event => setFilter({ status: event as AnnouncementQuery['status'] })} options={selectOptions(<>
             <option value="">{t('全部状态')}</option>
             {Object.entries(statuses).map(([id, label]) => <option key={id} value={id}>{t(label)}</option>)}
@@ -299,7 +300,9 @@ function AnnouncementEditor({ web, entry, onClose, onSaved }: { web: WebClient; 
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-ink">{t('公告类型')}</span>
             <SimpleSelect aria-label={t('公告类型')} disabled={pending} value={field.value ?? 'info'} onChange={event => { setPreview(false); field.onChange(event); }} options={selectOptions(<>
-              {Object.entries(announcementTypes).map(([id, label]) => <option key={id} value={id}>{t(label)}</option>)}
+              {/* Offer the two editorial types only; success/warning stay renderable for legacy entries. */}
+              <option value="info">{t(announcementTypes.info)}</option>
+              <option value="error">{t(announcementTypes.error)}</option>
             </>)} />
           </label>
         )} />

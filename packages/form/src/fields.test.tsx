@@ -15,7 +15,7 @@ it('associates controlled labels, errors and hints and focuses nested server err
     return <AppForm form={form}><AppSelectField name="settings.provider" label="Provider" hint="Choose storage" options={[{ value: 'local', label: 'Local' }]} /></AppForm>;
   }
   render(<Nested />);
-  const trigger = screen.getByRole('radio', { name: 'Local' });
+  const trigger = screen.getByRole('combobox');
   expect(trigger).toHaveAttribute('name', 'settings.provider');
   expect(trigger).toHaveAccessibleDescription('Choose storage');
   act(() => instance.applyServerError(new AppError('INVALID_INPUT', 'Invalid input', 'request', { 'settings.provider': 'Choose a provider' })));
@@ -55,9 +55,9 @@ it('selects are driven by the controller value and submit collected values', asy
   const user = userEvent.setup();
   const onSubmit = vi.fn();
   render(<Harness onSubmit={onSubmit} />);
-  const trigger = screen.getByRole('radio', { name: '本地磁盘' });
+  const trigger = screen.getByRole('combobox');
   await user.click(trigger);
-  expect(trigger).toHaveAttribute('aria-checked', 'true');
+  await user.click(screen.getByRole('option', { name: '本地磁盘' }));
   await user.click(screen.getByRole('button', { name: '提交' }));
   expect(onSubmit).toHaveBeenCalledWith({ provider: 'local', enabled: false, accepted: false });
 });

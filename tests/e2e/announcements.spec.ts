@@ -25,8 +25,9 @@ test('announcement bell: management, popup retry, pagination, receipts, audience
   const editor = page.getByRole('dialog', { name: '新增公告', exact: true });
   await editor.getByLabel('公告标题', { exact: true }).fill('编辑器草稿');
   await editor.getByLabel('公告内容', { exact: true }).fill('## 测试预览');
-  await expect(editor.getByRole('radiogroup', { name: '发布状态', exact: true }).getByRole('radio', { name: '草稿', exact: true })).toBeChecked();
-  await editor.getByRole('radiogroup', { name: '接收范围', exact: true }).getByRole('radio', { name: '指定用户', exact: true }).check();
+  await expect(editor.getByRole('combobox', { name: '发布状态', exact: true })).toHaveTextContent('草稿');
+  await editor.getByRole('combobox', { name: '接收范围', exact: true }).click();
+  await editor.getByRole('option', { name: '指定用户', exact: true }).click();
   await expect(editor.getByText('member · member@example.test', { exact: true })).toBeVisible();
   await editor.getByRole('checkbox', { name: 'member · member@example.test', exact: true }).check();
   await editor.getByRole('button', { name: '预览', exact: true }).click();

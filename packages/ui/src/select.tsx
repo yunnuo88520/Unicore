@@ -6,7 +6,7 @@ import { Check, ChevronDown } from 'lucide-react';
 import { cva } from 'class-variance-authority';
 import { t, useLocale } from './i18n';
 import { cn } from './cn';
-import { RadioGroup, RadioGroupItem } from './radio-group';
+
 import { Combobox } from './controls/combobox';
 import { assignRef } from './controls/utils';
 
@@ -65,10 +65,8 @@ export const SimpleSelect = forwardRef<HTMLElement, SimpleSelectProps>(function 
   const emptyValue = useId();
   const dropdownValue = value === '' && options.some(option => option.value === '') ? emptyValue : value;
   const accessibleLabel = props['aria-label'] ?? (label ? t(label) : undefined);
-  if (presentation === 'auto' && options.length > 0 && options.length < 5) return <RadioGroup name={name} value={value} onValueChange={onChange} disabled={disabled} aria-label={accessibleLabel} aria-labelledby={props['aria-labelledby']} aria-invalid={props['aria-invalid']} aria-describedby={props['aria-describedby']} className={className}
-    onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) props.onBlur?.(event); }}>
-    {options.map((option, index) => <RadioGroupItem key={option.value} name={name} id={index === 0 ? id : undefined} ref={index === 0 ? node => assignRef(ref, node) : undefined} value={option.value} aria-invalid={props['aria-invalid']} aria-describedby={props['aria-describedby']} disabled={disabled || option.disabled} itemLabel={t(option.label)}>{t(option.label)}</RadioGroupItem>)}
-  </RadioGroup>;
+  // Form choices stay dropdowns regardless of the option count; a handful of
+  // exclusive toggles belongs in an explicit RadioGroup, not a select surprise.
   if (presentation === 'combobox' || presentation === 'auto' && options.length > 20) return <Combobox ref={node => assignRef(ref, node)} id={id} name={name} label={accessibleLabel ?? ''} value={value} onValueChange={onChange} options={options} disabled={disabled} className={className} aria-invalid={props['aria-invalid']} aria-describedby={props['aria-describedby']} onBlur={props.onBlur} />;
   return <Select value={dropdownValue} onValueChange={next => onChange(next === emptyValue ? '' : next)} disabled={disabled} name={name}>
     <SelectTrigger {...props} ref={node => assignRef(ref, node)} name={name} id={id} aria-label={accessibleLabel} className={className}>

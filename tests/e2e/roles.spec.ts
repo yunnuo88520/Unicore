@@ -428,9 +428,11 @@ test('department moves refuse cycles and revoke stale scope sessions', async ({ 
   await expect(admin.web!.updateDepartment(parent!.id, { name: '研发部', parent_id: child!.id })).rejects.toMatchObject({ code: 'INVALID_INPUT' });
   await page.getByRole('button', { name: '重命名 研发部', exact: true }).click();
   const renameDialog = page.getByRole('dialog', { name: '重命名部门', exact: true });
-  const parentOptions = await renameDialog.getByRole('radiogroup', { name: '上级部门', exact: true }).getByRole('radio').allTextContents();
+  await renameDialog.getByRole('combobox', { name: '上级部门', exact: true }).click();
+  const parentOptions = await page.getByRole('option').allTextContents();
   expect(parentOptions).not.toContain('研发部');
   expect(parentOptions).not.toContain('前端组');
+  await page.keyboard.press('Escape');
   await renameDialog.getByRole('button', { name: '取消', exact: true }).click();
   await expect(renameDialog).toHaveCount(0);
   // A legitimate move: a fresh root department moves under 前端组 and back.

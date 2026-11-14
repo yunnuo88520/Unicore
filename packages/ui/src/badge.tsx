@@ -18,10 +18,13 @@ const badgeVariants = cva('inline-flex items-center gap-1 rounded-full border px
   defaultVariants: { variant: 'subtle' },
 });
 
-export type BadgeProps = HTMLAttributes<HTMLSpanElement> & VariantProps<typeof badgeVariants>;
+export type BadgeProps = HTMLAttributes<HTMLSpanElement> & VariantProps<typeof badgeVariants> & { dot?: boolean };
 
-export function Badge({ className, variant, ...props }: BadgeProps) {
-  return <span className={cn(badgeVariants({ variant }), className)} {...props} />;
+export function Badge({ className, variant, dot = false, children, ...props }: BadgeProps) {
+  return <span className={cn(badgeVariants({ variant }), className)} {...props}>
+    {dot && <span className="size-1.5 shrink-0 rounded-full bg-current" aria-hidden="true" />}
+    {children}
+  </span>;
 }
 
 export { badgeVariants };

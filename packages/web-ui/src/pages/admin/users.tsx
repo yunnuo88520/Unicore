@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { columnVisibilityFeature, createColumnHelper, createPaginatedRowModel, rowPaginationFeature, tableFeatures, useTable, type PaginationState } from '@tanstack/react-table';
-import { UserPlus } from 'lucide-react';
+import { Ban, CircleCheck, KeyRound, Pencil, UserPlus } from 'lucide-react';
 import type { Bootstrap, User, UserCreate, WebClient } from '@unicore/sdk';
 import { defineMessages, t, useLocale } from '../../i18n';
 import { buildDepartmentTree, flattenDepartmentTree, invalidateAfter, useDepartmentsQuery, usePostsQuery } from '../../queries';
@@ -95,12 +95,13 @@ const columns = helper.columns([
       return <span className="text-muted">{names.length ? names.join('、') : '—'}</span>;
     },
   }),
-  helper.accessor('totp_enabled', { header: () => t('双因素认证'), cell: info => <Badge variant={info.getValue() ? 'success' : 'subtle'}>{info.getValue() ? t('已开启') : t('未开启')}</Badge> }),
+  helper.accessor('totp_enabled', { header: () => t('双因素认证'), cell: info => <Badge dot={info.getValue()} variant={info.getValue() ? 'success' : 'subtle'}>{info.getValue() ? t('已开启') : t('未开启')}</Badge> }),
   helper.accessor('status', {
     header: () => t('状态'),
     cell: info => {
       const status = info.row.original.status;
-      return <Badge variant={status === 'active' ? 'success' : status === 'pending' ? 'warning' : 'subtle'}>
+      const published = status === 'active' || status === 'pending';
+      return <Badge dot={published} variant={status === 'active' ? 'success' : status === 'pending' ? 'warning' : 'subtle'}>
         {status === 'active' ? t('已启用') : status === 'pending' ? t('待验证') : t('已禁用')}
       </Badge>;
     },
@@ -111,12 +112,12 @@ const columns = helper.columns([
     cell: info => {
       const user = info.row.original;
       const meta = info.table.options.meta as UsersTableMeta;
-      return <div className="flex gap-2">
-        {meta.canToggle && meta.onToggle && <Button variant="link" size="sm" className="h-auto p-0" disabled={meta.pending} onClick={() => meta.onToggle?.(user)}>
-          {user.status === 'active' ? t('禁用') : t('启用')}
+      return <div className="flex items-center justify-end gap-1.5">
+        {meta.canToggle && meta.onToggle && <Button variant="secondary" size="icon" disabled={meta.pending} aria-label={user.status === 'active' ? t('禁用') : t('启用')} onClick={() => meta.onToggle?.(user)}>
+          {user.status === 'active' ? <Ban size={14} aria-hidden="true" /> : <CircleCheck size={14} aria-hidden="true" />}
         </Button>}
-        {meta.onRole && <Button variant="link" size="sm" className="h-auto p-0" disabled={meta.pending} onClick={() => meta.onRole?.(user)}>{t('编辑')}</Button>}
-        {meta.onResetPassword && <Button variant="link" size="sm" className="h-auto p-0" disabled={meta.pending} onClick={() => meta.onResetPassword?.(user)}>{t('重置密码')}</Button>}
+        {meta.onRole && <Button variant="secondary" size="icon" disabled={meta.pending} aria-label={t('编辑')} onClick={() => meta.onRole?.(user)}><Pencil size={14} aria-hidden="true" /></Button>}
+        {meta.onResetPassword && <Button variant="secondary" size="icon" disabled={meta.pending} aria-label={t('重置密码')} onClick={() => meta.onResetPassword?.(user)}><KeyRound size={14} aria-hidden="true" /></Button>}
       </div>;
     },
   }),
@@ -223,9 +224,9 @@ function UserListPanel({ web, metadata, administrators }: { web: WebClient; meta
     <Card>
     <CardContent className="flex flex-col gap-4">
       <DataTableToolbar
+        summary={{ label: t('{{kind}}总数', { kind }), value: t('{{count}} 位{{kind}}', { count: list.data?.total ?? 0, kind }) }}
         search={{ label: t('搜索{{v0}}', { v0: kind }), placeholder: t('搜索'), value: search, maxLength: 128,
           onChange: value => { setSearch(value); setPagination(current => ({ ...current, pageIndex: 0 })); } }}
-        actions={<span className="text-xs text-muted">{t('{{count}} 位{{kind}}', { count: list.data?.total ?? 0, kind })}</span>}
         columnMenu={{ entries: menu, onToggle: toggle }} />
       <DataTable table={table} pending={list.isPending} busy={list.isFetching} error={list.error} onRetry={() => void list.refetch()}
         empty={{ title: t('没有匹配的{{kind}}', { kind }) }} />

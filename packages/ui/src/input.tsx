@@ -13,12 +13,14 @@ export const controlVariants = cva('w-full rounded-lg border border-transparent 
   defaultVariants: { appearance: 'default' },
 });
 
-export type InputProps = InputHTMLAttributes<HTMLInputElement> & { label?: ReactNode; labelSuffix?: ReactNode; strength?: boolean; appearance?: 'default' | 'search' };
-export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ className, label, labelSuffix, strength, appearance, id, type, onChange, ...props }, ref) {
+export type InputProps = InputHTMLAttributes<HTMLInputElement> & { label?: ReactNode; labelSuffix?: ReactNode; strength?: boolean; appearance?: 'default' | 'search'; leadingIcon?: ReactNode };
+export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ className, label, labelSuffix, strength, appearance, leadingIcon, id, type, onChange, ...props }, ref) {
   useLocale();
   const generated = useId();
   const inputID = id ?? generated;
-  const caption = label ?? props['aria-label'];
+  // Floating captions come from the explicit label only; bare aria-label stays
+  // an accessible name for label-less controls (search fields, date pickers).
+  const caption = label;
   const password = type === 'password';
   const visibilityCaption = typeof caption === 'string' && caption !== t('密码') ? caption : undefined;
   const requiredMark = labelSuffix ?? (props.required ? <span aria-hidden="true" className="ms-1 text-danger">*</span> : null);
@@ -33,10 +35,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ c
     aria-labelledby={props['aria-labelledby'] ?? (caption ? `${generated}-caption` : undefined)}
     aria-describedby={[props['aria-describedby'], showStrength ? `${inputID}-strength` : ''].filter(Boolean).join(' ') || undefined}
     onChange={event => { setDraft(event.target.value); onChange?.(event); }}
-    className={cn(controlVariants({ appearance }), caption ? 'peer h-11' : 'h-9', password && 'pe-12', className)} />;
-  if (!caption && !password) return input;
+    className={cn(controlVariants({ appearance }), caption ? 'peer h-11' : 'h-9', password && 'pe-12', leadingIcon && 'ps-9', className)} />;
+  if (!caption && !password && !leadingIcon) return input;
   return <div className="flex w-full min-w-0 flex-col gap-2">
     <div className={cn('relative min-w-0', caption && 'pt-6')}>
+      {leadingIcon && <span className="pointer-events-none absolute start-3 top-1/2 flex -translate-y-1/2 text-muted [&_svg]:size-4" aria-hidden="true">{leadingIcon}</span>}
       {input}
       {caption && <label htmlFor={inputID} className={cn('pointer-events-none absolute start-3 top-0 max-w-[calc(100%-1.5rem)] origin-left scale-[0.85] truncate text-sm leading-5 text-muted transition-[top,scale,color] duration-150 motion-reduce:transition-none peer-placeholder-shown:top-9 peer-placeholder-shown:scale-100 peer-focus:top-0 peer-focus:scale-[0.85] peer-focus:text-accent peer-autofill:top-0 peer-autofill:scale-[0.85] peer-autofill:text-accent peer-disabled:opacity-55', props['aria-invalid'] && 'text-danger', (type === 'date' || type === 'time' || type === 'datetime-local') && 'peer-placeholder-shown:top-0 peer-placeholder-shown:scale-[0.85]')}>
         <span id={`${generated}-caption`}>{caption}</span>{requiredMark}

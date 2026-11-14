@@ -38,6 +38,9 @@ export const DialogContent = forwardRef<HTMLDivElement, ComponentPropsWithoutRef
         event.preventDefault();
         if (opener.current && opener.current.isConnected) opener.current.focus({ preventScroll: true });
       }}
+      // Modals never dismiss on outside interaction: accidental scrim clicks
+      // must not discard half-filled forms. Explicit close, cancel or Escape stay.
+      onInteractOutside={event => event.preventDefault()}
       {...props}>
       {children}
       {showClose && <DialogPrimitive.Close asChild><Button variant="ghost" size="icon" className="absolute end-4 top-4" aria-label={t('关闭对话框')}><X size={17} /></Button></DialogPrimitive.Close>}
@@ -69,7 +72,7 @@ export function Modal({ title, onClose, pending = false, children, className, co
       <DialogHeader>
         <DialogTitle>{t(title)}</DialogTitle>
       </DialogHeader>
-      <div className={cn('min-h-0 min-w-0 overflow-y-auto overscroll-contain', className)} data-autofocus-scope>
+      <div className={cn('-mx-1 min-h-0 min-w-0 overflow-y-auto overscroll-contain px-1', className)} data-autofocus-scope>
         {children}
       </div>
       <DialogPrimitive.Close asChild><Button variant="ghost" size="icon" className="absolute end-4 top-4" aria-label={t('关闭{{v0}}', { v0: title })} disabled={pending}><X size={17} /></Button></DialogPrimitive.Close>

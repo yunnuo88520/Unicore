@@ -118,4 +118,4 @@ Platform 和 Standalone 的笔记编辑弹窗复用 FileUploadDialog；上传先
 
 安装连接属于 Web 实例安装面，Platform/Standalone Web 都提供 TLS 关闭、仅加密、证书及主机名校验三种模式；桌面自动 SQLite，CLI 不装配。tls_verify 只改变连接校验，不新增实例设置、业务权限或数据库表。
 
-共享表单遵循[表单交互规范](../product/form-interaction.md)。Platform 用户/管理员与 Standalone Web/Desktop 使用同一套原语；候选搜索为锚定浮层，打开后不改变后续字段位置；新密码提供可见性切换与强度提示，验证码使用六格输入。地区、出生日期等示例控件不自动注册产品字段、菜单或持久化。
+共享表单遵循[表单交互规范](../product/form-interaction.md)。Platform 用户/管理员与 Standalone Web/Desktop 使用同一套原语；候选搜索为锚定浮层，打开后不改变后续字段位置；新密码提供可见性切换与强度提示，邮箱/短信/动态口令使用六格输入，图形验证码使用普通输入框配刷新图片。认证页沿用共享输入框底色，保证明暗主题下的静止输入区域可辨认。地区、出生日期等示例控件不自动注册产品字段、菜单或持久化。

@@ -105,7 +105,7 @@ function AuthLayout({ siteName, administrator = false, mode, success = false, ch
       <AuthIllustration kind={recovering ? 'forgot' : registering ? 'register' : 'login'} step={success ? 3 : challenge ? 2 : 1} verifyEmail={verifyEmail} />
     </section>
     <section className="flex min-w-0 flex-col items-center justify-center px-6 pb-10 pt-28 sm:px-12 lg:px-12 lg:py-20 xl:px-16">
-      <div className="w-full max-w-md [&_input]:h-12 [&_input]:rounded-xl [&_input]:bg-surface [&_input]:text-sm [&_input]:shadow-none">{children}</div>
+      <div className="w-full max-w-md">{children}</div>
     </section>
   </main>;
 }
@@ -295,9 +295,11 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
               <AppField<AuthValues> name="confirm_password" label={t('确认新密码')}><Input type="password" label={t('确认新密码')} required autoComplete="new-password" maxLength={128} placeholder={t('再次输入新密码')} /></AppField>
               <p className="text-xs leading-5 text-muted">{t('修改后所有设备上的旧会话都会退出。密码至少 12 位。')}</p>
             </>}
-            {needsCaptcha && <div className="flex flex-wrap items-start gap-3">
-              <AppOTPField<AuthValues> name="captcha_answer" label={t('图形验证码')} autoComplete="off" hint={t('请输入 6 位图形验证码')} />
-              <button type="button" aria-label={t('刷新验证码')} onClick={() => { form.setValue('captcha_answer', ''); void captcha.refetch(); }} className="flex h-12 w-28 items-center justify-center overflow-hidden rounded-xl border border-line bg-surface-alt focus-visible:outline-2 focus-visible:outline-focus">{captcha.data && !captcha.isFetching && <img src={captcha.data.image} alt={t('六位数字验证码，点击刷新')} />}</button>
+            {needsCaptcha && <div className="grid grid-cols-[minmax(0,1fr)_7rem] items-start gap-3">
+              <AppField<AuthValues> name="captcha_answer" label={t('图形验证码')} hint={t('请输入 6 位图形验证码')}>
+                <Input required inputMode="numeric" autoComplete="off" minLength={6} maxLength={6} />
+              </AppField>
+              <button type="button" aria-label={t('刷新验证码')} disabled={captcha.isFetching} onClick={() => { form.setValue('captcha_answer', ''); void captcha.refetch(); }} className="mt-2 flex h-11 items-center justify-center overflow-hidden rounded-lg border border-line bg-surface-alt focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-50">{captcha.data && !captcha.isFetching && <img src={captcha.data.image} alt={t('六位数字验证码，点击刷新')} />}</button>
             </div>}
             {humanRequired && <HumanCheck widget={humanWidget} required token={humanToken.token} onToken={onHumanToken} resetSignal={humanReset} />}
             {(policy.error || (needsCaptcha && captcha.error)) && <p role="alert" className="text-sm text-danger">{t((policy.error ?? captcha.error)?.message)}</p>}

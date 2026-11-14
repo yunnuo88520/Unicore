@@ -223,12 +223,12 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
                   </div>)}
             </div>
             {status.data?.status === 'INSTALL_FAILED' && <p className="text-sm text-muted">{t('上次安装未完成。修正配置后可持原凭据重试；已完成的实例不会再次安装。')}</p>}
-            <div className="flex flex-col gap-1.5 text-sm font-medium text-ink">
-
-              <Input label={t('一次性安装凭据')} id={tokenID} name="bootstrap_token" type="password" autoComplete="off" maxLength={TOKEN_MAX} aria-describedby={tokenError ? `${tokenID}-error` : `${tokenID}-hint`} aria-invalid={tokenError ? true : undefined} value={token} onChange={event => { setToken(event.target.value); setTokenError(''); verify.reset(); }} />
+            <div className="flex flex-col gap-2 pt-2">
+              <Input label={t('一次性安装凭据')} id={tokenID} name="bootstrap_token" type="password" strength={false} required autoComplete="off" minLength={TOKEN_MIN} maxLength={TOKEN_MAX} aria-describedby={[`${tokenID}-hint`, tokenError && `${tokenID}-error`].filter(Boolean).join(' ')} aria-invalid={tokenError ? true : undefined} value={token} onChange={event => { setToken(event.target.value); setTokenError(''); verify.reset(); }} />
+              {tokenError && <p id={`${tokenID}-error`} role="alert" className="text-xs text-danger">{tokenError}</p>}
+              <p id={`${tokenID}-hint`} className="text-xs leading-5 text-muted">{t('填写 {{min}} 至 {{max}} 个字符', { min: TOKEN_MIN, max: TOKEN_MAX })}</p>
             </div>
-            {tokenError && <p id={`${tokenID}-error`} role="alert" className="text-xs text-danger">{tokenError}</p>}
-            <details className="rounded-lg border border-line p-4 text-sm"><summary className="cursor-pointer font-medium">{t('安装凭据在哪里？')}</summary><p id={`${tokenID}-hint`} className="mt-3 leading-relaxed text-muted">{t('用于确认你拥有服务器，防止他人抢先创建管理员。服务器首次启动已自动生成，请从私有数据目录的 bootstrap.token 文件读取；它与加密密钥不同，也不会存入浏览器。凭据失效时，删除数据目录中的 bootstrap.token 并重启服务即可重新生成。')}</p></details>
+            <details className="rounded-lg border border-line p-4 text-sm"><summary className="cursor-pointer font-medium">{t('安装凭据在哪里？')}</summary><p className="mt-3 leading-relaxed text-muted">{t('用于确认你拥有服务器，防止他人抢先创建管理员。服务器首次启动已自动生成，请从私有数据目录的 bootstrap.token 文件读取；它与加密密钥不同，也不会存入浏览器。凭据失效时，删除数据目录中的 bootstrap.token 并重启服务即可重新生成。')}</p></details>
           </>}
           {current === 'profile' && <>
             <RadioGroup label={t('运行形态')} name="profile" value={input.profile} onValueChange={profile => { form.setValue('profile', profile as Profile); form.setValue('site_name', productName); }} className="grid gap-3 sm:grid-cols-2">

@@ -50,4 +50,4 @@ pnpm typecheck、pnpm test、pnpm build；交互变更运行 make build-web test
 
 文件上传复用 FileUploadDialog 和 AppClient.files.uploadFile（hashing/uploading/confirming、确认字节进度、signal 暂停、resumeId 恢复），不要在业务页重复上传或自行拼云 URL。恢复重选原文件，身份/签名/File 不写 localStorage；放弃调用 deleteFile。覆盖 PC/375px、中英文、明暗、刷新/服务重启、错误文件及只补传缺片，见 ADR-0022。
 
-表单与搜索控件按[表单交互规范](../../../docs/product/form-interaction.md)选择：浮动标签、六格验证码、常驻帮助、失焦校验、按数量选择单选/下拉/自动补全，以及范围、级联、标签和真实上传进度。先修改共享层再迁移页面；异步候选必须是锚定浮层，打开前后验证后续字段位置不变。
+表单与搜索控件按[表单交互规范](../../../docs/product/form-interaction.md)选择：浮动标签、常驻帮助、失焦校验、按数量选择单选/下拉/自动补全，以及范围、级联、标签和真实上传进度。邮箱/短信/动态口令用六格输入；图形验证码用普通 Input 配刷新图片，恢复码用普通文本框。优先复用共享层，只有共享行为缺陷才修改原语；页面不得通过祖先选择器抹去输入框底色和边界。异步候选必须是锚定浮层，打开前后验证后续字段位置不变。

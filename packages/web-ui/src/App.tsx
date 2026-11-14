@@ -129,8 +129,8 @@ function WorkspaceShell() {
   if (data.capabilities.installation && !data.installed && client.web) {
     const props: PageProps = { page: 'overview', client, metadata: data, registry, theme, setTheme, refresh: () => void metadata.refetch() };
     return <PagePropsProvider value={props}>
-      <div className="flex min-h-dvh flex-col bg-background">
-        <div className="fixed top-[15px] end-[20px] z-[45] rounded-lg border border-line bg-surface px-2 py-[5px] shadow-tint"><ClientControls /></div>
+      <div className="relative flex min-h-dvh flex-col bg-background">
+        <div className="absolute top-[15px] end-[20px] z-[45] rounded-lg border border-line bg-surface px-2 py-[5px] shadow-tint"><ClientControls /></div>
         <InstallPage {...props} />
         <SiteFooter metadata={data} compact />
       </div>

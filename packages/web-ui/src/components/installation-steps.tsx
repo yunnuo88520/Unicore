@@ -13,9 +13,9 @@ export function InstallationSteps({ steps, current }: { steps: readonly { id: st
         <span aria-hidden="true" className={cn('relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border text-sm font-medium tabular-nums', index < current ? 'border-accent bg-accent text-on-primary' : index === current ? 'border-accent bg-surface text-accent ring-4 ring-primary-soft' : 'border-line bg-surface text-muted')}>
           {index < current ? <Check size={16} /> : index + 1}
         </span>
-        <span className={cn('max-w-full break-words text-xs leading-5 sm:text-sm', index === current ? 'font-medium text-ink' : 'text-muted')}>{step.label}</span>
+        <span className={cn('sr-only max-w-full break-words text-sm leading-5 sm:not-sr-only', index === current ? 'font-medium text-ink' : 'text-muted')}>{step.label}</span>
       </li>)}
     </ol>
-    <p className="sr-only">{t('第 {{current}} 步，共 {{total}} 步', { current: current + 1, total: steps.length })}</p>
+    <p className="mt-4 text-center text-xs text-muted sm:sr-only">{t('第 {{current}} 步，共 {{total}} 步', { current: current + 1, total: steps.length })}</p>
   </nav>;
 }

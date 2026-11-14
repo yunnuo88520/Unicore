@@ -42,7 +42,9 @@ test('role-bound personal tokens support issuance, renewal and global revocation
   await expect(client.call('createNote', { title: 'not allowed', body: '', status: 'open' })).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
   await dialog.getByRole('button', { name: '完成', exact: true }).click();
   await expect(opener).toBeFocused();
+  // The settings modal is shell state, so a reload closes it; reopen the tokens section.
   await page.reload();
+  await openPersonalCenter(page, '访问令牌');
   const row = page.getByRole('row', { name: /Browser API reader/ });
   await expect(row.getByText('API reader', { exact: true })).toBeVisible();
   await expect(row.getByText('永久', { exact: true })).toBeVisible();

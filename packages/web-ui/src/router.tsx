@@ -102,7 +102,7 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
     pageRoute('/registration-success', () => import('./pages/auth').then(module => ({ default: module.LoginPage }))),
     pageRoute('/verify-email', () => import('./pages/auth').then(module => ({ default: module.VerifyEmailPage })), { search: { token: '' } }),
     pageRoute('/reset-password', () => import('./pages/auth').then(module => ({ default: module.ResetPasswordPage })), { search: { token: '' } }),
-    pageRoute('/notes', () => import('./modules/notes/notes').then(module => ({ default: module.NotesPage }))),
+    ...(__FEATURE_NOTES__ ? [pageRoute('/notes', () => import('./modules/notes/notes').then(module => ({ default: module.NotesPage })))] : []),
     pageRoute('/account', () => import('./pages/account').then(module => ({ default: module.AccountPage })), { search: { oidc: '' } }),
     pageRoute('/account-security', () => import('./pages/account').then(module => ({ default: module.AccountSecurityPage })), { search: { oidc: '' } }),
     pageRoute('/account-tokens', () => import('./pages/personal-tokens').then(module => ({ default: module.PersonalTokensPage }))),

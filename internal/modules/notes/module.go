@@ -1,6 +1,10 @@
+//go:build !no_notes
+
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Notes module descriptor: permissions, navigation and storage wiring for the removable reference business.
 package notes
+
+import "github.com/yunnuo/unicore/internal/edition"
 
 import (
 	"github.com/yunnuo/unicore/internal/contracts"
@@ -26,6 +30,6 @@ var Module = module.Module{
 		{ID: "notes", Surfaces: []string{"user", "administrator"}, Permission: "notes:access"},
 	},
 	Migrations: "notes",
-	Edition:    "",
-	Enabled:    true,
+	Edition:    "notes",
+	Enabled:    edition.Notes,
 }

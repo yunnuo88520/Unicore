@@ -17,6 +17,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/yunnuo/unicore/internal/bootstrap"
 	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/edition"
 	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/runtime"
 	apispec "github.com/yunnuo/unicore/packages/contracts"
@@ -89,6 +90,9 @@ func TestAPIRoutesMatchContract(t *testing.T) {
 	}
 	declared := map[string]bool{}
 	for key := range apispec.Operations() {
+		if !edition.Notes && (strings.Contains(key, "/notes")) {
+			continue
+		}
 		declared[key] = true
 	}
 	for route := range registered {

@@ -114,6 +114,8 @@ Platform 两工作台在“个人中心 → 访问令牌”提供单角色 PAT �
 
 ## 笔记附件与安装连接
 
+笔记是默认开启的可裁剪业务样板（`FEATURE_NOTES=false`）。关闭时不提供笔记菜单、页面路由、动作和附件入口；服务端 capabilities.features.notes 同时控制已持久化菜单的呈现。系统设置及其他现有基础功能不因笔记开关被裁剪。
+
 Platform 和 Standalone 的笔记编辑弹窗复用 FileUploadDialog；上传先加入草稿，保存后关联，最多五个。Platform 上传复用 notes:create/update 及 notes* helper API 显式授权，不要求 files:*；头像使用本人会话的 avatar* API。Standalone Web 使用本地业务 API，桌面经原生桥传片及系统保存对话框下载；均校验本地 ready 归属，无云管理页面。
 
 安装连接属于 Web 实例安装面，Platform/Standalone Web 都提供 TLS 关闭、仅加密、证书及主机名校验三种模式；桌面自动 SQLite，CLI 不装配。tls_verify 只改变连接校验，不新增实例设置、业务权限或数据库表。

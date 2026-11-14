@@ -69,7 +69,7 @@ func Guard(dataDir string) error {
 func currentTarget(profile string) updates.Target {
 	metadata := catalogdata.Catalog
 	selected := metadata.Profiles[profile]
-	return updates.Target{Profile: profile, OS: runtime.GOOS, Arch: runtime.GOARCH, SchemaGeneration: metadata.SchemaGeneration, SchemaFingerprint: selected.SchemaFingerprint, License: edition.License, Updater: true}
+	return updates.Target{Profile: profile, OS: runtime.GOOS, Arch: runtime.GOARCH, SchemaGeneration: metadata.SchemaGeneration, SchemaFingerprint: selected.SchemaFingerprint, License: edition.License, Updater: true, NotesDisabled: !edition.Notes}
 }
 func Healthy(dataDir, profile string) {
 	directory, err := filepath.Abs(dataDir)

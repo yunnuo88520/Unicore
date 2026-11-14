@@ -27,11 +27,11 @@ it('guards platform pages by profile and permission while excluding local instan
 });
 
 it('keeps notes visible on standalone and desktop while gating by the role grant on web-platform',()=>{
-  const standalone = { profile: 'web-standalone', capabilities: { database: true }, current_user: null } as unknown as Bootstrap;
+  const standalone = { profile: 'web-standalone', capabilities: { database: true, features: { notes: true } }, current_user: null } as unknown as Bootstrap;
   expect(canAccess('notes', standalone)).toBe(true);
   expect(pageFromHash('#files')).toBe('not-found');
   expect(pageFromHash('#lab')).toBe('not-found');
-  const platform = { profile: 'web-platform', identity_realm: 'user', capabilities: { database: true }, current_user: { roles: ['user'], permissions: [] } } as unknown as Bootstrap;
+  const platform = { profile: 'web-platform', identity_realm: 'user', capabilities: { database: true, features: { notes: true } }, current_user: { roles: ['user'], permissions: [] } } as unknown as Bootstrap;
   expect(canAccess('notes', platform)).toBe(false);
   platform.current_user!.permissions = ['notes:access'];
   expect(canAccess('notes', platform)).toBe(true);

@@ -25,8 +25,6 @@ import (
 	"github.com/yunnuo/unicore/internal/files"
 	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/mailer"
-	notesdomain "github.com/yunnuo/unicore/internal/modules/notes/domain"
-	notesusecase "github.com/yunnuo/unicore/internal/modules/notes/usecase"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/runtime"
 	"github.com/yunnuo/unicore/internal/scheduler"
@@ -72,12 +70,8 @@ func webError(w http.ResponseWriter, err error) {
 		code = "ENTITY_NOT_FOUND"
 	case errors.Is(err, usecase.ErrEntityConflict):
 		code = "ENTITY_CONFLICT"
-	case errors.Is(err, notesdomain.ErrNoteInvalid):
-		code = "NOTE_INVALID"
-	case errors.Is(err, notesusecase.ErrNoteNotFound):
-		code = "NOTE_NOT_FOUND"
-	case errors.Is(err, notesusecase.ErrNoteConflict):
-		code = "NOTE_CONFLICT"
+	case noteErrorCode(err) != "":
+		code = noteErrorCode(err)
 	case errors.Is(err, files.ErrInvalid):
 		code = "FILE_INVALID"
 	case errors.Is(err, files.ErrNotFound):

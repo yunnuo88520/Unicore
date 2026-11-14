@@ -20,6 +20,10 @@
 
 新增业务时按 add-go-module/add-api-operation/add-react-page Skills：先改 OpenAPI、pnpm generate，再实现 domain/usecase/SQL/入口/页面与权限测试。不要复制平台身份到 domain，也不要为复用业务把数据库接入 cmd/cli。审计仅写动作与操作者，不记录笔记正文。
 
-业务以 module.notes 命名空间接入统一 Catalog 和 runner；后续只追加该命名空间的连续版本，逐方言测试并提供恢复说明，已交付 SQL 不改字节或 checksum。要移除样板，可在新项目首次交付前移除 Note* 契约、入口装配、SDK/page/导航、迁移 Catalog 登记及模块注册，并重新生成与跑全部检查。已有实例不得直接删迁移或删表，应另写有备份的向前迁移。
+业务以 module.notes 命名空间接入统一 Catalog 和 runner；后续只追加该命名空间的连续版本，逐方言测试并提供恢复说明，已交付 SQL 不改字节或 checksum。构建时裁剪样板使用 `FEATURE_NOTES=false make build-web` 或 `FEATURE_NOTES=false make build-desktop`；默认 `true`，直接 Go 构建用 `-tags no_notes` 关闭。开关由构建环境决定，不在系统设置提供运行时卸载。Platform 和 Standalone 两载体同时生效，CLI 始终不装配。关闭后不注册笔记 CRUD/附件 API、权限、导航或桌面贡献，前端不生成笔记页 chunk，新库不执行 module.notes。共享 OpenAPI/SDK 类型与历史迁移 SQL/checksum 保留；已有实例不删除表、数据和账本，重开后继续校验并使用。系统设置及其他基础功能不纳入此开关；已有 license/updater 集成开关保持兼容。
+
+运行 `pnpm test:notes` 验证开关矩阵、服务端业务依赖排除、两载体前端构建、API 404、桌面桥和三种有库 profile 的 SQLite 跨构建数据保留；`make test` 包含关闭版的关键回归。PostgreSQL/MySQL 的迁移计划有覆盖，真实数据库执行须另行运行隔离验证，不能以 SQLite 结果代替。OTA 同时绑定笔记裁剪状态，拒绝跨状态更新；主动切换开关应构建并部署对应完整产物。
+
+若要从派生项目源码永久移除样板，可在新项目首次交付前移除 Note* 契约、入口装配、SDK/page/导航、迁移 Catalog 登记及模块注册，并重新生成与跑全部检查。已有实例不得直接删迁移或删表，应另写有备份的向前迁移。
 
 当前笔记通过 BaseEntity 统一生命周期，module.notes@1 基线直接包含 deleted_at；列表/更新排除已删除行，删除原子递增 version，附件元数据原文件保持其自身生命周期。新增业务遵循 [后端规范](../02-standards/backend.md)。

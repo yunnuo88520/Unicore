@@ -17,7 +17,8 @@ import (
 var manifestFS embed.FS
 
 // manifestEntry is one declared module; entries without an edition are part
-// of every build, entries with one assemble only when that tag is set.
+// of every build. Optional editions may use an enabling tag or the manifest's
+// disabled_tag for default-enabled modules such as notes.
 type manifestEntry struct {
 	Slug    string `json:"slug"`
 	Edition string `json:"edition"`
@@ -88,9 +89,9 @@ type Module struct {
 	Executors   []Executor
 	// Migrations is the module.<slug> namespace that must exist in migrations/catalog.json.
 	Migrations string
-	// Edition names the Go build tag controlling assembly; empty means always assembled.
+	// Edition names the manifest build feature; empty means always assembled.
 	Edition string
-	// Enabled reflects the edition tag; assemble_on/off files set it explicitly.
+	// Enabled reflects the compiled edition state; omitted builds use a minimal descriptor.
 	Enabled bool
 }
 
@@ -141,6 +142,9 @@ func Permissions() []contracts.PermissionDefinition {
 	defer mu.Unlock()
 	items := []contracts.PermissionDefinition{}
 	for _, item := range sorted() {
+		if !item.Enabled {
+			continue
+		}
 		items = append(items, item.Permissions...)
 	}
 	return items
@@ -152,6 +156,9 @@ func NavigationPages() []contracts.NavigationPage {
 	defer mu.Unlock()
 	items := []contracts.NavigationPage{}
 	for _, item := range sorted() {
+		if !item.Enabled {
+			continue
+		}
 		items = append(items, item.Navigation...)
 	}
 	return items
@@ -162,6 +169,9 @@ func FindExecutor(key string) (Executor, bool) {
 	mu.Lock()
 	defer mu.Unlock()
 	for _, item := range modules {
+		if !item.Enabled {
+			continue
+		}
 		for _, executor := range item.Executors {
 			if executor.Key == key {
 				return executor, true

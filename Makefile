@@ -5,21 +5,19 @@ COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)
 BUILD_TIME := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 FEATURE_LICENSE ?= false
 FEATURE_UPDATER ?= true
+FEATURE_NOTES ?= true
 RELEASE_TARGETS ?= linux/amd64,linux/arm64,darwin/amd64,darwin/arm64,windows/amd64,windows/arm64
 RELEASE_PROFILES ?= web-platform,web-standalone,cli
-export FEATURE_LICENSE FEATURE_UPDATER
+export FEATURE_LICENSE FEATURE_UPDATER FEATURE_NOTES
 export RELEASE_TARGETS RELEASE_PROFILES
-# Module editions come from internal/module/manifest.json; setting FEATURE_<TAG>
-# for a declared edition adds its Go build tag. Unknown FEATURE_* values fail in
-# scripts/build-features.mjs, which validates the full set.
-MODULE_EDITIONS := $(shell node -p "JSON.parse(require('fs').readFileSync('internal/module/manifest.json','utf8')).modules.filter(m => m.edition).map(m => m.edition).join(' ')")
-FEATURE_TAGS = $(strip $(if $(filter true,$(FEATURE_LICENSE)),license) $(if $(filter true,$(FEATURE_UPDATER)),updater) $(foreach tag,$(MODULE_EDITIONS),$(if $(filter true,$(FEATURE_$(tag))),$(tag))))
+# Use the same validated defaults and omission tags as Vite and release tooling.
+FEATURE_TAGS = $(shell node scripts/build-features.mjs --tags)
 GO_MODULE := $(shell node -p "JSON.parse(require('fs').readFileSync('product.identity.json','utf8')).go.module")
 CLI_COMMAND := $(shell node -p "JSON.parse(require('fs').readFileSync('product.identity.json','utf8')).cli.command")
 OPS_COMMAND := $(shell node -p "JSON.parse(require('fs').readFileSync('product.identity.json','utf8')).cli.opsCommand")
 LDFLAGS := -X $(GO_MODULE)/internal/buildinfo.Version=$(VERSION) -X $(GO_MODULE)/internal/buildinfo.Commit=$(COMMIT) -X $(GO_MODULE)/internal/buildinfo.BuildTime=$(BUILD_TIME)
 
-.PHONY: install dev-web dev-server dev-desktop dev-cli generate docs wiki wiki-publish test test-gen test-go test-web test-e2e test-features build-web build-cli build-desktop build-all build-ops doctor dev-deps-up dev-deps-down release package package-desktop version docker-build compose-up compose-down test-deploy test-upgrade check-features audit
+.PHONY: install dev-web dev-server dev-desktop dev-cli generate docs wiki wiki-publish test test-gen test-go test-web test-e2e test-features test-notes build-web build-cli build-desktop build-all build-ops doctor dev-deps-up dev-deps-down release package package-desktop version docker-build compose-up compose-down test-deploy test-upgrade check-features audit
 install:
 	pnpm install --frozen-lockfile
 	go mod download
@@ -66,6 +64,7 @@ test-go:
 	go vet ./...
 	go test -race ./...
 	go test -race -tags updater ./cmd/server ./internal/adapter/http ./internal/adapter/desktop
+	go test -race -tags no_notes ./internal/modules/notes ./internal/modules/notes/desktop ./migrations/runner ./internal/adapter/http -run 'TestNotesEdition|TestAPIRoutesMatchContract'
 test-web:
 	node scripts/build-features.mjs
 	pnpm typecheck
@@ -74,6 +73,8 @@ audit:
 	pnpm audit:deps
 test-e2e:
 	pnpm test:e2e
+test-notes:
+	pnpm test:notes
 test-features:
 	pnpm test:features
 check-features:

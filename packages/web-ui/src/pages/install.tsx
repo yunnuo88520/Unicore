@@ -282,7 +282,7 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
             <AppField name="site_name" label={t('站点名称')} className="w-full max-w-lg"><Input maxLength={64} /></AppField>
             <AppField required name="admin_username" label={t('管理员账号')} className="w-full max-w-lg"><Input maxLength={64} autoComplete="username" /></AppField>
             <AppField required name="admin_email" label={t('管理员邮箱')} className="w-full max-w-lg"><Input type="email" autoComplete="email" /></AppField>
-            <AppField required name="admin_password" label={t('管理员密码')} className="w-full max-w-lg" hint={t('至少 12 字节，最多 128 字节；请使用独立且足够长的密码。')}><Input type="password" maxLength={128} autoComplete="new-password" /></AppField>
+            <AppField required name="admin_password" label={t('管理员密码')} className="w-full max-w-lg" hint={t('12–128 个字符；请使用独立且足够长的密码。')}><Input type="password" maxLength={128} autoComplete="new-password" /></AppField>
           </>}
           {current === 'confirm' && <>
             <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-5 gap-y-1.5 rounded-lg bg-surface-alt px-3.5 py-3 text-sm">

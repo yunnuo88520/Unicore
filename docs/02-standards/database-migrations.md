@@ -5,7 +5,7 @@
 
 ## 命名空间与依赖
 
-core 面向所有有数据库的产品；业务模块使用 `module.<slug>`，Notes 为 module.notes。**迁移成员以 Catalog 为准，不按 namespace 名推断产品装配**：当前 web-platform、web-standalone、desktop 均包含 core、platform、module.notes（Notes 可按 edition 裁剪），platform 已有 @1 基线、@2 收件箱 actions、@3 MCP 治理底座，@4 追加角色 version，@5 追加 MCP OAuth 存储。Standalone 两载体同步执行 platform 迁移，但不装配账号、认证或身份治理服务/管理入口；数据库隔离另行决策，见 [ADR-0046](../adr/ADR-0046-credential-delegation-role-concurrency.md)。各命名空间独立从 version=1 开始，SQL 分 SQLite/PostgreSQL/MySQL 三方言。Web 两 Profile 均保留三方言，desktop 仅 SQLite，CLI 不创建 DB、不 import migrations、不嵌入 SQL。
+core 面向所有有数据库的产品；业务模块使用 `module.<slug>`，Notes 为 module.notes。**迁移成员以 Catalog 为准，不按 namespace 名推断产品装配**：当前 web-platform、web-standalone、desktop 均包含 core、platform、module.notes（Notes 可按 edition 裁剪），platform 为按 [ADR-0042](../adr/ADR-0042-release-baseline-update-compatibility.md) 授权整合的单一 @1 终态基线（融合收件箱 actions、角色 version 与 MCP 治理/OAuth 存储）。Standalone 两载体同步执行 platform 迁移，但不装配账号、认证或身份治理服务/管理入口；数据库隔离另行决策，见 [ADR-0046](../adr/ADR-0046-credential-delegation-role-concurrency.md)。各命名空间独立从 version=1 开始，SQL 分 SQLite/PostgreSQL/MySQL 三方言。Web 两 Profile 均保留三方言，desktop 仅 SQLite，CLI 不创建 DB、不 import migrations、不嵌入 SQL。
 
 新模块必须在唯一 `migrations/catalog.json` 登记 namespace、depends_on、明确版本、三方言引用与 Profile 成员；成员数组没有顺序语义，顺序只由依赖图按确定性 Kahn 排序产生。禁止私自从目录扫描猜版本、使用文件下标重编号、另建模块私有账本或手写当前最大等级。module.notes 只依赖 core，不能为了附件/身份强制本地引入 platform。CLI 的空元数据由工具生成，CLI 程序不读取迁移包。
 
@@ -31,7 +31,7 @@ SQLite 只读开库要验证 DB/WAL/SHM 与文件创建边界，不能先 touch 
 
 ## 追加迁移与恢复
 
-当前 `platform@4` 是 `ALTER TABLE unicore_roles ADD COLUMN version BIGINT NOT NULL DEFAULT 1` 的三方言追加迁移，不改写既有版本原字节；已有及新建角色从 1 起。具有匹配世代/checksum 与合法账本前缀的 UI profile 在正常启动边界应用缺失尾部；旧双身份或其他不匹配开发基线不提供原地转换。不得把“正式版前允许经授权整合”当成每次迁移都可无授权改写基线。
+当前 `platform@1` 基线包含 `unicore_roles.version BIGINT NOT NULL DEFAULT 1`，已有及新建角色从 1 起。正式版后追加迁移时，基线幂等不代表追加 ALTER 可盲重试：MySQL DDL 可能提交而账本未登记，列存在也不能证明迁移成功；旧双身份或其他不匹配开发基线不提供原地转换。不得把“正式版前允许经授权整合”当成每次迁移都可无授权改写基线。
 
 基线重放幂等不能推导所有追加 ALTER 均可重复执行。尤其 MySQL DDL 可已提交而账本未登记；执行失败立即停止业务，保留诊断，不能盲重试 ADD COLUMN、根据单列存在判定成功、手工补账本或删除行。使用匹配版本工具将升级前完整快照恢复到新目录/空专用库，再核验并重新部署；恢复不执行迁移，正常实例启动才向前执行。旧 binary 不能直接打开 @3 库作为回退。
 

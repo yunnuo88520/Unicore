@@ -32,10 +32,10 @@ build/bin/unicore-ops restore --input /srv/backups/snapshot.tar.gz.age --data-di
 
 manifest 的 tool_version 是备份工具构建版本；当前 schema=1 表示 Catalog 的 unicore-1 世代，不表示 platform 最新版本，也不是旧轨的最大迁移等级。不要据此推断原实例 binary 版本；运维应同时保存原二进制版本、部署配置、发行 namespace_versions/schema_fingerprint 与发布 checksum，库内 schema_migrations 保存实际执行版本及原 SQL checksum。跨版本回退需旧二进制与旧快照成套恢复。未实现在线备份、增量备份、定时调度、PITR 或跨数据库引擎转换。
 
-当前目录为 core@1、platform@5、module.notes@1，既有 @2 为收件箱 actions，@3 为 MCP 治理底座，@4 为角色版本列，@5 为 MCP OAuth 存储。三个 UI profile 均含 platform，Standalone/desktop 同样备份这些物理表并执行适用尾迁移，不因此开放身份治理，见 [ADR-0046](../adr/ADR-0046-credential-delegation-role-concurrency.md)。公告、个人安全状态、角色版本、收件箱 actions 及已软删笔记随完整 DB 快照保存；Notes edition 关闭不删除历史数据。旧双身份或不匹配开发基线不自动转换，旧轨 schema=13/14 等快照使用匹配旧工具和旧程序，不把其数字当作当前 Catalog 版本。
+当前目录为 core@1、platform@1、module.notes@1；platform 基线终态融合收件箱 actions、角色版本列与 MCP 治理/OAuth 存储（ADR-0042 整合）。三个 UI profile 均含 platform，Standalone/desktop 同样备份这些物理表并执行适用尾迁移，不因此开放身份治理，见 [ADR-0046](../adr/ADR-0046-credential-delegation-role-concurrency.md)。公告、个人安全状态、角色版本、收件箱 actions 及已软删笔记随完整 DB 快照保存；Notes edition 关闭不删除历史数据。旧双身份或不匹配开发基线不自动转换，旧轨 schema=13/14 等快照使用匹配旧工具和旧程序，不把其数字当作当前 Catalog 版本。
 
 core@1 的上传会话包含在 DB 备份，本地未完成分片包含在完整 data 备份；云未完成 upload ID 无法由普通对象备份复原，不可用会话需放弃重传。回退须匹配旧快照并停止进行中的上传，见 ADR-0022。
 
-追加 platform@4 与 @5 改变三个 UI profile 的 Catalog 指纹，不走跨指纹自动 OTA。升级前停服/退出桌面，用匹配工具保存数据库、私有目录、配置/原密钥和程序；tar 人工更换完整包，Docker 外部更换镜像并保留卷，desktop 使用完整原生包。恢复工具不执行迁移，正常实例启动才应用缺失尾部。MySQL DDL 可已提交但账本未登记；失败不可盲重试 ADD COLUMN、以列存在为依据补账本或仅换旧程序，须将匹配升级前快照恢复到新目录/空专用库后再核验处理。
+追加迁移改变三个 UI profile 的 Catalog 指纹，不走跨指纹自动 OTA。升级前停服/退出桌面，用匹配工具保存数据库、私有目录、配置/原密钥和程序；tar 人工更换完整包，Docker 外部更换镜像并保留卷，desktop 使用完整原生包。恢复工具不执行迁移，正常实例启动才应用缺失尾部。MySQL DDL 可已提交但账本未登记；失败不可盲重试 ADD COLUMN、以列存在为依据补账本或仅换旧程序，须将匹配升级前快照恢复到新目录/空专用库后再核验处理。
 
 个人安全状态包含加密验证器密钥、恢复码摘要、消费计数器及设备会话，须保护实例密钥。还原旧快照可能恢复旧密码、邮箱、角色授权和会话；切流前按安全策略重新撤销不应继续有效的凭据，避免旧新实例同时运行。详见 [个人中心](personal-center.md)。

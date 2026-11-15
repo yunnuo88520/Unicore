@@ -117,38 +117,6 @@
             "postgres": "platform/postgres/0001_initial.sql",
             "mysql": "platform/mysql/0001_initial.sql"
           }
-        },
-        {
-          "version": 2,
-          "files": {
-            "sqlite": "platform/sqlite/0002_inbox_actions.sql",
-            "postgres": "platform/postgres/0002_inbox_actions.sql",
-            "mysql": "platform/mysql/0002_inbox_actions.sql"
-          }
-        },
-        {
-          "version": 3,
-          "files": {
-            "sqlite": "platform/sqlite/0003_mcp_governance.sql",
-            "postgres": "platform/postgres/0003_mcp_governance.sql",
-            "mysql": "platform/mysql/0003_mcp_governance.sql"
-          }
-        },
-        {
-          "version": 4,
-          "files": {
-            "sqlite": "platform/sqlite/0004_role_version.sql",
-            "postgres": "platform/postgres/0004_role_version.sql",
-            "mysql": "platform/mysql/0004_role_version.sql"
-          }
-        },
-        {
-          "version": 5,
-          "files": {
-            "sqlite": "platform/sqlite/0005_mcp_oauth.sql",
-            "postgres": "platform/postgres/0005_mcp_oauth.sql",
-            "mysql": "platform/mysql/0005_mcp_oauth.sql"
-          }
         }
       ]
     },

@@ -48,10 +48,13 @@ export function useRouteSearch<T extends Record<string, string>>(): Partial<T> {
 }
 
 const lazyCache = new Map<() => Promise<{ default: PageComponent }>, React.ComponentType<PageProps>>();
+const moduleCache = new Map<() => Promise<{ default: PageComponent }>, { default: PageComponent }>();
 function pageComponent(loader: () => Promise<{ default: PageComponent }>): React.ComponentType<PageProps> {
   const cached = lazyCache.get(loader);
   if (cached) return cached;
-  const component = lazy(loader);
+  // The route loader below has usually already pulled the module in; the
+  // lazy wrapper then resolves without ever showing the Suspense fallback.
+  const component = lazy(() => Promise.resolve(moduleCache.get(loader) ?? loader()));
   lazyCache.set(loader, component);
   return component;
 }
@@ -91,6 +94,12 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
       getParentRoute: () => rootRoute,
       path,
       validateSearch: routeOptions?.search as never,
+      // The page module download IS part of navigation: running the import in
+      // the route loader keeps the router unresolved — and the navigation
+      // progress bar running — until the chunk arrives, instead of ending the
+      // sweep while the Suspense fallback is still showing. A rejected import
+      // surfaces through the router error component like any route failure.
+      loader: async () => { moduleCache.set(loader, await loader()); },
       component: frame(loader, routeOptions?.adminEligible),
     }) as unknown as AnyRoute;
   }
@@ -142,8 +151,10 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
   ] as [AnyRoute, ...AnyRoute[]]);
   const router = createRouter({ routeTree: tree, history: options.history(), basepath: options.basepath || '/', defaultPreload: false, defaultErrorComponent: ServerErrorPage });
   // The navigation progress bar rides navigation only: the history
-  // subscription is the earliest signal (it even covers lazy chunk loads),
-  // while background queries and monitoring polls never touch either surface.
+  // subscription is the earliest signal (it covers the route resolution and
+  // the page module download inside the route loader), while background
+  // queries and monitoring polls never touch either surface. onResolved now
+  // fires only after the matched page module has settled — loaded or failed.
   router.history.subscribe(() => navigationStart());
   router.subscribe('onResolved', navigationFinish);
   return router;

@@ -267,7 +267,7 @@ function AnnouncementEditor({ web, entry, onClose, onSaved }: { web: WebClient; 
   return <Modal title={t(entry ? '编辑公告' : '新增公告')} onClose={onClose} pending={pending}>
     <AppForm form={form} className="flex flex-col gap-4">
  <AppField name="title" label={t('公告标题')}><Input required maxLength={200} disabled={pending}/></AppField>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex min-w-0 flex-col gap-1.5">
         <div className="flex items-center justify-between gap-3">
           <Label htmlFor="announcement-content">{t('公告内容')}</Label>
           <div className="flex items-center gap-3">
@@ -286,18 +286,18 @@ function AnnouncementEditor({ web, entry, onClose, onSaved }: { web: WebClient; 
               onChange={value => { setPreview(false); form.setValue('content', value, { shouldDirty: true }); }} />}
         <small className="text-xs text-muted">{t('支持安全 Markdown 或 HTML；不允许脚本、图片或嵌入页面。')}</small>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
         <Controller control={form.control} name="publish_at" render={({ field }) => (
-          <div className="flex flex-col gap-1.5">
+          <div className="flex min-w-0 flex-col gap-1.5">
 
             <Input label={t('发布时间')} type="datetime-local" required disabled={pending} value={localDate(field.value ?? Math.floor(Date.now() / 1000))}
               onChange={event => { if (event.target.value) { setPreview(false); field.onChange(Math.floor(new Date(event.target.value).getTime() / 1000)); } }} />
           </div>
         )} />
-        <Controller control={form.control} name="ends_at" render={({field})=><div className="flex flex-col gap-1.5"><Input label={t('结束时间（可选）')} type="datetime-local" disabled={pending} value={field.value?localDate(field.value):''} min={localDate(values.publish_at ?? Math.floor(Date.now()/1000))} onChange={event=>field.onChange(event.target.value?Math.floor(new Date(event.target.value).getTime()/1000):0)}/></div>}/>
+        <Controller control={form.control} name="ends_at" render={({field})=><div className="flex min-w-0 flex-col gap-1.5"><Input label={t('结束时间（可选）')} type="datetime-local" disabled={pending} value={field.value?localDate(field.value):''} min={localDate(values.publish_at ?? Math.floor(Date.now()/1000))} onChange={event=>field.onChange(event.target.value?Math.floor(new Date(event.target.value).getTime()/1000):0)}/></div>}/>
         <AppSelectField name="notify_mode" label={t('通知方式')} disabled={pending} options={[{ value: 'silent', label: notifyModes.silent }, { value: 'popup', label: notifyModes.popup }]} />
         <Controller control={form.control} name="type" render={({ field }) => (
-          <label className="flex flex-col gap-1.5">
+          <label className="flex min-w-0 flex-col gap-1.5">
             <span className="text-sm font-medium text-ink">{t('公告类型')}</span>
             <SimpleSelect aria-label={t('公告类型')} disabled={pending} value={field.value ?? 'info'} onChange={event => { setPreview(false); field.onChange(event); }} options={selectOptions(<>
               {/* Offer the two editorial types only; success/warning stay renderable for legacy entries. */}
@@ -307,7 +307,7 @@ function AnnouncementEditor({ web, entry, onClose, onSaved }: { web: WebClient; 
           </label>
         )} />
         <Controller control={form.control} name="status" render={({ field }) => (
-          <label className="flex flex-col gap-1.5">
+          <label className="flex min-w-0 flex-col gap-1.5">
             <span className="text-sm font-medium text-ink">{t('发布状态')}</span>
             <SimpleSelect aria-label={t('发布状态')} disabled={pending} value={field.value ?? 'draft'} onChange={event => { setPreview(false); field.onChange(event); }} options={selectOptions(<>
               <option value="published">{t((values.publish_at ?? 0) > Date.now() / 1000 ? '定时发布' : '发布')}</option>
@@ -317,14 +317,14 @@ function AnnouncementEditor({ web, entry, onClose, onSaved }: { web: WebClient; 
           </label>
         )} />
         <Controller control={form.control} name="note" render={({ field }) => (
-          <div className="flex flex-col gap-1.5">
+          <div className="flex min-w-0 flex-col gap-1.5">
 
             <Input label={t('内部备注')} maxLength={100} disabled={pending} placeholder={t('仅管理员可见，最多 100 字')} value={field.value ?? ''}
               onChange={event => { setPreview(false); field.onChange(event.target.value); }} />
           </div>
         )} />
       </div>
-      <Controller control={form.control} name="audience" render={({field})=><label className="flex flex-col gap-1.5"><span className="text-sm font-medium text-ink">{t('接收范围')}</span><SimpleSelect aria-label={t('接收范围')} value={field.value} disabled={pending} onChange={event=>{field.onChange(event);if(event==='all')form.setValue('recipient_ids',[]);}} options={selectOptions(<><option value="all">{t('全部用户')}</option><option value="selected">{t('指定用户')}</option></>)} /></label>}/>
+      <Controller control={form.control} name="audience" render={({field})=><label className="flex min-w-0 flex-col gap-1.5"><span className="text-sm font-medium text-ink">{t('接收范围')}</span><SimpleSelect aria-label={t('接收范围')} value={field.value} disabled={pending} onChange={event=>{field.onChange(event);if(event==='all')form.setValue('recipient_ids',[]);}} options={selectOptions(<><option value="all">{t('全部用户')}</option><option value="selected">{t('指定用户')}</option></>)} /></label>}/>
       {values.audience==='selected' && <RecipientPicker web={web} selected={values.recipient_ids ?? []} disabled={pending} onChange={ids=>form.setValue('recipient_ids',ids,{shouldDirty:true})}/>}
       <p className="text-xs text-muted">{t('修改公告不会重置已读记录；需要重新提醒时，请新建公告。')}</p>
       {preview && render.data && <div className="announcement-preview max-h-44 overflow-auto rounded-lg border border-line bg-surface-alt p-3"><RichContent html={render.data.content_html} /></div>}

@@ -141,9 +141,10 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
     createRoute({ getParentRoute: () => rootRoute, path: '/settings', beforeLoad: () => { throw redirect({ to: '/site', replace: true }); } }) as unknown as AnyRoute,
   ] as [AnyRoute, ...AnyRoute[]]);
   const router = createRouter({ routeTree: tree, history: options.history(), basepath: options.basepath || '/', defaultPreload: false, defaultErrorComponent: ServerErrorPage });
-  // The navigation progress bar rides route transitions only: background
-  // queries and monitoring polls never touch the router lifecycle.
-  router.subscribe('onBeforeLoad', navigationStart);
+  // The navigation progress bar rides navigation only: the history
+  // subscription is the earliest signal (it even covers lazy chunk loads),
+  // while background queries and monitoring polls never touch either surface.
+  router.history.subscribe(() => navigationStart());
   router.subscribe('onResolved', navigationFinish);
   return router;
 }

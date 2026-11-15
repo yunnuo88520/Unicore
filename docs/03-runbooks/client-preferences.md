@@ -22,4 +22,4 @@
 
 运行 `make docs`、`make test`、`make build-web`，再运行 `make test-e2e`；原生共享界面修改还需 `make build-desktop` 和实际窗口验收。新交互专项在 `tests/e2e/preferences.spec.ts`，使用随机临时实例，不接触日常数据。
 
-布局复用 `@unicore/web-ui/layout` 的 `WorkspaceLayout`，只传 navigation/header/children/overlays；不要自行计算侧栏宽度或左右 margin。主题抽屉的 `dir=ltr` 固定内部选项和关闭按钮顺序，工作区固定 LTR，旧 RTL 字段由白名单忽略。静态路由/选项用 `defineMessages({...})` 登记并在渲染时 `t(label)`；`pnpm check:i18n` 递归检查新增目录、设置/权限元数据与契约错误，未翻译的新中文会使 Web/GUI 构建和 CI 失败。详见 [基础封装](frontend-foundations.md)。
+布局复用 `@unicore/web-ui/layout` 的 `WorkspaceLayout`：除 navigation/header/children/overlays 四个内容插槽外，还必须传入 `navigationOpen` 与 `onNavigationClose`（受控开合状态）；不要自行计算侧栏宽度或左右 margin。主题抽屉的 `dir=ltr` 固定内部选项和关闭按钮顺序，工作区固定 LTR，旧 RTL 字段由白名单忽略。静态路由/选项用 `defineMessages({...})` 登记并在渲染时 `t(label)`；`pnpm check:i18n` 递归检查新增目录、设置/权限元数据与契约错误，未翻译的新中文会使 Web/GUI 构建和 CI 失败。详见 [基础封装](frontend-foundations.md)。

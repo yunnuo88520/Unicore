@@ -163,8 +163,10 @@ SQLite 不填写上述外部连接字段/DSN，固定使用 data 目录中的 `u
 | `site.police_number` | 公安备案号，空 | 最多 80 字符 |
 | `site.footer_html` | 自定义页脚 HTML，空 | 最多 4000 字符，按安全标签/链接白名单验证，不支持脚本、任意嵌入或模板变量 |
 | `branding.logo` / `branding.logo_dark` / `branding.favicon` | 默认产品素材 | 通过品牌上传控件管理 file_id 引用，不手填磁盘路径或私有云 URL |
+| `branding.accent` | 默认主题色 | 品牌主色（#RRGGBB），与三张图同为品牌专用 API 托管，不经通用设置 PATCH |
 | `maintenance.enabled` | 维护模式，`false` | 普通用户看到维护状态，管理员仍能进后台关闭；不替代停进程备份 |
 | `maintenance.message` | 维护提示，空 | 最多 1000 字符；未填显示默认提示 |
+| `logging.retention_days` | `30` | 日志保留天数，0–36500，0=永久；保存立即触发清理。仅 web-platform 装配；单机/桌面改用 APP_LOG_MAX_AGE_DAYS 重启生效 |
 
 ### 登录、注册和双重验证
 
@@ -259,11 +261,13 @@ https://app.example.com/api/v1/admin/auth/oidc/callback
 
 文件位置、默认存储策略、单文件/分片限制另见 [存储指南](storage.md)；更新渠道与可信签名见 [更新指南](updates.md)。它们不是将同名任意配置追加到启动配置。
 
+另有 `mcp.*` 设置组（MCP 接入开关、PAT、限流/并发/超时、保留天数、OAuth 与 DCR 等 14 个 key），由 AI 管理专用 API 托管（`ManagedGroup("mcp")`），不经通用设置 API 读写，默认全部关闭；设计细节见仓库内决策记录 ADR-0047。
+
 ## 6. Compose 变量与应用环境的区别
 
 | Compose 变量 | 本文示例值 | 谁读取 |
 | --- | --- | --- |
-| `UNICORE_IMAGE` | `unicore:0.1.2` | Docker Compose 选镜像；不等于应用版本开关 |
+| `UNICORE_IMAGE` | `unicore:0.1.2`（本文示例；仓库 compose 默认 `unicore:local`，`make compose-up` 用 `unicore:<VERSION>`） | Docker Compose 选镜像；不等于应用版本开关 |
 | `UNICORE_PORT` | `3000` | Compose 的宿主端口映射；容器内仍为 3000 |
 | `POSTGRES_PASSWORD` | 自己的随机口令 | 示例 db 容器初始化；不会自动更新已存在数据库用户或应用安装记录 |
 | `UNICORE_VERSION` | 源码 `VERSION` | 仅仓库自带的构建型 Compose 需要，本文独立 Compose 不需要 |

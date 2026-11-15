@@ -30,13 +30,13 @@ Unicore 是供 Go + React 开发者创建和改造自己产品的应用基座。
 
 平台具备一次性安装、服务端权限、SMTP 六位验证码、OIDC、全局设置、文件元数据与私有签名访问。文件存储默认本地，支持配置 MinIO / S3 / OSS / COS；支持管理员统一文件大小/分片策略、暂停与刷新/重启续传；真实云端验证范围目前为 MinIO 和阿里云 OSS（腾讯云因账号权限保留待验证），详见 [存储手册](docs/03-runbooks/storage.md)。单机与桌面只提供业务和本地外观，品牌在构建时统一配置。
 
-Platform 与 Standalone 的两个载体共享个人笔记业务样板，覆盖领域、Repository、迁移、API/原生桥接、并发控制和弹窗表单；各载体均支持本人 file_id 附件上传与下载，CLI 保持无数据库。其他基座包括 OpenAPI 单一契约、统一主题/图标/消息、生命周期/健康检查、离线加密备份恢复，以及随仓库分发的 AI 文档和 15 个任务 Skills。
+Platform 与 Standalone 的两个载体共享个人笔记业务样板，覆盖领域、Repository、迁移、API/原生桥接、并发控制和弹窗表单；各载体均支持本人 file_id 附件上传与下载，CLI 保持无数据库。其他基座包括 OpenAPI 单一契约、统一主题/图标/消息、生命周期/健康检查、离线加密备份恢复，以及随仓库分发的 AI 文档和 17 个任务 Skills。
 
 ![平台笔记与附件](docs/images/notes-platform.png)
 
 macOS 下载 DMG 并拖到 Applications；Windows 下载 EXE 直接运行；Linux 桌面使用 tar。Web tar 解压后支持 `./unicore help`、`./unicore config generate` 和 `./unicore --config config.yaml`，首次安装继续访问 `/install`。Linux 可用 `./unicore service install` 安装守护服务，再用 `unicore manage` 打开管理菜单；启停、密码恢复及后台路径等见 [管理命令](docs/product/configuration.md#web-管理命令)。OTA 仍使用完整 tar 发行目录。
 
-预览安装包与校验和见 [GitHub Releases](https://github.com/yunnuo88520/Unicore/releases)，也可从源码构建；尚无公开注册表镜像。已接入可替换渠道的签名 OTA 与离线版本日志；公开版本是否包含签名更新清单，以对应 Release 资产与验证结果为准。应用层发布者签名必须保留，默认直接分发，不要求官方商店上架、付费 OS 签名或公证；仓库和派生项目均默认允许无 OS 证书的包，OTA 仍须发布者验签。授权服务保持占位。详见 [系统更新](docs/03-runbooks/updates.md)与 [支持范围](docs/support.md)。
+预览安装包与校验和见 [GitHub Releases](https://github.com/yunnuo88520/Unicore/releases)，也可从源码构建；Release 发布后由 image workflow 构建 GHCR 公开镜像（以工作流结果为准）。已接入可替换渠道的签名 OTA 与离线版本日志；公开版本是否包含签名更新清单，以对应 Release 资产与验证结果为准。应用层发布者签名必须保留，默认直接分发，不要求官方商店上架、付费 OS 签名或公证；仓库和派生项目均默认允许无 OS 证书的包，OTA 仍须发布者验签。授权服务保持占位。详见 [系统更新](docs/03-runbooks/updates.md)与 [支持范围](docs/support.md)。
 
 
 平台管理端提供可筛选、排序、分页和导出的操作日志，以及独立邮件模板编辑、预览与测试发送；权限、迁移和开发约定见 [管理工具](docs/03-runbooks/admin-tools.md)。

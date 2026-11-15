@@ -1,11 +1,11 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # Pre-1.0 开发数据库重建
 
-维护者确认旧 0.x 库仅用于自己开发测试、无需保留真实业务数据，接受 [ADR-0024](../adr/ADR-0024-pre1-migration-squash.md) 的断代。**R1.0b 已构建新基线和 Catalog 并隔离验收，正式代码仍为旧体系**；新账本识别与 legacy_schema_requires_reinstall 在 R1.0c 才实现，不要提前手改旧账本或在当前程序上套新 SQL。
+维护者确认旧 0.x 库仅用于自己开发测试、无需保留真实业务数据，接受 [ADR-0024](../adr/ADR-0024-pre1-migration-squash.md) 的断代。**R1.0b 构建了新基线与 Catalog 并完成隔离验收；R1.0c 运行时切换已于 2026-11-06 完成（见 [ADR-0025](../adr/ADR-0025-baseline-catalog-semantics.md) 补记），当前代码即新体系**：`migrations/runner` 启动即校验账本世代与命名空间，旧两列账本在任何写入前返回 `legacy_schema_requires_reinstall`（`migrations/runner` 的 `ErrLegacyLedger`），非空且无 Catalog 账本的数据库报 `ErrForeignDatabase` 拒绝。不要在旧库上手工套新 SQL 或手改旧账本——程序会拒绝，不存在绕过通道。
 
 ## 何时重建
 
-包含新基线的版本完成 R1.0b/c 验收后，旧 schema_migrations(version,checksum) / business_migrations 将不被接管。错误 legacy_schema_requires_reinstall 要求开发者明确选择新空环境，不是系统已自动清库。没有 0.1.x→新世代桥接，也不承诺旧备份能用新程序恢复。
+旧 schema_migrations(version,checksum) / business_migrations 不被新执行器接管：在旧库上启动直接返回 `legacy_schema_requires_reinstall`。该错误要求开发者明确选择新空环境，不是系统已自动清库。没有 0.1.x→新世代桥接，也不承诺旧备份能用新程序恢复。
 
 ## 操作约定
 
@@ -25,4 +25,4 @@ APP_DATA_DIR='/你的开发目录/unicore-next-desktop' make dev-desktop
 
 Docker 必须明确自己项目的 compose project、映射端口与新数据卷，避免同名卷接回旧库；使用新空目标即可，不要求先删除旧卷。没有操作生产实例的授权时，不将本手册套用到线上环境。
 
-旧备份如需查看，只用匹配旧提交/二进制与旧密钥在隔离旧环境恢复。新世代后续升级/回退继续遵守 [备份恢复](backup.md) 的新目录/空专用库原则；新的格式/namespace 校验尚待 R1.0c，不能手填新版本冒充有效备份。
+旧备份如需查看，只用匹配旧提交/二进制与旧密钥在隔离旧环境恢复。新世代后续升级/回退继续遵守 [备份恢复](backup.md) 的新目录/空专用库原则；账本结构、世代锚点与 checksum 校验已随 R1.0c 落地（`ErrLedgerShape`/`ErrChecksumMismatch`），不能手填新版本冒充有效备份。

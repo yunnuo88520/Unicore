@@ -22,7 +22,7 @@ make build-web build-cli build-ops
 
 域名不是产品身份字段。部署到自己的域名时配置 DNS、Nginx server_name 和 TLS，首次从正式 HTTPS 地址打开 /install，基础地址默认取浏览器的实际 origin；生产配置与实例数据不写入仓库。自己的 Logo/图标仍由 assets/brand/identity.json 配置，产品更名不会凭空生成定制图案。
 
-按任务读取，不遍历全部文档。契约、代码和可重复测试比过期功能说明更可靠；先检查已有功能和工作区，不覆盖他人修改。根 AGENTS 是简短硬约束，.agents/skills/develop-application 按需加载流程；触碰迁移 SQL、契约、生成文件或权限目录前先读对应规范；是否自动提示取决于所用 Agent，不假设存在工具 Hook。
+按任务读取，不遍历全部文档。契约、代码和可重复测试比过期功能说明更可靠；先检查已有功能和工作区，不覆盖他人修改。根 AGENTS 是简短硬约束，`.agents/skills/develop-application`（随派生项目模板分发；框架仓库本身没有该目录）按需加载流程；触碰迁移 SQL、契约、生成文件或权限目录前先读对应规范；是否自动提示取决于所用 Agent，不假设存在工具 Hook。
 
 ## UI 组件
 

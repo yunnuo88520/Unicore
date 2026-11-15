@@ -3,7 +3,7 @@
 
 本清单按功能领域盘点现有功能在三种产品形态（Platform / Standalone / CLI）下的实际支持情况，是产品形态矩阵的功能级细则。形态定义、状态语义与硬边界见 [产品形态与能力边界规范](product-forms.md)；呈现与访问规则见 [功能呈现与访问规范](feature-presentation.md)。功能归属变化时先更新本清单并按 [功能分类模板](feature-proposal-template.md) 声明。
 
-标记语义（已实现/条件支持/受限/不装配/不适用/待决策）见 [形态规范第 2 节](product-forms.md#2-能力状态语义)。Standalone 列覆盖 Web 与 GUI 两个载体，载体差异以 ¹² 脚注标注，允许差异清单见 [形态规范第 5 节](product-forms.md#5-载体层允许的差异)。
+标记语义（已实现/条件支持/受限/不装配/不适用/待决策）见 [形态规范第 2 节](product-forms.md#2-能力状态语义)。Standalone 列覆盖 Web 与 GUI 两个载体，载体差异以 ¹² 脚注标注（¹ = 仅 Standalone Web 载体，² = 仅 Standalone GUI 载体，¹² = 两载体同此差异），允许差异清单见 [形态规范第 5 节](product-forms.md#5-载体层允许的差异)。
 
 ## A. 身份与访问治理（Platform 专属）
 
@@ -14,7 +14,7 @@
 | 登录认证（密码/邮箱验证码/MFA/验证码） | 已实现（统一账号与共享会话） | 不装配 | 不装配 | unicore_sessions 等 | `internal/platform/service.go`、`internal/platform/security.go` |
 | 注册 / 找回密码 / 邮箱验证 | 已实现，默认关闭，依赖 SMTP 测试通过 | 不装配 | 不装配 | unicore_account_tokens | `internal/platform/accounts.go` |
 | OIDC 企业登录与账号绑定 | 已实现，默认关闭 | 不装配 | 不装配 | unicore_oidc_flows | `internal/platform/oidc.go`、[OIDC 需求](feature-oidc.md) |
-| 用户管理（含 XLSX 导入导出） | 已实现，users:* | 不装配 | 不装配 | unicore_users | `internal/adapter/http/users.go`、`internal/adapter/http/xlsx.go` |
+| 用户管理（含 XLSX 导入导出） | 已实现，users:* | 不装配 | 不装配 | unicore_users | `internal/adapter/http/accounts.go`、`internal/adapter/http/xlsx.go` |
 | 管理员账号管理 | 已实现，super_admin 保护最后管理员 | 不装配 | 不装配 | unicore_personal_accounts | `internal/platform/roles.go` |
 | 管理端凭据委派 | 已实现：users:credentials:write 独立范围，邮箱另需 users:update 范围；完整管理目标仅超管，PAT 禁止，旧角色不自动授予 | 不装配 | 不装配 | 复用 unicore_users 与安全状态表 | `internal/adapter/storage/platformsql/repository.go`、[ADR-0046](../adr/ADR-0046-credential-delegation-role-concurrency.md) |
 | 角色与操作级授权（RBAC） | 已实现：服务端保留元数据 + 完整高级 API 选择器 + 显式撤销；更新强制 version CAS，内置 user 固定 self，复制后可调 | 不装配 | 不装配 | unicore_roles 等（platform 基线含 version） | `internal/platform/roles.go`、`internal/platform/operations.go`、[角色需求](feature-roles.md)、[权限契约](../api/permissions.md) |
@@ -35,8 +35,8 @@
 | SMTP 邮件投递（持久队列/重试） | 已实现 | 不装配（mail.queue 任务注册但 Mailer 为 nil 空转） | 不装配 | unicore_mail_jobs | `internal/mailer/mailer.go`、`cmd/server/main.go` |
 | 邮件模板（5 用途富文本） | 已实现 | 不装配 | 不装配 | settings mail.template.* | `internal/mailcontent/template.go` |
 | 事件通知（14 个内置事件，可登记业务事件；邮件/企业微信/Webhook 独立路由；全部事件通知统一受系统通知总开关控制；原子 outbox 与分区设置保存） | 已实现 | 不装配 | 不装配 | settings notifications.* | `internal/notifycontent/catalog.go`、`internal/adapter/storage/platformsql/notifications.go`、[通知细节](../03-runbooks/notifications.md) |
-| 通用通知投递与收件箱 | 已实现（登记式类型门面 `internal/notify`；公告事务与后续模块共用 `unicore_inbox_messages`；无管理员群发 UI） | 已实现（本地收件人 `local` + coreAccess，ADR-0045；无公告） | 已实现（同 web 载体） | unicore_inbox_messages | `internal/notify/notify.go`、`internal/adapter/http/inbox.go` |
-| 实时推送（SSE） | 已实现（进程内单实例语义） | 不装配（契约仅声明 web-platform） | 不适用 | 无 | `internal/realtime/hub.go`、`internal/adapter/http/events.go` |
+| 通用通知投递与收件箱 | 已实现（登记式类型门面 `internal/notify`；公告事务与后续模块共用 `unicore_inbox_messages`；无管理员群发 UI） | 已实现（本地收件人 `local` + coreAccess，ADR-0045；无公告） | 不装配（无数据库；CLI 组合根不含 notify） | unicore_inbox_messages | `internal/notify/notify.go`、`internal/adapter/http/inbox.go` |
+| 实时推送（SSE） | 已实现（进程内单实例语义） | 已实现（web 载体，本地收件人 `local`，契约声明 web-standalone；GUI 无 HTTP 通道）¹ | 不适用 | 无 | `internal/realtime/hub.go`、`internal/adapter/http/events.go` |
 
 ## C. 内容运营（Platform 专属）
 
@@ -68,7 +68,7 @@
 | 审计日志 | 已实现（写入 + 元数据 + 查询/导出/流式跟踪） | 受限：仅写 core 审计表，无查询面（D17 已裁决为设计现状） | 不装配 | unicore_audit_logs(+metadata) | `internal/adapter/storage/sqlstore/audit.go`、`internal/adapter/http/logs.go` |
 | 管理员仪表盘 | 已实现（成员计数/近期审计/7 日活跃） | 不装配 | 不适用 | 只读聚合 | `internal/adapter/http/dashboard.go` |
 | 角色高级 API 目录（无独立页面） | 已实现（roles:read；授权需超管） | 不装配 | 不适用 | 契约派生 | `internal/platform/operations.go` |
-| Prometheus 指标 | 条件支持（--monitor-listen） | 条件支持（同左）¹ | 不适用 | 内存 | `internal/observability/metrics.go` |
+| Prometheus 指标 | 条件支持（--monitor-listen） | 条件支持（web 载体 --monitor-listen，仅 loopback；GUI 无指标面）¹ | 不适用 | 内存 | `internal/observability/metrics.go`、`internal/config/config.go` |
 | 日志保留策略 | 已实现（logging.retention_days 设置） | 受限：启动时限值¹；desktop 固定保留² | 不适用 | 日志文件 | `internal/settings/logging.go`、`cmd/server/main.go` |
 
 ## F. 发行包内运维命令（Web 形态实例运维，非 CLI 形态）
@@ -117,7 +117,7 @@ Platform 两工作台与 Standalone 两载体共用连续的顶栏/正文背景�
 | 服务健康（HTTP/数据库/存储/后台任务） | 已实现（HTTP/DB 全量；存储卡、任务卡按装配呈现；任务管理仍在定时任务页） | 已实现（HTTP/DB；Web 显示 HTTP，桌面隐藏 HTTP；两载体均隐藏平台存储与任务卡，本地业务附件服务不启用存储位置管理监控） | 不适用 | 无 | 同上 + `internal/observability/metrics.go` |
 | 资源监控（进程/Go Runtime） | 已实现（Prometheus Go/Process collectors 同源；图表卡片） | 已实现（desktop 经 stdlib 等效；RSS/CPU 桌面不适用） | 不适用 | 无 | `internal/observability/metrics.go`、`monitor.StdlibRuntime` |
 | 运行事件流（环形缓冲 + 事件页；任务事件由调度器源头投递） | 已实现（super_admin「运行事件」页，容量 200 仅内存） | 已实现（单机「运行事件」Tab 等效） | 不适用 | 无（重启即清） | `internal/monitor/events.go`、`GET /api/v1/admin/monitor/events` |
-| 服务健康完整化（连接池上限/等待耗时、存储逐位置手动探活、失败任务运行记录关联） | 已实现 | 已实现（平台存储管理/任务卡完全隐藏） | 不适用 | 无 | `internal/monitor/monitor.go`、`adminMonitorStorageProbe` |
+| 服务健康完整化（连接池上限/等待耗时、存储逐位置手动探活、失败任务运行记录关联） | 已实现 | 已实现（平台存储管理/任务卡完全隐藏） | 不适用 | 无 | `internal/monitor/monitor.go`（`ProbeStorage`）、`internal/adapter/http/monitor.go`（存储探活 handler） |
 
 | 宿主机硬件视图（身份/CPU 逐核/内存/Swap/磁盘/负载/网络累计+服务端速率/温度/cgroup 限额，图表卡片 + 会话趋势） | 已实现（gopsutil 只读采样，D20 追记上提 P0；P1 补深度指标） | 已实现（两载体等效） | 不适用 | 无（拉取式，不落库） | `internal/monitor/host.go`、`packages/web-ui/src/widgets/monitor-charts.tsx` |
 | 告警（规则/检测/事件） | 已实现（T4 方案二：superAdmin 规则端点 + 后台检测 + notifycontent 通知，见 [设计 §9.3](design-runtime-monitor.md)） | 已实现（T4 方案二：内置默认规则本地告警，写入运行事件，不发外部通知；Web/GUI 等效） | 不适用（CLI 不装配） | 告警事件=运行事件缓冲（进程内，200 条）；Platform 规则=Settings 基建（`alerts.rules` 内部键）；Standalone 规则=内置常量 | `internal/monitor/alert.go`、`GET/PUT /api/v1/admin/monitor/alert-rules` |

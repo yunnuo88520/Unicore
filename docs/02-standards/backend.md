@@ -3,7 +3,7 @@
 
 数据库安装与启动统一执行 `migrations/runner.Apply`，只从 `migrations/catalog.json` 选择命名空间和连续版本。core、platform、module.notes 使用独立版本；当前 core@1、platform@1、module.notes@1，三方言共九份 SQL；platform 基线按 [ADR-0042](../adr/ADR-0042-release-baseline-update-compatibility.md) 终态融合收件箱 actions、角色 version 与 MCP 治理/OAuth 存储。三个 UI profile 均按现有 Catalog 包含 platform，Standalone 创建共享表但不装配身份治理；CLI 无数据库，成员隔离后续独立决策，见 [ADR-0046](../adr/ADR-0046-credential-delegation-role-concurrency.md)。账本为 `schema_migrations(namespace,version,checksum,applied_at)`，没有独立 business_migrations。正式版后只能追加版本；世代、checksum、写前守卫与恢复规则见 [迁移规范](database-migrations.md)。
 
-Go 采用组合：可变业务实体嵌入 `internal/domain/entity.go` 的 BaseEntity。ID 由服务端安全随机生成；created_at/updated_at/deleted_at 均为 UTC Unix 秒，0 表示未删除；version 从 1 开始。更新和软删除必须按 `id + version + deleted_at=0` 条件写入，原子递增版本及更新时间。未找到与版本冲突分别映射统一 404/409，不能覆盖别人的更新或复活已删除数据。domain/entity_test.go 会发现新领域结构体并检查基座；纯值对象要登记例外及理由。
+Go 采用组合：可变业务实体嵌入 `internal/domain/entity.go` 的 BaseEntity。ID 由服务端安全随机生成；created_at/updated_at/deleted_at 均为 UTC Unix 秒，0 表示未删除；version 从 1 开始。更新和软删除必须按 `id + version + deleted_at=0` 条件写入，原子递增版本及更新时间。未找到与版本冲突分别映射统一 404/409，不能覆盖别人的更新或复活已删除数据。domain/entity_test.go 会发现 internal/domain 包内新领域结构体并检查基座（扫描范围仅该包，不含 internal/modules/*/domain 模块领域树，新增模块实体需自行遵守）；纯值对象要登记例外及理由。
 
 | 层 | 负责 | 禁止 |
 | --- | --- | --- |

@@ -5,7 +5,7 @@
 
 ## 模块站内通知（登记式投递）
 
-功能模块向用户投递站内通知走 `internal/notify` 门面（ADR-0045）：装配期向 `notify.Registry` 登记类型（type + 中英文名称，未登记类型拒绝投递），业务事务内调用 `Notifier.Deliver(ctx, tx, recipients, type, sourceID, title, body, actions)`，提交成功后由门面便捷方法或调用方 `hub.PublishMany(recipients, inbox.new)` 通知客户端。非空 `source_id` 按（收件人、类型、来源）幂等更新且不重置已读；`actions` 是至多 4 个 `{id,label,href?}` 按钮（platform@2 JSON 列），href 为站内路径时铃铛面板点击路由跳转（下载/日志/审批入口）。公告投递复用同一门面（type=announcement，受众与可见性仍按公告手册过滤）。本页的邮件与企业微信/Webhook 外部渠道独立于此。
+功能模块向用户投递站内通知走 `internal/notify` 门面（ADR-0045）：装配期向 `notify.Registry` 登记类型（type + 中英文名称，未登记类型拒绝投递），业务事务内调用 `Notifier.Deliver(ctx, tx, recipients, type, sourceID, title, body, actions)`，提交成功后由门面便捷方法或调用方 `hub.PublishMany(recipients, inbox.new)` 通知客户端。非空 `source_id` 按（收件人、类型、来源）幂等更新且不重置已读；`actions` 是至多 4 个 `{id,label,href?}` 按钮（platform@1 基线 JSON 列），href 为站内路径时铃铛面板点击路由跳转（下载/日志/审批入口）。公告投递复用同一门面（type=announcement，受众与可见性仍按公告手册过滤）。本页的邮件与企业微信/Webhook 外部渠道独立于此。
 
 ## 从配置到启用
 

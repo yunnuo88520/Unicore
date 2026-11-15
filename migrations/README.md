@@ -23,7 +23,7 @@ python3 scripts/verify-baselines.py --output build/verification-migrations
 
 生成器只读取 Catalog 和 SQL 原字节，不连接数据库；Go descriptor、JSON、账本 DDL 与 profile 指纹均为生成物，不手改。依赖图决定执行顺序，profile namespace 列表仅决定成员。账本 namespace/version/checksum/applied_at 只记录实际成功。
 
-基线 CREATE TABLE/INDEX 幂等，MySQL 索引内联，必要静态记录用 WHERE NOT EXISTS 守护。SQLite 不声明外键（运行时关闭，业务事务负责引用）；PG/MySQL 保留现有外键、排序规则与约束。正式版后 SQL 冻结，只追加下一个版本，遵循 [迁移规范](../docs/02-standards/database-migrations.md)。
+基线 CREATE TABLE/INDEX 幂等，MySQL 索引内联，必要静态记录用 WHERE NOT EXISTS 守护。SQLite 不声明外键（运行时连接开启 foreign_keys，但基线无 FK 子句，引用与级联由业务事务负责）；PG/MySQL 保留现有外键、排序规则与约束。正式版后 SQL 冻结，只追加下一个版本，遵循 [迁移规范](../docs/02-standards/database-migrations.md)。
 
 platform 基线包含 `unicore_roles.version BIGINT NOT NULL DEFAULT 1`，已有及新建角色从 1 起。基线重放幂等不代表正式版后追加的 ADD COLUMN 可以盲重试；MySQL DDL 可能已提交但账本未登记。失败停止业务，不能只看列存在就补造账本、改 checksum 或删除版本行；使用匹配程序与升级前完整快照恢复到新目录/空专用库，再核验并处理。新角色权限不在 SQL 自动授给旧角色。
 

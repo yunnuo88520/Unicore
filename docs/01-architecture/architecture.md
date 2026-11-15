@@ -9,13 +9,13 @@
 React web-ui → AppClient → HTTP adapter → install / platform / settings / notes
                       └→ Wails bridge → local notes / files
 CLI / HTTP / Wails → usecase.Executor → domain.Analyze
-HTTP / Wails → usecase.Notes → domain.Note / NoteRepository port → SQL adapter
+HTTP / Wails → modules/notes usecase → domain.Note / NoteRepository port → SQL adapter（自包含模块树 internal/modules/notes）
 离线 unicore-ops → maintenance → 加密快照 / 新目标恢复（不进入业务 CLI）
 ```
 
 | 模块 | 责任 |
 | --- | --- |
-| internal/domain / usecase | 文本分析、笔记规则、Repository port、context 与 DTO 映射 |
+| internal/domain / usecase | 文本分析、共享实体基座、Execute 用例、context 与 DTO 映射；笔记业务位于自包含模块树 internal/modules/notes（domain/usecase/storage/desktop） |
 | internal/install | 安装状态/凭据/恢复、DB 配置加密、按 profile 装配 |
 | internal/platform | Argon2id、会话、权限策略、限流/验证码、operation 目录与数据范围解析、identity ports |
 | internal/settings | Definition 注册、类型/范围校验与持久化 port |
@@ -24,7 +24,7 @@ HTTP / Wails → usecase.Notes → domain.Note / NoteRepository port → SQL ada
 | adapter/storage/sqlstore | 无驱动/身份依赖的 SQL、迁移、设置与审计基础 |
 | adapter/storage/platformsql | 平台身份 SQL 实现 |
 | adapter/storage/sqlite / webdb | 桌面只 SQLite；Web 组合所有 DB 驱动 |
-| adapter/storage/notessql | 笔记身份域、版本冲突与事务审计 |
+| modules/notes/storage/notessql | 笔记身份域、版本冲突与事务审计 |
 | bootstrap/local | 桌面自动 SQLite、业务迁移、进程锁、profile 校验，不 import platform |
 | cmd/ops / internal/maintenance | 停服锁边界的离线加密备份、校验和新目标恢复 |
 | packages/contracts / sdk / web-ui | 唯一契约源、双 transport、共享界面 |
@@ -47,7 +47,7 @@ SQLite adapter 统一将文件路径绝对化并生成空 authority、正确转�
 
 ## 界面与扩展
 
-HttpTransport 管理 cookie/CSRF 与 WebClient；页面不直接 fetch。WailsTransport 提供 bootstrap/execute/设备级外观/notes，没有 Web 身份/安装接口。SessionBoundary 按会话代际隔离 Query cache/组件状态，SDK epoch 拒绝旧响应，多标签页同步失效；routes.ts 登记元数据、router.tsx 以 TanStack Router 代码式路由树挂载页面（Web history 导航、桌面 hash、管理端动态 basepath），canAccess 在壳层门禁裁剪；lib/form.tsx 的 RHF 表单经 constraintsToZod 契约校验处理提交错误。TanStack Query 管理状态；DashboardWidgetRegistry 以唯一 id 扩展业务首页。工作台概览为默认首页，不再提供重复平台仪表盘；操作与投递记录通过独立系统日志页读取真实数据。
+HttpTransport 管理 cookie/CSRF 与 WebClient；页面不直接 fetch。WailsTransport 提供 bootstrap/execute/设备级外观/notes，没有 Web 身份/安装接口。SessionBoundary 按会话代际隔离 Query cache/组件状态，SDK epoch 拒绝旧响应，多标签页同步失效；routes.ts 登记元数据、router.tsx 以 TanStack Router 代码式路由树挂载页面（Web history 导航、桌面 hash、管理端动态 basepath），canAccess 在壳层门禁裁剪；packages/form/src/form.tsx 的 RHF 表单经 constraintsToZod 契约校验处理提交错误。TanStack Query 管理状态；DashboardWidgetRegistry 以唯一 id 扩展业务首页。工作台概览为默认首页，不再提供重复平台仪表盘；操作与投递记录通过独立系统日志页读取真实数据。
 
 平台主题只存在当前客户端 localStorage，不读取/保存全局默认主题；普通用户只渲染本地外观卡片。单机/桌面的本地默认主题仍在设置注册表，设备偏好优先。设置使用共享可键盘操作的单层 Tabs，品牌图片使用三张并列卡片，外观卡片合并到设置、兼容旧 #settings 地址；主标签由 #site?tab=… 保留；按当前分组构造 PATCH，跨标签保留表单/图片预览草稿。UI 路由在桌面端以 hash history 复用，Web 使用 history 导航；/install、可配置后台入口由服务器处理，深链依赖既有 SPA fallback。light/dark/system 与 375px 浏览器测试，表格可横向滚动但页面不溢出。
 

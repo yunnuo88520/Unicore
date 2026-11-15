@@ -29,6 +29,8 @@ setTranslator(t);
 | RadioGroup | `@unicore/ui` | 胶囊单选组（少量互斥项） |
 | Breadcrumb | `@unicore/ui` | 顶栏面包屑（current 项强调） |
 | Kbd | `@unicore/ui` | 快捷键键帽 |
+| Badge | `@unicore/ui` | 状态/计数标签（badgeVariants 语义色） |
+| AlertDialog / Avatar / Separator / Skeleton / Progress / Label | `@unicore/ui` | 告警确认弹窗、头像、分隔线、骨架屏、进度条与控件关联标签（Label 与 Input 控制面同源导出） |
 | Card | `@unicore/ui` | 面板表面与 Header/Title/Description/Content/Footer 组合；`asChild` 可渲染为链接瓦片；默认及 `variant="soft"` 提供无可见边框/阴影的柔和表面，`outlined` 提供边框表面 |
 | Input | `@unicore/ui` | 默认浮动标签；`appearance="search"` 提供导航快速筛选的圆角柔和表面，外部 label 必须关联 |
 | PageHeader | `@unicore/ui` | 节标题 + 可选描述 + 操作槽；无外壳，放 CardContent 或裸用 |

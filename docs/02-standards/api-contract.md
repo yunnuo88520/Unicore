@@ -5,7 +5,7 @@
 
 每个 operation 的 x-unicore 声明适用 profiles、access、permissions、permissionMode、superAdmin 和 csrf。SessionCookie、AdministratorSession（同一 Cookie 的管理端契约别名）、CSRFToken、BootstrapToken 与 BearerToken 在 securitySchemes 登记。运行时策略中间件按契约 fail-closed 执行：没有 x-unicore 声明的已注册 API 路由直接 500 拒绝，session/authenticated/platform-session 访问在中间件解析会话并强制 permissions 与 superAdmin（`require` 复用其会话，补充 2FA 注册与审计 actor），public/install-token/local 仍由 handler 自行守卫。`permissionMode` 缺省与 `all` 要求全部权限点，`any` 要求至少一个，未知模式拒绝。角色可委派的 operation 授权（operation_ids）以契约 operationId 为标识、由 `GET /admin/api-operations` 目录派生，只能在契约允许范围内收窄调用面，不能放宽权限点或保留集（[ADR-0036](../adr/ADR-0036-navigation-regions-granular-authorization.md)）。事务内授权与业务校验仍在 handler/service。真实 Chi 路由测试覆盖完整 Web 装配与最小 Core 装配，并以双向遍历断言"路由↔契约"完全一致，缺 handler 或未登记接口会失败。
 
-响应遵循 `{code, data, request_id}`；失败为 `{code, message, request_id, fields?}`。错误 code 的默认状态和安全提示登记于 x-error-codes；生成 ErrorCatalog 给 HTTP、presenter 与桌面复用。上下文相关提示可以更具体，但不能暴露原始错误、数据库信息或提交值。字段错误使用 name 或 `changes[0].value` 等路径，表单显示摘要并聚焦对应控件。请求 ID 可以反馈给维护者排查。
+响应遵循 `{code, data, request_id}`；失败为 `{code, message, request_id, fields?}`。错误 code 的默认状态和安全提示登记于契约根级 `x-error-codes`（非 operation 级）；生成 ErrorCatalog 给 HTTP、presenter 与桌面复用。除 x-unicore 外，部分 operation 另带人工维护的 `x-permission` 人读注解，修改权限声明时须与 x-unicore 同步，避免两处口径漂移。上下文相关提示可以更具体，但不能暴露原始错误、数据库信息或提交值。字段错误使用 name 或 `changes[0].value` 等路径，表单显示摘要并聚焦对应控件。请求 ID 可以反馈给维护者排查。
 
 SDK HttpTransport 的业务方法调用生成 operation，统一处理 Cookie、CSRF、20 秒超时、取消与 AppError。页面只访问 AppClient/WebClient，不拼 HTTP 路径；浏览器 OIDC 回调由导航完成，不能当 JSON 调用。Wails 复用适用 DTO，CLI 保持无 HTTP/平台依赖。
 

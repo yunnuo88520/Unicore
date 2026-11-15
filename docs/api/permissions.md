@@ -10,28 +10,32 @@
 | posts:read/write | GET /admin/posts；POST /admin/posts；PUT/DELETE /admin/posts/{id}（岗位目录，assignable；删除仍有用户关联的岗位返回冲突。用户创建/更新携带 post_ids 多岗位，用户列表支持 post_id 过滤） |
 | dictionaries:read/write | GET/POST /admin/dictionaries；GET/PUT/DELETE /admin/dictionaries/{id}；PUT /admin/dictionaries/{id}/items（可授权给管理员域角色）；用户域 GET /dictionaries/{code} 读取 active 条目 |
 | departments:read/write | GET/POST /admin/departments；PUT/DELETE /admin/departments/{id}（部门组织树，assignable 双域可授；删除被子部门或用户挂靠返回 409 DEPARTMENT_IN_USE） |
-| files:access / notes:access | 业务读取门槛。notes:access 为默认用户业务权限；files:* 仅显式授权文件 API，不再默认授予 user，无文件管理页面。files:access 覆盖 GET /files、/files/policy、/files/{id}/access；notes:access 覆盖 GET /notes；撤销后仅保留登录与数据归属校验 |
+| files:access / notes:access | 业务读取门槛。notes:access 为默认用户业务权限；files:* 仅显式授权文件 API，不再默认授予 user，无文件管理页面。files:access 覆盖 GET /files；POST /files/{id}/access 要求 files:access 或 notes:access 任一（跨用户下载须提交可读笔记的 note_id）；GET /files/policy 仅要求登录，不设权限点；notes:access 覆盖 GET /notes；撤销后仅保留登录与数据归属校验 |
 | notes:create/update/delete<br>files:upload/delete | 业务写操作权限点（notes:* 默认用户业务权限；files:* 仅显式 API 授权）：POST /notes、PUT/DELETE /notes/{id}；POST /files/uploads 与 multipart 全流程、DELETE /files/{id}。前端按钮联合校验权限点、动作授权及 API 授权，API 按契约权限点和 operation grant 校验（见 [ADR-0035](../adr/ADR-0035-action-permissions-departments.md)） |
 
 | 权限 | API（均在 /api/v1 下） |
 | --- | --- |
 | admin:access | POST /admin/core/execute；GET /admin/dashboard（管理员工作台统计） |
-| users:read/create/update | GET/POST /admin/users；PATCH /admin/users/{id}，用户域 role 可为 user 或任意自建角色；用户保存可携带 post_ids 多岗位，列表支持 post_id 过滤；实际修改登录邮箱还须 users:credentials:write 及其范围 |
+| users:read/create/update | GET/POST /admin/users；PATCH /admin/users/{id}，用户域 role 可为 user 或任意自建角色；用户保存可携带 post_ids 多岗位，列表支持 post_id 过滤；GET /admin/users/role-options（返回统一角色选项，users:read/create/update 任一可调；分配仍仅超管）；实际修改登录邮箱还须 users:credentials:write 及其范围 |
 | users:credentials:write | POST /admin/users/{id}/password；PATCH /admin/users/{id} 实际修改规范化后的登录邮箱时追加校验。可委派普通业务目标；完整目标具有 HasManagementAccess 时仅 super_admin；管理端凭据写一律禁止 PAT，不自动授予旧角色 |
 | administrators:read/create/update | GET/POST /admin/administrators；PATCH /admin/administrators/{id}，统一账号管理的旧别名（均仅 super_admin），新界面使用 /admin/users 与 role_ids |
-| roles:read | GET /admin/roles（双域自建角色与成员数）；GET /admin/users/role-options（返回统一角色选项；分配仍仅超管）；GET /admin/roles/admin-options（返回统一角色选项，仅 super_admin） |
+| roles:read | GET /admin/roles（双域自建角色与成员数）；GET /admin/roles/admin-options（返回统一角色选项，仅 super_admin）。注意 GET /admin/users/role-options 不属于 roles:read，见上行 users:read/create/update |
 | settings:read | GET /admin/settings、/admin/branding、/admin/settings/mail/templates |
 | settings:write | PATCH /admin/settings；PUT /admin/branding；POST /admin/settings/mail/test、/admin/settings/oidc/check；PUT /admin/settings/mail/templates；POST /admin/settings/mail/templates/{preview,test,reset} |
 | logs:read | GET /admin/logs、/admin/logs/export、/admin/mail/jobs |
 | tasks:read | GET /admin/tasks；GET /admin/tasks/{name}/runs（运行历史） |
 | tasks:write | POST /admin/tasks（创建）；PATCH /admin/tasks/{name}（编辑）；DELETE /admin/tasks/{name}（删除）；PUT /admin/tasks/{name}（启停）；POST /admin/tasks/{name}/run（接收手动触发） |
+| announcements:read/write | GET /admin/announcements、/admin/announcements/{id}/read-status、/admin/announcements/settings（announcements:read）；POST /admin/announcements、PUT /admin/announcements/{id}、POST /admin/announcements/delete、PUT /admin/announcements/settings、POST /admin/announcements/preview（announcements:write），见 [公告手册](../03-runbooks/announcements.md) |
 | 角色高级 API 授权 | GET /admin/api-operations（契约派生 operation 目录，供角色 operation_ids 授权勾选；要求 roles:read，管理员域可授） |
 | updates:read | GET /admin/updates；POST /admin/updates/check |
 | updates:apply | POST /admin/updates/apply，需确认已备份 |
-| monitor:read | GET /admin/monitor（运行监控快照）、GET/PUT /admin/monitor/alert-rules（告警规则，仅 super_admin 保留集，不可分配角色）、GET /admin/monitor/events（运行事件）、GET /admin/monitor/storage-probe；单机形态对应本机 `GET /monitor`、`GET /monitor/events`（access local，不走角色） |
-| mcp:read / mcp:write / mcp:logs:read | GET/PATCH /admin/mcp/config（mcp:read/write）、GET /admin/mcp/tools、/admin/mcp/tools/{name} 与 PATCH /admin/mcp/tools/{name}/policy（mcp:read/write）、GET /admin/mcp/calls、/admin/mcp/calls/{id}（mcp:logs:read） |
-| mcp:clients:read / mcp:clients:write | GET /admin/mcp/oauth-clients、GET /admin/mcp/oauth-clients/{id}/grants（mcp:clients:read）；POST /admin/mcp/oauth-clients、PATCH /admin/mcp/oauth-clients/{id}、POST /admin/mcp/oauth-clients/{id}/secret、DELETE /admin/mcp/oauth/grants/{id}（mcp:clients:write，全局撤销）；客户端密钥仅哈希持久化，创建与轮换响应一次性返回 |
+| monitor:read | GET /admin/monitor（运行监控快照）、GET/PUT /admin/monitor/alert-rules（告警规则）、GET /admin/monitor/events（运行事件）、GET /admin/monitor/storage-probe；monitor:read 整体属 super_admin 保留集，不可分配角色；单机形态对应本机 `GET /monitor`、`GET /monitor/events`（access local，不走角色） |
+| mcp:read / mcp:write / mcp:logs:read | （三者均为 super_admin 保留集，不可分配角色）GET/PATCH /admin/mcp/config（mcp:read/write）、GET /admin/mcp/tools、/admin/mcp/tools/{name} 与 PATCH /admin/mcp/tools/{name}/policy（mcp:read/write）、GET /admin/mcp/calls、/admin/mcp/calls/{id}（mcp:logs:read） |
+| mcp:clients:read / mcp:clients:write | （两者均为 super_admin 保留集，不可分配角色）GET /admin/mcp/oauth-clients、GET /admin/mcp/oauth-clients/{id}/grants（mcp:clients:read）；POST /admin/mcp/oauth-clients、PATCH /admin/mcp/oauth-clients/{id}、POST /admin/mcp/oauth-clients/{id}/secret、DELETE /admin/mcp/oauth/grants/{id}（mcp:clients:write，全局撤销）；客户端密钥仅哈希持久化，创建与轮换响应一次性返回 |
+| mcp:access | MCP 协议端点 `/mcp` 的准入权限点：PAT 与 OAuth `ucm_` 令牌访问 MCP 时必须携带，配合 operation 显式授权与数据范围（可分配，非保留集；见 [ADR-0047](../adr/ADR-0047-mcp-server.md)） |
 | 本人 MCP（会话，无权限点） | GET /account/mcp/access-info；GET/POST /account/mcp/oauth/authorize（同意描述与签发 code，POST 要求 CSRF）；GET /account/mcp/oauth/grants、DELETE /account/mcp/oauth/grants/{id}（本人撤销，CSRF）；`/mcp` 协议端点不走业务契约（PAT 与 OAuth ucm_ 令牌同链鉴权） |
+
+super_admin 保留集（`internal/platform/roles.go` 的 `SuperOnlyPermission`，不可分配给任何角色）：`roles:write`、`administrators:read/create/update`、`settings:write`、`updates:apply`、`storage:write`、`monitor:read`、`tokens:read/write`、`mcp:read`、`mcp:write`、`mcp:logs:read`、`mcp:clients:read/write`。上表标注"仅 super_admin"的行即源于该策略；`PermissionDefinition.super_admin` 亦由服务端保留策略派生，前端不维护另一份名单（见下文角色编辑一节）。
 
 用户与管理工作台共用账号与 unicore_session Cookie（HttpOnly/SameSite=Lax，HTTPS 时 Secure）。路径选择工作台接口，不选择账号仓库；身份请求头不参与认证。事务从统一账号表重查操作者，角色分配与保留操作重查超管资格。本人改密校验旧密码，锁内复核后撤销该账号的共享会话与挑战，两端同时失效。企业绑定共用账号；两种 OIDC callback 保留各自浏览器证明 Cookie，管理员入口不提供 JIT。详见 [ADR-0037](../adr/ADR-0037-unified-user-identity.md)。
 

@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/yunnuo/unicore/internal/audit"
@@ -182,9 +183,32 @@ func (r *Repository) TouchGrant(ctx context.Context, id string, now int64) error
 
 // UpdateGrantConsent re-binds an active grant to the scope snapshot of the
 // latest consent and refreshes its security anchor; the read-back keeps the
-// caller on the stored truth.
+// caller on the stored truth. One transaction decides from the stored anchor:
+// when it changed (password or recovery rotation since the previous consent),
+// the grant's existing tokens die in the same commit — re-authorizing may
+// never resurrect artifacts the anchor change had already invalidated.
 func (r *Repository) UpdateGrantConsent(ctx context.Context, grantID string, scopes []string, anchor string) (mcpoauth.Grant, error) {
-	if _, err := r.exec(ctx, r.Store.DB, "UPDATE unicore_mcp_oauth_grants SET scope_set=?,security_anchor=? WHERE id=? AND status='active'", mcpoauth.MarshalScopes(scopes), anchor, grantID); err != nil {
+	tx, err := r.Store.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return mcpoauth.Grant{}, err
+	}
+	defer tx.Rollback()
+	var status, stored string
+	if err = r.row(ctx, tx, "SELECT status,security_anchor FROM unicore_mcp_oauth_grants WHERE id=?", grantID).Scan(&status, &stored); err != nil {
+		return mcpoauth.Grant{}, mcpoauth.ErrInvalidGrant
+	}
+	if status != mcpoauth.GrantActive {
+		return mcpoauth.Grant{}, mcpoauth.ErrInvalidGrant
+	}
+	if _, err = r.exec(ctx, tx, "UPDATE unicore_mcp_oauth_grants SET scope_set=?,security_anchor=? WHERE id=? AND status='active'", mcpoauth.MarshalScopes(scopes), anchor, grantID); err != nil {
+		return mcpoauth.Grant{}, err
+	}
+	if !strings.EqualFold(stored, anchor) {
+		if _, err = r.exec(ctx, tx, "UPDATE unicore_mcp_oauth_tokens SET revoked_at=? WHERE grant_id=? AND revoked_at=0", time.Now().Unix(), grantID); err != nil {
+			return mcpoauth.Grant{}, err
+		}
+	}
+	if err = tx.Commit(); err != nil {
 		return mcpoauth.Grant{}, err
 	}
 	updated, err := r.Grant(ctx, grantID)
@@ -197,56 +221,106 @@ func (r *Repository) UpdateGrantConsent(ctx context.Context, grantID string, sco
 	return updated, nil
 }
 
-func (r *Repository) SaveCode(ctx context.Context, hash, grantID, redirectURI, challenge, method string, expiresAt int64) error {
-	_, err := r.exec(ctx, r.Store.DB, "INSERT INTO unicore_mcp_oauth_codes(code_hash,grant_id,redirect_uri,pkce_challenge,pkce_method,expires_at) VALUES(?,?,?,?,?,?)", hash, grantID, redirectURI, challenge, method, expiresAt)
+func (r *Repository) SaveCode(ctx context.Context, hash, grantID, redirectURI, challenge, method, scopes string, expiresAt int64) error {
+	_, err := r.exec(ctx, r.Store.DB, "INSERT INTO unicore_mcp_oauth_codes(code_hash,grant_id,redirect_uri,pkce_challenge,pkce_method,scope_set,expires_at) VALUES(?,?,?,?,?,?,?)", hash, grantID, redirectURI, challenge, method, scopes, expiresAt)
 	return err
 }
 
 // ConsumeCode redeems a code exactly once inside one statement, then reads
-// the row; a concurrent double spend leaves nothing to read.
-func (r *Repository) ConsumeCode(ctx context.Context, hash string, now int64) (grantID, redirectURI, challenge, method string, err error) {
+// the row including its consent scope snapshot; a concurrent double spend
+// leaves nothing to read.
+func (r *Repository) ConsumeCode(ctx context.Context, hash string, now int64) (grantID, redirectURI, challenge, method, scopes string, err error) {
 	result, err := r.exec(ctx, r.Store.DB, "UPDATE unicore_mcp_oauth_codes SET consumed_at=? WHERE code_hash=? AND consumed_at=0 AND expires_at>?", now, hash, now)
 	if err != nil {
-		return "", "", "", "", mcpoauth.ErrInvalidCode
+		return "", "", "", "", "", mcpoauth.ErrInvalidCode
 	}
 	affected, err := result.RowsAffected()
 	if err != nil || affected != 1 {
-		return "", "", "", "", mcpoauth.ErrInvalidCode
+		return "", "", "", "", "", mcpoauth.ErrInvalidCode
 	}
-	var consumedGrant, consumedRedirect, consumedChallenge, consumedMethod string
-	if err = r.row(ctx, r.Store.DB, "SELECT grant_id,redirect_uri,pkce_challenge,pkce_method FROM unicore_mcp_oauth_codes WHERE code_hash=?", hash).Scan(&consumedGrant, &consumedRedirect, &consumedChallenge, &consumedMethod); err != nil {
-		return "", "", "", "", mcpoauth.ErrInvalidCode
+	var consumedGrant, consumedRedirect, consumedChallenge, consumedMethod, consumedScopes string
+	if err = r.row(ctx, r.Store.DB, "SELECT grant_id,redirect_uri,pkce_challenge,pkce_method,scope_set FROM unicore_mcp_oauth_codes WHERE code_hash=?", hash).Scan(&consumedGrant, &consumedRedirect, &consumedChallenge, &consumedMethod, &consumedScopes); err != nil {
+		return "", "", "", "", "", mcpoauth.ErrInvalidCode
 	}
-	return consumedGrant, consumedRedirect, consumedChallenge, consumedMethod, nil
+	return consumedGrant, consumedRedirect, consumedChallenge, consumedMethod, consumedScopes, nil
 }
 
-// SaveToken persists one token digest and refuses to mint into a revoked
-// family. The guard lives in the INSERT statement itself, so a rotation
-// racing a replay-triggered revocation either lands inside the revoked
-// family (and is revoked by it) or is refused — never silently survives.
-// The derived-table form keeps one SQL text valid across all three dialects.
-func (r *Repository) SaveToken(ctx context.Context, hash, kind, grantID, familyID, parentID, scopes string, expiresAt int64) error {
-	result, err := r.exec(ctx, r.Store.DB,
-		"INSERT INTO unicore_mcp_oauth_tokens(token_hash,kind,grant_id,family_id,parent_id,scopes,expires_at) SELECT ?,?,?,?,?,?,? FROM (SELECT 1) AS guard WHERE NOT EXISTS(SELECT 1 FROM unicore_mcp_oauth_tokens WHERE family_id=? AND revoked_at>0)",
-		hash, kind, grantID, familyID, parentID, scopes, expiresAt, familyID)
-	if err != nil {
-		return err
+// familyGate marks or checks the family state row with one statement that is
+// also the lock: the UPDATE takes the row lock until the caller's transaction
+// ends, so a concurrent RevokeFamily either waits for this issuance to commit
+// (and then sweeps it) or has already marked the family (and the gate
+// refuses). The refresh variant fixes the absolute deadline on first insert;
+// CASE keeps one SQL text valid across all three dialects.
+const familyGate = "UPDATE unicore_mcp_oauth_families SET deadline=CASE WHEN deadline=0 THEN ? ELSE deadline END WHERE family_id=? AND revoked_at=0"
+
+// SaveToken persists one token digest inside one transaction that closes the
+// issuance/revocation race a tokens-only guard cannot: PostgreSQL commits the
+// NOT EXISTS check and the INSERT as separate snapshots, so a revocation
+// landing between them left a survivor. The family state row serializes both
+// sides through one lock, and the tokens-table guard below stays as defense
+// in depth. A missing family row is created between two gate attempts — the
+// creating INSERT runs in autocommit so a duplicate from a racing creator or
+// revocation marker cannot poison a transaction, and the second gate alone
+// decides.
+func (r *Repository) SaveToken(ctx context.Context, hash, kind, grantID, familyID, parentID, scopes string, expiresAt, familyDeadline int64) error {
+	create := "INSERT INTO unicore_mcp_oauth_families(family_id,grant_id,revoked_at,deadline) VALUES(?,?,0,?)"
+	for attempt := 0; attempt < 2; attempt++ {
+		tx, err := r.Store.DB.BeginTx(ctx, nil)
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
+		result, err := r.exec(ctx, tx, familyGate, familyDeadline, familyID)
+		if err != nil {
+			return err
+		}
+		affected, err := result.RowsAffected()
+		if err != nil {
+			return err
+		}
+		if affected != 1 {
+			// The row is missing or already revoked. A revoked family is
+			// final; a missing row is created outside any transaction and
+			// the gate answers again in a fresh one.
+			if attempt == 1 {
+				return mcpoauth.ErrInvalidGrant
+			}
+			if err = tx.Rollback(); err != nil {
+				return err
+			}
+			if _, err = r.exec(ctx, r.Store.DB, create, familyID, grantID, familyDeadline); err != nil {
+				var revoked int64
+				if scanErr := r.row(ctx, r.Store.DB, "SELECT revoked_at FROM unicore_mcp_oauth_families WHERE family_id=?", familyID).Scan(&revoked); scanErr == nil {
+					continue // The row exists; the next gate decides.
+				}
+				return err
+			}
+			continue
+		}
+		result, err = r.exec(ctx, tx,
+			"INSERT INTO unicore_mcp_oauth_tokens(token_hash,kind,grant_id,family_id,parent_id,scopes,expires_at) SELECT ?,?,?,?,?,?,? FROM (SELECT 1) AS guard WHERE NOT EXISTS(SELECT 1 FROM unicore_mcp_oauth_tokens WHERE family_id=? AND revoked_at>0)",
+			hash, kind, grantID, familyID, parentID, scopes, expiresAt, familyID)
+		if err != nil {
+			return err
+		}
+		if affected, err = result.RowsAffected(); err != nil || affected != 1 {
+			return mcpoauth.ErrInvalidGrant
+		}
+		return tx.Commit()
 	}
-	affected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if affected != 1 {
-		return mcpoauth.ErrInvalidGrant
-	}
-	return nil
+	return mcpoauth.ErrInvalidGrant
 }
 
-// FamilyDeadline returns the earliest refresh expiry of one family: the
-// absolute consent deadline rotation inherits instead of renewing.
+// FamilyDeadline returns the family's persisted absolute deadline: the
+// earliest refresh expiry rotation inherits instead of renewing. A missing
+// row reports invalid grant — rotation must never relax to a fresh window.
 func (r *Repository) FamilyDeadline(ctx context.Context, familyID string) (int64, error) {
 	var deadline int64
-	if err := r.row(ctx, r.Store.DB, "SELECT COALESCE(MIN(expires_at),0) FROM unicore_mcp_oauth_tokens WHERE family_id=? AND kind='refresh'", familyID).Scan(&deadline); err != nil {
+	err := r.row(ctx, r.Store.DB, "SELECT deadline FROM unicore_mcp_oauth_families WHERE family_id=?", familyID).Scan(&deadline)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, mcpoauth.ErrInvalidGrant
+	}
+	if err != nil {
 		return 0, err
 	}
 	return deadline, nil
@@ -281,9 +355,52 @@ func (r *Repository) ConsumeToken(ctx context.Context, hash string, now int64) e
 	return nil
 }
 
+// RevokeFamily marks the family state row revoked and sweeps every member
+// token in one transaction. Marking first and sweeping second closes the
+// issuance race: a concurrent SaveToken either committed before the mark
+// (this sweep then catches it) or is refused by its gate afterwards. When
+// the mark finds no row (revocation racing the first issuance) or an already
+// revoked family, the marker row is settled in autocommit — a duplicate
+// must not poison the transaction on PostgreSQL — and a fresh transaction
+// marks and sweeps idempotently.
 func (r *Repository) RevokeFamily(ctx context.Context, familyID string, now int64) error {
-	_, err := r.exec(ctx, r.Store.DB, "UPDATE unicore_mcp_oauth_tokens SET revoked_at=? WHERE family_id=? AND revoked_at=0", now, familyID)
-	return err
+	mark := "UPDATE unicore_mcp_oauth_families SET revoked_at=? WHERE family_id=? AND revoked_at=0"
+	sweep := "UPDATE unicore_mcp_oauth_tokens SET revoked_at=? WHERE family_id=? AND revoked_at=0"
+	tx, err := r.Store.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	result, err := r.exec(ctx, tx, mark, now, familyID)
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected != 1 {
+		if err = tx.Rollback(); err != nil {
+			return err
+		}
+		if _, err = r.exec(ctx, r.Store.DB, "INSERT INTO unicore_mcp_oauth_families(family_id,grant_id,revoked_at,deadline) VALUES(?,'',?,0)", familyID, now); err != nil {
+			var marker int64
+			if scanErr := r.row(ctx, r.Store.DB, "SELECT revoked_at FROM unicore_mcp_oauth_families WHERE family_id=?", familyID).Scan(&marker); scanErr != nil {
+				return err
+			}
+		}
+		if tx, err = r.Store.DB.BeginTx(ctx, nil); err != nil {
+			return err
+		}
+		defer tx.Rollback()
+		if _, err = r.exec(ctx, tx, mark, now, familyID); err != nil {
+			return err
+		}
+	}
+	if _, err = r.exec(ctx, tx, sweep, now, familyID); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func (r *Repository) RevokeGrantTokens(ctx context.Context, grantID string, now int64) error {
@@ -315,7 +432,8 @@ func (r *Repository) PasswordAnchor(ctx context.Context, userID string) (string,
 
 // SweepExpired prunes expired authorization artifacts with bounded batches:
 // codes lose their purpose after consumption plus a short window, access
-// tokens after expiry, and refresh rows only once the family deadline passed.
+// tokens after expiry, refresh rows once the family deadline passed, and the
+// family state rows follow their members.
 func (r *Repository) SweepExpired(ctx context.Context, now int64) error {
 	if _, err := r.exec(ctx, r.Store.DB, "DELETE FROM unicore_mcp_oauth_codes WHERE expires_at<?", now-3600); err != nil {
 		return err
@@ -323,6 +441,12 @@ func (r *Repository) SweepExpired(ctx context.Context, now int64) error {
 	if _, err := r.exec(ctx, r.Store.DB, "DELETE FROM unicore_mcp_oauth_tokens WHERE kind='access' AND expires_at<?", now-86400); err != nil {
 		return err
 	}
-	_, err := r.exec(ctx, r.Store.DB, "DELETE FROM unicore_mcp_oauth_tokens WHERE kind='refresh' AND expires_at<?", now-86400)
+	if _, err := r.exec(ctx, r.Store.DB, "DELETE FROM unicore_mcp_oauth_tokens WHERE kind='refresh' AND expires_at<?", now-86400); err != nil {
+		return err
+	}
+	if _, err := r.exec(ctx, r.Store.DB, "DELETE FROM unicore_mcp_oauth_families WHERE deadline>0 AND deadline<?", now-86400); err != nil {
+		return err
+	}
+	_, err := r.exec(ctx, r.Store.DB, "DELETE FROM unicore_mcp_oauth_families WHERE NOT EXISTS(SELECT 1 FROM unicore_mcp_oauth_tokens WHERE unicore_mcp_oauth_tokens.family_id=unicore_mcp_oauth_families.family_id)")
 	return err
 }

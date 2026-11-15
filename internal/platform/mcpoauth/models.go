@@ -132,6 +132,27 @@ func NormalizeScopes(requested []string) ([]string, error) {
 	return scopes, nil
 }
 
+// IntersectScopes keeps the members of left that the right set also carries,
+// preserving left's order. One credential's effective budget is its own
+// issuance snapshot intersected with the currently valid grant: a later
+// consent can widen or shrink the grant, but never retroactively rewrites
+// what an already-minted code or token family may reach.
+func IntersectScopes(left, right []string) []string {
+	kept := []string{}
+	carried := map[string]bool{}
+	for _, scope := range right {
+		carried[scope] = true
+	}
+	seen := map[string]bool{}
+	for _, scope := range left {
+		if carried[scope] && !seen[scope] {
+			seen[scope] = true
+			kept = append(kept, scope)
+		}
+	}
+	return kept
+}
+
 // ScopesAllow reports whether the grant's scope set covers the transport
 // budget a capability needs. Reads are always inside mcp.read; write
 // capabilities additionally need mcp.write, which P2 never grants.

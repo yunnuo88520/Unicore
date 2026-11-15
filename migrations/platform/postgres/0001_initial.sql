@@ -417,6 +417,7 @@ CREATE TABLE IF NOT EXISTS public."unicore_mcp_oauth_codes" (
   "redirect_uri" character varying(2048) NOT NULL,
   "pkce_challenge" character varying(128) NOT NULL DEFAULT '',
   "pkce_method" character varying(16) NOT NULL DEFAULT '',
+  "scope_set" text NOT NULL DEFAULT '',
   "expires_at" bigint NOT NULL,
   "consumed_at" bigint NOT NULL DEFAULT 0,
   CONSTRAINT "unicore_mcp_oauth_codes_pkey" PRIMARY KEY (code_hash)
@@ -438,3 +439,15 @@ CREATE TABLE IF NOT EXISTS public."unicore_mcp_oauth_tokens" (
 CREATE INDEX IF NOT EXISTS unicore_mcp_tokens_grant ON unicore_mcp_oauth_tokens(grant_id,kind);
 CREATE INDEX IF NOT EXISTS unicore_mcp_tokens_family ON unicore_mcp_oauth_tokens(family_id,kind);
 CREATE INDEX IF NOT EXISTS unicore_mcp_tokens_expiry ON unicore_mcp_oauth_tokens(expires_at);
+
+-- Persistent token-family state: the issuance gate and revocation mark
+-- serialize on this row, so a family can never hold a survivor that a
+-- committed revocation never saw (the tokens-only guard lost that race on
+-- PostgreSQL's separate INSERT/NOT EXISTS snapshots).
+CREATE TABLE IF NOT EXISTS public."unicore_mcp_oauth_families" (
+  "family_id" character varying(64) NOT NULL,
+  "grant_id" character varying(64) NOT NULL DEFAULT '',
+  "revoked_at" bigint NOT NULL DEFAULT 0,
+  "deadline" bigint NOT NULL DEFAULT 0,
+  CONSTRAINT "unicore_mcp_oauth_families_pkey" PRIMARY KEY (family_id)
+);

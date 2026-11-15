@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"sort"
 	"strings"
 	"sync"
@@ -18,13 +19,16 @@ import (
 
 // memoryStore is an in-memory Store; rows are digests only, like production.
 type memoryStore struct {
-	mu      sync.Mutex
-	clients map[string]Client
-	grants  map[string]Grant
-	codes   map[string]codeRow
-	tokens  map[string]TokenRecord
-	actor   GrantActor
-	anchor  string
+	mu       sync.Mutex
+	clients  map[string]Client
+	grants   map[string]Grant
+	codes    map[string]codeRow
+	tokens   map[string]TokenRecord
+	families map[string]familyRow
+	actor    GrantActor
+	anchor   string
+	// Deadline fault injection: when set, FamilyDeadline reports it.
+	deadlineErr error
 }
 
 type codeRow struct {
@@ -32,18 +36,28 @@ type codeRow struct {
 	redirectURI string
 	challenge   string
 	method      string
+	scopes      string
 	expiresAt   int64
 	consumedAt  int64
 }
 
+// familyRow mirrors the persistent family state the SQL store keeps: the
+// absolute deadline and the revocation marker the issuance gate reads.
+type familyRow struct {
+	grantID   string
+	revokedAt int64
+	deadline  int64
+}
+
 func newMemoryStore() *memoryStore {
 	return &memoryStore{
-		clients: map[string]Client{},
-		grants:  map[string]Grant{},
-		codes:   map[string]codeRow{},
-		tokens:  map[string]TokenRecord{},
-		actor:   GrantActor{User: contracts.User{ID: "user-1", Status: "active", Roles: []string{"role-a"}}},
-		anchor:  platform.Hash("password-v1"),
+		clients:  map[string]Client{},
+		grants:   map[string]Grant{},
+		codes:    map[string]codeRow{},
+		tokens:   map[string]TokenRecord{},
+		families: map[string]familyRow{},
+		actor:    GrantActor{User: contracts.User{ID: "user-1", Status: "active", Roles: []string{"role-a"}}},
+		anchor:   platform.Hash("password-v1"),
 	}
 }
 
@@ -154,31 +168,46 @@ func (m *memoryStore) TouchGrant(_ context.Context, id string, now int64) error 
 	return nil
 }
 
-func (m *memoryStore) SaveCode(_ context.Context, hash, grantID, redirectURI, challenge, method string, expiresAt int64) error {
+func (m *memoryStore) SaveCode(_ context.Context, hash, grantID, redirectURI, challenge, method, scopes string, expiresAt int64) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.codes[hash] = codeRow{grantID: grantID, redirectURI: redirectURI, challenge: challenge, method: method, expiresAt: expiresAt}
+	m.codes[hash] = codeRow{grantID: grantID, redirectURI: redirectURI, challenge: challenge, method: method, scopes: scopes, expiresAt: expiresAt}
 	return nil
 }
 
-func (m *memoryStore) ConsumeCode(_ context.Context, hash string, now int64) (string, string, string, string, error) {
+func (m *memoryStore) ConsumeCode(_ context.Context, hash string, now int64) (string, string, string, string, string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	row, ok := m.codes[hash]
 	if !ok || row.consumedAt != 0 || row.expiresAt <= now {
-		return "", "", "", "", ErrInvalidCode
+		return "", "", "", "", "", ErrInvalidCode
 	}
 	row.consumedAt = now
 	m.codes[hash] = row
-	return row.grantID, row.redirectURI, row.challenge, row.method, nil
+	return row.grantID, row.redirectURI, row.challenge, row.method, row.scopes, nil
 }
 
-func (m *memoryStore) SaveToken(_ context.Context, hash, kind, grantID, familyID, parentID, scopes string, expiresAt int64) error {
+func (m *memoryStore) SaveToken(_ context.Context, hash, kind, grantID, familyID, parentID, scopes string, expiresAt, familyDeadline int64) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	// The family gate mirrors the SQL store: a family with any revoked
+	// member refuses new members.
 	for _, record := range m.tokens {
 		if record.FamilyID == familyID && record.Revoked {
 			return ErrInvalidGrant
+		}
+	}
+	if family, ok := m.families[familyID]; ok && family.revokedAt > 0 {
+		return ErrInvalidGrant
+	}
+	if _, ok := m.families[familyID]; !ok {
+		m.families[familyID] = familyRow{grantID: grantID}
+	}
+	if kind == TokenRefresh && familyDeadline > 0 {
+		family := m.families[familyID]
+		if family.deadline == 0 {
+			family.deadline = familyDeadline
+			m.families[familyID] = family
 		}
 	}
 	m.tokens[hash] = TokenRecord{Hash: hash, Kind: kind, GrantID: grantID, FamilyID: familyID, ParentID: parentID, Scopes: ParseScopes(scopes), ExpiresAt: expiresAt}
@@ -188,13 +217,14 @@ func (m *memoryStore) SaveToken(_ context.Context, hash, kind, grantID, familyID
 func (m *memoryStore) FamilyDeadline(_ context.Context, familyID string) (int64, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	deadline := int64(0)
-	for _, record := range m.tokens {
-		if record.FamilyID == familyID && record.Kind == TokenRefresh && (deadline == 0 || record.ExpiresAt < deadline) {
-			deadline = record.ExpiresAt
-		}
+	if m.deadlineErr != nil {
+		return 0, m.deadlineErr
 	}
-	return deadline, nil
+	family, ok := m.families[familyID]
+	if !ok {
+		return 0, ErrInvalidGrant
+	}
+	return family.deadline, nil
 }
 
 func (m *memoryStore) UpdateGrantConsent(_ context.Context, grantID string, scopes []string, anchor string) (Grant, error) {
@@ -204,8 +234,19 @@ func (m *memoryStore) UpdateGrantConsent(_ context.Context, grantID string, scop
 	if !ok || grant.Status != GrantActive {
 		return Grant{}, ErrInvalidGrant
 	}
+	anchorChanged := !strings.EqualFold(grant.SecurityAnchor, anchor)
 	grant.Scopes, grant.SecurityAnchor = scopes, anchor
 	m.grants[grantID] = grant
+	// Mirror the SQL transaction: an anchor change kills the grant's tokens
+	// in the same step, so re-authorization cannot resurrect them.
+	if anchorChanged {
+		for hash, record := range m.tokens {
+			if record.GrantID == grantID && !record.Revoked {
+				record.Revoked = true
+				m.tokens[hash] = record
+			}
+		}
+	}
 	return grant, nil
 }
 
@@ -234,6 +275,12 @@ func (m *memoryStore) ConsumeToken(_ context.Context, hash string, now int64) er
 func (m *memoryStore) RevokeFamily(_ context.Context, familyID string, now int64) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if family, ok := m.families[familyID]; ok {
+		family.revokedAt = now
+		m.families[familyID] = family
+	} else {
+		m.families[familyID] = familyRow{revokedAt: now}
+	}
 	for hash, record := range m.tokens {
 		if record.FamilyID == familyID && !record.Revoked {
 			record.Revoked = true
@@ -895,5 +942,232 @@ func TestRefreshCannotExtendFamilyDeadline(t *testing.T) {
 	store.mu.Unlock()
 	if _, err = service.Refresh(ctx, confidential.ID, secret, second.RefreshToken); err == nil {
 		t.Fatal("refresh past the family deadline unexpectedly succeeded")
+	}
+}
+
+// TestReauthorizationCannotResurrectAnchorInvalidatedTokens pins the P1
+// review finding: after a password rotation invalidated the standing tokens,
+// re-authorizing the same client refreshes the anchor for NEW consents only —
+// the previously issued artifacts stay dead.
+func TestReauthorizationCannotResurrectAnchorInvalidatedTokens(t *testing.T) {
+	service, store, _, _, _, _ := consentedService(t)
+	ctx := context.Background()
+	confidential, secret, grant := enabledConfidentialClient(t, service, "Resurrect")
+	initial := chainFrom(t, service, confidential, secret, grant)
+	// The password rotates: every artifact of the old anchor stops resolving.
+	store.anchor = platform.Hash("password-v2")
+	if _, _, err := service.Resolve(ctx, initial.AccessToken); err != ErrInvalidGrant {
+		t.Fatalf("stale anchor access = %v", err)
+	}
+	if _, err := service.Refresh(ctx, confidential.ID, secret, initial.RefreshToken); err != ErrInvalidGrant {
+		t.Fatalf("stale anchor refresh = %v", err)
+	}
+	// The user re-authorizes the same client: the grant's anchor refreshes,
+	// and the old tokens must stay revoked instead of coming back to life.
+	if _, err := service.RefreshConsent(ctx, grant.ID, []string{ScopeRead, ScopeOffline}); err != nil {
+		t.Fatalf("re-authorize: %v", err)
+	}
+	if _, _, err := service.Resolve(ctx, initial.AccessToken); err == nil {
+		t.Fatal("re-authorization resurrected the old access token")
+	}
+	if _, err := service.Refresh(ctx, confidential.ID, secret, initial.RefreshToken); err == nil {
+		t.Fatal("re-authorization resurrected the old refresh token")
+	}
+	// A fresh consent code still works under the new anchor.
+	renewed := chainFrom(t, service, confidential, secret, grant)
+	if _, _, err := service.Resolve(ctx, renewed.AccessToken); err != nil {
+		t.Fatalf("fresh consent after re-authorization: %v", err)
+	}
+}
+
+// TestLaterConsentCannotWidenExistingCredentials pins the P1 scope-escalation
+// finding across all three artifact paths: access resolution, refresh
+// rotation and code redemption each stay inside their own issuance snapshot
+// even when a later consent widens the shared grant.
+func TestLaterConsentCannotWidenExistingCredentials(t *testing.T) {
+	service, _, _, _, _, _ := consentedService(t)
+	ctx := context.Background()
+	confidential, secret, readGrant := enabledConfidentialClient(t, service, "Widen")
+	verifier, challenge := pkcePair(t)
+	// Two codes under the read-only consent: one funds the initial family,
+	// one is held back to be redeemed after the widening.
+	firstCode, err := service.IssueCode(ctx, readGrant, confidential.RedirectURIs[0], challenge, "S256")
+	if err != nil {
+		t.Fatalf("issue first code: %v", err)
+	}
+	heldCode, err := service.IssueCode(ctx, readGrant, confidential.RedirectURIs[0], challenge, "S256")
+	if err != nil {
+		t.Fatalf("issue held code: %v", err)
+	}
+	oldTokens, err := service.ExchangeCode(ctx, confidential.ID, secret, firstCode, confidential.RedirectURIs[0], verifier)
+	if err != nil {
+		t.Fatalf("initial exchange: %v", err)
+	}
+	widened, err := service.RefreshConsent(ctx, readGrant.ID, []string{ScopeRead, ScopeWrite, ScopeOffline})
+	if err != nil {
+		t.Fatalf("widening consent: %v", err)
+	}
+	// Path 1: the old access token resolves read-only.
+	resolved, _, err := service.Resolve(ctx, oldTokens.AccessToken)
+	if err != nil {
+		t.Fatalf("resolve old access: %v", err)
+	}
+	if ScopesContainWrite(resolved.Scopes) {
+		t.Fatalf("old access token gained write: %v", resolved.Scopes)
+	}
+	// Path 2: rotating the old refresh token stays read-only.
+	rotated, err := service.Refresh(ctx, confidential.ID, secret, oldTokens.RefreshToken)
+	if err != nil {
+		t.Fatalf("rotate old refresh: %v", err)
+	}
+	if ScopesContainWrite(rotated.Scopes) {
+		t.Fatalf("rotated tokens gained write: %v", rotated.Scopes)
+	}
+	// A code issued under the widened consent does carry the new budget: the
+	// consent flow re-issues codes from the refreshed grant snapshot.
+	widenedCode, err := service.IssueCode(ctx, widened, confidential.RedirectURIs[0], challenge, "S256")
+	if err != nil {
+		t.Fatalf("issue widened code: %v", err)
+	}
+	widenedIssued, err := service.ExchangeCode(ctx, confidential.ID, secret, widenedCode, confidential.RedirectURIs[0], verifier)
+	if err != nil {
+		t.Fatalf("widened exchange: %v", err)
+	}
+	if !ScopesContainWrite(widenedIssued.Scopes) {
+		t.Fatalf("fresh consent must widen new codes: %v", widenedIssued.Scopes)
+	}
+	// Path 3: the held read-only code, redeemed after the widening, stays
+	// read-only instead of riding the enlarged grant.
+	postWidening, err := service.ExchangeCode(ctx, confidential.ID, secret, heldCode, confidential.RedirectURIs[0], verifier)
+	if err != nil {
+		t.Fatalf("late redemption of the held code: %v", err)
+	}
+	if ScopesContainWrite(postWidening.Scopes) {
+		t.Fatalf("old code rode the widened grant: %v", postWidening.Scopes)
+	}
+}
+
+// pairedReadStore parks the first refresh-token read until a second one
+// arrives, so two Refresh calls both observe the unconsumed record before
+// either consumes — the exact race the review reproduced with a barrier.
+type pairedReadStore struct {
+	*memoryStore
+	first chan struct{}
+	both  chan struct{}
+	once  sync.Once
+}
+
+func newPairedReadStore(base *memoryStore) *pairedReadStore {
+	return &pairedReadStore{memoryStore: base, first: make(chan struct{}, 1), both: make(chan struct{})}
+}
+
+func (p *pairedReadStore) Token(ctx context.Context, hash string) (TokenRecord, error) {
+	record, err := p.memoryStore.Token(ctx, hash)
+	if err == nil && record.Kind == TokenRefresh {
+		select {
+		case p.first <- struct{}{}:
+			<-p.both
+		default:
+			p.once.Do(func() { close(p.both) })
+		}
+	}
+	return record, err
+}
+
+// TestConcurrentRefreshLoserRevokesFamily pins the P1 service-layer race:
+// when two rotations both passed the unconsumed check, the loser's consume
+// fails — and that branch must revoke the whole family, so the winner's
+// freshly minted tokens never survive either.
+func TestConcurrentRefreshLoserRevokesFamily(t *testing.T) {
+	base := newMemoryStore()
+	service := New(newPairedReadStore(base), func() string { return "https://unicore.example/mcp" })
+	ctx := context.Background()
+	confidential, secret, grant := enabledConfidentialClient(t, service, "Barrier")
+	initial := chainFrom(t, service, confidential, secret, grant)
+	type result struct {
+		issued Issued
+		err    error
+	}
+	results := make(chan result, 2)
+	for i := 0; i < 2; i++ {
+		go func() {
+			issued, err := service.Refresh(ctx, confidential.ID, secret, initial.RefreshToken)
+			results <- result{issued, err}
+		}()
+	}
+	// Collect both outcomes before asserting: the loser's family revocation
+	// completes before its Refresh returns, so this is race-free.
+	outcomes := make([]result, 0, 2)
+	for i := 0; i < 2; i++ {
+		outcomes = append(outcomes, <-results)
+	}
+	for _, outcome := range outcomes {
+		if outcome.err != nil {
+			continue
+		}
+		if _, _, err := service.Resolve(ctx, outcome.issued.AccessToken); err == nil {
+			t.Fatal("the winning rotation's access token survived the losing branch")
+		}
+		if _, err := service.Refresh(ctx, confidential.ID, secret, outcome.issued.RefreshToken); err == nil {
+			t.Fatal("the winning rotation's refresh token survived the losing branch")
+		}
+	}
+	// Whatever the interleaving, the family ends with no live member.
+	family := familyOf(t, base, initial.RefreshToken)
+	base.mu.Lock()
+	live := 0
+	for _, record := range base.tokens {
+		if record.FamilyID == family && !record.Revoked {
+			live++
+		}
+	}
+	base.mu.Unlock()
+	if live != 0 {
+		t.Fatalf("raced family kept %d live members", live)
+	}
+}
+
+// TestRefreshDeadlineFailureFailsClosed pins the P2 finding: an unreadable
+// or invalid family deadline rejects the rotation instead of relaxing back
+// to a fresh 30-day window, and the presented token stays redeemable.
+func TestRefreshDeadlineFailureFailsClosed(t *testing.T) {
+	service, store, _, _, _, _ := consentedService(t)
+	ctx := context.Background()
+	confidential, secret, grant := enabledConfidentialClient(t, service, "DeadlineGate")
+	initial := chainFrom(t, service, confidential, secret, grant)
+	family := familyOf(t, store, initial.RefreshToken)
+	// Storage failure while reading the deadline: rotation refused.
+	store.mu.Lock()
+	store.deadlineErr = errors.New("deadline read failed")
+	store.mu.Unlock()
+	if _, err := service.Refresh(ctx, confidential.ID, secret, initial.RefreshToken); err != ErrInvalidGrant {
+		t.Fatalf("deadline failure = %v, want ErrInvalidGrant", err)
+	}
+	// The rejection happened before consumption: the token still rotates.
+	store.mu.Lock()
+	store.deadlineErr = nil
+	store.families[family] = familyRow{deadline: 0}
+	store.mu.Unlock()
+	if _, err := service.Refresh(ctx, confidential.ID, secret, initial.RefreshToken); err != ErrInvalidGrant {
+		t.Fatalf("zero deadline = %v, want ErrInvalidGrant", err)
+	}
+	// A past deadline is equally dead.
+	store.mu.Lock()
+	store.families[family] = familyRow{deadline: time.Now().Unix() - 10}
+	store.mu.Unlock()
+	if _, err := service.Refresh(ctx, confidential.ID, secret, initial.RefreshToken); err != ErrInvalidGrant {
+		t.Fatalf("past deadline = %v, want ErrInvalidGrant", err)
+	}
+	// A valid deadline still rotates, and only up to it.
+	valid := time.Now().Add(24 * time.Hour).Unix()
+	store.mu.Lock()
+	store.families[family] = familyRow{deadline: valid}
+	store.mu.Unlock()
+	issued, err := service.Refresh(ctx, confidential.ID, secret, initial.RefreshToken)
+	if err != nil {
+		t.Fatalf("valid rotation: %v", err)
+	}
+	if int64(issued.RefreshExpiresAt) != valid {
+		t.Fatalf("rotation deadline %d != family deadline %d", issued.RefreshExpiresAt, valid)
 	}
 }

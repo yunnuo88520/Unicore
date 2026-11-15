@@ -15,7 +15,10 @@ export function SettingsSectionLabel({ className, children }: { className?: stri
   return <p className={cn('w-full px-3 text-xs font-medium text-muted', className)}>{children}</p>;
 }
 
-/** One label + control row. Rows separate themselves; the last has no border. */
+/** One label + control row. Rows separate themselves; the last has no border.
+ *  The control group carries `ms-auto` so a control that wraps to its own line
+ *  on narrow screens still trails the row's end like the single-line rows,
+ *  instead of hanging at the start. */
 export function SettingsRow({ label, description, children, className }: {
   label: ReactNode; description?: ReactNode; children?: ReactNode; className?: string;
 }) {
@@ -24,7 +27,7 @@ export function SettingsRow({ label, description, children, className }: {
       <div className="text-sm text-ink">{label}</div>
       {description && <div className="text-xs text-muted">{description}</div>}
     </div>
-    {children}
+    {children && <div className="flex min-w-0 items-center gap-x-2 ms-auto">{children}</div>}
   </div>;
 }
 

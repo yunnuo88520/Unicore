@@ -27,9 +27,13 @@ export function AccountAppsPanel({ client }: { client: AppClient }) {
     },
   });
   if (list.isError) {
-    // The endpoint answers 404 while MCP OAuth is disabled; the panel then has
-    // nothing personal to offer and stays quiet.
-    return null;
+    // The endpoint answers 404 while MCP OAuth is disabled; say why instead of
+    // leaving the page blank behind the nav entry.
+    return <Card><CardContent className="flex flex-col items-center gap-2 p-8 text-center">
+      <Plug size={22} className="text-muted" aria-hidden="true" />
+      <p className="text-sm text-ink">{t('MCP OAuth 接入未开启')}</p>
+      <p className="text-xs text-muted">{t('该实例未开放外部应用授权；管理员开启 OAuth 接入后，授权会出现在这里。')}</p>
+    </CardContent></Card>;
   }
   const date = (value: number) => value ? new Date(value * 1000).toLocaleString(locale) : t('尚未使用');
   return <div className="flex min-w-0 flex-col gap-4">

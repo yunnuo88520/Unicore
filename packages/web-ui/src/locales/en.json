@@ -3023,6 +3023,8 @@
   "轮换客户端密钥": "Rotate client secret",
   "轮换密钥": "Rotate secret",
   "这里列出你同意过的外部应用；撤销后应用需要重新发起授权。": "Applications you have consented to are listed here; revoking makes them authorize again.",
+  "MCP OAuth 接入未开启": "MCP OAuth access is disabled",
+  "该实例未开放外部应用授权；管理员开启 OAuth 接入后，授权会出现在这里。": "This instance does not allow external application authorization; once an administrator enables OAuth access, authorizations appear here.",
   "预注册使用授权码 + PKCE 接入 MCP 的外部应用；密钥只在创建或轮换时显示一次。": "Pre-register external applications that reach MCP with authorization code + PKCE; secrets are shown once at creation or rotation.",
   "预注册通过授权码 + PKCE 接入 MCP 的外部应用并管理其授权。": "Pre-register external applications that reach MCP with authorization code + PKCE and manage their grants.",
   "外部应用经授权码 + PKCE 获取令牌；需先在「OAuth 接入」页注册客户端": "External applications obtain tokens through authorization code + PKCE; register the client on the OAuth access page first.",

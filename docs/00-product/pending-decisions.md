@@ -96,7 +96,7 @@
 - 影响：无害但误导。
 - 推荐：清理该标签或在文档注明预留。**待决策排期。**
 
-- 状态：**已解决：原生更新脚本移除无效 production 构建标签。**
+- 状态：**已完成（2026-11-16）：`scripts/test-native-update.mjs` 已移除无效 `production` 构建标签（现为 `-tags desktop,updater`）；仓库不存在 `go:build production` 约束，构建产物不变。**
 
 ## D15. 发行包与形态的绑定强度（验收评审 N1）
 

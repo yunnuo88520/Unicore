@@ -16761,7 +16761,7 @@
             "mcp:clients:read"
           ],
           "permissionMode": "all",
-          "superAdmin": false,
+          "superAdmin": true,
           "csrf": false,
           "identityRealm": "administrator"
         },
@@ -16815,7 +16815,7 @@
             "mcp:clients:write"
           ],
           "permissionMode": "all",
-          "superAdmin": false,
+          "superAdmin": true,
           "csrf": true,
           "identityRealm": "administrator"
         },
@@ -16883,7 +16883,7 @@
             "mcp:clients:write"
           ],
           "permissionMode": "all",
-          "superAdmin": false,
+          "superAdmin": true,
           "csrf": true,
           "identityRealm": "administrator"
         },
@@ -16941,7 +16941,7 @@
             "mcp:clients:write"
           ],
           "permissionMode": "all",
-          "superAdmin": false,
+          "superAdmin": true,
           "csrf": true,
           "identityRealm": "administrator"
         },
@@ -16999,7 +16999,7 @@
             "mcp:clients:read"
           ],
           "permissionMode": "all",
-          "superAdmin": false,
+          "superAdmin": true,
           "csrf": false,
           "identityRealm": "administrator"
         },
@@ -17057,7 +17057,7 @@
             "mcp:clients:write"
           ],
           "permissionMode": "all",
-          "superAdmin": false,
+          "superAdmin": true,
           "csrf": true,
           "identityRealm": "administrator"
         },

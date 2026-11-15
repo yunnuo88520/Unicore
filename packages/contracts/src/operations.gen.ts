@@ -5159,7 +5159,7 @@ export const operations = {
       "mcp:clients:read"
     ],
     "permissionMode": "all",
-    "superAdmin": false,
+    "superAdmin": true,
     "csrf": false,
     "identityRealm": "administrator"
   },
@@ -5179,7 +5179,7 @@ export const operations = {
       "mcp:clients:write"
     ],
     "permissionMode": "all",
-    "superAdmin": false,
+    "superAdmin": true,
     "csrf": true,
     "identityRealm": "administrator"
   },
@@ -5199,7 +5199,7 @@ export const operations = {
       "mcp:clients:write"
     ],
     "permissionMode": "all",
-    "superAdmin": false,
+    "superAdmin": true,
     "csrf": true,
     "identityRealm": "administrator"
   },
@@ -5219,7 +5219,7 @@ export const operations = {
       "mcp:clients:write"
     ],
     "permissionMode": "all",
-    "superAdmin": false,
+    "superAdmin": true,
     "csrf": true,
     "identityRealm": "administrator"
   },
@@ -5239,7 +5239,7 @@ export const operations = {
       "mcp:clients:read"
     ],
     "permissionMode": "all",
-    "superAdmin": false,
+    "superAdmin": true,
     "csrf": false,
     "identityRealm": "administrator"
   },
@@ -5259,7 +5259,7 @@ export const operations = {
       "mcp:clients:write"
     ],
     "permissionMode": "all",
-    "superAdmin": false,
+    "superAdmin": true,
     "csrf": true,
     "identityRealm": "administrator"
   },

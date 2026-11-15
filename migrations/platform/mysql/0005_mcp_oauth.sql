@@ -1,5 +1,5 @@
 -- Author: yunnuo <ymz@ebox.vip>
--- Purpose: platform 4 adds the MCP OAuth authorization service storage: pre-registered clients, single-role grants, one-time codes and rotating token families; mysql; web-platform only.
+-- Purpose: platform 5 adds the MCP OAuth authorization service storage: pre-registered clients, single-role grants, one-time codes and rotating token families; mysql; web-platform only.
 -- Compatibility: additive tables; clients and grants start empty and disabled until the OAuth switch is reviewed.
 -- Recovery: restore matching DB/data/config/key/binary snapshots to a new target. No down SQL.
 

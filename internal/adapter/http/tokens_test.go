@@ -481,7 +481,7 @@ func TestPersonalTokenSingleRoleAndBrowserOnlyAdministration(t *testing.T) {
 		tokenData[any](t, f.request("GET", path, nil, adminPAT.Token, "", false), 403)
 	}
 	// A role edit revokes the security anchor. A fresh browser cannot renew it back to life.
-	if _, err = f.identity.Store.UpdateRole(ctx, read.ID, contracts.RoleSaveInput{Name: "Renamed reader", Permissions: []string{"notes:access"}}, f.admin.ID); err != nil {
+	if _, err = f.identity.Store.UpdateRole(ctx, read.ID, contracts.RoleSaveInput{Version: &read.Version, Name: "Renamed reader", Permissions: []string{"notes:access"}}, f.admin.ID); err != nil {
 		t.Fatal(err)
 	}
 	tokenData[any](t, f.request("GET", "/notes", nil, pat.Token, "", false), 401)

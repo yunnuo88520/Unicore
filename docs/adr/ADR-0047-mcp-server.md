@@ -1,5 +1,5 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
-# ADR-0046：平台 MCP Server
+# ADR-0047：平台 MCP Server
 
 状态：采纳（P1–P4）；后续阶段为规划方向，实施前按当时事实修订，不构成已实现能力声明。
 

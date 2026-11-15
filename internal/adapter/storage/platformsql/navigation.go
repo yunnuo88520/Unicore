@@ -178,6 +178,10 @@ func (r *Repository) retirePersonalNavigation(ctx context.Context) error {
 	if err = r.Store.LockInstallation(ctx, tx); err != nil {
 		return err
 	}
+	roleSnapshots, err := r.roleEditSnapshots(ctx, tx)
+	if err != nil {
+		return err
+	}
 	n, err := r.readNavigation(ctx, tx)
 	if err != nil {
 		return err
@@ -263,6 +267,9 @@ func (r *Repository) retirePersonalNavigation(ctx context.Context) error {
 	if _, err = r.Store.Exec(ctx, tx, "UPDATE unicore_navigation_state SET version=version+1 WHERE id=1"); err != nil {
 		return err
 	}
+	if err = r.advanceChangedRoleVersions(ctx, tx, roleSnapshots); err != nil {
+		return err
+	}
 	return tx.Commit()
 }
 
@@ -279,6 +286,10 @@ func (r *Repository) retireDemoNavigation(ctx context.Context) error {
 	}
 	defer tx.Rollback()
 	if err = r.Store.LockInstallation(ctx, tx); err != nil {
+		return err
+	}
+	roleSnapshots, err := r.roleEditSnapshots(ctx, tx)
+	if err != nil {
 		return err
 	}
 	n, err := r.readNavigation(ctx, tx)
@@ -326,6 +337,24 @@ func (r *Repository) retireDemoNavigation(ctx context.Context) error {
 		}
 		kept = append(kept, node)
 	}
+	// A previous tree-only edit may have left dangling retired grants.
+	targets := map[string]bool{"lab": true, "files": true, "api-operations": true}
+	for id := range removed {
+		targets[id] = true
+	}
+	for id := range targets {
+		for _, grant := range []struct{ table, column string }{{"unicore_role_menus", "menu_id"}, {"unicore_role_actions", "action_id"}} {
+			result, err := r.Store.Exec(ctx, tx, "DELETE FROM "+grant.table+" WHERE "+grant.column+"=?", id)
+			if err != nil {
+				return err
+			}
+			affected, err := result.RowsAffected()
+			if err != nil {
+				return err
+			}
+			changed = changed || affected > 0
+		}
+	}
 	if !changed {
 		return tx.Rollback()
 	}
@@ -342,6 +371,9 @@ func (r *Repository) retireDemoNavigation(ctx context.Context) error {
 		}
 	}
 	if _, err = r.Store.Exec(ctx, tx, "UPDATE unicore_navigation_state SET version=version+1 WHERE id=1"); err != nil {
+		return err
+	}
+	if err = r.advanceChangedRoleVersions(ctx, tx, roleSnapshots); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -716,6 +748,10 @@ func (r *Repository) upgradeSharedNavigation(ctx context.Context) error {
 	if err = r.Store.LockInstallation(ctx, tx); err != nil {
 		return err
 	}
+	roleSnapshots, err := r.roleEditSnapshots(ctx, tx)
+	if err != nil {
+		return err
+	}
 	if current, err := r.readNavigation(ctx, tx); err != nil || !legacyNavigation(current) {
 		return err
 	}
@@ -817,6 +853,9 @@ func (r *Repository) upgradeSharedNavigation(ctx context.Context) error {
 		return err
 	}
 	if err = r.audit(audit.Target(ctx, "menus/upgrade", "unified grant namespace"), tx, "system", "menus.updated"); err != nil {
+		return err
+	}
+	if err = r.advanceChangedRoleVersions(ctx, tx, roleSnapshots); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -1136,6 +1175,10 @@ func (r *Repository) initializeNavigation(ctx context.Context) error {
 	if err = r.Store.LockInstallation(ctx, tx); err != nil {
 		return err
 	}
+	roleSnapshots, err := r.roleEditSnapshots(ctx, tx)
+	if err != nil {
+		return err
+	}
 	if initialized, err := r.navigationInitialized(ctx, tx); err != nil || initialized {
 		return err
 	}
@@ -1146,6 +1189,9 @@ func (r *Repository) initializeNavigation(ctx context.Context) error {
 		return err
 	}
 	if err = r.materializeRoleAuthorizations(ctx, tx, n); err != nil {
+		return err
+	}
+	if err = r.advanceChangedRoleVersions(ctx, tx, roleSnapshots); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -1403,6 +1449,10 @@ func (r *Repository) SaveNavigation(ctx context.Context, input contracts.MenuSav
 	if err = r.Store.LockInstallation(ctx, tx); err != nil {
 		return contracts.MenuList{}, err
 	}
+	roleSnapshots, err := r.roleEditSnapshots(ctx, tx)
+	if err != nil {
+		return contracts.MenuList{}, err
+	}
 	admin, err := r.actor(ctx, tx, actor, "menus:write")
 	if err != nil {
 		return contracts.MenuList{}, err
@@ -1446,6 +1496,9 @@ func (r *Repository) SaveNavigation(ctx context.Context, input contracts.MenuSav
 		}
 	}
 	if err = r.audit(audit.Target(ctx, "menus/", fmt.Sprintf("version=%d; sections=%d; nodes=%d; assignments=%d", input.Version+1, len(n.Sections), len(n.Nodes), len(derefAssignments(input.RoleAssignments)))), tx, actor, "menus.updated"); err != nil {
+		return contracts.MenuList{}, err
+	}
+	if err = r.advanceChangedRoleVersions(ctx, tx, roleSnapshots); err != nil {
 		return contracts.MenuList{}, err
 	}
 	if err = tx.Commit(); err != nil {

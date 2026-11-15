@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"reflect"
 	"strings"
 
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
@@ -19,14 +20,15 @@ import (
 // Every workspace uses the same membership relation.
 func (r *Repository) role(ctx context.Context, q sqlstore.Runner, id string) (contracts.Role, error) {
 	var name, realm, scope string
-	err := r.Store.Row(ctx, q, "SELECT name, realm, data_scope FROM unicore_roles WHERE id=?", id).Scan(&name, &realm, &scope)
+	var version int
+	err := r.Store.Row(ctx, q, "SELECT name, realm, data_scope, version FROM unicore_roles WHERE id=?", id).Scan(&name, &realm, &scope, &version)
 	if errors.Is(err, sql.ErrNoRows) {
 		return contracts.Role{}, platform.ErrInput
 	}
 	if err != nil {
 		return contracts.Role{}, err
 	}
-	result := contracts.Role{ID: id, Name: name, Realm: realm, Builtin: platform.BuiltinRole(id), Permissions: []string{}, DataScope: scope, DepartmentIds: []string{}}
+	result := contracts.Role{ID: id, Version: version, Name: name, Realm: realm, Builtin: platform.BuiltinRole(id), Permissions: []string{}, DataScope: scope, DepartmentIds: []string{}}
 	if id == "super_admin" {
 		result.DataScope = platform.ScopeSelf
 		result.AuthorizationInitialized = true
@@ -433,6 +435,9 @@ func (r *Repository) CreateRole(ctx context.Context, input contracts.RoleSaveInp
 // current authorization; an explicit empty array clears it, so an empty
 // authorization is a real state and never "all".
 func (r *Repository) UpdateRole(ctx context.Context, id string, input contracts.RoleSaveInput, actor string) (contracts.Role, error) {
+	if input.Version == nil || *input.Version <= 0 {
+		return contracts.Role{}, platform.ErrInput
+	}
 	name := strings.TrimSpace(input.Name)
 	if name == "" {
 		return contracts.Role{}, platform.ErrInput
@@ -460,6 +465,9 @@ func (r *Repository) UpdateRole(ctx context.Context, id string, input contracts.
 	}
 	if id == "super_admin" {
 		return contracts.Role{}, platform.ErrForbidden
+	}
+	if before.Version != *input.Version {
+		return contracts.Role{}, platform.ErrConflict
 	}
 	// Public registration always uses user; its grants must remain business-only.
 	if id == "user" {
@@ -493,10 +501,19 @@ func (r *Repository) UpdateRole(ctx context.Context, id string, input contracts.
 	if err != nil {
 		return contracts.Role{}, err
 	}
-	if !before.Builtin {
-		if _, err = r.Store.Exec(ctx, tx, "UPDATE unicore_roles SET name=?,data_scope=? WHERE id=?", name, scope, id); err != nil {
-			return contracts.Role{}, accountError(err)
-		}
+	if before.Builtin {
+		name = before.Name
+	}
+	result, err := r.Store.Exec(ctx, tx, "UPDATE unicore_roles SET name=?,data_scope=?,version=version+1 WHERE id=? AND version=?", name, scope, id, *input.Version)
+	if err != nil {
+		return contracts.Role{}, accountError(err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return contracts.Role{}, err
+	}
+	if affected != 1 {
+		return contracts.Role{}, platform.ErrConflict
 	}
 	if err = r.writeRolePermissions(ctx, tx, id, input.Permissions); err != nil {
 		return contracts.Role{}, err
@@ -660,20 +677,35 @@ func (r *Repository) writeRoleDepartments(ctx context.Context, tx *sql.Tx, id st
 // instances, and role authorization materialization runs exactly once at the
 // navigation upgrade, so upgrades never silently widen any role.
 func (r *Repository) EnsurePermissions(ctx context.Context) error {
+	tx, err := r.Store.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err = r.Store.LockInstallation(ctx, tx); err != nil {
+		return err
+	}
+	before, err := r.roleEditSnapshots(ctx, tx)
+	if err != nil {
+		return err
+	}
 	// Retire the object-storage demo grants on the built-in user role only.
 	// Explicit custom-role API grants remain operator-owned.
-	if _, err := r.Store.Exec(ctx, r.Store.DB, "DELETE FROM unicore_role_permissions WHERE role_id=? AND permission_id IN (?,?,?)", "user", "files:access", "files:upload", "files:delete"); err != nil {
+	if _, err := r.Store.Exec(ctx, tx, "DELETE FROM unicore_role_permissions WHERE role_id=? AND permission_id IN (?,?,?)", "user", "files:access", "files:upload", "files:delete"); err != nil {
 		return err
 	}
 	for _, permission := range platform.Permissions() {
-		if _, err := r.Store.Exec(ctx, r.Store.DB, "INSERT INTO unicore_permissions(id) SELECT ? WHERE NOT EXISTS (SELECT 1 FROM unicore_permissions WHERE id=?)", permission, permission); err != nil {
+		if _, err := r.Store.Exec(ctx, tx, "INSERT INTO unicore_permissions(id) SELECT ? WHERE NOT EXISTS (SELECT 1 FROM unicore_permissions WHERE id=?)", permission, permission); err != nil {
 			return err
 		}
-		if _, err := r.Store.Exec(ctx, r.Store.DB, "INSERT INTO unicore_role_permissions(role_id,permission_id) SELECT ?,? WHERE NOT EXISTS (SELECT 1 FROM unicore_role_permissions WHERE role_id=? AND permission_id=?)", "super_admin", permission, "super_admin", permission); err != nil {
+		if _, err := r.Store.Exec(ctx, tx, "INSERT INTO unicore_role_permissions(role_id,permission_id) SELECT ?,? WHERE NOT EXISTS (SELECT 1 FROM unicore_role_permissions WHERE role_id=? AND permission_id=?)", "super_admin", permission, "super_admin", permission); err != nil {
 			return err
 		}
 	}
-	return nil
+	if err = r.advanceChangedRoleVersions(ctx, tx, before); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // deriveGrants computes the equivalent authorization of a permission set
@@ -744,4 +776,55 @@ func uniqueIDs(ids []string) []string {
 		}
 	}
 	return result
+}
+
+// roleEditSnapshots captures editable role state under the installation lock.
+// Membership counts are intentionally excluded: assigning users does not stale
+// a role editor. Versions are advanced only for actual persisted state changes.
+func (r *Repository) roleEditSnapshots(ctx context.Context, tx *sql.Tx) (map[string]contracts.Role, error) {
+	rows, err := r.Store.Rows(ctx, tx, "SELECT id FROM unicore_roles ORDER BY id")
+	if err != nil {
+		return nil, err
+	}
+	ids := []string{}
+	for rows.Next() {
+		var id string
+		if err = rows.Scan(&id); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	result := map[string]contracts.Role{}
+	for _, id := range ids {
+		role, err := r.role(ctx, tx, id)
+		if err != nil {
+			return nil, err
+		}
+		role.UserCount = 0
+		result[id] = role
+	}
+	return result, nil
+}
+
+func (r *Repository) advanceChangedRoleVersions(ctx context.Context, tx *sql.Tx, before map[string]contracts.Role) error {
+	for id, previous := range before {
+		current, err := r.role(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		current.UserCount = 0
+		if reflect.DeepEqual(previous, current) {
+			continue
+		}
+		if _, err = r.Store.Exec(ctx, tx, "UPDATE unicore_roles SET version=version+1 WHERE id=?", id); err != nil {
+			return err
+		}
+	}
+	return nil
 }

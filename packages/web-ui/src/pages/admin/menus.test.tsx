@@ -30,7 +30,7 @@ const nodes: NavigationNode[] = [
 ];
 
 const role = (overrides: Partial<Role> = {}): Role => ({
-  id: 'r1', name: '运营', builtin: false, permissions: ['users:read'], user_count: 3, realm: 'administrator',
+  id: 'r1', name: '运营', version: 4, builtin: false, permissions: ['users:read'], user_count: 3, realm: 'administrator',
   data_scope: 'all', department_ids: [], menu_ids: ['users'], action_ids: [], operation_ids: [], authorization_initialized: true, ...overrides,
 });
 
@@ -669,6 +669,95 @@ it('keeps the editor open and shows the server conflict when the version CAS rej
   // The draft stays editable for a retry after refreshing the table.
   expect(screen.getByRole('button', { name: '保存菜单配置' })).toBeEnabled();
   expect(screen.getByRole('row', { name: '业务' })).toBeVisible();
+});
+
+it('shows role loading rather than claiming no assignments while the catalogue is pending', async () => {
+  mountWeb({ menuConfig: vi.fn().mockResolvedValue(menuList()), roles: () => new Promise(() => {}) }, meta(['menus:write']));
+  await userEvent.click(await screen.findByRole('button', { name: '分配角色：工作台概览' }));
+  const dialog = screen.getByRole('dialog', { name: '分配角色：工作台概览' });
+  expect(within(dialog).getByRole('status')).toHaveTextContent('正在加载角色…');
+  expect(within(dialog).queryByText('未分配角色')).toBeNull();
+});
+
+it('distinguishes loading and failed role catalogues from empty assignments and retries', async () => {
+  const roles = vi.fn().mockRejectedValueOnce(new Error('角色目录暂不可用')).mockResolvedValue({ items: [role()], permissions: [] });
+  mountWeb({ menuConfig: vi.fn().mockResolvedValue(menuList()), roles }, meta(['menus:write']));
+  expect(await screen.findByText('角色目录暂不可用')).toBeVisible();
+  expect(screen.queryByText('超级管理员默认访问；未分配其他角色')).toBeNull();
+  await userEvent.click(screen.getByRole('button', { name: '重试' }));
+  expect(await screen.findAllByText('超级管理员默认访问；未分配其他角色')).not.toHaveLength(0);
+});
+
+it('retries a failed role catalogue inside the assignment dialog without exposing an empty editor', async () => {
+  const roles = vi.fn().mockRejectedValueOnce(new Error('角色目录暂不可用')).mockResolvedValue({ items: [role()], permissions: [] });
+  mountWeb({ menuConfig: vi.fn().mockResolvedValue(menuList()), roles }, meta(['menus:write']));
+  await screen.findByText('角色目录暂不可用');
+  await userEvent.click(screen.getByRole('button', { name: '分配角色：工作台概览' }));
+  const dialog = screen.getByRole('dialog', { name: '分配角色：工作台概览' });
+  expect(within(dialog).getByText('角色目录暂不可用')).toBeVisible();
+  expect(within(dialog).queryByRole('button', { name: '保存' })).toBeNull();
+  expect(within(dialog).queryByText('未分配角色')).toBeNull();
+  await userEvent.click(within(dialog).getByRole('button', { name: '重试' }));
+  expect(await screen.findByRole('checkbox', { name: '运营' })).not.toBeChecked();
+  const loaded = screen.getByRole('dialog', { name: '分配角色：工作台概览' });
+  expect(within(loaded).getByRole('checkbox', { name: 'super_admin' })).toBeDisabled();
+  expect(within(loaded).getByRole('button', { name: '保存' })).toBeEnabled();
+  expect(roles).toHaveBeenCalledTimes(2);
+});
+
+it('keeps cached role summaries when a background refresh fails and shows a retry', async () => {
+  const cache = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  cache.setQueryData(['roles'], { items: [role({ menu_ids: ['overview'] })], permissions: [] });
+  const roles = vi.fn().mockRejectedValue(new Error('角色刷新失败'));
+  render(<QueryClientProvider client={cache}><MessageProvider><AdminMenusPage {...({ client: { web: { menuConfig: vi.fn().mockResolvedValue(menuList()), roles } }, metadata: meta(['menus:write']) } as unknown as PageProps)} /></MessageProvider></QueryClientProvider>);
+  expect(await screen.findByText('角色刷新失败')).toBeVisible();
+  expect(within(rowOf('overview')!).getByText('显式分配：运营')).toBeVisible();
+  expect(within(rowOf('notes')!).getByText('超级管理员默认访问；未分配其他角色')).toBeVisible();
+  expect(screen.getByRole('button', { name: '重试' })).toBeVisible();
+});
+
+it('keeps the super administrator assignment fixed and protects dirty layout navigation', async () => {
+  harness(menuList(), [role({ id: 'user', name: '用户', builtin: true, menu_ids: [] })]);
+  await userEvent.click(await screen.findByRole('button', { name: '分配角色：工作台概览' }));
+  const dialog = screen.getByRole('dialog', { name: '分配角色：工作台概览' });
+  const fixed = within(dialog).getByRole('checkbox', { name: 'super_admin' });
+  expect(fixed).toBeChecked(); expect(fixed).toBeDisabled();
+  expect(within(dialog).getByText('还没有自定义角色')).toBeVisible();
+  expect(within(dialog).getByRole('link', { name: '前往角色管理' })).toHaveAttribute('href', 'roles');
+  await userEvent.click(within(dialog).getByRole('button', { name: '取消' }));
+  await userEvent.type(screen.getAllByLabelText('区域名称')[0], '草稿');
+  await userEvent.click(screen.getByRole('link', { name: '前往角色管理' }));
+  expect(await screen.findByText('请先保存菜单配置再前往角色管理')).toBeVisible();
+  expect(screen.getAllByLabelText('区域名称')[0]).toHaveValue('业务草稿');
+});
+
+it('locks a reserved page to super administrators even without a page catalogue entry', async () => {
+  const list = menuList();
+  list.nodes.push(node({ id: 'reserved', route_id: 'roles', label: '保留页面' }));
+  mountWeb({ menuConfig: vi.fn().mockResolvedValue(list), roles: vi.fn().mockResolvedValue({ items: [role()], permissions: [{ id: 'roles:read', super_admin: true }] }) }, meta(['menus:write']));
+  await userEvent.click(await screen.findByRole('button', { name: '分配角色：保留页面' }));
+  const dialog = screen.getByRole('dialog', { name: '分配角色：保留页面' });
+  expect(within(dialog).getByText('仅超级管理员')).toBeVisible();
+  expect(within(dialog).getByRole('checkbox', { name: '运营' })).toBeDisabled();
+});
+
+it('uses reserved permission metadata from the page catalogue and allows only removal of stale custom assignments', async () => {
+  const list = menuList();
+  list.pages = [{ id: 'overview', permission: 'module:reserved', group: 'module', surfaces: ['administrator'] }];
+  const assignMenuRoles = vi.fn().mockResolvedValue({ items: [], permissions: [] });
+  mountWeb({ menuConfig: vi.fn().mockResolvedValue(list), roles: vi.fn().mockResolvedValue({ items: [role({ menu_ids: ['overview'] }), role({ id: 'r2', name: '其他角色', menu_ids: [] })], permissions: [{ id: 'module:reserved', super_admin: true }] }), assignMenuRoles }, meta(['menus:write']));
+  await screen.findByText('仅超级管理员');
+  expect(within(rowOf('overview')!).getByText('仅超级管理员')).toBeVisible();
+  await userEvent.click(screen.getByRole('button', { name: '分配角色：工作台概览' }));
+  const dialog = screen.getByRole('dialog', { name: '分配角色：工作台概览' });
+  expect(within(dialog).getByText('仅超级管理员')).toBeVisible();
+  const stale = within(dialog).getByRole('checkbox', { name: '运营' });
+  expect(stale).toBeChecked(); expect(stale).toBeEnabled();
+  expect(within(dialog).getByRole('checkbox', { name: '其他角色' })).toBeDisabled();
+  await userEvent.click(stale);
+  expect(stale).not.toBeChecked(); expect(stale).toBeDisabled();
+  await userEvent.click(within(dialog).getByRole('button', { name: '保存' }));
+  await vi.waitFor(() => expect(assignMenuRoles).toHaveBeenCalledWith('overview', { version: 7, expected_role_ids: ['r1'], role_ids: [] }));
 });
 
 it('patches one menu role membership using its observed role set and navigation version', async () => {

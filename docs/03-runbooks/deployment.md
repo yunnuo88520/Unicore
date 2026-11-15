@@ -33,7 +33,7 @@
 
 同一原数据库必须使用原连接参数，并通过实例/profile 标记匹配；勾选清空并准确输入库名后才能重新初始化，原账号/设置/业务数据全部删除。新空库可以安装，原库不变。其他实例或无法证明归属的非空库禁止覆盖，改用专用空库或恢复原配置。运行中删锁不生效；锁损坏不自动开放安装。完成后重新生成锁并吊销凭据。MySQL 清空中断且原标记已丢失时停止，不替管理员继续清空。
 
-框架表使用固定 unicore_ 前缀，项目生成时保持；自有业务表可自行命名。当前 0.x 运行时的迁移 0013 保留数据重命名旧表，升级前备份并停服；名称冲突拒绝，不自动删表。回退恢复升级前快照和匹配旧程序。
+框架表使用固定 unicore_ 前缀，项目生成时保持；自有业务表可自行命名。当前使用 Catalog 单轨，不再执行旧轨 0013 重命名；旧双身份或不匹配基线的开发库写前拒绝，不自动转换/删表。匹配 Catalog 账本的已有库正常启动追加缺失尾部；回退须升级前完整快照和匹配旧程序，不能仅换 binary。
 
 ## 密钥与安装故障
 
@@ -47,7 +47,7 @@ bootstrap.token 用于证明服务器所有权、防止别人抢先建管理员�
 
 ## Desktop / CLI
 
-`make dev-desktop` 使用 go.mod 锁定的 Wails（当前 v2.13.0），CLI 工具应安装匹配版本；默认系统 AppData/Unicore/desktop 自动 SQLite，APP_DATA_DIR 可隔离测试。没有安装/登录，用户表不会创建；进程锁防止同时使用同一目录。绑定生成不读写真实数据。桌面日志自动写入数据目录 logs/ 并保留 stderr 输出，保留策略用 APP_LOG_MAX_AGE_DAYS 等环境变量控制（重启生效）。macOS 需 Xcode tools，Linux Ubuntu22.04 需 WebKitGTK4.0，4.1 环境追加 webkit2_41；Windows 需 WebView2。
+`make dev-desktop` 使用 go.mod 锁定的 Wails（当前 v2.13.0），CLI 工具应安装匹配版本；默认系统 AppData/Unicore/desktop 自动 SQLite，APP_DATA_DIR 可隔离测试。无需交互安装/登录；当前 Catalog 与 Web 单机均含 platform，共享 schema 会创建用户/角色等表，但不装配账号、认证或治理服务，不运行平台账号种子；进程锁防止同时使用同一目录。绑定生成不读写真实数据。桌面日志自动写入数据目录 logs/ 并保留 stderr 输出，保留策略用 APP_LOG_MAX_AGE_DAYS 等环境变量控制（重启生效）。macOS 需 Xcode tools，Linux Ubuntu22.04 需 WebKitGTK4.0，4.1 环境追加 webkit2_41；Windows 需 WebView2。
 
 CLI 直接运行 `build/bin/unicore execute --text "Hello Unicore"`，不打开 HTTP/Wails/DB。仅业务文本分析无持久化，输入不会写日志。
 
@@ -73,7 +73,7 @@ Web 发行包通过 `unicore backup|verify|restore` 离线加密备份/校验/�
 
 账号邮件使用持久队列，由 server 进程运行。「系统管理 → 操作日志 → 邮件投递」展示最近 30 项的状态/尝试次数，失败自动重试最多 5 次，终止后由用户在登录页重新申请，避免把已过期验证码重新投入队列。错误仅显示 DELIVERY_FAILED/EXPIRED，不保留原始 SMTP 响应或凭据。进程重启可恢复过期租约，可能重复投递，邮件令牌仍只能使用一次。完成/终止/取消清空载荷，终态元数据在后台清理时保留最多 7 天。
 
-数据库初始化与后续迁移由 Catalog 单轨执行；当前基线已含账号、通知与邮件所需表。正式版后升级只追加命名空间版本，停服并保存完整快照，正常启动应用缺失尾部；失败不得删账本或重走安装。
+数据库初始化与后续迁移由 Catalog 单轨执行；当前 core@1、platform@5（既有 @2 收件箱 actions、@3 MCP 治理底座、@4 角色 version、@5 MCP OAuth 存储）、module.notes@1。三个 UI profile 均保留 platform 成员，Standalone/desktop 同步迁移但不开放身份治理，数据库隔离另行决策。匹配旧账本的升级停服并保存完整快照，正常启动应用缺失尾部；@4、@5 不改写既有版本。MySQL DDL 可在账本登记前提交，失败须停止并恢复匹配快照到新空目标，不盲重试 ADD COLUMN、按列存在补账本、删账本或重走安装。指纹变化拒绝 OTA：tar 人工替换完整包，Docker 外部换镜像且保留数据卷，desktop 退出后换完整原生包；回退数据库/配置/私有文件/密钥和旧程序须成套。见 [迁移规范](../02-standards/database-migrations.md)、[更新](updates.md) 与 [备份恢复](backup.md)。
 
 验证链接有效 30 分钟、重置链接 15 分钟。重发使旧链接失效，密码重置使所有设备会话失效。用户状态/角色被管理员改变也会撤销待用令牌。邮箱验证不会自动登录或授予管理权限。管理员通过受保护的用户管理手动启用待验证用户属于显式管理操作。
 

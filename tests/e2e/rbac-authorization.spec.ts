@@ -19,10 +19,10 @@ test('menu, action and API revocations remain independent across role edits', as
  expect((await page.request.post(`${instance.url}/api/v1/notes`,{headers:{'X-CSRF-Token':boot.csrf_token},data:input})).status()).toBe(200);
  expect((await page.request.post(`${instance.url}/api/v1/notes`,{data:input})).status()).toBe(403);
  // Menu removal blocks direct navigation. An omitted action set stays empty.
- let saved=await owner.updateRole(role.id,{name:'RBAC consumer',permissions:points,menu_ids:['overview'],operation_ids:['listNotes']});
+ let saved=await owner.updateRole(role.id,{version:role.version,name:'RBAC consumer',permissions:points,menu_ids:['overview'],operation_ids:['listNotes']});
  expect(saved.action_ids).toEqual([]);
  // A subsequent rename/widening must not resurrect createNote.
- saved=await owner.updateRole(role.id,{name:'RBAC consumer renamed',permissions:[...points,'notes:delete']});
+ saved=await owner.updateRole(role.id,{version:saved.version,name:'RBAC consumer renamed',permissions:[...points,'notes:delete']});
  expect(saved.operation_ids).toEqual(['listNotes']);
  await workspaceLogin(page,instance.url,member.username);
  await page.goto(`${instance.url}/notes`);
@@ -81,7 +81,7 @@ test('an administrator grants the notes page through the role editor UI and the 
   await userDialog.getByLabel('账号', { exact: true }).fill('ui-publisher');
   await userDialog.getByLabel('邮箱', { exact: true }).fill('ui-publisher@example.test');
   await userDialog.getByLabel('初始密码', { exact: true }).fill(memberPassword);
-  await userDialog.getByRole('checkbox', { name: 'user', exact: true }).uncheck();
+  await userDialog.getByRole('checkbox', { name: '用户', exact: true }).uncheck();
   await userDialog.getByRole('checkbox', { name: '笔记运营', exact: true }).check();
   await userDialog.getByRole('button', { name: '创建用户', exact: true }).click();
   await expect(userDialog).toHaveCount(0);

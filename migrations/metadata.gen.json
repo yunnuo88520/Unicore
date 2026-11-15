@@ -185,19 +185,39 @@
           "version": 4,
           "files": {
             "mysql": {
-              "path": "platform/mysql/0004_mcp_oauth.sql",
-              "bytes": 2835,
-              "checksum": "cdd385893539ea91a82619bb94a7bb757b728d755181b45977316cb420cb3483"
+              "path": "platform/mysql/0004_role_version.sql",
+              "bytes": 627,
+              "checksum": "d7f5e6c2f4f3a9557e89f1a9aefdf88a6ce2b16ec59c40c567f6c08ae2f707b5"
             },
             "postgres": {
-              "path": "platform/postgres/0004_mcp_oauth.sql",
-              "bytes": 3266,
-              "checksum": "cdb7b9b26ebafd40a2c99d7b511db686178c0d2580c5b7dbc5cf5ad9bdca655b"
+              "path": "platform/postgres/0004_role_version.sql",
+              "bytes": 630,
+              "checksum": "7e9350d689e4145536c339f078c40bd9e9bdc6b32316008188322ecdab3393b9"
             },
             "sqlite": {
-              "path": "platform/sqlite/0004_mcp_oauth.sql",
+              "path": "platform/sqlite/0004_role_version.sql",
+              "bytes": 628,
+              "checksum": "877220adcd623f370d0304109c7a415e8928598a3f9d41d26df176a2d8308f2f"
+            }
+          }
+        },
+        {
+          "version": 5,
+          "files": {
+            "mysql": {
+              "path": "platform/mysql/0005_mcp_oauth.sql",
+              "bytes": 2835,
+              "checksum": "8fc943f463265bee8ec41fbf489310b3fd74e949b2ce48e7e207f18966902954"
+            },
+            "postgres": {
+              "path": "platform/postgres/0005_mcp_oauth.sql",
+              "bytes": 3266,
+              "checksum": "3acfeb232de6065d79196941b73c9d5f26f88cfd500cce94e5fd36f78147f977"
+            },
+            "sqlite": {
+              "path": "platform/sqlite/0005_mcp_oauth.sql",
               "bytes": 2665,
-              "checksum": "ff046c57da49f848f81982f4fbaa16cc1010509b075f36b4cf3275bb63e27c88"
+              "checksum": "097b8d08d68bde5811848175be59d78897aaf9fe723c1f80d7280712d753d32d"
             }
           }
         }
@@ -229,9 +249,9 @@
       "levels": {
         "core": 1,
         "module.notes": 1,
-        "platform": 4
+        "platform": 5
       },
-      "schema_fingerprint": "8fd584e2ca3a5b932048688c147fc73f13723982985273f3d9da49aad09c19de"
+      "schema_fingerprint": "8069902edcf89059b7cee555779f2764898bf49a1f961cf1171ba8b37ab431ef"
     },
     "web-platform": {
       "dialects": [
@@ -252,9 +272,9 @@
       "levels": {
         "core": 1,
         "module.notes": 1,
-        "platform": 4
+        "platform": 5
       },
-      "schema_fingerprint": "0817c2bef72b30e751e0433a6c3859aed7ba6db9427534af9de6a167817acd5f"
+      "schema_fingerprint": "6911339fcb48187993671af5792a2018d5d6127b126427ee50dc45755f8bb769"
     },
     "web-standalone": {
       "dialects": [
@@ -275,9 +295,9 @@
       "levels": {
         "core": 1,
         "module.notes": 1,
-        "platform": 4
+        "platform": 5
       },
-      "schema_fingerprint": "0817c2bef72b30e751e0433a6c3859aed7ba6db9427534af9de6a167817acd5f"
+      "schema_fingerprint": "6911339fcb48187993671af5792a2018d5d6127b126427ee50dc45755f8bb769"
     }
   }
 }

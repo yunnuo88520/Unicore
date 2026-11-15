@@ -8,6 +8,7 @@ import type { Bootstrap, PermissionDefinition, Role, RoleList, WebClient } from 
 import { t, useLocale } from '../../i18n';
 import { invalidateAfter } from '../../queries';
 import { usePermissions } from '../../permissions';
+import { roleDisplayLabel } from '../../role-display';
 import { Badge, Button, Card, CardContent, ConfirmDialog, PageHeader, useMessage } from '@unicore/ui';
 import { DataTable } from '../../components/data-table';
 import { RoleEditor, dataScopeText } from './role-editor';
@@ -25,7 +26,7 @@ type RolesTableMeta = { canWrite: boolean; onEdit: (role: Role) => void; onCopy:
 const columns = helper.columns([
   helper.accessor('name', {
     header: () => t('名称'),
-    cell: info => <strong className="font-medium text-ink">{info.getValue()}</strong>,
+    cell: info => <strong className="font-medium text-ink">{roleDisplayLabel(info.row.original)}</strong>,
   }),
   helper.accessor('builtin', {
     header: () => t('类型'),
@@ -52,9 +53,9 @@ const columns = helper.columns([
       // super_admin is immutable server-side; the builtin user role cannot be deleted but can be duplicated.
       if (role.id === 'super_admin' || !meta.canWrite) return null;
       return <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon" aria-label={t('编辑角色 {{name}}', { name: role.name })} onClick={() => meta.onEdit(role)}><Pencil size={14} /></Button>
-        <Button variant="ghost" size="icon" aria-label={t('复制角色 {{name}}', { name: role.name })} onClick={() => meta.onCopy(role)}><Copy size={14} /></Button>
-        {!role.builtin && <Button variant="ghost" size="icon" aria-label={t('删除角色 {{name}}', { name: role.name })} onClick={() => meta.onRemove(role)}><Trash2 size={14} /></Button>}
+        <Button variant="ghost" size="icon" aria-label={t('编辑角色 {{name}}', { name: roleDisplayLabel(role) })} onClick={() => meta.onEdit(role)}><Pencil size={14} /></Button>
+        <Button variant="ghost" size="icon" aria-label={t('复制角色 {{name}}', { name: roleDisplayLabel(role) })} onClick={() => meta.onCopy(role)}><Copy size={14} /></Button>
+        {!role.builtin && <Button variant="ghost" size="icon" aria-label={t('删除角色 {{name}}', { name: roleDisplayLabel(role) })} onClick={() => meta.onRemove(role)}><Trash2 size={14} /></Button>}
       </div>;
     },
   }),
@@ -102,7 +103,7 @@ function RolePanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
   });
   return <div className="flex min-w-0 flex-col gap-6">
       <PageHeader title={t('角色权限')} description={t('为用户组合业务与管理权限；super_admin 由系统维护。')}
-        actions={canWrite && <Button onClick={() => setEditor({ mode: 'new' })}><Plus size={15} />{t('新建角色')}</Button>} />
+        actions={canWrite && <Button disabled={!list.data} onClick={() => setEditor({ mode: 'new' })}><Plus size={15} />{t('新建角色')}</Button>} />
 
     <Card>
     <CardContent className="flex flex-col gap-4">

@@ -1721,7 +1721,8 @@ export const constraints = {
       "menu_ids",
       "action_ids",
       "operation_ids",
-      "authorization_initialized"
+      "authorization_initialized",
+      "version"
     ],
     "properties": {
       "id": {
@@ -1796,6 +1797,10 @@ export const constraints = {
       },
       "authorization_initialized": {
         "type": "boolean"
+      },
+      "version": {
+        "type": "integer",
+        "minimum": 1
       }
     }
   },
@@ -5166,6 +5171,10 @@ export const constraints = {
           "user",
           "administrator"
         ]
+      },
+      "version": {
+        "type": "integer",
+        "minimum": 1
       },
       "data_scope": {
         "type": "string",

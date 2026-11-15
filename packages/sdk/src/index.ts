@@ -203,6 +203,7 @@ export interface WebClient {
   adminDashboard(): Promise<Dashboard>;
   roles(): Promise<RoleList>;
   createRole(input: RoleSaveInput): Promise<Role>;
+  /** Supply the version read with the role; stale updates return ENTITY_CONFLICT. */
   updateRole(id: string, input: RoleSaveInput): Promise<Role>;
   deleteRole(id: string): Promise<Role>;
   menuConfig(): Promise<MenuList>;

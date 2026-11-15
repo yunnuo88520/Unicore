@@ -29,6 +29,7 @@ var basePermissionCatalog = []contracts.PermissionDefinition{
 	{ID: "users:read", Name: "查看用户", Description: "搜索和查看用户账号、角色与状态", Group: "用户管理"},
 	{ID: "users:create", Name: "创建用户", Description: "创建普通用户", Group: "用户管理"},
 	{ID: "users:update", Name: "管理用户身份", Description: "启停普通用户账号", Group: "用户管理"},
+	{ID: "users:credentials:write", Name: "管理用户凭据", Description: "重置业务账号密码与修改登录邮箱；管理账号凭据仅超级管理员可修改", Group: "用户管理"},
 	{ID: "departments:read", Name: "查看部门", Description: "查看部门组织树与用户归属", Group: "用户管理"},
 	{ID: "departments:write", Name: "管理部门", Description: "创建、编辑与删除部门", Group: "用户管理"},
 	{ID: "settings:read", Name: "查看基础设置", Description: "查看站点、品牌、安全和邮件配置", Group: "系统管理"},

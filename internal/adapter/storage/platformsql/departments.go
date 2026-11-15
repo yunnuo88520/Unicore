@@ -249,6 +249,10 @@ func (r *Repository) DeleteDepartment(ctx context.Context, id string, actor stri
 	if err = r.Store.LockInstallation(ctx, tx); err != nil {
 		return contracts.Department{}, err
 	}
+	roleSnapshots, err := r.roleEditSnapshots(ctx, tx)
+	if err != nil {
+		return contracts.Department{}, err
+	}
 	if err = r.AuthorizeAdministrator(ctx, tx, actor, "departments:write"); err != nil {
 		return contracts.Department{}, err
 	}
@@ -277,6 +281,9 @@ func (r *Repository) DeleteDepartment(ctx context.Context, id string, actor stri
 		return contracts.Department{}, err
 	}
 	if err = r.audit(audit.Target(ctx, "department/"+id, "deleted"), tx, actor, "departments.deleted"); err != nil {
+		return contracts.Department{}, err
+	}
+	if err = r.advanceChangedRoleVersions(ctx, tx, roleSnapshots); err != nil {
 		return contracts.Department{}, err
 	}
 	return before, tx.Commit()

@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -33,6 +34,7 @@ import (
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/settings"
 	"github.com/yunnuo/unicore/internal/usecase"
+	"github.com/yunnuo/unicore/migrations/catalogdata"
 	"github.com/yunnuo/unicore/migrations/runner"
 )
 
@@ -366,7 +368,7 @@ func main() {
 	}
 	for _, driver := range []string{"postgres", "mysql"} {
 		control := open(driver, map[string]string{"postgres": "postgres", "mysql": "mysql"}[driver], "")
-		for _, name := range []string{"r10b_platform", "r10b_standalone"} {
+		for _, name := range []string{"r10b_platform", "r10b_standalone", "r10b_upgrade_platform", "r10b_upgrade_standalone"} {
 			exec(control, "CREATE DATABASE "+name)
 		}
 		must(control.Close())
@@ -385,6 +387,10 @@ func main() {
 			}
 			dir := filepath.Join(c.Temp, id)
 			s := open(driver, name, filepath.Join(dir, "unicore.db"))
+			upgradeDB := open(driver, "r10b_upgrade_"+strings.TrimPrefix(profile, "web-"), filepath.Join(c.Temp, "upgrade-"+id, "unicore.db"))
+			actualAppend := actualPlatformAppend(upgradeDB, profile)
+			must(upgradeDB.Close())
+			write(filepath.Join(c.Output, "actual-append-"+id+".json"), actualAppend)
 			createEmptyFixture(s, profile)
 			schema := inventory(s)
 			sqlOnly := summary(s)
@@ -397,7 +403,7 @@ func main() {
 			install := installSemantics(s)
 			businessResult := business(s, profile, dir, admin)
 			expected := 9
-			if profile == "web-platform" {
+			if slices.Contains(catalogdata.Catalog.Profiles[profile].Namespaces, "platform") {
 				// Unified accounts: 7 core + 39 platform + 1 notes + 1 ledger.
 				expected = 48
 			}

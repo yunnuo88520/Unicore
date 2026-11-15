@@ -137,9 +137,17 @@
         {
           "version": 4,
           "files": {
-            "sqlite": "platform/sqlite/0004_mcp_oauth.sql",
-            "postgres": "platform/postgres/0004_mcp_oauth.sql",
-            "mysql": "platform/mysql/0004_mcp_oauth.sql"
+            "sqlite": "platform/sqlite/0004_role_version.sql",
+            "postgres": "platform/postgres/0004_role_version.sql",
+            "mysql": "platform/mysql/0004_role_version.sql"
+          }
+        },
+        {
+          "version": 5,
+          "files": {
+            "sqlite": "platform/sqlite/0005_mcp_oauth.sql",
+            "postgres": "platform/postgres/0005_mcp_oauth.sql",
+            "mysql": "platform/mysql/0005_mcp_oauth.sql"
           }
         }
       ]

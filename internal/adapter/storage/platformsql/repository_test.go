@@ -125,6 +125,7 @@ func TestDialectMigrationsAndIdentity(t *testing.T) {
 			exerciseOIDC(t, ctx, store, repository, admin)
 			exerciseFiles(t, ctx, store, admin)
 			exerciseNotes(t, ctx, store)
+			exerciseNotesAttachmentPreservation(t, ctx, store)
 			exercisePersonal(t, ctx, store, admin)
 			exerciseNotificationEvents(t, ctx, store, admin)
 			// Startup navigation runs for every supported database, including
@@ -164,4 +165,35 @@ func exerciseNotes(t *testing.T, ctx context.Context, store *sqlstore.Store) {
 		}
 	}
 	_ = created
+}
+
+// exerciseNotesAttachmentPreservation pins the MCP edit flow: the tool only
+// rewrites text, so the update must carry the attachments the note held at
+// the presented version through the optimistic lock instead of unlinking
+// them, while an explicit empty list still clears them.
+func exerciseNotesAttachmentPreservation(t *testing.T, ctx context.Context, store *sqlstore.Store) {
+	t.Helper()
+	notes := &notesusecase.Notes{Repo: &notesnotessql.Repository{Store: store}, Attachments: func(context.Context, string, string) error { return nil }}
+	created, err := notes.Create(ctx, "user/example", contracts.NoteInput{Title: "attached", Body: "body", Status: "open", AttachmentIds: &[]string{"file-a", "file-b"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	current, err := notes.Read(ctx, "user/example", created.ID, notesusecase.NoteVisibility{})
+	if err != nil || len(current.AttachmentIds) != 2 {
+		t.Fatalf("read before MCP edit: %+v %v", current, err)
+	}
+	// The MCP update handler reads the note at the presented version and
+	// carries its attachments into the text-only edit.
+	revised, err := notes.Update(ctx, "user/example", created.ID, contracts.NoteUpdate{Title: "attached", Body: "mcp edit", Status: "open", AttachmentIds: current.AttachmentIds, Version: current.Version})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(revised.AttachmentIds) != 2 || revised.AttachmentIds[0] != "file-a" || revised.AttachmentIds[1] != "file-b" {
+		t.Fatalf("MCP text edit unlinked attachments: %+v", revised.AttachmentIds)
+	}
+	// An explicit empty list keeps its HTTP meaning: clearing on purpose.
+	cleared, err := notes.Update(ctx, "user/example", created.ID, contracts.NoteUpdate{Title: "attached", Body: "mcp edit", Status: "open", AttachmentIds: []string{}, Version: revised.Version})
+	if err != nil || len(cleared.AttachmentIds) != 0 {
+		t.Fatalf("explicit clear: %+v %v", cleared, err)
+	}
 }

@@ -180,6 +180,23 @@ func (r *Repository) TouchGrant(ctx context.Context, id string, now int64) error
 	return err
 }
 
+// UpdateGrantConsent re-binds an active grant to the scope snapshot of the
+// latest consent and refreshes its security anchor; the read-back keeps the
+// caller on the stored truth.
+func (r *Repository) UpdateGrantConsent(ctx context.Context, grantID string, scopes []string, anchor string) (mcpoauth.Grant, error) {
+	if _, err := r.exec(ctx, r.Store.DB, "UPDATE unicore_mcp_oauth_grants SET scope_set=?,security_anchor=? WHERE id=? AND status='active'", mcpoauth.MarshalScopes(scopes), anchor, grantID); err != nil {
+		return mcpoauth.Grant{}, err
+	}
+	updated, err := r.Grant(ctx, grantID)
+	if err != nil {
+		return mcpoauth.Grant{}, mcpoauth.ErrInvalidGrant
+	}
+	if updated.Status != mcpoauth.GrantActive {
+		return mcpoauth.Grant{}, mcpoauth.ErrInvalidGrant
+	}
+	return updated, nil
+}
+
 func (r *Repository) SaveCode(ctx context.Context, hash, grantID, redirectURI, challenge, method string, expiresAt int64) error {
 	_, err := r.exec(ctx, r.Store.DB, "INSERT INTO unicore_mcp_oauth_codes(code_hash,grant_id,redirect_uri,pkce_challenge,pkce_method,expires_at) VALUES(?,?,?,?,?,?)", hash, grantID, redirectURI, challenge, method, expiresAt)
 	return err
@@ -203,17 +220,36 @@ func (r *Repository) ConsumeCode(ctx context.Context, hash string, now int64) (g
 	return consumedGrant, consumedRedirect, consumedChallenge, consumedMethod, nil
 }
 
+// SaveToken persists one token digest and refuses to mint into a revoked
+// family. The guard lives in the INSERT statement itself, so a rotation
+// racing a replay-triggered revocation either lands inside the revoked
+// family (and is revoked by it) or is refused — never silently survives.
+// The derived-table form keeps one SQL text valid across all three dialects.
 func (r *Repository) SaveToken(ctx context.Context, hash, kind, grantID, familyID, parentID, scopes string, expiresAt int64) error {
-	_, err := r.exec(ctx, r.Store.DB, "INSERT INTO unicore_mcp_oauth_tokens(token_hash,kind,grant_id,family_id,parent_id,scopes,expires_at) VALUES(?,?,?,?,?,?,?)", hash, kind, grantID, familyID, parentID, scopes, expiresAt)
-	return err
-}
-
-func (r *Repository) Refamily(ctx context.Context, accessHash, refreshHash, familyID, parentHash string) error {
-	if _, err := r.exec(ctx, r.Store.DB, "UPDATE unicore_mcp_oauth_tokens SET family_id=?,parent_id=? WHERE token_hash=?", familyID, parentHash, accessHash); err != nil {
+	result, err := r.exec(ctx, r.Store.DB,
+		"INSERT INTO unicore_mcp_oauth_tokens(token_hash,kind,grant_id,family_id,parent_id,scopes,expires_at) SELECT ?,?,?,?,?,?,? FROM (SELECT 1) AS guard WHERE NOT EXISTS(SELECT 1 FROM unicore_mcp_oauth_tokens WHERE family_id=? AND revoked_at>0)",
+		hash, kind, grantID, familyID, parentID, scopes, expiresAt, familyID)
+	if err != nil {
 		return err
 	}
-	_, err := r.exec(ctx, r.Store.DB, "UPDATE unicore_mcp_oauth_tokens SET family_id=?,parent_id=? WHERE token_hash=?", familyID, parentHash, refreshHash)
-	return err
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected != 1 {
+		return mcpoauth.ErrInvalidGrant
+	}
+	return nil
+}
+
+// FamilyDeadline returns the earliest refresh expiry of one family: the
+// absolute consent deadline rotation inherits instead of renewing.
+func (r *Repository) FamilyDeadline(ctx context.Context, familyID string) (int64, error) {
+	var deadline int64
+	if err := r.row(ctx, r.Store.DB, "SELECT COALESCE(MIN(expires_at),0) FROM unicore_mcp_oauth_tokens WHERE family_id=? AND kind='refresh'", familyID).Scan(&deadline); err != nil {
+		return 0, err
+	}
+	return deadline, nil
 }
 
 func (r *Repository) Token(ctx context.Context, hash string) (mcpoauth.TokenRecord, error) {

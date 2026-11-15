@@ -112,3 +112,18 @@ func TestClientIdentityFromMeta(t *testing.T) {
 		t.Fatalf("empty client info = %q %q", name, version)
 	}
 }
+
+func TestMCPToolAnnotationsMatchEffect(t *testing.T) {
+	read := mcp.ToolDefinition{Name: "notes.search", Effect: mcp.EffectRead}
+	write := mcp.ToolDefinition{Name: "notes.update", Effect: mcp.EffectWrite}
+	destructive := mcp.ToolDefinition{Name: "notes.purge", Effect: mcp.EffectDestructive}
+	if !annotationsFor(read).ReadOnlyHint || annotationsFor(read).DestructiveHint == nil || *annotationsFor(read).DestructiveHint {
+		t.Fatalf("read annotations = %+v", annotationsFor(read))
+	}
+	if annotationsFor(write).ReadOnlyHint || annotationsFor(write).DestructiveHint == nil || *annotationsFor(write).DestructiveHint {
+		t.Fatalf("write annotations = %+v", annotationsFor(write))
+	}
+	if annotationsFor(destructive).ReadOnlyHint || annotationsFor(destructive).DestructiveHint == nil || !*annotationsFor(destructive).DestructiveHint {
+		t.Fatalf("destructive annotations = %+v", annotationsFor(destructive))
+	}
+}

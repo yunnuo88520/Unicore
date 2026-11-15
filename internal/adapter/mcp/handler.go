@@ -167,6 +167,11 @@ func (s *Surface) authenticate(r *http.Request, identity *platform.Service, valu
 		}
 		return mcpauth.NewOAuthPrincipal(actor.User, grant, grant.ID, identity.Store)
 	}
+	// Everything else in this branch is a personal access token; the PAT
+	// runtime switch gates it per request like the OAuth switch does.
+	if values["mcp.pat_enabled"] != "true" {
+		return nil, mcp.ErrAuth("pat access is unavailable")
+	}
 	resolved, err := identity.Tokens.Resolve(r.Context(), bearer)
 	if err != nil {
 		return nil, mcp.ErrAuth("credential rejected")
@@ -297,7 +302,7 @@ func (s *Surface) addTool(server *sdk.Server, principal *mcpauth.Principal, limi
 		Title:       pickLanguage(def.TitleZh, def.TitleEn, language),
 		Description: pickLanguage(def.DescriptionZh, def.DescriptionEn, language),
 		InputSchema: inputSchema,
-		Annotations: &sdk.ToolAnnotations{ReadOnlyHint: true, DestructiveHint: boolPtr(false)},
+		Annotations: annotationsFor(def),
 	}
 	if len(def.OutputSchema) > 0 {
 		var outputSchema map[string]any
@@ -381,6 +386,24 @@ func (s *Surface) protocolError(err error) error {
 }
 
 func boolPtr(value bool) *bool { return &value }
+
+// annotationsFor projects the registered effect onto the MCP tool
+// annotations: reads advertise themselves as safe, writes as mutating and
+// destructive effects as destructive, so clients can never auto-approve a
+// write behind a read-only hint.
+func annotationsFor(def mcp.ToolDefinition) *sdk.ToolAnnotations {
+	annotations := &sdk.ToolAnnotations{}
+	switch def.Effect {
+	case mcp.EffectRead:
+		annotations.ReadOnlyHint = true
+		annotations.DestructiveHint = boolPtr(false)
+	case mcp.EffectWrite:
+		annotations.DestructiveHint = boolPtr(false)
+	case mcp.EffectDestructive:
+		annotations.DestructiveHint = boolPtr(true)
+	}
+	return annotations
+}
 
 // languageOf resolves the served copy language from the Accept-Language
 // header; Chinese preferences win, everything else receives English.

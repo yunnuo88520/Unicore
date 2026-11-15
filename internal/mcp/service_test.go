@@ -293,3 +293,91 @@ func TestVisibleToolsFiltersByPolicyAndAuthorization(t *testing.T) {
 		t.Fatalf("denied visible = %d tools, %v; want none", len(visible), err)
 	}
 }
+
+// confirmationTool declares the sample write capability exactly as the
+// adapter registers it: write effect with a required personal confirmation.
+func confirmationTool(handler ToolHandler) ToolDefinition {
+	return ToolDefinition{
+		Name: "notes.update", Module: "notes", Version: "1.0", ImplVersion: "1",
+		TitleZh: "更新", TitleEn: "Update", DescriptionZh: "更新", DescriptionEn: "Update",
+		InputSchema:  json.RawMessage(`{"type":"object","additionalProperties":false,"properties":{"version":{"type":"integer","minimum":1,"maximum":2000000000}}}`),
+		OperationIDs: []string{"updateNote"}, Effect: EffectWrite, Confirmation: ConfirmationRequired, Handler: handler,
+	}
+}
+
+func TestConfirmationRequiredCapabilitiesStayClosed(t *testing.T) {
+	calls := &stubCalls{}
+	def := confirmationTool(ToolHandlerFunc(func(context.Context, Principal, json.RawMessage) (any, error) {
+		t.Fatal("handler of a confirmation-required tool must never run")
+		return nil, nil
+	}))
+	// Everything else is wide open: policy enabled, fingerprint reviewed,
+	// authorizer granting, write phase open.
+	service := NewService(ServiceConfig{
+		Registry: frozenRegistry(t, def), Authorizer: stubAuthorizer{}, Policies: enabledPolicies(t, def),
+		Calls: calls, Clock: ClockFunc(func() int64 { return 1000 }), NewIdentifier: func() string { return "req-1" },
+		WritePhase: func() bool { return true },
+	})
+	principal := stubPrincipal{actor: "user-1", credential: "cred-1", role: "role-a"}
+	if tools, err := service.VisibleTools(context.Background(), principal); err != nil || len(tools) != 0 {
+		t.Fatalf("directory advertised a confirmation-required capability: %v / %v", tools, err)
+	}
+	if _, err := service.CallTool(context.Background(), principal, testLimits, def.Name, "2026-07-28", "client", "1", json.RawMessage(`{"version":1}`)); err == nil {
+		t.Fatal("confirmation-required capability unexpectedly executed")
+	}
+	if len(calls.starts) != 0 {
+		t.Fatal("a refused confirmation-required call started a call record")
+	}
+}
+
+func frozenRegistry(t *testing.T, def ToolDefinition) *Registry {
+	t.Helper()
+	registry := NewRegistry()
+	if err := registry.Register(def, stubResolver{known: map[string]OperationInfo{"updateNote": {Grantable: true}, "listNotes": {Grantable: true}}}); err != nil {
+		t.Fatalf("registration failed: %v", err)
+	}
+	if err := registry.Freeze(); err != nil {
+		t.Fatalf("freeze failed: %v", err)
+	}
+	return registry
+}
+
+func TestCallDurationUsesMonotonicClock(t *testing.T) {
+	calls := &stubCalls{}
+	// The fake wall clock jumps 5 seconds between the start and finish
+	// records; the duration must follow the real monotonic elapsed time, not
+	// the fake wall-clock delta.
+	tick := 0
+	handlerLatency := 40 * time.Millisecond
+	def, _ := pipelineTool(ToolHandlerFunc(func(context.Context, Principal, json.RawMessage) (any, error) {
+		time.Sleep(handlerLatency)
+		return map[string]any{"ok": true}, nil
+	}))
+	service := NewService(ServiceConfig{
+		Registry: func() *Registry {
+			registry := NewRegistry()
+			if err := registry.Register(def, stubResolver{known: map[string]OperationInfo{"listNotes": {Grantable: true}}}); err != nil {
+				t.Fatalf("registration failed: %v", err)
+			}
+			if err := registry.Freeze(); err != nil {
+				t.Fatalf("freeze failed: %v", err)
+			}
+			return registry
+		}(), Authorizer: stubAuthorizer{}, Policies: enabledPolicies(t, def), Calls: calls,
+		Clock: ClockFunc(func() int64 { tick++; return int64(1000 + tick*5) }), NewIdentifier: func() string { return "req-1" },
+	})
+	principal := stubPrincipal{actor: "user-1", credential: "cred-1", role: "role-a"}
+	if _, err := service.CallTool(context.Background(), principal, testLimits, def.Name, "2026-07-28", "client", "1", json.RawMessage(`{}`)); err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	if len(calls.finishes) != 1 {
+		t.Fatalf("finish records = %d", len(calls.finishes))
+	}
+	duration := calls.finishes[0].DurationMs
+	if duration < 20 || duration > 2000 {
+		t.Fatalf("duration = %dms, want the real monotonic span (~%dms)", duration, handlerLatency.Milliseconds())
+	}
+	if duration == 5000 {
+		t.Fatal("duration followed the fake wall-clock delta")
+	}
+}

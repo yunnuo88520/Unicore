@@ -148,12 +148,20 @@ func (s OAuthStore) SaveToken(ctx context.Context, hash, kind, grantID, familyID
 	return repository.SaveToken(ctx, hash, kind, grantID, familyID, parentID, scopes, expiresAt)
 }
 
-func (s OAuthStore) Refamily(ctx context.Context, accessHash, refreshHash, familyID, parentHash string) error {
+func (s OAuthStore) FamilyDeadline(ctx context.Context, familyID string) (int64, error) {
 	repository, err := s.repository(ctx)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return repository.Refamily(ctx, accessHash, refreshHash, familyID, parentHash)
+	return repository.FamilyDeadline(ctx, familyID)
+}
+
+func (s OAuthStore) UpdateGrantConsent(ctx context.Context, grantID string, scopes []string, anchor string) (mcpoauth.Grant, error) {
+	repository, err := s.repository(ctx)
+	if err != nil {
+		return mcpoauth.Grant{}, err
+	}
+	return repository.UpdateGrantConsent(ctx, grantID, scopes, anchor)
 }
 
 func (s OAuthStore) Token(ctx context.Context, hash string) (mcpoauth.TokenRecord, error) {

@@ -63,12 +63,11 @@ type notesGetInput struct {
 }
 
 type notesUpdateInput struct {
-	ID            string   `json:"id"`
-	Title         string   `json:"title"`
-	Body          string   `json:"body"`
-	Status        string   `json:"status"`
-	AttachmentIds []string `json:"attachment_ids"`
-	Version       int      `json:"version"`
+	ID      string `json:"id"`
+	Title   string `json:"title"`
+	Body    string `json:"body"`
+	Status  string `json:"status"`
+	Version int    `json:"version"`
 }
 
 func notesError(err error) error {
@@ -189,7 +188,7 @@ func RegisterNotes(registry *mcp.Registry, manager *install.Manager, operations 
 			"updated_at":{"type":"integer","maximum":20000000000000}},"required":["id","title","status","version","updated_at"]}`),
 		OperationIDs: []string{notesWriteOperation}, Effect: mcp.EffectWrite, Confirmation: mcp.ConfirmationRequired,
 		Handler: mcp.ToolHandlerFunc(func(ctx context.Context, principal mcp.Principal, arguments json.RawMessage) (any, error) {
-			service, scope, _, err := deps.session(ctx, principal)
+			service, scope, visibility, err := deps.session(ctx, principal)
 			if err != nil {
 				return nil, err
 			}
@@ -197,7 +196,20 @@ func RegisterNotes(registry *mcp.Registry, manager *install.Manager, operations 
 			if err := json.Unmarshal(arguments, &input); err != nil {
 				return nil, mcp.ErrInput("arguments are not valid")
 			}
-			entry, err := service.Update(ctx, scope, input.ID, contracts.NoteUpdate{Title: input.Title, Body: input.Body, Status: input.Status, AttachmentIds: input.AttachmentIds, Version: input.Version})
+			// The tool edits text only: carry the attachments the note holds
+			// at the presented version through the update. The optimistic lock
+			// makes this race-free — any attachment change since the read
+			// bumps the version and rejects the whole update instead of
+			// silently unlinking files.
+			current, err := service.Read(ctx, scope, input.ID, visibility)
+			if err != nil {
+				return nil, notesError(err)
+			}
+			attachments := []string{}
+			if current.AttachmentIds != nil {
+				attachments = current.AttachmentIds
+			}
+			entry, err := service.Update(ctx, scope, input.ID, contracts.NoteUpdate{Title: input.Title, Body: input.Body, Status: input.Status, AttachmentIds: attachments, Version: input.Version})
 			if err != nil {
 				return nil, notesError(err)
 			}

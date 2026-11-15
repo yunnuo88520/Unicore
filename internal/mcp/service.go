@@ -117,10 +117,19 @@ func (s *Service) writePhase() bool {
 	return false
 }
 
-// admit applies the open policy, review fingerprint and phase gate. The
-// authorizer runs separately so callers can decide between directory
-// filtering and unified call semantics.
+// admit applies the confirmation gate, open policy, review fingerprint and
+// phase gate. The authorizer runs separately so callers can decide between
+// directory filtering and unified call semantics.
 func (s *Service) admit(ctx context.Context, def ToolDefinition) (string, error) {
+	// Capabilities that declare a required confirmation stay closed until the
+	// personal-confirmation workflow exists (confirmation records, argument
+	// and resource version binding, one-shot approval consumption, persisted
+	// idempotency and execution state). A client dialog or a model claiming
+	// the user approved is not a confirmation: failing closed is the only
+	// honest enforcement until the real gate lands.
+	if def.Confirmation == ConfirmationRequired {
+		return "confirmation", ErrUnavailable("confirmation")
+	}
 	// Destructive effects stay behind the phase gate regardless of the write
 	// switch; opening them is a separate, explicit decision.
 	if def.Effect == EffectDestructive || (def.Effect == EffectWrite && !s.writePhase()) {
@@ -232,6 +241,9 @@ func (s *Service) CallTool(ctx context.Context, principal Principal, limits Limi
 	if revision, err := s.cfg.Policies.Revision(ctx); err == nil {
 		start.PolicyRevision = revision
 	}
+	// The wall-clock span comes from the monotonic clock: Unix seconds only
+	// carry the record timestamps, never the duration math.
+	elapsed := time.Now()
 	// A call without its start record must not run: the audit trail is a
 	// precondition of execution, not a best-effort side effect.
 	if err := s.cfg.Calls.Begin(ctx, start); err != nil {
@@ -245,7 +257,7 @@ func (s *Service) CallTool(ctx context.Context, principal Principal, limits Limi
 		outcome, errorCode, err = classify(err)
 	}
 	finish := CallFinish{Status: outcome, ErrorCode: errorCode, FinishedAt: s.cfg.Clock.NowUnix()}
-	finish.DurationMs = finish.FinishedAt - start.StartedAt
+	finish.DurationMs = time.Since(elapsed).Milliseconds()
 	// Closing the record must survive a cancelled request context: the call
 	// already ran and the audit trail is the only trace. A failed close is a
 	// bounded operational signal, never a reason to re-run business work.

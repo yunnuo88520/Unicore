@@ -228,13 +228,15 @@ func mountMcpOauth(api chi.Router, config Config) {
 }
 
 // consentGrant reuses the single active grant per user+client+role or
-// records a fresh consent; the scope set of the standing grant rules.
+// records a fresh consent. Reuse re-binds the standing grant to the scope
+// snapshot of the current consent: the issued code can never carry budgets
+// beyond what this consent page showed and the user approved.
 func consentGrant(r *http.Request, service *mcpoauth.Service, session contracts.Session, clientID, roleID string, scopes []string) (mcpoauth.Grant, error) {
 	grants, err := service.Store.GrantsForUser(r.Context(), session.User.ID)
 	if err == nil {
 		for _, grant := range grants {
 			if grant.Status == mcpoauth.GrantActive && grant.ClientID == clientID && grant.RoleID == roleID {
-				return grant, nil
+				return service.RefreshConsent(r.Context(), grant.ID, scopes)
 			}
 		}
 	}

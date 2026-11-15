@@ -459,25 +459,29 @@ func TestMCPWritePhaseGate(t *testing.T) {
 	}
 	session.Close()
 
-	// Phase open with the budget: the write executes and bumps the version.
+	// Phase open with the budget: notes.update declares a required personal
+	// confirmation, and no confirmation workflow exists — the confirmation
+	// gate refuses the execution even though phase, policy and budget all
+	// allow it. A client dialog or model claim is not a confirmation.
 	session = oauthSession(writeScopes)
-	if err = call(session); err != nil {
-		t.Fatalf("authorized write failed: %v", err)
+	if err = call(session); err == nil {
+		t.Fatal("confirmation-required write unexpectedly executed without a confirmation record")
 	}
+	// The confirmation gate also keeps the tool out of the directory: an
+	// advertised-but-unexecutable capability would only invite retries.
 	listing, err := session.ListTools(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	names := map[string]bool{}
 	for _, tool := range listing.Tools {
-		names[tool.Name] = true
-	}
-	if !names["notes.update"] {
-		t.Fatalf("tools/list = %v, want notes.update listed", names)
+		if tool.Name == "notes.update" {
+			t.Fatalf("tools/list advertises notes.update %v", listing.Tools)
+		}
 	}
 	session.Close()
 
-	// PAT principals carry no scope budget: the phase switch alone governs them.
+	// PAT principals carry no scope budget and ride the same gate: the phase
+	// switch alone never opens a confirmation-required capability.
 	_, adminSession, err := env.identity.Issue(ctx, env.admin, 1)
 	if err != nil {
 		t.Fatal(err)
@@ -494,8 +498,8 @@ func TestMCPWritePhaseGate(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer patSession.Close()
-	if err = call(patSession); err != nil {
-		t.Fatalf("PAT write in the open phase failed: %v", err)
+	if err = call(patSession); err == nil {
+		t.Fatal("PAT unexpectedly executed a confirmation-required write")
 	}
 }
 
@@ -610,4 +614,125 @@ func TestMCPDynamicClientRegistration(t *testing.T) {
 	if err != nil || len(listing.Tools) != 1 || listing.Tools[0].Name != "notes.search" {
 		t.Fatalf("dcr tools/list = %+v, %v", listing, err)
 	}
+}
+
+func TestMCPPatSwitchGatesPersonalTokens(t *testing.T) {
+	env := openMCPInterop(t)
+	ctx := env.ctx
+	// OAuth needs its own switch; enable it so the OAuth path stays available
+	// while the PAT switch flips.
+	revision, err := env.repository.MCPControlRevision(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = env.repository.UpdateMCPConfig(ctx, revision, map[string]string{"mcp.oauth_enabled": "true"}, env.admin.ID); err != nil {
+		t.Fatal(err)
+	}
+	// The member role needs the notes read operation; the access point is
+	// already granted by the fixture.
+	store, _, _, _ := env.manager.Services()
+	if _, err = store.Exec(ctx, store.DB, "INSERT OR IGNORE INTO unicore_role_operations(role_id,operation_id) VALUES('user','listNotes')"); err != nil {
+		t.Fatal(err)
+	}
+	patSession := func(token string) *sdk.ClientSession {
+		t.Helper()
+		session, err := sdk.NewClient(&sdk.Implementation{Name: "pat-reader", Version: "0"}, nil).Connect(ctx, &sdk.StreamableClientTransport{
+			Endpoint: env.server.URL + "/mcp", DisableStandaloneSSE: true,
+			HTTPClient: &http.Client{Transport: &bearerTransport{inner: env.server.Client().Transport, bearer: token}},
+		}, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return session
+	}
+	newPat := func() string {
+		t.Helper()
+		_, adminSession, err := env.identity.Issue(ctx, env.admin, 1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		pat, err := env.identity.Tokens.CreatePAT(ctx, adminSession, contracts.PersonalTokenInput{Name: "reader", RoleID: "user", ExpiresInDays: 1}, env.member.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return pat.Token
+	}
+	oauthSession := func() *sdk.ClientSession {
+		t.Helper()
+		client, _, err := env.oauth.CreateClient(ctx, "Reader", mcpoauth.ClientPublic, "", []string{"http://127.0.0.1:0/callback"}, env.admin.Username)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err = env.oauth.UpdateClient(ctx, client.ID, client.Name, client.RedirectURIs, true, client.Version, env.admin.Username); err != nil {
+			t.Fatal(err)
+		}
+		grant, err := env.oauth.CreateGrant(ctx, env.member.ID, client.ID, "user", []string{mcpoauth.ScopeRead}, env.member.Roles)
+		if err != nil {
+			t.Fatal(err)
+		}
+		verifier := strings.Repeat("v", 48)
+		sum := sha256.Sum256([]byte(verifier))
+		code, err := env.oauth.IssueCode(ctx, grant, client.RedirectURIs[0], base64.RawURLEncoding.EncodeToString(sum[:]), "S256")
+		if err != nil {
+			t.Fatal(err)
+		}
+		issued, err := env.oauth.ExchangeCode(ctx, client.ID, "", code, client.RedirectURIs[0], verifier)
+		if err != nil {
+			t.Fatal(err)
+		}
+		session, err := sdk.NewClient(&sdk.Implementation{Name: "oauth-reader", Version: "0"}, nil).Connect(ctx, &sdk.StreamableClientTransport{
+			Endpoint: env.server.URL + "/mcp", DisableStandaloneSSE: true,
+			HTTPClient: &http.Client{Transport: &bearerTransport{inner: env.server.Client().Transport, bearer: issued.AccessToken}},
+		}, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return session
+	}
+	discover := func(session *sdk.ClientSession) error {
+		_, err := session.ListTools(ctx, nil)
+		return err
+	}
+
+	// Baseline: the PAT switch defaults to on and the token works.
+	session := patSession(newPat())
+	if err = discover(session); err != nil {
+		t.Fatalf("PAT discovery with the default switch: %v", err)
+	}
+	session.Close()
+
+	// PAT off: the same valid PAT is refused per request while OAuth tokens
+	// keep working.
+	revision, err = env.repository.MCPControlRevision(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = env.repository.UpdateMCPConfig(ctx, revision, map[string]string{"mcp.pat_enabled": "false"}, env.admin.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = sdk.NewClient(&sdk.Implementation{Name: "pat-reader", Version: "0"}, nil).Connect(ctx, &sdk.StreamableClientTransport{
+		Endpoint: env.server.URL + "/mcp", DisableStandaloneSSE: true,
+		HTTPClient: &http.Client{Transport: &bearerTransport{inner: env.server.Client().Transport, bearer: newPat()}},
+	}, nil); err == nil {
+		t.Fatal("PAT unexpectedly passed with the switch closed")
+	}
+	oauth := oauthSession()
+	if err = discover(oauth); err != nil {
+		t.Fatalf("OAuth discovery unaffected by the PAT switch: %v", err)
+	}
+	oauth.Close()
+
+	// Re-enable: the PAT recovers without re-issuing it.
+	revision, err = env.repository.MCPControlRevision(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = env.repository.UpdateMCPConfig(ctx, revision, map[string]string{"mcp.pat_enabled": "true"}, env.admin.ID); err != nil {
+		t.Fatal(err)
+	}
+	session = patSession(newPat())
+	if err = discover(session); err != nil {
+		t.Fatalf("PAT discovery after re-enabling: %v", err)
+	}
+	session.Close()
 }

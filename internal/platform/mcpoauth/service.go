@@ -70,12 +70,20 @@ type Store interface {
 	// Codes and tokens
 	SaveCode(ctx context.Context, hash string, grantID, redirectURI, challenge, method string, expiresAt int64) error
 	ConsumeCode(ctx context.Context, hash string, now int64) (grantID, redirectURI, challenge, method string, err error)
+	// SaveToken persists one token digest. Implementations must refuse to
+	// insert into a family that carries any revoked member: replay revocation
+	// then wins over a racing rotation regardless of statement interleaving.
 	SaveToken(ctx context.Context, hash, kind, grantID, familyID, parentID, scopes string, expiresAt int64) error
-	Refamily(ctx context.Context, accessHash, refreshHash, familyID, parentHash string) error
+	// FamilyDeadline returns the earliest refresh expiry of one family; zero
+	// when the family has no refresh token. Rotation can never push past it.
+	FamilyDeadline(ctx context.Context, familyID string) (int64, error)
 	Token(ctx context.Context, hash string) (TokenRecord, error)
 	ConsumeToken(ctx context.Context, hash string, now int64) error
 	RevokeFamily(ctx context.Context, familyID string, now int64) error
 	RevokeGrantTokens(ctx context.Context, grantID string, now int64) error
+	// UpdateGrantConsent re-binds an active grant to the scope set of the
+	// latest consent and refreshes its security anchor.
+	UpdateGrantConsent(ctx context.Context, grantID string, scopes []string, anchor string) (Grant, error)
 	// Actor facts rechecked on every use
 	GrantActor(ctx context.Context, userID, roleID string) (actor GrantActor, err error)
 	PasswordAnchor(ctx context.Context, userID string) (string, error)
@@ -307,12 +315,18 @@ func (s *Service) IssueCode(ctx context.Context, grant Grant, redirectURI, codeC
 	return code, nil
 }
 
-// ExchangeCode redeems one code for tokens: exact client, exact redirect,
-// one-time consumption and S256 PKCE verification for public clients.
+// ExchangeCode redeems one code for tokens. The single-statement consume is
+// the transaction anchor: it burns the code exactly once, and every following
+// check (client attribution, redirect, PKCE, actor freshness) runs against
+// the consumed row — any failure keeps the code burned, so a rejected
+// redemption can never be retried into acceptance.
 func (s *Service) ExchangeCode(ctx context.Context, clientID, clientSecret, code, redirectURI, verifier string) (Issued, error) {
 	client, err := s.Store.Client(ctx, clientID)
 	if err != nil {
 		return Issued{}, ErrInvalidClient
+	}
+	if !client.Enabled {
+		return Issued{}, ErrClientDisabled
 	}
 	if client.ClientType == ClientConfidential {
 		if err = s.authenticateClient(ctx, client, clientSecret); err != nil {
@@ -334,6 +348,12 @@ func (s *Service) ExchangeCode(ctx context.Context, clientID, clientSecret, code
 	if err != nil || grant.Status != GrantActive {
 		return Issued{}, ErrInvalidGrant
 	}
+	// The code belongs to the client it was issued for: client B presenting a
+	// lawfully obtained client-A code with its own credentials is refused and
+	// the code stays burned.
+	if grant.ClientID != clientID {
+		return Issued{}, ErrInvalidGrant
+	}
 	if err = s.verifyGrantFresh(ctx, grant); err != nil {
 		return Issued{}, err
 	}
@@ -346,7 +366,28 @@ func (s *Service) ExchangeCode(ctx context.Context, clientID, clientSecret, code
 		return Issued{}, ErrInvalidVerifier
 	}
 	_ = method
-	return s.issueTokens(ctx, grant)
+	return s.issueTokens(ctx, grant, "", "", time.Now().Add(RefreshTTLDays*86400*time.Second).Unix())
+}
+
+// RefreshConsent re-binds one standing grant to the scope set of the latest
+// consent: reuse keeps a single authorization per user+client+role, but the
+// grant always carries exactly what the most recent consent approved — an
+// old read+write consent downgraded to read-only, and a new consent never
+// silently inherits budgets the user just declined to re-confirm.
+func (s *Service) RefreshConsent(ctx context.Context, grantID string, requestedScopes []string) (Grant, error) {
+	scopes, err := NormalizeScopes(requestedScopes)
+	if err != nil {
+		return Grant{}, ErrInvalidScope
+	}
+	grant, err := s.Store.Grant(ctx, grantID)
+	if err != nil || grant.Status != GrantActive {
+		return Grant{}, ErrInvalidGrant
+	}
+	anchor, err := s.Store.PasswordAnchor(ctx, grant.UserID)
+	if err != nil {
+		return Grant{}, err
+	}
+	return s.Store.UpdateGrantConsent(ctx, grantID, scopes, anchor)
 }
 
 // verifyPKCE implements S256: BASE64URL(SHA256(verifier)) == challenge.
@@ -359,11 +400,17 @@ func verifyPKCE(challenge, verifier string) bool {
 	return subtle.ConstantTimeCompare([]byte(computed), []byte(challenge)) == 1
 }
 
-// verifyGrantFresh rechecks the actor account, role membership and security
-// anchor; every use of a grant pays this cost. The grant's resource indicator
-// must also still match this instance: a base_url change orphans the tokens
-// minted under the previous one instead of silently relocating them.
+// verifyGrantFresh rechecks the owning client, the actor account, role
+// membership and security anchor; every use of a grant pays this cost. The
+// grant's resource indicator must also still match this instance: a base_url
+// change orphans the tokens minted under the previous one instead of silently
+// relocating them.
 func (s *Service) verifyGrantFresh(ctx context.Context, grant Grant) error {
+	if client, err := s.Store.Client(ctx, grant.ClientID); err != nil || !client.Enabled {
+		// A disabled client stops honoring its standing tokens immediately,
+		// independent of which endpoint or grant type produced them.
+		return ErrClientDisabled
+	}
 	if grant.Resource != "" && s.Resource != nil {
 		if current := s.Resource(); current != "" && grant.Resource != current {
 			return ErrInvalidGrant
@@ -397,12 +444,16 @@ func (s *Service) verifyGrantFresh(ctx context.Context, grant Grant) error {
 }
 
 // issueTokens mints an opaque access token and a rotating refresh token
-// bound to the grant family; only digests are stored.
-func (s *Service) issueTokens(ctx context.Context, grant Grant) (Issued, error) {
+// bound to the grant family; only digests are stored. Rotation passes the
+// presented family and parent so the new tokens are born inside the family —
+// never grafted in afterwards — and never outlive the family deadline.
+func (s *Service) issueTokens(ctx context.Context, grant Grant, familyID, parentHash string, refreshDeadline int64) (Issued, error) {
 	now := time.Now()
 	access := "ucm_" + platform.Token()
 	refresh := "ucr_" + platform.Token()
-	family := platform.Token()
+	if familyID == "" {
+		familyID = platform.Token()
+	}
 	accessScopes := []string{}
 	for _, scope := range grant.Scopes {
 		if scope != ScopeOffline {
@@ -413,11 +464,11 @@ func (s *Service) issueTokens(ctx context.Context, grant Grant) (Issued, error) 
 		accessScopes = []string{ScopeRead}
 	}
 	refreshScopes := append([]string{ScopeOffline}, accessScopes...)
-	if err := s.Store.SaveToken(ctx, platform.Hash(access), TokenAccess, grant.ID, family, "", MarshalScopes(accessScopes), now.Add(AccessTTLSeconds*time.Second).Unix()); err != nil {
+	if err := s.Store.SaveToken(ctx, platform.Hash(access), TokenAccess, grant.ID, familyID, parentHash, MarshalScopes(accessScopes), now.Add(AccessTTLSeconds*time.Second).Unix()); err != nil {
 		return Issued{}, err
 	}
 	if hasOffline(grant.Scopes) {
-		if err := s.Store.SaveToken(ctx, platform.Hash(refresh), TokenRefresh, grant.ID, family, "", MarshalScopes(refreshScopes), now.Add(RefreshTTLDays*86400*time.Second).Unix()); err != nil {
+		if err := s.Store.SaveToken(ctx, platform.Hash(refresh), TokenRefresh, grant.ID, familyID, parentHash, MarshalScopes(refreshScopes), refreshDeadline); err != nil {
 			return Issued{}, err
 		}
 	}
@@ -426,7 +477,7 @@ func (s *Service) issueTokens(ctx context.Context, grant Grant) (Issued, error) 
 	}
 	issued := Issued{
 		AccessToken: access, TokenType: "Bearer", ExpiresIn: AccessTTLSeconds, Scopes: accessScopes,
-		RefreshExpiresAt: int(now.Add(RefreshTTLDays * 86400 * time.Second).Unix()),
+		RefreshExpiresAt: int(refreshDeadline),
 	}
 	if hasOffline(grant.Scopes) {
 		issued.RefreshToken = refresh
@@ -444,12 +495,17 @@ func hasOffline(scopes []string) bool {
 }
 
 // Refresh rotates one refresh token: the presented token is consumed, a new
-// pair joins the same family, and any reuse of a consumed token revokes the
-// whole family (replay detection without tolerance windows).
+// pair is born directly into the same family, and any reuse of a consumed
+// token revokes the whole family (replay detection without tolerance
+// windows). The replacement refresh never outlives the family's absolute
+// deadline, so continuous rotation cannot extend the consent indefinitely.
 func (s *Service) Refresh(ctx context.Context, clientID, clientSecret, refreshToken string) (Issued, error) {
 	client, err := s.Store.Client(ctx, clientID)
 	if err != nil {
 		return Issued{}, ErrInvalidClient
+	}
+	if !client.Enabled {
+		return Issued{}, ErrClientDisabled
 	}
 	if client.ClientType == ClientConfidential {
 		if err = s.authenticateClient(ctx, client, clientSecret); err != nil {
@@ -477,17 +533,11 @@ func (s *Service) Refresh(ctx context.Context, clientID, clientSecret, refreshTo
 	if err = s.Store.ConsumeToken(ctx, platform.Hash(refreshToken), time.Now().Unix()); err != nil {
 		return Issued{}, ErrInvalidGrant
 	}
-	issued, err := s.issueTokens(ctx, grant)
-	if err != nil {
-		return Issued{}, err
+	deadline := time.Now().Add(RefreshTTLDays * 86400 * time.Second).Unix()
+	if familyDeadline, err := s.Store.FamilyDeadline(ctx, record.FamilyID); err == nil && familyDeadline > 0 && familyDeadline < deadline {
+		deadline = familyDeadline
 	}
-	// Stamp the new tokens into the presented family.
-	if issued.RefreshToken != "" {
-		if err = s.Store.Refamily(ctx, platform.Hash(issued.AccessToken), platform.Hash(issued.RefreshToken), record.FamilyID, record.Hash); err != nil {
-			return Issued{}, err
-		}
-	}
-	return issued, nil
+	return s.issueTokens(ctx, grant, record.FamilyID, record.Hash, deadline)
 }
 
 // RevokeToken implements RFC 7009 semantics for the revoke endpoint: the

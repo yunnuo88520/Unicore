@@ -22,14 +22,17 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ c
   // an accessible name for label-less controls (search fields, date pickers).
   const caption = label;
   const password = type === 'password';
-  const visibilityCaption = typeof caption === 'string' && caption !== t('密码') ? caption : undefined;
+  // The eye button names its field: floating captions and stacked aria-labels both count,
+  // so a confirm-password control says 显示确认密码 instead of colliding with 密码.
+  const visibilityCaption = [caption, props['aria-label']].find(value => typeof value === 'string' && value !== t('密码'));
   const requiredMark = labelSuffix ?? (props.required ? <span aria-hidden="true" className="ms-1 text-danger">*</span> : null);
   const [visible, setVisible] = useState(false);
   const [draft, setDraft] = useState(String(props.defaultValue ?? ''));
   const text = String(props.value ?? draft);
-  const showStrength = password && (strength ?? props.autoComplete === 'new-password');
-  const score = !text ? 0 : text.length < 8 ? 1 : text.length < 12 ? 2 : text.length >= 16 || [/[a-z]/, /[A-Z]/, /\d/, /[^a-zA-Z0-9]/].filter(rule => rule.test(text)).length >= 3 ? 4 : 3;
-  const strengthLabel = !score ? t('密码强度：尚未输入') : score <= 2 ? t('密码强度：弱') : score === 3 ? t('密码强度：中') : t('密码强度：强');
+  // The meter appears once there is something to score; an empty field stays one control tall.
+  const showStrength = password && !!text && (strength ?? props.autoComplete === 'new-password');
+  const score = text.length < 8 ? 1 : text.length < 12 ? 2 : text.length >= 16 || [/[a-z]/, /[A-Z]/, /\d/, /[^a-zA-Z0-9]/].filter(rule => rule.test(text)).length >= 3 ? 4 : 3;
+  const strengthLabel = score <= 2 ? t('密码强度：弱') : score === 3 ? t('密码强度：中') : t('密码强度：强');
   const input = <input ref={ref} id={inputID} type={password && visible ? 'text' : type} {...props}
     placeholder={caption ? ' ' : props.placeholder}
     aria-labelledby={props['aria-labelledby'] ?? (caption ? `${generated}-caption` : undefined)}

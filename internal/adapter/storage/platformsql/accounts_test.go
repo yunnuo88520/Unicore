@@ -162,7 +162,7 @@ func exerciseMailLifecycle(t *testing.T, ctx context.Context, store *sqlstore.St
 	}
 	request := func(email, purpose string) {
 		id, answer := challenge()
-		if err = accounts.Request(ctx, contracts.EmailRequest{Email: email, CaptchaID: id, CaptchaAnswer: answer}, "test", purpose); err != nil {
+		if err = accounts.Request(ctx, contracts.EmailRequest{Email: email, CaptchaID: &id, CaptchaAnswer: &answer}, "test", purpose); err != nil {
 			t.Fatal(err)
 		}
 	}

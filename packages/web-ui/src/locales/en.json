@@ -469,7 +469,6 @@
   "正在保存…": "Saving…",
   "正在创建…": "Creating…",
   "正在加载…": "Loading…",
-  "正在加载角色…": "Loading roles…",
   "正在发送…": "Sending…",
   "正在检查环境…": "Checking environment…",
   "正在确认文件": "Confirming file",
@@ -3032,5 +3031,16 @@
   "外部应用经授权码 + PKCE 获取令牌；需先在「OAuth 接入」页注册客户端": "External applications obtain tokens through authorization code + PKCE; register the client on the OAuth access page first.",
   "允许写入调用": "Allow write calls",
   "写阶段：开放 write 效果工具，OAuth 令牌还需携带 mcp.write 授权；破坏性操作始终关闭": "Write phase: opens write-effect tools; OAuth tokens additionally need the mcp.write grant. Destructive operations stay closed.",
-  "允许动态客户端注册": "Allow dynamic client registration"
+  "允许动态客户端注册": "Allow dynamic client registration",
+  "用户名或邮箱": "Username or email",
+  "字母或数字开头，可含 _ . -": "Starts with a letter or digit; may contain _ . -",
+  "3–64 位，以字母或数字开头，可含 _ . -": "3–64 characters, starting with a letter or digit; may contain _ . -",
+  "请输入账号或邮箱": "Enter your username or email",
+  "请输入邮箱": "Enter your email",
+  "修改后所有设备上的旧会话都会退出。": "Signing out of every signed-in device.",
+  "请输入恢复码": "Enter a recovery code",
+  "请输入当前密码": "Enter your current password",
+  "再次输入密码": "Enter your password again",
+  "本站暂未开放邮箱验证码登录，请使用账号密码登录。": "Email-code sign-in is not available on this site. Sign in with your username and password.",
+  "本站暂未开启注册邮箱验证，无需重发验证邮件。": "Email verification is not required for registration on this site, so there is nothing to resend."
 }

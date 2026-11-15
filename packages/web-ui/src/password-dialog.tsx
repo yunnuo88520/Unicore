@@ -20,13 +20,15 @@ export function PasswordDialog({ web, onClose }: { web: WebClient; onClose: () =
     onSuccess: () => { message.success(t('密码已更新，请重新登录')); onClose(); },
   });
   const form: AppForm<Values> = useAppForm<Values>({
-    schema: 'ChangePasswordInput',
     defaultValues: { current_password: '', password: '' },
     onSubmit: async values => {
-      if (confirm !== values.password) {
-        setConfirmError(t('两次新密码不一致'));
-        return;
-      }
+      // Contract wording stays for broken values; empty required fields read like a sentence.
+      form.clearErrors();
+      if (confirm !== values.password) { setConfirmError(t('两次新密码不一致')); return; }
+      const fields: Record<string, string> = {};
+      if (!values.current_password) fields.current_password = t('请输入当前密码');
+      if (Array.from(values.password).length < 12 || new TextEncoder().encode(values.password).length > 128) fields.password = t('密码长度为 12–128 个字符');
+      if (Object.keys(fields).length) { form.applyServerError(new AppError('INVALID_INPUT', t('请检查表单输入'), '', fields)); return; }
       try {
         await change.mutateAsync(values);
       } catch (error) {
@@ -36,11 +38,12 @@ export function PasswordDialog({ web, onClose }: { web: WebClient; onClose: () =
   });
   return <Modal title={t('修改密码')} onClose={onClose} pending={change.isPending}>
     <p className="text-sm text-muted">{t('验证当前密码后设置新密码。成功后该账号的所有设备需重新登录。')}</p>
-    <AppForm form={form} className="mt-4 flex flex-col gap-4">
-      <AppField name="current_password" label={t('当前密码')}><Input type="password" required maxLength={128} autoComplete="current-password" /></AppField>
-      <AppField name="password" label={t('新密码')}><Input type="password" required minLength={12} maxLength={128} autoComplete="new-password" /></AppField>
+    <AppForm form={form} requiredMode="optional" className="mt-4 flex flex-col gap-4">
+      <AppField name="current_password" label={t('当前密码')} floating={false}><Input type="password" required maxLength={128} autoComplete="current-password" placeholder={t('请输入当前密码')} /></AppField>
+      <AppField name="password" label={t('新密码')} floating={false}><Input type="password" required minLength={12} maxLength={128} autoComplete="new-password" placeholder={t('至少 12 个字符')} /></AppField>
       <div className="flex flex-col gap-1.5">
-        <Input label={t('确认新密码')} id="confirm-password" name="confirm" type="password" required minLength={12} maxLength={128} autoComplete="new-password"
+        <label htmlFor="confirm-password" className="text-sm font-medium text-ink">{t('确认新密码')}</label>
+        <Input id="confirm-password" name="confirm" type="password" required minLength={12} maxLength={128} autoComplete="new-password" placeholder={t('再次输入新密码')}
           aria-invalid={!!confirmError || undefined} aria-describedby={confirmError ? 'confirm-password-error' : undefined}
           value={confirm} onChange={event => setConfirm(event.target.value)} onBlur={() => setConfirmError(confirm && confirm !== form.getValues('password') ? t('两次新密码不一致') : '')} />
         {confirmError && <p id="confirm-password-error" role="alert" className="text-xs text-danger">{confirmError}</p>}

@@ -182,7 +182,7 @@ test('password recovery rejects every old session and accepts the replacement pa
       const resetPage = await recovery.newPage(); await resetPage.goto(`${instance.url}/login`);
       await resetPage.getByRole('link', { name: '找回密码', exact: true }).click();
       await resetPage.getByLabel('邮箱', { exact: true }).fill('browsermember@example.test');
-      await solveCaptcha(resetPage);
+      // Password recovery needs no image captcha; the mailed code is the identity proof.
       await capture(resetPage, info, 'forgot-form');
       await resetPage.getByRole('button', { name: '发送重置验证码' }).click();
       await expect(resetPage.getByRole('heading', { name: '设置新密码', exact: true })).toBeVisible();

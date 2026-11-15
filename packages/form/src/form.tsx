@@ -97,9 +97,10 @@ export function AppForm<T extends FieldValues>({ form, className, children, requ
 }
 
 /** Contract-style field wrapper: label, injected registration, aria-invalid and localized error message. */
-export function AppField<T extends FieldValues>({ name, label, hint, rules, onFieldChange, children, className, required: requiredProp }: {
+export function AppField<T extends FieldValues>({ name, label, hint, rules, onFieldChange, children, className, required: requiredProp, floating: floatingProp }: {
   name: Path<T>;
   label: ReactNode;
+  /** Deliberate help text only; constraint-derived captions ("填写 1 至 64 个字符") stay out of the UI. */
   hint?: ReactNode;
   /** Extra react-hook-form registration options (valueAsNumber, validate, blur rules...). */
   rules?: RegisterOptions<T, Path<T>>;
@@ -108,6 +109,8 @@ export function AppField<T extends FieldValues>({ name, label, hint, rules, onFi
   children: ReactElement<InputHTMLAttributes<HTMLInputElement>>;
   className?: string;
   required?: boolean;
+  /** Stack the label above a native input/textarea so placeholders stay visible; default floats the caption inside the control. */
+  floating?: boolean;
 }) {
   useLocale();
   const { register, getFieldState, getValues, setValue, clearErrors, formState } = useFormContext<T>();
@@ -117,12 +120,9 @@ export function AppField<T extends FieldValues>({ name, label, hint, rules, onFi
   const design = useContext(FieldDesignContext);
   const constraint = fieldConstraint(design.schema, name);
   const required = requiredProp ?? (!!rules?.required || children.props.required || constraint.required);
-  const floating = children.type === Input || children.type === Textarea;
+  const floating = floatingProp ?? (children.type === Input || children.type === Textarea);
   const mark = <FieldMark required={required} mode={design.requiredMode} />;
-  const min = children.props.minLength ?? constraint.minLength;
-  const max = children.props.maxLength ?? constraint.maxLength;
-  const help = hint ?? (children.props.type === 'email' || constraint.format === 'email' ? t('填写完整邮箱地址，例如 name@example.com') : min && max ? t('填写 {{min}} 至 {{max}} 个字符', { min, max }) : min ? t('至少填写 {{count}} 个字符', { count: min }) : max ? t('最多填写 {{count}} 个字符', { count: max }) : undefined);
-  return <div data-invalid={!!message || undefined} className={cn('flex min-w-0 flex-col gap-2', className)}>
+  return <div data-invalid={!!message || undefined} className={cn('flex min-w-0 flex-col', floating ? 'gap-2' : 'gap-1.5', className)}>
     {!floating && <label htmlFor={id} className="text-sm font-medium text-ink">{label}{mark}</label>}
     {isValidElement(children) ? cloneElement(children, {
       id,
@@ -140,10 +140,10 @@ export function AppField<T extends FieldValues>({ name, label, hint, rules, onFi
       },
       ref: registration.ref,
       'aria-invalid': !!message,
-      'aria-describedby': [help ? `${id}-hint` : '', message ? `${id}-error` : '', children.props['aria-describedby']].filter(Boolean).join(' ') || undefined,
+      'aria-describedby': [hint ? `${id}-hint` : '', message ? `${id}-error` : '', children.props['aria-describedby']].filter(Boolean).join(' ') || undefined,
     } as InputHTMLAttributes<HTMLInputElement>) : children}
     {message && <p id={`${id}-error`} role="alert" className="text-xs text-danger">{t(message)}</p>}
-    {help && <p id={`${id}-hint`} className="text-xs leading-5 text-muted">{help}</p>}
+    {hint && <p id={`${id}-hint`} className="text-xs leading-5 text-muted">{hint}</p>}
   </div>;
 }
 
@@ -170,7 +170,7 @@ export function AppControllerField<T extends FieldValues>({ name, label, hint, c
   return <Controller
     control={control}
     name={name}
-    render={({ field, fieldState }) => <div data-invalid={fieldState.invalid || undefined} className={cn('flex min-w-0 flex-col gap-2', className)}>
+    render={({ field, fieldState }) => <div data-invalid={fieldState.invalid || undefined} className={cn('flex min-w-0 flex-col', floating ? 'gap-2' : 'gap-1.5', className)}>
       {label && <label htmlFor={id} className={cn('text-sm font-medium text-ink', floating && 'sr-only')}><span id={`${id}-label`}>{label}</span><FieldMark required={required} mode={design.requiredMode} /></label>}
       {children({ ...field, id,
         onChange: value => { if (getFieldState(name).error?.type === 'server') clearErrors(name); field.onChange(value); },

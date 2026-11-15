@@ -360,8 +360,8 @@ type RegisterInput struct {
 
 type EmailRequest struct {
 	Email             string  `json:"email"`
-	CaptchaID         string  `json:"captcha_id"`
-	CaptchaAnswer     string  `json:"captcha_answer"`
+	CaptchaID         *string `json:"captcha_id,omitempty"`
+	CaptchaAnswer     *string `json:"captcha_answer,omitempty"`
 	HumanCheckToken   *string `json:"human_check_token,omitempty"`
 	HumanCheckRandstr *string `json:"human_check_randstr,omitempty"`
 }

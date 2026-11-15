@@ -358,8 +358,8 @@ export interface RegisterInput {
 
 export interface EmailRequest {
   email: string;
-  captcha_id: string;
-  captcha_answer: string;
+  captcha_id?: string;
+  captcha_answer?: string;
   human_check_token?: string;
   human_check_randstr?: string;
 }

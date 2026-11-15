@@ -129,7 +129,11 @@ func (a *Accounts) RequestCode(ctx context.Context, input contracts.EmailRequest
 	if purpose == "verify" {
 		captcha = policy.RegisterCaptcha
 	}
-	if err = a.allow(ip, email, input.CaptchaID, input.CaptchaAnswer, captcha); err != nil {
+	if purpose == "reset" {
+		// Reset proves identity with the mailed code; abuse is bounded by the mail rate limits below.
+		captcha = false
+	}
+	if err = a.allow(ip, email, derefString(input.CaptchaID), derefString(input.CaptchaAnswer), captcha); err != nil {
 		return contracts.EmailChallenge{}, err
 	}
 	if !a.Identity.Limiter.Allow("code-resend:"+purpose+":"+email, 1, time.Minute) {

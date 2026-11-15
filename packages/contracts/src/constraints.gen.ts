@@ -1353,9 +1353,7 @@ export const constraints = {
     "type": "object",
     "additionalProperties": false,
     "required": [
-      "email",
-      "captcha_id",
-      "captcha_answer"
+      "email"
     ],
     "properties": {
       "email": {

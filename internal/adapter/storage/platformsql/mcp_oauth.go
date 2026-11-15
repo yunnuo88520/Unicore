@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/yunnuo/unicore/internal/audit"
-	"github.com/yunnuo/unicore/internal/platform/mcpoauth"
 	"github.com/yunnuo/unicore/internal/platform"
+	"github.com/yunnuo/unicore/internal/platform/mcpoauth"
 )
 
 var _ mcpoauth.Store = (*Repository)(nil)
@@ -279,23 +279,36 @@ func (r *Repository) SaveToken(ctx context.Context, hash, kind, grantID, familyI
 			return err
 		}
 		if affected != 1 {
-			// The row is missing or already revoked. A revoked family is
-			// final; a missing row is created outside any transaction and
-			// the gate answers again in a fresh one.
-			if attempt == 1 {
+			// PostgreSQL counts matched rows, MySQL counts changed rows: a
+			// zero here means missing, revoked — or an active row whose
+			// values the gate already agreed with. Ask the row directly; a
+			// matched active row is also row-locked by the UPDATE itself.
+			var revoked int64
+			scanErr := r.row(ctx, tx, "SELECT revoked_at FROM unicore_mcp_oauth_families WHERE family_id=?", familyID).Scan(&revoked)
+			if errors.Is(scanErr, sql.ErrNoRows) {
+				// The row is missing: create it outside any transaction (a
+				// duplicate from a racing creator or revocation marker must
+				// not poison a transaction) and let the gate answer again.
+				if attempt == 1 {
+					return mcpoauth.ErrInvalidGrant
+				}
+				if err = tx.Rollback(); err != nil {
+					return err
+				}
+				if _, err = r.exec(ctx, r.Store.DB, create, familyID, grantID, familyDeadline); err != nil {
+					var marker int64
+					if scanErr = r.row(ctx, r.Store.DB, "SELECT revoked_at FROM unicore_mcp_oauth_families WHERE family_id=?", familyID).Scan(&marker); scanErr != nil {
+						return err
+					}
+				}
+				continue
+			}
+			if scanErr != nil {
+				return scanErr
+			}
+			if revoked > 0 {
 				return mcpoauth.ErrInvalidGrant
 			}
-			if err = tx.Rollback(); err != nil {
-				return err
-			}
-			if _, err = r.exec(ctx, r.Store.DB, create, familyID, grantID, familyDeadline); err != nil {
-				var revoked int64
-				if scanErr := r.row(ctx, r.Store.DB, "SELECT revoked_at FROM unicore_mcp_oauth_families WHERE family_id=?", familyID).Scan(&revoked); scanErr == nil {
-					continue // The row exists; the next gate decides.
-				}
-				return err
-			}
-			continue
 		}
 		result, err = r.exec(ctx, tx,
 			"INSERT INTO unicore_mcp_oauth_tokens(token_hash,kind,grant_id,family_id,parent_id,scopes,expires_at) SELECT ?,?,?,?,?,?,? FROM (SELECT 1) AS guard WHERE NOT EXISTS(SELECT 1 FROM unicore_mcp_oauth_tokens WHERE family_id=? AND revoked_at>0)",

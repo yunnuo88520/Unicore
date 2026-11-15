@@ -185,6 +185,10 @@ func TestOAuthCodeSnapshotRoundTrip(t *testing.T) {
 // the commit ordering lands, the family ends without a live survivor. The
 // tokens-only guard lost exactly this race on PostgreSQL's separate
 // INSERT/NOT EXISTS snapshots.
+//
+// Both dialects reuse the shared harness database (see the ordering note in
+// the subtest); unique identifiers and row cleanup keep the scenario
+// collision-free without disturbing the migration harness.
 func TestOAuthFamilyIssuanceVsRevocation(t *testing.T) {
 	for _, dialect := range []string{"postgres", "mysql"} {
 		dsn := os.Getenv("UNICORE_TEST_" + map[string]string{"postgres": "POSTGRES_DSN", "mysql": "MYSQL_DSN"}[dialect])
@@ -193,6 +197,10 @@ func TestOAuthFamilyIssuanceVsRevocation(t *testing.T) {
 		}
 		t.Run(dialect, func(t *testing.T) {
 			ctx := context.Background()
+			// The file sorts after repository_test.go, so the shared harness
+			// database is already migrated when this runs; Apply stays a
+			// no-op. Unique identifiers keep the scenario collision-free and
+			// the cleanup removes exactly the rows it created.
 			store, err := webdb.Open(ctx, dialect, dsn, filepath.Join(t.TempDir(), "mcp-oauth.db"))
 			if err != nil {
 				t.Fatal(err)
@@ -202,10 +210,11 @@ func TestOAuthFamilyIssuanceVsRevocation(t *testing.T) {
 				t.Fatal(err)
 			}
 			r := &Repository{Store: store}
-			// Unique identifiers: the DSN database persists across runs, so
-			// the interleaving must not collide with artifacts of an earlier
-			// execution (a leftover revoked family would mask the race).
 			family := "family-" + platform.Token()
+			t.Cleanup(func() {
+				_, _ = r.exec(ctx, store.DB, "DELETE FROM unicore_mcp_oauth_tokens WHERE family_id=?", family)
+				_, _ = r.exec(ctx, store.DB, "DELETE FROM unicore_mcp_oauth_families WHERE family_id=?", family)
+			})
 			now := time.Now().Unix()
 			if err = r.SaveToken(ctx, "hash-a-"+family, mcpoauth.TokenAccess, "grant-1", family, "", `["mcp.read"]`, now+900, 0); err != nil {
 				t.Fatalf("initial insert: %v", err)

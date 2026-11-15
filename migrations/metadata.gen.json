@@ -126,58 +126,18 @@
           "files": {
             "mysql": {
               "path": "platform/mysql/0001_initial.sql",
-              "bytes": 16885,
-              "checksum": "da6b991aef2b27f48874fcd52da2fff445664f12ba985801c7f51b3eb62799d8"
+              "bytes": 22582,
+              "checksum": "1539c0ca47977e2eda70a7f9ca56ddc01b909a53c58fd59baa24e6a42975e8f3"
             },
             "postgres": {
               "path": "platform/postgres/0001_initial.sql",
-              "bytes": 16266,
-              "checksum": "8dd2f56555f4ae65bce03b91f960ce6b2813a0f88984cc4a5c2bd34c4abf0a54"
+              "bytes": 22771,
+              "checksum": "c041ab3b97fe7a64e12b9394ab34215a1931f5f4290ace0c621b46ce0d6b4b78"
             },
             "sqlite": {
               "path": "platform/sqlite/0001_initial.sql",
-              "bytes": 12069,
-              "checksum": "64dd0466e04649b135802580e77e629f084ef9acfd24f6790c38f35a254d9d1b"
-            }
-          }
-        },
-        {
-          "version": 2,
-          "files": {
-            "mysql": {
-              "path": "platform/mysql/0002_inbox_actions.sql",
-              "bytes": 394,
-              "checksum": "1d4df1269d0c5f15edf78ea0f3c2aecc0231d35433869cd61c8189be68f05380"
-            },
-            "postgres": {
-              "path": "platform/postgres/0002_inbox_actions.sql",
-              "bytes": 350,
-              "checksum": "236f89eabb30e79bce12b7fd48982b0a71d0fa87d853b54570b9381f4e735056"
-            },
-            "sqlite": {
-              "path": "platform/sqlite/0002_inbox_actions.sql",
-              "bytes": 348,
-              "checksum": "0ddfdc0b41382148b7ea687819de42ba39eda55e87b9a11882c4d8050f86916b"
-            }
-          }
-        },
-        {
-          "version": 3,
-          "files": {
-            "mysql": {
-              "path": "platform/mysql/0003_role_version.sql",
-              "bytes": 627,
-              "checksum": "d95a0c125bf22c3b8333968671ecfdcce31d37770878d968456ee9a27e1abb2d"
-            },
-            "postgres": {
-              "path": "platform/postgres/0003_role_version.sql",
-              "bytes": 630,
-              "checksum": "d8253ad23a1056c8b7dcf6749cc89813ca0467bd8f48656517d1f7cec627c7ed"
-            },
-            "sqlite": {
-              "path": "platform/sqlite/0003_role_version.sql",
-              "bytes": 628,
-              "checksum": "72a3adafcc1f961847c919cb107f495d320600b3a0fd91211f4589cc8450cc94"
+              "bytes": 17444,
+              "checksum": "b480d584a15e2650553ba339e879a191e9f7c7f5a7f11fb639fb4415d49bd5f8"
             }
           }
         }
@@ -209,9 +169,9 @@
       "levels": {
         "core": 1,
         "module.notes": 1,
-        "platform": 3
+        "platform": 1
       },
-      "schema_fingerprint": "81d91b52a2ddd66e086f513c850d2f84ee57e2978e320332b61c02351a2e871c"
+      "schema_fingerprint": "c9b427ebc7910878d9594f99794cafc68130eff4fc6dc09f16d24ed3a2f3776b"
     },
     "web-platform": {
       "dialects": [
@@ -232,9 +192,9 @@
       "levels": {
         "core": 1,
         "module.notes": 1,
-        "platform": 3
+        "platform": 1
       },
-      "schema_fingerprint": "b452884367274cf0708c599e6db647fd877f76dc36b0a61c4afbcaccc1b3af41"
+      "schema_fingerprint": "934af821e1379360b98d3229d5d170212a142e2cd804bb682459cb5c2ae32b8d"
     },
     "web-standalone": {
       "dialects": [
@@ -255,9 +215,9 @@
       "levels": {
         "core": 1,
         "module.notes": 1,
-        "platform": 3
+        "platform": 1
       },
-      "schema_fingerprint": "b452884367274cf0708c599e6db647fd877f76dc36b0a61c4afbcaccc1b3af41"
+      "schema_fingerprint": "934af821e1379360b98d3229d5d170212a142e2cd804bb682459cb5c2ae32b8d"
     }
   }
 }

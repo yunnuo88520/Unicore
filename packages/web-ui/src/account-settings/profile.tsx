@@ -55,7 +55,7 @@ function IdentityCard({ client, profile, onChanged, onSaved }: {
   });
   return <SettingsCard>
     <SettingsRow label={t('头像')} description={t('支持 PNG、JPEG 或 GIF，最大 2 MB。')}>
-      <span className="flex items-center gap-2.5">
+      <span className="flex min-w-0 items-center gap-2.5">
         <UserAvatar name={displayLabel(profile.display_name, profile.user.username)} url={avatarURL || profile.avatar_url} className="size-8 text-[length:var(--font-11)]" alt={t('当前头像')} />
         {avatarFiles && <Button variant="secondary" size="sm" className="h-8" disabled={save.isPending} onClick={() => setAvatarOpen(true)}>{t('上传头像')}</Button>}
         {avatarFileID && <span role="status" className="text-xs text-muted">{t('头像已上传，保存后生效')}</span>}
@@ -75,7 +75,7 @@ function IdentityCard({ client, profile, onChanged, onSaved }: {
       <SettingsValueField icon={UserRound}>{profile.user.username}</SettingsValueField>
     </SettingsRow>
     <SettingsRow label={t('邮箱')} description={t('需先验证当前邮箱，再验证新邮箱。')}>
-      <span className="flex items-center gap-2">
+      <span className="flex min-w-0 items-center gap-2">
         <SettingsValueField icon={Mail} muted={!profile.user.email}>{profile.user.email || t('未绑定邮箱')}</SettingsValueField>
         <Button variant="secondary" size="sm" className="h-8" onClick={() => setEmailOpen(true)}>{t('更换邮箱')}</Button>
       </span>
@@ -106,7 +106,7 @@ function AccountCard({ web, profile, administrator, onNavigate, onSignedOut }: {
       </span>
     </SettingsRow>
     <SettingsRow label={t('双重验证')} description={t('使用身份验证器生成一次性验证码，为所有登录方式增加一层保护。')}>
-      <span className="flex items-center gap-2">
+      <span className="flex min-w-0 items-center gap-2">
         <Badge variant={profile.totp_enabled ? 'success' : 'subtle'}>{profile.totp_enabled ? t('已开启') : t('未开启')}</Badge>
         <Button variant="secondary" size="sm" className="h-8" onClick={() => onNavigate('security')}><KeyRound size={14} aria-hidden="true" />{t('前往安全设置')}</Button>
       </span>

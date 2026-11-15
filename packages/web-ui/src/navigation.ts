@@ -19,7 +19,8 @@ export type NavEntry = {
 export type Navigation = { sections: { id: string; title: string; showTitle: boolean; entries: NavEntry[] }[] };
 export type NavigationConfig = Pick<MenuList, 'version' | 'sections' | 'nodes'>;
 export function isLinkEntry(entry: NavEntry): entry is NavEntry & { url: string } { return entry.type === 'link' && !!entry.url; }
-export function isRegisteredPage(id: string | undefined): id is Page { return !!id && id !== 'not-found' && Object.hasOwn(routes, id); }
+// The consent page is a standalone flow destination, never a menu entry.
+export function isRegisteredPage(id: string | undefined): id is Page { return !!id && id !== 'not-found' && id !== 'authorize' && Object.hasOwn(routes, id); }
 export function routePath(id: Page): string { return id === 'overview' ? '/' : `/${id}`; }
 export function registeredPath(url: string): Page | undefined {
   try {
@@ -39,15 +40,16 @@ const builtinPageOrder: string[] = [
   'announcements', 'tasks', 'api-docs', 'site', 'storage', 'account-policy', 'mail', 'mail-templates',
   'notification-channels', 'notification-templates', 'system-notifications', 'logs', 'edition', 'access-tokens',
   'monitor', 'monitor-services', 'monitor-resources', 'monitor-events',
+  'ai-access', 'ai-tools', 'ai-calls', 'ai-oauth',
 ];
 // Module pages append after the builtins in each module's declared order.
 export const defaultPageOrder: string[] = [...builtinPageOrder, ...uiModules().flatMap(item => item.order ?? [])];
 export function defaultRank(id: string): number { const index = defaultPageOrder.indexOf(id); return index < 0 ? defaultPageOrder.length : index; }
-const titles = defineMessages({ business: '业务', system: '系统管理', administration: '超级管理员', settings: '系统设置', monitor: '运行监控' });
+const titles = defineMessages({ business: '业务', system: '系统管理', administration: '超级管理员', settings: '系统设置', monitor: '运行监控', ai: 'AI 管理' });
 // Seeded directories persist empty labels (names are operator-overridable), so
 // the display fallback resolves their well-known ids to localized titles.
-const directoryNames = defineMessages({ administration: '超级管理员', settings: '系统设置', 'monitor-center': '运行监控' });
-const directoryIcons: Record<string, string> = { administration: 'Users', settings: 'Settings2' };
+const directoryNames = defineMessages({ administration: '超级管理员', settings: '系统设置', 'monitor-center': '运行监控', 'ai-management': 'AI 管理' });
+const directoryIcons: Record<string, string> = { administration: 'Users', settings: 'Settings2', 'ai-management': 'Bot' };
 // Seeded sections also persist empty names; the same fallback keeps 业务/系统管理
 // visible until an operator renames them.
 const sectionNames: Record<string, string> = { business: titles.business, system: titles.system };
@@ -69,7 +71,7 @@ const platformAdminOnly = new Set(['announcements', 'site', 'api-docs']);
 /** Route registration alone decides which workspaces a page reaches, mirroring the Go seed: console and management groups plus the platform admin-only pages stay administrator-only. */
 export function routeSurfaces(id: string): NavigationSection['surfaces'] {
   const group = isRegisteredPage(id) && 'group' in routes[id] ? String(routes[id].group) : '';
-  return group === 'system' || group === 'administration' || group === 'monitor' || platformAdminOnly.has(id) ? ['administrator'] : ['user', 'administrator'];
+  return group === 'system' || group === 'administration' || group === 'monitor' || group === 'ai' || platformAdminOnly.has(id) ? ['administrator'] : ['user', 'administrator'];
 }
 
 /** Seeded directory surfaces aggregate their subtree: the union of the route-derived page surfaces keeps a directory reachable wherever its pages are. */
@@ -98,6 +100,7 @@ export function defaultNavigation(_surface: NavigationSection['surfaces'], profi
     nodes.push({ ...newNavigationNode('administration', 'system', 'directory', groupSurfaces('administration')), label: titles.administration, icon: 'Users', sort: 20 });
     nodes.push({ ...newNavigationNode('settings', 'system', 'directory', groupSurfaces('system')), label: titles.settings, icon: 'Settings2', sort: 10 });
     nodes.push({ ...newNavigationNode('monitor-center', 'system', 'directory', groupSurfaces('monitor')), label: titles.monitor, icon: 'Activity', sort: 25 });
+    nodes.push({ ...newNavigationNode('ai-management', 'system', 'directory', groupSurfaces('ai')), label: titles.ai, icon: 'Bot', sort: 30 });
   }
   for (const id of Object.keys(routes).filter(isRegisteredPage)) {
     if (id === 'administrators') continue;
@@ -110,8 +113,8 @@ export function defaultNavigation(_surface: NavigationSection['surfaces'], profi
     // platform profile, after the settings and administration directories.
     const systemTopLevel = platform && id === 'api-docs';
     const surfaces: NavigationSection['surfaces'] = platform ? routeSurfaces(id) : bothSurfaces;
-    const sectionId = platform && (systemTopLevel || group === 'system' || group === 'administration' || group === 'monitor') ? 'system' : 'business';
-    const parent = platform ? systemTopLevel ? undefined : group === 'administration' ? 'administration' : group === 'system' ? 'settings' : group === 'monitor' ? 'monitor-center' : undefined : undefined;
+    const sectionId = platform && (systemTopLevel || group === 'system' || group === 'administration' || group === 'monitor' || group === 'ai') ? 'system' : 'business';
+    const parent = platform ? systemTopLevel ? undefined : group === 'administration' ? 'administration' : group === 'system' ? 'settings' : group === 'monitor' ? 'monitor-center' : group === 'ai' ? 'ai-management' : undefined : undefined;
     nodes.push({ ...newNavigationNode(id, sectionId, 'page', surfaces), parent_id: parent, route_id: id,
       // Local profiles use the directory-style monitor name.
       label: !platform && id === 'monitor' ? titles.monitor : '',

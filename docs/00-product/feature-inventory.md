@@ -7,7 +7,7 @@
 
 ## A. 身份与访问治理（Platform 专属）
 
-装配省略点：`internal/install/manager.go` attach 仅在 web-platform 创建 identity/Accounts/OIDC/mailer；策略层对非平台形态的会话请求一律 404（`internal/adapter/http/policy.go`）。这里的“不装配”指治理服务和入口，不指物理表不存在：当前 Catalog 的三个 UI profile 均包含 platform，已有 @2 收件箱 actions、本次追加 @3 角色版本列；Standalone 同步迁移但不装配身份治理，CLI 无数据库。数据库隔离另行决策，见 [ADR-0046](../adr/ADR-0046-credential-delegation-role-concurrency.md)。
+装配省略点：`internal/install/manager.go` attach 仅在 web-platform 创建 identity/Accounts/OIDC/mailer；策略层对非平台形态的会话请求一律 404（`internal/adapter/http/policy.go`）。这里的“不装配”指治理服务和入口，不指物理表不存在：当前 Catalog 的三个 UI profile 均包含 platform，platform 为 ADR-0042 整合后的单一 @1 终态基线（含收件箱 actions、角色版本列与 MCP 治理/OAuth 存储）；Standalone 同步迁移但不装配身份治理，CLI 无数据库。数据库隔离另行决策，见 [ADR-0046](../adr/ADR-0046-credential-delegation-role-concurrency.md)。
 
 | 功能单元 | Platform | Standalone | CLI | 持久化 | 证据 |
 | --- | --- | --- | --- | --- | --- |
@@ -17,7 +17,7 @@
 | 用户管理（含 XLSX 导入导出） | 已实现，users:* | 不装配 | 不装配 | unicore_users | `internal/adapter/http/users.go`、`internal/adapter/http/xlsx.go` |
 | 管理员账号管理 | 已实现，super_admin 保护最后管理员 | 不装配 | 不装配 | unicore_personal_accounts | `internal/platform/roles.go` |
 | 管理端凭据委派 | 已实现：users:credentials:write 独立范围，邮箱另需 users:update 范围；完整管理目标仅超管，PAT 禁止，旧角色不自动授予 | 不装配 | 不装配 | 复用 unicore_users 与安全状态表 | `internal/adapter/storage/platformsql/repository.go`、[ADR-0046](../adr/ADR-0046-credential-delegation-role-concurrency.md) |
-| 角色与操作级授权（RBAC） | 已实现：服务端保留元数据 + 完整高级 API 选择器 + 显式撤销；更新强制 version CAS，内置 user 固定 self，复制后可调 | 不装配 | 不装配 | unicore_roles 等（platform@3 追加 version） | `internal/platform/roles.go`、`internal/platform/operations.go`、[角色需求](feature-roles.md)、[权限契约](../api/permissions.md) |
+| 角色与操作级授权（RBAC） | 已实现：服务端保留元数据 + 完整高级 API 选择器 + 显式撤销；更新强制 version CAS，内置 user 固定 self，复制后可调 | 不装配 | 不装配 | unicore_roles 等（platform 基线含 version） | `internal/platform/roles.go`、`internal/platform/operations.go`、[角色需求](feature-roles.md)、[权限契约](../api/permissions.md) |
 | 菜单与导航授权 | 已实现：共享导航树 CAS + 菜单节点角色补丁（导航 version/expected_role_ids，实际改变角色也递增其版本）；标签仅显式分配，超管默认访问不绕过 surface/隐藏禁用祖先 | 不装配（导航由客户端默认树生成） | 不适用 | unicore_navigation_state | `internal/platform/navigation.go`、`packages/web-ui/src/navigation.ts` |
 | 部门与数据范围 | 已实现，五值数据范围 fail-closed | 不装配 | 不装配 | unicore_departments | `internal/platform/datascope.go` |
 | 岗位管理 | 已实现（组织人事岗位，非内容帖子） | 不装配 | 不装配 | unicore_posts | `internal/adapter/http/posts.go` |
@@ -122,6 +122,18 @@ Platform 两工作台与 Standalone 两载体共用连续的顶栏/正文背景�
 | 宿主机硬件视图（身份/CPU 逐核/内存/Swap/磁盘/负载/网络累计+服务端速率/温度/cgroup 限额，图表卡片 + 会话趋势） | 已实现（gopsutil 只读采样，D20 追记上提 P0；P1 补深度指标） | 已实现（两载体等效） | 不适用 | 无（拉取式，不落库） | `internal/monitor/host.go`、`packages/web-ui/src/widgets/monitor-charts.tsx` |
 | 告警（规则/检测/事件） | 已实现（T4 方案二：superAdmin 规则端点 + 后台检测 + notifycontent 通知，见 [设计 §9.3](design-runtime-monitor.md)） | 已实现（T4 方案二：内置默认规则本地告警，写入运行事件，不发外部通知；Web/GUI 等效） | 不适用（CLI 不装配） | 告警事件=运行事件缓冲（进程内，200 条）；Platform 规则=Settings 基建（`alerts.rules` 内部键）；Standalone 规则=内置常量 | `internal/monitor/alert.go`、`GET/PUT /api/v1/admin/monitor/alert-rules` |
 | 本地只读快照接口 | —（走超管接口） | 已实现（`GET /monitor`，access local + sameOrigin，只读脱敏，D19） | 不装配 | 无 | `packages/contracts/openapi.json`（monitorSnapshot） |
+
+## J. 平台集成（Platform 专属）
+
+| 功能单元 | Platform | Standalone | CLI | 持久化 | 证据 |
+| --- | --- | --- | --- | --- | --- |
+| MCP Server（PAT 只读底座，P1） | 已实现：`/mcp` 固定入口（2026-07-28 基准档，go-sdk v1.8.0），默认关闭；PAT-only 认证、`mcp:access` + operation 显式授权、数据范围沿用、只读阶段门、限流/并发/体积/超时、调用元数据与 CAS 治理 | 不装配（`/mcp` 404，无 AI 管理菜单） | 不装配 | unicore_mcp_control / capability_policies / calls（platform 基线）+ settings mcp.* | `internal/mcp/`、`internal/adapter/mcp/`、`internal/platform/mcpauth/`、`internal/adapter/storage/platformsql/mcp.go`、[ADR-0047](../adr/ADR-0047-mcp-server.md) |
+| MCP 动态客户端注册（P4，部分完成） | 已实现（默认关闭，`mcp.dcr_enabled`）：RFC 7591 子集 `POST /oauth/mcp/register` 仅注册公开 PKCE 客户端，注册即启用并纳入既有治理；按地址限流，发现文档条件公告。原规划的 Resources 与 Prompts 能力未交付，DCR 不能替代 | 不装配 | 不装配 | settings mcp.dcr_enabled | `internal/adapter/mcp/oauth.go`、`internal/platform/mcpoauth/service.go`、[ADR-0047](../adr/ADR-0047-mcp-server.md) |
+| MCP 写阶段（P3，部分完成） | 已实现（默认关闭，`mcp.write_enabled`）：write 效果工具执行门、OAuth 令牌 mcp.write 传输预算、destructive 始终关闭、业务错误以 IsError 结果返回；样例写工具 notes.update 声明需本人确认——确认工作流未实现，该类工具当前一律拒绝执行且不进目录；持久幂等、执行状态与未知结果恢复未交付 | 不装配 | 不装配 | settings mcp.write_enabled | `internal/mcp/service.go`、`internal/adapter/mcp/notes.go`、[ADR-0047](../adr/ADR-0047-mcp-server.md) |
+| MCP OAuth 授权服务（P2） | 已实现（默认关闭，`mcp.oauth_enabled`）：发现端点（RFC 9728 + AS metadata）、授权码 + PKCE(S256)、单角色同意复用、不透明令牌（仅存摘要）、refresh 一次性轮换 + 同族重放撤销、RFC 7009 撤销、按小时清扫；`ucm_` 令牌与 PAT 同链鉴权，scope 仅 mcp.read/offline_access | 不装配 | 不装配 | unicore_mcp_oauth_clients / grants / codes / tokens（platform 基线）+ settings mcp.oauth_enabled | `internal/platform/mcpoauth/`、`internal/adapter/mcp/oauth.go`、`internal/adapter/storage/platformsql/mcp_oauth.go`、[ADR-0047](../adr/ADR-0047-mcp-server.md) |
+| OAuth 客户端管理与个人授权（P2） | 已实现：AI 管理「OAuth 接入」页（注册/编辑 CAS/启停/密钥轮换/全局撤销，`mcp:clients:read|write`）；同意页 `/authorize`（登录墙原位继续、单角色选择）；个人中心「已授权应用」（本人授权与自撤销），中英双语 | 不呈现 | 不装配 | 同上 | `packages/web-ui/src/pages/admin/ai/oauth.tsx`、`packages/web-ui/src/pages/authorize.tsx`、`packages/web-ui/src/account-settings/apps.tsx`、`internal/adapter/http/mcp_oauth.go` |
+| AI 管理三页（接入配置/工具目录/调用记录） | 已实现（super_admin；AI 管理目录三页，中英双语） | 不呈现 | 不适用 | 无 | `packages/web-ui/src/pages/admin/ai/`、`internal/adapter/http/mcp.go` |
+| 能力注册（代码显式注册 + 指纹审查） | 已实现：notes.search/get 只读样例，`FEATURE_NOTES` 裁剪联动 | 不装配 | 不装配 | unicore_mcp_capability_policies | `internal/adapter/mcp/notes.go`、`internal/mcp/registry.go` |
 
 ## 已知差距与待决策
 

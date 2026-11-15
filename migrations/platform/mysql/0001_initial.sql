@@ -1,5 +1,5 @@
 -- Author: yunnuo <ymz@ebox.vip>
--- Purpose: platform final-state baseline; mysql; web-platform only.
+-- Purpose: platform final-state baseline (roles version CAS, inbox actions, MCP governance and OAuth storage); mysql; web-platform, web-standalone and desktop.
 -- Compatibility: pre-stable squash for fresh databases; previous development ledgers are rejected.
 -- Recovery: restore matching DB/data/config/key/binary snapshots to a new target. No down SQL.
 -- Baseline DDL and static seed rows are replay-idempotent; roles/accounts are initialized by Go Seed.
@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS `unicore_roles` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `name` (`name`),
  `realm` VARCHAR(16) NOT NULL DEFAULT 'user',
- `data_scope` varchar(16) NOT NULL DEFAULT 'self'
+ `data_scope` varchar(16) NOT NULL DEFAULT 'self',
+ `version` bigint NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS `unicore_permissions` (
@@ -240,6 +241,7 @@ CREATE TABLE IF NOT EXISTS `unicore_inbox_messages` (
   `body` text NOT NULL,
   `created_at` bigint NOT NULL,
   `read_at` bigint NOT NULL DEFAULT 0,
+  `actions` text NOT NULL,
   PRIMARY KEY (`id`),
   KEY `unicore_inbox_recipient` (`recipient_id`,`read_at`,`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -344,3 +346,132 @@ CREATE TABLE IF NOT EXISTS unicore_api_token_keys (
  id VARCHAR(64) NOT NULL PRIMARY KEY, secret TEXT NOT NULL,
  created_at BIGINT NOT NULL, valid_until BIGINT NOT NULL, active INTEGER NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+CREATE TABLE IF NOT EXISTS `unicore_mcp_control` (
+  `id` bigint NOT NULL,
+  `revision` bigint NOT NULL DEFAULT 0,
+  `created_at` bigint NOT NULL DEFAULT 0,
+  `updated_at` bigint NOT NULL DEFAULT 0,
+  `updated_by` varchar(64) NOT NULL DEFAULT '',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+INSERT INTO unicore_mcp_control(id,revision,created_at,updated_at,updated_by) SELECT 1,0,0,0,'' WHERE NOT EXISTS (SELECT 1 FROM unicore_mcp_control WHERE id=1);
+
+CREATE TABLE IF NOT EXISTS `unicore_mcp_capability_policies` (
+  `id` varchar(64) NOT NULL,
+  `kind` varchar(16) NOT NULL,
+  `name` varchar(128) NOT NULL,
+  `enabled` integer NOT NULL DEFAULT 0,
+  `accepted_fingerprint` varchar(64) NOT NULL DEFAULT '',
+  `accepted_version` varchar(32) NOT NULL DEFAULT '',
+  `version` bigint NOT NULL DEFAULT 1,
+  `created_at` bigint NOT NULL DEFAULT 0,
+  `updated_at` bigint NOT NULL DEFAULT 0,
+  `updated_by` varchar(64) NOT NULL DEFAULT '',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unicore_mcp_policy_kind_name` (`kind`,`name`),
+  KEY `unicore_mcp_policy_enabled` (`enabled`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS `unicore_mcp_calls` (
+  `id` varchar(64) NOT NULL,
+  `request_id` varchar(64) NOT NULL,
+  `actor_id` varchar(64) NOT NULL,
+  `credential_id` varchar(64) NOT NULL,
+  `role_id` varchar(64) NOT NULL,
+  `auth_method` varchar(16) NOT NULL,
+  `kind` varchar(16) NOT NULL,
+  `name` varchar(128) NOT NULL,
+  `capability_version` varchar(32) NOT NULL DEFAULT '',
+  `policy_revision` bigint NOT NULL DEFAULT 0,
+  `protocol_version` varchar(16) NOT NULL DEFAULT '',
+  `client_name` varchar(80) NOT NULL DEFAULT '',
+  `client_version` varchar(40) NOT NULL DEFAULT '',
+  `status` varchar(16) NOT NULL DEFAULT '',
+  `error_code` varchar(128) NOT NULL DEFAULT '',
+  `started_at` bigint NOT NULL DEFAULT 0,
+  `finished_at` bigint NOT NULL DEFAULT 0,
+  `duration_ms` bigint NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unicore_mcp_calls_request` (`request_id`),
+  KEY `unicore_mcp_calls_started` (`started_at`,`id`),
+  KEY `unicore_mcp_calls_actor` (`actor_id`,`started_at`,`id`),
+  KEY `unicore_mcp_calls_capability` (`kind`,`name`,`started_at`,`id`),
+  KEY `unicore_mcp_calls_status` (`status`,`started_at`,`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS `unicore_mcp_oauth_clients` (
+  `id` varchar(64) NOT NULL,
+  `name` varchar(80) NOT NULL,
+  `client_type` varchar(16) NOT NULL,
+  `auth_method` varchar(16) NOT NULL,
+  `redirect_uris` text NOT NULL,
+  `enabled` integer NOT NULL DEFAULT 0,
+  `client_secret_hash` varchar(64) NOT NULL DEFAULT '',
+  `version` bigint NOT NULL DEFAULT 1,
+  `created_at` bigint NOT NULL DEFAULT 0,
+  `updated_at` bigint NOT NULL DEFAULT 0,
+  `updated_by` varchar(64) NOT NULL DEFAULT '',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS `unicore_mcp_oauth_grants` (
+  `id` varchar(64) NOT NULL,
+  `user_id` varchar(64) NOT NULL,
+  `client_id` varchar(64) NOT NULL,
+  `role_id` varchar(64) NOT NULL,
+  `resource` varchar(2048) NOT NULL,
+  `scope_set` text NOT NULL,
+  `status` varchar(16) NOT NULL DEFAULT 'active',
+  `security_anchor` varchar(64) NOT NULL DEFAULT '',
+  `consent_epoch` bigint NOT NULL DEFAULT 1,
+  `created_at` bigint NOT NULL DEFAULT 0,
+  `last_used_at` bigint NOT NULL DEFAULT 0,
+  `revoked_at` bigint NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `unicore_mcp_grants_user` (`user_id`,`status`),
+  KEY `unicore_mcp_grants_client` (`client_id`,`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS `unicore_mcp_oauth_codes` (
+  `code_hash` varchar(64) NOT NULL,
+  `grant_id` varchar(64) NOT NULL,
+  `redirect_uri` varchar(2048) NOT NULL,
+  `pkce_challenge` varchar(128) NOT NULL DEFAULT '',
+  `pkce_method` varchar(16) NOT NULL DEFAULT '',
+  `scope_set` text NOT NULL,
+  `consent_epoch` bigint NOT NULL DEFAULT 1,
+  `expires_at` bigint NOT NULL,
+  `consumed_at` bigint NOT NULL DEFAULT 0,
+  PRIMARY KEY (`code_hash`),
+  KEY `unicore_mcp_codes_expiry` (`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS `unicore_mcp_oauth_tokens` (
+  `token_hash` varchar(64) NOT NULL,
+  `kind` varchar(16) NOT NULL,
+  `grant_id` varchar(64) NOT NULL,
+  `family_id` varchar(64) NOT NULL,
+  `parent_id` varchar(64) NOT NULL DEFAULT '',
+  `scopes` text NOT NULL,
+  `consent_epoch` bigint NOT NULL DEFAULT 1,
+  `expires_at` bigint NOT NULL,
+  `consumed_at` bigint NOT NULL DEFAULT 0,
+  `revoked_at` bigint NOT NULL DEFAULT 0,
+  PRIMARY KEY (`token_hash`),
+  KEY `unicore_mcp_tokens_grant` (`grant_id`,`kind`),
+  KEY `unicore_mcp_tokens_family` (`family_id`,`kind`),
+  KEY `unicore_mcp_tokens_expiry` (`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- Persistent token-family state: the issuance gate and revocation mark
+-- serialize on this row, so a family can never hold a survivor that a
+-- committed revocation never saw (the tokens-only guard lost that race on
+-- PostgreSQL's separate INSERT/NOT EXISTS snapshots).
+CREATE TABLE IF NOT EXISTS `unicore_mcp_oauth_families` (
+  `family_id` varchar(64) NOT NULL,
+  `grant_id` varchar(64) NOT NULL DEFAULT '',
+  `revoked_at` bigint NOT NULL DEFAULT 0,
+  `deadline` bigint NOT NULL DEFAULT 0,
+  PRIMARY KEY (`family_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

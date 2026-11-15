@@ -23,7 +23,7 @@ const AUTH_MESSAGES = defineMessages({
   invalid: '请检查表单输入',
   mismatch: '两次输入的密码不一致',
   confirmation: '请再次输入密码',
-  password: '密码至少 12 个字符，且不超过 128 字节',
+  password: '密码长度为 12–128 个字符',
   captcha: '请输入 6 位图形验证码',
   code: '请先获取邮箱验证码',
   phone: '请输入有效的手机号',
@@ -198,7 +198,13 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
     onSuccess: ({ result, version }) => {
       if (version !== generation.current.value) return;
       clearSecrets();
-      if (mode === 'login' || (challenge && mode === 'email')) { onDone(); void router.navigate({ to: '/' }); return; }
+      if (mode === 'login' || (challenge && mode === 'email')) {
+        onDone();
+        // The OAuth consent wall renders at /authorize: refresh lifts it in
+        // place instead of navigating away and dropping the request parameters.
+        if (location.pathname !== '/authorize') void router.navigate({ to: '/' });
+        return;
+      }
       if (result) acceptChallenge(result);
       else if (mode === 'register') {
         setChallenge(undefined); form.setValue('code', '');

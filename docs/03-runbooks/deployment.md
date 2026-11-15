@@ -73,7 +73,7 @@ Web 发行包通过 `unicore backup|verify|restore` 离线加密备份/校验/�
 
 账号邮件使用持久队列，由 server 进程运行。「系统管理 → 操作日志 → 邮件投递」展示最近 30 项的状态/尝试次数，失败自动重试最多 5 次，终止后由用户在登录页重新申请，避免把已过期验证码重新投入队列。错误仅显示 DELIVERY_FAILED/EXPIRED，不保留原始 SMTP 响应或凭据。进程重启可恢复过期租约，可能重复投递，邮件令牌仍只能使用一次。完成/终止/取消清空载荷，终态元数据在后台清理时保留最多 7 天。
 
-数据库初始化与后续迁移由 Catalog 单轨执行；当前 core@1、platform@3（既有 @2 收件箱 actions、@3 角色 version）、module.notes@1。三个 UI profile 均保留 platform 成员，Standalone/desktop 同步迁移但不开放身份治理，数据库隔离另行决策。匹配旧账本的升级停服并保存完整快照，正常启动应用缺失尾部；@3 不改写 @1/@2。MySQL DDL 可在账本登记前提交，失败须停止并恢复匹配快照到新空目标，不盲重试 ADD COLUMN、按列存在补账本、删账本或重走安装。指纹变化拒绝 OTA：tar 人工替换完整包，Docker 外部换镜像且保留数据卷，desktop 退出后换完整原生包；回退数据库/配置/私有文件/密钥和旧程序须成套。见 [迁移规范](../02-standards/database-migrations.md)、[更新](updates.md) 与 [备份恢复](backup.md)。
+数据库初始化与后续迁移由 Catalog 单轨执行；当前 core@1、platform@1、module.notes@1（platform 基线终态融合收件箱 actions、角色 version 与 MCP 治理/OAuth 存储）。三个 UI profile 均保留 platform 成员，Standalone/desktop 同步迁移但不开放身份治理，数据库隔离另行决策。匹配旧账本的升级停服并保存完整快照，正常启动应用缺失尾部；追加迁移不改写既有版本。MySQL DDL 可在账本登记前提交，失败须停止并恢复匹配快照到新空目标，不盲重试 ADD COLUMN、按列存在补账本、删账本或重走安装。指纹变化拒绝 OTA：tar 人工替换完整包，Docker 外部换镜像且保留数据卷，desktop 退出后换完整原生包；回退数据库/配置/私有文件/密钥和旧程序须成套。见 [迁移规范](../02-standards/database-migrations.md)、[更新](updates.md) 与 [备份恢复](backup.md)。
 
 验证链接有效 30 分钟、重置链接 15 分钟。重发使旧链接失效，密码重置使所有设备会话失效。用户状态/角色被管理员改变也会撤销待用令牌。邮箱验证不会自动登录或授予管理权限。管理员通过受保护的用户管理手动启用待验证用户属于显式管理操作。
 

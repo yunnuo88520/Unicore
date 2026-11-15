@@ -1,6 +1,6 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Standard data table renderer: one header/body loop, skeleton loading, error retry and icon empty state so list pages stop hand-rolling scaffolding.
-import type { ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { RotateCcw } from 'lucide-react';
 import { flexRender, type Cell, type Row, type RowData, type Table as TableInstance, type TableFeatures } from '@tanstack/react-table';
@@ -52,6 +52,8 @@ export type DataTableProps<TFeatures extends TableFeatures, TData extends RowDat
   onRetry?: () => void;
   /** Shown when the query succeeded without rows. */
   empty?: DataTableEmptyProps;
+  /** Extra content (expandable details, sub-rows) rendered under one data row. */
+  afterRow?: (row: Row<TFeatures, TData>) => ReactNode;
   pendingRows?: number;
   /** Passed to the inner <table>; use for min-width on dense tables. */
   className?: string;
@@ -60,12 +62,23 @@ export type DataTableProps<TFeatures extends TableFeatures, TData extends RowDat
 };
 
 export function DataTable<TFeatures extends TableFeatures, TData extends RowData>({
-  table, pending = false, busy = false, error, onRetry, empty, pendingRows = 5, className, wrapperClassName,
+  table, pending = false, busy = false, error, onRetry, empty, afterRow, pendingRows = 5, className, wrapperClassName,
 }: DataTableProps<TFeatures, TData>) {
   const columnCount = table.getHeaderGroups()[0]?.headers.length ?? 0;
   const rows = pending ? [] : table.getRowModel().rows;
+  const emptyState = !pending && !error && !rows.length;
+  // Empty and failed states render beside the horizontal scroller: narrow
+  // surfaces keep the message centered in view while wide tables scroll.
+  const emptyBlock = error
+    ? <div role="alert" className="flex flex-wrap items-center justify-center gap-3 px-3 py-6">
+        <span className="text-sm text-danger">{t(error.message)}</span>
+        {onRetry && <Button variant="secondary" size="sm" onClick={onRetry}><RotateCcw size={13} />{t('重试')}</Button>}
+      </div>
+    : emptyState
+      ? <div className="flex justify-center px-3 py-8"><DataTableEmpty icon={empty?.icon} title={empty?.title ?? t('暂无数据')} hint={empty?.hint} action={empty?.action} /></div>
+      : null;
   return <div className={cn('min-w-0 rounded-lg border border-line', wrapperClassName)} aria-busy={pending || busy || undefined}>
-    <Table className={className}>
+    {emptyBlock ?? <Table className={className}>
       <TableHeader>
         {table.getHeaderGroups().map(group => <TableRow key={group.id} className="hover:bg-transparent">
           {group.headers.map(header => <TableHead key={header.id} aria-sort={ariaSortOf(header.column)}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}
@@ -76,19 +89,13 @@ export function DataTable<TFeatures extends TableFeatures, TData extends RowData
           ? Array.from({ length: pendingRows }, (_, index) => <TableRow key={index}>
               <TableCell colSpan={columnCount}><Skeleton className={cn('h-5', SKELETON_WIDTHS[index % SKELETON_WIDTHS.length])} /></TableCell>
             </TableRow>)
-          : error
-            ? <TableRow><TableCell colSpan={columnCount}>
-                <div role="alert" className="flex flex-wrap items-center justify-center gap-3 py-1">
-                  <span className="text-sm text-danger">{t(error.message)}</span>
-                  {onRetry && <Button variant="secondary" size="sm" onClick={onRetry}><RotateCcw size={13} />{t('重试')}</Button>}
-                </div>
-              </TableCell></TableRow>
-            : rows.length
-              ? rows.map(row => <TableRow key={row.id}>
-                  {cellsOf(row).map(cell => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}
-                </TableRow>)
-              : <TableRow><TableCell colSpan={columnCount} className="h-24 text-center"><DataTableEmpty icon={empty?.icon} title={empty?.title ?? t('暂无数据')} hint={empty?.hint} action={empty?.action} /></TableCell></TableRow>}
+          : rows.map(row => <Fragment key={row.id}>
+                  <TableRow>
+                    {cellsOf(row).map(cell => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}
+                  </TableRow>
+                  {afterRow?.(row)}
+                </Fragment>)}
       </TableBody>
-    </Table>
+    </Table>}
   </div>;
 }

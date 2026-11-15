@@ -15,16 +15,19 @@ export function SettingsSectionLabel({ className, children }: { className?: stri
   return <p className={cn('w-full px-3 text-xs font-medium text-muted', className)}>{children}</p>;
 }
 
-/** One label + control row. Rows separate themselves; the last has no border. */
+/** One label + control row. Rows separate themselves; the last has no border.
+ *  The control group carries `ms-auto` so a control that wraps to its own line
+ *  on narrow screens still trails the row's end like the single-line rows,
+ *  instead of hanging at the start. */
 export function SettingsRow({ label, description, children, className }: {
   label: ReactNode; description?: ReactNode; children?: ReactNode; className?: string;
 }) {
-  return <div className={cn('flex min-h-[52px] w-full items-center justify-between gap-4 py-2.5 pe-2.5 border-b border-line last:border-b-0', className)}>
+  return <div className={cn('flex min-h-[52px] w-full flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2.5 pe-2.5 border-b border-line last:border-b-0', className)}>
     <div className="flex min-w-0 flex-col">
       <div className="text-sm text-ink">{label}</div>
       {description && <div className="text-xs text-muted">{description}</div>}
     </div>
-    {children}
+    {children && <div className="flex min-w-0 items-center gap-x-2 ms-auto">{children}</div>}
   </div>;
 }
 
@@ -34,7 +37,7 @@ type FieldIcon = ComponentType<{ className?: string; 'aria-hidden'?: boolean | '
 export function SettingsValueField({ icon: Icon, children, muted = false, className }: {
   icon?: FieldIcon; children: ReactNode; muted?: boolean; className?: string;
 }) {
-  return <div className={cn('flex h-8 w-[202px] shrink-0 items-center gap-0.5 rounded-xl bg-surface-alt px-1.5', className)}>
+  return <div className={cn('flex h-8 w-[202px] min-w-0 items-center gap-0.5 rounded-xl bg-surface-alt px-1.5', className)}>
     {Icon && <Icon className="size-5 shrink-0 text-muted" aria-hidden="true" />}
     <span className={cn('min-w-0 flex-1 truncate ps-1 text-sm', muted ? 'text-muted' : 'text-ink')}>{children}</span>
   </div>;
@@ -60,6 +63,6 @@ export function SavableInput({ initialValue, onSaved, ...inputProps }: { initial
         onSaved?.(next);
       } else setValue(committed.current);
     }}
-    className={cn('w-[202px] shrink-0', inputProps.className)}
+    className={cn('w-[202px] max-w-full', inputProps.className)}
   />;
 }

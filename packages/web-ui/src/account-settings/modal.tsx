@@ -4,7 +4,7 @@
 // the saved toast straddling the panel's bottom edge, and a fade + blur + scale open/close transition.
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CheckCircle2, KeyRound, Monitor, ShieldCheck, UserRound, X, type LucideIcon } from 'lucide-react';
+import { CheckCircle2, KeyRound, Monitor, Plug, ShieldCheck, UserRound, X, type LucideIcon } from 'lucide-react';
 import type { AppClient, Bootstrap } from '@unicore/sdk';
 import { cn } from '@unicore/ui/cn';
 import { defineMessages, t, useLocale } from '../i18n';
@@ -12,17 +12,19 @@ import { AccountProfilePage } from './profile';
 import { AccountSecurityPanel } from './security';
 import { AccountSessionsPanel } from './sessions';
 import { AccountTokensPanel } from './tokens';
+import { AccountAppsPanel } from './apps';
 
-export type AccountSettingsPage = 'profile' | 'security' | 'sessions' | 'tokens';
+export type AccountSettingsPage = 'profile' | 'security' | 'sessions' | 'tokens' | 'apps';
 
 const navEntries = defineMessages([
   { page: 'profile', label: '个人资料', icon: UserRound },
   { page: 'security', label: '安全设置', icon: ShieldCheck },
   { page: 'sessions', label: '登录会话', icon: Monitor },
   { page: 'tokens', label: '访问令牌', icon: KeyRound },
+  { page: 'apps', label: '已授权应用', icon: Plug },
 ] as const satisfies readonly { page: AccountSettingsPage; label: string; icon: LucideIcon }[]);
 
-const pageTitles = defineMessages({ profile: '个人资料', security: '安全设置', sessions: '登录会话', tokens: '访问令牌' } as const satisfies Record<AccountSettingsPage, string>);
+const pageTitles = defineMessages({ profile: '个人资料', security: '安全设置', sessions: '登录会话', tokens: '访问令牌', apps: '已授权应用' } as const satisfies Record<AccountSettingsPage, string>);
 
 export function AccountSettingsModal({ open, onClose, defaultPage = 'profile', pinned = false, client, metadata, refresh, oidc }: {
   open: boolean;
@@ -157,7 +159,7 @@ export function AccountSettingsModal({ open, onClose, defaultPage = 'profile', p
             <div className="flex w-full flex-col gap-1.5 pt-1">
               <span className="hidden ps-2 text-xs font-medium text-muted sm:block">{t('个人中心')}</span>
               <div className="flex w-full flex-col gap-1">
-                {navEntries.map(item => {
+                {navEntries.filter(item => item.page !== 'apps' || metadata.profile === 'web-platform').map(item => {
                   const selected = item.page === page;
                   return <button
                     key={item.page}
@@ -181,7 +183,7 @@ export function AccountSettingsModal({ open, onClose, defaultPage = 'profile', p
 
           {/* Content pane — fixed title row, scrollable page below */}
           <div className="flex min-w-0 flex-1 flex-col">
-            <div className="flex shrink-0 items-center justify-between gap-3 px-8 pb-3 pt-8">
+            <div className="flex shrink-0 items-center justify-between gap-3 px-5 pb-3 pt-8 sm:px-8">
               <h2 className="text-lg font-medium text-ink">{t(pageTitles[page])}</h2>
               {!pinned && <button
                 type="button"
@@ -197,14 +199,16 @@ export function AccountSettingsModal({ open, onClose, defaultPage = 'profile', p
               </button>}
             </div>
             <div className="relative min-h-0 flex-1">
-              <div className="h-full overflow-y-auto px-8 pb-8" onScroll={event => setContentScrolled(event.currentTarget.scrollTop > 0)}>
+              <div className="h-full overflow-y-auto px-5 pb-8 sm:px-8" onScroll={event => setContentScrolled(event.currentTarget.scrollTop > 0)}>
                 {page === 'profile'
                   ? <AccountProfilePage client={client} metadata={metadata} refresh={refresh} onSaved={showSavedToast} onNavigate={setPage} />
                   : page === 'security'
                     ? <AccountSecurityPanel client={client} metadata={metadata} refresh={refresh} oidc={oidc} onSaved={showSavedToast} />
                     : page === 'sessions'
                       ? <AccountSessionsPanel client={client} onSignedOut={refresh} />
-                      : <AccountTokensPanel client={client} metadata={metadata} />}
+                      : page === 'apps'
+                        ? <AccountAppsPanel client={client} />
+                        : <AccountTokensPanel client={client} metadata={metadata} />}
               </div>
               {/* Progressive top fade — eases in once the page is scrolled so
                   content dissolves under the title row instead of hard-cutting. */}

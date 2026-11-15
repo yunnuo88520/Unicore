@@ -47,7 +47,7 @@ export function AccountSecurityPanel({ client, metadata, refresh, oidc, onSaved 
     </SettingsCard>
     <SettingsCard>
       <SettingsRow label={t('双重验证')} description={t('使用身份验证器生成一次性验证码，为所有登录方式增加一层保护。')}>
-        <span className="flex items-center gap-2">
+        <span className="flex min-w-0 items-center gap-2">
           <Badge variant={profile.data?.totp_enabled ? 'success' : 'subtle'}>{profile.data?.totp_enabled ? t('已开启') : t('未开启')}</Badge>
           {profile.data?.totp_enabled
             ? <Button variant="secondary" size="sm" className="h-8" disabled={!profile.data.can_disable_2fa} onClick={() => setDisableOpen(true)}>{t('关闭双重验证')}</Button>
@@ -193,7 +193,7 @@ function EnterpriseBindingCard({ web, enterprise, enterpriseError, onRetry, onCh
           <p className="text-xs text-muted">{linked ? t('解除后保留本地账号和密码，可继续正常登录。') : t('下一步将重新验证企业账号，请确认选择自己的账号。')}</p>
           <div className="flex flex-wrap items-center gap-2">
             <Input type="password" required minLength={12} maxLength={128} autoComplete="current-password" aria-label={t('确认本地密码')} placeholder={t('确认本地密码')}
-              value={password} onChange={event => setPassword(event.target.value)} disabled={change.isPending} className="w-[202px] shrink-0" />
+              value={password} onChange={event => setPassword(event.target.value)} disabled={change.isPending} className="w-[202px] max-w-full" />
             <Button variant={linked ? 'secondary' : 'primary'} size="sm" className="h-8" pending={change.isPending} onClick={submit}>
               {!change.isPending && (linked ? <Unlink size={14} aria-hidden="true" /> : <Link2 size={14} aria-hidden="true" />)}
               {linked ? t('确认解除绑定') : t('验证并绑定企业账号')}

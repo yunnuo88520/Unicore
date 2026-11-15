@@ -9,6 +9,7 @@ import type { DashboardWidgetRegistry } from './registry';
 import type { Theme } from '@unicore/theme';
 import { NotFoundPage } from './pages/not-found';
 import { ServerErrorPage } from './pages/error';
+import { NavigationProgressBar, PageLoader, navigationFinish, navigationStart } from './components/page-loader';
 
 export type PageProps = { page: Page; client: AppClient; metadata: Bootstrap; registry: DashboardWidgetRegistry; theme: Theme; setTheme: (theme: Theme) => void; refresh: () => void };
 export type PageComponent = (props: PageProps) => ReactNode;
@@ -55,9 +56,7 @@ function pageComponent(loader: () => Promise<{ default: PageComponent }>): React
   return component;
 }
 
-function PageFallback() {
-  return <div className="flex items-center justify-center py-16 text-sm text-muted" role="status">Loading…</div>;
-}
+
 
 /** Page render failures surface the standalone 500 status page instead of a broken route. */
 class PageErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
@@ -74,13 +73,18 @@ function frame(userLoader: () => Promise<{ default: PageComponent }>, adminEligi
     const administration = props.metadata.identity_realm === 'administrator';
     if (administration && adminEligible && administratorPage) return <PageErrorBoundary>{administratorPage(props)}</PageErrorBoundary>;
     const Component = pageComponent(userLoader);
-    return <Suspense fallback={<PageFallback />}><PageErrorBoundary><Component {...props} /></PageErrorBoundary></Suspense>;
+    return <Suspense fallback={<PageLoader />}><PageErrorBoundary><Component {...props} /></PageErrorBoundary></Suspense>;
   }
   return Frame;
 }
 
-export function createWorkspaceRouter(options: { history: () => RouterHistory; basepath?: string; shell: () => ReactNode }): RouterLike {
-  const rootRoute = createRootRoute({ component: options.shell, notFoundComponent: NotFoundPage });
+export function createWorkspaceRouter(options: { history: () => RouterHistory; basepath?: string; shell: () => ReactNode }) {
+  // The progress bar mounts at the router root so every entry and page —
+  // including the standalone auth routes — shares one navigation surface.
+  const rootRoute = createRootRoute({
+    notFoundComponent: NotFoundPage,
+    component: () => <><NavigationProgressBar />{options.shell()}</>,
+  });
   // Route helpers erase per-route generics; the tree is assembled dynamically so runtime wiring stays authoritative.
   function pageRoute(path: string, loader: () => Promise<{ default: PageComponent }>, routeOptions?: { adminEligible?: boolean; search?: Record<string, unknown> }): AnyRoute {
     return createRoute({
@@ -136,10 +140,14 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
     pageRoute('/edition', () => import('./pages/edition').then(module => ({ default: module.UserEditionPage })), { adminEligible: true }),
     createRoute({ getParentRoute: () => rootRoute, path: '/settings', beforeLoad: () => { throw redirect({ to: '/site', replace: true }); } }) as unknown as AnyRoute,
   ] as [AnyRoute, ...AnyRoute[]]);
-  return createRouter({ routeTree: tree, history: options.history(), basepath: options.basepath || '/', defaultPreload: false, defaultErrorComponent: ServerErrorPage });
+  const router = createRouter({ routeTree: tree, history: options.history(), basepath: options.basepath || '/', defaultPreload: false, defaultErrorComponent: ServerErrorPage });
+  // The navigation progress bar rides route transitions only: background
+  // queries and monitoring polls never touch the router lifecycle.
+  router.subscribe('onBeforeLoad', navigationStart);
+  router.subscribe('onResolved', navigationFinish);
+  return router;
 }
 
-type RouterLike = ReturnType<typeof createRouter>;
 
 /** Map a router pathname back to the page key used by navigation and permission checks.
  *  location.pathname is already basepath-stripped by the router; do not strip a prefix again here

@@ -2,35 +2,49 @@
  * Description: Administrator-only entry composition; the router basepath follows the configured admin path.
  * Products can override any administration page through the administratorPage injection point.
  */
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { t, useLocale } from './i18n';
 import { Workspace, type PageProps } from './App';
 import { DashboardWidgetRegistry } from './registry';
 import type { AppClient } from '@unicore/sdk';
-import { AdminStoragePage } from './pages/admin/storage';
-import { AdminUsersPage, AdminAdministratorsPage } from './pages/admin/users';
-import { AdminMailSettingsPage } from './pages/appearance';
-import { AdminEditionPage } from './pages/edition';
-import { AdminNotificationsPage } from './pages/admin/notifications';
-import { AdminMailTemplatesPage } from './pages/admin/mail-templates';
-import { AdminAnnouncementsPage } from './pages/admin/announcements';
-import { AdminLogsPage } from './pages/admin/logs';
-import { AdminRolesPage } from './pages/admin/roles';
-import { AdminDepartmentsPage } from './pages/admin/departments';
-import { AdminTasksPage } from './pages/admin/tasks';
-import { AdminMenusPage } from './pages/admin/menus';
-import { AdminAccessTokensPage } from './pages/admin/access-tokens';
-import { AdminPostsPage } from './pages/admin/posts';
-import { AdminDictionariesPage } from './pages/admin/dictionaries';
-import { AdminMonitorEventsPage, AdminMonitorPage, AdminMonitorResourcesPage, AdminMonitorServicesPage } from './pages/monitor';
-import { AdminAiAccessPage } from './pages/admin/ai/access';
-import { AdminAiCallsPage } from './pages/admin/ai/calls';
-import { AdminAiOauthPage } from './pages/admin/ai/oauth';
-import { AdminAiToolsPage } from './pages/admin/ai/tools';
+import type { PageComponent } from './router';
+import { PageLoader } from './components/page-loader';
+
+// Administration pages load on demand: the admin entry must not pull the
+// whole console before the first screen renders.
+const lazyPage = (loader: () => Promise<{ default: PageComponent }>) => lazy(loader);
+const AdminStoragePage = lazyPage(() => import('./pages/admin/storage').then(m => ({ default: m.AdminStoragePage })));
+const AdminUsersPage = lazyPage(() => import('./pages/admin/users').then(m => ({ default: m.AdminUsersPage })));
+const AdminAdministratorsPage = lazyPage(() => import('./pages/admin/users').then(m => ({ default: m.AdminAdministratorsPage })));
+const AdminMailSettingsPage = lazyPage(() => import('./pages/appearance').then(m => ({ default: m.AdminMailSettingsPage })));
+const AdminEditionPage = lazyPage(() => import('./pages/edition').then(m => ({ default: m.AdminEditionPage })));
+const AdminNotificationsPage = lazyPage(() => import('./pages/admin/notifications').then(m => ({ default: m.AdminNotificationsPage })));
+const AdminMailTemplatesPage = lazyPage(() => import('./pages/admin/mail-templates').then(m => ({ default: m.AdminMailTemplatesPage })));
+const AdminAnnouncementsPage = lazyPage(() => import('./pages/admin/announcements').then(m => ({ default: m.AdminAnnouncementsPage })));
+const AdminLogsPage = lazyPage(() => import('./pages/admin/logs').then(m => ({ default: m.AdminLogsPage })));
+const AdminRolesPage = lazyPage(() => import('./pages/admin/roles').then(m => ({ default: m.AdminRolesPage })));
+const AdminDepartmentsPage = lazyPage(() => import('./pages/admin/departments').then(m => ({ default: m.AdminDepartmentsPage })));
+const AdminTasksPage = lazyPage(() => import('./pages/admin/tasks').then(m => ({ default: m.AdminTasksPage })));
+const AdminMenusPage = lazyPage(() => import('./pages/admin/menus').then(m => ({ default: m.AdminMenusPage })));
+const AdminAccessTokensPage = lazyPage(() => import('./pages/admin/access-tokens').then(m => ({ default: m.AdminAccessTokensPage })));
+const AdminPostsPage = lazyPage(() => import('./pages/admin/posts').then(m => ({ default: m.AdminPostsPage })));
+const AdminDictionariesPage = lazyPage(() => import('./pages/admin/dictionaries').then(m => ({ default: m.AdminDictionariesPage })));
+const AdminMonitorPage = lazyPage(() => import('./pages/monitor').then(m => ({ default: m.AdminMonitorPage })));
+const AdminMonitorServicesPage = lazyPage(() => import('./pages/monitor').then(m => ({ default: m.AdminMonitorServicesPage })));
+const AdminMonitorResourcesPage = lazyPage(() => import('./pages/monitor').then(m => ({ default: m.AdminMonitorResourcesPage })));
+const AdminMonitorEventsPage = lazyPage(() => import('./pages/monitor').then(m => ({ default: m.AdminMonitorEventsPage })));
+const AdminAiAccessPage = lazyPage(() => import('./pages/admin/ai/access').then(m => ({ default: m.AdminAiAccessPage })));
+const AdminAiCallsPage = lazyPage(() => import('./pages/admin/ai/calls').then(m => ({ default: m.AdminAiCallsPage })));
+const AdminAiOauthPage = lazyPage(() => import('./pages/admin/ai/oauth').then(m => ({ default: m.AdminAiOauthPage })));
+const AdminAiToolsPage = lazyPage(() => import('./pages/admin/ai/tools').then(m => ({ default: m.AdminAiToolsPage })));
 
 export function AdministrationPage(props: PageProps) {
   useLocale();
   if (!props.client.web) return null;
+  return <Suspense fallback={<PageLoader />}>{renderAdminPage(props)}</Suspense>;
+}
+
+function renderAdminPage(props: PageProps) {
   switch (props.page) {
     case 'site': case 'mail': case 'account-policy': return <AdminMailSettingsPage {...props} />;
     case 'storage': return props.client.storage && <AdminStoragePage {...props} />;

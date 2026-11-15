@@ -1,15 +1,15 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: MCP capability directory: review fingerprints, open policies and the frozen P1 read-only phase gate.
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { createColumnHelper, createPaginatedRowModel, rowPaginationFeature, tableFeatures, useTable, type PaginationState, type TableOptions } from '@tanstack/react-table';
 import { ChevronDown, ChevronRight, ListChecks, Lock, ShieldCheck, Wrench } from 'lucide-react';
 import type { McpTool } from '@unicore/sdk';
-import { Badge, Button, Card, CardContent, Input, Modal, PageHeader, SimpleSelect, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage, selectOptions } from '@unicore/ui';
+import { Badge, Button, Card, CardContent, Input, Modal, PageHeader, SimpleSelect, Table, TableCell, TableRow, useMessage, selectOptions } from '@unicore/ui';
 import { currentLocale, t, useI18n, useLocale } from '../../../i18n';
-import { DataTableEmpty } from '../../../components/data-table';
+import { DataTable, DataTablePagination } from '../../../components/data-table';
 import type { PageProps } from '../../../router';
 
-const COLUMN_COUNT = 7;
 const PAGE_SIZE = 50;
 const states = ['unreviewed', 'disabled', 'open', 'needs_review', 'module_missing'] as const;
 
@@ -45,6 +45,7 @@ export function AdminAiToolsPage({ client }: PageProps) {
   const list = useQuery({
     queryKey: ['mcp-tools', filters, page],
     queryFn: () => web.listMcpTools!({ page, page_size: PAGE_SIZE, search: filters.search || undefined, state: filters.state || undefined, module: filters.module || undefined }),
+    placeholderData: keepPreviousData,
   });
   const policy = useMutation({
     mutationFn: ({ tool, enabled }: { tool: McpTool; enabled: boolean }) =>
@@ -62,6 +63,48 @@ export function AdminAiToolsPage({ client }: PageProps) {
   const total = list.data?.total ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const governable = (tool: McpTool) => tool.state !== 'module_missing';
+  const features = tableFeatures({ rowPaginationFeature, paginatedRowModel: createPaginatedRowModel() });
+  const helper = createColumnHelper<typeof features, McpTool>();
+  const columns = helper.columns([
+    helper.display({
+      id: 'expanded', header: () => <span className="sr-only">{t('展开详情')}</span>,
+      cell: info => <Button type="button" variant="ghost" size="icon" className="size-7" aria-label={t('展开详情 {{name}}', { name: info.row.original.name })}
+        aria-expanded={expanded === info.row.original.name}
+        onClick={() => setExpanded(current => current === info.row.original.name ? '' : info.row.original.name)}>
+        {expanded === info.row.original.name ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+      </Button>,
+    }),
+    helper.display({ id: 'name', header: () => t('名称'), cell: info => <><strong className="font-medium text-ink">{title(info.row.original)}</strong><span className="ms-2 block font-mono text-xs text-muted">{info.row.original.name}</span></> }),
+    helper.display({ id: 'module', header: () => t('模块'), cell: info => <span className="text-muted">{info.row.original.module}</span> }),
+    helper.display({ id: 'version', header: () => t('版本'), cell: info => <code className="font-mono text-xs text-muted">{info.row.original.version}</code> }),
+    helper.display({ id: 'effect', header: () => t('风险'), cell: info => <EffectBadge tool={info.row.original} /> }),
+    helper.display({ id: 'state', header: () => t('开放状态'), cell: info => <StateBadge tool={info.row.original} /> }),
+    helper.display({
+      id: 'actions', header: () => t('操作'),
+      cell: info => {
+        const tool = info.row.original;
+        return <div className="flex gap-1 whitespace-nowrap">
+          {governable(tool) && tool.state !== 'open' && <Button variant="link" size="sm" className="h-auto p-0" disabled={policy.isPending}
+            pending={policy.isPending && policy.variables?.tool.name === tool.name && policy.variables.enabled}
+            onClick={() => policy.mutate({ tool, enabled: true })}><ShieldCheck size={13} />{t('开放')}</Button>}
+          {governable(tool) && tool.state === 'open' && <Button variant="link" size="sm" className="h-auto p-0 text-danger" disabled={policy.isPending}
+            pending={policy.isPending && policy.variables?.tool.name === tool.name && !policy.variables.enabled}
+            onClick={() => policy.mutate({ tool, enabled: false })}><Lock size={13} />{t('停用')}</Button>}
+          <Button variant="link" size="sm" className="h-auto p-0" onClick={() => setDetail(tool)}>{t('详情')}</Button>
+        </div>;
+      },
+    }),
+  ]);
+  const pagination: PaginationState = { pageIndex: page - 1, pageSize: PAGE_SIZE };
+  const table = useTable({
+    features, columns, data: items, getRowId: row => row.name,
+    manualPagination: true, pageCount: pages,
+    state: { pagination },
+    onPaginationChange: updater => {
+      const next = typeof updater === 'function' ? updater(pagination) : updater;
+      setPage(next.pageIndex + 1);
+    },
+  } as TableOptions<typeof features, McpTool>);
   return <div className="flex min-w-0 flex-col gap-6">
     <PageHeader title={t('工具目录')} description={t('能力由代码注册、指纹固定；开放前必须审查输入输出与权限绑定，新版本会要求重新审查。')} />
     <Card><CardContent className="flex flex-col gap-4">
@@ -73,65 +116,26 @@ export function AdminAiToolsPage({ client }: PageProps) {
         </label></div>
         <span className="ms-auto text-xs text-muted">{t('{{count}} 个能力', { count: total })}</span>
       </div>
-      <div className="min-w-0 overflow-x-auto rounded-lg border border-line" aria-busy={list.isFetching || policy.isPending}>
-        <Table className="min-w-[880px]">
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead className="w-8"><span className="sr-only">{t('展开详情')}</span></TableHead>
-              <TableHead>{t('名称')}</TableHead>
-              <TableHead>{t('模块')}</TableHead>
-              <TableHead>{t('版本')}</TableHead>
-              <TableHead>{t('风险')}</TableHead>
-              <TableHead>{t('开放状态')}</TableHead>
-              <TableHead>{t('操作')}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {!items.length && <TableEmpty colSpan={COLUMN_COUNT}>
-              <DataTableEmpty icon={Wrench} title={t('暂无能力')} hint={t('已装配模块通过代码注册能力后，会出现在这里等待审查。')} />
-            </TableEmpty>}
-            {items.map(tool => <>
-              <TableRow key={tool.name}>
-                <TableCell>
-                  <Button type="button" variant="ghost" size="icon" className="size-7" aria-label={t('展开详情 {{name}}', { name: tool.name })}
-                    aria-expanded={expanded === tool.name} onClick={() => setExpanded(current => current === tool.name ? '' : tool.name)}>
-                    {expanded === tool.name ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
-                  </Button>
-                </TableCell>
-                <TableCell><strong className="font-medium text-ink">{title(tool)}</strong><span className="ms-2 block font-mono text-xs text-muted">{tool.name}</span></TableCell>
-                <TableCell><span className="text-muted">{tool.module}</span></TableCell>
-                <TableCell><code className="font-mono text-xs text-muted">{tool.version}</code></TableCell>
-                <TableCell><EffectBadge tool={tool} /></TableCell>
-                <TableCell><StateBadge tool={tool} /></TableCell>
-                <TableCell><div className="flex gap-1 whitespace-nowrap">
-                  {governable(tool) && tool.state !== 'open' && <Button variant="link" size="sm" className="h-auto p-0" disabled={policy.isPending}
-                    pending={policy.isPending && policy.variables?.tool.name === tool.name && policy.variables.enabled}
-                    onClick={() => policy.mutate({ tool, enabled: true })}><ShieldCheck size={13} />{t('开放')}</Button>}
-                  {governable(tool) && tool.state === 'open' && <Button variant="link" size="sm" className="h-auto p-0 text-danger" disabled={policy.isPending}
-                    pending={policy.isPending && policy.variables?.tool.name === tool.name && !policy.variables.enabled}
-                    onClick={() => policy.mutate({ tool, enabled: false })}><Lock size={13} />{t('停用')}</Button>}
-                  <Button variant="link" size="sm" className="h-auto p-0" onClick={() => setDetail(tool)}>{t('详情')}</Button>
-                </div></TableCell>
-              </TableRow>
-              {expanded === tool.name && <TableRow key={`${tool.name}-detail`} className="hover:bg-transparent">
-                <TableCell colSpan={COLUMN_COUNT} className="bg-surface-alt">
-                  <div className="flex max-w-4xl flex-col gap-2 py-1 text-sm">
-                    <p className="text-muted">{title(tool)}</p>
-                    <p className="text-xs leading-relaxed text-muted">{t('权限绑定')}: <code className="font-mono">{tool.operation_ids.join(', ')}</code></p>
-                    <p className="text-xs leading-relaxed text-muted">{t('变更指纹')}: <code className="break-all font-mono">{tool.fingerprint}</code></p>
-                    {tool.state === 'needs_review' && <p className="text-xs leading-relaxed text-warning">{t('定义在开放后发生过变化，外部调用已自动关闭；确认无误后重新开放。')}</p>}
-                  </div>
-                </TableCell>
-              </TableRow>}
-            </>)}
-          </TableBody>
-        </Table>
-      </div>
-      {pages > 1 && <div className="flex items-center justify-end gap-2 text-sm">
-        <Button type="button" variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage(current => current - 1)}>{t('上一页')}</Button>
-        <span className="text-xs text-muted">{page} / {pages}</span>
-        <Button type="button" variant="secondary" size="sm" disabled={page >= pages} onClick={() => setPage(current => current + 1)}>{t('下一页')}</Button>
-      </div>}
+      <DataTable table={table} pending={list.isPending} busy={list.isFetching || policy.isPending}
+        error={list.isError ? { message: list.error.message } : null} onRetry={() => void list.refetch()}
+        empty={{ icon: Wrench, title: t('暂无能力'), hint: t('已装配模块通过代码注册能力后，会出现在这里等待审查。') }}
+        afterRow={row => {
+          const tool = row.original;
+          if (expanded !== tool.name) return null;
+          return <TableRow className="hover:bg-transparent border-t-0">
+            <TableCell colSpan={7} className="bg-surface-alt">
+              <div className="flex max-w-4xl flex-col gap-2 py-1 text-sm">
+                <p className="text-muted">{title(tool)}</p>
+                <p className="text-xs leading-relaxed text-muted">{t('权限绑定')}: <code className="font-mono">{tool.operation_ids.join(', ')}</code></p>
+                <p className="text-xs leading-relaxed text-muted">{t('变更指纹')}: <code className="break-all font-mono">{tool.fingerprint}</code></p>
+                {tool.state === 'needs_review' && <p className="text-xs leading-relaxed text-warning">{t('定义在开放后发生过变化，外部调用已自动关闭；确认无误后重新开放。')}</p>}
+              </div>
+            </TableCell>
+          </TableRow>;
+        }}
+        className="min-w-[880px]" />
+      <DataTablePagination page={page} pageSize={PAGE_SIZE} total={total}
+        onPageChange={next => setPage(next)} disabled={list.isFetching} />
     </CardContent></Card>
     {detail && <Modal title={t('能力详情')} onClose={() => setDetail(null)}>
       <div className="flex flex-col gap-3 text-sm">

@@ -1,6 +1,6 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Standard data table renderer: one header/body loop, skeleton loading, error retry and icon empty state so list pages stop hand-rolling scaffolding.
-import type { ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { RotateCcw } from 'lucide-react';
 import { flexRender, type Cell, type Row, type RowData, type Table as TableInstance, type TableFeatures } from '@tanstack/react-table';
@@ -52,6 +52,8 @@ export type DataTableProps<TFeatures extends TableFeatures, TData extends RowDat
   onRetry?: () => void;
   /** Shown when the query succeeded without rows. */
   empty?: DataTableEmptyProps;
+  /** Extra content (expandable details, sub-rows) rendered under one data row. */
+  afterRow?: (row: Row<TFeatures, TData>) => ReactNode;
   pendingRows?: number;
   /** Passed to the inner <table>; use for min-width on dense tables. */
   className?: string;
@@ -60,7 +62,7 @@ export type DataTableProps<TFeatures extends TableFeatures, TData extends RowDat
 };
 
 export function DataTable<TFeatures extends TableFeatures, TData extends RowData>({
-  table, pending = false, busy = false, error, onRetry, empty, pendingRows = 5, className, wrapperClassName,
+  table, pending = false, busy = false, error, onRetry, empty, afterRow, pendingRows = 5, className, wrapperClassName,
 }: DataTableProps<TFeatures, TData>) {
   const columnCount = table.getHeaderGroups()[0]?.headers.length ?? 0;
   const rows = pending ? [] : table.getRowModel().rows;
@@ -87,9 +89,12 @@ export function DataTable<TFeatures extends TableFeatures, TData extends RowData
           ? Array.from({ length: pendingRows }, (_, index) => <TableRow key={index}>
               <TableCell colSpan={columnCount}><Skeleton className={cn('h-5', SKELETON_WIDTHS[index % SKELETON_WIDTHS.length])} /></TableCell>
             </TableRow>)
-          : rows.map(row => <TableRow key={row.id}>
-                  {cellsOf(row).map(cell => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}
-                </TableRow>)}
+          : rows.map(row => <Fragment key={row.id}>
+                  <TableRow>
+                    {cellsOf(row).map(cell => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}
+                  </TableRow>
+                  {afterRow?.(row)}
+                </Fragment>)}
       </TableBody>
     </Table>}
   </div>;

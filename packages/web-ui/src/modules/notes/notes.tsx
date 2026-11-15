@@ -1,13 +1,13 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Notes workspace: card grid, modal editing, ownership attachments and pagination over AppClient.
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, Circle, Download, NotebookPen, Paperclip, Pencil, Plus, Trash2, X } from 'lucide-react';
 import type { AppClient, FileEntry, NoteEntry, NoteQuery } from '@unicore/sdk';
 import { currentLocale, t, useLocale } from '../../i18n';
 import { FileUploadDialog } from '../../file-upload-dialog';
 import { canAction } from '../../permissions';
-import { Badge, Button, Card, CardContent, EmptyState, Input, Modal, SimpleSelect, Textarea, useMessage, selectOptions } from '@unicore/ui';
+import { Badge, Button, Card, CardContent, EmptyState, Input, Modal, Skeleton, SimpleSelect, Textarea, useMessage, selectOptions } from '@unicore/ui';
 import { AppControllerField, AppField, AppForm, useAppForm } from '@unicore/form';
 import { SearchField } from '@unicore/ui/controls';
 import type { PageProps } from '../../router';
@@ -29,7 +29,9 @@ export function NotesPage({ client, metadata }: PageProps) {
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<NoteEntry | 'new' | null>(null);
   const [removing, setRemoving] = useState<NoteEntry | null>(null);
-  const list = useQuery({ queryKey: ['notes', query], queryFn: () => api.listNotes(query) });
+  // keepPreviousData: page and filter switches keep the previous cards
+  // visible under a busy marker instead of flashing the loading state.
+  const list = useQuery({ queryKey: ['notes', query], queryFn: () => api.listNotes(query), placeholderData: keepPreviousData });
   const refresh = () => void cache.invalidateQueries({ queryKey: ['notes'] });
   const remove = useMutation({
     mutationFn: (note: NoteEntry) => api.deleteNote(note.id, note.version),
@@ -78,14 +80,21 @@ export function NotesPage({ client, metadata }: PageProps) {
       </CardContent>
     </Card>
     {list.isPending
-      ? <Card><EmptyState role="status" description={t('正在读取笔记…')} className="py-10" /></Card>
+      ? <div className="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-3" role="status" aria-busy="true">
+          {Array.from({ length: 6 }, (_, index) => <Card key={index} className="flex flex-col gap-2 p-4">
+            <Skeleton className="h-5 w-24" />
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="mt-2 h-4 w-20" />
+          </Card>)}
+        </div>
       : list.isError
         ? <Card><EmptyState role="alert" description={t(list.error.message)} className="py-10"
             action={<Button variant="secondary" onClick={() => void list.refetch()}>{t('重试')}</Button>} /></Card>
         : !list.data.items.length
           ? <Card><EmptyState icon={NotebookPen} title={query.search || query.status ? t('没有符合条件的笔记') : t('让第一条想法落在这里')} description={t('新建一条笔记，记录值得跟进的事。')} /></Card>
           : <>
-              <div className="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid items-start gap-3 transition-opacity duration-200 sm:grid-cols-2 xl:grid-cols-3" aria-busy={list.isFetching || undefined} style={list.isFetching ? { opacity: 0.7 } : undefined}>
                 {list.data.items.map(note => <Card key={note.id} className="flex flex-col gap-2 p-4">
                   <div className="flex items-start justify-between gap-2">
                     <Badge variant={note.status === 'done' ? 'success' : 'subtle'} className="gap-1">

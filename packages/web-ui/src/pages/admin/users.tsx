@@ -1,7 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Separate administrator/member lists on TanStack Table with contract-validated creation and status toggling.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { columnVisibilityFeature, createColumnHelper, createPaginatedRowModel, rowPaginationFeature, tableFeatures, useTable, type PaginationState } from '@tanstack/react-table';
 import { Ban, CircleCheck, KeyRound, Pencil, UserPlus } from 'lucide-react';
 import { operations, type Bootstrap, type User, type UserCreate, type WebClient } from '@unicore/sdk';
@@ -179,6 +179,7 @@ function UserListPanel({ web, metadata, administrators }: { web: WebClient; meta
   const list = useQuery({
     queryKey: [administrators ? 'administrators' : 'users', search, pagination],
     queryFn: () => (administrators ? web.administrators(search, pagination.pageIndex + 1) : web.users(search, pagination.pageIndex + 1)),
+    placeholderData: keepPreviousData,
   });
   // Department names resolve from the shared tree query; administrators have no
   // membership so the lookup stays empty and the column renders placeholders.

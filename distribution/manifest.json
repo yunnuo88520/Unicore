@@ -1156,6 +1156,7 @@
     "packages/web-ui/src/components/data-table/index.ts",
     "packages/web-ui/src/components/installation-steps.test.tsx",
     "packages/web-ui/src/components/installation-steps.tsx",
+    "packages/web-ui/src/components/page-loader.tsx",
     "packages/web-ui/src/file-upload-dialog.tsx",
     "packages/web-ui/src/human-check.tsx",
     "packages/web-ui/src/i18n.catalog.test.ts",

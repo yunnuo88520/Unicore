@@ -1,15 +1,15 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: MCP call history: content-free metadata with actor, credential and outcome projections.
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { createColumnHelper, createPaginatedRowModel, rowPaginationFeature, tableFeatures, useTable, type PaginationState, type TableOptions } from '@tanstack/react-table';
 import { ScrollText } from 'lucide-react';
 import type { McpCall } from '@unicore/sdk';
-import { Badge, Button, Card, CardContent, Input, Modal, PageHeader, SimpleSelect, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, selectOptions } from '@unicore/ui';
+import { Badge, Button, Card, CardContent, Input, Modal, PageHeader, SimpleSelect, selectOptions } from '@unicore/ui';
 import { currentLocale, t, useI18n, useLocale } from '../../../i18n';
-import { DataTableEmpty } from '../../../components/data-table';
+import { DataTable, DataTablePagination } from '../../../components/data-table';
 import type { PageProps } from '../../../router';
 
-const COLUMN_COUNT = 7;
 const PAGE_SIZE = 50;
 const statuses = ['succeeded', 'failed', 'denied', 'rate_limited', 'cancelled', 'timed_out', 'input_invalid', 'internal_error'] as const;
 
@@ -39,13 +39,37 @@ export function AdminAiCallsPage({ client }: PageProps) {
   const [filters, setFilters] = useState({ name: '', status: '', actor_id: '' });
   const [page, setPage] = useState(1);
   const [detail, setDetail] = useState<McpCall | null>(null);
+  // keepPreviousData: page and filter switches keep the previous rows visible
+  // with a busy marker instead of flashing the empty state.
   const list = useQuery({
     queryKey: ['mcp-calls', filters, page],
     queryFn: () => web.listMcpCalls!({ page, page_size: PAGE_SIZE, name: filters.name || undefined, status: filters.status || undefined, actor_id: filters.actor_id || undefined }),
+    placeholderData: keepPreviousData,
   });
   const items = list.data?.items ?? [];
   const total = list.data?.total ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const features = tableFeatures({ rowPaginationFeature, paginatedRowModel: createPaginatedRowModel() });
+  const helper = createColumnHelper<typeof features, McpCall>();
+  const columns = helper.columns([
+    helper.display({ id: 'started_at', header: () => t('开始时间'), cell: info => <time className="whitespace-nowrap text-muted">{timeText(info.row.original.started_at)}</time> }),
+    helper.display({ id: 'actor', header: () => t('操作者'), cell: info => <span className="font-medium text-ink">{info.row.original.actor_name || info.row.original.actor_id}</span> }),
+    helper.display({ id: 'credential', header: () => t('凭证'), cell: info => <span className="text-muted">{info.row.original.credential_name || (info.row.original.credential_deleted ? t('已删除') : '—')}</span> }),
+    helper.display({ id: 'name', header: () => t('能力'), cell: info => <code className="font-mono text-xs text-muted">{info.row.original.name}</code> }),
+    helper.display({ id: 'duration', header: () => t('耗时'), cell: info => <span className="tabular-nums text-muted">{info.row.original.duration_ms} ms</span> }),
+    helper.display({ id: 'status', header: () => t('状态'), cell: info => <StatusBadge call={info.row.original} /> }),
+    helper.display({ id: 'actions', header: () => t('详情'), cell: info => <Button variant="link" size="sm" className="h-auto p-0" onClick={() => setDetail(info.row.original)}>{t('详情')}</Button> }),
+  ]);
+  const pagination: PaginationState = { pageIndex: page - 1, pageSize: PAGE_SIZE };
+  const table = useTable({
+    features, columns, data: items, getRowId: row => row.request_id,
+    manualPagination: true, pageCount: pages,
+    state: { pagination },
+    onPaginationChange: updater => {
+      const next = typeof updater === 'function' ? updater(pagination) : updater;
+      setPage(next.pageIndex + 1);
+    },
+  } as TableOptions<typeof features, McpCall>);
   const rowDetail = (call: McpCall) => [
     { label: t('凭证'), value: call.credential_name || (call.credential_deleted ? t('已删除') : '—') },
     { label: t('角色'), value: call.role_id || '—' },
@@ -68,40 +92,12 @@ export function AdminAiCallsPage({ client }: PageProps) {
         </label></div>
         <span className="ms-auto text-xs text-muted">{t('{{count}} 条记录', { count: total })}</span>
       </div>
-      <div className="min-w-0 overflow-x-auto rounded-lg border border-line" aria-busy={list.isFetching}>
-        <Table className="min-w-[900px]">
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead>{t('开始时间')}</TableHead>
-              <TableHead>{t('操作者')}</TableHead>
-              <TableHead>{t('凭证')}</TableHead>
-              <TableHead>{t('能力')}</TableHead>
-              <TableHead>{t('耗时')}</TableHead>
-              <TableHead>{t('状态')}</TableHead>
-              <TableHead>{t('详情')}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {!items.length && <TableEmpty colSpan={COLUMN_COUNT}>
-              <DataTableEmpty icon={ScrollText} title={t('暂无调用记录')} hint={t('外部客户端通过 /mcp 调用能力后，元数据会出现在这里。')} />
-            </TableEmpty>}
-            {items.map(call => <TableRow key={call.request_id}>
-              <TableCell><time className="whitespace-nowrap text-muted">{timeText(call.started_at)}</time></TableCell>
-              <TableCell><span className="font-medium text-ink">{call.actor_name || call.actor_id}</span></TableCell>
-              <TableCell><span className="text-muted">{call.credential_name || (call.credential_deleted ? t('已删除') : '—')}</span></TableCell>
-              <TableCell><code className="font-mono text-xs text-muted">{call.name}</code></TableCell>
-              <TableCell><span className="tabular-nums text-muted">{call.duration_ms} ms</span></TableCell>
-              <TableCell><StatusBadge call={call} /></TableCell>
-              <TableCell><Button variant="link" size="sm" className="h-auto p-0" onClick={() => setDetail(call)}>{t('详情')}</Button></TableCell>
-            </TableRow>)}
-          </TableBody>
-        </Table>
-      </div>
-      {pages > 1 && <div className="flex items-center justify-end gap-2 text-sm">
-        <Button type="button" variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage(current => current - 1)}>{t('上一页')}</Button>
-        <span className="text-xs text-muted">{page} / {pages}</span>
-        <Button type="button" variant="secondary" size="sm" disabled={page >= pages} onClick={() => setPage(current => current + 1)}>{t('下一页')}</Button>
-      </div>}
+      <DataTable table={table} pending={list.isPending} busy={list.isFetching}
+        error={list.isError ? { message: list.error.message } : null} onRetry={() => void list.refetch()}
+        empty={{ icon: ScrollText, title: t('暂无调用记录'), hint: t('外部客户端通过 /mcp 调用能力后，元数据会出现在这里。') }}
+        className="min-w-[900px]" />
+      <DataTablePagination page={page} pageSize={PAGE_SIZE} total={total}
+        onPageChange={next => setPage(next)} disabled={list.isFetching} />
     </CardContent></Card>
     {detail && <Modal title={t('调用详情')} onClose={() => setDetail(null)}>
       <div className="flex flex-col gap-3 text-sm">

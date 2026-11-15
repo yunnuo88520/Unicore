@@ -1274,8 +1274,9 @@ func TestInFlightRedemptionCannotOutliveAuthorizationVersion(t *testing.T) {
 	if _, err = service.ExchangeCode(ctx, confidential.ID, secret, code, confidential.RedirectURIs[0], verifier); err != ErrInvalidGrant {
 		t.Fatalf("raced redemption = %v, want ErrInvalidGrant", err)
 	}
-	// Every row the racing redemption wrote is bound to the stale epoch and
-	// fails to resolve, even though no revocation sweep reached it.
+	// Every row the racing redemption wrote is bound to the stale epoch:
+	// the redemption read the grant before the bump, so its writes can never
+	// ride the new version.
 	base.mu.Lock()
 	var stale []TokenRecord
 	for _, record := range base.tokens {
@@ -1291,11 +1292,51 @@ func TestInFlightRedemptionCannotOutliveAuthorizationVersion(t *testing.T) {
 		if record.ConsentEpoch != 1 {
 			t.Fatalf("raced token epoch = %d, want the stale 1", record.ConsentEpoch)
 		}
-		if _, _, err := service.Resolve(ctx, "ucm_"+record.Hash); err == nil && !record.Revoked {
-			// Resolve reads by digest; the fake stores hashes as keys, so a
-			// direct resolution attempt uses the hash-form token only when
-			// unrevoked. Either way it must not resolve.
-			t.Fatal("a token from the superseded epoch unexpectedly resolved")
+	}
+}
+
+// TestConsentEpochCheckRejectsRealTokens pins the epoch rejection with the
+// actual raw tokens: the same access and refresh tokens resolve right after
+// issuance, and once the grant's consent epoch advances WITHOUT any
+// revocation sweep reaching them, they stop resolving and rotating — the
+// version comparison itself is what invalidates artifacts that escaped the
+// sweep (an in-flight redemption).
+func TestConsentEpochCheckRejectsRealTokens(t *testing.T) {
+	base := newMemoryStore()
+	service := New(base, func() string { return "https://unicore.example/mcp" })
+	ctx := context.Background()
+	confidential, secret, grant := enabledConfidentialClient(t, service, "EpochGate")
+	issued := chainFrom(t, service, confidential, secret, grant)
+	// The fresh tokens resolve before any version change.
+	if _, _, err := service.Resolve(ctx, issued.AccessToken); err != nil {
+		t.Fatalf("resolve before version change: %v", err)
+	}
+	// Advance the consent epoch without touching the token rows: no
+	// revocation sweep runs, only the version moves.
+	base.mu.Lock()
+	updated := base.grants[grant.ID]
+	updated.ConsentEpoch++
+	base.grants[grant.ID] = updated
+	base.mu.Unlock()
+	if _, _, err := service.Resolve(ctx, issued.AccessToken); err != ErrInvalidGrant {
+		t.Fatalf("stale-epoch access = %v, want ErrInvalidGrant", err)
+	}
+	// Resolve never revokes: the rows are untouched, so the version
+	// comparison itself — not a sweep — rejected the access token.
+	base.mu.Lock()
+	untouched := true
+	for _, record := range base.tokens {
+		if record.GrantID == grant.ID && (record.Revoked || record.Consumed) {
+			untouched = false
 		}
+	}
+	base.mu.Unlock()
+	if !untouched {
+		t.Fatal("the epoch rejection relied on a revocation sweep instead of the version check")
+	}
+	// Presenting a stale-epoch refresh at the endpoint is replay suspicion
+	// and revokes the family by design; the rotation is still refused.
+	if _, err := service.Refresh(ctx, confidential.ID, secret, issued.RefreshToken); err != ErrInvalidGrant {
+		t.Fatalf("stale-epoch refresh = %v, want ErrInvalidGrant", err)
 	}
 }

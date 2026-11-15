@@ -684,6 +684,7 @@
   "重发验证邮件": "Resend verification email",
   "重启期间连接会短暂中断，页面将自动重连。": "The connection briefly drops during restart. This page reconnects automatically.",
   "重新加载": "Reload",
+  "页面加载超时，请检查网络后重试": "Page load timed out. Check your network and retry.",
   "重新发送验证邮件": "Resend verification email",
   "重新获取验证码": "Resend code",
   "重新连接": "Reconnect",

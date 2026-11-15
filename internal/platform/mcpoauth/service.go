@@ -68,19 +68,20 @@ type Store interface {
 	RevokeGrant(ctx context.Context, grant Grant, actor string) error
 	TouchGrant(ctx context.Context, id string, now int64) error
 	// Codes and tokens
-	// SaveCode persists a one-time code with the scope snapshot of the
-	// consent it was issued under; redemption may never inherit a later
-	// consent's budgets.
-	SaveCode(ctx context.Context, hash string, grantID, redirectURI, challenge, method, scopes string, expiresAt int64) error
-	ConsumeCode(ctx context.Context, hash string, now int64) (grantID, redirectURI, challenge, method, scopes string, err error)
-	// SaveToken persists one token digest. Implementations must refuse to
-	// mint into a revoked family and coordinate issuance against revocation
-	// through the family's own state row: the update on that row takes the
-	// lock the revocation also needs, so a racing rotation either lands
-	// inside the revoked family (and is swept by it) or is refused — never
-	// silently survives. The refresh variant carries the family's absolute
-	// deadline, fixed by the first refresh insert and never extended.
-	SaveToken(ctx context.Context, hash, kind, grantID, familyID, parentID, scopes string, expiresAt, familyDeadline int64) error
+	// SaveCode persists a one-time code with the scope snapshot and the
+	// consent epoch of the authorization it was issued under; redemption may
+	// never inherit a later consent's budgets or survive its epoch.
+	SaveCode(ctx context.Context, hash string, grantID, redirectURI, challenge, method, scopes string, consentEpoch int, expiresAt int64) error
+	ConsumeCode(ctx context.Context, hash string, now int64) (grantID, redirectURI, challenge, method, scopes string, consentEpoch int, err error)
+	// SaveToken persists one token digest pinned to the grant's consent
+	// epoch. Implementations must refuse to mint into a revoked family and
+	// coordinate issuance against revocation through the family's own state
+	// row: the update on that row takes the lock the revocation also needs,
+	// so a racing rotation either lands inside the revoked family (and is
+	// swept by it) or is refused — never silently survives. The refresh
+	// variant carries the family's absolute deadline, fixed by the first
+	// refresh insert and never extended.
+	SaveToken(ctx context.Context, hash, kind, grantID, familyID, parentID, scopes string, consentEpoch int, expiresAt, familyDeadline int64) error
 	// FamilyDeadline returns the family's persisted absolute deadline: the
 	// earliest refresh expiry rotation inherits instead of renewing. A
 	// missing or unreadable row is an error, not a fresh 30-day window.
@@ -92,9 +93,11 @@ type Store interface {
 	// UpdateGrantConsent re-binds an active grant to the scope set of the
 	// latest consent and refreshes its security anchor. When the anchor
 	// changed (password or recovery rotation since the previous consent),
-	// the implementation must revoke the grant's existing tokens inside the
-	// same transaction: re-authorizing may never resurrect artifacts the
-	// anchor change had already invalidated.
+	// the implementation must bump the grant's consent epoch and revoke the
+	// grant's existing tokens inside the same transaction: re-authorizing
+	// may never resurrect artifacts the anchor change had already
+	// invalidated, and every artifact issued under the previous epoch —
+	// including an in-flight redemption — stops validating.
 	UpdateGrantConsent(ctx context.Context, grantID string, scopes []string, anchor string) (Grant, error)
 	// Actor facts rechecked on every use
 	GrantActor(ctx context.Context, userID, roleID string) (actor GrantActor, err error)
@@ -109,17 +112,21 @@ type GrantActor struct {
 	User contracts.User
 }
 
-// TokenRecord is one stored token row (digests only).
+// TokenRecord is one stored token row (digests only). ConsentEpoch pins the
+// authorization version the token was minted under; a mismatch against the
+// grant's current epoch invalidates the token even when no revocation sweep
+// reached it, which closes the in-flight redemption race.
 type TokenRecord struct {
-	Hash      string
-	Kind      string
-	GrantID   string
-	FamilyID  string
-	ParentID  string
-	Scopes    []string
-	ExpiresAt int64
-	Consumed  bool
-	Revoked   bool
+	Hash         string
+	Kind         string
+	GrantID      string
+	FamilyID     string
+	ParentID     string
+	Scopes       []string
+	ConsentEpoch int
+	ExpiresAt    int64
+	Consumed     bool
+	Revoked      bool
 }
 
 // Service implements the authorization-service semantics on top of the store.
@@ -277,16 +284,16 @@ func (s *Service) CreateGrant(ctx context.Context, userID, clientID, roleID stri
 	grant := Grant{
 		ID: platform.Token(), UserID: userID, ClientID: clientID, RoleID: roleID,
 		Resource: s.Resource(), Scopes: scopes, Status: GrantActive, SecurityAnchor: anchor,
-		CreatedAt: now,
+		ConsentEpoch: 1, CreatedAt: now,
 	}
 	return s.Store.CreateGrant(ctx, grant)
 }
 
 // saveCode persists a one-time code under its digest together with the
-// consent's scope snapshot.
+// consent's scope snapshot and the grant's current authorization epoch.
 func (s *Service) saveCode(ctx context.Context, grant Grant, redirectURI, challenge, method string) (string, error) {
 	code := platform.Token()
-	if err := s.Store.SaveCode(ctx, platform.Hash("ucx_"+code), grant.ID, redirectURI, challenge, method, MarshalScopes(grant.Scopes), time.Now().Add(CodeTTLSeconds*time.Second).Unix()); err != nil {
+	if err := s.Store.SaveCode(ctx, platform.Hash("ucx_"+code), grant.ID, redirectURI, challenge, method, MarshalScopes(grant.Scopes), grant.ConsentEpoch, time.Now().Add(CodeTTLSeconds*time.Second).Unix()); err != nil {
 		return "", err
 	}
 	return code, nil
@@ -345,7 +352,7 @@ func (s *Service) ExchangeCode(ctx context.Context, clientID, clientSecret, code
 		return Issued{}, ErrInvalidClient
 	}
 	hash := platform.Hash("ucx_" + code)
-	grantID, storedRedirect, challenge, method, snapshot, err := s.Store.ConsumeCode(ctx, hash, time.Now().Unix())
+	grantID, storedRedirect, challenge, method, snapshot, codeEpoch, err := s.Store.ConsumeCode(ctx, hash, time.Now().Unix())
 	if err != nil {
 		return Issued{}, ErrInvalidCode
 	}
@@ -361,6 +368,12 @@ func (s *Service) ExchangeCode(ctx context.Context, clientID, clientSecret, code
 	// lawfully obtained client-A code with its own credentials is refused and
 	// the code stays burned.
 	if grant.ClientID != clientID {
+		return Issued{}, ErrInvalidGrant
+	}
+	// A code issued under a superseded authorization version never redeems:
+	// a security-anchor change bumped the epoch, so re-authorizing after a
+	// password rotation cannot resurrect the codes issued before it.
+	if codeEpoch != grant.ConsentEpoch {
 		return Issued{}, ErrInvalidGrant
 	}
 	if err = s.verifyGrantFresh(ctx, grant); err != nil {
@@ -382,7 +395,19 @@ func (s *Service) ExchangeCode(ctx context.Context, clientID, clientSecret, code
 	if len(effective) == 0 {
 		return Issued{}, ErrInvalidGrant
 	}
-	return s.issueTokens(ctx, grant, effective, "", "", time.Now().Add(RefreshTTLDays*86400*time.Second).Unix())
+	issued, err := s.issueTokens(ctx, grant, effective, "", "", time.Now().Add(RefreshTTLDays*86400*time.Second).Unix())
+	if err != nil {
+		return Issued{}, err
+	}
+	// In-flight redemption check: a security-anchor change may have bumped
+	// the consent epoch between the checks above and the token writes. The
+	// minted rows carry the stale epoch and are dead at first use either way;
+	// answering invalid grant here keeps a racing re-authorization from
+	// handing the client tokens it can never use.
+	if current, grantErr := s.Store.Grant(ctx, grantID); grantErr != nil || current.ConsentEpoch != grant.ConsentEpoch {
+		return Issued{}, ErrInvalidGrant
+	}
+	return issued, nil
 }
 
 // RefreshConsent re-binds one standing grant to the scope set of the latest
@@ -495,11 +520,11 @@ func (s *Service) issueTokens(ctx context.Context, grant Grant, effective []stri
 		accessScopes = []string{ScopeRead}
 	}
 	refreshScopes := append([]string{ScopeOffline}, accessScopes...)
-	if err := s.Store.SaveToken(ctx, platform.Hash(access), TokenAccess, grant.ID, familyID, parentHash, MarshalScopes(accessScopes), now.Add(AccessTTLSeconds*time.Second).Unix(), 0); err != nil {
+	if err := s.Store.SaveToken(ctx, platform.Hash(access), TokenAccess, grant.ID, familyID, parentHash, MarshalScopes(accessScopes), grant.ConsentEpoch, now.Add(AccessTTLSeconds*time.Second).Unix(), 0); err != nil {
 		return Issued{}, err
 	}
 	if hasOffline(effective) {
-		if err := s.Store.SaveToken(ctx, platform.Hash(refresh), TokenRefresh, grant.ID, familyID, parentHash, MarshalScopes(refreshScopes), refreshDeadline, refreshDeadline); err != nil {
+		if err := s.Store.SaveToken(ctx, platform.Hash(refresh), TokenRefresh, grant.ID, familyID, parentHash, MarshalScopes(refreshScopes), grant.ConsentEpoch, refreshDeadline, refreshDeadline); err != nil {
 			return Issued{}, err
 		}
 	}
@@ -554,7 +579,7 @@ func (s *Service) Refresh(ctx context.Context, clientID, clientSecret, refreshTo
 	if err != nil || grant.ClientID != clientID {
 		return Issued{}, ErrInvalidGrant
 	}
-	if record.Revoked || record.Consumed {
+	if record.Revoked || record.Consumed || record.ConsentEpoch != grant.ConsentEpoch {
 		_ = s.Store.RevokeFamily(ctx, record.FamilyID, time.Now().Unix())
 		return Issued{}, ErrInvalidGrant
 	}
@@ -637,6 +662,12 @@ func (s *Service) Resolve(ctx context.Context, token string) (Grant, GrantActor,
 	}
 	grant, err := s.Store.Grant(ctx, record.GrantID)
 	if err != nil || grant.Status != GrantActive {
+		return zeroGrant, GrantActor{}, ErrInvalidGrant
+	}
+	// A token minted under a superseded authorization version never
+	// resolves: the epoch comparison closes the in-flight redemption race
+	// where issuance committed after the anchor-change transaction.
+	if record.ConsentEpoch != grant.ConsentEpoch {
 		return zeroGrant, GrantActor{}, ErrInvalidGrant
 	}
 	effective := effectiveScopes(record.Scopes, grant.Scopes)

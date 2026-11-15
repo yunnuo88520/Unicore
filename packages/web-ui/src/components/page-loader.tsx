@@ -2,10 +2,10 @@
 // Description: Route-level loading surface: a structured skeleton fallback and the top navigation progress bar.
 // The bar is fed exclusively by router navigation events, so background polling and query refetches never trigger it.
 import { useEffect, useState } from 'react';
-import { Skeleton } from '@unicore/ui';
+import { Skeleton, Button } from '@unicore/ui';
 import { t } from '../i18n';
 
-type Phase = 'idle' | 'active' | 'finish';
+type Phase = 'idle' | 'active' | 'finish' | 'timeout';
 
 let phase: Phase = 'idle';
 const listeners = new Set<() => void>();
@@ -24,10 +24,13 @@ export function navigationStart() {
     phase = 'active';
     emit();
   }, 150);
-  // Safety net: a stalled load must not leave a permanent bar.
+  // Safety net: a load stuck far beyond every reasonable chunk stays visible
+  // but flips into an explicit timeout state with a reload action — silently
+  // hiding the bar while the router is still waiting would leave the page
+  // without any loading indicator.
   guardTimer = setTimeout(() => {
-    if (phase !== 'idle') {
-      phase = 'idle';
+    if (phase === 'active') {
+      phase = 'timeout';
       emit();
     }
   }, 12000);
@@ -70,11 +73,19 @@ export function NavigationProgressBar() {
     return () => { listeners.delete(notify); };
   }, []);
   if (current === 'idle') return null;
-  return <div aria-hidden="true">
+  return <div>
     <style>{PROGRESS_KEYFRAMES}</style>
-    {current === 'active'
-      ? <div className="nav-progress"><span className="np-a" /><span className="np-b" /></div>
-      : <div className="nav-progress"><span className="h-full w-full opacity-100 transition-opacity duration-300 ease-out" style={{ opacity: 0 }} /></div>}
+    <div aria-hidden="true">
+      {current === 'finish'
+        ? <div className="nav-progress"><span className="h-full w-full opacity-100 transition-opacity duration-300 ease-out" style={{ opacity: 0 }} /></div>
+        : <div className="nav-progress"><span className="np-a" /><span className="np-b" /></div>}
+    </div>
+    {current === 'timeout' && <div role="alert" className="pointer-events-none fixed inset-x-0 top-[11px] z-[90] flex justify-center px-3">
+      <span className="pointer-events-auto flex items-center gap-3 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs shadow-sm">
+        {t('页面加载超时，请检查网络后重试')}
+        <Button variant="secondary" size="sm" className="h-6" onClick={() => window.location.reload()}>{t('重新加载')}</Button>
+      </span>
+    </div>}
   </div>;
 }
 

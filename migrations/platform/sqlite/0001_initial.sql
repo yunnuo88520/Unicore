@@ -317,6 +317,7 @@ CREATE TABLE IF NOT EXISTS unicore_mcp_oauth_grants (
  scope_set TEXT NOT NULL,
  status VARCHAR(16) NOT NULL DEFAULT 'active',
  security_anchor VARCHAR(64) NOT NULL DEFAULT '',
+ consent_epoch BIGINT NOT NULL DEFAULT 1,
  created_at BIGINT NOT NULL DEFAULT 0,
  last_used_at BIGINT NOT NULL DEFAULT 0,
  revoked_at BIGINT NOT NULL DEFAULT 0
@@ -331,6 +332,7 @@ CREATE TABLE IF NOT EXISTS unicore_mcp_oauth_codes (
  pkce_challenge VARCHAR(128) NOT NULL DEFAULT '',
  pkce_method VARCHAR(16) NOT NULL DEFAULT '',
  scope_set TEXT NOT NULL DEFAULT '',
+ consent_epoch BIGINT NOT NULL DEFAULT 1,
  expires_at BIGINT NOT NULL,
  consumed_at BIGINT NOT NULL DEFAULT 0
 );
@@ -343,6 +345,7 @@ CREATE TABLE IF NOT EXISTS unicore_mcp_oauth_tokens (
  family_id VARCHAR(64) NOT NULL,
  parent_id VARCHAR(64) NOT NULL DEFAULT '',
  scopes TEXT NOT NULL DEFAULT '',
+ consent_epoch BIGINT NOT NULL DEFAULT 1,
  expires_at BIGINT NOT NULL,
  consumed_at BIGINT NOT NULL DEFAULT 0,
  revoked_at BIGINT NOT NULL DEFAULT 0

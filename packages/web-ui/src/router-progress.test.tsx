@@ -17,13 +17,14 @@ const gates = vi.hoisted(() => {
     const promise = new Promise<unknown>((res, rej) => { resolve = res; reject = rej; });
     return { promise, resolve, reject };
   };
-  return { overview: make(), home: make(), install: make(), apiDocs: make(), aiAccess: make() };
+  return { overview: make(), home: make(), install: make(), apiDocs: make(), aiAccess: make(), users: make() };
 });
 vi.mock('./pages/overview', () => gates.overview.promise);
 vi.mock('./pages/home', () => gates.home.promise);
 vi.mock('./pages/install', () => gates.install.promise);
 vi.mock('./pages/api-docs', () => gates.apiDocs.promise);
 vi.mock('./pages/admin/ai/access', () => gates.aiAccess.promise);
+vi.mock('./pages/admin/users', () => gates.users.promise);
 
 const page = (label: string) => () => <div>{label}</div>;
 const OverviewStub = () => <div>overview-ready</div>;
@@ -43,9 +44,9 @@ beforeAll(() => {
 
 // Structural handle: only navigation is exercised, generics stay internal.
 type NavRouter = { navigate: (options: { to: string }) => Promise<unknown> };
-function Harness({ onReady }: { onReady: (router: NavRouter) => void }) {
+function Harness({ onReady, initialPath = '/' }: { onReady: (router: NavRouter) => void; initialPath?: string }) {
   const [router] = useState(() => createWorkspaceRouter({
-    history: () => createMemoryHistory(),
+    history: () => createMemoryHistory({ initialEntries: [initialPath] }),
     shell: () => (
       <ShellOptionsProvider value={{ client: props.client, registry: props.registry }}>
         <PagePropsProvider value={props as never}>
@@ -58,8 +59,8 @@ function Harness({ onReady }: { onReady: (router: NavRouter) => void }) {
   return <RouterProvider router={router} />;
 }
 
-async function mount(onReady: (router: NavRouter) => void) {
-  const rendered = render(<Harness onReady={onReady} />);
+async function mount(onReady: (router: NavRouter) => void, initialPath?: string) {
+  const rendered = render(<Harness onReady={onReady} initialPath={initialPath} />);
   return rendered;
 }
 
@@ -116,3 +117,18 @@ it('ends the bar when the page module fails to load', async () => {
 function screenText(text: string) {
   return document.body.textContent?.includes(text);
 }
+
+it('covers a deep link with the shared skeleton while its module loads', async () => {
+  gates.users.promise.catch(() => {});
+  let router!: NavRouter;
+  await mount(given => { router = given; }, '/users');
+  // The deep link's chunk is still downloading: the route-level pending
+  // skeleton renders immediately — no blank shell between the boot
+  // placeholder and the page.
+  await waitFor(() => expect(screenText('页面加载中…')).toBeTruthy());
+  // The initial deep link does not ride a history event (the boot placeholder
+  // owns the pre-router chrome); the route-level skeleton is the coverage.
+  gates.users.resolve({ AdminUsersPage: page('users-ready') });
+  await waitFor(() => expect(screenText('users-ready')).toBeTruthy());
+  await waitFor(() => expect(bar()).toBeNull(), { timeout: 2000 });
+});

@@ -58,6 +58,10 @@ type Client struct {
 // Grant binds one user, one client and exactly one role the user already
 // holds, on one canonical resource. It is the only authority an MCP token
 // carries; every use rechecks the account, membership and security anchor.
+// ConsentEpoch is the grant's immutable authorization version: every code and
+// token records the epoch it was issued under, and a security-anchor change
+// bumps the epoch so all older artifacts — including an in-flight redemption
+// that already passed its checks — stop validating.
 type Grant struct {
 	ID             string
 	UserID         string
@@ -67,6 +71,7 @@ type Grant struct {
 	Scopes         []string
 	Status         string
 	SecurityAnchor string
+	ConsentEpoch   int
 	CreatedAt      int
 	LastUsedAt     int
 	RevokedAt      int

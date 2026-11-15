@@ -124,28 +124,28 @@ func (s OAuthStore) TouchGrant(ctx context.Context, id string, now int64) error 
 	return repository.TouchGrant(ctx, id, now)
 }
 
-func (s OAuthStore) SaveCode(ctx context.Context, hash, grantID, redirectURI, challenge, method, scopes string, expiresAt int64) error {
+func (s OAuthStore) SaveCode(ctx context.Context, hash, grantID, redirectURI, challenge, method, scopes string, consentEpoch int, expiresAt int64) error {
 	repository, err := s.repository(ctx)
 	if err != nil {
 		return err
 	}
-	return repository.SaveCode(ctx, hash, grantID, redirectURI, challenge, method, scopes, expiresAt)
+	return repository.SaveCode(ctx, hash, grantID, redirectURI, challenge, method, scopes, consentEpoch, expiresAt)
 }
 
-func (s OAuthStore) ConsumeCode(ctx context.Context, hash string, now int64) (string, string, string, string, string, error) {
+func (s OAuthStore) ConsumeCode(ctx context.Context, hash string, now int64) (string, string, string, string, string, int, error) {
 	repository, err := s.repository(ctx)
 	if err != nil {
-		return "", "", "", "", "", err
+		return "", "", "", "", "", 0, err
 	}
 	return repository.ConsumeCode(ctx, hash, now)
 }
 
-func (s OAuthStore) SaveToken(ctx context.Context, hash, kind, grantID, familyID, parentID, scopes string, expiresAt, familyDeadline int64) error {
+func (s OAuthStore) SaveToken(ctx context.Context, hash, kind, grantID, familyID, parentID, scopes string, consentEpoch int, expiresAt, familyDeadline int64) error {
 	repository, err := s.repository(ctx)
 	if err != nil {
 		return err
 	}
-	return repository.SaveToken(ctx, hash, kind, grantID, familyID, parentID, scopes, expiresAt, familyDeadline)
+	return repository.SaveToken(ctx, hash, kind, grantID, familyID, parentID, scopes, consentEpoch, expiresAt, familyDeadline)
 }
 
 func (s OAuthStore) FamilyDeadline(ctx context.Context, familyID string) (int64, error) {

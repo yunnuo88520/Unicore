@@ -36,7 +36,7 @@ func oauthGrant(t *testing.T, r *Repository, ctx context.Context) mcpoauth.Grant
 	grant := mcpoauth.Grant{
 		ID: platform.Token(), UserID: "user-1", ClientID: "client-1", RoleID: "role-a",
 		Resource: "https://unicore.example/mcp", Scopes: []string{mcpoauth.ScopeRead, mcpoauth.ScopeOffline},
-		Status: mcpoauth.GrantActive, SecurityAnchor: platform.Hash("password-v1"), CreatedAt: int(time.Now().Unix()),
+		Status: mcpoauth.GrantActive, SecurityAnchor: platform.Hash("password-v1"), ConsentEpoch: 1, CreatedAt: int(time.Now().Unix()),
 	}
 	if _, err := r.CreateGrant(ctx, grant); err != nil {
 		t.Fatalf("create grant: %v", err)
@@ -48,10 +48,10 @@ func TestOAuthFamilyGateAndDeadline(t *testing.T) {
 	r, ctx := newMcpOauthRepository(t)
 	// First issuance creates the family state row; the refresh insert fixes
 	// the absolute deadline.
-	if err := r.SaveToken(ctx, "hash-a", mcpoauth.TokenAccess, "grant-1", "family-1", "", `["mcp.read"]`, time.Now().Unix()+900, 0); err != nil {
+	if err := r.SaveToken(ctx, "hash-a", mcpoauth.TokenAccess, "grant-1", "family-1", "", `["mcp.read"]`, 1, time.Now().Unix()+900, 0); err != nil {
 		t.Fatalf("first access insert: %v", err)
 	}
-	if err := r.SaveToken(ctx, "hash-b", mcpoauth.TokenRefresh, "grant-1", "family-1", "hash-a", `["mcp.read","offline_access"]`, 7000, 7000); err != nil {
+	if err := r.SaveToken(ctx, "hash-b", mcpoauth.TokenRefresh, "grant-1", "family-1", "hash-a", `["mcp.read","offline_access"]`, 1, 7000, 7000); err != nil {
 		t.Fatalf("first refresh insert: %v", err)
 	}
 	deadline, err := r.FamilyDeadline(ctx, "family-1")
@@ -60,7 +60,7 @@ func TestOAuthFamilyGateAndDeadline(t *testing.T) {
 	}
 	// Rotation cannot push the deadline: a later refresh insert keeps the
 	// stored absolute value instead of overwriting it.
-	if err = r.SaveToken(ctx, "hash-c", mcpoauth.TokenRefresh, "grant-1", "family-1", "hash-b", `["mcp.read","offline_access"]`, 99999, 99999); err != nil {
+	if err = r.SaveToken(ctx, "hash-c", mcpoauth.TokenRefresh, "grant-1", "family-1", "hash-b", `["mcp.read","offline_access"]`, 1, 99999, 99999); err != nil {
 		t.Fatalf("rotation insert: %v", err)
 	}
 	if deadline, _ = r.FamilyDeadline(ctx, "family-1"); deadline != 7000 {
@@ -75,7 +75,7 @@ func TestOAuthFamilyGateAndDeadline(t *testing.T) {
 
 func TestOAuthFamilyRevocationRefusesMinting(t *testing.T) {
 	r, ctx := newMcpOauthRepository(t)
-	if err := r.SaveToken(ctx, "hash-a", mcpoauth.TokenAccess, "grant-1", "family-1", "", `["mcp.read"]`, time.Now().Unix()+900, 0); err != nil {
+	if err := r.SaveToken(ctx, "hash-a", mcpoauth.TokenAccess, "grant-1", "family-1", "", `["mcp.read"]`, 1, time.Now().Unix()+900, 0); err != nil {
 		t.Fatalf("initial insert: %v", err)
 	}
 	now := time.Now().Unix()
@@ -84,7 +84,7 @@ func TestOAuthFamilyRevocationRefusesMinting(t *testing.T) {
 	}
 	// Every later member is refused: no token can outlive a committed
 	// revocation by joining afterwards.
-	if err := r.SaveToken(ctx, "hash-b", mcpoauth.TokenRefresh, "grant-1", "family-1", "hash-a", `["mcp.read"]`, now+7000, now+7000); err != mcpoauth.ErrInvalidGrant {
+	if err := r.SaveToken(ctx, "hash-b", mcpoauth.TokenRefresh, "grant-1", "family-1", "hash-a", `["mcp.read"]`, 1, now+7000, now+7000); err != mcpoauth.ErrInvalidGrant {
 		t.Fatalf("mint into revoked family = %v, want ErrInvalidGrant", err)
 	}
 	// Revocation of a family without any issuance still leaves a revoked
@@ -92,7 +92,7 @@ func TestOAuthFamilyRevocationRefusesMinting(t *testing.T) {
 	if err := r.RevokeFamily(ctx, "family-2", now); err != nil {
 		t.Fatalf("revoke unknown family: %v", err)
 	}
-	if err := r.SaveToken(ctx, "hash-c", mcpoauth.TokenAccess, "grant-1", "family-2", "", `["mcp.read"]`, now+900, 0); err != mcpoauth.ErrInvalidGrant {
+	if err := r.SaveToken(ctx, "hash-c", mcpoauth.TokenAccess, "grant-1", "family-2", "", `["mcp.read"]`, 1, now+900, 0); err != mcpoauth.ErrInvalidGrant {
 		t.Fatalf("mint into pre-revoked family = %v, want ErrInvalidGrant", err)
 	}
 	// Revocation is idempotent.
@@ -105,7 +105,7 @@ func TestOAuthGrantTokensSweepFamilies(t *testing.T) {
 	r, ctx := newMcpOauthRepository(t)
 	grant := oauthGrant(t, r, ctx)
 	now := time.Now().Unix()
-	if err := r.SaveToken(ctx, "hash-a", mcpoauth.TokenAccess, grant.ID, "family-1", "", `["mcp.read"]`, now+900, 0); err != nil {
+	if err := r.SaveToken(ctx, "hash-a", mcpoauth.TokenAccess, grant.ID, "family-1", "", `["mcp.read"]`, 1, now+900, 0); err != nil {
 		t.Fatalf("insert: %v", err)
 	}
 	if err := r.RevokeGrantTokens(ctx, grant.ID, now); err != nil {
@@ -113,7 +113,7 @@ func TestOAuthGrantTokensSweepFamilies(t *testing.T) {
 	}
 	// The tokens-table guard also refuses minting into a family that only
 	// carries revoked members, independent of the family row.
-	if err := r.SaveToken(ctx, "hash-b", mcpoauth.TokenAccess, grant.ID, "family-1", "", `["mcp.read"]`, now+900, 0); err != mcpoauth.ErrInvalidGrant {
+	if err := r.SaveToken(ctx, "hash-b", mcpoauth.TokenAccess, grant.ID, "family-1", "", `["mcp.read"]`, 1, now+900, 0); err != mcpoauth.ErrInvalidGrant {
 		t.Fatalf("mint into swept family = %v, want ErrInvalidGrant", err)
 	}
 	// The sweep removes the orphaned family rows.
@@ -129,7 +129,7 @@ func TestOAuthConsentAnchorChangeRevokesArtifacts(t *testing.T) {
 	r, ctx := newMcpOauthRepository(t)
 	grant := oauthGrant(t, r, ctx)
 	now := time.Now().Unix()
-	if err := r.SaveToken(ctx, "hash-a", mcpoauth.TokenAccess, grant.ID, "family-1", "", `["mcp.read"]`, now+900, 0); err != nil {
+	if err := r.SaveToken(ctx, "hash-a", mcpoauth.TokenAccess, grant.ID, "family-1", "", `["mcp.read"]`, 1, now+900, 0); err != nil {
 		t.Fatalf("insert: %v", err)
 	}
 	// Re-consent with an unchanged anchor keeps the standing tokens.
@@ -139,6 +139,9 @@ func TestOAuthConsentAnchorChangeRevokesArtifacts(t *testing.T) {
 	record, err := r.Token(ctx, "hash-a")
 	if err != nil || record.Revoked {
 		t.Fatalf("unchanged anchor revoked the token: %+v %v", record, err)
+	}
+	if kept, err := r.Grant(ctx, grant.ID); err != nil || kept.ConsentEpoch != grant.ConsentEpoch {
+		t.Fatalf("unchanged anchor moved the epoch: %+v %v", kept, err)
 	}
 	// A changed anchor (password rotation happened meanwhile) revokes every
 	// artifact of the grant inside the same commit: re-authorizing must not
@@ -153,17 +156,24 @@ func TestOAuthConsentAnchorChangeRevokesArtifacts(t *testing.T) {
 	if record, err = r.Token(ctx, "hash-a"); err != nil || !record.Revoked {
 		t.Fatalf("anchor change did not revoke the token: %+v %v", record, err)
 	}
-	if err = r.SaveToken(ctx, "hash-b", mcpoauth.TokenAccess, grant.ID, "family-1", "", `["mcp.read"]`, now+900, 0); err != mcpoauth.ErrInvalidGrant {
+	// The anchor change also advanced the immutable authorization version:
+	// every artifact issued under the previous epoch stops validating even
+	// when no revocation sweep reached it (an in-flight redemption).
+	bumped, err := r.Grant(ctx, grant.ID)
+	if err != nil || bumped.ConsentEpoch != grant.ConsentEpoch+1 {
+		t.Fatalf("anchor change epoch = %+v %v, want %d", bumped, err, grant.ConsentEpoch+1)
+	}
+	if err = r.SaveToken(ctx, "hash-b", mcpoauth.TokenAccess, grant.ID, "family-1", "", `["mcp.read"]`, 1, now+900, 0); err != mcpoauth.ErrInvalidGrant {
 		t.Fatalf("mint after anchor revocation = %v, want ErrInvalidGrant", err)
 	}
 }
 
 func TestOAuthCodeSnapshotRoundTrip(t *testing.T) {
 	r, ctx := newMcpOauthRepository(t)
-	if err := r.SaveCode(ctx, "code-hash", "grant-1", "https://app.example/cb", "challenge", "S256", `["mcp.read","offline_access"]`, time.Now().Unix()+60); err != nil {
+	if err := r.SaveCode(ctx, "code-hash", "grant-1", "https://app.example/cb", "challenge", "S256", `["mcp.read","offline_access"]`, 1, time.Now().Unix()+60); err != nil {
 		t.Fatalf("save code: %v", err)
 	}
-	grantID, redirect, challenge, method, scopes, err := r.ConsumeCode(ctx, "code-hash", time.Now().Unix())
+	grantID, redirect, challenge, method, scopes, epoch, err := r.ConsumeCode(ctx, "code-hash", time.Now().Unix())
 	if err != nil {
 		t.Fatalf("consume code: %v", err)
 	}
@@ -173,8 +183,11 @@ func TestOAuthCodeSnapshotRoundTrip(t *testing.T) {
 	if scopes != `["mcp.read","offline_access"]` {
 		t.Fatalf("code scope snapshot = %s", scopes)
 	}
+	if epoch != 1 {
+		t.Fatalf("code consent epoch = %d, want 1", epoch)
+	}
 	// A second consume finds nothing.
-	if _, _, _, _, _, err = r.ConsumeCode(ctx, "code-hash", time.Now().Unix()); err != mcpoauth.ErrInvalidCode {
+	if _, _, _, _, _, _, err = r.ConsumeCode(ctx, "code-hash", time.Now().Unix()); err != mcpoauth.ErrInvalidCode {
 		t.Fatalf("replayed code = %v, want ErrInvalidCode", err)
 	}
 }
@@ -216,7 +229,7 @@ func TestOAuthFamilyIssuanceVsRevocation(t *testing.T) {
 				_, _ = r.exec(ctx, store.DB, "DELETE FROM unicore_mcp_oauth_families WHERE family_id=?", family)
 			})
 			now := time.Now().Unix()
-			if err = r.SaveToken(ctx, "hash-a-"+family, mcpoauth.TokenAccess, "grant-1", family, "", `["mcp.read"]`, now+900, 0); err != nil {
+			if err = r.SaveToken(ctx, "hash-a-"+family, mcpoauth.TokenAccess, "grant-1", family, "", `["mcp.read"]`, 1, now+900, 0); err != nil {
 				t.Fatalf("initial insert: %v", err)
 			}
 			// The in-flight issuance opens its transaction and passes the

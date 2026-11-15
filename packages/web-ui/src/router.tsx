@@ -96,10 +96,11 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
       validateSearch: routeOptions?.search as never,
       // The page module download IS part of navigation: running the import in
       // the route loader keeps the router unresolved — and the navigation
-      // progress bar running — until the chunk arrives, instead of ending the
-      // sweep while the Suspense fallback is still showing. A rejected import
-      // surfaces through the router error component like any route failure.
+      // progress bar running — until the chunk arrives. While it is pending,
+      // the shared skeleton covers first entries and deep links instead of a
+      // blank shell between the boot placeholder and the page.
       loader: async () => { moduleCache.set(loader, await loader()); },
+      pendingComponent: PageLoader,
       component: frame(loader, routeOptions?.adminEligible),
     }) as unknown as AnyRoute;
   }
@@ -149,7 +150,7 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
     pageRoute('/edition', () => import('./pages/edition').then(module => ({ default: module.UserEditionPage })), { adminEligible: true }),
     createRoute({ getParentRoute: () => rootRoute, path: '/settings', beforeLoad: () => { throw redirect({ to: '/site', replace: true }); } }) as unknown as AnyRoute,
   ] as [AnyRoute, ...AnyRoute[]]);
-  const router = createRouter({ routeTree: tree, history: options.history(), basepath: options.basepath || '/', defaultPreload: false, defaultErrorComponent: ServerErrorPage });
+  const router = createRouter({ routeTree: tree, history: options.history(), basepath: options.basepath || '/', defaultPreload: false, defaultErrorComponent: ServerErrorPage, defaultPendingComponent: PageLoader });
   // The navigation progress bar rides navigation only: the history
   // subscription is the earliest signal (it covers the route resolution and
   // the page module download inside the route loader), while background

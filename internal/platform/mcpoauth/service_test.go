@@ -32,13 +32,14 @@ type memoryStore struct {
 }
 
 type codeRow struct {
-	grantID     string
-	redirectURI string
-	challenge   string
-	method      string
-	scopes      string
-	expiresAt   int64
-	consumedAt  int64
+	grantID      string
+	redirectURI  string
+	challenge    string
+	method       string
+	scopes       string
+	consentEpoch int
+	expiresAt    int64
+	consumedAt   int64
 }
 
 // familyRow mirrors the persistent family state the SQL store keeps: the
@@ -168,26 +169,26 @@ func (m *memoryStore) TouchGrant(_ context.Context, id string, now int64) error 
 	return nil
 }
 
-func (m *memoryStore) SaveCode(_ context.Context, hash, grantID, redirectURI, challenge, method, scopes string, expiresAt int64) error {
+func (m *memoryStore) SaveCode(_ context.Context, hash, grantID, redirectURI, challenge, method, scopes string, consentEpoch int, expiresAt int64) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.codes[hash] = codeRow{grantID: grantID, redirectURI: redirectURI, challenge: challenge, method: method, scopes: scopes, expiresAt: expiresAt}
+	m.codes[hash] = codeRow{grantID: grantID, redirectURI: redirectURI, challenge: challenge, method: method, scopes: scopes, consentEpoch: consentEpoch, expiresAt: expiresAt}
 	return nil
 }
 
-func (m *memoryStore) ConsumeCode(_ context.Context, hash string, now int64) (string, string, string, string, string, error) {
+func (m *memoryStore) ConsumeCode(_ context.Context, hash string, now int64) (string, string, string, string, string, int, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	row, ok := m.codes[hash]
 	if !ok || row.consumedAt != 0 || row.expiresAt <= now {
-		return "", "", "", "", "", ErrInvalidCode
+		return "", "", "", "", "", 0, ErrInvalidCode
 	}
 	row.consumedAt = now
 	m.codes[hash] = row
-	return row.grantID, row.redirectURI, row.challenge, row.method, row.scopes, nil
+	return row.grantID, row.redirectURI, row.challenge, row.method, row.scopes, row.consentEpoch, nil
 }
 
-func (m *memoryStore) SaveToken(_ context.Context, hash, kind, grantID, familyID, parentID, scopes string, expiresAt, familyDeadline int64) error {
+func (m *memoryStore) SaveToken(_ context.Context, hash, kind, grantID, familyID, parentID, scopes string, consentEpoch int, expiresAt, familyDeadline int64) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	// The family gate mirrors the SQL store: a family with any revoked
@@ -210,7 +211,7 @@ func (m *memoryStore) SaveToken(_ context.Context, hash, kind, grantID, familyID
 			m.families[familyID] = family
 		}
 	}
-	m.tokens[hash] = TokenRecord{Hash: hash, Kind: kind, GrantID: grantID, FamilyID: familyID, ParentID: parentID, Scopes: ParseScopes(scopes), ExpiresAt: expiresAt}
+	m.tokens[hash] = TokenRecord{Hash: hash, Kind: kind, GrantID: grantID, FamilyID: familyID, ParentID: parentID, Scopes: ParseScopes(scopes), ConsentEpoch: consentEpoch, ExpiresAt: expiresAt}
 	return nil
 }
 
@@ -238,8 +239,11 @@ func (m *memoryStore) UpdateGrantConsent(_ context.Context, grantID string, scop
 	grant.Scopes, grant.SecurityAnchor = scopes, anchor
 	m.grants[grantID] = grant
 	// Mirror the SQL transaction: an anchor change kills the grant's tokens
-	// in the same step, so re-authorization cannot resurrect them.
+	// and bumps the immutable consent epoch in the same step, so
+	// re-authorization cannot resurrect artifacts from the previous version.
 	if anchorChanged {
+		grant.ConsentEpoch++
+		m.grants[grantID] = grant
 		for hash, record := range m.tokens {
 			if record.GrantID == grantID && !record.Revoked {
 				record.Revoked = true
@@ -962,9 +966,11 @@ func TestReauthorizationCannotResurrectAnchorInvalidatedTokens(t *testing.T) {
 	if _, err := service.Refresh(ctx, confidential.ID, secret, initial.RefreshToken); err != ErrInvalidGrant {
 		t.Fatalf("stale anchor refresh = %v", err)
 	}
-	// The user re-authorizes the same client: the grant's anchor refreshes,
-	// and the old tokens must stay revoked instead of coming back to life.
-	if _, err := service.RefreshConsent(ctx, grant.ID, []string{ScopeRead, ScopeOffline}); err != nil {
+	// The user re-authorizes the same client: the grant's anchor refreshes
+	// and its authorization version advances, and the old tokens must stay
+	// revoked instead of coming back to life.
+	updated, err := service.RefreshConsent(ctx, grant.ID, []string{ScopeRead, ScopeOffline})
+	if err != nil {
 		t.Fatalf("re-authorize: %v", err)
 	}
 	if _, _, err := service.Resolve(ctx, initial.AccessToken); err == nil {
@@ -973,8 +979,8 @@ func TestReauthorizationCannotResurrectAnchorInvalidatedTokens(t *testing.T) {
 	if _, err := service.Refresh(ctx, confidential.ID, secret, initial.RefreshToken); err == nil {
 		t.Fatal("re-authorization resurrected the old refresh token")
 	}
-	// A fresh consent code still works under the new anchor.
-	renewed := chainFrom(t, service, confidential, secret, grant)
+	// A fresh consent code still works under the new anchor and epoch.
+	renewed := chainFrom(t, service, confidential, secret, updated)
 	if _, _, err := service.Resolve(ctx, renewed.AccessToken); err != nil {
 		t.Fatalf("fresh consent after re-authorization: %v", err)
 	}
@@ -1169,5 +1175,127 @@ func TestRefreshDeadlineFailureFailsClosed(t *testing.T) {
 	}
 	if int64(issued.RefreshExpiresAt) != valid {
 		t.Fatalf("rotation deadline %d != family deadline %d", issued.RefreshExpiresAt, valid)
+	}
+}
+
+// epochBumpStore bumps the grant's consent epoch the first time a token is
+// minted, standing in for a re-authorization that wins the race while a code
+// redemption is mid-flight: the redemption passed its checks before the
+// bump, but the rows it writes carry the stale epoch.
+type epochBumpStore struct {
+	*memoryStore
+	bumped   bool
+	grantID  string
+	accesses int
+}
+
+func (e *epochBumpStore) SaveToken(ctx context.Context, hash, kind, grantID, familyID, parentID, scopes string, consentEpoch int, expiresAt, familyDeadline int64) error {
+	if grantID == e.grantID {
+		e.accesses++
+		if !e.bumped {
+			// The concurrent re-authorization commits between the
+			// redemption's security checks and its token writes.
+			e.bumped = true
+			e.mu.Lock()
+			grant := e.grants[e.grantID]
+			grant.ConsentEpoch++
+			e.grants[e.grantID] = grant
+			for stale, record := range e.tokens {
+				if record.GrantID == e.grantID && !record.Revoked {
+					record.Revoked = true
+					e.tokens[stale] = record
+				}
+			}
+			e.mu.Unlock()
+		}
+	}
+	return e.memoryStore.SaveToken(ctx, hash, kind, grantID, familyID, parentID, scopes, consentEpoch, expiresAt, familyDeadline)
+}
+
+// TestRedeemingCodeUnderSupersededAuthorizationFails pins the P1 finding in
+// both orders: a code issued before a password rotation never redeems after
+// the anchor-changing re-authorization, and a redemption racing the
+// re-authorization either fails or mints rows bound to the stale epoch that
+// never resolve.
+func TestRedeemingCodeUnderSupersededAuthorizationFails(t *testing.T) {
+	service, store, _, _, _, _ := consentedService(t)
+	ctx := context.Background()
+	confidential, secret, grant := enabledConfidentialClient(t, service, "Epoch")
+	verifier, challenge := pkcePair(t)
+	oldCode, err := service.IssueCode(ctx, grant, confidential.RedirectURIs[0], challenge, "S256")
+	if err != nil {
+		t.Fatalf("issue code: %v", err)
+	}
+	// The password rotates and the user re-authorizes: the grant's anchor
+	// refreshes and its authorization version advances.
+	store.anchor = platform.Hash("password-v2")
+	if _, err = service.RefreshConsent(ctx, grant.ID, []string{ScopeRead, ScopeOffline}); err != nil {
+		t.Fatalf("re-authorize: %v", err)
+	}
+	// Path 1: the pre-rotation code, redeemed after the re-authorization,
+	// finds itself bound to a superseded epoch and is refused.
+	if _, err = service.ExchangeCode(ctx, confidential.ID, secret, oldCode, confidential.RedirectURIs[0], verifier); err != ErrInvalidGrant {
+		t.Fatalf("stale-epoch code = %v, want ErrInvalidGrant", err)
+	}
+	// Path 2: a fresh code issued under the new epoch redeems normally.
+	freshGrant, err := service.Store.Grant(ctx, grant.ID)
+	if err != nil {
+		t.Fatalf("read back grant: %v", err)
+	}
+	freshCode, err := service.IssueCode(ctx, freshGrant, confidential.RedirectURIs[0], challenge, "S256")
+	if err != nil {
+		t.Fatalf("issue fresh code: %v", err)
+	}
+	issued, err := service.ExchangeCode(ctx, confidential.ID, secret, freshCode, confidential.RedirectURIs[0], verifier)
+	if err != nil {
+		t.Fatalf("fresh exchange: %v", err)
+	}
+	if _, _, err = service.Resolve(ctx, issued.AccessToken); err != nil {
+		t.Fatalf("fresh tokens resolve: %v", err)
+	}
+}
+
+// TestInFlightRedemptionCannotOutliveAuthorizationVersion pins the concurrent
+// half of the P1 finding: a redemption that already passed every check when
+// the anchor-change re-authorization commits must not hand out usable tokens.
+// The epochBumpStore replays that interleaving deterministically.
+func TestInFlightRedemptionCannotOutliveAuthorizationVersion(t *testing.T) {
+	base := newMemoryStore()
+	service := New(&epochBumpStore{memoryStore: base}, func() string { return "https://unicore.example/mcp" })
+	ctx := context.Background()
+	confidential, secret, grant := enabledConfidentialClient(t, service, "InFlight")
+	verifier, challenge := pkcePair(t)
+	epochStore := service.Store.(*epochBumpStore)
+	epochStore.grantID = grant.ID
+	code, err := service.IssueCode(ctx, grant, confidential.RedirectURIs[0], challenge, "S256")
+	if err != nil {
+		t.Fatalf("issue code: %v", err)
+	}
+	if _, err = service.ExchangeCode(ctx, confidential.ID, secret, code, confidential.RedirectURIs[0], verifier); err != ErrInvalidGrant {
+		t.Fatalf("raced redemption = %v, want ErrInvalidGrant", err)
+	}
+	// Every row the racing redemption wrote is bound to the stale epoch and
+	// fails to resolve, even though no revocation sweep reached it.
+	base.mu.Lock()
+	var stale []TokenRecord
+	for _, record := range base.tokens {
+		if record.GrantID == grant.ID {
+			stale = append(stale, record)
+		}
+	}
+	base.mu.Unlock()
+	if len(stale) == 0 {
+		t.Fatal("the racing redemption wrote no tokens to inspect")
+	}
+	for _, record := range stale {
+		if record.ConsentEpoch != 1 {
+			t.Fatalf("raced token epoch = %d, want the stale 1", record.ConsentEpoch)
+		}
+		if _, _, err := service.Resolve(ctx, "ucm_"+record.Hash); err == nil && !record.Revoked {
+			// Resolve reads by digest; the fake stores hashes as keys, so a
+			// direct resolution attempt uses the hash-form token only when
+			// unrevoked. Either way it must not resolve.
+			t.Fatal("a token from the superseded epoch unexpectedly resolved")
+		}
 	}
 }

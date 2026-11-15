@@ -403,6 +403,7 @@ CREATE TABLE IF NOT EXISTS public."unicore_mcp_oauth_grants" (
   "scope_set" text NOT NULL,
   "status" character varying(16) NOT NULL DEFAULT 'active',
   "security_anchor" character varying(64) NOT NULL DEFAULT '',
+  "consent_epoch" bigint NOT NULL DEFAULT 1,
   "created_at" bigint NOT NULL DEFAULT 0,
   "last_used_at" bigint NOT NULL DEFAULT 0,
   "revoked_at" bigint NOT NULL DEFAULT 0,
@@ -418,6 +419,7 @@ CREATE TABLE IF NOT EXISTS public."unicore_mcp_oauth_codes" (
   "pkce_challenge" character varying(128) NOT NULL DEFAULT '',
   "pkce_method" character varying(16) NOT NULL DEFAULT '',
   "scope_set" text NOT NULL DEFAULT '',
+  "consent_epoch" bigint NOT NULL DEFAULT 1,
   "expires_at" bigint NOT NULL,
   "consumed_at" bigint NOT NULL DEFAULT 0,
   CONSTRAINT "unicore_mcp_oauth_codes_pkey" PRIMARY KEY (code_hash)
@@ -431,6 +433,7 @@ CREATE TABLE IF NOT EXISTS public."unicore_mcp_oauth_tokens" (
   "family_id" character varying(64) NOT NULL,
   "parent_id" character varying(64) NOT NULL DEFAULT '',
   "scopes" text NOT NULL DEFAULT '',
+  "consent_epoch" bigint NOT NULL DEFAULT 1,
   "expires_at" bigint NOT NULL,
   "consumed_at" bigint NOT NULL DEFAULT 0,
   "revoked_at" bigint NOT NULL DEFAULT 0,

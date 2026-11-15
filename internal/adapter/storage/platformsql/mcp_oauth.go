@@ -99,20 +99,20 @@ func (r *Repository) Client(ctx context.Context, id string) (mcpoauth.Client, er
 }
 
 func (r *Repository) CreateGrant(ctx context.Context, grant mcpoauth.Grant) (mcpoauth.Grant, error) {
-	_, err := r.exec(ctx, r.Store.DB, "INSERT INTO unicore_mcp_oauth_grants(id,user_id,client_id,role_id,resource,scope_set,status,security_anchor,created_at) VALUES(?,?,?,?,?,?,?,?,?)",
-		grant.ID, grant.UserID, grant.ClientID, grant.RoleID, grant.Resource, mcpoauth.MarshalScopes(grant.Scopes), grant.Status, grant.SecurityAnchor, grant.CreatedAt)
+	_, err := r.exec(ctx, r.Store.DB, "INSERT INTO unicore_mcp_oauth_grants(id,user_id,client_id,role_id,resource,scope_set,status,security_anchor,consent_epoch,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
+		grant.ID, grant.UserID, grant.ClientID, grant.RoleID, grant.Resource, mcpoauth.MarshalScopes(grant.Scopes), grant.Status, grant.SecurityAnchor, grant.ConsentEpoch, grant.CreatedAt)
 	return grant, err
 }
 
 func (r *Repository) Grant(ctx context.Context, id string) (mcpoauth.Grant, error) {
-	row := r.row(ctx, r.Store.DB, "SELECT id,user_id,client_id,role_id,resource,scope_set,status,security_anchor,created_at,last_used_at,revoked_at FROM unicore_mcp_oauth_grants WHERE id=?", id)
+	row := r.row(ctx, r.Store.DB, "SELECT id,user_id,client_id,role_id,resource,scope_set,status,security_anchor,consent_epoch,created_at,last_used_at,revoked_at FROM unicore_mcp_oauth_grants WHERE id=?", id)
 	return oauthGrantRow(row.Scan)
 }
 
 func oauthGrantRow(scan func(dest ...any) error) (mcpoauth.Grant, error) {
 	var grant mcpoauth.Grant
 	var scopes string
-	if err := scan(&grant.ID, &grant.UserID, &grant.ClientID, &grant.RoleID, &grant.Resource, &scopes, &grant.Status, &grant.SecurityAnchor, &grant.CreatedAt, &grant.LastUsedAt, &grant.RevokedAt); err != nil {
+	if err := scan(&grant.ID, &grant.UserID, &grant.ClientID, &grant.RoleID, &grant.Resource, &scopes, &grant.Status, &grant.SecurityAnchor, &grant.ConsentEpoch, &grant.CreatedAt, &grant.LastUsedAt, &grant.RevokedAt); err != nil {
 		return grant, err
 	}
 	grant.Scopes = mcpoauth.ParseScopes(scopes)
@@ -128,7 +128,7 @@ func (r *Repository) GrantsForClient(ctx context.Context, clientID string) ([]mc
 }
 
 func (r *Repository) oauthGrants(ctx context.Context, condition, arg string) ([]mcpoauth.Grant, error) {
-	rows, err := r.rows(ctx, r.Store.DB, "SELECT id,user_id,client_id,role_id,resource,scope_set,status,security_anchor,created_at,last_used_at,revoked_at FROM unicore_mcp_oauth_grants WHERE "+condition+" ORDER BY created_at DESC,id", arg)
+	rows, err := r.rows(ctx, r.Store.DB, "SELECT id,user_id,client_id,role_id,resource,scope_set,status,security_anchor,consent_epoch,created_at,last_used_at,revoked_at FROM unicore_mcp_oauth_grants WHERE "+condition+" ORDER BY created_at DESC,id", arg)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +147,7 @@ func (r *Repository) oauthGrants(ctx context.Context, condition, arg string) ([]
 // GrantViewsForClient joins the active authorizations of one client with the
 // account and role display facts for the admin console.
 func (r *Repository) GrantViewsForClient(ctx context.Context, clientID string) ([]mcpoauth.AdminGrantView, error) {
-	rows, err := r.rows(ctx, r.Store.DB, "SELECT g.id,g.user_id,g.client_id,g.role_id,g.resource,g.scope_set,g.status,g.security_anchor,g.created_at,g.last_used_at,g.revoked_at,u.username,COALESCE(r.name,'') FROM unicore_mcp_oauth_grants g JOIN unicore_users u ON u.id=g.user_id LEFT JOIN unicore_roles r ON r.id=g.role_id WHERE g.client_id=? AND g.status='active' ORDER BY g.created_at DESC,g.id", clientID)
+	rows, err := r.rows(ctx, r.Store.DB, "SELECT g.id,g.user_id,g.client_id,g.role_id,g.resource,g.scope_set,g.status,g.security_anchor,g.consent_epoch,g.created_at,g.last_used_at,g.revoked_at,u.username,COALESCE(r.name,'') FROM unicore_mcp_oauth_grants g JOIN unicore_users u ON u.id=g.user_id LEFT JOIN unicore_roles r ON r.id=g.role_id WHERE g.client_id=? AND g.status='active' ORDER BY g.created_at DESC,g.id", clientID)
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +156,7 @@ func (r *Repository) GrantViewsForClient(ctx context.Context, clientID string) (
 	for rows.Next() {
 		var view mcpoauth.AdminGrantView
 		var scopes string
-		if err := rows.Scan(&view.ID, &view.UserID, &view.ClientID, &view.RoleID, &view.Resource, &scopes, &view.Status, &view.SecurityAnchor, &view.CreatedAt, &view.LastUsedAt, &view.RevokedAt, &view.Username, &view.RoleName); err != nil {
+		if err := rows.Scan(&view.ID, &view.UserID, &view.ClientID, &view.RoleID, &view.Resource, &scopes, &view.Status, &view.SecurityAnchor, &view.ConsentEpoch, &view.CreatedAt, &view.LastUsedAt, &view.RevokedAt, &view.Username, &view.RoleName); err != nil {
 			return nil, err
 		}
 		view.Scopes = mcpoauth.ParseScopes(scopes)
@@ -200,13 +200,19 @@ func (r *Repository) UpdateGrantConsent(ctx context.Context, grantID string, sco
 	if status != mcpoauth.GrantActive {
 		return mcpoauth.Grant{}, mcpoauth.ErrInvalidGrant
 	}
-	if _, err = r.exec(ctx, tx, "UPDATE unicore_mcp_oauth_grants SET scope_set=?,security_anchor=? WHERE id=? AND status='active'", mcpoauth.MarshalScopes(scopes), anchor, grantID); err != nil {
-		return mcpoauth.Grant{}, err
-	}
 	if !strings.EqualFold(stored, anchor) {
+		// The anchor changed: the authorization version is immutable history.
+		// Bump the epoch and revoke the tokens in the same transaction so
+		// every artifact issued under the previous version — tokens and any
+		// in-flight redemption alike — stops validating.
+		if _, err = r.exec(ctx, tx, "UPDATE unicore_mcp_oauth_grants SET scope_set=?,security_anchor=?,consent_epoch=consent_epoch+1 WHERE id=? AND status='active'", mcpoauth.MarshalScopes(scopes), anchor, grantID); err != nil {
+			return mcpoauth.Grant{}, err
+		}
 		if _, err = r.exec(ctx, tx, "UPDATE unicore_mcp_oauth_tokens SET revoked_at=? WHERE grant_id=? AND revoked_at=0", time.Now().Unix(), grantID); err != nil {
 			return mcpoauth.Grant{}, err
 		}
+	} else if _, err = r.exec(ctx, tx, "UPDATE unicore_mcp_oauth_grants SET scope_set=?,security_anchor=? WHERE id=? AND status='active'", mcpoauth.MarshalScopes(scopes), anchor, grantID); err != nil {
+		return mcpoauth.Grant{}, err
 	}
 	if err = tx.Commit(); err != nil {
 		return mcpoauth.Grant{}, err
@@ -221,28 +227,29 @@ func (r *Repository) UpdateGrantConsent(ctx context.Context, grantID string, sco
 	return updated, nil
 }
 
-func (r *Repository) SaveCode(ctx context.Context, hash, grantID, redirectURI, challenge, method, scopes string, expiresAt int64) error {
-	_, err := r.exec(ctx, r.Store.DB, "INSERT INTO unicore_mcp_oauth_codes(code_hash,grant_id,redirect_uri,pkce_challenge,pkce_method,scope_set,expires_at) VALUES(?,?,?,?,?,?,?)", hash, grantID, redirectURI, challenge, method, scopes, expiresAt)
+func (r *Repository) SaveCode(ctx context.Context, hash, grantID, redirectURI, challenge, method, scopes string, consentEpoch int, expiresAt int64) error {
+	_, err := r.exec(ctx, r.Store.DB, "INSERT INTO unicore_mcp_oauth_codes(code_hash,grant_id,redirect_uri,pkce_challenge,pkce_method,scope_set,consent_epoch,expires_at) VALUES(?,?,?,?,?,?,?,?)", hash, grantID, redirectURI, challenge, method, scopes, consentEpoch, expiresAt)
 	return err
 }
 
 // ConsumeCode redeems a code exactly once inside one statement, then reads
 // the row including its consent scope snapshot; a concurrent double spend
 // leaves nothing to read.
-func (r *Repository) ConsumeCode(ctx context.Context, hash string, now int64) (grantID, redirectURI, challenge, method, scopes string, err error) {
+func (r *Repository) ConsumeCode(ctx context.Context, hash string, now int64) (grantID, redirectURI, challenge, method, scopes string, consentEpoch int, err error) {
 	result, err := r.exec(ctx, r.Store.DB, "UPDATE unicore_mcp_oauth_codes SET consumed_at=? WHERE code_hash=? AND consumed_at=0 AND expires_at>?", now, hash, now)
 	if err != nil {
-		return "", "", "", "", "", mcpoauth.ErrInvalidCode
+		return "", "", "", "", "", 0, mcpoauth.ErrInvalidCode
 	}
 	affected, err := result.RowsAffected()
 	if err != nil || affected != 1 {
-		return "", "", "", "", "", mcpoauth.ErrInvalidCode
+		return "", "", "", "", "", 0, mcpoauth.ErrInvalidCode
 	}
 	var consumedGrant, consumedRedirect, consumedChallenge, consumedMethod, consumedScopes string
-	if err = r.row(ctx, r.Store.DB, "SELECT grant_id,redirect_uri,pkce_challenge,pkce_method,scope_set FROM unicore_mcp_oauth_codes WHERE code_hash=?", hash).Scan(&consumedGrant, &consumedRedirect, &consumedChallenge, &consumedMethod, &consumedScopes); err != nil {
-		return "", "", "", "", "", mcpoauth.ErrInvalidCode
+	var consumedEpoch int
+	if err = r.row(ctx, r.Store.DB, "SELECT grant_id,redirect_uri,pkce_challenge,pkce_method,scope_set,consent_epoch FROM unicore_mcp_oauth_codes WHERE code_hash=?", hash).Scan(&consumedGrant, &consumedRedirect, &consumedChallenge, &consumedMethod, &consumedScopes, &consumedEpoch); err != nil {
+		return "", "", "", "", "", 0, mcpoauth.ErrInvalidCode
 	}
-	return consumedGrant, consumedRedirect, consumedChallenge, consumedMethod, consumedScopes, nil
+	return consumedGrant, consumedRedirect, consumedChallenge, consumedMethod, consumedScopes, consumedEpoch, nil
 }
 
 // familyGate marks or checks the family state row with one statement that is
@@ -262,7 +269,7 @@ const familyGate = "UPDATE unicore_mcp_oauth_families SET deadline=CASE WHEN dea
 // creating INSERT runs in autocommit so a duplicate from a racing creator or
 // revocation marker cannot poison a transaction, and the second gate alone
 // decides.
-func (r *Repository) SaveToken(ctx context.Context, hash, kind, grantID, familyID, parentID, scopes string, expiresAt, familyDeadline int64) error {
+func (r *Repository) SaveToken(ctx context.Context, hash, kind, grantID, familyID, parentID, scopes string, consentEpoch int, expiresAt, familyDeadline int64) error {
 	create := "INSERT INTO unicore_mcp_oauth_families(family_id,grant_id,revoked_at,deadline) VALUES(?,?,0,?)"
 	for attempt := 0; attempt < 2; attempt++ {
 		tx, err := r.Store.DB.BeginTx(ctx, nil)
@@ -311,8 +318,8 @@ func (r *Repository) SaveToken(ctx context.Context, hash, kind, grantID, familyI
 			}
 		}
 		result, err = r.exec(ctx, tx,
-			"INSERT INTO unicore_mcp_oauth_tokens(token_hash,kind,grant_id,family_id,parent_id,scopes,expires_at) SELECT ?,?,?,?,?,?,? FROM (SELECT 1) AS guard WHERE NOT EXISTS(SELECT 1 FROM unicore_mcp_oauth_tokens WHERE family_id=? AND revoked_at>0)",
-			hash, kind, grantID, familyID, parentID, scopes, expiresAt, familyID)
+			"INSERT INTO unicore_mcp_oauth_tokens(token_hash,kind,grant_id,family_id,parent_id,scopes,consent_epoch,expires_at) SELECT ?,?,?,?,?,?,?,? FROM (SELECT 1) AS guard WHERE NOT EXISTS(SELECT 1 FROM unicore_mcp_oauth_tokens WHERE family_id=? AND revoked_at>0)",
+			hash, kind, grantID, familyID, parentID, scopes, consentEpoch, expiresAt, familyID)
 		if err != nil {
 			return err
 		}
@@ -340,11 +347,11 @@ func (r *Repository) FamilyDeadline(ctx context.Context, familyID string) (int64
 }
 
 func (r *Repository) Token(ctx context.Context, hash string) (mcpoauth.TokenRecord, error) {
-	row := r.row(ctx, r.Store.DB, "SELECT token_hash,kind,grant_id,family_id,parent_id,scopes,expires_at,consumed_at,revoked_at FROM unicore_mcp_oauth_tokens WHERE token_hash=?", hash)
+	row := r.row(ctx, r.Store.DB, "SELECT token_hash,kind,grant_id,family_id,parent_id,scopes,consent_epoch,expires_at,consumed_at,revoked_at FROM unicore_mcp_oauth_tokens WHERE token_hash=?", hash)
 	var record mcpoauth.TokenRecord
 	var scopes string
 	var consumed, revoked int
-	err := row.Scan(&record.Hash, &record.Kind, &record.GrantID, &record.FamilyID, &record.ParentID, &scopes, &record.ExpiresAt, &consumed, &revoked)
+	err := row.Scan(&record.Hash, &record.Kind, &record.GrantID, &record.FamilyID, &record.ParentID, &scopes, &record.ConsentEpoch, &record.ExpiresAt, &consumed, &revoked)
 	if errors.Is(err, sql.ErrNoRows) {
 		return record, mcpoauth.ErrInvalidGrant
 	}

@@ -257,7 +257,7 @@ test('linked auth pages, confirmation, duplicate feedback and recovery preview',
     await expect(registrationPassword).toHaveAttribute('aria-invalid', 'false');
     await page.getByLabel('确认密码', { exact: true }).focus();
     await expect(registrationPassword).toHaveAttribute('aria-invalid', 'true');
-    await expect(registrationPassword).toHaveAccessibleDescription(/密码至少 12 个字符，且不超过 128 字节/);
+    await expect(registrationPassword).toHaveAccessibleDescription(/密码长度为 12–128 个字符/);
     await registrationPassword.fill(password);
     await page.getByLabel('确认密码', { exact: true }).focus();
     await expect(registrationPassword).toHaveAttribute('aria-invalid', 'false');

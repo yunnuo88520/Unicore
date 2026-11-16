@@ -10,7 +10,7 @@
 | desktop | 原生桥接，共享更新页，无平台身份 | macOS app bundle / Windows exe / Linux 发行目录，helper 重启 |
 | cli | 不装配 | 人工替换发行包 |
 
-没有自动后台安装。打开页面先读取本机日志，不联系 GitHub；检查按钮才联网。CHANGELOG 数字版本生成 assets/updates/history.gen.json 并嵌入程序，远端成功记录缓存到私有数据目录 updates/catalog.json。断网、限流、签名不符均保留日志；在线日志只是文本，不能执行 HTML。FEATURE_UPDATER 默认为 true，FEATURE_LICENSE 默认为 false；关闭 updater 同时裁剪 Go 装配和前端功能，CLI 始终关闭。直接 go build 需要 -tags updater，建议使用 Make。
+没有自动后台安装。在线更新只由 `FEATURE_UPDATER` 编译期开关控制，不新增运行期启停设置；关闭后仅保留版本号，隐藏系统更新入口、日志页和全部检查/安装操作，也不装配检查调度。若单独开启 license，预留页显示为「应用授权」，不显示为「系统更新」。启用并配置渠道后，后台按进程生命周期运行，启动约 1 分钟后首次检查，再按 6 小时间隔检查；成功与失败的尝试时间均缓存，近期手动检查也延后下一次后台检查。未安装、未配置渠道或安装任务进行中不执行自动检查，退出取消在途请求。页面每分钟读取缓存（更新进行中每秒读取任务进度），不因读取而访问远端；手动检查不受 6 小时间隔限制。CHANGELOG 数字版本生成 assets/updates/history.gen.json 并嵌入程序，远端成功记录缓存到私有数据目录 updates/catalog.json。断网、限流、签名不符均保留日志；在线日志只是文本，不能执行 HTML。FEATURE_UPDATER 默认为 true，FEATURE_LICENSE 默认为 false；关闭 updater 同时裁剪 Go 装配和前端功能，CLI 始终关闭。直接 go build 需要 -tags updater，建议使用 Make。
 
 ## 配置更新渠道
 

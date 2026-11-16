@@ -143,7 +143,13 @@ func run(args []string) (result error) {
 	if sink != nil {
 		sink.SetRetention(logRetention(manager, options.Log.MaxAgeDays))
 	}
-	updater, err := updateService(ctx, options.DataDir, options.Deployment, func() string { _, _, _, p := manager.Services(); return string(p) }, stop)
+	updater, err := updateService(ctx, options.DataDir, options.Deployment, func() string {
+		if !manager.Installed() {
+			return ""
+		}
+		_, _, _, p := manager.Services()
+		return string(p)
+	}, stop)
 	if err != nil {
 		return err
 	}

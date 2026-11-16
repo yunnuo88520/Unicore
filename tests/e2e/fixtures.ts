@@ -1,7 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Every browser test owns a fresh process, data directory and bootstrap credential.
 import { test as base, expect, type APIRequestContext, type Page, type Locator, type PlaywrightWorkerArgs } from '@playwright/test';
-import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { openSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -31,11 +31,15 @@ async function spawnInstance({ playwright }: Pick<PlaywrightWorkerArgs, 'playwri
   // line of defense: a fresh foreign instance answers 401 and an installed
   // one 409, while our own uninitialized instance answers 400.
   const directory = await mkdtemp(join(tmpdir(), 'unicore-e2e-'));
+  // Browser tests use synthetic channels; background checks must never contact
+  // the framework's real release repository or inherit a developer's channel.
+  const updateTrust = join(directory, 'update-trust.json');
+  await writeFile(updateTrust, JSON.stringify({ repository: '', channel: 'stable', keys: {}, allow_unsigned_platform: true }), { mode: 0o600 });
   const logDirectory = join('build', 'test-results', 'servers', `${project}-${workerIndex}`);
   await mkdir(logDirectory, { recursive: true });
   // Keep first-install expectations independent of the last release/native build's default profile.
   // Restarts use the persisted installation choice, including standalone installations.
-  const start = (listenPort: number, firstInstall = false) => spawn('build/bin/server', [...(firstInstall ? ['--profile', 'web-platform'] : []), '--listen', `127.0.0.1:${listenPort}`, '--data-dir', directory, `--api-docs=${apiDocs}`], { stdio: ['ignore', openSync(join(logDirectory, 'stdout.log'), 'a'), openSync(join(logDirectory, 'stderr.log'), 'a')], env: Object.fromEntries(Object.entries(globalThis.process.env).filter(([key]) => !key.startsWith('APP_'))) });
+  const start = (listenPort: number, firstInstall = false) => spawn('build/bin/server', [...(firstInstall ? ['--profile', 'web-platform'] : []), '--listen', `127.0.0.1:${listenPort}`, '--data-dir', directory, `--api-docs=${apiDocs}`], { stdio: ['ignore', openSync(join(logDirectory, 'stdout.log'), 'a'), openSync(join(logDirectory, 'stderr.log'), 'a')], env: { ...Object.fromEntries(Object.entries(globalThis.process.env).filter(([key]) => !key.startsWith('APP_'))), APP_UPDATE_TRUST_FILE: updateTrust } });
   // Fully-parallel workers can grab each other's just-freed port (TOCTOU
   // between the allocator close and the child bind), so every spawned server
   // must prove its identity with its own bootstrap token before the fixture

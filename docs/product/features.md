@@ -50,7 +50,7 @@ FEATURE_NOTES=false make dev-web
 | 环境变量 | 默认值 | 作用 |
 | --- | --- | --- |
 | `FEATURE_NOTES` | `true` | 笔记 demo |
-| `FEATURE_UPDATER` | `true` | 应用内更新集成 |
+| `FEATURE_UPDATER` | `true` | 应用内更新及后台定时检查；关闭后仅保留版本号，无系统更新入口 |
 | `FEATURE_LICENSE` | `false` | 授权服务预留入口；尚无完整商业授权实现 |
 
 值只接受 `true` 或 `false`，未知的 `FEATURE_*` 名称会使构建失败。Make、Vite 和发行工具读取同一组开关，建议统一使用 Make 构建，避免前后端配置不一致。

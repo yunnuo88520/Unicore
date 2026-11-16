@@ -64,7 +64,7 @@
 | 基础设置 | 已实现：实例设置，仅管理端；模块描述符注册业务分组并自动呈现 | 不提供实例设置，外观仅设备偏好 | 不装配 | unicore_system_settings | `internal/settings/service.go`、[设置需求](feature-settings.md) |
 | 维护模式 | 已实现（应用内 + 离线开关） | 不装配（设置组不可见） | 不适用（运维命令面向平台实例） | maintenance.* | `internal/settings/service.go`、`internal/webmanage/instance.go` |
 | 定时任务管理 | 已实现（内置任务 + 白名单执行器） | 不装配（web 仅 localCron 日志保留¹；desktop 无²） | 不装配 | unicore_scheduled_jobs | `internal/scheduler/scheduler.go`、`cmd/server/main.go` |
-| 系统更新 | 已实现：管理端（updates:read/apply）；tar 可更新、Docker 仅检查 | 已实现：web `/updates` 仅 loopback¹；desktop 原生更新² | 不装配 | 更新缓存 + 任务状态 | `internal/updates/service.go`、`internal/adapter/http/updates.go`、[更新指南](../product/updates.md) |
+| 系统更新 | 条件支持：编译期 updater；管理端（updates:read/apply），后台每 6 小时检查；tar 可更新、Docker 仅检查 | 条件支持：同一编译开关与后台检查；web `/updates` 仅 loopback¹；desktop 原生更新²；关闭时两载体只保留版本号 | 不装配 | 更新缓存（含检查尝试时间）+ 任务状态 | `internal/updates/service.go`、`internal/adapter/http/updates.go`、[更新指南](../product/updates.md) |
 | 审计日志 | 已实现（写入 + 元数据 + 查询/导出/流式跟踪） | 受限：仅写 core 审计表，无查询面（D17 已裁决为设计现状） | 不装配 | unicore_audit_logs(+metadata) | `internal/adapter/storage/sqlstore/audit.go`、`internal/adapter/http/logs.go` |
 | 管理员仪表盘 | 已实现（成员计数/近期审计/7 日活跃） | 不装配 | 不适用 | 只读聚合 | `internal/adapter/http/dashboard.go` |
 | 角色高级 API 目录（无独立页面） | 已实现（roles:read；授权需超管） | 不装配 | 不适用 | 契约派生 | `internal/platform/operations.go` |

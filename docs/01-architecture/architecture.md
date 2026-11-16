@@ -89,7 +89,7 @@ internal/platform/Accounts 编排独立注册/邮箱验证策略、后缀与黑�
 
 [ADR-0009](../adr/ADR-0009-runtime-branding.md) 定义共享 internal/branding、私有规范化 PNG 与 DB 托管引用。管理端使用生成 DTO，通过 AppClient 驱动品牌预览/保存/恢复面板；本地形态使用构建品牌；BrandProvider 覆盖工作台和账号分支。平台公开当前哈希图片；Wails 不装配运行时品牌桥接，无 HTTP 模拟。邮件创建时快照图片字节到加密队列，SMTP CID 和预览同源；存储/清理顺序与恢复边界见 [需求](../00-product/feature-branding.md)。
 
-[ADR-0010](../adr/ADR-0010-settings-edition.md) 补齐 ICP/别名/ICO/内部系统通知队列。授权仍由 license tag 默认关闭；更新以 [ADR-0018](../adr/ADR-0018-signed-updates.md) 取代占位，updater tag 默认通过 Make 开启。internal/updates 隔离 Provider/Cache/Installer ports，adapter/updatechannel 与 updateinstall 分别实现渠道和安全安装，bootstrap/updating 按形态装配。HTTP 使用窄 updateport 并独立鉴权，原生 bridge 直接调用。内置日志、私有缓存、签名清单和 helper 原子切换不依赖平台身份模块；CLI 不装配。设置矩阵见 [规范](../00-product/feature-settings.md)。
+[ADR-0010](../adr/ADR-0010-settings-edition.md) 补齐 ICP/别名/ICO/内部系统通知队列。授权仍由 license tag 默认关闭；更新以 [ADR-0018](../adr/ADR-0018-signed-updates.md) 取代占位，updater tag 默认通过 Make 开启。internal/updates 隔离 Provider/Cache/Installer ports，adapter/updatechannel 与 updateinstall 分别实现渠道和安全安装，bootstrap/updating 按形态装配；updater 仅编译期启停，关闭时只保留版本号。启用并配置渠道时，进程生命周期内后台检查（启动约 1 分钟后、之后每 6 小时），复用手动检查、签名和缓存，成功/失败尝试均节流，退出取消请求；缓存读取不被慢速渠道阻塞，安装仍须明确确认。HTTP 使用窄 updateport 并独立鉴权，原生 bridge 直接调用。内置日志、私有缓存、签名清单和 helper 原子切换不依赖平台身份模块；CLI 不装配。设置矩阵见 [规范](../00-product/feature-settings.md)。
 
 Web 启动参数、APP_* 环境与可选 YAML/JSON 配置由 internal/config.LoadWeb 统一解析校验（flag > 环境 > 显式文件 > 默认值）；仅显式指定配置路径时读取，数据库和管理员仍由安装向导管理。Web 发行包统一使用 unicore 二进制，help/config generate 与离线 backup/verify/restore 共用入口；前端内嵌，不重复打包静态目录，不进入无数据库的业务 CLI。原生桌面面向用户提供 macOS DMG、Windows 便携 EXE，原有 tar 仍供签名 OTA；下载文件在桌面 manifest.downloads 与总校验和中关联，派生产品沿用品牌源。
 

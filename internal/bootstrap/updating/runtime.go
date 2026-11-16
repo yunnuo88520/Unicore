@@ -107,6 +107,9 @@ func New(ctx context.Context, dataDir, deployment string, profile func() string,
 		return nil, errors.New("invalid embedded release history")
 	}
 	service := &updates.Service{Provider: provider, Cache: updatechannel.FileCache{Directory: filepath.Join(directory, "updates")}, Installer: installer, Trust: trust, Version: buildinfo.Version, Channel: c.Channel, Current: current, Embedded: embedded.Releases}
+	if _, online := provider.(*updatechannel.HTTP); online {
+		go service.RunChecks(ctx)
+	}
 	// A supervisor-owned target drains cooperatively if its startup health confirmation expires.
 	go func() {
 		ticker := time.NewTicker(250 * time.Millisecond)

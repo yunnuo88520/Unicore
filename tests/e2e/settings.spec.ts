@@ -98,6 +98,16 @@ test('settings audit: site identity, ICP, ICO and compile-time update capabiliti
   const bootstrap = (await (await page.request.get(`${instance.url}/api/v1/admin/bootstrap`)).json()).data;
   const license = process.env.FEATURE_LICENSE === 'true', updater = process.env.FEATURE_UPDATER !== 'false';
   expect(bootstrap.capabilities.license).toBe(license); expect(bootstrap.capabilities.updater).toBe(updater);
+  if (!updater) {
+    const openNavigation = page.getByRole('button', { name: '打开导航', exact: true });
+    if (await openNavigation.isVisible()) await openNavigation.click();
+    await expect(page.locator('.sidebar button').filter({ hasText: /^系统更新$/ })).toHaveCount(0);
+    await page.getByRole('button', { name: new RegExp(`当前版本 ${bootstrap.version}`) }).click();
+    const version = page.getByRole('dialog', { name: '版本信息' });
+    await expect(version.getByText(`v${bootstrap.version}`, { exact: true })).toBeVisible();
+    await expect(version.getByRole('button')).toHaveCount(0);
+    await page.keyboard.press('Escape');
+  }
   await page.goto(`${instance.url}/admin/edition`);
   if (license) await expect(page.getByText('待对接',{exact:true})).toBeVisible();
   if (license || updater) {

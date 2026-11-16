@@ -5,6 +5,8 @@
 
 ### 中文
 
+- 新增 Windows/amd64 原生 OTA 夹具及运行说明，随派生项目分发；记录默认构建下签名更新、EXE 替换、重启与启动确认已实测通过，失败恢复与其他架构仍需单独验证。
+
 - 修复 Standalone 监控将本地业务文件服务误当作平台对象存储管理的问题；两载体保留本地附件上传，不显示存储位置与探活卡片。
 
 - 将通用框架缺陷的归属判断、最小复现、临时补丁、上游反馈及修复同步纳入 AI 工作流；派生项目随附 framework-upstream Skill、协作入口和反馈模板。
@@ -18,6 +20,8 @@
 - 清理无关后台框架名称及测试、截图命名，使源码和文档直接描述自身能力。
 
 ### English
+
+- Add a Windows/amd64 native OTA fixture and run instructions to derived projects; record a successful signed update, EXE replacement, restart and startup confirmation with default build features. Failure recovery and other architectures still require separate validation.
 
 - Fix Standalone monitoring treating local business files as platform object-storage management; both carriers retain local attachments while hiding storage-location and probe cards.
 

@@ -48,6 +48,23 @@ Windows 原生 CI 在构建后执行 scripts/test-windows-startup.ps1：使用�
 
 CI 在原生 runner 打包后运行 `node scripts/check-release-entrypoints.mjs desktop`：macOS 只读挂载 DMG 并复制到临时 Applications 目录，Windows 核对下载 EXE 与原构建逐字节一致；Linux 质量 job 的 `node scripts/check-release-entrypoints.mjs web` 解包两个 Web profile，使用临时数据目录验证精确文件清单、统一入口的帮助/维护命令、配置生成/拒绝覆盖、无参数启动与 /install。均不使用真实实例数据。
 
+### Windows 原生 OTA 验证
+
+在 Windows/amd64 的交互式桌面会话中运行。需要 x64 Node.js、Go、Wails/CGO 原生构建依赖、WebView2 和 `tar`。先以默认特性构建当前 EXE（`FEATURE_LICENSE=false`、`FEATURE_UPDATER=true`、`FEATURE_NOTES=true`）；已有构建应与当前源码及 `VERSION` 一致。
+
+```sh
+make build-desktop
+node scripts/test-native-update-windows.mjs
+# 可选：通过 PowerShell UIAutomation 操作中文界面的更新流程
+node scripts/test-native-update-windows.mjs --auto
+```
+
+脚本将当前 EXE 复制到随机临时安装目录，并用同一源码构建补丁版本加一的测试包，不修改仓库版本。数据、Ed25519 测试密钥、TLS 证书与 HTTPS 更新渠道均在该临时环境中生成。手动模式在打开的真实 Wails 窗口依次选择“系统更新 → 检查更新 → 更新并重启”，勾选备份确认并确认更新。
+
+以 `data/updates/state.json` 的 `completed` 为通过条件，表示完成签名包验证、程序替换、重启和启动确认；`rolled_back` 或 `failed` 返回非零退出码。测试目录及 `native.log` 保留在终端输出的 `base` 路径，结束后关闭重启的应用，再删除该临时目录。该夹具覆盖相同迁移指纹的成功更新路径；失败恢复和 Authenticode 策略需另行验证。`--auto` 还依赖 PowerShell、可访问性树和中文界面，不能代替终态检查，也未纳入无人值守 CI。
+
+### 发行包与镜像
+
 每次 package/release 重建 `build/releases/`（先保存需要保留的旧产物），其中为 tar.gz、checksums.txt 和 manifest.json；各包只含单一应用入口、README.md 安装说明、LICENSE、VERSION 和 manifest.json；Web 另含 deploy/ 下两个 systemd/Nginx 模板。前端已嵌入二进制，不重复附带 web/、docs/、bin/ 或完整 CHANGELOG。scripts/release-layout.mjs 在打包时检查精确白名单。manifest 的 profile 是默认首装选择，安装向导仍允许选择两种 Web 形态；安装后固定。编译扩展统一传 `FEATURE_LICENSE=true FEATURE_UPDATER=true`，授权默认关闭并保持占位，更新默认开启并使用签名清单。
 
 镜像不能下载官方源时，可显式替换同版本基础镜像来源，例如：

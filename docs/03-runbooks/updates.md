@@ -81,7 +81,7 @@ gh secret set UNICORE_UPDATE_SIGNING_KEY --repo owner/repository < /secure/offli
 
 macOS 使用临时 keychain，codesign hardened runtime + timestamp，notarytool submit --wait，stapler staple/validate，Gatekeeper 与 app ID 复验，最后删除临时 keychain/证书。Windows 使用 SDK signtool SHA256/RFC3161 时间戳与 verify /pa，临时 PFX 完成后删除；HSM/云签名需替换此适配脚本。Linux 没有这两类平台签名，仍必须通过 OTA 发行签名。打包脚本独立检查实际系统签名后记录 platform_signature，运行时如包声明系统签名也再次校验；不把环境变量直接当成功证明。
 
-按当前提交、目标OS与部署方式分别记录检查结果；自动化与原生构建不替代完整更新和失败恢复。支持限制见 [支持范围](../support.md)。
+按当前提交、目标 OS 与部署方式分别记录检查结果；自动化与原生构建不替代完整更新和失败恢复。Windows/amd64 的隔离成功路径使用 [Windows 原生 OTA 验证](release.md#windows-原生-ota-验证) 夹具复现，支持限制见 [支持范围](../support.md)。
 
 ## 数据库兼容与正式版边界
 

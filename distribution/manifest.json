@@ -1327,6 +1327,7 @@
     "scripts/test-deployment.mjs",
     "scripts/test-features.mjs",
     "scripts/test-native-update.mjs",
+    "scripts/test-native-update-windows.mjs",
     "scripts/test-notes.mjs",
     "scripts/test-upgrade.mjs",
     "scripts/test-version.mjs",

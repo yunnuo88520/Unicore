@@ -1,7 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Self-service password change for either identity realm, on the shared dialog and control primitives.
 import { t, useLocale } from './i18n';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { AppError, type ChangePasswordInput, type WebClient } from '@unicore/sdk';
 import { Button, Input, Modal, useMessage } from '@unicore/ui';
@@ -15,6 +15,11 @@ export function PasswordDialog({ web, onClose }: { web: WebClient; onClose: () =
   // The confirmation value stays outside the contract form: ChangePasswordInput is a strict object.
   const [confirm, setConfirm] = useState('');
   const [confirmError, setConfirmError] = useState('');
+  // Once shown, the mismatch row stays reserved (invisible after it resolves):
+  // blur validation toggles this message, and removing it between a submit
+  // button's mousedown and mouseup moves the button so the click lands outside.
+  const lastConfirmError = useRef('');
+  if (confirmError) lastConfirmError.current = confirmError;
   const change = useMutation({
     mutationFn: (values: ChangePasswordInput) => web.changePassword(values),
     onSuccess: () => { message.success(t('密码已更新，请重新登录')); onClose(); },
@@ -46,7 +51,7 @@ export function PasswordDialog({ web, onClose }: { web: WebClient; onClose: () =
         <Input id="confirm-password" name="confirm" type="password" required minLength={12} maxLength={128} autoComplete="new-password" placeholder={t('再次输入新密码')}
           aria-invalid={!!confirmError || undefined} aria-describedby={confirmError ? 'confirm-password-error' : undefined}
           value={confirm} onChange={event => setConfirm(event.target.value)} onBlur={() => setConfirmError(confirm && confirm !== form.getValues('password') ? t('两次新密码不一致') : '')} />
-        {confirmError && <p id="confirm-password-error" role="alert" className="text-xs text-danger">{confirmError}</p>}
+        {lastConfirmError.current && <p id="confirm-password-error" role={confirmError ? 'alert' : undefined} className={confirmError ? 'text-xs text-danger' : 'text-xs invisible'}>{lastConfirmError.current}</p>}
       </div>
       <div className="flex flex-wrap items-center justify-end gap-2">
         <Button type="button" variant="secondary" disabled={change.isPending} onClick={onClose}>{t('取消')}</Button>

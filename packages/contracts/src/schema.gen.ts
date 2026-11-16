@@ -246,10 +246,16 @@ export interface SettingEntry {
   label: string;
   sensitive: boolean;
   configured?: boolean;
+  label_en?: string;
+  description?: string;
+  description_en?: string;
+  multiline?: boolean;
+  options?: Array<SettingOption>;
 }
 
 export interface Settings {
   items: Array<SettingEntry>;
+  groups?: Array<SettingGroup>;
 }
 
 export interface SettingChange {
@@ -2321,4 +2327,19 @@ export interface McpAccessInfoResponse {
   message: string;
   data: McpAccessInfo;
   request_id: string;
+}
+
+export interface SettingOption {
+  value: string;
+  label: string;
+  label_en: string;
+}
+
+export interface SettingGroup {
+  id: string;
+  label: string;
+  label_en: string;
+  description: string;
+  description_en: string;
+  order: number;
 }

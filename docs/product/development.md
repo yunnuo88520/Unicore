@@ -70,9 +70,11 @@ Git 来源中选中的文件有未提交修改时，创建器默认拒绝导出�
 
 文件通过 `file_id` 与存储 port 使用，业务不拼磁盘路径或持久保存签名 URL。笔记附件同时支持 Platform 与 Standalone，见 [文件存储](storage.md)。
 
-## 接入通知与后台任务
+## 扩展设置、通知与后台任务
 
-Platform 可复用邮件、企业微信、Webhook 和站内信。业务通知与业务事务一起提交，投递由后台 worker 执行；邮件参数、事件登记和代码示例见 [通知接入](notifications.md)。
+模块描述符的 `Settings` 登记实例级业务分组，后台基础设置自动显示双语标签与字段；敏感值、校验、权限和审计复用框架。定义与示例见 [业务设置扩展](configuration.md#开发者扩展业务设置)。Standalone 不提供实例设置页。
+
+Platform 可复用邮件、企业微信群机器人、Webhook 和站内信；Standalone 两载体可复用本地收件箱。模块描述符用 `NotificationTypes` 登记站内类型、`NotificationEvents` 登记站外事件；站外投递由后台 worker 执行，桌面站内消息经 Wails 刷新。业务事务与四类接入示例见 [通知接入](notifications.md)。
 
 后台任务通过 `internal/scheduler` 的代码注册表登记，管理页面只查看、启停和手动触发已注册函数，不执行任意脚本。默认任务包括邮件队列、文件清理和公告时间检查，见 [任务管理](https://unicore.ebox.vip/03-runbooks/admin-tools#定时任务)。
 

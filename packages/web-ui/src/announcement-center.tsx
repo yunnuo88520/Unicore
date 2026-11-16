@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from '@tanstack/react-router';
 import { AlertTriangle, Bell, CheckCheck, CheckCircle2, ChevronLeft, ChevronRight, Info, Megaphone, OctagonAlert, Settings2 } from 'lucide-react';
-import type { AnnouncementPublic, InboxEntry, WebClient } from '@unicore/sdk';
+import type { AnnouncementPublic, InboxEntry, InboxClient, WebClient } from '@unicore/sdk';
 import { currentLocale, defineMessages, t, useI18n } from './i18n';
 import { Badge, Button, Dialog, DialogContent, DialogHeader, DialogTitle, Popover, PopoverContent, PopoverTrigger } from '@unicore/ui';
 import { NotificationCenter, type NotificationItem, type NotificationStatus } from '@unicore/ui/composites';
@@ -19,17 +19,27 @@ export function AnnouncementType({ type }: { type: AnnouncementPublic['type'] })
   return <Badge variant={typeVariants[type]}><Icon size={12} aria-hidden="true" />{t(announcementTypes[type])}</Badge>;
 }
 const date = (value: number) => new Date(value * 1000).toLocaleString(currentLocale(), { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+function notificationTime(value: number) {
+  const elapsed = Math.max(0, Math.floor(Date.now() / 1000) - value);
+  const relative = new Intl.RelativeTimeFormat(currentLocale(), { numeric: 'auto', style: 'narrow' });
+  const label = elapsed < 60 ? relative.format(0, 'second')
+    : elapsed < 3600 ? relative.format(-Math.floor(elapsed / 60), 'minute')
+      : elapsed < 86400 ? relative.format(-Math.floor(elapsed / 3600), 'hour')
+        : elapsed < 604800 ? relative.format(-Math.floor(elapsed / 86400), 'day')
+          : new Date(value * 1000).toLocaleDateString(currentLocale(), { month: 'short', day: 'numeric' });
+  return <time dateTime={new Date(value * 1000).toISOString()} title={date(value)}>{label}</time>;
+}
 // Registered inbox types map to the panel's status disc; unknown types fall back to neutral.
 const inboxDisc: Record<string, { status: NotificationStatus; icon?: typeof Megaphone }> = {
   announcement: { status: 'information', icon: Megaphone },
   system: { status: 'neutral', icon: Settings2 },
 };
 
-export function AnnouncementCenter({ web, administrator = false, standalone = false }: { web: WebClient; administrator?: boolean; standalone?: boolean }) {
+export function AnnouncementCenter({ inbox: notifications, web, administrator = false, standalone = false }: { inbox: InboxClient; web?: WebClient; administrator?: boolean; standalone?: boolean }) {
   const { t } = useI18n();
   const cache = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState(administrator || standalone ? 'inbox' : 'announcements');
+  const [tab, setTab] = useState(!web || administrator || standalone ? 'inbox' : 'announcements');
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState('');
   const [expanded, setExpanded] = useState('');
@@ -37,20 +47,21 @@ export function AnnouncementCenter({ web, administrator = false, standalone = fa
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set());
   const [inboxPages, setInboxPages] = useState(1);
   const router = useRouter();
+  const hasAnnouncements = !!web && !administrator && !standalone;
   const refresh = () => cache.invalidateQueries({ queryKey: ['announcements'] });
   // Announcements stay a user-domain audience: administrators get the inbox tab
   // only, so their bell carries module/system notifications without the
   // announcement audience model.
-  const feed = useQuery({ queryKey: ['announcements', 'inbox', page], queryFn: () => web.announcements(page, 10), placeholderData: keepPreviousData, refetchOnWindowFocus: 'always', enabled: !administrator && !standalone });
+  const feed = useQuery({ queryKey: ['announcements', 'inbox', page], queryFn: () => web!.announcements(page, 10), placeholderData: keepPreviousData, refetchOnWindowFocus: 'always', enabled: hasAnnouncements });
   // Fetch unread popup notices independently, so inbox pagination never drops notifications.
-  const popups = useQuery({ queryKey: ['announcements', 'popups'], queryFn: () => web.announcements(1, 1, true), refetchOnWindowFocus: 'always', enabled: !administrator && !standalone });
+  const popups = useQuery({ queryKey: ['announcements', 'popups'], queryFn: () => web!.announcements(1, 1, true), refetchOnWindowFocus: 'always', enabled: hasAnnouncements });
   // Inbox loads accumulate pages instead of capping at the first page: every
   // loaded page refetches together after SSE pushes and window focus, so the
   // authoritative unread count and rows never diverge across pages.
   const inbox = useQuery({
     queryKey: ['inbox', inboxPages],
     queryFn: async () => {
-      const responses = await Promise.all(Array.from({ length: inboxPages }, (_, index) => web.inbox(index + 1, 20)));
+      const responses = await Promise.all(Array.from({ length: inboxPages }, (_, index) => notifications.inbox(index + 1, 20)));
       const latest = responses[responses.length - 1];
       return { ...latest, items: responses.flatMap(response => response.items) };
     },
@@ -59,11 +70,11 @@ export function AnnouncementCenter({ web, administrator = false, standalone = fa
   });
   // Transport owns credentials, identity realm, reconnects and session cleanup.
   // Refetch authoritative counts after every push and reconnect; never count events locally.
-  useEffect(() => web.subscribeEvents(() => {
+  useEffect(() => notifications.subscribeEvents(() => {
     void cache.invalidateQueries({ queryKey: ['inbox'] });
     void cache.invalidateQueries({ queryKey: ['announcements'] });
     void cache.invalidateQueries({ queryKey: ['announcement'] });
-  }), [web, cache]);
+  }), [notifications, cache]);
   useEffect(() => { if (administrator || standalone) return; const timer = window.setTimeout(() => setReady(true), 3000); return () => window.clearTimeout(timer); }, [administrator, standalone]);
   useEffect(() => {
     if (administrator || standalone) return;
@@ -73,35 +84,44 @@ export function AnnouncementCenter({ web, administrator = false, standalone = fa
     return () => window.clearTimeout(timer);
   }, [administrator, standalone, feed.data, popups.data]);
   useEffect(() => { if (feed.data && page > Math.max(1, Math.ceil(feed.data.total / 10))) setPage(1); }, [feed.data, page]);
-  const allRead = useMutation({ mutationFn: () => web.markAllAnnouncementsRead(), onSuccess: async () => { setPage(1); await refresh(); } });
-  const inboxRead = useMutation({ mutationFn: (id: string) => web.readInbox(id), onSuccess: async () => { await cache.invalidateQueries({ queryKey: ['inbox'] }); } });
-  const inboxAllRead = useMutation({ mutationFn: () => web.readAllInbox(), onSuccess: async () => { await cache.invalidateQueries({ queryKey: ['inbox'] }); } });
+  const allRead = useMutation({ mutationFn: () => web!.markAllAnnouncementsRead(), onSuccess: async () => { setPage(1); await refresh(); } });
+  const inboxRead = useMutation({ mutationFn: (id: string) => notifications.readInbox(id), onSuccess: async () => { await cache.invalidateQueries({ queryKey: ['inbox'] }); } });
+  const inboxAllRead = useMutation({ mutationFn: () => notifications.readAllInbox(), onSuccess: async () => { await cache.invalidateQueries({ queryKey: ['inbox'] }); } });
   const candidate = popups.data?.enabled ? popups.data.items.find(item => !dismissed.has(item.id)) : undefined;
   const popup = ready && !open && !selected ? candidate : undefined;
   const inboxUnread = inbox.data?.unread ?? 0;
   const unread = feed.data?.unread_count ?? 0;
   // Each tab renders its own source; the panel stays presentational.
   const items: NotificationItem[] = tab === 'announcements'
-    ? (feed.data?.items ?? []).map(item => ({ id: item.id, title: item.title, description: contentSummary(item.content_html), timestamp: date(item.publish_at), unread: !item.read_at, status: 'information' as const }))
+    ? (feed.data?.items ?? []).map(item => ({ id: item.id, title: item.title, description: contentSummary(item.content_html), timestamp: notificationTime(item.publish_at), unread: !item.read_at, status: 'information' as const }))
     : (inbox.data?.items ?? []).map(item => {
       const disc = inboxDisc[item.type];
-      return { id: item.id, title: item.title, description: expanded === item.id ? item.body : item.body.length > 120 ? `${item.body.slice(0, 120)}…` : item.body, timestamp: date(item.created_at), unread: !item.read_at, status: disc?.status ?? 'neutral', icon: disc?.icon, actions: (item.actions ?? []).map(action => ({ id: action.id, label: action.label, href: action.href })) };
+      return { id: item.id, title: item.title, description: expanded === item.id ? item.body : item.body.length > 120 ? `${item.body.slice(0, 120)}…` : item.body, timestamp: notificationTime(item.created_at), unread: !item.read_at, status: disc?.status ?? 'neutral', icon: disc?.icon, actions: (item.actions ?? []).map(action => ({ id: action.id, label: action.label, href: action.href })) };
     });
   const pending = tab === 'announcements' ? feed.isPending : inbox.isPending;
   const error = tab === 'announcements' ? feed.error : inbox.error;
-  const emptyMessage = tab === 'announcements' ? t('暂无公告') : t('暂无通知');
   return <>
     <Popover open={open} onOpenChange={value => { setOpen(value); if (value) { void refresh(); void cache.invalidateQueries({ queryKey: ['inbox'] }); } }}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative size-8" aria-label={t('通知中心')} title={t('通知中心')}>
           <Bell size={19} aria-hidden="true" />
-          {(administrator || standalone ? inboxUnread : unread + inboxUnread) > 0 && <span className="absolute -end-1 -top-1 flex min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] leading-4 text-on-primary" aria-label={t('{{count}} 条未读消息', { count: administrator || standalone ? inboxUnread : unread + inboxUnread })}>{(administrator ? inboxUnread : unread + inboxUnread) > 99 ? '99+' : administrator ? inboxUnread : unread + inboxUnread}</span>}
+          {(administrator || standalone ? inboxUnread : unread + inboxUnread) > 0 && <span className="absolute -end-1 -top-1 flex min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] leading-4 text-on-primary" aria-label={t('{{count}} 条未读消息', { count: administrator || standalone ? inboxUnread : unread + inboxUnread })}>{(hasAnnouncements ? unread + inboxUnread : inboxUnread) > 99 ? '99+' : hasAnnouncements ? unread + inboxUnread : inboxUnread}</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" sideOffset={8} role="dialog" aria-label={t('通知中心')} className="w-[min(440px,calc(100vw-24px))] rounded-2xl border-0 p-0">
+      <PopoverContent align="end" sideOffset={8} role="dialog" aria-label={t('通知中心')} className="w-[min(430px,calc(100vw-24px))] overflow-hidden rounded-[calc(var(--radius-12)*2)] border border-line bg-surface p-0 shadow-tint dark:bg-surface-alt">
         <NotificationCenter
+          className="max-h-[var(--radix-popover-content-available-height)] rounded-none border-0 shadow-none"
+          footer={tab === 'announcements' && feed.data && feed.data.total > 10
+            ? <div className="flex items-center justify-end gap-2 text-xs text-muted">
+                <Button variant="ghost" size="icon" className="size-8" aria-label={t('上一页')} disabled={page === 1 || feed.isFetching} onClick={() => setPage(value => value - 1)}><ChevronLeft size={15} /></Button>
+                <span className="tabular-nums">{page} / {Math.max(1, Math.ceil(feed.data.total / 10))}</span>
+                <Button variant="ghost" size="icon" className="size-8" aria-label={t('下一页')} disabled={page * 10 >= feed.data.total || feed.isFetching} onClick={() => setPage(value => value + 1)}><ChevronRight size={15} /></Button>
+              </div>
+            : tab === 'inbox' && inbox.data && inbox.data.total > inbox.data.items.length
+              ? <Button variant="ghost" size="sm" className="h-8 w-full text-[length:var(--font-14)] leading-[1.43] text-muted hover:text-ink" disabled={inbox.isFetching} onClick={() => setInboxPages(value => value + 1)}>{t('加载更多')}</Button>
+              : undefined}
           title={t('通知中心')}
-          tabs={!administrator && !standalone
+          tabs={hasAnnouncements
             ? [
               { id: 'announcements', label: t('公告'), count: unread },
               { id: 'inbox', label: t('通知'), count: inboxUnread },
@@ -131,17 +151,9 @@ export function AnnouncementCenter({ web, administrator = false, standalone = fa
             if (entry && !entry.read_at) inboxRead.mutate(id);
           }}
         />
-        {tab === 'announcements' && feed.data && feed.data.total > 10 && <div className="flex items-center justify-end gap-2 border-t border-line px-4 py-2.5 text-xs text-muted">
-          <Button variant="ghost" size="icon" className="size-7" aria-label={t('上一页')} disabled={page === 1 || feed.isFetching} onClick={() => setPage(value => value - 1)}><ChevronLeft size={15} /></Button>
-          <span>{page} / {Math.max(1, Math.ceil(feed.data.total / 10))}</span>
-          <Button variant="ghost" size="icon" className="size-7" aria-label={t('下一页')} disabled={page * 10 >= feed.data.total || feed.isFetching} onClick={() => setPage(value => value + 1)}><ChevronRight size={15} /></Button>
-        </div>}
-        {tab === 'inbox' && inbox.data && inbox.data.total > inbox.data.items.length && <div className="flex justify-center border-t border-line px-4 py-2.5">
-          <Button variant="ghost" size="sm" disabled={inbox.isFetching} onClick={() => setInboxPages(value => value + 1)}>{t('加载更多')}</Button>
-        </div>}
       </PopoverContent>
     </Popover>
-    {(selected || popup) && <AnnouncementDetail key={selected || popup!.id} web={web} id={selected || popup!.id} popup={!selected}
+    {web && (selected || popup) && <AnnouncementDetail key={selected || popup!.id} web={web} id={selected || popup!.id} popup={!selected}
       onRead={() => { if (popup) setDismissed(values => new Set([...values, popup.id])); void refresh(); }}
       onClose={() => { setSelected(''); if (popup) setDismissed(values => new Set([...values, popup.id])); }} />}
   </>;

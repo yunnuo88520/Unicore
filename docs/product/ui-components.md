@@ -119,8 +119,10 @@ MeetingScheduler 的 date、timeZone、hourCycle 和 selectedSlotId 均由宿主
 | Composer / ComposerPanel | value/onChange/onSubmit，宿主模型/effort/permission 目录与选择回调 | 模型发现、请求发送、权限校验；permission 下拉不构成授权 |
 | ComposerAttachmentTile / ComposerAttachmentStrip / ComposerLoader | queued/uploading/success/error、真实 progress、remove/retry 与 busy | 文件上传/续传/删除、假定时进度；Enter 提交需避开 IME 组合，Shift+Enter 换行 |
 | AuthCard / AuthMediaCarousel / SettingsDialog / Sidebar / StatCards | children/media、activeId、sections、items 与宿主选择操作 | 身份认证、设置保存、路由或权限投影；Sidebar 不替代 WorkspaceLayout |
-| NotificationCenter / TaskList / SearchActivity | tabs/read/actions、任务状态与 revealedIds、查询/源状态/结果数及回调 | 站内信投递、任务调度、Web 检索或抓取 |
+| NotificationCenter / TaskList / SearchActivity | tabs/read/actions 与面板内 footer 插槽（分页/加载更多）、任务状态与 revealedIds、查询/源状态/结果数及回调 | 站内信投递、任务调度、Web 检索或抓取 |
 | Questionnaire | 单选/多选/文本题，answers/step 或各自 default 值，onSubmit | 分支逻辑、调查服务或持久化；只做线性导航和必填检查 |
+
+通知中心沿用 EboxUI Notification Center 的 430px 面板、24px 外圆角、18px 标题、14px 正文、32px 按钮与浅色列表底；时间使用本地化短格式，悬停可查看完整时间。分页和加载更多通过 footer 插槽与面板保持同一外框，列表独立滚动并适应可用窗口高度。已读、分页和按钮回调由调用方控制，不在组件中模拟持久化。
 
 AgentCreator 默认紧凑宽度并在字段上方显示资料预览；仅 `layout="split"` 显式选择较宽分栏。头像提供八种造型与六种表情，`localeSlot/voiceSlot/preferencesSlot` 只承载宿主控件，不提供对应服务。AgentProgress 可传真实 `steps/revealedIds/onRevealChange`，不会从步骤伪造百分比；非有限进度为未知态。TaskList 与 SearchActivity 支持受控详情展开，禁用状态不调用动作；来源链接拒绝可执行协议。AuthCard 无媒体时限制表单宽度，SettingsDialog 不呈现禁用分区的内容。
 

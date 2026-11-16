@@ -30,6 +30,16 @@ type Definition struct {
 	TitleEn string
 }
 
+// LocalRecipient is the sole inbox owner in both Standalone carriers.
+const LocalRecipient = "local"
+
+// NotifyLocal atomically persists a registered module notification for the
+// local instance and refreshes its connected UI after commit. For an existing
+// business transaction use Deliver, then publish inbox.new after that commit.
+func (n *Notifier) NotifyLocal(ctx context.Context, store *sqlstore.Store, messageType, sourceID, title, body string, actions []contracts.InboxAction) error {
+	return n.NotifyUsers(ctx, store, []string{LocalRecipient}, messageType, sourceID, title, body, actions)
+}
+
 // Registry is the assembly-time allowlist of notification types. Deliveries
 // with unregistered types are rejected, so a typo inside a module cannot spray
 // unlabelled rows into every user inbox.

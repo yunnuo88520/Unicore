@@ -398,7 +398,7 @@ function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onO
       </span>
       <span className="mx-1 h-4 w-px bg-line max-sm:hidden" aria-hidden="true" />
       {/* Standalone has no accounts or login flow: its bell rides the local surface without a session user. */}
-      {client.web && (data.profile === 'web-standalone' || data.profile === 'web-platform' && user && !data.mfa_enrollment_required) && <AnnouncementCenter web={client.web} administrator={data.identity_realm === 'administrator'} standalone={data.profile === 'web-standalone'} />}
+      {(client.notifications || client.web) && (data.profile === 'web-standalone' || data.profile === 'desktop' || data.profile === 'web-platform' && user && !data.mfa_enrollment_required) && <AnnouncementCenter inbox={(client.notifications || client.web)!} web={client.web} administrator={data.identity_realm === 'administrator'} standalone={data.profile !== 'web-platform'} />}
       {isAdministrator(data) && user && client.web && !data.mfa_enrollment_required && <LiveLogsButton web={client.web} />}
       <ClientControls />
       {data.profile === 'web-platform' && user && (

@@ -84,6 +84,7 @@ func main() {
 }
 
 func run(args []string) (result error) {
+	module.Register(notesmodule.Module)
 	startedAt := time.Now()
 	if len(args) > 0 && args[0] == "serve" {
 		args = args[1:]
@@ -295,6 +296,11 @@ func run(args []string) (result error) {
 	if err := notifyRegistry.Register(notify.Definition{Type: "system", TitleZh: "系统", TitleEn: "System"}); err != nil {
 		return err
 	}
+	for _, definition := range module.NotificationTypes() {
+		if err := notifyRegistry.Register(definition); err != nil {
+			return err
+		}
+	}
 	notifyService := &notify.Notifier{Registry: notifyRegistry, Hub: hub, Inbox: notify.InboxFunc(func(ctx context.Context, runner sqlstore.Runner, recipients []string, messageType, sourceID, title, body, actions string) error {
 		store, _, _, _ := manager.Services()
 		if store == nil {
@@ -381,7 +387,6 @@ func run(args []string) (result error) {
 	tasks.OnResult(taskTracker.Observe)
 	// Registered business modules contribute their task executors here; the
 	// admin surface can only schedule these whitelisted functions.
-	module.Register(notesmodule.Module)
 	for _, item := range module.All() {
 		for _, executor := range item.Executors {
 			tasks.RegisterExecutor(executor.Key, executor.Description, executor.Fn)

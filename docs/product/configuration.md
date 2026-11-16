@@ -312,6 +312,34 @@ Windows GUI 无控制台，启动错误显示原生错误弹窗；桌面数据�
 邮件与渠道独立，未配置 SMTP 也可使用企业微信 / Webhook。自动事件需要系统总开关、对应事件开关及相应渠道配置；测试发送不会自动开启业务通知。用户邮件发给事件所属普通用户，管理员邮件发给 `site.admin_email`。
 
 
+## 开发者：扩展业务设置
+
+业务模块通过 `module.Module.Settings` 提交 `settings.GroupDefinition`。组合根在 `install.Open` / `local.Open` **之前**调用 `module.Register`，启用模块的定义自动登记到 `SettingDefinition`、安装默认值与设置 API；Platform 管理后台的基础设置自动增加业务标签，无需维护前端分组数组。
+
+```go
+// Author: yunnuo <ymz@ebox.vip>
+// 模块描述符中的字段；其余 Slug、Edition、Enabled 等按模块定义填写。
+Settings: []settings.GroupDefinition{{
+    ID: "reports", Label: "报表", LabelEN: "Reports", Order: 100,
+    Description: "报表生成策略。", DescriptionEN: "Report generation policy.",
+    Fields: []settings.FieldDefinition{
+        {Key: "reports.enabled", Type: "boolean", Label: "启用报表", LabelEN: "Enable reports", Default: "true"},
+        {Key: "reports.format", Type: "string", Label: "文件格式", LabelEN: "File format", Default: "pdf",
+            Options: []contracts.SettingOption{
+                {Value: "pdf", Label: "PDF", LabelEn: "PDF"},
+                {Value: "csv", Label: "表格", LabelEn: "CSV"},
+            }},
+        {Key: "reports.token", Type: "string", Label: "服务密钥", LabelEN: "Service token", Sensitive: true},
+    },
+}},
+```
+
+这些类型分别来自 `internal/settings` 与 `internal/contracts`。没有模块描述符的应用可在同一启动边界直接调用 `settings.Register(groups...)` 并处理错误；两种入口不要重复登记同一分组。分组 ID 全局唯一，键必须以 `分组ID.` 开头，不能覆盖内置键或标签。中文与英文标签必填，说明成对提供；分组按 `Order`、ID 排序，字段沿用声明顺序。重复分组/键、非法默认值和选项会在启动阶段拒绝。
+
+字段支持 `string`、`boolean`、`integer`，值仍以字符串传输；可用 `Validate func(string) bool` 追加业务限制。非敏感字符串可设 `Multiline`；`Options` 提供双语选择项。敏感字段仅支持字符串，默认值必须为空，沿用加密、掩码、留空保留与显式清除。业务 adapter 经注入的 `settings.Service` 读取值或 `settings.Bind` 结构化绑定，再通过业务 port 提供给 usecase；不要让领域层读取全局注册表或数据库。
+
+此入口扩展 **Platform 实例级全局设置**，沿用管理员 `settings:read/write`、superAdmin 写入边界、CSRF 和审计。它不增加租户、部门、个人作用域，也不向 bootstrap 公开业务值。Standalone 两载体没有实例设置页，API 返回空设置；设备外观继续使用客户端偏好。新增键沿用现有设置表，无需迁移；移除模块不会自动删除已保存数据。修改已发布默认值、校验或密钥含义时，应另行评估存量兼容与恢复。
+
 ## Web 管理命令
 
 Web 发行包的同一个 `unicore` 程序包含前台服务与运维入口；独立业务 CLI 不提供这些管理能力。直接运行 `./unicore` 或 `./unicore serve` 仍为前台启动，`./unicore manage` 打开中英文终端菜单。所有命令支持 `--help`；实例操作输出 JSON，服务状态可加 `--json`。

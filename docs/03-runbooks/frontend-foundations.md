@@ -39,7 +39,7 @@ return <button aria-label={t('保存')}>{t('保存')}</button>;
 
 管理端操作日志与邮件模板复用这些入口，详见 [管理工具](admin-tools.md)。模板正文/主题属于业务内容，语言巡检仅排除输入及 `.rich-content`/`.tiptap` 排版层，不跳过整个页面。
 
-可配置公告与邮件正文不调用 t()；共用安全富内容展示 rich-content.tsx，编辑与服务端预览分离。用户公告与站内信通过全局顶部铃铛查看，仅平台用户身份启用；SSE 通知后重新查询服务端，管理页独立入口。见 [公告手册](announcements.md)。
+可配置公告与邮件正文不调用 t()；共用安全富内容展示 rich-content.tsx，编辑与服务端预览分离。顶部铃铛通过 SDK 的 `InboxClient` 读取收件箱；平台用户显示公告与通知，管理员仅通知，Standalone 两载体仅本地通知。Web 经 SSE、桌面经 Wails `inbox.new` 事件失效重取，管理页独立入口。 通知弹层只保留一层外框与阴影，分页/加载更多通过 NotificationCenter 的 footer 插槽呈现，列表区域独立滚动并受可用窗口高度约束。见 [公告手册](announcements.md)。
 
 已登记但身份无权访问的页面使用独立 ForbiddenPage（403），未知地址使用 NotFoundPage（404）；不要把无权访问静默重定向到另一个业务页面。Swagger API 参考页采用延迟加载，并遵循实例 API 文档开关；头像复用文件上传和本人 profile API。行为及扩展方式见 [UI 组件参考](../product/ui-components.md) 与 [个人中心](personal-center.md)。 生成任何界面之前先读 [UI 组件约定](../product/ui-conventions.md)：场景对应组件、间距刻度、动效与文案规则是 review 硬性条件。
 

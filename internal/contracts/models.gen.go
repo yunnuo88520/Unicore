@@ -241,17 +241,23 @@ type Dashboard struct {
 }
 
 type SettingEntry struct {
-	Key        string `json:"key"`
-	Value      string `json:"value"`
-	ValueType  string `json:"value_type"`
-	Group      string `json:"group"`
-	Label      string `json:"label"`
-	Sensitive  bool   `json:"sensitive"`
-	Configured *bool  `json:"configured,omitempty"`
+	Key           string           `json:"key"`
+	Value         string           `json:"value"`
+	ValueType     string           `json:"value_type"`
+	Group         string           `json:"group"`
+	Label         string           `json:"label"`
+	Sensitive     bool             `json:"sensitive"`
+	Configured    *bool            `json:"configured,omitempty"`
+	LabelEn       *string          `json:"label_en,omitempty"`
+	Description   *string          `json:"description,omitempty"`
+	DescriptionEn *string          `json:"description_en,omitempty"`
+	Multiline     *bool            `json:"multiline,omitempty"`
+	Options       *[]SettingOption `json:"options,omitempty"`
 }
 
 type Settings struct {
-	Items []SettingEntry `json:"items"`
+	Items  []SettingEntry  `json:"items"`
+	Groups *[]SettingGroup `json:"groups,omitempty"`
 }
 
 type SettingChange struct {
@@ -2323,4 +2329,19 @@ type McpAccessInfoResponse struct {
 	Message   string        `json:"message"`
 	Data      McpAccessInfo `json:"data"`
 	RequestID string        `json:"request_id"`
+}
+
+type SettingOption struct {
+	Value   string `json:"value"`
+	Label   string `json:"label"`
+	LabelEn string `json:"label_en"`
+}
+
+type SettingGroup struct {
+	ID            string `json:"id"`
+	Label         string `json:"label"`
+	LabelEn       string `json:"label_en"`
+	Description   string `json:"description"`
+	DescriptionEn string `json:"description_en"`
+	Order         int    `json:"order"`
 }

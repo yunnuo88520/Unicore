@@ -4,12 +4,16 @@
 package httpadapter
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/yunnuo/unicore/internal/adapter/storage/inboxsql"
 	"github.com/yunnuo/unicore/internal/adapter/storage/platformsql"
+	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/install"
+	"github.com/yunnuo/unicore/internal/notify"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/realtime"
 	"github.com/yunnuo/unicore/internal/runtime"
@@ -18,10 +22,16 @@ import (
 // inboxRecipient resolves the inbox owner and its repository. Platform
 // sessions own their account inbox; the standalone local surface owns the
 // single "local" recipient (mirroring the notes local actor convention) and
-// reads through the platform repository directly — the identity service stays
+// reads through the neutral inbox repository; the identity service stays
 // an assembly omission on that profile. Administrative surfaces are
 // platform-only.
-func inboxRecipient(manager *install.Manager, w http.ResponseWriter, r *http.Request) (string, *platformsql.Repository, bool) {
+type inboxRepository interface {
+	InboxFeed(context.Context, string, int, int) (contracts.InboxList, error)
+	InboxRead(context.Context, string, string) (contracts.InboxList, error)
+	InboxReadAll(context.Context, string) (contracts.InboxList, error)
+}
+
+func inboxRecipient(manager *install.Manager, w http.ResponseWriter, r *http.Request) (string, inboxRepository, bool) {
 	store, _, _, profile := manager.Services()
 	if administratorRequest(r) && profile != runtime.WebPlatform {
 		failure(w, 404, "NOT_AVAILABLE", "此运行形态不提供管理端")
@@ -45,12 +55,12 @@ func inboxRecipient(manager *install.Manager, w http.ResponseWriter, r *http.Req
 		failure(w, 409, "INSTALL_REQUIRED", "请先完成安装")
 		return "", nil, false
 	}
-	return "local", &platformsql.Repository{Store: store}, true
+	return notify.LocalRecipient, &inboxsql.Repository{Store: store}, true
 }
 
 func mountInbox(api chi.Router, config Config) {
 	manager := config.Install
-	owner := func(w http.ResponseWriter, r *http.Request) (string, *platformsql.Repository, bool) {
+	owner := func(w http.ResponseWriter, r *http.Request) (string, inboxRepository, bool) {
 		return inboxRecipient(manager, w, r)
 	}
 	api.Get("/inbox", func(w http.ResponseWriter, r *http.Request) {

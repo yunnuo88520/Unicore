@@ -28,15 +28,15 @@
 
 客户端 JWT / Refresh Token 与个人 API 令牌：Platform 已实现；Standalone / CLI 不装配。持久化为 platform@1 的 unicore_api_credentials、unicore_api_refresh_tokens、unicore_api_token_keys；个人中心弹窗的访问令牌分区管理单角色令牌，支持固定有效期、永久、备注、续期和作废；超级管理员管理全部令牌并可代用户签发；创建时先输入用户名或邮箱搜索，空搜索不枚举用户，选择后才加载绑定角色。客户端认证与刷新走独立 API，见 [API 认证](../product/api-authentication.md) 与 [ADR-0044](../adr/ADR-0044-role-bound-personal-tokens.md)。
 
-## B. 通知与消息（Platform 专属）
+## B. 通知与消息（外部渠道仅 Platform）
 
 | 功能单元 | Platform | Standalone | CLI | 持久化 | 证据 |
 | --- | --- | --- | --- | --- | --- |
 | SMTP 邮件投递（持久队列/重试） | 已实现 | 不装配（mail.queue 任务注册但 Mailer 为 nil 空转） | 不装配 | unicore_mail_jobs | `internal/mailer/mailer.go`、`cmd/server/main.go` |
 | 邮件模板（5 用途富文本） | 已实现 | 不装配 | 不装配 | settings mail.template.* | `internal/mailcontent/template.go` |
 | 事件通知（14 个内置事件，可登记业务事件；邮件/企业微信/Webhook 独立路由；全部事件通知统一受系统通知总开关控制；原子 outbox 与分区设置保存） | 已实现 | 不装配 | 不装配 | settings notifications.* | `internal/notifycontent/catalog.go`、`internal/adapter/storage/platformsql/notifications.go`、[通知细节](../03-runbooks/notifications.md) |
-| 通用通知投递与收件箱 | 已实现（登记式类型门面 `internal/notify`；公告事务与后续模块共用 `unicore_inbox_messages`；无管理员群发 UI） | 已实现（本地收件人 `local` + coreAccess，ADR-0045；无公告） | 不装配（无数据库；CLI 组合根不含 notify） | unicore_inbox_messages | `internal/notify/notify.go`、`internal/adapter/http/inbox.go` |
-| 实时推送（SSE） | 已实现（进程内单实例语义） | 已实现（web 载体，本地收件人 `local`，契约声明 web-standalone；GUI 无 HTTP 通道）¹ | 不适用 | 无 | `internal/realtime/hub.go`、`internal/adapter/http/events.go` |
+| 通用通知投递与收件箱 | 已实现（登记式类型门面 `internal/notify`；公告事务与后续模块共用 `unicore_inbox_messages`；无管理员群发 UI） | 已实现（Web coreAccess / 原生 Wails 桥；本地收件人 `local`、持久化与已读等效，无公告） | 不装配（无数据库；CLI 组合根不含 notify） | unicore_inbox_messages | `internal/notify/notify.go`、`internal/adapter/storage/inboxsql/inbox.go`、`internal/adapter/desktop/inbox.go`、`internal/adapter/http/inbox.go` |
+| 收件箱实时刷新（Web SSE / GUI Wails） | 已实现（进程内单实例语义） | 已实现（web 载体，本地收件人 `local`，契约声明 web-standalone；GUI 以原生 `inbox.new` 事件刷新，无 HTTP 通道）¹ | 不适用 | 无 | `internal/realtime/hub.go`、`internal/adapter/http/events.go` |
 
 ## C. 内容运营（Platform 专属）
 
@@ -61,7 +61,7 @@
 | 功能单元 | Platform | Standalone | CLI | 持久化 | 证据 |
 | --- | --- | --- | --- | --- | --- |
 | 安装向导 | 已实现（含管理员种子、profile 固化、可选证书与主机名校验） | 已实现：web 向导无账号步骤¹；desktop 自动初始化² | 不装配 | installation.json + unicore_install_state | `internal/install/manager.go`、`internal/bootstrap/local/local.go`、[安装规范](feature-installation.md) |
-| 基础设置 | 已实现：实例设置，仅管理端 | 不提供实例设置，外观仅设备偏好 | 不装配 | unicore_system_settings | `internal/settings/service.go`、[设置需求](feature-settings.md) |
+| 基础设置 | 已实现：实例设置，仅管理端；模块描述符注册业务分组并自动呈现 | 不提供实例设置，外观仅设备偏好 | 不装配 | unicore_system_settings | `internal/settings/service.go`、[设置需求](feature-settings.md) |
 | 维护模式 | 已实现（应用内 + 离线开关） | 不装配（设置组不可见） | 不适用（运维命令面向平台实例） | maintenance.* | `internal/settings/service.go`、`internal/webmanage/instance.go` |
 | 定时任务管理 | 已实现（内置任务 + 白名单执行器） | 不装配（web 仅 localCron 日志保留¹；desktop 无²） | 不装配 | unicore_scheduled_jobs | `internal/scheduler/scheduler.go`、`cmd/server/main.go` |
 | 系统更新 | 已实现：管理端（updates:read/apply）；tar 可更新、Docker 仅检查 | 已实现：web `/updates` 仅 loopback¹；desktop 原生更新² | 不装配 | 更新缓存 + 任务状态 | `internal/updates/service.go`、`internal/adapter/http/updates.go`、[更新指南](../product/updates.md) |

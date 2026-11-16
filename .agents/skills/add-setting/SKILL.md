@@ -45,7 +45,7 @@ metadata:
 
 ## 标签与保存约定
 
-新增设置分组必须登记 settings-page.tsx 的业务标签映射与 profile 过滤，不能静默遗漏新分组。沿用共享单层 Tabs，不嵌套子标签；品牌保留三张卡片，主题复用 appearance.tsx 预览卡片、基础设置中不建重复外观入口。每次只展示当前任务，表单草稿和图片预览切换保留；只 PATCH 当前分组，不能连带保存其他标签。验证键盘切换、草稿保留、保存隔离、刷新主标签恢复、375px 无页面横溢和桌面常用操作可见。不要把 Tabs 做成长页锚点。
+新增业务分组优先通过模块描述符 `Settings: []settings.GroupDefinition` 登记，组合根须在 install.Open/local.Open 前 module.Register；无模块描述符时启动期调用 settings.Register，禁止重复注册。GroupDefinition/FieldDefinition 要求双语标签，支持说明、Options、Multiline 与自定义 Validate；API groups 元数据驱动基础设置自动追加标签，不维护业务前端映射。内置分组仍在 appearance.tsx 维护专用页面映射；不能覆盖既有分组/键或扩大 profile/权限/作用域。沿用共享单层 Tabs，不嵌套子标签；品牌保留三张卡片，主题复用 appearance.tsx 预览卡片、基础设置中不建重复外观入口。每次只展示当前任务，表单草稿和图片预览切换保留；只 PATCH 当前分组，不能连带保存其他标签。验证键盘切换、草稿保留、保存隔离、刷新主标签恢复、375px 无页面横溢和桌面常用操作可见。不要把 Tabs 做成长页锚点。
 
 当前页面分工见 [ADR-0014](../../../docs/adr/ADR-0014-separate-identities-management.md)：基础设置保留单层业务标签；SMTP/账号流程和测试合在独立邮件设置页，无子标签，测试收件人用弹窗；审计/投递在系统日志；模板独立页面按 ADR-0020 配置主题/受限正文，mail.template.* 注册但只允许专用 API 写入，验证变量/HTML/实际发送与恢复。系统更新是独立页面，默认编译开启，平台仅管理员，单机/桌面可读取内置日志；签名 OTA、渠道与 Docker 边界见 ADR-0018。授权卡片仍是默认关闭的可裁剪占位。全局设置变更需保持当前管理员入口，后台改名同步地址。
 

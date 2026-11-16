@@ -23,6 +23,18 @@ type Runner interface {
 	QueryRowContext(context.Context, string, ...any) *sql.Row
 }
 
+// Runner methods let callers pass the store to transactional batch helpers.
+// SQL adapters bind placeholders before invoking a runner, just as with DB/Tx.
+func (s *Store) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
+	return s.DB.ExecContext(ctx, query, args...)
+}
+func (s *Store) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
+	return s.DB.QueryContext(ctx, query, args...)
+}
+func (s *Store) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
+	return s.DB.QueryRowContext(ctx, query, args...)
+}
+
 func (s *Store) Bind(query string) string {
 	if s.Dialect != "postgres" {
 		return query

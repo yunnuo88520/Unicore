@@ -265,6 +265,9 @@ func (s *Service) List(ctx context.Context) (contracts.Settings, error) {
 		return contracts.Settings{}, err
 	}
 	result := contracts.Settings{Items: []contracts.SettingEntry{}}
+	if s.Profile == "web-platform" {
+		result.Groups = registeredGroups()
+	}
 	for _, d := range Definitions {
 		if !applies(d, s.Profile) {
 			continue
@@ -274,6 +277,7 @@ func (s *Service) List(ctx context.Context) (contracts.Settings, error) {
 		}
 		value := values[d.Key]
 		entry := contracts.SettingEntry{Key: d.Key, Value: value, ValueType: d.Type, Group: d.Group, Label: d.Label, Sensitive: d.Sensitive}
+		presentField(&entry)
 		if d.Sensitive {
 			configured := value != ""
 			entry.Configured = &configured

@@ -957,6 +957,24 @@ export const constraints = {
       },
       "configured": {
         "type": "boolean"
+      },
+      "label_en": {
+        "type": "string"
+      },
+      "description": {
+        "type": "string"
+      },
+      "description_en": {
+        "type": "string"
+      },
+      "multiline": {
+        "type": "boolean"
+      },
+      "options": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/SettingOption"
+        }
       }
     }
   },
@@ -971,6 +989,12 @@ export const constraints = {
         "type": "array",
         "items": {
           "$ref": "#/components/schemas/SettingEntry"
+        }
+      },
+      "groups": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/SettingGroup"
         }
       }
     }
@@ -9315,6 +9339,56 @@ export const constraints = {
       },
       "request_id": {
         "type": "string"
+      }
+    }
+  },
+  "SettingOption": {
+    "type": "object",
+    "required": [
+      "value",
+      "label",
+      "label_en"
+    ],
+    "properties": {
+      "value": {
+        "type": "string"
+      },
+      "label": {
+        "type": "string"
+      },
+      "label_en": {
+        "type": "string"
+      }
+    }
+  },
+  "SettingGroup": {
+    "type": "object",
+    "required": [
+      "id",
+      "label",
+      "label_en",
+      "description",
+      "description_en",
+      "order"
+    ],
+    "properties": {
+      "id": {
+        "type": "string"
+      },
+      "label": {
+        "type": "string"
+      },
+      "label_en": {
+        "type": "string"
+      },
+      "description": {
+        "type": "string"
+      },
+      "description_en": {
+        "type": "string"
+      },
+      "order": {
+        "type": "integer"
       }
     }
   }

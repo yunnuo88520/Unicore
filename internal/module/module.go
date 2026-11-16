@@ -11,6 +11,9 @@ import (
 	"sync"
 
 	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/notify"
+	"github.com/yunnuo/unicore/internal/notifycontent"
+	"github.com/yunnuo/unicore/internal/settings"
 )
 
 //go:embed manifest.json
@@ -83,10 +86,13 @@ type Module struct {
 	Description string
 	Icon        string
 	// Order sorts the module pages after the built-in defaults in shared navigation.
-	Order       int
-	Permissions []contracts.PermissionDefinition
-	Navigation  []contracts.NavigationPage
-	Executors   []Executor
+	Order              int
+	Permissions        []contracts.PermissionDefinition
+	Navigation         []contracts.NavigationPage
+	Executors          []Executor
+	Settings           []settings.GroupDefinition
+	NotificationTypes  []notify.Definition
+	NotificationEvents []notifycontent.Definition
 	// Migrations is the module.<slug> namespace that must exist in migrations/catalog.json.
 	Migrations string
 	// Edition names the manifest build feature; empty means always assembled.
@@ -120,8 +126,30 @@ func Register(items ...Module) {
 		if item.Title == "" {
 			item.Title = entry.Title
 		}
+		if item.Enabled {
+			if err := settings.Register(item.Settings...); err != nil {
+				panic(err)
+			}
+			for _, event := range item.NotificationEvents {
+				notifycontent.Register(event)
+			}
+		}
 		modules[item.Slug] = item
 	}
+}
+
+// NotificationTypes aggregates only compiled, enabled module contributions.
+// Each UI composition root registers these in its own delivery registry.
+func NotificationTypes() []notify.Definition {
+	mu.Lock()
+	defer mu.Unlock()
+	result := []notify.Definition{}
+	for _, item := range sorted() {
+		if item.Enabled {
+			result = append(result, item.NotificationTypes...)
+		}
+	}
+	return result
 }
 
 // All returns the registered modules sorted by slug for stable aggregation.

@@ -106,12 +106,12 @@ func runDesktop() (result error) {
 		if err := updateGuard(); err != nil {
 			return err
 		}
+		module.Register(notesmodule.Module)
 		store, service, err := local.Open(context.Background(), os.Getenv("APP_DATA_DIR"))
 		if err != nil {
 			return err
 		}
 		defer func() { result = errors.Join(result, store.Close()) }()
-		module.Register(notesmodule.Module)
 		directory, err := local.ResolveDir(os.Getenv("APP_DATA_DIR"))
 		if err != nil {
 			return err
@@ -142,6 +142,7 @@ func runDesktop() (result error) {
 	defer func() { cancelUpdates() }()
 	if err := wails.Run(&options.App{
 		OnStartup: func(ctx context.Context) {
+			bridge.SetInboxEventEmitter(func(event string) { wailsruntime.EventsEmit(ctx, event) })
 			bridge.SetFileSaver(func(name string, source io.Reader) error {
 				destination, err := wailsruntime.SaveFileDialog(ctx, wailsruntime.SaveDialogOptions{DefaultFilename: name, CanCreateDirectories: true})
 				if err != nil {

@@ -5,7 +5,9 @@
 
 ## 模块站内通知（登记式投递）
 
-功能模块向用户投递站内通知走 `internal/notify` 门面（ADR-0045）：装配期向 `notify.Registry` 登记类型（type + 中英文名称，未登记类型拒绝投递），业务事务内调用 `Notifier.Deliver(ctx, tx, recipients, type, sourceID, title, body, actions)`，提交成功后由门面便捷方法或调用方 `hub.PublishMany(recipients, inbox.new)` 通知客户端。非空 `source_id` 按（收件人、类型、来源）幂等更新且不重置已读；并发投递由 platform@2 的（收件人、类型、来源）部分唯一索引兜底，重复投递自动收敛为更新而非重复行。`actions` 是至多 4 个 `{id,label,href?}` 按钮（platform@1 基线 JSON 列），门面在投递前集中校验——id 1..64、label 1..32 字符，href 可选且仅允许站内路径或 http(s) URL（≤512 字符），违规整批拒绝（`notify.ErrInvalidActions`），不写入半批结果；href 为站内路径时铃铛面板点击路由跳转（下载/日志/审批入口）。无业务事务的便捷投递 `Notifier.NotifyUsers` 在单个事务内原子完成整批（sqlstore.WithinTx），提交成功后才广播 `inbox.new`。收件箱读取支持分页（`GET /api/v1/inbox` 的 `page`/`page_size`，响应含 `total/page/page_size`），铃铛面板按“加载更多”累积页，已读与刷新以失效重取为准。公告投递复用同一门面（type=announcement，受众与可见性仍按公告手册过滤）。本页的邮件与企业微信/Webhook 外部渠道独立于此。
+功能模块向用户投递站内通知走 `internal/notify` 门面（ADR-0045）：模块描述符用 `NotificationTypes` 贡献类型，Web / 桌面组合根自动向 `notify.Registry` 登记类型（type + 中英文名称，未登记类型拒绝投递），业务事务内调用 `Notifier.Deliver(ctx, tx, recipients, type, sourceID, title, body, actions)`，提交成功后由门面便捷方法或调用方 `hub.PublishMany(recipients, inbox.new)` 通知客户端。非空 `source_id` 按（收件人、类型、来源）幂等更新且不重置已读；并发投递由 platform@2 的（收件人、类型、来源）部分唯一索引兜底，重复投递自动收敛为更新而非重复行。`actions` 是至多 4 个 `{id,label,href?}` 按钮（platform@1 基线 JSON 列），门面在投递前集中校验——id 1..64、label 1..32 字符，href 可选且仅允许站内路径或 http(s) URL（≤512 字符），违规整批拒绝（`notify.ErrInvalidActions`），不写入半批结果；href 为站内路径时铃铛面板点击路由跳转（下载/日志/审批入口）。无业务事务的便捷投递 `Notifier.NotifyUsers` 在单个事务内原子完成整批（sqlstore.WithinTx），提交成功后才广播 `inbox.new`。收件箱读取支持分页（`GET /api/v1/inbox` 的 `page`/`page_size`，响应含 `total/page/page_size`），铃铛面板按“加载更多”累积页，已读与刷新以失效重取为准。公告投递复用同一门面（type=announcement，受众与可见性仍按公告手册过滤）。本页的邮件与企业微信/Webhook 外部渠道独立于此。
+
+桌面模块贡献通过 `BridgeDeps.Notify` 获得门面，Web 使用 `Config.Notify`；无业务事务时传完整 `*sqlstore.Store` 给 `NotifyLocal`（单机）或 `NotifyUsers`（平台），已有事务使用 `Deliver` 并在成功提交后广播。共享持久层为 `inboxsql`，平台包装层保留公告实时可见性校验；单机不读取公告。桌面通过窄能力 `Inbox/ReadInbox/ReadAllInbox` 与原生 `inbox.new` 事件接入同一收件箱 UI，不装配 HTTP 或平台身份。具体注册和四类代码示例见 [开发接入](../product/notifications.md)。
 
 ## 从配置到启用
 

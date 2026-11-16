@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/yunnuo/unicore/internal/adapter/storage/inboxsql"
 	"github.com/yunnuo/unicore/internal/audit"
 	"github.com/yunnuo/unicore/internal/branding"
 	"github.com/yunnuo/unicore/internal/contracts"
@@ -112,7 +113,7 @@ func webError(w http.ResponseWriter, err error) {
 		code = "DATABASE_NOT_EMPTY"
 	case errors.Is(err, install.ErrDatabase):
 		code = "DATABASE_UNAVAILABLE"
-	case errors.Is(err, install.ErrInput), errors.Is(err, platform.ErrInput), errors.Is(err, settings.ErrInvalid):
+	case errors.Is(err, install.ErrInput), errors.Is(err, platform.ErrInput), errors.Is(err, settings.ErrInvalid), errors.Is(err, inboxsql.ErrInvalid):
 		code = "INVALID_INPUT"
 	case errors.Is(err, platform.ErrCredentials):
 		code = "INVALID_CREDENTIALS"

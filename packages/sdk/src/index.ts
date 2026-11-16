@@ -2,7 +2,7 @@
  * Description: Shared UI client; pages know neither fetch nor Wails globals.
  */
 import {fileFingerprint,retryDelay} from './upload';
-import type { MultipartUploadInput, PersonalTokenInput, PersonalToken, PersonalTokenList, PersonalTokenCreated, AdminPersonalTokenInput, PersonalTokenRenewInput, ClientTokenPair, ClientTokenLogin, NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, ProfileInput, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, LogTailList, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, FileListResponse, FileEntryResponse, UploadPolicyResponse, MultipartUploadResponse, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, AdminPasswordResetInput, AdminPasswordReset, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, RoleSaveInput, MenuEntry, MenuList, MenuSaveInput, MenuRoleAssignmentInput, NavigationSection, NavigationNode, NavigationPage, NavigationRoleAssignment, Navigation, APIOperation, APIOperationList, Post, PostList, PostSaveInput, NoteCapabilities, FileCapabilities, DictionarySummary, DictionaryList, DictionaryItemEntry, DictionaryDetail, DictionaryCreateInput, DictionaryUpdateInput, DictionaryItemsInput, Department, DepartmentList, DepartmentSaveInput, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput, TaskList, TaskEntry, TaskUpdateInput, TaskTrigger, TaskCreateInput, TaskEditInput, TaskRunList, ActionResult, InboxList, FileUploadInput, FileUploadGrant, MonitorSnapshot, MonitorSnapshotResponse, MonitorEventList, MonitorEvent, MonitorEventListResponse, MonitorAlertRules, MonitorAlertRule, MonitorAlertRulesResponse, McpConfig, McpConfigPatch, McpLimits, McpTool, McpToolList, McpPolicy, McpPolicyPatch, McpCall, McpCallList, McpAccessInfo, McpOauthAuthorizeView, McpOauthConsentInput, McpOauthConsentResult, McpOauthGrantList, McpOauthClient, McpOauthClientList, McpOauthClientCreateInput, McpOauthClientCreated, McpOauthClientUpdateInput, McpOauthClientSecret, McpOauthAdminGrantList } from '@unicore/contracts';
+import type { InboxListResponse, MultipartUploadInput, PersonalTokenInput, PersonalToken, PersonalTokenList, PersonalTokenCreated, AdminPersonalTokenInput, PersonalTokenRenewInput, ClientTokenPair, ClientTokenLogin, NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, ProfileInput, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, LogTailList, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, FileListResponse, FileEntryResponse, UploadPolicyResponse, MultipartUploadResponse, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, AdminPasswordResetInput, AdminPasswordReset, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, RoleSaveInput, MenuEntry, MenuList, MenuSaveInput, MenuRoleAssignmentInput, NavigationSection, NavigationNode, NavigationPage, NavigationRoleAssignment, Navigation, APIOperation, APIOperationList, Post, PostList, PostSaveInput, NoteCapabilities, FileCapabilities, DictionarySummary, DictionaryList, DictionaryItemEntry, DictionaryDetail, DictionaryCreateInput, DictionaryUpdateInput, DictionaryItemsInput, Department, DepartmentList, DepartmentSaveInput, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput, TaskList, TaskEntry, TaskUpdateInput, TaskTrigger, TaskCreateInput, TaskEditInput, TaskRunList, ActionResult, InboxList, FileUploadInput, FileUploadGrant, MonitorSnapshot, MonitorSnapshotResponse, MonitorEventList, MonitorEvent, MonitorEventListResponse, MonitorAlertRules, MonitorAlertRule, MonitorAlertRulesResponse, McpConfig, McpConfigPatch, McpLimits, McpTool, McpToolList, McpPolicy, McpPolicyPatch, McpCall, McpCallList, McpAccessInfo, McpOauthAuthorizeView, McpOauthConsentInput, McpOauthConsentResult, McpOauthGrantList, McpOauthClient, McpOauthClientList, McpOauthClientCreateInput, McpOauthClientCreated, McpOauthClientUpdateInput, McpOauthClientSecret, McpOauthAdminGrantList } from '@unicore/contracts';
 import { operations, type OperationId, type OperationInputs, type OperationData } from '@unicore/contracts/operations';
 import { validate, type SchemaName } from '@unicore/contracts/validate';
 export { validate, constraints, type SchemaName } from '@unicore/contracts/validate';
@@ -28,7 +28,15 @@ export interface UpdateClient {
  apply(input:UpdateApplyInput):Promise<UpdateJob>;
 }
 
+export interface InboxClient {
+ inbox(page?:number,pageSize?:number):Promise<InboxList>;
+ readInbox(id:string):Promise<InboxList>;
+ readAllInbox():Promise<InboxList>;
+ subscribeEvents(listener:(type:string)=>void):()=>void;
+}
+
 export interface AppClient {
+ notifications?:InboxClient;
  updates?:UpdateClient;
   readonly transport: 'http' | 'wails';
   readonly sessionScope?: 'user' | 'administrator';
@@ -80,7 +88,7 @@ export interface StorageClient {
  cleanupStorage():Promise<{success:boolean}>;
 }
 
-export interface WebClient {
+export interface WebClient extends InboxClient {
  personalTokens(search?:string,page?:number):Promise<PersonalTokenList>;
  createPersonalToken(input:PersonalTokenInput):Promise<PersonalTokenCreated>;
  revokePersonalToken(id:string):Promise<ActionResult>;
@@ -296,6 +304,7 @@ const administratorOperations: Partial<Record<OperationId, OperationId>> = {
 };
 
 export class HttpTransport implements AppClient, WebClient, FileClient, StorageClient {
+ readonly notifications:InboxClient=this;
   readonly transport = 'http' as const;
  readonly updates:UpdateClient={overview:()=>this.call('updateOverview'),check:()=>this.call('checkUpdate',undefined,{headers:{'Content-Type':'application/json'},timeoutMs:20000}),apply:input=>this.call('applyUpdate',input)};
   readonly notes:NoteClient=this;
@@ -688,6 +697,9 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
 }
 
 export interface DesktopBridge {
+ Inbox?(page:number,size:number):Promise<InboxListResponse>;
+ ReadInbox?(id:string):Promise<InboxListResponse>;
+ ReadAllInbox?():Promise<InboxListResponse>;
  FileUploadPolicy?():Promise<UploadPolicyResponse>;
  ListFiles?(search:string,page:number):Promise<FileListResponse>;
  BeginFileUpload?(input:MultipartUploadInput):Promise<MultipartUploadResponse>;
@@ -714,6 +726,17 @@ export interface DesktopBridge {
 
 export class WailsTransport implements AppClient {
   readonly transport = 'wails' as const;
+ readonly notifications:InboxClient={
+  inbox:async(page=1,size=20)=>unwrap(await this.inboxBridge().Inbox!(page,size)),
+  readInbox:async id=>unwrap(await this.inboxBridge().ReadInbox!(id)),
+  readAllInbox:async()=>unwrap(await this.inboxBridge().ReadAllInbox!()),
+  subscribeEvents:listener=>this.subscribeInbox?.(listener)??(()=>{}),
+ };
+ private inboxBridge():DesktopBridge {
+  const bridge=this.bridge();
+  if(!bridge.Inbox||!bridge.ReadInbox||!bridge.ReadAllInbox)throw new AppError('NOT_AVAILABLE','此功能在当前运行形态不可用');
+  return bridge;
+ }
  readonly files:FileClient={
   uploadPolicy:async()=>unwrap(await this.fileBridge().FileUploadPolicy!()),
   uploadStatus:async id=>unwrap(await this.fileBridge().FileUploadStatus!(id)),
@@ -766,7 +789,7 @@ export class WailsTransport implements AppClient {
   async createNote(input:NoteInput) { const method=this.bridge().CreateNote;if(!method)throw new AppError('NOT_AVAILABLE','笔记存储未初始化');return unwrap(await method(input)); }
   async updateNote(id:string,input:NoteUpdate) {const method=this.bridge().UpdateNote;if(!method)throw new AppError('NOT_AVAILABLE','笔记存储未初始化');return unwrap(await method(id,input));}
   async deleteNote(id:string,version:number) {const method=this.bridge().DeleteNote;if(!method)throw new AppError('NOT_AVAILABLE','笔记存储未初始化');return unwrap(await method(id,{version}));}
-  constructor(private readonly bridge: () => DesktopBridge) {}
+  constructor(private readonly bridge: () => DesktopBridge, private readonly subscribeInbox?: (listener:(type:string)=>void)=>()=>void) {}
   async bootstrap() { return unwrap(await this.bridge().Bootstrap()); }
   async execute(input: ExecuteInput) { return unwrap(await this.bridge().Execute(input)); }
   async settings() { const method = this.bridge().Settings; if (!method) throw new AppError('NOT_AVAILABLE', '此版本不支持持久化设置'); return unwrap(await method()); }

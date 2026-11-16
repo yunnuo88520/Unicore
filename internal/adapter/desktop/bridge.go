@@ -9,9 +9,12 @@ import (
 	"io"
 
 	"github.com/yunnuo/unicore/internal/adapter/presenter"
+	"github.com/yunnuo/unicore/internal/adapter/storage/inboxsql"
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/module"
 	"github.com/yunnuo/unicore/internal/monitor"
+	"github.com/yunnuo/unicore/internal/notify"
 	"github.com/yunnuo/unicore/internal/runtime"
 	"github.com/yunnuo/unicore/internal/settings"
 	"github.com/yunnuo/unicore/internal/updateport"
@@ -28,23 +31,37 @@ type NotesAPI interface {
 }
 
 type Bridge struct {
-	updates  updateport.API
-	core     usecase.Executor
-	settings *settings.Service
-	files    *files.Service
-	saveFile func(string, io.Reader) error
-	notes    NotesAPI
-	monitor  *monitor.Service
+	// Notifications is the server-side module delivery surface, never an IPC send API.
+	Notifications *notify.Notifier
+	inbox         *inboxsql.Repository
+	inboxEvents   inboxPublisher
+	updates       updateport.API
+	core          usecase.Executor
+	settings      *settings.Service
+	files         *files.Service
+	saveFile      func(string, io.Reader) error
+	notes         NotesAPI
+	monitor       *monitor.Service
 }
 
 func New(core usecase.Executor) *Bridge { return &Bridge{core: core} }
 
 func NewLocal(core usecase.Executor, service *settings.Service, store *sqlstore.Store, fileServices ...*files.Service) *Bridge {
 	b := &Bridge{core: core, settings: service}
+	if store != nil {
+		b.inbox = &inboxsql.Repository{Store: store}
+		registry := notify.NewRegistry()
+		for _, definition := range append([]notify.Definition{{Type: "system", TitleZh: "系统", TitleEn: "System"}}, module.NotificationTypes()...) {
+			if err := registry.Register(definition); err != nil {
+				panic(err)
+			}
+		}
+		b.Notifications = &notify.Notifier{Registry: registry, Inbox: b.inbox, Hub: &b.inboxEvents}
+	}
 	if len(fileServices) > 0 {
 		b.files = fileServices[0]
 	}
-	applyBridgeContributions(b, BridgeDeps{Core: core, Settings: service, Store: store, Files: b.files})
+	applyBridgeContributions(b, BridgeDeps{Core: core, Settings: service, Store: store, Files: b.files, Notify: b.Notifications})
 	return b
 }
 

@@ -9,6 +9,7 @@ import type { DashboardWidgetRegistry } from './registry';
 import type { Theme } from '@unicore/theme';
 import { NotFoundPage } from './pages/not-found';
 import { ServerErrorPage } from './pages/error';
+import { NavigationProgressBar, PageLoader, navigationFinish, navigationStart } from './components/page-loader';
 
 export type PageProps = { page: Page; client: AppClient; metadata: Bootstrap; registry: DashboardWidgetRegistry; theme: Theme; setTheme: (theme: Theme) => void; refresh: () => void };
 export type PageComponent = (props: PageProps) => ReactNode;
@@ -47,17 +48,18 @@ export function useRouteSearch<T extends Record<string, string>>(): Partial<T> {
 }
 
 const lazyCache = new Map<() => Promise<{ default: PageComponent }>, React.ComponentType<PageProps>>();
+const moduleCache = new Map<() => Promise<{ default: PageComponent }>, { default: PageComponent }>();
 function pageComponent(loader: () => Promise<{ default: PageComponent }>): React.ComponentType<PageProps> {
   const cached = lazyCache.get(loader);
   if (cached) return cached;
-  const component = lazy(loader);
+  // The route loader below has usually already pulled the module in; the
+  // lazy wrapper then resolves without ever showing the Suspense fallback.
+  const component = lazy(() => Promise.resolve(moduleCache.get(loader) ?? loader()));
   lazyCache.set(loader, component);
   return component;
 }
 
-function PageFallback() {
-  return <div className="flex items-center justify-center py-16 text-sm text-muted" role="status">Loading…</div>;
-}
+
 
 /** Page render failures surface the standalone 500 status page instead of a broken route. */
 class PageErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
@@ -74,19 +76,31 @@ function frame(userLoader: () => Promise<{ default: PageComponent }>, adminEligi
     const administration = props.metadata.identity_realm === 'administrator';
     if (administration && adminEligible && administratorPage) return <PageErrorBoundary>{administratorPage(props)}</PageErrorBoundary>;
     const Component = pageComponent(userLoader);
-    return <Suspense fallback={<PageFallback />}><PageErrorBoundary><Component {...props} /></PageErrorBoundary></Suspense>;
+    return <Suspense fallback={<PageLoader />}><PageErrorBoundary><Component {...props} /></PageErrorBoundary></Suspense>;
   }
   return Frame;
 }
 
-export function createWorkspaceRouter(options: { history: () => RouterHistory; basepath?: string; shell: () => ReactNode }): RouterLike {
-  const rootRoute = createRootRoute({ component: options.shell, notFoundComponent: NotFoundPage });
+export function createWorkspaceRouter(options: { history: () => RouterHistory; basepath?: string; shell: () => ReactNode }) {
+  // The progress bar mounts at the router root so every entry and page —
+  // including the standalone auth routes — shares one navigation surface.
+  const rootRoute = createRootRoute({
+    notFoundComponent: NotFoundPage,
+    component: () => <><NavigationProgressBar />{options.shell()}</>,
+  });
   // Route helpers erase per-route generics; the tree is assembled dynamically so runtime wiring stays authoritative.
   function pageRoute(path: string, loader: () => Promise<{ default: PageComponent }>, routeOptions?: { adminEligible?: boolean; search?: Record<string, unknown> }): AnyRoute {
     return createRoute({
       getParentRoute: () => rootRoute,
       path,
       validateSearch: routeOptions?.search as never,
+      // The page module download IS part of navigation: running the import in
+      // the route loader keeps the router unresolved — and the navigation
+      // progress bar running — until the chunk arrives. While it is pending,
+      // the shared skeleton covers first entries and deep links instead of a
+      // blank shell between the boot placeholder and the page.
+      loader: async () => { moduleCache.set(loader, await loader()); },
+      pendingComponent: PageLoader,
       component: frame(loader, routeOptions?.adminEligible),
     }) as unknown as AnyRoute;
   }
@@ -102,10 +116,8 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
     pageRoute('/registration-success', () => import('./pages/auth').then(module => ({ default: module.LoginPage }))),
     pageRoute('/verify-email', () => import('./pages/auth').then(module => ({ default: module.VerifyEmailPage })), { search: { token: '' } }),
     pageRoute('/reset-password', () => import('./pages/auth').then(module => ({ default: module.ResetPasswordPage })), { search: { token: '' } }),
-    pageRoute('/notes', () => import('./modules/notes/notes').then(module => ({ default: module.NotesPage }))),
-    pageRoute('/account', () => import('./pages/account').then(module => ({ default: module.AccountPage })), { search: { oidc: '' } }),
-    pageRoute('/account-security', () => import('./pages/account').then(module => ({ default: module.AccountSecurityPage })), { search: { oidc: '' } }),
-    pageRoute('/account-sessions', () => import('./pages/account').then(module => ({ default: module.AccountSessionsPage }))),
+    ...(__FEATURE_NOTES__ ? [pageRoute('/notes', () => import('./modules/notes/notes').then(module => ({ default: module.NotesPage })))] : []),
+    pageRoute('/access-tokens', () => import('./pages/admin/access-tokens').then(module => ({ default: module.AdminAccessTokensPage })), { adminEligible: true }),
     pageRoute('/site', () => import('./pages/appearance').then(module => ({ default: module.AdminMailSettingsPage })), { adminEligible: true, search: { tab: '' } }),
     pageRoute('/account-policy', () => import('./pages/appearance').then(module => ({ default: module.AdminMailSettingsPage })), { adminEligible: true }),
     pageRoute('/mail', () => import('./pages/appearance').then(module => ({ default: module.AdminMailSettingsPage })), { adminEligible: true }),
@@ -128,14 +140,27 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
     pageRoute('/monitor-services', () => import('./pages/monitor').then(module => ({ default: module.AdminMonitorServicesPage })), { adminEligible: true }),
     pageRoute('/monitor-resources', () => import('./pages/monitor').then(module => ({ default: module.AdminMonitorResourcesPage })), { adminEligible: true }),
     pageRoute('/monitor-events', () => import('./pages/monitor').then(module => ({ default: module.AdminMonitorEventsPage })), { adminEligible: true }),
+    pageRoute('/ai-access', () => import('./pages/admin/ai/access').then(module => ({ default: module.AdminAiAccessPage })), { adminEligible: true }),
+    pageRoute('/ai-tools', () => import('./pages/admin/ai/tools').then(module => ({ default: module.AdminAiToolsPage })), { adminEligible: true }),
+    pageRoute('/ai-calls', () => import('./pages/admin/ai/calls').then(module => ({ default: module.AdminAiCallsPage })), { adminEligible: true }),
+    pageRoute('/ai-oauth', () => import('./pages/admin/ai/oauth').then(module => ({ default: module.AdminAiOauthPage })), { adminEligible: true }),
     pageRoute('/api-docs', () => import('./pages/api-docs').then(module => ({ default: module.ApiDocsPage }))),
+    pageRoute('/authorize', () => import('./pages/authorize').then(module => ({ default: module.AuthorizePage })), { search: { client_id: '', redirect_uri: '', scope: '', state: '', code_challenge: '', code_challenge_method: '', resource: '' } }),
+    ...(import.meta.env.DEV && !import.meta.env.VITEST ? [pageRoute('/ui-preview', () => import('./pages/ui-preview').then(module => ({ default: module.UiPreviewPage })))] : []),
     pageRoute('/edition', () => import('./pages/edition').then(module => ({ default: module.UserEditionPage })), { adminEligible: true }),
     createRoute({ getParentRoute: () => rootRoute, path: '/settings', beforeLoad: () => { throw redirect({ to: '/site', replace: true }); } }) as unknown as AnyRoute,
   ] as [AnyRoute, ...AnyRoute[]]);
-  return createRouter({ routeTree: tree, history: options.history(), basepath: options.basepath || '/', defaultPreload: false, defaultErrorComponent: ServerErrorPage });
+  const router = createRouter({ routeTree: tree, history: options.history(), basepath: options.basepath || '/', defaultPreload: false, defaultErrorComponent: ServerErrorPage, defaultPendingComponent: PageLoader });
+  // The navigation progress bar rides navigation only: the history
+  // subscription is the earliest signal (it covers the route resolution and
+  // the page module download inside the route loader), while background
+  // queries and monitoring polls never touch either surface. onResolved now
+  // fires only after the matched page module has settled — loaded or failed.
+  router.history.subscribe(() => navigationStart());
+  router.subscribe('onResolved', navigationFinish);
+  return router;
 }
 
-type RouterLike = ReturnType<typeof createRouter>;
 
 /** Map a router pathname back to the page key used by navigation and permission checks.
  *  location.pathname is already basepath-stripped by the router; do not strip a prefix again here

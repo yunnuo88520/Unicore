@@ -65,11 +65,11 @@ func exerciseNotificationEvents(t *testing.T, ctx context.Context, store *sqlsto
 		t.Fatal("status event not atomic", err)
 	}
 	now := int(time.Now().Unix())
-	job, err := members.ClaimMail(ctx, now)
+	claimed, err := members.ClaimMails(ctx, now, 4)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if job.ID != "" {
+	for _, job := range claimed {
 		if err = members.FinishMail(ctx, job, false, now); err != nil {
 			t.Fatal(err)
 		}

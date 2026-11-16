@@ -151,68 +151,114 @@ func (r *Repository) ConsumeAccountToken(ctx context.Context, hash, purpose, pas
 	return tx.Commit()
 }
 
-func (r *Repository) ClaimMail(ctx context.Context, now int) (mailer.Job, error) {
+// ClaimMails expires stale proofs, prunes terminal rows and claims up to limit
+// jobs under one lease transaction. Account mail (token_hash set) always
+// claims before event notifications so verification codes are never stuck
+// behind a backlog of slow channel deliveries.
+func (r *Repository) ClaimMails(ctx context.Context, now, limit int) ([]mailer.Job, error) {
 	tx, err := r.accountTransaction(ctx)
 	if err != nil {
-		return mailer.Job{}, err
+		return nil, err
 	}
 	defer tx.Rollback()
 	// Expire shared account proofs before claiming the mail queue.
 	if _, err = r.exec(ctx, tx, "UPDATE unicore_personal_accounts SET setup_secret='',setup_session='',setup_expires=0 WHERE setup_expires>0 AND setup_expires<=?", now); err != nil {
-		return mailer.Job{}, err
+		return nil, err
 	}
 	if _, err = r.exec(ctx, tx, "UPDATE unicore_email_changes SET code_digest='' WHERE expires_at<=?", now); err != nil {
-		return mailer.Job{}, err
+		return nil, err
 	}
 	if _, err = r.exec(ctx, tx, "DELETE FROM unicore_email_changes WHERE created_at<?", now-7*86400); err != nil {
-		return mailer.Job{}, err
+		return nil, err
 	}
 	if _, err = r.exec(ctx, tx, "UPDATE unicore_email_challenges SET code_digest='' WHERE expires_at<=?", now); err != nil {
-		return mailer.Job{}, err
+		return nil, err
 	}
 	if _, err = r.exec(ctx, tx, "DELETE FROM unicore_email_challenges WHERE created_at<?", now-7*86400); err != nil {
-		return mailer.Job{}, err
+		return nil, err
 	}
 	if _, err = r.exec(ctx, tx, "DELETE FROM unicore_account_tokens WHERE expires_at<=?", now); err != nil {
-		return mailer.Job{}, err
+		return nil, err
 	}
 	if _, err = r.exec(ctx, tx, "UPDATE unicore_mail_jobs SET state='dead',payload='',last_error='EXPIRED' WHERE state IN ('pending','sending') AND expires_at<=?", now); err != nil {
-		return mailer.Job{}, err
+		return nil, err
 	}
 	if _, err = r.exec(ctx, tx, "DELETE FROM unicore_mail_jobs WHERE created_at<? AND state IN ('sent','dead','cancelled')", now-7*86400); err != nil {
-		return mailer.Job{}, err
+		return nil, err
 	}
 	if _, err = r.exec(ctx, tx, "UPDATE unicore_mail_jobs SET state='dead',payload='',last_error='DELIVERY_FAILED' WHERE state='sending' AND lease_until<=? AND attempts>=5", now); err != nil {
-		return mailer.Job{}, err
+		return nil, err
 	}
-	var job mailer.Job
-	err = r.row(ctx, tx, "SELECT id,payload,attempts,expires_at FROM unicore_mail_jobs WHERE (state='pending' AND available_at<=?) OR (state='sending' AND lease_until<=? AND attempts<5) ORDER BY created_at,id LIMIT 1", now, now).Scan(&job.ID, &job.Payload, &job.Attempts, &job.Expires)
-	if errors.Is(err, sql.ErrNoRows) {
-		return job, tx.Commit()
-	}
+	rows, err := r.rows(ctx, tx, "SELECT id,payload,attempts,expires_at FROM unicore_mail_jobs WHERE (state='pending' AND available_at<=?) OR (state='sending' AND lease_until<=? AND attempts<5) ORDER BY (token_hash=''),created_at,id LIMIT ?", now, now, limit)
 	if err != nil {
-		return job, err
+		return nil, err
 	}
-	job.Lease = sqlstore.ID()
-	job.Attempts++
-	if _, err = r.exec(ctx, tx, "UPDATE unicore_mail_jobs SET state='sending',attempts=?,lease_id=?,lease_until=? WHERE id=?", job.Attempts, job.Lease, now+60, job.ID); err != nil {
-		return job, err
+	var jobs []mailer.Job
+	for rows.Next() {
+		var job mailer.Job
+		if err = rows.Scan(&job.ID, &job.Payload, &job.Attempts, &job.Expires); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		jobs = append(jobs, job)
 	}
-	return job, tx.Commit()
+	if err = rows.Err(); err != nil {
+		rows.Close()
+		return nil, err
+	}
+	rows.Close()
+	for i := range jobs {
+		jobs[i].Lease = sqlstore.ID()
+		jobs[i].Attempts++
+		if _, err = r.exec(ctx, tx, "UPDATE unicore_mail_jobs SET state='sending',attempts=?,lease_id=?,lease_until=? WHERE id=?", jobs[i].Attempts, jobs[i].Lease, now+60, jobs[i].ID); err != nil {
+			return nil, err
+		}
+	}
+	return jobs, tx.Commit()
 }
+
+// FinishMail records the per-row verdict. Cancellation always wins over the
+// delivered flag (suppressed jobs are marked delivered to release the lease).
+// Non-retryable failures go straight to dead instead of burning the remaining
+// attempts on a send that cannot succeed; cancellation reasons keep their
+// explicit codes.
 func (r *Repository) FinishMail(ctx context.Context, job mailer.Job, delivered bool, now int) error {
-	state, lastError, payload, next := "pending", "DELIVERY_FAILED", job.Payload, now+(1<<min(job.Attempts, 5))*5
-	if delivered {
+	state, lastError, payload, next := "pending", mailer.FailureDeliveryFailed, job.Payload, now+(1<<min(job.Attempts, 5))*5
+	switch {
+	case job.Cancelled:
+		reason := job.CancelReason
+		if reason == "" {
+			reason = "DISABLED"
+		}
+		state, lastError, payload = "cancelled", reason, ""
+	case delivered:
 		state, lastError, payload = "sent", "", ""
-	} else if job.Attempts >= 5 || next >= job.Expires {
-		state, payload = "dead", ""
-	}
-	if job.Cancelled {
-		state, lastError, payload = "cancelled", "DISABLED", ""
+	default:
+		if failure := job.Failure; failure != nil && failure.Code != "" {
+			lastError = failure.Code
+			if !failure.Retryable || job.Attempts >= 5 || next >= job.Expires {
+				state, payload = "dead", ""
+			}
+		} else if job.Attempts >= 5 || next >= job.Expires {
+			state, payload = "dead", ""
+		}
 	}
 	_, err := r.exec(ctx, r.Store.DB, "UPDATE unicore_mail_jobs SET state=?,last_error=?,payload=?,available_at=?,lease_id='',lease_until=0 WHERE id=? AND state='sending' AND lease_id=?", state, lastError, payload, next, job.ID, job.Lease)
 	return err
 }
+// MailQueueStats reports durable queue depth for the /metrics gauges.
+func (r *Repository) MailQueueStats(ctx context.Context) (pending, oldestPending, dead int, err error) {
+	now := time.Now().Unix()
+	if err = r.row(ctx, r.Store.DB, "SELECT COUNT(*) FROM unicore_mail_jobs WHERE state IN ('pending','sending')").Scan(&pending); err != nil {
+		return
+	}
+	if err = r.row(ctx, r.Store.DB, "SELECT COALESCE(?-MIN(created_at),0) FROM unicore_mail_jobs WHERE state='pending' AND available_at<=?", now, now).Scan(&oldestPending); err != nil {
+		return
+	}
+	err = r.row(ctx, r.Store.DB, "SELECT COUNT(*) FROM unicore_mail_jobs WHERE state='dead'").Scan(&dead)
+	return
+}
+
 func (r *Repository) MailJobs(ctx context.Context) (contracts.MailJobList, error) {
 	result := contracts.MailJobList{Items: []contracts.MailJob{}}
 	rows, err := r.rows(ctx, r.Store.DB, "SELECT id,state,attempts,created_at,available_at,last_error FROM unicore_mail_jobs ORDER BY created_at DESC,id DESC LIMIT 30")

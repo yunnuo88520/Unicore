@@ -3,7 +3,7 @@
 
 本文按“准备环境 → 启动程序 → 配置入口 → 首次安装 → 检查 → 日常维护”的顺序部署。选择 Docker 命令、Docker Compose、tar/systemd 中的一种即可；三种方式使用相同的安装向导。完整参数表见 [配置说明](configuration.md)，自行构建见 [构建指南](build.md)。
 
-网站文档随 main 更新；下载包内文档对应该包的版本。示例版本 `0.1.2` 仅用于说明命名，实际使用 [Releases](https://github.com/yunnuo88520/Unicore/releases) 中存在的版本。尚未发布的新功能需从对应提交构建，不会因同一个 VERSION 自动出现在旧下载包中。
+网站文档随 main 更新；下载包内文档对应该包的版本。示例版本 `0.1.4` 仅用于说明命名，实际使用 [Releases](https://github.com/yunnuo88520/Unicore/releases) 中存在的版本。尚未发布的新功能需从对应提交构建，不会因同一个 VERSION 自动出现在旧下载包中。
 
 ::: tip 最快路径（已决定用 tar + systemd 时）
 1. 从 [Releases](https://github.com/yunnuo88520/Unicore/releases) 下载与架构匹配的 `web-platform` 完整包和 `checksums.txt`，`sha256sum -c` 校验通过再继续。
@@ -191,7 +191,7 @@ umask 077
 创建 `.env`，镜像名与 3.1 构建结果一致，数据库口令换成自己的长随机值。此文件用于 Compose 变量替换，不是应用启动 YAML/JSON，也不会被应用自动读取。
 
 ```dotenv
-UNICORE_IMAGE=unicore:0.1.2
+UNICORE_IMAGE=unicore:0.1.4
 UNICORE_PORT=3000
 POSTGRES_PASSWORD=REPLACE_WITH_A_LONG_RANDOM_PASSWORD
 ```
@@ -298,7 +298,7 @@ docker compose down
 在自己的下载目录执行。`UNICORE_VERSION`、`UNICORE_ARCH` 和形态必须与实际 Release 资产一致：
 
 ```sh
-UNICORE_VERSION=0.1.2
+UNICORE_VERSION=0.1.4
 UNICORE_ARCH=amd64
 UNICORE_PROFILE=web-platform
 UNICORE_PACKAGE="unicore-${UNICORE_PROFILE}-linux-${UNICORE_ARCH}-v${UNICORE_VERSION}"
@@ -509,7 +509,7 @@ curl -fsS https://app.example.com/api/v1/health/live
 
 偏好 Caddy 时等价配置更短（自动 HTTPS，证书与续期内置）：
 
-```caddyfile
+```text
 app.example.com {
     reverse_proxy 127.0.0.1:3000
     request_body {
@@ -581,7 +581,7 @@ curl -fsS https://app.example.com/api/v1/health/ready
 
 ### 单实例边界
 
-当前产品按**单实例**设计与验收：一个应用进程连接一个数据库，水平扩容（多副本共享一库）不在已验证范围内，会话、限流与后台任务都以单进程为前提。需要更高容量时先垂直扩容或读写分离评估，不要自行多副本部署后默认其受支持；水平扩容属于未验证范围，见文档站"支持范围与已知限制"。
+目前支持**单实例部署**：一个应用进程连接一个数据库，会话、限流与后台任务按单进程运行。多副本共享一库的水平扩容尚不受支持。需要更高容量时，先评估应用进程与数据库的资源配置，见 [支持范围](https://unicore.ebox.vip/support)。
 
 ## 9. 更新、备份与回退
 

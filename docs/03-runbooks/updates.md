@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 系统更新与发行签名
 
-当前实现见 [ADR-0018](../adr/ADR-0018-signed-updates.md)。在线更新必须有发行者 Ed25519 签名；文件摘要、GitHub 构建来源证明与操作系统签名分别承担不同的校验。现有 v0.1.1 资产未包含签名更新清单，不能作为 OTA 安装目标；本次接入不覆盖历史 Release。
+当前实现见 [ADR-0018](../adr/ADR-0018-signed-updates.md)。在线更新必须有发行者 Ed25519 签名；文件摘要、GitHub 构建来源证明与操作系统签名分别承担不同的校验。早期 Release（如 v0.1.1）资产未包含签名更新清单，不能作为 OTA 安装目标；签名接入不覆盖历史 Release，某版本能否作为 OTA 安装目标以对应 Release 资产与验证结果为准。
 
 | 形态 | 查看、检查 | 安装方式 |
 | --- | --- | --- |
@@ -10,7 +10,7 @@
 | desktop | 原生桥接，共享更新页，无平台身份 | macOS app bundle / Windows exe / Linux 发行目录，helper 重启 |
 | cli | 不装配 | 人工替换发行包 |
 
-没有自动后台安装。打开页面先读取本机日志，不联系 GitHub；检查按钮才联网。CHANGELOG 数字版本生成 assets/updates/history.gen.json 并嵌入程序，远端成功记录缓存到私有数据目录 updates/catalog.json。断网、限流、签名不符均保留日志；在线日志只是文本，不能执行 HTML。FEATURE_UPDATER 默认为 true，FEATURE_LICENSE 默认为 false；关闭 updater 同时裁剪 Go 装配和前端功能，CLI 始终关闭。直接 go build 需要 -tags updater，建议使用 Make。
+没有自动后台安装。在线更新只由 `FEATURE_UPDATER` 编译期开关控制，不新增运行期启停设置；关闭后仅保留版本号，隐藏系统更新入口、日志页和全部检查/安装操作，也不装配检查调度。若单独开启 license，预留页显示为「应用授权」，不显示为「系统更新」。启用并配置渠道后，后台按进程生命周期运行，启动约 1 分钟后首次检查，再按 6 小时间隔检查；成功与失败的尝试时间均缓存，近期手动检查也延后下一次后台检查。未安装、未配置渠道或安装任务进行中不执行自动检查，退出取消在途请求。页面每分钟读取缓存（更新进行中每秒读取任务进度），不因读取而访问远端；手动检查不受 6 小时间隔限制。CHANGELOG 数字版本生成 assets/updates/history.gen.json 并嵌入程序，远端成功记录缓存到私有数据目录 updates/catalog.json。断网、限流、签名不符均保留日志；在线日志只是文本，不能执行 HTML。FEATURE_UPDATER 默认为 true，FEATURE_LICENSE 默认为 false；关闭 updater 同时裁剪 Go 装配和前端功能，CLI 始终关闭。直接 go build 需要 -tags updater，建议使用 Make。
 
 ## 配置更新渠道
 
@@ -81,7 +81,7 @@ gh secret set UNICORE_UPDATE_SIGNING_KEY --repo owner/repository < /secure/offli
 
 macOS 使用临时 keychain，codesign hardened runtime + timestamp，notarytool submit --wait，stapler staple/validate，Gatekeeper 与 app ID 复验，最后删除临时 keychain/证书。Windows 使用 SDK signtool SHA256/RFC3161 时间戳与 verify /pa，临时 PFX 完成后删除；HSM/云签名需替换此适配脚本。Linux 没有这两类平台签名，仍必须通过 OTA 发行签名。打包脚本独立检查实际系统签名后记录 platform_signature，运行时如包声明系统签名也再次校验；不把环境变量直接当成功证明。
 
-按当前提交、目标OS与部署方式分别记录检查结果；自动化与原生构建不替代完整更新和失败恢复。支持限制见 [支持范围](../support.md)。
+按当前提交、目标 OS 与部署方式分别记录检查结果；自动化与原生构建不替代完整更新和失败恢复。Windows/amd64 的隔离成功路径使用 [Windows 原生 OTA 验证](release.md#windows-原生-ota-验证) 夹具复现，支持限制见 [支持范围](../support.md)。
 
 ## 数据库兼容与正式版边界
 
@@ -89,4 +89,6 @@ macOS 使用临时 keychain，codesign hardened runtime + timestamp，notarytool
 
 自动安装仅接受相同世代和指纹。追加迁移、重写开发基线或增减模块均会拒绝自动安装，即使应用版本更高、签名有效。此时停服、完整备份，在隔离副本验证后人工更换 tar 或 Docker 镜像；新程序启动时由 runner 执行缺失尾部。失败使用升级前快照与匹配旧程序恢复，不能仅回退 binary。详见 [迁移规范](../02-standards/database-migrations.md)。
 
-当前开发基线已整合，旧开发库不原地转换；正式版后各 namespace 从现有基线追加 version=2、3，不再改写原 SQL。旧签名清单的两个整数迁移等级不被新验签格式接受；保留历史发行物，不重新签写旧 tag。
+当前 Catalog 为 core@1、platform@1、module.notes@1：platform 基线终态融合收件箱 actions、角色 version 与 MCP 治理/OAuth 存储（ADR-0042 整合），追加迁移不改写既有版本。三个 UI profile 均保留 platform 成员，因此 Standalone/desktop 同步迁移，但不装配身份治理；数据库隔离另行决策，见 [ADR-0046](../adr/ADR-0046-credential-delegation-role-concurrency.md)。只有匹配世代/checksum 和合法前缀的库可以追加缺失尾部；旧双身份或不匹配开发基线仍不原地转换。首个 stable 后只能追加下一版本。旧签名清单的两个整数迁移等级不被新验签格式接受；保留历史发行物，不重新签写旧 tag。
+
+追加迁移失败时不要将基线幂等误当 ADD COLUMN 可盲重试：MySQL DDL 可能提交而账本未登记，单列存在也不能证明迁移成功。停止实例，保留诊断；不补造/删改账本、checksum，不用旧 binary 打开新库。将升级前完整快照与匹配旧程序恢复到新目录/空专用库，再核验和处理。恢复工具本身不执行迁移，后续正常启动才向前执行；desktop 须先退出，使用完整原生包，不能用 HTTP 服务模拟。

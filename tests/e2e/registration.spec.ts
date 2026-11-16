@@ -1,6 +1,6 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Independent registration policy, restriction editing and actual login without SMTP.
-import {test,expect} from './fixtures';
+import {chooseOption,test,expect} from './fixtures';
 import {mkdir} from 'node:fs/promises';
 
 test('registration works without SMTP and exposes independent restrictions',async({page,instance},info)=>{
@@ -11,7 +11,7 @@ test('registration works without SMTP and exposes independent restrictions',asyn
  await page.getByLabel('开放注册',{exact:true}).check();await expect(page.getByLabel('注册邮箱验证',{exact:true})).not.toBeChecked();
  await page.getByLabel('注册绑定手机号',{exact:true}).check();
  await expect(page.getByLabel('注册频率窗口（分钟）',{exact:true})).toHaveValue('1');await expect(page.getByLabel('窗口内注册上限',{exact:true})).toHaveValue('5');
- await page.getByLabel('邮箱后缀限制模式',{exact:true}).selectOption('allowlist');await page.getByLabel('邮箱后缀列表',{exact:true}).fill('example.test');
+ await chooseOption(page,'邮箱后缀限制模式','白名单');await page.getByLabel('邮箱后缀列表',{exact:true}).fill('example.test');
  for(const [key,value] of [['昵称黑名单','official'],['用户名黑名单','root'],['密码黑名单','password-password'],['IP 黑名单','203.0.113.*']])await page.getByLabel(key,{exact:true}).fill(value);
  await page.getByRole('button',{name:'保存设置',exact:true}).click();await expect(page.getByRole('button',{name:'保存设置',exact:true})).toBeDisabled();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
@@ -22,7 +22,7 @@ test('registration works without SMTP and exposes independent restrictions',asyn
  // The save button disables while the PATCH is still in flight; wait for it to land
  // so the later logout cannot abort the security settings change.
  const __save=page.waitForResponse(r=>r.request().method()==='PATCH'&&r.url().includes('/settings'));await page.getByRole('button',{name:'保存设置',exact:true}).click();await __save;await expect(page.getByRole('button',{name:'保存设置',exact:true})).toBeDisabled();
- await page.getByRole('button',{name:'账号菜单',exact:true}).click();const __out=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().includes('/auth/logout'));const __item=page.getByRole('menuitem',{name:'退出登录',exact:true});await expect(__item).toBeVisible();await __item.click();await __out;await page.goto(instance.url);
+ await page.getByRole('button',{name:'账号菜单',exact:true}).click();const __out=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().includes('/auth/logout'));const __item=page.getByRole('menuitem',{name:'退出登录',exact:true});await expect(__item).toBeVisible();await __item.click();await __out;await page.goto(`${instance.url}/login`);
  const directory=`build/acceptance/auth-layout/${info.project.name}`;await mkdir(directory,{recursive:true});
  await expect(page.getByRole('heading',{name:'登录 Unicore',exact:true})).toBeVisible();await expect(page.locator('.flow-brand')).toBeVisible();
  await page.screenshot({path:`${directory}/login-zh-light.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);

@@ -135,6 +135,13 @@ func TestSiteConfigurationAndMaintenance(t *testing.T) {
 	ctx := context.Background()
 	store := &memoryStore{values: map[string]string{}}
 	service := &Service{Store: store, Profile: "web-platform"}
+	if enabled, err := service.Value(ctx, "site.home_enabled"); err != nil || enabled != "true" {
+		t.Fatalf("homepage should be enabled by default: %q %v", enabled, err)
+	}
+	store.values["site.home_enabled"] = "false"
+	if enabled, err := service.Value(ctx, "site.home_enabled"); err != nil || enabled != "false" {
+		t.Fatalf("explicit homepage choice was overwritten: %q %v", enabled, err)
+	}
 	for _, change := range []contracts.SettingChange{
 		{Key: "site.base_url", Value: "javascript:alert(1)"}, {Key: "site.base_url", Value: "https://user:password@example.test"},
 		{Key: "site.base_url", Value: "https://example.test/path"}, {Key: "site.base_url", Value: "https://:443"},

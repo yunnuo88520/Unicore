@@ -18,7 +18,7 @@ export function signUpdates(directory,{root=process.cwd(),privateKey=process.env
   const status=a.platform_signature??'unsigned';if(!['unsigned','developer-id-notarized','authenticode'].includes(status))throw Error('Invalid native signature claim');
   if(a.profile==='desktop'&&a.os!=='linux'&&!config.allow_unsigned_platform&&status==='unsigned')throw Error('Native signed artifacts required by trust policy');
   if (a.profile !== 'cli' && (!/^[a-z][a-z0-9-]{0,63}$/.test(a.schema_generation ?? '') || !/^[a-f0-9]{64}$/.test(a.schema_fingerprint ?? ''))) throw Error('Missing Catalog schema identity');
-  return {profile:a.profile,os:a.os,arch:a.arch,schema_generation:a.schema_generation,schema_fingerprint:a.schema_fingerprint,license:!!a.features.license,updater:!!a.features.updater,artifact:a.artifact,sha256,size:statSync(file).size,platform_signature:status};
+  return {profile:a.profile,os:a.os,arch:a.arch,schema_generation:a.schema_generation,schema_fingerprint:a.schema_fingerprint,license:!!a.features.license,updater:!!a.features.updater,...(a.features.notes === false && a.profile !== 'cli' ? {notes_disabled:true} : {}),artifact:a.artifact,sha256,size:statSync(file).size,platform_signature:status};
  });
  const manifest={schema:1,application_id:application,version:source.version,source_commit:source.source_commit,issued_at:now.toISOString(),expires_at:new Date(now.getTime()+365*86400*1000).toISOString(),artifacts};
  const bytes=Buffer.from(JSON.stringify(manifest,null,2)+'\n'),signature=sign(null,bytes,key);

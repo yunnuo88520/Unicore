@@ -17,10 +17,10 @@ metadata:
 
 ## 模块形态（标准）
 
-业务模块是 internal/modules 下的自包含 `<slug>` 目录树，模块内延续洋葱分层；注册后菜单、权限、迁移、任务执行器与前端路由自动聚合：
+业务模块是 internal/modules 下的自包含 `<slug>` 目录树，模块内延续洋葱分层；注册后菜单、权限、迁移、任务执行器、业务设置、通知类型/事件与前端路由自动聚合：
 
 ```
-  module.go        // Module 描述符：Slug/Title/Icon/Order/Permissions/Navigation/Executors/Migrations
+  module.go        // Module 描述符：Slug/Title/Icon/Order/Permissions/Navigation/Executors/Settings/NotificationTypes/NotificationEvents/Migrations
   assemble_on.go   // 仅 edition 模块需要：//go:build <tag>，Enabled: true
   assemble_off.go  // //go:build !<tag>，Enabled: false
   domain/          // 业务规则；只可依赖 internal/domain 与 contracts
@@ -36,9 +36,11 @@ HTTP handler 位于 internal/adapter/http 下的 <slug>.go（传输层集中，�
 1. 迁移：`migrations/modules 下的 <slug> 三方言目录（0001_*.sql）`，catalog.json 登记 `module.<slug>` 命名空间（depends_on: core）并加入目标 profile 的 namespaces；`pnpm generate:migrations`。已分发 SQL 冻结，遵守 db-migration skill。
 2. 契约：openapi.json 增 DTO/operation + x-unicore 权限策略；`pnpm generate`。权限点写入模块描述符的 Permissions（platform EnsurePermissions 自动同步并授予 super_admin），同步 docs/api/permissions.md。
 3. 模块树：domain/usecase/storage 按 onion 分层实现；可变聚合嵌 `coredomain.BaseEntity`。
-4. 描述符：module.go 填 Slug/Permissions/Navigation/Executors（可选任务执行器）；`internal/module/manifest.json` 登记 slug 与 edition；组合根（cmd/server、cmd/desktop）`module.Register(<slug>.Module)` 并 blank import 贡献子包；`web.go` 加 mount 行；SDK/前端按 add-api-operation、add-react-page 完成。
+4. 描述符：module.go 填 Slug/Permissions/Navigation/Executors（可选任务执行器）；`internal/module/manifest.json` 登记 slug 与 edition；组合根（cmd/server、cmd/desktop）在 install.Open/local.Open 前 `module.Register(<slug>.Module)` 并 blank import 贡献子包；`web.go` 加 mount 行；SDK/前端按 add-api-operation、add-react-page 完成。
+业务设置用 `Settings`（add-setting），站内类型用 `NotificationTypes`，外部事件用 `NotificationEvents`（notifycontent.Definition）；仅启用模块贡献，后台按双语元数据自动呈现。通知调用经 Web Config.Notify / 桌面 BridgeDeps.Notify 注入自己的 port，已有事务 Deliver、提交后广播；无事务才用 NotifyUsers/NotifyLocal，见 docs/product/notifications.md。
+
 5. 前端：packages/web-ui/src/modules 下的 <slug> 目录（index.ts 用 defineMessages 声明 routes 并 registerUiModule + 页面组件）；`src/modules/index.ts` import 一行；navigation 顺序/图标从模块贡献自动合并。
-6. 裁剪（可选）：模块配 assemble_on/off.go + manifest 里登记 edition；FEATURE_<TAG> 构建变量、features.json、Capabilities.features 自动生效，裁剪构建内模块零注册。
+6. 裁剪（可选）：现有基础功能不新增裁剪开关；Notes 样板使用 manifest edition=notes、default=true、disabled_tag=no_notes，描述符与 HTTP/桌面实现按 !no_notes/no_notes 分文件；FEATURE_NOTES=false 经统一构建脚本生成 no_notes。其他业务模块按需声明 edition。必须逐一接入前端常量/懒加载、API 与附件入口、权限/导航/执行器聚合和迁移计划，不能仅设置 Enabled 就声称完整裁剪。历史 Catalog/SQL/checksum 保留；验收参考 pnpm test:notes。
 
 ## output
 

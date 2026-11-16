@@ -7,7 +7,7 @@ import { SimpleSelect } from './select';
 it('renders the trigger with localized label and current selection', () => {
   render(<SimpleSelect label="存储类型" placeholder="请选择" value="local" onChange={() => {}} options={[{ value: 'local', label: '本地磁盘' }]} />);
   const trigger = screen.getByRole('combobox');
-  expect(trigger).toHaveAttribute('aria-label', '存储类型');
+  expect(trigger).toHaveAccessibleName('存储类型');
   expect(trigger).toHaveTextContent('本地磁盘');
 });
 

@@ -1,12 +1,14 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 通知与邮件：配置及开发接入
 
-仅 Web 平台提供邮件与外部通知能力。Web 单机、Desktop 和 CLI 不装配平台 SMTP、企业微信、Webhook 或账号通知服务。前端短暂的成功/错误提示使用共享 `useMessage`；平台公告使用公告管理和顶部铃铛；本页介绍业务邮件和外部渠道通知。
+仅 Web 平台提供邮件与外部通知能力。Web 单机、Desktop 和 CLI 不装配平台 SMTP、企业微信、Webhook 或账号通知服务。前端短暂的成功/错误提示使用共享 `useMessage`；站内通知通过顶部铃铛持久保存，Platform 和 Standalone 两载体均可使用；公告只在 Platform 用户端呈现。本页同时介绍业务站内通知、邮件和外部渠道通知。
 
 ## 选择能力
 
 | 需求 | 应使用的能力 | 成功结果表示什么 |
 | --- | --- | --- |
+| 任务完成后通知当前单机使用者 | `Notifier.NotifyLocal` | 本地收件箱已提交，Wails / SSE 刷新铃铛 |
+| 给平台指定账号发站内通知 | `Notifier.NotifyUsers` / 事务内 `Deliver` | 对应账号收件箱已提交，不代表外部渠道送达 |
 | 给指定邮箱或管理员邮箱发一封业务邮件 | 服务端 `mailer.Service.Notify` | 加密任务已持久入队，尚未保证送达 |
 | 根据管理员配置，把事件发给用户、管理员或通知渠道 | `platformsql.Repository.QueueNotificationEvent` + 业务事务 | 业务和通知任务一起提交，worker 后续投递 |
 | 验证 SMTP 配置 | 邮件设置的测试发送 / `Mail().Test` | SMTP 接受测试邮件，随后保存配置指纹 |
@@ -104,7 +106,7 @@ func QueueReportReady(ctx context.Context, service *mailer.Service, recipient, a
 
 ## 开发者：登记事件并复用策略
 
-在 **Platform 组合根启动阶段**调用一次 `notifycontent.Register`，集中登记事件键、中英文名称 / 说明、默认纯文本模板及专属变量。三个通知设置页从后端目录读取这些信息，新增事件自动出现，不需要修改前端事件数组。相同键重复登记、非法模板或超过 32 个事件会启动失败，避免带着错误定义运行。
+优先在模块描述符的 `NotificationEvents: []notifycontent.Definition{...}` 中登记，`module.Register` 会在安装默认值加载前统一注册。没有描述符时可在 **组合根启动阶段**调用一次 `notifycontent.Register`，集中登记事件键、中英文名称 / 说明、默认纯文本模板及专属变量。三个通知设置页从后端目录读取这些信息，新增事件自动出现，不需要修改前端事件数组。相同键重复登记、非法模板或超过 32 个事件会启动失败，避免带着错误定义运行。
 
 ```go
 // Author: yunnuo <ymz@ebox.vip>
@@ -147,6 +149,51 @@ helper 使用传入的 `*sql.Tx` 读取同一事务的设置快照、解密配�
 
 `mailer.Plan` 仍是无数据库 / 网络操作的纯函数，适合已有自定义 outbox 的 adapter：输入内部解密设置快照与事件，输出独立消息。不要在业务请求内直接调用发送器或 worker。
 
+## 开发者：任务完成后写入收件箱
+
+模块描述符登记站内通知类型，组合根自动加入 Web 和桌面各自的 `notify.Registry`；外部事件和站内类型分别登记，即使使用同名 ID 也不会互相发送。下面是描述符字段片段：
+
+```go
+// Author: yunnuo <ymz@ebox.vip>
+NotificationTypes: []notify.Definition{
+    {Type: "report_ready", TitleZh: "报表完成", TitleEn: "Report ready"},
+},
+```
+
+Web 业务 adapter 从 `httpadapter.Config.Notify` 注入门面，桌面模块贡献从 `desktop.BridgeDeps.Notify` 注入；Store 同样在适配器装配时注入，usecase 只依赖自己的通知 port。以下 helper 适用于没有持有业务事务的单机任务完成边界：
+
+```go
+// Author: yunnuo <ymz@ebox.vip>
+func ReportReady(ctx context.Context, notifier *notify.Notifier, store *sqlstore.Store, reportID string) error {
+    return notifier.NotifyLocal(ctx, store, "report_ready", reportID,
+        "报表已完成", "可以在报表列表查看结果。", nil)
+}
+```
+
+`NotifyLocal` 固定收件人为 `notify.LocalRecipient`（`local`），整批事务提交后才刷新；桌面为原生 Wails `inbox.new`，Web 单机为 SSE。消息、按钮与已读状态进入本地 SQLite，重启仍可查看。桌面不启动 HTTP 服务、不引入平台身份；两种单机载体均不呈现公告。平台任务使用 `NotifyUsers(ctx, store, recipients, ...)`，传入完整 `*sqlstore.Store` 以启用原子批次，收件人由服务端业务授权确定，不能使用 `local` 代替真实账号。
+
+类型必须登记且全局唯一；`system` 为内置类型，`announcement` 保留给平台公告。非空 `sourceID` 按收件人、类型和来源幂等更新，保留已读；空来源每次新增。可附加至多 4 个 `contracts.InboxAction`；按钮链接仍由目标资源接口鉴权。不要在按钮或正文中放凭据。通知正文属于业务内容，不随界面语言自动翻译。
+
+## 开发者：同一业务事务触发站内与站外通知
+
+平台业务需要两种通知时，在自己的 SQL adapter 内完成以下步骤。`tx` 是已经写入业务结果与审计的同一个 `*sql.Tx`，`recipients` 与 `member` 都由服务器确定：
+
+```go
+// Author: yunnuo <ymz@ebox.vip>
+if err := notifier.Deliver(ctx, tx, recipients, "report_ready", report.ID,
+    "报表已完成", "请打开报表列表查看结果。", nil); err != nil { return err }
+if err := notifications.QueueNotificationEvent(ctx, tx, mailer.Event{
+    Kind: "report_ready", Username: member.Username, Email: member.Email,
+    At: int(time.Now().Unix()), Vars: map[string]string{"report_id": report.ID},
+}); err != nil { return err }
+if err := tx.Commit(); err != nil { return err }
+notifier.Hub.PublishMany(recipients, realtime.Event{Name: "inbox.new"})
+```
+
+调用方持有 `defer tx.Rollback()`，任一步失败都回滚；只在成功提交后广播。提交后站内消息立即可查，站外消息由 worker 按管理员事件矩阵异步发送；矩阵关闭时仍可产生站内消息。已有事务必须用 `Deliver`，不要调用会自行开事务的 `NotifyLocal` / `NotifyUsers` / 邮件 `Notify` / `EnqueueEvent`。Standalone 只调用 `Deliver` 写 `[]string{notify.LocalRecipient}`，提交后经注入门面的 `Hub` 刷新，不装配站外事件队列服务。
+
+接入回归应覆盖：登记类型与外部事件目录、未授权收件人隔离、错误 actions 整批拒绝、业务失败不留消息/任务且不广播、重复来源保留已读、分页/全部已读、重启恢复。共享 UI 验证中英文与窄屏；原生桌面使用真实 Wails 桥接验证，不以 HTTP 服务代替。
+
 ## SDK 与测试边界
 
 已有管理员 `WebClient` 方法如下，调用时复用已认证的 `client.web`，不要在页面硬编码 API 地址：
@@ -165,7 +212,7 @@ helper 使用传入的 `*sql.Tx` 读取同一事务的设置快照、解密配�
 
 ## 投递、排错与恢复
 
-操作日志 → **通知投递** 展示最近 30 个任务和邮件 / 企业微信 / Webhook 渠道，不返回载荷、收件人或凭据。进程每秒认领一个任务；最大 5 次尝试，失败延迟 10/20/40/80 秒，租约 60 秒，事件任务有效期 24 小时；终态清除载荷，元信息最多保留 7 天。至少一次投递不等于严格一次。
+操作日志 → **通知投递** 展示最近 30 个任务和邮件 / 企业微信 / Webhook 渠道，不返回载荷、收件人或凭据。每次队列调度最多认领 8 个任务，并发上限为 4，同一渠道串行发送；账号验证邮件优先。最大 5 次尝试，失败延迟 10/20/40/80 秒，租约 60 秒，事件任务有效期 24 小时；终态清除载荷，元信息最多保留 7 天。至少一次投递不等于严格一次。
 
 | 状态 / 现象 | 排查方式 |
 | --- | --- |
@@ -178,6 +225,6 @@ helper 使用传入的 `*sql.Tx` 读取同一事务的设置快照、解密配�
 | `sent` | 远端已接受；邮件仍需检查退信和垃圾箱，企业微信需确认机器人所在群 |
 | `dead` / `DELIVERY_FAILED` | 检查 SMTP 参数、机器人 Key、Webhook 网络和响应；修复后用测试发送确认，再触发新的业务事件 |
 | `EXPIRED` | 超过任务有效期，不再投递 |
-| `cancelled` / `DISABLED` | 系统/渠道关闭或渠道类型切换，旧任务跳过且不会自动补发 |
+| `cancelled` / `MASTER_DISABLED` / `CHANNEL_DISABLED` / `PROVIDER_CHANGED` | 系统/渠道关闭或渠道类型切换，旧任务跳过且不会自动补发 |
 
-事件内的单独路由开关影响新建任务；已经入队的内容和收件人保持快照，凭据使用投递时的当前配置。系统/渠道总开关在投递时复核。数据库和实例密钥必须成套备份；详见 [备份指南](backup.md)。本功能复用既有设置/队列表，无需新增 schema 迁移。降级前关闭事件并排空渠道任务，旧程序不理解新版渠道载荷。
+事件内的单独路由开关影响新建任务；已经入队的内容和收件人保持快照，凭据使用投递时的当前配置。系统/渠道总开关在投递时复核。数据库和实例密钥必须成套备份；详见 [备份指南](backup.md)。通知队列和设置随数据库一并保存。降级前关闭事件并排空渠道任务，旧程序不理解新版渠道载荷。

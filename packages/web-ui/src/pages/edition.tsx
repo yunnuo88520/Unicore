@@ -44,7 +44,7 @@ function UpdatePanel({ client, metadata }: { client: AppClient; metadata: Bootst
   const query = useQuery({
     queryKey: ['system-updates'],
     queryFn: () => api.overview(),
-    refetchInterval: q => busy(q.state.data?.job.status) ? 1000 : false,
+    refetchInterval: q => busy(q.state.data?.job.status) ? 1000 : 60000,
     retry: 2,
   });
   const check = useMutation({
@@ -117,7 +117,7 @@ function UpdatePanel({ client, metadata }: { client: AppClient; metadata: Bootst
         </p>}
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
           <span className="text-xs text-ink">{data?.source ?? t('本机版本记录')}{data?.channel === 'preview' ? t(' · 开发预览渠道') : ''}</span>
-          <small className="text-2xs text-subtle">{data?.checked_at ? t('上次检查 {{v0}}', { v0: new Date(data.checked_at).toLocaleString(currentLocale()) }) : t('仅在点击检查时联网')}</small>
+          <small className="text-2xs text-subtle">{t('后台每 6 小时自动检查，也可手动检查')}{data?.checked_at && ` · ${t('上次检查 {{v0}}', { v0: new Date(data.checked_at).toLocaleString(currentLocale()) })}`}</small>
         </div>
       </CardContent>
     </Card>

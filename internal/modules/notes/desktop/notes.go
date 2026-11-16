@@ -1,3 +1,5 @@
+//go:build !no_notes
+
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Native notes capability for the desktop bridge: same use cases and DTOs without platform or HTTP dependencies.
 package desktop

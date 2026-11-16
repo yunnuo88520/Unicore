@@ -8,7 +8,7 @@ import { canAccess } from './routes';
 import { defaultNavigation, newNavigationNode } from './navigation';
 
 function authorized(): Bootstrap {
- return grantUI({profile:'web-platform',identity_realm:'user',capabilities:{database:true},current_user:{id:'actor',roles:['writer'],permissions:['notes:access','notes:create','notes:delete']}} as unknown as Bootstrap);
+ return grantUI({profile:'web-platform',identity_realm:'user',capabilities:{database:true,features:{notes:true}},current_user:{id:'actor',roles:['writer'],permissions:['notes:access','notes:create','notes:delete']}} as unknown as Bootstrap);
 }
 it('requires the point, action and operation independently for a button',()=>{
  const data=authorized();
@@ -21,14 +21,13 @@ it('requires the point, action and operation independently for a button',()=>{
  }
  expect(canAction({...data,current_user:{...user,operation_ids:['createNote']}},'deleteNote')).toBe(false);
 });
-it('denies direct page URLs without menu grants while preserving personal security access',()=>{
+it('denies direct page URLs without menu grants',()=>{
  const data=authorized();
  // menu_ids store unprefixed shared-tree node ids.
  expect(data.current_user!.menu_ids).toContain('notes');
  expect(canAccess('notes',data)).toBe(true);
  const denied={...data,current_user:{...data.current_user!,menu_ids:[]}};
  expect(canAccess('notes',denied)).toBe(false);
- expect(canAccess('account-security',denied)).toBe(true);
  // API/action grants and menu grants have independent meanings.
  expect(canAction(denied,'createNote')).toBe(true);
 });
@@ -54,7 +53,7 @@ it('keeps administrator-surface action nodes out of the user workspace',()=>{
  const adminOnlyAction: NavigationNode={...newNavigationNode('op:adminCreateNote','business','action',['administrator']),
   parent_id:'notes',permission:'notes:create',operation_ids:['adminCreateNote']};
  const nodes=[...config.nodes.filter(node=>node.id!=='op:adminCreateNote'),adminOnlyAction];
- const operator=grantUI({profile:'web-platform',identity_realm:'user',capabilities:{database:true},
+ const operator=grantUI({profile:'web-platform',identity_realm:'user',capabilities:{database:true,features:{notes:true}},
   navigation:{version:1,sections:config.sections,nodes},
   current_user:{id:'actor',roles:['ops'],permissions:['admin:access','notes:access','notes:create','notes:delete']}} as unknown as Bootstrap);
  // The action node only surfaces in the administrator workspace.
@@ -73,12 +72,12 @@ it('serves every workspace from one default tree with globally unique op:* actio
 });
 it('keeps mirrored admin-exclusive endpoints super-admin-only',()=>{
  const points=['storage:write'];
- const restricted=grantUI({profile:'web-platform',identity_realm:'administrator',capabilities:{database:true},
+ const restricted=grantUI({profile:'web-platform',identity_realm:'administrator',capabilities:{database:true,features:{notes:true}},
   current_user:{id:'ops',roles:['ops'],permissions:points}} as unknown as Bootstrap);
  // The permission-point gate passes, but the mirrored admin-exclusive
  // endpoint stays super-gated for restricted operators.
  expect(canAction(restricted,'adminDeleteFile')).toBe(false);
- const superUser=grantUI({profile:'web-platform',identity_realm:'administrator',capabilities:{database:true},
+ const superUser=grantUI({profile:'web-platform',identity_realm:'administrator',capabilities:{database:true,features:{notes:true}},
   current_user:{id:'root',roles:['super_admin'],permissions:points}} as unknown as Bootstrap);
  expect(canAction(superUser,'adminDeleteFile')).toBe(true);
 });

@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 前端基础封装与新增功能
 
-共享层按包拆分：组件原语 `@unicore/ui`（packages/ui）、表单层 `@unicore/form`（packages/form）、令牌与偏好 `@unicore/theme`（packages/theme），业务 Workspace 仍在 packages/web-ui，Web 用户/管理员和 Wails 只负责装配 transport、允许的页面与全局样式。新增业务先组合下面的公共入口，不复制布局、请求、主题、翻译或表单实现。工作区由顶栏显示当前页面名称并承载一级标题；正文直接呈现业务内容，不再重复品牌、页面大标题、说明与核心就绪状态横幅。
+共享层按包拆分：组件原语 `@unicore/ui`（packages/ui）、表单层 `@unicore/form`（packages/form）、令牌与偏好 `@unicore/theme`（packages/theme），业务 Workspace 仍在 packages/web-ui，Web 用户/管理员和 Wails 只负责装配 transport、允许的页面与全局样式。新增业务先组合下面的公共入口，不复制布局、请求、主题、翻译或表单实现。工作区顶栏仅显示导航面包屑与全局工具，不承载 h1。正文以唯一 PageHeader h1 开始，必要描述与页面主操作随标题呈现；正文不再重复品牌、页面标题或核心就绪状态横幅。页面已有 PageHeader 时由页面拥有，否则 Workspace 根据路由 label 提供共享标题，归属在 App.tsx 显式登记，不以 DOM 查询或滚动状态决定语义层级。
 
 | 职责 | 入口 | 新功能约定 |
 | --- | --- | --- |
@@ -12,7 +12,8 @@
 | 本地偏好 | `@unicore/theme/preferences` / ClientControls | 唯一设备状态入口；不得用业务设置 API 或独立 localStorage |
 | 主题与布局控件 | AppearanceDrawer / AppearanceControls | 选项来自 preferenceOptions，标签满足完整类型映射；控件固定 LTR，工作区统一 LTR |
 | 表单与校验 | `@unicore/form` / useAppForm、AppForm、AppField | 契约约束经 constraintsToZod 生成 Zod schema 驱动 RHF；label/hint 收已翻译 ReactNode；服务端 AppError.fields 用 applyServerError 合并（聚焦限本表单）、pending 防重；新实体用 Modal/ConfirmDialog |
-| 反馈与控件 | `@unicore/ui`（useMessage / Modal / Tabs / Switch / Tooltip / Table 等） | 使用统一消息、焦点/关闭和键盘行为，避免自写重复弹层；TanStack Table 渲染列表用 ui/table |
+| 反馈与控件 | `@unicore/ui`（useMessage / Modal / Tabs / Switch / Tooltip / Table 等） | 使用统一消息、焦点/关闭和键盘行为，避免自写重复弹层 |
+| 数据列表 | `packages/web-ui/src/components/data-table`（DataTable / DataTableToolbar / DataTablePagination / DataTableSortHeader / DataTableRowActions / DataTableEmpty） | 列表页统一使用共享数据表格套件呈现（工具栏、骨架加载、错误重试、空态、分页），禁止逐页手写 TanStack Table 装配循环；页面仍负责取数、权限与列定义 |
 | 富文本 | `@unicore/ui/editor` / RichTextEditor | Tiptap 受限标签、选择范围、变量插入、源码净化、纯文本粘贴；服务端再次校验，场景页复用组件 |
 | 图表与列设置 | widgets/activity.tsx / column-visibility.ts | Recharts 读取真实管理员统计；useColumnVisibility 按表 key 保存设备偏好，列隐藏不影响授权或导出 |
 | 视觉基础 | `@unicore/theme/styles.css` / tokens.json | Tailwind v4 经 `@theme inline` 映射生成令牌；颜色/尺度使用语义令牌类，不写页面专属主题常量 |
@@ -34,16 +35,18 @@ return <button aria-label={t('保存')}>{t('保存')}</button>;
 
 静态检查不能证明动态数据与任意新流程的全部状态。新增界面仍必须实际切换中英文，验证 loading/empty/error/success、表单错误、消息、弹窗与英文长标签；在 preferences.spec.ts 的英文巡检加入新的管理页/标签。布局改动运行 layout.spec.ts，覆盖 375/767/768/850/900/1280px、三种布局/侧栏、两种内容宽度，含旧 RTL 数据恢复 LTR，并断言正文未被导航覆盖，而非只检查 scrollWidth。桌面共享改动还需真实 Wails 窗口，不能用 HTTP 替代。
 
-基础组织参考 [New API 的布局组件](https://github.com/QuantumNous/new-api/tree/main/web/src/components/layout) 与 [语言资源同步](https://github.com/QuantumNous/new-api/blob/main/web/scripts/sync-i18n.mjs) 的职责分离与资源检查思路；这里沿用 Unicore 的 tokens、AppClient 和 profile 边界独立实现，不引入其业务组件或源码。
+列表页将 PageHeader（唯一 h1、必要描述、主操作）放在列表 Card 外，卡片内保留工具栏、表格与分页。独立业务分区使用 CardTitle 或 `PageHeader as="h2"`，不再重复页面标题；加载/空态/错误态不移除页面标题。边框与语义表面构成默认层次，不按页面硬编码颜色、主题或阴影。功能性加载、进度和展开动效沿用共享原语并尊重减少动态偏好；具体限制见 [UI 组件约定](../product/ui-conventions.md)。
 
 管理端操作日志与邮件模板复用这些入口，详见 [管理工具](admin-tools.md)。模板正文/主题属于业务内容，语言巡检仅排除输入及 `.rich-content`/`.tiptap` 排版层，不跳过整个页面。
 
-可配置公告与邮件正文不调用 t()；共用安全富内容展示 rich-content.tsx，编辑与服务端预览分离。用户公告与站内信通过全局顶部铃铛查看，仅平台用户身份启用；SSE 通知后重新查询服务端，管理页独立入口。见 [公告手册](announcements.md)。
+可配置公告与邮件正文不调用 t()；共用安全富内容展示 rich-content.tsx，编辑与服务端预览分离。顶部铃铛通过 SDK 的 `InboxClient` 读取收件箱；平台用户显示公告与通知，管理员仅通知，Standalone 两载体仅本地通知。Web 经 SSE、桌面经 Wails `inbox.new` 事件失效重取，管理页独立入口。 通知弹层只保留一层外框与阴影，分页/加载更多通过 NotificationCenter 的 footer 插槽呈现，列表区域独立滚动并受可用窗口高度约束。见 [公告手册](announcements.md)。
 
-已登记但身份无权访问的页面使用独立 ForbiddenPage（403），未知地址使用 NotFoundPage（404）；不要把无权访问静默重定向到另一个业务页面。Swagger API 参考页采用延迟加载，并遵循实例 API 文档开关；头像复用文件上传和本人 profile API。行为及扩展方式见 [UI 组件参考](../product/ui-components.md) 与 [个人中心](personal-center.md)。
+已登记但身份无权访问的页面使用独立 ForbiddenPage（403），未知地址使用 NotFoundPage（404）；不要把无权访问静默重定向到另一个业务页面。Swagger API 参考页采用延迟加载，并遵循实例 API 文档开关；头像复用文件上传和本人 profile API。行为及扩展方式见 [UI 组件参考](../product/ui-components.md) 与 [个人中心](personal-center.md)。 生成任何界面之前先读 [UI 组件约定](../product/ui-conventions.md)：场景对应组件、间距刻度、动效与文案规则是 review 硬性条件。
 
 移动端（375px）验收必须覆盖**带数据的状态**：所有宽表格（输入行、多列矩阵）必须收在 `overflow-x-auto` 容器内滚动，双列栅格窄屏需显式 `grid-cols-1` 约束轨道，防止 min-content 撑开文档；E2E 对整页断言无横向溢出时必须让页面处于含数据的真实状态，仅验空态视为未覆盖。侧栏默认区域、成员与顺序由代码显式定义（业务区固定序列，系统设置组仅放全局设置类页面），不存在字母序兜底；调整默认结构必须随实现显式变更，操作员经菜单管理编辑区域树并持久化（[ADR-0036](../adr/ADR-0036-navigation-regions-granular-authorization.md)）。
 
 持久分片上传统一使用 file-upload-dialog.tsx / AppClient.files.uploadFile；支持暂停/刷新续传、指纹核对和确认字节进度。平台专用安全投影 uploadPolicy，配置页不得向用户端暴露。详见 [存储手册](storage.md)。
 
 工作区页签使用共享 Tabs（受控 items API）或带同一默认样式的 TabsPrimitive；边框分段栏与强调色选中态统一，长标签在栏内单行滚动，不撑宽页面。className 只作用于容器，不复制到每个 Trigger。面板由调用方提供稳定 id、aria-labelledby，并保留 Radix 的方向键/Home/End 与焦点行为。Standalone 只渲染实际适用能力，不以“不适用”卡片或管理员权限说明暴露平台功能。
+
+表单实现按[表单交互规范](../product/form-interaction.md)：使用共享浮动标签与字段下方帮助，默认失焦校验；候选搜索使用浮层，不改变后续字段位置。新建页面前阅读该规范。

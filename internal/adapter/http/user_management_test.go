@@ -9,6 +9,7 @@ import (
 
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/install"
+	"github.com/yunnuo/unicore/internal/platform"
 )
 
 // TestUserFullFieldEditingAndNickname covers the extended editor: creation with
@@ -162,10 +163,10 @@ func TestMemberPasswordReset(t *testing.T) {
 	}
 
 	// The super administrator's own credential stays out of reach for
-	// restricted operators: a users:update holder without the super role may
-	// reset members but never a super administrator.
+	// restricted operators: a credential delegate without the super role may
+	// reset business members but never a management account.
 	realm := "administrator"
-	passwordRole, err := identity.Store.CreateRole(t.Context(), contracts.RoleSaveInput{Name: "密码员", Realm: &realm, Permissions: []string{"users:read", "users:update"}}, adminUser(t, manager).ID)
+	passwordRole, err := identity.Store.CreateRole(t.Context(), contracts.RoleSaveInput{Name: "密码员", Realm: &realm, Permissions: []string{"users:read", "users:credentials:write"}}, adminUser(t, manager).ID)
 	if err != nil {
 		t.Fatal("role create", err)
 	}
@@ -184,6 +185,70 @@ func TestMemberPasswordReset(t *testing.T) {
 	}
 	if !auditContains(t, manager, "users.password.reset", "sessions=revoked") {
 		t.Fatal("typed reset unaudited")
+	}
+}
+
+func TestManagementCredentialHTTPBoundary(t *testing.T) {
+	f := newTokenHTTP(t)
+	ctx := t.Context()
+	all := platform.ScopeAll
+	makeActor := func(name string, permissions ...string) (contracts.User, string, string) {
+		t.Helper()
+		role, err := f.identity.Store.CreateRole(ctx, contracts.RoleSaveInput{Name: name, Permissions: permissions, DataScope: &all}, f.admin.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		user, err := f.identity.Create(ctx, contracts.UserCreate{Username: name, Email: name + "@example.test", Password: "test-password-strong", RoleIds: &[]string{role.ID}}, f.admin.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, raw, err := f.identity.Issue(ctx, user, 24)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return user, raw, role.ID
+	}
+	_, legacy, _ := makeActor("legacy-credential-editor", "users:read", "users:update")
+	_, credentialOnly, _ := makeActor("credential-only-editor", "users:credentials:write")
+	operator, raw, roleID := makeActor("delegated-credential-editor", "users:read", "users:update", "users:credentials:write")
+	pat := tokenData[contracts.PersonalTokenCreated](t, f.request("POST", "/account/tokens", contracts.PersonalTokenInput{Name: "credential denial", RoleID: roleID, ExpiresInDays: 30}, "", raw, true), 200)
+	path := "/admin/users/" + f.user.ID
+	email := "replaced@example.test"
+	// Authentication, explicit delegation and browser CSRF remain required.
+	tokenData[any](t, f.request("POST", path+"/password", map[string]any{}, "", "", false), 401)
+	tokenData[any](t, f.request("POST", path+"/password", map[string]any{}, "", legacy, true), 403)
+	tokenData[any](t, f.request("PATCH", path, contracts.UserUpdate{Status: "active", Email: &email}, "", legacy, true), 403)
+	tokenData[any](t, f.request("POST", path+"/password", map[string]any{}, "", raw, false), 403)
+	// The PAT carries both grants and all scope, but cannot reset any password
+	// or actually replace a login email, including its own complete account.
+	for _, target := range []contracts.User{f.user, operator} {
+		p := "/admin/users/" + target.ID
+		tokenData[any](t, f.request("POST", p+"/password", map[string]any{}, pat.Token, "", false), 403)
+		tokenData[any](t, f.request("PATCH", p, contracts.UserUpdate{Status: "disabled", Email: &email}, pat.Token, "", false), 403)
+	}
+	// Denials neither revoke either browser/PAT nor alter the member credential.
+	tokenData[any](t, f.request("GET", "/auth/session", nil, "", f.userRaw, false), 200)
+	tokenData[any](t, f.request("GET", "/admin/users", nil, pat.Token, "", false), 200)
+	account, err := f.identity.Store.FindAccount(ctx, f.user.Username)
+	if err != nil || !platform.VerifyPassword(account.PasswordHash, "test-password-strong") || account.User.Email != f.user.Email || account.User.Status != "active" {
+		t.Fatal("denied request changed password", err)
+	}
+	// A separate identity-only edit, with no actual normalized email change,
+	// remains available to a PAT; do not revoke its own anchor in this test.
+	unchanged := "TOKENMEMBER@EXAMPLE.TEST"
+	tokenData[any](t, f.request("PATCH", path, contracts.UserUpdate{Status: "active", Email: &unchanged}, pat.Token, "", false), 200)
+	// Credentials-only delegation is sufficient for passwords, not email edits.
+	tokenData[any](t, f.request("PATCH", path, contracts.UserUpdate{Status: "active", Email: &email}, "", credentialOnly, true), 403)
+	tokenData[contracts.AdminPasswordReset](t, f.request("POST", path+"/password", map[string]any{"password": "delegated-password-strong"}, "", credentialOnly, true), 200)
+	tokenData[any](t, f.request("PATCH", path, contracts.UserUpdate{Status: "active", Email: &email}, "", raw, true), 200)
+	// Management targets are protected even for a delegate holding both grants.
+	for _, target := range []contracts.User{operator, f.admin} {
+		p := "/admin/users/" + target.ID
+		tokenData[any](t, f.request("POST", p+"/password", map[string]any{}, "", raw, true), 403)
+		tokenData[any](t, f.request("PATCH", p, contracts.UserUpdate{Status: "active", Email: &email}, "", raw, true), 403)
+	}
+	if !auditContains(t, f.manager, "users.password.reset", "sessions=revoked") || !auditContains(t, f.manager, "users.updated", "email=updated") {
+		t.Fatal("credential mutation audit missing")
 	}
 }
 

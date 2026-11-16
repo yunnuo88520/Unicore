@@ -4,13 +4,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowDown, ArrowUp, ChevronsDown, ChevronsUp, ChevronDown, ChevronRight, Copy, FolderTree, Link2, ListTree,
-  MoreHorizontal, MousePointerClick, Pencil, Plus, RotateCcw, Save, Search, SquarePen, Trash2, type LucideIcon,
+  MoreHorizontal, MousePointerClick, Pencil, Plus, RotateCcw, Save, SquarePen, Trash2, type LucideIcon,
 } from 'lucide-react';
-import {
-  Badge, Button, Card, CardContent, ConfirmDialog, DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuTrigger, Checkbox, Input, Modal, SimpleSelect, Switch,
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow, useMessage,
-} from '@unicore/ui';
+import { SearchField } from '@unicore/ui/controls';
+import { Alert, Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Modal, PageHeader, SimpleSelect, Switch, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, useMessage } from '@unicore/ui';
 import { AppError, type AppClient, type Bootstrap, type MenuList, type MenuSaveInput, type NavigationNode, type NavigationSection, type RoleList, type WebClient } from '@unicore/sdk';
 import {
   buildMenuTree, copyMenuNode, defaultNavigation, filterMenuTree, isRegisteredPage, menuNodeLabel, menuNodeTarget,
@@ -18,6 +15,7 @@ import {
 } from '../../navigation';
 import { NavigationIconPicker, resolveNavigationIcon } from '../../navigation-icons';
 import { routes } from '../../routes';
+import { roleDisplayLabel } from '../../role-display';
 import { invalidateAfter } from '../../queries';
 import { defineMessages, t, useLocale } from '../../i18n';
 import type { PageProps } from '../../router';
@@ -214,8 +212,12 @@ function loadDraft(data: MenuList, profile: Bootstrap['profile']): Draft {
 }
 
 export function AdminMenusPage({ client, metadata }: PageProps) {
+  useLocale();
   if (!client.web) return null;
-  return <MenuPanel web={client.web} metadata={metadata} />;
+  return <div className="flex min-w-0 flex-col gap-6">
+    <PageHeader title={t('菜单配置')} description={t('调整共享导航树的分组、顺序、名称、图标与可见性；页面所属工作空间由路由注册决定，可在菜单行分配角色，或在角色权限中细化按钮与 API。')} />
+    <MenuPanel web={client.web} metadata={metadata} />
+  </div>;
 }
 
 type NodeDialogState =
@@ -406,6 +408,8 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
   const handlers: RowHandlers = {
     draft,
     assignedRoles: roleList.data,
+    pages: config.data?.pages ?? [],
+    rolesState: roleList.isError ? 'error' : roleList.isPending ? 'loading' : 'success',
     onAssign: canAssign ? key => { if (dirty) { message.error(t('请先保存菜单配置再分配角色')); return; } const node = nodeIndex(draft!.nodes).get(key); if (node) setAssigning({ node, version: draft!.version }); } : undefined,
     onToggleCollapse: toggleCollapse,
     onPatchSection: patchSection,
@@ -420,17 +424,12 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
   };
 
   return <Card><CardContent className="flex min-w-0 flex-col gap-4">
-    <div>
-      <h2 className="text-md font-semibold text-ink">{t('菜单配置')}</h2>
-      <p className="mt-0.5 text-xs text-muted">{t('调整共享导航树的分组、顺序、名称、图标与可见性；页面所属工作空间由路由注册决定，可在菜单行分配角色，或在角色权限中细化按钮与 API。')}</p>
-    </div>
     {config.isFetching && <p role="status" className="text-2xs text-subtle">{t('正在刷新菜单配置…')}</p>}
+    <p className="text-xs text-muted">{t('显式分配角色不等于最终可访问；适用工作台由路由决定，区域或祖先菜单隐藏、禁用时仍不可见。超级管理员默认访问，但不绕过隐藏与禁用约束。')}</p>
+    {canAssign && roleList.isError && <LoadError error={roleList.error} onRetry={() => void roleList.refetch()} />}
+    {canAssign && roleList.isSuccess && !roleList.data.items.some(role => !role.builtin) && <p className="text-sm text-muted">{t('还没有自定义角色')}{' '}<a href="roles" className="underline" onClick={event => { if (dirty) { event.preventDefault(); message.error(t('请先保存菜单配置再前往角色管理')); } }}>{t('前往角色管理')}</a></p>}
     <div className="flex flex-wrap items-center gap-2">
-      <div className="relative min-w-52 flex-1 sm:max-w-80">
-        <Search size={14} aria-hidden="true" className="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-subtle" />
-        <Input className="ps-8" value={search} aria-label={t('搜索名称、路由或链接')} placeholder={t('搜索名称、路由或链接')} autoComplete="off"
-          onChange={event => setSearch(event.target.value)} />
-      </div>
+      <SearchField label={t('搜索名称、路由或链接')} value={search} onValueChange={setSearch} autoComplete="off" className="min-w-52 flex-1 sm:max-w-80" />
       <Button variant="secondary" size="sm" disabled={pending} onClick={expandAll}><ChevronsDown size={14} />{t('展开全部')}</Button>
       <Button variant="secondary" size="sm" disabled={pending} onClick={collapseAll}><ChevronsUp size={14} />{t('收起全部')}</Button>
       <Button variant="secondary" size="sm" disabled={pending} onClick={addSection}><Plus size={14} />{t('添加区域')}</Button>
@@ -445,8 +444,9 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
         <Button pending={save.isPending} disabled={pending} onClick={saveTree}><Save size={14} />{t('保存菜单配置')}</Button>
       </div>
     </div>
-    {assigning && config.data && roleList.data && <MenuRolesDialog web={web} node={assigning.node}
-      config={{ ...config.data, version: assigning.version }} roles={roleList.data} onClose={() => setAssigning(null)} onSaved={() => { message.success(t('角色已更新')); setAssigning(null); void invalidateAfter(cache, 'roles'); }} />}
+    {assigning && config.data && <MenuRolesDialog web={web} node={assigning.node}
+      config={{ ...config.data, version: assigning.version }} roles={roleList.data} loading={roleList.isPending} error={roleList.error}
+      onRetry={() => void roleList.refetch()} onClose={() => setAssigning(null)} onSaved={() => { message.success(t('角色已更新')); setAssigning(null); void invalidateAfter(cache, 'roles'); }} />}
     {nodeDialog && <NodeDialog state={nodeDialog} draft={draft} pages={config.data?.pages ?? []}
       onClose={() => setNodeDialog(null)} onSubmit={submitNode} />}
     {moveDialog && <MoveDialog draft={draft} node={nodeIndex(draft.nodes).get(moveDialog)!} onClose={() => setMoveDialog(null)} onConfirm={submitMove} />}
@@ -464,10 +464,7 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
 }
 
 function LoadError({ error, onRetry }: { error: { message: string }; onRetry: () => void }) {
-  return <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
-    <span>{t(error.message)}</span>
-    <Button variant="secondary" size="sm" onClick={onRetry}><RotateCcw size={13} />{t('重试')}</Button>
-  </div>;
+  return <Alert action={<Button variant="secondary" size="sm" onClick={onRetry}>{t('重试')}</Button>}>{t(error.message)}</Alert>;
 }
 
 // The shared Switch renders no accessible name of its own; wrap it in a label
@@ -488,6 +485,8 @@ type TreeRow =
 type RowHandlers = {
   draft: Draft;
   assignedRoles?: RoleList;
+  pages: MenuList['pages'];
+  rolesState: 'loading' | 'error' | 'success';
   onAssign?: (id: string) => void;
   onToggleCollapse: (id: string) => void;
   onPatchSection: (id: string, patch: Partial<NavigationSection>) => void;
@@ -548,7 +547,7 @@ function RegionRow({ row, handlers, drag }: { row: Extract<TreeRow, { kind: 'sec
     <TableCell>
       <div className="flex items-center gap-2">
         <button type="button" aria-expanded={open} aria-label={t('展开或收起 {{name}}', { name: sectionTitle(section) })}
-          onClick={() => handlers.onToggleCollapse(section.id)} className="rounded p-0.5 text-subtle hover:bg-surface-alt hover:text-ink">
+          onClick={() => handlers.onToggleCollapse(section.id)} className="rounded p-0.5 text-subtle hover:bg-surface-hover hover:text-ink">
           <ChevronRight size={15} className={open ? 'rotate-90' : ''} />
         </button>
         <FolderTree size={15} aria-hidden="true" className="shrink-0 text-muted" />
@@ -593,6 +592,12 @@ function NodeRow({ row, handlers, drag }: { row: Extract<TreeRow, { kind: 'node'
   const Icon = resolveNavigationIcon(node.icon);
   const TypeIcon = TYPE_ICONS[node.type];
   const target = menuNodeTarget(node);
+  const point = handlers.pages.find(page => page.id === node.route_id)?.permission;
+  const reserved = !!point && !!handlers.assignedRoles?.permissions.some(permission => permission.id === point && permission.super_admin);
+  const assigned = handlers.assignedRoles?.items.filter(role => role.id !== 'super_admin' && role.menu_ids.includes(node.id)).map(roleDisplayLabel).join(' · ');
+  const roleSummary = handlers.assignedRoles
+    ? reserved ? t('仅超级管理员') : assigned ? t('显式分配：{{roles}}', { roles: assigned }) : t('超级管理员默认访问；未分配其他角色')
+    : handlers.rolesState === 'error' ? t('角色加载失败') : t('正在加载角色…');
   const dropHint = drag.dragId && drag.dragId !== node.id && drag.dropHint?.id === node.id ? drag.dropHint.mode : null;
   return <TableRow data-node={node.id} data-node-type={node.type} data-section={node.section_id}
     draggable onDragStart={() => drag.onDragStart(node.id)} onDragOver={event => drag.onDragOver(event, { kind: 'node', id: node.id })}
@@ -609,7 +614,8 @@ function NodeRow({ row, handlers, drag }: { row: Extract<TreeRow, { kind: 'node'
         <Icon size={15} aria-hidden="true" className="shrink-0 text-muted" />
         <span className="min-w-0">
           <span className="break-all font-medium">{menuNodeLabel(node)}</span>
-          {handlers.onAssign && <span className="block text-2xs text-muted">{handlers.assignedRoles?.items.filter(role => role.id !== 'super_admin' && role.menu_ids.includes(node.id)).map(role => role.name).join(' · ') || t('未分配角色')}</span>}
+          <span className="block text-2xs text-muted">{t('适用工作台：{{surfaces}}', { surfaces: node.surfaces.map(surface => surface === 'user' ? t('用户工作台') : t('管理工作台')).join(' · ') })}</span>
+          {handlers.onAssign && <span className="block text-2xs text-muted">{roleSummary}</span>}
         </span>
         {node.badge_dot && <span className="size-2 rounded-full bg-accent" aria-label={t('圆点标记')} />}
         {!node.badge_dot && node.badge_text && <span className="rounded-full bg-surface-alt px-1.5 text-2xs text-muted">{node.badge_text}</span>}
@@ -758,17 +764,17 @@ function NodeDialog({ state, draft, pages, onClose, onSubmit }: {
           <SimpleSelect label={t('菜单类型')} value={type} onChange={value => { setType(value as NavigationNode['type']); setErrors({}); }}
             options={CREATABLE_TYPES.map(candidate => ({ value: candidate, label: t(TYPE_LABELS[candidate]) }))} />
         </label>}
-        <label className="flex flex-col gap-1 text-xs text-muted">{t('显示名称')}
-          <Input value={form.name} maxLength={64} autoComplete="off" aria-label={t('显示名称')} placeholder={type === 'page' ? t('留空使用页面默认名称') : t('请输入名称')}
+        <div className="flex flex-col gap-1 text-xs text-muted">
+          <Input label={t('显示名称')} value={form.name} maxLength={64} autoComplete="off" aria-label={t('显示名称')} placeholder={type === 'page' ? t('留空使用页面默认名称') : t('请输入名称')}
             aria-invalid={!!errors.name || undefined} onChange={event => patch({ name: event.target.value })} />
           {errors.name && <small role="alert" className="text-danger">{errors.name}</small>}
-        </label>
+        </div>
         <label className="flex flex-col gap-1 text-xs text-muted">{t('上级菜单')}
           <SimpleSelect label={t('上级菜单')} value={form.parentId} onChange={value => patch({ parentId: value })} options={parentOptions} />
         </label>
-        <label className="flex flex-col gap-1 text-xs text-muted">{t('排序')}
-          <Input type="number" aria-label={t('排序')} value={form.sort} onChange={event => patch({ sort: event.target.value })} />
-        </label>
+        <div className="flex flex-col gap-1 text-xs text-muted">
+          <Input label={t('排序')} type="number" aria-label={t('排序')} value={form.sort} onChange={event => patch({ sort: event.target.value })} />
+        </div>
         <label className="flex items-center gap-2 text-xs text-muted">{t('在导航中显示')}
           <Switch checked={form.visible} onChange={value => patch({ visible: value })} />
         </label>
@@ -785,18 +791,18 @@ function NodeDialog({ state, draft, pages, onClose, onSubmit }: {
             options={routeOptions.map(id => ({ value: id, label: t(routes[id].label) }))} />
           {errors.route && <small role="alert" className="text-danger">{errors.route}</small>}
         </label>}
-        {type === 'link' && <label className="flex flex-col gap-1 text-xs text-muted">{t('链接地址')}
-          <Input value={form.url} maxLength={2048} inputMode="url" aria-label={t('链接地址')} placeholder="https://example.com/help"
+        {type === 'link' && <div className="flex flex-col gap-1 text-xs text-muted">
+          <Input label={t('链接地址')} value={form.url} maxLength={2048} inputMode="url" aria-label={t('链接地址')} placeholder="https://example.com/help"
             aria-invalid={!!errors.url || undefined} onChange={event => patch({ url: event.target.value })} />
           {errors.url && <small role="alert" className="text-danger">{errors.url}</small>}
           <small>{t('站内地址需指向已注册页面，不能指向任意文件路径。')}</small>
-        </label>}
+        </div>}
       </div>
     </div>
     <div className="grid shrink-0 gap-x-6 gap-y-3 border-t border-line pt-3 md:grid-cols-2">
-      <label className="flex flex-col gap-1 text-xs text-muted">{t('角标文字')}
-        <Input value={form.badgeText} maxLength={12} aria-label={t('角标文字')} onChange={event => patch({ badgeText: event.target.value })} />
-      </label>
+      <div className="flex flex-col gap-1 text-xs text-muted">
+        <Input label={t('角标文字')} value={form.badgeText} maxLength={12} aria-label={t('角标文字')} onChange={event => patch({ badgeText: event.target.value })} />
+      </div>
       <label className="flex flex-col gap-1 text-xs text-muted">{t('角标样式')}
         <div className="flex items-center gap-2">
           <SimpleSelect label={t('角标样式')} value={form.badgeColor} onChange={value => patch({ badgeColor: value })}
@@ -852,25 +858,39 @@ function MoveDialog({ draft, node, onClose, onConfirm }: {
 
 // The server patches only this membership against the observed role IDs. Other
 // role grants/data scopes are read again inside the transaction and preserved.
-function MenuRolesDialog({ web, node, config, roles, onClose, onSaved }: {
+function MenuRolesDialog({ loading, error, onRetry, ...props }: {
+  web: WebClient; node: NavigationNode; config: MenuList; roles?: RoleList; loading: boolean; error: Error | null;
+  onRetry: () => void; onClose: () => void; onSaved: () => void;
+}) {
+  if (error || loading || !props.roles) return <Modal title={t('分配角色：{{name}}', { name: menuNodeLabel(props.node) })} onClose={props.onClose}>
+    {error ? <LoadError error={error} onRetry={onRetry} /> : <p role="status">{t('正在加载角色…')}</p>}
+  </Modal>;
+  return <LoadedMenuRolesDialog {...props} roles={props.roles} />;
+}
+
+function LoadedMenuRolesDialog({ web, node, config, roles, onClose, onSaved }: {
   web: WebClient; node: NavigationNode; config: MenuList; roles: RoleList; onClose: () => void; onSaved: () => void;
 }) {
   const [expected] = useState(() => roles.items.filter(role => role.id !== 'super_admin' && role.menu_ids.includes(node.id)).map(role => role.id));
   const [selected, setSelected] = useState(expected);
-  const point = config.pages.find(page => page.id === node.route_id)?.permission;
+  const point = config.pages.find(page => page.id === node.route_id)?.permission ?? (node.route_id && isRegisteredPage(node.route_id) ? (routes[node.route_id] as { permission?: string }).permission : undefined);
   const definition = roles.permissions.find(item => item.id === point);
   const reserved = !!definition?.super_admin;
   const cache = useQueryClient();
   const save = useMutation({ mutationFn: () => web.assignMenuRoles(node.id, { version: config.version, expected_role_ids: expected, role_ids: selected }), onSuccess: onSaved, onError: () => { void invalidateAfter(cache, 'roles'); } });
   return <Modal title={t('分配角色：{{name}}', { name: menuNodeLabel(node) })} onClose={onClose} pending={save.isPending}>
-    <p className="text-sm text-muted">{t('仅修改当前菜单的角色分配。新增页面包含祖先菜单和浏览接口；取消菜单保留独立按钮与 API 授权。超级管理员始终可见。')}</p>
+    <p className="text-sm text-muted">{t('仅修改当前菜单的角色分配。新增页面包含祖先菜单和浏览接口；取消菜单保留独立按钮与 API 授权。')}</p>
+    <p className="text-xs text-muted">{t('显式分配角色不等于最终可访问；适用工作台由路由决定，区域或祖先菜单隐藏、禁用时仍不可见。超级管理员默认访问，但不绕过隐藏与禁用约束。')}</p>
     {reserved && <p className="text-sm text-muted">{t('仅超级管理员')}</p>}
+    <p className="text-sm text-muted">{t('适用工作台：{{surfaces}}', { surfaces: node.surfaces.map(surface => surface === 'user' ? t('用户工作台') : t('管理工作台')).join(' · ') })}</p>
+    <label className="mt-4 flex items-center gap-2 text-sm"><Checkbox aria-label="super_admin" checked disabled onChange={() => {}} />super_admin<span className="text-xs text-muted">{t('默认访问，不可取消')}</span></label>
+    {!roles.items.some(role => !role.builtin) && <p className="text-sm text-muted">{t('还没有自定义角色')}{' '}<a href="roles" className="underline">{t('前往角色管理')}</a></p>}
     {save.error && <p role="alert" className="text-sm text-danger">{t(save.error.message)}</p>}
     <div className="my-4 flex max-h-80 flex-col gap-3 overflow-y-auto" role="group" aria-label={t('角色')}>
       {roles.items.filter(role => role.id !== 'super_admin').map(role => <label key={role.id} className="flex items-center gap-2 text-sm">
-        <Checkbox aria-label={role.name} disabled={save.isPending || (!selected.includes(role.id) && (reserved || (role.id === 'user' && !!definition && !definition.assignable)))}
+        <Checkbox aria-label={roleDisplayLabel(role)} disabled={save.isPending || (!selected.includes(role.id) && (reserved || (role.id === 'user' && !!definition && !definition.assignable)))}
           checked={selected.includes(role.id)} onChange={checked => setSelected(current => checked ? [...current, role.id] : current.filter(id => id !== role.id))} />
-        {role.name}
+        {roleDisplayLabel(role)}
       </label>)}
     </div>
     <div className="flex justify-end gap-2"><Button variant="secondary" disabled={save.isPending} onClick={onClose}>{t('取消')}</Button><Button pending={save.isPending} onClick={() => save.mutate()}>{t('保存')}</Button></div>

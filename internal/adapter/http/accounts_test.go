@@ -177,7 +177,7 @@ func TestMailAccountHTTP(t *testing.T) {
 	assertStatus(login, 200)
 	oldCookie := login.Result().Cookies()[0].Value
 	id, answer = challenge()
-	assertStatus(request("POST", "/auth/password/request", contracts.EmailRequest{Email: registration.Email, CaptchaID: id, CaptchaAnswer: answer}, "", "", ""), 200)
+	assertStatus(request("POST", "/auth/password/request", contracts.EmailRequest{Email: registration.Email, CaptchaID: &id, CaptchaAnswer: &answer}, "", "", ""), 200)
 	if err = manager.Mail().Tick(ctx, int(time.Now().Unix())); err != nil {
 		t.Fatal(err)
 	}
@@ -200,7 +200,7 @@ func TestMailAccountHTTP(t *testing.T) {
 	}
 	assertStatus(patch(contracts.SettingChange{Key: "account.email_login_enabled", Value: "true"}), 200)
 	id, answer = challenge()
-	codeRequest := request("POST", "/auth/email/login/request", contracts.EmailRequest{Email: registration.Email, CaptchaID: id, CaptchaAnswer: answer}, "", "", "")
+	codeRequest := request("POST", "/auth/email/login/request", contracts.EmailRequest{Email: registration.Email, CaptchaID: &id, CaptchaAnswer: &answer}, "", "", "")
 	assertStatus(codeRequest, 200)
 	var codeChallenge contracts.EmailChallengeResponse
 	if err = json.Unmarshal(codeRequest.Body.Bytes(), &codeChallenge); err != nil {

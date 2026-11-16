@@ -9,6 +9,7 @@ test('updates: standalone embedded history, offline check and responsive themes'
  await installStandalone(instance);await page.goto(instance.url+'/edition');
  await expect(page.getByRole('heading',{name:'在线更新',exact:true})).toBeVisible();
  await expect(page.getByRole('heading',{name:'更新日志',exact:true})).toBeVisible();
+ await expect(page.getByText('后台每 6 小时自动检查，也可手动检查',{exact:false})).toBeVisible();
  await expect(page.locator('.update-release').first()).toContainText('v'+version);
  const overview=(await(await page.request.get(instance.url+'/api/v1/updates')).json()).data;
  expect(overview.checked_at).toBe('');expect(overview.history.length).toBeGreaterThan(0);

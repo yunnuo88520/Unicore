@@ -1,7 +1,13 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 事件通知
 
-仅 `web-platform` 提供。管理员进入 **系统设置 → 通知渠道 / 通知模板 / 系统通知**。普通用户不能读取配置、测试发送或修改开关；单机、桌面、CLI 不装配这些接口。平台公告的顶部铃铛仍独立管理公告，不是渠道消息收件箱。
+仅 `web-platform` 提供。管理员进入 **系统设置 → 通知渠道 / 通知模板 / 系统通知**。普通用户不能读取配置、测试发送或修改开关；单机、桌面、CLI 不装配这些接口。顶部铃铛是通用站内通知收件箱（公告与模块通知共用，ADR-0045），平台版用户与管理员会话及单机本地界面均可使用；单机经本地收件人 `local` 与 coreAccess 读取，无公告与外部渠道。本页的邮件与企业微信/Webhook 渠道投递独立于站内信，二者不互相替代。
+
+## 模块站内通知（登记式投递）
+
+功能模块向用户投递站内通知走 `internal/notify` 门面（ADR-0045）：模块描述符用 `NotificationTypes` 贡献类型，Web / 桌面组合根自动向 `notify.Registry` 登记类型（type + 中英文名称，未登记类型拒绝投递），业务事务内调用 `Notifier.Deliver(ctx, tx, recipients, type, sourceID, title, body, actions)`，提交成功后由门面便捷方法或调用方 `hub.PublishMany(recipients, inbox.new)` 通知客户端。非空 `source_id` 按（收件人、类型、来源）幂等更新且不重置已读；并发投递由 platform@2 的（收件人、类型、来源）部分唯一索引兜底，重复投递自动收敛为更新而非重复行。`actions` 是至多 4 个 `{id,label,href?}` 按钮（platform@1 基线 JSON 列），门面在投递前集中校验——id 1..64、label 1..32 字符，href 可选且仅允许站内路径或 http(s) URL（≤512 字符），违规整批拒绝（`notify.ErrInvalidActions`），不写入半批结果；href 为站内路径时铃铛面板点击路由跳转（下载/日志/审批入口）。无业务事务的便捷投递 `Notifier.NotifyUsers` 在单个事务内原子完成整批（sqlstore.WithinTx），提交成功后才广播 `inbox.new`。收件箱读取支持分页（`GET /api/v1/inbox` 的 `page`/`page_size`，响应含 `total/page/page_size`），铃铛面板按“加载更多”累积页，已读与刷新以失效重取为准。公告投递复用同一门面（type=announcement，受众与可见性仍按公告手册过滤）。本页的邮件与企业微信/Webhook 外部渠道独立于此。
+
+桌面模块贡献通过 `BridgeDeps.Notify` 获得门面，Web 使用 `Config.Notify`；无业务事务时传完整 `*sqlstore.Store` 给 `NotifyLocal`（单机）或 `NotifyUsers`（平台），已有事务使用 `Deliver` 并在成功提交后广播。共享持久层为 `inboxsql`，平台包装层保留公告实时可见性校验；单机不读取公告。桌面通过窄能力 `Inbox/ReadInbox/ReadAllInbox` 与原生 `inbox.new` 事件接入同一收件箱 UI，不装配 HTTP 或平台身份。具体注册和四类代码示例见 [开发接入](../product/notifications.md)。
 
 ## 从配置到启用
 
@@ -14,14 +20,14 @@
 
 邮件事件把通知标题/正文填入已有邮件模板的“系统通知”外壳，保留品牌页眉、页脚与 HTML 转义；通知渠道始终使用纯文本。事件邮件不在数据库事务中读取品牌图片文件。
 
-缺少已测试 SMTP 或有效收件邮箱时跳过相应邮件；不会阻塞已配置的管理员渠道。IP 封禁无法可靠确定账户归属，只通知管理员。此事件的失败计数仍按进程和身份域隔离，重启清空。
+缺少已测试 SMTP 或有效收件邮箱时跳过相应邮件；不会阻塞已配置的管理员渠道。IP 封禁无法可靠确定账户归属，只通知管理员。临时 IP 封禁计数由统一登录服务按进程保存，重启清空。
 
 ## 渠道参数
 
 | 参数 | 适用渠道 | 说明 |
 | --- | --- | --- |
 | 通知渠道总开关 | 全部 | 关闭后停止自动和测试渠道发送；邮件独立控制 |
-| 机器人 Key | 企业微信 | 群机器人 Webhook URL 中的 `key` 参数 |
+| 机器人 Key | 企业微信 | 群机器人 Webhook URL 中的 `key` 参数。当前实现是**群机器人通知**：不是企业微信应用消息，也不向指定用户私聊，收件对象是机器人所在的群 |
 | 回调地址 | Webhook | 公网 HTTPS，允许带查询参数；禁止凭据、片段、私网、回环、链路本地地址与重定向 |
 | 签名密钥 | Webhook | 可选，HMAC-SHA256 签名原始 UTF-8 JSON 请求体 |
 
@@ -33,7 +39,7 @@ Webhook 使用 POST、`Content-Type: application/json`，字段如下：
 {"title":"Unicore · 账号登录通知","content":"账户：example_user\n…","event":"login"}
 ```
 
-配置签名时，请求头 `X-Unicore-Signature` 是 `hex(HMAC-SHA256(secret, raw_request_body))`，不带前缀。接收方应在解析 JSON 前使用原始字节验证，并以恒定时间比较摘要。收到 HTTP 2xx 即视为成功；重试可能重复，接收方应按自己的业务规则去重。与 agu-auth 的 `X-Agu001-Signature` 采用相同签名算法，头名称按框架命名，不宣称协议字节级兼容。
+配置签名时，请求头 `X-Unicore-Signature` 是 `hex(HMAC-SHA256(secret, raw_request_body))`，不带前缀。接收方应在解析 JSON 前使用原始字节验证，并以恒定时间比较摘要。收到 HTTP 2xx 即视为成功；重试可能重复，接收方应按自己的业务规则去重。
 
 企业微信发送 `msgtype=text`，`text.content` 为标题、空行、正文。既检查 HTTP 状态，也检查返回 JSON 的 `errcode=0`；响应体最多 64 KiB。请求超时 10 秒，不信任代理环境变量，不跟随重定向。DNS 解析结果须全部为公网地址，拨号使用已验证地址而 TLS 仍验证原域名，防止重绑定访问内网。
 
@@ -50,7 +56,7 @@ Webhook 使用 POST、`Content-Type: application/json`，字段如下：
 | user_created / admin_created | 后台创建对应身份，不包含安装引导账号 |
 | sessions_revoked | 本人撤销设备会话 |
 | email_changed | 完成换绑邮箱验证并更新邮箱 |
-| alert_triggered / alert_recovered | 运行告警触发 / 真实恢复（语义详见《运行监控中心》设计文档 §8）；默认仅管理员邮件，与其他事件一致受系统通知总开关统一控制；渠道投递仍需开启通知渠道并单独选择加入；通知设置页的用户对象不呈现这两个事件 |
+| alert_triggered / alert_recovered | 运行告警触发 / 真实恢复；默认仅管理员邮件，与其他事件一致受系统通知总开关统一控制；渠道投递仍需开启通知渠道并单独选择加入；通知设置页的用户对象不呈现这两个事件 |
 
 账号停用对应框架已有 `disabled` 状态；不提供没有业务模型的“账号封禁/解封”、余额、订单和授权事件空开关。
 
@@ -88,8 +94,28 @@ Webhook 使用 POST、`Content-Type: application/json`，字段如下：
 
 ## 运行、恢复和兼容
 
-复用 `system_settings` 与 `mail_jobs`，无新表、无 schema 版本变更。`notifications.config` 登记为托管 SettingDefinition，保存事件规则和模板；三个 `notifications.*` 凭据登记为敏感项。普通 settings PATCH 禁止写这些键，专用接口原子校验保存并复核管理员身份。页面分别传入 channels / templates / system 写入范围，仅合并所属部分；不传范围的旧客户端保留整份替换语义。服务端事件目录不写入持久配置。
+通知配置保存在 `system_settings`，投递任务保存在 `mail_jobs`，站内信的结构与索引版本以迁移 Catalog 为准。`notifications.config` 登记为托管 SettingDefinition，保存事件规则和模板；三个 `notifications.*` 凭据登记为敏感项。普通 settings PATCH 禁止写这些键，专用接口原子校验保存并复核管理员身份。页面分别传入 channels / templates / system 写入范围，仅合并所属部分；不传范围的旧客户端保留整份替换语义。服务端事件目录不写入持久配置。
 
-进程每秒认领一个任务，60 秒租约，失败按 10/20/40/80 秒延迟，最多尝试 5 次；24 小时过期。关闭进程保留未完成租约，重启恢复，投递保证为至少一次。成功或终态清除载荷，终态元信息保留最多 7 天。发送使用入队时的内容和收件人快照，凭据在发送时读取当前设置。关闭系统 / 渠道总开关或切换渠道类型后，旧的相应任务被标记为 cancelled 并跳过，不继续发送；重新开启不会补发已跳过事件。事件内单独开关影响新任务，已入队内容不会被未保存草稿或后续模板修改替换。
+进程每秒认领最多 8 个任务（账号验证码/验证邮件始终先于事件通知被认领），并发投递上限 4，同一渠道同时只发一个请求，慢渠道不会占满全部 worker 或阻塞验证码邮件；60 秒租约，失败按 10/20/40/80 秒延迟，最多尝试 5 次；24 小时过期。队列深度由 `unicore_mail_queue_pending`、`unicore_mail_queue_oldest_pending_seconds` 与 `unicore_mail_queue_dead` 指标暴露（可选回环 `/metrics`）。关闭进程保留未完成租约，重启恢复，投递保证为至少一次。成功或终态清除载荷，终态元信息保留最多 7 天。发送使用入队时的内容和收件人快照，凭据在发送时读取当前设置。关闭系统 / 渠道总开关或切换渠道类型后，旧的相应任务被标记为 cancelled 并跳过，不继续发送；取消原因以稳定码记录（`MASTER_DISABLED` / `CHANNEL_DISABLED` / `PROVIDER_CHANGED`），不会写成"发送失败"；重新开启不会补发已跳过事件。事件内单独开关影响新任务，已入队内容不会被未保存草稿或后续模板修改替换。
 
-备份需同时保留数据库及实例外置加密密钥，参考备份恢复手册（backup.md）。密钥丢失时不能解密凭据或未完成任务，应恢复完整备份，不要修改旧迁移 checksum 或把密文当明文导入。降级前关闭事件通知并排空队列；旧版本不理解渠道消息字段，不应直接处理新版未完成渠道任务。
+投递失败在 `last_error` 记录稳定脱敏错误码；不可重试的错误直接进入 dead，不再机械重试。下表列出失败原因、是否重试及对应处理办法。
+
+| 错误码 | 含义 | 是否重试 |
+| --- | --- | --- |
+| `TIMEOUT` | 外部请求超时（SMTP / 渠道共享） | 是 |
+| `SMTP_AUTH_FAILED` | SMTP 认证被拒（530/534/535/538） | 否，检查 SMTP 用户名/授权码 |
+| `SMTP_REJECTED` | SMTP 服务端永久拒绝（5xx，如收件地址不存在） | 否，检查收件邮箱 |
+| `SMTP_UNAVAILABLE` | 连接失败、临时 4xx 等可重试 SMTP 错误 | 是 |
+| `SMTP_CONFIG_INVALID` | 信封/TLS 模式/明文回环限制等配置问题 | 否，修正邮件设置 |
+| `CHANNEL_RATE_LIMITED` | 企业微信 `errcode=45009` 或 HTTP 429 | 是 |
+| `CHANNEL_REJECTED` | 渠道业务失败（非 0 errcode、非 2xx、响应不可解析、重定向被拒） | 否，检查机器人 Key / 接收端 |
+| `CHANNEL_UNAVAILABLE` | 连接失败、5xx、DNS 暂不可解析 | 是 |
+| `CHANNEL_INVALID` | 凭据缺失、目标 URL 不合法或指向非公网地址 | 否，修正渠道配置 |
+| `CONFIG_NOT_READY` | 设置不可读或邮件未就绪 | 是（配置修复后自动恢复） |
+| `PAYLOAD_INVALID` | 队列载荷无法解密或解析 | 否，任务终止 |
+| `EXPIRED` | 任务超过 24 小时未完成 | 终态 |
+| `MASTER_DISABLED` / `CHANNEL_DISABLED` / `PROVIDER_CHANGED` | 主动取消原因，非失败 | 终态 |
+
+第三方投递成功边界：邮件为"SMTP 服务已接受"，企业微信为"接口返回成功"，Webhook 为"接收端返回约定的成功状态（HTTP 2xx）"；均不等于用户已读，页面可表述为"发送成功"，详情按本表说明成功边界。
+
+备份需同时保留数据库及实例外置加密密钥，参考 [备份恢复](../product/backup.md)。密钥丢失时不能解密凭据或未完成任务，应恢复完整备份，不要修改旧迁移 checksum 或把密文当明文导入。降级前关闭事件通知并排空队列；旧版本不理解渠道消息字段，不应直接处理新版未完成渠道任务。

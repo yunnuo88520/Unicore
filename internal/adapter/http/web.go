@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/yunnuo/unicore/internal/adapter/storage/inboxsql"
 	"github.com/yunnuo/unicore/internal/audit"
 	"github.com/yunnuo/unicore/internal/branding"
 	"github.com/yunnuo/unicore/internal/contracts"
@@ -25,8 +26,6 @@ import (
 	"github.com/yunnuo/unicore/internal/files"
 	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/mailer"
-	notesdomain "github.com/yunnuo/unicore/internal/modules/notes/domain"
-	notesusecase "github.com/yunnuo/unicore/internal/modules/notes/usecase"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/runtime"
 	"github.com/yunnuo/unicore/internal/scheduler"
@@ -72,12 +71,8 @@ func webError(w http.ResponseWriter, err error) {
 		code = "ENTITY_NOT_FOUND"
 	case errors.Is(err, usecase.ErrEntityConflict):
 		code = "ENTITY_CONFLICT"
-	case errors.Is(err, notesdomain.ErrNoteInvalid):
-		code = "NOTE_INVALID"
-	case errors.Is(err, notesusecase.ErrNoteNotFound):
-		code = "NOTE_NOT_FOUND"
-	case errors.Is(err, notesusecase.ErrNoteConflict):
-		code = "NOTE_CONFLICT"
+	case noteErrorCode(err) != "":
+		code = noteErrorCode(err)
 	case errors.Is(err, files.ErrInvalid):
 		code = "FILE_INVALID"
 	case errors.Is(err, files.ErrNotFound):
@@ -118,7 +113,7 @@ func webError(w http.ResponseWriter, err error) {
 		code = "DATABASE_NOT_EMPTY"
 	case errors.Is(err, install.ErrDatabase):
 		code = "DATABASE_UNAVAILABLE"
-	case errors.Is(err, install.ErrInput), errors.Is(err, platform.ErrInput), errors.Is(err, settings.ErrInvalid):
+	case errors.Is(err, install.ErrInput), errors.Is(err, platform.ErrInput), errors.Is(err, settings.ErrInvalid), errors.Is(err, inboxsql.ErrInvalid):
 		code = "INVALID_INPUT"
 	case errors.Is(err, platform.ErrCredentials):
 		code = "INVALID_CREDENTIALS"
@@ -454,6 +449,7 @@ func mountWeb(api chi.Router, config Config) {
 	mountDashboard(api, config)
 	mountMonitor(api, config)
 	mountInbox(api, config)
+	mountMCP(api, config)
 	mountEvents(api, config)
 	mountLogStream(api, config)
 	mountDictionaries(api, config)
@@ -589,8 +585,12 @@ func mountWeb(api chi.Router, config Config) {
 		// alias never mounts it and an undeclared route would fail closed.
 		if !administrators {
 			api.Post(path+"/{id}/password", func(w http.ResponseWriter, r *http.Request) {
-				actor, ok := require(manager, w, r, "users:update")
+				actor, ok := require(manager, w, r, "users:credentials:write")
 				if !ok {
+					return
+				}
+				if bearer, ok := bearerFrom(r); ok && bearer.Credential.Kind == "pat" {
+					webError(w, platform.ErrForbidden)
 					return
 				}
 				var input contracts.AdminPasswordResetInput

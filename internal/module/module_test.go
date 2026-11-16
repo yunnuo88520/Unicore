@@ -8,6 +8,9 @@ import (
 	"testing"
 
 	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/notify"
+	"github.com/yunnuo/unicore/internal/notifycontent"
+	"github.com/yunnuo/unicore/internal/settings"
 )
 
 func reset(t *testing.T) {
@@ -28,7 +31,7 @@ func reset(t *testing.T) {
 
 func sample(slug string) Module {
 	return Module{
-		Slug: slug, Title: "标题", Icon: "NotebookPen",
+		Slug: slug, Title: "标题", Icon: "NotebookPen", Enabled: true,
 		Permissions: []contracts.PermissionDefinition{{ID: slug + ":access", Name: "访问", Group: "业务权限", Assignable: true}},
 		Navigation:  []contracts.NavigationPage{{ID: slug, Surfaces: []string{"user"}, Permission: slug + ":access"}},
 		Executors:   []Executor{{Key: slug + ".tick", Description: "演示", Fn: func(context.Context) error { return nil }}},
@@ -65,9 +68,11 @@ func TestRegisterAndAggregate(t *testing.T) {
 
 func TestRegisterGuards(t *testing.T) {
 	reset(t)
-	Register(sample("notes"))
+	item := sample("notes")
+	item.Edition = "notes"
+	Register(item)
 	// Duplicate registration is idempotent, so fixture setups stay composable.
-	Register(Module{Slug: "notes", Title: "我的笔记"})
+	Register(Module{Slug: "notes", Edition: "notes", Title: "我的笔记"})
 	if items := All(); len(items) != 1 || items[0].Title != "标题" {
 		t.Fatalf("duplicate registration changed state: %v", items)
 	}
@@ -90,7 +95,7 @@ func TestRegisterEditionMustMatchManifest(t *testing.T) {
 			t.Fatal("edition mismatch accepted")
 		}
 	}()
-	Register(Module{Slug: "notes", Edition: "notes"})
+	Register(Module{Slug: "notes", Edition: "wrong"})
 }
 
 func TestManifestDeclarations(t *testing.T) {
@@ -106,4 +111,36 @@ func TestManifestDeclarations(t *testing.T) {
 		t.Fatal("manifest order view is empty")
 	}
 	_ = errors.Is
+}
+
+func TestModuleSettingsAndNotificationContributions(t *testing.T) {
+	reset(t)
+	item := sample("notes")
+	item.Edition = "notes"
+	item.Settings = []settings.GroupDefinition{{ID: "module_test", Label: "模块设置", LabelEN: "Module settings", Fields: []settings.FieldDefinition{{Key: "module_test.enabled", Type: "boolean", Label: "启用", LabelEN: "Enabled", Default: "true"}}}}
+	item.NotificationTypes = []notify.Definition{{Type: "report_ready", TitleZh: "报表完成", TitleEn: "Report ready"}}
+	item.NotificationEvents = []notifycontent.Definition{{ID: "module_report_ready", Label: "模块报表完成", LabelEN: "Module report ready", Description: "模块报表已生成。", DescriptionEN: "A module report is ready.", Template: contracts.NotifyTemplate{Title: "Report ready", Body: "{{site_name}}"}}}
+	Register(item)
+	Register(item) // The composition root may be initialized twice in tests.
+	if settings.Defaults("web-platform")["module_test.enabled"] != "true" {
+		t.Fatal("module settings were not registered")
+	}
+	if len(NotificationTypes()) != 1 || NotificationTypes()[0].Type != "report_ready" {
+		t.Fatal("module types were not aggregated")
+	}
+	if _, ok := notifycontent.DefinitionFor("module_report_ready"); !ok {
+		t.Fatal("module external event was not registered")
+	}
+	mu.Lock()
+	delete(modules, "notes")
+	mu.Unlock()
+	disabled := sample("notes")
+	disabled.Edition = "notes"
+	disabled.Enabled = false
+	disabled.Settings = []settings.GroupDefinition{{ID: "disabled_test", Label: "禁用设置", LabelEN: "Disabled settings", Fields: []settings.FieldDefinition{{Key: "disabled_test.enabled", Type: "boolean", Label: "启用", LabelEN: "Enabled", Default: "true"}}}}
+	disabled.NotificationTypes = item.NotificationTypes
+	Register(disabled)
+	if len(NotificationTypes()) != 0 || settings.Defaults("web-platform")["disabled_test.enabled"] != "" {
+		t.Fatal("disabled module contributed notification types")
+	}
 }

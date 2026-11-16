@@ -22,14 +22,14 @@ export function VersionBadge({ client, metadata, onOpen }: { client: AppClient; 
   // Update checks stay a super-admin capability: canAccess('edition') is
   // super-only on web-platform and feature-gated elsewhere, so restricted
   // operators and members never fire the request.
-  const canManage = canAccess('edition', metadata) && !!metadata?.capabilities.updater && !!client.updates;
-  const overview = useQuery({ queryKey: ['system-updates'], queryFn: () => client.updates!.overview(), enabled: canManage, retry: false, staleTime: 30000 });
+  const canManage = __FEATURE_UPDATER__ && canAccess('edition', metadata) && !!metadata?.capabilities.updater && !!client.updates;
+  const overview = useQuery({ queryKey: ['system-updates'], queryFn: () => client.updates!.overview(), enabled: canManage, retry: false, staleTime: 30000, refetchInterval: 60000 });
   const check = useMutation({
     mutationFn: () => client.updates!.check(),
     onSuccess: data => cache.setQueryData(['system-updates'], data),
   });
   if (!metadata?.version) return null;
-  const data = canManage ? check.data ?? overview.data : undefined;
+  const data = canManage ? overview.data : undefined;
   const status = !canManage ? 'readonly'
     : check.isError || overview.isError || data?.last_error ? 'offline'
     : data?.available ? 'available'

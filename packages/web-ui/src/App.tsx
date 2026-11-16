@@ -8,11 +8,11 @@ import { VersionBadge, workspaceLinks } from './shell-tools';
 import { useLocale, t } from './i18n';
 import { productName } from './product.gen';
 import { WorkspaceLayout } from './workspace-layout';
-import { MessageProvider } from '@unicore/ui';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbSeparator, MessageProvider, PageHeader } from '@unicore/ui';
 import { SiteFooter } from './site-footer';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { RouterProvider, Outlet, Navigate, createBrowserHistory, useRouter, useRouterState, type RouterHistory } from '@tanstack/react-router';
-import { ChevronRight, ChevronsUpDown, ExternalLink, FlaskConical, Menu, PanelLeftClose, PanelLeftOpen, Radio, RotateCcw, Settings2, ShieldCheck, UserRound } from 'lucide-react';
+import { ChevronRight, ChevronsUpDown, ExternalLink, FlaskConical, Info, KeyRound, LayoutDashboard, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Radio, RotateCcw, Settings2, ShieldCheck, UserRound } from 'lucide-react';
 import { buildNavigation, isLinkEntry, routePath, type NavEntry } from './navigation';
 import { NavigationTree } from './navigation-view';
 import { BrandProvider, BrandMark } from './brand';
@@ -21,12 +21,13 @@ import { AppError } from '@unicore/sdk';
 import { setCustomAccent, useTheme, type Theme } from '@unicore/theme';
 import { DashboardWidgetRegistry } from './registry';
 import { PasswordDialog } from './password-dialog';
+import { AccountSettingsModal, type AccountSettingsPage } from './account-settings/modal';
 import { roleDisplayLabels } from './role-display';
 import { UserAvatar, displayLabel } from './user-avatar';
 import { SessionBoundary, useSession } from './session';
 import { routes, canAccess, isAdminRealm, isAdministrator, type Page } from './routes';
 import { LiveLogsButton } from './live-logs';
-import { Modal, Button, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, Tooltip } from '@unicore/ui';
+import { Modal, Button, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, Tooltip } from '@unicore/ui';
 import { setPreferences, usePreferences } from '@unicore/theme/preferences';
 import {
   createWorkspaceRouter, pageFromPath, PagePropsProvider, ShellOptionsProvider, NoticeProvider,
@@ -36,6 +37,7 @@ import { ErrorPage } from './pages/error';
 import { InstallPage } from './pages/install';
 import { HomePage } from './pages/home';
 import { LoginPage, VerifyEmailPage, ResetPasswordPage } from './pages/auth';
+import { AuthorizePage } from './pages/authorize';
 import { NotFoundPage } from './pages/not-found';
 import { ForbiddenPage } from './pages/forbidden';
 
@@ -79,6 +81,16 @@ function BrandedApp({ client, registry, notice, administratorPage, history, base
   </ShellOptionsProvider>;
 }
 
+// These routes compose their own PageHeader with primary actions. All others
+// receive the route label here, including module pages and loading/error states.
+// Explicit ownership avoids querying rendered DOM and keeps navigation stable.
+const pageHeadingOwners = new Set<string>([
+  'users', 'administrators', 'roles', 'departments', 'announcements', 'posts',
+  'tasks', 'menus', 'access-tokens',
+  'monitor', 'monitor-services', 'monitor-resources', 'monitor-events', 'ui-preview', 'not-found',
+  'ai-access', 'ai-tools', 'ai-calls', 'ai-oauth',
+]);
+
 /** The root route component: gates, chrome and the page outlet. Server authorization remains authoritative. */
 function WorkspaceShell() {
   useLocale();
@@ -90,8 +102,15 @@ function WorkspaceShell() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [about, setAbout] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
+  // The personal center lives in this modal: both account menus open it, the
+  // enrollment gate pins it on the security page, and OIDC binding callbacks
+  // land here with their one-shot result.
+  const [account, setAccount] = useState<{ open: boolean; page: AccountSettingsPage; oidc?: string }>({ open: false, page: 'profile' });
+  const openAccount = (page: AccountSettingsPage = 'profile', oidc?: string) => setAccount({ open: true, page, oidc });
   const { navCollapsed, layout } = usePreferences();
   const pathname = useRouterState({ select: state => state.location.pathname });
+  const searchStr = useRouterState({ select: state => state.location.searchStr });
+  const authCallback = useRouterState({ select: state => new URLSearchParams(state.location.searchStr).has('oidc') });
   // location.pathname is already basepath-stripped by the router.
   const page = pageFromPath(pathname);
   const data = metadata.data;
@@ -99,7 +118,18 @@ function WorkspaceShell() {
 
   const locale = useLocale();
   useEffect(() => { if (data) document.title = t('{{v0}} · 工作空间', { v0: data.site_name }); }, [data?.site_name, locale]);
-  useEffect(()=>{if(data?.mfa_enrollment_required && page!=='account-security') void router.navigate({to:'/account-security',replace:true});},[data?.mfa_enrollment_required,page,router]);
+  // Enrollment pins the personal center on its security page until 2FA is on.
+  useEffect(() => { if (data?.mfa_enrollment_required) openAccount('security'); }, [data?.mfa_enrollment_required]);
+  // OIDC binding and enrollment callbacks used to land on the removed
+  // account-security page; they now arrive at the workspace root with the
+  // bind_/totp_ results and open the modal once. A plain login's oidc values
+  // stay owned by the login page.
+  useEffect(() => {
+    const oidc = new URLSearchParams(searchStr).get('oidc');
+    if (!oidc || !data?.current_user || !/^(bind_|totp_)/.test(oidc)) return;
+    openAccount('security', oidc);
+    void router.navigate({ to: '/', search: {}, replace: true });
+  }, [searchStr, data?.current_user, router]);
 
   if (!data) {
     // Boot failures share the status-page family; the code mirrors the real HTTP status whenever the transport captured one.
@@ -119,8 +149,8 @@ function WorkspaceShell() {
   if (data.capabilities.installation && !data.installed && client.web) {
     const props: PageProps = { page: 'overview', client, metadata: data, registry, theme, setTheme, refresh: () => void metadata.refetch() };
     return <PagePropsProvider value={props}>
-      <div className="flex min-h-dvh flex-col bg-background">
-        <div className="fixed top-[15px] end-[20px] z-[45] rounded-lg border border-line bg-surface px-2 py-[5px] shadow-tint"><ClientControls /></div>
+      <div className="relative flex min-h-dvh flex-col bg-background">
+        <div className="absolute top-[15px] end-[20px] z-[45] rounded-lg border border-line bg-surface px-2 py-[5px] shadow-tint"><ClientControls /></div>
         <InstallPage {...props} />
         <SiteFooter metadata={data} compact />
       </div>
@@ -151,22 +181,17 @@ function WorkspaceShell() {
     const props: PageProps = { page, client, metadata: data, registry, theme, setTheme, refresh: () => void metadata.refetch() };
     return <PagePropsProvider value={props}><main className="min-h-dvh bg-background p-4 sm:p-6"><div className="mb-4 flex justify-end"><ClientControls /></div><Outlet /></main></PagePropsProvider>;
   }
-  // The public homepage owns /home; the console stays at /. Members skip the homepage, admin realm keeps its own login.
+  // /home is public for guests and members; / remains the signed-in workspace.
   const publicHome = data.identity_realm !== 'administrator';
-  if (data.capabilities.authentication && data.current_user && basename === 'home') {
-    return <Navigate to="/" replace />;
+  const rootAuthFlow = !basename && (data.mfa_pending || authCallback || !!notice);
+  if (data.capabilities.authentication && publicHome && data.home_enabled && !rootAuthFlow && (basename === 'home' || (!basename && !data.current_user))) {
+    if (!basename) return <Navigate to="/home" replace />;
+    const props: PageProps = { page: 'overview', client, metadata: data, registry, theme, setTheme, refresh: () => void metadata.refetch() };
+    return <PagePropsProvider value={props}><HomePage {...props} /></PagePropsProvider>;
   }
+  if (basename === 'home' && data.current_user) return <Navigate to="/" replace />;
   if (data.capabilities.authentication && (!data.current_user || /^(verify-email|reset-password)$/.test(basename)) && client.web) {
     const props: PageProps = { page: 'overview', client, metadata: data, registry, theme, setTheme, refresh: () => void metadata.refetch() };
-    // Optional public homepage: guests land on it at /home instead of the login flow when site.home_enabled is on.
-    if (!data.current_user && publicHome && data.home_enabled && (basename === 'home' || !basename)) {
-      if (!basename) return <Navigate to="/home" replace />;
-      return <PagePropsProvider value={props}>
-        <div className="flex min-h-dvh flex-col bg-background">
-          <HomePage {...props} />
-        </div>
-      </PagePropsProvider>;
-    }
     // Guests get the real 404 page for unregistered paths instead of a misleading login form;
     // registered pages (workspace and auth ones) keep the login wall. knownPath is shared with the standalone 404 gate above.
     const Flow = basename === 'verify-email' ? VerifyEmailPage : basename === 'reset-password' ? ResetPasswordPage : !data.current_user && !knownPath ? NotFoundPage : LoginPage;
@@ -183,12 +208,19 @@ function WorkspaceShell() {
     </PagePropsProvider>;
   }
 
+  // The OAuth consent page renders without workspace chrome for signed-in
+  // platform accounts; guests stay on the login wall above until they sign in.
+  if (page === 'authorize' && data.current_user) {
+    const props: PageProps = { page, client, metadata: data, registry, theme, setTheme, refresh: () => void metadata.refetch() };
+    return <PagePropsProvider value={props}><main className="min-h-dvh bg-background"><AuthorizePage {...props} /></main></PagePropsProvider>;
+  }
+
   const administration = data.identity_realm === 'administrator';
   const settingsLabel = t('基础设置');
   const enrollment = !!data.mfa_enrollment_required;
   const permitted = canAccess(page, data);
   const refresh = () => { void metadata.refetch(); void router.invalidate(); };
-  // Permission denials render as a standalone status page without shell chrome, like the shadcn-admin error routes.
+  // Permission denials render as a standalone status page without shell chrome, like the shared error routes.
   if (!permitted) {
     return <main className="min-h-dvh bg-background">{data.profile === 'web-platform' ? <ForbiddenPage /> : <NotFoundPage />}</main>;
   }
@@ -199,11 +231,12 @@ function WorkspaceShell() {
       onNavigationClose={() => setMobileOpen(false)}
       contentClassName={page === 'site' ? 'settings-content' : ''}
       navigationCollapsed={navCollapsed}
-      navigation={<SideNavigation page={page} data={data} client={client} onNavigate={() => setMobileOpen(false)} onAbout={() => { setMobileOpen(false); setAbout(true); }} administration={administration} onOpenPassword={() => setPasswordOpen(true)} refresh={refresh} />}
-      header={<TopBar page={page} data={data} client={client} settingsLabel={settingsLabel} connection={metadata.isSuccess ? 'connected' : metadata.isPending ? 'pending' : 'error'} mobileOpen={mobileOpen} onOpenMobile={() => setMobileOpen(true)} onOpenPassword={() => setPasswordOpen(true)} refresh={refresh} navCollapsed={navCollapsed} navToggleVisible={layout !== 'full'} />}
+      navigation={<SideNavigation page={page} data={data} client={client} onNavigate={() => setMobileOpen(false)} onAbout={() => { setMobileOpen(false); setAbout(true); }} administration={administration} onOpenAccount={() => openAccount('profile')} onOpenPassword={() => setPasswordOpen(true)} refresh={refresh} />}
+      header={<TopBar page={page} data={data} client={client} settingsLabel={settingsLabel} connection={metadata.isSuccess ? 'connected' : metadata.isPending ? 'pending' : 'error'} mobileOpen={mobileOpen} onOpenMobile={() => setMobileOpen(true)} onOpenAccount={() => openAccount('profile')} onOpenPassword={() => setPasswordOpen(true)} refresh={refresh} navToggleVisible={layout !== 'full'} />}
       overlays={<>
         {passwordOpen && client.web && <PasswordDialog web={client.web} onClose={() => setPasswordOpen(false)} />}
         {about && <About onClose={() => setAbout(false)} />}
+        {client.web && data.current_user && <AccountSettingsModal open={account.open} onClose={() => setAccount(state => ({ ...state, open: false }))} defaultPage={account.page} pinned={enrollment} client={client} metadata={data} refresh={refresh} oidc={account.oidc} />}
       </>}
     >
       {enrollment && <p role="alert" className="mb-4 rounded-lg border border-line bg-primary-soft p-4 text-sm text-ink">{t('实例要求启用双重验证，请先完成安全设置。')}</p>}
@@ -212,16 +245,19 @@ function WorkspaceShell() {
         : metadata.isError
           ? <StateCard tone="error" icon={<Radio size={26} className="text-danger" />} title={t('暂时无法连接核心')} detail={t(metadata.error.message)}
               action={<Button onClick={() => void metadata.refetch()}><RotateCcw size={15} />{t('重新连接')}</Button>} />
-          : enrollment && page!=='account-security' ? <StateCard tone="pending" icon={<ShieldCheck size={24}/>} title={t('正在打开安全设置')} detail={t('实例要求启用双重验证，请先完成安全设置。')}/>
-          : <Outlet />}
+          : enrollment ? <StateCard tone="pending" icon={<ShieldCheck size={24}/>} title={t('正在打开安全设置')} detail={t('实例要求启用双重验证，请先完成安全设置。')}/>
+          : <div className="flex min-w-0 flex-col gap-3">
+              {!pageHeadingOwners.has(page) && <PageHeader title={t(routes[page].label)} />}
+              <Outlet />
+            </div>}
       <SiteFooter metadata={data} />
     </WorkspaceLayout>
   </PagePropsProvider>;
 }
 
-function SideNavigation({ page, data, client, onNavigate, onAbout, administration, onOpenPassword, refresh }: {
+function SideNavigation({ page, data, client, onNavigate, onAbout, administration, onOpenAccount, onOpenPassword, refresh }: {
   page: Page; data: Bootstrap; client: AppClient; onNavigate: () => void; onAbout: () => void;
-  administration: boolean; onOpenPassword: () => void; refresh: () => void;
+  administration: boolean; onOpenAccount: () => void; onOpenPassword: () => void; refresh: () => void;
 }) {
   useLocale();
   const router = useRouter();
@@ -241,34 +277,35 @@ function SideNavigation({ page, data, client, onNavigate, onAbout, administratio
       else goPage(node.routeId);
     }
   }
+  const toggle = <Tooltip label={rail ? t('展开导航') : t('收起导航')}>
+    <button type="button" className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted transition-colors outline-none hover:bg-surface-inset hover:text-ink focus-visible:ring-2 focus-visible:ring-focus"
+      aria-label={rail ? t('展开导航') : t('收起导航')} aria-expanded={!rail} aria-controls="workspace-navigation" onClick={() => setPreferences({ navCollapsed: !rail })}>
+      {rail ? <PanelLeftOpen size={18} aria-hidden="true" /> : <PanelLeftClose size={18} aria-hidden="true" />}
+    </button>
+  </Tooltip>;
   return <>
-    {rail ? <div className="flex flex-col items-center pb-2">
-      <a href="/" aria-label={data.site_name} className="flex size-8 items-center justify-center" onClick={event => { event.preventDefault(); goPage('overview'); }}>
-        <BrandMark size={24} />
+    <div className={`flex shrink-0 gap-2 ${rail ? 'flex-col-reverse items-center' : 'items-center px-1'}`}>
+      <a href="/" aria-label={data.site_name} className="flex size-8 shrink-0 items-center justify-center" onClick={event => { event.preventDefault(); goPage('overview'); }}>
+        <BrandMark size={28} />
       </a>
-    </div> : <div className="pb-2">
-      {/* Brand header: mark on the left, site name and version capsule stacked on the right. */}
-      <div className="flex items-center gap-2.5 pt-1">
-        <span className="brand contents"><BrandMark size={36} /></span>
-        <div className="min-w-0 flex-1">
-          <a href="/" aria-label={data.site_name} className="block truncate text-xl font-bold text-ink" onClick={event => { event.preventDefault(); goPage('overview'); }}>{data.site_name}<span className="brand-dot">.</span></a>
-          {data.version && <div className="mt-0.5"><VersionBadge client={client} metadata={data} onOpen={() => goPage('edition')} /></div>}
-        </div>
-      </div>
-    </div>}
-    <NavigationTree navigation={buildNavigation(data)} page={page} rail={rail} onNavigate={activate} />
-    {data.current_user && <div className="sidebar-utilities shrink-0 px-1 pb-3 pt-2">
-      <SidebarFooter data={data} client={client} administration={administration} rail={rail} onOpenPassword={onOpenPassword} refresh={refresh} onAbout={onAbout} />
+      {!rail && <div className="min-w-0 flex-1">
+        <a href="/" aria-label={data.site_name} className="block truncate text-md font-medium text-ink" onClick={event => { event.preventDefault(); goPage('overview'); }}>{data.site_name}</a>
+        {data.version && <VersionBadge client={client} metadata={data} onOpen={() => goPage('edition')} />}
+      </div>}
+      {desktop && layout !== 'full' && toggle}
+    </div>
+    <NavigationTree navigation={buildNavigation(data)} page={page} rail={rail} onNavigate={activate} onExpand={() => setPreferences({ navCollapsed: false })} />
+    {data.current_user && <div className="sidebar-utilities shrink-0">
+      <SidebarFooter data={data} client={client} administration={administration} rail={rail} onOpenAccount={onOpenAccount} onOpenPassword={onOpenPassword} refresh={refresh} onAbout={onAbout} />
     </div>}
   </>;
 }
 
 /** Sidebar footer for signed-in platform accounts. */
-function SidebarFooter({ data, client, administration, rail, onOpenPassword, refresh, onAbout }: {
-  data: Bootstrap; client: AppClient; administration: boolean; rail: boolean; onOpenPassword: () => void; refresh: () => void; onAbout: () => void;
+function SidebarFooter({ data, client, administration, rail, onOpenAccount, onOpenPassword, refresh, onAbout }: {
+  data: Bootstrap; client: AppClient; administration: boolean; rail: boolean; onOpenAccount: () => void; onOpenPassword: () => void; refresh: () => void; onAbout: () => void;
 }) {
   useLocale();
-  const router = useRouter();
   const user = data.current_user;
   const profile = useQuery({ queryKey: ['account-profile'], queryFn: () => client.web!.accountProfile(), enabled: data.profile === 'web-platform' && !!user && !!client.web && !data.mfa_enrollment_required, staleTime: 60_000 });
   if (!user) return null;
@@ -276,7 +313,7 @@ function SidebarFooter({ data, client, administration, rail, onOpenPassword, ref
     ? <button type="button" className="mx-auto flex size-8 items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus" aria-label={t('侧栏账号菜单')}>
         <UserAvatar name={displayLabel(user.display_name, user.username)} url={profile.data?.avatar_url} />
       </button>
-    : <button type="button" className="flex w-full items-center gap-2.5 rounded-lg p-2 text-start outline-none hover:bg-surface-alt focus-visible:ring-2 focus-visible:ring-focus" aria-label={t('侧栏账号菜单')}>
+    : <button type="button" className="flex w-full items-center gap-2.5 rounded-xl bg-surface-inset p-2 text-start outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-focus" aria-label={t('侧栏账号菜单')}>
         <UserAvatar name={displayLabel(user.display_name, user.username)} url={profile.data?.avatar_url} />
         <span className="min-w-0 flex-1">
           <strong className="block truncate text-sm font-semibold leading-tight text-ink">{displayLabel(user.display_name, user.username) || data.site_name}</strong>
@@ -286,21 +323,42 @@ function SidebarFooter({ data, client, administration, rail, onOpenPassword, ref
       </button>;
   return <DropdownMenu>
     <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-    <DropdownMenuContent side="right" align={rail ? 'start' : 'end'} aria-label={t('侧栏账号菜单')} className="min-w-56">
-      <DropdownMenuLabel>
-        <strong className="block text-sm text-ink">{displayLabel(user.display_name, user.username) || data.site_name}</strong>
-        <small className="block truncate text-xs text-muted">{user.email || roleDisplayLabels(user.roles, user.role_names).join(', ')}</small>
-      </DropdownMenuLabel>
-      {client.web && <>
-        {data.admin_path && !administration && <DropdownMenuItem onSelect={() => window.location.assign(data.admin_path!)}>{t('管理工作台')}</DropdownMenuItem>}
-        {administration && <DropdownMenuItem onSelect={() => window.location.assign('/')}>{t('工作空间')}</DropdownMenuItem>}
-        <DropdownMenuItem onSelect={onOpenPassword}>{t('修改密码')}</DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => void router.navigate({ to: '/account' })}>{t('个人中心')}</DropdownMenuItem>
-        <DropdownMenuItem onSelect={onAbout}>{t('关于 {{name}}', { name: productName })}</DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => { void client.web!.logout().then(() => { void router.navigate({ to: '/' }); refresh(); }, refresh); }}>{t('退出登录')}</DropdownMenuItem>
-      </>}
+    <DropdownMenuContent side={rail ? 'right' : 'top'} align="end" aria-label={t('侧栏账号菜单')} className="min-w-60">
+      <AccountMenuItems data={data} client={client} avatarURL={profile.data?.avatar_url} administration={administration} onOpenAccount={onOpenAccount} onOpenPassword={onOpenPassword} refresh={refresh} onAbout={onAbout} />
     </DropdownMenuContent>
   </DropdownMenu>;
+}
+
+/** Both account triggers use the same identity summary and action spacing. */
+function AccountMenuItems({ data, client, avatarURL, administration, onOpenAccount, onOpenPassword, refresh, onAbout }: {
+  data: Bootstrap; client: AppClient; avatarURL?: string; administration: boolean; onOpenAccount: () => void; onOpenPassword: () => void; refresh: () => void; onAbout?: () => void;
+}) {
+  useLocale();
+  const router = useRouter();
+  const user = data.current_user;
+  if (!user) return null;
+  const name = displayLabel(user.display_name, user.username) || data.site_name;
+  return <>
+    <DropdownMenuLabel className="flex items-center gap-3 px-2 py-3">
+      <UserAvatar name={name} url={avatarURL} />
+      <span className="min-w-0">
+        <strong className="block truncate text-base font-medium text-ink">{name}</strong>
+        <small className="block max-w-52 truncate text-xs font-normal text-muted">{user.email || roleDisplayLabels(user.roles, user.role_names).join(', ')}</small>
+      </span>
+    </DropdownMenuLabel>
+    {client.web && <>
+      <DropdownMenuSeparator />
+      <DropdownMenuGroup>
+      {data.admin_path && !administration && <DropdownMenuItem onSelect={() => window.location.assign(data.admin_path!)}><LayoutDashboard size={18} aria-hidden="true" />{t('管理工作台')}</DropdownMenuItem>}
+      {administration && <DropdownMenuItem onSelect={() => window.location.assign('/')}><LayoutDashboard size={18} aria-hidden="true" />{t('工作空间')}</DropdownMenuItem>}
+      <DropdownMenuItem onSelect={onOpenAccount}><UserRound size={18} aria-hidden="true" />{t('个人中心')}</DropdownMenuItem>
+      <DropdownMenuItem onSelect={onOpenPassword}><KeyRound size={18} aria-hidden="true" />{t('修改密码')}</DropdownMenuItem>
+      {onAbout && <DropdownMenuItem onSelect={onAbout}><Info size={18} aria-hidden="true" />{t('关于 {{name}}', { name: productName })}</DropdownMenuItem>}
+      </DropdownMenuGroup>
+      <DropdownMenuSeparator />
+      <DropdownMenuGroup><DropdownMenuItem tone="danger" onSelect={() => { void client.web!.logout().then(() => { void router.navigate({ to: '/' }); refresh(); }, refresh); }}><LogOut size={18} aria-hidden="true" />{t('退出登录')}</DropdownMenuItem></DropdownMenuGroup>
+    </>}
+  </>;
 }
 
 function useMinWidth(px: number) {
@@ -314,12 +372,11 @@ function useMinWidth(px: number) {
   return match;
 }
 
-function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onOpenMobile, onOpenPassword, refresh, navCollapsed, navToggleVisible }: {
+function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onOpenMobile, onOpenAccount, onOpenPassword, refresh, navToggleVisible }: {
   page: Page; data: Bootstrap; client: AppClient; settingsLabel: string; connection: 'connected' | 'pending' | 'error';
-  mobileOpen: boolean; onOpenMobile: () => void; onOpenPassword: () => void; refresh: () => void; navCollapsed: boolean; navToggleVisible: boolean;
+  mobileOpen: boolean; onOpenMobile: () => void; onOpenAccount: () => void; onOpenPassword: () => void; refresh: () => void; navToggleVisible: boolean;
 }) {
   useLocale();
-  const router = useRouter();
   const desktop = useMinWidth(768);
   // The account menu labels the identity realm, not the super_admin grant.
   const administration = isAdminRealm(data);
@@ -327,19 +384,12 @@ function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onO
   const profile = useQuery({ queryKey: ['account-profile'], queryFn: () => client.web!.accountProfile(), enabled: data.profile === 'web-platform' && !!user && !!client.web && !data.mfa_enrollment_required, staleTime: 60_000 });
   return <>
     <div className="flex min-w-0 items-center gap-2 text-[length:var(--font-11)] text-muted max-md:gap-1.5">
-      {desktop && navToggleVisible
-        ? <>
-            <Tooltip label={navCollapsed ? t('展开导航') : t('收起导航')}>
-              <button className="flex size-7 items-center justify-center rounded-md border border-line bg-surface text-muted transition-colors hover:bg-primary-soft hover:text-accent" aria-label={navCollapsed ? t('展开导航') : t('收起导航')} aria-expanded={!navCollapsed} aria-controls="workspace-navigation" onClick={() => setPreferences({ navCollapsed: !navCollapsed })}>
-                {navCollapsed ? <PanelLeftOpen size={16} aria-hidden="true" /> : <PanelLeftClose size={16} aria-hidden="true" />}
-              </button>
-            </Tooltip>
-            <span className="hidden h-6 w-px bg-line sm:block" aria-hidden="true" />
-          </>
-        : <button className="mobile-menu size-7 items-center justify-center rounded-md text-muted hover:bg-primary-soft hover:text-accent max-md:-ms-1" aria-label={t('打开导航')} aria-expanded={mobileOpen} aria-controls="workspace-navigation" onClick={onOpenMobile}><Menu size={18} /></button>}
-      <span className="hidden max-lg:inline">{t('工作空间')}</span>
-      <ChevronRight size={14} className="hidden max-md:block max-lg:hidden text-subtle" aria-hidden="true" />
-      <h1 className="m-0 truncate font-medium text-ink">{page === 'site' ? settingsLabel : t(routes[page].label)}</h1>
+      {(!desktop || !navToggleVisible) && <button className="mobile-menu size-8 items-center justify-center rounded-md text-muted hover:bg-surface-hover hover:text-ink max-md:-ms-1" aria-label={t('打开导航')} aria-expanded={mobileOpen} aria-controls="workspace-navigation" onClick={onOpenMobile}><Menu size={18} /></button>}
+      <Breadcrumb>
+        <BreadcrumbItem className="max-w-32 truncate">{data.site_name}</BreadcrumbItem>
+        <BreadcrumbSeparator />
+        <BreadcrumbItem aria-current="page" className="min-w-0 truncate font-medium text-ink">{page === 'site' ? settingsLabel : t(routes[page].label)}</BreadcrumbItem>
+      </Breadcrumb>
     </div>
     <div className="flex shrink-0 items-center gap-2 max-md:gap-1.5">
       <span className="flex items-center gap-1.5 text-[length:var(--font-10)] text-muted max-sm:hidden">
@@ -347,7 +397,8 @@ function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onO
         {connection === 'connected' ? t('核心已连接') : connection === 'pending' ? t('连接中') : t('连接失败')}
       </span>
       <span className="mx-1 h-4 w-px bg-line max-sm:hidden" aria-hidden="true" />
-      {data.profile === 'web-platform' && data.identity_realm === 'user' && user && client.web && !data.mfa_enrollment_required && <AnnouncementCenter web={client.web} />}
+      {/* Standalone has no accounts or login flow: its bell rides the local surface without a session user. */}
+      {(client.notifications || client.web) && (data.profile === 'web-standalone' || data.profile === 'desktop' || data.profile === 'web-platform' && user && !data.mfa_enrollment_required) && <AnnouncementCenter inbox={(client.notifications || client.web)!} web={client.web} administrator={data.identity_realm === 'administrator'} standalone={data.profile !== 'web-platform'} />}
       {isAdministrator(data) && user && client.web && !data.mfa_enrollment_required && <LiveLogsButton web={client.web} />}
       <ClientControls />
       {data.profile === 'web-platform' && user && (
@@ -357,18 +408,8 @@ function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onO
               <UserAvatar name={displayLabel(user.display_name, user.username)} url={profile.data?.avatar_url} className="size-7 text-[length:var(--font-11)]" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>
-              <strong className="block text-sm text-ink">{displayLabel(user.display_name, user.username) || data.site_name}</strong>
-              <small className="text-2xs">{roleDisplayLabels(user.roles, user.role_names).join(', ')}</small>
-            </DropdownMenuLabel>
-            {client.web && <>
-              {data.admin_path && !administration && <DropdownMenuItem onSelect={() => window.location.assign(data.admin_path)}>{t('管理工作台')}</DropdownMenuItem>}
-              {administration && <DropdownMenuItem onSelect={() => window.location.assign('/')}>{t('工作空间')}</DropdownMenuItem>}
-              <DropdownMenuItem onSelect={() => onOpenPassword()}>{t('修改密码')}</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => void router.navigate({ to: '/account' })}>{t('个人中心')}</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => { void client.web!.logout().then(() => { void router.navigate({ to: '/' }); refresh(); }, refresh); }}>{t('退出登录')}</DropdownMenuItem>
-            </>}
+          <DropdownMenuContent align="end" aria-label={t('账号菜单')} className="min-w-60">
+            <AccountMenuItems data={data} client={client} avatarURL={profile.data?.avatar_url} administration={administration} onOpenAccount={onOpenAccount} onOpenPassword={onOpenPassword} refresh={refresh} />
           </DropdownMenuContent>
         </DropdownMenu>
       )}
@@ -380,7 +421,7 @@ function StateCard({ tone, icon, title, detail, action }: { tone: 'pending' | 'e
   useLocale();
   return <div role={tone === 'error' ? 'alert' : 'status'} className={`state-card flex flex-col items-center gap-2 rounded-xl border bg-surface px-6 py-10 text-center shadow-card ${tone === 'error' ? 'border-danger-line' : 'border-line'}`}>
     {icon}
-    <strong className="text-md font-semibold text-ink">{t(title)}</strong>
+    <h1 className="text-xl font-semibold tracking-tight text-ink">{t(title)}</h1>
     <p className="max-w-md text-sm text-muted">{t(detail)}</p>
     {action}
   </div>;

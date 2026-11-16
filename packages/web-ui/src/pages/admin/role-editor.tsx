@@ -3,7 +3,8 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { operations } from '@unicore/sdk';
+import { AppError, operations } from '@unicore/sdk';
+import { roleDisplayLabel } from '../../role-display';
 import { OperationCatalogue } from './api-operations';
 import type { NavigationNode, PermissionDefinition, Role, RoleSaveInput, WebClient } from '@unicore/sdk';
 import { defineMessages, t, useLocale } from '../../i18n';
@@ -11,7 +12,7 @@ import { buildMenuTree, directoryTitle, isRegisteredPage, sectionTitle, type Men
 import { routes } from '../../routes';
 import { buildDepartmentTree, flattenDepartmentTree, useDepartmentsQuery } from '../../queries';
 import { operationPermissionsAllow } from '../../permissions';
-import { Badge, Button, Checkbox, Input, Modal, NativeSelect, useMessage } from '@unicore/ui';
+import { Alert, Badge, Button, Checkbox, ConfirmDialog, Input, Modal, SimpleSelect, useMessage, selectOptions } from '@unicore/ui';
 
 // Data scopes apply to the resource permissions held by each role.
 const dataScopeLabels = defineMessages({ self: '仅本人', dept: '本部门', dept_and_below: '本部门及以下', custom: '自定义', all: '全部' });
@@ -96,7 +97,11 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
   // Edits mutate the role itself; copies start from the source's grants but
   // always create a new role, so the strict create-time validation applies.
   const baseline = role ?? source;
-  const [name, setName] = useState(role?.name ?? (source ? t('{{name}} 副本', { name: source.name }) : ''));
+  const scopeLocked = role?.id === 'user';
+  const [version, setVersion] = useState(role?.version);
+  const [conflicted, setConflicted] = useState(false);
+  const [confirmRefresh, setConfirmRefresh] = useState(false);
+  const [name, setName] = useState(role ? roleDisplayLabel(role) : (source ? t('{{name}} 副本', { name: roleDisplayLabel(source) }) : ''));
   const [nameError, setNameError] = useState('');
   const [grants, setGrants] = useState<string[]>(baseline?.permissions ?? []);
   const [dataScope, setDataScope] = useState<Role['data_scope']>(baseline?.data_scope ?? 'self');
@@ -185,9 +190,28 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
   const save = useMutation({
     mutationFn: (input: RoleSaveInput) => (role ? web.updateRole(role.id, input) : web.createRole(input)),
     onSuccess: () => { message.success(t(role ? '角色已更新' : '角色已创建')); onSaved(); },
-    onError: error => message.error(t(error.message)),
+    onError: error => {
+      if (role && error instanceof AppError && ['ENTITY_CONFLICT', 'VERSION_CONFLICT'].includes(error.code)) setConflicted(true);
+      message.error(t(error.message));
+    },
   });
-  const pending = save.isPending;
+  // Refresh is explicit and discards the draft only after confirmation. Never
+  // replace its version and replay a rejected update automatically.
+  const reload = useMutation({
+    mutationFn: () => web.roles(),
+    onSuccess: data => {
+      const fresh = data.items.find(item => item.id === role?.id);
+      if (!fresh) { message.error(t('角色已不存在，请关闭后重新选择')); return; }
+      setVersion(fresh.version);
+      setName(roleDisplayLabel(fresh));
+      setGrants(fresh.permissions);
+      setDataScope(scopeLocked ? 'self' : fresh.data_scope);
+      setDepartmentIds(scopeLocked ? [] : fresh.department_ids ?? []);
+      setMenuIds(fresh.menu_ids); setActionIds(fresh.action_ids); setOperationIds(fresh.operation_ids);
+      setConflicted(false); setConfirmRefresh(false); save.reset();
+    },
+  });
+  const pending = save.isPending || reload.isPending;
   const toggle = (id: string, checked: boolean) => {
     setGrants(current => checked ? [...current, id] : current.filter(value => value !== id));
     if (checked) return;
@@ -209,6 +233,7 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
   };
   const toggleDepartment = (id: string, checked: boolean) => setDepartmentIds(current => checked ? [...current, id] : current.filter(value => value !== id));
   const submit = () => {
+    if (conflicted || pending || (role && version === undefined)) return;
     const trimmed = name.trim();
     if (!trimmed) { setNameError(t('请输入角色名称')); return; }
     if (trimmed.length > 80) { setNameError(t('最多 {{count}} 个字符', { count: 80 })); return; }
@@ -216,11 +241,11 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
     // Creates carry the editor-fixed realm; updates cannot move a role between realms.
     const { permissions: derived, operations: validOperations, actions: validActions } = effectiveSelection(nodes, menuIds, actionIds, operationIds, grants);
     const authorization = { menu_ids: menuIds, action_ids: validActions, operation_ids: validOperations };
-    const input: RoleSaveInput = role ? { name: trimmed, permissions: derived, ...authorization } : { name: trimmed, permissions: derived, realm, ...authorization };
+    const input: RoleSaveInput = role ? { name: role.builtin ? role.name : trimmed, version, permissions: derived, ...authorization } : { name: trimmed, permissions: derived, realm, ...authorization };
     {
       // Only custom scope keeps an explicit department selection.
-      input.data_scope = dataScope;
-      input.department_ids = dataScope === 'custom' ? departmentIds : [];
+      input.data_scope = scopeLocked ? 'self' : dataScope;
+      input.department_ids = !scopeLocked && dataScope === 'custom' ? departmentIds : [];
     }
     save.mutate(input);
   };
@@ -281,7 +306,7 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
     for (const group of groups) for (const action of group.nodes) if (actionIds.includes(action.id)) imply(action.permission);
     for (const op of pageOps) if (operationIds.includes(op.id)) for (const point of op.permissions) imply(point);
     return <div key={node.id} className="flex flex-col">
-      <div className="flex h-8 items-center gap-1.5 rounded-md px-1 hover:bg-surface-alt" style={{ paddingInlineStart: `${depth * 16}px` }}>
+      <div className="flex h-8 items-center gap-1.5 rounded-md px-1 hover:bg-surface-hover" style={{ paddingInlineStart: `${depth * 16}px` }}>
         {hasChildren || hasDetail
           ? <Button variant="ghost" size="icon" className="size-5 shrink-0" aria-label={t('展开或收起 {{name}}', { name: nodeLabel(node) })} aria-expanded={open} disabled={pending}
               onClick={() => {
@@ -299,7 +324,7 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
       {hasDetail && detailOpen && <div className="flex flex-col gap-1 pb-1" style={{ paddingInlineStart: `${(depth + 1) * 16 + 20}px` }}>
         {groups.map(group => {
           const selected = group.ids.filter(id => actionIds.includes(id)).length;
-          return <label key={group.key} className="flex h-7 items-center gap-2 rounded-md px-1 hover:bg-surface-alt" title={group.hint}>
+          return <label key={group.key} className="flex h-7 items-center gap-2 rounded-md px-1 hover:bg-surface-hover" title={group.hint}>
             <Checkbox aria-label={group.label} disabled={pending || group.nodes.some(node => node.disabled) || (!selected && group.nodes.some(node => actionLocked(node)))}
               checked={selected === group.ids.length ? true : selected ? 'indeterminate' : false}
               onChange={checked => {
@@ -315,7 +340,7 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
         })}
         {pageOps.length > 0 && <div className="flex flex-col gap-0.5">
           <small className="px-1 text-2xs font-medium text-subtle">{t('API 操作')}</small>
-          {pageOps.map(op => <label key={op.id} className="flex h-7 items-center gap-2 rounded-md px-1 hover:bg-surface-alt" title={`${op.method} ${op.path} · ${op.permissions.join(', ')}`}>
+          {pageOps.map(op => <label key={op.id} className="flex h-7 items-center gap-2 rounded-md px-1 hover:bg-surface-hover" title={`${op.method} ${op.path} · ${op.permissions.join(', ')}`}>
             <Checkbox aria-label={op.id} disabled={pending || (!operationIds.includes(op.id) && (operationLocked(op) || (op.permissionMode === 'any' && !operationPermissionsAllow(effectivePermissions, op.id))))} checked={operationIds.includes(op.id)}
               onChange={checked => {
                 // Unchecking an operation stops its buttons from riding along:
@@ -340,16 +365,18 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
     </div>;
   };
   return <Modal title={t(role ? '编辑角色' : '新建角色')} onClose={onClose} pending={pending}
-    className="flex min-h-0 flex-1 flex-col gap-3" contentClassName="h-[85dvh] max-w-6xl overflow-hidden">
+    className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden pe-0" contentClassName="h-[85dvh] max-w-6xl overflow-hidden">
     <form className="flex min-h-0 flex-1 flex-col gap-3" onSubmit={event => { event.preventDefault(); submit(); }}>
       {/* Guarded saves (403 PERMISSION_DENIED, version conflicts) render inside
         * the dialog: the modal marks outside toasts aria-hidden, so an inline
         * alert is the only reliably reachable feedback while editing. */}
-      {save.error && <p role="alert" className="rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">{t(save.error.message)}</p>}
+      {save.error && <Alert variant="danger">{t(save.error.message)}</Alert>}
+      {conflicted && <Alert action={<Button variant="secondary" onClick={() => setConfirmRefresh(true)}>{t('刷新角色并重新确认')}</Button>}>{t('角色已被修改，草稿已保留。请刷新最新角色并重新确认后保存。')}</Alert>}
+      {confirmRefresh && <ConfirmDialog title={t('刷新角色并重新确认')} description={t('刷新会丢弃当前草稿并载入最新角色，不会自动提交。')} confirmLabel={t('确认刷新')} cancelLabel={t('保留草稿')} pending={reload.isPending} onConfirm={() => reload.mutate()} onCancel={() => setConfirmRefresh(false)} />}
+      {reload.error && <Alert variant="danger">{t(reload.error.message)}</Alert>}
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center gap-3">
-          <label htmlFor="role-editor-name" className="w-16 shrink-0 text-sm font-medium text-ink">{t('角色名称')}</label>
-          <Input id="role-editor-name" required maxLength={80} autoComplete="off" value={name} aria-invalid={!!nameError} className="max-w-sm"
+          <Input label={t('角色名称')} id="role-editor-name" required maxLength={80} autoComplete="off" value={name} aria-invalid={!!nameError} className="max-w-sm"
             disabled={pending || !!role?.builtin} placeholder={t('例如 运营')}
             onChange={event => { setName(event.target.value); setNameError(''); }} />
           {nameError && <p role="alert" className="text-xs text-danger">{nameError}</p>}
@@ -362,12 +389,13 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
       <fieldset disabled={pending} className="flex min-w-0 flex-col gap-1.5">
         <div className="flex items-center gap-3">
           <span className="w-16 shrink-0 text-sm font-medium text-ink">{t('数据范围')}</span>
-          <NativeSelect aria-label={t('数据范围')} className="max-w-44" value={dataScope} onChange={event => setDataScope(event.target.value as Role['data_scope'])}>
+          <SimpleSelect aria-label={t('数据范围')} className="max-w-44" disabled={scopeLocked} value={scopeLocked ? 'self' : dataScope} onChange={event => setDataScope(event as Role['data_scope'])} options={selectOptions(<>
             {DATA_SCOPES.map(scope => <option key={scope} value={scope}>{t(dataScopeLabels[scope])}</option>)}
-          </NativeSelect>
+          </>)} />
           <small className="min-w-0 text-xs text-muted">{t('数据范围决定角色成员在笔记、文件等业务列表中能看到的数据。')}</small>
         </div>
-        {dataScope === 'custom' && <div className="flex flex-col gap-1.5">
+        {scopeLocked && <small className="text-xs text-muted">{t('内置用户角色的数据范围固定为仅本人；复制为自定义角色后可调整。')}</small>}
+        {!scopeLocked && dataScope === 'custom' && <div className="flex flex-col gap-1.5">
           <small className="text-xs text-muted">{t('勾选自定义范围包含的部门：')}</small>
           <div role="group" aria-label={t('自定义部门范围')} className="flex max-h-48 flex-col gap-1 overflow-y-auto rounded-lg border border-line p-3">
             {departmentItems.length
@@ -407,7 +435,7 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
         {/* The advanced catalogue stays collapsed: page-centric authorization
           * covers most roles, while pure-API roles still grant raw points. */}
         <fieldset disabled={pending} className="mt-4 flex flex-col gap-2 border-t border-line pt-3">
-          <button type="button" aria-expanded={advanced} className="flex items-center gap-1 self-start rounded-md px-1 py-0.5 text-sm font-medium text-ink hover:bg-surface-alt"
+          <button type="button" aria-expanded={advanced} className="flex items-center gap-1 self-start rounded-md px-1 py-0.5 text-sm font-medium text-ink hover:bg-surface-hover"
             onClick={() => setAdvanced(value => !value)}>
             {advanced ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
             {t('高级')}
@@ -447,7 +475,7 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
       </div>
       <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-3">
         <Button variant="secondary" disabled={pending} onClick={onClose}>{t('取消')}</Button>
-        <Button type="submit" pending={pending} disabled={navigation.isPending || navigation.isError}>{pending ? t('处理中…') : t('保存')}</Button>
+        <Button type="submit" pending={pending} disabled={navigation.isPending || navigation.isError || conflicted || (!!role && version === undefined)}>{pending ? t('处理中…') : t('保存')}</Button>
       </div>
     </form>
   </Modal>;

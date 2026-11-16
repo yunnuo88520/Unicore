@@ -136,7 +136,7 @@ Runtime Monitor 是**面向单个 Unicore 实例**的运行状态查看、资源
 | 资源 | 宿主机身份/CPU（总量+逐核）/负载/内存/Swap/网络累计+服务端速率/磁盘用量（数据目录卷+根卷）/温度（Linux hwmon best-effort）/容器 cgroup 限额视图 | gopsutil v4 只读采样 + cgroup v2/v1 sysfs 直读 | P/S/D | P0/P1（已实现） | **宿主机视角**；容器内为内核 `/proc` 视角并在页面披露，cgroup 限额单列（D20） |
 | 服务 | HTTP QPS、错误率（非 2xx/total）、耗时分位 | `unicore_http_*`（既有 Registry） | P/S | P0（desktop 不适用） | 分位桶下探至 0.25ms（本地 API 亚毫秒级，粗桶会让 P95 虚高到首桶边缘）；分位插值与 Prometheus 语义一致 |
 | 服务 | 数据库连接池 open/in_use/idle/wait | `sql.DBStats`（既有 `unicore_db_*` 同源） | P/S/D | P0 | — |
-| 服务 | 对象存储位置状态 | storage test 的只读轻量版（B 类扩展） | P | P1（已实现：手动探活 + 缓存，`adminMonitorStorageProbe`） | standalone/desktop 无文件服务 → 不装配 |
+| 服务 | 对象存储位置状态 | storage test 的只读轻量版（B 类扩展） | P | P1（已实现：手动探活 + 缓存，`ProbeStorage`） | standalone/desktop 无文件服务 → 不装配 |
 | 服务 | 后台任务健康：调度任务 last_status/next_run/最近失败 + 失败任务最近 3 条运行记录（读 `unicore_scheduled_jobs`、`unicore_task_runs`）；standalone 无常驻任务注册表 → 不适用 | scheduler 只读（`TaskRuns`） | P/S | P1（已实现） | 只读关联，不做管理操作 |
 | 事件 | 生命周期（启动）、数据库/任务健康翻转、存储探活失败、（P2）告警触发/恢复 | 进程内环形事件缓冲（容量 200，仅内存，重启即清）；快照拉取时顺手检测翻转 | P/S | P1（已实现，两形态事件页）/P2（告警） | 与审计/日志严格区分（第 7 节） |
 | 集成 | `/metrics` 外部抓取（现状）；OTel 评估 | observability（现状） | P/S | P2 | 唯一指标出口，本功能不改其语义 |
@@ -187,7 +187,7 @@ internal/monitor（新包：快照模型 + 聚合服务，进程内、无状态 
 - **无第二套 X**：不建第二权限体系（复用 superAdmin 保留集 + local access）、第二通知系统（P2 复用渠道）、第二日志/指标系统（同 Registry 同源）、配置中心（如需开关走 SettingDefinition，platform 组）。
 - **拉取优先**：P0/P1 无后台采集器、无定时快照任务；页面打开时按需 Snapshot。P1 事件缓冲由既有运行路径**顺手投递**（错误发生处 append），非独立轮询。P2 若引入周期采样（趋势），频率与开销需过性能评估（D21 关联）。
 - **性能预算**：Snapshot 生成目标 < 50ms（不含存储远程探活；探活只取缓存/上次结果，按需手动刷新）——避免监控自身成为负载。
-- **探活边界（P1 评审确认）**：只读快照从不触发探活；`adminMonitorStorageProbe` 是监控面**唯一写路径**——复用 files 服务轻量校验（写入并清理一个随机键临时校验对象 + 清理任务表两行到期占位记录，失败由 defer 清理、到期由既有清理任务兜底，残留对象键随机且内容无害）；同位置探活按位置串行化；快照期不执行任何探活。
+- **探活边界（P1 评审确认）**：只读快照从不触发探活；存储探活（设计名 `adminMonitorStorageProbe`，实现为 `internal/monitor` 的 `ProbeStorage` 与 `internal/adapter/http/monitor.go` 探活 handler）是监控面**唯一写路径**——复用 files 服务轻量校验（写入并清理一个随机键临时校验对象 + 清理任务表两行到期占位记录，失败由 defer 清理、到期由既有清理任务兜底，残留对象键随机且内容无害）；同位置探活按位置串行化；快照期不执行任何探活。
 - **快照形态字段**：`profile` 每次快照惰性读取当前安装形态——server 装配先于安装，静态值会把「安装前的默认形态」永远报给平台实例（2026-11-11 评审修复，e2e 断言锚定）。
 - **权限纵深**：平台侧「契约 superAdmin + 中间件 + handler 自查」三层（形态规范 §4.4 分层）；单机侧 local access + 只读 + 脱敏（D19 定强度）；桌面桥天然无网络面。
 - **环境差异**：进程指标跨平台由 Go runtime 保证；宿主指标逐项 best-effort，采样失败即整体 `available=false` 时不渲染硬件卡片；CPU 使用率为相邻快照差值（首次为开机均值）；容器内读数为内核 `/proc` 视角（可能高于 cgroup 限额）并在页面披露（D20）；桌面无 HTTP 卡但同享宿主机与 Runtime 卡。
@@ -256,7 +256,7 @@ internal/monitor（新包：快照模型 + 聚合服务，进程内、无状态 
 | 来源类别 | 事件 | 机制 | 漏记窗口 |
 | --- | --- | --- | --- |
 | 源头直接投递 | 生命周期（实例启动）；定时任务失败/恢复（平台） | 装配处 append；调度器完成钩子（`Scheduler.OnResult` → `TaskEventTracker`，含失败记忆，防重复投递） | 无——任务完成即记录，与监控页面是否打开无关 |
-| 主动探测产生 | 对象存储探活失败 | 仅 `adminMonitorStorageProbe` 手动触发 | 探测即记录，无漏记 |
+| 主动探测产生 | 对象存储探活失败 | 仅存储探活（`ProbeStorage`）手动触发 | 探测即记录，无漏记 |
 | 快照观察产生 | 数据库健康翻转 | `Service.Snapshot` 对比上次探活结果 | **仅监控页面被拉取期间**；无人查看时的翻转不产生事件 |
 
 数据库健康无既有周期检查源（`/health/ready` 为请求时按需探活），按维护者约束不引入全局轮询——快照观察的局限在事件页定位说明中如实声明。standalone/desktop 无任务注册表与文件服务，相应来源天然不适用；两载体的生命周期事件语义一致（装配后记录启动）。

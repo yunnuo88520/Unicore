@@ -120,3 +120,23 @@ it('native uploads resume bounded chunks and save through the system bridge',asy
  const stop=new AbortController();stop.abort();await expect(client.files.uploadFile(file,{signal:stop.signal})).rejects.toMatchObject({code:'REQUEST_CANCELLED'});
  expect(bridge.ReceiveFilePart).toHaveBeenCalledTimes(1);
 });
+
+it('native inbox matches HTTP pagination and errors, and releases its event listener', async () => {
+ const data={items:[],unread:0,total:23,page:2,page_size:20};
+ const ok={code:'OK',request_id:'native-inbox',data};
+ const bridge={Bootstrap:vi.fn(),Execute:vi.fn(),Inbox:vi.fn().mockResolvedValue(ok),ReadInbox:vi.fn().mockResolvedValue(ok),ReadAllInbox:vi.fn().mockResolvedValue(ok)};
+ const cancel=vi.fn();let publish:(type:string)=>void=()=>{};
+ const native=new WailsTransport(()=>bridge,listener=>{publish=listener;return cancel;});
+ const fetcher=vi.fn().mockResolvedValue(new Response(JSON.stringify(ok)));
+ const http=new HttpTransport('',fetcher);
+ expect(await native.notifications.inbox(2,20)).toEqual(await http.notifications.inbox(2,20));
+ expect(bridge.Inbox).toHaveBeenCalledWith(2,20);
+ expect(fetcher.mock.calls[0][0]).toBe('/api/v1/inbox?page=2&page_size=20');
+ await native.notifications.readInbox('message-1');await native.notifications.readAllInbox();
+ expect(bridge.ReadInbox).toHaveBeenCalledWith('message-1');
+ const changed=vi.fn();const stop=native.notifications.subscribeEvents(changed);publish('inbox.new');
+ expect(changed).toHaveBeenCalledWith('inbox.new');stop();expect(cancel).toHaveBeenCalledOnce();
+ bridge.Inbox.mockResolvedValue({code:'INVALID_INPUT',request_id:'invalid-page',message:'Invalid'});
+ await expect(native.notifications.inbox(0,20)).rejects.toMatchObject({code:'INVALID_INPUT',requestId:'invalid-page'});
+ await expect(new WailsTransport(()=>({Bootstrap:vi.fn(),Execute:vi.fn()})).notifications.inbox()).rejects.toMatchObject({code:'NOT_AVAILABLE'});
+});

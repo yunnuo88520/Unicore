@@ -126,18 +126,38 @@
           "files": {
             "mysql": {
               "path": "platform/mysql/0001_initial.sql",
-              "bytes": 16828,
-              "checksum": "fb133cfbd3be5e4d346db3f0feedd785342ee80b68621bd0eda81b0f946489f1"
+              "bytes": 22582,
+              "checksum": "1539c0ca47977e2eda70a7f9ca56ddc01b909a53c58fd59baa24e6a42975e8f3"
             },
             "postgres": {
               "path": "platform/postgres/0001_initial.sql",
-              "bytes": 16209,
-              "checksum": "d6bd60b9ba5c9ef559b5f83b456a6e07ee029b4237e8b46c8444028b994d7080"
+              "bytes": 22771,
+              "checksum": "c041ab3b97fe7a64e12b9394ab34215a1931f5f4290ace0c621b46ce0d6b4b78"
             },
             "sqlite": {
               "path": "platform/sqlite/0001_initial.sql",
-              "bytes": 12012,
-              "checksum": "319bbc6a9f7d0408c72bcdb4e911359b85ae8e6640787a4dea80ad928b9bcd5b"
+              "bytes": 17444,
+              "checksum": "b480d584a15e2650553ba339e879a191e9f7c7f5a7f11fb639fb4415d49bd5f8"
+            }
+          }
+        },
+        {
+          "version": 2,
+          "files": {
+            "mysql": {
+              "path": "platform/mysql/0002_inbox_dedupe.sql",
+              "bytes": 1344,
+              "checksum": "e45c9dd9475ab370a462328650e037f32d26126f3698d7f178a9c79297c3f105"
+            },
+            "postgres": {
+              "path": "platform/postgres/0002_inbox_dedupe.sql",
+              "bytes": 1026,
+              "checksum": "a4d08d1f663dc35cd655c4f4c54a0eca8dcd01734c5398607bbe89f069d8cc9b"
+            },
+            "sqlite": {
+              "path": "platform/sqlite/0002_inbox_dedupe.sql",
+              "bytes": 1084,
+              "checksum": "db0b150217c4074aec61319b9dc1d808d36d04cee561527113fcfc8e1803b89f"
             }
           }
         }
@@ -158,17 +178,20 @@
       ],
       "namespaces": [
         "core",
-        "module.notes"
+        "module.notes",
+        "platform"
       ],
       "order": [
         "core",
-        "module.notes"
+        "module.notes",
+        "platform"
       ],
       "levels": {
         "core": 1,
-        "module.notes": 1
+        "module.notes": 1,
+        "platform": 2
       },
-      "schema_fingerprint": "0e57a2d80df2feed35da1c04acb20d518653af05f0b4f4580b06af7e5c4a7133"
+      "schema_fingerprint": "cf4cc3c85151228fb23f12e919e8e9d339baf54f8599e049a355db7418941a40"
     },
     "web-platform": {
       "dialects": [
@@ -189,9 +212,9 @@
       "levels": {
         "core": 1,
         "module.notes": 1,
-        "platform": 1
+        "platform": 2
       },
-      "schema_fingerprint": "d5a03018c1a0095eecefc0658336d827addd5f040ff3b3f504995362ee1a29dc"
+      "schema_fingerprint": "f4cfa02f39320fb284f2d5e525c7d23b0e2df7566f44f25a95df3ece5cd23053"
     },
     "web-standalone": {
       "dialects": [
@@ -201,17 +224,20 @@
       ],
       "namespaces": [
         "core",
-        "module.notes"
+        "module.notes",
+        "platform"
       ],
       "order": [
         "core",
-        "module.notes"
+        "module.notes",
+        "platform"
       ],
       "levels": {
         "core": 1,
-        "module.notes": 1
+        "module.notes": 1,
+        "platform": 2
       },
-      "schema_fingerprint": "3836cfc8f3642e4410c12b8b6d4f3d809d0385a067741fd45a91aa697c4c1cf5"
+      "schema_fingerprint": "f4cfa02f39320fb284f2d5e525c7d23b0e2df7566f44f25a95df3ece5cd23053"
     }
   }
 }

@@ -1,0 +1,15 @@
+<!-- Author: yunnuo <ymz@ebox.vip> -->
+<!-- Drag-to-install backdrop for the macOS DMG; {{APP_NAME}} is substituted at packaging time, rasterized with qlmanage (square 660x660) and center-cropped by sips to the middle 400 band. Icon slots sit at {160,205} and {500,205} in Finder coordinates. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="660" height="660" viewBox="0 0 660 660">
+  <rect width="660" height="660" fill="#f7f7f7"/>
+  <g transform="translate(0,130)">
+    <g fill="#6662ec">
+      <path d="M316 96v30c0 12.5 8.3 21 21 21s21-8.5 21-21V96h-12.5v30c0 5.6-2.8 8.5-8.5 8.5s-8.5-2.9-8.5-8.5V96z"/>
+      <path d="m337 88 8.5 8.5-8.5 8.5-8.5-8.5z"/>
+    </g>
+    <text x="330" y="166" font-family="PingFang SC, Helvetica Neue, Helvetica, Arial, sans-serif" font-size="34" font-weight="600" fill="#1d1d1f" text-anchor="middle">{{APP_NAME}}</text>
+    <line x1="256" y1="205" x2="386" y2="205" stroke="#b9b9be" stroke-width="6" stroke-linecap="round"/>
+    <path d="M410 205l-22-13v26z" fill="#b9b9be"/>
+    <text x="330" y="318" font-family="PingFang SC, Helvetica Neue, Helvetica, Arial, sans-serif" font-size="19" fill="#86868b" text-anchor="middle">拖动安装到 Applications · Drag to Applications to install</text>
+  </g>
+</svg>

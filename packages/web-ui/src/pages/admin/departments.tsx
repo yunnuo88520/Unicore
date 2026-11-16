@@ -2,13 +2,13 @@
 // Description: Department tree console: create, rename, reorder and delete nodes with hierarchy guides and guarded deletion.
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Network, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Network, Pencil, Plus, Trash2 } from 'lucide-react';
 import { AppError } from '@unicore/sdk';
 import type { Bootstrap, Department, DepartmentSaveInput, WebClient } from '@unicore/sdk';
 import { t, useLocale } from '../../i18n';
 import { buildDepartmentTree, departmentSiblings, flattenDepartmentTree, invalidateAfter, useDepartmentsQuery, type DepartmentNode } from '../../queries';
 import { usePermissions } from '../../permissions';
-import { Button, Card, CardContent, ConfirmDialog, Input, Modal, NativeSelect, useMessage } from '@unicore/ui';
+import { Alert, Button, Card, CardContent, ConfirmDialog, Input, Modal, SimpleSelect, PageHeader, useMessage, selectOptions } from '@unicore/ui';
 import type { PageProps } from '../../router';
 
 export function AdminDepartmentsPage({ client, metadata }: PageProps) {
@@ -90,7 +90,7 @@ function DepartmentPanel({ web, metadata }: { web: WebClient; metadata: Bootstra
       const siblings = departmentSiblings(tree, node.id);
       const index = siblings.findIndex(item => item.id === node.id);
       return <li key={node.id} className="min-w-0">
-        <div className={`flex items-center gap-1 rounded-md px-1.5 py-1 ${selected ? 'bg-primary-soft' : 'hover:bg-surface-alt'}`}>
+        <div className={`flex items-center gap-1 rounded-md px-1.5 py-1 ${selected ? 'bg-primary-soft' : 'hover:bg-surface-hover'}`}>
           {node.children.length
             ? <Button variant="ghost" size="icon" className="size-5 shrink-0" aria-label={expanded ? t('收起 {{name}}', { name: node.name }) : t('展开 {{name}}', { name: node.name })}
                 aria-expanded={expanded} onClick={() => toggle(node.id, expanded)}>
@@ -117,19 +117,12 @@ function DepartmentPanel({ web, metadata }: { web: WebClient; metadata: Bootstra
     })}
   </ul>;
 
-  return <Card>
+  return <div className="flex min-w-0 flex-col gap-6">
+      <PageHeader title={t('部门管理')} description={t('维护部门层级，为角色的数据范围提供组织依据。')}
+        actions={can('createDepartment') && <Button onClick={() => setCreating('root')}><Plus size={15} />{t('新建根部门')}</Button>} />
+    <Card>
     <CardContent className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-md font-semibold text-ink">{t('部门管理')}</h2>
-          <p className="mt-0.5 text-xs text-muted">{t('维护部门层级，为角色的数据范围提供组织依据。')}</p>
-        </div>
-        {can('createDepartment') && <Button onClick={() => setCreating('root')}><Plus size={15} />{t('新建根部门')}</Button>}
-      </div>
-      {list.isError && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
-        <span>{t(list.error.message)}</span>
-        <Button variant="secondary" size="sm" onClick={() => void list.refetch()}><RotateCcw size={13} />{t('重试')}</Button>
-      </div>}
+      {list.isError && <Alert action={<Button variant="secondary" size="sm" onClick={() => void list.refetch()}>{t('重试')}</Button>}>{t(list.error.message)}</Alert>}
       <div className="rounded-lg border border-line p-2" aria-busy={list.isFetching}>
         {list.isPending
           ? <p className="py-8 text-center text-sm text-muted" role="status">{t('正在加载部门…')}</p>
@@ -158,7 +151,8 @@ function DepartmentPanel({ web, metadata }: { web: WebClient; metadata: Bootstra
       description={t('确定删除部门「{{name}}」？删除后不可恢复。', { name: removing.name })}
       confirmLabel={t('确认删除')} cancelLabel={t('取消')} pending={remove.isPending}
       onConfirm={() => remove.mutate(removing)} onCancel={() => setRemoving(null)} />}
-  </Card>;
+    </Card>
+  </div>;
 }
 
 /** Rename plus parent move in one dialog; self and descendants are excluded so
@@ -191,19 +185,19 @@ function RenameDialog({ department, items, pending, onSubmit, onClose }: {
   return <Modal title={t('重命名部门')} onClose={onClose} pending={pending}>
     <form className="flex flex-col gap-3" onSubmit={event => { event.preventDefault(); submit(); }}>
       <p className="text-xs text-muted">{t('调整「{{name}}」的名称与上级部门；同层排序保持不变。', { name: department.name })}</p>
-      <label className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium text-ink">{t('部门名称')}</span>
-        <Input required maxLength={64} autoComplete="off" value={name} aria-invalid={!!error}
+      <div className="flex flex-col gap-1.5">
+
+        <Input label={t('部门名称')} required maxLength={64} autoComplete="off" value={name} aria-invalid={!!error}
           placeholder={t('例如 研发部')} autoFocus
           onChange={event => { setName(event.target.value); setError(''); }} />
         {error && <p role="alert" className="text-xs text-danger">{error}</p>}
-      </label>
+      </div>
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-medium text-ink">{t('上级部门')}</span>
-        <NativeSelect aria-label={t('上级部门')} value={parentId} onChange={event => setParentId(event.target.value)}>
+        <SimpleSelect aria-label={t('上级部门')} value={parentId} onChange={event => setParentId(event)} options={selectOptions(<>
           <option value="">{t('作为根部门')}</option>
           {options.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
-        </NativeSelect>
+        </>)} />
         <small className="text-xs text-muted">{t('不能选择本部门或其下级部门作为上级；调整后沿用原排序。')}</small>
       </label>
       <div className="flex justify-end gap-2">
@@ -231,13 +225,13 @@ function DepartmentNameDialog({ title, description, initialName = '', submitLabe
   return <Modal title={title} onClose={onClose} pending={pending}>
     <form className="flex flex-col gap-3" onSubmit={event => { event.preventDefault(); submit(); }}>
       <p className="text-xs text-muted">{description}</p>
-      <label className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium text-ink">{t('部门名称')}</span>
-        <Input required maxLength={64} autoComplete="off" value={name} aria-invalid={!!error}
+      <div className="flex flex-col gap-1.5">
+
+        <Input label={t('部门名称')} required maxLength={64} autoComplete="off" value={name} aria-invalid={!!error}
           placeholder={t('例如 研发部')} autoFocus
           onChange={event => { setName(event.target.value); setError(''); }} />
         {error && <p role="alert" className="text-xs text-danger">{error}</p>}
-      </label>
+      </div>
       <div className="flex justify-end gap-2">
         <Button variant="secondary" disabled={pending} onClick={onClose}>{t('取消')}</Button>
         <Button type="submit" pending={pending}>{submitLabel}</Button>

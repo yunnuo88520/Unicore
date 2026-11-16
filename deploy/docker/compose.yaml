@@ -11,6 +11,7 @@ services:
         BUILD_TIME: ${UNICORE_BUILD_TIME:-unknown}
         FEATURE_LICENSE: ${FEATURE_LICENSE:-false}
         FEATURE_UPDATER: ${FEATURE_UPDATER:-false}
+        FEATURE_NOTES: ${FEATURE_NOTES:-true}
         GOPROXY: ${GOPROXY:-https://proxy.golang.org,direct}
         GO_IMAGE: ${GO_IMAGE:-golang:1.26.11-bookworm}
         NODE_IMAGE: ${NODE_IMAGE:-node:22-bookworm-slim}

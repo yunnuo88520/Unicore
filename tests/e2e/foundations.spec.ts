@@ -25,7 +25,7 @@ test.setTimeout(120_000);test('cross-tab logout/account switch, field focus and 
   await page.getByRole('button',{name:'新增用户',exact:true}).click();
   await page.getByLabel('账号',{exact:true}).fill('bad!');
   await page.getByLabel('邮箱',{exact:true}).fill('member@example.test');
-  await page.getByLabel('初始密码').fill('test-password-strong');
+  await page.getByLabel('初始密码', { exact: true }).fill('test-password-strong');
   await page.getByRole('button',{name:'创建用户',exact:true}).click();
   await expect(page.getByRole('alert').filter({ hasText: '格式不正确' })).toBeVisible();
   await expect(page.getByLabel('账号',{exact:true})).toBeFocused();
@@ -37,18 +37,18 @@ test.setTimeout(120_000);test('cross-tab logout/account switch, field focus and 
   const second=await context.newPage();await second.goto(`${instance.url}/admin/users`);
   await expect(second.getByRole('cell',{name:'member',exact:true})).toBeVisible();
   await second.getByRole('button',{name:'新增用户',exact:true}).click();
-  await second.getByLabel('初始密码').fill('private-unsent-draft');
+  await second.getByLabel('初始密码', { exact: true }).fill('private-unsent-draft');
   await page.getByRole('button',{name:'账号菜单',exact:true}).click();
   await page.getByRole('menuitem',{name:'退出登录',exact:true}).click();
   await expect(page.getByRole('heading',{name:'管理员登录 · Unicore',exact:true})).toBeVisible();
   await expect(second.getByRole('heading',{name:'管理员登录 · Unicore',exact:true})).toBeVisible();
   await expect(second.getByRole('cell',{name:'member',exact:true})).toHaveCount(0);
   await capture(second,info,'foundation-cross-tab-logout');
-  await page.goto(instance.url);await second.goto(`${instance.url}/users`);
+  await page.goto(`${instance.url}/login`);await second.goto(`${instance.url}/users`);
   await login(page,'member');
   await expect(second.getByText('没有访问权限',{exact:true})).toBeVisible();
   await expect(second.getByRole('button',{name:'新增用户',exact:true})).toHaveCount(0);
-  await expect(second.getByLabel('初始密码')).toHaveCount(0);
+  await expect(second.getByLabel('初始密码', { exact: true })).toHaveCount(0);
   await capture(second,info,'foundation-account-guard');
   // Open the action before revocation: navigation itself may revalidate and expire the session.
   await page.bringToFront();await nav(page,'我的笔记');
@@ -90,7 +90,7 @@ test.setTimeout(90_000);test('unknown routes and generated API reference follow 
   await expect(page.getByRole('button',{name:'搜索',exact:true})).toBeVisible();
   const contract=page.waitForResponse(response=>new URL(response.url()).pathname==='/openapi.json'&&response.status()===200);
   await page.goto(`${instance.url}/docs/api`);
-  await expect(page.getByRole('heading', { name: 'API 文档', exact: true, level: 2 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'API 文档', exact: true, level: 1 })).toBeVisible();
   const document=await(await contract).json();expect(document.openapi).toBe('3.1.0');
   const reference=page.locator('.api-reference');
   await expect(reference).toBeVisible({timeout:30000});

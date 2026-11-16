@@ -34,9 +34,10 @@ func upgradeFixture(s *sqlstore.Store, profile string) map[string]any {
 		}
 		body, e := migrations.Baselines.ReadFile(n.Migrations[0].Files[s.Dialect].Path)
 		must(e)
-		path := fmt.Sprintf("fixture/%s/%s/0002_replay.sql", n.Id, s.Dialect)
+		version := n.Migrations[len(n.Migrations)-1].Version + 1
+		path := fmt.Sprintf("fixture/%s/%s/%04d_replay.sql", n.Id, s.Dialect, version)
 		digest := sha256.Sum256(body)
-		n.Migrations = append(n.Migrations, catalogdata.Migration{Version: 2, Files: map[string]catalogdata.SQLFile{s.Dialect: {Path: path, Checksum: hex.EncodeToString(digest[:])}}})
+		n.Migrations = append(n.Migrations, catalogdata.Migration{Version: version, Files: map[string]catalogdata.SQLFile{s.Dialect: {Path: path, Checksum: hex.EncodeToString(digest[:])}}})
 		sources[path] = body
 	}
 	opts := runner.Options{Dialect: s.Dialect, Profile: profile, Source: func(path string) ([]byte, error) {
@@ -60,9 +61,10 @@ func upgradeFixture(s *sqlstore.Store, profile string) map[string]any {
 		}
 		body := []byte("ALTER TABLE unicore_example_notes ADD COLUMN tutorial_tag VARCHAR(64) NOT NULL DEFAULT '';\n")
 		digest := sha256.Sum256(body)
-		path := "fixture/notes/0003_tag.sql"
+		version := n.Migrations[len(n.Migrations)-1].Version + 1
+		path := fmt.Sprintf("fixture/notes/%04d_tag.sql", version)
 		sources[path] = body
-		n.Migrations = append(n.Migrations, catalogdata.Migration{Version: 3, Files: map[string]catalogdata.SQLFile{s.Dialect: {Path: path, Checksum: hex.EncodeToString(digest[:])}}})
+		n.Migrations = append(n.Migrations, catalogdata.Migration{Version: version, Files: map[string]catalogdata.SQLFile{s.Dialect: {Path: path, Checksum: hex.EncodeToString(digest[:])}}})
 	}
 	must(runner.ApplyDescriptor(ctx, s.DB, next, opts))
 	check(count(s, "SELECT COUNT(*) FROM unicore_example_notes WHERE id='upgrade-fixture' AND body='existing body' AND tutorial_tag='' AND version=1") == 1, "appended migration lost data")

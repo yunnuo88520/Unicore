@@ -1,5 +1,5 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Offline-first history with explicit network checks and independently reverified install requests.
+// Description: Cached history, scheduled and manual checks, and independently reverified install requests.
 package updates
 
 import (
@@ -19,6 +19,87 @@ type Service struct {
 	Current          func() Target
 	Embedded         []Release
 	mu               sync.Mutex
+	checkMu          sync.Mutex
+	inFlight         chan struct{}
+	lastAttempt      time.Time
+}
+
+const CheckInterval = 6 * time.Hour
+
+// RunChecks belongs to the application lifecycle, not to an open browser page.
+// The first minute lets startup settle; cached attempts also throttle restarts
+// and failed channels. Installation always requires a separate Apply request.
+func (s *Service) RunChecks(ctx context.Context) {
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
+	s.runChecks(ctx, ticker.C)
+}
+
+func (s *Service) runChecks(ctx context.Context, ticks <-chan time.Time) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case now, ok := <-ticks:
+			if !ok {
+				return
+			}
+			s.checkScheduled(ctx, now)
+		}
+	}
+}
+
+func (s *Service) checkScheduled(ctx context.Context, now time.Time) bool {
+	if ctx.Err() != nil {
+		return false
+	}
+	s.checkMu.Lock()
+	if !s.checkDue(now) {
+		s.checkMu.Unlock()
+		return false
+	}
+	finished := s.beginCheck(now)
+	s.checkMu.Unlock()
+	defer finished()
+	s.check(ctx, now)
+	return true
+}
+
+// checkDue and beginCheck are called with checkMu held.
+func (s *Service) checkDue(now time.Time) bool {
+	if s.inFlight != nil {
+		return false
+	}
+	if !s.lastAttempt.IsZero() && !s.lastAttempt.After(now) && now.Sub(s.lastAttempt) < CheckInterval {
+		return false
+	}
+	target := s.Current()
+	if target.Profile == "" || target.SchemaFingerprint == "" || busy(s.Installer.Job().Status) {
+		return false
+	}
+	s.mu.Lock()
+	c := s.Cache.Load()
+	s.mu.Unlock()
+	attempt := c.AttemptedAt
+	if attempt == "" {
+		attempt = c.CheckedAt
+	}
+	if last, err := time.Parse(time.RFC3339, attempt); err == nil && !last.After(now) && now.Sub(last) < CheckInterval {
+		return false
+	}
+	return true
+}
+
+func (s *Service) beginCheck(now time.Time) func() {
+	s.lastAttempt = now
+	done := make(chan struct{})
+	s.inFlight = done
+	return func() {
+		s.checkMu.Lock()
+		s.inFlight = nil
+		close(done)
+		s.checkMu.Unlock()
+	}
 }
 
 func (s *Service) Overview(ctx context.Context) contracts.UpdateOverview {
@@ -72,18 +153,43 @@ func busy(status string) bool {
 	return status == "downloading" || status == "preparing" || status == "restarting" || status == "swapping" || status == "awaiting_health" || status == "rolling_back"
 }
 func (s *Service) Check(ctx context.Context) contracts.UpdateOverview {
+	s.checkMu.Lock()
+	if done := s.inFlight; done != nil {
+		s.checkMu.Unlock()
+		// Reuse in-flight discovery instead of queuing another network timeout.
+		select {
+		case <-ctx.Done():
+		case <-done:
+		}
+		return s.Overview(ctx)
+	}
+	now := time.Now()
+	finished := s.beginCheck(now)
+	s.checkMu.Unlock()
+	defer finished()
+	return s.check(ctx, now)
+}
+
+func (s *Service) check(ctx context.Context, now time.Time) contracts.UpdateOverview {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	old := s.Cache.Load()
+	s.mu.Unlock()
 	bounded, cancel := context.WithTimeout(ctx, 12*time.Second)
 	defer cancel()
 	releases, err := s.Provider.Releases(bounded)
+	// Shutdown cancellation must not turn a healthy cached result into an error.
+	if ctx.Err() != nil {
+		return s.Overview(ctx)
+	}
 	if err != nil {
+		old.AttemptedAt = now.UTC().Format(time.RFC3339)
 		old.LastError = "暂时无法连接更新渠道，以下保留内置与已缓存的更新日志"
+		s.mu.Lock()
+		defer s.mu.Unlock()
 		_ = s.Cache.Save(old)
 		return s.overview(old)
 	}
-	c := Catalog{CheckedAt: time.Now().UTC().Format(time.RFC3339), Releases: releases}
+	c := Catalog{CheckedAt: now.UTC().Format(time.RFC3339), AttemptedAt: now.UTC().Format(time.RFC3339), Releases: releases}
 	var latest *Release
 	for i := range releases {
 		r := &releases[i]
@@ -132,6 +238,11 @@ func (s *Service) Check(ctx context.Context) contracts.UpdateOverview {
 			}
 		}
 	}
+	if ctx.Err() != nil {
+		return s.Overview(ctx)
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if err = s.Cache.Save(c); err != nil {
 		c.LastError = "无法保存版本缓存，请检查私有数据目录权限"
 	}

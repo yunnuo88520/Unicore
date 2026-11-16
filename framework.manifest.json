@@ -40,6 +40,11 @@
     "routes": "packages/web-ui/src/routes.ts",
     "router": "packages/web-ui/src/router.tsx",
     "uiPrimitives": "packages/ui/src/index.ts",
+    "uiControls": "packages/ui/src/controls/index.ts",
+    "uiCharts": "packages/ui/src/charts/index.ts",
+    "uiCalendar": "packages/ui/src/calendar/index.ts",
+    "uiComposites": "packages/ui/src/composites/index.ts",
+    "uiDataGrid": "packages/ui/src/data-grid/index.ts",
     "formLayer": "packages/form/src/form.tsx",
     "session": "packages/web-ui/src/session.tsx",
     "migrations": "migrations",
@@ -107,7 +112,11 @@
     "dataScope": "internal/platform/datascope.go",
     "moduleRegistry": "internal/module/manifest.json",
     "modules": "internal/modules",
-    "applicationFrameworkUpgrade": "docs/product/framework-upgrade.md"
+    "applicationFrameworkUpgrade": "docs/product/framework-upgrade.md",
+    "accountSettingsModal": "packages/web-ui/src/account-settings/modal.tsx",
+    "accountTokensPanel": "packages/web-ui/src/account-settings/tokens.tsx",
+    "accessTokensPage": "packages/web-ui/src/pages/admin/access-tokens.tsx",
+    "apiAuthentication": "docs/product/api-authentication.md"
   },
   "commands": {
     "generate": "pnpm generate",
@@ -152,7 +161,9 @@
     "framework-upstream",
     "maintain-framework-docs",
     "release-cross-platform",
-    "security-review"
+    "security-review",
+    "shadcn",
+    "unslop"
   ],
   "surfaces": {
     "client": "apps/web/src/main.tsx",

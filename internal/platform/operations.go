@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/edition"
 	apispec "github.com/yunnuo/unicore/packages/contracts"
 	"sort"
 	"strings"
@@ -49,6 +50,9 @@ func PermissionsAllow(grants []string, required []string, mode string) bool {
 var apiCatalogue = sync.OnceValue(func() []contracts.APIOperation {
 	result := []contracts.APIOperation{}
 	for key, op := range apispec.Operations() {
+		if !edition.Notes && (strings.Contains(key, "/notes")) {
+			continue
+		}
 		parts := strings.SplitN(key, " ", 2)
 		path := parts[1]
 		realm := op.Policy.IdentityRealm

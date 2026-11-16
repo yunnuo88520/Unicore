@@ -24,7 +24,7 @@ Web 部署先按 [从零部署指南](deployment.md) 启动并完成安装。本
 | --- | --- | --- | --- | --- |
 | `--config PATH` | `APP_CONFIG` | 不适用 | 不读取文件 | 显式 YAML/JSON 路径；文件可读且必须合法，传空路径报错 |
 | `--listen ADDRESS` | `APP_LISTEN` | `listen` | `127.0.0.1:3000` | `IP:端口`；容器默认另设 `0.0.0.0:3000`，宿主机限制映射地址 |
-| `--profile PROFILE` | `APP_PROFILE` | `profile` | 未显式指定时使用程序默认 Web 形态 | `web-platform`/`web-standalone`；Web 发行包各自编译默认值，已安装时不能与持久化形态冲突 |
+| `--profile PROFILE` | `APP_PROFILE` | `profile` | 源码构建默认 `web-platform`；发行包使用各自默认形态 | `web-platform`/`web-standalone`；Web 发行包各自编译默认值，已安装时不能与持久化形态冲突 |
 | `--data-dir PATH` | `APP_DATA_DIR` | `data_dir` | `data` | 完整私有数据目录；生产使用绝对路径，Docker 默认 `/data` |
 | `--deployment KIND` | `APP_DEPLOYMENT_KIND` | `deployment` | `development` | `development`/`tar`/`docker`；表示交付介质和更新能力，不决定用户身份形态 |
 | `--log-level LEVEL` | `APP_LOG_LEVEL` | `log_level` | `info` | `debug`/`info`/`warn`/`error` |
@@ -33,7 +33,7 @@ Web 部署先按 [从零部署指南](deployment.md) 启动并完成安装。本
 | `--log-max-age-days DAYS` | `APP_LOG_MAX_AGE_DAYS` | `log_max_age_days` | `0` | 轮转日志保留天数，`0` 永久；平台可在设置页运行时覆盖 |
 | `--log-max-size-mb MB` | `APP_LOG_MAX_SIZE_MB` | `log_max_size_mb` | `10` | 单文件轮转阈值，`1`–`512` |
 | `--log-max-total-mb MB` | `APP_LOG_MAX_TOTAL_MB` | `log_max_total_mb` | `500` | 轮转日志总量上限，`0` 不限，超限先删最早文件 |
-| `--api-docs=true` | `APP_API_DOCS` | `api_docs` | `false` | 配置使用布尔值；开启 `/docs/api` 与 `/openapi.json`，关闭为 404 |
+| `--api-docs=true` | `APP_API_DOCS` | `api_docs` | `false` | 配置使用布尔值；开启 `/api-docs` 与 `/openapi.json`，`/docs/api` 为兼容跳转入口 |
 | `--monitor-listen ADDRESS` | `APP_MONITOR_LISTEN` | `monitor_listen` | 空，关闭 | 独立 `/metrics`；只能填字面回环 IP，例如 `127.0.0.1:9090`，不能用 `0.0.0.0`/`localhost` |
 | `--shutdown-timeout DURATION` | `APP_SHUTDOWN_TIMEOUT` | `shutdown_timeout` | `5s` | `100ms`–`2m`；SIGTERM 后在途请求排空期限；supervisor 停止等待需相应留余量 |
 | `--readiness-timeout DURATION` | `APP_READINESS_TIMEOUT` | `readiness_timeout` | `2s` | `100ms`–`10s`；数据库等依赖就绪探测的超时 |
@@ -154,7 +154,7 @@ SQLite 不填写上述外部连接字段/DSN，固定使用 data 目录中的 `u
 | --- | --- | --- |
 | `site.name` | 站点名称，默认产品名称 | 1–64 字符，不为空；标题/邮件等使用 |
 | `site.description` | 默认“一份核心，无限可能” | 站点介绍，最多 240 字符 |
-| `site.home_enabled` | 启用产品首页，`false` | 开启后未登录访问站点根路径跳转到 `/home` 产品首页，已登录用户直接进入工作空间；关闭时 `/home` 回落到登录页 |
+| `site.home_enabled` | 启用产品首页，`true` | 访客访问根路径进入 `/home`，登录后根路径仍为工作空间；所有账号均可直接访问 `/home`，账号菜单提供返回入口；关闭后访客进入登录页、已登录访问 `/home` 返回工作空间 |
 | `site.base_url` | 站点地址，默认空时回退安装地址 | http(s) origin，最多 2048 字符；不带凭据、query、fragment 或子路径；用于邮件链接，不修改 Cookie/OIDC origin |
 | `site.admin_email` | 管理员邮箱，默认空 | 系统告警/通知接收地址配置；不等于本人登录邮箱，不自动创建外部监控告警集成 |
 | `site.copyright` | 默认 `Crafted by Yunnuo` | 页脚版权，最多 160 字符 |
@@ -163,8 +163,10 @@ SQLite 不填写上述外部连接字段/DSN，固定使用 data 目录中的 `u
 | `site.police_number` | 公安备案号，空 | 最多 80 字符 |
 | `site.footer_html` | 自定义页脚 HTML，空 | 最多 4000 字符，按安全标签/链接白名单验证，不支持脚本、任意嵌入或模板变量 |
 | `branding.logo` / `branding.logo_dark` / `branding.favicon` | 默认产品素材 | 通过品牌上传控件管理 file_id 引用，不手填磁盘路径或私有云 URL |
+| `branding.accent` | 默认主题色 | 品牌主色（#RRGGBB），与三张图同为品牌专用 API 托管，不经通用设置 PATCH |
 | `maintenance.enabled` | 维护模式，`false` | 普通用户看到维护状态，管理员仍能进后台关闭；不替代停进程备份 |
 | `maintenance.message` | 维护提示，空 | 最多 1000 字符；未填显示默认提示 |
+| `logging.retention_days` | `30` | 日志保留天数，0–36500，0=永久；保存立即触发清理。仅 web-platform 装配；单机/桌面改用 APP_LOG_MAX_AGE_DAYS 重启生效 |
 
 ### 登录、注册和双重验证
 
@@ -259,11 +261,13 @@ https://app.example.com/api/v1/admin/auth/oidc/callback
 
 文件位置、默认存储策略、单文件/分片限制另见 [存储指南](storage.md)；更新渠道与可信签名见 [更新指南](updates.md)。它们不是将同名任意配置追加到启动配置。
 
+另有 `mcp.*` 设置组（MCP 接入开关、PAT、限流/并发/超时、保留天数、OAuth 与 DCR 等 14 个 key），由 AI 管理专用 API 托管（`ManagedGroup("mcp")`），不经通用设置 API 读写，服务默认关闭；启用和授权步骤见 [MCP 接入](mcp.md)。
+
 ## 6. Compose 变量与应用环境的区别
 
 | Compose 变量 | 本文示例值 | 谁读取 |
 | --- | --- | --- |
-| `UNICORE_IMAGE` | `unicore:0.1.2` | Docker Compose 选镜像；不等于应用版本开关 |
+| `UNICORE_IMAGE` | 仓库 compose 默认 `unicore:local`；`make compose-up` 使用 `unicore:<VERSION>` | Docker Compose 选镜像；不等于应用版本开关 |
 | `UNICORE_PORT` | `3000` | Compose 的宿主端口映射；容器内仍为 3000 |
 | `POSTGRES_PASSWORD` | 自己的随机口令 | 示例 db 容器初始化；不会自动更新已存在数据库用户或应用安装记录 |
 | `UNICORE_VERSION` | 源码 `VERSION` | 仅仓库自带的构建型 Compose 需要，本文独立 Compose 不需要 |
@@ -307,6 +311,34 @@ Windows GUI 无控制台，启动错误显示原生错误弹窗；桌面数据�
 
 邮件与渠道独立，未配置 SMTP 也可使用企业微信 / Webhook。自动事件需要系统总开关、对应事件开关及相应渠道配置；测试发送不会自动开启业务通知。用户邮件发给事件所属普通用户，管理员邮件发给 `site.admin_email`。
 
+
+## 开发者：扩展业务设置
+
+业务模块通过 `module.Module.Settings` 提交 `settings.GroupDefinition`。组合根在 `install.Open` / `local.Open` **之前**调用 `module.Register`，启用模块的定义自动登记到 `SettingDefinition`、安装默认值与设置 API；Platform 管理后台的基础设置自动增加业务标签，无需维护前端分组数组。
+
+```go
+// Author: yunnuo <ymz@ebox.vip>
+// 模块描述符中的字段；其余 Slug、Edition、Enabled 等按模块定义填写。
+Settings: []settings.GroupDefinition{{
+    ID: "reports", Label: "报表", LabelEN: "Reports", Order: 100,
+    Description: "报表生成策略。", DescriptionEN: "Report generation policy.",
+    Fields: []settings.FieldDefinition{
+        {Key: "reports.enabled", Type: "boolean", Label: "启用报表", LabelEN: "Enable reports", Default: "true"},
+        {Key: "reports.format", Type: "string", Label: "文件格式", LabelEN: "File format", Default: "pdf",
+            Options: []contracts.SettingOption{
+                {Value: "pdf", Label: "PDF", LabelEn: "PDF"},
+                {Value: "csv", Label: "表格", LabelEn: "CSV"},
+            }},
+        {Key: "reports.token", Type: "string", Label: "服务密钥", LabelEN: "Service token", Sensitive: true},
+    },
+}},
+```
+
+这些类型分别来自 `internal/settings` 与 `internal/contracts`。没有模块描述符的应用可在同一启动边界直接调用 `settings.Register(groups...)` 并处理错误；两种入口不要重复登记同一分组。分组 ID 全局唯一，键必须以 `分组ID.` 开头，不能覆盖内置键或标签。中文与英文标签必填，说明成对提供；分组按 `Order`、ID 排序，字段沿用声明顺序。重复分组/键、非法默认值和选项会在启动阶段拒绝。
+
+字段支持 `string`、`boolean`、`integer`，值仍以字符串传输；可用 `Validate func(string) bool` 追加业务限制。非敏感字符串可设 `Multiline`；`Options` 提供双语选择项。敏感字段仅支持字符串，默认值必须为空，沿用加密、掩码、留空保留与显式清除。业务 adapter 经注入的 `settings.Service` 读取值或 `settings.Bind` 结构化绑定，再通过业务 port 提供给 usecase；不要让领域层读取全局注册表或数据库。
+
+此入口扩展 **Platform 实例级全局设置**，沿用管理员 `settings:read/write`、superAdmin 写入边界、CSRF 和审计。它不增加租户、部门、个人作用域，也不向 bootstrap 公开业务值。Standalone 两载体没有实例设置页，API 返回空设置；设备外观继续使用客户端偏好。新增键沿用现有设置表，无需迁移；移除模块不会自动删除已保存数据。修改已发布默认值、校验或密钥含义时，应另行评估存量兼容与恢复。
 
 ## Web 管理命令
 

@@ -18,6 +18,10 @@ test('OTA signing binds trusted publisher, target and exact artifact bytes',()=>
   const m=signUpdates(dir,{root,privateKey:key});assert.equal(m.artifacts[0].size,bytes.length);assert.equal(m.application_id,'test.unicore.app');
   const signed=readFileSync(join(dir,'update-manifest.json')),sig=JSON.parse(readFileSync(join(dir,'update-manifest.sig'),'utf8'));
   assert.equal(verify(null,signed,pair.publicKey,Buffer.from(sig.signature,'base64')),true);
+  assert.equal(m.artifacts[0].notes_disabled, undefined);
+  source.artifacts[0].features.notes = false;
+  writeFileSync(join(dir,'manifest.json'),JSON.stringify(source));
+  assert.equal(signUpdates(dir,{root,privateKey:key}).artifacts[0].notes_disabled,true);
   writeFileSync(join(dir,'fixture.tar.gz'),'altered');assert.throws(()=>signUpdates(dir,{root,privateKey:key}),/checksum/);
  }finally{rmSync(root,{recursive:true,force:true});}
 });

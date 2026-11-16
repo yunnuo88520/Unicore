@@ -97,20 +97,24 @@ async function exercise(mode,profile) {
     await page.goto(url);await expect(page).toHaveURL(/\/install$/);
     for(const width of [1440,375]) {await page.setViewportSize({width,height:1000});await page.screenshot({path:join(evidence,`${mode}-install-${width}.png`),fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}
     await page.setViewportSize({width:1440,height:1000});
-    await page.getByLabel('一次性安装凭据').fill(token);
+    // The shared password input renders a "show credential" toggle whose aria-label
+    // contains the field caption, so target the textbox role instead of the label.
+    await page.getByRole('textbox', { name: '一次性安装凭据' }).fill(token);
 
     await page.getByRole('button',{name:'下一步'}).click();
-    // Archives carry a profile default; the generic Docker image starts standalone and allows choosing either mode.
-    const initialProfile=mode.startsWith('tar')?profile:'web-standalone';
+    // Archives embed their own profile default; source-built images (docker/compose)
+    // follow the source default, which is the platform profile since 18f6dd1.
+    const initialProfile=mode.startsWith('tar')?profile:'web-platform';
     expect((await json('/api/v1/install/status')).profile).toBe(initialProfile);
     await expect(page.getByRole('radio',{name:initialProfile==='web-platform'?/多用户平台/:/单机模式/})).toBeChecked();
     await page.getByRole('radio',{name:profile==='web-platform'?/多用户平台/:/单机模式/}).check();
     await page.getByRole('button',{name:'下一步'}).click();
+    // Form choices stay dropdowns regardless of the option count.
     await page.getByRole('combobox',{name:'数据库类型'}).click();
     await page.getByRole('option',{name:/SQLite/}).click();
     await page.getByRole('button',{name:'测试连接'}).click();await expect(page.getByText('连接测试成功')).toBeVisible();
     await page.getByRole('button',{name:'下一步'}).click();
-    if(profile==='web-platform') {await page.getByLabel('站点名称',{exact:true}).fill(`部署验收 ${mode}`);await page.getByLabel('管理员账号').fill('admin');await page.getByLabel('管理员邮箱').fill('admin@example.test');await page.getByLabel('管理员密码').fill('Admin@123456');await page.getByRole('button',{name:'下一步'}).click();}
+    if(profile==='web-platform') {await page.getByLabel('站点名称',{exact:true}).fill(`部署验收 ${mode}`);await page.getByLabel('管理员账号').fill('admin');await page.getByLabel('管理员邮箱').fill('admin@example.test');await page.getByRole('textbox',{name:'管理员密码'}).fill('Admin@123456');await page.getByRole('button',{name:'下一步'}).click();}
     await page.getByRole('button',{name:'完成安装'}).click();await expect(page.getByRole('heading',{name:'安装完成',exact:true})).toBeVisible();
     await page.getByRole('button',{name:'进入工作空间'}).click();
     // The click starts a full document navigation for the administrator entry.

@@ -14,6 +14,11 @@ export function roleDisplayName(roleId: string, roleNames?: readonly string[] | 
   return fromCatalogue && fromCatalogue !== roleId ? fromCatalogue : roleId;
 }
 
+// Catalogue rows and option chips share the same builtin/custom name rules.
+export function roleDisplayLabel(role: { id: string; name: string }): string {
+  return roleDisplayName(role.id, [role.name], 0);
+}
+
 // One label per role id in payload order; ids map through the parallel name
 // list so deleted catalogue rows degrade to the raw id instead of vanishing.
 export function roleDisplayLabels(roles: readonly string[], roleNames?: readonly string[] | null): string[] {

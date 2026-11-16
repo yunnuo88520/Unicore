@@ -6,8 +6,9 @@ import { ListChecks, Play } from 'lucide-react';
 import { AppError } from '@unicore/sdk';
 import type { TaskEntry, WebClient } from '@unicore/sdk';
 import { AppControllerField, AppField, AppForm, useAppForm } from '@unicore/form';
-import { Badge, Button, Card, CardContent, ConfirmDialog, Input, Modal, NativeSelect, Switch as Toggle, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage } from '@unicore/ui';
+import { Badge, Button, Card, CardContent, ConfirmDialog, Input, Modal, SimpleSelect, PageHeader, Switch as Toggle, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage, selectOptions } from '@unicore/ui';
 import { currentLocale, t, useI18n, useLocale } from '../../i18n';
+import { DataTableEmpty } from '../../components/data-table';
 import { invalidateAfter } from '../../queries';
 import { usePermissions } from '../../permissions';
 import type { PageProps } from '../../router';
@@ -57,7 +58,7 @@ export function AdminTasksPage({ client, metadata }: PageProps) {
     onError: error => message.error(t(error.message)),
   });
   const pending = toggle.isPending || trigger.isPending;
-  const render = (children: ReactNode) => <Card><CardContent className="flex flex-col gap-4">{children}</CardContent></Card>;
+  const render = (children: ReactNode) => <div className="flex min-w-0 flex-col gap-6"><PageHeader title={t('定时任务')} /><Card><CardContent className="flex flex-col gap-4">{children}</CardContent></Card></div>;
   if (list.isPending) return render(<p role="status" className="py-10 text-center text-sm text-muted">{t('正在读取定时任务…')}</p>);
   if (list.isError) return render(<div role="alert" className="flex flex-col items-start gap-3 py-8">
     <p className="text-sm text-danger">{t(list.error.message)}</p>
@@ -65,19 +66,14 @@ export function AdminTasksPage({ client, metadata }: PageProps) {
   </div>);
   const items = list.data?.items ?? [];
   const executors = list.data?.executors ?? [];
-  return <>
-    <Card><CardContent className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-md font-semibold text-ink">{t('定时任务')}</h2>
-          <p className="mt-0.5 text-xs text-muted">{t('关闭的任务不再按计划执行，已保存的配置保持不变。自建任务只能调度已注册的执行器。')}</p>
-        </div>
-        <div className="flex items-center gap-2">
+  return <div className="flex min-w-0 flex-col gap-6">
+      <PageHeader title={t('定时任务')} description={t('关闭的任务不再按计划执行，已保存的配置保持不变。自建任务只能调度已注册的执行器。')}
+        actions={<>
           <span className="text-xs text-muted">{t('{{count}} 个任务', { count: items.length })}</span>
           {can('createTask') && <Button onClick={() => setEditor('new')}>{t('新增任务')}</Button>}
-        </div>
-      </div>
-      <div className="min-w-0 rounded-lg border border-line" aria-busy={list.isFetching || pending}>
+        </>} />
+    <Card><CardContent className="flex flex-col gap-4">
+      <div className="min-w-0 overflow-x-auto rounded-lg border border-line" aria-busy={list.isFetching || pending}>
         <Table className="min-w-[860px]">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
@@ -93,11 +89,7 @@ export function AdminTasksPage({ client, metadata }: PageProps) {
           </TableHeader>
           <TableBody>
             {!items.length && <TableEmpty colSpan={COLUMN_COUNT}>
-              <span className="flex flex-col items-center gap-1.5 py-6">
-                <ListChecks size={24} className="text-subtle" aria-hidden="true" />
-                <strong className="text-sm text-ink">{t('暂无定时任务')}</strong>
-                <span className="text-xs text-muted">{t('当前实例没有注册任何后台任务。')}</span>
-              </span>
+              <DataTableEmpty icon={ListChecks} title={t('暂无定时任务')} hint={t('当前实例没有注册任何后台任务。')} />
             </TableEmpty>}
             {items.map(entry => <TableRow key={entry.name}>
               <TableCell><strong className="font-medium text-ink">{entry.name}</strong></TableCell>
@@ -123,7 +115,7 @@ export function AdminTasksPage({ client, metadata }: PageProps) {
     {editor && <TaskEditor web={web} executors={executors} entry={editor === 'new' ? undefined : editor} onClose={() => setEditor(null)} onSaved={() => { setEditor(null); refresh(); }} />}
     {history && <TaskRuns web={web} entry={history} onClose={() => setHistory(null)} />}
     {removing && <ConfirmDialog danger title={t('删除任务')} description={t('确定删除任务「{{name}}」？它的运行历史会一并删除。', { name: removing.name })} confirmLabel={t('确认删除')} cancelLabel={t('取消')} pending={remove.isPending} onConfirm={() => remove.mutate(removing)} onCancel={() => setRemoving(null)} />}
-  </>;
+  </div>;
 }
 
 function TaskEditor({ web, executors, entry, onClose, onSaved }: {
@@ -158,9 +150,9 @@ function TaskEditor({ web, executors, entry, onClose, onSaved }: {
     <AppForm form={form} className="flex flex-col gap-3">
       {!editing && <AppField name="name" label={t('任务名')}><Input autoComplete="off" maxLength={64} placeholder="cleanup.stale" /></AppField>}
       <AppField name="description" label={t('说明')}><Textarea maxLength={200} rows={2} /></AppField>
-      <AppControllerField name="executor" label={t('执行器')}>{field => <NativeSelect value={String(field.value ?? '')} onChange={event => field.onChange(event.target.value)} className="max-w-full">
+      <AppControllerField name="executor" label={t('执行器')}>{field => <SimpleSelect {...field} value={String(field.value ?? '')} onChange={event => field.onChange(event)} className="max-w-full" options={selectOptions(<>
         {executors.map(item => <option key={item.key} value={item.key}>{t(item.key)} · {t(item.description)}</option>)}
-      </NativeSelect>}</AppControllerField>
+      </>)} />}</AppControllerField>
       <AppField name="schedule" label={t('执行计划')} rules={{ required: true }}>
         <Input autoComplete="off" maxLength={64} placeholder="0 3 * * * / @daily" />
       </AppField>

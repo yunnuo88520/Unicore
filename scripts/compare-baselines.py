@@ -26,12 +26,13 @@ for combo in ['sqlite-web-platform', 'sqlite-web-standalone', 'sqlite-desktop', 
     new = json.loads((output / (combo + '.json')).read_text())
     assert new['passed']
     after = new['schema']['tables']
-    expected_tables = 48 if profile == 'web-platform' else 9
+    has_platform = 'platform' in metadata['profiles'][profile]['namespaces']
+    expected_tables = 56 if has_platform else 9
     assert len(after) == expected_tables, (combo, 'table count', len(after))
     apps = set(after) - {'schema_migrations'}
     unprefixed = sorted(name for name in apps if not name.startswith('unicore_'))
     assert not unprefixed, (combo, 'framework tables without the fixed prefix', unprefixed)
-    if profile == 'web-platform':
+    if has_platform:
         for name in ['unicore_personal_accounts', 'unicore_session_details',
                      'unicore_announcement_reads', 'unicore_announcement_recipients',
                      'unicore_file_upload_sessions']:
@@ -44,9 +45,10 @@ for combo in ['sqlite-web-platform', 'sqlite-web-standalone', 'sqlite-desktop', 
         assert {'title', 'notify_mode', 'ends_at', 'audience'} <= columns, (combo, 'announcement columns missing')
     intentional = [dict(kind='ledger_shape', table='schema_migrations', columns=['namespace', 'version', 'checksum', 'applied_at'])]
     if dialect == 'sqlite':
-        intentional.append(dict(kind='sqlite_no_foreign_keys', reason='runtime keeps foreign_keys off; cascades live in the usecase layer'))
+        intentional.append(dict(kind='sqlite_no_foreign_key_clauses', reason='baselines define no FK clauses; the runtime opens foreign_keys=ON while referential integrity lives in the usecase layer'))
     sql_data = new['sql_only_data']
-    sql_seed_rows = {'unicore_storage_locations': 2 if profile == 'web-platform' else 1, 'unicore_navigation_state': 1}
+    sql_seed_rows = {'unicore_storage_locations': 2 if has_platform else 1, 'unicore_navigation_state': 1,
+                     'unicore_mcp_control': 1 if has_platform else 0}
     for name in apps:
         assert sql_data['row_counts'][name] == sql_seed_rows.get(name, 0), (combo, 'unexpected SQL data', name)
     seeded = new['post_seed_data']

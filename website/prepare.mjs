@@ -23,7 +23,16 @@ export const pagePath = doc => doc.target.slice('docs/'.length);
 export const pageLink = doc => '/' + pagePath(doc).replace(/(^|\/)index\.md$/, '$1').replace(/\.md$/, '');
 
 export function rewriteLink(target, source, pages, assets, sourceRoot, ref = 'main') {
-  if (!target || target.startsWith('#') || /^(?:https?:|mailto:)/i.test(target)) return target;
+  if (!target || target.startsWith('#') || /^mailto:/i.test(target)) return target;
+  if (/^https?:/i.test(target)) {
+    const url = new URL(target);
+    // Wiki sources can link to public technical references without exporting
+    // those references into the Wiki. Keep those links local in site previews.
+    if (url.origin === siteURL && [...pages.values()].some(doc => pageLink(doc) === url.pathname)) {
+      return url.pathname + url.search + url.hash;
+    }
+    return target;
+  }
   if (/^[a-z][a-z0-9+.-]*:/i.test(target) || target.startsWith('//')) throw Error(`Unsafe site link: ${target}`);
   if (target.startsWith('/')) throw Error(`Use repository-relative document links: ${source}: ${target}`);
   const match = target.match(/^([^?#]*)(.*)$/);

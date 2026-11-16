@@ -72,6 +72,11 @@ describe('constraintsToZod parity with contract validate()', () => {
     expect(zodErrors('UserCreate', { username: 'someone', email: 'someone@example.test', password: 'longenough12', role: 'user', phone: 'not-a-phone' }).phone).toBe('格式不正确');
   });
 
+  it('validates fixed numeric token lifetimes without coercing dropdown values', () => {
+    for (const value of [0, 1, 7, 30, 90]) expect(zodErrors('PersonalTokenRenewInput', { expires_in_days: value })).toEqual({});
+    for (const value of [2, 365, -1, '30', null]) expectParity('PersonalTokenRenewInput', { expires_in_days: value });
+  });
+
   it('caches schemas per name', () => {
     expect(constraintsToZod('LoginInput')).toBe(constraintsToZod('LoginInput'));
   });

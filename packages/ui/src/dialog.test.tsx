@@ -28,3 +28,22 @@ it('confirm dialog reports confirm and cancel decisions', async () => {
   await userEvent.click(screen.getByRole('button', { name: '取消' }));
   expect(onCancel).toHaveBeenCalled();
 });
+
+it('does not restore opener focus when pending changes and restores it only on close', async () => {
+  const opener = document.createElement('button');
+  document.body.append(opener);
+  opener.focus();
+  const focus = vi.spyOn(opener, 'focus');
+  const onClose = vi.fn();
+  const content = <><input aria-label="名称" /><input aria-label="备注" /></>;
+  const view = render(<Modal title="编辑令牌" onClose={onClose}>{content}</Modal>);
+  await userEvent.click(screen.getByRole('textbox', { name: '备注' }));
+  view.rerender(<Modal title="编辑令牌" pending onClose={onClose}>{content}</Modal>);
+  expect(focus).not.toHaveBeenCalled();
+  expect(screen.getByRole('textbox', { name: '备注' })).toHaveFocus();
+  view.rerender(<Modal title="编辑令牌" onClose={onClose}>{content}</Modal>);
+  expect(focus).not.toHaveBeenCalled();
+  view.unmount();
+  await vi.waitFor(() => expect(opener).toHaveFocus());
+  opener.remove();
+});

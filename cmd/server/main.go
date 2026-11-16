@@ -23,6 +23,9 @@ import (
 
 	webassets "github.com/yunnuo/unicore/apps/web"
 	httpadapter "github.com/yunnuo/unicore/internal/adapter/http"
+	mcpadapter "github.com/yunnuo/unicore/internal/adapter/mcp"
+	"github.com/yunnuo/unicore/internal/adapter/presenter"
+	"github.com/yunnuo/unicore/internal/adapter/storage/platformsql"
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/bootstrap"
 	"github.com/yunnuo/unicore/internal/config"
@@ -31,13 +34,19 @@ import (
 	"github.com/yunnuo/unicore/internal/lifecycle"
 	"github.com/yunnuo/unicore/internal/logging"
 	"github.com/yunnuo/unicore/internal/mailer"
+	"github.com/yunnuo/unicore/internal/mcp"
 	"github.com/yunnuo/unicore/internal/module"
 	notesmodule "github.com/yunnuo/unicore/internal/modules/notes"
 	"github.com/yunnuo/unicore/internal/monitor"
+	"github.com/yunnuo/unicore/internal/notify"
 	"github.com/yunnuo/unicore/internal/observability"
+	"github.com/yunnuo/unicore/internal/platform"
+	"github.com/yunnuo/unicore/internal/platform/mcpauth"
+	"github.com/yunnuo/unicore/internal/platform/mcpoauth"
 	"github.com/yunnuo/unicore/internal/realtime"
 	"github.com/yunnuo/unicore/internal/runtime"
 	"github.com/yunnuo/unicore/internal/scheduler"
+	"github.com/yunnuo/unicore/internal/settings"
 )
 
 // logSink outlives run so the final stop_failed record still reaches the log
@@ -75,6 +84,7 @@ func main() {
 }
 
 func run(args []string) (result error) {
+	module.Register(notesmodule.Module)
 	startedAt := time.Now()
 	if len(args) > 0 && args[0] == "serve" {
 		args = args[1:]
@@ -133,12 +143,31 @@ func run(args []string) (result error) {
 	if sink != nil {
 		sink.SetRetention(logRetention(manager, options.Log.MaxAgeDays))
 	}
-	updater, err := updateService(ctx, options.DataDir, options.Deployment, func() string { _, _, _, p := manager.Services(); return string(p) }, stop)
+	updater, err := updateService(ctx, options.DataDir, options.Deployment, func() string {
+		if !manager.Installed() {
+			return ""
+		}
+		_, _, _, p := manager.Services()
+		return string(p)
+	}, stop)
 	if err != nil {
 		return err
 	}
 	hub := realtime.New()
 	metrics := observability.New()
+	// Queue-depth gauges read through the installed store; before installation
+	// (store nil) the provider reports zeros.
+	metrics.AttachMailQueue(func(ctx context.Context) observability.MailQueueStats {
+		store, _, _, _ := manager.Services()
+		if store == nil {
+			return observability.MailQueueStats{}
+		}
+		pending, oldest, dead, err := (&platformsql.Repository{Store: store}).MailQueueStats(ctx)
+		if err != nil {
+			return observability.MailQueueStats{}
+		}
+		return observability.MailQueueStats{Pending: pending, OldestPendingSeconds: oldest, Dead: dead}
+	})
 	monitorEvents := monitor.NewEventSink(200)
 	monitorEvents.Append(monitor.EventLifecycle, monitor.SeverityInfo, "实例已启动", "v"+metadata.Version)
 	taskTracker := monitor.NewTaskEventTracker(monitorEvents)
@@ -264,9 +293,82 @@ func run(args []string) (result error) {
 	resources.Defer("alert engine", func() error { alertEngine.Stop(); return nil })
 	appMonitor.SetAlertEngine(alertEngine)
 
+	// Registered-type notification delivery: modules deliver user notifications
+	// through one facade instead of reaching into the inbox table directly.
+	notifyRegistry := notify.NewRegistry()
+	if err := notifyRegistry.Register(notify.Definition{Type: "announcement", TitleZh: "公告", TitleEn: "Announcement"}); err != nil {
+		return err
+	}
+	if err := notifyRegistry.Register(notify.Definition{Type: "system", TitleZh: "系统", TitleEn: "System"}); err != nil {
+		return err
+	}
+	for _, definition := range module.NotificationTypes() {
+		if err := notifyRegistry.Register(definition); err != nil {
+			return err
+		}
+	}
+	notifyService := &notify.Notifier{Registry: notifyRegistry, Hub: hub, Inbox: notify.InboxFunc(func(ctx context.Context, runner sqlstore.Runner, recipients []string, messageType, sourceID, title, body, actions string) error {
+		store, _, _, _ := manager.Services()
+		if store == nil {
+			return errors.New("notify: instance is not installed")
+		}
+		return (&platformsql.Repository{Store: store}).DeliverInbox(ctx, runner, recipients, messageType, sourceID, title, body, actions)
+	})}
+
 	workerCtx, cancelWorkers := context.WithCancel(context.Background())
 	defer cancelWorkers()
-	server := &http.Server{Addr: options.Listen, Handler: httpadapter.New(httpadapter.Config{Updates: updater, Metadata: metadata, Core: bootstrap.Core(), Assets: webassets.FS(), Logger: logger, Install: manager, APIDocs: options.APIDocs, ReadinessTimeout: options.ReadinessTimeout, Metrics: metrics, Hub: hub, LogBroadcast: broadcast, Monitor: appMonitor}), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
+	// MCP capability base: the registry stays empty until business adapters
+	// contribute; the surface answers a plain 404 outside web-platform and
+	// 503 while mcp.enabled is false, so assembly here is profile-safe.
+	mcpRegistry := mcp.NewRegistry()
+	mcpOperations := mcp.OperationResolverFunc(func(id string) (mcp.OperationInfo, bool) {
+		operation, ok := platform.Operation(id)
+		if !ok {
+			return mcp.OperationInfo{}, false
+		}
+		return mcp.OperationInfo{Grantable: operation.Grantable, SuperAdmin: operation.SuperAdmin, Permissions: operation.Permissions, PermissionMode: operation.PermissionMode}, true
+	})
+	mcpPorts := mcpadapter.GovernanceStore{Manager: manager}
+	mcpService := mcp.NewService(mcp.ServiceConfig{
+		Registry:      mcpRegistry,
+		Authorizer:    mcpauth.Authorizer{Operations: mcpOperations},
+		Policies:      mcpPorts,
+		Calls:         mcpPorts,
+		Clock:         mcp.ClockFunc(func() int64 { return time.Now().Unix() }),
+		NewIdentifier: presenter.RequestID,
+		WritePhase: func() bool {
+			_, settingsService, _, profile := manager.Services()
+			if settingsService == nil || profile != runtime.WebPlatform {
+				return false
+			}
+			values, err := settingsService.Raw(context.Background())
+			return err == nil && values["mcp.write_enabled"] == "true"
+		},
+	})
+	if err := mcpadapter.RegisterNotes(mcpRegistry, manager, mcpOperations); err != nil {
+		return fmt.Errorf("mcp capability registration failed: %w", err)
+	}
+	if err := mcpRegistry.Freeze(); err != nil {
+		return fmt.Errorf("mcp registry freeze failed: %w", err)
+	}
+	// The OAuth authorization service shares the governance store's lazy
+	// resolution: uninstalled or non-platform instances keep failing closed
+	// while the surface answers a plain 404 on every OAuth route.
+	mcpOAuth := mcpoauth.New(mcpadapter.OAuthStore{Manager: manager}, func() string {
+		// One resource resolver for grants, discovery and consent: the live
+		// site.base_url setting wins, the install-time value falls back.
+		_, settingsService, _, profile := manager.Services()
+		if settingsService == nil || profile != runtime.WebPlatform {
+			return mcpoauth.CanonicalResource(manager.BaseURL())
+		}
+		values, err := settingsService.Raw(context.Background())
+		if err != nil {
+			return mcpoauth.CanonicalResource(manager.BaseURL())
+		}
+		return mcpoauth.CanonicalResource(settings.MailBaseURL(values, manager.BaseURL()))
+	})
+	mcpSurface := &mcpadapter.Surface{Install: manager, Logger: logger, Version: metadata.Version, Service: mcpService, Registry: mcpRegistry, OAuth: mcpOAuth}
+	server := &http.Server{Addr: options.Listen, Handler: httpadapter.New(httpadapter.Config{Updates: updater, Metadata: metadata, Core: bootstrap.Core(), Assets: webassets.FS(), Logger: logger, Install: manager, APIDocs: options.APIDocs, ReadinessTimeout: options.ReadinessTimeout, Metrics: metrics, Hub: hub, LogBroadcast: broadcast, Monitor: appMonitor, Notify: notifyService, MCP: mcpSurface}), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
 	listener, err := net.Listen("tcp", server.Addr)
 	if err != nil {
 		return fmt.Errorf("listen failed: %w", err)
@@ -291,7 +393,6 @@ func run(args []string) (result error) {
 	tasks.OnResult(taskTracker.Observe)
 	// Registered business modules contribute their task executors here; the
 	// admin surface can only schedule these whitelisted functions.
-	module.Register(notesmodule.Module)
 	for _, item := range module.All() {
 		for _, executor := range item.Executors {
 			tasks.RegisterExecutor(executor.Key, executor.Description, executor.Fn)
@@ -340,6 +441,18 @@ func run(args []string) (result error) {
 		if _, err = localCron.AddFunc("@every 1h", sink.Sweep); err != nil {
 			return err
 		}
+	}
+	// Expired OAuth codes and tokens leave the authorization tables on the
+	// same hourly rhythm; the sweep fails closed outside an installed platform.
+	if _, err = localCron.AddFunc("@every 1h", func() {
+		if _, _, _, currentProfile := manager.Services(); currentProfile != runtime.WebPlatform || !manager.Installed() {
+			return
+		}
+		if err := mcpOAuth.Sweep(workerCtx); err != nil && workerCtx.Err() == nil {
+			logger.Warn("mcp oauth sweep unavailable", "event", "mcp.oauth_sweep_unavailable")
+		}
+	}); err != nil {
+		return err
 	}
 	localCron.Start()
 	tasks.Register("announcements.refresh", "@every 1m", scheduler.AnnouncementRefresh(func() *sqlstore.Store {

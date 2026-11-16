@@ -18,6 +18,10 @@ make build-web && make test-e2e        # 独立实例 PC/375px 页面测试
 
 新接口从 OpenAPI 开始，新模块/页面/设置读取仓库 `.agents/skills/` 对应任务。开发清单与扩展入口见 [AI 工作流](../04-ai/development.md) 和 [生成上下文](../04-ai/context.gen.md)。测试环境不复用真实数据或 SMTP。
 
+## 裁剪笔记样板
+
+默认发行物包含 Notes。使用 `FEATURE_NOTES=false make build-web`、`FEATURE_NOTES=false make build-desktop`、`FEATURE_NOTES=false make package` 或 `FEATURE_NOTES=false make docker-build` 构建不含笔记入口和业务实现依赖的产物；Compose 构建沿用该变量。开关必须同时传给前后端，勿仅手动重编译后端。系统设置与其他基础功能不受影响。`pnpm test:notes` 验证两种构建；已有表和迁移历史保留，恢复开启后继续使用。OTA 签名目标绑定裁剪状态，拒绝自动切换到另一种笔记配置。
+
 ## 快速构建
 
 ```sh
@@ -40,9 +44,30 @@ make build-desktop
 make package-desktop
 ```
 
-Windows 原生 CI 在构建后执行 scripts/test-windows-startup.ps1：使用随机临时数据目录，验证真实 Wails 窗口/页面、SQLite 初始化、再次启动以及失败弹窗；截图/可访问性文本为 windows-startup-evidence artifact。windows-exe artifact 另提供可直接验证的 exe，desktop-windows-latest 同时提供直接运行的版本化 exe、OTA tar 包、metadata 与目标专属校验和。macOS desktop artifact 同时提供 DMG（app + Applications 链接，可拖拽安装）、OTA tar 与 metadata；hdiutil 创建后校验镜像完整性。DMG 内 app 沿用原生系统签名状态，不因生成镜像而变成已公证。分支候选用于维护者验收，不能代替正式 Release。
+Windows 原生 CI 在构建后执行 scripts/test-windows-startup.ps1：使用随机临时数据目录，验证真实 Wails 窗口/页面、SQLite 初始化、再次启动以及失败弹窗；截图/可访问性文本为 windows-startup-evidence artifact。windows-exe artifact 另提供可直接验证的 exe，desktop-windows-latest 同时提供直接运行的版本化 exe、OTA tar 包、metadata 与目标专属校验和。macOS desktop artifact 同时提供 DMG（app + Applications 链接，可拖拽安装；scripts/dmg/background.svg 经 qlmanage/sips 渲染背景，Finder AppleScript 布置图标与窗口，自动化缺失时自动回退朴素布局并告警）、OTA tar 与 metadata；hdiutil 创建后校验镜像完整性。DMG 内 app 沿用原生系统签名状态，不因生成镜像而变成已公证。分支候选用于维护者验收，不能代替正式 Release。
+
+### 桌面窗口关闭行为验证
+
+桌面点关闭即隐藏到后台运行（[ADR-0048](../adr/ADR-0048-desktop-close-background-tray.md)）：macOS 点 Dock 图标或菜单栏托盘「打开」恢复、Cmd+Q / 托盘「退出」真正退出；Windows/Linux 托盘图标恢复，「退出」菜单真正退出。Windows 启动夹具只覆盖窗口启动，不覆盖关闭后台与托盘行为，须在目标系统人工补验：点关闭后进程仍存在、托盘恢复窗口、托盘退出结束进程且日志无 stop_failed。Linux 托盘依赖桌面环境提供 StatusNotifier/AppIndicator 支持（KDE、Ubuntu 默认可用；GNOME 需扩展或 snixembed 之类代理），无支持时托盘不可见属环境限制，须在发行说明如实记录。
 
 CI 在原生 runner 打包后运行 `node scripts/check-release-entrypoints.mjs desktop`：macOS 只读挂载 DMG 并复制到临时 Applications 目录，Windows 核对下载 EXE 与原构建逐字节一致；Linux 质量 job 的 `node scripts/check-release-entrypoints.mjs web` 解包两个 Web profile，使用临时数据目录验证精确文件清单、统一入口的帮助/维护命令、配置生成/拒绝覆盖、无参数启动与 /install。均不使用真实实例数据。
+
+### Windows 原生 OTA 验证
+
+在 Windows/amd64 的交互式桌面会话中运行。需要 x64 Node.js、Go、Wails/CGO 原生构建依赖、WebView2 和 `tar`。先以默认特性构建当前 EXE（`FEATURE_LICENSE=false`、`FEATURE_UPDATER=true`、`FEATURE_NOTES=true`）；已有构建应与当前源码及 `VERSION` 一致。
+
+```sh
+make build-desktop
+node scripts/test-native-update-windows.mjs
+# 可选：通过 PowerShell UIAutomation 操作中文界面的更新流程
+node scripts/test-native-update-windows.mjs --auto
+```
+
+脚本将当前 EXE 复制到随机临时安装目录，并用同一源码构建补丁版本加一的测试包，不修改仓库版本。数据、Ed25519 测试密钥、TLS 证书与 HTTPS 更新渠道均在该临时环境中生成。手动模式在打开的真实 Wails 窗口依次选择“系统更新 → 检查更新 → 更新并重启”，勾选备份确认并确认更新。
+
+以 `data/updates/state.json` 的 `completed` 为通过条件，表示完成签名包验证、程序替换、重启和启动确认；`rolled_back` 或 `failed` 返回非零退出码。测试目录及 `native.log` 保留在终端输出的 `base` 路径，结束后关闭重启的应用，再删除该临时目录。该夹具覆盖相同迁移指纹的成功更新路径；失败恢复和 Authenticode 策略需另行验证。`--auto` 还依赖 PowerShell、可访问性树和中文界面，不能代替终态检查，也未纳入无人值守 CI。
+
+### 发行包与镜像
 
 每次 package/release 重建 `build/releases/`（先保存需要保留的旧产物），其中为 tar.gz、checksums.txt 和 manifest.json；各包只含单一应用入口、README.md 安装说明、LICENSE、VERSION 和 manifest.json；Web 另含 deploy/ 下两个 systemd/Nginx 模板。前端已嵌入二进制，不重复附带 web/、docs/、bin/ 或完整 CHANGELOG。scripts/release-layout.mjs 在打包时检查精确白名单。manifest 的 profile 是默认首装选择，安装向导仍允许选择两种 Web 形态；安装后固定。编译扩展统一传 `FEATURE_LICENSE=true FEATURE_UPDATER=true`，授权默认关闭并保持占位，更新默认开启并使用签名清单。
 

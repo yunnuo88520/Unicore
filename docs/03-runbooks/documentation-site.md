@@ -20,13 +20,24 @@ pnpm --dir website preview
 
 ## 内容来源与导航
 
-distribution/manifest.json 是公开出口的唯一选择来源。documents 中 audience 包含 public-site 的页面进入站点；site_group 决定使用、开发、运维或参考侧栏，title 用于导航。站点专用中英文首页与英文快速开始在 website/pages，原有手册继续在 docs 维护同一份。site_assets 显式列出允许的品牌/图片资产，不扫描目录自动发布。
+distribution/manifest.json 是公开出口的唯一选择来源。documents 中 audience 包含 public-site 的页面进入站点；site_group 对应 website/navigation.mjs 中的读者任务分组，site_order 决定组内顺序，title 用于导航。开始使用、开发指南、使用手册、部署运维、技术参考各自使用独立侧栏，源目录名不决定网站分类。站点专用中英文首页与英文快速开始在 website/pages，原有手册继续在 docs 维护同一份。site_assets 显式列出允许的品牌/图片资产，不扫描目录自动发布。
 
 正文链接指向已选择的文档时改写为站内路由；指向源码、ADR 或尚未发布到站点的资料时保留为对应 GitHub 源码链接，CI 构建固定到该次提交。源码引用必须存在；未列入白名单的文件不会因此复制到站点。不要把秘密或实例配置放入任何源码文档。新增图片需登记 site_assets，新增正文链接优先使用仓库相对 Markdown 链接。
 
+Wiki 来源只相对链接 Wiki 白名单内的页面；指向网站技术参考时使用完整的公开站点 URL，网站生成器会将其还原为站内链接。派生项目保留这些框架参考链接，不把它们改成应用自己的品牌入口。
+
 public-site 与 user-release、project-template、public-wiki 独立：新增站点页面不会扩大用户发行包、应用模板或 Wiki。上游 website 及 Pages workflow 不自动导出到派生应用；派生应用可自行建立文档站并配置自己的域名。
 
-中英文首页、英文快速开始及主题导航同时维护；详细手册目前主要中文，英文入口明确标注中文目标。增加完整英文页面后再把对应入口切换到译文，不用中文正文冒充英文翻译。站点为独立的 VitePress 文档界面，不引入应用的 React WorkspaceLayout 或运行时身份依赖。
+中英文首页、英文快速开始及主题导航同时维护。英文页面链接到中文文档时，在链接文字标注“中文”；不在首页、页脚或正文插入翻译进度说明。增加译文后，将对应入口切换到译文。站点为独立的 VitePress 文档界面，不引入应用的 React WorkspaceLayout 或运行时身份依赖。
+
+## 按读者维护内容
+
+- README 面向初次了解框架的开发者，说明定位、形态、创建项目、裁剪 demo 和后续入口。笔记是可选示例，不把它写成框架的产品目标。
+- docs/product 的入门与教程面向应用开发者；使用手册说明框架内置界面的操作；技术参考解释接口、配置、依赖和扩展约束。
+- AGENTS、docs/04-ai 和任务 Skill 保存给编程助手的指令；PRD、ADR、发行、站点发布和开源维护流程留在仓库内。它们不作为网站教程批量发布。
+- 指南先说明前提、步骤和结果，再给错误处理与参考链接。支持限制写明影响和处理办法，不写阶段代号、验收口令、工作区记录或对 Agent 的命令。
+
+当前代码的行为、默认值、参数和注册点是核对依据。版本、命名空间数量等可从源码查询的值优先链接唯一来源，避免复制为易过时的完成状态。涉及安装清空、密钥、备份和不可逆操作的必要提醒保留。
 
 ## 框架更新时维护什么
 
@@ -67,7 +78,7 @@ PR 和 dev 分支的文档变更只构建并上传 documentation-site artifact�
 | 现象 | 检查与处理 |
 | --- | --- |
 | Actions 没有 Documentation site 或 Run workflow | 确认 `.github/workflows/docs.yml` 已进入默认分支 main，且账号有运行 Actions 的权限。 |
-| build 成功，deploy 被跳过 | 确认是在原仓库手动 Run workflow，且选择 main；dev、push、PR 和 fork 不触发发布。 |
+| build 成功，deploy 被跳过 | 确认是在原仓库手动 Run workflow，且选择 main；dev、PR 和 fork 不触发发布。 |
 | 域名无法解析或 DNS 检查失败 | 确认操作的是权威 DNS 服务商，主机名为 unicore，CNAME 目标无协议/路径，且没有同名冲突记录。可运行 `dig +short CNAME unicore.ebox.vip`，预期返回 `yunnuo88520.github.io.`。 |
 | GitHub Pages 返回 404 | 确认 deploy 成功、Pages Source 为 GitHub Actions、自定义域名已保存且未绑定到其他仓库。 |
 | HTTPS 选项暂不可选或证书未就绪 | 确认 DNS 和域名绑定正确后等待签发，不用关闭证书校验绕过；超过 24 小时仍异常时参考官方 HTTPS 排查说明。 |

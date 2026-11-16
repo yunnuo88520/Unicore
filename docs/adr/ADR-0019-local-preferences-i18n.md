@@ -11,7 +11,7 @@ Web 用户、管理员、单机与 Wails 使用同一套界面。语言与外观
 
 ## 决策
 
-`packages/web-ui/src/preferences.ts` 是客户端偏好的唯一状态入口。使用版本化 `unicore.preferences.v1`，白名单校验各字段；兼容旧 `unicore.theme`，非法数据回退默认值，受限存储退回进程内存。同页通知与浏览器 storage 事件驱动 React 外部状态订阅。语言切换不重建 QueryClient、会话或业务表单；重置外观保留语言。
+`packages/web-ui/src/preferences.ts` 是客户端偏好的唯一状态入口（该文件后已迁移至 `packages/theme/src/preferences.ts`，职责不变）。使用版本化 `unicore.preferences.v1`，白名单校验各字段；兼容旧 `unicore.theme`，非法数据回退默认值，受限存储退回进程内存。同页通知与浏览器 storage 事件驱动 React 外部状态订阅。语言切换不重建 QueryClient、会话或业务表单；重置外观保留语言。
 
 默认配置从 `defaultPreferences` 管理。主题构建源仍为 `assets/theme/tokens.json`：默认主色与可选预设从同一生成器推导浅深语义变量。客户端仅选择预设并应用圆角、间距和字号系数，不复制页面色值，不修改全局品牌图片、邮件或原生图标。系统主题变化实时响应。布局、侧栏和内容宽度同样由根 dataset 与共享 CSS 处理。
 

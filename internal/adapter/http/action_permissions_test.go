@@ -144,7 +144,7 @@ func TestButtonLevelPermissions(t *testing.T) {
 
 	// Granting notes:create on the role reopens creation only; update and
 	// delete stay gated by their own points.
-	if w := request("PUT", "/api/v1/admin/roles/"+readerRole, map[string]any{"name": "笔记读者", "permissions": []string{"notes:access", "notes:create", "files:access"}, "operation_ids": []string{"listNotes", "createNote", "listFiles", "fileAccess"}}, adminCookie, adminCSRF); w.Code != 200 {
+	if w := request("PUT", "/api/v1/admin/roles/"+readerRole, map[string]any{"version": roleHTTPVersion(t, request, adminCookie, readerRole), "name": "笔记读者", "permissions": []string{"notes:access", "notes:create", "files:access"}, "operation_ids": []string{"listNotes", "createNote", "listFiles", "fileAccess"}}, adminCookie, adminCSRF); w.Code != 200 {
 		t.Fatal("role update", w.Code, w.Body.String())
 	}
 	memberCookie, memberCSRF = issueSession(t, manager, false, member)
@@ -218,7 +218,7 @@ func TestRestrictedAdministratorFiles(t *testing.T) {
 	if err := json.Unmarshal(limited.Body.Bytes(), &limitedList); err != nil || limited.Code != 200 || limitedList.Data.Total != 0 {
 		t.Fatal("storage permission bypassed self scope", limited.Code, limited.Body.String(), err)
 	}
-	if w := request("PUT", "/api/v1/admin/roles/"+restrictedRole, map[string]any{"name": "文件运营", "permissions": []string{"storage:read"}, "data_scope": "all"}, adminCookie, adminCSRF); w.Code != 200 {
+	if w := request("PUT", "/api/v1/admin/roles/"+restrictedRole, map[string]any{"version": roleHTTPVersion(t, request, adminCookie, restrictedRole), "name": "文件运营", "permissions": []string{"storage:read"}, "data_scope": "all"}, adminCookie, adminCSRF); w.Code != 200 {
 		t.Fatal(w.Body.String())
 	}
 	restrictedCookie, restrictedCSRF := issueSession(t, manager, true, restricted)
@@ -406,10 +406,10 @@ func TestRowCapabilitiesRespectActionGrants(t *testing.T) {
 	}
 
 	// Granting the points reopens exactly those controls on the owned rows.
-	if w = request("PUT", "/api/v1/admin/roles/"+notesRole.Data.ID, map[string]any{"name": "只读员", "permissions": []string{"notes:access", "notes:update"}}, adminCookie, adminCSRF); w.Code != 200 {
+	if w = request("PUT", "/api/v1/admin/roles/"+notesRole.Data.ID, map[string]any{"version": roleHTTPVersion(t, request, adminCookie, notesRole.Data.ID), "name": "只读员", "permissions": []string{"notes:access", "notes:update"}}, adminCookie, adminCSRF); w.Code != 200 {
 		t.Fatal("notes role update", w.Code, w.Body.String())
 	}
-	if w = request("PUT", "/api/v1/admin/roles/"+filesRole.Data.ID, map[string]any{"name": "浏览员", "permissions": []string{"files:access", "files:delete"}}, adminCookie, adminCSRF); w.Code != 200 {
+	if w = request("PUT", "/api/v1/admin/roles/"+filesRole.Data.ID, map[string]any{"version": roleHTTPVersion(t, request, adminCookie, filesRole.Data.ID), "name": "浏览员", "permissions": []string{"files:access", "files:delete"}}, adminCookie, adminCSRF); w.Code != 200 {
 		t.Fatal("files role update", w.Code, w.Body.String())
 	}
 	noteCookie, _ = issueSession(t, manager, false, noteOwner)

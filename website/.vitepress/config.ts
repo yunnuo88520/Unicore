@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { defineConfig, type PageData } from 'vitepress';
-import { pageLink, prepareSite, repository, root, siteDocuments, siteURL } from '../prepare.mjs';
+import { prepareSite, repository, root, siteDocuments, siteURL } from '../prepare.mjs';
+import { publicNavigation } from '../navigation.mjs';
 
 const version = readFileSync(resolve(root, 'VERSION'), 'utf8').trim();
 const documents = siteDocuments();
@@ -12,18 +13,7 @@ if (!['preview', 'stable'].includes(channel)) throw new Error('Invalid documenta
 const require = createRequire(import.meta.url);
 // VitePress serializes this function for the browser: it must have no captured variables.
 const editPattern = (page: PageData) => page.frontmatter.editURL;
-const groups = [
-  ['guide', '快速开始', 'Get started', false],
-  ['develop', '应用开发', 'Develop', false],
-  ['deploy', '部署与运维', 'Deploy & operate', false],
-  ['features', '功能与边界', 'Features & boundaries', true],
-  ['reference', '框架规范（维护者）', 'Framework internals', true],
-] as const;
-const sidebar = (english = false) => groups.map(([id, zh, en, collapsed]) => ({
-  text: english ? `${en} (中文)` : zh,
-  collapsed,
-  items: documents.filter(doc => doc.site_group === id).map(doc => ({ text: doc.title, link: pageLink(doc) })),
-}));
+const navigation = publicNavigation(documents);
 
 export default defineConfig({
   title: 'Unicore',
@@ -49,24 +39,20 @@ export default defineConfig({
       label: '简体中文', lang: 'zh-CN',
       themeConfig: {
         nav: [
-          { text: '快速开始', link: '/product/index' },
-          { text: '部署', link: '/product/deployment' },
-          { text: '应用开发', link: '/product/development' },
-          { text: '支持范围', link: '/support' },
-          { text: `v${version} · ${channel === 'stable' ? '稳定版源码' : '开发预览'}`, items: [
-            { text: '当前滚动文档 · 随 main 更新', link: '/03-runbooks/documentation-site' },
-            { text: '发行与版本记录', link: `${repository}/releases` },
-            { text: '安全策略', link: '/product/security' },
+          ...navigation.nav,
+          { text: `v${version} · ${channel === 'stable' ? '稳定版' : '开发预览'}`, items: [
+            { text: '发行记录', link: `${repository}/releases` },
+            { text: '支持与兼容性', link: '/support' },
           ] },
         ],
-        sidebar: sidebar(),
+        sidebar: navigation.sidebar,
         outline: { label: '本页目录', level: [2, 3] },
         docFooter: { prev: '上一篇', next: '下一篇' },
         editLink: { text: '在 GitHub 编辑此页', pattern: editPattern },
         sidebarMenuLabel: '目录', returnToTopLabel: '回到顶部', darkModeSwitchLabel: '外观',
         lightModeSwitchTitle: '切换为浅色模式', darkModeSwitchTitle: '切换为深色模式',
         langMenuLabel: '语言', skipToContentLabel: '跳转到内容',
-        footer: { message: '基于 MIT 许可发布 · 详细手册目前主要为中文', copyright: `Unicore v${version} · Copyright © yunnuo` },
+        footer: { message: '基于 MIT 许可发布', copyright: `Unicore v${version} · Copyright © yunnuo` },
       },
     },
     en: {
@@ -83,12 +69,16 @@ export default defineConfig({
         ],
         sidebar: [
           { text: 'Overview', items: [{ text: 'Get started', link: '/en/getting-started' }] },
-          ...sidebar(true),
+          { text: 'Guides', items: [
+            { text: 'Create an application (中文)', link: '/product/development' },
+            { text: 'Web deployment (中文)', link: '/product/deployment' },
+            { text: 'API authentication (中文)', link: '/product/api-authentication' },
+          ] },
         ],
         outline: { label: 'On this page', level: [2, 3] },
         docFooter: { prev: 'Previous', next: 'Next' },
         editLink: { text: 'Edit this page on GitHub', pattern: editPattern },
-        footer: { message: 'Released under the MIT License · Detailed guides are primarily in Chinese', copyright: `Unicore v${version} · Copyright © yunnuo` },
+        footer: { message: 'Released under the MIT License', copyright: `Unicore v${version} · Copyright © yunnuo` },
       },
     },
   },

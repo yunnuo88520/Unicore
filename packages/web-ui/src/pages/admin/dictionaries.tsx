@@ -2,12 +2,12 @@
 // Description: Dictionary console: selectable type list with create/rename/delete plus a full item replacement editor.
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { BookMarked, Pencil, Plus, RotateCcw, Save, Trash2 } from 'lucide-react';
+import { BookMarked, Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import type { DictionaryCreateInput, DictionaryItemEntry, DictionaryList, DictionarySummary, DictionaryUpdateInput, WebClient } from '@unicore/sdk';
 import { t, useLocale } from '../../i18n';
 import { AppField, AppForm, useAppForm } from '@unicore/form';
 import { cn } from '@unicore/ui/cn';
-import { Badge, Button, Card, CardContent, ConfirmDialog, Input, Modal, NativeSelect, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage } from '@unicore/ui';
+import { Alert, Badge, Button, Card, CardContent, ConfirmDialog, Input, Modal, SimpleSelect, PageHeader, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage, selectOptions } from '@unicore/ui';
 import type { PageProps } from '../../router';
 import type { Bootstrap } from '@unicore/sdk';
 import { usePermissions } from '../../permissions';
@@ -60,14 +60,11 @@ function DictionaryPanel({ web, metadata }: { web: WebClient; metadata: Bootstra
           {can('createDictionary') && <Button size="sm" onClick={() => setCreating(true)}><Plus size={14} />{t('新建')}</Button>}
         </div>
         {list.isPending && <p role="status" className="py-4 text-center text-xs text-muted">{t('正在加载字典类型…')}</p>}
-        {list.isError && <div role="alert" className="flex flex-col items-start gap-2 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-xs text-danger">
-          <span>{t(list.error.message)}</span>
-          <Button variant="secondary" size="sm" onClick={() => void list.refetch()}><RotateCcw size={13} />{t('重试')}</Button>
-        </div>}
+        {list.isError && <Alert action={<Button variant="secondary" size="sm" onClick={() => void list.refetch()}>{t('重试')}</Button>}>{t(list.error.message)}</Alert>}
         {list.data && <div className="flex flex-col gap-1.5">
           {types.map(type => <button key={type.id} type="button" aria-pressed={type.id === activeId} onClick={() => setSelected(type.id)}
             className={cn('flex min-w-0 items-center justify-between gap-2 rounded-lg border px-3 py-2 text-start text-sm outline-none focus-visible:ring-2 focus-visible:ring-focus',
-              type.id === activeId ? 'border-accent bg-primary-soft text-accent' : 'border-line bg-surface text-ink hover:bg-surface-alt')}>
+              type.id === activeId ? 'border-accent bg-primary-soft text-accent' : 'border-line bg-surface text-ink hover:bg-surface-hover')}>
             <span className="min-w-0">
               <span className="block truncate font-medium">{t(type.name)}</span>
               <small className={cn('block truncate text-2xs', type.id === activeId ? 'text-accent/80' : 'text-subtle')}>{type.code}</small>
@@ -91,20 +88,15 @@ function DictionaryPanel({ web, metadata }: { web: WebClient; metadata: Bootstra
             <Button variant="secondary" onClick={() => void detail.refetch()}>{t('重试')}</Button>
           </div>
         : detail.data && <>
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h2 className="text-md font-semibold text-ink">{t(detail.data.name)}</h2>
-                <p className="mt-0.5 text-xs text-muted">{detail.data.code}{detail.data.description ? ` · ${detail.data.description}` : ''}</p>
-              </div>
-              <div className="flex gap-2">
-                {can('updateDictionary') && <Button variant="secondary" size="sm" onClick={() => setRenaming({ id: detail.data.id, code: detail.data.code, name: detail.data.name, description: detail.data.description })}>
-                  <Pencil size={13} />{t('编辑类型')}
-                </Button>}
-                {can('deleteDictionary') && <Button variant="secondary" size="sm" onClick={() => setRemoving(types.find(type => type.id === activeId) ?? null)}>
-                  <Trash2 size={13} />{t('删除类型')}
-                </Button>}
-              </div>
-            </div>
+              <PageHeader as="h2" title={detail.data.name} description={`${detail.data.code}${detail.data.description ? ` · ${detail.data.description}` : ''}`}
+                actions={<>
+                  {can('updateDictionary') && <Button variant="secondary" size="sm" onClick={() => setRenaming({ id: detail.data.id, code: detail.data.code, name: detail.data.name, description: detail.data.description })}>
+                    <Pencil size={13} />{t('编辑类型')}
+                  </Button>}
+                  {can('deleteDictionary') && <Button variant="secondary" size="sm" onClick={() => setRemoving(types.find(type => type.id === activeId) ?? null)}>
+                    <Trash2 size={13} />{t('删除类型')}
+                  </Button>}
+                </>} />
             <ItemsEditor writable={can('replaceDictionaryItems')} key={activeId} web={web} id={activeId} items={detail.data.items} onSaved={invalidate} />
           </>}
       </CardContent>
@@ -165,11 +157,11 @@ function ItemsEditor({ web, id, items, onSaved, writable }: { writable:boolean; 
               value={row.remark} onChange={event => update(index, { remark: event.target.value })} /></TableCell>
             <TableCell><Input className="h-8 w-16" type="number" aria-label={t('排序')} disabled={pending}
               value={row.sort} onChange={event => update(index, { sort: Number(event.target.value) || 0 })} /></TableCell>
-            <TableCell><NativeSelect className="h-8 w-24" aria-label={t('状态')} disabled={pending}
-              value={row.status} onChange={event => update(index, { status: event.target.value })}>
+            <TableCell><SimpleSelect className="h-8 w-24" aria-label={t('状态')} disabled={pending}
+              value={row.status} onChange={event => update(index, { status: event })} options={selectOptions(<>
               <option value="active">{t('启用')}</option>
               <option value="disabled">{t('停用')}</option>
-            </NativeSelect></TableCell>
+            </>)} /></TableCell>
             <TableCell><Button variant="ghost" size="icon" className="size-7" disabled={pending} aria-label={t('移除该字典项')}
               onClick={() => removeRow(index)}><Trash2 size={13} /></Button></TableCell>
           </TableRow>)}

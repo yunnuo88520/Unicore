@@ -246,10 +246,16 @@ export interface SettingEntry {
   label: string;
   sensitive: boolean;
   configured?: boolean;
+  label_en?: string;
+  description?: string;
+  description_en?: string;
+  multiline?: boolean;
+  options?: Array<SettingOption>;
 }
 
 export interface Settings {
   items: Array<SettingEntry>;
+  groups?: Array<SettingGroup>;
 }
 
 export interface SettingChange {
@@ -358,8 +364,8 @@ export interface RegisterInput {
 
 export interface EmailRequest {
   email: string;
-  captcha_id: string;
-  captcha_answer: string;
+  captcha_id?: string;
+  captcha_answer?: string;
   human_check_token?: string;
   human_check_randstr?: string;
 }
@@ -468,6 +474,7 @@ export interface Role {
   action_ids: Array<string>;
   operation_ids: Array<string>;
   authorization_initialized: boolean;
+  version: number;
 }
 
 export interface RoleList {
@@ -1271,6 +1278,7 @@ export interface RoleSaveInput {
   name: string;
   permissions: Array<string>;
   realm?: "user" | "administrator";
+  version?: number;
   data_scope?: "all" | "dept" | "dept_and_below" | "custom" | "self";
   department_ids?: Array<string>;
   menu_ids?: Array<string>;
@@ -1503,14 +1511,18 @@ export interface InboxEntry {
   type: string;
   source_id: string;
   title: string;
-  body: string;
+  actions?: Array<InboxAction>;
   created_at: number;
   read_at: number;
+  body: string;
 }
 
 export interface InboxList {
   items: Array<InboxEntry>;
   unread: number;
+  total: number;
+  page: number;
+  page_size: number;
 }
 
 export interface InboxListResponse {
@@ -1935,8 +1947,9 @@ export interface RefreshTokenInput {
 
 export interface PersonalTokenInput {
   name: string;
-  expires_in_days: number;
-  operation_ids: Array<string>;
+  role_id: string;
+  expires_in_days: 0 | 1 | 7 | 30 | 90;
+  remark: string;
 }
 
 export interface PersonalToken {
@@ -1946,7 +1959,11 @@ export interface PersonalToken {
   expires_at: number;
   last_used_at: number;
   revoked: boolean;
-  operation_ids: Array<string>;
+  user_id: string;
+  username: string;
+  role_id: string;
+  role_name: string;
+  remark: string;
 }
 
 export interface PersonalTokenCreated {
@@ -1956,10 +1973,9 @@ export interface PersonalTokenCreated {
 
 export interface PersonalTokenList {
   items: Array<PersonalToken>;
-}
-
-export interface TokenScopeList {
-  items: Array<APIOperation>;
+  total: number;
+  page: number;
+  page_size: number;
 }
 
 export interface ClientTokenPairResponse {
@@ -1990,9 +2006,340 @@ export interface PersonalTokenListResponse {
   request_id: string;
 }
 
-export interface TokenScopeListResponse {
+export interface PersonalTokenRenewInput {
+  expires_in_days: 0 | 1 | 7 | 30 | 90;
+}
+
+export interface AdminPersonalTokenInput {
+  name: string;
+  role_id: string;
+  expires_in_days: 0 | 1 | 7 | 30 | 90;
+  remark: string;
+  user_id: string;
+}
+
+export interface InboxAction {
+  id: string;
+  label: string;
+  href?: string;
+}
+
+export interface McpLimits {
+  default_timeout_seconds: number;
+  max_request_bytes: number;
+  max_result_bytes: number;
+  global_concurrency: number;
+  user_concurrency: number;
+  credential_concurrency: number;
+  user_calls_per_minute: number;
+  credential_calls_per_minute: number;
+  log_retention_days: number;
+}
+
+export interface McpOauthAuthorizeView {
+  client_id: string;
+  client_name: string;
+  scopes: Array<string>;
+  roles: Array<RoleOption>;
+  resource: string;
+  state?: string;
+}
+
+export interface McpOauthAuthorizeViewResponse {
   code: string;
   message: string;
-  data: TokenScopeList;
+  data: McpOauthAuthorizeView;
   request_id: string;
+}
+
+export interface McpOauthConsentInput {
+  client_id: string;
+  redirect_uri: string;
+  scope?: string;
+  state?: string;
+  code_challenge?: string;
+  code_challenge_method?: string;
+  resource?: string;
+  role_id: string;
+}
+
+export interface McpOauthConsentResult {
+  redirect_uri: string;
+  expires_in: number;
+}
+
+export interface McpOauthConsentResponse {
+  code: string;
+  message: string;
+  data: McpOauthConsentResult;
+  request_id: string;
+}
+
+export interface McpOauthGrant {
+  id: string;
+  client_id: string;
+  client_name: string;
+  role_id: string;
+  role_name: string;
+  scopes: Array<string>;
+  created_at: number;
+  last_used_at: number;
+}
+
+export interface McpOauthGrantList {
+  items: Array<McpOauthGrant>;
+}
+
+export interface McpOauthGrantListResponse {
+  code: string;
+  message: string;
+  data: McpOauthGrantList;
+  request_id: string;
+}
+
+export interface McpOauthClient {
+  id: string;
+  name: string;
+  client_type: string;
+  redirect_uris: Array<string>;
+  enabled: boolean;
+  has_secret: boolean;
+  version: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface McpOauthClientList {
+  items: Array<McpOauthClient>;
+}
+
+export interface McpOauthClientListResponse {
+  code: string;
+  message: string;
+  data: McpOauthClientList;
+  request_id: string;
+}
+
+export interface McpOauthClientCreateInput {
+  name: string;
+  client_type: "public" | "confidential";
+  redirect_uris: Array<string>;
+}
+
+export interface McpOauthClientCreated {
+  client: McpOauthClient;
+  secret: string;
+}
+
+export interface McpOauthClientCreatedResponse {
+  code: string;
+  message: string;
+  data: McpOauthClientCreated;
+  request_id: string;
+}
+
+export interface McpOauthClientUpdateInput {
+  name: string;
+  redirect_uris: Array<string>;
+  enabled: boolean;
+  expected_version: number;
+}
+
+export interface McpOauthClientResponse {
+  code: string;
+  message: string;
+  data: McpOauthClient;
+  request_id: string;
+}
+
+export interface McpOauthClientSecret {
+  secret: string;
+}
+
+export interface McpOauthClientSecretResponse {
+  code: string;
+  message: string;
+  data: McpOauthClientSecret;
+  request_id: string;
+}
+
+export interface McpOauthAdminGrant {
+  id: string;
+  user_id: string;
+  username: string;
+  role_id: string;
+  role_name: string;
+  scopes: Array<string>;
+  created_at: number;
+  last_used_at: number;
+}
+
+export interface McpOauthAdminGrantList {
+  items: Array<McpOauthAdminGrant>;
+}
+
+export interface McpOauthAdminGrantListResponse {
+  code: string;
+  message: string;
+  data: McpOauthAdminGrantList;
+  request_id: string;
+}
+
+export interface McpConfig {
+  revision: number;
+  enabled: boolean;
+  pat_enabled: boolean;
+  oauth_enabled: boolean;
+  write_enabled: boolean;
+  endpoint: string;
+  supported_protocols: Array<string>;
+  implemented_capabilities: Array<string>;
+  limits: McpLimits;
+  allowed_origins: string;
+}
+
+export interface McpConfigResponse {
+  code: string;
+  message: string;
+  data: McpConfig;
+  request_id: string;
+}
+
+export interface McpConfigPatch {
+  expected_revision: number;
+  enabled?: boolean;
+  pat_enabled?: boolean;
+  oauth_enabled?: boolean;
+  write_enabled?: boolean;
+  default_timeout_seconds?: number;
+  max_request_bytes?: number;
+  max_result_bytes?: number;
+  global_concurrency?: number;
+  user_concurrency?: number;
+  credential_concurrency?: number;
+  user_calls_per_minute?: number;
+  credential_calls_per_minute?: number;
+  log_retention_days?: number;
+  allowed_origins?: string;
+}
+
+export interface McpPolicy {
+  enabled: boolean;
+  accepted_fingerprint: string;
+  accepted_version: string;
+  version: number;
+}
+
+export interface McpTool {
+  name: string;
+  module: string;
+  version: string;
+  impl_version: string;
+  title_zh: string;
+  title_en: string;
+  description_zh: string;
+  description_en: string;
+  operation_ids: Array<string>;
+  effect: "read" | "write" | "destructive";
+  confirmation: "none" | "required";
+  fingerprint: string;
+  policy: McpPolicy;
+  state: "unreviewed" | "disabled" | "open" | "needs_review" | "module_missing";
+}
+
+export interface McpToolResponse {
+  code: string;
+  message: string;
+  data: McpTool;
+  request_id: string;
+}
+
+export interface McpToolList {
+  items: Array<McpTool>;
+  total: number;
+}
+
+export interface McpToolListResponse {
+  code: string;
+  message: string;
+  data: McpToolList;
+  request_id: string;
+}
+
+export interface McpPolicyPatch {
+  expected_version: number;
+  expected_fingerprint: string;
+  enabled: boolean;
+}
+
+export interface McpCall {
+  request_id: string;
+  started_at: number;
+  finished_at: number;
+  duration_ms: number;
+  status: string;
+  error_code: string;
+  actor_id: string;
+  actor_name: string;
+  credential_name: string;
+  credential_deleted: boolean;
+  role_id: string;
+  auth_method: string;
+  kind: string;
+  name: string;
+  capability_version: string;
+  policy_revision: number;
+  protocol_version: string;
+  client_name: string;
+  client_version: string;
+}
+
+export interface McpCallList {
+  items: Array<McpCall>;
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface McpCallListResponse {
+  code: string;
+  message: string;
+  data: McpCallList;
+  request_id: string;
+}
+
+export interface McpCallResponse {
+  code: string;
+  message: string;
+  data: McpCall;
+  request_id: string;
+}
+
+export interface McpAccessInfo {
+  enabled: boolean;
+  endpoint: string;
+  supported_protocols: Array<string>;
+  access_granted: boolean;
+}
+
+export interface McpAccessInfoResponse {
+  code: string;
+  message: string;
+  data: McpAccessInfo;
+  request_id: string;
+}
+
+export interface SettingOption {
+  value: string;
+  label: string;
+  label_en: string;
+}
+
+export interface SettingGroup {
+  id: string;
+  label: string;
+  label_en: string;
+  description: string;
+  description_en: string;
+  order: number;
 }

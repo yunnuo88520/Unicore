@@ -34,6 +34,8 @@ type Target struct {
 	SchemaFingerprint string `json:"schema_fingerprint"`
 	License           bool   `json:"license"`
 	Updater           bool   `json:"updater"`
+	// Missing on historical artifacts means notes are enabled.
+	NotesDisabled bool `json:"notes_disabled,omitempty"`
 }
 type Artifact struct {
 	Target
@@ -76,10 +78,11 @@ type Provider interface {
 	Download(context.Context, string, io.Writer, int64, func(int64)) error
 }
 type Catalog struct {
-	Releases  []Release `json:"releases"`
-	CheckedAt string    `json:"checked_at"`
-	LastError string    `json:"last_error"`
-	Verified  *Payload  `json:"verified,omitempty"`
+	Releases    []Release `json:"releases"`
+	CheckedAt   string    `json:"checked_at"`
+	AttemptedAt string    `json:"attempted_at,omitempty"`
+	LastError   string    `json:"last_error"`
+	Verified    *Payload  `json:"verified,omitempty"`
 }
 type Cache interface {
 	Load() Catalog

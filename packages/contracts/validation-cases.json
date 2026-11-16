@@ -160,5 +160,95 @@
     "fields": [
       "version"
     ]
+  },
+  {
+    "name": "PAT fixed expiry 0",
+    "schema": "PersonalTokenRenewInput",
+    "value": {
+      "expires_in_days": 0
+    },
+    "fields": []
+  },
+  {
+    "name": "PAT fixed expiry 1",
+    "schema": "PersonalTokenRenewInput",
+    "value": {
+      "expires_in_days": 1
+    },
+    "fields": []
+  },
+  {
+    "name": "PAT fixed expiry 7",
+    "schema": "PersonalTokenRenewInput",
+    "value": {
+      "expires_in_days": 7
+    },
+    "fields": []
+  },
+  {
+    "name": "PAT fixed expiry 30",
+    "schema": "PersonalTokenRenewInput",
+    "value": {
+      "expires_in_days": 30
+    },
+    "fields": []
+  },
+  {
+    "name": "PAT fixed expiry 90",
+    "schema": "PersonalTokenRenewInput",
+    "value": {
+      "expires_in_days": 90
+    },
+    "fields": []
+  },
+  {
+    "name": "PAT fixed expiry 2",
+    "schema": "PersonalTokenRenewInput",
+    "value": {
+      "expires_in_days": 2
+    },
+    "fields": [
+      "expires_in_days"
+    ]
+  },
+  {
+    "name": "PAT fixed expiry 365",
+    "schema": "PersonalTokenRenewInput",
+    "value": {
+      "expires_in_days": 365
+    },
+    "fields": [
+      "expires_in_days"
+    ]
+  },
+  {
+    "name": "PAT fixed expiry -1",
+    "schema": "PersonalTokenRenewInput",
+    "value": {
+      "expires_in_days": -1
+    },
+    "fields": [
+      "expires_in_days"
+    ]
+  },
+  {
+    "name": "PAT fixed expiry '30'",
+    "schema": "PersonalTokenRenewInput",
+    "value": {
+      "expires_in_days": "30"
+    },
+    "fields": [
+      "expires_in_days"
+    ]
+  },
+  {
+    "name": "PAT fixed expiry None",
+    "schema": "PersonalTokenRenewInput",
+    "value": {
+      "expires_in_days": null
+    },
+    "fields": [
+      "expires_in_days"
+    ]
   }
 ]

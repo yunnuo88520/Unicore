@@ -8,6 +8,7 @@ import (
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/platform"
+	"sync"
 	"testing"
 	"time"
 )
@@ -230,7 +231,7 @@ func exerciseAdministratorRoles(t *testing.T, ctx context.Context, store *sqlsto
 	if _, err = administrator.Session(ctx, token); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = admins.UpdateRole(ctx, second.ID, contracts.RoleSaveInput{Name: "公告员", Permissions: []string{"menus:write"}}, admin.ID); err != nil {
+	if _, err = admins.UpdateRole(ctx, second.ID, contracts.RoleSaveInput{Version: currentRoleVersion(t, ctx, admins, second.ID), Name: "公告员", Permissions: []string{"menus:write"}}, admin.ID); err != nil {
 		t.Fatal("role permission change", err)
 	}
 	if _, err = administrator.Session(ctx, token); !errors.Is(err, platform.ErrCredentials) {
@@ -316,5 +317,134 @@ func TestUserRoleNamesEchoCatalogue(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("orphan role name did not fall back to the id: %v %v", orphan.Roles, orphan.RoleNames)
+	}
+}
+
+// currentRoleVersion supplies the snapshot expected by existing semantic tests.
+func currentRoleVersion(t *testing.T, ctx context.Context, repo *Repository, id string) *int {
+	t.Helper()
+	if err := repo.initializeNavigation(ctx); err != nil {
+		t.Fatal(err)
+	}
+	role, err := repo.role(ctx, repo.Store.DB, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return &role.Version
+}
+
+func TestRoleCompareAndSwap(t *testing.T) {
+	ctx := t.Context()
+	_, repo, owner := navigationFixture(t, ctx)
+	role, err := repo.CreateRole(ctx, contracts.RoleSaveInput{Name: "CAS", Permissions: []string{"notes:access"}}, owner.ID)
+	if err != nil || role.Version != 1 {
+		t.Fatalf("creation version: %+v %v", role, err)
+	}
+	for _, version := range []*int{nil, func() *int { v := 0; return &v }(), func() *int { v := -1; return &v }()} {
+		if _, err = repo.UpdateRole(ctx, role.ID, contracts.RoleSaveInput{Name: "invalid", Version: version}, owner.ID); !errors.Is(err, platform.ErrInput) {
+			t.Fatalf("invalid version accepted: %v", err)
+		}
+	}
+	start := make(chan struct{})
+	results := make(chan error, 2)
+	var wg sync.WaitGroup
+	for _, name := range []string{"writer-a", "writer-b"} {
+		wg.Add(1)
+		go func(name string) {
+			defer wg.Done()
+			<-start
+			_, err := repo.UpdateRole(ctx, role.ID, contracts.RoleSaveInput{Name: name, Version: &role.Version, Permissions: role.Permissions}, owner.ID)
+			results <- err
+		}(name)
+	}
+	close(start)
+	wg.Wait()
+	close(results)
+	wins, conflicts := 0, 0
+	for err := range results {
+		switch {
+		case err == nil:
+			wins++
+		case errors.Is(err, platform.ErrConflict):
+			conflicts++
+		default:
+			t.Fatal(err)
+		}
+	}
+	if wins != 1 || conflicts != 1 {
+		t.Fatalf("wins=%d conflicts=%d", wins, conflicts)
+	}
+	after, err := repo.role(ctx, repo.Store.DB, role.ID)
+	if err != nil || after.Version != 2 {
+		t.Fatalf("CAS version: %+v %v", after, err)
+	}
+	// A rejected stale snapshot cannot change any stored edit field.
+	if _, err = repo.UpdateRole(ctx, role.ID, contracts.RoleSaveInput{Name: "stale", Version: &role.Version}, owner.ID); !errors.Is(err, platform.ErrConflict) {
+		t.Fatal("stale edit", err)
+	}
+	listed, err := repo.ListRoles(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, item := range listed.Items {
+		if item.ID == role.ID && (item.Version != after.Version || item.Name != after.Name) {
+			t.Fatalf("stale write leaked: %+v", item)
+		}
+	}
+	// A validation error after the SQL CAS must roll back both the version and edits.
+	if _, err = repo.UpdateRole(ctx, role.ID, contracts.RoleSaveInput{Name: "invalid grant", Version: &after.Version, Permissions: after.Permissions, OperationIds: &[]string{"deleteNote"}}, owner.ID); !errors.Is(err, platform.ErrForbidden) {
+		t.Fatal("invalid operation accepted", err)
+	}
+	rolledBack, err := repo.role(ctx, repo.Store.DB, role.ID)
+	if err != nil || rolledBack.Version != after.Version || rolledBack.Name != after.Name {
+		t.Fatalf("failed CAS mutation leaked: %+v %v", rolledBack, err)
+	}
+	// Membership is not part of the role editor snapshot.
+	if _, err = repo.CreateUser(ctx, contracts.UserCreate{Username: "cas-member", Email: "cas-member@example.test", RoleIds: &[]string{role.ID}}, "hash", owner.ID); err != nil {
+		t.Fatal(err)
+	}
+	memberRole, err := repo.role(ctx, repo.Store.DB, role.ID)
+	if err != nil || memberRole.UserCount != 1 || memberRole.Version != after.Version {
+		t.Fatalf("membership advanced version: %+v %v", memberRole, err)
+	}
+}
+
+func TestRoleCleanupVersions(t *testing.T) {
+	ctx := t.Context()
+	_, repo, owner := navigationFixture(t, ctx)
+	department, err := repo.CreateDepartment(ctx, contracts.DepartmentSaveInput{Name: "CAS cleanup"}, owner.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	role, err := repo.CreateRole(ctx, contracts.RoleSaveInput{Name: "Scoped cleanup", DataScope: strPtr(platform.ScopeCustom), DepartmentIds: &[]string{department.ID}}, owner.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = repo.DeleteDepartment(ctx, department.ID, owner.ID); err != nil {
+		t.Fatal(err)
+	}
+	after, err := repo.role(ctx, repo.Store.DB, role.ID)
+	if err != nil || after.Version != role.Version+1 || len(after.DepartmentIds) != 0 {
+		t.Fatalf("department cleanup: %+v %v", after, err)
+	}
+	if _, err = repo.UpdateRole(ctx, role.ID, contracts.RoleSaveInput{Name: role.Name, Version: &role.Version}, owner.ID); !errors.Is(err, platform.ErrConflict) {
+		t.Fatal("cleanup did not stale snapshot", err)
+	}
+	// Retired user permission cleanup changes once, and repeated startup is quiet.
+	if _, err = repo.Store.Exec(ctx, repo.Store.DB, "INSERT INTO unicore_role_permissions(role_id,permission_id) VALUES('user','files:access')"); err != nil {
+		t.Fatal(err)
+	}
+	before := *currentRoleVersion(t, ctx, repo, "user")
+	if err = repo.EnsurePermissions(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if got := *currentRoleVersion(t, ctx, repo, "user"); got != before+1 {
+		t.Fatalf("permission cleanup version %d, before %d", got, before)
+	}
+	if err = repo.EnsurePermissions(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if got := *currentRoleVersion(t, ctx, repo, "user"); got != before+1 {
+		t.Fatalf("permission no-op version %d", got)
 	}
 }

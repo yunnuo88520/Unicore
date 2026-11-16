@@ -60,7 +60,7 @@ func TestSignedTargetRejectsTamperingAndIncompatibility(t *testing.T) {
 	if _, _, e := Verify(raw, signature(raw, key), trust, "1.0.0", m.Version, target, time.Now()); e != nil {
 		t.Fatal(e)
 	}
-	cases := map[string]func(*Manifest){"application": func(m *Manifest) { m.Application = "other" }, "expired": func(m *Manifest) { m.ExpiresAt = time.Now().Add(-time.Second) }, "future": func(m *Manifest) { m.IssuedAt = time.Now().Add(time.Hour) }, "commit": func(m *Manifest) { m.Commit = "main" }, "migration": func(m *Manifest) { m.Artifacts[0].SchemaGeneration = "unicore-2" }, "business migration": func(m *Manifest) { m.Artifacts[0].SchemaFingerprint = strings.Repeat("d", 64) }, "features": func(m *Manifest) { m.Artifacts[0].License = true }, "duplicate target": func(m *Manifest) { m.Artifacts = append(m.Artifacts, m.Artifacts[0]) }, "duplicate name": func(m *Manifest) { a := m.Artifacts[0]; a.Arch = "arm64"; m.Artifacts = append(m.Artifacts, a) }, "platform claim": func(m *Manifest) { m.Artifacts[0].PlatformSignature = "trusted" }}
+	cases := map[string]func(*Manifest){"application": func(m *Manifest) { m.Application = "other" }, "expired": func(m *Manifest) { m.ExpiresAt = time.Now().Add(-time.Second) }, "future": func(m *Manifest) { m.IssuedAt = time.Now().Add(time.Hour) }, "commit": func(m *Manifest) { m.Commit = "main" }, "migration": func(m *Manifest) { m.Artifacts[0].SchemaGeneration = "unicore-2" }, "business migration": func(m *Manifest) { m.Artifacts[0].SchemaFingerprint = strings.Repeat("d", 64) }, "notes edition": func(m *Manifest) { m.Artifacts[0].NotesDisabled = !target.NotesDisabled }, "features": func(m *Manifest) { m.Artifacts[0].License = true }, "duplicate target": func(m *Manifest) { m.Artifacts = append(m.Artifacts, m.Artifacts[0]) }, "duplicate name": func(m *Manifest) { a := m.Artifacts[0]; a.Arch = "arm64"; m.Artifacts = append(m.Artifacts, a) }, "platform claim": func(m *Manifest) { m.Artifacts[0].PlatformSignature = "trusted" }}
 	for name, change := range cases {
 		t.Run(name, func(t *testing.T) {
 			var altered Manifest
@@ -97,10 +97,12 @@ type testProvider struct {
 	releases []Release
 	raw, sig []byte
 	fail     bool
+	calls    int
 }
 
 func (p *testProvider) Name() string { return "test" }
 func (p *testProvider) Releases(context.Context) ([]Release, error) {
+	p.calls++
 	if p.fail {
 		return nil, ErrUnavailable
 	}
@@ -119,10 +121,11 @@ func (p *testProvider) Download(context.Context, string, io.Writer, int64, func(
 type testInstaller struct {
 	calls  int
 	reason string
+	status string
 }
 
 func (i *testInstaller) Readiness() string        { return i.reason }
-func (i *testInstaller) Job() contracts.UpdateJob { return contracts.UpdateJob{Status: "idle"} }
+func (i *testInstaller) Job() contracts.UpdateJob { return contracts.UpdateJob{Status: i.status} }
 func (i *testInstaller) Start(Payload) (contracts.UpdateJob, error) {
 	i.calls++
 	return contracts.UpdateJob{Status: "downloading"}, nil
@@ -162,5 +165,104 @@ func TestOfflineHistoryAndApplyReverification(t *testing.T) {
 	p.releases[0].Prerelease = true
 	if v := s.Check(context.Background()); v.Available || len(v.History) != 1 {
 		t.Fatal("stable included preview", v)
+	}
+}
+
+func TestScheduledChecksThrottleFailuresAndRestartsWithoutInstalling(t *testing.T) {
+	m, raw, trust, key, target := fixture(t)
+	p := &testProvider{raw: raw, sig: signature(raw, key), releases: []Release{{Version: m.Version, Assets: []AssetLink{{Name: "update-manifest.json", URL: "manifest"}, {Name: "update-manifest.sig", URL: "sig"}, {Name: m.Artifacts[0].Name, URL: "archive"}}}}}
+	cache, installer := &memoryCache{}, &testInstaller{}
+	newService := func() *Service {
+		return &Service{Provider: p, Cache: cache, Installer: installer, Trust: trust, Version: "1.0.0", Channel: "stable", Current: func() Target { return target }}
+	}
+	s := newService()
+	now := time.Now().UTC().Truncate(time.Second)
+	if !s.checkScheduled(context.Background(), now) || !s.Overview(context.Background()).CanApply || installer.calls != 0 {
+		t.Fatal("scheduled discovery must verify the package without installing it")
+	}
+	if s.checkScheduled(context.Background(), now.Add(CheckInterval-time.Second)) || p.calls != 1 {
+		t.Fatal("scheduled check repeated too soon")
+	}
+	s.Check(context.Background())
+	if p.calls != 2 {
+		t.Fatal("manual check was throttled")
+	}
+	installer.status = "downloading"
+	if s.checkScheduled(context.Background(), now.Add(CheckInterval+time.Minute)) {
+		t.Fatal("scheduled check ran during an installation")
+	}
+	installer.status, p.fail = "idle", true
+	if !s.checkScheduled(context.Background(), now.Add(CheckInterval+time.Minute)) || cache.c.LastError == "" || len(cache.c.Releases) != 1 {
+		t.Fatal("failed check must retain the last verified history")
+	}
+	restarted := newService()
+	if restarted.checkScheduled(context.Background(), now.Add(CheckInterval+2*time.Minute)) || p.calls != 3 {
+		t.Fatal("restart retried a recently failed channel")
+	}
+	if !restarted.checkScheduled(context.Background(), now.Add(2*CheckInterval+time.Minute)) || p.calls != 4 || installer.calls != 0 {
+		t.Fatal("failed channel was not retried after the interval")
+	}
+	target.SchemaFingerprint = ""
+	if newService().checkScheduled(context.Background(), now.Add(3*CheckInterval)) {
+		t.Fatal("uninstalled instance contacted the update channel")
+	}
+}
+
+type waitingProvider struct {
+	testProvider
+	entered chan struct{}
+}
+
+func (p *waitingProvider) Releases(ctx context.Context) ([]Release, error) {
+	close(p.entered)
+	<-ctx.Done()
+	return nil, ctx.Err()
+}
+
+func TestScheduledCheckKeepsOverviewReadableAndStopsWithLifecycle(t *testing.T) {
+	_, _, _, _, target := fixture(t)
+	p := &waitingProvider{entered: make(chan struct{})}
+	cache := &memoryCache{c: Catalog{Releases: []Release{{Version: "1.0.0", Notes: "cached"}}}}
+	s := &Service{Provider: p, Cache: cache, Installer: &testInstaller{}, Version: "1.0.0", Current: func() Target { return target }}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	ticks, done := make(chan time.Time, 1), make(chan struct{})
+	go func() { s.runChecks(ctx, ticks); close(done) }()
+	ticks <- time.Now()
+	select {
+	case <-p.entered:
+	case <-time.After(time.Second):
+		t.Fatal("timer did not trigger discovery")
+	}
+	overview := make(chan contracts.UpdateOverview, 1)
+	go func() { overview <- s.Overview(context.Background()) }()
+	select {
+	case v := <-overview:
+		if len(v.History) != 1 || v.History[0].Notes != "cached" {
+			t.Fatal("cached history disappeared during discovery")
+		}
+	case <-time.After(time.Second):
+		t.Fatal("slow update source blocked the overview")
+	}
+	if s.checkScheduled(ctx, time.Now().Add(CheckInterval)) {
+		t.Fatal("concurrent scheduled discovery was not skipped")
+	}
+	manualCtx, cancelManual := context.WithCancel(context.Background())
+	cancelManual()
+	manual := make(chan contracts.UpdateOverview, 1)
+	go func() { manual <- s.Check(manualCtx) }()
+	select {
+	case <-manual:
+	case <-time.After(time.Second):
+		t.Fatal("cancelled manual check waited for background discovery")
+	}
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("scheduled request outlived cancellation")
+	}
+	if cache.c.LastError != "" || cache.c.AttemptedAt != "" {
+		t.Fatal("shutdown corrupted the cached result")
 	}
 }

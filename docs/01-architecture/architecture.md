@@ -9,13 +9,13 @@
 React web-ui → AppClient → HTTP adapter → install / platform / settings / notes
                       └→ Wails bridge → local notes / files
 CLI / HTTP / Wails → usecase.Executor → domain.Analyze
-HTTP / Wails → usecase.Notes → domain.Note / NoteRepository port → SQL adapter
+HTTP / Wails → modules/notes usecase → domain.Note / NoteRepository port → SQL adapter（自包含模块树 internal/modules/notes）
 离线 unicore-ops → maintenance → 加密快照 / 新目标恢复（不进入业务 CLI）
 ```
 
 | 模块 | 责任 |
 | --- | --- |
-| internal/domain / usecase | 文本分析、笔记规则、Repository port、context 与 DTO 映射 |
+| internal/domain / usecase | 文本分析、共享实体基座、Execute 用例、context 与 DTO 映射；笔记业务位于自包含模块树 internal/modules/notes（domain/usecase/storage/desktop） |
 | internal/install | 安装状态/凭据/恢复、DB 配置加密、按 profile 装配 |
 | internal/platform | Argon2id、会话、权限策略、限流/验证码、operation 目录与数据范围解析、identity ports |
 | internal/settings | Definition 注册、类型/范围校验与持久化 port |
@@ -24,7 +24,7 @@ HTTP / Wails → usecase.Notes → domain.Note / NoteRepository port → SQL ada
 | adapter/storage/sqlstore | 无驱动/身份依赖的 SQL、迁移、设置与审计基础 |
 | adapter/storage/platformsql | 平台身份 SQL 实现 |
 | adapter/storage/sqlite / webdb | 桌面只 SQLite；Web 组合所有 DB 驱动 |
-| adapter/storage/notessql | 笔记身份域、版本冲突与事务审计 |
+| modules/notes/storage/notessql | 笔记身份域、版本冲突与事务审计 |
 | bootstrap/local | 桌面自动 SQLite、业务迁移、进程锁、profile 校验，不 import platform |
 | cmd/ops / internal/maintenance | 停服锁边界的离线加密备份、校验和新目标恢复 |
 | packages/contracts / sdk / web-ui | 唯一契约源、双 transport、共享界面 |
@@ -47,7 +47,7 @@ SQLite adapter 统一将文件路径绝对化并生成空 authority、正确转�
 
 ## 界面与扩展
 
-HttpTransport 管理 cookie/CSRF 与 WebClient；页面不直接 fetch。WailsTransport 提供 bootstrap/execute/设备级外观/notes，没有 Web 身份/安装接口。SessionBoundary 按会话代际隔离 Query cache/组件状态，SDK epoch 拒绝旧响应，多标签页同步失效；routes.ts 登记元数据、router.tsx 以 TanStack Router 代码式路由树挂载页面（Web history 导航、桌面 hash、管理端动态 basepath），canAccess 在壳层门禁裁剪；lib/form.tsx 的 RHF 表单经 constraintsToZod 契约校验处理提交错误。TanStack Query 管理状态；DashboardWidgetRegistry 以唯一 id 扩展业务首页。工作台概览为默认首页，不再提供重复平台仪表盘；操作与投递记录通过独立系统日志页读取真实数据。
+HttpTransport 管理 cookie/CSRF 与 WebClient；页面不直接 fetch。WailsTransport 提供 bootstrap/execute/设备级外观/notes，没有 Web 身份/安装接口。SessionBoundary 按会话代际隔离 Query cache/组件状态，SDK epoch 拒绝旧响应，多标签页同步失效；routes.ts 登记元数据、router.tsx 以 TanStack Router 代码式路由树挂载页面（Web history 导航、桌面 hash、管理端动态 basepath），canAccess 在壳层门禁裁剪；packages/form/src/form.tsx 的 RHF 表单经 constraintsToZod 契约校验处理提交错误。TanStack Query 管理状态；DashboardWidgetRegistry 以唯一 id 扩展业务首页。工作台概览为默认首页，不再提供重复平台仪表盘；操作与投递记录通过独立系统日志页读取真实数据。
 
 平台主题只存在当前客户端 localStorage，不读取/保存全局默认主题；普通用户只渲染本地外观卡片。单机/桌面的本地默认主题仍在设置注册表，设备偏好优先。设置使用共享可键盘操作的单层 Tabs，品牌图片使用三张并列卡片，外观卡片合并到设置、兼容旧 #settings 地址；主标签由 #site?tab=… 保留；按当前分组构造 PATCH，跨标签保留表单/图片预览草稿。UI 路由在桌面端以 hash history 复用，Web 使用 history 导航；/install、可配置后台入口由服务器处理，深链依赖既有 SPA fallback。light/dark/system 与 375px 浏览器测试，表格可横向滚动但页面不溢出。
 
@@ -57,7 +57,7 @@ Web 退出由 `internal/lifecycle.ServeHTTP` 先等待在途 HTTP 请求排空�
 
 ## 邮件与账号流程
 
-internal/platform/Accounts 编排独立注册/邮箱验证策略、后缀与黑名单、验证码/限流、注册与令牌；无需验证时事务创建 active 普通用户且不产生邮件任务；mailer 定义 Sender/队列 port，adapter/mail 实现 SMTP，platformsql 实现账号与投递事务。仅 Web 平台装配，服务进程每秒处理一个到期任务；桌面/CLI 不导入 SMTP 或队列模块。
+internal/platform/Accounts 编排独立注册/邮箱验证策略、后缀与黑名单、验证码/限流、注册与令牌；无需验证时事务创建 active 普通用户且不产生邮件任务；mailer 定义 Sender/队列 port，adapter/mail 实现 SMTP，platformsql 实现账号与投递事务。仅 Web 平台装配，服务进程每秒最多认领 8 个到期任务（账号邮件优先于事件通知，并发投递上限 4、每渠道串行），结构化失败码与取消原因见事件通知手册；桌面/CLI 不导入 SMTP 或队列模块。
 
 设置注册表声明 Sensitive，SecretStore 用原实例密钥 AES-GCM 加密；API 敏感值始终为空并返回 configured，空输入保留，clear:true 显式清除。SMTP 测试记录绑定主机/端口/TLS/发件人/用户名及随机密文版本，避免保存 SMTP 密码的快速哈希。更改配置会使测试记录不匹配；已开启的邮件流程须先关闭再更换配置。
 
@@ -89,7 +89,7 @@ internal/platform/Accounts 编排独立注册/邮箱验证策略、后缀与黑�
 
 [ADR-0009](../adr/ADR-0009-runtime-branding.md) 定义共享 internal/branding、私有规范化 PNG 与 DB 托管引用。管理端使用生成 DTO，通过 AppClient 驱动品牌预览/保存/恢复面板；本地形态使用构建品牌；BrandProvider 覆盖工作台和账号分支。平台公开当前哈希图片；Wails 不装配运行时品牌桥接，无 HTTP 模拟。邮件创建时快照图片字节到加密队列，SMTP CID 和预览同源；存储/清理顺序与恢复边界见 [需求](../00-product/feature-branding.md)。
 
-[ADR-0010](../adr/ADR-0010-settings-edition.md) 补齐 ICP/别名/ICO/内部系统通知队列。授权仍由 license tag 默认关闭；更新以 [ADR-0018](../adr/ADR-0018-signed-updates.md) 取代占位，updater tag 默认通过 Make 开启。internal/updates 隔离 Provider/Cache/Installer ports，adapter/updatechannel 与 updateinstall 分别实现渠道和安全安装，bootstrap/updating 按形态装配。HTTP 使用窄 updateport 并独立鉴权，原生 bridge 直接调用。内置日志、私有缓存、签名清单和 helper 原子切换不依赖平台身份模块；CLI 不装配。设置矩阵见 [规范](../00-product/feature-settings.md)。
+[ADR-0010](../adr/ADR-0010-settings-edition.md) 补齐 ICP/别名/ICO/内部系统通知队列。授权仍由 license tag 默认关闭；更新以 [ADR-0018](../adr/ADR-0018-signed-updates.md) 取代占位，updater tag 默认通过 Make 开启。internal/updates 隔离 Provider/Cache/Installer ports，adapter/updatechannel 与 updateinstall 分别实现渠道和安全安装，bootstrap/updating 按形态装配；updater 仅编译期启停，关闭时只保留版本号。启用并配置渠道时，进程生命周期内后台检查（启动约 1 分钟后、之后每 6 小时），复用手动检查、签名和缓存，成功/失败尝试均节流，退出取消请求；缓存读取不被慢速渠道阻塞，安装仍须明确确认。HTTP 使用窄 updateport 并独立鉴权，原生 bridge 直接调用。内置日志、私有缓存、签名清单和 helper 原子切换不依赖平台身份模块；CLI 不装配。设置矩阵见 [规范](../00-product/feature-settings.md)。
 
 Web 启动参数、APP_* 环境与可选 YAML/JSON 配置由 internal/config.LoadWeb 统一解析校验（flag > 环境 > 显式文件 > 默认值）；仅显式指定配置路径时读取，数据库和管理员仍由安装向导管理。Web 发行包统一使用 unicore 二进制，help/config generate 与离线 backup/verify/restore 共用入口；前端内嵌，不重复打包静态目录，不进入无数据库的业务 CLI。原生桌面面向用户提供 macOS DMG、Windows 便携 EXE，原有 tar 仍供签名 OTA；下载文件在桌面 manifest.downloads 与总校验和中关联，派生产品沿用品牌源。
 

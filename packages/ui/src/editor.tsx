@@ -101,9 +101,9 @@ export const RichTextEditor = forwardRef<RichTextHandle, { value: string; onChan
     [Redo2, tools.redo, () => editor.chain().focus().redo().run(), () => !editor.can().redo()],
   ] : [];
 
-  return <div className={cn('overflow-hidden rounded-lg border border-line bg-surface', className)}>
-    <div className="flex items-center justify-between gap-2 border-b border-line bg-surface-alt px-2 py-1.5">
-      <div className="flex items-center gap-0.5">
+  return <div className={cn('overflow-hidden rounded-xl border border-transparent bg-field transition-colors hover:border-line-strong focus-within:border-focus focus-within:ring-2 focus-within:ring-focus', className)}>
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-line bg-surface-alt px-2 py-1.5">
+      <div className="flex min-w-0 flex-wrap items-center gap-0.5">
         {toolButtons.map(([Icon, active, command, title]) => (
           <Button key={title} variant="ghost" size="icon" aria-label={t(title)} aria-pressed={active()}
             disabled={raw || disabled} onMouseDown={event => event.preventDefault()} onClick={command} className={active() ? 'bg-primary-soft text-accent' : ''}>
@@ -120,7 +120,7 @@ export const RichTextEditor = forwardRef<RichTextHandle, { value: string; onChan
           <LinkIcon size={15} />
         </Button>
       </div>
-      <Button variant="ghost" size="sm" aria-pressed={raw} disabled={disabled} onClick={() => { if (raw) onChange(safeEditorHTML(value, { siteTemplate })); setRaw(current => !current); }}>
+      <Button variant="ghost" size="sm" className="ms-auto" aria-pressed={raw} disabled={disabled} onClick={() => { if (raw) onChange(safeEditorHTML(value, { siteTemplate })); setRaw(current => !current); }}>
         <Code2 size={14} />{raw ? t('可视化') : t('源代码')}
       </Button>
     </div>

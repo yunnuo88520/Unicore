@@ -33,6 +33,25 @@ type NoteVisibility struct {
 	Scopes []string
 }
 
+// VisibilityFor derives the list visibility from a resolved platform data
+// scope: an unrestricted filter reads every row, a bounded filter adds the
+// extra user-realm keys, and the self scope keeps personal-only behaviour.
+// The HTTP adapter and the MCP tool adapter both derive visibility here so
+// the rule cannot drift between entry points.
+func VisibilityFor(realm string, all bool, userIDs []string) NoteVisibility {
+	visibility := NoteVisibility{}
+	if all {
+		visibility.All = true
+		return visibility
+	}
+	for _, id := range userIDs {
+		if id != "" {
+			visibility.Scopes = append(visibility.Scopes, realm+"/"+id)
+		}
+	}
+	return visibility
+}
+
 type Notes struct {
 	Repo        NoteRepository
 	Attachments func(context.Context, string, string) error

@@ -87,7 +87,9 @@ test('English administrator pages and public authentication share controls', asy
   await page.getByRole('button', { name:'切换语言', exact:true }).click(); await page.getByRole('menuitemradio', { name:'English', exact:true }).click();
   for (const route of ['users','administrators','roles','site','site?tab=branding','site?tab=security','site?tab=registration','site?tab=maintenance','site?tab=oidc','mail','mail-templates','announcements','storage','storage?provider=minio','storage?provider=s3','storage?provider=oss','storage?provider=cos','storage?tab=rules','logs']) {
     await page.goto(`${instance.url}/admin/${route}`);
-    await expect(page.locator('.topbar h1')).toBeVisible();
+    await expect(page.locator('#main-content h1')).toHaveCount(1);
+    await expect(page.locator('#main-content h1')).toBeVisible();
+    await expect(page.locator('.topbar h1')).toHaveCount(0);
     await expect(page.locator('[role=status]').filter({hasText:/Loading/})).toHaveCount(0);
     const leftovers = await untranslated(page);
     expect(leftovers, route).toEqual([]);

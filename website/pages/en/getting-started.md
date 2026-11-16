@@ -1,65 +1,99 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # Get started
 
-Unicore shares Go domain logic and use cases across HTTP, Wails, and Cobra entry points, with React UI shared by the graphical profiles. It is currently a development preview.
+Unicore is an application framework with an optional notes demo. Create your own project and choose the modules you need, or run the demo below to explore the framework.
 
-## Choose a profile
+## Choose a product form
 
-| Profile | Use | Database and identity |
+| Form | Carrier / profile | Accounts and database |
 | --- | --- | --- |
-| `web-platform` | Applications with multiple users | SQLite, PostgreSQL, or MySQL; separate administrator and user identities |
-| `web-standalone` | Local tools for one user | The same database choices; no platform identity; keep access local |
-| `desktop` | Native Wails v2 applications | Local SQLite; no platform identity |
-| `cli` | Commands and scripts calling Core | No HTTP, Wails, database, or platform identity dependencies |
+| Platform | Web / `web-platform` | Unified accounts, multiple roles, shared sessions; SQLite, PostgreSQL, or MySQL |
+| Standalone | Web / `web-standalone` | No platform accounts; SQLite, PostgreSQL, or MySQL |
+| Standalone | Native desktop / `desktop` | The same local business features; SQLite initialized automatically |
+| CLI | Command line / `cli` | Calls Core directly; no UI or persistent state of its own |
 
-## Run from source
+Web installations choose a profile in the installation wizard; it cannot change after installation. Standalone Web listens locally by default and needs an external authentication or access control layer for remote use.
 
-Install Go 1.26.11+, a Node version satisfying the root `package.json` engines, pnpm 11.25.0, Git, and ripgrep. Native desktop builds also require Wails and the target OS dependencies.
+## Prepare your environment
+
+Install Go 1.26.11+, Node.js 22.22.2+ (other supported versions are listed in the root `package.json` engines), pnpm 11.25.0, Git, Make, and ripgrep. Windows developers can use WSL2 for Web and CLI; native desktop development requires the target OS and [Wails dependencies](https://wails.io/docs/gettingstarted/installation).
 
 ```sh
 git clone https://github.com/yunnuo88520/Unicore.git
 cd Unicore
 make install
 make doctor
+```
+
+## Run the sample
+
+Start the backend from the repository root:
+
+```sh
 make dev-server
-# In a second terminal:
+```
+
+In a second terminal, enter the same directory and run:
+
+```sh
 make dev-web
 ```
 
-Open the frontend address printed by Vite and visit `/install` on the first Web launch. Use a dedicated database you own. The one-time installation token is in the server's private `bootstrap.token` file. Installation initializes the selected target, so use an isolated environment for trials.
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173), or the address printed by Vite if that port is busy.
 
-For packaged downloads, use [GitHub Releases](https://github.com/yunnuo88520/Unicore/releases) and the matching tag's instructions. macOS uses a DMG, Windows a standalone EXE, and Linux desktop a tar archive. Web and CLI archives have different entry points; see [builds (中文)](../../../docs/product/build.md).
+1. Enter the installation wizard at `/install`. Read the one-time token from `data/bootstrap.token` and paste it into the wizard.
+2. Select **Platform** and **SQLite** for a local trial without an external database.
+3. Enter your site details and create your administrator account with your own password. There are no default credentials.
+4. Complete installation, sign in, open “My notes,” and create a note with an attachment.
+5. Refresh the page, then restart the development processes to confirm the note persists.
 
-## Deploy to a server
+Keep the complete `data/` directory: it contains the database, private configuration, files, and keys. Normal restarts do not require installation again.
 
-Three supported paths share the same installation wizard; the full walkthrough — databases, HTTPS, updates and rollback — is the [deployment guide (中文)](../../../docs/product/deployment.md).
+::: warning Database initialization
+Use a new, dedicated database for a trial. Clearing a nonempty database requires explicit confirmation and the exact database name. Never use an existing business database for a trial.
+:::
 
-- **tar + systemd (recommended for servers):** download the `web-platform` package for your architecture from [Releases](https://github.com/yunnuo88520/Unicore/releases), verify `checksums.txt`, unpack into a new version directory, then run `./unicore config generate && sudo ./unicore service install --config config.yaml`. The program generates its own systemd unit and starts listening on `127.0.0.1:3000`.
-- **Docker:** build the image from source (`docker build -f deploy/docker/Dockerfile .`). Public registry images follow later releases on `ghcr.io/yunnuo88520/unicore` — check the matching release notes; already-published versions have no image.
-- **Docker Compose:** the deployment guide ships a compose file with PostgreSQL, persistent volumes and hardened defaults.
-
-Then open `http://<your-server>/install`, enter the one-time `bootstrap.token` from the private data directory, choose the profile, and complete the wizard. Post-install checks, backups and troubleshooting are covered in [backup (中文)](../../../docs/product/backup.md), [updates (中文)](../../../docs/product/updates.md), and the deployment guide's troubleshooting table.
+The user entry is `/login`; administration defaults to `/admin` and can be configured during installation. Both workspaces share accounts, passwords, and sessions. Roles determine access to administration.
 
 ## Create your application
 
+From a clean framework checkout, choose a destination outside the repository that does not already exist:
+
 ```sh
-pnpm create:project --directory ../MyApp --name MyApp --slug myapp --module github.com/team/myapp --bundle com.example.myapp --repository https://github.com/team/myapp
-cd ../MyApp
+pnpm create:project --directory ../my-app --name 'My App' --slug my-app --module github.com/team/my-app --bundle com.team.myapp --repository https://github.com/team/my-app
+cd ../my-app
 make install
 make docs
 make doctor
+make dev-server
+# In a second terminal, inside my-app: make dev-web
 ```
 
-Replace the example identity and repository with your own. The creator initializes a local Git baseline and a read-only upstream reference; it does not create a hosted repository or push code. Read [application development (中文)](../../../docs/product/development.md) for product identity, framework updates, and business extensions.
+Replace the example identity and repository with your own. The creator initializes an independent Git repository and an upstream reference; it does not create a hosted repository or push code. Continue with [application development (中文)](../../../docs/product/development.md) and the [first feature tutorial (中文)](../../../docs/product/first-feature.md).
 
-## Make and verify changes
+## Trim the demo
 
-Edit `packages/contracts/openapi.json` before changing API DTOs, then run `pnpm generate`. Keep domain logic independent of transports and databases. Add business use cases through ports, and reuse the existing frontend layout, forms, client, and Chinese/English messages.
+After creating your project, build without the notes business module:
+
+```sh
+FEATURE_NOTES=false make build-web
+```
+
+This omits notes business code, APIs, permissions, navigation, and page bundles. New databases skip notes migrations; existing databases retain notes data and migration history. In development, set the same flag for both `make dev-server` and `make dev-web`. See [feature trimming (中文)](../../../docs/product/features.md) for optional updates and permanent source removal.
+
+## Build or install
 
 ```sh
 make docs
 make test
 make build-web build-cli
+make dev-cli ARGS='execute --text "Hello Unicore"'
 ```
 
-Run the builds and tests relevant to your profile. A successful build does not establish native GUI behavior, all database compatibility, or production readiness. Consult [support (中文)](../../../docs/support.md), [deployment (中文)](../../../docs/product/deployment.md), [backup (中文)](../../../docs/product/backup.md), and [updates (中文)](../../../docs/product/updates.md).
+Web and CLI packages are separate products even though both use the default executable name `unicore`. The CLI sample performs stateless text analysis and does not read notes. Web packages include server and offline maintenance subcommands.
+
+For prebuilt packages, select your OS and architecture from [Releases](https://github.com/yunnuo88520/Unicore/releases). macOS desktop uses a DMG, Windows an EXE, and Linux desktop a tar archive. Read [desktop and CLI installation (中文)](../../../docs/product/install-desktop.md) and [source builds (中文)](../../../docs/product/build.md).
+
+For a server or NAS, follow [Web deployment (中文)](../../../docs/product/deployment.md) for Docker, Compose, or tar/systemd, including persistent storage, HTTPS, and first installation. Preserve your data and keys with [backup and restore (中文)](../../../docs/product/backup.md) before [updating (中文)](../../../docs/product/updates.md).
+
+Unicore is a development preview. See the matching release notes and [support policy (中文)](../../../docs/support.md) for compatibility and deployment limits.

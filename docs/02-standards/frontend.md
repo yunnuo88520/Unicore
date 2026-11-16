@@ -3,19 +3,27 @@
 
 Web 与 Wails 共享 packages/web-ui。shell 只创建 AppClient transport；页面不能直接 fetch 或调用 window.go。路由采用 TanStack Router 代码式路由树（router.tsx 的 createWorkspaceRouter）：routes.ts 仍是标题、说明、profile 与权限的登记源，新增路径在 createWorkspaceRouter 挂载对应 page 模块。Web 用户端与管理员端使用 history 导航（服务端已有 SPA fallback），Wails 桌面端使用 hash history；管理员入口按 admin_path 动态 basepath。未注册路径由根路由的 NotFoundPage 明确展示，不能静默落到首页。重大选型见 [ADR-0027](../adr/ADR-0027-frontend-stack-rebuild.md)。
 
+## 会话与查询
+
 SessionBoundary 为每一代会话拥有独立 QueryClient 和组件状态；登录、退出、401、换账号或跨标签页失效会卸载旧状态并取消/清空旧查询。HttpTransport 使用 epoch 拒绝跨会话返回的旧请求，不允许旧账号结果进入新账号缓存。只有已认证请求的 401/AUTH_REQUIRED 触发失效；INVALID_CREDENTIALS 表示登录或本地密码确认失败，保留当前会话和表单错误。标签页只广播随机失效标记，不把用户信息、CSRF 或令牌存入 localStorage；恢复可见时 bootstrap 复核会话。服务端仍是身份和权限的最终来源。
 
 useSession 从 bootstrap 推导 loading/error/unavailable/authenticated/anonymous；壳层门禁与渲染守卫使用 routes.ts 的 canAccess，拒绝不适用 profile 或不足权限。管理菜单与直达页要求管理员域会话，页面与按钮按会话权限逐点判定；`roles:write` 等保留集操作另按 superAdmin 语义禁用（[ADR-0034](../adr/ADR-0034-administrator-restricted-roles.md)），不能只凭管理员身份放行。所有图形入口通过右上角主题抽屉调整本地外观，不提供外观设置页或菜单；普通用户、单机与桌面不启动全局 settings/branding 管理查询。主题偏好保存在本地，不调用服务器。后端 RBAC/CSRF 不依赖前端隐藏。TanStack Query 管理服务端数据；React Hook Form 管理表单状态，主题偏好由统一主题模块持久化。当前无跨组件复杂本地业务状态，不强制引入额外 store。
 
 查询 key 应标识资源与筛选条件。mutation 成功后使用 queries.ts 的 invalidateAfter 刷新受影响资源（例如账号状态变更同时失效 roles、role-options、users、administrators），不要刷新全部页面或将服务端结果复制成第二个全局 store。会话变化由 SessionBoundary 处理，不在每页重复实现退出清理。
 
-共享层按包分工：组件原语在 `@unicore/ui`（packages/ui）、契约表单层在 `@unicore/form`（packages/form）、设计令牌与客户端偏好在 `@unicore/theme`（packages/theme），业务 Workspace 仍在 packages/web-ui。所有提交使用 `@unicore/form` 的 useAppForm + AppForm：resolver 由契约约束生成的 Zod schema（packages/contracts/src/zod-schema.ts 的 constraintsToZod）驱动，pending 阻止重复提交。SDK 发送前执行相同约束（validate() 保留为最终防线），服务端再次验证。AppField 的 name 与契约字段一致，label/hint 收已翻译的 ReactNode，自动生成 id、aria-invalid、aria-describedby；服务端 AppError.fields 经 applyServerError 与本地字段错误合并进同一摘要并聚焦首个出错控件（聚焦作用域限于本表单，多表单页面不互相干扰）。非原生控件（Select/Switch/Checkbox）使用 AppControllerField。不得记录表单值或凭据。
+## 表单与共享组件
 
-样式使用 Tailwind v4 工具类 + 语义令牌色（详见 [设计系统](design-system.md)）：`@unicore/theme/styles.css` 通过 `@theme inline` 把 tokens.gen.css 的 CSS 变量映射为 Tailwind 令牌，暗色、强调色、密度、圆角缩放继续由生成链与 data 属性驱动；组件样式不写死十六进制色（check:design 检查）。运行时属性驱动的壳层几何集中在 shell.css。每个页面检查 loading/empty/error/success、权限拒绝、键盘、PC/375px 和 light/dark/system。UI 验收须使用真实 Go 服务；桌面复用的改动还需实际 Wails 原生运行。新增流程使用项目内 [add-react-page](../../.agents/skills/add-react-page/SKILL.md)。
+共享层按包分工：组件原语在 `@unicore/ui`（packages/ui）、契约表单层在 `@unicore/form`（packages/form）、设计令牌与客户端偏好在 `@unicore/theme`（packages/theme），业务 Workspace 仍在 packages/web-ui。所有提交使用 `@unicore/form` 的 useAppForm + AppForm：resolver 由契约约束生成的 Zod schema（packages/contracts/src/zod-schema.ts 的 constraintsToZod）驱动，pending 阻止重复提交。SDK 发送前执行相同约束（validate() 保留为最终防线），服务端再次验证。AppField 的 name 与契约字段一致，label/hint 收已翻译的 ReactNode，自动生成 id、aria-invalid、aria-describedby；服务端 AppError.fields 经 applyServerError 回填至对应字段并聚焦首个出错控件（聚焦作用域限于本表单，多表单页面不互相干扰）。字段错误就地显示，不重复汇总字段列表；root/无字段目标的失败保留表单级说明。非原生控件（Select/Switch/Checkbox）使用 AppControllerField，保留 render-prop 的 id/name/ref/onBlur/disabled 与 aria 属性到实际可聚焦控件，不只传 value/onChange；AppSelectField/AppSwitchField/AppCheckboxField 已封装这些接线。不得记录表单值或凭据。
+
+## 布局、主题与可访问性
+
+样式使用 Tailwind v4 工具类 + 语义令牌色（详见 [设计系统](design-system.md)）：`@unicore/theme/styles.css` 通过 `@theme inline` 把 tokens.gen.css 的 CSS 变量映射为 Tailwind 令牌，暗色、强调色、密度、圆角缩放继续由生成链与 data 属性驱动；组件样式不写死十六进制色（check:design 检查）。运行时属性驱动的壳层几何集中在 shell.css。每个页面检查 loading/empty/error/success、权限拒绝、键盘、PC/375px 和 light/dark/system。UI 验收须使用真实 Go 服务；桌面复用的改动还需实际 Wails 原生运行。新增页面步骤见 [前端基础](../03-runbooks/frontend-foundations.md)。
 
 新增实体表单使用 ui/dialog.tsx 的 Modal（Radix Dialog），不在列表内展开；使用契约校验，验证取消、Escape、焦点返回及 pending 防重。危险操作使用 ConfirmDialog 二次确认。登录/安装和设置编辑保留适合各自流程的页面。导航与邮件/日志页面分工见 ADR-0014；避免重新加入平台仪表盘或嵌套标签；邮件模板独立管理页按 ADR-0020 实现。头像操作调用统一 SDK；用户与管理工作台保留独立入口，共用统一账号与会话，身份以 ADR-0037 为准。
 
 二级导航在分组内部缩进，使用 Lucide 语义图标；图标与 UI 不使用 Emoji/表情字符（check:design 检查）。用户与管理员侧栏消费同一真实区域导航模型（[ADR-0036](../adr/ADR-0036-navigation-regions-granular-authorization.md)）：区域编辑器、侧栏、图标栏与移动抽屉由同一份数据派生，不在不同入口维护第二份结构；前端只呈现真实存在的控件，不提供 KeepAlive、CloseTab 等无运行效果的假开关。仅 web-platform 已登录账号显示头像与账号菜单；web-standalone/desktop 无用户概念，不渲染头像。
+
+## 消息与业务内容
 
 短暂反馈统一使用 `useMessage()`，由 Workspace 外层 MessageProvider 装配；支持 primary/success/warning/info/error，默认顶部居中、3 秒移除，固定视口层级（z-[70]）保持在 Radix 弹层之上。需要跨模块使用时从 `@unicore/ui` 导入；`message.success('设置已保存')` 或 `message.open({type:'warning',content:'请先保存',duration:5000})`，同类型简写替换前一条，open 可指定 id 替换/重置计时，destroy 手动关闭；SDK 回调等 React 树外场景使用同名的静态 `message` 代理（Provider 未挂载时静默丢弃）。消息 content 渲染调用方传入的原文，组件不做目录查找——业务文本（文件名、错误详情）不会被误翻译，界面文案仍由调用方 t()。视觉 tone 走 danger 令牌系，`error` 保留为消息方法名。QueryScope 的 MutationCache 统一处理提交失败（忽略 SESSION_CHANGED）；成功由业务 mutation 提供具体文案，不能在保存按钮旁追加占位。字段校验/聚焦、需要重试的加载错误、安装确认和认证完成页保留上下文状态，不将其替换成会消失的唯一说明。
 
@@ -23,14 +31,20 @@ Web 用户与管理员分别从 main.tsx/admin.tsx 装配；全局管理页仅�
 
 语言与本地外观统一使用 `@unicore/theme/preferences` 与 i18n.ts，不得各页另存 localStorage。组件用 `useI18n()` 或 `useLocale()` 订阅，再对界面文案调用 `t()`；新增词条同步英文资源，业务数据保留原文，插值用命名参数。语言切换不能重建表单或清掉草稿。共享组件经 `@unicore/ui/i18n` 的翻译桩渲染 key，应用在 i18n.ts 装配时 setTranslator 注入目录。ClientControls / AppearanceDrawer 供所有图形入口复用，主题抽屉本地即时应用，不提交全局设置。扩展与英文长标签、键盘/持久化验收见 [客户端偏好](../03-runbooks/client-preferences.md)。
 
-新增页面先读 [前端基础封装](../03-runbooks/frontend-foundations.md)。WorkspaceLayout 唯一拥有固定导航与内容占位，使用逻辑方向和统一 767px 抽屉断点；业务页不得重设 main-shell 偏移。工作区和主题面板固定 LTR，已移除阅读方向选项。`pnpm check:i18n` 会递归检查共享 UI 和两套 shell 的中文直写、静态词条、设置/权限元数据、契约错误、英文资源及插值；Web/GUI 构建与 make test 必须通过，不以文档约定替代构建检查。
+新增页面先读 [前端基础封装](../03-runbooks/frontend-foundations.md)。WorkspaceLayout 唯一拥有固定导航与内容占位，使用逻辑方向和统一 767px 抽屉断点；业务页不得重设 main-shell 偏移。工作区和主题面板固定 LTR，忽略旧 RTL 偏好，已移除阅读方向选项。正文页首使用共享 PageHeader（默认 h1；分节按语义使用 h2/h3），顶栏标题/面包屑不能替代正文标题；标题与操作槽仍由业务页提供中英文。`pnpm check:i18n` 会递归检查共享 UI 和两套 shell 的中文直写、静态词条、设置/权限元数据、契约错误、英文资源及插值；Web/GUI 构建与 make test 必须通过，不以文档约定替代构建检查。
 
-公告管理和用户卡片复用 ui 原语、DashboardWidgetRegistry 与安全 RichContent；公告/邮件主题正文是原始业务数据，不经过 t()。默认邮件模板固定中文，UI 的双语约束不能用于翻译用户内容。富文本编辑使用 `@unicore/ui/editor` 的 RichTextEditor（Tiptap，标签白名单与安全链接校验）：链接契约默认仅接受绝对 URL，邮件场景传 `siteTemplate` 额外允许 {{site_url}} 模板变量，`sourceLabel` 与 `maxLength`（默认 12000）由调用方给定；服务端仍对入站 HTML 做白名单再校验；渲染侧统一走 rich-content.tsx 的 safeContentHTML。图表能力暂未随包提供（此前封装无消费者已移除），接入真实统计 API 时再重新设计，不得展示无真实数据支撑的图形。
+公告管理和用户卡片复用 ui 原语、DashboardWidgetRegistry 与安全 RichContent；公告/邮件主题正文是原始业务数据，不经过 t()。默认邮件模板固定中文，UI 的双语约束不能用于翻译用户内容。富文本编辑使用 `@unicore/ui/editor` 的 RichTextEditor（Tiptap，标签白名单与安全链接校验）：链接契约默认仅接受绝对 URL，邮件场景传 `siteTemplate` 额外允许 {{site_url}} 模板变量，`sourceLabel` 与 `maxLength`（默认 12000）由调用方给定；服务端仍对入站 HTML 做白名单再校验；渲染侧统一走 rich-content.tsx 的 safeContentHTML。独立图表从 `@unicore/ui/charts` 导入，数据、范围切换与系列可见性由宿主管理；SVG/HTML 卡片支持作用域内的呈现动效，可通过 `animate={false}` 关闭；不自动查询或聚合。既有 Recharts 业务 widget 不随包入口新增自动迁移。新增图表必须声明真实数据源、单位、日期/时区与统计口径，不得展示无真实数据支撑的图形。
+
+独立 `@unicore/ui/controls`、`calendar`、`composites` 与 `data-grid` 只提供 UI 与本地交互；family 登记见 `packages/web-ui/src/pages/ui-preview/catalog.ts`，API/限制见 [UI 组件参考](../product/ui-components.md)。FileUploadDropzone 只选择文件，MeetingScheduler 不提交预约，Agent/Composer/Search 不调用模型或检索服务，SettingsDialog 不保存实例设置；DataGrid 不替代业务 DataTable 的服务端列表流程，删除由宿主执行且不进入本地撤销栈。所有业务请求继续使用 SDK/Query，Platform 服务端授权与 Standalone 形态边界不变；共享 UI 不引入 CLI。
+
+## 文件与认证入口
 
 私有文件上传复用 FileUploadDialog 与 AppClient.files.uploadFile 的持久分片流程：字节进度以确认分片为准，signal 为暂停，deleteFile 为放弃；恢复需重新选择原文件并核对指纹，不在 localStorage 存签名 URL、File 或身份。业务使用 AppClient.businessFiles('notes'|'avatar')，复用业务授权；Standalone 本地文件走 HTTP/原生桥，不引入云管理。见 [存储手册](../03-runbooks/storage.md)。
 
 认证入口沿用共享表单和 SDK 生成校验：登录 /login、注册 /register、忘记密码 /forgot-password、注册完成 /registration-success 以真实 Link 导航，不用局部 mode 按钮冒充页面。注册/重置同时校验确认密码，确认值只留表单内存，不发送到 API。成功页只显示完成标题和一个主要返回入口；成功结果仅由实际 API 成功后写入非敏感 history state，不持久化账号、密码或凭据。普通用户的注册入口按策略呈现不可用状态，不能让管理员通过路径获得自助注册能力。
 
-注册页不在提交按钮下常驻密码规则说明；密码字段输入并失焦后显示不合格提示，修改后同步清除已满足的规则错误，未填写的字段在提交时校验。管理员认证页只保留本身份域的登录/找回入口，不添加跳转普通用户登录或注册的链接。
+注册页的密码规则常驻在密码字段下方；输入并失焦后显示不合格提示，修改时不逐键新增错误，未填写字段在提交时校验。管理员认证页只保留本身份域的登录/找回入口，不添加跳转普通用户登录或注册的链接。
 
 公告用户入口统一使用 announcement-center 顶部铃铛，不再注册工作台轮播 widget。服务端状态走 TanStack Query；弹窗须明确确认并在已读保存成功后关闭，失败保留重试；保持 SessionBoundary、详情重新鉴权及中英文支持，见 [公告手册](../03-runbooks/announcements.md)。
+
+表单控件选择、浮动标签、验证码、帮助与校验时机遵循[表单交互规范](../product/form-interaction.md)。

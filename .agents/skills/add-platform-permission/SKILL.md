@@ -18,3 +18,9 @@ metadata:
 按 ADR-0039/0040：共享树节点 ID 全局唯一且无工作台前缀，surfaces 声明工作台；可委派按钮 API 在 x-unicore.uiPage 登记，按钮使用 canAction，页面守卫检查菜单及祖先。更新角色省略授权/范围字段保留原值。数据范围必须传入资源权限点，仅相关角色参与并集；列表、详情、导出和写入显式接入，写入在事务内重查目标与目的部门。全局目录/实例操作不冒充部门范围。
 
 角色 realm 不过滤 API；页面默认只补权限上界内的浏览接口，不能因 GET 导入模板而增加写权限。高级 API 选择器必须覆盖无 uiPage 的可委派接口；all 自动补必要点，any 需显式分支。保留点使用服务端 PermissionDefinition.super_admin。显式空 action_ids 不得会话派生恢复；启动回填节点不代表授予角色。菜单行反向分配走原子节点补丁（version + expected_role_ids），保留无关角色属性/授权并仅撤销变动角色成员的会话。见 ADR-0040 与权限契约。
+
+按 docs/adr/ADR-0046-credential-delegation-role-concurrency.md：users:credentials:write 独立委派普通业务目标，旧角色不自动授予；密码按新权限范围，实际改邮箱同时按users:update与新权限范围，trim/小写化后未变不触发新增凭据校验。完整目标HasManagementAccess仅超管可改密码/登录邮箱，所有管理端凭据写禁止PAT（含本人/超管绑定）；不能用角色名或令牌裁剪目标替代完整目标判断。测试普通目标委派、管理目标保护、两个范围交集、规范化未变邮箱和PAT拒绝；本人account安全流程不被委派替代。
+
+角色更新强制正整数version，缺失/非法拒绝、过期409，创建无需version。菜单节点补丁仍用导航version+expected_role_ids，但实际改变角色也bump角色版本；导航裁剪/启动物化、整树兼容分配和部门范围清理等聚合入口同样维护，成员数变化不使编辑过期。冲突须显式重读复核，不自动替换版本重试。菜单标签仅显式分配，不代表可达；超管固定勾选禁用且不绕过surface/隐藏禁用祖先，未分配/加载/错误分别呈现。内置user固定self只读，复制自定义后可调。Standalone共享platform迁移表不代表治理装配，禁止按旧隔离措辞擅改catalog。
+
+PAT 按 ADR-0044 绑定单角色。管理事务重读 actor 必须使用 principalUser 保留请求的角色约束，不能用完整账号资源 user 投影重新合并其他角色；目标账号（包含本人）仍读取完整资源，以保护角色分配与超级管理员目标边界。新数据范围入口同时验证 Bearer 单角色和浏览器多角色语义。

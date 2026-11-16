@@ -30,7 +30,7 @@ func mountAnnouncements(api chi.Router, config Config) {
 			if config.Hub != nil {
 				realtimeBus = config.Hub
 			}
-			service := &usecase.Announcements{Repo: &announcementsql.Repository{Store: store}, Render: content.Announcement, Realtime: realtimeBus}
+			service := &usecase.Announcements{Repo: &announcementsql.Repository{Store: store, Notify: config.Notify}, Render: content.Announcement, Realtime: realtimeBus}
 			fn(w, r, service, session.User.ID)
 		}
 	}

@@ -7,12 +7,14 @@ import (
 	"sort"
 
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
+	"github.com/yunnuo/unicore/internal/notify"
 	"github.com/yunnuo/unicore/internal/settings"
 	"github.com/yunnuo/unicore/internal/usecase"
 )
 
 // BridgeDeps carries what a module's desktop contribution may rely on.
 type BridgeDeps struct {
+	Notify   *notify.Notifier
 	Files    *files.Service
 	Core     usecase.Executor
 	Settings *settings.Service

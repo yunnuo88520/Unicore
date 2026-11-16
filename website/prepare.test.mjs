@@ -4,8 +4,9 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSyn
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { test } from 'node:test';
-import { pageLink, prepareSite, rewriteMarkdown } from './prepare.mjs';
+import { pageLink, pagePath, prepareSite, rewriteMarkdown, siteDocuments } from './prepare.mjs';
 import { inventory } from '../scripts/distribution.mjs';
+import { publicNavigation } from './navigation.mjs';
 
 function fixture(run) {
   const sourceRoot = mkdtempSync(join(tmpdir(), 'unicore-docs-site-'));
@@ -47,6 +48,13 @@ test('index routes retain directory structure without truncating other filenames
   assert.equal(pageLink({ target: 'docs/reference/module-index.md' }), '/reference/module-index');
 });
 
+test('canonical public references remain local in a preview, without rewriting other hosts', () => fixture(({ sourceRoot, put }) => {
+  put('docs/product/index.md', '[Reference](https://unicore.ebox.vip/product/configuration#database)\n[Other](https://example.com/product/configuration)\n');
+  const page = prepareSite({ sourceRoot, write: false }).get('product/index.md');
+  assert.match(page, /\[Reference\]\(\/product\/configuration#database\)/);
+  assert.match(page, /\[Other\]\(https:\/\/example.com\/product\/configuration\)/);
+}));
+
 test('examples remain unchanged while prose links are transformed', () => {
   const input = '[Link](guide.md)\n\n```md\n[Example](private.md)\n```\n\n`[inline](private.md)`\n';
   assert.equal(rewriteMarkdown(input, value => '/public/' + value), input.replace('[Link](guide.md)', '[Link](/public/guide.md)'));
@@ -82,3 +90,41 @@ test('preserves home frontmatter and disallows non-image public assets', () => f
   config.site_assets.push({ source: 'README.md', target: 'readme.md' }); save();
   assert.throws(() => prepareSite({ sourceRoot, write: false }), /Invalid site asset/);
 }));
+
+
+test('public pages have task-specific sidebars and all section entries resolve', () => {
+  const documents = siteDocuments();
+  const { nav, sidebar } = publicNavigation(documents);
+  const links = new Set(documents.map(pageLink));
+  const groups = new Map(documents.map(doc => [pageLink(doc), doc.site_group]));
+  const routes = new Map(documents.map(doc => ['/' + pagePath(doc), pageLink(doc)]));
+  for (const section of nav) {
+    assert(links.has(section.link), section.link);
+    assert(sidebar[[...routes].find(([, route]) => route === section.link)[0]]);
+  }
+  for (const [sourcePath, sections] of Object.entries(sidebar)) {
+    const route = routes.get(sourcePath);
+    assert(route, sourcePath);
+    // VitePress chooses by prefix, so each real source path must match exactly
+    // one key. A /product/ catch-all would hide section-specific sidebars.
+    assert.equal(Object.keys(sidebar).filter(key => sourcePath.startsWith(key)).length, 1, sourcePath);
+    const siblings = sections.flatMap(section => section.items);
+    assert(siblings.some(item => item.link === route), route);
+    assert.equal(nav.filter(item => new RegExp(item.activeMatch).test(route)).length, 1, route);
+    for (const item of siblings) assert(links.has(item.link), item.link);
+  }
+  // Deployment readers should not have to navigate framework implementation rules.
+  assert(sidebar['/product/deployment.md'].flatMap(group => group.items).every(item => ['deploy', 'operate'].includes(groups.get(item.link))));
+  assert(sidebar['/product/development.md'].flatMap(group => group.items).some(item => item.link === '/product/features'));
+  const { site_group, ...orphan } = documents.find(doc => doc.source === 'docs/product/development.md');
+  assert.throws(() => publicNavigation(documents.map(doc => doc.source === orphan.source ? orphan : doc)), /Missing public navigation group/);
+});
+
+test('maintainer and agent documents are absent from actual site output', () => {
+  const output = prepareSite({ write: false });
+  for (const name of ['deployment', 'storage', 'backup', 'updates', 'framework-upgrade', 'documentation-site']) {
+    assert(!output.has(`03-runbooks/${name}.md`), name);
+  }
+  assert(!output.has('02-standards/coding.md'));
+  assert([...output.keys()].every(path => !/(?:^|\/)(?:04-ai|adr|00-product)(?:\/|$)/.test(path)));
+});

@@ -16,16 +16,20 @@ const ALLOWED = [
   /基于 Unicore/, /built with Unicore/i,
 ];
 
-function violationsFor(path, text, framework, module) {
+function violationsFor(path, text, framework, module, publicReferences = new Set()) {
   const violations = [];
   text.split('\n').forEach((line, index) => {
     // Product documentation must explain the stable SQL namespace. Remove only
     // those technical tokens, so an unrelated visible brand on the same line is
     // still reported. UI strings do not receive this documentation exemption.
     const technical = module ? line.replaceAll(module, '') : line;
-    const visible = path.startsWith('docs/')
+    let visible = path.startsWith('docs/')
       ? technical.replace(/\bunicore_(?:[a-z][a-z0-9_]*)?\b/g, '').replace(/\bunicore-1\b/g, '')
       : technical;
+    // Framework reference links are attribution, not the application's brand.
+    // Only exact public-site routes from the distribution manifest qualify;
+    // other framework text on the same line must still be reported.
+    if (path.startsWith('docs/')) visible = visible.replace(/https:\/\/unicore\.ebox\.vip[^\s)"<>]*/g, url => publicReferences.has(url.split(/[?#]/)[0]) ? '' : url);
     if (!new RegExp(framework, 'i').test(visible)) return;
     if (ALLOWED.some(pattern => pattern.test(line))) return;
     violations.push(`${path}:${index + 1}: ${line.trim().slice(0, 160)}`);
@@ -41,6 +45,9 @@ export function scanResiduals(base = root) {
   const framework = provenance.framework;
   if (!framework || !/^[a-zA-Z][a-zA-Z0-9 ._-]{1,39}$/.test(framework)) throw new Error('project.provenance.json must name the upstream framework');
   const identity = JSON.parse(read('product.identity.json'));
+  const manifest = JSON.parse(read('distribution/manifest.json'));
+  const publicReferences = new Set(manifest.documents.filter(doc => doc.audiences.includes('public-site')).map(doc =>
+    'https://unicore.ebox.vip/' + doc.target.replace(/^docs\//, '').replace(/(^|\/)index\.md$/, '$1').replace(/\.md$/, '')));
   const violations = [];
   const required = [
     'README.md', 'README.en.md', 'package.json', 'Makefile', 'product.identity.json', 'go.mod',
@@ -56,12 +63,11 @@ export function scanResiduals(base = root) {
     if (!existsSync(`${dir}${path}`)) { violations.push(`${path}: missing product-visible file`); continue; }
     violations.push(...violationsFor(path, read(path), framework, identity.go?.module));
   }
-  for (const document of JSON.parse(read('distribution/manifest.json')).documents.filter(entry => entry.audiences.includes('project-template'))) {
+  for (const document of manifest.documents.filter(entry => entry.audiences.includes('project-template'))) {
     if (!existsSync(`${dir}${document.target}`)) { violations.push(`${document.target}: missing template document`); continue; }
-    violations.push(...violationsFor(document.target, read(document.target), framework, identity.go?.module));
+    violations.push(...violationsFor(document.target, read(document.target), framework, identity.go?.module, publicReferences));
   }
   // UI rewrites can introduce visible literals without changing generated HTML or identity files.
-  const manifest = JSON.parse(read('distribution/manifest.json'));
   for (const entry of manifest.template_files ?? []) {
     const path = typeof entry === 'string' ? entry : entry.target;
     if (path !== 'cmd/server/commands.go' && (!/^(?:packages\/(?:web-ui|ui|form|theme)\/src\/)/.test(path) || !/\.(?:tsx?|mjs|json)$/.test(path) || /(?:\.test\.|\.gen\.)/.test(path))) continue;

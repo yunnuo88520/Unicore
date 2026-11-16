@@ -1,6 +1,6 @@
 {
-  "comment": "Single source for business modules: Go registration guards, frontend feature flags and Makefile tag validation all read this list. edition is the Go build tag controlling assembly; empty means always assembled.",
+  "comment": "Single source for business modules: Go registration guards, frontend feature flags and Makefile tag validation all read this list. edition names FEATURE_<EDITION>; default selects the build default; disabled_tag optionally makes Go builds opt-out. Empty edition means always assembled.",
   "modules": [
-    { "slug": "notes", "edition": "", "title": "我的笔记" }
+    { "slug": "notes", "edition": "notes", "default": true, "disabled_tag": "no_notes", "title": "我的笔记" }
   ]
 }

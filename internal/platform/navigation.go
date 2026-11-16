@@ -9,8 +9,11 @@ import (
 
 // NavigationPages mirrors the shared page registry: every page the frontend
 // registers (routes.ts minus not-found) with its presentation group and
-// surface availability. Backend authorization stays authoritative.
+// surface availability. Backend authorization stays authoritative. The
+// personal center keeps no navigation presence: its four surfaces moved into
+// the account menus' settings modal, so no personal-group page is seeded.
 var baseNavigationPages = []contracts.NavigationPage{
+	{ID: "access-tokens", Surfaces: []string{"administrator"}, Permission: "tokens:read", Group: "administration"},
 	{ID: "overview", Surfaces: []string{"user", "administrator"}},
 	{ID: "announcements", Surfaces: []string{"administrator"}, Permission: "announcements:read"},
 	{ID: "api-docs", Surfaces: []string{"administrator"}},
@@ -28,6 +31,10 @@ var baseNavigationPages = []contracts.NavigationPage{
 	{ID: "monitor-services", Surfaces: []string{"administrator"}, Permission: "monitor:read", Group: "monitor"},
 	{ID: "monitor-resources", Surfaces: []string{"administrator"}, Permission: "monitor:read", Group: "monitor"},
 	{ID: "monitor-events", Surfaces: []string{"administrator"}, Permission: "monitor:read", Group: "monitor"},
+	{ID: "ai-access", Surfaces: []string{"administrator"}, Permission: "mcp:read", Group: "ai"},
+	{ID: "ai-tools", Surfaces: []string{"administrator"}, Permission: "mcp:read", Group: "ai"},
+	{ID: "ai-calls", Surfaces: []string{"administrator"}, Permission: "mcp:logs:read", Group: "ai"},
+	{ID: "ai-oauth", Surfaces: []string{"administrator"}, Permission: "mcp:clients:read", Group: "ai"},
 	{ID: "users", Surfaces: []string{"administrator"}, Permission: "users:read", Group: "administration"},
 	{ID: "roles", Surfaces: []string{"administrator"}, Permission: "roles:read", Group: "administration"},
 	{ID: "departments", Surfaces: []string{"administrator"}, Permission: "departments:read", Group: "administration"},
@@ -35,9 +42,6 @@ var baseNavigationPages = []contracts.NavigationPage{
 	{ID: "menus", Surfaces: []string{"administrator"}, Permission: "menus:write", Group: "administration"},
 	{ID: "dictionaries", Surfaces: []string{"administrator"}, Permission: "dictionaries:read", Group: "administration"},
 	{ID: "tasks", Surfaces: []string{"administrator"}, Permission: "tasks:read", Group: "administration"},
-	{ID: "account", Surfaces: []string{"user", "administrator"}, Group: "personal"},
-	{ID: "account-security", Surfaces: []string{"user", "administrator"}, Group: "personal"},
-	{ID: "account-sessions", Surfaces: []string{"user", "administrator"}, Group: "personal"},
 }
 
 // NavigationPages aggregates built-in pages with registered module contributions.
@@ -50,8 +54,9 @@ func NavigationPages() []contracts.NavigationPage {
 var defaultPageOrder = []string{
 	"overview", "users", "roles", "departments", "posts", "menus", "dictionaries",
 	"announcements", "tasks", "api-docs", "site", "storage", "account-policy", "mail", "mail-templates",
-	"notification-channels", "notification-templates", "system-notifications", "logs", "edition", "account", "account-security", "account-sessions",
+	"notification-channels", "notification-templates", "system-notifications", "logs", "edition", "access-tokens",
 	"monitor", "monitor-services", "monitor-resources", "monitor-events",
+	"ai-access", "ai-tools", "ai-calls", "ai-oauth",
 }
 
 // navigationRank is the shared defaultRank: builtins keep the stable table
@@ -96,10 +101,11 @@ var navigationIcons = map[string]string{
 	"users": "UserRound", "administrators": "UserCog", "announcements": "Megaphone", "account-policy": "ShieldCheck", "mail": "Mail", "mail-templates": "Mail",
 	"notification-channels": "Webhook", "notification-templates": "FileText", "system-notifications": "Bell", "logs": "ScrollText", "edition": "PackageCheck",
 	"roles": "ShieldCheck", "departments": "Network", "tasks": "ListChecks", "menus": "LayoutDashboard", "dictionaries": "FileText", "posts": "UserCog",
-	"account": "UserRound", "account-security": "ShieldCheck", "account-sessions": "Monitor", "api-docs": "BookOpen",
+	"access-tokens": "ShieldCheck", "api-docs": "BookOpen",
 	"monitor": "Activity", "monitor-services": "Radar", "monitor-resources": "Cpu", "monitor-events": "ScrollText",
+	"ai-access": "Bot", "ai-tools": "Wrench", "ai-calls": "ScrollText", "ai-oauth": "Webhook",
 	// Seeded directories carry the same icons as the frontend defaultNavigation.
-	"administration": "Users", "personal": "UserRound", "monitor-center": "Activity",
+	"administration": "Users", "monitor-center": "Activity", "ai-management": "Bot",
 }
 
 func NavigationPage(id, surface string) (contracts.NavigationPage, bool) {
@@ -130,11 +136,10 @@ func DefaultNavigation() contracts.Navigation {
 		},
 		Nodes: []contracts.NavigationNode{},
 	}
-	// The four directories mirror the console layout: the system region keeps
+	// The three directories mirror the console layout: the system region keeps
 	// 系统设置 with the console pages, 超级管理员 hosting the administration
-	// pages, and 运行监控 (super-only) last in the region; 个人中心 is one
-	// shared business directory so the same account pages are granted exactly
-	// once for both workspaces.
+	// pages, and 运行监控 (super-only) last in the region. The personal center
+	// stays out of the tree: it opens from the account menus' settings modal.
 	directory := func(id, section string, sort int, surfaces []string) {
 		result.Nodes = append(result.Nodes, contracts.NavigationNode{ID: id, SectionID: section, Surfaces: surfaces, Type: "directory", Icon: navigationIcon(id),
 			Sort: sort, Visible: true, OpenMode: "same_tab", OperationIds: []string{}})
@@ -142,13 +147,11 @@ func DefaultNavigation() contracts.Navigation {
 	directory("administration", "system", 20, []string{"administrator"})
 	directory("settings", "system", 10, []string{"administrator"})
 	directory("monitor-center", "system", 25, []string{"administrator"})
-	directory("personal", "business", 2700, []string{"user", "administrator"})
+	directory("ai-management", "system", 30, []string{"administrator"})
 	for _, page := range NavigationPages() {
 		section := "business"
 		var parent string
 		switch page.Group {
-		case "personal":
-			parent = "personal"
 		case "system":
 			section = "system"
 			parent = "settings"
@@ -158,6 +161,9 @@ func DefaultNavigation() contracts.Navigation {
 		case "monitor":
 			section = "system"
 			parent = "monitor-center"
+		case "ai":
+			section = "system"
+			parent = "ai-management"
 		}
 		sort := navigationRank(page.ID) * 10
 		if page.ID == "api-docs" {

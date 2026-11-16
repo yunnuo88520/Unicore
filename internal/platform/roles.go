@@ -11,6 +11,8 @@ import (
 // All roles can hold catalogue points; reserved operations still require super_admin.
 // Accounts with management permissions use the stricter session and MFA policies.
 var basePermissionCatalog = []contracts.PermissionDefinition{
+	{ID: "tokens:read", Name: "查看访问令牌", Description: "查看所有用户的访问令牌", Group: "用户管理"},
+	{ID: "tokens:write", Name: "管理访问令牌", Description: "为用户签发、续期和作废访问令牌", Group: "用户管理"},
 	{ID: "posts:read", Name: "查看岗位", Description: "查看岗位与成员分配", Group: "用户管理"},
 	{ID: "posts:write", Name: "管理岗位", Description: "创建、编辑与删除岗位", Group: "用户管理"},
 	{ID: "announcements:read", Name: "查看平台公告", Description: "查看公告列表、草稿与配置", Group: "系统管理"},
@@ -27,6 +29,7 @@ var basePermissionCatalog = []contracts.PermissionDefinition{
 	{ID: "users:read", Name: "查看用户", Description: "搜索和查看用户账号、角色与状态", Group: "用户管理"},
 	{ID: "users:create", Name: "创建用户", Description: "创建普通用户", Group: "用户管理"},
 	{ID: "users:update", Name: "管理用户身份", Description: "启停普通用户账号", Group: "用户管理"},
+	{ID: "users:credentials:write", Name: "管理用户凭据", Description: "重置业务账号密码与修改登录邮箱；管理账号凭据仅超级管理员可修改", Group: "用户管理"},
 	{ID: "departments:read", Name: "查看部门", Description: "查看部门组织树与用户归属", Group: "用户管理"},
 	{ID: "departments:write", Name: "管理部门", Description: "创建、编辑与删除部门", Group: "用户管理"},
 	{ID: "settings:read", Name: "查看基础设置", Description: "查看站点、品牌、安全和邮件配置", Group: "系统管理"},
@@ -42,6 +45,12 @@ var basePermissionCatalog = []contracts.PermissionDefinition{
 	{ID: "files:access", Name: "读取文件", Description: "通过文件接口查看与下载授权文件", Group: "业务权限"},
 	{ID: "files:upload", Name: "上传文件", Description: "发起分片或普通上传并写入文件内容", Group: "业务权限"},
 	{ID: "files:delete", Name: "删除文件", Description: "删除本人上传的文件", Group: "业务权限"},
+	{ID: "mcp:access", Name: "使用 MCP 接入", Description: "通过 MCP 使用自己有权访问的业务能力", Group: "AI 管理"},
+	{ID: "mcp:read", Name: "查看 AI 管理", Description: "查看 MCP 接入配置与能力目录", Group: "AI 管理"},
+	{ID: "mcp:write", Name: "管理 AI 接入", Description: "修改 MCP 配置、开放与停用能力", Group: "AI 管理"},
+	{ID: "mcp:logs:read", Name: "查看 MCP 调用记录", Description: "查询 MCP 调用元数据与记录", Group: "AI 管理"},
+	{ID: "mcp:clients:read", Name: "查看 OAuth 客户端", Description: "查看 MCP OAuth 预注册客户端与授权", Group: "AI 管理"},
+	{ID: "mcp:clients:write", Name: "管理 OAuth 客户端", Description: "管理 MCP OAuth 客户端并执行全局撤销", Group: "AI 管理"},
 }
 
 // PermissionCatalog aggregates the built-in catalogue with the registered
@@ -98,7 +107,8 @@ func CatalogPermission(permission string) bool {
 // SuperOnlyPermission protects credential and authorization administration inside transactions too.
 func SuperOnlyPermission(id string) bool {
 	switch id {
-	case "roles:write", "administrators:read", "administrators:create", "administrators:update", "settings:write", "updates:apply", "storage:write", "monitor:read":
+	case "tokens:read", "tokens:write", "roles:write", "administrators:read", "administrators:create", "administrators:update", "settings:write", "updates:apply", "storage:write", "monitor:read",
+		"mcp:read", "mcp:write", "mcp:logs:read", "mcp:clients:read", "mcp:clients:write":
 		return true
 	}
 	return false

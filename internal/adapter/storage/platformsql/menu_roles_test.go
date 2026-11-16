@@ -57,7 +57,7 @@ func TestAssignMenuRolesAtomicPatch(t *testing.T) {
 		t.Fatal("stale membership accepted", err)
 	}
 	// A concurrent role edit is merged, not replaced by the dialog's old snapshot.
-	if _, err = repo.UpdateRole(ctx, role.ID, contracts.RoleSaveInput{Name: "Renamed", Permissions: append(saved.Permissions, "notes:delete")}, owner.ID); err != nil {
+	if _, err = repo.UpdateRole(ctx, role.ID, contracts.RoleSaveInput{Version: currentRoleVersion(t, ctx, repo, role.ID), Name: "Renamed", Permissions: append(saved.Permissions, "notes:delete")}, owner.ID); err != nil {
 		t.Fatal(err)
 	}
 	input.ExpectedRoleIds = []string{role.ID}
@@ -115,5 +115,54 @@ func TestAssignMenuRolesPrivilegeBounds(t *testing.T) {
 	input.RoleIds = []string{"super_admin"}
 	if _, err = repo.AssignMenuRoles(ctx, "users", input, owner.ID); !errors.Is(err, platform.ErrInput) {
 		t.Fatal("immutable super role modified", err)
+	}
+}
+
+func TestMenuPatchStalesRoleSnapshotAndNoopKeepsVersion(t *testing.T) {
+	ctx := t.Context()
+	_, repo, owner := navigationFixture(t, ctx)
+	role, err := repo.CreateRole(ctx, contracts.RoleSaveInput{Name: "Interleaved", Permissions: []string{"notes:access"}, MenuIds: &[]string{}, ActionIds: &[]string{}, OperationIds: &[]string{"listNotes"}}, owner.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	nav, err := repo.ListMenuConfig(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	input := contracts.MenuRoleAssignmentInput{Version: nav.Version, ExpectedRoleIds: []string{}, RoleIds: []string{role.ID}}
+	if _, err = repo.AssignMenuRoles(ctx, "users", input, owner.ID); err != nil {
+		t.Fatal(err)
+	}
+	after, err := repo.role(ctx, repo.Store.DB, role.ID)
+	if err != nil || after.Version != role.Version+1 {
+		t.Fatalf("menu patch version: %+v %v", after, err)
+	}
+	// The role editor opened first: its full stale save must not erase the menu patch.
+	if _, err = repo.UpdateRole(ctx, role.ID, contracts.RoleSaveInput{Name: "Stale rename", Version: &role.Version, Permissions: role.Permissions, MenuIds: &role.MenuIds, OperationIds: &role.OperationIds}, owner.ID); !errors.Is(err, platform.ErrConflict) {
+		t.Fatal("stale role overwrote menu", err)
+	}
+	input.ExpectedRoleIds = []string{role.ID}
+	if _, err = repo.AssignMenuRoles(ctx, "users", input, owner.ID); err != nil {
+		t.Fatal(err)
+	}
+	noop, err := repo.role(ctx, repo.Store.DB, role.ID)
+	if err != nil || noop.Version != after.Version || !slices.Contains(noop.MenuIds, "users") {
+		t.Fatalf("menu no-op changed snapshot: %+v %v", noop, err)
+	}
+	// Legacy whole-tree assignment also advances only changed role snapshots.
+	assignments := []contracts.NavigationRoleAssignment{{RoleID: role.ID, MenuIds: []string{}, ActionIds: after.ActionIds}}
+	saved, err := repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: nav.Version, Sections: nav.Sections, Nodes: nav.Nodes, RoleAssignments: &assignments}, owner.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cleared, err := repo.role(ctx, repo.Store.DB, role.ID)
+	if err != nil || cleared.Version != after.Version+1 || len(cleared.MenuIds) != 0 {
+		t.Fatalf("legacy assignment version: %+v %v", cleared, err)
+	}
+	if _, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: saved.Version, Sections: saved.Sections, Nodes: saved.Nodes, RoleAssignments: &assignments}, owner.ID); err != nil {
+		t.Fatal(err)
+	}
+	if got := *currentRoleVersion(t, ctx, repo, role.ID); got != cleared.Version {
+		t.Fatalf("legacy no-op advanced version %d", got)
 	}
 }

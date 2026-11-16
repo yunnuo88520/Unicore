@@ -44,7 +44,7 @@ make build-desktop
 make package-desktop
 ```
 
-Windows 原生 CI 在构建后执行 scripts/test-windows-startup.ps1：使用随机临时数据目录，验证真实 Wails 窗口/页面、SQLite 初始化、再次启动以及失败弹窗；截图/可访问性文本为 windows-startup-evidence artifact。windows-exe artifact 另提供可直接验证的 exe，desktop-windows-latest 同时提供直接运行的版本化 exe、OTA tar 包、metadata 与目标专属校验和。macOS desktop artifact 同时提供 DMG（app + Applications 链接，可拖拽安装）、OTA tar 与 metadata；hdiutil 创建后校验镜像完整性。DMG 内 app 沿用原生系统签名状态，不因生成镜像而变成已公证。分支候选用于维护者验收，不能代替正式 Release。
+Windows 原生 CI 在构建后执行 scripts/test-windows-startup.ps1：使用随机临时数据目录，验证真实 Wails 窗口/页面、SQLite 初始化、再次启动以及失败弹窗；截图/可访问性文本为 windows-startup-evidence artifact。windows-exe artifact 另提供可直接验证的 exe，desktop-windows-latest 同时提供直接运行的版本化 exe、OTA tar 包、metadata 与目标专属校验和。macOS desktop artifact 同时提供 DMG（app + Applications 链接，可拖拽安装；scripts/dmg/background.svg 经 qlmanage/sips 渲染背景，Finder AppleScript 布置图标与窗口，自动化缺失时自动回退朴素布局并告警）、OTA tar 与 metadata；hdiutil 创建后校验镜像完整性。DMG 内 app 沿用原生系统签名状态，不因生成镜像而变成已公证。分支候选用于维护者验收，不能代替正式 Release。
 
 ### 桌面窗口关闭行为验证
 

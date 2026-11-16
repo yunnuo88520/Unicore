@@ -5,6 +5,8 @@
 
 ### 中文
 
+- macOS DMG 换为标准拖动安装样式：品牌背景图、应用与 Applications 图标定位、窗口尺寸固定，打开即引导拖拽安装；自动化环境缺少 Finder 权限时自动回退朴素布局并在打包日志告警。
+
 - 桌面端点击关闭改为隐藏到后台运行：macOS 经 Dock 或菜单栏图标恢复（窗口内容全尺寸并由应用自绘标题条），Windows/Linux 经系统托盘图标恢复；托盘「退出」或 Cmd+Q 才真正退出，OTA 更新流程不受影响。Windows/Linux 托盘行为需在对应系统实测。
 
 - 新增 Windows/amd64 原生 OTA 夹具及运行说明，随派生项目分发；记录默认构建下签名更新、EXE 替换、重启与启动确认已实测通过，失败恢复与其他架构仍需单独验证。
@@ -22,6 +24,8 @@
 - 清理无关后台框架名称及测试、截图命名，使源码和文档直接描述自身能力。
 
 ### English
+
+- The macOS DMG now ships the standard drag-to-install presentation: a branded backdrop, positioned app and Applications icons and a fixed window size guide the install on first open; environments without Finder automation fall back to the plain layout with a packaging warning.
 
 - Closing the desktop window now hides the app to the background: restore through the Dock or the menu-bar icon on macOS (full-size content with an app-drawn titlebar strip) or the system tray icon on Windows/Linux; only the tray Quit or Cmd+Q exits the app, and the OTA update flow is unaffected. Windows/Linux tray behavior requires native verification.
 

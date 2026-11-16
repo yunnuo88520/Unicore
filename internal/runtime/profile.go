@@ -20,7 +20,7 @@ const (
 )
 
 // DefaultWebProfile is injected per release artifact and remains overridable only at deployment.
-var DefaultWebProfile = "web-standalone"
+var DefaultWebProfile = "web-platform"
 
 func ParseWebProfile(value string) (contracts.Profile, error) {
 	if value != string(WebPlatform) && value != string(WebStandalone) {

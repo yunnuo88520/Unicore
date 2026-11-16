@@ -10,5 +10,8 @@ var EmailLogo []byte
 //go:embed icon-256.png
 var AppIcon []byte
 
+//go:embed favicon.ico
+var AppIconICO []byte
+
 //go:embed identity.json
 var Identity []byte

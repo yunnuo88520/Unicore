@@ -5,7 +5,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AppError } from '@unicore/sdk';
 import type { Post, PostSaveInput, WebClient } from '@unicore/sdk';
 import { AppControllerField, AppField, AppForm, useAppForm } from '@unicore/form';
-import { Button, Card, CardContent, ConfirmDialog, Input, Modal, Switch, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage } from '@unicore/ui';
+import { Button, Card, CardContent, ConfirmDialog, Input, Modal, PageHeader, Switch, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage } from '@unicore/ui';
+import { DataTableEmpty } from '../../components/data-table';
 import { t, useLocale } from '../../i18n';
 import { invalidateAfter, usePostsQuery } from '../../queries';
 import { usePermissions } from '../../permissions';
@@ -28,9 +29,10 @@ export function AdminPostsPage({ client, metadata }: PageProps) {
     // The confirm dialog stays open so the guarded result is visible in context.
     onError: error => message.error(t(error.message)),
   });
-  return <Card><CardContent className="flex min-w-0 flex-col gap-4">
-    <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="font-semibold">{t('岗位管理')}</h2>{can('createPost') && <Button onClick={() => setEditor('new')}>{t('新建岗位')}</Button>}</div>
-    <p className="text-sm text-muted">{t('岗位用于组织成员，不会隐式授予角色或权限。')}</p>
+  return <div className="flex min-w-0 flex-col gap-6">
+    <PageHeader title={t('岗位管理')} description={t('岗位用于组织成员，不会隐式授予角色或权限。')}
+      actions={can('createPost') && <Button onClick={() => setEditor('new')}>{t('新建岗位')}</Button>} />
+    <Card><CardContent className="flex min-w-0 flex-col gap-4">
     {list.isError && <div role="alert">{t(list.error.message)} <Button variant="secondary" onClick={() => void list.refetch()}>{t('重试')}</Button></div>}
     <div className="min-w-0 overflow-x-auto rounded-lg border border-line"><Table className="min-w-[680px]"><TableHeader><TableRow>
       <TableHead>{t('编码')}</TableHead><TableHead>{t('名称')}</TableHead><TableHead>{t('排序')}</TableHead><TableHead>{t('状态')}</TableHead><TableHead>{t('说明')}</TableHead><TableHead>{t('操作')}</TableHead>
@@ -38,13 +40,14 @@ export function AdminPostsPage({ client, metadata }: PageProps) {
       {(list.data?.items ?? []).map(post => <TableRow key={post.id}><TableCell>{post.code}</TableCell><TableCell>{post.name}</TableCell><TableCell>{post.sort}</TableCell><TableCell>{post.enabled ? t('已启用') : t('已禁用')}</TableCell><TableCell className="max-w-64 break-words">{post.description || '—'}</TableCell><TableCell><div className="flex gap-2">
         {can('listUsers') && <Button variant="link" onClick={() => setMembers(post)}>{t('成员')}</Button>}{can('updatePost') && <Button variant="link" aria-label={t('编辑岗位 {{name}}', { name: post.name })} onClick={() => setEditor(post)}>{t('编辑')}</Button>}{can('deletePost') && <Button variant="link" aria-label={t('删除岗位 {{name}}', { name: post.name })} onClick={() => setRemoving(post)}>{t('删除')}</Button>}
       </div></TableCell></TableRow>)}
-      {!list.data?.items.length && <TableEmpty colSpan={6}>{list.isPending ? t('正在加载…') : t('暂无岗位')}</TableEmpty>}
+      {!list.data?.items.length && <TableEmpty colSpan={6}>{list.isPending ? t('正在加载…') : <DataTableEmpty title={t('暂无岗位')} hint={t('岗位用于组织成员，不会隐式授予角色或权限。')} />}</TableEmpty>}
     </TableBody></Table></div>
   </CardContent>
     {editor && <PostEditor web={web} post={editor === 'new' ? undefined : editor} onClose={() => setEditor(null)} onSaved={() => { setEditor(null); void invalidateAfter(cache, 'posts'); }} />}
     {removing && <ConfirmDialog danger title={t('删除岗位')} description={t('确定删除岗位「{{name}}」？已关联用户的岗位不可删除。', { name: removing.name })} confirmLabel={t('确认删除')} cancelLabel={t('取消')} pending={remove.isPending} onConfirm={() => remove.mutate(removing)} onCancel={() => setRemoving(null)} />}
     {members && <PostMembers web={web} post={members} onClose={() => setMembers(null)} />}
-  </Card>;
+    </Card>
+  </div>;
 }
 
 function PostEditor({ web, post, onClose, onSaved }: { web: WebClient; post?: Post; onClose: () => void; onSaved: () => void }) {

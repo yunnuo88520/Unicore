@@ -2,13 +2,15 @@
 // Description: Editable role console: member counts, data-scope column, guarded deletion and the tabbed grant editor.
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createColumnHelper, flexRender, tableFeatures, useTable } from '@tanstack/react-table';
-import { Copy, Pencil, Plus, RotateCcw, ShieldCheck, Trash2 } from 'lucide-react';
+import { createColumnHelper, tableFeatures, useTable } from '@tanstack/react-table';
+import { Copy, Pencil, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import type { Bootstrap, PermissionDefinition, Role, RoleList, WebClient } from '@unicore/sdk';
 import { t, useLocale } from '../../i18n';
 import { invalidateAfter } from '../../queries';
 import { usePermissions } from '../../permissions';
-import { Badge, Button, Card, CardContent, ConfirmDialog, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage } from '@unicore/ui';
+import { roleDisplayLabel } from '../../role-display';
+import { Badge, Button, Card, CardContent, ConfirmDialog, PageHeader, useMessage } from '@unicore/ui';
+import { DataTable } from '../../components/data-table';
 import { RoleEditor, dataScopeText } from './role-editor';
 import type { PageProps } from '../../router';
 
@@ -16,7 +18,6 @@ const features = tableFeatures({});
 const helper = createColumnHelper<typeof features, Role>();
 const EMPTY_ROLES: Role[] = [];
 const EMPTY_PERMISSIONS: PermissionDefinition[] = [];
-const COLUMN_COUNT = 6;
 
 type EditorTarget = { mode: 'new' | 'edit' | 'copy'; role?: Role };
 
@@ -25,7 +26,7 @@ type RolesTableMeta = { canWrite: boolean; onEdit: (role: Role) => void; onCopy:
 const columns = helper.columns([
   helper.accessor('name', {
     header: () => t('名称'),
-    cell: info => <strong className="font-medium text-ink">{info.getValue()}</strong>,
+    cell: info => <strong className="font-medium text-ink">{roleDisplayLabel(info.row.original)}</strong>,
   }),
   helper.accessor('builtin', {
     header: () => t('类型'),
@@ -52,9 +53,9 @@ const columns = helper.columns([
       // super_admin is immutable server-side; the builtin user role cannot be deleted but can be duplicated.
       if (role.id === 'super_admin' || !meta.canWrite) return null;
       return <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon" aria-label={t('编辑角色 {{name}}', { name: role.name })} onClick={() => meta.onEdit(role)}><Pencil size={14} /></Button>
-        <Button variant="ghost" size="icon" aria-label={t('复制角色 {{name}}', { name: role.name })} onClick={() => meta.onCopy(role)}><Copy size={14} /></Button>
-        {!role.builtin && <Button variant="ghost" size="icon" aria-label={t('删除角色 {{name}}', { name: role.name })} onClick={() => meta.onRemove(role)}><Trash2 size={14} /></Button>}
+        <Button variant="ghost" size="icon" aria-label={t('编辑角色 {{name}}', { name: roleDisplayLabel(role) })} onClick={() => meta.onEdit(role)}><Pencil size={14} /></Button>
+        <Button variant="ghost" size="icon" aria-label={t('复制角色 {{name}}', { name: roleDisplayLabel(role) })} onClick={() => meta.onCopy(role)}><Copy size={14} /></Button>
+        {!role.builtin && <Button variant="ghost" size="icon" aria-label={t('删除角色 {{name}}', { name: roleDisplayLabel(role) })} onClick={() => meta.onRemove(role)}><Trash2 size={14} /></Button>}
       </div>;
     },
   }),
@@ -100,44 +101,14 @@ function RolePanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
     } satisfies RolesTableMeta,
     getRowId: role => role.id,
   });
-  return <Card>
-    <CardContent className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-md font-semibold text-ink">{t('角色权限')}</h2>
-          <p className="mt-0.5 text-xs text-muted">{t('为用户组合业务与管理权限；super_admin 由系统维护。')}</p>
-        </div>
-        {canWrite && <Button onClick={() => setEditor({ mode: 'new' })}><Plus size={15} />{t('新建角色')}</Button>}
-      </div>
+  return <div className="flex min-w-0 flex-col gap-6">
+      <PageHeader title={t('角色权限')} description={t('为用户组合业务与管理权限；super_admin 由系统维护。')}
+        actions={canWrite && <Button disabled={!list.data} onClick={() => setEditor({ mode: 'new' })}><Plus size={15} />{t('新建角色')}</Button>} />
 
-      {list.isError && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
-        <span>{t(list.error.message)}</span>
-        <Button variant="secondary" size="sm" onClick={() => void list.refetch()}><RotateCcw size={13} />{t('重试')}</Button>
-      </div>}
-      <div className="rounded-lg border border-line" aria-busy={list.isFetching}>
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map(group => <TableRow key={group.id} className="hover:bg-transparent">
-              {group.headers.map(header => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}
-            </TableRow>)}
-          </TableHeader>
-          <TableBody>
-            {list.isPending
-              ? <TableEmpty colSpan={COLUMN_COUNT}>{t('正在加载角色…')}</TableEmpty>
-              : table.getRowModel().rows.length
-                ? table.getRowModel().rows.map(row => <TableRow key={row.id}>
-                    {row.getAllCells().map(cell => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}
-                  </TableRow>)
-                : <TableEmpty colSpan={COLUMN_COUNT}>
-                    <span className="flex flex-col items-center gap-1.5 py-2">
-                      <ShieldCheck size={24} className="text-subtle" aria-hidden="true" />
-                      <strong className="text-sm text-ink">{t(list.isError ? list.error.message : '还没有自定义角色')}</strong>
-                      <span className="text-xs text-muted">{t('新建角色，为不同用户组合业务权限。')}</span>
-                    </span>
-                  </TableEmpty>}
-          </TableBody>
-        </Table>
-      </div>
+    <Card>
+    <CardContent className="flex flex-col gap-4">
+      <DataTable table={table} pending={list.isPending} busy={list.isFetching} error={list.error} onRetry={() => void list.refetch()}
+        empty={{ icon: ShieldCheck, title: t('还没有自定义角色'), hint: t('新建角色，为不同用户组合业务权限。') }} />
       <p className="text-xs leading-relaxed text-muted">{t('角色可组合业务与管理权限；仅超级管理员权限保持保留。')}</p>
     </CardContent>
     {editor && <RoleEditor key={`${editor.mode}:${editor.role?.id ?? 'new'}`} web={web} realm={realm}
@@ -147,5 +118,6 @@ function RolePanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
     {removing && <ConfirmDialog danger title={t('删除角色')} description={t('确定删除角色「{{name}}」？该角色的 {{count}} 位成员将失去对应权限。', { name: removing.name, count: removing.user_count })}
       confirmLabel={t('确认删除')} cancelLabel={t('取消')} pending={remove.isPending}
       onConfirm={() => remove.mutate(removing)} onCancel={() => setRemoving(null)} />}
-  </Card>;
+    </Card>
+  </div>;
 }

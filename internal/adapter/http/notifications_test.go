@@ -224,12 +224,12 @@ func TestNotificationPermissionsEventsAndQueue(t *testing.T) {
 	jobs, _ = m.Mail().Store.MailJobs(ctx)
 	cancelled := false
 	for _, job := range jobs.Items {
-		if job.State == "cancelled" && job.LastError == "DISABLED" {
+		if job.State == "cancelled" && job.LastError == "MASTER_DISABLED" {
 			cancelled = true
 		}
 	}
 	if !cancelled {
-		t.Fatal("suppressed delivery falsely recorded as sent")
+		t.Fatal("suppressed delivery must carry the explicit master-disable reason")
 	}
 
 }

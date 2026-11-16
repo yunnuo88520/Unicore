@@ -53,7 +53,7 @@ for (const target of targets) {
       mkdirSync(`${dir}/deploy`);
       for (const entry of [`${identity.deployment.serviceName}.service`, 'nginx.conf.example']) cpSync(`deploy/tar/${entry}`, `${dir}/deploy/${entry}`);
     }
-    const manifest = { version, channel, profile, os, arch, commit, build_time: buildTime, features: { authentication: profile === 'web-platform', installation: profile !== 'cli', database: profile !== 'cli', email_accounts: profile === 'web-platform', oidc: profile === 'web-platform', license: profile !== 'cli' && edition.features.license, updater: profile !== 'cli' && edition.features.updater }, min_upgrade_version: null, ...migrationTarget(profile), offline_backup: profile !== 'cli', signature: null, platform_signature: 'unsigned', release_notes: releaseNotes };
+    const manifest = { version, channel, profile, os, arch, commit, build_time: buildTime, features: { authentication: profile === 'web-platform', installation: profile !== 'cli', database: profile !== 'cli', email_accounts: profile === 'web-platform', oidc: profile === 'web-platform', license: profile !== 'cli' && edition.features.license, updater: profile !== 'cli' && edition.features.updater, notes: profile !== 'cli' && edition.features.notes }, min_upgrade_version: null, ...migrationTarget(profile), offline_backup: profile !== 'cli', signature: null, platform_signature: 'unsigned', release_notes: releaseNotes };
     writeFileSync(`${dir}/manifest.json`, JSON.stringify(manifest, null, 2)+'\n');
     checkReleaseLayout(dir, {profile, os, identity});
     const artifact = `${name}.tar.gz`;

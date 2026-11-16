@@ -5,7 +5,7 @@
 import type { BrowserContext, Page, TestInfo } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import type { MenuList } from '../../packages/sdk/src';
-import { test, expect, installPlatform, adminLogin, workspaceLogin, sdkClient, loginClient, nodeDisplayLabel, pageNode, menuChain, memberPassword } from './fixtures';
+import { chooseOption, test, expect, installPlatform, adminLogin, workspaceLogin, sdkClient, loginClient, nodeDisplayLabel, pageNode, menuChain, memberPassword } from './fixtures';
 
 const adminPassword = 'administrator-password-strong';
 
@@ -111,8 +111,8 @@ test('menu console edits the persisted tree and one save re-anchors every sessio
   await expect(page.getByRole('checkbox', { name: '成员端', exact: true })).toHaveCount(0);
   await expect(page.getByRole('checkbox', { name: '管理端', exact: true })).toHaveCount(0);
   // Directories start collapsed; expanding the seeded 超级管理员 and 系统设置
-  // directories exposes their pages as editable rows keyed by target (personal
-  // pages sit under 个人中心 at the tail of the business region).
+  // directories exposes their pages as editable rows keyed by target (the
+  // personal center keeps no directory — it opens from the account menus).
   await page.locator('tr[data-node="administration"]').getByRole('button', { name: /展开或收起/ }).click();
   await page.locator('tr[data-node="settings"]').getByRole('button', { name: /展开或收起/ }).click();
   const targets = await pageTargets(page);
@@ -157,8 +157,7 @@ test('menu console edits the persisted tree and one save re-anchors every sessio
   await openRowMenu(page, reportDirectory, '报表中心');
   await page.getByRole('menuitem', { name: '添加子菜单', exact: true }).click();
   const linkTypeDialog = page.getByRole('dialog', { name: '添加目录', exact: true });
-  await linkTypeDialog.getByRole('combobox', { name: '菜单类型', exact: true }).click();
-  await page.getByRole('option', { name: '链接', exact: true }).click();
+  await chooseOption(page, '菜单类型', '链接', linkTypeDialog);
   const linkDialog = page.getByRole('dialog', { name: '添加链接', exact: true });
   await linkDialog.getByLabel('显示名称', { exact: true }).fill('帮助中心');
   await linkDialog.getByLabel('链接地址', { exact: true }).fill('javascript:alert(1)');
@@ -166,8 +165,7 @@ test('menu console edits the persisted tree and one save re-anchors every sessio
   await expect(linkDialog.getByText('链接地址需为站内已注册路径或 http(s) 地址', { exact: true })).toBeVisible();
   // A registered in-site path keeps the new-tab assertion free of external DNS.
   await linkDialog.getByLabel('链接地址', { exact: true }).fill('/notes');
-  await linkDialog.getByRole('combobox', { name: '打开方式', exact: true }).click();
-  await page.getByRole('option', { name: '新标签', exact: true }).click();
+  await chooseOption(page, '打开方式', '新标签', linkDialog);
   await linkDialog.getByRole('button', { name: '确定', exact: true }).click();
   await expect(linkDialog).toHaveCount(0);
 
@@ -230,7 +228,7 @@ test('menu console edits the persisted tree and one save re-anchors every sessio
     await page.getByRole('button', { name: '收起导航', exact: true }).click();
     const railNav = sidebar.locator('nav[data-navigation-mode="rail"]');
     await expect(railNav).toBeVisible();
-    expect((await sidebar.boundingBox())!.width).toBe(48);
+    expect((await sidebar.boundingBox())!.width).toBe(60);
     await expect(sidebar.getByRole('button', { name: dictButtonName })).toHaveCount(0);
     await sidebar.getByRole('button', { name: '报表中心', exact: true }).click();
     const railMenu = page.getByRole('menu', { name: '报表中心', exact: true });
@@ -310,7 +308,7 @@ test('menu visibility follows role assignments while API capability stays indepe
     // File infrastructure has no page/menu. Explicit API grants remain
     // independent and are configured through the role API.
     await admin.web!.updateRole(recorder.id, {
-      name: recorder.name, permissions: ['notes:access', 'files:access'],
+      version: recorder.version, name: recorder.name, permissions: ['notes:access', 'files:access'],
       menu_ids: notesChain, operation_ids: ['listNotes', 'listFiles', 'fileAccess'],
     });
     await member.context().clearCookies();
@@ -455,7 +453,11 @@ test('drag reordering and cross-region moves save the whole tree, survive a relo
   await evidence(page, info, '拖动跨区移动', false);
 
   // Drag it back: dropping the directory on the middle of the system region's
-  // root row returns the whole subtree to its seeded region.
+  // root row returns the whole subtree to its seeded region. Collapse the
+  // directory first — on the 375px viewport the expanded subtree pushes the
+  // two drag endpoints further apart than one screen, and the pointer release
+  // would land outside the viewport where no dragover ever fires.
+  await page.locator('tr[data-node="administration"]').getByRole('button', { name: /展开或收起/ }).click();
   await revealSpan(page, 'tr[data-node="administration"]', 'tr[data-region="system"]');
   await dragRow(page, 'tr[data-node="administration"]', 'tr[data-region="system"]', 'middle');
   await expect(page.locator('tr[data-node="administration"]')).toHaveAttribute('data-section', 'system');

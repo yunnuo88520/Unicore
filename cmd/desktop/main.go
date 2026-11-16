@@ -106,12 +106,12 @@ func runDesktop() (result error) {
 		if err := updateGuard(); err != nil {
 			return err
 		}
+		module.Register(notesmodule.Module)
 		store, service, err := local.Open(context.Background(), os.Getenv("APP_DATA_DIR"))
 		if err != nil {
 			return err
 		}
 		defer func() { result = errors.Join(result, store.Close()) }()
-		module.Register(notesmodule.Module)
 		directory, err := local.ResolveDir(os.Getenv("APP_DATA_DIR"))
 		if err != nil {
 			return err
@@ -142,6 +142,7 @@ func runDesktop() (result error) {
 	defer func() { cancelUpdates() }()
 	if err := wails.Run(&options.App{
 		OnStartup: func(ctx context.Context) {
+			bridge.SetInboxEventEmitter(func(event string) { wailsruntime.EventsEmit(ctx, event) })
 			bridge.SetFileSaver(func(name string, source io.Reader) error {
 				destination, err := wailsruntime.SaveFileDialog(ctx, wailsruntime.SaveDialogOptions{DefaultFilename: name, CanCreateDirectories: true})
 				if err != nil {
@@ -171,6 +172,7 @@ func runDesktop() (result error) {
 				} else {
 					bridge.SetUpdates(api)
 				}
+				startTray(ctx)
 			}
 		},
 		OnDomReady: func(ctx context.Context) {
@@ -178,10 +180,14 @@ func runDesktop() (result error) {
 				updateHealthy()
 			}
 		},
-		OnShutdown: func(ctx context.Context) { cancelUpdates() },
+		OnShutdown: func(ctx context.Context) { cancelUpdates(); stopTray() },
 		Title:      theme.Current.Brand.Name, Width: 1280, Height: 840, MinWidth: 375, MinHeight: 600,
+		HideWindowOnClose: true,
 		BackgroundColour: nativeBackground(),
-		Mac:              &mac.Options{About: &mac.AboutInfo{Title: theme.Current.Brand.Name, Message: "Go + React · yunnuo · ymz@ebox.vip", Icon: brand.AppIcon}},
+		Mac: &mac.Options{
+			TitleBar: &mac.TitleBar{FullSizeContent: true, HideTitle: true, TitlebarAppearsTransparent: true},
+			About:    &mac.AboutInfo{Title: theme.Current.Brand.Name, Message: "Go + React · yunnuo · ymz@ebox.vip", Icon: brand.AppIcon},
+		},
 		Linux:            &linux.Options{Icon: brand.AppIcon, ProgramName: buildinfo.ProductSlug, WebviewGpuPolicy: linux.WebviewGpuPolicyNever},
 		AssetServer:      &assetserver.Options{Assets: desktopassets.FS()},
 		Bind:             []interface{}{bridge},

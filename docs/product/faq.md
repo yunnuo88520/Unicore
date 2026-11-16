@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 常见问题
 
-部署细节见 [从零部署](deployment.md)，具体参数查 [配置说明](configuration.md)。这里只回答高频选择题；每个能力的已验证范围以对应文档的"已知限制"与发行说明为准。
+部署细节见 [从零部署](deployment.md)，具体参数查 [配置说明](configuration.md)。安装包的适用环境和已知问题见对应发行说明。
 
 ## Unicore 是成品应用还是开发框架？
 
@@ -9,17 +9,17 @@
 
 ## 可以商用吗？
 
-可以。源码采用 MIT 许可，允许商用、修改和再分发；需保留 LICENSE 的版权与许可声明及框架原作者信息。创建独立产品用 `pnpm create:project`，见 [应用开发](development.md#创建独立商用产品)。
+可以。源码采用 MIT 许可，允许商用、修改和再分发；需保留 LICENSE 的版权与许可声明及框架原作者信息。创建独立产品用 `pnpm create:project`，见 [应用开发](development.md#创建项目)。
 
 ## 应该选哪种数据库？
 
 - 本机试用、桌面：SQLite，零配置，随私有数据目录一起备份。
 - 在线多用户（web-platform）：推荐 PostgreSQL 15 或 MySQL 8.0，配专用空库和专用账号。
-- 不要把共享业务库、系统库或内容不明的库填入安装向导；初始化会校验并拒绝非空库。
+- 不要把共享业务库、系统库或内容不明的库填入安装向导；初始化默认拒绝非空库；只有额外确认清空并精确输入库名后才会删除其中数据，其他实例的数据受归属保护。
 
 ## 有官方 Docker 镜像吗？
 
-公开镜像随后续发行版本在 `ghcr.io/yunnuo88520/unicore` 提供（以对应 Release 说明为准）；已发布的旧版本没有镜像。当前通用做法是从源码构建本地镜像（见 [部署](deployment.md#3-docker-命令部署)）或直接下载 [Releases](https://github.com/yunnuo88520/Unicore/releases) 的 tar 包用 systemd 运行。
+发行流程会在 Release 发布后构建 `ghcr.io/yunnuo88520/unicore` 镜像，具体版本是否可用请检查对应发行说明和镜像工作流。也可以从源码构建本地镜像（见 [部署](https://unicore.ebox.vip/product/deployment#_3-docker-命令部署)）或直接下载 [Releases](https://github.com/yunnuo88520/Unicore/releases) 的 tar 包用 systemd 运行。
 
 ## 忘记管理员密码 / 改了后台路径进不去？
 
@@ -27,7 +27,7 @@
 
 ## 安装后 `/api/v1/health/ready` 一直是 503？
 
-`ready=200` 要求已完成安装且数据库可连接。安装前 503 是正常的；安装后持续 503 按顺序检查：应用日志中的 request ID、数据库连通与账号权限、私有目录中 `installation.json` 与 `secret.key` 是否完整。不要删除安装标记强行重新初始化，处理清单见 [部署排障](deployment.md#10-故障排查与明确重装)。
+`ready=200` 要求已完成安装且数据库可连接。安装前 503 是正常的；安装后持续 503 按顺序检查：应用日志中的 request ID、数据库连通与账号权限、私有目录中 `installation.json` 与 `secret.key` 是否完整。不要删除安装标记强行重新初始化，处理清单见 [部署排障](https://unicore.ebox.vip/product/deployment#_10-故障排查与明确重装)。
 
 ## 桌面版需要服务器和 Nginx 吗？
 
@@ -35,11 +35,11 @@
 
 ## 升级会丢数据吗？
 
-正常升级不迁移、不改写业务数据，但数据库结构变更由新版本在启动边界执行迁移。任何升级前先停写并做完整备份（数据库 + 私有目录 + 密钥），演练过恢复再切换；步骤见 [更新](updates.md) 与 [备份恢复](backup.md)。只覆盖二进制不构成可回退的升级。
+升级可能包含数据库结构或数据迁移，新版本在启动时执行适用迁移。任何升级前先停写并做完整备份（数据库 + 私有目录 + 密钥），演练过恢复再切换；步骤见 [更新](updates.md) 与 [备份恢复](backup.md)。只覆盖二进制不构成可回退的升级。
 
 ## 支持哪些语言和浏览器？
 
-界面内置中英双语（`pnpm check:i18n` 门禁保证词条完整），工作区固定 LTR。前端目标为现代常青浏览器；没有 IE/旧版 Edge 支持计划。
+界面内置中英双语，工作区固定 LTR。前端目标为现代常青浏览器；没有 IE/旧版 Edge 支持计划。
 
 ## 发现安全问题怎么报？
 

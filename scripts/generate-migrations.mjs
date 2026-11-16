@@ -145,7 +145,9 @@ export function buildMetadata(project = root) {
     const supported = id === 'cli' ? [] : id === 'desktop' ? ['sqlite'] : dialects;
     if (JSON.stringify(ds) !== JSON.stringify(supported)) fail('profile dialect support mismatch');
     if (id === 'cli' ? members.length : !members.includes('core') || !members.includes('module.notes')) fail('profile required membership mismatch');
-    if ((id === 'web-platform') !== members.includes('platform')) fail('platform namespace profile leak or omission');
+    // ADR-0045 phase two: the notification inbox lives in the platform namespace
+    // and assembles for both standalone carriers as well; CLI stays empty.
+    if ((id === 'web-platform' || id === 'web-standalone' || id === 'desktop') !== members.includes('platform')) fail('platform namespace profile leak or omission');
     if (members.some(n => !ids.includes(n))) fail('unknown profile namespace');
     if (members.some(n => c.namespaces.find(x => x.id === n).depends_on.some(d => !members.includes(d)))) fail('profile missing dependency');
     // Bind automatic updates to all selected namespaces and raw SQL bytes,

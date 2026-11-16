@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -172,55 +173,116 @@ func mountTokens(api chi.Router, config Config) {
 		}
 		success(w, contracts.ActionResult{Success: true})
 	})
-	api.Get("/account/token-scopes", func(w http.ResponseWriter, r *http.Request) {
-		t, s, ok := browser(w, r)
-		if !ok {
-			return
+	pagination := func(r *http.Request) (int, int, string) {
+		page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+		size, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
+		if page < 1 {
+			page = 1
 		}
-		success(w, contracts.TokenScopeList{Items: t.Scopes(s.User)})
-	})
-	api.Get("/account/tokens", func(w http.ResponseWriter, r *http.Request) {
-		t, s, ok := browser(w, r)
-		if !ok {
-			return
+		if size < 1 || size > 100 {
+			size = 20
 		}
-		rows, err := t.Store.PersonalTokens(r.Context(), s.User.ID)
-		if err != nil {
-			webError(w, err)
-			return
+		return page, size, r.URL.Query().Get("search")
+	}
+	for _, manage := range []bool{false, true} {
+		base := "/account/tokens"
+		roles := "/account/token-roles"
+		if manage {
+			base = "/admin/access-tokens"
+			roles = base + "/users/{id}/roles"
 		}
-		items := []contracts.PersonalToken{}
-		for _, row := range rows {
-			items = append(items, platform.PersonalTokenView(row))
-		}
-		success(w, contracts.PersonalTokenList{Items: items})
-	})
-	api.Post("/account/tokens", func(w http.ResponseWriter, r *http.Request) {
+		api.Get(roles, func(w http.ResponseWriter, r *http.Request) {
+			t, _, ok := browser(w, r)
+			if !ok {
+				return
+			}
+			result, err := t.Store.PersonalTokenRoles(r.Context(), platform.Hash(rawSession(r)), chi.URLParam(r, "id"), manage)
+			if err != nil {
+				webError(w, err)
+				return
+			}
+			success(w, result)
+		})
+		api.Get(base, func(w http.ResponseWriter, r *http.Request) {
+			t, _, ok := browser(w, r)
+			if !ok {
+				return
+			}
+			page, size, search := pagination(r)
+			rows, total, err := t.Store.PersonalTokens(r.Context(), platform.Hash(rawSession(r)), manage, search, page, size)
+			if err != nil {
+				webError(w, err)
+				return
+			}
+			items := []contracts.PersonalToken{}
+			for _, row := range rows {
+				items = append(items, platform.PersonalTokenView(row))
+			}
+			success(w, contracts.PersonalTokenList{Items: items, Total: total, Page: page, PageSize: size})
+		})
+		api.Post(base, func(w http.ResponseWriter, r *http.Request) {
+			t, _, ok := browser(w, r)
+			if !ok {
+				return
+			}
+			var input contracts.PersonalTokenInput
+			var targets []string
+			if manage {
+				var admin contracts.AdminPersonalTokenInput
+				if !decode(w, r, &admin) {
+					return
+				}
+				input = contracts.PersonalTokenInput{Name: admin.Name, RoleID: admin.RoleID, Remark: admin.Remark, ExpiresInDays: admin.ExpiresInDays}
+				targets = []string{admin.UserID}
+			} else if !decode(w, r, &input) {
+				return
+			}
+			result, err := t.CreatePAT(r.Context(), rawSession(r), input, targets...)
+			if err != nil {
+				webError(w, err)
+				return
+			}
+			success(w, result)
+		})
+		api.Delete(base+"/{id}", func(w http.ResponseWriter, r *http.Request) {
+			t, _, ok := browser(w, r)
+			if !ok {
+				return
+			}
+			if err := t.Store.RevokePersonalToken(r.Context(), platform.Hash(rawSession(r)), chi.URLParam(r, "id"), manage); err != nil {
+				webError(w, err)
+				return
+			}
+			success(w, contracts.ActionResult{Success: true})
+		})
+		api.Post(base+"/{id}/renew", func(w http.ResponseWriter, r *http.Request) {
+			t, _, ok := browser(w, r)
+			if !ok {
+				return
+			}
+			var input contracts.PersonalTokenRenewInput
+			if !decode(w, r, &input) {
+				return
+			}
+			if err := t.Store.RenewPersonalToken(r.Context(), platform.Hash(rawSession(r)), chi.URLParam(r, "id"), input.ExpiresInDays, manage); err != nil {
+				webError(w, err)
+				return
+			}
+			success(w, contracts.ActionResult{Success: true})
+		})
+	}
+	api.Get("/admin/access-tokens/users", func(w http.ResponseWriter, r *http.Request) {
 		t, _, ok := browser(w, r)
 		if !ok {
 			return
 		}
-		var input contracts.PersonalTokenInput
-		if !decode(w, r, &input) {
-			return
-		}
-		result, err := t.CreatePAT(r.Context(), rawSession(r), input)
+		page, size, search := pagination(r)
+		result, err := t.Store.PersonalTokenUsers(r.Context(), platform.Hash(rawSession(r)), search, page, size)
 		if err != nil {
 			webError(w, err)
 			return
 		}
 		success(w, result)
-	})
-	api.Delete("/account/tokens/{id}", func(w http.ResponseWriter, r *http.Request) {
-		t, s, ok := browser(w, r)
-		if !ok {
-			return
-		}
-		if err := t.Store.RevokePersonalToken(r.Context(), s.User.ID, chi.URLParam(r, "id")); err != nil {
-			webError(w, err)
-			return
-		}
-		success(w, contracts.ActionResult{Success: true})
 	})
 	api.Post("/admin/auth/token-keys/rotate", func(w http.ResponseWriter, r *http.Request) {
 		t, s, ok := browser(w, r)
@@ -259,7 +321,11 @@ func resolveBearer(w http.ResponseWriter, r *http.Request, identity *platform.Se
 		webError(w, err)
 		return contracts.Session{}, false
 	}
-	*r = *r.WithContext(context.WithValue(r.Context(), bearerKey{}, bearer))
+	ctx := context.WithValue(r.Context(), bearerKey{}, bearer)
+	if bearer.Credential.Kind == "pat" {
+		ctx = platform.WithTokenRole(ctx, bearer.Credential.UserID, bearer.Credential.RoleID)
+	}
+	*r = *r.WithContext(ctx)
 	return bearer.Session, true
 }
 

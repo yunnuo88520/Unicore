@@ -38,7 +38,7 @@ it('dispatches the menu console listing the default registered pages', async () 
   };
   mount(<AdministrationPage {...adminProps('menus', web)} />);
   expect(await screen.findByRole('heading', { name: '菜单配置' })).toBeVisible();
-  expect(screen.getByRole('button', { name: '保存菜单配置' })).toBeEnabled();
+  expect(await screen.findByRole('button', { name: '保存菜单配置' })).toBeEnabled();
   expect(web.menuConfig).toHaveBeenCalledTimes(1);
 });
 
@@ -55,7 +55,10 @@ it('dispatches the dictionary console with its empty state and create entry', as
 it('dispatches the post console with its empty state and create entry', async () => {
   const web = { listPosts: vi.fn().mockResolvedValue({ items: [], total: 0 }) };
   mount(<AdministrationPage {...adminProps('posts', web)} />);
-  expect(await screen.findByRole('heading', { name: '岗位管理' })).toBeVisible();
+  const heading = await screen.findByRole('heading', { name: '岗位管理', level: 1 });
+  expect(heading).toBeVisible();
+  expect(heading.closest('[data-page-header]')?.parentElement?.firstElementChild).toBe(heading.closest('[data-page-header]'));
+  expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   expect(await screen.findByText('暂无岗位')).toBeVisible();
   expect(screen.getByRole('button', { name: '新建岗位' })).toBeEnabled();
   expect(web.listPosts).toHaveBeenCalledTimes(1);

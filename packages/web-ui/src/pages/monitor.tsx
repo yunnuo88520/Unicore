@@ -3,8 +3,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
-import { Activity, AlertTriangle, ArrowRight, BellRing, CheckCircle2, Cpu, Database, HardDrive, MemoryStick, Network, Pause, Play, Radar, RefreshCw, ScrollText, Server, XCircle } from 'lucide-react';
-import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Tabs } from '@unicore/ui';
+import { Activity, AlertTriangle, ArrowRight, BellRing, CheckCircle2, Cpu, Database, HardDrive, MemoryStick, Network, Pause, Play, Radar, RefreshCw, Server, XCircle } from 'lucide-react';
+import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, PageHeader, Switch, Tabs } from '@unicore/ui';
 import { cn } from '@unicore/ui/cn';
 import { currentLocale, defineMessages, t, useI18n, useLocale } from '../i18n';
 import { MeterBar, RingGauge, Sparkline, TrendArea, type TrendPoint, type TrendSeries } from '../widgets/monitor-charts';
@@ -116,26 +116,17 @@ function StatusDot({ status }: { status: string }) {
   return <span aria-hidden="true" className={cn('inline-block size-2.5 rounded-full', STATUS_DOTS[status] ?? 'bg-subtle')} />;
 }
 
-function SectionShell({ client, icon: Icon, title, description, children }: { client: AppClient; icon: typeof Activity; title: string; description: string; children: (client: AppClient, snapshot: MonitorSnapshot, history: TrendPoint[], paused: boolean) => ReactNode }) {
+function SectionShell({ client, title, description, children }: { client: AppClient; title: string; description: string; children: (client: AppClient, snapshot: MonitorSnapshot, history: TrendPoint[], paused: boolean) => ReactNode }) {
   useLocale();
   const { query, history, paused, setPaused } = useMonitorHistory(client);
-  return <div className="flex flex-col gap-5">
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div className="flex items-center gap-3">
-        <span className="flex size-10 items-center justify-center rounded-xl bg-primary-soft text-accent"><Icon size={20} aria-hidden="true" /></span>
-        <div>
-          <h2 className="text-lg font-semibold text-ink">{title}</h2>
-          <p className="text-xs text-muted">{description}</p>
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
+  return <div className="flex min-w-0 flex-col gap-6">
+    <PageHeader title={title} description={description} actions={<>
         <Button variant="secondary" aria-pressed={paused} onClick={() => setPaused(value => !value)}>
           {paused ? <Play size={13} aria-hidden="true" /> : <Pause size={13} aria-hidden="true" />}{paused ? t('恢复自动刷新') : t('暂停自动刷新')}
         </Button>
         <Button variant="secondary" pending={query.isFetching} onClick={() => void query.refetch()}><RefreshCw size={13} />{t('刷新')}</Button>
-      </div>
-    </div>
-    <p className="-mt-3 text-2xs text-subtle">{paused ? t('自动刷新已暂停，可手动刷新。') : t('每 5 秒自动刷新；趋势图为页面打开期间的快照序列。')}</p>
+    </>} />
+    <p className="text-xs text-subtle">{paused ? t('自动刷新已暂停，可手动刷新。') : t('每 5 秒自动刷新；趋势图为页面打开期间的快照序列。')}</p>
     {query.isPending
       ? <Card><CardContent className="py-10 text-center text-sm text-muted" role="status">{t('正在读取运行快照…')}</CardContent></Card>
       : query.isError
@@ -696,23 +687,19 @@ function AlertRulesCard({ client }: { client: AppClient }) {
       <ul className="flex flex-col divide-y divide-line rounded-lg border border-line">
         {rules.rules.map(rule => <li key={rule.id} className="flex flex-wrap items-center gap-3 px-3 py-2.5 text-xs">
           <strong className="w-44 shrink-0 font-medium text-ink">{alertRuleName(rule.id)}</strong>
-          <button role="switch" aria-checked={rule.enabled} aria-label={`${alertRuleName(rule.id)} ${t('启用')}`}
-            onClick={() => update(rule.id, { enabled: !rule.enabled })}
-            className={cn('inline-flex h-5 w-9 items-center rounded-full px-0.5 transition-colors', rule.enabled ? 'bg-success justify-end' : 'bg-surface-alt justify-start')}>
-            <span aria-hidden="true" className="size-4 rounded-full bg-surface shadow-sm" />
-          </button>
-          {rule.trigger_value != null ? <label className="flex items-center gap-1 text-2xs text-muted">{t('触发')}
-            <input type="number" className="w-16 rounded border border-line bg-surface px-1.5 py-0.5 text-2xs text-ink" value={rule.trigger_value}
-              onChange={event => update(rule.id, { trigger_value: Number(event.target.value) })} aria-label={t('触发阈值')} />%</label> : null}
-          {rule.recover_value != null ? <label className="flex items-center gap-1 text-2xs text-muted">{t('恢复')}
-            <input type="number" className="w-16 rounded border border-line bg-surface px-1.5 py-0.5 text-2xs text-ink" value={rule.recover_value}
-              onChange={event => update(rule.id, { recover_value: Number(event.target.value) })} aria-label={t('恢复阈值')} />%</label> : null}
-          {rule.consecutive != null ? <label className="flex items-center gap-1 text-2xs text-muted">{t('连续')}
-            <input type="number" className="w-12 rounded border border-line bg-surface px-1.5 py-0.5 text-2xs text-ink" value={rule.consecutive} min={1} max={20}
-              onChange={event => update(rule.id, { consecutive: Number(event.target.value) })} aria-label={t('连续采样次数')} />{t('拍')}</label> : null}
-          {rule.cooldown_minutes != null ? <label className="flex items-center gap-1 text-2xs text-muted">{t('冷却')}
-            <input type="number" className="w-14 rounded border border-line bg-surface px-1.5 py-0.5 text-2xs text-ink" value={rule.cooldown_minutes} min={0} max={1440}
-              onChange={event => update(rule.id, { cooldown_minutes: Number(event.target.value) })} aria-label={t('冷却时间')} />{t('分钟')}</label> : null}
+          <Switch checked={rule.enabled} aria-label={`${alertRuleName(rule.id)} ${t('启用')}`} onChange={enabled => update(rule.id, { enabled })} />
+          {rule.trigger_value != null ? <div className="flex w-28 items-center gap-1 pt-2 text-xs text-muted">
+            <Input type="number" label={t('触发阈值')} value={rule.trigger_value}
+              onChange={event => update(rule.id, { trigger_value: Number(event.target.value) })} />%</div> : null}
+          {rule.recover_value != null ? <div className="flex w-28 items-center gap-1 pt-2 text-xs text-muted">
+            <Input type="number" label={t('恢复阈值')} value={rule.recover_value}
+              onChange={event => update(rule.id, { recover_value: Number(event.target.value) })} />%</div> : null}
+          {rule.consecutive != null ? <div className="flex w-32 items-center gap-1 pt-2 text-xs text-muted">
+            <Input type="number" label={t('连续采样次数')} value={rule.consecutive} min={1} max={20}
+              onChange={event => update(rule.id, { consecutive: Number(event.target.value) })} />{t('拍')}</div> : null}
+          {rule.cooldown_minutes != null ? <div className="flex w-28 items-center gap-1 pt-2 text-xs text-muted">
+            <Input type="number" label={t('冷却时间')} value={rule.cooldown_minutes} min={0} max={1440}
+              onChange={event => update(rule.id, { cooldown_minutes: Number(event.target.value) })} />{t('分钟')}</div> : null}
         </li>)}
       </ul>
       <p className="text-2xs text-subtle">{t('整体健康规则默认未启用：具体规则已覆盖数据库与任务异常的归因。')}</p>
@@ -738,18 +725,18 @@ function ResourcesSection({ client, snapshot, history, paused }: { client: AppCl
 
 /** Platform super-admin pages: one monitor directory entry per section. */
 export function AdminMonitorPage({ client }: PageProps) {
-  return <SectionShell client={client} icon={Activity} title={t('运行概览')} description={t('实例运行状态、版本与核心健康。')}>{(innerClient, snapshot, history) => <OverviewSection client={innerClient} snapshot={snapshot} history={history} />}</SectionShell>;
+  return <SectionShell client={client} title={t('运行概览')} description={t('实例运行状态、版本与核心健康。')}>{(innerClient, snapshot, history) => <OverviewSection client={innerClient} snapshot={snapshot} history={history} />}</SectionShell>;
 }
 export function AdminMonitorServicesPage({ client }: PageProps) {
-  return <SectionShell client={client} icon={Radar} title={t('服务健康')} description={t('HTTP、数据库、存储与后台任务状态。')}>{(innerClient, snapshot, history, paused) => <ServicesSection client={innerClient} snapshot={snapshot} history={history} paused={paused} />}</SectionShell>;
+  return <SectionShell client={client} title={t('服务健康')} description={t('HTTP、数据库、存储与后台任务状态。')}>{(innerClient, snapshot, history, paused) => <ServicesSection client={innerClient} snapshot={snapshot} history={history} paused={paused} />}</SectionShell>;
 }
 export function AdminMonitorResourcesPage({ client }: PageProps) {
-  return <SectionShell client={client} icon={Cpu} title={t('资源监控')} description={t('主机硬件、进程与 Go Runtime 资源。')}>{(innerClient, snapshot, history, paused) => <ResourcesSection client={innerClient} snapshot={snapshot} history={history} paused={paused} />}</SectionShell>;
+  return <SectionShell client={client} title={t('资源监控')} description={t('主机硬件、进程与 Go Runtime 资源。')}>{(innerClient, snapshot, history, paused) => <ResourcesSection client={innerClient} snapshot={snapshot} history={history} paused={paused} />}</SectionShell>;
 }
 
 /** Platform super-admin events page: the fourth monitor directory entry. */
 export function AdminMonitorEventsPage({ client }: PageProps) {
-  return <SectionShell client={client} icon={ScrollText} title={t('运行事件')} description={t('应用实例自身产生的运行事件流：生命周期、服务健康变化与任务异常。')}>{(innerClient) => <EventsSection client={innerClient} />}</SectionShell>;
+  return <SectionShell client={client} title={t('运行事件')} description={t('应用实例自身产生的运行事件流：生命周期、服务健康变化与任务异常。')}>{(innerClient) => <EventsSection client={innerClient} />}</SectionShell>;
 }
 
 const LOCAL_TABS = defineMessages({ overview: '运行概览', services: '服务健康', resources: '资源监控', events: '运行事件' });
@@ -759,7 +746,7 @@ export function MonitorPage({ client }: PageProps) {
   useLocale();
   const [tab, setTab] = useState('overview');
   const { t } = useI18n();
-  return <SectionShell client={client} icon={Activity} title={t('运行监控')} description={t('本机实例的运行状态、资源与服务健康。')}>
+  return <SectionShell client={client} title={t('运行监控')} description={t('本机实例的运行状态、资源与服务健康。')}>
     {(innerClient, snapshot, history, paused) => <div className="flex flex-col gap-4">
       <Tabs id="local-monitor" label={t('运行监控分区')} value={tab} onChange={setTab}
         items={Object.entries(LOCAL_TABS).map(([id, label]) => ({ id, label: t(label) }))} />

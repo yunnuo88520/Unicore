@@ -11,13 +11,17 @@ import (
 	"sync"
 
 	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/notify"
+	"github.com/yunnuo/unicore/internal/notifycontent"
+	"github.com/yunnuo/unicore/internal/settings"
 )
 
 //go:embed manifest.json
 var manifestFS embed.FS
 
 // manifestEntry is one declared module; entries without an edition are part
-// of every build, entries with one assemble only when that tag is set.
+// of every build. Optional editions may use an enabling tag or the manifest's
+// disabled_tag for default-enabled modules such as notes.
 type manifestEntry struct {
 	Slug    string `json:"slug"`
 	Edition string `json:"edition"`
@@ -82,15 +86,18 @@ type Module struct {
 	Description string
 	Icon        string
 	// Order sorts the module pages after the built-in defaults in shared navigation.
-	Order       int
-	Permissions []contracts.PermissionDefinition
-	Navigation  []contracts.NavigationPage
-	Executors   []Executor
+	Order              int
+	Permissions        []contracts.PermissionDefinition
+	Navigation         []contracts.NavigationPage
+	Executors          []Executor
+	Settings           []settings.GroupDefinition
+	NotificationTypes  []notify.Definition
+	NotificationEvents []notifycontent.Definition
 	// Migrations is the module.<slug> namespace that must exist in migrations/catalog.json.
 	Migrations string
-	// Edition names the Go build tag controlling assembly; empty means always assembled.
+	// Edition names the manifest build feature; empty means always assembled.
 	Edition string
-	// Enabled reflects the edition tag; assemble_on/off files set it explicitly.
+	// Enabled reflects the compiled edition state; omitted builds use a minimal descriptor.
 	Enabled bool
 }
 
@@ -119,8 +126,30 @@ func Register(items ...Module) {
 		if item.Title == "" {
 			item.Title = entry.Title
 		}
+		if item.Enabled {
+			if err := settings.Register(item.Settings...); err != nil {
+				panic(err)
+			}
+			for _, event := range item.NotificationEvents {
+				notifycontent.Register(event)
+			}
+		}
 		modules[item.Slug] = item
 	}
+}
+
+// NotificationTypes aggregates only compiled, enabled module contributions.
+// Each UI composition root registers these in its own delivery registry.
+func NotificationTypes() []notify.Definition {
+	mu.Lock()
+	defer mu.Unlock()
+	result := []notify.Definition{}
+	for _, item := range sorted() {
+		if item.Enabled {
+			result = append(result, item.NotificationTypes...)
+		}
+	}
+	return result
 }
 
 // All returns the registered modules sorted by slug for stable aggregation.
@@ -141,6 +170,9 @@ func Permissions() []contracts.PermissionDefinition {
 	defer mu.Unlock()
 	items := []contracts.PermissionDefinition{}
 	for _, item := range sorted() {
+		if !item.Enabled {
+			continue
+		}
 		items = append(items, item.Permissions...)
 	}
 	return items
@@ -152,6 +184,9 @@ func NavigationPages() []contracts.NavigationPage {
 	defer mu.Unlock()
 	items := []contracts.NavigationPage{}
 	for _, item := range sorted() {
+		if !item.Enabled {
+			continue
+		}
 		items = append(items, item.Navigation...)
 	}
 	return items
@@ -162,6 +197,9 @@ func FindExecutor(key string) (Executor, bool) {
 	mu.Lock()
 	defer mu.Unlock()
 	for _, item := range modules {
+		if !item.Enabled {
+			continue
+		}
 		for _, executor := range item.Executors {
 			if executor.Key == key {
 				return executor, true

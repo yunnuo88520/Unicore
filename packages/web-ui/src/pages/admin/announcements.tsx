@@ -2,15 +2,16 @@
 // Description: Announcement console on TanStack Table: visibility switch, batch deletion and modal editing with live preview.
 import { useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createColumnHelper, createPaginatedRowModel, flexRender, rowPaginationFeature, tableFeatures, useTable, type PaginationState, type TableOptions } from '@tanstack/react-table';
+import { createColumnHelper, createPaginatedRowModel, rowPaginationFeature, tableFeatures, useTable, type PaginationState, type TableOptions } from '@tanstack/react-table';
 import { Controller, useWatch } from 'react-hook-form';
 import { AppSelectField } from '@unicore/form/fields';
-import { ChevronLeft, ChevronRight, Eye, Megaphone, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { Eye, Megaphone, Pencil, Plus, Trash2 } from 'lucide-react';
 import type { AnnouncementEntry, AnnouncementInput, AnnouncementQuery, AnnouncementSelection, WebClient } from '@unicore/sdk';
 import { currentLocale, defineMessages, t, useI18n } from '../../i18n';
 import { AppField, AppForm, useAppForm } from '@unicore/form';
-import { Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, Input, Label, Modal, NativeSelect, Switch, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage } from '@unicore/ui';
+import { Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, Input, Label, Modal, SimpleSelect, PageHeader, Switch, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage, selectOptions } from '@unicore/ui';
 import { RichTextEditor } from '@unicore/ui/editor';
+import { DataTable, DataTablePagination, DataTableToolbar } from '../../components/data-table';
 import { RichContent } from '../../rich-content';
 import { AnnouncementType, announcementTypes } from '../../announcement-center';
 import type { PageProps } from '../../router';
@@ -20,7 +21,6 @@ import { usePermissions } from '../../permissions';
 const features = tableFeatures({ rowPaginationFeature, paginatedRowModel: createPaginatedRowModel() });
 const helper = createColumnHelper<typeof features, AnnouncementEntry>();
 const EMPTY_ITEMS: AnnouncementEntry[] = [];
-const COLUMN_COUNT = 9;
 const PAGE_SIZE = 10;
 const statuses = defineMessages({ draft: '草稿', published: '已发布', scheduled: '定时发布', archived: '已归档', expired: '已过期' });
 const notifyModes = defineMessages({ silent: '静默通知', popup: '弹窗提醒' });
@@ -69,7 +69,7 @@ const columns = helper.columns([
       const item = info.row.original;
       const expired=item.status==='published' && item.ends_at>0 && item.ends_at<=Date.now()/1000;
  const scheduled = item.status === 'published' && item.publish_at > Date.now() / 1000;
-      return <Badge variant={scheduled || item.status === 'published' ? 'primary' : 'subtle'}>{t(statuses[expired ? 'expired' : scheduled ? 'scheduled' : item.status])}</Badge>;
+      return <Badge dot={scheduled || item.status === 'published'} variant={scheduled || item.status === 'published' ? 'primary' : 'subtle'}>{t(statuses[expired ? 'expired' : scheduled ? 'scheduled' : item.status])}</Badge>;
     },
   }),
   helper.display({
@@ -90,10 +90,10 @@ const columns = helper.columns([
     cell: info => {
       const meta = info.table.options.meta as AnnouncementTableMeta;
       const item = info.row.original;
-      return <div className="flex items-center gap-1">
-        {meta.can('announcementReadStatus') && <Button variant="ghost" size="icon" aria-label={t('阅读情况')} onClick={() => meta.onReaders(item)}><Eye size={14} /></Button>}
-        {meta.can('updateAnnouncement') && <Button variant="ghost" size="icon" aria-label={t('编辑公告')} onClick={() => meta.onEdit(item)}><Pencil size={14} /></Button>}
-        {meta.can('deleteAnnouncements') && <Button variant="ghost" size="icon" aria-label={t('删除公告')} onClick={() => meta.onRemove(item)}><Trash2 size={14} /></Button>}
+      return <div className="flex items-center justify-end gap-1.5">
+        {meta.can('announcementReadStatus') && <Button variant="secondary" size="icon" aria-label={t('阅读情况')} onClick={() => meta.onReaders(item)}><Eye size={14} /></Button>}
+        {meta.can('updateAnnouncement') && <Button variant="secondary" size="icon" aria-label={t('编辑公告')} onClick={() => meta.onEdit(item)}><Pencil size={14} /></Button>}
+        {meta.can('deleteAnnouncements') && <Button variant="secondary" size="icon" aria-label={t('删除公告')} onClick={() => meta.onRemove(item)}><Trash2 size={14} /></Button>}
       </div>;
     },
   }),
@@ -180,7 +180,9 @@ function AnnouncementPanel({ web, metadata }: { web: WebClient; metadata: Bootst
       setSelection([]);
     },
   } as TableOptions<typeof features, AnnouncementEntry>);
-  return <div className="flex flex-col gap-4">
+  return <div className="flex min-w-0 flex-col gap-6">
+    <PageHeader title={t('平台公告')} description={t('集中管理通知、发布计划与内部备注。')}
+      actions={can('createAnnouncement') && <Button onClick={() => setEditor('new')}><Plus size={16} />{t('新增公告')}</Button>} />
     <Card>
       <CardContent className="flex items-center gap-4">
         <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-accent"><Megaphone size={22} aria-hidden="true" /></span>
@@ -196,66 +198,23 @@ function AnnouncementPanel({ web, metadata }: { web: WebClient; metadata: Bootst
     </Card>
     <Card>
       <CardContent className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="text-md font-semibold text-ink">{t('公告列表')}</h2>
-            <p className="mt-0.5 text-xs text-muted">{t('集中管理通知、发布计划与内部备注。')}</p>
-          </div>
-          {can('createAnnouncement') && <Button onClick={() => setEditor('new')}><Plus size={15} />{t('新增公告')}</Button>}
-        </div>
-        <form className="flex flex-wrap items-center gap-2" onSubmit={event => { event.preventDefault(); setFilter({ search }); }}>
-          <label className="flex h-9 min-w-44 flex-1 items-center gap-2 rounded-md border border-line bg-surface px-3 text-base text-muted shadow-tint focus-within:border-focus focus-within:ring-2 focus-within:ring-focus sm:max-w-xs">
-            <Search size={15} aria-hidden="true" />
-            <input aria-label={t('搜索公告')} placeholder={t('搜索公告标题、内容或备注…')} maxLength={128} className="w-full min-w-0 bg-transparent text-ink outline-none placeholder:text-subtle"
-              value={search} onChange={event => setSearch(event.target.value)} />
-          </label>
-          <NativeSelect aria-label={t('公告状态')} className="h-9 w-auto" value={query.status} disabled={list.isFetching}
-            onChange={event => setFilter({ status: event.target.value as AnnouncementQuery['status'] })}>
+        <DataTableToolbar
+          summary={{ label: t('公告总数'), value: t('共 {{count}} 条', { count: list.data?.total ?? 0 }) }}
+          search={{ label: t('搜索公告'), placeholder: t('搜索公告标题、内容或备注…'), value: search, maxLength: 128,
+            onChange: value => setSearch(value), onSubmit: () => setFilter({ search }) }}
+          actions={can('deleteAnnouncements') && <Button variant="secondary" disabled={!selection.length} onClick={() => setRemoving(selection)}>
+            <Trash2 size={14} />{t('批量删除')}{selection.length > 0 && <span className="rounded-full bg-danger-soft px-1.5 text-2xs text-danger">{selection.length}</span>}
+          </Button>}>
+          <SimpleSelect aria-label={t('公告状态')} className="h-9 w-auto border-line bg-surface" value={query.status} disabled={list.isFetching}
+            onChange={event => setFilter({ status: event as AnnouncementQuery['status'] })} options={selectOptions(<>
             <option value="">{t('全部状态')}</option>
             {Object.entries(statuses).map(([id, label]) => <option key={id} value={id}>{t(label)}</option>)}
-          </NativeSelect>
-          <Button variant="secondary" type="submit">{t('搜索')}</Button>
-          {can('deleteAnnouncements') && <Button variant="secondary" type="button" className="ms-auto" disabled={!selection.length} onClick={() => setRemoving(selection)}>
-            <Trash2 size={14} />{t('批量删除')}{selection.length > 0 && <span className="rounded-full bg-danger-soft px-1.5 text-2xs text-danger">{selection.length}</span>}
-          </Button>}
-        </form>
-        {list.isError && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
-          <span>{t(list.error.message)}</span>
-          <Button variant="secondary" size="sm" onClick={() => void list.refetch()}>{t('重试')}</Button>
-        </div>}
-        <div className="announcement-table announcement-table-content rounded-lg border border-line" aria-busy={list.isFetching}>
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map(group => <TableRow key={group.id} className="hover:bg-transparent">
-                {group.headers.map(header => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}
-              </TableRow>)}
-            </TableHeader>
-            <TableBody>
-              {list.isPending
-                ? <TableEmpty colSpan={COLUMN_COUNT}>{t('正在读取公告…')}</TableEmpty>
-                : table.getRowModel().rows.map(row => <TableRow key={row.id}>
-                    {row.getAllCells().map(cell => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}
-                  </TableRow>)}
-              {!list.isPending && !items.length && <TableEmpty colSpan={COLUMN_COUNT}>
-                <span className="flex flex-col items-center gap-1.5 py-2">
-                  <Megaphone size={24} className="text-subtle" aria-hidden="true" />
-                  <strong className="text-sm text-ink">{t(query.search || query.status ? '没有匹配的公告' : '暂无公告')}</strong>
-                  <span className="text-xs text-muted">{t('新增公告，向用户传递平台消息。')}</span>
-                </span>
-              </TableEmpty>}
-            </TableBody>
-          </Table>
-        </div>
-        <div className="flex items-center justify-between gap-3 text-xs text-muted">
-          <span>{t('共 {{count}} 条公告', { count: list.data?.total ?? 0 })}</span>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" aria-label={t('上一页')} disabled={!table.getCanPreviousPage() || list.isFetching}
-              onClick={() => table.previousPage()}><ChevronLeft size={15} /></Button>
-            <span>{query.page} / {pages}</span>
-            <Button variant="ghost" size="icon" aria-label={t('下一页')} disabled={!table.getCanNextPage() || list.isFetching}
-              onClick={() => table.nextPage()}><ChevronRight size={15} /></Button>
-          </div>
-        </div>
+          </>)} />
+        </DataTableToolbar>
+        <DataTable table={table} pending={list.isPending} busy={list.isFetching} error={list.error} onRetry={() => void list.refetch()}
+          empty={{ icon: Megaphone, title: query.search || query.status ? t('没有匹配的公告') : t('暂无公告'), hint: t('新增公告，向用户传递平台消息。') }} />
+        <DataTablePagination page={query.page} pageSize={query.page_size} total={list.data?.total ?? 0}
+          onPageChange={page => { setQuery(current => ({ ...current, page })); setSelection([]); }} disabled={list.isFetching} />
       </CardContent>
     </Card>
     {readers && <AnnouncementReaders web={web} entry={readers} onClose={()=>setReaders(null)}/>}
@@ -308,16 +267,16 @@ function AnnouncementEditor({ web, entry, onClose, onSaved }: { web: WebClient; 
   return <Modal title={t(entry ? '编辑公告' : '新增公告')} onClose={onClose} pending={pending}>
     <AppForm form={form} className="flex flex-col gap-4">
  <AppField name="title" label={t('公告标题')}><Input required maxLength={200} disabled={pending}/></AppField>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex min-w-0 flex-col gap-1.5">
         <div className="flex items-center justify-between gap-3">
           <Label htmlFor="announcement-content">{t('公告内容')}</Label>
           <div className="flex items-center gap-3">
             <small className="text-2xs text-muted">{[...content].length} / 10000</small>
-            <NativeSelect aria-label={t('内容格式')} className="h-7 w-auto py-0 text-xs" disabled={pending} value={format}
-              onChange={event => { setPreview(false); form.setValue('format', event.target.value as AnnouncementInput['format'], { shouldDirty: true }); }}>
+            <SimpleSelect aria-label={t('内容格式')} className="h-7 w-auto py-0 text-xs" disabled={pending} value={format}
+              onChange={event => { setPreview(false); form.setValue('format', event as AnnouncementInput['format'], { shouldDirty: true }); }} options={selectOptions(<>
               <option value="markdown">Markdown</option>
               <option value="html">HTML</option>
-            </NativeSelect>
+            </>)} />
           </div>
         </div>
         {format === 'markdown'
@@ -327,43 +286,45 @@ function AnnouncementEditor({ web, entry, onClose, onSaved }: { web: WebClient; 
               onChange={value => { setPreview(false); form.setValue('content', value, { shouldDirty: true }); }} />}
         <small className="text-xs text-muted">{t('支持安全 Markdown 或 HTML；不允许脚本、图片或嵌入页面。')}</small>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
         <Controller control={form.control} name="publish_at" render={({ field }) => (
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-ink">{t('发布时间')}</span>
-            <Input type="datetime-local" required disabled={pending} value={localDate(field.value ?? Math.floor(Date.now() / 1000))}
+          <div className="flex min-w-0 flex-col gap-1.5">
+
+            <Input label={t('发布时间')} type="datetime-local" className="max-w-56" required disabled={pending} value={localDate(field.value ?? Math.floor(Date.now() / 1000))}
               onChange={event => { if (event.target.value) { setPreview(false); field.onChange(Math.floor(new Date(event.target.value).getTime() / 1000)); } }} />
-          </label>
+          </div>
         )} />
-        <Controller control={form.control} name="ends_at" render={({field})=><label className="flex flex-col gap-1.5"><span className="text-sm font-medium text-ink">{t('结束时间（可选）')}</span><Input type="datetime-local" disabled={pending} value={field.value?localDate(field.value):''} min={localDate(values.publish_at ?? Math.floor(Date.now()/1000))} onChange={event=>field.onChange(event.target.value?Math.floor(new Date(event.target.value).getTime()/1000):0)}/></label>}/>
-        <AppSelectField name="notify_mode" label={t('通知方式')} disabled={pending} options={[{ value: 'silent', label: notifyModes.silent }, { value: 'popup', label: notifyModes.popup }]} />
+        <Controller control={form.control} name="ends_at" render={({field})=><div className="flex min-w-0 flex-col gap-1.5"><Input label={t('结束时间（可选）')} type="datetime-local" className="max-w-56" disabled={pending} value={field.value?localDate(field.value):''} min={localDate(values.publish_at ?? Math.floor(Date.now()/1000))} onChange={event=>field.onChange(event.target.value?Math.floor(new Date(event.target.value).getTime()/1000):0)}/></div>}/>
+        <AppSelectField name="notify_mode" label={t('通知方式')} className="max-w-40" disabled={pending} options={[{ value: 'silent', label: notifyModes.silent }, { value: 'popup', label: notifyModes.popup }]} />
         <Controller control={form.control} name="type" render={({ field }) => (
-          <label className="flex flex-col gap-1.5">
+          <label className="flex min-w-0 flex-col gap-1.5">
             <span className="text-sm font-medium text-ink">{t('公告类型')}</span>
-            <NativeSelect disabled={pending} value={field.value ?? 'info'} onChange={event => { setPreview(false); field.onChange(event.target.value); }}>
-              {Object.entries(announcementTypes).map(([id, label]) => <option key={id} value={id}>{t(label)}</option>)}
-            </NativeSelect>
+            <SimpleSelect aria-label={t('公告类型')} className="max-w-40" disabled={pending} value={field.value ?? 'info'} onChange={event => { setPreview(false); field.onChange(event); }} options={selectOptions(<>
+              {/* Offer the two editorial types only; success/warning stay renderable for legacy entries. */}
+              <option value="info">{t(announcementTypes.info)}</option>
+              <option value="error">{t(announcementTypes.error)}</option>
+            </>)} />
           </label>
         )} />
         <Controller control={form.control} name="status" render={({ field }) => (
-          <label className="flex flex-col gap-1.5">
+          <label className="flex min-w-0 flex-col gap-1.5">
             <span className="text-sm font-medium text-ink">{t('发布状态')}</span>
-            <NativeSelect disabled={pending} value={field.value ?? 'draft'} onChange={event => { setPreview(false); field.onChange(event.target.value); }}>
+            <SimpleSelect aria-label={t('发布状态')} className="max-w-40" disabled={pending} value={field.value ?? 'draft'} onChange={event => { setPreview(false); field.onChange(event); }} options={selectOptions(<>
               <option value="published">{t((values.publish_at ?? 0) > Date.now() / 1000 ? '定时发布' : '发布')}</option>
               <option value="draft">{t('草稿')}</option>
  <option value="archived">{t('已归档')}</option>
-            </NativeSelect>
+            </>)} />
           </label>
         )} />
         <Controller control={form.control} name="note" render={({ field }) => (
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-ink">{t('内部备注')}</span>
-            <Input maxLength={100} disabled={pending} placeholder={t('仅管理员可见，最多 100 字')} value={field.value ?? ''}
+          <div className="flex min-w-0 flex-col gap-1.5">
+
+            <Input label={t('内部备注')} maxLength={100} disabled={pending} placeholder={t('仅管理员可见，最多 100 字')} value={field.value ?? ''}
               onChange={event => { setPreview(false); field.onChange(event.target.value); }} />
-          </label>
+          </div>
         )} />
       </div>
-      <Controller control={form.control} name="audience" render={({field})=><label className="flex flex-col gap-1.5"><span className="text-sm font-medium text-ink">{t('接收范围')}</span><NativeSelect value={field.value} disabled={pending} onChange={event=>{field.onChange(event.target.value);if(event.target.value==='all')form.setValue('recipient_ids',[]);}}><option value="all">{t('全部用户')}</option><option value="selected">{t('指定用户')}</option></NativeSelect></label>}/>
+      <Controller control={form.control} name="audience" render={({field})=><label className="flex min-w-0 flex-col gap-1.5"><span className="text-sm font-medium text-ink">{t('接收范围')}</span><SimpleSelect aria-label={t('接收范围')} className="max-w-40" value={field.value} disabled={pending} onChange={event=>{field.onChange(event);if(event==='all')form.setValue('recipient_ids',[]);}} options={selectOptions(<><option value="all">{t('全部用户')}</option><option value="selected">{t('指定用户')}</option></>)} /></label>}/>
       {values.audience==='selected' && <RecipientPicker web={web} selected={values.recipient_ids ?? []} disabled={pending} onChange={ids=>form.setValue('recipient_ids',ids,{shouldDirty:true})}/>}
       <p className="text-xs text-muted">{t('修改公告不会重置已读记录；需要重新提醒时，请新建公告。')}</p>
       {preview && render.data && <div className="announcement-preview max-h-44 overflow-auto rounded-lg border border-line bg-surface-alt p-3"><RichContent html={render.data.content_html} /></div>}
@@ -386,7 +347,7 @@ function RecipientPicker({ web, selected, disabled, onChange }: { web: WebClient
   const users = useQuery({ queryKey: ['announcement-recipient-options', search, page], queryFn: () => web.users(search, page), placeholderData: keepPreviousData });
   return <div className="rounded-lg border border-line p-3">
     <p className="mb-2 text-xs text-muted">{t('已选择 {{count}} 位用户（最多 500 位）', { count: selected.length })}</p>
-    <Input aria-label={t('搜索接收用户')} placeholder={t('搜索账号或邮箱')} value={search} maxLength={128} disabled={disabled} onChange={event => { setSearch(event.target.value); setPage(1); }} />
+    <Input aria-label={t('搜索接收用户')} placeholder={t('搜索')} value={search} maxLength={128} disabled={disabled} onChange={event => { setSearch(event.target.value); setPage(1); }} />
     {users.isError ? <div role="alert" className="mt-2"><span className="text-xs text-danger">{t(users.error.message)}</span><Button variant="link" onClick={() => void users.refetch()}>{t('重试')}</Button></div>
       : users.isPending ? <p role="status" className="py-3 text-xs text-muted">{t('加载中…')}</p>
       : <div className="my-2 flex max-h-40 flex-col gap-2 overflow-y-auto">{users.data.items.map(user => <label key={user.id} className="flex items-center gap-2 text-sm"><Checkbox checked={selected.includes(user.id)} disabled={disabled || (!selected.includes(user.id) && selected.length >= 500)} onChange={checked => onChange(checked ? [...selected, user.id] : selected.filter(id => id !== user.id))} /><span className="min-w-0 truncate">{user.username} · {user.email}</span></label>)}{!users.data.items.length && <p className="text-xs text-muted">{t('没有匹配的用户')}</p>}</div>}
@@ -402,7 +363,7 @@ function AnnouncementReaders({ web, entry, onClose }: { web: WebClient; entry: A
   return <Modal title={t('阅读情况')} onClose={onClose}>
     <p className="mb-2 break-words text-sm font-semibold text-ink">{entry.title}</p>
     <p className="mb-3 text-xs text-muted">{t('接收范围按当前配置判断；已读时间记录首次打开或确认，不代表完整阅读。')}</p>
-    <Input aria-label={t('搜索阅读用户')} placeholder={t('搜索账号或邮箱')} maxLength={128} value={search} onChange={event => { setSearch(event.target.value); setPage(1); }} />
+    <Input aria-label={t('搜索阅读用户')} placeholder={t('搜索')} maxLength={128} value={search} onChange={event => { setSearch(event.target.value); setPage(1); }} />
     {query.isError ? <div role="alert" className="mt-3"><span className="text-sm text-danger">{t(query.error.message)}</span><Button variant="link" onClick={() => void query.refetch()}>{t('重试')}</Button></div>
       : <div className="mt-3 overflow-x-auto"><Table><TableHeader><TableRow><TableHead>{t('账号')}</TableHead><TableHead>{t('接收范围')}</TableHead><TableHead>{t('首次已读时间')}</TableHead></TableRow></TableHeader><TableBody>
           {query.isPending ? <TableEmpty colSpan={3}>{t('加载中…')}</TableEmpty> : query.data.items.map(user => <TableRow key={user.id}><TableCell><span className="block">{user.username}</span><small className="text-muted">{user.email}</small></TableCell><TableCell>{t(user.eligible ? '符合条件' : '不符合条件')}</TableCell><TableCell><span className="whitespace-nowrap">{user.read_at ? new Date(user.read_at * 1000).toLocaleString(currentLocale()) : t('未读')}</span></TableCell></TableRow>)}

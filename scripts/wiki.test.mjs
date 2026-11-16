@@ -2,7 +2,7 @@
 // Description: Wiki links preserve repository boundaries, anchors, images, external URLs and fenced examples.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { generateWiki, renderMarkdown, repositoryName, wikiLink } from './wiki.mjs';
@@ -35,7 +35,12 @@ test('Wiki configuration renders all pages and validates target identity', () =>
   assert.match(pages.get('_Sidebar.md'), /wiki\/Notifications/);
   assert.match(pages.get('Notifications.md'), /mailer\.Service/);
   assert.match(pages.get('UI-Components.md'), /UI/);
-  assert.equal(pages.size, 18);
+  const manifest = JSON.parse(readFileSync(new URL('../distribution/manifest.json', import.meta.url), 'utf8'));
+  assert.deepEqual([...pages.keys()].sort(), [...manifest.documents.filter(doc => doc.audiences.includes('public-wiki')).map(doc => doc.slug + '.md'), '_Sidebar.md', '_Footer.md'].sort());
+  assert.match(pages.get('Feature-Trimming.md'), /FEATURE_NOTES=false/);
+  assert.match(pages.get('MCP.md'), /需要本人确认/);
+  assert.match(pages.get('Form-Interaction.md'), /InputOTP/);
+  assert.match(pages.get('UI-Components.md'), /wiki\/Form-Interaction/);
   assert.ok(pages.has('First-Feature.md'));
   assert.match(pages.get('First-Feature.md'), /module.notes/);
   assert.ok(pages.has('Framework-Upgrades.md'));

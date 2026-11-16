@@ -8,6 +8,7 @@ import { expect, it, vi } from 'vitest';
 import { MessageProvider } from '@unicore/ui';
 import type { AppClient, Bootstrap } from '@unicore/sdk';
 import { VersionBadge } from './shell-tools';
+import { routes } from './routes';
 
 function metadata(overrides: Partial<Bootstrap> = {}): Bootstrap {
   return {
@@ -69,7 +70,7 @@ it('keeps restricted administrators read-only without update requests', async ()
   expect(client.updates!.overview).not.toHaveBeenCalled();
 });
 
-it('offers check, update-now and rollback entries to the super administrator', async () => {
+it.runIf(__FEATURE_UPDATER__)('offers check, update-now and rollback entries to the super administrator', async () => {
   const overview = { current_version: '0.1.3', latest_version: '0.2.0', available: true, checked_at: '2026-11-10T00:00:00Z', can_apply: true, history: [{ version: '0.2.0', url: 'https://github.com/yunnuo88520/Unicore/releases/tag/v0.2.0', notes: '', source: '', prerelease: false, published_at: '2026-11-10T00:00:00Z' }] };
   const client = updatesClient(overview);
   const onOpen = await mount(client, metadata());
@@ -91,7 +92,7 @@ it('offers check, update-now and rollback entries to the super administrator', a
   expect(onOpen).toHaveBeenCalledTimes(1);
 });
 
-it('shows the release link and rollback entry when already up to date', async () => {
+it.runIf(__FEATURE_UPDATER__)('shows the release link and rollback entry when already up to date', async () => {
   const overview = { current_version: '0.1.3', latest_version: '0.1.3', available: false, checked_at: '2026-11-10T00:00:00Z', can_apply: false, history: [{ version: '0.1.3', url: 'https://github.com/yunnuo88520/Unicore/releases/tag/v0.1.3', notes: '', source: '', prerelease: false, published_at: '2026-11-10T00:00:00Z' }] };
   const client = updatesClient(overview);
   const onOpen = await mount(client, metadata());
@@ -126,4 +127,19 @@ it('portals the popover to document.body above the clipping sidebar layer', asyn
   expect(popover.className).toContain('z-[60]');
   await userEvent.keyboard('{Escape}');
   expect(screen.queryByRole('dialog', { name: '版本信息' })).toBeNull();
+});
+
+it.runIf(!__FEATURE_UPDATER__)('keeps only the version when updates are compiled out, including license builds', async () => {
+  const client = updatesClient({});
+  const data = metadata();
+  data.capabilities.license = true;
+  // Even mismatched metadata cannot turn on code omitted by this build.
+  await mount(client, data);
+  await userEvent.click(await screen.findByRole('button', { name: /当前版本 0\.1\.3/ }));
+  const popover = screen.getByRole('dialog', { name: '版本信息' });
+  expect(within(popover).getByText('v0.1.3')).toBeVisible();
+  expect(within(popover).queryByRole('button')).toBeNull();
+  expect(client.updates!.overview).not.toHaveBeenCalled();
+  expect(client.updates!.check).not.toHaveBeenCalled();
+  expect(routes.edition.label).not.toBe('系统更新');
 });

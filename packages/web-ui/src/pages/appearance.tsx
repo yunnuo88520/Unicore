@@ -7,14 +7,14 @@ import { useNavigate } from '@tanstack/react-router';
 import { Building2, Save } from 'lucide-react';
 import { invalidateAfter } from '../queries';
 import { BrandingPanel } from '../branding-panel';
-import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Modal, NativeSelect, Switch, Tabs, Textarea, useMessage } from '@unicore/ui';
+import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Modal, SimpleSelect, Switch, Tabs, Textarea, useMessage, selectOptions } from '@unicore/ui';
 import { cn } from '@unicore/ui/cn';
 import { AppField, AppForm, useAppForm } from '@unicore/form';
 import { useRouteSearch, type PageProps } from '../router';
-import type { AppClient, Bootstrap, OIDCCheckInfo, SettingPatch, WebClient } from '@unicore/sdk';
+import type { AppClient, Bootstrap, OIDCCheckInfo, SettingPatch, Settings, WebClient } from '@unicore/sdk';
 
 /** Shape of one settings registry row as delivered by client.settings(). */
-type SettingEntry = { key: string; value: string; value_type: string; group: string; label: string; sensitive: boolean; configured?: boolean };
+type SettingEntry = Settings['items'][number];
 
 const groupNames: Record<string, string> = defineMessages({ site: '站点信息', maintenance: '维护模式', registration: '注册设置', admin: '后台入口', protection: '站点防护', security: '安全', mail: '邮件服务', oidc: '企业登录（OIDC）', logging: '日志保留' });
 const baseSections = defineMessages([
@@ -42,7 +42,7 @@ type AdminSettingsProps = {
 
 /** Persistent instance settings: drafts survive tab switches, saves patch only the visible section. */
 function AdminSettings({ section = 'base', client, metadata, onSaved }: AdminSettingsProps) {
-  useLocale();
+  const locale = useLocale();
   const message = useMessage();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -71,12 +71,18 @@ function AdminSettings({ section = 'base', client, metadata, onSaved }: AdminSet
     <p className="text-sm text-muted">{t(query.error.message)}</p>
     <Button variant="secondary" onClick={() => void query.refetch()}>{t('重试')}</Button>
   </CardContent></Card>;
-  const candidates = section === 'security' ? [{id:'security',label:t('账户安全'),groups:['security']}] : section === 'mail' ? [{ id: 'mail', label: t('邮件设置'), groups: ['mail'] }] : baseSections;
+  const registered = query.data.groups ?? [];
+  const businessSections = registered.map(group => ({ id: group.id, label: locale === 'en' ? group.label_en : group.label, groups: [group.id] }));
+  const groupLabel = (group: string) => { const definition = registered.find(item => item.id === group); return definition ? locale === 'en' ? definition.label_en : definition.label : t(groupNames[group] ?? group); };
+  const candidates = section === 'security' ? [{id:'security',label:t('账户安全'),groups:['security']}] : section === 'mail' ? [{ id: 'mail', label: t('邮件设置'), groups: ['mail'] }] : [...baseSections, ...businessSections];
   const available = candidates.filter(item => item.id === 'branding'
       ? !!client.branding && !!client.updateBranding
       : query.data.items.some(entry => item.groups.includes(entry.group)));
   const active = available.find(item => item.id === tab) ?? available[0];
   const groups = active.groups;
+  const businessGroup = registered.find(group => group.id === active.id);
+  const activeLabel = businessGroup ? active.label : t(active.label);
+  const description = businessGroup ? locale === 'en' ? businessGroup.description_en : businessGroup.description : '';
   const changes = Object.entries(draft)
     .filter(([key]) => query.data.items.some(item => item.key === key && groups.includes(item.group)))
     .map(([key, value]) => ({ key, value, ...(cleared.includes(key) ? { clear: true } : {}) }));
@@ -86,7 +92,7 @@ function AdminSettings({ section = 'base', client, metadata, onSaved }: AdminSet
     {section === 'base' && <Tabs
       id="instance-settings"
       label={t('设置分组')}
-      items={available.map(item => ({ id: item.id, label: t(item.label), dirty: item.groups.some(dirty) }))}
+      items={available.map(item => ({ id: item.id, label: registered.some(group => group.id === item.id) ? item.label : t(item.label), dirty: item.groups.some(dirty) }))}
       value={active.id}
       onChange={id => { save.reset(); void navigate({ to: '/site', search: { tab: id }, replace: true }); }}
     />}
@@ -96,8 +102,8 @@ function AdminSettings({ section = 'base', client, metadata, onSaved }: AdminSet
     {plainSection && <Card>
       <CardHeader className="flex-row items-start justify-between gap-3">
         <div>
-          <CardTitle>{t(active.label)}</CardTitle>
-          <CardDescription>{t('配置保存在服务器，统一应用于整个实例')}</CardDescription>
+          <CardTitle>{activeLabel}</CardTitle>
+          <CardDescription>{description || t('配置保存在服务器，统一应用于整个实例')}</CardDescription>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <Badge className="max-sm:hidden">{t('持久化')}</Badge>
@@ -108,7 +114,7 @@ function AdminSettings({ section = 'base', client, metadata, onSaved }: AdminSet
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {groups.map(group => <fieldset key={group} className="flex flex-col gap-3 rounded-lg border border-line p-3" disabled={save.isPending}>
-          <legend className="px-1 text-sm font-semibold text-ink">{t(groupNames[group] ?? group)}</legend>
+          <legend className="px-1 text-sm font-semibold text-ink">{groupLabel(group)}</legend>
           {group === 'protection' && <p className="text-xs text-muted">{t('人机验证与找回密码面向整个站点；开启邮件找回密码前，请先在邮件设置完成 SMTP 测试。')}</p>}
           {group === 'mail' && <p className="text-xs text-muted">{t('STARTTLS 使用端口 587，SSL/TLS（隐式 TLS）使用端口 465，明文仅允许本机（25）；切换加密方式会自动填入常用端口，可再手动修改。保存后点击下方“发送测试”验证连接。')}</p>}
           {group === 'oidc' && <p className="text-xs text-muted">{t('支持授权码 + PKCE；保存后在本页检查连接，再完成一次实际登录。')}</p>}
@@ -179,7 +185,7 @@ function HumanCheckPanel({ draft, entries, onValue, onRevert }: {
   // Secret inputs stay blank until typed; emptying a field reverts the draft so the stored value survives.
   const secret = (key: string, placeholder: string) => {
     const isConfigured = configured(key);
-    return <Input type="password" autoComplete="new-password" placeholder={isConfigured ? t('留空以保留当前值') : placeholder}
+    return <Input label={t(entry(key)?.label ?? key)} strength={false} type="password" autoComplete="off" placeholder={isConfigured ? t('留空以保留当前值') : placeholder}
       value={draft[key] ?? ''} onChange={event => { if (event.target.value) onValue(key, event.target.value); else onRevert(key); }} />;
   };
   const link = (href: string, children: ReactNode) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-accent underline-offset-2 hover:underline">{children}</a>;
@@ -199,7 +205,7 @@ function HumanCheckPanel({ draft, entries, onValue, onRevert }: {
       {provider === 'turnstile' && <>
         <div className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-ink">{t('站点密钥')}</span>
-          <Input placeholder="0x4AAAAAAAA..." value={current('security.turnstile_site_key')} onChange={event => onValue('security.turnstile_site_key', event.target.value)} />
+          <Input label={t('站点密钥')} placeholder="0x4AAAAAAAA..." value={current('security.turnstile_site_key')} onChange={event => onValue('security.turnstile_site_key', event.target.value)} />
           <small className="text-xs text-muted">{t('从 Cloudflare Dashboard 获取')} · {link('https://dash.cloudflare.com/?to=/:account/turnstile', t('打开 Turnstile 控制台'))} · {link('https://developers.cloudflare.com/turnstile/', t('查看 Web 接入文档'))}</small>
         </div>
         <div className="flex flex-col gap-1.5">
@@ -222,7 +228,7 @@ function HumanCheckPanel({ draft, entries, onValue, onRevert }: {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <span className="text-sm font-medium text-ink">CaptchaAppId</span>
-              <Input placeholder="123456789" value={current('security.tencent_captcha_app_id')} onChange={event => onValue('security.tencent_captcha_app_id', event.target.value)} />
+              <Input label="CaptchaAppId" placeholder="123456789" value={current('security.tencent_captcha_app_id')} onChange={event => onValue('security.tencent_captcha_app_id', event.target.value)} />
             </div>
             <div className="flex flex-col gap-1.5">
               <span className="text-sm font-medium text-ink">AppSecretKey</span>
@@ -261,19 +267,19 @@ function HumanCheckPanel({ draft, entries, onValue, onRevert }: {
           </div>
           <div className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-ink">{t('身份标（prefix）')}</span>
-            <Input placeholder="14xxxxxx" value={current('security.aliyun_captcha_prefix') || ''} onChange={event => onValue('security.aliyun_captcha_prefix', event.target.value)} />
+            <Input label="Prefix" placeholder="14xxxxxx" value={current('security.aliyun_captcha_prefix') || ''} onChange={event => onValue('security.aliyun_captcha_prefix', event.target.value)} />
             <small className="text-xs text-muted">{t('在控制台概览页实例基本信息中获取')}</small>
           </div>
         </div>
         <div className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-ink">{t('场景 ID')}</span>
-          <Input placeholder="1cxxxxxx" value={current('security.aliyun_captcha_scene_id')} onChange={event => onValue('security.aliyun_captcha_scene_id', event.target.value)} />
+          <Input label="SceneId" placeholder="1cxxxxxx" value={current('security.aliyun_captcha_scene_id')} onChange={event => onValue('security.aliyun_captcha_scene_id', event.target.value)} />
           <small className="text-xs text-muted">{t('在阿里云验证码控制台创建验证场景后获取；验证方式（无痕/滑块拼图）在控制台按场景配置。')}</small>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-ink">AccessKey ID</span>
-            <Input placeholder="LTAI..." value={current('security.aliyun_captcha_access_key_id')} onChange={event => onValue('security.aliyun_captcha_access_key_id', event.target.value)} />
+            <Input label="AccessKey ID" placeholder="LTAI..." value={current('security.aliyun_captcha_access_key_id')} onChange={event => onValue('security.aliyun_captcha_access_key_id', event.target.value)} />
             <small className="text-xs text-muted">{t('用于服务端验证的阿里云 AccessKey ID，建议使用仅含验证码权限的 RAM 子账号。')}</small>
           </div>
           <div className="flex flex-col gap-1.5">
@@ -296,26 +302,32 @@ function SettingField({ entry, draft, cleared, onValue, onClear }: {
   onValue: (key: string, value: string) => void;
   onClear: (key: string) => void;
 }) {
-  useLocale();
+  const locale = useLocale();
+  const label = locale === 'en' && entry.label_en ? entry.label_en : t(entry.label);
+  const description = locale === 'en' ? entry.description_en : entry.description;
   const current = draft[entry.key] ?? entry.value;
   const id = `setting-${entry.key}`;
   return <div className={cn("flex min-w-0 flex-col gap-1.5", ['site.footer_html', 'maintenance.message', 'account.email_domains', 'account.nickname_blacklist', 'account.username_blacklist', 'account.password_blacklist', 'account.ip_blacklist'].includes(entry.key) && "md:col-span-2")}>
-    <label htmlFor={id} className="text-sm font-medium text-ink">{t(entry.label)}</label>
-    {entry.value_type === 'boolean'
+    {(entry.value_type === 'boolean' || !!entry.options?.length || ['mail.tls', 'account.email_domain_mode'].includes(entry.key)) && <label htmlFor={id} className="text-sm font-medium text-ink">{label}</label>}
+    {entry.options?.length
+      ? <SimpleSelect id={id} label={label} value={current} onChange={value => onValue(entry.key, value)} options={entry.options.map(option => ({ value: option.value, label: locale === 'en' ? option.label_en : option.label }))} />
+      : entry.value_type === 'boolean'
       ? <Switch id={id} checked={current === 'true'} onChange={checked => onValue(entry.key, String(checked))} />
       : entry.key === 'mail.tls' || entry.key === 'account.email_domain_mode'
-        ? <NativeSelect id={id} value={current} onChange={event => onValue(entry.key, event.target.value)} className="max-w-56">
+        ? <SimpleSelect id={id} label={label} value={current} onChange={event => onValue(entry.key, event)} className="max-w-56" options={selectOptions(<>
             {(entry.key === 'account.email_domain_mode' ? [['unrestricted', t('不限制')], ['allowlist', t('白名单')], ['blocklist', t('黑名单')]] : [['starttls', t('STARTTLS（推荐）')], ['tls', 'SSL/TLS'], ['plain', t('明文（仅本机）')]]
             ).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-          </NativeSelect>
-        : entry.key === 'site.footer_html' || entry.key === 'maintenance.message' || entry.key === 'account.email_domains' || entry.key.endsWith('_blacklist')
-          ? <Textarea id={id} rows={4} maxLength={entry.key.startsWith('account.') ? 16000 : entry.key === 'site.footer_html' ? 4000 : 1000} value={current} onChange={event => onValue(entry.key, event.target.value)} />
-        : <Input id={id}
+          </>)} />
+        : entry.multiline || entry.key === 'site.footer_html' || entry.key === 'maintenance.message' || entry.key === 'account.email_domains' || entry.key.endsWith('_blacklist')
+          ? <Textarea label={label} id={id} rows={4} maxLength={entry.multiline || entry.key.startsWith('account.') ? 16000 : entry.key === 'site.footer_html' ? 4000 : 1000} value={current} onChange={event => onValue(entry.key, event.target.value)} />
+        : <Input label={label} strength={false} id={id}
             type={entry.sensitive ? 'password' : entry.value_type === 'integer' ? 'number' : ['site.icp_url', 'site.base_url'].includes(entry.key) ? 'url' : entry.key === 'site.admin_email' ? 'email' : 'text'}
             autoComplete={entry.sensitive ? 'new-password' : undefined}
-            placeholder={entry.sensitive ? (entry.configured ? t('已配置 · 留空保留') : t('尚未配置')) : undefined}
+            aria-describedby={entry.sensitive ? `${id}-help` : undefined}
             value={current}
             onChange={event => onValue(entry.key, event.target.value)} />}
+    {description && <p className="text-xs leading-5 text-muted">{description}</p>}
+    {entry.sensitive && <p id={`${id}-help`} className="text-xs leading-5 text-muted">{entry.configured ? t('已配置 · 留空保留') : t('尚未配置')}</p>}
     {entry.sensitive && entry.configured && <div>
       <Button variant="link" size="sm" className="h-auto px-0" onClick={() => onClear(entry.key)}>
         {cleared.includes(entry.key) ? t('保存时将清除') : t('清除已保存密钥')}
@@ -343,7 +355,7 @@ function SettingField({ entry, draft, cleared, onValue, onClear }: {
     {entry.key === 'site.admin_email' && <small className="text-xs text-muted">{t('接收系统告警和通知；留空则不设置默认收件人。')}</small>}
     {entry.key === 'site.footer_html' && <small className="text-xs text-muted">{t('支持段落、列表、强调和 HTTP/HTTPS 链接；不支持脚本、样式或嵌入内容。')}</small>}
     {entry.key === 'maintenance.enabled' && <small className="text-xs text-muted">{t('默认关闭。开启后暂停用户访问和 API 操作，管理员仍可登录后台关闭维护。')}</small>}
-    {entry.key === 'site.home_enabled' && <small className="text-xs text-muted">{t('默认关闭。开启后未登录访问站点根路径会跳转到 /home 产品首页，已登录用户直接进入工作空间。')}</small>}
+    {entry.key === 'site.home_enabled' && <small className="text-xs text-muted">{t('默认开启。未登录访问站点根路径进入 /home 产品首页；登录后仍可访问首页，并通过“进入工作空间”继续工作。')}</small>}
     {entry.key === 'site.icp_url' && <small className="text-xs text-muted">{t('HTTPS 查询链接；备案号留空时隐藏页脚备案信息。')}</small>}
     {entry.key === 'mail.from_name' && <small className="text-xs text-muted">{t('留空时使用邮件中的站点名称；修改别名不影响 SMTP 连通性验证。')}</small>}
     {entry.key === 'admin.path' && <small className="text-xs text-muted">{t('配置错误可用 APP_ADMIN_PATH 恢复；接口仍执行权限检查。')}</small>}

@@ -30,7 +30,7 @@ const nodes: NavigationNode[] = [
 ];
 
 const role = (overrides: Partial<Role> = {}): Role => ({
-  id: 'r1', name: '运营', builtin: false, permissions: ['users:read'], user_count: 3, realm: 'administrator',
+  id: 'r1', name: '运营', version: 4, builtin: false, permissions: ['users:read'], user_count: 3, realm: 'administrator',
   data_scope: 'all', department_ids: [], menu_ids: ['users'], action_ids: [], operation_ids: [], authorization_initialized: true, ...overrides,
 });
 
@@ -173,7 +173,7 @@ it('renders one tree table: region root rows over nested node rows and never wor
 it('search filters by name, route id and link url and expands the matched paths', async () => {
   harness();
   await screen.findByRole('row', { name: '业务' });
-  const search = screen.getByRole('textbox', { name: '搜索名称、路由或链接' });
+  const search = screen.getByRole('searchbox', { name: '搜索名称、路由或链接' });
   // A name match pulls the row in with its ancestors; everything else filters out.
   await userEvent.type(search, '用户列表');
   expect(rowOf('users')).not.toBeNull();
@@ -224,7 +224,7 @@ it('creates a page from the region row: the type is picked in the dialog and the
   await userEvent.click(within(businessMenu).getByRole('menuitem', { name: '添加子菜单' }));
   const dialog = screen.getByRole('dialog', { name: '添加目录' });
   // The dialog picks the type; actions are never offered (they attach to pages server-side).
-  await userEvent.click(within(dialog).getByRole('combobox', { name: '菜单类型' }));
+  await userEvent.click(screen.getByRole('combobox', { name: '菜单类型' }));
   expect(screen.getByRole('option', { name: '目录' })).toBeVisible();
   expect(screen.getByRole('option', { name: '页面' })).toBeVisible();
   expect(screen.getByRole('option', { name: '链接' })).toBeVisible();
@@ -232,12 +232,12 @@ it('creates a page from the region row: the type is picked in the dialog and the
   await userEvent.click(screen.getByRole('option', { name: '页面' }));
   await userEvent.click(within(dialog).getByRole('combobox', { name: '目标页面（仅已注册路由）' }));
   // Registered pages are offered; pages already placed anywhere in the tree are filtered out.
-  expect(screen.getByRole('option', { name: '登录会话' })).toBeVisible();
+  expect(screen.getByRole('option', { name: '平台公告' })).toBeVisible();
   expect(screen.queryByRole('option', { name: '工作台概览' })).toBeNull();
-  await userEvent.click(screen.getByRole('option', { name: '登录会话' }));
+  await userEvent.click(screen.getByRole('option', { name: '平台公告' }));
   await userEvent.click(within(dialog).getByRole('button', { name: '确定' }));
   // New nodes take a random id; the row is located by its display name.
-  const labRow = screen.getByText('登录会话').closest('tr') as HTMLElement;
+  const labRow = screen.getByText('平台公告').closest('tr') as HTMLElement;
   expect(labRow.getAttribute('data-node-type')).toBe('page');
   expect(labRow.getAttribute('data-section')).toBe('business');
   await userEvent.click(screen.getByRole('button', { name: '保存菜单配置' }));
@@ -245,11 +245,11 @@ it('creates a page from the region row: the type is picked in the dialog and the
   const payload = saveMenuConfig.mock.calls[0][0] as MenuSaveInput;
   expect(payload.version).toBe(7);
   expect(payload.reset).toBeUndefined();
-  const created = payload.nodes.find(item => item.route_id === 'account-sessions');
+  const created = payload.nodes.find(item => item.route_id === 'announcements');
   expect(created?.section_id).toBe('business');
   expect(created?.parent_id).toBeUndefined();
-  // Surfaces derive from the registered route: the overview page stays shared.
-  expect(created?.surfaces).toEqual(['user', 'administrator']);
+  // Surfaces derive from the registered route: 平台公告 stays administrator-only.
+  expect(created?.surfaces).toEqual(['administrator']);
   expect(payload.role_assignments).toBeUndefined();
 });
 
@@ -302,17 +302,17 @@ it('adds a child page from a page row with the parent preset to that row', async
   const dialog = screen.getByRole('dialog', { name: '添加目录' });
   // The parent presets to the page row itself; the trigger echoes its label.
   expect(within(dialog).getByRole('combobox', { name: '上级菜单' })).toHaveTextContent('工作台概览');
-  await userEvent.click(within(dialog).getByRole('combobox', { name: '菜单类型' }));
+  await userEvent.click(screen.getByRole('combobox', { name: '菜单类型' }));
   await userEvent.click(screen.getByRole('option', { name: '页面' }));
   await userEvent.click(within(dialog).getByRole('combobox', { name: '目标页面（仅已注册路由）' }));
-  await userEvent.click(screen.getByRole('option', { name: '登录会话' }));
+  await userEvent.click(screen.getByRole('option', { name: '平台公告' }));
   await userEvent.click(within(dialog).getByRole('button', { name: '确定' }));
-  const labRow = screen.getByText('登录会话').closest('tr') as HTMLElement;
+  const labRow = screen.getByText('平台公告').closest('tr') as HTMLElement;
   expect(labRow.getAttribute('data-node-type')).toBe('page');
   await userEvent.click(screen.getByRole('button', { name: '保存菜单配置' }));
   await vi.waitFor(() => expect(saveMenuConfig).toHaveBeenCalledTimes(1));
   const payload = saveMenuConfig.mock.calls[0][0] as MenuSaveInput;
-  const created = payload.nodes.find(item => item.route_id === 'account-sessions');
+  const created = payload.nodes.find(item => item.route_id === 'announcements');
   expect(created?.parent_id).toBe('overview');
   expect(created?.section_id).toBe('business');
 });
@@ -324,15 +324,15 @@ it('adds a child page from a link row with the parent preset to that link', asyn
   await userEvent.click(within(helpMenu).getByRole('menuitem', { name: '添加子菜单' }));
   const dialog = screen.getByRole('dialog', { name: '添加目录' });
   expect(within(dialog).getByRole('combobox', { name: '上级菜单' })).toHaveTextContent('帮助中心');
-  await userEvent.click(within(dialog).getByRole('combobox', { name: '菜单类型' }));
+  await userEvent.click(screen.getByRole('combobox', { name: '菜单类型' }));
   await userEvent.click(screen.getByRole('option', { name: '页面' }));
   await userEvent.click(within(dialog).getByRole('combobox', { name: '目标页面（仅已注册路由）' }));
-  await userEvent.click(screen.getByRole('option', { name: '登录会话' }));
+  await userEvent.click(screen.getByRole('option', { name: '平台公告' }));
   await userEvent.click(within(dialog).getByRole('button', { name: '确定' }));
   await userEvent.click(screen.getByRole('button', { name: '保存菜单配置' }));
   await vi.waitFor(() => expect(saveMenuConfig).toHaveBeenCalledTimes(1));
   const payload = saveMenuConfig.mock.calls[0][0] as MenuSaveInput;
-  const created = payload.nodes.find(item => item.route_id === 'account-sessions');
+  const created = payload.nodes.find(item => item.route_id === 'announcements');
   expect(created?.parent_id).toBe('link:help');
   expect(created?.section_id).toBe('business');
 });
@@ -422,7 +422,7 @@ it('derives surfaces from the route registry on save: pages follow their group, 
   const businessMenu = await openRowMenu(business, '业务');
   await userEvent.click(within(businessMenu).getByRole('menuitem', { name: '添加子菜单' }));
   const dialog = screen.getByRole('dialog', { name: '添加目录' });
-  await userEvent.click(within(dialog).getByRole('combobox', { name: '菜单类型' }));
+  await userEvent.click(screen.getByRole('combobox', { name: '菜单类型' }));
   await userEvent.click(screen.getByRole('option', { name: '页面' }));
   await userEvent.click(within(dialog).getByRole('combobox', { name: '目标页面（仅已注册路由）' }));
   await userEvent.click(screen.getByRole('option', { name: '基础设置' }));
@@ -610,7 +610,7 @@ it('never offers action entries: edit keeps the persisted type and create stops 
   const businessMenu = await openRowMenu(regionRow('business')!, '业务');
   await userEvent.click(within(businessMenu).getByRole('menuitem', { name: '添加子菜单' }));
   const create = screen.getByRole('dialog', { name: '添加目录' });
-  await userEvent.click(within(create).getByRole('combobox', { name: '菜单类型' }));
+  expect(within(create).getByRole('combobox', { name: '菜单类型' })).toBeVisible();
   expect(screen.queryByRole('option', { name: '按钮' })).toBeNull();
   await userEvent.keyboard('{Escape}');
   await userEvent.click(within(create).getByRole('button', { name: '取消' }));
@@ -669,6 +669,95 @@ it('keeps the editor open and shows the server conflict when the version CAS rej
   // The draft stays editable for a retry after refreshing the table.
   expect(screen.getByRole('button', { name: '保存菜单配置' })).toBeEnabled();
   expect(screen.getByRole('row', { name: '业务' })).toBeVisible();
+});
+
+it('shows role loading rather than claiming no assignments while the catalogue is pending', async () => {
+  mountWeb({ menuConfig: vi.fn().mockResolvedValue(menuList()), roles: () => new Promise(() => {}) }, meta(['menus:write']));
+  await userEvent.click(await screen.findByRole('button', { name: '分配角色：工作台概览' }));
+  const dialog = screen.getByRole('dialog', { name: '分配角色：工作台概览' });
+  expect(within(dialog).getByRole('status')).toHaveTextContent('正在加载角色…');
+  expect(within(dialog).queryByText('未分配角色')).toBeNull();
+});
+
+it('distinguishes loading and failed role catalogues from empty assignments and retries', async () => {
+  const roles = vi.fn().mockRejectedValueOnce(new Error('角色目录暂不可用')).mockResolvedValue({ items: [role()], permissions: [] });
+  mountWeb({ menuConfig: vi.fn().mockResolvedValue(menuList()), roles }, meta(['menus:write']));
+  expect(await screen.findByText('角色目录暂不可用')).toBeVisible();
+  expect(screen.queryByText('超级管理员默认访问；未分配其他角色')).toBeNull();
+  await userEvent.click(screen.getByRole('button', { name: '重试' }));
+  expect(await screen.findAllByText('超级管理员默认访问；未分配其他角色')).not.toHaveLength(0);
+});
+
+it('retries a failed role catalogue inside the assignment dialog without exposing an empty editor', async () => {
+  const roles = vi.fn().mockRejectedValueOnce(new Error('角色目录暂不可用')).mockResolvedValue({ items: [role()], permissions: [] });
+  mountWeb({ menuConfig: vi.fn().mockResolvedValue(menuList()), roles }, meta(['menus:write']));
+  await screen.findByText('角色目录暂不可用');
+  await userEvent.click(screen.getByRole('button', { name: '分配角色：工作台概览' }));
+  const dialog = screen.getByRole('dialog', { name: '分配角色：工作台概览' });
+  expect(within(dialog).getByText('角色目录暂不可用')).toBeVisible();
+  expect(within(dialog).queryByRole('button', { name: '保存' })).toBeNull();
+  expect(within(dialog).queryByText('未分配角色')).toBeNull();
+  await userEvent.click(within(dialog).getByRole('button', { name: '重试' }));
+  expect(await screen.findByRole('checkbox', { name: '运营' })).not.toBeChecked();
+  const loaded = screen.getByRole('dialog', { name: '分配角色：工作台概览' });
+  expect(within(loaded).getByRole('checkbox', { name: 'super_admin' })).toBeDisabled();
+  expect(within(loaded).getByRole('button', { name: '保存' })).toBeEnabled();
+  expect(roles).toHaveBeenCalledTimes(2);
+});
+
+it('keeps cached role summaries when a background refresh fails and shows a retry', async () => {
+  const cache = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  cache.setQueryData(['roles'], { items: [role({ menu_ids: ['overview'] })], permissions: [] });
+  const roles = vi.fn().mockRejectedValue(new Error('角色刷新失败'));
+  render(<QueryClientProvider client={cache}><MessageProvider><AdminMenusPage {...({ client: { web: { menuConfig: vi.fn().mockResolvedValue(menuList()), roles } }, metadata: meta(['menus:write']) } as unknown as PageProps)} /></MessageProvider></QueryClientProvider>);
+  expect(await screen.findByText('角色刷新失败')).toBeVisible();
+  expect(within(rowOf('overview')!).getByText('显式分配：运营')).toBeVisible();
+  expect(within(rowOf('notes')!).getByText('超级管理员默认访问；未分配其他角色')).toBeVisible();
+  expect(screen.getByRole('button', { name: '重试' })).toBeVisible();
+});
+
+it('keeps the super administrator assignment fixed and protects dirty layout navigation', async () => {
+  harness(menuList(), [role({ id: 'user', name: '用户', builtin: true, menu_ids: [] })]);
+  await userEvent.click(await screen.findByRole('button', { name: '分配角色：工作台概览' }));
+  const dialog = screen.getByRole('dialog', { name: '分配角色：工作台概览' });
+  const fixed = within(dialog).getByRole('checkbox', { name: 'super_admin' });
+  expect(fixed).toBeChecked(); expect(fixed).toBeDisabled();
+  expect(within(dialog).getByText('还没有自定义角色')).toBeVisible();
+  expect(within(dialog).getByRole('link', { name: '前往角色管理' })).toHaveAttribute('href', 'roles');
+  await userEvent.click(within(dialog).getByRole('button', { name: '取消' }));
+  await userEvent.type(screen.getAllByLabelText('区域名称')[0], '草稿');
+  await userEvent.click(screen.getByRole('link', { name: '前往角色管理' }));
+  expect(await screen.findByText('请先保存菜单配置再前往角色管理')).toBeVisible();
+  expect(screen.getAllByLabelText('区域名称')[0]).toHaveValue('业务草稿');
+});
+
+it('locks a reserved page to super administrators even without a page catalogue entry', async () => {
+  const list = menuList();
+  list.nodes.push(node({ id: 'reserved', route_id: 'roles', label: '保留页面' }));
+  mountWeb({ menuConfig: vi.fn().mockResolvedValue(list), roles: vi.fn().mockResolvedValue({ items: [role()], permissions: [{ id: 'roles:read', super_admin: true }] }) }, meta(['menus:write']));
+  await userEvent.click(await screen.findByRole('button', { name: '分配角色：保留页面' }));
+  const dialog = screen.getByRole('dialog', { name: '分配角色：保留页面' });
+  expect(within(dialog).getByText('仅超级管理员')).toBeVisible();
+  expect(within(dialog).getByRole('checkbox', { name: '运营' })).toBeDisabled();
+});
+
+it('uses reserved permission metadata from the page catalogue and allows only removal of stale custom assignments', async () => {
+  const list = menuList();
+  list.pages = [{ id: 'overview', permission: 'module:reserved', group: 'module', surfaces: ['administrator'] }];
+  const assignMenuRoles = vi.fn().mockResolvedValue({ items: [], permissions: [] });
+  mountWeb({ menuConfig: vi.fn().mockResolvedValue(list), roles: vi.fn().mockResolvedValue({ items: [role({ menu_ids: ['overview'] }), role({ id: 'r2', name: '其他角色', menu_ids: [] })], permissions: [{ id: 'module:reserved', super_admin: true }] }), assignMenuRoles }, meta(['menus:write']));
+  await screen.findByText('仅超级管理员');
+  expect(within(rowOf('overview')!).getByText('仅超级管理员')).toBeVisible();
+  await userEvent.click(screen.getByRole('button', { name: '分配角色：工作台概览' }));
+  const dialog = screen.getByRole('dialog', { name: '分配角色：工作台概览' });
+  expect(within(dialog).getByText('仅超级管理员')).toBeVisible();
+  const stale = within(dialog).getByRole('checkbox', { name: '运营' });
+  expect(stale).toBeChecked(); expect(stale).toBeEnabled();
+  expect(within(dialog).getByRole('checkbox', { name: '其他角色' })).toBeDisabled();
+  await userEvent.click(stale);
+  expect(stale).not.toBeChecked(); expect(stale).toBeDisabled();
+  await userEvent.click(within(dialog).getByRole('button', { name: '保存' }));
+  await vi.waitFor(() => expect(assignMenuRoles).toHaveBeenCalledWith('overview', { version: 7, expected_role_ids: ['r1'], role_ids: [] }));
 });
 
 it('patches one menu role membership using its observed role set and navigation version', async () => {

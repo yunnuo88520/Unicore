@@ -1,5 +1,5 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Shared status-page family (403/404/500/503) following the shadcn-admin error layout: an oversized code, one-line title, muted detail and an action row.
+// Description: Shared status-page family (403/404/500/503) following the shared error-page layout: an oversized code, one-line title, muted detail and an action row.
 import type { ReactNode } from 'react';
 import { useNavigate, useRouter } from '@tanstack/react-router';
 import { Button } from '@unicore/ui';

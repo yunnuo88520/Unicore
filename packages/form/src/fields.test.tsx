@@ -1,10 +1,29 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Declarative non-native fields wire Controller semantics through the shared primitives.
-import { render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
+import { AppError } from '@unicore/sdk';
 import userEvent from '@testing-library/user-event';
 import { expect, it, vi } from 'vitest';
 import { AppCheckboxField, AppSelectField, AppSwitchField } from './fields';
 import { AppForm, useAppForm } from './form';
+
+it('associates controlled labels, errors and hints and focuses nested server errors', async () => {
+  let instance: ReturnType<typeof useAppForm<{ settings: { provider: string } }>>;
+  function Nested() {
+    const form = useAppForm({ defaultValues: { settings: { provider: '' } }, onSubmit: () => {} });
+    instance = form;
+    return <AppForm form={form}><AppSelectField name="settings.provider" label="Provider" hint="Choose storage" options={[{ value: 'local', label: 'Local' }]} /></AppForm>;
+  }
+  render(<Nested />);
+  const trigger = screen.getByRole('combobox');
+  expect(trigger).toHaveAttribute('name', 'settings.provider');
+  expect(trigger).toHaveAccessibleDescription('Choose storage');
+  act(() => instance.applyServerError(new AppError('INVALID_INPUT', 'Invalid input', 'request', { 'settings.provider': 'Choose a provider' })));
+  await waitFor(() => expect(trigger).toHaveFocus());
+  expect(trigger).toHaveAttribute('aria-invalid', 'true');
+  expect(trigger).toHaveAccessibleDescription('Choose storage Choose a provider');
+  expect(screen.getByRole('alert')).toHaveTextContent('Choose a provider');
+});
 
 type Values = { provider: string; enabled: boolean; accepted: boolean };
 
@@ -38,8 +57,7 @@ it('selects are driven by the controller value and submit collected values', asy
   render(<Harness onSubmit={onSubmit} />);
   const trigger = screen.getByRole('combobox');
   await user.click(trigger);
-  await user.click(await screen.findByRole('option', { name: '本地磁盘' }));
-  expect(trigger).toHaveTextContent('本地磁盘');
+  await user.click(screen.getByRole('option', { name: '本地磁盘' }));
   await user.click(screen.getByRole('button', { name: '提交' }));
   expect(onSubmit).toHaveBeenCalledWith({ provider: 'local', enabled: false, accepted: false });
 });

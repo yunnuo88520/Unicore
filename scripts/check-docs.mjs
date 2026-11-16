@@ -1,7 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Keep documentation/skills discoverable and reject broken local references and command drift.
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
 
 execFileSync(process.execPath,['scripts/ai-context.mjs','--check'],{stdio:'inherit'});
@@ -34,7 +34,7 @@ const symbolSuffix=/^(.*\/[^/]+)\.[A-Z][A-Za-z0-9_]*$/;
 const dirCache=new Map();
 function caseExactExists(path){
  let current='';
- for(const part of path.split('/')){
+ for(const part of path.split('/').filter(Boolean)){
   const base=current;
   if(!dirCache.has(base)){
    try{dirCache.set(base,new Set(readdirSync(base||'.',{withFileTypes:true}).map(entry=>entry.name)));}
@@ -47,12 +47,19 @@ function caseExactExists(path){
 }
 for(const file of skillTexts){
  const text=readFileSync(file,'utf8');
+ const segments=file.split('/');
+ const skillRoot=segments.length>3?segments.slice(0,3).join('/'):null;
  for(const match of text.matchAll(citedPath)){
   if(match.index>=5 && text.slice(match.index-5,match.index)==='make ')continue;
+  // A leading slash marks a site-absolute route (also the tail of a URL), not a repository path.
+  if(text[match.index-1]==='/')continue;
   let target=match[0].replace(/[.,;:)）`]+$/,'');
   const symbol=target.match(symbolSuffix);
   if(symbol)target=symbol[1];
-  if(!caseExactExists(target))failures.push(`${file}: missing cited path ${target}`);
+  if(caseExactExists(target))continue;
+  // Skills cite their own bundled resources relatively; renames must still fail.
+  if(skillRoot&&caseExactExists(join(skillRoot,target)))continue;
+  failures.push(`${file}: missing cited path ${target}`);
  }
 }
 const manifest=JSON.parse(readFileSync('framework.manifest.json','utf8'));

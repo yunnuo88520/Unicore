@@ -6,9 +6,8 @@ import (
 	"context"
 	"github.com/go-chi/chi/v5"
 	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/edition"
 	"github.com/yunnuo/unicore/internal/files"
-	"github.com/yunnuo/unicore/internal/modules/notes/storage/notessql"
-	"github.com/yunnuo/unicore/internal/modules/notes/usecase"
 	"github.com/yunnuo/unicore/internal/platform"
 	"io"
 	"mime"
@@ -127,6 +126,9 @@ func mountStorage(api chi.Router, config Config) {
 		success(w, contracts.ActionResult{Success: true})
 	}).ServeHTTP)
 	for _, prefix := range []string{"", "/admin", "/notes", "/account/avatar"} {
+		if prefix == "/notes" && !edition.Notes {
+			continue
+		}
 		routeHandler := handler
 		business := prefix == "/notes" || prefix == "/account/avatar"
 		if business {
@@ -363,32 +365,7 @@ func mountStorage(api chi.Router, config Config) {
 					failure(w, 404, "NOT_FOUND", "文件不存在")
 					return
 				}
-				visibility := usecase.NoteVisibility{}
-				if filter.All {
-					visibility.All = true
-				} else if !filter.Self() {
-					for _, id := range filter.UserIDs {
-						visibility.Scopes = append(visibility.Scopes, a.Realm+"/"+id)
-					}
-				}
-				notes := &usecase.Notes{Repo: &notessql.Repository{Store: store}}
-				scope := a.Realm + "/" + a.ID
-				if a.Realm == "local" {
-					scope = "local"
-				}
-				entry, e := notes.Read(r.Context(), scope, noteID, visibility)
-				if e != nil {
-					webError(w, e)
-					return
-				}
-				attached := false
-				for _, id := range entry.AttachmentIds {
-					if id == chi.URLParam(r, "id") {
-						attached = true
-					}
-				}
-				if !attached {
-					failure(w, 404, "NOT_FOUND", "文件不存在")
+				if !allowNoteAttachment(w, r, config, a, noteID, filter) {
 					return
 				}
 			}

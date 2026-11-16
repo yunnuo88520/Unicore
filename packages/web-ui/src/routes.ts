@@ -4,10 +4,18 @@
 import { notes } from './modules/notes';
 import {defineMessages} from './i18n';
 import type { Bootstrap } from '@unicore/sdk';
-import { Bell, BookOpen, Activity, Circle, Cloud, Cpu, FileText, LayoutDashboard, ListChecks, Mail, Megaphone, Monitor, Network, NotebookPen, PackageCheck, Radar, ScrollText, Settings2, ShieldCheck, UserCog, UserRound, Webhook, type LucideIcon } from 'lucide-react';
+import { Bell, BookOpen, Activity, Bot, Circle, Cloud, Cpu, FileText, LayoutDashboard, ListChecks, Mail, Megaphone, Network, NotebookPen, PackageCheck, Palette, Radar, ScrollText, Settings2, ShieldCheck, UserCog, UserRound, Webhook, Wrench, type LucideIcon } from 'lucide-react';
+
+// Dev-only component catalog: define-replaced to false in production builds, so the
+// page facts, route and module are tree-shaken out of shipped bundles. Tests assert
+// the product route set, so the preview stays out of vitest too.
+const devRoutes = import.meta.env.DEV && !import.meta.env.VITEST ? defineMessages({
+  'ui-preview': { label: '组件预览', title: '组件预览', description: '开发环境专用的组件一览，自检双主题与双语。', icon: Palette },
+}) : {};
 
 export const routes = defineMessages({
-  ...notes.routes,
+  ...(__FEATURE_NOTES__ ? notes.routes : {} as typeof notes.routes),
+  ...devRoutes,
   overview: { label: '工作台概览', title: '一份核心，无限可能', description: '从这里出发，让同一份业务逻辑运行于 Web、桌面与命令行。', icon: LayoutDashboard },
   site: { label: '基础设置', title: '基础设置', description: '集中管理站点、品牌与适用的实例配置。', permission: 'settings:read', icon: Settings2, group: 'system' },
   storage:{label:'对象存储',title:'对象存储',description:'按需切换本地与云存储，让业务只关心文件。',permission:'storage:read',icon:Cloud,group:'system'},
@@ -21,22 +29,26 @@ export const routes = defineMessages({
   'notification-templates':{label:'通知模板',title:'通知模板',description:'管理事件通知的纯文本标题、内容和变量。',permission:'settings:read',icon:FileText,group:'system'},
   'system-notifications':{label:'系统通知',title:'系统通知',description:'按事件和接收对象配置自动通知策略。',permission:'settings:read',icon:Bell,group:'system'},
   logs: { label:'操作日志',title:'操作日志',description:'查看真实操作与邮件投递记录。',permission:'logs:read',icon:ScrollText,group:'system' },
-  edition: { label:'系统更新',title:'系统更新',description:'查看版本记录，检查并安装可信的新版本。',permission:'updates:read',icon:PackageCheck,group:'system' },
+  edition: { label:__FEATURE_UPDATER__ ? '系统更新' : '应用授权',title:__FEATURE_UPDATER__ ? '系统更新' : '应用授权',description:__FEATURE_UPDATER__ ? '查看版本记录，检查并安装可信的新版本。' : '当前版本',permission:'updates:read',icon:PackageCheck,group:'system' },
   roles: { label: '角色权限', title: '角色权限', description: '维护用户角色的权限点与成员分配。', permission: 'roles:read', icon: ShieldCheck, group: 'administration' },
   posts: { label: '岗位管理', title: '岗位管理', description: '维护岗位目录和成员关系，岗位不隐式授予角色。', permission: 'posts:read', icon: UserCog, group: 'administration' },
   departments: { label: '部门管理', title: '部门管理', description: '维护部门层级，为数据权限提供组织范围。', permission: 'departments:read', icon: Network, group: 'administration' },
   tasks: { label: '定时任务', title: '定时任务', description: '管理后台定时任务：内置任务启停与手动触发，自建任务在已注册执行器上创建、编辑与删除。', permission: 'tasks:read', icon: ListChecks, group: 'administration' },
   menus: { label: '菜单管理', title: '菜单管理', description: '调整用户端导航的顺序、分组与可见性。', permission: 'menus:write', icon: LayoutDashboard, group: 'administration' },
   dictionaries: { label: '数据字典', title: '数据字典', description: '维护业务表单可复用的枚举字典。', permission: 'dictionaries:read', icon: FileText, group: 'administration' },
-  account: { label: '个人资料', title: '个人资料', description: '管理昵称、邮箱与账号信息。', authenticated: true, icon: UserRound, group: 'personal' },
- 'account-security': {label:'安全设置',title:'安全设置',description:'管理密码、双重验证与企业账号绑定。',authenticated:true,icon:ShieldCheck,group:'personal'},
- 'account-sessions': {label:'登录会话',title:'登录会话',description:'查看登录设备，及时下线不再使用的会话。',authenticated:true,icon:Monitor,group:'personal'},
+  'access-tokens': { label: '访问令牌管理', title: '访问令牌管理', description: '管理所有用户的令牌、绑定角色与有效期。', permission: 'tokens:read', icon: ShieldCheck, group: 'administration' },
   // No permission or authenticated marker: reachable whenever the instance publishes /openapi.json (config.APIDocs).
   'api-docs': { label: 'API 文档', title: 'API 文档', description: '浏览与下载 OpenAPI 接口契约。', icon: BookOpen },
+  // OAuth consent renders outside the workspace chrome; platform accounts only.
+  authorize: { label: '授权确认', title: '授权确认', description: '确认外部应用对 MCP 能力的访问授权。', icon: ShieldCheck },
   monitor: { label: '运行概览', title: '运行监控', description: '查看实例运行状态、版本与核心健康。', permission: 'monitor:read', local: true, database: true, group: 'monitor', icon: Activity },
   'monitor-services': { label: '服务健康', title: '服务健康', description: '检查 HTTP、数据库、存储与后台任务状态。', permission: 'monitor:read', database: true, group: 'monitor', icon: Radar },
   'monitor-resources': { label: '资源监控', title: '资源监控', description: '观察主机硬件、进程与 Go Runtime 资源。', permission: 'monitor:read', database: true, group: 'monitor', icon: Cpu },
   'monitor-events': { label: '运行事件', title: '运行事件', description: '查看实例自身运行产生的生命周期、健康翻转与任务错误事件。', permission: 'monitor:read', database: true, group: 'monitor', icon: ScrollText },
+  'ai-access': { label: '接入配置', title: 'AI 管理 · 接入配置', description: '启用 MCP 服务、设置调用限制与浏览器来源白名单。', permission: 'mcp:read', icon: Bot, group: 'ai' },
+  'ai-tools': { label: '工具目录', title: 'AI 管理 · 工具目录', description: '审查并开放经代码注册的 MCP 业务工具。', permission: 'mcp:read', icon: Wrench, group: 'ai' },
+  'ai-calls': { label: '调用记录', title: 'AI 管理 · 调用记录', description: '查询 MCP 调用的元数据、结果与耗时。', permission: 'mcp:logs:read', icon: ScrollText, group: 'ai' },
+  'ai-oauth': { label: 'OAuth 接入', title: 'AI 管理 · OAuth 接入', description: '预注册通过授权码 + PKCE 接入 MCP 的外部应用并管理其授权。', permission: 'mcp:clients:read', icon: Webhook, group: 'ai' },
   'not-found': { label: '页面不存在', title: '页面不存在', description: '这个地址尚未注册，请通过导航进入已有页面。', icon: Circle },
 } as const);
 export type Page = keyof typeof routes;
@@ -56,13 +68,14 @@ export function isAdministrator(metadata?: Bootstrap): boolean {
   return isAdminRealm(metadata) && !!metadata?.current_user?.roles.includes('super_admin');
 }
 export function canAccess(page: Page, metadata?: Bootstrap): boolean {
+  if (page === 'notes' && (!__FEATURE_NOTES__ || !metadata?.capabilities.features?.notes)) return false;
+  if (page === 'access-tokens') return isAdministrator(metadata);
   // Management-flavoured pages never render on the user surface — even when a
   // persisted menu tree or a custom role still carries them (existing installs).
   if (metadata?.profile === 'web-platform' && metadata.identity_realm !== 'administrator' &&
     ['site', 'api-docs', 'announcements', 'monitor', 'monitor-services', 'monitor-resources', 'monitor-events'].includes(page)) return false;
   if (metadata?.profile === 'web-platform' && metadata.current_user &&
-    !metadata.current_user.roles.includes('super_admin') &&
-    !['account', 'account-security', 'account-sessions'].includes(page)) {
+    !metadata.current_user.roles.includes('super_admin')) {
     const navigation = metadata.navigation;
     const realm = metadata.identity_realm ?? 'user';
     const sections = new Set(navigation?.sections.filter(section => section.visible &&
@@ -88,6 +101,8 @@ export function canAccess(page: Page, metadata?: Bootstrap): boolean {
   // The instance publishes /openapi.json only with the api_docs capability; the
   // desktop build has no contract endpoint, so it never gains the page.
   if (page === 'api-docs') return !!metadata.capabilities.api_docs && (metadata.profile === 'web-platform' || metadata.profile === 'web-standalone');
+  // OAuth consent is a personal platform flow, never a workspace menu page.
+  if (page === 'authorize') return metadata.profile === 'web-platform' && !!metadata.current_user;
   // Updates stay super-only: restricted operators never reach the update panel.
   if (page === 'edition') return metadata.profile==='web-platform' ? isAdministrator(metadata) && ((__FEATURE_UPDATER__ && metadata.capabilities.updater) || (__FEATURE_LICENSE__ && metadata.capabilities.license)) : __FEATURE_UPDATER__ && metadata.capabilities.updater;
   if (page === 'site') return metadata.capabilities.settings && isAdminRealm(metadata) && !!metadata.current_user;

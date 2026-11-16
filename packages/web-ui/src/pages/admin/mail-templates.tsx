@@ -8,7 +8,7 @@ import { Braces, Eye, MailCheck, RotateCcw, Save, Send } from 'lucide-react';
 import type { MailTemplate, MailTemplateInput, MailTemplateTestInput, WebClient } from '@unicore/sdk';
 import { defineMessages, t, useI18n } from '../../i18n';
 import { AppForm, useAppForm } from '@unicore/form';
-import { Button, Card, CardContent, Input, Label, Modal, Tabs, useMessage } from '@unicore/ui';
+import { Alert, Button, Card, CardContent, Input, Label, Modal, Tabs, useMessage } from '@unicore/ui';
 import { RichTextEditor, type RichTextHandle } from '@unicore/ui/editor';
 import type { PageProps } from '../../router';
 
@@ -83,10 +83,7 @@ function MailTemplatePanel({ web }: { web: WebClient }) {
         onChange={id => { if (!pending) setPurpose(id as MailTemplateInput['purpose']); }}
         items={Object.entries(purposes).map(([id, label]) => ({ id, label: t(label), dirty: isDirty(id) }))} />
       {query.isPending && <p role="status" className="py-6 text-center text-sm text-muted">{t('正在读取邮件模板…')}</p>}
-      {query.isError && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
-        <span>{t(query.error.message)}</span>
-        <Button variant="secondary" size="sm" onClick={() => void query.refetch()}>{t('重试')}</Button>
-      </div>}
+      {query.isError && <Alert action={<Button variant="secondary" size="sm" onClick={() => void query.refetch()}>{t('重试')}</Button>}>{t(query.error.message)}</Alert>}
       {query.data && draft && <MailTemplateForm key={purpose} draft={draft} selected={selected} pending={pending}
         savePending={save.isPending} saveError={save.error} resetToken={resetToken}
         onDraftChange={onDraftChange} onSave={values => save.mutate(values)}
@@ -108,10 +105,10 @@ function MailTemplatePanel({ web }: { web: WebClient }) {
         test.mutate({ template, recipient });
       }}>
         <p className="text-xs leading-relaxed text-muted">{t('将当前草稿发送到指定邮箱，不会保存或修改账号流程。')}</p>
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-ink">{t('测试收件邮箱')}</span>
-          <Input type="email" required maxLength={254} value={recipient} disabled={test.isPending} onChange={event => setRecipient(event.target.value)} />
-        </label>
+        <div className="flex flex-col gap-1.5">
+
+          <Input label={t('测试收件邮箱')} type="email" required maxLength={254} value={recipient} disabled={test.isPending} onChange={event => setRecipient(event.target.value)} />
+        </div>
         <div className="flex justify-end gap-2">
           <Button variant="secondary" type="button" disabled={test.isPending} onClick={() => setTesting(null)}>{t('取消')}</Button>
           <Button type="submit" pending={test.isPending}><Send size={14} />{test.isPending ? t('发送中…') : t('发送测试邮件')}</Button>
@@ -229,13 +226,13 @@ function MailTemplateForm({ draft, selected, pending, savePending, saveError, re
           <span className="flex items-center gap-1.5 text-xs text-muted"><Braces size={14} aria-hidden="true" />{t('插入变量')}</span>
           <div className="template-variables flex flex-wrap gap-1.5">
             {selected?.variables.map(variable => (
-              <button type="button" key={variable.key} disabled={busy} title={`{{${variable.key}}} · ${variable.sample}`}
+              <Button variant="secondary" size="sm" key={variable.key} disabled={busy} title={`{{${variable.key}}} · ${variable.sample}`}
                 onMouseDown={event => event.preventDefault()}
                 onClick={() => insert(variable.key)}
-                className="flex items-center gap-1.5 rounded-md border border-line bg-surface-alt px-2 py-1 text-2xs text-ink transition-colors hover:border-primary-line hover:bg-primary-soft hover:text-accent disabled:pointer-events-none disabled:opacity-55">
+                className="gap-1.5">
                 {t(variableLabels[variable.key as keyof typeof variableLabels] ?? variable.key)}
                 <code className="text-2xs text-muted">{`{{${variable.key}}}`}</code>
-              </button>
+              </Button>
             ))}
           </div>
         </div>

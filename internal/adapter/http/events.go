@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/yunnuo/unicore/internal/platform"
+	"github.com/yunnuo/unicore/internal/runtime"
 )
 
 func mountEvents(api chi.Router, config Config) {
@@ -18,19 +19,46 @@ func mountEvents(api chi.Router, config Config) {
 			failure(w, 404, "NOT_FOUND", "接口不存在")
 			return
 		}
-		session, ok := require(config.Install, w, r, "")
-		if !ok {
+		_, _, _, profile := config.Install.Services()
+		if administratorRequest(r) && profile != runtime.WebPlatform {
+			failure(w, 404, "NOT_AVAILABLE", "此运行形态不提供管理端")
 			return
+		}
+		if profile != runtime.WebPlatform && profile != runtime.WebStandalone {
+			failure(w, 404, "NOT_FOUND", "此运行形态不提供平台接口")
+			return
+		}
+		standalone := profile == runtime.WebStandalone
+		recipient := ""
+		if standalone {
+			// The single local surface owns one inbox recipient; the hub key
+			// mirrors it so module deliveries reach the stream.
+			if !coreAccess(config.Install, w, r) {
+				return
+			}
+			recipient = "local"
+		} else {
+			session, ok := require(config.Install, w, r, "")
+			if !ok {
+				return
+			}
+			recipient = session.User.ID
 		}
 		// Background heartbeats and broadcast traffic are not user activity.
 		validationCtx := platform.WithPassive(r.Context())
 		valid := func() bool {
+			if standalone {
+				// The local surface re-gates on reconnect; heartbeats only
+				// confirm the profile has not changed mid-stream.
+				_, _, _, current := config.Install.Services()
+				return current == runtime.WebStandalone
+			}
 			identity := config.Install.Identity(false)
 			if identity == nil {
 				return false
 			}
 			current, err := identity.Session(validationCtx, rawSession(r))
-			if err != nil || current.User.ID != session.User.ID {
+			if err != nil || current.User.ID != recipient {
 				return false
 			}
 			if identity.Personal != nil {
@@ -41,7 +69,7 @@ func mountEvents(api chi.Router, config Config) {
 			}
 			return true
 		}
-		events, cancel := config.Hub.Subscribe(session.User.ID)
+		events, cancel := config.Hub.Subscribe(recipient)
 		defer cancel()
 		controller := http.NewResponseController(w)
 		// Also works through middleware wrappers exposing Unwrap. Unsupported

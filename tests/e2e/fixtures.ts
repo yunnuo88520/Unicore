@@ -1,7 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Every browser test owns a fresh process, data directory and bootstrap credential.
-import { test as base, expect, type APIRequestContext, type Page, type PlaywrightWorkerArgs } from '@playwright/test';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { test as base, expect, type APIRequestContext, type Page, type Locator, type PlaywrightWorkerArgs } from '@playwright/test';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { openSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -31,7 +31,15 @@ async function spawnInstance({ playwright }: Pick<PlaywrightWorkerArgs, 'playwri
   // line of defense: a fresh foreign instance answers 401 and an installed
   // one 409, while our own uninitialized instance answers 400.
   const directory = await mkdtemp(join(tmpdir(), 'unicore-e2e-'));
-  const start = (listenPort: number) => spawn('build/bin/server', ['--listen', `127.0.0.1:${listenPort}`, '--data-dir', directory, `--api-docs=${apiDocs}`], { stdio: ['ignore', openSync('/tmp/e2e-server-stdout.log', 'a'), openSync('/tmp/e2e-server-stderr.log', 'a')], env: Object.fromEntries(Object.entries(globalThis.process.env).filter(([key]) => !key.startsWith('APP_'))) });
+  // Browser tests use synthetic channels; background checks must never contact
+  // the framework's real release repository or inherit a developer's channel.
+  const updateTrust = join(directory, 'update-trust.json');
+  await writeFile(updateTrust, JSON.stringify({ repository: '', channel: 'stable', keys: {}, allow_unsigned_platform: true }), { mode: 0o600 });
+  const logDirectory = join('build', 'test-results', 'servers', `${project}-${workerIndex}`);
+  await mkdir(logDirectory, { recursive: true });
+  // Keep first-install expectations independent of the last release/native build's default profile.
+  // Restarts use the persisted installation choice, including standalone installations.
+  const start = (listenPort: number, firstInstall = false) => spawn('build/bin/server', [...(firstInstall ? ['--profile', 'web-platform'] : []), '--listen', `127.0.0.1:${listenPort}`, '--data-dir', directory, `--api-docs=${apiDocs}`], { stdio: ['ignore', openSync(join(logDirectory, 'stdout.log'), 'a'), openSync(join(logDirectory, 'stderr.log'), 'a')], env: { ...Object.fromEntries(Object.entries(globalThis.process.env).filter(([key]) => !key.startsWith('APP_'))), APP_UPDATE_TRUST_FILE: updateTrust } });
   // Fully-parallel workers can grab each other's just-freed port (TOCTOU
   // between the allocator close and the child bind), so every spawned server
   // must prove its identity with its own bootstrap token before the fixture
@@ -46,7 +54,7 @@ async function spawnInstance({ playwright }: Pick<PlaywrightWorkerArgs, 'playwri
   for (let attempt = 0; ; attempt++) {
     listenPort = 41000 + projectOffset + workerIndex * 25 + attempt % 25;
     url = `http://127.0.0.1:${listenPort}`;
-    process = start(listenPort);
+    process = start(listenPort, true);
     await request.dispose();
     request = await playwright.request.newContext({ baseURL: url });
     let live = false;
@@ -133,7 +141,7 @@ export async function adminLogin(page: Page, url: string, username: string, pass
 }
 
 export async function workspaceLogin(page: Page, url: string, username: string, password = memberPassword) {
-  await page.goto(url);
+  await page.goto(`${url}/login`);
   await submitLogin(page, username, password);
   await expect(page.getByRole('heading', { name: '工作台概览' }).or(page.getByRole('heading', { name: '没有访问权限' }))).toBeVisible();
 }
@@ -205,16 +213,46 @@ const routeLabels: Record<string, string> = {
   'mail-templates': '邮件模板', 'notification-channels': '通知渠道', 'notification-templates': '通知模板',
   'system-notifications': '系统通知', logs: '操作日志', edition: '系统更新', roles: '角色权限', posts: '岗位管理',
   'api-operations': 'API 操作目录', departments: '部门管理', tasks: '定时任务', menus: '菜单管理', dictionaries: '数据字典',
-  account: '个人资料', 'account-security': '安全设置', 'account-sessions': '登录会话', 'api-docs': 'API 文档',
+  'api-docs': 'API 文档',
 };
 
 // Seeded directories carry localized display names like the workspace fallback.
-const directoryLabels: Record<string, string> = { administration: '超级管理员', settings: '系统设置', personal: '个人中心' };
+// The personal center keeps no directory: it opens from the account menus.
+const directoryLabels: Record<string, string> = { administration: '超级管理员', settings: '系统设置' };
 
 // The label a node renders with: the operator override, the registered route
 // label or the seeded directory fallback.
 export function nodeDisplayLabel(node: { label: string; route_id?: string; id: string }): string {
   return node.label.trim() || (node.route_id ? routeLabels[node.route_id] ?? node.route_id : directoryLabels[node.id] ?? node.id);
+}
+
+// The personal center opens from either account menu and lands on the modal's
+// profile page; the four panes are one rail click away. Works on desktop and
+// mobile because the topbar trigger renders on both. Pass locale='en' for
+// pages running under the English preference pack.
+const personalCenterLabels = {
+  zh: { topbar: '账号菜单', sidebar: '侧栏账号菜单', item: '个人中心', dialog: '个人中心' },
+  en: { topbar: 'Account menu', sidebar: 'Sidebar account menu', item: 'Personal center', dialog: 'Personal center' },
+} as const;
+export async function openPersonalCenter(page: Page, section?: string, entry: 'topbar' | 'sidebar' = 'topbar', locale: 'zh' | 'en' = 'zh') {
+  const labels = personalCenterLabels[locale];
+  // Tall pages can carry the topbar out of view; the menu anchors to the
+  // trigger, so bring the page back to the top before opening it.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const trigger = entry === 'sidebar'
+    ? page.getByRole('button', { name: labels.sidebar, exact: true })
+    : page.getByRole('button', { name: labels.topbar, exact: true });
+  await trigger.click();
+  try {
+    await page.getByRole('menuitem', { name: labels.item, exact: true }).click({ timeout: 8000 });
+  } catch (error) {
+    await page.screenshot({ path: 'build/acceptance/open-personal-center-hang.png' }).catch(() => {});
+    throw error;
+  }
+  const dialog = page.getByRole('dialog', { name: labels.dialog, exact: true });
+  await dialog.waitFor({ state: 'visible' });
+  if (section) await dialog.getByRole('button', { name: section, exact: true }).click();
+  return dialog;
 }
 
 export function pageNode(config: MenuList, routeId: string, surface?: 'user' | 'administrator'): NavigationNode | undefined {
@@ -233,4 +271,14 @@ export function menuChain(config: MenuList, routeId: string, surface?: 'user' | 
   let parent = node.parent_id ? byId.get(node.parent_id) : undefined;
   while (parent) { chain.unshift(parent.id); parent = parent.parent_id ? byId.get(parent.id) : undefined; }
   return chain;
+}
+
+// Follow the shared control's semantic presentation, keeping option names visible in tests.
+export async function chooseOption(page: Page, label: string, option: string | RegExp, scope: Page | Locator = page) {
+  const group = scope.getByRole('radiogroup', { name: label, exact: true });
+  if (await group.count()) { await group.getByRole('radio', { name: option, exact: typeof option === 'string' }).check(); return; }
+  const control = scope.getByRole('combobox', { name: label, exact: true });
+  if (await control.evaluate(element => element.tagName === 'INPUT')) await control.fill(typeof option === 'string' ? option : '');
+  else await control.click();
+  await page.getByRole('option', { name: option, exact: typeof option === 'string' }).click();
 }

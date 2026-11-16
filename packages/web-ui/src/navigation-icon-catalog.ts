@@ -2,6 +2,7 @@
 // Description: Curated Lucide navigation icon catalog for the menu editor: an ordered static PascalCase name list. Every name must exist as an explicit named export of lucide-react so the render side stays tree-shakeable; Chinese search keywords ride in navigation-icon-keywords.json and unknown persisted names still fall back to Circle.
 export const navigationIconCatalog: readonly string[] = [
   'Circle',
+  'Bot',
   'LayoutDashboard',
   'FlaskConical',
   'NotebookPen',

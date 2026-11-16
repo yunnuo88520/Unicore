@@ -3,6 +3,7 @@
 package observability
 
 import (
+	"context"
 	"database/sql"
 	"math"
 	"net/http"
@@ -22,6 +23,22 @@ type Metrics struct {
 	active   prometheus.Gauge
 	requests *prometheus.CounterVec
 	duration *prometheus.HistogramVec
+	// mailQueue is the optional durable-queue depth provider; nil keeps the
+	// unicore_mail_queue_* gauges at zero (desktop and tests without a queue).
+	mailQueue func(ctx context.Context) MailQueueStats
+}
+
+// MailQueueStats is one snapshot of the durable mail queue depth.
+type MailQueueStats struct {
+	Pending              int
+	OldestPendingSeconds int
+	Dead                 int
+}
+
+// AttachMailQueue wires the queue-depth provider polled by the
+// unicore_mail_queue_* gauges; call once after the store exists.
+func (m *Metrics) AttachMailQueue(provider func(ctx context.Context) MailQueueStats) {
+	m.mailQueue = provider
 }
 
 // HTTPStats is the in-process HTTP service view for the runtime monitor; it
@@ -245,6 +262,24 @@ func (m *Metrics) Handler(database func() *sql.DB) http.Handler {
 		} else {
 			registry.MustRegister(prometheus.NewGaugeFunc(prometheus.GaugeOpts{Name: metric.name, Help: metric.help}, value))
 		}
+	}
+	for _, gauge := range []struct {
+		name, help string
+		value      func(MailQueueStats) float64
+	}{
+		{"unicore_mail_queue_pending", "Mail jobs waiting or in flight.", func(s MailQueueStats) float64 { return float64(s.Pending) }},
+		{"unicore_mail_queue_oldest_pending_seconds", "Age of the oldest pending mail job in seconds.", func(s MailQueueStats) float64 { return float64(s.OldestPendingSeconds) }},
+		{"unicore_mail_queue_dead", "Dead mail jobs retained for diagnosis.", func(s MailQueueStats) float64 { return float64(s.Dead) }},
+	} {
+		gauge := gauge
+		registry.MustRegister(prometheus.NewGaugeFunc(prometheus.GaugeOpts{Name: gauge.name, Help: gauge.help}, func() float64 {
+			if m.mailQueue == nil {
+				return 0
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+			return gauge.value(m.mailQueue(ctx))
+		}))
 	}
 	handler := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

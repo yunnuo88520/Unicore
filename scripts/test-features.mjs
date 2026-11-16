@@ -22,6 +22,11 @@ for (const [license, updater] of [[true, true], [true, false], [false, true], [f
     assert(edition.GoFiles.includes(`${feature}_${enabled ? 'enabled' : 'disabled'}.go`));
     assert(!edition.GoFiles.includes(`${feature}_${enabled ? 'disabled' : 'enabled'}.go`));
   }
+  const dependencies = run('go', ['list', '-deps', '-tags', tags, './cmd/server'], env, true).split('\n');
+  const module = readFileSync('go.mod', 'utf8').match(/^module (.+)$/m)[1].trim();
+  for (const name of ['bootstrap/updating', 'updates', 'adapter/updatechannel', 'adapter/updateinstall']) {
+    assert.equal(dependencies.includes(`${module}/internal/${name}`), updater, `${name} compile-time exclusion`);
+  }
   run('pnpm', ['exec', 'playwright', 'test', 'tests/e2e/settings.spec.ts', '--grep', 'site identity', ...(process.env.PLAYWRIGHT_CONFIG ? ['--config',process.env.PLAYWRIGHT_CONFIG] : [])], env);
   console.log(`PASS edition license=${license}, updater=${updater}`);
 }

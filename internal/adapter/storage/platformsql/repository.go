@@ -40,7 +40,15 @@ func accountError(err error) error {
 	return err
 }
 
+// user is an account resource projection; role restrictions belong to actors,
+// never the target account (including when the actor edits their own account).
 func (r *Repository) user(ctx context.Context, q sqlstore.Runner, id string) (contracts.User, error) {
+	return r.readUser(ctx, q, id, "")
+}
+func (r *Repository) principalUser(ctx context.Context, q sqlstore.Runner, id string) (contracts.User, error) {
+	return r.readUser(ctx, q, id, platform.TokenRole(ctx, id))
+}
+func (r *Repository) readUser(ctx context.Context, q sqlstore.Runner, id, roleFilter string) (contracts.User, error) {
 	user := contracts.User{Roles: []string{}, Permissions: []string{}, MenuIds: &[]string{}, ActionIds: &[]string{}, OperationIds: &[]string{}, PostIds: &[]string{}}
 	query := "SELECT id,username,email,phone,status,created_at,last_login_at,department_id FROM unicore_users WHERE id=?"
 	var department *string
@@ -63,7 +71,7 @@ func (r *Repository) user(ctx context.Context, q sqlstore.Runner, id string) (co
 	user.TotpEnabled = state.Secret != ""
 	// User-realm roles are data: echo the assigned user_roles rows so custom
 	// roles surface in listings and sessions instead of the hardcoded builtin.
-	roleRows, err := r.rows(ctx, q, "SELECT role_id FROM unicore_user_roles WHERE user_id=? ORDER BY role_id", id)
+	roleRows, err := r.rows(ctx, q, "SELECT role_id FROM unicore_user_roles WHERE user_id=? AND (?='' OR role_id=?) ORDER BY role_id", id, roleFilter, roleFilter)
 	if err != nil {
 		return user, err
 	}
@@ -77,6 +85,9 @@ func (r *Repository) user(ctx context.Context, q sqlstore.Runner, id string) (co
 	}
 	if err = roleRows.Err(); err != nil {
 		return user, err
+	}
+	if roleFilter != "" && len(user.Roles) != 1 {
+		return user, platform.ErrCredentials
 	}
 	// Display names ride parallel to the role ids so listings and the account
 	// menu render catalogue names without a roles:read grant; a missing row
@@ -115,7 +126,7 @@ func (r *Repository) user(ctx context.Context, q sqlstore.Runner, id string) (co
 		}
 		user.RoleNames = &roleNames
 	}
-	rows, err := r.rows(ctx, q, "SELECT DISTINCT rp.permission_id FROM unicore_user_roles ur JOIN unicore_role_permissions rp ON rp.role_id=ur.role_id WHERE ur.user_id=? ORDER BY rp.permission_id", id)
+	rows, err := r.rows(ctx, q, "SELECT DISTINCT rp.permission_id FROM unicore_user_roles ur JOIN unicore_role_permissions rp ON rp.role_id=ur.role_id WHERE ur.user_id=? AND (?='' OR ur.role_id=?) ORDER BY rp.permission_id", id, roleFilter, roleFilter)
 	if err != nil {
 		return user, err
 	}
@@ -132,7 +143,7 @@ func (r *Repository) user(ctx context.Context, q sqlstore.Runner, id string) (co
 	if err = rows.Err(); err != nil {
 		return user, err
 	}
-	if err = r.loadAuthorizations(ctx, q, &user); err != nil {
+	if err = r.loadAuthorizations(ctx, q, &user, roleFilter); err != nil {
 		return user, err
 	}
 	if err = r.deriveGrantedPermissions(ctx, q, &user); err != nil {
@@ -153,7 +164,7 @@ func (r *Repository) user(ctx context.Context, q sqlstore.Runner, id string) (co
 // roles: navigation items, action buttons and API operations. Rows only
 // exist for materialized or explicitly granted roles, so an empty union is a
 // real empty authorization, never "all".
-func (r *Repository) loadAuthorizations(ctx context.Context, q sqlstore.Runner, user *contracts.User) error {
+func (r *Repository) loadAuthorizations(ctx context.Context, q sqlstore.Runner, user *contracts.User, roleFilter string) error {
 	grants := []struct {
 		table  string
 		column string
@@ -163,9 +174,9 @@ func (r *Repository) loadAuthorizations(ctx context.Context, q sqlstore.Runner, 
 		{"unicore_role_actions ra", "ra.action_id", user.ActionIds},
 		{"unicore_role_operations ro", "ro.operation_id", user.OperationIds},
 	}
-	memberships := "SELECT role_id FROM unicore_user_roles WHERE user_id=?"
+	memberships := "SELECT role_id FROM unicore_user_roles WHERE user_id=? AND (?='' OR role_id=?)"
 	for _, grant := range grants {
-		rows, err := r.rows(ctx, q, "SELECT DISTINCT "+grant.column+" FROM "+grant.table+" WHERE role_id IN ("+memberships+") ORDER BY 1", user.ID)
+		rows, err := r.rows(ctx, q, "SELECT DISTINCT "+grant.column+" FROM "+grant.table+" WHERE role_id IN ("+memberships+") ORDER BY 1", user.ID, roleFilter, roleFilter)
 		if err != nil {
 			return err
 		}
@@ -436,7 +447,7 @@ func (r *Repository) UpdateUser(ctx context.Context, id string, input contracts.
 			isAdmin = true
 		}
 	}
-	current, err := r.user(ctx, tx, actor)
+	current, err := r.principalUser(ctx, tx, actor)
 	if err != nil {
 		return contracts.User{}, err
 	}
@@ -502,6 +513,11 @@ func (r *Repository) UpdateUser(ctx context.Context, id string, input contracts.
 			return contracts.User{}, platform.ErrInput
 		}
 		if candidate != before.Email {
+			// Credential grants and their scope are additional to users:update;
+			// both checks use the current actor and target inside this transaction.
+			if _, err = r.credentialActor(ctx, tx, actor, before); err != nil {
+				return contracts.User{}, err
+			}
 			var count int
 			if err = r.row(ctx, tx, "SELECT COUNT(*) FROM unicore_users WHERE email=? AND id<>?", candidate, id).Scan(&count); err != nil {
 				return contracts.User{}, err
@@ -589,12 +605,34 @@ func (r *Repository) UpdateUser(ctx context.Context, id string, input contracts.
 	return user, tx.Commit()
 }
 
-// ResetUserPassword replaces one member's password hash from the management
-// surface: the caller hashes the replacement (administrator-set or generated),
-// the store verifies the actor still holds users:update, refuses to let a
-// restricted administrator touch a super administrator, revokes every live
-// session and token with the old credential and writes the dedicated audit
-// action, all in one transaction.
+// credentialActor checks delegated credential access without widening the
+// requesting PAT's principal or narrowing the complete target account. A PAT
+// cannot perform management credential changes, even against its own account.
+// The caller holds the installation lock for this entire mutation.
+func (r *Repository) credentialActor(ctx context.Context, tx *sql.Tx, actor string, target contracts.User) (contracts.User, error) {
+	if platform.TokenRole(ctx, actor) != "" {
+		return contracts.User{}, platform.ErrForbidden
+	}
+	current, err := r.actor(ctx, tx, actor, "users:credentials:write")
+	if err != nil {
+		return contracts.User{}, err
+	}
+	if platform.HasManagementAccess(target) && !platform.IsSuper(current) {
+		return contracts.User{}, platform.ErrForbidden
+	}
+	scope, err := r.dataScope(ctx, tx, current, "users:credentials:write")
+	if err != nil {
+		return contracts.User{}, err
+	}
+	if !scope.Contains(target.ID) {
+		return contracts.User{}, platform.ErrForbidden
+	}
+	return current, nil
+}
+
+// ResetUserPassword replaces a password using the current credential grant and
+// its scope, protects management targets, and revokes sessions and tokens with
+// a dedicated audit action in the same transaction.
 func (r *Repository) ResetUserPassword(ctx context.Context, id, hash, actor string) (contracts.User, error) {
 	tx, err := r.Store.DB.BeginTx(ctx, nil)
 	if err != nil {
@@ -604,12 +642,10 @@ func (r *Repository) ResetUserPassword(ctx context.Context, id, hash, actor stri
 	if err = r.Store.LockInstallation(ctx, tx); err != nil {
 		return contracts.User{}, err
 	}
-	permission := "users:update"
 	if r.Administrators {
-		permission = "administrators:update"
-	}
-	if _, err = r.actor(ctx, tx, actor, permission); err != nil {
-		return contracts.User{}, err
+		if _, err = r.actor(ctx, tx, actor, "administrators:update"); err != nil {
+			return contracts.User{}, err
+		}
 	}
 	before, err := r.user(ctx, tx, id)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -618,21 +654,8 @@ func (r *Repository) ResetUserPassword(ctx context.Context, id, hash, actor stri
 	if err != nil {
 		return contracts.User{}, err
 	}
-	current, err := r.user(ctx, tx, actor)
-	if err != nil {
+	if _, err = r.credentialActor(ctx, tx, actor, before); err != nil {
 		return contracts.User{}, err
-	}
-	if platform.IsSuper(before) && !platform.IsSuper(current) {
-		return contracts.User{}, platform.ErrForbidden
-	}
-	// The management data scope bounds which members a restricted operator
-	// may touch, exactly like every other users:update path.
-	scope, err := r.dataScope(ctx, tx, current, permission)
-	if err != nil {
-		return contracts.User{}, err
-	}
-	if !scope.Contains(id) {
-		return contracts.User{}, platform.ErrForbidden
 	}
 	if _, err = r.exec(ctx, tx, "UPDATE unicore_users SET password_hash=?,updated_at=? WHERE id=?", hash, time.Now().Unix(), id); err != nil {
 		return contracts.User{}, err

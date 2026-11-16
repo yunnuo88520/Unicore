@@ -132,7 +132,7 @@ func exerciseRoleHTTP(t *testing.T, manager *install.Manager, request func(strin
 	if perms := memberPerms(); len(perms) != 1 || perms[0] != "files:access" {
 		t.Fatal("custom role grants missing", perms)
 	}
-	if w = request("PUT", "/api/v1/admin/roles/"+roleID, map[string]any{"name": "编辑者", "permissions": []string{"notes:access"}}, admin, adminCSRF); w.Code != 200 {
+	if w = request("PUT", "/api/v1/admin/roles/"+roleID, map[string]any{"version": roleHTTPVersion(t, request, admin, roleID), "name": "编辑者", "permissions": []string{"notes:access"}}, admin, adminCSRF); w.Code != 200 {
 		t.Fatal("role update", w.Code, w.Body.String())
 	}
 	if perms := memberPerms(); len(perms) != 1 || perms[0] != "notes:access" {
@@ -373,7 +373,7 @@ func TestRestrictedAdministrator(t *testing.T) {
 	}
 
 	// A role permission change revokes the member session.
-	w = request("PUT", "/api/v1/admin/roles/"+roleID, map[string]any{"name": "受限管理员", "data_scope": "all", "permissions": []string{"announcements:read"}}, adminCookie, csrf)
+	w = request("PUT", "/api/v1/admin/roles/"+roleID, map[string]any{"version": roleHTTPVersion(t, request, adminCookie, roleID), "name": "受限管理员", "data_scope": "all", "permissions": []string{"announcements:read"}}, adminCookie, csrf)
 	if w.Code != 200 {
 		t.Fatal("role permission change", w.Code, w.Body.String())
 	}
@@ -422,4 +422,25 @@ func TestMenuRoleAssignmentPolicy(t *testing.T) {
 			t.Fatal("monitor reservation missing from metadata")
 		}
 	}
+}
+
+// roleHTTPVersion reads the current editor snapshot through the role catalogue;
+// legacy semantic tests must not guess the version after initialization or heals.
+func roleHTTPVersion(t *testing.T, request func(string, string, any, *http.Cookie, string) *httptest.ResponseRecorder, admin *http.Cookie, id string) int {
+	t.Helper()
+	response := request("GET", "/api/v1/admin/roles", nil, admin, "")
+	var roles contracts.RoleListResponse
+	if err := json.Unmarshal(response.Body.Bytes(), &roles); err != nil || response.Code != http.StatusOK {
+		t.Fatalf("read role snapshot: %d %s %v", response.Code, response.Body.String(), err)
+	}
+	for _, role := range roles.Data.Items {
+		if role.ID == id {
+			if role.Version <= 0 {
+				t.Fatalf("invalid role version: %+v", role)
+			}
+			return role.Version
+		}
+	}
+	t.Fatalf("role %s missing from catalogue", id)
+	return 0
 }

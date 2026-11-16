@@ -8,13 +8,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/audit"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/platform"
-	"slices"
 )
 
 func text(p *string) string {
@@ -137,12 +137,17 @@ func (r *Repository) navigationInitialized(ctx context.Context, q sqlstore.Runne
 // revoked grants stay revoked and new operations stay denied until granted.
 // Afterwards the tree is topped up with action nodes the current contract
 // catalogue derives but the persisted tree lacks, so buttons registered by a
-// newer build become grantable on an instance seeded by an older one.
+// newer build become grantable on an instance seeded by an older one, and the
+// retired personal-center region (its surfaces moved into the account menus'
+// settings modal) is removed from trees that still carry it.
 func (r *Repository) EnsureNavigation(ctx context.Context) error {
 	if err := r.initializeNavigation(ctx); err != nil {
 		return err
 	}
 	if err := r.upgradeSharedNavigation(ctx); err != nil {
+		return err
+	}
+	if err := r.retirePersonalNavigation(ctx); err != nil {
 		return err
 	}
 	if err := r.retireDemoNavigation(ctx); err != nil {
@@ -151,8 +156,126 @@ func (r *Repository) EnsureNavigation(ctx context.Context) error {
 	if err := r.backfillRegisteredActions(ctx); err != nil {
 		return err
 	}
-	return r.ensureMonitorNavigation(ctx)
+	if err := r.ensureMonitorNavigation(ctx); err != nil {
+		return err
+	}
+	return r.ensureAINavigation(ctx)
 }
+
+// retirePersonalNavigation removes the seeded 个人中心 directory and its four
+// account page nodes from persisted trees: the personal center now opens from
+// the account menus' settings modal and keeps no navigation presence. It runs
+// after the legacy fold so a tree converted this startup is cleaned in the
+// same pass, re-parents anything an operator hung below the directory, and
+// clears the matching role grants; a tree without the region rolls back
+// untouched, so the heal stays idempotent by re-detection instead of a marker.
+func (r *Repository) retirePersonalNavigation(ctx context.Context) error {
+	tx, err := r.Store.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err = r.Store.LockInstallation(ctx, tx); err != nil {
+		return err
+	}
+	roleSnapshots, err := r.roleEditSnapshots(ctx, tx)
+	if err != nil {
+		return err
+	}
+	n, err := r.readNavigation(ctx, tx)
+	if err != nil {
+		return err
+	}
+	removed := map[string]contracts.NavigationNode{}
+	for _, node := range n.Nodes {
+		if node.Type == "directory" && node.ID == "personal" ||
+			node.Type == "page" && slices.Contains(retiredPersonalPages, text(node.RouteID)) {
+			removed[node.ID] = node
+		}
+	}
+	for _, node := range n.Nodes {
+		if node.Type == "action" {
+			if _, retired := removed[text(node.ParentID)]; retired {
+				removed[node.ID] = node
+			}
+		}
+	}
+	kept := []contracts.NavigationNode{}
+	changed := false
+	for _, node := range n.Nodes {
+		if _, retired := removed[node.ID]; retired {
+			changed = true
+			continue
+		}
+		if _, retired := removed[text(node.ActiveMenu)]; retired {
+			node.ActiveMenu = nil
+		}
+		seen := map[string]bool{}
+		for parent, retired := removed[text(node.ParentID)]; retired; parent, retired = removed[text(node.ParentID)] {
+			if seen[parent.ID] {
+				node.ParentID = nil
+				break
+			}
+			seen[parent.ID] = true
+			node.ParentID = parent.ParentID
+		}
+		kept = append(kept, node)
+	}
+	// Grant rows: the removed node ids, plus the retired ids themselves — a
+	// tree that already lost the nodes can still carry dangling rows. A
+	// grant-only cleanup bumps the version once, then goes quiet forever.
+	targets := map[string]bool{"personal": true}
+	for _, id := range retiredPersonalPages {
+		targets[id] = true
+	}
+	for id := range removed {
+		targets[id] = true
+	}
+	if !changed {
+		for id := range targets {
+			result, err := r.Store.Exec(ctx, tx, "DELETE FROM unicore_role_menus WHERE menu_id=?", id)
+			if err != nil {
+				return err
+			}
+			if affected, err := result.RowsAffected(); err == nil && affected > 0 {
+				changed = true
+			}
+			result, err = r.Store.Exec(ctx, tx, "DELETE FROM unicore_role_actions WHERE action_id=?", id)
+			if err != nil {
+				return err
+			}
+			if affected, err := result.RowsAffected(); err == nil && affected > 0 {
+				changed = true
+			}
+		}
+	}
+	if !changed {
+		return tx.Rollback()
+	}
+	n.Nodes = kept
+	if err = r.writeNavigation(ctx, tx, n); err != nil {
+		return err
+	}
+	for id := range targets {
+		if _, err = r.Store.Exec(ctx, tx, "DELETE FROM unicore_role_menus WHERE menu_id=?", id); err != nil {
+			return err
+		}
+		if _, err = r.Store.Exec(ctx, tx, "DELETE FROM unicore_role_actions WHERE action_id=?", id); err != nil {
+			return err
+		}
+	}
+	if _, err = r.Store.Exec(ctx, tx, "UPDATE unicore_navigation_state SET version=version+1 WHERE id=1"); err != nil {
+		return err
+	}
+	if err = r.advanceChangedRoleVersions(ctx, tx, roleSnapshots); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// retiredPersonalPages lists the route ids whose pages left the navigation for
+// the account menus' settings modal.
+var retiredPersonalPages = []string{"account", "account-security", "account-sessions", "account-tokens"}
 
 // retireDemoNavigation removes retired routes on the instance startup boundary.
 // Operator-owned children survive under the nearest retained ancestor.
@@ -163,6 +286,10 @@ func (r *Repository) retireDemoNavigation(ctx context.Context) error {
 	}
 	defer tx.Rollback()
 	if err = r.Store.LockInstallation(ctx, tx); err != nil {
+		return err
+	}
+	roleSnapshots, err := r.roleEditSnapshots(ctx, tx)
+	if err != nil {
 		return err
 	}
 	n, err := r.readNavigation(ctx, tx)
@@ -210,6 +337,24 @@ func (r *Repository) retireDemoNavigation(ctx context.Context) error {
 		}
 		kept = append(kept, node)
 	}
+	// A previous tree-only edit may have left dangling retired grants.
+	targets := map[string]bool{"lab": true, "files": true, "api-operations": true}
+	for id := range removed {
+		targets[id] = true
+	}
+	for id := range targets {
+		for _, grant := range []struct{ table, column string }{{"unicore_role_menus", "menu_id"}, {"unicore_role_actions", "action_id"}} {
+			result, err := r.Store.Exec(ctx, tx, "DELETE FROM "+grant.table+" WHERE "+grant.column+"=?", id)
+			if err != nil {
+				return err
+			}
+			affected, err := result.RowsAffected()
+			if err != nil {
+				return err
+			}
+			changed = changed || affected > 0
+		}
+	}
 	if !changed {
 		return tx.Rollback()
 	}
@@ -228,6 +373,9 @@ func (r *Repository) retireDemoNavigation(ctx context.Context) error {
 	if _, err = r.Store.Exec(ctx, tx, "UPDATE unicore_navigation_state SET version=version+1 WHERE id=1"); err != nil {
 		return err
 	}
+	if err = r.advanceChangedRoleVersions(ctx, tx, roleSnapshots); err != nil {
+		return err
+	}
 	return tx.Commit()
 }
 
@@ -238,6 +386,12 @@ func (r *Repository) retireDemoNavigation(ctx context.Context) error {
 var monitorSeedOrder = []string{"monitor-center", "monitor", "monitor-services", "monitor-resources", "monitor-events"}
 
 const monitorSeedMarker = "_navigation_monitor_seeded"
+
+// aiSeedOrder lists the AI-management entries in seed order; the top-up adds
+// nodes a tree seeded before the MCP capability lacks, mirroring the monitor
+// seed contract.
+var aiSeedOrder = []string{"ai-management", "ai-access", "ai-tools", "ai-calls"}
+const aiSeedMarker = "_navigation_ai_seeded"
 
 // ensureMonitorNavigation introduces the runtime monitor entries on instances
 // whose persisted tree predates them. Missing nodes join with their seeded
@@ -323,6 +477,83 @@ func (r *Repository) ensureMonitorNavigation(ctx context.Context) error {
 		_, err = r.Store.Exec(ctx, tx, "UPDATE unicore_system_settings SET setting_value=? WHERE setting_key=?", strings.Join(receivedList, ","), monitorSeedMarker)
 	} else {
 		_, err = r.Store.Exec(ctx, tx, "INSERT INTO unicore_system_settings(setting_key,setting_value) VALUES(?,?)", monitorSeedMarker, strings.Join(receivedList, ","))
+	}
+	if err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// ensureAINavigation tops persisted trees up with the AI-management directory
+// and pages: idempotent by marker plus existence, audited, and version-bumped
+// so editors holding stale snapshots refresh.
+func (r *Repository) ensureAINavigation(ctx context.Context) error {
+	tx, err := r.Store.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err = r.Store.LockInstallation(ctx, tx); err != nil {
+		return err
+	}
+	var seeded string
+	if err = r.Store.Row(ctx, tx, "SELECT setting_value FROM unicore_system_settings WHERE setting_key=?", aiSeedMarker).Scan(&seeded); err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+	markerExists := err == nil
+	received := map[string]bool{}
+	for _, id := range strings.Split(seeded, ",") {
+		if id != "" {
+			received[id] = true
+		}
+	}
+	n, err := r.readNavigation(ctx, tx)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return tx.Rollback()
+		}
+		return err
+	}
+	existing := map[string]bool{}
+	for _, node := range n.Nodes {
+		existing[node.ID] = true
+	}
+	missing := []contracts.NavigationNode{}
+	added := []string{}
+	for _, node := range platform.DefaultNavigation().Nodes {
+		if !slices.Contains(aiSeedOrder, node.ID) || existing[node.ID] || received[node.ID] {
+			continue
+		}
+		missing = append(missing, node)
+		added = append(added, node.ID)
+	}
+	for _, id := range aiSeedOrder {
+		if existing[id] {
+			received[id] = true
+		}
+	}
+	if len(missing) > 0 {
+		n.Nodes = append(n.Nodes, missing...)
+		if err = r.writeNavigation(ctx, tx, n); err != nil {
+			return err
+		}
+		if _, err = r.Store.Exec(ctx, tx, "UPDATE unicore_navigation_state SET version=version+1 WHERE id=1"); err != nil {
+			return err
+		}
+		if err = r.audit(audit.Target(ctx, "menus/ai-seed", "nodes="+strings.Join(added, ",")), tx, "system", "menus.updated"); err != nil {
+			return err
+		}
+	}
+	receivedList := make([]string, 0, len(received))
+	for _, id := range aiSeedOrder {
+		if received[id] {
+			receivedList = append(receivedList, id)
+		}
+	}
+	if markerExists {
+		_, err = r.Store.Exec(ctx, tx, "UPDATE unicore_system_settings SET setting_value=? WHERE setting_key=?", strings.Join(receivedList, ","), aiSeedMarker)
+	} else {
+		_, err = r.Store.Exec(ctx, tx, "INSERT INTO unicore_system_settings(setting_key,setting_value) VALUES(?,?)", aiSeedMarker, strings.Join(receivedList, ","))
 	}
 	if err != nil {
 		return err
@@ -517,6 +748,10 @@ func (r *Repository) upgradeSharedNavigation(ctx context.Context) error {
 	if err = r.Store.LockInstallation(ctx, tx); err != nil {
 		return err
 	}
+	roleSnapshots, err := r.roleEditSnapshots(ctx, tx)
+	if err != nil {
+		return err
+	}
 	if current, err := r.readNavigation(ctx, tx); err != nil || !legacyNavigation(current) {
 		return err
 	}
@@ -618,6 +853,9 @@ func (r *Repository) upgradeSharedNavigation(ctx context.Context) error {
 		return err
 	}
 	if err = r.audit(audit.Target(ctx, "menus/upgrade", "unified grant namespace"), tx, "system", "menus.updated"); err != nil {
+		return err
+	}
+	if err = r.advanceChangedRoleVersions(ctx, tx, roleSnapshots); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -937,6 +1175,10 @@ func (r *Repository) initializeNavigation(ctx context.Context) error {
 	if err = r.Store.LockInstallation(ctx, tx); err != nil {
 		return err
 	}
+	roleSnapshots, err := r.roleEditSnapshots(ctx, tx)
+	if err != nil {
+		return err
+	}
 	if initialized, err := r.navigationInitialized(ctx, tx); err != nil || initialized {
 		return err
 	}
@@ -947,6 +1189,9 @@ func (r *Repository) initializeNavigation(ctx context.Context) error {
 		return err
 	}
 	if err = r.materializeRoleAuthorizations(ctx, tx, n); err != nil {
+		return err
+	}
+	if err = r.advanceChangedRoleVersions(ctx, tx, roleSnapshots); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -1204,6 +1449,10 @@ func (r *Repository) SaveNavigation(ctx context.Context, input contracts.MenuSav
 	if err = r.Store.LockInstallation(ctx, tx); err != nil {
 		return contracts.MenuList{}, err
 	}
+	roleSnapshots, err := r.roleEditSnapshots(ctx, tx)
+	if err != nil {
+		return contracts.MenuList{}, err
+	}
 	admin, err := r.actor(ctx, tx, actor, "menus:write")
 	if err != nil {
 		return contracts.MenuList{}, err
@@ -1247,6 +1496,9 @@ func (r *Repository) SaveNavigation(ctx context.Context, input contracts.MenuSav
 		}
 	}
 	if err = r.audit(audit.Target(ctx, "menus/", fmt.Sprintf("version=%d; sections=%d; nodes=%d; assignments=%d", input.Version+1, len(n.Sections), len(n.Nodes), len(derefAssignments(input.RoleAssignments)))), tx, actor, "menus.updated"); err != nil {
+		return contracts.MenuList{}, err
+	}
+	if err = r.advanceChangedRoleVersions(ctx, tx, roleSnapshots); err != nil {
 		return contracts.MenuList{}, err
 	}
 	if err = tx.Commit(); err != nil {

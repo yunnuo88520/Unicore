@@ -2,9 +2,8 @@
 // Description: Instance API reference rendered by the locally bundled Swagger UI, loaded through AppClient with retry and feature-unavailable states.
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { BookOpen } from 'lucide-react';
 import { useI18n } from '../i18n';
-import { Button, Card, CardContent } from '@unicore/ui';
+import { Button, Card, CardContent, PageHeader } from '@unicore/ui';
 import type { PageProps } from '../router';
 import 'swagger-ui-dist/swagger-ui.css';
 
@@ -48,12 +47,9 @@ function SwaggerReference({ spec }: { spec: Record<string, unknown> }) {
 export function ApiDocsPage({ client }: PageProps) {
   const { t } = useI18n();
   const query = useQuery({ queryKey: ['api-document'], queryFn: () => client.apiDocument!(), enabled: !!client.apiDocument, retry: false });
-  return <Card className="overflow-hidden"><CardContent className="flex flex-col gap-3 p-0">
-    <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3">
-      <BookOpen size={17} className="text-accent" aria-hidden="true" />
-      <h2 className="text-md font-semibold text-ink">{t('API 文档')}</h2>
-      <span className="text-2xs text-muted">{t('数据来自实例发布的 OpenAPI 契约。')}</span>
-    </div>
+  return <div className="flex min-w-0 flex-col gap-6">
+    <PageHeader title={t('API 文档')} description={t('数据来自实例发布的 OpenAPI 契约。')} />
+    <Card className="overflow-hidden"><CardContent className="flex flex-col gap-4 p-0">
     {!client.apiDocument ? <p className="p-4 text-sm text-muted">{t('当前运行形态不提供 API 文档')}</p>
       : query.isPending ? <p role="status" className="py-10 text-center text-sm text-muted">{t('正在加载 API 文档…')}</p>
       : query.isError ? <div role="alert" className="flex flex-col items-start gap-3 p-4"><p className="text-sm text-danger">{t('API 文档不可用，请确认实例已启用 API 文档。')}</p><Button variant="secondary" onClick={() => void query.refetch()}>{t('重试')}</Button></div>
@@ -61,5 +57,6 @@ export function ApiDocsPage({ client }: PageProps) {
       : <div className="api-reference min-h-[480px] bg-white">
         <SwaggerReference spec={query.data} />
       </div>}
-  </CardContent></Card>;
+    </CardContent></Card>
+  </div>;
 }

@@ -5,9 +5,11 @@ package platformsql
 import (
 	"context"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/adapter/storage/webdb"
 	"github.com/yunnuo/unicore/migrations/runner"
 )
@@ -35,7 +37,7 @@ func TestInboxOwnershipDeliveryAndVisibility(t *testing.T) {
 	if _, err = store.Exec(ctx, store.DB, "INSERT INTO unicore_announcement_recipients(announcement_id,user_id) VALUES('a','u')"); err != nil {
 		t.Fatal(err)
 	}
-	if err = r.DeliverInbox(ctx, store.DB, []string{"u", "u"}, "announcement", "a", "title", "body"); err != nil {
+	if err = r.DeliverInbox(ctx, store.DB, []string{"u", "u"}, "announcement", "a", "title", "body", ""); err != nil {
 		t.Fatal(err)
 	}
 	feed, err := r.InboxFeed(ctx, "u", 1, 20)
@@ -57,7 +59,7 @@ func TestInboxOwnershipDeliveryAndVisibility(t *testing.T) {
 	if _, err = store.Exec(ctx, store.DB, "UPDATE unicore_platform_announcements SET title='updated',content='updated body'"); err != nil {
 		t.Fatal(err)
 	}
-	if err = r.DeliverInbox(ctx, store.DB, []string{"u"}, "announcement", "a", "updated", "updated body"); err != nil {
+	if err = r.DeliverInbox(ctx, store.DB, []string{"u"}, "announcement", "a", "updated", "updated body", ""); err != nil {
 		t.Fatal(err)
 	}
 	feed, err = r.InboxFeed(ctx, "u", 1, 20)
@@ -99,7 +101,7 @@ func TestInboxOwnershipDeliveryAndVisibility(t *testing.T) {
 			}
 		})
 	}
-	if err = r.DeliverInbox(ctx, store.DB, []string{"u"}, "system", "", "system", "system body"); err != nil {
+	if err = r.DeliverInbox(ctx, store.DB, []string{"u"}, "system", "", "system", "system body", ""); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = store.Exec(ctx, store.DB, "UPDATE unicore_platform_announcements SET status='archived'"); err != nil {
@@ -112,4 +114,47 @@ func TestInboxOwnershipDeliveryAndVisibility(t *testing.T) {
 	if _, err = r.InboxFeed(ctx, "u", 100001, 20); err == nil {
 		t.Fatal("unbounded page")
 	}
+}
+
+func TestDeliverInboxSurvivesConcurrentSameSource(t *testing.T) {
+	ctx := context.Background()
+	store, err := webdb.Open(ctx, "sqlite", "", filepath.Join(t.TempDir(), "inbox-race.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	if err = runner.Apply(ctx, store.DB, runner.Options{Dialect: "sqlite", Profile: "web-platform"}); err != nil {
+		t.Fatal(err)
+	}
+	r := &Repository{Store: store}
+	// Two concurrent batches of the same sourced message race on the
+	// check-then-insert path; the platform@2 partial unique index must let the
+	// loser self-heal through its retry, leaving exactly one row per recipient.
+	var wg sync.WaitGroup
+	errs := make([]error, 2)
+	for i := range errs {
+		wg.Add(1)
+		go func(slot int) {
+			defer wg.Done()
+			errs[slot] = r.DeliverInbox(ctx, store.DB, []string{"u1", "u2"}, "system", "race-1", "标题", "正文", "")
+		}(i)
+	}
+	wg.Wait()
+	for slot, err := range errs {
+		if err != nil {
+			t.Fatalf("concurrent delivery %d: %v", slot, err)
+		}
+	}
+	if got := r.countInbox(t, store, "SELECT COUNT(*) FROM unicore_inbox_messages WHERE type='system' AND source_id='race-1'"); got != 2 {
+		t.Fatalf("want one row per recipient, got %d", got)
+	}
+}
+
+func (r *Repository) countInbox(t *testing.T, store *sqlstore.Store, query string) int {
+	t.Helper()
+	var got int
+	if err := store.DB.QueryRowContext(context.Background(), query).Scan(&got); err != nil {
+		t.Fatal(err)
+	}
+	return got
 }

@@ -16,4 +16,4 @@ make dev-server
 make dev-web
 ```
 
-Open /install on first Web launch (desktop initializes its local database; CLI has no database). Boundaries and deployment guides live in [docs/product](docs/product/index.md).
+Open /install on first Web launch (desktop initializes its local database; CLI has no database). Boundaries and deployment guides live in [docs/product](docs/product/index.md). Notes is an optional demo; see [feature trimming](docs/product/features.md).

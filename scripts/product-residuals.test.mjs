@@ -99,3 +99,19 @@ test('residue scan catches UI branding outside generated projections while prese
   assert.deepEqual(scanResiduals(root),[]);
  }finally{rmSync(root,{recursive:true,force:true});}
 });
+
+test('public framework reference URLs do not hide other branding or unknown routes',()=>{
+ const root=project();
+ try{
+  const path='docs/product/guide.md';
+  const manifest=JSON.parse(readFileSync(join(root,'distribution/manifest.json'),'utf8'));
+  manifest.documents.push({source:'docs/02-standards/backend.md',target:'docs/02-standards/backend.md',audiences:['public-site']});
+  writeFileSync(join(root,'distribution/manifest.json'),JSON.stringify(manifest));
+  writeFileSync(join(root,path),'Read [Go layers](https://unicore.ebox.vip/02-standards/backend#ports).\n');
+  assert.deepEqual(scanResiduals(root),[]);
+  for(const content of ['Unicore workspace: https://unicore.ebox.vip/02-standards/backend', 'https://unicore.ebox.vip/not-public', 'https://unicore.ebox.vip.example/02-standards/backend']){
+   writeFileSync(join(root,path),content+'\n');
+   assert.ok(scanResiduals(root).some(line=>line.startsWith(`${path}:1:`)),content);
+  }
+ }finally{rmSync(root,{recursive:true,force:true});}
+});

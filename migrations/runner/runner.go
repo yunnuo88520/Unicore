@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/yunnuo/unicore/internal/edition"
 	"github.com/yunnuo/unicore/migrations"
 	"github.com/yunnuo/unicore/migrations/catalogdata"
 )
@@ -174,6 +175,9 @@ func plan(descriptor catalogdata.Descriptor, opts Options) (schemaPlan, error) {
 	}
 	result := schemaPlan{ledger: descriptor.Ledger}
 	for _, id := range profile.Order {
+		if id == "module.notes" && !edition.Notes {
+			continue
+		}
 		namespace, ok := namespaces[id]
 		if !ok {
 			return schemaPlan{}, fmt.Errorf("profile %q orders unknown namespace %q", opts.Profile, id)

@@ -23,6 +23,18 @@ type Runner interface {
 	QueryRowContext(context.Context, string, ...any) *sql.Row
 }
 
+// Runner methods let callers pass the store to transactional batch helpers.
+// SQL adapters bind placeholders before invoking a runner, just as with DB/Tx.
+func (s *Store) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
+	return s.DB.ExecContext(ctx, query, args...)
+}
+func (s *Store) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
+	return s.DB.QueryContext(ctx, query, args...)
+}
+func (s *Store) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
+	return s.DB.QueryRowContext(ctx, query, args...)
+}
+
 func (s *Store) Bind(query string) string {
 	if s.Dialect != "postgres" {
 		return query
@@ -91,6 +103,22 @@ func (s *Store) LockForUpdate(ctx context.Context, exec Runner, query string, ar
 // LockInstallation serializes privilege changes and protects the last active super-admin.
 func (s *Store) LockInstallation(ctx context.Context, tx *sql.Tx) error {
 	return s.LockForUpdate(ctx, tx, "SELECT id FROM unicore_install_state WHERE id=1")
+}
+
+// WithinTx runs fn inside one transaction on the store and commits on success.
+// It serves convenience paths that must batch writes atomically without a
+// caller-owned transaction; runners already scoped to a caller transaction do
+// not implement it and keep the caller's scope.
+func (s *Store) WithinTx(ctx context.Context, fn func(runner Runner) error) error {
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	if err = fn(tx); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	return tx.Commit()
 }
 
 func (s *Store) ReadSettings(ctx context.Context) (map[string]string, error) {

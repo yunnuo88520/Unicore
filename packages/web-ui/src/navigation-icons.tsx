@@ -8,6 +8,7 @@ import iconKeywords from './navigation-icon-keywords.json';
 import type { LucideIcon } from 'lucide-react';
 import {
   Circle,
+  Bot,
   LayoutDashboard,
   FlaskConical,
   NotebookPen,
@@ -629,6 +630,7 @@ import {
 // catalog (navigation-icon-catalog.ts) plus the Circle fallback.
 const catalogIcons = {
   Circle,
+  Bot,
   LayoutDashboard,
   FlaskConical,
   NotebookPen,

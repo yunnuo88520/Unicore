@@ -170,7 +170,7 @@ func (a *Accounts) Request(ctx context.Context, input contracts.EmailRequest, ip
 	if purpose == "verify" {
 		captcha = policy.RegisterCaptcha
 	}
-	if err = a.allow(ip, email, input.CaptchaID, input.CaptchaAnswer, captcha); err != nil {
+	if err = a.allow(ip, email, derefString(input.CaptchaID), derefString(input.CaptchaAnswer), captcha); err != nil {
 		return err
 	}
 	token := Token()

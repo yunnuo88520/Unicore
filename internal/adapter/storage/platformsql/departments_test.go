@@ -9,12 +9,12 @@ import (
 	"time"
 
 	"github.com/yunnuo/unicore/internal/adapter/storage/filesql"
-	"github.com/yunnuo/unicore/internal/modules/notes/storage/notessql"
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/files"
-	"github.com/yunnuo/unicore/internal/platform"
+	"github.com/yunnuo/unicore/internal/modules/notes/storage/notessql"
 	notesusecase "github.com/yunnuo/unicore/internal/modules/notes/usecase"
+	"github.com/yunnuo/unicore/internal/platform"
 )
 
 func ptrString(v string) *string   { return &v }
@@ -349,7 +349,7 @@ func exerciseDepartmentScopeValidation(t *testing.T, ctx context.Context, reposi
 		t.Fatal("unknown custom department accepted", err)
 	}
 	// The builtin user role keeps its personal-only scope.
-	if _, err := repository.UpdateRole(ctx, "user", contracts.RoleSaveInput{Name: "user", Permissions: []string{"notes:access"}, DataScope: scopeString(platform.ScopeAll)}, admin.ID); !errors.Is(err, platform.ErrForbidden) {
+	if _, err := repository.UpdateRole(ctx, "user", contracts.RoleSaveInput{Version: currentRoleVersion(t, ctx, repository, "user"), Name: "user", Permissions: []string{"notes:access"}, DataScope: scopeString(platform.ScopeAll)}, admin.ID); !errors.Is(err, platform.ErrForbidden) {
 		t.Fatal("builtin scope widening accepted", err)
 	}
 	// Non-custom scopes clear the configured departments.
@@ -360,7 +360,7 @@ func exerciseDepartmentScopeValidation(t *testing.T, ctx context.Context, reposi
 	if role.DataScope != platform.ScopeCustom || len(role.DepartmentIds) != 0 {
 		t.Fatal("empty custom", role)
 	}
-	if _, err = repository.UpdateRole(ctx, role.ID, contracts.RoleSaveInput{Name: "切换范围", Permissions: []string{}, DataScope: scopeString(platform.ScopeSelf), DepartmentIds: &[]string{}}, admin.ID); err != nil {
+	if _, err = repository.UpdateRole(ctx, role.ID, contracts.RoleSaveInput{Version: currentRoleVersion(t, ctx, repository, role.ID), Name: "切换范围", Permissions: []string{}, DataScope: scopeString(platform.ScopeSelf), DepartmentIds: &[]string{}}, admin.ID); err != nil {
 		t.Fatal("switch to self", err)
 	}
 	after, err := repository.role(ctx, repository.Store.DB, role.ID)

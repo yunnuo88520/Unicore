@@ -125,9 +125,16 @@ func TestAnnouncementsUnavailableLocally(t *testing.T) {
 			t.Fatal(path, w.Code, w.Body.String())
 		}
 	}
+	// ADR-0045 phase two: the inbox tables assemble locally, while the
+	// announcement endpoints above stay unavailable through their handler
+	// self-check — the audience model never extends to this profile.
 	store, _, _, _ := m.Services()
 	var count int
-	if e = store.DB.QueryRowContext(ctx, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='unicore_platform_announcements'").Scan(&count); e != nil || count != 0 {
-		t.Fatal("local platform migration", count, e)
+	if e = store.DB.QueryRowContext(ctx, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='unicore_inbox_messages'").Scan(&count); e != nil || count != 1 {
+		t.Fatal("local inbox table", count, e)
+	}
+	var announcements int
+	if e = store.DB.QueryRowContext(ctx, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='unicore_platform_announcements'").Scan(&announcements); e != nil || announcements != 1 {
+		t.Fatal("announcement tables ship with the shared namespace", announcements, e)
 	}
 }

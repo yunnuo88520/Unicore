@@ -61,11 +61,28 @@ function Exercise([string]$name, [bool]$expectFailure) {
             if (-not (Test-Path -LiteralPath $database) -or (Get-Item -LiteralPath $database).Length -lt 100) { throw 'Desktop database was not initialized at the requested path' }
         }
         if (-not $process.CloseMainWindow()) { throw "Cannot close Wails window: $name" }
-        if (-not $process.WaitForExit(15000)) { throw "Wails did not exit cleanly: $name" }
-        $expectedExit = 0
-        if ($expectFailure) { $expectedExit = 1 }
-        if ($process.ExitCode -ne $expectedExit) { throw "Unexpected Wails exit code: $($process.ExitCode)" }
-        return @{ name = $name; status = 'passed'; exit_code = $process.ExitCode }
+        # ADR-0048: closing the window hides it to the tray and the process
+        # must stay alive; only the startup-error dialog exits on close.
+        $expectedExit = $null
+        if ($expectFailure) {
+            if (-not $process.WaitForExit(15000)) { throw "Startup error dialog did not exit cleanly: $name" }
+            $expectedExit = 1
+        } else {
+            $hidden = $false
+            $deadline = [DateTime]::UtcNow.AddSeconds(10)
+            while ([DateTime]::UtcNow -lt $deadline) {
+                $process.Refresh()
+                if ($process.HasExited) { throw "Wails exited on window close instead of hiding to tray: $name" }
+                if ($process.MainWindowHandle -eq 0) { $hidden = $true; break }
+                Start-Sleep -Milliseconds 250
+            }
+            if (-not $hidden) { throw "Wails window did not hide to tray: $name" }
+            Start-Sleep -Seconds 2
+            $process.Refresh()
+            if ($process.HasExited) { throw "Wails exited after hiding to tray: $name" }
+        }
+        if ($null -ne $expectedExit -and $process.ExitCode -ne $expectedExit) { throw "Unexpected Wails exit code: $($process.ExitCode)" }
+        return @{ name = $name; status = 'passed'; exit_code = $expectedExit }
     } finally {
         if (-not $process.HasExited) { Stop-Process -Id $process.Id -Force }
         $process.Dispose()

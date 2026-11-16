@@ -15,7 +15,9 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 ARG FEATURE_LICENSE=false
 ARG FEATURE_UPDATER=true
-RUN FEATURE_LICENSE=${FEATURE_LICENSE} FEATURE_UPDATER=${FEATURE_UPDATER} pnpm --filter @unicore/web build
+ARG FEATURE_NOTES=true
+RUN FEATURE_LICENSE=${FEATURE_LICENSE} FEATURE_UPDATER=${FEATURE_UPDATER} FEATURE_NOTES=${FEATURE_NOTES} pnpm --filter @unicore/web build
+RUN FEATURE_LICENSE=${FEATURE_LICENSE} FEATURE_UPDATER=${FEATURE_UPDATER} FEATURE_NOTES=${FEATURE_NOTES} node scripts/build-features.mjs --tags > /tmp/build-tags.txt
 
 FROM go-toolchain AS backend
 WORKDIR /src
@@ -29,7 +31,9 @@ ARG COMMIT=dev
 ARG BUILD_TIME=unknown
 ARG FEATURE_LICENSE=false
 ARG FEATURE_UPDATER=true
-RUN test "$VERSION" = "$(cat VERSION)" && case "$FEATURE_LICENSE,$FEATURE_UPDATER" in true,true) tags='license,updater';; true,false) tags='license';; false,true) tags='updater';; false,false) tags='';; *) exit 1;; esac && CGO_ENABLED=0 go build -trimpath -tags "$tags" -ldflags "-s -w -X github.com/yunnuo/unicore/internal/buildinfo.Version=${VERSION} -X github.com/yunnuo/unicore/internal/buildinfo.Commit=${COMMIT} -X github.com/yunnuo/unicore/internal/buildinfo.BuildTime=${BUILD_TIME}" -o /server ./cmd/server && mkdir /data && chmod 700 /data
+ARG FEATURE_NOTES=true
+COPY --from=frontend /tmp/build-tags.txt /tmp/build-tags.txt
+RUN test "$VERSION" = "$(cat VERSION)" && tags="$(cat /tmp/build-tags.txt)" && CGO_ENABLED=0 go build -trimpath -tags "$tags" -ldflags "-s -w -X github.com/yunnuo/unicore/internal/buildinfo.Version=${VERSION} -X github.com/yunnuo/unicore/internal/buildinfo.Commit=${COMMIT} -X github.com/yunnuo/unicore/internal/buildinfo.BuildTime=${BUILD_TIME}" -o /server ./cmd/server && mkdir /data && chmod 700 /data
 
 FROM ${RUNTIME_IMAGE}
 ARG VERSION

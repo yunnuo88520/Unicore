@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Unicore platform foundation API",
-    "version": "0.1.4",
+    "version": "0.1.5",
     "description": "Unified accounts with multiple roles and independent API grants. Browser clients use a shared session Cookie plus CSRF; native/API clients may use JWT access tokens or scoped personal Bearer tokens. Credential-management endpoints require a browser session.",
     "contact": {
       "name": "yunnuo",
@@ -767,7 +767,7 @@
     "/api/v1/admin/users/{id}/password": {
       "post": {
         "operationId": "resetUserPassword",
-        "description": "Resets a member account password from the management surface: the operator supplies the replacement or the server generates a temporary one. The effective password is returned once; live sessions and tokens die with the old credential.",
+        "description": "Resets an account password using users:credentials:write within its data scope. Targets with management access require super_admin; PAT callers are denied. The operator supplies the replacement or the server generates a temporary one. The effective password is returned once; live sessions and tokens die with the old credential.",
         "responses": {
           "200": {
             "description": "Success",
@@ -809,14 +809,14 @@
             "BearerToken": []
           }
         ],
-        "x-permission": "users:update; administrator only",
+        "x-permission": "users:credentials:write; protected management targets require super_admin; PAT denied",
         "x-unicore": {
           "profiles": [
             "web-platform"
           ],
           "access": "session",
           "permissions": [
-            "users:update"
+            "users:credentials:write"
           ],
           "permissionMode": "all",
           "superAdmin": false,
@@ -12664,9 +12664,10 @@
         ],
         "x-unicore": {
           "profiles": [
-            "web-platform"
+            "web-platform",
+            "web-standalone"
           ],
-          "access": "session",
+          "access": "platform-session",
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
@@ -12674,7 +12675,28 @@
           "identityRealm": "user"
         },
         "summary": "inbox",
-        "parameters": []
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        ]
       }
     },
     "/api/v1/inbox/read-all": {
@@ -12712,9 +12734,10 @@
         ],
         "x-unicore": {
           "profiles": [
-            "web-platform"
+            "web-platform",
+            "web-standalone"
           ],
-          "access": "session",
+          "access": "platform-session",
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
@@ -12771,9 +12794,10 @@
         ],
         "x-unicore": {
           "profiles": [
-            "web-platform"
+            "web-platform",
+            "web-standalone"
           ],
-          "access": "session",
+          "access": "platform-session",
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
@@ -12819,9 +12843,10 @@
         ],
         "x-unicore": {
           "profiles": [
-            "web-platform"
+            "web-platform",
+            "web-standalone"
           ],
-          "access": "session",
+          "access": "platform-session",
           "permissions": [],
           "permissionMode": "all",
           "superAdmin": false,
@@ -14230,7 +14255,7 @@
     "/api/v1/account/tokens": {
       "get": {
         "operationId": "personalTokens",
-        "summary": "List own personal API credentials; Cookie only",
+        "summary": "personalTokens; browser session only",
         "responses": {
           "200": {
             "description": "Success",
@@ -14268,11 +14293,39 @@
           {
             "SessionCookie": []
           }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
         ]
       },
       "post": {
         "operationId": "createPersonalToken",
-        "summary": "Create a scoped personal token; Cookie only, shown once",
+        "summary": "createPersonalToken; browser session only",
         "responses": {
           "200": {
             "description": "Success",
@@ -14377,50 +14430,6 @@
               "maxLength": 64,
               "minLength": 1
             }
-          }
-        ]
-      }
-    },
-    "/api/v1/account/token-scopes": {
-      "get": {
-        "operationId": "personalTokenScopes",
-        "summary": "List currently available personal API scopes; Cookie only",
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TokenScopeListResponse"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "Stable error code",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "x-unicore": {
-          "profiles": [
-            "web-platform"
-          ],
-          "access": "session",
-          "permissions": [],
-          "permissionMode": "all",
-          "superAdmin": false,
-          "csrf": false,
-          "identityRealm": "user"
-        },
-        "security": [
-          {
-            "SessionCookie": []
           }
         ]
       }
@@ -15694,6 +15703,1700 @@
         ],
         "description": "持久分片会话；仅所属用户身份域或固定管理员可用。签名只针对临时对象，云请求不带平台凭据。"
       }
+    },
+    "/api/v1/account/token-roles": {
+      "get": {
+        "operationId": "personalTokenRoles",
+        "summary": "personalTokenRoles; browser session only",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleOptionsResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "user"
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/account/tokens/{id}/renew": {
+      "post": {
+        "operationId": "renewPersonalToken",
+        "summary": "renewPersonalToken; browser session only",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "user"
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CSRFToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonalTokenRenewInput"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/access-tokens": {
+      "get": {
+        "operationId": "adminPersonalTokens",
+        "summary": "adminPersonalTokens; browser session only",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonalTokenListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "tokens:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ]
+      },
+      "post": {
+        "operationId": "adminCreatePersonalToken",
+        "summary": "adminCreatePersonalToken; browser session only",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonalTokenCreatedResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "tokens:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": [],
+            "CSRFToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminPersonalTokenInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/access-tokens/{id}": {
+      "delete": {
+        "operationId": "adminRevokePersonalToken",
+        "summary": "adminRevokePersonalToken; browser session only",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "tokens:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": [],
+            "CSRFToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/access-tokens/{id}/renew": {
+      "post": {
+        "operationId": "adminRenewPersonalToken",
+        "summary": "adminRenewPersonalToken; browser session only",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "tokens:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": [],
+            "CSRFToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonalTokenRenewInput"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/access-tokens/users": {
+      "get": {
+        "operationId": "personalTokenUsers",
+        "summary": "personalTokenUsers; browser session only",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "tokens:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ],
+        "description": "Search eligible token owners by username or email. Empty or whitespace-only search returns an empty page; it never enumerates users. Requires the existing administrator session, tokens:read permission and super-admin access."
+      }
+    },
+    "/api/v1/admin/access-tokens/users/{id}/roles": {
+      "get": {
+        "operationId": "adminPersonalTokenRoles",
+        "summary": "adminPersonalTokenRoles; browser session only",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleOptionsResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "tokens:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/mcp/config": {
+      "get": {
+        "operationId": "getMcpConfig",
+        "summary": "Read MCP access configuration",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpConfigResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-permission": "mcp:read; super admin only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "mcp:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "parameters": []
+      },
+      "patch": {
+        "operationId": "patchMcpConfig",
+        "summary": "Update MCP access configuration",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpConfigResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-permission": "mcp:write; super admin only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "mcp:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/McpConfigPatch"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/mcp/tools": {
+      "get": {
+        "operationId": "listMcpTools",
+        "summary": "List MCP capability directory",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpToolListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-permission": "mcp:read; super admin only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "mcp:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            },
+            "description": "Page number, default 1"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "description": "Page size, default 50"
+          },
+          {
+            "name": "module",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "description": "Filter by module slug"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 96
+            },
+            "description": "Filter by tool name substring"
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "unreviewed",
+                "disabled",
+                "open",
+                "needs_review",
+                "module_missing"
+              ]
+            },
+            "description": "Filter by policy state"
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/mcp/tools/{name}": {
+      "get": {
+        "operationId": "getMcpTool",
+        "summary": "Read one MCP capability",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpToolResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-permission": "mcp:read; super admin only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "mcp:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 96
+            },
+            "description": "Capability name"
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/mcp/tools/{name}/policy": {
+      "patch": {
+        "operationId": "patchMcpToolPolicy",
+        "summary": "Accept or revoke one capability open policy",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpToolResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-permission": "mcp:write; super admin only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "mcp:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 96
+            },
+            "description": "Capability name"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/McpPolicyPatch"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/mcp/calls": {
+      "get": {
+        "operationId": "listMcpCalls",
+        "summary": "List MCP call records",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpCallListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-permission": "mcp:logs:read; super admin only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "mcp:logs:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            },
+            "description": "Page number, default 1"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "description": "Page size, default 50"
+          },
+          {
+            "name": "actor_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "description": "Filter by actor"
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "Filter by capability name"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 16
+            },
+            "description": "Filter by outcome status"
+          },
+          {
+            "name": "started_after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "description": "Unix seconds lower bound"
+          },
+          {
+            "name": "started_before",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "description": "Unix seconds upper bound"
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/mcp/calls/{id}": {
+      "get": {
+        "operationId": "getMcpCall",
+        "summary": "Read one MCP call record",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpCallResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-permission": "mcp:logs:read; super admin only",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "mcp:logs:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "description": "Call request id"
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/mcp/oauth-clients": {
+      "get": {
+        "operationId": "listMcpOauthClients",
+        "summary": "listMcpOauthClients; administrator session",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpOauthClientListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "mcp:clients:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "createMcpOauthClient",
+        "summary": "createMcpOauthClient; administrator session",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/McpOauthClientCreateInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpOauthClientCreatedResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "mcp:clients:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/mcp/oauth-clients/{id}": {
+      "patch": {
+        "operationId": "updateMcpOauthClient",
+        "summary": "updateMcpOauthClient; administrator session",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/McpOauthClientUpdateInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpOauthClientResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "mcp:clients:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/mcp/oauth-clients/{id}/secret": {
+      "post": {
+        "operationId": "rotateMcpOauthClientSecret",
+        "summary": "rotateMcpOauthClientSecret; administrator session",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpOauthClientSecretResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "mcp:clients:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/mcp/oauth-clients/{id}/grants": {
+      "get": {
+        "operationId": "listMcpOauthClientGrants",
+        "summary": "listMcpOauthClientGrants; administrator session",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpOauthAdminGrantListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "mcp:clients:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/mcp/oauth/grants/{id}": {
+      "delete": {
+        "operationId": "revokeMcpOauthGrant",
+        "summary": "revokeMcpOauthGrant; administrator session",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [
+            "mcp:clients:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/account/mcp/access-info": {
+      "get": {
+        "operationId": "getMyMcpAccessInfo",
+        "summary": "Read the caller's MCP access status and connection hint",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpAccessInfoResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "x-permission": "authenticated session",
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "user"
+        },
+        "parameters": []
+      }
+    },
+    "/api/v1/account/mcp/oauth/authorize": {
+      "get": {
+        "operationId": "describeMcpOauthAuthorize",
+        "summary": "describeMcpOauthAuthorize; browser session only",
+        "parameters": [
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            }
+          },
+          {
+            "name": "redirect_uri",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 2048,
+              "minLength": 1
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "code_challenge",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "code_challenge_method",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 16
+            }
+          },
+          {
+            "name": "resource",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 2048
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpOauthAuthorizeViewResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "user"
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "consentMcpOauthAuthorize",
+        "summary": "consentMcpOauthAuthorize; browser session only",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/McpOauthConsentInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpOauthConsentResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "user"
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/account/mcp/oauth/grants": {
+      "get": {
+        "operationId": "myMcpOauthGrants",
+        "summary": "myMcpOauthGrants; browser session only",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpOauthGrantListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": false,
+          "identityRealm": "user"
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/account/mcp/oauth/grants/{id}": {
+      "delete": {
+        "operationId": "revokeMyMcpOauthGrant",
+        "summary": "revokeMyMcpOauthGrant; browser session only",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "session",
+          "permissions": [],
+          "permissionMode": "all",
+          "superAdmin": false,
+          "csrf": true,
+          "identityRealm": "user"
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -15846,7 +17549,7 @@
           },
           "home_enabled": {
             "type": "boolean",
-            "description": "Whether the public product homepage is enabled for unauthenticated visitors."
+            "description": "Whether the public product homepage is enabled for guests and signed-in users. Enabled by default; signed-in users keep the workspace at /."
           },
           "admin_path": {
             "type": "string",
@@ -16416,7 +18119,7 @@
             "type": "string",
             "format": "email",
             "maxLength": 254,
-            "description": "Login credential: omit to keep the address, a replacement must parse and stay unique across every account."
+            "description": "Login credential: omit to keep the address. An actual normalized change additionally requires users:credentials:write and both update and credential data scopes; management targets require super_admin. PAT changes are denied. A replacement must parse and stay unique across every account."
           },
           "display_name": {
             "type": "string",
@@ -16689,6 +18392,24 @@
           },
           "configured": {
             "type": "boolean"
+          },
+          "label_en": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "description_en": {
+            "type": "string"
+          },
+          "multiline": {
+            "type": "boolean"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SettingOption"
+            }
           }
         }
       },
@@ -16703,6 +18424,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SettingEntry"
+            }
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SettingGroup"
             }
           }
         }
@@ -17094,9 +18821,7 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "email",
-          "captcha_id",
-          "captcha_answer"
+          "email"
         ],
         "properties": {
           "email": {
@@ -17465,7 +19190,8 @@
           "menu_ids",
           "action_ids",
           "operation_ids",
-          "authorization_initialized"
+          "authorization_initialized",
+          "version"
         ],
         "properties": {
           "id": {
@@ -17544,6 +19270,11 @@
           },
           "authorization_initialized": {
             "type": "boolean"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Revision of editable role fields and grants; required on updates. Membership counts do not advance this revision."
           }
         }
       },
@@ -20911,6 +22642,7 @@
         }
       },
       "RoleSaveInput": {
+        "description": "Role creation or update. Updates require the version read with the role; omitted versions are rejected and stale versions return 409. Creation does not require a version.",
         "type": "object",
         "additionalProperties": false,
         "required": [
@@ -20936,6 +22668,11 @@
               "administrator"
             ],
             "description": "Realm the role belongs to; omitted means user for backward compatibility. Update requests cannot move a role between realms."
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Required for updates, ignored on creation. Must match the role revision originally read; stale requests return 409. Missing versions are rejected, not implicitly upgraded."
           },
           "data_scope": {
             "type": "string",
@@ -21876,15 +23613,22 @@
             "type": "string",
             "maxLength": 200
           },
-          "body": {
-            "type": "string",
-            "maxLength": 2000
+          "actions": {
+            "type": "array",
+            "maxItems": 4,
+            "items": {
+              "$ref": "#/components/schemas/InboxAction"
+            }
           },
           "created_at": {
             "type": "integer"
           },
           "read_at": {
             "type": "integer"
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 2000
           }
         }
       },
@@ -21893,7 +23637,10 @@
         "additionalProperties": false,
         "required": [
           "items",
-          "unread"
+          "unread",
+          "total",
+          "page",
+          "page_size"
         ],
         "properties": {
           "items": {
@@ -21904,6 +23651,19 @@
           },
           "unread": {
             "type": "integer"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
           }
         }
       },
@@ -23500,30 +25260,34 @@
         "properties": {
           "name": {
             "type": "string",
-            "maxLength": 80,
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "role_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
           },
           "expires_in_days": {
             "type": "integer",
-            "minimum": 1,
-            "maximum": 365
+            "enum": [
+              0,
+              1,
+              7,
+              30,
+              90
+            ]
           },
-          "operation_ids": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "maxLength": 128,
-              "minLength": 1
-            },
-            "minItems": 1,
-            "maxItems": 128,
-            "uniqueItems": true
+          "remark": {
+            "type": "string",
+            "maxLength": 500
           }
         },
         "required": [
           "name",
+          "role_id",
           "expires_in_days",
-          "operation_ids"
+          "remark"
         ]
       },
       "PersonalToken": {
@@ -23550,12 +25314,25 @@
           "revoked": {
             "type": "boolean"
           },
-          "operation_ids": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "maxLength": 128
-            }
+          "user_id": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "username": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "role_id": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "role_name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "remark": {
+            "type": "string",
+            "maxLength": 500
           }
         },
         "required": [
@@ -23565,7 +25342,11 @@
           "expires_at",
           "last_used_at",
           "revoked",
-          "operation_ids"
+          "user_id",
+          "username",
+          "role_id",
+          "role_name",
+          "remark"
         ]
       },
       "PersonalTokenCreated": {
@@ -23594,25 +25375,22 @@
             "items": {
               "$ref": "#/components/schemas/PersonalToken"
             }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
           }
         },
         "required": [
-          "items"
-        ]
-      },
-      "TokenScopeList": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/APIOperation"
-            }
-          }
-        },
-        "required": [
-          "items"
+          "items",
+          "total",
+          "page",
+          "page_size"
         ]
       },
       "ClientTokenPairResponse": {
@@ -23711,7 +25489,203 @@
           }
         }
       },
-      "TokenScopeListResponse": {
+      "PersonalTokenRenewInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "expires_in_days": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              7,
+              30,
+              90
+            ]
+          }
+        },
+        "required": [
+          "expires_in_days"
+        ]
+      },
+      "AdminPersonalTokenInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "role_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "expires_in_days": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              7,
+              30,
+              90
+            ]
+          },
+          "remark": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "user_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "name",
+          "role_id",
+          "expires_in_days",
+          "remark",
+          "user_id"
+        ]
+      },
+      "InboxAction": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "label"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "href": {
+            "type": "string",
+            "maxLength": 512
+          }
+        }
+      },
+      "McpLimits": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "default_timeout_seconds",
+          "max_request_bytes",
+          "max_result_bytes",
+          "global_concurrency",
+          "user_concurrency",
+          "credential_concurrency",
+          "user_calls_per_minute",
+          "credential_calls_per_minute",
+          "log_retention_days"
+        ],
+        "properties": {
+          "default_timeout_seconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 120,
+            "description": "Default tool timeout"
+          },
+          "max_request_bytes": {
+            "type": "integer",
+            "minimum": 1024,
+            "maximum": 4194304,
+            "description": "Request body bound"
+          },
+          "max_result_bytes": {
+            "type": "integer",
+            "minimum": 1024,
+            "maximum": 1048576,
+            "description": "Result bound"
+          },
+          "global_concurrency": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 256,
+            "description": "Instance-wide concurrent calls"
+          },
+          "user_concurrency": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 32,
+            "description": "Per-user concurrent calls"
+          },
+          "credential_concurrency": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Per-credential concurrent calls"
+          },
+          "user_calls_per_minute": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000,
+            "description": "Per-user rate budget"
+          },
+          "credential_calls_per_minute": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000,
+            "description": "Per-credential rate budget"
+          },
+          "log_retention_days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 180,
+            "description": "Call metadata retention"
+          }
+        }
+      },
+      "McpOauthAuthorizeView": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "client_id",
+          "client_name",
+          "scopes",
+          "roles",
+          "resource"
+        ],
+        "properties": {
+          "client_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "client_name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 32
+            }
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoleOption"
+            }
+          },
+          "resource": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "state": {
+            "type": "string",
+            "maxLength": 256
+          }
+        }
+      },
+      "McpOauthAuthorizeViewResponse": {
         "type": "object",
         "additionalProperties": false,
         "required": [
@@ -23728,10 +25702,1202 @@
             "type": "string"
           },
           "data": {
-            "$ref": "#/components/schemas/TokenScopeList"
+            "$ref": "#/components/schemas/McpOauthAuthorizeView"
           },
           "request_id": {
             "type": "string"
+          }
+        }
+      },
+      "McpOauthConsentInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "client_id",
+          "redirect_uri",
+          "role_id"
+        ],
+        "properties": {
+          "client_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "redirect_uri": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "scope": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "state": {
+            "type": "string",
+            "maxLength": 256
+          },
+          "code_challenge": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "code_challenge_method": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "resource": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "role_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          }
+        }
+      },
+      "McpOauthConsentResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "redirect_uri",
+          "expires_in"
+        ],
+        "properties": {
+          "redirect_uri": {
+            "type": "string",
+            "maxLength": 2400
+          },
+          "expires_in": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 600
+          }
+        }
+      },
+      "McpOauthConsentResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/McpOauthConsentResult"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "McpOauthGrant": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "client_id",
+          "client_name",
+          "role_id",
+          "role_name",
+          "scopes",
+          "created_at",
+          "last_used_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "client_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "client_name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "role_id": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "role_name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 32
+            }
+          },
+          "created_at": {
+            "type": "integer"
+          },
+          "last_used_at": {
+            "type": "integer"
+          }
+        }
+      },
+      "McpOauthGrantList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/McpOauthGrant"
+            }
+          }
+        }
+      },
+      "McpOauthGrantListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/McpOauthGrantList"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "McpOauthClient": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "client_type",
+          "redirect_uris",
+          "enabled",
+          "has_secret",
+          "version",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "client_type": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "redirect_uris": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 2048
+            }
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "has_secret": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "created_at": {
+            "type": "integer"
+          },
+          "updated_at": {
+            "type": "integer"
+          }
+        }
+      },
+      "McpOauthClientList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/McpOauthClient"
+            }
+          }
+        }
+      },
+      "McpOauthClientListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/McpOauthClientList"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "McpOauthClientCreateInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "client_type",
+          "redirect_uris"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "client_type": {
+            "type": "string",
+            "enum": [
+              "public",
+              "confidential"
+            ]
+          },
+          "redirect_uris": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            }
+          }
+        }
+      },
+      "McpOauthClientCreated": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "client",
+          "secret"
+        ],
+        "properties": {
+          "client": {
+            "$ref": "#/components/schemas/McpOauthClient"
+          },
+          "secret": {
+            "type": "string",
+            "maxLength": 128
+          }
+        }
+      },
+      "McpOauthClientCreatedResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/McpOauthClientCreated"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "McpOauthClientUpdateInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "redirect_uris",
+          "enabled",
+          "expected_version"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "redirect_uris": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            }
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "expected_version": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "McpOauthClientResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/McpOauthClient"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "McpOauthClientSecret": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "secret"
+        ],
+        "properties": {
+          "secret": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        }
+      },
+      "McpOauthClientSecretResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/McpOauthClientSecret"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "McpOauthAdminGrant": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "user_id",
+          "username",
+          "role_id",
+          "role_name",
+          "scopes",
+          "created_at",
+          "last_used_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "user_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "username": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "role_id": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "role_name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 32
+            }
+          },
+          "created_at": {
+            "type": "integer"
+          },
+          "last_used_at": {
+            "type": "integer"
+          }
+        }
+      },
+      "McpOauthAdminGrantList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/McpOauthAdminGrant"
+            }
+          }
+        }
+      },
+      "McpOauthAdminGrantListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/McpOauthAdminGrantList"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "McpConfig": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "revision",
+          "enabled",
+          "pat_enabled",
+          "oauth_enabled",
+          "write_enabled",
+          "endpoint",
+          "supported_protocols",
+          "implemented_capabilities",
+          "limits",
+          "allowed_origins"
+        ],
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "CAS revision of the governance control"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "pat_enabled": {
+            "type": "boolean"
+          },
+          "oauth_enabled": {
+            "type": "boolean"
+          },
+          "write_enabled": {
+            "type": "boolean"
+          },
+          "endpoint": {
+            "type": "string",
+            "maxLength": 2048,
+            "description": "Trusted base URL derived /mcp address"
+          },
+          "supported_protocols": {
+            "type": "array",
+            "maxItems": 8,
+            "items": {
+              "type": "string",
+              "maxLength": 16
+            }
+          },
+          "implemented_capabilities": {
+            "type": "array",
+            "maxItems": 8,
+            "items": {
+              "type": "string",
+              "maxLength": 32
+            }
+          },
+          "limits": {
+            "$ref": "#/components/schemas/McpLimits"
+          },
+          "allowed_origins": {
+            "type": "string",
+            "maxLength": 2048
+          }
+        }
+      },
+      "McpConfigResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/McpConfig"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "McpConfigPatch": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "expected_revision"
+        ],
+        "properties": {
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "pat_enabled": {
+            "type": "boolean"
+          },
+          "oauth_enabled": {
+            "type": "boolean"
+          },
+          "write_enabled": {
+            "type": "boolean"
+          },
+          "default_timeout_seconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 120,
+            "description": ""
+          },
+          "max_request_bytes": {
+            "type": "integer",
+            "minimum": 1024,
+            "maximum": 4194304,
+            "description": ""
+          },
+          "max_result_bytes": {
+            "type": "integer",
+            "minimum": 1024,
+            "maximum": 1048576,
+            "description": ""
+          },
+          "global_concurrency": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 256,
+            "description": ""
+          },
+          "user_concurrency": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 32,
+            "description": ""
+          },
+          "credential_concurrency": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16,
+            "description": ""
+          },
+          "user_calls_per_minute": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000,
+            "description": ""
+          },
+          "credential_calls_per_minute": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000,
+            "description": ""
+          },
+          "log_retention_days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 180,
+            "description": ""
+          },
+          "allowed_origins": {
+            "type": "string",
+            "maxLength": 2048
+          }
+        }
+      },
+      "McpPolicy": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enabled",
+          "accepted_fingerprint",
+          "accepted_version",
+          "version"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "accepted_fingerprint": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "accepted_version": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "McpTool": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "module",
+          "version",
+          "impl_version",
+          "title_zh",
+          "title_en",
+          "description_zh",
+          "description_en",
+          "operation_ids",
+          "effect",
+          "confirmation",
+          "fingerprint",
+          "policy",
+          "state"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 96
+          },
+          "module": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "version": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "impl_version": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "title_zh": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "title_en": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "description_zh": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "description_en": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "operation_ids": {
+            "type": "array",
+            "maxItems": 16,
+            "items": {
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          "effect": {
+            "type": "string",
+            "enum": [
+              "read",
+              "write",
+              "destructive"
+            ]
+          },
+          "confirmation": {
+            "type": "string",
+            "enum": [
+              "none",
+              "required"
+            ]
+          },
+          "fingerprint": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "policy": {
+            "$ref": "#/components/schemas/McpPolicy"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "unreviewed",
+              "disabled",
+              "open",
+              "needs_review",
+              "module_missing"
+            ]
+          }
+        }
+      },
+      "McpToolResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/McpTool"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "McpToolList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "total"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/McpTool"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "McpToolListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/McpToolList"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "McpPolicyPatch": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "expected_version",
+          "expected_fingerprint",
+          "enabled"
+        ],
+        "properties": {
+          "expected_version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "expected_fingerprint": {
+            "type": "string",
+            "minLength": 64,
+            "maxLength": 64
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "McpCall": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "request_id",
+          "started_at",
+          "finished_at",
+          "duration_ms",
+          "status",
+          "error_code",
+          "actor_id",
+          "actor_name",
+          "credential_name",
+          "credential_deleted",
+          "role_id",
+          "auth_method",
+          "kind",
+          "name",
+          "capability_version",
+          "policy_revision",
+          "protocol_version",
+          "client_name",
+          "client_version"
+        ],
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "started_at": {
+            "type": "integer"
+          },
+          "finished_at": {
+            "type": "integer"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "status": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "error_code": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "actor_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "actor_name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "credential_name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "credential_deleted": {
+            "type": "boolean"
+          },
+          "role_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "auth_method": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "kind": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "capability_version": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "policy_revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "protocol_version": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "client_name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "client_version": {
+            "type": "string",
+            "maxLength": 40
+          }
+        }
+      },
+      "McpCallList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/McpCall"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "McpCallListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/McpCallList"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "McpCallResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/McpCall"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "McpAccessInfo": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enabled",
+          "endpoint",
+          "supported_protocols",
+          "access_granted"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "endpoint": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "supported_protocols": {
+            "type": "array",
+            "maxItems": 8,
+            "items": {
+              "type": "string",
+              "maxLength": 16
+            }
+          },
+          "access_granted": {
+            "type": "boolean"
+          }
+        }
+      },
+      "McpAccessInfoResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/McpAccessInfo"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "SettingOption": {
+        "type": "object",
+        "required": [
+          "value",
+          "label",
+          "label_en"
+        ],
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "label_en": {
+            "type": "string"
+          }
+        }
+      },
+      "SettingGroup": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "label_en",
+          "description",
+          "description_en",
+          "order"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "label_en": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "description_en": {
+            "type": "string"
+          },
+          "order": {
+            "type": "integer"
           }
         }
       }
@@ -24018,6 +27184,18 @@
     "NOTIFICATION_CHANNEL_NOT_READY": {
       "status": 400,
       "message": "请先配置、启用并保存通知渠道"
+    },
+    "MCP_CONFLICT": {
+      "status": 409,
+      "message": "配置或策略已被其他管理员修改，请刷新后重试"
+    },
+    "MCP_UNAVAILABLE": {
+      "status": 503,
+      "message": "MCP 服务当前不可用"
+    },
+    "MCP_OAUTH_FORBIDDEN": {
+      "status": 403,
+      "message": "所选角色不属于当前账号"
     }
   }
 }

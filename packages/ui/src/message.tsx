@@ -75,7 +75,7 @@ function MessageViewport({ items, dismiss }: { items: MessageItem[]; dismiss: (i
           data-message-type={item.type} role={item.type === 'error' || item.type === 'warning' ? 'alert' : 'status'} aria-atomic="true">
           <Icon size={17} aria-hidden="true" className="shrink-0" />
           <span className="text-sm text-ink">{item.content}</span>
-          <button type="button" aria-label={t('关闭消息')} onClick={() => dismiss(item.id)} className="ms-1 rounded-sm p-0.5 text-muted transition-colors hover:bg-surface-alt hover:text-ink">
+          <button type="button" aria-label={t('关闭消息')} onClick={() => dismiss(item.id)} className="ms-1 rounded-sm p-0.5 text-muted transition-colors hover:bg-surface-hover hover:text-ink">
             <X size={13} aria-hidden="true" />
           </button>
         </div>;

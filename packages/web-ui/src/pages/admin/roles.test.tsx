@@ -6,7 +6,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { expect, it, vi } from 'vitest';
 import { MessageProvider } from '@unicore/ui';
-import type { AppClient, Bootstrap } from '@unicore/sdk';
+import { AppError, type AppClient, type Bootstrap } from '@unicore/sdk';
 import { AdminRolesPage } from './roles';
 import type { PageProps } from '../../router';
 
@@ -25,10 +25,10 @@ const permissions = [
 
 const rolesPayload = () => ({
   items: [
-    { id: 'super_admin', name: '超级管理员', builtin: true, permissions: ['roles:write'], user_count: 1, realm: 'administrator', data_scope: 'all', menu_ids: [], action_ids: [], operation_ids: [], authorization_initialized: true },
-    { id: 'ops-admin', name: '内容运营', builtin: false, permissions: ['users:read'], user_count: 2, realm: 'administrator', data_scope: 'self', menu_ids: ['n-users'], action_ids: [], operation_ids: ['listUsers'], authorization_initialized: true },
-    { id: 'user', name: '用户', builtin: true, permissions: ['files:access'], user_count: 5, realm: 'user', data_scope: 'self', menu_ids: [], action_ids: [], operation_ids: [], authorization_initialized: true },
-    { id: 'recorder', name: '记录员', builtin: false, permissions: ['notes:access'], user_count: 3, realm: 'user', data_scope: 'custom', department_ids: ['d1'], menu_ids: ['n-notes'], action_ids: ['n-act-notes'], operation_ids: ['listNotes'], authorization_initialized: true },
+    { id: 'super_admin', name: '超级管理员', version: 4, builtin: true, permissions: ['roles:write'], user_count: 1, realm: 'administrator', data_scope: 'all', menu_ids: [], action_ids: [], operation_ids: [], authorization_initialized: true },
+    { id: 'ops-admin', name: '内容运营', version: 4, builtin: false, permissions: ['users:read'], user_count: 2, realm: 'administrator', data_scope: 'self', menu_ids: ['n-users'], action_ids: [], operation_ids: ['listUsers'], authorization_initialized: true },
+    { id: 'user', name: '用户', version: 4, builtin: true, permissions: ['files:access'], user_count: 5, realm: 'user', data_scope: 'self', menu_ids: [], action_ids: [], operation_ids: [], authorization_initialized: true },
+    { id: 'recorder', name: '记录员', version: 4, builtin: false, permissions: ['notes:access'], user_count: 3, realm: 'user', data_scope: 'custom', department_ids: ['d1'], menu_ids: ['n-notes'], action_ids: ['n-act-notes'], operation_ids: ['listNotes'], authorization_initialized: true },
   ],
   permissions,
 });
@@ -93,14 +93,14 @@ it('lists all roles together and shows member counts per role', async () => {
   mount(metadata(['roles:read', 'roles:write']), baseWeb());
   expect(await screen.findByText('记录员')).toBeVisible();
   expect(screen.getByText('内容运营')).toBeVisible();
-  expect(screen.getByText('超级管理员')).toBeVisible();
+  expect(screen.getByText('super_admin')).toBeVisible();
   expect(screen.getByText('全部')).toBeVisible();
   expect(screen.getByText('自定义 · 1 个部门')).toBeVisible();
   expect(screen.getByRole('row', { name: /内容运营/ })).toHaveTextContent('2');
 });
 
 it('keeps menu and dictionary grants selectable while super-only points stay locked in the advanced catalogue', async () => {
-  const createRole = vi.fn().mockResolvedValue({ id: 'ops-admin', name: '内容运营', builtin: false, permissions: ['menus:write'], user_count: 0, realm: 'administrator', menu_ids: [], action_ids: [], operation_ids: [], authorization_initialized: true });
+  const createRole = vi.fn().mockResolvedValue({ id: 'ops-admin', name: '内容运营', version: 4, builtin: false, permissions: ['menus:write'], user_count: 0, realm: 'administrator', menu_ids: [], action_ids: [], operation_ids: [], authorization_initialized: true });
   mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole }));
   await screen.findByText('记录员');
   const dialog = await openEditor('新建角色');
@@ -142,7 +142,7 @@ it('renders the matrix grouped by catalogue group with action-point descriptions
 });
 
 it('saves an untouched editor with empty authorization arrays instead of an all-access backdoor', async () => {
-  const createRole = vi.fn().mockResolvedValue({ id: 'empty', name: '空授权', builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: [], action_ids: [], operation_ids: [], authorization_initialized: true });
+  const createRole = vi.fn().mockResolvedValue({ id: 'empty', name: '空授权', version: 4, builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: [], action_ids: [], operation_ids: [], authorization_initialized: true });
   mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole }));
   await screen.findByText('记录员');
   const dialog = await openEditor('新建角色');
@@ -154,7 +154,7 @@ it('saves an untouched editor with empty authorization arrays instead of an all-
 });
 
 it('authorizes menu trees per realm surface where directories aggregate their descendants', async () => {
-  const createRole = vi.fn().mockResolvedValue({ id: 'menu-role', name: '菜单角色', builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: ['n-dir', 'n-child'], action_ids: [], operation_ids: [], authorization_initialized: true });
+  const createRole = vi.fn().mockResolvedValue({ id: 'menu-role', name: '菜单角色', version: 4, builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: ['n-dir', 'n-child'], action_ids: [], operation_ids: [], authorization_initialized: true });
   mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole }));
   await screen.findByText('记录员');
   const dialog = await openEditor('新建角色');
@@ -173,7 +173,7 @@ it('authorizes menu trees per realm surface where directories aggregate their de
 });
 
 it('completes the ancestor chain and shows the indeterminate state on partially granted directories', async () => {
-  const createRole = vi.fn().mockResolvedValue({ id: 'child-role', name: '子页角色', builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: ['n-dir', 'n-child'], action_ids: [], operation_ids: [], authorization_initialized: true });
+  const createRole = vi.fn().mockResolvedValue({ id: 'child-role', name: '子页角色', version: 4, builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: ['n-dir', 'n-child'], action_ids: [], operation_ids: [], authorization_initialized: true });
   mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole }));
   await screen.findByText('记录员');
   const dialog = await openEditor('新建角色');
@@ -210,7 +210,7 @@ it('collapses branches and locates nodes through search', async () => {
 });
 
 it('locates unnamed menu nodes through the navigation display fallback', async () => {
-  const createRole = vi.fn().mockResolvedValue({ id: 'fallback', name: '回退角色', builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: ['n-unnamed-files', 'n-raw'], action_ids: [], operation_ids: [], authorization_initialized: true });
+  const createRole = vi.fn().mockResolvedValue({ id: 'fallback', name: '回退角色', version: 4, builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: ['n-unnamed-files', 'n-raw'], action_ids: [], operation_ids: [], authorization_initialized: true });
   mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole }));
   await screen.findByText('记录员');
   const dialog = await openEditor('新建角色');
@@ -228,7 +228,7 @@ it('locates unnamed menu nodes through the navigation display fallback', async (
 });
 
 it('echoes saved menu authorization through the same tree when editing', async () => {
-  const updateRole = vi.fn().mockResolvedValue({ id: 'recorder', name: '记录员', builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: ['n-dir', 'n-child'], action_ids: [], operation_ids: [], authorization_initialized: true });
+  const updateRole = vi.fn().mockResolvedValue({ id: 'recorder', name: '记录员', version: 4, builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: ['n-dir', 'n-child'], action_ids: [], operation_ids: [], authorization_initialized: true });
   mount(metadata(['roles:read', 'roles:write']), baseWeb({ updateRole }));
   await screen.findByText('记录员');
   const editDialog = await openEditor('编辑角色 记录员');
@@ -238,7 +238,7 @@ it('echoes saved menu authorization through the same tree when editing', async (
 });
 
 it('copies a role into a prefilled create editor with its grants', async () => {
-  const createRole = vi.fn().mockResolvedValue({ id: 'copy', name: '记录员 副本', builtin: false, permissions: ['notes:access'], user_count: 0, realm: 'user', menu_ids: ['n-notes'], action_ids: [], operation_ids: ['listNotes'], authorization_initialized: true });
+  const createRole = vi.fn().mockResolvedValue({ id: 'copy', name: '记录员 副本', version: 4, builtin: false, permissions: ['notes:access'], user_count: 0, realm: 'user', menu_ids: ['n-notes'], action_ids: [], operation_ids: ['listNotes'], authorization_initialized: true });
   mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole }));
   await screen.findByText('记录员');
   const dialog = await openEditor('复制角色 记录员');
@@ -257,7 +257,7 @@ it('copies a role into a prefilled create editor with its grants', async () => {
 });
 
 it('authorizes page actions grouped by label with their permission point and linked operations', async () => {
-  const createRole = vi.fn().mockResolvedValue({ id: 'act-role', name: '动作角色', builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: [], action_ids: ['n-act-notes', 'n-act-notes-2'], operation_ids: ['listNotes'], authorization_initialized: true });
+  const createRole = vi.fn().mockResolvedValue({ id: 'act-role', name: '动作角色', version: 4, builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: [], action_ids: ['n-act-notes', 'n-act-notes-2'], operation_ids: ['listNotes'], authorization_initialized: true });
   mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole }));
   await screen.findByText('记录员');
   const dialog = await openEditor('新建角色');
@@ -284,7 +284,7 @@ it('authorizes page actions grouped by label with their permission point and lin
 });
 
 it('grants APIs from the page surfaces regardless of role category', async () => {
-  const createRole = vi.fn().mockResolvedValue({ id: 'api-role', name: '接口角色', builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: [], action_ids: [], operation_ids: ['listNotes'], authorization_initialized: true });
+  const createRole = vi.fn().mockResolvedValue({ id: 'api-role', name: '接口角色', version: 4, builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: [], action_ids: [], operation_ids: ['listNotes'], authorization_initialized: true });
   mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole }));
   await screen.findByText('记录员');
   const dialog = await openEditor('新建角色');
@@ -348,16 +348,17 @@ const departmentsPayload = () => ({
 });
 
 it('exposes the five user data scopes with a department tree for the custom scope', async () => {
-  const createRole = vi.fn().mockResolvedValue({ id: 'scoped', name: '区域角色', builtin: false, permissions: [], user_count: 0, realm: 'user', data_scope: 'custom', department_ids: ['d3'], menu_ids: [], action_ids: [], operation_ids: [], authorization_initialized: true });
+  const createRole = vi.fn().mockResolvedValue({ id: 'scoped', name: '区域角色', version: 4, builtin: false, permissions: [], user_count: 0, realm: 'user', data_scope: 'custom', department_ids: ['d3'], menu_ids: [], action_ids: [], operation_ids: [], authorization_initialized: true });
   mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole, listDepartments: vi.fn().mockResolvedValue(departmentsPayload()) }));
   await screen.findByText('记录员');
   const dialog = await openEditor('新建角色');
   const scope = within(dialog).getByLabelText('数据范围');
-  expect(scope).toHaveValue('self');
-  expect(within(scope).getAllByRole('option').map(option => option.textContent)).toEqual(['仅本人', '本部门', '本部门及以下', '自定义', '全部']);
+  expect(scope).toHaveTextContent('仅本人');
+  await userEvent.click(scope);
+  expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual(['仅本人', '本部门', '本部门及以下', '自定义', '全部']);
   // The department tree only opens for the custom scope.
   expect(within(dialog).queryByRole('group', { name: '自定义部门范围' })).toBeNull();
-  await userEvent.selectOptions(scope, 'custom');
+  await userEvent.click(screen.getByRole('option', { name: '自定义' }));
   const tree = within(dialog).getByRole('group', { name: '自定义部门范围' });
   await userEvent.click(within(tree).getByRole('checkbox', { name: '前端组' }));
   expect(within(tree).getByRole('checkbox', { name: '研发部' })).not.toBeChecked();
@@ -367,11 +368,11 @@ it('exposes the five user data scopes with a department tree for the custom scop
 });
 
 it('allows management roles to configure their data scope', async () => {
-  const createRole = vi.fn().mockResolvedValue({ id: 'ops2', name: '内容运营二', builtin: false, permissions: ['users:read'], user_count: 0, realm: 'administrator', data_scope: 'self', department_ids: [], menu_ids: [], action_ids: [], operation_ids: [], authorization_initialized: true });
+  const createRole = vi.fn().mockResolvedValue({ id: 'ops2', name: '内容运营二', version: 4, builtin: false, permissions: ['users:read'], user_count: 0, realm: 'administrator', data_scope: 'self', department_ids: [], menu_ids: [], action_ids: [], operation_ids: [], authorization_initialized: true });
   mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole, listDepartments: vi.fn() }));
   await screen.findByText('记录员');
   const dialog = await openEditor('新建角色');
-  expect(within(dialog).getByLabelText('数据范围')).toHaveValue('self');
+  expect(within(dialog).getByLabelText('数据范围')).toHaveTextContent('仅本人');
   expect(within(dialog).queryByRole('group', { name: '自定义部门范围' })).toBeNull();
   await userEvent.type(within(dialog).getByLabelText('角色名称'), '内容运营二');
   const points = await openAdvanced(dialog);
@@ -390,10 +391,11 @@ it('echoes a saved custom scope with its department selection when editing', asy
   mount(metadata(['roles:read', 'roles:write']), { roles, updateRole, listDepartments: vi.fn().mockResolvedValue(departmentsPayload()), menuConfig: vi.fn().mockImplementation(menuConfig) });
   await screen.findByText('记录员');
   const dialog = await openEditor('编辑角色 记录员');
-  expect(within(dialog).getByLabelText('数据范围')).toHaveValue('custom');
+  expect(within(dialog).getByLabelText('数据范围')).toHaveTextContent('自定义');
   expect(within(dialog).getByRole('checkbox', { name: '前端组' })).toBeChecked();
   // Switching away from custom empties the department selection in the payload.
-  await userEvent.selectOptions(within(dialog).getByLabelText('数据范围'), 'self');
+  await userEvent.click(within(dialog).getByLabelText('数据范围'));
+  await userEvent.click(screen.getByRole('option', { name: '仅本人' }));
   await userEvent.click(within(dialog).getByRole('button', { name: '保存' }));
   await vi.waitFor(() => expect(updateRole).toHaveBeenCalledWith('recorder', expect.objectContaining({ data_scope: 'self', department_ids: [] })));
 });
@@ -401,7 +403,7 @@ it('echoes a saved custom scope with its department selection when editing', asy
 it('drops dependent buttons when an API operation is unchecked instead of failing silently at save', async () => {
   // Unchecking createNote used to leave the 新建 button checked in the tree
   // while the submit filters dropped it (and its implied point) silently.
-  const createRole = vi.fn().mockResolvedValue({ id: 'x', name: '运营', builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: [], action_ids: [], operation_ids: [], authorization_initialized: true });
+  const createRole = vi.fn().mockResolvedValue({ id: 'x', name: '运营', version: 4, builtin: false, permissions: [], user_count: 0, realm: 'user', menu_ids: [], action_ids: [], operation_ids: [], authorization_initialized: true });
   mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole }));
   await screen.findByText('记录员');
   const dialog = await openEditor('新建角色');
@@ -424,6 +426,67 @@ it('drops dependent buttons when an API operation is unchecked instead of failin
   // The untouched grants survive the prune.
   expect(input.operation_ids).toContain('listNotes');
   expect(input.permissions).toContain('notes:access');
+});
+
+it('does not open an empty permission editor before the role catalogue loads', async () => {
+  mount(metadata(['roles:read', 'roles:write']), baseWeb({ roles: () => new Promise(() => {}) }));
+  const create = screen.getByRole('button', { name: '新建角色' });
+  expect(create).toBeDisabled();
+  await userEvent.click(create);
+  expect(screen.queryByRole('dialog')).toBeNull();
+});
+
+it('keeps create disabled on initial role catalogue failure until a successful retry', async () => {
+  const roles = vi.fn().mockRejectedValueOnce(new Error('角色目录失败')).mockResolvedValue(rolesPayload());
+  mount(metadata(['roles:read', 'roles:write']), baseWeb({ roles }));
+  await screen.findByText('角色目录失败');
+  expect(screen.getByRole('button', { name: '新建角色' })).toBeDisabled();
+  await userEvent.click(screen.getByRole('button', { name: '重试' }));
+  await screen.findByText('记录员');
+  expect(screen.getByRole('button', { name: '新建角色' })).toBeEnabled();
+});
+
+it('locks builtin user scope but leaves copies editable and omits create versions', async () => {
+  const createRole = vi.fn().mockResolvedValue({});
+  mount(metadata(['roles:read', 'roles:write']), baseWeb({ createRole }));
+  await userEvent.click(await screen.findByRole('button', { name: '编辑角色 用户' }));
+  const edit = screen.getByRole('dialog', { name: '编辑角色' });
+  expect(within(edit).getByLabelText('数据范围')).toBeDisabled();
+  expect(within(edit).getByLabelText('数据范围')).toHaveTextContent('仅本人');
+  await userEvent.click(within(edit).getByRole('button', { name: '取消' }));
+  await userEvent.click(screen.getByRole('button', { name: '复制角色 用户' }));
+  const copy = screen.getByRole('dialog', { name: '新建角色' });
+  expect(within(copy).getByLabelText('数据范围')).toBeEnabled();
+  await userEvent.click(within(copy).getByRole('button', { name: '保存' }));
+  await vi.waitFor(() => expect(createRole).toHaveBeenCalled());
+  expect(createRole.mock.calls[0][0]).not.toHaveProperty('version');
+});
+
+it('preserves a conflicting role draft until an explicit confirmed refresh and never replays it', async () => {
+  const payload = rolesPayload();
+  const roles = vi.fn().mockResolvedValue(payload);
+  const updateRole = vi.fn().mockRejectedValueOnce(new AppError('ENTITY_CONFLICT', '记录已被修改，请刷新后重试')).mockResolvedValue({});
+  mount(metadata(['roles:read', 'roles:write']), baseWeb({ roles, updateRole }));
+  await screen.findByText('记录员');
+  const dialog = await openEditor('编辑角色 记录员');
+  await userEvent.clear(within(dialog).getByLabelText('角色名称'));
+  await userEvent.type(within(dialog).getByLabelText('角色名称'), '未保存草稿');
+  await userEvent.click(within(dialog).getByRole('button', { name: '保存' }));
+  await vi.waitFor(() => expect(updateRole).toHaveBeenCalledWith('recorder', expect.objectContaining({ version: 4, name: '未保存草稿' })));
+  expect(within(dialog).getByLabelText('角色名称')).toHaveValue('未保存草稿');
+  expect(within(dialog).getByRole('button', { name: '保存' })).toBeDisabled();
+  await userEvent.click(within(dialog).getByRole('button', { name: '刷新角色并重新确认' }));
+  let confirm = screen.getByRole('alertdialog', { name: '刷新角色并重新确认' });
+  await userEvent.click(within(confirm).getByRole('button', { name: '保留草稿' }));
+  expect(within(dialog).getByLabelText('角色名称')).toHaveValue('未保存草稿');
+  roles.mockResolvedValue({ ...payload, items: payload.items.map(role => role.id === 'recorder' ? { ...role, name: '最新记录员', version: 9 } : role) });
+  await userEvent.click(within(dialog).getByRole('button', { name: '刷新角色并重新确认' }));
+  confirm = screen.getByRole('alertdialog', { name: '刷新角色并重新确认' });
+  await userEvent.click(within(confirm).getByRole('button', { name: '确认刷新' }));
+  await vi.waitFor(() => expect(within(dialog).getByLabelText('角色名称')).toHaveValue('最新记录员'));
+  expect(updateRole).toHaveBeenCalledTimes(1);
+  await userEvent.click(within(dialog).getByRole('button', { name: '保存' }));
+  await vi.waitFor(() => expect(updateRole).toHaveBeenLastCalledWith('recorder', expect.objectContaining({ version: 9, name: '最新记录员' })));
 });
 
 it('revokes a derived permission and its API while preserving an unrelated API-only grant', async () => {

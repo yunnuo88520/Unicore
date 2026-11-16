@@ -2,14 +2,14 @@
  * Description: Shared UI client; pages know neither fetch nor Wails globals.
  */
 import {fileFingerprint,retryDelay} from './upload';
-import type { MultipartUploadInput, PersonalTokenInput, PersonalToken, PersonalTokenList, PersonalTokenCreated, TokenScopeList, ClientTokenPair, ClientTokenLogin, NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, ProfileInput, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, LogTailList, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, FileListResponse, FileEntryResponse, UploadPolicyResponse, MultipartUploadResponse, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, AdminPasswordResetInput, AdminPasswordReset, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, RoleSaveInput, MenuEntry, MenuList, MenuSaveInput, MenuRoleAssignmentInput, NavigationSection, NavigationNode, NavigationPage, NavigationRoleAssignment, Navigation, APIOperation, APIOperationList, Post, PostList, PostSaveInput, NoteCapabilities, FileCapabilities, DictionarySummary, DictionaryList, DictionaryItemEntry, DictionaryDetail, DictionaryCreateInput, DictionaryUpdateInput, DictionaryItemsInput, Department, DepartmentList, DepartmentSaveInput, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput, TaskList, TaskEntry, TaskUpdateInput, TaskTrigger, TaskCreateInput, TaskEditInput, TaskRunList, ActionResult, InboxList, FileUploadInput, FileUploadGrant, MonitorSnapshot, MonitorSnapshotResponse, MonitorEventList, MonitorEvent, MonitorEventListResponse, MonitorAlertRules, MonitorAlertRule, MonitorAlertRulesResponse } from '@unicore/contracts';
+import type { InboxListResponse, MultipartUploadInput, PersonalTokenInput, PersonalToken, PersonalTokenList, PersonalTokenCreated, AdminPersonalTokenInput, PersonalTokenRenewInput, ClientTokenPair, ClientTokenLogin, NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, ProfileInput, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, LogTailList, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, FileListResponse, FileEntryResponse, UploadPolicyResponse, MultipartUploadResponse, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, AdminPasswordResetInput, AdminPasswordReset, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, RoleSaveInput, MenuEntry, MenuList, MenuSaveInput, MenuRoleAssignmentInput, NavigationSection, NavigationNode, NavigationPage, NavigationRoleAssignment, Navigation, APIOperation, APIOperationList, Post, PostList, PostSaveInput, NoteCapabilities, FileCapabilities, DictionarySummary, DictionaryList, DictionaryItemEntry, DictionaryDetail, DictionaryCreateInput, DictionaryUpdateInput, DictionaryItemsInput, Department, DepartmentList, DepartmentSaveInput, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput, TaskList, TaskEntry, TaskUpdateInput, TaskTrigger, TaskCreateInput, TaskEditInput, TaskRunList, ActionResult, InboxList, FileUploadInput, FileUploadGrant, MonitorSnapshot, MonitorSnapshotResponse, MonitorEventList, MonitorEvent, MonitorEventListResponse, MonitorAlertRules, MonitorAlertRule, MonitorAlertRulesResponse, McpConfig, McpConfigPatch, McpLimits, McpTool, McpToolList, McpPolicy, McpPolicyPatch, McpCall, McpCallList, McpAccessInfo, McpOauthAuthorizeView, McpOauthConsentInput, McpOauthConsentResult, McpOauthGrantList, McpOauthClient, McpOauthClientList, McpOauthClientCreateInput, McpOauthClientCreated, McpOauthClientUpdateInput, McpOauthClientSecret, McpOauthAdminGrantList } from '@unicore/contracts';
 import { operations, type OperationId, type OperationInputs, type OperationData } from '@unicore/contracts/operations';
 import { validate, type SchemaName } from '@unicore/contracts/validate';
 export { validate, constraints, type SchemaName } from '@unicore/contracts/validate';
 export { constraintsToZod, zodFieldErrors } from '@unicore/contracts/zod';
 export { operations, type OperationId } from '@unicore/contracts/operations';
 
-export type { PersonalTokenInput, PersonalToken, PersonalTokenList, PersonalTokenCreated, TokenScopeList, ClientTokenPair, ClientTokenLogin, NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateRelease, NoteEntry, LogTailList, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, AdminPasswordResetInput, AdminPasswordReset, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, DictionaryItemsInput, DictionaryUpdateInput, DictionaryCreateInput, DictionaryDetail, DictionaryItemEntry, DictionaryList, DictionarySummary, MenuSaveInput, MenuRoleAssignmentInput, MenuList, RoleSaveInput, MenuEntry, NavigationSection, NavigationNode, NavigationPage, NavigationRoleAssignment, Navigation, APIOperation, APIOperationList, Post, PostList, PostSaveInput, NoteCapabilities, FileCapabilities, Department, DepartmentList, DepartmentSaveInput, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput, TaskList, TaskEntry, TaskUpdateInput, TaskTrigger, TaskCreateInput, TaskEditInput, TaskRunList, ActionResult, InboxList, InboxEntry, FileUploadInput, FileUploadGrant, MonitorSnapshot, MonitorHttpService, MonitorDatabase, MonitorStorageService, MonitorTasksSummary, MonitorTaskHealth, MonitorEventList, MonitorEvent, MonitorAlertRules, MonitorAlertRule } from '@unicore/contracts';
+export type { PersonalTokenInput, PersonalToken, PersonalTokenList, PersonalTokenCreated, AdminPersonalTokenInput, PersonalTokenRenewInput, ClientTokenPair, ClientTokenLogin, NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateRelease, NoteEntry, LogTailList, NoteInput, NoteUpdate, NoteQuery, NoteList, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, Branding, BrandingInput, Bootstrap, ExecuteInput, ExecuteOutput, Profile, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, AdminPasswordResetInput, AdminPasswordReset, Settings, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, DictionaryItemsInput, DictionaryUpdateInput, DictionaryCreateInput, DictionaryDetail, DictionaryItemEntry, DictionaryList, DictionarySummary, MenuSaveInput, MenuRoleAssignmentInput, MenuList, RoleSaveInput, MenuEntry, NavigationSection, NavigationNode, NavigationPage, NavigationRoleAssignment, Navigation, APIOperation, APIOperationList, Post, PostList, PostSaveInput, NoteCapabilities, FileCapabilities, Department, DepartmentList, DepartmentSaveInput, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput, TaskList, TaskEntry, TaskUpdateInput, TaskTrigger, TaskCreateInput, TaskEditInput, TaskRunList, ActionResult, InboxList, InboxEntry, FileUploadInput, FileUploadGrant, MonitorSnapshot, MonitorHttpService, MonitorDatabase, MonitorStorageService, MonitorTasksSummary, MonitorTaskHealth, MonitorEventList, MonitorEvent, MonitorAlertRules, MonitorAlertRule, McpConfig, McpConfigPatch, McpLimits, McpTool, McpToolList, McpPolicy, McpPolicyPatch, McpCall, McpCallList, McpAccessInfo, McpOauthAuthorizeView, McpOauthConsentInput, McpOauthConsentResult, McpOauthGrantList, McpOauthClient, McpOauthClientList, McpOauthClientCreateInput, McpOauthClientCreated, McpOauthClientUpdateInput, McpOauthClientSecret, McpOauthAdminGrantList } from '@unicore/contracts';
 
 export class AppError extends Error {
   constructor(public readonly code: string, message: string, public readonly requestId = '', public readonly fields: Record<string, string> = {}) { super(message); this.name = 'AppError'; }
@@ -28,7 +28,15 @@ export interface UpdateClient {
  apply(input:UpdateApplyInput):Promise<UpdateJob>;
 }
 
+export interface InboxClient {
+ inbox(page?:number,pageSize?:number):Promise<InboxList>;
+ readInbox(id:string):Promise<InboxList>;
+ readAllInbox():Promise<InboxList>;
+ subscribeEvents(listener:(type:string)=>void):()=>void;
+}
+
 export interface AppClient {
+ notifications?:InboxClient;
  updates?:UpdateClient;
   readonly transport: 'http' | 'wails';
   readonly sessionScope?: 'user' | 'administrator';
@@ -80,11 +88,28 @@ export interface StorageClient {
  cleanupStorage():Promise<{success:boolean}>;
 }
 
-export interface WebClient {
- personalTokens():Promise<PersonalTokenList>;
+export interface WebClient extends InboxClient {
+ personalTokens(search?:string,page?:number):Promise<PersonalTokenList>;
  createPersonalToken(input:PersonalTokenInput):Promise<PersonalTokenCreated>;
  revokePersonalToken(id:string):Promise<ActionResult>;
- personalTokenScopes():Promise<TokenScopeList>;
+ personalTokenRoles():Promise<RoleOptions>;
+ renewPersonalToken(id:string,input:PersonalTokenRenewInput):Promise<ActionResult>;
+ adminPersonalTokens(search?:string,page?:number):Promise<PersonalTokenList>;
+ adminCreatePersonalToken(input:AdminPersonalTokenInput):Promise<PersonalTokenCreated>;
+ adminRevokePersonalToken(id:string):Promise<ActionResult>;
+ adminRenewPersonalToken(id:string,input:PersonalTokenRenewInput):Promise<ActionResult>;
+ personalTokenUsers(search:string,page:number):Promise<UserList>;
+ adminPersonalTokenRoles(id:string):Promise<RoleOptions>;
+ describeMcpOauthAuthorize(search:{client_id:string;redirect_uri:string;scope?:string;state?:string;code_challenge?:string;code_challenge_method?:string;resource?:string}):Promise<McpOauthAuthorizeView>;
+ listMcpOauthClients():Promise<McpOauthClientList>;
+ createMcpOauthClient(input:McpOauthClientCreateInput):Promise<McpOauthClientCreated>;
+ updateMcpOauthClient(id:string,input:McpOauthClientUpdateInput):Promise<McpOauthClient>;
+ rotateMcpOauthClientSecret(id:string):Promise<McpOauthClientSecret>;
+ listMcpOauthClientGrants(id:string):Promise<McpOauthAdminGrantList>;
+ revokeMcpOauthGrant(id:string):Promise<ActionResult>;
+ consentMcpOauthAuthorize(input:McpOauthConsentInput):Promise<McpOauthConsentResult>;
+ myMcpOauthGrants():Promise<McpOauthGrantList>;
+ revokeMyMcpOauthGrant(id:string):Promise<ActionResult>;
 
  subscribeEvents(listener:(type:string)=>void):()=>void;
  subscribeLogEvents(afterSeq:number,onLine:(line:string,seq:number)=>void,onStatus?:(status:'connected'|'disconnected')=>void):()=>void;
@@ -110,6 +135,14 @@ export interface WebClient {
  requestNewEmail(current_challenge_id:string,email:string):Promise<EmailChallenge>;
  confirmNewEmail(challenge_id:string,code:string):Promise<AccountProfile>;
 
+ getMcpConfig?():Promise<McpConfig>;
+ patchMcpConfig?(input:McpConfigPatch):Promise<McpConfig>;
+ listMcpTools?(query?:{page?:number;page_size?:number;module?:string;search?:string;state?:string}):Promise<McpToolList>;
+ getMcpTool?(name:string):Promise<McpTool>;
+ patchMcpToolPolicy?(name:string,input:McpPolicyPatch):Promise<McpTool>;
+ listMcpCalls?(query?:{page?:number;page_size?:number;actor_id?:string;name?:string;status?:string;started_after?:number;started_before?:number}):Promise<McpCallList>;
+ getMcpCall?(id:string):Promise<McpCall>;
+ getMyMcpAccessInfo?():Promise<McpAccessInfo>;
  adminAnnouncements(query:AnnouncementQuery):Promise<AnnouncementList>;
  createAnnouncement(input:AnnouncementInput):Promise<AnnouncementEntry>;
  updateAnnouncement(id:string,input:AnnouncementUpdate):Promise<AnnouncementEntry>;
@@ -178,6 +211,7 @@ export interface WebClient {
   adminDashboard(): Promise<Dashboard>;
   roles(): Promise<RoleList>;
   createRole(input: RoleSaveInput): Promise<Role>;
+  /** Supply the version read with the role; stale updates return ENTITY_CONFLICT. */
   updateRole(id: string, input: RoleSaveInput): Promise<Role>;
   deleteRole(id: string): Promise<Role>;
   menuConfig(): Promise<MenuList>;
@@ -193,7 +227,7 @@ export interface WebClient {
   roleOptions(): Promise<RoleOptions>;
   adminRoleOptions(): Promise<RoleOptions>;
 
-  inbox(): Promise<InboxList>;
+  inbox(page?: number, pageSize?: number): Promise<InboxList>;
   readInbox(id: string): Promise<InboxList>;
   readAllInbox(): Promise<InboxList>;
   listTasks(): Promise<TaskList>;
@@ -270,6 +304,7 @@ const administratorOperations: Partial<Record<OperationId, OperationId>> = {
 };
 
 export class HttpTransport implements AppClient, WebClient, FileClient, StorageClient {
+ readonly notifications:InboxClient=this;
   readonly transport = 'http' as const;
  readonly updates:UpdateClient={overview:()=>this.call('updateOverview'),check:()=>this.call('checkUpdate',undefined,{headers:{'Content-Type':'application/json'},timeoutMs:20000}),apply:input=>this.call('applyUpdate',input)};
   readonly notes:NoteClient=this;
@@ -349,7 +384,8 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
       if (!options?.params?.[name]) throw new AppError('INVALID_INPUT', '缺少接口路径参数');
       return encodeURIComponent(options.params[name]);
     });
-    const query = new URLSearchParams(Object.entries(options?.query ?? {}).map(([key, value]) => [key, String(value)]));
+    // Optional query entries arrive as undefined: they mean "absent", never the string "undefined".
+    const query = new URLSearchParams(Object.entries(options?.query ?? {}).filter(([, value]) => value !== undefined && value !== null).map(([key, value]) => [key, String(value)]));
     if (query.size) path += `?${query}`;
     const relative = path.replace(/^\/api\/v1/, '');
     const execute = (signal?: AbortSignal) => this.request<OperationData[K]>(relative, { method: operation.method, signal, headers: { ...(input === undefined ? {} : { 'Content-Type': 'application/json' }), ...options?.headers }, ...(input === undefined ? {} : { body: JSON.stringify(input) }) },options?.timeoutMs);
@@ -399,7 +435,7 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
     return response.json();
   }
   subscribeEvents(listener:(type:string)=>void):()=>void {
-    if(this.administrator||typeof EventSource==='undefined')return ()=>{};
+    if(typeof EventSource==='undefined')return ()=>{};
     const source=new EventSource(`${this.baseURL}${operations.events.path}`,{withCredentials:true});
     const notify=(event:Event)=>listener(event.type==='open'?'reconnect':event.type);
     for(const type of ['open','message','inbox.new'])source.addEventListener(type,notify);
@@ -450,6 +486,14 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
  requestNewEmail(current_challenge_id:string,email:string){return this.call('requestNewEmail',{current_challenge_id,email});}
  confirmNewEmail(challenge_id:string,code:string){return this.call('confirmNewEmail',{challenge_id,code});}
   execute(input: ExecuteInput, options?: RequestOptions) { return this.call('execute', input, options); }
+  getMcpConfig(){return this.call('getMcpConfig');}
+  patchMcpConfig(input:McpConfigPatch){return this.call('patchMcpConfig',input);}
+  listMcpTools(query?:{page?:number;page_size?:number;module?:string;search?:string;state?:string}){return this.call('listMcpTools',undefined,{query:{...query}});}
+  getMcpTool(name:string){return this.call('getMcpTool',undefined,{params:{name}});}
+  patchMcpToolPolicy(name:string,input:McpPolicyPatch){return this.call('patchMcpToolPolicy',input,{params:{name}});}
+  listMcpCalls(query?:{page?:number;page_size?:number;actor_id?:string;name?:string;status?:string;started_after?:number;started_before?:number}){return this.call('listMcpCalls',undefined,{query:{...query}});}
+  getMcpCall(id:string){return this.call('getMcpCall',undefined,{params:{id}});}
+  getMyMcpAccessInfo(){return this.call('getMyMcpAccessInfo');}
   adminAnnouncements(query:AnnouncementQuery){return this.call('adminAnnouncements',undefined,{query:{...query}});}
  createAnnouncement(input:AnnouncementInput){return this.call('createAnnouncement',input);}
  updateAnnouncement(id:string,input:AnnouncementUpdate){return this.call('updateAnnouncement',input,{params:{id}});}
@@ -531,7 +575,7 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   dictionaryByCode(code: string) { return this.call('dictionary', undefined, { params: { code } }); }
   roleOptions() { return this.call('roleOptions'); }
   adminRoleOptions() { return this.call('adminRoleOptions'); }
-  inbox() { return this.call('inbox'); }
+  inbox(page=1,pageSize=20){return this.call('inbox',undefined,{query:{page,page_size:pageSize}});}
   readInbox(id: string) { return this.call('readInbox', undefined, { params: { id } }); }
   readAllInbox() { return this.call('readAllInbox'); }
   listTasks() { return this.call('listTasks'); }
@@ -623,10 +667,27 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   updateNote(id:string,input:NoteUpdate) { return this.call('updateNote',input,{params:{id}}); }
   deleteNote(id:string,version:number) { return this.call('deleteNote',{version},{params:{id}}); }
   settings() { return this.call(this.platform ? 'adminSettings' : 'localSettings'); }
-  personalTokens(){return this.call('personalTokens');}
+  personalTokens(search='',page=1){return this.call('personalTokens',undefined,{query:{search,page}});}
   createPersonalToken(input:PersonalTokenInput){return this.call('createPersonalToken',input);}
   revokePersonalToken(id:string){return this.call('revokePersonalToken',undefined,{params:{id}});}
-  personalTokenScopes(){return this.call('personalTokenScopes');}
+  personalTokenRoles(){return this.call('personalTokenRoles');}
+  renewPersonalToken(id:string,input:PersonalTokenRenewInput){return this.call('renewPersonalToken',input,{params:{id}});}
+  adminPersonalTokens(search='',page=1){return this.call('adminPersonalTokens',undefined,{query:{search,page}});}
+  adminCreatePersonalToken(input:AdminPersonalTokenInput){return this.call('adminCreatePersonalToken',input);}
+  adminRevokePersonalToken(id:string){return this.call('adminRevokePersonalToken',undefined,{params:{id}});}
+  adminRenewPersonalToken(id:string,input:PersonalTokenRenewInput){return this.call('adminRenewPersonalToken',input,{params:{id}});}
+  personalTokenUsers(search:string,page:number){return this.call('personalTokenUsers',undefined,{query:{search,page}});}
+  adminPersonalTokenRoles(id:string){return this.call('adminPersonalTokenRoles',undefined,{params:{id}});}
+  describeMcpOauthAuthorize(search:{client_id:string;redirect_uri:string;scope?:string;state?:string;code_challenge?:string;code_challenge_method?:string;resource?:string}){return this.call('describeMcpOauthAuthorize',undefined,{query:{...search}});}
+  listMcpOauthClients(){return this.call('listMcpOauthClients');}
+  createMcpOauthClient(input:McpOauthClientCreateInput){return this.call('createMcpOauthClient',input);}
+  updateMcpOauthClient(id:string,input:McpOauthClientUpdateInput){return this.call('updateMcpOauthClient',input,{params:{id}});}
+  rotateMcpOauthClientSecret(id:string){return this.call('rotateMcpOauthClientSecret',undefined,{params:{id}});}
+  listMcpOauthClientGrants(id:string){return this.call('listMcpOauthClientGrants',undefined,{params:{id}});}
+  revokeMcpOauthGrant(id:string){return this.call('revokeMcpOauthGrant',undefined,{params:{id}});}
+  consentMcpOauthAuthorize(input:McpOauthConsentInput){return this.call('consentMcpOauthAuthorize',input);}
+  myMcpOauthGrants(){return this.call('myMcpOauthGrants');}
+  revokeMyMcpOauthGrant(id:string){return this.call('revokeMyMcpOauthGrant',undefined,{params:{id}});}
   patchSettings(input: SettingPatch) { return this.call(this.platform ? 'adminPatchSettings' : 'localPatchSettings', input); }
   monitorSnapshot() { return this.call(this.platform ? 'adminMonitorSnapshot' : 'monitorSnapshot'); }
   monitorEvents() { return this.call(this.platform ? 'adminMonitorEvents' : 'monitorEvents'); }
@@ -636,6 +697,9 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
 }
 
 export interface DesktopBridge {
+ Inbox?(page:number,size:number):Promise<InboxListResponse>;
+ ReadInbox?(id:string):Promise<InboxListResponse>;
+ ReadAllInbox?():Promise<InboxListResponse>;
  FileUploadPolicy?():Promise<UploadPolicyResponse>;
  ListFiles?(search:string,page:number):Promise<FileListResponse>;
  BeginFileUpload?(input:MultipartUploadInput):Promise<MultipartUploadResponse>;
@@ -662,6 +726,17 @@ export interface DesktopBridge {
 
 export class WailsTransport implements AppClient {
   readonly transport = 'wails' as const;
+ readonly notifications:InboxClient={
+  inbox:async(page=1,size=20)=>unwrap(await this.inboxBridge().Inbox!(page,size)),
+  readInbox:async id=>unwrap(await this.inboxBridge().ReadInbox!(id)),
+  readAllInbox:async()=>unwrap(await this.inboxBridge().ReadAllInbox!()),
+  subscribeEvents:listener=>this.subscribeInbox?.(listener)??(()=>{}),
+ };
+ private inboxBridge():DesktopBridge {
+  const bridge=this.bridge();
+  if(!bridge.Inbox||!bridge.ReadInbox||!bridge.ReadAllInbox)throw new AppError('NOT_AVAILABLE','此功能在当前运行形态不可用');
+  return bridge;
+ }
  readonly files:FileClient={
   uploadPolicy:async()=>unwrap(await this.fileBridge().FileUploadPolicy!()),
   uploadStatus:async id=>unwrap(await this.fileBridge().FileUploadStatus!(id)),
@@ -714,7 +789,7 @@ export class WailsTransport implements AppClient {
   async createNote(input:NoteInput) { const method=this.bridge().CreateNote;if(!method)throw new AppError('NOT_AVAILABLE','笔记存储未初始化');return unwrap(await method(input)); }
   async updateNote(id:string,input:NoteUpdate) {const method=this.bridge().UpdateNote;if(!method)throw new AppError('NOT_AVAILABLE','笔记存储未初始化');return unwrap(await method(id,input));}
   async deleteNote(id:string,version:number) {const method=this.bridge().DeleteNote;if(!method)throw new AppError('NOT_AVAILABLE','笔记存储未初始化');return unwrap(await method(id,{version}));}
-  constructor(private readonly bridge: () => DesktopBridge) {}
+  constructor(private readonly bridge: () => DesktopBridge, private readonly subscribeInbox?: (listener:(type:string)=>void)=>()=>void) {}
   async bootstrap() { return unwrap(await this.bridge().Bootstrap()); }
   async execute(input: ExecuteInput) { return unwrap(await this.bridge().Execute(input)); }
   async settings() { const method = this.bridge().Settings; if (!method) throw new AppError('NOT_AVAILABLE', '此版本不支持持久化设置'); return unwrap(await method()); }

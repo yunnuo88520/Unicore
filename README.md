@@ -16,4 +16,4 @@ make dev-server
 make dev-web
 ```
 
-首次启动访问 /install（桌面自动初始化本地数据库，CLI 不连接数据库）。功能边界与部署指南见 [docs/product](docs/product/index.md)。
+首次启动访问 /install（桌面自动初始化本地数据库，CLI 不连接数据库）。功能边界与部署指南见 [docs/product](docs/product/index.md)。笔记是可选 demo，关闭方法见 [功能裁剪](docs/product/features.md)。

@@ -33,7 +33,7 @@ Web 部署先按 [从零部署指南](deployment.md) 启动并完成安装。本
 | `--log-max-age-days DAYS` | `APP_LOG_MAX_AGE_DAYS` | `log_max_age_days` | `0` | 轮转日志保留天数，`0` 永久；平台可在设置页运行时覆盖 |
 | `--log-max-size-mb MB` | `APP_LOG_MAX_SIZE_MB` | `log_max_size_mb` | `10` | 单文件轮转阈值，`1`–`512` |
 | `--log-max-total-mb MB` | `APP_LOG_MAX_TOTAL_MB` | `log_max_total_mb` | `500` | 轮转日志总量上限，`0` 不限，超限先删最早文件 |
-| `--api-docs=true` | `APP_API_DOCS` | `api_docs` | `false` | 配置使用布尔值；开启 `/docs/api` 与 `/openapi.json`，关闭为 404 |
+| `--api-docs=true` | `APP_API_DOCS` | `api_docs` | `false` | 配置使用布尔值；开启 `/api-docs` 与 `/openapi.json`，`/docs/api` 为兼容跳转入口 |
 | `--monitor-listen ADDRESS` | `APP_MONITOR_LISTEN` | `monitor_listen` | 空，关闭 | 独立 `/metrics`；只能填字面回环 IP，例如 `127.0.0.1:9090`，不能用 `0.0.0.0`/`localhost` |
 | `--shutdown-timeout DURATION` | `APP_SHUTDOWN_TIMEOUT` | `shutdown_timeout` | `5s` | `100ms`–`2m`；SIGTERM 后在途请求排空期限；supervisor 停止等待需相应留余量 |
 | `--readiness-timeout DURATION` | `APP_READINESS_TIMEOUT` | `readiness_timeout` | `2s` | `100ms`–`10s`；数据库等依赖就绪探测的超时 |
@@ -261,13 +261,13 @@ https://app.example.com/api/v1/admin/auth/oidc/callback
 
 文件位置、默认存储策略、单文件/分片限制另见 [存储指南](storage.md)；更新渠道与可信签名见 [更新指南](updates.md)。它们不是将同名任意配置追加到启动配置。
 
-另有 `mcp.*` 设置组（MCP 接入开关、PAT、限流/并发/超时、保留天数、OAuth 与 DCR 等 14 个 key），由 AI 管理专用 API 托管（`ManagedGroup("mcp")`），不经通用设置 API 读写，默认全部关闭；设计细节见仓库内决策记录 ADR-0047。
+另有 `mcp.*` 设置组（MCP 接入开关、PAT、限流/并发/超时、保留天数、OAuth 与 DCR 等 14 个 key），由 AI 管理专用 API 托管（`ManagedGroup("mcp")`），不经通用设置 API 读写，服务默认关闭；启用和授权步骤见 [MCP 接入](mcp.md)。
 
 ## 6. Compose 变量与应用环境的区别
 
 | Compose 变量 | 本文示例值 | 谁读取 |
 | --- | --- | --- |
-| `UNICORE_IMAGE` | `unicore:0.1.2`（本文示例；仓库 compose 默认 `unicore:local`，`make compose-up` 用 `unicore:<VERSION>`） | Docker Compose 选镜像；不等于应用版本开关 |
+| `UNICORE_IMAGE` | 仓库 compose 默认 `unicore:local`；`make compose-up` 使用 `unicore:<VERSION>` | Docker Compose 选镜像；不等于应用版本开关 |
 | `UNICORE_PORT` | `3000` | Compose 的宿主端口映射；容器内仍为 3000 |
 | `POSTGRES_PASSWORD` | 自己的随机口令 | 示例 db 容器初始化；不会自动更新已存在数据库用户或应用安装记录 |
 | `UNICORE_VERSION` | 源码 `VERSION` | 仅仓库自带的构建型 Compose 需要，本文独立 Compose 不需要 |

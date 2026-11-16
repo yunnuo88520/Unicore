@@ -1,31 +1,67 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
-# 离线加密备份与恢复
+# 备份与恢复
 
-Web 发行包使用同一入口 `./unicore backup|verify|restore`，不再附带第二个维护可执行文件。桌面用户或源码运维可用 make build-ops 生成独立工具。业务 CLI 仍不连接数据库。先停服务/退出桌面；工具使用实例锁，活动实例会被拒绝。
+Unicore 提供离线加密备份。Web 发行包使用同一个 `unicore` 入口执行 `backup`、`verify` 和 `restore`；桌面实例可使用源码构建的独立运维工具。业务 CLI 不连接数据库，也不承担实例备份。
+
+## 备份前准备
+
+1. 停止 Web 服务或退出桌面应用。备份工具使用实例锁，会拒绝仍在运行的实例。
+2. 准备至少 12 字节的备份口令，并在独立安全位置保存；丢失口令无法解密归档。
+3. 确认数据库客户端可用，备份目标有足够空间，并保留当前程序版本、校验和及部署配置。
+4. 如果实例使用外置 `APP_SECRET_KEY`，给工具提供相同值。
+
+| 数据库 | 工具要求 |
+| --- | --- |
+| SQLite | 使用一致快照，无需外部数据库客户端 |
+| PostgreSQL | 与服务端主版本匹配的 `pg_dump`、`psql`；限定 `public` schema |
+| MySQL | Oracle MySQL 8 客户端，使用 TCP；不以 MariaDB 客户端替代 |
+
+## 创建并验证备份
+
+以下命令在 Web 发行目录执行，按实际位置修改数据目录和输出路径：
 
 ```sh
 read -s UNICORE_BACKUP_PASSPHRASE
 export UNICORE_BACKUP_PASSPHRASE
 ./unicore backup --data-dir /srv/my-app-data --output /srv/backups/snapshot.tar.gz.age
 ./unicore verify --input /srv/backups/snapshot.tar.gz.age
+unset UNICORE_BACKUP_PASSPHRASE
+```
+
+归档包含数据库、私有配置、密钥、本地文件及已完成的云对象。请按敏感资料保存，并为云桶另设独立备份策略。未完成的云分片不能作为普通对象恢复，需要重新上传。
+
+该工具用于停机快照，不提供在线、增量、定时备份或时间点恢复。定期在隔离环境恢复一次，确认口令、密钥、文件和数据库客户端都可用。
+
+## 恢复到新位置
+
+先准备尚不存在的数据目录；外部数据库必须是新的专用空库。通过安全环境注入 `UNICORE_RESTORE_DATABASE_DSN`，并使用 `--confirm-database` 精确确认目标库名。工具不会清空已有库。
+
+```sh
+read -s UNICORE_BACKUP_PASSPHRASE
+export UNICORE_BACKUP_PASSPHRASE
 ./unicore restore --input /srv/backups/snapshot.tar.gz.age --data-dir /srv/my-app-restored --base-url https://restored.example.com
 unset UNICORE_BACKUP_PASSPHRASE
 ```
 
-口令至少 12 字节，单独安全保存；遗失无法恢复。原实例使用外置 APP_SECRET_KEY 时提供相同值。备份包含数据、配置、密钥和 ready 云对象，必须按敏感资料保存，不上传公开产物。它不是在线/增量/定时备份或 PITR。
+上例适用于 SQLite；恢复 PostgreSQL/MySQL 时，在命令中加上 `--confirm-database` 和真实目标库名，并提供上述 DSN 环境变量。不要把密码或完整 DSN 写进命令历史。
 
-SQLite 使用一致快照；PostgreSQL 需要匹配服务端主版本的 pg_dump/psql；MySQL 需要 Oracle MySQL 8 客户端，不以 MariaDB 客户端替代。使用显式 TCP 连接和相应权限；不在命令行/日志暴露 DSN。云桶应独立制定备份政策。
+恢复工具只还原快照，不执行迁移。先使用与快照匹配的程序检查恢复结果，再按目标版本发行说明执行升级。MySQL DDL 可能部分提交；恢复失败时保留现场，改用新的空目标重试。
 
-外部数据库恢复只使用新空专用库，通过安全环境提供 UNICORE_RESTORE_DATABASE_DSN，并传 --confirm-database 精确目标库名。工具不清空已有库。data 目标必须不存在；恢复只还原，不执行迁移，正常启动才按实际运行体系处理。MySQL DDL 可能部分提交，失败保留现场，改用新空目标，不自动删除原库。
+## 恢复后检查
 
-可显式 --database-tools-container 使用目标数据库容器里的原生工具；宿主机调用 docker exec，不向应用挂 socket。该容器必须就是目标 DB，不是任意跳板。
+- 只启动一个实例，确认登录、业务数据、附件下载和日志正常，再切换流量。
+- 云对象恢复为本地私有文件，保留 `file_id`。旧云凭据和清理任务会停用，重新配置并测试目标存储后再迁移。
+- 快照会恢复其中的会话、验证器密钥、恢复码状态和待发通知。切换前检查相关安全状态，避免新旧实例同时使用同一数据。
+- 保留升级前完整快照和匹配程序，回退时成套恢复。
 
-云对象恢复为本地私有文件并保留 file_id，旧云凭据/清理任务停用；重新配置并测试云位置后再迁移。未完成云分片无法作为普通对象备份恢复，应放弃并重传。切流时只运行一个实例，注意快照中的会话和待发送通知。
+## 数据库连接与工具容器
 
-同时保留原二进制版本、发布校验和、部署配置和密钥。工具版本不等于源实例版本；新世代数据库与 0.x 开发库不承诺升级兼容，不能通过手改账本伪造兼容。恢复演练与 [部署](deployment.md)、[更新](updates.md) 一并执行。
+PostgreSQL 备份固定限定 `public`，其他 `search_path` 会被拒绝。MySQL TLS 关闭映射为 `DISABLED`，加密但不校验证书映射为 `REQUIRED`，`tls=true` 映射为 `VERIFY_IDENTITY`；验证证书时需准备可信 CA。
 
-当前备份清单的 `format=1` 表示归档格式，`schema=1` 表示 Catalog 世代 unicore-1，均不表示 platform 或 module.notes 的当前迁移版本。世代通过真实 core@1 checksum 校验；各 namespace 的已执行版本保存在备份数据库的账本中。相同 schema 值不等于任意版本程序都能打开该数据库。恢复时使用匹配工具与程序，再按 [迁移规范](development.md#数据库迁移与文件) 验证。
+可用 `--database-tools-container` 指定实际目标数据库容器中的原生工具。该方式由宿主机执行 `docker exec`，应用容器无需挂载 Docker socket。
 
-安装向导生成的 PostgreSQL `search_path=public` 可直接用于备份；备份固定限定 public，其他 search_path 会拒绝。MySQL TLS 关闭映射为 DISABLED，向导的加密但不校验证书映射为 REQUIRED，显式 `tls=true` 映射为 VERIFY_IDENTITY。备份不会把加密连接静默降为明文；证书验证连接需准备客户端可信 CA。
+## 格式与版本兼容
 
-旧开发期基线已整合，旧开发库和旧快照使用对应 Git revision 的工具恢复到隔离环境，不修改账本以冒充新基线。平台快照包含个人中心的加密验证器密钥、恢复码状态与登录设备，必须完整保存实例密钥；恢复后只运行一个实例。
+备份清单的 `format` 表示归档格式，`schema` 表示 Catalog 世代；各命名空间的已执行版本保存在数据库账本中。相同世代不能保证任意版本的程序都兼容，旧预览库和旧快照应使用对应版本的工具恢复。
+
+完整升级顺序见 [应用更新](updates.md) 与 [Web 部署](deployment.md)。

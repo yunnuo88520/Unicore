@@ -11,8 +11,9 @@
         "public-site"
       ],
       "slug": "Home",
-      "title": "使用指南",
-      "site_group": "guide"
+      "title": "快速开始",
+      "site_group": "start",
+      "site_order": 0
     },
     {
       "source": "docs/product/configuration.md",
@@ -23,8 +24,9 @@
         "public-site"
       ],
       "slug": "Configuration",
-      "title": "配置说明与参数表",
-      "site_group": "deploy"
+      "title": "配置参数",
+      "site_group": "deploy",
+      "site_order": 1
     },
     {
       "source": "docs/product/build.md",
@@ -35,8 +37,9 @@
         "public-site"
       ],
       "slug": "Build",
-      "title": "Web / Desktop / CLI 构建",
-      "site_group": "guide"
+      "title": "从源码构建",
+      "site_group": "start",
+      "site_order": 2
     },
     {
       "source": "docs/product/deployment.md",
@@ -47,8 +50,9 @@
         "public-site"
       ],
       "slug": "Deployment",
-      "title": "Web 从零部署",
-      "site_group": "deploy"
+      "title": "Web 部署",
+      "site_group": "deploy",
+      "site_order": 0
     },
     {
       "source": "docs/product/backup.md",
@@ -60,7 +64,8 @@
       ],
       "slug": "Backup-Restore",
       "title": "备份恢复",
-      "site_group": "deploy"
+      "site_group": "operate",
+      "site_order": 0
     },
     {
       "source": "docs/product/storage.md",
@@ -72,7 +77,8 @@
       ],
       "slug": "Storage",
       "title": "文件与对象存储",
-      "site_group": "deploy"
+      "site_group": "admin",
+      "site_order": 1
     },
     {
       "source": "docs/product/updates.md",
@@ -83,8 +89,9 @@
         "public-site"
       ],
       "slug": "Updates",
-      "title": "更新与签名",
-      "site_group": "deploy"
+      "title": "应用更新",
+      "site_group": "operate",
+      "site_order": 1
     },
     {
       "source": "docs/product/development.md",
@@ -95,8 +102,9 @@
         "public-site"
       ],
       "slug": "Development",
-      "title": "应用开发",
-      "site_group": "develop"
+      "title": "创建应用",
+      "site_group": "develop",
+      "site_order": 0
     },
     {
       "source": "docs/product/first-feature.md",
@@ -108,7 +116,8 @@
       ],
       "slug": "First-Feature",
       "title": "第一个功能：笔记标签",
-      "site_group": "develop"
+      "site_group": "develop",
+      "site_order": 2
     },
     {
       "source": "docs/product/ui-components.md",
@@ -119,8 +128,9 @@
         "public-site"
       ],
       "slug": "UI-Components",
-      "title": "UI 组件参考",
-      "site_group": "develop"
+      "title": "UI 组件",
+      "site_group": "frontend",
+      "site_order": 1
     },
     {
       "source": "docs/support.md",
@@ -128,8 +138,9 @@
       "audiences": [
         "public-site"
       ],
-      "title": "支持范围与已知限制",
-      "site_group": "guide"
+      "title": "支持与兼容性",
+      "site_group": "start",
+      "site_order": 3
     },
     {
       "source": "docs/02-standards/api-contract.md",
@@ -138,7 +149,8 @@
         "public-site"
       ],
       "title": "API 契约与 SDK",
-      "site_group": "develop"
+      "site_group": "integrate",
+      "site_order": 0
     },
     {
       "source": "docs/02-standards/backend.md",
@@ -147,7 +159,8 @@
         "public-site"
       ],
       "title": "Go 分层与业务实体",
-      "site_group": "reference"
+      "site_group": "backend",
+      "site_order": 0
     },
     {
       "source": "docs/02-standards/frontend.md",
@@ -155,8 +168,9 @@
       "audiences": [
         "public-site"
       ],
-      "title": "共享前端开发",
-      "site_group": "reference"
+      "title": "页面与状态管理",
+      "site_group": "frontend",
+      "site_order": 0
     },
     {
       "source": "docs/03-runbooks/frontend-foundations.md",
@@ -164,8 +178,9 @@
       "audiences": [
         "public-site"
       ],
-      "title": "布局、表单与双语基础",
-      "site_group": "develop"
+      "title": "新增页面与双语",
+      "site_group": "develop",
+      "site_order": 4
     },
     {
       "source": "docs/03-runbooks/business-example.md",
@@ -173,17 +188,9 @@
       "audiences": [
         "public-site"
       ],
-      "title": "笔记业务样板",
-      "site_group": "develop"
-    },
-    {
-      "source": "docs/03-runbooks/framework-upgrade.md",
-      "target": "docs/03-runbooks/framework-upgrade.md",
-      "audiences": [
-        "public-site"
-      ],
-      "title": "派生项目与上游更新",
-      "site_group": "reference"
+      "title": "笔记模块源码导读",
+      "site_group": "develop",
+      "site_order": 3
     },
     {
       "source": "docs/02-standards/database-migrations.md",
@@ -192,7 +199,8 @@
         "public-site"
       ],
       "title": "数据库迁移",
-      "site_group": "reference"
+      "site_group": "backend",
+      "site_order": 1
     },
     {
       "source": "docs/02-standards/product-identity.md",
@@ -201,43 +209,8 @@
         "public-site"
       ],
       "title": "产品身份与白标",
-      "site_group": "reference"
-    },
-    {
-      "source": "docs/03-runbooks/deployment.md",
-      "target": "docs/03-runbooks/deployment.md",
-      "audiences": [
-        "public-site"
-      ],
-      "title": "运行边界与故障处理（维护者）",
-      "site_group": "features"
-    },
-    {
-      "source": "docs/03-runbooks/storage.md",
-      "target": "docs/03-runbooks/storage.md",
-      "audiences": [
-        "public-site"
-      ],
-      "title": "存储配置与分片上传（维护者）",
-      "site_group": "features"
-    },
-    {
-      "source": "docs/03-runbooks/backup.md",
-      "target": "docs/03-runbooks/backup.md",
-      "audiences": [
-        "public-site"
-      ],
-      "title": "备份与恢复细节（维护者）",
-      "site_group": "features"
-    },
-    {
-      "source": "docs/03-runbooks/updates.md",
-      "target": "docs/03-runbooks/updates.md",
-      "audiences": [
-        "public-site"
-      ],
-      "title": "签名更新与失败恢复（维护者）",
-      "site_group": "features"
+      "site_group": "identity",
+      "site_order": 0
     },
     {
       "source": "docs/03-runbooks/client-preferences.md",
@@ -245,8 +218,9 @@
       "audiences": [
         "public-site"
       ],
-      "title": "客户端偏好",
-      "site_group": "reference"
+      "title": "语言与外观",
+      "site_group": "guide",
+      "site_order": 2
     },
     {
       "source": "docs/03-runbooks/admin-tools.md",
@@ -254,8 +228,9 @@
       "audiences": [
         "public-site"
       ],
-      "title": "管理工具",
-      "site_group": "deploy"
+      "title": "管理工具与角色授权",
+      "site_group": "admin",
+      "site_order": 0
     },
     {
       "source": "docs/03-runbooks/announcements.md",
@@ -263,26 +238,9 @@
       "audiences": [
         "public-site"
       ],
-      "title": "公告业务",
-      "site_group": "features"
-    },
-    {
-      "source": "docs/03-runbooks/documentation-site.md",
-      "target": "docs/03-runbooks/documentation-site.md",
-      "audiences": [
-        "public-site"
-      ],
-      "title": "文档站维护与部署",
-      "site_group": "reference"
-    },
-    {
-      "source": "docs/02-standards/coding.md",
-      "target": "docs/02-standards/coding.md",
-      "audiences": [
-        "public-site"
-      ],
-      "title": "代码与交付规范",
-      "site_group": "reference"
+      "title": "公告与站内信",
+      "site_group": "guide",
+      "site_order": 3
     },
     {
       "source": "docs/02-standards/design-system.md",
@@ -290,8 +248,9 @@
       "audiences": [
         "public-site"
       ],
-      "title": "设计系统",
-      "site_group": "reference"
+      "title": "主题与品牌",
+      "site_group": "identity",
+      "site_order": 1
     },
     {
       "source": "docs/02-standards/runtime.md",
@@ -300,7 +259,8 @@
         "public-site"
       ],
       "title": "配置、日志与生命周期",
-      "site_group": "reference"
+      "site_group": "backend",
+      "site_order": 2
     },
     {
       "source": "docs/api/permissions.md",
@@ -308,8 +268,9 @@
       "audiences": [
         "public-site"
       ],
-      "title": "平台权限契约",
-      "site_group": "develop"
+      "title": "角色与 API 权限",
+      "site_group": "integrate",
+      "site_order": 2
     },
     {
       "source": "website/pages/index.md",
@@ -341,8 +302,9 @@
       "audiences": [
         "public-site"
       ],
-      "title": "个人中心与账户安全",
-      "site_group": "features"
+      "title": "个人中心与账号安全",
+      "site_group": "guide",
+      "site_order": 1
     },
     {
       "source": "docs/03-runbooks/notifications.md",
@@ -351,8 +313,9 @@
         "project-template",
         "public-site"
       ],
-      "title": "事件通知（维护者）",
-      "site_group": "features"
+      "title": "通知事件参考",
+      "site_group": "integrate",
+      "site_order": 3
     },
     {
       "source": "docs/product/notifications.md",
@@ -363,8 +326,9 @@
         "public-site"
       ],
       "slug": "Notifications",
-      "title": "通知与邮件接入",
-      "site_group": "develop"
+      "title": "通知与邮件",
+      "site_group": "admin",
+      "site_order": 2
     },
     {
       "source": "docs/product/faq.md",
@@ -375,8 +339,9 @@
         "public-site"
       ],
       "title": "常见问题",
-      "site_group": "guide",
-      "slug": "FAQ"
+      "site_group": "start",
+      "slug": "FAQ",
+      "site_order": 4
     },
     {
       "source": "docs/product/install-desktop.md",
@@ -386,9 +351,10 @@
         "public-wiki",
         "public-site"
       ],
-      "title": "桌面与 CLI 安装",
-      "site_group": "guide",
-      "slug": "Desktop-CLI-Install"
+      "title": "安装桌面与 CLI",
+      "site_group": "start",
+      "slug": "Desktop-CLI-Install",
+      "site_order": 1
     },
     {
       "source": "docs/product/security.md",
@@ -398,9 +364,10 @@
         "public-wiki",
         "public-site"
       ],
-      "title": "安全策略与加固",
-      "site_group": "deploy",
-      "slug": "Security"
+      "title": "安全加固",
+      "site_group": "operate",
+      "slug": "Security",
+      "site_order": 2
     },
     {
       "source": "docs/product/api-authentication.md",
@@ -412,7 +379,8 @@
       ],
       "slug": "API-Authentication",
       "title": "客户端与 API 认证",
-      "site_group": "guide"
+      "site_group": "integrate",
+      "site_order": 1
     },
     {
       "source": "docs/product/framework-upgrade.md",
@@ -423,8 +391,9 @@
         "public-site"
       ],
       "slug": "Framework-Upgrades",
-      "title": "派生开发与框架升级",
-      "site_group": "develop"
+      "title": "框架源码升级",
+      "site_group": "develop",
+      "site_order": 5
     },
     {
       "source": "docs/product/form-interaction.md",
@@ -435,8 +404,48 @@
         "public-site"
       ],
       "slug": "Form-Interaction",
-      "title": "表单交互规范",
-      "site_group": "reference"
+      "title": "表单交互",
+      "site_group": "frontend",
+      "site_order": 2
+    },
+    {
+      "source": "docs/product/workspace.md",
+      "target": "docs/product/workspace.md",
+      "audiences": [
+        "project-template",
+        "public-wiki",
+        "public-site"
+      ],
+      "slug": "Workspace",
+      "title": "框架能力与示例应用",
+      "site_group": "guide",
+      "site_order": 0
+    },
+    {
+      "source": "docs/product/features.md",
+      "target": "docs/product/features.md",
+      "audiences": [
+        "project-template",
+        "public-wiki",
+        "public-site"
+      ],
+      "slug": "Feature-Trimming",
+      "title": "裁剪示例与可选能力",
+      "site_group": "develop",
+      "site_order": 1
+    },
+    {
+      "source": "docs/product/mcp.md",
+      "target": "docs/product/mcp.md",
+      "audiences": [
+        "project-template",
+        "public-wiki",
+        "public-site"
+      ],
+      "slug": "MCP",
+      "title": "MCP 客户端接入",
+      "site_group": "integrate",
+      "site_order": 4
     }
   ],
   "template_files": [

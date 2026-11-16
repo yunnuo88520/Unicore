@@ -509,7 +509,7 @@ curl -fsS https://app.example.com/api/v1/health/live
 
 偏好 Caddy 时等价配置更短（自动 HTTPS，证书与续期内置）：
 
-```caddyfile
+```text
 app.example.com {
     reverse_proxy 127.0.0.1:3000
     request_body {
@@ -581,7 +581,7 @@ curl -fsS https://app.example.com/api/v1/health/ready
 
 ### 单实例边界
 
-当前产品按**单实例**设计与验收：一个应用进程连接一个数据库，水平扩容（多副本共享一库）不在已验证范围内，会话、限流与后台任务都以单进程为前提。需要更高容量时先垂直扩容或读写分离评估，不要自行多副本部署后默认其受支持；水平扩容属于未验证范围，见文档站"支持范围与已知限制"。
+目前支持**单实例部署**：一个应用进程连接一个数据库，会话、限流与后台任务按单进程运行。多副本共享一库的水平扩容尚不受支持。需要更高容量时，先评估应用进程与数据库的资源配置，见 [支持范围](https://unicore.ebox.vip/support)。
 
 ## 9. 更新、备份与回退
 

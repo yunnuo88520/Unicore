@@ -64,8 +64,8 @@ const notes = await api.call('listNotes');
 
 生产 API 应通过 HTTPS 访问。JWT 签名密钥加密保存在平台数据库，依赖实例密钥 `secret.key` 或 APP_SECRET_KEY。备份恢复须保留同一实例密钥。只有 super_admin 能使用 Cookie + CSRF 调用 POST `/api/v1/admin/auth/token-keys/rotate`；旧密钥保留 15 分钟验证窗口，新签发和刷新立即使用新密钥。
 
-签名采用 HS256，仅由本实例验证。不能把签名秘密分给外部程序，也不提供将本框架作为 OAuth2/OIDC 授权服务器的能力。浏览器、JWT 和 PAT 共用同一 RBAC，不是三套账号。
+签名采用 HS256，仅由本实例验证。不能把签名秘密分给外部程序，本节的账号 Token 接口不是通用 OAuth2/OIDC 身份提供服务。MCP 使用独立的授权码 + PKCE 接入，见 [MCP 接入](mcp.md)。浏览器、JWT 和 PAT 共用同一 RBAC，不是三套账号。
 
-现有限流和图形验证码仍为进程内存；多实例部署需要保持既有粘性路由约束或增加共享实现。本次认证能力不等同于完成所有多实例部署改造。
+现有限流和图形验证码仍为进程内存；多实例部署需要保持既有粘性路由约束或增加共享实现。当前部署按单实例运行，多副本需要额外实现共享状态与协调。
 
-当前未发布基线为 platform@1，不提供旧开发令牌结构的升级路径。开发验证使用新的隔离数据库，不能修改已有库账本冒充升级。
+数据库版本和升级要求见 [迁移参考](https://unicore.ebox.vip/02-standards/database-migrations) 与对应发行说明。

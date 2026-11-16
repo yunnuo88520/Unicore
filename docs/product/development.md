@@ -1,103 +1,93 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
-# 应用开发与 AI 任务入口
+# 创建自己的应用
 
-先 [创建自己的应用](#创建独立商用产品)，完成 [第一次体验](index.md)，再做 [笔记标签教程](first-feature.md)。参考资料按需查询，无需先读完所有规范。
+本页介绍如何创建独立产品、运行应用，以及定位业务扩展入口。创建后可以先 [裁剪笔记 demo 与可选能力](features.md)，再接入自己的业务；需要练习完整开发流程时，可选做 [笔记标签教程](first-feature.md)。
 
-## 创建独立商用产品
+## 创建项目
 
-MIT 允许商用、修改和再分发；保留 LICENSE 的版权和许可声明及框架原作者信息。示例：创建名为 LicenHub、命令为 licenhub 的独立产品（仓库地址替换为自己的地址）：
+先按 [快速开始](index.md#准备环境) 准备工具链，并确认框架源码仓库没有未提交修改。目标目录必须尚不存在，且位于框架仓库之外：
 
 ```sh
-pnpm create:project --directory ../LicenHub --name LicenHub --slug licenhub --module github.com/team/LicenHub --bundle vip.ebox.licenhub --repository https://github.com/team/LicenHub
-cd ../LicenHub
+pnpm create:project --directory ../my-app --name 'My App' --slug my-app --module github.com/team/my-app --bundle com.team.myapp --repository https://github.com/team/my-app
+cd ../my-app
 make install
 make docs
-pnpm product:check
-pnpm check:residuals
-make build-web build-cli build-ops
-./build/bin/licenhub --help
+make doctor
+make dev-server
 ```
 
-名称、CLI/运维命令、桌面标识、服务名、安装/数据目录与镜像名随 product.identity.json 投影。创建器完成本地 main 初始提交，origin 指向自己的仓库；只读 framework 远端和 project.provenance.json 保存上游来源，业务提交和推送在自己的仓库维护。--repository 不会创建托管仓库或推送，首次推送前确保目标仓库已建立。更新渠道、公钥默认清空，另行配置自己的签名发行。
+在第二个终端进入 `my-app` 后执行 `make dev-web`，按 [首次安装](index.md) 完成初始化。MIT 许可允许商用、修改和再分发，需保留版权与许可声明。
 
-域名不是产品身份字段。部署到自己的域名时配置 DNS、Nginx server_name 和 TLS，首次从正式 HTTPS 地址打开 /install，基础地址默认取浏览器的实际 origin；生产配置与实例数据不写入仓库。自己的 Logo/图标仍由 assets/brand/identity.json 配置，产品更名不会凭空生成定制图案。
+### 创建器会生成什么
 
-按任务读取，不遍历全部文档。契约、代码和可重复测试比过期功能说明更可靠；先检查已有功能和工作区，不覆盖他人修改。根 AGENTS 是简短硬约束，`.agents/skills/develop-application`（随派生项目模板分发；框架仓库本身没有该目录）按需加载流程；触碰迁移 SQL、契约、生成文件或权限目录前先读对应规范；是否自动提示取决于所用 Agent，不假设存在工具 Hook。
+| 内容 | 结果 |
+| --- | --- |
+| 产品身份 | 替换名称、Go module、CLI/运维命令、桌面标识、服务与发行名称 |
+| Git 仓库 | 初始化本地 `main`，可选的 `--repository` 配置为 `origin` |
+| 框架来源 | 只读 `framework` 远端与 `project.provenance.json` 保存上游来源 |
+| 应用更新 | 清空上游 OTA 仓库和公钥，由你配置自己的更新渠道 |
 
-## UI 组件
+创建器不会创建托管仓库或推送代码。首次推送前先建立自己的远程仓库。需要后续三方合并升级时，请使用带有 `framework-template` 历史的 Git clone，详见 [框架源码升级](framework-upgrade.md)。
 
-共享界面原语（Button/Select/Modal/Message/表单层）的接入方式、翻译注入与行为约定见 [UI 组件参考](ui-components.md)。
+Git 来源中选中的文件有未提交修改时，创建器默认拒绝导出。明确需要使用这些改动时，可加 `--allow-dirty`，来源记录会包含修改状态。源码 ZIP 可以创建项目，但缺少模板历史，不能自动同步框架。
 
-## 目录和依赖
+## 设置名称、品牌和域名
 
-internal/domain 放业务规则，不依赖 HTTP、Wails、SQL 或认证；internal/usecase 通过 ports 编排领域能力。adapter 实现传输/数据库/外部系统，bootstrap/runtime 按 Profile 装配。CLI 直接调用共享核心，不引入 HTTP、数据库驱动、迁移或平台身份。Web 平台模块不得被单机/桌面强制引入。
+- `product.identity.json`：产品名称、Go module、命令、桌面与服务标识。修改后执行 `pnpm product:generate`、`pnpm product:check` 和 `pnpm check:residuals`。
+- `assets/brand/identity.json`：Logo 和图标来源。
+- `assets/theme/tokens.json`：主题令牌。品牌或主题修改后执行 `pnpm design:generate`。
 
-业务模块是自包含树：`internal/modules/<slug>/`（module.go 描述符 + domain/usecase/storage 子层），经 `internal/module` 注册后菜单、权限、迁移、任务执行器与前端路由自动聚合；参考实现 Notes。权限点/导航来自模块描述符，HTTP handler 集中在 internal/adapter/http 并在 mountWeb 加一行，桌面能力经 RegisterBridgeContribution 注入。跨端相同输入应有相同行为。可变实体嵌入 coredomain.BaseEntity，值对象/凭据/账本按各自生命周期，不盲目套软删除。新增时逐项登记 Catalog、模块描述符、组合根、HTTP/桌面入口与前端模块，并对照 Notes 的权限和迁移测试；框架源码仓库另有 add-go-module Skill。
+产品身份的投影规则见 [产品身份参考](https://unicore.ebox.vip/02-standards/product-identity)，界面定制见 [设计系统](https://unicore.ebox.vip/02-standards/design-system)。域名在部署时配置 DNS、反向代理和 TLS；安装向导默认使用浏览器实际访问地址。生产配置和实例数据保存在仓库之外。
 
-## API、权限与前端
+## 定位业务代码
 
-packages/contracts/openapi.json 是 DTO/operation 的唯一线契约。先改契约，运行 pnpm generate，不手改 *.gen.*。handler 负责解析/校验/认证授权/统一响应；用例负责规则，Repository 负责持久化，数据库实体显式映射 DTO。错误通过统一业务码与请求 ID 返回，不暴露内部堆栈或秘密。
+| 位置 | 用途 |
+| --- | --- |
+| `internal/domain`、`internal/usecase` | 共享领域规则、用例与 ports |
+| `internal/modules/<slug>/` | 自包含业务模块，包含领域、用例、存储和模块描述符 |
+| `internal/adapter/http` | HTTP 传输、输入校验和接口装配 |
+| `internal/modules/notes/desktop` | 笔记模块的 Wails 桥贡献 |
+| `packages/contracts/openapi.json` | API 与 DTO 的源契约 |
+| `packages/web-ui/src/modules/` | 共享 React 业务页面 |
+| `migrations/catalog.json` | 数据库命名空间、版本与依赖 |
 
-平台使用统一用户账号和多角色授权；用户与管理工作台入口分开，共用身份与会话，不能新增独立管理员账号表。每个新增管理操作声明并在服务端检查权限；资源 owner/scope 由可信身份生成，不信任客户端传来的管理员标志或 owner_id。必须测试匿名/普通用户/跨用户资源访问。
+领域层不依赖 HTTP、Wails、SQL 或认证；用例通过 ports 访问外部能力。CLI 直接调用共享 Core，不引入平台身份或数据库。完整示例见 [笔记模块源码导读](https://unicore.ebox.vip/03-runbooks/business-example)，分层规则见 [后端参考](https://unicore.ebox.vip/02-standards/backend)。
 
-前端复用 packages/web-ui 的 WorkspaceLayout、AppClient、会话/路由守卫、表单校验和消息组件；不要自行设置侧栏偏移或另建请求/通知体系。工作区固定 LTR。新增界面同时提供中文/英文：useI18n/useLocale + t，静态路由/选项使用 defineMessages，pnpm check:i18n 检查。用户输入、邮件模板内容和公告不自动翻译。已注册但无权访问的页面呈现独立 403，未注册地址使用 404；页面提示不替代服务端授权。
+## 添加接口、权限和页面
 
-在线接口参考使用本地打包的 Swagger UI，读取实例通过 `--api-docs=true` / `APP_API_DOCS=true` 开启后发布的 `/openapi.json`；兼容入口 `/docs/api` 跳转到 `/api-docs`。默认关闭，原始契约与参考页不携带实例凭据。启动配置见 [配置参数表](configuration.md#2-web-启动参数完整对照)。`packages/contracts/reference.gen.html` 保留为离线参考。XLSX 导入/导出通过 SDK 专用二进制方法处理，不能当作普通 JSON 响应；平台管理员可在用户管理页下载模板、按行导入或导出用户；文件元数据导出保留为授权 API，无独立管理页面。
+1. 修改 OpenAPI 的 schema、operation、输入输出和 `x-unicore` 访问策略，执行 `pnpm generate` 生成 DTO 与 SDK。
+2. 在领域和用例实现业务规则，通过 Repository port 读写数据，再连接 HTTP 或桌面入口。
+3. Platform 的服务端检查权限和资源归属；菜单、按钮、API 授权相互独立。账号可持多个角色，用户与管理工作台共用会话。
+4. 前端通过 AppClient 调用接口，复用 WorkspaceLayout、表单和消息组件。界面同时提供中英文，运行 `pnpm check:i18n`。
 
-主题由 assets/theme/tokens.json、品牌由 assets/brand/identity.json 生成，pnpm design:generate 同步，不手改投影。页面要验证桌面/375px、权限状态、双语和实际 GUI，不能用 HTTP 代替 Wails 原生验收。
-
-## 复用通知与邮件
-
-平台功能可注入已有 `*mailer.Service` 调用 `Notify`，将业务邮件加密入队；需要遵循用户/管理员事件策略并与业务原子提交时，使用 `mailer.Plan` 和事务内队列写入。不要直接从页面调用机器人 URL、在 usecase 引入 SQL/SMTP，或在数据库事务内另开连接发信。完整参数、可复制 Go 示例、SDK 方法、错误处理和测试要求见 [通知与邮件接入](notifications.md)。
-
-站内信复用数据库消息和本人已读接口；当前公告事务是自动投递入口，内部 `DeliverInbox` 可供新业务复用，没有独立发送 API/UI。提交后通过 SSE 通知客户端重新查询，进程内推送无持久重放或跨实例总线，业务状态仍以数据库为准。用户在顶部铃铛查看公告与站内信，二者已读分别保存。
-
-平台后台任务使用 `internal/scheduler` 的代码注册表，基于 `robfig/cron/v3` 运行；管理页仅查看、启停、手动触发已注册函数，不接受任意脚本。默认 `mail.queue` 每秒处理通知队列，`files.cleanup` 每分钟清理文件，`announcements.refresh` 每分钟检查公告时间边界。启停状态保存在数据库；手动触发成功仅表示已接收，完成结果须查询任务列表。
+在线接口参考可通过 `APP_API_DOCS=true` 开启 `/api-docs` 和 `/openapi.json`，默认关闭。开发细节见 [API 契约](https://unicore.ebox.vip/02-standards/api-contract)、[权限参考](https://unicore.ebox.vip/api/permissions)、[前端基础](https://unicore.ebox.vip/03-runbooks/frontend-foundations) 和 [UI 组件](ui-components.md)。
 
 ## 数据库迁移与文件
 
-当前安装与启动已使用 `migrations/runner.Apply` 和 `migrations/catalog.json` 单轨，按 namespace 保存版本与 checksum；平台与业务模块的当前版本以 Catalog 为准，不从旧迁移文件名猜测版本。单机/桌面只选择 core 与 module.notes，CLI 不装配数据库。
+数据库变更在自己的业务命名空间内追加迁移，由 Catalog 声明版本和依赖。当前三个图形 profile 均包含 `core`、`platform` 和默认开启的 `module.notes` 命名空间；Standalone 创建相应表不表示装配平台账号或管理能力。CLI 不装配数据库。具体集合以 `migrations/catalog.json` 为准。
 
-预期集合只由 Catalog 定义；namespace 独立版本、depends_on 唯一决定拓扑顺序，Profile namespaces 是成员集合。checksum 取 SQL 原始字节 SHA-256，版本/摘要/账本 DDL/Go/JSON 由生成器投影，禁止手填当前最大版本。首个正式 stable release 后已分发迁移冻结，只追加版本；此前的开发预览版本允许基线整合，不承诺旧开发库自动升级。CLI 仍不 import 迁移包。
+框架表保留 `unicore_` 前缀，业务表可自行命名。已交付的迁移 SQL 保持原字节和 checksum；新增版本需提供各适用方言的 SQL、兼容说明及恢复步骤。见 [数据库迁移](https://unicore.ebox.vip/02-standards/database-migrations)。
 
-数据库变更先明确当前运行体系、兼容和恢复，再经独立授权实施三方言/适用 Profile 的真实测试。SQLite PK/rowid、VARCHAR 长度与 MySQL collation 有不同语义，不能用一种数据库结果推断全部。禁止自动 DROP/reset、改账本/hash 或跳过校验来修复失败。0.x 开发库不承诺升级新世代；旧环境保持，新空环境另建。
+文件通过 `file_id` 与存储 port 使用，业务不拼磁盘路径或持久保存签名 URL。笔记附件同时支持 Platform 与 Standalone，见 [文件存储](storage.md)。
 
-文件以 file_id 通过存储接口使用，不能拼本地路径。临时签名、元数据、分片、清理和越权测试见 [存储说明](storage.md)。
+## 接入通知与后台任务
 
-## 验证与维护自己的项目
+Platform 可复用邮件、企业微信、Webhook 和站内信。业务通知与业务事务一起提交，投递由后台 worker 执行；邮件参数、事件登记和代码示例见 [通知接入](notifications.md)。
 
-保留框架已有文件的作者与许可声明。新增业务源码可使用 `product.identity.json` 的 author 配置团队署名（格式 `Team <dev@example.com>`），作者检查同时接受上游原作者与该团队署名；严格 JSON/锁/生成文件按其格式处理。新提交标题/正文使用英文。迭代期先跑受影响面（make test-go / test-web / test-gen），交付前运行 make docs、make test、受影响 Profile 构建和相应页面/数据库测试；区分代码存在、构建、自动测试、原生实测与生产验证，未执行如实标明。
+后台任务通过 `internal/scheduler` 的代码注册表登记，管理页面只查看、启停和手动触发已注册函数，不执行任意脚本。默认任务包括邮件队列、文件清理和公告时间检查，见 [任务管理](https://unicore.ebox.vip/03-runbooks/admin-tools#定时任务)。
 
-创建器按 distribution/manifest.json 的显式模板导出，新的 Git 文件不会自动入模板。Git 来源选中文件若有未提交修改默认拒绝；确需导出经过审阅的修改，显式传 --allow-dirty，provenance 将记录来源状态与输入摘要。没有 Git 的源码目录标记为 unversioned，不能声称来自某个干净提交。
+## 验证与跟进框架更新
 
-长期保留自己的应用变更记录和上游 revision。创建、源码同步、隔离冲突处理及通用问题回流见[框架升级与反馈](framework-upgrade.md)；使用 `pnpm framework:check` 和 `pnpm framework:sync`，不要覆盖复制上游目录。备份/更新配置与签名根见 [更新](updates.md)、[备份](backup.md)。上游实验/工作区保护记录不进入应用模板。
+```sh
+make docs
+make test
+make build-web build-cli
+```
 
-框架表统一保留 unicore_ 前缀，例如 unicore_users；产品身份生成器不会把它改成项目 slug。自建业务表可用项目自己的前缀，与框架保留表名分开；通过独立业务迁移维护，不批量替换上游 SQL。当前 Catalog 基线直接定义前缀终态，不再执行旧轨 0013 重命名；旧轨开发库不自动转换。升级前停服并成套备份，回退恢复旧快照。
+页面变更还需检查权限状态、双语和窄屏；桌面变更在目标系统构建并验证原生窗口。数据库变更应使用隔离实例验证适用方言。运行时升级前按 [备份恢复](backup.md) 演练恢复。
 
-平台角色授权使用“角色权限”的共享树和高级 API 选择器，也可从菜单行分配角色。新增业务 API 按 OpenAPI 注册后自动进入完整目录；只有页面相关按钮才登记 uiPage，无页面 API 同样可单独授权。菜单、按钮和 API 是独立集合，空数组表示撤销；不要在会话解析中根据 API 重新授予按钮。页面默认只联动已有权限上界内的浏览接口，写操作需显式选择。新增业务授权以 `packages/contracts/openapi.json` 的 x-unicore 元数据、HTTP 策略中间件及权限矩阵测试为准。
+新建业务源码可使用 `product.identity.json` 的团队作者配置，框架已有文件保留原作者与许可证。通过 `pnpm framework:check` 检查上游模板，使用 `pnpm framework:sync` 合并更新，流程见 [框架源码升级](framework-upgrade.md)。
 
-## 常用角色与权限排查
+## 替换示例业务
 
-以下是派生项目的配置示例，不新增框架内置角色。以超管进入“角色权限”创建自定义角色，在用户管理分配给测试账号；不要改 super_admin 保留集。页面/菜单、按钮、API、数据范围独立保存，多角色取并集，撤销时检查其他角色是否仍在授权。
-
-| 示例角色 | 页面与动作 | API 与资源范围 |
-| --- | --- | --- |
-| 笔记只读 | 授予“我的笔记”页面；不授予新增/编辑/删除按钮 | notes:access + listNotes；附件下载授 notesFileAccess，按 note_id 的读取范围和真实附件关联鉴权 |
-| 本人笔记编辑 | 在只读角色上增加新增/编辑/删除动作 | notes:create/update/delete + createNote/updateNote/deleteNote；self 范围不允许编辑他人笔记 |
-| 笔记附件编辑 | 编辑笔记角色 + “上传文件”动作 | notes:create/update；显式授 notesListFiles、notesFileUploadPolicy、notesCreateMultipartUpload、notesMultipartUpload、notesSignUploadPart、notesUploadLocalPart、notesCompleteMultipartUpload、notesDeleteFile、notesFileAccess；默认 user 已有这些业务能力，不需要 files:* |
-| 受限管理工作台 | 仅选实际需要的管理页面与动作 | 选择对应 admin operation，按 all/any 条件授予所需点；不能委派标为 super_admin 的账号/角色/更新等操作 |
-
-不建议把整个 API 目录全选后当作最小权限。上传使用持久分片流程，即使小文件也需要完整 helper API 授权；云端 PUT 使用签名 URL，服务端仍负责归属与完成校验。移除笔记附件仅移除引用；文件保留，放弃上传则需要 notesDeleteFile 授权。
-
-按下面顺序定位“页面能看但按钮不能点/接口被拒绝”：
-
-1. 用受限测试账号重新登录，确认分配的角色与当前工作台；不要用超管测试最小权限。
-2. 页面不可见或直达 403：检查菜单、祖先节点是否启用、工作台 surfaces 与路由权限；菜单不授予 API。
-3. 页面可见但按钮不显示：检查权限点、action_ids 和该动作关联的 operation_ids；显式空动作列表表示撤销，不会自动恢复。
-4. 按钮可见而请求 401：检查会话过期/撤销与登录入口。403 则检查 API grant、all/any 权限点、super_admin 保留策略，以及 CSRF/Origin；在浏览器 Network 查看返回错误码，不关闭中间件排障。
-5. 列表正常但某条记录不能编辑/附件不可下载：检查 owner/data scope 与记录的 capabilities，不能靠增加菜单绕过归属。409 可能是并发版本冲突，重新读取后再编辑。
-6. 保存角色后重新验证三个结果：能看页面、允许的动作成功、被禁止的直接 API 调用仍失败。角色变更可能撤销既有会话，先重新登录。
-
-## 替换与移除参考业务
-
-笔记位于 internal/modules/notes，文本分析位于独立共享用例；二者均为参考业务。替换笔记时一起处理模块注册、契约 operation/DTO、前端路由与默认导航、权限、派生项目的功能清单和测试。先用代码搜索查清消费者，不能只删除页面。正式发行后，不删除已交付的迁移 SQL 或 namespace 历史；退役表通过追加迁移和迁移/备份策略处理。CLI 不读取笔记数据库，也不自动获得新 UI 业务。
+笔记与 CLI 文本分析均为参考业务。关闭笔记的构建命令、永久移除源码的入口以及既有实例的数据处理，见 [裁剪示例与可选能力](features.md)。笔记模块的角色配置示例见 [源码导读](https://unicore.ebox.vip/03-runbooks/business-example#角色与权限示例)。

@@ -16,4 +16,5 @@
   --vp-home-hero-name-background: linear-gradient(120deg, #c0baff 10%, #83c7f3);
 }
 .VPHomeHero .image-src { max-width: 220px; max-height: 220px; }
-.VPHome .VPFeatures { padding-bottom: 64px; }
+.VPHome .VPFeatures { padding-bottom: 0; }
+.VPContent.is-home .VPHome { margin-bottom: 64px; }

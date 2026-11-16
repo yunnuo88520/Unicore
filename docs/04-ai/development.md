@@ -24,7 +24,7 @@
 
 开发先查已有能力，复用领域/用例、AppClient、表单、布局、反馈和双语入口；API/DTO 改 OpenAPI 后生成，设置登记 Definition，迁移遵守原字节 checksum 与 Profile 边界。文件通过 file_id 与统一存储 port，业务代码不拼本地路径。
 
-涉及框架功能/API/配置或扩展方式时，同步更新对应文档站来源；新增公开主题登记 distribution/manifest.json 的 public-site，并运行 pnpm --dir website build，流程见 [文档站维护](../03-runbooks/documentation-site.md)。
+面向读者的 README 与文档站只写使用、开发和参考内容；Agent 指令留在本目录、AGENTS 与任务 Skill，维护者流程留在仓库内。笔记是可裁剪 demo，创建与裁剪说明优先于示例教程。涉及框架功能/API/配置或扩展方式时，同步更新对应文档站来源；新增公开主题登记 distribution/manifest.json 的 public-site，并运行 pnpm --dir website build，流程见 [文档站维护](../03-runbooks/documentation-site.md)。
 
 完成后运行 make docs、make test 和受影响检查；迭代期先跑受影响面（make test-go / test-web / test-gen），交付前跑 make test 全量。UI 用真实后端验证，原生修改在目标系统验证。区分代码存在、构建、自动化、目标系统实测和生产验证，只报告实际执行结果，不用历史通过数冒充当前结果。
 

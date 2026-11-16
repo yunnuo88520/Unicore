@@ -75,7 +75,7 @@ message.success(t('已保存'));
 
 ## 独立 family 与子入口
 
-family 的稳定登记源为 `packages/web-ui/src/pages/ui-preview/catalog.ts` 的 `baseIds/chartIds/compositeIds`；同一 family 的样式变体、辅助组件或演示状态不额外计数。登记描述组件范围，不等于全量功能对齐、跨环境可用或视觉验收通过。新增入口不要求加载编辑器或把全部组件放进根 barrel。
+组件按用途提供独立导入入口，可以按需加载。预览页的组件目录位于 `packages/web-ui/src/pages/ui-preview/catalog.ts`；样式变体、辅助组件和演示状态归在对应组件下。
 
 | 子入口 | 独立组件与用途 | API 与限制 |
 | --- | --- | --- |
@@ -99,7 +99,7 @@ family 的稳定登记源为 `packages/web-ui/src/pages/ui-preview/catalog.ts` �
 - 矩阵与关系：`ContributionsCalendarChartCard` 接 date-only 数据及 start/end；`HeatmapChartCard` 接 rows/columns/cells；`ScatterChartCard` 接 x/y（bubble 还需 size）；`SankeyChartCard` 接 nodes/links，仅处理无环、有效节点与非负流量，拒绝循环、重复节点和未知节点。
 - 公共 `ChartCardProps` 提供 title/description、height、locale、messages、formatValue、range、tiles、footer；`range` 仅发 `onChange`，查询/聚合由宿主执行。`visibleSeries/onVisibleSeriesChange` 为受控图例；hover/focus 经 `onHoverChange`，选取经 `onSelect`，不自动导航。
 - 数值使用有限 number，缺失值可为 null/undefined；缺失/非有限值显示提示，不默认冒充零。百分比、进度、径向和流量另有非负值/有效 target 要求。图表提供键盘检查与可展开数据表，保留空态/无效值说明。
-- SVG/HTML 呈现提供作用域内的入场与径向弧线动效；`animate={false}` 可关闭，减少动态效果偏好自动关闭。`headline/delta` 提供主值与变化量；不承诺通用数值插值或每种图的路径过渡。颜色使用图表语义令牌，业务自定义 color 也应传主题变量而非独立色值。触屏及全部视觉状态仍需按使用场景验收。
+- SVG/HTML 图表支持入场与径向弧线动效；`animate={false}` 或系统的减少动态效果偏好可关闭。`headline/delta` 提供主值与变化量，数值插值和其他路径过渡需由业务实现。颜色使用图表语义令牌，自定义 color 传入主题变量。
 
 ### 日期与事件
 
@@ -132,7 +132,7 @@ AgentCreator 默认紧凑宽度并在字段上方显示资料预览；仅 `layou
 
 列表复用 `packages/web-ui/src/column-visibility.ts` 的 `useColumnVisibility(tableKey, columns)`。每张表使用稳定且唯一的 key，列 ID 与表格定义一致；返回的可见性接入 TanStack Table，菜单标签在渲染时翻译。隐藏列存入 `@unicore/theme/preferences` 的设备偏好，当前用户与管理员列表已接入。列隐藏只是展示选择，不构成字段权限，也不改变 XLSX 导出内容。
 
-路由守卫将已登记但当前身份无权访问的页面呈现为独立 403，未知路径仍为 404。业务页复用对应状态页与返回入口；管理员 API 始终再次授权。Swagger API 参考页独立加载较重组件，从开启文档开关的实例 `/openapi.json` 读取契约，见 [应用开发的 API 说明](development.md#api权限与前端)。
+路由守卫将已登记但当前身份无权访问的页面呈现为独立 403，未知路径仍为 404。业务页复用对应状态页与返回入口；管理员 API 始终再次授权。Swagger API 参考页独立加载较重组件，从开启文档开关的实例 `/openapi.json` 读取契约，见 [应用开发的 API 说明](https://unicore.ebox.vip/product/development#添加接口、权限和页面)。
 
 ## 数据表格套件
 

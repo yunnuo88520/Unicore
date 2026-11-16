@@ -18,7 +18,7 @@
 
 邮件事件把通知标题/正文填入已有邮件模板的“系统通知”外壳，保留品牌页眉、页脚与 HTML 转义；通知渠道始终使用纯文本。事件邮件不在数据库事务中读取品牌图片文件。
 
-缺少已测试 SMTP 或有效收件邮箱时跳过相应邮件；不会阻塞已配置的管理员渠道。IP 封禁无法可靠确定账户归属，只通知管理员。此事件的失败计数仍按进程和身份域隔离，重启清空。
+缺少已测试 SMTP 或有效收件邮箱时跳过相应邮件；不会阻塞已配置的管理员渠道。IP 封禁无法可靠确定账户归属，只通知管理员。临时 IP 封禁计数由统一登录服务按进程保存，重启清空。
 
 ## 渠道参数
 
@@ -37,7 +37,7 @@ Webhook 使用 POST、`Content-Type: application/json`，字段如下：
 {"title":"Unicore · 账号登录通知","content":"账户：example_user\n…","event":"login"}
 ```
 
-配置签名时，请求头 `X-Unicore-Signature` 是 `hex(HMAC-SHA256(secret, raw_request_body))`，不带前缀。接收方应在解析 JSON 前使用原始字节验证，并以恒定时间比较摘要。收到 HTTP 2xx 即视为成功；重试可能重复，接收方应按自己的业务规则去重。与 agu-auth 的 `X-Agu001-Signature` 采用相同签名算法，头名称按框架命名，不宣称协议字节级兼容。
+配置签名时，请求头 `X-Unicore-Signature` 是 `hex(HMAC-SHA256(secret, raw_request_body))`，不带前缀。接收方应在解析 JSON 前使用原始字节验证，并以恒定时间比较摘要。收到 HTTP 2xx 即视为成功；重试可能重复，接收方应按自己的业务规则去重。
 
 企业微信发送 `msgtype=text`，`text.content` 为标题、空行、正文。既检查 HTTP 状态，也检查返回 JSON 的 `errcode=0`；响应体最多 64 KiB。请求超时 10 秒，不信任代理环境变量，不跟随重定向。DNS 解析结果须全部为公网地址，拨号使用已验证地址而 TLS 仍验证原域名，防止重绑定访问内网。
 
@@ -54,7 +54,7 @@ Webhook 使用 POST、`Content-Type: application/json`，字段如下：
 | user_created / admin_created | 后台创建对应身份，不包含安装引导账号 |
 | sessions_revoked | 本人撤销设备会话 |
 | email_changed | 完成换绑邮箱验证并更新邮箱 |
-| alert_triggered / alert_recovered | 运行告警触发 / 真实恢复（语义详见《运行监控中心》设计文档 §8）；默认仅管理员邮件，与其他事件一致受系统通知总开关统一控制；渠道投递仍需开启通知渠道并单独选择加入；通知设置页的用户对象不呈现这两个事件 |
+| alert_triggered / alert_recovered | 运行告警触发 / 真实恢复；默认仅管理员邮件，与其他事件一致受系统通知总开关统一控制；渠道投递仍需开启通知渠道并单独选择加入；通知设置页的用户对象不呈现这两个事件 |
 
 账号停用对应框架已有 `disabled` 状态；不提供没有业务模型的“账号封禁/解封”、余额、订单和授权事件空开关。
 
@@ -92,11 +92,11 @@ Webhook 使用 POST、`Content-Type: application/json`，字段如下：
 
 ## 运行、恢复和兼容
 
-复用 `system_settings` 与 `mail_jobs`，无新表、无 schema 版本变更。`notifications.config` 登记为托管 SettingDefinition，保存事件规则和模板；三个 `notifications.*` 凭据登记为敏感项。普通 settings PATCH 禁止写这些键，专用接口原子校验保存并复核管理员身份。页面分别传入 channels / templates / system 写入范围，仅合并所属部分；不传范围的旧客户端保留整份替换语义。服务端事件目录不写入持久配置。
+通知配置保存在 `system_settings`，投递任务保存在 `mail_jobs`，站内信的结构与索引版本以迁移 Catalog 为准。`notifications.config` 登记为托管 SettingDefinition，保存事件规则和模板；三个 `notifications.*` 凭据登记为敏感项。普通 settings PATCH 禁止写这些键，专用接口原子校验保存并复核管理员身份。页面分别传入 channels / templates / system 写入范围，仅合并所属部分；不传范围的旧客户端保留整份替换语义。服务端事件目录不写入持久配置。
 
 进程每秒认领最多 8 个任务（账号验证码/验证邮件始终先于事件通知被认领），并发投递上限 4，同一渠道同时只发一个请求，慢渠道不会占满全部 worker 或阻塞验证码邮件；60 秒租约，失败按 10/20/40/80 秒延迟，最多尝试 5 次；24 小时过期。队列深度由 `unicore_mail_queue_pending`、`unicore_mail_queue_oldest_pending_seconds` 与 `unicore_mail_queue_dead` 指标暴露（可选回环 `/metrics`）。关闭进程保留未完成租约，重启恢复，投递保证为至少一次。成功或终态清除载荷，终态元信息保留最多 7 天。发送使用入队时的内容和收件人快照，凭据在发送时读取当前设置。关闭系统 / 渠道总开关或切换渠道类型后，旧的相应任务被标记为 cancelled 并跳过，不继续发送；取消原因以稳定码记录（`MASTER_DISABLED` / `CHANNEL_DISABLED` / `PROVIDER_CHANGED`），不会写成"发送失败"；重新开启不会补发已跳过事件。事件内单独开关影响新任务，已入队内容不会被未保存草稿或后续模板修改替换。
 
-投递失败在 `last_error` 记录稳定脱敏错误码；不可重试的错误直接进入 dead，不再机械重试。验收任何失败都能回答：为什么失败、还会不会重试、管理员应该改什么。
+投递失败在 `last_error` 记录稳定脱敏错误码；不可重试的错误直接进入 dead，不再机械重试。下表列出失败原因、是否重试及对应处理办法。
 
 | 错误码 | 含义 | 是否重试 |
 | --- | --- | --- |
@@ -116,4 +116,4 @@ Webhook 使用 POST、`Content-Type: application/json`，字段如下：
 
 第三方投递成功边界：邮件为"SMTP 服务已接受"，企业微信为"接口返回成功"，Webhook 为"接收端返回约定的成功状态（HTTP 2xx）"；均不等于用户已读，页面可表述为"发送成功"，详情按本表说明成功边界。
 
-备份需同时保留数据库及实例外置加密密钥，参考备份恢复手册（backup.md）。密钥丢失时不能解密凭据或未完成任务，应恢复完整备份，不要修改旧迁移 checksum 或把密文当明文导入。降级前关闭事件通知并排空队列；旧版本不理解渠道消息字段，不应直接处理新版未完成渠道任务。
+备份需同时保留数据库及实例外置加密密钥，参考 [备份恢复](../product/backup.md)。密钥丢失时不能解密凭据或未完成任务，应恢复完整备份，不要修改旧迁移 checksum 或把密文当明文导入。降级前关闭事件通知并排空队列；旧版本不理解渠道消息字段，不应直接处理新版未完成渠道任务。

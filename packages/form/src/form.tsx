@@ -122,6 +122,13 @@ export function AppField<T extends FieldValues>({ name, label, hint, rules, onFi
   const required = requiredProp ?? (!!rules?.required || children.props.required || constraint.required);
   const floating = floatingProp ?? (children.type === Input || children.type === Textarea);
   const mark = <FieldMark required={required} mode={design.requiredMode} />;
+  // Once a field has shown an error the message row stays reserved (invisible
+  // after the error resolves): blur validation would otherwise add or remove
+  // the row between a submit button's mousedown and mouseup, moving the button
+  // so the click lands outside it — on narrow viewports the submit becomes a
+  // silent no-op.
+  const lastError = useRef('');
+  if (message) lastError.current = message;
   return <div data-invalid={!!message || undefined} className={cn('flex min-w-0 flex-col', floating ? 'gap-2' : 'gap-1.5', className)}>
     {!floating && <label htmlFor={id} className="text-sm font-medium text-ink">{label}{mark}</label>}
     {isValidElement(children) ? cloneElement(children, {
@@ -142,7 +149,7 @@ export function AppField<T extends FieldValues>({ name, label, hint, rules, onFi
       'aria-invalid': !!message,
       'aria-describedby': [hint ? `${id}-hint` : '', message ? `${id}-error` : '', children.props['aria-describedby']].filter(Boolean).join(' ') || undefined,
     } as InputHTMLAttributes<HTMLInputElement>) : children}
-    {message && <p id={`${id}-error`} role="alert" className="text-xs text-danger">{t(message)}</p>}
+    {lastError.current && <p id={`${id}-error`} role={message ? 'alert' : undefined} className={cn('text-xs', message ? 'text-danger' : 'invisible')}>{t(lastError.current)}</p>}
     {hint && <p id={`${id}-hint`} className="text-xs leading-5 text-muted">{hint}</p>}
   </div>;
 }

@@ -3,6 +3,7 @@
 package observability
 
 import (
+	"context"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -93,5 +94,40 @@ func TestSnapshotHTTPP95StaysNearAverage(t *testing.T) {
 	}
 	if stats.P95DurationMs > stats.AvgDurationMs*30 {
 		t.Fatalf("P95 inflation against average looks like bucket distortion: p95=%v avg=%v", stats.P95DurationMs, stats.AvgDurationMs)
+	}
+}
+
+func TestMailQueueGauges(t *testing.T) {
+	metrics := New()
+	metrics.AttachMailQueue(func(context.Context) MailQueueStats {
+		return MailQueueStats{Pending: 7, OldestPendingSeconds: 42, Dead: 3}
+	})
+	w := httptest.NewRecorder()
+	metrics.Handler(nil).ServeHTTP(w, httptest.NewRequest("GET", "/metrics", nil))
+	text := w.Body.String()
+	parser := expfmt.NewTextParser(model.LegacyValidation)
+	families, err := parser.TextToMetricFamilies(strings.NewReader(text))
+	if err != nil {
+		t.Fatal("invalid Prometheus exposition", err)
+	}
+	expectations := map[string]float64{"unicore_mail_queue_pending": 7, "unicore_mail_queue_oldest_pending_seconds": 42, "unicore_mail_queue_dead": 3}
+	for name, want := range expectations {
+		family := families[name]
+		if family == nil {
+			t.Errorf("missing collector %s", name)
+			continue
+		}
+		if got := family.Metric[0].Gauge.GetValue(); got != want {
+			t.Errorf("%s = %v, want %v", name, got, want)
+		}
+	}
+	// Without a provider the gauges stay at zero instead of disappearing.
+	bare := New()
+	w = httptest.NewRecorder()
+	bare.Handler(nil).ServeHTTP(w, httptest.NewRequest("GET", "/metrics", nil))
+	for name := range expectations {
+		if !strings.Contains(w.Body.String(), name+" 0") {
+			t.Errorf("bare metrics must expose %s at zero", name)
+		}
 	}
 }

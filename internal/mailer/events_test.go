@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/yunnuo/unicore/internal/contracts"
@@ -62,7 +63,7 @@ type queueStore struct {
 	failAfter int // when > 0, the Nth enqueue fails after that many successes
 }
 
-func (s *queueStore) ClaimMail(context.Context, int) (Job, error) { return Job{}, nil }
+func (s *queueStore) ClaimMails(context.Context, int, int) ([]Job, error) { return nil, nil }
 func (s *queueStore) FinishMail(context.Context, Job, bool, int) error {
 	return nil
 }
@@ -284,27 +285,38 @@ func TestTickIndependentDelivery(t *testing.T) {
 	for _, m := range rows {
 		store.enqueue(svc.Encrypt(m))
 	}
-	for i := 0; i < len(rows); i++ {
-		if err := svc.Tick(context.Background(), 1000+i); err != nil {
-			t.Fatalf("tick %d: %v", i, err)
-		}
+	// One batched tick now carries all three rows: the failing SMTP row and
+	// the two channel rows must still produce independent verdicts.
+	if err := svc.Tick(context.Background(), 1000); err != nil {
+		t.Fatalf("tick: %v", err)
 	}
 	if len(store.verdicts) != 3 {
 		t.Fatalf("three independent verdicts expected: %v", store.verdicts)
 	}
-	if store.verdicts[0].delivered {
+	verdictByID := map[string]struct {
+		delivered bool
+		cancelled bool
+	}{}
+	for _, verdict := range store.verdicts {
+		verdictByID[verdict.id] = struct {
+			delivered bool
+			cancelled bool
+		}{verdict.delivered, verdict.cancelled}
+	}
+	if verdictByID["job-a"].delivered {
 		t.Fatal("the failing SMTP row must not be reported delivered")
 	}
-	if !store.verdicts[1].delivered || !store.verdicts[2].delivered {
+	if !verdictByID["job-b"].delivered || !verdictByID["job-c"].delivered {
 		t.Fatal("channel rows must deliver independently of the SMTP failure")
 	}
 	// The failed row stays alive for its own retry; successes are finished.
-	if store.verdicts[0].cancelled || store.verdicts[1].cancelled {
+	if verdictByID["job-a"].cancelled || verdictByID["job-b"].cancelled {
 		t.Fatal("delivery failures must retry, not cancel")
 	}
 }
 
 type sequenceStore struct {
+	mu       sync.Mutex
 	actors   []string
 	payloads []string
 	jobs     []Job
@@ -316,17 +328,27 @@ type sequenceStore struct {
 }
 
 func (s *sequenceStore) enqueue(payload string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.jobs = append(s.jobs, Job{ID: "job-" + string(rune('a'+len(s.jobs))), Payload: payload})
 }
-func (s *sequenceStore) ClaimMail(_ context.Context, _ int) (Job, error) {
+func (s *sequenceStore) ClaimMails(_ context.Context, _ int, limit int) ([]Job, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if len(s.jobs) == 0 {
-		return Job{}, nil
+		return nil, nil
 	}
-	job := s.jobs[0]
-	s.jobs = s.jobs[1:]
-	return job, nil
+	count := limit
+	if count > len(s.jobs) {
+		count = len(s.jobs)
+	}
+	jobs := s.jobs[:count]
+	s.jobs = s.jobs[count:]
+	return jobs, nil
 }
 func (s *sequenceStore) FinishMail(_ context.Context, job Job, delivered bool, _ int) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.verdicts = append(s.verdicts, struct {
 		id        string
 		delivered bool

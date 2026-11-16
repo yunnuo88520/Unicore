@@ -148,6 +148,19 @@ func run(args []string) (result error) {
 	}
 	hub := realtime.New()
 	metrics := observability.New()
+	// Queue-depth gauges read through the installed store; before installation
+	// (store nil) the provider reports zeros.
+	metrics.AttachMailQueue(func(ctx context.Context) observability.MailQueueStats {
+		store, _, _, _ := manager.Services()
+		if store == nil {
+			return observability.MailQueueStats{}
+		}
+		pending, oldest, dead, err := (&platformsql.Repository{Store: store}).MailQueueStats(ctx)
+		if err != nil {
+			return observability.MailQueueStats{}
+		}
+		return observability.MailQueueStats{Pending: pending, OldestPendingSeconds: oldest, Dead: dead}
+	})
 	monitorEvents := monitor.NewEventSink(200)
 	monitorEvents.Append(monitor.EventLifecycle, monitor.SeverityInfo, "实例已启动", "v"+metadata.Version)
 	taskTracker := monitor.NewTaskEventTracker(monitorEvents)

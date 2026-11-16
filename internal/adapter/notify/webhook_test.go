@@ -6,6 +6,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"github.com/yunnuo/unicore/internal/mailer"
 	"io"
 	"net"
@@ -54,6 +55,53 @@ func TestSignedWebhookAndProviderErrors(t *testing.T) {
 type responseTransport func(*http.Request) (*http.Response, error)
 
 func (f responseTransport) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+func TestChannelFailureClassification(t *testing.T) {
+	cases := []struct {
+		name      string
+		body      string
+		status    int
+		code      string
+		channel   string
+		retryable bool
+	}{
+		{"wecom rate limited", `{"errcode":45009,"errmsg":"api freq limited"}`, 200, mailer.FailureChannelRateLimited, "wecom", true},
+		{"wecom rejected", `{"errcode":40058,"errmsg":"invalid parameter"}`, 200, mailer.FailureChannelRejected, "wecom", false},
+		{"wecom malformed response", `{}`, 200, mailer.FailureChannelRejected, "wecom", false},
+		{"http rate limited", `ok`, 429, mailer.FailureChannelRateLimited, "webhook", true},
+		{"http server error", `oops`, 500, mailer.FailureChannelUnavailable, "webhook", true},
+		{"http rejected", `nope`, 404, mailer.FailureChannelRejected, "webhook", false},
+	}
+	for _, tc := range cases {
+		sender := Sender{transport: responseTransport(func(r *http.Request) (*http.Response, error) {
+			return &http.Response{StatusCode: tc.status, Body: io.NopCloser(strings.NewReader(tc.body)), Header: make(http.Header)}, nil
+		})}
+		v := map[string]string{"notifications.wecom_key": "synthetic", "notifications.webhook_url": "https://example.test/hook"}
+		err := sender.SendChannel(context.Background(), v, mailer.Message{Channel: tc.channel, Subject: "T", Body: "C"})
+		var failure *mailer.DeliveryFailure
+		if !errors.As(err, &failure) || failure.Code != tc.code || failure.Retryable != tc.retryable {
+			t.Fatalf("%s: want %s retry=%v, got %v", tc.name, tc.code, tc.retryable, err)
+		}
+	}
+	// Configuration-level defects are never retryable and never dial.
+	sender := Sender{transport: responseTransport(func(r *http.Request) (*http.Response, error) {
+		t.Fatal("must not dial")
+		return nil, errors.New("unreachable")
+	})}
+	if err := sender.SendChannel(context.Background(), map[string]string{}, mailer.Message{Channel: "wecom", Subject: "T", Body: "C"}); !isCode(err, mailer.FailureChannelInvalid) {
+		t.Fatalf("missing key must be CHANNEL_INVALID, got %v", err)
+	}
+	v := map[string]string{"notifications.webhook_url": "http://example.com"}
+	if err := sender.SendChannel(context.Background(), v, mailer.Message{Channel: "webhook", Subject: "T", Body: "C"}); !isCode(err, mailer.FailureChannelInvalid) {
+		t.Fatalf("plaintext URL must be CHANNEL_INVALID, got %v", err)
+	}
+}
+
+func isCode(err error, code string) bool {
+	var failure *mailer.DeliveryFailure
+	return errors.As(err, &failure) && failure.Code == code
+}
+
 func TestWeComApplicationResponse(t *testing.T) {
 	for _, body := range []string{`{"errcode":0}`, `{"errcode":40058,"errmsg":"invalid parameter"}`, `{}`, `not-json`} {
 		sender := Sender{transport: responseTransport(func(r *http.Request) (*http.Response, error) {

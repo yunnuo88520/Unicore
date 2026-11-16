@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -16,6 +17,7 @@ import (
 
 	mailadapter "github.com/yunnuo/unicore/internal/adapter/mail"
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
+	"github.com/yunnuo/unicore/internal/adapter/storage/webdb"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/mailer"
 	"github.com/yunnuo/unicore/internal/platform"
@@ -201,12 +203,14 @@ func exerciseMailLifecycle(t *testing.T, ctx context.Context, store *sqlstore.St
 	if err = repository.QueueAccountToken(ctx, input.Email, "reset", platform.Hash(platform.Token()), now+3600, mail.Encrypt(mailer.Message{To: input.Email, Subject: "lease", Body: "test"})); err != nil {
 		t.Fatal(err)
 	}
-	first, err := repository.ClaimMail(ctx, now+21)
-	if err != nil || first.ID == "" {
+	firstBatch, err := repository.ClaimMails(ctx, now+21, 1)
+	if err != nil || len(firstBatch) != 1 {
 		t.Fatal(err)
 	}
-	second, err := repository.ClaimMail(ctx, now+82)
-	if err != nil || first.ID != second.ID || first.Lease == second.Lease {
+	first := firstBatch[0]
+	secondBatch, err := repository.ClaimMails(ctx, now+82, 1)
+	second := secondBatch[0]
+	if err != nil || len(secondBatch) != 1 || first.ID != second.ID || first.Lease == second.Lease {
 		t.Fatal("abandoned lease not recovered", err)
 	}
 	if err = repository.FinishMail(ctx, first, true, now+83); err != nil {
@@ -221,10 +225,11 @@ func exerciseMailLifecycle(t *testing.T, ctx context.Context, store *sqlstore.St
 			t.Fatal(err)
 		}
 		if attempt < 5 {
-			second, err = repository.ClaimMail(ctx, now+83+(1<<attempt)*5)
-			if err != nil || second.ID == "" {
+			retried, err := repository.ClaimMails(ctx, now+83+(1<<attempt)*5, 1)
+			if err != nil || len(retried) != 1 {
 				t.Fatal("retry not claimable", err)
 			}
+			second = retried[0]
 		}
 	}
 	if err = store.Row(ctx, store.DB, "SELECT payload,state FROM unicore_mail_jobs WHERE id=?", second.ID).Scan(&payload, &state); err != nil || payload != "" || state != "dead" {
@@ -239,4 +244,108 @@ func exerciseMailLifecycle(t *testing.T, ctx context.Context, store *sqlstore.St
 		t.Fatal("queue metadata disclosed secrets")
 	}
 	exerciseEmailCodes(t, ctx, store, repository, accounts, input.Email)
+}
+
+func TestClaimMailsPrioritizesAccountMail(t *testing.T) {
+	ctx := context.Background()
+	store, err := webdb.Open(ctx, "sqlite", "", filepath.Join(t.TempDir(), "priority.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	if err = runner.Apply(ctx, store.DB, runner.Options{Dialect: "sqlite", Profile: "web-platform"}); err != nil {
+		t.Fatal(err)
+	}
+	r := &Repository{Store: store}
+	if _, err = store.Exec(ctx, store.DB, "INSERT INTO unicore_install_state(id,profile,instance_id,installed_at) VALUES(1,?,?,?)", "web-platform", sqlstore.ID(), time.Now().Unix()); err != nil {
+		t.Fatal(err)
+	}
+	now := int(time.Now().Unix())
+	enqueue := func(id, tokenHash string, createdAt int) {
+		if _, err = store.Exec(ctx, store.DB, "INSERT INTO unicore_mail_jobs(id,token_hash,payload,state,attempts,created_at,available_at,expires_at,lease_id,lease_until,last_error) VALUES(?,?,?,'pending',0,?,?,?,'',0,'')", id, tokenHash, "payload", createdAt, createdAt, now+3600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// The event notification enqueues first; account mail must still claim first.
+	enqueue("notify-first", "", now-10)
+	enqueue("account-second", platform.Hash(platform.Token()), now-5)
+	jobs, err := r.ClaimMails(ctx, now, 8)
+	if err != nil || len(jobs) != 2 {
+		t.Fatalf("claim all: %d %v", len(jobs), err)
+	}
+	if jobs[0].ID != "account-second" || jobs[1].ID != "notify-first" {
+		t.Fatalf("account mail must claim before event notifications: %v", []string{jobs[0].ID, jobs[1].ID})
+	}
+}
+
+func TestFinishMailPersistsFailureCodes(t *testing.T) {
+	ctx := context.Background()
+	store, err := webdb.Open(ctx, "sqlite", "", filepath.Join(t.TempDir(), "verdicts.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	if err = runner.Apply(ctx, store.DB, runner.Options{Dialect: "sqlite", Profile: "web-platform"}); err != nil {
+		t.Fatal(err)
+	}
+	r := &Repository{Store: store}
+	if _, err = store.Exec(ctx, store.DB, "INSERT INTO unicore_install_state(id,profile,instance_id,installed_at) VALUES(1,?,?,?)", "web-platform", sqlstore.ID(), time.Now().Unix()); err != nil {
+		t.Fatal(err)
+	}
+	now := int(time.Now().Unix())
+	seed := func(id string) mailer.Job {
+		if _, err = store.Exec(ctx, store.DB, "INSERT INTO unicore_mail_jobs(id,token_hash,payload,state,attempts,created_at,available_at,expires_at,lease_id,lease_until,last_error) VALUES(?,?,?,'pending',0,?,?,?,'',0,'')", id, "", "payload", now, now, now+3600); err != nil {
+			t.Fatal(err)
+		}
+		claimed, err := r.ClaimMails(ctx, now, 8)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, job := range claimed {
+			if job.ID == id {
+				return job
+			}
+		}
+		t.Fatalf("job %s not claimed", id)
+		return mailer.Job{}
+	}
+	stateOf := func(id string) (string, string) {
+		var state, lastError string
+		if err = store.Row(ctx, store.DB, "SELECT state,last_error FROM unicore_mail_jobs WHERE id=?", id).Scan(&state, &lastError); err != nil {
+			t.Fatal(err)
+		}
+		return state, lastError
+	}
+	job := seed("auth-failed")
+	if err = r.FinishMail(ctx, job, false, now); err != nil {
+		t.Fatal(err)
+	}
+	if state, lastError := stateOf("auth-failed"); state != "pending" || lastError != mailer.FailureDeliveryFailed {
+		t.Fatalf("generic failure stays retryable: %s %s", state, lastError)
+	}
+	job = seed("auth-dead")
+	job.Failure = &mailer.DeliveryFailure{Code: mailer.FailureSMTPAuth}
+	if err = r.FinishMail(ctx, job, false, now); err != nil {
+		t.Fatal(err)
+	}
+	if state, lastError := stateOf("auth-dead"); state != "dead" || lastError != mailer.FailureSMTPAuth {
+		t.Fatalf("non-retryable failure must die with its code: %s %s", state, lastError)
+	}
+	job = seed("rate-limited")
+	job.Failure = &mailer.DeliveryFailure{Code: mailer.FailureChannelRateLimited, Retryable: true}
+	if err = r.FinishMail(ctx, job, false, now); err != nil {
+		t.Fatal(err)
+	}
+	if state, lastError := stateOf("rate-limited"); state != "pending" || lastError != mailer.FailureChannelRateLimited {
+		t.Fatalf("retryable failure keeps backing off with its code: %s %s", state, lastError)
+	}
+	job = seed("master-off")
+	job.Cancelled = true
+	job.CancelReason = "MASTER_DISABLED"
+	if err = r.FinishMail(ctx, job, true, now); err != nil {
+		t.Fatal(err)
+	}
+	if state, lastError := stateOf("master-off"); state != "cancelled" || lastError != "MASTER_DISABLED" {
+		t.Fatalf("cancellation must win over delivered and record its reason: %s %s", state, lastError)
+	}
 }

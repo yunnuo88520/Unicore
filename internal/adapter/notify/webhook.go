@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-var errDelivery = errors.New("notification delivery failed")
+var errRedirect = &mailer.DeliveryFailure{Code: mailer.FailureChannelRejected, Detail: "redirect refused"}
 
 type Sender struct{ transport http.RoundTripper }
 
@@ -57,47 +57,47 @@ func (s Sender) SendChannel(ctx context.Context, v map[string]string, m mailer.M
 	}{m.Subject, m.Body, m.Event}
 	if m.Channel == "wecom" {
 		if v["notifications.wecom_key"] == "" {
-			return errDelivery
+			return &mailer.DeliveryFailure{Code: mailer.FailureChannelInvalid, Detail: "missing wecom key"}
 		}
 		endpoint = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=" + url.QueryEscape(v["notifications.wecom_key"])
 		payload = map[string]any{"msgtype": "text", "text": map[string]string{"content": m.Subject + "\n\n" + m.Body}}
 	} else if m.Channel != "webhook" {
-		return errDelivery
+		return &mailer.DeliveryFailure{Code: mailer.FailureChannelInvalid, Detail: "unknown channel"}
 	}
 	u, e := url.Parse(endpoint)
 	if e != nil || u.Scheme != "https" || u.Hostname() == "" || u.User != nil || u.Fragment != "" || strings.ContainsAny(endpoint, "\r\n\x00") {
-		return errDelivery
+		return &mailer.DeliveryFailure{Code: mailer.FailureChannelInvalid, Detail: "invalid destination URL"}
 	}
 	body, e := json.Marshal(payload)
 	if e != nil {
-		return errDelivery
+		return &mailer.DeliveryFailure{Code: mailer.FailureChannelInvalid, Detail: "payload encoding failed"}
 	}
 	delivery, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	transport := &http.Transport{Proxy: nil, ForceAttemptHTTP2: true, TLSHandshakeTimeout: 5 * time.Second, ResponseHeaderTimeout: 5 * time.Second, DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
 		host, port, e := net.SplitHostPort(address)
 		if e != nil {
-			return nil, errDelivery
+			return nil, &mailer.DeliveryFailure{Code: mailer.FailureChannelUnavailable, Retryable: true}
 		}
 		ips, e := net.DefaultResolver.LookupIP(ctx, "ip", host)
 		if e != nil || len(ips) == 0 {
-			return nil, errDelivery
+			return nil, &mailer.DeliveryFailure{Code: mailer.FailureChannelUnavailable, Retryable: true, Detail: "destination unresolved"}
 		}
 		for _, ip := range ips {
 			if !PublicIP(ip) {
-				return nil, errDelivery
+				return nil, &mailer.DeliveryFailure{Code: mailer.FailureChannelInvalid, Detail: "destination is not a public address"}
 			}
 		}
 		return (&net.Dialer{Timeout: 5 * time.Second}).DialContext(ctx, network, net.JoinHostPort(ips[0].String(), port))
 	}}
 	defer transport.CloseIdleConnections()
-	client := http.Client{Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return errDelivery }}
+	client := http.Client{Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return errRedirect }}
 	if s.transport != nil {
 		client.Transport = s.transport
 	}
 	request, e := http.NewRequestWithContext(delivery, http.MethodPost, endpoint, bytes.NewReader(body))
 	if e != nil {
-		return errDelivery
+		return &mailer.DeliveryFailure{Code: mailer.FailureChannelInvalid, Detail: "request construction failed"}
 	}
 	request.Header.Set("Content-Type", "application/json")
 	if key := v["notifications.signing_secret"]; m.Channel == "webhook" && key != "" {
@@ -107,20 +107,56 @@ func (s Sender) SendChannel(ctx context.Context, v map[string]string, m mailer.M
 	}
 	response, e := client.Do(request)
 	if e != nil {
-		return errDelivery
+		return classifyHTTP(e)
 	}
 	defer response.Body.Close()
+	if response.StatusCode == http.StatusTooManyRequests {
+		return &mailer.DeliveryFailure{Code: mailer.FailureChannelRateLimited, Retryable: true}
+	}
+	if response.StatusCode >= 500 {
+		return &mailer.DeliveryFailure{Code: mailer.FailureChannelUnavailable, Retryable: true}
+	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return errDelivery
+		return &mailer.DeliveryFailure{Code: mailer.FailureChannelRejected}
 	}
 	if m.Channel == "wecom" {
 		var result struct {
 			Code *int `json:"errcode"`
 		}
 		data, e := io.ReadAll(io.LimitReader(response.Body, 65537))
-		if e != nil || len(data) > 65536 || json.Unmarshal(data, &result) != nil || (result.Code == nil || *result.Code != 0) {
-			return errDelivery
+		if e != nil || len(data) > 65536 {
+			return &mailer.DeliveryFailure{Code: mailer.FailureChannelUnavailable, Retryable: true}
+		}
+		if json.Unmarshal(data, &result) != nil || result.Code == nil {
+			return &mailer.DeliveryFailure{Code: mailer.FailureChannelRejected, Detail: "unreadable wecom response"}
+		}
+		if *result.Code == 45009 {
+			return &mailer.DeliveryFailure{Code: mailer.FailureChannelRateLimited, Retryable: true}
+		}
+		if *result.Code != 0 {
+			return &mailer.DeliveryFailure{Code: mailer.FailureChannelRejected}
 		}
 	}
 	return nil
+}
+
+// classifyHTTP maps transport-level failures to stable delivery codes.
+// Timeouts stay retryable; everything else unclassified degrades to a
+// retryable channel-unavailable outcome.
+func classifyHTTP(err error) error {
+	if err == nil {
+		return nil
+	}
+	var failure *mailer.DeliveryFailure
+	if errors.As(err, &failure) {
+		return err
+	}
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return &mailer.DeliveryFailure{Code: mailer.FailureTimeout, Retryable: true}
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return &mailer.DeliveryFailure{Code: mailer.FailureTimeout, Retryable: true}
+	}
+	return &mailer.DeliveryFailure{Code: mailer.FailureChannelUnavailable, Retryable: true}
 }

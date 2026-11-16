@@ -219,7 +219,7 @@ export interface WebClient {
   roleOptions(): Promise<RoleOptions>;
   adminRoleOptions(): Promise<RoleOptions>;
 
-  inbox(): Promise<InboxList>;
+  inbox(page?: number, pageSize?: number): Promise<InboxList>;
   readInbox(id: string): Promise<InboxList>;
   readAllInbox(): Promise<InboxList>;
   listTasks(): Promise<TaskList>;
@@ -566,7 +566,7 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   dictionaryByCode(code: string) { return this.call('dictionary', undefined, { params: { code } }); }
   roleOptions() { return this.call('roleOptions'); }
   adminRoleOptions() { return this.call('adminRoleOptions'); }
-  inbox() { return this.call('inbox'); }
+  inbox(page=1,pageSize=20){return this.call('inbox',undefined,{query:{page,page_size:pageSize}});}
   readInbox(id: string) { return this.call('readInbox', undefined, { params: { id } }); }
   readAllInbox() { return this.call('readAllInbox'); }
   listTasks() { return this.call('listTasks'); }

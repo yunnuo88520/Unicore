@@ -18,11 +18,14 @@ import (
 const inboxVisible = "recipient_id=? AND (type<>'announcement' OR EXISTS (SELECT 1 FROM unicore_platform_announcements a WHERE a.id=unicore_inbox_messages.source_id AND a.deleted_at=0 AND a.status='published' AND a.publish_at<=? AND (a.ends_at=0 OR a.ends_at>?) AND (a.audience='all' OR EXISTS (SELECT 1 FROM unicore_announcement_recipients target WHERE target.announcement_id=a.id AND target.user_id=unicore_inbox_messages.recipient_id)) AND NOT EXISTS (SELECT 1 FROM unicore_system_settings WHERE setting_key='announcements.enabled' AND setting_value<>'true')))"
 
 func (r *Repository) InboxFeed(ctx context.Context, userID string, page, size int) (contracts.InboxList, error) {
-	result := contracts.InboxList{Items: []contracts.InboxEntry{}}
+	result := contracts.InboxList{Items: []contracts.InboxEntry{}, Page: page, PageSize: size}
 	if !domain.ValidPage(page, size) {
 		return result, platform.ErrInput
 	}
 	now := time.Now().Unix()
+	if err := r.row(ctx, r.Store.DB, "SELECT COUNT(*) FROM unicore_inbox_messages WHERE "+inboxVisible, userID, now, now).Scan(&result.Total); err != nil {
+		return result, err
+	}
 	if err := r.row(ctx, r.Store.DB, "SELECT COUNT(*) FROM unicore_inbox_messages WHERE "+inboxVisible+" AND read_at=0", userID, now, now).Scan(&result.Unread); err != nil {
 		return result, err
 	}
@@ -52,6 +55,8 @@ func (r *Repository) InboxRead(ctx context.Context, userID, id string) (contract
 	if _, err := r.exec(ctx, r.Store.DB, "UPDATE unicore_inbox_messages SET read_at=? WHERE id=? AND "+inboxVisible+" AND read_at=0", now, id, userID, now, now); err != nil {
 		return contracts.InboxList{}, err
 	}
+	// Mutations refresh the first page snapshot; paginated clients refetch
+	// their loaded pages through the list operation.
 	return r.InboxFeed(ctx, userID, 1, 20)
 }
 func (r *Repository) InboxReadAll(ctx context.Context, userID string) (contracts.InboxList, error) {
@@ -66,7 +71,23 @@ func (r *Repository) InboxReadAll(ctx context.Context, userID string) (contracts
 // update existing copies in place, preserving read state and created_at; empty
 // IDs represent independent messages. actions carries the JSON payload of
 // module-delivered buttons ([]contracts.InboxAction); empty string means none.
+// The platform@2 partial unique index (recipient_id, type, source_id) backs
+// this batch against concurrent deliveries of the same source: a losing
+// insert self-heals by rerunning the batch, whose second pass takes the
+// UPDATE path. System messages (empty source) cannot collide, so their
+// failures surface as-is.
 func (r *Repository) DeliverInbox(ctx context.Context, q sqlstore.Runner, recipients []string, messageType, sourceID, title, body, actions string) error {
+	err := r.deliverInbox(ctx, q, recipients, messageType, sourceID, title, body, actions)
+	if err == nil || sourceID == "" || ctx.Err() != nil {
+		return err
+	}
+	if retryErr := r.deliverInbox(ctx, q, recipients, messageType, sourceID, title, body, actions); retryErr != nil {
+		return retryErr
+	}
+	return nil
+}
+
+func (r *Repository) deliverInbox(ctx context.Context, q sqlstore.Runner, recipients []string, messageType, sourceID, title, body, actions string) error {
 	now := time.Now().Unix()
 	seen := map[string]bool{}
 	for _, recipient := range recipients {

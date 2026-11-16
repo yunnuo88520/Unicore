@@ -1514,6 +1514,9 @@ export interface InboxEntry {
 export interface InboxList {
   items: Array<InboxEntry>;
   unread: number;
+  total: number;
+  page: number;
+  page_size: number;
 }
 
 export interface InboxListResponse {

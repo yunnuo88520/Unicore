@@ -172,3 +172,10 @@
 - 状态：**已裁决（A），去向：design-runtime-monitor.md T4 范围依据。**  
   **终审追记（2026-11-11）**：方案 A 确认；规则经 Settings 基建存储但走专用 superAdmin+monitor:read 端点访问；检测用 monitor 内 ticker（不进任务表）。
 **二次终审（2026-11-11，方案二）**：Standalone（Web+GUI 等效）支持**本地告警**——内置默认规则（默认启用、不可配置、不开放管理界面）、后台检测、告警写入运行事件，**不发送任何外部通知**；CLI 不装配告警。任务失败规则仅 Platform 适用（standalone 无任务注册表，不伪造指标）；CPU/内存采用容器限额优先的自适应视角。完整定稿见 design-runtime-monitor.md §9.3，**已实现（2026-11-11）**。
+
+## D23. 通知体系边界评审的落地范围（站外/站内/公告三类边界）
+
+- 来源：2026-11-16 通知体系边界评审（邮件/企业微信/Webhook 站外通知、站内收件箱、公告三类能力边界确认；小铃铛仅是站内展示入口；企业微信当前为群机器人通知，非应用消息、非私聊——已写入事件通知手册）。
+- P1 已实施（2026-11-16）：结构化投递失败码与不可重试判定（`TIMEOUT`/`SMTP_*`/`CHANNEL_*`/`CONFIG_NOT_READY`/`PAYLOAD_INVALID`，取消原因细分 `MASTER_DISABLED`/`CHANNEL_DISABLED`/`PROVIDER_CHANGED`）；队列公平性（每 tick 最多 8 任务、账号邮件优先、并发 ≤4、每渠道串行、队列深度指标）；站内收件箱契约分页 + 铃铛加载更多；`DeliverInbox` 整批原子 + platform@2 唯一索引兜底并发幂等；actions 门面集中校验（`notify.ErrInvalidActions`）。迁移以 platform@2 追加（非 squash），MySQL 用生成列实现与 SQLite/PG partial index 等价的唯一约束。
+- 待排期（P2/P3）：配置版本/目的地标识与"暂停/取消/更换目的地"设置页文案；通知类型的模块化装配入口；公告关联已读（铃铛未读联动公告阅读状态；"通知全部已读"默认不等同公告已读——待维护者确认）；开发者接入指南四例与验收清单自动化。
+- 明确不做：站外已读、邮件追踪像素、多供应商路由。

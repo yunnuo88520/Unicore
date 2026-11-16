@@ -35,6 +35,7 @@ export function AnnouncementCenter({ web, administrator = false, standalone = fa
   const [expanded, setExpanded] = useState('');
   const [ready, setReady] = useState(false);
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set());
+  const [inboxPages, setInboxPages] = useState(1);
   const router = useRouter();
   const refresh = () => cache.invalidateQueries({ queryKey: ['announcements'] });
   // Announcements stay a user-domain audience: administrators get the inbox tab
@@ -43,7 +44,19 @@ export function AnnouncementCenter({ web, administrator = false, standalone = fa
   const feed = useQuery({ queryKey: ['announcements', 'inbox', page], queryFn: () => web.announcements(page, 10), placeholderData: keepPreviousData, refetchOnWindowFocus: 'always', enabled: !administrator && !standalone });
   // Fetch unread popup notices independently, so inbox pagination never drops notifications.
   const popups = useQuery({ queryKey: ['announcements', 'popups'], queryFn: () => web.announcements(1, 1, true), refetchOnWindowFocus: 'always', enabled: !administrator && !standalone });
-  const inbox = useQuery({ queryKey: ['inbox'], queryFn: () => web.inbox(), refetchOnWindowFocus: 'always' });
+  // Inbox loads accumulate pages instead of capping at the first page: every
+  // loaded page refetches together after SSE pushes and window focus, so the
+  // authoritative unread count and rows never diverge across pages.
+  const inbox = useQuery({
+    queryKey: ['inbox', inboxPages],
+    queryFn: async () => {
+      const responses = await Promise.all(Array.from({ length: inboxPages }, (_, index) => web.inbox(index + 1, 20)));
+      const latest = responses[responses.length - 1];
+      return { ...latest, items: responses.flatMap(response => response.items) };
+    },
+    placeholderData: keepPreviousData,
+    refetchOnWindowFocus: 'always',
+  });
   // Transport owns credentials, identity realm, reconnects and session cleanup.
   // Refetch authoritative counts after every push and reconnect; never count events locally.
   useEffect(() => web.subscribeEvents(() => {
@@ -61,8 +74,8 @@ export function AnnouncementCenter({ web, administrator = false, standalone = fa
   }, [administrator, standalone, feed.data, popups.data]);
   useEffect(() => { if (feed.data && page > Math.max(1, Math.ceil(feed.data.total / 10))) setPage(1); }, [feed.data, page]);
   const allRead = useMutation({ mutationFn: () => web.markAllAnnouncementsRead(), onSuccess: async () => { setPage(1); await refresh(); } });
-  const inboxRead = useMutation({ mutationFn: (id: string) => web.readInbox(id), onSuccess: data => { cache.setQueryData(['inbox'], data); } });
-  const inboxAllRead = useMutation({ mutationFn: () => web.readAllInbox(), onSuccess: data => { cache.setQueryData(['inbox'], data); } });
+  const inboxRead = useMutation({ mutationFn: (id: string) => web.readInbox(id), onSuccess: async () => { await cache.invalidateQueries({ queryKey: ['inbox'] }); } });
+  const inboxAllRead = useMutation({ mutationFn: () => web.readAllInbox(), onSuccess: async () => { await cache.invalidateQueries({ queryKey: ['inbox'] }); } });
   const candidate = popups.data?.enabled ? popups.data.items.find(item => !dismissed.has(item.id)) : undefined;
   const popup = ready && !open && !selected ? candidate : undefined;
   const inboxUnread = inbox.data?.unread ?? 0;
@@ -122,6 +135,9 @@ export function AnnouncementCenter({ web, administrator = false, standalone = fa
           <Button variant="ghost" size="icon" className="size-7" aria-label={t('上一页')} disabled={page === 1 || feed.isFetching} onClick={() => setPage(value => value - 1)}><ChevronLeft size={15} /></Button>
           <span>{page} / {Math.max(1, Math.ceil(feed.data.total / 10))}</span>
           <Button variant="ghost" size="icon" className="size-7" aria-label={t('下一页')} disabled={page * 10 >= feed.data.total || feed.isFetching} onClick={() => setPage(value => value + 1)}><ChevronRight size={15} /></Button>
+        </div>}
+        {tab === 'inbox' && inbox.data && inbox.data.total > inbox.data.items.length && <div className="flex justify-center border-t border-line px-4 py-2.5">
+          <Button variant="ghost" size="sm" disabled={inbox.isFetching} onClick={() => setInboxPages(value => value + 1)}>{t('加载更多')}</Button>
         </div>}
       </PopoverContent>
     </Popover>

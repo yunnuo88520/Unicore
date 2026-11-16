@@ -6125,7 +6125,10 @@ export const constraints = {
     "additionalProperties": false,
     "required": [
       "items",
-      "unread"
+      "unread",
+      "total",
+      "page",
+      "page_size"
     ],
     "properties": {
       "items": {
@@ -6136,6 +6139,19 @@ export const constraints = {
       },
       "unread": {
         "type": "integer"
+      },
+      "total": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "page": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "page_size": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 50
       }
     }
   },

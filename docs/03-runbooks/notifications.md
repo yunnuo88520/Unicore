@@ -5,7 +5,7 @@
 
 ## 模块站内通知（登记式投递）
 
-功能模块向用户投递站内通知走 `internal/notify` 门面（ADR-0045）：装配期向 `notify.Registry` 登记类型（type + 中英文名称，未登记类型拒绝投递），业务事务内调用 `Notifier.Deliver(ctx, tx, recipients, type, sourceID, title, body, actions)`，提交成功后由门面便捷方法或调用方 `hub.PublishMany(recipients, inbox.new)` 通知客户端。非空 `source_id` 按（收件人、类型、来源）幂等更新且不重置已读；`actions` 是至多 4 个 `{id,label,href?}` 按钮（platform@1 基线 JSON 列），href 为站内路径时铃铛面板点击路由跳转（下载/日志/审批入口）。公告投递复用同一门面（type=announcement，受众与可见性仍按公告手册过滤）。本页的邮件与企业微信/Webhook 外部渠道独立于此。
+功能模块向用户投递站内通知走 `internal/notify` 门面（ADR-0045）：装配期向 `notify.Registry` 登记类型（type + 中英文名称，未登记类型拒绝投递），业务事务内调用 `Notifier.Deliver(ctx, tx, recipients, type, sourceID, title, body, actions)`，提交成功后由门面便捷方法或调用方 `hub.PublishMany(recipients, inbox.new)` 通知客户端。非空 `source_id` 按（收件人、类型、来源）幂等更新且不重置已读；并发投递由 platform@2 的（收件人、类型、来源）部分唯一索引兜底，重复投递自动收敛为更新而非重复行。`actions` 是至多 4 个 `{id,label,href?}` 按钮（platform@1 基线 JSON 列），门面在投递前集中校验——id 1..64、label 1..32 字符，href 可选且仅允许站内路径或 http(s) URL（≤512 字符），违规整批拒绝（`notify.ErrInvalidActions`），不写入半批结果；href 为站内路径时铃铛面板点击路由跳转（下载/日志/审批入口）。无业务事务的便捷投递 `Notifier.NotifyUsers` 在单个事务内原子完成整批（sqlstore.WithinTx），提交成功后才广播 `inbox.new`。收件箱读取支持分页（`GET /api/v1/inbox` 的 `page`/`page_size`，响应含 `total/page/page_size`），铃铛面板按“加载更多”累积页，已读与刷新以失效重取为准。公告投递复用同一门面（type=announcement，受众与可见性仍按公告手册过滤）。本页的邮件与企业微信/Webhook 外部渠道独立于此。
 
 ## 从配置到启用
 
@@ -25,7 +25,7 @@
 | 参数 | 适用渠道 | 说明 |
 | --- | --- | --- |
 | 通知渠道总开关 | 全部 | 关闭后停止自动和测试渠道发送；邮件独立控制 |
-| 机器人 Key | 企业微信 | 群机器人 Webhook URL 中的 `key` 参数 |
+| 机器人 Key | 企业微信 | 群机器人 Webhook URL 中的 `key` 参数。当前实现是**群机器人通知**：不是企业微信应用消息，也不向指定用户私聊，收件对象是机器人所在的群 |
 | 回调地址 | Webhook | 公网 HTTPS，允许带查询参数；禁止凭据、片段、私网、回环、链路本地地址与重定向 |
 | 签名密钥 | Webhook | 可选，HMAC-SHA256 签名原始 UTF-8 JSON 请求体 |
 
@@ -94,6 +94,26 @@ Webhook 使用 POST、`Content-Type: application/json`，字段如下：
 
 复用 `system_settings` 与 `mail_jobs`，无新表、无 schema 版本变更。`notifications.config` 登记为托管 SettingDefinition，保存事件规则和模板；三个 `notifications.*` 凭据登记为敏感项。普通 settings PATCH 禁止写这些键，专用接口原子校验保存并复核管理员身份。页面分别传入 channels / templates / system 写入范围，仅合并所属部分；不传范围的旧客户端保留整份替换语义。服务端事件目录不写入持久配置。
 
-进程每秒认领一个任务，60 秒租约，失败按 10/20/40/80 秒延迟，最多尝试 5 次；24 小时过期。关闭进程保留未完成租约，重启恢复，投递保证为至少一次。成功或终态清除载荷，终态元信息保留最多 7 天。发送使用入队时的内容和收件人快照，凭据在发送时读取当前设置。关闭系统 / 渠道总开关或切换渠道类型后，旧的相应任务被标记为 cancelled 并跳过，不继续发送；重新开启不会补发已跳过事件。事件内单独开关影响新任务，已入队内容不会被未保存草稿或后续模板修改替换。
+进程每秒认领最多 8 个任务（账号验证码/验证邮件始终先于事件通知被认领），并发投递上限 4，同一渠道同时只发一个请求，慢渠道不会占满全部 worker 或阻塞验证码邮件；60 秒租约，失败按 10/20/40/80 秒延迟，最多尝试 5 次；24 小时过期。队列深度由 `unicore_mail_queue_pending`、`unicore_mail_queue_oldest_pending_seconds` 与 `unicore_mail_queue_dead` 指标暴露（可选回环 `/metrics`）。关闭进程保留未完成租约，重启恢复，投递保证为至少一次。成功或终态清除载荷，终态元信息保留最多 7 天。发送使用入队时的内容和收件人快照，凭据在发送时读取当前设置。关闭系统 / 渠道总开关或切换渠道类型后，旧的相应任务被标记为 cancelled 并跳过，不继续发送；取消原因以稳定码记录（`MASTER_DISABLED` / `CHANNEL_DISABLED` / `PROVIDER_CHANGED`），不会写成"发送失败"；重新开启不会补发已跳过事件。事件内单独开关影响新任务，已入队内容不会被未保存草稿或后续模板修改替换。
+
+投递失败在 `last_error` 记录稳定脱敏错误码；不可重试的错误直接进入 dead，不再机械重试。验收任何失败都能回答：为什么失败、还会不会重试、管理员应该改什么。
+
+| 错误码 | 含义 | 是否重试 |
+| --- | --- | --- |
+| `TIMEOUT` | 外部请求超时（SMTP / 渠道共享） | 是 |
+| `SMTP_AUTH_FAILED` | SMTP 认证被拒（530/534/535/538） | 否，检查 SMTP 用户名/授权码 |
+| `SMTP_REJECTED` | SMTP 服务端永久拒绝（5xx，如收件地址不存在） | 否，检查收件邮箱 |
+| `SMTP_UNAVAILABLE` | 连接失败、临时 4xx 等可重试 SMTP 错误 | 是 |
+| `SMTP_CONFIG_INVALID` | 信封/TLS 模式/明文回环限制等配置问题 | 否，修正邮件设置 |
+| `CHANNEL_RATE_LIMITED` | 企业微信 `errcode=45009` 或 HTTP 429 | 是 |
+| `CHANNEL_REJECTED` | 渠道业务失败（非 0 errcode、非 2xx、响应不可解析、重定向被拒） | 否，检查机器人 Key / 接收端 |
+| `CHANNEL_UNAVAILABLE` | 连接失败、5xx、DNS 暂不可解析 | 是 |
+| `CHANNEL_INVALID` | 凭据缺失、目标 URL 不合法或指向非公网地址 | 否，修正渠道配置 |
+| `CONFIG_NOT_READY` | 设置不可读或邮件未就绪 | 是（配置修复后自动恢复） |
+| `PAYLOAD_INVALID` | 队列载荷无法解密或解析 | 否，任务终止 |
+| `EXPIRED` | 任务超过 24 小时未完成 | 终态 |
+| `MASTER_DISABLED` / `CHANNEL_DISABLED` / `PROVIDER_CHANGED` | 主动取消原因，非失败 | 终态 |
+
+第三方投递成功边界：邮件为"SMTP 服务已接受"，企业微信为"接口返回成功"，Webhook 为"接收端返回约定的成功状态（HTTP 2xx）"；均不等于用户已读，页面可表述为"发送成功"，详情按本表说明成功边界。
 
 备份需同时保留数据库及实例外置加密密钥，参考备份恢复手册（backup.md）。密钥丢失时不能解密凭据或未完成任务，应恢复完整备份，不要修改旧迁移 checksum 或把密文当明文导入。降级前关闭事件通知并排空队列；旧版本不理解渠道消息字段，不应直接处理新版未完成渠道任务。

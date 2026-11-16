@@ -12675,7 +12675,28 @@
           "identityRealm": "user"
         },
         "summary": "inbox",
-        "parameters": []
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        ]
       }
     },
     "/api/v1/inbox/read-all": {
@@ -23592,7 +23613,10 @@
         "additionalProperties": false,
         "required": [
           "items",
-          "unread"
+          "unread",
+          "total",
+          "page",
+          "page_size"
         ],
         "properties": {
           "items": {
@@ -23603,6 +23627,19 @@
           },
           "unread": {
             "type": "integer"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
           }
         }
       },

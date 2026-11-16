@@ -6011,7 +6011,10 @@
   &quot;additionalProperties&quot;: false,
   &quot;required&quot;: [
     &quot;items&quot;,
-    &quot;unread&quot;
+    &quot;unread&quot;,
+    &quot;total&quot;,
+    &quot;page&quot;,
+    &quot;page_size&quot;
   ],
   &quot;properties&quot;: {
     &quot;items&quot;: {
@@ -6022,6 +6025,19 @@
     },
     &quot;unread&quot;: {
       &quot;type&quot;: &quot;integer&quot;
+    },
+    &quot;total&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 0
+    },
+    &quot;page&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1
+    },
+    &quot;page_size&quot;: {
+      &quot;type&quot;: &quot;integer&quot;,
+      &quot;minimum&quot;: 1,
+      &quot;maximum&quot;: 50
     }
   }
 }</pre></details><details id="schema-InboxListResponse"><summary>InboxListResponse</summary><pre>{

@@ -1514,8 +1514,11 @@ type InboxEntry struct {
 }
 
 type InboxList struct {
-	Items  []InboxEntry `json:"items"`
-	Unread int          `json:"unread"`
+	Items    []InboxEntry `json:"items"`
+	Unread   int          `json:"unread"`
+	Total    int          `json:"total"`
+	Page     int          `json:"page"`
+	PageSize int          `json:"page_size"`
 }
 
 type InboxListResponse struct {

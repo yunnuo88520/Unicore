@@ -56,6 +56,28 @@ html, body { overflow-x: clip; }
   inset-block: 12px;
   inset-inline-start: 12px;
 }
+/* macOS Wails runs full-size content, so the traffic lights float over the app.
+   The titlebar strip is a fixed layer (it must not scroll away with the page and
+   doubles as the drag region; descendants must opt out explicitly because the
+   drag flag inherits), the sticky topbar parks below it, the fixed sidebar
+   restores its original 12px inset underneath, and elastic overscroll is
+   disabled so the whole page cannot be pulled down. */
+.titlebar-strip { display: none; }
+:root[data-desktop=mac] { overscroll-behavior: none; }
+:root[data-desktop=mac] .app-shell { padding-block-start: 28px; }
+:root[data-desktop=mac] .app-shell :where(*) { --wails-draggable: no-drag; }
+:root[data-desktop=mac] .app-shell > .sidebar { inset-block-start: 40px; }
+:root[data-desktop=mac] .app-shell .titlebar-strip {
+  display: block;
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline: 0;
+  block-size: 28px;
+  background: var(--workspace-background);
+  z-index: 25;
+  --wails-draggable: drag;
+}
+:root[data-desktop=mac] .app-shell .topbar { top: 28px; }
 /* Keep the inset geometry without framing the header and content as separate panels. */
 @media (min-width: 768px) {
   :root:not([data-layout=full]):is([data-sidebar=inset], [data-sidebar=floating]) .main-shell {

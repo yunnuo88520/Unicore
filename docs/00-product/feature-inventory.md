@@ -108,6 +108,7 @@ Platform 两工作台与 Standalone 两载体共用连续的顶栏/正文背景�
 | Wails 桥设置兼容方法（空列表、拒绝写入） | Standalone(GUI) | `internal/adapter/desktop/bridge.go` |
 | 原生签名更新（native 部署） | Standalone(GUI)，需 `updater`；默认不要求 OS 证书，发布者验签必需 | `internal/adapter/desktop/updates.go`、`cmd/desktop/updates_enabled.go` |
 | 单实例锁 | Standalone(GUI) | `internal/bootstrap/local/local.go` |
+| 窗口关闭后台运行（关闭=隐藏；macOS Dock/菜单栏图标恢复，Windows/Linux 托盘恢复/退出） | Standalone(GUI) | `cmd/desktop/main.go`、`cmd/desktop/tray_enabled.go`、`cmd/desktop/tray_darwin.go`，见 [ADR-0048](../adr/ADR-0048-desktop-close-background-tray.md) |
 
 ## I. 运行监控（P0 已实现；P1/P2 规划见 [设计草案](design-runtime-monitor.md)）
 

@@ -8,6 +8,9 @@ import { AppError, WailsTransport, type DesktopBridge } from '@unicore/sdk';
 import '@unicore/theme/styles.css';
 
 declare global { interface Window { go?: { desktop?: { Bridge?: DesktopBridge } }; runtime?: { EventsOnMultiple(event: string, callback: () => void, maxCallbacks: number): () => void } } }
+// Native chrome hooks: shell.css keys traffic-light spacing and window dragging off data-desktop.
+const agent = navigator.userAgent;
+document.documentElement.dataset.desktop = agent.includes('Mac') ? 'mac' : agent.includes('Win') ? 'windows' : 'linux';
 const client = new WailsTransport(() => {
   const bridge = window.go?.desktop?.Bridge;
   if (!bridge) throw new AppError('BRIDGE_UNAVAILABLE', t('桌面桥接尚未就绪，请使用 make dev-desktop 启动'));

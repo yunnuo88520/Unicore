@@ -9,6 +9,7 @@ require (
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.2.5
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
 	github.com/coreos/go-oidc/v3 v3.21.0
+	github.com/energye/systray v1.0.3
 	github.com/go-chi/chi/v5 v5.5.0
 	github.com/go-jose/go-jose/v4 v4.1.9
 	github.com/go-sql-driver/mysql v1.10.1

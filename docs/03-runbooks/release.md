@@ -46,6 +46,10 @@ make package-desktop
 
 Windows 原生 CI 在构建后执行 scripts/test-windows-startup.ps1：使用随机临时数据目录，验证真实 Wails 窗口/页面、SQLite 初始化、再次启动以及失败弹窗；截图/可访问性文本为 windows-startup-evidence artifact。windows-exe artifact 另提供可直接验证的 exe，desktop-windows-latest 同时提供直接运行的版本化 exe、OTA tar 包、metadata 与目标专属校验和。macOS desktop artifact 同时提供 DMG（app + Applications 链接，可拖拽安装）、OTA tar 与 metadata；hdiutil 创建后校验镜像完整性。DMG 内 app 沿用原生系统签名状态，不因生成镜像而变成已公证。分支候选用于维护者验收，不能代替正式 Release。
 
+### 桌面窗口关闭行为验证
+
+桌面点关闭即隐藏到后台运行（[ADR-0048](../adr/ADR-0048-desktop-close-background-tray.md)）：macOS 点 Dock 图标或菜单栏托盘「打开」恢复、Cmd+Q / 托盘「退出」真正退出；Windows/Linux 托盘图标恢复，「退出」菜单真正退出。Windows 启动夹具只覆盖窗口启动，不覆盖关闭后台与托盘行为，须在目标系统人工补验：点关闭后进程仍存在、托盘恢复窗口、托盘退出结束进程且日志无 stop_failed。Linux 托盘依赖桌面环境提供 StatusNotifier/AppIndicator 支持（KDE、Ubuntu 默认可用；GNOME 需扩展或 snixembed 之类代理），无支持时托盘不可见属环境限制，须在发行说明如实记录。
+
 CI 在原生 runner 打包后运行 `node scripts/check-release-entrypoints.mjs desktop`：macOS 只读挂载 DMG 并复制到临时 Applications 目录，Windows 核对下载 EXE 与原构建逐字节一致；Linux 质量 job 的 `node scripts/check-release-entrypoints.mjs web` 解包两个 Web profile，使用临时数据目录验证精确文件清单、统一入口的帮助/维护命令、配置生成/拒绝覆盖、无参数启动与 /install。均不使用真实实例数据。
 
 ### Windows 原生 OTA 验证

@@ -18,6 +18,7 @@ export function WorkspaceLayout({ navigation, header, children, overlays, naviga
     return () => window.removeEventListener('keydown', close);
   }, [navigationOpen, onNavigationClose]);
   return <div className={`app-shell bg-workspace ${navigationCollapsed ? 'nav-collapsed' : ''}`} dir="ltr">
+    <div className="titlebar-strip" aria-hidden="true" />
     <a className="fixed top-[-100px] start-5 z-50 rounded-sm border-2 border-primary bg-surface px-2.5 py-2.5 text-sm focus:top-3" href="#main-content"
       onClick={event => { event.preventDefault(); document.getElementById('main-content')?.focus(); }}>
       {t('跳至主要内容')}

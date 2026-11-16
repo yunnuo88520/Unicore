@@ -1,7 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: User-facing native downloads; tar archives remain the OTA transport.
 import {execFileSync} from 'node:child_process';
-import {cpSync,mkdirSync,rmSync,symlinkSync,readFileSync,writeFileSync,renameSync} from 'node:fs';
+import {cpSync,existsSync,mkdirSync,rmSync,symlinkSync,readFileSync,writeFileSync,renameSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {join} from 'node:path';
 
@@ -51,7 +51,17 @@ end tell`;
 
 function detach(mount){
   try{execFileSync(HDIUTIL,['detach',mount],{stdio:'pipe'});}
-  catch{execFileSync('sleep',['2'],{stdio:'ignore'});execFileSync(HDIUTIL,['detach','-force',mount],{stdio:'pipe'});}
+  catch{
+    try{execFileSync('sleep',['2'],{stdio:'ignore'});execFileSync(HDIUTIL,['detach','-force',mount],{stdio:'pipe'});}
+    catch(error){if(existsSync(mount))throw error;}
+  }
+}
+
+// The kernel releases a mount point asynchronously after hdiutil exits, so a
+// remount onto the same path fails with "No such file or directory" when it
+// races the teardown. Wait until the stale anchor is gone before re-attaching.
+function waitMountReleased(mount){
+  for(let attempt=0;attempt<20&&existsSync(mount);attempt++)execFileSync('sleep',['0.5'],{stdio:'ignore'});
 }
 
 export function desktopDownloads({root,output,name,built,binary,targetOS,application,platformSignature}) {
@@ -76,7 +86,7 @@ export function desktopDownloads({root,output,name,built,binary,targetOS,applica
         try{styleDmgVolume(application,binary);styled=true;}
         catch(error){
           if(attempt===2)console.warn(`DMG installer styling skipped (${error.message.split('\n')[0]}); shipping the plain layout`);
-          else{detach(mount);execFileSync(HDIUTIL,['attach','-mountpoint',mount,join(work,'unsigned.dmg')],{stdio:'inherit'});}
+          else{detach(mount);waitMountReleased(mount);execFileSync(HDIUTIL,['attach','-mountpoint',mount,join(work,'unsigned.dmg')],{stdio:'inherit'});}
         }
       }
     }finally{

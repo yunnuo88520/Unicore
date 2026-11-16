@@ -5,6 +5,7 @@ package notify
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"strings"
 	"testing"
@@ -121,5 +122,115 @@ func TestDeliverCarriesActionButtons(t *testing.T) {
 	}
 	if strings.Contains(inbox.rows[1], "download") {
 		t.Fatalf("nil actions must store an empty payload: %v", inbox.rows[1])
+	}
+}
+
+func TestDeliverValidatesActionButtons(t *testing.T) {
+	notifier, inbox, _ := newTestNotifier(t)
+	href := func(v string) *string { return &v }
+	cases := []struct {
+		name    string
+		actions []contracts.InboxAction
+	}{
+		{"five buttons", []contracts.InboxAction{{ID: "1", Label: "一"}, {ID: "2", Label: "二"}, {ID: "3", Label: "三"}, {ID: "4", Label: "四"}, {ID: "5", Label: "五"}}},
+		{"empty id", []contracts.InboxAction{{ID: " ", Label: "下载"}}},
+		{"overlong id", []contracts.InboxAction{{ID: strings.Repeat("i", 65), Label: "下载"}}},
+		{"empty label", []contracts.InboxAction{{ID: "download", Label: "  "}}},
+		{"overlong label", []contracts.InboxAction{{ID: "download", Label: strings.Repeat("标", 33)}}},
+		{"foreign scheme", []contracts.InboxAction{{ID: "download", Label: "下载", Href: href("javascript:alert(1)")}}},
+		{"line break in href", []contracts.InboxAction{{ID: "download", Label: "下载", Href: href("/files/a\r\nX")}}},
+		{"overlong href", []contracts.InboxAction{{ID: "download", Label: "下载", Href: href("/" + strings.Repeat("p", 512))}}},
+	}
+	for _, tc := range cases {
+		if err := notifier.Deliver(context.Background(), nil, []string{"u1"}, "system", "s1", "标题", "正文", tc.actions); !errors.Is(err, ErrInvalidActions) {
+			t.Fatalf("%s: want ErrInvalidActions, got %v", tc.name, err)
+		}
+	}
+	if len(inbox.rows) != 0 {
+		t.Fatal("rejected actions must not reach storage")
+	}
+	// Boundaries from the OpenAPI InboxAction schema pass: four buttons,
+	// 64-character ids, 32-character labels and a site-relative href.
+	long := strings.Repeat("i", 64)
+	label := strings.Repeat("标", 32)
+	path := "/" + strings.Repeat("p", 511)
+	valid := []contracts.InboxAction{
+		{ID: long, Label: label, Href: href(path)},
+		{ID: "b", Label: "二"}, {ID: "c", Label: "三", Href: href("https://example.test/x")}, {ID: "d", Label: "四"},
+	}
+	if err := notifier.Deliver(context.Background(), nil, []string{"u1"}, "system", "s2", "标题", "正文", valid); err != nil {
+		t.Fatalf("boundary actions must deliver: %v", err)
+	}
+	if len(inbox.rows) != 1 {
+		t.Fatalf("boundary actions must reach storage: %v", inbox.rows)
+	}
+}
+
+type transactingStore struct {
+	committed   bool
+	rolledBack  bool
+	failStorage bool
+	failCommit  bool
+}
+
+// Runner methods are never exercised: NotifyUsers only checks the
+// BatchTransactor upgrade, and the batch runs against the runner handed to
+// WithinTx.
+func (s *transactingStore) ExecContext(context.Context, string, ...any) (sql.Result, error) {
+	return nil, errors.New("not used")
+}
+func (s *transactingStore) QueryContext(context.Context, string, ...any) (*sql.Rows, error) {
+	return nil, errors.New("not used")
+}
+func (s *transactingStore) QueryRowContext(context.Context, string, ...any) *sql.Row {
+	return nil
+}
+
+func (s *transactingStore) WithinTx(_ context.Context, fn func(runner sqlstore.Runner) error) error {
+	if err := fn(nil); err != nil {
+		s.rolledBack = true
+		return err
+	}
+	if s.failCommit {
+		s.rolledBack = true
+		return errors.New("commit failed")
+	}
+	s.committed = true
+	return nil
+}
+
+func TestNotifyUsersBatchesAtomically(t *testing.T) {
+	notifier, inbox, hub := newTestNotifier(t)
+	store := &transactingStore{}
+	if err := notifier.NotifyUsers(context.Background(), store, []string{"u1", "u2"}, "system", "s1", "标题", "正文", nil); err != nil {
+		t.Fatalf("batched delivery: %v", err)
+	}
+	if !store.committed || store.rolledBack {
+		t.Fatalf("successful batch must commit: %+v", store)
+	}
+	if len(hub.published) != 1 {
+		t.Fatalf("publish once after commit: %v", hub.published)
+	}
+	// A storage failure inside the transaction rolls the whole batch back and
+	// never publishes, so callers cannot observe a half-batch result.
+	store2 := &transactingStore{failStorage: true}
+	inbox.err = errors.New("storage down")
+	if err := notifier.NotifyUsers(context.Background(), store2, []string{"u1"}, "system", "s2", "标题", "正文", nil); err == nil {
+		t.Fatal("storage failure must surface")
+	}
+	if !store2.rolledBack || store2.committed {
+		t.Fatalf("failed batch must roll back: %+v", store2)
+	}
+	if len(hub.published) != 1 {
+		t.Fatal("failed batch must not publish")
+	}
+	// A commit failure publishes nothing either: rows never became visible.
+	inbox.err = nil
+	store3 := &transactingStore{failCommit: true}
+	if err := notifier.NotifyUsers(context.Background(), store3, []string{"u1"}, "system", "s3", "标题", "正文", nil); err == nil {
+		t.Fatal("commit failure must surface")
+	}
+	if len(hub.published) != 1 {
+		t.Fatal("commit failure must not publish")
 	}
 }

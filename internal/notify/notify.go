@@ -14,6 +14,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/contracts"
@@ -101,6 +102,39 @@ type Broadcaster interface {
 // registered at assembly time.
 var ErrUnregisteredType = errors.New("notify: unregistered notification type")
 
+// ErrInvalidActions is returned when module-provided buttons exceed the bell
+// panel contract: at most four actions, id of 1..64 characters, label of
+// 1..32 characters and an optional href of 1..512 characters that is either a
+// site-relative path or an http(s) URL. The bounds mirror the OpenAPI
+// InboxAction schema; the facade enforces them so modules cannot rely on
+// documentation alone.
+var ErrInvalidActions = errors.New("notify: invalid inbox actions")
+
+func validateActions(actions []contracts.InboxAction) error {
+	if len(actions) > 4 {
+		return fmt.Errorf("%w: at most four buttons, got %d", ErrInvalidActions, len(actions))
+	}
+	for _, action := range actions {
+		if id := strings.TrimSpace(action.ID); id == "" || utf8.RuneCountInString(id) > 64 {
+			return fmt.Errorf("%w: id must be 1..64 characters", ErrInvalidActions)
+		}
+		if label := strings.TrimSpace(action.Label); label == "" || utf8.RuneCountInString(label) > 32 {
+			return fmt.Errorf("%w: label must be 1..32 characters", ErrInvalidActions)
+		}
+		if action.Href == nil || *action.Href == "" {
+			continue
+		}
+		href := *action.Href
+		if utf8.RuneCountInString(href) > 512 || strings.ContainsAny(href, "\r\n\x00") {
+			return fmt.Errorf("%w: href must be 1..512 characters without line breaks", ErrInvalidActions)
+		}
+		if !strings.HasPrefix(href, "/") && !strings.HasPrefix(href, "http://") && !strings.HasPrefix(href, "https://") {
+			return fmt.Errorf("%w: href must be a site path or http(s) URL", ErrInvalidActions)
+		}
+	}
+	return nil
+}
+
 // Notifier is the module-facing delivery facade.
 type Notifier struct {
 	Registry *Registry
@@ -112,11 +146,16 @@ type Notifier struct {
 // With a nonempty sourceID an existing (recipient, type, source_id) row is
 // updated in place, preserving read state and created_at; an empty sourceID
 // always inserts independent messages. actions carries module-defined buttons
-// (id/label/href, at most four) rendered by the bell panel; nil means none.
-// Publish inbox.new after the caller commits, never inside the transaction.
+// rendered by the bell panel; nil means none. Deliveries with unregistered
+// types or malformed actions are rejected as a whole batch — no partial rows
+// are written. Publish inbox.new after the caller commits, never inside the
+// transaction.
 func (n *Notifier) Deliver(ctx context.Context, runner sqlstore.Runner, recipients []string, messageType, sourceID, title, body string, actions []contracts.InboxAction) error {
 	if _, ok := n.Registry.registered(messageType); !ok {
 		return fmt.Errorf("%w: %q", ErrUnregisteredType, messageType)
+	}
+	if err := validateActions(actions); err != nil {
+		return err
 	}
 	payload := ""
 	if len(actions) > 0 {
@@ -129,12 +168,28 @@ func (n *Notifier) Deliver(ctx context.Context, runner sqlstore.Runner, recipien
 	return n.Inbox.DeliverInbox(ctx, runner, recipients, messageType, sourceID, title, body, payload)
 }
 
+// BatchTransactor optionally wraps a convenience delivery in one transaction;
+// *sqlstore.Store satisfies it. Runners already scoped to a caller
+// transaction do not implement it, so those batches keep the caller's
+// transaction scope untouched.
+type BatchTransactor interface {
+	WithinTx(ctx context.Context, fn func(runner sqlstore.Runner) error) error
+}
+
 // NotifyUsers is the convenience path for deliveries that do not belong to a
-// caller transaction: it delivers on the store itself and publishes inbox.new
-// to every recipient once storage succeeded. Publish is best effort — clients
-// recover through the next bootstrap or window-focus refetch.
+// caller transaction: it delivers the whole recipient batch atomically and
+// publishes inbox.new to every recipient once storage succeeded. Publish is
+// best effort — clients recover through the next bootstrap or window-focus
+// refetch.
 func (n *Notifier) NotifyUsers(ctx context.Context, store sqlstore.Runner, recipients []string, messageType, sourceID, title, body string, actions []contracts.InboxAction) error {
-	if err := n.Deliver(ctx, store, recipients, messageType, sourceID, title, body, actions); err != nil {
+	deliver := func(runner sqlstore.Runner) error {
+		return n.Deliver(ctx, runner, recipients, messageType, sourceID, title, body, actions)
+	}
+	if transactor, ok := store.(BatchTransactor); ok {
+		if err := transactor.WithinTx(ctx, deliver); err != nil {
+			return err
+		}
+	} else if err := deliver(store); err != nil {
 		return err
 	}
 	if n.Hub != nil && len(recipients) > 0 {

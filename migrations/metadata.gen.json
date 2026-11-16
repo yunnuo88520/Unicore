@@ -140,6 +140,26 @@
               "checksum": "b480d584a15e2650553ba339e879a191e9f7c7f5a7f11fb639fb4415d49bd5f8"
             }
           }
+        },
+        {
+          "version": 2,
+          "files": {
+            "mysql": {
+              "path": "platform/mysql/0002_inbox_dedupe.sql",
+              "bytes": 1344,
+              "checksum": "e45c9dd9475ab370a462328650e037f32d26126f3698d7f178a9c79297c3f105"
+            },
+            "postgres": {
+              "path": "platform/postgres/0002_inbox_dedupe.sql",
+              "bytes": 1026,
+              "checksum": "a4d08d1f663dc35cd655c4f4c54a0eca8dcd01734c5398607bbe89f069d8cc9b"
+            },
+            "sqlite": {
+              "path": "platform/sqlite/0002_inbox_dedupe.sql",
+              "bytes": 1084,
+              "checksum": "db0b150217c4074aec61319b9dc1d808d36d04cee561527113fcfc8e1803b89f"
+            }
+          }
         }
       ]
     }
@@ -169,9 +189,9 @@
       "levels": {
         "core": 1,
         "module.notes": 1,
-        "platform": 1
+        "platform": 2
       },
-      "schema_fingerprint": "c9b427ebc7910878d9594f99794cafc68130eff4fc6dc09f16d24ed3a2f3776b"
+      "schema_fingerprint": "cf4cc3c85151228fb23f12e919e8e9d339baf54f8599e049a355db7418941a40"
     },
     "web-platform": {
       "dialects": [
@@ -192,9 +212,9 @@
       "levels": {
         "core": 1,
         "module.notes": 1,
-        "platform": 1
+        "platform": 2
       },
-      "schema_fingerprint": "934af821e1379360b98d3229d5d170212a142e2cd804bb682459cb5c2ae32b8d"
+      "schema_fingerprint": "f4cfa02f39320fb284f2d5e525c7d23b0e2df7566f44f25a95df3ece5cd23053"
     },
     "web-standalone": {
       "dialects": [
@@ -215,9 +235,9 @@
       "levels": {
         "core": 1,
         "module.notes": 1,
-        "platform": 1
+        "platform": 2
       },
-      "schema_fingerprint": "934af821e1379360b98d3229d5d170212a142e2cd804bb682459cb5c2ae32b8d"
+      "schema_fingerprint": "f4cfa02f39320fb284f2d5e525c7d23b0e2df7566f44f25a95df3ece5cd23053"
     }
   }
 }

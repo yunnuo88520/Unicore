@@ -1,12 +1,12 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 数据库迁移目录：Catalog 单轨
 
-安装与启动统一调用 migrations/runner.Apply，唯一预期集合在 [catalog.json](catalog.json)。当前包含三个命名空间的 @1 基线，共九份三方言 SQL（每方言三份）；platform 基线按 ADR-0042 终态融合收件箱 actions、角色 version 与 MCP 治理/OAuth 存储。正式版前整合与冻结政策见 [ADR-0042](../docs/adr/ADR-0042-release-baseline-update-compatibility.md)。
+安装与启动统一调用 migrations/runner.Apply，唯一预期集合在 [catalog.json](catalog.json)。当前包含 core / module.notes 的 @1 基线与 platform 的 @1–@2（@2 为收件箱去重唯一约束），共十二份三方言 SQL；platform 基线按 ADR-0042 终态融合收件箱 actions、角色 version 与 MCP 治理/OAuth 存储。正式版前整合与冻结政策见 [ADR-0042](../docs/adr/ADR-0042-release-baseline-update-compatibility.md)。
 
 | Namespace | 当前 Catalog Profile 成员 | 当前版本 |
 | --- | --- | --- |
 | core | web-platform / web-standalone / desktop | 1 |
-| platform | web-platform / web-standalone / desktop | 1 |
+| platform | web-platform / web-standalone / desktop | 1–2 |
 | module.notes | web-platform / web-standalone / desktop（Notes edition 开启时） | 1 |
 
 Web 支持 SQLite/PostgreSQL/MySQL，desktop 仅 SQLite；CLI 不创建数据库或 import SQL。三个 UI profile 保留当前共享 namespace 成员，不能以“本地无身份体系”推断 platform 表不存在，也不能据此删除表、跳过 platform 迁移或变更 profile。Standalone Web/desktop 同步迁移不装配账号、认证服务、角色治理、管理 API 或后台页面；未来数据库隔离另行兼容决策，见 [ADR-0046](../docs/adr/ADR-0046-credential-delegation-role-concurrency.md)。表结构与数量按 Catalog SQL 检查，不固定旧表数。

@@ -93,6 +93,22 @@ func (s *Store) LockInstallation(ctx context.Context, tx *sql.Tx) error {
 	return s.LockForUpdate(ctx, tx, "SELECT id FROM unicore_install_state WHERE id=1")
 }
 
+// WithinTx runs fn inside one transaction on the store and commits on success.
+// It serves convenience paths that must batch writes atomically without a
+// caller-owned transaction; runners already scoped to a caller transaction do
+// not implement it and keep the caller's scope.
+func (s *Store) WithinTx(ctx context.Context, fn func(runner Runner) error) error {
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	if err = fn(tx); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
 func (s *Store) ReadSettings(ctx context.Context) (map[string]string, error) {
 	rows, err := s.Rows(ctx, s.DB, "SELECT setting_key,setting_value FROM unicore_system_settings")
 	if err != nil {

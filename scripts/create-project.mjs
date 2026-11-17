@@ -35,9 +35,12 @@ export function createProject({ source = frameworkRoot, directory, name, module,
       try { templateRevision = git('rev-parse', '--verify', ref); break; } catch { /* Template branch not generated in this checkout. */ }
     }
     worktreeModified = Boolean(git('status', '--porcelain'));
-    const changed = git('diff', '--name-only', 'HEAD', '--', ...selected);
-    const tracked = new Set(git('ls-files', '--cached', '-z', '--', ...selected).split('\0'));
-    dirty = Boolean(changed || selected.some(path => !tracked.has(path)));
+    // Hundreds of pathspecs overflow the Windows command line; diff the whole tree
+    // (NUL-separated, unquoted) and filter to the selected set here instead.
+    const selectedSet = new Set(selected);
+    const changed = git('diff', '--name-only', '-z', 'HEAD').split('\0').filter(path => selectedSet.has(path));
+    const tracked = new Set(git('ls-files', '--cached', '-z').split('\0'));
+    dirty = Boolean(changed.length || selected.some(path => !tracked.has(path)));
     if (dirty && !allowDirty) throw Error('Selected template inputs have uncommitted changes; review them and explicitly use --allow-dirty');
     // The baseline ancestor must correspond to this source state. A rolling template
     // branch moves within one VERSION, so an equal version string proves nothing: a

@@ -99,7 +99,10 @@ function pendingState(dir) {
   if (!existsSync(stateFile(dir))) throw Error('No pending framework sync.');
   const state = JSON.parse(readFileSync(stateFile(dir), 'utf8'));
   if (state.project !== realpathSync(dir) || !basename(state.tempRoot ?? '').startsWith('unicore-sync-') || state.worktree !== join(state.tempRoot, 'tree')) throw Error('Invalid framework sync state.');
-  const common = root => realpathSync(resolve(root, git(root, 'rev-parse', '--git-common-dir')));
+  // Repository identity comes from git's own absolute path (forced via
+  // --path-format): comparing Node-realis paths fails on Windows, where git
+  // prints forward slashes and may keep 8.3 short-name components.
+  const common = root => git(root, 'rev-parse', '--path-format=absolute', '--git-common-dir').replaceAll('\\', '/').toLowerCase();
   if (common(dir) !== common(state.worktree)) throw Error('Sync worktree belongs to another repository.');
   return state;
 }

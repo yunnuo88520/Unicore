@@ -119,5 +119,17 @@ test('project export and destination boundaries',()=>{
   assert.equal(provenance.source_mode,'reviewed-working-tree');assert(provenance.input_files.some(file=>file.target==='main.go'&&file.sha256.length===64));
   rmSync(join(source,'main.go'));symlinkSync('LICENSE',join(source,'main.go'));assert.throws(()=>createProject({...options,directory:join(root,'symlink'),allowDirty:true}),/links/);
   assert.equal(existsSync(join(root,'symlink')),false);
+  // Baseline-ancestor consistency: a template ref whose tree drifted from this source
+  // (the rolling branch moved within one VERSION) is refused with the recovery instead
+  // of producing a misleading common ancestor; regenerating the template fixes it.
+  rmSync(join(source,'main.go'));writeFileSync(join(source,'main.go'),'package main // reviewed working change\n');
+  writeFileSync(join(source,'VERSION'),'0.2.0\n');git('-c','user.name=Fixture','-c','user.email=fixture@example.test','commit','-aqm','bump version and restore main.go');
+  const drifted=git('rev-parse','HEAD~1').toString().trim();
+  git('update-ref','refs/remotes/origin/framework-template',drifted);
+  assert.throws(()=>createProject({...options,directory:join(root,'drifted')}),/does not match this source checkout[\s\S]*framework-template\.mjs/);
+  assert.equal(existsSync(join(root,'drifted')),false);
+  git('update-ref','refs/remotes/origin/framework-template',git('rev-parse','HEAD').toString().trim());
+  const recovered=createProject({...options,directory:join(root,'recovered'),name:'Recovered',slug:'recovered',module:'example.test/team/recovered',bundle:'test.example.recovered'});
+  assert.equal(execFileSync('git',['-C',recovered,'rev-parse','HEAD^']).toString().trim(),git('rev-parse','HEAD').toString().trim());
  }finally{rmSync(root,{recursive:true,force:true});}
 });

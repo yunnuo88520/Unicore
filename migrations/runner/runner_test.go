@@ -123,14 +123,19 @@ func TestApplyRespectsProfileScope(t *testing.T) {
 	rows := ledgerRows(t, db)
 	// ADR-0045 phase 2: every assembled profile carries the platform namespace
 	// (the universal inbox lives there); only the CLI stays database-free. The
-	// notes module joins or leaves with its edition build tag.
+	// notes module joins or leaves with its edition build tag. Derived
+	// applications contribute their own namespaces, so the expectation sums the
+	// desktop profile's whole level set instead of a hardcoded namespace list.
 	levels := catalogdata.Catalog.Profiles["desktop"].Levels
-	expectedRows := levels["core"] + levels["platform"]
-	if edition.Notes {
-		expectedRows += levels["module.notes"]
+	expectedRows := 0
+	for id, level := range levels {
+		if id == "module.notes" && !edition.Notes {
+			continue
+		}
+		expectedRows += level
 	}
 	if len(rows) != expectedRows {
-		t.Fatalf("desktop applies core, platform and module.notes only, got %v", rows)
+		t.Fatalf("desktop ledger rows do not match the profile namespace levels, got %v", rows)
 	}
 	if _, ok := rows["platform@1"]; !ok {
 		t.Fatal("desktop must apply the platform namespace")

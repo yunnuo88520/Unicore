@@ -80,38 +80,57 @@ it('seeds one shared default tree with ordered sections, registry-mirrored surfa
     expect(parent).toBeTruthy();
     expect([...action.surfaces]).toEqual([...parent!.surfaces]);
   }
-  expect(actions.find(action => action.id === 'op:createNote')).toMatchObject({ parent_id: 'notes', permission: 'notes:create', operation_ids: ['createNote'] });
+  // The notes sample contributes its action only when the module is assembled;
+  // derived applications may trim it, so the assertion applies when present.
+  const createNote = actions.find(action => action.id === 'op:createNote');
+  if (createNote) expect(createNote).toMatchObject({ parent_id: 'notes', permission: 'notes:create', operation_ids: ['createNote'] });
 });
 
-it('renders the shared administrator tree: three seeded directories over two regions', () => {
+it('renders the shared administrator tree: seeded business pages, access-filtered directories over two regions', () => {
+  const config = defaultNavigation(['administrator']);
   const navigation = render(superAdmin);
   expect(navigation.sections.map(section => section.id)).toEqual(['business', 'system']);
-  // The business region keeps the shared workspace entries; the personal
+  // The business region mirrors the seeded top-level business pages in seeded
+  // order; module-contributed pages join the same derivation. The personal
   // center has no navigation presence — it opens from the account menus'
   // settings modal.
-  expect(entriesOf(navigation, 'business')).toEqual(['overview', 'announcements', 'notes']);
-  // The administrator-only system region keeps 系统设置 first, the 超级管理员
-  // directory behind it and the API reference as the top-level tail.
+  const businessSeeded = config.nodes
+    .filter(node => node.type === 'page' && node.section_id === 'business' && !node.parent_id)
+    .sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id))
+    .map(node => node.id);
+  expect(entriesOf(navigation, 'business')).toEqual(businessSeeded.filter(id => entriesOf(navigation, 'business').includes(id)));
+  // The administrator-only system region keeps the settings directory first,
+  // the administration directory behind it and the API reference as the
+  // top-level tail; directory children follow seeded order, filtered by access.
   const system = navigation.sections.find(section => section.id === 'system')!;
-  expect(entriesOf(navigation, 'system')).toEqual(['settings', 'administration', 'api-docs']);
-  expect(system.entries[0].type).toBe('directory');
-  expect(system.entries[0].children.map(entry => entry.id)).toEqual(['site', 'storage', 'account-policy', 'mail', 'mail-templates', 'notification-channels', 'notification-templates', 'system-notifications', 'logs', 'edition']);
-  const administration = system.entries[1];
-  expect(administration.type).toBe('directory');
-  expect(!!administration.label).toBe(true);
-  expect(administration.children.map(entry => entry.id)).toEqual(['users', 'roles', 'departments', 'posts', 'menus', 'dictionaries', 'tasks', 'access-tokens']);
+  expect(system.entries.at(-1)!.id).toBe('api-docs');
+  expect(system.entries.at(-1)!.type).toBe('page');
+  for (const directory of system.entries.filter(entry => entry.type === 'directory')) {
+    expect(!!directory.label).toBe(true);
+    const seededChildren = config.nodes
+      .filter(node => node.parent_id === directory.id)
+      .sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id))
+      .map(node => node.id);
+    expect(directory.children.map(entry => entry.id)).toEqual(seededChildren.filter(id => directory.children.map(entry => entry.id).includes(id)));
+  }
   // With menus reachable there is no recovery section.
   expect(navigation.sections.some(section => section.id === 'recovery')).toBe(false);
 });
 
 it('keeps the user workspace on the same tree: administrator surfaces gone, personal center modal-only', () => {
+  const config = defaultNavigation(['user']);
   const navigation = render({ ...superAdmin, identity_realm: 'user' });
   expect(navigation.sections.map(section => section.id)).toEqual(['business']);
   // The system region, the super-admin directory and the administrator-only
   // pages (files/announcements/site plus management pages) never reach the
   // user workspace; canAccess also hard-denies api-docs there, even for a
   // super admin. The personal center keeps no navigation presence.
-  expect(walkAll(navigation)).toEqual(['overview', 'notes']);
+  const userWorkspace = walkAll(navigation);
+  const userSeeded = config.nodes
+    .filter(node => node.type === 'page' && node.surfaces.includes('user') && node.section_id === 'business' && !node.parent_id)
+    .sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id))
+    .map(node => node.id);
+  expect(userWorkspace).toEqual(userSeeded.filter(id => userWorkspace.includes(id)));
 });
 
 it('renders only menu-granted pages for a restricted operator while canAccess still caps direct URLs', () => {

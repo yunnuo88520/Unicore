@@ -5,11 +5,19 @@
 
 ### 中文
 
-- 发布完成核对的镜像查询改用标准 Registry 认证流程：401 挑战后按 realm/service/scope 交换令牌再重试，公开镜像无需凭据、私有镜像使用 GitHub 令牌；镜像源码身份按 linux/amd64 与 linux/arm64 双架构逐一校验，stable 的浮动标签与精确版本标签比较顶层 index digest。
+- 跨平台工具调用统一：新增 `scripts/tool-spawn.mjs` 统一外部工具解析（POSIX 直接执行，Windows 经 cmd.exe 解析 .cmd shim），doctor 与依赖审计改用统一入口；doctor 各项给出具体失败原因而不是空括号，Windows 上 pnpm 已安装不再被误报为 EINVAL。
+- 硬编码测试默认值改为定制断言：主题色板不再写死 `#6662ec`，迁移目录按源目录推导、桌面账本测试按身份推导，前端导航断言改从导航源推导；测试校验行为本身，而不是复述框架默认值，派生应用的定制不再触发误报。
+- 派生应用作者头治理：创建器接受应用团队自己的作者（写入 identity 与 provenance），迁移生成按 check-authors 的同一策略接受框架作者加身份作者——派生业务的 Go/SQL/md 不再被要求携带框架作者头，未登记作者依旧 fail-closed；依赖边界检查的洋葱规则改为从 go.mod 推导应用自身包路径（此前在派生应用中静默失配），仅含描述符的业务模块不再被假设必须有 domain/usecase 子包。
+- 创建器校验模板基线：导出时比对 framework-template 祖先与源码树，漂移的祖先直接拒绝并给出恢复路径，防止升级时报告虚假的删除/新增。
+- CI 在真实 Windows 检出上验证跨平台套件（doctor 分类、bloblocal/branding/config 测试、工具链套件），并把定制派生演练的完整模式扩展到 Windows runner。
 
 ### English
 
-- The release completeness checker now speaks the standard registry authentication flow: a 401 challenge triggers a realm/service/scope token exchange and one retry, so public images need no credential and private ones use the GitHub token; image source identity is checked per architecture on linux/amd64 and linux/arm64, and a stable floating tag must equal the exact version tag's top-level index digest.
+- Unified cross-platform tool invocation: a new `scripts/tool-spawn.mjs` resolves external tools once (direct exec on POSIX, .cmd shims through cmd.exe on Windows), and doctor plus the dependency audit go through it; doctor items now report the concrete failure reason instead of empty parentheses, and an installed pnpm on Windows is no longer misreported as EINVAL.
+- Hardcoded test defaults became customization assertions: the theme palette is no longer pinned to `#6662ec`, the migration catalog derives from the source tree, the desktop ledger test derives from identity, and frontend navigation assertions derive from the navigation source; tests verify behavior itself instead of restating framework defaults, so derived-application customization no longer trips them.
+- Derived-application authorship governance: the creator accepts the application team's own author (recorded in identity and provenance), and migration generation applies the same policy as check-authors — the framework author plus the identity author — so derived business Go/SQL/md no longer need the framework author header, while undeclared authors still fail closed; the dependency-boundary onion rules now derive the application's own package paths from go.mod (they silently mismatched in derived projects before), and a descriptor-only business module is no longer assumed to have domain/usecase subpackages.
+- The creator validates the template baseline: export compares the framework-template ancestor against the source tree and rejects a drifted ancestor with a recovery path, preventing upgrades from reporting spurious deletes and adds.
+- CI verifies the cross-platform suites on a real Windows checkout (doctor classification, bloblocal/branding/config tests, the tooling suites) and extends the customized derived-application drill's full mode to the Windows runner.
 
 ## 0.1.6 — 2026-11-17
 

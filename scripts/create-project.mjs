@@ -9,7 +9,9 @@ import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync,
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 const frameworkRoot = fileURLToPath(new URL('../', import.meta.url));
-export function createProject({ source = frameworkRoot, directory, name, module, bundle, slug, repository, allowDirty = false }) {
+// `author` is the application team's own identity (identity + provenance): their code,
+// SQL and docs are downstream sources and do not carry the framework author header.
+export function createProject({ source = frameworkRoot, directory, name, module, bundle, slug, repository, author = 'yunnuo <ymz@ebox.vip>', allowDirty = false }) {
   if (!/^[a-z][a-z0-9-]{1,39}$/.test(slug ?? '')) throw Error('slug must contain 2–40 lowercase letters, digits or hyphens');
   if (!/^[\p{L}\p{N}][\p{L}\p{N} ._-]{1,39}$/u.test(name ?? '')) throw Error('name must contain 2–40 letters, digits, spaces, dots, underscores or hyphens');
   if (!/^[a-zA-Z0-9][a-zA-Z0-9.-]+\/[a-zA-Z0-9_./-]+$/.test(module ?? '') || module.includes('..')) throw Error('module must be a Go module path, e.g. github.com/team/product');
@@ -34,6 +36,19 @@ export function createProject({ source = frameworkRoot, directory, name, module,
     const tracked = new Set(git('ls-files', '--cached', '-z', '--', ...selected).split('\0'));
     dirty = Boolean(changed || selected.some(path => !tracked.has(path)));
     if (dirty && !allowDirty) throw Error('Selected template inputs have uncommitted changes; review them and explicitly use --allow-dirty');
+    // The baseline ancestor must correspond to this source state. A rolling template
+    // branch moves within one VERSION, so an equal version string proves nothing: a
+    // drifted ancestor makes upgrades report spurious deletes and adds. The ancestor
+    // is accepted when its commit records this checkout as its Source, or when its
+    // tree is byte-identical to this checkout's whitelisted export; anything else is
+    // rejected with the recovery instead of producing a misleading common ancestor.
+    const trailer = templateRevision ? git('log', '-1', '--format=%B', templateRevision).match(/^Source: ([0-9a-f]{40})$/m)?.[1] : undefined;
+    if (templateRevision && trailer !== upstream) {
+      // Compare against the committed tree: a reviewed dirty working tree (--allow-dirty)
+      // deliberately differs from HEAD and layers on top of a correct ancestor.
+      const drift = git('diff', '--stat', templateRevision, 'HEAD', '--', ...selected).trim();
+      if (drift) throw Error(`framework-template ${templateRevision.slice(0, 12)} does not match this source checkout (${upstream.slice(0, 12)}${trailer ? `, it was exported from ${trailer.slice(0, 12)}` : ', it has no Source record'}): ${drift.split('\n').at(-1)}. Regenerate the template from this checkout (node scripts/framework-template.mjs) or create the project from the matching source; otherwise source upgrades report conflicts for files this project never had.`);
+    }
   }
   const inputFiles = plan.map(file => ({...file, sha256: createHash('sha256').update(readFileSync(regularFile(source, file.source))).digest('hex')}));
   mkdirSync(dirname(target), { recursive: true });
@@ -57,15 +72,15 @@ export function createProject({ source = frameworkRoot, directory, name, module,
     }
     const edit = (path, fn) => { const full = join(staging,path); const value = JSON.parse(readFileSync(full,'utf8')); fn(value); writeFileSync(full,JSON.stringify(value,null,2)+'\n'); };
     edit('assets/updates/config.json', p => { p.repository=''; p.keys={}; p.channel='stable'; p.allow_unsigned_platform=true; });
-    const identity = validateIdentity({author: 'yunnuo <ymz@ebox.vip>', schemaVersion: 1, product: {name, slug, description: `${name} workspace`}, go: {module}, cli: {command: slug, opsCommand: `${slug}-ops`, description: `${name} CLI`}, desktop: {bundleId: bundle, outputName: `${slug}-desktop`}, deployment: {serviceName: slug, serviceUser: slug, installDirectory: `/opt/${slug}`, dataDirectory: `/var/lib/${slug}`, image: slug, volume: `${slug}_data`}, release: {artifactPrefix: slug}});
+    const identity = validateIdentity({author, schemaVersion: 1, product: {name, slug, description: `${name} workspace`}, go: {module}, cli: {command: slug, opsCommand: `${slug}-ops`, description: `${name} CLI`}, desktop: {bundleId: bundle, outputName: `${slug}-desktop`}, deployment: {serviceName: slug, serviceUser: slug, installDirectory: `/opt/${slug}`, dataDirectory: `/var/lib/${slug}`, image: slug, volume: `${slug}_data`}, release: {artifactPrefix: slug}});
     mkdirSync(join(staging, 'internal/buildinfo'), {recursive: true});
     writeFileSync(join(staging, 'product.identity.json'), JSON.stringify(identity, null, 2)+'\n');
     // One identity pass applies every projection: mixed-file fields, generated sources, deployment renames and doc tokens.
     applyIdentity(staging, identity, false);
-    // Project-facing help and feedback follow its own repository; provenance and author metadata stay upstream.
+    // Project-facing help and feedback follow its own repository; upstream attribution stays in provenance.
     applyRepositoryLinks(staging, repositoryUrl);
     edit('package.json', p => { p.license='MIT'; });
-    writeFileSync(join(staging, 'project.provenance.json'), JSON.stringify({author: 'yunnuo <ymz@ebox.vip>', framework: 'Unicore', upstream: upstreamUrl, framework_version: frameworkVersion, generator_version: 1, repository: repositoryUrl ?? null, identity_sha256: createHash('sha256').update(readFileSync(join(staging, 'product.identity.json'))).digest('hex'), template_revision: templateRevision, revision: upstream, source_mode: upstream ? (dirty ? 'reviewed-working-tree' : 'clean-git-inputs') : 'unversioned', worktree_modified: worktreeModified, selected_inputs_modified: dirty, input_files: inputFiles, created_at: new Date().toISOString()}, null, 2)+'\n');
+    writeFileSync(join(staging, 'project.provenance.json'), JSON.stringify({author, framework: 'Unicore', upstream: upstreamUrl, framework_version: frameworkVersion, generator_version: 1, repository: repositoryUrl ?? null, identity_sha256: createHash('sha256').update(readFileSync(join(staging, 'product.identity.json'))).digest('hex'), template_revision: templateRevision, revision: upstream, source_mode: upstream ? (dirty ? 'reviewed-working-tree' : 'clean-git-inputs') : 'unversioned', worktree_modified: worktreeModified, selected_inputs_modified: dirty, input_files: inputFiles, created_at: new Date().toISOString()}, null, 2)+'\n');
     const repositoryInstructions = repositoryUrl
       ? { zh: `创建器已配置自己的 origin：${repositoryUrl}，只读 framework 远端仍指向上游；没有创建远程仓库或推送代码。源码升级流程见 docs/product/framework-upgrade.md。`, en: `Your origin is configured as ${repositoryUrl}; the read-only framework remote still points upstream. No remote repository was created and no code was pushed. See docs/product/framework-upgrade.md for source upgrades.` }
       : { zh: '创建器已完成 git init 与初始基线提交，并添加只读 framework 远端指向上游；推送前先添加自己的 origin，源码升级流程见 docs/product/framework-upgrade.md。', en: 'The creator has already run git init, committed the initial baseline, and added the read-only framework remote pointing upstream; add your own origin before pushing. See docs/product/framework-upgrade.md for source upgrades.' };

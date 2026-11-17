@@ -1,7 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Gate high and critical dependency advisories behind an exceptions ledger whose entries always carry a mitigation and an expiry date.
 import { readFileSync } from 'node:fs';
-import { spawnSync } from 'node:child_process';
+import { spawnTool } from './tool-spawn.mjs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -57,11 +57,10 @@ function main() {
   const exceptions = validateExceptions(document);
   console.log(`audit exceptions ledger: ${exceptions.length} active entries, none expired`);
   // pnpm audit exits non-zero when advisories exist, so spawn and keep stdout.
-  const run = spawnSync('pnpm', ['audit', '--json'], { encoding: 'utf8' });
-  if (run.error) throw run.error;
-  const stdout = (run.stdout ?? '').trim();
+  const run = spawnTool('pnpm', ['audit', '--json']);
+  const stdout = run.output.trim();
   const start = stdout.indexOf('{');
-  if (start < 0) throw Error(`pnpm audit produced no JSON (exit ${run.status}); run pnpm audit manually and triage`);
+  if (start < 0) throw Error(`pnpm audit produced no JSON (${run.reason ?? 'no advisories reported'}); run pnpm audit manually and triage`);
   const uncovered = reconcile(advisoriesFromAudit(stdout.slice(start)), exceptions);
   if (uncovered.length) {
     throw Error(`uncovered high/critical advisories; upgrade or add a reviewed, expiring exception:\n${uncovered.join('\n')}`);

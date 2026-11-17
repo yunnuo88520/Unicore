@@ -36,11 +36,14 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       # Floating-tag policy: only a stable (non-prerelease) publication moves the
       # major.minor tag that stable users track. Preview releases and manual candidate
-      # builds push their exact version tag only, so an unreleased candidate can never
+      # builds push their exact version tag only, so an unpublished candidate can never
       # override the floating reference of published stable users.
       - name: Compute image tags
         id: meta
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          set -eu
           tag="${{ steps.tag.outputs.tag }}"
           repo="${{ github.repository }}"
           version="${tag#v}"
@@ -53,6 +56,13 @@ jobs:
             echo "Floating major.minor tag stays untouched; publishing ghcr.io/$repo:$version only."
             echo "tags=ghcr.io/$repo:$version" >> "$GITHUB_OUTPUT"
           else
+            # A manual promotion must point at a published stable release; never trust the boolean alone.
+            gh api "repos/$repo/releases/tags/$tag" > "$RUNNER_TEMP/release-check.json"
+            node --input-type=module -e '
+              import {readFileSync} from "node:fs";
+              const release=JSON.parse(readFileSync(process.env.RUNNER_TEMP+"/release-check.json"));
+              if(release.draft||release.prerelease) throw Error(`Refusing to move the floating tag: the release for tag ${release.tag_name} is draft=${release.draft} prerelease=${release.prerelease}; only a published stable release may advance the major.minor tag`);
+            '
             echo "Promoting the floating tag for stable $version."
             echo "tags=ghcr.io/$repo:$version,ghcr.io/$repo:${version%.*}" >> "$GITHUB_OUTPUT"
           fi

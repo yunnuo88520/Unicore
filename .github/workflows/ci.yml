@@ -74,10 +74,11 @@ jobs:
         if: hashFiles('project.provenance.json') == ''
         run: pnpm verify:derived
       - run: pnpm build && make build-web build-cli build-ops
-      # Continuous cross-version gate on main: upgrade a real instance from the latest
-      # release tag, restart, and restore the pre-upgrade backup with the old binary.
+      # Continuous cross-version gate on every push: upgrade a real instance from the
+      # latest release tag, restart, and restore the pre-upgrade backup with the old
+      # binary. Running on branch pushes keeps the rehearsal observable outside main.
       - name: Exercise a real cross-version upgrade from the latest release tag
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push'
         run: |
           tag="$(git describe --tags --abbrev=0 2>/dev/null)" || { echo 'No release tag exists yet; skipping the upgrade rehearsal.'; exit 0; }
           if [ "$(git rev-parse "$tag^{commit}")" = "$(git rev-parse HEAD)" ]; then

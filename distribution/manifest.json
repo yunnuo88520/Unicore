@@ -1337,6 +1337,8 @@
     "scripts/product-residuals.test.mjs",
     "scripts/release-assets.mjs",
     "scripts/release-assets.test.mjs",
+    "scripts/release-completeness.mjs",
+    "scripts/release-completeness.test.mjs",
     "scripts/release-layout.mjs",
     "scripts/release-notes.mjs",
     "scripts/release-notes.test.mjs",

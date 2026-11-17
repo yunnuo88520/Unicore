@@ -27,7 +27,9 @@ for(const [name,path] of Object.entries(manifest.sources))content+=`| ${name} | 
 content+=`\nOpenAPI 当前包含 ${operations} 个 operation、${Object.keys(spec.components.schemas).length} 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。\n\n`;
 content+='| 任务 Skill | 用途 |\n| --- | --- |\n';
 for(const skill of skills){
- const path=`.agents/skills/${skill}/SKILL.md`;const text=readFileSync(at(path),'utf8');
+ const path=`.agents/skills/${skill}/SKILL.md`;
+ // Tolerate CRLF checkouts (Windows without normalization) before matching frontmatter bytes.
+ const text=readFileSync(at(path),'utf8').replaceAll('\r\n','\n');
  if(!text.startsWith('---\n')||!text.includes(`\nname: ${skill}\n`))throw new Error(`Invalid skill discovery metadata: ${path}`);
  const description=text.match(/^description: (.+)$/m)?.[1];if(!description)throw new Error(`Missing description: ${path}`);
  content+=`| [${skill}](${link(path)}) | ${description.replaceAll('|','\\|')} |\n`;

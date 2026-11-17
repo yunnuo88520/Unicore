@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { checksumCoverage, expectedFromManifest, parseChecksums } from './release-completeness.mjs';
+import { checksumCoverage, expectedFromManifest, imageIdentityErrors, parseChecksums } from './release-completeness.mjs';
 
 const COMMIT = 'a'.repeat(40);
 const IDENTITY = { version: '1.2.3', commit: COMMIT, channel: 'preview' };
@@ -120,4 +120,16 @@ test('published asset verification passes a complete release and fails closed on
   const mismatched = await runAssetChecks(fakeRelease(tampered), tampered, checksumsText(tampered));
   assert.equal(mismatched['published digests'].status, 'failed');
   assert.match(mismatched['published digests'].detail, /manifest digest mismatch/);
+});
+
+test('image source identity must match the release version and tagged commit', () => {
+  const labels = {'org.opencontainers.image.version': '1.2.3', 'org.opencontainers.image.revision': COMMIT};
+  assert.deepEqual(imageIdentityErrors(labels, IDENTITY), []);
+  assert.deepEqual(
+    imageIdentityErrors({'org.opencontainers.image.version': '1.2.3', 'org.opencontainers.image.revision': 'dev'}, IDENTITY),
+    [`image label revision dev does not match the release commit ${COMMIT}`],
+    'an image built without the commit build-arg must fail the identity check, not pass silently');
+  const missing = imageIdentityErrors({}, IDENTITY);
+  assert.ok(missing.some(error => error.includes('version (missing)')) && missing.some(error => error.includes('revision (missing)')));
+  assert.ok(imageIdentityErrors({...labels, 'org.opencontainers.image.version': '9.9.9'}, IDENTITY).some(error => error.includes('does not match 1.2.3')));
 });

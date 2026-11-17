@@ -82,35 +82,62 @@ export function imageIdentityErrors(labels, {version, commit}) {
 }
 
 const REGISTRY_ACCEPT = 'application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json';
+const PLATFORM_ACCEPT = 'application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json';
+const CONFIG_ACCEPT = 'application/vnd.oci.image.config.v1+json, application/vnd.docker.container.image.v1+json';
 
-async function registryFetch(token, path, accept = REGISTRY_ACCEPT) {
-  const response = await fetch(`https://ghcr.io/v2/${path}`, {headers: {Authorization: `Bearer ${token}`, Accept: accept}});
-  if (!response.ok) throw Object.assign(Error(`${response.status} ${response.statusText}`), {status: response.status});
-  return response;
-}
-
-// Resolve a tag to its registry digest header; multi-arch indexes resolve through their
-// first linux/amd64 entry so the digest identifies one concrete image manifest.
-async function registryManifestDigest(repository, tag, token) {
-  const response = await registryFetch(token, `${repository}/manifests/${tag}`);
-  const digest = response.headers.get('docker-content-digest');
-  if (digest) return digest;
-  const manifest = await response.json();
-  const platform = (manifest.manifests ?? []).find(entry => (entry.platform?.os ?? 'linux') === 'linux' && entry.platform?.architecture === 'amd64') ?? manifest.manifests?.[0];
-  if (!platform) throw Error('registry returned no platform manifest');
-  return platform.digest;
-}
-
-async function registryImageConfig(repository, tag, token) {
-  let response = await registryFetch(token, `${repository}/manifests/${tag}`);
-  let manifest = await response.json();
-  if (manifest.manifests) {
-    const platform = manifest.manifests.find(entry => entry.platform?.os === 'linux' && entry.platform?.architecture === 'amd64') ?? manifest.manifests[0];
-    response = await registryFetch(token, `${repository}/manifests/${platform.digest}`, 'application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json');
-    manifest = await response.json();
-  }
-  const configResponse = await registryFetch(token, `${repository}/blobs/${manifest.config.digest}`, 'application/vnd.oci.image.config.v1+json, application/vnd.docker.container.image.v1+json');
-  return configResponse.json();
+// Registry client with the standard token flow: request anonymously or with the GitHub
+// token; on a 401 challenge exchange credentials at the advertised realm/service/scope
+// and retry once. Public images need no credential at all; private ones need a token
+// with read:packages. The digest of a tag is its top-level index digest.
+export function createRegistryClient({fetchImpl = fetch, githubToken = '', repository}) {
+  if (!repository) throw Error('registry client requires a repository');
+  let bearerToken = null;
+  const parseChallenge = header => {
+    const params = Object.fromEntries([...header.matchAll(/(\w+)="([^"]*)"/g)].map(match => [match[1], match[2]]));
+    if (params.realm === undefined) throw Error(`unsupported registry challenge: ${header}`);
+    return params;
+  };
+  const authorize = async params => {
+    const url = new URL(params.realm);
+    url.searchParams.set('service', params.service ?? 'ghcr.io');
+    url.searchParams.set('scope', params.scope ?? `repository:${repository}:pull`);
+    const response = await fetchImpl(url, {headers: githubToken ? {Authorization: `Bearer ${githubToken}`} : {}});
+    if (!response.ok) throw Object.assign(Error(`registry token exchange failed: ${response.status} ${response.statusText}`), {status: response.status});
+    const payload = await response.json();
+    if (!payload.token) throw Error('registry token exchange returned no token');
+    bearerToken = payload.token;
+  };
+  const request = async (path, accept) => {
+    const attempt = () => fetchImpl(`https://ghcr.io/v2/${path}`, {headers: {Accept: accept, ...(bearerToken ? {Authorization: `Bearer ${bearerToken}`} : {})}});
+    let response = await attempt();
+    if (response.status === 401) {
+      const challenge = response.headers.get('www-authenticate');
+      if (!challenge) throw Object.assign(Error(`registry rejected the query without a challenge: 401 for ${path}`), {status: 401});
+      await authorize(parseChallenge(challenge));
+      response = await attempt();
+    }
+    if (!response.ok) throw Object.assign(Error(`${response.status} ${response.statusText} for ${path}`), {status: response.status});
+    return response;
+  };
+  const platformEntry = (manifest, os, arch) => (manifest.manifests ?? []).find(entry => entry.platform?.os === os && entry.platform?.architecture === arch);
+  return {
+    // Top-level digest of the tag (an index for multi-arch images).
+    async manifestDigest(tag) {
+      const response = await request(`${repository}/manifests/${tag}`, REGISTRY_ACCEPT);
+      const digest = response.headers.get('docker-content-digest');
+      if (!digest) throw Error(`registry returned no docker-content-digest for ${tag}`);
+      return digest;
+    },
+    // Config of one platform's image; a missing architecture is a hard finding.
+    async imageConfig(tag, os, arch) {
+      const index = await (await request(`${repository}/manifests/${tag}`, REGISTRY_ACCEPT)).json();
+      const entry = platformEntry(index, os, arch);
+      if (!entry) throw Object.assign(Error(`registry index for ${tag} has no ${os}/${arch} manifest`), {missingArchitecture: `${os}/${arch}`});
+      const platformManifest = await (await request(`${repository}/manifests/${entry.digest}`, PLATFORM_ACCEPT)).json();
+      const config = await (await request(`${repository}/blobs/${platformManifest.config.digest}`, CONFIG_ACCEPT)).json();
+      return {digest: entry.digest, config};
+    },
+  };
 }
 
 export async function verifyPublished({fetchImpl, release, manifest, checksumsText, identity, temporary, record}) {
@@ -222,40 +249,39 @@ async function main() {
     } else record('template source traceability', 'failed', 'origin has no framework-template branch');
 
     // 7. Image digests and source identity on GHCR: the exact version tag always; the
-    // floating major.minor tag only for stable, and its digest must equal the version tag's.
-    const expectedTags = [`ghcr.io/${repository.toLowerCase()}:${version}`, ...(kind === 'stable' ? [`ghcr.io/${repository.toLowerCase()}:${version.split('.').slice(0, 2).join('.')}`] : [])];
+    // floating major.minor tag only for stable, and its top-level index digest must equal
+    // the version tag's. Every expected platform's identity labels are checked.
+    const registryRepository = repository.toLowerCase();
+    const client = createRegistryClient({fetchImpl, githubToken: token, repository: registryRepository});
+    const imageFinding = async (item, verify) => {
+      try { record(item, 'verified', await verify()); }
+      catch (error) {
+        if (error.status === 404) record(item, 'failed', error.message);
+        else if (error.missingArchitecture) record(item, 'failed', error.message);
+        else record(item, 'unverified', `registry rejected the query (${error.status ?? error.message}); a private image needs "gh auth refresh -s read:packages"`);
+      }
+    };
     let versionDigest = null;
-    for (const image of expectedTags) {
-      const reference = image.split(':');
-      try {
-        const digestHeader = await registryManifestDigest(reference[0].replace('ghcr.io/', ''), reference[1], token);
-        if (reference[1] === version) versionDigest = digestHeader;
-        record(`image ${image}`, 'verified', `registry digest ${digestHeader.slice(0, 32)}…`);
-      } catch (error) {
-        record(`image ${image}`, 'unverified', `registry rejected the query (${error.status ?? error.message}); run "gh auth refresh -s read:packages" or "docker login ghcr.io" and re-run`);
-      }
-    }
-    if (versionDigest) {
-      try {
-        const repository_ = `ghcr.io/${repository.toLowerCase()}`.replace('ghcr.io/', '');
-        const config = await registryImageConfig(repository_, version, token);
+    await imageFinding(`image ghcr.io/${registryRepository}:${version}`, async () => {
+      versionDigest = await client.manifestDigest(version);
+      return `top-level registry digest ${versionDigest.slice(0, 32)}…`;
+    });
+    for (const arch of ['amd64', 'arm64']) {
+      await imageFinding(`image identity linux/${arch}`, async () => {
+        if (!versionDigest) throw Object.assign(Error('version tag digest unavailable'), {status: 404});
+        const {config} = await client.imageConfig(version, 'linux', arch);
         const errors = imageIdentityErrors(config?.config?.Labels ?? {}, {version, commit: taggedCommit});
-        record('image source identity', errors.length === 0 ? 'verified' : 'failed',
-          errors.length ? errors.join('; ') : `labels version=${version} revision=${taggedCommit.slice(0, 12)} match the release commit`);
-      } catch (error) {
-        record('image source identity', 'unverified', `could not read the image config (${error.status ?? error.message}); run "gh auth refresh -s read:packages" or "docker login ghcr.io" and re-run`);
-      }
-      if (kind === 'stable') {
-        const reference = `ghcr.io/${repository.toLowerCase()}`.replace('ghcr.io/', '');
-        const floating = version.split('.').slice(0, 2).join('.');
-        try {
-          const floatingDigest = await registryManifestDigest(reference, floating, token);
-          record('image floating tag digest', floatingDigest === versionDigest ? 'verified' : 'failed',
-            floatingDigest === versionDigest ? `floating ${floating} equals the version tag digest ${versionDigest.slice(0, 32)}…` : `floating ${floating} digest ${floatingDigest.slice(0, 32)}… differs from ${versionDigest.slice(0, 32)}…`);
-        } catch (error) {
-          record('image floating tag digest', 'unverified', `registry rejected the query (${error.status ?? error.message})`);
-        }
-      }
+        if (errors.length) throw Error(errors.join('; '));
+        return `labels version=${version} revision=${taggedCommit.slice(0, 12)} match the release commit`;
+      });
+    }
+    if (kind === 'stable') {
+      const floating = version.split('.').slice(0, 2).join('.');
+      await imageFinding('image floating tag digest', async () => {
+        const floatingDigest = await client.manifestDigest(floating);
+        if (!versionDigest || floatingDigest !== versionDigest) throw Error(`floating ${floating} top-level digest ${floatingDigest.slice(0, 32)}… must equal the version tag digest ${(versionDigest ?? '(unavailable)').slice(0, 32)}…`);
+        return `floating ${floating} equals the version tag digest ${versionDigest.slice(0, 32)}…`;
+      });
     }
 
     // 8. Optional local candidate bundle cross-check (reuse its own checksums and manifest).

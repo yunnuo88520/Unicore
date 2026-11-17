@@ -252,7 +252,9 @@ async function main() {
     // floating major.minor tag only for stable, and its top-level index digest must equal
     // the version tag's. Every expected platform's identity labels are checked.
     const registryRepository = repository.toLowerCase();
-    const client = createRegistryClient({fetchImpl, githubToken: token, repository: registryRepository});
+    // The registry client must drive its own headers (Accept, exchanged bearer token);
+    // the GitHub-asset fetch wrapper would override them and break the challenge flow.
+    const client = createRegistryClient({fetchImpl: (...options) => fetch(...options), githubToken: token, repository: registryRepository});
     const imageFinding = async (item, verify) => {
       try { record(item, 'verified', await verify()); }
       catch (error) {

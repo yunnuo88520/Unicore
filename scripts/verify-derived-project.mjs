@@ -24,9 +24,11 @@ try{
   updateTemplateBranch(fixture.source);
   createProject({source:fixture.source,directory:app,name:'Harbor Desk',slug:'harbor-desk',module:'example.test/verification/harbor-desk',bundle:'test.example.harbordesk',repository:'https://github.com/example/harbor-desk'});
   console.log(`Verifying renamed application (${mode}): ${app}`);
-  const pnpm=process.platform==='win32'?'pnpm.cmd':'pnpm';
-  const run=(command,args)=>execFileSync(command,args,{cwd:app,env:{...process.env,CI:'true'},stdio:'inherit'});
-  run(pnpm,['install','--frozen-lockfile']);
+  // Windows spawn refuses .cmd shims without a shell (Node EINVAL, CVE-2024-27980);
+  // resolve pnpm through cmd.exe there, keep direct exec on POSIX.
+  const windowsShell=process.platform==='win32';
+  const run=(command,args)=>execFileSync(command,args,{cwd:app,env:{...process.env,CI:'true'},stdio:'inherit',shell:windowsShell});
+  run('pnpm',['install','--frozen-lockfile']);
   if(mode==='full'){
     run('make',['docs']);
     run('make',['test']);

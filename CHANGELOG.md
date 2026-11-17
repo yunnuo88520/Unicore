@@ -3,6 +3,14 @@
 
 ## Unreleased
 
+### 中文
+
+- 发布完成核对的镜像查询改用标准 Registry 认证流程：401 挑战后按 realm/service/scope 交换令牌再重试，公开镜像无需凭据、私有镜像使用 GitHub 令牌；镜像源码身份按 linux/amd64 与 linux/arm64 双架构逐一校验，stable 的浮动标签与精确版本标签比较顶层 index digest。
+
+### English
+
+- The release completeness checker now speaks the standard registry authentication flow: a 401 challenge triggers a realm/service/scope token exchange and one retry, so public images need no credential and private ones use the GitHub token; image source identity is checked per architecture on linux/amd64 and linux/arm64, and a stable floating tag must equal the exact version tag's top-level index digest.
+
 ## 0.1.6 — 2026-11-17
 
 ### 中文

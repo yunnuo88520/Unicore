@@ -9,6 +9,11 @@ on:
         description: Release tag to build and push (for example v0.1.3)
         required: true
         type: string
+      promote_floating_tag:
+        description: Also move the major.minor floating tag (stable publications only)
+        required: false
+        type: boolean
+        default: false
 permissions:
   contents: read
   packages: write
@@ -29,6 +34,10 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      # Floating-tag policy: only a stable (non-prerelease) publication moves the
+      # major.minor tag that stable users track. Preview releases and manual candidate
+      # builds push their exact version tag only, so an unreleased candidate can never
+      # override the floating reference of published stable users.
       - name: Compute image tags
         id: meta
         run: |
@@ -36,10 +45,18 @@ jobs:
           repo="${{ github.repository }}"
           version="${tag#v}"
           repo="${repo,,}"
-          {
-            echo "version=$version"
-            echo "tags=ghcr.io/$repo:$version,ghcr.io/$repo:${version%.*}"
-          } >> "$GITHUB_OUTPUT"
+          promote="${{ inputs.promote_floating_tag }}"
+          if [ -z "$promote" ]; then
+            if [ "${{ github.event.release.prerelease }}" = "true" ]; then promote=false; else promote=true; fi
+          fi
+          if [ "$promote" != "true" ]; then
+            echo "Floating major.minor tag stays untouched; publishing ghcr.io/$repo:$version only."
+            echo "tags=ghcr.io/$repo:$version" >> "$GITHUB_OUTPUT"
+          else
+            echo "Promoting the floating tag for stable $version."
+            echo "tags=ghcr.io/$repo:$version,ghcr.io/$repo:${version%.*}" >> "$GITHUB_OUTPUT"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
       - uses: docker/build-push-action@v7
         with:
           context: .

@@ -18,6 +18,10 @@ on:
         description: Successful main Quality and profile builds run for this exact commit
         required: true
         type: string
+      upgrade_from_ref:
+        description: Trusted previous release tag or commit for the cross-version upgrade gate (for example v0.1.5)
+        required: true
+        type: string
 permissions:
   contents: read
 jobs:
@@ -43,8 +47,64 @@ jobs:
       - run: cd build/releases && sha256sum --check checksums.txt
       - uses: actions/upload-artifact@v7
         with: { name: release-candidate, path: build/releases/, if-no-files-found: error }
+  # Cross-version gate: a real old-release instance (dedicated database, settings, accounts,
+  # notes and an uploaded attachment) is upgraded, restarted and its pre-upgrade backup is
+  # restored with the matching old binary. Missing evidence or a failed dialect blocks the bundle.
+  upgrade:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        driver: [sqlite, postgres, mysql]
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: unicore
+          POSTGRES_PASSWORD: unicore_ci_test
+          POSTGRES_DB: unicore_test
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U unicore" --health-interval 5s --health-timeout 5s --health-retries 12
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: unicore_ci_root
+        ports: ["3306:3306"]
+        options: --health-cmd "mysqladmin ping --silent" --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/ubuntu-mirrors
+      - uses: actions/setup-go@v7
+        with: { go-version-file: go.mod }
+      - uses: pnpm/action-setup@v6
+        with: { version: 11.25.0 }
+      - uses: actions/setup-node@v7
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: make build-web build-ops
+      - if: matrix.driver == 'postgres'
+        run: docker exec ${{ job.services.postgres.id }} psql -U unicore -d unicore_test -c 'CREATE DATABASE upgrade_source' -c 'CREATE DATABASE upgrade_restore'
+      - if: matrix.driver == 'mysql'
+        run: docker exec -e MYSQL_PWD=unicore_ci_root ${{ job.services.mysql.id }} mysql -u root -e "CREATE DATABASE upgrade_source; CREATE DATABASE upgrade_restore; GRANT ALL ON upgrade_source.* TO 'unicore'@'%'; GRANT ALL ON upgrade_restore.* TO 'unicore'@'%';"
+      - name: Exercise the cross-version upgrade, restart and restore rehearsal
+        env:
+          UPGRADE_FROM_REF: ${{ inputs.upgrade_from_ref }}
+          UPGRADE_DRIVER: ${{ matrix.driver }}
+          UPGRADE_DSN: ${{ matrix.driver == 'postgres' && 'postgres://unicore:unicore_ci_test@127.0.0.1:5432/upgrade_source?sslmode=disable' || matrix.driver == 'mysql' && 'unicore:unicore_ci_test@tcp(127.0.0.1:3306)/upgrade_source' || '' }}
+          UPGRADE_RESTORE_DSN: ${{ matrix.driver == 'postgres' && 'postgres://unicore:unicore_ci_test@127.0.0.1:5432/upgrade_restore?sslmode=disable' || matrix.driver == 'mysql' && 'unicore:unicore_ci_test@tcp(127.0.0.1:3306)/upgrade_restore' || '' }}
+          UNICORE_MAINTENANCE_POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+          UNICORE_MAINTENANCE_MYSQL_CONTAINER: ${{ job.services.mysql.id }}
+        run: node scripts/test-upgrade.mjs
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: upgrade-evidence-${{ matrix.driver }}
+          path: build/acceptance/developer-kit/
+          if-no-files-found: error
   bundle:
-    needs: candidate
+    needs: [candidate, upgrade]
     runs-on: ubuntu-22.04
     permissions:
       contents: read

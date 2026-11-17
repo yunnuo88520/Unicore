@@ -3,6 +3,30 @@
 
 ## Unreleased
 
+### 中文
+
+- 派生项目桌面验证进入门禁：CI 三系统原生 runner 现在对真实导出并改名的应用执行原生桌面构建、打包与安装入口校验；导出白名单新增回归测试，桌面关键目录出现未登记文件时直接失败，防止再次漏发托盘桥接文件或 DMG 资源。
+
+- 模板发布门禁收紧：framework-template 现在必须等待同一提交的 Dependency security 成功后才发布；安全检查失败、被取消或超时会保留上一份有效模板。每个模板提交附带 `Source: <sha>` 追溯行，不能仅凭相同版本标题判断内容一致。
+
+- 跨版本升级接入发布门禁：升级演练支持 SQLite、PostgreSQL、MySQL 三方言，新增真实附件夹具与来源/目标身份校验（拒绝同提交或同内容重建冒充升级，旧版本能力按旧源码树判定，不再静默接受 404）；CI 在 main 推送时自动从最新发布 tag 演练升级，发布候选工作流新增必填的 `upgrade_from_ref` 输入，三方言矩阵未通过时拒绝装配候选包。
+
+- 桌面更新失败恢复验证：新增原生失败路径测试，覆盖损坏包、未知发行者签名与下载中断，验证失败后旧程序可再次启动、用户数据保留且任务状态可诊断；程序回滚与数据库恢复边界在文档中明确。
+
+- 镜像浮动标签策略：预发布（prerelease）只推送精确版本 tag，仅 stable 发布推进 major.minor 浮动标签，未正式发布的候选不能覆盖稳定用户追踪的浮动引用；新增发布完成核对脚本，覆盖资产完整性、下载校验和、模板追溯与镜像 digest，未全部核实不得宣告发布完成。
+
+### English
+
+- Derived-project desktop verification joins the gate: the CI native runners for all three operating systems now build, package and verify the packaged entry points of a genuinely renamed exported application; a new regression test fails when any desktop-critical file leaves the export whitelist, preventing another missing tray bridge file or DMG resource.
+
+- Template publication is gated harder: framework-template now publishes only after the Dependency security workflow succeeds on the exact same commit; a failed, cancelled or timed-out security check keeps the previous valid template. Every template commit carries a `Source: <sha>` trailer, so an identical version title alone never proves content equality.
+
+- Cross-version upgrades join the release gate: the upgrade rehearsal supports SQLite, PostgreSQL and MySQL, adds a real attachment fixture and source/target identity checks (same-commit or same-content rebuilds are refused, old-version capabilities are read from the old source tree instead of silently accepting 404); CI rehearses an upgrade from the latest release tag on every main push, and the release candidate workflow gains a required `upgrade_from_ref` input — the candidate bundle refuses to assemble unless all three dialects pass.
+
+- Desktop update failure recovery verification: new native failure-path tests cover a corrupted package, an unknown publisher signature and an interrupted download, verifying that the previous program relaunches, user data is retained and the job state stays diagnosable; the boundary between program rollback and database recovery is now documented.
+
+- Image floating-tag policy: prereleases push only their exact version tag, and only stable publications move the major.minor floating tag, so an unpublished candidate can never override the reference stable users track; a new release-completeness script covers asset completeness, downloaded checksums, template traceability and image digests — a release must not be declared complete until every item verifies.
+
 ## 0.1.5 — 2026-11-16
 
 ### 中文

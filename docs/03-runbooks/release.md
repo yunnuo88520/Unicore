@@ -137,9 +137,25 @@ Linux amd64 daemon 将上例改为 linux/amd64。验收只创建随机命名容�
 
 源码采用 MIT，各 tar 包包含 LICENSE；Web 的备份/恢复共用 unicore 入口，manifest 从 Catalog 生成 schema_generation、schema_fingerprint 与 namespace_versions。归档及默认镜像名读取根 package.name，VERSION 仍唯一版本源。派生项目构建前按 [上游约定](framework-upgrade.md) 保留 provenance 与作者。
 
-提交 VERSION/CHANGELOG 并合入 main，等待 Quality and profile builds 与 Dependency security 全部成功，再手动运行 Prepare release candidate workflow，输入完全匹配的 version 和该 main 质量 workflow 的 ci_run_id。候选构建全 Web/CLI tar，合并同一提交的三系统原生桌面归档，校验 13 个 tar 包以及 macOS DMG、Windows 便携 EXE 的版本、来源提交、目标矩阵和 SHA-256；后两者记录在对应桌面 artifact 的 downloads 字段，统一进入 checksums.txt 与来源证明，OTA 清单仍只选择 tar；同时核对该 main 提交的 Dependency security 成功后，要求 GitHub Secret UNICORE_UPDATE_SIGNING_KEY 匹配已提交公钥，签发两份 OTA 清单，再生成 GitHub 构建来源证明，输出 release-bundle artifact。旧运行、PR 构建、不同提交、缺包或校验和不符均拒绝；不创建 tag/Release 或推送镜像。
+提交 VERSION/CHANGELOG 并合入 main，等待 Quality and profile builds 与 Dependency security 全部成功，再手动运行 Prepare release candidate workflow，输入完全匹配的 version、该 main 质量 workflow 的 ci_run_id，以及可信的上一发布 tag 或提交（upgrade_from_ref，例如 v0.1.5）。候选构建全 Web/CLI tar，合并同一提交的三系统原生桌面归档，校验 13 个 tar 包以及 macOS DMG、Windows 便携 EXE 的版本、来源提交、目标矩阵和 SHA-256；后两者记录在对应桌面 artifact 的 downloads 字段，统一进入 checksums.txt 与来源证明，OTA 清单仍只选择 tar；同时核对该 main 提交的 Dependency security 成功后，要求 GitHub Secret UNICORE_UPDATE_SIGNING_KEY 匹配已提交公钥，签发两份 OTA 清单，再生成 GitHub 构建来源证明，输出 release-bundle artifact。旧运行、PR 构建、不同提交、缺包或校验和不符均拒绝；不创建 tag/Release 或推送镜像。
+
+### 跨版本升级门禁
+
+候选工作流的独立 upgrade 任务按 SQLite、PostgreSQL、MySQL 三方言矩阵执行 `scripts/test-upgrade.mjs`：从 upgrade_from_ref 指定的旧提交构建真实旧程序，在专用数据库/数据目录安装 web-platform，创建设置、账号、业务记录与真实上传附件夹具，完整备份后升级到当前候选、重启核验，再把升级前快照恢复到隔离目录/专用空库并由旧 binary 复验。三个方言全部通过并产出 upgrade-<driver>.json 证据，bundle 才允许装配；任一方言失败或证据缺失即阻断候选。
+
+脚本按旧源码树判定旧版能力：旧版存在的业务能力（如笔记、文件上传）升级与恢复后必须仍为 200，不再静默接受 404；`UPGRADE_FROM_REF` 解析到当前提交或与当前源码树同内容时直接拒绝，同版本重建不能冒充跨版本升级；备份世代不在冻结 Catalog（schema 1）内时明确报错，不兼容旧预览基线只能用匹配旧版恢复并按发行说明迁移数据。CI 在 main 推送时自动从最新发布 tag 执行同一演练（SQLite），使升级回归在候选前暴露。SQL 结果不泛化：每个方言的证据只覆盖该方言，外部数据库的原生 dump/restore 工具由对应容器或本机工具提供。
 
 用户已授权公开发布时，下载该 artifact，验证 checksums/manifest 和 `gh attestation verify <文件> --repo <owner/repo>`，在完全相同的 main 提交创建 `v<VERSION>` tag，将 13 个 tar.gz、macOS DMG、Windows EXE、manifest.json、checksums.txt、update-manifest.json、update-manifest.sig 上传 GitHub Release（preview 勾选 prerelease，stable 不勾选）。发布说明列出实际 OS/Arch、安装入口、备份/恢复、未签名及未测范围；核对 Release 页面和下载后的 checksum 后才能宣告完成。首次预览沿用正常递增版本流程，不重写已归档 Changelog。必须验证独立 Ed25519 OTA 清单，而非依据保留字段 signature:null 判断签名。macOS/Windows 凭据配置、密钥轮换与缺凭据行为见 [更新手册](updates.md)；GHCR 镜像由 image workflow 在 Release 发布后单独构建，需核对其成功与对应 tag；SBOM 另行对接。
+
+### 镜像浮动标签策略
+
+镜像同时发布精确版本 tag（`<major.minor.patch>`）；只有 stable（非 prerelease）发布才推进 `major.minor` 浮动 tag，预览版与手动构建的候选镜像只写精确版本 tag，不覆盖稳定用户追踪的浮动引用。若需手动重推同版本镜像，workflow_dispatch 的 `promote_floating_tag` 默认 false，仅在补发 stable 同版本镜像时显式开启。宣告发布完成前，用 `node scripts/release-completeness.mjs --tag v<VERSION> --kind preview|stable` 核对下节身份链。
+
+### 发布身份链与完成核对
+
+一次发布的身份对应关系固定为：源码提交 SHA（tag `v<VERSION>` 指向的 main 提交）↔ 应用版本（VERSION，全部产物/镜像/manifest 一致）↔ 模板提交（framework-template 头提交的 `Source: <sha>` 尾行记录导出来源，模板继续随通过质量与安全检查的 main 滚动，不随 Release 单独出版本）↔ 候选运行（Prepare release candidate 的 ci_run_id 绑定同一提交的质量与安全结果）↔ Release 资产（checksums.txt 与来源证明）↔ 镜像 digest（GHCR 精确版本 tag；stable 另有浮动 tag）。
+
+`node scripts/release-completeness.mjs --tag v<VERSION> --kind preview|stable [--bundle <candidate 目录>]` 逐项核对：tag/VERSION/提交一致、Release 公开状态与渠道标记、全部预期资产在列、下载资产逐个比对 checksums.txt、模板头提交含 `Source:` 尾行且发布提交是其祖先、GHCR 镜像 manifest 可查询（stable 同时核对浮动 tag）。任何一项 failed 或 unverified 都不得宣告发布完成；历史 Release 的既有缺口按记录保留，不回填旧 tag。来源证明复用候选 workflow 的 attest-build-provenance，用 `gh attestation verify` 核验，不重复实现。
 
 Dependency security workflow 运行固定版 govulncheck：Web/CLI/ops 符号检查、全部业务导入包和桌面 bindings 导入包检查；前端审计包含开发依赖，low 及以上阻断。没有导入的废弃子包单独记录，不以排除开发依赖掩盖测试工具漏洞。安装新依赖需跟踪误报与升级影响，不静默忽略失败。发布前在目标环境恢复副本验证，参见 [备份恢复](backup.md)。跨版本升级/回退验收与同版本容器替换分开记录。
 

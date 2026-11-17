@@ -779,6 +779,7 @@
     "internal/adapter/updateinstall/archive.go",
     "internal/adapter/updateinstall/helper.go",
     "internal/adapter/updateinstall/install.go",
+    "internal/adapter/updateinstall/install_failures_test.go",
     "internal/adapter/updateinstall/install_test.go",
     "internal/adapter/updateinstall/native_unix.go",
     "internal/adapter/updateinstall/native_windows.go",

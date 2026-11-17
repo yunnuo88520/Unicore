@@ -3,7 +3,11 @@
 
 ## Unreleased
 
+## 0.1.6 — 2026-11-17
+
 ### 中文
+
+- 镜像携带可核对的源码身份：发布镜像在构建时注入发布提交的 OCI revision 标签，发布完成核对会校验镜像标签的版本与提交、并要求 stable 的浮动 major.minor 标签与精确版本标签 digest 一致；手动推进浮动标签前强制核对目标为已公开 stable Release。
 
 - 派生项目桌面验证进入门禁：CI 三系统原生 runner 现在对真实导出并改名的应用执行原生桌面构建、打包与安装入口校验；导出白名单新增回归测试，桌面关键目录出现未登记文件时直接失败，防止再次漏发托盘桥接文件或 DMG 资源。
 
@@ -16,6 +20,8 @@
 - 镜像浮动标签策略：预发布（prerelease）只推送精确版本 tag，仅 stable 发布推进 major.minor 浮动标签，未正式发布的候选不能覆盖稳定用户追踪的浮动引用；新增发布完成核对脚本，覆盖资产完整性、下载校验和、模板追溯与镜像 digest，未全部核实不得宣告发布完成。
 
 ### English
+
+- Images carry a verifiable source identity: published images now stamp the release commit into the OCI revision label at build time, the release-completeness check validates the image labels against the release version and commit, requires a stable floating major.minor tag to share the exact-version tag's digest, and a manual floating-tag promotion must verify the target is a published stable release first.
 
 - Derived-project desktop verification joins the gate: the CI native runners for all three operating systems now build, package and verify the packaged entry points of a genuinely renamed exported application; a new regression test fails when any desktop-critical file leaves the export whitelist, preventing another missing tray bridge file or DMG resource.
 

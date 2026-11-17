@@ -1,4 +1,9 @@
 # Author: yunnuo <ymz@ebox.vip>
+# Normalize every text file to LF on checkout for all platforms: newline-sensitive tooling
+# (skill frontmatter, layout whitelists, shell steps) parses line endings byte-exactly, and
+# the exported template must build identically from a Windows clone.
+* text=auto eol=lf
+
 # Preserve published migration/checksum bytes across checkout platforms.
 migrations/sqlite/0013_prefix_*.sql -text
 migrations/postgres/0013_prefix_*.sql -text

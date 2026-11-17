@@ -51,6 +51,12 @@ Docker 仅显示日志和更新信息，即便存在可信包也不启用安装�
 
 任务状态在 data/updates/state.json，受限 plan/helper/archive 位于 updates/jobs/<随机ID>。签名校验后才切换；新程序必须确认 nonce、确切版本与实际 profile/功能开关/迁移级别，60 秒未确认或子进程退出则恢复旧程序。只有相同迁移级别才执行自动安装，更新过程不迁移数据库。数据目录解析符号链接后必须仍在安装目录之外。中断后启动 Guard 在打开数据库前恢复事务；签名已过期或备份损坏时停止自动恢复，按以下步骤人工处理。
 
+### 失败路径的验证范围
+
+程序回滚与数据库恢复是两条边界：OTA 失败只回滚程序与安装目录，从不回写或回滚数据目录/数据库；数据库层面的恢复只能用升级前完整快照加匹配旧程序执行（见 [发行与恢复门禁](release.md#跨版本升级门禁)），不能用旧程序直接打开已不兼容的新库。
+
+自动化覆盖：`internal/adapter/updateinstall` 的原生测试在真实 helper 与真实应用夹具上演练损坏包（摘要不符）、未知发行者签名、下载中断、新程序启动失败与中断交换五个失败路径，全部在三系统 CI 的原生 runner 上运行，并断言旧程序可再次启动、用户数据保留、state.json 留有可诊断终态；签名与兼容性拒绝另有 updates 服务级测试。人工覆盖：Windows/amd64 成功路径已按 [Windows 原生 OTA 验证](release.md#windows-原生-ota-验证) 实测；更新页交互（按钮点击流程）中的失败表现、Windows 失败路径的 UI 会话、macOS 与 Linux 桌面 OTA 的真实机器运行、Authenticode 严格策略仍属未测范围，发布说明按实际情况声明，不得以文档改写替代实测。
+
 停服并确认没有 helper 持有 updates/apply.lock 或实例锁后，读取 plan.json 的 root/new_root，结合 VERSION、manifest 与 state 确认哪份是旧包。Unix 原子交换保留旧包在安装父目录 .unicore-update-<任务ID>-*/ 下；Windows 保留 previous.exe 和元数据备份。保留数据目录，恢复已核对的完整旧包后启动、检查 ready 与登录。不要直接删除锁文件来绕过活跃锁。
 
 成功任务删除下载归档，保留上一程序及诊断记录供人工恢复；目前不自动淘汰程序备份。磁盘不足时先停服并确认任务已 completed/rolled_back/failed，另存需要的备份，再只清理该任务 plan 指定的 staging 与 jobs 目录；不要批量删除 data 或任意未核对路径。失败日志不回传 secret。

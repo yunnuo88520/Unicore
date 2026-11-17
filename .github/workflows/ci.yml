@@ -28,7 +28,10 @@ jobs:
         ports: ["3306:3306"]
         options: --health-cmd "mysqladmin ping --silent" --health-interval 5s --health-timeout 5s --health-retries 20
     steps:
+      # Full history: the main-push upgrade gate archives the previous release tag.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: ./.github/actions/ubuntu-mirrors
       - name: Install quality tooling
         run: sudo apt-get update && sudo apt-get install -y ripgrep
@@ -71,6 +74,18 @@ jobs:
         if: hashFiles('project.provenance.json') == ''
         run: pnpm verify:derived
       - run: pnpm build && make build-web build-cli build-ops
+      # Continuous cross-version gate on every push: upgrade a real instance from the
+      # latest release tag, restart, and restore the pre-upgrade backup with the old
+      # binary. Running on branch pushes keeps the rehearsal observable outside main.
+      - name: Exercise a real cross-version upgrade from the latest release tag
+        if: github.event_name == 'push'
+        run: |
+          tag="$(git describe --tags --abbrev=0 2>/dev/null)" || { echo 'No release tag exists yet; skipping the upgrade rehearsal.'; exit 0; }
+          if [ "$(git rev-parse "$tag^{commit}")" = "$(git rev-parse HEAD)" ]; then
+            tag="$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null)" || { echo 'No previous release tag exists; skipping the upgrade rehearsal.'; exit 0; }
+          fi
+          echo "Upgrading from $tag"
+          make test-upgrade FROM_REF="$tag"
       - run: pnpm exec playwright install --with-deps chromium
       - run: make test-e2e
       - uses: actions/upload-artifact@v7
@@ -153,6 +168,13 @@ jobs:
           name: windows-exe
           path: build/desktop/bin/*.exe
           if-no-files-found: error
+      # The exported whitelist must keep every desktop input: build, package and verify a
+      # genuinely renamed application on this native runner. Missing tray bridge files,
+      # embedded images or DMG resources fail here instead of only at a downstream user.
+      # Framework checkout only; a derived application has no template to re-export.
+      - name: Verify the renamed derived application native desktop build
+        if: hashFiles('project.provenance.json') == ''
+        run: node scripts/verify-derived-project.mjs desktop
   docker-build:
     runs-on: ubuntu-22.04
     steps:

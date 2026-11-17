@@ -6,6 +6,7 @@ on:
     types: [completed]
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: framework-template-publication
   cancel-in-progress: true
@@ -15,6 +16,7 @@ jobs:
     runs-on: ubuntu-22.04
     permissions:
       contents: write
+      actions: read
     steps:
       - uses: actions/checkout@v7
         with:
@@ -23,6 +25,40 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
+      # Publication waits for the independent Dependency security workflow to succeed on
+      # the exact same commit: the quality workflow alone never publishes the template.
+      # The poller tolerates either completion order and never reuses results from an
+      # older commit, another branch, a fork or a pull-request event; a failed, cancelled
+      # or missing security run keeps the previous template instead of publishing.
+      - name: Require successful dependency security on the tested commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -eu
+          deadline=$(( $(date +%s) + 3600 ))
+          while :; do
+            gh api "repos/$GITHUB_REPOSITORY/actions/workflows/security.yml/runs?head_sha=$TESTED_SHA&per_page=100" > "$RUNNER_TEMP/security-runs.json"
+            verdict="$(TESTED_SHA="$TESTED_SHA" node --input-type=module -e '
+              import {readFileSync} from "node:fs";
+              const sha=process.env.TESTED_SHA;
+              const runs=JSON.parse(readFileSync(process.env.RUNNER_TEMP+"/security-runs.json")).workflow_runs
+                .filter(run=>run.name==="Dependency security" && run.head_sha===sha && run.head_branch==="main"
+                  && run.event==="push" && run.head_repository.full_name===process.env.GITHUB_REPOSITORY);
+              if(runs.some(run=>run.conclusion==="success")) console.log("ready");
+              else if(runs.some(run=>["failure","cancelled","timed_out","startup_failure","action_required"].includes(run.conclusion))) console.log("failed");
+              else console.log("pending");
+            ')"
+            case "$verdict" in
+              ready) echo "Dependency security passed for $TESTED_SHA."; break ;;
+              failed) echo "Dependency security failed for $TESTED_SHA; keeping the previous template." >&2; exit 1 ;;
+            esac
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+              echo "Dependency security for $TESTED_SHA did not complete within one hour; keeping the previous template." >&2
+              exit 1
+            fi
+            sleep 30
+          done
       - name: Publish the tested current main as a linear template update
         env:
           TESTED_SHA: ${{ github.event.workflow_run.head_sha }}

@@ -19,6 +19,9 @@ export function updateTemplateBranch(root = process.cwd()) {
     if (published) git(root, 'fetch', 'origin', 'refs/heads/framework-template:refs/remotes/origin/framework-template');
   }
   const version = readFileSync(join(root, 'VERSION'), 'utf8').trim();
+  // Every template commit records the framework source commit it was exported from;
+  // an identical "Framework template <version>" title alone never proves content equality.
+  const sourceCommit = git(root, 'rev-parse', 'HEAD');
   mkdirSync(join(root, 'build'), { recursive: true });
   const staging = mkdtempSync(join(root, 'build/framework-template-export-'));
   copyDistribution(root, staging, 'project-template');
@@ -56,19 +59,19 @@ export function updateTemplateBranch(root = process.cwd()) {
     if (ancestor(parent, published)) parent = published;
     else if (!ancestor(published, parent)) throw Error('Local and published framework-template histories diverged; reconcile them without force-pushing.');
   }
-  if (parent && tree === git(root, 'rev-parse', `${parent}^{tree}`)) { git(root, 'update-ref', 'refs/heads/framework-template', parent, expected ?? '0'.repeat(parent.length)); return { parent, commit: parent, tree, updated: false, version }; }
+  if (parent && tree === git(root, 'rev-parse', `${parent}^{tree}`)) { git(root, 'update-ref', 'refs/heads/framework-template', parent, expected ?? '0'.repeat(parent.length)); return { parent, commit: parent, tree, updated: false, version, source_commit: sourceCommit }; }
   const commit = parent
-    ? git(root, 'commit-tree', tree, '-p', parent, '-m', `Framework template ${version}`)
-    : git(root, 'commit-tree', tree, '-m', `Framework template ${version}`);
+    ? git(root, 'commit-tree', tree, '-p', parent, '-m', `Framework template ${version}`, '-m', `Source: ${sourceCommit}`)
+    : git(root, 'commit-tree', tree, '-m', `Framework template ${version}`, '-m', `Source: ${sourceCommit}`);
   git(root, 'update-ref', 'refs/heads/framework-template', commit, expected ?? '0'.repeat(commit.length));
-  return { parent, commit, tree, updated: true, version };
+  return { parent, commit, tree, updated: true, version, source_commit: sourceCommit };
 }
 
 if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
   try {
     const result = updateTemplateBranch();
     console.log(result.updated
-      ? `framework-template ${result.parent ? `${result.parent.slice(0, 12)} -> ` : ''}${result.commit.slice(0, 12)} (tree ${result.tree.slice(0, 12)}, template ${result.version})`
-      : `framework-template already up to date at ${result.commit.slice(0, 12)} (template ${result.version})`);
+      ? `framework-template ${result.parent ? `${result.parent.slice(0, 12)} -> ` : ''}${result.commit.slice(0, 12)} (tree ${result.tree.slice(0, 12)}, template ${result.version}, source ${result.source_commit.slice(0, 12)})`
+      : `framework-template already up to date at ${result.commit.slice(0, 12)} (template ${result.version}, source ${result.source_commit.slice(0, 12)})`);
   } catch (error) { console.error(error.message); process.exitCode = 1; }
 }

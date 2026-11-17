@@ -26,7 +26,11 @@ export function createProject({ source = frameworkRoot, directory, name, module,
   const selected = [...new Set(plan.map(file => file.source))];
   const git = (...args) => execFileSync('git', ['--no-optional-locks', '-C', source, ...args], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']}).trim();
   let upstream = null, dirty = false, worktreeModified = false, templateRevision = null;
-  try { if (realpathSync(git('rev-parse', '--show-toplevel')) === source) upstream = git('rev-parse', '--verify', 'HEAD'); } catch { /* Source archives have no Git identity. */ }
+  // Windows: git prints forward slashes and may keep 8.3 components that Node's
+  // realpath already expanded, so equality must compare fully resolved paths,
+  // separator- and case-insensitively, not raw strings.
+  const sameDirectory = (a, b) => { try { return realpathSync(a).replaceAll(sep, '/').toLowerCase() === realpathSync(b).replaceAll(sep, '/').toLowerCase(); } catch { return false; } };
+  try { if (sameDirectory(git('rev-parse', '--show-toplevel'), source)) upstream = git('rev-parse', '--verify', 'HEAD'); } catch { /* Source archives have no Git identity. */ }
   if (upstream) {
     for (const ref of ['refs/heads/framework-template', 'refs/remotes/origin/framework-template']) {
       try { templateRevision = git('rev-parse', '--verify', ref); break; } catch { /* Template branch not generated in this checkout. */ }

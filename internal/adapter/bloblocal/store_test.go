@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -61,7 +62,11 @@ func TestConfinementAndAtomicPublication(t *testing.T) {
 		t.Fatal("ignored cancellation")
 	}
 	info, e := os.Stat(filepath.Join(s.Directory, "a/b.txt"))
-	if e != nil || info.Mode().Perm() != 0600 {
-		t.Fatal("unsafe file permissions", e)
+	if e != nil {
+		t.Fatal(e)
+	}
+	// Windows keeps no POSIX mode bits; Go only reports a synthetic 0666 there.
+	if runtime.GOOS != "windows" && info.Mode().Perm() != 0600 {
+		t.Fatal("unsafe file permissions", info.Mode())
 	}
 }

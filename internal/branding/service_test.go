@@ -15,6 +15,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -104,7 +105,8 @@ func TestPersistenceFailureAndCleanup(t *testing.T) {
 		t.Fatal(err)
 	}
 	info, _ := os.Stat(filepath.Join(directory, "brand-assets", name))
-	if info.Mode().Perm() != 0600 {
+	// Windows keeps no POSIX mode bits; Go only reports a synthetic 0666 there.
+	if runtime.GOOS != "windows" && info.Mode().Perm() != 0600 {
 		t.Fatal("unsafe permissions")
 	}
 	store.fail = true

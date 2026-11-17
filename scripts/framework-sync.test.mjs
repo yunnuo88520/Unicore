@@ -57,6 +57,9 @@ test('framework-template is an independent whitelist-only history',()=>{
   const first=updateTemplateBranch(source);
   assert.equal(first.updated,true);
   shThrow(source,'rev-parse','--verify',`${first.commit}^`);
+  // Traceability: the template commit must record the framework source commit it exported.
+  assert.equal(first.source_commit,sh(source,'rev-parse','HEAD'));
+  assert.match(sh(source,'log','-1','--format=%B',first.commit),new RegExp(`Source: ${first.source_commit}`));
   const listed=sh(source,'ls-tree','-r','--name-only',first.commit).split('\n');
   assert.ok(listed.includes('product.identity.json'));
   assert.ok(listed.includes('deploy/tar/unicore.service'));

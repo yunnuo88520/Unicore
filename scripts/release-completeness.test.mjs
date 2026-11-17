@@ -133,3 +133,45 @@ test('image source identity must match the release version and tagged commit', (
   assert.ok(missing.some(error => error.includes('version (missing)')) && missing.some(error => error.includes('revision (missing)')));
   assert.ok(imageIdentityErrors({...labels, 'org.opencontainers.image.version': '9.9.9'}, IDENTITY).some(error => error.includes('does not match 1.2.3')));
 });
+
+test('the registry client exchanges tokens on a 401 challenge before reading digests', async () => {
+  const { createRegistryClient } = await import('./release-completeness.mjs');
+  const calls = [];
+  const fetchImpl = async (url, options = {}) => {
+    calls.push(String(url));
+    if (String(url).startsWith('https://auth.registry.test/')) {
+      assert.equal(url.searchParams.get('service'), 'ghcr.io');
+      assert.equal(url.searchParams.get('scope'), 'repository:acme/app:pull');
+      assert.equal(options.headers.Authorization, 'Bearer github-token');
+      return { ok: true, status: 200, statusText: 'OK', json: async () => ({ token: 'registry-token' }) };
+    }
+    if (calls.filter(path => path.endsWith('/manifests/1.2.3')).length === 1) {
+      return { ok: false, status: 401, statusText: 'Unauthorized', headers: new Map([['www-authenticate', 'Bearer realm="https://auth.registry.test/token",service="ghcr.io",scope="repository:acme/app:pull"']]) };
+    }
+    return { ok: true, status: 200, statusText: 'OK', headers: new Map([['docker-content-digest', 'sha256:' + 'b'.repeat(64)]]) };
+  };
+  const client = createRegistryClient({ fetchImpl, githubToken: 'github-token', repository: 'acme/app' });
+  assert.equal(await client.manifestDigest('1.2.3'), 'sha256:' + 'b'.repeat(64));
+  assert.equal(calls.filter(path => path.startsWith('https://auth.registry.test/')).length, 1, 'exactly one token exchange');
+});
+
+test('a missing platform manifest is a hard registry finding, and per-architecture identity fails independently', async () => {
+  const { createRegistryClient } = await import('./release-completeness.mjs');
+  const index = { manifests: [{ platform: { os: 'linux', architecture: 'amd64' }, digest: 'sha256:' + 'c'.repeat(64) }] };
+  const platformManifest = { config: { digest: 'sha256:' + 'd'.repeat(64) } };
+  const blobs = { ['sha256:' + 'd'.repeat(64)]: { config: { Labels: { 'org.opencontainers.image.version': '1.2.3', 'org.opencontainers.image.revision': COMMIT } } } };
+  const fetchImpl = async url => {
+    const path = String(url).replace('https://ghcr.io/v2/', '');
+    if (path === 'acme/app/manifests/1.2.3') return { ok: true, status: 200, headers: new Map(), json: async () => index };
+    if (path === 'acme/app/manifests/sha256:' + 'c'.repeat(64)) return { ok: true, status: 200, headers: new Map(), json: async () => platformManifest };
+    if (path === 'acme/app/blobs/sha256:' + 'd'.repeat(64)) return { ok: true, status: 200, headers: new Map(), json: async () => blobs['sha256:' + 'd'.repeat(64)] };
+    return { ok: false, status: 404, statusText: 'Not Found', headers: new Map() };
+  };
+  const client = createRegistryClient({ fetchImpl, repository: 'acme/app' });
+  await assert.rejects(() => client.imageConfig('1.2.3', 'linux', 'arm64'), error => error.missingArchitecture === 'linux/arm64');
+  const amd64 = await client.imageConfig('1.2.3', 'linux', 'amd64');
+  assert.deepEqual(imageIdentityErrors(amd64.config.config.Labels, IDENTITY), []);
+  // A single wrong revision on one architecture fails only that architecture.
+  blobs['sha256:' + 'd'.repeat(64)].config.Labels['org.opencontainers.image.revision'] = 'dev';
+  assert.ok(imageIdentityErrors(amd64.config.config.Labels, IDENTITY).some(error => error.includes('does not match the release commit')));
+});

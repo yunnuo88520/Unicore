@@ -74,6 +74,25 @@ pnpm framework:sync --abort
 
 `--abort` 仅丢弃本次隔离合并及其人工解决结果，不重置业务分支、不删除业务工作区的新改动。完成或中止前不要再次发起新的同步。
 
+## 旧版本创建的项目：先迁移同步工具
+
+由 0.1.6 及更早模板创建、尚未完成 0.1.7 首次同步的项目，自带旧版 `scripts/framework-sync.mjs`。旧工具遇到冲突会安全拒绝且不推进分支，但它不记录 `framework_integration`、不按应用自己的 VERSION 重生成版本投影，也没有本轮的版本字段冲突自动处理；直接用它完成升级会得到一次"能合并但不完整"的集成。
+
+一次性迁移（在第一次真正的 `pnpm framework:sync` 之前执行；升级入口必须是应用自己的命令，不要借用框架检出里的脚本）。刷新同步器及其辅助脚本——四个脚本都只依赖 Node 内置模块，从待同步模板整体取出即可：
+
+```sh
+pnpm framework:check
+git fetch framework framework-template
+for script in framework-sync.mjs product-identity.mjs check-product-residuals.mjs distribution.mjs; do
+  git show FETCH_HEAD:scripts/$script > scripts/$script
+  git add scripts/$script
+done
+git commit -m "Refresh framework sync tooling from the pending template"
+pnpm framework:sync
+```
+
+迁移提交本身不合并任何框架源码；`framework_integration` 由随后的首次同步在合并提交中记录，镜像仓库引用（ghcr）等发布投影也随刷新后的工具按 `project.provenance.json` 的 repository 重新推导。若旧工具已经留下未完成的同步现场，先 `pnpm framework:sync --abort` 再迁移；被拒绝场景留下的 `backup/pre-sync-*` 备份分支随该场景一并清理。此迁移只需一次：之后的每次同步都会把工具链当作普通模板文件一并更新。
+
 ## 应用反馈与框架通用问题
 
 应用用户首先联系应用维护者，应用的反馈入口由自己的仓库和支持政策配置。派生项目开发者遇到疑似通用框架问题时，从 `project.provenance.json` 的 `upstream` 找框架仓库。该地址为 GitHub 仓库时，打开它的 Issues 页面，先搜索现有 Issue 和 PR，再按以下流程复现与反馈。应用和框架各自维护自己的反馈记录。

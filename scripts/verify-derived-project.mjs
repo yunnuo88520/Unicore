@@ -27,7 +27,7 @@ Object.assign(process.env,verificationGitEnv());
 mkdirSync(join(repository,'build'),{recursive:true});
 const output=mkdtempSync(join(repository,'build/derived-verification-'));
 const app=join(output,'application');
-let fixture=null,oldTemplate=null;
+let fixture=null,oldTemplate=null,oldFrameworkVersion=null;
 const git=(...args)=>execFileSync('git',['--no-optional-locks','-C',...args],{encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
 // The application team owns its identity: business sources (module descriptor, SQL)
 // carry their own author header, and the author-policy checks accept it via identity.
@@ -144,7 +144,7 @@ try{
     // The old template roots its own lineage here: the published template ref must
     // not leak in through origin, or the old template would chain onto the new one.
     git(oldSource,'remote','remove','origin');
-    const oldFrameworkVersion=readFileSync(join(oldSource,'VERSION'),'utf8').trim();
+    oldFrameworkVersion=readFileSync(join(oldSource,'VERSION'),'utf8').trim();
     oldTemplate=updateTemplateBranch(oldSource).commit;
     createProject({source:oldSource,directory:app,name:'Harbor Desk',slug:'harbor-desk',module:goModule,bundle:'test.example.harbordesk',repository:'https://github.com/example/harbor-desk',author:drillAuthor,version:'2.3.4'});
     console.log(`Verifying upgrade from ${oldRef} (template ${oldTemplate.slice(0,12)}): ${app}`);

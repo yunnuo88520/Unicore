@@ -627,8 +627,10 @@ func TestLegacyOverrideMergesOnce(t *testing.T) {
 	if notes[0].Label != "随手记" || notes[0].Visible {
 		t.Fatal("legacy override not merged", notes[0])
 	}
-	if !contains(notes[0].Surfaces, "user") || !contains(notes[0].Surfaces, "administrator") {
-		t.Fatal("shared node lost a surface", notes[0].Surfaces)
+	// notes registers the user workspace only now: a legacy merged record that
+	// carried the administrator surface clamps back to the registration on read.
+	if len(notes[0].Surfaces) != 1 || notes[0].Surfaces[0] != "user" {
+		t.Fatal("shared node did not clamp to its registration", notes[0].Surfaces)
 	}
 	_ = admin
 }
@@ -723,7 +725,9 @@ func TestSharedNavigationUpgrade(t *testing.T) {
 			notes = append(notes, node)
 		}
 	}
-	if len(notes) != 1 || !contains(notes[0].Surfaces, "user") || !contains(notes[0].Surfaces, "administrator") {
+	// Both legacy variants merge into one node; the administrator reach predates
+	// the user-only registration and clamps away on read.
+	if len(notes) != 1 || len(notes[0].Surfaces) != 1 || notes[0].Surfaces[0] != "user" {
 		t.Fatal("notes variants merged", notes)
 	}
 	// Grant rows: deduplicated onto the shared ids.

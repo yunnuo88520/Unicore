@@ -146,7 +146,11 @@ export function createProject({ source = frameworkRoot, directory, name, module,
       if (!path.endsWith('.md')) continue;
       const to = join(staging, path);
       if (!existsSync(to)) continue;
-      writeFileSync(to, readFileSync(to, 'utf8').replaceAll('ghcr.io/yunnuo88520/unicore', imageReference).replaceAll('ghcr.io/yunnuo88520/', 'ghcr.io/<your-release-account>/'));
+      // The docs may still carry the framework slug here (identity applies the
+      // application slug later, e.g. on the next sync), so match both forms.
+      writeFileSync(to, readFileSync(to, 'utf8')
+        .replaceAll('ghcr.io/yunnuo88520/unicore', imageReference)
+        .replaceAll(`ghcr.io/yunnuo88520/${slug}`, imageReference));
     }
     // The application owns its product version and release history: VERSION starts
     // at the requested version (independent of the framework's), every projection

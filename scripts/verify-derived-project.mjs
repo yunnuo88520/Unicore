@@ -74,6 +74,8 @@ import (
 	"os"
 
 	"${goModule}/internal/adapter/storage/sqlite"
+	"${goModule}/internal/module"
+	"${goModule}/internal/modules/workorders"
 	"${goModule}/internal/platform"
 	"${goModule}/migrations/runner"
 )
@@ -89,9 +91,10 @@ func main() {
 		panic(err)
 	}
 	if os.Args[1] == "nav" {
+		module.Register(workorders.Module)
 		for _, page := range platform.NavigationPages() {
 			if page.ID == "workorders" {
-				fmt.Printf("[probe] registered workorders surfaces: %v\n", page.Surfaces)
+				fmt.Printf("[probe] registered workorders surfaces: %v\\n", page.Surfaces)
 			}
 		}
 		return
@@ -157,6 +160,10 @@ try{
   if(mode==='upgrade'){
     addWorkorders('yunnuo <ymz@ebox.vip>');
     writeDataProbe();
+    // The application cuts its own 2.3.4 release: the changelog entry belongs to
+    // the app's history, not the framework's.
+    const changelog=readFileSync(join(app,'CHANGELOG.md'),'utf8');
+    writeFileSync(join(app,'CHANGELOG.md'),changelog.replace('## Unreleased',`## 2.3.4 — 2026-01-30\n\n### 中文\n\n- 首个派生发行：工单业务与自定义主题。\n\n### English\n\n- First derived release: workorders business and a custom theme.\n\n## Unreleased`));
     // Regenerate the projections BEFORE the customization commit: the data probe
     // compiles against the embedded catalog, which only knows module.workorders
     // after catalogdata has been regenerated. A real downstream commits these

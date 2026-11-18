@@ -37,7 +37,9 @@ function templateDrift(git, source, templateRevision, dirty) {
     let tree;
     const generator = join(exportRoot, 'scripts', 'framework-template.mjs');
     if (existsSync(generator) && readFileSync(generator, 'utf8').includes('--export-tree')) {
-      tree = JSON.parse(execFileSync(process.execPath, [generator, '--export-tree'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })).tree;
+      // The generator defaults to the calling directory's checkout: without cwd the
+      // export would read the invoker's VERSION and catalog instead of the source's.
+      tree = JSON.parse(execFileSync(process.execPath, [generator, '--export-tree'], { cwd: exportRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })).tree;
     } else {
       // Old checkouts predate --export-tree; reconstruct with this checkout's
       // generator (the whitelist, files and AI context still come from the source).
@@ -128,6 +130,17 @@ export function createProject({ source = frameworkRoot, directory, name, module,
     writeFileSync(join(staging, 'product.identity.json'), JSON.stringify(identity, null, 2)+'\n');
     // One identity pass applies every projection: mixed-file fields, generated sources, deployment renames and doc tokens.
     applyIdentity(staging, identity, false);
+    // The FAQ's image registry is the framework's; the application publishes under
+    // its own account when a release repository is given, and a placeholder marks
+    // the decision as open otherwise. The residue scan rejects any leftover.
+    const registryOwner = repositoryUrl?.match(/^https:\/\/github\.com\/([^/]+)\//)?.[1];
+    const imageReference = `ghcr.io/${registryOwner ?? '<your-release-account>'}/${registryOwner ? identity.product.slug : '<your-image-name>'}`;
+    for (const {target: path} of plan) {
+      if (!path.endsWith('.md')) continue;
+      const to = join(staging, path);
+      if (!existsSync(to)) continue;
+      writeFileSync(to, readFileSync(to, 'utf8').replaceAll('ghcr.io/yunnuo88520/unicore', imageReference).replaceAll('ghcr.io/yunnuo88520/', `ghcr.io/${registryOwner ?? '<your-release-account>'}/`));
+    }
     // Project-facing help and feedback follow its own repository; upstream attribution stays in provenance.
     applyRepositoryLinks(staging, repositoryUrl);
     edit('package.json', p => { p.license='MIT'; });

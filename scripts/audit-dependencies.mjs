@@ -1,5 +1,5 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Gate high and critical dependency advisories behind an exceptions ledger whose entries always carry a mitigation and an expiry date.
+// Description: Gate dependency advisories (low and above) behind an exceptions ledger whose entries always carry a mitigation and an expiry date; audit-service errors and malformed responses fail the gate.
 import { readFileSync } from 'node:fs';
 import { spawnTool } from './tool-spawn.mjs';
 import { resolve } from 'node:path';
@@ -26,15 +26,29 @@ export function validateExceptions(document, today = new Date()) {
   return document.exceptions;
 }
 
+// The audit service answers with a report even when it rejects the request:
+// error payloads parse as JSON but carry no advisories bucket, and treating
+// them as "zero advisories" would print PASS over a failed check.
+export function auditReport(raw) {
+  let report;
+  try { report = JSON.parse(raw); } catch { throw Error('pnpm audit produced invalid JSON; run pnpm audit manually and triage'); }
+  const advisories = report && typeof report === 'object' && !Array.isArray(report) ? report.advisories : undefined;
+  if (!advisories || typeof advisories !== 'object') {
+    const keys = report && typeof report === 'object' && !Array.isArray(report) ? Object.keys(report).join(',') || 'an empty object' : `a ${Array.isArray(report) ? 'array' : typeof report}`;
+    throw Error(`pnpm audit answered ${keys} instead of an audit report; the audit service may have failed; run pnpm audit manually and triage`);
+  }
+  return advisories;
+}
+
 export function advisoriesFromAudit(raw) {
-  const report = JSON.parse(raw);
-  const bucket = Array.isArray(report.advisories) ? report.advisories : Object.values(report.advisories ?? {});
-  return bucket
-    .filter(item => SEVERITIES.has(item.severity))
+  // Every severity blocks: the ledger records the accepted risk per advisory,
+  // and low/moderate entries deserve the same reviewed-expiry treatment.
+  const bucket = auditReport(raw);
+  return (Array.isArray(bucket) ? bucket : Object.values(bucket))
     .map(item => ({
       package: item.module_name ?? 'unknown',
       advisory: item.github_advisory_id || item.url || String(item.id ?? 'unknown'),
-      severity: item.severity,
+      severity: item.severity ?? 'unknown',
     }));
 }
 
@@ -58,12 +72,12 @@ function main() {
   console.log(`audit exceptions ledger: ${exceptions.length} active entries, none expired`);
   // pnpm audit exits non-zero when advisories exist, so spawn and keep stdout.
   const run = spawnTool('pnpm', ['audit', '--json']);
-  const stdout = run.output.trim();
-  const start = stdout.indexOf('{');
-  if (start < 0) throw Error(`pnpm audit produced no JSON (${run.reason ?? 'no advisories reported'}); run pnpm audit manually and triage`);
-  const uncovered = reconcile(advisoriesFromAudit(stdout.slice(start)), exceptions);
+  if (run.ok === false && (run.kind === 'not-found' || run.kind === 'launch-failed')) {
+    throw Error(`pnpm audit could not run (${run.reason}); run pnpm audit manually and triage`);
+  }
+  const uncovered = reconcile(advisoriesFromAudit(run.output.trim()), exceptions);
   if (uncovered.length) {
-    throw Error(`uncovered high/critical advisories; upgrade or add a reviewed, expiring exception:\n${uncovered.join('\n')}`);
+    throw Error(`uncovered advisories (low and above); upgrade or add a reviewed, expiring exception:\n${uncovered.join('\n')}`);
   }
   console.log('PASS dependency audit within the reviewed exceptions ledger');
 }

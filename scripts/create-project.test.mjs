@@ -20,7 +20,7 @@ process.env.GIT_COMMITTER_NAME='Fixture';process.env.GIT_COMMITTER_EMAIL='fixtur
 // Shared creator fixture: a whitelisted template source with internal documents,
 // untracked noise and a project-template distribution manifest.
 function materializeFixtureSource(source){
-  const files={'go.mod':'module github.com/yunnuo/unicore\n','VERSION':'0.1.0\n','Makefile':'LDFLAGS := -X $(GO_MODULE)/internal/buildinfo.Version=$(VERSION)\n','framework.manifest.json':'{}','assets/updates/config.json':'{"repository":"upstream/repo","keys":{"upstream":"test"}}','package.json':'{\n  "name": "unicore",\n  "version": "0.1.0"\n}\n','assets/theme/tokens.json':'{\n  "author": "yunnuo <ymz@ebox.vip>",\n  "brand": {\n    "name": "Unicore",\n    "accent": "#6662ec"\n  }\n}\n','assets/brand/identity.json':'{\n  "author": "yunnuo <ymz@ebox.vip>",\n  "bundleId": "vip.ebox.unicore"\n}\n','cmd/desktop/wails.json':'{\n  "name": "Unicore",\n  "outputfilename": "unicore-desktop",\n  "info": {\n    "productName": "Unicore",\n    "productVersion": "0.1.0",\n    "comments": "Unicore · Go + React"\n  }\n}\n','packages/contracts/openapi.json':'{\n  "info": {\n    "title": "Unicore platform foundation API"\n  },\n  "paths": {}\n}\n','apps/web/index.html':'<!doctype html><html><head><meta name="description" content="Unicore · 一份核心，运行于每个终端" /><title>Unicore · 工作空间</title></head><body></body></html>\n','apps/web/admin.html':'<!doctype html><html><head><meta name="description" content="Unicore · 一份核心，运行于每个终端" /><title>Unicore · 管理后台</title></head><body></body></html>\n','apps/desktop/index.html':'<!doctype html><html><head><title>Unicore · 桌面工作空间</title></head><body></body></html>\n','assets/theme/resolved.gen.json':'{\n  "brand": {\n    "name": "Unicore",\n    "accent": "#6662ec"\n  }\n}\n','assets/brand/wordmark.svg':'<svg><text x="82" y="54">Unicore<tspan fill="#6662ec">.</tspan></text></svg>\n','apps/web/public/site.webmanifest':'{"name":"Unicore","short_name":"Unicore"}','apps/desktop/public/site.webmanifest':'{"name":"Unicore","short_name":"Unicore"}','deploy/tar/unicore.service':'[Unit]\nDescription=Unicore application server\n\n[Service]\nUser=unicore\nGroup=unicore\nWorkingDirectory=/var/lib/unicore\nEnvironmentFile=-/etc/unicore/unicore.env\nExecStart=/opt/unicore/current/bin/server\n','deploy/tar/nginx.conf.example':'server {\n    root /opt/unicore/current/web;\n}\n','deploy/docker/compose.yaml':'services:\n  app:\n    image: ${UNICORE_IMAGE:-unicore:local}\n    volumes:\n      - unicore_data:/data\nvolumes:\n  unicore_data:\n','deploy/docker/compose.dev.yaml':'services:\n  db:\n    environment:\n      POSTGRES_USER: unicore\n','deploy/docker/Dockerfile':'FROM scratch\nLABEL org.opencontainers.image.title="Unicore"\n','main.go':'package main // github.com/yunnuo/unicore/internal/domain\n','LICENSE':'MIT license fixture','data/private.txt':'must not copy','.env':'must not copy'};
+  const files={'go.mod':'module github.com/yunnuo/unicore\n','VERSION':'0.1.0\n','Makefile':'LDFLAGS := -X $(GO_MODULE)/internal/buildinfo.Version=$(VERSION)\n','framework.manifest.json':'{}','assets/updates/config.json':'{"repository":"upstream/repo","keys":{"upstream":"test"}}','package.json':'{\n  "name": "unicore",\n  "version": "0.1.0"\n}\n','assets/theme/tokens.json':'{\n  "author": "yunnuo <ymz@ebox.vip>",\n  "brand": {\n    "name": "Unicore",\n    "accent": "#6662ec"\n  }\n}\n','assets/brand/identity.json':'{\n  "author": "yunnuo <ymz@ebox.vip>",\n  "bundleId": "vip.ebox.unicore"\n}\n','cmd/desktop/wails.json':'{\n  "name": "Unicore",\n  "outputfilename": "unicore-desktop",\n  "info": {\n    "productName": "Unicore",\n    "productVersion": "0.1.0",\n    "comments": "Unicore · Go + React"\n  }\n}\n','packages/contracts/openapi.json':'{\n  "info": {\n    "title": "Unicore platform foundation API"\n  },\n  "paths": {}\n}\n','apps/web/index.html':'<!doctype html><html><head><meta name="description" content="Unicore · 一份核心，运行于每个终端" /><title>Unicore · 工作空间</title></head><body></body></html>\n','apps/web/admin.html':'<!doctype html><html><head><meta name="description" content="Unicore · 一份核心，运行于每个终端" /><title>Unicore · 管理后台</title></head><body></body></html>\n','apps/desktop/index.html':'<!doctype html><html><head><title>Unicore · 桌面工作空间</title></head><body></body></html>\n','assets/theme/resolved.gen.json':'{\n  "brand": {\n    "name": "Unicore",\n    "accent": "#6662ec"\n  }\n}\n','assets/brand/wordmark.svg':'<svg><text x="82" y="54">Unicore<tspan fill="#6662ec">.</tspan></text></svg>\n','apps/web/public/site.webmanifest':'{"name":"Unicore","short_name":"Unicore"}','apps/desktop/public/site.webmanifest':'{"name":"Unicore","short_name":"Unicore"}','deploy/tar/unicore.service':'[Unit]\nDescription=Unicore application server\n\n[Service]\nUser=unicore\nGroup=unicore\nWorkingDirectory=/var/lib/unicore\nEnvironmentFile=-/etc/unicore/unicore.env\nExecStart=/opt/unicore/current/bin/server\n','deploy/tar/nginx.conf.example':'server {\n    root /opt/unicore/current/web;\n}\n','deploy/docker/compose.yaml':'services:\n  app:\n    image: ${UNICORE_IMAGE:-unicore:local}\n    volumes:\n      - unicore_data:/data\nvolumes:\n  unicore_data:\n','deploy/docker/compose.dev.yaml':'services:\n  db:\n    environment:\n      POSTGRES_USER: unicore\n','deploy/docker/Dockerfile':'FROM scratch\nLABEL org.opencontainers.image.title="Unicore"\n','main.go':'package main // github.com/yunnuo/unicore/internal/domain\n','docs/product/faq.md':'# FAQ\n\n发行流程会在 Release 发布后构建 `ghcr.io/yunnuo88520/unicore` 镜像。\n','LICENSE':'MIT license fixture','data/private.txt':'must not copy','.env':'must not copy'};
   files['product.identity.json']=JSON.stringify({author:'yunnuo <ymz@ebox.vip>',schemaVersion:1,product:{name:'Unicore',slug:'unicore',description:'Unicore workspace'},go:{module:'github.com/yunnuo/unicore'},cli:{command:'unicore',opsCommand:'unicore-ops',description:'Unicore CLI'},desktop:{bundleId:'vip.ebox.unicore',outputName:'unicore-desktop'},deployment:{serviceName:'unicore',serviceUser:'unicore',installDirectory:'/opt/unicore',dataDirectory:'/var/lib/unicore',image:'unicore',volume:'unicore_data'},release:{artifactPrefix:'unicore'}},null,2)+'\n';
   files['packages/web-ui/src/shell-tools.tsx']="export const workspaceLinks = { documentation: 'https://github.com/yunnuo88520/Unicore/tree/main/docs', quickStart: 'https://github.com/yunnuo88520/Unicore#readme' };\n";
   files['.github/ISSUE_TEMPLATE/config.yml']='# Author: yunnuo <ymz@ebox.vip>\ncontact_links:\n  - url: https://github.com/yunnuo88520/Unicore/blob/main/SUPPORT.md\n';
@@ -72,6 +72,8 @@ test('project export and destination boundaries',()=>{
   assert.equal(JSON.parse(readFileSync(join(options.directory,'packages/contracts/openapi.json'))).info.title,'My Product platform foundation API');
   assert.equal(JSON.parse(readFileSync(join(options.directory,'apps/web/public/site.webmanifest'))).name,'My Product');
   assert.match(readFileSync(join(options.directory,'packages/web-ui/src/product.gen.ts'),'utf8'),/export const productName = "My Product";/);
+  // The FAQ image registry follows the application's own release account.
+  assert.match(readFileSync(join(options.directory,'docs/product/faq.md'),'utf8'),/ghcr\.io\/<your-release-account>\/<your-image-name>/);
   assert.equal(existsSync(join(options.directory,'deploy/tar/my-product.service')),true);
   assert.equal(existsSync(join(options.directory,'deploy/tar/unicore.service')),false);
   const exportedManifest=JSON.parse(readFileSync(join(options.directory,'distribution/manifest.json'),'utf8'));
@@ -129,6 +131,7 @@ test('project export and destination boundaries',()=>{
   assert.match(readFileSync(join(own.directory,'README.md'),'utf8'),/origin：https:\/\/github\.com\/team\/LicenHub/);
   assert.equal(readFileSync(join(own.directory,'LICENSE'),'utf8'),'MIT license fixture');
   assert.equal(JSON.parse(readFileSync(join(own.directory,'product.identity.json'))).cli.command,'licenhub');
+  assert.match(readFileSync(join(own.directory,'docs/product/faq.md'),'utf8'),/ghcr\.io\/team\/licenhub/);
   for(const repository of ['https://user:secret@github.com/team/LicenHub','javascript:alert(1)','https://github.com/team/LicenHub?token=secret'])assert.throws(()=>createProject({...own,directory:join(root,'bad-repository'),repository}),/repository/);
   for(const p of ['.env','data/private.txt','untracked.txt','docs/04-ai/audit.md'])assert.equal(existsSync(join(options.directory,p)),false);
   for(const directory of [options.directory,source,join(source,'nested')])assert.throws(()=>createProject({...options,directory}));
@@ -192,4 +195,28 @@ test('the CLI accepts --author and the application team passes its own checks',(
  execFileSync(process.execPath,[join(source,'scripts','check-authors.mjs')],{cwd:directory,stdio:'pipe'});
  assert.throws(()=>execFileSync(process.execPath,[cli,'--directory',join(root,'bad'),'--name','XX','--slug','xx','--module','example.test/x','--bundle','test.example.x','--author','bad!author'],{stdio:'pipe'}),/author is invalid|invalid/);
  rmSync(root,{recursive:true,force:true});
+});
+test('baseline validation exports the given source, never the caller directory',()=>{
+  const root=mkdtempSync(join(tmpdir(),'unicore-baseline-')),source=join(root,'source'),caller=join(root,'caller');
+  mkdirSync(source);mkdirSync(caller);
+  materializeFixtureSource(source);
+  // Ship the real generator so the source exports itself through --export-tree,
+  // exactly like a current framework checkout does during baseline validation.
+  mkdirSync(join(source,'scripts'),{recursive:true});
+  for(const script of ['framework-template.mjs','distribution.mjs']) writeFileSync(join(source,'scripts',script),readFileSync(resolve(dirname(fileURLToPath(import.meta.url)),script)));
+  const git=(...args)=>execFileSync('git',['-C',source,...args],{stdio:'pipe'});
+  git('init','-q');git('add','.');git('commit','-qm','fixture');
+  const template=exportTemplateCommit(git,source,'0.1.0');
+  git('update-ref','refs/remotes/origin/framework-template',template);
+  // A foreign caller whose own tree differs from the source: without pinning the
+  // spawned generator to the export root, it read the caller's VERSION and the
+  // correct old template was rejected with a fabricated drift.
+  writeFileSync(join(caller,'VERSION'),'9.9.9\n');
+  const previousCwd=process.cwd();
+  process.chdir(caller);
+  try{
+    const app=createProject({source,directory:join(root,'app'),name:'Baseline',slug:'baseline',module:'example.test/baseline/app',bundle:'test.example.baseline'});
+    assert.equal(execFileSync('git',['-C',app,'rev-parse','HEAD^']).toString().trim(),template);
+  }finally{process.chdir(previousCwd);}
+  rmSync(root,{recursive:true,force:true});
 });

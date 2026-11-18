@@ -37,12 +37,16 @@ const drillAuthor='Drill Team <drill@example.test>';
 // a non-default brand accent and an independent business migration namespace with its
 // module descriptor, all authored by the application team.
 function editJSON(root,path,fn){const full=join(root,path);const value=JSON.parse(readFileSync(full,'utf8'));fn(value);writeFileSync(full,JSON.stringify(value,null,2)+'\n');}
-function addWorkorders(){
+// sqlAuthor: the full drill exercises the application-author policy (the current
+// generator accepts the identity author); the upgrade drill targets the previous
+// release whose generator only knows the framework author, so its business SQL
+// carries that header until the upgrade delivers the wider policy.
+function addWorkorders(sqlAuthor){
   editJSON(app,'assets/theme/tokens.json',tokens=>{tokens.brand.accent='#1177ee';});
   for(const dialect of ['sqlite','postgres','mysql']){
     const directory=join(app,'migrations/modules/workorders',dialect);
     mkdirSync(directory,{recursive:true});
-    writeFileSync(join(directory,'0001_initial.sql'),'-- Author: Drill Team <drill@example.test>\nCREATE TABLE workorder_requests (id INTEGER PRIMARY KEY, subject TEXT NOT NULL);\n');
+    writeFileSync(join(directory,'0001_initial.sql'),`-- Author: ${sqlAuthor}\nCREATE TABLE workorder_requests (id INTEGER PRIMARY KEY, subject TEXT NOT NULL);\n`);
   }
   editJSON(app,'migrations/catalog.json',catalog=>{
     catalog.namespaces.push({id:'module.workorders',depends_on:['core'],migrations:[{version:1,files:{sqlite:'modules/workorders/sqlite/0001_initial.sql',postgres:'modules/workorders/postgres/0001_initial.sql',mysql:'modules/workorders/mysql/0001_initial.sql'}}]});
@@ -55,6 +59,54 @@ function addWorkorders(){
 // A real downstream re-applies its own customization when upstream also moved a file;
 // catalog.json is the one shared file the drill owns additions to.
 function reapplyWorkordersCatalog(root){editJSON(root,'migrations/catalog.json',catalog=>{if(!catalog.namespaces.some(n=>n.id==='module.workorders'))catalog.namespaces.push({id:'module.workorders',depends_on:['core'],migrations:[{version:1,files:{sqlite:'modules/workorders/sqlite/0001_initial.sql',postgres:'modules/workorders/postgres/0001_initial.sql',mysql:'modules/workorders/mysql/0001_initial.sql'}}]});for(const profile of ['web-platform','web-standalone','desktop'])if(!catalog.profiles[profile].namespaces.includes('module.workorders'))catalog.profiles[profile].namespaces.push('module.workorders');});}
+// Data-survival probe: applies the application's own migrations to a probe SQLite
+// database, then writes (pre-sync) or reads back (post-upgrade) a workorders row and
+// prints the business migration ledger. It compiles against whatever tree it runs in,
+// so the post-sync run exercises the upgraded application code against pre-upgrade data.
+function writeDataProbe(){
+  mkdirSync(join(app,'build/probe'),{recursive:true});
+  writeFileSync(join(app,'build/probe/main.go'),`// Description: Derived-application upgrade drill probe; build/ stays outside the worktree.
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+
+	"${goModule}/internal/adapter/storage/sqlite"
+	"${goModule}/migrations/runner"
+)
+
+func main() {
+	ctx := context.Background()
+	store, err := sqlite.Open(ctx, os.Getenv("PROBE_DB"))
+	if err != nil {
+		panic(err)
+	}
+	defer store.DB.Close()
+	if err := runner.Apply(ctx, store.DB, runner.Options{Dialect: "sqlite", Profile: "desktop"}); err != nil {
+		panic(err)
+	}
+	if os.Args[1] == "write" {
+		if _, err := store.ExecContext(ctx, "INSERT INTO workorder_requests (subject) VALUES ('sync-survival-probe')"); err != nil {
+			panic(err)
+		}
+	} else {
+		var subject string
+		if err := store.QueryRowContext(ctx, "SELECT subject FROM workorder_requests WHERE subject = 'sync-survival-probe'").Scan(&subject); err != nil {
+			panic(err)
+		}
+		fmt.Println("[probe] read back:", subject)
+	}
+	var namespace string
+	var version int
+	if err := store.QueryRowContext(ctx, "SELECT namespace, version FROM schema_migrations WHERE namespace = 'module.workorders'").Scan(&namespace, &version); err != nil {
+		panic(err)
+	}
+	fmt.Printf("[probe] ledger %s=%d\\n", namespace, version)
+}
+`);
+}
 
 try{
   if(mode==='upgrade'){
@@ -91,12 +143,25 @@ try{
   const windowsShell=process.platform==='win32';
   const run=(command,args,cwd=app)=>execFileSync(command,args,{cwd,env:{...process.env,CI:'true'},stdio:'inherit',shell:windowsShell});
   if(mode==='upgrade'){
-    addWorkorders();
+    addWorkorders('yunnuo <ymz@ebox.vip>');
+    writeDataProbe();
+    // Regenerate the projections BEFORE the customization commit: the data probe
+    // compiles against the embedded catalog, which only knows module.workorders
+    // after catalogdata has been regenerated. A real downstream commits these
+    // generated artifacts with the customization.
+    run('pnpm',['install','--frozen-lockfile']);
+    run('make',['docs']);
     git(app,'add','-A');
     git(app,'commit','-qm','Add workorders business, custom theme and application author');
     const moduleGo=readFileSync(join(app,'internal/modules/workorders/module.go'));
     const businessSQL=readFileSync(join(app,'migrations/modules/workorders/sqlite/0001_initial.sql'));
     const preSyncHead=git(app,'rev-parse','HEAD');
+    // Business data written through the OLD application must survive the upgrade:
+    // apply the old migrations, insert one workorders row and record the ledger.
+    mkdirSync(join(output,'data'),{recursive:true});
+    process.env.PROBE_DB=join(output,'data','unicore.db');
+    const preSyncProbe=execFileSync('go',['run','./build/probe','write'],{cwd:app,env:{...process.env,CI:'true'},encoding:'utf8',stdio:['ignore','pipe','pipe']});
+    if(!preSyncProbe.includes('[probe] ledger module.workorders=1')) throw Error(`pre-sync probe did not record the business migration ledger:\n${preSyncProbe}`);
     // The current template must CONTINUE the old lineage, exactly like published
     // cross-release templates, or the sync would lose its common ancestor.
     fixture=snapshotFramework(repository);
@@ -131,11 +196,16 @@ try{
     if(JSON.parse(readFileSync(join(app,'product.identity.json'),'utf8')).author!==drillAuthor) throw Error('application author lost in sync');
     console.log(`Synchronized to template ${newTemplate.slice(0,12)}; backup ${report.backup_branch}; ${report.files_changed.length} upstream files`);
     rmSync(join(output,'old-source'),{recursive:true,force:true});
+    // The upgraded application reads the pre-upgrade row back through its own code,
+    // and the business ledger survives at module.workorders=1.
+    const postSyncProbe=execFileSync('go',['run','./build/probe','read'],{cwd:app,env:{...process.env,CI:'true'},encoding:'utf8',stdio:['ignore','pipe','pipe']});
+    if(!postSyncProbe.includes('[probe] read back: sync-survival-probe')||!postSyncProbe.includes('[probe] ledger module.workorders=1')) throw Error(`post-sync probe lost the business row or ledger:\n${postSyncProbe}`);
+    console.log('[probe] business data survived the upgrade:',postSyncProbe.trim().split('\n').join(' | '));
   }else if(mode==='full'){
     // Desktop mode packages the untouched template export: adding the workorders
     // customization here would leave the committed migration metadata stale, because
     // this mode never runs make docs to regenerate it.
-    addWorkorders();
+    addWorkorders('Drill Team <drill@example.test>');
   }
   run('pnpm',['install','--frozen-lockfile']);
   if(mode==='full'||mode==='upgrade'){

@@ -28,9 +28,14 @@ command('node',['--version'],{accept:s=>{
   });
   return matching?{ok:true}:{ok:false,reason:`node ${actual.join('.')} does not satisfy engines ${supportedNode}`};
 }});
+// package.json#packageManager is the single pinning source (go.mod and
+// engines.node are read from their origins the same way); a mismatch reports
+// the expected and actual versions plus an executable switch hint.
+const pinnedPnpm=JSON.parse(readFileSync('package.json','utf8')).packageManager?.match(/^pnpm@(\d+\.\d+\.\d+)$/)?.[1];
 command('pnpm',['--version'],{accept:s=>{
   const actual=s.trim();
-  return actual==='11.25.0'?{ok:true}:{ok:false,reason:`pnpm 11.25.0 is pinned, found ${actual||'(empty output)'}`};
+  if(!pinnedPnpm)return{ok:true};
+  return actual===pinnedPnpm?{ok:true}:{ok:false,reason:`pnpm ${pinnedPnpm} is pinned by package.json packageManager, found ${actual||'(empty output)'}; activate it with: corepack prepare pnpm@${pinnedPnpm} --activate (or npm i -g pnpm@${pinnedPnpm})`};
 }});
 command('git',['--version']);
 command('rg',['--version']);

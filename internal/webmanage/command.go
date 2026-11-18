@@ -122,7 +122,7 @@ func Run(ctx context.Context, args []string, console Console) error {
 	fs.StringVar(&o.path, "path", "", "new administrator path, e.g. /manage")
 	fs.StringVar(&o.url, "url", "", "new external HTTP(S) origin")
 	fs.StringVar(&o.message, "message", "", "maintenance message")
-	fs.StringVar(&o.runAs, "run-as", "", "system service account (default sudo caller, otherwise dedicated unicore account)")
+	fs.StringVar(&o.runAs, "run-as", "", "system service account (default sudo caller, otherwise dedicated service account)")
 	fs.StringVar(&o.envFile, "env-file", "", "optional existing systemd EnvironmentFile; secrets are never copied from the shell")
 	fs.BoolVar(&o.link, "link", true, "create a command symlink in /usr/local/bin or ~/.local/bin")
 	fs.BoolVar(&o.now, "now", true, "start after installing the service")

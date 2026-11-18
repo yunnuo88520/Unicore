@@ -3,7 +3,8 @@
 import { execFileSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { copyDistribution } from './distribution.mjs';
 
 const git = (root, ...args) => execFileSync('git', ['-C', root, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
@@ -77,7 +78,9 @@ export function updateTemplateBranch(root = process.cwd()) {
   return { parent, commit, tree, updated: true, version, source_commit: sourceCommit };
 }
 
-if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
+// pathToFileURL, not a manual file:// concat: Windows drive paths (D:\a\...)
+// produce an invalid URL with the naive form and the CLI silently never ran.
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   try {
     // Baseline validation runs this source checkout's own generator so an old
     // template is compared against what its contemporary generator produced.

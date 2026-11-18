@@ -3,6 +3,8 @@
 
 ## Unreleased
 
+## 0.1.7 — 2026-11-18
+
 ### 中文
 
 - 跨平台工具调用统一：新增 `scripts/tool-spawn.mjs` 统一外部工具解析（POSIX 直接执行，Windows 经 cmd.exe 解析 .cmd shim），doctor 与依赖审计改用统一入口；doctor 各项给出具体失败原因而不是空括号，Windows 上 pnpm 已安装不再被误报为 EINVAL。

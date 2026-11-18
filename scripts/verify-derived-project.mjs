@@ -5,11 +5,13 @@
 // framework checkout. Modes: full (default) runs docs, tests and Web/CLI/ops builds; desktop
 // runs the native desktop build, packaging and packaged-entry verification on a native runner,
 // proving the exported whitelist keeps every desktop input (Objective-C bridge files, embedded
-// images, DMG resources, packaging entry points); upgrade creates the application from a real
-// previous release template (previous tag's source with its own freshly generated
-// framework-template), commits the same customization and syncs to the current template, proving
-// business sources, theme, module, migrations and the author policy survive a real upgrade with
-// a verifiable common ancestor and a pre-sync backup branch.
+// images, DMG resources, packaging entry points); upgrade creates the application with the OLD
+// release's own generator from its own freshly generated framework-template, customizes and
+// releases it with the old bundled tooling, verifies the old syncer refuses to advance the
+// branch, applies the documented one-time tooling migration and then upgrades through the
+// project's own framework:sync commands — proving business sources, theme, module, migrations,
+// data, version and the author policy survive a real upgrade with a verifiable common ancestor
+// and a pre-sync backup branch.
 import {execFileSync} from 'node:child_process';
 import {existsSync,mkdirSync,mkdtempSync,readFileSync,rmSync,writeFileSync} from 'node:fs';
 import {dirname,join,resolve} from 'node:path';
@@ -17,7 +19,7 @@ import {fileURLToPath} from 'node:url';
 import {snapshotFramework,verificationGitEnv} from '../tests/tooling/framework-source.mjs';
 import {updateTemplateBranch} from './framework-template.mjs';
 import {createProject} from './create-project.mjs';
-import {checkTemplate,syncTemplate,continueTemplateSync} from './framework-sync.mjs';
+import {checkTemplate} from './framework-sync.mjs';
 
 const mode=process.argv[2]??'full';
 if(!['full','desktop','upgrade'].includes(mode)) throw Error('Use node scripts/verify-derived-project.mjs [full|desktop|upgrade] [<old-tag>]');
@@ -53,7 +55,7 @@ function addWorkorders(sqlAuthor){
     for(const profile of ['web-platform','web-standalone','desktop']) catalog.profiles[profile].namespaces.push('module.workorders');
   });
   mkdirSync(join(app,'internal/modules/workorders'),{recursive:true});
-  writeFileSync(join(app,'internal/modules/workorders/module.go'),`// Author: Drill Team <drill@example.test>\n// Description: Workorders module descriptor for the derived-application regression drill.\npackage workorders\n\nimport (\n\t"${goModule}/internal/contracts"\n\t"${goModule}/internal/module"\n)\n\n// Module aggregates the workorders facts the platform registries consume. The HTTP\n// mount is left to the derived application per docs/product/development.md.\nvar Module = module.Module{\n\tSlug: "workorders",\n\tTitle: "工单",\n\tDescription: "派生应用回归演练业务：独立迁移命名空间与模块描述符",\n\tIcon: "ClipboardList",\n\tOrder: 1,\n\tPermissions: []contracts.PermissionDefinition{\n\t\t{ID: "workorders:access", Name: "使用工单", Description: "访问工单页面", Group: "业务权限", Assignable: true},\n\t},\n\tNavigation: []contracts.NavigationPage{\n\t\t{ID: "workorders", Surfaces: []string{"user"}, Permission: "workorders:access"},\n\t},\n\tMigrations: "workorders",\n\tEnabled: true,\n}\n`);
+  writeFileSync(join(app,'internal/modules/workorders/module.go'),`// Author: ${sqlAuthor}\n// Description: Workorders module descriptor for the derived-application regression drill.\npackage workorders\n\nimport (\n\t"${goModule}/internal/contracts"\n\t"${goModule}/internal/module"\n)\n\n// Module aggregates the workorders facts the platform registries consume. The HTTP\n// mount is left to the derived application per docs/product/development.md.\nvar Module = module.Module{\n\tSlug: "workorders",\n\tTitle: "工单",\n\tDescription: "派生应用回归演练业务：独立迁移命名空间与模块描述符",\n\tIcon: "ClipboardList",\n\tOrder: 1,\n\tPermissions: []contracts.PermissionDefinition{\n\t\t{ID: "workorders:access", Name: "使用工单", Description: "访问工单页面", Group: "业务权限", Assignable: true},\n\t},\n\tNavigation: []contracts.NavigationPage{\n\t\t{ID: "workorders", Surfaces: []string{"user"}, Permission: "workorders:access"},\n\t},\n\tMigrations: "workorders",\n\tEnabled: true,\n}\n`);
   editJSON(app,'internal/module/manifest.json',manifest=>{manifest.modules.push({slug:'workorders',edition:'',default:true,title:'工单'});});
 }
 // A real downstream re-applies its own customization when upstream also moved a file;
@@ -146,7 +148,34 @@ try{
     git(oldSource,'remote','remove','origin');
     oldFrameworkVersion=readFileSync(join(oldSource,'VERSION'),'utf8').trim();
     oldTemplate=updateTemplateBranch(oldSource).commit;
-    createProject({source:oldSource,directory:app,name:'Harbor Desk',slug:'harbor-desk',module:goModule,bundle:'test.example.harbordesk',repository:'https://github.com/example/harbor-desk',author:drillAuthor,version:'2.3.4'});
+    // Creation uses the OLD release's own generator, exactly like the original
+    // project was born: its CLI accepts no author or release parameters, so the
+    // application carries the framework author and the template VERSION until
+    // its own release process runs. The old generator verifies its selected
+    // template inputs with ~950 pathspecs in one git invocation, which exceeds
+    // the Windows command-line limit at any checkout location, so on Windows
+    // the clone is reached through a drive mapping: git resolves the mapping
+    // for its own toplevel check, the old generator skips its overflowing
+    // input check there, and the graft below re-applies exactly the ancestry
+    // step the old generator performs on POSIX.
+    let substDrive=null;
+    if(process.platform==='win32'){
+      substDrive='X:';
+      try{execFileSync('subst',[substDrive,'/d'],{stdio:'ignore'});}catch{/* not mapped */}
+      execFileSync('subst',[substDrive,oldSource]);
+    }
+    try{
+      const oldRoot=substDrive?`${substDrive}\\`:oldSource;
+      execFileSync('node',[join(oldRoot,'scripts','create-project.mjs'),'--directory',app,'--name','Harbor Desk','--slug','harbor-desk',
+        '--module',goModule,'--bundle','test.example.harbordesk','--repository','https://github.com/example/harbor-desk'],
+        {cwd:oldSource,stdio:['ignore','pipe','inherit']});
+    }finally{ if(substDrive) execFileSync('subst',[substDrive,'/d'],{stdio:'ignore'}); }
+    if(git(app,'rev-list','--parents','-n','1','HEAD').trim().split(' ').length===1){
+      git(app,'fetch',oldSource,'framework-template');
+      git(app,'reset','--soft','FETCH_HEAD');
+      git(app,'commit','-qm',`Initial baseline from Unicore ${oldFrameworkVersion}`);
+    }
+    if(git(app,'rev-parse','HEAD^')!==oldTemplate) throw Error(`the created application does not descend from the old template commit ${oldTemplate.slice(0,12)}`);
     console.log(`Verifying upgrade from ${oldRef} (template ${oldTemplate.slice(0,12)}): ${app}`);
   }else{
     fixture=snapshotFramework(repository);
@@ -158,6 +187,12 @@ try{
   // resolve pnpm through cmd.exe there, keep direct exec on POSIX.
   const windowsShell=process.platform==='win32';
   const run=(command,args,cwd=app)=>execFileSync(command,args,{cwd,env:{...process.env,CI:'true'},stdio:'inherit',shell:windowsShell});
+  // tryRun captures a failing CLI invocation instead of aborting the drill: the
+  // refused old-tool sync IS one of the verified outcomes.
+  const tryRun=(command,args,cwd=app)=>{
+    try { return {ok:true, output:execFileSync(command,args,{cwd,env:{...process.env,CI:'true'},encoding:'utf8',stdio:['ignore','pipe','pipe'],shell:windowsShell})}; }
+    catch(error){ return {ok:false, output:`${error.stdout??''}\n${error.stderr??''}`}; }
+  };
   if(mode==='upgrade'){
     addWorkorders('yunnuo <ymz@ebox.vip>');
     writeDataProbe();
@@ -165,14 +200,21 @@ try{
     // Regenerate the projections BEFORE the customization commit: the data probe
     // compiles against the embedded catalog, which only knows module.workorders
     // after catalogdata has been regenerated. A real downstream commits these
-    // generated artifacts with the customization.
+    // generated artifacts with the customization. The old generator created the
+    // application at the template VERSION with the framework author, so the
+    // customization also performs the application's own 2.3.4 release with the
+    // OLD project's own tooling: its VERSION, its app-owned changelog replacing
+    // the framework history the old export shipped, and its version projections.
     run('pnpm',['install','--frozen-lockfile']);
+    writeFileSync(join(app,'VERSION'),'2.3.4\n');
+    writeFileSync(join(app,'CHANGELOG.md'),`<!-- Author: yunnuo <ymz@ebox.vip> -->\n# Changelog\n\nAll notable changes to this application are documented here. The framework's own release history lives upstream and reaches this repository through framework source upgrades; it is not part of this file.\n\n## 2.3.4 — ${new Date().toISOString().slice(0,10)}\n\n### 中文\n\n- 基于 Unicore ${oldFrameworkVersion} 创建。\n\n### English\n\n- Created from Unicore ${oldFrameworkVersion}.\n\n## Unreleased\n`);
+    run('pnpm',['version:sync']);
     run('make',['docs']);
     git(app,'add','-A');
-    git(app,'commit','-qm','Add workorders business, custom theme and application author');
+    git(app,'commit','-qm','Add workorders business, custom theme and application release 2.3.4');
     const moduleGo=readFileSync(join(app,'internal/modules/workorders/module.go'));
     const businessSQL=readFileSync(join(app,'migrations/modules/workorders/sqlite/0001_initial.sql'));
-    const preSyncHead=git(app,'rev-parse','HEAD');
+    const customizationHead=git(app,'rev-parse','HEAD');
     // Business data written through the OLD application must survive the upgrade:
     // apply the old migrations, insert one workorders row and record the ledger.
     mkdirSync(join(output,'data'),{recursive:true});
@@ -186,33 +228,75 @@ try{
     git(fixture.source,'fetch',join(output,'old-source'),'refs/heads/framework-template:refs/heads/framework-template');
     const newTemplate=updateTemplateBranch(fixture.source).commit;
     git(app,'remote','set-url','framework',fixture.source);
+    // The upgrade entry a real project runs is its OWN bundled tooling. The old
+    // syncer (created before the migration below) must see the pending update
+    // and refuse to advance the application branch: VERSION always conflicts
+    // (the application released 2.3.4, the template moved on) and the old tool
+    // auto-resolves nothing. Provenance integration records and version
+    // projection regeneration are also beyond the old tool.
+    run('pnpm',['framework:check']);
+    const oldSync=tryRun('pnpm',['framework:sync']);
+    if(oldSync.ok) throw Error('the old bundled syncer completed the upgrade; the drill requires the refusal-then-migration path');
+    if(git(app,'rev-parse','HEAD')!==customizationHead) throw Error('the old bundled syncer advanced the application branch');
+    console.log(`Old bundled syncer refused as expected; migrating the tooling before the first real sync.`);
+    const aborted=tryRun('pnpm',['framework:sync','--abort']);
+    if(!aborted.ok){
+      // The old tooling's scene cleanup can fail on Windows path handling; a
+      // real downstream removes the refused scene mechanically then.
+      const pending=JSON.parse(readFileSync(join(app,'build/framework-sync-state.json'),'utf8'));
+      git(app,'worktree','remove','--force',pending.worktree);
+      rmSync(pending.tempRoot,{recursive:true,force:true});
+      rmSync(join(app,'build/framework-sync-state.json'),{force:true});
+    }
+    if(git(app,'status','--porcelain')) throw Error('the refused old sync left the application worktree dirty');
+    // The refused scene's backup branch belongs to that scene; the migration
+    // discards it so the real upgrade's backup is the only one.
+    for(const branch of git(app,'for-each-ref','--format=%(refname:short)','refs/heads/backup/pre-sync-*').split('\n').filter(Boolean)) git(app,'branch','-D',branch);
+    // The documented one-time migration for projects created before 0.1.7
+    // (docs/product/framework-upgrade.md): refresh the sync toolchain from the
+    // pending template BEFORE the first sync — the syncer plus the helpers it
+    // imports (all three depend only on node builtins) — so the upgrade itself
+    // records the integration, regenerates the version projections and carries
+    // the current identity/repository projections.
+    git(app,'fetch','framework','framework-template');
+    for(const script of ['framework-sync.mjs','product-identity.mjs','check-product-residuals.mjs','distribution.mjs']){
+      writeFileSync(join(app,'scripts',script),git(app,'show',`FETCH_HEAD:scripts/${script}`));
+      git(app,'add',`scripts/${script}`);
+    }
+    git(app,'commit','-qm','Refresh framework sync tooling from the pending template');
+    const preSyncHead=git(app,'rev-parse','HEAD');
+    // The upgrade itself runs through the project's own (now current) command.
     const check=checkTemplate(app);
     if(check.up_to_date) throw Error('upgrade drill expected a pending template update');
     if(check.conflict_files?.length) console.log(`Preview conflicts (resolved below like a real downstream): ${check.conflict_files.join(', ')}`);
-    let report;
-    try{report=syncTemplate(app);}
-    catch(error){
-      if(!/Upstream merge conflicts/.test(error.message)) throw error;
-      // Resolve like a real downstream: product-owned surfaces keep our side; every
-      // framework file takes upstream, and the catalog additions get re-applied.
-      const stage=error.message.match(/files in (.+), then run/)?.[1];
-      if(!stage) throw error;
-      const ours=new Set(['README.md','README.en.md','assets/theme/tokens.json']);
-      const conflicted=error.message.split('\n').slice(1).map(line=>line.trim()).filter(Boolean);
-      for(const path of conflicted) git(stage,'checkout',ours.has(path)?'--ours':'--theirs','--',path);
-      if(conflicted.includes('migrations/catalog.json')) reapplyWorkordersCatalog(stage);
-      for(const path of conflicted) git(stage,'add','--',path);
-      report=continueTemplateSync(app);
-    }
+    const attempted=tryRun('pnpm',['framework:sync']);
+    if(attempted.ok) throw Error('expected the sync to stop for manual conflict resolution');
+    const stage=attempted.output.match(/files in (.+), then run/)?.[1];
+    if(!stage) throw Error(`sync failed without a conflict scene:\n${attempted.output}`);
+    // Resolve like a real downstream: product-owned surfaces keep our side; every
+    // framework file takes upstream, and the catalog additions get re-applied. The
+    // conflict list is the path-shaped lines pnpm relays from the syncer.
+    const ours=new Set(['README.md','README.en.md','assets/theme/tokens.json']);
+    const conflicted=attempted.output.split('\n').map(l=>l.trim())
+      .filter(line=>line&&!/\s/.test(line)&&/^[\w./-]+$/.test(line)&&line!==stage);
+    if(!conflicted.length) throw Error(`sync failed without a conflict scene:\n${attempted.output}`);
+    for(const path of conflicted) git(stage,'checkout',ours.has(path)?'--ours':'--theirs','--',path);
+    if(conflicted.includes('migrations/catalog.json')) reapplyWorkordersCatalog(stage);
+    for(const path of conflicted) git(stage,'add','--',path);
+    run('pnpm',['framework:sync','--continue']);
+    const backups=git(app,'for-each-ref','--format=%(refname:short)','refs/heads/backup/pre-sync-*').split('\n').filter(Boolean);
+    if(backups.length!==1||git(app,'rev-parse','--verify',backups[0])!==preSyncHead) throw Error(`backup branch ${backups.join(',')} does not preserve the pre-sync commit ${preSyncHead.slice(0,12)}`);
     // After the sync HEAD descends from both sides, so the verifiable ancestor of the
     // upgrade is the pre-sync application commit's merge base with the new template.
     if(git(app,'merge-base',preSyncHead,newTemplate)!==oldTemplate) throw Error(`sync common ancestor is not the old template commit ${oldTemplate.slice(0,12)}`);
-    if(!report.backup_branch?.startsWith('backup/pre-sync-')||git(app,'rev-parse','--verify',report.backup_branch)!==preSyncHead) throw Error(`backup branch ${report.backup_branch} does not preserve the pre-sync commit`);
     if(Buffer.compare(readFileSync(join(app,'internal/modules/workorders/module.go')),moduleGo)!==0) throw Error('module descriptor changed during sync');
     if(Buffer.compare(readFileSync(join(app,'migrations/modules/workorders/sqlite/0001_initial.sql')),businessSQL)!==0) throw Error('business migration changed during sync');
     if(JSON.parse(readFileSync(join(app,'assets/theme/tokens.json'),'utf8')).brand.accent!=='#1177ee') throw Error('custom brand accent lost in sync');
-    if(JSON.parse(readFileSync(join(app,'product.identity.json'),'utf8')).author!==drillAuthor) throw Error('application author lost in sync');
-    console.log(`Synchronized to template ${newTemplate.slice(0,12)}; backup ${report.backup_branch}; ${report.files_changed.length} upstream files`);
+    // The old generator's identity author is what the project was born with; the
+    // upgrade must preserve it, not the drill's author.
+    if(JSON.parse(readFileSync(join(app,'product.identity.json'),'utf8')).author!=='yunnuo <ymz@ebox.vip>') throw Error('application author lost in sync');
+    const upstreamFiles=git(app,'diff','--name-only',`${preSyncHead}..HEAD`).split('\n').filter(Boolean).length;
+    console.log(`Synchronized to template ${newTemplate.slice(0,12)}; backup ${backups[0]}; ${upstreamFiles} upstream files`);
     rmSync(join(output,'old-source'),{recursive:true,force:true});
     // The upgraded application reads the pre-upgrade row back through its own code,
     // and the business ledger survives at module.workorders=1.
@@ -231,7 +315,7 @@ try{
     // framework, and the app-owned release history and OTA configuration survive.
     const provenance=JSON.parse(readFileSync(join(app,'project.provenance.json'),'utf8'));
     if(provenance.framework_integration?.framework_version!==currentFrameworkVersion||provenance.framework_integration?.template_commit!==newTemplate) throw Error(`provenance did not record the integrated framework:\n${JSON.stringify(provenance.framework_integration)}`);
-    if(provenance.author!==drillAuthor) throw Error('application author lost in provenance');
+    if(provenance.author!=='yunnuo <ymz@ebox.vip>') throw Error('application author lost in provenance');
     const appChangelog=readFileSync(join(app,'CHANGELOG.md'),'utf8');
     if(provenance.framework_version!==oldFrameworkVersion) throw Error(`creation framework version was lost: ${provenance.framework_version}`);
     if(!appChangelog.includes(`## 2.3.4 — `)||!appChangelog.includes(`Created from Unicore ${oldFrameworkVersion}`)) throw Error('application changelog history was lost');
@@ -265,7 +349,7 @@ try{
     if(mode==='full'){
       writeFileSync(join(output,'result.txt'),'PASS renamed application: docs, full tests, Web/CLI/ops builds and renamed CLI entry point on a customized application\n');
     }else{
-      writeFileSync(join(output,'result.txt'),`PASS upgraded application: real old-template sync kept business sources, theme, migrations and authorship; docs, full tests and builds pass with ancestor ${oldTemplate.slice(0,12)} and backup branch\n`);
+      writeFileSync(join(output,'result.txt'),`PASS upgraded application: old bundled syncer refused safely, one-time tooling migration applied, own framework:sync kept business sources, theme, migrations, data, version and authorship; docs, full tests and builds pass with ancestor ${oldTemplate.slice(0,12)} and backup branch\n`);
     }
   }else{
     run('make',['build-desktop']);

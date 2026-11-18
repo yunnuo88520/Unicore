@@ -24,7 +24,7 @@ const SERVICE='[Unit]\nDescription=Unicore application server\n\n[Service]\nUser
 function makeSource(){
  const fixtureRoot=mkdtempSync(join(tmpdir(),'unicore-sync-'));
  const root=join(fixtureRoot,'source');mkdirSync(root);
- const files={'go.mod':'module github.com/yunnuo/unicore\n','VERSION':'0.1.0\n','Makefile':'LDFLAGS := -X $(GO_MODULE)/internal/buildinfo.Version=$(VERSION)\n','framework.manifest.json':'{}','assets/updates/config.json':'{"repository":"upstream/repo","keys":{"upstream":"test"}}','package.json':'{\n  "name": "unicore",\n  "version": "0.1.0"\n}\n','assets/theme/tokens.json':'{\n  "author": "yunnuo <ymz@ebox.vip>",\n  "brand": {\n    "name": "Unicore",\n    "accent": "#6662ec"\n  }\n}\n','assets/theme/resolved.gen.json':'{\n  "brand": {\n    "name": "Unicore",\n    "accent": "#6662ec"\n  }\n}\n','assets/brand/identity.json':'{\n  "author": "yunnuo <ymz@ebox.vip>",\n  "bundleId": "vip.ebox.unicore"\n}\n','assets/brand/wordmark.svg':'<svg><text x="82" y="54">Unicore<tspan fill="#6662ec">.</tspan></text></svg>\n','cmd/desktop/wails.json':'{\n  "name": "Unicore",\n  "outputfilename": "unicore-desktop",\n  "info": {\n    "productName": "Unicore",\n    "productVersion": "0.1.0",\n    "comments": "Unicore · Go + React"\n  }\n}\n','packages/contracts/openapi.json':'{\n  "info": {\n    "title": "Unicore platform foundation API"\n  },\n  "paths": {}\n}\n','apps/web/index.html':'<!doctype html><html><head><meta name="description" content="Unicore · 一份核心" /><title>Unicore · 工作空间</title></head><body></body></html>\n','apps/web/admin.html':'<!doctype html><html><head><meta name="description" content="Unicore · 一份核心" /><title>Unicore · 管理后台</title></head><body></body></html>\n','apps/desktop/index.html':'<!doctype html><html><head><title>Unicore · 桌面工作空间</title></head><body></body></html>\n','apps/web/public/site.webmanifest':'{"name":"Unicore","short_name":"Unicore"}','apps/desktop/public/site.webmanifest':'{"name":"Unicore","short_name":"Unicore"}','internal/adapter/cli/command.go':'// github.com/yunnuo/unicore/internal/buildinfo\npackage cli\n','product.identity.json':'{\n  "author": "yunnuo <ymz@ebox.vip>",\n  "schemaVersion": 1,\n  "product": {"name": "Unicore", "slug": "unicore", "vendor": "yunnuo", "description": "一份核心，运行于每个终端"},\n  "go": {"module": "github.com/yunnuo/unicore"},\n  "cli": {"command": "unicore", "opsCommand": "unicore-ops", "description": "Unicore — one core, every interface"},\n  "desktop": {"bundleId": "vip.ebox.unicore", "outputName": "unicore-desktop"},\n  "deployment": {"serviceName": "unicore", "serviceUser": "unicore", "installDirectory": "/opt/unicore", "dataDirectory": "/var/lib/unicore", "image": "unicore", "volume": "unicore_data"},\n  "release": {"artifactPrefix": "unicore"}\n}\n','deploy/tar/unicore.service':SERVICE,'deploy/tar/nginx.conf.example':'server {\n    root /opt/unicore/current/web;\n}\n','deploy/docker/compose.yaml':'services:\n  app:\n    image: ${UNICORE_IMAGE:-unicore:local}\n    volumes:\n      - unicore_data:/data\nvolumes:\n  unicore_data:\n','deploy/docker/compose.dev.yaml':'services:\n  db:\n    environment:\n      POSTGRES_USER: unicore\n','deploy/docker/Dockerfile':'FROM scratch\nLABEL org.opencontainers.image.title="Unicore"\n','docs/product/guide.md':GUIDE,'main.go':'package main // github.com/yunnuo/unicore/internal/domain\n','.gitignore':'build/\nnode_modules/\n','LICENSE':'MIT license fixture','.agents/skills/sample/SKILL.md':'---\nname: sample\ndescription: Fixture task\n---\n','private.txt':'framework-only, never exported'};
+ const files={'go.mod':'module github.com/yunnuo/unicore\n','VERSION':'0.1.0\n','Makefile':'LDFLAGS := -X $(GO_MODULE)/internal/buildinfo.Version=$(VERSION)\n','framework.manifest.json':'{}','assets/updates/config.json':'{"repository":"upstream/repo","keys":{"upstream":"test"}}','package.json':'{\n  "name": "unicore",\n  "version": "0.1.0",\n  "scripts": {\n    "dev": "vite"\n  },\n  "dependencies": {\n    "framework-sdk": "^0.1.0"\n  }\n}\n','assets/theme/tokens.json':'{\n  "author": "yunnuo <ymz@ebox.vip>",\n  "brand": {\n    "name": "Unicore",\n    "accent": "#6662ec"\n  }\n}\n','assets/theme/resolved.gen.json':'{\n  "brand": {\n    "name": "Unicore",\n    "accent": "#6662ec"\n  }\n}\n','assets/brand/identity.json':'{\n  "author": "yunnuo <ymz@ebox.vip>",\n  "bundleId": "vip.ebox.unicore"\n}\n','assets/brand/wordmark.svg':'<svg><text x="82" y="54">Unicore<tspan fill="#6662ec">.</tspan></text></svg>\n','cmd/desktop/wails.json':'{\n  "name": "Unicore",\n  "outputfilename": "unicore-desktop",\n  "info": {\n    "productName": "Unicore",\n    "productVersion": "0.1.0",\n    "comments": "Unicore · Go + React"\n  }\n}\n','packages/contracts/openapi.json':'{\n  "info": {\n    "title": "Unicore platform foundation API"\n  },\n  "paths": {}\n}\n','apps/web/index.html':'<!doctype html><html><head><meta name="description" content="Unicore · 一份核心" /><title>Unicore · 工作空间</title></head><body></body></html>\n','apps/web/admin.html':'<!doctype html><html><head><meta name="description" content="Unicore · 一份核心" /><title>Unicore · 管理后台</title></head><body></body></html>\n','apps/desktop/index.html':'<!doctype html><html><head><title>Unicore · 桌面工作空间</title></head><body></body></html>\n','apps/web/public/site.webmanifest':'{"name":"Unicore","short_name":"Unicore"}','apps/desktop/public/site.webmanifest':'{"name":"Unicore","short_name":"Unicore"}','internal/adapter/cli/command.go':'// github.com/yunnuo/unicore/internal/buildinfo\npackage cli\n','product.identity.json':'{\n  "author": "yunnuo <ymz@ebox.vip>",\n  "schemaVersion": 1,\n  "product": {"name": "Unicore", "slug": "unicore", "vendor": "yunnuo", "description": "一份核心，运行于每个终端"},\n  "go": {"module": "github.com/yunnuo/unicore"},\n  "cli": {"command": "unicore", "opsCommand": "unicore-ops", "description": "Unicore — one core, every interface"},\n  "desktop": {"bundleId": "vip.ebox.unicore", "outputName": "unicore-desktop"},\n  "deployment": {"serviceName": "unicore", "serviceUser": "unicore", "installDirectory": "/opt/unicore", "dataDirectory": "/var/lib/unicore", "image": "unicore", "volume": "unicore_data"},\n  "release": {"artifactPrefix": "unicore"}\n}\n','deploy/tar/unicore.service':SERVICE,'deploy/tar/nginx.conf.example':'server {\n    root /opt/unicore/current/web;\n}\n','deploy/docker/compose.yaml':'services:\n  app:\n    image: ${UNICORE_IMAGE:-unicore:local}\n    volumes:\n      - unicore_data:/data\nvolumes:\n  unicore_data:\n','deploy/docker/compose.dev.yaml':'services:\n  db:\n    environment:\n      POSTGRES_USER: unicore\n','deploy/docker/Dockerfile':'FROM scratch\nLABEL org.opencontainers.image.title="Unicore"\n','docs/product/guide.md':GUIDE,'main.go':'package main // github.com/yunnuo/unicore/internal/domain\n','.gitignore':'build/\nnode_modules/\n','LICENSE':'MIT license fixture','.agents/skills/sample/SKILL.md':'---\nname: sample\ndescription: Fixture task\n---\n','private.txt':'framework-only, never exported'};
  const manifest={format_version:1,documents:[{source:'docs/product/guide.md',target:'docs/product/guide.md',audiences:['user-release','project-template','public-wiki'],slug:'Home',title:'Guide'}],template_files:Object.keys(files).filter(p=>!['private.txt','docs/product/guide.md'].includes(p))};
  manifest.template_files.push('distribution/manifest.json','AGENTS.md',{source:'main.go',target:'internal/mapped-example.go'});
  files['distribution/manifest.json']=JSON.stringify(manifest,null,2)+'\n';
@@ -154,6 +154,104 @@ test('sync refuses and leaves the tree untouched on real conflicts',()=>{
   assert.match(readFileSync(join(derived,'docs/product/guide.md'),'utf8'),/Upstream rewrites the guide/);
   assert.match(readFileSync(join(derived,'docs/product/guide.md'),'utf8'),/Local runbook overrides/);
   assert.match(readFileSync(join(derived,'assets/theme/tokens.json'),'utf8'),/#6662ec/);
+  assert.equal(sh(derived,'status','--porcelain'),'');
+ }finally{rmSync(fixtureRoot,{recursive:true,force:true});}
+});
+
+test('upstream structure never overwrites application package.json content',()=>{
+ const {source,fixtureRoot}=makeSource();
+ try{
+  updateTemplateBranch(source);const derived=derive(source);
+  const pkg=JSON.parse(readFileSync(join(derived,'package.json'),'utf8'));
+  pkg.version='0.1.5';pkg.scripts.deploy='app-deploy';pkg.dependencies['app-sdk']='^9.9.9';
+  writeFileSync(join(derived,'package.json'),JSON.stringify(pkg,null,2)+'\n');
+  writeFileSync(join(derived,'VERSION'),'0.1.5\n');
+  sh(derived,'add','-A');sh(derived,'commit','-qm','Application dependencies and scripts');
+  const head=sh(derived,'rev-parse','HEAD');
+  upstreamStep(source,'0.2.0',()=>{
+   writeFileSync(join(source,'VERSION'),'0.2.0\n');
+   const up=JSON.parse(readFileSync(join(source,'package.json'),'utf8'));
+   up.version='0.2.0';up.scripts['release-docs']='node scripts/docs.mjs';up.dependencies['template-extra']='^0.2.0';
+   writeFileSync(join(source,'package.json'),JSON.stringify(up,null,2)+'\n');
+  });
+  assert.throws(()=>syncTemplate(derived),/Upstream merge conflicts/);
+  // The application branch must not advance while the business conflict is unresolved.
+  assert.equal(sh(derived,'rev-parse','HEAD'),head);
+  assert.equal(sh(derived,'status','--porcelain'),'');
+  const pending=JSON.parse(readFileSync(join(derived,'build/framework-sync-state.json')));
+  // Manual resolution: upstream structure plus every application side kept.
+  const union={name:'unicore',version:'0.1.5',scripts:{dev:'vite',deploy:'app-deploy','release-docs':'node scripts/docs.mjs'},dependencies:{'framework-sdk':'^0.1.0','app-sdk':'^9.9.9','template-extra':'^0.2.0'}};
+  writeFileSync(join(pending.worktree,'package.json'),JSON.stringify(union,null,2)+'\n');
+  sh(pending.worktree,'add','package.json');
+  const result=continueTemplateSync(derived);
+  assert.ok(result.merged_commit);
+  const final=JSON.parse(readFileSync(join(derived,'package.json'),'utf8'));
+  assert.equal(final.version,'0.1.5');
+  assert.equal(final.scripts.dev,'vite');
+  assert.equal(final.scripts.deploy,'app-deploy');
+  assert.equal(final.scripts['release-docs'],'node scripts/docs.mjs');
+  assert.equal(final.dependencies['framework-sdk'],'^0.1.0');
+  assert.equal(final.dependencies['app-sdk'],'^9.9.9');
+  assert.equal(final.dependencies['template-extra'],'^0.2.0');
+  assert.equal(readFileSync(join(derived,'VERSION'),'utf8').trim(),'0.1.5');
+  assert.equal(sh(derived,'status','--porcelain'),'');
+ }finally{rmSync(fixtureRoot,{recursive:true,force:true});}
+});
+
+test('business API paths stay manual and both sides survive the resolution',()=>{
+ const {source,fixtureRoot}=makeSource();
+ try{
+  updateTemplateBranch(source);const derived=derive(source);
+  const api=JSON.parse(readFileSync(join(derived,'packages/contracts/openapi.json'),'utf8'));
+  api.paths['/business/items']={get:{summary:'Application business listing',responses:{}}};
+  writeFileSync(join(derived,'packages/contracts/openapi.json'),JSON.stringify(api,null,2)+'\n');
+  sh(derived,'add','-A');sh(derived,'commit','-qm','Application business API');
+  const head=sh(derived,'rev-parse','HEAD');
+  upstreamStep(source,'0.2.0',()=>{
+   writeFileSync(join(source,'VERSION'),'0.2.0\n');
+   const up=JSON.parse(readFileSync(join(source,'packages/contracts/openapi.json'),'utf8'));
+   up.paths['/platform/status']={get:{summary:'Platform status',responses:{}}};
+   writeFileSync(join(source,'packages/contracts/openapi.json'),JSON.stringify(up,null,2)+'\n');
+  });
+  assert.throws(()=>syncTemplate(derived),/Upstream merge conflicts/);
+  assert.equal(sh(derived,'rev-parse','HEAD'),head);
+  assert.equal(sh(derived,'status','--porcelain'),'');
+  const pending=JSON.parse(readFileSync(join(derived,'build/framework-sync-state.json')));
+  const union={info:{title:'Unicore platform foundation API'},paths:{'/platform/status':{get:{summary:'Platform status',responses:{}}},'/business/items':{get:{summary:'Application business listing',responses:{}}}},components:{schemas:{}}};
+  writeFileSync(join(pending.worktree,'packages/contracts/openapi.json'),JSON.stringify(union,null,2)+'\n');
+  sh(pending.worktree,'add','packages/contracts/openapi.json');
+  continueTemplateSync(derived);
+  const final=JSON.parse(readFileSync(join(derived,'packages/contracts/openapi.json'),'utf8'));
+  assert.ok(final.paths['/business/items']);
+  assert.ok(final.paths['/platform/status']);
+  assert.equal(sh(derived,'status','--porcelain'),'');
+ }finally{rmSync(fixtureRoot,{recursive:true,force:true});}
+});
+
+test('version-only projection conflicts resolve automatically at the application version',()=>{
+ const {source,fixtureRoot}=makeSource();
+ try{
+  updateTemplateBranch(source);const derived=derive(source);
+  const pkg=JSON.parse(readFileSync(join(derived,'package.json'),'utf8'));
+  pkg.version='0.1.5';
+  writeFileSync(join(derived,'package.json'),JSON.stringify(pkg,null,2)+'\n');
+  writeFileSync(join(derived,'VERSION'),'0.1.5\n');
+  sh(derived,'add','-A');sh(derived,'commit','-qm','Application release 0.1.5');
+  upstreamStep(source,'0.2.0',()=>{
+   writeFileSync(join(source,'VERSION'),'0.2.0\n');
+   const up=JSON.parse(readFileSync(join(source,'package.json'),'utf8'));
+   up.version='0.2.0';
+   writeFileSync(join(source,'package.json'),JSON.stringify(up,null,2)+'\n');
+  });
+  // No manual step: the only overlap is the version field itself.
+  const result=syncTemplate(derived);
+  assert.ok(result.merged_commit);
+  const final=JSON.parse(readFileSync(join(derived,'package.json'),'utf8'));
+  assert.equal(final.version,'0.1.5');
+  assert.equal(final.scripts.dev,'vite');
+  assert.equal(final.dependencies['framework-sdk'],'^0.1.0');
+  assert.equal(readFileSync(join(derived,'VERSION'),'utf8').trim(),'0.1.5');
+  assert.equal(existsSync(join(derived,'build/framework-sync-state.json')),false);
   assert.equal(sh(derived,'status','--porcelain'),'');
  }finally{rmSync(fixtureRoot,{recursive:true,force:true});}
 });

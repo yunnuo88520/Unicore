@@ -1,19 +1,23 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Golden parity between the shared derivation and the compiled default palette.
+// Description: Golden parity between the shared derivation and the compiled palette of the current brand source.
 import { expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import resolved from './resolved.gen.json';
 import modes from './modes.gen.json';
 import { accentVariables, derivePalette } from './derive.mjs';
 
-it('derives exactly the compiled default palette from the brand accent', () => {
-  const derived = derivePalette('#6662ec', modes);
+// Derived applications rebrand, so the derivation accent comes from the current
+// application's theme source rather than a hardcoded framework default.
+const brandAccent = (JSON.parse(readFileSync('assets/theme/tokens.json', 'utf8') as string) as { brand: { accent: string } }).brand.accent;
+
+it('derives exactly the compiled palette from the current brand accent', () => {
+  const derived = derivePalette(brandAccent, modes);
   expect(derived.light).toEqual(resolved.light);
   expect(derived.dark).toEqual(resolved.dark);
 });
 
 it.each(['#000000', '#ffffff', '#be316b', '#087e68', '#3265d4', '#a56217', '#596275'])('keeps custom accent %s in parity with generated presets without altering neutral/chart tokens', accent => {
-  const baseline = derivePalette('#6662ec', modes);
+  const baseline = derivePalette(brandAccent, modes);
   const palette = derivePalette(accent, modes);
   for (const mode of ['light', 'dark'] as const) {
     const changed = Object.keys(baseline[mode]).filter(key => baseline[mode][key] !== palette[mode][key]);
@@ -40,7 +44,7 @@ it('emits the same palette for preset CSS and runtime custom accents', () => {
 });
 
 it('uses dark shadow keys rather than casting pale shadows in dark mode', () => {
-  const palette = derivePalette('#6662ec', modes);
+  const palette = derivePalette(brandAccent, modes);
   expect(palette.dark['elevation-overlay']).toContain('#000000');
   expect(palette.dark.shadow).not.toBe('none');
   expect(palette.light['shadow-modal']).toMatch(/^#[0-9a-f]{8}$/);

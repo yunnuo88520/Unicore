@@ -17,6 +17,7 @@ import (
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/adapter/storage/webdb"
 	"github.com/yunnuo/unicore/internal/audit"
+	"github.com/yunnuo/unicore/internal/buildinfo"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/secret"
@@ -91,7 +92,7 @@ func openInstance(directory, external string) (*instance, error) {
 	i.lock = flock.New(filepath.Join(directory, "instance.lock"))
 	locked, e := i.lock.TryLock()
 	if e != nil || !locked {
-		return nil, errors.New("stop the running instance before this operation (unicore stop or Docker stop)")
+		return nil, errors.New("stop the running instance before this operation (" + buildinfo.CLIRootCommand + " stop or Docker stop)")
 	}
 	if external == "" {
 		if e = regular(filepath.Join(directory, "secret.key")); e != nil {

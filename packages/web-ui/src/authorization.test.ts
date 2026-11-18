@@ -33,8 +33,12 @@ it('denies direct page URLs without menu grants',()=>{
 });
 it('shares one tree across workspaces while node surfaces and hidden parents stay isolated',()=>{
  const data=authorized();
- const shared=defaultNavigation(['administrator']);
- const switched={...data,identity_realm:'administrator',navigation:shared} as Bootstrap;
+ // The requirement explicitly places the notes page in both workspaces; an
+ // administrator working there still resolves the shared operation to its
+ // mirrored /admin/ endpoint. Business pages without that explicit declaration
+ // stay in the user workspace (covered by the routeSurfaces defaults).
+ const widened=defaultNavigation(['administrator']).nodes.map(node=>node.route_id==='notes'||node.parent_id==='notes'?{...node,surfaces:['user','administrator'] as NavigationNode['surfaces']}:node);
+ const switched={...data,identity_realm:'administrator',navigation:{version:1,sections:defaultNavigation(['administrator']).sections,nodes:widened}} as Bootstrap;
  // The grant binds the contract operation: in the administrator realm the same
  // operation resolves to its mirrored /admin/ endpoint and stays authorized.
  expect(canAction(switched,'createNote')).toBe(true);
@@ -48,11 +52,14 @@ it('shares one tree across workspaces while node surfaces and hidden parents sta
 });
 it('keeps administrator-surface action nodes out of the user workspace',()=>{
  const config=defaultNavigation(['administrator']);
- // The default op:adminCreateNote action serves both surfaces; this fixture
- // narrows it to the administrator surface only.
+ // The requirement explicitly places the notes page in both workspaces, so the
+ // fixture widens its surfaces the way an explicit module declaration would;
+ // the default op:adminCreateNote action then narrows to the administrator
+ // surface only.
  const adminOnlyAction: NavigationNode={...newNavigationNode('op:adminCreateNote','business','action',['administrator']),
   parent_id:'notes',permission:'notes:create',operation_ids:['adminCreateNote']};
- const nodes=[...config.nodes.filter(node=>node.id!=='op:adminCreateNote'),adminOnlyAction];
+ const widened=config.nodes.map(node=>node.route_id==='notes'?{...node,surfaces:['user','administrator'] as NavigationNode['surfaces']}:node);
+ const nodes=[...widened.filter(node=>node.id!=='op:adminCreateNote'),adminOnlyAction];
  const operator=grantUI({profile:'web-platform',identity_realm:'user',capabilities:{database:true,features:{notes:true}},
   navigation:{version:1,sections:config.sections,nodes},
   current_user:{id:'actor',roles:['ops'],permissions:['admin:access','notes:access','notes:create','notes:delete']}} as unknown as Bootstrap);

@@ -100,7 +100,9 @@ test('derivation bases the baseline on the template commit and sync merges upstr
   const guide=readFileSync(join(derived,'docs/product/guide.md'),'utf8');
   assert.match(guide,/NEW|Upstream adds a section/);assert.match(guide,/my-product-ops/);
   assert.match(readFileSync(join(derived,'internal/adapter/cli/command.go'),'utf8'),/example\.test\/team\/product\/internal\/buildinfo/);
-  assert.equal(readFileSync(join(derived,'VERSION'),'utf8').trim(),'0.2.0');
+  // The application owns its product version: the framework upgrade delivers new
+  // framework code but never bumps or overwrites the application's own VERSION.
+  assert.equal(readFileSync(join(derived,'VERSION'),'utf8').trim(),'0.1.0');
   assert.match(readFileSync(join(derived,'assets/theme/tokens.json'),'utf8'),/#1177ee/);
   assert.ok(existsSync(join(derived,'internal/business/business.go')));
   assert.equal(JSON.parse(readFileSync(join(derived,'product.identity.json'))).product.slug,'my-product');
@@ -117,7 +119,7 @@ test('derivation bases the baseline on the template commit and sync merges upstr
   writeFileSync(join(derived,'internal/business/more.go'),'package business\n');
   sh(derived,'add','-A');sh(derived,'commit','-qm','more product work');
   syncTemplate(derived);
-  assert.equal(readFileSync(join(derived,'VERSION'),'utf8').trim(),'0.3.0');
+  assert.equal(readFileSync(join(derived,'VERSION'),'utf8').trim(),'0.1.0');
   const service2=readFileSync(join(derived,'deploy/tar/my-product.service'),'utf8');
   assert.match(service2,/second upstream improvement/);assert.match(service2,/User=my-product/);
   assert.match(readFileSync(join(derived,'docs/product/guide.md'),'utf8'),/another section/);

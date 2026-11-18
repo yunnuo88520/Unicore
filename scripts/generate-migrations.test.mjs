@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -15,6 +15,12 @@ function fixture(run) {
   try {
     mkdirSync(join(root, 'migrations'));
     for (const path of ['catalog.json', 'core', 'platform', 'modules']) cpSync(join(source, 'migrations', path), join(root, 'migrations', path), { recursive: true });
+    // A derived application owns its business migrations through its identity; the tests
+    // validate the application as it is, so its author context travels with the fixture.
+    if (existsSync(join(source, 'project.provenance.json'))) {
+      copyFileSync(join(source, 'project.provenance.json'), join(root, 'project.provenance.json'));
+      copyFileSync(join(source, 'product.identity.json'), join(root, 'product.identity.json'));
+    }
     const catalogPath = join(root, 'migrations/catalog.json');
     const catalog = JSON.parse(readFileSync(catalogPath, 'utf8'));
     run(root, catalog, () => writeFileSync(catalogPath, JSON.stringify(catalog, null, 2) + '\n'));
@@ -36,16 +42,31 @@ test('repeated generation is identical, check mode detects tampering, raw-byte S
   writeFileSync(join(root, 'migrations/metadata.gen.json'), '{}');
   assert.throws(() => generateMigrations(root, true), /stale/);
 }));
+// Independent expectation: the profile's namespaces, topologically ordered with the
+// generator's single tiebreak — alphabetically first among the ready ids. Derived
+// applications add namespaces, so the expected order is computed from the catalog data
+// instead of a hardcoded framework list.
+function expectedOrder(c, profileId) {
+  const members = c.profiles[profileId].namespaces;
+  const byId = new Map(c.namespaces.map(namespace => [namespace.id, namespace]));
+  const pending = new Set(members), placed = new Set(), order = [];
+  while (pending.size) {
+    const ready = [...pending].filter(id => byId.get(id).depends_on.every(dependency => !members.includes(dependency) || placed.has(dependency))).sort();
+    if (!ready.length) throw Error('dependency cycle in expected order');
+    order.push(ready[0]); pending.delete(ready[0]); placed.add(ready[0]);
+  }
+  return order;
+}
 test('profile members and namespace declaration order cannot become a second ordering source', () => fixture((root, c, save) => {
   const before = buildMetadata(root);
   c.namespaces.reverse();
   for (const p of Object.values(c.profiles)) { p.namespaces.reverse(); p.dialects.reverse(); }
   c.dialects.reverse(); c.sql_roots.reverse(); save();
   assert.deepEqual(buildMetadata(root), before);
-  assert.deepEqual(before.profiles['web-platform'].order, ['core', 'module.notes', 'platform']);
+  assert.deepEqual(before.profiles['web-platform'].order, expectedOrder(c, 'web-platform'));
   const platform = c.namespaces.find(n => n.id === 'platform');
   platform.depends_on.push('module.notes'); save();
-  assert.deepEqual(buildMetadata(root).profiles['web-platform'].order, ['core', 'module.notes', 'platform']);
+  assert.deepEqual(buildMetadata(root).profiles['web-platform'].order, expectedOrder(c, 'web-platform'));
 }));
 test('legacy SQL is excluded from registration while new unregistered SQL fails', () => fixture((root) => {
   mkdirSync(join(root, 'migrations/sqlite')); writeFileSync(join(root, 'migrations/sqlite/0001_old.sql'), 'not SQL');
@@ -63,9 +84,40 @@ test('dependency edges alone change execution order for an additional module', (
   }
   const extra = { id: 'module.extra', depends_on: ['core'], migrations: [{ version: 1, files }] };
   c.namespaces.push(extra); c.profiles['web-platform'].namespaces.push('module.extra'); save();
-  assert.deepEqual(buildMetadata(root).profiles['web-platform'].order, ['core', 'module.extra', 'module.notes', 'platform']);
+  assert.deepEqual(buildMetadata(root).profiles['web-platform'].order, expectedOrder(c, 'web-platform'));
+  assert.ok(buildMetadata(root).profiles['web-platform'].order.indexOf('module.extra') < buildMetadata(root).profiles['web-platform'].order.indexOf('module.notes'), 'core-dependent extra runs before notes');
   extra.depends_on = ['platform']; save();
-  assert.deepEqual(buildMetadata(root).profiles['web-platform'].order, ['core', 'module.notes', 'platform', 'module.extra']);
+  assert.deepEqual(buildMetadata(root).profiles['web-platform'].order, expectedOrder(c, 'web-platform'));
+  assert.ok(buildMetadata(root).profiles['web-platform'].order.indexOf('module.extra') > buildMetadata(root).profiles['web-platform'].order.indexOf('platform'), 'platform-dependent extra runs after platform');
+}));
+test('derived applications author business migrations and re-own the catalog with their identity author', () => fixture((root, c, save) => {
+  // The application author is the identity owner when the project context says so
+  // (a derived checkout), otherwise this test establishes one from nothing.
+  const derived = existsSync(join(root, 'project.provenance.json'));
+  const owner = derived ? JSON.parse(readFileSync(join(root, 'product.identity.json'), 'utf8')).author : 'Application Team <team@example.test>';
+  const files = {};
+  for (const dialect of c.dialects) {
+    const path = `modules/extra/${dialect}/0001_initial.sql`;
+    mkdirSync(join(root, 'migrations', `modules/extra/${dialect}`), { recursive: true });
+    writeFileSync(join(root, 'migrations', path), `-- Author: ${owner}\nCREATE TABLE extra (id INTEGER PRIMARY KEY);\n`);
+    files[dialect] = path;
+  }
+  c.namespaces.push({ id: 'module.extra', depends_on: ['core'], migrations: [{ version: 1, files }] });
+  c.profiles['web-platform'].namespaces.push('module.extra'); save();
+  if (derived) {
+    assert.doesNotThrow(() => buildMetadata(root));
+  } else {
+    // Without provenance this is a framework-only checkout: only the framework author passes.
+    assert.throws(() => buildMetadata(root), /missing SQL content\/author/);
+    writeFileSync(join(root, 'project.provenance.json'), '{"generator_version": 1}\n');
+    writeFileSync(join(root, 'product.identity.json'), JSON.stringify({ author: owner }) + '\n');
+    assert.doesNotThrow(() => buildMetadata(root));
+  }
+  c.author = owner; save();
+  assert.equal(buildMetadata(root).author, owner);
+  // Anything outside framework + identity ownership still fails closed.
+  writeFileSync(join(root, 'migrations', files.sqlite), `-- Author: Stranger <stranger@example.test>\nCREATE TABLE extra (id INTEGER PRIMARY KEY);\n`);
+  assert.throws(() => buildMetadata(root), /missing SQL content\/author/);
 }));
 const invalid = [
   ['unknown fields', c => { c.max_version = 1; }, /unknown field/],

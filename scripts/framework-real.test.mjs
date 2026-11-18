@@ -39,25 +39,26 @@ test('real exported product renames, retains business/theme and merges two frame
   assert.ok(appManifest.skills.includes('framework-upstream'));
   assert.equal(readFileSync(join(app,skillPath),'utf8'),readFileSync(join(repository,skillPath),'utf8'));
   const guide='docs/product/framework-upgrade.md';
-  const appAgents=readFileSync(join(app,'AGENTS.md'),'utf8');
-  assert.ok(appAgents.includes(skillPath));
-  assert.ok(appAgents.includes(guide));
-  // The upstream feedback flow ships in the exported instructions, not only in
-  // the framework checkout: a derived project's assistant can find provenance,
-  // search the upstream, prepare or submit the report and track local patches
-  // without reading framework-only documents.
-  assert.match(appAgents,/遇到疑似框架缺陷时/);
-  assert.match(appAgents,/project\.provenance\.json[\s\S]*upstream/);
-  assert.match(appAgents,/framework:sync/);
+  const agentGuide=readFileSync(join(app,'AGENTS.md'),'utf8');
+  assert.ok(agentGuide.includes(skillPath));
+  assert.ok(agentGuide.includes(guide));
+  // Agents start at the project root, including when a task only asks for app work.
+  assert.match(agentGuide,/`project\.provenance\.json`[\s\S]*先查该上游已有的 Issues 和 PR/);
+  assert.match(agentGuide,/上游 Issue[\s\S]*草稿及目标仓库/);
+  assert.match(agentGuide,/修复已进入 `framework-template`[\s\S]*`pnpm framework:sync`/);
+  assert.match(agentGuide,/业务模块的操作和管理页面默认只放在用户工作台的业务区/);
+  assert.match(agentGuide,/只有需求明确指定某个业务页面在此呈现时/);
+  assert.match(agentGuide,/\(docs\/product\/development\.md#业务导航规划\)/);
+  const appDevelopment=readFileSync(join(app,'docs/product/development.md'),'utf8');
+  assert.match(appDevelopment,/^### 业务导航规划$/m);
+  assert.match(readFileSync(join(app,'docs/product/development.md'),'utf8'),/上游反馈流程/);
   const appSkill=readFileSync(join(app,skillPath),'utf8');
   assert.match(appSkill,/已有 Issue\/PR/);
   assert.match(appSkill,/最小复现/);
   assert.match(appSkill,/build\//);
   const appUpgrade=readFileSync(join(app,guide),'utf8');
   assert.match(appUpgrade,/应用反馈与框架通用问题/);
-  assert.match(appUpgrade,/upstream/);
-  assert.match(readFileSync(join(app,'docs/product/development.md'),'utf8'),/业务导航规划/);
-  assert.match(readFileSync(join(app,'docs/product/development.md'),'utf8'),/上游反馈流程/);
+
   const context=renderAIContext(app);
   assert.ok(context.content.includes('../../'+skillPath));
   assert.equal(appManifest.sources.frameworkUpgrade,guide);

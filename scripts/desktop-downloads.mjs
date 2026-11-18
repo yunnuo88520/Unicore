@@ -64,6 +64,23 @@ function waitMountReleased(mount){
   for(let attempt=0;attempt<20&&existsSync(mount);attempt++)execFileSync('sleep',['0.5'],{stdio:'ignore'});
 }
 
+// A detached image may still be busy while macOS completes teardown. Retry only
+// that transient response and preserve all other conversion failures.
+export function convertDmg(source, destination, run = execFileSync) {
+  const args = ['convert', source, '-format', 'UDZO', '-o', destination];
+  const destinationExisted = existsSync(destination);
+  for (let attempt = 1; ; attempt++) {
+    try {
+      run(HDIUTIL, args, {stdio: ['ignore', 'inherit', 'pipe']});
+      return;
+    } catch (error) {
+      if (attempt === 3 || destinationExisted || !String(error.stderr ?? '').includes('Resource temporarily unavailable')) throw error;
+      rmSync(destination, {force: true});
+      run('/bin/sleep', [String(attempt)], {stdio: 'ignore'});
+    }
+  }
+}
+
 export function desktopDownloads({root,output,name,built,binary,targetOS,application,platformSignature}) {
   if(targetOS==='linux')return [];
   const artifact=name+(targetOS==='darwin'?'.dmg':'.exe'), destination=join(output,artifact);
@@ -95,7 +112,8 @@ export function desktopDownloads({root,output,name,built,binary,targetOS,applica
       execFileSync('sync',{stdio:'ignore'});
       detach(mount);
     }
-    execFileSync(HDIUTIL,['convert',join(work,'unsigned.dmg'),'-format','UDZO','-o',destination],{stdio:'inherit'});
+    waitMountReleased(mount);
+    convertDmg(join(work,'unsigned.dmg'), destination);
     execFileSync(HDIUTIL,['verify',destination],{stdio:'inherit'});
   } else cpSync(built,destination);
   return [{artifact,sha256:createHash('sha256').update(readFileSync(destination)).digest('hex'),format:targetOS==='darwin'?'dmg':'portable-exe'}];

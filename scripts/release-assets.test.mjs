@@ -3,14 +3,43 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {mkdtempSync,writeFileSync,readFileSync,mkdirSync,rmSync} from 'node:fs';
+import {existsSync,mkdtempSync,writeFileSync,readFileSync,mkdirSync,rmSync} from 'node:fs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {assembleRelease} from './release-assets.mjs';
 import {releaseFiles,checkReleaseLayout} from './release-layout.mjs';
 import {distributionPlan} from './distribution.mjs';
 import {loadIdentity} from './product-identity.mjs';
-import {desktopDownloads} from './desktop-downloads.mjs';
+import {convertDmg,desktopDownloads} from './desktop-downloads.mjs';
+
+test('DMG conversion retries a busy source at most twice and rejects other errors immediately', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'unicore-dmg-retry-'));
+  const target = join(dir, 'target.dmg');
+  const busy = Object.assign(new Error('conversion failed'), {stderr: Buffer.from('hdiutil: convert failed - Resource temporarily unavailable')});
+  const forbidden = Object.assign(new Error('conversion denied'), {stderr: Buffer.from('hdiutil: permission denied')});
+  try {
+    const calls = [];
+    convertDmg('source.dmg', target, (command, args) => {
+      calls.push(command === '/usr/bin/hdiutil' ? args[0] : `sleep ${args[0]}`);
+      if (calls.length === 1) {
+        writeFileSync(target, 'partial image');
+        throw busy;
+      }
+      assert.equal(existsSync(target), false);
+    });
+    assert.deepEqual(calls, ['convert', 'sleep 1', 'convert']);
+
+    for (const [failure, expectedAttempts] of [[busy, 3], [forbidden, 1]]) {
+      let attempts = 0;
+      assert.throws(() => convertDmg('source.dmg', target, command => {
+        if (command === '/usr/bin/hdiutil') { attempts++; throw failure; }
+      }), error => error === failure);
+      assert.equal(attempts, expectedAttempts);
+    }
+  } finally {
+    rmSync(dir, {recursive: true, force: true});
+  }
+});
 
 test('release assembly rejects tampering, partial matrices and mixed commits',()=>{
   const dir=mkdtempSync(join(tmpdir(),'unicore-release-check-'));

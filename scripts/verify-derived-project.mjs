@@ -144,6 +144,7 @@ try{
     // The old template roots its own lineage here: the published template ref must
     // not leak in through origin, or the old template would chain onto the new one.
     git(oldSource,'remote','remove','origin');
+    const oldFrameworkVersion=readFileSync(join(oldSource,'VERSION'),'utf8').trim();
     oldTemplate=updateTemplateBranch(oldSource).commit;
     createProject({source:oldSource,directory:app,name:'Harbor Desk',slug:'harbor-desk',module:goModule,bundle:'test.example.harbordesk',repository:'https://github.com/example/harbor-desk',author:drillAuthor,version:'2.3.4'});
     console.log(`Verifying upgrade from ${oldRef} (template ${oldTemplate.slice(0,12)}): ${app}`);
@@ -229,11 +230,11 @@ try{
     // Provenance separates the creation origin from the successfully integrated
     // framework, and the app-owned release history and OTA configuration survive.
     const provenance=JSON.parse(readFileSync(join(app,'project.provenance.json'),'utf8'));
-    if(provenance.framework_version!=='0.1.5') throw Error('creation framework version was lost');
     if(provenance.framework_integration?.framework_version!==currentFrameworkVersion||provenance.framework_integration?.template_commit!==newTemplate) throw Error(`provenance did not record the integrated framework:\n${JSON.stringify(provenance.framework_integration)}`);
     if(provenance.author!==drillAuthor) throw Error('application author lost in provenance');
     const appChangelog=readFileSync(join(app,'CHANGELOG.md'),'utf8');
-    if(!appChangelog.includes('## 2.3.4 — ')||!appChangelog.includes('Created from Unicore 0.1.5')) throw Error('application changelog history was lost');
+    if(provenance.framework_version!==oldFrameworkVersion) throw Error(`creation framework version was lost: ${provenance.framework_version}`);
+    if(!appChangelog.includes(`## 2.3.4 — `)||!appChangelog.includes(`Created from Unicore ${oldFrameworkVersion}`)) throw Error('application changelog history was lost');
     if(/## 0\.1\.6 /.test(appChangelog)) throw Error('framework release history leaked into the application changelog');
     const updates=JSON.parse(readFileSync(join(app,'assets/updates/config.json'),'utf8'));
     if(updates.repository!==''||updates.channel!=='stable'||updates.allow_unsigned_platform!==true) throw Error('application OTA/trust configuration was overwritten');

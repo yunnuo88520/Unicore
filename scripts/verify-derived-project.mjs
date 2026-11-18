@@ -124,7 +124,10 @@ try{
       if(!oldRef) throw Error('No release tag below the current VERSION exists; pass one explicitly: node scripts/verify-derived-project.mjs upgrade <tag>');
     }
     const oldSource=join(output,'old-source');
-    execFileSync('git',['clone','--quiet','--no-hardlinks','--single-branch',repository,oldSource],{stdio:['ignore','pipe','pipe']});
+    // Old releases can predate the repository-wide LF attributes. Keep their
+    // tracked bytes when a Windows runner has core.autocrlf=true globally.
+    execFileSync('git',['clone','--quiet','--no-hardlinks','--single-branch','--no-checkout',
+      '--config','core.autocrlf=false','--config','core.eol=lf',repository,oldSource],{stdio:['ignore','pipe','pipe']});
     git(oldSource,'checkout','--detach',oldRef);
     // The old template roots its own lineage here: the published template ref must
     // not leak in through origin, or the old template would chain onto the new one.

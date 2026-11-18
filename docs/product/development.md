@@ -75,6 +75,10 @@ Git 来源中选中的文件有未提交修改时，创建器默认拒绝导出�
 
 菜单父级和排序只决定入口的组织方式。进入页面和调用 API 仍须遵循应用的页面权限、服务端契约和数据归属规则。
 
+## 应用发版与框架版本
+
+应用拥有独立的产品版本：根目录 `VERSION` 是唯一手工来源，`package.json`、OpenAPI、桌面信息与 Go buildinfo 都由 `pnpm version:sync` 从它生成。创建时默认 `0.1.0`，可用 `--version` 指定；`pnpm framework:sync` 只更新框架代码，不会提高或覆盖应用版本。发版流程：在 `## Unreleased` 写好中英文条目，执行 `pnpm release --release X.Y.Z`（`version.mjs --release` 校验递增并归档条目），再走自己的发布渠道。`project.provenance.json` 同时记录创建时的框架来源与当前已成功集成的框架版本、源码提交和模板提交。
+
 ## 数据库迁移与文件
 
 数据库变更在自己的业务命名空间内追加迁移，由 Catalog 声明版本和依赖。当前三个图形 profile 均包含 `core`、`platform` 和默认开启的 `module.notes` 命名空间；Standalone 创建相应表不表示装配平台账号或管理能力。CLI 不装配数据库。具体集合以 `migrations/catalog.json` 为准。

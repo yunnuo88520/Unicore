@@ -74,6 +74,7 @@ import (
 	"os"
 
 	"${goModule}/internal/adapter/storage/sqlite"
+	"${goModule}/internal/platform"
 	"${goModule}/migrations/runner"
 )
 
@@ -86,6 +87,14 @@ func main() {
 	defer store.DB.Close()
 	if err := runner.Apply(ctx, store.DB, runner.Options{Dialect: "sqlite", Profile: "desktop"}); err != nil {
 		panic(err)
+	}
+	if os.Args[1] == "nav" {
+		for _, page := range platform.NavigationPages() {
+			if page.ID == "workorders" {
+				fmt.Printf("[probe] registered workorders surfaces: %v\n", page.Surfaces)
+			}
+		}
+		return
 	}
 	if os.Args[1] == "write" {
 		if _, err := store.ExecContext(ctx, "INSERT INTO workorder_requests (subject) VALUES ('sync-survival-probe')"); err != nil {
@@ -133,7 +142,7 @@ try{
     // not leak in through origin, or the old template would chain onto the new one.
     git(oldSource,'remote','remove','origin');
     oldTemplate=updateTemplateBranch(oldSource).commit;
-    createProject({source:oldSource,directory:app,name:'Harbor Desk',slug:'harbor-desk',module:goModule,bundle:'test.example.harbordesk',repository:'https://github.com/example/harbor-desk',author:drillAuthor});
+    createProject({source:oldSource,directory:app,name:'Harbor Desk',slug:'harbor-desk',module:goModule,bundle:'test.example.harbordesk',repository:'https://github.com/example/harbor-desk',author:drillAuthor,version:'2.3.4'});
     console.log(`Verifying upgrade from ${oldRef} (template ${oldTemplate.slice(0,12)}): ${app}`);
   }else{
     fixture=snapshotFramework(repository);
@@ -168,6 +177,7 @@ try{
     // The current template must CONTINUE the old lineage, exactly like published
     // cross-release templates, or the sync would lose its common ancestor.
     fixture=snapshotFramework(repository);
+    const currentFrameworkVersion=readFileSync(join(fixture.source,'VERSION'),'utf8').trim();
     git(fixture.source,'fetch',join(output,'old-source'),'refs/heads/framework-template:refs/heads/framework-template');
     const newTemplate=updateTemplateBranch(fixture.source).commit;
     git(app,'remote','set-url','framework',fixture.source);
@@ -204,6 +214,31 @@ try{
     const postSyncProbe=execFileSync('go',['run','./build/probe','read'],{cwd:app,env:{...process.env,CI:'true'},encoding:'utf8',stdio:['ignore','pipe','pipe']});
     if(!postSyncProbe.includes('[probe] read back: sync-survival-probe')||!postSyncProbe.includes('[probe] ledger module.workorders=1')) throw Error(`post-sync probe lost the business row or ledger:\n${postSyncProbe}`);
     console.log('[probe] business data survived the upgrade:',postSyncProbe.trim().split('\n').join(' | '));
+    // The upgraded application registers the business page for the user workspace
+    // only: the menu boundary ships with the template and binds the derived module.
+    const navProbe=execFileSync('go',['run','./build/probe','nav'],{cwd:app,env:{...process.env,CI:'true'},encoding:'utf8',stdio:['ignore','pipe','pipe']});
+    if(!navProbe.includes('[probe] registered workorders surfaces: [user]')) throw Error(`business page registration exceeds the user workspace:\n${navProbe}`);
+    // The application kept its own product version across the framework upgrade,
+    // with every projection regenerated from it (version:sync --check passes).
+    if(readFileSync(join(app,'VERSION'),'utf8').trim()!=='2.3.4') throw Error('application product version was overwritten by the framework upgrade');
+    execFileSync(process.execPath,['scripts/version.mjs','--check'],{cwd:app,env:{...process.env,CI:'true'},stdio:['ignore','pipe','pipe']});
+    // Provenance separates the creation origin from the successfully integrated
+    // framework, and the app-owned release history and OTA configuration survive.
+    const provenance=JSON.parse(readFileSync(join(app,'project.provenance.json'),'utf8'));
+    if(provenance.framework_version!=='0.1.5') throw Error('creation framework version was lost');
+    if(provenance.framework_integration?.framework_version!==currentFrameworkVersion||provenance.framework_integration?.template_commit!==newTemplate) throw Error(`provenance did not record the integrated framework:\n${JSON.stringify(provenance.framework_integration)}`);
+    if(provenance.author!==drillAuthor) throw Error('application author lost in provenance');
+    const appChangelog=readFileSync(join(app,'CHANGELOG.md'),'utf8');
+    if(!appChangelog.includes('Created from Unicore 0.1.5')) throw Error('application changelog history was lost');
+    if(/## 0\.1\.6 /.test(appChangelog)) throw Error('framework release history leaked into the application changelog');
+    const updates=JSON.parse(readFileSync(join(app,'assets/updates/config.json'),'utf8'));
+    if(updates.repository!==''||updates.channel!=='stable'||updates.allow_unsigned_platform!==true) throw Error('application OTA/trust configuration was overwritten');
+    // The image reference follows the application's release repository and the
+    // upstream feedback flow arrived with the template.
+    const appFaq=readFileSync(join(app,'docs/product/faq.md'),'utf8');
+    if(!appFaq.includes('ghcr.io/example/harbor-desk')||appFaq.includes('ghcr.io/yunnuo88520/unicore')) throw Error('FAQ image reference does not follow the application release repository');
+    if(!readFileSync(join(app,'AGENTS.md'),'utf8').includes('遇到疑似框架缺陷时')) throw Error('the upstream feedback flow did not arrive with the template');
+    console.log('[acceptance] version 2.3.4 kept, provenance dual-tracked, changelog/OTA/image/feedback verified');
   }else if(mode==='full'){
     // Desktop mode packages the untouched template export: adding the workorders
     // customization here would leave the committed migration metadata stale, because

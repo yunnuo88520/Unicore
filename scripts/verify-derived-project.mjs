@@ -152,9 +152,22 @@ try{
     // project was born: its CLI accepts no author or release parameters, so the
     // application carries the framework author and the template VERSION until
     // its own release process runs.
-    execFileSync('node',['scripts/create-project.mjs','--directory',app,'--name','Harbor Desk','--slug','harbor-desk',
-      '--module',goModule,'--bundle','test.example.harbordesk','--repository','https://github.com/example/harbor-desk'],
-      {cwd:oldSource,stdio:['ignore','pipe','inherit']});
+    // The old generator checks its selected template inputs with one git
+    // invocation per command; on long CI checkouts that pathspec list exceeds
+    // the Windows command-line limit. Mapping a drive letter to the clone lets
+    // the old tooling run verbatim with short pathspecs.
+    let substDrive=null;
+    if(process.platform==='win32'){
+      substDrive='X:';
+      try{execFileSync('subst',[substDrive,'/d'],{stdio:'ignore'});}catch{/* not mapped */}
+      execFileSync('subst',[substDrive,oldSource]);
+    }
+    try{
+      const oldRoot=substDrive?`${substDrive}\\`:oldSource;
+      execFileSync('node',[join(oldRoot,'scripts','create-project.mjs'),'--directory',app,'--name','Harbor Desk','--slug','harbor-desk',
+        '--module',goModule,'--bundle','test.example.harbordesk','--repository','https://github.com/example/harbor-desk'],
+        {cwd:oldSource,stdio:['ignore','pipe','inherit']});
+    }finally{ if(substDrive) execFileSync('subst',[substDrive,'/d'],{stdio:'ignore'}); }
     console.log(`Verifying upgrade from ${oldRef} (template ${oldTemplate.slice(0,12)}): ${app}`);
   }else{
     fixture=snapshotFramework(repository);

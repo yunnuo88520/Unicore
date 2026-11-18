@@ -46,7 +46,8 @@ test('real exported product renames, retains business/theme and merges two frame
   assert.match(agentGuide,/`project\.provenance\.json`[\s\S]*先查该上游已有的 Issues 和 PR/);
   assert.match(agentGuide,/上游 Issue[\s\S]*草稿及目标仓库/);
   assert.match(agentGuide,/修复已进入 `framework-template`[\s\S]*`pnpm framework:sync`/);
-  assert.match(agentGuide,/业务页面需要管理员权限时仍归业务区/);
+  assert.match(agentGuide,/业务模块的操作和管理页面默认只放在用户工作台的业务区/);
+  assert.match(agentGuide,/只有需求明确指定某个业务页面在此呈现时/);
   assert.match(agentGuide,/\(docs\/product\/development\.md#业务导航规划\)/);
   const appDevelopment=readFileSync(join(app,'docs/product/development.md'),'utf8');
   assert.match(appDevelopment,/^### 业务导航规划$/m);

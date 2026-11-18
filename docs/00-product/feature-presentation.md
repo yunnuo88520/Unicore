@@ -34,7 +34,7 @@
 4. 页面可见性（`packages/web-ui/src/routes.ts` `canAccess`）在权限点之外有形态硬规则：Platform 用户域永不呈现 `site/api-docs/announcements`（管理面拆分，[ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md)）；`api-docs` 需 `api_docs` 能力且仅 Web 形态（desktop 无契约端点）；`edition`（系统更新）在 Platform 仅 super_admin，其他形态看 updater 能力。
 5. 菜单、页面、功能不是同一概念：菜单授权（menu_ids）只决定入口，不授予 API；按钮动作（action）与接口授权（operation）独立命名空间。前端隐藏只是体验层，服务端才是执行点。
 
-「系统管理」收纳框架和实例治理。管理员工作台同时可呈现应用业务目录，业务的管理操作仍按所属模块放在业务区。内置布局是种子，Platform 可在菜单管理中新增业务一级目录并组织已注册页面。派生应用按 [业务导航规划](../product/development.md#业务导航规划) 决定工作台、区域和权限。
+管理员工作台和「系统管理」用于框架与实例治理。派生业务的使用与管理页面默认放在用户工作台的业务区，按业务权限控制谁能操作。只有需求明确指定的业务页面才可在管理员工作台呈现，归属仍为业务区。内置布局是种子，Platform 可在菜单管理中新增业务一级目录并组织已注册页面。派生应用按 [业务导航规划](../product/development.md#业务导航规划) 决定工作台、区域和权限。
 
 ## 3. 页面与设置呈现
 

@@ -153,13 +153,23 @@ try{
     // application carries the framework author and the template VERSION until
     // its own release process runs. The old generator verifies its selected
     // template inputs with ~950 pathspecs in one git invocation, which exceeds
-    // the Windows command-line limit on every possible checkout location; on
-    // Windows it therefore runs without its own template-ancestry graft and
-    // this drill re-applies exactly that graft (its reset --soft onto the
-    // template commit) so the fixture's git shape matches a real project.
-    execFileSync('node',['scripts/create-project.mjs','--directory',app,'--name','Harbor Desk','--slug','harbor-desk',
-      '--module',goModule,'--bundle','test.example.harbordesk','--repository','https://github.com/example/harbor-desk'],
-      {cwd:oldSource,stdio:['ignore','pipe','inherit']});
+    // the Windows command-line limit at any checkout location, so on Windows
+    // the clone is reached through a drive mapping: git resolves the mapping
+    // for its own toplevel check, the old generator skips its overflowing
+    // input check there, and the graft below re-applies exactly the ancestry
+    // step the old generator performs on POSIX.
+    let substDrive=null;
+    if(process.platform==='win32'){
+      substDrive='X:';
+      try{execFileSync('subst',[substDrive,'/d'],{stdio:'ignore'});}catch{/* not mapped */}
+      execFileSync('subst',[substDrive,oldSource]);
+    }
+    try{
+      const oldRoot=substDrive?`${substDrive}\\`:oldSource;
+      execFileSync('node',[join(oldRoot,'scripts','create-project.mjs'),'--directory',app,'--name','Harbor Desk','--slug','harbor-desk',
+        '--module',goModule,'--bundle','test.example.harbordesk','--repository','https://github.com/example/harbor-desk'],
+        {cwd:oldSource,stdio:['ignore','pipe','inherit']});
+    }finally{ if(substDrive) execFileSync('subst',[substDrive,'/d'],{stdio:'ignore'}); }
     if(git(app,'rev-list','--parents','-n','1','HEAD').trim().split(' ').length===1){
       git(app,'fetch',oldSource,'framework-template');
       git(app,'reset','--soft','FETCH_HEAD');

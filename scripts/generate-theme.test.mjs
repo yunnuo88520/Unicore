@@ -15,11 +15,23 @@ test('valid source compiles deterministic artifacts and flat Go mode maps', () =
   assert.deepEqual(compileTheme(source), files);
   for (const [path, content] of Object.entries(files)) assert.equal(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'), content, `${path} must be generated`);
   const resolved = JSON.parse(files['assets/theme/resolved.gen.json']);
-  assert.equal(resolved.brand.accent, '#6662ec');
+  // The current application's own brand source drives the artifact; the framework default
+  // is not hardcoded here because derived applications legitimately rebrand.
+  assert.equal(resolved.brand.accent, source.brand.accent);
   for (const mode of ['light', 'dark']) {
     assert.ok(Object.values(resolved[mode]).every(value => typeof value === 'string'));
     for (let i = 1; i <= 8; i++) assert.match(resolved[mode][`chart-${i}`], /^#[0-9a-f]{6}$/i);
   }
+});
+
+test('a controlled non-default brand accent passes through generation unchanged', () => {
+  const custom = candidate();
+  custom.brand.accent = '#12ab34';
+  custom.modes.light.bg = '#f0f1f2';
+  custom.modes.dark.bg = '#101112';
+  const resolved = JSON.parse(compileTheme(custom)['assets/theme/resolved.gen.json']);
+  assert.equal(resolved.brand.accent, '#12ab34');
+  assert.equal(compileTheme(custom)['assets/theme/resolved.gen.json'], compileTheme(structuredClone(custom))['assets/theme/resolved.gen.json']);
 });
 
 test('role sizes and radius/spacing tokens honor source and device scales', () => {

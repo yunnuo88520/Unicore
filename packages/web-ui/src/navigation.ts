@@ -2,7 +2,7 @@
 // Description: One ordered shared tree drives the menu editor and every workspace navigation presentation.
 import { operations } from '@unicore/sdk';
 import './modules';
-import { uiModules } from './module-registry';
+import { uiModules, type UiRoute } from './module-registry';
 import type { Bootstrap, MenuList, NavigationNode, NavigationSection } from '@unicore/sdk';
 import { Circle, type LucideIcon } from 'lucide-react';
 import { defineMessages, t } from './i18n';
@@ -68,10 +68,15 @@ const adminOnly: NavigationSection['surfaces'] = ['administrator'];
 // tabbed page on the local profiles.
 const platformAdminOnly = new Set(['announcements', 'site', 'api-docs']);
 
-/** Route registration alone decides which workspaces a page reaches, mirroring the Go seed: console and management groups plus the platform admin-only pages stay administrator-only. */
+/** Route registration alone decides which workspaces a page reaches, mirroring the Go seed: console and management groups plus the platform admin-only pages stay administrator-only. Business pages (module pages and any route without a governance group) belong to the user workspace by default — a business page reaches the administrator console only when its route explicitly declares `surfaces`, matching the backend registration the menu validator enforces. */
 export function routeSurfaces(id: string): NavigationSection['surfaces'] {
-  const group = isRegisteredPage(id) && 'group' in routes[id] ? String(routes[id].group) : '';
-  return group === 'system' || group === 'administration' || group === 'monitor' || group === 'ai' || platformAdminOnly.has(id) ? ['administrator'] : ['user', 'administrator'];
+  const route = isRegisteredPage(id) ? (routes[id] as Partial<UiRoute>) : undefined;
+  const group = route?.group ? String(route.group) : '';
+  if (group === 'system' || group === 'administration' || group === 'monitor' || group === 'ai' || platformAdminOnly.has(id)) return ['administrator'];
+  // The workspace overview is registered for both workspaces in the Go seed.
+  if (id === 'overview') return ['user', 'administrator'];
+  const declared = route?.surfaces;
+  return declared && declared.length ? [...declared] : ['user'];
 }
 
 /** Seeded directory surfaces aggregate their subtree: the union of the route-derived page surfaces keeps a directory reachable wherever its pages are. */

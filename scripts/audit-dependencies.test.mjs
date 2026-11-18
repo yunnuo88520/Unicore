@@ -19,7 +19,7 @@ test('every exception needs package, advisory, severity, mitigation and a future
   ] }), /duplicate/);
 });
 
-test('audit report parsing keeps only high and critical entries', () => {
+test('audit report parsing keeps every severity for ledger reconciliation', () => {
   const advisories = advisoriesFromAudit(JSON.stringify({ advisories: {
     1: { module_name: 'a', severity: 'critical', github_advisory_id: 'GHSA-c1' },
     2: { module_name: 'b', severity: 'high', url: 'https://example/h1' },
@@ -29,7 +29,26 @@ test('audit report parsing keeps only high and critical entries', () => {
   assert.deepEqual(advisories, [
     { package: 'a', advisory: 'GHSA-c1', severity: 'critical' },
     { package: 'b', advisory: 'https://example/h1', severity: 'high' },
+    { package: 'c', advisory: 'GHSA-l1', severity: 'low' },
+    { package: 'd', advisory: 'GHSA-m1', severity: 'moderate' },
   ]);
+});
+
+test('audit-service error payloads and malformed responses fail the gate instead of passing', () => {
+  // The registry/audit service answered with an error object (pnpm exited 1):
+  // treating it as an empty report printed PASS over a failed check.
+  assert.throws(() => advisoriesFromAudit(JSON.stringify({ error: { code: 'ENOTFOUND', summary: 'request failed' } })), /instead of an audit report/);
+  assert.throws(() => advisoriesFromAudit(JSON.stringify({ errorCode: 'AUDIT_UNAVAILABLE' })), /instead of an audit report/);
+  assert.throws(() => advisoriesFromAudit('{"advisories": null}'), /instead of an audit report/);
+  assert.throws(() => advisoriesFromAudit('[]'), /instead of an audit report/);
+  assert.throws(() => advisoriesFromAudit('not json at all'), /invalid JSON/);
+  // A real report keeps flowing through the non-zero audit exit unchanged.
+  assert.equal(advisoriesFromAudit('{"advisories": {}}').length, 0);
+});
+
+test('an uncovered low advisory blocks like any other severity', () => {
+  const ledger = [{ package: 'a', advisory: 'GHSA-c1', severity: 'critical', expires_on: future }];
+  assert.deepEqual(reconcile([{ package: 'c', advisory: 'GHSA-l1', severity: 'low' }], ledger), ['low c GHSA-l1']);
 });
 
 test('reconciliation requires package and severity to match the ledger entry', () => {

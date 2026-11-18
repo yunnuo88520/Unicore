@@ -17,6 +17,14 @@ export interface UiRoute {
   database?: boolean;
   /** The page is available to signed-in local profiles without a platform grant. */
   local?: boolean;
+  /**
+   * Workspace reach for a business page. Business pages default to the user
+   * workspace only; declare `['user', 'administrator']` when the requirement
+   * explicitly places a business page in the administrator console too, and keep
+   * the declaration identical to the module's backend `NavigationPage.Surfaces` —
+   * the backend refuses menu payloads that exceed the registration.
+   */
+  surfaces?: ('user' | 'administrator')[];
 }
 
 export type MountFn = (path: string, loader: () => Promise<{ default: PageComponent }>) => void;

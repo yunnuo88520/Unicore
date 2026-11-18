@@ -16,6 +16,9 @@ GO_MODULE := $(shell node -p "JSON.parse(require('fs').readFileSync('product.ide
 CLI_COMMAND := $(shell node -p "JSON.parse(require('fs').readFileSync('product.identity.json','utf8')).cli.command")
 OPS_COMMAND := $(shell node -p "JSON.parse(require('fs').readFileSync('product.identity.json','utf8')).cli.opsCommand")
 LDFLAGS := -X $(GO_MODULE)/internal/buildinfo.Version=$(VERSION) -X $(GO_MODULE)/internal/buildinfo.Commit=$(COMMIT) -X $(GO_MODULE)/internal/buildinfo.BuildTime=$(BUILD_TIME)
+# go build -o keeps the literal name, so Windows host builds must add .exe
+# themselves or the produced binaries are not executable from cmd.exe.
+EXE_SUFFIX := $(if $(filter Windows_NT,$(OS)),.exe,)
 
 .PHONY: install dev-web dev-server dev-desktop dev-cli generate docs wiki wiki-publish test test-gen test-go test-web test-e2e test-features test-notes test-mcp build-web build-cli build-desktop build-all build-ops doctor dev-deps-up dev-deps-down release package package-desktop version docker-build compose-up compose-down test-deploy test-upgrade check-features audit
 install:
@@ -84,16 +87,16 @@ check-features:
 	node scripts/build-features.mjs
 build-web: check-features
 	pnpm --filter @unicore/web build
-	go build -trimpath -tags '$(FEATURE_TAGS)' -ldflags '$(LDFLAGS)' -o build/bin/server ./cmd/server
+	go build -trimpath -tags '$(FEATURE_TAGS)' -ldflags '$(LDFLAGS)' -o build/bin/server$(EXE_SUFFIX) ./cmd/server
 build-cli:
 	pnpm design:generate
-	go build -trimpath -ldflags '$(LDFLAGS)' -o build/bin/$(CLI_COMMAND) ./cmd/cli
+	go build -trimpath -ldflags '$(LDFLAGS)' -o build/bin/$(CLI_COMMAND)$(EXE_SUFFIX) ./cmd/cli
 build-desktop: check-features
 	pnpm design:generate
 	cd cmd/desktop && wails build -tags 'desktop $(FEATURE_TAGS)' -ldflags '$(LDFLAGS)'
 	pnpm check:native --bundle
 build-ops:
-	go build -trimpath -ldflags '$(LDFLAGS)' -o build/bin/$(OPS_COMMAND) ./cmd/ops
+	go build -trimpath -ldflags '$(LDFLAGS)' -o build/bin/$(OPS_COMMAND)$(EXE_SUFFIX) ./cmd/ops
 build-all: build-web build-cli build-ops build-desktop
 doctor:
 	node scripts/doctor.mjs $(ARGS)

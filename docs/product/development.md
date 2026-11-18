@@ -8,7 +8,7 @@
 先按 [快速开始](index.md#准备环境) 准备工具链，并确认框架源码仓库没有未提交修改。目标目录必须尚不存在，且位于框架仓库之外：
 
 ```sh
-pnpm create:project --directory ../my-app --name 'My App' --slug my-app --module github.com/team/my-app --bundle com.team.myapp --repository https://github.com/team/my-app
+pnpm create:project --directory ../my-app --name 'My App' --slug my-app --module github.com/team/my-app --bundle com.team.myapp --repository https://github.com/team/my-app --author 'My Team <team@example.com>'
 cd ../my-app
 make install
 make docs
@@ -23,6 +23,7 @@ make dev-server
 | 内容 | 结果 |
 | --- | --- |
 | 产品身份 | 替换名称、Go module、CLI/运维命令、桌面标识、服务与发行名称 |
+| 应用作者 | `--author "Team <email>"` 写入 `product.identity.json` 与 `project.provenance.json`；应用自有代码（业务 Go/SQL/md）用该作者头即可通过作者检查，无需框架作者头；缺省保留框架作者 |
 | Git 仓库 | 初始化本地 `main`，可选的 `--repository` 配置为 `origin` |
 | 框架来源 | 只读 `framework` 远端与 `project.provenance.json` 保存上游来源 |
 | 应用更新 | 清空上游 OTA 仓库和公钥，由你配置自己的更新渠道 |
@@ -62,6 +63,22 @@ Git 来源中选中的文件有未提交修改时，创建器默认拒绝导出�
 
 在线接口参考可通过 `APP_API_DOCS=true` 开启 `/api-docs` 和 `/openapi.json`，默认关闭。开发细节见 [API 契约](https://unicore.ebox.vip/02-standards/api-contract)、[权限参考](https://unicore.ebox.vip/api/permissions)、[前端基础](https://unicore.ebox.vip/03-runbooks/frontend-foundations) 和 [UI 组件](ui-components.md)。
 
+### 业务导航规划
+
+先根据页面管理的对象归类，再决定由谁操作。订单、工单、客户、产品许可证的使用和管理都属于应用业务。审批、吊销或更改业务规则可以有专门的业务权限，仍在用户工作台的业务区进行。管理员工作台用于框架和实例治理。「系统管理」承载系统设置、平台账号与权限、审计、运行监控和框架更新。比如许可应用的「许可证管理」和「签发记录」默认放在用户工作台的「许可管理」目录，框架自身的「系统更新」留在系统管理。
+
+内置菜单是框架的默认布局，业务一级目录数量由实际工作流决定。相关业务操作可复用自己的目录，独立业务可以新增一级目录，单页业务也可以直接作为一级入口。规划时分别写明适用 Profile、工作台（用户或管理员）、区域、父级、顺序和权限。
+
+- **Platform**：在模块和前端登记业务页面。新增业务页默认将模块的 `NavigationPage.Surfaces` 设为 `user`。只有需求明确指定某页要在管理员工作台呈现时，才为该页声明 `administrator`，区域仍为业务区。`system`、`administration`、`monitor` 和 `ai` 是框架的治理分组。在「菜单管理」可先建业务区的一级目录，再把已登记的页面放到下面。若应用需要交付默认树，按现有的前后端导航模型维护种子，并验证已有实例的菜单配置可保留。
+- **Standalone**：Web 与桌面共享本地业务导航，可在本地默认树组织适用的业务入口。两载体均不装配 Platform 的管理员工作台和菜单编辑器。
+- **CLI**：用命令树组织业务，不适用图形菜单规则。
+
+菜单父级和排序只决定入口的组织方式。进入页面和调用 API 仍须遵循应用的页面权限、服务端契约和数据归属规则。
+
+## 应用发版与框架版本
+
+应用拥有独立的产品版本：根目录 `VERSION` 是唯一手工来源，`package.json`、OpenAPI、桌面信息与 Go buildinfo 都由 `pnpm version:sync` 从它生成。创建时默认 `0.1.0`，可用 `--version` 指定；`pnpm framework:sync` 只更新框架代码，不会提高或覆盖应用版本。发版流程：在 `## Unreleased` 写好中英文条目，执行 `pnpm release --release X.Y.Z`（`version.mjs --release` 校验递增并归档条目），再走自己的发布渠道。`project.provenance.json` 同时记录创建时的框架来源与当前已成功集成的框架版本、源码提交和模板提交。
+
 ## 数据库迁移与文件
 
 数据库变更在自己的业务命名空间内追加迁移，由 Catalog 声明版本和依赖。当前三个图形 profile 均包含 `core`、`platform` 和默认开启的 `module.notes` 命名空间；Standalone 创建相应表不表示装配平台账号或管理能力。CLI 不装配数据库。具体集合以 `migrations/catalog.json` 为准。
@@ -89,6 +106,8 @@ make build-web build-cli
 页面变更还需检查权限状态、双语和窄屏；桌面变更在目标系统构建并验证原生窗口。数据库变更应使用隔离实例验证适用方言。运行时升级前按 [备份恢复](backup.md) 演练恢复。
 
 新建业务源码可使用 `product.identity.json` 的团队作者配置，框架已有文件保留原作者与许可证。通过 `pnpm framework:check` 检查上游模板，使用 `pnpm framework:sync` 合并更新，流程见 [框架源码升级](framework-upgrade.md)。
+
+开发途中若遇到可复现的框架通用问题，按 [上游反馈流程](framework-upgrade.md#应用反馈与框架通用问题) 查找或提交 Issue。即使已经在应用内临时修复，也要保留对应的上游记录，方便模板更新后核对。
 
 ## 替换示例业务
 

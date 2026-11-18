@@ -113,7 +113,11 @@ jobs:
             check_name: macos-14
     runs-on: ${{ matrix.os }}
     steps:
+      # Full history: the Windows upgrade drill creates an application from the previous
+      # release tag's source with its own freshly generated framework-template.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: actions/setup-go@v7
         with: { go-version-file: go.mod }
       - uses: pnpm/action-setup@v6
@@ -127,6 +131,25 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev build-essential pkg-config
       - name: Verify signed update helpers on the native OS
         run: go test ./internal/updates ./internal/adapter/updatechannel ./internal/adapter/updateinstall
+      # Windows acceptance for the cross-platform tooling: doctor must classify installed
+      # pnpm correctly (not a spawn EINVAL misreport), and the suites the Windows upgrade
+      # report flagged run on a real Windows checkout with the repository's own attributes.
+      - name: Verify Windows tool invocation and cross-platform suites
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          where.exe rg 2>$null; if ($LASTEXITCODE -ne 0) {
+            # The chocolatey feed times out regularly; fetch a pinned ripgrep
+            # release straight from GitHub and put it on the step PATH instead.
+            $rg = Join-Path $env:RUNNER_TEMP 'ripgrep'
+            Invoke-WebRequest -Uri 'https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-x86_64-pc-windows-msvc.zip' -OutFile "$rg.zip"
+            Expand-Archive "$rg.zip" -DestinationPath $rg -Force
+            Add-Content $env:GITHUB_PATH "$rg\ripgrep-14.1.1-x86_64-pc-windows-msvc"
+            $env:PATH = "$rg\ripgrep-14.1.1-x86_64-pc-windows-msvc;$env:PATH"
+          }
+          node scripts/doctor.mjs
+          go test ./internal/adapter/bloblocal/ ./internal/branding/ ./internal/config/
+          pnpm test:tooling
       - name: Verify native SQLite paths and desktop persistence
         run: go test ./internal/adapter/storage/sqlite ./internal/bootstrap/local
       - name: Install matching Wails CLI
@@ -175,6 +198,17 @@ jobs:
       - name: Verify the renamed derived application native desktop build
         if: hashFiles('project.provenance.json') == ''
         run: node scripts/verify-derived-project.mjs desktop
+      # Windows executes the full customized derived-application drill (non-default brand,
+      # independent migration namespace, module descriptor, docs, full tests and builds) on
+      # a real Windows checkout — the cross-platform upgrade report's remaining evidence.
+      - name: Verify the customized derived application full drill on Windows
+        if: hashFiles('project.provenance.json') == '' && runner.os == 'Windows'
+        run: node scripts/verify-derived-project.mjs full
+      # And the path a real downstream actually walks: create from the previous release
+      # template, commit customization, then framework:sync to the current template.
+      - name: Verify a real old-template upgrade drill on Windows
+        if: hashFiles('project.provenance.json') == '' && runner.os == 'Windows'
+        run: node scripts/verify-derived-project.mjs upgrade
   docker-build:
     runs-on: ubuntu-22.04
     steps:

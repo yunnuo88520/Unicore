@@ -63,6 +63,54 @@ function mergeBase(dir, upstream) {
   }
 }
 
+// Version projections are the only regions a sync may auto-resolve inside files
+// that also carry application content. Dependencies, scripts, OpenAPI paths and
+// desktop metadata are application work: a conflicted hunk is auto-resolved only
+// when every line on both sides is the serialized shape of a version field, and
+// the resolution keeps the application's own lines (scripts/version.mjs
+// re-derives the same values from VERSION later). Any other hunk — application
+// dependencies, business API paths, desktop metadata — keeps the whole file in
+// conflict for manual resolution, and the application branch never advances
+// while it is unresolved.
+const versionProjectionLines = {
+  'package.json': /^\s*"version"\s*:/,
+  'apps/web/package.json': /^\s*"version"\s*:/,
+  'apps/desktop/package.json': /^\s*"version"\s*:/,
+  'packages/contracts/package.json': /^\s*"version"\s*:/,
+  'packages/sdk/package.json': /^\s*"version"\s*:/,
+  'packages/theme/package.json': /^\s*"version"\s*:/,
+  'packages/web-ui/package.json': /^\s*"version"\s*:/,
+  'packages/contracts/openapi.json': /^\s*"version"\s*:/,
+  'cmd/desktop/wails.json': /^\s*"productVersion"\s*:/,
+};
+
+// Resolve version-field hunks in the conflicted working-tree file by keeping the
+// application's side; cleanly merged application content outside the hunks is
+// untouched. Returns false when a hunk carries non-projection content: the file
+// then keeps its conflict markers for manual resolution.
+function resolveVersionProjectionConflicts(stage, path, lineShape) {
+  const file = join(stage, path);
+  const out = [];
+  let inHunk = false, oursSide = false, projectionOnly = true, hadHunk = false;
+  for (const line of readFileSync(file, 'utf8').split('\n')) {
+    if (line.startsWith('<<<<<<<')) { inHunk = true; oursSide = true; projectionOnly = true; hadHunk = true; continue; }
+    if (inHunk && line.startsWith('>>>>>>>')) {
+      if (!projectionOnly) return false;
+      inHunk = false; continue;
+    }
+    if (inHunk && line.startsWith('=======')) { oursSide = false; continue; }
+    if (inHunk) {
+      if (!lineShape.test(line)) projectionOnly = false;
+      if (oursSide) out.push(line); // the application's own value wins; upstream's is re-derived from VERSION
+      continue;
+    }
+    out.push(line);
+  }
+  if (!hadHunk) return false;
+  writeFileSync(file, out.join('\n'));
+  return true;
+}
+
 function previewConflicts(dir, upstream) {
   try { git(dir, 'merge-tree', '--write-tree', '--name-only', '-z', 'HEAD', upstream); return []; } catch (error) {
     if (error.status !== 1) return null; // Older git without merge-tree; conflicts surface during sync.
@@ -233,17 +281,20 @@ export function syncTemplate(dir = process.cwd()) {
       if (!conflicts) throw error;
       // Product-owned surfaces keep the application's side: its product version,
       // release history, rewritten READMEs and its own OTA/trust configuration are
-      // never overwritten by the framework template. Version projections take the
-      // upstream structure and regenerate at the application's version below. Every
-      // other conflict stays manual.
+      // never overwritten by the framework template. Version-projection files keep
+      // their cleanly merged content and resolve only version-field hunks; any
+      // application dependencies, scripts or business API paths in a hunk leave the
+      // whole file conflicted for manual resolution. Every other conflict stays
+      // manual too.
       const ours = new Set(['VERSION', 'CHANGELOG.md', 'README.md', 'README.en.md', 'assets/updates/config.json', 'assets/theme/tokens.json']);
-      const theirsThenRegenerate = new Set(['package.json', 'apps/web/package.json', 'apps/desktop/package.json', 'packages/contracts/package.json', 'packages/sdk/package.json', 'packages/theme/package.json', 'packages/web-ui/package.json', 'packages/contracts/openapi.json', 'cmd/desktop/wails.json', 'internal/buildinfo/version.gen.go']);
       const conflicted = conflicts.split('\n').filter(Boolean);
+      const resolved = [];
       for (const path of conflicted) {
-        if (ours.has(path)) git(stage, 'checkout', '--ours', '--', path);
-        else if (theirsThenRegenerate.has(path)) git(stage, 'checkout', '--theirs', '--', path);
+        if (ours.has(path)) { git(stage, 'checkout', '--ours', '--', path); resolved.push(path); continue; }
+        const lineShape = versionProjectionLines[path];
+        if (lineShape === undefined && path === 'internal/buildinfo/version.gen.go') { git(stage, 'checkout', '--theirs', '--', path); resolved.push(path); continue; } // wholly generated
+        if (lineShape && resolveVersionProjectionConflicts(stage, path, lineShape)) resolved.push(path);
       }
-      const resolved = conflicted.filter(path => ours.has(path) || theirsThenRegenerate.has(path));
       if (resolved.length) {
         writeFileSync(join(stage, 'VERSION'), state.applicationVersion);
         for (const path of resolved) git(stage, 'add', '--', path);

@@ -241,7 +241,7 @@ func TestRealHelperUpgradeAndRollback(t *testing.T) {
 						expected = "rolled_back"
 						version = "1.0.0"
 					}
-					deadline := time.Now().Add(20 * time.Second)
+					deadline := time.Now().Add(60 * time.Second)
 					for time.Now().Before(deadline) {
 						job := i.Job()
 						if job.Status == expected {

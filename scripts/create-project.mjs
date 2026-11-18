@@ -156,7 +156,7 @@ export function createProject({ source = frameworkRoot, directory, name, module,
     // at the requested version (independent of the framework's), every projection
     // regenerates from it, and the framework's changelog is not the app's history.
     writeFileSync(join(staging, 'VERSION'), `${version}\n`);
-    writeFileSync(join(staging, 'CHANGELOG.md'), `<!-- Author: ${author} -->\n# Changelog\n\nAll notable changes to this application are documented here. The framework's own release history lives upstream and reaches this repository through framework source upgrades; it is not part of this file.\n\n## Unreleased\n\n### 中文\n\n- 基于 Unicore ${frameworkVersion} 创建。\n\n### English\n\n- Created from Unicore ${frameworkVersion}.\n`);
+    writeFileSync(join(staging, 'CHANGELOG.md'), `<!-- Author: ${author} -->\n# Changelog\n\nAll notable changes to this application are documented here. The framework's own release history lives upstream and reaches this repository through framework source upgrades; it is not part of this file.\n\n## ${version} — ${new Date().toISOString().slice(0, 10)}\n\n### 中文\n\n- 基于 Unicore ${frameworkVersion} 创建。\n\n### English\n\n- Created from Unicore ${frameworkVersion}.\n\n## Unreleased\n`);
     // Real checkouts ship the version synchronizer; minimal fixtures without it have
     // no version projections to regenerate.
     if (existsSync(join(staging, 'scripts', 'version.mjs'))) {

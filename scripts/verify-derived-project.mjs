@@ -160,10 +160,7 @@ try{
   if(mode==='upgrade'){
     addWorkorders('yunnuo <ymz@ebox.vip>');
     writeDataProbe();
-    // The application cuts its own 2.3.4 release: the changelog entry belongs to
-    // the app's history, not the framework's.
-    const changelog=readFileSync(join(app,'CHANGELOG.md'),'utf8');
-    writeFileSync(join(app,'CHANGELOG.md'),changelog.replace('## Unreleased',`## 2.3.4 — 2026-01-30\n\n### 中文\n\n- 首个派生发行：工单业务与自定义主题。\n\n### English\n\n- First derived release: workorders business and a custom theme.\n\n## Unreleased`));
+
     // Regenerate the projections BEFORE the customization commit: the data probe
     // compiles against the embedded catalog, which only knows module.workorders
     // after catalogdata has been regenerated. A real downstream commits these
@@ -236,7 +233,7 @@ try{
     if(provenance.framework_integration?.framework_version!==currentFrameworkVersion||provenance.framework_integration?.template_commit!==newTemplate) throw Error(`provenance did not record the integrated framework:\n${JSON.stringify(provenance.framework_integration)}`);
     if(provenance.author!==drillAuthor) throw Error('application author lost in provenance');
     const appChangelog=readFileSync(join(app,'CHANGELOG.md'),'utf8');
-    if(!appChangelog.includes('Created from Unicore 0.1.5')) throw Error('application changelog history was lost');
+    if(!appChangelog.includes('## 2.3.4 — ')||!appChangelog.includes('Created from Unicore 0.1.5')) throw Error('application changelog history was lost');
     if(/## 0\.1\.6 /.test(appChangelog)) throw Error('framework release history leaked into the application changelog');
     const updates=JSON.parse(readFileSync(join(app,'assets/updates/config.json'),'utf8'));
     if(updates.repository!==''||updates.channel!=='stable'||updates.allow_unsigned_platform!==true) throw Error('application OTA/trust configuration was overwritten');

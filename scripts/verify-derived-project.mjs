@@ -131,7 +131,10 @@ try{
     if(JSON.parse(readFileSync(join(app,'product.identity.json'),'utf8')).author!==drillAuthor) throw Error('application author lost in sync');
     console.log(`Synchronized to template ${newTemplate.slice(0,12)}; backup ${report.backup_branch}; ${report.files_changed.length} upstream files`);
     rmSync(join(output,'old-source'),{recursive:true,force:true});
-  }else{
+  }else if(mode==='full'){
+    // Desktop mode packages the untouched template export: adding the workorders
+    // customization here would leave the committed migration metadata stale, because
+    // this mode never runs make docs to regenerate it.
     addWorkorders();
   }
   run('pnpm',['install','--frozen-lockfile']);

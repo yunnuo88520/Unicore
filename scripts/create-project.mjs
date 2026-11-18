@@ -3,12 +3,57 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { copyDistribution, distributionPlan, regularFile, validateDocuments } from './distribution.mjs';
+import { exportTemplateTree } from './framework-template.mjs';
 import { applyIdentity, applyRepositoryLinks, validateIdentity, replaceModuleReferences } from './product-identity.mjs';
 import { writeAIContext } from './ai-context.mjs';
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync, realpathSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync, realpathSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 const frameworkRoot = fileURLToPath(new URL('../', import.meta.url));
+
+// The generator owns README rewrites, file mapping and generated context, so a raw
+// whitelist diff lies about template drift: compare the candidate template's tree
+// against a real fresh export instead. Both sides are tree objects, so no file list
+// ever travels on the command line (Windows command-length limit). The README pair
+// is seeded from the candidate template itself so generator wording changes never
+// fake drift, and the source checkout's own generator runs when it supports it.
+function templateDrift(git, source, templateRevision, dirty) {
+  let worktree = null;
+  try {
+    // The ancestor corresponds to the committed state: a reviewed-dirty checkout
+    // layers deliberate changes on top, so export HEAD instead of the worktree.
+    let exportRoot = source;
+    if (dirty) {
+      worktree = mkdtempSync(join(tmpdir(), 'unicore-ancestor-'));
+      git('worktree', 'add', '--detach', worktree, 'HEAD');
+      exportRoot = worktree;
+    }
+    const readmes = {};
+    for (const [key, path] of [['md', 'README.md'], ['en', 'README.en.md']]) {
+      // Byte-exact seed: trimming would drop the trailing newline and fake a diff.
+      try { readmes[key] = execFileSync('git', ['-C', source, 'show', `${templateRevision}:${path}`], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }); } catch { /* Old trees without the pair keep the generator default. */ }
+    }
+    let tree;
+    const generator = join(exportRoot, 'scripts', 'framework-template.mjs');
+    if (existsSync(generator) && readFileSync(generator, 'utf8').includes('--export-tree')) {
+      tree = JSON.parse(execFileSync(process.execPath, [generator, '--export-tree'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })).tree;
+    } else {
+      // Old checkouts predate --export-tree; reconstruct with this checkout's
+      // generator (the whitelist, files and AI context still come from the source).
+      tree = exportTemplateTree(exportRoot, { readmes: Object.keys(readmes).length ? readmes : undefined }).tree;
+    }
+    const old = git('rev-parse', `${templateRevision}^{tree}`);
+    if (old === tree) return null;
+    return git('diff', '--stat', old, tree).trim() || 'the template tree differs from a fresh export of this source checkout';
+  } finally {
+    if (worktree) {
+      try { git('worktree', 'remove', '--force', worktree); } catch { /* best effort cleanup */ }
+      rmSync(worktree, { recursive: true, force: true });
+    }
+  }
+}
+
 // `author` is the application team's own identity (identity + provenance): their code,
 // SQL and docs are downstream sources and do not carry the framework author header.
 export function createProject({ source = frameworkRoot, directory, name, module, bundle, slug, repository, author = 'yunnuo <ymz@ebox.vip>', allowDirty = false }) {
@@ -50,9 +95,9 @@ export function createProject({ source = frameworkRoot, directory, name, module,
     // rejected with the recovery instead of producing a misleading common ancestor.
     const trailer = templateRevision ? git('log', '-1', '--format=%B', templateRevision).match(/^Source: ([0-9a-f]{40})$/m)?.[1] : undefined;
     if (templateRevision && trailer !== upstream) {
-      // Compare against the committed tree: a reviewed dirty working tree (--allow-dirty)
-      // deliberately differs from HEAD and layers on top of a correct ancestor.
-      const drift = git('diff', '--stat', templateRevision, 'HEAD', '--', ...selected).trim();
+      // A missing trailer only means an older generator: the candidate is still the
+      // correct ancestor when its tree equals a fresh export of this checkout.
+      const drift = templateDrift(git, source, templateRevision, worktreeModified);
       if (drift) throw Error(`framework-template ${templateRevision.slice(0, 12)} does not match this source checkout (${upstream.slice(0, 12)}${trailer ? `, it was exported from ${trailer.slice(0, 12)}` : ', it has no Source record'}): ${drift.split('\n').at(-1)}. Regenerate the template from this checkout (node scripts/framework-template.mjs) or create the project from the matching source; otherwise source upgrades report conflicts for files this project never had.`);
     }
   }
@@ -131,9 +176,13 @@ export function createProject({ source = frameworkRoot, directory, name, module,
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   try {
-    const args=process.argv.slice(2), options={};
-    for(let i=0;i<args.length;i+=2){if(args[i]==='--allow-dirty'){options.allowDirty=true;i--;continue;}if(!['--directory','--name','--module','--bundle','--slug','--repository'].includes(args[i])||!args[i+1])throw Error('Use --directory PATH --name NAME --slug SLUG --module MODULE --bundle ID [--repository https://github.com/OWNER/REPO]');options[args[i].slice(2)]=args[i+1];}
-    if(!options.directory)throw Error('--directory is required');
+    const args = process.argv.slice(2), options = {};
+    for (let i = 0; i < args.length; i += 2) {
+      if (args[i] === '--allow-dirty') { options.allowDirty = true; i--; continue; }
+      if (!['--directory', '--name', '--module', '--bundle', '--slug', '--repository', '--author'].includes(args[i]) || !args[i + 1]) throw Error('Use --directory PATH --name NAME --slug SLUG --module MODULE --bundle ID [--repository https://github.com/OWNER/REPO] [--author "Team <email>"]');
+      options[args[i].slice(2)] = args[i + 1];
+    }
+    if (!options.directory) throw Error('--directory is required');
     console.log(`Created ${createProject(options)}\nInitial baseline committed on main; the read-only framework remote points upstream. ${options.repository ? 'Your origin is configured; no repository was created and no code was pushed.' : 'Add your own origin before pushing.'}\nNext: cd into the project; make install; make docs; make doctor`);
   } catch(error) { console.error(error.message); process.exitCode=1; }
 }

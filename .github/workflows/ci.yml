@@ -113,7 +113,11 @@ jobs:
             check_name: macos-14
     runs-on: ${{ matrix.os }}
     steps:
+      # Full history: the Windows upgrade drill creates an application from the previous
+      # release tag's source with its own freshly generated framework-template.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: actions/setup-go@v7
         with: { go-version-file: go.mod }
       - uses: pnpm/action-setup@v6
@@ -192,6 +196,11 @@ jobs:
       - name: Verify the customized derived application full drill on Windows
         if: hashFiles('project.provenance.json') == '' && runner.os == 'Windows'
         run: node scripts/verify-derived-project.mjs full
+      # And the path a real downstream actually walks: create from the previous release
+      # template, commit customization, then framework:sync to the current template.
+      - name: Verify a real old-template upgrade drill on Windows
+        if: hashFiles('project.provenance.json') == '' && runner.os == 'Windows'
+        run: node scripts/verify-derived-project.mjs upgrade
   docker-build:
     runs-on: ubuntu-22.04
     steps:

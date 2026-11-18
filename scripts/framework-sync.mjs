@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { applyIdentity, applyIdentityContent, applyTokens, loadIdentity, reverseRenames, reverseTokenMaps, validateIdentity, applyRepositoryLinks, replaceModuleReferences } from './product-identity.mjs';
 import { scanResiduals } from './check-product-residuals.mjs';
 import { regularFile, safePath } from './distribution.mjs';
@@ -220,7 +220,11 @@ export function syncTemplate(dir = process.cwd()) {
 }
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const command = process.argv[2];
+// Only act as a CLI when executed directly: verification scripts import these
+// functions and carry their own argv (an unguarded argv check once flipped the
+// importer's exit code and printed usage noise).
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  const command = process.argv[2];
 if (command === 'check' || command === 'sync') {
   try {
     if (!existsSync(`${root}project.provenance.json`)) {
@@ -246,4 +250,5 @@ if (command === 'check' || command === 'sync') {
 } else if (command) {
   console.error('Use: framework-sync.mjs check|sync');
   process.exitCode = 1;
+}
 }

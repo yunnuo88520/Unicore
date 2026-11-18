@@ -138,7 +138,14 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          where.exe rg 2>$null; if ($LASTEXITCODE -ne 0) { choco install ripgrep -y --no-progress }
+          where.exe rg 2>$null; if ($LASTEXITCODE -ne 0) {
+            # The chocolatey feed times out regularly; fetch a pinned ripgrep
+            # release straight from GitHub and put it on the step PATH instead.
+            $rg = Join-Path $env:RUNNER_TEMP 'ripgrep'
+            Invoke-WebRequest -Uri 'https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-x86_64-pc-windows-msvc.zip' -OutFile "$rg.zip"
+            Expand-Archive "$rg.zip" -DestinationPath $rg -Force
+            Add-Content $env:GITHUB_PATH "$rg\ripgrep-14.1.1-x86_64-pc-windows-msvc"
+          }
           node scripts/doctor.mjs
           go test ./internal/adapter/bloblocal/ ./internal/branding/ ./internal/config/
           pnpm test:tooling

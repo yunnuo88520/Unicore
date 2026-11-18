@@ -39,8 +39,17 @@ test('real exported product renames, retains business/theme and merges two frame
   assert.ok(appManifest.skills.includes('framework-upstream'));
   assert.equal(readFileSync(join(app,skillPath),'utf8'),readFileSync(join(repository,skillPath),'utf8'));
   const guide='docs/product/framework-upgrade.md';
-  assert.ok(readFileSync(join(app,'AGENTS.md'),'utf8').includes(skillPath));
-  assert.ok(readFileSync(join(app,'AGENTS.md'),'utf8').includes(guide));
+  const agentGuide=readFileSync(join(app,'AGENTS.md'),'utf8');
+  assert.ok(agentGuide.includes(skillPath));
+  assert.ok(agentGuide.includes(guide));
+  // Agents start at the project root, including when a task only asks for app work.
+  assert.match(agentGuide,/`project\.provenance\.json`[\s\S]*先查该上游已有的 Issues 和 PR/);
+  assert.match(agentGuide,/上游 Issue[\s\S]*草稿及目标仓库/);
+  assert.match(agentGuide,/修复已进入 `framework-template`[\s\S]*`pnpm framework:sync`/);
+  assert.match(agentGuide,/业务页面需要管理员权限时仍归业务区/);
+  assert.match(agentGuide,/\(docs\/product\/development\.md#业务导航规划\)/);
+  const appDevelopment=readFileSync(join(app,'docs/product/development.md'),'utf8');
+  assert.match(appDevelopment,/^### 业务导航规划$/m);
   const context=renderAIContext(app);
   assert.ok(context.content.includes('../../'+skillPath));
   assert.equal(appManifest.sources.frameworkUpgrade,guide);

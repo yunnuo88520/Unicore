@@ -3,7 +3,20 @@
 
 按任务阅读 [开发入口](docs/product/development.md)，只加载相关代码与 Skill，不遍历历史资料。
 
-疑似框架通用 Bug、准备反馈上游或同步框架源码时，读取 [framework-upstream](.agents/skills/framework-upstream/SKILL.md) 与[框架升级与反馈](docs/product/framework-upgrade.md)。先区分配置、业务和框架问题，再最小复现；本地临时补丁与业务改动分开，核对模板修复后同步并验证。仅有反馈草稿不能报告已提交上游。
+## 遇到疑似框架缺陷时
+
+创建项目、构建、测试、部署或升级时遇到疑似框架通用问题，即使当前任务只是开发业务、已经找到绕行办法，也要执行以下流程。详细步骤见 [framework-upstream](.agents/skills/framework-upstream/SKILL.md) 和[框架升级与反馈](docs/product/framework-upgrade.md)。
+
+1. 从 `project.provenance.json` 的 `upstream` 确认反馈仓库，用 `pnpm framework:check` 确认模板基线。先查该上游已有的 Issues 和 PR，再用干净框架或最小派生应用区分配置、业务定制和框架缺陷。
+2. 确认为通用缺陷后，优先关联已有 Issue 或 PR。缺少记录时准备一条上游 Issue，包含框架源码与模板提交、最小复现、预期与实际结果。已获外发授权时提交并记录链接。否则在本次交付中给出可直接发布的草稿及目标仓库。疑似安全漏洞走上游私密反馈入口。
+3. 业务开发受阻时，可先做独立的本地临时补丁，补上验证，并记录对应的上游反馈。可贡献的框架修复在独立上游分支或 fork 提 PR。
+4. 确认上游修复已进入 `framework-template` 后，按任务范围在应用升级分支执行 `pnpm framework:sync`，验证业务改动和测试，再处理已被上游覆盖的临时补丁。
+
+交付时注明已关联的上游链接或草稿，以及当前已验证到本地修复、上游合并、模板发布还是应用同步。只有草稿时，状态写「待提交」。
+
+## 开发约定
+
+设计菜单时先看页面管理的对象。订单、工单、客户、业务许可证等应用功能放在业务区，按实际业务建一级入口或目录。业务页面需要管理员权限时仍归业务区。「系统管理」留给框架与实例治理，例如系统设置、平台账号权限、运行监控和更新。内置菜单是默认布局，派生应用可增设业务一级目录。下手前先读 [业务导航规划](docs/product/development.md#业务导航规划)，明确工作台、区域、父级及权限。
 
 1. domain/usecase 依赖向内，adapter 按 Profile 装配；CLI 不引入 HTTP、SQL 或平台身份。
 2. API/DTO 以 OpenAPI 为源，pnpm generate 后不手改生成物；运行时按契约访问策略 fail-closed，未声明的已注册路由直接拒绝；服务端执行权限与资源范围校验。

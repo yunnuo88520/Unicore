@@ -176,7 +176,16 @@ func TestNavigationParentTypesAndBounds(t *testing.T) {
 	}
 	section := contracts.NavigationSection{ID: "business", Surfaces: []string{"user", "administrator"}, Sort: 10, Visible: true, ShowTitle: true}
 	pageNode := func(id, route, parent string) contracts.NavigationNode {
-		node := contracts.NavigationNode{ID: id, SectionID: "business", Surfaces: []string{"user", "administrator"}, Type: "page", RouteID: &route, Visible: true, OpenMode: "same_tab", OperationIds: []string{}}
+		// Registered surfaces are the ceiling: the node's declared surfaces must
+		// stay within what the page registered (baseNavigationPages + modules).
+		surfaces := []string{"administrator"}
+		switch route {
+		case "overview":
+			surfaces = []string{"user", "administrator"}
+		case "notes":
+			surfaces = []string{"user"}
+		}
+		node := contracts.NavigationNode{ID: id, SectionID: "business", Surfaces: surfaces, Type: "page", RouteID: &route, Visible: true, OpenMode: "same_tab", OperationIds: []string{}}
 		if parent != "" {
 			node.ParentID = strPtr(parent)
 		}
@@ -1148,5 +1157,72 @@ func TestNavigationRoleSnapshotVersions(t *testing.T) {
 	}
 	if got := *currentRoleVersion(t, ctx, repo, role.ID); got != after.Version+1 {
 		t.Fatalf("demo cleanup no-op advanced %d", got)
+	}
+}
+
+func TestNavigationSurfacesStayWithinRegistration(t *testing.T) {
+	ctx := context.Background()
+	_, repo, admin := navigationFixture(t, ctx)
+
+	listed, err := repo.ListMenuConfig(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	section := contracts.NavigationSection{ID: "business", Surfaces: []string{"user", "administrator"}, Sort: 10, Visible: true, ShowTitle: true}
+	version := listed.Version
+	route := "notes"
+	page := contracts.NavigationNode{ID: "notes", SectionID: "business", Surfaces: []string{"user"}, Type: "page", RouteID: &route, Visible: true, OpenMode: "same_tab", OperationIds: []string{}}
+	save := func(nodes []contracts.NavigationNode) error {
+		_, err := repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: version, Sections: []contracts.NavigationSection{section}, Nodes: nodes}, admin.ID)
+		return err
+	}
+
+	// A business page registered for the user workspace saves with that surface.
+	if err = save([]contracts.NavigationNode{page}); err != nil {
+		t.Fatal("registered surface refused", err)
+	}
+
+	// Declaring the administrator workspace for it exceeds the registration: the
+	// whole payload is refused, and the administrator identity running the save
+	// does not lift the page-scope boundary.
+	version++
+	adminReach := page
+	adminReach.Surfaces = []string{"user", "administrator"}
+	if err = save([]contracts.NavigationNode{adminReach}); !errors.Is(err, platform.ErrInput) {
+		t.Fatal("unregistered administrator surface accepted", err)
+	}
+	version++
+	adminOnly := page
+	adminOnly.Surfaces = []string{"administrator"}
+	if err = save([]contracts.NavigationNode{adminOnly}); !errors.Is(err, platform.ErrInput) {
+		t.Fatal("administrator-only declaration for a user page accepted", err)
+	}
+
+}
+
+func TestClampPageSurfacesKeepsRegistrationCeiling(t *testing.T) {
+	route := "notes"
+	merged := contracts.Navigation{Nodes: []contracts.NavigationNode{
+		// A legacy record widened beyond registration: reading clamps it back to
+		// the registered user surface instead of serving the widened reach.
+		{ID: "notes", SectionID: "business", Surfaces: []string{"user", "administrator"}, Type: "page", RouteID: &route},
+		// An explicitly disabled node keeps its surfaces: operators repair or
+		// drop it deliberately instead of losing the stored configuration.
+		{ID: "disabled", SectionID: "business", Surfaces: []string{"user", "administrator"}, Type: "page", RouteID: &route, Disabled: true},
+	}}
+	clampPageSurfaces(&merged)
+	if got := merged.Nodes[0].Surfaces; len(got) != 1 || got[0] != "user" {
+		t.Fatalf("enabled page not clamped to its registration: %v", got)
+	}
+	if got := merged.Nodes[1].Surfaces; len(got) != 2 {
+		t.Fatalf("disabled page must keep its stored surfaces: %v", got)
+	}
+	// A record whose surfaces all fall outside registration returns to the
+	// registered set instead of disappearing from every workspace.
+	orphan := "notes"
+	merged.Nodes[0] = contracts.NavigationNode{ID: "notes", SectionID: "business", Surfaces: []string{"administrator"}, Type: "page", RouteID: &orphan}
+	clampPageSurfaces(&merged)
+	if got := merged.Nodes[0].Surfaces; len(got) != 1 || got[0] != "user" {
+		t.Fatalf("out-of-registration page did not return to its registered surface: %v", got)
 	}
 }

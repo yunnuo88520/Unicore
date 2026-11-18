@@ -27,7 +27,7 @@ var Module = module.Module{
 		{ID: "notes:delete", Name: "删除笔记", Description: "删除个人笔记", Group: "业务权限", Assignable: true},
 	},
 	Navigation: []contracts.NavigationPage{
-		{ID: "notes", Surfaces: []string{"user", "administrator"}, Permission: "notes:access"},
+		{ID: "notes", Surfaces: []string{"user"}, Permission: "notes:access"},
 	},
 	Migrations: "notes",
 	Edition:    "notes",

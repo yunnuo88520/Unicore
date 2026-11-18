@@ -51,12 +51,17 @@ it('seeds one shared default tree with ordered sections, registry-mirrored surfa
   expect(pages.map(node => node.route_id!).slice().sort()).toEqual([...defaultPageOrder].sort());
   // Page surfaces mirror the route registry: management and system groups plus
   // the platform admin-only pages (including the API reference) stay off the
-  // user surface.
+  // user surface; the workspace overview is registered for both workspaces and
+  // every other business page defaults to the user workspace only.
   const platformAdminOnly = new Set(['files', 'announcements', 'site', 'api-docs']);
-  const registry = routes as unknown as Record<string, { group?: string }>;
+  const registry = routes as unknown as Record<string, { group?: string; surfaces?: string[] }>;
   for (const node of pages) {
-    const group = registry[node.route_id!]?.group;
-    expect([...node.surfaces]).toEqual(group === 'system' || group === 'administration' || group === 'monitor' || group === 'ai' || platformAdminOnly.has(node.route_id!) ? adminOnly : bothSurfaces);
+    const route = registry[node.route_id!];
+    const group = route?.group;
+    const expected = group === 'system' || group === 'administration' || group === 'monitor' || group === 'ai' || platformAdminOnly.has(node.route_id!) ? adminOnly
+      : node.route_id === 'overview' ? bothSurfaces
+      : route?.surfaces?.length ? route.surfaces : ['user'];
+    expect([...node.surfaces]).toEqual(expected);
     // Two regions: system, administration and monitor pages ride their
     // directories in the system region — API 文档 stays a top-level tail
     // there — everything else stays in business. The personal center keeps

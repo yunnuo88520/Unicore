@@ -711,6 +711,7 @@ func (r *Repository) upgradeSharedNavigation(ctx context.Context) error {
 	// surfaces cover the folded nodes too.
 	container, foldedChildren := healLegacyPersonalRegion(&merged)
 	prunedActions := pruneStaleActionNodes(&merged)
+	clampPageSurfaces(&merged)
 	// A merged node may outlive its single-surface section: widen every
 	// section to cover the nodes it hosts after the collapse.
 	for i := range merged.Sections {
@@ -1021,6 +1022,49 @@ func healLegacyPersonalRegion(merged *contracts.Navigation) (string, map[string]
 	}
 	merged.Sections = append(merged.Sections[:personal], merged.Sections[personal+1:]...)
 	return container, foldedChildren
+}
+
+// clampPageSurfaces narrows legacy page nodes back to their registered
+// surfaces. Menu saves used to accept a payload when only one of the declared
+// surfaces was registered, so stored trees can carry an administrator reach a
+// business page was never registered for. The registration is the ceiling:
+// reading clamps the node so an old widened record stops taking effect — the
+// stored row stays intact for an operator to review — and a node whose surfaces
+// all fall outside registration returns to its registered set instead of
+// disappearing, so the healed tree still validates on save.
+func clampPageSurfaces(merged *contracts.Navigation) {
+	for i := range merged.Nodes {
+		node := &merged.Nodes[i]
+		if node.Type != "page" || node.Disabled {
+			continue
+		}
+		registered := map[string]bool{}
+		for _, surface := range []string{"user", "administrator"} {
+			if _, ok := platform.NavigationPage(text(node.RouteID), surface); ok {
+				registered[surface] = true
+			}
+		}
+		if len(registered) == 0 {
+			continue
+		}
+		kept := make([]string, 0, len(node.Surfaces))
+		for _, surface := range node.Surfaces {
+			if registered[surface] {
+				kept = append(kept, surface)
+			}
+		}
+		if len(kept) > 0 {
+			node.Surfaces = kept
+			continue
+		}
+		clamped := make([]string, 0, len(registered))
+		for _, surface := range []string{"user", "administrator"} {
+			if registered[surface] {
+				clamped = append(clamped, surface)
+			}
+		}
+		node.Surfaces = clamped
+	}
 }
 
 // pruneStaleActionNodes drops action nodes the current catalogue refuses
@@ -1359,15 +1403,19 @@ func validateNavigation(n contracts.Navigation) error {
 				return platform.ErrInput
 			}
 		case "page":
-			registered := false
+			registered := 0
 			for _, surface := range node.Surfaces {
 				if _, ok := platform.NavigationPage(text(node.RouteID), surface); ok {
-					registered = true
+					registered++
 				}
 			}
-			// An explicitly disabled node may reference an unregistered page so
-			// operators can repair or drop it instead of losing configuration.
-			if !registered && !node.Disabled {
+			// Every declared surface must be registered for the page: a menu may
+			// not widen a page's reach beyond its registration, so declaring an
+			// unregistered extra workspace (a business page pulled into the
+			// administrator console) refuses the whole payload. An explicitly
+			// disabled node may reference any page so operators can repair or
+			// drop it instead of losing configuration.
+			if registered != len(node.Surfaces) && !node.Disabled {
 				return platform.ErrInput
 			}
 			if text(node.Url) != "" {

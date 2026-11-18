@@ -58,11 +58,14 @@ function templateDrift(git, source, templateRevision, dirty) {
 
 // `author` is the application team's own identity (identity + provenance): their code,
 // SQL and docs are downstream sources and do not carry the framework author header.
-export function createProject({ source = frameworkRoot, directory, name, module, bundle, slug, repository, author = 'yunnuo <ymz@ebox.vip>', allowDirty = false }) {
+// `version` is the application's own product version (VERSION single source); it is
+// independent of the framework version recorded in provenance.
+export function createProject({ source = frameworkRoot, directory, name, module, bundle, slug, repository, author = 'yunnuo <ymz@ebox.vip>', version = '0.1.0', allowDirty = false }) {
   if (!/^[a-z][a-z0-9-]{1,39}$/.test(slug ?? '')) throw Error('slug must contain 2–40 lowercase letters, digits or hyphens');
   if (!/^[\p{L}\p{N}][\p{L}\p{N} ._-]{1,39}$/u.test(name ?? '')) throw Error('name must contain 2–40 letters, digits, spaces, dots, underscores or hyphens');
   if (!/^[a-zA-Z0-9][a-zA-Z0-9.-]+\/[a-zA-Z0-9_./-]+$/.test(module ?? '') || module.includes('..')) throw Error('module must be a Go module path, e.g. github.com/team/product');
   if (!/^[a-z][a-z0-9]*(\.[a-z][a-z0-9-]*){2,}$/.test(bundle ?? '')) throw Error('bundle must be a reverse-domain application identifier');
+  if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version ?? '')) throw Error('version must be a numeric SemVer (major.minor.patch); it is the application product version, independent of the framework');
   if (repository !== undefined && (typeof repository !== 'string' || !/^https:\/\/github\.com\/[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9][A-Za-z0-9_.-]*\/?$/.test(repository))) throw Error('repository must be an HTTPS GitHub repository URL without credentials, query or fragment');
   const repositoryUrl = repository?.replace(/\/$/, '').replace(/\.git$/, '');
   source = realpathSync(resolve(source)); let target = resolve(directory);
@@ -134,12 +137,26 @@ export function createProject({ source = frameworkRoot, directory, name, module,
     // its own account when a release repository is given, and a placeholder marks
     // the decision as open otherwise. The residue scan rejects any leftover.
     const registryOwner = repositoryUrl?.match(/^https:\/\/github\.com\/([^/]+)\//)?.[1];
-    const imageReference = `ghcr.io/${registryOwner ?? '<your-release-account>'}/${registryOwner ? identity.product.slug : '<your-image-name>'}`;
+    // The image workflow publishes ghcr.io/<owner>/<repository> (lowercased): the
+    // repository name may differ from the product slug, so both come from the URL.
+    const imageReference = repositoryUrl
+      ? `ghcr.io/${repositoryUrl.replace(/^https:\/\/github\.com\//, '').toLowerCase()}`
+      : 'ghcr.io/<your-release-account>/<your-image-name>';
     for (const {target: path} of plan) {
       if (!path.endsWith('.md')) continue;
       const to = join(staging, path);
       if (!existsSync(to)) continue;
-      writeFileSync(to, readFileSync(to, 'utf8').replaceAll('ghcr.io/yunnuo88520/unicore', imageReference).replaceAll('ghcr.io/yunnuo88520/', `ghcr.io/${registryOwner ?? '<your-release-account>'}/`));
+      writeFileSync(to, readFileSync(to, 'utf8').replaceAll('ghcr.io/yunnuo88520/unicore', imageReference).replaceAll('ghcr.io/yunnuo88520/', 'ghcr.io/<your-release-account>/'));
+    }
+    // The application owns its product version and release history: VERSION starts
+    // at the requested version (independent of the framework's), every projection
+    // regenerates from it, and the framework's changelog is not the app's history.
+    writeFileSync(join(staging, 'VERSION'), `${version}\n`);
+    writeFileSync(join(staging, 'CHANGELOG.md'), `<!-- Author: ${author} -->\n# Changelog\n\nAll notable changes to this application are documented here. The framework's own release history lives upstream and reaches this repository through framework source upgrades; it is not part of this file.\n\n## Unreleased\n\n### 中文\n\n- 基于 Unicore ${frameworkVersion} 创建。\n\n### English\n\n- Created from Unicore ${frameworkVersion}.\n`);
+    // Real checkouts ship the version synchronizer; minimal fixtures without it have
+    // no version projections to regenerate.
+    if (existsSync(join(staging, 'scripts', 'version.mjs'))) {
+      execFileSync(process.execPath, [join(staging, 'scripts', 'version.mjs')], { cwd: staging, stdio: ['ignore', 'pipe', 'pipe'] });
     }
     // Project-facing help and feedback follow its own repository; upstream attribution stays in provenance.
     applyRepositoryLinks(staging, repositoryUrl);
@@ -192,7 +209,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
     const args = process.argv.slice(2), options = {};
     for (let i = 0; i < args.length; i += 2) {
       if (args[i] === '--allow-dirty') { options.allowDirty = true; i--; continue; }
-      if (!['--directory', '--name', '--module', '--bundle', '--slug', '--repository', '--author'].includes(args[i]) || !args[i + 1]) throw Error('Use --directory PATH --name NAME --slug SLUG --module MODULE --bundle ID [--repository https://github.com/OWNER/REPO] [--author "Team <email>"]');
+      if (!['--directory', '--name', '--module', '--bundle', '--slug', '--repository', '--author', '--version'].includes(args[i]) || !args[i + 1]) throw Error('Use --directory PATH --name NAME --slug SLUG --module MODULE --bundle ID [--version 0.1.0] [--repository https://github.com/OWNER/REPO] [--author "Team <email>"]');
       options[args[i].slice(2)] = args[i + 1];
     }
     if (!options.directory) throw Error('--directory is required');

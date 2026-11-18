@@ -132,11 +132,32 @@ function finishSync(dir, state) {
     writeFileSync(join(stage, path), replaceModuleReferences(readFileSync(join(stage, path), 'utf8'), state.frameworkIdentity.go.module, state.identity.go.module));
   }
   // Identity and provenance belong to the application, including new upstream defaults.
+  // The provenance records both the creation origin and the framework integration this
+  // sync is about to land; the block only reaches the application branch through the
+  // merge commit, so a failed or aborted sync never claims an integration that did not
+  // happen. VERSION keeps the application's own product version.
+  const integration = {
+    framework_version: state.upstreamVersion,
+    source_commit: git(dir, 'log', '-1', '--format=%B', state.upstream).match(/^Source: ([0-9a-f]{40})$/m)?.[1] ?? null,
+    template_commit: state.upstream,
+  };
+  const provenance = JSON.parse(state.provenanceContent);
+  provenance.framework_integration = integration;
   writeFileSync(join(stage, 'product.identity.json'), state.identityContent);
-  writeFileSync(join(stage, 'project.provenance.json'), state.provenanceContent);
+  writeFileSync(join(stage, 'project.provenance.json'), JSON.stringify(provenance, null, 2) + '\n');
+  // The application's product version is untouchable: whatever VERSION the upstream
+  // template carried, the merge keeps the application's own and the version
+  // projections regenerate from it below, so upstream structure changes are received
+  // at the application's version.
+  writeFileSync(join(stage, 'VERSION'), state.applicationVersion);
   applyRepositoryLinks(stage, state.applicationRepository);
   applyIdentity(stage, state.identity, false);
   applyIdentity(stage, state.identity, true);
+  // Real applications ship the version synchronizer; minimal fixtures without it
+  // carry no version projections either, so there is nothing to regenerate.
+  if (existsSync(join(stage, 'scripts', 'version.mjs'))) {
+    execFileSync(process.execPath, [join(stage, 'scripts', 'version.mjs')], { cwd: stage, stdio: ['ignore', 'pipe', 'pipe'] });
+  }
   const residuals = scanResiduals(stage);
   if (residuals.length) throw Error(`Residue scan after sync failed; application branch unchanged:\n${residuals.join('\n')}`);
   git(stage, 'add', '-A');
@@ -182,6 +203,7 @@ export function syncTemplate(dir = process.cwd()) {
     applicationRepository: applicationRepo, backup: `backup/pre-sync-${stamp}`, originalHead: git(dir, 'rev-parse', 'HEAD'), originalBranch, upstream,
     identity: loadIdentity(dir), frameworkIdentity: validateIdentity(JSON.parse(git(dir, 'show', `${upstream}:product.identity.json`))),
     identityContent: readFileSync(join(dir, 'product.identity.json'), 'utf8'), provenanceContent: readFileSync(join(dir, 'project.provenance.json'), 'utf8'),
+    applicationVersion: readFileSync(join(dir, 'VERSION'), 'utf8'),
     upstreamVersion: git(dir, 'show', `${upstream}:VERSION`).trim() };
   let keep = false;
   try {
@@ -209,8 +231,28 @@ export function syncTemplate(dir = process.cwd()) {
     catch (error) {
       const conflicts = git(stage, 'diff', '--name-only', '--diff-filter=U');
       if (!conflicts) throw error;
-      keep = true;
-      throw Error(`Upstream merge conflicts; application branch unchanged. Resolve and git add files in ${stage}, then run framework:sync --continue; or framework:sync --abort.\n${conflicts}`);
+      // Product-owned surfaces keep the application's side: its product version,
+      // release history, rewritten READMEs and its own OTA/trust configuration are
+      // never overwritten by the framework template. Version projections take the
+      // upstream structure and regenerate at the application's version below. Every
+      // other conflict stays manual.
+      const ours = new Set(['VERSION', 'CHANGELOG.md', 'README.md', 'README.en.md', 'assets/updates/config.json', 'assets/theme/tokens.json']);
+      const theirsThenRegenerate = new Set(['package.json', 'apps/web/package.json', 'apps/desktop/package.json', 'packages/contracts/package.json', 'packages/sdk/package.json', 'packages/theme/package.json', 'packages/web-ui/package.json', 'packages/contracts/openapi.json', 'cmd/desktop/wails.json', 'internal/buildinfo/version.gen.go']);
+      const conflicted = conflicts.split('\n').filter(Boolean);
+      for (const path of conflicted) {
+        if (ours.has(path)) git(stage, 'checkout', '--ours', '--', path);
+        else if (theirsThenRegenerate.has(path)) git(stage, 'checkout', '--theirs', '--', path);
+      }
+      const resolved = conflicted.filter(path => ours.has(path) || theirsThenRegenerate.has(path));
+      if (resolved.length) {
+        writeFileSync(join(stage, 'VERSION'), state.applicationVersion);
+        for (const path of resolved) git(stage, 'add', '--', path);
+      }
+      const remaining = git(stage, 'diff', '--name-only', '--diff-filter=U');
+      if (remaining) {
+        keep = true;
+        throw Error(`Upstream merge conflicts; application branch unchanged. Resolve and git add files in ${stage}, then run framework:sync --continue; or framework:sync --abort.\n${remaining}`);
+      }
     }
     return finishSync(dir, state);
   } catch (error) {

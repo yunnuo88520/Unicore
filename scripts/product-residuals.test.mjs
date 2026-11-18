@@ -115,13 +115,24 @@ test('public framework reference URLs do not hide other branding or unknown rout
   }
  }finally{rmSync(root,{recursive:true,force:true});}
 });
-test('the framework image registry is rejected even though upstream attribution stays whitelisted',()=>{
+test('only the upstream image reference violates; the same account hosting another product is legitimate',()=>{
  const root=project();
  try{
   const path='docs/product/guide.md';
-  writeFileSync(join(root,path),'发行流程会在 Release 发布后构建 `ghcr.io/yunnuo88520/my-product` 镜像。\n');
+  // The exact framework image reference misroutes the derived app's users.
+  writeFileSync(join(root,path),'发行流程会在 Release 发布后构建 `ghcr.io/yunnuo88520/unicore` 镜像。\n');
   assert.ok(scanResiduals(root).some(line=>line.startsWith(`${path}:1:`)));
-  writeFileSync(join(root,path),'发行流程会在 Release 发布后构建 `ghcr.io/team/my-product` 镜像。\n');
+  // Same owner, different repository: a derived product under the framework
+  // account (or any shared account) is that app's own image, not residue.
+  writeFileSync(join(root,path),'发行流程会在 Release 发布后构建 `ghcr.io/yunnuo88520/other-product` 镜像。\n');
+  assert.deepEqual(scanResiduals(root),[]);
+  // The application's own release repository, even when the repository name
+  // differs from the product slug and mixes case, is clean.
+  writeFileSync(join(root,path),'发行流程会在 Release 发布后构建 `ghcr.io/Team/LicenHub-App` 镜像。\n');
+  assert.deepEqual(scanResiduals(root),[]);
+  // No release repository configured: the placeholder keeps the decision open
+  // without inheriting the upstream image.
+  writeFileSync(join(root,path),'发行流程会在 Release 发布后构建 `ghcr.io/<your-release-account>/<your-image-name>` 镜像。\n');
   assert.deepEqual(scanResiduals(root),[]);
  }finally{rmSync(root,{recursive:true,force:true});}
 });

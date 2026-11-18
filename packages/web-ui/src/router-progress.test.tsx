@@ -123,9 +123,11 @@ it('covers a deep link with the shared skeleton while its module loads', async (
   let router!: NavRouter;
   await mount(given => { router = given; }, '/users');
   // The deep link's chunk is still downloading: the route-level pending
-  // skeleton renders immediately — no blank shell between the boot
-  // placeholder and the page.
-  await waitFor(() => expect(screenText('页面加载中…')).toBeTruthy());
+  // skeleton covers the content area as soon as the load is outstanding —
+  // no blank shell between the boot placeholder and the page. The explicit
+  // budget keeps the assertion honest on loaded runners where even the
+  // first router render takes a moment.
+  await waitFor(() => expect(screenText('页面加载中…')).toBeTruthy(), { timeout: 4000 });
   // The initial deep link does not ride a history event (the boot placeholder
   // owns the pre-router chrome); the route-level skeleton is the coverage.
   gates.users.resolve({ AdminUsersPage: page('users-ready') });

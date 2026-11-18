@@ -2,7 +2,7 @@
 // Description: Recursively enforce shared tokens and synchronized shell icons.
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { resolve, relative, join } from 'node:path';
+import { resolve, relative, join, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const sourceDirs = ['packages/theme/src', 'packages/web-ui/src', 'packages/ui/src', 'packages/form/src'];
@@ -24,7 +24,9 @@ export function checkDesignSources(root = defaultRoot) {
   // Definitions may themselves live in nested stylesheet directories.
   const definedTokens = new Set(entries.filter(file => file.endsWith('.css')).flatMap(file => [...contents.get(file).matchAll(/(--[\w-]+)\s*:/g)].map(match => match[1])));
   for (const [file, text] of contents) {
-    const name = relative(root, file);
+    // Findings surface in CI logs on every OS: report forward slashes regardless
+    // of the platform separator so messages stay stable and assertable.
+    const name = relative(root, file).replaceAll(sep, '/');
     // Fixtures may deliberately contain undefined variables, raw colors and emoji.
     if (/(?:\.test\.|\.spec\.|__tests__\/)/.test(name)) continue;
     for (const match of text.matchAll(/var\(\s*(--[\w-]+)/g)) {

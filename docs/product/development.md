@@ -8,7 +8,7 @@
 先按 [快速开始](index.md#准备环境) 准备工具链，并确认框架源码仓库没有未提交修改。目标目录必须尚不存在，且位于框架仓库之外：
 
 ```sh
-pnpm create:project --directory ../my-app --name 'My App' --slug my-app --module github.com/team/my-app --bundle com.team.myapp --repository https://github.com/team/my-app
+pnpm create:project --directory ../my-app --name 'My App' --slug my-app --module github.com/team/my-app --bundle com.team.myapp --repository https://github.com/team/my-app --author 'My Team <team@example.com>'
 cd ../my-app
 make install
 make docs
@@ -23,6 +23,7 @@ make dev-server
 | 内容 | 结果 |
 | --- | --- |
 | 产品身份 | 替换名称、Go module、CLI/运维命令、桌面标识、服务与发行名称 |
+| 应用作者 | `--author "Team <email>"` 写入 `product.identity.json` 与 `project.provenance.json`；应用自有代码（业务 Go/SQL/md）用该作者头即可通过作者检查，无需框架作者头；缺省保留框架作者 |
 | Git 仓库 | 初始化本地 `main`，可选的 `--repository` 配置为 `origin` |
 | 框架来源 | 只读 `framework` 远端与 `project.provenance.json` 保存上游来源 |
 | 应用更新 | 清空上游 OTA 仓库和公钥，由你配置自己的更新渠道 |

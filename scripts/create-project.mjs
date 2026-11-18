@@ -3,13 +3,62 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { copyDistribution, distributionPlan, regularFile, validateDocuments } from './distribution.mjs';
+import { exportTemplateTree } from './framework-template.mjs';
 import { applyIdentity, applyRepositoryLinks, validateIdentity, replaceModuleReferences } from './product-identity.mjs';
 import { writeAIContext } from './ai-context.mjs';
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync, realpathSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync, realpathSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 const frameworkRoot = fileURLToPath(new URL('../', import.meta.url));
-export function createProject({ source = frameworkRoot, directory, name, module, bundle, slug, repository, allowDirty = false }) {
+
+// The generator owns README rewrites, file mapping and generated context, so a raw
+// whitelist diff lies about template drift: compare the candidate template's tree
+// against a real fresh export instead. Both sides are tree objects, so no file list
+// ever travels on the command line (Windows command-length limit). The README pair
+// is seeded from the candidate template itself so generator wording changes never
+// fake drift, and the source checkout's own generator runs when it supports it.
+function templateDrift(git, source, templateRevision, dirty) {
+  let worktree = null;
+  try {
+    // The ancestor corresponds to the committed state: a reviewed-dirty checkout
+    // layers deliberate changes on top, so export HEAD instead of the worktree.
+    let exportRoot = source;
+    if (dirty) {
+      worktree = mkdtempSync(join(tmpdir(), 'unicore-ancestor-'));
+      git('worktree', 'add', '--detach', worktree, 'HEAD');
+      exportRoot = worktree;
+    }
+    const readmes = {};
+    for (const [key, path] of [['md', 'README.md'], ['en', 'README.en.md']]) {
+      // Byte-exact seed: trimming would drop the trailing newline and fake a diff.
+      try { readmes[key] = execFileSync('git', ['-C', source, 'show', `${templateRevision}:${path}`], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }); } catch { /* Old trees without the pair keep the generator default. */ }
+    }
+    let tree;
+    const generator = join(exportRoot, 'scripts', 'framework-template.mjs');
+    if (existsSync(generator) && readFileSync(generator, 'utf8').includes('--export-tree')) {
+      // The generator defaults to the calling directory's checkout: without cwd the
+      // export would read the invoker's VERSION and catalog instead of the source's.
+      tree = JSON.parse(execFileSync(process.execPath, [generator, '--export-tree'], { cwd: exportRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })).tree;
+    } else {
+      // Old checkouts predate --export-tree; reconstruct with this checkout's
+      // generator (the whitelist, files and AI context still come from the source).
+      tree = exportTemplateTree(exportRoot, { readmes: Object.keys(readmes).length ? readmes : undefined }).tree;
+    }
+    const old = git('rev-parse', `${templateRevision}^{tree}`);
+    if (old === tree) return null;
+    return git('diff', '--stat', old, tree).trim() || 'the template tree differs from a fresh export of this source checkout';
+  } finally {
+    if (worktree) {
+      try { git('worktree', 'remove', '--force', worktree); } catch { /* best effort cleanup */ }
+      rmSync(worktree, { recursive: true, force: true });
+    }
+  }
+}
+
+// `author` is the application team's own identity (identity + provenance): their code,
+// SQL and docs are downstream sources and do not carry the framework author header.
+export function createProject({ source = frameworkRoot, directory, name, module, bundle, slug, repository, author = 'yunnuo <ymz@ebox.vip>', allowDirty = false }) {
   if (!/^[a-z][a-z0-9-]{1,39}$/.test(slug ?? '')) throw Error('slug must contain 2–40 lowercase letters, digits or hyphens');
   if (!/^[\p{L}\p{N}][\p{L}\p{N} ._-]{1,39}$/u.test(name ?? '')) throw Error('name must contain 2–40 letters, digits, spaces, dots, underscores or hyphens');
   if (!/^[a-zA-Z0-9][a-zA-Z0-9.-]+\/[a-zA-Z0-9_./-]+$/.test(module ?? '') || module.includes('..')) throw Error('module must be a Go module path, e.g. github.com/team/product');
@@ -24,16 +73,35 @@ export function createProject({ source = frameworkRoot, directory, name, module,
   const selected = [...new Set(plan.map(file => file.source))];
   const git = (...args) => execFileSync('git', ['--no-optional-locks', '-C', source, ...args], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']}).trim();
   let upstream = null, dirty = false, worktreeModified = false, templateRevision = null;
-  try { if (realpathSync(git('rev-parse', '--show-toplevel')) === source) upstream = git('rev-parse', '--verify', 'HEAD'); } catch { /* Source archives have no Git identity. */ }
+  // "Source is a repository root" is git's own comparison to make: --show-prefix is
+  // empty exactly at the toplevel. String-comparing git's printed path with Node's
+  // realpath silently fails on Windows (forward slashes, 8.3 short names, case).
+  try { if (git('rev-parse', '--show-prefix') === '') upstream = git('rev-parse', '--verify', 'HEAD'); } catch { /* Source archives have no Git identity. */ }
   if (upstream) {
     for (const ref of ['refs/heads/framework-template', 'refs/remotes/origin/framework-template']) {
       try { templateRevision = git('rev-parse', '--verify', ref); break; } catch { /* Template branch not generated in this checkout. */ }
     }
     worktreeModified = Boolean(git('status', '--porcelain'));
-    const changed = git('diff', '--name-only', 'HEAD', '--', ...selected);
-    const tracked = new Set(git('ls-files', '--cached', '-z', '--', ...selected).split('\0'));
-    dirty = Boolean(changed || selected.some(path => !tracked.has(path)));
+    // Hundreds of pathspecs overflow the Windows command line; diff the whole tree
+    // (NUL-separated, unquoted) and filter to the selected set here instead.
+    const selectedSet = new Set(selected);
+    const changed = git('diff', '--name-only', '-z', 'HEAD').split('\0').filter(path => selectedSet.has(path));
+    const tracked = new Set(git('ls-files', '--cached', '-z').split('\0'));
+    dirty = Boolean(changed.length || selected.some(path => !tracked.has(path)));
     if (dirty && !allowDirty) throw Error('Selected template inputs have uncommitted changes; review them and explicitly use --allow-dirty');
+    // The baseline ancestor must correspond to this source state. A rolling template
+    // branch moves within one VERSION, so an equal version string proves nothing: a
+    // drifted ancestor makes upgrades report spurious deletes and adds. The ancestor
+    // is accepted when its commit records this checkout as its Source, or when its
+    // tree is byte-identical to this checkout's whitelisted export; anything else is
+    // rejected with the recovery instead of producing a misleading common ancestor.
+    const trailer = templateRevision ? git('log', '-1', '--format=%B', templateRevision).match(/^Source: ([0-9a-f]{40})$/m)?.[1] : undefined;
+    if (templateRevision && trailer !== upstream) {
+      // A missing trailer only means an older generator: the candidate is still the
+      // correct ancestor when its tree equals a fresh export of this checkout.
+      const drift = templateDrift(git, source, templateRevision, worktreeModified);
+      if (drift) throw Error(`framework-template ${templateRevision.slice(0, 12)} does not match this source checkout (${upstream.slice(0, 12)}${trailer ? `, it was exported from ${trailer.slice(0, 12)}` : ', it has no Source record'}): ${drift.split('\n').at(-1)}. Regenerate the template from this checkout (node scripts/framework-template.mjs) or create the project from the matching source; otherwise source upgrades report conflicts for files this project never had.`);
+    }
   }
   const inputFiles = plan.map(file => ({...file, sha256: createHash('sha256').update(readFileSync(regularFile(source, file.source))).digest('hex')}));
   mkdirSync(dirname(target), { recursive: true });
@@ -57,15 +125,26 @@ export function createProject({ source = frameworkRoot, directory, name, module,
     }
     const edit = (path, fn) => { const full = join(staging,path); const value = JSON.parse(readFileSync(full,'utf8')); fn(value); writeFileSync(full,JSON.stringify(value,null,2)+'\n'); };
     edit('assets/updates/config.json', p => { p.repository=''; p.keys={}; p.channel='stable'; p.allow_unsigned_platform=true; });
-    const identity = validateIdentity({author: 'yunnuo <ymz@ebox.vip>', schemaVersion: 1, product: {name, slug, description: `${name} workspace`}, go: {module}, cli: {command: slug, opsCommand: `${slug}-ops`, description: `${name} CLI`}, desktop: {bundleId: bundle, outputName: `${slug}-desktop`}, deployment: {serviceName: slug, serviceUser: slug, installDirectory: `/opt/${slug}`, dataDirectory: `/var/lib/${slug}`, image: slug, volume: `${slug}_data`}, release: {artifactPrefix: slug}});
+    const identity = validateIdentity({author, schemaVersion: 1, product: {name, slug, description: `${name} workspace`}, go: {module}, cli: {command: slug, opsCommand: `${slug}-ops`, description: `${name} CLI`}, desktop: {bundleId: bundle, outputName: `${slug}-desktop`}, deployment: {serviceName: slug, serviceUser: slug, installDirectory: `/opt/${slug}`, dataDirectory: `/var/lib/${slug}`, image: slug, volume: `${slug}_data`}, release: {artifactPrefix: slug}});
     mkdirSync(join(staging, 'internal/buildinfo'), {recursive: true});
     writeFileSync(join(staging, 'product.identity.json'), JSON.stringify(identity, null, 2)+'\n');
     // One identity pass applies every projection: mixed-file fields, generated sources, deployment renames and doc tokens.
     applyIdentity(staging, identity, false);
-    // Project-facing help and feedback follow its own repository; provenance and author metadata stay upstream.
+    // The FAQ's image registry is the framework's; the application publishes under
+    // its own account when a release repository is given, and a placeholder marks
+    // the decision as open otherwise. The residue scan rejects any leftover.
+    const registryOwner = repositoryUrl?.match(/^https:\/\/github\.com\/([^/]+)\//)?.[1];
+    const imageReference = `ghcr.io/${registryOwner ?? '<your-release-account>'}/${registryOwner ? identity.product.slug : '<your-image-name>'}`;
+    for (const {target: path} of plan) {
+      if (!path.endsWith('.md')) continue;
+      const to = join(staging, path);
+      if (!existsSync(to)) continue;
+      writeFileSync(to, readFileSync(to, 'utf8').replaceAll('ghcr.io/yunnuo88520/unicore', imageReference).replaceAll('ghcr.io/yunnuo88520/', `ghcr.io/${registryOwner ?? '<your-release-account>'}/`));
+    }
+    // Project-facing help and feedback follow its own repository; upstream attribution stays in provenance.
     applyRepositoryLinks(staging, repositoryUrl);
     edit('package.json', p => { p.license='MIT'; });
-    writeFileSync(join(staging, 'project.provenance.json'), JSON.stringify({author: 'yunnuo <ymz@ebox.vip>', framework: 'Unicore', upstream: upstreamUrl, framework_version: frameworkVersion, generator_version: 1, repository: repositoryUrl ?? null, identity_sha256: createHash('sha256').update(readFileSync(join(staging, 'product.identity.json'))).digest('hex'), template_revision: templateRevision, revision: upstream, source_mode: upstream ? (dirty ? 'reviewed-working-tree' : 'clean-git-inputs') : 'unversioned', worktree_modified: worktreeModified, selected_inputs_modified: dirty, input_files: inputFiles, created_at: new Date().toISOString()}, null, 2)+'\n');
+    writeFileSync(join(staging, 'project.provenance.json'), JSON.stringify({author, framework: 'Unicore', upstream: upstreamUrl, framework_version: frameworkVersion, generator_version: 1, repository: repositoryUrl ?? null, identity_sha256: createHash('sha256').update(readFileSync(join(staging, 'product.identity.json'))).digest('hex'), template_revision: templateRevision, revision: upstream, source_mode: upstream ? (dirty ? 'reviewed-working-tree' : 'clean-git-inputs') : 'unversioned', worktree_modified: worktreeModified, selected_inputs_modified: dirty, input_files: inputFiles, created_at: new Date().toISOString()}, null, 2)+'\n');
     const repositoryInstructions = repositoryUrl
       ? { zh: `创建器已配置自己的 origin：${repositoryUrl}，只读 framework 远端仍指向上游；没有创建远程仓库或推送代码。源码升级流程见 docs/product/framework-upgrade.md。`, en: `Your origin is configured as ${repositoryUrl}; the read-only framework remote still points upstream. No remote repository was created and no code was pushed. See docs/product/framework-upgrade.md for source upgrades.` }
       : { zh: '创建器已完成 git init 与初始基线提交，并添加只读 framework 远端指向上游；推送前先添加自己的 origin，源码升级流程见 docs/product/framework-upgrade.md。', en: 'The creator has already run git init, committed the initial baseline, and added the read-only framework remote pointing upstream; add your own origin before pushing. See docs/product/framework-upgrade.md for source upgrades.' };
@@ -110,9 +189,13 @@ export function createProject({ source = frameworkRoot, directory, name, module,
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   try {
-    const args=process.argv.slice(2), options={};
-    for(let i=0;i<args.length;i+=2){if(args[i]==='--allow-dirty'){options.allowDirty=true;i--;continue;}if(!['--directory','--name','--module','--bundle','--slug','--repository'].includes(args[i])||!args[i+1])throw Error('Use --directory PATH --name NAME --slug SLUG --module MODULE --bundle ID [--repository https://github.com/OWNER/REPO]');options[args[i].slice(2)]=args[i+1];}
-    if(!options.directory)throw Error('--directory is required');
+    const args = process.argv.slice(2), options = {};
+    for (let i = 0; i < args.length; i += 2) {
+      if (args[i] === '--allow-dirty') { options.allowDirty = true; i--; continue; }
+      if (!['--directory', '--name', '--module', '--bundle', '--slug', '--repository', '--author'].includes(args[i]) || !args[i + 1]) throw Error('Use --directory PATH --name NAME --slug SLUG --module MODULE --bundle ID [--repository https://github.com/OWNER/REPO] [--author "Team <email>"]');
+      options[args[i].slice(2)] = args[i + 1];
+    }
+    if (!options.directory) throw Error('--directory is required');
     console.log(`Created ${createProject(options)}\nInitial baseline committed on main; the read-only framework remote points upstream. ${options.repository ? 'Your origin is configured; no repository was created and no code was pushed.' : 'Add your own origin before pushing.'}\nNext: cd into the project; make install; make docs; make doctor`);
   } catch(error) { console.error(error.message); process.exitCode=1; }
 }

@@ -115,3 +115,13 @@ test('public framework reference URLs do not hide other branding or unknown rout
   }
  }finally{rmSync(root,{recursive:true,force:true});}
 });
+test('the framework image registry is rejected even though upstream attribution stays whitelisted',()=>{
+ const root=project();
+ try{
+  const path='docs/product/guide.md';
+  writeFileSync(join(root,path),'发行流程会在 Release 发布后构建 `ghcr.io/yunnuo88520/my-product` 镜像。\n');
+  assert.ok(scanResiduals(root).some(line=>line.startsWith(`${path}:1:`)));
+  writeFileSync(join(root,path),'发行流程会在 Release 发布后构建 `ghcr.io/team/my-product` 镜像。\n');
+  assert.deepEqual(scanResiduals(root),[]);
+ }finally{rmSync(root,{recursive:true,force:true});}
+});

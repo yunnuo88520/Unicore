@@ -1,4 +1,12 @@
 {
   "author": "yunnuo <ymz@ebox.vip>",
-  "exceptions": []
+  "exceptions": [
+    {
+      "package": "picomatch",
+      "advisory": "GHSA-fc5q-39xc-vjpf",
+      "severity": "high",
+      "mitigation": "ReDoS via single-branch repeated extglobs; no patched release exists yet (all of <=4.0.7 affected). picomatch arrives only through build-time dev tooling (vite/tsup/vitepress/tinyglobby) and never globs untrusted input in product code paths; remove this entry and upgrade as soon as a patched picomatch ships.",
+      "expires_on": "2026-12-31"
+    }
+  ]
 }

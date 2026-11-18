@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { applyIdentity, applyIdentityContent, applyTokens, loadIdentity, reverseRenames, reverseTokenMaps, validateIdentity, applyRepositoryLinks, replaceModuleReferences } from './product-identity.mjs';
 import { scanResiduals } from './check-product-residuals.mjs';
 import { regularFile, safePath } from './distribution.mjs';
@@ -99,7 +99,10 @@ function pendingState(dir) {
   if (!existsSync(stateFile(dir))) throw Error('No pending framework sync.');
   const state = JSON.parse(readFileSync(stateFile(dir), 'utf8'));
   if (state.project !== realpathSync(dir) || !basename(state.tempRoot ?? '').startsWith('unicore-sync-') || state.worktree !== join(state.tempRoot, 'tree')) throw Error('Invalid framework sync state.');
-  const common = root => realpathSync(resolve(root, git(root, 'rev-parse', '--git-common-dir')));
+  // Repository identity comes from git's own absolute path (forced via
+  // --path-format): comparing Node-realis paths fails on Windows, where git
+  // prints forward slashes and may keep 8.3 short-name components.
+  const common = root => git(root, 'rev-parse', '--path-format=absolute', '--git-common-dir').replaceAll('\\', '/').toLowerCase();
   if (common(dir) !== common(state.worktree)) throw Error('Sync worktree belongs to another repository.');
   return state;
 }
@@ -217,7 +220,11 @@ export function syncTemplate(dir = process.cwd()) {
 }
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const command = process.argv[2];
+// Only act as a CLI when executed directly: verification scripts import these
+// functions and carry their own argv (an unguarded argv check once flipped the
+// importer's exit code and printed usage noise).
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  const command = process.argv[2];
 if (command === 'check' || command === 'sync') {
   try {
     if (!existsSync(`${root}project.provenance.json`)) {
@@ -243,4 +250,5 @@ if (command === 'check' || command === 'sync') {
 } else if (command) {
   console.error('Use: framework-sync.mjs check|sync');
   process.exitCode = 1;
+}
 }

@@ -30,6 +30,11 @@ function violationsFor(path, text, framework, module, publicReferences = new Set
     // Only exact public-site routes from the distribution manifest qualify;
     // other framework text on the same line must still be reported.
     if (path.startsWith('docs/')) visible = visible.replace(/https:\/\/unicore\.ebox\.vip[^\s)"<>]*/g, url => publicReferences.has(url.split(/[?#]/)[0]) ? '' : url);
+    // The framework's image registry is not the application's: a derived app
+    // publishing images does so under its own account, and product docs that
+    // point at the framework registry misroute its users. This rule outranks
+    // the general yunnuo88520 attribution whitelist.
+    if (/ghcr\.io\/yunnuo88520\b/i.test(visible)) violations.push(`${path}:${index + 1}: ${line.trim().slice(0, 160)}`);
     if (!new RegExp(framework, 'i').test(visible)) return;
     if (ALLOWED.some(pattern => pattern.test(line))) return;
     violations.push(`${path}:${index + 1}: ${line.trim().slice(0, 160)}`);

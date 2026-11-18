@@ -25,4 +25,6 @@ jobs:
       - run: govulncheck -tags=updater ./cmd/server ./cmd/cli ./cmd/ops
       - run: govulncheck -scan=package ./...
       - run: govulncheck -tags=bindings,updater -scan=package ./cmd/desktop
-      - run: pnpm audit --audit-level=low
+      # Same gate as make test: high/critical advisories fail closed unless a reviewed
+      # ledger entry (package, advisory, mitigation, expiry) accepts them.
+      - run: pnpm audit:deps

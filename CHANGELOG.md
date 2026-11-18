@@ -5,11 +5,38 @@
 
 ### 中文
 
-- 发布完成核对的镜像查询改用标准 Registry 认证流程：401 挑战后按 realm/service/scope 交换令牌再重试，公开镜像无需凭据、私有镜像使用 GitHub 令牌；镜像源码身份按 linux/amd64 与 linux/arm64 双架构逐一校验，stable 的浮动标签与精确版本标签比较顶层 index digest。
+- 跨平台工具调用统一：新增 `scripts/tool-spawn.mjs` 统一外部工具解析（POSIX 直接执行，Windows 经 cmd.exe 解析 .cmd shim），doctor 与依赖审计改用统一入口；doctor 各项给出具体失败原因而不是空括号，Windows 上 pnpm 已安装不再被误报为 EINVAL。
+- 硬编码测试默认值改为定制断言：主题色板不再写死 `#6662ec`，迁移目录按源目录推导、桌面账本测试按身份推导，前端导航断言改从导航源推导；测试校验行为本身，而不是复述框架默认值，派生应用的定制不再触发误报。
+- 派生应用作者头治理：创建器接受应用团队自己的作者（写入 identity 与 provenance），迁移生成按 check-authors 的同一策略接受框架作者加身份作者——派生业务的 Go/SQL/md 不再被要求携带框架作者头，未登记作者依旧 fail-closed；依赖边界检查的洋葱规则改为从 go.mod 推导应用自身包路径（此前在派生应用中静默失配），仅含描述符的业务模块不再被假设必须有 domain/usecase 子包。
+- 创建器校验模板基线：导出时将候选 framework-template 的树与"本次检出的真实新鲜导出"逐字节对比（生成器拥有的 README 重写、文件映射与生成上下文不再造成误判，无 Source 尾行的正确旧模板照常接受），真实漂移以树对象对比拒绝——比较发生在两个 tree 对象之间，不再把文件清单放进命令行（Windows 命令行长度限制）。审查性脏树按已提交 HEAD 导出比对。
+- 创建器 CLI 接受 `--author`：与函数参数同语义，写入 identity 与 provenance，帮助文本与使用文档同步；新增真实命令行回归（私有检出中实跑 CLI，断言作者落盘、业务作者检查通过、非法作者被拒）。
+- 真实旧模板升级演练：verify-derived-project 新增 upgrade 模式——从上一发布 tag 的源码生成其真实旧模板并创建应用，提交定制后 framework:sync 到续链的当前模板，断言共同祖先=旧模板提交、pre-sync 备份分支完整、业务源码/主题/迁移/作者头逐字节保留，再跑全套 docs/test/构建；Windows runner 接入该演练（native-desktop 检出改为全历史）。framework-sync 的 CLI 入口加了主模块守卫，被验证脚本导入时不再误设退出码。
+- CI 在真实 Windows 检出上验证跨平台套件（doctor 分类、bloblocal/branding/config 测试、工具链套件），并把定制派生演练的完整模式扩展到 Windows runner。
+- 依赖审计门禁闭环：审计服务返回错误负载或非报告结构时不再打印 PASS——错误响应、无法解析的 JSON 与缺失 advisories 桶一律阻断；对账范围扩为 low 及以上全量严重级，每条公告都必须有升级或限时台账例外。
+- 基线校验在外部目录调用时读取指定源码：生成器子进程固定以导出根为 cwd，不再误读调用方检出的 VERSION 与清单；新增携带真实生成器的外部目录回归。
+- 升级演练写入业务数据：同步前通过旧应用迁移建立 SQLite 库并写入一条工单，同步后由升级后的应用读回同一条记录并核对 module.workorders 账本——真实旧模板升级现在同时证明源码与数据保留。
+- 派生文档的镜像归属：创建器把 FAQ 中的框架镜像引用改写为应用自己的发行账号与应用镜像名（未提供发行仓时写占位符）；残留扫描将 `ghcr.io/yunnuo88520` 视为框架残留（优先于上游署名白名单）。
+- doctor 的 pnpm 版本从 package.json#packageManager 单源读取，失配时给出期望版本、实际版本与 corepack/npm 切换指引；保留 Windows .cmd 调用修复。
+- webmanage 命令面中性化：--run-as 帮助文本不再提及框架账户，实例锁冲突提示改用应用自己的根命令名拼接。
+
 
 ### English
 
-- The release completeness checker now speaks the standard registry authentication flow: a 401 challenge triggers a realm/service/scope token exchange and one retry, so public images need no credential and private ones use the GitHub token; image source identity is checked per architecture on linux/amd64 and linux/arm64, and a stable floating tag must equal the exact version tag's top-level index digest.
+- Unified cross-platform tool invocation: a new `scripts/tool-spawn.mjs` resolves external tools once (direct exec on POSIX, .cmd shims through cmd.exe on Windows), and doctor plus the dependency audit go through it; doctor items now report the concrete failure reason instead of empty parentheses, and an installed pnpm on Windows is no longer misreported as EINVAL.
+- Hardcoded test defaults became customization assertions: the theme palette is no longer pinned to `#6662ec`, the migration catalog derives from the source tree, the desktop ledger test derives from identity, and frontend navigation assertions derive from the navigation source; tests verify behavior itself instead of restating framework defaults, so derived-application customization no longer trips them.
+- Derived-application authorship governance: the creator accepts the application team's own author (recorded in identity and provenance), and migration generation applies the same policy as check-authors — the framework author plus the identity author — so derived business Go/SQL/md no longer need the framework author header, while undeclared authors still fail closed; the dependency-boundary onion rules now derive the application's own package paths from go.mod (they silently mismatched in derived projects before), and a descriptor-only business module is no longer assumed to have domain/usecase subpackages.
+- The creator validates the template baseline: export compares the candidate framework-template tree byte-for-byte against a real fresh export of this checkout — the generator-owned README rewrite, file mapping and generated context no longer fake drift, a correct old template without a Source trailer is accepted as-is, and real drift is refused via a tree-object comparison that never places a file list on the command line (Windows command-length limit). A reviewed-dirty checkout compares against its committed HEAD export.
+- The creator CLI accepts `--author` with the same semantics as the function argument (recorded in identity and provenance); help text and usage docs cover it, and a new real command-line regression runs the CLI inside a private checkout asserting the author lands in both files, the application team passes its own author check, and an invalid author is refused.
+- A real old-template upgrade drill: verify-derived-project gains an upgrade mode — generate the genuine previous release template from the previous tag's source, create the application from it, commit the customization, then framework:sync to the current template chained onto that lineage; the drill asserts the common ancestor is the old template commit, the pre-sync backup branch is intact, business sources, theme, migrations and authorship survive byte-for-byte, and the full docs/test/build cycle passes afterwards. The Windows runner executes this drill (the native-desktop checkout switched to full history). The framework-sync CLI entry gained a main-module guard so importing it from verification scripts no longer flips their exit code.
+- CI verifies the cross-platform suites on a real Windows checkout (doctor classification, bloblocal/branding/config tests, the tooling suites) and extends the customized derived-application drill's full mode to the Windows runner.
+- The dependency-audit gate closes its blind spot: an error payload or a non-report structure from the audit service no longer prints PASS — error responses, unparseable JSON and a missing advisories bucket all fail the check; reconciliation now covers every severity (low and above), so each advisory needs an upgrade or a reviewed, expiring ledger exception.
+- Baseline validation reads the given source when invoked from outside: the generator subprocess pins its working directory to the export root instead of misreading the caller's checkout VERSION and manifest; a regression ships with the real generator in the fixture.
+- The upgrade drill now writes business data: before the sync it builds a SQLite database through the old application's migrations and inserts one workorders row; after the sync the upgraded application reads the same row back and the module.workorders ledger is verified — the real old-template upgrade now proves source and data retention together.
+- Derived docs own their image registry: the creator rewrites the framework image reference in the FAQ to the application's own release account and image name (a placeholder marks the open decision when no repository is given), and the residue scan treats `ghcr.io/yunnuo88520` as framework residue with priority over the upstream-attribution whitelist.
+- doctor reads the pinned pnpm version from package.json#packageManager as the single source and, on mismatch, reports the expected and actual versions plus an executable corepack/npm switch hint; the Windows .cmd invocation fix stays.
+- The webmanage command surfaces are neutralized: the --run-as help text no longer names the framework account, and the instance-lock conflict message composes the application's own root command name.
+
+
 
 ## 0.1.6 — 2026-11-17
 

@@ -8,6 +8,7 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -93,8 +94,11 @@ func TestYAMLStartupConfiguration(t *testing.T) {
 	if err != nil || !bytes.Contains(raw, []byte("listen: 127.0.0.1:3000")) || bytes.HasPrefix(raw, []byte("{")) {
 		t.Fatal(string(raw), err)
 	}
-	if info, err := os.Stat(path); err != nil || info.Mode().Perm() != 0600 {
-		t.Fatal(info, err)
+	// Windows keeps no POSIX mode bits; Go only reports a synthetic 0666 there.
+	if info, err := os.Stat(path); err != nil {
+		t.Fatal(err)
+	} else if runtime.GOOS != "windows" && info.Mode().Perm() != 0600 {
+		t.Fatal(info)
 	}
 	if err := Generate(path); err == nil {
 		t.Fatal("overwrote YAML configuration")

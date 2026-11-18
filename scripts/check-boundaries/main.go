@@ -12,30 +12,51 @@ import (
 	"strings"
 )
 
+// modulePath reads go.mod so the rules bind the application's own packages in
+// derived projects too, not only the framework source tree.
+func modulePath() string {
+	data, err := os.ReadFile("go.mod")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		if strings.HasPrefix(line, "module ") {
+			return strings.TrimSpace(strings.TrimPrefix(line, "module "))
+		}
+	}
+	fmt.Fprintln(os.Stderr, "go.mod has no module path")
+	os.Exit(1)
+	return ""
+}
+
 // forbiddenDomain lists the packages a domain layer may never depend on.
-func forbiddenDomain() []string {
-	return []string{"github.com/minio/minio-go/v7", "github.com/aliyun/aliyun-oss-go-sdk/oss", "github.com/tencentyun/cos-go-sdk-v5", "net/http", "database/sql", "github.com/wailsapp/", "github.com/yunnuo/unicore/internal/adapter", "github.com/yunnuo/unicore/internal/platform", "github.com/coreos/go-oidc", "golang.org/x/oauth2", "github.com/yunnuo/unicore/internal/adapter/oidc", "net/smtp", "github.com/yunnuo/unicore/internal/mailer", "github.com/yunnuo/unicore/internal/adapter/mail", "github.com/yunnuo/unicore/internal/usecase"}
+func forbiddenDomain(app string) []string {
+	return []string{"github.com/minio/minio-go/v7", "github.com/aliyun/aliyun-oss-go-sdk/oss", "github.com/tencentyun/cos-go-sdk-v5", "net/http", "database/sql", "github.com/wailsapp/", app + "/internal/adapter", app + "/internal/platform", "github.com/coreos/go-oidc", "golang.org/x/oauth2", app + "/internal/adapter/oidc", "net/smtp", app + "/internal/mailer", app + "/internal/adapter/mail", app + "/internal/usecase"}
 }
 
 // forbiddenUsecase lists the packages a usecase layer may never depend on.
-func forbiddenUsecase() []string {
-	return []string{"github.com/minio/minio-go/v7", "github.com/aliyun/aliyun-oss-go-sdk/oss", "github.com/tencentyun/cos-go-sdk-v5", "net/http", "database/sql", "github.com/wailsapp/", "github.com/yunnuo/unicore/internal/adapter", "github.com/yunnuo/unicore/internal/platform", "github.com/coreos/go-oidc", "golang.org/x/oauth2", "github.com/yunnuo/unicore/internal/adapter/oidc", "net/smtp", "github.com/yunnuo/unicore/internal/mailer"}
+func forbiddenUsecase(app string) []string {
+	return []string{"github.com/minio/minio-go/v7", "github.com/aliyun/aliyun-oss-go-sdk/oss", "github.com/tencentyun/cos-go-sdk-v5", "net/http", "database/sql", "github.com/wailsapp/", app + "/internal/adapter", app + "/internal/platform", "github.com/coreos/go-oidc", "golang.org/x/oauth2", app + "/internal/adapter/oidc", "net/smtp", app + "/internal/mailer"}
 }
 
 func main() {
+	app := modulePath()
 	checks := []struct {
 		target    string
 		forbidden []string
 	}{
-		{"./cmd/cli", []string{"github.com/yunnuo/unicore/migrations", "github.com/yunnuo/unicore/internal/updates", "github.com/yunnuo/unicore/internal/adapter/updatechannel", "github.com/yunnuo/unicore/internal/adapter/updateinstall", "github.com/minio/minio-go/v7", "github.com/aliyun/aliyun-oss-go-sdk/oss", "github.com/tencentyun/cos-go-sdk-v5", "net/http", "database/sql", "github.com/wailsapp/", "github.com/go-chi/", "github.com/yunnuo/unicore/internal/platform", "github.com/coreos/go-oidc", "golang.org/x/oauth2", "github.com/yunnuo/unicore/internal/adapter/oidc", "net/smtp", "github.com/yunnuo/unicore/internal/mailer", "github.com/yunnuo/unicore/internal/adapter/mail", "github.com/yunnuo/unicore/internal/adapter/storage", "modernc.org/sqlite", "github.com/mattn/go-sqlite3", "github.com/jackc/pgx", "github.com/go-sql-driver/"}},
-		{"./internal/domain", forbiddenDomain()},
-		{"./internal/usecase", forbiddenUsecase()},
-		{"./internal/bootstrap/local", []string{"github.com/minio/minio-go/v7", "github.com/aliyun/aliyun-oss-go-sdk/oss", "github.com/tencentyun/cos-go-sdk-v5", "github.com/yunnuo/unicore/internal/platform", "github.com/coreos/go-oidc", "golang.org/x/oauth2", "github.com/yunnuo/unicore/internal/adapter/oidc", "net/smtp", "github.com/yunnuo/unicore/internal/mailer", "github.com/yunnuo/unicore/internal/adapter/mail", "github.com/yunnuo/unicore/internal/install", "github.com/yunnuo/unicore/internal/adapter/storage/platformsql", "github.com/yunnuo/unicore/internal/adapter/storage/webdb", "github.com/jackc/pgx", "github.com/go-sql-driver/mysql"}},
-		{"./internal/bootstrap/filelocal", []string{"github.com/minio/minio-go/v7", "github.com/aliyun/aliyun-oss-go-sdk/oss", "github.com/tencentyun/cos-go-sdk-v5", "github.com/yunnuo/unicore/internal/platform", "github.com/coreos/go-oidc", "golang.org/x/oauth2", "github.com/yunnuo/unicore/internal/adapter/oidc", "net/smtp", "github.com/yunnuo/unicore/internal/mailer", "github.com/yunnuo/unicore/internal/adapter/mail", "github.com/yunnuo/unicore/internal/install", "github.com/yunnuo/unicore/internal/adapter/storage/platformsql"}},
-		{"./internal/adapter/desktop", []string{"github.com/minio/minio-go/v7", "github.com/aliyun/aliyun-oss-go-sdk/oss", "github.com/tencentyun/cos-go-sdk-v5", "github.com/yunnuo/unicore/internal/platform", "github.com/coreos/go-oidc", "golang.org/x/oauth2", "github.com/yunnuo/unicore/internal/adapter/oidc", "net/smtp", "github.com/yunnuo/unicore/internal/mailer", "github.com/yunnuo/unicore/internal/adapter/mail", "github.com/yunnuo/unicore/internal/install", "github.com/yunnuo/unicore/internal/adapter/storage/platformsql"}},
+		{"./cmd/cli", []string{app + "/migrations", app + "/internal/updates", app + "/internal/adapter/updatechannel", app + "/internal/adapter/updateinstall", "github.com/minio/minio-go/v7", "github.com/aliyun/aliyun-oss-go-sdk/oss", "github.com/tencentyun/cos-go-sdk-v5", "net/http", "database/sql", "github.com/wailsapp/", "github.com/go-chi/", app + "/internal/platform", "github.com/coreos/go-oidc", "golang.org/x/oauth2", app + "/internal/adapter/oidc", "net/smtp", app + "/internal/mailer", app + "/internal/adapter/mail", app + "/internal/adapter/storage", "modernc.org/sqlite", "github.com/mattn/go-sqlite3", "github.com/jackc/pgx", "github.com/go-sql-driver/"}},
+		{"./internal/domain", forbiddenDomain(app)},
+		{"./internal/usecase", forbiddenUsecase(app)},
+		{"./internal/bootstrap/local", []string{"github.com/minio/minio-go/v7", "github.com/aliyun/aliyun-oss-go-sdk/oss", "github.com/tencentyun/cos-go-sdk-v5", app + "/internal/platform", "github.com/coreos/go-oidc", "golang.org/x/oauth2", app + "/internal/adapter/oidc", "net/smtp", app + "/internal/mailer", app + "/internal/adapter/mail", app + "/internal/install", app + "/internal/adapter/storage/platformsql", app + "/internal/adapter/storage/webdb", "github.com/jackc/pgx", "github.com/go-sql-driver/mysql"}},
+		{"./internal/bootstrap/filelocal", []string{"github.com/minio/minio-go/v7", "github.com/aliyun/aliyun-oss-go-sdk/oss", "github.com/tencentyun/cos-go-sdk-v5", app + "/internal/platform", "github.com/coreos/go-oidc", "golang.org/x/oauth2", app + "/internal/adapter/oidc", "net/smtp", app + "/internal/mailer", app + "/internal/adapter/mail", app + "/internal/install", app + "/internal/adapter/storage/platformsql"}},
+		{"./internal/adapter/desktop", []string{"github.com/minio/minio-go/v7", "github.com/aliyun/aliyun-oss-go-sdk/oss", "github.com/tencentyun/cos-go-sdk-v5", app + "/internal/platform", "github.com/coreos/go-oidc", "golang.org/x/oauth2", app + "/internal/adapter/oidc", "net/smtp", app + "/internal/mailer", app + "/internal/adapter/mail", app + "/internal/install", app + "/internal/adapter/storage/platformsql"}},
 	}
 	// Business modules keep the same onion rules inside their own trees:
 	// domain may only depend on the core domain, usecase on domain and contracts.
+	// A module may legitimately ship only its descriptor, so layer packages are
+	// checked when their directory exists and skipped otherwise.
 	moduleDirs, err := os.ReadDir("internal/modules")
 	if err == nil {
 		for _, entry := range moduleDirs {
@@ -43,16 +64,19 @@ func main() {
 				continue
 			}
 			slug := entry.Name()
-			checks = append(checks,
-				struct {
-					target    string
-					forbidden []string
-				}{"./internal/modules/" + slug + "/domain", forbiddenDomain()},
-				struct {
-					target    string
-					forbidden []string
-				}{"./internal/modules/" + slug + "/usecase", forbiddenUsecase()},
-			)
+			for _, layer := range []struct {
+				name      string
+				forbidden func(string) []string
+			}{{"domain", forbiddenDomain}, {"usecase", forbiddenUsecase}} {
+				if info, err := os.Stat("internal/modules/" + slug + "/" + layer.name); err != nil || !info.IsDir() {
+					continue
+				}
+				checks = append(checks,
+					struct {
+						target    string
+						forbidden []string
+					}{"./internal/modules/" + slug + "/" + layer.name, layer.forbidden(app)})
+			}
 		}
 	}
 	for _, check := range checks {

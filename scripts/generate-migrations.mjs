@@ -79,9 +79,17 @@ function ledgerDDL(ledger, dialect) {
 export function buildMetadata(project = root) {
   const base = join(project, 'migrations');
   if (lstatSync(base).isSymbolicLink() || !lstatSync(base).isDirectory()) fail('migration root must be a real directory');
+  // The author header is a framework-source convention: exported migrations keep the
+  // framework author, while a derived application owns its business migrations and may
+  // author them (and re-own the catalog) with its identity author, mirroring check-authors.
+  const authors = [author];
+  if (existsSync(join(project, 'project.provenance.json'))) {
+    const owner = JSON.parse(readFileSync(join(project, 'product.identity.json'), 'utf8')).author;
+    if (typeof owner === 'string' && /^[^<>]+ <[^<>\s]+@[^<>\s]+>$/.test(owner)) authors.push(owner);
+  }
   const c = parseCatalog(readFileSync(regularPath(base, 'catalog.json'), 'utf8'));
   keys(c, ['author', 'format_version', 'schema_generation', 'generation_anchor', 'checksum_algorithm', 'dialects', 'sql_roots', 'ledger', 'profiles', 'namespaces']);
-  if (c.author !== author || c.format_version !== 1 || typeof c.schema_generation !== 'string' || !/^[a-z][a-z0-9-]{0,63}$/.test(c.schema_generation) || c.checksum_algorithm !== 'sha256-raw-v1') fail('unsupported catalog format, author, generation or checksum algorithm');
+  if (!authors.includes(c.author) || c.format_version !== 1 || typeof c.schema_generation !== 'string' || !/^[a-z][a-z0-9-]{0,63}$/.test(c.schema_generation) || c.checksum_algorithm !== 'sha256-raw-v1') fail('unsupported catalog format, author, generation or checksum algorithm');
   if (JSON.stringify(unique(c.dialects, 'dialects')) !== JSON.stringify(dialects)) fail('all three dialects required');
   const roots = unique(c.sql_roots, 'SQL roots');
   if (JSON.stringify(roots) !== JSON.stringify(['core', 'modules', 'platform'])) fail('managed SQL roots must isolate core/platform/modules from 0.x');
@@ -122,7 +130,7 @@ export function buildMetadata(project = root) {
         if (files.has(path)) fail('SQL referenced more than once');
         files.add(path);
         const bytes = readFileSync(regularPath(base, path));
-        if (!bytes.length || !bytes.subarray(0, 1200).toString().includes(`Author: ${author}`)) fail(`missing SQL content/author ${path}`);
+        if (!bytes.length || !authors.some(candidate => bytes.subarray(0, 1200).toString().includes(`Author: ${candidate}`))) fail(`missing SQL content/author ${path}`);
         generated[dialect] = { path, bytes: bytes.length, checksum: sha256(bytes) };
       }
       return { version: m.version, files: generated };
@@ -160,7 +168,7 @@ export function buildMetadata(project = root) {
     profiles[id] = { dialects: ds, namespaces: members, order: order.filter(n => members.includes(n)), levels: Object.fromEntries(members.map(n => [n, c.namespaces.find(x => x.id === n).migrations.at(-1).version])), schema_fingerprint: members.length ? sha256(JSON.stringify([c.schema_generation, expectedLedger, schema])) : '' };
   }
   return {
-    author, generated: true, format_version: c.format_version, schema_generation: c.schema_generation,
+    author: c.author, generated: true, format_version: c.format_version, schema_generation: c.schema_generation,
     checksum_algorithm: c.checksum_algorithm, generation_anchor: { ...c.generation_anchor, checksums },
     dialects, sql_roots: roots, ledger: { ...c.ledger, ddl: Object.fromEntries(dialects.map(d => [d, ledgerDDL(c.ledger, d)])) },
     namespaces: order.map(id => c.namespaces.find(n => n.id === id)), profiles

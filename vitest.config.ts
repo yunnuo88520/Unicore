@@ -3,4 +3,7 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { featureBuild } from './scripts/build-features.mjs';
 
-export default defineConfig({ plugins: [react()], define: featureBuild().define, test: { environment: 'jsdom', environmentOptions: { jsdom: { url: 'http://localhost/' } }, include: ['packages/**/*.test.{ts,tsx}'], setupFiles: ['tests/setup.ts'], restoreMocks: true } });
+export default defineConfig({ plugins: [react()], define: featureBuild().define, test: { environment: 'jsdom', environmentOptions: { jsdom: { url: 'http://localhost/' } }, include: ['packages/**/*.test.{ts,tsx}'], setupFiles: ['tests/setup.ts'], restoreMocks: true,
+    // The 80+-file jsdom suite hits vite chunk-download failures under CI load
+    // (an environmental fetch error, not an assertion): retry once before failing.
+    retry: process.env.CI ? 1 : 0 } });

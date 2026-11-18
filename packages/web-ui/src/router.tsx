@@ -150,7 +150,12 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
     pageRoute('/edition', () => import('./pages/edition').then(module => ({ default: module.UserEditionPage })), { adminEligible: true }),
     createRoute({ getParentRoute: () => rootRoute, path: '/settings', beforeLoad: () => { throw redirect({ to: '/site', replace: true }); } }) as unknown as AnyRoute,
   ] as [AnyRoute, ...AnyRoute[]]);
-  const router = createRouter({ routeTree: tree, history: options.history(), basepath: options.basepath || '/', defaultPreload: false, defaultErrorComponent: ServerErrorPage, defaultPendingComponent: PageLoader });
+  // defaultPendingMs 0 presents the shared skeleton as soon as a load is
+  // genuinely outstanding: a deep link into a still-downloading module gets
+  // the skeleton instead of a blank content area. Cached navigations resolve
+  // within microtasks, before the pending offer can paint, so they never
+  // flash the skeleton; the top progress bar keeps its own reveal delay.
+  const router = createRouter({ routeTree: tree, history: options.history(), basepath: options.basepath || '/', defaultPreload: false, defaultErrorComponent: ServerErrorPage, defaultPendingComponent: PageLoader, defaultPendingMs: 0 });
   // The navigation progress bar rides navigation only: the history
   // subscription is the earliest signal (it covers the route resolution and
   // the page module download inside the route loader), while background

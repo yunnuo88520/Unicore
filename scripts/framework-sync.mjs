@@ -257,20 +257,28 @@ export function abortTemplateSync(dir = process.cwd()) {
 
 // Recovery for projects created from an export without template ancestry (the
 // old generator could not record one from archive sources): re-create the
-// branch history on top of the pending template commit with identical trees,
-// messages, authors and dates, so a real three-way sync becomes possible. The
-// trees are untouched; only the ancestry is added.
+// branch history on top of the template commit the project was created from —
+// located in the fetched lineage by the provenance's framework_version — with
+// identical trees, messages, authors and dates, so a real three-way sync
+// becomes possible. The trees are untouched; only the ancestry is added.
 export function graftTemplateAncestry(dir = process.cwd()) {
-  requireDerived(dir);
+  const provenance = requireDerived(dir);
   if (existsSync(stateFile(dir))) throw Error('A sync is pending. Clean it up with framework:sync --abort before grafting.');
   if (git(dir, 'status', '--porcelain')) throw Error('Commit or stash local changes before grafting.');
   const upstream = fetchTemplate(dir);
+  const wanted = provenance.framework_version;
+  if (!wanted) throw Error('project.provenance.json records no framework_version; grafting cannot identify the template commit to attach.');
+  let ancestor = null;
+  for (const commit of git(dir, 'rev-list', upstream).split('\n')) {
+    try { if (git(dir, 'show', `${commit}:VERSION`).trim() === wanted) { ancestor = commit; break; } } catch { /* a lineage commit without VERSION */ }
+  }
+  if (!ancestor) throw Error(`The fetched template lineage has no commit at framework version ${wanted}; fetch a lineage that contains the release this project was created from.`);
   let common = null;
-  try { common = git(dir, 'merge-base', 'HEAD', upstream); } catch { /* grafting exists for the missing-ancestor case */ }
+  try { common = git(dir, 'merge-base', 'HEAD', ancestor); } catch { /* grafting exists for the missing-ancestor case */ }
   if (common) throw Error('This project already shares template ancestry; run framework:sync instead of grafting.');
   const branch = git(dir, 'symbolic-ref', '--short', 'HEAD');
   const expected = git(dir, 'rev-parse', 'HEAD');
-  let parent = upstream;
+  let parent = ancestor;
   for (const commit of git(dir, 'rev-list', '--reverse', '--topo-order', 'HEAD').split('\n')) {
     const metadata = git(dir, 'log', '-1', '--format=%an%x00%ae%x00%aD%x00%cn%x00%ce%x00%cD', commit).split('\x00');
     const env = { ...process.env,
@@ -281,7 +289,7 @@ export function graftTemplateAncestry(dir = process.cwd()) {
   }
   git(dir, 'update-ref', `refs/heads/${branch}`, parent, expected);
   git(dir, 'reset', '-q', '--mixed'); // re-align the index with the re-created tip; the worktree is identical
-  return { grafted: upstream, tip: parent, commits: git(dir, 'rev-list', '--count', 'HEAD') };
+  return { grafted: ancestor, tip: parent, commits: git(dir, 'rev-list', '--count', 'HEAD') };
 }
 export function continueTemplateSync(dir = process.cwd()) {
   const state = pendingState(dir);

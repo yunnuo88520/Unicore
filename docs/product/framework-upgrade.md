@@ -113,7 +113,7 @@ node scripts/framework-sync.mjs graft
 pnpm framework:sync
 ```
 
-`graft` 要求工作区干净、项目与模板尚无共同祖先；它重写本地分支的提交对象（不改工作区与树内容），尚未推送或发布过的项目执行一次即可。已有祖先的项目运行 `graft` 会被拒绝并提示直接 `framework:sync`。
+`graft` 要求工作区干净、项目与模板尚无共同祖先；它按 `project.provenance.json` 的 `framework_version` 在模板历史中定位项目创建时对应的模板提交，把该提交嫁接为现有历史的祖先（重写本地分支的提交对象，树、提交说明、作者与日期逐字节保留），尚未推送或发布过的项目执行一次即可。已有祖先的项目运行 `graft` 会被拒绝并提示直接 `framework:sync`。
 
 ### 情形三：旧工具留下未完成的现场
 

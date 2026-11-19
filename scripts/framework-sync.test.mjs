@@ -326,44 +326,78 @@ test('an OpenAPI business schema named version stays a manual conflict',()=>{
  }finally{rmSync(fixtureRoot,{recursive:true,force:true});}
 });
 
-test('graft attaches the creation template commit to an archive-created project',()=>{
+test('graft picks the exact creation baseline through a same-version template roll',()=>{
  const {source,fixtureRoot}=makeSource();
  try{
+  // A: create the application from this template state (archive-created, so
+  // the provenance records only the framework version and input digests).
   const t1=updateTemplateBranch(source);
-  // An archive-created project: the generator runs against a .git-free copy,
-  // so the application has no template ancestry and records only its version.
   const plain=join(fixtureRoot,'archive');mkdirSync(plain);
   cpSync(source,plain,{recursive:true,filter:p=>!/([\\/])\.git([\\/]|$)/.test(p)});
-  const options={source:plain,directory:join(fixtureRoot,'app-archive'),name:'My Product',slug:'my-product',module:'example.test/team/product',bundle:'test.example.product'};
-  const derived=createProject(options);
+  const derived=createProject({source:plain,directory:join(fixtureRoot,'app-archive'),name:'My Product',slug:'my-product',module:'example.test/team/product',bundle:'test.example.product'});
   sh(derived,'remote','set-url','framework',source);
   assert.equal(JSON.parse(readFileSync(join(derived,'project.provenance.json'))).template_revision,null);
   mkdirSync(join(derived,'internal/business'),{recursive:true});
   writeFileSync(join(derived,'internal/business/business.go'),'package business\n');
   sh(derived,'add','-A');sh(derived,'commit','-qm','product work');
-  // The old bundled syncer refuses: no common ancestor, branch untouched.
-  const head=sh(derived,'rev-parse','HEAD');
-  assert.throws(()=>syncTemplate(derived),/No common ancestor/);
-  assert.equal(sh(derived,'rev-parse','HEAD'),head);
-  // Graft locates the creation framework version inside the fetched lineage.
-  const grafted=graftTemplateAncestry(derived);
-  assert.equal(grafted.grafted,t1.commit);
-  assert.equal(sh(derived,'merge-base',sh(derived,'rev-parse','HEAD'),t1.commit),t1.commit);
-  // The trees are identical; only the ancestry was added.
-  assert.equal(sh(derived,'status','--porcelain'),'');
-  // A normal sync now works and keeps the grafted ancestor.
-  const preSync=sh(derived,'rev-parse','HEAD');
-  const t2=upstreamStep(source,'0.2.0',()=>{
+  // B: a whitelist file added WITHOUT a version bump — the template history
+  // now carries two commits at the same framework version.
+  writeFileSync(join(source,'docs/product/extra.md'),'# Extra\n');
+  const manifest=JSON.parse(readFileSync(join(source,'distribution/manifest.json')));
+  manifest.template_files.push('docs/product/extra.md');
+  writeFileSync(join(source,'distribution/manifest.json'),JSON.stringify(manifest,null,2)+'\n');
+  sh(source,'add','-A');sh(source,'-c','user.name=Framework','-c','user.email=framework@example.test','commit','-qm','same-version whitelist addition');
+  const t2=updateTemplateBranch(source);
+  assert.equal(t2.version,'0.1.0');assert.notEqual(t2.commit,t1.commit);
+  // C: the version bump.
+  const t3=upstreamStep(source,'0.2.0',()=>{
    writeFileSync(join(source,'VERSION'),'0.2.0\n');
    writeFileSync(join(source,'deploy/tar/unicore.service'),SERVICE+'\n# upstream improvement\n');
   });
+  // The graft must attach the exact creation baseline (input digests and
+  // whitelist-set equality), never the newest same-version commit.
+  const headBeforeGraft=sh(derived,'rev-parse','HEAD');
+  const grafted=graftTemplateAncestry(derived);
+  assert.equal(grafted.grafted,t1.commit);
+  assert.equal(grafted.evidence,'creation input digests');
+  assert.equal(sh(derived,'rev-parse','--verify',grafted.backup),headBeforeGraft);
+  // The sync after grafting delivers B's whitelist file and keeps the business change.
+  const preSync=sh(derived,'rev-parse','HEAD');
   const result=syncTemplate(derived);
   assert.ok(result.merged_commit);
-  assert.equal(sh(derived,'merge-base',preSync,t2.commit),t1.commit);
+  assert.ok(existsSync(join(derived,'docs/product/extra.md')));
+  assert.ok(existsSync(join(derived,'internal/business/business.go')));
+  assert.equal(sh(derived,'merge-base',preSync,t3.commit),t1.commit);
   assert.match(readFileSync(join(derived,'deploy/tar/my-product.service'),'utf8'),/upstream improvement/);
   assert.equal(sh(derived,'status','--porcelain'),'');
   // Grafting twice is refused: ancestry already exists.
   assert.throws(()=>graftTemplateAncestry(derived),/already shares template ancestry/);
+ }finally{rmSync(fixtureRoot,{recursive:true,force:true});}
+});
+
+test('graft refuses when the creation evidence cannot identify a baseline',()=>{
+ const {source,fixtureRoot}=makeSource();
+ try{
+  updateTemplateBranch(source);
+  const plain=join(fixtureRoot,'archive');mkdirSync(plain);
+  cpSync(source,plain,{recursive:true,filter:p=>!/([\\/])\.git([\\/]|$)/.test(p)});
+  const derived=createProject({source:plain,directory:join(fixtureRoot,'app-archive'),name:'My Product',slug:'my-product',module:'example.test/team/product',bundle:'test.example.product'});
+  sh(derived,'remote','set-url','framework',source);
+  mkdirSync(join(derived,'internal/business'),{recursive:true});
+  writeFileSync(join(derived,'internal/business/business.go'),'package business\n');
+  sh(derived,'add','-A');sh(derived,'commit','-qm','product work');
+  // Provenance without a template revision or input digests cannot identify
+  // the exact creation baseline: the graft refuses and nothing changes.
+  const provenancePath=join(derived,'project.provenance.json');
+  const stripped=JSON.parse(readFileSync(provenancePath));
+  delete stripped.template_revision; delete stripped.input_files;
+  writeFileSync(provenancePath,JSON.stringify(stripped,null,2)+'\n');
+  sh(derived,'add','-A');sh(derived,'commit','-qm','Drop creation evidence');
+  const head=sh(derived,'rev-parse','HEAD');
+  assert.throws(()=>graftTemplateAncestry(derived),/cannot identify the creation baseline/);
+  assert.equal(sh(derived,'rev-parse','HEAD'),head);
+  assert.equal(sh(derived,'status','--porcelain'),'');
+  assert.equal(existsSync(join(derived,'build/framework-sync-state.json')),false);
  }finally{rmSync(fixtureRoot,{recursive:true,force:true});}
 });
 

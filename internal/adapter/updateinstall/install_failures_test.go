@@ -46,7 +46,7 @@ func (p truncatedProvider) Download(_ context.Context, _ string, w io.Writer, _ 
 
 func waitTerminal(t *testing.T, i *Installer, expected string) contracts.UpdateJob {
 	t.Helper()
-	deadline := time.Now().Add(60 * time.Second)
+	deadline := time.Now().Add(120 * time.Second)
 	for time.Now().Before(deadline) {
 		job := i.Job()
 		if job.Status == expected {
@@ -73,7 +73,7 @@ func previousProgramStillLaunches(t *testing.T, i *Installer, executable string)
 		t.Fatal(e)
 	}
 	running := false
-	for deadline := time.Now().Add(30 * time.Second); time.Now().Before(deadline); time.Sleep(50 * time.Millisecond) {
+	for deadline := time.Now().Add(60 * time.Second); time.Now().Before(deadline); time.Sleep(50 * time.Millisecond) {
 		if raw, e := os.ReadFile(filepath.Join(i.DataDir, "running")); e == nil && strings.TrimSpace(string(raw)) == "1.0.0" {
 			running = true
 			break

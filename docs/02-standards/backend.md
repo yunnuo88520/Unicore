@@ -22,7 +22,7 @@ Go 采用组合：可变业务实体嵌入 `internal/domain/entity.go` 的 BaseE
 
 ## 身份与授权
 
-平台采用统一账号、多角色与共享会话；user/administrator 是工作台与 API 面，角色 realm 仅作分类，不是账号或会话隔离边界。所有管理资源（包含只读）位于 `/api/v1/admin/*`，其 x-unicore 契约策略由策略中间件 fail-closed 强制（未声明路由 500），handler 内仍实际调用 require 补充 2FA/审计；写请求还需 CSRF/Origin。在安装锁内重查操作者以防请求鉴权后的停用竞争，参考 platformsql.AuthorizeAdministrator 和 announcementsql.transaction。用户路径只返回本人或业务明确开放的最小投影，不提供管理 DTO；公告用户读取不包含内部备注、草稿、版本及管理员 ID。真实 Chi 路由与契约的双向遍历比对、身份域/CSRF 矩阵、响应信封形状与错误码/状态一致性测试纳入 make test。
+平台采用统一账号、多角色与共享会话；user/administrator 是工作台与 API 面，角色 realm 仅作分类，不是账号或会话隔离边界。所有管理资源（包含只读）位于 `/api/v1/admin/*`，其 x-unicore 契约策略由策略中间件 fail-closed 强制（未声明路由 500），handler 内仍实际调用 require 补充 2FA/审计；写请求还需 CSRF/Origin。在安装锁内重查操作者以防请求鉴权后的停用竞争，参考 platformsql.AuthorizeAdministrator 和 announcementsql.transaction。新增写 `unicore_role_permissions` 的入口必须复用 `platform.SuperOnlyPermission` 校验，super_admin 保留权限点不得进入存储角色行（保留点仅由 super_admin 隐式持有，`validateGrants` 是唯一授权边界）。用户路径只返回本人或业务明确开放的最小投影，不提供管理 DTO；公告用户读取不包含内部备注、草稿、版本及管理员 ID。真实 Chi 路由与契约的双向遍历比对、身份域/CSRF 矩阵、响应信封形状与错误码/状态一致性测试纳入 make test。
 
 ## DTO、存储与生命周期
 

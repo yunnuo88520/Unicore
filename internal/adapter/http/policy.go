@@ -60,9 +60,19 @@ func (p policyRouter) Head(pattern string, h http.HandlerFunc) {
 // The remaining registration surfaces are wrapped as well: Method and
 // MethodFunc used to bypass the policy middleware entirely (the branding and
 // storage mounts registered through them), and Route/Group/Mount would hand
-// callers an unwrapped subrouter. NotFound/MethodNotAllowed stay unwrapped on
-// purpose: unmatched requests have no operation policy and the root router
-// already answers them with JSON errors.
+// callers an unwrapped subrouter. Handle and HandleFunc have no caller today
+// but stay wrapped so a future mount cannot register around the middleware.
+// NotFound/MethodNotAllowed stay unwrapped on purpose: unmatched requests have
+// no operation policy and the root router already answers them with JSON
+// errors.
+func (p policyRouter) Handle(pattern string, h http.Handler) {
+	p.Router.With(policyHandler(p.config)).Handle(pattern, h)
+}
+
+func (p policyRouter) HandleFunc(pattern string, h http.HandlerFunc) {
+	p.Router.With(policyHandler(p.config)).HandleFunc(pattern, h)
+}
+
 func (p policyRouter) Connect(pattern string, h http.HandlerFunc) {
 	p.Router.With(policyHandler(p.config)).Connect(pattern, h)
 }

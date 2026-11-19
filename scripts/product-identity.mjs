@@ -247,21 +247,26 @@ export function replaceModuleReferences(text, from, to) {
 }
 
 // These are application-facing links; upstream provenance and the upgrade guide stay upstream.
-export function applyRepositoryLinks(base, repository) {
+export function applyRepositoryLinks(base, repository, slug) {
   if (!repository) return;
   if (!/^https:\/\/github\.com\/[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(repository)) throw Error('Invalid application repository in project provenance');
-  // The image registry follows the release repository's owner: documents created
-  // (or last synced) before the generator derived the image from the repository
-  // still carry the framework's ghcr path, and every generation re-derives it.
-  // The image NAME after the owner is finished by the identity token pass.
-  const ghcrOwner = repository.replace(/^https:\/\/github\.com\//, '').toLowerCase().split('/')[0];
+  // The image registry reference is the release repository's owner/repository:
+  // documents created (or last synced) before the generator derived it still
+  // carry the framework's full ghcr path or the slug-only projection left when
+  // the repository name differs from the product slug, and every generation
+  // re-derives the complete reference from the provenance repository.
+  const imageReference = `ghcr.io/${repository.replace(/^https:\/\/github\.com\//, '').toLowerCase()}`;
   const documents = JSON.parse(readFileSync(`${base}/distribution/manifest.json`, 'utf8')).documents
     .filter(doc => doc.audiences.includes('project-template') && doc.target !== 'docs/product/framework-upgrade.md').map(doc => doc.target);
   for (const path of [...documents, 'packages/web-ui/src/shell-tools.tsx', '.github/ISSUE_TEMPLATE/config.yml', 'SUPPORT.md', 'SECURITY.md', 'CONTRIBUTING.md', 'CODE_OF_CONDUCT.md']) {
     const full = `${base}/${path}`;
-    if (existsSync(full)) writeFileSync(full, readFileSync(full, 'utf8')
-      .replaceAll('https://github.com/yunnuo88520/Unicore', repository)
-      .replaceAll('ghcr.io/yunnuo88520/', `ghcr.io/${ghcrOwner}/`));
+    if (existsSync(full)) {
+      let text = readFileSync(full, 'utf8')
+        .replaceAll('https://github.com/yunnuo88520/Unicore', repository)
+        .replaceAll('ghcr.io/yunnuo88520/unicore', imageReference);
+      if (slug) text = text.replaceAll(`ghcr.io/yunnuo88520/${slug}`, imageReference);
+      writeFileSync(full, text);
+    }
   }
 }
 

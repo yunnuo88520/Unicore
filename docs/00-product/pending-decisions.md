@@ -22,7 +22,9 @@
 - 现状：web-standalone 的 `PATCH /api/v1/settings`（actor=local）受 sameOrigin 等中间件保护但**不限 loopback**；`/api/v1/updates*` 强制 Host 与 RemoteAddr 均为 loopback（`internal/adapter/http/updates.go`）。[支持范围](../support.md) 要求远程使用需外层访问控制。
 - 影响：同一「本地面」两类接口的暴露强度不同；局域网部署时设置可被同源页面改动而更新不可用。
 - 候选：A. 统一收紧为 loopback；B. 维持现状并在文档强调外层访问控制；C. 设置写操作加独立确认（如维护开关）。
-- 推荐：B 为当前基线（与 README/support 口径一致），若出现真实远程部署需求再评估 A。**待决策。**
+- 推荐：B 为当前基线（与 README/support 口径一致），若出现真实远程部署需求再评估 A。
+- 裁决（2026-11-19）：**选 B**——维持 sameOrigin 基线，不扩大 loopback 收紧；`/updates*` 维持 loopback、`PATCH /settings` 与 `platform-session` 本地面维持 sameOrigin，三档强度与「远程使用须外层访问控制」约束已写入 [产品形态规范第 5 节](product-forms.md)。
+- 状态：**已裁决（B），去向：形态规范第 5 节清单。**
 
 ## D4. 桌面装配无 Secrets
 
